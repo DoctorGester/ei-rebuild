@@ -8,6 +8,7 @@
 // docs/notes/items_spells.md ("Party").
 
 #include "engine_object.h"
+#include "manager_context.h"
 #include "map_object_figures.h"
 #include "object_tables.h"
 #include "party_storage.h"
@@ -69,30 +70,22 @@ struct PartyMembers : mfc::CArray<PartyUnitRecord, PartyUnitRecordElements> {
 };
 using PartyMemberArray = PartyMembers;
 
-class CParty : public CEngineObject {
+class CParty : public CManagerContext {
 public:
     // The compiled tables (C19, party_lifetime.cpp's PartyClass and PartyBaseClass over engine_object_class.h) in
     // place of game.exe's 00743000 and the base's 0074306C, which the constructor stores first.
     static void* Vtable();
     static void* BaseVtable();
 
-    // Slots 13-24: the manager context's getters, as CWorld's (world.h); a party has only the item
-    // and spell ones. Slots declared `void Name()` keep their place in the order only (their
-    // return types are not declared; docs/notes/map_objects.md ("Virtual slot names")).
-    virtual void ThisWorld();                  // 13: 0065F4B0 (null)
-    virtual void TimedObjectManager();         // 14: 0065F530 (null)
-    virtual void FigureManager();              // 15: 0065F4C0 (null)
-    virtual CItemConstructor* ItemConstructor();   // 16: 0065F540 (itemConstructor_)
-    virtual CSpellConstructor* SpellConstructor();   // 17: 0065F550 (spellConstructor_)
-    virtual CItemManager* ItemManager();       // 18: itemManager_
-    virtual void MapObjectManager();           // 19: 0065F4D0 (null)
-    virtual void PlayerList();                 // 20: 0065F4E0 (null)
-    virtual void SpecificManager();            // 21: 0065F4F0 (null)
-    virtual CSpellManager* SpellManager();     // 22: spellManager_
-    virtual void FigureLoader();               // 23: 0065F500 (null)
-    // 24: 0055E940. A new item made like `item` (the item factory, slot 18) and given its values
-    // (its slot 15 with the spell manager, slot 22).
-    virtual CItem* CopyItem(CItem* item);
+    // Slots 13-24: the manager context's getters (CManagerContext, manager_context.h; as CWorld's);
+    // a party has only the item and spell ones: 13-15, 19-21 and 23 return null (0065F4B0,
+    // 0065F530, 0065F4C0, 0065F4D0, 0065F4E0, 0065F4F0, 0065F500), 16 / 17 the constructors
+    // (0065F540 / 0065F550), 18 itemManager_, 22 spellManager_. Slot 18 (ItemFactory) under the
+    // party's name:
+    CItemManager* ItemManager() { return ItemFactory(); }
+    // Slot 24 (DuplicateItem, 0055E940): a new item made like `item` (the item factory, slot 18)
+    // and given its values (its slot 15 with the spell manager, slot 22).
+    CItem* CopyItem(CItem* item) { return DuplicateItem(item); }
     // 0055E940 (RET 4; slot 24's body, in CWorld's base and client vtables too, whose slots 18 and
     // 22 are the same getters). The item manager makes an item of `item`'s kind, prototype (high
     // word of the packed id) and material (low word), which `item` then fills (its slot 15 with

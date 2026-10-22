@@ -246,6 +246,13 @@ static_assert(offsetof(ItemRecordHead, materialUnits) == 0x4C);
 static_assert(offsetof(ItemRecordHead, category) == 0x6C);
 static_assert(sizeof(ItemRecordHead) == 0x70);
 
+// A record (or null) as the kind's record it is (WeaponRecord, ArmorRecord, QuickItemRecord,
+// QuestItemRecord, LootItemRecord): the item's class id or the table it came from says which.
+template <class Record>
+Record* RecordAs(ItemRecordHead* record) { return static_cast<Record*>(record); }
+template <class Record>
+const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const Record*>(record); }
+
 // The item records' own virtual slot 0 (the record vtables 00744054..00744068): the item kind the
 // record makes (CItemConstructor::BeginCreateItem's kind; item_stock.cpp).
 class ItemRecordSlots {

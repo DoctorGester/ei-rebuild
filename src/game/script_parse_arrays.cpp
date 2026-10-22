@@ -28,13 +28,8 @@ using DefinitionArray = mfc::impl::ArrayAbi<ScriptDefinition, gamelists::Definit
 
 // The element destructors the inlined SetSize runs when the array empties or shrinks (neither
 // happens in Add or SetAtGrow, whose new size is above the old one).
-void DestroySubCalls(char* first, int count) {
-    for (auto* call = reinterpret_cast<ScriptSubCall*>(first); count > 0; --count, ++call) ScriptSubCallDestruct(call);
-}
-void DestroyDefinitions(char* first, int count) {
-    for (auto* definition = reinterpret_cast<ScriptDefinition*>(first); count > 0; --count, ++definition)
-        ScriptDefinitionDestruct(definition);
-}
+constexpr RangeFn DestroySubCalls = DestroyEach<ScriptSubCall, ScriptSubCallDestruct>;
+constexpr RangeFn DestroyDefinitions = DestroyEach<ScriptDefinition, ScriptDefinitionDestruct>;
 
 const ElementKind kBindings{sizeof(ScriptBinding), ConstructAs<mfc::impl::Plain12>, nullptr, nullptr};
 const ElementKind kSubCalls{sizeof(ScriptSubCall), ConstructAs<recordarrays::SubCalls>, DestroySubCalls, DestroySubCalls};

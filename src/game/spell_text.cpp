@@ -85,7 +85,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     console::CStringArray codes;
     ParseSpellText(text, codes);
 
-    CSpellConstructor* constructor = static_cast<CManagerContext*>(context_)->SpellConstructor();
+    CSpellConstructor* constructor = context_->SpellConstructor();
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->CallSetManager(this);
 

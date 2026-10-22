@@ -6,6 +6,7 @@
 #include "core_streams.h"
 #include "unit_ai.h"
 #include "world.h"
+#include "world_effect.h"
 
 #include "ei/hook.h"
 
@@ -20,11 +21,12 @@ AIRef& Ref(T*& object) { return *reinterpret_cast<AIRef*>(&object); }
 
 // One of the three counted effect objects by the id read (-1 none), looked up in the world's timed
 // object manager; `id` keeps what the previous read left (the original's one stack slot).
-void LoadEffectObject(CStream* stream, CWorld* world, std::uint32_t& id, CEngineObject*& field) {
+template <class T>
+void LoadEffectObject(CStream* stream, CWorld* world, std::uint32_t& id, T*& field) {
     CBaseManager* manager = world->TimedObjectManager();
     stream->Read(&id, 4);
-    CEngineObject* object = static_cast<int>(id) == kNoObject ? nullptr : manager->FindObject(id);
-    CEngineObject* old = field;
+    T* object = static_cast<int>(id) == kNoObject ? nullptr : manager->FindObjectAs<T>(id);
+    T* old = field;
     field = object;
     if (object) ++object->refCount_;
     if (old) old->Release();

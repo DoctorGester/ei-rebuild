@@ -201,7 +201,7 @@ void CUiScrollText::DrawLines(int scroll) {
     if (tokens_.data[first]->type_ != kFormatType) {
         for (int k = first; k > 0; --k) {
             if (tokens_.data[k]->type_ == kFormatType) {
-                auto* format = static_cast<UiFormatToken*>(tokens_.data[k]);
+                auto* format = tokens_.data[k]->AsFormat();
                 colour = format->colour_;
                 font = format->font_;
                 break;
@@ -220,14 +220,14 @@ void CUiScrollText::DrawLines(int scroll) {
 
         int wordsWidth = 0;
         for (int t = begin; t < end; ++t)
-            if (tokens_.data[t]->type_ == kWordType) wordsWidth += static_cast<UiWordToken*>(tokens_.data[t])->width_;
+            if (tokens_.data[t]->type_ == kWordType) wordsWidth += tokens_.data[t]->AsWord()->width_;
         // Left aligned (a third of the font's height apart), or justified over the width. The
         // last token is read before the count is checked, as in the original. (A font above 2
         // reads past `heights`; the original reads its other stack slots there.)
         int gap;
         const UiTextToken* last = align_ != kAlignLeft ? tokens_.data[end - 1] : nullptr;
         if (align_ == kAlignLeft ||
-            (last->type_ == kFormatType && static_cast<const UiFormatToken*>(last)->newline_) || end - begin < 2 ||
+            (last->type_ == kFormatType && last->AsFormat()->newline_) || end - begin < 2 ||
             end == tokens_.size)
             gap = heights[font] / 3;
         else
@@ -237,11 +237,11 @@ void CUiScrollText::DrawLines(int scroll) {
         for (int t = begin; t < end; ++t) {
             UiTextToken* token = tokens_.data[t];
             if (token->type_ == kFormatType) {
-                auto* format = static_cast<UiFormatToken*>(token);
+                auto* format = token->AsFormat();
                 colour = format->colour_;
                 font = format->font_;
             } else if (token->type_ == kWordType) {
-                auto* w = static_cast<UiWordToken*>(token);
+                auto* w = token->AsWord();
                 DrawWord(surface, w->text_, &word, font, colour);
                 word.left += w->width_ + gap;
             }
@@ -395,13 +395,13 @@ void CUiScrollText::Layout() {
         for (; t < tokens_.size && x < width; ++t) {
             UiTextToken* token = tokens_.data[t];
             if (token->type_ == kFormatType) {
-                auto* format = static_cast<UiFormatToken*>(token);
+                auto* format = token->AsFormat();
                 if (format->newline_) {
                     font = format->font_;
                     break;
                 }
             } else if (token->type_ == kWordType) {
-                x += static_cast<UiWordToken*>(token)->width_ + height / 3;
+                x += token->AsWord()->width_ + height / 3;
                 if (x >= width) {
                     if (line->firstToken_ != t) --t;   // the word starts the next line
                     break;

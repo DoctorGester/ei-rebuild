@@ -508,7 +508,7 @@ float LevelAsFloat(const UnitStats* stats, int index) {
 float WeaponBonus(CUnit* unit, int skill) {
     CItem* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return kZero;
-    const auto* record = reinterpret_cast<const itemdb::WeaponRecord*>(weapon->GetPrototype());
+    const auto* record = itemdb::RecordAs<itemdb::WeaponRecord>(weapon->GetPrototype());
     return static_cast<float>(static_cast<int>(record->skillBonus[skill]));
 }
 } // namespace

@@ -617,7 +617,7 @@ inline CUnit* UnitOrNull(CEngineObject* object) {
 
 // The object `objects` registered under a unit's id (the party's and the players' unit ids, a
 // unit's speech), or null; the original takes it as a unit without a class test.
-inline CUnit* UnitWithId(const CBaseManager* objects, unsigned id) { return static_cast<CUnit*>(objects->FindObject(id)); }
+inline CUnit* UnitWithId(const CBaseManager* objects, unsigned id) { return objects->FindObjectAs<CUnit>(id); }
 
 constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
 

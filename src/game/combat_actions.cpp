@@ -287,11 +287,11 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
 }
 EI_REPLACE_METHOD(0x005518F0, CUnitServer::HitDirection);
 
-void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer) {
+void CUnitServer::WitnessMurder(UnitList* witnesses, CUnit* victim, CUnit* murderer) {
     CWorldServer* world = ServerWorld();
     CDiplomacy* diplomacy = DiplomacyOf(unit->ServerWorld());
     int side = unit->side;
-    UnitListNode* node = static_cast<UnitList*>(witnesses)->head;
+    UnitListNode* node = witnesses->head;
     if (!node) return;
     std::uint32_t bit = 1u << (static_cast<std::uint32_t>(side) & 31);
     do {
@@ -301,7 +301,7 @@ void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer)
         other->flags_ |= 0x2000000;
         CUnitServer* controller = other->ServerController();
         AIEventsOf(world)->Update(controller, &controller->brain.memory);   // 005CAA00
-        auto* watched = reinterpret_cast<UnitList*>(&controller->brain.memory.visible);
+        UnitList* watched = &controller->brain.memory.visible;
         if (!ListContains(watched, victim)) continue;
         if (!ListContains(watched, murderer)) {
             UnitListNode* added = watched->NewNode(watched->tail, nullptr);

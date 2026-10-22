@@ -161,7 +161,9 @@ does not need a second pass:
   raw blocks come typed from `gamecrt::operator_new_as<T>()` / `operator_new_zeroed_as<T>()` /
   `operator_new_array<T>(count)` and `stlp::allocate_as<T>(count)` (`src/lib/crt.h`,
   `src/lib/stlp_alloc.h`), not a `static_cast` at each allocation (tools/progress.py counts the
-  pointer casts; check_cleanup does not).
+  pointer casts; check_cleanup does not); objects of a manager come typed from
+  `CBaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
+  `itemdb::RecordAs<T>`, and a manager's context is a `CManagerContext` (CWorld, CParty).
 `build.cmd` runs `tools/check_cleanup.py`: per file, the counts of these patterns may only go down
 (config/cleanup_baseline.csv; a new file starts at zero). After a cleanup ticket lowers them, run
 `python tools/check_cleanup.py --update`.

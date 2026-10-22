@@ -213,8 +213,7 @@ inline void WallSpan(const Vector3* direction, const float* radius, Vector3* out
 
 // The light wall's half extent from its lightning's ends: x keeps the difference unrounded before
 // halving (0073B86C), y and z are rounded first.
-inline void HalfSpan(const CEngineObject* lightning, Vector3* out) {
-    const auto* bolt = static_cast<const CEffectLightning*>(lightning);
+inline void HalfSpan(const CEffectLightning* bolt, Vector3* out) {
     const double half = 0.5f /*0073B86C*/;
     const double dx = static_cast<double>(bolt->to_.x) - bolt->from_.x;
     out->y = static_cast<float>(static_cast<double>(bolt->to_.y) - bolt->from_.y);
@@ -237,25 +236,29 @@ inline bool IsUnit(CEngineObject* object) { return object && object->GetClassId(
 inline Vector3* PositionOf(CEngineObject* object, Vector3* scratch) { return ObjectSlots(object)->EyePoint(scratch); }
 // A unit's server half (CUnit::controller).
 inline CUnitServer* ControllerOf(CUnit* unit) { return unit->ServerController(); }
-inline CUnitServer* ControllerOf(CEngineObject* unit) { return static_cast<CUnit*>(unit)->ServerController(); }
+// The target as a unit (the callers checked its class, or the original does not).
+inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target); }
 
-// A new object of class `classId` from the world's timed object manager (key -1).
-inline CEngineObject* CreateObject(CSpellEffect* e, int classId) {
-    return e->world->TimedObjectManager()->CreateObject(classId, -1);
+// A new object of class `classId` (whose objects are T's) from the world's timed object manager
+// (key -1).
+template <class T>
+T* CreateObject(CSpellEffect* e, int classId) {
+    return e->world->TimedObjectManager()->CreateObjectAs<T>(classId, -1);
 }
 
 // The counted-pointer assignment the helpers repeat: the old object leaves the world's timed
 // objects and is released, the new one is counted.
-inline void Assign(CSpellEffect* e, CEngineObject** slot, CEngineObject* object) {
+template <class T>
+void Assign(CSpellEffect* e, T** slot, T* object) {
     if (*slot) e->world->RemoveTimedObject((*slot)->id_);
-    CEngineObject* old = *slot;
+    T* old = *slot;
     *slot = object;
     if (object) ++object->refCount_;
     if (old) old->Release();
 }
 
-inline void SetPosition(CEngineObject* object, const Vector3* position) {
-    std::memcpy(&static_cast<CTransformObject*>(object)->localPosition_, position, 12);
+inline void SetPosition(CTransformObject* object, const Vector3* position) {
+    std::memcpy(&object->localPosition_, position, 12);
 }
 
 // The fields of the spell prototype the casts read.

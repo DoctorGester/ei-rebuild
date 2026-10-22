@@ -431,7 +431,7 @@ public:
     // 005538D0. For each unit in `witnesses` (a CList of units) allied with this unit's side that
     // saw `victim` (is in its controller's +0xA90 list): adds `murderer` to that list (logging
     // "Unit 12 has seen murder and is forced to see unit 34") and makes the murderer hostile.
-    void WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer);
+    void WitnessMurder(mfc::CTypedPtrList<CUnit>* witnesses, CUnit* victim, CUnit* murderer);
     // 00552E00. When the unit's flags_ have 0x80000: clears it, adds its hostile mask to its
     // claims (+0x97C) and swaps hostility claims (00552D00) with the allied units nearby.
     void PropagateHostility();

@@ -19,6 +19,9 @@ class CWorldServer;         // world.h
 class CUnit;                // unit.h
 class CMapObject;           // map_object.h
 struct MapEffect;           // map_object.h
+class CEffect;              // world_effect.h
+class CEffectParticle;      // world_effect.h
+class CEffectPointLight;    // world_effect.h
 
 // A spell instance (game.exe's vtable 00743A94; the compiled CSpellClass, spell_class.h). prototypeId_ of CEngineObject is the packed id: spell
 // prototype index << 16.
@@ -165,7 +168,7 @@ struct __declspec(novtable) CSpellEffect {
     void Start(int type);
     // 0067EF40. Replaces the visual (+0x90): the old one leaves the world's timed objects and is
     // released, the new one is counted and added to them.
-    void SetVisual(CEngineObject* visual);
+    void SetVisual(CEffect* visual);
     // 0067EFC0. The walls (6 fire wall, 7 light wall) and the area clouds (8, 0x27) block the AI
     // map while they last: builds the footprint and stamps it (`stamp`) or clears it. Nothing
     // without a visual or for other types.
@@ -177,11 +180,11 @@ struct __declspec(novtable) CSpellEffect {
     // 0067F260. A particle source (class 0x4A; types 0x2010 and 0x2014 are walls, class 0x5A),
     // optionally attached to `attachTo`. `keep`: it becomes the visual, else it is only added to
     // the world's timed objects. Returns it.
-    CEngineObject* CreateParticle(int keep, int particleType, const Vector3* position, float size, float alpha,
-                                  const Vector3* velocity, CEngineObject* attachTo);
+    CEffectParticle* CreateParticle(int keep, int particleType, const Vector3* position, float size, float alpha,
+                                    const Vector3* velocity, CEngineObject* attachTo);
     // 0067F410. A lightning bolt (class 0x4D) from `from` to `target` (nothing without a target);
     // it becomes the visual. `flag` is a byte.
-    void CreateLightning(const Vector3* from, CEngineObject* target, CEngineObject* source, float power, int flag);
+    void CreateLightning(const Vector3* from, CMapObject* target, CEngineObject* source, float power, int flag);
     // 0067F580. A positional sound (class 0x48). `keep`: it becomes the sound (+0x94).
     void CreateSound(int keep, const char* name, const Vector3* position, const Vector3* velocity, float volume,
                      float radius);
@@ -251,14 +254,18 @@ struct __declspec(novtable) CSpellEffect {
     // +0x34 the CSpell (Spell()), constructed and destroyed by Construct / Destruct (an abstract
     // class: its vtable is the compiled CSpellClass's, spell_class.h, so not a member).
     std::uint8_t spell_[0x5C];
-    CEngineObject* visual;      // +0x90 particle source, wall, lightning or missile (counted)
-    CEngineObject* sound;       // +0x94 (counted)
-    CEngineObject* light;       // +0x98 (counted)
+    CEffect* visual;            // +0x90 particle source, wall, lightning or missile (counted; Visual<T>)
+    CEffect* sound;             // +0x94 a sound or a sound sequence (counted)
+    CEffectPointLight* light;   // +0x98 (counted)
     std::uint8_t footprintStamped;  // +0x9C
     std::uint8_t unused_9D[3];
     int timer;                  // +0xA0 ticks left in the next state
     std::uint8_t silentEnd;     // +0xA4 copied into the buff record; healing: skip when at full health
     std::uint8_t unused_A5[3];
+
+    // The visual as the effect class its spell type creates (CEffectParticle, CEffectWall,
+    // CEffectLightning, CEffectMissile).
+    template <class T> T* Visual() const { return static_cast<T*>(visual); }
 
     CSpell* Spell() { return reinterpret_cast<CSpell*>(spell_); }
     const CSpell* Spell() const { return reinterpret_cast<const CSpell*>(spell_); }
@@ -570,7 +577,7 @@ public:
     CEngineObject* CreateObject(int type, int id) override;
     CEngineObject* CreateObjectImpl(int type, int id);   // body of the slot above (registered by member pointer)
     // The light registered under `id` (every object the factory makes is a CLight), or null.
-    CLight* LightWithId(unsigned id) const { return static_cast<CLight*>(FindObject(id)); }
+    CLight* LightWithId(unsigned id) const { return FindObjectAs<CLight>(id); }
     // A new light of `type` (CreateObject, slot 23): every object the factory makes is a CLight.
     CLight* CreateLight(int type, int id = -1) { return CreateObjectAs<CLight>(type, id); }
 

@@ -238,7 +238,7 @@ void CBaseManager::Destroy() {
     ids.Release();
 }
 
-BOOL CBaseManager::InitImpl(void* context) {
+BOOL CBaseManager::InitImpl(CManagerContext* context) {
     context_ = context;
     if (Create()) return 1;
     context_ = nullptr;
@@ -322,7 +322,7 @@ int CBaseManager::ReleaseObjectImpl(CEngineObject* object) {
 // The slots whose bodies are registered by member pointer.
 void CBaseManager::Load(CStream* stream) { LoadImpl(stream); }
 void CBaseManager::Save(CStream* stream) { SaveImpl(stream); }
-BOOL CBaseManager::Init(void* context) { return InitImpl(context); }
+BOOL CBaseManager::Init(CManagerContext* context) { return InitImpl(context); }
 BOOL CBaseManager::AddArchive(const char* path) { return AddArchiveImpl(path); }
 BOOL CBaseManager::RemoveArchive(const char* path) { return RemoveArchiveImpl(path); }
 void* CBaseManager::GetFile(const char* name, std::uint32_t* size) { return GetFileImpl(name, size); }
@@ -363,7 +363,7 @@ CEngineObject* CBaseManager::FindObject(unsigned id) const {
 }
 EI_REPLACE_METHOD(0x00403F40, CBaseManager::FindObject);
 
-void CBaseManager::SetContext(void* context) { context_ = context; }
+void CBaseManager::SetContext(CManagerContext* context) { context_ = context; }
 EI_REWRITTEN(0x00403720, CBaseManager::SetContext);
 
 CEngineObject* CBaseManager::Unregister(int id) {

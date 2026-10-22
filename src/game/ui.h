@@ -2530,6 +2530,8 @@ namespace mfc { class CString; }
 
 // The pieces of a scrolling text (CUiScrollText below): a format change (0x14 bytes, FormatTokenClass,
 // type 1) or a word (0x10 bytes, WordTokenClass over the base TextTokenClass, type 2).
+struct UiFormatToken;
+struct UiWordToken;
 struct UiTextToken {
     // Slot 0: the deleting destructor (with 1: the memory is freed; 0065D8C0 format, 0065D8F0 word).
     void Delete() {
@@ -2544,6 +2546,10 @@ struct UiTextToken {
     // memory freed when bit 0 of `flags` is set. Return this.
     UiTextToken* TextTokenDelete(unsigned flags);
     UiTextToken* FormatTokenDelete(unsigned flags);
+    // The token as the kind type_ says it is (1 format, 2 word).
+    UiFormatToken* AsFormat();
+    const UiFormatToken* AsFormat() const;
+    UiWordToken* AsWord();
 
     void* vtable_;
     int type_;                       // +0x04 1 format, 2 word
@@ -2567,6 +2573,9 @@ struct UiWordToken : UiTextToken {
     int width_;                      // +0x0C its width in the token's font (005F8340)
 };
 static_assert(sizeof(UiWordToken) == 0x10 && offsetof(UiWordToken, text_) == 0x08);
+inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
+inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
+inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
 // The tokens' compiled tables (C19, lib/compiled_vtable.h), each one slot (the deleting destructor), in place of
 // game.exe's: the base 00742F24, the format token 00742F28, the word 00742F20.
 struct TextTokenClass final : ei::CompiledDeleter<TextTokenClass, &UiTextToken::TextTokenDelete> {};

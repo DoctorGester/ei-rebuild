@@ -6,6 +6,7 @@
 #include "map_object.h"
 #include "unit.h"
 #include "world.h"
+#include "world_effect.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -19,8 +20,9 @@ namespace {
 
 // A counted pointer's destructor and the counted pointer assignment of null (00683A90): the old
 // object loses a reference (slot 4).
-void Drop(CEngineObject*& field) {
-    CEngineObject* old = field;
+template <class T>
+void Drop(T*& field) {
+    T* old = field;
     field = nullptr;
     if (old) old->Release();
 }

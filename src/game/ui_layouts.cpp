@@ -77,10 +77,10 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
 }
 
 CUiScrollbar* NewScrollbar(CInterface3D* ui, int left, int top, int right, int bottom) {
-    void* memory = gamecrt::operator_new(0x18C);
+    CUiScrollbar* memory = gamecrt::operator_new_as<CUiScrollbar>();
     if (!memory) return nullptr;
     RECT rect = {left, top, right, bottom};
-    return static_cast<CUiScrollbar*>(memory)->Construct(ui, rect, 3.0f, 0, 1.0f);
+    return memory->Construct(ui, rect, 3.0f, 0, 1.0f);
 }
 
 // The frame colours of the windows (texels of the shared frame texture).

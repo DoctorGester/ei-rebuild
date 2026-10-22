@@ -63,13 +63,6 @@ constexpr std::uint32_t kSpellKindStrike = 0x28;         // spell +0x18 >> 16
 constexpr std::uint32_t kSpellKindCurse = 0x29;
 constexpr int kCastKindNone = 8;
 
-template <typename T>
-T Get(const void* object, int offset) {
-    T value;
-    std::memcpy(&value, static_cast<const char*>(object) + offset, sizeof(T));
-    return value;
-}
-
 std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 
 // x87 compares as the original's TEST AH masks read them.
@@ -157,8 +150,8 @@ namespace {
 // and the movement factor +0x904 times stats +0xB4 (the original selects the dwords with a mask
 // built from FCOMP's C0, so a NaN product picks the first).
 bool OutOfSightRange(CUnitServer* self, const float* point) {
-    float limit = Get<float>(self, 0x2A4);
-    float range = Get<float>(self, 0x904) * Get<float>(self, 0x294);
+    float limit = self->stats.valuesB0[2].current;
+    float range = self->moveFactors[3] * self->stats.valuesB0[0].current;
     float rangeValue = range;
     std::uint32_t chosenBits = rangeValue >= limit ? Bits(rangeValue) : Bits(limit);
     float chosen = std::bit_cast<float>(chosenBits);
@@ -273,9 +266,9 @@ void DestroySteps(AnimationSteps* steps) {
 // The quick item or spell value the cast animation is built with: the spell's +0x4C scaled by
 // 15 / stats +0x30 (left at stats +0x30 when that is 0), rounded.
 int CastValue(CUnitServer* self, CSpell* spell) {
-    double scale = Get<float>(self, 0x210);
+    double scale = self->stats.rate;
     if (scale != 0.0) scale = kFifteen / scale;   // a NaN stays the same NaN
-    volatile std::int64_t wide = Get<std::uint32_t>(spell, 0x4C);
+    volatile std::int64_t wide = spell->prototypeField14_;
     float value = static_cast<float>(static_cast<double>(wide) * scale);
     return x87::fistp(value);
 }
@@ -286,8 +279,8 @@ void FillCastKind(OrderPlan* plan, CSpell* spell) {
         plan->castKind = kCastKindNone;
         return;
     }
-    if (Get<std::uint32_t>(spell, 0x3C) & kSpellNoTarget) plan->targetId = -1;
-    std::uint32_t kind = Get<std::uint32_t>(spell, 0x18) >> 16;
+    if (spell->targetFlags_ & kSpellNoTarget) plan->targetId = -1;
+    std::uint32_t kind = spell->prototypeId_ >> 16;
     if (kind == kSpellKindStrike) plan->castKind = 1;
     else if (kind == kSpellKindCurse) plan->castKind = 0;
     else plan->castKind = spell->GetPrototype()->school;
@@ -402,8 +395,8 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
             predict = true;
             CSpell* missile;
             if (OrderSpell(this, order->source, &missile) && missile &&
-                (Get<std::uint32_t>(missile, 0x3C) & kSpellNoTarget)) {
-                float flight = Get<float>(missile, 0x30);
+                (missile->targetFlags_ & kSpellNoTarget)) {
+                float flight = missile->speed_;
                 if (Greater(flight, kZero)) castDelay = CastDelayTicks(distanceSq, flight);
             }
         }

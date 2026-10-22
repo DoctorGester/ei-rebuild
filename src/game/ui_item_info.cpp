@@ -524,8 +524,8 @@ void CItemInfoPanel::DescribeBlueprint() {
     w.Head(name, kindText);
     // The material type ("mattype_<NAME>" of the record's +0x10) and the count.
     // (The weapon and armour views are read only for their own sort.)
-    const auto* weapon = static_cast<const itemdb::WeaponRecord*>(head);
-    const auto* armor = static_cast<const itemdb::ArmorRecord*>(head);
+    const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(head);
+    const auto* armor = itemdb::RecordAs<itemdb::ArmorRecord>(head);
     mfc::CString text = head->materialClass;
     text.MakeLower();
     {
