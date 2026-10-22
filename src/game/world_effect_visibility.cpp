@@ -46,11 +46,12 @@ void ReleaseFog(CEngineObject*& fog) {
 CEffectShowVisibility* CEffectShowVisibility::Construct() {
     ConstructEffect();
     fog_ = nullptr;
-    grid_.width = 1;
-    grid_.height = 1;
-    grid_.cells = static_cast<std::uint8_t*>(gamecrt::operator_new(1));
-    grid_.rows = static_cast<std::uint8_t**>(gamecrt::operator_new(grid_.height * 4));
-    for (int row = 0; row < grid_.height; ++row) grid_.rows[row] = grid_.cells + row * grid_.width;
+    SearchGrid<std::uint8_t>& cells = grid_.cells;
+    cells.width = 1;
+    cells.height = 1;
+    cells.data = static_cast<std::uint8_t*>(gamecrt::operator_new(1));
+    cells.rows = static_cast<std::uint8_t**>(gamecrt::operator_new(cells.height * 4));
+    for (int row = 0; row < cells.height; ++row) cells.rows[row] = cells.data + row * cells.width;
     observerId_ = -1;
     seerId_ = -1;
     SetVtable(this, Vtable());
@@ -62,8 +63,8 @@ void CEffectShowVisibility::Destruct() {
     SetVtable(this, Vtable());
     Reset();
     Reset();
-    gamecrt::operator_delete(grid_.cells);
-    gamecrt::operator_delete(grid_.rows);
+    gamecrt::operator_delete(grid_.cells.data);
+    gamecrt::operator_delete(grid_.cells.rows);
     DestructEffect();
 }
 
@@ -118,8 +119,8 @@ int CEffectShowVisibility::Tick() {
     CUnit* observer = WorldFindUnit(ObjectWorld(this), nullptr, observerId_);
     if (seer == nullptr || observer == nullptr) return 0;
     std::memcpy(&localPosition_, &seer->localPosition_.x, sizeof(Vector3));
-    // 005CD210: the squares `seer` sees, with `observer`'s skills (the fog grid is a VisibilityGrid).
-    MarkSightCells(seer, observer, reinterpret_cast<VisibilityGrid*>(&grid_));
+    // 005CD210: the squares `seer` sees, with `observer`'s skills.
+    MarkSightCells(seer, observer, &grid_);
     MarkChanged();
     return 1;
 }

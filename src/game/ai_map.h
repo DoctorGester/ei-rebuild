@@ -3,6 +3,7 @@
 #include "engine_object.h"
 #include "game_data.h"
 #include "maths.h"
+#include "search_grid.h"
 #include "sector_map.h"
 #include "unit.h"
 
@@ -105,18 +106,7 @@ struct PassCostContext {
 };
 static_assert(sizeof(PassCostContext) == 0x18);
 
-// A growable square of byte marks over map cells (0x18 bytes), filled by MarkVisibleCells.
-struct VisibilityGrid {
-    // 005C8D40 (ai_movement.cpp). Grows the grid to cover (x - n .. x + n, y - n .. y + n); the
-    // first call (x = 0x7FFFFFFF) sizes and clears it.
-    void Grow(int x, int y, int n);
-
-    int originX, originY;       // cell of data[0]; 0x7FFFFFFF before the first Grow
-    std::uint8_t* data;         // +0x08 width * height
-    std::uint8_t** rows;        // +0x0C rows[i] = data + i * width
-    int width, height;          // +0x10
-};
-static_assert(sizeof(VisibilityGrid) == 0x18);
+struct FogGrid;   // effects.h: the byte marks MarkVisibleCells fills
 
 // A cell of a path (CList element, 8 bytes). Layout provisional.
 struct DeltaField;   // net_delta.h
@@ -337,34 +327,10 @@ struct SearchNode {
 };
 static_assert(sizeof(SearchNode) == 0x14);
 
-// {data, rows, width, height}: a grid allocated in one block with a row pointer table (the game's
-// template; its instantiations are in ai_grids.h).
-template <typename T>
-struct SearchGrid {
-    T* data;
-    T** rows;
-    int width, height;
-
-    // Row y (grid[y][x] is the cell at (x, y)).
-    T* operator[](int y) const { return rows[y]; }
-
-    // ai_grids.cpp. 005CD3A0 (RET 8; the visibility marks, VisibilityGrid + 8). Reallocated to
-    // newWidth x newHeight (the cells are not kept or cleared) unless the grid already has that size.
-    void Resize(int newWidth, int newHeight);
-    // 005CD410 (RET 4) / 005C4BA0 (RET 4; A-W14: the local search's nodes, whose Recenter 005C25D0
-    // keeps the old window in such a copy). Makes the grid a copy of `source`: its size, a block and
-    // row table of its own, the cells copied.
-    void CopyFrom(const SearchGrid* source);
-    // 005BCBD0 / 005BCC50 / 005BCEE0 / 005BCF00 (RET 8). The constructor for a size; returns this.
-    SearchGrid* Construct(int newWidth, int newHeight);
-};
-template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight);
-template <> void SearchGrid<std::uint8_t>::CopyFrom(const SearchGrid* source);
+// SearchGrid (search_grid.h): the AI map's own instantiations.
 template <> void SearchGrid<SearchNode>::CopyFrom(const SearchGrid* source);
-template <> SearchGrid<std::int8_t>* SearchGrid<std::int8_t>::Construct(int newWidth, int newHeight);
 template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight);
 template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth, int newHeight);
-template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int newWidth, int newHeight);
 static_assert(sizeof(SearchGrid<SearchNode>) == 0x10);
 
 // The local search (0x80 bytes; CAIMap + 0x2594 forward, + 0x2614 backward, and the region map's):
@@ -960,7 +926,7 @@ public:
     // below -100, with a line of sight to the cell's ground raised by `targetHeight` that reaches
     // at least `radius` * visibility.
     void MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit, float targetHeight,
-                          struct VisibilityGrid* grid);
+                          FogGrid* grid);
 
     // 005B6740 (ai_bridges.cpp). Applies or clears the bridge decks of a footprint.
     bool ApplyBridgeDecks(FootprintCellSet* set, bool remove);

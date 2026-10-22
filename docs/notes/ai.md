@@ -76,7 +76,7 @@ By file:
   LimitSpeeds, MotionCubic::Fit, AIPath Start / Reset / Clear / SetTurn / SetTurnUntil / SetTrack / SetTarget / ShiftTime /
   Destination / ForgetObject, UnitMotion::LoadState / SaveState 005C7860 / 005C79B0 = the unit save at CUnit + 0x27C),
   `ai_movement.cpp` (BlockingUnitAt 005B7BB0, UnitShape 005B8350, CostContext 005B9510, StandsOnCheapCell 005BA5A0,
-  CAIMap::SetStepSpeeds 005BA400, MarkVisibleCells 005BC970, VisibilityGrid::Grow 005C8D40 (Include stays the forwarder)),
+  CAIMap::SetStepSpeeds 005BA400, MarkVisibleCells 005BC970, FogGrid::Grow 005C8D40 (Include stays the forwarder)),
   `ai_unit_layer.cpp` (CUnitLayer Add 005B36B0 / Remove 005B3890, small / large Set / Merge 005B39D0-005B3B90).
 - `sector_map.cpp`: CSectorMap Init 005C06F0, UnitsAt 005C0930, FindUnitsInRadius 005C0BD0, Add 005C0DF0, Remove 005C1010, Move 005C11D0.
   `ai_events.cpp`: AIEventTable (CWorldServer + 0x2838, unit_ai.h) Advance 005C9530 (the time wheel's tick), ForgetUnit 005C97B0 (a dead

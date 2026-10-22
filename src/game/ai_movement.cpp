@@ -1,6 +1,7 @@
 // Per-tick movement checks on the AI map: which unit blocks a moving unit, and the speed costs of
 // the steps a unit is about to walk.
 #include "ai_map.h"
+#include "effects.h"
 
 #include "ai_shape_cache.h"
 #include "ai_unit_layer.h"
@@ -163,13 +164,13 @@ EI_REWRITTEN(0x005BA5A0, CAIMap::StandsOnCheapCell);
 
 namespace {
 // 005B14C0: the byte grid's block and row table for its width and height.
-void AllocateGrid(VisibilityGrid* grid) {
+void AllocateGrid(SearchGrid<std::uint8_t>* grid) {
     grid->data = static_cast<std::uint8_t*>(gamecrt::operator_new(grid->width * grid->height));
     grid->rows = static_cast<std::uint8_t**>(gamecrt::operator_new(grid->height * sizeof(std::uint8_t*)));
     for (int i = 0; i < grid->height; ++i) grid->rows[i] = grid->data + i * grid->width;
 }
 // A square grid of `size`: reallocated when the size differs, then cleared.
-void ResizeCleared(VisibilityGrid* grid, int size) {
+void ResizeCleared(SearchGrid<std::uint8_t>* grid, int size) {
     if (grid->width != size || grid->height != size) {
         gamecrt::operator_delete(grid->data);
         gamecrt::operator_delete(grid->rows);
@@ -181,39 +182,40 @@ void ResizeCleared(VisibilityGrid* grid, int size) {
 }
 } // namespace
 
-void VisibilityGrid::Grow(int x, int y, int n) {
-    int x0 = x - n, x1 = x + n, y0 = y - n, y1 = y + n;
-    if (originX == 0x7FFFFFFF) {
-        int size = (y1 - y0 > x1 - x0 ? y1 - y0 : x1 - x0) + 1;
-        ResizeCleared(this, size);
-        originX = x0;
-        originY = y0;
+void FogGrid::Grow(int x, int y, int n) {
+    int left = x - n, right = x + n, top = y - n, bottom = y + n;
+    if (x0 == 0x7FFFFFFF) {
+        int size = (bottom - top > right - left ? bottom - top : right - left) + 1;
+        ResizeCleared(&cells, size);
+        x0 = left;
+        y0 = top;
         return;
     }
-    bool grow = x0 < originX || y0 < originY || x1 > originX + width - 1 || y1 > originY + height - 1;
-    if (x0 >= originX) x0 = originX;
-    if (x1 <= originX + width - 1) x1 = originX + width - 1;
-    if (y0 >= originY) y0 = originY;
-    if (y1 <= originY + height - 1) y1 = originY + height - 1;
+    const int width = cells.width, height = cells.height;
+    bool grow = left < x0 || top < y0 || right > x0 + width - 1 || bottom > y0 + height - 1;
+    if (left >= x0) left = x0;
+    if (right <= x0 + width - 1) right = x0 + width - 1;
+    if (top >= y0) top = y0;
+    if (bottom <= y0 + height - 1) bottom = y0 + height - 1;
     if (!grow) return;
-    int size = (y1 - y0 > x1 - x0 ? y1 - y0 : x1 - x0) + 1;
+    int size = (bottom - top > right - left ? bottom - top : right - left) + 1;
     // 005CD410: a copy of the old marks (block and row table), moved into the cleared grid.
-    VisibilityGrid old = *this;
+    SearchGrid<std::uint8_t> old = cells;
     AllocateGrid(&old);
-    std::memcpy(old.data, data, static_cast<std::size_t>(old.width * old.height));
-    ResizeCleared(this, size);
+    std::memcpy(old.data, cells.data, static_cast<std::size_t>(old.width * old.height));
+    ResizeCleared(&cells, size);
     for (int row = 0; row < old.height; ++row)
         for (int col = 0; col < old.width; ++col)
-            rows[row - y0 + originY][col - x0 + originX] = old.rows[row][col];
-    originX = x0;
-    originY = y0;
+            cells.rows[row - top + y0][col - left + x0] = old.rows[row][col];
+    x0 = left;
+    y0 = top;
     gamecrt::operator_delete(old.data);
     gamecrt::operator_delete(old.rows);
 }
-EI_REWRITTEN(0x005C8D40, VisibilityGrid::Grow);
+EI_REWRITTEN(0x005C8D40, FogGrid::Grow);
 
 void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit,
-                              float targetHeight, VisibilityGrid* grid) {
+                              float targetHeight, FogGrid* grid) {
     int eyeX = CellOf(eye->x);
     int eyeY = CellOf(eye->y);
     int reach = CellOf(radius) + 1;
@@ -225,8 +227,8 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
     const double half = 1.0f * 0.5f;    // cell size * 0.5
     for (int y = eyeY - reach; y < eyeY + reach; ++y) {
         for (int x = eyeX - reach; x < eyeX + reach; ++x) {
-            int gx = x - grid->originX;
-            int gy = y - grid->originY;
+            int gx = x - grid->x0;
+            int gy = y - grid->y0;
             if (x * 9 < 0 || y < 0 || x >= cells.width || y >= cells.height) continue;
             Vector3 cell;
             cell.x = static_cast<float>(static_cast<double>(x) * half);
@@ -248,7 +250,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
                 EI_NAN_AUDIT(seen, distance);
                 if (seen < distance) continue;
             }
-            grid->rows[gy][gx] = 1;
+            grid->cells.rows[gy][gx] = 1;
         }
     }
 }
