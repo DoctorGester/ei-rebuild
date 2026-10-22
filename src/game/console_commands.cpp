@@ -143,7 +143,7 @@ EI_REWRITTEN(0x005DDBE0, ConsolePos);
 // 005DDF80: history <lines>.
 void __fastcall History(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine("Invalid parameters");
-    TheInterface()->SetConsoleHistory(libcrt::Atoi((*args)[0]));
+    TheInterface()->SetConsoleHistory(std::atoi((*args)[0]));
 }
 EI_REWRITTEN(0x005DDF80, History);
 
@@ -212,7 +212,7 @@ void __fastcall ListVar(CStringArray* args) {
     if (IsMultiplayerClient())
         player = LocalPlayer();
     else
-        player = GetPlayer(libcrt::Atoi((*args)[0]));
+        player = GetPlayer(std::atoi((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
 
     mfc::CString line;
@@ -239,7 +239,7 @@ EI_REWRITTEN(0x005DEA00, ListVar);
 // 005DEC90: loadvar <player> <file>: sets the variables of each "name value" line.
 void __fastcall LoadVar(CStringArray* args) {
     if (args->GetSize() < 2) return PrintLine("usage: loadvar [N player] [input file name]");
-    CPlayer* player = GetPlayer(libcrt::Atoi((*args)[0]));
+    CPlayer* player = GetPlayer(std::atoi((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
     CPlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
@@ -301,12 +301,12 @@ void __fastcall Give(CStringArray* args) {
         PrintLine("give [NPlayer] money [NMoney]");
         return PrintLine("give [NPlayer] exp [NExp]");
     }
-    CPlayer* player = GetPlayer(libcrt::Atoi((*args)[0]));
+    CPlayer* player = GetPlayer(std::atoi((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
     CPlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
     if (ArgIs(args, 1, "money") && args->GetSize() > 2) {
-        int amount = libcrt::Atoi((*args)[2]);
+        int amount = std::atoi((*args)[2]);
         player->Party()->Money() += amount;
         return state->SendParty();
     }
@@ -379,7 +379,7 @@ EI_REWRITTEN(0x005DF5B0, LootAll);
 // 005DF8E0: fadeout <milliseconds>.
 void __fastcall FadeOut(CStringArray* args) {
     if (args->GetSize() <= 0) return PrintLine("FADEOUT nMillSec");
-    TheInterface()->fade_->Start(libcrt::Atoi((*args)[0]));
+    TheInterface()->fade_->Start(std::atoi((*args)[0]));
     PrintLine("Ok");
 }
 EI_REWRITTEN(0x005DF8E0, FadeOut);
@@ -393,13 +393,13 @@ void __fastcall Net(CStringArray* args) {
     }
     if (Mbsicmp((*args)[0], "client") == 0) {
         mfc::CString value((*args)[1]);
-        LocalPlayer()->logTraffic_ = libcrt::Atoi(value);
+        LocalPlayer()->logTraffic_ = std::atoi(value);
     }
     if (Mbsicmp((*args)[0], "server") == 0) {
-        if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = libcrt::Atoi((*args)[1]);
+        if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = std::atoi((*args)[1]);
     }
     if (Mbsicmp((*args)[0], "time") == 0)
-        app::g_showClientSpeed = libcrt::Atoi((*args)[1]);
+        app::g_showClientSpeed = std::atoi((*args)[1]);
     if (Mbsicmp((*args)[0], "zone") == 0 && ServerActive(Server())) {
         mfc::CString zone((*args)[1]);
         Server()->SendCommand(0, zone);
@@ -465,7 +465,7 @@ void __fastcall Days(CStringArray* args) {
         }
         return true;
     };
-    auto number = [&](int i, int first, int count) { return libcrt::Atoi(Ops((*args)[i]).Mid(first, count)); };
+    auto number = [&](int i, int first, int count) { return std::atoi(Ops((*args)[i]).Mid(first, count)); };
     if (args->GetSize() >= 2 && ((*args)[0]).GetLength() >= 8 && ((*args)[1]).GetLength() >= 8 && digits(0) && digits(1)) {
         int year = number(0, 4, 4);
         if (year >= 1900) {
@@ -554,7 +554,7 @@ namespace {
 // rate / localrate: bytes per second, clamped to 500..100000.
 void SetRate(CStringArray* args, int* rate, const char* usage) {
     if (args->GetSize() != 1) return PrintLine(usage);
-    int value = libcrt::Atoi((*args)[0]);
+    int value = std::atoi((*args)[0]);
     if (value < 500) value = 500;
     else if (value > 100000) value = 100000;
     *rate = value;

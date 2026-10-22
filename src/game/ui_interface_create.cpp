@@ -27,6 +27,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <utility>
 
 namespace {
@@ -163,7 +164,7 @@ void CInterface3D::Create(CTextureDevice* device) {
             text::SplitWords(line, &words, ' ');
             if (words.GetSize() <= 1) continue;
             const char* count = words[1];
-            helpTopics_.Subscript(words[0]) = libcrt::Atoi(count);   // operator[], inlined by the original
+            helpTopics_.Subscript(words[0]) = std::atoi(count);   // operator[], inlined by the original
         }
         file.Close();
     }

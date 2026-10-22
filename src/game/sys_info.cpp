@@ -21,6 +21,7 @@
 #include "originals_library.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <intrin.h>
 
 #include <cstring>
@@ -167,10 +168,13 @@ int CSysInfo::Collect() {
     mfc::CString report;
     report = "OS\t\t\t" + systemName_ + " build " + systemVersion_ + "\n";
     char digits[0x400];
-    report += mfc::CString("Total physical memory\t") + libcrt::Itoa(static_cast<int>(memory_.dwTotalPhys), digits, 10) + "\n";
-    report += mfc::CString("Available physical memory\t") + libcrt::Itoa(static_cast<int>(memory_.dwAvailPhys), digits, 10) + "\n";
-    report += mfc::CString("Total virtual memory\t\t") + libcrt::Itoa(static_cast<int>(memory_.dwTotalVirtual), digits, 10) + "\n";
-    report += mfc::CString("Available virtual memory\t") + libcrt::Itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
+#pragma warning(push)
+#pragma warning(disable : 4996)   // _itoa
+    report += mfc::CString("Total physical memory\t") + _itoa(static_cast<int>(memory_.dwTotalPhys), digits, 10) + "\n";
+    report += mfc::CString("Available physical memory\t") + _itoa(static_cast<int>(memory_.dwAvailPhys), digits, 10) + "\n";
+    report += mfc::CString("Total virtual memory\t\t") + _itoa(static_cast<int>(memory_.dwTotalVirtual), digits, 10) + "\n";
+    report += mfc::CString("Available virtual memory\t") + _itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
+#pragma warning(pop)
     return 1;
 }
 EI_REWRITTEN(0x004DDF28, CSysInfo::Collect);

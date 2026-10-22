@@ -120,19 +120,14 @@ void SetReplayCtype(const ReplayCtype& ctype);
 
 } // namespace gamecrt
 
-// The game CRT's own functions, ported (S4, docs/notes/standalone.md section 2). Each is registered
-// at its library address, so the forwarders above and the exe's remaining library code reach these
-// bodies; verify_crt.cpp compared them with the originals until S21d. MSVC 6 behaviour for the locale
-// state, which is the host CRT's (C26, crt_locale_data.h): the LC_CTYPE locale and code page (case
-// changes go through LCMapStringW under a locale, as _tolower_lk does), the character class table
-// _pctype (a negative argument indexes the words before it) and the lead-byte flags _mbctype. Only the
-// single-byte paths are ported (__mb_cur_max 1, __ismbcodepage 0: the game's code page).
+// The game CRT's own functions (S4, docs/notes/standalone.md section 2), each registered at its library
+// address, so the forwarders above and the exe's remaining library code reach these bodies. The string
+// and character functions are the host CRT's under the host's locale (C26, crt_locale_data.h); with
+// EI_UTF8 the case and class functions answer for UTF-8 (text_case.h).
 namespace libcrt {
 
 int __cdecl Strncmp(const char* a, const char* b, std::size_t n);              // 006E9180
 char* __cdecl Strncpy(char* to, const char* from, std::size_t n);               // 006E7E80
-void* __cdecl Memmove(void* to, const void* from, std::size_t n);               // 006E79A0
-int __cdecl Strcmp(const char* a, const char* b);                               // 006F07D0 (not registered)
 int __cdecl Stricmp(const char* a, const char* b);                              // 006F2230
 int __cdecl Strnicmp(const char* a, const char* b, std::size_t n);              // 006FA1A0
 int __cdecl Memicmp(const void* a, const void* b, std::size_t n);               // 006FD2F0
@@ -147,27 +142,15 @@ int __cdecl Isalpha(int c);                                                     
 int __cdecl Isdigit(int c);                                                     // 006E9379
 int __cdecl Isspace(int c);                                                     // 006E93CE
 int __cdecl Isprint(int c);                                                     // 006E944C
-long __cdecl Atol(const char* text);                                            // 006E804D (not registered)
-int __cdecl Atoi(const char* text);                                             // 006E80D8
-char* __cdecl Itoa(int value, char* buffer, int radix);                         // 006E9B36
-void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, char* ext); // 006E8BEE
 // MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part
-// first): equal elements end up in the same order as in the game.
+// first): equal elements end up in the same order as in the game (the host's qsort changed 105 image
+// goldens, C26).
 void __cdecl Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*)); // 006E88FC
 
-// The plain string and memory functions, and the multibyte ones whose single-byte path is one of them.
-void* __cdecl Memcpy(void* to, const void* from, std::size_t n);                // 006EC3A0 (overlap as memmove)
-void* __cdecl Memset(void* to, int value, std::size_t n);                       // 006E9CE0
-char* __cdecl Strstr(const char* text, const char* part);                       // 006EAE30
-std::size_t __cdecl Wcslen(const wchar_t* text);                                // 006EC6D5
-unsigned char* __cdecl Mbschr(const unsigned char* text, unsigned c);           // 006EC6F2
-unsigned char* __cdecl Mbsrchr(const unsigned char* text, unsigned c);          // 006EC99C
-unsigned char* __cdecl Mbsstr(const unsigned char* text, const unsigned char* part); // 006ECAB3
-unsigned char* __cdecl Mbspbrk(const unsigned char* text, const unsigned char* set); // 006EC789
+// memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and _splitpath
+// are the host CRT's, called by their names (C26).
 int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n); // 006ECD2B
 std::size_t __cdecl Mbclen(const unsigned char* c);                             // 006ECC98
-// _mbslwr: single bytes flagged upper case in _mbctype mapped through _mbcasemap; a lead byte and its
-// trail are left as they are (the original maps them with LCMapString; none under the game's code page).
 unsigned char* __cdecl Mbslwr(unsigned char* text);                             // 006EC8A8
 
 // rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread: in the hook build the

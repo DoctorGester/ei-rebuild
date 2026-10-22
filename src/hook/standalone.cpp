@@ -13,6 +13,7 @@
 #include "lib/crt.h"
 #include "render/render.h"
 
+#include <mbctype.h>
 #include <windows.h>
 
 #include <algorithm>
@@ -306,7 +307,10 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     }
     // As the CRT's start-up: the static initialisers, WinMain, then exit with its result (the CRT's exit runs
     // the functions the initialisers registered with atexit). The multibyte code page (__initmbctable, the C
-    // initialiser 00783BC0) is the host CRT's, set at its own start-up (C26).
+    // initialiser 00783BC0) is the host CRT's, set at its own start-up (C26); with EI_UTF8 a single-byte one,
+    // so the host's multibyte string functions (_splitpath, _mbschr ...) see no lead bytes whatever the system's
+    // ANSI code page.
+    if constexpr (EI_UTF8 != 0) _setmbcp(_MB_CP_SBCS);
     InstallProfiler();   // EI_PROFILE=1: samples this thread from the start-up on
     render::PrepareDevice();   // the renderer's device made while the game starts up
     static_init::RunStaticInitialisers();

@@ -14,6 +14,8 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
+#include <cstring>
+
 namespace unitrecord {
 namespace {
 
@@ -72,7 +74,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     s.combat[4] = r.combatSpeed;
     s.damage = r.damage;
     s.damageSpread = r.damageSpread;
-    libcrt::Memmove(s.damageWeights, r.damageWeights, sizeof r.damageWeights);
+    std::memmove(s.damageWeights, r.damageWeights, sizeof r.damageWeights);
 
     // Seven model values scaled by the record's byte, each stored twice.
     for (std::size_t k = 0; k < 7; ++k) {
@@ -83,7 +85,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     }
     for (std::size_t i = 0; i < 6; ++i) s.valuesB0[i].base = s.valuesB0[i].current = r.valuesB0[i];
     for (std::size_t i = 0; i < 6; ++i) s.valuesE0[i].base = s.valuesE0[i].current = r.valuesE0[i];
-    libcrt::Memmove(s.attributes, r.attributes, sizeof r.attributes);
+    std::memmove(s.attributes, r.attributes, sizeof r.attributes);
 
     const mfc::CStringArray& spells = lists[kSpells];
     for (int i = 0; i < spells.size; ++i) unit->AddSpell(factory->CreateSpellItem(spells.data[i], SpellOwner()));

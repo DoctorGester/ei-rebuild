@@ -42,6 +42,7 @@
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 
 namespace {
@@ -593,7 +594,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
     case 0xAB: { // GetObjectByID (decimal string)
-        CEngineObject* o = TheServerWorld()->FindObject(libcrt::Atoi(stringArgs.data[0]));
+        CEngineObject* o = TheServerWorld()->FindObject(std::atoi(stringArgs.data[0]));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
                            stringArgs.data[0].GetString(), "GetObjectByID");

@@ -89,17 +89,11 @@ void __stdcall ScriptLightningElementsDestruct(ScriptLightning*, int) EI_UNLINKE
 
 // The game CRT's ports (crt.cpp, crt_file.cpp, crt_x87.cpp read the game CRT's data)
 // that no replay reaches: the node allocator (stlp.cpp), the multibyte string functions CString uses
-// (mfc_string.cpp), memmove and qsort (script_group.cpp), srand (random.cpp), acos (quaternion.cpp),
+// (mfc_string.cpp), qsort (script_group.cpp), srand (random.cpp), acos (quaternion.cpp),
 // fwrite (crt_format.cpp); replay_crt.cpp has the ones the replays call.
 void* __fastcall libcrt::NodeAllocate(std::size_t) EI_UNLINKED("libcrt::NodeAllocate")
 void __fastcall libcrt::NodeDeallocate(void*, std::size_t) EI_UNLINKED("libcrt::NodeDeallocate")
-unsigned char* __cdecl libcrt::Mbschr(const unsigned char*, unsigned) EI_UNLINKED("libcrt::Mbschr")
-unsigned char* __cdecl libcrt::Mbsrchr(const unsigned char*, unsigned) EI_UNLINKED("libcrt::Mbsrchr")
-unsigned char* __cdecl libcrt::Mbsstr(const unsigned char*, const unsigned char*) EI_UNLINKED("libcrt::Mbsstr")
-unsigned char* __cdecl libcrt::Mbspbrk(const unsigned char*, const unsigned char*) EI_UNLINKED("libcrt::Mbspbrk")
 unsigned char* __cdecl libcrt::Mbslwr(unsigned char*) EI_UNLINKED("libcrt::Mbslwr")
-std::size_t __cdecl libcrt::Wcslen(const wchar_t*) EI_UNLINKED("libcrt::Wcslen")
-void* __cdecl libcrt::Memmove(void*, const void*, std::size_t) EI_UNLINKED("libcrt::Memmove")
 void __cdecl libcrt::Qsort(void*, std::size_t, std::size_t, int(__cdecl*)(const void*, const void*)) EI_UNLINKED("libcrt::Qsort")
 void __cdecl libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double __cdecl libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
@@ -123,7 +117,6 @@ void __stdcall mfc::impl::ThrowNotSupported() EI_UNLINKED("mfc::impl::ThrowNotSu
 void mfc::impl::CFileException::InitEmpty() EI_UNLINKED("mfc::impl::CFileException::InitEmpty")
 // mfc_file.cpp's CFileFind times (mfc_time.cpp) and CStdioFile streams (crt_file.cpp).
 mfc::impl::CTime* mfc::impl::CTime::ConstructFileTime(const FILETIME&, int) EI_UNLINKED("mfc::impl::CTime::ConstructFileTime")
-void __cdecl libcrt::Splitpath(const char*, char*, char*, char*, char*) EI_UNLINKED("libcrt::Splitpath")
 int __cdecl libcrt::Fclose(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fclose")
 int __cdecl libcrt::Fseek(gamecrt::CrtFile*, long, int) EI_UNLINKED("libcrt::Fseek")
 long __cdecl libcrt::Ftell(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Ftell")

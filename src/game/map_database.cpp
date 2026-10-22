@@ -185,7 +185,7 @@ void Loader::AddExit() {
     Split();
     if (Count() > 1) {
         Exit().target = words_[0];
-        Exit().entrance = libcrt::Atoi(Word(1)) - 1;
+        Exit().entrance = std::atoi(Word(1)) - 1;
     }
 }
 
@@ -203,8 +203,8 @@ bool Loader::MapLine(const char* word) {
     } else if (Is(word, game::mapwords::Maps())) {
         Split();
         if (Count() > 1) {
-            Map().sizeX = libcrt::Atoi(Word(0));
-            Map().sizeY = libcrt::Atoi(Word(1));
+            Map().sizeX = std::atoi(Word(0));
+            Map().sizeY = std::atoi(Word(1));
         }
         Split();
         if (Count() > 1) {

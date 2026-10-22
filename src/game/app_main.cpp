@@ -63,6 +63,7 @@
 #include "game_singletons.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <ddraw.h>
 
 #include <bit>
@@ -329,11 +330,11 @@ void ReadCommandLine(const char* commandLine) {
             CommandLineMap() = arguments[i];
         } else if (arguments[i].Find("-benchmark_") == 0) {
             mfc::CString frames = Tail(arguments[i], 11);
-            options->numberOfFrames_ = libcrt::Atoi(frames);
+            options->numberOfFrames_ = std::atoi(frames);
             options->createOutputInfo_ = 1;
         } else if (arguments[i].Find("-devicetarget_") == 0) {
             mfc::CString driver = Tail(arguments[i], 14);
-            options->driverIndex_ = libcrt::Atoi(driver);
+            options->driverIndex_ = std::atoi(driver);
         }
     }
 }
@@ -385,7 +386,8 @@ struct PathParts {
 
 // "<drive>\." of `path`: the root the volume calls take.
 void DriveRoot(const char* path, PathParts& parts) {
-    libcrt::Splitpath(path, parts.drive, parts.directory, parts.name, parts.extension);
+#pragma warning(suppress : 4996)
+    _splitpath(path, parts.drive, parts.directory, parts.name, parts.extension);
     std::memcpy(parts.drive + std::strlen(parts.drive), "\\.", 3);
 }
 

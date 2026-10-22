@@ -1571,12 +1571,18 @@ the `--no-hooks` suite) keeps the registry.
 
 - **Locale** (C26): the host CRT's. The text manager's Create 004DED20 calls the host's setlocale(LC_CTYPE, the
   "Font CharSet" option, "english" by default -> "English_United States.1252") and `_setmbcp(_MB_CP_LOCALE)`; the
-  host's start-up did __initmbctable's `_setmbcp(_MB_CP_ANSI)`. The ported class and case functions read the host's
-  state (crt_locale_data.h: `_pctype`, the LC_CTYPE locale name as an LCID, `__lc_codepage`, `_mbctype`,
-  `_mbcasemap`); tolower / toupper take `_tolower_lk`'s LCMapStringW path, compares fold through a table rebuilt on a
-  locale change. Single-byte paths only (`__mb_cur_max` 1). _ismbcdigit / _ismbcspace (CString's parsing) are the
-  host's. Both suites kept every golden the same with the switch (VC6 and the host build LC_CTYPE's tables from the
-  same GetStringTypeW / LCMapStringW calls; the C tables match for 0..255).
+  host's start-up did __initmbctable's `_setmbcp(_MB_CP_ANSI)` (with EI_UTF8 the standalone's start-up sets
+  `_MB_CP_SBCS`: no lead bytes). What still reads the state directly (crt_format.cpp's _output, CaseFoldTable,
+  mfc_resource.cpp) goes through crt_locale_data.h (`_pctype`, the LC_CTYPE locale name as an LCID, `__lc_codepage`,
+  `_mbctype`, `_mbcasemap`). Both suites kept every golden the same with the switch (VC6 and the host build
+  LC_CTYPE's tables from the same GetStringTypeW / LCMapStringW calls; the C tables match for 0..255).
+- **Strings and characters** (crt.cpp, C26): the host CRT's: strncmp, strncpy, _stricmp, _strnicmp, _memicmp,
+  _mbscmp, _mbsicmp, _mbsinc, _ismbblead, isleadbyte, tolower, toupper, isalpha / isdigit / isspace / isprint,
+  _mbsncmp, _mbclen and _mbslwr behind their libcrt names (the EI_UTF8 branches and ei_vectors' recorded answers need
+  the names); memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and
+  _splitpath called by their own names. Both suites goldens the same, though the host's compares return a difference
+  rather than VC6's -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words
+  before `_pctype`.
 - **Heap** (crt.cpp): malloc 006EABD1 and free 006EA8AD are the host CRT's (C26: both suites goldens the same, the
   image suite twice; until then a VC6-style Win32 heap of their own, `_crtheap` 007CAF08, sizes rounded up to 16,
   through the image's import slots, SV7c2). realloc, calloc, _msize and _strdup had no callers. The harness's

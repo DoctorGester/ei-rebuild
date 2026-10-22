@@ -682,7 +682,7 @@ void CCreditsScreen::Build() {
         currentLine_ = lines_.End();
     } else {
         mfc::CString script;
-        libcrt::Memmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
+        std::memmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
         script.ReleaseBuffer(-1);
         text::FromAssetText(&script);   // the headers' text in UTF-8 with EI_UTF8 (the pages are RTF)
         RemoveCarriageReturns(&script);
