@@ -135,7 +135,7 @@ void CWorldServer::Tick(char force) {
     }
     finished.Clear();
 
-    TimeWheelAdvance(timeWheel_, nullptr, tick_);
+    TimeWheelAdvance(AIEvents(), nullptr, tick_);
     // 006D44E0: every countdown (+0x70) counted down; true while one still runs.
     if (countdowns_.Tick()) MarkPlayersDirty(0x20);
 
