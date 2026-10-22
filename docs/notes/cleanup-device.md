@@ -29,4 +29,4 @@ files.
 - texture_bmp.cpp / texture_shadow.cpp keep their surface descriptions as dword arrays, cast to
   `DDSURFACEDESC2*` for Lock.
 - verify_state_setters.cpp's interface part still reads an offset (the ui files belong to the ui ticket).
-- Raw game addresses (originals, data) and the naked `__asm` forwarders stay.
+- Raw game addresses (data) and the `EI_ORIGINAL` forwarders: C18 and C29.

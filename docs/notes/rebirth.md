@@ -205,9 +205,7 @@ static CRT (`_cinit(0)`: only FNCLEX; every FLDCW is a save / restore inside a C
 handlers save only integer registers and flags; game.exe's own `_control87` calls (006C3A00, 006C8990, 006C9560) change the rounding mode
 only and restore the whole word; mss32.dll calls `_controlfp` only at its own load (before Direct3D sets 24 bits). Other threads (Miles'
 timer / mixer, the game's stream and MIDI threads, EI_Plugin's) start at 027F: game code running there (the sound manager's callbacks)
-computes at 53 bits in both installs (Rebirth does not raise the precision). Every verify wrapper checks the control word when it reports:
-a function seen at 53 or 64 bits is logged once ("FPU precision ... in <function> on the main / another thread; stack: ...", at most 30
-lines) and listed in `harness_report.txt`. Returning ST0 results as `double` stays right either way.
+computes at 53 bits in both installs (Rebirth does not raise the precision). Returning ST0 results as `double` stays right either way.
 
 ## Flags in the rebuild
 
@@ -302,12 +300,6 @@ flags are known and before the hooks are installed); the scaling 005F7CA0 / 005F
   005F7E00, written over with its 194-byte #93) clear ECX, and its code at 005FDE94 (in 005FDE20, the text surfaces' draw) calls 005F7CA0
   with ECX 0. The five hooks are `__fastcall` entries (`ScaleRectToScreenEntry` etc., ui.h) that take ECX 0 as "no interface": the wide
   scaling without the margin (with the flag off ECX 0 never comes). `CInterface3D::CallScale*NoMargin` (ui.h) are the callers that mean it.
-- In a Rebirth launch the panel offset is addon's variable (our builders write it): the startup finds addon's variable (the operand of
-  `ADD ECX,[m32]` / `ADD EAX,[m32]` in addon's SetRect, the JMP target at 005FC9E0, inside addon.dll) and our SetRect / AddPoint / Place
-  read that one, because the verify build's side-by-side wrappers run addon's builders, whose handlers write it.
-- 005F7DA0 / 005F7E00 / 005F7E30 lie inside addon's #93 site, so their verify wrappers steal whole instructions of addon's code written
-  there (`EI_REBIRTH_LIVE_STOLEN`, `include/ei/rebirth.h`; the installer waives "stolen bytes end inside the site" for them, and a JMP at a
-  function start inside a larger site is re-targeted).
 
 **Shapes, text, tooltips (W2).** The shape builders' sites (005E70E0+4F1 SetRectangle, 005E7680+60D SetGrid, 005E7D60+5FE SetFrame,
 005E99D0+4A7 SetTriangle: x moved by the panel offset; SetRectangle / SetFrame add it twice to the left + right sum, as addon); the text
