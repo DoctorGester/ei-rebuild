@@ -1,7 +1,6 @@
 // The text manager's archive list (004DE930-004DEDDF): adding, removing and clearing the
 // archives the texts are looked up in. The list and its node helpers are in item_db_text.h.
 #include "item_db_text.h"
-#include "world_client_class.h"
 #include "resource.h"
 
 #include "asset_text.h"
@@ -149,20 +148,18 @@ void CTextManager::RemoveSource(const char* path) { sources_.Remove(path); }
 
 void CTextManager::ClearSources() { sources_.Clear(); }
 
-void CTextManager::Destruct() {
-    ei::SetVtable(this, Vtable());
+CTextManager::CTextManager() {
+    ClearFields();
+    sources_.Construct();   // 00562A80
+    CTextManager::Create();   // 004DED20
+}
+
+CTextManager::~CTextManager() {
     ClearSources();
     sources_.Clear();
     // The list's destructor: its clear (nothing is left) and the sentinel back to the pool.
     sources_.ClearWith([](TextSource* source) { source->name.~string(); });
     stlp::deallocate(sources_.head, sizeof(TextSourceNode));
-    DestructBase();
-}
-
-CTextManager* CTextManager::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
 }
 
 void* TextSources::Find(const char* key, std::uint32_t* size) {
@@ -195,7 +192,7 @@ void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
 }
 EI_REWRITTEN(0x004DEFA0, CTextManager::ListKeys);
 
-int CTextManager::CreateImpl() {
+int CTextManager::Create() {
     // LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise), then the
     // multibyte code page from it: the game's only locale set-up, on the host CRT (C26; docs/notes/standalone.md). With
     // EI_UTF8 the text is UTF-8 and the CRT's case and classes do not depend on a locale (lib/text_case.h):
@@ -206,7 +203,7 @@ int CTextManager::CreateImpl() {
     }
     return 1;
 }
-EI_REWRITTEN(0x004DED20, CTextManager::CreateImpl);
+EI_REWRITTEN(0x004DED20, CTextManager::Create);
 
 EI_REWRITTEN(0x004DE930, TextSources::Add);
 EI_REWRITTEN(0x004DEAF0, TextSources::Remove);
@@ -215,5 +212,5 @@ EI_REWRITTEN(0x005628E0, TextSources::DestructList);
 EI_REWRITTEN(0x004DEDB0, CTextManager::AddSource);
 EI_REWRITTEN(0x004DEDD0, CTextManager::RemoveSource);
 EI_REWRITTEN(0x004DED40, CTextManager::ClearSources);
-EI_REWRITTEN(0x005629B0, CTextManager::Destruct);
-EI_REWRITTEN(0x00562990, CTextManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x005629B0, CTextManager::~CTextManager);
+EI_REWRITTEN_SPECIAL(0x00562990, CTextManager::~CTextManager);

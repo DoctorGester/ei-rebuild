@@ -79,15 +79,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     Attach(world->itemManager_, world);
 
     // The helper goes into the counted pointer at +0x5C (RefPtr::ShareAssign, inlined).
-    auto* helper = gamecrt::operator_new_as<CWorldHandle>();
-    // The count and both flag bytes as one dword, written before the test as the original does.
-    const std::uint32_t noReferences = 0;
-    std::memcpy(&helper->refs_, &noReferences, sizeof(noReferences));
-    if (helper) {
-        helper->pendingLink_ = nullptr;
-        ei::SetVtable(helper, CWorldHandle::Vtable());
-    }
-    world->shared5C_.ShareAssign(helper);
+    world->shared5C_.ShareAssign(new CWorldHandle());
     IsaacRandom::Global().Init();
     world->countdowns_.RemoveAll();
     return 1;

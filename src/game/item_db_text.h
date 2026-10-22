@@ -69,6 +69,18 @@ static_assert(sizeof(TextSources) == 4);
 
 class CTextManager : public CEngineObject {
 public:
+    // The constructor as the client world's Setup inlines it (text_sources.cpp): the engine
+    // object's fields, the archive list (00562A80), then Create (004DED20).
+    CTextManager();
+    // 005629B0 (deleting: 00562990; text_sources.cpp). ClearSources, then the archive list's own
+    // clear (004DEB60) and destruction (the sentinel back to the node pool).
+    ~CTextManager() override;
+
+    int Create() override;                  // 2: 004DED20 (below)
+    void Destroy() override { ClearSources(); }   // 3: 004DED40
+    const char* GetClassName() override;    // 11: 00562970 "CTextManager" (world_class_slots.cpp)
+    int GetClassId() override;              // 12: 00562980 (0x2A)
+
     // 004DF770. The first word at the cursor (leading spaces and line ends skipped; it ends at a
     // space, tab, CR or LF) into `out`; the cursor does not move. 0 when the cursor is at the end.
     BOOL PeekWord(mfc::CString* out);
@@ -117,21 +129,10 @@ public:
     void RemoveSource(const char* path);
     void ClearSources();
     // A-S11 (text_sources.cpp). 004DEFA0 (RET 8): the names matching `pattern` ("pers *") of every
-    // archive into `out` (004DEC40 on sources_). 004DED20 (vtable slot 2, Create; the client
-    // world's set-up also calls it directly): setlocale(LC_CTYPE, the "Font CharSet" option,
-    // "english" by default), then the C runtime's multibyte code page set to the locale's; returns 1.
+    // archive into `out` (004DEC40 on sources_). 004DED20 (slot 2, Create; the constructor also
+    // calls it): setlocale(LC_CTYPE, the "Font CharSet" option, "english" by default), then the C
+    // runtime's multibyte code page set to the locale's; returns 1.
     void ListKeys(mfc::CStringArray* out, const char* pattern);
-    int CreateImpl();
-
-    // The text manager is an engine object (the client world's +0x1D0 and the global 007AF788) with
-    // this compiled table (CTextManagerClass, world_client_class.h; game.exe's 0073F6F0).
-    static void* Vtable();
-    // 005629B0 (text_sources.cpp, A-W11). The destructor body: its vtable, ClearSources, the
-    // archive list's own clear (004DEB60) and destruction (the sentinel back to the node pool),
-    // then the engine object's DestructBase. 00562990 (slot 0, RET 4): it, then operator delete
-    // when bit 0 of `flags` is set; returns this.
-    void Destruct();
-    CTextManager* DeletingDestruct(unsigned flags);
 
     TextSources sources_;   // +0x1C
     const char* cursor_;    // +0x20 read position in the current text

@@ -15,7 +15,6 @@
 #include "terrain.h"
 #include "world.h"
 #include "world_class.h"
-#include "world_client_class.h"
 #include "world_data.h"
 #include "world_deleting_destructors.h"
 
@@ -164,38 +163,6 @@ CParticleManager::~CParticleManager() {
 EI_REWRITTEN_SPECIAL(0x005627C0, CParticleManager::~CParticleManager);
 
 EI_REWRITTEN_SPECIAL(0x005627A0, CParticleManager::~CParticleManager);
-
-void Terrain::Destruct() {
-    ei::SetVtable(this, Vtable());
-    Terrain::DestroyImpl();
-    waterLevels.vtable = mfc::impl::ClientMapArrayClass::Vtable();
-    waterLevels.FreeData();
-    textAE0.~CString();
-    visibleColumnLast.FreeData();
-    visibleColumnFirst.FreeData();
-    wavePhases.FreeData();
-    lights.Destroy();
-    sectorCache.vtable = mfc::impl::ClientList2Class::Vtable();
-    sectorCache.RemoveAll();
-    vertexTiles.FreeData();
-    archive.Destroy();
-    textureFrames.FreeData();
-    textureClass.FreeData();
-    materials.FreeData();
-    textFC.~CString();
-    textF8.~CString();
-    pageMaterials.FreeData();
-    pageTextures.FreeData();
-    ei::SetVtable(this, CTransformObject::BaseVtable());
-    CEngineObject::DestructBase();
-}
-EI_REWRITTEN(0x00562B80, Terrain::Destruct);
-
-Terrain* Terrain::DeletingDestruct(unsigned flags) {
-    Destruct();
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x00562B60, Terrain::DeletingDestruct);
 
 void Sector::Destruct() {
     ei::SetVtable(this, Vtable());

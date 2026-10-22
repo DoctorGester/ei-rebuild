@@ -1029,45 +1029,34 @@ struct OpaqueRecord {
 };
 
 
-// The worlds' counted helpers (CWorld + 0x5C, vtable 0073F240, 0xC bytes; the client's +0x1C8,
-// 0073F628): player sources (player_source.h; Query AL 0, the client's Segment calls Pump every
-// tick). The server's hands its pending link over once (slot 6, 00478880). world_sessions.cpp.
-class CWorldHandle : public CPlayerSource {
+// The worlds' counted helpers (CWorld + 0x5C, 0xC bytes; the client's +0x1C8, 8 bytes): player
+// sources (player_source.h; Query AL 0, the client's Segment calls Pump every tick). The server's
+// hands its pending link over once (slot 6, 00478880). world_sessions.cpp.
+class CWorldHandle final : public CPlayerSource {
 public:
-    // The compiled table (world_sessions.cpp; game.exe's 0073F240).
-    static void* Vtable();
+    CWorldHandle() : pendingLink_(nullptr) {}
+    ~CWorldHandle() override;           // 0055F280 (deleting: 0055F260): the link released
 
-    // 0: 0055F260 (DeletingDestruct)
-    int OnShutdown() override;          // 2: 0055F1E0 (the link released; built again in place)
+    int OnShutdown() override;          // 2: 0055F1E0 (the link released, none pending)
     CWorldHandle* Clone() override;     // 3: 0055F1A0 (the same link, counted)
+    bool Query() override { return false; }   // 4: 0055F250
     void TakeNew(JoinedLinks* joined) override;   // 6: 00478880 (the pending link appended, then dropped here; player_sources.cpp)
-    void TakeNewImpl(JoinedLinks* joined);   // body of the slot above (registered by member pointer)
-
-    // 0055F280. The link released, the root vtable left.
-    void Destruct();
-    // 0055F260 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
-    CWorldHandle* DeletingDestruct(unsigned flags);
 
     netlink::NetLink* pendingLink_;     // +0x08 counted; handed over by slot 6
 };
-static_assert(offsetof(CWorldHandle, pendingLink_) == 0x08);
 
-// The client world's player source (CWorldClient + 0x1C8, vtable 0073F628, 8 bytes; Setup makes
-// it): it has no state of its own. world_sessions.cpp.
-class CClientHandle : public CPlayerSource {
+// The client world's player source (CWorldClient + 0x1C8; Setup makes it): it has no state of its
+// own. world_sessions.cpp.
+class CClientHandle final : public CPlayerSource {
 public:
-    // The compiled table (world_sessions.cpp; game.exe's 0073F628).
-    static void* Vtable();
-
-    // 0: 00562750 (the counted value's deleting destructor); 4: 005626F0 (AL 0).
-    int OnShutdown() override;          // 2: 005626D0 (built again in place: the root vtable, then its own)
+    // (deleting destructor: 00562750, the counted value's)
+    int OnShutdown() override { return 0; }   // 2: 005626D0
     CClientHandle* Clone() override;    // 3: 005626B0 (a new handle, count 0; null without memory)
+    bool Query() override { return false; }   // 4: 005626F0
     // 6: 00562700 (RET 4). The client takes no connections: every link of the list is released
     // and the list emptied (its blocks freed).
     void TakeNew(JoinedLinks* joined) override;
-    void TakeNewImpl(JoinedLinks* joined);   // body of the slot above (registered by member pointer)
 };
-static_assert(sizeof(CClientHandle) == 8);
 
 // A window rectangle of the frame (the client's list +0xF0 and the hit vector +0xF4; 0x18 bytes).
 struct ScreenEntry {

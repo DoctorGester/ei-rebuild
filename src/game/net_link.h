@@ -271,27 +271,20 @@ struct DriverNode {
     DriverLink* Driver() const { return static_cast<DriverLink*>(value.ptr); }
 };
 
-// The network session (vtable 0073F3A8, 0x10 bytes; CWorld + 0x60, made by CWorld::OpenSession
-// 0055F410): a player source (player_source.h) with two lists of drivers. Its lifetime slots are in
-// world_sessions.cpp.
-class __declspec(novtable) DriverSession : public CPlayerSource {
+// The network session (0x10 bytes; CWorld + 0x60, made by CWorld::OpenSession 0055F410; a real
+// class since C28g, game.exe's 0073F3A8 retired): a player source (player_source.h) with two lists
+// of drivers. Its lifetime is in world_sessions.cpp.
+class DriverSession final : public CPlayerSource {
 public:
-    static void* Vtable();   // the compiled table (below; game.exe's 0073F3A8)
+    // The constructor as 0055F410 inlines it: both lists empty.
+    DriverSession();
+    // 0055F7B0 (deleting: 0055F790). Both lists destroyed (holders released, drivers destroyed).
+    ~DriverSession() override;
 
-    // 0: 0055F790 (DeletingDestruct); 4: 0047A220 (AL 1); 5: the base's; 6: 0047A230 (the live
-    // holders' links appended to the list).
-    int OnShutdown() override;          // 2: 0055F6B0 (both lists emptied; built again in place)
+    int OnShutdown() override;          // 2: 0055F6B0 (both lists emptied, new sentinels)
     DriverSession* Clone() override;    // 3: 0055F550 (drivers shared, holders counted)
-    void TakeNew(JoinedLinks* joined) override;   // 6: 0047A230 (player_sources.cpp)
-    void TakeNewImpl(JoinedLinks* joined);   // body of the slot above (registered by member pointer)
-
-    // The constructor as 0055F410 inlines it on `memory` (0x10 bytes of operator new, the count
-    // already cleared): both lists empty. Returns the session.
-    static DriverSession* ConstructAt(void* memory);
-    // 0055F7B0. Both lists destroyed (holders released, drivers destroyed), the root vtable left.
-    void Destruct();
-    // 0055F790 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
-    DriverSession* DeletingDestruct(unsigned flags);
+    bool Query() override { return true; }   // 4: 0047A220
+    void TakeNew(JoinedLinks* joined) override;   // 6: 0047A230 (the live holders' links appended; player_sources.cpp)
 
     DriverNode* drivers_;        // +0x08 list<RefPtr> (owning)
     DriverNode* holders_;        // +0x0C list of plain holders (released, not detached)
@@ -302,8 +295,6 @@ public:
     // 0047A080 (RET 4). Both lists emptied, then one driver for `player`, started and drained.
     DriverLink* Start(net::Connection* player);
 };
-static_assert(offsetof(DriverSession, drivers_) == 0x08);
-static_assert(offsetof(DriverSession, holders_) == 0x0C);
 
 // ---- The compiled tables --------------------------------------------------------------------------
 
@@ -395,25 +386,10 @@ public:
     }
 };
 
-class DriverSessionClass final : public ei::CompiledTag<DriverSessionClass> {
-public:
-    virtual void* DeleteScalar(unsigned flags) { return Object()->DeletingDestruct(flags); }   // 0: 0055F790
-    virtual void Serialize(ChunkArchive*) {}                                                   // 1: 00412580
-    virtual int OnShutdown() { return Object()->DriverSession::OnShutdown(); }                 // 2: 0055F6B0
-    virtual CRefObject* Clone() { return Object()->DriverSession::Clone(); }                   // 3: 0055F550
-    virtual bool Query() { return true; }                                                      // 4: 0047A220
-    virtual void Pump() {}                                                                     // 5: 0055F190 (empty)
-    virtual void TakeNew(JoinedLinks* joined) { Object()->TakeNewImpl(joined); }               // 6: 0047A230
-
-private:
-    DriverSession* Object() { return ObjectAs<DriverSession>(); }
-};
-
 inline void* NetLink::Vtable() { return NetLinkClass::Vtable(); }
 inline void* LoopbackLink::Vtable() { return LoopbackLinkClass::Vtable(); }
 inline void* ReplayLink::Vtable() { return ReplayLinkClass::Vtable(); }
 inline void* FramedLink::Vtable() { return FramedLinkClass::Vtable(); }
 inline void* DriverLink::Vtable() { return DriverLinkClass::Vtable(); }
-inline void* DriverSession::Vtable() { return DriverSessionClass::Vtable(); }
 
 } // namespace netlink

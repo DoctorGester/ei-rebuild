@@ -73,18 +73,24 @@ static_assert(sizeof(LandscapeLight) == 0x24);
 
 // Landscape: answers height queries for a world position. The vertex grid has unit spacing, but
 // vertices can be displaced sideways, so a point may lie in a neighbouring cell. A counted engine
-// object (0xAFC bytes, Vtable()) on a CTransformObject base (00453400); the client world's
-// Setup inlines its constructor up to 006C5620, so the members it initialises are declared.
-class Terrain : public CTransformObject {
+// object (0xAFC bytes; a real class since C28g, game.exe's 0073F6A8 retired) on a CTransformObject
+// base; the client world's Setup makes it.
+class Terrain final : public CTransformObject {
 public:
+    // The constructor as the client world's Setup inlines it (terrain_landscape.cpp): the
+    // transform's fields and identity rotations, the members, then Reset (006C5620).
+    Terrain();
+    // 00562B80 (deleting: 00562B60; terrain_landscape.cpp). Destroy, then the members last to first.
+    ~Terrain() override;
+
     // 006C5430 (slot 2; terrain_landscape.cpp). Reset, the vertex tile table (006C7A80), the wave
     // phases, the sine table sin(i * pi / 256); position zero, rotation identity. Returns 1.
     int Create() override;
-    int CreateImpl();   // body of the slot above (registered by member pointer)
     // 006C54D0 (slot 3). Frees the map (006C7750), releases the registered lights and empties
     // their table, empties the sector cache list, then Reset.
     void Destroy() override;
-    void DestroyImpl();   // body of the slot above (registered by member pointer)
+    const char* GetClassName() override;    // 11: 00562B40 "CTerrain" (world_class_slots.cpp)
+    int GetClassId() override;              // 12: 00562B50 (0xB)
     // 006C5620. The constructor's body: no map, no textures (the arrays freed), texts "none",
     // frame 1, no sun, waves upwards at strength 0, phase 2 pi, no ambient loops.
     void Reset();
@@ -149,7 +155,6 @@ public:
     // from it and the world position (CTransformObject::WorldMatrix inlined; UpdateWorld calls this
     // before it moves the position, so the matrix holds the position of the update before).
     void CombineRotation(const Quaternion& parent) override;
-    void CombineRotationImpl(const Quaternion& parent);   // body of the slot above (registered by member pointer)
     // 006C9290 (RET 4, from the zone load 00567AB0). The frames between sun updates; negative: no
     // countdown, otherwise the countdown is raised to the interval.
     void SetLightInterval(int frames);
@@ -226,7 +231,6 @@ public:
     // (flag 8), the wave phase and frame counter, then Animate for each drawn sector of the visible
     // rows. Returns 1.
     int RunTick() override;
-    int RunTickImpl();   // body of the slot above (registered by member pointer)
 
     // 006C8ED0 (RET 8; terrain_animation.cpp). Takes `sun` and the ambient colour: the ray steps
     // of the shadow test from the direction towards the sun (components below 0.01 in size pushed
@@ -249,16 +253,6 @@ public:
     // AddTerrainTriangle per cell).
     void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
 
-    // 00562B80 (S13a, world_destructors.cpp). The destructor's body: the vtable, Destroy, the
-    // members last to first (the water level arrays, the ambient set's text, the aligned arrays'
-    // blocks, the light table, the sector cache, the archive, the texts), then CTransformObject's
-    // (its vtable, CEngineObject's body).
-    void Destruct();
-    // 00562B60 (slot 0): Destruct, then operator delete when bit 0 of `flags` is set. Returns this.
-    Terrain* DeletingDestruct(unsigned flags);
-    // The compiled table (TerrainClass, world_client_class.h; game.exe's 0073F6A8).
-    static void* Vtable();
-
     Matrix4 drawMatrix;             // +0x054 the draw passes' matrix (rotation, position in the last column)
     // +0x094 1 water waves, 2 animated tiles, 4 fade the light at the map edges, 8 ambient sounds,
     // 0x10 sun shadows.
@@ -279,7 +273,7 @@ public:
     int tileSize;                   // +0x120 a tile texture's side in pixels; -1 after Reset
     int tilesPerRow;                // +0x124 pageSize / tileSize
     int perPage;                    // +0x128 textures per page: tilesPerRow squared
-    // Members constructed in place by Setup (their constructors' addresses).
+    // Members the constructor builds (their constructors' addresses).
     lib::AlignedArray<terrain::TerrainMaterial> materials;   // +0x12C 00570E40 the water materials
     // +0x13C, +0x14C (0056FD30 both), per tile texture: its class 0..15 (sounds, prints), with
     // sixteen entries of class 15 after the map's own; its frame count when animated, else 0.

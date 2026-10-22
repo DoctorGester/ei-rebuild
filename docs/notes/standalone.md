@@ -1138,7 +1138,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Sessions** (net_classes.h): SessionBaseClass (15 slots), ServerBaseClass / ClientBaseClass (17) and the final
     ServerSessionClass / ClientSessionClass. **Connection, replica entry** (net_connection.h: `RefObjectClass`).
     **Links** (net_link.h): NetLinkClass and its Loopback / Replay / Framed / Driver tags (FileStream is a real class),
-    DriverSessionClass. net_link.cpp's slot registrations stay registered (C11 batch 30 owns that file).
+    (DriverSession is a real class since C28g). net_link.cpp's slot registrations stay registered (C11 batch 30 owns that file).
   - **Items** (item_class.h over engine_object_class.h; real classes since C28a): EngineObjectClass declares CEngineObject's 13 slots with the
     base's bodies (Release keeps the hook's EAX: this, or the manager's slot 24 result); ItemClass adds CItem's 14-21
     (17-20 return a CString by value: the caller's hidden result, as game.exe's); one tag per item class (the
@@ -1164,10 +1164,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     light's own radius is slot 24 (LightRadius; its slot 19 is the base's), the missile's MoveParts slot 24. 007435D8 is a
     byte match inside an FDIV operand of 005E1680: retired as the particle table's tail.
   - **Small ones**: the unit shape (ai_unit_shape.cpp) and the item link (item_link.cpp) (real classes since C28e);
-    the terrain (TransformObjectClass, slot 14 its own CombineRotation; tail 0073F6E8 a byte match in 006E81C2) and the
-    text manager (world_client_class.h); the player sources' base 0073F38C (slots 2-4 and 6 `_purecall`), the server's
-    counted helper 0073F240 and the client's source 0073F628 (world_sessions.cpp), the bridge manager 0073F4FC
-    (world_construct.cpp). Generated EI_REPLACE_SHORT rows (short_functions.cpp) are never dropped.
+    the terrain (terrain.h, slot 14 its own CombineRotation; tail 0073F6E8 a byte match in 006E81C2), the text manager
+    (item_db_text.h), the player sources' base 0073F38C (slots 2-4 and 6 pure), the server's counted helper 0073F240,
+    the client's source 0073F628 and the network session 0073F3A8 (world.h, net_link.h) are real classes since C28g;
+    the bridge manager 0073F4FC (world_construct.cpp). Generated EI_REPLACE_SHORT rows (short_functions.cpp) are never dropped.
   - **Trap: `python tools/find_vtables.py --help` runs the tool** and rewrites config/vtables.csv; restore it with git.
   - **Left in world* / unit***: the map object companions 0073DBEC / 0073DD6C (irregular slots), the worlds 0073F18C /
     0073F41C / 0073F928 (42-43 slots), the unit client's 0073ECD8 / 0073EDBC / 0073F0C4, the AI modes (the harness

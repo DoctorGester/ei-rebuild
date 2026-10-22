@@ -7,7 +7,9 @@
 #include "figure_manager.h"
 #include "effects.h"
 #include "item.h"
+#include "item_db_text.h"
 #include "lightning.h"
+#include "terrain.h"
 
 #include "ei/hook.h"
 
@@ -65,15 +67,15 @@ int CParticleManager::GetClassId() { return kParticleManagerId; }
 EI_REWRITTEN(0x00562780, CParticleManager::GetClassName);
 EI_REWRITTEN(0x00562790, CParticleManager::GetClassId);
 
-const char* __fastcall TextManagerClassName(CTextManager*) { return kTextManagerName; }
-int __fastcall TextManagerClassId(CTextManager*) { return kTextManagerId; }
-EI_REWRITTEN(0x00562970, TextManagerClassName);
-EI_REWRITTEN(0x00562980, TextManagerClassId);
+const char* CTextManager::GetClassName() { return kTextManagerName; }
+int CTextManager::GetClassId() { return kTextManagerId; }
+EI_REWRITTEN(0x00562970, CTextManager::GetClassName);
+EI_REWRITTEN(0x00562980, CTextManager::GetClassId);
 
-const char* __fastcall TerrainClassName(Terrain*) { return kTerrainName; }
-int __fastcall TerrainClassId(Terrain*) { return kTerrainId; }
-EI_REWRITTEN(0x00562B40, TerrainClassName);
-EI_REWRITTEN(0x00562B50, TerrainClassId);
+const char* Terrain::GetClassName() { return kTerrainName; }
+int Terrain::GetClassId() { return kTerrainId; }
+EI_REWRITTEN(0x00562B40, Terrain::GetClassName);
+EI_REWRITTEN(0x00562B50, Terrain::GetClassId);
 
 const char* CLightningManager::GetClassName() { return kLightningManagerName; }
 int CLightningManager::GetClassId() { return kLightningManagerId; }

@@ -13,6 +13,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
+#include "game/record_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -203,7 +204,54 @@ constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
 
 } // namespace
 
-int Terrain::CreateImpl() {
+Terrain::Terrain() {
+    ClearFields();
+    // Identity rotations (w first); the positions are not initialised (00453400).
+    localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    pageTextures.data = nullptr;
+    pageTextures.growBy = 0;
+    pageTextures.capacity = 0;
+    pageTextures.size = 0;
+    pageMaterials.Construct();
+    materials.Construct();
+    textureClass.Construct();
+    textureFrames.Construct();
+    archive.Construct();
+    vertexTiles.Construct();
+    mfc::impl::ConstructListHeader<mfc::impl::ClientList2Class>(&sectorCache, 10);
+    lights.Construct(100);   // 00571050: the light table, then the highest id 0
+    maxLightId = 0;
+    wavePhases.Construct();
+    visibleColumnFirst.Construct();
+    visibleColumnLast.Construct();
+    mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&waterLevels);
+    Reset();
+}
+
+// The members last to first (the texts, members, go after the others).
+Terrain::~Terrain() {
+    Terrain::Destroy();
+    waterLevels.vtable = mfc::impl::ClientMapArrayClass::Vtable();
+    waterLevels.FreeData();
+    visibleColumnLast.FreeData();
+    visibleColumnFirst.FreeData();
+    wavePhases.FreeData();
+    lights.Destroy();
+    sectorCache.vtable = mfc::impl::ClientList2Class::Vtable();
+    sectorCache.RemoveAll();
+    vertexTiles.FreeData();
+    archive.Destroy();
+    textureFrames.FreeData();
+    textureClass.FreeData();
+    materials.FreeData();
+    pageMaterials.FreeData();
+    pageTextures.FreeData();
+}
+EI_REWRITTEN_SPECIAL(0x00562B80, Terrain::~Terrain);
+EI_REWRITTEN_SPECIAL(0x00562B60, Terrain::~Terrain);
+
+int Terrain::Create() {
     Reset();
     BuildVertexTiles();
     BuildWavePhases();
@@ -213,7 +261,7 @@ int Terrain::CreateImpl() {
     return 1;
 }
 
-void Terrain::DestroyImpl() {
+void Terrain::Destroy() {
     ClearMap();
     for (LightTable::Node* node = lights.First(); node; node = lights.After(node)) node->value.light->Release();
     maxLightId = 0;
@@ -563,8 +611,8 @@ EI_REWRITTEN(0x006C68B0, Terrain::LoadMap);
 
 // ---- The world matrix, the light interval, water levels, tile texture coordinates -------------------
 
-void Terrain::CombineRotationImpl(const Quaternion& parent) {
-    CTransformObject::CombineRotationImpl(parent);
+void Terrain::CombineRotation(const Quaternion& parent) {
+    CTransformObject::CombineRotation(parent);
     WorldMatrix(worldMatrix.m);
 }
 
@@ -627,9 +675,9 @@ void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float si
 }
 EI_REWRITTEN(0x006C7940, Terrain::BuildTileUv);
 
-EI_REWRITTEN(0x006C5430, Terrain::CreateImpl);
-EI_REWRITTEN(0x006C54D0, Terrain::DestroyImpl);
-EI_REWRITTEN(0x006C6070, Terrain::CombineRotationImpl);
+EI_REWRITTEN(0x006C5430, Terrain::Create);
+EI_REWRITTEN(0x006C54D0, Terrain::Destroy);
+EI_REWRITTEN(0x006C6070, Terrain::CombineRotation);
 EI_REWRITTEN(0x006C5620, Terrain::Reset);
 EI_REWRITTEN(0x006C57E0, Terrain::BuildWavePhases);
 EI_REWRITTEN(0x006C7D70, Terrain::SetWaveStrength);
