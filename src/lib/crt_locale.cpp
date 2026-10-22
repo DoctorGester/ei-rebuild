@@ -43,11 +43,8 @@ LocaleCategory* Categories() { return ei::GamePointer<LocaleCategory>(0x00797888
 const char* StaticC() { return ei::GamePointer<const char>(0x00797778); }
 // The state setlocale writes (__lc_handle, __lc_id, the code pages, getqloc's cache): crt_locale_data.h.
 
-// The class tables: _pctype / _pwctype (00797DD8 / 00797DDC; the C locale's table + 1 entry is 00797DE2); the
-// heap blocks behind them and __mb_cur_max are crt_locale_data.h's.
-const unsigned short*& CtypeTable() { return ei::GameData<const unsigned short*>(0x00797DD8); }
-const unsigned short*& WideCtypeTable() { return ei::GameData<const unsigned short*>(0x00797DDC); }
-const unsigned short* StaticCtype() { return ei::GamePointer<const unsigned short>(0x00797DE2); }
+// The class tables (_ctype, _pctype / _pwctype), the heap blocks behind them and __mb_cur_max:
+// crt_locale_data.h's.
 
 // The multibyte code page's tables and state (_mbctype, _mbcasemap, ...): crt_locale_data.h.
 constexpr unsigned kMbFlagsSize = 257;
@@ -84,19 +81,110 @@ constexpr unsigned char kMbTrail = 0x8;   // _M2
 constexpr unsigned char kSbUpper = 0x10;  // _SBUP
 constexpr unsigned char kSbLower = 0x20;  // _SBLOW
 
-// The language and country abbreviation tables (__rg_language 007989E0, 65 entries; __rg_country
-// 00798928, 23 entries; sorted for stricmp) and the language ids that are not their country's default
-// (kNonDefaultCountryIds).
+// The language ids that are not their country's default, and the language and country abbreviation
+// tables (__rg_language, __rg_country; sorted for stricmp).
 struct NameAbbreviation {
     const char* name;
     char abbreviation[4];
 };
-const NameAbbreviation* LanguageTable() { return ei::GamePointer<const NameAbbreviation>(0x007989E0); }
-const NameAbbreviation* CountryTable() { return ei::GamePointer<const NameAbbreviation>(0x00798928); }
-constexpr int kLastLanguage = 0x40;
-constexpr int kLastCountry = 0x16;
 constexpr std::uint16_t kNonDefaultCountryIds[10] = /*00798914*/ {0xC0C, 0xC1A, 0x1007, 0x436, 0x80C,
                                                                     0x42D, 0x403, 0x100C, 0x810, 0x81D};
+constexpr NameAbbreviation kCountries[23] = /*00798928*/ {
+    {"america", "USA"},
+    {"britain", "GBR"},
+    {"china", "CHN"},
+    {"czech", "CZE"},
+    {"england", "GBR"},
+    {"great britain", "GBR"},
+    {"holland", "NLD"},
+    {"hong-kong", "HKG"},
+    {"new-zealand", "NZL"},
+    {"nz", "NZL"},
+    {"pr china", "CHN"},
+    {"pr-china", "CHN"},
+    {"puerto-rico", "PRI"},
+    {"slovak", "SVK"},
+    {"south africa", "ZAF"},
+    {"south korea", "KOR"},
+    {"south-africa", "ZAF"},
+    {"south-korea", "KOR"},
+    {"trinidad & tobago", "TTO"},
+    {"uk", "GBR"},
+    {"united-kingdom", "GBR"},
+    {"united-states", "USA"},
+    {"us", "USA"}
+};
+constexpr NameAbbreviation kLanguages[65] = /*007989E0*/ {
+    {"american", "ENU"},
+    {"american english", "ENU"},
+    {"american-english", "ENU"},
+    {"australian", "ENA"},
+    {"belgian", "NLB"},
+    {"canadian", "ENC"},
+    {"chh", "ZHH"},
+    {"chi", "ZHI"},
+    {"chinese", "CHS"},
+    {"chinese-hongkong", "ZHH"},
+    {"chinese-simplified", "CHS"},
+    {"chinese-singapore", "ZHI"},
+    {"chinese-traditional", "CHT"},
+    {"dutch-belgian", "NLB"},
+    {"english-american", "ENU"},
+    {"english-aus", "ENA"},
+    {"english-belize", "ENL"},
+    {"english-can", "ENC"},
+    {"english-caribbean", "ENB"},
+    {"english-ire", "ENI"},
+    {"english-jamaica", "ENJ"},
+    {"english-nz", "ENZ"},
+    {"english-south africa", "ENS"},
+    {"english-trinidad y tobago", "ENT"},
+    {"english-uk", "ENG"},
+    {"english-us", "ENU"},
+    {"english-usa", "ENU"},
+    {"french-belgian", "FRB"},
+    {"french-canadian", "FRC"},
+    {"french-luxembourg", "FRL"},
+    {"french-swiss", "FRS"},
+    {"german-austrian", "DEA"},
+    {"german-lichtenstein", "DEC"},
+    {"german-luxembourg", "DEL"},
+    {"german-swiss", "DES"},
+    {"irish-english", "ENI"},
+    {"italian-swiss", "ITS"},
+    {"norwegian", "NOR"},
+    {"norwegian-bokmal", "NOR"},
+    {"norwegian-nynorsk", "NON"},
+    {"portuguese-brazilian", "PTB"},
+    {"spanish-argentina", "ESS"},
+    {"spanish-bolivia", "ESB"},
+    {"spanish-chile", "ESL"},
+    {"spanish-colombia", "ESO"},
+    {"spanish-costa rica", "ESC"},
+    {"spanish-dominican republic", "ESD"},
+    {"spanish-ecuador", "ESF"},
+    {"spanish-el salvador", "ESE"},
+    {"spanish-guatemala", "ESG"},
+    {"spanish-honduras", "ESH"},
+    {"spanish-mexican", "ESM"},
+    {"spanish-modern", "ESN"},
+    {"spanish-nicaragua", "ESI"},
+    {"spanish-panama", "ESA"},
+    {"spanish-paraguay", "ESZ"},
+    {"spanish-peru", "ESR"},
+    {"spanish-puerto rico", "ESU"},
+    {"spanish-uruguay", "ESY"},
+    {"spanish-venezuela", "ESV"},
+    {"swedish-finland", "SVF"},
+    {"swiss", "DES"},
+    {"uk", "ENG"},
+    {"us", "ENU"},
+    {"usa", "ENU"}
+};
+constexpr int kLastLanguage = 0x40;
+constexpr int kLastCountry = 0x16;
+static_assert(sizeof(kLanguages) / sizeof(kLanguages[0]) == kLastLanguage + 1);
+static_assert(sizeof(kCountries) / sizeof(kCountries[0]) == kLastCountry + 1);
 constexpr int kNonDefaultCountries = 10;
 
 // strcpy / strcat as VC6's (no bound).
@@ -392,9 +480,9 @@ bool QualifyNames(LocaleNames& names, LocaleId& id) {
     LocaleSearch state{};
     search = &state;
     state.language = names.language;
-    if (*state.language) TranslateName(LanguageTable(), kLastLanguage, &state.language);
+    if (*state.language) TranslateName(kLanguages, kLastLanguage, &state.language);
     state.country = names.country;
-    if (*state.country) TranslateName(CountryTable(), kLastCountry, &state.country);
+    if (*state.country) TranslateName(kCountries, kLastCountry, &state.country);
     if (*state.language) {
         if (*state.country) FindLanguageAndCountry();
         else FindLanguage();
@@ -568,8 +656,8 @@ void SetSingleByteCase() {
 
 int InitCtype() {
     if (g_lcHandle[kCtype] == 0) {
-        CtypeTable() = StaticCtype();
-        WideCtypeTable() = StaticCtype();
+        g_pctype = kCtypeC + 1;
+        g_pwctype = kCtypeC + 1;
         gamecrt::free(g_ctypeBlock);
         gamecrt::free(g_wideCtypeBlock);
         g_ctypeBlock = nullptr;
@@ -604,8 +692,8 @@ int InitCtype() {
                     if (g_mbCurMax > 1)
                         for (const BYTE* lead = info.LeadByte; lead[0] != 0 && lead[1] != 0; lead += 2)
                             for (unsigned c = lead[0]; c <= lead[1]; ++c) classes[c + 1] = 0x8000;   // _LEADBYTE
-                    CtypeTable() = classes + 1;
-                    WideCtypeTable() = wideClasses + 1;
+                    g_pctype = classes + 1;
+                    g_pwctype = wideClasses + 1;
                     if (g_ctypeBlock) gamecrt::free(g_ctypeBlock);
                     g_ctypeBlock = classes;
                     if (g_wideCtypeBlock) gamecrt::free(g_wideCtypeBlock);
@@ -701,7 +789,7 @@ int IsMultibyteClass(unsigned c, WORD mask) {
     if constexpr (EI_UTF8 != 0) {
         if (c >= 0x80) return 0;
     }
-    if (c < 0x100) return CtypeTable()[c] & mask & 0xFF;
+    if (c < 0x100) return g_pctype[c] & mask & 0xFF;
     if (!g_isMbCodePage) return 0;
     const char bytes[2] = {static_cast<char>(c >> 8), static_cast<char>(c)};
     WORD types[2] = {};

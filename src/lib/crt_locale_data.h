@@ -16,6 +16,11 @@ extern unsigned g_lcHandle[6];
 // __lc_codepage (LC_CTYPE's ANSI code page) and __lc_collate_cp.
 extern unsigned g_lcCodePage;
 extern unsigned g_lcCollateCodePage;
+// _ctype: the "C" locale's class words, EOF's (0) first. _pctype / _pwctype point one entry on, at byte 0's word,
+// or at the heap tables setlocale's LC_CTYPE builds (crt_locale.cpp's InitCtype).
+extern const std::uint16_t kCtypeC[257];
+extern const std::uint16_t* g_pctype;
+extern const std::uint16_t* g_pwctype;
 // The heap blocks behind _pctype / _pwctype (null for "C").
 extern std::uint16_t* g_ctypeBlock;
 extern std::uint16_t* g_wideCtypeBlock;

@@ -362,7 +362,8 @@ The code still names game.exe's data by address (progress.py's "game data addres
 after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
 after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
-which took the pointer cells from 1,522 to 1,243; 247 -> 130 after the remaining objects batch, 2026-10-22). C18 turns them into named C++
+which took the pointer cells from 1,522 to 1,243, 243 -> 234 after C18q's script keyword and CRT tables, pointer cells
+1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -449,8 +450,43 @@ kinds given.
   and 007932F4) and the per-file copies of a header constant nothing of ours reads (src/game/header_constant_copies.cpp:
   72 copies of ".SEC"; a port names the copy it reads in its own file, ai_map_load.cpp's 0073FD1C / 0073FD20) are
   `[[maybe_unused]]` definitions, so their bytes come from the source too; the CRT's math function names 00797CC0
-  (crt_x87.cpp) likewise, its readers have no registration. Left: the script keyword table 0078BCA0 (Rebirth swaps
-  it), the CRT / MFC tables a static initialiser or the CRT's start-up fills.
+  (crt_x87.cpp) likewise, its readers have no registration. Left: the CRT / MFC tables a static initialiser or the
+  CRT's start-up fills (C18q's list below).
+- **The script keyword table and the CRT's tables (C18q)**: `kScriptKeywords` (script.h, script_parse.cpp; 0078BCA0,
+  225 keywords and the null entry, TYPES `ScriptKeyword` 'PiPP') and the lexer's comment markers 0078BC8C..94
+  (`scriptparse::kCommentOpen` / `kCommentClose` / `kLineComment`, script_parse.h; the quote 0078BC98 is the literal
+  `kQuote`). **Rebirth**: only the image runs our code, and addon.dll never loads there; `KeywordTable()` gives
+  `scriptaddon::Table()` (script_addon.cpp: built once from kScriptKeywords and addon's 69 records, as addon's
+  10022290 does) when the AddNewScriptCommands flag is on, else kScriptKeywords. game.exe (--no-hooks, the recorders)
+  runs its own code on its own table or addon's; nothing of ours reads game.exe's copy. The script vectors' fixture
+  "@ScriptKeywords" keeps its format; the replay compares the recorded table and markers with ours instead of
+  writing them into the stand-in. The CRT (S4c's ports read these): getqloc's `kLanguages` 007989E0 / `kCountries`
+  00798928 (TYPES `NameAbbreviation` `('P', '4s')`, crt_locale.cpp), `_ctype` as `kCtypeC` 00797DE0 (257 class
+  words) with `_pctype` / `_pwctype` `g_pctype` / `g_pwctype` 00797DD8 / 00797DDC (crt_locale_data.cpp, `{kCtypeC + 1}`:
+  named_data takes `NAME + k`, a named range's element k, as a pointer element; --emit does not write it, a person
+  does). `_iob` is not read: our streams are the host's FILE*, and the game's stdin / stdout / stderr are
+  `libcrt::GameStream(0..2)`, three 0x20-byte stand-ins in crt_format.cpp that only HostFile compares (the vector
+  recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets g_pctype). config/image_kept.csv
+  (C25) lost the rows these names replace: the keyword table and the strings only its cells reached (0078BCA0,
+  0078CAC0, 0078B820 / 864 / 8A4, 0078BBD0, 00787B5C / 98 / B4), `_ctype` 00797DE0, the abbreviation tables 00798928
+  and their names 00747924; the zero-filled trial (`build.cmd verify trial`) runs the image suite without them.
+  **Left in the CRT**, by reason:
+  - read, not nameable yet: the locale categories `__lc_category` 00797888 (6 x {name, locale, init}; our setlocale
+    reads and writes `locale` and calls `init` for a category other than LC_CTYPE, which the game never sets) and the
+    static "C" 00797778 its `locale` cells point at: the `init` cells are code pointers to __init_dummy 006EA766,
+    __init_collate 006F4A40, __init_monetary 006F4589, __init_numeric 006F437D and __init_time 006F3E0E, none ported
+    or registered (InitCtype is __init_ctype 006F47FB, unregistered). Name the table once those have registered
+    ports, or once the check has a form for a code pointer to code we do not have.
+  - unread by our code (the host CRT or a literal does the work; C25 zero-fills): `__lc_time_curr` 00797A58 and
+    `__lc_time_c` 00797A60 (strftime / the time functions are the host's, mfc_time.cpp), printf's "(null)" 0079804C /
+    00798050 (literals in crt_format.cpp), `_iob` 00798060 (its two cells to `_bufin`), getqloc's locale info table
+    00798470 (27 rows of 0x2C, 54 cells; 006F5231 is its GetLocaleInfoA stand-in off NT, ours calls GetLocaleInfoA),
+    the run-time error messages 0079AC30-0079ACBC (`_NMSG_WRITE`, not ported), `_tzname` 0079AD4C / 0079AD50 ("PST",
+    "PDT"; the host's tzset), `__lconv_c` 0079AE20-0079AE44 and `__lconv` 0079AE50 (localeconv is not ported; the
+    decimal point is `g_decimalPoint`).
+  - the CRT's start-up state, unported: the lock table 00797C04-00797C44 (`_mtinitlocks` fills it; our CRT takes no
+    locks), the small-block heap's region list 00798BF0-00798BFC and 0079AC10 (`__sbh_*`; on NT 5+ `__heap_select`
+    picks the system heap, which is the path crt.cpp ports).
 - **A batch** (the method; batch 1 did the interface's .rdata tables, 13 addresses: ui_hero_preview's four clear
   rectangle tables, ui_item_view's school glow colours and its pi / 5.0 floats, ui_briefing_people's speaker places,
   ui_hud_slide's part positions, the camp body slots of ui_container_draws / ui_hero_panels):
@@ -567,9 +603,8 @@ kinds given.
     crt_file's modes (zero constants) and crt_iostream's shared lock and ios count. **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
     yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
-    007AFF60), and of the CRT: `_pctype` / `_pwctype` 00797DD8 (cells to the C table + 1 entry: a pointer element
-    cannot name an offset into a range), the locale categories 00797888 with the static "C" 00797778 (their init
-    functions' code cells are not all ours), `_iob` 00798060-007980A0 (pointer cells to the bss buffers), and the
+    007AFF60), and of the CRT: the locale categories 00797888 with the static "C" 00797778 (their init
+    functions' code cells are not all ours; C18q named `_pctype` / `_pwctype` and stopped reading `_iob`), and the
     heap / allocator state (`_crtheap` 007CAF08, `_pnhHeap` 007CAAD8, `_newmode` 007CAC7C, `_afxNewHandler`
     00796E14, STLport's node free lists 0079B224 and pool 0079B264-0079B26C): the harness calls our allocator in
     --no-hooks runs (harness_leftovers' ZeroedNew, CStrings), where a named heap handle would be ours (null), not
@@ -744,7 +779,7 @@ kinds given.
       it for the harness in game.exe.
     - **Left**: the MFC / console static state (the console ostreams 007C55A8-007C7B38 with their buffers and the
       log pointers that hold their addresses: C19's vtables first), MFC's module / thread state and window classes
-      (mfc_state.cpp, mfc_window.cpp; the plan is ticket C18r), the save stream 007AFDF8 and the received stream
+      (mfc_state.cpp, mfc_window.cpp: C18r; the console streams: C18s), the save stream 007AFDF8 and the received stream
       007C83D0 (CMemoryStream, game.exe's vtable), the singletons themselves (0079B2A8, 007AF060, 007AF5B8, 007AFF60,
       0079BF00, 007AEE78), the loading movie 007C5520 / 007C554C, 0079BC28 and 007AEDD0-DC (src/render), the
       Rebirth-patched floats 007428AC / 00742B08, STLport's free lists 0079B224-0079B22C (the harness calls our
@@ -1416,7 +1451,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
 - **Code bytes read as data**: none left (R9b3). app_frame's cursor lock (004580D7) calls our rewrite directly; the
   harness reaches it and WinMain's camera (00457595), server update (00457314) and client segment (00457368) calls
   through hook points (`ei::mainloop::g_harnessHooks`, ei/main_loop.h; tests/verify/harness_hooks.h). ClassifyToken's
-  keyword table (the immediate at 004CF69B, which Rebirth rewrote) is the vanilla table 0078BCA0 or the add-on's.
+  keyword table (the immediate at 004CF69B, which Rebirth rewrote) is `KeywordTable()`: kScriptKeywords (0078BCA0's
+  bytes, C18q) or the add-on's, which script_addon.cpp builds from it under the flag.
   `AddonPanelOffset` returns none.
 - **DirectInput**: DirectInputCreateEx refuses an instance that is not a loaded module, so the image's import goes to
   a wrapper that passes the host's module. c_dfDIMouse (00745D00) points into game.exe's code section, so

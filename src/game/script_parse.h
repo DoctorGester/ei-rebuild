@@ -11,6 +11,12 @@
 
 namespace scriptparse {
 
+// The lexer's constants (CScript::Tokenize, ClassifyToken; the quote is the byte at 0078BC98).
+inline constexpr char kQuote = '"';
+inline constexpr const char* kCommentOpen = /*0078BC8C*/ "/*";
+inline constexpr const char* kCommentClose = /*0078BC90*/ "*/";
+inline constexpr const char* kLineComment = /*0078BC94*/ "//";
+
 // Game CRT (locale-dependent ctype functions and the CRT's own atof).
 int __cdecl IsDigit(int c);                                       // 006E9379
 int __cdecl IsSpace(int c);                                       // 006E93CE

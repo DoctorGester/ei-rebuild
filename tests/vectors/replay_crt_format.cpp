@@ -21,7 +21,7 @@ unsigned short g_classes[256];   // _pctype points here once the fixture ran
 bool CheckLocale(Reader& r, char*, std::size_t) {
     libcrt::g_decimalPoint[0] = r.Get<char>();
     for (unsigned short& word : g_classes) word = r.Get<unsigned short>();
-    ei::GameData<const unsigned short*>(kCharClasses) = g_classes;
+    libcrt::g_pctype = g_classes;
     return true;
 }
 EI_VECTOR_CHECK_BYTES("@CrtFormatLocale", CheckLocale);

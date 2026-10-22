@@ -1,5 +1,5 @@
 // Replay of the "script" family (script_vectors.h) against src/game/script_parse.cpp. The keyword table
-// and the lexer's strings come from the "@ScriptKeywords" fixture, the character classes from
+// and the lexer's strings are ours, compared with the "@ScriptKeywords" fixture; the character classes from
 // "@GameCrtCtype" (replay_crt.cpp); Rebirth's AddNewScriptCommands is off (the vectors are vanilla).
 #include "crt_vectors.h"
 #include "script_vectors.h"
@@ -14,7 +14,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <deque>
 #include <new>
 #include <string>
 #include <vector>
@@ -31,55 +30,59 @@ struct ReportedError {
 using namespace ei::vectors;
 using namespace ei::vectors::script;
 
-std::deque<std::string> g_strings;   // the fixture's strings (the table points into them)
-
-const char* Keep(const std::string& text, bool isNull) {
-    if (isNull) return nullptr;
-    g_strings.push_back(text);
-    return g_strings.back().c_str();
-}
-
 // Writes `size` bytes at `address` of the stand-in.
 void WriteGameData(std::uintptr_t address, const void* data, std::size_t size) {
     std::memcpy(ei::ReplayGameData(address, size), data, size);
 }
 
-bool CheckKeywords(Reader& r, char*, std::size_t) {
-    const std::uintptr_t tableAddress = r.Get<std::uint32_t>();
+bool SameText(const char* a, const std::string& b, bool bNull) { return bNull ? a == nullptr : a && b == a; }
+
+// The table, the quote and the comment markers are ours (kScriptKeywords, scriptparse's lexer
+// constants): compared with the recording. The texts at fixed addresses go into the stand-in.
+bool CheckKeywords(Reader& r, char* detail, std::size_t size) {
+    constexpr std::uint32_t kOurs = static_cast<std::uint32_t>(std::size(kScriptKeywords) - 1);
+    r.Get<std::uint32_t>();   // the table's address in game.exe
     const std::uint32_t count = r.Get<std::uint32_t>();
-    auto* table = static_cast<ScriptKeyword*>(ei::ReplayGameData(tableAddress, (count + 1) * sizeof(ScriptKeyword)));
+    bool same = count == kOurs;
+    if (!same) std::snprintf(detail, size, "%u keywords recorded, %u ours", count, kOurs);
     for (std::uint32_t i = 0; i < count && r.ok(); ++i) {
-        table[i].id = r.Get<std::int32_t>();
-        bool isNull;
-        std::string name = r.String(&isNull);
-        table[i].name = Keep(name, isNull);
-        std::string function = r.String(&isNull);
-        table[i].function = Keep(function, isNull);
-        std::string command = r.String(&isNull);
-        table[i].command = Keep(command, isNull);
+        const int id = r.Get<std::int32_t>();
+        bool nameNull, functionNull, commandNull;
+        const std::string name = r.String(&nameNull);
+        const std::string function = r.String(&functionNull);
+        const std::string command = r.String(&commandNull);
+        if (!same) continue;
+        const ScriptKeyword& ours = kScriptKeywords[i];
+        if (ours.id != id || !SameText(ours.name, name, nameNull) || !SameText(ours.function, function, functionNull) ||
+            !SameText(ours.command, command, commandNull)) {
+            std::snprintf(detail, size, "keyword %u: recorded %s %d, ours %s %d", i, name.c_str(), id,
+                          ours.name ? ours.name : "(null)", ours.id);
+            same = false;
+        }
     }
-    std::memset(&table[count], 0, sizeof(ScriptKeyword));
-    const ScriptKeyword* where = table;
-    WriteGameData(kKeywordTablePointer, &where, sizeof(where));
     const std::uint8_t quote = r.Get<std::uint8_t>();
-    WriteGameData(kQuoteChar, &quote, 1);
+    if (quote != static_cast<std::uint8_t>(scriptparse::kQuote)) {
+        std::snprintf(detail, size, "quote %02X recorded", quote);
+        same = false;
+    }
+    const char* const comments[] = {scriptparse::kCommentOpen, scriptparse::kCommentClose, scriptparse::kLineComment};
     for (std::uint32_t i = 0, n = r.Get<std::uint32_t>(); i < n && r.ok(); ++i) {
-        const std::uintptr_t at = r.Get<std::uint32_t>();
+        r.Get<std::uint32_t>();   // the pointer's address in game.exe
         bool isNull;
-        std::string text = r.String(&isNull);
-        const char* kept = Keep(text, isNull);
-        WriteGameData(at, &kept, sizeof(kept));
+        const std::string text = r.String(&isNull);
+        if (i >= std::size(comments) || !SameText(comments[i], text, isNull)) {
+            std::snprintf(detail, size, "comment marker %u: recorded \"%s\"", i, text.c_str());
+            same = false;
+        }
     }
     for (std::uint32_t i = 0, n = r.Get<std::uint32_t>(); i < n && r.ok(); ++i) {
         const std::uintptr_t at = r.Get<std::uint32_t>();
         std::string text = r.String();
         WriteGameData(at, text.c_str(), text.size() + 1);
     }
-    return true;
+    return same;
 }
 EI_VECTOR_CHECK_BYTES("@ScriptKeywords", CheckKeywords);
-
-bool SameText(const char* a, const std::string& b, bool bNull) { return bNull ? a == nullptr : a && b == a; }
 
 bool CheckClassify(Reader& r, char* d, std::size_t n) {
     const std::string text = r.String();

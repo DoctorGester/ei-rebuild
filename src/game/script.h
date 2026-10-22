@@ -737,6 +737,9 @@ struct ScriptKeyword {
     const char* command;    // commands: parameter types, else null
 };
 static_assert(sizeof(ScriptKeyword) == 16);
+// The game's table (0078BCA0, script_parse.cpp; 225 keywords and the null entry). The loader reads it
+// through KeywordTable(), which gives Rebirth's extended table instead when its flag is on.
+extern const ScriptKeyword kScriptKeywords[226];
 
 // ---- Loader and parser (script_parse.cpp, script_parse_load.cpp) --------------------------------
 
@@ -807,7 +810,8 @@ void __fastcall ClassifyToken(const char* text, int* id, int* rest);
 const char* __fastcall FunctionSignature(int id, int type);
 // 004D0BA0 (Rebirth patches it). The keyword's text, "Unknown command" if none.
 const char* __fastcall KeywordName(int id);
-// The keyword table in use: 0078BCA0, or the one Rebirth installs (read from ClassifyToken's code).
+// The keyword table in use: kScriptKeywords, or Rebirth's extended one (scriptaddon::Table()) when
+// its AddNewScriptCommands flag is on.
 const ScriptKeyword* KeywordTable();
 
 // The command block the loader creates for a then-section or a For body (CList node data in

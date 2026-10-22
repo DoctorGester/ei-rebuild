@@ -17,8 +17,9 @@ bytes leave the image's generated copy of the sections (gen_image_cells.py --byt
     the build's gen_image_cells.py --bytes reads it;
   * a pointer element (TYPES 'P': `const char* const kX[] = /*addr*/ {"a", "b"};`, a struct's pointer field, or
     one pointer `constexpr const char* kX = /*addr*/ "text";`) names what game.exe's pointer in its place points at,
-    and that is compared: a string literal the text at the target, the name of another named range its address, the
-    name of a function of ours its registration (EI_REPLACE*), nullptr a zero;
+    and that is compared: a string literal the text at the target, the name of another named range its address (or
+    `NAME + k` its element k's: _pctype's `kCtypeC + 1`, written by hand), the name of a function of ours its
+    registration (EI_REPLACE*), nullptr a zero;
   * nothing else reaches a named range: no address literal of src/ or tests/ (.cpp, .h, .inc; comments blanked)
     inside it, no pointer cell of game.exe's data pointing into it, no pointer or code cell inside it but at its
     pointer elements (gen_image_cells' scans; its cell lists leave the named ranges' cells out). What the image's
@@ -103,9 +104,11 @@ TYPES = {
     'MaterialKindFile': 'iP',
     'OptionDefinition': 'iPiiii', 'ActionDefinition': 'iPii',   # ui.h: id, name, kind, maximum, group, row / id, name, group, row
     'ScriptParticleType': 'Pii', 'AmbientSoundClass': 'Pififi',   # script.h: name, type, lifetime / terrain_ambience.cpp
+    'ScriptKeyword': 'PiPP',                 # script.h: name, id, function signature, command signature
     # A char array field is one code 'Ns' (a tuple of codes then): a string literal, zero padded (fewer than N chars).
     'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
     'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
+    'NameAbbreviation': ('P', '4s'),         # crt_locale.cpp: getqloc's language and country names and abbreviations
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
     'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
     'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges
@@ -125,9 +128,10 @@ TYPES = {
 DEF = re.compile(r'(?<![\w:])([\w:]+(?:<(?:[^<>;=(){}]|<[^<>;=(){}]*>)*>)?)(\s*\*\s*(?:const\s+)?|\s+)(\w+)\s*((?:\[[^\]]*\]\s*)*)=\s*/\*([0-9A-F]{8})\*/\s*([{"]|-?[\d.])')
 TAGGED = re.compile(r'=\s*/\*[0-9A-F]{8}\*/\s*(?:[{"]|-?[\d.])')   # a file with no such tag has no definition
 # The initialiser's tokens where its element type holds a pointer: a string literal (adjacent ones joined), a number,
-# a name (`&` optional: another named range, a function of ours with a registration, or nullptr).
+# a name (`&` optional: another named range, a function of ours with a registration, or nullptr), a named range's
+# element `NAME + k` (C18q: _pctype's `kCtypeC + 1`).
 TOKEN = re.compile(r'"((?:\\.|[^"\\\n])*)"|(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)'
-                   r'([fFuUlL]*)|&?\s*((?:::)?[A-Za-z_]\w*(?:::\w+)*)')
+                   r'([fFuUlL]*)|&?\s*((?:::)?[A-Za-z_]\w*(?:::\w+)*)(?:\s*\+\s*(\d+))?')
 # Registrations of our functions at game.exe's addresses (ei/hook.h): what a code pointer element may name.
 REGISTRATION = re.compile(r'\bEI_REPLACE(?:_STANDALONE|_SHORT|_METHOD|_DISPATCH)?\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,'
                           r'\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
@@ -279,6 +283,11 @@ class Targets:
     game.exe's address (name -> addresses; ei/hook.h's EI_REPLACE*)."""
     def __init__(self, defs, sources):
         self.ranges = {d.name: d.address for d in defs}
+        self.element_sizes = {}   # a named range's element size, for `NAME + k`
+        for d in defs:
+            fmt = 'B' if d.type == 'char' else element_format(d.type)
+            if fmt is not None:
+                self.element_sizes[d.name] = sum(code_size(c) for c in codes_of(fmt))
         self.functions = collections.defaultdict(set)
         for s in sources:
             for m in REGISTRATION.finditer(s.code):
@@ -287,12 +296,12 @@ class Targets:
 
 def tokens(body):
     """The initialiser's values: ('text', bytes) for a string literal (adjacent ones joined, escapes decoded),
-    ('number', int | float), ('name', text)."""
+    ('number', int | float), ('name', text), ('element', (name, k)) for `NAME + k`."""
     out = []
     code = srcscan.blank_comments(body)
     last_end = None
     for m in TOKEN.finditer(code):
-        text, sign, digits, suffix, name = m.groups()
+        text, sign, digits, suffix, name, offset = m.groups()
         if text is not None:
             value = text.encode('latin-1').decode('unicode_escape').encode('latin-1')
             if out and out[-1][0] == 'text' and not code[last_end:m.start()].strip():
@@ -307,7 +316,7 @@ def tokens(body):
             else:
                 out.append(('number', int(sign + digits)))
         else:
-            out.append(('name', name.lstrip(':')))
+            out.append(('element', (name.lstrip(':'), int(offset))) if offset else ('name', name.lstrip(':')))
         last_end = m.end()
     return out
 
@@ -383,6 +392,11 @@ def _pack_pointers(self, fmt, img, targets):
             if cell != targets.ranges[v]:
                 self.problem = (f'the pointer at {at:08X} points at {cell:08X}, not at {v} '
                                 f'({targets.ranges[v]:08X})')
+                return
+        elif kind == 'element' and v[0] in targets.element_sizes:
+            want = targets.ranges[v[0]] + v[1] * targets.element_sizes[v[0]]
+            if cell != want:
+                self.problem = (f'the pointer at {at:08X} points at {cell:08X}, not at {v[0]} + {v[1]} ({want:08X})')
                 return
         elif kind == 'name' and v in targets.functions:
             if cell not in targets.functions[v]:
