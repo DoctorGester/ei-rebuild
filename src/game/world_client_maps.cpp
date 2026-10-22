@@ -589,8 +589,7 @@ CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
 
     // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level
     // inlined in the original (the same steps as the out-of-line loop).
-    MatrixDevice* device = TheMatrixDevice();
-    const float* plane = device->viewStack + (device->viewDepth - 1) * 16;
+    const float* plane = ScenePipeline()->Top(CTransformPipeline::kViewStack)->m;
     CBaseManager* objects = client->MapObjectManager();
     ScreenEntry* first = hits.begin();
     ScreenEntry* last = hits.end();
@@ -1326,7 +1325,7 @@ int CWorldClient::Setup() {
         entries.Finish() = block + count;
         entries.EndOfStorage() = block + 400;
     }
-    unused84_ = -100000;
+    nextClientObjectId_ = -100000;
     cave_ = 0;
     partyDanger_ = 0;
     GridToFour(secondGrid_);
@@ -1653,7 +1652,7 @@ int CWorldClient::LoadZone(CStream* block) {
     // A wind option other than 0 sets the waves.
     const float wind = worlddata::DefaultWindForceOption();
     EI_NAN_AUDIT(wind);
-    if (wind != 0.0f) camera::TheTerrain()->SetWaveStrength(wind);
+    if (wind != 0.0f) TheTerrain()->SetWaveStrength(wind);
     ShowLoadingMovie(kProgressZoneReady);
     LocalView()->SendResume();
     CloseLoadingMovie();

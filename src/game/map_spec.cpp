@@ -22,6 +22,7 @@
 #include "ei/vcall.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world.h"
 
 namespace mapspec {
 
@@ -31,7 +32,7 @@ namespace {
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
 // (007B01F4); the world object's own updates.
-CAIMap* Selection() { return ei::GamePointer<CAIMap>(0x007B00D0); }
+CAIMap* Selection() { return TheServerWorld()->AIMap(); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;

@@ -1022,11 +1022,8 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 005605B0: stores
+    // 005605B0: stores; 3 left out
     d.Begin(0x005605B0);
-    d.Store(0x007AFDB0, 0);
-    d.Store(0x007AFDB4, 0);
-    d.Store(0x007AFDB8, 0);
     // 005605D0: stores; 4 left out
     d.Begin(0x005605D0);
     // 00560600: float fold; 1 left out
@@ -1524,12 +1521,8 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x004013D0);
     // 00600AD0: stores; 3 left out
     d.Begin(0x00600AD0);
-    // 00600AF0: stores
+    // 00600AF0: stores; 4 left out
     d.Begin(0x00600AF0);
-    d.Store(0x007C7E80, 0x3F800000);
-    d.Store(0x007C7E84, 0);
-    d.Store(0x007C7E88, 0);
-    d.Store(0x007C7E8C, 0);
     // 00601E10: guarded atexit
     d.Begin(0x00601E10);
     if (d.Once(0x007CAEE4, 1)) {

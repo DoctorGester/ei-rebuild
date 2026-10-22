@@ -39,7 +39,7 @@ constexpr float kZero = 0.0f;                                           // 0073B
 constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
 constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
 // Diplomacy: one mask of allied sides per side (007C2BC4).
-const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0x007C2BC4); }
+const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
 
 
 // The server side of a unit's player (CPlayer::connection_, a CPlayerServer here; CUnit::player is

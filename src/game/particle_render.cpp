@@ -41,9 +41,6 @@ ParticleSpriteArray& Sprites() { return ei::GameData<ParticleSpriteArray>(0x007A
 // The guard bits of the arrays below (function-local statics in the original).
 std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};
 
-// The world clock: whole ticks (007AF61C) and the fraction of the current one (007AFCA8).
-float TickFraction() { return ei::GameData<const volatile float>(0x007AFCA8); }
-
 constexpr int kReserve = 0x1000;
 
 void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>((void*)a0); }
@@ -68,7 +65,7 @@ void ConstructArrays() {
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
     double ticks = CurrentClientTick();
-    float fraction = static_cast<float>((ticks + D(TickFraction())) - ticks);
+    float fraction = static_cast<float>((ticks + D(ClientTickFraction())) - ticks);
     float one;
     std::uint32_t oneBits = 0x3F800000;
     std::memcpy(&one, &oneBits, sizeof(one));

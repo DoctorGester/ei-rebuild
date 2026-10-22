@@ -52,7 +52,7 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 
 void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool demon) {
     int ticks = CurrentClientTick();
-    float fraction = ei::GameData<const volatile float>(0x007AFCA8);
+    float fraction = ClientTickFraction();
     float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f /*0073C4F8*/);   // 4
     power_ = power;
     const float strength = Absolute(power);

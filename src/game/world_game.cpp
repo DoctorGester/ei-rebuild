@@ -84,7 +84,7 @@ constexpr std::uint32_t kStreamLimit = 2000000000;
 constexpr unsigned kMagicScenario = 0xDEAD;
 constexpr unsigned kMagicMission = 0x102;
 
-int GameMode() { return ei::GameData<const int>(0x007B0098); }        // 1: single player
+int GameMode() { return TheServerWorld()->gameResult_; }        // 1: single player
 int SaveVersion() { return kSaveVersion; }
 bool& ToMainMenu() { return TheInterface()->closeAll_; }
 // The network sessions are open (CInterface3D::disconnected_: BeginMultiplayerGame sets it, a missing zone clears it).
@@ -1268,7 +1268,7 @@ int __stdcall LoadMission(CStream* file) {
         GameSaveStream()->Resize(0);
         TheInterface()->LoadState(&mission.s);
         mission.s.ReadSized(GameSaveStream());
-        ei::GameData<std::uint32_t>(0x007AFE00) = mission.s.version_;
+        GameSaveStream()->version_ = mission.s.version_;
     }
     return TheServerWorld()->LoadSave(&mission.s, nullptr);   // 00596E70
 }
@@ -1454,7 +1454,7 @@ std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
 std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
 int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
 int& Spectator0() { return options::TheOptions()->difficulty_; }
-std::uint8_t& AutoplayOn() { return ei::GameData<std::uint8_t>(0x007B007C); }
+std::uint8_t& AutoplayOn() { return TheServerWorld()->sendsStartPosition_; }
 // The resource directory (the CString 0079BC94), the sound system (007AF784) and the spell tables /
 // item database globals the switch reloads.
 const char* ResourcesPath() { return options::TheOptions()->resourcesPath_.GetString(); }
@@ -1595,7 +1595,6 @@ constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the glob
 // mission.sav (00579E60, a flow method, from the file stream).
 __declspec(naked) void __fastcall PartyLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8310)
 void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, CStream* a2) { a0->ReadSized(a2); }
-int& LoadedScriptsVersion() { return ei::GameData<int>(0x007AFE00); }
 
 } // namespace
 
@@ -1652,7 +1651,7 @@ int GameFlow::LoadGame(const char* slot) {
         TheInterface()->LoadState(&scenario);
         StreamLoadScripts(&scenario, nullptr, GameSaveStream());
         version = static_cast<int>(scenario.version_);
-        LoadedScriptsVersion() = version;
+        GameSaveStream()->version_ = static_cast<std::uint32_t>(version);
     }
     if (version >= kScenarioGlobalsVersion) TheCamera()->LoadState(&scenario);
     file.Close();

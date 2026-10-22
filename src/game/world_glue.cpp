@@ -52,7 +52,7 @@ int __stdcall FinishQuestMap(const char* name) {
 EI_REWRITTEN(0x0057FB90, FinishQuestMap);
 
 namespace {
-CScript* CommandScript() { return ei::GamePointer<CScript>(0x007C29CC); }
+CScript* CommandScript() { return TheServerWorld()->SecondScript(); }
 } // namespace
 
 int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error) {
@@ -137,7 +137,7 @@ EI_REWRITTEN(0x00578700, GamePassTime);
 void __stdcall GameEnsureZone(const char* map, const char* mob) { TheServerWorld()->EnsureZone(map, mob); }
 EI_REWRITTEN(0x00578730, GameEnsureZone);
 
-CMemoryStream* GameObject7C2D60() { return ei::GamePointer<CMemoryStream>(0x007C2D60); }
+CMemoryStream* GameObject7C2D60() { return &TheServerWorld()->zoneHeader_; }
 EI_REWRITTEN(0x00578750, GameObject7C2D60);
 
 void __stdcall GameSetUnitHeight(int id, float z) {

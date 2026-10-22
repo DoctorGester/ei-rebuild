@@ -15,6 +15,7 @@
 #include "lib/nan_audit.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world.h"
 
 #include <concepts>
 
@@ -4300,13 +4301,13 @@ EI_REWRITTEN(0x00493300, CParticleSource::EmitGroundDust);
 namespace {
 
 // The unit's point `index` (slot 52, PositionAt), the client world's surface height (slot 28) and
-// the platforms' surface height over it (00560F00 on 007AF78C, through the original address), the
+// the platforms' surface height over it (00560F00 on the client world's platforms, through the original address), the
 // heights left unrounded in ST0.
 Vector3* UnitPoint(CObject3D* unit, Vector3* out, int index) { return Carrier(unit)->PositionAt(out, index); }
 double TerrainHeight(float x, float y) { return TheClientWorld()->RawSurfaceHeightAt(x, y); }
 double PlatformHeight(const Vector3* at, float ground) {
     using Fn = double(__thiscall*)(void*, const Vector3*, float);
-    return ei::Code<Fn>(0x00560F00)(ei::GamePointer<void>(0x007AF78C), at, ground);
+    return ei::Code<Fn>(0x00560F00)(&TheClientWorld()->platforms_, at, ground);
 }
 
 // FCOMP's "equal".

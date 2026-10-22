@@ -47,7 +47,7 @@ void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings
         game::FatalError(kNoLibraryText);
         libcrt::Exit(-1);
     }
-    using GetGraphicsProcessor = void*(__cdecl*)();
+    using GetGraphicsProcessor = CPixelConverter*(__cdecl*)();
     auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
         gameapi::GetProcAddress(static_cast<HMODULE>(graphicsLibrary_), "GetGraphicsProcessor"));   // the exe's 0078E42C
     if (!getProcessor) {

@@ -153,7 +153,7 @@ int CMapObjectClientSpecific::Update() {
             direction.x = followed->localPosition_.x - lightPosition.x;
             direction.y = followed->localPosition_.y - lightPosition.y;
             direction.z = followed->localPosition_.z - lightZ;
-            LightManager()->MoveLight(lamp, &direction);   // 006CA830
+            TheTerrain()->MoveLight(lamp, &direction);   // 006CA830
             followed = OwnerOf(this);
             float* position = PositionOf(light);
             std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));

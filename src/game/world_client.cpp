@@ -228,7 +228,7 @@ void CWorldClient::CreateExitMarkers() {
                             game::NoneText()) == 0) {
             continue;
         }
-        auto* source = ParticleManagerObject()->CreateSource(kExitParticles);
+        auto* source = TheParticleManager()->CreateSource(kExitParticles);
         AssignCounted(&countedA0_[i], source);
         const ZoneExit& exit = exits_[i];
         source->localPosition_ = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
@@ -485,7 +485,7 @@ int CWorldClient::Segment() {
                 CLight* sun = worlddata::SceneSun();
                 for (auto* node = bloodPrints_.head->next; node != bloodPrints_.head; node = node->next) {
                     BloodPrint& effect = node->data;
-                    float level = sun->GetIntensityAt(static_cast<const Vector3*>(worlddata::LightReferencePoint()));
+                    float level = sun->GetIntensityAt(&worlddata::kOrigin);
                     ObjectListIteratorOf<CLight> lights{};   // [ebp-0x60]
                     for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
                         if (light == sun || (light->flags_ & 0x80)) continue;

@@ -606,9 +606,11 @@ inline ui_gdi::GameDC* CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
 inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the
-// contents kept in memory while swapped out (007C7E74) and the surfaces' height * pitch (007C7E78).
-inline std::uint32_t& UiSurfaceKeptBytes() { return ei::GameData<std::uint32_t>(0x007C7E74); }
-inline std::uint32_t& UiSurfaceBytes() { return ei::GameData<std::uint32_t>(0x007C7E78); }
+// contents kept in memory while swapped out and the surfaces' height * pitch.
+inline std::uint32_t g_uiSurfaceKeptBytes = /*007C7E74*/ {};
+inline std::uint32_t g_uiSurfaceBytes = /*007C7E78*/ {};
+inline std::uint32_t& UiSurfaceKeptBytes() { return g_uiSurfaceKeptBytes; }
+inline std::uint32_t& UiSurfaceBytes() { return g_uiSurfaceBytes; }
 // The game's device lock (007AEE78), held around DirectDraw calls on the game's surfaces.
 
 // The draw pass a window's slot 20 is given: slot 7 sets the colour the 3D draws use (+0x18).
@@ -1095,8 +1097,6 @@ inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_
 inline strmap::CDebugPanel* DebugInfoPanel() { return ei::GamePointer<strmap::CDebugPanel>(0x0079B930); }
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
-// The model manager (007AF5F4) the windows take their sprites and item models from.
-inline CFigureManager* UiModelManager() { return ei::GameData<CFigureManager* const>(0x007AF5F4); }
 
 // The in-game key bindings (object_tables.h g_keyActions), for reading and for writing.
 inline const signed char* KeyActions() { return g_keyActions; }

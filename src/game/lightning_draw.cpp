@@ -25,6 +25,7 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
+#include "camera.h"
 
 namespace {
 
@@ -95,7 +96,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     SizePoints();
 
     // Towards the camera (0079B2C4), normalised unless zero.
-    const Vector3& camera = ei::GameData<const Vector3>(0x0079B2C4);
+    const Vector3& camera = TheCamera()->localPosition_;
     Vector3 towards = camera - *position;
     float length = LengthZYX(towards);
     EI_NAN_AUDIT(length);

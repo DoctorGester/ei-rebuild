@@ -23,6 +23,8 @@
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "camera.h"
+#include "world.h"
 
 namespace {
 
@@ -37,8 +39,8 @@ float FloatFromBits(std::uint32_t bits) {
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
 float Pi() { return 3.1415927f /*007423F8*/; }
-bool GamePaused() { return ei::GameData<const volatile bool>(0x007AF624); }   // 00578D50
-int SelectedUnitId() { return ei::GameData<const volatile int>(0x0079B3C4); }
+bool GamePaused() { return TheClientWorld()->paused_ != 0; }   // 00578D50
+int SelectedUnitId() { return TheCamera()->targetId_; }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }

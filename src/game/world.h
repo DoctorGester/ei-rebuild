@@ -1154,27 +1154,6 @@ struct ClientArrayManager : CBaseManager {
 static_assert(sizeof(ClientArrayManager) == 0xD0);
 // +0x19C: the particle manager, CParticleManager (effects.h).
 
-// The render device (the global pointer at 007AF068): three stacks of 4x4 float matrices.
-struct MatrixDevice {
-    std::uint8_t pipelineHeader[0x14];  // the pipeline's vtable, count, transform and library (CTransformPipeline)
-    float* pickStack;      // +0x14 used by the cursor picking
-    int pickDepth;         // +0x18
-    std::uint8_t stack1[0x24 - 0x1C];      // stack 1
-    float* objectStack;    // +0x24 object -> world, pushed while testing an object
-    int objectDepth;       // +0x28
-    std::uint8_t stacks3to8[0x5C - 0x2C];  // stacks 3..8
-    float* viewStack;      // +0x5C the view matrices
-    int viewDepth;         // +0x60
-
-    // 004F16A0 (world_client_view.cpp). Where the bounding volume lies against the view frustum;
-    // 2 = outside.
-    int Classify(const void* bounds);
-};
-static_assert(offsetof(MatrixDevice, pickStack) == 0x14);
-static_assert(offsetof(MatrixDevice, objectStack) == 0x24);
-static_assert(offsetof(MatrixDevice, viewStack) == 0x5C);
-inline MatrixDevice* TheMatrixDevice() { return ei::GameData<MatrixDevice*>(0x007AF068); }
-
 // The drawing side (game.exe's vtable 0073F41C; world_class.h's CWorldClientClass).
 class CWorldClient : public CWorld {
 public:
@@ -1526,7 +1505,7 @@ public:
     // The local session (+0x20C) as the maps read it.
     CPlayer* Session() const { return session_; }
 
-    int unused84_;                       // +0x084 -100000 after Setup
+    int nextClientObjectId_;              // +0x084 -100000 after Setup; NextClientObjectId counts it down
     std::uint32_t debugFlags_;            // +0x088 the debug display's switches (bits 0-3: ShowFps ...)
     ZoneExits exits_;                     // +0x08C
     // +0x0A0 the exits' particle markers, one per exit or null (MFC CArray of counted pointers; its
@@ -1628,7 +1607,7 @@ public:
     mfc::CString windowTitle_;
     mfc::CString pausedTitle_;
 };
-static_assert(offsetof(CWorldClient, unused84_) == 0x84);
+static_assert(offsetof(CWorldClient, nextClientObjectId_) == 0x84);
 static_assert(offsetof(CWorldClient, countedA0_) == 0xA0);
 static_assert(offsetof(CWorldClient, heroes_) == 0xB4);
 static_assert(offsetof(CWorldClient, objects_) == 0xB8);
@@ -2059,11 +2038,13 @@ inline FrameQueue& FrameObjects(FrameList list) {
 }
 extern lib::StaticObject<stlp::list<CEngineObject*>> g_deferredUnits;   // static_lists.cpp
 inline stlp::list<CEngineObject*>* FrameDeferredUnits() { return &*g_deferredUnits; }
-// 007AF63C: the id the next object only the client makes gets (client figures such as a bow
-// shot's arrow); each use counts it down.
-inline int& NextClientObjectId() { return ei::GameData<int>(0x007AF63C); }
-// 007AFFB4: the world server's item manager (the item factory, CWorld slot 18 / itemManager_).
-inline CItemManager* WorldItemManager() { return ei::GameData<CItemManager* const>(0x007AFFB4); }
+// The id the next object only the client makes gets (client figures such as a bow shot's arrow); each use counts it
+// down.
+inline int& NextClientObjectId() { return TheClientWorld()->nextClientObjectId_; }
+// The world server's item manager (the item factory, CWorld slot 18) and the manager that owns its objects (units,
+// buildings, ...).
+inline CItemManager* WorldItemManager() { return TheServerWorld()->itemManager_; }
+inline CBaseManager* WorldObjectManager() { return TheServerWorld()->manager40_; }
 
 
 // 00578E30 (thiscall on the client glue 007AFEA4, unused; RET 0x18; world_weather.cpp). A

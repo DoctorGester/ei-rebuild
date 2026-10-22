@@ -296,7 +296,7 @@ namespace {
 
 // The campaign mode (the server world's session kind, CWorldServer::sessionKind_; 1 and 3 end the game when the leader is gone) and the game mode
 // (007B0098; 1 single player, 2 multiplayer).
-int GameMode() { return ei::GameData<const volatile int>(0x007B0098); }
+int GameMode() { return TheServerWorld()->gameResult_; }
 // The party manager (007AA5A0) and its next object id for a new party's record (00794E3C).
 int& NextRecordObjectId() { return ei::GameData<int>(0x00794E3C); }
 

@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "originals_ui.h"
+#include "game_singletons.h"
 
 namespace {
 // The stand-in for a model the manager does not have: a 100 x 100 sprite (layout 0..100 x 100..0
@@ -20,7 +21,7 @@ constexpr int kTexels = 0x80;
 // 005EBFB0 (__fastcall). The model manager's object `name`, else a new interface sprite standing in
 // for it; one reference taken for the caller. A failed sprite is not checked (as in the original).
 CUiMesh* __fastcall ItemModel(const char* name) {
-    CFigureManager* manager = UiModelManager();
+    CFigureManager* manager = TheFigureManager();
     // The interface's model manager makes class 0x43 objects: interface sprites.
     CUiMesh* model = AsUiMesh(manager->NewFigure(name));
     if (!model) {
