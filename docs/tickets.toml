@@ -2876,7 +2876,7 @@ id = "C26"
 title = "Host CRT first: try each game CRT family on the modern CRT, keep only what goldens prove differs"
 group = "cleanup"
 model = "opus"
-note = "User 2026-10-22: test with the host CRT first; much of the ported VC6 CRT (src/lib/crt*.cpp, gamecrt:: / libcrt::, ~150 registrations) may byte-match the modern one. Per family, one switch at a time, both suites + goldens: the heap (malloc/free/new on the own HeapCreate heap, 16-byte rounding; goldens are layout-independent per the user, but the harness's repeatable heap hooks HeapAlloc), printf / scanf formatting (known VC6 differences: %e / %g exponent digits '1e+003', strtod rounding), x87 maths (_ftol, _CIpow ...), qsort (order of equal elements), rand / srand, locale / ctype / tolower, string functions, iostream, exit. Keep a port only where a golden or a vector differs, with the case in a comment; replace the rest with the host CRT (and drop their registrations). Report per family: same / differs (which scenario, which output)."
+note = "User 2026-10-22: if a family differs on the host CRT, don't switch it: keep the current port as it is, no further porting for it. Start with locale (it replaces C18r's planned __init_* ports), then formatting, heap, the rest."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
