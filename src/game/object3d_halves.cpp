@@ -17,7 +17,6 @@
 #include "world_data.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -164,25 +163,15 @@ EI_REWRITTEN(0x0051F2A0, CObject3DServer::FindPartOfType);
 
 // --- The wounds material and the stage copies ---------------------------------------------------------
 
-// 0051C730. The destructor body: every stage destroyed (its texture released, then its name), the
-// vector's block freed, the preset released (deleted at its last reference), the root's vtable.
-void __fastcall WoundsMaterialDestruct(WoundsMaterial* self) {
-    self->stages.clear();
-    self->stages.FreeStorage();
-    if (CRenderPreset* preset = self->preset) {
-        if (--preset->refs_ == 0) delete preset;
+WoundsMaterial::~WoundsMaterial() {
+    stages.clear();
+    stages.FreeStorage();
+    if (CRenderPreset* old = preset) {
+        if (--old->refs_ == 0) delete old;
     }
-    ei::SetVtable(self, PlainRootVtable());
 }
-EI_REWRITTEN(0x0051C730, WoundsMaterialDestruct);
-
-// 0051C710 (slot 0, RET 4).
-WoundsMaterial* WoundsMaterial::DeleteScalar(unsigned flags) {
-    WoundsMaterialDestruct(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0051C710, WoundsMaterial::DeleteScalar);
+EI_REWRITTEN_SPECIAL(0x0051C730, WoundsMaterial::~WoundsMaterial);
+EI_REWRITTEN_SPECIAL(0x0051C710, WoundsMaterial::~WoundsMaterial);
 
 // 0051C800. A named texture's destructor: the texture released, the name freed.
 void __fastcall NamedTextureDestruct(NamedTexture* self) {

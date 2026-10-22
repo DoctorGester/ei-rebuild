@@ -14,20 +14,12 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 
 #include <cstdint>
 #include <cstring>
-
-namespace {
-
-// The vtable the figure loader base's destructor leaves: the engine's plain counted root (PlainRootVtable).
-void SetRootVtable(void* object) { ei::SetVtable(object, PlainRootVtable()); }
-
-} // namespace
 
 // ---- Counted holders ------------------------------------------------------------------------------
 
@@ -44,18 +36,8 @@ EI_REWRITTEN_SPECIAL(0x004E7800, CRendererBase::~CRendererBase);
 void* CRendererBase::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CRendererBase::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-// 004F6A00 (RET 4): the figure loader's base class (CLinkFigureLoader::BaseVtable(), slot 0; the constructor
-// 004F68C0 stores it before the loader's own): the root's vtable left (004F69F0, inlined here),
-// then the block freed. Nothing calls it either.
-struct CLoaderBase {
-    void* DeleteScalar(unsigned flags);
-};
-void* CLoaderBase::DeleteScalar(unsigned flags) {
-    SetRootVtable(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004F6A00, CLoaderBase::DeleteScalar);
+// (The figure loader's fieldless abstract base, 0073D824, is not modelled: its deleting destructor 004F6A00 is
+// reached by no object.)
 
 // ---- Matrices ---------------------------------------------------------------------------------------
 

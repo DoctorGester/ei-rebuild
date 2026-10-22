@@ -676,28 +676,28 @@ static_assert(offsetof(FigureModel, animationCache) == 0x0C && sizeof(FigureMode
 FigureModel* __fastcall ConstructFigureModel(FigureModel* model);
 void __fastcall DestroyFigureModel(FigureModel* model);
 
-// Loads .lnk link files and the figures they name (Vtable() in place of game.exe's 0073D808, 7 slots; created at
-// startup with
+// Loads .lnk link files and the figures they name (game.exe's vtable 0073D808, 7 slots, over an abstract base
+// 0073D824 with the slots 1-6 pure and the plain counted root, neither with fields; created at startup with
 // figures.res and menus.res by 004F68C0, a Rebirth-patched function). A figure is a CLinkMesh of
 // parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made in a
 // multimap by name (a counted reference each) and hands out a cached one whose coefficients are
 // within 1e-5 (squared distance, the double at 0073B860) unless asked for a fresh one. Parts come
 // from the figure's own archive set when there is one (004FAB00), else from the open archives
-// as "<figure><part>.fig". link_loader.cpp (A-S7). The constructor stores the compiled tables
-// (link_loader_create.cpp; the class is novtable).
+// as "<figure><part>.fig". link_loader.cpp (A-S7).
 class CLinkMesh;
 class CTextureDevice;
 class ITransformPipeline;
 struct VertexPacket;
 
-class __declspec(novtable) CLinkFigureLoader {
+class CLinkFigureLoader final {
 public:
-    // 004F68C0 (link_loader_create.cpp, RET 8). Constructor: the renderer held, the cache and the figure
-    // and menu archives of `folder` opened (a failure is only logged). Returns this.
-    CLinkFigureLoader* Construct(CTextureDevice* renderer, const stlp::string* folder);
-    // 0: 004F6A30 (RET 4, returns this; A-S8). Destruct; freed when flags bit 0 is set.
-    virtual void* DeleteThis(unsigned flags);
-    void* DeleteThisImpl(unsigned flags);   // body of the slot above (registered by member pointer)
+    // 004F68C0 (link_loader_create.cpp, RET 8): the renderer held, the cache and the figure and menu archives of
+    // `folder` opened (a failure is only logged).
+    CLinkFigureLoader(CTextureDevice* renderer, const stlp::string* folder);
+    // 004F6BD0 (deleting: 004F6A30; A-S8). Each archive closed (slot 3) and deleted, the archive list emptied, each
+    // figure set destroyed (005A9C90) and freed, the device object released (the field cleared first), the cache
+    // emptied (ClearCache's walk), then the containers' storage.
+    virtual ~CLinkFigureLoader();
     virtual int CacheSize();                    // 1: 004F6A20 (cache_'s count)
     virtual int CacheBytes();                   // 2: 004FAAA0 (each cached mesh's MemoryBytes summed; A-S8)
     // 3: 004F7150 (RET 0x18). Figure `name` with the parts `parts`: unless `fresh`, the first cached
@@ -705,17 +705,20 @@ public:
     // (MakeFigure). No reference is added for the caller.
     virtual CLinkMesh* LoadFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s, float t,
                                   float u, bool fresh);
-    CLinkMesh* LoadFigureImpl(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s, float t,
-                                  float u, bool fresh);   // body of the slot above (registered by member pointer)
     // 4: 004F7080 (RET 0x14). The same for a .lnk figure: a cached one, or LoadLinkFile.
     virtual CLinkMesh* LoadLink(const stlp::string* name, float s, float t, float u, bool fresh);
-    CLinkMesh* LoadLinkImpl(const stlp::string* name, float s, float t, float u, bool fresh);   // body of the slot above (registered by member pointer)
     virtual void ClearCache();                  // 5: 004F7020
     // 6: 004F75E0 (RET 0x10). `mesh` with new coefficients: a mesh others also hold (more than
     // two references) is looked up again through slot 4 by its name; otherwise its parts are
     // morphed in place (SetMorph, then 004F9E50 per part). Null stays null.
     virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
-    CLinkMesh* RemorphImpl(CLinkMesh* mesh, float s, float t, float u);   // body of the slot above (registered by member pointer)
+
+    // On the game's heap (link_loader_create.cpp).
+    static void* operator new(std::size_t size) noexcept;
+    static void operator delete(void* block);
+
+    CLinkFigureLoader(const CLinkFigureLoader&) = delete;
+    CLinkFigureLoader& operator=(const CLinkFigureLoader&) = delete;
 
     // 004F6D30. Opens `path` as a memory-mapped archive and appends it to the list, unless an
     // archive of that exact name is already open. Returns 1 on success or when already open.
@@ -755,29 +758,14 @@ public:
     // bounds refitted. The FIG one reads every record as FIG8 (header, bounds and vertices).
     void RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
     void RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
-    // 004F6BD0 (A-S8). Each archive closed (slot 3) and deleted, the archive list emptied, each
-    // figure set destroyed (005A9C90) and freed, the device object released (the field cleared
-    // first), the cache emptied (ClearCache's walk), then the containers' storage; the counted
-    // root's vtable (PlainRootVtable()) left.
-    void Destruct();
 
-    // The compiled tables (C19, link_loader_create.cpp): the loader's (game.exe's 0073D808) and its abstract base's
-    // (0073D824: slot 0 leaves the plain counted root's table and frees, 1-6 _purecall).
-    static void* Vtable();
-    static void* BaseVtable();
-
-    int refCount_;                    // +0x04
+    int refCount_ = 0;                // +0x04
     ITransformPipeline* pipeline_;    // +0x08 the renderer's (+0x24) +0xAC -> +0xC
     LinkArchiveNode* archives_;       // +0x0C list sentinel
     stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> figureSets_;   // +0x10 by figure name
     CTextureDevice* renderer_;        // +0x24 the device object, counted; meshes take their pipeline from it
     stlp::map<stlp::string, CLinkMesh*> cache_;   // +0x28 a multimap of counted references
 };
-static_assert(offsetof(CLinkFigureLoader, pipeline_) == 0x08);
-static_assert(offsetof(CLinkFigureLoader, archives_) == 0x0C);
-static_assert(offsetof(CLinkFigureLoader, figureSets_) == 0x10);
-static_assert(offsetof(CLinkFigureLoader, cache_) == 0x28);
-static_assert(sizeof(CLinkFigureLoader) == 0x34);
 
 // ---- Databases (006D0000-006E0000) -----------------------------------------------------------------
 

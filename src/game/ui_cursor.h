@@ -30,8 +30,21 @@ unsigned __cdecl CursorThreadEntry(void* cursor);
 
 // The DirectInput mouse (*0079BA08, vtable 0073C350; made by the application's start 00456440,
 // which also sets it up). 0x20 bytes. input_mouse.cpp (A-H25).
-class CDirectInputMouse {
+class CDirectInputMouse final {
 public:
+    // WinMain's (00456440, inlined): no references, no DirectInput or device.
+    CDirectInputMouse() {}
+    // 004578D0 (deleting: 004578B0; A-E1, app_lifetime.cpp): Shutdown, then the two counted pointers' releases
+    // (both already null).
+    virtual ~CDirectInputMouse();
+
+    // On the game's heap (app_lifetime.cpp).
+    static void* operator new(std::size_t size) noexcept;
+    static void operator delete(void* block);
+
+    CDirectInputMouse(const CDirectInputMouse&) = delete;
+    CDirectInputMouse& operator=(const CDirectInputMouse&) = delete;
+
     // 0065EAD0 (RET 8). DirectInput 7 for `instance`, its system mouse device with the mouse data
     // format, non-exclusive in the background for `window`, acquired (a failed Acquire is reported
     // and passed over). Each other failure is reported (FatalErrorCode) and gives its result as
@@ -47,31 +60,16 @@ public:
     // through the address so the wrapper runs.
     const LONG* Poll(int unused);
     const LONG* PollThroughHook(int unused) { return Poll(unused); }
-    // 004578D0 (A-E1; app_lifetime.cpp). Destructor body: the vtable, Shutdown, the two counted
-    // pointers' releases (both already null), the root vtable (PlainRootVtable()).
-    void Destruct();
-    // 004578B0 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
-    CDirectInputMouse* DeletingDestruct(unsigned flags);
-    // 00457950 (slot 0 of the root class, game.exe's 0073C368; RET 4): the root vtable stored, then
-    // operator delete when bit 0 of `flags` is set. Returns the object.
-    CDirectInputMouse* RootDeletingDestruct(unsigned flags);
-    // The mouse's one-slot table (app_lifetime.cpp): the compiler's, slot 0 DeletingDestruct (C19;
-    // game.exe's 0073C350, the same slot).
-    static void* Vtable();
-
     // The mouse data format Setup gives the device (dinput.lib's c_dfDIMouse, 00745D00, as a
     // DIDATAFORMAT): ours, since game.exe keeps its object table (006E6180) in its code section,
     // which the standalone image does not have. The objects name the game's GUID_XAxis / YAxis / ZAxis.
     static const void* MouseDataFormat();
 
-    void* vtable_;                   // +0x00
-    std::uint32_t references_;       // +0x04 the count of holders (WinMain keeps one in 0079BA08)
-    IDirectInput7A* input_;          // +0x08 counted
-    IDirectInputDevice7A* device_;   // +0x0C counted
-    LONG state_[4];                  // +0x10 DIMOUSESTATE
+    std::uint32_t references_ = 0;           // +0x04 the count of holders (WinMain keeps one in 0079BA08)
+    IDirectInput7A* input_ = nullptr;        // +0x08 counted
+    IDirectInputDevice7A* device_ = nullptr; // +0x0C counted
+    LONG state_[4];                          // +0x10 DIMOUSESTATE
 };
-static_assert(offsetof(CDirectInputMouse, device_) == 0x0C);
-static_assert(sizeof(CDirectInputMouse) == 0x20);
 
 // The cursor's image (what +0x10 points at; made by 005E4EB0 for every cursor shape, from 005E63F0):
 // its surface holder (the picture: `frames` square frames side by side), a frame's size, the frame

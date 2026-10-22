@@ -2,8 +2,8 @@
 //  - the creators of the class registry at 0079B270: id 1 a class template (00457850), id 2 a named
 //    party record (00457740); the registry makes these objects when a saved party manager is loaded;
 //  - the party record's destructor (004577E0, its slot 0 004577C0);
-//  - the DirectInput mouse's destructor (004578D0, its slot 0 004578B0), run when the application
-//    drops the mouse at exit, and the counted root's slot 0 (00457950);
+//  - the DirectInput mouse's destructor (004578D0, deleting 004578B0), run when the application
+//    drops the mouse at exit;
 //  - the party manager's destructor (004A5700), which the C runtime runs at exit on 007AA5A0.
 // Main thread. See docs/notes/app.md.
 #define DIRECTINPUT_VERSION 0x0700
@@ -15,7 +15,6 @@
 #include "ui_cursor.h"
 
 #include "ei/hook.h"
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -28,10 +27,6 @@
 #include <new>
 
 namespace {
-
-
-// The compiler's table in place of game.exe's (C19): the mouse's 0073C350 (0 the deleting destructor).
-struct MouseClass final : ei::CompiledDeleter<MouseClass, &CDirectInputMouse::DeletingDestruct> {};
 
 // A counted pointer's release (00439910): the object deleted with its last reference.
 void ReleaseCounted(CRefCounted* object) {
@@ -65,8 +60,6 @@ EI_REPLACE(0x00457850, CreateClassTemplate);
 
 // ---- The party record -----------------------------------------------------------------------------
 
-void* CDirectInputMouse::Vtable() { return MouseClass::Vtable(); }
-
 PartyRecord::PartyRecord() {
     new (Party()) CParty();
     Party()->Create();   // slot 2
@@ -82,29 +75,17 @@ EI_REWRITTEN_SPECIAL(0x004577C0, PartyRecord::~PartyRecord);
 
 // ---- The DirectInput mouse ------------------------------------------------------------------------
 
-void CDirectInputMouse::Destruct() {
-    vtable_ = CDirectInputMouse::Vtable();
+void* CDirectInputMouse::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CDirectInputMouse::operator delete(void* block) { gamecrt::operator_delete(block); }
+
+CDirectInputMouse::~CDirectInputMouse() {
     Shutdown();
     // The two counted pointers' own destructors (Shutdown has cleared both).
     if (device_) device_->Release();
     if (input_) input_->Release();
-    vtable_ = PlainRootVtable();
 }
-EI_REWRITTEN(0x004578D0, CDirectInputMouse::Destruct);
-
-CDirectInputMouse* CDirectInputMouse::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004578B0, CDirectInputMouse::DeletingDestruct);
-
-CDirectInputMouse* CDirectInputMouse::RootDeletingDestruct(unsigned flags) {
-    vtable_ = PlainRootVtable();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00457950, CDirectInputMouse::RootDeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x004578D0, CDirectInputMouse::~CDirectInputMouse);
+EI_REWRITTEN_SPECIAL(0x004578B0, CDirectInputMouse::~CDirectInputMouse);
 
 // ---- The party manager ----------------------------------------------------------------------------
 

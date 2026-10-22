@@ -19,7 +19,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
@@ -155,18 +154,10 @@ void AssignTexture(CTexture** slot, CTexture* value) {
     if (value) ++value->refCount_;
     if (old) old->Release();
 }
-
-// A new material (0051C3D0 inlines its constructor).
-WoundsMaterial* NewWoundsMaterial() {
-    void* memory = gamecrt::operator_new(sizeof(WoundsMaterial));
-    return memory ? new (memory) WoundsMaterial() : nullptr;
-}
 } // namespace
 
-// The counted root's fields (the root's vtable is the compiled class's here), then its own; the stages
-// vector is constructed empty.
+// 0051C3D0 inlines it: no references, then its own fields; the stages vector is constructed empty.
 WoundsMaterial::WoundsMaterial() {
-    refCount = 0;
     blend = 1;
     sourceBlend = kSourceAlpha;
     destBlend = kInverseSourceAlpha;
@@ -198,7 +189,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
         }
     }
     if (!woundsMaterial) {
-        woundsMaterial.Assign(NewWoundsMaterial());
+        woundsMaterial.Assign(new WoundsMaterial());
         CRenderHelper* helper = TheSceneRenderer()->helper_;
         AsCountedRef(woundsMaterial->preset).Assign(helper->Preset(kWoundsPreset));
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));

@@ -126,7 +126,7 @@ void __cdecl DestroyMovieFolder() { g_movieFolder.Destroy(); }               // 
 // 00455DF0: the mouse's reference dropped (ShutDown has already taken it: null at exit).
 void __cdecl ReleaseMouseAtExit() {
     if (CDirectInputMouse* mouse = g_mouse)
-        if (--mouse->references_ == 0) mouse->DeletingDestruct(1);
+        if (--mouse->references_ == 0) delete mouse;
 }
 
 } // namespace
@@ -415,24 +415,18 @@ bool CheckDrives(const console::CStringArray& messages) {
     return true;
 }
 
-// One reference of the mouse object dropped: deleted at the last (slot 0 of its vtable).
+// One reference of the mouse object dropped: deleted at the last.
 void ReleaseMouse(CDirectInputMouse* mouse) {
-    if (--mouse->references_ == 0) mouse->DeletingDestruct(1);
+    if (--mouse->references_ == 0) delete mouse;
 }
 
 // The mouse object made (not set up yet) and kept with one reference.
 void CreateMouse() {
-    auto* mouse = gamecrt::operator_new_as<CDirectInputMouse>();
-    if (mouse) {
-        mouse->references_ = 0;
-        mouse->input_ = nullptr;
-        mouse->device_ = nullptr;
-        mouse->vtable_ = CDirectInputMouse::Vtable();
-    }
+    auto* mouse = new CDirectInputMouse();
     CDirectInputMouse* old = Mouse();
     Mouse() = mouse;
     if (mouse) ++mouse->references_;
-    if (old) reinterpret_cast<CEngineObject*>(old)->ReleaseAndDelete();
+    if (old) ReleaseMouse(old);
 }
 
 // The folders the game writes to.

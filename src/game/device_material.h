@@ -37,27 +37,31 @@ struct MaterialStage {
 };
 static_assert(sizeof(MaterialStage) == 0x14 && offsetof(MaterialStage, texture) == 0x10);
 
-// A device material (counted; vtable slot 0 the deleting destructor; the root vtable PlainRootVtable()).
-// Made by the game's code (the wounds material, WoundsMaterial in map_object_shadow.h, is one);
-// only the layout the device reads is declared.
-class __declspec(novtable) CDeviceMaterial {
+// A device material (counted; deleted at its last reference). Made by the game's code (the wounds material,
+// WoundsMaterial in map_object_shadow.h, is the one kind); this is the part the device reads.
+class CDeviceMaterial {
 public:
-    virtual void DeletingDestructor(unsigned flags) = 0;   // 0
-
-    // Drops a reference; the deleting destructor (slot 0, with 1) at zero.
+    // Drops a reference; deleted at zero.
     void Release() {
-        if (--refCount == 0) DeletingDestructor(1);
+        if (--refCount == 0) delete this;
     }
 
-    int refCount;                   // +0x04
+    // On the game's heap (device_states.cpp).
+    static void* operator new(std::size_t size) noexcept;
+    static void operator delete(void* block);
+
+    CDeviceMaterial(const CDeviceMaterial&) = delete;
+    CDeviceMaterial& operator=(const CDeviceMaterial&) = delete;
+
+    int refCount = 0;               // +0x04
     std::uint8_t blend;             // +0x08 alpha blending on (with sourceBlend / destBlend)
     int sourceBlend;                // +0x0C D3DBLEND
     int destBlend;                  // +0x10 D3DBLEND
     // +0x14 the passes (counted): a Direct3D state block each, the first pass's texture stages.
     CRenderPreset* preset;
     stlp::vector<MaterialStage> stages;   // +0x18 the first pass's stages, then one per further pass
+
+protected:
+    CDeviceMaterial() {}
+    virtual ~CDeviceMaterial() = default;
 };
-static_assert(offsetof(CDeviceMaterial, refCount) == 0x04 && offsetof(CDeviceMaterial, blend) == 0x08 &&
-              offsetof(CDeviceMaterial, sourceBlend) == 0x0C && offsetof(CDeviceMaterial, destBlend) == 0x10);
-static_assert(offsetof(CDeviceMaterial, preset) == 0x14 && offsetof(CDeviceMaterial, stages) == 0x18 &&
-              sizeof(CDeviceMaterial) == 0x24);

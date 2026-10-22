@@ -17,17 +17,14 @@ namespace {
 // Globals the game fills at startup: the identity quaternion and the default figure scale.
 constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 
-// The counted objects CountedRef holds: their count (+0x04) and their deletion (slot 0 with 1).
+// The counted objects CountedRef holds: their count (+0x04); each is deleted at its last reference.
 inline int& CountOf(CLinkMesh* figure) { return figure->refCount_; }
 inline int& CountOf(WoundsMaterial* material) { return material->refCount; }
 inline int& CountOf(CRenderPreset* preset) { return preset->refs_; }
-inline void DeleteCounted(CLinkMesh* figure) { delete figure; }
-inline void DeleteCounted(WoundsMaterial* material) { material->DeletingDestructor(1); }
-inline void DeleteCounted(CRenderPreset* preset) { delete preset; }
 
 template <typename T>
 void DropReference(T* object) {
-    if (object && --CountOf(object) == 0) DeleteCounted(object);
+    if (object && --CountOf(object) == 0) delete object;
 }
 } // namespace
 

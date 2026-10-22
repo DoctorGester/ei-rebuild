@@ -50,7 +50,7 @@ void CWorld::Destroy() {
     DeleteManager(manager3C_);
     if (CLinkFigureLoader* loader = figureLoader_) {
         figureLoader_ = nullptr;
-        if (--loader->refCount_ == 0) loader->DeleteThis(1);
+        if (--loader->refCount_ == 0) delete loader;
     }
     DeleteManager(manager44_);
     DeleteManager(manager58_);

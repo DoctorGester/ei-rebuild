@@ -8,7 +8,6 @@
 #include "texture.h"           // CTextureDevice
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "library_trees.h"
 #include "lib/nan_audit.h"
@@ -127,8 +126,8 @@ int CLinkFigureLoader::CacheBytes() {
     return bytes;
 }
 
-CLinkMesh* CLinkFigureLoader::LoadFigureImpl(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s,
-                                         float t, float u, bool fresh) {
+CLinkMesh* CLinkFigureLoader::LoadFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s,
+                                     float t, float u, bool fresh) {
     CLinkMesh* mesh = fresh ? nullptr : FindCached(cache_, name, s, t, u);
     if (!mesh) return MakeFigure(name, parts, s, t, u);
     FigureModel* set;
@@ -149,7 +148,7 @@ CLinkMesh* CLinkFigureLoader::LoadFigureImpl(const stlp::string* name, const stl
     return mesh;
 }
 
-CLinkMesh* CLinkFigureLoader::LoadLinkImpl(const stlp::string* name, float s, float t, float u, bool fresh) {
+CLinkMesh* CLinkFigureLoader::LoadLink(const stlp::string* name, float s, float t, float u, bool fresh) {
     CLinkMesh* mesh = fresh ? nullptr : FindCached(cache_, name, s, t, u);
     return mesh ? mesh : LoadLinkFile(name, s, t, u);
 }
@@ -176,7 +175,7 @@ bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const stlp::string* name) 
     return true;
 }
 
-CLinkMesh* CLinkFigureLoader::RemorphImpl(CLinkMesh* mesh, float s, float t, float u) {
+CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u) {
     if (mesh && mesh->refCount_ > 2) {
         stlp::string meshName;
         mesh->CopyName(&meshName);
@@ -303,8 +302,7 @@ void ClearArchives(LinkArchiveNode* head) {
 }
 } // namespace
 
-void CLinkFigureLoader::Destruct() {
-    ei::SetVtable(this, Vtable());
+CLinkFigureLoader::~CLinkFigureLoader() {
     for (LinkArchiveNode* n = archives_->next; n != archives_; n = n->next) {
         n->resource->CloseResource();
         if (n->resource) delete n->resource;
@@ -326,16 +324,10 @@ void CLinkFigureLoader::Destruct() {
     figureSets_.Destroy();
     ClearArchives(archives_);
     stlp::deallocate(archives_, sizeof(LinkArchiveNode));
-    ei::SetVtable(this, PlainRootVtable());
 }
+EI_REWRITTEN_SPECIAL(0x004F6BD0, CLinkFigureLoader::~CLinkFigureLoader);
+EI_REWRITTEN_SPECIAL(0x004F6A30, CLinkFigureLoader::~CLinkFigureLoader);
 
-void* CLinkFigureLoader::DeleteThisImpl(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
-EI_REWRITTEN(0x004F6BD0, CLinkFigureLoader::Destruct);
 bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const stlp::string* name, float s, float t,
                                     float u) {
     const char* data;
@@ -365,14 +357,8 @@ EI_REWRITTEN(0x004FAB00, CLinkFigureLoader::FindFigureSet);
 EI_REWRITTEN(0x004F7B10, CLinkFigureLoader::MakeFigure);
 EI_REWRITTEN(0x004F7480, CLinkFigureLoader::LoadPartInto);
 EI_REWRITTEN(0x004F7D20, CLinkFigureLoader::LoadArchivePart);
-// The virtual slots, registered through shims (rewrite guide rule 4).
-namespace {
-void __fastcall ClearCacheHook(CLinkFigureLoader* self) { self->CLinkFigureLoader::ClearCache(); }
-int __fastcall CacheBytesHook(CLinkFigureLoader* self) { return self->CLinkFigureLoader::CacheBytes(); }
-} // namespace
-EI_REWRITTEN(0x004F7150, CLinkFigureLoader::LoadFigureImpl);
-EI_REWRITTEN(0x004F7080, CLinkFigureLoader::LoadLinkImpl);
-EI_REWRITTEN(0x004F7020, ClearCacheHook);
-EI_REWRITTEN(0x004FAAA0, CacheBytesHook);
-EI_REWRITTEN(0x004F6A30, CLinkFigureLoader::DeleteThisImpl);
-EI_REWRITTEN(0x004F75E0, CLinkFigureLoader::RemorphImpl);
+EI_REWRITTEN(0x004F7150, CLinkFigureLoader::LoadFigure);
+EI_REWRITTEN(0x004F7080, CLinkFigureLoader::LoadLink);
+EI_REWRITTEN(0x004F7020, CLinkFigureLoader::ClearCache);
+EI_REWRITTEN(0x004FAAA0, CLinkFigureLoader::CacheBytes);
+EI_REWRITTEN(0x004F75E0, CLinkFigureLoader::Remorph);

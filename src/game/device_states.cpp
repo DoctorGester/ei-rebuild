@@ -38,6 +38,9 @@ int CSceneRenderer::SetBlendImpl(std::uint32_t source, std::uint32_t dest) {
 }
 EI_REWRITTEN(0x00501C60, CSceneRenderer::SetBlendImpl);
 
+void* CDeviceMaterial::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CDeviceMaterial::operator delete(void* block) { gamecrt::operator_delete(block); }
+
 // 004EB170 (thiscall on the device object, RET 4). The current material (material_, counted; the
 // old one released through its slot 0 when its count reaches 0); without a material stage 1's
 // colour and alpha operations are turned off. Returns 1.

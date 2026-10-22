@@ -132,7 +132,7 @@ CWorld::~CWorld() {
     netSession_.Destroy();
     shared5C_.Destroy();
     if (CLinkFigureLoader* loader = figureLoader_)
-        if (--loader->refCount_ == 0) loader->DeleteThis(1);
+        if (--loader->refCount_ == 0) delete loader;
 }
 EI_REWRITTEN_SPECIAL(0x0055EC80, CWorld::~CWorld);
 EI_REWRITTEN_SPECIAL(0x0055EC60, CWorld::~CWorld);

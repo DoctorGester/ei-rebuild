@@ -1229,8 +1229,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Small tags**: the renderer's helper CRenderHelper (0073D840) and its preset CRenderPreset (0073D880), real
     classes since C28j (their fieldless abstract bases 0073D860 / 0073D888 are not modelled); the cloud
     noise's 0073D030 and 007420D4 (CCloudNoise and CGlobalMapClouds, real classes since C28f); the item
-    turn's ItemTurnClass (007403F8); link_loader_create.cpp's LinkFigureLoaderClass (0073D808) and its abstract base
-    LinkFigureLoaderBaseClass (0073D824).
+    turn's ItemTurnClass (007403F8); the figure loader CLinkFigureLoader (0073D808), the wounds material (0073DF68) and
+    the DirectInput mouse (0073C350), real classes since C28j (the loader's abstract base 0073D824 is not modelled).
   - **Input sides** (ui_input_class.h): `InputSideClass<Self, Delete>` declares an input side's 13 slots with the base
     input side's bodies (1-6 and 9-11 empty, returning 0 where the original leaves EAX; 7 / 8 the double click as a
     press; 12 the wheel ignored); slot 0 is `Delete`, the window's deleting destructor through the side (the window

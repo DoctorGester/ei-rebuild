@@ -112,15 +112,15 @@ void CWorldClient::SetUpGraphics(void* device) {
         numbers_->object_ = texture;
         texture->flags_ |= kTextureKeep;
     }
-    auto* loader = gamecrt::operator_new_as<CLinkFigureLoader>();
-    if (loader) {
+    CLinkFigureLoader* loader;
+    {
         stlp::string resource(FiguresResource());
-        loader = loader->Construct(TheRenderDevice(), &resource);
+        loader = new CLinkFigureLoader(TheRenderDevice(), &resource);
     }
     CLinkFigureLoader* old = figureLoader_;
     figureLoader_ = loader;
     if (loader) ++loader->refCount_;
-    if (old && --old->refCount_ == 0) old->DeleteThis(1);
+    if (old && --old->refCount_ == 0) delete old;
     Units()->CountSoundFiles(sounds_);
 }
 EI_REWRITTEN(0x00563710, CWorldClient::SetUpGraphics);
