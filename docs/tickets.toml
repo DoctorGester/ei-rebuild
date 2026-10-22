@@ -2869,14 +2869,14 @@ id = "C18r"
 title = "Named data: the MFC and CRT objects, the locale categories"
 group = "cleanup"
 model = "opus"
-note = "Stopped 2026-10-22 for C26. Worker findings: locale table 00797888 only reachable via LC_CTYPE; MFC .bss objects need hand-ported initialisers; CRT heap state next candidate. If C26 moves setlocale to the host, the table and kept rows 007472E4/00797778 go away."
+note = "After C26: picks up the CRT families C26 found differ on the host CRT (user 2026-10-22)."
 
 [[ticket]]
 id = "C26"
 title = "Host CRT first: try each game CRT family on the modern CRT, keep only what goldens prove differs"
 group = "cleanup"
 model = "opus"
-note = "User 2026-10-22: if a family differs on the host CRT, don't switch it: keep the current port as it is, no further porting for it. Start with locale (it replaces C18r's planned __init_* ports), then formatting, heap, the rest."
+note = "User 2026-10-22 (clarified): families that differ on the host CRT revert to the port in C26 and go back to C18r, where their game.exe reads get ported into our own CRT as planned."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
