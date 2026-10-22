@@ -1,6 +1,6 @@
-// Destructor bodies of the battle HUD's panels (00635CA0, 00635D00, 00635E00, 0063BC70, 0063CA70,
-// 0063E460, 0063F490); each panel's slot 0 calls its body and then frees the window. See ui.h and
-// docs/notes/ui.md.
+// Destructors of the battle HUD's panels (00635CA0, 00635D00, 00635E00, 0063BC70, 0063CA70, 0063E460,
+// 0063F490), with the original's deleting destructors and the input sides' copies (SUB ECX,0x94; JMP). See ui.h
+// and docs/notes/ui.md.
 #include "ui.h"
 
 #include "ei/hook.h"
@@ -16,53 +16,53 @@ void* QuickEntriesVtable() { return mfc::impl::QuickEntryArrayClass::Vtable(); }
 void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }     // CDWordArray
 } // namespace
 
-void CHudWeaponBar::DestroyBody() {
-    labels_.Destruct();
-    DestroyBase();
-}
-EI_REWRITTEN(0x0063BC70, CHudWeaponBar::DestroyBody);
+CHudWeaponBar::~CHudWeaponBar() { labels_.Destruct(); }
+EI_REWRITTEN_SPECIAL(0x0063BC70, CHudWeaponBar::~CHudWeaponBar);
+EI_REWRITTEN_SPECIAL(0x0063BC50, CHudWeaponBar::~CHudWeaponBar);   // deleting
+EI_REWRITTEN_SPECIAL(0x0064BCF0, CHudWeaponBar::~CHudWeaponBar);   // the input side's
 
-void CHudQuickItems::DestroyBody() {
+CHudQuickItems::~CHudQuickItems() {
     labels_.Destruct();
     entries_.vtable = QuickEntriesVtable();
     if (entries_.data) gamecrt::operator_delete(entries_.data);
-    DestroyBase();
 }
-EI_REWRITTEN(0x0063CA70, CHudQuickItems::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x0063CA70, CHudQuickItems::~CHudQuickItems);
+EI_REWRITTEN_SPECIAL(0x0063CA50, CHudQuickItems::~CHudQuickItems);   // deleting
+EI_REWRITTEN_SPECIAL(0x0064BD00, CHudQuickItems::~CHudQuickItems);   // the input side's
 
-void CHudSpellColumn::DestroyBody() {
-    labels_.Destruct();
-    DestroyBase();
-}
-EI_REWRITTEN(0x0063E460, CHudSpellColumn::DestroyBody);
+CHudSpellColumn::~CHudSpellColumn() { labels_.Destruct(); }
+EI_REWRITTEN_SPECIAL(0x0063E460, CHudSpellColumn::~CHudSpellColumn);
+EI_REWRITTEN_SPECIAL(0x0063E440, CHudSpellColumn::~CHudSpellColumn);   // deleting
+EI_REWRITTEN_SPECIAL(0x0064BD10, CHudSpellColumn::~CHudSpellColumn);   // the input side's
 
-void CHudActionColumn::DestroyBody() {
+CHudActionColumn::~CHudActionColumn() {
     labels_.Destruct();
     actions_.vtable = DwordArrayVtable();
     if (actions_.data) gamecrt::operator_delete(actions_.data);
-    DestroyBase();
 }
-EI_REWRITTEN(0x0063F490, CHudActionColumn::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x0063F490, CHudActionColumn::~CHudActionColumn);
+EI_REWRITTEN_SPECIAL(0x0063F470, CHudActionColumn::~CHudActionColumn);   // deleting
+EI_REWRITTEN_SPECIAL(0x0064BD20, CHudActionColumn::~CHudActionColumn);   // the input side's
 
-void CHudMap::DestroyBody() {
+CHudMap::~CHudMap() {
     if (visibleArea_.data) lib::FreeAligned32(visibleArea_.data);
     if (viewPolygon_.data) lib::FreeAligned32(viewPolygon_.data);
-    DestroyBase();
 }
-EI_REWRITTEN(0x00635CA0, CHudMap::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x00635CA0, CHudMap::~CHudMap);
+EI_REWRITTEN_SPECIAL(0x00635C80, CHudMap::~CHudMap);   // deleting
+EI_REWRITTEN_SPECIAL(0x0064BD50, CHudMap::~CHudMap);   // the input side's
 
-void CHudUnitPanel::DestroyBody() {
+// The two strings go after the body (strings_[1] first), as in the original.
+CHudUnitPanel::~CHudUnitPanel() {
     partLabels_.Destruct();
     texts_.Destruct();
-    strings_[1].~CString();
-    strings_[0].~CString();
-    DestroyBase();
 }
-EI_REWRITTEN(0x00635D00, CHudUnitPanel::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x00635D00, CHudUnitPanel::~CHudUnitPanel);
+EI_REWRITTEN_SPECIAL(0x00635CE0, CHudUnitPanel::~CHudUnitPanel);   // deleting
+EI_REWRITTEN_SPECIAL(0x0064BD40, CHudUnitPanel::~CHudUnitPanel);   // the input side's
 
-void CHudTopPanel::DestroyBody() {
-    pageTexts_[1].~CString();
-    pageTexts_[0].~CString();
-    DestroyBase();
-}
-EI_REWRITTEN(0x00635E00, CHudTopPanel::DestroyBody);
+// Only the two page texts (page 1 first) and the window's.
+CHudTopPanel::~CHudTopPanel() {}
+EI_REWRITTEN_SPECIAL(0x00635E00, CHudTopPanel::~CHudTopPanel);
+EI_REWRITTEN_SPECIAL(0x00635DE0, CHudTopPanel::~CHudTopPanel);   // deleting
+EI_REWRITTEN_SPECIAL(0x0064BD80, CHudTopPanel::~CHudTopPanel);   // the input side's

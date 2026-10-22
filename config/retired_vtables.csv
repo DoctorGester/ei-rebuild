@@ -442,28 +442,28 @@ vtable,slots,class,file,note
 0074225C,42,DifficultyBoxClass,src/game/ui_screen_tables.cpp,the difficulty question (CDifficultyBox)
 00742314,13,MessageBoxInputClass,src/game/ui_screen_tables.cpp,the message box's input side
 00742348,42,MessageBoxClass,src/game/ui_screen_tables.cpp,the message box (CMessageBox)
-00742464,6,TopPanelInputClass,src/game/ui_battle_setup.cpp,the HUD top panel's input side
-0074247C,7,TopPanelInputClass,src/game/ui_battle_setup.cpp,the top panel input side's tail (a byte match in 005FE440 split it off)
-00742498,25,TopPanelClass,src/game/ui_battle_setup.cpp,the HUD top panel (CHudTopPanel)
-007424FC,13,MovePanelInputClass,src/game/ui_battle_setup.cpp,the HUD movement panel's input side
-00742530,25,MovePanelClass,src/game/ui_battle_setup.cpp,the HUD movement panel (CHudMovePanel)
-00742594,13,ClockInputClass,src/game/ui_battle_setup.cpp,the HUD clock's input side
-007425C8,25,ClockClass,src/game/ui_battle_setup.cpp,the HUD clock (CHudClock)
-0074262C,13,MapInputClass,src/game/ui_battle_setup.cpp,the HUD map's input side
-00742660,25,MapClass,src/game/ui_battle_setup.cpp,the HUD map (CHudMap)
-007426C4,13,UnitPanelInputClass,src/game/ui_battle_setup.cpp,the HUD unit panel's input side
-007426F8,25,UnitPanelClass,src/game/ui_battle_setup.cpp,the HUD unit panel (CHudUnitPanel)
-00742768,13,WeaponBarInputClass,src/game/ui_hud_build.cpp,the HUD weapon bar's input side
-0074279C,25,WeaponBarClass,src/game/ui_hud_build.cpp,the HUD weapon bar (CHudWeaponBar)
-00742808,13,QuickItemsInputClass,src/game/ui_hud_build.cpp,the HUD quick items' input side
-0074283C,25,QuickItemsClass,src/game/ui_hud_build.cpp,the HUD quick items (CHudQuickItems)
+00742464,6,CHudTopPanel,src/game/ui.h,the HUD top panel's input side
+0074247C,7,CHudTopPanel,src/game/ui.h,the top panel input side's tail (a byte match in 005FE440 split it off)
+00742498,25,CHudTopPanel,src/game/ui.h,the HUD top panel (CHudTopPanel)
+007424FC,13,CHudMovePanel,src/game/ui.h,the HUD movement panel's input side
+00742530,25,CHudMovePanel,src/game/ui.h,the HUD movement panel (CHudMovePanel)
+00742594,13,CHudClock,src/game/ui.h,the HUD clock's input side
+007425C8,25,CHudClock,src/game/ui.h,the HUD clock (CHudClock)
+0074262C,13,CHudMap,src/game/ui.h,the HUD map's input side
+00742660,25,CHudMap,src/game/ui.h,the HUD map (CHudMap)
+007426C4,13,CHudUnitPanel,src/game/ui.h,the HUD unit panel's input side
+007426F8,25,CHudUnitPanel,src/game/ui.h,the HUD unit panel (CHudUnitPanel)
+00742768,13,CHudWeaponBar,src/game/ui.h,the HUD weapon bar's input side
+0074279C,25,CHudWeaponBar,src/game/ui.h,the HUD weapon bar (CHudWeaponBar)
+00742808,13,CHudQuickItems,src/game/ui.h,the HUD quick items' input side
+0074283C,25,CHudQuickItems,src/game/ui.h,the HUD quick items (CHudQuickItems)
 007428A0,3,QuickEntryArrayClass,src/lib/mfc_slots.h,CArray (the HUD's quick item entries)
-007428B0,13,SpellColumnInputClass,src/game/ui_hud_build.cpp,the HUD spell column's input side
-007428E4,25,SpellColumnClass,src/game/ui_hud_build.cpp,the HUD spell column (CHudSpellColumn)
-0074294C,13,ActionColumnInputClass,src/game/ui_hud_build.cpp,the HUD action column's input side
-00742980,25,ActionColumnClass,src/game/ui_hud_build.cpp,the HUD action column (CHudActionColumn)
-007429E4,13,PortraitsInputClass,src/game/ui_screen_constructors.cpp,the HUD portraits' input side
-00742A18,25,PortraitsClass,src/game/ui_screen_constructors.cpp,the HUD portraits (CHudPortraits)
+007428B0,13,CHudSpellColumn,src/game/ui.h,the HUD spell column's input side
+007428E4,25,CHudSpellColumn,src/game/ui.h,the HUD spell column (CHudSpellColumn)
+0074294C,13,CHudActionColumn,src/game/ui.h,the HUD action column's input side
+00742980,25,CHudActionColumn,src/game/ui.h,the HUD action column (CHudActionColumn)
+007429E4,13,CHudPortraits,src/game/ui.h,the HUD portraits' input side
+00742A18,25,CHudPortraits,src/game/ui.h,the HUD portraits (CHudPortraits)
 00742BE4,13,CUiScrollbar,src/game/ui.h,the scroll bar's input side
 00742C18,27,CUiScrollbar,src/game/ui.h,the scroll bar (CUiScrollbar)
 00742C88,13,CUiSlider,src/game/ui.h,the options slider's input side

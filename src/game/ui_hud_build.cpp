@@ -6,7 +6,6 @@
 // column at its right (the panel offset while some of them run, layout constants moved by
 // EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
-#include "ui_window_class.h"
 #include "game_strings.h"
 
 #include "item_db_text.h"
@@ -23,35 +22,6 @@
 #include <cstdint>
 
 namespace {
-
-// The panels' compiled tables (C19, ui_window_class.h) in place of game.exe's: the weapon bar's 0074279C / 00742768
-// and the quick items' 0074283C / 00742808 (their draw 20 and update 24), the spell column's 007428E4 / 007428B0 and the
-// action column's 00742980 / 0074294C (their draw); the input sides' left button and mouse moves, the quick items'
-// and the spell column's double click (7).
-struct WeaponBarClass final : UiWindowClass<WeaponBarClass, &CHudWeaponBar::HudWeaponBarDelete> {
-    BOOL Draw(int pass) override { return AsWindow()->Window::Draw(pass); }   // 20: 0063C4F0
-    void Update() override { AsWindow()->Window::Update(); }                  // 24: 0063C600
-};
-struct WeaponBarInputClass final : PanelInputClass<WeaponBarInputClass, &CHudWeaponBar::HudWeaponBarDelete, CHudWeaponBar> {};
-struct QuickItemsClass final : UiWindowClass<QuickItemsClass, &CHudQuickItems::HudQuickItemsDelete> {
-    BOOL Draw(int pass) override { return AsWindow()->Window::Draw(pass); }   // 20: 0063CDC0
-    void Update() override { AsWindow()->Window::Update(); }                  // 24: 0063D9D0
-};
-struct QuickItemsInputClass final : PanelInputClass<QuickItemsInputClass, &CHudQuickItems::HudQuickItemsDelete, CHudQuickItems> {
-    int LeftDouble(int b, int x, int y) override { return AsPanel()->OnDoubleClick(b, x, y), 0; }   // 7: 0063DAE0
-};
-struct SpellColumnClass final : UiWindowClass<SpellColumnClass, &CHudSpellColumn::HudSpellColumnDelete> {
-    BOOL Draw(int pass) override { return AsWindow()->Window::Draw(pass); }   // 20: 0063F190
-};
-struct SpellColumnInputClass final
-    : PanelInputClass<SpellColumnInputClass, &CHudSpellColumn::HudSpellColumnDelete, CHudSpellColumn> {
-    int LeftDouble(int b, int x, int y) override { return AsPanel()->OnDoubleClick(b, x, y), 0; }   // 7: 0063F220
-};
-struct ActionColumnClass final : UiWindowClass<ActionColumnClass, &CHudActionColumn::HudActionColumnDelete> {
-    BOOL Draw(int pass) override { return AsWindow()->Window::Draw(pass); }   // 20: 0063FD50
-};
-struct ActionColumnInputClass final
-    : PanelInputClass<ActionColumnInputClass, &CHudActionColumn::HudActionColumnDelete, CHudActionColumn> {};
 
 float Pi() { return 3.1415927f /*007423F8*/; }
 // A texel as a texture offset: 1 / 256 (0073EEB8).
@@ -127,22 +97,10 @@ Quaternion ProductSecond(const Quaternion& q, const Quaternion& r) {
 
 } // namespace
 
-void** CHudWeaponBar::Vtable() { return WeaponBarClass::Slots(); }
-void** CHudWeaponBar::InputVtable() { return WeaponBarInputClass::Slots(); }
-void** CHudQuickItems::Vtable() { return QuickItemsClass::Slots(); }
-void** CHudQuickItems::InputVtable() { return QuickItemsInputClass::Slots(); }
-void** CHudSpellColumn::Vtable() { return SpellColumnClass::Slots(); }
-void** CHudSpellColumn::InputVtable() { return SpellColumnInputClass::Slots(); }
-void** CHudActionColumn::Vtable() { return ActionColumnClass::Slots(); }
-void** CHudActionColumn::InputVtable() { return ActionColumnInputClass::Slots(); }
-
 // --- Weapon bar ------------------------------------------------------------------------------------------------
 
-CHudWeaponBar* CHudWeaponBar::Construct(CInterface3D* ui, CBattleScreen* owner) {
-    CUiWindow::Construct(ui);
-    owner_ = owner;
+CHudWeaponBar::CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     labels_.Construct();
-    SetTagTables(Vtable(), InputVtable());
     // WideScreen: the rectangle and the first region from 80 - shift (0063BAFC, 0063BB2B); the
     // regions still run up to x 240, so the bar has more of them (no tips beyond the fourth).
     const int shift = widescreen::EdgeShift();
@@ -155,9 +113,8 @@ CHudWeaponBar* CHudWeaponBar::Construct(CInterface3D* ui, CBattleScreen* owner) 
     unit_ = nullptr;
     const int ids[] = {15, 20, 10, 5};
     AddLabels(&labels_, ids);
-    return this;
 }
-EI_REWRITTEN(0x0063BAB0, CHudWeaponBar::Construct);
+EI_REWRITTEN_SPECIAL(0x0063BAB0, CHudWeaponBar::CHudWeaponBar);
 
 void CHudWeaponBar::Highlight(int index, int on) {
     widescreen::EnterLeftPanel();   // addon's 100233ED; 10023406 at both returns
@@ -225,13 +182,12 @@ EI_REWRITTEN(0x0063BCC0, CHudWeaponBar::AddWeapon);
 
 // --- Quick items -----------------------------------------------------------------------------------------------
 
-CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner) {
+// WideScreen: addon enters the right panels before the window's constructor (10023477); the window's reads no
+// panel offset, so here it is the body's first step.
+CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     widescreen::EnterRightPanel();   // addon's 10023477; 1002348E at the end
-    CUiWindow::Construct(ui);
-    owner_ = owner;
     entries_.Construct(mfc::impl::QuickEntryArrayClass::Vtable());
     labels_.Construct();
-    SetTagTables(Vtable(), InputVtable());
     const int shift = widescreen::EdgeShift();
     rect_ = {520 + shift, 500, 720 + shift, 600};   // WideScreen: 0063C880 / 0063C894
     // The bottom row (the unit's items), then the top row (the player's), each from the right.
@@ -249,9 +205,8 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     const int ids[] = {7, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
     AddLabels(&labels_, ids);
     widescreen::LeavePanel();
-    return this;
 }
-EI_REWRITTEN(0x0063C800, CHudQuickItems::Construct);
+EI_REWRITTEN_SPECIAL(0x0063C800, CHudQuickItems::CHudQuickItems);
 
 void CHudQuickItems::AddItem(const char* model, const char* image) {
     if (shownCount_ >= kMaxQuickItems) return;
@@ -274,11 +229,8 @@ EI_REWRITTEN(0x0063CAE0, CHudQuickItems::AddItem);
 
 // --- Spell column ----------------------------------------------------------------------------------------------
 
-CHudSpellColumn* CHudSpellColumn::Construct(CInterface3D* ui, CBattleScreen* owner) {
-    CUiWindow::Construct(ui);
-    owner_ = owner;
+CHudSpellColumn::CHudSpellColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     labels_.Construct();
-    SetTagTables(Vtable(), InputVtable());
     const int shift = widescreen::EdgeShift();
     rect_ = {760 + shift, 190, 800 + shift, 510};   // WideScreen: 0063E306 / 0063E31A
     ClearSceneObjects();
@@ -288,9 +240,8 @@ CHudSpellColumn* CHudSpellColumn::Construct(CInterface3D* ui, CBattleScreen* own
     unit_ = nullptr;
     const int ids[] = {7, 18, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
     AddLabels(&labels_, ids);
-    return this;
 }
-EI_REWRITTEN(0x0063E2A0, CHudSpellColumn::Construct);
+EI_REWRITTEN_SPECIAL(0x0063E2A0, CHudSpellColumn::CHudSpellColumn);
 
 void CHudSpellColumn::AddSpell(const char* model, const char* image) {
     widescreen::EnterRightPanel();   // addon's 1002344D; 10023464 at the end
@@ -324,12 +275,9 @@ EI_REWRITTEN(0x0063E4B0, CHudSpellColumn::AddSpell);
 
 // --- Action column ---------------------------------------------------------------------------------------------
 
-CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* owner) {
-    CUiWindow::Construct(ui);
-    owner_ = owner;
+CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     actions_.Construct(mfc::impl::IntArrayClass::Vtable());
     labels_.Construct();
-    SetTagTables(Vtable(), InputVtable());
     // WideScreen (addon's 10023416 at 0063F378, 0063F38E): the panel offset from here on, the
     // rectangle less the shift.
     widescreen::EnterLeftPanel();
@@ -346,9 +294,8 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     TheTextManager()->GetString("infoitem_16", &text);
     labels_.SetAtGrow(labels_.size, text);
     widescreen::LeavePanel();        // addon's 10023430
-    return this;
 }
-EI_REWRITTEN(0x0063F300, CHudActionColumn::Construct);
+EI_REWRITTEN_SPECIAL(0x0063F300, CHudActionColumn::CHudActionColumn);
 
 void CHudActionColumn::AddAction(const char* model, const char* image, int action) {
     const IconPlace at = IconAt(count_, 0);

@@ -2,7 +2,6 @@
 // (0063B5D0) and the battle screen's portraits panel (0063FE70). Their Create / Build (slot 25)
 // does the rest. See ui.h and docs/notes/ui.md.
 #include "ui.h"
-#include "ui_window_class.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -19,12 +18,6 @@
 namespace {
 
 void* ObjectiveExitsVtable() { return mfc::impl::ObjectiveExitArrayClass::Vtable(); }
-// The portraits' compiled tables (C19, ui_window_class.h) in place of game.exe's 00742A18 / 007429E4: its update (24);
-// the input side's left button and mouse moves.
-struct PortraitsClass final : UiWindowClass<PortraitsClass, &CHudPortraits::HudPortraitsDelete> {
-    void Update() override { AsWindow()->Window::Update(); }   // 24: 00641080
-};
-struct PortraitsInputClass final : PanelInputClass<PortraitsInputClass, &CHudPortraits::HudPortraitsDelete, CHudPortraits> {};
 
 constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit field instead of the text
 
@@ -86,30 +79,19 @@ EI_REWRITTEN(0x0063B5D0, CObjectivesWindow::Construct);
 
 // --- 0063FE70: the portraits panel ---------------------------------------------------------------
 
-void** CHudPortraits::Vtable() { return static_cast<void**>(PortraitsClass::Vtable()); }
-void** CHudPortraits::InputVtable() { return static_cast<void**>(PortraitsInputClass::Vtable()); }
-
-CHudPortraits* CHudPortraits::Construct(CInterface3D* ui, CBattleScreen* owner) {
-    CUiWindow::Construct(ui);
-    owner_ = owner;
-    slots_.ConstructEmpty();
-    SetTagTables(Vtable(), InputVtable());
+CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     rect_ = RECT{250, 440, 550, 600};
     count_ = 0;
     AddSprite(0)->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
-    return this;
 }
-EI_REWRITTEN(0x0063FE70, CHudPortraits::Construct);
+EI_REWRITTEN_SPECIAL(0x0063FE70, CHudPortraits::CHudPortraits);
 
-// --- 0063FF70: its destructor body -----------------------------------------------------------------
+// --- 0063FF70: its destructor ----------------------------------------------------------------------
 
-void CHudPortraits::DestroyBody() {
-    for (HudPortraitSlot* slot = slots_.begin(); slot != slots_.end(); ++slot) {
-        slot->modelSuffix_.~CString();
-        slot->modelPrefix_.~CString();
-        slot->faceName_.~CString();
-    }
+CHudPortraits::~CHudPortraits() {
+    for (HudPortraitSlot* slot = slots_.begin(); slot != slots_.end(); ++slot) slot->~HudPortraitSlot();
     slots_.FreeStorage();
-    DestroyBase();
 }
-EI_REWRITTEN(0x0063FF70, CHudPortraits::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x0063FF70, CHudPortraits::~CHudPortraits);
+EI_REWRITTEN_SPECIAL(0x0063FF50, CHudPortraits::~CHudPortraits);   // deleting
+EI_REWRITTEN_SPECIAL(0x0064BD30, CHudPortraits::~CHudPortraits);   // the input side's

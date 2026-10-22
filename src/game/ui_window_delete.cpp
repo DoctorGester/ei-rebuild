@@ -429,48 +429,6 @@ CMessageBox* CMessageBox::MessageBoxDelete(unsigned flags) {
 EI_REWRITTEN(0x00633730, CMessageBox::MessageBoxDelete);
 EI_REWRITTEN(0x00634770, CMessageBox::MessageBoxDelete);
 
-// The battle HUD's panels (bodies in ui_hud_destroy.cpp and ui_screen_constructors.cpp).
-CHudMap* CHudMap::HudMapDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x00635C80, CHudMap::HudMapDelete);
-CHudUnitPanel* CHudUnitPanel::HudUnitPanelDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x00635CE0, CHudUnitPanel::HudUnitPanelDelete);
-CHudTopPanel* CHudTopPanel::HudTopPanelDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x00635DE0, CHudTopPanel::HudTopPanelDelete);
-CHudWeaponBar* CHudWeaponBar::HudWeaponBarDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0063BC50, CHudWeaponBar::HudWeaponBarDelete);
-CHudQuickItems* CHudQuickItems::HudQuickItemsDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0063CA50, CHudQuickItems::HudQuickItemsDelete);
-CHudSpellColumn* CHudSpellColumn::HudSpellColumnDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0063E440, CHudSpellColumn::HudSpellColumnDelete);
-CHudActionColumn* CHudActionColumn::HudActionColumnDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0063F470, CHudActionColumn::HudActionColumnDelete);
-CHudPortraits* CHudPortraits::HudPortraitsDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0063FF50, CHudPortraits::HudPortraitsDelete);
-
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 
 // Each is UiInput::DeleteWindow of the window class's own deleting destructor.
@@ -509,13 +467,5 @@ EI_REWRITTEN(0x0062B770, UiInput::DeleteWindow<&COptionsWindow::OptionsWindowDel
 EI_REWRITTEN(0x006345F0, UiInput::DeleteWindow<&CMpHeroScreen::HeroScreenDelete>);
 EI_REWRITTEN(0x006345E0, UiInput::DeleteWindow<&CMessageBox::MessageBoxDelete>);
 EI_REWRITTEN(0x00634FD0, UiInput::DeleteWindow<&CMessageBox::MessageBoxDelete>);
-EI_REWRITTEN(0x0064BCF0, UiInput::DeleteWindow<&CHudWeaponBar::HudWeaponBarDelete>);
-EI_REWRITTEN(0x0064BD00, UiInput::DeleteWindow<&CHudQuickItems::HudQuickItemsDelete>);
-EI_REWRITTEN(0x0064BD10, UiInput::DeleteWindow<&CHudSpellColumn::HudSpellColumnDelete>);
-EI_REWRITTEN(0x0064BD20, UiInput::DeleteWindow<&CHudActionColumn::HudActionColumnDelete>);
-EI_REWRITTEN(0x0064BD30, UiInput::DeleteWindow<&CHudPortraits::HudPortraitsDelete>);
-EI_REWRITTEN(0x0064BD40, UiInput::DeleteWindow<&CHudUnitPanel::HudUnitPanelDelete>);
-EI_REWRITTEN(0x0064BD50, UiInput::DeleteWindow<&CHudMap::HudMapDelete>);
 EI_REWRITTEN_SPECIAL(0x0064BD60, CUiWindow::~CUiWindow);   // the game clock
 EI_REWRITTEN_SPECIAL(0x0064BD70, CUiWindow::~CUiWindow);   // the movement panel
-EI_REWRITTEN(0x0064BD80, UiInput::DeleteWindow<&CHudTopPanel::HudTopPanelDelete>);

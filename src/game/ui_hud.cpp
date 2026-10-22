@@ -97,7 +97,7 @@ void CHudWeaponBar::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0063C6D0, InputForward<&CHudWeaponBar::OnMouseDown>::Call);
+EI_REWRITTEN(0x0063C6D0, CHudWeaponBar::OnMouseDown);
 
 void CHudWeaponBar::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -113,13 +113,13 @@ void CHudWeaponBar::OnMouseUp(int, int x, int y) {
     // The original does not check for a missing local view here.
     if (CUnit* unit = unit_) LocalView()->SetWeapon(unit, region);
 }
-EI_REWRITTEN(0x0063C710, InputForward<&CHudWeaponBar::OnMouseUp>::Call);
+EI_REWRITTEN(0x0063C710, CHudWeaponBar::OnMouseUp);
 
 void CHudWeaponBar::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0 && region < count_) handled_ = true;
 }
-EI_REWRITTEN(0x0063C7D0, InputForward<&CHudWeaponBar::OnMouseMove>::Call);
+EI_REWRITTEN(0x0063C7D0, CHudWeaponBar::OnMouseMove);
 
 void CHudWeaponBar::Update() {
     CUnit* unit = unit_;
@@ -169,19 +169,19 @@ void CHudQuickItems::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0063DAA0, InputForward<&CHudQuickItems::OnMouseDown>::Call);
+EI_REWRITTEN(0x0063DAA0, CHudQuickItems::OnMouseDown);
 
 void CHudQuickItems::OnDoubleClick(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) < 0) return;
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0063DAE0, InputForward<&CHudQuickItems::OnDoubleClick>::Call);
+EI_REWRITTEN(0x0063DAE0, CHudQuickItems::OnDoubleClick);
 
 void CHudQuickItems::OnMouseMove(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x0063E270, InputForward<&CHudQuickItems::OnMouseMove>::Call);
+EI_REWRITTEN(0x0063E270, CHudQuickItems::OnMouseMove);
 
 void CHudQuickItems::Update() {
     mfc::CString text;
@@ -203,10 +203,10 @@ void CHudSpellColumn::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0063F1E0, InputForward<&CHudSpellColumn::OnMouseDown>::Call);
+EI_REWRITTEN(0x0063F1E0, CHudSpellColumn::OnMouseDown);
 
 void CHudSpellColumn::OnDoubleClick(int buttons, int x, int y) { OnMouseDown(buttons, x, y); }
-EI_REWRITTEN(0x0063F220, InputForward<&CHudSpellColumn::OnDoubleClick>::Call);
+EI_REWRITTEN(0x0063F220, CHudSpellColumn::OnDoubleClick);
 
 void CHudSpellColumn::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -218,13 +218,13 @@ void CHudSpellColumn::OnMouseUp(int, int x, int y) {
     else
         Click(region);
 }
-EI_REWRITTEN(0x0063F260, InputForward<&CHudSpellColumn::OnMouseUp>::Call);
+EI_REWRITTEN(0x0063F260, CHudSpellColumn::OnMouseUp);
 
 void CHudSpellColumn::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0 && region < count_) handled_ = true;
 }
-EI_REWRITTEN(0x0063F2D0, InputForward<&CHudSpellColumn::OnMouseMove>::Call);
+EI_REWRITTEN(0x0063F2D0, CHudSpellColumn::OnMouseMove);
 
 // --- Action column -----------------------------------------------------------------------------
 
@@ -234,7 +234,7 @@ void CHudActionColumn::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0063FDA0, InputForward<&CHudActionColumn::OnMouseDown>::Call);
+EI_REWRITTEN(0x0063FDA0, CHudActionColumn::OnMouseDown);
 
 void CHudActionColumn::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -243,13 +243,13 @@ void CHudActionColumn::OnMouseUp(int, int x, int y) {
     handled_ = true;
     Select(region);
 }
-EI_REWRITTEN(0x0063FDE0, InputForward<&CHudActionColumn::OnMouseUp>::Call);
+EI_REWRITTEN(0x0063FDE0, CHudActionColumn::OnMouseUp);
 
 void CHudActionColumn::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0 && region < count_) handled_ = true;
 }
-EI_REWRITTEN(0x0063FE40, InputForward<&CHudActionColumn::OnMouseMove>::Call);
+EI_REWRITTEN(0x0063FE40, CHudActionColumn::OnMouseMove);
 
 // --- Portraits ---------------------------------------------------------------------------------
 
@@ -295,7 +295,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
         net::GameClient()->SendCommand(5, text);
     interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_ = 0;
 }
-EI_REWRITTEN(0x00641CE0, InputForward<&CHudPortraits::OnMouseDown>::Call);
+EI_REWRITTEN(0x00641CE0, CHudPortraits::OnMouseDown);
 
 void CHudPortraits::OnMouseUp(int, int x, int y) {
     if (PortraitMode(interface_) != 0) return;
@@ -307,7 +307,7 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     // 00638EF0 through its address: Rebirth patches it (FixSpellSelfCasting; rule 9).
     if (region < owner->party_.size) static_cast<CBattleScreen*>(owner)->SelectUnit(owner->party_[region], 0, 0);
 }
-EI_REWRITTEN(0x00641E20, InputForward<&CHudPortraits::OnMouseUp>::Call);
+EI_REWRITTEN(0x00641E20, CHudPortraits::OnMouseUp);
 
 void CHudPortraits::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
@@ -320,7 +320,7 @@ void CHudPortraits::OnMouseMove(int, int x, int y) {
     }
     if (region >= 0 && region < count_) TheCursor()->SetShape(0);
 }
-EI_REWRITTEN(0x00641EA0, InputForward<&CHudPortraits::OnMouseMove>::Call);
+EI_REWRITTEN(0x00641EA0, CHudPortraits::OnMouseMove);
 
 // --- Map ---------------------------------------------------------------------------------------
 
@@ -337,7 +337,7 @@ void CHudMap::OnMouseDown(int, int x, int y) {
     for (int i = 0; i < 2; ++i)
         SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
 }
-EI_REWRITTEN(0x00645060, InputForward<&CHudMap::OnMouseDown>::Call);
+EI_REWRITTEN(0x00645060, CHudMap::OnMouseDown);
 
 void CHudMap::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -394,12 +394,12 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         return;
     }
 }
-EI_REWRITTEN(0x00645210, InputForward<&CHudMap::OnMouseUp>::Call);
+EI_REWRITTEN(0x00645210, CHudMap::OnMouseUp);
 
 void CHudMap::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x00645610, InputForward<&CHudMap::OnMouseMove>::Call);
+EI_REWRITTEN(0x00645610, CHudMap::OnMouseMove);
 
 // --- Unit panel --------------------------------------------------------------------------------
 
@@ -408,7 +408,7 @@ void CHudUnitPanel::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x00648330, InputForward<&CHudUnitPanel::OnMouseDown>::Call);
+EI_REWRITTEN(0x00648330, CHudUnitPanel::OnMouseDown);
 
 void CHudUnitPanel::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -428,18 +428,18 @@ void CHudUnitPanel::OnMouseUp(int, int x, int y) {
     }
     if (region >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x00648370, InputForward<&CHudUnitPanel::OnMouseUp>::Call);
+EI_REWRITTEN(0x00648370, CHudUnitPanel::OnMouseUp);
 
 void CHudUnitPanel::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x006484C0, InputForward<&CHudUnitPanel::OnMouseMove>::Call);
+EI_REWRITTEN(0x006484C0, CHudUnitPanel::OnMouseMove);
 
 BOOL CHudUnitPanel::OnWheel(int, int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
     return 1;
 }
-EI_REWRITTEN(0x006484F0, InputForward<&CHudUnitPanel::OnWheel>::Call);
+EI_REWRITTEN(0x006484F0, CHudUnitPanel::OnWheel);
 
 // --- Clock -------------------------------------------------------------------------------------
 
@@ -448,7 +448,7 @@ void CHudClock::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x00648D30, InputForward<&CHudClock::OnMouseDown>::Call);
+EI_REWRITTEN(0x00648D30, CHudClock::OnMouseDown);
 
 void CHudClock::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -480,12 +480,12 @@ void CHudClock::OnMouseUp(int, int x, int y) {
         return;
     }
 }
-EI_REWRITTEN(0x00648D70, InputForward<&CHudClock::OnMouseUp>::Call);
+EI_REWRITTEN(0x00648D70, CHudClock::OnMouseUp);
 
 void CHudClock::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x00649160, InputForward<&CHudClock::OnMouseMove>::Call);
+EI_REWRITTEN(0x00649160, CHudClock::OnMouseMove);
 
 void CHudClock::OpenObjectives() {
     highlight_ = false;
@@ -507,7 +507,7 @@ void CHudMovePanel::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x00649630, InputForward<&CHudMovePanel::OnMouseDown>::Call);
+EI_REWRITTEN(0x00649630, CHudMovePanel::OnMouseDown);
 
 void CHudMovePanel::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -529,12 +529,12 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
     }
     ShowModeVanilla(mode);
 }
-EI_REWRITTEN(0x00649670, InputForward<&CHudMovePanel::OnMouseUp>::Call);
+EI_REWRITTEN(0x00649670, CHudMovePanel::OnMouseUp);
 
 void CHudMovePanel::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x00649750, InputForward<&CHudMovePanel::OnMouseMove>::Call);
+EI_REWRITTEN(0x00649750, CHudMovePanel::OnMouseMove);
 
 void CHudMovePanel::ShowModeVanilla(int mode) {
     widescreen::EnterLeftPanel();    // addon's 100233C7; 100233E0 at the end
@@ -983,7 +983,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     screen->pendingItem_ = -1;
     clearPanels(-1);
 }
-EI_REWRITTEN(0x0063DB20, InputForward<&CHudQuickItems::OnMouseUp>::Call);
+EI_REWRITTEN(0x0063DB20, CHudQuickItems::OnMouseUp);
 
 // --- 00636F10: the selected units ordered to a point -------------------------------------------
 
