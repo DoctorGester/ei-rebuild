@@ -63,6 +63,8 @@ class CFigureMesh;
 class CPixelConverter;   // texture.h
 
 struct FigureMeshDrawer;   // link_figure.h
+// The flags an animated mesh's drawer gets on top of its own (figure_part_draw*.cpp).
+inline constexpr std::uint32_t kAnimatedDrawerFlags = /*00790C0C*/ 0x200;
 
 // The material a figure part is drawn with (005A7A70's fourth argument) is a CMaterial (material.h):
 // flags_ 0x10 keeps the speculars (draw flag 8), the lights scale colors.diffuse / colors.specular

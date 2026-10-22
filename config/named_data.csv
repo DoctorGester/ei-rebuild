@@ -119,8 +119,11 @@ address,size,name,file
 0078DEA4,128,kRainSeeds,src/game/weather_particles.cpp
 0078DF24,128,kSnowSeeds,src/game/weather_particles.cpp
 0078FF38,4,g_lastLitHour,src/game/world_data.h
+00790260,4,kSaveVersion,src/game/world.h
 00790264,4,kSaveLastUncompressedVersion,src/game/world.h
+00790268,4,kSaveOldestVersion,src/game/world.h
 0079026C,1,g_guardPlain,src/game/world_guard.cpp
+00790C0C,4,kAnimatedDrawerFlags,src/game/figure_mesh.h
 00791108,36,kDirectionDx,src/game/ai_map.h
 0079112C,36,kDirectionDy,src/game/ai_map.h
 00791164,320,kMarkTable,src/game/world_data.h

@@ -118,7 +118,7 @@ void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemor
 
 bool __fastcall SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file) {
     // Passed on in the same order: ReadHeader takes (newest, oldest), so `minimum` is really the
-    // newest version accepted (LoadMission passes 00790260, then 00790268).
+    // newest version accepted (LoadMission passes kSaveVersion, then kSaveOldestVersion).
     if (!file->ReadHeader(magic, minimum, maximum)) return false;
     if (VersionOf(file) <= kSaveLastUncompressedVersion) {
         int start = static_cast<int>(file->Position());

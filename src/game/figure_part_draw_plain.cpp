@@ -72,8 +72,6 @@ const void* MovedPositionsOf(CFigureMesh* mesh) {
 
 std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
-// The flags an animated mesh's drawer gets (00790C0C).
-std::uint32_t AnimatedDrawerFlags() { return ei::GameData<const std::uint32_t>(0x00790C0C); }
 
 } // namespace
 
@@ -96,7 +94,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
     if (type >= 13 && type <= 16) {
         float time;
         TickTime(&time);
-        flags_ |= AnimatedDrawerFlags();
+        flags_ |= kAnimatedDrawerFlags;
         Animate(time);
     }
 

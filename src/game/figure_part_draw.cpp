@@ -45,10 +45,9 @@ lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }   // 005A8AE0
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
 // The ambient level the lights' colours are set with (0079BE9C, float bits), the "crown" option
-// (0079BD28), the flags an animated mesh's drawer gets (00790C0C) and the renderer (007AF060).
+// (0079BD28) and the renderer (007AF060).
 std::uint32_t AmbientBits() { return std::bit_cast<std::uint32_t>(options::TheOptions()->objectsLightingCoeff_); }
 int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
-std::uint32_t AnimatedDrawerFlags() { return ei::GameData<const std::uint32_t>(0x00790C0C); }
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
@@ -383,7 +382,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     if (type >= 13 && type <= 16) {
         float time;
         TickTime(&time);
-        flags_ |= AnimatedDrawerFlags();
+        flags_ |= kAnimatedDrawerFlags;
         Animate(time);
     }
 

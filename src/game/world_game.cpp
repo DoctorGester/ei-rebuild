@@ -85,7 +85,7 @@ constexpr unsigned kMagicScenario = 0xDEAD;
 constexpr unsigned kMagicMission = 0x102;
 
 int GameMode() { return ei::GameData<const int>(0x007B0098); }        // 1: single player
-int SaveVersion() { return ei::GameData<const int>(0x00790260); }
+int SaveVersion() { return kSaveVersion; }
 bool& ToMainMenu() { return TheInterface()->closeAll_; }
 // The network sessions are open (CInterface3D::disconnected_: BeginMultiplayerGame sets it, a missing zone clears it).
 bool& SessionsOpen() { return TheInterface()->disconnected_; }
@@ -343,7 +343,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone
             ei::SetVtable(s, CStream::StreamVtable());
         }
     } owner{&data};
-    if (!SaveFileRead(&data, kMagicMission, SaveVersion(), ei::GameData<const int>(0x00790268), &file.stream)) {
+    if (!SaveFileRead(&data, kMagicMission, SaveVersion(), kSaveOldestVersion, &file.stream)) {
         game::FatalError(kCorruptSave, fileName.GetString());
         failed = true;
         return 0;
@@ -531,7 +531,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
         data.data_ = nullptr;
         data.Reset();
-        bool loaded = SaveFileRead(&data, kMagicMission, SaveVersion(), ei::GameData<const int>(0x00790268),
+        bool loaded = SaveFileRead(&data, kMagicMission, SaveVersion(), kSaveOldestVersion,
                                    &file.stream) &&
                       TheServerWorld()->LoadSave(&data, nullptr) != 0;
         if (loaded) file.Close();
@@ -1258,8 +1258,8 @@ constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C
 int __stdcall LoadMission(CStream* file) {
     TheSoundManager()->StopAll(1);
     LocalMemoryStream mission;
-    if (!SaveFileRead(&mission.s, kMagicMissionFile, ei::GameData<const int>(0x00790260),
-                      ei::GameData<const int>(0x00790268), file))
+    if (!SaveFileRead(&mission.s, kMagicMissionFile, kSaveVersion,
+                      kSaveOldestVersion, file))
         return 0;
     int version = static_cast<int>(mission.s.version_);
     if (version < kVersionGlobalsInMission) TheCamera()->LoadState(&mission.s);
@@ -1644,7 +1644,7 @@ int GameFlow::LoadGame(const char* slot) {
             ei::SetVtable(s, CStream::StreamVtable());
         }
     } scenarioOwner{&scenario};
-    if (!SaveFileRead(&scenario, kMagicScenario, SaveVersion(), ei::GameData<const int>(0x00790268), &file.stream)) {
+    if (!SaveFileRead(&scenario, kMagicScenario, SaveVersion(), kSaveOldestVersion, &file.stream)) {
         ToMainMenu() = 1;
         StartZoneAt(this, nullptr, kMainMenu, 2);
         return 0;
