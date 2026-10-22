@@ -870,7 +870,7 @@ public:
 
 protected:
     template <typename T>
-    T* As() { return reinterpret_cast<T*>(this); }
+    T* As() { return ObjectAs<T>(); }
     // The bases' slot 0: the layer's destructor body, the memory freed when bit 0 of `flags` is set.
     template <typename T>
     void* DeleteLayer(unsigned flags) {

@@ -16,14 +16,14 @@ namespace {
 class CItemLinkClass final : public ei::CompiledTag<CItemLinkClass> {
 public:
     virtual void* DeleteScalar(unsigned flags) {   // 0: 0058FBC0
-        return reinterpret_cast<CRefObject*>(this)->ValueDeletingDestruct(flags);
+        return ObjectAs<CRefObject>()->ValueDeletingDestruct(flags);
     }
     virtual void Serialize(ChunkArchive*) {}                    // 1: 00412580 (empty)
     virtual void OnShutdown() { Link()->Reset(); }              // 2: 0058FB90
     virtual CItemLink* Clone() { return Link()->Clone(); }      // 3: 0058FB60
 
 private:
-    CItemLink* Link() { return reinterpret_cast<CItemLink*>(this); }
+    CItemLink* Link() { return ObjectAs<CItemLink>(); }
 };
 } // namespace
 

@@ -28,7 +28,7 @@ extern "C" int __cdecl _purecall();
 // The compiled tables (C19, lib/compiled_vtable.h) in place of game.exe's 0073D808 (the slots' bodies, link_loader.cpp)
 // and its base's 0073D824.
 struct LinkFigureLoaderClass final : ei::CompiledTag<LinkFigureLoaderClass> {
-    CLinkFigureLoader* Loader() { return reinterpret_cast<CLinkFigureLoader*>(this); }
+    CLinkFigureLoader* Loader() { return ObjectAs<CLinkFigureLoader>(); }
     virtual void* DeleteThis(unsigned flags) { return Loader()->DeleteThisImpl(flags); }   // 0
     virtual int CacheSize() { return Loader()->CLinkFigureLoader::CacheSize(); }           // 1: 004F6A20
     virtual int CacheBytes() { return Loader()->CLinkFigureLoader::CacheBytes(); }         // 2: 004FAAA0

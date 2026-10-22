@@ -126,10 +126,10 @@ void SetRootVtable(void* object) { ei::SetVtable(object, PlainRootVtable()); }
 // The compiled tables (C19, lib/compiled_vtable.h) in place of game.exe's: the preset's 0073D880 (0 the deleting
 // destructor, 1 Index) and the helper's 0073D840 (its eight slots, model.h).
 struct RenderPresetClass final : ei::CompiledDeleter<RenderPresetClass, &CRenderPreset::DeleteScalar> {
-    virtual unsigned Index() { return static_cast<unsigned>(reinterpret_cast<CRenderPreset*>(this)->index_); }   // 1
+    virtual unsigned Index() { return static_cast<unsigned>(ObjectAs<CRenderPreset>()->index_); }   // 1
 };
 struct RenderHelperClass final : ei::CompiledTag<RenderHelperClass> {
-    CRenderHelper* Helper() { return reinterpret_cast<CRenderHelper*>(this); }
+    CRenderHelper* Helper() { return ObjectAs<CRenderHelper>(); }
     virtual void* DeleteThis(unsigned flags) { return Helper()->DeleteScalar(flags); }   // 0
     virtual CRenderPreset* Record(const StateVector* states, int index, bool singleStage) {   // 1
         return Helper()->RecordImpl(states, index, singleStage);

@@ -167,7 +167,7 @@ public:
     }
 
 protected:
-    GameBuffer* Buffer() { return reinterpret_cast<GameBuffer*>(this); }
+    GameBuffer* Buffer() { return this->template ObjectAs<GameBuffer>(); }
 };
 
 struct BufferViewBaseClass final : GameBufferClass<BufferViewBaseClass> {};
