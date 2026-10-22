@@ -137,7 +137,7 @@ int CParticleSource::Draw(void* renderer) {
             argb <<= 8;
             argb |= static_cast<std::uint32_t>(MixChannel(now, before, 0, t, u));
             sprite->color = argb;
-            sprite->frame = p->prevFrame * 16 + frameBase;
+            sprite->frame = frames.data + p->prevFrame;
             ++sprite;
             ++vertex;
         } while (cursor);

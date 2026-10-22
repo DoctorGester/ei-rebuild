@@ -355,6 +355,12 @@ void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*
 void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
                                ParticleDepth value, int compare, void* distanceTag);    // 00499C20
 
+// One texture frame's UV rectangle (a particle source's frames, 16 bytes each).
+struct SourceFrame {
+    float u0, v0, u1, v1;
+};
+static_assert(sizeof(SourceFrame) == 16);
+
 // A particle source: a transform object (CTransformObject, whose vtable the factory stores on the
 // way): localPosition_ (+0x1C) is where it emits relative to what it is attached to, localRotation_
 // (+0x34) the identity after Reset.
@@ -579,10 +585,8 @@ public:
     ClipBounds clip;
     std::uint8_t unused_1A8[0x1B4 - 0x1A8];
     mfc::CTypedPtrList<Particle> particles;     // +0x1B4
-    int frameBase;                  // +0x1D0 address of the frame UV rectangles (16 bytes each, 32-byte aligned)
-    int frameRectCount;             // +0x1D4 (an MFC-style array: data, size, max, grow by)
-    int frameRectCapacity;          // +0x1D8
-    int frameRectGrowBy;            // +0x1DC
+    // +0x1D0 the frame UV rectangles (32-byte aligned); the original inlines the array's SetSize.
+    lib::AlignedArray<SourceFrame> frames;
     EmitCallback emitFn;            // +0x1E0
     UpdateCallback updateFn;        // +0x1E4
     ElementCallback elementFn;      // +0x1E8
@@ -618,7 +622,7 @@ struct ParticleVertex {
 };
 struct ParticleSprite {
     std::uint32_t color;            // ARGB
-    int frame;                      // texture frame index (+ the source's base +0x1D0)
+    const SourceFrame* frame;       // the particle's frame among its source's frames
 };
 // 007A9BD0: data 32-byte aligned (00468F70), the block address below it.
 using ParticleVertexArray = lib::AlignedArray<ParticleVertex>;
