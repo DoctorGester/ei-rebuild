@@ -117,7 +117,7 @@ void CHeroStatsPanel::Update() {
         holdTime_ = 0.0f;
     }
 }
-EI_REPLACE_METHOD(0x00624A60, CHeroStatsPanel::Update);
+EI_REWRITTEN(0x00624A60, CHeroStatsPanel::Update);
 
 // --- 00624790: the left button (input slot 2) --------------------------------------------------------
 
@@ -146,4 +146,4 @@ void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00624790, InputForward<&CHeroStatsPanel::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00624790, InputForward<&CHeroStatsPanel::OnLButtonDown>::Call);

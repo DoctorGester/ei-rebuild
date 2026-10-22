@@ -399,7 +399,7 @@ void CTradePanel::Build() {
 namespace {
 void __fastcall TradeBuild(CTradePanel* self) { self->Build(); }
 } // namespace
-EI_REPLACE(0x00624F10, TradeBuild);
+EI_REWRITTEN(0x00624F10, TradeBuild);
 
 // --- 00625430: the records again ----------------------------------------------------------------
 

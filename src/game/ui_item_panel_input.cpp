@@ -18,14 +18,14 @@ void CUiItemPanel::OnLeftDown(int, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x005EE310, InputForward<&CUiItemPanel::OnLeftDown>::Call);
+EI_REWRITTEN(0x005EE310, InputForward<&CUiItemPanel::OnLeftDown>::Call);
 
 // 0060E210: the blank panel's constructor.
 CUiItemPanel* CUiItemPanel::ConstructBlank(CInterface3D* ui, CUiWindow* owner) {
     Construct(ui);
-    vtable_ = ei::GamePointer<void*>(0x00741B58);
+    vtable_ = BlankVtable();
     owner_ = owner;
-    inputVtable_ = ei::GamePointer<void*>(0x00741B24);
+    inputVtable_ = BlankInputVtable();
     return this;
 }
 EI_REPLACE_METHOD(0x0060E210, CUiItemPanel::ConstructBlank);

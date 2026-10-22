@@ -231,6 +231,9 @@ static_assert(offsetof(ItemHoverInfo, stats) == 0x10);
 
 class CItemInfoPanel : public CUiItemPanel {
 public:
+    // The compiled tables (ui_item_panel_tables.cpp).
+    static void** Vtable();
+    static void** InputVtable();
     // 005EE760. Clears the surface and describes the item in the list (nothing without one):
     // its own description for blueprints (005F0370), materials (005EFD90), spells (005F0B90),
     // modifiers (005F1130), quick items of category 8 (005EF300) and spells carried by an item

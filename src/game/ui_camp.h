@@ -387,6 +387,9 @@ using TradeRecords = stlp::vector<TradeRecord>;
 
 class CTradePanel : public CUiItemPanel {
 public:
+    // The compiled tables (ui_item_panel_tables.cpp).
+    static void** Vtable();
+    static void** InputVtable();
     // 0060E3E0 (__fastcall on the panel; ui_camp.cpp). The destructor body (vtable 007417A8): its
     // CStringArray (+0x1A4), the vectors at +0x190 (0x3C-byte entries) and +0x180, +0x174, +0x168,
     // +0x15C (0x18-byte entries), then the window base.
@@ -752,6 +755,9 @@ static_assert(sizeof(CCampPages) == 0x260);
 // +0x20), slot 50 the hero's unit, slot 53 (hero screen) the equipment weight.
 class CHeroStatsPanel : public CUiItemPanel {
 public:
+    // The compiled tables (ui_item_panel_tables.cpp).
+    static void** Vtable();
+    static void** InputVtable();
     // 006233C0. Shows the statistics for page `page` of the owner: 0 the body parts and the
     // weapon, 10 the new hero's points with -/+ buttons, others the plain values; rebuilds the
     // rows' regions (two fixed ones kept) and draws (DrawStats).
@@ -826,6 +832,9 @@ static_assert(sizeof(CHeroStatsPanel) == 0x17C);
 // quick slots along the top, and in the camp the body with its seven equipment slots.
 class CHeroEquipPanel : public CUiItemPanel {
 public:
+    // The compiled tables (ui_item_panel_tables.cpp).
+    static void** Vtable();
+    static void** InputVtable();
     // Body of the slot at 00622420 (registered by member pointer).
     int DrawImpl(int pass);
     // 00622000. Builds the panel: eight slot regions and their frames along the strip, two
@@ -862,6 +871,9 @@ using UiItemList = lib::AlignedArray<CItem*>;
 // 0x164 bytes; ui_hero_panels.cpp).
 class CTradeGrid : public CUiItemPanel {
 public:
+    // The compiled tables (ui_item_panel_tables.cpp).
+    static void** Vtable();
+    static void** InputVtable();
     int DrawGrid(int pass);
     // 006270A0. Builds the grid over 200..600 x 100..500: the cell pictures (textures trade1..4 by
     // quarter), their frames, a region per cell, and the surface. `spells` chooses the price kinds
@@ -887,6 +899,9 @@ static_assert(sizeof(CTradeGrid) == 0x164);
 // grid with textures repair1..4.
 class CRepairGrid : public CUiItemPanel {
 public:
+    // The compiled tables (ui_item_panel_tables.cpp).
+    static void** Vtable();
+    static void** InputVtable();
     // 006279E0. Builds the grid for the item list `items`.
     void Build(void* items);
     // 00627C90 (slot 20, RET 4; ui_panel_draws.cpp). The depth buffer cleared to 0 over the screen
@@ -907,6 +922,9 @@ static_assert(sizeof(CRepairGrid) == 0x154);
 // cells along the top (camp) or the bottom of the screen.
 class CHeroQuickStrip : public CUiItemPanel {
 public:
+    // The compiled tables (ui_item_panel_tables.cpp).
+    static void** Vtable();
+    static void** InputVtable();
     // 00622A80. Builds the strip at y 0 (`top`) or 500: eight regions, a hidden highlight frame
     // and the cells.
     void Build(bool top);
@@ -931,6 +949,9 @@ static_assert(sizeof(CHeroQuickStrip) == 0x158);
 // item maker (007415D4 / 007415A0, 0x158 bytes): the slots of what is being made beside a 2 x 4 grid.
 class CConstructorPage : public CUiItemPanel {
 public:
+    // The item maker's compiled tables (ui_item_panel_tables.cpp).
+    static void** ItemMakerVtable();
+    static void** ItemMakerInputVtable();
     // 00628CC0. The item maker: the blueprint and two part slots, the grid, the pictures
     // (constritem1..4) and a highlight frame.
     void BuildItemMaker(CParty* slots);
@@ -958,6 +979,9 @@ static_assert(offsetof(CConstructorPage, pulse_) == 0x154);
 // The spell maker's cost texts ("infoitem_35", "infoitem_36"): a CStringArray at +0x158.
 class CSpellMakerPage : public CConstructorPage {
 public:
+    // The compiled tables (ui_item_panel_tables.cpp).
+    static void** Vtable();
+    static void** InputVtable();
     // 006280C0. The spell maker: the container and spell slots, the grid, the cost line's regions,
     // the four pictures (constrspell1..4), a highlight frame, the cost surface and its texts.
     void BuildSpellMaker(CParty* slots);

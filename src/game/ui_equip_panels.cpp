@@ -73,7 +73,7 @@ void CHeroEquipPanel::OnRightDown(int, int x, int y) {
     }
     RefreshWeapons(owner_);
 }
-EI_REPLACE_METHOD(0x00622960, InputForward<&CHeroEquipPanel::OnRightDown>::Call);
+EI_REWRITTEN(0x00622960, InputForward<&CHeroEquipPanel::OnRightDown>::Call);
 
 // --- 00622860 / 00622D40: the item under a point ---------------------------------------------------
 
@@ -99,7 +99,7 @@ CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x00622860, CHeroEquipPanel::ItemAt);
+EI_REWRITTEN(0x00622860, CHeroEquipPanel::ItemAt);
 
 CItem* CHeroQuickStrip::ItemAt(int x, int y, int* topic) {
     *topic = 0;
@@ -111,4 +111,4 @@ CItem* CHeroQuickStrip::ItemAt(int x, int y, int* topic) {
     if (region >= static_cast<int>(hero->spellCount)) return nullptr;
     return hero->spells[region];
 }
-EI_REPLACE_METHOD(0x00622D40, CHeroQuickStrip::ItemAt);
+EI_REWRITTEN(0x00622D40, CHeroQuickStrip::ItemAt);

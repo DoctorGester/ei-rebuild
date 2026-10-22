@@ -1047,6 +1047,9 @@ static_assert(sizeof(CUiTooltip) == 0x184);
 // handler 005EE310; slot 25 (VirtualItemAt) gives the item or help topic under the mouse.
 class CUiItemPanel : public CUiWindow {
 public:
+    // The blank panel's compiled tables (ui_item_panel_tables.cpp).
+    static void** BlankVtable();
+    static void** BlankInputVtable();
     // 005EE310 (input slot 2, RET 0xC; ui_item_panel_input.cpp). The item under (x, y) goes to the
     // owner's slot 42 with mode_ (the camp's MoveItem); without one, a help topic the panel named
     // goes to the owner's slot 44 (the camp: the strip tabs for it). The event is not marked used.
