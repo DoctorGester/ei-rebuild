@@ -1097,7 +1097,6 @@ __declspec(naked) int __fastcall LoadLightsAt(void*, void*, const char*) EI_ORIG
 __declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGINAL(0x004DEDB0)
 // Constructors (thiscall; some take a block size or count).
 __declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
-__declspec(naked) void __fastcall Construct4DED20(void*) EI_ORIGINAL(0x004DED20)
 void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
 
 std::uint8_t* New(std::size_t size) { return static_cast<std::uint8_t*>(gamecrt::operator_new(size)); }
@@ -1202,7 +1201,7 @@ int CWorldClient::Setup() {
 
     // The text resources: the engine object's fields (in the original's order), the table, then
     // the class's constructor body.
-    auto* texts = gamecrt::operator_new_as<ClientTexts>();
+    auto* texts = gamecrt::operator_new_as<CTextManager>();
     if (texts) {
         ei::SetVtable(texts, CEngineObject::kVtableAddress);
         texts->refCount_ = 0;
@@ -1211,9 +1210,9 @@ int CWorldClient::Setup() {
         texts->type_ = 0;
         texts->flags_ = 0;
         texts->owner_ = nullptr;
-        stlp::ListAbi<stlp::Opaque<16>>::ConstructDefault(reinterpret_cast<stlp::list<stlp::Opaque<16>>*>(texts->table));   // 00562A80
+        texts->sources_.Construct();   // 00562A80
         ei::SetVtable(texts, CTextManager::Vtable());
-        Construct4DED20(texts);
+        texts->CreateImpl();   // 004DED20
     }
     texts_ = texts;
     ++texts->refCount_;
@@ -1598,8 +1597,8 @@ int CWorldClient::LoadZone(CStream* block) {
     block->ReadInto(&mob);
     int exitCount;
     block->Read(&exitCount, 4);
-    gamearrays::ExitsSetSize(&exitsVtable_, exitCount);
-    for (int i = 0; i < exitCount_; ++i) ExitReadAt(&exits_[i], nullptr, block);
+    exits_.SetSize(exitCount);
+    for (int i = 0; i < exits_.size; ++i) ExitReadAt(&exits_[i], nullptr, block);
     int cave;
     block->Read(&cave, 4);
     UnitLooks looks;

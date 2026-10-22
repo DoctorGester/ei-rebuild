@@ -270,6 +270,6 @@ EI_REWRITTEN(0x00578D30, GameSendFlag10);
 std::uint8_t GameClientPaused() { return TheClientWorld()->paused_; }
 EI_REWRITTEN(0x00578D50, GameClientPaused);
 
-ClientTexts* GameClientTexts() { return TheClientWorld()->texts_; }
+CTextManager* GameClientTexts() { return TheClientWorld()->texts_; }
 EI_REWRITTEN(0x00578E20, GameClientTexts);
 

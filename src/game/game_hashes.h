@@ -9,6 +9,7 @@
 #include "party_manager.h"
 #include "record_vectors.h"
 #include "unit_looks.h"
+#include "world.h"
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -24,7 +25,7 @@ using PartyAbi = stlp::HashtableAbi<PartyTraits>;
 // A zone's unit looks (UnitSet, world.h): the figured records by key in a map per prototype (0x44-byte
 // nodes; ~hashtable 0055AD10), those maps by prototype (0x1C-byte nodes), the dressed records by
 // prototype (0x2C-byte nodes). The records' policies are record_vectors.h's.
-using FiguredTable = stlp::hashtable<stlp::DwordObjectTraits<FiguredUnitRecord, recordvec::FiguredUnitElement>>;
+using FiguredTable = UnitSet::FiguredTable;
 struct FiguredTableElement {
     static void Construct(FiguredTable* to, const FiguredTable& from) { to->CopyConstruct(from); }
     static void Destroy(FiguredTable* p) { p->Destroy(); }
@@ -32,9 +33,9 @@ struct FiguredTableElement {
 using FiguredGroupsTraits = stlp::DwordObjectTraits<FiguredTable, FiguredTableElement>;
 using DressedTraits = stlp::DwordObjectTraits<DressedUnitRecord, recordvec::DressedUnitElement>;
 using FiguredAbi = stlp::HashtableAbi<stlp::DwordObjectTraits<FiguredUnitRecord, recordvec::FiguredUnitElement>>;
-using FiguredGroupsTable = stlp::hashtable<FiguredGroupsTraits>;
+using FiguredGroupsTable = UnitSet::FiguredGroups;
 using FiguredGroupsAbi = stlp::HashtableAbi<FiguredGroupsTraits>;
-using DressedTable = stlp::hashtable<DressedTraits>;
+using DressedTable = UnitSet::DressedTable;
 using DressedAbi = stlp::HashtableAbi<DressedTraits>;
 
 struct FiguredGroupPair : FiguredGroupsTable::Value {

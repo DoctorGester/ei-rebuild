@@ -343,20 +343,20 @@ int CWorldServer::SendZone(CPlayer* player) {
         write(&previousTick, 4);
         write(mapName_, static_cast<unsigned>(std::strlen(mapName_) + 1));
         write(mobName_, static_cast<unsigned>(std::strlen(mobName_) + 1));
-        int exits = exitCount_;
+        int exits = exits_.size;
         write(&exits, 4);
-        for (int i = 0; i < exitCount_; ++i) exits_[i].Write(&message);
+        for (int i = 0; i < exits_.size; ++i) exits_[i].Write(&message);
         write(&cave_, 4);
 
         // The zone's units.
         UnitSet units;
-        units.figured.Construct(100);   // 005985E0
-        units.dressed.Construct(100);   // 00598790
+        units.figured.Construct(100, 0, 0, 0);   // 005985E0
+        units.dressed.Construct(100, 0, 0, 0);   // 00598790
         for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node))
             if (CUnit* unit = UnitOrNull(node->value)) units.Add(unit);
         units.Write(&message);
-        gamehash::DressedAbi::Destroy(reinterpret_cast<gamehash::DressedTable*>(&units.dressed));
-        gamehash::FiguredGroupsAbi::Destroy(reinterpret_cast<gamehash::FiguredGroupsTable*>(&units.figured));
+        units.dressed.Destroy();   // 00598860
+        units.figured.Destroy();   // 005986B0
 
         result = state->SendState02(&message);   // 0066EBD0
         if (result != 0 && sendsStartPosition_ != 0) {

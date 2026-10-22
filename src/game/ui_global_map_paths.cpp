@@ -97,7 +97,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         float passTime = from->exits.data[i].passTime;
         if (SameName(zone->name, target_)) {
             found_ = true;
-            int exit = from->exits.data[i].targetExit;
+            int exit = from->exits.data[i].entrance;
             float time = path_.size() == 0 ? -1.0f : pathTime_;
             if (arrivals_.find(exit) == arrivals_.end()) {
                 Arrival(arrivals_, exit) = time;

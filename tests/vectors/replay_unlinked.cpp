@@ -43,7 +43,7 @@ void EffectParticle::ReleaseSource() EI_UNLINKED("EffectParticle::ReleaseSource"
 void __fastcall aligned::ArrayAt8Free(void*) EI_UNLINKED("aligned::ArrayAt8Free")
 void __fastcall aligned::ArrayAt4Free(void*) EI_UNLINKED("aligned::ArrayAt4Free")
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective*) EI_UNLINKED("ScriptQuestObjectiveDestruct")
-void __fastcall zone::ExitDestruct(MapExit*) EI_UNLINKED("zone::ExitDestruct")
+void __fastcall zone::ExitDestruct(ZoneExit*) EI_UNLINKED("zone::ExitDestruct")
 void __fastcall zone::ZoneRecordDestruct(MapRecord*) EI_UNLINKED("zone::ZoneRecordDestruct")
 
 // game_arrays.cpp's and game_lists.cpp's script effects (script_effects.cpp needs the world).
@@ -60,7 +60,7 @@ void terrain::RecordElements::Construct(terrain::SectorVertex*, int) EI_UNLINKED
 void terrain::RecordElements::Destruct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Destruct")
 void __stdcall scene::FaceGroup::ConstructElements(scene::FaceGroup*, int) EI_UNLINKED("scene::FaceGroup::ConstructElements")
 void scene::FaceGroup::Destruct() EI_UNLINKED("scene::FaceGroup::Destruct")
-void __fastcall scene::FaceGroupArrayDestruct(mfc::CArray<scene::FaceGroup>*) EI_UNLINKED("scene::FaceGroupArrayDestruct")
+void __fastcall scene::FaceGroupArrayDestruct(scene::FaceGroupArray*) EI_UNLINKED("scene::FaceGroupArrayDestruct")
 void recordarrays::InitSceneMesh(scene::SceneMesh*) EI_UNLINKED("recordarrays::InitSceneMesh")
 void scene::SceneNode::Construct() EI_UNLINKED("scene::SceneNode::Construct")
 void scene::SceneNode::Destruct() EI_UNLINKED("scene::SceneNode::Destruct")

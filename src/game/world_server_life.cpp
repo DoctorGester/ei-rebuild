@@ -60,7 +60,7 @@ int CWorldServer::Setup() {
     windStrength_ = kWindStrength;
     sessionKind_ = 0;
     scriptsActive_ = 0;
-    gamearrays::ExitsSetSize(&exitsVtable_, 0);
+    exits_.SetSize(0);
     climate_ = 1;
     cave_ = 0;
     sendsStartPosition_ = 0;
@@ -101,13 +101,13 @@ void CWorldServer::Teardown() {
     Messages()->Close();
 
     // The exits' storage freed (each record's target string destroyed), as SetSize(0) inlined.
-    if (exits_) {
-        for (int i = 0; i < exitCount_; ++i) exits_[i].target.~CString();
-        gamecrt::operator_delete(exits_);
-        exits_ = nullptr;
+    if (exits_.data) {
+        for (int i = 0; i < exits_.size; ++i) exits_[i].target.~CString();
+        gamecrt::operator_delete(exits_.data);
+        exits_.data = nullptr;
     }
-    exitCapacity_ = 0;
-    exitCount_ = 0;
+    exits_.maxSize = 0;
+    exits_.size = 0;
     DestroyManagers();
 }
 

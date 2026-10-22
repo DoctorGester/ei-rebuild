@@ -15,7 +15,8 @@ reach other classes after the cleanup, and what is left. The classes themselves 
   `CPlayer::connection_` as `CPlayerServer` (`group50F8_`, `unknown24_`). Spell records go through `SpellRecord` / `SpellModifierRecord`.
   `CManagerContext` slot 17 (item.h) returns the `CSpellConstructor*`.
 - `CSceneRenderer` slot 16 (model.h) is `DrawStrip`; the lightning reaches slots 11 / 16 / 17 and `pipeline_` through it, and the manager walks
-  `CBaseManager::objectList_`. Particle callbacks read element values through `ParticleElement::value`; carriers are `CObject3D` (`orientation`,
+  `CBaseManager::objectList_`. Particle callbacks read element values through `ParticleElement`'s per-type views (`fragment`, `flames`, `orbiter`,
+  `funnel`, `star`, ...; effects.h asserts each offset), `value` / `word` only where a set-up clears a slot no view reads; carriers are `CObject3D` (`orientation`,
   `radius`, `position`, `above`); `moveMode` is read from `CUnit`.
 
 ## Left
@@ -25,7 +26,7 @@ reach other classes after the cleanup, and what is left. The classes themselves 
 - Duplicate forwarders left to the forwarder ticket: 006B8600 (Play3D: world_effect.cpp and map_object_companion.cpp); 006FE11F / 006FE216 (CString
   TrimRight / TrimLeft: spell_text.cpp, ini_file.cpp, item_constructor.cpp, originals_library.h).
 - Hidden offsets: spell_effect_internal.h (the prototype reads `Prototype(e) + 0x2C / 0x64 / 0x70`), spell_cast.cpp (`DwordAt` / `FloatAt` on the
-  prototype), particle_common.h (`ElementInt` / `ParticleFloat`). The naked x87 helpers in spell_effect_internal.h call the world's height slots 27 /
+  prototype). The naked x87 helpers in spell_effect_internal.h call the world's height slots 27 /
   28 by number.
 - `CSpellEffect` and world.h's `Projectile` describe the same class (0xA8 bytes, 0067E510); they should become one declaration.
 

@@ -92,7 +92,7 @@ void ObjectIdMap::Construct() {
 
 CWorldServer* CWorldServer::Construct() {
     ConstructBase();
-    reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->Construct(mfc::impl::MapRecordItemsClass::Vtable());
+    exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
     updateMap_.Construct();
     new (&zoneName_) mfc::CString();
     mobFiles_.Construct();
@@ -120,7 +120,7 @@ EI_REPLACE_METHOD(0x00589ED0, CWorldServer::Construct);
 
 CWorldClient* CWorldClient::Construct() {
     ConstructBase();
-    reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->Construct(mfc::impl::MapRecordItemsClass::Vtable());
+    exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
     countedA0_.Construct(gameslots::ClientObjectPtrArrayClass::Vtable());
     heroes_.Construct();
     objects_.Construct();

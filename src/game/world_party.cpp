@@ -204,7 +204,7 @@ void CWorldServer::Redeploy(CPlayer* player, void* placements, char runScripts) 
     std::memcpy(&rotation, NoRotation(), sizeof(rotation));
     Vector3 start{0.0f, 0.0f, 0.0f};
     std::uint32_t startValue = 0;
-    const MapExit* exit = nullptr;
+    const ZoneExit* exit = nullptr;
     const MapRecord* zone = FindZone(party->zone_);
     int entrance = static_cast<int>(party->entrance_);
     if (zone && entrance >= 0 && entrance < zone->exits.size) {
@@ -216,7 +216,7 @@ void CWorldServer::Redeploy(CPlayer* player, void* placements, char runScripts) 
     }
     float angle = static_cast<float>(x87::fpatan(static_cast<double>(start.y) - centreY,
                                                        static_cast<double>(start.x) - centreX) - kFacingOffset);
-    if (exit && *reinterpret_cast<const std::uint8_t*>(&exit->hasDeployAngle)) std::memcpy(&angle, &exit->deployAngle, sizeof(angle));
+    if (exit && exit->hasDeployAngle) std::memcpy(&angle, &exit->deployAngle, sizeof(angle));
     Vector3 up{0.0f, 0.0f, 1.0f};
     QuaternionFromAxisAngle(&rotation, nullptr, &up, angle);
 

@@ -543,7 +543,7 @@ bool Equal(float a, float b) {
 } // namespace
 
 void CBattleScreen::OnQuestVariable(const char* name, float value) {
-    CTextManager* texts = (CTextManager*)GameClientTexts();
+    CTextManager* texts = GameClientTexts();
     console::CStringArray parts;
     mfc::CString text;
     mfc::CString title;

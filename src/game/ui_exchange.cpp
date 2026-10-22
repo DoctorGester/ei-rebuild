@@ -281,7 +281,7 @@ BOOL CExchangeScreen::Draw(int pass) {
         descPanel_->Describe(nullptr);
     }
 
-    auto* texts = reinterpret_cast<CTextManager*>(GameClientTexts());
+    CTextManager* texts = GameClientTexts();
     mfc::CString text, line;
     net::ClientSession* client = net::GameClient();
 

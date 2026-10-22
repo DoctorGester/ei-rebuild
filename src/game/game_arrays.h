@@ -19,7 +19,6 @@ void __fastcall ArrayAt4Free(void* self);   // 004543C0
 } // namespace aligned
 
 namespace zone {
-void __fastcall ExitDestruct(MapExit* self);           // 00460460 (zone_records.cpp)
 void __fastcall ZoneRecordDestruct(MapRecord* self);   // 00460970
 } // namespace zone
 
@@ -33,9 +32,6 @@ using mfc::impl::EachElements;
 inline void DestroyBlockAt8(Bytes<24>* p) { aligned::ArrayAt8Free(p); }
 inline void DestroyBlockAt4(Bytes<20>* p) { aligned::ArrayAt4Free(p); }
 
-// Zone exits: the target string empty (004606A0); its destructor.
-inline void InitExit(MapExit* p) { ::new (&p->target) mfc::CString; }
-inline void DestroyExit(MapExit* p) { zone::ExitDestruct(p); }
 inline void DestroyZoneRecord(MapRecord* p) { zone::ZoneRecordDestruct(p); }
 
 // Script groups: the group's vtable, empty (004CC9B0); the destructor body.
@@ -72,9 +68,8 @@ inline void DestroyPointLight(ScriptPointLight* p) { p->ScriptPointLightDestruct
 
 using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
 using BlocksAt4 = ArrayAbi<Bytes<20>, EachElements<Bytes<20>, nullptr, DestroyBlockAt4>>;
-using Exits = ArrayAbi<MapExit, EachElements<MapExit, InitExit, DestroyExit>>;
-// 00573080: SetSize(size, -1) of a CArray<ZoneExit> given by its header (its first member).
-inline void ExitsSetSize(void* exits, int size) { static_cast<Exits::Array*>(exits)->SetSize(size, -1); }
+// Zone exits (object_tables.h ZoneExits; 00573080 its SetSize).
+using Exits = ArrayAbi<ZoneExit, ZoneExitElements>;
 using ZoneRecords = ArrayAbi<MapRecord, EachElements<MapRecord, nullptr, DestroyZoneRecord>>;
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;
 using Objectives = ArrayAbi<ScriptQuestObjective, EachElements<ScriptQuestObjective, InitObjective, DestroyObjective>>;

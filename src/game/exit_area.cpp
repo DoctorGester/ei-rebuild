@@ -43,12 +43,7 @@ bool ZoneExit::Contains(float x, float y) const {
 EI_REWRITTEN(0x004E59F0, ZoneExit::Contains);
 
 ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
-    for (int i = 0; i < 5; ++i) passTimeDeploy[i] = from->passTimeDeploy[i];
-    x1 = from->x1;
-    y1 = from->y1;
-    x2 = from->x2;
-    y2 = from->y2;
-    angle = from->angle;
+    std::memcpy(this, from, offsetof(ZoneExit, target));   // +0x00..+0x24 as dwords
     target = from->target;
     entrance = from->entrance;
     view = from->view;
@@ -73,7 +68,8 @@ void CStream::ReadInto(mfc::CString* out) {
 EI_REWRITTEN(0x004E5840, CStream::ReadInto);
 
 void ZoneExit::Read(CStream* stream) {
-    for (std::uint32_t& word : passTimeDeploy) stream->Read(&word, 4);
+    stream->Read(&passTime, 4);
+    for (float& value : deploy) stream->Read(&value, 4);
     stream->Read(&x1, 4);
     stream->Read(&y1, 4);
     stream->Read(&x2, 4);
@@ -99,7 +95,8 @@ void ZoneExit::Write(CStream* stream) const {
         std::memcpy(&copy, field, size);
         stream->Write(&copy, size);
     };
-    for (const std::uint32_t& word : passTimeDeploy) put(&word, 4);
+    put(&passTime, 4);
+    for (const float& value : deploy) put(&value, 4);
     put(&x1, 4);
     put(&y1, 4);
     put(&x2, 4);

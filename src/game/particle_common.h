@@ -95,16 +95,6 @@ inline void SetElementCount(CParticleSource* s, int n) {
     }
 }
 
-// Element fields by byte offset (their meaning depends on the source type).
-inline float* ElementFloat(ParticleElement* e, int offset) {
-    return reinterpret_cast<float*>(reinterpret_cast<std::uint8_t*>(e) + offset);
-}
-inline std::int32_t* ElementInt(ParticleElement* e, int offset) {
-    return reinterpret_cast<std::int32_t*>(reinterpret_cast<std::uint8_t*>(e) + offset);
-}
-inline float* ParticleFloat(Particle* p, int offset) {
-    return reinterpret_cast<float*>(reinterpret_cast<std::uint8_t*>(p) + offset);
-}
 
 // The attached object's class (vtable slot 12) and its slot 60 (a float: the unit's size).
 inline int ClassOf(void* object) {
