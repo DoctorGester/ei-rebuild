@@ -173,15 +173,15 @@ double Step(double value) {
 
 // ---- The application's globals ---------------------------------------------------------------------
 
-// The window: its class atom, class name and title (0x100 bytes each, from the string table), the
+// The window: its class atom, class name and title (0x100 bytes each, set by RegisterWindowClass), the
 // instance and the window.
 std::uint16_t g_windowClassAtom = /*0079BA20*/ {};
 char g_windowClassName[256] = /*0079BA24*/ {""};
 HWND& MainWindow() { return ei::GameData<HWND>(0x0079BC28); }
 constexpr int kTextSize = 0x100;
-constexpr UINT kTitleString = 0x65;
-constexpr UINT kClassNameString = 0x66;
-constexpr int kIcon = 0x69;
+// The window's title and class name: game.exe's string table held them as strings 101 and 102.
+constexpr const char* kWindowTitle = "Evil Islands";
+constexpr const char* kWindowClassName = "EIGAME";
 
 // The registry key of the options and the folders: where the game was started, the disc's, the
 // text resources' and the data folder (the last three are set from the options).
@@ -340,8 +340,8 @@ void ReadCommandLine(const char* commandLine) {
 // The window class registered; a game that runs already is brought to the front instead and this
 // one exits.
 void RegisterWindowClass(HINSTANCE instance) {
-    gameapi::LoadStringA(instance, kTitleString, g_windowTitle, kTextSize);
-    gameapi::LoadStringA(instance, kClassNameString, g_windowClassName, kTextSize);
+    gameapi::lstrcpynA(g_windowTitle, kWindowTitle, kTextSize);
+    gameapi::lstrcpynA(g_windowClassName, kWindowClassName, kTextSize);
     WNDCLASSEXA windowClass;
     windowClass.cbSize = sizeof(windowClass);
     windowClass.style = CS_DBLCLKS;
@@ -349,8 +349,8 @@ void RegisterWindowClass(HINSTANCE instance) {
     windowClass.cbClsExtra = 0;
     windowClass.cbWndExtra = 0;
     windowClass.hInstance = instance;
-    windowClass.hIcon = gameapi::LoadIconA(instance, MAKEINTRESOURCEA(kIcon));
-    windowClass.hIconSm = gameapi::LoadIconA(instance, MAKEINTRESOURCEA(kIcon));
+    windowClass.hIcon = nullptr;     // game.exe's icon 105 is not shipped (C24)
+    windowClass.hIconSm = nullptr;
     windowClass.hCursor = nullptr;
     windowClass.hbrBackground = nullptr;
     windowClass.lpszMenuName = nullptr;
