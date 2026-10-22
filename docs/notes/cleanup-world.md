@@ -7,7 +7,7 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
 
 - **The unit set** (`world.h`): `UnitSet` holds two typed identity-hashed maps: `figured` (unit id to a `FiguredUnitMap` of `FiguredUnitRecord`)
   and `dressed` (unit id to `DressedUnitRecord`). `UnitSetEntryHead` is merged into `DressedUnitRecord`, whose `Write` (00558FA0) is a member.
-  `ReadUnitLooks` takes typed vectors. `world_sync.cpp` uses `UnitSet` through forwarders that construct and destruct each map.
+  `ReadUnitLooks` takes typed vectors. `world_sync.cpp` builds a `UnitSet` and constructs / destroys its two `stlp::hashtable` members directly (005985E0 ... 005986B0).
 - **CWorldServer**: `diplomacy_` is a `CDiplomacy` embedded at +0x12C64 (users pass `&diplomacy_` or read `allied_`). `timeWheel_` stays a byte
   array behind `AIEvents()` (including `unit_ai.h` in `world.h` clashes with the local `kClassUnit` of six files).
 - **Virtual slots used instead of VCall.** CWorld: `TimedObjectManager` 14, `PlayerList` 20, `RawSurfaceHeightAt` 28, `SurfaceHeightAt` 30.
