@@ -61,6 +61,7 @@
 #include "../hook/log.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world_data.h"
 
 #include <ddraw.h>
 
@@ -543,7 +544,7 @@ constexpr int kLongestPassTicks = 5;
 
 // The world tick's length in milliseconds (0078FF34) and the factor from milliseconds to the
 // camera's time (0073C348: 1 / 55).
-std::uint32_t TickLength() { return ei::GameData<std::uint32_t>(0x0078FF34); }
+std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
 float CameraSeconds(std::uint32_t milliseconds) {
     return static_cast<float>(x87::FromUnsigned(milliseconds) * 0.018181818f /*0073C348*/);
 }

@@ -445,6 +445,7 @@
 #include "../../src/lib/mfc.h"
 #include "../../src/game/asset_text.h"   // text::kUtf8 (the "utf8" step prefix)
 #include "../../src/game/device.h"   // IDirectDraw7
+#include "../../src/game/world_data.h"   // worlddata::g_updatePeriod
 #include "../../src/game/console.h"   // console::g_consoleLineObserver
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_cursor.h"
@@ -1216,7 +1217,10 @@ HFONT WINAPI HarnessCreateFontIndirect(const LOGFONTA* font) {
 // after it: the unsigned backlog (10..54) wraps to about 4.29e9 and the loop runs some 78 million
 // client ticks (minutes). Real-time runs mostly got away with it by timing; on the virtual clock
 // ui_camp_deals, ui_trade_hold, effects_bow, ... hung every time. 0 = leave it to the game.
-unsigned& g_tickLength = ei::GameData<unsigned>(0x0078FF34);
+// The update period: ours in the image, game.exe's in its own runs.
+unsigned& TickLength() {
+    return ei::Standalone() ? reinterpret_cast<unsigned&>(worlddata::g_updatePeriod) : ei::OriginalGameData<unsigned>(0x0078FF34);
+}
 unsigned g_heldTickLength = 0;
 
 // The main loop's calls of the server's update and the client's tick (thiscall, EAX 0 stops the
@@ -1232,7 +1236,7 @@ int __fastcall HeldServerUpdate(void* server, void*) {
         timing::Scope scope(timing::Server);
         result = ei::Code<WorldUpdate>(kServerUpdate)(server, nullptr);
     }
-    if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    if (g_heldTickLength) TickLength() = g_heldTickLength;
     {
         timing::Scope scope(timing::Digest);
         digest::AfterWorldUpdate(server);   // a state record when its period says so
@@ -1247,7 +1251,7 @@ int __fastcall HeldClientSegment(void* client, void*) {
         timing::Scope scope(timing::Client);
         result = ei::Code<WorldUpdate>(kClientSegment)(client, nullptr);
     }
-    if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    if (g_heldTickLength) TickLength() = g_heldTickLength;
     return result;
 }
 
@@ -2676,7 +2680,7 @@ void RunSteps() {
     // The "show tutorial" option (registry value ShowTutorial). With it off, tutorial windows open only where the game
     // forces them (005F86F0, 005F8A80). Cleared every frame, since the options are reloaded when a game starts.
     HarnessOptions()->showTutorial_ = 0;
-    if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    if (g_heldTickLength) TickLength() = g_heldTickLength;
     if (g_checking) {
         // The script prints its value on a later frame; take the first new line.
         if (g_console.size() > g_checkFrom) {
@@ -3268,7 +3272,7 @@ void RunSteps() {
             camera_trace::Step(s.verb, s.argument, &g_failures, &g_capturedFrames);
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
-            if (g_heldTickLength) g_tickLength = g_heldTickLength;
+            if (g_heldTickLength) TickLength() = g_heldTickLength;
         } else if (s.verb == "waitline" || s.verb == "waitexpect") {
             char* rest = nullptr;
             unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
@@ -4456,7 +4460,7 @@ struct Harness {
         if (std::string names = utf8files::Check(g_savesDir); !names.empty()) g_failures.push_back(names);
         addon::Install();   // EI_ADDON_FLAGS: addon.dll's patches outside the run's Rebirth flags undone (harness_addon.h)
         if (g_deterministic) {
-            clock::InstallVirtual(&g_tickLength);
+            clock::InstallVirtual(&TickLength());
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)
             if (!g_keepHeap) script_order::Install();   // script groups by object id (harness_script_order.h)
             if (!g_keepHeap) address_order::Install();   // object sets by id, SetSun by sector (harness_address_order.h)
