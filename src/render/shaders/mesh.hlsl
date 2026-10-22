@@ -56,6 +56,7 @@ Texture2D<float> shadow_map : register(t3);
 SamplerComparisonState shadow_smp : register(s3);
 Texture2D<float4> shadow_range : register(t4);
 SamplerState shadow_point : register(s4);
+Texture2D<uint> shadow_ids : register(t5);   // the caster id per map texel (R22)
 float4 arg(int a, float4 current, float4 diffuse, float4 texel, float4 spec) {
     int sel = a & 15;
     float4 v = sel == 0 ? diffuse : sel == 2 ? texel : sel == 3 ? factor : sel == 4 ? spec : current;
@@ -127,8 +128,8 @@ float4 ps_main(vs_out i) : SV_Target0 {
     float3 rgb = current.rgb;
     if (switches.x != 0) rgb = saturate(rgb + i.spec.rgb);
     if (shadow_on.x > 0.5)
-        rgb *= 1.0 - shadow_amount(shadow_map, shadow_smp, shadow_range, i.shadow.xyz, dsx, dsy, shadow_on, shadow_scale, shadow_camera,
-                                  shadow_soft, i.pos.xy);
+        rgb *= 1.0 - shadow_amount(shadow_map, shadow_smp, shadow_range, shadow_ids, i.shadow.xyz, dsx, dsy, shadow_on,
+                                  shadow_scale, shadow_camera, shadow_soft, i.pos.xy);
     if (switches.y != 0) rgb = lerp(fog_colour.rgb, rgb, i.spec.a);
     return float4(rgb, current.a);
 }

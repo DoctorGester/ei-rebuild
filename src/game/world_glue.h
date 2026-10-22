@@ -49,7 +49,7 @@ class CEngineObject;
 class CPlayerClient;   // player_client.h
 class CUnit;   // unit.h
 struct PartyUnitRecord;   // unit.h
-struct ClientTexts;
+class CTextManager;
 
 // The server world's (007AFF60).
 // 00578560 (RET 4). Player 0's connection, when there is one, sends "constr.current" = `value`.
@@ -121,4 +121,4 @@ int __stdcall GameSendFlag10(int value);
 // 00578D50. The client world's pause flag.
 std::uint8_t GameClientPaused();
 // 00578E20. The client world's text resources (+0x1D0).
-ClientTexts* GameClientTexts();
+CTextManager* GameClientTexts();

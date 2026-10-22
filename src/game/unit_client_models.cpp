@@ -3,6 +3,7 @@
 #include "figure_manager.h"
 #include "item.h"
 #include "resource.h"
+#include "texture.h"
 #include "unit_client_models.h"
 #include "game_strings.h"
 
@@ -486,7 +487,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
 } // namespace
 
 void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
-    void* textureManager = TheTextureManager();
+    CTextureManager* textureManager = TheTextureManager();
     SkinLayerArray layers{mfc::impl::SkinLayerArrayClass::Vtable(), nullptr, 0, 0, 0};
     void* result;
     {
@@ -503,7 +504,7 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         std::memcpy(request->layers, layers.data, static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, *request, unitKey, prototypeKey, texture);
         result = reinterpret_cast<void*>(
-            ComposeTexture(textureManager, nullptr, static_cast<mfc::CString*>(target), request, &unitKey, &prototypeKey, 3, 0, 0x5551));
+            textureManager->Compose(static_cast<mfc::CString*>(target), request, &unitKey, &prototypeKey, 3, 0, 0x5551));
         request->textures.~CStringArray();
         if (request->layers) lib::FreeAligned32(request->layers);
     }

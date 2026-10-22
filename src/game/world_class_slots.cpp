@@ -67,8 +67,8 @@ int __fastcall ParticleManagerClassId(CParticleManager* self) { return self->CPa
 EI_REPLACE(0x00562780, ParticleManagerClassName);
 EI_REPLACE(0x00562790, ParticleManagerClassId);
 
-const char* __fastcall TextManagerClassName(ClientTexts*) { return kTextManagerName; }
-int __fastcall TextManagerClassId(ClientTexts*) { return kTextManagerId; }
+const char* __fastcall TextManagerClassName(CTextManager*) { return kTextManagerName; }
+int __fastcall TextManagerClassId(CTextManager*) { return kTextManagerId; }
 EI_REWRITTEN(0x00562970, TextManagerClassName);
 EI_REWRITTEN(0x00562980, TextManagerClassId);
 

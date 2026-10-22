@@ -67,7 +67,7 @@ struct TextSources : stlp::list<TextSource> {
 static_assert(sizeof(TextSources::Node) == 0x18);
 static_assert(sizeof(TextSources) == 4);
 
-class CTextManager {
+class CTextManager : public CEngineObject {
 public:
     // 004DF770. The first word at the cursor (leading spaces and line ends skipped; it ends at a
     // space, tab, CR or LF) into `out`; the cursor does not move. 0 when the cursor is at the end.
@@ -121,10 +121,10 @@ public:
     // world's set-up also calls it directly): setlocale(LC_CTYPE, the "Font CharSet" option,
     // "english" by default), then the C runtime's multibyte code page set to the locale's; returns 1.
     void ListKeys(mfc::CStringArray* out, const char* pattern);
-    int Create();
+    int CreateImpl();
 
-    // The text manager is an engine object (the first 0x1C bytes) with this compiled table
-    // (CTextManagerClass, world_client_class.h; game.exe's 0073F6F0).
+    // The text manager is an engine object (the client world's +0x1D0 and the global 007AF788) with
+    // this compiled table (CTextManagerClass, world_client_class.h; game.exe's 0073F6F0).
     static void* Vtable();
     // 005629B0 (text_sources.cpp, A-W11). The destructor body: its vtable, ClearSources, the
     // archive list's own clear (004DEB60) and destruction (the sentinel back to the node pool),
@@ -133,7 +133,6 @@ public:
     void Destruct();
     CTextManager* DeletingDestruct(unsigned flags);
 
-    std::uint8_t unused_00[0x1C];
     TextSources sources_;   // +0x1C
     const char* cursor_;    // +0x20 read position in the current text
     const char* text_;      // +0x24 start of the current text (null: none)

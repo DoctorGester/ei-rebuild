@@ -68,7 +68,7 @@ const char* TextLine() { return "\007C\377\377\377 %s\n"; }
 const char* ZonePrefix() { return "z"; }
 const char* QuestSection() { return "quest "; }
 stlp::NameMap& BriefingRecords() { return worlddata::QuestBriefings(); }   // hash_map<string, BriefingRecord*>
-void* ItemManager() { return ei::GameData<void* const>(0x007AF60C); }
+CItemManager* ItemManager() { return ei::GameData<CItemManager* const>(0x007AF60C); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.
 using ActionDone = void(__fastcall*)(CUnit*);

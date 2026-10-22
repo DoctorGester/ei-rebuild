@@ -13,6 +13,7 @@ class CEngineObject;
 class CItem;
 class CItemArmor;
 class CItemConstructor;
+struct CItemManager;
 class CSpell;
 struct Projectile;
 class CPlayer;
@@ -20,7 +21,7 @@ class CPlayer;
 __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)
 // 006AC970 (patched by Rebirth, so always through its address): the item manager's item by name (RET 4; EAX the item, or
 // null).
-__declspec(naked) inline CItem* __fastcall ItemManagerCreateItemOriginal(void* /*manager*/, void*, const char* /*name*/)
+__declspec(naked) inline CItem* __fastcall ItemManagerCreateItemOriginal(CItemManager* /*manager*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x006AC970)
 
 // C3h. 00661700: party Reset(a, b) (RET 8, EAX not a result); 00661DB0: party AddItem(item, flag1, flag2) (RET 0xC; the

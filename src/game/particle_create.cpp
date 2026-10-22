@@ -74,13 +74,6 @@ constexpr Quaternion kIdentityRotation = /*007A9C30*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 void SetBits(void* field, std::uint32_t bits) { std::memcpy(field, &bits, sizeof(bits)); }
 
-// Element fields by byte offset (their meaning depends on the type).
-void SetElementDword(CParticleSource* s, int index, int offset, std::uint32_t bits) {
-    SetBits(reinterpret_cast<std::uint8_t*>(&s->elements[index]) + offset, bits);
-}
-void SetElementFloat(CParticleSource* s, int index, int offset, float value) {
-    std::memcpy(reinterpret_cast<std::uint8_t*>(&s->elements[index]) + offset, &value, sizeof(value));
-}
 
 // The element array's SetSize(n) as the original inlines it (MFC CArray: data +0x154, size
 // +0x158, max +0x15C, grow by +0x160). After Reset the array is always empty, so only the first
@@ -192,16 +185,16 @@ void SetupExplosion(CParticleSource* s) {
         float vx = static_cast<float>(D(direction.x) * speed);
         float vy = static_cast<float>(speed * D(direction.y));
         double vz = speed * D(direction.z);
-        float* velocity = &s->elements[i].value[0];
-        velocity[0] = static_cast<float>(D(vx) * D(EI_POINT_EIGHT));
-        velocity[1] = static_cast<float>(D(vy) * D(EI_POINT_EIGHT));
-        velocity[2] = static_cast<float>(vz * D(EI_POINT_EIGHT));
-        SetElementDword(s, i, 0x30, 0);
-        SetElementDword(s, i, 0x18, 0);
-        SetElementFloat(s, i, 0x1C, 0.4f);
-        SetElementFloat(s, i, 0x20, 0.7f);
-        SetElementFloat(s, i, 0x24, static_cast<float>(Unsigned(IsaacRandom::Global().Next() % 6)));
-        SetElementFloat(s, i, 0x28, static_cast<float>(Unsigned(IsaacRandom::Global().Next() & 1)));
+        auto& fragment = s->elements[i].fragment;
+        fragment.velocity.x = static_cast<float>(D(vx) * D(EI_POINT_EIGHT));
+        fragment.velocity.y = static_cast<float>(D(vy) * D(EI_POINT_EIGHT));
+        fragment.velocity.z = static_cast<float>(vz * D(EI_POINT_EIGHT));
+        fragment.age = 0;
+        SetBits(&fragment.radius, 0);
+        fragment.growth = 0.4f;
+        fragment.decay = 0.7f;
+        fragment.frame = static_cast<float>(Unsigned(IsaacRandom::Global().Next() % 6));
+        fragment.sizeFactor = static_cast<float>(Unsigned(IsaacRandom::Global().Next() & 1));
     }
 }
 
@@ -214,8 +207,8 @@ void SetupFireworks(CParticleSource* s) {
     s->height = 0.3f;
     SetElementCount(s, 3);
     for (int i = 0; i < s->elementCount; ++i) {
-        SetElementDword(s, i, 0x34, 0);
-        SetElementDword(s, i, 0x30, 0);
+        s->elements[i].ticks = 0;
+        s->elements[i].vent.pause = 0;
     }
     SetCallbacks(s, &Source::EmitGeyser, &Source::UpdateGeyser, &Source::TickGeyser);
     SetBits(&s->additiveBlend, 1);
@@ -228,8 +221,8 @@ void SetupTornadoRings(CParticleSource* s) {
         ParticleElement& e = s->elements[i];
         std::memset(&e.pos, 0, 2 * sizeof(float));
         e.pos.z = static_cast<float>(static_cast<double>(i) * D(EI_TWELVE) * D(EI_POINT_TWO));
-        SetElementDword(s, i, 0x34, 0);
-        SetElementDword(s, i, 0x30, 0);
+        e.ticks = 0;
+        e.word[9] = 0;
     }
 }
 
@@ -248,9 +241,9 @@ void SetupTornado(CParticleSource* s) {
     color |= gamecrt::Ftol(D(light[2]) * D(EI_COLOR_SCALE));
     SetBits(&s->frameDelay, color);
     SetupTornadoRings(s);
-    SetBits(&s->elements[0].value[6], 0x41400000 /*0073CB18*/);  // 12.0
-    SetElementFloat(s, 0, 0x28, 0.5f);
-    SetBits(&s->elements[0].value[8], 0x3F7D70A4);     // 0.99
+    SetBits(&s->elements[0].funnel.height, 0x41400000 /*0073CB18*/);  // 12.0
+    s->elements[0].funnel.bend = 0.5f;
+    SetBits(&s->elements[0].funnel.damping, 0x3F7D70A4);     // 0.99
     SetCallbacks(s, &Source::EmitTornado, &Source::UpdateTornado, &Source::TickTornado);
 }
 
@@ -263,9 +256,9 @@ void SetupCurseHolder(CParticleSource* s) {
     s->height = 0.2f;
     SetBits(&s->frameDelay, 0x19000000);
     SetupTornadoRings(s);
-    s->elements[0].value[6] = static_cast<float>(D(EI_TWELVE) * D(EI_POINT_FOUR));
-    SetElementDword(s, 0, 0x28, 0);
-    SetBits(&s->elements[0].value[8], 0x3F7F3B64);     // 0.997
+    s->elements[0].funnel.height = static_cast<float>(D(EI_TWELVE) * D(EI_POINT_FOUR));
+    SetBits(&s->elements[0].funnel.bend, 0);
+    SetBits(&s->elements[0].funnel.damping, 0x3F7F3B64);     // 0.997
     SetCallbacks(s, &Source::EmitTornado, &Source::UpdateTornado, &Source::TickTornado);
 }
 
@@ -278,7 +271,7 @@ void SetupNuke(CParticleSource* s) {
     s->height = 1.0f;
     SetCallbacks(s, &Source::EmitNuke, &Source::UpdateDebris, &Source::TickNuke);
     SetElementCount(s, 1);
-    SetElementDword(s, 0, 0x34, 0);
+    s->elements[0].ticks = 0;
 }
 
 // Rain and snow (0x200F, 0x2031-0x2033): one element, whose +0x34 picks the kind.
@@ -292,12 +285,12 @@ void SetupWeather(CParticleSource* s) {
     s->frameDelay = 15;
     SetCallbacks(s, &Source::EmitShower, &Source::UpdateShower, &Source::TickShower);
     SetElementCount(s, 1);
-    SetElementDword(s, 0, 0x30, static_cast<std::uint32_t>(-100));
+    s->elements[0].ray.age = -100;
     switch (s->type_) {
-    case 0x200F: SetElementDword(s, 0, 0x34, 12); break;
-    case 0x2031: SetElementDword(s, 0, 0x34, 13); break;
-    case 0x2032: SetElementDword(s, 0, 0x34, 14); break;
-    case 0x2033: SetElementDword(s, 0, 0x34, 15); break;
+    case 0x200F: s->elements[0].ticks = 12; break;
+    case 0x2031: s->elements[0].ticks = 13; break;
+    case 0x2032: s->elements[0].ticks = 14; break;
+    case 0x2033: s->elements[0].ticks = 15; break;
     }
 }
 
@@ -312,7 +305,7 @@ void SetupFalling(CParticleSource* s) {
     s->frameDelay = 15;
     SetCallbacks(s, &Source::EmitFalling, &Source::UpdateFalling, &Source::TickFalling);
     SetElementCount(s, static_cast<int>(IsaacRandom::Global().Next() % 5 + 4));
-    for (int i = 0; i < s->elementCount; ++i) SetElementDword(s, i, 0x30, 0);
+    for (int i = 0; i < s->elementCount; ++i) s->elements[i].wind.age = 0;
 }
 
 // ClayRing (0x2018): ten points on a circle around the source's (reset) position.
@@ -325,13 +318,13 @@ void SetupClayRing(CParticleSource* s) {
     SetElementCount(s, 10);
     for (int i = 0; i < s->elementCount; ++i) {
         double angle = static_cast<double>(i) * EI_RING_STEP;
-        float* direction = &s->elements[i].value[3];
+        float* direction = &s->elements[i].clay.direction.x;
         direction[0] = static_cast<float>(x87::fsin(angle));
         direction[1] = static_cast<float>(x87::fcos(angle));
         SetBits(&direction[2], 0);
         std::memcpy(&s->elements[i].pos, &s->localPosition_, sizeof(Vector3));
-        std::memcpy(&s->elements[i].value[0], &s->localPosition_, sizeof(Vector3));
-        SetElementDword(s, i, 0x34, 14);
+        std::memcpy(&s->elements[i].clay.previous, &s->localPosition_, sizeof(Vector3));
+        s->elements[i].ticks = 14;
     }
 }
 
@@ -343,20 +336,20 @@ void SetupTeleport(CParticleSource* s) {
     s->frameDelay = 1;
     SetCallbacks(s, &Source::EmitTeleport, &Source::UpdateTeleport, &Source::TickTeleport);
     SetElementCount(s, 1);
-    SetElementDword(s, 0, 0x34, 0);
+    s->elements[0].ticks = 0;
 }
 
 // Ground plane (0x203A green, 0x203B red): one element holding the colour.
 void SetupGroundPlane(CParticleSource* s) {
     s->flags_ |= 9;
     SetElementCount(s, 1);
-    SetElementDword(s, 0, 0x34, 0);
+    s->elements[0].ticks = 0;
     if (s->type_ == 0x203A) {
         s->emitCount = 128;
-        SetElementDword(s, 0, 0x30, 0x40FF40);
+        s->elements[0].plane.color = 0x40FF40;
     } else if (s->type_ == 0x203B) {
         s->emitCount = 256;
-        SetElementDword(s, 0, 0x30, 0xFF4040);
+        s->elements[0].plane.color = 0xFF4040;
     }
     s->emitFn = &Source::EmitGroundDust;
     s->maxParticles = s->emitCount;
@@ -371,7 +364,7 @@ void SetupBag(CParticleSource* s) {
     s->maxParticles = 800;
     SetCallbacks(s, &Source::EmitBag, &Source::UpdateBag, &Source::TickBag);
     SetElementCount(s, 80);
-    for (int i = 0; i < 80; ++i) SetElementDword(s, i, 0x34, 0);
+    for (int i = 0; i < 80; ++i) s->elements[i].ticks = 0;
 }
 
 // Portal (0x203E): one element.
@@ -393,7 +386,7 @@ void SetupCastingCircle(CParticleSource* s) {
     s->maxParticles = 600;
     SetCallbacks(s, &Source::EmitCylinder, &Source::UpdateCylinder, &Source::TickCylinder);
     SetElementCount(s, 2);
-    for (int i = 0; i < s->elementCount; ++i) SetElementDword(s, i, 0x34, 100);
+    for (int i = 0; i < s->elementCount; ++i) s->elements[i].ticks = 100;
 }
 
 // FeetCloud1/2 (0x204A blue, 0x204B red): two elements, one per foot.
@@ -404,10 +397,10 @@ void SetupFeetCloud(CParticleSource* s) {
     s->maxParticles = 300;
     SetElementCount(s, 2);
     for (int i = 0; i < 2; ++i) {
-        SetElementDword(s, i, 0x30, 0xFFFFFFFFu);
-        SetElementDword(s, i, 0x34, static_cast<std::uint32_t>(i));
+        s->elements[i].foot.countdown = -1;
+        s->elements[i].ticks = i;
         std::memset(&s->elements[i].pos, 0, sizeof(Vector3));
-        SetElementDword(s, i, 0x18, 0);
+        SetBits(&s->elements[i].foot.radius, 0);
     }
     SetCallbacks(s, &Source::EmitFeetCloud, &Source::UpdateFeetCloud, &Source::TickFeetCloud);
     if (s->type_ == 0x204A) s->lifetime = 0xFF;
@@ -422,9 +415,9 @@ void SetupStartTrans(CParticleSource* s) {
     s->maxParticles = 300;
     SetCallbacks(s, &Source::EmitStartTrans, &Source::UpdateStartTrans, &Source::TickStartTrans);
     SetElementCount(s, 1);
-    SetElementDword(s, 0, 0x34, 30);
-    SetElementDword(s, 0, 0x18, 0);
-    SetElementFloat(s, 0, 0x1C, 1.0f);
+    s->elements[0].ticks = 30;
+    SetBits(&s->elements[0].trans.scale, 0);
+    s->elements[0].trans.count = 1.0f;
 }
 
 // Fills the type's parameters; returns the texture name, or null for an unknown type.

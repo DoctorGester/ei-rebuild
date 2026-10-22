@@ -79,7 +79,7 @@ const char* const kMessageKeys[13] = {
 void* CInterface3D::MessageText(void* out, int id, const char* value) {
     mfc::CString key, text;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
-    void* table = TheTextManager();
+    CTextManager* table = TheTextManager();
     TextsGetString(table, nullptr, key, &key);
     if (value)
         text.Format(key, value);

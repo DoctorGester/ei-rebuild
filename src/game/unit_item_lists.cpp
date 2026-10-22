@@ -21,7 +21,8 @@ void AddItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spell
     GatherItem(items, spells, item);
 }
 
-void AddSlots(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* const* slots, int count) {
+template <typename Item>
+void AddSlots(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, Item* const* slots, int count) {
     for (int i = 0; i < count; ++i) AddItem(items, spells, slots[i]);
 }
 } // namespace

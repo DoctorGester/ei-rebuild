@@ -84,6 +84,12 @@ void PlainArray<T, Class>::SetAtGrow(int index, T value) {
     data[index] = value;
 }
 
+template <typename T, typename Class>
+void PlainArray<T, Class>::Copy(const PlainArray& source) {
+    SetSize(source.size, -1);
+    std::memcpy(data, source.data, static_cast<std::size_t>(source.size) * sizeof(T));
+}
+
 // The count, then the elements as raw bytes.
 template <typename T, typename Class>
 void PlainArray<T, Class>::Serialize(CArchive* ar) {
@@ -291,6 +297,7 @@ EI_REPLACE_METHOD(0x006FF251, CDWordArray::DeletingDestructor);
 EI_REWRITTEN(0x006FF26D, CDWordArray::Destruct);
 EI_REWRITTEN(0x006FF29A, CDWordArray::SetSize);
 EI_REWRITTEN(0x006FF45E, CDWordArray::SetAtGrow);
+EI_REWRITTEN(0x006FF3ED, CDWordArray::Copy);
 EI_REPLACE_METHOD(0x006FF595, CDWordArray::Serialize);
 
 EI_REPLACE_METHOD(0x006FF5EA, CByteArray::Construct);

@@ -146,7 +146,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const int hour = minuteOfDay / 60;
     const int minute = minuteOfDay - hour * 60;
     mfc::CString dayText;
-    reinterpret_cast<CTextManager*>(GameClientTexts())->GetString(kDayText, &dayText);
+    GameClientTexts()->GetString(kDayText, &dayText);
     line.Format(kGameTimeFormat, dayText.GetString(), day + 1, hour, minute);
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
 

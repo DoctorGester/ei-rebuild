@@ -195,7 +195,7 @@ void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockList& spells) {
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
 void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, int maxCount, StockList* out, int kind) {
     CItemConstructor* ctor = ConstructorOf(this);
-    void* manager = PartyOf(this)->ItemManager();
+    CItemManager* manager = PartyOf(this)->ItemManager();
     if (kind == 0 || kind == 3)
         FillSpellMaps(stock::WeaponSpellRecipes());
     else if (kind == 1)
@@ -215,7 +215,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
     for (itemdb::ItemRecordHead** p = taken.begin(); p != taken.end(); ++p) {
         itemdb::ItemRecordHead* prototype = *p;
         if (Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
-        ctor->SetManager(static_cast<CBaseManager*>(manager));
+        ctor->SetManager(manager);
         ctor->BeginCreateItem(itemdb::RecordSlots(prototype)->Kind(), -1);
         ctor->SetPrototype(prototype);
         candidates.Finish() = candidates.begin();   // erase(begin, end)
@@ -279,7 +279,7 @@ EI_REPLACE_METHOD(0x0069B590, ItemStock::GenerateQuickItems);
 
 void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     CItemConstructor* ctor = ConstructorOf(this);
-    void* manager = PartyOf(this)->ItemManager();
+    CItemManager* manager = PartyOf(this)->ItemManager();
     int count = RandomCount(minCount, maxCount);
     StockMaterialVector& taken = TakenMaterials();
     taken.Finish() = taken.begin();   // erase(begin, end)
@@ -291,7 +291,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     }
     itemdb::LootItemRecord* prototype = itemdb::TheItemDatabase().loot.Named(game::MaterialText());
     for (StockMaterial* e = taken.begin(); e != taken.end(); ++e) {
-        ctor->SetManager(static_cast<CBaseManager*>(manager));
+        ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(e->record);
@@ -319,20 +319,20 @@ void GenerateInstructions(ItemStock* stock, const StockPrototypeVector& source, 
                           const itemdb::NamedRecordTable<Record>& table, const char* skip, int minCount, int maxCount,
                           StockList* out) {
     CItemConstructor* ctor = ConstructorOf(stock);
-    void* manager = PartyOf(stock)->ItemManager();
+    CItemManager* manager = PartyOf(stock)->ItemManager();
     StockPrototypeVector& taken = TakenPrototypes();
     taken.Finish() = taken.begin();   // erase(begin, end)
     if (&source != &taken) AssignPointers(taken, source);
     itemdb::LootItemRecord* prototype = itemdb::TheItemDatabase().loot.Named(prototypeName);
     for (itemdb::ItemRecordHead** p = taken.begin(); p != taken.end(); ++p) {
         if (skip && Compare(PrototypeName(*p), skip) == 0) continue;
-        ctor->SetManager(static_cast<CBaseManager*>(manager));
+        ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
-        static_cast<CItemLoot*>(item)->index_ = static_cast<std::uint32_t>(table.IndexOf(static_cast<const Record*>(*p)));
+        AsLoot(item)->index_ = static_cast<std::uint32_t>(table.IndexOf(static_cast<const Record*>(*p)));
         item->count_ = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
         AddReference(item);
         Output(out, item);
@@ -694,19 +694,19 @@ void GenerateMagicInstructions(ItemStock* stock, const stlp::vector<Record*>& so
                                const char* prototypeName, int (*indexOf)(const Record*), int minCount, int maxCount,
                                StockList* out) {
     CItemConstructor* ctor = ConstructorOf(stock);
-    void* manager = PartyOf(stock)->ItemManager();
+    CItemManager* manager = PartyOf(stock)->ItemManager();
     PartyOf(stock)->SpellManager();   // (fetched and not used)
     taken.Finish() = taken.begin();   // erase(begin, end)
     if (&source != &taken) AssignPointers(taken, source);
     itemdb::LootItemRecord* prototype = itemdb::TheItemDatabase().loot.Named(prototypeName);
     for (Record** p = taken.begin(); p != taken.end(); ++p) {
-        ctor->SetManager(static_cast<CBaseManager*>(manager));
+        ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
-        static_cast<CItemLoot*>(item)->index_ = static_cast<std::uint32_t>(indexOf(*p));
+        AsLoot(item)->index_ = static_cast<std::uint32_t>(indexOf(*p));
         item->count_ = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
         AddReference(item);
         Output(out, item);
@@ -735,7 +735,7 @@ constexpr int kScrollTries = 10;
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
 void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* out) {
     CItemConstructor* ctor = ConstructorOf(this);
-    void* manager = PartyOf(this)->ItemManager();
+    CItemManager* manager = PartyOf(this)->ItemManager();
     PartyOf(this)->SpellManager();   // (fetched and not used)
     FillSpellMaps(stock::ScrollSpellRecipes());
     StockList list;
@@ -750,7 +750,7 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
     }
     itemdb::QuickItemRecord* prototype = itemdb::TheItemDatabase().quickItems.Named(game::SpellContainerText());
     for (StockListNode* n = list.head->next; n != list.head; n = n->next) {
-        ctor->SetManager(static_cast<CBaseManager*>(manager));
+        ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3008, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);

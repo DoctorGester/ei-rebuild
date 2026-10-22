@@ -262,7 +262,7 @@ constexpr int kLoot = 0x3009;
 int KindOf(CItem* item) { return item->type_; }
 std::uint32_t PackedIdOf(CItem* item) { return item->prototypeId_; }
 // The loot and quest items' kind (+0x4C), record type (+0x50) and record index (+0x54).
-const CItemLoot* LootOf(CItem* item) { return static_cast<const CItemLoot*>(item); }
+const CItemLoot* LootOf(CItem* item) { return AsLoot(item); }
 CSpell* SpellOf(CItem* item) { return item->spell_; }
 
 // Whether a 7-entry damage weight array has a weight that compares unequal (and ordered) to 0:

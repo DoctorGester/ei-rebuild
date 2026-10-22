@@ -177,9 +177,9 @@ EI_REWRITTEN(0x00693010, CTextureManager::DrawLayers);
 // `fill`) is drawn from the layers and written with `mipCount` levels in `format` (1), or, without
 // layer textures, the file is deleted (0). 0 when the drawing fails; FatalError's result when the
 // file cannot be written.
-int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const SkinRequest* request,
-                              const mfc::CString* name, const mfc::CString* fallback, unsigned mipCount,
-                              std::uint32_t fill, std::uint32_t format) {
+int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, const mfc::CString* name,
+                             const mfc::CString* fallback, unsigned mipCount, std::uint32_t fill,
+                             std::uint32_t format) {
     mfc::CString path = CachePath(*name);
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
@@ -206,7 +206,7 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     int width = request->flags;
     std::uint32_t* image = NewAligned<std::uint32_t>(static_cast<std::size_t>(width * width * 4));
     for (int i = 0; i < width * width; ++i) image[i] = fill;
-    if (static_cast<CTextureManager*>(manager)->DrawLayers(image, &request->textures, request->flags) == 0) {
+    if (DrawLayers(image, &request->textures, request->flags) == 0) {
         DeleteAligned(image);
         return 0;
     }
@@ -224,4 +224,4 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     WriteLevels(file, header, image, kind, mipCount);
     return 1;
 }
-EI_REWRITTEN(0x00693180, ComposeTexture);
+EI_REWRITTEN(0x00693180, CTextureManager::Compose);

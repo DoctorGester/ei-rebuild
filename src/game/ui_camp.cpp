@@ -238,9 +238,9 @@ bool IsBlueprint(const CItem* item) { return UiItemKinds::IsBuildable(item); }
 
 // The database records of the camp's loot items (the record index at +0x54): spells, spell
 // modifiers and materials (null past the end; the original then reads through null).
-std::uint32_t Index(const CItem* item) { return static_cast<const CItemLoot*>(item)->index_; }
+std::uint32_t Index(const CItem* item) { return AsLoot(item)->index_; }
 // The loot's record type (+0x50): the record table it indexes.
-std::uint32_t RecordType(const CItem* item) { return static_cast<const CItemLoot*>(item)->recordType_; }
+std::uint32_t RecordType(const CItem* item) { return AsLoot(item)->recordType_; }
 itemdb::SpellRecord* SpellRecordOf(const CItem* item) { return itemdb::SpellAt(Index(item)); }
 itemdb::SpellModifierRecord* ModifierRecordOf(const CItem* item) { return itemdb::SpellModifierAt(Index(item)); }
 itemdb::MaterialRecordHead* BlueprintRecord(const CItem* item) { return itemdb::MaterialAt(Index(item)); }
@@ -875,7 +875,7 @@ UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 void RebuildArmourLayers(PartyUnitRecord* hero) {
     UnitStats* stats = StatsOf(hero);
     stats->ClearOuterLayers();
-    for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) stats->AddArmourLayer(hero->armor[i]);
+    for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) stats->AddArmourLayer(AsArmor(hero->armor[i]));
 }
 
 } // namespace
@@ -904,7 +904,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
     }
     case 0x3005: {
         if (heroes_[hero_]) {
-            int type = static_cast<CItemArmor*>(item)->GetType();
+            int type = AsArmor(item)->GetType();
             heroes_[hero_]->UnequipArmour(type);
             heroes_[hero_]->Controller()->ShowWeapon(hero->weaponIndex);
             heroes_[hero_]->Controller()->RefreshModel();
@@ -942,9 +942,9 @@ void CCampPages::PutOn(CItem* item) {
         break;
     case 0x3005: {
         // Each piece on the same body part comes off first.
-        int type = static_cast<CItemArmor*>(item)->GetType();
+        int type = AsArmor(item)->GetType();
         for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
-            if (static_cast<CItemArmor*>(hero->armor[i])->GetType() == type)
+            if (AsArmor(hero->armor[i])->GetType() == type)
                 TakeOff(hero->armor[i]);
         }
         if (heroes_[hero_]) {
@@ -1225,7 +1225,7 @@ void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];
     // The text table (00578E20 returns [007AF788]): 004DEFC0 whether it has a key (RET 4), 004DF8D0
     // its text into a CString (RET 8).
-    void* table = GameClientTexts();
+    CTextManager* table = GameClientTexts();
     mfc::CString name;
     mfc::CString own(unit->GetName());
     if (own.GetLength() == 0) {
@@ -1237,7 +1237,7 @@ void CCampPages::ShowHero() {
             mfc::CString key = prefix + own;
             found = TextsOpenSection(table, nullptr, key);
         }
-        if (found) static_cast<CTextManager*>(table)->ReadLine(&name, 1);
+        if (found) table->ReadLine(&name, 1);
     } else {
         name = own;
     }

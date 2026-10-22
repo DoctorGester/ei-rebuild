@@ -20,7 +20,6 @@
 
 namespace {
 constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units given armour and weapons
-constexpr int kManagerWorld = 0xAC;         // the manager's map object context (the world)
 
 // The game's texts: "none" (a weapon name that gives no weapon) and the FatalError formats.
 
@@ -41,7 +40,7 @@ bool Named(const mfc::CString& name) {
 }
 
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
-CItem* MakeWeapon(void* items, const mfc::CString& name, const char* prototype) {
+CItem* MakeWeapon(CItemManager* items, const mfc::CString& name, const char* prototype) {
     CItem* weapon = ItemManagerCreateItemOriginal(items, nullptr, name);
     if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), name.GetString(), prototype);
     return weapon;
@@ -49,9 +48,9 @@ CItem* MakeWeapon(void* items, const mfc::CString& name, const char* prototype) 
 } // namespace
 
 int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
-    CWorld* world = *reinterpret_cast<CWorld**>(reinterpret_cast<char*>(this) + kManagerWorld);
-    void* spellOwner = world->SpellManager();   // passed on to the spell factory
-    void* items = world->ItemFactory();
+    CWorld* world = ContextAsWorld();
+    CSpellManager* spellOwner = world->SpellManager();   // passed on to the spell factory
+    CItemManager* items = world->ItemFactory();
     auto* prototype = unitdb::PrototypeTable().FindByName(name);
     if (!prototype) {
         game::FatalError(game::equipmenttexts::NoPrototype(), name);
@@ -73,7 +72,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
             unit->AddWeapon(MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
-        CItem* spell = static_cast<CItemManager*>(items)->CreateSpellItem(prototype->spellNames.begin()[i], static_cast<CSpellManager*>(spellOwner));
+        CItem* spell = items->CreateSpellItem(prototype->spellNames.begin()[i], spellOwner);
         if (spell) unit->AddSpell(spell);
         else game::FatalError(game::equipmenttexts::NoSpell(), prototype->spellNames.begin()[i].GetString(), name);
     }

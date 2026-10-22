@@ -23,7 +23,7 @@ The screens themselves are in `ui.md`. Calls to rewritten code still go through 
   selection box; the fog colour is `CSceneRenderer::fogColour_`.
 - The HUD panels built inline by the battle screen are `CHudUnitPanel` / `CHudMap` / `CHudClock` / `CHudMovePanel` / `CHudTopPanel`; the panels'
   text arrays (`CHeroStatsPanel`, `CSpellMakerPage`, `CTradePanel`, `CHudUnitPanel`, `CCampPages::pageTitles_`) are `mfc::CStringArray`.
-- The map database is read as `MapRecord` / `MapExit` (the objectives picture is `picture2`), quests as `QuestRecord`, the global map's exit
+- The map database is read as `MapRecord` / `ZoneExit` (the objectives picture is `picture2`), quests as `QuestRecord`, the global map's exit
   distances as `stlp::map<int, float>`. Containers are the shared templates: `PersonTextMap = stlp::map<int, mfc::CString>` (`LoadPersonTexts`
   a free function), `IdVector`, `MpStringVector` / `MpVoiceVector`, `UnitSoundBank::entries`; `CObjectivesWindow` has `zones_`, `exits_`
   (`mfc::CArray<ObjectiveExit>`), `quests_` / `objectiveTexts_`, `questPlaces_` (`stlp::vector<UiPointF>`); `CGlobalMap::Construct` and

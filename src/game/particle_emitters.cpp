@@ -666,7 +666,7 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
         if (wide * D(y) + D(x) * D(x) < EI_ONE) break;   // integer-sourced: never NaN
         if (!(--tries > 0)) break;
     }
-    float scale = e.value[3];          // +0x18
+    float scale = e.foot.radius;
     double dx = D(x) * D(EI_TENTH);
     float dy = static_cast<float>(D(y) * D(EI_TENTH));
     float dz = static_cast<float>(0.0 * D(EI_TENTH));
@@ -681,7 +681,7 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
     std::memset(&p->aux2, 0, sizeof(float));
     SetBits(&p->velocity.y, 0x3F800000);
     p->life = 10;
-    p->velocity.x = static_cast<float>(D(size) * D(e.value[3]) * D(EI_POINT_FOUR));
+    p->velocity.x = static_cast<float>(D(size) * D(e.foot.radius) * D(EI_POINT_FOUR));
     p->pos.z = static_cast<float>(D(p->velocity.x) * D(EI_FEET_RISE) + D(p->pos.z));
     return 1;
 }
@@ -696,9 +696,9 @@ void CParticleSource::TickStartTrans(ParticleElement* e) {
         flags_ &= ~5u;
         Attach(nullptr);
     }
-    e->value[3] = static_cast<float>(D(size) * D(EI_TRANS_GROWTH) + D(e->value[3]));
-    elements[0].value[4] = static_cast<float>(D(elements[0].value[4]) + D(EI_POINT_FOUR));
-    int count = x87::fistp(elements[0].value[4]);
+    e->trans.scale = static_cast<float>(D(size) * D(EI_TRANS_GROWTH) + D(e->trans.scale));
+    elements[0].trans.count = static_cast<float>(D(elements[0].trans.count) + D(EI_POINT_FOUR));
+    int count = x87::fistp(elements[0].trans.count);
     emitCount = count;
     if (!(count < 8)) emitCount = 8;
 }

@@ -237,7 +237,7 @@ bool GiveUnitWeapon(Call* call) {
     CUnit* unit = UnitOrNull(object);   // IsUnit's test
     if (!unit) return Report("GiveUnitWeapon", "Object with ID %d must be a Unit", object->id_);
     const char* name = Text(call, 0);
-    auto* item = static_cast<CItemWeapon*>(TheServerWorld()->CreateItemNamed(name));
+    auto* item = AsWeapon(TheServerWorld()->CreateItemNamed(name));
     if (override && unit->id_ >= 1000000000) override = false;   // (a warning with EnableShowingScriptErrors)
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
     int slot = unit->AddWeapon(item);
@@ -290,7 +290,7 @@ bool GiveUnitArmor(Call* call) {
             for (int c = 0; c < 7; ++c) blocks[block][c] = from[c] + blocks[block][c];
         };
         for (int slot = 0; slot < 7; ++slot) {
-            auto* equipped = static_cast<CItemArmor*>(unit->armor[slot]);
+            CItemArmor* equipped = unit->armor[slot];
             if (!equipped) continue;
             switch (slot) {
             case 0: addInto(0, equipped->absorb_[0]); break;

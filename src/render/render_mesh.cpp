@@ -414,7 +414,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     vs.uvOffset[0] = batch.uOffset;
     vs.uvOffset[1] = batch.vOffset;
     FsParams fs{};
-    ShadowUniforms(f, batch.light >= 0, &fs.shadow);
+    ShadowUniforms(f, batch.light >= 0, &fs.shadow, batch.caster);
     fs.fogColour[0] = static_cast<float>((s.fogColour >> 16) & 0xFF) / 255.0f;
     fs.fogColour[1] = static_cast<float>((s.fogColour >> 8) & 0xFF) / 255.0f;
     fs.fogColour[2] = static_cast<float>(s.fogColour & 0xFF) / 255.0f;

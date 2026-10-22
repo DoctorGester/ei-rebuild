@@ -112,7 +112,7 @@ bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
 
 // 00647040. Draws the info lines of `unit`.
 void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
-    void* texts = TheTextManager();
+    CTextManager* texts = TheTextManager();
     UnitParams* params = unitIn->Params();
     mfc::CString suffix;
     Panel panel;

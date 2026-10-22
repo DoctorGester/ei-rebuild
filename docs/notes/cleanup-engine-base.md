@@ -24,7 +24,7 @@ hook and verify wrapper.
   called, only the raw offsets went.
 - Duplicate helpers merged: `NextFreeId` (CreateObject and RegisterInstant), `AddTail` (three inlined copies), `gamecrt::rand`, FindChild /
   FindStreamChunk / ReadStreamChunk / `Ref::Reset` / ResizeToCurrent inside the archive, `Chunk::Construct` in the string-array readers,
-  `game::EmptyText()` / `kEmptyTextAddress` for 0079B298 (the ~40 literal uses and per-file copies are gone), `camera::` names for the camera's
+  `game::EmptyText()` for 0079B298 (the ~40 literal uses and per-file copies are gone), `camera::` names for the camera's
   globals and `CAM_*` macros for its exe constants.
 
 ## Declarations

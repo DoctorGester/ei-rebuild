@@ -25,7 +25,7 @@ public:
     virtual CBaseManager* FigureManager() { return World()->manager3C_; }               // 15: 0055EB60
     virtual CEngineObject* ItemConstructor() { return World()->manager58_; }            // 16: 0055EBB0
     virtual CEngineObject* SpellConstructor() { return World()->manager50_; }           // 17: 0055EBC0
-    virtual CBaseManager* ItemFactory() { return World()->itemManager_; }               // 18: 004BA000
+    virtual CItemManager* ItemFactory() { return World()->itemManager_; }               // 18: 004BA000
     virtual CBaseManager* MapObjectManager() { return World()->manager40_; }            // 19: 0055EB70
     virtual CBaseManager* PlayerList() { return World()->players_; }                    // 20: 0055EB50
     virtual CBaseManager* SpecificManager() { return World()->manager44_; }             // 21: 0055EB80

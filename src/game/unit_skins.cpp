@@ -75,7 +75,7 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // The 12-byte record list of a unit's textures (filled by UnitTextureRecords, 005683D0): its
 // constructor [0056F570, allocator] and destructor [0056F590].
 // The texture set's byte array: destructor [0051E5B0], allocation [004ECB50].
-// The texture cache [this +0x18C]: build a composite texture [00693180 ComposeTexture: out name, set,
+// The texture cache [this +0x18C]: build a composite texture [00693180 CTextureManager::Compose: out name, set,
 // name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
 // The second list: the unit's texture names from its prototype [00535CB0: unit in ECX, record +4 in
 // EDX; record +0x10, names, more names]; vector<string> members: constructor [0053BB80], copy into
@@ -178,7 +178,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
 void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const mfc::CString& name, int size, int kind) {
     set.size = size;
     // (The set has the request's layout: the bytes as an aligned array, the names, the size.)
-    ComposeTexture(self->textureManager_, nullptr, &out, reinterpret_cast<const SkinRequest*>(&set), &name, &name, 3, 0, 0x5551);
+    self->textureManager_->Compose(&out, reinterpret_cast<const SkinRequest*>(&set), &name, &name, 3, 0, 0x5551);
     self->textureManager_->FindOrLoad(kind, name);
 }
 

@@ -178,7 +178,7 @@ void SetOrientation(CUiMesh* model, const Quaternion& q) { model->localRotation_
 // modifier).
 bool IsRecordLoot(const CItem* item, std::uint32_t recordType) {
     if (item->type_ != kItemLoot) return false;
-    const auto* loot = static_cast<const CItemLoot*>(item);
+    const auto* loot = AsLoot(item);
     return loot->kind_ == 2 && loot->recordType_ == recordType;
 }
 
