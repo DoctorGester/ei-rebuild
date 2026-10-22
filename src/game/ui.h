@@ -1519,9 +1519,9 @@ public:
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C
     std::uint8_t unused_150[0x158 - 0x150];
-    HudPortraitSlot* slots_;         // +0x158 STLport vector
-    HudPortraitSlot* slotsEnd_;      // +0x15C
-    HudPortraitSlot* slotsCapacity_; // +0x160
+    // +0x158 one per portrait (0064AB20 appends a default slot, 0064AD40 erases a range: with
+    // recordvec::HudPortraitSlotElement).
+    stlp::vector<HudPortraitSlot> slots_;
 };
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 static_assert(sizeof(CHudPortraits) == 0x164);
@@ -2788,6 +2788,10 @@ public:
     // 006070A0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CSaveLoadWindow* SaveLoadDelete(unsigned flags);
+    // The original's inlined constructor (the battle and briefing screens' game-over load, the Esc
+    // menu's windows; ui_layouts.cpp): the container, no entries (vector<SaveEntry>(), 0062B550), a
+    // load window not sliding, an empty name, the compiled tables. Null when the allocation fails.
+    static CSaveLoadWindow* New(CInterface3D* ui);
 
     // A-H14 (ui_saveload.cpp).
     // 00655290. OK: nothing without a selection; a save window plays "ok" and saves into the new
@@ -2835,7 +2839,7 @@ public:
     // 00653DD0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
     void Build();
 
-    int EntryCount() const { return static_cast<int>(entriesEnd_ - entriesBegin_); }
+    int EntryCount() const { return static_cast<int>(entries_.end() - entries_.begin()); }
     // 006577B0 (ui_menus.cpp). The selected save's title becomes the name being edited.
     void TakeSelectedTitle();
 
@@ -2857,9 +2861,9 @@ public:
     // "saveb"; no bound check).
     bool IsReservedSave(int index);
 
-    SaveEntry* entriesBegin_;        // +0x164
-    SaveEntry* entriesEnd_;          // +0x168
-    SaveEntry* entriesCapacity_;     // +0x16C
+    // +0x164 the saves (its insert that reallocates 006579C0 and erase 006578F0 with
+    // recordvec::SaveEntryElement).
+    stlp::vector<SaveEntry> entries_;
     int selected_;                   // +0x170
     int firstVisible_;               // +0x174 list scroll position
     bool isSave_;                    // +0x178 save (not load) window

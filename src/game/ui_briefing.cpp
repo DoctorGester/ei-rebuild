@@ -85,18 +85,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
         GameLeaveThroughExit(exit_);
         break;
     case kGameOverLoad: {
-        auto* window = gamecrt::operator_new_as<CSaveLoadWindow>();
-        if (window) {
-            window->CUiContainer::Construct(interface_);
-            window->entriesBegin_ = nullptr;
-            window->entriesEnd_ = nullptr;
-            window->entriesCapacity_ = nullptr;
-            window->isSave_ = false;
-            window->sliding_ = false;
-            new (static_cast<void*>(&window->name_)) mfc::CString();
-            window->vtable_ = CSaveLoadWindow::Vtable();
-            window->inputVtable_ = CSaveLoadWindow::InputVtable();
-        }
+        CSaveLoadWindow* window = CSaveLoadWindow::New(interface_);
         // (Like the original, the flags are written again without checking the allocation.)
         window->isSave_ = false;
         window->sliding_ = false;

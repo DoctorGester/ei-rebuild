@@ -50,7 +50,7 @@ const UiKeyName* KeyNamesEnd() { return KeyNamesBegin() + 88; }
 // --- 00657820 ------------------------------------------------------------------------------------
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
-    const char* folder = entriesBegin_[index].folder_;
+    const char* folder = entries_.begin()[index].folder_;
     if (gamecrt::mbsicmp(folder, game::menukeytexts::QuickSave()) == 0) return true;
     if (gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
     return gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveB()) == 0;
@@ -136,7 +136,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     case kKeyRight:
         if (editable) {
             nameTyped_ = true;
-            name = entriesBegin_[selected_].title_;
+            name = entries_.begin()[selected_].title_;
             cursor_ = name.GetLength();
         }
         if (key == kKeyEnd)
