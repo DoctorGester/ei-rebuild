@@ -347,7 +347,7 @@ after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
 after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
 which took the pointer cells from 1,522 to 1,243, 243 -> 234 after C18q's script keyword and CRT tables, pointer cells
-1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams, 90 -> 56 after C18t's singletons with C25a's rows). C18 turns them into named C++
+1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams, 90 -> 56 after C18t's singletons with C25a's rows, 53 -> 41 after C18u's generated names). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -758,8 +758,7 @@ kinds given.
       initialiser names the stream (`{&console::g_aiLogOut}`: named_data takes a qualified name of a range): unit_hits'
       kHitLog 007AF284, ai_alarm's kAlarmLog 007C2EB8, combat's kCombatLog 007AF3E8, unit_ai's kAiLog 007C53C4 and
       kModeLog 007C54E8; a file's own ostream view (AiLogStream, UnitLogStream, GameOstream, net::LogStream) reads the
-      stream through `console::StreamAs<View>`. The ostream constructor still points the vbtable at game.exe's 00748284
-      (crt_iostream.cpp).
+      stream through `console::StreamAs<View>`.
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
       007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
       (renderer_lifetime.cpp), the map database 0079BF00, the debug panel 0079B930 (string_map.cpp), the class registry
@@ -772,11 +771,24 @@ kinds given.
       005B2FB0, ln 0.6 on the x87, ported in ai_refresh.cpp). The harness reads game.exe's copies through
       harness_objects.h (`ei::Standalone() ? ours : &ei::OriginalGameData<T>(address)`), and in a --no-hooks run calls
       game.exe's own PickAt2 / UnitAt / GameSendLeave04 / GameSetConstructionVariable (EI_ORIGINAL), which read them.
-    - **Left**: MFC's module / thread state, window classes and the generated initialisers' / exits' MFC objects
-      (007C8BB8-007CAAA0: C18r), the CRT's (C26), EmptyText 0079B298 (15 pointer cells of game.exe's data point at it
-      and code compares its address), the function-local statics' guard 007CAEE4 (175 generated `d.Once` tests:
-      gen_static_init would have to name it), STLport's free lists 0079B224-0079B22C (the harness calls our allocator in
-      game.exe), and the section bounds in game_data.h (0073B000,
+    - **Names in the generated code (C18u, 53 -> 41)**: gen_static_init.py's GENERATED_NAMES maps an address to a
+      name and its header, and the generator writes the name where the original's code has the address: a guard's
+      flag byte (`d.Once(name, bit)`), the object a call takes as `this` (`d.Thiscall(fn, &name)`) and where a call's
+      result goes (`d.Store(name, d.Stdcall(...))`, kept in list order; named_data.py compares that definition at its
+      zero start instead of refusing the unknown store). static_init.h's visitors take a `std::uint8_t&` guard, a
+      `void*` object and a `T&` destination beside the addresses. Each entry must start a range of named_data.csv (the
+      generator says so otherwise). Named this way: the function-local statics' guard 007CAEE4
+      (`lib::g_emptyStaticGuard`, static_object.h: 175 generated tests and CSysInfo's) and the 11 MFC globals only the
+      initialisers and exit functions reach (lib/mfc_static_objects.{h,cpp}): the exit guards of the temporary objects'
+      fixed allocators and of the four static windows (007C8BB8, 007C9138, 007CAAA0, 007CAA24), _simpleUserException
+      007C8BC0 (`lib::StaticObject<CSimpleException>`), the thread / process locals 007C90BC, 007C90C0, 007CAA84,
+      007CAA88, 007CAA8C (nothing fills them in the image) and _afxDBCS 007CAA98 (its one reader in game.exe,
+      _AfxCbtFilterHook 00704BE6, is not ported). This is the form for an object only generated code reaches; an object
+      a hand port also reads keeps the hand-ported initialiser (above).
+    - **Left**: MFC's module / thread state and window classes (C18r: the objects mfc_*.cpp read, among them the fixed
+      allocators and static windows the generated exits destroy), the CRT's (C26), EmptyText 0079B298 (15 pointer
+      cells of game.exe's data point at it and code compares its address), STLport's free lists 0079B224-0079B22C (the
+      harness calls our allocator in game.exe), and the section bounds in game_data.h (0073B000,
       0073B820, 00783000, 007CD000, 007D7000: the image's layout, not data).
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 

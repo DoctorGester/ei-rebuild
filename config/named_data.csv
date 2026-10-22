@@ -517,6 +517,8 @@ address,size,name,file
 007C8B58,40,g_stringAlloc128,src/lib/mfc_string.cpp
 007C8B80,40,g_stringAlloc64,src/lib/mfc_string.cpp
 007C8BA8,1,g_chNil,src/lib/mfc_file.cpp
+007C8BB8,1,g_gdiAllocExitGuards,src/lib/mfc_static_objects.cpp
+007C8BC0,152,g_simpleUserException,src/lib/mfc_static_objects.cpp
 007C8C58,152,g_simpleResourceException,src/lib/mfc_exception.cpp
 007C8D40,4,g_afxHalftoneBrush,src/lib/mfc_state.cpp
 007C8D50,152,g_simpleNotSupportedException,src/lib/mfc_exception.cpp
@@ -527,7 +529,16 @@ address,size,name,file
 007C9078,4,g_afxCriticalWin32s,src/lib/mfc_state.cpp
 007C907C,4,g_afxCriticalInit,src/lib/mfc_state.cpp
 007C9084,4,g_afxThreadData,src/lib/mfc_state.cpp
+007C90BC,4,g_baseModuleStateLocal,src/lib/mfc_static_objects.cpp
+007C90C0,4,g_threadStateLocal,src/lib/mfc_static_objects.cpp
 007C90C8,108,g_afxData,src/lib/mfc_state.cpp
+007C9138,1,g_tempWndAllocExitGuard,src/lib/mfc_static_objects.cpp
+007CAA24,1,g_staticWindowsExitGuards,src/lib/mfc_static_objects.cpp
+007CAA84,4,g_ctl3dThreadLocal,src/lib/mfc_static_objects.cpp
+007CAA88,4,g_ctl3dStateLocal,src/lib/mfc_static_objects.cpp
+007CAA8C,4,g_winStateLocal,src/lib/mfc_static_objects.cpp
+007CAA98,4,g_afxDbcs,src/lib/mfc_static_objects.cpp
+007CAAA0,1,g_tempMenuAllocExitGuard,src/lib/mfc_static_objects.cpp
 007CAAD8,4,g_heapNewHandler,src/lib/crt.cpp
 007CAADC,4,kGameUmask,src/lib/crt_file.cpp
 007CAC80,4,kGameFileMode,src/lib/crt_file.cpp
@@ -535,3 +546,4 @@ address,size,name,file
 007CAE90,24,g_sharedLock,src/lib/crt_iostream.cpp
 007CAEC8,4,g_liveIosCount,src/lib/crt_iostream.cpp
 007CAED0,20,g_processorInfo,src/game/sys_info.cpp
+007CAEE4,1,g_emptyStaticGuard,src/lib/static_object.h

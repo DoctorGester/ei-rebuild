@@ -49,9 +49,6 @@ constexpr unsigned kFirstWindows98Build = 1998;
 // The translation unit's constants and what they are made of (the exe's pi, 2, 4 and 1).
 float Pi() { return 3.1415927f /*0073D640*/; }
 
-// The guard of a function-local static with an empty destructor (bit 0 of 007CAEE4).
-std::uint8_t& EmptyStaticGuard() { return ei::GameData<std::uint8_t>(0x007CAEE4); }
-
 } // namespace
 
 void ReadProcessorInfo() {
@@ -291,7 +288,7 @@ EI_REPLACE(0x004DDD30, SysInfoStaticInit);
 void __cdecl SysInfoStaticRegisterEmptyExit() { GameAtExit(ei::short_functions::Ret); }   // 004013D0
 EI_REWRITTEN(0x004DE87C, SysInfoStaticRegisterEmptyExit);
 void __cdecl SysInfoStaticGuard() {
-    if (!(EmptyStaticGuard() & 1)) EmptyStaticGuard() |= 1;
+    if (!(lib::g_emptyStaticGuard & 1)) lib::g_emptyStaticGuard |= 1;
     SysInfoStaticRegisterEmptyExit();
 }
 EI_REPLACE(0x004DE855, SysInfoStaticGuard);
