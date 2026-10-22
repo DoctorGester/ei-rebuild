@@ -185,7 +185,7 @@ void* __fastcall ConstructOn(void* memory) {
 // is retired).
 class CEffectManager : public CBaseManager {
 public:
-    // CBaseManager's constructor (inlined in WorldCreateManagers 0055EE40).
+    // CBaseManager's constructor (inlined in CWorld::Create 0055EE40).
     CEffectManager();
     // 0055F3A0. CBaseManager's destructor.
     ~CEffectManager() override;

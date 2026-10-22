@@ -630,12 +630,12 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xB6:   // RunWorldTime(time): the configured speed (int at 0079BE5C)
-            TheWorld()->SetTimeSpeedImpl(static_cast<float>(ConfiguredTimeSpeed()));
-            TheWorld()->SetTimeImpl(f[0]);
+            TheWorld()->SetTimeSpeed(static_cast<float>(ConfiguredTimeSpeed()));
+            TheWorld()->SetTime(f[0]);
             break;
         case 0xB7:   // FixWorldTime(time)
-            TheWorld()->SetTimeSpeedImpl(0.0f);
-            TheWorld()->SetTimeImpl(f[0]);
+            TheWorld()->SetTimeSpeed(0.0f);
+            TheWorld()->SetTime(f[0]);
             break;
         case 0xB8:   // SetWaterLevel(a, level, b)
             TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));

@@ -382,7 +382,7 @@ int __stdcall EnterZone(CParty* records) {
             }
             if (!loaded) return 0;
             zoneRecord = FindZone(zone);
-            TheServerWorld()->SetTimeImpl(std::bit_cast<float>(kStartTime));
+            TheServerWorld()->SetTime(std::bit_cast<float>(kStartTime));
         }
         if (zoneRecord->kind == 2) {
             mfc::CString scripts = RecordMob(zoneRecord) + kMobExtension;
@@ -483,7 +483,7 @@ int __stdcall StartNetworkZone(const char* zone) {
             loaded = static_cast<CWorldServer*>((void*)TheServerWorld())->NewZone(map, mob, zone) != 0;
         }
         if (!loaded) return 0;
-        TheServerWorld()->SetTimeImpl(std::bit_cast<float>(kStartTime));
+        TheServerWorld()->SetTime(std::bit_cast<float>(kStartTime));
     }
 
     // The zone's exits, all leading to "MPGame1".
@@ -1264,7 +1264,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         mode = kModeMainMenu;
     }
 
-    TheServerWorld()->SetTimeSpeedImpl(static_cast<float>(TimeSpeedSetting()));
+    TheServerWorld()->SetTimeSpeed(static_cast<float>(TimeSpeedSetting()));
     int result;
     if (mode == kModeMainMenu) {
         static_cast<CWorldServer*>((void*)TheServerWorld())->NewZone(kMenuMap, kMenuMob, nullptr);
@@ -1273,7 +1273,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         gameapi::GetLocalTime(&now);
         int minute = now.wMinute;
         int hour = now.wHour;
-        TheServerWorld()->SetTimeImpl(static_cast<float>(minute) * 0.016666668f /*0073F8A0*/ + static_cast<float>(hour));
+        TheServerWorld()->SetTime(static_cast<float>(minute) * 0.016666668f /*0073F8A0*/ + static_cast<float>(hour));
         result = kResultMainMenu;
         // Rebirth's AllowScriptsInMainMenu (a JMP at 0057C69F to a stub): the first script command
         // queue runs in the menu too.
@@ -1286,7 +1286,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         ThePartyManager()->EndRedeploy(records.Party());
         EnterZone(records.Party());
         ThePartyManager()->BeginRedeploy(records.Party());
-        TheServerWorld()->SetTimeImpl(HoursOfDay(VariableGet(&records.Party()->variables_, kGTime)));
+        TheServerWorld()->SetTime(HoursOfDay(VariableGet(&records.Party()->variables_, kGTime)));
         if (zoneRecord) {
             TheServerWorld()->SetClimate(zoneRecord->setting2C);
             TheServerWorld()->SetCave(zoneRecord->setting30);

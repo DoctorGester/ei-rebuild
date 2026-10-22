@@ -6,7 +6,6 @@
 // and attached to the world (its slot 13 with the world, or slot 2); a 0x0C-byte helper goes into
 // a counted pointer at +0x5C; then the ISAAC generator is seeded and +0x70 set up.
 #include "world.h"
-#include "world_class.h"
 #include "model.h"   // TweenArray (countdowns_)
 #include "world_data.h"
 
@@ -49,50 +48,49 @@ void Attach(CBaseManager* manager, CWorld* world) { manager->Init(world); }
 
 } // namespace
 
-int __fastcall WorldCreateManagers(CWorld* world) {
-    world->paused_ = 0;
+int CWorld::Create() {
+    paused_ = 0;
     TheDataFolder() = worlddata::ConfiguredDataPath();
     TheTextFolder() = worlddata::ConfiguredTextPath();
     TheDiscFolder() = worlddata::ConfiguredBasePath();
-    world->tick_ = 0;
+    tick_ = 0;
     // The wind: along x, no strength.
     const float direction[3] = {1.0f, 0.0f, 0.0f};
-    std::memcpy(world->windDirection_, direction, sizeof(direction));
-    world->updateCount_ = 0;
-    world->windStrength_ = 0;
+    std::memcpy(windDirection_, direction, sizeof(direction));
+    updateCount_ = 0;
+    windStrength_ = 0;
 
-    world->players_ = MakeNew<CPlayerManager>();
-    Attach(world->players_, world);
-    world->manager40_ = MakeNew<CMapObjectManager>();   // 005125E0
-    Attach(world->manager40_, world);
-    world->manager3C_ = MakeNew<CFigureManager>();   // 005AA070
-    Attach(world->manager3C_, world);
-    world->manager48_ = MakeNew<CEffectManager>();
-    Attach(world->manager48_, world);
-    world->manager50_ = MakeNew<CSpellConstructor>();   // 00683FF0
-    world->manager50_->Create();
-    world->manager4C_ = MakeNew<CSpellManager>();   // 00688840
-    Attach(world->manager4C_, world);
-    world->manager58_ = MakeNew<CItemConstructor>();   // 006A5AB0
-    world->manager58_->Create();
-    world->itemManager_ = MakeNew<CItemManager>();
-    Attach(world->itemManager_, world);
+    players_ = MakeNew<CPlayerManager>();
+    Attach(players_, this);
+    manager40_ = MakeNew<CMapObjectManager>();   // 005125E0
+    Attach(manager40_, this);
+    manager3C_ = MakeNew<CFigureManager>();   // 005AA070
+    Attach(manager3C_, this);
+    manager48_ = MakeNew<CEffectManager>();
+    Attach(manager48_, this);
+    manager50_ = MakeNew<CSpellConstructor>();   // 00683FF0
+    manager50_->Create();
+    manager4C_ = MakeNew<CSpellManager>();   // 00688840
+    Attach(manager4C_, this);
+    manager58_ = MakeNew<CItemConstructor>();   // 006A5AB0
+    manager58_->Create();
+    itemManager_ = MakeNew<CItemManager>();
+    Attach(itemManager_, this);
 
     // The helper goes into the counted pointer at +0x5C (RefPtr::ShareAssign, inlined).
-    world->shared5C_.ShareAssign(new CWorldHandle());
+    shared5C_.ShareAssign(new CWorldHandle());
     IsaacRandom::Global().Init();
-    world->countdowns_.RemoveAll();
+    countdowns_.RemoveAll();
     return 1;
 }
-EI_REWRITTEN(0x0055EE40, WorldCreateManagers);
+EI_REWRITTEN(0x0055EE40, CWorld::Create);
 
-CWorld* CWorld::ConstructBase() {
+CWorld::CWorld() {
     ClearFields();
     figureLoader_ = nullptr;
     shared5C_.ptr = nullptr;
     netSession_.ptr = nullptr;
     countdowns_.Construct(mfc::impl::CountdownArrayClass::Vtable());
-    ei::SetVtable(this, BaseVtable());
     players_ = nullptr;
     manager3C_ = nullptr;
     manager40_ = nullptr;
@@ -104,16 +102,18 @@ CWorld* CWorld::ConstructBase() {
     manager58_ = nullptr;
     timeBase_ = 0.0f;
     secondsPerTick_ = 0.0f;
-    return this;
 }
-EI_REWRITTEN(0x0055EAB0, CWorld::ConstructBase);
+EI_REWRITTEN_SPECIAL(0x0055EAB0, CWorld::CWorld);
+
+int CWorld::RunTick() { return 1; }
+EI_REWRITTEN(0x0055FAD0, CWorld::RunTick);
 
 CUnit* CWorld::FindUnit(int id) {
     return UnitOrNull(ObjectWithId(id));
 }
 EI_REWRITTEN(0x0055FB00, CWorld::FindUnit);
 
-CMapObject* CWorld::FindMapObject(int id) {
+CMapObject* CWorld::ObjectWithId(int id) {
     return ObjectSlots(MapObjectManager()->FindObject(static_cast<unsigned>(id)));   // the map object manager's objects
 }
-EI_REWRITTEN(0x0055FAE0, CWorld::FindMapObject);
+EI_REWRITTEN(0x0055FAE0, CWorld::ObjectWithId);

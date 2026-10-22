@@ -169,46 +169,74 @@ static_assert(sizeof(LightColour) == 0x10);
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CManagerContext {
 public:
-    // Virtual slots after CEngineObject's 13 (the compiled tags of world_class.h; game.exe's server
-    // vtable 0073F928, client 0073F41C). Slots 13-24 are the manager context's getters
-    // (CManagerContext, manager_context.h; CParty has the same slots). Slots declared
-    // `void Name()` keep their place in the order only (their return types are not declared; give
-    // them their signature when calling them); rewritten slots stay plain members, rewrite guide
-    // rule 4. Names and evidence: docs/notes/map_objects.md ("Virtual slot names"). Some names avoid
-    // free helpers of the same name (World, ItemManager, LightManager, ...) that the members'
-    // bodies call.
-    virtual void TexturePath();           // 25: client 00561890 (the CString +0x224, "textures\"), server 0
-    virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
+    // 0055EAB0 (world_create.cpp). The engine object's fields, no figure loader, helper, session or
+    // managers, the clock at 0 and the empty countdown array.
+    CWorld();
+    // 0055EC80 (deleting: 0055EC60; world_destructors.cpp). Destroy (the managers), then the
+    // members last to first (the countdown array's storage, the session and +0x5C as
+    // RefPtr::Destroy, the figure loader's reference).
+    ~CWorld() override;
+
+    // 0055EE40 (world_create.cpp; slot 2, called by both worlds' Create). The world's folders from
+    // the configured paths, the clock and wind cleared, the managers made, counted and attached
+    // (slot 13 with the world, or slot 2), the counted helper at +0x5C, the ISAAC generator seeded
+    // and the countdowns (+0x70) set up. Returns 1.
+    int Create() override;
+    // 0055F8E0 (world_managers.cpp, A-U7; slot 3, also called by both worlds' Destroy): every
+    // object of the spell manager (slot 22) gets its slot 5 (ClearState), then the managers are
+    // deleted whatever their counts (+0x38, +0x40, +0x3C, +0x44, +0x58, +0x54, +0x50, +0x4C,
+    // +0x48; +0x34 only at its last reference) and the shared pointers +0x5C / +0x60 dropped.
+    void Destroy() override;
+    int RunTick() override;   // 0055FAD0: 1
+
+    // The manager context's getters (slots 13-23; their short functions keep the registrations).
+    CWorld* ThisWorld() override { return this; }                                  // 13: 0055EB40
+    CBaseManager* TimedObjectManager() override { return manager48_; }             // 14: 0055EB90
+    CBaseManager* FigureManager() override { return manager3C_; }                  // 15: 0055EB60
+    CItemConstructor* ItemConstructor() override { return manager58_; }            // 16: 0055EBB0
+    CSpellConstructor* SpellConstructor() override { return manager50_; }          // 17: 0055EBC0
+    CItemManager* ItemFactory() override { return itemManager_; }                  // 18: 004BA000
+    CMapObjectManager* MapObjectManager() override { return manager40_; }          // 19: 0055EB70
+    CPlayerManager* PlayerList() override { return players_; }                     // 20: 0055EB50
+    CBaseManager* SpecificManager() override { return manager44_; }                // 21: 0055EB80
+    CSpellManager* SpellManager() override { return manager4C_; }                  // 22: 0055EBA0
+    CLinkFigureLoader* FigureLoader() override { return figureLoader_; }           // 23: 0055EBD0
+
+    // The world's own slots (25-41; the client adds 42). Names and evidence:
+    // docs/notes/map_objects.md ("Virtual slot names"). Some names avoid free helpers of the same
+    // name (World, ItemManager, LightManager, ...) that the members' bodies call.
+    virtual const char* TexturePath() { return nullptr; }   // 25: 0055EB20; the client's "textures\" (+0x224)
+    virtual int IsServer() { return 0; }                    // 26: 0055EB30; the server's 1
     // 27: the terrain height at (x, y), in ST0 (RET 8): server CWorldServer::GridHeight 00594220, client 00563F70.
-    virtual double GridHeightAt(float x, float y);
+    virtual double GridHeightAt(float x, float y) = 0;
     // 28: the server's AI map height (0058A390), client 00564070; in ST0 (RET 8).
-    virtual double RawSurfaceHeightAt(float x, float y);
+    virtual double RawSurfaceHeightAt(float x, float y) = 0;
     // 29 / 30: the ground height and the height of the water surface at (x, y), in ST0 (server
     // 0058A3D0 / 0058A3F0 call slots 27 / 28; client 005618E0 / 00561930 also clamp, 00560F00).
-    virtual double GroundHeightAt(float x, float y);
-    virtual double SurfaceHeightAt(float x, float y);
+    virtual double GroundHeightAt(float x, float y) = 0;
+    virtual double SurfaceHeightAt(float x, float y) = 0;
     // 31 (world_time.cpp). 0055FB30: the time of day becomes `hours` (the base +0x1C is moved so
     // that fmod(tick * secondsPerTick + base, 24) = hours). The server's 0058EEA0 also updates the
     // players' times first (game kinds 1 and 3), marks them dirty (4) and updates the weather.
     virtual void SetTime(float hours);
-    void SetTimeImpl(float hours);   // body of the slot above (registered by member pointer)
     // 32 (world_time.cpp). 0055FB50: seconds per tick become 1 / speed (0: stopped; negative: the
     // setting 0079BE5C) times 1/15, keeping the time of day (slot 31). The server's 0058EEE0 as above.
     virtual void SetTimeSpeed(float speed);
-    void SetTimeSpeedImpl(float speed);   // body of the slot above (registered by member pointer)
-    virtual CMaterialManager* MaterialManager();   // 33: the material manager (0051C970 registers part materials)
-    virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
-    // 35: client 005619A0 (+0x190, a CLightManager), server 0. The client's Segment walks its objects.
-    virtual CBaseManager* ClientLightManager();
-    virtual CParticleManager* ClientParticleManager();   // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
-    virtual void ClientManager194();      // 37: client 005619C0 (+0x194), server 0. Not identified
-    virtual void ClientManager198();      // 38: client 005619D0 (+0x198), server 0. Not identified
-    virtual void Unused39();              // 39: 0055EC40 returns 0 in both
-    // 40: the world object with this id, or null (server 00593AA0 FindObject, client 0055FAE0).
+    // 33-38: the client's managers (+0x188, +0x18C, +0x190 a CLightManager, +0x19C, +0x194,
+    // +0x198), null in the base (0055EBE0 .. 0055EC30). 33 registers part materials (0051C970);
+    // the client's tick walks 35's objects.
+    virtual CMaterialManager* MaterialManager() { return nullptr; }
+    virtual CTextureManager* TextureManager() { return nullptr; }
+    virtual CBaseManager* ClientLightManager() { return nullptr; }
+    virtual CParticleManager* ClientParticleManager() { return nullptr; }
+    virtual CEngineObject* ClientManager194() { return nullptr; }   // not identified
+    virtual CEngineObject* ClientManager198() { return nullptr; }   // not identified
+    virtual int Unused39() { return 0; }   // 39: 0055EC40 in both
+    // 40 (world_create.cpp; 0055FAE0, the server's 00593AA0 FindObject). The map object manager's
+    // (slot 19) object with this id, or null.
     virtual CMapObject* ObjectWithId(int id);
-    // 41: `object` moves to `position` (sector map, network state; net_state.cpp and
-    // unit_client_path.cpp reach it through VCall).
-    virtual void MoveObject(CEngineObject* object, const float* position);
+    // 41: `object` moves to `position` (the client's sector map; 0055EC50 does nothing).
+    virtual void MoveObject(CEngineObject*, const float*) {}
 
     // 0055FC10 (world_time.cpp). Whether the hour of the day is before 6 or from 22 on (a NaN
     // counts as night).
@@ -216,9 +244,6 @@ public:
     // 0055FBD0 (RET 8; world_time.cpp; the world's save and the players' time message). The time
     // of day in hours and the time speed (1 / (seconds per tick * 15)), both stored as floats.
     void GetTime(float* hours, float* speed);
-    // 0055FAE0 (RET 4; world_create.cpp; the client's slot 40). The map object manager's (slot 19)
-    // object with this id, or null.
-    CMapObject* FindMapObject(int id);
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);
     // 0055FB00 (RET 4; world_create.cpp). The world object with this id (slot 40) when it is a
@@ -228,12 +253,6 @@ public:
     // time of day is, in ST0: 1 before 8 o'clock (and for a NaN), 0 until 20, then rising to 1 by
     // midnight ((hours - 20) / 4).
     double NightLevel();
-    // 0055F8E0 (world_managers.cpp, A-U7). Slot 3 (Destroy) of the base vtable 0073F18C, also
-    // called by the client 00563290 and the server 0058B020: every object of the spell manager
-    // (slot 22) gets its slot 5 (ClearState), then the managers are deleted whatever their counts
-    // (+0x38, +0x40, +0x3C, +0x44, +0x58, +0x54, +0x50, +0x4C, +0x48; +0x34 only at its last
-    // reference) and the shared pointers +0x5C / +0x60 dropped.
-    void DestroyManagers();
     // 0055F410 (world_sessions.cpp; the server's SetGameResult 2 / 3, the client's 00566D80). A new
     // empty network session (netlink::DriverSession) shared into +0x60, the previous one
     // destroyed (RefPtr::ShareAssign, inlined).
@@ -246,21 +265,6 @@ public:
     // 005942C0's entry: EI_Plugin's Pause in mode 3 makes it a plain RET 4.
     void SetPaused(std::uint8_t value);
     void SetServerPaused(std::uint8_t value);
-    // 0055EAB0 (world_create.cpp; the two worlds' constructors 005612F0 / 00589ED0). The base
-    // constructor: the engine object's fields, the base vtable (BaseVtable()), no figure loader, helper,
-    // session or managers, the clock at 0 and the empty countdown array. Returns this.
-    CWorld* ConstructBase();
-    // 0055EC80 (S13a, world_destructors.cpp; also the end of the client's 00561B00 and the
-    // server's 0058AAD0). The destructor's body: the base vtable, DestroyManagers, then the members
-    // last to first (the countdown array's storage, the session and +0x5C as RefPtr::Destroy, the
-    // figure loader's reference) and CEngineObject's body.
-    void Destruct();
-    // 0055EC60 (slot 0 of the base vtable): Destruct, then operator delete when bit 0 of `flags`
-    // is set. Returns this.
-    CWorld* DeletingDestruct(unsigned flags);
-
-    // The base's compiled table (CWorldBaseClass, world_class.h; game.exe's 0073F18C).
-    static void* BaseVtable();
 
     float timeBase_;                   // +0x1C
     float secondsPerTick_;                // +0x20
@@ -273,10 +277,10 @@ public:
     CBaseManager* manager44_;            // +0x44 (slot 21)
     CBaseManager* manager48_;            // +0x48 the timed objects (spells, effects; slot 14)
     CSpellManager* manager4C_;           // +0x4C the spells (slot 22)
-    CEngineObject* manager50_;            // +0x50 (slot 17)
+    CSpellConstructor* manager50_;       // +0x50 (slot 17)
     CItemManager* itemManager_;          // +0x54 items (slot 18)
-    CEngineObject* manager58_;            // +0x58 (slot 16)
-    // +0x5C a counted helper (0xC bytes, vtable 0073F240) WorldCreateManagers shares in.
+    CItemConstructor* manager58_;        // +0x58 (slot 16)
+    // +0x5C a counted helper (0xC bytes, vtable 0073F240) CWorld::Create shares in.
     RefPtrTo<CWorldHandle> shared5C_;
     RefPtrTo<netlink::DriverSession> netSession_;   // +0x60 the network session (OpenSession)
     int tick_;                            // +0x64 game time in ticks
@@ -289,11 +293,6 @@ public:
     WaterTweens countdowns_;   // +0x070 the water level tweens (water_tweens.h; 006D44E0 ticks it)
 };
 static_assert(offsetof(CWorld, shared5C_) == 0x5C);
-// 0055EE40 (world_create.cpp; slot 2 of the base vtable 0073F18C, called by both worlds' Setup).
-// The world's folders from the configured paths, the clock and wind cleared, the managers made,
-// counted and attached (slot 13 with the world, or slot 2), the counted helper at +0x5C, the
-// ISAAC generator seeded and the countdowns (+0x70) set up. Returns 1.
-int __fastcall WorldCreateManagers(CWorld* world);
 static_assert(offsetof(CWorld, updateCount_) == 0x68);
 static_assert(offsetof(CWorld, paused_) == 0x6C);
 static_assert(offsetof(CWorld, windDirection_) == 0x24);
@@ -363,7 +362,7 @@ static_assert(sizeof(SharedObject) == 0x20);
 // MFC CList<SharedObject> (its NewNode 0059CA60 constructs the element).
 using SharedObjectList = mfc::CList<SharedObject>;
 
-// The game rules side (game.exe's vtable 0073F928; world_class.h's CWorldServerClass).
+// The game rules side (game.exe's vtable 0073F928; a real class since C28g).
 // The unit / party records (0x784 bytes) handed around as MFC CArray<record*> (vtable 0073FAA4):
 // CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens (SetSize 005719B0,
 // SetAtGrow 0059D2E0: the plain CArray members).
@@ -372,7 +371,51 @@ using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
 
 class CWorldServer : public CWorld {
 public:
-    // 00593AA0, vtable slot 40. World object with this id, or null.
+    // world_construct.cpp. 00589ED0 (the static initialiser 00589BE0): the members' constructors in
+    // order (the zone exits, the update map, the .mob list, the messages registry, the AI map, both
+    // scripts, the diplomacy, the id maps, the three lists), then ResetState.
+    CWorldServer();
+    // world_destructors.cpp. 0058AAD0 (deleting: 0058A430; the global's exit function 00589C00):
+    // Destroy, then the members last to first: the lists, the id maps, the diplomacy (its Reset),
+    // both scripts (the second's destructor inlined), the AI map, the messages registry, the .mob
+    // list, the update map, the zone exits.
+    ~CWorldServer() override;
+
+    // world_server_life.cpp
+    // 0058AE10 (slot 2; called by WinMain). Destroy (slot 3) first, then the managers
+    // (CWorld::Create), the messages registry (text folder + "SMessBase.reg"), the side-specific
+    // manager (+0x44, a CServerSpecificManager given this world as context), the CHoover (+0x140),
+    // the wind (1, 0, 0; strength 0.4) and the zone state cleared. Returns 1, or FatalError's result
+    // when the managers or the registry fail.
+    int Create() override;
+    // 0058B020 (slot 3; also WinMain at exit and the destructor). Every player disconnected and
+    // released, the CHoover deleted, both script queues reset, ResetState, the messages registry
+    // closed, the zone exits freed, then the base's Destroy.
+    void Destroy() override;
+    // world_update.cpp
+    // 0058DFF0 (slot 6, RunTick). One world update: drops disconnected players and lets the others'
+    // units wake what they hear, accepts new players, runs the players and the world tick (unless
+    // +0x6C), rebuilds the local players' "Heroes" group, synchronises every player (SyncPlayer;
+    // 0 drops it) and counts the update (+0x68). Returns 1. A plain member as well: the main loop
+    // and the harness reach it by its address.
+    int Update();
+    int RunTick() override { return Update(); }
+    const char* GetClassName() override;   // 11: 0058A410 "CWorldServer" (world_class_slots.cpp)
+    int GetClassId() override;             // 12: 0058A420 (8)
+    CItem* DuplicateItem(CItem* item) override { return CopyItem(item); }   // 24: 00594CE0
+    int IsServer() override;               // 26: 0058A380 (1)
+    double GridHeightAt(float x, float y) override { return GridHeight(x, y); }   // 27: 00594220
+    // The server's height slots (world_server.cpp; ST0, RET 8). 0058A390 (slot 28): the AI map's
+    // top height at (x, y, 0). 0058A3D0 / 0058A3F0 (slots 29 / 30): slot 27 / slot 28 as they are.
+    double RawSurfaceHeightAt(float x, float y) override;
+    double GroundHeightAt(float x, float y) override;
+    double SurfaceHeightAt(float x, float y) override;
+    // world_time.cpp. 0058EEA0 / 0058EEE0: slots 31 / 32 (see CWorld).
+    void SetTime(float hours) override;
+    void SetTimeSpeed(float speed) override;
+    CMapObject* ObjectWithId(int id) override { return FindObject(static_cast<unsigned>(id)); }   // 40: 00593AA0
+
+    // 00593AA0 (slot 40). World object with this id, or null.
     CMapObject* FindObject(unsigned id);
     // 005927C0 (RET 4; world_units.cpp). Creates the object a .mob record (base.kind its kind)
     // describes: map objects and units (1, 5, 8, 9; 6 with a figure and maybe a campfire; 7) go
@@ -387,7 +430,7 @@ public:
     void RemoveObject(unsigned id);
     // 00594180. Player number `id`, or null.
     CPlayer* GetPlayer(int id);
-    // 00594220, vtable slot 27. Ground height from the server's coarse height grid; 0 outside.
+    // 00594220 (slot 27). Ground height from the server's coarse height grid; 0 outside.
     float GridHeight(float x, float y);
     // 00591740. Living mercenaries of player `id`, not counting the leader (0 without the player).
     int CountLivingMercs(int id);
@@ -399,11 +442,6 @@ public:
     void CollectSharedObjects(int playerId, ScriptGroup* group);
     // 0058B6D0. ORs `mask` into every player's dirty flags.
     void MarkPlayersDirty(std::uint32_t mask);
-    // world_time.cpp. 0058EEA0 / 0058EEE0: slots 31 / 32 (see CWorld).
-    void SetTime(float hours) override;
-    void SetTimeImpl(float hours);   // body of the slot above (registered by member pointer)
-    void SetTimeSpeed(float speed) override;
-    void SetTimeSpeedImpl(float speed);   // body of the slot above (registered by member pointer)
     // 0058EE20 (world_time.cpp; script and .mob weather). SetWind with the strength clamped to
     // 0..1 (NaN: 0), then the players marked dirty (8).
     void ChangeWind(const Vector3* direction, float strength);
@@ -551,34 +589,6 @@ public:
     // reset and the game state cleared: +0x15C, the day-time value, alarms, the kind, the start
     // position, the day factor (1), loaded_ and +0x13C.
     void ResetState();
-    // world_construct.cpp
-    // 00589ED0 (the static initialiser 00589BE0). The constructor: the base (ConstructBase), the
-    // members' constructors in order (the zone exits, the update map, the strings and .mob list, the
-    // messages registry, the AI map, both scripts, the diplomacy, the id maps, the zone header (a
-    // queue stream), the three lists), the vtable (Vtable()), then ResetState. Returns this.
-    CWorldServer* Construct();
-    // The compiled table (CWorldServerClass, world_class.h; game.exe's 0073F928).
-    static void* Vtable();
-    // world_destructors.cpp
-    // 0058AAD0 (the global's exit function 00589C00). The vtable (Vtable()), Teardown, then the members
-    // last to first: the lists, the zone header, the id maps, the strings, the diplomacy (its Reset),
-    // both scripts (the second's destructor inlined), the AI map, the messages registry, the .mob
-    // list, the zone name, the update map, the zone exits, then the base body (CWorld::Destruct).
-    void Destruct();
-    // 0058A430 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
-    CWorldServer* DeletingDestruct(unsigned flags);
-
-    // world_server_life.cpp
-    // 0058AE10, vtable slot 2 (Create; called by WinMain). Teardown (slot 3) first, then the
-    // managers (WorldCreateManagers), the messages registry (text folder + "SMessBase.reg"), the
-    // side-specific manager (+0x44, a CServerSpecificManager given this world as context), the
-    // CHoover (+0x140), the wind (1, 0, 0; strength 0.4) and the zone state cleared. Returns 1, or
-    // FatalError's result when the managers or the registry fail.
-    int Setup();
-    // 0058B020, vtable slot 3 (Destroy; also WinMain at exit and the destructor 0058AAD0). Every
-    // player disconnected and released, the CHoover deleted, both script queues reset, ResetState,
-    // the messages registry closed, the zone exits freed, then the base's DestroyManagers.
-    void Teardown();
     // 005957E0. Before every game state request: every player leaves, the shared objects, .mob
     // files, script queues, diplomacy, map objects, missiles and timed objects go, then the
     // base class's teardown (0055F890); the game result and kind are cleared.
@@ -598,22 +608,10 @@ public:
     // the item's count drops, and so does the count of the party's item it was made from (the
     // link at +0x1C) when the unit's player has a record for the unit.
     void UseItemUp(class CUnit* unit, class CItem* item);
-    // The server's height slots (world_server.cpp; ST0, RET 8). 0058A390 (slot 28): the AI map's
-    // top height at (x, y, 0). 0058A3D0 / 0058A3F0 (slots 29 / 30): slot 27 / slot 28 as they are.
-    double ServerRawSurfaceHeight(float x, float y);
-    double ServerGroundHeight(float x, float y);
-    double ServerSurfaceHeight(float x, float y);
     // 005951A0. After a fresh zone is loaded: the map objects that are not part of the map
     // (slot 29) move from the map-object maps to +0x12D88 and are sent, with the zone header
     // (+0x12E00, reset first), through a temporary player.
     void SendFreshObjects();
-
-    // world_update.cpp
-    // 0058DFF0, vtable slot 6. One world update: drops disconnected players and lets the others'
-    // units wake what they hear, accepts new players, runs the players and the world tick (unless
-    // +0x6C), rebuilds the local players' "Heroes" group, synchronises every player (SyncPlayer;
-    // 0 drops it) and counts the update (+0x68). Returns 1.
-    int Update();
 
     // world_spells.cpp
     // 0058E850 (RET 0x18). Casts `spell` from `caster` (or from `from`): one missile at `target` /
@@ -694,7 +692,7 @@ public:
     // the map centre or along the exit's heading, the player state gets the start; `runScripts`
     // runs the script command queue five times.
     void Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placements, char runScripts);
-    // 00594CE0 (slot 24, RET 4). A new item like `item`: made by the item factory (slot 18) from
+    // 00594CE0 (slot 24, RET 4; DuplicateItem). A new item like `item`: made by the item factory (slot 18) from
     // its type (+0x10) and record (+0x18), filled by the item's slot 15 (with slot 22), with its
     // count (+0x28); one below its maximum (+0x2C) goes on counted_ once.
     CItem* CopyItem(CItem* item);
@@ -1140,20 +1138,68 @@ void __fastcall VisFogManagerDestroy(ClientArrayManager* manager);
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* manager);
 // +0x19C: the particle manager, CParticleManager (effects.h).
 
-// The drawing side (game.exe's vtable 0073F41C; world_class.h's CWorldClientClass).
+// The drawing side (game.exe's vtable 0073F41C; a real class since C28g).
 class CWorldClient : public CWorld {
 public:
-    // Body of the slot at 005618C0 (registered by member pointer).
-    void MoveObject2Impl(CEngineObject* object, const float* position);
-    // Body of the slot at 005618A0 (registered by member pointer).
-    void MoveObjectImpl(CEngineObject* object, const float* position);
-    void BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed);
-    // 005641F0, vtable slot 6 (world_client.cpp). The client's tick ("Segment"): autosave event
+    // world_construct.cpp. 005612F0 (the static initialiser 00560620): the members' constructors in
+    // order (the zone exits, the counted array, the lists and maps, both sector grids at 1 x 1, the
+    // ground print lists, the platform set, the rain and snow layer (cleared), the selection list),
+    // the flags 0x3DC0, the fields it zeroes and the window's names.
+    CWorldClient();
+    // world_destructors.cpp. 00561B00 (deleting: 00561A00; the global's exit function): Destroy,
+    // then the members last to first (the lists, the rain and snow layer, the platforms, the
+    // handle, the ground prints, both sector grids set to 1 x 1 and freed, the maps, the counted
+    // array, the exits).
+    ~CWorldClient() override;
+
+    // 00561E50 (slot 2; also 00456440; world_client_maps.cpp). Sets the client world up: the
+    // managers (CWorld::Create), the texture path, the lights table (LightsGipat.ini, 00563930),
+    // the owned objects +0x1CC, +0x1D0, the terrain (+0x180), +0x44, +0x18C, +0x188, +0x190,
+    // +0x19C, the session (+0x20C), the counted +0x1C8, the text resources, +0x1A0, +0x1A4, +0x1A8,
+    // +0x6F4 and the platforms, flag 0x200, the cursor (+0x7D0), a reference on every player, room
+    // for 400 screen entries (+0xF4), and both sector grids at 4 x 4. Returns 1.
+    int Create() override;
+    // 00563290 (slot 3; also 00456440 and the destructor; world_client_maps.cpp). Tears the client
+    // world down: the camera's target, the objects at +0x1B4 / +0x1AC / +0x1B0, 00563190, +0xA0,
+    // the lists +0x1B8, +0x1BC, +0x1C0, +0x6F4 and the platforms (slot 3), +0x1F0, the sector
+    // grid's cells, the lists +0x7BC, +0xB4 and +0xB8 (released), the session (+0x20C), the
+    // counted +0x1C8, CWorld::Destroy, then the owned objects +0x1A0 .. +0x1D0 (counted ones
+    // dropped first) deleted and cleared.
+    void Destroy() override;
+    // 005641F0 (slot 6, RunTick; world_client.cpp). The client's tick ("Segment"): autosave event
     // and sound volumes on frame 10, the terrain, sound and session updates, the objects and units,
     // effect lists, the lights' grey levels, the map state every 32 ticks. Returns 1; 0 when the
     // session's view has lost its connection (the session is disconnected, FatalError; Rebirth's
-    // DisableExitOnCrashReport keeps the session).
+    // DisableExitOnCrashReport keeps the session). A plain member as well: the main loop and the
+    // harness reach it by its address.
     int Segment();
+    int RunTick() override { return Segment(); }
+    // world_class_slots.cpp: 11 / 12 (005619E0 "CWorldClient" / 005619F0: 7), 25 the texture
+    // folder's text (00561890, +0x224), 33-38 the managers (00561980 .. 005619D0: +0x188, +0x18C,
+    // +0x190, +0x19C, +0x194, +0x198), 41 / 42 the grid moves (005618A0 / 005618C0).
+    const char* GetClassName() override;
+    int GetClassId() override;
+    const char* TexturePath() override;
+    // 00563F70 (slot 27): ClampedGroundHeight.
+    double GridHeightAt(float x, float y) override { return ClampedGroundHeight(x, y); }
+    // 00564070 (slot 28; RET 8; terrain.cpp). The height of whatever surface is on top at (x, y):
+    // the ground, or the water when the point is submerged (ST0; the sum rounded to float).
+    double RawSurfaceHeightAt(float x, float y) override;
+    // The client's height slots 29 / 30 (005618E0 / 00561930; ST0, RET 8; world_client_maps.cpp):
+    // slot 27 / slot 28 at (x, y), stored as a float and raised to the platforms over the point
+    // (PlatformSet::SurfaceHeight).
+    double GroundHeightAt(float x, float y) override;
+    double SurfaceHeightAt(float x, float y) override;
+    CMaterialManager* MaterialManager() override;
+    CTextureManager* TextureManager() override;
+    CBaseManager* ClientLightManager() override;
+    CParticleManager* ClientParticleManager() override;
+    CEngineObject* ClientManager194() override;
+    CEngineObject* ClientManager198() override;
+    void MoveObject(CEngineObject* object, const float* position) override;
+    virtual void MoveObject2(CEngineObject* object, const float* position);   // 42
+
+    void BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed);
     // 00569E40 (world_client_draw.cpp). Draws the world view: view matrix, sky, terrain passes
     // around DrawPass, effects and particles, flying hit points. Returns 1. Rebirth's
     // LandscapeDrawRadius sets the terrain's draw distance (100 in the game).
@@ -1373,15 +1419,6 @@ public:
     // 00564190 (RET 8; the server's message 0x72). The wind: stored (CWorld::SetWind), given to the
     // terrain's waves (a copy of the direction) and to the rain and snow (+0x6F4).
     void ApplyWind(const Vector3* direction, float strength);
-    // The client's height slots 29 / 30 (005618E0 / 00561930; ST0, RET 8): slot 27 / slot 28 at
-    // (x, y), stored as a float and raised to the platforms over the point (PlatformSet::
-    // SurfaceHeight).
-    double ClientGroundHeight(float x, float y);
-    double ClientSurfaceHeight(float x, float y);
-    // 00564070 (slot 28, RawSurfaceHeightAt; RET 8; terrain.cpp). The height of whatever surface
-    // is on top at (x, y): the ground, or the water when the point is submerged (ST0; the sum
-    // rounded to float).
-    double ClientRawSurfaceHeight(float x, float y);
     // 0056CE40 (RET 0xC; the server's number messages, a living object's hit). A number over the
     // unit with id `id` (the flying hit points, +0x1B4); nothing for another object or without them.
     void ShowNumber(int id, int value, std::uint32_t kind);
@@ -1425,21 +1462,6 @@ public:
     // clamped to the terrain) and the walk's cursor (+0x148 / +0x14C) are left in the client.
     // The original's z difference is the point's z minus itself (0, kept).
     void ObjectsInRange(const Vector3* point, float radius, stlp::list<CObject3D*>* out);
-    // 00563290 (slot 3; also 00456440 and 00561B00). Tears the client world down: the camera's
-    // target, the objects at +0x1B4 / +0x1AC / +0x1B0, 00563190, +0xA0, the lists +0x1B8, +0x1BC,
-    // +0x1C0, +0x6F4 and the platforms (slot 3), +0x1F0, the sector grid's cells, the lists +0x7BC,
-    // +0xB4 and +0xB8 (released), the session (+0x20C), the counted +0x1C8, 0055F8E0, then the
-    // owned objects +0x1A0 .. +0x1D0 (counted ones dropped first) deleted and cleared.
-    // (Not declared as the Destroy override: a virtual member's address is a vtable thunk, and
-    // hooking the slot's own code with it recurses.)
-    void Teardown();
-    // 00561E50 (slot 2; also 00456440). Sets the client world up: the managers (0055EE40), the
-    // texture path, the lights table (LightsGipat.ini, 00563930), the owned objects +0x1CC, +0x1D0,
-    // the terrain (+0x180, its constructor inlined), +0x44, +0x18C, +0x188, +0x190, +0x19C, the
-    // session (+0x20C), the counted +0x1C8, the text resources, +0x1A0, +0x1A4, +0x1A8, +0x6F4 and the
-    // platforms, flag 0x200, the cursor (+0x7D0), a reference on every player, room for 400 screen
-    // entries (+0xF4), and both sector grids at 4 x 4. Returns 1.
-    int Setup();
     // 00563930 (RET 4; world_client_setup.cpp). Reads the light colours from config\<file> (an
     // .ini, LightsGipat.ini): each key of [sunlight], [ambient] and [sky] names its hour in
     // characters 4..5 ("hour07") and holds "r, g, b" (0..255, scaled by 1/255, alpha 1); the hours
@@ -1469,24 +1491,6 @@ public:
     // from the figure resources and becomes the sky's object (flag 0x10), with a material of type
     // 0x12. Without the file the object is referenced and released again.
     void LoadSky();
-
-    // 005612F0 (world_construct.cpp; the static initialiser 00560620). The constructor: the base
-    // (ConstructBase), the members' constructors in order (the zone exits, the counted array, the
-    // lists and maps, both sector grids at 1 x 1, the ground print lists, the platform set, the rain
-    // and snow layer (cleared), the selection list, the window's names), the flags 0x3DC0, the vtable
-    // (Vtable()) and the fields it zeroes. Returns this.
-    CWorldClient* Construct();
-    // The compiled table (CWorldClientClass, world_class.h; game.exe's 0073F41C).
-    static void* Vtable();
-    // 00561B00 (S13a, world_destructors.cpp; also the global client world's exit function). The
-    // destructor's body: the client vtable, Teardown, then the members last to first (the window
-    // names, the lists, the rain and snow layer, the platforms, the handle, the ground prints, both
-    // sector grids set to 1 x 1 and freed, the maps, the counted array, the exits) and the base's
-    // body (CWorld::Destruct).
-    void Destruct();
-    // 00561A00 (slot 0 of 0073F41C): Destruct, then operator delete when bit 0 of `flags` is set.
-    // Returns this.
-    CWorldClient* DeletingDestruct(unsigned flags);
 
     // The local session (+0x20C) as the maps read it.
     CPlayer* Session() const { return session_; }

@@ -14,14 +14,14 @@ constexpr double kHoursPerSecond = 1.0 / 15.0;  // 0073F3C8 (as the game counts 
 bool KeepsPlayerTimes(int kind) { return kind == 1 || kind == 3; }
 } // namespace
 
-void CWorld::SetTimeImpl(float hours) {
+void CWorld::SetTime(float hours) {
     double elapsed = std::fmod(static_cast<double>(tick_) * secondsPerTick_, kHoursPerDay);
     timeBase_ = static_cast<float>(hours - elapsed);
 }
 
-EI_REWRITTEN(0x0055FB30, CWorld::SetTimeImpl);
+EI_REWRITTEN(0x0055FB30, CWorld::SetTime);
 
-void CWorld::SetTimeSpeedImpl(float speed) {
+void CWorld::SetTimeSpeed(float speed) {
     // The time of day now, stored as a float before the speed changes.
     float now = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay));
     if (speed > 0.0f) secondsPerTick_ = 1.0f / speed;
@@ -31,7 +31,7 @@ void CWorld::SetTimeSpeedImpl(float speed) {
     SetTime(now);
 }
 
-EI_REWRITTEN(0x0055FB50, CWorld::SetTimeSpeedImpl);
+EI_REWRITTEN(0x0055FB50, CWorld::SetTimeSpeed);
 
 double CWorld::NightLevel() {
     double hours = std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay);
@@ -63,23 +63,23 @@ void CWorld::SetWind(const Vector3* direction, float strength) {
 }
 EI_REWRITTEN(0x0055FCB0, CWorld::SetWind);
 
-void CWorldServer::SetTimeImpl(float hours) {
+void CWorldServer::SetTime(float hours) {
     if (KeepsPlayerTimes(sessionKind_)) UpdatePlayerTimes(0.0f);
-    CWorld::SetTimeImpl(hours);
+    CWorld::SetTime(hours);
     MarkPlayersDirty(4);
     UpdateWeather();
 }
 
-EI_REWRITTEN(0x0058EEA0, CWorldServer::SetTimeImpl);
+EI_REWRITTEN(0x0058EEA0, CWorldServer::SetTime);
 
-void CWorldServer::SetTimeSpeedImpl(float speed) {
+void CWorldServer::SetTimeSpeed(float speed) {
     if (KeepsPlayerTimes(sessionKind_)) UpdatePlayerTimes(0.0f);
-    CWorld::SetTimeSpeedImpl(speed);
+    CWorld::SetTimeSpeed(speed);
     MarkPlayersDirty(4);
     UpdateWeather();
 }
 
-EI_REWRITTEN(0x0058EEE0, CWorldServer::SetTimeSpeedImpl);
+EI_REWRITTEN(0x0058EEE0, CWorldServer::SetTimeSpeed);
 
 void CWorldServer::ChangeWind(const Vector3* direction, float strength) {
     // Below 0 or NaN gives 0, above 1 gives 1; the value is copied as it is.

@@ -33,9 +33,9 @@ constexpr std::uint32_t kWindStrength = 0x3ECCCCCD;   // 0.4f
 
 } // namespace
 
-int CWorldServer::Setup() {
+int CWorldServer::Create() {
     Destroy();
-    if (!WorldCreateManagers(this)) return game::FatalError(CantCreateText());
+    if (!CWorld::Create()) return game::FatalError(CantCreateText());
     mfc::CString folder(TheTextFolder());
     BOOL opened;
     {
@@ -68,7 +68,7 @@ int CWorldServer::Setup() {
     return 1;
 }
 
-void CWorldServer::Teardown() {
+void CWorldServer::Destroy() {
     // Every player disconnected and released (a heap iterator, as the original allocates it).
     auto* it = gamecrt::operator_new_as<PlayerIterator>();
     if (it) it->manager = nullptr;
@@ -104,8 +104,8 @@ void CWorldServer::Teardown() {
     }
     exits_.maxSize = 0;
     exits_.size = 0;
-    DestroyManagers();
+    CWorld::Destroy();
 }
 
-EI_REWRITTEN(0x0058AE10, CWorldServer::Setup);
-EI_REWRITTEN(0x0058B020, CWorldServer::Teardown);
+EI_REWRITTEN(0x0058AE10, CWorldServer::Create);
+EI_REWRITTEN(0x0058B020, CWorldServer::Destroy);

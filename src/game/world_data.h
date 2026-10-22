@@ -99,7 +99,7 @@ inline float DefaultWindForceOption() { return static_cast<const volatile float&
 // The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
-// ---- WorldCreateManagers (0055EE40) -----------------------------------------------------------
+// ---- CWorld::Create (0055EE40) -----------------------------------------------------------------
 
 // The configured paths the game's folders (TheDataFolder, TheTextFolder, TheDiscFolder the base
 // folder; game_singletons.h) are set from (the CStrings 0079BC90 / 0079BC94 / 0079BC98; their text

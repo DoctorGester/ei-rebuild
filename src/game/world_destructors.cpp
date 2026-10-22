@@ -14,7 +14,6 @@
 #include "sector_map.h"
 #include "terrain.h"
 #include "world.h"
-#include "world_class.h"
 #include "world_data.h"
 #include "world_deleting_destructors.h"
 
@@ -126,25 +125,17 @@ void CScript::Destruct() {
 }
 EI_REWRITTEN(0x0058A140, CScript::Destruct);
 
-void CWorld::Destruct() {
-    ei::SetVtable(this, BaseVtable());
-    DestroyManagers();
-    auto* countdowns = &countdowns_;
-    countdowns->vtable = mfc::impl::CountdownArrayClass::Vtable();
-    countdowns->FreeData();
+CWorld::~CWorld() {
+    CWorld::Destroy();
+    countdowns_.vtable = mfc::impl::CountdownArrayClass::Vtable();
+    countdowns_.FreeData();
     netSession_.Destroy();
     shared5C_.Destroy();
     if (CLinkFigureLoader* loader = figureLoader_)
         if (--loader->refCount_ == 0) loader->DeleteThis(1);
-    CEngineObject::DestructBase();
 }
-EI_REWRITTEN(0x0055EC80, CWorld::Destruct);
-
-CWorld* CWorld::DeletingDestruct(unsigned flags) {
-    Destruct();
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x0055EC60, CWorld::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0055EC80, CWorld::~CWorld);
+EI_REWRITTEN_SPECIAL(0x0055EC60, CWorld::~CWorld);
 
 CParticleManager::CParticleManager() {
     mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&freeParticles, 10);
@@ -182,22 +173,15 @@ Sector* Sector::DeletingDestruct(unsigned flags) {
 }
 EI_REWRITTEN(0x0059E080, Sector::DeletingDestruct);
 
-void CWorldClient::Destruct() {
-    ei::SetVtable(this, Vtable());
-    Teardown();
-    pausedTitle_.~CString();
-    windowTitle_.~CString();
-    windowClass_.~CString();
-    appName_.~CString();
+CWorldClient::~CWorldClient() {
+    CWorldClient::Destroy();
     list7BC_.Destroy();
     RainSnow()->~CRainSnow();
-    texturePath_.~CString();
     platforms_.DestructBody();
     handle_.Destroy();
     scorchMarks_.Release<PrintElement>();
     footprints_.Release<PrintElement>();
     bloodPrints_.Release<PrintElement>();
-    zoneName_.~CString();
     secondGrid_.Resize(1, 1);
     FreeGrid(secondGrid_);
     objectGrid_.Resize(1, 1);
@@ -216,46 +200,29 @@ void CWorldClient::Destruct() {
         gamecrt::operator_delete(countedA0_.data);
     }
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
-    CWorld::Destruct();
 }
-EI_REWRITTEN(0x00561B00, CWorldClient::Destruct);
+EI_REWRITTEN_SPECIAL(0x00561B00, CWorldClient::~CWorldClient);
+EI_REWRITTEN_SPECIAL(0x00561A00, CWorldClient::~CWorldClient);
 
-CWorldClient* CWorldClient::DeletingDestruct(unsigned flags) {
-    Destruct();
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x00561A00, CWorldClient::DeletingDestruct);
-
-void CWorldServer::Destruct() {
-    ei::SetVtable(this, Vtable());
-    Teardown();
+CWorldServer::~CWorldServer() {
+    CWorldServer::Destroy();
     DestroyList<SharedObjectElements>(sharedObjects_, gameslots::SharedObjectListClass::Vtable());   // CList<SharedObject>
     DestroyList<ReleasedElements>(counted_, gameslots::ItemObjectListClass::Vtable());   // CList<CEngineObject*>
     DestroyList<ProjectileElements>(projectiles_, gameslots::RefListBClass::Vtable());   // CList<CSpellEffect*>
-    zoneHeader_.~CMemoryStream();
     timedObjects_.map.Destroy();
     namedObjects_.map.Destroy();
     otherMapObjects_.map.Destroy();
     mapObjects_.map.Destroy();
     sentObjects_.map.Destroy();
     objects_.map.Destroy();
-    mapName_.~CString();
-    mobName_.~CString();
     diplomacy_.Reset();
     SecondScript()->Destruct();
     MainScript()->Destruct();
     DestructAIMap(AIMap());
     Messages()->Destroy();
     mobFiles_.Destruct();
-    zoneName_.~CString();
     updateMap_.map.Destroy();
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
-    CWorld::Destruct();
 }
-EI_REWRITTEN(0x0058AAD0, CWorldServer::Destruct);
-
-CWorldServer* CWorldServer::DeletingDestruct(unsigned flags) {
-    Destruct();
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x0058A430, CWorldServer::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0058AAD0, CWorldServer::~CWorldServer);
+EI_REWRITTEN_SPECIAL(0x0058A430, CWorldServer::~CWorldServer);

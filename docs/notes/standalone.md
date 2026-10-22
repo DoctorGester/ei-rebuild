@@ -1174,10 +1174,12 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     digest names them), and world_data's unit spec tables 0073C6E0 / 0073FA58 (map spec, C21).
 - **Batch 16's families** (2026-10-22): the worlds', the unit controllers' and the map object companions' tables: 9
   rows (retired 346 -> 355), 5,175 -> 4,825 code cells.
-  - **Worlds** (world_class.h): `WorldClass<Self, T>` declares CWorld's slots 13-41 over EngineObjectClass with the
-    base's bodies (13-23 the getters, 24 CParty::MakeCopyOf, 27-30 `_purecall`); CWorldBaseClass (0073F18C:
-    ConstructBase and CWorld::Destruct store `CWorld::BaseVtable()`), CWorldClientClass (0073F41C, its own slot 42
-    MoveObject2) and CWorldServerClass (0073F928). The height slots return double (ST0) from the float bodies.
+  - **Worlds** (world.h; real classes since C28g): CWorld declares slots 25-41 (13-24 are CManagerContext's; 27-30
+    pure), CWorldClient (0073F41C) adds slot 42 MoveObject2, CWorldServer (0073F928). Not final: the original calls
+    the slots through the table, and a devirtualised call let the client's slot 29 inline slot 27's float body
+    (effects_bow's unit height moved). The height slots return double (ST0); the server's slot 27 and the client's
+    call the float bodies GridHeight / ClampedGroundHeight, and slot 6 calls Update / Segment, which keep their names
+    for the main loop and the harness (by address).
   - **Unit controllers** (unit_controller_slots.cpp): `ControllerClass<Self, T>` declares CUnitController's slots
     13-53 with the base's bodies; ControllerBaseClass (0073EDBC: every controller's constructor stores
     `CUnitController::Vtable()` first, its destructor body last), CUnitClientSpecificClass (0073ECD8) and
@@ -1188,7 +1190,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     CompanionBaseClass (0073DC54, `CMapObjectCompanion::BaseVtable()`), CMapObjectClientSpecificClass (0073DBEC) and
     CMapObjectServerClass (0073DD6C, slot 20 TakeHit). Slot 13 takes a bool (the client's OnEffectsChanged reads
     the low byte).
-  - **check_fp_fold**: once CWorld::SetTimeSpeedImpl lost its slot registration the compiler inlined it into the
+  - **check_fp_fold**: once CWorld::SetTimeSpeed lost its slot registration the compiler inlined it into the
     server's (0058EEE0); its 1/15 is 0055FB50's own double (tools/check_fp_fold_allow.txt).
   - **Left in world* / unit***: the tamed mode 0073F0C4 is PlayerMode's table (an AI mode: the harness digest names
     it, `aimode::kTamedVtable`), with the other AI modes once the digest has another id; world_data's unit spec
@@ -1246,7 +1248,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     (0073CFD0) and CRainSnow (0073F4C8 with its tail 0073F4E8; its slots 11 / 12, "CWeather" and 0x1D, are dead
     code's) are real classes since C28f.
   - **The party** (party_lifetime.cpp): PartyBaseClass (0074306C) and PartyClass (00743000) over a
-    PartyContextClass that declares the manager context's slots 13-26 as the worlds' (world_class.h) with the base's
+    PartyContextClass that declares the manager context's slots 13-26 as the worlds' (world.h) with the base's
     bodies (every getter null; 24 the party's copy of an item); the party overrides Create / Destroy, its class name
     and id and the item and spell getters. Its unit records' CArray is PartyMemberArrayClass (00742FF4), a
     CompiledCollection whose Serialize goes through a mfc::impl::CArchive member (mfc.h's CArray takes mfc.h's

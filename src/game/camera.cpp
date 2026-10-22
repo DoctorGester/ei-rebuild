@@ -147,7 +147,7 @@ void camera::NoteTargetTick(const CCamera* camera) {
 
 void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
                              float* average, float* minimum, float* maximum) {
-    double centre = TheClientWorld()->ClientRawSurfaceHeight(p->x, p->y);
+    double centre = TheClientWorld()->RawSurfaceHeightAt(p->x, p->y);
     *minimum = static_cast<float>(centre);
     *maximum = static_cast<float>(centre);
     *average = static_cast<float>(centre);
@@ -158,7 +158,7 @@ void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, f
             float y = static_cast<float>(D(p->y) - halfY);
             while (y <= D(halfY) + p->y) {
                 if (y >= 0.0f && TheTerrain()->height > y) {
-                    float h = static_cast<float>(TheClientWorld()->ClientRawSurfaceHeight(x, y));
+                    float h = static_cast<float>(TheClientWorld()->RawSurfaceHeightAt(x, y));
                     float low = *minimum;
                     *minimum = h >= low ? low : h;
                     float high = *maximum;
@@ -338,7 +338,7 @@ void CCamera::Update(float dt) {
     std::memcpy(&listener, &localPosition_, sizeof(Vector3));
     if (!(flags_ & kPlaced)) {
         std::memcpy(&listener, &focus_, sizeof(Vector3));
-        if (TheTerrain()) listener.z = static_cast<float>(TheClientWorld()->ClientRawSurfaceHeight(focus_.x, focus_.y) + focusHeight_);
+        if (TheTerrain()) listener.z = static_cast<float>(TheClientWorld()->RawSurfaceHeightAt(focus_.x, focus_.y) + focusHeight_);
     }
     Vector3 forward;
     localRotation_.AxisZ(&forward);

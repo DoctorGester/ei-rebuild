@@ -405,13 +405,13 @@ int CWorldClient::CentreOn(const Vector3* point) {
     return 1;
 }
 
-double CWorldClient::ClientGroundHeight(float x, float y) {
+double CWorldClient::GroundHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     float height = static_cast<float>(GridHeightAt(x, y));
     return platforms_.SurfaceHeight(&point, height);
 }
 
-double CWorldClient::ClientSurfaceHeight(float x, float y) {
+double CWorldClient::SurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     float height = static_cast<float>(RawSurfaceHeightAt(x, y));
     return platforms_.SurfaceHeight(&point, height);
@@ -939,7 +939,7 @@ void DropAndDelete(T*& slot) {
 
 } // namespace
 
-void CWorldClient::Teardown() {
+void CWorldClient::Destroy() {
     TheCamera()->SetTarget(nullptr);
     if (CFlyingHitPoints* p = numbers_) {
         p->Destruct();
@@ -982,7 +982,7 @@ void CWorldClient::Teardown() {
         handle_.ptr->Release();
         handle_.Share(nullptr);
     }
-    DestroyManagers();
+    CWorld::Destroy();
     DeleteOwned(listManager_);
     DeleteOwned(arrayManager_);
     DropAndDelete(particleManager_);
@@ -1174,8 +1174,8 @@ void SectorGrid::Resize(int width, int height) {
 EI_REWRITTEN(0x00572450, SectorGrid::Resize);
 EI_REWRITTEN(0x005724F0, SectorGrid::Resize);
 
-int CWorldClient::Setup() {
-    WorldCreateManagers(this);
+int CWorldClient::Create() {
+    CWorld::Create();
     {
         mfc::CString path = TheDataFolder() + worlddata::TexturesFolderText();   // operator+ (00700C05)
         texturePath_ = path;
@@ -1599,10 +1599,10 @@ int CWorldClient::LoadZone(CStream* block) {
 }
 EI_REWRITTEN(0x00567AB0, CWorldClient::LoadZone);
 
-EI_REWRITTEN(0x00561E50, CWorldClient::Setup);
+EI_REWRITTEN(0x00561E50, CWorldClient::Create);
 EI_REWRITTEN(0x00560650, PlatformSet::AddFace);
 EI_REWRITTEN(0x00560820, PlatformSet::AddBox);
-EI_REWRITTEN(0x00563290, CWorldClient::Teardown);
+EI_REWRITTEN(0x00563290, CWorldClient::Destroy);
 EI_REWRITTEN(0x00565090, CWorldClient::ResetZoneObjects);
 EI_REWRITTEN(0x00566100, CWorldClient::Deselect);
 EI_REWRITTEN(0x005630B0, CWorldClient::ReferenceItemsAndSpells);
@@ -1624,8 +1624,8 @@ EI_REWRITTEN(0x0056D740, CWorldClient::MarkFootprintsInSight);
 EI_REWRITTEN(0x00564190, CWorldClient::ApplyWind);
 EI_REWRITTEN(0x005662B0, CWorldClient::CentreOn);
 EI_REWRITTEN(0x00578A60, CWorldClient::ExitTarget);
-EI_REWRITTEN(0x005618E0, CWorldClient::ClientGroundHeight);
-EI_REWRITTEN(0x00561930, CWorldClient::ClientSurfaceHeight);
+EI_REWRITTEN(0x005618E0, CWorldClient::GroundHeightAt);
+EI_REWRITTEN(0x00561930, CWorldClient::SurfaceHeightAt);
 EI_REWRITTEN(0x0056CE40, CWorldClient::ShowNumber);
 EI_REPLACE_METHOD(0x0056DE80, CWorldClient::LoadUnitFaces);
 EI_REWRITTEN(0x00567400, CWorldClient::RemoveUnitsOf);

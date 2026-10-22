@@ -2,7 +2,7 @@
 
 // The context a manager belongs to (CBaseManager::context_, set by Init / SetContext): the world
 // (CWorld) or a party (CParty), the two classes deriving from it. Its getters return null (game.exe's
-// 0074306C, the party's base table); the world answers them all (world_class.h), a party only the
+// 0074306C, the party's base table); the world answers them all (world.h), a party only the
 // item and spell ones. Names and evidence: docs/notes/map_objects.md ("Virtual slot names"). No data
 // of its own.
 

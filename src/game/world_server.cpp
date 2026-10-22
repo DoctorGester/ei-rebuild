@@ -272,17 +272,17 @@ CEngineObject* ObjectMapIterator::Next() {
 EI_REWRITTEN(0x0059AF80, ObjectMapIterator::Next);
 EI_REWRITTEN(0x0059B050, ObjectMapIterator::Next);
 
-double CWorldServer::ServerRawSurfaceHeight(float x, float y) {
+double CWorldServer::RawSurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     return AIMap()->TopHeightAt(&point);
 }
-EI_REWRITTEN(0x0058A390, CWorldServer::ServerRawSurfaceHeight);
+EI_REWRITTEN(0x0058A390, CWorldServer::RawSurfaceHeightAt);
 
-double CWorldServer::ServerGroundHeight(float x, float y) { return GridHeightAt(x, y); }
-EI_REWRITTEN(0x0058A3D0, CWorldServer::ServerGroundHeight);
+double CWorldServer::GroundHeightAt(float x, float y) { return GridHeightAt(x, y); }
+EI_REWRITTEN(0x0058A3D0, CWorldServer::GroundHeightAt);
 
-double CWorldServer::ServerSurfaceHeight(float x, float y) { return RawSurfaceHeightAt(x, y); }
-EI_REWRITTEN(0x0058A3F0, CWorldServer::ServerSurfaceHeight);
+double CWorldServer::SurfaceHeightAt(float x, float y) { return RawSurfaceHeightAt(x, y); }
+EI_REWRITTEN(0x0058A3F0, CWorldServer::SurfaceHeightAt);
 
 EI_REWRITTEN(0x005935C0, CWorldServer::RemoveObject);
 EI_REWRITTEN(0x00593AA0, CWorldServer::FindObject);

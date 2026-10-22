@@ -1,8 +1,8 @@
 #pragma once
 
-// The constant slots and plain getters of the world classes (A-W14; world_class_slots.cpp): class
-// names (slot 11) and ids (slot 12), slots that only answer 1, the client world's manager getters
-// (slots 25, 33-38) and its grid moves (slots 41 / 42), and the managers' slot 13 thunks.
+// The constant slots of the engine's small tables that are still free functions (A-W14;
+// world_class_slots.cpp): class names (slot 11) and ids (slot 12) and the interface objects' base.
+// The worlds' own slots are their classes' members (world.h), defined in world_class_slots.cpp too.
 // docs/notes/world.md.
 
 #include <cstdint>
@@ -15,19 +15,9 @@ class CLightningManager;
 struct CItemManager;
 class CParticleManager;
 class CTextureManager;
-class CWorld;
-class CWorldClient;
-class CWorldServer;
-class Terrain;
-struct ClientArrayManager;
-class CTextManager;
 struct PlatformSet;
 
 // Slot 11 / 12 of the vtable named in the comment.
-const char* __fastcall WorldClientClassName(CWorldClient*);          // 005619E0 (0073F41C) "CWorldClient"
-int __fastcall WorldClientClassId(CWorldClient*);                    // 005619F0: 7
-const char* __fastcall WorldServerClassName(CWorldServer*);          // 0058A410 (0073F928) "CWorldServer"
-int __fastcall WorldServerClassId(CWorldServer*);                    // 0058A420: 8
 const char* __fastcall BridgeManagerClassName(PlatformSet*);         // 00561870 (0073F4FC) "CBridgeManager"
 int __fastcall BridgeManagerClassId(PlatformSet*);                   // 00561880: 0x34
 const char* __fastcall I3DFigureClassName(CEngineObject*);           // 005AACC0 (0073FC48) "CI3DFigure"
@@ -39,22 +29,6 @@ int __fastcall FigureClientSpecificClassId(CEngineObject*);          // 005A7050
 int __fastcall UiObjectCreate(CEngineObject*);                       // 00579560
 const char* __fastcall UiObjectClassName(CEngineObject*);            // 00579580
 int __fastcall UiObjectClassId(CEngineObject*);                      // 00579590
-
-// 0055FAD0: slot 6 (RunTick) of the worlds' base vtable 0073F18C answers 1.
-int __fastcall WorldBaseRunTick(CWorld*);
-// 0058A380: the server's slot 26 (IsServer) answers 1.
-int __fastcall WorldServerIsServer(CWorldServer*);
-
-// The client world's getters: slot 25 the texture folder's text (+0x224), 33 the material manager
-// (+0x188), 34 the texture manager (+0x18C), 35 the light manager (+0x190), 36 the particle
-// manager (+0x19C), 37 / 38 the managers at +0x194 / +0x198.
-const char* __fastcall WorldClientTexturePath(CWorldClient*);        // 00561890
-CMaterialManager* __fastcall WorldClientMaterialManager(CWorldClient*);   // 00561980
-CTextureManager* __fastcall WorldClientTextureManager(CWorldClient*);   // 00561990
-CBaseManager* __fastcall WorldClientLightManager(CWorldClient*);     // 005619A0
-CParticleManager* __fastcall WorldClientParticleManager(CWorldClient*);   // 005619B0
-CEngineObject* __fastcall WorldClientManager194(CWorldClient*);      // 005619C0
-CEngineObject* __fastcall WorldClientManager198(CWorldClient*);      // 005619D0
 
 // 00562D70 / 00562DA0 (RET 4): slot 13 (Init) of the lightning and fog managers is CBaseManager::Init
 // (004031B0); the particle, lightning and fog managers' class names and ids, the item manager's folder name

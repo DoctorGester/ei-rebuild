@@ -273,7 +273,7 @@ vtable,slots,class,file,note
 0073F0F8,13,PlayerClass,src/game/ai_mode_class.h,the Player AI mode
 0073F12C,3,LootListClass,src/lib/mfc_slots.h,CList (the loot lists)
 0073F140,3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's reports): the constructor's second table with 0073F058's slots
-0073F18C,42,CWorldBaseClass,src/game/world_class.h,the worlds' base (CWorld)
+0073F18C,42,CWorld,src/game/world.h,the worlds' base (CWorld)
 0073F234,3,CountdownArrayClass,src/lib/mfc_slots.h,CArray (the world's countdowns)
 0073F240,7,CWorldHandle,src/game/world.h,the server world's counted helper (a player source)
 0073F25C,26,CItemManager,src/game/item.h,
@@ -281,7 +281,7 @@ vtable,slots,class,file,note
 0073F328,25,CPlayerManager,src/game/player_manager.h,
 0073F38C,7,CPlayerSource,src/game/player_source.h,the player sources' base
 0073F3A8,7,DriverSession,src/game/net_link.h,the network session (DriverSession)
-0073F41C,43,CWorldClientClass,src/game/world_class.h,the client world
+0073F41C,43,CWorldClient,src/game/world.h,the client world
 0073F4C8,8,CRainSnow,src/game/effects.h,the rain and snow layer (CRainSnow)
 0073F4E8,5,CRainSnow,src/game/effects.h,the rain and snow layer's tail (a byte match in 0046F1F0 split it off)
 0073F4FC,13,BridgeManagerClass,src/game/world_construct.cpp,the client world's platform set (CBridgeManager)
@@ -307,7 +307,7 @@ vtable,slots,class,file,note
 0073F7F8,42,dead class,-,stored only by dead code 005794B0 / 00579730
 0073F8A4,9,BufferedFile,src/game/buffered_file.h,
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
-0073F928,42,CWorldServerClass,src/game/world_class.h,the server world
+0073F928,42,CWorldServer,src/game/world.h,the server world
 0073F9D0,3,RefListBClass,src/game/game_slots.h,CList (the world server's counted pointers)
 0073F9DC,1,SectorMapClass,src/game/sector_map.cpp,the sector map (CSectorMap)
 0073F9E0,3,AreaListClass,src/lib/mfc_slots.h,CArray (the AI map's area lists; after CSectorMap's one-slot table 0073F9DC)

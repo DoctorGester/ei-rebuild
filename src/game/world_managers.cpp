@@ -37,7 +37,7 @@ void DropShared(RefPtr* slot) {
 }
 } // namespace
 
-void CWorld::DestroyManagers() {
+void CWorld::Destroy() {
     if (SpellManager()) {
         ObjectListIterator objects{nullptr, nullptr};
         for (CEngineObject* object = objects.First(SpellManager()); object; object = objects.Next()) object->ClearState();
@@ -59,7 +59,7 @@ void CWorld::DestroyManagers() {
     DeleteManager(manager4C_);
     DeleteManager(manager48_);
 }
-EI_REWRITTEN(0x0055F8E0, CWorld::DestroyManagers);
+EI_REWRITTEN(0x0055F8E0, CWorld::Destroy);
 
 // ---- The managers' own small slots (0055F310-0055F400, A-U8) -------------------------------------
 // GetClassName (11) / GetClassId (12) and the destructors of the player manager, the effect manager

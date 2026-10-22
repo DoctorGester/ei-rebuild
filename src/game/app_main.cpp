@@ -760,8 +760,8 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
     SceneRenderer()->DestroyRenderer();
     options::TheOptions()->SaveToRegistry(RegistryRoot());
     TheClientWorld()->SetCamera(nullptr);
-    TheServerWorld()->Teardown();
-    TheClientWorld()->Teardown();
+    TheServerWorld()->Destroy();
+    TheClientWorld()->Destroy();
     libcrt::SetNewHandler(previousHandler);
 }
 
@@ -792,8 +792,8 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     options->LoadFromRegistry(RegistryRoot());
     const gamecrt::NewHandler previousHandler =
         libcrt::SetNewHandler(ei::Code<gamecrt::NewHandler>(0x00455A30));
-    TheClientWorld()->Setup();
-    TheServerWorld()->Setup();
+    TheClientWorld()->Create();
+    TheServerWorld()->Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
     TheCamera()->Init(reinterpret_cast<CameraSettings*>(options), std::bit_cast<std::uint32_t>(options->nearClipDistance_),
                    std::bit_cast<std::uint32_t>(options->farClipDistance_),

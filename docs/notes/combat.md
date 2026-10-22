@@ -126,7 +126,7 @@ others their stats scaled by difficulty (0052E0D0); no defence with a bow or cro
 - World::CreateManagers (0055EE40, from the client init 00561E50 and the server's 0058AE10) makes and references the world's
   managers at +0x38 (0xB0), +0x40 (0xBC, 005125E0), +0x3C (0xD0, 005AA070), +0x48, +0x50 (00683FF0), +0x4C (00688840),
   +0x58 (006A5AB0), +0x54 (CResourceManager 00674D90), copies the command-line paths (0079BC90..98) to 007AF460 / 45C / 458,
-  then IsaacRandom::Init and 006D43E0 on +0x70. CWorld::DestroyManagers (0055F8E0, base slot 3): spell objects get slot 5
+  then IsaacRandom::Init and 006D43E0 on +0x70. CWorld::Destroy (0055F8E0, base slot 3): spell objects get slot 5
   (ClearState), managers deleted whatever their counts.
 
 ### Floating point and verification patterns
@@ -180,7 +180,7 @@ here is gone. What it covered, by file:
   id 005460C0 / 005460D0, DeletingDestruct 005460E0, MotionSlot, slot 16 / 17, slot 53 = UpdateMoveFactors 00552F30, the UnitAction /
   AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai_player_mode_slots.cpp`: priorities 10 /
   100000000, types 6 / 8).
-- World managers: World::CreateManagers 0055EE40, CWorld::DestroyManagers 0055F8E0, UnitSetEntryHead::Write 00558FA0
+- World managers: CWorld::Create 0055EE40, CWorld::Destroy 0055F8E0, UnitSetEntryHead::Write 00558FA0
   (`world_unit_set.cpp`, SendZone's unit set entry head); `world_managers.cpp` CPlayerManager / CEffectManager (0073F2C4) /
   CItemManager class names, ids and destructors 0055F310-0055F400 (0055F3B0, CItemManager slot 25 "items", left because
   CResourceManager does not declare slot 25). Player sources (`player_source.h`, `world_sessions.cpp`): CPlayerSource base

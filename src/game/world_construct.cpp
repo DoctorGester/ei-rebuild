@@ -1,8 +1,7 @@
-// The two worlds (g_serverWorld 007AFF60, g_clientWorld 007AF5B8) and their compiler-generated constructors (S3b):
-// CWorldServer 00589ED0 and CWorldClient 005612F0. Only their static initialisers (00589BE0, 00560620, ported here on
-// the names) call them. Each is the base constructor, then the members' constructors in the original's order (the
-// inlined ones written out, the out-of-line ones the game's own registered rewrites), the vtable, and the fields set
-// after it.
+// The two worlds (g_serverWorld 007AFF60, g_clientWorld 007AF5B8) and their constructors (S3b): CWorldServer 00589ED0
+// and CWorldClient 005612F0. Only their static initialisers (00589BE0, 00560620, ported here on the names) call them.
+// The members with C++ constructors (the strings, the zone header) are the compiler's; the others' constructors are
+// written out in the original's order (the inlined ones) or called (the out-of-line ones).
 #include "world.h"
 
 #include "ai_map.h"
@@ -12,7 +11,6 @@
 #include "ground_print.h"
 #include "object_diplomacy.h"
 #include "registry.h"
-#include "world_class.h"
 #include "world_class_slots.h"
 #include "engine_object_class.h"
 #include "script.h"
@@ -86,36 +84,28 @@ void ObjectIdMap::Construct() {
 
 // ---- CWorldServer (00589ED0) ------------------------------------------------------------------------
 
-CWorldServer* CWorldServer::Construct() {
-    ConstructBase();
+CWorldServer::CWorldServer() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
     updateMap_.Construct();
-    new (&zoneName_) mfc::CString();
     mobFiles_.Construct();
     Messages()->Construct();
     ConstructAIMap(AIMap());
     MainScript()->Construct();
     SecondScript()->Construct();
     diplomacy_.Reset();
-    new (&mobName_) mfc::CString();
-    new (&mapName_) mfc::CString();
     for (MapObjectIdMap* map : {&objects_, &sentObjects_, &mapObjects_, &otherMapObjects_, &namedObjects_})
         map->Construct();
     timedObjects_.Construct();
-    new (&zoneHeader_) CMemoryStream();
     ConstructList(projectiles_, gameslots::RefListBClass::Vtable());
     ConstructList(counted_, gameslots::ItemObjectListClass::Vtable());
     ConstructList(sharedObjects_, gameslots::SharedObjectListClass::Vtable());
-    ei::SetVtable(this, Vtable());
     ResetState();
-    return this;
 }
-EI_REWRITTEN(0x00589ED0, CWorldServer::Construct);
+EI_REWRITTEN_SPECIAL(0x00589ED0, CWorldServer::CWorldServer);
 
 // ---- CWorldClient (005612F0) ------------------------------------------------------------------------
 
-CWorldClient* CWorldClient::Construct() {
-    ConstructBase();
+CWorldClient::CWorldClient() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
     countedA0_.Construct(gameslots::ClientObjectPtrArrayClass::Vtable());
     heroes_.Construct();
@@ -127,14 +117,13 @@ CWorldClient* CWorldClient::Construct() {
     hits_.ConstructEmpty();
     lineLists_.InitBuckets(100);
     lastLineListKey_ = 0;
-    // Both sector grids at 1 x 1 (Setup makes them 4 x 4).
+    // Both sector grids at 1 x 1 (Create makes them 4 x 4).
     objectGrid_.unknown08_ = 1;
     objectGrid_.unknown0C_ = 1;
     objectGrid_.Allocate();
     secondGrid_.unknown08_ = 1;
     secondGrid_.unknown0C_ = 1;
     secondGrid_.Allocate();
-    new (&zoneName_) mfc::CString();
     bloodPrints_.Construct();
     footprints_.Construct();
     scorchMarks_.Construct();
@@ -142,14 +131,11 @@ CWorldClient* CWorldClient::Construct() {
 
     ConstructEngineObject(platforms_.Engine(), BridgeManagerClass::Vtable());
     ConstructList(platforms_.list, mfc::impl::PlatformListClass::Vtable());
-    new (&texturePath_) mfc::CString();
 
     new (RainSnow()) CRainSnow();
 
     list7BC_.Construct();
-    for (mfc::CString* name : {&appName_, &windowClass_, &windowTitle_, &pausedTitle_}) new (name) mfc::CString();
     flags_ |= kClientFlags;
-    ei::SetVtable(this, Vtable());
     debugFlags_ = kClientDebugFlags;
     worldValue_ = -1;
     camera_ = nullptr;
@@ -175,9 +161,8 @@ CWorldClient* CWorldClient::Construct() {
     windowTitle_ = "EvilIslands";
     pausedTitle_ = "EvilIslands Paused";
     constant6E8_ = 0;
-    return this;
 }
-EI_REWRITTEN(0x005612F0, CWorldClient::Construct);
+EI_REWRITTEN_SPECIAL(0x005612F0, CWorldClient::CWorldClient);
 
 // ---- The two worlds -------------------------------------------------------------------------------
 
@@ -190,14 +175,14 @@ CWorldServer* TheServerWorld() { return &*g_serverWorld; }
 CWorldClient* TheClientWorld() { return &*g_clientWorld; }
 
 namespace {
-void __cdecl DestroyServerWorld() { g_serverWorld->Destruct(); }   // 00589C00
-void __cdecl ConstructServerWorld() {                              // 00589BE0
-    g_serverWorld->Construct();
+void __cdecl DestroyServerWorld() { g_serverWorld.Destroy(); }   // 00589C00
+void __cdecl ConstructServerWorld() {                             // 00589BE0
+    g_serverWorld.Construct();
     libcrt::AtExit(DestroyServerWorld);
 }
-void __cdecl DestroyClientWorld() { g_clientWorld->Destruct(); }   // 00560640
-void __cdecl ConstructClientWorld() {                              // 00560620
-    g_clientWorld->Construct();
+void __cdecl DestroyClientWorld() { g_clientWorld.Destroy(); }   // 00560640
+void __cdecl ConstructClientWorld() {                             // 00560620
+    g_clientWorld.Construct();
     libcrt::AtExit(DestroyClientWorld);
 }
 } // namespace
