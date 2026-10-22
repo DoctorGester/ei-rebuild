@@ -505,6 +505,9 @@ vtable,slots,class,file,note
 00744264,1,PrintRecord,src/game/model.h,a prints.db record
 00744268,1,PrintRecord2,src/game/model.h,prints.db's second record type
 00744288,3,DibClass,src/game/dib.cpp,CDib
+00745DF4,21,PlainFileTable,src/lib/mfc_file.cpp,CFile
+00745E4C,5,FileExceptionTable,src/lib/mfc_exception.cpp,CFileException
+00745EE8,19,FileFindTable,src/lib/mfc_file.cpp,CFileFind
 00745F5C,3,StringArrayTable,src/lib/mfc_coll.cpp,CStringArray
 00745F78,3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
 007461B0,29,PlainDCTable,src/lib/mfc_gdi.cpp,CDC
@@ -520,9 +523,11 @@ vtable,slots,class,file,note
 00746484,5,UserExceptionTable,src/lib/mfc_exception.cpp,CUserException (_simpleUserException)
 0074649C,3,CRgn,-,"stored only by game.exe's 0070B7D6 and the CRgn destructor, which no code of ours calls"
 007464B8,3,DWordArrayTable,src/lib/mfc_coll.cpp,CDWordArray
+007464F0,24,StdioFileTable,src/lib/mfc_file.cpp,CStdioFile
 00746560,3,ByteArrayTable,src/lib/mfc_coll.cpp,CByteArray (the terrain sectors' water materials)
 007465F8,5,MemoryExceptionTable,src/lib/mfc_exception.cpp,CMemoryException (_simpleMemoryException)
 00746610,5,NotSupportedExceptionTable,src/lib/mfc_exception.cpp,CNotSupportedException (_simpleNotSupportedException)
+00746650,26,CMemFile,-,"stored only by game.exe's constructors / destructor 0070ADD9 / 0070AE25 / 0070AE9E, which no code of ours calls"
 007466E0,31,WinThreadTable,src/lib/mfc_thread.cpp,"CWinThread (the sound stream's, the MIDI player's and the cursor's threads)"
 00746760,1,_AFX_CTL3D_STATE,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls (mfc_state.cpp makes no state objects)"
 00746768,1,_AFX_CTL3D_THREAD,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls"
