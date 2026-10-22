@@ -374,6 +374,8 @@ void NoteMeshDraw(const MeshDraw& m) {
     if (it != g_meshes.end()) it->second.relightNext = true;
 }
 
+const void* MeshSourceOwner() { return g_haveSource ? g_source.owner : nullptr; }
+
 int CachedIndexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.indices.size()); }
 
 void UploadCachedMeshes(const Frame& f) {

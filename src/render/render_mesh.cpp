@@ -511,6 +511,7 @@ bool MeshPass(void* device) {
     if (!g_pending.built) {
         g_pending.built = true;
         ++Stats().meshes;
+        if (g_pending.caster) NoteCasterPart(MeshSourceOwner());
         // A figure mesh kept on the GPU (R16d), else its vertices into the frame's stream.
         g_pending.cached = KeepMesh(g_pending.mesh);
         if (g_pending.cached) {

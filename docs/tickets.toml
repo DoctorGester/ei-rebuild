@@ -609,7 +609,7 @@ title = "Shadows of objects outside the view (shadow pop at the screen edge)"
 group = "renderer"
 size = 1
 model = "opus"
-note = "User 2026-10-22, playing play.cmd: shadows are drawn only for objects in the current screen space, so there is significant shadow pop. R16j's casters are the objects the game draws this frame (0051CE60 CastsShadow after visibility tests), so an object just outside the view casts nothing onto the visible ground. Add casters outside the view whose shadow can reach it (the sun-side caster room the map already keeps), without changing what the game draws or its goldens' logic; frame captures may change."
+note = "Done 2026-10-22 (worktree-agent-aa161a03c455d1853): the world's draw walks the object grid's sectors over the visible ground swept back towards the sun and hands the shadow map every object (or undrawn part) whose light-space bounds overlap the map's area on the sun's side of the ground's far depth (exact up to the bounding boxes; no distance rule); the map's depth starts at the nearest such caster (160-unit room gone; caster shader pancakes). Read-only on the game's objects; goldens 121 / 114 the same. Scenario render_shadows_outside (walked frames match the game's draws; moved-town gate shadow present, 1.8% of the frame). Cost at 4K: map CPU +0.05 ms (zone1 start), +0.4 (town), +1.0 (town gate, 83k corners outside); GPU within noise."
 
 [[ticket]]
 id = "R21"
