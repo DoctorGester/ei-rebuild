@@ -17,13 +17,14 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <windows.h>   // RECT
+
 class CObject3D;
 class CTexture;      // texture.h
 class CFigureMesh;   // figure_mesh.h
 struct VertexPacket;    // figure_mesh.h
 struct DecalTexCoord;   // ground_decal.h
 
-struct tagRECT;   // windows.h
 #include "device_material.h"   // CDeviceMaterial, MaterialStage
 #include "material.h"   // CMaterial
 #include "model.h"      // ClipBounds, CSceneRenderer (the draws' context), CTransformPipeline
@@ -122,7 +123,7 @@ public:
     // 0051C1D0 whether `rect` meets such a part's rectangle (a non-empty intersection).
     int DirtyRectContains(const long* point);
     int PartRectsContain(const long* point);
-    int PartRectsMeet(const tagRECT* rect);
+    int PartRectsMeet(const RECT* rect);
     // Slots 16 / 17 (RET 4): 0051B2E0 the object's part named `name` (CObject3D::FindPart), 0051B2D0
     // its part of type `type` (CObject3D::FindPartOfType).
     CFigureMesh* ObjectPartNamed(const char* name);
@@ -202,8 +203,6 @@ public:
     // scene pipeline's ClipTest, 004F16A0, gives 2 for outside).
     bool ShadowInView();
 
-    // drawnRect as the RECT it is (windows.h).
-    tagRECT* DrawnRect() { return reinterpret_cast<tagRECT*>(drawnRect); }
 
     // +0x1C the object it belongs to (CObject3DSpecific::object)
     // +0x20 the two part sets Draw walks: the first has the skin texture (its +0x60 is the shadow
@@ -222,7 +221,7 @@ public:
     ClipBounds sphere;              // +0x90 the shadow's bounds (the scene object's slot 7), the
                                     //       centre relative to the object
     std::uint8_t unused_BC[0xC8 - 0xBC];    // +0xBC zeroed with the bounds
-    int drawnRect[4];               // +0xC8 RECT: the screen area of the dirty parts Draw drew
+    RECT drawnRect;                 // +0xC8 the screen area of the dirty parts Draw drew
     CTexture* woundsTexture;        // +0xD8 the wounds texture (counted; 0051C3D0 loads it)
     CountedRef<WoundsMaterial> woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)
     mfc::CString skinName;          // +0xE0 the first set's texture name (SetSkins)
