@@ -18,7 +18,7 @@ namespace {
 struct ScrollbarTable final : ScrollbarClass<ScrollbarTable, &CUiScrollbar::ScrollbarDelete> {};
 struct ScrollbarInputTable final : ScrollbarInputClass<ScrollbarInputTable, &CUiScrollbar::ScrollbarDelete> {};
 struct SliderTable final : ScrollbarClass<SliderTable, &CUiScrollbar::ScrollbarDelete> {
-    CUiSlider* Slider() { return static_cast<CUiSlider*>(AsWindow()); }
+    CUiSlider* Slider() { return ObjectAs<CUiSlider>(); }
     void SetPosition(int position) override { Slider()->CUiSlider::SetPosition(position); }   // 25: 0065B730
     void SetRect(const RECT* rect) override { Slider()->CUiSlider::SetRect(rect); }           // 26: 0065B8B0
 };

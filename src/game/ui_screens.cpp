@@ -361,7 +361,7 @@ void CUiItemStrip::OnLButtonDown(int, int x, int y) {
         uiorig::PlayUiSound(ui, kSoundCampMode, 0);
         SetTab(region - 2);
     }
-    if (region >= 0) UiHandled(this) = true;
+    if (region >= 0) inputHandled_ = true;
 }
 
 void CUiItemStrip::OnLButtonUp(int, int, int) {
@@ -622,7 +622,7 @@ void CEscMenu::OnKeyDown(int key, int repeat, int flags) {
     if (key == VK_ESCAPE) {
         uiorig::PlayUiSound(window.interface_, kSoundMenuOk, 0);
         window.interface_->SetPendingValue(0);
-        UiHandled(this) = true;
+        window.inputHandled_ = true;
     }
 }
 
@@ -661,19 +661,19 @@ EI_REPLACE_METHOD(0x0062C010, InputForward<&CCreditsScreen::OnKeyDown>::Call);
 
 void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->OnKeyDown(key, repeat, flags);
-    if (UiHandled(this)) return;
+    if (inputHandled_) return;
     switch (key) {
     case VK_BACK:
         interface_->ChatKeyBackspace();
-        UiHandled(this) = true;
+        inputHandled_ = true;
         break;
     case VK_RETURN:
         interface_->ChatKeyEnter();
-        UiHandled(this) = true;
+        inputHandled_ = true;
         break;
     case VK_ESCAPE:
         net::ClientDropParty(static_cast<net::ClientSession*>(MultiplayerClient()));
-        UiHandled(this) = true;
+        inputHandled_ = true;
         break;
     }
 }

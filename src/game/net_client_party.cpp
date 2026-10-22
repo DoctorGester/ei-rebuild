@@ -39,7 +39,7 @@ void WriteDword(CStream* stream, std::uint32_t* scratch, std::uint32_t value) {
     *scratch = value;
     stream->Write(scratch, 4u);
 }
-CStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMessage*>(member)->stream_; }
+CMemoryStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMessage*>(member)->stream_; }
 
 void PushBack(RefVector* v, const RefPtr* value) {
     if (v->end() != v->EndOfStorage()) {
@@ -57,10 +57,10 @@ void PushBack(RefVector* v, const RefPtr* value) {
 RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessage* message, std::uint32_t) {
     CStream* stream = &message->stream_;
     for (; first != last; ++first) {
-        CStream* element = StreamOf(first->ptr);
+        CMemoryStream* element = StreamOf(first->ptr);
         std::uint32_t size = element->Size();
         if (stream->Size() != size) continue;
-        const void* a = static_cast<CMemoryStream*>(element)->data_;
+        const void* a = element->data_;
         const void* b = message->stream_.data_;
         if (std::memcmp(a, b, stream->Size()) == 0) break;
     }

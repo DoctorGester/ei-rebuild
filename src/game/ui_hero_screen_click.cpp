@@ -163,7 +163,7 @@ void CMpHeroScreen::FinishRename() {
 
 void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->OnKeyDown(key, repeat, flags);
-    if (UiHandled(this)) return;
+    if (inputHandled_) return;
     CInterface3D* ui = interface_;
     bool renaming = renameEdit_->focused_;
     int heroStep = 0;
@@ -178,7 +178,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
             MpHeroAddNew(this);
         else if (mode_ == kModeNewHero)
             MpHeroCreate(this);
-        UiHandled(this) = true;
+        inputHandled_ = true;
         return;
     case VK_ESCAPE:
         if (renaming) {
@@ -192,7 +192,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             SetMode(this, nullptr, kModeList);
         }
-        UiHandled(this) = true;
+        inputHandled_ = true;
         return;
     case VK_PRIOR:
         heroStep = -10;
@@ -225,13 +225,13 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
     } else {
         return;
     }
-    UiHandled(this) = true;
+    inputHandled_ = true;
 }
 
 void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     if (renameEdit_->focused_) return;
     InputOf(this)->OnLeftDown(flags, x, y);
-    if (UiHandled(this)) return;
+    if (inputHandled_) return;
     CInterface3D* ui = interface_;
     int region = RegionAt(x, y);
     auto rotate = [&](int direction) {

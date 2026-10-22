@@ -300,9 +300,7 @@ static_assert(sizeof(TypeRegistry) == 0x28);
 // The UDP socket of a session and the broadcast addresses of the host (net_socket_driver.cpp).
 struct SocketDriver {
     std::uint32_t socket;        // +0x00 SOCKET (-1: none)
-    NetAddress* addresses;       // +0x04 vector<sockaddr_in> of broadcast addresses
-    NetAddress* addressesEnd;    // +0x08
-    NetAddress* addressesEos;    // +0x0C
+    stlp::vector<NetAddress> addresses;   // +0x04 broadcast addresses
 
     // 004407F0. Starts Winsock and notes the broadcast address of the host's first address. Returns this.
     SocketDriver* Construct();

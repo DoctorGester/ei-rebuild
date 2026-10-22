@@ -84,10 +84,6 @@ struct InputForward<Method, R (C::*)(A...)> {
     R Call(A... args) { return (WindowFromInput<C>(this)->*Method)(args...); }
 };
 
-// The window's input side's handled flag (+0x9C): set by a handler that consumed the event; the
-// interface manager then stops passing it on.
-inline bool& UiHandled(void* window) { return static_cast<CUiWindow*>(window)->Input()->handled_; }
-
 // The input sub-object that captured the mouse (scroll arrows held down), or null.
 inline void*& UiCapture(CInterface3D* ui) { return ui->mouseCapture_; }
 // A shift key is held (set by the key-down dispatch 005F78C0).
@@ -232,6 +228,16 @@ public:
     // 0060E290 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyForwarding, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CUiItemStrip* ForwardingStripDelete(unsigned flags);
+
+    // The strips' compiled tables and input sides (ui_item_panel_tables.cpp) in place of game.exe's: the plain
+    // strip (00741A1C / 007419E8), the forwarding strip (0074197C / 00741948), the figure strips (00741BF4 /
+    // 00741C60).
+    static void** PlainVtable();
+    static void** PlainInputVtable();
+    static void** ForwardingVtable();
+    static void** ForwardingInputVtable();
+    static void** FigureVtable();
+    static void** FigureInputVtable();
 
     // Settles the pending scroll on release (inlined twice by the original).
     void SettleScroll();

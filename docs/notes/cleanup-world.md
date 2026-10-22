@@ -44,3 +44,10 @@ A gap became a name when src reads or writes it through the class, else `unused_
 - Written, never read: `CWorldClient::lightingMark_`, `CUnitServer::orderStopped` (saved too), `DamageInfo::weaponValue`.
 - Methods renamed with their fields: `SetCave`, `SetClimate`, `SetWeather` (the forwarders `WorldSetCave`, `WorldSetClimate`, `GameSetWeather`); the
   save version constant `kVersionRainBoltTick`.
+
+## C21 batch 22 (2026-10-22)
+
+- world_client_maps.cpp calls its rewritten callees directly (nine rows left config/direct_calls_skip.csv); LoadLightsAt (00563930) and
+  006B6040 stay forwarders (Rebirth patches them).
+- The client's visible list is a `stlp::list<CEngineObject*>`; BuildUnitSkins takes the typed figured and dressed record vectors.
+- Unit skins: `SkinRequest::layers` is a `lib::AlignedArray<std::uint8_t>` (sizeof 0x28 kept).

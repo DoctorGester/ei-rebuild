@@ -151,8 +151,7 @@ void ClearSpellList(StockSpellList& list) {
     while (node != head) {
         StockSpellListNode* next = node->next;
         if (node->data) node->data->Release();   // slot 4
-        node->next = static_cast<StockSpellListNode*>(stlp::SmallNodeFreeList());
-        stlp::SmallNodeFreeList() = node;
+        stlp::PushSmallNode(node);
         node = next;
     }
     head->next = head;

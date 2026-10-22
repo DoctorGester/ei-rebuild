@@ -126,7 +126,7 @@ namespace {
 // The icon window's compiled tables (C19, ui_window_class.h) in place of game.exe's 00740444 / 00740410: the window's
 // slots with its own Build (18), the input side's defaults.
 struct IconWindowClass final : UiWindowClass<IconWindowClass, &CUiWindow::UiWindowDelete> {
-    void Build() override { static_cast<CItemIconWindow*>(AsWindow())->Build(); }   // 18: 005F2A90
+    void Build() override { ObjectAs<CItemIconWindow>()->Build(); }   // 18: 005F2A90
 };
 void** IconWindowVtable() { return IconWindowClass::Slots(); }
 void** IconWindowInputVtable() { return UiWindowInputClass::Slots(); }

@@ -66,23 +66,22 @@ CFigureMesh* CFigureManager::NewPart(const char* modelName, const char* partName
 }
 
 CEngineObject* CFigureManager::NewFigure(const char* name) {
-    CEngineObject* object = CreateObject(kFigureClass, -1);
-    if (!name) return object;
-    auto* figure = static_cast<CFigureMesh*>(object);
+    auto* figure = CreateObjectAs<CFigureMesh>(kFigureClass, -1);
+    if (!name) return figure;
     figure->name_ = name;
     figure->directory_ = game::EmptyText();
     mfc::CString path;
     path.Format(game::FigFileFormat(), name);
     void* data = GetFile(path, nullptr);
     if (!data) {
-        ReleaseObject(object);
+        ReleaseObject(figure);
         return nullptr;
     }
     char* cursor = static_cast<char*>(data);
     figure->LoadFromMemory(&cursor, 0.0f, 0.0f, 0.0f);
     figure->bounds_.flags = 0;
     CloseFile(data);
-    return object;
+    return figure;
 }
 
 int CFigureManager::LoadPart(CFigureMesh* part, FigureModel* model, float s, float t, float u) {

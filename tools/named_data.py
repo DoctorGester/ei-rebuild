@@ -418,6 +418,12 @@ def addon_sites():
 RETIRED_ADDON_SITES = {0x007432F4}   # ResOverride: CMappedResource's slot 5, GetFile (007432E0, C19 batch 3)
 ADDON_SITES_INC = 'tests/verify/addon_sites.inc'
 
+# Retired vtables game.exe's pointer cells may still point at: type_info's 007472B0 (C19 batch 23), the vtable field
+# of the 74 RTTI type descriptors (gen_image_cells' REVIEWED_RDATA). Nothing in the image calls a type descriptor's
+# virtual: the frame handlers compare descriptors by address and name, and no descriptor is ever destroyed (they are
+# static data with no destructor registered), so the table's zero bytes are never read.
+RETIRED_POINTED = {0x007472B0}
+
 
 def other_files():
     """src/ and tests/ files that can name an address: .cpp, .h, .inc."""
@@ -670,7 +676,7 @@ def check(img, update, img_path):
                 problems.append(f'{d.where()}: {d.name} holds game.exe\'s {what} at {cell:08X} (-> {value:08X}) where '
                                 'it has no pointer element: game.exe\'s data reaches it; it is not ours alone')
             t = inside(value) if what == 'pointer cell' and d is None else None
-            if t is not None:
+            if t is not None and not (isinstance(t, Retired) and value in RETIRED_POINTED):
                 problems.append(f'{t.where()}: {t.name} is pointed at by game.exe\'s cell at {cell:08X}: game.exe\'s '
                                 'data reaches it; it is not ours alone')
 

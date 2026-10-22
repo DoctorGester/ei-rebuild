@@ -295,7 +295,6 @@ inline float CellSize() { return options::TheOptions()->cameraTerrainArea_; }
 inline constexpr float kHalfPi = /*0079B2A4*/ 1.5707964f;
 inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
 inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 0.0f};
-inline void*& NodeFreeList() { return ei::GameData<void*>(0x0079B228); }   // free list of the 12-byte nodes
 inline std::uint32_t& GlobalFlags() { return ei::GameData<std::uint32_t>(0x007AF5C0); }   // bit 0x10: camera file made
 
 // Constants (addresses in the exe in the comments).

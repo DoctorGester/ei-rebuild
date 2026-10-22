@@ -43,11 +43,11 @@ void WriteText(BitStream* out, const char* text) {
     Write(out, text, static_cast<std::uint32_t>(std::strlen(text) + 1));
 }
 
-std::uint32_t ObjectId(const void* object) { return static_cast<std::uint32_t>(static_cast<const CEngineObject*>(object)->id_); }
+std::uint32_t ObjectId(const CEngineObject* object) { return static_cast<std::uint32_t>(object->id_); }
 
 // An item's charge (the float at +0x28; the client's 0x0C / 0x14 handlers store it there), as its bits.
-std::uint32_t ItemCharge(const void* object) {
-    return std::bit_cast<std::uint32_t>(static_cast<const CItem*>(static_cast<const CEngineObject*>(object))->charge_);
+std::uint32_t ItemCharge(const CEngineObject* object) {
+    return std::bit_cast<std::uint32_t>(static_cast<const CItem*>(object)->charge_);
 }
 
 // The world player's party variables (a NamedFloatTable, object_tables.h).
@@ -130,9 +130,9 @@ int CPlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z
     return 1;
 }
 
-void CPlayerServer::SendState73(void* source) {
+void CPlayerServer::SendState73(const WaterTweens* source) {
     WriteByte(&out_, 0x73);
-    static_cast<const WaterTweens*>(source)->Save(&out_);   // 006D4570
+    source->Save(&out_);   // 006D4570
     Owner()->dirty_ &= ~0x20;
 }
 
@@ -161,7 +161,7 @@ std::uint32_t CPlayerServer::SendPosition0F(const Vector3* at, const Vector3* ot
 
 void CPlayerServer::Send17() { WriteByte(&out_, 0x17); }
 
-void CPlayerServer::SendObject0A(const void* object) {
+void CPlayerServer::SendObject0A(const CEngineObject* object) {
     WriteByte(&out_, 0x0A);
     WriteDword(&out_, ObjectId(object));
 }
@@ -172,11 +172,10 @@ void CPlayerServer::SendPair16(std::uint32_t a, std::uint32_t b) {
     WriteDword(&out_, b);
 }
 
-void CPlayerServer::SendObjects0C(const void* list) {
+void CPlayerServer::SendObjects0C(const mfc::CTypedPtrList<CEngineObject>* list) {
     WriteByte(&out_, 0x0C);
-    // An MFC CPtrList of objects.
     using ObjectList = mfc::CTypedPtrList<CEngineObject>;
-    ObjectList::Node* node = static_cast<const ObjectList*>(list)->head;
+    ObjectList::Node* node = list->head;
     while (node != nullptr) {
         ObjectList::Node* next = node->next;
         const CEngineObject* object = node->data;
@@ -187,7 +186,7 @@ void CPlayerServer::SendObjects0C(const void* list) {
     WriteDword(&out_, 0xFFFFFFFFu);
 }
 
-void CPlayerServer::SendObject14(const void* object) {
+void CPlayerServer::SendObject14(const CEngineObject* object) {
     WriteByte(&out_, 0x14);
     WriteDword(&out_, ObjectId(object));
     WriteDword(&out_, ItemCharge(object));
@@ -215,13 +214,13 @@ void CPlayerServer::SendPair18(std::uint32_t a, std::uint32_t b) {
     WriteDword(&out_, b);
 }
 
-void CPlayerServer::SendObject43(const void* object) {
+void CPlayerServer::SendObject43(const CEngineObject* object) {
     if (object == nullptr) return;
     WriteByte(&out_, 0x43);
     WriteDword(&out_, ObjectId(object));
 }
 
-void CPlayerServer::SendObject0B(const void* object, std::uint32_t value) {
+void CPlayerServer::SendObject0B(const CEngineObject* object, std::uint32_t value) {
     std::uint32_t payload[2] = {ObjectId(object), value};
     WriteByte(&out_, 0x0B);
     Write(&out_, payload, 8);

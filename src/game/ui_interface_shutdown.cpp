@@ -108,7 +108,7 @@ void CInterface3D::DestroyBody() {
 EI_REPLACE_METHOD(0x005F4790, CInterface3D::DestroyBody);
 
 void console::ConsoleWindow::DestroyBody() {
-    DeleteSurface(static_cast<CUiSurface*>(surface_));
+    DeleteSurface(surface_);
     surface_ = nullptr;
     if (font_) font_->Delete();
     font_ = nullptr;

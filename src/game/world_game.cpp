@@ -1409,7 +1409,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     if (mode == 1) SpectatorFlag() = mode;
     TheServerWorld()->SetGameResult(result);
     // The server world's counted helper (+0x5C, a player source) handed to the client world.
-    TheClientWorld()->SetPlayer(reinterpret_cast<std::uint8_t*>(TheServerWorld()->shared5C_.ptr));
+    TheClientWorld()->SetPlayer(TheServerWorld()->shared5C_.Get());
     ClientWorldLocalView(TheClientWorld())->sendParty_ = 0;
 }
 
@@ -1530,7 +1530,7 @@ void GameFlow::ProcessRequest() {
         StartZoneAt(this, nullptr, kMainMenu, 2);
         break;
     case kStateLoad:
-        clientWorld->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
+        clientWorld->SetPlayer(TheServerWorld()->shared5C_.Get());   // the server world's counted helper (007AFFBC)
         ClientWorldLocalView(clientWorld)->sendParty_ = 0;
         TheServerWorld()->SetGameResult(1);
         ClientSegmentAt(clientWorld);
@@ -1577,7 +1577,7 @@ void GameFlow::ProcessRequest() {
         StartNetworkZoneAt(requestTarget_);
         CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
-        clientWorld->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
+        clientWorld->SetPlayer(TheServerWorld()->shared5C_.Get());   // the server world's counted helper (007AFFBC)
         ClientWorldLocalView(clientWorld)->sendParty_ = 1;
         break;
     }

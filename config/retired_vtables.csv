@@ -2,6 +2,7 @@ vtable,slots,class,file,note
 0073B870,25,BaseManagerClass,src/game/base_manager.cpp,"CBaseManager's own table (ConstructBase / DestructBody; slots 11, 12, 14 _purecall)"
 0073B8D4,3,TempListClass,src/lib/mfc_slots.h,CList (a pointer list built around each item creation (world quests))
 0073B8E0,13,EngineObjectBaseClass,src/game/engine_object_class.h,"CEngineObject's own table (the constructor bodies, DestructBase; slots 2, 3, 11, 12 _purecall)"
+0073B984,2,length_error,-,"stlp length_error (stored only by game.exe: 0040C2A0, 0040C6E0, 00421800, 004269A0, 0042B700; our ports never throw it); 0073B984 is also the end of __stl_prime_list (the compares)"
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
 0073B994,2,NamedExceptionClass,src/lib/stlp_string.cpp,"__Named_exception (out_of_range's base, set while its constructor runs)"
 0073B9E0,18,CameraClass,src/game/camera_object.cpp,the camera (CCamera)
@@ -192,6 +193,7 @@ vtable,slots,class,file,note
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
 0073D624,7,GrowingBufferClass,src/game/net_coder.h,the growing byte buffer
 0073D644,13,SysInfoClass,src/game/sys_info.cpp,the system information (CSysInfo)
+0073D6B4,13,VisibilityFogClass,src/game/effects_weather.cpp,the visibility fog (CVisibilityFog; the fog manager NewObject and the destructor body)
 0073D760,1,DeviceObjectClass,src/game/texture.h,the device object (CTextureDevice)
 0073D764,1,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
 0073D768,1,RendererBaseClass,src/game/texture.h,"the renderer's counted base (CDXSurface, the device object, the pipeline)"
@@ -416,11 +418,17 @@ vtable,slots,class,file,note
 007418AC,13,EquipPanelInputClass,src/game/ui_item_panel_tables.cpp,the hero equipment panel's input side (CHeroEquipPanel)
 007418E0,2,EquipPanelClass,src/game/ui_item_panel_tables.cpp,the hero equipment panel (CHeroEquipPanel; slots 2-25 are 007418E8's row)
 007418E8,24,EquipPanelClass,src/game/ui_item_panel_tables.cpp,the tail of 007418E0 (its slots 2-25)
+00741948,13,ForwardingStripInputClass,src/game/ui_item_panel_tables.cpp,the forwarding item strip's input side (CUiItemStrip)
+0074197C,27,ForwardingStripClass,src/game/ui_item_panel_tables.cpp,the forwarding item strip (CUiItemStrip: the camp's item strip and the exchange's)
+007419E8,13,PlainStripInputClass,src/game/ui_item_panel_tables.cpp,the plain item strip's input side (CUiItemStrip)
+00741A1C,27,PlainStripClass,src/game/ui_item_panel_tables.cpp,"the plain item strip (CUiItemStrip: the camp's spell and part strips; slot 26 _purecall)"
 00741A88,13,StatsPanelInputClass,src/game/ui_item_panel_tables.cpp,the hero statistics column's input side (CHeroStatsPanel)
 00741ABC,26,StatsPanelClass,src/game/ui_item_panel_tables.cpp,the hero statistics column (CHeroStatsPanel)
 00741B24,13,BlankPanelInputClass,src/game/ui_item_panel_tables.cpp,the blank item panel's input side (CUiItemPanel::ConstructBlank)
 00741B58,26,BlankPanelClass,src/game/ui_item_panel_tables.cpp,the blank item panel (CUiItemPanel::ConstructBlank; the item strips' base)
 00741BC0,3,ItemStripArrayClass,src/lib/mfc_slots.h,CArray (an item strip's CArray<char*>)
+00741BF4,27,FigureStripClass,src/game/ui_item_panel_tables.cpp,the figure strip (CUiItemStrip::SetupFigures: the hero screen's and the exchange's)
+00741C60,13,FigureStripInputClass,src/game/ui_item_panel_tables.cpp,the figure strip's input side (CUiItemStrip)
 00741C9C,13,ConnectScreenInputClass,src/game/ui_screen_tables.cpp,the connection screen's input side
 00741CD0,42,ConnectScreenClass,src/game/ui_screen_tables.cpp,the multiplayer connection screen (CMpConnectScreen)
 00741DA4,13,MasterRequestBoxInputClass,src/game/ui_screen_tables.cpp,the master server request box's input side
@@ -599,6 +607,7 @@ vtable,slots,class,file,note
 00747214,5,TempMenuTable,src/lib/mfc_window.cpp,CTempMenu
 00747240,6,CRecentFileList,-,"stored only by game.exe's 00707DE3 / 00707F02, which no code of ours calls"
 00747290,2,ExceptionTable,src/lib/crt_except.cpp,std::exception (MSVC 6)
+007472B0,1,-,-,"type_info (game.exe CRT; stored only by its destructors 006E7DCB / 006E7DF4): the RTTI type descriptors vtable field, never dispatched through in the image (named_data.RETIRED_POINTED)"
 00748280,1,OstreamIosTable,src/lib/crt_iostream.cpp,ostream's table for its ios (the console's ostreams; game.exe's virtual base table after it stays)
 00748290,1,ostream_withassign,-,"stored only by game.exe's 006FC597 / 006FC61D / 006FC67B (its constructors and destructor), which no code of ours calls"
 007482AC,11,StreambufTable,src/lib/crt_iostream.cpp,streambuf (the base of the console's streambufs; slots 7 / 8 _purecall)

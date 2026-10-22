@@ -755,7 +755,8 @@ struct FogGrid {
 };
 static_assert(sizeof(FogGrid) == 0x18);
 
-// The engine object's virtuals are game.exe's (vtable 0073D6B4, set by the manager; never constructed here).
+// The engine object's slots are a compiled table (C19, effects_weather.cpp: Vtable(), in place of game.exe's 0073D6B4;
+// stored by the manager's NewObject and the destructor body; never constructed here).
 class CVisibilityFog : public CEngineObject {
 public:
     using CellMap = stlp::hash_map<std::uint32_t, FogCell, stlp::IntHash>;
@@ -770,6 +771,8 @@ public:
     // base destructor. 004E24C0 (slot 0, RET 4): it, then operator delete on bit 0; returns this.
     void Destruct();
     CVisibilityFog* DeletingDestruct(int flags);
+    // The compiled table (slots 0 DeletingDestruct, 2 / 3 ClearCells, 6 UpdateCells, 11 / 12 the class name and id).
+    static void* Vtable();
     // 004E1EB0 (RET 4; effects_weather_draw.cpp). The cells as sprites through the scene renderer
     // (its result); 1 without cells or when the bounds are out of view.
     int Draw(class CSceneRenderer* renderer);

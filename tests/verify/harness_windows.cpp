@@ -76,6 +76,9 @@ const std::vector<WindowKind>& WindowKinds() {
         {&ei::OriginalGameData<const std::uint8_t>(0x00741670), CSpellMakerPage::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x007415D4), CConstructorPage::ItemMakerVtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x00741538), CRepairGrid::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741A1C), CUiItemStrip::PlainVtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074197C), CUiItemStrip::ForwardingVtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741BF4), CUiItemStrip::FigureVtable()},
     };
     return kinds;
 }
