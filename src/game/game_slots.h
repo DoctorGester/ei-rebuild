@@ -101,15 +101,7 @@ inline void InitRef(RefPtr* p) { p->ptr = nullptr; }
 inline void ShareAssignRef(RefPtr* to, const RefPtr* from) { to->ShareAssign(from->ptr); }
 inline void AssignRef(RefPtr* to, const RefPtr* from) { to->Assign(from->ptr); }
 
-// The armour spells' 12-byte records (00558100): an engine object, a dword and a byte the
-// assignment copies (the three bytes after it are left).
-struct ArmourSpellRecord {
-    CEngineObject* object;
-    std::uint32_t value;
-    std::uint8_t flag;
-    std::uint8_t pad[3];
-};
-static_assert(sizeof(ArmourSpellRecord) == 12);
+// The armour spells' records (ArmourSpellRecord, game_lists.h).
 inline void InitArmourSpell(ArmourSpellRecord* p) {
     p->object = nullptr;
     p->value = 0;
