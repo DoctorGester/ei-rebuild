@@ -518,6 +518,7 @@ vtable,slots,class,file,note
 0074689C,3,MapPtrToPtrTable,src/lib/mfc_handle_map.cpp,CMapPtrToPtr (the handle maps' maps)
 00746FB0,3,CPtrArray,-,"stored only by game.exe's MFC constructor / destructor 006FFC8E / 006FFCC1, which no code of ours calls"
 00746FE8,3,CPtrList,-,"stored only by game.exe's MFC constructor / destructor 006FFED9 / 00700048, which no code of ours calls"
+00747290,2,ExceptionTable,src/lib/crt_except.cpp,std::exception (MSVC 6)
 00748280,1,OstreamIosTable,src/lib/crt_iostream.cpp,ostream's table for its ios (the console's ostreams; game.exe's virtual base table after it stays)
 00748290,1,ostream_withassign,-,"stored only by game.exe's 006FC597 / 006FC61D / 006FC67B (its constructors and destructor), which no code of ours calls"
 007482AC,11,StreambufTable,src/lib/crt_iostream.cpp,streambuf (the base of the console's streambufs; slots 7 / 8 _purecall)

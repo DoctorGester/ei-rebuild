@@ -3,6 +3,7 @@
 // text lives on the game's heap through gamecrt::operator_new / operator_delete).
 #include "crt.h"
 
+#include "compiled_vtable.h"
 #include "ei/hook.h"
 #include "gameapi.h"
 #include "game/game_data.h"
@@ -19,9 +20,12 @@ namespace {
 constexpr unsigned long kCxxExceptionCode = 0xE06D7363;
 constexpr unsigned long kCxxMagic = 0x19930520;
 
-// std::exception's vtable in the exe (scalar deleting destructor 006E7CE6, what 006E7DBE) and what()'s
-// text without one ("Unknown exception", 00747298).
-const void* ExceptionVtable() { return ei::GamePointer<const void>(0x00747290); }
+// std::exception's compiled table (C19) in place of game.exe's 00747290: 0 the scalar deleting destructor (006E7CE6),
+// 1 what (006E7DBE); and what()'s text without one ("Unknown exception", 00747298).
+struct ExceptionTable final : ei::CompiledDeleter<ExceptionTable, &Exception::DeletingDestruct> {
+    virtual const char* What() { return reinterpret_cast<const Exception*>(this)->What(); }   // 1
+};
+const void* ExceptionVtable() { return ExceptionTable::Vtable(); }
 const char* UnknownException() { return "Unknown exception"; }
 
 } // namespace
