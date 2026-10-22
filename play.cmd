@@ -12,6 +12,8 @@ rem run\play\ei_settings.ini, next to the exe (imported once from the registry; 
 rem The performance overlay (FPS, frame and GPU times, draws; docs/notes/renderer.md section 15): add to that file
 rem   [Software\Nival Interactive\EvilIslands\Standalone]
 rem   "PerfOverlay"=dword:00000001
+rem Vsync (docs/notes/renderer.md section 15a): on by default; to run unlocked (tearing where the system allows it) add
+rem   "VSync"=dword:00000000
 rem A harness game open does not end it (ST1b: harness windows have their own title).
 setlocal
 set MODE=%~1

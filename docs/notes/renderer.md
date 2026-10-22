@@ -1259,3 +1259,38 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
   font, the image's pixels; the overlay over a cleared BGRA8 target at 720 and 2160 rows against the image scaled up
   (every pixel); 40 frames of timestamps (the GPU times come back, the passes within the total). No harness
   scenario: the overlay is never on in a run.
+
+## 15a. The vertical blank switch (R23)
+
+User 2026-10-22: a way to disable vsync, from the settings file, no UI.
+
+- **Switch**: next to PerfOverlay (section 15), same file and key:
+  ```
+  [Software\Nival Interactive\EvilIslands\Standalone]
+  "VSync"=dword:00000000
+  ```
+  On when absent or any value but 0 (the default: `Present(1, 0)`); 0 turns it off. Read once the renderer starts
+  (`VsyncSetting`, directdraw_holder.cpp, after `render::StartPresenting` and before the first present) into
+  `render::SetVsync`. **Never in a harness run**: `render::VsyncSwitchSupported()` is false in the harness build
+  (EI_RENDER_VALIDATION), so the value is not read (the pinned settings file lacks it) and SetVsync does nothing; the
+  harness's own `SetWaitForVsync(false)` under the virtual clock stays interval 0 *without* tearing flags (its chains
+  are made as before).
+- **Off**: sync interval 0. Where the system supports tearing (`IDXGIFactory5::CheckFeatureSupport`
+  `DXGI_FEATURE_PRESENT_ALLOW_TEARING`, `TearingSupported` in render_window.cpp, asked of the factory at each chain
+  creation) the flip-model chain is made with `DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING` and every present carries
+  `DXGI_PRESENT_ALLOW_TEARING`: without it a windowed flip-model chain stays composed and capped at the display's rate
+  even at interval 0. Without support: interval 0 and no flags (it may still be capped by the compositor). `ResizeBuffers`
+  takes the flags the chain was made with (`g_chainFlags`), and Present's flag follows them (the flag is only valid on a
+  chain made with it). Both present paths use the same values: render_window.cpp's `PresentWindow` and the cursor
+  thread's between-frames present (render_cursor.cpp; `WindowParts` carries the sync interval and flags, no longer a
+  bool). The rules are `ChainFlagsFor` / `SyncIntervalFor` / `PresentFlagsFor`.
+- **Nothing else relies on vsync pacing**: game time is the world updates (up to five of 0078FF34 ms per frame, see
+  the timing line in section 3: vsync only changes how they group into frames); the cursor thread presents only after
+  40 ms without a main-thread present, so unlocked frames never reach it; the overlay's frame time simply stops including
+  the wait. An unlocked game runs the main thread flat out (a core at 100%, the GPU as fast as it goes): that is the
+  point of the switch, not a bug.
+- **Check**: `ei_perf_check` (tools/perf_check, run by build.cmd), the `vsync` part: the rules for every combination
+  (tearing wanted / supported, vsync on / off), and on a hidden window's flip-model chain on the WARP device made with
+  them: the flags it reports, `ResizeBuffers` with them, a `Present` with the switch's interval and flags succeeds
+  (the chain made with tearing only where the device supports it; the check prints which). No harness scenario (the
+  harness never has the switch).

@@ -267,6 +267,12 @@ bool PresentsItself();
 // Whether presenting onto the game window waits for the vertical blank (default on). The harness
 // turns it off under its virtual clock.
 void SetWaitForVsync(bool on);
+// The settings file's "VSync" (R23; directdraw_holder.cpp, after StartPresenting, before the first present): off
+// presents with sync interval 0 and, where the system supports it, tearing (a swap chain made with
+// DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING), so the windowed game runs unlocked. The harness build has no such switch:
+// VsyncSwitchSupported() is false there and SetVsync does nothing.
+bool VsyncSwitchSupported();
+void SetVsync(bool on);
 
 // A mesh draw of the old path (004E9010 / 004E9A50 on the device object), after the game has
 // decided it is visible and set its colours: the mesh in model space and the matrix the old path

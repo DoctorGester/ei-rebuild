@@ -161,7 +161,8 @@ struct Kit {
     int frameWidth = 0, frameHeight = 0;
     const std::uint8_t* rampTable = nullptr;   // the ramp as uploaded (the main thread's, read under the lock)
     Rect placed{0, 0, 0, 0};
-    bool vsync = true;
+    UINT syncInterval = 1;   // Present's, as the window module's last present used
+    UINT presentFlags = 0;
 } g_kit;
 
 void DropKit() {
@@ -349,7 +350,7 @@ bool PresentWithCursor(const Kit& kit, const Rect& to, const std::vector<std::ui
 #if defined(EI_RENDER_VALIDATION)
     CheckPresented(kit, to, cursor);
 #endif
-    HRESULT hr = kit.chain->Present(kit.vsync ? 1 : 0, 0);
+    HRESULT hr = kit.chain->Present(kit.syncInterval, kit.presentFlags);
     if (FAILED(hr)) {
         // A lost device is found by the main thread at its next present (GetDeviceRemovedReason).
         static int failures = 0;
@@ -419,7 +420,8 @@ void EndWindowPresent(bool presented) {
         g_kit.frameHeight = window.frameHeight;
         g_kit.rampTable = window.rampTable;
         g_kit.placed = window.placed;
-        g_kit.vsync = window.vsync;
+        g_kit.syncInterval = window.syncInterval;
+        g_kit.presentFlags = window.presentFlags;
         g_kit.valid = pipelines && g_kit.device && g_kit.context && g_kit.frame && g_kit.ramp && g_kit.linear;
         if (!g_kit.valid) DropKit();
     }
