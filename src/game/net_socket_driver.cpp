@@ -34,7 +34,7 @@ std::uint32_t FirstAddress(const void* host) {
     std::memcpy(&list, entry + 0xC, sizeof(list));
     return **list;
 }
-unsigned AddressCount(const SocketDriver* d) { return static_cast<unsigned>(d->addressesEnd - d->addresses); }
+unsigned AddressCount(const SocketDriver* d) { return static_cast<unsigned>(d->addresses.size()); }
 
 std::int32_t Length(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
@@ -112,9 +112,7 @@ EI_REWRITTEN(0x00440690, NetAddress::Format);
 // The broadcast address is the host's first address with the host part (by its class: A, B or C)
 // set to 0xFF.
 SocketDriver* SocketDriver::Construct() {
-    addresses = nullptr;
-    addressesEnd = nullptr;
-    addressesEos = nullptr;
+    addresses.ConstructEmpty();
     alignas(4) std::uint8_t wsa[0x190];
     libcrt::imports::WsaStartup(0x101, wsa);
     socket = kNoSocket;
@@ -132,11 +130,12 @@ SocketDriver* SocketDriver::Construct() {
     if (first >= 1 && first <= 0x7E) bytes[1] = bytes[2] = bytes[3] = 0xFF;
     if (first >= 0x80 && first <= 0xBF) bytes[2] = bytes[3] = 0xFF;
     if (first >= 0xC0 && first <= 0xDF) bytes[3] = 0xFF;
-    if (addressesEnd != addressesEos) {
-        if (addressesEnd) *addressesEnd = a;
-        ++addressesEnd;
+    NetAddress*& end = addresses.Finish();
+    if (end != addresses.EndOfStorage()) {
+        if (end) *end = a;
+        ++end;
     } else {
-        reinterpret_cast<stlp::vector<NetAddress>*>(&addresses)->InsertOverflow<stlp::PlainElement<NetAddress>>(addressesEnd, a, 1);
+        addresses.InsertOverflow<stlp::PlainElement<NetAddress>>(end, a, 1);
     }
     return this;
 }
@@ -146,7 +145,7 @@ void SocketDriver::Destruct() {
     if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
     socket = kNoSocket;
     libcrt::imports::WsaCleanup();
-    if (addresses) stlp::deallocate(addresses, static_cast<std::size_t>(addressesEos - addresses) * sizeof(NetAddress));
+    addresses.FreeStorage();
 }
 EI_REWRITTEN(0x00440940, SocketDriver::Destruct);
 
