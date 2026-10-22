@@ -594,16 +594,10 @@ static_assert(sizeof(CRegionMap) == 0x29C);
 // 005AF3D0 (ai_region_reach.cpp; thiscall, returns this): the region map's constructor.
 CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self);
 
-// The region map's constructor (005AF3D0, ai_region_reach.cpp) hands these to the CRT's `eh
-// vector constructor iterator` for its three grid arrays: the grids' constructors 005AF580 /
-// 005AF590 / 005AF5A0 and destructors 00598440 / 00598460 / 00598480 (edges, cells, regions); and
-// stores the vtable of the local search's row array (CArray<AIMapCell*>, 0073FA04).
-constexpr std::uintptr_t kEdgeGridConstructor = std::uintptr_t(0x005AF580);
-constexpr std::uintptr_t kEdgeGridDestructor = std::uintptr_t(0x00598440);
-constexpr std::uintptr_t kCellGridConstructor = std::uintptr_t(0x005AF590);
-constexpr std::uintptr_t kCellGridDestructor = std::uintptr_t(0x00598460);
-constexpr std::uintptr_t kRegionGridConstructor = std::uintptr_t(0x005AF5A0);
-constexpr std::uintptr_t kRegionGridDestructor = std::uintptr_t(0x00598480);
+// The region map's constructor (005AF3D0, ai_region_reach.cpp) runs the CRT's `eh vector
+// constructor iterator` over its three grid arrays with the grids' constructors 005AF580 /
+// 005AF590 / 005AF5A0 (ai_grids.h); the AI map's destructor the destructor iterator with 00598440
+// / 00598460 / 00598480 (FreeAnyGrid's copies), regions, cells, edges, each last to first.
 
 // The path smoother's trellis (005C46C0): per path cell nine states, one per direction the unit
 // leaves the cell in (index direction - 1; index 8 unused), each the cheapest cost so far and its
