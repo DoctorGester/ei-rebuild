@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "game_data.h"
 
+#include <cmath>
 #include <cstring>
 
 // The original keeps the x difference and its product on the FPU stack and stores the others:
@@ -37,7 +38,7 @@ void LerpPoint(float* out, const float* from, const float* to, float s) {
 
 void AnimationTrack::Evaluate(float atTime) {
     double whole;
-    float fraction = static_cast<float>(libcrt::Modf(atTime, &whole));
+    float fraction = static_cast<float>(std::modf(atTime, &whole));
     float wholeF = static_cast<float>(whole);
     int index = x87::fistp(wholeF);
     int next = index + 1;

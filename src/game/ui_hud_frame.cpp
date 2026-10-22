@@ -13,6 +13,7 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
+#include <cmath>
 #include <concepts>
 #include <cstdint>
 #include <cstring>
@@ -61,7 +62,7 @@ constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, t
 // The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod 006E95AA), stored.
 float TimeOfDay() {
     const CWorldClient* world = TheClientWorld();
-    return static_cast<float>(libcrt::CiFmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
+    return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.

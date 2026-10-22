@@ -1607,10 +1607,16 @@ the `--no-hooks` suite) keeps the registry.
   006ED534 is the host's. Fact from S4b1: a truncating open of a just-written file, then a write past its end, can
   read the gap back as old bytes on this machine under load (plain CreateFileA too).
 - **x87 entries** (crt_x87.cpp, naked, `__asm` exempt in check_cleanup): _ftol 006E853C (decodes the 80-bit value
-  with integers; the integer indefinite for NaN / infinity / |x| >= 2^63), _CIacos / _CIasin / _CIpow / _CIfmod and
-  their stack forms 006E7334 / 006E83D4 / 006E95A0, _hypot 006FD026. The CRT's control word keeps the caller's
+  with integers; the integer indefinite for NaN / infinity / |x| >= 2^63), _CIacos / _CIasin / _CIpow and
+  the stack forms 006E7334 / 006E83D4, _hypot 006FD026. The CRT's control word keeps the caller's
   precision and rounds to nearest, so the port computes at 53 bits and rounds each step to the caller's precision;
-  pow splits y log2(x) with fma errors, ties-to-even, exp2, ldexp; fmod is exact (keeps the CRT loader's NaN payload);
+  pow splits y log2(x) with fma errors, ties-to-even, exp2, ldexp. C26 tried the host CRT for the maths: acos / asin /
+  pow / _hypot (with fmod, modf and _controlfp) changed 14 image goldens (#vitals of the hero in effects_bow,
+  net_pair_quest, rebirth_fixes_ui, sound, spells_hero, ui_camp_make, ui_gallery_camp, ui_gallery_deals, units, whose
+  console prints "44.8744" for "44.8745"; #unit of the base's units in terrain_water_waves, ui_base_dialogue,
+  ui_base_topic, ui_gallery_base, zone_base_bz1g), so those stay ported; fmod (_CIfmod 006E95AA, fmod 006E95A0),
+  modf 006EAD0B, floor and ceil alone kept every golden and are the host's (std::fmod and so on). _controlfp stays
+  the port (SV10k below: the UCRT's differs in the control word and costs time, though the goldens were the same);
   `_hypothlp` runs at 64 bits with every step stored to a double and a denormal result cut off. errno / _matherr are
   not reproduced. The control word (SV10i): FNSTCW, and FLDCW only when the wanted word differs (x87::ControlWord /
   SetControlWord), put back only then; frexp / ldexp of normal doubles by the bits (std::frexp / std::ldexp save, set

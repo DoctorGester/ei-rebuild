@@ -186,7 +186,7 @@ conversions follow (they keep the goldens and `ei_vectors` unchanged):
   or a float local is the FSTP.
 - Keep `x87::fsin` / `fcos` / `fexp` / `flog` / `fpatan` / `fistp` (their results are 64-bit significands; use them inside
   the expression so the compiler takes ST0 as it is: checked in the object code for `ClampPow`, `CircleScaled`, `WallScorchShape`).
-  `gamecrt::Ftol` is the game's `_ftol`, `libcrt::CiPow` / `CiFmod` the bodies of `_CIpow` / `_CIfmod`, `x87::FromUnsigned` the FILD of
+  `gamecrt::Ftol` is the game's `_ftol`, `libcrt::CiPow` the body of `_CIpow` (`_CIfmod` is std::fmod since C26), `x87::FromUnsigned` the FILD of
   an unsigned.
 - FCOM status: write the plain comparison the source had (rewrite guide rule 8; the NaN audit in "SSE2 build"); `x87::CompareStatus`
   is gone. An FLD / FSTP copy of a float quiets a signalling NaN; the rebuild's copies are plain (`std::memcpy` of the four bytes,

@@ -40,6 +40,7 @@
 #include "game_singletons.h"
 
 #include <bit>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -119,7 +120,7 @@ int WorldTick() { return TheServerWorld()->tick_; }
 // _CIfmod (006E95AA): ST1 mod ST0. GetWorldTime: (time * scale + offset) mod 24.
 float WorldTimeOfDay() {
     const CWorldServer* world = TheServerWorld();
-    return static_cast<float>(libcrt::CiFmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
+    return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
 // Release a slot's object and store `object` with a new reference.

@@ -62,6 +62,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <cmath>
 #include <ddraw.h>
 
 #include <bit>
@@ -694,7 +695,7 @@ bool RunPass() {
     if (g_recordingFrames) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
         const double frame = Step(1000.0f /*0073C34C*/ / static_cast<double>(options::TheOptions()->movieCapturingFps_));
-        elapsed = gamecrt::Ftol(libcrt::Ceil(frame));
+        elapsed = gamecrt::Ftol(std::ceil(frame));
     }
     g_serverBacklog += elapsed;
     if (!client->IsLocalViewMode2()) g_clientSpeed = 1.0f;

@@ -169,7 +169,6 @@ std::size_t __cdecl Mbclen(const unsigned char* c);                             
 // _mbslwr: single bytes flagged upper case in _mbctype mapped through _mbcasemap; a lead byte and its
 // trail are left as they are (the original maps them with LCMapString; none under the game's code page).
 unsigned char* __cdecl Mbslwr(unsigned char* text);                             // 006EC8A8
-double __cdecl Floor(double value);                                             // 006E7F7E
 
 // rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread: in the hook build the
 // game CRT's own (_tiddata::_holdrand, +0x14 of _getptd's block, which the harness and the verify
@@ -180,10 +179,9 @@ void __cdecl Srand(unsigned seed);                                              
 // _getptd).
 unsigned& RandState();
 
-// Maths, plain C++ (rewrite guide rule 7), exact. (acos 006E7334, asin 006E83D4 and fmod 006E95A0
-// are CiAcos, CiAsin and StackFmod below, in the standalone image.)
-double __cdecl Ceil(double value);                                              // 006E8B1F
-double __cdecl Modf(double value, double* whole);                               // 006EAD0B
+// Maths: floor 006E7F7E, ceil 006E8B1F, modf 006EAD0B and fmod 006E95A0 / _CIfmod 006E95AA are the host CRT's
+// (C26; std::floor, std::ceil, std::modf, std::fmod). acos 006E7334 and asin 006E83D4 are CiAcos and CiAsin below,
+// in the standalone image.
 // _controlfp on the x87 control word only (the SSE one is not the game's): returns the new word.
 unsigned __cdecl Controlfp(unsigned value, unsigned mask);                      // 006EBBB4
 
@@ -240,27 +238,22 @@ int FormatInto(char* buffer, std::size_t room, const char* format, va_list args)
 
 // The x87 entry points with register arguments (S4c, src/lib/crt_x87.cpp; standalone image only, the hook
 // build keeps the exe's x87 results). Each entry is called from assembly only (FtolEntry: ST0 in, EDX:EAX
-// out; CiAcosEntry / CiAsinEntry: ST0 in and out; CiPowEntry / CiFmodEntry: x in ST1, y in ST0, the result
+// out; CiAcosEntry / CiAsinEntry: ST0 in and out; CiPowEntry: x in ST1, y in ST0, the result
 // in ST0) and calls the plain body beside it.
 std::int64_t __cdecl FtolEntry();                                                       // 006E853C _ftol
 double __cdecl CiAcosEntry();                                                     // 006E7320 _CIacos
 double __cdecl CiAsinEntry();                                                     // 006E83C0 _CIasin
 double __cdecl CiPowEntry();                                                      // 006E81A0 _CIpow
-double __cdecl CiFmodEntry();                                                     // 006E95AA _CIfmod
 // _ftol of an 80-bit value (10 bytes): the 64-bit truncation; NaN, infinity and |value| >= 2^63 give the
 // integer indefinite (0x8000000000000000), as FISTP with the invalid exception masked.
 std::int64_t __cdecl FtolExtended(const unsigned char* value);
 // The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
-// acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE, fmod exact. Out of
+// acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE. Out of
 // the domain: the x87 indefinite. CiAcos and CiAsin are also acos 006E7334 and asin 006E83D4
 // themselves (the stack-argument entries; standalone image only).
 double __cdecl CiAcos(double x);
 double __cdecl CiAsin(double x);
 double __cdecl CiPow(double x, double y);
-double __cdecl CiFmod(double x, double y);
-// fmod 006E95A0 (the stack-argument entry; standalone image only): CiFmod, but a NaN argument comes
-// in through the CRT's loader (006F2DAE), which garbles its payload's low bits.
-double __cdecl StackFmod(double x, double y);
 // _hypot 006FD026 (standalone image only; S16a: the camera, the strips, the client maps): the larger size
 // m of |x| and |y| times the root of (x / m)^2 + (y / m)^2, each step at 64 bits then stored to a double,
 // as _hypothlp (006FD060) computes it under its control word 133F (to nearest) whatever the caller's; an

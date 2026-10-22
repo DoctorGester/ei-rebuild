@@ -66,6 +66,7 @@
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 
+#include <cmath>
 #include <cstring>
 #include <new>
 #include <bit>
@@ -1325,7 +1326,7 @@ inline CPlayerClient* ClientWorldLocalView(CWorldClient* client) { return client
 __declspec(naked) int __stdcall EnterZoneAt(CParty*) EI_ORIGINAL(0x0057A060)
 
 // `value` mod 24 through the game's _CIfmod (006E95AA), stored as float.
-float HoursOfDay(double value) { return static_cast<float>(libcrt::CiFmod(value, 24.0)); }
+float HoursOfDay(double value) { return static_cast<float>(std::fmod(value, 24.0)); }
 
 } // namespace
 

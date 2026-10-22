@@ -650,9 +650,6 @@ unsigned char* __cdecl Mbslwr(unsigned char* text) {
 }
 EI_REWRITTEN(0x006EC8A8, libcrt::Mbslwr);
 
-double __cdecl Floor(double value) { return std::floor(value); }
-EI_REWRITTEN(0x006E7F7E, libcrt::Floor);
-
 // ---- rand / srand ----
 
 namespace {
@@ -692,30 +689,6 @@ unsigned& RandState() { return RandSeed(); }
 EI_REPLACE(0x006E77EA, libcrt::Srand);
 
 // ---- Maths ----
-
-double __cdecl Ceil(double value) { return std::ceil(value); }
-EI_REWRITTEN(0x006E8B1F, libcrt::Ceil);
-
-// modf: the whole part truncated, the fraction value - whole (+0 for a negative whole number, where
-// std::modf gives -0); zero, infinity and NaN keep the value as the whole part, and the fraction is
-// the value itself (zero, NaN) or a zero of its sign (infinity).
-double __cdecl Modf(double value, double* whole) {
-    std::uint64_t bits;
-    std::memcpy(&bits, &value, sizeof bits);
-    const unsigned exponent = static_cast<unsigned>(bits >> 52) & 0x7FF;
-    if (exponent == 0x7FF) {
-        *whole = value;
-        if (bits & 0x000FFFFFFFFFFFFFull) return value;   // NaN
-        return std::copysign(0.0, value);
-    }
-    if ((bits << 1) == 0) {
-        *whole = value;
-        return value;
-    }
-    *whole = std::trunc(value);
-    return value - *whole;
-}
-EI_REWRITTEN(0x006EAD0B, libcrt::Modf);
 
 // _controlfp: the control word's abstract form with the masked bits replaced, set and returned.
 // The original (006EBBB4) is FNSTCW, 006EBC2A (hardware to abstract), the merge, 006EBCBC (abstract to hardware),
