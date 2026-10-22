@@ -38,7 +38,7 @@ namespace {
 
 
 constexpr std::uint32_t kEflagsId = 0x00200000;    // EFLAGS.ID: can be flipped when CPUID exists
-constexpr std::uint32_t kFeatureMmx = 0x00800000;  // CPUID.1:EDX bit 23
+constexpr std::uint32_t kFeatureMmx = 1u << 23;     // CPUID.1:EDX bit 23
 
 
 // Whether the processor has CPUID: the ID flag flips. As in the original it stays flipped.

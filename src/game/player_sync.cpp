@@ -54,8 +54,6 @@ constexpr std::uint8_t kMessageJoin = 0;    // the two types handled before the 
 constexpr std::uint8_t kMessageJoin8 = 8;
 constexpr int kStateLeaving = 3;
 
-// The stream the received packets are decompressed into (007C83D0).
-CMemoryStream& ReceivedMessages() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 // The receive errors' formats ("Serv pkt read error prevID=%x curID=%x", ...), read from the exe.
 const char* TextReadPastEnd() { return "Serv pkt read error prevID=%x curID=%x"; }
 const char* TextNoHandler() { return "Serv packet has no handler prevID=%x curID=%x"; }

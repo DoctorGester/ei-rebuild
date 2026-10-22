@@ -29,7 +29,7 @@ namespace {
 
 using namespace detail;
 
-HWND GameWindow() { return *reinterpret_cast<HWND*>(game::Where().window); }
+HWND GameWindow() { return *game::Where().window; }
 
 IDXGISwapChain1* g_chain = nullptr;
 ID3D11RenderTargetView* g_view = nullptr;

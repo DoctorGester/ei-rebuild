@@ -31,7 +31,6 @@ constexpr COLORREF kWhite = 0xFFFFFF;
 const char* const kRichEditLibrary = "Riched20.dll";
 const char* const kRichEditClass = "RichEdit20A";
 
-HWND GameWindow() { return ei::GameData<HWND>(0x0079BC28); }
 
 // The block being streamed into the RichEdit (the original reads it through a CMemFile; its
 // callback is 0065EF10).
@@ -71,7 +70,7 @@ CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT
     vtable_ = Vtable();
     richEditLibrary_ = nullptr;
     richEditLibrary_ = gameapi::LoadLibraryA(kRichEditLibrary);
-    richEdit_ = gameapi::CreateWindowExA(0, kRichEditClass, nullptr, WS_CHILD | ES_MULTILINE, 0, 0, 0, 0, GameWindow(),
+    richEdit_ = gameapi::CreateWindowExA(0, kRichEditClass, nullptr, WS_CHILD | ES_MULTILINE, 0, 0, 0, 0, app::g_mainWindow,
                                          nullptr, app::g_instance, nullptr);
     offsetX_ = 0;
     background_ = kWhite;

@@ -4,7 +4,7 @@
 #include "render_internal.h"
 
 #include "../hook/log.h"
-#include "game/game_data.h"
+#include "game/texture.h"   // g_stageBlocks
 
 #include <cstdio>
 #include <cstring>
@@ -23,17 +23,17 @@ std::uint32_t g_stage[kStages][kStageStates];
 bool g_stageKnown[kStages][kStageStates];
 
 // The four state blocks the device records at its creation (004E6392..004E67BD): stage 0 colour
-// and alpha setups. Handles in 007AEDDC / 007AEDD8 / 007AEDD4 / 007AEDD0; per block the values of
-// COLOROP (1), COLORARG1 (2), COLORARG2 (3), ALPHAOP (4), ALPHAARG1 (5), ALPHAARG2 (6).
+// and alpha setups (g_stageBlocks, texture.h); per block the values of COLOROP (1), COLORARG1 (2),
+// COLORARG2 (3), ALPHAOP (4), ALPHAARG1 (5), ALPHAARG2 (6).
 struct KnownBlock {
-    std::uintptr_t handleAddress;
+    StageBlock block;
     std::uint32_t values[6];
 };
 constexpr KnownBlock kBlocks[] = {
-    {ei::DataId(0x007AEDDC), {4, 2, 1, 2, 2, 1}},   // texture x current; alpha texture
-    {ei::DataId(0x007AEDD8), {4, 2, 0, 4, 2, 0}},   // texture x diffuse; alpha texture x diffuse
-    {ei::DataId(0x007AEDD4), {4, 2, 0, 2, 2, 1}},   // texture x diffuse; alpha texture
-    {ei::DataId(0x007AEDD0), {4, 2, 0, 2, 0, 1}},   // texture x diffuse; alpha diffuse
+    {kTerrainBlock, {4, 2, 1, 2, 2, 1}},        // texture x current; alpha texture
+    {kAlphaPassBlock, {4, 2, 0, 4, 2, 0}},      // texture x diffuse; alpha texture x diffuse
+    {kTextureAlphaBlock, {4, 2, 0, 2, 2, 1}},   // texture x diffuse; alpha texture
+    {kSceneBlock, {4, 2, 0, 2, 0, 1}},          // texture x diffuse; alpha diffuse
 };
 
 } // namespace
@@ -52,7 +52,7 @@ void Stage(std::uint32_t stage, std::uint32_t state, std::uint32_t value) {
 
 void Block(std::uint32_t handle) {
     for (const KnownBlock& b : kBlocks) {
-        if (ei::GameData<const std::uint32_t>(b.handleAddress) != handle) continue;
+        if (g_stageBlocks[b.block] != handle) continue;
         for (int i = 0; i < 6; ++i) Stage(0, static_cast<std::uint32_t>(i + 1), b.values[i]);
         return;
     }

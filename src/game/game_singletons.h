@@ -47,10 +47,10 @@ int CurrentClientTick();
 float ClientTickFraction();
 
 // 007AF5B8: the client world (the local player's view of the map and its objects).
-inline CWorldClient* TheClientWorld() { return ei::GamePointer<CWorldClient>(0x007AF5B8); }
+CWorldClient* TheClientWorld();   // g_clientWorld (world_construct.cpp)
 
 // 007AFF60: the server world (the simulation: objects, players, timed objects).
-inline CWorldServer* TheServerWorld() { return ei::GamePointer<CWorldServer>(0x007AFF60); }
+CWorldServer* TheServerWorld();   // g_serverWorld (world_construct.cpp)
 
 // The client world's managers (world_singletons.cpp): the text manager (the game's string tables), the object
 // manager (finds and creates engine objects by id), the figure manager (models and sprites), the texture, material,
@@ -68,17 +68,17 @@ Terrain* TheTerrain();
 
 // 007AF060: the scene renderer; its device object (world_singletons.cpp); 007AEE78: the critical section held
 // around the device's DirectDraw / Direct3D calls.
-inline CSceneRenderer* TheSceneRenderer() { return ei::GamePointer<CSceneRenderer>(0x007AF060); }
+CSceneRenderer* TheSceneRenderer();   // g_sceneRenderer (renderer_lifetime.cpp)
 CTextureDevice* TheRenderDevice();
-inline _RTL_CRITICAL_SECTION* TheDeviceLock() { return ei::GamePointer<_RTL_CRITICAL_SECTION>(0x007AEE78); }
+_RTL_CRITICAL_SECTION* TheDeviceLock();   // g_deviceLock (renderer_lifetime.cpp)
 
 // 007C7BD8: the cursor. 0079BF00: the map database. The server world's mission script and sector map
 // (world_singletons.cpp). 0079B2A8: the camera.
 CCursor* TheCursor();   // g_cursor (ui_cursor_setup.cpp)
-inline CMapDatabase* TheMapDatabase() { return ei::GamePointer<CMapDatabase>(0x0079BF00); }
+CMapDatabase* TheMapDatabase();   // g_mapDatabase (map_database.cpp)
 CScript* TheMissionScript();
 CSectorMap* TheSectorMap();
-inline CCamera* TheCamera() { return ei::GamePointer<CCamera>(0x0079B2A8); }
+CCamera* TheCamera();   // g_camera (camera_object.cpp)
 
 // 007AA5A0: the party manager (the parties by key, the named records and the class templates).
 PartyManager* ThePartyManager();   // g_partyManager (app_lifetime.cpp)

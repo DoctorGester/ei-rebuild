@@ -13,6 +13,7 @@
 #include "../../src/game/ai_map.h"
 #include "../../src/game/game_data.h"
 #include "../../src/game/sector_map.h"
+#include "../../src/game/world.h"
 #include "../../src/hook/log.h"
 
 #include "ei/hook.h"
@@ -260,7 +261,7 @@ bool __fastcall FindPathRecord(CAIMap* self, void*, CUnit* unit, const Vector3* 
     OfferTables();
     Writer head;
     head.Put(StateOf(unit));
-    head.Put<std::int32_t>(CurrentWorldTick());
+    head.Put<std::int32_t>(ei::OriginalGameData<CWorldServer>(0x007AFF60).tick_);   // game.exe's world
     head.Put(*target);
     head.Put(range);
     head.Put(minDistance);

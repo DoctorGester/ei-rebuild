@@ -25,6 +25,7 @@
 #include "../../src/game/world_effect.h"
 #include "../../src/lib/crt.h"
 #include "game/game_data.h"
+#include "harness_objects.h"
 
 #include <windows.h>
 
@@ -773,7 +774,7 @@ Entity& Slot(State& state, const Key& key) {
 // state, and per cached sector with water (by sx, sy) the vertices with a water material and hashes
 // of their positions and speculars.
 void ReadWater(State& state) {
-    const Terrain* t = TheTerrain();
+    const Terrain* t = HarnessClientWorld()->terrain_;
     if (!t) return;
     Builder b;
     b.entity = &Slot(state, {kWater, -1});
@@ -871,12 +872,12 @@ void Read(CWorldServer* w, Snapshot& s) {
 
     b.entity = &Slot(s.state, {kScript, 0});
     b.entity->description = "script";
-    ReadScript(TheMissionScript(), b);
+    ReadScript(w->MainScript(), b);
 
     std::vector<CUnit*> clientUnits;
     b.entity = &Slot(s.state, {kClient, 0});
     b.entity->description = "client";
-    ReadClientWorld(TheClientWorld(), b, clientUnits);
+    ReadClientWorld(HarnessClientWorld(), b, clientUnits);
     for (CUnit* u : clientUnits) {
         b.entity = &Slot(s.state, {kClientUnit, u->id_});
         b.entity->description = Describe(u, true);

@@ -2890,7 +2890,7 @@ id = "C18t"
 title = "Named data: the multi-file objects and the small game* leftovers"
 group = "cleanup"
 model = "opus"
-note = "After C18s: 90 game data addresses left (named_data.py --split). This takes 'several files' (22) and the src/game, src/render, src/standalone, src/hook singles (about 20). Not crt* (C26), mfc* (C18r), not the generated static-init-only group unless an object falls out."
+note = "After C18s: 90 game data addresses left (named_data.py --split). This takes 'several files' (22) and the src/game, src/render, src/standalone, src/hook singles (about 20). Not crt* (C26), mfc* (C18r), not the generated static-init-only group unless an object falls out. Done 2026-10-22: the worlds, camera, scene renderer, device lock, map database, debug panel, class registry, clip work words, network buffers, save stream and received messages are lib::StaticObject with their 14 initialisers (rows in extra_function_sizes.csv / function_sizes.inc) and exits ported next to them (atexit_400.cpp gone); main window, stage blocks (StageBlock enum), loading movie, buffer flags and the damping scale 007C2F8C (initialiser 005B2FB0 ported) are plain globals; four constants that only looked like addresses rewritten. The harness reads game.exe's objects through harness_objects.h and in --no-hooks runs calls game.exe's PickAt2 / UnitAt / GameSendLeave04 / GameSetConstructionVariable. Game data addresses 90 -> 61 (56 after merging C25a), zero-bytes roots 62. Image suite ALL PASS, goldens 121 same / 23 without; original ALL PASS, 114 / 12. Left: EmptyText 0079B298 (15 pointer cells point at it, its address compared), the statics' guard 007CAEE4 (175 generated d.Once tests), STLport's free lists 0079B224-22C and throw info 0074C640, MFC's generated-init objects 007C8BB8-007CAAA0 (C18r), CRT (C26), section bounds."
 
 [[ticket]]
 id = "C27"
@@ -2949,7 +2949,7 @@ id = "C25c"
 title = "Build without game.exe: out_of_range's throw information, then the switch"
 group = "cleanup"
 depends = ["C25a"]
-note = "Found by C25a's static check (gen_image_cells --check, zero_roots): stlp_string.cpp's OutOfRangeThrowInfo 0074C640 throws with game.exe's ThrowInfo, so its catchable types (00749C50 +84, 0074C608 +72 with the array and the ThrowInfo) and the type descriptors' names (00783C40 +100, 00783D98 +36) are kept rows. Make out_of_range a compiler-thrown class (as C18e did for MFC's exceptions; its vtables are C19's) or name the records; with C18q's locale rows (007472E4, 00797778) gone the list is empty: set CMakeLists.txt's EI_IMAGE_BYTES_FROM_EXE OFF (docs/notes/standalone.md 'The switch'), drop write_bytes' non-zero path and the trial."
+note = "User 2026-10-22: no switch; the game.exe-free build is the only build; no reference to game.exe in the build; drop the tools that only served the move (kept list, image trace, switch-only checks, named_data move modes). Locale rows go into our source if C26 hasn't removed them."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

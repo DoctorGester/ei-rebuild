@@ -347,7 +347,7 @@ after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
 after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
 which took the pointer cells from 1,522 to 1,243, 243 -> 234 after C18q's script keyword and CRT tables, pointer cells
-1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams). C18 turns them into named C++
+1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams, 90 -> 56 after C18t's singletons with C25a's rows). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -639,7 +639,7 @@ kinds given.
       - The exit function: ported on the name and registered at its address (EI_REPLACE; function_sizes.inc already
         has it, gen_static_init wrote it there); the initialiser's `d.AtExit(address)` stays at its place in the list
         and gen_static_init leaves the registered function out of static_exit.cpp. It goes next to the definition
-        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles); atexit_400.cpp has older ones.
+        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles, camera_object.cpp's DestroyCamera).
       - A constructor whose result is no constant (CString's empty string: a copy of 00796E48, a run-time pointer;
         `CString(const char*)` allocates) runs in list order: the initialiser is ported on the name and registered at
         its address (a row in config/extra_function_sizes.csv and function_sizes.inc: Ghidra has no function there),
@@ -769,11 +769,24 @@ kinds given.
       kModeLog 007C54E8; a file's own ostream view (AiLogStream, UnitLogStream, GameOstream, net::LogStream) reads the
       stream through `console::StreamAs<View>`. The ostream constructor still points the vbtable at game.exe's 00748284
       (crt_iostream.cpp).
-    - **Left**: MFC's module / thread state and window classes (mfc_state.cpp, mfc_window.cpp: C18r), the save stream 007AFDF8 and the received stream
-      007C83D0 (CMemoryStream, game.exe's vtable), the singletons themselves (0079B2A8, 007AF060, 007AF5B8, 007AFF60,
-      0079BF00, 007AEE78), the loading movie 007C5520 / 007C554C, 0079BC28 and 007AEDD0-DC (src/render), the
-      Rebirth-patched floats 007428AC / 00742B08, STLport's free lists 0079B224-0079B22C (the harness calls our
-      allocator in game.exe), the damping scale 007C2F8C (an initialiser stores ln 0.6: a call's result).
+    - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
+      007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
+      (renderer_lifetime.cpp), the map database 0079BF00, the debug panel 0079B930 (string_map.cpp), the class registry
+      0079B270 (chunk_archive.cpp), clip's work words 0079B668, the network buffers 0079B8E0 / 0079B900, the save stream
+      007AFDF8 and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
+      initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
+      out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow; render_game.h's Addresses hold
+      pointers to it and the renderer), the stage blocks 007AEDD0 (g_stageBlocks, keyed by StageBlock), the loading
+      movie's 007C5520 / 007C554C-54, the network buffer flags 0079B8FC, the damping scale 007C2F8C (its initialiser
+      005B2FB0, ln 0.6 on the x87, ported in ai_refresh.cpp). The harness reads game.exe's copies through
+      harness_objects.h (`ei::Standalone() ? ours : &ei::OriginalGameData<T>(address)`), and in a --no-hooks run calls
+      game.exe's own PickAt2 / UnitAt / GameSendLeave04 / GameSetConstructionVariable (EI_ORIGINAL), which read them.
+    - **Left**: MFC's module / thread state, window classes and the generated initialisers' / exits' MFC objects
+      (007C8BB8-007CAAA0: C18r), the CRT's (C26), EmptyText 0079B298 (15 pointer cells of game.exe's data point at it
+      and code compares its address), the function-local statics' guard 007CAEE4 (175 generated `d.Once` tests:
+      gen_static_init would have to name it), STLport's free lists 0079B224-0079B22C (the harness calls our allocator in
+      game.exe), and the section bounds in game_data.h (0073B000,
+      0073B820, 00783000, 007CD000, 007D7000: the image's layout, not data).
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 
 ### Compiler-made vtables (C19)

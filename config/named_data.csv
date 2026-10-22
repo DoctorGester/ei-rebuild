@@ -188,7 +188,9 @@ address,size,name,file
 00798928,184,kCountries,src/lib/crt_locale.cpp
 007989E0,520,kLanguages,src/lib/crt_locale.cpp
 0079B1B8,4,kHeadingOffset,src/game/core_transform_math.cpp
+0079B270,40,g_classRegistry,src/game/chunk_archive.cpp
 0079B2A4,4,kHalfPi,src/game/camera.h
+0079B2A8,776,g_camera,src/game/camera_object.cpp
 0079B5B8,16,kIdentityRotation,src/game/camera.h
 0079B5C8,12,kZeroVector,src/game/camera.h
 0079B5D8,4,g_gameClient,src/game/net_classes.h
@@ -197,6 +199,7 @@ address,size,name,file
 0079B608,4,g_variableSerial,src/game/net_messages.h
 0079B60C,4,g_playerSerial,src/game/net_server_join.cpp
 0079B664,4,g_lastRatio,src/game/clip.h
+0079B668,20,g_workWords,src/game/clip.cpp
 0079B68C,4,g_bufferCount,src/game/clip.h
 0079B6B0,136,g_offsetBits,src/game/net_coder.cpp
 0079B738,136,g_offsetCodes,src/game/net_coder.cpp
@@ -204,11 +207,14 @@ address,size,name,file
 0079B848,136,g_lengthCodes,src/game/net_coder.cpp
 0079B8D0,12,g_replicated,src/game/net_connection.cpp
 0079B8DC,1,g_replicatedGuard,src/game/net_connection.cpp
-0079B8FC,1,g_bufferFlags,src/game/atexit_400.cpp
+0079B8E0,28,g_receiveBuffer,src/game/net_session.cpp
+0079B8FC,1,g_bufferFlags,src/game/net_session.cpp
+0079B900,28,g_sendBuffer,src/game/net_session.cpp
 0079B91C,4,g_netLog,src/game/net_classes.h
 0079B920,4,g_currentSession,src/game/net_classes.h
 0079B924,4,g_currentConnection,src/game/net_classes.h
 0079B928,8,kSelectTimeout,src/game/net_socket_driver.cpp
+0079B930,68,g_debugPanel,src/game/string_map.cpp
 0079B9B0,12,kZeroVector,src/game/scene_loader.h
 0079B9F8,4,g_lastTime,src/game/app_main.cpp
 0079B9FC,1,g_lastTimeGuard,src/game/app_main.cpp
@@ -224,6 +230,7 @@ address,size,name,file
 0079BA24,256,g_windowClassName,src/game/app_main.cpp
 0079BB24,256,g_windowTitle,src/game/app_main.cpp
 0079BC24,4,g_instance,src/game/app_main.cpp
+0079BC28,4,g_mainWindow,src/game/app_main.cpp
 0079BC2C,4,g_protectionChecks,src/game/static_lists.cpp
 0079BC54,1,g_recordingFrames,src/game/app_main.cpp
 0079BC58,4,g_movieFrame,src/game/app_frame.cpp
@@ -233,6 +240,7 @@ address,size,name,file
 0079BC64,4,g_serverBacklog,src/game/app_main.cpp
 0079BC68,4,g_clientBacklog,src/game/app_main.cpp
 0079BC70,620,g_options,src/game/options_global.cpp
+0079BF00,40,g_mapDatabase,src/game/map_database.cpp
 0079BF70,512,g_keyActions,src/game/object_tables.h
 0079C1A0,32,g_leverTable,src/game/lever_table.cpp
 0079C1D0,16,g_glowPoints,src/game/lightning_draw.cpp
@@ -289,6 +297,7 @@ address,size,name,file
 007AEDA0,4,kSnowRise,src/game/weather_particles.cpp
 007AEDA4,4,kRainRise,src/game/weather_particles.cpp
 007AEDA8,4,kCellSize,src/game/weather_particles.cpp
+007AEDD0,16,g_stageBlocks,src/game/device_object.cpp
 007AEDE0,16,g_clipIndices,src/game/device_buffers.cpp
 007AEE00,16,g_vertices,src/game/device_buffers.cpp
 007AEE10,16,g_projected,src/game/device_buffers.cpp
@@ -296,6 +305,7 @@ address,size,name,file
 007AEE30,16,g_outcodes,src/game/device_buffers.cpp
 007AEE60,1,g_driversDestroyed,src/game/static_lists.cpp
 007AEE64,4,g_directDrawDrivers,src/game/static_lists.cpp
+007AEE78,24,g_deviceLock,src/game/renderer_lifetime.cpp
 007AEE94,4,g_holderCount,src/game/device.h
 007AEEB8,16,g_texturePixels,src/game/link_mesh_draw.cpp
 007AEEC8,1,g_texturePixelsGuard,src/game/link_mesh_draw.cpp
@@ -319,6 +329,7 @@ address,size,name,file
 007AF054,4,g_bottomV,src/game/renderer_strip.cpp
 007AF058,4,g_topV,src/game/renderer_strip.cpp
 007AF05C,4,g_currentU,src/game/renderer_strip.cpp
+007AF060,92,g_sceneRenderer,src/game/renderer_lifetime.cpp
 007AF0E0,16,kDefaultRotation,src/game/animation_node_lifetime.cpp
 007AF0F0,12,kDefaultPosition,src/game/animation_node_lifetime.cpp
 007AF100,16,kTrackDefaultRotation,src/game/map_object_animation.h
@@ -359,12 +370,14 @@ address,size,name,file
 007AF598,12,g_visibleOther,src/game/world_client_view.cpp
 007AF5A8,12,g_visible54,src/game/world_client_view.cpp
 007AF5B4,4,g_deferredUnits,src/game/static_lists.cpp
+007AF5B8,2020,g_clientWorld,src/game/world_construct.cpp
 007AFDB0,12,kOrigin,src/game/world_data.h
 007AFDC0,12,g_questFolders,src/game/world_briefing.cpp
 007AFDD0,12,g_questFiles,src/game/world_briefing.cpp
 007AFDE0,12,g_zoneTable,src/game/world_game.cpp
 007AFDEC,4,g_lastResources,src/game/world_game.cpp
 007AFDF0,1,g_lastResourcesGuard,src/game/world_game.cpp
+007AFDF8,40,g_saveStream,src/game/world_game.cpp
 007AFE20,132,g_gameFlow,src/game/world_game.cpp
 007AFECC,4,g_guardKey,src/game/world_guard.cpp
 007AFED0,4,g_serverStamp,src/game/world_game.cpp
@@ -380,6 +393,7 @@ address,size,name,file
 007AFF38,16,g_added,src/game/world_sync.cpp
 007AFF48,16,g_collected,src/game/world_sync.cpp
 007AFF58,1,g_staticsGuard,src/game/world_sync.cpp
+007AFF60,77436,g_serverWorld,src/game/world_construct.cpp
 007C2DE0,16,kNewUnitRotation,src/game/world.h
 007C2DFC,4,g_weatherDelay,src/game/world_weather.cpp
 007C2E00,16,g_texturePoints,src/game/figure_rasterise.cpp
@@ -402,6 +416,7 @@ address,size,name,file
 007C2F64,4,g_patch,src/game/ai_water_patch.cpp
 007C2F68,1,g_guard,src/game/ai_water_patch.cpp
 007C2F70,28,g_unitShapes,src/game/ai_movement.cpp
+007C2F8C,4,g_dampScale,src/game/ai_refresh.cpp
 007C2FC0,20,g_spiralLengths,src/game/sector_spiral.cpp
 007C2FD8,28,g_spiralRadii,src/game/sector_spiral.cpp
 007C2FF8,20,g_spiralOffsets,src/game/sector_spiral.cpp
@@ -417,6 +432,10 @@ address,size,name,file
 007C54E8,4,kModeLog,src/game/unit_ai.cpp
 007C5518,1,g_loadingHolderReleased,src/game/bink_video.cpp
 007C551C,4,g_loadingHolder,src/game/bink_video.cpp
+007C5520,16,g_loadingScreen,src/game/bink_video.cpp
+007C554C,1,g_loadingMovieOff,src/game/bink_video.cpp
+007C5550,4,g_loadingBink,src/game/bink_video.cpp
+007C5554,4,g_loadingSurfaceType,src/game/bink_video.cpp
 007C55A8,88,g_consoleOut,src/game/console_streams.cpp
 007C5600,88,g_allLogOut,src/game/console_streams.cpp
 007C5658,88,g_unitAcksLogOut,src/game/console_streams.cpp
@@ -469,6 +488,8 @@ address,size,name,file
 007C8344,4,g_loadingParty,src/game/party.h
 007C8370,20,g_partyIdSet,src/game/player_client.cpp
 007C8388,16,kFixedViewRotation,src/game/player_client_handlers.cpp
+007C83C8,1,g_receivedMessagesDestroyed,src/game/player_server_handlers.cpp
+007C83D0,40,g_receivedMessages,src/game/player_server_handlers.cpp
 007C8478,84,g_spellFootprint,src/game/ai_footprint.cpp
 007C84EC,4,g_loadingProjectileWorld,src/game/world.h
 007C8510,100,g_spellDatabase,src/game/database_globals.cpp

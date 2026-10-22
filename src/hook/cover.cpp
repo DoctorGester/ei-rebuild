@@ -6,6 +6,7 @@
 // Each address gets a one-shot INT3 at WinMain; the first time it runs, a vectored handler puts the
 // byte back, logs "cover <address>" and resumes at the address.
 #include "log.h"
+#include "game/game_data.h"   // ei::kMovedBegin
 
 #include <windows.h>
 
@@ -58,7 +59,7 @@ void Watch(std::uintptr_t code, std::uintptr_t game) {
     it->second.addresses.push_back(game);
 }
 
-bool InImage(unsigned long address) { return address >= 0x00401000 && address <= 0x0073AFFF; }   // game.exe's .text
+bool InImage(unsigned long address) { return address >= 0x00401000 && address < ei::kMovedBegin; }   // game.exe's .text
 
 } // namespace
 

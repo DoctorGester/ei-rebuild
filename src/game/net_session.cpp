@@ -32,6 +32,31 @@ void __cdecl InitGameClientPointer() {
     GameAtExit(ReleaseGameClient);
 }
 
+// The two growing buffers' exit functions (00432CC0 / 00432D00): each destroys its buffer once (bit 0 / bit 1 of
+// their flags).
+std::uint8_t g_bufferFlags = /*0079B8FC*/ {};
+void __cdecl DestroySendBuffer() {
+    std::uint8_t flags = g_bufferFlags;
+    if (flags & 1) return;
+    g_bufferFlags = static_cast<std::uint8_t>(flags | 1);
+    net::g_sendBuffer->DestructGrowing();
+}
+void __cdecl DestroyReceiveBuffer() {
+    std::uint8_t flags = g_bufferFlags;
+    if (flags & 2) return;
+    g_bufferFlags = static_cast<std::uint8_t>(flags | 2);
+    net::g_receiveBuffer->DestructGrowing();
+}
+// Their static initialisers (00432CA0 / 00432CE0, in the list's order).
+void __cdecl ConstructSendBuffer() {
+    net::g_sendBuffer->ConstructGrowing();
+    GameAtExit(DestroySendBuffer);
+}
+void __cdecl ConstructReceiveBuffer() {
+    net::g_receiveBuffer->ConstructGrowing();
+    GameAtExit(DestroyReceiveBuffer);
+}
+
 // 0073BB24: milliseconds to the sessions' time unit (1/1024).
 constexpr float kMillisecondsToSeconds = 0.0009765625f;
 
@@ -47,6 +72,11 @@ void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
 } // namespace
 
 namespace net {
+
+// Zero at the start; built and destroyed by the functions above (docs/notes/standalone.md, "The static initialisers'
+// objects").
+constinit lib::StaticObject<GameBuffer> g_receiveBuffer = /*0079B8E0*/ {};
+constinit lib::StaticObject<GameBuffer> g_sendBuffer = /*0079B900*/ {};
 
 void __cdecl Pump() {
     std::uint32_t now = gameapi::timeGetTime();
@@ -65,3 +95,7 @@ EI_REPLACE(0x00412230, InitGameServerPointer);
 EI_REPLACE(0x00412250, ReleaseGameServer);
 EI_REPLACE(0x00412280, InitGameClientPointer);
 EI_REPLACE(0x004122A0, ReleaseGameClient);
+EI_REPLACE(0x00432CA0, ConstructSendBuffer);
+EI_REPLACE(0x00432CC0, DestroySendBuffer);
+EI_REPLACE(0x00432CE0, ConstructReceiveBuffer);
+EI_REPLACE(0x00432D00, DestroyReceiveBuffer);

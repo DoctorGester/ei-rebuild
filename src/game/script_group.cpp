@@ -10,17 +10,14 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstdint>
 
 namespace {
 
-// The world's object registry (global at 007AFF60); FindObject looks an object up by its id.
-struct ObjectRegistry {
-    CEngineObject* FindObject(int id);   // 00593AA0
-};
-CEngineObject* ObjectRegistry::FindObject(int id) { return WorldFindObjectOriginal(this, nullptr, static_cast<unsigned>(id)); }
-ObjectRegistry* Registry() { return ei::GamePointer<ObjectRegistry>(0x007AFF60); }
+// The server world's object by id (00593AA0).
+CEngineObject* FindObject(int id) { return WorldFindObjectOriginal(TheServerWorld(), nullptr, static_cast<unsigned>(id)); }
 
 // The game's CRT.
 void __cdecl GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }
@@ -115,7 +112,7 @@ void ScriptObjectRef::Load(ScriptStream* stream) {
         Clear(this);
         return;
     }
-    Store(this, Registry()->FindObject(id));
+    Store(this, FindObject(id));
 }
 EI_REWRITTEN(0x004B2590, ScriptObjectRef::Load);
 
@@ -380,7 +377,7 @@ void ScriptGroup::Load(ScriptStream* stream) {
         int id;
         stream->Read(&id, 4);
         if (id == -1) Clear(slot);
-        else Store(slot, Registry()->FindObject(id));
+        else Store(slot, FindObject(id));
     }
     GameQsort(data, size, 4, CompareMembers);
 }

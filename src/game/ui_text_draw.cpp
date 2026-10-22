@@ -7,6 +7,7 @@
 #include "ui_gdi.h"
 #include "ui_native.h"
 #include "ui_widescreen.h"
+#include "app.h"   // app::g_mainWindow
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -20,7 +21,6 @@ namespace {
 constexpr COLORREF kShadowColour = 0x080808;
 constexpr int kRectSlack = 2;           // pixels added to a scaled rectangle's right and bottom
 constexpr unsigned kLayoutWidth = 800, kLayoutHeight = 600;
-HWND GameWindow() { return ei::GameData<HWND>(0x0079BC28); }
 } // namespace
 
 // --- 005FDE20 ----------------------------------------------------------------------------------------------
@@ -70,13 +70,13 @@ EI_REPLACE_METHOD(0x005FDE20, CUiSurface::DrawTextIn);
 // --- 005F8340 ----------------------------------------------------------------------------------------------
 
 SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
-    auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(gameapi::GetDC(GameWindow())));
+    auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(gameapi::GetDC(app::g_mainWindow)));
     void* oldFont = dc->SelectFont(fonts_[font]);
     // Left unwritten by the original when the call fails.
     SIZE size{0, 0};
     gameapi::GetTextExtentPoint32A(dc->hdc, text, text.GetLength(), &size);   // EI_UTF8: measured wide (system_text.h)
     dc->SelectFont(oldFont);
-    gameapi::ReleaseDC(GameWindow(), dc->hdc);
+    gameapi::ReleaseDC(app::g_mainWindow, dc->hdc);
     if (widescreen::Active()) {
         // WideScreen (addon's 80 bytes at 005F83CF): by the 4:3 part's width and the mode's height.
         *out = widescreen::TextExtentToLayout(size);

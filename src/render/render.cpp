@@ -22,6 +22,9 @@
 
 #include "../game/device_switchover.h"   // device::SwitchOverRenderState
 #include "../game/texture.h"   // CTextureDevice, CDXSurface
+#include "../game/app.h"       // app::g_mainWindow
+#include "../game/game_singletons.h"
+#include "../game/model.h"     // CSceneRenderer
 
 #include <cstdio>
 #include <cstdlib>
@@ -106,10 +109,10 @@ void EnsureConfigured() {
 
 // --- Game memory -----------------------------------------------------------------------------------
 
-HWND GameWindow() { return *reinterpret_cast<HWND*>(game::Where().window); }
+HWND GameWindow() { return *game::Where().window; }
 
-// The renderer's clear colour (007AF060 +0x14, D3DCOLOR), as 00501A40 clears the frame with.
-std::uint32_t GameClearColour() { return *reinterpret_cast<std::uint32_t*>(game::Where().renderer + 0x14); }
+// The renderer's clear colour (D3DCOLOR), as 00501A40 clears the frame with.
+std::uint32_t GameClearColour() { return game::Where().renderer->fogColour_; }
 
 sg_color FromD3DColour(std::uint32_t c) {
     return sg_color{static_cast<float>((c >> 16) & 0xFF) / 255.0f, static_cast<float>((c >> 8) & 0xFF) / 255.0f,
@@ -645,7 +648,7 @@ bool FrameSize(int* width, int* height) {
     return g_colour.id != 0;
 }
 
-CTextureDevice* DeviceObject() { return *reinterpret_cast<CTextureDevice**>(game::Where().deviceObject); }
+CTextureDevice* DeviceObject() { return game::Where().renderer->device_; }
 
 // The size of the game's render target (in the switch-over a holder without a surface that still
 // has the screen's size).
@@ -688,17 +691,8 @@ void ReadFog(Frame& f) {
 } // namespace detail
 
 namespace game {
-static Addresses Resolved() {
-    Addresses a;
-    a.window = ei::GameAddress(a.window);
-    a.renderer = ei::GameAddress(a.renderer);
-    a.deviceObject = ei::GameAddress(a.deviceObject);
-    a.deviceLock = ei::GameAddress(a.deviceLock);
-    return a;
-}
-
 Addresses& Where() {
-    static Addresses addresses = Resolved();
+    static Addresses addresses = {&app::g_mainWindow, TheSceneRenderer()};
     return addresses;
 }
 } // namespace game

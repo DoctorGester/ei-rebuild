@@ -2,6 +2,7 @@
 // objects), the script's AddUnitToServer, and writing the map objects into a save. See world.h and
 // docs/notes/world.md.
 #include "app.h"
+#include "bink_video.h"   // g_loadingMovieOff
 #include "map_spec.h"
 #include "world.h"
 #include "model.h"   // TweenArray (countdowns_)
@@ -42,8 +43,6 @@ namespace {
 // The empty string the game compares against and passes as "no text" (a zero byte in .data).
 constexpr const char* kNoExit = "none";   // 007846F0
 
-// Set while LoadMobFile reads a .mob file (byte at 007C554C; the object loaders read it).
-std::uint8_t& LoadingMobFile() { return ei::GameData<std::uint8_t>(0x007C554C); }
 
 // The default orientation of new units, passed by value.
 Quaternion DefaultRotation() { return kNewUnitRotation; }
@@ -154,16 +153,16 @@ int CWorldServer::LoadMobFile(const char* file) {
                             file) == 0)
             return 1;
     }
-    LoadingMobFile() = 1;
+    g_loadingMovieOff = 1;
     if (file) {
         int loaded = LoadMapObjects(file, 0);
         if (loaded == 0) {
-            LoadingMobFile() = 0;
+            g_loadingMovieOff = 0;
             zoneLoaded_ = 0;
             return game::FatalError(game::zonetexts::CantLoadMob(), file);
         }
     }
-    LoadingMobFile() = 0;
+    g_loadingMovieOff = 0;
     mobFiles_.SetAtGrow(mobFiles_.size, file);
     return 1;
 }

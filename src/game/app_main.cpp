@@ -151,6 +151,7 @@ EI_REPLACE(0x00455DF0, ReleaseMouseAtExit);
 // The application's flags and handles (app.h).
 char g_windowTitle[256] = /*0079BB24*/ {""};
 HINSTANCE g_instance = /*0079BC24*/ {};
+HWND g_mainWindow = /*0079BC28*/ {};
 std::uint8_t g_active = /*0079BC5C*/ {};
 std::uint8_t g_activationChanged = /*0079BC5D*/ {};
 std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
@@ -178,7 +179,6 @@ double Step(double value) {
 // instance and the window.
 std::uint16_t g_windowClassAtom = /*0079BA20*/ {};
 char g_windowClassName[256] = /*0079BA24*/ {""};
-HWND& MainWindow() { return ei::GameData<HWND>(0x0079BC28); }
 constexpr int kTextSize = 0x100;
 // The window's title and class name: game.exe's string table held them as strings 101 and 102.
 constexpr const char* kWindowTitle = "Evil Islands";
@@ -206,7 +206,7 @@ std::uint8_t g_littleNonLocalMemory = /*00784755*/ 1;
 constexpr DWORD kLittleMemory = 0x800000;
 
 // The objects.
-void* ClassRegistry() { return &ei::GameData<char>(0x0079B270); }
+void* ClassRegistry() { return &ChunkArchive::Registry(); }
 void* QuestDatabaseObject() { return &TheQuestDatabase(); }
 void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
 void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
@@ -469,7 +469,7 @@ DWORD CreateRenderer() {
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
-    SceneRenderer()->CreateRendererImpl(MainWindow(), options);
+    SceneRenderer()->CreateRendererImpl(g_mainWindow, options);
 
     DDSCAPS2 caps = {};
     DWORD total = 0, free = 0;
@@ -496,7 +496,7 @@ std::uintptr_t OpenSound() {
     mfc::CString textFolder(TextFolder());
     mfc::CString dataFolder(TheDataFolder());
     mfc::CString discFolder(DiscFolder());
-    TheSoundManager()->Open(MainWindow(), 1, -1, 44100, 16);
+    TheSoundManager()->Open(g_mainWindow, 1, -1, 44100, 16);
     {
         mfc::CString registry = textFolder + "streamsn.reg";
         mfc::CString folder = dataFolder + "stream\\";
@@ -757,7 +757,7 @@ int RunMainLoop(bool interfaceInput) {
         if (!gameapi::GetMessageA(&message, nullptr, 0, 0)) return static_cast<int>(message.wParam);
         gameapi::TranslateMessage(&message);
         if (interfaceInput) DispatchInput(message.message, message.wParam, message.lParam);
-        else WindowProc(MainWindow(), message.message, message.wParam, message.lParam);
+        else WindowProc(g_mainWindow, message.message, message.wParam, message.lParam);
     }
 }
 
@@ -819,11 +819,11 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     mfc::CString folder;
     CreateFolders(folder);
     g_instance = instance;
-    MainWindow() = gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_windowClassAtom), g_windowTitle, WS_POPUP | WS_CLIPSIBLINGS, 0, 0,
+    g_mainWindow = gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_windowClassAtom), g_windowTitle, WS_POPUP | WS_CLIPSIBLINGS, 0, 0,
                                             options->resolutionX_, options->resolutionY_, nullptr, nullptr, instance, nullptr);
-    if (!MainWindow()) return 0;
-    gameapi::ShowWindow(MainWindow(), show);
-    gameapi::UpdateWindow(MainWindow());
+    if (!g_mainWindow) return 0;
+    gameapi::ShowWindow(g_mainWindow, show);
+    gameapi::UpdateWindow(g_mainWindow);
     gameapi::SetCursor(nullptr);
 
     // The original keeps "the interface takes the input" in BL and sets it after every pass. Before
@@ -838,7 +838,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     ShowLoadingMovie(0);
     CloseLoadingMovie();
     LoadDatabases();
-    Mouse()->Setup(MainWindow(), instance);
+    Mouse()->Setup(g_mainWindow, instance);
     TheClientWorld()->SetUpGraphics(TheRenderDevice());
     // The last argument's upper three bytes are whatever the call before left in ECX in the
     // original; only the low byte is a value (the shapes' flag: no device named).
