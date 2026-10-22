@@ -107,7 +107,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
             if (hair == -1) continue;
             part.Format("hr.%.2d", hair);
         }
-        CFigureMesh* current = static_cast<CObject3D*>(static_cast<void*>(unit))->FindPartByPrefix(part);
+        CFigureMesh* current = unit->FindPartByPrefix(part);
         armourPart.Format("%s.armor%.2d", part.GetString(), armour->number);
         if (model->mesh->FindEntry(armourPart) != -1) {
             unit->LoadPart(armourPart, model, FiguresFlag(unit));
