@@ -189,7 +189,7 @@ struct TickSteps {
     // Updates every particle. A particle the previous tick rejected is unlinked and returned to
     // the pool first, but (as in the original) is still updated and counted in the bounds.
     void UpdateParticles() {
-        CParticleManager* pool = static_cast<CParticleManager*>(s->owner_);
+        CParticleManager* pool = s->Manager();
         mfc::CTypedPtrList<Particle>::Node* node = s->particles.head;
         while (node) {
             mfc::CTypedPtrList<Particle>::Node* next = node->next;
@@ -210,7 +210,7 @@ struct TickSteps {
 
     // One emission attempt: a particle from the pool, kept when the emit callback accepts it.
     void EmitOne(int index) {
-        CParticleManager* pool = static_cast<CParticleManager*>(s->owner_);
+        CParticleManager* pool = s->Manager();
         Particle* p = pool->AcquireParticle();
         if (!p) return;
         if ((s->*s->emitFn)(p, index)) s->AddParticle(p);

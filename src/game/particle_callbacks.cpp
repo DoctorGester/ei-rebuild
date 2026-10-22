@@ -1323,7 +1323,7 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
             double yu = Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low) + D(y);
             y = static_cast<float>(yu);
             if (yu * D(y) + D(x) * D(x) >= D(radiusSquared)) continue;
-            Particle* q = static_cast<CParticleManager*>(owner_)->AcquireParticle();
+            Particle* q = Manager()->AcquireParticle();
             if (!q) continue;
             double px = D(x) + D(localPosition_.x);
             x = static_cast<float>(px);
@@ -4299,18 +4299,11 @@ EI_REWRITTEN(0x00493300, CParticleSource::EmitGroundDust);
 
 namespace {
 
-// Not rewritten (forwarders through the objects' vtables and the original address): the unit's
-// point `index` (vtable slot 52), the terrain's height (007AF5B8, slot 28) and the platforms'
-// surface height over it (00560F00 on 007AF78C), all left unrounded in ST0.
-Vector3* UnitPoint(void* unit, Vector3* out, int index) {
-    using Fn = Vector3*(__thiscall*)(void*, Vector3*, int);
-    return (*static_cast<Fn**>(unit))[52](unit, out, index);
-}
-double TerrainHeight(float x, float y) {
-    void* terrain = TheClientWorld();
-    using Fn = double(__thiscall*)(void*, float, float);
-    return (*static_cast<Fn**>(terrain))[28](terrain, x, y);
-}
+// The unit's point `index` (slot 52, PositionAt), the client world's surface height (slot 28) and
+// the platforms' surface height over it (00560F00 on 007AF78C, through the original address), the
+// heights left unrounded in ST0.
+Vector3* UnitPoint(CObject3D* unit, Vector3* out, int index) { return Carrier(unit)->PositionAt(out, index); }
+double TerrainHeight(float x, float y) { return TheClientWorld()->RawSurfaceHeightAt(x, y); }
 double PlatformHeight(const Vector3* at, float ground) {
     using Fn = double(__thiscall*)(void*, const Vector3*, float);
     return ei::Code<Fn>(0x00560F00)(ei::GamePointer<void>(0x007AF78C), at, ground);
@@ -4330,7 +4323,7 @@ bool Same(float a, float b) {
 // the point is where the last one was; the point's index goes in +0x4C and the life is -10 (set
 // by UpdateGlow).
 int CParticleSource::EmitGlow(Particle* p, int index) {
-    void* unit = attachedTo;
+    CObject3D* unit = attachedTo;
     if (elementCount == 0) {
         SetElementCount(this, 1);
         float* mark = &elements->glow.mark.x;
@@ -4379,20 +4372,10 @@ EI_REPLACE_METHOD(0x004932F0, CParticleSource::TickGlow);
 
 // --- Stun (0x204D) -------------------------------------------------------------------------------
 
-namespace {
-
-// Not rewritten (forwarder through the unit's vtable, slot 55): nonzero once the stun is over.
-int UnitStunOver(void* unit) {
-    using Fn = int(__thiscall*)(void*);
-    return (*static_cast<Fn**>(unit))[55](unit);
-}
-
-} // namespace
-
 // 00495FB0. Stun: a star at a random point of the ball of 0.8 times the carrier figure's radius
 // (00485280) around the source, for 20 ticks, with a random size factor in +0x20. A unit carrier
 // in state 3 (+0x264) gets four stars a tick living 5 ticks, else one; once the carrier is gone
-// (nothing emitted) or its stun is over (vtable slot 55) the source stops and lets it go.
+// (nothing emitted) or it is dead (slot 55, IsDead) the source stops and lets it go.
 int CParticleSource::EmitStun(Particle* p, int) {
     Vector3 offset;
     float radius;
@@ -4423,19 +4406,19 @@ int CParticleSource::EmitStun(Particle* p, int) {
     p->pos.x = static_cast<float>(px);
     p->life = 20;
     p->velocity.x = static_cast<float>(Unsigned(Next()) * 1.3969837789817515e-10 /*0073CE10*/ + D(0.7f /*0073C538*/));
-    void* unit = attachedTo;
+    auto* unit = static_cast<CUnit*>(attachedTo);   // the carrier is taken as a unit, as the original does
     if (!unit) {
         flags_ &= ~5u;
         Attach(nullptr);
         return 0;
     }
-    if (static_cast<const CUnit*>(unit)->moveMode == 3) {
+    if (unit->moveMode == 3) {
         emitCount = 4;
         p->life = 5;
     } else {
         emitCount = 1;
     }
-    if (UnitStunOver(unit)) {
+    if (unit->IsDead()) {
         flags_ &= ~5u;
         Attach(nullptr);
     }

@@ -41,7 +41,7 @@ void CParticleSource::ReleaseAllParticles() {
         if (particles.head) particles.head->prev = nullptr;
         else particles.tail = nullptr;
         particles.FreeNode(node);
-        static_cast<CParticleManager*>(owner_)->ReleaseParticle(p);
+        Manager()->ReleaseParticle(p);
     }
 }
 

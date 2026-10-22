@@ -374,6 +374,8 @@ static_assert(sizeof(SourceFrame) == 16);
 // (+0x34) the identity after Reset.
 class CParticleSource : public CTransformObject {
 public:
+    // The particle manager that owns the source (owner_), the pool its particles come from.
+    CParticleManager* Manager() const { return static_cast<CParticleManager*>(owner_); }
     // The compiled table (C19, particle_create.cpp's ParticleSourceClass; game.exe's 0073CFD0).
     static void* Vtable();
     // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer

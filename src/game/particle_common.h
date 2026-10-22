@@ -8,6 +8,7 @@
 // are read from the exe at run time.
 
 #include "effects.h"
+#include "map_object.h"
 #include "random.h"
 #include "world.h"
 
@@ -96,15 +97,12 @@ inline void SetElementCount(CParticleSource* s, int n) {
 }
 
 
-// The attached object's class (vtable slot 12) and its slot 60 (a float: the unit's size).
-inline int ClassOf(void* object) {
-    using Fn = int(__fastcall*)(void*, void*);
-    return (*static_cast<Fn**>(object))[12](object, nullptr);
-}
-inline double UnitScale(void* object) {
-    using Fn = double(__fastcall*)(void*, void*);
-    return (*static_cast<Fn**>(object))[60](object, nullptr);
-}
+// The attached object as a map object: the callbacks call its slots past CObject3D's (the
+// carriers are units).
+inline CMapObject* Carrier(CObject3D* object) { return static_cast<CMapObject*>(object); }
+// The attached object's class (slot 12) and its radius (slot 60; units +0x328: the unit's size).
+inline int ClassOf(CObject3D* object) { return object->GetClassId(); }
+inline double UnitScale(CObject3D* object) { return Carrier(object)->Radius(); }
 
 constexpr int kUnitClass = 0x50;
 
