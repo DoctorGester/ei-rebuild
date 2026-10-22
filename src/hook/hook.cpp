@@ -63,35 +63,15 @@ static bool IsVirtualCallThunk(const void* replacement) {
            (code[3] == 0x20 || code[3] == 0x60 || code[3] == 0xA0);
 }
 
-// game.exe's dispatch-only functions with their bytes, from game.exe at build time (tools/gen_image_cells.py
-// --dispatch, build/<cfg>/image/dispatch_bytes.inc; S18k: the image reads no game.exe).
-struct DispatchBytes {
-    std::uintptr_t address;
-    unsigned char bytes[8];
-};
-static const DispatchBytes kDispatchBytes[] = {
-#include "dispatch_bytes.inc"
-};
-
-// Whether the thunk `replacement` has the same bytes as game.exe's dispatch-only function at `address`
-// (5 with a disp8, 4 with [EAX], 8 with a disp32).
-static bool SameDispatch(const void* replacement, std::uintptr_t address) {
-    const auto* code = static_cast<const unsigned char*>(replacement);
-    for (int hops = 0; code[0] == 0xE9 && hops < 4; ++hops)
-        code += 5 + *reinterpret_cast<const std::int32_t*>(code + 1);
-    const int size = code[3] == 0x20 ? 4 : code[3] == 0x60 ? 5 : 8;
-    for (const DispatchBytes& d : kDispatchBytes)
-        if (d.address == address) return std::memcmp(code, d.bytes, size) == 0;
-    return false;
-}
-
-// The first entry registered for `address` whose replacement or recorder is such a thunk
-// (EI_REPLACE_DISPATCH entries are meant to be).
+// The first entry registered for `address` whose replacement or recorder is such a thunk. A game function
+// that is itself a bare vtable dispatch (00675D40 DestroyEffect, 00469DE0 / 00469E00 SpecRemove / SpecRefresh,
+// 00552F30) is EI_REWRITTEN: its callers call the virtual (C25 retired EI_REPLACE_DISPATCH, whose check needed
+// game.exe's bytes of the 8 such functions).
 static const HookEntry* ThunkEntryAt(std::uintptr_t address) {
     auto it = g_hooksByAddress.find(address);
     if (it == g_hooksByAddress.end()) return nullptr;
     for (const HookEntry* h : it->second)
-        if (!h->dispatch && IsVirtualCallThunk(h->replacement)) return h;
+        if (IsVirtualCallThunk(h->replacement)) return h;
     return nullptr;
 }
 
@@ -308,8 +288,8 @@ int InstallHooks() {
         Log("EI_VECTORS set: the original game code with the vector recorders only");
     }
     // game.exe's file, in the original's process (the recorders' stolen bytes). The image reads none (S18k): its
-    // data and the dispatch bytes come from a 1.06 game.exe at build time (tools/gen_image_cells.py checks the
-    // timestamp), and a registration's address is a function start of game.exe's code.
+    // data comes from a 1.06 game.exe at build time (tools/gen_image_cells.py checks the timestamp), and a
+    // registration's address is a function start of game.exe's code.
     std::vector<unsigned char> file;
     const IMAGE_NT_HEADERS32* nt = nullptr;
     if (!standalone) {
@@ -387,10 +367,6 @@ int InstallHooks() {
         if (const HookEntry* thunk = ThunkEntryAt(h->address)) {
             std::snprintf(why, sizeof(why), "%s is a virtual-call thunk (register a non-virtual shim instead)", thunk->name);
             LogSkip(h, false, why);
-            continue;
-        }
-        if (h->dispatch && !SameDispatch(h->replacement, h->address)) {
-            LogSkip(h, false, "its dispatch bytes differ from the original's");
             continue;
         }
         if (h->stolen > 0) {

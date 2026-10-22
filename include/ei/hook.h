@@ -23,7 +23,6 @@ struct HookEntry {
     int stolen = 0;           // recorders: build a trampoline from this many prologue bytes
     void** original = nullptr; // receives the trampoline (original function) address
     bool record = false;      // vector recorder (EI_RECORD): installed only in game.exe with EI_VECTORS=1
-    bool dispatch = false;    // EI_REPLACE_DISPATCH: the replacement is a deliberate vtable dispatch
 };
 
 // Registers a replacement at static-initialisation time. Installed by InstallHooks().
@@ -33,17 +32,6 @@ struct HookRegistrar {
     // Vector recorder (EI_RECORD): runs the original through a trampoline. `stolen` must cover
     // whole instructions with no relative operands (tools/check_stolen.py).
     HookRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen, void** original);
-};
-
-// A game function that is itself a bare vtable dispatch (MOV EAX,[ECX]; JMP [EAX+n]) to another slot:
-// the replacement is compiled to the same bytes, and the installer checks that its dispatch bytes
-// equal the original's.
-struct DispatchRegistrar {
-    HookRegistrar registrar;
-    DispatchRegistrar(std::uintptr_t address, void* replacement, const char* name)
-        : registrar(address, replacement, name) {
-        registrar.entry.dispatch = true;
-    }
 };
 
 // Address of a member function, for registering class methods as replacements.
@@ -158,7 +146,7 @@ void SetOriginalWinMainAction(void (*action)());
 // InstallHooks would install (two plain replacements, two recorders).
 #pragma section(".eireg", read, write)
 namespace ei {
-enum RegKind : int { kRegReplace, kRegStandalone, kRegShort, kRegDispatch, kRegRecord };
+enum RegKind : int { kRegReplace, kRegStandalone, kRegShort, kRegRecord };
 struct RegRecord {
     std::uintptr_t address;
     const char* file;
@@ -178,12 +166,6 @@ struct RegRecord {
 #define EI_REPLACE_METHOD(addr, method) \
     EI_REG_RECORD(ei_reg_method_, addr, ::ei::kRegReplace); \
     static ::ei::HookRegistrar EI_CAT(ei_hook_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
-
-// Register a method whose body is a tail call through the vtable, the same dispatch as the original's
-// own (DestroyEffect, SpecRemove, SpecRefresh); see DispatchRegistrar.
-#define EI_REPLACE_DISPATCH(addr, method) \
-    EI_REG_RECORD(ei_reg_dispatch_, addr, ::ei::kRegDispatch); \
-    static ::ei::DispatchRegistrar EI_CAT(ei_dispatch_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
 
 // Replace the library function at `addr`: the game's runtime (the CRT heap, operator new's handler, the
 // atexit list), which the image has instead of the exe's library code. Installed as EI_REPLACE; a kind

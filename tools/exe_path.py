@@ -3,6 +3,8 @@
   1. an explicit path (the tool's --exe, or the EI_EXE environment variable),
   2. else run_all.run_dir(root)'s vanilla\\game.exe, then rebirth\\game.exe. run_dir is the root's run\\ folder, or
      the main checkout's when the worktree has no junction of its own.
+  EI_NO_GAME_EXE=1 says there is none (C25: the build without game.exe; build.cmd then skips the checks that
+  compare with it): nothing is found, whatever is there.
 
 Vanilla's and Rebirth's game.exe 1.06 differ in one code byte (a Rebirth fix); the data the tools read is the same.
 The lookup never writes and never reads F:\\games. Nothing found: one error naming everything looked for.
@@ -31,6 +33,8 @@ def install_exes(root=ROOT):
 
 def find_exe(explicit=None, root=ROOT):
     """The game.exe to read: `explicit` (or $EI_EXE), else the first of the installs'. ExeNotFound names what was looked for."""
+    if os.environ.get('EI_NO_GAME_EXE') == '1':
+        raise ExeNotFound('game.exe: none configured (EI_NO_GAME_EXE=1)')
     explicit = explicit or os.environ.get('EI_EXE')
     if explicit:
         if not os.path.isfile(explicit):
@@ -46,8 +50,8 @@ def find_exe(explicit=None, root=ROOT):
 
 def find_exes(explicit=(), root=ROOT):
     """Every game.exe to read: the explicit paths, else all the installs' that exist (at least one)."""
-    if explicit:
-        return [find_exe(p, root) for p in explicit]
+    if explicit or os.environ.get('EI_NO_GAME_EXE') == '1':
+        return [find_exe(p, root) for p in explicit or [None]]
     found = [p for p in install_exes(root) if os.path.isfile(p)]
     if not found:
         find_exe(None, root)

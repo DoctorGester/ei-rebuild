@@ -86,12 +86,12 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
   then `InstallHooks` takes the registrations as the code for their addresses ("Code", below). Nothing runs in or
   jumps through game.exe's code. `ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game args>]`, run from the game
   folder; without `--run` it builds the image, checks the code table and the cells and exits.
-- **What comes from game.exe at build time** (S18k: nothing at run time): the sections' bytes and the dispatch-only
-  functions' bytes (`tools/gen_image_cells.py --bytes / --dispatch`, build/<cfg>/image/, which also checks the 1.06
-  timestamp); the section places are constants (game_data.h, image_code.cpp,
-  hook.cpp's `kCodeBegin`-`kCodeEnd`, the registrations' bounds). InstallHooks reads game.exe's file only in game.exe
-  itself (the recorders' stolen bytes). `EI_REPLACE_DISPATCH` thunks are compared with dispatch_bytes.inc (8
-  dispatch-only functions; 3 registered).
+- **What comes from game.exe at build time** (S18k: nothing at run time): the sections' bytes
+  (`tools/gen_image_cells.py --bytes`, build/<cfg>/image/, which also checks the 1.06 timestamp; C25 measured which
+  of them the image reads: "The build without game.exe" below); the section places are constants (game_data.h, image_code.cpp, hook.cpp's `kCodeBegin`-`kCodeEnd`, the registrations'
+  bounds). InstallHooks reads game.exe's file only in game.exe itself (the recorders' stolen bytes). The 8
+  dispatch-only functions (`MOV EAX,[ECX]; JMP [EAX+n]`) need no bytes since C25: the four with a port are
+  EI_REWRITTEN (their callers call the virtual), `EI_REPLACE_DISPATCH` and its byte check are gone.
 - **Start** (EiStandaloneMain): the C initialiser `__initmbctable` (00783BC0), then the 748 static initialisers in
   list order (`StaticInitialisers(Run)`), then WinMain; its result goes to the CRT's exit as the CRT did.
 - **Missing code.** Reaching an address without code (CodeAddress's stub, or a jump into the guarded .text) logs
@@ -327,6 +327,34 @@ each step green on the goldens and removing a measured tie:
 
 Not on this path: named, typed globals in place of a section's bytes (C18, below) and vtables as real virtual
 classes (C19), plain new / delete and standard containers (C14), Win32 calls linked directly.
+
+### The build without game.exe (C25)
+
+What the image still takes of game.exe's .rdata / .data bytes, measured two ways:
+
+- **The trace** (`EI_IMAGE_TRACE=1`, verify build, the image's runs; tests/verify/harness_image_trace.h): every page of
+  the storage's file bytes that holds a nonzero dword is made inaccessible at the harness's start; the first access
+  to each such dword is a line of the run folder's image_trace.txt, then the instruction is single-stepped with the
+  page open. `python tools/image_trace.py [--check] [--csv OUT]` names the readers (the map) and groups the reads; a
+  read of a cell (image_cells.inc, image_code_cells.inc) does not count, the cells come from the committed tables.
+  On the suite (144 runs, 2026-10-22, after C18o): 2238 dwords read, 1281 of them cells, 957 from game.exe's bytes. Pages that
+  trap more than 100,000 times are left open (the script keyword table 0078B000-0078DFFF, MFC's 00796000, the
+  CRT's 00797000, 0079B000's hot globals): the trace cannot see the rest of them, the trial covers that.
+- **The trial** (`build.cmd verify trial`, CMake `EI_IMAGE_ZERO_TRIAL`, `gen_image_cells.py --bytes OUT --zero`):
+  the image's bytes are zero but the cells and `config/image_kept.csv`'s ranges. Never the product: a zero where a
+  table or string is read changes behaviour silently (a failed lookup, a zero constant), so the proof is the image
+  suite with goldens the same, not a boot. With an empty list the trial does not read game.exe at all.
+
+`config/image_kept.csv` is that list (address, size, owner file, kind, what): whole objects, also the parts no run
+reaches (the locale abbreviation tables); `gen_image_cells.py --check` refuses a range that overlaps a
+named range (C18) or another, `image_trace.py --check` a traced read outside the list. Each row is a candidate for
+C18 (a named, typed definition in our code) or a literal; when the list is empty the trial's bytes are the product's
+and the build needs nothing of game.exe (the resources are the host's own since C23).
+
+Without a game.exe (tools/exe_path.py finds none in run\vanilla / run\rebirth / EI_EXE, or `EI_NO_GAME_EXE=1`)
+build.cmd skips the checks that compare with it (check_fp_fold, rdata_literals, named_data, check_short_functions,
+check_static_init, `gen_image_cells --check`, `gen_iat --check`) with one line; CMake still needs it for the section
+bytes.
 
 ### Named data (C18)
 
@@ -1501,12 +1529,13 @@ the `--no-hooks` suite) keeps the registry.
   atexit registrations of function-local statics (PUSH fn, CALL 006E727B within 14 instructions). Their sizes go
   into config/extra_function_sizes.csv and function_sizes.inc (the generator writes them, the check compares).
 - **Compiler jump thunks** (functions.csv kind "thunk") are registered with their target's replacement.
-- **Dispatch-only functions** (`MOV EAX,[ECX]; JMP [EAX+n]`: 00675D40, 00469E00, 00469DE0) use `EI_REPLACE_DISPATCH`;
-  the installer checks that our bytes are the same dispatch.
+- **Dispatch-only functions** (`MOV EAX,[ECX]; JMP [EAX+n]`: 00675D40, 00469E00, 00469DE0, 00552F30 ported) are
+  `EI_REWRITTEN`: the callers call the virtual. A registration of one would be a virtual-call thunk, which
+  InstallHooks refuses (C25 dropped `EI_REPLACE_DISPATCH`, whose check compared game.exe's bytes).
 
 ### Registration rules
 
-- `EI_REPLACE` / `_METHOD` / `_DISPATCH` / `_SHORT` / `_STANDALONE` all go in (the last name is historical: it was
+- `EI_REPLACE` / `_METHOD` / `_SHORT` / `_STANDALONE` all go in (the last name is historical: it was
   "image only" while game.exe ran our code). `tools/check_registrations.py` (build.cmd) fails on two registrations
   of one address; it reads the built DLL's `.eireg` section (every macro leaves a `RegRecord`).
 - A registration stays only while something reaches its address (C20c): `tools/registration_readers.py` prints the
@@ -1718,6 +1747,9 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
   now zeroes it. Any comparator over a never-set float needs the same care.
 - A stolen-byte count must cover whole instructions (`MOV [ESP+0],0` is eight bytes); check_stolen.py checks the
   recorders' counts.
+- A system call does not trap on an inaccessible page, it fails: the image trace's first suite saw WriteFile fail
+  (error 1784) on a save's one-byte .data constant. Page protection tricks must open a buffer's pages around the
+  Win32 calls that take it (harness_image_trace.cpp's WriteFile).
 - Leftover memory is not preserved (user 2026-10-15): where the original reads never-set bytes, ours writes a
   canonical value (zero) and the harness patches the original the same way (standalone-verification.md section 5).
 

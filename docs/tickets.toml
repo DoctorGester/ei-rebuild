@@ -2828,7 +2828,7 @@ id = "C25"
 title = "Build without game.exe: the zero-filled trial, the dispatch-only bytes, the checks"
 group = "cleanup"
 model = "opus"
-note = "Coordinator 2026-10-22: C18o named 72 unread .SEC copies (src/game/header_constant_copies.cpp) and two dead-code tables (dead_code_tables.cpp) only so their bytes come from the source. Once unread bytes may be zero (this ticket's trial), drop those definitions and their named_data rows."
+note = "Coordinator 2026-10-22: C18o named 72 unread .SEC copies (src/game/header_constant_copies.cpp) and two dead-code tables (dead_code_tables.cpp) only so their bytes come from the source. Once unread bytes may be zero (this ticket's trial), drop those definitions and their named_data rows. Done 2026-10-22. (1) The trial: build.cmd verify trial (CMake EI_IMAGE_ZERO_TRIAL, gen_image_cells --bytes --zero; off by default): zero but the cells and config/image_kept.csv. Found by a read trace (EI_IMAGE_TRACE=1, tools/image_trace.py; after C18o 2238 dwords read, 1281 cells, 957 game.exe bytes), proved by the trial suite (144/144 ALL PASS, 121 goldens the same). The list, 23 ranges / 9,520 bytes, by owner: script_parse.cpp 8 (keyword table 0078BCA0+3600 ids, its names/types 0078CAC0+3172 and 6 small strings; script_parse_load.cpp 1 more), crt_locale.cpp 5 (setlocale names 00747924+1288, category names, C, abbreviation tables 00798928+704, ctype 00797DE0+516), and one each: ui_battle_update / ui_hud_frame (addon-site floats), static_init (commctrl_DragListMsg), crt_iostream (ostream vbtable), net_session_tick (send rates), app_main (tick 55), ai_path_smooth (direction table), player_server_handlers (a constant), mfc_string.h (_afxInitData). By kind: data text 9, data table 5, data constant 3, rdata text 3, rdata constant 2, rdata table 1. C18q takes the script and CRT rows; C25a the rest. (2) Dispatch bytes: EI_REPLACE_DISPATCH, --dispatch and InstallHooks' check gone; ThunkEntryAt refuses any virtual-call thunk; the 4 ported dispatch-only functions are EI_REWRITTEN. (3) build.cmd skips the 7 game.exe checks with one line when tools/exe_path.py finds none (or EI_NO_GAME_EXE=1). C25b: SetPauseTextDigit writes a copy nothing reads."
 
 [[ticket]]
 id = "C18o"
@@ -2849,6 +2849,20 @@ title = "Named data: the script keyword table and the CRT string tables"
 group = "cleanup"
 model = "opus"
 note = "After C18o (2026-10-22). The script keyword / built-in function table 0078BCA0 (442 pointer cells; script.h, script_addon.cpp: Rebirth's addon installs its own 300-entry table and ClassifyToken reads whichever is in use) as a named table, keeping the live table in hooked runs; then the CRT's string tables (setlocale names, __lc_time_c, run-time error messages, locale categories, _iob, lconv) where our ported CRT reads them, after checking which a static initialiser or the CRT's start-up fills. Use named_data.py --emit / --rewrite."
+
+[[ticket]]
+id = "C25a"
+title = "Build without game.exe: the rest of the kept list, then the zero bytes as the product"
+group = "cleanup"
+model = "opus"
+note = "After C25 and C18q (2026-10-22). config/image_kept.csv lists what the image still reads of game.exe's .rdata/.data (C25: trace + zero-filled trial, ALL PASS, goldens the same). C18q takes the script keyword table and the CRT string tables (rows 0078B820-0078D724, 00787B5C/98/B4, 007472E4, 00747924, 00797778, 00798928; delete them from the list when named). The rest: the addon-site floats 007428AC / 00742B08, commctrl_DragListMsg 00746D8C, ostream's vbtable 00748284, the send rates 00783E34, the tick 0078FF34, the direction table 00791978, OnNewParty's 00794E3C, MFC's _afxInitData 00796E50, the C ctype table 00797DE0: as named data or literals (addon sites stay writable). When the list is empty: --zero becomes the bytes' only mode (gen_image_cells --bytes without game.exe), CMake's EI_GAME_EXE lookup optional, build.cmd's checks already skip without one. Check: image_trace.py --check on an EI_IMAGE_TRACE=1 suite, the trial suite with goldens the same."
+
+[[ticket]]
+id = "C25b"
+title = "Rebirth pause / resume text: SetPauseTextDigit writes a copy nothing reads"
+group = "cleanup"
+model = "opus"
+note = "Found by C25 (2026-10-22). player_server_orders.cpp SetPauseTextDigit writes '2' / '3' into game.exe's string 007930EC (\"reserved_02\", EI_Plugin's Pause patch), but CInterface3D::MessageText (ui_interface_save.cpp) takes message 12's key from its own literal kMessageKeys[12] = \"reserved_02\": the resume announcement shows the pause text in the image (and in hooked runs, if MessageText is ours). Make the key one named, writable char array that both use (or the digit an argument), and a scenario for the pause / resume messages if the lobby allows one."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
