@@ -8,6 +8,7 @@
 #include "console.h"
 #include "engine_object.h"
 
+#include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_data.h"
@@ -94,15 +95,12 @@ using SkinLayerArray = mfc::CArray<SkinLayer>;
 // What the texture manager composes a skin from (00693180): the layers as bytes in 32-byte
 // aligned storage, the layer texture names, and a flag (0x100 detailed, 0x80 simple).
 struct SkinRequest {
-    std::uint8_t* layers;           // +0x00 aligned (the block is kept at layers[-4])
-    int layerBytes;                 // +0x04
-    int capacity;                   // +0x08
-    int growBy;                     // +0x0C
+    lib::AlignedArray<std::uint8_t> layers;   // +0x00 the bytes (size, capacity, growBy after the data)
     console::CStringArray textures; // +0x10
     int flags;                      // +0x24
 };
 static_assert(offsetof(SkinRequest, textures) == 0x10);
-static_assert(offsetof(SkinRequest, flags) == 0x24);
+static_assert(offsetof(SkinRequest, flags) == 0x24 && sizeof(SkinRequest) == 0x28);
 
 // The texture manager composes a request into a cached texture (CTextureManager::Compose, 00693180).
 

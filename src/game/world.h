@@ -1179,7 +1179,7 @@ public:
     void MoveObject2Impl(CEngineObject* object, const float* position);
     // Body of the slot at 005618A0 (registered by member pointer).
     void MoveObjectImpl(CEngineObject* object, const float* position);
-    void BuildUnitSkins(const void* othersVector, const void* dressedVector);
+    void BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed);
     // 005641F0, vtable slot 6 (world_client.cpp). The client's tick ("Segment"): autosave event
     // and sound volumes on frame 10, the terrain, sound and session updates, the objects and units,
     // effect lists, the lights' grey levels, the map state every 32 ticks. Returns 1; 0 when the
