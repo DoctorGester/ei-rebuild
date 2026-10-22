@@ -631,7 +631,7 @@ public:
     stlp::string mapName_;                 // +0x25D4 the current map
     std::uint32_t maxPlayers_;          // +0x25E0 8; set by the creator (0057E740)
     std::uint32_t kind_;                // +0x25E4 the constructor's argument: the game kind
-    std::uint8_t password_[0x14];       // +0x25E8 the join password (empty: none)
+    char password_[0x14];               // +0x25E8 the join password (empty: none)
     std::uint32_t masterKey_;           // +0x25FC set by the creator (StartServer); announced, and the master
                                         // server's packets must start with it (OnMaster)
 };
