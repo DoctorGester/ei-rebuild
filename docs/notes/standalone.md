@@ -466,7 +466,10 @@ kinds given.
   named_data takes `NAME + k`, a named range's element k, as a pointer element; --emit does not write it, a person
   does). `_iob` is not read: our streams are the host's FILE*, and the game's stdin / stdout / stderr are
   `libcrt::GameStream(0..2)`, three 0x20-byte stand-ins in crt_format.cpp that only HostFile compares (the vector
-  recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets g_pctype).
+  recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets g_pctype). config/image_kept.csv
+  (C25) lost the rows these names replace: the keyword table and the strings only its cells reached (0078BCA0,
+  0078CAC0, 0078B820 / 864 / 8A4, 0078BBD0, 00787B5C / 98 / B4), `_ctype` 00797DE0, the abbreviation tables 00798928
+  and their names 00747924; the zero-filled trial (`build.cmd verify trial`) runs the image suite without them.
   **Left in the CRT**, by reason:
   - read, not nameable yet: the locale categories `__lc_category` 00797888 (6 x {name, locale, init}; our setlocale
     reads and writes `locale` and calls `init` for a category other than LC_CTYPE, which the game never sets) and the
