@@ -4,6 +4,7 @@
 
 #include "ei/hook.h"
 #include "game/originals_library.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "game/game_data.h"
 
@@ -175,8 +176,14 @@ struct OutOfRange {
 };
 static_assert(sizeof(OutOfRange) == 0x10C);
 
-const void* NamedExceptionVtable() { return ei::GamePointer<const void>(0x0073B994); }
-const void* OutOfRangeVtable() { return ei::GamePointer<const void>(0x0073BE8C); }
+// __Named_exception's and out_of_range's compiled tables (C19) in place of game.exe's 0073B994 / 0073BE8C: 0 the
+// scalar deleting destructor (0040C480 / 0041F740: ~exception, then the memory freed), 1 what (0040C430: the name).
+template <typename Self>
+struct NamedExceptionTable : ei::CompiledDeleter<Self, &libcrt::Exception::DeletingDestruct> {
+    virtual const char* What() { return reinterpret_cast<const OutOfRange*>(this)->name; }   // 1
+};
+struct NamedExceptionClass final : NamedExceptionTable<NamedExceptionClass> {};
+struct OutOfRangeClass final : NamedExceptionTable<OutOfRangeClass> {};
 const void* OutOfRangeThrowInfo() { return ei::GamePointer<const void>(0x0074C640); }
 const char* BasicStringText() { return "basic_string"; }
 
@@ -186,10 +193,10 @@ void __fastcall ThrowOutOfRange() {
     const string what(BasicStringText());
     OutOfRange error;
     error.base.Construct();
-    error.base.vtable = NamedExceptionVtable();
+    error.base.vtable = NamedExceptionClass::Vtable();
     gamecrt::strncpy(error.name, what.data(), sizeof(error.name));
     error.name[sizeof(error.name) - 1] = 0;
-    error.base.vtable = OutOfRangeVtable();
+    error.base.vtable = OutOfRangeClass::Vtable();
     libcrt::CxxThrowException(&error, OutOfRangeThrowInfo());
     __assume(0);
 }

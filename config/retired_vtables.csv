@@ -1,6 +1,7 @@
 vtable,slots,class,file,note
 0073B8D4,3,TempListClass,src/lib/mfc_slots.h,CList (a pointer list built around each item creation (world quests))
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
+0073B994,2,NamedExceptionClass,src/lib/stlp_string.cpp,"__Named_exception (out_of_range's base, set while its constructor runs)"
 0073B9E0,18,CameraClass,src/game/camera_object.cpp,the camera (CCamera)
 0073BB28,6,ServerEntryClass,src/game/net_messages.h,ReplicatedClass (the lobby's server entry)
 0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base; slots 2-5 _purecall)
@@ -33,6 +34,7 @@ vtable,slots,class,file,note
 0073BE30,17,ClientBaseClass,src/game/net_classes.h,the client base (ClientBase; slot 16 _purecall)
 0073BE74,3,ItemObjectListClass,src/game/game_slots.h,CList (engine objects released through slot 4)
 0073BE80,3,ItemListClass,src/lib/mfc_slots.h,CList (the item and object pointer lists (CTypedPtrList))
+0073BE8C,2,OutOfRangeClass,src/lib/stlp_string.cpp,"out_of_range (stlp_string's range errors, thrown with game.exe's ThrowInfo 0074C640)"
 0073BE94,2,Chunk,src/game/chunk_stream.h,
 0073BE9C,2,RootChunk,src/game/chunk_stream.h,
 0073BECC,15,CClientSpecificManager,src/game/base_manager.h,
