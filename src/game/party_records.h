@@ -1,6 +1,6 @@
 #pragma once
 
-// Named party records (0x7C bytes, vtable 0073C360, base 0073BB68): a party object and the name
+// Named party records (0x7C bytes, vtable Vtable() in place of 0073C360, base 0073BB68): a party object and the name
 // scripts refer to it by. The object at 007AA5A0 keeps them in a vector at +0x24 followed by two
 // strings. Names are provisional.
 
@@ -32,6 +32,9 @@ struct PartyRecord {
     void Destruct();
     // 004577C0 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
     PartyRecord* DeletingDestruct(unsigned flags);
+    // The record's table (app_lifetime.cpp): the compiler's, slot 0 DeletingDestruct, slot 1
+    // Serialize (C19; game.exe's 0073C360, the same slots).
+    static void* Vtable();
 };
 static_assert(sizeof(PartyRecord) == 0x7C);
 // 00457740 (A-E1; app_lifetime.cpp). A new unnamed record with no references (operator new and the

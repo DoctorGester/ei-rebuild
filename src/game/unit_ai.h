@@ -195,9 +195,9 @@ public:
     virtual void Save(CStream* stream) = 0;            // 12
 };
 
-// Base of all modes (vtables 0073D15C (abstract), 0073D22C (abstract)); the slots are listed in
-// AIModeVirtuals. The structs below have no C++ virtuals (their constructors install the game's
-// vtables); our slot versions are registered at the original addresses.
+// Base of all modes (game.exe's vtables 0073D15C (abstract), 0073D22C (abstract)); the slots are
+// listed in AIModeVirtuals. The structs below have no C++ virtuals: their constructors install the
+// compiled tags' tables (ai_mode_class.h), whose slots call the bodies below.
 struct AIMode {
     void* vtable;
     std::int16_t refs;              // +0x04 (INC word / 0040A3A0)
@@ -246,18 +246,7 @@ struct AIMode {
 };
 static_assert(sizeof(AIMode) == 8);
 
-// The modes' vtables as their constructors install them (the script's 004BA1C0-004BA920).
-namespace aimode {
-inline void* const kBaseVtable = ei::GamePointer<void>(0x0073D15C);
-inline void* const kGuardVtable = ei::GamePointer<void>(0x0073D128);
-inline void* const kSentryVtable = ei::GamePointer<void>(0x0073D190);
-inline void* const kFollowVtable = ei::GamePointer<void>(0x0073D1C4);
-inline void* const kSuspectionVtable = ei::GamePointer<void>(0x0073D1F8);
-inline void* const kAggressionVtable = ei::GamePointer<void>(0x0073D260);
-inline void* const kCorpseWatcherVtable = ei::GamePointer<void>(0x0073D294);
-inline void* const kFearVtable = ei::GamePointer<void>(0x0073FF8C);
-} // namespace aimode
-
+// The modes' vtables are compiled tags (ai_mode_class.h: aimode::GuardClass::Vtable(), ...).
 // Shared slot implementations of the simple modes (registered once, used by several vtables).
 namespace aimode {
 // 005D1210 / 005D2920. Slot 8 (GetType) of Patrol (1) and Fear (7).
@@ -265,17 +254,11 @@ int __fastcall PatrolType(AIMode* self);
 int __fastcall FearType(AIMode* self);
 // The root vtable a mode's destructor leaves (CRefObject's, 0073BB68).
 inline void* const kRootVtable = ei::GamePointer<void>(0x0073BB68);
-inline void* const kPatrolVtable = ei::GamePointer<void>(0x0073FF40);
-inline void* const kPatrolPointsVtable = ei::GamePointer<void>(0x0073FF74);
-inline void* const kPatrolPointsBaseVtable = ei::GamePointer<void>(0x0073FF80);
-inline void* const kPlayerVtable = ei::GamePointer<void>(0x0073F0F8);
-// Tamed (type 8): a Player mode (PlayerMode::Construct) given this vtable (00552150: GetType 8).
-inline void* const kTamedVtable = ei::GamePointer<void>(0x0073F0C4);
+// Tamed (type 8): a Player mode (PlayerMode::Construct) given its own vtable (00552150: GetType 8).
 // 00552090 / 00552140 (slot 4, RET 4): the player mode claims 10, the tamed one 100000000.
 // 005520A0 / 00552150 (slot 8): their types 6 and 8 (unit_ai_player_mode_slots.cpp).
 int __fastcall PlayerType(AIMode* self);
 int __fastcall TamedType(AIMode* self);
-inline void* const kActionBaseVtable = ei::GamePointer<void>(0x0073D22C);
 // 005D8850 / 005D6D10 (unit_ai_mode_lifetime.cpp). The abstract bases' constructors: the vtable
 // 0073D15C / 0073D22C only; return the mode.
 AIMode* __fastcall ConstructModeBase(AIMode* mode);

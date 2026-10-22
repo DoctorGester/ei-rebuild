@@ -728,24 +728,27 @@ static_assert(sizeof(UnitLayerNode) == 0x1C);
 // Methods in ai_unit_layer.cpp and ai_grids.cpp. Names provisional.
 //
 // Two slots: 0 Set (the block's levels replace the map's) and 1 Merge (the map keeps the larger
-// level), _purecall in the base vtable 0073FD7C. The small-unit layer (vtable 0073FD74) writes
-// AIMapCell::level (unsigned maximum), the large-unit one (vtable 0073FD6C) the signed bytes of
-// CAIMap::waterDepth; their bodies are the SetSmall / MergeSmall / SetLarge / MergeLarge members below, registered by
-// address. The game builds the layers (the AI map's constructor stores the vtables), so the class
-// is novtable and the slots are only declared.
+// level), _purecall in the base table (game.exe's 0073FD7C). The small-unit layer (0073FD74) writes
+// AIMapCell::level (unsigned maximum), the large-unit one (0073FD6C) the signed bytes of
+// CAIMap::waterDepth; their bodies are the SetSmall / MergeSmall / SetLarge / MergeLarge members
+// below. The tables are the compiler's (C19; tags in ai_grids.cpp and ai_unit_layer.cpp, BaseVtable /
+// SmallVtable / LargeVtable): the AI map's constructor stores them, so the class is novtable and the slots are
+// only declared.
 class __declspec(novtable) CUnitLayer {
 public:
     // The bodies of the derived layers' slots 0 (Set: the block's levels replace the map's) and 1 (Merge:
-    // the map keeps the larger level), registered by address (ai_unit_layer.cpp). The small-unit layer
-    // (vtable 0073FD74) writes AIMapCell::level (unsigned maximum), the large-unit one (vtable 0073FD6C)
-    // the signed bytes of CAIMap::waterDepth.
+    // the map keeps the larger level; ai_unit_layer.cpp). The small-unit layer (game.exe's table
+    // 0073FD74) writes AIMapCell::level (unsigned maximum), the large-unit one (0073FD6C) the signed
+    // bytes of CAIMap::waterDepth.
     void SetSmall(const UnitLayerNode* block);     // 005B39D0
     void MergeSmall(const UnitLayerNode* block);   // 005B3A70
     void SetLarge(const UnitLayerNode* block);     // 005B3B20
     void MergeLarge(const UnitLayerNode* block);   // 005B3B90
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FD7C);
-    static constexpr std::uintptr_t kSmallVtableAddress = std::uintptr_t(0x0073FD74);
-    static constexpr std::uintptr_t kLargeVtableAddress = std::uintptr_t(0x0073FD6C);
+    // The tables: the base's (both slots _purecall; game.exe's 0073FD7C; ai_grids.cpp), the small-unit
+    // layer's (0073FD74) and the large-unit layer's (0073FD6C; ai_unit_layer.cpp).
+    static void* BaseVtable();
+    static void* SmallVtable();
+    static void* LargeVtable();
 
     virtual void Set(const UnitLayerNode* block);     // 0: small 005B39D0, large 005B3B20
     virtual void Merge(const UnitLayerNode* block);   // 1: small 005B3A70, large 005B3B90
@@ -757,7 +760,7 @@ public:
     // block it had, Set gets the block with the other units' levels merged (maximum).
     void Remove(CUnit* unit, int x, int y);
     // 005B4110 (the base constructor; ai_grids.cpp). The empty node list (blocks of 0x400), the
-    // base vtable 0073FD7C, no buckets, no free nodes. `map` is the owner's to set. Returns this.
+    // base table (BaseVtable), no buckets, no free nodes. `map` is the owner's to set. Returns this.
     CUnitLayer* Construct();
     // 0058A8A0 / 0058A900 (the two layer classes' destructors, reached by the AI map's unwinding
     // only; ai_grids.cpp). The node list emptied and its blocks freed.
@@ -1021,7 +1024,7 @@ public:
     lib::AlignedArray<AITerrainType> materials;     // +0x0FC the terrain types (16 after Load)
     BridgeMap bridgeHeights;            // +0x10C keyed (short)x << 16 | (short)y
     float heightScale;                  // +0x120 world z to AI height units
-    CSectorMap sectorMap;               // +0x124 (vtable 0073F9DC)
+    CSectorMap sectorMap;               // +0x124 (CSectorMap::Vtable; game.exe: 0073F9DC)
     FootprintCellSet footprint;         // +0x14C scratch for MarkFootprint
     FootprintCellSet bridges;           // +0x1A0
     std::int8_t* waterBlock;            // +0x1F4 the water depths' grid (WaterGrid) from here

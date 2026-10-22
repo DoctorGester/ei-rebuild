@@ -457,8 +457,6 @@ static_assert(sizeof(MusicTheme) == 0x38);
 // CMusicSystem (0x58 bytes, class id 0xE): picks the music for the game state. A real virtual
 // class: the compiler makes its vtable (C19; game.exe's 00744098 is retired).
 struct CMusicSystem : CEngineObject {
-    static constexpr std::uintptr_t kThemeArrayVtable = std::uintptr_t(0x007440CC);
-
     // 006B4350. CEngineObject's fields, an empty theme array, the strings empty, then ResetThemes
     // (theme, +0x3C, is left as it is).
     CMusicSystem();

@@ -17,8 +17,9 @@ class CUnit;
 
 // The world split into 32x32-cell sectors, each listing the objects and units inside it. Used to
 // find what is near a point and to keep the AI map's footprints in sync. Names provisional.
-// The game constructs sectors (0059DF90: vtable 0073FADC, whose only slot 0059E080 is the
-// destructor); an explicit ~Sector() dispatches to it with flags 0.
+// The game constructs sectors (0059DF90: the table Sector::Vtable, the compiler's in place of
+// game.exe's 0073FADC, whose only slot 0059E080 is the destructor); an explicit ~Sector()
+// dispatches to it with flags 0.
 //
 // An AI map cell with more than one occluder chains 8-byte records of its sector
 // (ai_occluders.cpp); the sector recycles them through a free list.
@@ -30,8 +31,6 @@ struct SectorOccluder {
     std::int16_t next;          // the cell's next record, or the next free one; negative ends
 };
 static_assert(sizeof(SectorOccluder) == 8);
-
-constexpr std::uintptr_t kSectorVtable = std::uintptr_t(0x0073FADC);
 
 struct __declspec(novtable) Sector {
     virtual ~Sector() {}                         // 0: 0059E080
@@ -53,6 +52,8 @@ struct __declspec(novtable) Sector {
     void Destruct();
     // 0059E080 (slot 0): Destruct, then operator delete when bit 0 of `flags` is set. Returns this.
     Sector* DeletingDestruct(unsigned flags);
+    // The one-slot table (sector_map.cpp): DeletingDestruct (C19; game.exe's 0073FADC, the same slot).
+    static void* Vtable();
 
     mfc::CTypedPtrList<CMapObject> objects;      // +0x04 non-unit objects
     mfc::CTypedPtrList<CUnit> units;             // +0x20
@@ -145,7 +146,8 @@ public:
     // 0058A780 (slot 0, RET 4): DestructBody, then operator delete when flags bit 0 is set.
     CSectorMap* DeletingDestruct(unsigned flags);
 
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F9DC);
+    // The one-slot table (sector_map.cpp): DeletingDestruct (C19; game.exe's 0073F9DC, the same slot).
+    static void* Vtable();
 
     void* vtable;           // +0x00 (one slot: the deleting destructor)
     int width;              // +0x04 in sectors

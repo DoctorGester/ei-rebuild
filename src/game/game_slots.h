@@ -63,6 +63,11 @@ inline void DestroyZoneRecordElement(ZoneRecordElement* p) { zone::ZoneRecordDes
 using BuiltZoneRecords =
     ArrayAbi<ZoneRecordElement, EachElements<ZoneRecordElement, mfc::impl::InitStringsAndArray<0x5C, 8, 0x48, mfc::impl::MapRecordItemsClass>,
                                              DestroyZoneRecordElement>>;
+// CArray<MapRecord> (the map database's maps, CMapDatabase +0x14): the compiler's table (C19; game.exe's
+// 0073C3E8, the same slots).
+struct MapRecordArrayClass final
+    : mfc::impl::CompiledCollection<MapRecordArrayClass, &BuiltZoneRecords::Destruct<MapRecordArrayClass>,
+                                    &BuiltZoneRecords::Serialize> {};
 
 // ---- The lists whose Serialize loads through a temporary (ticket S6d) -----------------------------
 //
