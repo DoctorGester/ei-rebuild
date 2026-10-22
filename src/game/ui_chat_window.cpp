@@ -97,6 +97,8 @@ bool SameText(const char* a, const char* b) {
 
 // --- 00608D20: the constructor ------------------------------------------------------------------
 
+void** CChatWindow::Vtable() { return MainVtable(); }
+
 CChatWindow* CChatWindow::Construct(CInterface3D* ui) {
     CUiWindow::Construct(ui);
     players_.Start() = nullptr;

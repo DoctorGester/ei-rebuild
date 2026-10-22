@@ -353,6 +353,8 @@ EI_REWRITTEN(0x005E3550, InputForward<&CChatOverlay::OnChar>::Call);
 
 // --- 005E26F0: the constructor ---------------------------------------------------------------------
 
+void** CChatOverlay::Vtable() { return ChatOverlayVtable(); }
+
 CChatOverlay* CChatOverlay::Construct(CInterface3D* ui) {
     CUiWindow::Construct(ui);
     using Node = stlp::list<ChatLine>::Node;

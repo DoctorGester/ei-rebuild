@@ -3374,8 +3374,10 @@ public:
     // 005E28C0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CChatOverlay* ChatOverlayDelete(unsigned flags);
+    // The compiled table (C19, ui_window_class.h) in place of game.exe's 007400DC.
+    static void** Vtable();
     // 005E26F0 (RET 4; ui_chat_overlay.cpp). Constructor: the window base, an empty line list
-    // (its sentinel from the node pool), an empty typed line, the vtables 007400DC / 007400A8, the
+    // (its sentinel from the node pool), an empty typed line, the compiled tables (game.exe's 007400DC / 007400A8), the
     // typed line's surface over (10, 573)-(790, 590) (format 4), closed, the caret at 0, then the
     // typed line drawn (005E3700, Rebirth-patched). Returns this.
     CChatOverlay* Construct(CInterface3D* ui);
