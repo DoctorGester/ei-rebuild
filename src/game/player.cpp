@@ -11,7 +11,6 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "game_data.h"
 #include "world.h"
 #include "lib/mfc_slots.h"

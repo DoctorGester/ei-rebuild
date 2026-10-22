@@ -12,7 +12,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "ei/vcall.h"
 
 #include <cstring>
 #include <new>

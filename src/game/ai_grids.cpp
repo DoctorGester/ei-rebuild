@@ -9,7 +9,6 @@
 #include "world_data.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/compiled_vtable.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"

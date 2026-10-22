@@ -8,7 +8,6 @@
 
 #include "core_streams.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"

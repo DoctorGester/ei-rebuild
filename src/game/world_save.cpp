@@ -37,7 +37,6 @@
 #include "lib/mfc_array.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 #include <cstring>
 

@@ -8,7 +8,6 @@
 
 #include "ei/hook.h"
 #include "game_data.h"
-#include "ei/vcall.h"
 #include "lib/mfc_slots.h"
 
 namespace {

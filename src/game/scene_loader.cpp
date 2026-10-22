@@ -20,7 +20,6 @@
 #include "../lib/crt.h"
 #include "../lib/mfc_coll.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"

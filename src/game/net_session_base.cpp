@@ -6,7 +6,6 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/stlp.h"
 #include "record_vectors.h"
 

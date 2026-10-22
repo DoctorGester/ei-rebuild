@@ -18,7 +18,6 @@
 #include "lib/mfc_slots.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "game_hashes.h"
 #include "game_data.h"

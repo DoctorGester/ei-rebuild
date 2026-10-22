@@ -17,7 +17,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"

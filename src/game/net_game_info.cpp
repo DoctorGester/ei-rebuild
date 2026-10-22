@@ -3,7 +3,6 @@
 #include "net_classes.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "net_coder.h"
 
 #include <cstring>

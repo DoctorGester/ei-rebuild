@@ -18,7 +18,6 @@
 #include "world_deleting_destructors.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"

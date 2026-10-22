@@ -7,7 +7,6 @@
 #include "debug_panel.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"

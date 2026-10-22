@@ -5,7 +5,6 @@
 #include "core_transform.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"

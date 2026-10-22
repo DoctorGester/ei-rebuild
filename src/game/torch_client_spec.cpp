@@ -11,7 +11,6 @@
 #include "spell.h"         // CLight, CLightFactory
 
 #include "ei/hook.h"
-#include "ei/vcall.h"      // SetVtable
 #include "lib/crt.h"
 #include "game_data.h"
 #include "game_singletons.h"

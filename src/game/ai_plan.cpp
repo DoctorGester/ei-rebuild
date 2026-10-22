@@ -11,7 +11,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 

@@ -8,7 +8,6 @@
 #include "core_refcount.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "world.h"
 #include "game_data.h"

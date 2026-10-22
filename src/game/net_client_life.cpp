@@ -10,7 +10,6 @@
 #include "record_lists.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "record_vectors.h"
 

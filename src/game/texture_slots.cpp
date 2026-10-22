@@ -4,7 +4,6 @@
 #include "texture.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"

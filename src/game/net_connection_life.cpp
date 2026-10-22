@@ -10,7 +10,6 @@
 #include "core_streams.h"
 #include "ei/hook.h"
 #include "lib/stlp_vector.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp_tree_abi.h"

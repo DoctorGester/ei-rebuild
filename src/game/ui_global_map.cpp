@@ -37,7 +37,6 @@
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "ei/vcall.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_string.h"
 

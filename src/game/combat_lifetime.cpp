@@ -8,7 +8,6 @@
 #include "unit_ai.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"

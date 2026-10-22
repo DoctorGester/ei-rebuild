@@ -1,7 +1,6 @@
 #include "object.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "figure_mesh.h"
 #include "scene_loader.h"
 #include "unit.h"

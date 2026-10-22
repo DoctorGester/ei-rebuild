@@ -12,7 +12,6 @@
 #include "../lib/stlp_string.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/mfc_thread.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"

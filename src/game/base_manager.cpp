@@ -6,7 +6,6 @@
 #include "core_streams.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"   // ei::SetVtable
 #include "lib/crt.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"

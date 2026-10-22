@@ -6,7 +6,6 @@
 
 #include "core_streams.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "game_data.h"
 
 #include <cstring>

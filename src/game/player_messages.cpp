@@ -13,7 +13,6 @@
 #include "unit.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "../lib/crt.h"
 #include "ei/x87.h"
 #include "lib/static_object.h"

@@ -49,7 +49,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "party_manager.h"
 #include "party_records.h"
 #include "game_lists.h"

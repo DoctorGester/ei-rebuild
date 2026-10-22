@@ -25,7 +25,6 @@
 #include "world_glue.h"
 #include "library_trees.h"
 #include "game_singletons.h"
-#include "ei/vcall.h"
 
 #include <cstdint>
 #include <cstring>

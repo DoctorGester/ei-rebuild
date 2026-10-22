@@ -11,7 +11,6 @@
 #include "unit_client_models.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 

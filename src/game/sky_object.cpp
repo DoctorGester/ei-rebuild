@@ -8,7 +8,6 @@
 #include "render/render.h"   // MeshChanged
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"

@@ -9,7 +9,6 @@
 #include "console.h"
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "text_split.h"

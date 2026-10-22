@@ -21,7 +21,6 @@
 #include "unit_db.h"
 #include "unit_looks.h"
 
-#include "ei/vcall.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp_vector.h"
 

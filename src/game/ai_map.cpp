@@ -4,7 +4,6 @@
 #include "sector_map.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/stlp.h"

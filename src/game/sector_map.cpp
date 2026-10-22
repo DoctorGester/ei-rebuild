@@ -8,7 +8,6 @@
 #include "lib/crt.h"
 #include "game_data.h"
 #include "record_arrays.h"
-#include "ei/vcall.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
 

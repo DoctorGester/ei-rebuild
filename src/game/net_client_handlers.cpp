@@ -14,7 +14,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "record_lists.h"
 #include "stl_sorts.h"

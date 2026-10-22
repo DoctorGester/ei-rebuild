@@ -3,7 +3,6 @@
 #include "game/record_arrays.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
 

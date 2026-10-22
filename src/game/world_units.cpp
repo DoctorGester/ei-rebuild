@@ -41,7 +41,6 @@
 #include "lib/nan_audit.h"
 #include "lib/mfc_window.h"
 #include "game_data.h"
-#include "ei/vcall.h"
 
 #include <bit>
 #include <cstring>

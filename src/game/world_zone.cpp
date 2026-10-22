@@ -20,7 +20,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "map_object.h"
 #include "net_delta.h"
 #include "party.h"

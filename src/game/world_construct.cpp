@@ -15,7 +15,6 @@
 #include "script.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/mfc_slots.h"
 #include "lib/static_object.h"
 #include "game/game_slots.h"

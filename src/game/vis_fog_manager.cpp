@@ -11,7 +11,6 @@
 #include "world.h"     // ClientArrayManager
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 

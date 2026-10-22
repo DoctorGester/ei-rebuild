@@ -46,7 +46,6 @@
 #include "bink_video.h"
 #include "object_tables.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/containers.h"

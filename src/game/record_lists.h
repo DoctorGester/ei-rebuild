@@ -17,7 +17,6 @@
 #include "record_lifetime.h"
 #include "ui_screens.h"
 
-#include "ei/vcall.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 

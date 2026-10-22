@@ -8,7 +8,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp.h"

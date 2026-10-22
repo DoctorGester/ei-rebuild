@@ -70,5 +70,5 @@ public:
     float z_;                        // +0x28 up / down
 };
 
-// 005EADD0 (thiscall on the input object, RET 0xC; slot 9 of CCameraInput::Vtable()): see
+// 005EADD0 (thiscall on the input object, RET 0xC; slot 9 of CCameraInput's vtable): see
 // ui_camera_keys.cpp.

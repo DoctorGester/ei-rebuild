@@ -8,7 +8,6 @@
 #include "world_data.h"   // TextPathString
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <cstring>

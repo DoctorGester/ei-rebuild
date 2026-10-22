@@ -12,7 +12,6 @@
 #include "at_exit_functions.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"

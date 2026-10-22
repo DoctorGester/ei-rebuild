@@ -6,7 +6,6 @@
 #include "item_db.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <new>

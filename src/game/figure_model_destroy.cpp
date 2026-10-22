@@ -9,7 +9,6 @@
 
 #include "lib/crt.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp.h"
 #include "lib/mfc_slots.h"

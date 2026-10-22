@@ -5,7 +5,6 @@
 #include "map_object_figures.h"   // FigureBone
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
 #include "lib/vecmath.h"

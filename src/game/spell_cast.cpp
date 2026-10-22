@@ -9,7 +9,6 @@
 #include "item.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"   // SetVtable
 #include "lib/crt.h"
 #include "ei/x87.h"
 #include "lib/stlp_list.h"

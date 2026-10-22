@@ -4,7 +4,6 @@
 // CreateObject (slot 23), which gives every new figure a drawer.
 // See figure_mesh.h, figure_manager.h and the "Figure meshes" section of docs/notes/world.md.
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include "figure_manager.h"

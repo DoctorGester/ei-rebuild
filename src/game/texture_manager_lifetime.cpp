@@ -6,7 +6,6 @@
 #include "world_data.h"   // the text resources' folder
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"

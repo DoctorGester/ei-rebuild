@@ -14,7 +14,6 @@
 #include "core_refcount.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "game_hashes.h"
 
 #include <cstdint>

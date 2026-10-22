@@ -7,7 +7,6 @@
 #include "render/render.h"   // MeshChanged
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp_tree_abi.h"

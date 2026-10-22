@@ -5,7 +5,6 @@
 #include "game_data.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <cstring>
