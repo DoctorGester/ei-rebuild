@@ -319,9 +319,7 @@ CFile* CFile::ConstructOpen(const char* path, unsigned flags) {
     UnwindString unwind(&fileName);
     vtable = Vtable();
     CFileException error;
-    error.InitEmpty();
     if (!Open(path, flags, &error)) ThrowFileException(error.cause, error.osError, error.fileName);
-    error.vtable = CFileException::Vtable();
     unwind.Disarm();
     return this;
 }
@@ -536,9 +534,7 @@ CStdioFile* CStdioFile::ConstructOpen(const char* path, unsigned flags) {
     UnwindFile unwind(this);
     vtable = Vtable();
     CFileException error;
-    error.InitEmpty();
     if (!Open(path, flags, &error)) ThrowFileException(error.cause, error.osError, error.fileName);
-    error.vtable = CFileException::Vtable();
     unwind.Disarm();
     return this;
 }

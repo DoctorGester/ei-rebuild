@@ -3,7 +3,6 @@
 #include "mfc_exception.h"
 
 #include "ei/hook.h"
-#include "compiled_vtable.h"
 #include "gameapi.h"
 #include "mfc_resource.h"
 #include "mfc_runtime_class.h"
@@ -21,16 +20,9 @@ namespace {
 // _simpleMemoryException; CUserException's is mfc_static_objects.h's): zero at the start, each built by its static
 // initialiser in the list's order and destroyed by the exit function it registers (both ported on the name below and
 // registered at their addresses; docs/notes/standalone.md, "The static initialisers' objects").
-constinit lib::StaticObject<CSimpleException> g_simpleResourceException = /*007C8C58*/ {};
-constinit lib::StaticObject<CSimpleException> g_simpleNotSupportedException = /*007C8D50*/ {};
-constinit lib::StaticObject<CSimpleException> g_simpleMemoryException = /*007C8DE8*/ {};
-
-CException* AsException(lib::StaticObject<CSimpleException>& object) {
-    return reinterpret_cast<CException*>(&object.Get());
-}
-
-mfc::CObjectVirtuals* Virtuals(CException* exception) { return reinterpret_cast<mfc::CObjectVirtuals*>(exception); }
-CExceptionVirtuals* Slots(CException* exception) { return reinterpret_cast<CExceptionVirtuals*>(exception); }
+constinit lib::StaticObject<CResourceException> g_simpleResourceException = /*007C8C58*/ {};
+constinit lib::StaticObject<CNotSupportedException> g_simpleNotSupportedException = /*007C8D50*/ {};
+constinit lib::StaticObject<CMemoryException> g_simpleMemoryException = /*007C8DE8*/ {};
 
 // ReportError's message buffer.
 constexpr unsigned kReportLength = 512;
@@ -49,111 +41,23 @@ BOOL CauseMessage(unsigned base, int cause, const CString& fileName, char* error
 
 } // namespace
 
-CException* CException::Construct() {
-    autoDelete = TRUE;
-    return this;
-}
-
-CException* CException::ConstructAutoDelete(BOOL autoDeleteFlag) {
-    autoDelete = autoDeleteFlag;
-    return this;
-}
+void* CException::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CException::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 int CException::ReportError(unsigned type, unsigned error) {
     char message[kReportLength];
     unsigned helpContext = 0;
-    if (Slots(this)->GetErrorMessage(message, kReportLength, &helpContext)) return MessageBoxText(message, type, helpContext);
+    if (GetErrorMessage(message, kReportLength, &helpContext)) return MessageBoxText(message, type, helpContext);
     if (error == 0) error = kIdpNoErrorAvailable;
     return MessageBoxId(error, type, helpContext);
 }
 
-namespace {
-
-// The exceptions' compiled tables (C19), each with the slots of game.exe's table it stands for: 0 GetRuntimeClass (the
-// class's record), 1 the deleting destructor (the destructor body, then the memory freed when bit 0 is set), 2
-// Serialize (CObject's, empty), 3 GetErrorMessage, 4 ReportError (CException's).
-template <typename Self, const CRuntimeClass* kClass>
-struct ExceptionTable : ei::CompiledTag<Self> {
-    virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }   // 0
-    virtual void* DeleteScalar(unsigned flags) = 0;                           // 1
-    virtual void Serialize(void*) {}                                          // 2: 00444B00
-    virtual BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) = 0;   // 3
-    virtual int ReportError(unsigned type, unsigned error) {                  // 4: 0070209C
-        return this->template ObjectAs<CException>()->ReportError(type, error);
-    }
-};
-
-// The simple exceptions (game.exe's 0074646C CResourceException, 00746484 CUserException, 007465F8 CMemoryException,
-// 00746610 CNotSupportedException): slot 1 is 006E68F3 / 006E6940 / 006E6B14 / 006E6B61 over `kDestruct`, slot 3
-// CSimpleException's.
-template <typename Self, const CRuntimeClass* kClass, void(__fastcall* kDestruct)(CException*)>
-struct SimpleExceptionTable : ExceptionTable<Self, kClass> {
-    void* DeleteScalar(unsigned flags) override {
-        auto* self = this->template ObjectAs<CException>();
-        kDestruct(self);
-        if (flags & 1) gamecrt::operator_delete(self);
-        return self;
-    }
-    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override {
-        return this->template ObjectAs<CSimpleException>()->GetErrorMessage(error, maxError, helpContext);
-    }
-};
-struct ResourceExceptionTable final
-    : SimpleExceptionTable<ResourceExceptionTable, &kClassCResourceException, &ResourceExceptionDestruct> {};
-struct UserExceptionTable final : SimpleExceptionTable<UserExceptionTable, &kClassCUserException, &UserExceptionDestruct> {};
-struct MemoryExceptionTable final
-    : SimpleExceptionTable<MemoryExceptionTable, &kClassCMemoryException, &MemoryExceptionDestruct> {};
-struct NotSupportedExceptionTable final
-    : SimpleExceptionTable<NotSupportedExceptionTable, &kClassCNotSupportedException, &NotSupportedExceptionDestruct> {};
-
-// CArchiveException (game.exe's 00746808).
-struct ArchiveExceptionTable final : ExceptionTable<ArchiveExceptionTable, &kClassCArchiveException> {
-    void* DeleteScalar(unsigned flags) override { return This()->DeletingDestructor(flags); }   // 1: 006E6B85
-    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override {     // 3: 0070A795
-        return This()->GetErrorMessage(error, maxError, helpContext);
-    }
-
-private:
-    CArchiveException* This() { return ObjectAs<CArchiveException>(); }
-};
-
-// CFileException (game.exe's 00745E4C).
-struct FileExceptionTable final : ExceptionTable<FileExceptionTable, &kClassCFileException> {
-    void* DeleteScalar(unsigned flags) override { return This()->DeletingDestructor(flags); }   // 1: 006E6319
-    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override {     // 3: 00703135
-        return This()->GetErrorMessage(error, maxError, helpContext);
-    }
-
-private:
-    CFileException* This() { return ObjectAs<CFileException>(); }
-};
-
-} // namespace
-
-void* CArchiveException::Vtable() { return ArchiveExceptionTable::Vtable(); }
-void* CFileException::Vtable() { return FileExceptionTable::Vtable(); }
-
-CSimpleException* CSimpleException::Construct(BOOL autoDeleteFlag, unsigned id, void* classVtable) {
-    reinterpret_cast<CException*>(this)->ConstructAutoDelete(autoDeleteFlag);
-    initialized = FALSE;
-    loaded = FALSE;
-    resourceId = id;
-    vtable = classVtable;
-    return this;
-}
-
-CSimpleException* CSimpleException::ConstructResource(BOOL autoDeleteFlag, unsigned id) {
-    return Construct(autoDeleteFlag, id, ResourceExceptionTable::Vtable());
-}
-CSimpleException* CSimpleException::ConstructUser(BOOL autoDeleteFlag, unsigned id) {
-    return Construct(autoDeleteFlag, id, UserExceptionTable::Vtable());
-}
-CSimpleException* CSimpleException::ConstructMemory(BOOL autoDeleteFlag, unsigned id) {
-    return Construct(autoDeleteFlag, id, MemoryExceptionTable::Vtable());
-}
-CSimpleException* CSimpleException::ConstructNotSupported(BOOL autoDeleteFlag, unsigned id) {
-    return Construct(autoDeleteFlag, id, NotSupportedExceptionTable::Vtable());
-}
+const CRuntimeClass* CResourceException::GetRuntimeClass() const { return &kClassCResourceException; }
+const CRuntimeClass* CUserException::GetRuntimeClass() const { return &kClassCUserException; }
+const CRuntimeClass* CMemoryException::GetRuntimeClass() const { return &kClassCMemoryException; }
+const CRuntimeClass* CNotSupportedException::GetRuntimeClass() const { return &kClassCNotSupportedException; }
+const CRuntimeClass* CFileException::GetRuntimeClass() const { return &kClassCFileException; }
+const CRuntimeClass* CArchiveException::GetRuntimeClass() const { return &kClassCArchiveException; }
 
 void CSimpleException::InitString() {
     initialized = TRUE;
@@ -171,51 +75,22 @@ BOOL CSimpleException::GetErrorMessage(char* error, unsigned maxError, unsigned*
 }
 
 void __fastcall DeleteException(CException* exception) {
-    if (exception->autoDelete > 0 && exception) Virtuals(exception)->DeletingDestructor(1);
+    if (exception->autoDelete > 0 && exception) delete exception;
 }
 
-void CFileException::InitEmpty() {
-    reinterpret_cast<CException*>(this)->Construct();
-    cause = none;
-    osError = -1;
-    vtable = Vtable();
-    fileName = static_cast<const char*>(nullptr);
-}
-
-void CFileException::Destruct() {
-    vtable = Vtable();
-    fileName.~CString();
-}
-
-CFileException* CFileException::DeletingDestructor(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
+CFileException::~CFileException() {}
 
 BOOL CFileException::GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) {
     return CauseMessage(kIdpFileNone, cause, fileName, error, maxError, helpContext);
 }
 
-void CArchiveException::Destruct() {
-    vtable = Vtable();
-    fileName.~CString();
-}
-
-CArchiveException* CArchiveException::DeletingDestructor(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
+CArchiveException::~CArchiveException() {}
 
 BOOL CArchiveException::GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) {
     return CauseMessage(kIdpArchiveNone, cause, fileName, error, maxError, helpContext);
 }
 
-void __fastcall ResourceExceptionDestruct(CException* self) { self->vtable = ResourceExceptionTable::Vtable(); }
-void __fastcall UserExceptionDestruct(CException* self) { self->vtable = UserExceptionTable::Vtable(); }
-void __fastcall MemoryExceptionDestruct(CException* self) { self->vtable = MemoryExceptionTable::Vtable(); }
-void __fastcall NotSupportedExceptionDestruct(CException* self) { self->vtable = NotSupportedExceptionTable::Vtable(); }
+void __fastcall DestroyUserException(CUserException* self) { self->~CUserException(); }
 
 int __stdcall OsErrorToException(long osError) {
     switch (static_cast<unsigned long>(osError)) {
@@ -303,15 +178,8 @@ int __stdcall OsErrorToException(long osError) {
 }
 
 void __stdcall ThrowFileException(int cause, long osError, const char* fileName) {
-    auto* exception = gamecrt::operator_new_as<CFileException>();
-    if (exception) {
-        reinterpret_cast<CException*>(exception)->Construct();
-        new (&exception->fileName) CString();
-        exception->cause = cause;
-        exception->vtable = CFileException::Vtable();
-        exception->osError = osError;
-        exception->fileName = fileName;
-    }
+    auto* exception = new CFileException(cause, osError);
+    if (exception) exception->fileName = fileName;
     throw reinterpret_cast<::CFileException*>(exception);
 }
 
@@ -320,14 +188,8 @@ void __stdcall ThrowOsError(long osError, const char* fileName) {
 }
 
 void __stdcall ThrowArchiveException(int cause, const char* fileName) {
-    auto* exception = gamecrt::operator_new_as<CArchiveException>();
-    if (exception) {
-        reinterpret_cast<CException*>(exception)->Construct();
-        new (&exception->fileName) CString();
-        exception->vtable = CArchiveException::Vtable();
-        exception->cause = cause;
-        exception->fileName = fileName;
-    }
+    auto* exception = new CArchiveException(cause);
+    if (exception) exception->fileName = fileName;
     throw reinterpret_cast<::CArchiveException*>(exception);
 }
 
@@ -343,29 +205,26 @@ void __stdcall ThrowResourceException() {
     throw reinterpret_cast<::CResourceException*>(&g_simpleResourceException.Get());
 }
 
-const void* __fastcall FileExceptionRuntimeClass(const void*) { return &kClassCFileException; }
-const void* __fastcall ArchiveExceptionRuntimeClass(const void*) { return &kClassCArchiveException; }
-
-EI_REWRITTEN(0x00702053, CException::Construct);
-EI_REWRITTEN(0x0070205D, CException::ConstructAutoDelete);
-EI_REPLACE_METHOD(0x006E68C9, CSimpleException::ConstructResource);
-EI_REPLACE_METHOD(0x006E6916, CSimpleException::ConstructUser);
-EI_REPLACE_METHOD(0x006E6AEA, CSimpleException::ConstructMemory);
-EI_REPLACE_METHOD(0x006E6B37, CSimpleException::ConstructNotSupported);
+EI_REWRITTEN_SPECIAL(0x00702053, CException::CException);
+EI_REWRITTEN_SPECIAL(0x0070205D, CException::CException);
+EI_REWRITTEN_SPECIAL(0x006E68C9, CResourceException::CResourceException);
+EI_REPLACE_METHOD(0x006E6916, CUserException::Construct);
+EI_REWRITTEN_SPECIAL(0x006E6AEA, CMemoryException::CMemoryException);
+EI_REWRITTEN_SPECIAL(0x006E6B37, CNotSupportedException::CNotSupportedException);
 EI_REWRITTEN(0x00702069, DeleteException);
 EI_REWRITTEN(0x0070209C, CException::ReportError);
 EI_REWRITTEN(0x006FE31D, CSimpleException::InitString);
 EI_REWRITTEN(0x006FE346, CSimpleException::GetErrorMessage);
 EI_REWRITTEN(0x00703135, CFileException::GetErrorMessage);
 EI_REWRITTEN(0x0070A795, CArchiveException::GetErrorMessage);
-EI_REWRITTEN(0x006E6335, CFileException::Destruct);
-EI_REWRITTEN(0x006E6319, CFileException::DeletingDestructor);
-EI_REWRITTEN(0x006E6BA1, CArchiveException::Destruct);
-EI_REWRITTEN(0x006E6B85, CArchiveException::DeletingDestructor);
-EI_REPLACE(0x006E690F, ResourceExceptionDestruct);
-EI_REPLACE(0x006E695C, UserExceptionDestruct);
-EI_REPLACE(0x006E6B30, MemoryExceptionDestruct);
-EI_REPLACE(0x006E6B7D, NotSupportedExceptionDestruct);
+EI_REWRITTEN_SPECIAL(0x006E6335, CFileException::~CFileException);
+EI_REWRITTEN_SPECIAL(0x006E6319, CFileException::~CFileException);   // deleting
+EI_REWRITTEN_SPECIAL(0x006E6BA1, CArchiveException::~CArchiveException);
+EI_REWRITTEN_SPECIAL(0x006E6B85, CArchiveException::~CArchiveException);   // deleting
+EI_REWRITTEN_SPECIAL(0x006E690F, CResourceException::~CResourceException);
+EI_REPLACE(0x006E695C, DestroyUserException);
+EI_REWRITTEN_SPECIAL(0x006E6B30, CMemoryException::~CMemoryException);
+EI_REWRITTEN_SPECIAL(0x006E6B7D, CNotSupportedException::~CNotSupportedException);
 EI_REWRITTEN(0x00703296, OsErrorToException);
 EI_REWRITTEN(0x007031D5, ThrowFileException);
 EI_REWRITTEN(0x007030F0, ThrowOsError);
@@ -373,25 +232,23 @@ EI_REWRITTEN(0x0070A835, ThrowArchiveException);
 EI_REWRITTEN(0x006FE3A2, ThrowNotSupported);
 EI_REWRITTEN(0x006FE389, ThrowMemoryException);
 EI_REWRITTEN(0x0070A29E, ThrowResourceException);
-EI_REWRITTEN(0x0070CF4C, FileExceptionRuntimeClass);
-EI_REWRITTEN(0x0070CF46, ArchiveExceptionRuntimeClass);
+EI_REWRITTEN(0x0070CF4C, CFileException::GetRuntimeClass);
+EI_REWRITTEN(0x0070CF46, CArchiveException::GetRuntimeClass);
 
 namespace {
-void __cdecl DestroySimpleResourceException() { ResourceExceptionDestruct(AsException(g_simpleResourceException)); }   // 0070BF22
-void __cdecl DestroySimpleMemoryException() { MemoryExceptionDestruct(AsException(g_simpleMemoryException)); }         // 0070C1DD
-void __cdecl DestroySimpleNotSupportedException() {                                                                   // 0070C215
-    NotSupportedExceptionDestruct(AsException(g_simpleNotSupportedException));
-}
+void __cdecl DestroySimpleResourceException() { g_simpleResourceException.Destroy(); }           // 0070BF22
+void __cdecl DestroySimpleMemoryException() { g_simpleMemoryException.Destroy(); }               // 0070C1DD
+void __cdecl DestroySimpleNotSupportedException() { g_simpleNotSupportedException.Destroy(); }   // 0070C215
 void __cdecl ConstructSimpleResourceException() {   // 0070BEFA
-    g_simpleResourceException->ConstructResource(FALSE, kIdsResourceException);
+    g_simpleResourceException.Construct(FALSE, kIdsResourceException);
     libcrt::AtExit(DestroySimpleResourceException);
 }
 void __cdecl ConstructSimpleMemoryException() {     // 0070C1B5
-    g_simpleMemoryException->ConstructMemory(FALSE, kIdsMemoryException);
+    g_simpleMemoryException.Construct(FALSE, kIdsMemoryException);
     libcrt::AtExit(DestroySimpleMemoryException);
 }
 void __cdecl ConstructSimpleNotSupportedException() {   // 0070C1ED
-    g_simpleNotSupportedException->ConstructNotSupported(FALSE, kIdsNotSupportedException);
+    g_simpleNotSupportedException.Construct(FALSE, kIdsNotSupportedException);
     libcrt::AtExit(DestroySimpleNotSupportedException);
 }
 } // namespace

@@ -560,7 +560,7 @@ vtable,slots,class,file,note
 00744268,1,PrintRecord2,src/game/model.h,prints.db's second record type
 00744288,3,CDib,src/game/dib.h,CDib
 00745DF4,21,PlainFileTable,src/lib/mfc_file.cpp,CFile
-00745E4C,5,FileExceptionTable,src/lib/mfc_exception.cpp,CFileException
+00745E4C,5,CFileException,src/lib/mfc_exception.h,CFileException
 00745EE8,19,FileFindTable,src/lib/mfc_file.cpp,CFileFind
 00745F5C,3,StringArrayTable,src/lib/mfc_coll.cpp,CStringArray
 00745F78,3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
@@ -573,14 +573,14 @@ vtable,slots,class,file,note
 007463D4,3,PlainGdiObjectTable,src/lib/mfc_gdi.cpp,CGdiObject
 007463E4,29,TempDCTable,src/lib/mfc_gdi.cpp,CTempDC (the interface's surface DCs)
 0074645C,3,TempGdiObjectTable,src/lib/mfc_gdi.cpp,CTempGdiObject
-0074646C,5,ResourceExceptionTable,src/lib/mfc_exception.cpp,CResourceException (_simpleResourceException)
-00746484,5,UserExceptionTable,src/lib/mfc_exception.cpp,CUserException (_simpleUserException)
+0074646C,5,CResourceException,src/lib/mfc_exception.h,CResourceException (_simpleResourceException)
+00746484,5,CUserException,src/lib/mfc_exception.h,CUserException (_simpleUserException)
 0074649C,3,CRgn,-,"stored only by game.exe's 0070B7D6 and the CRgn destructor, which no code of ours calls"
 007464B8,3,DWordArrayTable,src/lib/mfc_coll.cpp,CDWordArray
 007464F0,24,StdioFileTable,src/lib/mfc_file.cpp,CStdioFile
 00746560,3,ByteArrayTable,src/lib/mfc_coll.cpp,CByteArray (the terrain sectors' water materials)
-007465F8,5,MemoryExceptionTable,src/lib/mfc_exception.cpp,CMemoryException (_simpleMemoryException)
-00746610,5,NotSupportedExceptionTable,src/lib/mfc_exception.cpp,CNotSupportedException (_simpleNotSupportedException)
+007465F8,5,CMemoryException,src/lib/mfc_exception.h,CMemoryException (_simpleMemoryException)
+00746610,5,CNotSupportedException,src/lib/mfc_exception.h,CNotSupportedException (_simpleNotSupportedException)
 00746650,26,CMemFile,-,"stored only by game.exe's constructors / destructor 0070ADD9 / 0070AE25 / 0070AE9E, which no code of ours calls"
 007466E0,31,WinThreadTable,src/lib/mfc_thread.cpp,"CWinThread (the sound stream's, the MIDI player's and the cursor's threads)"
 00746760,1,_AFX_CTL3D_STATE,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls (mfc_state.cpp makes no state objects)"
@@ -591,7 +591,7 @@ vtable,slots,class,file,note
 007467C0,1,AFX_MODULE_STATE,-,"stored only by game.exe's 0070CC32 / 0070CCB0, which no code of ours calls (mfc_state.cpp ImageModuleState is a plain record)"
 007467C8,1,AFX_MODULE_THREAD_STATE,-,"an MFC state object: stored only by game.exe's 0070CD6E / 0070CDA8, which no code of ours calls"
 007467D0,1,_AFX_BASE_MODULE_STATE,-,"an MFC state object: stored only by game.exe's 0070CEC9, which no code of ours calls"
-00746808,5,ArchiveExceptionTable,src/lib/mfc_exception.cpp,CArchiveException
+00746808,5,CArchiveException,src/lib/mfc_exception.h,CArchiveException
 0074685C,1,HandleMapTable,src/lib/mfc_handle_map.cpp,"CHandleMap (the image's DC and GDI object maps, mfc_gdi.cpp)"
 0074689C,3,MapPtrToPtrTable,src/lib/mfc_handle_map.cpp,CMapPtrToPtr (the handle maps' maps)
 007469A0,4,CCmdUI,-,"stored only by game.exe's 007041D4, which no code of ours calls"

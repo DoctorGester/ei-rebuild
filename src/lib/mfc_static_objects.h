@@ -24,8 +24,9 @@ extern std::uint8_t g_tempWndAllocExitGuard;
 extern std::uint8_t g_tempMenuAllocExitGuard;
 extern std::uint8_t g_staticWindowsExitGuards;
 
-// _simpleUserException: built by its initialiser (ConstructUser, AFX_IDS_USER_EXCEPTION), destroyed at exit.
-extern lib::StaticObject<CSimpleException> g_simpleUserException;
+// _simpleUserException: built by its initialiser (CUserException::Construct, AFX_IDS_USER_EXCEPTION), destroyed at
+// exit (DestroyUserException).
+extern lib::StaticObject<CUserException> g_simpleUserException;
 
 // The thread and process locals nothing fills in the image (their destructors find an empty slot or object):
 // _afxThreadState, _afxBaseModuleState, _afxCtl3dThread, _afxCtl3dState, _afxWinState.

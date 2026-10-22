@@ -1,127 +1,146 @@
 #pragma once
 
-// MFC 4.2's exception classes as the game's copy throws them (except.cpp, filex.cpp, arcex.cpp),
-// and AFX_EXCEPTION_LINK's chain (ticket S8, docs/notes/standalone.md section 2). The objects keep
-// the exe's layout and vtables, and a throw is this compiler's `throw` of a pointer to mfc_try.h's
-// class of the game's name, so a handler of ours catches it by that name. Every body is registered at its library address (mfc_exception.cpp) and checked in game by
-// verify_mfc_exception.cpp until S21d.
+// MFC 4.2's exception classes as the game's copy throws them (except.cpp, filex.cpp, arcex.cpp), and
+// AFX_EXCEPTION_LINK's chain (ticket S8, docs/notes/standalone.md section 2). The classes keep the exe's layout and
+// slots (real C++ classes since C28n), and a throw is this compiler's `throw` of a pointer to mfc_try.h's class of
+// the game's name, so a handler of ours catches it by that name.
 
 #include "mfc_string.h"
 #include "mfc_try.h"
 #include "game/game_data.h"
 
+#include <cstddef>
+#include <new>
+
 namespace mfc::impl {
 
-// The virtual slots every exception class has (CObject's three, then CException's two); declared only.
-class __declspec(novtable) CExceptionVirtuals {
+struct CRuntimeClass;
+
+// CException (8 bytes): CObject's three slots (0 GetRuntimeClass, 1 the deleting destructor, 2 Serialize), then
+// CException's two (3 GetErrorMessage, 4 ReportError); m_bAutoDelete (a positive value: Delete frees the object).
+// On the game's heap.
+class CException {
 public:
-    virtual void GetRuntimeClass();                                                 // 0
-    virtual void* DeletingDestructor(unsigned flags);                               // 1
-    virtual void Serialize();                                                       // 2
-    virtual BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext);   // 3
-    virtual int ReportError(unsigned type, unsigned error);                         // 4
-};
+    // 00702053: auto-delete on.
+    CException() : autoDelete(TRUE) {}
+    // 0070205D: auto-delete as given.
+    explicit CException(BOOL autoDeleteFlag) : autoDelete(autoDeleteFlag) {}
 
-// CException (8 bytes): vtable, m_bAutoDelete (a positive value: Delete frees the object).
-struct CException {
-    void* vtable;
+    virtual const CRuntimeClass* GetRuntimeClass() const = 0;                                // 0
+    virtual ~CException() = default;                                                          // 1
+    virtual void Serialize(void*) {}                                                          // 2: CObject's (00444B00)
+    virtual BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) = 0;   // 3
+    // 0070209C (4): the error message (slot 3) in a message box, or the prompt `error` (0: AFX_IDP_NO_ERROR_AVAILABLE)
+    // when there is none; the box's answer. The help context starts at 0 here (the original's is unset when slot 3
+    // leaves it; the box ignores it).
+    virtual int ReportError(unsigned type, unsigned error);
+
+    static void* operator new(std::size_t size) noexcept;
+    static void* operator new(std::size_t, void* place) noexcept { return place; }
+    static void operator delete(void* block);
+    static void operator delete(void*, void*) noexcept {}
+
     BOOL autoDelete;    // +0x04
-
-    CException* Construct();                        // 00702053: auto-delete on, no vtable written
-    CException* ConstructAutoDelete(BOOL autoDeleteFlag);   // 0070205D CException(BOOL): no vtable written
-    // 0070209C (slot 4 of every exception class): the error message (slot 3) in a message box, or the
-    // prompt `error` (0: AFX_IDP_NO_ERROR_AVAILABLE) when there is none; the box's answer. The help
-    // context starts at 0 here (the original's is unset when slot 3 leaves it; the box ignores it).
-    int ReportError(unsigned type, unsigned error);
 };
-static_assert(sizeof(CException) == 8);
 
-// CSimpleException (0x98 bytes): the exceptions MFC keeps one static object of, their message loaded
-// from the resource on first use (GetErrorMessage 006FE346).
-struct CSimpleException {
-    void* vtable;
-    BOOL autoDelete;        // +0x04
-    BOOL reserved;          // +0x08 (no code of the exe's touches it)
-    BOOL initialized;       // +0x0C m_bInitialized (the message was looked up)
-    BOOL loaded;            // +0x10 m_bLoaded (the message was found)
-    char message[128];      // +0x14 m_szMessage
-    unsigned resourceId;    // +0x94 m_nResourceID
+// CSimpleException (0x98 bytes): the exceptions MFC keeps one static object of, their message loaded from the
+// resource on first use (GetErrorMessage 006FE346).
+class CSimpleException : public CException {
+public:
+    // The four classes' constructors (BOOL autoDelete, UINT resourceId): CException(BOOL), the flags cleared, the
+    // resource id kept. Only the static initialisers build them, on the static objects (resource ids
+    // AFX_IDS_RESOURCE_EXCEPTION ...).
+    CSimpleException(BOOL autoDeleteFlag, unsigned id) : CException(autoDeleteFlag), resourceId(id) {}
 
-    // The four classes' constructors (BOOL autoDelete, UINT resourceId): CException(BOOL), the flags
-    // cleared, the resource id kept, the class's table (the one its destructor stores, below; compiled,
-    // C19, in place of game.exe's 0074646C, 00746484, 007465F8 and 00746610). Only the
-    // static initialisers call them, on the static objects (resource ids AFX_IDS_RESOURCE_EXCEPTION ...).
-    CSimpleException* ConstructResource(BOOL autoDeleteFlag, unsigned id);       // 006E68C9 (007C8C58, 0xF022)
-    CSimpleException* ConstructUser(BOOL autoDeleteFlag, unsigned id);           // 006E6916 (007C8BC0, 0xF024)
-    CSimpleException* ConstructMemory(BOOL autoDeleteFlag, unsigned id);         // 006E6AEA (007C8DE8, 0xF023)
-    CSimpleException* ConstructNotSupported(BOOL autoDeleteFlag, unsigned id);   // 006E6B37 (007C8D50, 0xF021)
-
+    // 006FE346 (slot 3): the message, loaded on first use, into `error` (empty when it did not load); help context
+    // 0. Returns whether it loaded.
+    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
     // 006FE31D: the message loaded from string `resourceId` (initialized and loaded set).
     void InitString();
-    // 006FE346 (slot 3 of the four classes): the message, loaded on first use, into `error` (empty when
-    // it did not load); help context 0. Returns whether it loaded.
-    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext);
 
-private:
-    CSimpleException* Construct(BOOL autoDeleteFlag, unsigned id, void* classVtable);
+    BOOL reserved;              // +0x08 (no code of the exe's touches it)
+    BOOL initialized = FALSE;   // +0x0C m_bInitialized (the message was looked up)
+    BOOL loaded = FALSE;        // +0x10 m_bLoaded (the message was found)
+    char message[128];          // +0x14 m_szMessage
+    unsigned resourceId;        // +0x94 m_nResourceID
 };
 static_assert(sizeof(CSimpleException) == 0x98);
 
-// CException::Delete (00702069; thiscall, called as fastcall): an auto-delete exception is
-// deleted through vtable slot 1. The original reads the flag before testing the pointer.
+// The four simple exceptions (game.exe's tables 0074646C, 00746484, 007465F8, 00746610; constructors 006E68C9,
+// 006E6916, 006E6AEA, 006E6B37; destructors 006E690F, 006E695C, 006E6B30, 006E6B7D, nothing of their own).
+class CResourceException final : public CSimpleException {
+public:
+    using CSimpleException::CSimpleException;
+    const CRuntimeClass* GetRuntimeClass() const override;
+};
+class CUserException final : public CSimpleException {
+public:
+    using CSimpleException::CSimpleException;
+    const CRuntimeClass* GetRuntimeClass() const override;
+    // 006E6916 (thiscall, RET 8): the constructor on `this`, as the generated static initialiser builds MFC's
+    // _simpleUserException there. Returns this.
+    CUserException* Construct(BOOL autoDeleteFlag, unsigned id) { return new (this) CUserException(autoDeleteFlag, id); }
+};
+class CMemoryException final : public CSimpleException {
+public:
+    using CSimpleException::CSimpleException;
+    const CRuntimeClass* GetRuntimeClass() const override;
+};
+class CNotSupportedException final : public CSimpleException {
+public:
+    using CSimpleException::CSimpleException;
+    const CRuntimeClass* GetRuntimeClass() const override;
+};
+
+// CException::Delete (00702069; thiscall, called as fastcall): an auto-delete exception is deleted. The original
+// reads the flag before testing the pointer.
 void __fastcall DeleteException(CException* exception);
 
-// CFileException (0x14 bytes, vtable 00745E4C). The causes are MFC's CFileException::none ...
-// endOfFile.
-struct CFileException {
+// CFileException (0x14 bytes, game.exe's table 00745E4C). The causes are MFC's CFileException::none ... endOfFile.
+class CFileException final : public CException {
+public:
     enum Cause {
         none = 0, generic, fileNotFound, badPath, tooManyOpenFiles, accessDenied, invalidFile, removeCurrentDir,
         directoryFull, badSeek, hardIO, sharingViolation, lockViolation, diskFull, endOfFile
     };
 
-    void* vtable;
-    BOOL autoDelete;    // +0x04
+    // An empty exception (cause none, no OS error) as CFile's constructors build it on the stack, or the thrown one
+    // (AfxThrowFileException).
+    explicit CFileException(int causeValue = none, long osErrorValue = -1) : cause(causeValue), osError(osErrorValue) {}
+    // 006E6335 (deleting 006E6319): the name released (a member).
+    ~CFileException() override;
+    // 0070CF4C (0).
+    const CRuntimeClass* GetRuntimeClass() const override;
+    // 00703135 (3): prompt AFX_IDP_FILE_NONE + cause with the file's name (AFX_IDS_UNNAMED_FILE's text when it has
+    // none); the help context is that prompt's id. Always TRUE.
+    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
+
     int cause;          // +0x08 m_cause
     long osError;       // +0x0C m_lOsError (-1: none)
     CString fileName;   // +0x10 m_strFileName
-
-    static void* Vtable();   // compiled (C19, mfc_exception.cpp) in place of game.exe's 00745E4C
-    // An empty exception as CFile's constructors build it on the stack (cause none, no OS error),
-    // on an object whose name is constructed.
-    void InitEmpty();
-    void Destruct();                                    // 006E6335
-    CFileException* DeletingDestructor(unsigned flags); // 006E6319 (vtable slot 1)
-    // 00703135 (slot 3): prompt AFX_IDP_FILE_NONE + cause with the file's name (AFX_IDS_UNNAMED_FILE's
-    // text when it has none); the help context is that prompt's id. Always TRUE.
-    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext);
 };
 static_assert(sizeof(CFileException) == 0x14);
 
-// CArchiveException (0x10 bytes; a compiled table, C19, in place of game.exe's 00746808).
-struct CArchiveException {
+// CArchiveException (0x10 bytes, game.exe's table 00746808).
+class CArchiveException final : public CException {
+public:
     enum Cause { none = 0, generic, readOnly, endOfFile, writeOnly, badIndex, badClass, badSchema };
 
-    void* vtable;
-    BOOL autoDelete;    // +0x04
+    explicit CArchiveException(int causeValue) : cause(causeValue) {}
+    // 006E6BA1 (deleting 006E6B85): the name released (a member).
+    ~CArchiveException() override;
+    // 0070CF46 (0).
+    const CRuntimeClass* GetRuntimeClass() const override;
+    // 0070A795 (3): as CFileException's, with AFX_IDP_ARCH_NONE + cause.
+    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
+
     int cause;          // +0x08
     CString fileName;   // +0x0C
-
-    static void* Vtable();
-    void Destruct();                                        // 006E6BA1
-    CArchiveException* DeletingDestructor(unsigned flags);  // 006E6B85 (vtable slot 1)
-    // 0070A795 (slot 3): as CFileException's, with AFX_IDP_ARCH_NONE + cause.
-    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext);
 };
 static_assert(sizeof(CArchiveException) == 0x10);
 
-// The destructors of the simple exceptions (CSimpleException's and CException's are empty): each
-// stores its class's table (compiled, C19). The exit functions run them on MFC's static objects
-// (_simpleResourceException 007C8C58, _simpleUserException 007C8BC0, _simpleMemoryException 007C8DE8,
-// _simpleNotSupportedException 007C8D50); their deleting destructors call them too.
-void __fastcall ResourceExceptionDestruct(CException* self);       // 006E690F (vtable 0074646C)
-void __fastcall UserExceptionDestruct(CException* self);           // 006E695C (vtable 00746484)
-void __fastcall MemoryExceptionDestruct(CException* self);         // 006E6B30 (vtable 007465F8)
-void __fastcall NotSupportedExceptionDestruct(CException* self);   // 006E6B7D (vtable 00746610)
+// _simpleUserException's destructor (006E695C, reached by the generated exit function).
+void __fastcall DestroyUserException(CUserException* self);
 
 // CFileException::OsErrorToException: a Win32 error code as a cause (generic for the rest).
 int __stdcall OsErrorToException(long osError);                                   // 00703296
@@ -137,10 +156,6 @@ void __stdcall ThrowNotSupported();                                             
 __declspec(noreturn) void __stdcall ThrowMemoryException();                         // 006FE389
 // AfxThrowResourceException: MFC's one static CResourceException (not auto-deleted).
 __declspec(noreturn) void __stdcall ThrowResourceException();                       // 0070A29E
-
-// GetRuntimeClass of the two exception classes (mfc_runtime_class.h's records).
-const void* __fastcall FileExceptionRuntimeClass(const void* self);     // 0070CF4C
-const void* __fastcall ArchiveExceptionRuntimeClass(const void* self);  // 0070CF46
 
 } // namespace mfc::impl
 

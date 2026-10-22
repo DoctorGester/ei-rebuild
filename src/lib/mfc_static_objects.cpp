@@ -6,7 +6,7 @@ namespace mfc::impl {
 static_assert(sizeof(CThreadLocalObject) == 4 && sizeof(CProcessLocalObject) == 4);   // named_data.py's TYPES
 
 constinit std::uint8_t g_gdiAllocExitGuards = /*007C8BB8*/ {};
-constinit lib::StaticObject<CSimpleException> g_simpleUserException = /*007C8BC0*/ {};
+constinit lib::StaticObject<CUserException> g_simpleUserException = /*007C8BC0*/ {};
 constinit CProcessLocalObject g_baseModuleStateLocal = /*007C90BC*/ {};
 constinit CThreadLocalObject g_threadStateLocal = /*007C90C0*/ {};
 constinit std::uint8_t g_tempWndAllocExitGuard = /*007C9138*/ {};

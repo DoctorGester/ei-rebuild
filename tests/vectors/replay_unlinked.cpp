@@ -102,7 +102,11 @@ std::size_t __cdecl libcrt::Fwrite(const void*, std::size_t, std::size_t, gamecr
 // TRY link, mfc_file.cpp).
 libcrt::Exception* libcrt::Exception::Construct() EI_UNLINKED("libcrt::Exception::Construct")
 libcrt::Exception* libcrt::Exception::DeletingDestruct(unsigned) EI_UNLINKED("libcrt::Exception::DeletingDestruct")
-void* mfc::impl::CFileException::Vtable() EI_UNLINKED("mfc::impl::CFileException::Vtable")
+mfc::impl::CFileException::~CFileException() {}   // the stack exceptions of mfc_file.cpp's CFile opens
+const mfc::impl::CRuntimeClass* mfc::impl::CFileException::GetRuntimeClass() const EI_UNLINKED("mfc::impl::CFileException::GetRuntimeClass")
+BOOL mfc::impl::CFileException::GetErrorMessage(char*, unsigned, unsigned*) EI_UNLINKED("mfc::impl::CFileException::GetErrorMessage")
+int mfc::impl::CException::ReportError(unsigned, unsigned) EI_UNLINKED("mfc::impl::CException::ReportError")
+void mfc::impl::CException::operator delete(void*) EI_UNLINKED("mfc::impl::CException::operator delete")
 void __stdcall libcrt::CxxThrowException(void*, const void*) EI_UNLINKED("libcrt::CxxThrowException")
 void __stdcall mfc::impl::ThrowArchiveException(int, const char*) EI_UNLINKED("mfc::impl::ThrowArchiveException")
 void __stdcall mfc::impl::AfxClassInit(mfc::impl::CRuntimeClass*) EI_UNLINKED("mfc::impl::AfxClassInit")
@@ -113,7 +117,6 @@ int __stdcall mfc::impl::OsErrorToException(long) EI_UNLINKED("mfc::impl::OsErro
 void __stdcall mfc::impl::ThrowFileException(int, long, const char*) EI_UNLINKED("mfc::impl::ThrowFileException")
 void __stdcall mfc::impl::ThrowOsError(long, const char*) EI_UNLINKED("mfc::impl::ThrowOsError")
 void __stdcall mfc::impl::ThrowNotSupported() EI_UNLINKED("mfc::impl::ThrowNotSupported")
-void mfc::impl::CFileException::InitEmpty() EI_UNLINKED("mfc::impl::CFileException::InitEmpty")
 // mfc_file.cpp's CFileFind times (mfc_time.cpp) and CStdioFile streams (crt_file.cpp).
 mfc::impl::CTime* mfc::impl::CTime::ConstructFileTime(const FILETIME&, int) EI_UNLINKED("mfc::impl::CTime::ConstructFileTime")
 int __cdecl libcrt::Fclose(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fclose")
