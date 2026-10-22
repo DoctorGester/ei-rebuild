@@ -209,7 +209,7 @@ public:
     void SaveState();
     // 006024B0 (slot 25; ui_briefing_create.cpp). Builds the screen: the four backdrop sprites,
     // surfaces 0 (topics) and 1 (a person's label), topicBar_ and text_ as children, the people
-    // of the base (people_), the zone's music and camera limits, the screen's own inputs (00741154
+    // of the base (people_), the zone's music and camera limits, the screen's own inputs (InertInputVtable()
     // and the view's 005EACB0) and a network client's chat window. A saved game's screen part is
     // dropped (the save stream resized to 0).
     void Create();

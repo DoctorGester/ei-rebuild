@@ -1075,6 +1075,47 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     the render helper 0073D880, the cloud noise base 0073D030 with ui_global_map's 007420D4, the map spec chunk
     readers 0073C710 / 18 / 20 (map_spec_unit.cpp, next to C21's unit spec tables), the UI's 007403F8 / 00740FD4 /
     007418E0 / 00742464, and the MFC library kind.
+- **Batch 18's families** (2026-10-22): the two counted roots, the render helper, the cloud noise, the item turn,
+  four input sides, the figure loader, seven engine objects, the party and the player connections: 29 rows (retired
+  388 -> 417), 4,548 -> 4,229 code cells, 109 registrations EI_REWRITTEN.
+  - **Roots**: `CRefCounted::RootVtable()` (core_streams.cpp's CountedRootClass: the deleting destructor, the empty
+    Serialize) in place of 0073BB68, which every counted class's destructor leaves (net messages, sessions, links,
+    AI modes, the party records, the spell effect, ...); `PlainRootVtable()` (core_refcount.h, PlainRootClass) in place
+    of 0073C368, the renderer's, the figures' and the mouse's root.
+  - **Small tags**: render_helper.cpp's RenderHelperClass (0073D840) and RenderPresetClass (0073D880); the cloud
+    noise's CloudNoiseBaseClass (0073D030, slots 0 / 1 `_purecall`) and GlobalMapCloudsClass (007420D4); the item
+    turn's ItemTurnClass (007403F8); link_loader_create.cpp's LinkFigureLoaderClass (0073D808) and its abstract base
+    LinkFigureLoaderBaseClass (0073D824).
+  - **Input sides** (ui_input_class.h): `InputSideClass<Self, Delete>` declares an input side's 13 slots with the base
+    input side's bodies (1-6 and 9-11 empty, returning 0 where the original leaves EAX; 7 / 8 the double click as a
+    press; 12 the wheel ignored); slot 0 is `Delete`, the window's deleting destructor through the side (the window
+    member pointer's class gives the -0x94) or UiInputSide's own for an extra side. The container's
+    ContainerInputClass (00740FD4 with its tail 00740FE8), the HUD top panel's TopPanelInputClass (00742464 with
+    0074247C), the battle camera's CameraInputClass (00740208) and the shared InertInputClass (00741154:
+    `InertInputVtable()`). The window tables themselves stay game.exe's: the census (ui_census.cpp's
+    `InGameVtables`) and the window slot checks' stand-in tables need a window's vtable to be game data, so the
+    windows' main tables (007418E0 and the other 26-slot ones) wait for a harness id as the AI modes' (batch 17).
+  - **Engine objects** (engine_object_class.h): HooverClass (0073C434) and LightningClass (0073C550) in
+    class_slots.cpp, PlayerClass (00743104), SysInfoClass (0073D644), CameraClass (0073B9E0, transform),
+    ParticleSourceClass (0073CFD0, transform) and RainSnowClass (0073F4C8 with its tail 0073F4E8; its slots 11 / 12,
+    "CWeather" and 0x1D, are dead code's). The classes' `DeleteScalar` became `DeletingDestruct` (EngineObjectClass's
+    slot 0 names it).
+  - **The party** (party_lifetime.cpp): PartyBaseClass (0074306C) and PartyClass (00743000) over a
+    PartyContextClass that declares the manager context's slots 13-26 as the worlds' (world_class.h) with the base's
+    bodies (every getter null; 24 the party's copy of an item); the party overrides Create / Destroy, its class name
+    and id and the item and spell getters. Its unit records' CArray is PartyMemberArrayClass (00742FF4), a
+    CompiledCollection whose Serialize goes through a mfc::impl::CArchive member (mfc.h's CArray takes mfc.h's
+    CArchive).
+  - **The player connections** (player_connection_class.h): ConnectionClass declares CPlayerConnection's slots 13-23
+    (13 / 23 pure, the others empty) over EngineObjectClass; PlayerConnectionClass (007431E0, player_client.cpp),
+    PlayerClientClass (00743180) and PlayerServerClass (00743280, player_messages.cpp) override the sides' bodies.
+    CPlayerConnection's `DeleteScalar` became `DeletingDestruct`.
+  - **UI_INPUT_HANDLER registrations** are not taken by `registration_readers.py --drop` (its default kinds): the top
+    panel's four became EI_REWRITTEN of the window members by hand.
+  - **Left**: the windows' main tables (harness id first), the scene renderer 0073D93C and its base 0073D8A0 (26 / 25
+    slots, the placeholder slots need their real signatures), CRefObject's 0073BB58 (net_connection.cpp stores it:
+    after C21), the map spec chunk readers (C21), the streams (the harness names their Write slots), the MFC library
+    kind.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never

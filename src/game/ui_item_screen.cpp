@@ -7,6 +7,7 @@
 #include "core_streams.h"
 
 #include "ei/hook.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc_slots.h"
@@ -236,8 +237,17 @@ CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
     return list->AddItem(item, keepCount, merge);
 }
 void RemoveItemAt(CParty* list, CItem* item, int all) { list->RemoveItem(item, all); }
-void* TurnVtable() { return ei::GamePointer<void>(0x007403F8); }
+
+// The turning state's compiled table (C19, lib/compiled_vtable.h; game.exe's 007403F8).
+struct ItemTurnClass final : ei::CompiledDeleter<ItemTurnClass, &ItemTurn::DeletingDestruct> {
+    ItemTurn* Turn() { return reinterpret_cast<ItemTurn*>(this); }
+    virtual void Serialize(ChunkArchive*) {}                // 1: 00412580 (empty, RET 4)
+    virtual void ResetVtable() { Turn()->ResetVtable(); }   // 2
+    virtual ItemTurn* Clone() { return Turn()->Clone(); }   // 3
+};
 } // namespace
+
+void* ItemTurn::Vtable() { return ItemTurnClass::Vtable(); }
 
 // --- 005ED710 / 005ED780: the turning state's Clone and deleting destructor -----------------------
 
@@ -250,20 +260,20 @@ ItemTurn* ItemTurn::Clone() const {
     copy->speed = speed;
     copy->flag = flag;
     copy->glow = glow;
-    copy->vtable = TurnVtable();
+    copy->vtable = Vtable();
     return copy;
 }
 namespace {
 ItemTurn* __fastcall ItemTurnClone(const ItemTurn* self) { return self->Clone(); }
 } // namespace
-EI_REPLACE(0x005ED710, ItemTurnClone);
+EI_REWRITTEN(0x005ED710, ItemTurnClone);
 
 ItemTurn* ItemTurn::DeletingDestruct(unsigned flags) {
     RefObjectDestructBase(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x005ED780, ItemTurn::DeletingDestruct);
+EI_REWRITTEN(0x005ED780, ItemTurn::DeletingDestruct);
 
 CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
     int whole = static_cast<std::uint8_t>(merge) != 0 && interface_->shiftDown_ != 0;
@@ -284,7 +294,7 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, i
             auto* turn = gamecrt::operator_new_as<ItemTurn>();
             // The original writes the count before checking the allocation (and the rest after).
             reinterpret_cast<volatile int*>(turn)[1] = 0;
-            if (turn) turn->vtable = TurnVtable();
+            if (turn) turn->vtable = ItemTurn::Vtable();
             turn->angle = 0.0f;
             turn->speed = 0.0f;
             slot = turn;

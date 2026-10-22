@@ -80,7 +80,7 @@ void PatrolMode::Destruct() {
         }
         gamecrt::operator_delete(points.data);
     }
-    vtable = aimode::kRootVtable;
+    vtable = CRefCounted::RootVtable();
 }
 EI_REWRITTEN(0x005D1240, PatrolMode::Destruct);
 
@@ -167,7 +167,7 @@ int FearMode::Reset() {
 }
 EI_REWRITTEN(0x005D28F0, FearMode::Reset);
 
-void FearMode::Destruct() { vtable = aimode::kRootVtable; }
+void FearMode::Destruct() { vtable = CRefCounted::RootVtable(); }
 EI_REWRITTEN(0x005D2950, FearMode::Destruct);
 
 FearMode* FearMode::DeletingDestruct(int flags) {

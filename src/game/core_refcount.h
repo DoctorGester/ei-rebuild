@@ -4,12 +4,14 @@
 
 class ChunkArchive;
 
-// The root of the reference-counted classes (vtable 0073BB68): the count and the flags, slot 0 the
+// The root of the reference-counted classes (RootVtable(), game.exe's 0073BB68): the count and the flags, slot 0 the
 // scalar deleting destructor, slot 1 Serialize (empty, RET 4). The network sessions (net_classes.h)
 // derive from it directly; everything else through CRefObject below.
 class CRefCounted {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BB68);
+    // The root's compiled table (C19, core_streams.cpp; game.exe's 0073BB68): slot 0 RootDeletingDestruct, slot 1
+    // the empty Serialize. The derived classes' destructors leave it.
+    static void* RootVtable();
 
     enum : std::uint8_t {
         kCopyOnShare = 0x01,    // flags6_: sharing makes a copy (the copy is marked too)
@@ -29,6 +31,11 @@ public:
     std::uint8_t flags7_;       // +0x07
 };
 static_assert(sizeof(CRefCounted) == 8);
+
+// The renderer's, the figures' and the mouse's counted root (game.exe's 0073C368: one slot, no fields): the compiled
+// table their destructors leave (C19, core_streams.cpp). Slot 0, the deleting destructor (00457950), leaves it again
+// and frees the object when bit 0 of the flags is set.
+void* PlainRootVtable();
 
 // Reference-counted objects of the engine core (script values, network records and messages, AI
 // shapes; vtable 0073BB58 and its descendants). Names provisional. The header and the slots below

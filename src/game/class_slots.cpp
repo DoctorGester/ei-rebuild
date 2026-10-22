@@ -2,6 +2,7 @@
 // manager, CFakeUnit, and the CUnit slots the fake unit shares. Each is a __fastcall shim on the
 // slot's address (this in ECX), as object.cpp's getters are: the classes' own virtual interfaces
 // are not declared in C++. Main thread. See docs/notes/objects.md ("A-E1: small slots").
+#include "engine_object_class.h"
 #include "game_strings.h"
 #include "item.h"
 #include "lightning.h"
@@ -36,41 +37,67 @@ int& LightningNoiseLoaded() { return ei::GameData<int>(0x007A9694); }
 
 } // namespace
 
-// ---- CHoover (vtable 0073C434) --------------------------------------------------------------------
+// ---- CHoover (HooverClass in place of game.exe's 0073C434) ---------------------------------------------
 
 // 00461C60, slot 0 (RET 4): the destructor body, then operator delete when bit 0 of `flags` is set.
-CHoover* CHoover::DeleteScalar(unsigned flags) {
+CHoover* CHoover::DeletingDestruct(unsigned flags) {
     Destruct();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00461C60, CHoover::DeleteScalar);
+EI_REWRITTEN(0x00461C60, CHoover::DeletingDestruct);
 
 // 00461C90, slot 2 (Create): 1.
 int __fastcall HooverCreate(CHoover*) { return 1; }
-EI_REPLACE(0x00461C90, HooverCreate);
+EI_REWRITTEN(0x00461C90, HooverCreate);
 
 // 00461C40 / 00461C50, slots 11 / 12.
 const char* __fastcall HooverGetClassName(const CHoover*) { return kHooverName; }
-EI_REPLACE(0x00461C40, HooverGetClassName);
+EI_REWRITTEN(0x00461C40, HooverGetClassName);
 int __fastcall HooverGetClassId(const CHoover*) { return kClassHoover; }
-EI_REPLACE(0x00461C50, HooverGetClassId);
+EI_REWRITTEN(0x00461C50, HooverGetClassId);
 
-// ---- CLightning (vtable 0073C550) and its manager (0073F5B8) --------------------------------------
+namespace {
+// The compiled table (C19, engine_object_class.h): 2 Create, 3 Destroy (empty: 00461CA0), 11 / 12.
+class HooverClass final : public EngineObjectClass<HooverClass, CHoover> {
+public:
+    int Create() override { return HooverCreate(As<CHoover>()); }                       // 2: 00461C90
+    void Destroy() override {}                                                          // 3: 00461CA0
+    const char* ClassName() override { return HooverGetClassName(As<CHoover>()); }      // 11: 00461C40
+    int ClassId() override { return HooverGetClassId(As<CHoover>()); }                  // 12: 00461C50
+};
+} // namespace
+
+void* CHoover::Vtable() { return HooverClass::Vtable(); }
+
+// ---- CLightning (LightningClass in place of game.exe's 0073C550) and its manager ---------------------
 
 // 004687F0, slot 0 (RET 4).
-CLightning* CLightning::DeleteScalar(unsigned flags) {
+CLightning* CLightning::DeletingDestruct(unsigned flags) {
     LightningDestruct(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004687F0, CLightning::DeleteScalar);
+EI_REWRITTEN(0x004687F0, CLightning::DeletingDestruct);
 
 // 004687D0 / 004687E0, slots 11 / 12.
 const char* __fastcall LightningGetClassName(const CLightning*) { return kLightningName; }
-EI_REPLACE(0x004687D0, LightningGetClassName);
+EI_REWRITTEN(0x004687D0, LightningGetClassName);
 int __fastcall LightningGetClassId(const CLightning*) { return kClassLightning; }
-EI_REPLACE(0x004687E0, LightningGetClassId);
+EI_REWRITTEN(0x004687E0, LightningGetClassId);
+
+namespace {
+// The compiled table (C19, engine_object_class.h): 2 Register, 3 Reset, 11 / 12.
+class LightningClass final : public EngineObjectClass<LightningClass, CLightning> {
+public:
+    int Create() override { return As<CLightning>()->Register(); }                      // 2: 00466EA0
+    void Destroy() override { As<CLightning>()->Reset(); }                              // 3: 00468790
+    const char* ClassName() override { return LightningGetClassName(As<CLightning>()); }   // 11: 004687D0
+    int ClassId() override { return LightningGetClassId(As<CLightning>()); }               // 12: 004687E0
+};
+} // namespace
+
+void* CLightning::Vtable() { return LightningClass::Vtable(); }
 
 LightningSegment* LightningSegment::Construct() {
     points.data = nullptr;

@@ -1,4 +1,5 @@
 #include "effects.h"
+#include "engine_object_class.h"
 #include "texture.h"
 #include "at_exit_functions.h"
 
@@ -160,7 +161,7 @@ void CRainSnow::Clear() {
 EI_REWRITTEN(0x004E3B80, CRainSnow::Clear);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
-EI_REPLACE_METHOD(0x005617B0, CRainSnow::Clear);
+EI_REWRITTEN(0x005617B0, CRainSnow::Clear);
 
 void CRainSnow::Start(int newMode, float duration) {
     HeldTexture::Of(&texture)->Load(kWeatherTextureKind, WeatherTextureName());
@@ -177,7 +178,7 @@ void CRainSnow::Start(int newMode, float duration) {
 EI_REWRITTEN(0x004E3FC0, CRainSnow::Start);
 
 void CRainSnow::DestructBody() {
-    ei::SetVtable(this, kRainSnowVtable);
+    ei::SetVtable(this, Vtable());
     Clear();
     offsets.FreeData();
     reinterpret_cast<mfc::impl::CWordArray*>(&indices)->Destruct();   // 006FEECD
@@ -196,7 +197,21 @@ CRainSnow* CRainSnow::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x005617E0, CRainSnow::DeletingDestruct);
+EI_REWRITTEN(0x005617E0, CRainSnow::DeletingDestruct);
+
+namespace {
+// The compiled table (C19, engine_object_class.h): 2 Create (0), 3 Clear, 11 / 12 the class name "CWeather" and
+// id 0x1D (005617C0 / 005617D0; nothing asks).
+class RainSnowClass final : public EngineObjectClass<RainSnowClass, CRainSnow> {
+public:
+    int Create() override { return 0; }                                  // 2: 005617A0
+    void Destroy() override { As<CRainSnow>()->Clear(); }                // 3: 005617B0 (a thunk to 004E3B80)
+    const char* ClassName() override { return "CWeather"; }             // 11: 005617C0
+    int ClassId() override { return 0x1D; }                             // 12: 005617D0
+};
+} // namespace
+
+void* CRainSnow::Vtable() { return RainSnowClass::Vtable(); }
 
 // --- Visibility fog -----------------------------------------------------------------------------
 

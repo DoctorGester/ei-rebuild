@@ -16,8 +16,6 @@ class ChunkArchive;
 #include <cstdint>
 
 struct ClassTemplate {
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073BB68);   // the counted root (CRefCounted)
-
     // 004A6580 (class_template_stock.cpp). Constructor body (+4 is left to the caller): the base
     // vtable, the two parties (CParty::Construct), the stocks (ItemStock::Construct on the items /
     // spells party; the first one inlined in the original), the vtable, both parties created (slot
@@ -41,7 +39,7 @@ struct ClassTemplate {
     CParty* ItemsParty() { return items.Party(); }
     CParty* SpellsParty() { return spells.Party(); }
 
-    void* vtable;                   // ClassTemplateClass (game.exe: 0073D0C4; base 0073BB68)
+    void* vtable;                   // ClassTemplateClass (game.exe: 0073D0C4; base CRefCounted::RootVtable())
     std::int16_t refCount;          // +0x04 counted pointers (the dword is cleared before construction)
     std::int16_t refsHigh;              // +0x06 the reference dword's high half (zeroed with it)
     int type;                       // +0x08 class 1..5; bit (type - 1) of the records' class masks

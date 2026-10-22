@@ -1,6 +1,6 @@
 #pragma once
 
-// The system information object (CSysInfo; the global at 007AB8F8, vtable 0073D644, class id 0xD):
+// The system information object (CSysInfo; the global at 007AB8F8, vtable CSysInfo::Vtable() in place of game.exe's 0073D644, class id 0xD):
 // five texts about the machine and what Windows reported about itself, collected once by the
 // constructor, which a static initialiser runs before WinMain. See sys_info.cpp and
 // docs/notes/script.md (A-S11, A-E2).
@@ -36,7 +36,9 @@ inline ProcessorInfo* TheProcessorInfo() { return ei::GamePointer<ProcessorInfo>
 void ReadProcessorInfo();
 
 struct CSysInfo : CEngineObject {
-    CSysInfo* DeleteScalar(unsigned flags);
+    CSysInfo* DeletingDestruct(unsigned flags);
+    // The compiled table (C19, sys_info.cpp's SysInfoClass; game.exe's 0073D644).
+    static void* Vtable();
     static constexpr int kClassId = 0xD;
     // flags_ bits.
     static constexpr std::uint32_t kMmx = 0x8;       // always set by Collect

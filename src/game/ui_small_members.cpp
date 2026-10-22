@@ -21,8 +21,6 @@
 #include <new>
 
 namespace {
-void* Vtable(std::uintptr_t address) { return ei::GamePointer<void>(address); }
-
 // Slot `slot` of `object`'s vtable, as a function of the object alone returning EAX.
 using ObjectSlot = int(__thiscall*)(void*);
 ObjectSlot SlotOf(void* object, int slot) { return reinterpret_cast<ObjectSlot>((*static_cast<void***>(object))[slot]); }
@@ -176,8 +174,8 @@ EI_REWRITTEN(0x005E6D70, CUiMesh::DestroySprite);
 
 // The original writes the counted root's vtable first and its own only for a non-null object;
 // the first store is not seen by anything.
-void ItemTurn::ResetVtable() { vtable = Vtable(0x007403F8); }
-EI_REPLACE_METHOD(0x005ED760, ItemTurn::ResetVtable);
+void ItemTurn::ResetVtable() { vtable = ItemTurn::Vtable(); }
+EI_REWRITTEN(0x005ED760, ItemTurn::ResetVtable);
 
 // --- Handlers ----------------------------------------------------------------------------------------------
 

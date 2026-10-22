@@ -75,7 +75,7 @@ ItemStock* ItemStock::Construct(void* owner) {
 EI_REWRITTEN(0x004A66C0, ItemStock::Construct);
 
 ClassTemplate* ClassTemplate::Construct() {
-    vtable = ei::GamePointer<void>(kBaseVtableAddress);
+    vtable = CRefCounted::RootVtable();
     ItemsParty()->Construct();
     SpellsParty()->Construct();
     allowed.Construct(ItemsParty());
@@ -112,7 +112,7 @@ void ClassTemplate::Destruct() {
     allowed.Destruct();
     SpellsParty()->DestructBody();
     ItemsParty()->DestructBody();
-    vtable = ei::GamePointer<void>(kBaseVtableAddress);
+    vtable = CRefCounted::RootVtable();
 }
 EI_REWRITTEN(0x004A6A90, ClassTemplate::Destruct);
 

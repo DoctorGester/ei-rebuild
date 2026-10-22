@@ -120,7 +120,7 @@ int __fastcall WorldServerIsServer(CWorldServer*) { return 1; }
 int __fastcall PartyBaseCreate(CEngineObject*) { return 1; }
 EI_REWRITTEN(0x0055FAD0, WorldBaseRunTick);
 EI_REWRITTEN(0x0058A380, WorldServerIsServer);
-EI_REPLACE(0x0055E930, PartyBaseCreate);
+EI_REWRITTEN(0x0055E930, PartyBaseCreate);
 
 const char* __fastcall WorldClientTexturePath(CWorldClient* self) { return self->texturePath_; }
 CMaterialManager* __fastcall WorldClientMaterialManager(CWorldClient* self) { return self->manager188_; }

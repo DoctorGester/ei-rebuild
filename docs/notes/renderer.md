@@ -1086,9 +1086,9 @@ across runs; the goldens check the game state.
     **Soft edges (R16j2; the user: the map's shadows were much harder than the old ones, the town gate's).** PCSS,
     contact-hardening: after the casters two small passes make the map's depth range per 16 x 16-texel cell
     (`shaders/shadow_reduce.hlsl`: nearest and farthest texel, Gather, shader model 4.1; `shadow_dilate.hlsl`: the same over the cells
-    within the widest filter's reach, 3 cells at 56-72 units, plus the cell's own nearest; one 256 x 256 RGBA32F
-    image). A receiver nearer than every depth around is lit, farther than every one shadowed (most pixels end
-    there); near an edge the nearest depth around bounds the radius, and when that bound is wider than a cell a
+    within the widest filter's reach and one cell more, 4 cells at 56-72 units, plus the cell's own nearest; one
+    256 x 256 RGBA32F image, read filtered: R25 below). A receiver nearer than every depth around is lit, farther than every one shadowed (most pixels end
+    there); near an edge the nearest depth around bounds the radius, and when that bound is wider than half a cell a
     blocker search over 8 cells (Vogel disc) and its own gives the mean distance along the light to the casters
     hiding it; radius = that distance x `kSunSize` (0.025, the tangent of a chosen sun radius far larger than the
     real sun's), 1.5 texels to `kWidestRadius` (0.6 units); then 8 (under 4 texels) or 16 bilinear comparisons on
@@ -1187,6 +1187,38 @@ across runs; the goldens check the game state.
     window): the map's frame, the classic one, and with `shadowfacing all` (the rule before R22, harness
     build): that frame differs from the default by 0.6-0.8% (the mound), so the check fails if the ids stop
     working.
+    **Steady soft edges (R25; the user: at the camera distance of the save "ShadowCorrupt", in the town
+    bz1g, the shadow under the hide-on-frame sign, whose tip reaches a soldier, shimmered; one zoom step in
+    it stopped).** Cause: the receivers read the range image per cell (Load of the pixel's cell, and of each
+    search tap's), so the early ends, the bound on the radius (with no search under a cell the radius *is*
+    the bound) and the search stepped at the cells' edges: cell-sized squares and straight cuts in a
+    penumbra (the soldier's feet in the sign's shadow, in the shadow view below a lighter square block with a
+    straight cut beside him). The sun turns every frame (logged per frame: its direction moved by about 0.07
+    degrees a harness frame at the save's hour), the map's texel grid turns with it across the ground, and the cells'
+    edges crawl over the screen: the squares came and went from frame to frame. The texel snapping, the
+    extent (72 units there, steps of 8) and the depth range (nearest caster) were steady; they were not the
+    cause. Which radius regime a pixel is in depends on the extent, hence the zoom. Fix
+    (`shadow_receiver.hlsli`): the range is sampled with a bilinear sampler (`RangeSampler`, clamp) between
+    the four cells around the pixel, and the dilation reaches one cell more (`g_cellsAround`), so each of
+    those four cells' bounds holds for all the pixel's taps and their weighted mean is still a bound; the
+    search taps read the cells' own nearest filtered too; the searched radius is blended in from the bound
+    between half a cell and a cell (no step where the search starts; a search that finds nothing ends lit
+    only from a cell on). The widest radius is capped to what kMostCellsAround cells reach (only below a
+    22-unit extent). The ids are paired with the point sampler on the next slot (sokol: a UINT view wants a
+    non-filtering sampler); without a map a 1 x 1 RGBA32F stand-in is bound for the range. Measured in the
+    user's frame (Rebirth, 4K, shadow view): the per-cell squares and cuts are gone; the grain of the
+    turned taps still changes as the sun turns (frames at 8 ms: 4-9% of the soldier's region changes by
+    more than 8 of 255 in the shadow view between frames, about the same before and after; in the real
+    frame by more than 3 on 2%), which more taps or reuse across frames would calm (not done). The frame
+    otherwise changes little (0.07% of the pixels by more than 8). GPU within the runs' noise (the machine
+    shared; render_stats town 1.26-1.36 ms after, 1.70-2.64 before in the run after it; the dilation's
+    81 reads a cell against 49 is about 2M more reads of a 1 MB image). Harness build: `shadowview on`
+    shows the shadow alone (white lit, black at full strength), `shadowshift <n>` moves the map's origin by n
+    x n/2 whole texels (the same texels on the world, other cells). Check: scenario render_shadows_shimmer
+    (the user's save in tests/saves/shadow_corrupt; flora shadows on): frozen, the shadow view against the
+    same with `shadowshift 7`, more than 64 of 255 apart on at most 0.03% (Rebirth 0.013%, vanilla 0.006%;
+    with the per-cell reads 0.051% and 0.016%: the check catches the old reads on Rebirth's data only),
+    the map against the classic frame, and four frames at 8 ms for the eye.
 
 11. **R16k The device's mesh draws without the per-corner work nothing reads (done).** `device_mesh.cpp`. When
     `render::MeshCornersSkipped()` (the image with the new renderer on) the mesh draws 004E9010 / 004E9A50 still

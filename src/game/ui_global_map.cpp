@@ -55,7 +55,6 @@ using console::CStringArray;
 
 namespace {
 
-constexpr std::uintptr_t kWeatherVtable = std::uintptr_t(0x007420D4);   // GlobalMapWeather (CCloudNoise)
 
 inline double D(float f) { return f; }
 
@@ -501,7 +500,7 @@ void CGlobalMap::Create() {
         auto* weather = static_cast<CCloudNoise*>(gamecrt::operator_new(0x34));
         if (weather) {
             weather->Construct(0x100);
-            ei::SetVtable(weather, kWeatherVtable);
+            ei::SetVtable(weather, CCloudNoise::MapVtable());
         }
         weather_ = reinterpret_cast<GlobalMapWeather*>(weather);
         weather->Start();

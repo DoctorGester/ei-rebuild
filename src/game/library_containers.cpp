@@ -2,6 +2,7 @@
 // addresses so the standalone image has it.
 #include "library_containers.h"
 
+#include "core_refcount.h"
 #include "link_figure.h"
 #include "originals_gameplay.h"
 #include "party.h"
@@ -31,7 +32,7 @@ namespace libcontainers {
 
 void __fastcall DestroyCString(mfc::CString* self) { self->~CString(); }
 
-void __fastcall SetRootVtable(void* self) { ei::SetVtable(self, CLinkMesh::kRootVtableAddress); }
+void __fastcall SetRootVtable(void* self) { ei::SetVtable(self, PlainRootVtable()); }
 
 
 void HeroRecordElement::Construct(MpHeroRecord* to, const MpHeroRecord& from) {
