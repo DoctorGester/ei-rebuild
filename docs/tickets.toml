@@ -593,7 +593,7 @@ title = "Option: smooth world at high refresh rates (draw moving objects interpo
 group = "renderer"
 model = "opus"
 depends = ["R18"]
-note = "User 2026-10-22: no UI for now; a settings-file flag in the Standalone key like R23's VSync (dword, default off, not read in the harness)."
+note = "Correction (user 2026-10-22): R19 is an EI_RENDER word like smooth / smoothcamera, not a settings-file flag; the flag note above is for R14 / R15 only."
 
 [[ticket]]
 id = "UB1"
