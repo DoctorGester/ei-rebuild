@@ -34,7 +34,7 @@ bool Regards(const CUnit* a, const CUnit* b) {
 }
 } // namespace
 
-BOOL CSpell::Clear() {
+int CSpell::Create() {
     speed_ = 0;
     range_ = 0;
     targetCount_ = 0;
@@ -47,7 +47,7 @@ BOOL CSpell::Clear() {
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return 1;
 }
-EI_REWRITTEN(0x0068B320, CSpell::Clear);
+EI_REWRITTEN(0x0068B320, CSpell::Create);
 
 BOOL CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     speed_ = prototype->speed;

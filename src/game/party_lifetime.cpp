@@ -12,7 +12,6 @@
 #include "game_strings.h"
 #include "item.h"
 #include "spell.h"
-#include "spell_class.h"
 #include "unit.h"
 
 #include "lib/crt.h"
@@ -156,23 +155,19 @@ EI_REWRITTEN(0x006641D0, PartyMemberArray::Serialize);
 
 // --- The managers and constructors a party makes ------------------------------------------------
 
-CSpellConstructor* CSpellConstructor::Construct() {
+CSpellConstructor::CSpellConstructor() {
     ClearFields();
     container_ = nullptr;
-    ei::SetVtable(this, Vtable());
     // (The original then releases +0x20, which it has just cleared.)
     manager_ = nullptr;
-    return this;
 }
-EI_REWRITTEN(0x00683FF0, CSpellConstructor::Construct);
+EI_REWRITTEN_SPECIAL(0x00683FF0, CSpellConstructor::CSpellConstructor);
 
 CSpellManager::CSpellManager() {
     sequences_.InitBuckets(100);
     maxSequenceKey_ = 0;
 }
-
-CSpellManager* CSpellManager::Construct() { return new (this) CSpellManager(); }
-EI_REWRITTEN(0x00688840, CSpellManager::Construct);
+EI_REWRITTEN_SPECIAL(0x00688840, CSpellManager::CSpellManager);
 
 // --- CParty -------------------------------------------------------------------------------------
 
@@ -300,8 +295,7 @@ BOOL CParty::CreateParty() {
     ++itemManager_->refCount_;   // not tested for null, as in the original
     itemManager_->Init(this);
 
-    CSpellManager* spells = gamecrt::operator_new_as<CSpellManager>();
-    spellManager_ = spells != nullptr ? spells->Construct() : nullptr;
+    spellManager_ = new CSpellManager();
     ++spellManager_->refCount_;
     spellManager_->Init(this);
 
@@ -309,8 +303,7 @@ BOOL CParty::CreateParty() {
     ++itemConstructor_->refCount_;
     itemConstructor_->Create();
 
-    CSpellConstructor* spellMaker = gamecrt::operator_new_as<CSpellConstructor>();
-    spellConstructor_ = spellMaker != nullptr ? spellMaker->Construct() : nullptr;
+    spellConstructor_ = new CSpellConstructor();
     ++spellConstructor_->refCount_;
     spellConstructor_->Create();
 

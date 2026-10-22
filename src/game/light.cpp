@@ -1,7 +1,6 @@
 // Lights and the light manager (A-H23): CLight's lifetime and setters, CLightFactory
 // ("CLightManager") lifetime and object creation. See spell.h and docs/notes/items_spells.md.
 #include "spell.h"
-#include "spell_class.h"
 
 #include "core_transform.h"
 
@@ -28,19 +27,16 @@ constexpr std::uint32_t kFlagChanged = 0x08;
 constexpr std::uint32_t kFlagCreatedLight = 0x80;   // cleared by the manager's CreateObject
 constexpr std::uint32_t kFlagDestroyed = 0x20;      // cleared by slot 3
 
-constexpr const char* kLightClassName = "CLight";
-constexpr const char* kLightManagerClassName = "CLightManager";
 constexpr const char* kUnknownLightType = "CLightManager::CreateInstant.\n Request for light with unknown type %d.\n";
 
 } // namespace
 
 // --- CLight --------------------------------------------------------------------------------------
 
-CLight* CLight::Construct() {
+CLight::CLight() {
     ClearFields();
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
-    ei::SetVtable(this, Vtable());
     std::memset(&kind_, 0, offsetof(CLight, unused_FC) - offsetof(CLight, kind_));
     unused_FC = 0;
     unused_E8 = 1.0f;
@@ -52,22 +48,12 @@ CLight* CLight::Construct() {
     range_ = root;
     rangeSquared_ = static_cast<float>(squared);
     inverseRangeSquared_ = static_cast<float>(1.0 / static_cast<float>(squared));
-    return this;
 }
-EI_REWRITTEN(0x0068CED0, CLight::Construct);
+EI_REWRITTEN_SPECIAL(0x0068CED0, CLight::CLight);
 
-void CLight::Destruct() {
-    ei::SetVtable(this, CTransformObject::BaseVtable());
-    DestructBase();
-}
-EI_REPLACE_METHOD(0x0068CFE0, CLight::Destruct);
-
-CLight* CLight::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0068CFC0, CLight::DeletingDestruct);
+CLight::~CLight() = default;
+EI_REWRITTEN_SPECIAL(0x0068CFE0, CLight::~CLight);
+EI_REWRITTEN_SPECIAL(0x0068CFC0, CLight::~CLight);
 
 BOOL CLight::SetPoint(const Vector3* color, const Vector3* position) {
     kind_ = kKindPoint;
@@ -138,14 +124,14 @@ void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vect
 }
 EI_REPLACE_METHOD(0x0068D5A0, CLight::AddPoint);
 
-int __fastcall LightCreate(CLight*) { return 1; }
-void __fastcall LightDestroy(CLight* light) { light->flags_ &= ~kFlagDestroyed; }
-const char* __fastcall LightClassName(CLight*) { return kLightClassName; }
-int __fastcall LightClassId(CLight*) { return 10; }
-EI_REWRITTEN(0x0068CFF0, LightCreate);
-EI_REWRITTEN(0x0068D000, LightDestroy);
-EI_REWRITTEN(0x0068CFA0, LightClassName);
-EI_REWRITTEN(0x0068CFB0, LightClassId);
+int CLight::Create() { return 1; }
+void CLight::Destroy() { flags_ &= ~kFlagDestroyed; }
+const char* CLight::GetClassName() { return "CLight"; }
+int CLight::GetClassId() { return 10; }
+EI_REWRITTEN(0x0068CFF0, CLight::Create);
+EI_REWRITTEN(0x0068D000, CLight::Destroy);
+EI_REWRITTEN(0x0068CFA0, CLight::GetClassName);
+EI_REWRITTEN(0x0068CFB0, CLight::GetClassId);
 
 // --- CLightFactory -------------------------------------------------------------------------------
 
@@ -159,9 +145,7 @@ CLightFactory::CLightFactory() {
     std::memset(unused_B0, 0, sizeof(unused_B0));
     unused_D0 = 1;
 }
-
-CLightFactory* CLightFactory::Construct() { return new (this) CLightFactory(); }
-EI_REWRITTEN(0x0068D850, CLightFactory::Construct);
+EI_REWRITTEN_SPECIAL(0x0068D850, CLightFactory::CLightFactory);
 
 CLightFactory::~CLightFactory() {
     litIds_.ClearWith([](int*) {});
@@ -169,18 +153,10 @@ CLightFactory::~CLightFactory() {
     unused_CC = 0;
     if (held_) held_->Release();
 }
+EI_REWRITTEN_SPECIAL(0x0068D990, CLightFactory::~CLightFactory);
+EI_REWRITTEN_SPECIAL(0x0068D970, CLightFactory::~CLightFactory);
 
-void CLightFactory::Destruct() { this->CLightFactory::~CLightFactory(); }
-EI_REWRITTEN(0x0068D990, CLightFactory::Destruct);
-
-CLightFactory* CLightFactory::DeletingDestruct(unsigned flags) {
-    this->CLightFactory::~CLightFactory();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0068D970, CLightFactory::DeletingDestruct);
-
-CEngineObject* CLightFactory::NewObjectImpl(int type) {
+CEngineObject* CLightFactory::NewObject(int type) {
     if (type != kLightDefault && type != kLightPoint) {
         game::DebugLog(kUnknownLightType, type);
         return nullptr;
@@ -188,30 +164,22 @@ CEngineObject* CLightFactory::NewObjectImpl(int type) {
     // Allocated zeroed (SV7b6a): the constructor leaves the transform's positions, and nothing sets a
     // directional light's localPosition_; the terrain's sun lighting reads its z (ShadeSun, under water), so
     // heap leftovers there (a NaN) darkened the shallow water's sun light by the heap's history.
-    CLight* memory = gamecrt::operator_new_zeroed_as<CLight>();
-    CLight* light = memory ? memory->Construct() : nullptr;
-    if (!light) return nullptr;
+    void* memory = gamecrt::operator_new_zeroed(sizeof(CLight));
+    if (!memory) return nullptr;
+    CLight* light = new (memory) CLight();
     light->type_ = type;
     return light;
 }
+EI_REWRITTEN(0x0068DA40, CLightFactory::NewObject);
 
-CEngineObject* CLightFactory::CreateObjectImpl(int type, int id) {
-    CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
+CEngineObject* CLightFactory::CreateObject(int type, int id) {
+    CEngineObject* object = CBaseManager::CreateObject(type, id);
     object->flags_ &= ~kFlagCreatedLight;
     return object;
 }
+EI_REWRITTEN(0x0068DAD0, CLightFactory::CreateObject);
 
-namespace {
-} // namespace
-EI_REWRITTEN(0x0068DA40, CLightFactory::NewObjectImpl);
-EI_REPLACE_METHOD(0x0068DAD0, CLightFactory::CreateObjectImpl);
-
-CEngineObject* CLightFactory::NewObject(int type) { return NewObjectImpl(type); }
-CEngineObject* CLightFactory::CreateObject(int type, int id) { return CreateObjectImpl(type, id); }
-const char* CLightFactory::GetClassName() { return kLightManagerClassName; }
+const char* CLightFactory::GetClassName() { return "CLightManager"; }
 int CLightFactory::GetClassId() { return 0x29; }
-
-const char* __fastcall LightManagerClassName(CLightFactory* self) { return self->CLightFactory::GetClassName(); }
-int __fastcall LightManagerClassId(CLightFactory* self) { return self->CLightFactory::GetClassId(); }
-EI_REPLACE(0x0068D950, LightManagerClassName);
-EI_REPLACE(0x0068D960, LightManagerClassId);
+EI_REWRITTEN(0x0068D950, CLightFactory::GetClassName);
+EI_REWRITTEN(0x0068D960, CLightFactory::GetClassId);

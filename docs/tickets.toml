@@ -2958,7 +2958,7 @@ title = "C28 spells and lights: spell_class.h's tags to real virtual classes"
 group = "cleanup"
 model = "opus"
 files = ["src/game/spell.h", "src/game/spell_class.h", "src/game/spell_lifetime.cpp", "src/game/light.cpp", "src/game/core_transform.h"]
-note = "CSpell, CSpellContainer, CSpellConstructor, the spell manager's leftovers and CLight over CTransformObject (TransformObjectClass, CTransformObject::BaseVtable). Same method as C28a."
+note = "CSpell, CSpellContainer, CSpellConstructor, the spell manager's leftovers and CLight over CTransformObject (TransformObjectClass, CTransformObject::BaseVtable). Same method as C28a. Done: CSpell, CSpellContainer (the spell a member), CSpellConstructor, CLight real classes; spell_class.h deleted; CSpellManager / CLightFactory leftovers (Construct, Destruct, DeletingDestruct, NewObjectImpl, CreateObjectImpl, hooks) folded; world_create's MakeNew<T> for the constructors and the spell manager. CSpellEffect keeps its in-place CSpell (C28e)."
 
 [[ticket]]
 id = "C28c"

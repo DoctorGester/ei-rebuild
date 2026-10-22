@@ -406,8 +406,6 @@ public:
     CItemConstructor();
     // 006A5B20 (the scalar deleting destructor 006A5B00): Destroy's work.
     ~CItemConstructor() override;
-    // The constructor on a block the world's Make allocates (world_create.cpp); returns this.
-    CItemConstructor* Construct() { return new (this) CItemConstructor(); }
     const char* GetClassName() override;   // 006A5AE0: "CItemConstructor"
     int GetClassId() override;             // 006A5AF0: 0x1C
 

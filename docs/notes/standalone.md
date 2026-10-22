@@ -1112,7 +1112,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     ServerSessionClass / ClientSessionClass. **Connection, replica entry** (net_connection.h: `RefObjectClass`).
     **Links** (net_link.h): FileStreamClass, NetLinkClass and its Loopback / Replay / Framed / Driver tags,
     DriverSessionClass. net_link.cpp's slot registrations stay registered (C11 batch 30 owns that file).
-  - **Items** (item_class.h over engine_object_class.h): EngineObjectClass declares CEngineObject's 13 slots with the
+  - **Items** (item_class.h over engine_object_class.h; real classes since C28a): EngineObjectClass declares CEngineObject's 13 slots with the
     base's bodies (Release keeps the hook's EAX: this, or the manager's slot 24 result); ItemClass adds CItem's 14-21
     (17-20 return a CString by value: the caller's hidden result, as game.exe's); one tag per item class (the
     scroll's slots 9, 10, 13 and 14 are CItemQuick's bodies) and the item constructor's.
@@ -1126,7 +1126,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     needs another recognition first.
 - **Batch 15's families** (2026-10-22): the spells', GameBuffer's, the world's and the units' tables: 39 rows,
   5,666 -> 5,175 code cells, 194 slot registrations EI_REWRITTEN, 1,138 -> 1,108 game data addresses.
-  - **Spells and light** (spell_class.h): CSpellClass, CSpellContainerClass, CSpellConstructorClass, and CLightClass
+  - **Spells and light** (spell_class.h; real classes since C28b): CSpellClass, CSpellContainerClass, CSpellConstructorClass, and CLightClass
     over the new `TransformObjectClass<Self, T>` (engine_object_class.h: CTransformObject's slots 13-17 with the base's
     bodies). 0074399C stays: the harness names it.
   - **GameBuffer** (net_coder.h): `GameBufferClass<Self>` declares the view base's six slots (2 Commit returns 0, 5

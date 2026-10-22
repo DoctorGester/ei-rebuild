@@ -517,14 +517,14 @@ vtable,slots,class,file,note
 0074387C,24,CEffectMoshkaClass,src/game/world_effect_class.h,the client's bird
 007438F8,24,CEffectTornadoClass,src/game/world_effect_class.h,tornado
 0074399C,2,SpellEffectClass,src/game/spell_lifetime.cpp,"the cast spell (CSpellEffect; the harness's digest recognises it by CSpellEffect::Vtable in the image)"
-007439C8,13,CSpellConstructorClass,src/game/spell_class.h,spell constructor
+007439C8,13,CSpellConstructor,src/game/spell.h,spell constructor
 00743A14,26,CSpellManager,src/game/spell.h,
-00743A94,5,CSpellClass,src/game/spell_class.h,spell
-00743AA8,8,CSpellClass,src/game/spell_class.h,the tail of 00743A94 (0068B2C0 / 0068BC50 call slot 5 through the table's memory)
-00743AC8,5,CSpellContainerClass,src/game/spell_class.h,spell container
-00743ADC,3,CSpellContainerClass,src/game/spell_class.h,the tail of 00743AC8 (0068BC50 calls slot 5 through the table's memory)
-00743AE8,5,CSpellContainerClass,src/game/spell_class.h,the tail of 00743ADC (a byte match in 006E81C2)
-00743AFC,18,CLightClass,src/game/spell_class.h,light
+00743A94,5,CSpell,src/game/spell.h,spell
+00743AA8,8,CSpell,src/game/spell.h,the tail of 00743A94 (0068B2C0 / 0068BC50 call slot 5 through the table's memory)
+00743AC8,5,CSpellContainer,src/game/spell.h,spell container
+00743ADC,3,CSpellContainer,src/game/spell.h,the tail of 00743AC8 (0068BC50 calls slot 5 through the table's memory)
+00743AE8,5,CSpellContainer,src/game/spell.h,the tail of 00743ADC (a byte match in 006E81C2)
+00743AFC,18,CLight,src/game/spell.h,light
 00743B50,25,CLightFactory,src/game/spell.h,
 00743BB4,13,CMaterial,src/game/material.h,
 00743C38,26,CMaterialManager,src/game/material.h,

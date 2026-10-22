@@ -31,5 +31,3 @@ const char* __fastcall EffectMoshkaClassName(CEngineObject*);
 int __fastcall EffectMoshkaClassId(CEngineObject*);
 const char* __fastcall EffectTornadoClassName(CEngineObject*);
 int __fastcall EffectTornadoClassId(CEngineObject*);
-const char* __fastcall SpellClassName(CEngineObject*);
-int __fastcall SpellClassId(CEngineObject*);

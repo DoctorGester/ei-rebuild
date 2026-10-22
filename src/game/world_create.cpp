@@ -56,6 +56,15 @@ R* Make(std::size_t size, Construct construct, const void* vtable) {
     return object;
 }
 
+// A new object (its class's operator new and constructor), counted once: the original counts the reference
+// without testing the pointer.
+template <class T>
+T* MakeNew() {
+    T* object = new T();
+    ++object->refCount_;
+    return object;
+}
+
 // A manager attached to the world (its slot 13), after the world holds it.
 void Attach(CBaseManager* manager, CWorld* world) { manager->Init(world); }
 
@@ -81,11 +90,11 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     Attach(world->manager3C_, world);
     world->manager48_ = Make<CBaseManager>(sizeof(CEffectManager), ConstructOn<CEffectManager, &CEffectManager::Construct>, nullptr);
     Attach(world->manager48_, world);
-    world->manager50_ = Make(0x24, ConstructOn<CSpellConstructor, &CSpellConstructor::Construct>, nullptr);   // 00683FF0
+    world->manager50_ = MakeNew<CSpellConstructor>();   // 00683FF0
     world->manager50_->Create();
-    world->manager4C_ = Make<CSpellManager>(0xD4, ConstructOn<CSpellManager, &CSpellManager::Construct>, nullptr);   // 00688840
+    world->manager4C_ = MakeNew<CSpellManager>();   // 00688840
     Attach(world->manager4C_, world);
-    world->manager58_ = Make(sizeof(CItemConstructor), ConstructOn<CItemConstructor, &CItemConstructor::Construct>, nullptr);   // 006A5AB0
+    world->manager58_ = MakeNew<CItemConstructor>();   // 006A5AB0
     world->manager58_->Create();
     world->itemManager_ = Make<CItemManager>(CItemManager::kSize, ConstructOn<CItemManager, &CItemManager::Construct>, nullptr);
     Attach(world->itemManager_, world);
