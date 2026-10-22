@@ -110,7 +110,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     std::uint32_t width = header->width >> (mip & 31);
     std::uint32_t height = header->height >> (mip & 31);
     std::uint32_t levels = header->mipCount - mip;
-    if (static_cast<const CTextureManager*>(owner_)->limitTo512_) {
+    if (Manager()->limitTo512_) {
         while (width >= 0x200 || height >= 0x200) {
             ++mip;
             width = header->width >> (mip & 31);

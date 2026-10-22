@@ -25,7 +25,7 @@ CTexture* SkinTexture(const TextureParts* set) { return set ? set->texture : nul
 void Reload(CTexture* texture, const mfc::CString& name) {
     texture->name_ = name.GetString();   // operator=(LPCTSTR)
     texture->flags_ &= ~kTextureLoaded;
-    static_cast<CTextureManager*>(texture->owner_)->LoadTexture(texture);
+    texture->Manager()->LoadTexture(texture);
 }
 
 // The original's test: a new skin, or a name that differs from the texture's (the texture read

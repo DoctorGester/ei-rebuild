@@ -27,6 +27,7 @@ static_assert(sizeof(PixelFormat) == 32);
 struct CDXSurface;
 struct SurfacePixels;   // dx_surface.h
 class CTexture;
+class CTextureManager;
 struct ClipBounds;   // model.h
 class CTransformPipeline;
 class CDeviceMaterial;   // device_material.h
@@ -473,6 +474,9 @@ public:
     // exe allocates it, so it is null and the keyed path never runs.
     std::uint8_t* block_;
     std::uint32_t spare64_;     // +0x64 cleared by the constructor, slot 2 and slot 3; nothing reads it
+
+    // The texture manager that owns the texture (owner_; below).
+    CTextureManager* Manager() const;
 };
 static_assert(offsetof(CTexture, name_) == 0x1C && offsetof(CTexture, extra_) == 0x2C);
 static_assert(offsetof(CTexture, format_) == 0x3C);
@@ -616,6 +620,7 @@ public:
     std::uint16_t unused_EA;
     int limitTo512_;            // +0xEC nonzero: textures are loaded at most 511 pixels wide and high
 };
+inline CTextureManager* CTexture::Manager() const { return static_cast<CTextureManager*>(owner_); }
 static_assert(offsetof(CTextureManager, cache_) == 0xBC);
 static_assert(offsetof(CTextureManager, cachedBytes_) == 0xD8);
 static_assert(offsetof(CTextureManager, shadowRenderSurface_) == 0xE0);
