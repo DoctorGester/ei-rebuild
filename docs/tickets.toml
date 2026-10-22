@@ -2871,6 +2871,13 @@ group = "cleanup"
 model = "opus"
 note = "After C18q (2026-10-22). The game data addresses src/lib/mfc* (27: 25 bss, 2 data) and src/lib/crt* (15: 11 data, 3 bss, 1 rdata) name, MFC's tables (afxEmptyString / _afxInitData, the CCmdTarget maps), and the CRT's locale categories __lc_category (00797888) with the static \"C\" (00797778), whose init cells point at the unported __init_dummy / __init_collate / __init_monetary / __init_numeric / __init_time (port them, or a check form for code pointers to unported code; the game only sets LC_CTYPE). Delete the matching config/image_kept.csv rows. Unread bytes are zero-filled (C25): no definitions only to hold bytes."
 
+[[ticket]]
+id = "C26"
+title = "Host CRT first: try each game CRT family on the modern CRT, keep only what goldens prove differs"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: test with the host CRT first; much of the ported VC6 CRT (src/lib/crt*.cpp, gamecrt:: / libcrt::, ~150 registrations) may byte-match the modern one. Per family, one switch at a time, both suites + goldens: the heap (malloc/free/new on the own HeapCreate heap, 16-byte rounding; goldens are layout-independent per the user, but the harness's repeatable heap hooks HeapAlloc), printf / scanf formatting (known VC6 differences: %e / %g exponent digits '1e+003', strtod rounding), x87 maths (_ftol, _CIpow ...), qsort (order of equal elements), rand / srand, locale / ctype / tolower, string functions, iostream, exit. Keep a port only where a golden or a vector differs, with the case in a comment; replace the rest with the host CRT (and drop their registrations). Report per family: same / differs (which scenario, which output)."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
