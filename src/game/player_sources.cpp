@@ -43,8 +43,7 @@ void DriverSession::TakeNewImpl(JoinedLinks* list) {
         DriverNode* current = node;
         node = node->next;
         if (CRefObject* link = current->value.ptr) link->Release();
-        current->next = static_cast<DriverNode*>(stlp::SmallNodeFreeList());
-        stlp::SmallNodeFreeList() = current;
+        stlp::PushSmallNode(current);
     }
     holders_->next = holders_;
     holders_->prev = holders_;

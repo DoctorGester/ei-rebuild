@@ -182,7 +182,6 @@ using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
 using UnitList = stlp::list<CEngineObject*>;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
-void*& NodeFreeList() { return ei::GameData<void*>(0x0079B228); }   // the 12-byte nodes
 
 
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
@@ -386,8 +385,7 @@ void CBattleScreen::Update() {
         if (inside.head) NodeFree(inside.head, 0xC);
         FreeListNodes(&units);
         if (units.head) {
-            units.head->next = static_cast<UnitList::Node*>(NodeFreeList());
-            NodeFreeList() = units.head;
+            stlp::PushSmallNode(units.head);
         }
     }
 
@@ -498,8 +496,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (inside.head) NodeFree(inside.head, 0xC);
     FreeListNodes(&units);
     if (units.head) {
-        units.head->next = static_cast<UnitList::Node*>(NodeFreeList());
-        NodeFreeList() = units.head;
+        stlp::PushSmallNode(units.head);
     }
 }
 EI_REPLACE_METHOD(0x00638B30, InputForward<&CBattleScreen::OnLButtonUp>::Call);
