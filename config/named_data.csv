@@ -118,11 +118,15 @@ address,size,name,file
 0078DB28,128,kCoderBitMasks,src/game/net_coder.h
 0078DEA4,128,kRainSeeds,src/game/weather_particles.cpp
 0078DF24,128,kSnowSeeds,src/game/weather_particles.cpp
+0078F7EC,60,kUnitModelFolders,src/game/dead_code_tables.cpp
+0078F974,28,kHeroParts,src/game/unit_client_wounds.cpp
+0078F990,28,kParts,src/game/unit_client_wounds.cpp
 0078FF38,4,g_lastLitHour,src/game/world_data.h
 00790260,4,kSaveVersion,src/game/world.h
 00790264,4,kSaveLastUncompressedVersion,src/game/world.h
 00790268,4,kSaveOldestVersion,src/game/world.h
 0079026C,1,g_guardPlain,src/game/world_guard.cpp
+007907AC,40,kZones,src/game/world_data.h
 00790C0C,4,kAnimatedDrawerFlags,src/game/figure_mesh.h
 00791108,36,kDirectionDx,src/game/ai_map.h
 0079112C,36,kDirectionDy,src/game/ai_map.h
@@ -140,7 +144,12 @@ address,size,name,file
 007916BC,136,kSteepOffsets,src/game/ai_refresh.cpp
 00791744,16,kTransparency,src/game/ai_map.cpp
 00791EE0,4,g_loadingMovieName,src/game/app_main.cpp
+007932F4,12,kDemoWords,src/game/dead_code_tables.cpp
+00793378,8,kFolders,src/game/ui_briefing_phrases.cpp
 00793AD8,4,g_connectTextColour,src/game/ui_screens.h
+00793BD4,28,kNames,src/game/ui_camp.h
+00793BF0,32,kNames,src/game/ui_camp.h
+007947A8,52,kNames,src/game/ui_layouts.cpp
 00796960,64,kAnimationSpeeds,src/game/terrain_sector.cpp
 007969D0,384,g_soundClasses,src/game/terrain_ambience.cpp
 00796CD0,24,g_classCDib,src/game/dib.cpp
@@ -152,6 +161,7 @@ address,size,name,file
 00797688,240,kCodePageTable,src/lib/crt_locale.cpp
 0079777C,132,g_cacheIn,src/lib/crt_locale_data.cpp
 00797800,132,g_cacheOut,src/lib/crt_locale_data.cpp
+00797CC0,216,kMathFunctionNames,src/lib/crt_x87.cpp
 00797FE4,4,g_mbCurMax,src/lib/crt_locale_data.cpp
 00797FE8,2,g_decimalPoint,src/lib/crt_locale_data.cpp
 00798914,20,kNonDefaultCountryIds,src/lib/crt_locale.cpp

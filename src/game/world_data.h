@@ -136,7 +136,8 @@ inline float ColourScale() { return 255.0f /*0073C370*/; }   // 255
 
 // The zones where the ten mercenaries are briefed.
 inline const char* MercZoneName(int slot) {
-    static constexpr const char* kZones[10] = {"bz1g", "bz1g", "bz2g", "bz6g", "bz8k", "bz8k", "bz14h", "bz14h", "bz9k", "bz14h"};
+    static constexpr const char* kZones[10] = /*007907AC*/ {"bz1g", "bz1g", "bz2g", "bz6g", "bz8k", "bz8k", "bz14h",
+                                                            "bz14h", "bz9k", "bz14h"};
     return kZones[slot];
 }
 inline const char* MercNameFormat() { return "merc%i"; }

@@ -52,7 +52,7 @@ const char* PhraseBodyNoLips() { return ":\n\007C\250\250\250 "; }
 const char* LineEnd() { return "\n"; }
 const char* VoiceFormat() { return "%s\\briefing\\%s\\%d.mp3"; }
 const char* const* VoiceFolders() {
-    static constexpr const char* kFolders[2] = {"t", "s"};
+    static constexpr const char* kFolders[2] = /*00793378*/ {"t", "s"};
     return kFolders;
 }
 // The reward lines.
