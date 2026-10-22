@@ -2807,6 +2807,22 @@ model = "sonnet"
 files = ["tools/named_data.py"]
 note = "Done: tools/named_data.py --check refuses a named range (definitions and unread objects) inside a global object of config/global_objects.csv (10 singletons: TheServerWorld 007AFF60+0x12E7C, TheClientWorld, TheGameFlow, TheInterface, TheCursor, TheCamera, TheSceneRenderer, TheMapDatabase, ThePartyManager, TheDeviceLock) and names owner + field via the sources' offsetof static_asserts (007C2CC4 -> TheServerWorld + 0x12D64 (CWorldServer::sessionKind_)); --owner BEGIN [END] queries any address. Sizes are checked against static_assert(sizeof) where present; CWorldServer 0x12E7C, CCamera 0x308, CSceneRenderer 0x5C have none (read off the compiler). Every GamePointer<T>(addr) accessor in game_singletons.h must lie in a listed object. Existing 335 names: 0 inside such objects. Nested world members TheMissionScript 007C27D4 (commandsA_), 007C29CC (commandsB_), TheSectorMap 007B01F4, 007B00D0 aiMap_, 007C2BC4 diplomacy_ are covered by TheServerWorld. Verify build green; no C++ changes. Optional follow-up: add static_assert(sizeof) for CWorldServer/CCamera/CSceneRenderer."
 
+[[ticket]]
+id = "C23"
+title = "Host resources without game.exe: committed .rc, no icon"
+group = "cleanup"
+size = 1
+model = "sonnet"
+files = ["CMakeLists.txt", "src/standalone", "src/hook/standalone.cpp", "tools/gen_resources.py"]
+note = "User 2026-10-22: the build should not read game.exe; go without an icon for now (C24 makes one). Of game.exe's .rsrc only these are used (tools/gen_resources.py --list, grep of src/): strings 101 'Evil Islands' / 102 'EIGAME' (app_main.cpp RegisterWindowClass), icon group 105 (the window class; standalone.cpp RouteImageCalls checks it), MFC's standard strings 61440-61888 (AfxLoadString from mfc_exception ReportError, CString's load-by-id constructor) and the version block. Bitmaps, dialogs and cursors are not reached. Easiest way: a committed src/standalone/host.rc with a STRINGTABLE (101, 102 and only the MFC ids our code can reach, typed out) and our own VERSIONINFO, linked into ei_standalone instead of gen_resources.py's .res; LoadIconA then returns NULL (the window class takes no icon, as Windows allows), and RouteImageCalls drops the icon check. Remove the gen_resources build step (keep the tool or drop it). Check: goldens unchanged (hooked runs still use game.exe's own module); a standalone run starts and its window title is 'Evil Islands'."
+
+[[ticket]]
+id = "C24"
+title = "Our own game icon for ei_standalone.exe"
+group = "cleanup"
+depends = ["C23"]
+note = "User 2026-10-22: no icon for now (C23); make our own later. Rebirth's EIRIcon.ico (F:\\games\\Evil Islands (Rebirth)) is not ours to commit: its license.txt grants no redistribution. Sizes 16-256 px in one .ico, icon id 105 (app_main.cpp kIcon) in host.rc, and RouteImageCalls' check back."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
