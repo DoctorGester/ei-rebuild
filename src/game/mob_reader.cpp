@@ -47,43 +47,18 @@ constexpr int kBehaviourCount = 5;
 float MobWindLimit() { return options::TheOptions()->defaultWindForce_; }
 // The mission script (CScript at 007C27D4).
 
-// A record of the given chunk id, allocated and constructed, or null for other ids.
+// A new record for the given chunk id, or null for other ids (or without memory).
 Spec* NewRecord(std::uint32_t id) {
     switch (id) {
-    case 0xB001:
-        if (auto* p = gamecrt::operator_new_as<ObjectSpec>())
-            return &p->ObjectSpecConstruct()->base;
-        return nullptr;
-    case 0xAA01:
-        if (auto* p = gamecrt::operator_new_as<LightSpec>())
-            return &p->LightSpecConstruct()->effect.base;
-        return nullptr;
-    case 0xCC01:
-        if (auto* p = gamecrt::operator_new_as<SoundSpec>())
-            return &p->SoundSpecConstruct()->effect.base;
-        return nullptr;
-    case 0xDD01:
-        if (auto* p = gamecrt::operator_new_as<ParticleSpec>())
-            return &p->ParticleSpecConstruct()->effect.base;
-        return nullptr;
-    case 0xBBAB0000:
-        if (auto* p = gamecrt::operator_new_as<TrapSpec>())
-            return &p->TrapSpecConstruct()->object.base;
-        return nullptr;
-    case 0xBBAC0000:
-        if (auto* p = gamecrt::operator_new_as<LeverSpec>())
-            return &p->LeverSpecConstruct()->object.base;
-        return nullptr;
-    case 0xBBBB0000:
-        if (auto* p = gamecrt::operator_new_as<UnitSpec>())
-            return &p->UnitSpecConstruct()->object.base;
-        return nullptr;
-    case 0xBBBF0000:
-        if (auto* p = gamecrt::operator_new_as<FlameSpec>())
-            return &p->FlameSpecConstruct()->object.base;
-        return nullptr;
-    default:
-        return nullptr;
+    case 0xB001: return new ObjectSpec();
+    case 0xAA01: return new LightSpec();
+    case 0xCC01: return new SoundSpec();
+    case 0xDD01: return new ParticleSpec();
+    case 0xBBAB0000: return new TrapSpec();
+    case 0xBBAC0000: return new LeverSpec();
+    case 0xBBBB0000: return new UnitSpec();
+    case 0xBBBF0000: return new FlameSpec();
+    default: return nullptr;
     }
 }
 
@@ -93,8 +68,8 @@ void ReadRecords(Chunk* parent, MobRecords* records) {
     do {
         chunk.ReadHeader();
         if (Spec* spec = NewRecord(chunk.id_)) {
-            spec->chunk.parent_ = &chunk;
-            spec->chunk.ForEachChild();
+            spec->parent_ = &chunk;
+            spec->ForEachChild();
             if (records->maxId < spec->id) records->maxId = spec->id;
             records->byId[spec->id] = spec;
         }
@@ -190,21 +165,21 @@ bool MobFile::Load(void*, int keepIds) {
     for (auto* node = records.byId.First(); node; node = records.byId.After(node)) {
         Spec* spec = node->value;
         if (spec->kind == kKindTrap) {
-            auto* record = spec->As<TrapSpec>();
+            auto* record = static_cast<TrapSpec*>(spec);
             record->trap.sides = 0;
             record->trap.position = spec->position;
-            const std::int32_t* row = diplomacy->relations[record->object.side];
+            const std::int32_t* row = diplomacy->relations[record->side];
             for (int c = 0; c < 32; ++c)
                 record->trap.sides |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
         static_cast<CWorldServer*>(TheServerWorld())->CreateObject(spec);
-        auto* object = spec->As<ObjectSpec>();
+        auto* object = static_cast<ObjectSpec*>(spec);
         bool skip = spec->id == 2 && gamecrt::mbscmp(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {
             auto* controller = object->Unit()->ServerController();
-            controller->brain.SetAlarmRecords(spec->As<UnitSpec>()->behaviour, kBehaviourCount);
+            controller->brain.SetAlarmRecords(static_cast<UnitSpec*>(spec)->behaviour, kBehaviourCount);
         }
-        spec->Record()->DeleteRecord(1);
+        delete spec;
         ++done;
         if (done % step == 0) ShowLoadingMovie(done / step + 1);
     }

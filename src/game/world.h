@@ -83,7 +83,7 @@ struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
 class CHoover;   // object.h
 class CEffectMoshka;   // world_effect.h
-namespace mapspec { struct Spec; }   // map_spec.h
+namespace mapspec { class Spec; }   // map_spec.h
 
 class CWorldServer;
 

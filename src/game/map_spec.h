@@ -1,17 +1,11 @@
 #pragma once
 
 // The zone file's object records (the .mob objects; 00469630-0046F160): chunk readers / writers
-// (Chunk, chunk_stream.h) that are also the map editor's live objects. Every record type has a
-// 12-slot vtable:
-//   0 OnChunk (reads the current chunk's value by its id), 1 File (Chunk), 2 the world object by
-//   id, 3 (empty), 4 the type name (CString by value), 5 Move(dx, dy, dz), 6 remove the world
-//   object, 7 make or update the world object, 8 refresh it, 9 Save (a chunk of its own), 10 the
-//   deleting destructor, 11 WriteFields (the common fields, also called directly by the
-//   subclasses' Save).
-// The record classes (game.exe's vtables, kind at +0x48): the base 0073C5C4 (0); objects 0073C5F0 (1);
-// flames 0073C620 (6); magic traps 0073C650 (7); levers 0073C6B0 (8); units 0073C6E0 (5). Their tables
-// are the compiler's (C19; map_spec_class.h: each record's Vtable()). Names are provisional; see
-// docs/notes/objects.md ("Rewritten").
+// (Chunk, chunk_stream.h) that are also the map editor's live objects: Spec and the classes on it,
+// each with game.exe's 12 slots (0 OnChunk, 1 File, then Spec's virtuals; 11 is ObjectSpec's
+// WriteFields or EffectSpec's SetVisible). The record classes (kind at +0x48): the base (0); objects
+// (1); flames (6); magic traps (7); levers (8); units (5); lights (2), sounds (3) and particle sources
+// (4) on the effect records' base. Names are provisional; see docs/notes/objects.md ("Rewritten").
 #include "chunk_stream.h"
 #include "lock_key.h"
 #include "maths.h"
@@ -142,83 +136,76 @@ static_assert(sizeof(Behaviour) == 0x4C);
 Behaviour* __fastcall BehaviourConstruct(Behaviour* self);
 void __fastcall BehaviourDestruct(Behaviour* self);
 
-class SpecRecord;
+// The base record (game.exe's vtable 0073C5C4, 0x4C bytes; map_spec.cpp). The records are read and
+// written chunk by chunk (no record is a block of file bytes). They live on the game's heap.
+class Spec : public Chunk {
+public:
+    // 00469CA0. No parent chunk, id -1, at the origin unrotated, named and commented "none", kind 0.
+    Spec();
 
-// The base record (vtable 0073C5C4, 0x4C bytes). Its code is in map_spec.cpp; the slot versions are
-// plain members (the record structs have no C++ virtuals), registered at the original addresses.
-// Calls through the vtable go through Record() (SpecRecord below).
-struct Spec {
-    static void* Vtable();   // game.exe's 0073C5C4, compiled (map_spec_class.h)
-    // 00469CA0. Constructor; returns this.
-    Spec* SpecConstruct();
-    // 00469E50. The destructor body.
-    void SpecDestruct();
-    // 00469E30 (slot 10, RET 4). SpecDestruct, then operator delete when bit 0 of `flags` is set;
-    // returns this.
-    Spec* SpecDelete(unsigned flags);
-    // 00469DB0 (slot 4, RET 4). The type name in `out`: "error".
-    mfc::CString* SpecTypeName(mfc::CString* out);
-    // 00469DE0 / 00469E00 (slots 6 and 8). Slot 7 (apply).
-    void SpecRemove();
-    void SpecRefresh();
-    // 00469F20 (slot 2). The world object with the record's id.
-    void* SpecWorldObject();
-    // 00469F40 (slot 5, RET 0xC). Moves the record, then slot 7.
-    void SpecMove(float dx, float dy, float dz);
+    void OnChunk() override {}                              // 0: 00469E20 (empty)
+    // 2: 00469F20. The world object with the record's id.
+    virtual void* WorldObject();
+    virtual void Nothing(int) {}                            // 3: 00469DA0 (empty, RET 4)
+    // 4: 00469DB0 (RET 4). The type name in `out` (a CString returned by value): "error".
+    virtual mfc::CString* TypeName(mfc::CString* out);
+    // 5: 00469F40 (RET 0xC). Moves the record, then Apply.
+    virtual void Move(float dx, float dy, float dz);
+    // 6: 00469DE0. Removes the world object (here: Apply).
+    virtual void Remove();
+    // 7: 00469DF0 (empty). Makes or updates the world object.
+    virtual void Apply() {}
+    // 8: 00469E00. Refreshes the world object (here: Apply).
+    virtual void Refresh();
+    // 9: 00469E10 (empty). Writes the record as a chunk of its own.
+    virtual void Save() {}
+    // 10: 00469E50 (deleting: 00469E30).
+    virtual ~Spec();
 
-    // The record seen through its vtable.
-    SpecRecord* Record() { return reinterpret_cast<SpecRecord*>(this); }
-    // The whole record this base record starts: every record begins with its base record (at +0 of
-    // ObjectSpec / EffectSpec and of the records built on them); `kind` tells which one it is.
-    template <class Record> Record* As() { return reinterpret_cast<Record*>(this); }
+    // On the game's heap (map_spec.cpp): null without memory, and then no constructor runs.
+    static void* operator new(std::size_t size) noexcept;
+    static void* operator new(std::size_t, void* place) noexcept { return place; }
+    static void operator delete(void* block);
+    static void operator delete(void*, void*) noexcept {}
 
-    Chunk chunk;                 // +0x00
     std::int32_t id;             // +0x18 the object's id (-1)
     CEngineObject* object;       // +0x1C the world object made from the record (null: none)
     Vector3 position;            // +0x20
     Quaternion rotation;         // +0x2C (1, 0, 0, 0)
     mfc::CString name;           // +0x3C
     mfc::CString comment;        // +0x40
-    std::int32_t spareId;        // +0x44 (-1) only set and copied (ObjectSpecAssign)
-    std::int32_t kind;           // +0x48
+    std::int32_t spareId;        // +0x44 (-1) only set and copied (ObjectSpec::Assign)
+    std::int32_t kind;           // +0x48 which record this is: 0 the base, 1 an object, 2 a light, 3 a sound,
+                                 // 4 a particle source, 5 a unit, 6 a flame, 7 a magic trap, 8 a lever
 };
-static_assert(offsetof(Spec, position) == 0x20);
-static_assert(offsetof(Spec, name) == 0x3C);
-static_assert(sizeof(Spec) == 0x4C);
 
-// An object record (vtable 0073C5F0, 0x8C bytes).
-struct ObjectSpec {
-    static void* Vtable();   // game.exe's 0073C5F0, compiled (map_spec_class.h)
-    // 0046A5C0 (0xB001). Constructor; returns this.
-    ObjectSpec* ObjectSpecConstruct();
-    // 0046AEB0 (and 0058EDF0, the quick item effect's record, vtable 0073FA58). The destructor body.
-    void ObjectSpecDestruct();
-    // 0046A6F0 (and 0058EDD0; slot 10, RET 4). ObjectSpecDestruct, then operator delete when bit 0 of
-    // `flags` is set; returns this.
-    ObjectSpec* ObjectSpecDelete(unsigned flags);
+// An object record (game.exe's vtable 0073C5F0, 0x8C bytes; chunk B001).
+class ObjectSpec : public Spec {
+public:
+    // 0046A5C0. Kind 1, no model, textures "none", player -1, scale 0.5, visible, no parts.
+    ObjectSpec();
+    // 0046AEB0 (deleting: 0046A6F0). The quick item effect's record (UseQuickItem, game.exe's twin
+    // vtable 0073FA58) is one too: its 0058EDF0 / 0058EDD0 are the same code.
+    ~ObjectSpec() override;
+
+    void OnChunk() override;                                 // 0: 0046AB20, the chunk just read, by its id
+    mfc::CString* TypeName(mfc::CString* out) override;      // 4: 0046B090 (RET 4), the player number ("%i")
+    void Remove() override;                                  // 6: 0046AF70, removes the world object, then Apply
+    // 7: 0046AFB0. Makes the world object, or updates it from the record (position, rotation, scale,
+    // visibility) while it is out of the editor's lists.
+    void Apply() override;
+    void Refresh() override;                                 // 8: 0046AFA0
+    void Save() override;                                    // 9: 0046A920, the record as chunk B001
+    // 11: 0046A940. The common fields (also called directly by the subclasses' Save).
+    virtual void WriteFields();
+
     // 0046A710 (RET 4). Copies `from`: the base fields but its kind and chunk state, then the object's.
-    void ObjectSpecAssign(const ObjectSpec* from);
-    // 0046A940 (slot 11). The common fields.
-    void ObjectSpecWriteFields();
-    // 0046A920 (slot 9). The record as chunk B001.
-    void ObjectSpecSave();
-    // 0046AB20 (slot 0). The chunk just read, by its id.
-    void ObjectSpecOnChunk();
-    // 0046AF70 (slot 6). Removes the world object, then slot 7.
-    void ObjectSpecRemove();
-    // 0046AFA0 (slot 8).
-    void ObjectSpecRefresh();
-    // 0046AFB0 (slot 7). Makes the world object, or updates it from the record (position, rotation,
-    // scale, visibility) while it is out of the editor's lists.
-    void ObjectSpecApply();
-    // 0046B090 (slot 4, RET 4). The type name in `out`: the player number ("%i").
-    mfc::CString* ObjectSpecTypeName(mfc::CString* out);
+    void Assign(const ObjectSpec* from);
 
     // The world object an object record makes is a map object (a unit for a unit record).
     CMapObject* MapObject() const;
     CUnit* Unit() const;   // map_spec_unit.cpp
 
-    Spec base;                   // +0x00
     mfc::CString model;          // +0x4C (from 0079B298, empty)
     std::int32_t parentId;       // +0x50
     mfc::CString texture;        // +0x54
@@ -233,91 +220,51 @@ struct ObjectSpec {
     mfc::CString skinTexture;    // +0x74 (chunk B008) the texture swapped onto the figure ("none": none)
     mfc::CStringArray parts;      // +0x78
 };
-static_assert(offsetof(ObjectSpec, model) == 0x4C);
-static_assert(offsetof(ObjectSpec, scale) == 0x60);
-static_assert(offsetof(ObjectSpec, parts) == 0x78);
-static_assert(sizeof(ObjectSpec) == 0x8C);
 
-// A flame (vtable 0073C620, 0xA0 bytes).
-struct FlameSpec {
-    static void* Vtable();   // game.exe's 0073C620, compiled (map_spec_class.h)
-    // 0046B210 (0xBBBF0000). Constructor; returns this.
-    FlameSpec* FlameSpecConstruct();
-    // 0046B120. The destructor body.
-    void FlameSpecDestruct();
-    // 0046B1F0 (slot 10, RET 4). Destructor, then operator delete when bit 0 of `flags` is set.
-    FlameSpec* FlameSpecDelete(unsigned flags);
-    // 0046B310 (slot 7). The world object is always made again.
-    void FlameSpecApply();
-    // 0046B340 (slot 9). Chunk BBBF0000 with the flame's fields, then the common ones.
-    void FlameSpecSave();
-    // 0046B3C0 (slot 0).
-    void FlameSpecOnChunk();
+// A flame (game.exe's vtable 0073C620, 0xA0 bytes; chunk BBBF0000).
+class FlameSpec : public ObjectSpec {
+public:
+    // 0046B210. Kind 6, volume 0.7, the sound "nature\fire\small.wav".
+    FlameSpec();
+    ~FlameSpec() override;          // 0046B120 (deleting: 0046B1F0)
 
-    ObjectSpec object;           // +0x00
+    void OnChunk() override;        // 0: 0046B3C0
+    void Apply() override;          // 7: 0046B310, the world object is always made again
+    void Save() override;           // 9: 0046B340, chunk BBBF0000 with the flame's fields, then the common ones
+
     float volume;                // +0x8C (0.7)
     Vector3 offset;              // +0x90
     mfc::CString sound;          // +0x9C ("nature\fire\small.wav")
 };
-static_assert(sizeof(FlameSpec) == 0xA0);
 
-// A magic trap (vtable 0073C650, 0xD0 bytes).
-struct TrapSpec {
-    static void* Vtable();   // game.exe's 0073C650, compiled (map_spec_class.h)
-    // 0046B4A0 (0xBBAB0000). Constructor; returns this.
-    TrapSpec* TrapSpecConstruct();
-    // 0046B570. The destructor body (the arrays' destructors inlined: their blocks freed).
-    void TrapSpecDestruct();
-    // 0046B550 (slot 10, RET 4). Destructor, then operator delete when bit 0 of `flags` is set.
-    TrapSpec* TrapSpecDelete(unsigned flags);
-    // 0046B520 (slot 4, RET 4). The type name in `out`: "MagicTrap".
-    mfc::CString* TrapSpecTypeName(mfc::CString* out);
-    // 0046B680 (slot 9). Chunk BBAB0000: the trap's fields (the arrays as a count and the raw
-    // elements), then the common ones.
-    void TrapSpecSave();
-    // 0046B7D0 (slot 0).
-    void TrapSpecOnChunk();
+// A magic trap (game.exe's vtable 0073C650, 0xD0 bytes; chunk BBAB0000).
+class TrapSpec : public ObjectSpec {
+public:
+    // 0046B4A0. Kind 7, every side, no area or points, period 15.
+    TrapSpec();
+    // 0046B570 (deleting: 0046B550). The arrays' destructors inlined: their blocks freed.
+    ~TrapSpec() override;
 
-    ObjectSpec object;           // +0x00
+    void OnChunk() override;                                 // 0: 0046B7D0
+    mfc::CString* TypeName(mfc::CString* out) override;      // 4: 0046B520 (RET 4), "MagicTrap"
+    // 9: 0046B680. Chunk BBAB0000: the trap's fields (the arrays as a count and the raw elements), then
+    // the common ones.
+    void Save() override;
+
     MagicTrapRecord trap;        // +0x8C
 };
-static_assert(offsetof(TrapSpec, trap) == 0x8C);
-static_assert(sizeof(TrapSpec) == 0xD0);
 
-// A lever (vtable 0073C6B0, 0xA4 bytes).
-struct LeverSpec {
-    static void* Vtable();   // game.exe's 0073C6B0, compiled (map_spec_class.h)
-    // 0046BD40 (0xBBAC0000). Constructor; returns this.
-    LeverSpec* LeverSpecConstruct();
-    // 0046BDC0. The destructor body (the object record's).
-    void LeverSpecDestruct();
-    // 0046BDA0 (slot 10, RET 4). Destructor, then operator delete when bit 0 of `flags` is set.
-    LeverSpec* LeverSpecDelete(unsigned flags);
-    // 0046BE80 (slot 9). Chunk BBAC0000.
-    void LeverSpecSave();
-    // 0046BF20 (slot 0).
-    void LeverSpecOnChunk();
-
-    ObjectSpec object;           // +0x00
-    LeverSetup lever;            // +0x8C
-};
-static_assert(offsetof(LeverSpec, lever) == 0x8C);
-static_assert(sizeof(LeverSpec) == 0xA4);
-
-// The record's vtable from slot 2 on (see the top of this file), for calls through it (the deleting
-// destructor, slot 7 from the slots that end with it, slot 11 from Save).
-class __declspec(novtable) SpecRecord : public Chunk {
+// A lever (game.exe's vtable 0073C6B0, 0xA4 bytes; chunk BBAC0000).
+class LeverSpec : public ObjectSpec {
 public:
-    virtual void* WorldObject();                // 2
-    virtual void Nothing();                     // 3 (empty)
-    virtual void TypeNameSlot();                // 4 (CString by value; not called through here)
-    virtual void MoveSlot();                    // 5
-    virtual void RemoveObject();                // 6
-    virtual void ApplyObject();                 // 7
-    virtual void RefreshObject();               // 8
-    virtual void SaveSlot();                    // 9
-    virtual void* DeleteRecord(unsigned flags); // 10: the deleting destructor (flags 1 frees)
-    virtual void WriteFields();                 // 11
+    // 0046BD40. Kind 8, the key {1, 0, 0}, two states.
+    LeverSpec();
+    ~LeverSpec() override;          // 0046BDC0 (deleting: 0046BDA0)
+
+    void OnChunk() override;        // 0: 0046BF20
+    void Save() override;           // 9: 0046BE80, chunk BBAC0000
+
+    LeverSetup lever;            // +0x8C
 };
 
 // The zone's player table (0x1014 bytes; constructor 0046E5E0 DiplomacyConstruct): the relation
@@ -329,97 +276,77 @@ struct ZoneDiplomacy {
 static_assert(offsetof(ZoneDiplomacy, names) == 0x1000);
 static_assert(sizeof(ZoneDiplomacy) == 0x1014);
 
-// The effect records' base (vtable 0073C728, 0x54 bytes; code in map_spec_effect.cpp).
-struct EffectSpec {
-    static void* Vtable();   // game.exe's 0073C728, compiled (map_spec_class.h)
-    // Members of the effect records (map_spec_effect.cpp), registered at the original addresses.
-    // 0046D370 / 0046D5A0 / 0046DA20: the destructor bodies (the base record's); 0046D350 / 0046D580 /
-    // 0046DA00 (slot 10, RET 4): EffectSpecDestruct, then operator delete when bit 0 of `flags` is set.
-    void EffectSpecDestruct();
-    EffectSpec* EffectSpecDelete(unsigned flags);
-    // 0046D3D0 (slot 2). Effects are managed under -3001 - id.
-    void* EffectSpecWorldObject();
-    // 0046D3F0 / 0046E490 (slot 11, RET 4). Shows or hides the world object (flag 0x40 hides).
-    void EffectSpecSetVisible(std::uint8_t newVisible);
-    // 0046D420 (slot 5, RET 0xC). Moves the record, not below the terrain, then slot 7.
-    void EffectSpecMove(float dx, float dy, float dz);
+// The effect records' base (game.exe's vtable 0073C728, 0x54 bytes; code in map_spec_effect.cpp).
+class EffectSpec : public Spec {
+public:
+    ~EffectSpec() override;         // 0046D370 (deleting: 0046D350)
+
+    // 2: 0046D3D0. Effects are managed under -3001 - id.
+    void* WorldObject() override;
+    // 5: 0046D420 (RET 0xC). Moves the record, not below the terrain, then Apply.
+    void Move(float dx, float dy, float dz) override;
+    // 11: 0046D3F0 (the sound record's 0046E490 is the same code; RET 4). Shows or hides the world
+    // object (flag 0x40 hides).
+    virtual void SetVisible(std::uint8_t newVisible);
+
     // The world object an effect record makes (the effect's carrier: a transform object).
     CTransformObject* Transform() const;
 
-    Spec base;                   // +0x00
     void* effect;                // +0x4C the effect the world object runs
     std::uint8_t visible;        // +0x50 (1)
     std::uint8_t unused_51[3];
+
+protected:
+    // The records' constructors begin with this (inlined in each; the sound record's 0046DE70 stores
+    // 0073C728 for it): no world object or effect, visible.
+    EffectSpec() : effect(nullptr), visible(1) {}
 };
-static_assert(sizeof(EffectSpec) == 0x54);
 
-struct ParticleSpec {            // 0073C758
-    static void* Vtable();   // game.exe's 0073C758, compiled (map_spec_class.h)
-    // 0046D520. Constructor; returns this.
-    ParticleSpec* ParticleSpecConstruct();
-    // 0046D5A0. The destructor body; 0046D580 (slot 10, RET 4): that, then operator delete when bit 0 of
-    // `flags` is set.
-    void ParticleSpecDestruct();
-    ParticleSpec* ParticleSpecDelete(unsigned flags);
-    // 0046D550 (slot 4, RET 4). The type name in `out`: "Particle source".
-    mfc::CString* ParticleSpecTypeName(mfc::CString* out);
-    // 0046D680 (slot 9). Chunk DD01.
-    void ParticleSpecSave();
-    // 0046D730 (slot 0).
-    void ParticleSpecOnChunk();
-    // 0046D870 (slot 7). Makes the source (when it has a type) or updates its effect.
-    void ParticleSpecApply();
+// A particle source (game.exe's vtable 0073C758; chunk DD01).
+class ParticleSpec : public EffectSpec {
+public:
+    ParticleSpec();                 // 0046D520. Kind 4, no type, scale 1.
+    ~ParticleSpec() override;       // 0046D5A0 (deleting: 0046D580)
 
-    EffectSpec effect;
+    void OnChunk() override;                                 // 0: 0046D730
+    mfc::CString* TypeName(mfc::CString* out) override;      // 4: 0046D550 (RET 4), "Particle source"
+    void Apply() override;          // 7: 0046D870, makes the source (when it has a type) or updates its effect
+    void Save() override;           // 9: 0046D680, chunk DD01
+
     std::int32_t type;           // +0x54 (0: none made)
     float scale;                 // +0x58 (1)
 };
-static_assert(sizeof(ParticleSpec) == 0x5C);
 
-struct LightSpec {               // 0073C788
-    static void* Vtable();   // game.exe's 0073C788, compiled (map_spec_class.h)
-    // 0046D960. Constructor; returns this.
-    LightSpec* LightSpecConstruct();
-    // 0046DA20. The destructor body; 0046DA00 (slot 10, RET 4): that, then operator delete when bit 0 of
-    // `flags` is set.
-    void LightSpecDestruct();
-    LightSpec* LightSpecDelete(unsigned flags);
-    // 0046D9D0 (slot 4, RET 4). The type name in `out`: "Light".
-    mfc::CString* LightSpecTypeName(mfc::CString* out);
-    // 0046DB20 (slot 9). Chunk AA01.
-    void LightSpecSave();
-    // 0046DBF0 (slot 0).
-    void LightSpecOnChunk();
-    // 0046DD70 (slot 7). Makes the light or updates its effect (colour, radius, position).
-    void LightSpecApply();
+// A light (game.exe's vtable 0073C788; chunk AA01).
+class LightSpec : public EffectSpec {
+public:
+    LightSpec();                    // 0046D960. Kind 2, white, shadows, radius 10.
+    ~LightSpec() override;          // 0046DA20 (deleting: 0046DA00)
 
-    EffectSpec effect;
+    void OnChunk() override;                                 // 0: 0046DBF0
+    mfc::CString* TypeName(mfc::CString* out) override;      // 4: 0046D9D0 (RET 4), "Light"
+    void Apply() override;          // 7: 0046DD70, makes the light or updates its effect (colour, radius, position)
+    void Save() override;           // 9: 0046DB20, chunk AA01
+
     Vector3 colour;              // +0x54 (1, 1, 1)
     std::uint8_t shadows;        // +0x60 (1)
     std::uint8_t unused_61[3];
     float radius;                // +0x64 (10)
 };
-static_assert(sizeof(LightSpec) == 0x68);
 
-struct SoundSpec {               // 0073C7B8
-    static void* Vtable();   // game.exe's 0073C7B8, compiled (map_spec_class.h)
-    // 0046DE70. Constructor; returns this.
-    SoundSpec* SoundSpecConstruct();
-    // 0046DF70. The destructor body; 0046DF50 (slot 10, RET 4): that, then operator delete when bit 0 of
-    // `flags` is set.
-    void SoundSpecDestruct();
-    SoundSpec* SoundSpecDelete(unsigned flags);
-    // 0046DF20 (slot 4, RET 4). The type name in `out`: "Sound".
-    mfc::CString* SoundSpecTypeName(mfc::CString* out);
-    // 0046E090 (slot 9). Chunk CC01.
-    void SoundSpecSave();
-    // 0046E190 (slot 0).
-    void SoundSpecOnChunk();
-    // 0046E380 (slot 7). Makes the sound (when it has sounds); otherwise moves the world object and makes
-    // its effect again.
-    void SoundSpecApply();
+// A sound (game.exe's vtable 0073C7B8; chunk CC01).
+class SoundSpec : public EffectSpec {
+public:
+    SoundSpec();                    // 0046DE70. Kind 3, no sounds, volume 10, radius 15, pauses 1500-3000.
+    ~SoundSpec() override;          // 0046DF70 (deleting: 0046DF50)
 
-    EffectSpec effect;
+    void OnChunk() override;                                 // 0: 0046E190
+    mfc::CString* TypeName(mfc::CString* out) override;      // 4: 0046DF20 (RET 4), "Sound"
+    // 7: 0046E380. Makes the sound (when it has sounds); otherwise moves the world object and makes its
+    // effect again.
+    void Apply() override;
+    void Save() override;           // 9: 0046E090, chunk CC01
+
     mfc::CStringArray sounds;     // +0x54 (none made without any)
     std::int32_t volume;         // +0x68 (10; chunk CC04) the sound's volume (CreateObject, 005927C0)
     std::int32_t radius;         // +0x6C (15; chunk CC0B) the sound's radius
@@ -432,37 +359,24 @@ struct SoundSpec {               // 0073C7B8
     std::uint8_t field0E;        // +0x85 chunk CC0E, only read and written with the record
     std::uint8_t unused_86[2];
 };
-static_assert(offsetof(SoundSpec, volume) == 0x68);
-static_assert(offsetof(SoundSpec, ambient) == 0x84);
-static_assert(sizeof(SoundSpec) == 0x88);
 
-// A unit record (vtable 0073C6E0, 0x324 bytes; code in map_spec_unit.cpp). The world server's
-// CreateUnits (0058EF20) fills one on the stack for each unit it creates.
-struct UnitSpec {
-    static void* Vtable();   // game.exe's 0073C6E0, compiled (map_spec_class.h)
-    // 0046C010 (0xBBBB0000). Constructor; returns this.
-    UnitSpec* UnitSpecConstruct();
-    // 0046C140. The destructor body.
-    void UnitSpecDestruct();
-    // 0046C120 (slot 10, RET 4). UnitSpecDestruct, then operator delete when bit 0 of `flags` is set.
-    UnitSpec* DeleteScalar(unsigned flags);
-    // 0046C4D0 (slot 7). Makes the unit, or moves, turns and rescales it.
-    void UnitSpecApply();
-    // 0046CF10 (slot 9). Chunk BBBB0000.
-    void UnitSpecSave();
-    // 0046D080 (slot 0). The chunk just read, by its id.
-    void UnitSpecOnChunk();
+// A unit record (game.exe's vtable 0073C6E0, 0x324 bytes; chunk BBBB0000; code in map_spec_unit.cpp).
+// The world server's CreateUnits (0058EF20) fills one on the stack for each unit it creates.
+class UnitSpec : public ObjectSpec {
+public:
+    // 0046C010. Kind 5, five behaviour records (the first enabled), the prototype "none", no statistics.
+    UnitSpec();
+    ~UnitSpec() override;           // 0046C140 (deleting: 0046C120)
 
-    ObjectSpec object;           // +0x000
+    void OnChunk() override;        // 0: 0046D080, the chunk just read, by its id
+    void Apply() override;          // 7: 0046C4D0, makes the unit, or moves, turns and rescales it
+    void Save() override;           // 9: 0046CF10, chunk BBBB0000
+
     std::int32_t behaviours;     // +0x08C records read so far
     Behaviour behaviour[5];      // +0x090
     mfc::CString prototype;      // +0x20C ("none")
     unitrecord::UnitRecord record;   // +0x210 the statistics and item lists (applied to the unit by 00477B00)
 };
-static_assert(offsetof(UnitSpec, behaviour) == 0x90);
-static_assert(offsetof(UnitSpec, prototype) == 0x20C);
-static_assert(offsetof(UnitSpec, record) == 0x210);
-static_assert(sizeof(UnitSpec) == 0x324);
 
 // Record constructors (each returns this), by .mob chunk id.
 ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self);  // 0046E5E0
@@ -488,6 +402,5 @@ public:
     // (the world) is not used.
     bool Load(void* unused, int keepIds);
 };
-static_assert(sizeof(MobFile) == sizeof(RootChunk));
 
 } // namespace mapspec

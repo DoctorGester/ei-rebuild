@@ -1382,10 +1382,11 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     gained `BaseVtable()`, which hides CEngineObject's in its derived classes: every unqualified `BaseVtable()` under it
     was checked to be its own class's (CEffect, CFigureMesh). named_data's check found ui_window.cpp's
     CUiWindow::DestroyBase storing 0073BA38 by address.
-  - **Zone records** (map_spec_class.h): `SpecClass<Self, T, Delete>` (slots 0-10, 10 the record's deleting destructor
-    as `DeleteRecord`), ObjectSpecSlots / EffectSpecSlots over it and a tag per record: 0073C5C4-0073C7B8 and the quick
-    item effect's twin 0073FA58 (ObjectSpec's). The unit record's chunk readers (map_spec_unit.cpp: `ChunkReaderClass`,
-    0 OnChunk, 1 Chunk::File) for 0073C710 / 18 / 20. world_data.h's kUnitSpecVtable / kQuickEffectSpecVtable went.
+  - **Zone records** (map_spec.h): 0073C5C4-0073C7B8 and the quick item effect's twin 0073FA58 (ObjectSpec's). The unit
+    record's chunk readers (map_spec_unit.cpp) for 0073C710 / 18 / 20. world_data.h's kUnitSpecVtable /
+    kQuickEffectSpecVtable went. Since C28i the records are real classes on Chunk (Spec, ObjectSpec and EffectSpec with
+    the records on them, their own operator new on the game's heap; the twin is a plain ObjectSpec) and the chunk
+    readers TargetChunk's; map_spec_class.h's tags went.
   - **Item panels** (ui_item_panel_tables.cpp): `ItemPanelClass` over PanelClass (slot 25 the item under a point,
     CUiWindow::NoItemAt by default) and `ItemPanelInputClass` (2 CUiItemPanel::OnLeftDown) for the blank panel, the
     description panel, the statistics column, the equipment panel (with its tail 007418E8), the quick strip, the trade

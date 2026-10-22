@@ -24,7 +24,6 @@
 #include "item.h"
 #include "map_object.h"
 #include "map_spec.h"
-#include "map_spec_class.h"
 #include "player_messages.h"
 #include "server_specific_manager.h"
 #include "torch.h"
@@ -65,17 +64,6 @@ using PlacementArray = mfc::CArray<Placement>;
 
 // ---- The creation message ---------------------------------------------------------------------
 
-// The inlined destructor of the message: its own members, then the base's (0046AEB0).
-void DestroyMessage(UnitSpec* message) {
-    ei::SetVtable(message, UnitSpec::Vtable());
-    for (int i = 4; i >= 0; --i) message->record.lists[i].Destruct();
-    message->prototype.~CString();
-    // The CRT's eh vector destructor iterator (006E859F): each behaviour record's destructor
-    // (0046C290), last to first.
-    for (int i = 5; --i >= 0;) mapspec::BehaviourDestruct(&message->behaviour[i]);
-    message->object.ObjectSpecDestruct();
-}
-
 // The hero's figure parts, "hr" replaced by its numbered style (none when the style is -1).
 void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& scratch) {
     UnitPrototypeRecord* prototype;
@@ -84,7 +72,7 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& s
     }
     int hairStyle = prototype ? prototype->hair : 1;
 
-    mfc::CStringArray* parts = &message->object.parts;
+    mfc::CStringArray* parts = &message->parts;
     for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
         const char* part = worlddata::HeroPartText(n);
         if (std::strcmp(part, worlddata::HairPartText()) == 0) {
@@ -121,7 +109,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
     }
     angle = angle + worlddata::LineAngleOffset();
 
-    Spec& spec = message->object.base;
+    Spec& spec = *message;
     float zStep = 0.0f;
     std::memcpy(&spec.position, position, 12);
     std::memcpy(&spec.rotation, &rotation, 16);
@@ -153,17 +141,10 @@ CItem* MakeItem(CWorldServer* world, CItem* itemRecord) {
 
 void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const Vector3* position, Quaternion rotation,
                                PlacementArray* placements) {
-    // Destroyed after the two strings (declared after it), as the original does. Plain storage:
-    // the original's constructor (0046C010) and inlined destructor build and tear it down.
-    struct Message {
-        lib::InPlace<UnitSpec> bytes;
-        UnitSpec* Get() { return bytes.Get(); }
-        Message() { Get()->UnitSpecConstruct(); }   // 0046C010
-        ~Message() { DestroyMessage(Get()); }
-    } holder;
-    UnitSpec* message = holder.Get();
-    ObjectSpec& object = message->object;
-    mapspec::Spec& base = object.base;
+    // Destroyed after the two strings (declared after it), as the original does (its destructor
+    // inlined).
+    UnitSpec spec;
+    UnitSpec* message = &spec;
     mfc::CString script;
     mfc::CString line;
 
@@ -182,43 +163,43 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
     for (int i = 0; i < records->size; ++i) {
         auto* record = records->data[i];
         message->prototype = record->texts[5];
-        object.texture = record->texts[2];
+        message->texture = record->texts[2];
         message->behaviour[0].type = 4;
         message->behaviour[0].enabled = 1;
         message->behaviour[0].flags = 0;
-        base.kind = 5;
-        std::memcpy(&object.scale, &record->scaleX, 12);
-        object.visible = 1;
-        object.side = 0;
-        object.parentIname = record->texts[3];
-        object.skinTexture = record->texts[4];
-        object.parts.SetSize(0, -1);
+        message->kind = 5;
+        std::memcpy(&message->scale, &record->scaleX, 12);
+        message->visible = 1;
+        message->side = 0;
+        message->parentIname = record->texts[3];
+        message->skinTexture = record->texts[4];
+        message->parts.SetSize(0, -1);
         const char* prototypeName = record->texts[5];
         int type = PrototypeObjectClass(prototypeName);
-        object.parentId = type;   // +0x50: the object's type
+        message->parentId = type;   // +0x50: the object's type
         if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
 
         int id = static_cast<int>(record->unitId);
-        base.id = id;
-        if (ObjectWithId(id)) RemoveObject(base.id);
+        message->id = id;
+        if (ObjectWithId(id)) RemoveObject(message->id);
 
         Placement* placement = nullptr;
         if (placements) {
             for (int p = 0; p < placements->size; ++p) {
-                if (placements->data[p].id == base.id) {
+                if (placements->data[p].id == message->id) {
                     placement = &placements->data[p];
                     break;
                 }
             }
         }
         if (placement) {
-            std::memcpy(&base.position, placement->position, 12);
-            std::memcpy(&base.rotation, placement->rotation, 16);
+            std::memcpy(&message->position, placement->position, 12);
+            std::memcpy(&message->rotation, placement->rotation, 16);
         } else {
             PlaceInLine(message, position, rotation, i);
         }
 
-        CUnit* unit = static_cast<CWorld*>(this)->FindUnit(CreateObject(&base));
+        CUnit* unit = static_cast<CWorld*>(this)->FindUnit(CreateObject(message));
         if (!unit) continue;
         CMapObjectVirtuals* slots = ObjectSlots(unit);
 
@@ -306,23 +287,21 @@ constexpr std::uint32_t kFlagsNewEffect = 0x180000;            // 00529D20
 } // namespace
 
 void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
-    lib::InPlace<ObjectSpec> storage;
-    auto* message = storage.Get();
-    message->ObjectSpecConstruct();
-    ei::SetVtable(message, ObjectSpec::Vtable());   // game.exe's twin 0073FA58
-    message->base.kind = kQuickEffectType;
-    message->texture = worlddata::QuickEffectPrototype();
-    message->base.id = -1;
-    message->parentIname = worlddata::QuickEffectModel();
-    message->parentId = static_cast<std::int32_t>(kQuickEffectFlags);
-    std::memset(&message->scale.y, 0, 4);
+    // An object record (in the original a class of its own on it with the same slots, game.exe's
+    // vtable 0073FA58).
+    ObjectSpec message;
+    message.kind = kQuickEffectType;
+    message.texture = worlddata::QuickEffectPrototype();
+    message.id = -1;
+    message.parentIname = worlddata::QuickEffectModel();
+    message.parentId = static_cast<std::int32_t>(kQuickEffectFlags);
+    std::memset(&message.scale.y, 0, 4);
     // At the unit's position, on the ground.
-    std::memcpy(&message->base.position, &unit->localPosition_.x, 12);
-    std::memset(&message->base.position.z, 0, 4);
-    int id = CreateObject(&message->base);
+    std::memcpy(&message.position, &unit->localPosition_.x, 12);
+    std::memset(&message.position.z, 0, 4);
+    int id = CreateObject(&message);
     CEngineObject* effect = ObjectWithId(id);
     effect->flags_ |= kFlagsNewEffect;   // 00529D20, inlined
-    message->ObjectSpecDestruct();
 }
 
 // ---- CreateObject (005927C0) -------------------------------------------------------------------
@@ -350,11 +329,11 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     // Every kind starts with the base record (Spec); kinds 1, 5-9 are object records (ObjectSpec),
     // 5 a unit record, 6 a flame, 7 a magic trap, 8 a lever; 2 a light, 3 a sound, 4 a particle
     // source.
-    auto* spec = message->As<ObjectSpec>();
+    auto* spec = static_cast<ObjectSpec*>(message);
     Spec& base = *message;
     // The object of the spec's class (parentId), as the class the kind makes.
     auto created = [this, spec]<class T>(std::type_identity<T>) {
-        return MapObjectManager()->CreateObjectAs<T>(spec->parentId, spec->base.id);
+        return MapObjectManager()->CreateObjectAs<T>(spec->parentId, spec->id);
     };
     auto allowed = [this](CMapObject* object) {
         return (ObjectSlots(object)->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;
@@ -371,7 +350,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
-        const char* prototype = spec->base.kind == 5 ? spec->base.As<UnitSpec>()->prototype.GetString()
+        const char* prototype = spec->kind == 5 ? static_cast<UnitSpec*>(spec)->prototype.GetString()
                                                      : spec->primaryTexture.GetString();
         ObjectSlots(object)->TakePrototype(prototype);
         object->WriteFullState();
@@ -380,8 +359,8 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         static_cast<CObject3D*>(object)->SetFigureScale(&spec->scale.x);
         Copy(&object->baseScale, &spec->scale, 12);
         ObjectSlots(object)->ApplyBaseScale();
-        Copy(&object->localPosition_.x, &spec->base.position, 12);
-        Copy(&object->localRotation_, &spec->base.rotation, 16);
+        Copy(&object->localPosition_.x, &spec->position, 12);
+        Copy(&object->localRotation_, &spec->rotation, 16);
     };
     auto timed = [this](CEffect* object) {
         object->startTick_ = tick_;
@@ -395,7 +374,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
 
     switch (base.kind) {
     case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
-        auto* flame = message->As<mapspec::FlameSpec>();
+        auto* flame = static_cast<mapspec::FlameSpec*>(message);
         CTorchObject* object = created(std::type_identity<CTorchObject>{});
         if (!allowed(object)) return refuse(object);
         int id = object->id_;
@@ -469,7 +448,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();
-        object->SetUp(&message->As<mapspec::TrapSpec>()->trap);
+        object->SetUp(&static_cast<mapspec::TrapSpec*>(message)->trap);
         return result;
     }
     case 1:
@@ -502,7 +481,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         ObjectSlots(object)->ScaleEffectChanged(0);
         int type = base.kind;
         if (type == 5) {
-            auto* unitSpec = message->As<UnitSpec>();
+            auto* unitSpec = static_cast<UnitSpec*>(message);
             unit->SetPlayer(nullptr);
             unit->SetSide(spec->side);
             UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
@@ -539,7 +518,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             object->MarkChanged(6);
             object->MarkChanged(0xB);
         } else if (type == 8) {
-            lever->SetUp(&message->As<mapspec::LeverSpec>()->lever);
+            lever->SetUp(&static_cast<mapspec::LeverSpec*>(message)->lever);
             object->MarkChanged(5);
         } else {
             objectManager->GiveDefaults(object);
@@ -568,7 +547,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     }
     case 3: {   // a sound
         if (!loadedFresh_) return -1;
-        auto* sound = message->As<mapspec::SoundSpec>();
+        auto* sound = static_cast<mapspec::SoundSpec*>(message);
         if (sound->ambient) {
             auto* ambient = timedManager->CreateObjectAs<CEffectAmbientSound>(kTimedAmbientSound, base.id);
             ambient->names_.Copy(sound->sounds);
@@ -594,7 +573,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     }
     case 2: {   // a light
         if (!loadedFresh_) return -1;
-        auto* lightSpec = message->As<mapspec::LightSpec>();
+        auto* lightSpec = static_cast<mapspec::LightSpec*>(message);
         auto* light = timedManager->CreateObjectAs<CEffectPointLight>(kTimedLight, base.id);
         Copy(&light->localPosition_, &base.position, 12);
         Copy(&light->range_, &lightSpec->radius, 4);
@@ -603,7 +582,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     }
     case 4: {   // a particle source
         if (!loadedFresh_) return -1;
-        auto* particleSpec = message->As<mapspec::ParticleSpec>();
+        auto* particleSpec = static_cast<mapspec::ParticleSpec*>(message);
         auto* particle = timedManager->CreateObjectAs<CEffectParticle>(kTimedParticle, base.id);
         Copy(&particle->localPosition_, &base.position, 12);
         Copy(&particle->type_, &particleSpec->type, 4);

@@ -126,7 +126,7 @@ destructors and deleting destructors 00412720 / 00413430, 00412730, 00419720, 00
 `AlignedObjectArray::Clear` 0047B620 (32-byte aligned blocks, header pointer before the data); `CoderState::Construct` 0042FCA0; the `Chunk`
 family 0042BEC0-0042D0E0 (Construct, Destruct, Advance, File, Begin/EndWrite, WriteHeader, SkipContent, ReadHeader, ForEachChild, Read / Write
 Float / Int / Byte / Vector3 / Quad / Quaternion / Bytes / Blob; ReadString 0042C580, ReadEncodedString 0042C650 (content decoded by 004D8E10),
-WriteString 0042C820, ReadStringArray 0042CA20, WriteStringArray 0042CB80; RootChunk Open / Destruct); the `ChunkArchive` family
+WriteString 0042C820, ReadStringArray 0042CA20, WriteStringArray 0042CB80; RootChunk Open / its destructor); the `ChunkArchive` family
 00409070-0040A5A0 (NextChild, FindChild, CountChildrenOf, CountChunks, Field, EnterChunk, LeaveChunk, AppendChild, ResizeToCurrent,
 `Ref::Reset`, Read / Find / WriteStreamChunk, Open, Close, CStringField 004093A0, StringField 00409470, StreamField 00409640,
 SaveObjectRef 0040A440, ObjectRef 0040A5A0).

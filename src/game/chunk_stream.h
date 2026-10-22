@@ -7,9 +7,9 @@
 // virtual slot 1: a chunk asks its parent, and the root (RootChunk) returns the MFC CFile it
 // embeds. Names provisional; see docs/notes/core.md.
 //
-// Chunk and RootChunk are real virtual classes: the compiler makes their vtables (C19; game.exe's
+// Chunk and RootChunk are real virtual classes: the compiler makes their vtables (game.exe's
 // 0073BE94, 0073BE9C and the .mob root's 0073FAD4 are retired). The map specs' records and child
-// chunks (map_spec.h) begin with a Chunk and store their own game vtables over it.
+// chunks (map_spec.h, map_spec_unit.cpp) derive from Chunk.
 
 #include "maths.h"
 #include "lib/mfc.h"
@@ -19,10 +19,10 @@
 
 class Chunk {
 public:
-    // A chunk before it is set up (a record's member before its constructor body runs).
-    Chunk() = default;
     // 0042BEC0. Nothing read or written yet, under `parent`.
     explicit Chunk(Chunk* parent) : id_(0), consumed_(0), size_(0), start_(0), parent_(parent) {}
+    // 0042BEF0 (and the unit record's chunk classes' 0046C7E0, 0046CBB0 and 0046D070): nothing to do.
+    ~Chunk();
 
     // 0: 0042BEE0 (empty). Called by ForEachChild for each child header read; the readers (the
     // zone's object records, map_spec.h) read the chunk's value by its id.
@@ -30,12 +30,6 @@ public:
     // 1: 0042BF40. The file (an MFC CFile): the parent's, or null without a parent.
     virtual mfc::CFileVirtuals* File();
 
-    // 0042BEC0 for the records that begin with a chunk (map_spec.h): the constructor in place.
-    // Returns this.
-    Chunk* Construct(Chunk* parent);
-    // 0042BEF0. Destructor body: the original restores Chunk's vtable before the storage goes;
-    // nothing is left to do.
-    void Destruct();
     // 0042BF00. Counts `bytes` as consumed here and in every parent.
     void Advance(int bytes);
     // 0042BF50 / 0042BFB0. Writing a chunk of unknown size: the header with a placeholder size,
@@ -97,11 +91,11 @@ public:
 
     mfc::CFileVirtuals* File() override;   // 1: 0042D260 (&file_)
 
+    // 0042D270 (and the .mob root's 00596130): the CFile destroyed.
+    ~RootChunk();
+
     // 0042D160. Opens the file: CFile::Open through its vtable with the low 16 bits of `flags`.
     int Open(mfc::CString path, unsigned flags);
-    // 0042D270. Destructor body: the CFile destroyed (the original stores the root's vtable before
-    // and the chunk's after).
-    void Destruct();
 
     mfc::CFile file_;        // +0x18
 };

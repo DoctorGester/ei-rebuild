@@ -5,7 +5,6 @@
 #include "base_manager.h"
 #include "map_object_figures.h"
 #include "map_spec.h"
-#include "map_spec_class.h"
 #include "game_strings.h"
 #include "map_object.h"
 
@@ -54,13 +53,11 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 
 // ---- The base record (0073C5C4) ---------------------------------------------------------------
 
-// 00469CA0. Returns this.
-Spec* Spec::SpecConstruct() {
-    chunk.Construct(nullptr);
+void* Spec::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void Spec::operator delete(void* block) { gamecrt::operator_delete(block); }
+
+Spec::Spec() : Chunk(nullptr) {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
-    new (&name) mfc::CString();
-    new (&comment) mfc::CString();
-    ei::SetVtable(this, Vtable());
     mfc::CString none("none");
     id = -1;
     spareId = -1;
@@ -70,67 +67,41 @@ Spec* Spec::SpecConstruct() {
     object = nullptr;
     name = none;
     comment = none;
-    return this;
 }
-EI_REWRITTEN(0x00469CA0, Spec::SpecConstruct);
+EI_REWRITTEN_SPECIAL(0x00469CA0, Spec::Spec);
 
-// 00469E50: the destructor body.
-void Spec::SpecDestruct() {
-    ei::SetVtable(this, Vtable());
-    comment.~CString();
-    name.~CString();
-    chunk.Destruct();
-}
-EI_REWRITTEN(0x00469E50, Spec::SpecDestruct);
+Spec::~Spec() = default;
+EI_REWRITTEN_SPECIAL(0x00469E50, Spec::~Spec);
+EI_REWRITTEN_SPECIAL(0x00469E30, Spec::~Spec);
 
-// 00469E30 (slot 10).
-Spec* Spec::SpecDelete(unsigned flags) {
-    SpecDestruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00469E30, Spec::SpecDelete);
-
-// 00469DB0 (slot 4): "error".
-mfc::CString* Spec::SpecTypeName(mfc::CString* out) {
+mfc::CString* Spec::TypeName(mfc::CString* out) {
     new (out) mfc::CString("error");
     return out;
 }
-EI_REWRITTEN(0x00469DB0, Spec::SpecTypeName);
+EI_REWRITTEN(0x00469DB0, Spec::TypeName);
 
-// 00469DE0 / 00469E00 (slots 6 and 8): slot 7.
-void Spec::SpecRemove() { Record()->ApplyObject(); }
-EI_REWRITTEN(0x00469DE0, Spec::SpecRemove);
-void Spec::SpecRefresh() { Record()->ApplyObject(); }
-EI_REWRITTEN(0x00469E00, Spec::SpecRefresh);
+void Spec::Remove() { Apply(); }
+EI_REWRITTEN(0x00469DE0, Spec::Remove);
+void Spec::Refresh() { Apply(); }
+EI_REWRITTEN(0x00469E00, Spec::Refresh);
 
-// 00469F20 (slot 2): the object with the record's id.
-void* Spec::SpecWorldObject() { return TheObjectManager()->FindObject(id); }
-EI_REWRITTEN(0x00469F20, Spec::SpecWorldObject);
+void* Spec::WorldObject() { return TheObjectManager()->FindObject(id); }
+EI_REWRITTEN(0x00469F20, Spec::WorldObject);
 
-// 00469F40 (slot 5): moves the record, then slot 7.
-void Spec::SpecMove(float dx, float dy, float dz) {
+void Spec::Move(float dx, float dy, float dz) {
     position.x = dx + position.x;
     position.y = dy + position.y;
     position.z = dz + position.z;
-    Record()->ApplyObject();
+    Apply();
 }
-EI_REWRITTEN(0x00469F40, Spec::SpecMove);
+EI_REWRITTEN(0x00469F40, Spec::Move);
 
 // ---- Objects (0073C5F0) ------------------------------------------------------------------------
 
-// 0046A5C0. Returns this.
-ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
-    base.SpecConstruct();
-    new (&model) mfc::CString();
-    new (&texture) mfc::CString();
-    new (&primaryTexture) mfc::CString();
-    new (&parentIname) mfc::CString();
-    new (&skinTexture) mfc::CString();
+ObjectSpec::ObjectSpec() {
     parts.Construct();
-    ei::SetVtable(this, Vtable());
     mfc::CString none("none");
-    base.kind = 1;
+    kind = 1;
     parentId = 0;
     model = game::EmptyText();
     texture = none;
@@ -145,46 +116,25 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     parentIname = none;
     skinTexture = none;
     parts.SetSize(0, -1);
-    return this;
 }
-EI_REWRITTEN(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
+EI_REWRITTEN_SPECIAL(0x0046A5C0, ObjectSpec::ObjectSpec);
 
-// 0046AEB0: the destructor body.
-void ObjectSpec::ObjectSpecDestruct() {
-    ei::SetVtable(this, Vtable());
-    parts.Destruct();
-    skinTexture.~CString();
-    parentIname.~CString();
-    primaryTexture.~CString();
-    texture.~CString();
-    model.~CString();
-    base.SpecDestruct();
-}
-EI_REWRITTEN(0x0046AEB0, ObjectSpec::ObjectSpecDestruct);
-EI_REWRITTEN(0x0058EDF0, ObjectSpec::ObjectSpecDestruct);
+ObjectSpec::~ObjectSpec() { parts.Destruct(); }
+EI_REWRITTEN_SPECIAL(0x0046AEB0, ObjectSpec::~ObjectSpec);
+EI_REWRITTEN_SPECIAL(0x0046A6F0, ObjectSpec::~ObjectSpec);
+EI_REWRITTEN_SPECIAL(0x0058EDF0, ObjectSpec::~ObjectSpec);   // the twin 0073FA58's (UseQuickItem; A-W14)
+EI_REWRITTEN_SPECIAL(0x0058EDD0, ObjectSpec::~ObjectSpec);
 
-// 0046A6F0 (slot 10).
-ObjectSpec* ObjectSpec::ObjectSpecDelete(unsigned flags) {
-    ObjectSpecDestruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0046A6F0, ObjectSpec::ObjectSpecDelete);
-EI_REWRITTEN(0x0058EDD0, ObjectSpec::ObjectSpecDelete);   // slot 10 of 0073FA58 (through 0058EDF0; A-W14)
-
-// 0046A710: copies `from` (the base fields but its kind and chunk state, then the object's).
-// The original goes through a temporary copy of the base record; CStrings share their data
-// either way.
-void ObjectSpec::ObjectSpecAssign(const ObjectSpec* from) {
-    Spec& b = base;
-    const Spec& f = from->base;
-    b.object = f.object;
-    b.spareId = f.spareId;
-    b.id = f.id;
-    b.position = f.position;
-    b.rotation = f.rotation;
-    b.name = f.name;
-    b.comment = f.comment;
+// The original goes through a temporary copy of the base record; CStrings share their data either
+// way.
+void ObjectSpec::Assign(const ObjectSpec* from) {
+    object = from->object;
+    spareId = from->spareId;
+    id = from->id;
+    position = from->position;
+    rotation = from->rotation;
+    name = from->name;
+    comment = from->comment;
     parentId = from->parentId;
     model = from->model;
     texture = from->texture;
@@ -199,62 +149,58 @@ void ObjectSpec::ObjectSpecAssign(const ObjectSpec* from) {
     parts.SetSize(0, -1);
     parts.Copy(from->parts);
 }
-EI_REWRITTEN(0x0046A710, ObjectSpec::ObjectSpecAssign);
+EI_REWRITTEN(0x0046A710, ObjectSpec::Assign);
 
-// 0046A940 (slot 11): the common fields.
-void ObjectSpec::ObjectSpecWriteFields() {
-    Chunk& c = base.chunk;
-    c.WriteStringArray(0xB00D, &parts);
-    c.WriteByte(0xB011, side);
-    c.WriteInt(0xB002, base.id);
-    c.WriteInt(0xB003, parentId);
-    c.WriteString(0xB004, base.name);
-    c.WriteString(0xB006, texture);
-    c.WriteString(0xB00E, primaryTexture);
-    c.WriteString(0xB007, parentIname);
-    c.WriteString(0xB008, skinTexture);
-    c.WriteString(0xB00F, base.comment);
-    WriteVector(c, 0xB009, base.position);
-    Quaternion rotation;
-    std::memcpy(&rotation, &base.rotation, 16);
-    c.WriteQuaternion(0xB00A, rotation);
-    c.WriteByte(0xB013, shadow);
-    c.WriteByte(0xB014, visible);
-    c.WriteInt(0xB012, player);
-    c.WriteString(0xB016, model);
-    c.WriteHeader(0xB00C, 0xC);
-    FileWrite(c, &scale.y, 4);
-    FileWrite(c, &scale.x, 4);
-    FileWrite(c, &scale.z, 4);
+void ObjectSpec::WriteFields() {
+    WriteStringArray(0xB00D, &parts);
+    WriteByte(0xB011, side);
+    WriteInt(0xB002, id);
+    WriteInt(0xB003, parentId);
+    WriteString(0xB004, name);
+    WriteString(0xB006, texture);
+    WriteString(0xB00E, primaryTexture);
+    WriteString(0xB007, parentIname);
+    WriteString(0xB008, skinTexture);
+    WriteString(0xB00F, comment);
+    WriteVector(*this, 0xB009, position);
+    Quaternion turn;
+    std::memcpy(&turn, &rotation, 16);
+    WriteQuaternion(0xB00A, turn);
+    WriteByte(0xB013, shadow);
+    WriteByte(0xB014, visible);
+    WriteInt(0xB012, player);
+    WriteString(0xB016, model);
+    WriteHeader(0xB00C, 0xC);
+    FileWrite(*this, &scale.y, 4);
+    FileWrite(*this, &scale.x, 4);
+    FileWrite(*this, &scale.z, 4);
 }
-EI_REWRITTEN(0x0046A940, ObjectSpec::ObjectSpecWriteFields);
+EI_REWRITTEN(0x0046A940, ObjectSpec::WriteFields);
 
-// 0046A920 (slot 9): the record as chunk B001.
-void ObjectSpec::ObjectSpecSave() {
-    base.chunk.BeginWrite(0xB001);
-    base.Record()->WriteFields();
-    base.chunk.EndWrite();
+void ObjectSpec::Save() {
+    BeginWrite(0xB001);
+    WriteFields();
+    EndWrite();
 }
-EI_REWRITTEN(0x0046A920, ObjectSpec::ObjectSpecSave);
+EI_REWRITTEN(0x0046A920, ObjectSpec::Save);
 
-// 0046AB20 (slot 0): the chunk just read, by its id.
-void ObjectSpec::ObjectSpecOnChunk() {
-    Chunk& c = base.chunk;
+void ObjectSpec::OnChunk() {
+    Chunk& c = *this;
     switch (c.id_) {
-    case 0xB002: base.id = c.ReadInt(); break;
+    case 0xB002: id = c.ReadInt(); break;
     case 0xB003: parentId = c.ReadInt(); break;
-    case 0xB004: ReadInto(c, base.name); break;
+    case 0xB004: ReadInto(c, name); break;
     case 0xB006: ReadInto(c, texture); break;
     case 0xB007: ReadInto(c, parentIname); break;
     case 0xB008: ReadInto(c, skinTexture); break;
     case 0xB009: {
         Vector3 v;
-        std::memcpy(&base.position, c.ReadVector3(&v), sizeof(Vector3));
+        std::memcpy(&position, c.ReadVector3(&v), sizeof(Vector3));
         break;
     }
     case 0xB00A: {
         Quaternion q;
-        std::memcpy(&base.rotation, c.ReadQuaternion(&q.w), sizeof(Quaternion));
+        std::memcpy(&rotation, c.ReadQuaternion(&q.w), sizeof(Quaternion));
         break;
     }
     case 0xB00C:
@@ -264,7 +210,7 @@ void ObjectSpec::ObjectSpecOnChunk() {
         break;
     case 0xB00D: c.ReadStringArray(&parts); break;
     case 0xB00E: ReadInto(c, primaryTexture); break;
-    case 0xB00F: ReadInto(c, base.comment); break;
+    case 0xB00F: ReadInto(c, comment); break;
     case 0xB011: side = c.ReadByte(); break;
     case 0xB012: player = c.ReadInt(); break;
     case 0xB013: shadow = ReadFlag(c); break;
@@ -273,42 +219,38 @@ void ObjectSpec::ObjectSpecOnChunk() {
     default: break;
     }
 }
-EI_REWRITTEN(0x0046AB20, ObjectSpec::ObjectSpecOnChunk);
+EI_REWRITTEN(0x0046AB20, ObjectSpec::OnChunk);
 
-// 0046AF70 (slot 6): removes the world object, then slot 7.
-void ObjectSpec::ObjectSpecRemove() {
-    if (base.object) {
-        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(base.id);
-        base.object = nullptr;
+void ObjectSpec::Remove() {
+    if (object) {
+        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(id);
+        object = nullptr;
     }
-    base.Record()->ApplyObject();
+    Apply();
 }
-EI_REWRITTEN(0x0046AF70, ObjectSpec::ObjectSpecRemove);
+EI_REWRITTEN(0x0046AF70, ObjectSpec::Remove);
 
-CMapObject* ObjectSpec::MapObject() const { return static_cast<CMapObject*>(base.object); }
+CMapObject* ObjectSpec::MapObject() const { return static_cast<CMapObject*>(object); }
 
-// 0046AFA0 (slot 8).
-void ObjectSpec::ObjectSpecRefresh() {
-    if (base.object) MapObject()->MarkChanged(2);
+void ObjectSpec::Refresh() {
+    if (object) MapObject()->MarkChanged(2);
 }
-EI_REWRITTEN(0x0046AFA0, ObjectSpec::ObjectSpecRefresh);
+EI_REWRITTEN(0x0046AFA0, ObjectSpec::Refresh);
 
-// 0046AFB0 (slot 7): makes the world object, or updates it from the record (position, rotation,
-// scale, visibility) while it is out of the editor's lists.
-void ObjectSpec::ObjectSpecApply() {
-    if (!base.object) {
-        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(&base);
+void ObjectSpec::Apply() {
+    if (!object) {
+        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(this);
         return;
     }
     Selection()->BeginRefresh();
     TheSectorMap()->Remove(MapObject());
-    CMapObject* object = MapObject();
-    std::memcpy(&object->localPosition_, &base.position, 12);
-    std::memcpy(&object->localRotation_, &base.rotation, 16);
-    static_cast<CObject3D*>(base.object)->SetFigureScale(&scale.x);
-    std::memcpy(&object->baseScale, &scale, 12);
-    object->ApplyBaseScale();
-    std::uint32_t& flags = object->flags_;
+    CMapObject* mapObject = MapObject();
+    std::memcpy(&mapObject->localPosition_, &position, 12);
+    std::memcpy(&mapObject->localRotation_, &rotation, 16);
+    static_cast<CObject3D*>(object)->SetFigureScale(&scale.x);
+    std::memcpy(&mapObject->baseScale, &scale, 12);
+    mapObject->ApplyBaseScale();
+    std::uint32_t& flags = mapObject->flags_;
     if (!visible) flags |= 8;
     else flags &= ~8u;
     MapObject()->MarkChanged(2);
@@ -316,75 +258,52 @@ void ObjectSpec::ObjectSpecApply() {
     TheSectorMap()->Add(MapObject());
     Selection()->EndRefresh();
 }
-EI_REWRITTEN(0x0046AFB0, ObjectSpec::ObjectSpecApply);
+EI_REWRITTEN(0x0046AFB0, ObjectSpec::Apply);
 
-// 0046B090 (slot 4): the player number ("%i").
-mfc::CString* ObjectSpec::ObjectSpecTypeName(mfc::CString* out) {
+mfc::CString* ObjectSpec::TypeName(mfc::CString* out) {
     mfc::CString text;
     text.Format("%i", player);
     new (out) mfc::CString(text);
     return out;
 }
-EI_REWRITTEN(0x0046B090, ObjectSpec::ObjectSpecTypeName);
+EI_REWRITTEN(0x0046B090, ObjectSpec::TypeName);
 
 // ---- Flames (0073C620) ------------------------------------------------------------------------
 
-// 0046B210. Returns this.
-FlameSpec* FlameSpec::FlameSpecConstruct() {
-    object.ObjectSpecConstruct();
-    new (&sound) mfc::CString();
+FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
-    ei::SetVtable(this, Vtable());
-    object.base.kind = 6;
+    kind = 6;
     std::uint32_t volumeBits = 0x3F333333;   // 0.7f
     std::memcpy(&volume, &volumeBits, 4);
     sound = "nature\\fire\\small.wav";
-    return this;
 }
-EI_REWRITTEN(0x0046B210, FlameSpec::FlameSpecConstruct);
+EI_REWRITTEN_SPECIAL(0x0046B210, FlameSpec::FlameSpec);
 
-// 0046B120: the destructor body.
-void FlameSpec::FlameSpecDestruct() {
-    ei::SetVtable(this, Vtable());
-    sound.~CString();
-    object.ObjectSpecDestruct();
-}
-EI_REWRITTEN(0x0046B120, FlameSpec::FlameSpecDestruct);
+FlameSpec::~FlameSpec() = default;
+EI_REWRITTEN_SPECIAL(0x0046B120, FlameSpec::~FlameSpec);
+EI_REWRITTEN_SPECIAL(0x0046B1F0, FlameSpec::~FlameSpec);
 
-// 0046B1F0 (slot 10).
-FlameSpec* FlameSpec::FlameSpecDelete(unsigned flags) {
-    FlameSpecDestruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0046B1F0, FlameSpec::FlameSpecDelete);
-
-// 0046B310 (slot 7): the world object is always made again.
-void FlameSpec::FlameSpecApply() {
-    Spec& b = object.base;
-    if (b.object) {
-        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(b.id);
-        b.object = nullptr;
+void FlameSpec::Apply() {
+    if (object) {
+        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(id);
+        object = nullptr;
     }
-    static_cast<CWorldServer*>(TheServerWorld())->CreateObject(&b);
+    static_cast<CWorldServer*>(TheServerWorld())->CreateObject(this);
 }
-EI_REWRITTEN(0x0046B310, FlameSpec::FlameSpecApply);
+EI_REWRITTEN(0x0046B310, FlameSpec::Apply);
 
-// 0046B340 (slot 9): chunk BBBF0000 with the flame's fields, then the common ones.
-void FlameSpec::FlameSpecSave() {
-    Chunk& c = object.base.chunk;
-    c.BeginWrite(0xBBBF0000);
-    WriteVector(c, 0xBBBF0002, offset);
-    c.WriteFloat(0xBBBF0001, Bits(volume));
-    c.WriteString(0xBBBF0003, sound);
-    object.ObjectSpecWriteFields();
-    c.EndWrite();
+void FlameSpec::Save() {
+    BeginWrite(0xBBBF0000);
+    WriteVector(*this, 0xBBBF0002, offset);
+    WriteFloat(0xBBBF0001, Bits(volume));
+    WriteString(0xBBBF0003, sound);
+    ObjectSpec::WriteFields();
+    EndWrite();
 }
-EI_REWRITTEN(0x0046B340, FlameSpec::FlameSpecSave);
+EI_REWRITTEN(0x0046B340, FlameSpec::Save);
 
-// 0046B3C0 (slot 0).
-void FlameSpec::FlameSpecOnChunk() {
-    Chunk& c = object.base.chunk;
+void FlameSpec::OnChunk() {
+    Chunk& c = *this;
     switch (c.id_) {
     case 0xBBBF0001: volume = c.ReadFloat(); break;
     case 0xBBBF0002: {
@@ -393,18 +312,15 @@ void FlameSpec::FlameSpecOnChunk() {
         break;
     }
     case 0xBBBF0003: ReadInto(c, sound); break;
-    default: object.ObjectSpecOnChunk(); break;
+    default: ObjectSpec::OnChunk(); break;
     }
 }
-EI_REWRITTEN(0x0046B3C0, FlameSpec::FlameSpecOnChunk);
+EI_REWRITTEN(0x0046B3C0, FlameSpec::OnChunk);
 
 // ---- Magic traps (0073C650) --------------------------------------------------------------------
 
-// 0046B4A0. Returns this.
-TrapSpec* TrapSpec::TrapSpecConstruct() {
-    object.ObjectSpecConstruct();
+TrapSpec::TrapSpec() {
     trap.sides = ~0u;
-    new (&trap.spell) mfc::CString();
     trap.area.data = nullptr;
     trap.area.growBy = 0;
     trap.area.maxSize = 0;
@@ -416,63 +332,47 @@ TrapSpec* TrapSpec::TrapSpecConstruct() {
     trap.points.size = 0;
     ei::SetVtable(&trap.points, mfc::impl::TrapTargetsArrayClass::Vtable());
     trap.period = 15;
-    ei::SetVtable(this, Vtable());
-    object.base.kind = 7;
-    return this;
+    kind = 7;
 }
-EI_REWRITTEN(0x0046B4A0, TrapSpec::TrapSpecConstruct);
+EI_REWRITTEN_SPECIAL(0x0046B4A0, TrapSpec::TrapSpec);
 
-// 0046B570: the destructor body (the arrays' destructors inlined: their blocks freed).
-void TrapSpec::TrapSpecDestruct() {
+// The spell's text goes with the trap's members, after this.
+TrapSpec::~TrapSpec() {
     ei::SetVtable(&trap.points, mfc::impl::TrapPointArrayClass::Vtable());
     if (trap.points.data) gamecrt::operator_delete(trap.points.data);
     ei::SetVtable(&trap.area, mfc::impl::TrapCircleArrayClass::Vtable());
     if (trap.area.data) gamecrt::operator_delete(trap.area.data);
-    trap.spell.~CString();
-    object.ObjectSpecDestruct();
 }
-EI_REWRITTEN(0x0046B570, TrapSpec::TrapSpecDestruct);
+EI_REWRITTEN_SPECIAL(0x0046B570, TrapSpec::~TrapSpec);
+EI_REWRITTEN_SPECIAL(0x0046B550, TrapSpec::~TrapSpec);
 
-// 0046B550 (slot 10).
-TrapSpec* TrapSpec::TrapSpecDelete(unsigned flags) {
-    TrapSpecDestruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0046B550, TrapSpec::TrapSpecDelete);
-
-// 0046B520 (slot 4): "MagicTrap".
-mfc::CString* TrapSpec::TrapSpecTypeName(mfc::CString* out) {
+mfc::CString* TrapSpec::TypeName(mfc::CString* out) {
     new (out) mfc::CString("MagicTrap");
     return out;
 }
-EI_REWRITTEN(0x0046B520, TrapSpec::TrapSpecTypeName);
+EI_REWRITTEN(0x0046B520, TrapSpec::TypeName);
 
-// 0046B680 (slot 9): chunk BBAB0000: the trap's fields (the arrays as a count and the raw
-// elements), then the common ones.
-void TrapSpec::TrapSpecSave() {
-    Chunk& c = object.base.chunk;
-    c.BeginWrite(0xBBAB0000);
-    c.WriteInt(0xBBAB0001, static_cast<int>(trap.sides));
-    c.WriteString(0xBBAB0002, trap.spell);
-    c.WriteInt(0xBBAB0005, trap.period);
-    c.WriteByte(0xBBAC0005, trap.singleTarget);
+void TrapSpec::Save() {
+    BeginWrite(0xBBAB0000);
+    WriteInt(0xBBAB0001, static_cast<int>(trap.sides));
+    WriteString(0xBBAB0002, trap.spell);
+    WriteInt(0xBBAB0005, trap.period);
+    WriteByte(0xBBAC0005, trap.singleTarget);
     std::uint32_t count = static_cast<std::uint32_t>(trap.area.size);
-    c.WriteHeader(0xBBAB0003, static_cast<int>(count * 12 + 4));
-    FileWrite(c, &count, 4);
-    for (std::uint32_t i = 0; i < count; ++i) FileWrite(c, &trap.area.data[i], 12);
+    WriteHeader(0xBBAB0003, static_cast<int>(count * 12 + 4));
+    FileWrite(*this, &count, 4);
+    for (std::uint32_t i = 0; i < count; ++i) FileWrite(*this, &trap.area.data[i], 12);
     count = static_cast<std::uint32_t>(trap.points.size);
-    c.WriteHeader(0xBBAB0004, static_cast<int>(count * 8 + 4));
-    FileWrite(c, &count, 4);
-    for (std::uint32_t i = 0; i < count; ++i) FileWrite(c, &trap.points.data[i], 8);
-    object.ObjectSpecWriteFields();
-    c.EndWrite();
+    WriteHeader(0xBBAB0004, static_cast<int>(count * 8 + 4));
+    FileWrite(*this, &count, 4);
+    for (std::uint32_t i = 0; i < count; ++i) FileWrite(*this, &trap.points.data[i], 8);
+    ObjectSpec::WriteFields();
+    EndWrite();
 }
-EI_REWRITTEN(0x0046B680, TrapSpec::TrapSpecSave);
+EI_REWRITTEN(0x0046B680, TrapSpec::Save);
 
-// 0046B7D0 (slot 0).
-void TrapSpec::TrapSpecOnChunk() {
-    Chunk& c = object.base.chunk;
+void TrapSpec::OnChunk() {
+    Chunk& c = *this;
     switch (c.id_) {
     case 0xBBAB0001: trap.sides = static_cast<std::uint32_t>(c.ReadInt()); break;
     case 0xBBAB0002: ReadInto(c, trap.spell); break;
@@ -496,16 +396,14 @@ void TrapSpec::TrapSpecOnChunk() {
     }
     case 0xBBAB0005: trap.period = c.ReadInt(); break;
     case 0xBBAC0005: trap.singleTarget = ReadFlag(c); break;
-    default: object.ObjectSpecOnChunk(); break;
+    default: ObjectSpec::OnChunk(); break;
     }
 }
-EI_REWRITTEN(0x0046B7D0, TrapSpec::TrapSpecOnChunk);
+EI_REWRITTEN(0x0046B7D0, TrapSpec::OnChunk);
 
 // ---- Levers (0073C6B0) -------------------------------------------------------------------------
 
-// 0046BD40. Returns this.
-LeverSpec* LeverSpec::LeverSpecConstruct() {
-    object.ObjectSpecConstruct();
+LeverSpec::LeverSpec() {
     lever.lock.mask = 1;
     lever.lock.id = 0;
     lever.lock.level = 0;
@@ -514,42 +412,29 @@ LeverSpec* LeverSpec::LeverSpecConstruct() {
     lever.flag260 = 0;
     lever.keepsMapFlag = 0;
     lever.cycling = 0;
-    ei::SetVtable(this, Vtable());
-    object.base.kind = 8;
-    return this;
+    kind = 8;
 }
-EI_REWRITTEN(0x0046BD40, LeverSpec::LeverSpecConstruct);
+EI_REWRITTEN_SPECIAL(0x0046BD40, LeverSpec::LeverSpec);
 
-// 0046BDC0: the destructor body (the object record's).
-void LeverSpec::LeverSpecDestruct() { object.ObjectSpecDestruct(); }
-EI_REWRITTEN(0x0046BDC0, LeverSpec::LeverSpecDestruct);
+LeverSpec::~LeverSpec() = default;
+EI_REWRITTEN_SPECIAL(0x0046BDC0, LeverSpec::~LeverSpec);
+EI_REWRITTEN_SPECIAL(0x0046BDA0, LeverSpec::~LeverSpec);
 
-// 0046BDA0 (slot 10).
-LeverSpec* LeverSpec::LeverSpecDelete(unsigned flags) {
-    LeverSpecDestruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
+void LeverSpec::Save() {
+    BeginWrite(0xBBAC0000);
+    WriteBlob(0xBBAC0006, &lever.lock, 12);
+    WriteByte(0xBBAC0002, static_cast<std::uint8_t>(lever.state));
+    WriteByte(0xBBAC0003, static_cast<std::uint8_t>(lever.stateCount));
+    WriteByte(0xBBAC0004, lever.cycling);
+    WriteByte(0xBBAC0007, lever.flag260);
+    WriteByte(0xBBAC0008, lever.keepsMapFlag);
+    ObjectSpec::WriteFields();
+    EndWrite();
 }
-EI_REWRITTEN(0x0046BDA0, LeverSpec::LeverSpecDelete);
+EI_REWRITTEN(0x0046BE80, LeverSpec::Save);
 
-// 0046BE80 (slot 9): chunk BBAC0000.
-void LeverSpec::LeverSpecSave() {
-    Chunk& c = object.base.chunk;
-    c.BeginWrite(0xBBAC0000);
-    c.WriteBlob(0xBBAC0006, &lever.lock, 12);
-    c.WriteByte(0xBBAC0002, static_cast<std::uint8_t>(lever.state));
-    c.WriteByte(0xBBAC0003, static_cast<std::uint8_t>(lever.stateCount));
-    c.WriteByte(0xBBAC0004, lever.cycling);
-    c.WriteByte(0xBBAC0007, lever.flag260);
-    c.WriteByte(0xBBAC0008, lever.keepsMapFlag);
-    object.ObjectSpecWriteFields();
-    c.EndWrite();
-}
-EI_REWRITTEN(0x0046BE80, LeverSpec::LeverSpecSave);
-
-// 0046BF20 (slot 0).
-void LeverSpec::LeverSpecOnChunk() {
-    Chunk& c = object.base.chunk;
+void LeverSpec::OnChunk() {
+    Chunk& c = *this;
     switch (c.id_) {
     case 0xBBAC0002: lever.state = c.ReadByte(); break;
     case 0xBBAC0003: lever.stateCount = c.ReadByte(); break;
@@ -557,10 +442,10 @@ void LeverSpec::LeverSpecOnChunk() {
     case 0xBBAC0006: c.ReadBytes(&lever.lock, 12); break;
     case 0xBBAC0007: lever.flag260 = ReadFlag(c); break;
     case 0xBBAC0008: lever.keepsMapFlag = ReadFlag(c); break;
-    default: object.ObjectSpecOnChunk(); break;
+    default: ObjectSpec::OnChunk(); break;
     }
 }
-EI_REWRITTEN(0x0046BF20, LeverSpec::LeverSpecOnChunk);
+EI_REWRITTEN(0x0046BF20, LeverSpec::OnChunk);
 
 // ---- 0046A4B0: rotating a vector -----------------------------------------------------------------
 

@@ -7,13 +7,11 @@
 #include "combat.h"
 #include "map_object_figures.h"
 #include "map_spec.h"
-#include "map_spec_class.h"
 #include "core_streams.h"
 #include "record_arrays.h"
 #include "unit.h"
 
 #include "ei/hook.h"
-#include "lib/compiled_vtable.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
 
@@ -36,46 +34,31 @@ using Array = mfc::CArray<T>;
 
 // UnitSpec (vtable 0073C6E0, 0x324 bytes): map_spec.h.
 
-// The small chunk classes: a Chunk and the value it reads or writes.
+// The small chunk classes: a Chunk and the value it reads or writes (the target is set after the
+// constructor). Slot 0 is OnChunk; the behaviour record's writer is called directly.
 template <typename T>
-struct TargetChunk {
-    Chunk chunk;
+class TargetChunk : public Chunk {
+public:
+    explicit TargetChunk(Chunk* parent) : Chunk(parent) {}
     T* target;                   // +0x18
 };
-static_assert(sizeof(TargetChunk<Waypoint>) == 0x1C);
-// The three chunk classes on it: a waypoint, a patrol and a behaviour record. Slot 0 is OnChunk; the
-// behaviour record's writer is called directly. Their tables are compiled (C19; ChunkReaderClass below, in
-// place of game.exe's 0073C710, 0073C718 and 0073C720).
-struct WaypointChunk : TargetChunk<Waypoint> {
-    static void* Vtable();
-    void OnChunk();   // 0046C610
+// A waypoint (game.exe's vtable 0073C710), a patrol (0073C718) and a behaviour record (0073C720).
+class WaypointChunk : public TargetChunk<Waypoint> {
+public:
+    using TargetChunk::TargetChunk;
+    void OnChunk() override;   // 0046C610
 };
-struct PatrolChunk : TargetChunk<Patrol> {
-    static void* Vtable();
-    void OnChunk();   // 0046C7F0
+class PatrolChunk : public TargetChunk<Patrol> {
+public:
+    using TargetChunk::TargetChunk;
+    void OnChunk() override;   // 0046C7F0
 };
-struct BehaviourChunk : TargetChunk<Behaviour> {
-    static void* Vtable();
-    void OnChunk();   // 0046CBC0
-    void Write();     // 0046C900
+class BehaviourChunk : public TargetChunk<Behaviour> {
+public:
+    using TargetChunk::TargetChunk;
+    void OnChunk() override;   // 0046CBC0
+    void Write();              // 0046C900
 };
-static_assert(sizeof(WaypointChunk) == 0x1C && sizeof(PatrolChunk) == 0x1C && sizeof(BehaviourChunk) == 0x1C);
-
-namespace {
-// A chunk class's two slots: 0 the class's OnChunk, 1 Chunk::File (0042BF40).
-template <typename Self, typename Reader>
-struct ChunkReaderClass : ei::CompiledTag<Self> {
-    virtual void OnChunk() { this->template ObjectAs<Reader>()->OnChunk(); }                   // 0
-    virtual mfc::CFileVirtuals* File() { return this->template ObjectAs<::Chunk>()->::Chunk::File(); }       // 1: 0042BF40
-};
-struct WaypointChunkClass final : ChunkReaderClass<WaypointChunkClass, WaypointChunk> {};     // 0073C710
-struct PatrolChunkClass final : ChunkReaderClass<PatrolChunkClass, PatrolChunk> {};           // 0073C718
-struct BehaviourChunkClass final : ChunkReaderClass<BehaviourChunkClass, BehaviourChunk> {};  // 0073C720
-} // namespace
-
-void* WaypointChunk::Vtable() { return WaypointChunkClass::Vtable(); }
-void* PatrolChunk::Vtable() { return PatrolChunkClass::Vtable(); }
-void* BehaviourChunk::Vtable() { return BehaviourChunkClass::Vtable(); }
 
 namespace {
 
@@ -113,14 +96,6 @@ void ReadVector(Chunk& c, Vector3& to) {
     std::memcpy(&to, c.ReadVector3(&v), sizeof(Vector3));
 }
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
-
-// A child chunk object of its class for `parent`.
-template <typename ChunkClass>
-void StartChild(ChunkClass& child, Chunk* parent) {
-    child.chunk.Construct(nullptr);
-    ei::SetVtable(&child, ChunkClass::Vtable());
-    child.chunk.parent_ = parent;
-}
 
 } // namespace
 
@@ -218,7 +193,7 @@ EI_REWRITTEN(0x0046E680, Patrols::CopyFrom);
 // 0046C610 (0073C710 slot 0): a waypoint's values.
 void WaypointChunk::OnChunk() {
     Waypoint* w = target;
-    Chunk& c = chunk;
+    Chunk& c = *this;
     switch (c.id_) {
     case 0xBBBE0001: ReadVector(c, target->position); break;
     case 0xBBBE0002: w->lookWait = static_cast<std::int16_t>(c.ReadInt()); break;
@@ -231,28 +206,26 @@ EI_REWRITTEN(0x0046C610, WaypointChunk::OnChunk);
 
 // 0046C7F0 (0073C718 slot 0): a patrol's start, or a waypoint appended and read.
 void PatrolChunk::OnChunk() {
-    Chunk& c = chunk;
+    Chunk& c = *this;
     if (c.id_ == 0xBBBD0001) {
         ReadVector(c, target->position);
         return;
     }
     if (c.id_ != 0xBBBE0000) return;
-    WaypointChunk child;
-    StartChild(child, &chunk);
+    WaypointChunk child(this);
     Patrol* patrol = target;
     patrol->waypoints.SetSize(patrol->waypoints.size + 1, -1);
     patrol->waypoints.data[patrol->waypoints.size - 1].position = {0.0f, 0.0f, 0.0f};
     Patrol* again = target;
     child.target = &again->waypoints.data[patrol->waypoints.size - 1];
-    child.chunk.ForEachChild();
-    child.chunk.Destruct();
+    child.ForEachChild();
 }
 EI_REWRITTEN(0x0046C7F0, PatrolChunk::OnChunk);
 
 // 0046CBC0 (0073C720 slot 0): a behaviour record's values, or a patrol appended and read. The
 // three alarm flags only lower the level (0, 1, 2) when set.
 void BehaviourChunk::OnChunk() {
-    Chunk& c = chunk;
+    Chunk& c = *this;
     Behaviour* b = target;
     switch (c.id_) {
     case 0xBBBC0001:
@@ -283,14 +256,12 @@ void BehaviourChunk::OnChunk() {
         break;
     case 0xBBBC000E: b->alarm = c.ReadByte(); break;
     case 0xBBBD0000: {
-        PatrolChunk child;
-        StartChild(child, &chunk);
+        PatrolChunk child(this);
         Behaviour* behaviour = target;
         PatrolsSetSize(&behaviour->patrols, behaviour->patrols.size + 1);
         behaviour->patrols.data[behaviour->patrols.size - 1].position = {0.0f, 0.0f, 0.0f};
         child.target = &target->patrols.data[behaviour->patrols.size - 1];
-        child.chunk.ForEachChild();
-        child.chunk.Destruct();
+        child.ForEachChild();
         break;
     }
     default: break;
@@ -301,7 +272,7 @@ EI_REWRITTEN(0x0046CBC0, BehaviourChunk::OnChunk);
 // 0046C900: writes the behaviour record (chunk BBBC0000), each patrol a BBBD0000 chunk with its
 // waypoints as BBBE0000 chunks.
 void BehaviourChunk::Write() {
-    Chunk& c = chunk;
+    Chunk& c = *this;
     Behaviour* b = target;
     c.BeginWrite(0xBBBC0000);
     c.WriteByte(0xBBBC000B, static_cast<std::uint8_t>(b->alertMode));
@@ -315,73 +286,51 @@ void BehaviourChunk::Write() {
     WriteVector(c, 0xBBBC0005, b->guard);
     c.WriteByte(0xBBBC0007, static_cast<std::uint8_t>(b->enabled));
     c.WriteByte(0xBBBC0006, static_cast<std::uint8_t>(b->alarmKind));
-    PatrolChunk patrolChunk;
-    patrolChunk.chunk.Construct(nullptr);
-    ei::SetVtable(&patrolChunk, PatrolChunk::Vtable());
-    patrolChunk.chunk.parent_ = &chunk;
+    PatrolChunk patrolChunk(this);
     for (int i = 0; i < target->patrols.size; ++i) {
         Patrol* p = &target->patrols.data[i];
         patrolChunk.target = p;
-        patrolChunk.chunk.BeginWrite(0xBBBD0000);
-        WriteVector(patrolChunk.chunk, 0xBBBD0001, p->position);
-        WaypointChunk waypointChunk;
-        waypointChunk.chunk.Construct(nullptr);
-        ei::SetVtable(&waypointChunk, WaypointChunk::Vtable());
-        waypointChunk.chunk.parent_ = &patrolChunk.chunk;
+        patrolChunk.BeginWrite(0xBBBD0000);
+        WriteVector(patrolChunk, 0xBBBD0001, p->position);
+        WaypointChunk waypointChunk(&patrolChunk);
         for (int j = 0; j < p->waypoints.size; ++j) {
             Waypoint* w = &p->waypoints.data[j];
             waypointChunk.target = w;
-            waypointChunk.chunk.BeginWrite(0xBBBE0000);
-            WriteVector(waypointChunk.chunk, 0xBBBE0001, w->position);
-            waypointChunk.chunk.WriteInt(0xBBBE0002, w->lookWait);
-            waypointChunk.chunk.WriteFloat(0xBBBE0003, Bits(w->time));
-            waypointChunk.chunk.WriteByte(0xBBBE0004, static_cast<std::uint8_t>(w->stopFirst));
-            waypointChunk.chunk.EndWrite();
+            waypointChunk.BeginWrite(0xBBBE0000);
+            WriteVector(waypointChunk, 0xBBBE0001, w->position);
+            waypointChunk.WriteInt(0xBBBE0002, w->lookWait);
+            waypointChunk.WriteFloat(0xBBBE0003, Bits(w->time));
+            waypointChunk.WriteByte(0xBBBE0004, static_cast<std::uint8_t>(w->stopFirst));
+            waypointChunk.EndWrite();
         }
-        patrolChunk.chunk.EndWrite();
-        waypointChunk.chunk.Destruct();
+        patrolChunk.EndWrite();
     }
     c.EndWrite();
-    patrolChunk.chunk.Destruct();
 }
 EI_REWRITTEN(0x0046C900, BehaviourChunk::Write);
 
 // ---- Units (0073C6E0) ------------------------------------------------------------------------------
 
-// 0046C010. Returns this.
-UnitSpec* UnitSpec::UnitSpecConstruct() {
-    object.ObjectSpecConstruct();
+UnitSpec::UnitSpec() {
     VectorConstruct(behaviour, sizeof(Behaviour), 5, BehaviourConstruct, BehaviourDestruct);
-    new (&prototype) mfc::CString();
     for (mfc::CStringArray& list : record.lists) list.Construct();
     record.applyStats = 0;
-    ei::SetVtable(this, Vtable());
-    object.base.kind = 5;
+    kind = 5;
     prototype = "none";
     behaviours = 0;
     behaviour[0].enabled = 1;
     std::memset(&record.stats, 0, sizeof(record.stats));
-    return this;
 }
-EI_REWRITTEN(0x0046C010, UnitSpec::UnitSpecConstruct);
+EI_REWRITTEN_SPECIAL(0x0046C010, UnitSpec::UnitSpec);
 
-// 0046C140: the destructor body.
-void UnitSpec::UnitSpecDestruct() {
-    ei::SetVtable(this, Vtable());
+// The prototype's name goes with the members, after the behaviour records (the original frees it
+// before them).
+UnitSpec::~UnitSpec() {
     for (int i = 4; i >= 0; --i) record.lists[i].Destruct();
-    prototype.~CString();
     VectorDestruct(behaviour, sizeof(Behaviour), 5, BehaviourDestruct);
-    object.ObjectSpecDestruct();
 }
-EI_REWRITTEN(0x0046C140, UnitSpec::UnitSpecDestruct);
-
-// 0046C120 (slot 10).
-UnitSpec* UnitSpec::DeleteScalar(unsigned flags) {
-    UnitSpecDestruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0046C120, UnitSpec::DeleteScalar);
+EI_REWRITTEN_SPECIAL(0x0046C140, UnitSpec::~UnitSpec);
+EI_REWRITTEN_SPECIAL(0x0046C120, UnitSpec::~UnitSpec);
 
 // 0046C2F0: the destructor of the block at +0x210 (the five string lists; reached only when an
 // exception unwinds the constructor).
@@ -390,58 +339,51 @@ void __fastcall UnitRecordDestruct(unitrecord::UnitRecord* self) {
 }
 EI_REWRITTEN(0x0046C2F0, UnitRecordDestruct);
 
-CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(base.object); }
+CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(object); }
 
-// 0046C4D0 (slot 7): makes the unit, or moves, turns and rescales it.
-void UnitSpec::UnitSpecApply() {
-    Spec& b = object.base;
-    if (!b.object) {
-        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(&b);
+void UnitSpec::Apply() {
+    if (!object) {
+        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(this);
         return;
     }
-    CUnit* unit = object.Unit();
-    TheSectorMap()->Move(unit, &b.position);
-    TheServerWorld()->AIMap()->TurnObject(unit, &b.rotation);
-    std::memcpy(&unit->localRotation_, &b.rotation, 16);
-    static_cast<CObject3D*>(b.object)->SetFigureScale(&object.scale.x);
-    std::memcpy(&unit->baseScale, &object.scale, 12);
+    CUnit* unit = Unit();
+    TheSectorMap()->Move(unit, &position);
+    TheServerWorld()->AIMap()->TurnObject(unit, &rotation);
+    std::memcpy(&unit->localRotation_, &rotation, 16);
+    static_cast<CObject3D*>(object)->SetFigureScale(&scale.x);
+    std::memcpy(&unit->baseScale, &scale, 12);
     unit->ApplyBaseScale();
     std::uint32_t& flags = unit->flags_;
-    if (!object.visible) flags |= 8;
+    if (!visible) flags |= 8;
     else flags &= ~8u;
     unit->ServerController()->ResyncWithUnit();
     unit->MarkChanged(1);
 }
-EI_REWRITTEN(0x0046C4D0, UnitSpec::UnitSpecApply);
+EI_REWRITTEN(0x0046C4D0, UnitSpec::Apply);
 
-// 0046CF10 (slot 9): chunk BBBB0000: the unit's fields, the common ones, then the five behaviour
-// records (each given the unit's position first).
-void UnitSpec::UnitSpecSave() {
-    Chunk& c = object.base.chunk;
-    c.BeginWrite(0xBBBB0000);
-    c.WriteByte(0xBBBB000A, static_cast<std::uint8_t>(record.applyStats));
-    c.WriteString(0xBBBB0002, prototype);
-    for (int i = 4; i >= 0; --i) c.WriteStringArray(0xBBBB0005 + i, &record.lists[i]);
-    c.WriteBlob(0xBBBB0004, &record.stats, sizeof(record.stats));
-    object.ObjectSpecWriteFields();
-    BehaviourChunk writer;
-    writer.chunk.Construct(nullptr);
-    ei::SetVtable(&writer, BehaviourChunk::Vtable());
-    writer.chunk.parent_ = &c;
+// The unit's fields, the common ones, then the five behaviour records (each given the unit's
+// position first).
+void UnitSpec::Save() {
+    BeginWrite(0xBBBB0000);
+    WriteByte(0xBBBB000A, static_cast<std::uint8_t>(record.applyStats));
+    WriteString(0xBBBB0002, prototype);
+    for (int i = 4; i >= 0; --i) WriteStringArray(0xBBBB0005 + i, &record.lists[i]);
+    WriteBlob(0xBBBB0004, &record.stats, sizeof(record.stats));
+    ObjectSpec::WriteFields();
+    BehaviourChunk writer(this);
     for (Behaviour& each : behaviour) {
-        each.guard = object.base.position;
+        each.guard = position;
         writer.target = &each;
         writer.Write();
     }
-    c.EndWrite();
-    writer.chunk.Destruct();
+    EndWrite();
 }
-EI_REWRITTEN(0x0046CF10, UnitSpec::UnitSpecSave);
+EI_REWRITTEN(0x0046CF10, UnitSpec::Save);
 
-// 0046D080 (slot 0). A behaviour record chunk fills the next record (not bounded, as in the
-// original); an alarm level left unset (4) becomes 0.
-void UnitSpec::UnitSpecOnChunk() {
-    Chunk& c = object.base.chunk;
+// A behaviour record chunk fills the next record (not bounded, as in the original); an alarm level
+// left unset (4) becomes 0.
+void UnitSpec::OnChunk() {
+    Chunk& c = *this;
     switch (c.id_) {
     case 0xBBBB0002: ReadInto(c, prototype); break;
     case 0xBBBB0004: c.ReadBytes(&record.stats, sizeof(record.stats)); break;
@@ -452,25 +394,21 @@ void UnitSpec::UnitSpecOnChunk() {
     case 0xBBBB0009: c.ReadStringArray(&record.lists[c.id_ - 0xBBBB0005]); break;
     case 0xBBBB000A: record.applyStats = c.ReadByte(); break;
     case 0xBBBC0000: {
-        BehaviourChunk reader;
-        reader.chunk.Construct(nullptr);
-        ei::SetVtable(&reader, BehaviourChunk::Vtable());
-        reader.chunk.parent_ = &c;
+        BehaviourChunk reader(this);
         int index = behaviours;
         behaviours = index + 1;
         Behaviour* b = &behaviour[index];
         reader.target = b;
         b->flags = 0;
         b->alarm = 4;
-        reader.chunk.ForEachChild();
+        reader.ForEachChild();
         if (b->alarm == 4) b->alarm = 0;
-        reader.chunk.Destruct();
         break;
     }
-    default: object.ObjectSpecOnChunk(); break;
+    default: ObjectSpec::OnChunk(); break;
     }
 }
-EI_REWRITTEN(0x0046D080, UnitSpec::UnitSpecOnChunk);
+EI_REWRITTEN(0x0046D080, UnitSpec::OnChunk);
 
 // ---- Behaviour records in a stream (saved games) -----------------------------------------------
 // The stream (CStream, core_streams.h) reads and writes through its vtable (slots 1 and 2).

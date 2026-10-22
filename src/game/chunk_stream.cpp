@@ -55,14 +55,13 @@ struct TextDecoder {
 
 } // namespace
 
-Chunk* Chunk::Construct(Chunk* parent) { return new (this) Chunk(parent); }
-EI_REWRITTEN(0x0042BEC0, Chunk::Construct);
+EI_REWRITTEN_SPECIAL(0x0042BEC0, Chunk::Chunk);
 
-void Chunk::Destruct() {}
-EI_REWRITTEN(0x0046C7E0, Chunk::Destruct);
-EI_REWRITTEN(0x0046CBB0, Chunk::Destruct);
-EI_REWRITTEN(0x0046D070, Chunk::Destruct);
-EI_REWRITTEN(0x0042BEF0, Chunk::Destruct);
+Chunk::~Chunk() = default;
+EI_REWRITTEN_SPECIAL(0x0042BEF0, Chunk::~Chunk);
+EI_REWRITTEN_SPECIAL(0x0046C7E0, Chunk::~Chunk);
+EI_REWRITTEN_SPECIAL(0x0046CBB0, Chunk::~Chunk);
+EI_REWRITTEN_SPECIAL(0x0046D070, Chunk::~Chunk);
 
 void Chunk::Advance(int bytes) {
     if (parent_) parent_->Advance(bytes);
@@ -357,6 +356,6 @@ EI_REWRITTEN(0x0042D160, RootChunk::Open);
 
 mfc::CFileVirtuals* RootChunk::File() { return file_.Virtuals(); }   // 0042D260 (short_functions.cpp)
 
-void RootChunk::Destruct() { file_.~CFile(); }
-EI_REWRITTEN(0x00596130, RootChunk::Destruct);
-EI_REWRITTEN(0x0042D270, RootChunk::Destruct);
+RootChunk::~RootChunk() = default;
+EI_REWRITTEN_SPECIAL(0x0042D270, RootChunk::~RootChunk);
+EI_REWRITTEN_SPECIAL(0x00596130, RootChunk::~RootChunk);
