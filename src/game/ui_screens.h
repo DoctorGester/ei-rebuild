@@ -233,6 +233,16 @@ public:
     // memory freed when bit 0 of `flags` is set; returns this.
     CUiItemStrip* ForwardingStripDelete(unsigned flags);
 
+    // The strips' compiled tables and input sides (ui_item_panel_tables.cpp) in place of game.exe's: the plain
+    // strip (00741A1C / 007419E8), the forwarding strip (0074197C / 00741948), the figure strips (00741BF4 /
+    // 00741C60).
+    static void** PlainVtable();
+    static void** PlainInputVtable();
+    static void** ForwardingVtable();
+    static void** ForwardingInputVtable();
+    static void** FigureVtable();
+    static void** FigureInputVtable();
+
     // Settles the pending scroll on release (inlined twice by the original).
     void SettleScroll();
     // Not rewritten: virtual slots 25 and 26 called through the vtable.

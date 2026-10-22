@@ -416,11 +416,17 @@ vtable,slots,class,file,note
 007418AC,13,EquipPanelInputClass,src/game/ui_item_panel_tables.cpp,the hero equipment panel's input side (CHeroEquipPanel)
 007418E0,2,EquipPanelClass,src/game/ui_item_panel_tables.cpp,the hero equipment panel (CHeroEquipPanel; slots 2-25 are 007418E8's row)
 007418E8,24,EquipPanelClass,src/game/ui_item_panel_tables.cpp,the tail of 007418E0 (its slots 2-25)
+00741948,13,ForwardingStripInputClass,src/game/ui_item_panel_tables.cpp,the forwarding item strip's input side (CUiItemStrip)
+0074197C,27,ForwardingStripClass,src/game/ui_item_panel_tables.cpp,the forwarding item strip (CUiItemStrip: the camp's item strip and the exchange's)
+007419E8,13,PlainStripInputClass,src/game/ui_item_panel_tables.cpp,the plain item strip's input side (CUiItemStrip)
+00741A1C,27,PlainStripClass,src/game/ui_item_panel_tables.cpp,"the plain item strip (CUiItemStrip: the camp's spell and part strips; slot 26 _purecall)"
 00741A88,13,StatsPanelInputClass,src/game/ui_item_panel_tables.cpp,the hero statistics column's input side (CHeroStatsPanel)
 00741ABC,26,StatsPanelClass,src/game/ui_item_panel_tables.cpp,the hero statistics column (CHeroStatsPanel)
 00741B24,13,BlankPanelInputClass,src/game/ui_item_panel_tables.cpp,the blank item panel's input side (CUiItemPanel::ConstructBlank)
 00741B58,26,BlankPanelClass,src/game/ui_item_panel_tables.cpp,the blank item panel (CUiItemPanel::ConstructBlank; the item strips' base)
 00741BC0,3,ItemStripArrayClass,src/lib/mfc_slots.h,CArray (an item strip's CArray<char*>)
+00741BF4,27,FigureStripClass,src/game/ui_item_panel_tables.cpp,the figure strip (CUiItemStrip::SetupFigures: the hero screen's and the exchange's)
+00741C60,13,FigureStripInputClass,src/game/ui_item_panel_tables.cpp,the figure strip's input side (CUiItemStrip)
 00741C9C,13,ConnectScreenInputClass,src/game/ui_screen_tables.cpp,the connection screen's input side
 00741CD0,42,ConnectScreenClass,src/game/ui_screen_tables.cpp,the multiplayer connection screen (CMpConnectScreen)
 00741DA4,13,MasterRequestBoxInputClass,src/game/ui_screen_tables.cpp,the master server request box's input side

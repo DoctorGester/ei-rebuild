@@ -2,13 +2,15 @@
 // blank item panel 00741B58 / 00741B24, the description panel 007404DC / 007404A8, the statistics column 00741ABC /
 // 00741A88, the equipment panel 007418E0 (with its tail 007418E8) / 007418AC, the quick strip 00741844 / 00741810,
 // the trade panel 007417A8 / 00741774, the trade grid 0074170C / 007416D8, the spell maker 00741670 / 0074163C, the
-// item maker 007415D4 / 007415A0 and the repair grid 00741538 / 00741504. The item strips' tables (00741A1C,
-// 0074197C, 00741BF4 and their input sides) stay game.exe's for now. The camp, the hero screen and the exchange
-// (ui_camp_create.cpp, ui_hero_screen_create.cpp, ui_exchange.cpp) store these through the panels' accessors.
+// item maker 007415D4 / 007415A0, the repair grid 00741538 / 00741504 and the item strips (CUiItemStrip): the plain
+// strip 00741A1C / 007419E8, the forwarding strip 0074197C / 00741948 and the figure strips 00741BF4 / 00741C60. The
+// camp, the hero screen and the exchange (ui_camp_create.cpp, ui_hero_screen_create.cpp, ui_exchange.cpp) store these
+// through the panels' accessors.
 #include "ui.h"
 #include "ui_camp.h"
 #include "ui_input_class.h"
 #include "ui_item_info.h"
+#include "ui_screens.h"
 #include "ui_window_class.h"
 
 namespace {
@@ -108,6 +110,56 @@ struct RepairGridClass final : ItemPanelClass<RepairGridClass, &CUiWindow::UiWin
 };
 struct RepairGridInputClass final : ItemPanelInputClass<RepairGridInputClass, &CUiWindow::UiWindowDelete, CRepairGrid> {};
 
+// An item strip's window slots: 24 the scroll (every frame), 26 the visible list's rebuild.
+template <typename Self, auto Delete>
+class ItemStripClass : public ItemPanelClass<Self, Delete, CUiItemStrip> {
+public:
+    void Update() override { this->AsPanel()->CUiItemStrip::Update(); }             // 24: 00620A50
+    virtual void RebuildList() { this->AsPanel()->CUiItemStrip::RebuildList(); }   // 26: 006212F0
+};
+
+// An item strip's input side: the arrows, the tabs and the items by the left button, the drag, the wheel.
+template <typename Self, auto Delete>
+class ItemStripInputClass : public InputSideClass<Self, Delete> {
+public:
+    CUiItemStrip* AsStrip() { return static_cast<CUiItemStrip*>(this->SideWindow()); }
+    int LeftDown(int b, int x, int y) override { return AsStrip()->OnLButtonDown(b, x, y), 0; }   // 2: 00620E10
+    int LeftUp(int b, int x, int y) override { return AsStrip()->OnLButtonUp(b, x, y), 0; }       // 3: 00621010
+    int MouseMove(int b, int x, int y) override { return AsStrip()->OnMouseMove(b, x, y), 0; }    // 4: 00620F10
+    int Wheel(int f, int d, int x, int y) override {                                              // 12: 006210F0
+        return AsStrip()->OnWheel(f, static_cast<short>(d), x, y);
+    }
+};
+
+// The plain strip (the camp's spell and part strips): 25 nothing under a point, 26 pure in game.exe's table (the
+// CRT's _purecall 006E73EB; the strip is always rebuilt through its own list, never through this slot).
+struct PlainStripClass final : ItemStripClass<PlainStripClass, &CUiWindow::UiWindowDelete> {
+    void RebuildList() override { ei::UnportedSlot(0x006E73EB); }   // 26
+};
+struct PlainStripInputClass final : ItemStripInputClass<PlainStripInputClass, &CUiWindow::UiWindowDelete> {};
+
+// The forwarding strip (the camp's item strip, the exchange's): 0 frees its visible list, 20 its items, 25 the item
+// under a point; input 2 hands an item click to the owner.
+struct ForwardingStripClass final : ItemStripClass<ForwardingStripClass, &CUiItemStrip::ForwardingStripDelete> {
+    BOOL Draw(int pass) override { return AsPanel()->CUiItemStrip::Draw(pass); }                              // 20: 00621B50
+    void* ItemAt(int x, int y, int* topic) override { return AsPanel()->CUiItemStrip::ItemAt(x, y, topic); }   // 25: 00621F30
+};
+struct ForwardingStripInputClass final
+    : ItemStripInputClass<ForwardingStripInputClass, &CUiItemStrip::ForwardingStripDelete> {
+    int LeftDown(int b, int x, int y) override { return AsStrip()->OnLButtonDownForward(b, x, y), 0; }   // 2: 006212A0
+};
+
+// The figure strips (the hero screen's two, the exchange's): 20 the hero faces, 25 nothing under a point, 26 the
+// figure count; input 2 picks a figure.
+struct FigureStripClass final : ItemStripClass<FigureStripClass, &CUiWindow::UiWindowDelete> {
+    BOOL Draw(int pass) override { return AsPanel()->DrawFigures(pass); }                                  // 20: 00629AF0
+    void* ItemAt(int x, int y, int* topic) override { return AsPanel()->FigureItemAt(x, y, topic); }       // 25: 006157C0
+    void RebuildList() override { AsPanel()->CountFigures(); }                                             // 26: 00629AD0
+};
+struct FigureStripInputClass final : ItemStripInputClass<FigureStripInputClass, &CUiWindow::UiWindowDelete> {
+    int LeftDown(int b, int x, int y) override { return AsStrip()->OnFigureClick(b, x, y), 0; }   // 2: 00629DB0
+};
+
 template <typename Tag>
 void** Table() { return static_cast<void**>(Tag::Vtable()); }
 
@@ -133,3 +185,9 @@ void** CConstructorPage::ItemMakerVtable() { return Table<ItemMakerClass>(); }
 void** CConstructorPage::ItemMakerInputVtable() { return Table<ItemMakerInputClass>(); }
 void** CRepairGrid::Vtable() { return Table<RepairGridClass>(); }
 void** CRepairGrid::InputVtable() { return Table<RepairGridInputClass>(); }
+void** CUiItemStrip::PlainVtable() { return Table<PlainStripClass>(); }
+void** CUiItemStrip::PlainInputVtable() { return Table<PlainStripInputClass>(); }
+void** CUiItemStrip::ForwardingVtable() { return Table<ForwardingStripClass>(); }
+void** CUiItemStrip::ForwardingInputVtable() { return Table<ForwardingStripInputClass>(); }
+void** CUiItemStrip::FigureVtable() { return Table<FigureStripClass>(); }
+void** CUiItemStrip::FigureInputVtable() { return Table<FigureStripInputClass>(); }

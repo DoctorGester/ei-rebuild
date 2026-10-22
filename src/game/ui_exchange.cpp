@@ -117,12 +117,10 @@ EI_REPLACE_METHOD(0x0062D210, CExchangeScreen::OnExchangeDone);
 
 namespace {
 
-void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
-
 VtablePair ItemPanelVtables() { return {CUiItemPanel::BlankVtable(), CUiItemPanel::BlankInputVtable()}; }
 VtablePair InfoPanelVtables() { return {CItemInfoPanel::Vtable(), CItemInfoPanel::InputVtable()}; }
-VtablePair ForwardingStripVtables() { return {Vtable(0x0074197C), Vtable(0x00741948)}; }
-VtablePair FigureStripVtables() { return {Vtable(0x00741BF4), Vtable(0x00741C60)}; }
+VtablePair ForwardingStripVtables() { return {CUiItemStrip::ForwardingVtable(), CUiItemStrip::ForwardingInputVtable()}; }
+VtablePair FigureStripVtables() { return {CUiItemStrip::FigureVtable(), CUiItemStrip::FigureInputVtable()}; }
 VtablePair TradeGridVtables() { return {CTradeGrid::Vtable(), CTradeGrid::InputVtable()}; }
 void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // the strip's CArray<char*>
 constexpr std::size_t kFigureStripSize = 0x198;   // the figure strip stops before the item list

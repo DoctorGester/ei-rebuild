@@ -50,13 +50,11 @@
 
 namespace {
 
-void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
-
 VtablePair ItemPanelVtables() { return {CUiItemPanel::BlankVtable(), CUiItemPanel::BlankInputVtable()}; }
 VtablePair InfoPanelVtables() { return {CItemInfoPanel::Vtable(), CItemInfoPanel::InputVtable()}; }
 VtablePair StatsPanelVtables() { return {CHeroStatsPanel::Vtable(), CHeroStatsPanel::InputVtable()}; }
-VtablePair PlainStripVtables() { return {Vtable(0x00741A1C), Vtable(0x007419E8)}; }
-VtablePair ForwardingStripVtables() { return {Vtable(0x0074197C), Vtable(0x00741948)}; }
+VtablePair PlainStripVtables() { return {CUiItemStrip::PlainVtable(), CUiItemStrip::PlainInputVtable()}; }
+VtablePair ForwardingStripVtables() { return {CUiItemStrip::ForwardingVtable(), CUiItemStrip::ForwardingInputVtable()}; }
 VtablePair EquipPanelVtables() { return {CHeroEquipPanel::Vtable(), CHeroEquipPanel::InputVtable()}; }
 VtablePair QuickStripVtables() { return {CHeroQuickStrip::Vtable(), CHeroQuickStrip::InputVtable()}; }
 VtablePair TradePanelVtables() { return {CTradePanel::Vtable(), CTradePanel::InputVtable()}; }

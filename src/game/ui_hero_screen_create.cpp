@@ -39,7 +39,6 @@
 
 namespace {
 
-void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 VtablePair ItemPanelVtables() { return {CUiItemPanel::BlankVtable(), CUiItemPanel::BlankInputVtable()}; }
@@ -48,7 +47,7 @@ VtablePair StatsPanelVtables() { return {CHeroStatsPanel::Vtable(), CHeroStatsPa
 VtablePair EquipPanelVtables() { return {CHeroEquipPanel::Vtable(), CHeroEquipPanel::InputVtable()}; }
 VtablePair QuickStripVtables() { return {CHeroQuickStrip::Vtable(), CHeroQuickStrip::InputVtable()}; }
 VtablePair TradePanelVtables() { return {CTradePanel::Vtable(), CTradePanel::InputVtable()}; }
-VtablePair FigureStripVtables() { return {Vtable(0x00741BF4), Vtable(0x00741C60)}; }
+VtablePair FigureStripVtables() { return {CUiItemStrip::FigureVtable(), CUiItemStrip::FigureInputVtable()}; }
 
 // The objects' sizes where the class declares less (or more) than the original allocates.
 constexpr std::size_t kFigureStripSize = 0x198;   // the figure strip stops before the item list
