@@ -108,14 +108,14 @@ DriverLink* DriverSession::Start(net::Connection* player) {   // 0047A080
     while (driver->HasIncoming()) {
         CMemoryStream stream;
         stream.ConstructBase();
-        ei::SetVtable(&stream, kMemoryStreamVtable);
+        ei::SetVtable(&stream, CMemoryStream::MemoryStreamVtable());
         stream.data_ = nullptr;
         stream.Reset();
         ei::SetVtable(&stream, CMemoryStream::QueueStreamVtable());
         driver->Receive(&stream);
-        ei::SetVtable(&stream, kMemoryStreamVtable);
+        ei::SetVtable(&stream, CMemoryStream::MemoryStreamVtable());
         if (void* data = stream.data_) gamecrt::operator_delete(data);
-        ei::SetVtable(&stream, kStreamVtable);
+        ei::SetVtable(&stream, CStream::StreamVtable());
     }
     return driver;
 }

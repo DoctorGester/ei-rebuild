@@ -168,6 +168,10 @@ does not need a second pass:
   stlp::vector is resized with `v.ResizeDefault<Element>(n)`, not through a `VectorAbi` downcast;
   a window surface is drawn on through `CUiSurface::GetDC` / `ReleaseDC` / `DrawLine`, not a
   per-file view struct derived from it.
+- one typed view instead of a cast per accessor (C15): a compiled tag's slots reach their object
+  through `ObjectAs<T>()` (`src/lib/compiled_vtable.h`); an object embedded in another and built by
+  the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure
+  virtual slots (`src/lib/static_object.h`), not a byte array with a casting accessor.
 `build.cmd` runs `tools/check_cleanup.py`: per file, the counts of these patterns may only go down
 (config/cleanup_baseline.csv; a new file starts at zero). After a cleanup ticket lowers them, run
 `python tools/check_cleanup.py --update`.

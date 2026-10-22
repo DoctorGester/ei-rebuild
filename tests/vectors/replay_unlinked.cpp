@@ -109,6 +109,8 @@ std::size_t __cdecl libcrt::Fwrite(const void*, std::size_t, std::size_t, gamecr
 // The library's exceptions and resources (stlp_string.cpp, mfc_archive.cpp, mfc_string.cpp, mfc.cpp's
 // TRY link, mfc_file.cpp).
 libcrt::Exception* libcrt::Exception::Construct() EI_UNLINKED("libcrt::Exception::Construct")
+libcrt::Exception* libcrt::Exception::DeletingDestruct(unsigned) EI_UNLINKED("libcrt::Exception::DeletingDestruct")
+void* mfc::impl::CFileException::Vtable() EI_UNLINKED("mfc::impl::CFileException::Vtable")
 void __stdcall libcrt::CxxThrowException(void*, const void*) EI_UNLINKED("libcrt::CxxThrowException")
 void __stdcall mfc::impl::ThrowArchiveException(int, const char*) EI_UNLINKED("mfc::impl::ThrowArchiveException")
 void __stdcall mfc::impl::AfxClassInit(mfc::impl::CRuntimeClass*) EI_UNLINKED("mfc::impl::AfxClassInit")

@@ -17,7 +17,7 @@ namespace {
 
 // ClassTemplate's table (C19; game.exe's 0073D0C4, the same slots): 0 the scalar deleting destructor, 1 Serialize.
 struct ClassTemplateClass final : ei::CompiledDeleter<ClassTemplateClass, &ClassTemplate::DeletingDestruct> {
-    virtual void Serialize(ChunkArchive* ar) { reinterpret_cast<ClassTemplate*>(this)->Serialize(ar); }   // 1
+    virtual void Serialize(ChunkArchive* ar) { ObjectAs<ClassTemplate>()->Serialize(ar); }   // 1
 };
 
 // list<CItem*>'s constructor (004A9CD0 inlined): a sentinel node from the node pool linked to itself.

@@ -48,8 +48,8 @@ const Vector3 kCaveSun = {0.5f, 0.5f, std::bit_cast<float>(0xBF3504E6u)};
 // 0078FF38: the hour (floored) the terrain's sun was last set for; -1 makes the next frame set it.
 using worlddata::g_lastLitHour;
 
-// Terrain::SetSun (006C8ED0) takes the ambient colour as a Vector4.
-const Vector4* Ambient(const LightColour* colour) { return reinterpret_cast<const Vector4*>(colour); }
+// Terrain::SetSun (006C8ED0) takes the ambient colour as a Vector4 (and copies it).
+Vector4 Ambient(const LightColour& c) { return {c.r, c.g, c.b, c.a}; }
 
 // The FCOMP / TEST AH,0x40 test: equal.
 bool IsZero(float value) {
@@ -161,7 +161,10 @@ int CWorldClient::UpdateLighting() {
         EI_NAN_AUDIT(hour, g_lastLitHour);
         if (hour - g_lastLitHour < 1.0f) return 0;
         g_lastLitHour = static_cast<float>(std::floor(static_cast<double>(hour)));
-        if (terrain_) terrain_->SetSun(light, Ambient(&frameAmbient_));
+        if (terrain_) {
+            const Vector4 ambient = Ambient(frameAmbient_);
+            terrain_->SetSun(light, &ambient);
+        }
         return 1;
     }
 
@@ -220,7 +223,10 @@ int CWorldClient::UpdateLighting() {
     EI_NAN_AUDIT(hour, g_lastLitHour);
     if (hour - g_lastLitHour < 1.0f) return 0;
     g_lastLitHour = static_cast<float>(std::floor(static_cast<double>(hour)));
-    if (terrain_) terrain_->SetSun(light, Ambient(&frameAmbient_));
+    if (terrain_) {
+        const Vector4 ambient = Ambient(frameAmbient_);
+        terrain_->SetSun(light, &ambient);
+    }
     return 1;
 }
 

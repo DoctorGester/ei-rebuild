@@ -583,7 +583,7 @@ static_assert(sizeof(CUiSurface) == 0x38);
 void __fastcall UiSurfaceBlit(CUiSurface* surface);
 // The surface's compiled table (C19, lib/compiled_vtable.h; game.exe's 00740F28): slot 0 is the draw above.
 struct UiSurfaceClass final : ei::CompiledTag<UiSurfaceClass> {
-    virtual void Blit() { UiSurfaceBlit(reinterpret_cast<CUiSurface*>(this)); }   // 0
+    virtual void Blit() { UiSurfaceBlit(ObjectAs<CUiSurface>()); }   // 0
 };
 // 005FDC00 / 005FDC60 (ui_surface_dc.cpp; CUiSurface::GetDC / ReleaseDC): the surface's CDC (a temporary
 // MFC wrapper; null without a DirectDraw surface) and the matching release.

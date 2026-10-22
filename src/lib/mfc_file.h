@@ -2,8 +2,9 @@
 
 // MFC 4.2's CFile, CStdioFile and CFileFind (filecore.cpp, filetxt.cpp, filefind.cpp) and the path
 // helpers they use, written out for the standalone exe (ticket S8, docs/notes/standalone.md
-// section 2). Same layout as the copy linked into game.exe, with its vtables; every body is
-// registered at its library address (mfc_file.cpp) and checked in game by verify_mfc_file.cpp until S21d.
+// section 2). Same layout as the copy linked into game.exe; the tables are compiled (C19, mfc_file.cpp's
+// FileTable, StdioFileTable and FileFindTable) in place of game.exe's 00745DF4, 007464F0 and 00745EE8, with the
+// slots in game.exe's order. Every body is registered at its library address (mfc_file.cpp).
 // The callers keep going through the forwarders (mfc.h, src/game) until C13.
 //
 // CFile works on Win32 handles through the game's import table. CStdioFile's stream is the game
@@ -28,7 +29,7 @@ struct CFileStatus {
 };
 static_assert(sizeof(CFileStatus) == 0x118);
 
-// CFile (0x10 bytes, vtable 00745DF4). The virtual members are reached through the object's
+// CFile (0x10 bytes). The virtual members are reached through the object's
 // vtable where the original dispatches (mfc::CFileVirtuals); the bodies here are the slots'.
 struct CFile {
     enum OpenFlags : unsigned {
@@ -44,7 +45,7 @@ struct CFile {
     BOOL closeOnDelete;     // +0x08 m_bCloseOnDelete
     CString fileName;       // +0x0C m_strFileName (the full path)
 
-    static void* Vtable() { return ei::GamePointer<void>(0x00745DF4); }
+    static void* Vtable();
 
     CFile* Construct();                                         // 00701036
     CFile* ConstructHandle(HANDLE file);                        // 0070106C CFile(int hFile)
@@ -79,11 +80,11 @@ struct CFile {
 };
 static_assert(sizeof(CFile) == 0x10);
 
-// CStdioFile (0x14 bytes, vtable 007464F0): a CFile with a CRT stream over its handle.
+// CStdioFile (0x14 bytes): a CFile with a CRT stream over its handle.
 struct CStdioFile : CFile {
     gamecrt::CrtFile* stream;   // +0x10 m_pStream
 
-    static void* Vtable() { return ei::GamePointer<void>(0x007464F0); }
+    static void* Vtable();
 
     CStdioFile* Construct();                                    // 00701B79
     CStdioFile* ConstructOpen(const char* path, unsigned flags);    // 00701BD4 (throws a CFileException*)
@@ -106,7 +107,7 @@ struct CStdioFile : CFile {
 };
 static_assert(sizeof(CStdioFile) == 0x14);
 
-// CFileFind (0x1C bytes, vtable 00745EE8). The found entries are WIN32_FIND_DATA blocks from
+// CFileFind (0x1C bytes). The found entries are WIN32_FIND_DATA blocks from
 // operator new: FindNextFile swaps the next one in.
 struct CFileFind {
     void* vtable;
@@ -117,7 +118,7 @@ struct CFileFind {
     CString root;               // +0x14 m_strRoot
     char separator;             // +0x18 m_chDirSeparator ('\\')
 
-    static void* Vtable() { return ei::GamePointer<void>(0x00745EE8); }
+    static void* Vtable();
 
     CFileFind* Construct();                                     // 006E6370
     void Destruct();                                            // 006E63AD

@@ -1,4 +1,5 @@
 // MFC 4.2's CFile, CStdioFile and CFileFind, registered at their library addresses (mfc_file.h).
+#include "compiled_vtable.h"
 #include "crt.h"
 #include "mfc_file.h"
 #include "mfc_runtime_class.h"
@@ -212,6 +213,90 @@ unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max) 
 const void* __fastcall FileRuntimeClass(const void*) { return &kClassCFile; }
 const void* __fastcall StdioFileRuntimeClass(const void*) { return &kClassCStdioFile; }
 const void* __fastcall FileFindRuntimeClass(const void*) { return &kClassCFileFind; }
+
+// ---- The compiled tables (C19) --------------------------------------------------------------------
+
+namespace {
+
+// CFile's 21 slots (MFC 4.2's CFile virtuals), each the body of `File` that game.exe's table points at: CFile's
+// for game.exe's 00745DF4, CStdioFile's own (or the CFile one it inherits) for 007464F0.
+template <typename Self, typename File, const CRuntimeClass* kClass>
+struct FileTable : ei::CompiledTag<Self> {
+    virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }                       // 0
+    virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }     // 1
+    virtual void Serialize(void*) {}                                                              // 2: 00444B00
+    virtual unsigned long GetPosition() const { return This()->GetPosition(); }                  // 3
+    virtual CString GetFileName() const { return This()->GetFileName(); }                         // 4
+    virtual CString GetFileTitle() const { return This()->GetFileTitle(); }                       // 5
+    virtual CString GetFilePath() const { return This()->GetFilePath(); }                         // 6
+    virtual void SetFilePath(const char* path) { This()->SetFilePath(path); }                     // 7
+    virtual BOOL Open(const char* path, unsigned flags, CFileException* error) {                  // 8
+        return This()->Open(path, flags, error);
+    }
+    virtual CFile* Duplicate() const { return This()->Duplicate(); }                              // 9
+    virtual long Seek(long offset, unsigned from) { return This()->Seek(offset, from); }          // 10
+    virtual void SetLength(unsigned long length) { This()->SetLength(length); }                   // 11
+    virtual unsigned long GetLength() const { return This()->GetLength(); }                       // 12
+    virtual unsigned Read(void* buffer, unsigned count) { return This()->Read(buffer, count); }   // 13
+    virtual void Write(const void* buffer, unsigned count) { This()->Write(buffer, count); }      // 14
+    virtual void LockRange(unsigned long position, unsigned long count) { This()->LockRange(position, count); }   // 15
+    virtual void UnlockRange(unsigned long position, unsigned long count) { This()->UnlockRange(position, count); }   // 16
+    virtual void Abort() { This()->Abort(); }                                                     // 17
+    virtual void Flush() { This()->Flush(); }                                                     // 18
+    virtual void Close() { This()->Close(); }                                                     // 19
+    virtual unsigned GetBufferPtr(unsigned command, unsigned count, void** start, void** end) {   // 20
+        return This()->GetBufferPtr(command, count, start, end);
+    }
+
+protected:
+    File* This() { return reinterpret_cast<File*>(this); }
+    const File* This() const { return reinterpret_cast<const File*>(this); }
+};
+
+// game.exe's 00745DF4 (0: 0070BE58, 1: 00701050, 3-20: 007013B9 ... 0070150F).
+struct PlainFileTable final : FileTable<PlainFileTable, CFile, &kClassCFile> {};
+
+// game.exe's 007464F0 (0: 0070C15B, 1: 00701B8F): CStdioFile's slots 3, 8-10, 13-19, the CFile ones at 4-7 / 11 /
+// 12 / 20, and 21-23 its own. UnlockRange (16, 0070204B) is LockRange's body (not supported).
+struct StdioFileTable final : FileTable<StdioFileTable, CStdioFile, &kClassCStdioFile> {
+    void UnlockRange(unsigned long position, unsigned long count) override { This()->LockRange(position, count); }
+    virtual void WriteString(const char* text) { This()->WriteString(text); }                     // 21
+    virtual BOOL ReadLine(CString& text) { return This()->ReadLine(text); }                             // 22
+    virtual char* ReadString(char* buffer, unsigned size) { return This()->ReadString(buffer, size); }   // 23
+};
+
+// CFileFind's 19 slots (game.exe's 00745EE8; 0: 0070BE5E, 1: 006E6391, 3-18: 006E684B ... 006E6429).
+struct FileFindTable final : ei::CompiledTag<FileFindTable> {
+    virtual const CRuntimeClass* GetRuntimeClass() const { return &kClassCFileFind; }             // 0
+    virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }     // 1
+    virtual void Serialize(void*) {}                                                              // 2: 00444B00
+    virtual CString GetFileName() const { return This()->GetFileName(); }                         // 3
+    virtual CString GetFilePath() const { return This()->GetFilePath(); }                         // 4
+    virtual CString GetFileTitle() const { return This()->GetFileTitle(); }                       // 5
+    virtual CString GetFileURL() const { return This()->GetFileURL(); }                           // 6
+    virtual CString GetRoot() const { return This()->GetRoot(); }                                 // 7
+    virtual BOOL GetLastWriteTime(CTime* time) const { return This()->GetLastWriteTime(time); }   // 8
+    virtual BOOL GetLastWriteFileTime(FILETIME* time) const { return This()->GetLastWriteFileTime(time); }   // 9
+    virtual BOOL GetLastAccessTime(CTime* time) const { return This()->GetLastAccessTime(time); }   // 10
+    virtual BOOL GetLastAccessFileTime(FILETIME* time) const { return This()->GetLastAccessFileTime(time); }   // 11
+    virtual BOOL GetCreationTime(CTime* time) const { return This()->GetCreationTime(time); }     // 12
+    virtual BOOL GetCreationFileTime(FILETIME* time) const { return This()->GetCreationFileTime(time); }   // 13
+    virtual BOOL MatchesMask(unsigned long mask) const { return This()->MatchesMask(mask); }      // 14
+    virtual BOOL IsDots() const { return This()->IsDots(); }                                      // 15
+    virtual BOOL FindFile(const char* pattern, unsigned long flags) { return This()->FindFile(pattern, flags); }   // 16
+    virtual BOOL FindNextFile() { return This()->FindNextFile(); }                                // 17
+    virtual BOOL CloseContext() { return This()->CloseContext(); }                                // 18
+
+private:
+    CFileFind* This() { return reinterpret_cast<CFileFind*>(this); }
+    const CFileFind* This() const { return reinterpret_cast<const CFileFind*>(this); }
+};
+
+} // namespace
+
+void* CFile::Vtable() { return PlainFileTable::Vtable(); }
+void* CStdioFile::Vtable() { return StdioFileTable::Vtable(); }
+void* CFileFind::Vtable() { return FileFindTable::Vtable(); }
 
 // ---- CFile ----------------------------------------------------------------------------------------
 

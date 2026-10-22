@@ -235,7 +235,7 @@ int GameFlow::SaveGame(const char* slot) {
     // scenario.sav: the party, the input state, the scripts and the globals.
     CMemoryStream scenario;
     std::memset(&scenario, 0, sizeof(scenario));
-    ei::SetVtable(&scenario, kMemoryStreamVtable);
+    ei::SetVtable(&scenario, CMemoryStream::MemoryStreamVtable());
     scenario.data_ = nullptr;
     scenario.capacity_ = 0;
     scenario.position_ = 0;
@@ -247,9 +247,9 @@ int GameFlow::SaveGame(const char* slot) {
     struct ScenarioOwner {   // frees the buffer on the way out (CMemoryStream's inlined destructor)
         CMemoryStream* s;
         ~ScenarioOwner() {
-            ei::SetVtable(s, kMemoryStreamVtable);
+            ei::SetVtable(s, CMemoryStream::MemoryStreamVtable());
             if (s->data_) gamecrt::operator_delete(s->data_);
-            ei::SetVtable(s, kStreamVtable);
+            ei::SetVtable(s, CStream::StreamVtable());
         }
     } scenarioOwner{&scenario};
     PartySave(ThePartyManager(), nullptr, &scenario);
@@ -274,13 +274,13 @@ int GameFlow::SaveGame(const char* slot) {
         std::memset(&mission, 0, sizeof(mission));
         mission.version_ = kStreamLimit;
         mission.ok_ = 1;
-        ei::SetVtable(&mission, kMemoryStreamVtable);
+        ei::SetVtable(&mission, CMemoryStream::MemoryStreamVtable());
         mission.data_ = nullptr;
         mission.Reset();
         mission.version_ = static_cast<std::uint32_t>(SaveVersion());
         TheServerWorld()->SaveWorld(&mission);
         SaveFileWrite(&file.stream, kMagicMission, SaveVersion(), &mission);
-        ei::SetVtable(&mission, kMemoryStreamVtable);
+        ei::SetVtable(&mission, CMemoryStream::MemoryStreamVtable());
         if (mission.data_) gamecrt::operator_delete(mission.data_);
         file.Close();
     }
@@ -332,15 +332,15 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone
     std::memset(&data, 0, sizeof(data));
     data.version_ = kStreamLimit;
     data.ok_ = 1;
-    ei::SetVtable(&data, kMemoryStreamVtable);
+    ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
     data.data_ = nullptr;
     data.Reset();
     struct DataOwner {
         CMemoryStream* s;
         ~DataOwner() {
-            ei::SetVtable(s, kMemoryStreamVtable);
+            ei::SetVtable(s, CMemoryStream::MemoryStreamVtable());
             if (s->data_) gamecrt::operator_delete(s->data_);
-            ei::SetVtable(s, kStreamVtable);
+            ei::SetVtable(s, CStream::StreamVtable());
         }
     } owner{&data};
     if (!SaveFileRead(&data, kMagicMission, SaveVersion(), ei::GameData<const int>(0x00790268), &file.stream)) {
@@ -528,17 +528,17 @@ int __stdcall StartNetworkZone(const char* zone) {
         std::memset(&data, 0, sizeof(data));
         data.version_ = kStreamLimit;
         data.ok_ = 1;
-        ei::SetVtable(&data, kMemoryStreamVtable);
+        ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
         data.data_ = nullptr;
         data.Reset();
         bool loaded = SaveFileRead(&data, kMagicMission, SaveVersion(), ei::GameData<const int>(0x00790268),
                                    &file.stream) &&
                       TheServerWorld()->LoadSave(&data, nullptr) != 0;
         if (loaded) file.Close();
-        ei::SetVtable(&data, kMemoryStreamVtable);
+        ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
         if (data.data_) gamecrt::operator_delete(data.data_);
         if (!loaded) {
-            ei::SetVtable(&data, kStreamVtable);
+            ei::SetVtable(&data, CStream::StreamVtable());
             return 0;
         }
     } else {
@@ -629,7 +629,7 @@ int __stdcall LeaveZone(CParty* records) {
     std::memset(&data, 0, sizeof(data));
     data.version_ = kStreamLimit;
     data.ok_ = 1;
-    ei::SetVtable(&data, kMemoryStreamVtable);
+    ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
     data.data_ = nullptr;
     data.Reset();
     data.version_ = static_cast<std::uint32_t>(SaveVersion());
@@ -649,9 +649,9 @@ int __stdcall LeaveZone(CParty* records) {
         mfc::CString variable = prefix + zone;
         VariableSet(variables, variable, now);
     }
-    ei::SetVtable(&data, kMemoryStreamVtable);
+    ei::SetVtable(&data, CMemoryStream::MemoryStreamVtable());
     if (data.data_) gamecrt::operator_delete(data.data_);
-    ei::SetVtable(&data, kStreamVtable);
+    ei::SetVtable(&data, CStream::StreamVtable());
     return 1;
 }
 
@@ -926,14 +926,14 @@ struct LocalMemoryStream {
         std::memset(&s, 0, sizeof(s));
         s.version_ = kStreamLimit;
         s.ok_ = 1;
-        ei::SetVtable(&s, kMemoryStreamVtable);
+        ei::SetVtable(&s, CMemoryStream::MemoryStreamVtable());
         s.data_ = nullptr;
         s.Reset();
     }
     ~LocalMemoryStream() {
-        ei::SetVtable(&s, kMemoryStreamVtable);
+        ei::SetVtable(&s, CMemoryStream::MemoryStreamVtable());
         if (s.data_) gamecrt::operator_delete(s.data_);
-        ei::SetVtable(&s, kStreamVtable);
+        ei::SetVtable(&s, CStream::StreamVtable());
     }
     LocalMemoryStream(const LocalMemoryStream&) = delete;
     LocalMemoryStream& operator=(const LocalMemoryStream&) = delete;
@@ -1086,15 +1086,15 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
         RefPtrAssign(&net::GameClient(), nullptr, client);
     }
     // The local client connects to the local server with the password as its hello.
-    alignas(4) std::uint8_t address[16] = {};
-    AddressSet(address, nullptr, kLocalHost, net::g_gamePort);
+    net::NetAddress address = {};
+    AddressSet(&address, nullptr, kLocalHost, net::g_gamePort);
     {
         GameBuffer hello;
         hello.ConstructGrowing();
         char secret[kPasswordSize] = {};
         if (password) gamecrt::strncpy(secret, password, kPasswordSize);
         hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
-        net::GameClient()->Join(reinterpret_cast<const net::NetAddress*>(address), &hello);
+        net::GameClient()->Join(&address, &hello);
         GrowingBufferDestruct(&hello);
     }
     LocalLogin()->host_ = 1;
@@ -1633,15 +1633,15 @@ int GameFlow::LoadGame(const char* slot) {
     std::memset(&scenario, 0, sizeof(scenario));
     scenario.version_ = kStreamLimit;
     scenario.ok_ = 1;
-    ei::SetVtable(&scenario, kMemoryStreamVtable);
+    ei::SetVtable(&scenario, CMemoryStream::MemoryStreamVtable());
     scenario.data_ = nullptr;
     scenario.Reset();
     struct ScenarioOwner {   // the buffer freed on the way out (the inlined destructor)
         CMemoryStream* s;
         ~ScenarioOwner() {
-            ei::SetVtable(s, kMemoryStreamVtable);
+            ei::SetVtable(s, CMemoryStream::MemoryStreamVtable());
             if (s->data_) gamecrt::operator_delete(s->data_);
-            ei::SetVtable(s, kStreamVtable);
+            ei::SetVtable(s, CStream::StreamVtable());
         }
     } scenarioOwner{&scenario};
     if (!SaveFileRead(&scenario, kMagicScenario, SaveVersion(), ei::GameData<const int>(0x00790268), &file.stream)) {
@@ -1818,9 +1818,8 @@ unsigned& AppliedStamp() { return g_appliedStamp; }  // the stamp applied up to
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
-// 00580840 (GameFlow::OnVariableChanged): the original passes the variable node as ECX and as the
-// event (the method reads only the event).
-void VariableChanged(const void* node) { reinterpret_cast<GameFlow*>(const_cast<void*>(node))->OnVariableChanged(node); }
+// 00580840 (GameFlow::OnVariableChanged) for a node of the changed-variables vector.
+void VariableChanged(const void* node) { GameFlow::OnVariableChanged(static_cast<const net::RefNode*>(node)); }
 // The vector of changed variables (STLport vector<node*>): its allocator tag constructor
 // (00584720), insert overflow (00587700: position, value, count) and storage release (00584A90:
 // ECX storage, EDX capacity); the stamp sort (00589160 introsort with ECX first, EDX last, then a

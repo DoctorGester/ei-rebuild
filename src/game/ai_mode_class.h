@@ -41,8 +41,8 @@ public:
     virtual void Save(CStream*) {}                                      // 12: 004BA2C0 (RET 4)
 
 protected:
-    AIMode* Mode() { return reinterpret_cast<AIMode*>(this); }
-    T* Derived() { return reinterpret_cast<T*>(this); }
+    AIMode* Mode() { return this->template ObjectAs<AIMode>(); }
+    T* Derived() { return this->template ObjectAs<T>(); }
     // A slot 3 result as CRefObject's slot returns it.
     static CRefObject* AsRefObject(AIMode* mode) { return reinterpret_cast<CRefObject*>(mode); }
 };
@@ -217,7 +217,7 @@ public:
     void Save(CStream* stream) override { Player()->PlayerMode::Save(stream); }               // 12: 005D4DB0
 
 protected:
-    PlayerMode* Player() { return reinterpret_cast<PlayerMode*>(this); }
+    PlayerMode* Player() { return this->template ObjectAs<PlayerMode>(); }
 };
 
 class PlayerClass final : public PlayerModeClass<PlayerClass> {};   // 0073F0F8

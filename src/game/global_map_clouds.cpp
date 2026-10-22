@@ -41,7 +41,7 @@ extern "C" int __cdecl _purecall();
 // The compiled tables in place of game.exe's: the base's 0073D030 (0 / 1 pure, 2 the deleting destructor) and the
 // global map's 007420D4 (its layer and frame steps; slot 2 0062EDA0 is the base's 00499E30 again).
 struct CloudNoiseBaseClass : ei::CompiledTag<CloudNoiseBaseClass> {
-    CCloudNoise* Noise() { return reinterpret_cast<CCloudNoise*>(this); }
+    CCloudNoise* Noise() { return ObjectAs<CCloudNoise>(); }
     virtual void MakeLayer(std::uint8_t*) { _purecall(); }                                                  // 0
     virtual void Generate(std::uint8_t*, int) { _purecall(); }                                              // 1
     virtual CCloudNoise* DeletingDestruct(unsigned flags) { return Noise()->DeletingDestructImpl(flags); }   // 2

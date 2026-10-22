@@ -32,7 +32,7 @@ public:
     virtual CSpellManager* SpellManager() { return World()->manager4C_; }               // 22: 0055EBA0
     virtual CLinkFigureLoader* FigureLoader() { return World()->figureLoader_; }        // 23: 0055EBD0
     // 24: 0055E940, CParty's copy of an item (the world's slots 18 and 22 are the getters it calls).
-    virtual CItem* DuplicateItem(CItem* item) { return reinterpret_cast<CParty*>(World())->CParty::MakeCopyOf(item); }
+    virtual CItem* DuplicateItem(CItem* item) { return this->template As<CParty>()->CParty::MakeCopyOf(item); }
     virtual const char* TexturePath() { return nullptr; }   // 25: 0055EB20
     virtual int IsServer() { return 0; }                    // 26: 0055EB30
     virtual double GridHeightAt(float, float) { return _purecall(); }         // 27: pure

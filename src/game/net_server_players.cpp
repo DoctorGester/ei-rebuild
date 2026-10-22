@@ -56,14 +56,13 @@ int ServerSession::LeaderId() {
 }
 EI_REWRITTEN(0x0041A020, ServerSession::LeaderId);
 
-// 0041A050 (slot 16): whether a client from `address` may join. Refused when the address is banned
+// 0041A050 (slot 16): whether a client from `from` may join. Refused when the address is banned
 // (reason 2), when a password is set and the 20 bytes at `*password` differ (reason 3; the pointer
 // moves past them either way), or when the clients and the pending joins reach the maximum
 // (reason 1).
-bool ServerSession::AdmitImpl(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) {
+bool ServerSession::AdmitImpl(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) {
     *reason = 2;
     // find_if over the banned addresses (00427FF0): the host compared, not the port.
-    const auto* from = reinterpret_cast<const NetAddress*>(address);
     auto* banned = banned_.First();
     while (banned != banned_.End() && banned->data.ip != from->ip) banned = banned->next;
     if (banned != banned_.End()) return false;

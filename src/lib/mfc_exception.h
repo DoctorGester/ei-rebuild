@@ -85,7 +85,7 @@ struct CFileException {
     long osError;       // +0x0C m_lOsError (-1: none)
     CString fileName;   // +0x10 m_strFileName
 
-    static void* Vtable() { return ei::GamePointer<void>(0x00745E4C); }
+    static void* Vtable();   // compiled (C19, mfc_exception.cpp) in place of game.exe's 00745E4C
     // An empty exception as CFile's constructors build it on the stack (cause none, no OS error),
     // on an object whose name is constructed.
     void InitEmpty();

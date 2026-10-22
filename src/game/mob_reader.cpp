@@ -192,12 +192,12 @@ bool MobFile::Load(void*, int keepIds) {
     for (auto* node = records.byId.First(); node; node = records.byId.After(node)) {
         Spec* spec = node->value;
         if (spec->kind == kKindTrap) {
-            auto* trap = spec->As<TrapSpec>();
-            trap->diplomacy = 0;
-            trap->origin = spec->position;
-            const std::int32_t* row = diplomacy->relations[trap->object.side];
+            auto* record = spec->As<TrapSpec>();
+            record->trap.sides = 0;
+            record->trap.position = spec->position;
+            const std::int32_t* row = diplomacy->relations[record->object.side];
             for (int c = 0; c < 32; ++c)
-                trap->diplomacy |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
+                record->trap.sides |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
         WorldMakeObjectOriginal(TheServerWorld(), nullptr, spec);
         auto* object = spec->As<ObjectSpec>();

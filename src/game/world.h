@@ -1665,12 +1665,13 @@ static_assert(offsetof(CWorldClient, appName_) == 0x7D4 && sizeof(CWorldClient) 
 // MatrixRows (the first three rows of a 4x4 matrix; Transform 00560E10) is in src/lib/vecmath.h.
 
 // Sorting predicates passed to STLport sort (operator() of empty or small functors).
-// 00573A60. Orders objects (by id at +4 of each entry) by distance along a view plane; dead and
-// living objects are separated first.
+// 00573A60. Orders screen entries (their objects by objectId) by distance along the view's depth
+// axis; dead and living objects are separated first.
 struct DepthLess {
-    float* plane;                         // +0 plane at +0x20 (normal) and +0x2C (offset)
+    float* view;                          // +0 the view matrix (row-major 4x4): row 2 (+0x20) the depth
+                                          //    axis, its translation (+0x2C) the offset
     void* manager;                        // +4 CBaseManager holding the objects
-    bool Less(const int* a, const int* b);
+    bool Less(const ScreenEntry* a, const ScreenEntry* b);
 };
 // 00574300. The draw lists' order (DrawPass): by the first part set's texture, then the figure, then
 // the view depth (+0x30). The original compares the texture and the figure by address; with
@@ -1680,9 +1681,10 @@ struct UnitOrderLess {
     // The original's order: texture and figure by address.
     static bool LessByAddress(CEngineObject* a, CEngineObject* b);
 };
-// 00589580. Orders entries by the unsigned value at +0x1C of the object they point to (+8).
+// 00589580. Orders the client's variable nodes (ClientSession::variables_) by their stamp
+// (VariableMessage::serial_).
 struct EntryIdLess {
-    BOOL Less(const std::uint8_t* a, const std::uint8_t* b);
+    BOOL Less(const stlp::list<RefPtr>::Node* a, const stlp::list<RefPtr>::Node* b);
 };
 // world_stamp_sort.cpp. STLport's sort of the changed variables' nodes with EntryIdLess (the flow's
 // update 005800C0): 00589160 (RET 0xC) __introsort_loop, 00589240 (RET 4) __final_insertion_sort;
@@ -1763,10 +1765,10 @@ struct GameFlow {
     // 0057ED00 (the hero screens). DropSessions, then the resources go back to the local database
     // (UseResources(false)).
     void EndSession();
-    // 00580840 (RET 4; world_briefing.cpp). A player variable changed (event +8: the record,
-    // name at +0x0C, value at +0x18): "q." variables go to the quest log (007C7D50) and the
-    // client world.
-    void OnVariableChanged(const void* event);
+    // 00580840 (RET 4; world_briefing.cpp). The client's variable at `node` (an element of
+    // ClientSession::variables_) changed: "q." variables go to the quest log (007C7D50) and the
+    // client world. The original's ECX is the node as well; only the argument is read.
+    static void __stdcall OnVariableChanged(const stlp::list<RefPtr>::Node* node);
     // 005810A0 (RET 4; world_briefing.cpp). Registers a quest folder once: the flow loads its
     // quests (005809D0), then with "<folder>\quest.reg" in the texts the quest table reads it,
     // the map database loads "<folder>\map.txt" and the folder joins the list at 007AFDC0.

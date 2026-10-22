@@ -54,4 +54,19 @@ union InPlace {
     T object;
 };
 
+// As InPlace for an abstract T (pure virtual slots: neither a member nor a union member can have its
+// type): the object's bytes inside its owner, built and destroyed by the owner's code through the
+// class's constructor and destructor bodies; Get is the one typed view of them.
+template <class T>
+class AbstractInPlace {
+public:
+    T* Get() { return std::launder(reinterpret_cast<T*>(bytes_)); }
+    const T* Get() const { return std::launder(reinterpret_cast<const T*>(bytes_)); }
+    T* operator->() { return Get(); }
+    const T* operator->() const { return Get(); }
+
+private:
+    alignas(T) unsigned char bytes_[sizeof(T)];
+};
+
 } // namespace lib

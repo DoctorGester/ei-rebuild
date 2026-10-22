@@ -59,7 +59,7 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
     mfc::CStringArray files;
     files.Construct();
     SoundSystemListFilesOriginal(sounds, nullptr, &files, kSoundPattern);
-    for (int i = 0; i < files.size; ++i) reinterpret_cast<mfc::CString*>(files.data)[i].MakeLower();
+    for (int i = 0; i < files.size; ++i) files.data[i].MakeLower();
 
     int modelCount = static_cast<int>(models.end - models.begin);
     for (int m = 0; m < modelCount; ++m) {

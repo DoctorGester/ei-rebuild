@@ -333,7 +333,7 @@ public:
     virtual void CopyFrom(CStream* source) { Object()->CopyFromImpl(source); }       // 7: 004A4D40
 
 private:
-    FileStream* Object() { return reinterpret_cast<FileStream*>(this); }
+    FileStream* Object() { return ObjectAs<FileStream>(); }
 };
 
 class NetLinkClass : public ei::CompiledTag<NetLinkClass> {
@@ -357,7 +357,7 @@ public:
 
 protected:
     template <typename T>
-    T* As() { return reinterpret_cast<T*>(this); }
+    T* As() { return ObjectAs<T>(); }
 };
 
 class LoopbackLinkClass final : public NetLinkClass {
@@ -429,7 +429,7 @@ public:
     virtual void TakeNew(void* joined) { Object()->TakeNewImpl(joined); }                      // 6: 0047A230
 
 private:
-    DriverSession* Object() { return reinterpret_cast<DriverSession*>(this); }
+    DriverSession* Object() { return ObjectAs<DriverSession>(); }
 };
 
 inline void* FileStream::Vtable() { return FileStreamClass::Vtable(); }

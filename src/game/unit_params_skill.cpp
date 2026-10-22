@@ -40,12 +40,12 @@ bool StatTerm(const UnitParams* params, char letter, double* term) {
     }
 }
 
-double WeaponByte(const char* weapon, int skill) {
-    return weapon ? static_cast<double>(reinterpret_cast<const itemdb::WeaponRecord*>(weapon)->skillBonus[skill]) : 0.0;
+double WeaponByte(const itemdb::WeaponRecord* weapon, int skill) {
+    return weapon ? static_cast<double>(weapon->skillBonus[skill]) : 0.0;
 }
 } // namespace
 
-double UnitParams::WeaponSkillBonus(int type, const char* weapon) {
+double UnitParams::WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon) {
     double term;
     if (type < 5) {
         // The level value stays on the FPU (FILD qword); the sums are taken as the original's.

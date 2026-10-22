@@ -1,6 +1,7 @@
 vtable,slots,class,file,note
 0073B8D4,3,TempListClass,src/lib/mfc_slots.h,CList (a pointer list built around each item creation (world quests))
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
+0073B994,2,NamedExceptionClass,src/lib/stlp_string.cpp,"__Named_exception (out_of_range's base, set while its constructor runs)"
 0073B9E0,18,CameraClass,src/game/camera_object.cpp,the camera (CCamera)
 0073BB28,6,ServerEntryClass,src/game/net_messages.h,ReplicatedClass (the lobby's server entry)
 0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base; slots 2-5 _purecall)
@@ -33,6 +34,7 @@ vtable,slots,class,file,note
 0073BE30,17,ClientBaseClass,src/game/net_classes.h,the client base (ClientBase; slot 16 _purecall)
 0073BE74,3,ItemObjectListClass,src/game/game_slots.h,CList (engine objects released through slot 4)
 0073BE80,3,ItemListClass,src/lib/mfc_slots.h,CList (the item and object pointer lists (CTypedPtrList))
+0073BE8C,2,OutOfRangeClass,src/lib/stlp_string.cpp,"out_of_range (stlp_string's range errors, thrown with game.exe's ThrowInfo 0074C640)"
 0073BE94,2,Chunk,src/game/chunk_stream.h,
 0073BE9C,2,RootChunk,src/game/chunk_stream.h,
 0073BECC,15,CClientSpecificManager,src/game/base_manager.h,
@@ -505,19 +507,53 @@ vtable,slots,class,file,note
 00744264,1,PrintRecord,src/game/model.h,a prints.db record
 00744268,1,PrintRecord2,src/game/model.h,prints.db's second record type
 00744288,3,DibClass,src/game/dib.cpp,CDib
+00745DF4,21,PlainFileTable,src/lib/mfc_file.cpp,CFile
+00745E4C,5,FileExceptionTable,src/lib/mfc_exception.cpp,CFileException
+00745EE8,19,FileFindTable,src/lib/mfc_file.cpp,CFileFind
 00745F5C,3,StringArrayTable,src/lib/mfc_coll.cpp,CStringArray
 00745F78,3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
+007461B0,29,PlainDCTable,src/lib/mfc_gdi.cpp,CDC
+0074624C,29,CClientDC,-,"stored only by game.exe's constructor / destructor 00709DCD / 00709E3F, which no code of ours calls"
+007462C4,29,CWindowDC,-,"stored only by game.exe's constructor / destructor 00709E81 / 00709EF3, which no code of ours calls"
+0074633C,29,CPaintDC,-,"stored only by game.exe's constructor / destructor 00709F35 / 00709FA7, which no code of ours calls"
+007463B4,3,PenTable,src/lib/mfc_gdi.cpp,CPen
+007463C4,3,BrushTable,src/lib/mfc_gdi.cpp,CBrush (the interface's brushes)
+007463D4,3,PlainGdiObjectTable,src/lib/mfc_gdi.cpp,CGdiObject
+007463E4,29,TempDCTable,src/lib/mfc_gdi.cpp,CTempDC (the interface's surface DCs)
+0074645C,3,TempGdiObjectTable,src/lib/mfc_gdi.cpp,CTempGdiObject
 0074646C,5,ResourceExceptionTable,src/lib/mfc_exception.cpp,CResourceException (_simpleResourceException)
 00746484,5,UserExceptionTable,src/lib/mfc_exception.cpp,CUserException (_simpleUserException)
+0074649C,3,CRgn,-,"stored only by game.exe's 0070B7D6 and the CRgn destructor, which no code of ours calls"
 007464B8,3,DWordArrayTable,src/lib/mfc_coll.cpp,CDWordArray
+007464F0,24,StdioFileTable,src/lib/mfc_file.cpp,CStdioFile
 00746560,3,ByteArrayTable,src/lib/mfc_coll.cpp,CByteArray (the terrain sectors' water materials)
 007465F8,5,MemoryExceptionTable,src/lib/mfc_exception.cpp,CMemoryException (_simpleMemoryException)
 00746610,5,NotSupportedExceptionTable,src/lib/mfc_exception.cpp,CNotSupportedException (_simpleNotSupportedException)
+00746650,26,CMemFile,-,"stored only by game.exe's constructors / destructor 0070ADD9 / 0070AE25 / 0070AE9E, which no code of ours calls"
+007466E0,31,WinThreadTable,src/lib/mfc_thread.cpp,"CWinThread (the sound stream's, the MIDI player's and the cursor's threads)"
+00746760,1,_AFX_CTL3D_STATE,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls (mfc_state.cpp makes no state objects)"
+00746768,1,_AFX_CTL3D_THREAD,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls"
 007467A0,3,UIntArrayTable,src/lib/mfc_coll.cpp,CUIntArray (slot 2 CObject's empty Serialize)
+007467B0,1,CThreadData,-,"MFC's thread slot data: stored only by game.exe's 0070C77C, which no code of ours calls"
+007467B8,1,_AFX_THREAD_STATE,-,"an MFC state object: stored only by game.exe's 0070CB56 / 0070CB88, which no code of ours calls"
+007467C0,1,AFX_MODULE_STATE,-,"stored only by game.exe's 0070CC32 / 0070CCB0, which no code of ours calls (mfc_state.cpp ImageModuleState is a plain record)"
+007467C8,1,AFX_MODULE_THREAD_STATE,-,"an MFC state object: stored only by game.exe's 0070CD6E / 0070CDA8, which no code of ours calls"
+007467D0,1,_AFX_BASE_MODULE_STATE,-,"an MFC state object: stored only by game.exe's 0070CEC9, which no code of ours calls"
 00746808,5,ArchiveExceptionTable,src/lib/mfc_exception.cpp,CArchiveException
+0074685C,1,HandleMapTable,src/lib/mfc_handle_map.cpp,"CHandleMap (the image's DC and GDI object maps, mfc_gdi.cpp)"
 0074689C,3,MapPtrToPtrTable,src/lib/mfc_handle_map.cpp,CMapPtrToPtr (the handle maps' maps)
+007469A0,4,CCmdUI,-,"stored only by game.exe's 007041D4, which no code of ours calls"
+00746DA8,46,PlainWndTable,src/lib/mfc_window.cpp,"CWnd (MFC's four static windows wndTop, wndBottom, wndTopMost, wndNoTopMost)"
+00746E88,4,CTestCmdUI,-,"stored only by game.exe's 00705EA0, which no code of ours calls"
+00746EC4,46,TempWndTable,src/lib/mfc_window.cpp,CTempWnd
 00746FB0,3,CPtrArray,-,"stored only by game.exe's MFC constructor / destructor 006FFC8E / 006FFCC1, which no code of ours calls"
 00746FE8,3,CPtrList,-,"stored only by game.exe's MFC constructor / destructor 006FFED9 / 00700048, which no code of ours calls"
+007470BC,1,_AFX_WIN_STATE,-,"an MFC state object: stored only by game.exe's 0070D630 / 0070E18B, which no code of ours calls"
+007470C4,39,CWinApp,-,"stored only by game.exe's constructor / destructor 0070D654 / 0070DA85, which no code of ours calls (the game has no CWinApp)"
+00747164,4,CCommandLineInfo,-,"stored only by game.exe's 0070D73E / 0070D8C8, which no code of ours calls"
+007471FC,5,PlainMenuTable,src/lib/mfc_window.cpp,CMenu
+00747214,5,TempMenuTable,src/lib/mfc_window.cpp,CTempMenu
+00747240,6,CRecentFileList,-,"stored only by game.exe's 00707DE3 / 00707F02, which no code of ours calls"
 00747290,2,ExceptionTable,src/lib/crt_except.cpp,std::exception (MSVC 6)
 00748280,1,OstreamIosTable,src/lib/crt_iostream.cpp,ostream's table for its ios (the console's ostreams; game.exe's virtual base table after it stays)
 00748290,1,ostream_withassign,-,"stored only by game.exe's 006FC597 / 006FC61D / 006FC67B (its constructors and destructor), which no code of ours calls"

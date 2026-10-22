@@ -12,12 +12,12 @@ namespace {
 // The derived layers' tables: the compiler's (C19; game.exe's 0073FD74 small, 0073FD6C large; the same
 // slots): 0 Set, 1 Merge. The base's is ai_grids.cpp's.
 struct SmallUnitLayerClass final : ei::CompiledTag<SmallUnitLayerClass> {
-    virtual void Set(const UnitLayerNode* block) { reinterpret_cast<CUnitLayer*>(this)->SetSmall(block); }       // 0
-    virtual void Merge(const UnitLayerNode* block) { reinterpret_cast<CUnitLayer*>(this)->MergeSmall(block); }   // 1
+    virtual void Set(const UnitLayerNode* block) { ObjectAs<CUnitLayer>()->SetSmall(block); }       // 0
+    virtual void Merge(const UnitLayerNode* block) { ObjectAs<CUnitLayer>()->MergeSmall(block); }   // 1
 };
 struct LargeUnitLayerClass final : ei::CompiledTag<LargeUnitLayerClass> {
-    virtual void Set(const UnitLayerNode* block) { reinterpret_cast<CUnitLayer*>(this)->SetLarge(block); }       // 0
-    virtual void Merge(const UnitLayerNode* block) { reinterpret_cast<CUnitLayer*>(this)->MergeLarge(block); }   // 1
+    virtual void Set(const UnitLayerNode* block) { ObjectAs<CUnitLayer>()->SetLarge(block); }       // 0
+    virtual void Merge(const UnitLayerNode* block) { ObjectAs<CUnitLayer>()->MergeLarge(block); }   // 1
 };
 
 using NodeList = mfc::CList<UnitLayerNode>;

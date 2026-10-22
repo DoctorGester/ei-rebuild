@@ -78,7 +78,7 @@ EI_REPLACE_METHOD(0x0052E740, CUnit::ReleaseUnit);
 
 void CUnit::DestroyUnit() {
     ClearState();
-    reinterpret_cast<CMapObject*>(this)->DestroyMapObject();
+    DestroyMapObject();
     Reset();
 }
 EI_REPLACE_METHOD(0x0052E590, CUnit::DestroyUnit);

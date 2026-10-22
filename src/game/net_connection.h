@@ -315,7 +315,7 @@ public:
     virtual CRefObject* Clone() { return Object()->T::Clone(); }                               // 3
 
 private:
-    T* Object() { return reinterpret_cast<T*>(this); }
+    T* Object() { return this->template ObjectAs<T>(); }
 };
 
 struct ReplicaEntryClass final : RefObjectClass<ReplicaEntryClass, ReplicaEntry> {};   // 0073BF4C

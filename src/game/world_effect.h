@@ -21,6 +21,7 @@
 #include "net_delta.h"
 #include "spell.h"
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -345,17 +346,17 @@ public:
     void LoadState(CStream* stream);                 // 0067B8E0 (slot 9)
     void SaveState(CStream* stream);                 // 0067B9A0 (slot 10)
 
-    // The embedded effects (the classes are abstract in C++, so the members are their bytes).
-    CEffectParticle& Particle() { return *reinterpret_cast<CEffectParticle*>(particle_); }
-    CEffectPointLight& Light() { return *reinterpret_cast<CEffectPointLight*>(light_); }
-    CEffectSound& Sound() { return *reinterpret_cast<CEffectSound*>(sound_); }
-    const CEffectParticle& Particle() const { return *reinterpret_cast<const CEffectParticle*>(particle_); }
-    const CEffectPointLight& Light() const { return *reinterpret_cast<const CEffectPointLight*>(light_); }
-    const CEffectSound& Sound() const { return *reinterpret_cast<const CEffectSound*>(sound_); }
+    // The embedded effects (the classes are abstract in C++, so the members hold their bytes).
+    CEffectParticle& Particle() { return *particle_.Get(); }
+    CEffectPointLight& Light() { return *light_.Get(); }
+    CEffectSound& Sound() { return *sound_.Get(); }
+    const CEffectParticle& Particle() const { return *particle_.Get(); }
+    const CEffectPointLight& Light() const { return *light_.Get(); }
+    const CEffectSound& Sound() const { return *sound_.Get(); }
 
-    alignas(4) std::uint8_t particle_[sizeof(CEffectParticle)];   // +0x158
-    alignas(4) std::uint8_t light_[sizeof(CEffectPointLight)];    // +0x2D8
-    alignas(4) std::uint8_t sound_[sizeof(CEffectSound)];         // +0x43C
+    lib::AbstractInPlace<CEffectParticle> particle_;   // +0x158
+    lib::AbstractInPlace<CEffectPointLight> light_;    // +0x2D8
+    lib::AbstractInPlace<CEffectSound> sound_;         // +0x43C
     mfc::CString soundName_;       // +0x6A0
     Vector3 lightColor_;           // +0x6A4
     float lightRange_;             // +0x6B0
@@ -417,12 +418,9 @@ public:
     void LoadState(CStream* stream);                 // 0067C8E0 (slot 9)
     void SaveState(CStream* stream);                 // 0067C910 (slot 10)
 
-    // The fog object is a CVisibilityFog (effects.h), reference counted as an engine object.
-    CVisibilityFog* Fog() { return reinterpret_cast<CVisibilityFog*>(fog_); }
-
     int observerId_;           // +0x14C unit (the second unit of the sight computation)
     int seerId_;               // +0x150 unit whose sight is shown; the effect follows it
-    CEngineObject* fog_;       // +0x154 client only, null: none
+    CVisibilityFog* fog_;      // +0x154 client only (counted), null: none
     FogGrid grid_;             // +0x158
 };
 static_assert(offsetof(CEffectShowVisibility, grid_) == 0x158);

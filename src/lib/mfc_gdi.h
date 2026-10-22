@@ -23,12 +23,14 @@ namespace mfc::impl {
 CHandleMap* __stdcall MapHDC(BOOL create);         // 00708D07 afxMapHDC
 CHandleMap* __stdcall MapHGDIOBJ(BOOL create);     // 00709FEE afxMapHGDIOBJ
 
-// CGdiObject (8 bytes, vtable 007463D4): vtable, m_hObject.
+// CGdiObject (8 bytes): vtable, m_hObject. The tables of CGdiObject and its classes are compiled (C19,
+// mfc_gdi.cpp) in place of game.exe's: CGdiObject 007463D4, CBrush 007463C4, CPen 007463B4, CTempGdiObject
+// 0074645C (0 GetRuntimeClass, 1 the deleting destructor, 2 Serialize).
 struct CGdiObject {
     void* vtable;
     HGDIOBJ handle;     // +0x04 m_hObject
 
-    static void* Vtable() { return ei::GamePointer<void>(0x007463D4); }
+    static void* Vtable();
 
     // 0070A060: the object of `handle` (a CTempGdiObject when it has no permanent one), null for null.
     static CGdiObject* __stdcall FromHandle(HGDIOBJ handle);
@@ -47,9 +49,15 @@ static_assert(sizeof(CGdiObject) == 8);
 // (007C8CF0), no handle. Null when out of memory.
 void* __stdcall CreateTempGdiObject();          // 0070C028
 
-// CPen (vtable 007463B4).
+// CBrush: the interface's brushes (ui_gdi.h GameBrush).
+struct CBrush : CGdiObject {
+    static void* Vtable();
+};
+static_assert(sizeof(CBrush) == 8);
+
+// CPen.
 struct CPen : CGdiObject {
-    static void* Vtable() { return ei::GamePointer<void>(0x007463B4); }
+    static void* Vtable();
     // 0070A0E2 CPen(style, width, colour): CreatePen attached; a CResourceException when it fails.
     CPen* Construct(int style, int width, COLORREF colour);
 };
@@ -68,16 +76,29 @@ struct CFont : CGdiObject {
 };
 static_assert(sizeof(CFont) == 8);
 
-// CDC (0x10 bytes, vtable 007461B0): the output DC and the attribute DC (the same one for a plain DC).
+// CDC (0x10 bytes): the output DC and the attribute DC (the same one for a plain DC). Its table and CTempDC's
+// are compiled (C19, mfc_gdi.cpp's DCTable) in place of game.exe's 007461B0 / 007463E4: 29 slots, the ones the
+// image never reaches unported.
 struct CDC {
     void* vtable;
     HDC hdc;            // +0x04 m_hDC
     HDC attribDC;       // +0x08 m_hAttribDC
     BOOL printing;      // +0x0C m_bPrinting
 
-    static void* Vtable() { return ei::GamePointer<void>(0x007461B0); }
+    static void* Vtable();
 
     CDC* Construct();                                               // 00708CD7 (returns this)
+    // ~CDC (00708E0C): CDC's table, then a DC still attached detached and deleted. The scalar deleting destructor
+    // (00708CEB, slot 1): it, then the memory freed when bit 0 of `flags` is set.
+    void Destruct();
+    CDC* DeletingDestruct(unsigned flags);
+    // 00708DC5: the output DC taken out of the permanent map and cleared, the attribute DC released (slot 5);
+    // returns the old output DC.
+    HDC Detach();
+    void SetAttribDC(HDC dc);                                       // 00708E42 (slot 3)
+    void SetOutputDC(HDC dc);                                       // 00708E4C (slot 4)
+    void ReleaseAttribDC();                                         // 00708E56 (slot 5)
+    void ReleaseOutputDC();                                         // 00708E5B (slot 6)
     // 00708D79: the DC object of `dc` (a CTempDC when it has no permanent one), null for null.
     static CDC* __stdcall FromHandle(HDC dc);
 
@@ -96,7 +117,7 @@ struct CDC {
 static_assert(sizeof(CDC) == 0x10);
 
 // CTempDC's create function (its CRuntimeClass at 00745FB0): a CDC from its fixed allocator
-// (007C8D18) with CTempDC's vtable (007463E4). Null when out of memory.
+// (007C8D18) with CTempDC's table. Null when out of memory.
 void* __stdcall CreateTempDC();                 // 0070BFD7
 
 } // namespace mfc::impl
