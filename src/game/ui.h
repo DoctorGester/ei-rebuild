@@ -750,6 +750,10 @@ public:
     // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
     // with 1). Returns this (ui_window.cpp).
     CUiWindow* Construct(CInterface3D* ui);
+    // The plain window's compiled tables (C19, ui_window_class.h / ui_input_class.h) in place of game.exe's 00740F60 /
+    // 00740F2C (not Vtable(): a derived window without its own would inherit the plain one's).
+    static void** PlainVtable();
+    static void** PlainInputVtable();
 
     // +0x00..+0x54 the engine's transform object (CTransformObject, core_transform.h), of which
     // the window's code touches only these.
@@ -984,6 +988,9 @@ struct CUiTooltip : CUiWindow {
     // 0065E4D0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
     // memory freed when bit 0 of `flags` is set. Returns this.
     CUiTooltip* TooltipDelete(unsigned flags);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742F64 / 00742F30.
+    static void** Vtable();
+    static void** InputVtable();
     // 0065E540 (RET 4; ui_tooltip.cpp). A non-empty `text` replaces the lines and they are drawn
     // (the size is not measured again); null or empty: nothing.
     void SetText(const char* text);
@@ -2427,6 +2434,9 @@ public:
     // 0065AFA0 (the slider's 0065BC90; RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor:
     // DestroyBody, then the memory freed when bit 0 of `flags` is set. Returns this.
     CUiScrollbar* ScrollbarDelete(unsigned flags);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742C18 / 00742BE4.
+    static void** Vtable();
+    static void** InputVtable();
 
     int maxPosition_;                // +0x148
     float speed_;                    // +0x14C lines per second while an arrow is held (/16)
@@ -2471,8 +2481,12 @@ public:
     // 0065B8B0 (slot 26, RET 4). Lays the slider out over `rect` (layout coordinates) and sets
     // the position again (through slot 25, so it counts as moved).
     void SetRect(const RECT* rect);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742CBC / 00742C88.
+    static void** Vtable();
+    static void** InputVtable();
 };
 static_assert(sizeof(CUiSlider) == 0x18C);
+
 static_assert(offsetof(CUiScrollbar, state_) == 0x184);
 static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
@@ -2547,6 +2561,9 @@ public:
     // 0065CE00 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
     // memory freed when bit 0 of `flags` is set. Returns this.
     CUiScrollText* ScrollTextDelete(unsigned flags);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742E9C / 00742E68.
+    static void** Vtable();
+    static void** InputVtable();
     // 0065CF30 (RET 4; ui_scroll_text.cpp). Appends `text`: scrolled to the end first, then kept
     // that far from the end (the position plus the growth of the maximum).
     void AddText(const char* text);
@@ -2628,6 +2645,9 @@ public:
     // 0065BDF0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
     // memory freed when bit 0 of `flags` is set. Returns this.
     CUiSpin* SpinDelete(unsigned flags);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742D5C / 00742D28.
+    static void** Vtable();
+    static void** InputVtable();
     // 0065BFD0 (input side slot 2, RET 0xC; ui_spin.cpp, A-H25). A click: the message box's OK
     // sound and the next value (SetValue: back to the first past the last text).
     void OnLButtonDown(int flags, int x, int y);
@@ -3172,6 +3192,9 @@ public:
     // 0065C120 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
     // memory freed when bit 0 of `flags` is set. Returns this.
     CUiEditField* EditFieldDelete(unsigned flags);
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742DF4 / 00742DC0.
+    static void** Vtable();
+    static void** InputVtable();
     // 0065C930 (input side slot 10, RET 0xC; ui_edit_field.cpp, A-H19). While focused and
     // without Ctrl held, a character other than Backspace, Tab, Enter and Esc whose class (digit 1,
     // letter or space 2, '.' or ':' 8, other 4) is allowed: the first one starts editing from an

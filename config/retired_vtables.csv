@@ -322,14 +322,18 @@ vtable,slots,class,file,note
 0073FF80,3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
 0073FF8C,13,FearClass,src/game/ai_mode_class.h,the Fear AI mode
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
+007401D0,13,InputSideBaseClass,src/game/ui_input_class.h,the base input side (also stored by game.exe's dead 005EA830 / 005EB620 and the unwind-only 005FE900)
 00740208,13,CameraInputClass,src/game/ui_camera_input.cpp,the battle camera's input side (CCameraInput)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
+00740278,13,UnitPickInputClass,src/game/ui_view_screen.cpp,the view screen's unit pick input side (UnitPickInput)
 007402AC,3,UnitPtrArrayClass,src/lib/mfc_slots.h,CArray (the interface's unit pointer arrays)
 007403F8,4,ItemTurnClass,src/game/ui_item_screen.cpp,an item's turning state (ItemTurn)
 00740BE4,3,GlobalMapPathArrayClass,src/lib/mfc_slots.h,CArray (the global map's quests)
 00740BF0,3,GlobalMapPointArrayClass,src/lib/mfc_slots.h,CArray (the global map's links)
 00740BFC,3,GlobalMapZoneArrayClass,src/lib/mfc_slots.h,CArray (the global map's zones)
 00740F28,1,UiSurfaceClass,src/game/ui.h,a window's off-screen surface (CUiSurface)
+00740F2C,13,UiWindowInputClass,src/game/ui_input_class.h,the plain window's input side
+00740F60,25,UiWindowBaseClass,src/game/ui_window_class.h,the plain window (CUiWindow)
 00740FD4,5,ContainerInputClass,src/game/ui_container.cpp,a container's input side (UiContainerInput)
 00740FE8,8,ContainerInputClass,src/game/ui_container.cpp,the container input side's tail (a byte match in 006DBE20 split it off)
 00741154,13,InertInputClass,src/game/ui_input_class.h,an inert extra input side
@@ -339,11 +343,23 @@ vtable,slots,class,file,note
 00742464,6,TopPanelInputClass,src/game/ui_battle_setup.cpp,the HUD top panel's input side
 0074247C,7,TopPanelInputClass,src/game/ui_battle_setup.cpp,the top panel input side's tail (a byte match in 005FE440 split it off)
 007428A0,3,QuickEntryArrayClass,src/lib/mfc_slots.h,CArray (the HUD's quick item entries)
+00742BE4,13,ScrollbarInputTable,src/game/ui_scrollbar.cpp,the scroll bar's input side
+00742C18,27,ScrollbarTable,src/game/ui_scrollbar.cpp,the scroll bar (CUiScrollbar)
+00742C88,13,SliderInputTable,src/game/ui_scrollbar.cpp,the options slider's input side
+00742CBC,27,SliderTable,src/game/ui_scrollbar.cpp,the options slider (CUiSlider)
+00742D28,13,SpinInputTable,src/game/ui_spin.cpp,the options spin's input side
+00742D5C,25,SpinTable,src/game/ui_spin.cpp,the options spin (CUiSpin)
+00742DC0,13,EditFieldInputTable,src/game/ui_edit_field.cpp,the edit field's input side
+00742DF4,25,EditFieldTable,src/game/ui_edit_field.cpp,the edit field (CUiEditField)
+00742E68,13,ScrollTextInputTable,src/game/ui_scroll_text.cpp,the scrolling text's input side
+00742E9C,27,ScrollTextTable,src/game/ui_scroll_text.cpp,the scrolling text (CUiScrollText)
 00742F08,3,LinePtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's line pointers)
 00742F14,3,TokenPtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's token pointers)
 00742F20,1,WordTokenClass,src/game/ui.h,a scrolling text's word (UiWordToken)
 00742F24,1,TextTokenClass,src/game/ui.h,a scrolling text's base token (UiTextToken)
 00742F28,1,FormatTokenClass,src/game/ui.h,a scrolling text's format token (UiFormatToken)
+00742F30,13,TooltipInputTable,src/game/ui_tooltip.cpp,a region tooltip's input side
+00742F64,25,TooltipTable,src/game/ui_tooltip.cpp,a region's tooltip (CUiTooltip)
 00742FF4,3,PartyMemberArrayClass,src/game/party_lifetime.cpp,CArray (a party's unit records)
 00743000,27,PartyClass,src/game/party_lifetime.cpp,the party (CParty)
 0074306C,27,PartyBaseClass,src/game/party_lifetime.cpp,CParty's base (the manager context's getters null)

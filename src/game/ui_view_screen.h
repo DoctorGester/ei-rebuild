@@ -6,12 +6,13 @@
 // docs/notes/ui.md, section 4.
 
 #include "ui.h"
+#include "ui_input_class.h"
 #include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
 
-// The picked units' input side (vtable 00740278, 0x20 bytes; one of screen 7's extra inputs).
+// The picked units' input side (compiled table; game.exe's 00740278, 0x20 bytes; one of screen 7's extra inputs).
 // The other slots are the base input's (vtable 007401D0).
 struct UnitPickInput : UiInputSide {
     // 005EB8C0 (RET 4). Constructor: the interface, an empty id list. Returns this.
@@ -34,8 +35,9 @@ struct UnitPickInput : UiInputSide {
     // 005EBBC0 (slot 11, RET 0xC). Ctrl released: cursor 0.
     void OnKeyUp(int key, int repeat, int flags);
 
-    static void** Vtable() { return ei::GamePointer<void*>(0x00740278); }
-    static void** BaseVtable() { return ei::GamePointer<void*>(0x007401D0); }
+    // The compiled table (C19, ui_input_class.h) in place of game.exe's 00740278, and the base input side's.
+    static void** Vtable();
+    static void** BaseVtable() { return BaseInputVtable(); }
 
     UiDwordArray picked_;            // +0x0C ids of the picked units (CDWordArray, SetSize 0059C660)
 };

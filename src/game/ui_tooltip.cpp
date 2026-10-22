@@ -4,6 +4,7 @@
 // and CUiRegion::OnMouseMove keeps calling it through its address). See ui.h and
 // docs/notes/items_spells.md.
 #include "ui.h"
+#include "ui_window_class.h"
 #include "options.h"
 #include "ui_widescreen.h"
 
@@ -25,8 +26,13 @@
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace {
-constexpr std::uintptr_t kTooltipVtable = std::uintptr_t(0x00742F64);
-constexpr std::uintptr_t kTooltipInputVtable = std::uintptr_t(0x00742F30);
+// The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742F64 / 00742F30: drawn (20) and redrawn
+// (22) only while shown; the input side's defaults.
+struct TooltipTable final : UiWindowClass<TooltipTable, &CUiTooltip::TooltipDelete> {
+    BOOL Draw(int pass) override { return AsWindow()->CUiTooltip::Draw(pass); }   // 20: 0065EA50
+    void Redraw() override { AsWindow()->CUiTooltip::Redraw(); }                   // 22: 0065EA80
+};
+struct TooltipInputTable final : InputSideClass<TooltipInputTable, &CUiTooltip::TooltipDelete> {};
 constexpr int kFont = 0;
 constexpr char kLineSeparator = '\n';
 constexpr int kPaddingX = 12;               // added to the widest line
@@ -72,11 +78,14 @@ SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
 }
 } // namespace
 
+void** CUiTooltip::Vtable() { return static_cast<void**>(TooltipTable::Vtable()); }
+void** CUiTooltip::InputVtable() { return static_cast<void**>(TooltipInputTable::Vtable()); }
+
 CUiTooltip* CUiTooltip::Construct(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra) {
     CUiWindow::Construct(ui);
     lines_.Construct();
-    vtable_ = ei::GamePointer<void*>(kTooltipVtable);
-    inputVtable_ = ei::GamePointer<void*>(kTooltipInputVtable);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     timer_ = 0.0f;
     state_ = 0;
     region_ = region;

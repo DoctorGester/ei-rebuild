@@ -3,6 +3,7 @@
 // position. See ui.h and docs/notes/items_spells.md (A-H19, A-H20).
 
 #include "ui.h"
+#include "ui_window_class.h"
 #include "ui_screens.h"
 
 #include "ei/hook.h"
@@ -12,10 +13,20 @@
 
 namespace {
 
-constexpr std::uintptr_t kScrollbarVtable = std::uintptr_t(0x00742C18);
-constexpr std::uintptr_t kScrollbarInputVtable = std::uintptr_t(0x00742BE4);
-constexpr std::uintptr_t kSliderVtable = std::uintptr_t(0x00742CBC);
-constexpr std::uintptr_t kSliderInputVtable = std::uintptr_t(0x00742C88);
+// The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742C18 / 00742BE4 (the scroll bar) and
+// 00742CBC / 00742C88 (the slider: 25 / 26 and the drag along x its own).
+struct ScrollbarTable final : ScrollbarClass<ScrollbarTable, &CUiScrollbar::ScrollbarDelete> {};
+struct ScrollbarInputTable final : ScrollbarInputClass<ScrollbarInputTable, &CUiScrollbar::ScrollbarDelete> {};
+struct SliderTable final : ScrollbarClass<SliderTable, &CUiScrollbar::ScrollbarDelete> {
+    CUiSlider* Slider() { return static_cast<CUiSlider*>(AsWindow()); }
+    void SetPosition(int position) override { Slider()->CUiSlider::SetPosition(position); }   // 25: 0065B730
+    void SetRect(const RECT* rect) override { Slider()->CUiSlider::SetRect(rect); }           // 26: 0065B8B0
+};
+struct SliderInputTable final : ScrollbarInputClass<SliderInputTable, &CUiScrollbar::ScrollbarDelete> {
+    int MouseMove(int b, int x, int y) override {   // 4: 0065B810
+        return static_cast<CUiSlider*>(SideWindow())->CUiSlider::OnMouseMove(b, x, y), 0;
+    }
+};
 constexpr int kTextureKind = 3;
 
 // The thumb sits slightly in front of the track (0.1 at 0073B850) and 5 to the right of the
@@ -31,13 +42,18 @@ float AsFloat(int value) { return static_cast<float>(value); }
 
 } // namespace
 
+void** CUiScrollbar::Vtable() { return static_cast<void**>(ScrollbarTable::Vtable()); }
+void** CUiScrollbar::InputVtable() { return static_cast<void**>(ScrollbarInputTable::Vtable()); }
+void** CUiSlider::Vtable() { return static_cast<void**>(SliderTable::Vtable()); }
+void** CUiSlider::InputVtable() { return static_cast<void**>(SliderInputTable::Vtable()); }
+
 CUiScrollbar* CUiScrollbar::Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed) {
     CUiWindow::Construct(ui);
     maxPosition_ = maximum;
     speed_ = speed;
     depth_ = depth;
-    vtable_ = ei::GamePointer<void*>(kScrollbarVtable);
-    inputVtable_ = ei::GamePointer<void*>(kScrollbarInputVtable);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     moved_ = true;
     state_ = 0;
     position_ = -1;
@@ -71,7 +87,7 @@ void CUiScrollbar::SetPosition(int position) {
     thumb_.top = centre - 14;
     thumb_.bottom = centre + 14;
 }
-EI_REPLACE_METHOD(0x0065B0C0, CUiScrollbar::SetPosition);
+EI_REWRITTEN(0x0065B0C0, CUiScrollbar::SetPosition);
 
 void CUiScrollbar::SetRect(const RECT* rect) {
     rect_ = *rect;
@@ -99,12 +115,12 @@ void CUiScrollbar::SetRect(const RECT* rect) {
     position_ = position - 1;
     CallSetPosition(position);
 }
-EI_REPLACE_METHOD(0x0065B490, CUiScrollbar::SetRect);
+EI_REWRITTEN(0x0065B490, CUiScrollbar::SetRect);
 
 CUiSlider* CUiSlider::Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed) {
     CUiScrollbar::Construct(ui, rect, depth, maximum, speed);
-    vtable_ = ei::GamePointer<void*>(kSliderVtable);
-    inputVtable_ = ei::GamePointer<void*>(kSliderInputVtable);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     return this;
 }
 EI_REWRITTEN(0x0065BC30, CUiSlider::Construct);
@@ -159,7 +175,7 @@ void CUiSlider::SetPosition(int position) {
     thumb_.left = centre - kSliderThumbHalfWidth;
     thumb_.right = centre + kSliderThumbHalfWidth;
 }
-EI_REPLACE_METHOD(0x0065B730, CUiSlider::SetPosition);
+EI_REWRITTEN(0x0065B730, CUiSlider::SetPosition);
 
 void CUiSlider::OnMouseMove(int, int x, int y) {
     if (state_ == kDragging) {
@@ -171,6 +187,6 @@ void CUiSlider::OnMouseMove(int, int x, int y) {
     inputHandled_ = true;
 }
 
-EI_REPLACE_METHOD(0x0065B1A0, InputForward<&CUiScrollbar::OnMouseMove>::Call);
-EI_REPLACE_METHOD(0x0065B430, InputForward<&CUiScrollbar::OnWheel>::Call);
-EI_REPLACE_METHOD(0x0065B810, InputForward<&CUiSlider::OnMouseMove>::Call);
+EI_REWRITTEN(0x0065B1A0, InputForward<&CUiScrollbar::OnMouseMove>::Call);
+EI_REWRITTEN(0x0065B430, InputForward<&CUiScrollbar::OnWheel>::Call);
+EI_REWRITTEN(0x0065B810, InputForward<&CUiSlider::OnMouseMove>::Call);
