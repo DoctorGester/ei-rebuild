@@ -410,7 +410,7 @@ size = 1
 model = "opus"
 depends = ["R16"]
 files = ["src/render/", "src/game/terrain_lighting.cpp"]
-note = "User 2026-10-22: no CPU lighting at all (asked if it is needed anywhere; digests carry no lighting value, lighting draws no rand). Light objects stay as GPU inputs."
+note = "User 2026-10-22: no CPU lighting at all (asked if it is needed anywhere; digests carry no lighting value, lighting draws no rand). Light objects stay as GPU inputs. Done 2026-10-22 (review): no option, the GPU path only. Ground and figures lit per pixel (scene_lighting.hlsli, mesh.hlsl: the vertex lighting's and 3DfpFPU LightMesh's rules), sun and point lights; the ground casts into the sun map; R22 ids gone (N.L plus a 1.5-texel normal offset); classic shadows removed. Kept on the CPU (read outside drawing): SunReaches only where it would touch the sector cache, kLit / relight countdowns, the water specular word (digest), blood print levels (saved), AddSun's reference; sky lighting left on the CPU. render_shadows_outside's gate floor lowered to 0.3% (point lights cast no shadow); render_shadows_mound lost the facing A/B. Cost (render_stats 4K): main CPU zone1 4.46 -> 3.0-3.9, fight 15.4 -> 12.9, town 9.6 -> 5.3 ms; relit meshes 0; GPU within noise except town 2.1 -> 3.5 in one stretch. Frames build/R16i/compare_*.png. Image suite 121 the same, original 114 the same. Follow-up R16i1 (point-light shadows)."
 
 [[ticket]]
 id = "R16j"
