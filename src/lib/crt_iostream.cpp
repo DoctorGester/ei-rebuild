@@ -59,8 +59,8 @@ int g_liveIosCount = /*007CAEC8*/ {};
 constexpr int kReserveSize = 0x200;   // doallocate's reserve area
 
 // The game CRT's stdout / stderr (&_iob[1], &_iob[2]), flushed after each insertion under ios::stdio.
-gamecrt::CrtFile* GameStdout() { return ei::GamePointer<gamecrt::CrtFile>(0x00798080); }
-gamecrt::CrtFile* GameStderr() { return ei::GamePointer<gamecrt::CrtFile>(0x007980A0); }
+gamecrt::CrtFile* GameStdout() { return GameStream(1); }
+gamecrt::CrtFile* GameStderr() { return GameStream(2); }
 
 // opfx (006FC1F9): the ios locked; a stream in error gets failbit and nothing is written (0); otherwise
 // the tie flushed and the streambuf locked too (1).

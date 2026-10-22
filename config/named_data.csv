@@ -121,6 +121,10 @@ address,size,name,file
 0078ACF8,64,kTransAlpha,src/game/particle_callbacks.cpp
 0078B0E8,4,g_nextPartyId,src/game/party_records.cpp
 0078B120,768,kScriptParticleTypes,src/game/script_effects.cpp
+0078BC8C,4,kCommentOpen,src/game/script_parse.h
+0078BC90,4,kCommentClose,src/game/script_parse.h
+0078BC94,4,kLineComment,src/game/script_parse.h
+0078BCA0,3616,kScriptKeywords,src/game/script_parse.cpp
 0078DB28,128,kCoderBitMasks,src/game/net_coder.h
 0078DEA4,128,kRainSeeds,src/game/weather_particles.cpp
 0078DF24,128,kSnowSeeds,src/game/weather_particles.cpp
@@ -169,9 +173,14 @@ address,size,name,file
 0079777C,132,g_cacheIn,src/lib/crt_locale_data.cpp
 00797800,132,g_cacheOut,src/lib/crt_locale_data.cpp
 00797CC0,216,kMathFunctionNames,src/lib/crt_x87.cpp
+00797DD8,4,g_pctype,src/lib/crt_locale_data.cpp
+00797DDC,4,g_pwctype,src/lib/crt_locale_data.cpp
+00797DE0,514,kCtypeC,src/lib/crt_locale_data.cpp
 00797FE4,4,g_mbCurMax,src/lib/crt_locale_data.cpp
 00797FE8,2,g_decimalPoint,src/lib/crt_locale_data.cpp
 00798914,20,kNonDefaultCountryIds,src/lib/crt_locale.cpp
+00798928,184,kCountries,src/lib/crt_locale.cpp
+007989E0,520,kLanguages,src/lib/crt_locale.cpp
 0079B1B8,4,kHeadingOffset,src/game/core_transform_math.cpp
 0079B2A4,4,kHalfPi,src/game/camera.h
 0079B5B8,16,kIdentityRotation,src/game/camera.h

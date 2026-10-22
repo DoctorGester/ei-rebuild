@@ -46,10 +46,13 @@ void ei::vectors::script::OfferFixtures() {
         w.PutString(table[i].command);
     }
     w.Put(ei::GameData<const std::uint8_t>(kQuoteChar));
-    w.Put(static_cast<std::uint32_t>(std::size(kStringPointers)));
-    for (std::uintptr_t at : kStringPointers) {
-        w.Put(static_cast<std::uint32_t>(at));
-        w.PutString(ei::GameData<const char* const>(at));
+    const char* const* comments[kStringPointerCount] = {&ei::OriginalGameData<const char* const>(0x0078BC8C),
+                                                        &ei::OriginalGameData<const char* const>(0x0078BC90),
+                                                        &ei::OriginalGameData<const char* const>(0x0078BC94)};
+    w.Put(kStringPointerCount);
+    for (const char* const* at : comments) {
+        w.Put(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(at)));
+        w.PutString(*at);
     }
     w.Put(static_cast<std::uint32_t>(std::size(kTexts)));
     for (std::uintptr_t at : kTexts) {

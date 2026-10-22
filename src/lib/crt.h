@@ -235,7 +235,10 @@ int __cdecl Sscanf(const char* text, const char* format, ...);                  
 int __cdecl Vsscanf(const char* text, const char* format, va_list args);
 // vfprintf: formatted in memory, then one write through the game's fwrite (not registered).
 int __cdecl Vfprintf(gamecrt::CrtFile* file, const char* format, va_list args);
-// stdout (&_iob[1], 00798080).
+// The game's stdin, stdout and stderr (index 0..2; game.exe's &_iob[0..2]). In the image a CrtFile* is the
+// host's FILE*: these three stand for the host's own streams (crt_file.cpp's HostFile), nothing reads their bytes.
+gamecrt::CrtFile* GameStream(int index);
+// stdout (GameStream(1)).
 gamecrt::CrtFile* StandardOutput();
 // _output into `room` bytes (a string FILE of that size): the count, or -1 once the room runs out; a
 // terminator when it still fits.

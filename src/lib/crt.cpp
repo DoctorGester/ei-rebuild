@@ -97,7 +97,7 @@ namespace {
 // The CRT's character class table pointer _pctype (00797DD8; the C locale's table + 1 entry, so -1 is
 // EOF) and its multibyte flags _mbctype + 1 (no lead bytes for a single-byte code page, the single-byte case
 // bits still set), with _mbcasemap, each byte's other case.
-const unsigned short* CharClasses() { return ei::GameData<const unsigned short* const>(0x00797DD8); }
+const unsigned short* CharClasses() { return g_pctype; }
 const unsigned char* MultibyteFlags() { return g_mbCtype + 1; }
 const unsigned char* MultibyteCaseMap() { return g_mbCaseMap; }
 constexpr unsigned char kMbSingleUpper = 0x10;   // _SBUP in _mbctype

@@ -29,10 +29,13 @@ struct Locale {
     unsigned short classes[256];
 };
 
+// game.exe's _pctype.
+const unsigned short* CharClasses() { return ei::OriginalGameData<const unsigned short* const>(0x00797DD8); }
+
 Locale CurrentLocale() {
     Locale locale;
     locale.point = ei::OriginalGameData<const char>(0x00797FE8);   // game.exe's __decimal_point[0]
-    std::memcpy(locale.classes, ei::GameData<const unsigned short* const>(kCharClasses), sizeof(locale.classes));
+    std::memcpy(locale.classes, CharClasses(), sizeof(locale.classes));
     return locale;
 }
 
@@ -108,7 +111,7 @@ struct Span {
 // does not take (above). `texts` gets the text arguments' bytes, `hasFloat` whether a float is read.
 bool PutArguments(Writer& w, const char* format, va_list args, std::vector<Span>& texts, bool& hasFloat) {
     const unsigned char* lookup = FormatLookup();
-    const unsigned short* classes = ei::GameData<const unsigned short* const>(kCharClasses);
+    const unsigned short* classes = CharClasses();
     Writer list;
     std::uint32_t count = 0;
     const unsigned char* f = reinterpret_cast<const unsigned char*>(format);

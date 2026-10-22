@@ -8,7 +8,9 @@
 // 004CF69B; u32), its entry count (u32) and per entry the id (i32) and the name, function and command
 // strings; then the lexer's data: the quote character (u8), the count (u32) of string pointers and
 // per pointer its address (u32) and string (the comment markers at 0078BC8C..94), the count (u32) of
-// strings at fixed addresses and per string its address and text (kTexts).
+// strings at fixed addresses and per string its address and text (kTexts). The table, the quote and
+// the comment markers are named in our code (kScriptKeywords, scriptparse::kQuote / kCommentOpen /
+// ...): the replay compares them with ours.
 //
 // ClassifyToken: the text (string), the game CRT's answers for its negative chars
 // (crt::PutNegativeClasses), which outputs were asked for (u8: bit 0 id, bit 1 rest), then the id and
@@ -30,7 +32,7 @@ namespace ei::vectors::script {
 
 constexpr std::uintptr_t kKeywordTablePointer = 0x004CF69B;   // ClassifyToken's MOV EBP,imm32 operand
 constexpr std::uintptr_t kQuoteChar = DataId(0x0078BC98);
-constexpr std::uintptr_t kStringPointers[] = {DataId(0x0078BC8C), DataId(0x0078BC90), DataId(0x0078BC94)};   // "/*", "*/", "//"
+constexpr std::uint32_t kStringPointerCount = 3;   // the comment markers "/*", "*/", "//" (record_script.cpp)
 // "None", "Unknown command", then the loader's texts (its messages, type names and letters, "#define").
 constexpr std::uintptr_t kTexts[] = {
     DataId(0x0078BC6C), DataId(0x0078D848), DataId(0x00784340), DataId(0x00787B5C), DataId(0x00787D5C), DataId(0x0078BBCC), DataId(0x0078BBD0), DataId(0x0078BBD4), DataId(0x0078BBD8),
