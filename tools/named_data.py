@@ -76,7 +76,7 @@ TYPES = {
     'unsigned': 'I', 'DWORD': 'I', 'std::uint32_t': 'I', 'uint32_t': 'I',
     'short': 'h', 'std::int16_t': 'h', 'std::uint16_t': 'H', 'WORD': 'H',
     'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
-    'RECT': 'iiii', 'GUID': 'IHH' + 'B' * 8, 'IID': 'IHH' + 'B' * 8, 'CLSID': 'IHH' + 'B' * 8,   # one code per number
+    'RECT': 'iiii', 'POINT': 'ii', 'GUID': 'IHH' + 'B' * 8, 'IID': 'IHH' + 'B' * 8, 'CLSID': 'IHH' + 'B' * 8,   # one code per number
     'DecalBuilder': 'B' * 0x7C,   # ground_decal.h
     'SpiralCache': 'if',   # ai_map.h: length, radius
     'Vector3': 'fff', 'Quaternion': 'ffff',

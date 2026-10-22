@@ -471,6 +471,10 @@ EI_REWRITTEN(0x005FF3C0, CUiWindow::AddSprite);
 // --- 005FE700: the constructor -----------------------------------------------------------------
 
 namespace {
+constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
+} // namespace
+
+namespace {
 // 0040CB20: the engine object's base constructor (thiscall).
 // The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4,
 // MaterialCreateOriginal), 0068EAF0 registers it (RET 8, CMaterialManager::FillMaterial).
@@ -512,7 +516,7 @@ CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     inputVtable_ = PlainInputVtable();
     flags_ = 0;
     rect_ = RECT{0, 0, 0, 0};
-    localRotation_ = ei::GameData<const Quaternion>(0x007C7E58);
+    localRotation_ = kIdentityRotation;
     localPosition_.x = 0.0f;
     heldObject_ = nullptr;
     localPosition_.y = 0.0f;

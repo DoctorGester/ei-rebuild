@@ -44,7 +44,6 @@ float One() { return 1.0f /*0073B84C*/; }
 float DepthUnit() { return 0.48157462f /*007423FC*/; }        // 0.48157: the layout's half height at depth 1
 float ModelDepth() { return 9.0f /*0074242C*/; }       // 9: how far in front of the camera the model stands
 float ModelDrop() { return 0.25f /*0073C3B0*/; }        // 0.25 of the view's half height below the centre
-float SlingTurn() { return GameFloat(0x007C8144); }        // the sling buttons' turn (a global angle)
 float TurnAboutZ() { return 0.05f /*0073C52C*/; }       // 0.05
 float TurnAboutX() { return 1.15f /*00742AE8*/; }       // 1.15
 float SecondTurnAboutZ() { return 0.4f /*0073B868*/; } // 0.4
@@ -161,10 +160,10 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             const Vector3 axisZ = {0.0f, 0.0f, 1.0f};
             const Vector3 axisX = {1.0f, 0.0f, 0.0f};
             Quaternion first, second, third;
-            Quaternion* q1 = first.SetAxisAngle(axisZ, SlingTurn() * TurnAboutZ());
-            Quaternion* q2 = second.SetAxisAngle(axisX, SlingTurn() * TurnAboutX());
+            Quaternion* q1 = first.SetAxisAngle(axisZ, kHudQuarterTurn * TurnAboutZ());
+            Quaternion* q2 = second.SetAxisAngle(axisX, kHudQuarterTurn * TurnAboutX());
             const Quaternion tilted = Product(*q1, *q2, false);
-            Quaternion* q3 = third.SetAxisAngle(axisZ, SlingTurn() * SecondTurnAboutZ());
+            Quaternion* q3 = third.SetAxisAngle(axisZ, kHudQuarterTurn * SecondTurnAboutZ());
             model->localRotation_ = Product(tilted, *q3, true);
 
             const float scale = static_cast<float>(One() / size);

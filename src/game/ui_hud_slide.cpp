@@ -41,7 +41,6 @@ __declspec(naked) void CHudUnitPanel::CallLayout() EI_ORIGINAL(0x00645F80)
 namespace {
 
 // The layouts' x coordinates and the slide's time are read where the original reads them.
-float GameFloat(std::uintptr_t address) { return ei::GameData<const float>(address); }
 float MapCentreX() { return 700.0f /*00742AAC*/; }      // 700
 float MapButtonsX() { return 790.0f /*00742AA8*/; }     // 790
 float MapFrameX() { return 710.0f /*00742AA4*/; }       // 710
@@ -53,7 +52,6 @@ float UnitMoreX() { return 172.0f /*00742ADC*/; }       // 172
 float UnitPartDown() { return 17.5f /*00742AD8*/; }    // 17.5
 float UnitEffectX() { return 40.0f /*0073D72C*/; }     // 40
 float SlideTime() { return 0.3f /*00742428*/; }       // 0.3 seconds for the whole way
-float SlingTurn() { return GameFloat(0x007C8144); }       // the sling buttons' turn (a global angle)
 // The unit panel's six body parts: where each one's pair of sprites goes (two tables of six ints).
 constexpr int kPartX[6] = /*00742434*/ {50, 50, 95, 5, 95, 5};
 constexpr int kPartY[6] = /*0074244C*/ {35, 105, 70, 70, 140, 140};
@@ -172,9 +170,9 @@ void CHudMap::UpdateVanilla() {
         // The sling button (scene object 5).
         // WideScreen: 00642D23 / 00642D7F.
         if (slideDirection_ == 1.0f)
-            PlaceSling(sceneObjects_.data[5], SlingTurn(), RightEdge(713.0f));
+            PlaceSling(sceneObjects_.data[5], kHudQuarterTurn, RightEdge(713.0f));
         else
-            PlaceSling(sceneObjects_.data[5], -SlingTurn(), RightEdge(850.0f));
+            PlaceSling(sceneObjects_.data[5], -kHudQuarterTurn, RightEdge(850.0f));
     }
     interface_->hudPanelsIn_[2] = slideDirection_ > 0.0f ? 1 : 0;
 
@@ -225,9 +223,9 @@ void CHudUnitPanel::UpdateVanilla() {
         // The sling button (scene object 2).
         // WideScreen: 006480EB / 00648147.
         if (slideDirection_ == -1.0f)
-            PlaceSling(sceneObjects_.data[2], SlingTurn(), LeftEdge(-50.0f));
+            PlaceSling(sceneObjects_.data[2], kHudQuarterTurn, LeftEdge(-50.0f));
         else
-            PlaceSling(sceneObjects_.data[2], -SlingTurn(), LeftEdge(87.0f));
+            PlaceSling(sceneObjects_.data[2], -kHudQuarterTurn, LeftEdge(87.0f));
     }
     if (hoverUnit_ && ObjectSlots(hoverUnit_)->IsDead() != 0) hoverUnit_ = nullptr;
     interface_->hudPanelsIn_[0] = slideDirection_ > 0.0f ? 1 : 0;
@@ -293,7 +291,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
     slingButton->textureOffsetV_ = 0.140625f;
-    PlaceSling(slingButton, SlingTurn(), -50.0f);
+    PlaceSling(slingButton, kHudQuarterTurn, -50.0f);
     slingButton->SetScale(0.8f);
     // 3-6: the body part buttons; 7: the frame.
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 100.0f, 20.0f, 130.0f, 0x2F, 0x3E, 0x43, 0x5C);

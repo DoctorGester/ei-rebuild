@@ -474,13 +474,13 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                     ei::ObjectSlot<MarkFn>(figure, 26)(figure, 0);
                 }
                 marker(i)->visible_ = 0;
-                slot(i).restB_ = ei::GameData<const Quaternion>(0x007C8150);   // identity
+                slot(i).restB_ = kHudRestRotation;
             }
             for (ListNode* node = inside.head->next; node != inside.head; node = node->next) {
                 int i = static_cast<int>(node->data);
                 marker(i)->visible_ = 1;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
-                const float angle = ei::GameData<const volatile float>(0x007C8144) *
+                const float angle = kHudQuarterTurn *
                                     0.14285715f /*0073CDCC*/;   // 1/7
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);

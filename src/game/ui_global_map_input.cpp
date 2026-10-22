@@ -41,7 +41,6 @@ constexpr int kTipFrame = 7;
 constexpr int kTipLine = 20;
 const char* ZoneSound() { return "buttons\\globalmap\\zone.wav"; }
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 bool SameText(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
@@ -101,7 +100,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         interface_->CallScalePointFromScreenNoMargin(&drag);
         float turned = static_cast<float>(static_cast<float>(drag.x) * 0.0033333334f /*00740204*/ + angle_);   // 1 / 300
         angle_ = turned;
-        angle_ = static_cast<float>(libcrt::StackFmod(turned, GameFloat(0x007C8020)));
+        angle_ = static_cast<float>(libcrt::StackFmod(turned, kGlobalMapFullTurn));
         Quaternion spin, tilt;
         spin.SetAngleAxis(angle_, Vector3{0.0f, 0.0f, 1.0f});
         tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f /*00742098*/ * 0.8f /*0073CCA8*/);   // pi * 0.8

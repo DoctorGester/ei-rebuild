@@ -28,6 +28,11 @@
 
 #include <windows.h>
 
+// The interface's angles and rest rotation that static initialisers set (pi + pi, pi * 0.5, the identity).
+inline constexpr float kHudFullTurn = /*007C8140*/ 6.2831855f;
+inline constexpr float kHudQuarterTurn = /*007C8144*/ 1.5707964f;
+inline constexpr Quaternion kHudRestRotation = /*007C8150*/ {1.0f, 0.0f, 0.0f, 0.0f};
+
 namespace console { class ConsoleWindow; }
 class CFigureManager;   // figure_manager.h
 class CItem;
@@ -754,7 +759,7 @@ public:
     // then the memory freed when bit 0 of `flags` is set; returns this.
     CUiWindow* UiWindowDelete(unsigned flags);
     // 005FE700 (RET 4). Constructor: the engine object base, an empty window of `ui` (arrays, the
-    // rectangle and +0xA0..+0xD7 zeroed, rotation from 007C7E58), two materials of the manager
+    // rectangle and +0xA0..+0xD7 zeroed, the identity rotation), two materials of the manager
     // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
     // with 1). Returns this (ui_window.cpp).
     CUiWindow* Construct(CInterface3D* ui);
@@ -771,7 +776,7 @@ public:
     std::uint8_t unused_00C[0x1C - 0x0C];    // CEngineObject: id_ .. prototypeId_
     Vector3 localPosition_;                  // +0x1C (0, 0, 0) from the constructor
     std::uint8_t unused_028[0x34 - 0x28];    // CTransformObject: worldPosition_
-    Quaternion localRotation_;               // +0x34 from 007C7E58 (the constructor)
+    Quaternion localRotation_;               // +0x34 the identity (the constructor)
     Quaternion worldRotation_;               // +0x44 the identity
     std::uint8_t unused_054[0x94 - 0x54];
     // The input side starts at +0x94: {vtable, interface, handled flag}. Its handlers get `this`
@@ -1647,7 +1652,7 @@ public:
     int Draw(CSceneRenderer* renderer);
     // 005E6C60 (vtable slot 2, Create; ui_mesh_draw.cpp). The figure's Create (005A6C70), then no
     // material or texture, the scale matrix the identity, tint 1, +0x230 zero, the identity
-    // orientation (007C7CD8), position (0, 0, 10), both colours 0xFF000000, visible. Returns 1.
+    // orientation (the identity), position (0, 0, 10), both colours 0xFF000000, visible. Returns 1.
     int CreateSprite();
 
     // CFigureMesh's fields as a sprite uses them: flags_ (0x100: drawn in the plain colour
@@ -2139,7 +2144,7 @@ public:
     // 0x400000 only) through SelectUnit (00638EF0); a drag selects the party units inside the box
     // (+0x1CC): the world's selection cleared (00566100 with 0), the box marks and portraits'
     // markers reset, each unit inside controlled (00566030) with its portrait marked and its face
-    // turned (about -x by 007C8144 / 7), then slot 32 with the first one's id; then 00637DC0.
+    // turned (about -x by kHudQuarterTurn / 7), then slot 32 with the first one's id; then 00637DC0.
     void OnLButtonUp(int buttons, int x, int y);
     // 00639D60 (input side slot 4, RET 0xC; ui_battle_mouse.cpp; `this` the window). The mouse
     // moved (also every frame from Draw, at the current position): while a portrait click picks a
@@ -2223,7 +2228,7 @@ public:
     // for an index past the party. The selection is the members' flag 0x10 (as 0x10 or 0); with
     // the interface's +0x7D the member flips (to 1 / 0), else it alone is chosen (1). The world's
     // selection is cleared (00566100 with 0); each portrait's marker (+0x220) gets the chosen
-    // value and its face's rest orientation the turn about -x by 007C8144 / 7 (or the identity);
+    // value and its face's rest orientation the turn about -x by kHudQuarterTurn / 7 (or the identity);
     // each chosen member is controlled (00566030) and the clicked one gets slot 32 (id, 0, 0). In
     // single player (007B0098 1) the local player's unit records (+0x778) follow flag 0x10; then
     // 00637DC0.
@@ -2296,7 +2301,7 @@ public:
     // marked. Then RefreshSelection.
     void OnUnitJoined(CUnit* unit);
     // The portrait at `index` shows the selection marker (sprite index * 5 + 4 visible) and its face's
-    // rest orientation (restB_) turns about -x by 007C8144 / 7 (0049E800).
+    // rest orientation (restB_) turns about -x by kHudQuarterTurn / 7 (0049E800).
     void MarkPortrait(int index);
     // 00635EB0 (slot 27, RET 4). A message box's answer: 0x10001 (the "leave_zone" question) leaves
     // through the saved exit pendingExit_ (00578AC0); 0x20001 (game over: load) opens the load

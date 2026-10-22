@@ -25,7 +25,7 @@
 namespace {
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+constexpr float kTilt = /*007C7D24*/ 1.5707964f;   // a static initialiser: pi * 0.5
 // The wide preview's six rectangles cleared to the far plane (800 x 600 layout), one table per edge.
 constexpr LONG kWideClearLeft[6] = /*007402F8*/ {290, 272, 272, 510, 510, 510};
 constexpr LONG kWideClearTop[6] = /*00740310*/ {100, 190, 340, 190, 290, 390};
@@ -156,13 +156,13 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     // The orientation: the turn, then a fixed tilt about x, and in the wide layout a turn about -z.
     Vector3 xAxis = {1.0f, 0.0f, 0.0f};
     Quaternion tilt;
-    q = Product(q, *tilt.SetAxisAngle(xAxis, GameFloat(0x007C7D24)), false);
+    q = Product(q, *tilt.SetAxisAngle(xAxis, kTilt), false);
     if (D(depth) > D(400.0f /*00740160*/)) {
         Vector3 zAxis = {0.0f, 0.0f, -1.0f};
         Quaternion side;
         q = Product(q,
                     *side.SetAxisAngle(zAxis,
-                                                    static_cast<float>(D(GameFloat(0x007C7D24)) * D(0.15f /*0073CD18*/))),
+                                                    static_cast<float>(D(kTilt) * D(0.15f /*0073CD18*/))),
                     true);
     }
     std::memcpy(&model->localRotation_, &q, 16);

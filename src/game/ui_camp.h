@@ -55,6 +55,8 @@ T* NewItemPanel(CInterface3D* ui, CItemScreen* owner, VtablePair vtables) {
 // The hero panel's seven body slots: their centres (800 x 600 layout; the panel's frames and its depth clear).
 inline constexpr int kBodySlotX[7] = /*00741EC4*/ {250, 250, 250, 550, 550, 550, 550};
 inline constexpr int kBodySlotY[7] = /*00741EE0*/ {150, 300, 450, 150, 350, 450, 250};
+// The global map model's spin wraps at this (a static initialiser: pi + pi).
+inline constexpr float kGlobalMapFullTurn = /*007C8020*/ 6.2831855f;
 
 // (UiDwordArray, the MFC CArray<DWORD>-like array, is in ui.h.)
 
@@ -219,7 +221,7 @@ public:
     // 00630010 (input slot 4, RET 0xC; Rebirth-patched; reproducing WideScreen, so hooked in both
     // launches: the drag scaled without the margin, the pick picture's x without it). The mouse moved. While dragging: the drag motion (007C7C60, printed
     // to the stream 007C5760) turns the map: angle_ += dx / 300 (layout units), taken mod
-    // 007C8020, and turn_ = the tilt (pi * 0.8 about x) times the spin about z; the motion is
+    // kGlobalMapFullTurn, and turn_ = the tilt (pi * 0.8 about x) times the spin about z; the motion is
     // cleared. Otherwise the zone or link under the mouse is selected (a link's region 3..; or,
     // off every region, the zone read from the backdrop's pixel at half the point, on gipat its
     // link when it has one; nothing while a turn button is held) and its tip shown: the first
@@ -288,7 +290,7 @@ public:
     std::uint8_t unused_1DE[2];
     stlp::map<int, float> arrivals_; // +0x1E0 target exit -> time
     Quaternion turn_;                // +0x1EC the model's orientation (a quaternion)
-    float angle_;                    // +0x1FC the model's turn about z (mod 007C8020)
+    float angle_;                    // +0x1FC the model's turn about z (mod kGlobalMapFullTurn)
     float depth_;                    // +0x200 10
     float centreX_;                  // +0x204 400 (layout)
     float centreY_;                  // +0x208 280
@@ -592,7 +594,7 @@ public:
     // (00532A20 with record + 0x20) and its figure is updated (slot 31); the stats panel redraws.
     void RefreshStats();
     // 0060F6B0 (slot 24). The children's update, then the hero preview turns while a turn button
-    // is held (+0x25C 1 / 2): heroTurn_ +- twice the frame time, modulo 007C7EE8.
+    // is held (+0x25C 1 / 2): heroTurn_ +- twice the frame time, modulo 2 pi.
     void Update();
     // 0060F710 / 0060F7A0 (slots 48 / 49). The next / previous hero of the party (wrapping; the
     // first record whose prototype is of class 0x32; fatal after a full round without one); a

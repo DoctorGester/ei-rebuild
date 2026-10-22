@@ -36,9 +36,9 @@ const char* AutoSaveName() { return "savea"; }
 constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
 
 
-// The portraits' selected-face turn: 007C8144 (pi) times 0073CDCC (1/7).
+// The portraits' selected-face turn: pi / 2 times 0073CDCC (1/7).
 float SelectedFaceAngle() {
-    return ei::GameData<const volatile float>(0x007C8144) * 0.14285715f /*0073CDCC*/;
+    return kHudQuarterTurn * 0.14285715f /*0073CDCC*/;
 }
 
 // The load window the game-over box opens (0x194 bytes, built inline).

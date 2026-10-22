@@ -414,7 +414,7 @@ public:
     // with a hero selected at depth 553, new hero at 400). Returns 1.
     BOOL Draw(int pass);
     // 00617820 (slot 24). The children's update; a held rotate arrow turns the preview by twice the
-    // frame time (modulo 007C7F10); the two scroll bars' moves redraw the hero list and the voices;
+    // frame time (modulo 2 pi); the two scroll bars' moves redraw the hero list and the voices;
     // on the new hero's page the create button (scene object 9) is bright only when the three
     // attributes add up to 00741C98's points and the name is not empty.
     void Update();
@@ -643,7 +643,7 @@ public:
     // 0061B2C0 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
     // only). The screen over 800 x 600: the "saveload" and "scrollbar" textures, the stone menu
     // model ("unmoco2" with "MainMenu00labels", parts "but03" and "button03_multiplayer") at
-    // (400, 350, 8) turned about x by 007C7F40 * 1.2; the regions (above) with tips 0x9E98,
+    // (400, 350, 8) turned about x by pi / 2 * 1.2; the regions (above) with tips 0x9E98,
     // 0x9E99, 0x9EA2 and 0x9EA3 on the first four; sprites 0 / 1 the two buttons, 2 the selection
     // bar (plain 0xC8A06800), 3 the sort arrow (the scroll bar's texture, hidden), 4 / 5 the
     // unlisted and password switches, 6-9 the game type tabs (their names "lmp_allod_name_%d"

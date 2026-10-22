@@ -186,7 +186,7 @@ constexpr float kMarkerHeight = 20.0f;      // 0073CCF8
 constexpr float kMarkerHalfWidth = 10.0f;   // 0073BAAC
 constexpr float kExitHalf = 15.0f;          // 0073C518
 constexpr std::uint32_t kFarAway = 0x5A0E1BCA;   // 1e16
-float ExitTurn() { return ei::GameData<const float>(0x007C8170); }   // a global angle
+constexpr float kExitTurn = /*007C8170*/ 1.5707964f;   // a static initialiser: pi * 0.5
 constexpr float kExitTurnDown = 3.1415927f; // 00742B24
 
 } // namespace
@@ -305,10 +305,10 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 gameapi::OffsetRect(&rect, 0, 10);
             }
         } else if (sideX > 0.0f) {
-            Turn(marker, -ExitTurn());
+            Turn(marker, -kExitTurn);
             gameapi::OffsetRect(&rect, 10, 0);
         } else {
-            Turn(marker, ExitTurn());
+            Turn(marker, kExitTurn);
             gameapi::OffsetRect(&rect, -10, 0);
         }
         region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);

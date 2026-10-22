@@ -67,7 +67,7 @@ float ConstScrollTo() { return 0.25f /*0073C3B0*/; }   // 0.25: setting 20 from 
 float ConstHalf() { return 0.5f /*0073B86C*/; }       // 0.5: the slider's centre
 float ConstThumbLift() { return 0.1f /*0073B850*/; }  // 0.1: the thumb above the track
 // The slider sprites' turn about z (a float global set at start-up, not in the file).
-float QuarterTurn() { return ei::GameData<const float>(0x007C8210); }
+constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // The game's option globals the window loads (00652200) and stores (006524A0), by setting.
 int& OptVolume0() { return options::TheOptions()->audioSfx_; }       // setting 0 (the sound system's volume A)
@@ -498,11 +498,11 @@ EI_REPLACE_METHOD(0x006524A0, COptionsWindow::Apply);
 // --- 0065B8B0: the slider's slot 26 ---------------------------------------------------------------
 
 namespace {
-// The slider's sprites lie along x: a quarter turn about z (the angle is the float at 007C8210).
+// The slider's sprites lie along x: a quarter turn about z (pi / 2).
 void TurnQuarter(CUiMesh* sprite) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
-    sprite->localRotation_ = *turn.SetAxisAngle(axis, QuarterTurn());
+    sprite->localRotation_ = *turn.SetAxisAngle(axis, kQuarterTurn);
 }
 } // namespace
 

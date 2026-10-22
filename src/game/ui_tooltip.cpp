@@ -62,7 +62,7 @@ constexpr int kSurfaceFormat = 5;
 // the static initialiser 0065E310).
 float ShowDelay() { return options::TheOptions()->toolTipTime_; }
 float AppearTime() { return 0.0f /*00742F2C*/; }
-POINT CursorOffset() { return ei::GameData<const POINT>(0x007C8258); }
+constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 
 // The extent of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
 // takes the CString by value and releases it, so a copy's data is handed over).
@@ -185,7 +185,7 @@ void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
         state_ = kAppearing;
         timer_ = 0.0f;
         RECT rect{0, 0, width_ > keyWidth_ ? width_ : keyWidth_, height_};
-        POINT offset = CursorOffset();
+        POINT offset = kCursorOffset;
         // WideScreen (0065E77E: XOR ECX,ECX): without the margin; the layout's right edge 800 + extra
         // (addon's operands at 0065E7C3 / 0065E7CA).
         interface_->CallScalePointFromScreenNoMargin(&offset);

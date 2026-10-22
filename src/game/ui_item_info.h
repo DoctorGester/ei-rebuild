@@ -114,7 +114,7 @@ struct ItemTurn {
 
     void* vtable;
     int references;          // +0x04
-    float angle;             // +0x08 radians, wrapped at 007C7D20 (2 pi)
+    float angle;             // +0x08 radians, wrapped at 2 pi
     float speed;             // +0x0C
     bool flag;               // +0x10 set by a move into a list shown turning
     std::uint8_t unused_11[3];
