@@ -85,7 +85,6 @@ REVIEWED_DATA = [
     (0x00753F04, 0x0077F7CC, 12, 'C++ EH: catchable types (ThrowInfo) -> the thrown pointer types\' type '
                                  'descriptors (".PAV...")'),
     # .data
-    (0x007857B4, 0x0078706C, 88, 'the key bindings\' command table (007857B0, 0x48-byte entries): names'),
     (0x0078BC8C, 0x0078CAA8, 442, 'the script language: comment tokens (0078BC8C) and the keyword / function table '
                                   '(0078BCA0): names and argument type strings'),
     (0x00790270, 0x007902EC, 18, 'the zone names ("zone2", ...) after the save versions (00790260)'),

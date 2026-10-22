@@ -108,16 +108,12 @@ void NamedFloatTable::Save(CStream* stream) {
 }
 EI_REWRITTEN(0x00461260, NamedFloatTable::Save);
 
-// The command table (key_bindings.cpp's Key entries, 0x48 bytes each; the actions' table follows it).
-constexpr std::uintptr_t kCommandTable = ei::DataId(0x007857B0);
-constexpr std::uintptr_t kCommandTableEnd = kCommandTable + 88 * 0x48;
-
 void* __fastcall FindCommandByKey(int key) {
     const signed char* keys = g_keyActions;
     for (int slot = 0; slot < 0x200; ++slot) {
         if (keys[slot] != key) continue;
-        for (std::uintptr_t entry = kCommandTable; entry < kCommandTableEnd; entry += 0x48)
-            if (ei::GameData<const int>(entry) == slot) return ei::GamePointer<std::uint8_t>(entry + 8);
+        for (UiKeyName& entry : g_keyNames)
+            if (entry.scan_ == slot) return entry.name_;
     }
     return nullptr;
 }
