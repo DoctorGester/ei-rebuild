@@ -1,7 +1,7 @@
 """game.exe's .rdata and .data for the standalone image (S18b, S18d, S18h; docs/notes/standalone.md, "Own data"): the
 pointer cells of game.exe's data that point into the range the image moves (src/standalone/image_cells.inc,
 committed and reviewed; image_data.cpp fixes them up when it moves the range), and the range's initial bytes
-(written into the build folder by the build, not committed: --bytes).
+(written into the build folder by the build from the committed cells alone, no game.exe: --bytes).
 
 The moved range is 0073B000-007CD000: .rdata (its import address table first, whose slots ei_hook.dll fills itself:
 S18f) and .data with its zero-filled tail. game.exe has no relocations, so the cells are found by a scan: every
@@ -34,24 +34,16 @@ the dwords in that range are left as they are: NOT_CODE groups (text, the
 import names' hints, the CRT's SEH scope tables, which only game.exe's own frames read) and text by the filters above
 whose value is no function start (config/functions.csv). A dword that is neither fails until it is reviewed.
 
-The zero-filled trial (C25; build.cmd's `trial`, CMake's EI_IMAGE_ZERO_TRIAL): --bytes --zero writes every byte of the
-moved range zero except the cells (their values from the committed image_cells.inc / image_code_cells.inc, so
-image_data.cpp and image_code.cpp move them as usual) and the ranges of config/image_kept.csv, which are game.exe's
-bytes: what the image is still found to read of game.exe's data that no named global of ours holds yet (each row's
-owner, kind and reader). An empty list reads no game.exe. The suite on the trial is what proves the list against the
-runs; --check proves it statically (zero_roots, C25a): every game data address src/ names in the moved range, and every
-pointer cell's target its object (or a kept range) holds, lies in the import table, the zero-filled tail, a named
-range or a kept range, or its object (up to the next start: a root, a cell's target, a named or kept range, an
-absolute operand of game.exe's code, a section's end; ROOT_SIZES where the object is shorter) holds no nonzero dword
-of game.exe's but cells and static initialisers' stores. So the zero bytes do not depend on what the runs reach.
+The initial bytes (C25c: the build reads no game.exe): every byte of the moved range is zero except the cells, their
+values from the committed image_cells.inc / image_code_cells.inc (image_data.cpp and image_code.cpp move them as
+usual); the import table and the named ranges are zero. Everything else the image reads of the range is a named
+global of ours (C18).
 
-usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT [--zero]]
-  (no option)  write src/standalone/image_cells.inc and image_code_cells.inc
-  --check      exit 1 when the files differ from what the scan writes, or a cell has no review (build.cmd)
-  --bytes OUT  write the moved range's initial bytes (.rdata's and .data's file bytes, the import table and the ranges
-               our named globals hold zero: config/named_data.csv, C18) to OUT as a C++ initialiser (the build)
-  --zero       with --bytes: the trial's bytes (zero but the cells and config/image_kept.csv's ranges); with an empty
-               list no game.exe is read (CMake's EI_IMAGE_BYTES_FROM_EXE OFF makes this the product's form)
+usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT]
+  (no option)  write src/standalone/image_cells.inc and image_code_cells.inc (reads game.exe)
+  --check      exit 1 when the files differ from what the scan writes, or a cell has no review (reads game.exe;
+               tools/check_against_exe.cmd)
+  --bytes OUT  write the moved range's initial bytes to OUT as a C++ initialiser (the build; no game.exe)
 """
 import argparse, csv, os, re, struct, sys
 
@@ -66,7 +58,6 @@ FUNCTIONS = os.path.join(ROOT, 'config', 'functions.csv')
 LIBRARY = os.path.join(ROOT, 'config', 'library.csv')
 NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
 RETIRED_VTABLES = os.path.join(ROOT, 'config', 'retired_vtables.csv')
-KEPT = os.path.join(ROOT, 'config', 'image_kept.csv')
 BASE = 0x00400000
 TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06 (src/standalone/host.cpp's kExpectedTimestamp)
 
@@ -110,8 +101,7 @@ REVIEWED_DATA = [
 ]
 
 # Cells of tables nothing reads (C25a), as REVIEWED_DATA's groups but left out of the pointer cells: only game.exe's dead
-# code or no code at all read them, and no port names them (the trace, EI_IMAGE_TRACE=1, sees no read). Their bytes
-# stay game.exe's, unshifted (zero in the trial).
+# code or no code at all read them, and no port names them. Their bytes are zero in the image.
 UNREAD = [
     (0x0073B000, 0x00783000, 72, '".SEC": per-file copies of a header\'s const char* const that nothing reads (the two '
                                  'read ones are named: terrain_sector.cpp 00744164, ai_map_load.cpp 0073FD20)', 0x00783CDC),
@@ -686,53 +676,16 @@ def committed_cells():
     return cells
 
 
-def kept_ranges():
-    """config/image_kept.csv's rows (address, size, owner, kind, what): the trial's ranges of game.exe's bytes."""
-    if not os.path.exists(KEPT):
-        return []
-    with open(KEPT, newline='') as f:
-        return [(int(r['address'], 16), int(r['size']), r['owner'], r['kind'], r['what']) for r in csv.DictReader(f)]
-
-
-def check_kept(kept, named):
-    """Problems of config/image_kept.csv: a range outside the file's bytes past the import table, or overlapping a
-    named range or another kept one."""
-    problems = []
-    spans = sorted((a, a + n) for a, n, _, _, _ in kept)
-    for a, e in spans:
-        if a < IMPORTS[1] or e > SCANNED[-1][2] or e <= a:
-            problems.append(f"config/image_kept.csv: {a:08X}+{e - a} is not inside .rdata / .data's file bytes")
-        for b, n in named:
-            if a < b + n and b < e:
-                problems.append(f'config/image_kept.csv: {a:08X}+{e - a} overlaps the named range {b:08X}+{n}')
-    for (a, e), (b, _) in zip(spans, spans[1:]):
-        if b < e:
-            problems.append(f'config/image_kept.csv: {a:08X}+{e - a} overlaps {b:08X}')
-    return problems
-
-
-def write_bytes(img, path, zero=False):
-    """The moved range's initial bytes to `path`; `img` is None for a trial without kept ranges (no game.exe)."""
+def write_bytes(path):
+    """The moved range's initial bytes to `path`, from the committed files only (no game.exe): zero but the cells."""
     lo = MOVED[0]
     end = SCANNED[-1][2]   # the file's bytes; the rest of the range is zero
     named = named_ranges()
-    if zero:   # the trial: the cells and the kept ranges only
-        data = bytearray(end - lo)
-        cells = committed_cells()
-        for cell, value in cells.items():
-            struct.pack_into('<I', data, cell - lo, value)
-        kept = kept_ranges()
-        problems = check_kept(kept, named)
-        if problems:
-            sys.exit('\n'.join(problems))
-        for a, n, _, _, _ in kept:
-            data[a - lo:a - lo + n] = img[a - BASE:a - BASE + n]
-        what = (f'the trial (--zero): zero but the {len(cells)} cells of image_cells.inc / image_code_cells.inc '
-                f'and the {len(kept)} ranges of config/image_kept.csv')
-    else:
-        data = bytearray(img[lo - BASE:end - BASE])
-        what = (f"game.exe's .rdata and .data from {lo:08X} as its file holds them (the import table and the "
-                f'{len(named)} ranges of config/named_data.csv and config/retired_vtables.csv zero)')
+    data = bytearray(end - lo)
+    cells = committed_cells()
+    for cell, value in cells.items():
+        struct.pack_into('<I', data, cell - lo, value)
+    what = f'zero but the {len(cells)} cells of image_cells.inc / image_code_cells.inc'
     data[:IMPORTS[1] - IMPORTS[0]] = bytes(IMPORTS[1] - IMPORTS[0])   # our slots, filled by ei_hook.dll
     for a, n in named:   # named globals of ours now (C18): nothing reads these bytes
         b, e = a - lo, min(a - lo + n, len(data))   # a range in the zero-filled tail past the file's bytes: nothing
@@ -754,115 +707,20 @@ def write_bytes(img, path, zero=False):
     return len(words)
 
 
-LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')   # named_data.py's
-
-
-def source_roots():
-    """{address: files} of the game data addresses our code names in the moved range: the address literals of src/'s
-    .cpp and .h (comments blanked; progress.py's and named_data.py --split's count, the generated static init / exit
-    included)."""
-    import srcscan
-    roots = {}
-    for s in srcscan.load_sources():
-        for m in LITERAL.finditer(s.code):
-            a = int(m.group(1), 16)
-            if MOVED[0] <= a < MOVED[1]:
-                roots.setdefault(a, set()).add(s.path)
-    return roots
-
-
-# Section bounds game_data.h and image_data.cpp name as limits (kMovedBegin, kImportsEnd, kDataBegin, ...), not reads.
-BOUNDS = {MOVED[0], IMPORTS[1], SECTIONS['data'][0], MOVED[1]}
-BOUND_FILES = {'src/game/game_data.h', 'src/standalone/image_data.cpp'}
-# Roots whose object ends before the next start (zero_roots): root -> (size, what), as looked at in game.exe.
-ROOT_SIZES = {
-    0x00796E14: (4, "MFC's _afxNewHandler: one function pointer (a code cell); a GUID nothing references follows"),
-}
-
-
-def zero_roots(img, img_path):
-    """The static proof of the zero bytes (C25a): what our code can read of the moved range comes from the source,
-    whatever the runs reach. Each root (an address src/ names, and the target of every pointer cell its object holds,
-    transitively) must lie in our import table, in .data's zero-filled tail (zero fill is exact), in a named range
-    (config/named_data.csv, config/retired_vtables.csv) or in a kept range (config/image_kept.csv); otherwise its
-    object, from the root to the next start (another root, a pointer cell's target, a named or kept range, a section's
-    end), may hold no nonzero dword of game.exe's but cells (committed: image_cells.inc, image_code_cells.inc) and
-    dwords a static initialiser stores (static_init.cpp runs before WinMain). A kept range's pointer cells are roots
-    too. Returns (the roots looked at, {root: (why, files)} of those that fail)."""
-    import named_data
-    values, _ = named_data.initialised(img_path)
-    stored = set(values or ())
-    cells = committed_cells()
-    with open(OUT, encoding='utf-8') as f:
-        pointers = {int(c, 16): int(v, 16) for c, v in re.findall(
-            r'^\{DataId\(0x([0-9A-F]{8})\), DataId\(0x([0-9A-F]{8})\)\},$', f.read(), re.M)}
-    named = named_ranges()
-    kept = [(a, n) for a, n, _, _, _ in kept_ranges()]
-    literal = {a: fs for a, fs in source_roots().items() if not (a in BOUNDS and fs <= BOUND_FILES)}
-    raw_end = SCANNED[-1][2]
-    # Where objects start: the roots, the cells' targets, the named and kept ranges, the sections' ends, and the
-    # absolute operands of game.exe's code into the data (the starts the original indexes from).
-    code = bytes(img[CODE[0] - BASE:CODE[1] - BASE])
-    operands = set()
-    for o in range(len(code) - 3):
-        v = int.from_bytes(code[o:o + 4], 'little')
-        if IMPORTS[1] <= v < raw_end:
-            operands.add(v)
-    starts = sorted(set(literal) | set(pointers.values()) | {a for a, _ in named} | {a for a, _ in kept} |
-                    operands | {IMPORTS[1], SECTIONS['rdata'][1], raw_end})
-    import bisect
-
-    def inside(a, ranges):
-        return any(lo <= a < lo + n for lo, n in ranges)
-
-    def dw(a):
-        return struct.unpack_from('<I', img, a - BASE)[0]
-
-    todo = [(a, ('src', tuple(sorted(fs)))) for a, fs in literal.items()]
-    for lo, n in kept:   # a kept range's cells: what they point at is read too
-        todo += [(v, ('cell', (f'{c:08X} in config/image_kept.csv',))) for c, v in pointers.items() if lo <= c < lo + n]
-    seen, failed = set(), {}
-    while todo:
-        a, origin = todo.pop()
-        if a in seen:
-            continue
-        seen.add(a)
-        if IMPORTS[0] <= a < IMPORTS[1] or a >= raw_end or inside(a, named) or inside(a, kept):
-            continue
-        end = starts[bisect.bisect_right(starts, a)]
-        if a in ROOT_SIZES:
-            end = min(end, a + ROOT_SIZES[a][0])
-        bad = None
-        for d in range(a & ~3, end, 4):
-            if d in pointers:
-                todo.append((pointers[d], ('cell', (f'{d:08X} in the object at {a:08X}',))))
-            elif d not in cells and d not in stored and dw(d) and bad is None:
-                bad = d
-        if bad is not None:
-            failed[a] = (f'{a:08X}-{end:08X}: game.exe\'s nonzero dword {bad:08X} = {dw(bad):08X}', origin)
-    return seen, failed
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--check', action='store_true')
     ap.add_argument('--exe')   # default: tools/exe_path.py
     ap.add_argument('--bytes', metavar='OUT')
-    ap.add_argument('--zero', action='store_true')
     a = ap.parse_args()
-    if a.zero and a.bytes and not kept_ranges():   # the trial with nothing kept reads no game.exe
-        n = write_bytes(None, a.bytes, zero=True)
-        print(f'gen_image_cells: {n} dwords of the trial written to {a.bytes} (no game.exe read)')
-        return 0
-    img_path = exe_path.resolve(a.exe)
-    img = image(img_path)
     if a.bytes:
-        n = write_bytes(img, a.bytes, zero=a.zero)
+        n = write_bytes(a.bytes)
         print(f'gen_image_cells: {n} dwords of .rdata and .data written to {a.bytes}')
         return 0
+    img = image(exe_path.resolve(a.exe))
     kinds = structures(img)
     cells = scan(img)
-    problems = check_kept(kept_ranges(), named_ranges())   # the trial's list (C25) against the named ranges
+    problems = []
     counts = {}
     moved = 0
     for c, v in cells:
@@ -890,16 +748,11 @@ def main():
             n = (TEXT[g[1]][1] - TEXT[g[1]][0]) // 4 + 1
         if have != n:
             problems.append(f'gen_image_cells: the group {what[:70]} has {have} cell(s), reviewed {n}')
-    roots, failed = zero_roots(img, img_path)   # the zero bytes' static proof (C25a)
-    for root, (why, (kind, where)) in sorted(failed.items()):
-        problems.append(f'gen_image_cells: {why} would be zero in the image, read through {kind} {", ".join(where)}: '
-                        'name it (C18) or keep it (config/image_kept.csv)')
     code, code_counts = code_check(img, problems)
     left = sum(n for g, n in code_counts.items() if g[0] in ('not', 'text'))
     outputs = [(OUT, render(cells, img)), (CODE_OUT, code_render(code))]
     summary = (f'{moved} cell(s) into .rdata and .data, {len(code)} code cell(s) ({left} dword(s) in the code '
-               f'section\'s range left: text, SEH tables, data), {len(roots)} root(s) of the zero bytes, '
-               f'{len(failed)} not from the source')
+               f'section\'s range left: text, SEH tables, data)')
     if a.check:
         for path, text in outputs:
             current = open(path, encoding='utf-8').read() if os.path.exists(path) else ''

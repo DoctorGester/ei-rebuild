@@ -14,7 +14,7 @@ lists the forwarders left and why each stays (skip list config/direct_calls_skip
 
 **Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_/check_static_init,
 gen_/check_short_functions, gen_image_cells, gen_iat, check_signatures, check_stolen, check_fp_fold, find_vtables,
-find_dead_code, standalone_gaps, and CMake's `EI_GAME_EXE`) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
+find_dead_code, standalone_gaps; the build reads none since C25c) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
 `run_all.run_dir(root)`'s `vanilla\game.exe`, then `rebirth\game.exe` (a worktree without a run\ junction uses the main
 checkout's); nothing found is one error naming the paths looked for. Nothing reads F:\games any more.
 
@@ -136,11 +136,8 @@ each step green on the goldens and removing a measured tie:
   before it: the host lays out only the headers, the loader and the DLL's CRT start-up touch no game data;
   the log line counts the old range's nonzero bytes (0).
   **The bytes**: the host copies neither section (it skips RVAs 0033B000 and 00383000); the build writes
-  their file bytes from 0073B000 up to .data's last nonzero dword, the import table's 0x820 bytes zero (our slots;
-  ResolveImageImports fills them), .rdata's tail past 007828B2 zero, the ranges our named globals hold zero
-  (config/named_data.csv, "Named data (C18)" below) (`tools/gen_image_cells.py --bytes`, a CMake
-  custom command from `EI_GAME_EXE`; empty by default: `tools/exe_path.py` finds it) into
-  build/<cfg>/image/image_data_bytes.inc, not committed (user 2026-10-21: the interim before named globals);
+  zero but the committed cells, from 0073B000 up to the last nonzero dword (C25c: no game.exe; `tools/gen_image_cells.py
+  --bytes`, a CMake custom command) into build/<cfg>/image/image_data_bytes.inc, not committed;
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
   .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under F:\games: vanilla's
   and Rebirth's differ in one .text byte only, S18e3).
@@ -311,31 +308,20 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 
 ### The build without game.exe (C25)
 
-What the image still takes of game.exe's .rdata / .data bytes, measured two ways:
+The build reads no game.exe (C25c). The image's .rdata / .data bytes (`gen_image_cells.py --bytes`, CMake) are zero
+but the committed pointer and code cells (image_cells.inc, image_code_cells.inc); everything else our code reads
+there is a named global of ours (C18) or a literal. The resources are the host's own (C23). How it got there: C25a's
+trace of the reads and zero-filled trial, its kept list (`config/image_kept.csv`) and its static proof that every
+address src/ names held only zeros and cells; C25c named the last rows (out_of_range is a class of ours the compiler
+throws, stlp_string.cpp; `__lc_category` and its static "C" are crt_locale.cpp's) and dropped that machinery
+(EI_IMAGE_BYTES_FROM_EXE, the trial, EI_IMAGE_TRACE / image_trace.py, the kept list, the proof, EI_NO_GAME_EXE).
 
-- **The trace** (`EI_IMAGE_TRACE=1`, verify build, the image's runs; tests/verify/harness_image_trace.h): every page of
-  the storage's file bytes that holds a nonzero dword is made inaccessible at the harness's start; the first access
-  to each such dword is a line of the run folder's image_trace.txt, then the instruction is single-stepped with the
-  page open. `python tools/image_trace.py [--check] [--csv OUT]` names the readers (the map) and groups the reads; a
-  read of a cell (image_cells.inc, image_code_cells.inc) does not count, the cells come from the committed tables.
-  On the suite (144 runs, 2026-10-22, after C18o): 2238 dwords read, 1281 of them cells, 957 from game.exe's bytes. Pages that
-  trap more than 100,000 times are left open (the script keyword table 0078B000-0078DFFF, MFC's 00796000, the
-  CRT's 00797000, 0079B000's hot globals): the trace cannot see the rest of them, the trial covers that.
-- **The trial** (`build.cmd verify trial`, CMake `EI_IMAGE_ZERO_TRIAL`, `gen_image_cells.py --bytes OUT --zero`):
-  the image's bytes are zero but the cells and `config/image_kept.csv`'s ranges. Never the product: a zero where a
-  table or string is read changes behaviour silently (a failed lookup, a zero constant), so the proof is the image
-  suite with goldens the same, not a boot. With an empty list the trial does not read game.exe at all.
+The checks that compare with game.exe (check_fp_fold, rdata_literals, named_data, check_short_functions,
+check_static_init, `gen_image_cells --check`, `gen_iat --check`) are `tools\check_against_exe.cmd [release|verify]`,
+run by hand when a change touches what they cover; regenerating the cells (`gen_image_cells.py`) reads game.exe too.
+The harness still runs the original game.exe for goldens and vectors.
 
-`config/image_kept.csv` is that list (address, size, owner file, kind, what): whole objects, also the parts no run
-reaches (the locale abbreviation tables); `gen_image_cells.py --check` refuses a range that overlaps a
-named range (C18) or another, `image_trace.py --check` a traced read outside the list. Each row is a candidate for
-C18 (a named, typed definition in our code) or a literal; when the list is empty the trial's bytes are the product's
-and the build needs nothing of game.exe (the resources are the host's own since C23).
-
-C25a took six rows and added four (out_of_range's throw information, found by the static proof below; C25c made
-out_of_range a class of ours the compiler throws, stlp_string.cpp). The list is two rows: the CRT's locale category
-names 007472E4 and static "C" 00797778 (C18q's "Left in the CRT": `__lc_category`'s init cells point at unported
-code; C26). C25a's rows:
+What C25a named or dropped of its list, still the code's form:
 - **Written globals at addon sites**: WideScreen's layout widths 00742B08 (800) / 007428AC (695) are
   `widescreen::g_layoutWidth` / `g_panelRight` (ui_widescreen.cpp, tagged; Startup writes them as addon did; the clock and
   the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
@@ -352,32 +338,7 @@ code; C26). C25a's rows:
   the other releases must be the same; tests/verify/harness_startup.cpp sets it at static initialisation). game.exe's cells 00796E48 / 00796E4C stay in image_cells.inc, unread.
 - **Unread tables, no definition**: the 72 `.SEC` copies and the dead code's two tables (C18o's
   header_constant_copies.cpp / dead_code_tables.cpp) are gone; their cells are gen_image_cells.py's `UNREAD` groups
-  (counted, left out of the cells like LEFT_STRUCTURES): game.exe's bytes unshifted, zero in the trial.
-
-**The static proof** (C25a, `gen_image_cells.py --check`, build.cmd; the trace stays the cross-check): the runs only
-show what they reach, so the check takes every root our code can read from: each game data address src/ names in the
-moved range (the 231 of named_data.py --split's count there; game_data.h's / image_data.cpp's section bounds left out)
-and, transitively, the target of every pointer cell inside a root's object or a kept range. A root passes in the
-import table, in .data's zero-filled tail (from 0079C000: zero fill is exact), in a named range or in a kept range;
-otherwise its object, from the root to the next start (another root, a cell's target, a named or kept range, an
-absolute operand of game.exe's code, a section's end; `ROOT_SIZES` where the object is shorter, _afxNewHandler),
-may hold no nonzero dword of game.exe's but cells and the static initialisers' stores. 229 roots after C18q, 86 after C18s, 0
-failing. The first run (before C18q) failed 14 that no suite reaches: out_of_range's throw information (its catchable
-types, the array, the type descriptors' names: the frame handler read them for stlp_string.cpp's throw; C25c), `_iob[0..2]`'s flags (unread since C18q's stream stand-ins), MFC's empty string through the game.exe-only
-literal 00796E4C (moved to the harness: tests/verify/harness_startup.cpp sets `g_dataNil` in game.exe), and
-_afxNewHandler's object running into an unreferenced GUID (ROOT_SIZES). The harness's literals (tests/) are not roots:
-the product has no harness.
-
-**The switch** (C25a, ready): CMake's `EI_IMAGE_BYTES_FROM_EXE` (one `set` in CMakeLists.txt, ON). OFF makes the trial's
-form the product's: `--bytes --zero` always, no game.exe lookup (`--exe` passed only when EI_GAME_EXE is set), and
-gen_image_cells reads game.exe only for the list's rows. Set it OFF once config/image_kept.csv is empty and
-`gen_image_cells.py --check` passes (the static proof above, which then also guards every later change); then drop the
-non-zero path of write_bytes and EI_IMAGE_ZERO_TRIAL / build.cmd's `trial`.
-
-Without a game.exe (tools/exe_path.py finds none in run\vanilla / run\rebirth / EI_EXE, or `EI_NO_GAME_EXE=1`)
-build.cmd skips the checks that compare with it (check_fp_fold, rdata_literals, named_data, check_short_functions,
-check_static_init, `gen_image_cells --check`, `gen_iat --check`) with one line; CMake still needs it for the section
-bytes until the switch.
+  (counted, left out of the cells like LEFT_STRUCTURES): zero in the image.
 
 ### Named data (C18)
 
@@ -489,10 +450,10 @@ kinds given.
   named_data takes `NAME + k`, a named range's element k, as a pointer element; --emit does not write it, a person
   does). `_iob` is not read: our streams are the host's FILE*, and the game's stdin / stdout / stderr are
   `libcrt::GameStream(0..2)`, three 0x20-byte stand-ins in crt_format.cpp that only HostFile compares (the vector
-  recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets g_pctype). config/image_kept.csv
-  (C25) lost the rows these names replace: the keyword table and the strings only its cells reached (0078BCA0,
-  0078CAC0, 0078B820 / 864 / 8A4, 0078BBD0, 00787B5C / 98 / B4), `_ctype` 00797DE0, the abbreviation tables 00798928
-  and their names 00747924; the zero-filled trial (`build.cmd verify trial`) runs the image suite without them.
+  recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets g_pctype). These names
+  replaced C25's kept rows: the keyword table and the strings only its cells reached (0078BCA0, 0078CAC0, 0078B820 /
+  864 / 8A4, 0078BBD0, 00787B5C / 98 / B4), `_ctype` 00797DE0, the abbreviation tables 00798928 and their names
+  00747924; `__lc_category` 00797888 and its static "C" 00797778 are crt_locale.cpp's (C25c).
   **Left in the CRT**, by reason:
   - read, not nameable yet: the locale categories `__lc_category` 00797888 (6 x {name, locale, init}; our setlocale
     reads and writes `locale` and calls `init` for a category other than LC_CTYPE, which the game never sets) and the
@@ -807,7 +768,7 @@ kinds given.
       kHitLog 007AF284, ai_alarm's kAlarmLog 007C2EB8, combat's kCombatLog 007AF3E8, unit_ai's kAiLog 007C53C4 and
       kModeLog 007C54E8; a file's own ostream view (AiLogStream, UnitLogStream, GameOstream, net::LogStream) reads the
       stream through `console::StreamAs<View>`. The ostream constructor still points the vbtable at game.exe's 00748284
-      (crt_iostream.cpp, a kept row: C25a / C26).
+      (crt_iostream.cpp).
     - **Left**: MFC's module / thread state and window classes (mfc_state.cpp, mfc_window.cpp: C18r), the save stream 007AFDF8 and the received stream
       007C83D0 (CMemoryStream, game.exe's vtable), the singletons themselves (0079B2A8, 007AF060, 007AF5B8, 007AFF60,
       0079BF00, 007AEE78), the loading movie 007C5520 / 007C554C, 0079BC28 and 007AEDD0-DC (src/render), the
@@ -1808,9 +1769,9 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
   now zeroes it. Any comparator over a never-set float needs the same care.
 - A stolen-byte count must cover whole instructions (`MOV [ESP+0],0` is eight bytes); check_stolen.py checks the
   recorders' counts.
-- A system call does not trap on an inaccessible page, it fails: the image trace's first suite saw WriteFile fail
-  (error 1784) on a save's one-byte .data constant. Page protection tricks must open a buffer's pages around the
-  Win32 calls that take it (harness_image_trace.cpp's WriteFile).
+- A system call does not trap on an inaccessible page, it fails: C25's image trace saw WriteFile fail (error 1784) on
+  a save's one-byte .data constant. Page protection tricks must open a buffer's pages around the Win32 calls that
+  take it.
 - Leftover memory is not preserved (user 2026-10-15): where the original reads never-set bytes, ours writes a
   canonical value (zero) and the harness patches the original the same way (standalone-verification.md section 5).
 
