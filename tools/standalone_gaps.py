@@ -1,9 +1,8 @@
 """Lists the game.exe code the standalone image could still reach without a rewrite (docs/notes/standalone.md, S16c).
 
 In the image every address of game.exe's code section without a registration (EI_REPLACE*, the UI input
-handlers) has no code: what reaches it lands on CodeAddress's stub, which reports it (S18i). Three ways our
-code can get there:
-  forwarders   EI_ORIGINAL targets in src/ (a forwarder runs the address)
+handlers) has no code: what reaches it lands on CodeAddress's stub, which reports it (S18i). Two ways our
+code can get there (src/ has no EI_ORIGINAL forwarders since C29):
   literals     code addresses written in src/ (callbacks, function pointers handed to the game's tables:
                particle callbacks, qsort comparators, network handlers, actionDone, ...); the five
                code-byte reads of S14 (CALL targets, the keyword table's immediate) are among them and
@@ -13,14 +12,14 @@ code can get there:
                The compiler's exception funclets (kind "eh") and config/dead_code.csv are left out: the
                image runs none of game.exe's own exception tables; so are the retired vtables' slots
                (config/retired_vtables.csv, C19) and the named globals' ranges (C18), whose bytes the image holds zero.
-A listed address is not necessarily reachable: a forwarder may be behind a branch the image never takes
-(ei::Standalone()), a vtable may belong to a class the game never makes. config/standalone_unreachable.csv
+A listed address is not necessarily reachable: a literal may be behind a branch the image never takes, a
+vtable may belong to a class the game never makes. config/standalone_unreachable.csv
 names what the image can never run, with the reason (S16d): a whole vtable, data words or ranges, or an
 address wherever it is listed. Each kind's line counts those as "listed unreachable" and prints the rest
 (open). library.csv rows named "not a function" (strings Ghidra read as code pointers) are no function
 starts. The suite under --standalone says which open ones are reached; this lists what to look at.
 
-usage: python tools/standalone_gaps.py [--exe game.exe] [--listed] [--check] [forwarders|literals|data ...]
+usage: python tools/standalone_gaps.py [--exe game.exe] [--listed] [--check] [literals|data ...]
   --listed  print the listed unreachable entries too, with their reason
   --check   exit 1 when an entry is open or a line of the config covers nothing
 """
@@ -40,7 +39,7 @@ TEXT_BEGIN, TEXT_END = 0x401000, 0x73A670
 
 
 def scan_sources():
-    registered, forwarders, literals = set(), defaultdict(set), defaultdict(set)
+    registered, literals = set(), defaultdict(set)
     for dirpath, _, names in os.walk(os.path.join(ROOT, 'src')):
         for n in names:
             if not n.endswith(('.cpp', '.h', '.inc')):
@@ -49,14 +48,12 @@ def scan_sources():
             rel = os.path.relpath(path, ROOT).replace(os.sep, '/')
             code = dd.COMMENT.sub('', open(path, encoding='utf-8', errors='replace').read())
             registered |= {int(a, 16) for a in REGISTERED.findall(code)}
-            for a in dd.ORIGINAL.findall(code):
-                forwarders[int(a, 16)].add(rel)
             if not rel.startswith(('src/hook/', 'src/standalone/')):
                 for m in CODE_LITERAL.finditer(REWRITTEN.sub('', code)):
                     a = int(m.group(1), 16)
                     if TEXT_BEGIN <= a < TEXT_END:
                         literals[a].add(rel)
-    return registered, forwarders, literals
+    return registered, literals
 
 
 def data_references(exe_path, functions):
@@ -109,7 +106,7 @@ def main():
     ap.add_argument('--exe')   # default: tools/exe_path.py
     ap.add_argument('--listed', action='store_true')
     ap.add_argument('--check', action='store_true')
-    ap.add_argument('kinds', nargs='*', default=['forwarders', 'literals', 'data'])
+    ap.add_argument('kinds', nargs='*', default=['literals', 'data'])
     args = ap.parse_args()
     functions = {}
     with open(os.path.join(ROOT, 'config', 'functions.csv')) as f:
@@ -124,7 +121,7 @@ def main():
         vtables = {int(r['vtable'], 16): int(r['slots']) for r in csv.DictReader(f)}
     listed, ranges, lines = read_unreachable(os.path.join(ROOT, 'config', 'standalone_unreachable.csv'), vtables)
     dead = dd.addresses(open(os.path.join(ROOT, 'config', 'dead_code.csv')).read())
-    registered, forwarders, literals = scan_sources()
+    registered, literals = scan_sources()
 
     def kind(a):
         r = functions.get(a)
@@ -166,16 +163,14 @@ def main():
             for a, line in excused:
                 print(f'  listed {a:08X} ({line["what"]} {line["address"]}): {line["reason"][:90]}')
 
-    if 'forwarders' in args.kinds:
-        show('forwarders', forwarders)
     if 'literals' in args.kinds:
-        # (A forwarder's own address is listed above; the code-byte reads of S14 have no function.)
-        show('code literals', {a: v for a, v in literals.items() if a not in forwarders})
+        # (The code-byte reads of S14 have no function.)
+        show('code literals', literals)
     if 'data' in args.kinds:
         refs = data_references(exe_path.resolve(args.exe), functions)
         show('data references', {a: [f'{x:08X}' for x in v] for a, v in refs.items()}, refs)
     stale = [line for line in lines if not line['covers']]
-    if set(args.kinds) >= {'forwarders', 'literals', 'data'}:
+    if set(args.kinds) >= {'literals', 'data'}:
         for line in stale:
             print(f'warning: standalone_unreachable.csv line {line["what"]} {line["address"]} covers nothing')
     for a in sorted(set(listed) & registered):

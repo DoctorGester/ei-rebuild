@@ -130,6 +130,9 @@ inline int LightLevelsPeriod() { return options::TheOptions()->shadowLightingFre
 // The scene renderer's sun light (figure_part_draw.cpp; world_singletons.cpp) and the point the grey levels start
 // from (its distance to the sun), the origin; the picking returns it without a view matrix.
 CLight* SceneSun();
+// R16i: the scene's camera while the world's draw runs (the scene stack's top it pushes first: projection x
+// view; world_client_draw.cpp), else null. The figure parts lit on the GPU take their model matrix from it.
+const Matrix4* SceneCamera();
 inline constexpr Vector3 kOrigin = /*007AFDB0*/ {0.0f, 0.0f, 0.0f};
 inline float ColourScale() { return 255.0f /*0073C370*/; }   // 255
 

@@ -83,9 +83,6 @@ PATTERNS = {
                                 r'[\s*&]+unknown\w*\s*(?:\[[^\]\n]*\]\s*)*(?:\{[^}\n]*\}|=[^;\n]*)?;', re.M),
     # An unused_XXX member that some code does touch after all: it needs a real name.
     'unused field accessed': re.compile(r'(?:\.|->)\s*unused\w*\b(?!\s*\()'),
-    # A forwarder through an original address (C13; none left since C29: callers call our functions by name, and
-    # the macro is the harness's only, tests/verify/harness_original.h).
-    'EI_ORIGINAL forwarder': re.compile(r'\bEI_ORIGINAL\s*\('),
 }
 # Patterns not counted under these directories (or files). src/lib/vecmath.h compiles its unrounded
 # 2D / Vector3 sums with precise semantics off on purpose: they must stay in ST0 like the original's
@@ -100,9 +97,10 @@ NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'MapObjectIdMap', 'UnitSet'
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
           'float_control pragma': 'src/lib/vecmath.h', 'hand-written vector maths': 'src/lib/vecmath.h',
           '__asm block': 'src/lib/crt_x87.cpp'}
-# A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_REWRITTEN(...)/UI_INPUT_HANDLER(...) is how
-# hooks are written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
-REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REWRITTEN|REWRITTEN_SPECIAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|REPLACE_STANDALONE)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
+# A literal address directly inside EI_REPLACE(...)/EI_REWRITTEN(...)/UI_INPUT_HANDLER(...) is how registrations
+# are written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest. (EI_ORIGINAL
+# forwarders are the harness's only since C29, tests/verify/harness_original.h: src/ cannot use the macro.)
+REGISTRATION = re.compile(r'(?:EI_(?:REWRITTEN|REWRITTEN_SPECIAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|REPLACE_STANDALONE)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
 
 
 def strip_comments(text):

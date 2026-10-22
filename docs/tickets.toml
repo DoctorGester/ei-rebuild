@@ -410,7 +410,7 @@ size = 1
 model = "opus"
 depends = ["R16"]
 files = ["src/render/", "src/game/terrain_lighting.cpp"]
-note = "User 2026-10-22: no CPU lighting at all (asked if it is needed anywhere; digests carry no lighting value, lighting draws no rand). Light objects stay as GPU inputs."
+note = "User 2026-10-22: no CPU lighting at all (asked if it is needed anywhere; digests carry no lighting value, lighting draws no rand). Light objects stay as GPU inputs. Done 2026-10-22 (review): no option, the GPU path only. Ground and figures lit per pixel (scene_lighting.hlsli, mesh.hlsl: the vertex lighting's and 3DfpFPU LightMesh's rules), sun and point lights; the ground casts into the sun map; R22 ids gone (N.L plus a 1.5-texel normal offset); classic shadows removed. Kept on the CPU (read outside drawing): SunReaches only where it would touch the sector cache, kLit / relight countdowns, the water specular word (digest), blood print levels (saved), AddSun's reference; sky lighting left on the CPU. render_shadows_outside's gate floor lowered to 0.3% (point lights cast no shadow); render_shadows_mound lost the facing A/B. Cost (render_stats 4K): main CPU zone1 4.46 -> 3.0-3.9, fight 15.4 -> 12.9, town 9.6 -> 5.3 ms; relit meshes 0; GPU within noise except town 2.1 -> 3.5 in one stretch. Frames build/R16i/compare_*.png. Image suite 121 the same, original 114 the same. Follow-up R16i1 (point-light shadows). Review fix 2026-10-22 (user: no unit shadows, the bz1g shop unshadowed at night): the towns' lamps (on by day too) lit the ground unshadowed over the units' shadows, now darkened by the same shade; meshes were shadowed only where their smoothed vertex normal faced the map's sun (the shop's plank read sideways), now every mesh by its face normal and its whole colour (as before R16i). The sun/moon map is drawn at night and the shop casts: not R16i1. bz1g noon/night against main: shadowed/lit brightness within 0.01. Crops build/R16i/unit_shadow_*_crop.png, shop_*_crop.png. Image suite 121 the same."
 
 [[ticket]]
 id = "R16j"
@@ -660,6 +660,16 @@ title = "Shadow map: calm the penumbra grain that changes as the sun turns"
 group = "renderer"
 depends = ["R25"]
 note = "After R25 the shadow map's soft edges have no cell steps, but the per-pixel turned Vogel taps (8/16) make a grain whose pattern changes every frame as the sun turns the map's texels (render_shadows_shimmer, shadow view at 8 ms frames: 4-9% of the soldier's region by more than 8 of 255 between frames; real frame 2% by more than 3). Options: more taps where the radius is wide, reuse across frames, or a smoother prefiltered map. Only if the user still sees shimmer."
+
+[[ticket]]
+id = "R16i1"
+title = "Point-light shadows (campfires, torches) in the GPU lighting"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R16i"]
+files = ["src/render/render_shadows.cpp src/render/shaders/"]
+note = "R16i lights the ground and figures per pixel by the sun and the point lights, but only the sun casts (one shadow map). In towns at night the fires now light the inside of object shadows (render_shadows_outside's gate: lighter where the fires reach; its floor lowered to 0.3%). Cube or dual-paraboloid shadow maps for the few strongest point lights in view (the campfire, torches carried by units), sampled in scene_lighting.hlsli's point loop and mesh.hlsl's figure_light. Measure the cost with render_stats (town at night); show the user before/after frames of bz1g at night (render_lighting's light_town_night). docs/notes/renderer.md section 13 item 9."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -3108,7 +3118,7 @@ id = "C29a"
 title = "C29 leftovers: crt* unread registrations, always-zero forwarder counts in tools"
 group = "cleanup"
 model = "sonnet"
-note = "From C29's report: drop the 23 unread registrations in src/lib/crt*.cpp now C26 is merged (registration_readers.py --drop without the crt exclusion); teach registration_readers that tests' forwarders run only in game.exe and drop the 12 registrations only they read; remove the forwarder counts from progress.py, dashboard_data.py, standalone_gaps.py and check_cleanup's EI_ORIGINAL column."
+note = "From C29's report: drop the 23 unread registrations in src/lib/crt*.cpp now C26 is merged (registration_readers.py --drop without the crt exclusion); teach registration_readers that tests' forwarders run only in game.exe and drop the 12 registrations only they read; remove the forwarder counts from progress.py, dashboard_data.py, standalone_gaps.py and check_cleanup's EI_ORIGINAL column. Done (2026-10-22): registration_readers counts no EI_ORIGINAL forwarder as a reader (tests/ only, game.exe only); --drop --exclude src/lib/mfc_ wrote EI_REWRITTEN for 35 (23 in crt*.cpp, 12 the harness's / record_crt's forwarders alone named: TemplateTable::Find, console Execute, CMappedResource x3, blink x2, LoadUnitFaces, PickSurface, Tolower / Isdigit / Isspace). Forwarder counts gone from progress.py (naked functions now counted plainly), srcscan.py, dashboard_data.py + dashboard page, standalone_gaps.py (literals and data only) and check_cleanup (column dropped from cleanup_baseline.csv). standalone_unreachable.csv's harness-only 006F00D1 line went (covered nothing). Left: 9 unread non-short registrations from C28's vtable work (mfc_exception x6, mfc_state x2, manager_context MakeCopyOf) and 3 open standalone_gaps data references (004E0000, 00610020 from .rsrc text; 006F47FB at 007978A8): C29b. Suite: image 121 same / 23 without."
 
 [[ticket]]
 id = "H30a"
@@ -3116,7 +3126,21 @@ title = "Fold the image-only order switches now ours never runs in game.exe"
 group = "cleanup"
 size = 0.5
 model = "sonnet"
-note = "From H30: nothing of ours runs in game.exe, so address_order::ById (world_object_sets.cpp, terrain_animation.cpp, net_client_handlers.cpp), ScriptGroup::After's address path (script_group.cpp), CWorldServer::SpreadUpdateCountdownsById / g_countdownsById (world_server.cpp; the harness's image branch sets it) and render::Active's Standalone test are always on in the image: keep only the image's path. Check the other ei::Standalone() tests in src/game (win_registry.cpp, settings_file.cpp:227, mod_folders.cpp:237) against ei_vectors, whose replays run without the image."
+note = "From H30: nothing of ours runs in game.exe, so address_order::ById (world_object_sets.cpp, terrain_animation.cpp, net_client_handlers.cpp), ScriptGroup::After's address path (script_group.cpp), CWorldServer::SpreadUpdateCountdownsById / g_countdownsById (world_server.cpp; the harness's image branch sets it) and render::Active's Standalone test are always on in the image: keep only the image's path. Check the other ei::Standalone() tests in src/game (win_registry.cpp, settings_file.cpp:227, mod_folders.cpp:237) against ei_vectors, whose replays run without the image. Done (2026-10-22): address_order::ById, ScriptGroup::IdAfter / the address path, CWorldServer::SpreadUpdateCountdownsById / g_countdownsById, render::Active's Standalone test, and every ei::Standalone() test in src/game (win_registry.cpp's registry path, settings_file::ReadValue's registry read, modfolders::Active) keep only the image's path: ei_vectors' hook_stub Standalone() returns true, and the harness's game.exe side calls none of them (render calls go through HarnessRenderActive). src/hook and src/standalone keep theirs (that code runs in game.exe). The object sets' radix sort went with the address order (0047B120, scratch 007A9738/48, exit 0047B1D0: gen_static_init RETIRED_STATICS, named_data.csv updated); SetSun's CompareSlots folded into CompareSectors. Harness: harness_heap's image branch no longer sets the countdowns (ours always by id). Suites: image 121 same / 23 without, original 114 / 12."
+
+[[ticket]]
+id = "C29b"
+title = "Unread registrations after C28 and standalone_gaps' three open references"
+group = "cleanup"
+depends = ["C28"]
+note = "From C29a: registration_readers --unread lists 9 non-short registrations nothing reads since C28's vtable conversions (mfc_exception.cpp 6, mfc_state.cpp 2, manager_context.cpp MakeCopyOf): drop them with --drop once C28 is done there. standalone_gaps lists 3 open data references on main: 004E0000 (CTextManager::IsPastEnd) and 00610020 (CCampScreen::BestPartySkill) spelled by .rsrc dialog text 007D48D4 / 007D4038..., and 006F47FB (lib) at 007978A8 (C26's locale tables?): list them in config/standalone_unreachable.csv with the reason, or show they are reachable."
+
+[[ticket]]
+id = "H30b"
+title = "Harness: read game.exe's objects through its own views, so game headers leave the reference key"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22 16:26: we are no longer layout matched, so the harness can't depend on our classes. Today it does: harness_digest runs the same code in game.exe, reading members at our offsets (w->objects_, CUnit::scriptName) and calling virtuals at our slot numbers (o->GetClassId()). Vanilla passes only because C28 keeps member and virtual order. Do this first when work resumes, before any cleanup that could reorder members."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

@@ -17,6 +17,7 @@
 #include "ui_flying_hit_points.h"
 #include "view_matrices.h"
 #include "world.h"
+#include "world_data.h"
 
 #include "camera.h"
 #include "effects.h"
@@ -74,6 +75,10 @@ constexpr int kStackScene1 = 1;    // +0x1C
 constexpr int kStackScene2 = 2;    // +0x24
 constexpr int kStackWorld = 5;     // +0x3C
 constexpr int kStackView = 9;      // +0x5C
+
+// worlddata::SceneCamera: the scene stack's top when the world's draw pushed it, while that draw runs.
+Matrix4 g_sceneCamera;
+bool g_haveSceneCamera = false;
 
 // Pushes `matrix` on `stack`, as the original inlines it.
 void PushMatrix(MatrixStack& stack, const float* matrix) {
@@ -235,6 +240,8 @@ bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head;
 
 } // namespace
 
+const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
+
 int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* queued) {
     if (!(object->flags_ & 0x20) || (object->flags_ & 0x40)) return 0;
     const CObject3D* figure = static_cast<const CObject3D*>(object);
@@ -253,15 +260,17 @@ int CWorldClient::Render() {
     // The world view for the new renderer's smooth option (R12a: multisampled, models sampled
     // anisotropically); the interface draws after it.
     render::BeginWorld();
-    // The sun the new renderer's shadow map is drawn from (R16j): the terrain's (Terrain::SetSun).
+    CTextureDevice* renderer = TheRenderDevice();
+    CTransformPipeline* device = ScenePipeline();
+    UpdateLighting();
+    // The sun the new renderer's shadow map is drawn from (R16j): the terrain's (Terrain::SetSun), as this
+    // frame's lighting turned it; the GPU lighting's sun, ambient and point lights (R16i).
     if (terrain_ && terrain_->sun) {
         const Vector3& d = terrain_->sun->direction_;
         const float direction[3] = {d.x, d.y, d.z};
         render::ShadowSun(direction);
     }
-    CTextureDevice* renderer = TheRenderDevice();
-    CTransformPipeline* device = ScenePipeline();
-    UpdateLighting();
+    HandOverSceneLights(this);
     Matrix4 view;
     view::CameraViewMatrix(view.m, TheCamera());   // 004F0EF0 (thiscall on the pipeline, not read)
     PopMatrix(device->stacks_[kStackView]);
@@ -270,6 +279,8 @@ int CWorldClient::Render() {
     static_cast<CTransformPipeline*>(device)->PushMatrix(top, kStackScene2);
     static_cast<CTransformPipeline*>(device)->PushMatrix(top, kStackScene1);
     PushMatrix(device->stacks_[kStackWorld], device->Top(kStackView)->m);
+    g_sceneCamera = *device->Top(kStackScene1);
+    g_haveSceneCamera = true;
 
     std::uint32_t flags = flags_;
     void* sky = skyDome_;
@@ -306,7 +317,9 @@ int CWorldClient::Render() {
         ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
         terrain_->DrawWater(TheSceneRenderer());
     }
-    // The shadow map's casters the game did not draw (R20; the map is fitted to the ground drawn above).
+    // The shadow map's casters the game did not draw (R20; the map is fitted to the ground drawn above),
+    // and the ground's own (R16i).
+    if (flags_ & 0x100) HandOverTerrainCasters(this);
     HandOverOutsideCasters(this);
     net::Pump();
     if (flags_ & 0x400) {
@@ -336,6 +349,7 @@ int CWorldClient::Render() {
     PopMatrix(device->stacks_[kStackWorld]);
     PopMatrix(device->stacks_[kStackScene2]);
     PopMatrix(device->stacks_[kStackScene1]);
+    g_haveSceneCamera = false;
     if (flags_ & 0x2000) {
         SetRenderState(renderer, 7, 0);
         ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);

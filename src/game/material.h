@@ -43,6 +43,9 @@ public:
     void SetDiffuse(const Vector3* value);
     void SetAmbient(const Vector3* value);
     void SetSpecular(const Vector3* value);
+    // R16i: the colour of a figure part lit on the GPU (its colour arrays; the shader lights it): white,
+    // with the alpha 3DfpFPU's LightMesh gave every colour (the diffuse alpha times 255, rounded).
+    std::uint32_t GpuLitColour() const;
 
     // 0068DBC0. An engine object with empty names, alpha 1 and an empty deque (one node). The
     // colours stay as they were.

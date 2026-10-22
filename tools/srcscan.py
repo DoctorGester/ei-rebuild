@@ -9,9 +9,6 @@ SRC = os.path.join(ROOT, 'src')
 _TOKEN = re.compile(r'//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\\n])*"'
                     r"|'(?:\\(?:x[0-9A-Fa-f]+|[0-7]{1,3}|.)|[^'\\\n])'", re.S)
 
-ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
-
-
 class Source:
     """One file of src/: `path` relative to the repo root with '/' separators, `raw` the text as
     written, `code` the same text with every comment blanked (same offsets and line numbers)."""
@@ -44,7 +41,3 @@ def load_sources():
                     sources.append(Source(os.path.relpath(full, ROOT).replace(os.sep, '/'), f.read()))
     return sorted(sources, key=lambda s: s.path)
 
-
-def forwarder_sites(sources):
-    """Every `EI_ORIGINAL(0x...)` forwarder as (address, source, offset of the macro), in file order."""
-    return [(int(m.group(1), 16), s, m.start()) for s in sources for m in ORIGINAL.finditer(s.code)]

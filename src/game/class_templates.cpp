@@ -184,7 +184,7 @@ ClassTemplate* TemplateTable::Find(int type) const {
         if ((*this)[i]->type == type) return (*this)[i];
     return nullptr;
 }
-EI_REPLACE_METHOD(0x004A74F0, TemplateTable::Find);
+EI_REWRITTEN(0x004A74F0, TemplateTable::Find);
 
 unsigned __fastcall ClassTemplatesQuestCompleted(PartyManager* manager) {
     ClassTemplateVector* v = &manager->templates;

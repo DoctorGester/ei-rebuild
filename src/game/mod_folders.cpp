@@ -234,7 +234,7 @@ bool g_mapsInMod = false;   // 100BB9D0: the game's folder (007AF460) until a si
 
 } // namespace
 
-bool Active(Patch p) { return ei::Standalone() && ei::rebirth::Enabled(p); }
+bool Active(Patch p) { return ei::rebirth::Enabled(p); }
 
 const std::string& ModPath() {
     static const std::string path =

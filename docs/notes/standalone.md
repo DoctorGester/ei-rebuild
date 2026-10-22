@@ -1536,8 +1536,7 @@ the `--no-hooks` suite) keeps the registry.
   `Close` writes the file when a value changed, atomically through `ei_settings.ini.tmp`) and the direct readers
   through `settings_file::ReadValue` (console_addon's AutoExec lines, mod_folders, script_addon_commands' AddonPath,
   ui_widescreen, world_client_draw's draw radii, directdraw_holder's `Standalone` "PerfOverlay": the performance
-  overlay, renderer.md section 15, not read in the harness build). `ReadValue` reads the registry (read only)
-  outside the image.
+  overlay, renderer.md section 15, not read in the harness build).
 - **Read filters** change a value as it is read, as the registry hooks did on game.exe's import slot: EI_GAME_ROOT's
   Work path / CD-ROM Path (hook/paths.cpp) and the harness's `discprompt` (harness_startup.cpp).
 - **Harness runs** (tests/verify/harness_settings.h): the harness writes `<run folder>\ei_settings.ini` at start
@@ -1614,8 +1613,9 @@ the `--no-hooks` suite) keeps the registry.
   "image only" while game.exe ran our code). `tools/check_registrations.py` (build.cmd) fails on two registrations
   of one address; it reads the built DLL's `.eireg` section (every macro leaves a `RegRecord`).
 - A registration stays only while something reaches its address (C20c): `tools/registration_readers.py` prints the
-  split by reader (code cells by kind, forwarders, code literals, static init, named data, harness, vectors,
-  scenarios / goldens, the short-function and exit-function generators), `--unread` / `--files` what nothing reads,
+  split by reader (code cells by kind, code literals, static init, named data, harness, vectors, scenarios / goldens,
+  the short-function and exit-function generators; not an EI_ORIGINAL forwarder: those are tests/' only since C29 and
+  run only in game.exe, on the original's code, C29a), `--unread` / `--files` what nothing reads,
   `--drop` writes `EI_REWRITTEN` in their place (with `--exclude` / `--exclude-name` for files another worker holds,
   `--only FILE` for a list `--list` printed). Code literals include static_init.cpp's six-digit ones (0x5C4210). A
   dropped function is called by name; one whose registration was the only instantiation of a template needs an
@@ -1645,7 +1645,7 @@ the `--no-hooks` suite) keeps the registry.
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
   commas in names broke rows once (0055C730, 00561B00: now quoted).
 - Library bodies live in src/lib; game-element instantiations in src/game (game_arrays, game_lists, game_slots,
-  game_hashes, record_*, library_*). Callers call them by name (libcrt::Fopen ...); the forwarders left are C29's, and
+  game_hashes, record_*, library_*). Callers call them by name (libcrt::Fopen ...; no forwarders since C29), and
   C14a-d replace the containers with standard ones.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)

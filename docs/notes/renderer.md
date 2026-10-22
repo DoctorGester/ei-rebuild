@@ -43,13 +43,12 @@ keep their pixels in memory the new renderer owns (sections 6, 7), and captures 
 `frames\<name>.bmp`. When the Direct3D 11 device cannot be made at the start, 004EDD70 throws the game's error ("Can't
 start the renderer (no Direct3D 11 device).") and WinMain ends the game.
 
-`render::Active()` is the one query: the image (`ei::Standalone()`) and not failed (no device at the start, a sokol
-panic, a lost device not made again: R9c1). Every `render::` entry point checks it itself, so game code does not ask.
-In game.exe (the harness and the vector recorders run inside the original's process) it is false: captures there read
-the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
-comma-separated list of options: `smooth` (the smooth option, R12a, section 11), `classicshadows` (the game's shadow
-decals instead of the shadow map, R16j, section 13), `smoothcamera` (the smooth camera, R18, section 14) and the harness build's `removable` (R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
-and change nothing; any other word is logged as unknown. The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
+`render::Active()` is the one query: not failed (no device at the start, a sokol panic, a lost device not made again:
+R9c1). Every `render::` entry point checks it itself, so game code does not ask. Only the image runs it: in game.exe
+(the harness and the vector recorders run inside the original's process) nothing of ours draws, and the harness asks
+`ei::Standalone()` first (HarnessRenderActive): captures there read the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
+comma-separated list of options: `smooth` (the smooth option, R12a, section 11), `smoothcamera` (the smooth camera, R18, section 14) and the harness build's `removable` (R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
+and change nothing; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
 DirectDraw surface (no holder has one).
 
@@ -111,7 +110,7 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
 | Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed by the game), corners, colours as lit by the game (005A7A70 step 3; flag 4: device flat colour +0x150), texture coordinates; matrix = top of the screen stack converted back to clip space; distance fog switch +0x158 and range | DeviceDrawMesh 004E9010 / 004E9A50 (`device_mesh.cpp`) -> `render::BeginMesh` / `EndMesh` | drawn |
 | Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (device +0x12C / +0x130) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
-| Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; classic: 64x64 shadow textures rasterised on the CPU (2DintMMX), ground quad 0056C750, drawn with 004EA4A0 (also selection markers, light decals) | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`, `ClassicShadowDecal`); classic: `device_shadow.cpp` -> `render::BeginMesh` without corners | drawn (map by default, decals with `classicshadows`) |
+| Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; the game's 64x64 shadow textures (2DintMMX) and decals are neither made nor drawn (R16i), their projection (the shadow's sphere) still runs | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`) | drawn (the map only) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`renderer_triangles.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
 | Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices and drawn with the device directly | 004E5680 rewritten (`weather_draw.cpp`): after the draw its triangles go to `TlDraw`; the old draw stays | drawn; the old draw (`DrawParticles`) still runs, into the stand-in |
 | Interface surfaces | CUiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
@@ -979,25 +978,21 @@ across runs; the goldens check the game state.
    the moving objects though only that sphere is read: projection, build and the decal's flat draw (which BeginMesh
    drops) are 0.72 ms of zone1's frame, 1.40 of the fight's and 2.1 of the town's.
    **R16e1 (done): with the map the classic texture and the decal's draw are left out.** DrawShadow 0051CE60
-   (map_object_shadow.cpp) asks `render::ClassicShadowSkipped()` (Active() and not ClassicShadows(); the harness's
-   `shadowbuild full` makes them as before, for A/B frames and timings): RenderShadow still projects the parts'
+   (map_object_shadow.cpp) asks `render::ClassicShadowSkipped()` (Active(); before R16i also not the classic option,
+   and the harness's `shadowbuild full` made them as before, for A/B frames and timings): RenderShadow still projects the parts'
    points (bounds, quad), reads whether a part is keyed (`KeyedParts`, which the original read in the raster's loop)
    and projects the decal (its sphere), but MakeTexture (lock, RasterisePart / CFigureMesh::Rasterise, BlurShadow /
    BlurShadow2, the copy, LoadPixelsFrom, `render::TexturePixels`) and, after SetTexture and EdgeFade, the
-   ClassicShadowDecal / DrawFlatBlocks pair are skipped. A switch to classic needs the textures again, and objects
-   with flags 0x600 (animated, then static: class 0x54 map objects, 2 at zone1's start, 4-8 in bz1g) are not rebuilt
-   by the game: a table of the shadows whose texture is made, with the generation it was made in
-   (`g_madeTextures`; a shadow built without the texture leaves it), makes DrawShadow build a shadow again when the
-   texture is needed and missing or older than `render::ShadowTextureGeneration()` (moved by the harness's `shadows
-   rebuild`, RebuildShadowTextures). Classic from the start, every build makes the texture as before. renderstats'
-   "shadow builds" counts the builds that made the texture and those made only for it. Measured (render_stats, 4K,
+   DrawFlatBlocks call are skipped. (Until R16i a switch to the classic option needed the textures again: a table
+   of the shadows whose texture was made, with a generation the harness's `shadows rebuild` moved, rebuilt the
+   static ones the game would not rebuild; R16i removed the option, the table and those harness words.) Measured (render_stats, 4K,
    per frame, the `_shadowfull` stretch with them made against `_shadowskip` right after; shadow builds ms + the
    shadows' flat draws ms): vanilla zone1 0.30 + 0.063 / 0.08 + 0, fight 0.81 + 0.092 / 0.22 + 0, town 1.10 +
    0.19 / 0.35 + 0; Rebirth 0.61 + 0.084 / 0.11, 0.96 + 0.115 / 0.28, 1.19 + 0.32 / 0.34 (what stays is the
    points' projection; the decal projections, 0.3-0.9 ms, are counted apart and stay). Check: render_shadows (at
    the start and in the town the map's frame with and without them, 0 pixels differ; the classic frame after the
-   switch against the one after `shadows rebuild`, 8 / 0.01%: 0 differ, and 0.12% without the switch's rebuild),
-   render_options_shadows, goldens. R16e2 (the user's call) would take a sphere around the
+   switch against the one after `shadows rebuild`, 8 / 0.01%: 0 differ, and 0.12% without the switch's rebuild;
+   R16i removed those comparisons with the option), render_options_shadows, goldens. R16e2 (the user's call) would take a sphere around the
    decal's box instead of the projected mesh, dropping the projection too, but lists more objects out of view for
    shadows. Facts for a later GPU decal path: the CPU volume is a prism along the direction through the quad's u, v
    in [0, 1], cut by one plane at the point minus depth * 0.33 along the direction and open beyond it (a print
@@ -1062,11 +1057,61 @@ across runs; the goldens check the game state.
    profile suggested: 0.1-0.5 ms a frame for the whole device mesh path, item 11). The renderer's own CPU
    (terrain, hand-over, textures, end of frame, shadow map) is 2.0 ms of the fight's frame and 1.0 of the town's; GPU frame
    1.2 / 1.4 ms.
-9. **R16i GPU lighting and shadows (later: it changes the look and waits for the user).** Sun and point lights per pixel
-   and shadow maps (or GPU-drawn shadow textures) instead of the terrain lit per vertex (about 2 ms a frame on the
-   CPU), figures lit per draw (3DfpFPU slots 39-44) and 64 x 64 CPU-rasterised object shadows; the game's vertex
-   colours stay as the fallback behind an option. Check: the user's review of side-by-side frames; with the option off
-   the frames match today's at 8 / 0.1%.
+9. **R16i GPU lighting (done; no option: the GPU path is the only one).** `render_lighting.cpp`,
+   `shaders/scene_lighting.hlsli`, `render_terrain.cpp`, `shaders/mesh.hlsl`. The light objects stay the game's (the
+   sun, its colour and the ambient, the torches and point lights with their positions, colours and ranges); what
+   they light is done per pixel.
+   - **The ground.** The world's draw hands over the frame's light (`render::SceneLighting`: the sun, the ambient,
+     the landscape's point lights, the camera); the terrain shader lights each pixel by the vertex lighting's own
+     rules (ShadeSun, LightVertex: ambient times one less the water's loss, the sun's facing over the material's
+     colour, each point light's falloff, its specular part into the specular word) from the vertex normals and
+     material colours. SectorData::Light no longer lights vertices; it keeps the edge fade and the water's
+     specular word (LightSpecular: the harness digest hashes the water), and runs the sun's ray march
+     (Terrain::SunReaches) only where it could load a sector or refresh the sector cache's order
+     (`SunMarchTouchesNothing`; the cache's builds draw from the global ISAAC). The `kLit` bit and the relight
+     countdowns stay (they pace those calls).
+   - **The figures.** 3DfpFPU's LightMesh (1000D910, disassembled) lit a part per draw: per channel the larger of the
+     ambient and the sun's colour times N.L in the model's space, the larger of that and each point light's colour
+     times N.L times its falloff, plus the emissive, at most 1, and for a crown part a pull towards the mean over
+     the sphere. The part draw (`figure_part_draw.cpp`) now hands that over (`render::MeshLighting`: the model
+     matrix (the world stack's top with the scene's camera taken off, `worlddata::SceneCamera`: a static part
+     already lit is not pushed on the object stack, which only the CPU lighting read), the sun, the ambient SetBaseColour last gave the transform object (`TransformAmbientColour`), the
+     material's colours times the objects' lighting coefficient, the draw's lights in reach) with the part's normals
+     and corner words; `mesh.hlsl` lights each pixel the same way (the crown's mean analytic: 0.6 of the way). The
+     colour arrays hold white with the material's alpha (`CMaterial::GpuLitColour`); a mesh kept on the GPU
+     (R16d) is no longer relit each frame. The speculars and flag 0x10 (moved / static) are as before.
+   - **Shadows in the light.** On the ground a shadow takes away the sun's part: lit = the smaller of the light
+     with the sun hidden (the ambient plus the material's own, as the ray march left a vertex) and the sunlit
+     light x (1 - hidden x strength x the normal's turn towards the map's sun), so never lighter than half the
+     sunlit light; the point lights' light is darkened alike (the towns' lamps burn by day too, and their
+     unshadowed light hid the units' shadows on the ground: the user's review). Every mesh, lit here or by the
+     game, is darkened as before R16i: its colour (lamps and ambient light included) x (1 - hidden x strength) on
+     faces turned to the map's sun by their face normal (`shadow_facing`). Not by the vertex normals: the figure
+     parts' smoothed normals can lean far from their faces (the shop's plank table in bz1g read sideways, and
+     stayed lit under the roof at night). Receivers look up the map at their point moved 1.5 map texels along
+     the normal (normal-offset bias). The ground casts into the map (its faces turned away from the sun). R22's
+     caster ids are gone: a receiver darkens by its own facing like any other (the ids' R16UI image, the
+     harness's `shadowfacing`). Checked against main in bz1g with four units by noon and at night: the mean
+     shadowed / lit brightness under the shadow view's mask is within 0.01 of main's (units, the shop, the frame).
+   - **What stays on the CPU, and why.** The blood prints' levels (GroundPrint's `colour_` is saved:
+     GroundPrint::Save); the sky's lighting (CSkyObject::Light, small; a candidate); the sun's reference in the
+     part's light list (AddSun: the light's count); the CLight fields only the device read (world position, local
+     direction, lit colours) are no longer written.
+   - **Looks that changed (the user's review).** Point lights cast no shadow: the town's fires light the inside of
+     the gate's shadow (render_shadows_outside's floor lowered to 0.3%); a point light per pixel shows a bright
+     spot where the vertices smeared it (the hero's light on stone floors); creatures are lit per pixel (N.L across
+     a face, not per vertex). Follow-up: point-light shadows (ticket R16i1).
+   Check: render_lighting (frames for review: zone1's start, creatures on slopes, a fight, zone1 at night, the town
+   bz1g by day and at night with its campfire), render_shadows*, render_scene, render_stats; the goldens the same
+   (the digest's water hash, saves). Cost (render_stats, vanilla 4K, per frame; before = this branch's base,
+   main of 2026-10-22, one run; after = two runs alone, the machine shared with other workers' games): main
+   thread CPU zone1 4.46 / 2.96-3.92 ms, fight 15.42 / 12.93-12.97, town 9.56 / 5.25-5.33; meshes relit a frame
+   22 / 0, 188 / 0, 58 / 0 and terrain pages relit 15 / 0, 14 / 0, 13 / 0; mesh uploads 42 / 54, 93 / 61, 305 /
+   42 KB; terrain uploads 228 / 312 KB in zone1 (its moving water pages' vertices carry the normal now: 36 bytes
+   against 20); GPU frame zone1 0.91 / 0.96-0.99, fight 1.89 / 1.66-1.87, town 2.13 / 3.46-3.75 in the first
+   stretch but 2.84 / 1.51-2.27 in the later one (noisy; per-pixel point lights over the ground at 4K are the
+   likely cost). Side by side (before | after): build\R16i\compare_*.png on E: (start, slope, fight, night,
+   town, town_night).
 
 10. **R16j Object shadows from a sun shadow map (done; user 2026-10-20).** `render_shadows.cpp`. The game hands over the
     sun (00569E40: `Terrain::sun`'s direction), the object each figure draw's meshes belong to (0056AFE0's object
@@ -1101,16 +1146,16 @@ across runs; the goldens check the game state.
     0.63 (before, main's run: 0.65 / 0.73, 1.01 / 0.68, 0.76 / -); the map's pass with the range passes 0.12-0.16
     ms (0.03-0.06 before; the reduction reads the whole 64 MB map). Side by side (classic | map before | map
     after): build\R16j2\compare_*.png on E:.
-    The classic shadows' decal (the flat mesh after `ClassicShadowDecal`) is dropped; the game's own shadow building
-    (`RenderShadow`, the CPU raster) still runs: its decal's bounds feed the shadow lists. The classic option
-    (`classicshadows`, `render::SetClassicShadows`, the harness's `shadows classic|map`) makes no map, samples none
-    and draws the decals as before (frames as before R16j: the shaders' shadow branch is off).
+    The classic shadows' decal is neither made nor drawn (R16e1, R16i); the game's own shadow building
+    (`RenderShadow`, the decal's projection) still runs: its decal's bounds feed the shadow lists. Until R16i a
+    classic option (`classicshadows`, `render::SetClassicShadows`, the harness's `shadows classic|map`) made no map
+    and drew the decals as before; R16i removed it (no flag: goldens hold no frames).
     Cost (render_stats, vanilla 4K, per frame, map / classic): CPU hand-over + textures + end of frame + map in
     zone1 1.48 / 1.88 ms, fight 3.24 / 5.82, town 1.78 / 5.84 (no shadow textures uploaded: 4-15 a frame classic); the
     map's own CPU time 0.3-0.6 ms (the fit over the terrain vertices); GPU (timestamp queries, harness build) frame
     1.10 / 0.76 ms zone1, 1.16 / 1.07 fight, 0.95 / 0.70 town, of it the map's pass 0.06-0.27 ms.
     Check: scenario render_shadows (image only): zone1's start, a fight, creatures on a slope, the town bz1g, each
-    frozen with the map, classic and the map again (samecapture, diffcapture, `shadowcheck`: map made, casters and
+    frozen with the map twice (samecapture; before R16i classic between them, with diffcapture; `shadowcheck`: map made, casters and
     receivers, and no object the game shadows and drew left out of the map: "drawn but not cast" 0; "not drawn"
     counts the ones off screen, 1-3 in those frames).
     Classic against the map (R16j1; the user's ruin block in the fight and fern in the town): every object whose
@@ -1125,7 +1170,8 @@ across runs; the goldens check the game state.
     id, classic and map captured in one run, with kStrength 1 (map shadows black); a dump of the map (a staging copy
     of its D32 image) showed that adding casters only ever lowers its depths. R16j3 holds what is left (darkness
     where shadows overlap, point lights). Open: terrain does not cast (R16i); point lights do not cast.
-    `run_all --widescreen` runs with `classicshadows` (addon's frames have the decals).
+    `run_all --widescreen` ran with `classicshadows` (addon's frames have the decals) until R16i removed the option:
+    the world view behind the interface now differs from addon's (GPU lighting and the map).
     **Casters outside the view (R20; the user: shadows popped in at the screen's edge with their objects).** The
     game draws only what it sees, so an object just off screen (or a part of a drawn one that the part's own view
     test left out) cast nothing onto the visible ground. Now the world's draw (CWorldClient::Render, after its
@@ -1161,7 +1207,9 @@ across runs; the goldens check the game state.
     outside), town 0.65-0.72 / 0.25-0.29 (26, 44, 35k), moved town 1.2-1.4 / 0.32-0.40 (32, 111, 83k); the map's
     GPU pass within the runs' noise (0.21-0.69 ms either way). The corners are copied every frame (no cache
     across frames yet).
-    **Whose shadow it is (R22; the user: on a mound beside a pine the shadow covered some of the mound's faces
+    **Whose shadow it is (R22, replaced by R16i: with the GPU lighting a face turned away from the sun has no sun
+    light to lose, so the ids below are gone and a receiver darkens by N.L with a normal-offset bias; what follows
+    is history; the user: on a mound beside a pine the shadow covered some of the mound's faces
     and stopped at their edges).** The game lights objects much as the ground around them, not by the sun's
     direction (the mound, a flora object with the grass texture, cannot be told from the ground with the
     classic decals). R16j left every face turned away from the sun (the face normal from the screen
@@ -1204,8 +1252,7 @@ across runs; the goldens check the game state.
     search taps read the cells' own nearest filtered too; the searched radius is blended in from the bound
     between half a cell and a cell (no step where the search starts; a search that finds nothing ends lit
     only from a cell on). The widest radius is capped to what kMostCellsAround cells reach (only below a
-    22-unit extent). The ids are paired with the point sampler on the next slot (sokol: a UINT view wants a
-    non-filtering sampler); without a map a 1 x 1 RGBA32F stand-in is bound for the range. Measured in the
+    22-unit extent). Without a map a 1 x 1 RGBA32F stand-in is bound for the range. Measured in the
     user's frame (Rebirth, 4K, shadow view): the per-cell squares and cuts are gone; the grain of the
     turned taps still changes as the sun turns (frames at 8 ms: 4-9% of the soldier's region changes by
     more than 8 of 255 in the shadow view between frames, about the same before and after; in the real

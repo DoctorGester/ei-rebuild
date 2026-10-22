@@ -9,7 +9,6 @@ address,what,reason
 # Lines starting with # are comments. The tool warns about a line that no longer covers anything.
 #
 # --- Hook-build-only forwarders and code reads (behind ei::Standalone()) ---
-006F00D1,address,"_getptd: the exe's per-thread CRT data, read by the harness in game.exe's runs only (tests/verify/harness_original.h); the image keeps its own per thread (crt.cpp)"
 007051A1,address,"CWnd::DestroyWindow (mfc_window.cpp, ei::UnportedSlot): CWnd::Destruct reaches it for a window with a handle that is not one of MFC's four static windows; the image makes no other CWnd and those four have no handle"
 #
 # --- Slots in game classes' vtables ---

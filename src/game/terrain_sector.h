@@ -220,6 +220,9 @@ struct SectorData {
     // 006C31C0 (RET 0x10). The record's colour and specular words from its lit colour and the point
     // lights in its list (maxima per channel; flag 0x40 lights count as specular).
     void LightVertex(const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);
+    // R16i (not the original's): LightVertex's specular word alone (terrain_lighting.cpp), for the water
+    // layer when the GPU lights the colours.
+    void LightSpecular(const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);
 
     // terrain_animation.cpp:
     // 006C3C80. Empties the records (their lights released), each per-page tile flag array and

@@ -25,6 +25,8 @@ namespace {
 #include "shaders/depth_from_multisampled8_ps.h"
 #include "shaders/shadow_caster_vs.h"
 #include "shaders/shadow_caster_ps.h"
+#include "shaders/shadow_terrain_vs.h"
+#include "shaders/shadow_terrain_ps.h"
 #include "shaders/shadow_range_vs.h"
 #include "shaders/shadow_reduce_ps.h"
 #include "shaders/shadow_dilate_ps.h"
@@ -50,6 +52,7 @@ const ShaderBytecode kTerrainShader{SG_RANGE(terrain_vs), SG_RANGE(terrain_ps)};
 const ShaderBytecode kPresentShader{SG_RANGE(present_vs), SG_RANGE(present_ps)};
 const ShaderBytecode kIntoMultisampledShader{SG_RANGE(into_multisampled_vs), SG_RANGE(into_multisampled_ps)};
 const ShaderBytecode kCasterShader{SG_RANGE(shadow_caster_vs), SG_RANGE(shadow_caster_ps)};
+const ShaderBytecode kTerrainCasterShader{SG_RANGE(shadow_terrain_vs), SG_RANGE(shadow_terrain_ps)};
 const ShaderBytecode kReduceShader{SG_RANGE(shadow_range_vs), SG_RANGE(shadow_reduce_ps)};
 const ShaderBytecode kDilateShader{SG_RANGE(shadow_range_vs), SG_RANGE(shadow_dilate_ps)};
 const ShaderBytecode kUiSolidShader{SG_RANGE(ui_rect_vs), SG_RANGE(ui_solid_ps)};

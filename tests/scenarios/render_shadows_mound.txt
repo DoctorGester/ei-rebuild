@@ -1,13 +1,10 @@
 # R22: the user's Rebirth save "Shadow" (tests/saves/shadow_mound, made on zone 1 with Rebirth's data):
-# a grass mound (a flora object, lit by the game like the ground around it) beside a pine, in the pine's
-# sun shadow with flora shadows on (the user's setting). Before R22 the mound's faces turned away from the
-# sun stayed as the game lit them inside the pine's shadow, a lit patch with straight edges; now another
-# object's shadow darkens every face (docs/notes/renderer.md section 13, R16j). Frozen: the map, the
-# classic decals and the map again (the same); the map's frame differs from the classic one where the
-# shadows fall (Rebirth data 9%, vanilla 11%). With "shadowfacing all" (the rule before R22) the frame
-# differs from the default where faces turned away from the sun lie in other objects' shadows: the mound
-# (Rebirth data, at about (1460-1710, 1040-1450) of the 4K frame) and the backs of a few objects. On
-# vanilla data the save loads the same zone. Frame checks only (image).
+# a grass mound (a flora object) beside a pine, in the pine's sun shadow with flora shadows on (the user's
+# setting). Before R22 the mound's faces turned away from the sun stayed as the game lit them inside the
+# pine's shadow, a lit patch with straight edges. Since R16i the mound is lit on the GPU: its faces turned
+# away from the sun get no sun light to lose, and the R22 caster ids (and the harness's "shadowfacing") are
+# gone (docs/notes/renderer.md sections 13 and 16). Frozen: the map three times (the same). On vanilla
+# data the save loads the same zone. Frame checks only (image).
 # no original: vanilla rebirth (the shadow map is our renderer's)
 # prepare: copy_save.py tests/saves/shadow_mound save2
 render new,present,smooth,checkall
@@ -44,21 +41,11 @@ frames 5
 freeze
 capture mound_map
 shadowcheck 1
-shadows classic
-capture mound_classic
-shadows map
 capture mound_map2
 renderstats -
-shadowfacing all
-capture mound_facing_all
-renderstats facing_all
-shadowfacing others
 capture mound_map3
-renderstats facing_others
 unfreeze
 samecapture mound_map mound_map2
 samecapture mound_map mound_map3
-diffcapture mound_map mound_classic 0.02 0.3
-diffcapture mound_map mound_facing_all 0.002 0.05
 report
 quit

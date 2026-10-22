@@ -13,10 +13,11 @@
 // captures write the new frame. There is no DirectDraw fallback (R11a): when the new renderer cannot
 // start the game ends with an error. In game.exe (the harness and the vector recorders run in the
 // original's process) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated
-// list, carries the smooth option ("smooth", SetSmooth), the classic shadows ("classicshadows",
-// SetClassicShadows), the smooth camera ("smoothcamera", SetSmoothCamera), the interface canvases'
+// list, carries the smooth option ("smooth", SetSmooth), the smooth camera ("smoothcamera", SetSmoothCamera), the interface canvases'
 // "uiboth" / "uinative" (render_ui.h) and the harness build's "removable"; "new", "present" and
 // "cpuwindows" are accepted and change nothing.
+
+#include "lib/vecmath.h"
 
 #include <cstdint>
 #include <vector>
@@ -72,14 +73,10 @@ SmoothInfo SmoothState();
 enum class SmoothOrder : std::uint8_t { Game, Before, Split };
 void SetSmoothOrder(SmoothOrder order);
 
-// Object shadows (R16j, docs/notes/renderer.md section 13). By default the world's figures and map
-// objects cast shadows from the sun through a shadow map made every frame, sampled with filtering
-// (PCF) where the terrain, the objects and the figures draw; the game's shadow decals (0051CE60's
-// 64 x 64 textures laid on the ground) are not drawn. The classic option draws the decals as the
-// game makes them and no shadow map: EI_RENDER's word "classicshadows" or SetClassicShadows (from
-// the next frame; ST2's options screen).
-void SetClassicShadows(bool on);
-bool ClassicShadows();
+// Object shadows (R16j, docs/notes/renderer.md section 13): the world's figures and map objects cast
+// shadows from the sun through a shadow map made every frame, sampled with filtering where the
+// terrain, the objects and the figures draw; the game's shadow decals (0051CE60's 64 x 64 textures
+// laid on the ground) are neither made nor drawn (R16i: the only shadows).
 
 // The smooth camera (R18; docs/notes/renderer.md section 14; off by default): the battle camera moves
 // once a frame by the frame's time plus the client time that passed (no extra update at each world
@@ -98,15 +95,46 @@ void SetPerfOverlay(bool on);
 // The sun for this frame's world view: the direction its light travels (CLight::direction_, z
 // negative by day), from CWorldClient::Render. Without it no shadow map is made.
 void ShadowSun(const float direction[3]);
+// R16i: the GPU lighting (docs/notes/renderer.md section 16). The world's draw (CWorldClient::Render, after
+// UpdateLighting) hands over the frame's light: the sun (the direction its light travels and its colour),
+// the ambient colour, the point lights the landscape lights its ground with (Terrain's table: position in
+// the landscape's space, 1 / range squared, colour, flag 0x40 specular) and the camera's position (the
+// nearest kMostSceneLights of them are kept). It stays until the next hand-over. GpuTerrainLighting: the
+// ground layer's vertex lighting is the GPU's (true when Active()): the game leaves its per-vertex sun,
+// ambient and point lights out (SectorData::Light writes only the edge fade) and the terrain shader
+// lights each pixel from the vertex normals, the sun, the shadow map and these lights.
+struct ScenePointLight {
+    Vector3 position;
+    float inverseRangeSquared;
+    float colour[3];
+    bool specular;
+};
+struct SceneLights {
+    Vector3 sunDirection;
+    float sunColour[3];
+    float ambientColour[3];
+    Vector3 camera;
+    const ScenePointLight* points;
+    int pointCount;
+};
+constexpr int kMostSceneLights = 16;
+void SceneLighting(const SceneLights& lights);
+bool GpuTerrainLighting();
+// R16i: the ground casts into the shadow map (the landscape's sun shadows, landscape flag 0x10, as its ray
+// march did). ShadowTerrainArea: as ShadowCasterArea (below) for a caster no higher than `highestTop`
+// (whatever SetOffscreenCasters says); false: no map this frame. ShadowTerrainSector: a sector whose
+// vertices are loaded and which stands in that area casts with its ground layer's 33 x 33 vertices (kept
+// on the GPU while its vertices stay the same) when ShadowCasterReaches its box.
+struct ShadowCasterRect;
+bool ShadowTerrainArea(float highestTop, ShadowCasterRect* area);
+void ShadowTerrainSector(const terrain::SectorData* sector);
 // The meshes handed over between BeginCaster and EndCaster belong to `object` (the world's object
 // draws, 0056AFE0); CastsShadow (from the object's shadow draw 0051CE60, when the game would draw
 // its shadow: the options' switches, visible) lets them cast into this frame's shadow map, weaker
-// than `strength` 0.5 not at all (a unit fading in). ClassicShadowDecal: the next flat mesh (until
-// EndMesh) is that object's shadow decal, dropped unless the classic option is on.
+// than `strength` 0.5 not at all (a unit fading in).
 void BeginCaster(const void* object);
 void EndCaster();
 void CastsShadow(const void* object, float strength);
-void ClassicShadowDecal();
 // R20: casters outside the view. The meshes the game draws cast (above); an object it does not draw
 // this frame (outside the view), or a part of a drawn one it left out (its own view test), whose
 // shadow can reach the visible ground casts through ShadowCasterMesh: the world's draw
@@ -154,11 +182,6 @@ void BeginShadowWalk();
 void EndShadowWalk();
 enum class OffscreenCasters { View, All, Walked };
 void SetOffscreenCasters(OffscreenCasters mode);
-// SetShadowFacing (the harness build's "shadowfacing others|all", R22): others (the default): a receiver's
-// own object shadows only its faces turned to the sun, every other object all its faces; all: every caster
-// only the faces turned to the sun (as before R22: faces turned away kept as the game lit them).
-enum class ShadowFacing { Others, All };
-void SetShadowFacing(ShadowFacing mode);
 // The harness build's shadow map checks (R25). SetShadowView (its "shadowview on|off"): the receivers show
 // only how much sun the map hides (white lit, black at the full strength), no texture, colour or fog.
 // SetShadowShift (its "shadowshift <texels>"): the map's origin moved by that many whole texels across
@@ -167,32 +190,26 @@ void SetShadowFacing(ShadowFacing mode);
 void SetShadowView(bool on);
 void SetShadowShift(int texels);
 // R16e1: with the shadow map nothing reads an object shadow's classic texture (0051CE60's 64 x 64
-// raster, its blur and the copy into the shadow texture) or its decal's flat draw (dropped by
-// BeginMesh); the game reads only the parts' points, the bounds, the quad and the decal's projection
-// (its sphere: ShadowInView 0051E300). ClassicShadowSkipped: true when Active() and not
-// ClassicShadows(), unless the harness asked for the full classic build (its "shadowbuild full", the
-// harness build only: A/B frames and timings). ShadowTextureGeneration: moved by
-// RebuildShadowTextures (the harness's "shadows rebuild"); the shadow draw makes again, at its next
-// draw, each texture made in an earlier generation or not made (skipped), once the textures are needed.
+// raster, its blur and the copy into the shadow texture) or its decal's flat draw; the game reads only
+// the parts' points, the bounds, the quad and the decal's projection (its sphere: ShadowInView
+// 0051E300). ClassicShadowSkipped: true when Active() (R16i: the texture and the decal's draw are
+// left out whenever the new renderer draws).
 bool ClassicShadowSkipped();
-void SetShadowBuildFull(bool full);
-unsigned ShadowTextureGeneration();
-void RebuildShadowTextures();
-// The last presented frame's shadow map: made or not (classic option, no sun or terrain, no
-// caster), its size, the world extent it covers (the larger side), the casters' objects and draws,
+// The last presented frame's shadow map: made or not (no sun or terrain, no caster), its size, the
+// world extent it covers (the larger side), the casters' objects and draws,
 // the meshes and terrain batches that sampled it. Of the objects whose shadow the game draws
 // (CastsShadow, strong enough): `offScreen` cast nothing and handed over no mesh (the game did not
 // draw them, and none came through ShadowCasterMesh), `lost` handed over meshes of which none went
 // into the map (none should). R20: `outsideCasters` objects cast through ShadowCasterMesh in
 // `outsideDraws` draws of `outsideCorners` corners.
 struct ShadowInfo {
-    bool classic = false;
     bool made = false;
     int size = 0;
     float extent = 0.0f;
     int casters = 0, casterDraws = 0, receivingMeshes = 0, receivingTerrain = 0;
     int offScreen = 0, lost = 0;
     int outsideCasters = 0, outsideDraws = 0, outsideCorners = 0;
+    int terrainCasters = 0;   // R16i: the ground's sectors drawn into the map
 };
 ShadowInfo ShadowState();
 
@@ -241,16 +258,12 @@ struct FrameStats {
     double deviceMeshMs = 0.0;
     // R16e: the ground decals' projection onto the ground and platforms (ProjectDecal 0056C750) for the
     // object shadows and for the ground prints, with its calls and the vertices it made; the device's
-    // flat draws (004EA4A0: projection, clipping, passes; the hand-over in them left out) of the object
-    // shadows' decals and of the rest (prints, selection markers), with their vertices; and the
-    // object shadow's build around its projection (RenderShadow in 0051CE60: the parts' points, the
-    // 64 x 64 raster, its blur and the texture's copy).
-    double decalShadowMs = 0.0, decalPrintMs = 0.0, flatShadowMs = 0.0, flatOtherMs = 0.0, shadowBuildMs = 0.0;
+    // flat draws (004EA4A0: projection, clipping, passes; the hand-over in them left out: prints,
+    // selection markers), with their vertices; and the object shadow's build around its projection
+    // (RenderShadow in 0051CE60: the parts' points and the decal's projection).
+    double decalShadowMs = 0.0, decalPrintMs = 0.0, flatMs = 0.0, shadowBuildMs = 0.0;
     std::uint64_t decalShadows = 0, decalPrints = 0, decalVertices = 0;
-    std::uint64_t flatShadowDraws = 0, flatOtherDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
-    // R16e1: of the shadow builds, those that made the classic texture, and of them those built only
-    // because the texture was missing (CountShadowTexture).
-    std::uint64_t shadowTextures = 0, staleShadowTextures = 0;
+    std::uint64_t flatDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
     // R16j: the shadow map's draws, its CPU time (fitting, matrices, the pass; left out of the times
     // around it) and, harness build, GPU time (timestamp queries, read a few frames later: summed over
     // gpuFrames) of the shadow pass and of the whole frame's passes.
@@ -280,17 +293,14 @@ void SetMeshCornersFull(bool full);
 void BeginDeviceMeshTime();
 void EndDeviceMeshTime();
 // Harness build: times one decal projection (0056C750; `shadow`: an object shadow's, else a ground
-// print's), one flat draw (004EA4A0; an object shadow's decal when ClassicShadowDecal announced it) and
-// one object shadow build (RenderShadow) into FrameStats, counting them with the vertices made / drawn.
+// print's), one flat draw (004EA4A0) and one object shadow build (RenderShadow) into FrameStats,
+// counting them with the vertices made / drawn.
 void BeginDecalTime(bool shadow);
 void EndDecalTime(int vertices);
 void BeginFlatDrawTime(int vertices);
 void EndFlatDrawTime();
 void BeginShadowBuildTime();
 void EndShadowBuildTime();
-// Harness build: counts a shadow build that made the classic texture (R16e1), `stale` when it ran only
-// because the texture was not made or is of an earlier generation (ShadowTextureGeneration).
-void CountShadowTexture(bool stale);
 
 // The off-screen surfaces the game makes through 004EF7B0 (interface windows, the software cursor,
 // movies) and 004F0060 (system-memory pictures) keep their pixels in memory the new renderer owns
@@ -364,6 +374,13 @@ struct MeshDraw {
     bool distanceFog;                  // the old path fogs the vertices by distance (device +0x158)
     float zScale;                      // the depth is multiplied by it (0 taken as 1)
     bool coloursWritten;               // the draw set every colour to the device's (flag 4)
+    // R16i: the normals (blocks of four as the positions; `normalCount` normals) and the words ((position,
+    // normal) index pairs, by the corners' colour index; `wordCount` of them) of a figure mesh lit on the
+    // GPU (MeshSource::lighting); null without.
+    const float* normals;
+    int normalCount;
+    const std::uint16_t* words;
+    int wordCount;
 };
 
 // A texture loaded from its .mmp file (00690430): `data` the file in memory, the levels from
@@ -501,6 +518,34 @@ struct TerrainCacheInfo {
 };
 TerrainCacheInfo TerrainCacheState();
 
+// R16i: a figure part lit on the GPU (the figure part draw 005A7A70; docs/notes/renderer.md section 16),
+// as 3DfpFPU's LightMesh lit its words: per channel the largest of the ambient colour, the sun (the
+// material's diffuse colour times the sun's colour times `coefficient`, times the cosine to the sun) and
+// each light (the same with its colour, times the cosine and 1 - distance^2 / range^2 where that is not
+// below 0), plus the emissive colour, at most 1; the alpha the diffuse colour's. The lights and the
+// sun are taken into the part's model space (the inverse of `model`); `crown`: the colours pulled 0.6 of
+// the way to the part's average (the flora's special light on the "crown" meshes).
+struct MeshLightSource {
+    Vector3 position;              // the landscape's space
+    float inverseRangeSquared;
+    float colour[3];
+};
+struct MeshLighting {
+    Matrix4 model;                 // the part's model space to the landscape's (row-major); with
+                                   // `camera`, the camera times that
+    const Matrix4* camera;         // the scene's camera (worlddata::SceneCamera), else null
+    bool sun;                      // a sun (else no sun light)
+    Vector3 sunDirection;          // the direction its light travels
+    float sunColour[3];
+    float ambientColour[3];        // the transform object's (CVisualizator::SetBaseColour's last)
+    float diffuseColour[4];        // the material's
+    float emissiveColour[3];
+    float coefficient;             // the options' objects lighting coefficient (CLight::SetLitColors)
+    bool crown;
+    const MeshLightSource* lights;   // the lights within the object's reach (its draw's list)
+    int lightCount;
+};
+
 // R16d: the figure mesh the next mesh draws (004E9010 / 004E9A50) draw. The new renderer keeps the
 // mesh's corners (positions and texture coordinates in model space, colours) on the GPU under `owner`
 // and builds and uploads again only what the game says changed: the colours when the draw wrote them,
@@ -512,6 +557,7 @@ struct MeshSource {
     const void* shared;    // the link figure (CLinkMesh) whose part it draws, else null
     bool moved;            // the positions handed over are a copy with the per-vertex offsets added
     bool coloursWritten;   // this draw wrote the mesh's colour arrays (lit, flat colours)
+    const MeshLighting* lighting = nullptr;   // R16i: lit on the GPU (the draw's colours: only their alpha)
 };
 void SetMeshSource(const MeshSource* source);
 // The game changed a figure mesh (CFigureMesh) or link figure (CLinkMesh) in place: its vertices'

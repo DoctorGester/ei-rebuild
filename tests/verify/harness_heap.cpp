@@ -450,13 +450,10 @@ constexpr CountdownSite kCountdownSites[] = {
 
 // Each site's `SAR r,5 / AND r,0xF` (6 bytes) becomes `MOV r,[r+0xC] / AND r,0xF`: the object's id
 // (CEngineObject::id_) instead of its address, as CWorldServer::UpdateCountdownFor does.
-// The standalone image has none of these sites (no game.exe code): there the eight functions are ours only.
+// The standalone image has none of these sites (no game.exe code): there the eight functions are ours,
+// which always take the id (CWorldServer::UpdateCountdownFor).
 void SpreadCountdownsById() {
-    if (ei::Standalone()) {
-        CWorldServer::SpreadUpdateCountdownsById();
-        Log("harness: update countdowns from object ids (the rewrites only: no original code in the image)");
-        return;
-    }
+    if (ei::Standalone()) return;
     int patched = 0;
     for (const CountdownSite& site : kCountdownSites) {
         auto* code = reinterpret_cast<unsigned char*>(site.address);

@@ -1,10 +1,10 @@
 // The object sets a player is sent (the server's SyncPlayer, world_sync.cpp): the set collected
-// this frame is sorted (a byte-wise radix sort, duplicates dropped) and compared with the set sent
+// this frame is sorted (duplicates dropped) and compared with the set sent
 // before (0047B1F0), giving the objects new to the player (referenced once more), the objects gone
 // (released through slot 4) and the objects still there; the sent set then becomes the new one.
 // The arrays are the original's aligned pointer arrays ({data, size, capacity, growBy}, blocks
 // from 0047B940) and their two SetSize variants. See docs/notes/world.md. The game orders the sets
-// by address; harness runs and the standalone by object id (address_order.h, T2f).
+// by address; ours by object id (address_order.h, T2f).
 #include "address_order.h"
 #include "core_streams.h"
 #include "engine_object.h"
@@ -23,47 +23,10 @@
 using ObjectSet = lib::AlignedArray<CEngineObject*>;
 static_assert(sizeof(ObjectSet) == 0x10);
 
-namespace {
-
-// An object's address as the unsigned word the radix sort takes apart.
-std::uint32_t AddressWord(const CEngineObject* object) {
-    return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(object));
-}
-
-// The sort's scratch array (a function static at 007A9738, guard bit 1 of 007A9748, freed at exit
-// by 0047B1D0).
-constinit lib::AlignedArray<CEngineObject*> g_scratch = /*007A9738*/ {};
-ObjectSet& Scratch() { return g_scratch; }
-void __cdecl FreeScratch() { g_scratch.FreeData(); }   // 0047B1D0
-std::uint8_t g_scratchGuard = /*007A9748*/ {};
-std::uint8_t& ScratchGuard() { return g_scratchGuard; }
-
-// One counting pass by the byte at `shift`: `src` scattered into `dst` (stable).
-void CountingPass(int shift, const ObjectSet& src, ObjectSet& dst) {
-    int counts[256] = {};
-    for (int i = 0; i < src.size; ++i) ++counts[(AddressWord(src.data[i]) >> shift) & 0xFF];
-    CEngineObject** next[256];
-    CEngineObject** at = dst.data;
-    for (int b = 0; b < 256; ++b) {
-        next[b] = at;
-        at += counts[b];
-    }
-    for (int i = 0; i < src.size; ++i) {
-        CEngineObject* value = src.data[i];
-        *next[(AddressWord(value) >> shift) & 0xFF]++ = value;
-    }
-}
-
-} // namespace
-
-bool address_order::ById() { return ei::Standalone(); }
-
 bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b) {
-    if (ById()) {
-        int ia = a->id_;
-        int ib = b->id_;
-        if (ia != ib) return ia < ib;
-    }
+    int ia = a->id_;
+    int ib = b->id_;
+    if (ia != ib) return ia < ib;
     return std::less<const CEngineObject*>()(a, b);   // the address (the original's unsigned compare)
 }
 
@@ -72,29 +35,12 @@ EI_REWRITTEN(0x0047B770, ObjectSet::SetSize);
 // allocated), and growing does not keep the elements.
 EI_REPLACE_METHOD(0x0047B880, ObjectSet::SetSizeDiscardStep);
 
-// 0047B120 (ECX shift, EDX source, RET 4): one counting pass of the radix sort.
-void __fastcall ObjectSetRadixPass(int shift, ObjectSet* src, ObjectSet* dst) { CountingPass(shift, *src, *dst); }
-EI_REWRITTEN(0x0047B120, ObjectSetRadixPass);
-
-// 0047ADF0: sorts the set (four byte passes, low byte first, through the scratch array) and drops
-// the duplicates. By id (address_order::ById) a comparison sort, without the scratch array.
+// 0047ADF0: sorts the set and drops the duplicates. The original sorts by address (four byte passes of
+// a radix sort, 0047B120, through a scratch array freed at exit by 0047B1D0); ours by id
+// (address_order::ObjectBefore), a comparison sort without the scratch array.
 void __fastcall ObjectSetSortUnique(ObjectSet* self) {
     if (self->size < 2) return;
-    if (address_order::ById()) {
-        std::sort(self->data, self->data + self->size, address_order::ObjectBefore);
-    } else {
-        if (!(ScratchGuard() & 1)) {
-            ScratchGuard() |= 1;
-            Scratch().Construct();
-            libcrt::AtExit(FreeScratch);   // 0047B1D0
-        }
-        ObjectSet& scratch = Scratch();
-        scratch.SetSize(self->size);
-        CountingPass(0, *self, scratch);
-        CountingPass(8, scratch, *self);
-        CountingPass(16, *self, scratch);
-        ObjectSetRadixPass(24, &scratch, self);
-    }
+    std::sort(self->data, self->data + self->size, address_order::ObjectBefore);
     // Each element compared with the one before it in place, as the original does.
     CEngineObject** end = self->data + self->size;
     CEngineObject** out = self->data + 1;
@@ -164,4 +110,3 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
     same->SetSize(sameCount, -1);
 }
 EI_REWRITTEN(0x0047B1F0, DiffObjectSets);
-EI_REPLACE(0x0047B1D0, FreeScratch);

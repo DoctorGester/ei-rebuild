@@ -245,7 +245,7 @@ void __fastcall Execute(const char* text) {
     }
     PrintLine("Unknown command");
 }
-EI_REPLACE(0x005DC620, Execute);
+EI_REWRITTEN(0x005DC620, Execute);
 
 // 004DC200. States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
 // token). Double-byte characters are taken whole.

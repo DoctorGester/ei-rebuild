@@ -46,6 +46,11 @@ void CMaterial::SetAmbient(const Vector3* value) {
 }
 EI_REWRITTEN(0x00471AD0, CMaterial::SetAmbient);
 
+std::uint32_t CMaterial::GpuLitColour() const {
+    const float alpha = colors.diffuse.w * 255.0f;
+    return static_cast<std::uint32_t>(x87::fistp(alpha)) << 24 | 0x00FFFFFFu;
+}
+
 void CMaterial::SetSpecular(const Vector3* value) {
     std::memcpy(&colors.specular, value, sizeof(Vector3));
 }

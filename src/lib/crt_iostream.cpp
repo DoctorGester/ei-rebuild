@@ -207,7 +207,7 @@ Streambuf* Streambuf::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x006FCAB6, libcrt::Streambuf::DeletingDestruct);
+EI_REWRITTEN(0x006FCAB6, libcrt::Streambuf::DeletingDestruct);
 
 // setb: the reserve area replaced (the old one freed when owned).
 void Streambuf::Setb(char* reserve, char* reserveEnd, int owned) {
@@ -232,7 +232,7 @@ int Streambuf::DefaultSync() {
     if (gptr < egptr || pptr > pbase) return kEof;
     return 0;
 }
-EI_REPLACE_METHOD(0x006FCC86, libcrt::Streambuf::DefaultSync);
+EI_REWRITTEN(0x006FCC86, libcrt::Streambuf::DefaultSync);
 
 // Only while there is no reserve area yet (null otherwise): `buffer` becomes it, or with a null buffer or a
 // zero length the streambuf goes unbuffered.
@@ -247,13 +247,13 @@ Streambuf* Streambuf::DefaultSetbuf(char* buffer, int length) {
     }
     return this;
 }
-EI_REPLACE_METHOD(0x006FCB65, libcrt::Streambuf::DefaultSetbuf);
+EI_REWRITTEN(0x006FCB65, libcrt::Streambuf::DefaultSetbuf);
 
 long Streambuf::DefaultSeekoff(long, int, int) { return kEof; }
-EI_REPLACE_METHOD(0x006FCD18, libcrt::Streambuf::DefaultSeekoff);
+EI_REWRITTEN(0x006FCD18, libcrt::Streambuf::DefaultSeekoff);
 
 long Streambuf::DefaultSeekpos(long position, int mode) { return Seekoff(position, 0, mode); }
-EI_REPLACE_METHOD(0x006FCD1E, libcrt::Streambuf::DefaultSeekpos);
+EI_REWRITTEN(0x006FCD1E, libcrt::Streambuf::DefaultSeekpos);
 
 // Byte by byte: into the put area while it has room (and the streambuf is buffered), else overflow, until
 // overflow fails. The count put.
@@ -270,7 +270,7 @@ int Streambuf::DefaultXsputn(const char* text, int count) {
     }
     return put;
 }
-EI_REPLACE_METHOD(0x006FCB99, libcrt::Streambuf::DefaultXsputn);
+EI_REWRITTEN(0x006FCB99, libcrt::Streambuf::DefaultXsputn);
 
 // Unbuffered: the look-ahead byte (lastChar, fetched by underflow when it is EOF) and the next one after
 // each. Buffered: underflow, then what the get area holds, until `count` bytes or EOF. The count got.
@@ -298,7 +298,7 @@ int Streambuf::DefaultXsgetn(char* text, int count) {
     }
     return got;
 }
-EI_REPLACE_METHOD(0x006FCBEF, libcrt::Streambuf::DefaultXsgetn);
+EI_REWRITTEN(0x006FCBEF, libcrt::Streambuf::DefaultXsgetn);
 
 // Room before gptr: sputbackc. Otherwise the source is asked to step back one byte (seekoff(-1, cur, in));
 // when it can and the streambuf is buffered with a get area, the get area shifts up one byte (its last byte
@@ -312,7 +312,7 @@ int Streambuf::DefaultPbackfail(int c) {
     }
     return c;
 }
-EI_REPLACE_METHOD(0x006FCD30, libcrt::Streambuf::DefaultPbackfail);
+EI_REWRITTEN(0x006FCD30, libcrt::Streambuf::DefaultPbackfail);
 
 int Streambuf::DefaultDoallocate() {
     char* reserve = gamecrt::operator_new_array<char>(kReserveSize);
@@ -320,7 +320,7 @@ int Streambuf::DefaultDoallocate() {
     Setb(reserve, reserve + kReserveSize, 1);
     return 1;
 }
-EI_REPLACE_METHOD(0x006FCCBB, libcrt::Streambuf::DefaultDoallocate);
+EI_REWRITTEN(0x006FCCBB, libcrt::Streambuf::DefaultDoallocate);
 
 // ---- ios and ostream ------------------------------------------------------------------------------------
 
@@ -352,14 +352,14 @@ void Ios::Destruct() {
     bp = nullptr;
     state = kBad;
 }
-EI_REPLACE_METHOD(0x006FCEDC, libcrt::Ios::Destruct);
+EI_REWRITTEN(0x006FCEDC, libcrt::Ios::Destruct);
 
 Ios* Ios::DeletingDestruct(unsigned deleteFlags) {
     Destruct();
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x006FCE0F, libcrt::Ios::DeletingDestruct);
+EI_REWRITTEN(0x006FCE0F, libcrt::Ios::DeletingDestruct);
 
 void Ios::Init(Streambuf* buffer) {
     if (deleteBuffer && bp) delete bp;
@@ -373,7 +373,7 @@ void Ios::DestructOstream() {
     Ostream* stream = reinterpret_cast<Ostream*>(this) - 1;
     stream->Base().vtable = OstreamIosVtable();
 }
-EI_REPLACE_METHOD(0x006FC502, libcrt::Ios::DestructOstream);
+EI_REWRITTEN(0x006FC502, libcrt::Ios::DestructOstream);
 
 Ostream* Ios::DeleteOstream(unsigned deleteFlags) {
     Ostream* stream = reinterpret_cast<Ostream*>(this) - 1;
@@ -382,7 +382,7 @@ Ostream* Ios::DeleteOstream(unsigned deleteFlags) {
     if (deleteFlags & 1) gamecrt::operator_delete(stream);
     return stream;
 }
-EI_REPLACE_METHOD(0x006FC404, libcrt::Ios::DeleteOstream);
+EI_REWRITTEN(0x006FC404, libcrt::Ios::DeleteOstream);
 
 Ostream* Ostream::Construct(Streambuf* buffer, int mostDerived) {
     if (mostDerived) {
@@ -394,7 +394,7 @@ Ostream* Ostream::Construct(Streambuf* buffer, int mostDerived) {
     floatUsed = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x006FC42F, libcrt::Ostream::Construct);
+EI_REWRITTEN(0x006FC42F, libcrt::Ostream::Construct);
 
 // A manipulator at its address in game.exe's code (the flush / endl the callers name) runs as CodeAddress's code.
 Ostream* Ostream::Apply(Ostream*(__cdecl* manipulator)(Ostream*)) {
