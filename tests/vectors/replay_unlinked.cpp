@@ -43,7 +43,7 @@ void EffectParticle::ReleaseSource() EI_UNLINKED("EffectParticle::ReleaseSource"
 void __fastcall aligned::ArrayAt8Free(void*) EI_UNLINKED("aligned::ArrayAt8Free")
 void __fastcall aligned::ArrayAt4Free(void*) EI_UNLINKED("aligned::ArrayAt4Free")
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective*) EI_UNLINKED("ScriptQuestObjectiveDestruct")
-void __fastcall zone::ExitDestruct(MapExit*) EI_UNLINKED("zone::ExitDestruct")
+void __fastcall zone::ExitDestruct(ZoneExit*) EI_UNLINKED("zone::ExitDestruct")
 void __fastcall zone::ZoneRecordDestruct(MapRecord*) EI_UNLINKED("zone::ZoneRecordDestruct")
 
 // game_arrays.cpp's and game_lists.cpp's script effects (script_effects.cpp needs the world).

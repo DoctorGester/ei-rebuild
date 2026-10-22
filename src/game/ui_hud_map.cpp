@@ -262,7 +262,7 @@ void CHudMap::BuildMarkers() {
     const stlp::list<int>& marked = markers->litIds_;
     int markedCount = 0;
     for (IdNode* node = marked.First(); node != marked.End(); node = node->next) ++markedCount;
-    int exitCount = TheClientWorld()->exitCount_;
+    int exitCount = TheClientWorld()->exits_.size;
     int playerCount = IsMultiplayerClient() ? view->otherUnitIds_.size : 0;
 
     int quads = markedCount + playerCount + exitCount;   // six indices each

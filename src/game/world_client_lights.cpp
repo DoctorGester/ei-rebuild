@@ -227,9 +227,9 @@ int CWorldClient::UpdateLighting() {
 EI_REWRITTEN(0x00566360, CWorldClient::UpdateLighting);
 
 void CWorldClient::UpdateExitMarkers() {
-    if (exitCount_ != countedA0_.GetSize()) return;
+    if (exits_.size != countedA0_.GetSize()) return;
     NamedFloatTable* variables = &session_->Party()->variables_;
-    for (int i = 0; i < exitCount_; ++i) {
+    for (int i = 0; i < exits_.size; ++i) {
         CParticleSource* marker = countedA0_[i];
         if (!marker) continue;
         mfc::CString name("z.");

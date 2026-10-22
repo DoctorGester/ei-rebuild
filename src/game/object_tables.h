@@ -29,21 +29,60 @@ struct AllodRecord {
 };
 static_assert(offsetof(AllodRecord, otherNames) == 0x04 && offsetof(AllodRecord, maps) == 0x18 && sizeof(AllodRecord) == 0x2C);
 
-// One "#exit" of a map entry (0x3C bytes; map_database.h has the loader's view).
-struct MapExit {
-    float passTime;         // +0x00 "#passtime": the time the way takes
-    float deploy[4];        // +0x04
-    float remove[4];        // +0x14
-    float angle;            // +0x24
-    mfc::CString target;    // +0x28 the zone it leads to
-    int targetExit;         // +0x2C the target zone's exit the party arrives at
-    float view;             // +0x30
-    bool hasDeployAngle;    // +0x34
+// One "#exit" of a map entry (0x3C bytes; map_database.h has the loader's view): the map database's
+// record, which the world server copies (SetZoneExits) and sends to the client world.
+struct ZoneExit {
+    float passTime;                 // +0x00 "#passtime": the time the way takes
+    float deploy[4];                // +0x04 "#deploy": the rectangle the arriving party stands in
+    float x1, y1, x2, y2;           // +0x14 "#remove" (and "#deploy"): the area that leads out
+    float angle;                    // +0x24 the area's rotation about its centre (radians)
+    mfc::CString target;            // +0x28 the zone it leads to ("" = none)
+    int entrance;                   // +0x2C the target zone's exit the party arrives at
+    float view;                     // +0x30 "#view" (radians)
+    std::uint8_t hasDeployAngle;    // +0x34 "#deployangle" given; saved from version 0x68
     std::uint8_t unused_35[3];
-    float deployAngle;      // +0x38
+    float deployAngle;              // +0x38 saved from version 0x68
+
+    // 004E59F0 (exit_area.cpp). Whether (x, y) lies inside the exit area (rotated by `angle` about
+    // the rectangle's centre when it is not 0).
+    bool Contains(float x, float y) const;
+    // 004E5750 / 004E58A0 (exit_area.cpp, RET 4). From / to a stream (core_streams.h): +0x00..+0x20
+    // as dwords, the target with its terminator, +0x2C, +0x30, then +0x34 (a byte), +0x38 and the
+    // angle; Read takes the last three only from version 0x68 on (else 0).
+    void Read(CStream* stream);
+    void Write(CStream* stream) const;
+    // (004608B0, zone::ExitDelete in game_arrays.h: the scalar deleting destructor.)
+    // 00583B50 (RET 4; S13, exit_area.cpp; the compiler's operator=): +0x00..+0x24 as dwords,
+    // the target (CString), +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
+    ZoneExit* Assign(const ZoneExit* from);
 };
-static_assert(offsetof(MapExit, target) == 0x28);
-static_assert(sizeof(MapExit) == 0x3C);
+static_assert(offsetof(ZoneExit, x1) == 0x14 && offsetof(ZoneExit, target) == 0x28);
+static_assert(offsetof(ZoneExit, deployAngle) == 0x38 && sizeof(ZoneExit) == 0x3C);
+
+namespace zone {
+void __fastcall ExitDestruct(ZoneExit* self);   // 00460460 (zone_records.cpp)
+} // namespace zone
+
+// The exits' ConstructElements (004606A0: zero filled, the target the empty string) and
+// DestructElements (00460670: each exit's destructor, 00460460).
+struct ZoneExitElements {
+    static void Construct(ZoneExit* p, int n) {
+        mfc::PlainElements<ZoneExit>::Construct(p, n);
+        for (; n--; ++p) ::new (&p->target) mfc::CString;
+    }
+    static void Destruct(ZoneExit* p, int n) {
+        for (; n--; ++p) zone::ExitDestruct(p);
+    }
+};
+
+// MFC CArray<ZoneExit> (a map record's +0x48, CWorldServer + 0xEC, CWorldClient + 0x8C). Its SetSize
+// is the instantiation's own (00573080, gamearrays::Exits; new records are constructed).
+struct ZoneExits : mfc::CArray<ZoneExit, ZoneExitElements> {
+    // 00584EA0 / 00587DD0 (RET 8; record_arrays.cpp). By-value GetAt: element `index` copied into `out`
+    // (the fields, the target string copy-constructed). Returns out.
+    ZoneExit* CopyAt(ZoneExit* out, int index) const;
+};
+static_assert(sizeof(ZoneExits) == 0x14);
 
 // One map/zone entry (0x5C bytes): +0 name, +4 allod name, +8 and +0xC other names.
 struct MapRecord {
@@ -67,7 +106,7 @@ struct MapRecord {
     float restrictRadius;   // +0x40
     bool cage;              // +0x44 "#cage": a base where the party does not walk to the people
     std::uint8_t unused_45[3];
-    mfc::CArray<MapExit> exits;   // +0x48
+    ZoneExits exits;              // +0x48
 };
 static_assert(offsetof(MapRecord, kind) == 0x28);
 static_assert(offsetof(MapRecord, map) == 0x0C && offsetof(MapRecord, camera) == 0x1C);

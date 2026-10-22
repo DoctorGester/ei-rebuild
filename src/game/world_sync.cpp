@@ -343,9 +343,9 @@ int CWorldServer::SendZone(CPlayer* player) {
         write(&previousTick, 4);
         write(mapName_, static_cast<unsigned>(std::strlen(mapName_) + 1));
         write(mobName_, static_cast<unsigned>(std::strlen(mobName_) + 1));
-        int exits = exitCount_;
+        int exits = exits_.size;
         write(&exits, 4);
-        for (int i = 0; i < exitCount_; ++i) exits_[i].Write(&message);
+        for (int i = 0; i < exits_.size; ++i) exits_[i].Write(&message);
         write(&cave_, 4);
 
         // The zone's units.

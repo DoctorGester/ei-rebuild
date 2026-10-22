@@ -30,8 +30,8 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
   "moving". The multi-target spells search units within CSpell `range_` (+0x34), up to `targetCount_`. `CMapObject::updateCountdown` (+0x174) is the
   unit's update slot. The controller is reached through `reinterpret_cast` to `UnitController` / `CUnitServer`; these two declarations overlap and
   should become one. `FiguredUnitRecord` does not derive from `DressedUnitRecord` (its head shares the layout, and Write is called on it through a
-  cast); `RecordPtrArray` is still a `uint8_t*` array. `ZoneExit` has `MapExit`'s layout (passTimeDeploy, view, deploy angle); they could become one
-  declaration.
+  cast); `RecordPtrArray` is still a `uint8_t*` array. `ZoneExit` (object_tables.h) is the one exit record: the map database's zone records,
+  the world server and the client world all hold `ZoneExits` (CArray<ZoneExit, ZoneExitElements>, SetSize 00573080).
 
 ## Meanings of formerly unknown fields (ticket F1)
 

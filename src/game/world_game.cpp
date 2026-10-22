@@ -364,7 +364,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
-        const MapExit* exit = zoneRecord->exits.data + entrance;
+        const ZoneExit* exit = zoneRecord->exits.data + entrance;
         Vector3 point;
         point.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * 0.5f /*0073B86C*/);
         point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * 0.5f /*0073B86C*/);
@@ -446,7 +446,7 @@ int __stdcall EnterZone(CParty* records) {
             ScriptResetZone(TheServerWorld()->MainScript());   // 004BEB00: the scripts reset for a zone without its own
         }
     }
-    TheServerWorld()->SetZoneExits(reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits));
+    TheServerWorld()->SetZoneExits(&zoneRecord->exits);
     return result;
 }
 
@@ -553,11 +553,11 @@ int __stdcall StartNetworkZone(const char* zone) {
     }
 
     // The zone's exits, all leading to "MPGame1".
-    ZoneExitArray exits;
+    ZoneExits exits;
     mfc::impl::ConstructArrayOf<mfc::impl::ExitArrayClass>(exits);
     exits.vtable = mfc::impl::MapRecordItemsClass::Vtable();
-    const auto* source = reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits);
-    gamearrays::ExitsSetSize(&exits, source->size);
+    const ZoneExits* source = &zoneRecord->exits;
+    exits.SetSize(source->size);
     for (int i = 0; i < source->size; ++i) {
         lib::InPlace<ZoneExit> copy;
         ZoneExit* exit = source->CopyAt(copy.Get(), i);
@@ -1716,7 +1716,7 @@ int GameFlow::LoadGame(const char* slot) {
         if (!opened) return 0;
         LoadMission(&file.stream);
         file.Close();
-        TheServerWorld()->SetZoneExits(reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits));
+        TheServerWorld()->SetZoneExits(&zoneRecord->exits);
     }
     kConsole->PutText(kLoadedText)->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     return 1;

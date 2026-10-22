@@ -1598,8 +1598,8 @@ int CWorldClient::LoadZone(CStream* block) {
     block->ReadInto(&mob);
     int exitCount;
     block->Read(&exitCount, 4);
-    gamearrays::ExitsSetSize(&exitsVtable_, exitCount);
-    for (int i = 0; i < exitCount_; ++i) ExitReadAt(&exits_[i], nullptr, block);
+    exits_.SetSize(exitCount);
+    for (int i = 0; i < exits_.size; ++i) ExitReadAt(&exits_[i], nullptr, block);
     int cave;
     block->Read(&cave, 4);
     UnitLooks looks;

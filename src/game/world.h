@@ -138,46 +138,6 @@ struct ObjectMapIterator {
 };
 static_assert(sizeof(ObjectMapIterator) == 12);
 
-// A zone exit as the world server keeps it (0x3C bytes); the client keeps the same records.
-struct ZoneExit {
-    // The record is the map database's MapExit (object_tables.h) as the world keeps it.
-    std::uint32_t passTimeDeploy[5];      // +0x00 MapExit's passTime and deploy rectangle (saved as five dwords)
-    float x1, y1, x2, y2;                 // +0x14 rectangle
-    float angle;                          // +0x24 rotation about the rectangle's centre (radians)
-    mfc::CString target;                  // +0x28 target zone ("" = none)
-    int entrance;                         // +0x2C entrance number in the target zone
-    int view;                             // +0x30 MapExit::view (float bits)
-    std::uint8_t hasDeployAngle;          // +0x34 saved from version 0x68
-    std::uint8_t unused_35[3];
-    int deployAngle;                      // +0x38 float bits; saved from version 0x68
-
-    // 004E59F0 (exit_area.cpp). Whether (x, y) lies inside the exit area (rotated by `angle` about
-    // the rectangle's centre when it is not 0).
-    bool Contains(float x, float y) const;
-    // 004E5750 / 004E58A0 (exit_area.cpp, RET 4). From / to a stream (core_streams.h): +0x00..+0x20
-    // as dwords, the target with its terminator, +0x2C, +0x30, then +0x34 (a byte), +0x38 and the
-    // angle; Read takes the last three only from version 0x68 on (else 0).
-    void Read(class CStream* stream);
-    void Write(class CStream* stream) const;
-    // (004608B0, zone::ExitDelete in game_arrays.h: the scalar deleting destructor.)
-    // 00583B50 (RET 4; S13, exit_area.cpp; the compiler's operator=): +0x00..+0x24 as dwords,
-    // the target (CString), +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
-    ZoneExit* Assign(const ZoneExit* from);
-};
-static_assert(sizeof(ZoneExit) == 0x3C);
-static_assert(offsetof(ZoneExit, target) == 0x28);
-static_assert(offsetof(ZoneExit, deployAngle) == 0x38);
-
-// MFC CArray<ZoneExit> (CWorldServer + 0xEC; the map database's zone records hold one at +0x48).
-// Its SetSize is the instantiation's own: gamearrays::ExitsSetSize (00573080, game_arrays.h;
-// new records are constructed).
-struct ZoneExits : mfc::CArray<ZoneExit> {
-    // 00584EA0 / 00587DD0 (RET 8; record_arrays.cpp). By-value GetAt: element `index` copied into `out`
-    // (the fields, the target string copy-constructed). Returns out.
-    ZoneExit* CopyAt(ZoneExit* out, int index) const;
-};
-using ZoneExitArray = ZoneExits;
-
 // The client's flying numbers (+0x1B4, 8 bytes; constructor 005E1710): the "numbers" texture
 // (counted) and the list of the numbers shown.
 class CFlyingHitPoints;     // ui_flying_hit_points.h
@@ -526,7 +486,7 @@ public:
     // world_zone.cpp
     // 005915E0 (RET 4). Replaces the zone exits (+0xEC) with copies of `source`'s records that
     // lead somewhere (target not ""); an exit without an entrance must lead to "none".
-    void SetZoneExits(const ZoneExitArray* source);
+    void SetZoneExits(const ZoneExits* source);
     // 005910A0 (RET 0x10). Script AddUnitToServer: builds a unit record for prototype
     // `prototype` named `name` (006628D0), gives it the id `id` (the name's text key) and creates
     // it at `position` with the default rotation (0058EF20).
@@ -789,11 +749,7 @@ public:
     int cave_;                            // +0x0E0 the zone is a cave (its record's setting30; sent with the zone)
     int weather_;                         // +0x0E4 0 clear, 1 rain, 2 snow (the script's SetWeather)
     float weatherStrength_;               // +0x0E8 sent with the weather
-    void* exitsVtable_;                   // +0x0EC CArray<ZoneExit> (ZoneExitArray) from here
-    ZoneExit* exits_;                     // +0x0F0
-    int exitCount_;                       // +0x0F4
-    int exitCapacity_;                    // +0x0F8
-    int exitGrowBy_;                      // +0x0FC
+    ZoneExits exits_;                     // +0x0EC
     std::uint8_t loaded_;                 // +0x100 0 while LoadSave runs
     std::uint8_t unused_101[0x104 - 0x101];
     MapObjectIdMap updateMap_;            // +0x104
@@ -882,7 +838,7 @@ static_assert(offsetof(CWorldServer, otherMapObjects_) == 0x12DB8);
 static_assert(offsetof(CWorldServer, namedObjects_) == 0x12DD0);
 static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
 static_assert(offsetof(CWorldServer, climate_) == 0xDC);
-static_assert(offsetof(CWorldServer, exits_) == 0xF0);
+static_assert(offsetof(CWorldServer, exits_) == 0xEC);
 static_assert(offsetof(CWorldServer, gameResult_) == 0x138);
 static_assert(offsetof(CWorldServer, scriptsActive_) == 0x160);
 static_assert(offsetof(CWorldServer, sectorMap_) == 0x294);
@@ -898,7 +854,6 @@ static_assert(offsetof(CWorldServer, gridRows_) == 0x280C);
 static_assert(offsetof(CWorldServer, objects_) == 0x12D70);
 static_assert(offsetof(CWorldServer, timedObjects_) == 0x12DE8);
 static_assert(offsetof(CWorldServer, sharedObjects_) == 0x12E60);
-static_assert(offsetof(CWorldServer, exitsVtable_) == 0xEC);
 static_assert(offsetof(CWorldServer, mobFiles_) == 0x124);
 static_assert(offsetof(CWorldServer, zoneLoaded_) == 0x15C);
 static_assert(offsetof(CWorldServer, mapObjects_) == 0x12DA0);
@@ -1599,10 +1554,7 @@ public:
 
     int unused84_;                       // +0x084 -100000 after Setup
     std::uint32_t debugFlags_;            // +0x088 the debug display's switches (bits 0-3: ShowFps ...)
-    void* exitsVtable_;                   // +0x08C CArray<ZoneExit> (ZoneExitArray) from here
-    ZoneExit* exits_;                     // +0x090
-    int exitCount_;                       // +0x094
-    std::uint8_t exitArrayTail[0xA0 - 0x98]; // the exit array's capacity and grow-by (read through the CArray)
+    ZoneExits exits_;                     // +0x08C
     // +0x0A0 the exits' particle markers, one per exit or null (MFC CArray of counted pointers; its
     // own SetSize 00570000 releases the dropped ones; CreateExitMarkers / UpdateExitMarkers).
     CountedPtrs<CParticleSource> countedA0_;
@@ -1729,7 +1681,7 @@ static_assert(offsetof(CWorldClient, ticksRun_) == 0x6EC);
 static_assert(offsetof(CWorldClient, rainSnow_) == 0x6F4);
 static_assert(offsetof(CWorldClient, list7BC_) == 0x7BC);
 static_assert(offsetof(CWorldClient, cursor_) == 0x7D0);
-static_assert(offsetof(CWorldClient, exits_) == 0x90);
+static_assert(offsetof(CWorldClient, exits_) == 0x8C);
 static_assert(offsetof(CWorldClient, objectGrid_) == 0x120);
 static_assert(offsetof(CWorldClient, terrain_) == 0x180 && offsetof(CWorldClient, zoneName_) == 0x184);
 static_assert(offsetof(CWorldClient, platforms_) == 0x1D4);
