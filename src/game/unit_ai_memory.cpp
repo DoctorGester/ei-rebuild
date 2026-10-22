@@ -38,7 +38,8 @@ double Distance2(const CUnit* a, const float* b) {
 }
 
 console::GameOStream& PutLong(console::GameOStream& os, long value) {
-    return *reinterpret_cast<console::GameOStream*>(reinterpret_cast<libcrt::Ostream*>(&os)->PutInt(value));
+    os.PutInt(value);   // returns the stream itself
+    return os;
 }
 } // namespace
 

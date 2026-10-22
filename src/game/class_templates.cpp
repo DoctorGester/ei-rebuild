@@ -44,8 +44,8 @@ void ListWeapons(CItemManager* db, void*, console::CStringArray* names) { db->Li
 void ListArmors(CItemManager* db, void*, console::CStringArray* names) { db->ListArmorNames(names); }
 void ListQuickItems(CItemManager* db, void*, console::CStringArray* names) { db->ListQuickItemNames(names); }
 void ListFourthKind(CItemManager* db, void*, console::CStringArray* names) { db->ListMaterialNames(names); }
-void ListSpells(void* db, void*, console::CStringArray* names) { static_cast<CSpellManager*>(db)->ListSpellNames(names); }
-void ListModifiers(void* db, void*, console::CStringArray* names) { static_cast<CSpellManager*>(db)->ListModifierNames(names); }
+void ListSpells(CSpellManager* db, void*, console::CStringArray* names) { db->ListSpellNames(names); }
+void ListModifiers(CSpellManager* db, void*, console::CStringArray* names) { db->ListModifierNames(names); }
 // 006893F0 / 006894B0 (SpellCodeByName / SpellModifierCodeByName, spell.cpp; __stdcall, the
 // caller passes the database in ECX).
 
@@ -75,7 +75,7 @@ ItemStock* MagicList(ClassTemplate* t) { return &t->magic; }
 void __fastcall ClassTemplateFill(ClassTemplate* t) {
     console::CStringArray names;
     CItemManager* items = t->ItemsParty()->ItemManager();
-    void* spells = t->SpellsParty()->SpellManager();
+    CSpellManager* spells = t->SpellsParty()->SpellManager();
 
     itemdb::ItemDatabase& db = itemdb::TheItemDatabase();
     ListWeapons(items, nullptr, &names);
@@ -191,8 +191,8 @@ ClassTemplate* TemplateTable::Find(int type) const {
 }
 EI_REPLACE_METHOD(0x004A74F0, TemplateTable::Find);
 
-unsigned __fastcall ClassTemplatesQuestCompleted(void* manager) {
-    ClassTemplateVector* v = &static_cast<PartyManager*>(manager)->templates;
+unsigned __fastcall ClassTemplatesQuestCompleted(PartyManager* manager) {
+    ClassTemplateVector* v = &manager->templates;
     unsigned i = 0;
     while (i < static_cast<unsigned>(v->size())) {
         ++i;

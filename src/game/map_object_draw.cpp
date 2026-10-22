@@ -97,7 +97,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     ObjectSlots(object)->LoadFigures();
     if (!(object->flags_ & kObjectAnimated)) object->flags_ &= ~kObjectStatic;
     if (dirty) {
-        gameapi::SetRectEmpty(DrawnRect());
+        gameapi::SetRectEmpty(&drawnRect);
         gameapi::SetRectEmpty(object->DirtyRect());
     }
     if (object->animation) object->animation->UpdatePose();
@@ -181,7 +181,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
                 }
                 anyDirty |= part->flags_ & kPartDirty;
                 if (dirty && !gameapi::IsRectEmpty(&partRect) && (part->flags_ & kPartDirty)) {
-                    RECT* total = DrawnRect();
+                    RECT* total = &drawnRect;
                     gameapi::UnionRect(total, total, &partRect);
                 }
                 if (pushed) pipeline->PopMatrix(kStackObject);
@@ -210,7 +210,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
         object->flags_ &= ~kObjectStatic;
     }
     if (dirty) {
-        std::memcpy(object->dirtyRect, drawnRect, sizeof(RECT));
+        std::memcpy(object->dirtyRect, &drawnRect, sizeof(RECT));
         std::memcpy(dirty, object->dirtyRect, sizeof(RECT));
     }
     if (anyDirty) object->flags_ |= kObjectDirty;

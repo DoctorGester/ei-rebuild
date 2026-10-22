@@ -280,7 +280,7 @@ int __cdecl StartFirstMap() {
         return game::FatalError("Can't load map \"%s\".\n", map.GetString());
     world->SetGameResult(1);
     CWorldClient* client = TheClientWorld();
-    client->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
+    client->SetPlayer(TheServerWorld()->shared5C_.Get());   // the server world's counted helper (007AFFBC)
     client->LocalView()->sendParty_ = 0;
     TheServerWorld()->sessionKind_ = 7;
     if (cmdScript.GetLength() == 0) return 1;

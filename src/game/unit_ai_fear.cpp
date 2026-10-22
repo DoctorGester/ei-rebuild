@@ -279,7 +279,7 @@ void FearMode::Execute(AIBrain* brain) {
         float range = static_cast<float>(way * kThree + kRangeBase);
         if (Map()->FindPath(brain->owner->unit, &dest, &local.path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
-            brain->owner->OrderMove(&dest.x, 0, 0, kMoveTime);
+            brain->owner->OrderMove(&dest, 0, 0, kMoveTime);
         }
         spread = static_cast<float>(static_cast<double>(spread) + spread);
     }
@@ -314,7 +314,7 @@ void FearMode::Execute(AIBrain* brain) {
             // 005D7970: the order assigned to the brain's action point and looks.
             brain->move.point = order.point;
             brain->move.looks.Copy(order.looks);
-            brain->owner->OrderMove(&brain->move.point.x, 0, 0, kMoveTime);
+            brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);
         }
     }
     LooksDestroyAt(&order.looks);

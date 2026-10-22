@@ -92,7 +92,7 @@ void CWorldServer::Teardown() {
 
     if (hoover_) {
         --hoover_->refCount_;
-        if (hoover_) delete static_cast<CEngineObject*>(hoover_);
+        if (hoover_) delete hoover_;   // slot 0 with 1 (the virtual destructor)
         hoover_ = nullptr;
     }
     ScriptReset(MainScript());

@@ -1110,21 +1110,7 @@ void __fastcall ScriptQuestStart(const char* name);
 void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value);
 
 struct QuestRecord;   // quest_records.h
-
-// The quest kill table (007C87A8): quest records by name (QuestComplete awards the record's +0x0C).
-struct QuestTable {
-    using Map = stlp::hash_map<stlp::string, QuestRecord*, stlp::StringHash>;
-
-    // 004C9C90 and its copy 0064F550 (RET 4). The record of quest `name`, null if none. The map's operator[] (the game's
-    // find_or_insert 004CE110 on a {name, null} pair) leaves a null entry for a missing name.
-    QuestRecord* Find(const char* name);
-
-    std::uint8_t unused_00[0x0C];
-    Map byName;             // +0x0C
-};
-static_assert(offsetof(QuestTable, byName) == 0x0C);
-// The quest database's quests (007C87A8; g_questDatabase, quest_records.h) as the script commands read them.
-QuestTable* TheQuestTable();   // database_globals.cpp
+// The script commands look quests up through QuestDatabase::FindQuest (quest_records.h).
 
 // ---- Loader arrays (script_parse_arrays.cpp) ------------------------------------------------------
 // The arrays' Add / SetAtGrow / CopyTo are members of the structs at the top of this file.

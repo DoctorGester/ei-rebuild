@@ -443,7 +443,7 @@ public:
     // byte), the point's z replaced by `range` (sic). A party unit with a real point (z not -1313)
     // either has +0x1C set to 1 (the world's +0x6C byte clear) or plans the move within `range`
     // (00554830).
-    void OrderMove(const float* point, int run, int walk, float range);
+    void OrderMove(const Vector3* point, int run, int walk, float range);
     // 00554B30. Kind 3 (attack) on `target` (not null, not the unit itself) at body part
     // `location` (6, all, unless the target's part kind is 3); +0x20 = `calledShot`. Dropped when
     // the target is out of reach (message 0x0C to the party) or the planner (0054E600) refuses.
@@ -451,7 +451,7 @@ public:
     // 00554D00. Kind 4 (cast at a point). A scroll (quick item of category 8) is cast at once.
     // A party unit needs the spell's skill (+0x50) for a spell of its own; message 0x13 if not,
     // or while flags_ has 0x10000000.
-    void OrderCastAt(std::uint32_t source, const float* point, int run);
+    void OrderCastAt(std::uint32_t source, const Vector3* point, int run);
     // 00554F50. Kind 5 (cast at `target`), as OrderCastAt.
     void OrderCast(std::uint32_t source, CMapObject* target, int run);
     // 00555200. Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
@@ -692,11 +692,11 @@ public:
     // 00548700. Plans the motion to `point` within `range` (FindPath): no path stands the unit still
     // (state 6, +0x145 from the path's +0xA9); a path makes it idle (state 0) with its movement
     // animation going on. Callers test AL.
-    bool PathTo(const float* point, float range);
+    bool PathTo(const Vector3* point, float range);
     // 005468D0. Fills the CList `list` with the units lifted off the sector map for a path: away
     // from `point`, those near it outside the player's group; the party members that move (with
     // `moving`) or follow this unit. Only for a player's units with +0x100 == 1.
-    void LiftNearby(mfc::CTypedPtrList<CUnit>* list, const float* point, char moving);
+    void LiftNearby(mfc::CTypedPtrList<CUnit>* list, const Vector3* point, char moving);
     // 0054EB30. Tells a party unit's player how a path to `path`'s goal turned out (0066D490 and
     // messages 0x0E / 0x01), unless the brain's mode is 6.
     void ReportPath(AIPath* path, char partial);
@@ -726,11 +726,11 @@ public:
     // offers (its slot 44, for the unit's size) whose path is cheapest becomes the order's point
     // (flag18 set), its path into `motionOrder` (if given); false when no spot can be reached.
     // Every order's point gets z -1 first. Callers test AL.
-    bool FindUseSpot(UnitAction* order, AIPath* motionOrder);
+    bool FindUseSpot(UnitAction* order, PathOrder* motionOrder);
     // 0054E250. Simulates the unit along `motionOrder` (a path order, kind 2) in steps of 5 ticks
     // until the order's target is in reach (and seen, when the order needs a line of sight); the
     // time it takes (ST0), 0 for other kinds.
-    double TimeUntilAction(const AIOrder* order, AIPath* motionOrder);
+    double TimeUntilAction(const AIOrder* order, PathOrder* motionOrder);
     // 0054E600. Plans the way to `order`'s target: the use spot, the path (target lifted off the
     // sector map) and whether the unit can act from its end, with the player's path message;
     // the unit shouts `shout` when it can, 0x0B / 0x0E when not. Units without a player plan only
@@ -739,7 +739,7 @@ public:
     // 00554830. A party unit's move to `point`: the units in the way lifted (LiftNearby), a runner
     // planning as walking where it can, FindPath within `range` (the order's z bits), the units put
     // back and the result reported (ReportPath).
-    void PlanMove(const float* point, int moving, int run, float range);
+    void PlanMove(const Vector3* point, int moving, int run, float range);
 
     // combat_object_slots.cpp (A-U5).
     // 00552D00 (RET 8). `claimant` claims the players in `mask` are enemies of this unit: they join

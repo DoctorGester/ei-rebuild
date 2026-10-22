@@ -61,11 +61,11 @@ CCloudNoise* CCloudNoise::Construct(int size) {
     ei::SetVtable(this, BaseVtable());
     size_ = size;
     const auto layerBytes = static_cast<std::size_t>((size >> 3) * (size >> 3) * 4);
-    noise_ = static_cast<std::int32_t*>(gamecrt::operator_new(layerBytes));
+    noise_ = gamecrt::operator_new_bytes_as<std::int32_t>(layerBytes);
     layers_ = gamecrt::operator_new_array<std::uint8_t>(layerBytes);
     const auto frameBytes = static_cast<std::size_t>(size * size);
     for (std::uint8_t*& frame : frames_) frame = gamecrt::operator_new_array<std::uint8_t>(frameBytes);
-    ramp_ = static_cast<std::uint16_t*>(gamecrt::operator_new(0x200));
+    ramp_ = gamecrt::operator_new_array<std::uint16_t>(0x100);   // 0x200 bytes
     phase_ = 0.0f;
     step_ = 0;
     return this;

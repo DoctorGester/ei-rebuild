@@ -108,7 +108,7 @@ void StartMove(AIBrain* brain, AIMoveOrder* order) {
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->move.point, &order->point, sizeof(Vector3));
     brain->move.looks.Copy(order->looks);
-    brain->owner->OrderMove(&brain->move.point.x, 0, 0, kMoveTime);
+    brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);
 }
 
 // The brain's remembered positions after choosing a new place to be.
@@ -439,7 +439,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->move.point, &order.point, sizeof(Vector3));
     brain->move.looks.Copy(order.looks);
-    brain->owner->OrderMove(&brain->move.point.x, 0, 0, kMoveTime);
+    brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);
     level = brain->memory.noticedLevel;
     DestroyLooks(&order);
 }
@@ -708,7 +708,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             std::memcpy(&to.y, &point.y, 4);
             std::memcpy(&to.z, &kUnsetBits, 4);
             brain->action = AIBrain::kActionWalk;
-            brain->owner->OrderMove(&to.x, 0, 0, kMoveTime);
+            brain->owner->OrderMove(&to, 0, 0, kMoveTime);
         }
         if (state == kStateMoveTo) PlayerUpdateCombatOriginal(this, nullptr, brain);
         return;
@@ -752,7 +752,7 @@ void PlayerMode::CommandWalk(AIBrain* brain, const Vector3* to, int unknown, int
     state = kStateCommand;
     PrepareWalk(this, brain, to, runArg, offset);
     brain->action = AIBrain::kActionWalk;
-    brain->owner->OrderMove(&point.x, run, unknown, kMoveTime);
+    brain->owner->OrderMove(&point, run, unknown, kMoveTime);
 }
 EI_REWRITTEN(0x005D39E0, PlayerMode::CommandWalk);
 
@@ -761,13 +761,13 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int
     PrepareWalk(this, brain, to, runArg, offset);
     if (!DirectControl(brain) && !StaysWithParty(brain, true)) {
         std::memset(&point.z, 0, 4);
-        brain->owner->PlanMove(&point.x, unknown, 0, kMoveTime);
+        brain->owner->PlanMove(&point, unknown, 0, kMoveTime);
         return;
     }
     constexpr std::uint32_t kOneBits = 0x3F800000u;
     std::memcpy(&point.z, &kOneBits, 4);
     brain->action = AIBrain::kActionWalk;
-    brain->owner->OrderMove(&point.x, run, unknown, kMoveTime);
+    brain->owner->OrderMove(&point, run, unknown, kMoveTime);
 }
 EI_REWRITTEN(0x005D3AE0, PlayerMode::CommandGoTo);
 
@@ -820,7 +820,7 @@ void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int
     state = kStateFollow;
     if (!brain->owner->IsScrollSource(spell)) brain->action = AIBrain::kActionCast;
     brain->actionTime = spell;
-    brain->owner->OrderCastAt(spell, &at->x, running);
+    brain->owner->OrderCastAt(spell, at, running);
 }
 EI_REWRITTEN(0x005D3D90, PlayerMode::CommandCastAt);
 
@@ -887,7 +887,7 @@ void PlayerMode::Load(CStream* stream) {
         group.size = 0;
         group.maxSize = 0;
         group.growBy = 0;
-        group.Load(reinterpret_cast<ScriptStream*>(stream));
+        group.Load(stream);
         group.DestructBody();
     }
 }

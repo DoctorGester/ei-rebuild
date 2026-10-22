@@ -55,6 +55,7 @@ struct UnitBodyPart {
 static_assert(sizeof(UnitBodyPart) == 0x1C);
 
 struct AIPath;       // ai_map.h
+struct PathOrder;    // ai_map.h
 struct UnitMotion;   // ai_motion.h
 struct SpeechRecord; // unit_client_models.h
 class CObject3D;     // map_object_figures.h
@@ -87,7 +88,7 @@ public:
     virtual void FiguresLoaded();           // 13: client 005344E0, base 00533B90
     virtual void RestartAnimation(float time);  // 14: client 005352B0 (the animations the unit names at +0x254 / +0x255 from frame `time`)
     virtual void Unused15();                // 15: empty everywhere (base 00533BB0, client 00535580)
-    virtual AIPath* Path();                 // 16: server +0x3C (00546090), client +0x38 (00533DF0)
+    virtual PathOrder* Path();              // 16: server +0x3C (00546090), client +0x38 (00533DF0)
     virtual void Unused17();                // 17: empty (server 005460B0, client 00534130)
     virtual void PlayerChanged(void* player);   // 18: client 00534140, base empty (00533BC0)
     // 19: server 005533B0 (1), client 00533BD0 (0); both read the low byte. CUnit's slot 33
@@ -366,8 +367,8 @@ public:
     void PlaceOnGroundImpl(float offset);   // body of the slot above (registered by member pointer)
     // 0052FCC0 / 0052FDF0 (RET 8 / RET 4; unit_points.cpp). Slots 52 (PositionAt) and 53 (AimPoint):
     // the position predicted along the path at world time `time`, the point the animation acts on.
-    float* PositionAtImpl(float* out, int time);
-    float* AimPointImpl(float* out);
+    Vector3* PositionAtImpl(Vector3* out, int time);
+    Vector3* AimPointImpl(Vector3* out);
     // 00532A20. Sets the parameter block, the hit point maximum and the hit points from `stats`.
     void SetFromStats(UnitStats* stats);
 
@@ -1330,4 +1331,5 @@ public:
 static_assert(offsetof(CMapObjectClientSpecific, endSound) == 0x54);
 static_assert(offsetof(CMapObjectClientSpecific, sounds) == 0x3C);
 static_assert(offsetof(CMapObjectClientSpecific, light) == 0x50);
+inline CMapObjectClientSpecific* CMapObject::ClientCompanion() const { return static_cast<CMapObjectClientSpecific*>(companion); }
 

@@ -118,11 +118,10 @@ EI_REWRITTEN(0x0063C180, CHudWeaponBar::SetUnit);
 
 // --- 0063CEE0: a quick item's tooltip ----------------------------------------------------------
 
-void CHudQuickItems::ItemTip(unsigned index, void* out) {
+void CHudQuickItems::ItemTip(unsigned index, mfc::CString* text) {
     CItem* object = unit_->GetQuickItem(index);
     if (!object) return;
     auto* item = object;
-    auto* text = static_cast<mfc::CString*>(out);
     mfc::CString line;
     text->Empty();
     // (The original passes one CString as the description and the kind.)

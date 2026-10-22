@@ -7,7 +7,17 @@
 
 #include "core_refcount.h"
 
+#include "lib/mfc.h"
+
 #include <cstdint>
+
+namespace netlink {
+class NetLink;   // net_link.h
+}
+
+// The list slot 6 appends the new connections to, counted (the server world's AcceptNewPlayers'
+// local, a CTypedPtrList of links).
+using JoinedLinks = mfc::CTypedPtrList<netlink::NetLink>;
 
 class CPlayerSource : public CRefObject {
 public:
@@ -17,7 +27,7 @@ public:
     // 0: 0055F2F0 (DeletingDestructBase); 2 / 3 / 4 / 6 pure in the base.
     virtual bool Query();               // 4: the helpers 0055F250 / 005626F0 AL 0, the session 0047A220 AL 1
     virtual void Pump();                // 5: 0055F190 (empty) in every source
-    virtual void TakeNew(void* joined); // 6: new connections appended to an MFC list of links
+    virtual void TakeNew(JoinedLinks* joined);   // 6: new connections appended to the list
 
     // 0055F2E0. The destructor body: the root vtable stored (the base has no fields).
     void DestructBase();

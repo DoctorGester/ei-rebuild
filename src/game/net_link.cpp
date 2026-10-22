@@ -8,6 +8,7 @@
 #include "net_connection.h"
 #include "net_messages.h"
 #include "record_lists.h"
+#include "world.h"   // CWorldHandle (CreatePair)
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -31,11 +32,8 @@ constexpr std::uint32_t kStreamLimit = 2000000000;
 // and range insert (004795B0); the node pool (00405950 / 00404D70) and the header's deallocation
 // (00479530, n nodes).
 using QueueElement = recordlist::QueueStreamElement;
-inline void* __fastcall NodeAllocate(std::size_t a0) { return libcrt::NodeAllocate(a0); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
 // The game's memmove (006E79A0).
-
-bool IsLive(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 
 // The counted pointer release the classes inline: the count dropped, the object deleted at zero.
 void ReleaseCounted(CRefObject* object) {
@@ -174,7 +172,7 @@ EI_REPLACE_METHOD(0x00478030, NetLink::DeletingDestruct);
 int NetLink::IncomingCount() { return HasIncoming() ? 1 : 0; }   // 00478000
 bool NetLink::SendImpl(CStream*) { return true; }                    // 00478100
 
-bool NetLink::ReceiveImpl(CStream* stream) {   // 00478110
+bool NetLink::ReceiveImpl(CMemoryStream* stream) {   // 00478110
     Record(stream);
     return true;
 }
@@ -240,19 +238,19 @@ void LoopbackLink::DestroyQueue() {
     if (head) NodeFree(head, sizeof(QueueNode));
 }
 
-// The first goes to the player's link (+8); null for a null player. Without memory for the second
-// the original crashes; so does this.
-LoopbackLink* __stdcall LoopbackLink::CreatePair(std::uint8_t* player) {   // 004782E0
+// The first goes to the player's pending link; null for a null player. Without memory for the
+// second the original crashes; so does this. (The original rereads the pending link for the peers:
+// releasing the previous one does not touch it, so it is `first`.)
+LoopbackLink* __stdcall LoopbackLink::CreatePair(CWorldHandle* player) {   // 004782E0
     if (!player) return nullptr;
-    auto*& held = *reinterpret_cast<CRefObject**>(player + 8);
     LoopbackLink* first = New();
-    CRefObject* previous = held;
-    held = first;
+    NetLink* previous = player->pendingLink_;
+    player->pendingLink_ = first;
     if (first) ++first->refs_;
     if (previous) previous->Release();
     LoopbackLink* second = New();
-    AssignPeer(&static_cast<LoopbackLink*>(held)->peer_, second);
-    AssignPeer(&second->peer_, static_cast<LoopbackLink*>(held));
+    AssignPeer(&first->peer_, second);
+    AssignPeer(&second->peer_, first);
     return second;
 }
 EI_REWRITTEN(0x004782E0, LoopbackLink::CreatePair);
@@ -296,7 +294,7 @@ LoopbackLink* LoopbackLink::Clone() {   // 004784D0
     if (!copy) return nullptr;
     copy->ConstructCopyOf(this);
     copy->queue_.head = nullptr;
-    auto* header = static_cast<QueueNode*>(NodeAllocate(sizeof(QueueNode)));
+    auto* header = stlp::allocate_as<QueueNode>();   // 00405950
     copy->queue_.head = header;
     header->next = header;
     copy->queue_.head->prev = copy->queue_.head;
@@ -335,7 +333,7 @@ bool LoopbackLink::SendImpl(CStream* stream) {   // 00478220
 
 // The front of the queue copied into `stream` (its slot 7) and dropped, then recorded as the base
 // does. False when nothing is queued.
-bool LoopbackLink::ReceiveImpl(CStream* stream) {   // 00478270
+bool LoopbackLink::ReceiveImpl(CMemoryStream* stream) {   // 00478270
     if (queue_.Empty()) return false;
     stream->CopyFrom(&queue_.First()->data);
     StreamQueue::Erase<QueueElement>(queue_.First());
@@ -438,7 +436,7 @@ bool ReplayLink::Alive() {   // 00478C30
 bool ReplayLink::HasIncoming() { return ReplayLink::Alive(); }   // 00478C50
 
 // The next recorded message into `stream`; the replay stream's ok.
-bool ReplayLink::ReceiveImpl(CStream* stream) {   // 00478C70
+bool ReplayLink::ReceiveImpl(CMemoryStream* stream) {   // 00478C70
     replay_.ReadSized(stream);
     return replay_.ok_ != 0;
 }
@@ -549,8 +547,7 @@ bool FramedLink::SendImpl(CStream* stream) {   // 0047BAD0
 
 // The first message's bytes into `stream` (a memory stream, resized to them), the rest of the inbox
 // moved to its start. False when no whole message is there.
-bool FramedLink::ReceiveImpl(CStream* to) {   // 0047BB70
-    auto* stream = static_cast<CMemoryStream*>(to);
+bool FramedLink::ReceiveImpl(CMemoryStream* stream) {   // 0047BB70
     CStream* inbox = &inbox_;
     std::uint32_t length = 0;
     inbox->Seek(0);

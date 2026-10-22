@@ -226,7 +226,7 @@ void AIBrain::UpdateFollow() {
         double gx = goal.x - leader->localPosition_.x;
         double gy = goal.y - leader->localPosition_.y;
         if (LengthSquared2DUnrounded(gx, gy) > farSq) {
-            owner->OrderMove(&PositionOf(leader)->x, 0, 0, walkTime);
+            owner->OrderMove(PositionOf(leader), 0, 0, walkTime);
             followTimer = 0;
         }
         return;
@@ -245,7 +245,7 @@ void AIBrain::UpdateFollow() {
         double fx = soon.x - goal.x;
         double fy = soon.y - goal.y;
         if (LengthSquared2DUnrounded(fy, fx) > farSq) {
-            owner->OrderMove(&soon.x, 0, 0, walkTime);
+            owner->OrderMove(&soon, 0, 0, walkTime);
             followTimer = kFollowPause;
         }
         return;
@@ -298,13 +298,13 @@ void AIBrain::UpdateFollow() {
     double offX = aside.x - half * local.path.targetX;
     EI_NAN_AUDIT(offX, offY);
     if (LengthSquared2DUnrounded<double>(offX, offY) < kReachedSq) {
-        owner->OrderMove(&aside.x, 0, 0, kPassRange);
+        owner->OrderMove(&aside, 0, 0, kPassRange);
         followTimer = kFollowPause;
     } else {
         double px = goal.x - passing.x;
         double py = goal.y - passing.y;
         if (LengthSquared2DUnrounded(px, py) > kHalf) {
-            owner->OrderMove(&passing.x, 0, 0, kPassTime);
+            owner->OrderMove(&passing, 0, 0, kPassTime);
             followTimer = kFollowPause;
         }
     }

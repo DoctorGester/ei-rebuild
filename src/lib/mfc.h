@@ -316,7 +316,7 @@ struct CArray {
             }
             size = maxSize = 0;
         } else if (!data) {
-            data = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(newSize) * sizeof(T)));
+            data = gamecrt::operator_new_array<T>(static_cast<std::size_t>(newSize));
             Elements::Construct(data, newSize);
             size = maxSize = newSize;
         } else if (newSize <= maxSize) {
@@ -330,7 +330,7 @@ struct CArray {
                 step = step < 4 ? 4 : step > 1024 ? 1024 : step;
             }
             int newMax = newSize < maxSize + step ? maxSize + step : newSize;
-            T* fresh = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(newMax) * sizeof(T)));
+            T* fresh = gamecrt::operator_new_array<T>(static_cast<std::size_t>(newMax));
             std::memcpy(static_cast<void*>(fresh), data, static_cast<std::size_t>(size) * sizeof(T));
             Elements::Construct(fresh + size, newSize - size);
             gamecrt::operator_delete(data);
@@ -613,7 +613,7 @@ struct CMap {
             table = nullptr;
         }
         if (allocNow) {
-            table = static_cast<Assoc**>(gamecrt::operator_new(newHashSize * sizeof(Assoc*)));
+            table = gamecrt::operator_new_array<Assoc*>(newHashSize);
             std::memset(table, 0, newHashSize * sizeof(Assoc*));
         }
         hashSize = newHashSize;

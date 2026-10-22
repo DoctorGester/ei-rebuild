@@ -42,6 +42,7 @@
 namespace net {
 class SessionBase;   // net_classes.h
 }
+class CWorldHandle;   // world.h
 
 namespace netlink {
 
@@ -114,8 +115,8 @@ public:
     virtual int IncomingCount();                // 7: 00478000 (1 when HasIncoming)
     virtual bool Send(CStream* stream);         // 8: 00478100 (dropped: true)
     bool SendImpl(CStream* stream);   // body of the slot above (registered by member pointer)
-    virtual bool Receive(CStream* stream);      // 9: 00478110 (records the stream: true)
-    bool ReceiveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
+    virtual bool Receive(CMemoryStream* stream);      // 9: 00478110 (records the stream: true)
+    bool ReceiveImpl(CMemoryStream* stream);   // body of the slot above (registered by member pointer)
     virtual void Pump();                        // 10: 00478010 (empty)
     virtual void Disconnect() = 0;              // 11
     virtual int Unknown12();                    // 12: 00478020 (0)
@@ -161,13 +162,13 @@ public:
     int IncomingCount() override;               // 7: 00478760
     bool Send(CStream* stream) override;        // 8: 00478220 (a copy on the peer's queue)
     bool SendImpl(CStream* stream);   // body of the slot above (registered by member pointer)
-    bool Receive(CStream* stream) override;     // 9: 00478270 (the front of the queue)
-    bool ReceiveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
+    bool Receive(CMemoryStream* stream) override;     // 9: 00478270 (the front of the queue)
+    bool ReceiveImpl(CMemoryStream* stream);   // body of the slot above (registered by member pointer)
     void Disconnect() override;                 // 11: 00478140
 
     // 004782E0 (thiscall with an unused this, RET 4). Two links joined to each other; the first goes
     // to the player's link (+8), the second is returned.
-    static LoopbackLink* __stdcall CreatePair(std::uint8_t* player);
+    static LoopbackLink* __stdcall CreatePair(CWorldHandle* player);
     // 004787A0. The peer released, the queue destroyed, then the record stream; the root vtable left.
     void Destruct();
     // 00478780 (slot 0).
@@ -195,8 +196,8 @@ public:
     bool Connected() override;                  // 4: 00478C20 (false)
     bool Alive() override;                      // 5: 00478C30 (the recording has more to read)
     bool HasIncoming() override;                // 6: 00478C50 (the same code)
-    bool Receive(CStream* stream) override;     // 9: 00478C70
-    bool ReceiveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
+    bool Receive(CMemoryStream* stream) override;     // 9: 00478C70
+    bool ReceiveImpl(CMemoryStream* stream);   // body of the slot above (registered by member pointer)
     void Disconnect() override;                 // 11: 00478C90 (closes the recording)
 
     // 00478960 (thiscall with an unused this, RET 4). A replay link reading the recording `path`.
@@ -224,8 +225,8 @@ public:
     int IncomingCount() override;               // 7: 0047BA40
     bool Send(CStream* stream) override;        // 8: 0047BAD0 (framed, then SendBytes)
     bool SendImpl(CStream* stream);   // body of the slot above (registered by member pointer)
-    bool Receive(CStream* stream) override;     // 9: 0047BB70 (a memory stream)
-    bool ReceiveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
+    bool Receive(CMemoryStream* stream) override;     // 9: 0047BB70 (a memory stream)
+    bool ReceiveImpl(CMemoryStream* stream);   // body of the slot above (registered by member pointer)
     virtual bool SendBytes(const void* data, std::uint32_t size) = 0;   // 13
 
     // 00479B90 (also inlined). The inbox's buffer freed, then the record stream; the root vtable
@@ -290,8 +291,8 @@ public:
     // holders' links appended to the list).
     int OnShutdown() override;          // 2: 0055F6B0 (both lists emptied; built again in place)
     DriverSession* Clone() override;    // 3: 0055F550 (drivers shared, holders counted)
-    void TakeNew(void* joined) override;   // 6: 0047A230 (player_sources.cpp)
-    void TakeNewImpl(void* joined);   // body of the slot above (registered by member pointer)
+    void TakeNew(JoinedLinks* joined) override;   // 6: 0047A230 (player_sources.cpp)
+    void TakeNewImpl(JoinedLinks* joined);   // body of the slot above (registered by member pointer)
 
     // The constructor as 0055F410 inlines it on `memory` (0x10 bytes of operator new, the count
     // already cleared): both lists empty. Returns the session.
@@ -350,7 +351,7 @@ public:
     virtual bool HasIncoming() { return _purecall() != 0; }   // 6: pure
     virtual int IncomingCount() { return As<NetLink>()->NetLink::IncomingCount(); }   // 7: 00478000
     virtual bool Send(CStream* stream) { return As<NetLink>()->SendImpl(stream); }     // 8: 00478100
-    virtual bool Receive(CStream* stream) { return As<NetLink>()->ReceiveImpl(stream); }   // 9: 00478110
+    virtual bool Receive(CMemoryStream* stream) { return As<NetLink>()->ReceiveImpl(stream); }   // 9: 00478110
     virtual void Pump() {}                      // 10: 00478010 (empty)
     virtual void Disconnect() { _purecall(); }  // 11: pure
     virtual int Unknown12() { return 0; }       // 12: 00478020
@@ -372,7 +373,7 @@ public:
     bool HasIncoming() override { return As<LoopbackLink>()->LoopbackLink::HasIncoming(); }   // 6: 00478750
     int IncomingCount() override { return As<LoopbackLink>()->LoopbackLink::IncomingCount(); }   // 7: 00478760
     bool Send(CStream* stream) override { return As<LoopbackLink>()->SendImpl(stream); }         // 8: 00478220
-    bool Receive(CStream* stream) override { return As<LoopbackLink>()->ReceiveImpl(stream); }   // 9: 00478270
+    bool Receive(CMemoryStream* stream) override { return As<LoopbackLink>()->ReceiveImpl(stream); }   // 9: 00478270
     void Disconnect() override { As<LoopbackLink>()->LoopbackLink::Disconnect(); }               // 11: 00478140
 };
 
@@ -386,7 +387,7 @@ public:
     bool Connected() override { return false; }                                        // 4: 00478C20
     bool Alive() override { return As<ReplayLink>()->ReplayLink::Alive(); }            // 5: 00478C30
     bool HasIncoming() override { return As<ReplayLink>()->ReplayLink::HasIncoming(); }   // 6: 00478C50
-    bool Receive(CStream* stream) override { return As<ReplayLink>()->ReceiveImpl(stream); }   // 9: 00478C70
+    bool Receive(CMemoryStream* stream) override { return As<ReplayLink>()->ReceiveImpl(stream); }   // 9: 00478C70
     void Disconnect() override { As<ReplayLink>()->ReplayLink::Disconnect(); }                 // 11: 00478C90
 };
 
@@ -398,7 +399,7 @@ public:
     bool HasIncoming() override { return As<FramedLink>()->FramedLink::HasIncoming(); }        // 6: 0047B9F0
     int IncomingCount() override { return As<FramedLink>()->FramedLink::IncomingCount(); }     // 7: 0047BA40
     bool Send(CStream* stream) override { return As<FramedLink>()->SendImpl(stream); }         // 8: 0047BAD0
-    bool Receive(CStream* stream) override { return As<FramedLink>()->ReceiveImpl(stream); }   // 9: 0047BB70
+    bool Receive(CMemoryStream* stream) override { return As<FramedLink>()->ReceiveImpl(stream); }   // 9: 0047BB70
     virtual bool SendBytes(const void*, std::uint32_t) { return _purecall() != 0; }            // 13: pure
 };
 
@@ -426,7 +427,7 @@ public:
     virtual CRefObject* Clone() { return Object()->DriverSession::Clone(); }                   // 3: 0055F550
     virtual bool Query() { return true; }                                                      // 4: 0047A220
     virtual void Pump() {}                                                                     // 5: 0055F190 (empty)
-    virtual void TakeNew(void* joined) { Object()->TakeNewImpl(joined); }                      // 6: 0047A230
+    virtual void TakeNew(JoinedLinks* joined) { Object()->TakeNewImpl(joined); }               // 6: 0047A230
 
 private:
     DriverSession* Object() { return ObjectAs<DriverSession>(); }

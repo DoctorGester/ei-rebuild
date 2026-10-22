@@ -31,8 +31,8 @@ constexpr int kAcceptRegion = 0, kTakeBackRegion = 1, kLeaveRegion = 2;
 
 // The client's own offer (+0x260C) while it is live (not detached), else null.
 net::PartyMessage* LiveOffer() {
-    auto* offer = static_cast<net::PartyMessage*>(net::GameClient()->party_.ptr);
-    return offer && !(offer->flags7_ & CRefObject::kDetached) ? offer : nullptr;
+    net::PartyMessage* offer = net::GameClient()->party_.Get();
+    return IsLive(offer) ? offer : nullptr;
 }
 CParty* LocalParty() { return LocalPlayerData(); }
 } // namespace

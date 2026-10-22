@@ -32,18 +32,18 @@ const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\"
 
 // The unit's virtual slot 55 (IsDead: +0x274).
 bool IsDead(CUnit* unit) { return ObjectSlots(unit)->IsDead() != 0; }
-void CopyPosition(float* out, const CUnit* unit) { std::memcpy(out, &unit->localPosition_.x, 12); }
+void CopyPosition(Vector3* out, const CUnit* unit) { std::memcpy(out, &unit->localPosition_, sizeof(Vector3)); }
 
 } // namespace
 
 // 0052FCC0 (slot 52, RET 8). A dead unit (slot 55) gives its action point (slot 53); otherwise a
 // unit following a path order (kind 2) without flag 0x8000000 gives its motion's position at
 // `time`, and any other its position.
-static float* PredictPosition(CUnit* unit, float* out, int time) {
+static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
     // The controller's slot 16: its motion (the order in its first 0x20 bytes).
-    AIPath* path = static_cast<CUnitController*>(unit->controller)->Path();
+    PathOrder* path = static_cast<CUnitController*>(unit->controller)->Path();
     if (IsDead(unit)) {
-        ObjectSlots(unit)->AimPoint(reinterpret_cast<Vector3*>(out));
+        ObjectSlots(unit)->AimPoint(out);
         return out;
     }
     MotionOrder* order = &path->motionOrder;
@@ -59,9 +59,9 @@ static float* PredictPosition(CUnit* unit, float* out, int time) {
         unit->Motion()->Sample(ObjectWorld(unit), order, static_cast<float>(time), &turning,
                                &position.x, &direction.x, &speed, &cellX, &cellY);
         float toWorld = kCellScale * kHalf;
-        out[0] = toWorld * position.x;
-        out[1] = toWorld * position.y;
-        std::memcpy(&out[2], &position.z, 4);
+        out->x = toWorld * position.x;
+        out->y = toWorld * position.y;
+        std::memcpy(&out->z, &position.z, 4);
         return out;
     }
     CopyPosition(out, unit);
@@ -74,7 +74,7 @@ static float* PredictPosition(CUnit* unit, float* out, int time) {
 // bits (0x1C00000 of its flags): 0x400000 back (-Y), 0x800000 forward (+Y) by above[1], 0xC00000
 // right (+X), 0x1000000 left (-X) by above[0]. The point is kept only where the AI map lets size
 // class 3 stand (on the server); otherwise, and for a living unit, the position.
-static float* ActionPoint(CUnit* unit, float* out) {
+static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
     if (!IsDead(unit)) {
         CopyPosition(out, unit);
         return out;
@@ -114,13 +114,13 @@ static float* ActionPoint(CUnit* unit, float* out) {
             return out;
         }
     }
-    out[0] = offset.x + unit->localPosition_.x;
-    out[1] = offset.y + unit->localPosition_.y;
-    out[2] = offset.z + unit->localPosition_.z;
+    out->x = offset.x + unit->localPosition_.x;
+    out->y = offset.y + unit->localPosition_.y;
+    out->z = offset.z + unit->localPosition_.z;
     return out;
 }
 
-float* CUnit::PositionAtImpl(float* out, int time) { return PredictPosition(this, out, time); }
+Vector3* CUnit::PositionAtImpl(Vector3* out, int time) { return PredictPosition(this, out, time); }
 EI_REPLACE_METHOD(0x0052FCC0, CUnit::PositionAtImpl);
-float* CUnit::AimPointImpl(float* out) { return ActionPoint(this, out); }
+Vector3* CUnit::AimPointImpl(Vector3* out) { return ActionPoint(this, out); }
 EI_REPLACE_METHOD(0x0052FDF0, CUnit::AimPointImpl);

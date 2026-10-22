@@ -119,7 +119,7 @@ CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
 // The command zeroes the reference dword (+4) before testing the pointer.
 template <typename Mode>
 Mode* NewMode(std::size_t size) {
-    auto* mode = static_cast<Mode*>(gamecrt::operator_new(size));
+    auto* mode = gamecrt::operator_new_bytes_as<Mode>(size);
     mode->refs = 0;
     mode->refsHigh = 0;
     return mode;
@@ -1203,14 +1203,14 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x9F: {   // QuestComplete(player, quest)
             if (IsMultiplayerClient()) {
                 if (FinishQuestMap(Text(cmd, 0)) != 0) {
-                    QuestRecord* quest = TheQuestTable()->Find(Text(cmd, 0));
+                    QuestRecord* quest = TheQuestDatabase().FindQuest(Text(cmd, 0));
                     if (quest) TheWorld()->AwardExperience(nullptr, quest->exp);
                 }
                 break;
             }
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            QuestRecord* quest = TheQuestTable()->Find(Text(cmd, 0));
+            QuestRecord* quest = TheQuestDatabase().FindQuest(Text(cmd, 0));
             if (!quest) break;
             TheWorld()->AwardExperience(player, quest->exp);
             ClassTemplatesQuestCompleted(ThePartyManager());

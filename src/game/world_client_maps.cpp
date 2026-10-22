@@ -30,6 +30,7 @@
 #include "model.h"
 #include "sound.h"
 #include "spell.h"
+#include "stl_sorts.h"
 #include "terrain.h"
 #include "texture.h"
 #include "unit.h"
@@ -268,14 +269,8 @@ using DynamicNode = DynamicList::Node;
 // ClearMaps: the session's player data [00665200].
 void __fastcall SessionPlayerClear(CPlayer* session) { PlayerClearOriginal(session); }
 
-// The STLport sort over the screen entries with DepthLess {plane, manager}: __introsort_loop
-// [00573740] (its heap fallback is partial_sort 005769C0), __insertion_sort [00575BC0],
-// __unguarded_insertion_sort [00576D40].
-__declspec(naked) void __fastcall IntroSortLoop(ScreenEntry*, ScreenEntry*, void*, int, const float*, void*)
-    EI_ORIGINAL(0x00573740)
-__declspec(naked) void __fastcall InsertionSort(ScreenEntry*, ScreenEntry*, const float*, void*) EI_ORIGINAL(0x00575BC0)
-__declspec(naked) void __fastcall UnguardedInsertionSort(ScreenEntry*, ScreenEntry*, void*, const float*, void*)
-    EI_ORIGINAL(0x00576D40)
+// The STLport sort over the screen entries with DepthLess {plane, manager}: stl_sorts.h's stl_sorts::
+// ScreenIntroSort (00573740), ScreenInsertionSort (00575BC0), ScreenUnguardedInsertionSort (00576D40).
 
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
@@ -596,7 +591,7 @@ CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     // inlined in the original (the same steps as the out-of-line loop).
     MatrixDevice* device = TheMatrixDevice();
     const float* plane = device->viewStack + (device->viewDepth - 1) * 16;
-    void* objects = client->MapObjectManager();
+    CBaseManager* objects = client->MapObjectManager();
     ScreenEntry* first = hits.begin();
     ScreenEntry* last = hits.end();
     if (first != last) {
@@ -604,11 +599,11 @@ CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
         int depth = 0;
         for (int n = count; n != 1; n >>= 1) ++depth;
         if (count > 16) {
-            IntroSortLoop(first, last, nullptr, depth * 2, plane, objects);
-            InsertionSort(first, first + 16, plane, objects);
-            UnguardedInsertionSort(first + 16, last, nullptr, plane, objects);
+            stl_sorts::ScreenIntroSort(first, last, nullptr, depth * 2, plane, objects);
+            stl_sorts::ScreenInsertionSort(first, first + 16, plane, objects);
+            stl_sorts::ScreenUnguardedInsertionSort(first + 16, last, nullptr, plane, objects);
         } else {
-            InsertionSort(first, last, plane, objects);
+            stl_sorts::ScreenInsertionSort(first, last, plane, objects);
         }
     }
     ScreenEntry*& cursor = client->hitCursor_;
@@ -892,7 +887,6 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
 
 namespace {
 
-__declspec(naked) void __fastcall Destroy1AC(void*) EI_ORIGINAL(0x005636A0)
 // The lists' element destructors [00575560 / 00575580 (node + 8, flags)] and
 // node releases [0056FB80 / 00498C40 / 0056FB00 (node, count)].
 // The platform list's RemoveAll [0056FDA0]; the base world's teardown [0055F8E0].
@@ -957,8 +951,8 @@ void CWorldClient::Teardown() {
         gamecrt::operator_delete(p);
         numbers_ = nullptr;
     }
-    if (void* p = skyDome_) {
-        Destroy1AC(p);
+    if (CSky* p = skyDome_) {
+        p->Destruct();
         gamecrt::operator_delete(p);
         skyDome_ = nullptr;
     }
@@ -1083,13 +1077,10 @@ EI_REWRITTEN(0x00566030, CWorldClient::Select);
 
 namespace {
 
-// MFC: operator+(const CString&, LPCTSTR) [00700C05, __stdcall, the result constructed in `out`],
-// CString::operator=(const CString&) [00700AA9], operator=(LPCTSTR) [00700AF9], ~CString [00700970].
-void* __stdcall CStringConcat(void* a0, const void* a1, const char* a2) { return CStringConcatTextOriginal((mfc::CString*)a0, (const mfc::CString*)a1, a2); }
-// The lights table loader [00563930 (file name)], the text resources [004DEDB0 on +0x1D0 (path)].
+
+// Rebirth-patched callees (config/rebirth_patches.csv), kept as forwarders: the lights table loader
+// [00563930 (file name)] and the sound manager's constructor [006B6040].
 __declspec(naked) int __fastcall LoadLightsAt(void*, void*, const char*) EI_ORIGINAL(0x00563930)
-__declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGINAL(0x004DEDB0)
-// Constructors (thiscall; some take a block size or count).
 __declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
 
 std::uint8_t* New(std::size_t size) { return gamecrt::operator_new_array<std::uint8_t>(size); }
@@ -1156,7 +1147,7 @@ EI_REWRITTEN(0x00572C50, SectorList::VectorDelete);
 
 void SectorGrid::Allocate() {
     const int count = unknown08_ * unknown0C_;
-    auto* block = static_cast<int*>(gamecrt::operator_new(static_cast<std::size_t>(count) * sizeof(SectorList) + 4));
+    auto* block = gamecrt::operator_new_bytes_as<int>(static_cast<std::size_t>(count) * sizeof(SectorList) + 4);
     SectorList* cells = nullptr;
     if (block) {
         *block = count;
@@ -1184,8 +1175,7 @@ EI_REWRITTEN(0x005724F0, SectorGrid::Resize);
 int CWorldClient::Setup() {
     WorldCreateManagers(this);
     {
-        mfc::CString path(mfc::CString::kUnset);
-        CStringConcat(&path, &TheDataFolder(), worlddata::TexturesFolderText());
+        mfc::CString path = TheDataFolder() + worlddata::TexturesFolderText();   // operator+ (00700C05)
         texturePath_ = path;
     }
     LoadLightsAt(this, nullptr, worlddata::LightsTableText());
@@ -1282,14 +1272,12 @@ int CWorldClient::Setup() {
     sounds_->Create();
     texts_->Create();
     {
-        mfc::CString path(mfc::CString::kUnset);
-        CStringConcat(&path, &TheTextFolder(), worlddata::TextsFileText());
-        LoadTexts(texts_, nullptr, path);
+        mfc::CString path = TheTextFolder() + worlddata::TextsFileText();   // operator+ (00700C05)
+        texts_->AddSource(path);
     }
     {
-        mfc::CString path(mfc::CString::kUnset);
-        CStringConcat(&path, &TheTextFolder(), worlddata::TextsLmpFileText());
-        LoadTexts(texts_, nullptr, path);
+        mfc::CString path = TheTextFolder() + worlddata::TextsLmpFileText();   // operator+ (00700C05)
+        texts_->AddSource(path);
     }
 
     // The lightning manager.
@@ -1314,8 +1302,7 @@ int CWorldClient::Setup() {
     else
         flags_ &= ~0x200u;
     {
-        mfc::CString path(mfc::CString::kUnset);
-        CStringConcat(&path, &TheDataFolder(), worlddata::CursorFileText());
+        mfc::CString path = TheDataFolder() + worlddata::CursorFileText();   // operator+ (00700C05)
         cursor_ = text::sys::LoadCursorFromFileA(path);
     }
 
@@ -1526,14 +1513,6 @@ EI_REWRITTEN(0x00562DD0, ClientArrayManager::DeletingDestruct);
 
 namespace {
 
-// The callees only this load reaches, through their addresses: their verify wrappers keep running
-// when this rewrite is installed (the vanilla launch).
-__declspec(naked) void __fastcall FlowUpdateAndAcknowledgeAt(GameFlow*) EI_ORIGINAL(0x0057F150)
-__declspec(naked) void __fastcall ExitReadAt(ZoneExit*, void*, CStream*) EI_ORIGINAL(0x004E5750)
-__declspec(naked) void __fastcall CreateExitMarkersAt(CWorldClient*) EI_ORIGINAL(0x00567500)
-__declspec(naked) void __fastcall BuildUnitSkinsAt(CWorldClient*, void*, const void* /*figured*/, const void* /*dressed*/)
-    EI_ORIGINAL(0x00568800)
-
 constexpr int kSkyTextureKind = 0x3D;
 // The loading movie's progress steps of the zone load.
 constexpr int kProgressBlockRead = 8;
@@ -1577,7 +1556,7 @@ bool InFinalZone() {
 } // namespace
 
 int CWorldClient::LoadZone(CStream* block) {
-    FlowUpdateAndAcknowledgeAt(TheGameFlow());
+    TheGameFlow()->UpdateAndAcknowledge();
     mfc::CString map;
     mfc::CString mob;
     sounds_->SetEffectsVolume(0);
@@ -1591,7 +1570,7 @@ int CWorldClient::LoadZone(CStream* block) {
     int exitCount;
     block->Read(&exitCount, 4);
     exits_.SetSize(exitCount);
-    for (int i = 0; i < exits_.size; ++i) ExitReadAt(&exits_[i], nullptr, block);
+    for (int i = 0; i < exits_.size; ++i) exits_[i].Read(block);
     int cave;
     block->Read(&cave, 4);
     UnitLooks looks;
@@ -1659,7 +1638,7 @@ int CWorldClient::LoadZone(CStream* block) {
         mfc::CString file = table + worlddata::IniSuffixText();
         LoadLightsAt(this, nullptr, file);
     }
-    CreateExitMarkersAt(this);
+    CreateExitMarkers();
     worlddata::g_lastLitHour = -1.0f;
     UpdateLighting();
     if (worlddata::AudioOption() && worlddata::MovieVolumeSetting()) {
@@ -1670,7 +1649,7 @@ int CWorldClient::LoadZone(CStream* block) {
     // The local server's pending messages follow this block in the view's stream.
     LocalView()->AppendReceived(GameObject7C2D60());
     ticksRun_ = 0;
-    BuildUnitSkinsAt(this, nullptr, &looks.figured, &looks.dressed);
+    BuildUnitSkins(&looks.figured, &looks.dressed);
     // A wind option other than 0 sets the waves.
     const float wind = worlddata::DefaultWindForceOption();
     EI_NAN_AUDIT(wind);

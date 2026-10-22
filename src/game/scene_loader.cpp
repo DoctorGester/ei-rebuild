@@ -684,8 +684,8 @@ void SceneMesh::Destroy() {}
 const char* SceneMesh::GetName() { return name; }
 const char* SceneMesh::GetClassName() { return "CFakeFigure"; }
 int SceneMesh::GetClassId() { return 0x47; }
-void SceneMesh::SaveTransform(void*) {}
-void SceneMesh::LoadTransform(void*) {}
+void SceneMesh::SaveTransform(mfc::CFileVirtuals*) {}
+void SceneMesh::LoadTransform(mfc::CFileVirtuals*) {}
 
 // --- 00446C10: building a CFakeUnit's figure from its scene ---------------------------------------
 

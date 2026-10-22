@@ -137,6 +137,12 @@ public:
     void OnStringEvent(const char* event);
     // 005F7590. The window on top of the active-window stack, or null.
     CUiWindow* GetActiveWindow() const;
+    // The top window as the screen the caller runs under (the HUD's panels under the CBattleScreen,
+    // the briefing chat under the CBriefingScreen): the original reads its fields without a check.
+    template <typename Screen>
+    Screen* ActiveWindowAs() const {
+        return static_cast<Screen*>(GetActiveWindow());
+    }
     // 005F74E0. Stores a value and raises the flag next to it (consumed by the frame update).
     void SetPendingValue(std::uint32_t value);
     // 005F5BA0 (RET 4). Makes screen `id` (1 in-game, 2, 3 base, 4 island map, 5, 7, 8, 9) and hands
@@ -1235,7 +1241,7 @@ public:
     // 0063CEE0 (RET 8; ui_hud_tips.cpp). The tooltip text of quick item `index` into `text` (a
     // CString): the item's name and, for a wand (category 5) or a scroll (8) with a spell, its
     // numbers after labels_.
-    void ItemTip(unsigned index, void* text);
+    void ItemTip(unsigned index, mfc::CString* text);
     // 0063DD70 (RET 4; ui_hud_pick.cpp). Picks the unit's quick item `slot` (a click on it or its
     // key): without a unit nothing; without an item there the pending action is dropped (no
     // sound); otherwise the click sound, then a click on the highlighted slot drops the pending

@@ -40,6 +40,7 @@
 
 class CParty;   // party.h
 class ChunkArchive;
+struct QuestBriefingRecord;   // quest_records.h
 
 namespace net {
 
@@ -299,9 +300,7 @@ static_assert(sizeof(TypeRegistry) == 0x28);
 // The UDP socket of a session and the broadcast addresses of the host (net_socket_driver.cpp).
 struct SocketDriver {
     std::uint32_t socket;        // +0x00 SOCKET (-1: none)
-    NetAddress* addresses;       // +0x04 vector<sockaddr_in> of broadcast addresses
-    NetAddress* addressesEnd;    // +0x08
-    NetAddress* addressesEos;    // +0x0C
+    stlp::vector<NetAddress> addresses;   // +0x04 broadcast addresses
 
     // 004407F0. Starts Winsock and notes the broadcast address of the host's first address. Returns this.
     SocketDriver* Construct();
@@ -568,9 +567,9 @@ public:
     // 00418CC0. The zone leaving command ("<zone>_2"): the host's items with the final award, then
     // the map state is dropped and the world's map cleared.
     void LeaveZone();
-    // 004191C0. Queues the host's item awards of map registry `entry` (and, with `withFinal`, the
+    // 004191C0. Queues the host's item awards of the briefing `entry` (and, with `withFinal`, the
     // final award).
-    void AwardHost(const std::uint8_t* entry, bool withFinal);
+    void AwardHost(const QuestBriefingRecord* entry, bool withFinal);
     // 00419D90. Queues an award message for `connection` (60 s delay); destroys `text`.
     void QueueAward(CRefObject* connection, int kind, float value, stlp::string text);
     // 00419A00 (net_server_files.cpp). Lists `data` under `name` (unless listed) as a file message
@@ -590,20 +589,20 @@ public:
     // 0041A490. Announce with text `kind` of the text table formatted with `text`.
     void AnnounceText(int kind, const char* text, CRefObject* player);
     // 0041ACF0 (net_server_trade.cpp). The trade between two offers (either order), or null.
-    void* FindTrade(void* offer, void* other);
+    TradeMessage* FindTrade(const PartyMessage* offer, const PartyMessage* other);
     // 0041A020 .. 0041A770 (net_server_players.cpp): players, connections, admission.
     int LeaderId();                                       // 0041A020: the first host's id, -1
     void SetPassword(const char* text);                   // 0041A140
-    void* FindGuestConnection(const stlp::string* name);     // 0041A170
-    void* FindConnectionBySerial(int serial);             // 0041A270
-    void* FindPlayer(int id);                             // 0041A2E0
+    Connection* FindGuestConnection(const stlp::string* name);   // 0041A170
+    Connection* FindConnectionBySerial(int serial);       // 0041A270
+    PlayerMessage* FindPlayer(int id);                    // 0041A2E0
     void AnnounceToGuests(int kind, const char* text);    // 0041A500
-    void Kick(void* connection);                          // 0041A550
-    void Ban(void* connection);                           // 0041A620
-    void ReportDeparture(void* connection, int text);     // slots 11 (text 4) and 12 (text 1)
-    bool IsHostConnection(void* connection);              // 00419F90 (net_server_commands.cpp)
+    void Kick(Connection* connection);                    // 0041A550
+    void Ban(Connection* connection);                     // 0041A620
+    void ReportDeparture(Connection* connection, int text);   // slots 11 (text 4) and 12 (text 1)
+    bool IsHostConnection(const Connection* connection);  // 00419F90 (net_server_commands.cpp)
     // 00417E40 (net_server_tick.cpp). Whether the player bound to `connection` is in state 3.
-    bool PlayerStateIs3(void* connection);
+    bool PlayerStateIs3(const Connection* connection);
 
     float announceTimer_;               // +0x2570 seconds to the next announcement to the master server
     std::uint8_t public_;               // +0x2574 announced to the master server

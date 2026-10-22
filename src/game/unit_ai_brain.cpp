@@ -432,7 +432,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
         if (--call.kind >= 0) continue;
         if (call.hostileMask != 0) {
             console::GameOStream* log = &(*AiLog() << "Unit ");
-            log = reinterpret_cast<console::GameOStream*>(reinterpret_cast<libcrt::Ostream*>(log)->PutInt(unit->id_));
+            log->PutInt(unit->id_);   // returns the stream itself
             console::EndLine(*log << " hear delayed sound: " << call.text);
             unit->ServerController()->AddHostileMask(static_cast<std::uint32_t>(call.hostileMask));
         } else if (memory->noticedLevel < 900) {

@@ -115,7 +115,7 @@ EI_REWRITTEN(0x006335E0, CMainMenu::AddVersionLine);
 void CMainMenu::Create() {
     interface_->ResetSavedState();
     TheGameFlow()->UseResources(false);
-    UiInputSide* inert = static_cast<UiInputSide*>(gamecrt::operator_new(0xC));
+    UiInputSide* inert = gamecrt::operator_new_as<UiInputSide>();   // 0xC bytes
     if (inert) {
         inert->vtable_ = InertInputVtable();
         inert->owner_ = interface_;

@@ -289,7 +289,7 @@ float WornFraction(const CItem* item) {
 } // namespace
 
 int CCampPages::Price(CItem* item, int kind) {
-    const float* multipliers = reinterpret_cast<const float*>(priceWeights_);
+    const float* multipliers = priceWeights_;
     float repair = kPriceZero;
     int type = ItemType(item);
     if (type == 0x3004 || type == 0x3005 || kind == 8) {
@@ -828,7 +828,7 @@ void CCampPages::Close() {
     for (CParty** list : {&spellParts_[1], &spellParts_[2], &spellResults_, &itemParts_[1], &itemParts_[2],
                           &itemResults_, &itemExtra_}) {
         (*list)->Destroy();
-        delete static_cast<CEngineObject*>(*list);   // slot 0 with 1, when the re-read field is set
+        delete *list;   // slot 0 with 1 (the virtual destructor), when the re-read field is set
     }
     // The record array's destructor.
     records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();

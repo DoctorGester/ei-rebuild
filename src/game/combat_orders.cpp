@@ -143,7 +143,7 @@ void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
 }
 EI_REPLACE_METHOD(0x005546B0, CUnitServer::OrderTurn);
 
-void CUnitServer::OrderMove(const float* point, int run, int walk, float range) {
+void CUnitServer::OrderMove(const Vector3* point, int run, int walk, float range) {
     const CWorld* world = WorldContext();
     ResetOrder(&action2);
     action2.kind = 1;
@@ -154,7 +154,7 @@ void CUnitServer::OrderMove(const float* point, int run, int walk, float range) 
     action2.modifier = static_cast<std::uint8_t>(run);
     action2.param = 0;
     if (!unit->player) return;
-    if (std::bit_cast<std::uint32_t>(point[2]) == kNoPointZ) return;
+    if (std::bit_cast<std::uint32_t>(point->z) == kNoPointZ) return;
     if (world->paused_ == 0) {
         action2.param = 1;
         return;
@@ -226,7 +226,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
 }
 } // namespace
 
-void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run) {
+void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int run) {
     Vector3 at;
     std::memcpy(&at, point, sizeof(at));
     if (source & kQuickItemSource) {
@@ -240,7 +240,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
             if (!scroll || !scroll->count_) return;
             CItem* carrier = SpellCarrier(source);
             if (!carrier || !carrier->spell_) return;
-            world->CastSpell(carrier->spell_, unit, &unit->localPosition_, nullptr, reinterpret_cast<const Vector3*>(point), 0);
+            world->CastSpell(carrier->spell_, unit, &unit->localPosition_, nullptr, point, 0);
             world->UseItemUp(unit, scroll);
             return;
         }
@@ -275,7 +275,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
             CItem* spellCarrier = SpellCarrier(source);
             if (!spellCarrier || !spellCarrier->spell_) return;
             world->CastSpell(spellCarrier->spell_, unit, &unit->localPosition_, target,
-                                   &static_cast<CUnit*>(target)->localPosition_, 0);
+                                   &target->localPosition_, 0);
             world->UseItemUp(unit, scroll);
             return;
         }

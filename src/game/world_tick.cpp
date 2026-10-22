@@ -9,6 +9,7 @@
 #include "core_maths.h"
 #include "map_object.h"
 #include "model.h"
+#include "net_link.h"   // netlink::DriverSession (SetGameResult)
 #include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
@@ -216,7 +217,7 @@ void CWorldServer::SetGameResult(int result) {
     gameResult_ = result;
     if (result == 2 || result == 3) {
         OpenSession();
-        static_cast<CPlayerSource*>(netSession_.ptr)->Query();   // the new session's slot 4 (result unused)
+        netSession_.Get()->Query();   // the new session's slot 4 (result unused)
     }
 }
 

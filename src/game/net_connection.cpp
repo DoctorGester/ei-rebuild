@@ -588,11 +588,10 @@ void AssignEntry(RefPtr* slot, ReplicaEntry* entry) {
     if (entry) ++entry->refs_;
     if (old && --old->refs_ == 0) delete old;
 }
-bool Usable(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 } // namespace
 
 void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
-    if (Usable(object)) {
+    if (IsLive(object)) {
         ObjectMap::Node* found;
         byObject_.Find(&found, object);
         if (found != byObject_.end()) {
@@ -658,7 +657,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
         AttachRecord(object, type & 0xFF, key);
         return object;
     }
-    if (Usable(found->second.object.ptr)) return found->second.object.ptr;
+    if (IsLive(found->second.object.ptr)) return found->second.object.ptr;
     std::uint32_t typeKey = type & 0xFF;
     MessageFactory factory = g_currentSession->types_.byType[typeKey];   // 00439EA0
     CRefObject* object = factory ? factory() : nullptr;

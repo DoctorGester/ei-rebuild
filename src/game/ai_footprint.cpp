@@ -298,7 +298,7 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
     int minY = a[2] < b[2] ? a[2] : b[2];
     int maxY = a[3] > b[3] ? a[3] : b[3];
 
-    bool savedRefreshUnits = refreshUnits;
+    std::uint8_t savedRefreshUnits = refreshUnits;
     refreshUnits = savedRefreshUnits && ObjectSlots(object)->KeepsMapFlag();
     QueueRefresh(minX - 3, maxX + 3, minY - 3, maxY + 3);
     refreshUnits = savedRefreshUnits;
@@ -322,7 +322,7 @@ bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
 EI_REWRITTEN(0x005B65B0, CAIMap::ApplyFootprint);
 
 bool CAIMap::StampFootprint(int tick, FootprintCellSet* set) {
-    bool savedRefreshUnits = refreshUnits;
+    std::uint8_t savedRefreshUnits = refreshUnits;
     refreshUnits = false;
     bool fits = ApplyFootprint(set, false);
     int r[4] = {10000, 0, 10000, 0};
@@ -335,7 +335,7 @@ bool CAIMap::StampFootprint(int tick, FootprintCellSet* set) {
 EI_REWRITTEN(0x005B7820, CAIMap::StampFootprint);
 
 bool CAIMap::ClearFootprint(FootprintCellSet* set) {
-    bool savedRefreshUnits = refreshUnits;
+    std::uint8_t savedRefreshUnits = refreshUnits;
     refreshUnits = false;
     bool cleared = ApplyFootprint(set, true);
     int r[4] = {10000, 0, 10000, 0};

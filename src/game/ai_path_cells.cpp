@@ -86,12 +86,12 @@ void __fastcall PathCellsRemoveRepeats(PathCellList* list) {
 }
 EI_REWRITTEN(0x005C6000, PathCellsRemoveRepeats);
 
-void AIPath::ToMotionOrder(AIPath* out) const {
+void AIPath::ToMotionOrder(PathOrder* out) const {
     constexpr int kFollowSteps = 2;
     std::memcpy(&out->motionOrder, &motionOrder, sizeof(motionOrder));
     out->steps.RemoveAll();
     out->steps.Append(&steps);
-    if (OrderOf(out)->kind != kFollowSteps) return;
+    if (out->motionOrder.kind != kFollowSteps) return;
     out->steps.Append(&cells);
     PathCellsRemoveRepeats(&out->steps);
     out->SetStepSpeeds(0x200);
@@ -99,13 +99,13 @@ void AIPath::ToMotionOrder(AIPath* out) const {
 }
 EI_REWRITTEN(0x005B22C0, AIPath::ToMotionOrder);
 
-AIPath* AIPath::ConstructSteps() {
+PathOrder* PathOrder::ConstructSteps() {
     steps = {};
     steps.vtable = PathCellListVtable();
     steps.blockSize = 0x80;
     return this;
 }
-EI_REWRITTEN(0x0054EAC0, AIPath::ConstructSteps);
+EI_REWRITTEN(0x0054EAC0, PathOrder::ConstructSteps);
 
 void CAIMap::ClearMarksAround(const PathCellList* chain) {
     constexpr int kBlock = 8;

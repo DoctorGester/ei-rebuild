@@ -115,7 +115,7 @@ AnimationSteps* Queue(CUnitServer* c) { return &c->queue; }
 int& QueueStart(CUnitServer* c) { return c->queue.extra; }
 AIPath* MotionPathOf(CUnitServer* c) { return c->MotionPath(); }
 // The path's `failed` byte as the original reads it: compared with 1, so read as a byte, not a bool.
-std::uint8_t FailedByte(CUnitServer* c) { return reinterpret_cast<const std::uint8_t&>(c->MotionPath()->failed); }
+std::uint8_t FailedByte(CUnitServer* c) { return c->MotionPath()->failed; }
 // The world server (ManagerContextOf) and an object's world (ObjectWorld).
 CWorldServer* ServerOf(CUnitServer* c) { return c->ServerWorld(); }
 int WorldTime(const CWorld* world) { return world->tick_; }

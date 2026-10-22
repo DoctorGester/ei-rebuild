@@ -113,39 +113,6 @@ void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destruct
     GameAtExit(destructor);
 }
 
-// The inlined SetSize of the aligned arrays (grow by growBy, or size / 8 clamped to 4..1024).
-void SetSize(StaticPtrArray& a, int n) {
-    if (n == 0) {
-        if (a.data) {
-            lib::FreeAligned32(a.data);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-    } else if (!a.data) {
-        a.data = reinterpret_cast<CEngineObject**>(AlignedPointerArrayAlloc(n));
-        a.capacity = n;
-        a.size = n;
-    } else if (n <= a.capacity) {
-        a.size = n;
-    } else {
-        int grow = a.growBy;
-        if (grow == 0) {
-            grow = a.size / 8;
-            if (grow < 4) grow = 4;
-            else if (grow > 0x400) grow = 0x400;
-        }
-        int capacity = a.capacity + grow;
-        if (n >= capacity) capacity = n;
-        auto** fresh = reinterpret_cast<CEngineObject**>(AlignedPointerArrayAlloc(capacity));
-        std::memcpy(fresh, a.data, static_cast<std::size_t>(a.size) * 4);
-        lib::FreeAligned32(a.data);
-        a.data = fresh;
-        a.size = n;
-        a.capacity = capacity;
-    }
-}
-
 const float* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->localPosition_.x; }
 
 // Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The
@@ -285,18 +252,18 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
 
         // Map objects: room for seven entries per world object.
         StaticPtrArray& collected = Collected();
-        SetSize(collected, static_cast<int>(objects_.map.Size()) * 7);
+        collected.SetSize(static_cast<int>(objects_.map.Size()) * 7);   // the inlined SetSize
         CEngineObject** end = CollectMapObjects(this, player, state, collected.data);
-        SetSize(collected, static_cast<int>(end - Collected().data));
+        collected.SetSize(static_cast<int>(end - Collected().data));
         DiffSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
         state->SendObjectsRemoved(&Kept());
         state->SendObjectsAdded(&Added());
         state->SendObjectsChanged(&Removed());
 
         // Timed objects.
-        SetSize(collected, static_cast<int>(timedObjects_.map.Size()));
+        collected.SetSize(static_cast<int>(timedObjects_.map.Size()));
         end = CollectTimedObjects(this, state, collected.data);
-        SetSize(collected, static_cast<int>(end - Collected().data));
+        collected.SetSize(static_cast<int>(end - Collected().data));
         DiffSets(&state->sentTimed_, &collected, &Added(), &Kept(), &Removed());
         state->SendTimedRemoved(&Kept());
         state->SendTimedAdded(&Added());

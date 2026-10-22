@@ -206,7 +206,7 @@ void CUnitClientSpecific::SparkEffect(int) {
 EI_REWRITTEN(0x00537C00, CUnitClientSpecific::SparkEffect);
 
 void CUnitClientSpecific::DeathEffect() {
-    static_cast<CMapObjectClientSpecific*>(unit->MapObject()->companion)->HideLight();
+    unit->MapObject()->ClientCompanion()->HideLight();
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood == 0 || blood > kLastDecalBlood) return;
     Vector3 at;
@@ -231,6 +231,6 @@ void CUnitClientSpecific::OwnerPlayerChanged(void* player) {
     if (!player) return;
     const float* rgb = PartyLightColour();
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};
-    static_cast<CMapObjectClientSpecific*>(unit->MapObject()->companion)->CreateLight(colour, PartyLightRadius(), false);
+    unit->MapObject()->ClientCompanion()->CreateLight(colour, PartyLightRadius(), false);
 }
 EI_REWRITTEN(0x00534140, CUnitClientSpecific::OwnerPlayerChanged);

@@ -355,7 +355,7 @@ void CSaveLoadWindow::FillEntries() {
                 info.Read(&entry->gameTime_, 4);
                 {
                     mfc::CString map(mfc::CString::kUnset);
-                    reinterpret_cast<CStream*>(&info.s)->ReadString(&map);
+                    info.Stream()->ReadString(&map);
                     entry->map_ = map;
                 }
                 info.Stream()->ReadInto(&entry->zone_);

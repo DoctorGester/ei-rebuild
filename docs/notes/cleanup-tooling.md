@@ -59,12 +59,20 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
   world's id maps but `timedObjects_` are `MapObjectIdMap`s of `CMapObject*`; a network session's message
   lists are `stlp::SharedRefListOf<T>` / `CountedRefListOf<T>` (stlp_list_refs.h: `list.At(node)`, `Front()`,
   `Back()`); `FigureManagerOf(object)` / `OwningFigureManager(object)` (figure_manager.h) for the world's or
-  the owning figure manager), not a cast at each use. `UnitOrNull` replaces a class test only where the original tests the class first and the
+  the owning figure manager; `CMapObject::ClientCompanion()` on the client as `ServerCompanion()` on the server;
+  `CUnit::Controller()` for the controller's own slots (also from inside CUnitClientSpecific, which is not
+  declared as a CUnitController); `itemdb::WeaponOrArmorAt(weapon, index)` for the record head both share),
+  not a cast at each use. `UnitOrNull` replaces a class test only where the original tests the class first and the
   pointer is never null there (the null test it adds changes nothing); keep the cast where the original
   calls something between the test and the use.
 - `static_cast<T*>(gamecrt::operator_new(sizeof(T)))` is `gamecrt::operator_new_as<T>()`; a literal size
   the class's size matches (with a `static_assert(sizeof(T) == ...)`) goes the same way, the size in a comment.
-  Left: `operator_new_zeroed` (light.cpp) and allocations written to before the null test (world_units' player mode).
+  A block of another size is `operator_new_bytes_as<T>(bytes)`, `count` elements `operator_new_array<T>(count)`,
+  and an aligned block of `count` T `lib::AlignedArray<T>::Allocate(count)` (the library's MFC code too).
+  Left: `operator_new_zeroed` (light.cpp), allocations written to before the null test (world_units' player mode)
+  and the AI grids' row tables (ai_*.cpp, the C15 area).
+- A deleting destructor through slot 0 is `delete p` on the object's own type when its class (or a base)
+  declares the virtual destructor (CEngineObject's slot 0): no upcast to CEngineObject first.
 
 ## Shared forwarder headers (cleanup ticket C3)
 

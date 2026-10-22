@@ -265,7 +265,7 @@ EI_REWRITTEN(0x0063FE40, InputForward<&CHudActionColumn::OnMouseMove>::Call);
 
 namespace {
 int PortraitMode(CInterface3D* ui) {
-    return static_cast<CBattleScreen*>(ui->GetActiveWindow())->portraitMode_;
+    return ui->ActiveWindowAs<CBattleScreen>()->portraitMode_;
 }
 } // namespace
 
@@ -303,7 +303,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
         net::GameClient()->SendCommand(4, text);
     else if (mode == 2)
         net::GameClient()->SendCommand(5, text);
-    static_cast<CBattleScreen*>(interface_->GetActiveWindow())->portraitMode_ = 0;
+    interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_ = 0;
 }
 EI_REWRITTEN(0x00641CE0, InputForward<&CHudPortraits::OnMouseDown>::Call);
 

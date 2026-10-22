@@ -75,8 +75,8 @@ public:
     mfc::CString* ReadString(mfc::CString* out);                             // 0042C580, returns out
     mfc::CString* ReadEncodedString(mfc::CString* out);                      // 0042C650, returns out
     void WriteString(std::uint32_t id, mfc::CString text);                   // 0042C820
-    void ReadStringArray(void* array);                                       // 0042CA20
-    void WriteStringArray(std::uint32_t id, void* array);                    // 0042CB80
+    void ReadStringArray(mfc::CStringArray* array);                                       // 0042CA20
+    void WriteStringArray(std::uint32_t id, mfc::CStringArray* array);                    // 0042CB80
 
     std::uint32_t id_;       // +0x04
     std::int32_t consumed_;  // +0x08 bytes of the chunk read or written so far, header included

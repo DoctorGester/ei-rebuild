@@ -50,6 +50,7 @@
 #include "game_data.h"
 #include "ei/vcall.h"
 
+#include <bit>
 #include <cstring>
 #include <type_traits>
 
@@ -461,9 +462,10 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         companionTexts(companion);
         race(object);
         torch->SetLightSlot(kTorchLightKind, &flame->offset.x, flame->volume);
-        std::uint32_t colour[4] = {kGrey, kGrey, kGrey, kOne};
+        const float colour[4] = {std::bit_cast<float>(kGrey), std::bit_cast<float>(kGrey), std::bit_cast<float>(kGrey),
+                                 std::bit_cast<float>(kOne)};
         float radius = flame->volume * worlddata::TorchLightScale();
-        torch->SetFlameSlot(&flame->offset.x, radius, reinterpret_cast<const float*>(colour));
+        torch->SetFlameSlot(&flame->offset.x, radius, colour);
         torch->SetNameSlot(flame->sound);
         place(object);
         object->MarkChanged(2);

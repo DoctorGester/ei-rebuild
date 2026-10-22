@@ -869,7 +869,7 @@ constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk 
 
 } // namespace
 
-int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
+int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
     LocalFileStream mobFile;
     int found = 0;
     if (mob) {
@@ -880,7 +880,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
             mobFile.Open(*path, kOpenRead, 1);
             path->~CString();
         }
-        if (mobFile.stream.FindTagged(kGraphChunk, static_cast<CStream*>(out))) found = 1;
+        if (mobFile.stream.FindTagged(kGraphChunk, out)) found = 1;
         mobFile.Close();
         if (found) return found;
     }
@@ -900,7 +900,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
             opened = graph.Open(path, kOpenRead, 1);
         }
         if (opened) {
-            static_cast<CStream*>(out)->CopyFrom(&graph.stream);
+            out->CopyFrom(&graph.stream);
             found = 1;
             graph.Close();
         }
@@ -1409,7 +1409,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     if (mode == 1) SpectatorFlag() = mode;
     TheServerWorld()->SetGameResult(result);
     // The server world's counted helper (+0x5C, a player source) handed to the client world.
-    TheClientWorld()->SetPlayer(reinterpret_cast<std::uint8_t*>(TheServerWorld()->shared5C_.ptr));
+    TheClientWorld()->SetPlayer(TheServerWorld()->shared5C_.Get());
     ClientWorldLocalView(TheClientWorld())->sendParty_ = 0;
 }
 
@@ -1530,7 +1530,7 @@ void GameFlow::ProcessRequest() {
         StartZoneAt(this, nullptr, kMainMenu, 2);
         break;
     case kStateLoad:
-        clientWorld->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
+        clientWorld->SetPlayer(TheServerWorld()->shared5C_.Get());   // the server world's counted helper (007AFFBC)
         ClientWorldLocalView(clientWorld)->sendParty_ = 0;
         TheServerWorld()->SetGameResult(1);
         ClientSegmentAt(clientWorld);
@@ -1577,7 +1577,7 @@ void GameFlow::ProcessRequest() {
         StartNetworkZoneAt(requestTarget_);
         CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
-        clientWorld->SetPlayer(ei::GameData<std::uint8_t*>(0x007AFFBC));
+        clientWorld->SetPlayer(TheServerWorld()->shared5C_.Get());   // the server world's counted helper (007AFFBC)
         ClientWorldLocalView(clientWorld)->sendParty_ = 1;
         break;
     }

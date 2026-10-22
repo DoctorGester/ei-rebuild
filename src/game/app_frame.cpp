@@ -70,7 +70,7 @@ std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame 
 // no window of the interface is active).
 void __fastcall FrameStep(bool draw, bool cursor) {
     if (!Running()) return;
-    if (!InterfaceActiveWindowOriginal(reinterpret_cast<CInterface3D*>(TheInterface()))) {
+    if (!TheInterface()->GetActiveWindow()) {
         gameapi::Sleep(50);
         return;
     }
@@ -126,7 +126,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
         mfc::CString path(mfc::CString::kUnset);
         IniSetPath(ini, nullptr, *ConcatText(&path, &TheDataFolder(), "config\\movie.ini"));
     }
-    reinterpret_cast<CIniFile*>(ini)->GetList(section, "movies", reinterpret_cast<console::CStringArray*>(&list), ',');
+    reinterpret_cast<CIniFile*>(ini)->GetList(section, "movies", &list, ',');
     if (clearFirst) ClearScreen();
     for (int i = 0; i < list.size; ++i) {
         {

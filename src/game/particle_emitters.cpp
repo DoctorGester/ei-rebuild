@@ -330,7 +330,7 @@ void PlaceModifierPoints(CParticleSource* s) {
 // 00497EB0. Room for `count` 0x38-byte elements, 32-byte aligned; the block's own address is kept
 // just below the returned pointer (for operator_delete). __fastcall.
 ParticleElement* __fastcall AllocateElements(int count) {
-    return static_cast<ParticleElement*>(lib::AllocAligned32(static_cast<std::size_t>(count) * 0x38));
+    return lib::AlignedArray<ParticleElement>::Allocate(count);
 }
 EI_REWRITTEN(0x00497EB0, AllocateElements);
 

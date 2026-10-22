@@ -96,7 +96,7 @@ double TurnAngle(const UnitMotion* m, float elapsed, bool* final) {
 
 // --- The order (AIPath header) --------------------------------------------------------------------
 
-int AIPath::Reset() {
+int PathOrder::Reset() {
     MotionOrder* order = OrderOf(this);
     order->kind = 0;
     order->x = 0.0f;
@@ -109,9 +109,9 @@ int AIPath::Reset() {
     ClearList(steps);
     return 0;
 }
-EI_REWRITTEN(0x005C7D50, AIPath::Reset);
+EI_REWRITTEN(0x005C7D50, PathOrder::Reset);
 
-bool AIPath::Start(const Vector3* position, const Vector3* direction, int time) {
+bool PathOrder::Start(const Vector3* position, const Vector3* direction, int time) {
     MotionOrder* order = OrderOf(this);
     double dx = direction->x;
     float dy = direction->y;
@@ -129,27 +129,27 @@ bool AIPath::Start(const Vector3* position, const Vector3* direction, int time) 
     ClearList(steps);
     return !same;
 }
-EI_REWRITTEN(0x005C7B00, AIPath::Start);
+EI_REWRITTEN(0x005C7B00, PathOrder::Start);
 
-void AIPath::SetTurn(const Vector3* direction, std::uint32_t rateBits) {
+void PathOrder::SetTurn(const Vector3* direction, std::uint32_t rateBits) {
     MotionOrder* order = OrderOf(this);
     order->kind = 1;
     float angle = static_cast<float>(x87::fpatan(direction->y, direction->x));
     order->arg6 = rateBits;
     std::memcpy(&order->arg5, &angle, sizeof(angle));
 }
-EI_REWRITTEN(0x005C7C00, AIPath::SetTurn);
+EI_REWRITTEN(0x005C7C00, PathOrder::SetTurn);
 
-void AIPath::SetTrack(int id, int from, int to) {
+void PathOrder::SetTrack(int id, int from, int to) {
     MotionOrder* order = OrderOf(this);
     order->arg5 = static_cast<std::uint32_t>(id);
     order->kind = 3;
     order->arg6 = static_cast<std::uint32_t>(from);
     order->arg7 = static_cast<std::uint32_t>(to);
 }
-EI_REWRITTEN(0x005C7C20, AIPath::SetTrack);
+EI_REWRITTEN(0x005C7C20, PathOrder::SetTrack);
 
-void AIPath::SetTurnUntil(const Vector3* direction, int arg6, int arg7) {
+void PathOrder::SetTurnUntil(const Vector3* direction, int arg6, int arg7) {
     MotionOrder* order = OrderOf(this);
     order->kind = 4;
     order->arg7 = static_cast<std::uint32_t>(arg7);
@@ -157,23 +157,23 @@ void AIPath::SetTurnUntil(const Vector3* direction, int arg6, int arg7) {
     order->arg6 = static_cast<std::uint32_t>(arg6);
     std::memcpy(&order->arg5, &angle, sizeof(angle));
 }
-EI_REWRITTEN(0x005C7C40, AIPath::SetTurnUntil);
+EI_REWRITTEN(0x005C7C40, PathOrder::SetTurnUntil);
 
-void AIPath::SetTarget(float x, float y) {
+void PathOrder::SetTarget(float x, float y) {
     MotionOrder* order = OrderOf(this);
     order->kind = 2;
     std::memcpy(&order->arg5, &x, sizeof(x));
     std::memcpy(&order->arg6, &y, sizeof(y));
 }
-EI_REWRITTEN(0x005C7C70, AIPath::SetTarget);
+EI_REWRITTEN(0x005C7C70, PathOrder::SetTarget);
 
-void AIPath::ForgetObject(int id) {
+void PathOrder::ForgetObject(int id) {
     MotionOrder* order = OrderOf(this);
     if (order->kind == 3 && order->arg5 == static_cast<std::uint32_t>(id)) order->arg5 = 0xFFFFFFFF;
 }
-EI_REWRITTEN(0x005C7C90, AIPath::ForgetObject);
+EI_REWRITTEN(0x005C7C90, PathOrder::ForgetObject);
 
-void AIPath::ShiftTime(int delta) {
+void PathOrder::ShiftTime(int delta) {
     MotionOrder* order = OrderOf(this);
     order->startTime += delta;
     if (order->kind == 3) {
@@ -181,15 +181,15 @@ void AIPath::ShiftTime(int delta) {
         order->arg7 += static_cast<std::uint32_t>(delta);
     }
 }
-EI_REWRITTEN(0x005C7CB0, AIPath::ShiftTime);
+EI_REWRITTEN(0x005C7CB0, PathOrder::ShiftTime);
 
-int AIPath::SetStepSpeeds(std::uint16_t speed) {
+int PathOrder::SetStepSpeeds(std::uint16_t speed) {
     for (PathCellList::Node* node = steps.head; node; node = node->next) node->data.flags = speed;
     return 0;
 }
-EI_REWRITTEN(0x005C7CE0, AIPath::SetStepSpeeds);
+EI_REWRITTEN(0x005C7CE0, PathOrder::SetStepSpeeds);
 
-Vector3* AIPath::Destination(Vector3* out) {
+Vector3* PathOrder::Destination(Vector3* out) {
     const MotionOrder* order = OrderOf(this);
     double scale = 1.0f * 0.5f;     // cell size * 0.5
     if (order->kind != 2) {
@@ -203,7 +203,7 @@ Vector3* AIPath::Destination(Vector3* out) {
     }
     return out;
 }
-EI_REWRITTEN(0x005C7D00, AIPath::Destination);
+EI_REWRITTEN(0x005C7D00, PathOrder::Destination);
 
 void AIPath::Clear() {
     ClearList(cells);
@@ -457,7 +457,7 @@ void NormalizeTurn(UnitMotion* m, double turn) {
 MotionWaypoint Waypoint(double x, double y) { return {static_cast<float>(x), static_cast<float>(y), 0}; }
 } // namespace
 
-void UnitMotion::Build(AIPath* path) {
+void UnitMotion::Build(PathOrder* path) {
     MotionOrder* order = OrderOf(path);
     segment = -1;
     points.size = 0;
@@ -600,7 +600,7 @@ void UnitMotion::Build(AIPath* path) {
 }
 EI_REWRITTEN(0x005C67D0, UnitMotion::Build);
 
-void UnitMotion::AssignCells(AIPath* path) {
+void UnitMotion::AssignCells(PathOrder* path) {
     PathCellList::Node* head = path->steps.head;
     int i = 0;
     for (PathCellList::Node* node = head; node;) {

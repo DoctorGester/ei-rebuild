@@ -102,3 +102,23 @@ functions are the game's `stlp::vector<Query>` instantiation, forwarded with it 
 - Only written, nothing reads them: `CBaseManager` `reservedA_` / `reservedB_` (0 / 300 after Create), `CPlayerServer::spare_`,
   `CSoundManager::spare`, `Spec::spareId` (copied); chunk or archive fields read and written with their record only keep the field's id
   (`field0A`, `field04`, `field0E`, `field2`, `field10`).
+
+## C21 batch 22: typed links (2026-10-22)
+
+- The player sources' slot 6 takes a `JoinedLinks*` (player_source.h: `mfc::CTypedPtrList<netlink::NetLink>`); CWorldHandle's and
+  DriverSession's TakeNew append through `AddTail` and count the link.
+- `LoopbackLink::CreatePair` takes the `CWorldHandle*`; every link's Receive takes the `CMemoryStream*`.
+- `SocketDriver::addresses` is an `stlp::vector<NetAddress>` (the inlined push_back over `Finish()` / `EndOfStorage()`, the overflow
+  through `InsertOverflow<stlp::PlainElement<NetAddress>>`).
+- The world's helpers are `RefPtrTo<CWorldHandle> shared5C_`, `RefPtrTo<netlink::DriverSession> netSession_` and
+  `RefPtrTo<CClientHandle> handle_`; the server's 007AFFBC is `TheServerWorld()->shared5C_`.
+
+## C21 batch 23: typed server records (2026-10-22)
+
+- `IsLive(const CRefCounted*)` (core_refcount.h) is the one live test; the per-file `Live` / `Usable` / `IsLive` copies are gone.
+- ServerSession's connection functions take and return `Connection*` (FindGuestConnection, FindConnectionBySerial, Kick, Ban,
+  ReportDeparture, IsHostConnection, PlayerStateIs3); FindPlayer returns the `PlayerMessage*` (the pause announcement read it as a
+  LoginMessage, whose name_ sits at the same offset), FindTrade a `TradeMessage*` of two `PartyMessage*`s. A binding's connection is
+  still a `RefPtr` (`ConnectionOf` casts once, net_server_players.cpp).
+- The join handler takes the appended player record and binding with `players_.Back()` / `bindings_.Back()`; the held map message
+  is `map_.Get()`.

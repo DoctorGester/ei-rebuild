@@ -184,7 +184,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
 
     if (unit->effectCount > kPlaces) Sprite(this, kMoreMark)->visible_ = 1;
     // The unit's effects are the map object's records (map_object.h).
-    const MapEffect* effects = reinterpret_cast<const MapEffect*>(unit->effects);
+    const MapEffect* effects = unit->effects;
     for (int i = 0; i < unit->effectCount && i < kPlaces; ++i) {
         code.Empty();
         text.Empty();

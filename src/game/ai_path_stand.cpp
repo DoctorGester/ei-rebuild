@@ -40,8 +40,8 @@ void FacingFromQuaternion(const float* q, float* out) {
 void StandAt(AIPath* path, const int* time, const CMapObject* object) {
     path->cells.RemoveAll();
     path->Reset();
-    *reinterpret_cast<std::uint32_t*>(&path->targetX) = 0;
-    *reinterpret_cast<std::uint32_t*>(&path->targetY) = 0;
+    path->targetX = 0.0f;
+    path->targetY = 0.0f;
     path->reached = true;
     path->failed = false;
     path->flag6E = false;

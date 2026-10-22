@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <type_traits>
 
 namespace lib_trees {
 
@@ -48,13 +49,13 @@ struct ZeroedHeader {
 };
 using LinkHeaders = PairTree<stlp::string, ZeroedHeader>;
 static_assert(sizeof(LinkHeaders::Tree) == sizeof(LinkHeaderMap) && sizeof(LinkHeaders::Node) == 0x6C);
+// The headers' element policy, for calling the map's members on CLinkMesh::headers_
+// (`headers_.Subscript<LinkHeaderElement>(name)`).
+using LinkHeaderElement = stlp::PairElement<LinkHeaderMap::Value, ZeroedHeader>;
+static_assert(std::is_same_v<LinkHeaders, stlp::TreeAbi<LinkHeaderMap, LinkHeaderElement>>);
 // 005197B0: find(key) on a link mesh's part headers (LinkHeaders' instantiation): the node, or the
 // header for none.
-inline LinkHeaderMap::Node* FindLinkHeader(LinkHeaderMap* map, const stlp::string* key) {
-    LinkHeaders::Node* node;
-    static_cast<LinkHeaders*>(reinterpret_cast<LinkHeaders::Tree*>(map))->Find(&node, *key);
-    return reinterpret_cast<LinkHeaderMap::Node*>(node);
-}
+inline LinkHeaderMap::Node* FindLinkHeader(LinkHeaderMap* map, const stlp::string* key) { return map->find(*key); }
 // A link mesh's part ranges (LinkRangeMap, 0x4C-byte nodes; plain values).
 using LinkRanges = stlp::TreeAbi<LinkRangeMap>;
 

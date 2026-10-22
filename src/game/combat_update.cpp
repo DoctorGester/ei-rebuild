@@ -325,7 +325,7 @@ void CUnitServer::UpdateState() {
     case kStateIdle:
         SwitchWeaponIfWanted(unit);
         if (motionChanged == 0 ||
-            PathTo(&motion.goal.x, motion.goal.z)) {
+            PathTo(&motion.goal, motion.goal.z)) {
             UpdateMotion(this);
         }
         break;

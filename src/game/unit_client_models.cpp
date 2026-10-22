@@ -223,8 +223,8 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
             }
         }
     }
-    // The controller's slot 30 (RefreshModel), after the change.
-    static_cast<CUnitController*>(static_cast<CEngineObject*>(this))->RefreshModel();
+    // The controller's slot 30 (RefreshModel), after the change (the unit's controller is this object).
+    unit->Controller()->RefreshModel();
     return 1;
 }
 EI_REWRITTEN(0x00535590, CUnitClientSpecific::ChangeWeaponModel);
@@ -378,45 +378,6 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
 EI_REWRITTEN(0x00536300, CUnitClientSpecific::BuildSkinLayers);
 
 namespace {
-// SkinRequest's layer bytes grown to `bytes` (the original inlines the aligned CArray SetSize).
-void SetLayerBytes(SkinRequest& request, int bytes) {
-    if (bytes == 0) {
-        if (request.layers) {
-            lib::FreeAligned32(request.layers);
-            request.layers = nullptr;
-        }
-        request.capacity = 0;
-        request.layerBytes = 0;
-        return;
-    }
-    auto allocate = [](int count) {
-        return static_cast<std::uint8_t*>(lib::AllocAligned32(static_cast<std::size_t>(count)));
-    };
-    if (!request.layers) {
-        request.layers = allocate(bytes);
-        request.capacity = bytes;
-        request.layerBytes = bytes;
-        return;
-    }
-    if (bytes <= request.capacity) {
-        request.layerBytes = bytes;
-        return;
-    }
-    int grow = request.growBy;
-    if (grow == 0) {
-        grow = request.layerBytes / 8;
-        if (grow < 4) grow = 4;
-        else if (grow > 0x400) grow = 0x400;
-    }
-    int capacity = grow + request.capacity;
-    if (bytes >= capacity) capacity = bytes;
-    std::uint8_t* fresh = allocate(capacity);
-    std::memcpy(fresh, request.layers, static_cast<std::size_t>(request.layerBytes));
-    lib::FreeAligned32(request.layers);
-    request.layers = fresh;
-    request.layerBytes = bytes;
-    request.capacity = capacity;
-}
 
 // "<prototype name><texture>.mmp" into `texture`, the way the original builds it.
 void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
@@ -497,16 +458,16 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         // The request lives in raw storage so that its string array is destroyed before its
         // layer bytes are freed and before the strings, as in the original.
         alignas(SkinRequest) unsigned char storage[sizeof(SkinRequest)];
-        auto* request = new (storage) SkinRequest{nullptr, 0, 0, 0, {}, 0};
+        auto* request = new (storage) SkinRequest{{}, {}, 0};
         BuildSkinLayers(detailed, &layers);
         int bytes = layers.size * static_cast<int>(sizeof(SkinLayer));
-        SetLayerBytes(*request, bytes);
-        std::memcpy(request->layers, layers.data, static_cast<std::size_t>(bytes));
+        request->layers.SetSize(bytes);   // the aligned CArray SetSize, inlined in the original
+        std::memcpy(request->layers.data, layers.data, static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, *request, unitKey, prototypeKey, texture);
         result = reinterpret_cast<void*>(
             textureManager->Compose(static_cast<mfc::CString*>(target), request, &unitKey, &prototypeKey, 3, 0, 0x5551));
         request->textures.~CStringArray();
-        if (request->layers) lib::FreeAligned32(request->layers);
+        request->layers.FreeData();
     }
     if (layers.data) gamecrt::operator_delete(layers.data);
     return result;

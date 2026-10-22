@@ -2,6 +2,7 @@
 // code outside this file (or STLport strings) and are reached through their original addresses.
 // See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
+#include "quest_records.h"
 #include "game_strings.h"
 #include "core_refcount.h"
 
@@ -64,7 +65,7 @@ void ServerSession::SetMap(const stlp::string* name) {
         holder->Destroy();
         holder->Share(mapMessage);
     }
-    auto* current = static_cast<MapMessage*>(holder->ptr);
+    MapMessage* current = map_.Get();
     if (name != &current->text_) current->text_.AssignFrom(*name);
     if (name != &mapName_) mapName_.AssignFrom(*name);
 
@@ -77,15 +78,16 @@ void ServerSession::SetMap(const stlp::string* name) {
         Announce(*TheInterface()->MessageText(&text, 5, mapTitle), nullptr);
     }
 
-    std::uint8_t* entry;
+    QuestBriefingRecord* entry;
     {
         stlp::string registryName = stlp::Plus(*name, game::ZoneSuffix1Text());
-        entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), registryName);
+        entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), registryName);
     }
     if (!entry) return;
 
-    for (auto** it = *reinterpret_cast<const char***>(entry + 0x2C); it != *reinterpret_cast<const char***>(entry + 0x30); ++it) {
-        stlp::string resourceName(*it);
+    const CStringVector& quests = entry->lists[2];   // the quests given
+    for (const mfc::CString* it = quests.begin(); it != quests.end(); ++it) {
+        stlp::string resourceName(it->GetString());
         RefNode* added;
         FindOrAddVariable(&added, &resourceName);
         auto* record = variables_.At(added);
@@ -146,9 +148,9 @@ void ServerSession::QueueMapList() {
 // (+0x25AC) and queues a map message "name" + "_3". Returns whether it did.
 bool ServerSession::FinishMap(const stlp::string* name) {
     auto* holder = &map_;
-    CRefObject* map = holder->ptr;
-    if (!map || (map->flags7_ & CRefObject::kDetached)) return false;
-    const stlp::string* held = &static_cast<MapMessage*>(map)->text_;
+    MapMessage* map = holder->Get();
+    if (!IsLive(map)) return false;
+    const stlp::string* held = &map->text_;
     if (!(*held == *name)) return false;
 
     if (CRefObject* object = holder->ptr) {

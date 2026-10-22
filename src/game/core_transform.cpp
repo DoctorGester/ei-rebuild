@@ -78,18 +78,16 @@ void CTransformObject::UpdateWorldImpl(const Quaternion& q, const Vector3& p) {
     worldPosition_.z = z;
 }
 
-void CTransformObject::SaveTransformImpl(void* file) {
+void CTransformObject::SaveTransformImpl(mfc::CFileVirtuals* file) {
     // An MFC CFile, written through its vtable (slot 14).
-    auto* out = static_cast<mfc::CFileVirtuals*>(file);
-    out->Write(&localPosition_, 12u);
-    out->Write(&localRotation_, 16u);
+    file->Write(&localPosition_, 12u);
+    file->Write(&localRotation_, 16u);
 }
 
-void CTransformObject::LoadTransformImpl(void* file) {
+void CTransformObject::LoadTransformImpl(mfc::CFileVirtuals* file) {
     // An MFC CFile, read through its vtable (slot 13).
-    auto* in = static_cast<mfc::CFileVirtuals*>(file);
-    in->Read(&localPosition_, 12u);
-    in->Read(&localRotation_, 16u);
+    file->Read(&localPosition_, 12u);
+    file->Read(&localRotation_, 16u);
 }
 
 EI_REPLACE_METHOD(0x00401490, CTransformObject::CopyTransformImpl);
@@ -104,8 +102,8 @@ void CTransformObject::CombineRotation(const Quaternion& parent) { CombineRotati
 void CTransformObject::UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {
     UpdateWorldImpl(parentRotation, parentPosition);
 }
-void CTransformObject::SaveTransform(void* file) { SaveTransformImpl(file); }
-void CTransformObject::LoadTransform(void* file) { LoadTransformImpl(file); }
+void CTransformObject::SaveTransform(mfc::CFileVirtuals* file) { SaveTransformImpl(file); }
+void CTransformObject::LoadTransform(mfc::CFileVirtuals* file) { LoadTransformImpl(file); }
 
 void CCamera::GroundPoint(Vector3* out) const {
     const Quaternion& r = localRotation_;

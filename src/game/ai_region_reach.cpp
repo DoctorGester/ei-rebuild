@@ -510,26 +510,8 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellLis
         default: break;
         }
     }
-    // The first cell, through the inlined NewNode.
-    if (!path->free) {
-        mfc::CPlex*& blocks = reinterpret_cast<mfc::CPlex*&>(path->blocks);
-        mfc::CPlex* block = mfc::PlexCreate(blocks, path->blockSize, sizeof(PathCellList::Node));
-        auto* n = reinterpret_cast<PathCellList::Node*>(block + 1) + (path->blockSize - 1);
-        for (int i = path->blockSize - 1; i >= 0; --i, --n) {
-            n->next = path->free;
-            path->free = n;
-        }
-    }
-    PathCellList::Node* node = path->free;
-    path->free = node->next;
-    node->prev = nullptr;
-    node->next = path->head;
-    ++path->count;
-    mfc::PlainElements<PathCell>::Construct(&node->data, 1);   // 00539980
-    node->data = cellAt(x, y);
-    if (path->head) path->head->prev = node;
-    else path->tail = node;
-    path->head = node;
+    // The first cell (the original inlines AddHead; its element zeroed by 00539980 first).
+    path->AddHead(cellAt(x, y));
 }
 
 void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {

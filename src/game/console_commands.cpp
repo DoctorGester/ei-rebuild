@@ -317,7 +317,7 @@ void __fastcall Give(CStringArray* args) {
         return state->SendParty();
     }
     if (ArgIs(args, 1, "assortment")) {
-        InterfaceActiveWindowOriginal(TheInterface())->VirtualDebugFill();
+        TheInterface()->GetActiveWindow()->VirtualDebugFill();
         return;
     }
     PrintLine("Give what?");
@@ -520,7 +520,7 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
             // Our binding's player record: only the host gets the window.
             net::BindingMessage* binding = server->binding_;
             if (binding->Player()->host_)
-                InterfaceActiveWindowOriginal(TheInterface())->VirtualPlayerList(windowMode);
+                TheInterface()->GetActiveWindow()->VirtualPlayerList(windowMode);
             return;
         }
     }

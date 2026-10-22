@@ -23,7 +23,7 @@ netlink::NetLink* ActiveLink(CPlayer* session) {
 
 } // namespace
 
-void CWorldClient::SetPlayer(std::uint8_t* player) {
+void CWorldClient::SetPlayer(CWorldHandle* player) {
     CloseSession();
     netlink::NetLink* link = netlink::LoopbackLink::CreatePair(player);
     ClearMaps();
@@ -47,7 +47,7 @@ bool CWorldClient::JoinGameClient(const char*) {
     if (client->clients_->next == client->clients_) return false;
     OpenSession();
     netlink::NetLink* link =
-        static_cast<netlink::DriverSession*>(netSession_.ptr)->Start(client->clients_->next->connection);
+        netSession_.Get()->Start(client->clients_->next->connection);
     ClearMaps();
     ResetZoneObjects();
     session_->Connect(nullptr);
@@ -58,9 +58,9 @@ bool CWorldClient::JoinGameClient(const char*) {
 namespace {
 
 void PumpSources(CWorldClient* world) {
-    if (CRefObject* source = world->shared5C_.ptr) static_cast<CPlayerSource*>(source)->Pump();
-    if (CRefObject* source = world->handle_.ptr) static_cast<CPlayerSource*>(source)->Pump();
-    if (CRefObject* session = world->netSession_.ptr) static_cast<netlink::DriverSession*>(session)->PumpDrivers(net::GameClient());
+    if (CWorldHandle* source = world->shared5C_.Get()) source->Pump();
+    if (CClientHandle* source = world->handle_.Get()) source->Pump();
+    if (netlink::DriverSession* session = world->netSession_.Get()) session->PumpDrivers(net::GameClient());
 }
 
 } // namespace

@@ -96,7 +96,7 @@ float DifficultyAttackFactor() {
 }
 
 // The unit's server object (CUnit + 0x170): its mana.
-float ServerMana(const CUnit* unit) { return static_cast<const CMapObjectServer*>(unit->companion)->vitals.mana; }
+float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.mana; }
 
 std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
 
@@ -715,7 +715,7 @@ EI_REWRITTEN(0x00552FB0, CUnitServer::UpdateSizeClasses);
 
 void CUnitServer::UpdateMoveFactors() {
     const CWorldServer* world = ServerWorld();
-    double factor = std::bit_cast<float>(world->nightLevel_);
+    double factor = world->nightLevel_;
     double scaled = (factor * Combat().daySightPercent) * kWorldFactorScale;
     moveFactors[0] = kOne;
     moveFactors[2] = kOne;
