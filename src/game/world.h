@@ -927,9 +927,15 @@ static_assert(sizeof(PlatformSet) == 0x38);
 // figured records grouped by prototype (each group an STLport hash_map keyed by three packed
 // 10-bit values), and the dressed records by prototype. All three maps hash a key to itself
 // (0055C5C0 and the iterators' 0055B9D0 / 0055B500). The writer is world_unit_set.cpp, Add
-// world_unit_set_add.cpp (S16a).
-using FiguredUnitMap = stlp::hash_map<unsigned, FiguredUnitRecord, stlp::IntHash>;
+// world_unit_set_add.cpp (S16a). The maps are game_hashes.h's tables (gamehash::FiguredGroupsTable,
+// gamehash::DressedTable); their element policies are record_vectors.h's and game_hashes.h's.
+namespace recordvec { struct FiguredUnitElement; struct DressedUnitElement; }
+namespace gamehash { struct FiguredTableElement; }
 struct UnitSet {
+    using FiguredTable = stlp::hashtable<stlp::DwordObjectTraits<FiguredUnitRecord, recordvec::FiguredUnitElement>>;
+    using FiguredGroups = stlp::hashtable<stlp::DwordObjectTraits<FiguredTable, gamehash::FiguredTableElement>>;
+    using DressedTable = stlp::hashtable<stlp::DwordObjectTraits<DressedUnitRecord, recordvec::DressedUnitElement>>;
+
     // 005593D0 (RET 4). Adds `unit`'s looks: its prototype (the low word of prototypeId_), the
     // figure's scale and, for a hero (type_ 0x32), the item ids of its 7 worn pieces and 4 weapons
     // (0xFFFFFFFF for none or an id out of the tables) and its active weapon; other units get
@@ -944,8 +950,8 @@ struct UnitSet {
     // two counted dword arrays, a byte and a dword.
     void Write(CStream* stream);
 
-    stlp::hash_map<unsigned, FiguredUnitMap, stlp::IntHash> figured;   // +0x00
-    stlp::hash_map<unsigned, DressedUnitRecord, stlp::IntHash> dressed; // +0x14
+    FiguredGroups figured;                // +0x00 by prototype: each group's records by scale key
+    DressedTable dressed;                 // +0x14 by prototype
 };
 static_assert(offsetof(UnitSet, dressed) == 0x14);
 static_assert(sizeof(UnitSet) == 0x28);
@@ -1137,13 +1143,6 @@ struct HitCollector {
 // The client's rain / snow layer (CWorldClient + 0x6F4, 0xC8 bytes; constructor 004E3C20, drawn by
 // 004E5680): an engine object (Teardown calls its slot 3) that keeps the world at +0x20.
 class CRainSnow;            // effects.h
-
-// The client's text resources (CWorldClient + 0x1D0, 0x2C bytes, vtable 0073F6F0; constructor
-// 004DED20 after the engine object fields and the table at +0x1C, 00562A80).
-struct ClientTexts : CEngineObject {
-    std::uint8_t table[0x10];             // +0x1C
-};
-static_assert(sizeof(ClientTexts) == 0x2C);
 
 class CLightningManager;   // lightning.h
 class CSceneRenderer;   // model.h
@@ -1608,7 +1607,7 @@ public:
     int lightLevelsCountdown_;            // +0x1C4 time left before the blood prints are lit again (Segment); 0 after Setup
     RefPtr handle_;                       // +0x1C8 (vtable 0073F628)
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
-    ClientTexts* texts_;                  // +0x1D0 the text resources (counted)
+    CTextManager* texts_;                 // +0x1D0 the text resources (counted)
     PlatformSet platforms_;               // +0x1D4
     // +0x20C the local session (made by 0066C180): the local CPlayer; its connection is the local
     // view (a CPlayerClient), its sessionKind100_ 1 / 3 for kinds of multiplayer session.

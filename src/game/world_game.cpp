@@ -1855,9 +1855,9 @@ std::uint32_t ValueBits(const net::VariableMessage* record) {
 
 void GameFlow::UpdateFromServer() {
     if (!Active(net::GameClient())) return;
-    if (void* texts = TheTextManager()) {
+    if (CTextManager* texts = TheTextManager()) {
         for (const stlp::string* file = g_questFiles.begin(); file != g_questFiles.end(); ++file)
-            static_cast<CTextManager*>(texts)->RemoveSource(file->data());
+            texts->RemoveSource(file->data());
         stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(&g_questFiles);   // 00581860
     }
     auto* clientWorld = TheClientWorld();

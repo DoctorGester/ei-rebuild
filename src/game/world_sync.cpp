@@ -350,13 +350,13 @@ int CWorldServer::SendZone(CPlayer* player) {
 
         // The zone's units.
         UnitSet units;
-        units.figured.Construct(100);   // 005985E0
-        units.dressed.Construct(100);   // 00598790
+        units.figured.Construct(100, 0, 0, 0);   // 005985E0
+        units.dressed.Construct(100, 0, 0, 0);   // 00598790
         for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node))
             if (CUnit* unit = UnitOrNull(node->value)) units.Add(unit);
         units.Write(&message);
-        gamehash::DressedAbi::Destroy(reinterpret_cast<gamehash::DressedTable*>(&units.dressed));
-        gamehash::FiguredGroupsAbi::Destroy(reinterpret_cast<gamehash::FiguredGroupsTable*>(&units.figured));
+        units.dressed.Destroy();   // 00598860
+        units.figured.Destroy();   // 005986B0
 
         result = state->SendState02(&message);   // 0066EBD0
         if (result != 0 && sendsStartPosition_ != 0) {

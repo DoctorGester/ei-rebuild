@@ -1,7 +1,7 @@
 #pragma once
 
 // The client world's terrain and text manager tables as compiled tags (C19, engine_object_class.h) in place of
-// game.exe's 0073F6A8 (Terrain, with its tail 0073F6E8) and 0073F6F0 (CTextManager, the client's ClientTexts): each
+// game.exe's 0073F6A8 (Terrain, with its tail 0073F6E8) and 0073F6F0 (CTextManager, the client's texts): each
 // overrides the slots its game.exe table changes with the bodies that table reached. The client world's set-up
 // (world_client_maps.cpp, which inlines both constructors) and the destructor bodies (world_destructors.cpp,
 // text_sources.cpp) store them.
@@ -24,10 +24,10 @@ public:
 
 class CTextManagerClass final : public EngineObjectClass<CTextManagerClass, CTextManager> {
 public:
-    int Create() override { return As<CTextManager>()->Create(); }      // 2: 004DED20
+    int Create() override { return As<CTextManager>()->CreateImpl(); }      // 2: 004DED20
     void Destroy() override { As<CTextManager>()->ClearSources(); }     // 3: 004DED40
-    const char* ClassName() override { return TextManagerClassName(As<ClientTexts>()); }   // 11: 00562970
-    int ClassId() override { return TextManagerClassId(As<ClientTexts>()); }               // 12: 00562980
+    const char* ClassName() override { return TextManagerClassName(As<CTextManager>()); }   // 11: 00562970
+    int ClassId() override { return TextManagerClassId(As<CTextManager>()); }               // 12: 00562980
 };
 
 inline void* Terrain::Vtable() { return TerrainClass::Vtable(); }

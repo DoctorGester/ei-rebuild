@@ -1225,7 +1225,7 @@ void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];
     // The text table (00578E20 returns [007AF788]): 004DEFC0 whether it has a key (RET 4), 004DF8D0
     // its text into a CString (RET 8).
-    void* table = GameClientTexts();
+    CTextManager* table = GameClientTexts();
     mfc::CString name;
     mfc::CString own(unit->GetName());
     if (own.GetLength() == 0) {
@@ -1237,7 +1237,7 @@ void CCampPages::ShowHero() {
             mfc::CString key = prefix + own;
             found = TextsOpenSection(table, nullptr, key);
         }
-        if (found) static_cast<CTextManager*>(table)->ReadLine(&name, 1);
+        if (found) table->ReadLine(&name, 1);
     } else {
         name = own;
     }
