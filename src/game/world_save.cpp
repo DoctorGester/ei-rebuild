@@ -53,7 +53,7 @@ namespace {
 
 // ---- Constants --------------------------------------------------------------------------------
 
-// kMemoryStreamVtable (0073BD90) and kStreamVtable (0073BDB0, its CStream base): core_streams.h.
+// kMemoryStreamVtable and kStreamVtable (its CStream base; compiled tables in place of 0073BD90 / 0073BDB0): core_streams.h.
 // The CArray<int> vtable is mfc::impl::IntArrayClass::Vtable(), the script group's mfc::impl::ScriptGroupClass::Vtable() (set
 // after 004C2030), the item link record's CItemLink::Vtable() (item.h).
 constexpr std::uint32_t kStreamLimit = 2000000000;            // CStream +0x08 as constructed
@@ -470,7 +470,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             }
 
             TimeWheelLoad(timeWheel_, nullptr, stream);
-            CommandQueueLoad(commandsA_, nullptr, stream);
+            CommandQueueLoad(MainScript(), nullptr, stream);
             diplomacy_.ReadFrom(stream);
             stream->Read(&climate_, 4);
             stream->Read(&cave_, 4);
@@ -647,17 +647,17 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     std::uint32_t e8;
     std::memcpy(&e8, &weatherStrength_, 4);
     WriteCopy(stream, e8);
-    // Stored by the callee with FSTP; copied on as dwords.
-    std::uint32_t time;
-    std::uint32_t speed;
-    GetTime(reinterpret_cast<float*>(&time), reinterpret_cast<float*>(&speed));
+    // Stored by the callee with FSTP; written on as their bytes (WriteCopy takes a reference).
+    float time;
+    float speed;
+    GetTime(&time, &speed);
     WriteCopy(stream, time);
     WriteCopy(stream, speed);
     WriteCopy(stream, lastRainBoltTick_);
     stream->Write(&sessionKind_, 4);
 
     ReadAIGraph(mapName_, mobName_, &base);
-    reinterpret_cast<CRegionMap*>(aiLayer_)->SaveBlocks(&current);
+    AIMap()->Regions()->SaveBlocks(&current);
     stream->WriteDiff(&base, &current);
 
     // The map objects' identities (the walk stops at the first empty entry).
@@ -690,7 +690,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     WriteCopy(stream, static_cast<std::uint8_t>(0));
 
     TimeWheelSave(timeWheel_, nullptr, stream);
-    CommandQueueSave(commandsA_, nullptr, stream);
+    CommandQueueSave(MainScript(), nullptr, stream);
     diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);
     stream->Write(&cave_, 4);

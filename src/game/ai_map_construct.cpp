@@ -77,7 +77,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->batching = false;
     ResetDirty(&self->dirtyMinX, nullptr);
     FillAreaLists(self);
-    self->lastFootprintOwner = 0;
+    self->footprintTick = 0;
     self->refreshUnits = false;
     return self;
 }

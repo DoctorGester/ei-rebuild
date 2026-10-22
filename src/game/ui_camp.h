@@ -157,6 +157,11 @@ public:
     // 005F6900 (slot 0, the deleting destructor; ui_window_delete.cpp). GlobalMapDestroy, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CGlobalMap* GlobalMapDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740B3C / 00740B08.
+    static void** Vtable();
+    static void** InputVtable();
+    // 0062D330 (slot 40; ui_global_map_input.cpp). The screen's part of a save game: one zero dword.
+    void SaveState();
     // 0062D350 (slot 25). Builds the map of the local player's allod: the island model, the
     // zones, the quests the player holds ("q.<zone>.<quest>" = 1) and the links to zones the
     // player may enter ("z.<zone>" = 2), the clock text, the camp and turn buttons, the weather.
@@ -505,6 +510,9 @@ static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 // its other pages, 7 leave the camp.
 class CCampPages : public CItemScreen {
 public:
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 0074091C / 007408E8.
+    static void** Vtable();
+    static void** InputVtable();
     // 0060C870 (slot 25; Rebirth-patched; ui_camp_create.cpp, reproducing WideScreen, so hooked in
     // both launches). BuildPages, then with Rebirth's WideScreen the two curtains over the
     // screen's margins, shown (widescreen::AddCurtains; sprites 10 and 11).

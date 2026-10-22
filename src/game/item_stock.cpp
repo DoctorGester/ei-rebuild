@@ -559,8 +559,8 @@ void LoadRecords(CStream* stream, mfc::CString& name, unsigned& count, itemdb::N
 }
 
 // A map section: a count, then names (as read) looked up in an STLport map by string.
-template <typename Record>
-void LoadMapped(CStream* stream, mfc::CString& name, unsigned& count, RecordNameMap& map, stlp::vector<Record*>& list) {
+template <typename Record, typename Map>
+void LoadMapped(CStream* stream, mfc::CString& name, unsigned& count, Map& map, stlp::vector<Record*>& list) {
     ReadInt(stream, &count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);

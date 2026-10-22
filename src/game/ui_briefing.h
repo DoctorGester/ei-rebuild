@@ -366,6 +366,9 @@ public:
     // 005F6B80 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CBriefingScreen* BriefingDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 007405AC / 00740578.
+    static void** Vtable();
+    static void** InputVtable();
     // 005F6B70 (slot 38, RET 4; ui_small_members.cpp). chatActive_ = `mode`.
     void SetChatActive(int mode);
 

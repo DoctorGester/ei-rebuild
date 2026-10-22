@@ -191,29 +191,26 @@ using SkillLevelVector = stlp::VectorAbi<SkillLevelRecord, SkillLevelElement>;
 // the names and their storage, then the weapon and armour ids' storage.
 struct FiguredUnitElement {
     using R = FiguredUnitRecord;
-    using Head = records::Memberwise<R, &R::prototype, &R::armourIds, &R::weaponIds, &R::extraWeapon, &R::modelNumber,
+    using Head = records::Memberwise<R, &R::prototype, &R::items, &R::extraWeapons, &R::extraWeapon, &R::modelNumber,
                                      &R::morphS, &R::morphT, &R::morphU>;
-    static CStringVector& NamesOf(R& r) { return *reinterpret_cast<CStringVector*>(&r.names); }
-    static const CStringVector& NamesOf(const R& r) { return *reinterpret_cast<const CStringVector*>(&r.names); }
 
     static void Construct(R* to, const R& from) {
         Head::Construct(to, from);
-        records::CopyMember(NamesOf(*to), NamesOf(from));
+        records::CopyMember(to->names, from.names);
     }
     static void Assign(R& to, const R& from) {
         Head::Assign(to, from);
-        records::AssignMember(NamesOf(to), NamesOf(from));
+        records::AssignMember(to.names, from.names);
     }
     static void Default(R* p) {
         Head::Default(p);
-        records::DefaultMember(NamesOf(*p));
+        records::DefaultMember(p->names);
     }
     static void Destroy(R* p) {
-        CStringVector& names = NamesOf(*p);
-        for (mfc::CString* name = names.Start(); name != names.Finish(); ++name) name->~CString();
-        names.FreeStorage();
-        p->weaponIds.FreeStorage();
-        p->armourIds.FreeStorage();
+        for (mfc::CString* name = p->names.Start(); name != p->names.Finish(); ++name) name->~CString();
+        p->names.FreeStorage();
+        p->extraWeapons.FreeStorage();
+        p->items.FreeStorage();
     }
 };
 

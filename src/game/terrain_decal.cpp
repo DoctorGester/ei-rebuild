@@ -63,17 +63,17 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, float* const* corners) {
         previous = lowest;
         if (y0 > y1) break;
         for (int y = y0; y <= y1; ++y) {
-            for (int x = x0; x <= x1; ++x) lowest = Lower(VertexAt(x, y, 0)[2], lowest);
+            for (int x = x0; x <= x1; ++x) lowest = Lower(VertexAt(x, y, 0)->z, lowest);
         }
         if (!(lowest < previous)) break;   // it no longer drops (Lower never raises it); a NaN ends it too
     }
     builder->Reserve(((x1 - x0 + 1) * (y1 - y0 + 1) + (y1 - y0 + x1 - x0 + 1) * 5) * 4);
     for (int y = y0; y < y1; ++y) {
         for (int x = x0; x < x1; ++x) {
-            auto* a = reinterpret_cast<const Vector3*>(VertexAt(x, y, 0));
-            auto* b = reinterpret_cast<const Vector3*>(VertexAt(x, y + 1, 0));
-            auto* c = reinterpret_cast<const Vector3*>(VertexAt(x + 1, y, 0));
-            auto* d = reinterpret_cast<const Vector3*>(VertexAt(x + 1, y + 1, 0));
+            const Vector3* a = VertexAt(x, y, 0);
+            const Vector3* b = VertexAt(x, y + 1, 0);
+            const Vector3* c = VertexAt(x + 1, y, 0);
+            const Vector3* d = VertexAt(x + 1, y + 1, 0);
             builder->AddTerrainTriangle(a, c, d);
             builder->AddTerrainTriangle(a, d, b);
         }

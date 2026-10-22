@@ -588,7 +588,7 @@ DriverLink* DriverLink::Construct() {   // 0047A030
     inbox_.ok_ = 1;
     inbox_.bitMask_ = 0x80;
     inbox_.bitsIndex_ = -1;
-    player_ = nullptr;
+    player_.ptr = nullptr;
     ei::SetVtable(this, Vtable());
     return this;
 }
@@ -604,16 +604,16 @@ void DriverLink::Disconnect() {   // 00479810
     pending.data_ = nullptr;
     pending.Reset();
     TakeAll(&pending);
-    if (pending.size_ != 0 && IsLive(player_)) {
+    if (pending.size_ != 0 && IsLive(player_.Get())) {
         pending.SeekImpl(pending.size_);
-        std::uint32_t count = BufferFill(&player_->reliableIn_);
+        std::uint32_t count = BufferFill(&player_.Get()->reliableIn_);
         CStream* stream = &pending;
-        stream->Write(player_->reliableIn_.begin, count);
-        player_->reliableIn_.Seek(0);
-        BufferPut(&player_->reliableIn_, pending.data_, pending.size_);
+        stream->Write(player_.Get()->reliableIn_.begin, count);
+        player_.Get()->reliableIn_.Seek(0);
+        BufferPut(&player_.Get()->reliableIn_, pending.data_, pending.size_);
     }
-    net::Connection* player = player_;
-    player_ = nullptr;
+    net::Connection* player = player_.Get();
+    player_.ptr = nullptr;
     ReleaseCounted(player);
     ei::SetVtable(&pending, kMemoryStreamVtable);
     if (pending.data_) gamecrt::operator_delete(pending.data_);
@@ -622,7 +622,7 @@ void DriverLink::Disconnect() {   // 00479810
 void DriverLink::Destruct() {   // 00479D40
     ei::SetVtable(this, Vtable());
     DriverLink::Disconnect();
-    ReleaseCounted(player_);
+    ReleaseCounted(player_.ptr);
     FramedLink::Destruct();
 }
 EI_REWRITTEN(0x00479D40, DriverLink::Destruct);
@@ -660,18 +660,18 @@ DriverLink* DriverLink::Clone() {   // 00479A30
     CStream* stream = inbox;
     stream->Read(inbox_.data_, inbox->size_);
     ei::SetVtable(copy, FramedLink::Vtable());
-    copy->player_ = player_;
-    if (copy->player_) ++copy->player_->refs_;
+    copy->player_.ptr = player_.ptr;
+    if (copy->player_.ptr) ++copy->player_.ptr->refs_;
     ei::SetVtable(copy, Vtable());
     return copy;
 }
 
-bool DriverLink::Connected() { return IsLive(player_); }   // 00479780
+bool DriverLink::Connected() { return IsLive(player_.Get()); }   // 00479780
 
 // The player's incoming reliable bytes appended to the inbox (0047B980), and that stream emptied
 // (flags 6).
 void DriverLink::Pump() {   // 004797A0
-    net::Connection* player = player_;
+    net::Connection* player = player_.Get();
     if (!IsLive(player)) return;
     GameBuffer* in = &player->reliableIn_;
     std::uint32_t count = BufferFill(in);
@@ -684,12 +684,12 @@ void DriverLink::Pump() {   // 004797A0
 // `size` bytes written at the end of the player's outgoing reliable stream (when the player is
 // alive); whether the player is (still) alive.
 bool DriverLink::SendBytes(const void* data, std::uint32_t size) {   // 004796B0
-    if (IsLive(player_)) {
-        std::uint32_t fill = BufferFill(&player_->reliableOut_);
-        player_->reliableOut_.Seek(static_cast<std::int32_t>(fill));
-        BufferPut(&player_->reliableOut_, data, size);
+    if (IsLive(player_.Get())) {
+        std::uint32_t fill = BufferFill(&player_.Get()->reliableOut_);
+        player_.Get()->reliableOut_.Seek(static_cast<std::int32_t>(fill));
+        BufferPut(&player_.Get()->reliableOut_, data, size);
     }
-    return IsLive(player_);
+    return IsLive(player_.Get());
 }
 
 // The slots of game.exe's 0073C990 are the compiled table's (DriverLinkClass); nothing reaches their

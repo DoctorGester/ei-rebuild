@@ -38,7 +38,7 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, 
     if (!(g_texturePointsGuard & 1)) {
         g_texturePointsGuard |= 1;
         uv = PointArray{};
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005A1170));
+        GameAtExit(FreeTexturePoints);   // 005A1170
     }
     uv.SetSizeDiscard(buffers.texCoordCount);
     float scale = 255.0f /*0073C370*/;

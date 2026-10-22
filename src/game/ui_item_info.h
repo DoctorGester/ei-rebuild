@@ -163,6 +163,10 @@ public:
     // 005F6450 (slot 0, the deleting destructor; ui_window_delete.cpp). ItemScreenDestroy, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CItemScreen* ItemScreenDelete(unsigned flags);
+    // The plain item screen's compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740A2C / 007409F8,
+    // which the screens' constructors store first (not Vtable(): the screens have their own).
+    static void** ItemScreenVtable();
+    static void** ItemScreenInputVtable();
     // 005ECA10 (RET 8). Draws `cell`'s item: its model (cached, created by 005EBFB0) with its
     // texture (cached, 005EC020) turning while the mouse is on it, a glow in the colour of the
     // carried spell's school, a frame behind it, the modifier marks of a spell container, and a

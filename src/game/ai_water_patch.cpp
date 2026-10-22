@@ -6,6 +6,7 @@
 // ((y + 0x800) << 16) + x; the point's cell is truncated from position * 1 / (0073FD18 * 0.5).
 // See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
+#include "at_exit_functions.h"
 #include "ai_unit_layer.h"
 #include "core_refcount.h"
 
@@ -51,7 +52,7 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     if (!(Guard() & 1)) {
         Guard() |= 1;
         Patch() = nullptr;
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005B80C0));
+        GameAtExit(ei::static_init::Exit005B80C0);
     }
     if (!Patch() || (Patch()->flags7_ & CRefObject::kDetached)) {
         CUnitShape* fresh = NewPatch();

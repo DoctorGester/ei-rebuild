@@ -200,7 +200,7 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kHitNoiseScale);
-        reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);
+        AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
     }
 }
 EI_REPLACE_METHOD(0x0054F450, CUnitServer::DeliverAttack);
@@ -416,7 +416,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
     animation.vtable = mfc::impl::AnimationStepsClass::Vtable();
-    if (animation.steps) gamecrt::operator_delete(animation.steps);
+    if (animation.data) gamecrt::operator_delete(animation.data);
 }
 EI_REWRITTEN(0x00553AC0, CUnitServer::OnDamaged);
 
@@ -428,7 +428,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         if (CPlayer* player = unit->player) TheServerWorld()->Loot(looted, player);
         WorldRemoveObject(TheServerWorld(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
-        reinterpret_cast<AIViewer*>(AIEventsOf(world))->Noise(this, loudness, kNoiseKind, nullptr);
+        AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
         return;
     }
     std::uint32_t skill = action.source;

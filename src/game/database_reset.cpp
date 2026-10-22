@@ -46,7 +46,7 @@ void ConstructUnitTable(Table& table) {
 // An item table: the index, then the records.
 template <typename Abi, typename Record>
 void DestroyItemTable(itemdb::NamedRecordTable<Record>& table) {
-    table.ByName().Destroy();
+    table.names.Destroy();
     Abi::Destruct(&table.records);
 }
 

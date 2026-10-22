@@ -650,6 +650,12 @@ T*& NamedSlot(NameMap& map, const string& name) {
     NameMap::Value obj(name);
     return *reinterpret_cast<T**>(map.FindOrInsert(obj).mapped);
 }
+// The same on a typed hash_map<string, T*> (the item and spell tables' indexes): operator[] as
+// STLport writes it, a {name, null} temporary for find_or_insert.
+template <typename T>
+T*& NamedSlot(hash_map<string, T*, StringHash>& map, const string& name) {
+    return map.Subscript(name);
+}
 
 // A vector of records (start, finish, end of storage) followed by the map from a record's name to it
 // (the item databases' weapon, armor, quick item, material and loot tables, the lever table).

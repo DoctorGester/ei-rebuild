@@ -321,14 +321,14 @@ bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
 }
 EI_REWRITTEN(0x005B65B0, CAIMap::ApplyFootprint);
 
-bool CAIMap::StampFootprint(int owner, FootprintCellSet* set) {
+bool CAIMap::StampFootprint(int tick, FootprintCellSet* set) {
     bool savedRefreshUnits = refreshUnits;
     refreshUnits = false;
     bool fits = ApplyFootprint(set, false);
     int r[4] = {10000, 0, 10000, 0};
     set->GetBounds(r);
     QueueRefresh(r[0] - 3, r[1] + 3, r[2] - 3, r[3] + 3);
-    lastFootprintOwner = owner;
+    footprintTick = tick;
     refreshUnits = savedRefreshUnits;
     return fits;
 }

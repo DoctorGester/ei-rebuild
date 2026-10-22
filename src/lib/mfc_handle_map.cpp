@@ -3,7 +3,9 @@
 #include "mfc_handle_map.h"
 
 #include "ei/hook.h"
+#include "compiled_vtable.h"
 #include "mfc_exception.h"
+#include "mfc_runtime_class.h"
 #include "mfc_try.h"
 #include "game/game_data.h"
 
@@ -51,6 +53,20 @@ EI_REPLACE_STANDALONE(0x0070AB1A, CriticalNewHandler);
 EI_REPLACE_STANDALONE(0x0070058F, DefaultNewHandler);   // what libcrt::OperatorNew calls through 00796E14
 
 // ---- CMapPtrToPtr ---------------------------------------------------------------------------------
+
+namespace {
+// CMapPtrToPtr's compiled table (C19; game.exe's 0074689C): 0 GetRuntimeClass (its record), 1 the deleting destructor,
+// 2 Serialize (CObject's, empty).
+struct MapPtrToPtrTable final : ei::CompiledTag<MapPtrToPtrTable> {
+    virtual const CRuntimeClass* GetRuntimeClass() const { return &kClassCMapPtrToPtr; }   // 0: 0070D128
+    virtual void* DeleteScalar(unsigned flags) {                                            // 1: 007002E9
+        return reinterpret_cast<CMapPtrToPtr*>(this)->DeletingDestructor(flags);
+    }
+    virtual void Serialize(void*) {}                                                        // 2: 00444B00
+};
+} // namespace
+
+void* CMapPtrToPtr::Vtable() { return MapPtrToPtrTable::Vtable(); }
 
 CMapPtrToPtr* CMapPtrToPtr::Construct(int size) {
     table = nullptr;

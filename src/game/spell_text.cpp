@@ -39,8 +39,8 @@ TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 // The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map.
 // 004ABD00: operator[](key) (inserts a null record for a missing name); returns the value.
 // The spells and modifiers by name (004ABD00 operator[], 004ACC10 find_or_insert of {name, null}).
-stlp::NameMap& SpellNameMap() { return itemdb::TheSpellDatabase().spells.Names(); }
-stlp::NameMap& ModifierNameMap() { return itemdb::TheSpellDatabase().modifiers.Names(); }
+itemdb::SpellTable::CodeIndex& SpellNameMap() { return itemdb::TheSpellDatabase().spells.byCode; }
+itemdb::SpellModifierTable::CodeIndex& ModifierNameMap() { return itemdb::TheSpellDatabase().modifiers.byCode; }
 
 // The constructor's entries and CSpell::Clone, called through their game addresses.
 

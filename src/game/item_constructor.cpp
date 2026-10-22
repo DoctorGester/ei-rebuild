@@ -447,9 +447,9 @@ int LootTableIndex(int which, const char* name) {
     case 2:
         return TableIndex(items.quickItems, stlp::NamedSlot<QuickItemRecord>(items.quickItems.names, key));
     case 3:
-        return TableIndex(spells.spells, stlp::NamedSlot<SpellRecord>(spells.spells.Names(), key));
+        return TableIndex(spells.spells, stlp::NamedSlot<SpellRecord>(spells.spells.byCode, key));
     default:
-        return TableIndex(spells.modifiers, stlp::NamedSlot<SpellModifierRecord>(spells.modifiers.Names(), key));
+        return TableIndex(spells.modifiers, stlp::NamedSlot<SpellModifierRecord>(spells.modifiers.byCode, key));
     }
 }
 

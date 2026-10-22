@@ -185,9 +185,9 @@ void HitWhileTurning(CUnitServer* c) {
 // 0x3C0000) is still running, the current animation followed by the fall of the last blow
 // replaces the queue.
 void HitWhileMoving(CUnitServer* c) {
-    if (Queue(c)->count > 0) {
-        std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->count) & 0xFFFFFF00u) |
-                            Queue(c)->steps[0].animation;
+    if (Queue(c)->size > 0) {
+        std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->size) & 0xFFFFFF00u) |
+                            Queue(c)->data[0].animation;
         const FigureAnimation* entry = UnitOf(c)->AnimationEntry(key);
         if (entry && (entry->key & 0x3C0000) == 0x200000) {
             std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(QueueStart(c));
@@ -200,9 +200,9 @@ void HitWhileMoving(CUnitServer* c) {
     fall.ConstructOwn();
     c->BuildMoveSteps(&current, 0);
     c->BuildDeathAnimation(&fall, c->hitDirection, 0, 1);
-    for (int i = 0; i < current.count; ++i) {
+    for (int i = 0; i < current.size; ++i) {
         AnimationStep step;
-        step = current.steps[i];   // GetAt by value (00558920)
+        step = current.data[i];   // GetAt by value (00558920)
         if (step.animation == 0xFF) {
             std::uint32_t emote;
             std::memcpy(&emote, reinterpret_cast<const char*>(&step) + 1, 4);
@@ -212,7 +212,7 @@ void HitWhileMoving(CUnitServer* c) {
             std::memcpy(&head, &step, 4);
             fall.AddStep((int)head, step.duration);
         } else {
-            fall.SetAtGrow(fall.count, step);
+            fall.SetAtGrow(fall.size, step);
         }
     }
     Queue(c)->Assign(fall);   // 005483C0 (twice, as the original)
@@ -443,7 +443,7 @@ void UpdateMotion(CUnitServer* c) {
     // the world's +0x2804 and moveMode2's flag4 is clear) replans.
     bool replan = false;
     if (c->state == kStateIdle && world->AIMap()->HasKind3OccluderAt(&position) &&
-        OrderOf(MotionPathOf(c))->startTime < world->occluderReplanTime_ && c->moveMode2.flag4 == 0) {
+        OrderOf(MotionPathOf(c))->startTime < world->AIMap()->footprintTick && c->moveMode2.flag4 == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }

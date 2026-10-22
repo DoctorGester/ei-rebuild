@@ -230,7 +230,7 @@ void ReadWorld(CWorldServer* w, Builder& b) {
     b.Int("zoneLoaded", w->zoneLoaded_);
     b.Int("scriptsActive", w->scriptsActive_);
     b.Vector("start.x", "start.y", "start.z", w->startPosition_);
-    b.Int("occluderReplanTime", w->occluderReplanTime_);
+    b.Int("occluderReplanTime", w->AIMap()->footprintTick);
     b.Int("sessionKind", w->sessionKind_);
     b.Unsigned("objects", static_cast<std::uint32_t>(w->objects_.map.Size()));
     b.Unsigned("mapObjects", static_cast<std::uint32_t>(w->mapObjects_.map.Size()));

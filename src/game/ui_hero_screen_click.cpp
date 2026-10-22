@@ -90,13 +90,13 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
     camp->models_.Construct(compare);
     camp->textures_.Construct(compare);
-    camp->vtable_ = ei::GamePointer<void*>(0x00740A2C);
-    camp->inputVtable_ = ei::GamePointer<void*>(0x007409F8);
+    camp->vtable_ = CItemScreen::ItemScreenVtable();
+    camp->inputVtable_ = CItemScreen::ItemScreenInputVtable();
     camp->fromHeroScreen_ = true;   // opened from the hero screen
     camp->heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
     camp->pageTitles_.Construct();
-    camp->vtable_ = ei::GamePointer<void*>(0x0074091C);
-    camp->inputVtable_ = ei::GamePointer<void*>(0x007408E8);
+    camp->vtable_ = CCampPages::Vtable();
+    camp->inputVtable_ = CCampPages::InputVtable();
     return camp;
 }
 

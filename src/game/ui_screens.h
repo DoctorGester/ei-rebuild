@@ -422,6 +422,9 @@ public:
     // 00633240 (slot 0, the deleting destructor; ui_window_delete.cpp). Destroy, then the memory
     // freed when bit 0 of `flags` is set; returns this.
     CMpHeroScreen* HeroScreenDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 0074214C / 00742118.
+    static void** Vtable();
+    static void** InputVtable();
     // The level-up and experience lines of the statistics page (inlined by Draw).
     void DrawExperience();
     // 00618060 (ui_hero_screen_click.cpp). Region 6 of the list: the rename edit window enabled and
@@ -613,8 +616,9 @@ using MpAddressList = MpAddresses;
 
 class CMpConnectScreen : public CUiContainer {
 public:
-    static void** Vtable() { return ei::GamePointer<void*>(0x00741CD0); }
-    static void** InputVtable() { return ei::GamePointer<void*>(0x00741C9C); }
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741CD0 / 00741C9C.
+    static void** Vtable();
+    static void** InputVtable();
 
     // The message box results (slot 27): the kinds the screen opens boxes with, ORed with 1 (OK)
     // or 2 (cancel) when they come back.
@@ -760,8 +764,9 @@ static_assert(sizeof(CMpConnectScreen) == 0x260);
 // the master server and a progress bar sprite. Its result is kBoxMaster (| 2 when done).
 class CMasterRequestBox : public CMessageBox {
 public:
-    static void** Vtable() { return ei::GamePointer<void*>(0x00741DD8); }
-    static void** InputVtable() { return ei::GamePointer<void*>(0x00741DA4); }
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741DD8 / 00741DA4.
+    static void** Vtable();
+    static void** InputVtable();
     // 0061E2F0 (RET 0x18). Constructor: the box (flags 2: one cancel button; format 1), the link
     // connecting to `address`, vtables, the bar (a plain sprite, colour 0xFFA06800), and `extra`
     // written to the link's outgoing buffer. Returns this.
@@ -808,6 +813,9 @@ public:
     // 0062ACB0 (slot 26; ui_small_members.cpp). The menu closes: its stone model (models_[0])
     // plays animation 0.
     void OnClose();
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 007412A4 / 00741270.
+    static void** Vtable();
+    static void** InputVtable();
 
     CUiContainer window;
     int hovered_;               // +0x164 region under the mouse, -1 for none
@@ -882,6 +890,9 @@ static_assert(sizeof(CUiScrollingSurface) == 0x58);
 
 class CCreditsScreen : public CUiContainer {
 public:
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740C3C / 00740C08.
+    static void** Vtable();
+    static void** InputVtable();
     // 005F6D50 (RET 0xC; ui_create_screen.cpp; screen 8 of CInterface3D::CreateScreen). The
     // container, the archive, the list at +0x1C8 with its header node, +0x1D4 the text, the player
     // (+0x1D8), the flag's low byte at +0x1F4; vtables 00740C3C / 00740C08. Returns this.
@@ -943,6 +954,9 @@ static_assert(sizeof(CCreditsScreen) == 0x1FC);
 // with rain at night.
 class CMainMenu : public CUiContainer {
 public:
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740688 / 00740654.
+    static void** Vtable();
+    static void** InputVtable();
     // Body of the slot at 00632A90 (registered by member pointer).
     int DrawImpl(int pass);
     // 00632D70 (input slot 2; ui_layouts.cpp). By region: 0 the difficulty question (a message
@@ -1003,6 +1017,9 @@ public:
     // 005F6F30 (RET 4; ui_create_screen.cpp; screen 9 of CInterface3D::CreateScreen). The
     // container, the two item caches; vtables 00740D18 / 00740CE4. Returns this.
     CExchangeScreen* Construct(CInterface3D* ui);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740D18 / 00740CE4.
+    static void** Vtable();
+    static void** InputVtable();
     // 0062C250 (slot 25; ui_exchange.cpp). Builds the window: texture "campinfo", regions 0 accept,
     // 1 take back, 2 leave (tips 0xA028, 0xA029, 0xA02B), their four button sprites (the third
     // hidden, the leave button shaded 0.5), the item screens' base (005EDD80) with the icon

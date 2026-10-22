@@ -157,7 +157,7 @@ void CWorldServer::Tick(char force) {
     }
 
     if (scriptsActive_ != 0 || force) ScriptTick(MainScript());
-    ScriptTick(reinterpret_cast<CScript*>(commandsB_));
+    ScriptTick(SecondScript());
     ServerUpdateUnits(this, nullptr);
 }
 
@@ -172,7 +172,7 @@ void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
     const std::int16_t* offsets = WakeCache().Get(radius * 0.03125f, &count);   // radius in sectors
     int sx = SectorOf(position->x);
     int sy = SectorOf(position->y);
-    auto* sectors = reinterpret_cast<CSectorMap*>(sectorMap_);
+    CSectorMap* sectors = Sectors();
     for (int i = 0; i < count; ++i, offsets += 2) {
         auto* units = SectorUnits(sectors, offsets[0] + sx, offsets[1] + sy);
         if (!units) continue;
@@ -237,11 +237,6 @@ void __cdecl FreeRemovedIds() { g_removedIds.FreeData(); }     // 0058DA20
 void __cdecl FreeSleepingIds() { g_sleepingIds.FreeData(); }   // 0058DA00
 std::uint8_t g_updateListGuards = /*007AFF00*/ {};
 std::uint8_t& UpdateListGuards() { return g_updateListGuards; }
-
-constexpr int kUnitSleepCountdown = 0x174;   // CUnit +0x174: updates left before it may sleep
-int& SleepCountdown(CEngineObject* object) {
-    return *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(object) + kUnitSleepCountdown);
-}
 } // namespace
 
 void CWorldServer::UpdateUnits() {
@@ -278,12 +273,12 @@ void CWorldServer::UpdateUnits() {
             if (object->flags_ & 1) RemovedIds().SetAtGrow(RemovedIds().size, static_cast<unsigned>(object->id_));
             CUnit* unit = UnitOrNull(object);
             if (!unit) continue;
-            if (--SleepCountdown(object) > 0) continue;
+            if (--unit->updateCountdown > 0) continue;   // updates left before it may sleep
             auto* controller = reinterpret_cast<const std::uint8_t*>(unit->controller);
             if (controller[0x174] == 0 && controller[0x9B7] == 0 && controller[0xB0C] == 0)
                 SleepingIds().SetAtGrow(SleepingIds().size, static_cast<unsigned>(object->id_));
             else
-                SleepCountdown(object) = UpdateCountdownFor(object);
+                unit->updateCountdown = UpdateCountdownFor(object);
         }
     }
 

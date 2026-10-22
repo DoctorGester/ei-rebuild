@@ -4,6 +4,7 @@
 #include "ui_camp.h"
 
 #include "console.h"
+#include "core_streams.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
 #include "ui_widescreen.h"
@@ -25,8 +26,6 @@ namespace {
 // The escape menu the map opens on Esc (0x168 bytes, built inline as the battle screen's key
 // handler does).
 constexpr std::size_t kEscMenuSize = 0x168;
-void** EscMenuVtable() { return ei::GamePointer<void*>(0x007412A4); }
-void** EscMenuInputVtable() { return ei::GamePointer<void*>(0x00741270); }
 const char* QuickSaveName() { return "saveq"; }
 
 constexpr int kActionQuickSave = '5';
@@ -184,8 +183,8 @@ void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
         if (memory) {
             static_cast<CUiContainer*>(memory)->Construct(interface_);
             menu = static_cast<CUiWindow*>(memory);
-            menu->vtable_ = EscMenuVtable();
-            menu->inputVtable_ = EscMenuInputVtable();
+            menu->vtable_ = CEscMenu::Vtable();
+            menu->inputVtable_ = CEscMenu::InputVtable();
         }
         interface_->PushWindow(menu, 1, 1);
         inputHandled_ = true;
@@ -225,6 +224,13 @@ namespace {
 void __fastcall GlobalMapDeactivate(void* input) { WindowFromInput<CGlobalMap>(input)->OnDeactivate(); }
 } // namespace
 EI_REPLACE(0x0062FF10, GlobalMapDeactivate);
+
+// 0062D330 (slot 40): the briefing screen's SaveState (00602490), byte for byte.
+void CGlobalMap::SaveState() {
+    int zero = 0;
+    GameSaveStream()->Write(&zero, 4);
+}
+EI_REPLACE_METHOD(0x0062D330, CGlobalMap::SaveState);
 EI_REPLACE_METHOD(0x0062FF60, InputForward<&CGlobalMap::OnRightDown>::Call);
 EI_REPLACE_METHOD(0x0062FFC0, InputForward<&CGlobalMap::OnRightUp>::Call);
 EI_REPLACE_METHOD(0x00630010, InputForward<&CGlobalMap::OnMouseMove>::Call);

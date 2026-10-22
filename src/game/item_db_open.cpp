@@ -39,7 +39,7 @@ template <typename Record, typename Key>
 void FileRecords(itemdb::NamedRecordTable<Record>& table, Key key) {
     for (Record* record = table.records.begin(); record != table.records.end(); ++record) {
         stlp::string text(key(record));
-        table.ByName()[text] = record;
+        table.names[text] = record;
     }
 }
 

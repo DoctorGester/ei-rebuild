@@ -37,7 +37,7 @@ std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(rein
 // the end of the owning list.
 DriverLink* NewDriver(DriverSession* self, CRefObject* player, DriverLink* raw) {
     auto* driver = raw ? raw->Construct() : nullptr;
-    reinterpret_cast<RefPtr*>(&driver->player_)->Assign(player);
+    driver->player_.Assign(player);
     RefPtr held{driver};   // taken without a reference; the list's copy adds one
     RefList::Insert<stlp::SharedRef>(stlp::AsRefNode(self->drivers_), held);
     return driver;
@@ -54,7 +54,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
         CRefObject* player = node->connection;
         bool known = false;
         for (DriverNode* it = drivers_->next, *end = drivers_; it != end; it = it->next) {
-            if (it->Driver()->player_ == player) {
+            if (it->Driver()->player_.ptr == player) {
                 known = true;
                 break;
             }
@@ -74,7 +74,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
     }
     for (DriverNode* it = drivers_->next; it != drivers_;) {
         it->Driver()->Pump();
-        if (IsLive(it->Driver()->player_)) {
+        if (IsLive(it->Driver()->player_.ptr)) {
             it = it->next;
         } else {
             it = reinterpret_cast<DriverNode*>(RefList::Erase<stlp::SharedRef>(stlp::AsRefNode(it)));
@@ -111,7 +111,7 @@ DriverLink* DriverSession::Start(net::Connection* player) {   // 0047A080
         ei::SetVtable(&stream, kMemoryStreamVtable);
         stream.data_ = nullptr;
         stream.Reset();
-        ei::SetVtable(&stream, CMemoryStream::kQueueVtableAddress);
+        ei::SetVtable(&stream, CMemoryStream::QueueStreamVtable());
         driver->Receive(&stream);
         ei::SetVtable(&stream, kMemoryStreamVtable);
         if (void* data = stream.data_) gamecrt::operator_delete(data);

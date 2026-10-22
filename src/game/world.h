@@ -10,6 +10,7 @@
 #include "options.h"
 #include <cstdint>
 
+#include "ai_map.h"
 #include "base_manager.h"
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -21,6 +22,8 @@
 #include "player_manager.h"
 #include "player_messages.h"
 #include "player_source.h"
+#include "registry.h"
+#include "script.h"
 #include "unit_create.h"
 #include "unit_looks.h"
 #include "water_tweens.h"
@@ -753,34 +756,26 @@ public:
     CHoover* hoover_;                     // +0x140 a CHoover (object.h), counted; made by Setup, deleted by Teardown
     // +0x144 a CFileRegistry (registry.h; closed by 0058B0E7) with the server's messages: the
     // login handler (0066F890) reads "SrvErrMsg" / "WrongClientVersion" from it.
-    std::uint8_t messages_[0x15C - 0x144];
-    CFileRegistry* Messages() { return reinterpret_cast<CFileRegistry*>(messages_); }
+    lib::InPlace<CFileRegistry> messages_;
+    CFileRegistry* Messages() { return messages_.Get(); }
     int zoneLoaded_;                      // +0x15C set by LoadMap, cleared by the teardown and a .mob file that fails to load
     int scriptsActive_;                   // +0x160 non-zero: Tick runs the zone's script (set by Redeploy)
     Vector3 startPosition_;               // +0x164 where joining players start (0058DAF0)
-    std::uint8_t aiMap_[0x290 - 0x170];   // +0x170 CAIMap (ai_map.h; the global 007B00D0); extent unknown
-    CAIMap* AIMap() { return reinterpret_cast<CAIMap*>(aiMap_); }
-    float gridHeightScale_;               // +0x290
-    CSectorMap* Sectors() { return reinterpret_cast<CSectorMap*>(sectorMap_); }
-    std::uint8_t sectorMap_[0x2468 - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
-    // +0x2468 the AI layer state SaveWorld saves (005B1380 into a memory stream); its extent and
-    // whether it belongs to the sector map are unknown.
-    std::uint8_t aiLayer_[0x2804 - 0x2468];
-    // +0x2804 a world tick: an idle unit standing in a kind-3 occluder replans while its motion order
-    // started before it (the movement tick 00547890). Part of the sector map or not: unknown.
-    int occluderReplanTime_;
-    std::uint8_t unused_2808[0x280C - 0x2808];
-    std::uint8_t** gridRows_;             // +0x280C rows of 9-byte cells, height (u16) at +4
-    int gridWidth_;                       // +0x2810
-    int gridHeight_;                      // +0x2814
-    std::uint8_t unused_2818[0x2838 - 0x2818];
+    // +0x170 the AI map (ai_map.h; the global 007B00D0, up to +0x2838): its height scale (+0x290),
+    // sector map (+0x294), region map (+0x2468, what SaveWorld saves through 005B1380), the tick
+    // +0x2804 (footprintTick) and the cell grid (+0x2808). ConstructAIMap / DestructAIMap
+    // build and destroy it with the world.
+    lib::InPlace<CAIMap> aiMap_;
+    CAIMap* AIMap() { return aiMap_.Get(); }
+    CSectorMap* Sectors() { return &aiMap_->sectorMap; }
     std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 the AI events (AIEventTable, unit_ai.h: time wheel, grid)
     AIEventTable* AIEvents() { return reinterpret_cast<AIEventTable*>(timeWheel_); }
-    std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
-    // commandsA_ is the zone's CScript (script.h, 0x1F8 bytes): its globals_ hold the "Heroes" group.
-    CScript* MainScript() { return reinterpret_cast<CScript*>(commandsA_); }
-    std::uint8_t commandsB_[0x12C64 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
-    CScript* SecondScript() { return reinterpret_cast<CScript*>(commandsB_); }
+    // +0x12874 the zone's CScript (script.h; constructed by 004BF000): its globals_ hold the
+    // "Heroes" group.
+    lib::InPlace<CScript> commandsA_;
+    CScript* MainScript() { return commandsA_.Get(); }
+    lib::InPlace<CScript> commandsB_;     // +0x12A6C the second script
+    CScript* SecondScript() { return commandsB_.Get(); }
     CDiplomacy diplomacy_;                // +0x12C64 (object_diplomacy.h)
     // +0x12D64 the session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld
     // updates the players' "gtime" first. Joining players take it (CPlayer::sessionKind100_). Also the
@@ -824,16 +819,11 @@ static_assert(offsetof(CWorldServer, climate_) == 0xDC);
 static_assert(offsetof(CWorldServer, exits_) == 0xEC);
 static_assert(offsetof(CWorldServer, gameResult_) == 0x138);
 static_assert(offsetof(CWorldServer, scriptsActive_) == 0x160);
-static_assert(offsetof(CWorldServer, sectorMap_) == 0x294);
-static_assert(offsetof(CWorldServer, aiLayer_) == 0x2468);
-static_assert(offsetof(CWorldServer, occluderReplanTime_) == 0x2804);
 static_assert(offsetof(CWorldServer, timeWheel_) == 0x2838);
 static_assert(offsetof(CWorldServer, commandsA_) == 0x12874);
 static_assert(offsetof(CWorldServer, commandsB_) == 0x12A6C);
 static_assert(offsetof(CWorldServer, projectiles_) == 0x12E28);
 static_assert(offsetof(CWorldServer, updateMap_) == 0x104);
-static_assert(offsetof(CWorldServer, gridHeightScale_) == 0x290);
-static_assert(offsetof(CWorldServer, gridRows_) == 0x280C);
 static_assert(offsetof(CWorldServer, objects_) == 0x12D70);
 static_assert(offsetof(CWorldServer, timedObjects_) == 0x12DE8);
 static_assert(offsetof(CWorldServer, sharedObjects_) == 0x12E60);

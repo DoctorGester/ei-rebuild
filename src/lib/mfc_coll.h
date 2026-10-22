@@ -33,18 +33,19 @@ struct PlainArray {
     void Serialize(CArchive* ar);                   // vtable slot 2 (not CUIntArray's)
 };
 
-// The instantiations' vtables (game data).
+// The instantiations' tables: compiled (C19, mfc_coll.cpp) in place of game.exe's 00745F78, 007464B8, 00746560 and
+// 007467A0.
 struct WordArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x00745F78); }
+    static void* Vtable();
 };
 struct DWordArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x007464B8); }
+    static void* Vtable();
 };
 struct ByteArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x00746560); }
+    static void* Vtable();
 };
 struct UIntArrayClass {
-    static void* Vtable() { return ei::GamePointer<void>(0x007467A0); }
+    static void* Vtable();
 };
 using CWordArray = PlainArray<std::uint16_t, WordArrayClass>;
 using CDWordArray = PlainArray<std::uint32_t, DWordArrayClass>;
@@ -61,7 +62,7 @@ struct CStringArray {
     int maxSize;    // +0x0C
     int growBy;     // +0x10
 
-    static void* Vtable() { return ei::GamePointer<void>(0x00745F5C); }
+    static void* Vtable();   // compiled (C19, mfc_coll.cpp) in place of game.exe's 00745F5C
 
     CStringArray* Construct();                          // 006FE925
     void Destruct();                                    // 006FE958

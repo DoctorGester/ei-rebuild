@@ -33,7 +33,6 @@
 
 namespace {
 
-constexpr int kClassUnit = 0x50;
 constexpr std::uint32_t kPartHidden = 0x80;             // CFigureMesh::flags_: not drawn (0051B7E0, 00501D40)
 constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;    // object->flags_: drawn in a spectator's view too
 constexpr std::uint32_t kBoundsValid = 1 | 2;           // CObject3D::boundsFlags

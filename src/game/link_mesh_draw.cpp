@@ -58,7 +58,7 @@ lib::AlignedArray<PixelPair>& TexturePixels() {
     if (!(constructed & 1)) {
         constructed |= 1;
         pixels.Construct();
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x004F4B30));
+        GameAtExit(FreeTexturePixels);   // 004F4B30
     }
     return pixels;
 }

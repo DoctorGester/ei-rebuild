@@ -406,7 +406,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
         guard |= 1;
         cache->radius = -1.0f;
         cache->length = 0;
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005BAC00));
+        GameAtExit([] {});   // 005BAC00: nothing to destroy
     }
 
     int sizeClass = unit->sizeClass;

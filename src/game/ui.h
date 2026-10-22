@@ -2048,6 +2048,10 @@ public:
     // 00601AC0 (RET 4; the containers' slot 19, ui_container.cpp). The window's own surfaces
     // (006002C0), then every enabled child's slot 19 with `show`.
     void ShowChildren(int show);
+    // The container's compiled tables (C19, ui_container_class.h / ui_screen_tables.cpp) in place of game.exe's
+    // 00741008 / 00740FD4 (not Vtable(): a screen without its own would inherit the container's).
+    static void** ContainerVtable();
+    static void** ContainerInputVtable();
 
     UiPtrArray<CUiWindow> children_;          // +0x148
     UiInputSide** inputsBegin_;               // +0x158 extra input sides (STLport vector)
@@ -2301,6 +2305,9 @@ public:
     // 005F5FC0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CBattleScreen* BattleScreenDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740764 / 00740730.
+    static void** Vtable();
+    static void** InputVtable();
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
     // player's id, the ids of the others. Compared and copied as a whole (006381E0, 0064AF30).
@@ -2751,8 +2758,9 @@ void __fastcall QuickLoad(const char* slot);
 // Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible list rows.
 class CSaveLoadWindow : public CUiContainer {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00741388);
-    static constexpr std::uintptr_t kInputVtableAddress = std::uintptr_t(0x00741354);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741388 / 00741354.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);       // 00654660
     void OnDoubleClick(int buttons, int x, int y);     // 006547B0
     BOOL Draw(int pass);                               // 006544A0 (slot 20): slides in
@@ -2983,6 +2991,12 @@ public:
     // 00603B70 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CObjectivesWindow* ObjectivesDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 007411BC / 00741188.
+    static void** Vtable();
+    static void** InputVtable();
+    // 0064D970 (slot 26; ui_container_draws.cpp). The device's alpha reference back to the saved one
+    // (savedAlphaRef_); SetRenderState's result (not stored in the device object).
+    long RestoreAlphaRef();
     // 0064BE80 (slot 25, the window's Create; ui_objectives.cpp).
     void Build();
     // 0064CC10: shows zone `zone`: picture, exits, quests and description.
@@ -3106,8 +3120,9 @@ struct OptionRow {
 // the option groups (100..250 x 156..420), 13.. the rows of the shown group.
 class COptionsWindow : public CUiContainer {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00741FAC);
-    static constexpr std::uintptr_t kInputVtableAddress = std::uintptr_t(0x00741F78);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741FAC / 00741F78.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);       // 00650C20
     void OnDoubleClick(int buttons, int x, int y);     // 00650D70
     BOOL Draw(int pass);                               // 00650920 (slot 20): slides in
@@ -3302,6 +3317,9 @@ public:
     // 00633730 and 1 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody,
     // then the memory freed when bit 0 of `flags` is set; returns this.
     CMessageBox* MessageBoxDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00742348 / 00742314.
+    static void** Vtable();
+    static void** InputVtable();
 
     mfc::CString title_;             // +0x164 the text of the title key
     mfc::CString text_;              // +0x168 the text of the text key
@@ -3329,6 +3347,9 @@ public:
     // 005F8950 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CHelpWindow* HelpWindowDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740E28 / 00740DF4.
+    static void** Vtable();
+    static void** InputVtable();
     // 00658E10 (slot 25; ui_help_window.cpp). Loads "saveload", makes a 256x256 texture, reads the
     // title and the pages (above; the keys replaced by their "tutor" texts, trailing CR / LF
     // trimmed); without the text or without pages the interface's pending value is set to 0 and
@@ -3487,6 +3508,9 @@ public:
     // the shade, frame and OK / cancel buttons as the message box's; regions OK (tip 0xC3B4),
     // cancel (0xC3B5), easy, hard.
     void Build();
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 0074225C / 00742228.
+    static void** Vtable();
+    static void** InputVtable();
 
     int easy_;                       // +0x180 1 easy, 0 hard (the default)
 };

@@ -1,6 +1,7 @@
 // The visibility fog's draw (004E1EB0: its cells as sprites through the scene renderer) and the
 // rain / snow layer's work arrays (004E3C20). A-S12; see docs/notes/renderer.md (section 12).
 #include "effects.h"
+#include "at_exit_functions.h"
 #include "figure_mesh.h"   // VertexPacket
 
 #include "clip.h"         // TLVertex
@@ -58,12 +59,12 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     if (!(WorkArrayGuards() & kSpritesConstructed)) {
         WorkArrayGuards() |= kSpritesConstructed;
         Sprites().Construct(mfc::impl::SpriteArrayClass::Vtable());
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x004E2280));
+        GameAtExit(ei::static_init::Exit004E2280);
     }
     if (!(WorkArrayGuards() & kPointsConstructed)) {
         WorkArrayGuards() |= kPointsConstructed;
         Points().Construct();
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x004E2260));
+        GameAtExit(FreePoints);   // 004E2260
     }
     Sprites().SetSize(kWorkRecords);
     Points().SetSize(kWorkRecords);

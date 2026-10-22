@@ -892,8 +892,9 @@ public:
     bool CollectFootprint(CEngineObject* object, FootprintCellSet* footprint, FootprintCellSet* bridges);
     // 005B65B0. Applies a footprint to the occluder grid (stamp, undone if a cell fails) or clears it.
     bool ApplyFootprint(FootprintCellSet* set, bool remove);
-    // 005B7820. Stamps a footprint and refreshes the passability around it.
-    bool StampFootprint(int owner, FootprintCellSet* set);
+    // 005B7820. Stamps a footprint and refreshes the passability around it; `tick` (the world's)
+    // becomes footprintTick.
+    bool StampFootprint(int tick, FootprintCellSet* set);
     // 005B78F0. Clears a footprint and refreshes the passability around it.
     bool ClearFootprint(FootprintCellSet* set);
 
@@ -1003,7 +1004,9 @@ public:
     CRegionMap regionMap;                           // +0x22F8
     LocalSearch forwardSearch;                      // +0x2594
     LocalSearch backwardSearch;                     // +0x2614
-    int lastFootprintOwner;             // +0x2694 set by StampFootprint
+    // +0x2694 the world tick of the last StampFootprint: an idle unit standing in a kind-3 occluder
+    // replans while its motion order started before it (the movement tick 00547890).
+    int footprintTick;
     SearchGrid<AIMapCell> cells;        // +0x2698 the map's cells (cells.width x cells.height)
     SearchGrid<std::uint32_t> occluders;  // +0x26A8 per-cell occluder words (see LineOfSight)
     SearchGrid<std::int8_t> marks;      // +0x26B8 per-cell marks: path directions (BuildCellsTo), reach answers
@@ -1029,7 +1032,7 @@ static_assert(offsetof(CAIMap, regionMap) == 0x22F8);
 static_assert(offsetof(CAIMap, smoother) == 0x22CC);
 static_assert(offsetof(CAIMap, forwardSearch) == 0x2594);
 static_assert(offsetof(CAIMap, backwardSearch) == 0x2614);
-static_assert(offsetof(CAIMap, lastFootprintOwner) == 0x2694);
+static_assert(offsetof(CAIMap, footprintTick) == 0x2694);
 static_assert(offsetof(CAIMap, marks) == 0x26B8);
 static_assert(sizeof(CAIMap) == 0x26C8);   // the AI events follow (Events)
 // 005B3C30 (thiscall; ai_map_construct.cpp; the world server's constructor 00589ED0). Returns self.

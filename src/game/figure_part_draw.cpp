@@ -357,9 +357,6 @@ void DrawThroughFigure(Part& part) {
     if (result != 2) part.Mesh()->flags_ |= 0x40;
 }
 
-// 005A8AE0: frees the moved positions at exit (registered by its game address, as the original does).
-constexpr std::uintptr_t kFreeMovedPositions = std::uintptr_t(0x005A8AE0);
-
 } // namespace
 
 // 005A7A70 (thiscall on the part's drawer, RET 0x1C). `lights` the light objects, `material` the
@@ -377,7 +374,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
         MovedPositions() = lib::AlignedArray<VertexPacket>{};
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kFreeMovedPositions));
+        GameAtExit(FreeMovedPositions);   // 005A8AE0
     }
 
     int visibility = device->pipeline_->ClipTest(&part.Mesh()->bounds_);

@@ -1148,7 +1148,53 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     UiWindowClass's 25 slots, and kKnownWindows / WindowReady / CSaveLoadWindow / COptionsWindow's kVtableAddress a
     mapping like WindowKinds), the camp's panels (007418E0, 00741504-00741C60, the item info panel 007404A8 /
     007404DC: named in ui_camp_create.cpp, C15's area), the console 00740034, the map spec chunk readers (C21), the
-    streams and the MFC library kind.
+    streams and the MFC library kind (batch 20 took the containers, screens, console, streams and part of the
+    library kind).
+- **Batch 20's families** (2026-10-22): the containers and screens, the console, the streams and part of the library
+  kind: 62 rows (retired 462 -> 524), 3,393 -> 2,154 code cells, game data addresses 994 -> 936.
+  - **Containers and screens** (ui_container_class.h, ui_screen_tables.cpp): `ContainerClass<Self, Delete, Screen>`
+    over UiWindowClass declares the container's 42 slots (19-24 the container's bodies, 25 / 26 `_purecall`, 27-41
+    the interface's screen news with game.exe's shared RET stubs' answers), `ItemScreenClass` adds the item screens'
+    42-54 (CItemScreen's defaults) and `ContainerInputClass` forwards the input side to UiContainerInput. `Screen`
+    is the class the slots call: the window class, a class derived from it, or a screen kept as a struct around its
+    container (CEscMenu, CCampPages, CMpHeroScreen; reached by reinterpret_cast, `ScreenAs`). UiWindowClass's
+    window slots use CUiWindow when Delete's class is no window (CMpHeroScreen). 39 tables: the container
+    00741008 (its input side 00740FD4, batch 19's, moved here), and each screen's main and input tables (battle, main menu, briefing, view, island map,
+    titles, help, objectives, Esc menu, save / load, options, message box, difficulty, master request box,
+    connection screen, plain item screen, camp, exchange, hero screen). Accessors are `X::Vtable()` /
+    `InputVtable()`, the bases' `CUiContainer::ContainerVtable()` and `CItemScreen::ItemScreenVtable()` (batch 14's
+    trap). The island map's slot 40 has its own CGlobalMap::SaveState (it was registered as the briefing's), and
+    the objectives window's slot 26 is CObjectivesWindow::RestoreAlphaRef.
+  - **The harness id** (tests/verify/harness_windows.cpp, from ui_census.cpp): `RealWindowVtable` maps each compiled
+    window table to game.exe's address of its kind. kKnownWindows became `KnownWindows()` of game.exe's main tables
+    (`ei::OriginalGameData`); WindowReady, DescribeTopWindow, waitwindow (a hex table is game.exe's address; the top
+    window's table goes through RealWindowVtable, then OriginalAddress), the camp's put-on and checkplayers compare
+    game.exe's addresses in both runs. CSaveLoadWindow / COptionsWindow lost kVtableAddress.
+  - **The console** (console.cpp): ConsoleStreambufClass in place of 00740034 (1 / 7 the console's sync and
+    overflow, 8 EOF, the rest old iostream's streambuf defaults). Only ConsoleStreambuf changed (no ConsoleWindow
+    edits). The image's harness reads each line through `console::g_consoleLineObserver` (set under
+    `ei::Standalone()`); game.exe's run still takes game.exe's sync slot.
+  - **The streams** (core_streams.cpp): StreamClass (0073BDB0, 1-6 `_purecall`), MemoryStreamClass (0073BD90 with its
+    tail 0073BD98) and QueueStreamClass (0073C960). `kStreamVtable` / `kMemoryStreamVtable` are `StreamTableName`s
+    that convert to the compiled tables, so `ei::SetVtable(stream, kMemoryStreamVtable)` in net_link.cpp and
+    world_game.cpp (C21's area) stays as it is; the queue streams' stores call `CMemoryStream::QueueStreamVtable()`.
+    The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
+    with its return address); game.exe's run still takes the Write slots.
+  - **The library kind**: MFC's CStringArray, CWordArray, CDWordArray, CByteArray, CUIntArray (mfc_coll.cpp's
+    ArrayTable) and CMapPtrToPtr (mfc_handle_map.cpp), slot 0 returning our CRuntimeClass record; the simple
+    exceptions (CResourceException, CUserException, CMemoryException, CNotSupportedException) and
+    CArchiveException (mfc_exception.cpp); the old iostream's streambuf, ios and ostream-for-ios tables
+    (crt_iostream.cpp; ostream's virtual base table is data and stays); std::exception (crt_except.cpp). CPtrArray,
+    CPtrList and ostream_withassign are retired with no class of ours (file `-`): only game.exe's constructors and
+    destructors store them, and no code of ours calls those.
+  - **Left**: the camp's panels (ui_camp_create.cpp, C15's area), the map spec chunk readers (C21), stlp_string's
+    out_of_range tables 0073B994 / 0073BE8C (their slots are unregistered game code; a throw uses game.exe's
+    ThrowInfo), the CFile family (CFile 00745DF4, CFileException 00745E4C, CStdioFile 007464F0, CMemFile 00746650,
+    CFileFind 00745EE8), the GDI and DC classes (mfc_gdi: CDC and its three subclasses, CTempDC, CPen, CRgn,
+    CTempGdiObject; CGdiObject 007463D4 and CBrush 007463C4 are stored by game code too), CHandleMap 0074685C (its
+    deleting destructor needs the handle map's destructor body), the thread, window, menu and application classes
+    and the module / thread state records (mfc_thread, mfc_window, mfc_state), CCmdUI / CTestCmdUI,
+    CCommandLineInfo, CRecentFileList, 00746E60 and type_info 007472B0 (the RTTI type descriptors point at it).
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never

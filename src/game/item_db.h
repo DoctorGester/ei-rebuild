@@ -26,23 +26,6 @@ class ChunkArchive;
 // BOOL: 0/1 in the whole of EAX, callers test all 32 bits.
 using BOOL = int;
 
-struct RecordTable {
-    char* begin;
-    char* end;
-
-    // The record at `index`, or nullptr when out of range.
-    char* RecordAt(std::uint32_t index, int stride) const {
-        std::uint32_t count = static_cast<std::uint32_t>(static_cast<int>(end - begin) / stride);
-        return index < count ? begin + index * stride : nullptr;
-    }
-};
-
-// Reads a field of a record that may be null (the original then faults reading address `offset`).
-template <typename T>
-T Field(const char* record, int offset) {
-    return *reinterpret_cast<const volatile T*>(reinterpret_cast<std::uintptr_t>(record) + offset);
-}
-
 namespace itemdb {
 
 // Record sizes.
@@ -490,10 +473,8 @@ struct NamedRecordTable {
     // of 100 buckets (193).
     void Construct();
 
-    // The name index as the game's inlined hash_map code sees it (the materials are filed under
-    // their key, +0x00).
+    // The name index (hash_map<string, record*>; the materials are filed under their key, +0x00).
     using NameIndex = stlp::hash_map<stlp::string, Record*, stlp::StringHash>;
-    NameIndex& ByName() { return *reinterpret_cast<NameIndex*>(&names); }
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range (out of line for the armour, quick item,
@@ -510,11 +491,9 @@ struct NamedRecordTable {
     // 004AB820 / 00613820 / 0069D290 / 0069D380 / 006AD580, stlp::RecordsByName::Named: a null
     // record is filed under a new name).
     Record* Named(const char* name) { return stlp::NamedSlot<Record>(names, stlp::string(name)); }
-    // The records as an untyped table (begin, end), for the code that walks any table by stride.
-    const RecordTable& Bytes() const { return reinterpret_cast<const RecordTable&>(records); }
 
     stlp::vector<Record> records;   // +0x00 begin, end, end of storage
-    stlp::NameMap names;            // +0x0C record by name
+    NameIndex names;                // +0x0C record by name
 };
 static_assert(sizeof(NamedRecordTable<ItemRecordHead>) == 0x20);
 static_assert(sizeof(NamedRecordTable<ItemRecordHead>::NameIndex) == 0x14);
@@ -542,17 +521,14 @@ struct CodeIndexedTable {
     Record* At(std::uint32_t index) const { return index < Count() ? records.begin() + index : nullptr; }
     // The index of `record` in the table, -1 for null.
     int IndexOf(const Record* record) const { return record ? static_cast<int>(record - records.begin()) : -1; }
-    // The index as the by-name lookups and the name maps see it (hash_map<string, record*>; stlp::NamedSlot).
-    stlp::NameMap& Names() { return reinterpret_cast<stlp::NameMap&>(byCode); }
     // The record filed under `code`, null when there is none (the lookups by char* code, 00613920 and
     // the like, as stlp::RecordsByName::Named: a null record is filed under a new code).
-    Record* Named(const char* code) { return stlp::NamedSlot<Record>(Names(), stlp::string(code)); }
-    // The records as the untyped tables (begin, end) of the item tables, for the code that walks
-    // any of them by stride (Spells(), SpellModifiers()).
-    const RecordTable& Bytes() const { return reinterpret_cast<const RecordTable&>(records); }
+    Record* Named(const char* code) { return stlp::NamedSlot<Record>(byCode, stlp::string(code)); }
 
+    // The index by code (hash_map<string, record*>; stlp::NamedSlot).
+    using CodeIndex = stlp::hash_map<stlp::string, Record*, stlp::StringHash>;
     stlp::vector<Record> records;   // +0x00 begin, end, end of storage
-    stlp::hash_map<stlp::string, Record*, stlp::StringHash> byCode;   // +0x0C
+    CodeIndex byCode;               // +0x0C
 };
 static_assert(sizeof(CodeIndexedTable<SpellRecord>) == 0x20);
 using SpellTable = CodeIndexedTable<SpellRecord>;
@@ -625,15 +601,6 @@ inline SpellDatabase& TheSpellDatabase() { return *g_spellDatabase; }
 inline ItemDatabase& TheItemDatabase() { return *g_itemDatabase; }
 
 static_assert(sizeof(stlp::RecordsByName) == sizeof(MaterialTable) && sizeof(stlp::RecordsByName) == sizeof(SpellTable));
-
-inline const RecordTable& Materials() { return TheItemDatabase().materials.Bytes(); }
-inline const RecordTable& Weapons() { return TheItemDatabase().weapons.Bytes(); }
-inline const RecordTable& Armors() { return TheItemDatabase().armors.Bytes(); }
-inline const RecordTable& QuickItems() { return TheItemDatabase().quickItems.Bytes(); }
-inline const RecordTable& QuestItems() { return TheItemDatabase().questItems.Bytes(); }
-inline const RecordTable& Loot() { return TheItemDatabase().loot.Bytes(); }
-inline const RecordTable& Spells() { return TheSpellDatabase().spells.Bytes(); }
-inline const RecordTable& SpellModifiers() { return TheSpellDatabase().modifiers.Bytes(); }
 
 // The records of those tables typed (null when the index is out of range).
 inline MaterialRecordHead* MaterialAt(std::uint32_t index) { return TheItemDatabase().materials.At(index); }
