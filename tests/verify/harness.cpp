@@ -500,9 +500,16 @@ __declspec(naked) void __fastcall ConsoleExecute(const char*) EI_ORIGINAL(0x005D
 
 // 00578B00 (GameSendLeave04): the client asks the server for interface screen `id` (the server answers
 // with message 7, 00669D50 -> CInterface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
-void RequestScreen(int id) { GameSendLeave04(id); }
+// In a --no-hooks run through the original address, as the one below: the functions read the worlds and the
+// interface, which that run has only in game.exe's own code and data.
+__declspec(naked) void __stdcall OriginalSendLeave04(int /*id*/) EI_ORIGINAL(0x00578B00)
+void RequestScreen(int id) { ei::Standalone() ? GameSendLeave04(id) : OriginalSendLeave04(id); }
 // 00578560 (GameSetConstructionVariable): sets player 0's "constr_current" (the constructor the camp opens with).
-void SetCurrentConstructor(float constructor) { GameSetConstructionVariable(std::bit_cast<std::uint32_t>(constructor)); }
+__declspec(naked) void __stdcall OriginalSetConstructionVariable(std::uint32_t /*value*/) EI_ORIGINAL(0x00578560)
+void SetCurrentConstructor(float constructor) {
+    auto value = std::bit_cast<std::uint32_t>(constructor);
+    ei::Standalone() ? GameSetConstructionVariable(value) : OriginalSetConstructionVariable(value);
+}
 // 004A74F0 (__thiscall on the class template vector 007AA5D8): the template of a class, null if none.
 __declspec(naked) void* __fastcall FindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
 
@@ -1874,6 +1881,16 @@ constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 require
 // Where a click finds the unit with script name `name` in this frame (client coordinates) and the
 // unit the game's pick returns there; "" or why there is no such point. `what` names the step in
 // the log and the error (null: nothing logged).
+// CWorldClient::PickAt2 (005659D0) and UnitAt (00565E40), thiscall RET 4, in a --no-hooks run through the original
+// addresses: they read the camera and the scene renderer, game.exe's own there.
+__declspec(naked) void* __fastcall OriginalPickAt2(CWorldClient*, void*, const POINT*) EI_ORIGINAL(0x005659D0)
+__declspec(naked) void* __fastcall OriginalUnitAt(CWorldClient*, void*, const POINT*) EI_ORIGINAL(0x00565E40)
+void* HarnessPickAt2(CWorldClient* world, const POINT* p) {
+    return ei::Standalone() ? static_cast<void*>(world->PickAt2(p)) : OriginalPickAt2(world, nullptr, p);
+}
+void* HarnessUnitAt(CWorldClient* world, const POINT* p) {
+    return ei::Standalone() ? static_cast<void*>(world->UnitAt(p)) : OriginalUnitAt(world, nullptr, p);
+}
 std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
     const bool byId = name[0] == '#';   // a map object: the battle screen's object pick
@@ -1907,7 +1924,8 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
         }
     }
     for (const POINT& p : candidates) {
-        void* hit = byId ? static_cast<void*>(reinterpret_cast<CWorldClient*>(world)->PickAt2(&p)) : reinterpret_cast<CWorldClient*>(world)->UnitAt(&p);
+        auto* client = reinterpret_cast<CWorldClient*>(world);
+        void* hit = byId ? HarnessPickAt2(client, &p) : HarnessUnitAt(client, &p);
         if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
             *point = p;
             *unit = hit;
