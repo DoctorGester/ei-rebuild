@@ -20,6 +20,7 @@ namespace ui_gdi { struct GameFont; }
 struct SpeechRecord;            // unit_client_models.h
 class CInterface3D;             // ui.h
 class CUiContainer;             // ui.h
+class CUiSurface;               // ui.h
 namespace acks { struct Speeches; struct EnvironmentSpeeches; }   // acks_db.h
 
 namespace console {
@@ -192,7 +193,7 @@ public:
     void DestroyBody();
 
     CInterface3D* screen_;           // +0x00 the 3D interface (its width_ and height_ in pixels)
-    void* surface_;                  // +0x04 CUiSurface while shown
+    CUiSurface* surface_;            // +0x04 while shown
     ui_gdi::GameFont* font_;         // +0x08 CFont (selected into the surface's CDC)
     CStringArray commands_;          // +0x0C commands entered (input history)
     int commandIndex_;               // +0x20 the one shown by up/down (-1 or size: none)

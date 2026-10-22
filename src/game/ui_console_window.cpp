@@ -26,7 +26,6 @@ namespace {
 
 using ui_gdi::GameDC;
 using ui_gdi::GamePen;
-using ui_gdi::SurfaceDC;
 
 // Colours and the strings the window draws (read from the exe: "> " before the input, "+" for
 // the scroll marks).
@@ -71,7 +70,7 @@ void ConsoleWindow::Show(bool shown) {
         DrawInput();
         return;
     }
-    if (CUiSurface* surface = static_cast<CUiSurface*>(surface_)) {
+    if (CUiSurface* surface = surface_) {
         surface->ReleaseContents();
         gamecrt::operator_delete(surface);
     }
@@ -335,7 +334,7 @@ void ConsoleWindow::DrawLines() {
     if (scroll_ > lines_.GetSize() - visibleLines_) scroll_ = lines_.GetSize() - visibleLines_;
     if (scroll_ < 0) scroll_ = 0;
     if (!surface_ || !font_) return;
-    SurfaceDC* surface = static_cast<SurfaceDC*>(surface_);
+    CUiSurface* surface = surface_;
     GameDC* dc = surface->GetDC();
     dc->FillSolidArea(0, 0, width_, height_ - kInputHeight, kBackground);
     void* oldFont = dc->SelectFont(font_);
@@ -369,7 +368,7 @@ void ConsoleWindow::DrawInput() {
     caret_ = Clamp(caret_, input_.GetLength());
     anchor_ = Clamp(anchor_, input_.GetLength());
     if (!surface_ || !font_) return;
-    SurfaceDC* surface = static_cast<SurfaceDC*>(surface_);
+    CUiSurface* surface = surface_;
     GameDC* dc = surface->GetDC();
     void* oldFont = dc->SelectFont(font_);
     dc->FillSolidArea(0, height_ - kInputHeight, width_, kInputHeight, kBackground);
