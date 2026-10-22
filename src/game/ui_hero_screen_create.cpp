@@ -51,7 +51,6 @@ VtablePair TradePanelVtables() { return {Vtable(0x007417A8), Vtable(0x00741774)}
 VtablePair FigureStripVtables() { return {Vtable(0x00741BF4), Vtable(0x00741C60)}; }
 
 // The objects' sizes where the class declares less (or more) than the original allocates.
-constexpr std::size_t kTradePanelSize = 0x1B8;
 constexpr std::size_t kFigureStripSize = 0x198;   // the figure strip stops before the item list
 
 constexpr int kTextureKind = 3;
@@ -91,18 +90,6 @@ CUiContainer* AsContainer(CMpHeroScreen* screen) { return &screen->window; }
 void SetVtables(CUiWindow* window, VtablePair vtables) {
     window->vtable_ = vtables.main;
     window->inputVtable_ = vtables.input;
-}
-
-// A panel of `size` bytes built on the window base, owned by `owner`, with the vtable pair; null
-// when the allocation fails.
-CUiItemPanel* NewPanel(std::size_t size, CInterface3D* ui, CUiWindow* owner, VtablePair vtables) {
-    void* memory = gamecrt::operator_new(size);
-    if (!memory) return nullptr;
-    auto* panel = static_cast<CUiItemPanel*>(memory);
-    panel->Construct(ui);
-    panel->owner_ = owner;
-    SetVtables(panel, vtables);
-    return panel;
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
@@ -239,7 +226,7 @@ void CMpHeroScreen::Create() {
     }
 
     // The description panel on the right (its item list and text arrays constructed in place).
-    auto* info = static_cast<CItemInfoPanel*>(NewPanel(sizeof(CItemInfoPanel), window.interface_, &window, ItemPanelVtables()));
+    auto* info = NewItemPanel<CItemInfoPanel>(window.interface_, &window, ItemPanelVtables());
     if (info) {
         info->ItemParty()->Construct();
         info->itemTexts_.Construct();
@@ -251,7 +238,7 @@ void CMpHeroScreen::Create() {
     descPanel_->Build(600, 100);
 
     // The hero's statistics.
-    auto* stats = reinterpret_cast<CHeroStatsPanel*>(NewPanel(sizeof(CHeroStatsPanel), window.interface_, &window, ItemPanelVtables()));
+    auto* stats = NewItemPanel<CHeroStatsPanel>(window.interface_, &window, ItemPanelVtables());
     if (stats) {
         new (&stats->title_) mfc::CString;
         stats->texts_.Construct();
@@ -263,20 +250,20 @@ void CMpHeroScreen::Create() {
     BuildPanel(stats);
 
     // The equipment (without the body) and the quick items.
-    auto* equipment = static_cast<CHeroEquipPanel*>(NewPanel(sizeof(CHeroEquipPanel), window.interface_, &window, EquipPanelVtables()));
+    auto* equipment = NewItemPanel<CHeroEquipPanel>(window.interface_, &window, EquipPanelVtables());
     weaponPanel_ = equipment;
     AsContainer(this)->AddChild(equipment);
     equipment->AddObject(texture(kItemTexture));
     equipment->Build(false);
 
-    auto* quick = static_cast<CHeroQuickStrip*>(NewPanel(sizeof(CHeroQuickStrip), window.interface_, &window, QuickStripVtables()));
+    auto* quick = NewItemPanel<CHeroQuickStrip>(window.interface_, &window, QuickStripVtables());
     spellPanel_ = quick;
     AsContainer(this)->AddChild(quick);
     quick->AddObject(texture(kItemTexture));
     quick->Build(false);
 
     // The skills for experience.
-    auto* trade = reinterpret_cast<CTradePanel*>(NewPanel(kTradePanelSize, window.interface_, &window, ItemPanelVtables()));
+    auto* trade = NewItemPanel<CTradePanel>(window.interface_, &window, ItemPanelVtables());
     if (trade) {
         trade->learnable_ = {};
         trade->perks_ = {};

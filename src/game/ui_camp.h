@@ -11,6 +11,7 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
+#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
@@ -22,7 +23,13 @@
 class CItem;
 class CParty;
 class CUnit;
+class CConstructorPage;
+class CHeroEquipPanel;
+class CHeroQuickStrip;
 class CHeroStatsPanel;
+class CRepairGrid;
+class CSpellMakerPage;
+class CTradeGrid;
 
 // The camp screens' children's vtable pairs (main, input).
 struct VtablePair {
@@ -30,6 +37,20 @@ struct VtablePair {
     void** input;
 };
 static_assert(sizeof(VtablePair) == 8 && offsetof(VtablePair, input) == 4);
+
+// A panel T of the camp or the hero screen (an item panel) built on the window base, owned by
+// `owner`, with the vtable pair; null when the allocation fails (their Creates).
+template <class T>
+T* NewItemPanel(CInterface3D* ui, CUiWindow* owner, VtablePair vtables) {
+    T* memory = gamecrt::operator_new_as<T>();
+    if (!memory) return nullptr;
+    CUiItemPanel* panel = memory;
+    panel->Construct(ui);
+    panel->owner_ = owner;
+    panel->vtable_ = vtables.main;
+    panel->inputVtable_ = vtables.input;
+    return memory;
+}
 
 // The hero panel's seven body slots: their centres (800 x 600 layout; the panel's frames and its depth clear).
 inline constexpr int kBodySlotX[7] = /*00741EC4*/ {250, 250, 250, 550, 550, 550, 550};
@@ -373,7 +394,7 @@ struct TradeRecords {
     TradeRecord* capacity;
 };
 
-class CTradePanel : public CUiWindow {
+class CTradePanel : public CUiItemPanel {
 public:
     // 00624F10 (__fastcall; window slot 18, called by the camp's and the hero screen's Create).
     // Lays the panel out at (200, 100, 600, 500): a surface, the regions (the four scroll arrows,
@@ -451,8 +472,7 @@ public:
     // The record of the hero shown (recordIndex_).
     const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 
-    std::uint8_t unused_148[4];
-    CUiWindow* owner_;               // +0x14C the camp or the hero screen (slot 51: the hero record)
+    // (CUiItemPanel's owner_ +0x14C: the camp or the hero screen; slot 51 the hero record.)
     int recordIndex_;                // +0x150 the record 00626F10 fills
     int learnableTop_;               // +0x154 first learnable row shown
     int perkTop_;                    // +0x158 first held perk shown
@@ -687,16 +707,16 @@ public:
     CHeroStatsPanel* statsPanel_;    // +0x1D8 (vtable 00741ABC)
     CItemInfoPanel* helpPanel_;      // +0x1DC (vtable 007404DC; camp help texts)
     CUiItemStrip* itemStrip_;        // +0x1E0
-    CUiWindow* equipment_;           // +0x1E4 (vtable 007418E0)
-    CUiWindow* equipment2_;          // +0x1E8 (vtable 00741844)
+    CHeroEquipPanel* equipment_;     // +0x1E4 (vtable 007418E0)
+    CHeroQuickStrip* equipment2_;    // +0x1E8 (vtable 00741844)
     CUiItemStrip* spellStrip_;       // +0x1EC
     CUiItemStrip* partStrip_;        // +0x1F0
     CTradePanel* trade_;             // +0x1F4 (vtable 007417A8)
-    CUiWindow* spellConstructor1_;   // +0x1F8 (vtable 0074170C)
-    CUiWindow* spellConstructor2_;   // +0x1FC (vtable 00741670)
-    CUiWindow* itemConstructor1_;    // +0x200 (vtable 0074170C)
-    CUiWindow* itemConstructor2_;    // +0x204 (vtable 007415D4)
-    CUiWindow* itemConstructor3_;    // +0x208 (vtable 00741538)
+    CTradeGrid* spellConstructor1_;  // +0x1F8 (vtable 0074170C)
+    CSpellMakerPage* spellConstructor2_;   // +0x1FC (vtable 00741670)
+    CTradeGrid* itemConstructor1_;   // +0x200 (vtable 0074170C)
+    CConstructorPage* itemConstructor2_;   // +0x204 (vtable 007415D4)
+    CRepairGrid* itemConstructor3_;  // +0x208 (vtable 00741538)
     int cost_;                       // +0x20C what the action costs (negative: earns)
     bool actionEnabled_;             // +0x210 the action button can be pressed
     bool actionShown_;               // +0x211
@@ -729,7 +749,7 @@ static_assert(sizeof(CCampPages) == 0x260);
 // The statistics column shared by the camp and the multiplayer hero screen (vtables 00741ABC /
 // 00741A88, 0x17C bytes; ui_hero_panels.cpp). Its owner's slot 51 gives the hero record (stats at
 // +0x20), slot 50 the hero's unit, slot 53 (hero screen) the equipment weight.
-class CHeroStatsPanel : public CUiWindow {
+class CHeroStatsPanel : public CUiItemPanel {
 public:
     // 006233C0. Shows the statistics for page `page` of the owner: 0 the body parts and the
     // weapon, 10 the new hero's points with -/+ buttons, others the plain values; rebuilds the
@@ -783,8 +803,7 @@ public:
     // (stored as float), the largest of the first six types (from 0).
     float PartArmour(int part);
 
-    std::uint8_t unused_148[4];
-    CUiWindow* owner_;               // +0x14C
+    // (CUiItemPanel's owner_ +0x14C.)
     int heroIndex_;                  // +0x150 passed to the owner's slot 50
     mfc::CString title_;             // +0x154
     int page_;                       // +0x158
