@@ -103,7 +103,7 @@ void __stdcall ConstructProtectionChecks() { ProtectionChecks().Construct(); }
 
 // 00455950.
 CWorld* CEngineObject::World() const {
-    auto* context = static_cast<CManagerContext*>(owner_->context_);
+    auto* context = owner_->context_;
     return context ? context->ThisWorld() : nullptr;
 }
 

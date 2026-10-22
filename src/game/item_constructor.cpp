@@ -374,7 +374,7 @@ BOOL CItemConstructor::Build() {
 
     item_->InitFromRecord(record);
     if (item_->GetClassId() == kClassQuick && static_cast<int>(prototype->category) == kCategoryWand) {
-        CSpellManager* spellManager = static_cast<CManagerContext*>(manager_->context_)->SpellManager();
+        CSpellManager* spellManager = manager_->context_->SpellManager();
         CSpell* spell = spellManager->CreateSpellFromText((static_cast<const QuickItemRecord*>(prototype)->text7C).GetString());
         spell_ = spell;
         item_->SetSpell(spell);
@@ -456,7 +456,7 @@ int LootTableIndex(int which, const char* name) {
 } // namespace
 
 CItem* CItemManager::CreateItem(const char* name) {
-    auto* context = static_cast<CManagerContext*>(context_);
+    auto* context = context_;
     CItemConstructor* constructor = context->ItemConstructor();
     mfc::CString extra;               // the part in brackets: "name[extra]"
     mfc::CString text(name);
@@ -538,7 +538,7 @@ EI_REPLACE_METHOD(0x006AC970, CItemManager::CreateItem);
 // --- The item manager's MakeItem (006AD000, A-H20) -------------------------------------------------
 
 CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t material, int key) {
-    CItemConstructor* constructor = static_cast<CManagerContext*>(context_)->ItemConstructor();
+    CItemConstructor* constructor = context_->ItemConstructor();
     if (static_cast<std::int16_t>(index) == -1) index = 0;
     constructor->SetManager(this);
     constructor->BeginCreateItem(kind, key);

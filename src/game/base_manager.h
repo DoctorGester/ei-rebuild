@@ -13,6 +13,7 @@
 using BOOL = int;
 
 struct FigureAnimation;   // map_object_figures.h
+class CManagerContext;    // manager_context.h
 
 // Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by
 // type, registers them by id, saves and loads the registered ones, and keeps the objects released
@@ -50,8 +51,8 @@ public:
 
     // 13: 004031B0. Keeps the context and creates (slot 2); a failed create clears the context
     // again. Returns 1 / 0.
-    virtual BOOL Init(void* context);
-    BOOL InitImpl(void* context);   // body of the slot above (registered by member pointer)
+    virtual BOOL Init(CManagerContext* context);
+    BOOL InitImpl(CManagerContext* context);   // body of the slot above (registered by member pointer)
     // 14: a new object of `type` (null when the type is unknown).
     virtual CEngineObject* NewObject(int type) = 0;
     // 15: 004034E0. Destroys and releases every object, then empties the registration tables.
@@ -99,7 +100,7 @@ public:
     // FindObject in a manager whose objects are T's.
     template <class T> T* FindObjectAs(unsigned id) const { return static_cast<T*>(FindObject(id)); }
     // 00403720. Sets context_ (as Init does).
-    void SetContext(void* context);
+    void SetContext(CManagerContext* context);
     // 004039B0. The object registered under `id` leaves the registration tables (it stays alive
     // and keeps its id); returns it, or null.
     CEngineObject* Unregister(int id);
@@ -141,9 +142,9 @@ public:
     int reservedA_;                 // +0xA0 -1 when constructed, 0 after Create; nothing reads it
     int reservedB_;                 // +0xA4 -1 when constructed, 300 after Create; nothing reads it
     int lastId_;                    // +0xA8 id most recently registered (-1 when constructed)
-    void* context_;                 // +0xAC set by Init / SetContext (the world for its managers)
+    CManagerContext* context_;      // +0xAC set by Init / SetContext (the world for its managers, a party for its own)
     // context_ as the world, for the world's managers (a party's item manager has the party).
-    CWorld* ContextAsWorld() const { return static_cast<CWorld*>(context_); }
+    template <class World = CWorld> World* ContextAsWorld() const { return static_cast<World*>(context_); }
 };
 static_assert(offsetof(CBaseManager, objects_) == 0x1C);
 static_assert(offsetof(CBaseManager, maxId_) == 0x30);
