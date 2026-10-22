@@ -25,11 +25,6 @@
 namespace {
 
 
-struct World {
-    void AddTimedObject(void* object);    // 0058E520
-};
-void World::AddTimedObject(void* object) { WorldAddTimed(this, nullptr, static_cast<CEngineObject*>(object)); }
-World* TheWorld() { return ei::GamePointer<World>(0x007AFF60); }
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
 CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
@@ -176,7 +171,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     object->localPosition_.y = f[2];
     object->localPosition_.z = f[3];
     std::memcpy(&object->range_, &f[4], 4);   // radius
-    TheWorld()->AddTimedObject(object);
+    TheServerWorld()->AddTimedObject(object);
     slot = &Lights(this)[i];
     slot->step.x = 0.0f;
     slot->step.y = 0.0f;

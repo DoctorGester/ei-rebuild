@@ -57,7 +57,7 @@ void VectorConstruct(stlp::vector<T>* v) {
 
 } // namespace
 
-ItemStock* ItemStock::Construct(void* owner) {
+ItemStock* ItemStock::Construct(CParty* owner) {
     context = owner;
     classIndex = 0;
     VectorConstruct(&armors);
