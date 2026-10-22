@@ -24,8 +24,6 @@
 
 namespace ei::vectors::crt_format {
 
-constexpr std::uintptr_t kCharClasses = 0x00797DD8;    // _pctype
-
 // Longest format, text argument or atof text, and output kept.
 constexpr std::size_t kMaxText = 0x400;
 constexpr std::size_t kMaxOutput = 0x1000;

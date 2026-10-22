@@ -87,7 +87,6 @@ REVIEWED_DATA = [
     (0x00797A58, 0x00797A58, 1, 'the CRT\'s __lc_time_curr: __lc_time_c (day and month names)'),
     (0x00797C04, 0x00797C44, 4, 'the CRT\'s lock table (_locktable, _mtinitlocks 006F0741): preallocated critical '
                                 'sections'),
-    (0x00797DD8, 0x00797DDC, 2, 'the CRT\'s _pctype and _pwctype: _ctype + 1'),
     (0x00798060, 0x00798068, 2, '_iob[0] (stdin) _ptr and _base: the static stdin buffer _bufin'),
     (0x00798BF0, 0x00798BFC, 4, 'the CRT\'s small-block heap: the region list head\'s links (to itself)'),
     (0x0079AC10, 0x0079AC10, 1, 'the CRT\'s small-block heap: the starting region (the list head)'),
@@ -131,7 +130,8 @@ REVIEWED_RDATA = [
     (0x00797888, 0x007978C4, 6, 'the CRT\'s locale categories (00797888): their names ("LC_ALL", ...)'),
     (0x00797A60, 0x00797B08, 43, 'the CRT\'s __lc_time_c: day and month names, AM / PM, the date and time formats'),
     (0x0079804C, 0x00798050, 2, 'the CRT\'s "(null)" strings of printf (narrow and wide)'),
-    (0x0079847C, 0x00798BE0, 142, 'the CRT\'s setlocale tables: language and country names'),
+    (0x0079847C, 0x007988FC, 54, 'the CRT\'s locale info table (00798470, 27 rows of 0x2C) of 006F5231, getqloc\'s '
+                                 'GetLocaleInfoA stand-in off NT (ours calls GetLocaleInfoA): language and country names'),
     (0x0079AC34, 0x0079ACBC, 17, 'the CRT\'s run-time error messages (number, text)'),
 ]
 

@@ -28,16 +28,11 @@ constexpr int kGameUmask = /*007CAADC*/ 0;
 constexpr int kGameCommitMode = /*007CADA4*/ 0;
 constexpr int kStreamCommit = 0x4000;   // _IOCOMMIT
 
-// &_iob[0..2]: the game's stdin, stdout and stderr (0x20-byte FILEs).
-const char* GameStreams() { return ei::GamePointer<const char>(0x00798060); }
-constexpr std::ptrdiff_t kGameStreamSize = 0x20;
-
-// The host stream behind a game stream pointer.
+// The host stream behind a game stream pointer (GameStream(0..2): the game's stdin, stdout and stderr).
 FILE* HostFile(const gamecrt::CrtFile* file) {
-    const auto at = reinterpret_cast<const char*>(file);
-    if (at == GameStreams()) return stdin;
-    if (at == GameStreams() + kGameStreamSize) return stdout;
-    if (at == GameStreams() + 2 * kGameStreamSize) return stderr;
+    if (file == GameStream(0)) return stdin;
+    if (file == GameStream(1)) return stdout;
+    if (file == GameStream(2)) return stderr;
     return reinterpret_cast<FILE*>(const_cast<gamecrt::CrtFile*>(file));
 }
 
