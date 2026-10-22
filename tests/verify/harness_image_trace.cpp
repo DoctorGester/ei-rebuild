@@ -155,14 +155,9 @@ private:
     bool open_ = false;
 };
 
-decltype(&::ReadFile) g_readFile;
+// WriteFile goes through its import slot (gameapi.h), so it can be wrapped; ReadFile is linked directly since C18's
+// import slots (a read into a watched page would fail: none seen, the read buffers are on the heap or the stack).
 decltype(&::WriteFile) g_writeFile;
-
-BOOL WINAPI TraceReadFile(HANDLE file, LPVOID buffer, DWORD size, LPDWORD read, LPOVERLAPPED overlapped) {
-    OpenBuffer open(buffer, size, "write", reinterpret_cast<std::uintptr_t>(_ReturnAddress()),
-                    reinterpret_cast<std::uintptr_t>(_AddressOfReturnAddress()));
-    return g_readFile(file, buffer, size, read, overlapped);
-}
 
 BOOL WINAPI TraceWriteFile(HANDLE file, LPCVOID buffer, DWORD size, LPDWORD written, LPOVERLAPPED overlapped) {
     OpenBuffer open(buffer, size, "read", reinterpret_cast<std::uintptr_t>(_ReturnAddress()),
@@ -250,8 +245,6 @@ void Install() {
     std::snprintf(line, sizeof(line), "# image trace: %u nonzero dword(s) on %u page(s) watched; ei_hook %08X\r\n", watched,
                   pages, static_cast<unsigned>(g_selfBase));
     Write(line);
-    g_readFile = gameapi::ReadFile;
-    gameapi::ReadFile = &TraceReadFile;
     g_writeFile = gameapi::WriteFile;
     gameapi::WriteFile = &TraceWriteFile;
     AddVectoredExceptionHandler(1, OnAccess);

@@ -1716,7 +1716,7 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
   recorders' counts.
 - A system call does not trap on an inaccessible page, it fails: the image trace's first suite saw WriteFile fail
   (error 1784) on a save's one-byte .data constant. Page protection tricks must open a buffer's pages around the
-  Win32 calls that take it (harness_image_trace.cpp's ReadFile / WriteFile).
+  Win32 calls that take it (harness_image_trace.cpp's WriteFile).
 - Leftover memory is not preserved (user 2026-10-15): where the original reads never-set bytes, ours writes a
   canonical value (zero) and the harness patches the original the same way (standalone-verification.md section 5).
 

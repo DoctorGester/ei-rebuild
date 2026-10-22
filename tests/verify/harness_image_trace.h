@@ -13,8 +13,8 @@
 // Cost: every access to a closed page traps, also to its dwords already seen; a page that traps more than
 // kTrapLimit times is left open (a line says so, with the dwords it had not seen yet): the script's keyword table
 // (0078B000-0078DFFF) and the CRT's character tables are such pages, so the trial covers what the trace misses there.
-// A system call that reads or writes a closed page fails instead of trapping: the import table's ReadFile / WriteFile
-// note and open the buffer's pages around the call (the saves write a one-byte constant of .data).
+// A system call that reads or writes a closed page fails instead of trapping: WriteFile's import slot notes and opens
+// the buffer's pages around the call (the saves write a one-byte constant of .data).
 
 namespace ei::verify::image_trace {
 

@@ -754,7 +754,7 @@ def main():
         return 0
     kinds = structures(img)
     cells = scan(img)
-    problems = []
+    problems = check_kept(kept_ranges(), named_ranges())   # the trial's list (C25) against the named ranges
     counts = {}
     moved = 0
     for c, v in cells:
