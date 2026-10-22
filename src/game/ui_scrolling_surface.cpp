@@ -10,6 +10,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "game_data.h"
@@ -55,9 +56,19 @@ int HeightInTwips(const CUiScrollingSurface* surface, const ui_gdi::GameDC* dc) 
 }
 } // namespace
 
+namespace {
+struct ScrollingSurfaceClass final : ei::CompiledTag<ScrollingSurfaceClass> {
+    CUiScrollingSurface* Surface() { return reinterpret_cast<CUiScrollingSurface*>(this); }
+    virtual void Draw() { Surface()->Draw(); }                                                         // 0: 0065F170
+    virtual void* DeletingDestruct(unsigned flags) { return Surface()->DeletingDestruct(flags); }       // 1: 0065EDC0
+};
+} // namespace
+
+void* CUiScrollingSurface::Vtable() { return ScrollingSurfaceClass::Vtable(); }
+
 CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT* rect) {
     ConstructOnRect(ui, rect, kSurfaceFormat);
-    vtable_ = ei::GamePointer<void>(kScrollingVtableAddress);
+    vtable_ = Vtable();
     richEditLibrary_ = nullptr;
     richEditLibrary_ = gameapi::LoadLibraryA(kRichEditLibrary);
     richEdit_ = gameapi::CreateWindowExA(0, kRichEditClass, nullptr, WS_CHILD | ES_MULTILINE, 0, 0, 0, 0, GameWindow(),
@@ -72,7 +83,7 @@ CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT
 EI_REWRITTEN(0x0065ED30, CUiScrollingSurface::Construct);
 
 void CUiScrollingSurface::DestructBody() {
-    vtable_ = ei::GamePointer<void>(kScrollingVtableAddress);
+    vtable_ = Vtable();
     gameapi::DestroyWindow(richEdit_);
     if (richEditLibrary_) {
         gameapi::FreeLibrary(richEditLibrary_);
@@ -87,7 +98,7 @@ CUiScrollingSurface* CUiScrollingSurface::DeletingDestruct(unsigned deleteFlags)
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0065EDC0, CUiScrollingSurface::DeletingDestruct);
+EI_REWRITTEN(0x0065EDC0, CUiScrollingSurface::DeletingDestruct);
 
 bool CUiScrollingSurface::Load(CMappedResource* archive, const char* name) {
     std::uint32_t size = 0;
@@ -147,7 +158,7 @@ void CUiScrollingSurface::Draw() {
     }
     UiSurfaceBlit(this);
 }
-EI_REPLACE_METHOD(0x0065F170, CUiScrollingSurface::Draw);
+EI_REWRITTEN(0x0065F170, CUiScrollingSurface::Draw);
 
 void CUiScrollingSurface::Start(float speed, char fromBelow) {
     endOffset_ = 0;

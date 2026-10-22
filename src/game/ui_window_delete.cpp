@@ -275,7 +275,7 @@ CUiWindow* CUiWindow::UiWindowDelete(unsigned flags) {
     return FreeIfAsked(this, flags);
 }
 EI_REWRITTEN(0x005FE910, CUiWindow::UiWindowDelete);
-EI_REPLACE_METHOD(0x005EE020, CUiWindow::UiWindowDelete);   // the item screens' icon window (00740444)
+EI_REWRITTEN(0x005EE020, CUiWindow::UiWindowDelete);   // the item screens' icon window (00740444)
 EI_REPLACE_METHOD(0x0060E240, CUiWindow::UiWindowDelete);   // 00741B58
 EI_REPLACE_METHOD(0x0060E260, CUiWindow::UiWindowDelete);   // the item strip (00741A1C)
 EI_REPLACE_METHOD(0x0060E2E0, CUiWindow::UiWindowDelete);   // the hero equipment (007418E0)
@@ -310,7 +310,7 @@ CChatOverlay* CChatOverlay::ChatOverlayDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005E28C0, CChatOverlay::ChatOverlayDelete);
+EI_REWRITTEN(0x005E28C0, CChatOverlay::ChatOverlayDelete);
 
 // 005EE420: the description panel (007404DC).
 CItemInfoPanel* CItemInfoPanel::ItemInfoPanelDelete(unsigned flags) {
@@ -391,7 +391,7 @@ CChatWindow* CChatWindow::ChatWindowDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x00608EB0, CChatWindow::ChatWindowDelete);
+EI_REWRITTEN(0x00608EB0, CChatWindow::ChatWindowDelete);
 
 // 0060E290: the forwarding item strip (0074197C).
 CUiItemStrip* CUiItemStrip::ForwardingStripDelete(unsigned flags) {
@@ -505,9 +505,9 @@ EI_REPLACE_METHOD(0x0063FF50, CHudPortraits::HudPortraitsDelete);
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 
 // Each is UiInput::DeleteWindow of the window class's own deleting destructor.
-EI_REPLACE_METHOD(0x005E3C80, UiInput::DeleteWindow<&CChatOverlay::ChatOverlayDelete>);
+EI_REWRITTEN(0x005E3C80, UiInput::DeleteWindow<&CChatOverlay::ChatOverlayDelete>);
 EI_REWRITTEN(0x00600AC0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x005F45F0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
+EI_REWRITTEN(0x005F45F0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REPLACE_METHOD(0x00613D50, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REPLACE_METHOD(0x00613D60, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REPLACE_METHOD(0x00613D70, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
@@ -532,7 +532,7 @@ EI_REPLACE_METHOD(0x005FC0F0, UiInput::DeleteWindow<&CTitlesScreen::TitlesDelete
 EI_REPLACE_METHOD(0x005FC0D0, UiInput::DeleteWindow<&CHelpWindow::HelpWindowDelete>);
 EI_REPLACE_METHOD(0x0060C7C0, UiInput::DeleteWindow<&CObjectivesWindow::ObjectivesDelete>);
 EI_REPLACE_METHOD(0x0060C7B0, UiInput::DeleteWindow<&CSaveLoadWindow::SaveLoadDelete>);
-EI_REPLACE_METHOD(0x0060C7D0, UiInput::DeleteWindow<&CChatWindow::ChatWindowDelete>);
+EI_REWRITTEN(0x0060C7D0, UiInput::DeleteWindow<&CChatWindow::ChatWindowDelete>);
 EI_REPLACE_METHOD(0x00613DC0, UiInput::DeleteWindow<&CUiItemStrip::ForwardingStripDelete>);
 EI_REPLACE_METHOD(0x00613DB0, UiInput::DeleteWindow<&CUiWindow::TradePanelDelete>);
 EI_REPLACE_METHOD(0x00613DF0, UiInput::DeleteWindow<&CSpellMakerPage::SpellMakerDelete>);

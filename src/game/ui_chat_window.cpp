@@ -9,6 +9,7 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "ui.h"
+#include "ui_window_class.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
 #include "unit_db.h"
@@ -30,8 +31,17 @@
 namespace {
 
 
-void** MainVtable() { return ei::GamePointer<void*>(0x00741478); }
-void** InputVtable() { return ei::GamePointer<void*>(0x00741444); }
+// The compiled tables (C19, ui_window_class.h) in place of game.exe's 00741478 / 00741444: its own update (24); the
+// input side's click (2) and mouse move (4).
+struct ChatWindowClass final : UiWindowClass<ChatWindowClass, &CChatWindow::ChatWindowDelete> {
+    void Update() override { AsWindow()->CChatWindow::Update(); }   // 24: 006095A0
+};
+struct ChatWindowInputClass final : InputSideClass<ChatWindowInputClass, &CChatWindow::ChatWindowDelete> {
+    int LeftDown(int b, int x, int y) override { return SideWindow()->OnLButtonDown(b, x, y), 0; }   // 2: 006097E0
+    int MouseMove(int b, int x, int y) override { return SideWindow()->OnMouseMove(b, x, y), 0; }    // 4: 00609900
+};
+void** MainVtable() { return static_cast<void**>(ChatWindowClass::Vtable()); }
+void** InputVtable() { return static_cast<void**>(ChatWindowInputClass::Vtable()); }
 
 // The status texts' keys, in texts_ order.
 const char* TextKey(int i) {
@@ -272,7 +282,7 @@ void CChatWindow::Update() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REPLACE_METHOD(0x006095A0, CChatWindow::Update);
+EI_REWRITTEN(0x006095A0, CChatWindow::Update);
 
 // --- 006097E0 / 00609900: the input side's left button and mouse move ---------------------------
 
@@ -312,5 +322,5 @@ void CChatWindow::OnMouseMove(int, int x, int y) {
 
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x006097E0, InputForward<&CChatWindow::OnLButtonDown>::Call);
-EI_REPLACE_METHOD(0x00609900, InputForward<&CChatWindow::OnMouseMove>::Call);
+EI_REWRITTEN(0x006097E0, InputForward<&CChatWindow::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00609900, InputForward<&CChatWindow::OnMouseMove>::Call);

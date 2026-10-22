@@ -321,6 +321,8 @@ vtable,slots,class,file,note
 0073FF74,3,PatrolPointsClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the constructors')
 0073FF80,3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
 0073FF8C,13,FearClass,src/game/ai_mode_class.h,the Fear AI mode
+007400A8,13,ChatOverlayInputClass,src/game/ui_chat_overlay.cpp,the chat overlay's input side
+007400DC,25,ChatOverlayClass,src/game/ui_chat_overlay.cpp,the multiplayer chat overlay (CChatOverlay)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 007401D0,13,InputSideBaseClass,src/game/ui_input_class.h,the base input side (also stored by game.exe's dead 005EA830 / 005EB620 and the unwind-only 005FE900)
 00740208,13,CameraInputClass,src/game/ui_camera_input.cpp,the battle camera's input side (CCameraInput)
@@ -328,6 +330,8 @@ vtable,slots,class,file,note
 00740278,13,UnitPickInputClass,src/game/ui_view_screen.cpp,the view screen's unit pick input side (UnitPickInput)
 007402AC,3,UnitPtrArrayClass,src/lib/mfc_slots.h,CArray (the interface's unit pointer arrays)
 007403F8,4,ItemTurnClass,src/game/ui_item_screen.cpp,an item's turning state (ItemTurn)
+00740410,13,UiWindowInputClass,src/game/ui_input_class.h,the item screens' icon window's input side (the plain window's)
+00740444,25,IconWindowClass,src/game/ui_item_screen.cpp,the item screens' icon window (CItemIconWindow)
 00740BE4,3,GlobalMapPathArrayClass,src/lib/mfc_slots.h,CArray (the global map's quests)
 00740BF0,3,GlobalMapPointArrayClass,src/lib/mfc_slots.h,CArray (the global map's links)
 00740BFC,3,GlobalMapZoneArrayClass,src/lib/mfc_slots.h,CArray (the global map's zones)
@@ -338,6 +342,8 @@ vtable,slots,class,file,note
 00740FE8,8,ContainerInputClass,src/game/ui_container.cpp,the container input side's tail (a byte match in 006DBE20 split it off)
 00741154,13,InertInputClass,src/game/ui_input_class.h,an inert extra input side
 00741264,3,ObjectiveExitArrayClass,src/lib/mfc_slots.h,CArray (the objectives window's exits)
+00741444,13,ChatWindowInputClass,src/game/ui_chat_window.cpp,the briefing's chat window's input side
+00741478,25,ChatWindowClass,src/game/ui_chat_window.cpp,the briefing's chat window (CChatWindow)
 00741BC0,3,ItemStripArrayClass,src/lib/mfc_slots.h,CArray (an item strip's CArray<char*>)
 007420D4,3,GlobalMapCloudsClass,src/game/global_map_clouds.cpp,the global map's clouds (CCloudNoise)
 00742464,6,TopPanelInputClass,src/game/ui_battle_setup.cpp,the HUD top panel's input side
@@ -360,6 +366,7 @@ vtable,slots,class,file,note
 00742F28,1,FormatTokenClass,src/game/ui.h,a scrolling text's format token (UiFormatToken)
 00742F30,13,TooltipInputTable,src/game/ui_tooltip.cpp,a region tooltip's input side
 00742F64,25,TooltipTable,src/game/ui_tooltip.cpp,a region's tooltip (CUiTooltip)
+00742FD8,2,ScrollingSurfaceClass,src/game/ui_scrolling_surface.cpp,the scrolling RichEdit surface (CUiScrollingSurface)
 00742FF4,3,PartyMemberArrayClass,src/game/party_lifetime.cpp,CArray (a party's unit records)
 00743000,27,PartyClass,src/game/party_lifetime.cpp,the party (CParty)
 0074306C,27,PartyBaseClass,src/game/party_lifetime.cpp,CParty's base (the manager context's getters null)
