@@ -397,10 +397,9 @@ AnimationSteps* CUnitServer::NextAnimation() {
     for (int i = 0; i < loop.size; ++i) {
         AnimationStep step = loop.data[i];
         if (step.animation == 0xFF) {
-            // A pause: an emote of its +1 byte (passed as the misaligned dword at step + 1).
-            std::uint32_t value;
-            std::memcpy(&value, reinterpret_cast<const std::uint8_t*>(&step) + 1, 4);
-            steps.AddEmote((int)value);
+            // A pause: an emote of its variant byte (the original passes the misaligned dword at
+            // step + 1; AddEmote keeps its low byte only).
+            steps.AddEmote(step.variant);
         } else if (step.variant == 0xFF) {
             AnimationStep blank{};   // SV7b2: padding 0, not a stack byte (the harness zeroes the original's)
             steps.Add(*ConstructAnimationStep(&blank));

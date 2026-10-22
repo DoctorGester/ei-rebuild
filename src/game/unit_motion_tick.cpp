@@ -203,14 +203,12 @@ void HitWhileMoving(CUnitServer* c) {
     for (int i = 0; i < current.size; ++i) {
         AnimationStep step;
         step = current.data[i];   // GetAt by value (00558920)
+        // The original passes the dwords at step + 1 / step + 0; AddEmote / AddStep keep their low
+        // byte only (the variant / the animation).
         if (step.animation == 0xFF) {
-            std::uint32_t emote;
-            std::memcpy(&emote, reinterpret_cast<const char*>(&step) + 1, 4);
-            fall.AddEmote((int)emote);
+            fall.AddEmote(step.variant);
         } else if (step.variant == 0xFF) {
-            std::uint32_t head;
-            std::memcpy(&head, &step, 4);
-            fall.AddStep((int)head, step.duration);
+            fall.AddStep(step.animation, step.duration);
         } else {
             fall.SetAtGrow(fall.size, step);
         }
