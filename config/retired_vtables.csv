@@ -505,3 +505,9 @@ vtable,slots,class,file,note
 00744264,1,PrintRecord,src/game/model.h,a prints.db record
 00744268,1,PrintRecord2,src/game/model.h,prints.db's second record type
 00744288,3,DibClass,src/game/dib.cpp,CDib
+00745F5C,3,StringArrayTable,src/lib/mfc_coll.cpp,CStringArray
+00745F78,3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
+007464B8,3,DWordArrayTable,src/lib/mfc_coll.cpp,CDWordArray
+00746560,3,ByteArrayTable,src/lib/mfc_coll.cpp,CByteArray (the terrain sectors' water materials)
+007467A0,3,UIntArrayTable,src/lib/mfc_coll.cpp,CUIntArray (slot 2 CObject's empty Serialize)
+0074689C,3,MapPtrToPtrTable,src/lib/mfc_handle_map.cpp,CMapPtrToPtr (the handle maps' maps)
