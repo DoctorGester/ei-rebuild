@@ -40,6 +40,7 @@
 
 class CParty;   // party.h
 class ChunkArchive;
+struct QuestBriefingRecord;   // quest_records.h
 
 namespace net {
 
@@ -568,9 +569,9 @@ public:
     // 00418CC0. The zone leaving command ("<zone>_2"): the host's items with the final award, then
     // the map state is dropped and the world's map cleared.
     void LeaveZone();
-    // 004191C0. Queues the host's item awards of map registry `entry` (and, with `withFinal`, the
+    // 004191C0. Queues the host's item awards of the briefing `entry` (and, with `withFinal`, the
     // final award).
-    void AwardHost(const std::uint8_t* entry, bool withFinal);
+    void AwardHost(const QuestBriefingRecord* entry, bool withFinal);
     // 00419D90. Queues an award message for `connection` (60 s delay); destroys `text`.
     void QueueAward(CRefObject* connection, int kind, float value, stlp::string text);
     // 00419A00 (net_server_files.cpp). Lists `data` under `name` (unless listed) as a file message

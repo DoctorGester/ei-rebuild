@@ -3,6 +3,7 @@
 // use (004263F0). See net_classes.h and docs/notes/network.md.
 
 #include "net_messages.h"
+#include "quest_records.h"
 #include "game_strings.h"
 #include "net_connection.h"
 #include "core_refcount.h"
@@ -90,9 +91,9 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, st
 }
 
 // 004191C0: finds the host (the first binding whose player is live and has the host flag) and,
-// when its connection is live, queues a kind 2 award for each item name of `entry` (+0x14..+0x18)
+// when its connection is live, queues a kind 2 award for each item name of `entry` (its given items)
 // and, with `withFinal`, a kind 4 award with an empty text.
-void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
+void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) {
     RefNode* sentinel = bindings_.End();
     RefNode* node = sentinel->next;
     for (;;) {
@@ -105,13 +106,13 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
     CRefObject* connection = bindings_.At(node)->ConnectionRef().ptr;
     if (!Live(connection)) return;
 
-    char** const* items = reinterpret_cast<char** const*>(entry + 0x14);   // start, finish
-    auto count = [items] { return static_cast<std::uint32_t>((items[1] - items[0])); };
+    const CStringVector& items = entry->lists[0];   // the items given
+    auto count = [&items] { return static_cast<std::uint32_t>(items.end() - items.begin()); };
     if (count() != 0) {
         std::uint32_t i = 0;
         if (count() != 0) {
             do {
-                const char* item = items[0][i];
+                const char* item = items.begin()[i].GetString();
                 QueueAward(connection, 2, 0.0f, stlp::string(item));
                 ++i;
             } while (i < count());
@@ -122,7 +123,7 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
 
 // 00418ED0: the zone completion command ("<zone>_3"). Announces the current map's title (text 7)
 // when a map message is held, then, when the map registry knows "zone_3", queues for every client
-// its share of the entry's two values (+0xC as kind 0, +0x10 as kind 1, divided by the number of
+// its share of the entry's two values (exp as kind 0, money as kind 1, divided by the number of
 // clients, at least 1) and the host's items with the final award. Then drops the map message and
 // empties the queued messages (+0x25AC), +0x25B0 and +0x2598, and queues the following zones
 // (00418530).
@@ -136,18 +137,18 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
         }
     }
 
-    std::uint8_t* entry;
+    QuestBriefingRecord* entry;
     {
         stlp::string key = stlp::Plus(*zone, game::ZoneSuffix3Text());
-        entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), key);
+        entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), key);
     }
     if (entry) {
         int count = 0;
         for (ClientNode* node = clients_->next; node != clients_; node = node->next) ++count;
         int share = count < 1 ? 1 : count;
         float value0, value1;
-        std::memcpy(&value0, entry + 0xC, 4);
-        std::memcpy(&value1, entry + 0x10, 4);
+        std::memcpy(&value0, &entry->exp, 4);
+        std::memcpy(&value1, &entry->money, 4);
         const double divisor = share;
         float award0 = static_cast<float>(value0 / divisor);
         float award1 = static_cast<float>(value1 / divisor);
@@ -188,11 +189,11 @@ void ServerSession::LeaveZone() {
             Announce(*TheInterface()->MessageText(&text, 6, mapTitle), nullptr);
         }
 
-        std::uint8_t* entry;
+        QuestBriefingRecord* entry;
         {
             stlp::string key = stlp::Plus(static_cast<MapMessage*>(holder->ptr)->text_, game::ZoneSuffix1Text());
             stlp::string lookup(key.data());
-            entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), lookup);
+            entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), lookup);
         }
         if (entry) AwardHost(entry, true);
     }
