@@ -26,7 +26,7 @@ bool CMapObject::ApplyScienceImpl(int, int) {
     game::DebugLog("Science is applied on wrong object");
     return false;
 }
-EI_REPLACE_METHOD(0x0050F0F0, CMapObject::ApplyScienceImpl);
+EI_REWRITTEN(0x0050F0F0, CMapObject::ApplyScienceImpl);
 
 void CMapObject::FreeArray(void* array, int) {
     auto* raw = static_cast<RawArray*>(array);
@@ -37,7 +37,7 @@ void CMapObject::FreeArray(void* array, int) {
     raw->maxSize = 0;
     raw->size = 0;
 }
-EI_REPLACE_METHOD(0x0050F120, CMapObject::FreeArray);
+EI_REWRITTEN(0x0050F120, CMapObject::FreeArray);
 
 int CMapObjectClientSpecific::CreateClientCompanion() {
     lightStateA = 0;
@@ -73,7 +73,7 @@ EI_REWRITTEN(0x005157E0, CMapObjectServer::DestroyServer);
 int CMapObject::CompanionQuery(int first, int second, int) {
     return companion->Query(first, second);
 }
-EI_REPLACE_METHOD(0x0050E460, CMapObject::CompanionQuery);
+EI_REWRITTEN(0x0050E460, CMapObject::CompanionQuery);
 
 // 005391B0 reads armourIds[3..6] (+0xAC..+0xB8), the slots after the three dressed ones, not
 // weaponIds (+0xBC): the name is provisional. Found when zone bz1g's units mismatched.

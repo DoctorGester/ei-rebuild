@@ -71,7 +71,7 @@ BOOL CHeroQuickStrip::Draw(int pass) {
     }
     return DrawBase(pass);
 }
-EI_REPLACE_METHOD(0x00622C10, CHeroQuickStrip::Draw);
+EI_REWRITTEN(0x00622C10, CHeroQuickStrip::Draw);
 
 // --- 00627C90: the repair grid ------------------------------------------------------------------
 
@@ -116,7 +116,7 @@ BOOL CRepairGrid::Draw(int pass) {
     ClearDepth(ui->renderer_, &whole, 1.0f);
     return 1;
 }
-EI_REPLACE_METHOD(0x00627C90, CRepairGrid::Draw);
+EI_REWRITTEN(0x00627C90, CRepairGrid::Draw);
 
 // --- 006284A0 / 00628F80: the constructors' second pages ----------------------------------------
 
@@ -242,7 +242,7 @@ BOOL CSpellMakerPage::DrawSpellMaker(int pass) {
     highlight->visible_ = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x006284A0, CSpellMakerPage::DrawSpellMaker);
+EI_REWRITTEN(0x006284A0, CSpellMakerPage::DrawSpellMaker);
 
 namespace {
 // A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
@@ -342,4 +342,4 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
     highlight->visible_ = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x00628F80, CConstructorPage::DrawItemMaker);
+EI_REWRITTEN(0x00628F80, CConstructorPage::DrawItemMaker);

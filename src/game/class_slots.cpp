@@ -188,7 +188,7 @@ EI_REPLACE(0x00446870, UnitMoveFactorsChanged);
 std::uintptr_t CMapObject::SetVisibilityModeImpl(int mode) {
     return companion->SetLightMode(mode);
 }
-EI_REPLACE_METHOD(0x004467C0, CMapObject::SetVisibilityModeImpl);
+EI_REWRITTEN(0x004467C0, CMapObject::SetVisibilityModeImpl);
 
 // ---- CItem's base bodies of slots 17-21 (vtables 00743DA4 and 0073C474) ---------------------------
 

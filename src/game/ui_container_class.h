@@ -60,8 +60,8 @@ public:
     virtual const char* HelpTopic() { return nullptr; }                               // 41: 00579680 (0)
 
 protected:
-    CUiContainer* Container() { return reinterpret_cast<CUiContainer*>(this); }
-    Screen* AsScreen() { return reinterpret_cast<Screen*>(this); }
+    CUiContainer* Container() { return this->template ObjectAs<CUiContainer>(); }
+    Screen* AsScreen() { return this->template ObjectAs<Screen>(); }
 };
 
 // The item screens' slots over the container's (game.exe's plain item screen 00740A2C, whose 25 / 26 are pure; the

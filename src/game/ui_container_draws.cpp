@@ -153,7 +153,7 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     ClearDepth(DeviceOf(this), 0, nullptr, 1.0f);
     return 1;
 }
-EI_REPLACE_METHOD(0x00622420, CHeroEquipPanel::DrawImpl);
+EI_REWRITTEN(0x00622420, CHeroEquipPanel::DrawImpl);
 
 long CObjectivesWindow::RestoreAlphaRef() {
     std::uint32_t value = savedAlphaRef_;

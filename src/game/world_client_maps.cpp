@@ -1186,7 +1186,7 @@ int CWorldClient::Setup() {
     // the class's constructor body.
     auto* texts = gamecrt::operator_new_as<CTextManager>();
     if (texts) {
-        ei::SetVtable(texts, CEngineObject::kVtableAddress);
+        ei::SetVtable(texts, CEngineObject::BaseVtable());
         texts->refCount_ = 0;
         texts->id_ = -1;
         texts->prototypeId_ = 0;

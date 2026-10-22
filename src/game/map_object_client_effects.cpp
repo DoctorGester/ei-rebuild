@@ -440,7 +440,7 @@ EI_REPLACE_METHOD(0x00511950, CMapObjectClientSpecific::ShowLight);
 
 void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {
     HideLight();
-    AssignHeld(&light, TheLightFactory()->CreateLight(kPointLight));
+    light.Assign(TheLightFactory()->CreateLight(kPointLight));
     Vector3 rgb = {colour[0], colour[1], colour[2]};
     light->SetPoint(&rgb, &rgb);
     CMapObject* mapObject = CompanionOwner(this);

@@ -32,7 +32,7 @@ template <typename Self, const CRuntimeClass* kClass>
 struct GdiObjectTable : ei::CompiledTag<Self> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }   // 0
     virtual void* DeleteScalar(unsigned flags) {                              // 1
-        return reinterpret_cast<CGdiObject*>(this)->DeletingDestruct(flags);
+        return this->template ObjectAs<CGdiObject>()->DeletingDestruct(flags);
     }
     virtual void Serialize(void*) {}                                          // 2: 00444B00
 };
@@ -41,10 +41,12 @@ struct GdiObjectTable : ei::CompiledTag<Self> {
 struct PlainGdiObjectTable final : GdiObjectTable<PlainGdiObjectTable, &kClassCGdiObject> {};
 struct BrushTable final : GdiObjectTable<BrushTable, &kClassCBrush> {};
 struct PenTable final : GdiObjectTable<PenTable, &kClassCPen> {};
+// game.exe's 0073BFB4 (0070BFBF, 00444B10): the game's CFont, whose deleting destructor the game's code holds.
+struct FontTable final : GdiObjectTable<FontTable, &kClassCFont> {};
 // CTempGdiObject (game.exe's 0074645C: 0070C08D, 0070C044): its memory goes back to the fixed allocator.
 struct TempGdiObjectTable final : GdiObjectTable<TempGdiObjectTable, &kClassCTempGdiObject> {
     void* DeleteScalar(unsigned flags) override {
-        auto* self = reinterpret_cast<CGdiObject*>(this);
+        auto* self = ObjectAs<CGdiObject>();
         self->Destruct();   // 0070C064
         if (flags & 1) TempGdiObjectAlloc().Free(self);
         return self;
@@ -91,7 +93,7 @@ struct DCTable : ei::CompiledTag<Self> {
     virtual int Escape(int, int, const char*, void*) { ei::UnportedSlot(0x006E6A68); }              // 28
 
 protected:
-    CDC* This() { return reinterpret_cast<CDC*>(this); }
+    CDC* This() { return this->template ObjectAs<CDC>(); }
 };
 // game.exe's 007461B0 (0: 0070BF7B, 1: 00708CEB).
 struct PlainDCTable final : DCTable<PlainDCTable, &kClassCDC> {
@@ -123,6 +125,7 @@ CHandleMap* MakeMap(CHandleMap*& map, BOOL create, const CRuntimeClass* objectCl
 void* CGdiObject::Vtable() { return PlainGdiObjectTable::Vtable(); }
 void* CBrush::Vtable() { return BrushTable::Vtable(); }
 void* CPen::Vtable() { return PenTable::Vtable(); }
+void* CFont::Vtable() { return FontTable::Vtable(); }
 void* CDC::Vtable() { return PlainDCTable::Vtable(); }
 
 // ---- The maps (image only)------------------------------------------------------------------------
@@ -230,7 +233,7 @@ CGdiObject* CGdiObject::DeletingDestruct(unsigned flags) {
 EI_REWRITTEN(0x00444B30, CGdiObject::Destruct);
 EI_REWRITTEN(0x00444B90, CGdiObject::Destruct);
 EI_REWRITTEN(0x005FDDE0, CGdiObject::Destruct);
-EI_REPLACE_METHOD(0x00444B10, CGdiObject::DeletingDestruct);
+EI_REWRITTEN(0x00444B10, CGdiObject::DeletingDestruct);
 EI_REPLACE_METHOD(0x00444B70, CGdiObject::DeletingDestruct);
 EI_REPLACE_METHOD(0x005FDDC0, CGdiObject::DeletingDestruct);
 EI_REWRITTEN(0x0070A060, CGdiObject::FromHandle);

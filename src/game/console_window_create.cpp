@@ -18,8 +18,6 @@ constexpr const char* kFontFace = "Courier New";
 constexpr RECT kInitialRect = {0, 0, 800, 150};
 constexpr int kHistory = 0x100;
 constexpr int kNoCommand = -1;
-// MFC CFont's vtable (an empty CGdiObject: no handle yet).
-void** FontVtable() { return ei::GamePointer<void*>(0x0073BFB4); }
 } // namespace
 
 ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
@@ -36,7 +34,7 @@ ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
     auto* font = gamecrt::operator_new_as<ui_gdi::GameFont>();
     if (font) {
         font->handle = nullptr;
-        font->vtable = FontVtable();
+        font->vtable = mfc::impl::CFont::Vtable();   // an empty CFont: no handle yet
     }
     font_ = font;
     // As the original: a failed allocation still calls CreatePointFont on null.

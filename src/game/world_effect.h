@@ -207,7 +207,7 @@ public:
 
     Vector3 color_;            // +0x14C
     float range_;              // +0x158 negative: flag 0x400 on the light
-    CLight* light_;            // +0x15C reference counted, null: none
+    HeldObject<CLight> light_; // +0x15C reference counted, null: none
     std::uint32_t lightFlags_; // +0x160 ored into the light's flags
 };
 static_assert(offsetof(CEffectPointLight, color_) == 0x14C);
@@ -245,7 +245,7 @@ public:
     float param164_;           // +0x164 copied to the source's +0x11C
     int attachedTo_;           // +0x168 object id, -1: none
     Vector3 target_;           // +0x16C moves towards it
-    CParticleSource* source_;  // +0x178 reference counted
+    HeldObject<CParticleSource> source_;   // +0x178 reference counted
     int unitId_;               // +0x17C a unit whose position is used when unpacking, -1: none
 };
 static_assert(offsetof(CEffectParticle, source_) == 0x178);
@@ -390,7 +390,7 @@ public:
     void LoadState(CStream* stream);                 // 0067C200 (slot 9)
     void SaveState(CStream* stream);                 // 0067C290 (slot 10)
 
-    CMapObject* figure_;       // +0x158 client only: the figure object (a stuff object, class 0x38, counted), null: none
+    AIRefTo<CMapObject> figure_;   // +0x158 client only: the figure object (a stuff object, class 0x38, counted), null: none
     int casterId_;             // +0x15C the shooter, -1: none
     DamageInfo hit_;           // +0x160 delivered on arrival (multiplier 1 after Reset)
 };
@@ -453,7 +453,7 @@ public:
     void Follow(int objectId);
     int Unpack(int update, DeltaField* field);    // 0067D640 (slot 21): 1
 
-    CMapObject* bird_;         // +0x14C the figure object (a stuff object, class 0x38, counted), null: none
+    AIRefTo<CMapObject> bird_;     // +0x14C the figure object (a stuff object, class 0x38, counted), null: none
     CParticleSource* source_;  // +0x150 counted, null: none
     int followedId_;           // +0x154 world object id, -1: none
     float lastTime_;           // +0x158 Update's last `now`

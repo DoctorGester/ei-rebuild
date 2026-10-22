@@ -74,7 +74,7 @@ struct ExceptionTable : ei::CompiledTag<Self> {
     virtual void Serialize(void*) {}                                          // 2: 00444B00
     virtual BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) = 0;   // 3
     virtual int ReportError(unsigned type, unsigned error) {                  // 4: 0070209C
-        return reinterpret_cast<CException*>(this)->ReportError(type, error);
+        return this->template ObjectAs<CException>()->ReportError(type, error);
     }
 };
 
@@ -84,13 +84,13 @@ struct ExceptionTable : ei::CompiledTag<Self> {
 template <typename Self, const CRuntimeClass* kClass, void(__fastcall* kDestruct)(CException*)>
 struct SimpleExceptionTable : ExceptionTable<Self, kClass> {
     void* DeleteScalar(unsigned flags) override {
-        auto* self = reinterpret_cast<CException*>(this);
+        auto* self = this->template ObjectAs<CException>();
         kDestruct(self);
         if (flags & 1) gamecrt::operator_delete(self);
         return self;
     }
     BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override {
-        return reinterpret_cast<CSimpleException*>(this)->GetErrorMessage(error, maxError, helpContext);
+        return this->template ObjectAs<CSimpleException>()->GetErrorMessage(error, maxError, helpContext);
     }
 };
 struct ResourceExceptionTable final
@@ -109,7 +109,7 @@ struct ArchiveExceptionTable final : ExceptionTable<ArchiveExceptionTable, &kCla
     }
 
 private:
-    CArchiveException* This() { return reinterpret_cast<CArchiveException*>(this); }
+    CArchiveException* This() { return ObjectAs<CArchiveException>(); }
 };
 
 // CFileException (game.exe's 00745E4C).
@@ -120,7 +120,7 @@ struct FileExceptionTable final : ExceptionTable<FileExceptionTable, &kClassCFil
     }
 
 private:
-    CFileException* This() { return reinterpret_cast<CFileException*>(this); }
+    CFileException* This() { return ObjectAs<CFileException>(); }
 };
 
 } // namespace

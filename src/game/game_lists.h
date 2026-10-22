@@ -16,11 +16,6 @@
 
 void __fastcall RefPtrRelease(RefPtr* self);                  // refptr_copies.cpp
 void __fastcall ObjectHolderRelease(CEngineObject** self);    // refptr_copies.cpp
-// HeldEngineObject::Assign on a counted field typed as an engine object's subclass (it holds a T or null).
-template <class T>
-void AssignHeld(T** holder, std::type_identity_t<T>* object) {
-    HeldEngineObject::Of(reinterpret_cast<CEngineObject**>(holder))->Assign(object);
-}
 // ObjectHolderRelease on such a field.
 template <class T>
 void ReleaseHeld(T** holder) {

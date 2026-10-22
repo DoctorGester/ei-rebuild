@@ -16,18 +16,15 @@ namespace figure {
 // 00453450 / 00453460: CFigure's class name and class id; 004547F0 / 00454800: CFakeFigure's;
 // 004547A0: a slot that answers 1.
 const char* __fastcall FigureClassName(void*) { return "CFigure"; }
-EI_REPLACE(0x00453450, FigureClassName);
+EI_REWRITTEN(0x00453450, FigureClassName);
 int __fastcall FigureClassId(void*) { return 0x44; }
-EI_REPLACE(0x00453460, FigureClassId);
+EI_REWRITTEN(0x00453460, FigureClassId);
 const char* __fastcall FakeFigureClassName(void*) { return "CFakeFigure"; }
 EI_REWRITTEN(0x004547F0, FakeFigureClassName);
 int __fastcall FakeFigureClassId(void*) { return 0x47; }
 EI_REWRITTEN(0x00454800, FakeFigureClassId);
 int __fastcall FakeFigureAnswerOne(void*) { return 1; }
 EI_REWRITTEN(0x004547A0, FakeFigureAnswerOne);
-
-// 00453470: CFigure's scalar deleting destructor (its body 0059F030).
-EI_REPLACE_METHOD(0x00453470, mfc::impl::ScalarDeleting<&FigureDestructBodyOriginal>::Delete);
 
 // 0044C490 / 00454360: a record whose only member to destroy is the CString at +4, and its scalar
 // deleting destructor.

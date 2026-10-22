@@ -898,12 +898,12 @@ struct UnitStats {
     // vitals' protection (scaled by the difficulty for units without a player), wear of the
     // weapon, then the hit location's slot (DamageSlot) or, for location 6, every slot by its
     // share. Returns whether a slot took damage (0 when nothing passed the protection).
-    int ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon);
+    int ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon);
     // 00525070. The slot of the hit's location takes each damage type through its armour layers
     // (text-key units; each layer's armour piece wears), the weapon wears, a slot may be
     // severed (-5 times its maximum) or disabled; every damage type is logged (stream 007AF284).
     // Then the hit points. Returns whether any damage passed.
-    int DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon);
+    int DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon);
 
     // unit_create_stats.cpp. 00524CD0. The current values from the bases plus the skills (15:
     // valuesB0[1] by its percentage; 23-25: the stats; unknown_044 = -2), the slot maxima from
@@ -1126,7 +1126,7 @@ static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 // 005253E0 (__fastcall). Wears `item` by `amount` (shared by its +0x48 pieces); the owner says
 // `brokenRemark` when its condition rounds to 0 or less, `wornRemark` when it drops below
 // 007C549C of its maximum.
-void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int brokenRemark, int wornRemark);
+void __fastcall WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark);
 // unit_item_lists.cpp. 0069FB60 (RET 4): `item` joins `items` and its spell (CItem +0x44) `spells`.
 void __fastcall GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item);
 // 00525720 (__stdcall; ECX is not read). Text-key units: the armour pieces covering hit location
@@ -1324,7 +1324,7 @@ public:
     std::uint32_t lightStateB;          // +0x24 the same
     EffectParticleArray particles;  // +0x28 the effect particles (SetSize 005121B0)
     EffectSoundArray sounds;        // +0x3C the looping effect sounds (SetSize 00512330)
-    CLight* light;                  // +0x50 counted
+    HeldObject<CLight> light;       // +0x50 counted
     int endSound;           // +0x54 the end sound's handle (-1 none)
 };
 static_assert(offsetof(CMapObjectClientSpecific, endSound) == 0x54);

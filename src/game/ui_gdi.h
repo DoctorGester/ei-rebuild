@@ -54,7 +54,7 @@ struct GameBrush : mfc::impl::CGdiObject {
 };
 static_assert(sizeof(GameBrush) == 8);
 
-// MFC CFont (CGdiObject: vtable 0073BFB4, m_hObject), allocated with new by the interface
+// MFC CFont (CGdiObject: CFont::Vtable(), m_hObject), allocated with new by the interface
 // (CInterface3D +0x70..+0x78) and the console window (+0x08).
 struct GameFont : mfc::impl::CFont {
     // Slot 1: CObject's virtual (scalar deleting) destructor; 1 frees the memory.

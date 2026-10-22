@@ -27,8 +27,6 @@
 namespace {
 
 // The vtables the bodies write.
-void** ItemInfoPanelVtable() { return ei::GamePointer<void*>(0x007404DC); }
-void** ItemInfoPanelInputVtable() { return ei::GamePointer<void*>(0x007404A8); }
 void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   // CArray<char*>
 void* PartyArrayVtable() { return mfc::impl::UnitPtrArrayClass::Vtable(); }       // the battle screen's party
 void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }       // CDWordArray
@@ -85,8 +83,8 @@ UiInputSide* UiInputSide::InputSideBaseDelete(unsigned flags) {
 EI_REWRITTEN(0x005EA850, UiInputSide::InputSideBaseDelete);
 
 void CItemInfoPanel::DestroyBody() {
-    vtable_ = ItemInfoPanelVtable();
-    inputVtable_ = ItemInfoPanelInputVtable();
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     skillTexts_.Destruct();
     itemTexts_.Destruct();
     PartyRecordsDestructOriginal(itemList_);
@@ -276,13 +274,13 @@ CUiWindow* CUiWindow::UiWindowDelete(unsigned flags) {
 }
 EI_REWRITTEN(0x005FE910, CUiWindow::UiWindowDelete);
 EI_REWRITTEN(0x005EE020, CUiWindow::UiWindowDelete);   // the item screens' icon window (00740444)
-EI_REPLACE_METHOD(0x0060E240, CUiWindow::UiWindowDelete);   // 00741B58
+EI_REWRITTEN(0x0060E240, CUiWindow::UiWindowDelete);   // 00741B58
 EI_REPLACE_METHOD(0x0060E260, CUiWindow::UiWindowDelete);   // the item strip (00741A1C)
-EI_REPLACE_METHOD(0x0060E2E0, CUiWindow::UiWindowDelete);   // the hero equipment (007418E0)
-EI_REPLACE_METHOD(0x0060E310, CUiWindow::UiWindowDelete);   // the quick item strip (00741844)
-EI_REPLACE_METHOD(0x0060E5B0, CUiWindow::UiWindowDelete);   // the constructors' first pages (0074170C)
-EI_REPLACE_METHOD(0x0060E650, CUiWindow::UiWindowDelete);   // the item maker (007415D4)
-EI_REPLACE_METHOD(0x0060E680, CUiWindow::UiWindowDelete);   // the repair grid (00741538)
+EI_REWRITTEN(0x0060E2E0, CUiWindow::UiWindowDelete);   // the hero equipment (007418E0)
+EI_REWRITTEN(0x0060E310, CUiWindow::UiWindowDelete);   // the quick item strip (00741844)
+EI_REWRITTEN(0x0060E5B0, CUiWindow::UiWindowDelete);   // the constructors' first pages (0074170C)
+EI_REWRITTEN(0x0060E650, CUiWindow::UiWindowDelete);   // the item maker (007415D4)
+EI_REWRITTEN(0x0060E680, CUiWindow::UiWindowDelete);   // the repair grid (00741538)
 EI_REPLACE_METHOD(0x006157D0, CUiWindow::UiWindowDelete);   // the figure strips (00741BF4)
 EI_REWRITTEN(0x00635D80, CUiWindow::UiWindowDelete);   // the game clock (007425C8)
 EI_REWRITTEN(0x00635DB0, CUiWindow::UiWindowDelete);   // the movement panel (00742530)
@@ -317,7 +315,7 @@ CItemInfoPanel* CItemInfoPanel::ItemInfoPanelDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005EE420, CItemInfoPanel::ItemInfoPanelDelete);
+EI_REWRITTEN(0x005EE420, CItemInfoPanel::ItemInfoPanelDelete);
 
 // 005F5FC0: the in-game screen (00740764).
 CBattleScreen* CBattleScreen::BattleScreenDelete(unsigned flags) {
@@ -405,21 +403,21 @@ CHeroStatsPanel* CHeroStatsPanel::StatsPanelDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0060E340, CHeroStatsPanel::StatsPanelDelete);
+EI_REWRITTEN(0x0060E340, CHeroStatsPanel::StatsPanelDelete);
 
 // 0060E3C0: the trade panel (007417A8).
 CTradePanel* CTradePanel::TradePanelDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0060E3C0, CTradePanel::TradePanelDelete);
+EI_REWRITTEN(0x0060E3C0, CTradePanel::TradePanelDelete);
 
 // 0060E5E0: the spell maker (00741670).
 CSpellMakerPage* CSpellMakerPage::SpellMakerDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0060E5E0, CSpellMakerPage::SpellMakerDelete);
+EI_REWRITTEN(0x0060E5E0, CSpellMakerPage::SpellMakerDelete);
 
 // 00618550: the multiplayer connection screen (00741CD0).
 CMpConnectScreen* CMpConnectScreen::ConnectScreenDelete(unsigned flags) {
@@ -508,20 +506,20 @@ EI_REWRITTEN(0x0063FF50, CHudPortraits::HudPortraitsDelete);
 EI_REWRITTEN(0x005E3C80, UiInput::DeleteWindow<&CChatOverlay::ChatOverlayDelete>);
 EI_REWRITTEN(0x00600AC0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REWRITTEN(0x005F45F0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x00613D50, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x00613D60, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
+EI_REWRITTEN(0x00613D50, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
+EI_REWRITTEN(0x00613D60, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REPLACE_METHOD(0x00613D70, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x00613D80, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x00613D90, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x00613DA0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x00613DD0, UiInput::DeleteWindow<&CHeroStatsPanel::StatsPanelDelete>);
-EI_REPLACE_METHOD(0x00613DE0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
+EI_REWRITTEN(0x00613D80, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
+EI_REWRITTEN(0x00613D90, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
+EI_REWRITTEN(0x00613DA0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
+EI_REWRITTEN(0x00613DD0, UiInput::DeleteWindow<&CHeroStatsPanel::StatsPanelDelete>);
+EI_REWRITTEN(0x00613DE0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REPLACE_METHOD(0x0061B210, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REWRITTEN(0x00601E70, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x005FC140, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x005FC120, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x0060C7E0, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
-EI_REPLACE_METHOD(0x005F4600, UiInput::DeleteWindow<&CItemInfoPanel::ItemInfoPanelDelete>);
+EI_REWRITTEN(0x005F4600, UiInput::DeleteWindow<&CItemInfoPanel::ItemInfoPanelDelete>);
 EI_REPLACE_METHOD(0x005FC0E0, UiInput::DeleteWindow<&CBattleScreen::BattleScreenDelete>);
 EI_REPLACE_METHOD(0x005FC0C0, UiInput::DeleteWindow<&CItemScreen::ItemScreenDelete>);
 EI_REPLACE_METHOD(0x005FC100, UiInput::DeleteWindow<&CItemScreen::CampScreenDelete>);
@@ -534,8 +532,8 @@ EI_REPLACE_METHOD(0x0060C7C0, UiInput::DeleteWindow<&CObjectivesWindow::Objectiv
 EI_REPLACE_METHOD(0x0060C7B0, UiInput::DeleteWindow<&CSaveLoadWindow::SaveLoadDelete>);
 EI_REWRITTEN(0x0060C7D0, UiInput::DeleteWindow<&CChatWindow::ChatWindowDelete>);
 EI_REPLACE_METHOD(0x00613DC0, UiInput::DeleteWindow<&CUiItemStrip::ForwardingStripDelete>);
-EI_REPLACE_METHOD(0x00613DB0, UiInput::DeleteWindow<&CTradePanel::TradePanelDelete>);
-EI_REPLACE_METHOD(0x00613DF0, UiInput::DeleteWindow<&CSpellMakerPage::SpellMakerDelete>);
+EI_REWRITTEN(0x00613DB0, UiInput::DeleteWindow<&CTradePanel::TradePanelDelete>);
+EI_REWRITTEN(0x00613DF0, UiInput::DeleteWindow<&CSpellMakerPage::SpellMakerDelete>);
 EI_REPLACE_METHOD(0x0061B220, UiInput::DeleteWindow<&CMpConnectScreen::ConnectScreenDelete>);
 EI_REPLACE_METHOD(0x00620300, UiInput::DeleteWindow<&CMasterRequestBox::MasterRequestBoxDelete>);
 EI_REPLACE_METHOD(0x0062B770, UiInput::DeleteWindow<&COptionsWindow::OptionsWindowDelete>);

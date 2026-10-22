@@ -146,10 +146,10 @@ public:
     void* link_;
     // The link as the world server makes it (CItemLink, below; null when there is none).
     CItemLink* ServerLink() const;
-    // +0x20 / +0x24 the condition and its maximum (float bits; both from the prototype's
-    // condition): at 0 or below (rounded) the item is broken.
-    std::uint32_t condition_;
-    std::uint32_t conditionMax_;
+    // +0x20 / +0x24 the condition and its maximum (both from the prototype's; -1 bits, a NaN,
+    // until then): at 0 or below (rounded) the item is broken.
+    float condition_;
+    float conditionMax_;
     float charge_;                // +0x28
     float chargeMax_;             // +0x2C prototype +0x40
     float chargeRate_;            // +0x30 0.001 by default

@@ -92,8 +92,8 @@ class CBaseManager;   // base_manager.h
 
 // The side-specific half of a 3D object (CObject3D + 0x94): CObject3DClientSpecific (class id
 // 0x37; map_object_shadow.h) on the client, CObject3DServer (0x38, stubs) on the server. Only the
-// slots the rewritten code calls are named; the classes themselves do not derive from this
-// declaration, the 3D object reaches its half through CObject3D::Specific(). Their constructors
+// slots the rewritten code calls are named; CObject3DClientSpecific derives from this declaration
+// (the server half has no class), the 3D object reaches its half through CObject3D::Specific(). Their constructors
 // and destructors store compiled tags' tables (object3d_halves.cpp, C19) in place of game.exe's
 // 0073DEFC (the base half's, BaseVtable), 0073DFBC (the server's, ServerVtable) and 0073DE90 (the
 // client's, CObject3DClientSpecific::Vtable).
@@ -375,7 +375,7 @@ inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedR
 // CollectVisible sets to the position in view space, local rotation +0x34, world rotation +0x44).
 class CObject3D : public CTransformObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DDD4);
+    static void* Object3DVtable();   // the compiled 0073DDD4 (map_object_tables.cpp)
 
     ~CObject3D() override;   // 00515D70's work without the vtables (map_object_lifetime.cpp)
     int Create() override { return Create3D(); }          // 2: 00515F70

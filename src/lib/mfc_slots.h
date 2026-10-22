@@ -168,16 +168,15 @@ struct SerializeTarget<void (T::*)(CArchive*)> {
 };
 
 template <typename Self, auto Destroy, auto Store>
-class CompiledCollection {
+class CompiledCollection : public ei::CompiledTag<Self> {
 public:
-    static void* Vtable() { return CompiledVtable<Self>(); }
 
     virtual const CRuntimeClass* GetRuntimeClass() const { return ObjectRuntimeClass(); }   // 0
     virtual ~CompiledCollection() {                                                         // 1
-        Destroy(reinterpret_cast<typename DestructTarget<decltype(Destroy)>::Type*>(this));
+        Destroy(this->template ObjectAs<typename DestructTarget<decltype(Destroy)>::Type>());
     }
     virtual void Serialize(CArchive& archive) {                                             // 2
-        (reinterpret_cast<typename SerializeTarget<decltype(Store)>::Type*>(this)->*Store)(&archive);
+        (this->template ObjectAs<typename SerializeTarget<decltype(Store)>::Type>()->*Store)(&archive);
     }
 
     static void operator delete(void* p) { gamecrt::operator_delete(p); }

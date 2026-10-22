@@ -22,6 +22,7 @@
 #include "item.h"
 #include "map_object.h"
 #include "map_spec.h"
+#include "map_spec_class.h"
 #include "player_messages.h"
 #include "server_specific_manager.h"
 #include "torch.h"
@@ -82,7 +83,7 @@ __declspec(naked) void __fastcall MessageDestructBase(void*, void*) EI_ORIGINAL(
 
 // The inlined destructor of the message: its own members, then the base's (0046AEB0).
 void DestroyMessage(UnitSpec* message) {
-    ei::SetVtable(message, worlddata::kUnitSpecVtable);
+    ei::SetVtable(message, UnitSpec::Vtable());
     for (int i = 4; i >= 0; --i) message->record.lists[i].Destruct();
     message->prototype.~CString();
     // The CRT's eh vector destructor iterator (006E859F): each behaviour record's destructor
@@ -341,7 +342,7 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     lib::InPlace<ObjectSpec> storage;
     auto* message = storage.Get();
     message->ObjectSpecConstruct();
-    ei::SetVtable(message, worlddata::kQuickEffectSpecVtable);
+    ei::SetVtable(message, ObjectSpec::Vtable());   // game.exe's twin 0073FA58
     message->base.kind = kQuickEffectType;
     message->texture = worlddata::QuickEffectPrototype();
     message->base.id = -1;

@@ -517,12 +517,20 @@ bool ReadTimed(CEngineObject* o, Builder& b) {
     return true;
 }
 
+// Whether a missile is a cast spell: its table is game.exe's 0074399C in game.exe's run, the compiled one
+// (CSpellEffect::Vtable) in the image's.
+bool IsSpellEffect(const CSpellEffect* e) {
+    const void* vtable;
+    std::memcpy(&vtable, static_cast<const void*>(e), 4);
+    return vtable == (ei::Standalone() ? CSpellEffect::Vtable() : &ei::OriginalGameData<const std::uint8_t>(0x0074399C));
+}
+
 // A missile of the server's list (a CSpellEffect, spell.h: a spell on its way or lasting). Its
 // visual (the flying CEffectArrow, a wall, a cloud) is a timed object: "timed<visual>".
 std::string DescribeMissile(const CSpellEffect* e) {
-    std::uint32_t vtable;
-    std::memcpy(&vtable, static_cast<const void*>(e), 4);
-    if (vtable != ei::GameAddress(CSpellEffect::kVtableAddress)) {
+    if (!IsSpellEffect(e)) {
+        std::uint32_t vtable;
+        std::memcpy(&vtable, static_cast<const void*>(e), 4);
         char text[24];
         std::snprintf(text, sizeof(text), "vtable 0x%08X", unsigned(ei::OriginalAddress(vtable)));
         return text;
@@ -531,9 +539,7 @@ std::string DescribeMissile(const CSpellEffect* e) {
 }
 
 void ReadMissile(const CSpellEffect* e, Builder& b) {
-    std::uint32_t vtable;
-    std::memcpy(&vtable, static_cast<const void*>(e), 4);
-    if (vtable != ei::GameAddress(CSpellEffect::kVtableAddress)) return;   // not a CSpellEffect: its description says so
+    if (!IsSpellEffect(e)) return;   // not a CSpellEffect: its description says so
     b.Int("state", e->state);
     b.Bits("flags", e->flags);
     b.Vector("pos.x", "pos.y", "pos.z", e->position);

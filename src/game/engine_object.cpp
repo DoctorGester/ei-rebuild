@@ -1,9 +1,10 @@
-// CEngineObject: the default slots of its vtable (0073B8E0) and its non-virtual members. See
+// CEngineObject: the default slots of its vtable (game.exe's 0073B8E0, compiled: BaseVtable) and its non-virtual members. See
 // engine_object.h. Slots 5, 6, 9 and 10 (00402CC0, 00402CD0, 00402D00, 00402D10) are shorter than
 // the hook's jump and stay original.
 #include "engine_object.h"
 
 #include "base_manager.h"
+#include "engine_object_class.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -55,7 +56,7 @@ CEngineObject* CEngineObject::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00402D20, CEngineObject::DeletingDestruct);
+EI_REWRITTEN(0x00402D20, CEngineObject::DeletingDestruct);
 // S13: CParty's base (vtable 0074306C slot 0); its body 0055ED90 is a jump to 00455930.
 EI_REWRITTEN(0x006611B0, CEngineObject::DeletingDestruct);
 
@@ -69,8 +70,10 @@ CBaseManager* CEngineObject::SetOwner(CBaseManager* owner) {
 }
 EI_REWRITTEN(0x00455970, CEngineObject::SetOwner);
 
+void* CEngineObject::BaseVtable() { return EngineObjectBaseClass::Vtable(); }
+
 void CEngineObject::DestructBase() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, BaseVtable());
     owner_ = nullptr;
 }
 EI_REWRITTEN(0x0055ED90, CEngineObject::DestructBase);

@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -83,7 +84,7 @@ CSpellEffect* CSpellEffect::Construct() {
     sound = nullptr;
     light = nullptr;
     position = Vector3{0.0f, 0.0f, 0.0f};
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     timer = 0;
     world = nullptr;
     flags = 0;
@@ -94,7 +95,7 @@ CSpellEffect* CSpellEffect::Construct() {
 EI_REWRITTEN(0x0067E510, CSpellEffect::Construct);
 
 void CSpellEffect::Destruct() {
-    SetVtable(this, kVtableAddress);
+    SetVtable(this, Vtable());
     if (footprintStamped) UpdateFootprint(static_cast<int>(Spell()->prototypeId_ >> 16), 0);
     if (visual) world->RemoveTimedObject(static_cast<unsigned>(visual->id_));
     Drop(visual);
@@ -118,30 +119,29 @@ CSpellEffect* CSpellEffect::DeletingDestruct(unsigned deleteFlags) {
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0067E5B0, CSpellEffect::DeletingDestruct);
+EI_REWRITTEN(0x0067E5B0, CSpellEffect::DeletingDestruct);
+
+namespace {
+// game.exe's 0074399C compiled (C19).
+struct SpellEffectClass final : ei::CompiledDeleter<SpellEffectClass, &CSpellEffect::DeletingDestruct> {
+    virtual void Serialize(ChunkArchive*) {}   // 1: 00412580 (empty)
+};
+} // namespace
+
+void* CSpellEffect::Vtable() { return SpellEffectClass::Vtable(); }
 
 // --- A-H25: the cast's start values and the object it forgets ------------------------------------
 
-namespace {
-// A counted pointer takes `object`: nothing when it holds it already; else the held one released,
-// the new one counted.
-template <class T>
-void AssignCounted(T*& slot, T* object) {
-    if (object == slot) return;
-    if (slot) slot->Release();
-    slot = nullptr;
-    if (object) ++object->refCount_;
-    slot = object;
-}
-} // namespace
+// The caster and the target are counted references (AIRefTo::Assign: nothing when it holds the
+// object already; else the held one released, the new one counted).
 
 void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster, const Vector3* newPosition,
                         CMapObject* newTarget, const Vector3* newTargetPoint, std::uint8_t flagA4) {
     spell->CopyTo(Spell());   // 0068B370
     world = newWorld;
     position = *newPosition;
-    AssignCounted(caster, newCaster);
-    AssignCounted(target, newTarget);
+    caster.Assign(newCaster);
+    target.Assign(newTarget);
     targetPoint = *newTargetPoint;
     state = 0;
     silentEnd = flagA4;

@@ -52,7 +52,7 @@ void UnitStats::RebuildArmourLayers(CUnit* unit) {
     for (int i = 0; i < kArmourSlots; ++i) {
         CItemArmor* piece = unit->armor[i];   // 00530830
         if (!piece) continue;
-        float condition = std::bit_cast<float>(piece->condition_);
+        float condition = piece->condition_;
         if (x87::RoundToInt(condition) > 0) AddArmourLayer(piece);   // FISTP: to nearest
     }
 }

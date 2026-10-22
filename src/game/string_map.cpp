@@ -86,8 +86,8 @@ EI_REPLACE_METHOD(0x00444690, CDebugPanel::Destruct);
 namespace {
 // The panel's table: the compiler's (C19; game.exe's 0073BFA4, the same slots): 0 Set, 1 Remove.
 struct DebugPanelClass final : ei::CompiledTag<DebugPanelClass> {
-    virtual void Set(const char* key, const char* value) { reinterpret_cast<CDebugPanel*>(this)->Set(key, value); }   // 0
-    virtual void Remove(const char* key) { reinterpret_cast<CDebugPanel*>(this)->Remove(key); }                       // 1
+    virtual void Set(const char* key, const char* value) { ObjectAs<CDebugPanel>()->Set(key, value); }   // 0
+    virtual void Remove(const char* key) { ObjectAs<CDebugPanel>()->Remove(key); }                       // 1
 };
 } // namespace
 
@@ -105,8 +105,7 @@ namespace {
 // The interface's panel rectangle (005F7DA0, patched by Rebirth: through its address), the panel
 // surface's constructor and destructor body.
 
-// MFC CFont's vtable (0073BFB4) and the panel's font face (007842C8).
-constexpr std::uintptr_t kFontVtable = std::uintptr_t(0x0073BFB4);
+// The panel's font face (007842C8).
 const char* FontFace() { return "Courier New"; }
 
 void DrawString(ui_gdi::GameDC* dc, const stlp::string& s, RECT* rect) {
@@ -123,7 +122,7 @@ void CDebugPanel::Init(CInterface3D* ui) {
     auto* font = gamecrt::operator_new_as<ui_gdi::GameFont>();
     if (font) {
         font->handle = nullptr;
-        font->vtable = ei::GamePointer<void*>(kFontVtable);
+        font->vtable = mfc::impl::CFont::Vtable();
     }
     font_ = font;
     if (!font->CreatePointFont(0x5A, FontFace(), nullptr)) {

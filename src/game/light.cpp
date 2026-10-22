@@ -57,7 +57,7 @@ CLight* CLight::Construct() {
 EI_REWRITTEN(0x0068CED0, CLight::Construct);
 
 void CLight::Destruct() {
-    ei::SetVtable(this, CTransformObject::kVtableAddress);
+    ei::SetVtable(this, CTransformObject::BaseVtable());
     DestructBase();
 }
 EI_REPLACE_METHOD(0x0068CFE0, CLight::Destruct);

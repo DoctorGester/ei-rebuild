@@ -75,7 +75,7 @@ EI_REWRITTEN(0x0042BF00, Chunk::Advance);
 void Chunk::OnChunk() {}   // 0042BEE0 (short_functions.cpp)
 
 void* Chunk::File() { return parent_ ? parent_->File() : nullptr; }
-EI_REPLACE(0x0042BF40, ChunkFileHook);
+EI_REWRITTEN(0x0042BF40, ChunkFileHook);
 
 // --- Writing -----------------------------------------------------------------------------------
 

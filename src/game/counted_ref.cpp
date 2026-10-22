@@ -1,6 +1,8 @@
-// A counted reference to an engine object (AIRef, unit_ai.h; the map objects, the AI, the traps and
-// the unit controller keep these): reset 0052B030 (0052B050 is an identical instantiation), assign
-// 0052A8F0, load 0050E220 and save 0050E290 by object id (A-U6).
+// A counted reference to an engine object (AIRefTo<T>, unit_ai.h; the map objects, the AI, the traps,
+// the effects and the unit controller keep these): reset 0052B030 (0052B050 is an identical
+// instantiation), assign 0052A8F0, load 0050E220 and save 0050E290 by object id (A-U6). The bodies
+// are one template, instantiated below for the classes the fields hold; AIRef's (CEngineObject) are
+// the registered ones.
 #include "unit_ai.h"
 
 #include "base_manager.h"
@@ -12,25 +14,25 @@ namespace {
 constexpr int kNoObject = -1;
 }
 
-void AIRef::Reset() {
-    if (object) object->Release();
+// The count and the release are the engine object's (seen through the base, whatever T declares).
+template <typename T>
+void AIRefTo<T>::Reset() {
+    if (CEngineObject* held = object) held->Release();
     object = nullptr;
 }
-EI_REPLACE_METHOD(0x0052B030, AIRef::Reset);
-EI_REWRITTEN(0x0052B050, AIRef::Reset);
-EI_REWRITTEN(0x00558CE0, AIRef::Reset);
 
-void AIRef::Assign(CEngineObject* newObject) {
+template <typename T>
+void AIRefTo<T>::Assign(T* newObject) {
     if (newObject == object) return;
-    if (object) object->Release();
+    if (CEngineObject* held = object) held->Release();
     object = nullptr;
-    if (newObject) ++newObject->refCount_;
+    if (CEngineObject* taken = newObject) ++taken->refCount_;
     object = newObject;
 }
-EI_REWRITTEN(0x0052A8F0, AIRef::Assign);
 
 // The id read; -1 drops the object, any other is looked up in the world's map object manager.
-void AIRef::Load(CStream* stream, CWorld* world) {
+template <typename T>
+void AIRefTo<T>::Load(CStream* stream, CWorld* world) {
     int id;
     stream->Read(&id, 4);
     if (id == kNoObject) {
@@ -38,14 +40,32 @@ void AIRef::Load(CStream* stream, CWorld* world) {
         return;
     }
     auto* manager = world->MapObjectManager();
-    Assign(manager->FindObject(static_cast<unsigned>(id)));
+    Assign(manager->FindObjectAs<T>(static_cast<unsigned>(id)));
 }
-EI_REWRITTEN(0x0050E220, AIRef::Load);
 
-void AIRef::Save(CStream* stream) {
+template <typename T>
+void AIRefTo<T>::Save(CStream* stream) {
     int id = object ? object->id_ : kNoObject;
     stream->Write(&id, 4);
 }
+
+template struct AIRefTo<CEngineObject>;
+// The typed references (the AI's map objects and units, the effects' figures): the four members
+// (DeleteScalar is AIRef's alone).
+template void AIRefTo<CMapObject>::Reset();
+template void AIRefTo<CMapObject>::Assign(CMapObject*);
+template void AIRefTo<CMapObject>::Load(CStream*, CWorld*);
+template void AIRefTo<CMapObject>::Save(CStream*);
+template void AIRefTo<CUnit>::Reset();
+template void AIRefTo<CUnit>::Assign(CUnit*);
+template void AIRefTo<CUnit>::Load(CStream*, CWorld*);
+template void AIRefTo<CUnit>::Save(CStream*);
+
+EI_REPLACE_METHOD(0x0052B030, AIRef::Reset);
+EI_REWRITTEN(0x0052B050, AIRef::Reset);
+EI_REWRITTEN(0x00558CE0, AIRef::Reset);
+EI_REWRITTEN(0x0052A8F0, AIRef::Assign);
+EI_REWRITTEN(0x0050E220, AIRef::Load);
 EI_REWRITTEN(0x0050E290, AIRef::Save);
 
 // 0052AF20 (fastcall: ECX the list, EDX the stream; RET 4; A-U12): a count read, then that many
@@ -56,7 +76,7 @@ void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream
     stream->Read(&count, 4);
     while (count-- > 0) {
         auto* node = list->AddTail(nullptr);
-        AIRef::Of(&node->data)->Load(stream, context);
+        AIRefTo<CUnit>::Of(&node->data)->Load(stream, context);
     }
 }
 EI_REWRITTEN(0x0052AF20, CountedListLoad);

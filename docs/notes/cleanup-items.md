@@ -11,7 +11,7 @@ How the item family is declared after the cleanup (`item*.h` / `item_*.cpp`, `it
   cast to `CStream*`); slots 13-21 are new virtuals: `InitFromRecord`, `IsSameAs(CItem*)`, `CopyTo`, `GetPrice`, `ModelName`, `FirstListName`,
   `FigureName`, `PictureName`, `GetUse` (the names return `mfc::CString` by value: the slot builds in the caller's result). Each rewritten slot is
   registered through a file-local `...Hook` shim calling the qualified member (rule 4).
-- CItem fields: `link_`, `condition_` / `conditionMax_` (float bits), `charge_` / `chargeMax_` / `chargeRate_`, `weight_` (float bits, `Weight()`),
+- CItem fields: `link_`, `condition_` / `conditionMax_` (floats; unit_hits' WearItem takes the `CItem*`), `charge_` / `chargeMax_` / `chargeRate_`, `weight_` (float bits, `Weight()`),
   `price_`, `magicLevel_`, `spell_` (a `CSpell*`), `count_`. Weapon `reach_`, quest item `questItemId_`. Quest and loot follow the game's names: 007C8778
   holds the loot records and the quest items are their own table.
 - `CItemConstructor` (00744020): `Create` / `Destroy` overrides. `CItemManager` (0073F25C): `Create` and `NewObject` overrides with file-local hooks.

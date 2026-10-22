@@ -376,9 +376,9 @@ void CItemInfoPanel::DescribeItem() {
 
     if (kind == kArmor || kind == kWeapon) {
         // The condition (current only when positive: FCOMP; TEST AH,0x41).
-        float current = FloatOf(item->condition_);
+        float current = item->condition_;
         int condition = current > 0.0f ? FtolOf(current) : 0;
-        int maximum = FtolOf(FloatOf(item->conditionMax_));
+        int maximum = FtolOf(item->conditionMax_);
         w.line.Format("%s %d/%d", w.T(3).GetString(), condition, maximum);
         w.Text(w.line);
         w.Down();
@@ -1055,9 +1055,9 @@ CItemInfoPanel* PanelOf(void* input) { return reinterpret_cast<CItemInfoPanel*>(
 // 005EE6B0 (input slot 1): redraws the description.
 void __fastcall InfoPanelRefresh(void* input) { PanelOf(input)->DescribeItem(); }
 } // namespace
-EI_REPLACE(0x005EE6B0, InfoPanelRefresh);
-EI_REPLACE_METHOD(0x005EE640, InputForward<&CItemInfoPanel::OnKeyDown>::Call);
-EI_REPLACE_METHOD(0x005EE680, InputForward<&CItemInfoPanel::OnKeyUp>::Call);
+EI_REWRITTEN(0x005EE6B0, InfoPanelRefresh);
+EI_REWRITTEN(0x005EE640, InputForward<&CItemInfoPanel::OnKeyDown>::Call);
+EI_REWRITTEN(0x005EE680, InputForward<&CItemInfoPanel::OnKeyUp>::Call);
 
 // --- 005EE440: Build ------------------------------------------------------------------------------
 

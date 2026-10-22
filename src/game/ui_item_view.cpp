@@ -382,7 +382,7 @@ BOOL CItemInfoPanel::Draw(int pass) {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x005EE5C0, CItemInfoPanel::Draw);
+EI_REWRITTEN(0x005EE5C0, CItemInfoPanel::Draw);
 
 // --- 005ED7B0: a hero's face ------------------------------------------------------------------------
 

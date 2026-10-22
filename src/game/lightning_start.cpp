@@ -137,7 +137,6 @@ void DropTexture(HeldTexture& slot) {
     slot = nullptr;
     if (old) old->Release();
 }
-void SetVtable(void* object, std::uintptr_t vtable) { ei::SetVtable(object, ei::GamePointer<const void>(vtable)); }
 } // namespace
 
 // 00468680 (CLightningManager slot 14, the object factory; `type` is not used): a new bolt (the
@@ -146,7 +145,7 @@ void SetVtable(void* object, std::uintptr_t vtable) { ei::SetVtable(object, ei::
 CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
     auto* bolt = gamecrt::operator_new_as<CLightning>();
     if (!bolt) return nullptr;
-    SetVtable(bolt, CEngineObject::kVtableAddress);
+    ei::SetVtable(bolt, CEngineObject::BaseVtable());
     bolt->refCount_ = 0;
     bolt->id_ = -1;
     bolt->prototypeId_ = 0;

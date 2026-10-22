@@ -18,18 +18,21 @@ class CManagerContext;    // manager_context.h
 // Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by
 // type, registers them by id, saves and loads the registered ones, and keeps the objects released
 // to it as spares of their type for reuse. Name from the game's own error strings
-// ("CBaseManager::RegisterInstant"). vtable 0073B870, 25 slots (0-12 as CEngineObject's; 11, 12
-// and 14 are _purecall there). base_manager.cpp, base_manager_core.cpp. Managers are still made
-// by the constructor bodies (ConstructBase, then their vtable); a derived class with real C++
-// constructors (C19; CTextureManager) gets the compiler's vtables, this class's a replica of
-// 0073B870 (every slot defined) that its destructor runs with.
+// ("CBaseManager::RegisterInstant"). game.exe's vtable 0073B870, 25 slots (0-12 as CEngineObject's;
+// 11, 12 and 14 are _purecall there), is retired (C19): the constructor and destructor bodies
+// (ConstructBase, DestructBody; no code of ours calls ConstructBase) store BaseVtable(), the
+// compiled table with the same slots (base_manager.cpp's BaseManagerClass). base_manager.cpp,
+// base_manager_core.cpp. Every derived manager has real C++ constructors (C19; CTextureManager) and
+// the compiler's vtables; this class's own (every slot but 14 defined) is what its destructor runs
+// with.
 class CBaseManager : public CEngineObject {
 public:
     // 00512F60 (combat_order_setters.cpp, RET 8). The animation `name` (case-insensitive) in the
     // database "<figure>.adb" of this manager (the world's map object manager), or null; a missing
     // database is reported to the debug log.
     FigureAnimation* FindFigureAnimation(const mfc::CString& figure, const char* name);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073B870);
+    // The table the constructor and destructor bodies store (game.exe's 0073B870, compiled).
+    static void* BaseVtable();
 
     using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;
     using ObjectList = mfc::CTypedPtrList<CEngineObject>;

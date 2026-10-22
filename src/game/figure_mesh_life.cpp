@@ -9,6 +9,7 @@
 
 #include "figure_manager.h"
 #include "figure_mesh.h"
+#include "engine_object_class.h"
 #include "item.h"
 #include "link_figure.h"
 #include "originals_core.h"
@@ -51,7 +52,7 @@ CFigureMesh* CFigureMesh::ConstructBase() {
     new (&name_) mfc::CString();
     new (&directory_) mfc::CString();
     SetUpFigure();
-    ei::SetVtable(this, kBaseVtableAddress);
+    ei::SetVtable(this, BaseVtable());
     CreateMesh();
     return this;
 }
@@ -78,7 +79,7 @@ int CFigureMesh::CreateMesh() {
     std::memset(&boxPivot_, 0, sizeof(boxPivot_));
     return 1;
 }
-EI_REPLACE_METHOD(0x0059F210, CFigureMesh::CreateMesh);
+EI_REWRITTEN(0x0059F210, CFigureMesh::CreateMesh);
 
 // 005A6C70 / 005A6E00: the jumps of the figure classes' slot 2 to CreateMesh (through its address,
 // so its check runs).
@@ -105,7 +106,7 @@ void CFigureMesh::Clear() {
     drawer_ = nullptr;
     flags_ = 0;
 }
-EI_REPLACE_METHOD(0x0059F2B0, CFigureMesh::Clear);
+EI_REWRITTEN(0x0059F2B0, CFigureMesh::Clear);
 
 void CPlainFigureMesh::ClearMesh() {
     vertices_.SetSize(0);
@@ -135,16 +136,23 @@ void CFigureMesh::TearDownFigure() {
 }
 
 void CFigureMesh::DestructBase() {
-    ei::SetVtable(this, kBaseVtableAddress);
+    ei::SetVtable(this, BaseVtable());
     TearDownFigure();
     directory_.~CString();
     name_.~CString();
-    ei::SetVtable(this, CTransformObject::kVtableAddress);
+    ei::SetVtable(this, CTransformObject::BaseVtable());
     CEngineObject::DestructBase();
 }
-EI_REPLACE_METHOD(0x0059F030, CFigureMesh::DestructBase);
+EI_REWRITTEN(0x0059F030, CFigureMesh::DestructBase);
 
 CFigureMesh::~CFigureMesh() { TearDownFigure(); }
+
+CFigureMesh* CFigureMesh::DeletingDestruct(unsigned flags) {
+    DestructBase();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REWRITTEN(0x00453470, CFigureMesh::DeletingDestruct);
 
 // --- The classes 0x41 and 0x42 ---------------------------------------------------------------
 
@@ -215,6 +223,32 @@ void CFigureMesh::SaveTransform(void* file) { SaveToFile(static_cast<mfc::CFileV
 void CFigureMesh::CopyFigure(const CFigureMesh* other) { CopyFigureImpl(other); }
 void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) { LoadNothing(cursor, s, t, u); }
 
+namespace {
+// game.exe's 0073C224 compiled (C19): CTransformObject's slots with the figure's 2 / 3 / 7 / 11 / 12 /
+// 15 / 16 and its 18 / 19 (CFigureMesh's bodies, called qualified); slot 0 DeletingDestruct.
+class FigureBaseClass final : public TransformObjectClass<FigureBaseClass, CFigureMesh> {
+public:
+    int Create() override { return Figure()->CFigureMesh::Create(); }                 // 2: 0059F210
+    void Destroy() override { Figure()->CFigureMesh::Destroy(); }                     // 3: 0059F2B0
+    const char* GetName() override { return Figure()->CFigureMesh::GetName(); }       // 7: 00453440
+    const char* ClassName() override { return Figure()->CFigureMesh::GetClassName(); }   // 11: 00453450
+    int ClassId() override { return Figure()->CFigureMesh::GetClassId(); }               // 12: 00453460
+    void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) override {   // 15: 0059F510
+        Figure()->CFigureMesh::UpdateWorld(parentRotation, parentPosition);
+    }
+    void SaveTransform(void* file) override { Figure()->CFigureMesh::SaveTransform(file); }   // 16: 0059F710
+    virtual void CopyFigure(const CFigureMesh* other) { Figure()->CFigureMesh::CopyFigure(other); }   // 18: 0059F0F0
+    virtual void LoadFromMemory(char** cursor, float s, float t, float u) {                          // 19: 005A2480
+        Figure()->CFigureMesh::LoadFromMemory(cursor, s, t, u);
+    }
+
+private:
+    CFigureMesh* Figure() { return As<CFigureMesh>(); }
+};
+} // namespace
+
+void* CFigureMesh::BaseVtable() { return FigureBaseClass::Vtable(); }
+
 void CSharedFigureMesh::Destroy() { ClearSharedMesh(); }
 void CSharedFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) { LoadFromMemoryImpl(cursor, s, t, u); }
 void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) { LoadFigShared(cursor, s, t, u); }
@@ -244,7 +278,7 @@ void CFigureMesh::SetDrawer(FigureMeshDrawer* drawer) {
 EI_REWRITTEN(0x0059F390, CFigureMesh::SetDrawer);
 
 void CFigureMesh::LoadNothing(char**, float, float, float) { flags_ |= 0x20; }
-EI_REPLACE_METHOD(0x005A2480, CFigureMesh::LoadNothing);
+EI_REWRITTEN(0x005A2480, CFigureMesh::LoadNothing);
 
 void CFigureMesh::SetObject(CObject3D* object) { object_ = object; }
 EI_REWRITTEN(0x0059F3D0, CFigureMesh::SetObject);

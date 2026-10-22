@@ -138,8 +138,8 @@ static_assert(sizeof(DamageInfo) == 0x3C);
 // speed and duration (also the number of targets the damage is split between, and the lasting
 // effects' ticks). Reference counted through a 16-bit count at +4.
 struct __declspec(novtable) CSpellEffect {
-    // Slot 0 (game.exe's vtable 0074399C, set by Construct): the scalar deleting destructor
-    // (0067E5B0, DeletingDestruct; flags 1: free it). Declared only: called through the vtable.
+    // Slot 0 (game.exe's vtable 0074399C, compiled: Vtable(), set by Construct): the scalar deleting
+    // destructor (0067E5B0, DeletingDestruct; flags 1: free it). Declared only: called through the vtable.
     virtual void* DeletingDestructor(unsigned flags);
 
     // 00683950. Fills `out` with the damage this effect deals; split between the targets when
@@ -229,7 +229,9 @@ struct __declspec(novtable) CSpellEffect {
     // 0067EF00 (RET 4; A-H25). `object` leaves the world: 0 when it is the target (the world then
     // drops the effect); else 1, the caster released and cleared when it is `object`.
     BOOL Forget(CEngineObject* object);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0074399C);
+    // The table Construct / Destruct store (game.exe's 0074399C, compiled: 0 DeletingDestruct, 1 an empty
+    // Serialize). The harness's digest recognises a cast spell by it.
+    static void* Vtable();
 
     // spell_effect_save.cpp (RET 4). 0067E960: the position, caster and target ids, the target
     // point, the state, the spell (its slot 10), the packed id, the visual / sound / light ids (-1
@@ -248,8 +250,8 @@ struct __declspec(novtable) CSpellEffect {
     CWorldServer* world;        // +0x08
     std::uint32_t flags;        // +0x0C bit 0: the caster gets no credit for the hit
     Vector3 position;           // +0x10
-    CMapObject* target;         // +0x1C a unit or another map object (counted)
-    CUnit* caster;              // +0x20 the casting unit (counted; null for traps and scripts)
+    AIRefTo<CMapObject> target; // +0x1C a unit or another map object (counted)
+    AIRefTo<CUnit> caster;      // +0x20 the casting unit (counted; null for traps and scripts)
     Vector3 targetPoint;        // +0x24
     int state;                  // +0x30 0 casting, 1 missile, 2 lasting, else ends
     // +0x34 the CSpell (Spell()), constructed and destroyed by Construct / Destruct (an abstract

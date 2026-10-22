@@ -170,7 +170,7 @@ EI_REWRITTEN(0x004DDF28, CSysInfo::Collect);
 
 // 004DDD6F.
 CSysInfo* CSysInfo::Construct() {
-    ei::SetVtable(this, CEngineObject::kVtableAddress);
+    ei::SetVtable(this, CEngineObject::BaseVtable());
     ClearFields();
     new (&computerName_) mfc::CString();
     new (&userName_) mfc::CString();

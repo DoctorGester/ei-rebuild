@@ -8,13 +8,16 @@
 
 // An engine object placed in the world: local position and rotation relative to its parent, and
 // the world transform derived from them. Base of the camera, the scene's figures, units and other
-// placed objects (abstract: slots 11 and 12 are pure). Name provisional; vtable 0073BA38, 18 slots.
+// placed objects (abstract: slots 2, 3, 11 and 12 are pure). Name provisional; 18 slots, its own table compiled
+// (engine_object_class.h's TransformBaseClass, C19) in place of game.exe's 0073BA38.
 // Slots 0-12 are CEngineObject's (CopyFrom 00402D40, Release 00455980, empty Load/Save).
 // Slots 13-17 are defined (core_transform.cpp), for a derived class whose vtable is the compiler's (C19).
 class CTransformObject : public CEngineObject {
 public:
     CTransformObject* DeleteScalar(unsigned flags);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BA38);
+    CTransformObject* DeletingDestruct(unsigned flags) { return DeleteScalar(flags); }   // the tag's slot 0
+    // The base's own table (TransformBaseClass), which the constructor and destructor bodies store.
+    static void* BaseVtable();
 
     // 13: 00401490. Copies the local and world transform; returns this.
     virtual CTransformObject* CopyTransform(const CTransformObject& other);
@@ -33,7 +36,7 @@ public:
     void LoadTransformImpl(void* file);   // body of the slot above (registered by member pointer)
 
     // 00453400. Constructor body: base fields, identity rotations (positions left as they are),
-    // vtable 0073BA38; returns this.
+    // the base table (BaseVtable); returns this.
     CTransformObject* ConstructBase();
 
     // Rotation helpers (core_transform_math.cpp).

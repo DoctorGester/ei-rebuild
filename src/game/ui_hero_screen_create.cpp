@@ -42,12 +42,12 @@ namespace {
 void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
-VtablePair ItemPanelVtables() { return {Vtable(0x00741B58), Vtable(0x00741B24)}; }     // CUiItemPanel
-VtablePair InfoPanelVtables() { return {Vtable(0x007404DC), Vtable(0x007404A8)}; }     // CItemInfoPanel
-VtablePair StatsPanelVtables() { return {Vtable(0x00741ABC), Vtable(0x00741A88)}; }    // CHeroStatsPanel
-VtablePair EquipPanelVtables() { return {Vtable(0x007418E0), Vtable(0x007418AC)}; }    // CHeroEquipPanel
-VtablePair QuickStripVtables() { return {Vtable(0x00741844), Vtable(0x00741810)}; }    // CHeroQuickStrip
-VtablePair TradePanelVtables() { return {Vtable(0x007417A8), Vtable(0x00741774)}; }    // CTradePanel
+VtablePair ItemPanelVtables() { return {CUiItemPanel::BlankVtable(), CUiItemPanel::BlankInputVtable()}; }
+VtablePair InfoPanelVtables() { return {CItemInfoPanel::Vtable(), CItemInfoPanel::InputVtable()}; }
+VtablePair StatsPanelVtables() { return {CHeroStatsPanel::Vtable(), CHeroStatsPanel::InputVtable()}; }
+VtablePair EquipPanelVtables() { return {CHeroEquipPanel::Vtable(), CHeroEquipPanel::InputVtable()}; }
+VtablePair QuickStripVtables() { return {CHeroQuickStrip::Vtable(), CHeroQuickStrip::InputVtable()}; }
+VtablePair TradePanelVtables() { return {CTradePanel::Vtable(), CTradePanel::InputVtable()}; }
 VtablePair FigureStripVtables() { return {Vtable(0x00741BF4), Vtable(0x00741C60)}; }
 
 // The objects' sizes where the class declares less (or more) than the original allocates.
@@ -305,13 +305,13 @@ void CMpHeroScreen::Create() {
             prototype = unitdb::PrototypeNamed(key);
         }
         if (!prototype) continue;
-        const FigurePrototypeRecord* figure;
+        const UnitModelRecord* figure;
         {
             // The original inlines operator[] (a pair of the name and null through 0053D340).
             stlp::string key(prototype->modelName.GetString());
-            figure = reinterpret_cast<const FigurePrototypeRecord*>(unitdb::ModelNamed(key));
+            figure = unitdb::ModelNamed(key);
         }
-        figureModel = figure->model;
+        figureModel = figure->figureName;
         auto isModel = [&figureModel](const char* name) {
             return gamecrt::mbsicmp(figureModel.GetString(),
                                    name) == 0;

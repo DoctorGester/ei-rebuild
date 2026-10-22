@@ -827,7 +827,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     it, reached from CMapObject's (0073DAA0, the same case) and CObject3D::DeleteObject3D, none of which our code
     calls; every class under it has a C++ constructor. Its row in config/vtables.csv is 5 slots: find_vtables split the
     table at 0073DDE8 (006E0437 reads that address), and gen_image_cells.py lists the other 22 slots as a reviewed
-    range (`CODE_REVIEWED`), so retiring it also needs the row widened to 27 and that range dropped.
+    range (`CODE_REVIEWED`), so retiring it also needs the row widened to 27 and that range dropped. (Batch 22 retired
+    it with CMapObject's, and moved the range to NOT_CODE instead of widening the row.)
 - **Batch 8's families**: the containers by template: CArray<FaceGroup> (0073C2BC, record_arrays.h's
   FaceGroupArrayClass), the unit's member arrays (carried 0073EB84; the motion's waypoints 0073EB90 over 0073EBB4 and
   points 0073EB9C over 0073EBA8) and the lists 0073DA40 (a bone's children, an animation state's bones), 0073DA80 (an
@@ -1226,6 +1227,38 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     unported (a catch by value would report it; nothing catches one).
   - **Left**: the camp's panels (C15), the map spec chunk readers (C21), the game's CFont table 0073BFB4 (string_map,
     the interface and the console name it: C21's area), 00746E60 (one slot, a false row?) and type_info 007472B0.
+- **Batch 22's families** (2026-10-22): the bases' own tables, the zone records, the item panels, CFont and the map
+  objects: 44 rows (retired 560 -> 604), 1,696 -> 974 code cells, game data addresses 918 -> 874.
+  - **The bases' own tables** (engine_object_class.h): EngineObjectBaseClass (CEngineObject's 0073B8E0), `ManagerClass`
+    over EngineObjectClass (CBaseManager's slots 2 / 3 / 9 / 10 and 13-24) with BaseManagerClass (0073B870) and
+    resource_manager.cpp's ResourceManagerClass (00743338), and TransformBaseClass (CTransformObject's 0073BA38). The
+    constants became `X::BaseVtable()`; figure_mesh_life.cpp's FigureBaseClass (0073C224, CFigureMesh's slots 18 / 19
+    over TransformObjectClass) and spell_lifetime.cpp's SpellEffectClass (0074399C, a one-slot deleter plus an empty
+    Serialize; the harness's IsSpellEffect compares the image's table with `CSpellEffect::Vtable()`). CTransformObject
+    gained `BaseVtable()`, which hides CEngineObject's in its derived classes: every unqualified `BaseVtable()` under it
+    was checked to be its own class's (CEffect, CFigureMesh). named_data's check found ui_window.cpp's
+    CUiWindow::DestroyBase storing 0073BA38 by address.
+  - **Zone records** (map_spec_class.h): `SpecClass<Self, T, Delete>` (slots 0-10, 10 the record's deleting destructor
+    as `DeleteRecord`), ObjectSpecSlots / EffectSpecSlots over it and a tag per record: 0073C5C4-0073C7B8 and the quick
+    item effect's twin 0073FA58 (ObjectSpec's). The unit record's chunk readers (map_spec_unit.cpp: `ChunkReaderClass`,
+    0 OnChunk, 1 Chunk::File) for 0073C710 / 18 / 20. world_data.h's kUnitSpecVtable / kQuickEffectSpecVtable went.
+  - **Item panels** (ui_item_panel_tables.cpp): `ItemPanelClass` over PanelClass (slot 25 the item under a point,
+    CUiWindow::NoItemAt by default) and `ItemPanelInputClass` (2 CUiItemPanel::OnLeftDown) for the blank panel, the
+    description panel, the statistics column, the equipment panel (with its tail 007418E8), the quick strip, the trade
+    panel and grid, the spell and item makers and the repair grid: 21 rows. Accessors are `X::Vtable()` /
+    `InputVtable()`, `CUiItemPanel::BlankVtable()` and `CConstructorPage::ItemMakerVtable()` (CSpellMakerPage derives
+    from it). harness_windows.cpp maps the ten main tables. The item strips' tables (00741A1C, 0074197C, 00741BF4 and
+    their input sides) stay: CUiItemStrip and NewStrip are C21's.
+  - **CFont** (mfc_gdi.cpp's FontTable over GdiObjectTable with kClassCFont): the debug panel, the interface and the
+    console store `CFont::Vtable()`.
+  - **Map objects** (map_object_tables.cpp): `Object3DClass` over TransformObjectClass (CObject3D's 27 slots) and
+    MapObjectBaseClass over it (CMapObject's 61), each slot the class's C++ virtual called qualified. CObject3D's row is
+    five slots (find_vtables split it at 0073DDE8): its slots 5-26 moved from gen_image_cells.py's CODE_REVIEWED to
+    NOT_CODE, with a `data` line in config/standalone_unreachable.csv (nothing stores the table).
+  - **Left**: the item strips (C21), 00746E60 (a false row: the "ime" string 00704BE6 hands lstrcmpiA; retiring it
+    would zero the text, so it needs find_vtables to drop the row), type_info 007472B0 (named_data refuses it: the
+    exe's RTTI descriptors point at it), and the one-slot .data rows 0073B984, 0073D6B4, 0074E824, 00753B04, 00758904,
+    00758B0C, 00758B14 (not looked at).
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never

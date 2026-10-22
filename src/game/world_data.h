@@ -51,15 +51,10 @@ inline float Half() { return 0.5f /*0073B86C*/; }
 inline float LineAngleOffset() { return 3.1415927f /*0073F8EC*/; }
 inline float LineSpacing() { return 1.2f /*0073CDF4*/; }
 
-// The unit record's (mapspec::UnitSpec) vtable.
-constexpr std::uintptr_t kUnitSpecVtable = std::uintptr_t(0x0073C6E0);
-
 // ---- UseQuickItem (0058ECE0) -------------------------------------------------------------------
 
 inline const char* QuickEffectPrototype() { return "st.tr.130"; }
 inline const char* QuickEffectModel() { return "unhuma"; }
-// The vtable of the object record (mapspec::ObjectSpec) with no members of its own.
-constexpr std::uintptr_t kQuickEffectSpecVtable = std::uintptr_t(0x0073FA58);
 
 // ---- CreateObject (005927C0) -------------------------------------------------------------------
 

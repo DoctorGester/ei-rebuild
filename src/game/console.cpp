@@ -102,8 +102,8 @@ struct ConsoleStreambufClass final : ei::CompiledDeleter<ConsoleStreambufClass, 
     virtual int Doallocate() { return Base()->DefaultDoallocate(); }                                       // 10
 
 private:
-    ConsoleStreambuf* Self() { return reinterpret_cast<ConsoleStreambuf*>(this); }
-    libcrt::Streambuf* Base() { return reinterpret_cast<libcrt::Streambuf*>(this); }
+    ConsoleStreambuf* Self() { return ObjectAs<ConsoleStreambuf>(); }
+    libcrt::Streambuf* Base() { return ObjectAs<libcrt::Streambuf>(); }
 };
 } // namespace
 

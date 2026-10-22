@@ -109,7 +109,7 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
         UiCapture(interface_) = CaptureValue(InputOf(this));
     }
 }
-EI_REPLACE_METHOD(0x00626920, InputForward<&CTradePanel::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00626920, InputForward<&CTradePanel::OnLButtonDown>::Call);
 
 // --- 00626C30: the left button released (input slot 3) ---------------------------------------------
 
@@ -127,7 +127,7 @@ struct TradePanelInput {
     }
 };
 } // namespace
-EI_REPLACE_METHOD(0x00626C30, TradePanelInput::OnLButtonUp);
+EI_REWRITTEN(0x00626C30, TradePanelInput::OnLButtonUp);
 
 // --- 00626C50: the held school / science button (slot 24) -------------------------------------------
 
@@ -161,4 +161,4 @@ void CTradePanel::UpdateHeld() {
     interface_->mouseCapture_ = nullptr;
     heldRegion_ = -1;
 }
-EI_REPLACE_METHOD(0x00626C50, CTradePanel::UpdateHeld);
+EI_REWRITTEN(0x00626C50, CTradePanel::UpdateHeld);

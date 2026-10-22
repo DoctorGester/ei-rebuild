@@ -80,7 +80,7 @@ void CEffect::ConstructEffect() {
 
 void CEffect::DestructEffect() {
     state_.Destruct();
-    SetVtable(this, CTransformObject::kVtableAddress);
+    SetVtable(this, CTransformObject::BaseVtable());
     DestructBase();
 }
 EI_REWRITTEN(0x00675FB0, CEffect::DestructEffect);

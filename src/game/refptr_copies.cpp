@@ -223,13 +223,8 @@ EI_REWRITTEN(0x00598990, ObjectHolderRelease);
 EI_REWRITTEN(0x00421350, ObjectHolderRelease);
 
 // 004EBE60 and its byte-identical copies (00429B50, a particle source's 0056F1A0, ...): assignment;
-// the new object gains a reference, then the old one is released.
-void HeldEngineObject::Assign(CEngineObject* value) {
-    CEngineObject* previous = object;
-    object = value;
-    if (value) ++value->refCount_;
-    if (previous) previous->Release();
-}
+// the new object gains a reference, then the old one is released (HeldObject::Assign,
+// engine_object.h).
 EI_REWRITTEN(0x004EBE60, HeldEngineObject::Assign);
 EI_REWRITTEN(0x0056F1A0, HeldEngineObject::Assign);
 EI_REWRITTEN(0x00511B90, HeldEngineObject::Assign);
