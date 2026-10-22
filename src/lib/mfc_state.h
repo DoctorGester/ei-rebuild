@@ -64,9 +64,6 @@ struct CThreadSlotData {
 };
 static_assert(offsetof(CThreadSlotData, section) == 0x1C);
 
-// _afxThreadData (null until a thread local is first read).
-CThreadSlotData*& AfxThreadData();
-
 // CThreadLocalObject (CThreadLocal<T> adds no members): its TLS slot, 0 when none was allocated.
 struct CThreadLocalObject {
     int slot;                   // +0x00 m_nSlot
@@ -89,7 +86,7 @@ struct CProcessLocalObject {
 // there is one.
 void __stdcall AfxDeleteObject(HGDIOBJ* object);
 
-// AUX_DATA (0x6C bytes): afxData 007C90C8.
+// AUX_DATA (0x6C bytes): afxData (mfc_state.cpp).
 struct AuxData {
     int vScrollWidth;           // +0x00 cxVScroll
     int hScrollHeight;          // +0x04 cyHScroll
@@ -188,13 +185,6 @@ BOOL __cdecl AfxCriticalInit();
 void __stdcall AfxLockGlobals(int lockType);
 void __stdcall AfxUnlockGlobals(int lockType);
 
-// The globals behind them (the exe's data in both builds).
-BOOL& AfxCriticalInitDone();                        // 007C907C _afxCriticalInit
-BOOL& AfxCriticalWin32s();                          // 007C9078 _afxCriticalWin32s
-int* AfxLockInit();                                 // 007C8E80 _afxLockInit[17]
-CRITICAL_SECTION* AfxResourceLocks();               // 007C8EE0 _afxResourceLock[17]
-CRITICAL_SECTION* AfxLockInitLock();                // 007C8EC8 _afxLockInitLock
-
 // AfxClassInit (00700674, stdcall): `newClass` put at the head of the module state's class list, under
 // CRIT_RUNTIMECLASSLIST. The static initialisers register five classes with it.
 void __stdcall AfxClassInit(CRuntimeClass* newClass);
@@ -203,12 +193,9 @@ void __stdcall AfxClassInit(CRuntimeClass* newClass);
 // 1); the static initialiser stores it in _afxDBCS (007CAA98, a BOOL).
 BOOL __cdecl AfxInitDbcs();
 
-// wingdix.cpp: the halftone brush (_afxHalftoneBrush 007C8D40, made on first use by code the game never
-// reaches) deleted at exit by AfxWingdixTerm (0070B5F0); the static initialiser 0070B600 registers it
-// with atexit and keeps atexit's answer in a char (_afxWingdixTerm 007C8D44).
+// wingdix.cpp: the halftone brush (_afxHalftoneBrush, made on first use by code the game never reaches) deleted at
+// exit by AfxWingdixTerm (0070B5F0), which the static initialiser 0070B600 registers with atexit.
 void __cdecl AfxWingdixTerm();
 void __cdecl AfxWingdixTermInit();
-HGDIOBJ& AfxHalftoneBrush();
-char& AfxWingdixTermResult();
 
 } // namespace mfc::impl

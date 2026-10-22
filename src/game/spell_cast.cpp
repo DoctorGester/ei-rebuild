@@ -34,8 +34,6 @@ const char* const kCantEnd = "Can't end spell construction\n";
 
 constexpr int kClassSpellContainer = 0x3003;
 
-// Free list of the STLport node allocator for 16-byte blocks (the 12-byte list nodes).
-SpellModifierNode*& NodeFreeList16() { return ei::GameData<SpellModifierNode*>(0x0079B228); }
 
 
 // 0068C680: STLport string reserve(n) on the container's code string (stlp::StringAbi's).
@@ -63,10 +61,7 @@ void FreeModifierNodes(SpellModifierList& list) {
         do {
             SpellModifierNode* current = node;
             node = node->next;
-            if (current) {
-                current->next = NodeFreeList16();
-                NodeFreeList16() = current;
-            }
+            if (current) libcrt::NodeDeallocate(current, sizeof(SpellModifierNode));
         } while (node != list.head);
     }
     list.head->next = list.head;

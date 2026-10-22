@@ -111,6 +111,9 @@ TYPES = {
     'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection (crt_iostream.cpp)
+    'std::size_t': 'I',
+    'gamecrt::NewHandler': 'P',              # crt.h: a new handler (a function of ours, or nullptr)
+    'BOOL': 'i', 'HGDIOBJ': 'P',
     'LogicSettings': 'B' * 4 + 'f' * 39 + 'if' + 'f' * 9,   # logic_settings.h: loaded and padding, 39 floats, questsToRespawn, 10 floats
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
@@ -174,6 +177,7 @@ STATIC_OBJECT_BYTES = {
     'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,
     'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
     'CDebugPanel': 0x44, 'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,
+    'CFixedAlloc': 0x28, 'CSimpleException': 0x98, 'AuxData': 0x6C,   # lib/mfc_string.h, mfc_exception.h, mfc_state.h
 }
 
 
@@ -360,6 +364,9 @@ def _pack_pointers(self, fmt, img, targets):
             want = None
             break
         want *= int(d)
+    if want is not None and count < want and not any(c.endswith('s') for c in fmt):
+        values += [('number', 0)] * ((want - count) * len(fmt))   # left out: zero (null), as in C++
+        count = want
     if want is not None and want != count:
         self.problem = f'{count} element(s) for {self.dims.strip() or "one"}'
         return

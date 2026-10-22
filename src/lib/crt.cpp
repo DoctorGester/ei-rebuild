@@ -1,5 +1,6 @@
 #include "crt.h"
 #include "crt_locale_data.h"
+#include "mfc_handle_map.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -458,10 +459,9 @@ EI_REWRITTEN(0x006EBBB4, libcrt::Controlfp);
 // ---- The runtime the image owns (EI_REPLACE_STANDALONE: the hook build keeps the exe's) ----
 
 namespace {
-// MFC's new handler (_afxNewHandler, 00796E14), which operator new calls, and the CRT's (_pnhHeap, 007CAAD8),
-// which _set_new_handler sets (malloc never calls it: the game leaves _newmode 0).
-gamecrt::NewHandler& AfxNewHandler() { return ei::GameData<gamecrt::NewHandler>(0x00796E14); }
-gamecrt::NewHandler& HeapNewHandler() { return ei::GameData<gamecrt::NewHandler>(0x007CAAD8); }
+// The CRT's new handler (_pnhHeap), which _set_new_handler sets (malloc never calls it: the game leaves _newmode 0).
+// MFC's (_afxNewHandler), which operator new calls, is mfc_handle_map.h's g_afxNewHandler.
+constinit gamecrt::NewHandler g_heapNewHandler = /*007CAAD8*/ {nullptr};
 } // namespace
 
 // malloc and free are the host CRT's (C26; VC6's were HeapAlloc / HeapFree on a heap of their own, the size
@@ -473,8 +473,8 @@ void __cdecl Free(void* p) { std::free(p); }
 EI_REPLACE_STANDALONE(0x006EA8AD, libcrt::Free);
 
 gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler) {
-    const gamecrt::NewHandler old = HeapNewHandler();
-    HeapNewHandler() = handler;
+    const gamecrt::NewHandler old = g_heapNewHandler;
+    g_heapNewHandler = handler;
     return old;
 }
 EI_REWRITTEN(0x006E8D35, libcrt::SetNewHandler);
@@ -482,7 +482,7 @@ EI_REWRITTEN(0x006E8D35, libcrt::SetNewHandler);
 void* __cdecl OperatorNew(std::size_t size) {
     for (;;) {
         if (void* p = Malloc(size)) return p;
-        const gamecrt::NewHandler handler = AfxNewHandler();
+        const gamecrt::NewHandler handler = mfc::impl::g_afxNewHandler;
         if (!handler || !handler(size)) return nullptr;
     }
 }
@@ -495,64 +495,66 @@ EI_REPLACE_STANDALONE(0x007005D8, libcrt::OperatorDelete);
 //
 // Blocks of up to 128 bytes come from 16 free lists by 8-byte size class; an empty list is refilled
 // with 20 blocks cut from a chunk the allocator keeps (asking operator new for twice the need plus a
-// sixteenth of all it has taken so far). Its state is the exe's, which original code also pushes to
-// inline, so these run in both builds.
+// sixteenth of all it has taken so far). The code the original inlines a block's return in calls
+// NodeDeallocate. In game.exe's runs the harness's containers use this pool too: its chunks come from
+// game.exe's operator new, so a block may go back to either pool.
 
 namespace {
 struct FreeBlock {
     FreeBlock* next;
 };
 constexpr std::size_t kMaxPooled = 128;
-FreeBlock*& FreeListFor(std::size_t bytes) {
-    return ei::GamePointer<FreeBlock*>(0x0079B224)[(bytes - 1) >> 3];
-}
-std::size_t& PoolHeapSize() { return ei::GameData<std::size_t>(0x0079B264); }
-char*& ChunkStart() { return ei::GameData<char*>(0x0079B268); }
-char*& ChunkEnd() { return ei::GameData<char*>(0x0079B26C); }
+// The allocator's state (__node_alloc<true, 0>'s statics): the free lists by size class (8, 16, ... 128 bytes),
+// what it has taken from operator new so far, and the rest of the current chunk.
+constinit FreeBlock* g_nodeFreeLists[16] = /*0079B224*/ {};
+constinit std::size_t g_nodeHeapSize = /*0079B264*/ {};
+constinit char* g_chunkStart = /*0079B268*/ {nullptr};
+constinit char* g_chunkEnd = /*0079B26C*/ {nullptr};
+FreeBlock*& FreeListFor(std::size_t bytes) { return g_nodeFreeLists[(bytes - 1) >> 3]; }
 std::size_t RoundUp(std::size_t bytes) { return (bytes + 7) & ~std::size_t{7}; }
 } // namespace
 
 char* __fastcall NodeChunkAlloc(std::size_t size, int* count) {
     for (;;) {
         const std::size_t total = size * static_cast<std::size_t>(*count);
-        std::size_t left = static_cast<std::size_t>(ChunkEnd() - ChunkStart());
+        std::size_t left = static_cast<std::size_t>(g_chunkEnd - g_chunkStart);
         if (left >= total) {
-            char* result = ChunkStart();
-            ChunkStart() += total;
+            char* result = g_chunkStart;
+            g_chunkStart += total;
             return result;
         }
         if (left >= size) {
             *count = static_cast<int>(left / size);
-            char* result = ChunkStart();
-            ChunkStart() += size * static_cast<std::size_t>(*count);
+            char* result = g_chunkStart;
+            g_chunkStart += size * static_cast<std::size_t>(*count);
             return result;
         }
-        const std::size_t request = 2 * total + RoundUp(PoolHeapSize() >> 4);
+        const std::size_t request = 2 * total + RoundUp(g_nodeHeapSize >> 4);
         if (left > 0) {   // the rest of the old chunk goes to the list of its size
             FreeBlock*& list = FreeListFor(left);
-            reinterpret_cast<FreeBlock*>(ChunkStart())->next = list;
-            list = reinterpret_cast<FreeBlock*>(ChunkStart());
+            reinterpret_cast<FreeBlock*>(g_chunkStart)->next = list;
+            list = reinterpret_cast<FreeBlock*>(g_chunkStart);
         }
-        ChunkStart() = gamecrt::operator_new_array<char>(request);
-        if (!ChunkStart()) {
+        g_chunkStart = gamecrt::operator_new_array<char>(request);
+        if (!g_chunkStart) {
             // Out of memory: a free block of this size or larger becomes the chunk.
             bool found = false;
             for (std::size_t bytes = size; bytes <= kMaxPooled; bytes += 8) {
                 FreeBlock*& list = FreeListFor(bytes);
                 if (FreeBlock* block = list) {
                     list = block->next;
-                    ChunkStart() = reinterpret_cast<char*>(block);
-                    ChunkEnd() = ChunkStart() + bytes;
+                    g_chunkStart = reinterpret_cast<char*>(block);
+                    g_chunkEnd = g_chunkStart + bytes;
                     found = true;
                     break;
                 }
             }
             if (found) continue;
-            ChunkEnd() = nullptr;
-            ChunkStart() = gamecrt::operator_new_array<char>(request);
+            g_chunkEnd = nullptr;
+            g_chunkStart = gamecrt::operator_new_array<char>(request);
         }
-        PoolHeapSize() += request;
-        ChunkEnd() = ChunkStart() + request;
+        g_nodeHeapSize += request;
+        g_chunkEnd = g_chunkStart + request;
     }
 }
 EI_REWRITTEN(0x00406B70, libcrt::NodeChunkAlloc);

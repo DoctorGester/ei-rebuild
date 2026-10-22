@@ -245,12 +245,7 @@ TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     prev->next = next;
     next->prev = prev;
     pos->data.name.~string();   // 004DEAB0: the storage freed
-    if (pos) {   // the original checks only here, after using the node (always true)
-        // The inlined STLport node deallocation: push on the 0x18-byte free list.
-        auto*& freeList = ei::GameData<Node*>(0x0079B22C);
-        pos->next = freeList;
-        freeList = pos;
-    }
+    if (pos) libcrt::NodeDeallocate(pos, 0x18);   // the original checks only here, after using the node (always true)
     *out = next;
     return out;
 }

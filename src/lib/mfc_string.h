@@ -10,6 +10,7 @@
 // The library's helpers (AllocBuffer, ConcatCopy, ...) are public here so they can be registered.
 
 #include "mfc.h"
+#include "static_object.h"
 #include "game/game_data.h"
 
 #include <windows.h>
@@ -45,12 +46,17 @@ private:
 };
 static_assert(sizeof(CFixedAlloc) == 0x28);
 
-// The four string allocators (_afxAlloc64 ... _afxAlloc512, constructed by the static initialisers
-// 00700722 ... 007007B5 with blocks of 64 entries).
-inline CFixedAlloc& StringAlloc64() { return ei::GameData<CFixedAlloc>(0x007C8B80); }
-inline CFixedAlloc& StringAlloc128() { return ei::GameData<CFixedAlloc>(0x007C8B58); }
-inline CFixedAlloc& StringAlloc256() { return ei::GameData<CFixedAlloc>(0x007C8B30); }
-inline CFixedAlloc& StringAlloc512() { return ei::GameData<CFixedAlloc>(0x007C8B08); }
+#ifndef EI_VECTORS_REPLAY
+// The four string allocators (_afxAlloc64 ... _afxAlloc512, blocks of 64 entries): each built by its static
+// initialiser (00700718 ... 007007AB) and destroyed by the exit function that registers (mfc_string.cpp). In game.exe's
+// runs the harness builds them itself (tests/verify/harness_startup.cpp): our CString code there (the harness's, the
+// vector recorders') takes its buffers from them, and game.exe's code frees such a buffer into its own allocator of
+// the same size.
+extern lib::StaticObject<CFixedAlloc> g_stringAlloc64;
+extern lib::StaticObject<CFixedAlloc> g_stringAlloc128;
+extern lib::StaticObject<CFixedAlloc> g_stringAlloc256;
+extern lib::StaticObject<CFixedAlloc> g_stringAlloc512;
+#endif
 
 // CStringData: the header before a string's characters. `refs` is -1 for the shared empty string
 // (_afxDataNil) and for a locked buffer (LockBuffer).
