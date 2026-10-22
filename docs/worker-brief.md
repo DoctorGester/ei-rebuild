@@ -34,7 +34,8 @@ Rules:
   for one scenario (the board shows it); don't call tools/run_all.py directly, it skips the queue.
   The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`);
   `--no-hooks` runs game.exe, always the original game (golden recording; with `EI_VECTORS=1`, vector recording:
-  docs/notes/standalone-verification.md). Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
+  docs/notes/standalone-verification.md). Run the `--no-hooks` suite only when the harness changes (tests/verify,
+  src/hook, or code the harness calls in game.exe runs); never with `--fresh` unless the ticket says so. Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
   E:\workspace\ei\run`, and `cmd //c rmdir run` before you finish (never delete through the junction).
 - Plain C++ float maths (rule 7).
 - Say how each rewrite is checked (rewrite guide, "Verification"): which scenario with a golden
