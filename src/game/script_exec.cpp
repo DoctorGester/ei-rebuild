@@ -795,7 +795,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             int count = unit->carriedCount;
             int id = Ftol(f[0]);
             for (int i = 0; i < count; ++i) {
-                auto* item = static_cast<CItemQuest*>(unit->carried[i]);
+                CItemQuest* item = AsQuest(unit->carried[i]);
                 if (static_cast<int>(item->questItemId_) == id) {
                     unit->RemoveCarried(i);
                     break;

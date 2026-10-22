@@ -198,7 +198,7 @@ void DropLink(netlink::NetLink*& link) {
 }
 
 // The data word every item class keeps at +0x4C (a quest item's id).
-std::uint32_t ItemWord4C(CEngineObject* item) { return static_cast<CItemQuest*>(item)->questItemId_; }
+std::uint32_t ItemWord4C(CItem* item) { return AsQuest(item)->questItemId_; }
 
 } // namespace
 
@@ -285,14 +285,14 @@ BOOL TakeFirst(CPlayer* player, Match match) {
 } // namespace
 
 BOOL CPlayer::TakeLoot(int kind) {
-    return TakeFirst(this, [kind](CEngineObject* item) {
+    return TakeFirst(this, [kind](CItem* item) {
         return item->type_ == kItemQuest && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
     });
 }
 EI_REPLACE_METHOD(0x00665780, CPlayer::TakeLoot);
 
 BOOL CPlayer::TakeItem(int id) {
-    return TakeFirst(this, [id](CEngineObject* item) { return item->id_ == id; });
+    return TakeFirst(this, [id](CItem* item) { return item->id_ == id; });
 }
 EI_REWRITTEN(0x00665870, CPlayer::TakeItem);
 

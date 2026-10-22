@@ -41,7 +41,7 @@ void CopyPosition(Vector3* out, const CUnit* unit) { std::memcpy(out, &unit->loc
 // `time`, and any other its position.
 static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
     // The controller's slot 16: its motion (the order in its first 0x20 bytes).
-    PathOrder* path = static_cast<CUnitController*>(unit->controller)->Path();
+    PathOrder* path = unit->Controller()->Path();
     if (IsDead(unit)) {
         ObjectSlots(unit)->AimPoint(out);
         return out;
