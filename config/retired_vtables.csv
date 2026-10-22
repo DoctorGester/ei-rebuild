@@ -5,6 +5,7 @@ vtable,slots,class,file,note
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
 0073B994,2,NamedExceptionClass,src/lib/stlp_string.cpp,"__Named_exception (out_of_range's base, set while its constructor runs)"
 0073B9E0,18,CameraClass,src/game/camera_object.cpp,the camera (CCamera)
+0073BA38,18,TransformBaseClass,src/game/engine_object_class.h,"CTransformObject's own table (ConstructBase and the derived classes' destructor bodies; slots 2, 3, 11, 12 _purecall)"
 0073BB28,6,ServerEntryClass,src/game/net_messages.h,ReplicatedClass (the lobby's server entry)
 0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base; slots 2-5 _purecall)
 0073BB58,4,RefObjectBaseClass,src/game/core_streams.cpp,the counted value's base part (CRefObject; the net messages', connections', links' and replica entries' constructors store it first)

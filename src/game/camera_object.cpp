@@ -46,7 +46,7 @@ EI_REWRITTEN(0x0040CB20, EngineObjectConstruct);
 
 // 0040CB70: CTransformObject's destructor body; 0040CB50 its deleting destructor (slot 0).
 void __fastcall TransformDestruct(CTransformObject* self) {
-    ei::SetVtable(self, CTransformObject::kVtableAddress);
+    ei::SetVtable(self, CTransformObject::BaseVtable());
     self->DestructBase();
 }
 EI_REWRITTEN(0x0040CB70, TransformDestruct);
@@ -55,7 +55,7 @@ CTransformObject* CTransformObject::DeleteScalar(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0040CB50, CTransformObject::DeleteScalar);
+EI_REWRITTEN(0x0040CB50, CTransformObject::DeleteScalar);
 
 // 0040C8B0: the constructor. Identity rotations, eight saved views (distance 30, pitch 45 degrees),
 // the shake list and view stack, no camera file, the focus at (10, 10, 2) two above the ground,
@@ -64,7 +64,7 @@ CCamera* CCamera::Construct() {
     EngineObjectConstruct(this);
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
-    ei::SetVtable(this, CTransformObject::kVtableAddress);
+    ei::SetVtable(this, CTransformObject::BaseVtable());
     viewRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     shakes_.Construct();
     for (CameraView& view : views_) {
@@ -113,7 +113,7 @@ void CCamera::Destruct() {
     fileName_.~CString();
     viewStack_.Destroy();   // the nodes (00411E20), then the map (00411EA0)
     shakes_.Destroy();      // the nodes, then the sentinel (00411B30)
-    ei::SetVtable(this, CTransformObject::kVtableAddress);
+    ei::SetVtable(this, CTransformObject::BaseVtable());
     DestructBase();
 }
 EI_REPLACE_METHOD(0x0040CE60, CCamera::Destruct);

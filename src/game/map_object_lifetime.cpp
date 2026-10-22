@@ -111,7 +111,7 @@ void DestroyArray(AnimationSteps& array, void* vtable) {
 
 CObject3D* CObject3D::Construct() {
     SetVtable(this, CEngineObject::BaseVtable());
-    SetVtable(this, CTransformObject::kVtableAddress);
+    SetVtable(this, CTransformObject::BaseVtable());
     ::new (&name) mfc::CString;
     SetUpObject3D();
     SetVtable(this, CObject3D::kVtableAddress);
@@ -158,7 +158,7 @@ void CObject3D::DestructBody() {
     SetVtable(this, CObject3D::kVtableAddress);
     TearDownObject3D();
     name.~CString();
-    SetVtable(this, CTransformObject::kVtableAddress);
+    SetVtable(this, CTransformObject::BaseVtable());
     CEngineObject::DestructBase();
 }
 EI_REWRITTEN(0x00515D70, CObject3D::DestructBody);

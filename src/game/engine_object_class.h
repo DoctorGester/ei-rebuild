@@ -100,3 +100,7 @@ public:
 protected:
     CTransformObject* Transform() { return this->template ObjectAs<CTransformObject>(); }
 };
+
+// game.exe's 0073BA38 compiled (C19): CTransformObject's own table (slots 2, 3, 11, 12 pure), which its
+// constructor and destructor bodies store (CTransformObject::BaseVtable).
+class TransformBaseClass final : public TransformObjectClass<TransformBaseClass, CTransformObject> {};

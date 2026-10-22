@@ -140,7 +140,7 @@ void CFigureMesh::DestructBase() {
     TearDownFigure();
     directory_.~CString();
     name_.~CString();
-    ei::SetVtable(this, CTransformObject::kVtableAddress);
+    ei::SetVtable(this, CTransformObject::BaseVtable());
     CEngineObject::DestructBase();
 }
 EI_REWRITTEN(0x0059F030, CFigureMesh::DestructBase);

@@ -584,7 +584,7 @@ void CUiWindow::DestroyBase() {
     if (objects_.data) lib::FreeAligned32(objects_.data);
     // The CTransformObject and CEngineObject levels.
     inputVtable_ = BaseInputVtable();
-    vtable_ = ei::GamePointer<void*>(0x0073BA38);
+    vtable_ = static_cast<void**>(CTransformObject::BaseVtable());
     reinterpret_cast<CEngineObject*>(this)->DestructBase();
 }
 EI_REWRITTEN(0x005FE930, CUiWindow::DestroyBase);
