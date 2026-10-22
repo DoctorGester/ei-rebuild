@@ -17,9 +17,6 @@ address,what,reason
 #
 # --- MFC classes the image makes, with slots nothing of ours calls ---
 #
-# --- MFC classes the image never makes (their constructors have no code in it) ---
-007472B0,vtable,"type_info: the exe's RTTI records are static data, never deleted (the image's RTTI is the host compiler's)"
-#
 # --- A retired table's slots past its row ---
 0073DDE8-0073DE40,data,"slots 5-26 of CObject3D's retired 0073DDD4 past its five-slot row (gen_image_cells.py's NOT_CODE): nothing stores the table (map_object_tables.cpp compiles it)"
 #

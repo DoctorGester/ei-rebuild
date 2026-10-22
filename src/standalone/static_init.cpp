@@ -11,6 +11,9 @@
 // tools/check_static_init.py (build.cmd) checks this file against game.exe.
 #include "static_init.h"
 
+#include "lib/mfc_static_objects.h"
+#include "lib/static_object.h"
+
 namespace ei::static_init {
 
 template <class Do>
@@ -64,14 +67,14 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x0070DC3E);
     // 004013B0: guarded atexit
     d.Begin(0x004013B0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004013E0: stores; 3 left out
     d.Begin(0x004013E0);
     // 00401420: guarded atexit
     d.Begin(0x00401420);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004022B0: float fold; 1 left out
@@ -82,12 +85,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00401460);
     // 00402290: guarded atexit
     d.Begin(0x00402290);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00407400: guarded atexit
     d.Begin(0x00407400);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00408D30: registered
@@ -95,7 +98,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x00408D30);
     // 0040BDF0: guarded atexit
     d.Begin(0x0040BDF0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0040C830: float fold; 1 left out
@@ -113,7 +116,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0040C880);
     // 00412170: guarded atexit
     d.Begin(0x00412170);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004121C0: stores; 3 left out
@@ -130,7 +133,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x00412280);
     // 0042A5B0: guarded atexit
     d.Begin(0x0042A5B0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0042BE70: stores; 3 left out
@@ -139,7 +142,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0042BE90);
     // 0042D600: guarded atexit
     d.Begin(0x0042D600);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0042D620: stores; 3 left out
@@ -150,7 +153,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0042D670);
     // 0042D8A0: guarded atexit
     d.Begin(0x0042D8A0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0042D8C0: stores; 3 left out
@@ -167,7 +170,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0042FAE0);
     // 00431070: guarded atexit
     d.Begin(0x00431070);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00432CA0: registered
@@ -178,22 +181,22 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x00432CE0);
     // 0043FCE0: guarded atexit
     d.Begin(0x0043FCE0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00441320: guarded atexit
     d.Begin(0x00441320);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00444070: guarded atexit
     d.Begin(0x00444070);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004445F0: guarded atexit
     d.Begin(0x004445F0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00444610: stores; 3 left out
@@ -205,7 +208,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x00444660);
     // 00445BB0: guarded atexit
     d.Begin(0x00445BB0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004461F0: stores; 3 left out
@@ -216,7 +219,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00446240);
     // 00454320: guarded atexit
     d.Begin(0x00454320);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00455440: stores; 3 left out
@@ -227,14 +230,14 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00455490);
     // 004558F0: guarded atexit
     d.Begin(0x004558F0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00455910: stores; 3 left out
     d.Begin(0x00455910);
     // 004559A0: guarded atexit
     d.Begin(0x004559A0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004559C0: stores; 3 left out
@@ -266,7 +269,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x00455E30);
     // 004586C0: guarded atexit
     d.Begin(0x004586C0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00458700: registered
@@ -291,12 +294,12 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0045E6C0);
     // 00460890: guarded atexit
     d.Begin(0x00460890);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004618D0: guarded atexit
     d.Begin(0x004618D0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00461BA0: stores; 3 left out
@@ -307,12 +310,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00461BF0);
     // 00462210: guarded atexit
     d.Begin(0x00462210);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00462940: guarded atexit
     d.Begin(0x00462940);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00462BC0: stores; 3 left out
@@ -321,14 +324,14 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00462BE0);
     // 00462FB0: guarded atexit
     d.Begin(0x00462FB0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00462FD0: stores; 3 left out
     d.Begin(0x00462FD0);
     // 004630B0: guarded atexit
     d.Begin(0x004630B0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004630D0: stores; 3 left out
@@ -338,7 +341,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x004630F0);
     // 00464DD0: guarded atexit
     d.Begin(0x00464DD0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00465E90: stores; 3 left out
@@ -347,7 +350,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00465EB0);
     // 00468FC0: guarded atexit
     d.Begin(0x00468FC0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00469020: stores; 3 left out
@@ -358,7 +361,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00469070);
     // 0046F140: guarded atexit
     d.Begin(0x0046F140);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0046F180: stores; 3 left out
@@ -369,7 +372,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0046F1D0);
     // 00477560: guarded atexit
     d.Begin(0x00477560);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00477580: stores; 3 left out
@@ -380,7 +383,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004775D0);
     // 00477E40: guarded atexit
     d.Begin(0x00477E40);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00479660: stores; 3 left out
@@ -389,7 +392,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00479680);
     // 0047A6B0: guarded atexit
     d.Begin(0x0047A6B0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0047AD50: stores; 3 left out
@@ -398,7 +401,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0047AD70);
     // 0047B960: guarded atexit
     d.Begin(0x0047B960);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0047C300: constructor + atexit
@@ -409,12 +412,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0047D7D0);
     // 00480020: guarded atexit
     d.Begin(0x00480020);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00481540: guarded atexit
     d.Begin(0x00481540);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004815F0: stores; 3 left out
@@ -425,7 +428,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00481640);
     // 00483D20: guarded atexit
     d.Begin(0x00483D20);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004846E0: float fold; 1 left out
@@ -438,7 +441,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004846F0);
     // 00497F30: guarded atexit
     d.Begin(0x00497F30);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00497F50: stores; 3 left out
@@ -452,7 +455,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x00498910);
     // 00499750: guarded atexit
     d.Begin(0x00499750);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0049AC80: stores; 3 left out
@@ -476,14 +479,14 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0049B730);
     // 0049BB30: guarded atexit
     d.Begin(0x0049BB30);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0049BB50: stores; 3 left out
     d.Begin(0x0049BB50);
     // 0049DE50: guarded atexit
     d.Begin(0x0049DE50);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0049E740: stores; 3 left out
@@ -500,7 +503,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0049F870);
     // 004A2990: guarded atexit
     d.Begin(0x004A2990);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004A4880: stores; 3 left out
@@ -509,7 +512,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004A48A0);
     // 004A48D0: guarded atexit
     d.Begin(0x004A48D0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004A5680: stores; 3 left out
@@ -521,7 +524,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x004A56D0);
     // 004AD4E0: guarded atexit
     d.Begin(0x004AD4E0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004B1720: stores; 3 left out
@@ -538,7 +541,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x004B17C0);
     // 004CE1C0: guarded atexit
     d.Begin(0x004CE1C0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004CF420: stores; 3 left out
@@ -547,7 +550,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004CF440);
     // 004D6820: guarded atexit
     d.Begin(0x004D6820);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004D6890: stores; 3 left out
@@ -558,7 +561,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004D68E0);
     // 004D6C00: guarded atexit
     d.Begin(0x004D6C00);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004D6C20: stores; 3 left out
@@ -567,7 +570,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004D6C40);
     // 004D90A0: guarded atexit
     d.Begin(0x004D90A0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004D90C0: stores; 3 left out
@@ -576,7 +579,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004D90E0);
     // 004D9EF0: guarded atexit
     d.Begin(0x004D9EF0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004D9F10: stores; 3 left out
@@ -591,7 +594,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004DA150);
     // 004DB850: guarded atexit
     d.Begin(0x004DB850);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004DB870: registered
@@ -599,7 +602,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x004DB870);
     // 004DD860: guarded atexit
     d.Begin(0x004DD860);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004DDCB0: registered
@@ -626,7 +629,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004DE900);
     // 004E16E0: guarded atexit
     d.Begin(0x004E16E0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004E1700: stores; 3 left out
@@ -637,7 +640,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004E1750);
     // 004E35F0: guarded atexit
     d.Begin(0x004E35F0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004E3850: stores; 3 left out
@@ -661,7 +664,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x004E3B20);
     // 004E5730: guarded atexit
     d.Begin(0x004E5730);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004E5BF0: stores; 3 left out
@@ -687,7 +690,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x004E5E00);
     // 004ECEA0: guarded atexit
     d.Begin(0x004ECEA0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004ED500: stores; 3 left out
@@ -697,7 +700,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x004ED520);
     // 004F0AC0: guarded atexit
     d.Begin(0x004F0AC0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004F0B10: registered
@@ -709,7 +712,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004F0B60);
     // 004F2A80: guarded atexit
     d.Begin(0x004F2A80);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004F2AA0: stores; 3 left out
@@ -721,7 +724,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x004F2B20);
     // 004F65D0: guarded atexit
     d.Begin(0x004F65D0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004F6870: stores; 3 left out
@@ -730,7 +733,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004F6890);
     // 004FC680: guarded atexit
     d.Begin(0x004FC680);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 004FCA10: stores; 3 left out
@@ -739,7 +742,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004FCA30);
     // 00500070: guarded atexit
     d.Begin(0x00500070);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005003F0: stores; 3 left out
@@ -748,7 +751,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00500410);
     // 005008A0: guarded atexit
     d.Begin(0x005008A0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005008C0: stores; 3 left out
@@ -762,7 +765,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x00500930);
     // 005053A0: guarded atexit
     d.Begin(0x005053A0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005053C0: stores; 3 left out
@@ -771,7 +774,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005053E0);
     // 0050A560: guarded atexit
     d.Begin(0x0050A560);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0050A580: stores; 3 left out
@@ -780,7 +783,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0050A5A0);
     // 0050E190: guarded atexit
     d.Begin(0x0050E190);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0050E1D0: stores; 3 left out
@@ -789,7 +792,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0050E1F0);
     // 00510320: guarded atexit
     d.Begin(0x00510320);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005103C0: stores; 3 left out
@@ -802,7 +805,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00510430);
     // 00512470: guarded atexit
     d.Begin(0x00512470);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00512570: stores; 3 left out
@@ -813,7 +816,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005125C0);
     // 00514AD0: guarded atexit
     d.Begin(0x00514AD0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005155A0: stores; 3 left out
@@ -824,7 +827,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005155F0);
     // 00515B60: guarded atexit
     d.Begin(0x00515B60);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00515B80: stores; 3 left out
@@ -833,7 +836,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00515BA0);
     // 0051A150: guarded atexit
     d.Begin(0x0051A150);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0051A2A0: stores; 3 left out
@@ -853,7 +856,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x0051CE30);
     // 0051EFB0: guarded atexit
     d.Begin(0x0051EFB0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0051F1D0: stores; 3 left out
@@ -864,12 +867,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0051F220);
     // 0051F340: guarded atexit
     d.Begin(0x0051F340);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0051F590: guarded atexit
     d.Begin(0x0051F590);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0051FAF0: registered
@@ -877,7 +880,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0051FAF0);
     // 005209B0: guarded atexit
     d.Begin(0x005209B0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00522950: stores; 3 left out
@@ -892,7 +895,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00528820);
     // 00529650: guarded atexit
     d.Begin(0x00529650);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00529670: stores; 3 left out
@@ -903,7 +906,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005296C0);
     // 0052D010: guarded atexit
     d.Begin(0x0052D010);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0052D060: stores; 3 left out
@@ -914,12 +917,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0052D0B0);
     // 0052D680: guarded atexit
     d.Begin(0x0052D680);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0052DFF0: guarded atexit
     d.Begin(0x0052DFF0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0052E060: stores; 3 left out
@@ -930,7 +933,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0052E0B0);
     // 00533880: guarded atexit
     d.Begin(0x00533880);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00533970: float fold; 1 left out
@@ -943,7 +946,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00533950);
     // 00539960: guarded atexit
     d.Begin(0x00539960);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005399D0: stores; 3 left out
@@ -953,7 +956,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x005399F0);
     // 0053D950: guarded atexit
     d.Begin(0x0053D950);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00544A00: stores; 3 left out
@@ -966,7 +969,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00544A70);
     // 00558C80: guarded atexit
     d.Begin(0x00558C80);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00558F30: stores; 3 left out
@@ -977,7 +980,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00558F80);
     // 0055D9D0: guarded atexit
     d.Begin(0x0055D9D0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0055E6F0: stores; 3 left out
@@ -1003,7 +1006,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0055E860);
     // 00560570: guarded atexit
     d.Begin(0x00560570);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005605B0: stores; 3 left out
@@ -1053,7 +1056,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x0056A830);
     // 005754C0: guarded atexit
     d.Begin(0x005754C0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005783D0: stores; 3 left out
@@ -1079,7 +1082,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x00581090);
     // 00589310: guarded atexit
     d.Begin(0x00589310);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00589BA0: float fold; 1 left out
@@ -1095,7 +1098,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x00589BE0);
     // 0059DD50: guarded atexit
     d.Begin(0x0059DD50);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0059EFE0: stores; 3 left out
@@ -1107,7 +1110,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x005A0CB0);
     // 005A6FA0: guarded atexit
     d.Begin(0x005A6FA0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005A6FC0: stores; 3 left out
@@ -1116,7 +1119,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005A6FE0);
     // 005A99E0: guarded atexit
     d.Begin(0x005A99E0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005A9A00: stores; 3 left out
@@ -1125,7 +1128,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005A9A20);
     // 005AE590: guarded atexit
     d.Begin(0x005AE590);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005AE9B0: stores; 3 left out
@@ -1138,7 +1141,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005AEA20);
     // 005AECD0: guarded atexit
     d.Begin(0x005AECD0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005AECF0: float fold; 1 left out
@@ -1149,7 +1152,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005AED30);
     // 005B1C50: guarded atexit
     d.Begin(0x005B1C50);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005B1CD0: stores; 3 left out
@@ -1166,7 +1169,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x005B31C0);
     // 005BEE20: guarded atexit
     d.Begin(0x005BEE20);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005BF580: stores; 3 left out
@@ -1189,7 +1192,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x005BF8E0);
     // 005C1CC0: guarded atexit
     d.Begin(0x005C1CC0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005C1CE0: float fold; 1 left out
@@ -1209,7 +1212,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x005C4460);
     // 005C5C20: guarded atexit
     d.Begin(0x005C5C20);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005C5CB0: float fold; 1 left out
@@ -1222,7 +1225,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005C5C80);
     // 005C8AC0: guarded atexit
     d.Begin(0x005C8AC0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005C8AE0: stores; 3 left out
@@ -1238,7 +1241,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x005C8F90);
     // 005CDF60: guarded atexit
     d.Begin(0x005CDF60);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005CDFB0: registered
@@ -1254,7 +1257,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005CE790);
     // 005DA230: guarded atexit
     d.Begin(0x005DA230);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005DA300: stores; 3 left out
@@ -1268,7 +1271,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x005DA380);
     // 005DAE00: guarded atexit
     d.Begin(0x005DAE00);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005DAE20: stores; 3 left out
@@ -1277,7 +1280,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005DAE40);
     // 005DB2D0: guarded atexit
     d.Begin(0x005DB2D0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005DB2F0: stores; 3 left out
@@ -1286,7 +1289,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005DB310);
     // 005DBFC0: guarded atexit
     d.Begin(0x005DBFC0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005DBFE0: stores; 3 left out
@@ -1351,7 +1354,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x005DC5E0);
     // 005E1540: guarded atexit
     d.Begin(0x005E1540);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005E16A0: stores; 3 left out
@@ -1362,7 +1365,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E16F0);
     // 005E25E0: guarded atexit
     d.Begin(0x005E25E0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005E2600: stores; 3 left out
@@ -1371,7 +1374,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E2620);
     // 005E3C60: guarded atexit
     d.Begin(0x005E3C60);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005E3C90: stores; 3 left out
@@ -1380,7 +1383,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E3CB0);
     // 005E4D50: guarded atexit
     d.Begin(0x005E4D50);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005E4D70: stores; 3 left out
@@ -1394,7 +1397,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x005E4DD0);
     // 005E6920: guarded atexit
     d.Begin(0x005E6920);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005E6940: stores; 3 left out
@@ -1403,7 +1406,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E6960);
     // 005E6BF0: guarded atexit
     d.Begin(0x005E6BF0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005E6C10: stores; 3 left out
@@ -1412,7 +1415,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E6C30);
     // 005EA750: guarded atexit
     d.Begin(0x005EA750);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005EA770: stores; 3 left out
@@ -1423,7 +1426,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005EA7C0);
     // 005EBEF0: guarded atexit
     d.Begin(0x005EBEF0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005EBF60: float fold; 1 left out
@@ -1438,7 +1441,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005EBF90);
     // 005F3CB0: guarded atexit
     d.Begin(0x005F3CB0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005F4610: stores; 3 left out
@@ -1452,7 +1455,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x005F4680);
     // 005FBC90: guarded atexit
     d.Begin(0x005FBC90);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005FC150: stores; 3 left out
@@ -1463,7 +1466,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005FC1A0);
     // 005FC540: guarded atexit
     d.Begin(0x005FC540);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 005FC560: stores; 3 left out
@@ -1474,7 +1477,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005FC5B0);
     // 00600A60: guarded atexit
     d.Begin(0x00600A60);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00600AD0: stores; 3 left out
@@ -1483,7 +1486,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00600AF0);
     // 00601E10: guarded atexit
     d.Begin(0x00601E10);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00601E80: stores; 3 left out
@@ -1492,7 +1495,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00601EA0);
     // 00602360: guarded atexit
     d.Begin(0x00602360);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00602380: stores; 3 left out
@@ -1503,7 +1506,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006023D0);
     // 0060B4E0: guarded atexit
     d.Begin(0x0060B4E0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0060C840: float fold; 1 left out
@@ -1516,7 +1519,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0060C850);
     // 00613CD0: guarded atexit
     d.Begin(0x00613CD0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00613E50: float fold; 1 left out
@@ -1531,7 +1534,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00613E80);
     // 0061A330: guarded atexit
     d.Begin(0x0061A330);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0061B280: float fold; 1 left out
@@ -1544,7 +1547,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0061B2A0);
     // 0061F0A0: guarded atexit
     d.Begin(0x0061F0A0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00620310: stores; 3 left out
@@ -1555,7 +1558,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00620360);
     // 0062A560: guarded atexit
     d.Begin(0x0062A560);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0062A7E0: stores; 3 left out
@@ -1564,7 +1567,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0062A800);
     // 0062AA70: guarded atexit
     d.Begin(0x0062AA70);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0062AAE0: float fold; 1 left out
@@ -1577,7 +1580,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0062AB00);
     // 0062B650: guarded atexit
     d.Begin(0x0062B650);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0062B780: stores; 3 left out
@@ -1586,7 +1589,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0062B7A0);
     // 0062C1C0: guarded atexit
     d.Begin(0x0062C1C0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0062C1E0: stores; 3 left out
@@ -1597,7 +1600,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0062C230);
     // 0062D290: guarded atexit
     d.Begin(0x0062D290);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0062D300: float fold; 1 left out
@@ -1610,7 +1613,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0062D310);
     // 00632470: guarded atexit
     d.Begin(0x00632470);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00632640: stores; 3 left out
@@ -1621,7 +1624,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00632690);
     // 006345C0: guarded atexit
     d.Begin(0x006345C0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00634600: stores; 3 left out
@@ -1630,7 +1633,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00634620);
     // 00634FB0: guarded atexit
     d.Begin(0x00634FB0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00635030: float fold; 1 left out
@@ -1645,7 +1648,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00635060);
     // 0064B870: guarded atexit
     d.Begin(0x0064B870);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0064BDE0: float fold; 1 left out
@@ -1659,7 +1662,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0064BE00);
     // 0064F3E0: guarded atexit
     d.Begin(0x0064F3E0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006502F0: float fold; 1 left out
@@ -1672,7 +1675,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00650310);
     // 00653180: guarded atexit
     d.Begin(0x00653180);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006538A0: float fold; 1 left out
@@ -1685,7 +1688,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006538C0);
     // 00657F70: guarded atexit
     d.Begin(0x00657F70);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00658DC0: stores; 3 left out
@@ -1694,7 +1697,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00658DE0);
     // 0065AE10: guarded atexit
     d.Begin(0x0065AE10);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0065AE80: float fold; 1 left out
@@ -1705,7 +1708,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0065AE50);
     // 0065CB50: guarded atexit
     d.Begin(0x0065CB50);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0065CBB0: stores; 3 left out
@@ -1714,7 +1717,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0065CBD0);
     // 0065E290: guarded atexit
     d.Begin(0x0065E290);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0065E2C0: stores; 3 left out
@@ -1725,7 +1728,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0065E310);
     // 0065EAA0: guarded atexit
     d.Begin(0x0065EAA0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0065ECE0: stores; 3 left out
@@ -1734,7 +1737,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0065ED00);
     // 0065F230: guarded atexit
     d.Begin(0x0065F230);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0065F250: stores; 3 left out
@@ -1746,7 +1749,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0065F2A0);
     // 00664930: guarded atexit
     d.Begin(0x00664930);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00664B00: stores; 3 left out
@@ -1757,7 +1760,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00664B50);
     // 006665A0: guarded atexit
     d.Begin(0x006665A0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00666CA0: stores; 3 left out
@@ -1771,7 +1774,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x00668B40);
     // 0066C080: guarded atexit
     d.Begin(0x0066C080);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0066C0A0: stores; 3 left out
@@ -1780,7 +1783,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0066C0C0);
     // 0066C440: guarded atexit
     d.Begin(0x0066C440);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0066C460: stores; 3 left out
@@ -1794,19 +1797,19 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0066C4D0);
     // 00671260: guarded atexit
     d.Begin(0x00671260);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00673DE0: guarded atexit
     d.Begin(0x00673DE0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00674D70: stores; 3 left out
     d.Begin(0x00674D70);
     // 00675660: guarded atexit
     d.Begin(0x00675660);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00675B00: float fold; 1 left out
@@ -1819,7 +1822,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00675B20);
     // 0067E0E0: guarded atexit
     d.Begin(0x0067E0E0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0067E100: stores; 3 left out
@@ -1828,7 +1831,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0067E120);
     // 0067E430: guarded atexit
     d.Begin(0x0067E430);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0067E450: stores; 3 left out
@@ -1842,12 +1845,12 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0067E4C0);
     // 00683AD0: guarded atexit
     d.Begin(0x00683AD0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00683F80: guarded atexit
     d.Begin(0x00683F80);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00683FA0: stores; 3 left out
@@ -1856,7 +1859,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00683FC0);
     // 00684340: guarded atexit
     d.Begin(0x00684340);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00684360: registered
@@ -1864,19 +1867,19 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x00684360);
     // 00684D40: guarded atexit
     d.Begin(0x00684D40);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00688620: guarded atexit
     d.Begin(0x00688620);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00688640: stores; 3 left out
     d.Begin(0x00688640);
     // 0068A4C0: guarded atexit
     d.Begin(0x0068A4C0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0068B180: stores; 3 left out
@@ -1887,7 +1890,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0068B1D0);
     // 0068CB10: guarded atexit
     d.Begin(0x0068CB10);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0068CE80: stores; 3 left out
@@ -1896,7 +1899,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0068CEA0);
     // 0068D7E0: guarded atexit
     d.Begin(0x0068D7E0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0068D800: stores; 3 left out
@@ -1905,19 +1908,19 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0068D820);
     // 0068DBA0: guarded atexit
     d.Begin(0x0068DBA0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0068E3B0: guarded atexit
     d.Begin(0x0068E3B0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0068E3D0: stores; 3 left out
     d.Begin(0x0068E3D0);
     // 0068F410: guarded atexit
     d.Begin(0x0068F410);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0068F670: stores; 3 left out
@@ -1926,7 +1929,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0068F690);
     // 006910D0: guarded atexit
     d.Begin(0x006910D0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006910F0: stores; 3 left out
@@ -1935,7 +1938,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00691110);
     // 006944C0: guarded atexit
     d.Begin(0x006944C0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 00698E30: stores; 3 left out
@@ -1957,12 +1960,12 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x00698FD0);
     // 0069E520: guarded atexit
     d.Begin(0x0069E520);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0069FAD0: guarded atexit
     d.Begin(0x0069FAD0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0069FAF0: stores; 3 left out
@@ -1973,14 +1976,14 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0069FB40);
     // 006A5A50: guarded atexit
     d.Begin(0x006A5A50);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006A5A90: stores; 3 left out
     d.Begin(0x006A5A90);
     // 006A6520: guarded atexit
     d.Begin(0x006A6520);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006A6540: registered
@@ -1988,19 +1991,19 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x006A6540);
     // 006A7920: guarded atexit
     d.Begin(0x006A7920);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006AC760: stores; 3 left out
     d.Begin(0x006AC760);
     // 006AD7B0: guarded atexit
     d.Begin(0x006AD7B0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006ADBB0: guarded atexit
     d.Begin(0x006ADBB0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006ADF10: registered
@@ -2008,7 +2011,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x006ADF10);
     // 006B1B00: guarded atexit
     d.Begin(0x006B1B00);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006B4300: stores; 3 left out
@@ -2017,7 +2020,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006B4320);
     // 006B5B80: guarded atexit
     d.Begin(0x006B5B80);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006BE310: float fold; 1 left out
@@ -2026,7 +2029,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006B5C80);
     // 006BDD70: guarded atexit
     d.Begin(0x006BDD70);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006BE330: float fold; 1 left out
@@ -2037,7 +2040,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006BE370);
     // 006BF3F0: guarded atexit
     d.Begin(0x006BF3F0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006BF410: stores; 3 left out
@@ -2059,7 +2062,7 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x006BFAC0);
     // 006C50E0: guarded atexit
     d.Begin(0x006C50E0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006C5340: float fold; 1 left out
@@ -2080,7 +2083,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006C5410);
     // 006CE650: guarded atexit
     d.Begin(0x006CE650);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006CEC80: float fold; 1 left out
@@ -2095,7 +2098,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006CECB0);
     // 006D0090: guarded atexit
     d.Begin(0x006D0090);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006D00B0: registered
@@ -2103,12 +2106,12 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x006D00B0);
     // 006D1FA0: guarded atexit
     d.Begin(0x006D1FA0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006D4350: guarded atexit
     d.Begin(0x006D4350);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006D4370: stores; 3 left out
@@ -2119,7 +2122,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006D43C0);
     // 006D49A0: guarded atexit
     d.Begin(0x006D49A0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006D4A70: registered
@@ -2129,7 +2132,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006D6D20);
     // 006D6FF0: guarded atexit
     d.Begin(0x006D6FF0);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006D7010: stores; 3 left out
@@ -2143,12 +2146,12 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x006D7080);
     // 006DAF00: guarded atexit
     d.Begin(0x006DAF00);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 006E4540: guarded atexit
     d.Begin(0x006E4540);
-    if (d.Once(0x007CAEE4, 1)) {
+    if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
     d.AtExit(0x004013D0);
     // 0070BE81: registered
@@ -2163,7 +2166,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x0070BF22);
     // 0070BF32: constructor + atexit (inlined 0070BF3C, 0070BF4E)
     d.Begin(0x0070BF32);
-    d.Thiscall(0x006E6916, 0x007C8BC0, 0, 0xF024);
+    d.Thiscall(0x006E6916, &mfc::impl::g_simpleUserException, 0, 0xF024);
     d.AtExit(0x0070BF5A);
     // 0070B5FB: call
     d.Begin(0x0070B5FB);
@@ -2207,7 +2210,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(0x007044ED);
     // 0070DC70: other (inlined 0070DC75)
     d.Begin(0x0070DC70);
-    d.Store(0x007CAA98, d.Stdcall(0x0070DC4D));
+    d.Store(mfc::impl::g_afxDbcs, d.Stdcall(0x0070DC4D));
 }
 
 template void StaticInitialisers<Run>(Run&);

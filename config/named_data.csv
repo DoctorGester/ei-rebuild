@@ -522,6 +522,17 @@ address,size,name,file
 007C89C8,96,g_printsDatabase,src/game/database_globals.cpp
 007C8A60,96,g_ackDatabase,src/game/database_globals.cpp
 007C8BA8,1,g_chNil,src/lib/mfc_file.cpp
+007C8BB8,1,g_gdiAllocExitGuards,src/lib/mfc_static_objects.cpp
+007C8BC0,152,g_simpleUserException,src/lib/mfc_static_objects.cpp
+007C90BC,4,g_baseModuleStateLocal,src/lib/mfc_static_objects.cpp
+007C90C0,4,g_threadStateLocal,src/lib/mfc_static_objects.cpp
+007C9138,1,g_tempWndAllocExitGuard,src/lib/mfc_static_objects.cpp
+007CAA24,1,g_staticWindowsExitGuards,src/lib/mfc_static_objects.cpp
+007CAA84,4,g_ctl3dThreadLocal,src/lib/mfc_static_objects.cpp
+007CAA88,4,g_ctl3dStateLocal,src/lib/mfc_static_objects.cpp
+007CAA8C,4,g_winStateLocal,src/lib/mfc_static_objects.cpp
+007CAA98,4,g_afxDbcs,src/lib/mfc_static_objects.cpp
+007CAAA0,1,g_tempMenuAllocExitGuard,src/lib/mfc_static_objects.cpp
 007CAADC,4,kGameUmask,src/lib/crt_file.cpp
 007CAB20,4,g_mbSystemSet,src/lib/crt_locale_data.cpp
 007CAB24,6,g_cachedId,src/lib/crt_locale_data.cpp
@@ -537,6 +548,7 @@ address,size,name,file
 007CAE90,24,g_sharedLock,src/lib/crt_iostream.cpp
 007CAEC8,4,g_liveIosCount,src/lib/crt_iostream.cpp
 007CAED0,20,g_processorInfo,src/game/sys_info.cpp
+007CAEE4,1,g_emptyStaticGuard,src/lib/static_object.h
 007CC058,4,g_mbCodePage,src/lib/crt_locale_data.cpp
 007CC060,12,g_mbUlInfo,src/lib/crt_locale_data.cpp
 007CC06C,4,g_isMbCodePage,src/lib/crt_locale_data.cpp
