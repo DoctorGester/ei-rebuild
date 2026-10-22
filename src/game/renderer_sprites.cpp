@@ -444,7 +444,7 @@ int CSceneRenderer::DrawSpritesImpl(char additive, const void* pointArray, const
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00502CA0, CSceneRenderer::DrawSpritesImpl);
+EI_REWRITTEN(0x00502CA0, CSceneRenderer::DrawSpritesImpl);
 
 EI_REWRITTEN(0x00504F70, lib::AlignedArray<TLVertex>::SetSize);
 EI_REWRITTEN(0x00505080, lib::AlignedArray<TLVertex>::SetSizeDiscardStep);

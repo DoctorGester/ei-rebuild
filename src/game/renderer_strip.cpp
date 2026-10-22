@@ -311,7 +311,7 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
     render::state::Render(D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(savedDest));
     return result;
 }
-EI_REPLACE_METHOD(0x00501D90, CSceneRenderer::DrawStripImpl);
+EI_REWRITTEN(0x00501D90, CSceneRenderer::DrawStripImpl);
 
 EI_REWRITTEN(0x00504E50, lib::AlignedArray<std::uint16_t>::Add);
 EI_REPLACE(0x00502C00, FreeStrip);

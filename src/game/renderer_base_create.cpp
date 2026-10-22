@@ -25,7 +25,7 @@ constexpr const char* kNoFunctionText = "CVisualizator::Create.\n Loaded 2D grap
 
 } // namespace
 
-void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* settings) {
+void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings) {
     const mfc::CString& workPath = settings->workPath_;
 
     CTransformPipeline* memory = gamecrt::operator_new_as<CTransformPipeline>();   // 0x94 bytes
@@ -58,4 +58,4 @@ void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* setting
     graphicsProcessor_ = getProcessor();
     return graphicsProcessor_;
 }
-EI_REPLACE_METHOD(0x00500540, CSceneRenderer::CreateBase);
+EI_REWRITTEN(0x00500540, CVisualizator::CreateBase);

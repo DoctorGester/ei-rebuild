@@ -182,6 +182,8 @@ vtable,slots,class,file,note
 0073D860,8,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (CRenderHelper::RenderHelperConstruct stores none)
 0073D880,2,RenderPresetClass,src/game/render_helper.cpp,a render state preset (CRenderPreset)
 0073D888,2,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::RecordImpl stores none)
+0073D8A0,25,CVisualizator,src/game/model.h,the scene renderer's abstract base (slots 0 / 4-6 / 8-24 _purecall)
+0073D93C,26,CSceneRenderer,src/game/model.h,the scene renderer (a real virtual class; the static initialiser constructs it in place)
 0073D9BC,3,AlignedAt8ArrayClass,src/lib/mfc_slots.h,CArray (an animation node's 24-byte records with an aligned block at +8)
 0073D9D8,13,AnimationTrack,src/game/map_object_animation.h,class 0x300B (the figure factory)
 0073DA0C,13,FigureBone,src/game/map_object_figures.h,class 0x300C (the figure factory)

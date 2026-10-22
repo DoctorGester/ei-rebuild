@@ -36,4 +36,4 @@ int CSceneRenderer::DrawTrianglesImpl(void* vertices, int vertexCount, const std
     device->drawCount_ += 1;
     return 1;
 }
-EI_REPLACE_METHOD(0x00501BB0, CSceneRenderer::DrawTrianglesImpl);
+EI_REWRITTEN(0x00501BB0, CSceneRenderer::DrawTrianglesImpl);
