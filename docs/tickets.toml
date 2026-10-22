@@ -2864,6 +2864,13 @@ group = "cleanup"
 model = "opus"
 note = "Found by C25 (2026-10-22). player_server_orders.cpp SetPauseTextDigit writes '2' / '3' into game.exe's string 007930EC (\"reserved_02\", EI_Plugin's Pause patch), but CInterface3D::MessageText (ui_interface_save.cpp) takes message 12's key from its own literal kMessageKeys[12] = \"reserved_02\": the resume announcement shows the pause text in the image (and in hooked runs, if MessageText is ours). Make the key one named, writable char array that both use (or the digit an argument), and a scenario for the pause / resume messages if the lobby allows one."
 
+[[ticket]]
+id = "C18r"
+title = "Named data: the MFC and CRT objects, the locale categories"
+group = "cleanup"
+model = "opus"
+note = "After C18q (2026-10-22). The game data addresses src/lib/mfc* (27: 25 bss, 2 data) and src/lib/crt* (15: 11 data, 3 bss, 1 rdata) name, MFC's tables (afxEmptyString / _afxInitData, the CCmdTarget maps), and the CRT's locale categories __lc_category (00797888) with the static \"C\" (00797778), whose init cells point at the unported __init_dummy / __init_collate / __init_monetary / __init_numeric / __init_time (port them, or a check form for code pointers to unported code; the game only sets LC_CTYPE). Delete the matching config/image_kept.csv rows. Unread bytes are zero-filled (C25): no definitions only to hold bytes."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
