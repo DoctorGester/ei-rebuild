@@ -321,6 +321,7 @@ vtable,slots,class,file,note
 0073FF74,3,PatrolPointsClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the constructors')
 0073FF80,3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
 0073FF8C,13,FearClass,src/game/ai_mode_class.h,the Fear AI mode
+00740034,11,ConsoleStreambufClass,src/game/console.cpp,the console streambuf (ConsoleStreambuf; nine instances, one per message filter)
 007400A8,13,ChatOverlayInputClass,src/game/ui_chat_overlay.cpp,the chat overlay's input side
 007400DC,25,ChatOverlayClass,src/game/ui_chat_overlay.cpp,the multiplayer chat overlay (CChatOverlay)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)

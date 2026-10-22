@@ -447,6 +447,7 @@
 #include "../../src/lib/mfc.h"
 #include "../../src/game/asset_text.h"   // text::kUtf8 (the "utf8" step prefix)
 #include "../../src/game/device.h"   // IDirectDraw7
+#include "../../src/game/console.h"   // console::g_consoleLineObserver
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_cursor.h"
 #include "harness_objects.h"
@@ -485,10 +486,11 @@ namespace ei::verify {
 namespace {
 constexpr std::uintptr_t kPeekMessageASlot = 0x0073B458;   // game.exe import table
 
-// The console's streambuf (class with vtable 00740034, instance 007C5868): overflow() collects the
+// The console's streambuf (game.exe's table 00740034, instance 007C5868): overflow() collects the
 // text in a CString at +0x50; sync() (slot 1, 005DC1B0) hands the finished line to the console
-// window and clears it. Hooking sync gives every line the console prints.
-constexpr std::uintptr_t kConsoleStreambufSyncSlot = 0x00740034 + 4;
+// window and clears it. Taking game.exe's sync slot gives every line the console prints; the image's
+// streambuf has a compiled table (C19) and hands the line to console::g_consoleLineObserver.
+constexpr int kConsoleStreambufSyncSlot = 1;
 using SyncFn = int(__thiscall*)(void*);
 using OverflowFn = int(__thiscall*)(void*, int);
 SyncFn g_sync;
@@ -678,10 +680,7 @@ std::string g_captureName;
 DWORD g_captureDeadline = 0;
 std::vector<std::string> g_capturedFrames;
 
-int __fastcall ConsoleSync(void* self, void*) {
-    OverflowFn overflow = (*reinterpret_cast<OverflowFn**>(self))[7];
-    overflow(self, -1);   // move pending characters into the line (the original does this too)
-    const char* text = *reinterpret_cast<const char**>(static_cast<char*>(self) + 0x50);
+void OnConsoleLine(const char* text) {
     if (text && *text) {
         std::string line(text);
         while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
@@ -690,6 +689,11 @@ int __fastcall ConsoleSync(void* self, void*) {
             if (line.find(r) != std::string::npos) g_failures.push_back("rejected output: " + line);
         g_console.push_back(std::move(line));
     }
+}
+int __fastcall ConsoleSync(void* self, void*) {
+    OverflowFn overflow = (*reinterpret_cast<OverflowFn**>(self))[7];
+    overflow(self, -1);   // move pending characters into the line (the original does this too)
+    OnConsoleLine(*reinterpret_cast<const char**>(static_cast<char*>(self) + 0x50));
     return g_sync(self);
 }
 decltype(&::PeekMessageA) g_peekMessage;
@@ -4471,7 +4475,10 @@ struct Harness {
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
         PatchSlot(kTranslateMessageSlot, &HarnessTranslateMessage, g_translateMessage);
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
-        PatchSlot(kConsoleStreambufSyncSlot, reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
+        if (ei::Standalone()) console::g_consoleLineObserver = &OnConsoleLine;
+        else
+            PatchSlot(reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const SyncFn>(0x00740034) + kConsoleStreambufSyncSlot),
+                      reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
         PatchSlot(kCreateFileASlot, &RedirectedCreateFile, g_createFile);
         crash::WatchWrites(kWriteFileSlot);
         PatchSlot(kDeleteFileASlot, &RedirectedDeleteFile, g_deleteFile);
