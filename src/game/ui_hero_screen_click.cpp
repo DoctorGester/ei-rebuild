@@ -53,12 +53,6 @@ void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 // The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
 // container (RET 4); 0065C290 an edit window's text (RET 4).
 void EditSetText(void* edit, void*, const void* text) { static_cast<CUiEditField*>(edit)->SetText(static_cast<const char*>(text)); }
-// Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
-struct SurfaceDraw : CUiSurface {
-    void* Begin() { return UiSurfaceGetDC(this); }   // 005FDC00
-    void Clear() { SurfaceClearOriginal(this); }   // 005FE2F0
-    void End() { UiSurfaceReleaseDC(this); }     // 005FDC60
-};
 __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGINAL(0x005FD760)
 
 // Back to the main menu: the text "reserved_04" (00578E20 / 004E0020) to 005F75B0 (thiscall on
@@ -90,13 +84,13 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
     camp->models_.Construct(compare);
     camp->textures_.Construct(compare);
-    camp->vtable_ = ei::GamePointer<void*>(0x00740A2C);
-    camp->inputVtable_ = ei::GamePointer<void*>(0x007409F8);
+    camp->vtable_ = CItemScreen::ItemScreenVtable();
+    camp->inputVtable_ = CItemScreen::ItemScreenInputVtable();
     camp->fromHeroScreen_ = true;   // opened from the hero screen
     camp->heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
     camp->pageTitles_.Construct();
-    camp->vtable_ = ei::GamePointer<void*>(0x0074091C);
-    camp->inputVtable_ = ei::GamePointer<void*>(0x007408E8);
+    camp->vtable_ = CCampPages::Vtable();
+    camp->inputVtable_ = CCampPages::InputVtable();
     return camp;
 }
 
@@ -138,9 +132,9 @@ void CMpHeroScreen::CloseRenameEdit() {
 void CMpHeroScreen::BackToNewHero() {
     uiorig::PlayUiSound(window.interface_, game::CancelSoundText(), 0);
     statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
-    static_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
-    static_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
-    static_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
+    window.surfaces_.data[0]->GetDC();
+    window.surfaces_.data[0]->Clear();
+    window.surfaces_.data[0]->ReleaseDC();
     tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
     EditSetText(nameEdit_, nullptr, Hero()->texts[0].GetString());
@@ -342,9 +336,9 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         VirtualChooseFigure(defaults_[0]);
         statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
-        static_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
-        static_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
-        static_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
+        window.surfaces_.data[0]->GetDC();
+        window.surfaces_.data[0]->Clear();
+        window.surfaces_.data[0]->ReleaseDC();
         turn_ = 0.0f;
         SetMode(this, nullptr, 10);
         EditSetText(nameEdit_, nullptr, game::EmptyText());
@@ -407,13 +401,13 @@ void CMpHeroScreen::Rename() {
         name = name.Left(bar);
         name.TrimRight();
     }
-    auto* surface = static_cast<SurfaceDraw*>(window.surfaces_.data[3]);
+    auto* surface = window.surfaces_.data[3];
     SurfaceFreeze(surface, nullptr, 1, 0);
-    surface->Begin();
+    surface->GetDC();
     surface->Clear();
     RECT rect = kRenameTitle;
     SurfaceDrawText(surface, nullptr, name + RenameSeparator(), &rect, 1, kBright, 2, 1);
-    surface->End();
+    surface->ReleaseDC();
 }
 namespace {
 void __fastcall MpHeroRename(CMpHeroScreen* self) { self->Rename(); }

@@ -19,10 +19,12 @@
 #include "ground_print.h"
 #include "object_diplomacy.h"
 #include "object_tables.h"
+#include "player_manager.h"
 #include "player_messages.h"
 #include "player_source.h"
 #include "registry.h"
 #include "script.h"
+#include "unit_create.h"
 #include "unit_looks.h"
 #include "water_tweens.h"
 #include "lib/mfc.h"
@@ -124,8 +126,8 @@ static_assert(sizeof(MapObjectIdMap) == 0x18);
 struct PlayerIterator : ObjectListIterator {
     PlayerIterator() : ObjectListIterator{nullptr, nullptr} {}
 
-    CPlayer* First(CEngineObject* players) {   // 00404920
-        return static_cast<CPlayer*>(ObjectListIterator::First(static_cast<CBaseManager*>(players)));
+    CPlayer* First(CPlayerManager* players) {   // 00404920
+        return static_cast<CPlayer*>(ObjectListIterator::First(players));
     }
     CPlayer* Next() { return static_cast<CPlayer*>(ObjectListIterator::Next()); }   // 00404960
     // The original inlines this: drop the list's count without releasing it.
@@ -259,12 +261,12 @@ public:
     std::uint8_t windDirection_[12];      // +0x24 three floats; saved and loaded as they are
     std::uint32_t windStrength_;          // +0x30 float bits, 0..1; saved and loaded
     CLinkFigureLoader* figureLoader_;     // +0x34 counted (the client's from SetUpGraphics; slot 23 returns it)
-    CBaseManager* players_;              // +0x38 player list (vtable slot 20 returns it)
+    CPlayerManager* players_;            // +0x38 player list (vtable slot 20 returns it)
     CBaseManager* manager3C_;            // +0x3C (slot 15)
-    CBaseManager* manager40_;            // +0x40 map objects by id (slot 19; its slot 23 creates one)
+    CMapObjectManager* manager40_;       // +0x40 map objects by id (slot 19; its slot 23 creates one)
     CBaseManager* manager44_;            // +0x44 (slot 21)
     CBaseManager* manager48_;            // +0x48 the timed objects (spells, effects; slot 14)
-    CBaseManager* manager4C_;            // +0x4C (slot 22)
+    CSpellManager* manager4C_;           // +0x4C the spells (slot 22)
     CEngineObject* manager50_;            // +0x50 (slot 17)
     CItemManager* itemManager_;          // +0x54 items (slot 18)
     CEngineObject* manager58_;            // +0x58 (slot 16)
@@ -667,11 +669,11 @@ public:
     // 0058FD90 (RET 0xC). Before a zone change: every record of `records` (CArray of record
     // pointers) notes its unit's leader, gets a placement (if `placements`), is rebuilt from its
     // unit through `partyRecords`, and the unit is removed (a dead one just loses its owner).
-    void StoreParty(void* records, CParty* partyRecords, void* placements);
+    void StoreParty(RecordPtrArray* records, CParty* partyRecords, mfc::CArray<UnitPlacement>* placements);
     // 00590A40 (RET 8). The player's party leaves the zone: gtime, its items, then (single player
     // and kind 3, with +0x15C) its records without a unit are dropped and the rest stored
     // (StoreParty).
-    void CollectParty(CPlayer* player, void* placements);
+    void CollectParty(CPlayer* player, mfc::CArray<UnitPlacement>* placements);
 
     // world_party.cpp
     // 005901E0 (RET 8). Moves quest items (class 0x14) from `itemArray` (a CArray of item
@@ -685,7 +687,7 @@ public:
     // its units are created at the entrance's centre (the target zone's exit), facing away from
     // the map centre or along the exit's heading, the player state gets the start; `runScripts`
     // runs the script command queue five times.
-    void Redeploy(CPlayer* player, void* placements, char runScripts);
+    void Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placements, char runScripts);
     // 00594CE0 (slot 24, RET 4). A new item like `item`: made by the item factory (slot 18) from
     // its type (+0x10) and record (+0x18), filled by the item's slot 15 (with slot 22), with its
     // count (+0x28); one below its maximum (+0x2C) goes on counted_ once.
@@ -705,7 +707,8 @@ public:
     // `position` along `rotation`, moved to a free cell, under `player`'s control, with its items,
     // spells and AI; heroes get their figure parts. Followers are given their leaders; with a
     // player the units are added to the "Heroes" script group.
-    void CreateUnits(CPlayer* player, RecordPtrArray* records, const Vector3* position, Quaternion rotation, void* placements);
+    void CreateUnits(CPlayer* player, RecordPtrArray* records, const Vector3* position, Quaternion rotation,
+                     mfc::CArray<UnitPlacement>* placements);
     // 0058ECE0 (RET 8). A quick item (potion) is used by `unit`: the effect object "st.tr.130"
     // (model "unhuma", type 9, flags 0x3010) is created at the unit's position on the ground and
     // flagged new (00529D20: flags_ |= 0x180000). `item` is not used.
@@ -2063,7 +2066,7 @@ void __stdcall ShowBolt(Vector3 from, Vector3 to);
 // with 1 they are XORed back; also the party records outside a game (007C82B0). Nothing when
 // the state (0079026C) is already `plain`. 005791C0 (RET 4) does one player list.
 void __stdcall GuardPlayerData(char plain);
-void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t key);
+void __fastcall GuardPlayers(CPlayerManager* players, char units, std::uint32_t key);
 
 // ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------
 // 0056AFE0 (the client's draw pass, patched by Rebirth) fills per-frame vectors of object pointers

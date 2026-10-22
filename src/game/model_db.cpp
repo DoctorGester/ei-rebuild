@@ -35,7 +35,7 @@ void SerializeArray(ChunkArchive* ar, int id, typename Abi::Vector* v) {
         for (Record* p = v->begin(); p != end; ++p) Abi::Element::Destroy(p);
         v->Finish() = v->Start();
         count = ar->CountChunks(1);
-        static_cast<Abi*>(v)->ResizeDefault(static_cast<unsigned>(count));
+        v->template ResizeDefault<typename Abi::Element>(static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(v->size());
     }

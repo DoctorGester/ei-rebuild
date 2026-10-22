@@ -216,7 +216,7 @@ EI_REWRITTEN(0x00615800, VoiceEntryDestroy);
 
 void __fastcall ReleaseCachedObjects(ItemObjectCache* cache) {
     for (ItemObjectCache::Node* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache::Map::Next(node))
-        static_cast<CEngineObject*>(node->second.object)->Release();
+        node->second.object->Release();
 }
 EI_REWRITTEN(0x00634500, ReleaseCachedObjects);
 EI_REWRITTEN(0x00634560, ReleaseCachedObjects);

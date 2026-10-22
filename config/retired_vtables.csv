@@ -25,6 +25,9 @@ vtable,slots,class,file,note
 0073BD48,6,AwardMessageClass,src/game/net_messages.h,ReplicatedClass (message type 14)
 0073BD60,6,TradeMessageClass,src/game/net_messages.h,ReplicatedClass (message type 17)
 0073BD78,6,PartyMemberMessageClass,src/game/net_messages.h,ReplicatedClass (message type 16)
+0073BD90,2,MemoryStreamClass,src/game/core_streams.cpp,the memory stream (CMemoryStream)
+0073BD98,6,MemoryStreamClass,src/game/core_streams.cpp,the tail of 0073BD90 (a devirtualised slot call)
+0073BDB0,8,StreamClass,src/game/core_streams.cpp,the abstract stream (CStream; slots 1-6 _purecall)
 0073BDD0,6,PartyMessageClass,src/game/net_messages.h,ReplicatedClass (message type 15)
 0073BDEC,17,ClientSessionClass,src/game/net_classes.h,the game client (ClientSession)
 0073BE30,17,ClientBaseClass,src/game/net_classes.h,the client base (ClientBase; slot 16 _purecall)
@@ -95,6 +98,7 @@ vtable,slots,class,file,note
 0073C8D8,8,FileStreamClass,src/game/net_link.h,the file stream (FileStream; the recordings and the save files)
 0073C8F8,13,LoopbackLinkClass,src/game/net_link.h,the loopback link (LoopbackLink)
 0073C92C,13,ReplayLinkClass,src/game/net_link.h,the replay link (ReplayLink)
+0073C960,8,QueueStreamClass,src/game/core_streams.cpp,the network queue's memory streams (CMemoryStream::ConstructQueueStream)
 0073C990,14,DriverLinkClass,src/game/net_link.h,the driver link (DriverLink)
 0073C9C8,14,FramedLinkClass,src/game/net_link.h,the framed link (FramedLink; slots 2-5 / 11 / 13 _purecall)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
@@ -321,6 +325,7 @@ vtable,slots,class,file,note
 0073FF74,3,PatrolPointsClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the constructors')
 0073FF80,3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
 0073FF8C,13,FearClass,src/game/ai_mode_class.h,the Fear AI mode
+00740034,11,ConsoleStreambufClass,src/game/console.cpp,the console streambuf (ConsoleStreambuf; nine instances, one per message filter)
 007400A8,13,ChatOverlayInputClass,src/game/ui_chat_overlay.cpp,the chat overlay's input side
 007400DC,25,ChatOverlayClass,src/game/ui_chat_overlay.cpp,the multiplayer chat overlay (CChatOverlay)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
@@ -332,20 +337,59 @@ vtable,slots,class,file,note
 007403F8,4,ItemTurnClass,src/game/ui_item_screen.cpp,an item's turning state (ItemTurn)
 00740410,13,UiWindowInputClass,src/game/ui_input_class.h,the item screens' icon window's input side (the plain window's)
 00740444,25,IconWindowClass,src/game/ui_item_screen.cpp,the item screens' icon window (CItemIconWindow)
+00740578,13,BriefingScreenInputClass,src/game/ui_screen_tables.cpp,the briefing screen's input side
+007405AC,42,BriefingScreenClass,src/game/ui_screen_tables.cpp,the briefing screen (CBriefingScreen)
+00740654,13,MainMenuInputClass,src/game/ui_screen_tables.cpp,the main menu's input side
+00740688,42,MainMenuClass,src/game/ui_screen_tables.cpp,the main menu (CMainMenu)
+00740730,13,BattleScreenInputClass,src/game/ui_screen_tables.cpp,the battle screen's input side
+00740764,42,BattleScreenClass,src/game/ui_screen_tables.cpp,the battle screen (CBattleScreen)
+0074080C,13,ViewScreenInputClass,src/game/ui_screen_tables.cpp,the view screen's input side
+00740840,42,ViewScreenClass,src/game/ui_screen_tables.cpp,the view screen (CViewScreen)
+007408E8,13,CampInputClass,src/game/ui_screen_tables.cpp,the camp's input side
+0074091C,55,CampClass,src/game/ui_screen_tables.cpp,the camp (CCampPages)
+007409F8,13,ItemScreenBaseInputClass,src/game/ui_screen_tables.cpp,the plain item screen's input side
+00740A2C,55,ItemScreenBaseClass,src/game/ui_screen_tables.cpp,the plain item screen (CItemScreen)
+00740B08,13,GlobalMapInputClass,src/game/ui_screen_tables.cpp,the island map's input side
+00740B3C,42,GlobalMapClass,src/game/ui_screen_tables.cpp,the island map (CGlobalMap)
 00740BE4,3,GlobalMapPathArrayClass,src/lib/mfc_slots.h,CArray (the global map's quests)
 00740BF0,3,GlobalMapPointArrayClass,src/lib/mfc_slots.h,CArray (the global map's links)
 00740BFC,3,GlobalMapZoneArrayClass,src/lib/mfc_slots.h,CArray (the global map's zones)
+00740C08,13,TitlesInputClass,src/game/ui_screen_tables.cpp,the titles' input side
+00740C3C,42,TitlesClass,src/game/ui_screen_tables.cpp,the titles (CCreditsScreen)
+00740CE4,13,ExchangeInputClass,src/game/ui_screen_tables.cpp,the exchange's input side
+00740D18,55,ExchangeClass,src/game/ui_screen_tables.cpp,the exchange between players (CExchangeScreen)
+00740DF4,13,HelpWindowInputClass,src/game/ui_screen_tables.cpp,the help window's input side
+00740E28,42,HelpWindowClass,src/game/ui_screen_tables.cpp,the help / message window (CHelpWindow)
 00740F28,1,UiSurfaceClass,src/game/ui.h,a window's off-screen surface (CUiSurface)
 00740F2C,13,UiWindowInputClass,src/game/ui_input_class.h,the plain window's input side
 00740F60,25,UiWindowBaseClass,src/game/ui_window_class.h,the plain window (CUiWindow)
-00740FD4,5,ContainerInputClass,src/game/ui_container.cpp,a container's input side (UiContainerInput)
-00740FE8,8,ContainerInputClass,src/game/ui_container.cpp,the container input side's tail (a byte match in 006DBE20 split it off)
+00740FD4,5,ContainerBaseInputClass,src/game/ui_screen_tables.cpp,a container's input side (UiContainerInput)
+00740FE8,8,ContainerBaseInputClass,src/game/ui_screen_tables.cpp,the container input side's tail (a byte match in 006DBE20 split it off)
+00741008,42,ContainerBaseClass,src/game/ui_screen_tables.cpp,the container (CUiContainer)
 00741154,13,InertInputClass,src/game/ui_input_class.h,an inert extra input side
+00741188,13,ObjectivesInputClass,src/game/ui_screen_tables.cpp,the objectives window's input side
+007411BC,42,ObjectivesClass,src/game/ui_screen_tables.cpp,the objectives window (CObjectivesWindow)
 00741264,3,ObjectiveExitArrayClass,src/lib/mfc_slots.h,CArray (the objectives window's exits)
+00741270,13,EscMenuInputClass,src/game/ui_screen_tables.cpp,the Esc menu's input side
+007412A4,42,EscMenuClass,src/game/ui_screen_tables.cpp,the Esc menu (CEscMenu)
+00741354,13,SaveLoadInputClass,src/game/ui_screen_tables.cpp,the save / load window's input side
+00741388,42,SaveLoadClass,src/game/ui_screen_tables.cpp,the save / load window (CSaveLoadWindow)
 00741444,13,ChatWindowInputClass,src/game/ui_chat_window.cpp,the briefing's chat window's input side
 00741478,25,ChatWindowClass,src/game/ui_chat_window.cpp,the briefing's chat window (CChatWindow)
 00741BC0,3,ItemStripArrayClass,src/lib/mfc_slots.h,CArray (an item strip's CArray<char*>)
+00741C9C,13,ConnectScreenInputClass,src/game/ui_screen_tables.cpp,the connection screen's input side
+00741CD0,42,ConnectScreenClass,src/game/ui_screen_tables.cpp,the multiplayer connection screen (CMpConnectScreen)
+00741DA4,13,MasterRequestBoxInputClass,src/game/ui_screen_tables.cpp,the master server request box's input side
+00741DD8,42,MasterRequestBoxClass,src/game/ui_screen_tables.cpp,the master server request box (CMasterRequestBox)
+00741F78,13,OptionsInputClass,src/game/ui_screen_tables.cpp,the options window's input side
+00741FAC,42,OptionsClass,src/game/ui_screen_tables.cpp,the options window (COptionsWindow)
 007420D4,3,GlobalMapCloudsClass,src/game/global_map_clouds.cpp,the global map's clouds (CCloudNoise)
+00742118,13,MpHeroScreenInputClass,src/game/ui_screen_tables.cpp,the hero screen's input side
+0074214C,55,MpHeroScreenClass,src/game/ui_screen_tables.cpp,the multiplayer hero screen (CMpHeroScreen)
+00742228,13,DifficultyBoxInputClass,src/game/ui_screen_tables.cpp,the difficulty question's input side
+0074225C,42,DifficultyBoxClass,src/game/ui_screen_tables.cpp,the difficulty question (CDifficultyBox)
+00742314,13,MessageBoxInputClass,src/game/ui_screen_tables.cpp,the message box's input side
+00742348,42,MessageBoxClass,src/game/ui_screen_tables.cpp,the message box (CMessageBox)
 00742464,6,TopPanelInputClass,src/game/ui_battle_setup.cpp,the HUD top panel's input side
 0074247C,7,TopPanelInputClass,src/game/ui_battle_setup.cpp,the top panel input side's tail (a byte match in 005FE440 split it off)
 00742498,25,TopPanelClass,src/game/ui_battle_setup.cpp,the HUD top panel (CHudTopPanel)
@@ -461,3 +505,21 @@ vtable,slots,class,file,note
 00744264,1,PrintRecord,src/game/model.h,a prints.db record
 00744268,1,PrintRecord2,src/game/model.h,prints.db's second record type
 00744288,3,DibClass,src/game/dib.cpp,CDib
+00745F5C,3,StringArrayTable,src/lib/mfc_coll.cpp,CStringArray
+00745F78,3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
+0074646C,5,ResourceExceptionTable,src/lib/mfc_exception.cpp,CResourceException (_simpleResourceException)
+00746484,5,UserExceptionTable,src/lib/mfc_exception.cpp,CUserException (_simpleUserException)
+007464B8,3,DWordArrayTable,src/lib/mfc_coll.cpp,CDWordArray
+00746560,3,ByteArrayTable,src/lib/mfc_coll.cpp,CByteArray (the terrain sectors' water materials)
+007465F8,5,MemoryExceptionTable,src/lib/mfc_exception.cpp,CMemoryException (_simpleMemoryException)
+00746610,5,NotSupportedExceptionTable,src/lib/mfc_exception.cpp,CNotSupportedException (_simpleNotSupportedException)
+007467A0,3,UIntArrayTable,src/lib/mfc_coll.cpp,CUIntArray (slot 2 CObject's empty Serialize)
+00746808,5,ArchiveExceptionTable,src/lib/mfc_exception.cpp,CArchiveException
+0074689C,3,MapPtrToPtrTable,src/lib/mfc_handle_map.cpp,CMapPtrToPtr (the handle maps' maps)
+00746FB0,3,CPtrArray,-,"stored only by game.exe's MFC constructor / destructor 006FFC8E / 006FFCC1, which no code of ours calls"
+00746FE8,3,CPtrList,-,"stored only by game.exe's MFC constructor / destructor 006FFED9 / 00700048, which no code of ours calls"
+00747290,2,ExceptionTable,src/lib/crt_except.cpp,std::exception (MSVC 6)
+00748280,1,OstreamIosTable,src/lib/crt_iostream.cpp,ostream's table for its ios (the console's ostreams; game.exe's virtual base table after it stays)
+00748290,1,ostream_withassign,-,"stored only by game.exe's 006FC597 / 006FC61D / 006FC67B (its constructors and destructor), which no code of ours calls"
+007482AC,11,StreambufTable,src/lib/crt_iostream.cpp,streambuf (the base of the console's streambufs; slots 7 / 8 _purecall)
+007482E8,1,IosTable,src/lib/crt_iostream.cpp,ios

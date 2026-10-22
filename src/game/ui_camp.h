@@ -157,6 +157,11 @@ public:
     // 005F6900 (slot 0, the deleting destructor; ui_window_delete.cpp). GlobalMapDestroy, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CGlobalMap* GlobalMapDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740B3C / 00740B08.
+    static void** Vtable();
+    static void** InputVtable();
+    // 0062D330 (slot 40; ui_global_map_input.cpp). The screen's part of a save game: one zero dword.
+    void SaveState();
     // 0062D350 (slot 25). Builds the map of the local player's allod: the island model, the
     // zones, the quests the player holds ("q.<zone>.<quest>" = 1) and the links to zones the
     // player may enter ("z.<zone>" = 2), the clock text, the camp and turn buttons, the weather.
@@ -335,11 +340,6 @@ static_assert(sizeof(CGlobalMap) == 0x294);
 // (ui_global_map.cpp).
 void __fastcall GlobalMapDestroy(CGlobalMap* self);
 
-// 0060E3E0 (__fastcall on the panel). The trade panel's destructor body (vtable 007417A8):
-// its CStringArray (+0x1A4), the vectors at +0x190 (0x3C-byte entries) and +0x180, +0x174, +0x168,
-// +0x15C (0x18-byte entries), then the window base (ui_camp.cpp).
-void __fastcall TradePanelDestroy(CUiWindow* self);
-
 // --- Camp trade panel (the level-up page) ------------------------------------------------------
 //
 // The panel that sells skills for experience (vtable 007417A8; the camp's +0x1F4;
@@ -366,13 +366,8 @@ struct TradeRow {
 };
 static_assert(sizeof(TradeRow) == 0x18 && offsetof(TradeRow, key) == 0x04 && offsetof(TradeRow, nextKey) == 0x08 && offsetof(TradeRow, price) == 0x0C);
 
-// STLport vector<TradeRow>.
-struct TradeRows {
-    TradeRow* begin;
-    TradeRow* end;
-    TradeRow* capacity;
-    int Count() const { return static_cast<int>(reinterpret_cast<const char*>(end) - reinterpret_cast<const char*>(begin)) / 0x18; }
-};
+// STLport vector<TradeRow> (its element policy: recordvec::TradeRowElement).
+using TradeRows = stlp::vector<TradeRow>;
 
 // A party member's statistics as the trade panel keeps them (0x3C bytes, STLport vector at
 // CTradePanel +0x190; filled by 00626F10 from the local player's unit record `index`).
@@ -388,14 +383,17 @@ struct TradeRecord {
     std::uint8_t padAfterBought[3];  // +0x39 not written
 };
 static_assert(sizeof(TradeRecord) == 0x3C);
-struct TradeRecords {
-    TradeRecord* begin;
-    TradeRecord* end;
-    TradeRecord* capacity;
-};
+using TradeRecords = stlp::vector<TradeRecord>;
 
 class CTradePanel : public CUiItemPanel {
 public:
+    // 0060E3E0 (__fastcall on the panel; ui_camp.cpp). The destructor body (vtable 007417A8): its
+    // CStringArray (+0x1A4), the vectors at +0x190 (0x3C-byte entries) and +0x180, +0x174, +0x168,
+    // +0x15C (0x18-byte entries), then the window base.
+    void DestroyBody();
+    // 0060E3C0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CTradePanel* TradePanelDelete(unsigned flags);
     // 00624F10 (__fastcall; window slot 18, called by the camp's and the hero screen's Create).
     // Lays the panel out at (200, 100, 600, 500): a surface, the regions (the four scroll arrows,
     // the title rows, 23 learnable rows from (415, 135), 10 held rows from (215, 330)), the arrows'
@@ -470,7 +468,7 @@ public:
     // bought for the hero shown (its record's bought byte, in AL).
     std::uint8_t Bought() const;
     // The record of the hero shown (recordIndex_).
-    const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
+    const TradeRecord& Record() const { return records_[recordIndex_]; }
 
     // (CUiItemPanel's owner_ +0x14C: the camp or the hero screen; slot 51 the hero record.)
     int recordIndex_;                // +0x150 the record 00626F10 fills
@@ -503,6 +501,9 @@ static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 // its other pages, 7 leave the camp.
 class CCampPages : public CItemScreen {
 public:
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 0074091C / 007408E8.
+    static void** Vtable();
+    static void** InputVtable();
     // 0060C870 (slot 25; Rebirth-patched; ui_camp_create.cpp, reproducing WideScreen, so hooked in
     // both launches). BuildPages, then with Rebirth's WideScreen the two curtains over the
     // screen's margins, shown (widescreen::AddCurtains; sprites 10 and 11).
@@ -930,20 +931,9 @@ static_assert(sizeof(CHeroQuickStrip) == 0x158);
 // item maker (007415D4 / 007415A0, 0x158 bytes): the slots of what is being made beside a 2 x 4 grid.
 class CConstructorPage : public CUiItemPanel {
 public:
-    // 006280C0. The spell maker: the container and spell slots, the grid, the cost line's regions,
-    // the four pictures (constrspell1..4), a highlight frame, the cost surface and its texts.
-    void BuildSpellMaker(CParty* slots);
     // 00628CC0. The item maker: the blueprint and two part slots, the grid, the pictures
     // (constritem1..4) and a highlight frame.
     void BuildItemMaker(CParty* slots);
-    // 006284A0 (slot 20 of the spell maker, RET 4; ui_panel_draws.cpp). The slots' items (a spell
-    // container at (250, 300), the spell at (350, 300), the modifiers down the 2 x 4 grid from
-    // (450, 150)); the cost lines on the surface: "<text 0> <best skill> (<needed>)" and "<text 1>
-    // <most mana> (<the larger of the summed and the last spell's mana>)" with a spell, else the
-    // two texts; the window's sprites and models; then, without a container, the pulsing highlight
-    // (scene object 4, its plain colour from cos(5 * pulse_)) on the empty grid cells (with a
-    // spell) or on the container and spell slots. Returns 1.
-    BOOL DrawSpellMaker(int pass);
     // 00628F80 (slot 20 of the item maker, RET 4). The window's sprites and models first; the
     // blueprint (250, 300) and the part (350, 250) drawn between depth clears of their slots, a
     // spell container at (350, 350), the materials down the grid; then, without a blueprint or a
@@ -968,6 +958,17 @@ static_assert(offsetof(CConstructorPage, pulse_) == 0x154);
 // The spell maker's cost texts ("infoitem_35", "infoitem_36"): a CStringArray at +0x158.
 class CSpellMakerPage : public CConstructorPage {
 public:
+    // 006280C0. The spell maker: the container and spell slots, the grid, the cost line's regions,
+    // the four pictures (constrspell1..4), a highlight frame, the cost surface and its texts.
+    void BuildSpellMaker(CParty* slots);
+    // 006284A0 (slot 20 of the spell maker, RET 4; ui_panel_draws.cpp). The slots' items (a spell
+    // container at (250, 300), the spell at (350, 300), the modifiers down the 2 x 4 grid from
+    // (450, 150)); the cost lines on the surface: "<text 0> <best skill> (<needed>)" and "<text 1>
+    // <most mana> (<the larger of the summed and the last spell's mana>)" with a spell, else the
+    // two texts; the window's sprites and models; then, without a container, the pulsing highlight
+    // (scene object 4, its plain colour from cos(5 * pulse_)) on the empty grid cells (with a
+    // spell) or on the container and spell slots. Returns 1.
+    BOOL DrawSpellMaker(int pass);
     // 0060E600 (ui_window_delete.cpp). The destructor body: the texts, then the window's.
     void DestroyBody();
     // 0060E5E0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the

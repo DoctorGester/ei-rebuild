@@ -27,9 +27,12 @@ C* UiWindowDeleteType(R (C::*)(Flags));
 template <typename Self, auto Delete>
 class UiWindowClass : public ei::CompiledTag<Self> {
 public:
-    using Window = std::remove_pointer_t<decltype(UiWindowDeleteType(Delete))>;
+    // Delete's class; the window slots' class is that, or CUiWindow for a screen kept as a struct around its
+    // container (CMpHeroScreen; ui_container_class.h).
+    using DeleteClass = std::remove_pointer_t<decltype(UiWindowDeleteType(Delete))>;
+    using Window = std::conditional_t<std::is_base_of_v<CUiWindow, DeleteClass>, DeleteClass, CUiWindow>;
 
-    virtual void* DeleteScalar(unsigned flags) { return (AsWindow()->*Delete)(flags); }      // 0
+    virtual void* DeleteScalar(unsigned flags) { return (reinterpret_cast<DeleteClass*>(this)->*Delete)(flags); }   // 0
     virtual void CopyFrom(const CEngineObject& other) { Object()->CopyFromImpl(other); }     // 1: 00402D40
     virtual int Create() { return UiObjectCreate(Object()); }                                // 2: 00579560 (1)
     virtual void Destroy() {}                                                                // 3: 00579570 (empty)

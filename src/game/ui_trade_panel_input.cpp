@@ -43,14 +43,14 @@ int TextLength(const char* text) { return reinterpret_cast<const int*>(text)[-2]
 // --- 00626D70: the scroll positions clamped ----------------------------------------------------------
 
 void CTradePanel::ClampScroll() {
-    if (perkTop_ > perks_.Count() - kHeldRows) perkTop_ = perks_.Count() - kHeldRows;
+    if (perkTop_ > static_cast<int>(perks_.size()) - kHeldRows) perkTop_ = static_cast<int>(perks_.size()) - kHeldRows;
     if (perkTop_ < 0) perkTop_ = 0;
-    if (learnableTop_ > learnable_.Count() - kLearnableRows) learnableTop_ = learnable_.Count() - kLearnableRows;
+    if (learnableTop_ > static_cast<int>(learnable_.size()) - kLearnableRows) learnableTop_ = static_cast<int>(learnable_.size()) - kLearnableRows;
     if (learnableTop_ < 0) learnableTop_ = 0;
     Arrow(this, 0)->visible_ = perkTop_ > 0 ? 1 : 0;
-    Arrow(this, 1)->visible_ = perkTop_ < perks_.Count() - kHeldRows ? 1 : 0;
+    Arrow(this, 1)->visible_ = perkTop_ < static_cast<int>(perks_.size()) - kHeldRows ? 1 : 0;
     Arrow(this, 2)->visible_ = learnableTop_ > 0 ? 1 : 0;
-    Arrow(this, 3)->visible_ = learnableTop_ < learnable_.Count() - kLearnableRows ? 1 : 0;
+    Arrow(this, 3)->visible_ = learnableTop_ < static_cast<int>(learnable_.size()) - kLearnableRows ? 1 : 0;
     DrawLists();
 }
 namespace {
@@ -73,31 +73,31 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
     using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
     PartyUnitRecord* hero = ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_);
     auto* stats = &hero->stats;
-    TradeRecord& record = records_.begin[recordIndex_];
+    TradeRecord& record = records_[recordIndex_];
 
     const TradeRow* row = nullptr;
     bool hold = false;
     if (region >= kFirstSchool && region < kScience) {
-        row = &schools_.begin[region - kFirstSchool];
+        row = &schools_[region - kFirstSchool];
         if (row->level >= kMaxLevel || row->price > experience_) return;
         ++stats->skills[region - kFirstSchool];
         hold = true;
     } else if (region == kScience) {
-        row = &science_.begin[0];
+        row = &science_[0];
         if (row->level >= kMaxLevel || row->price > experience_) return;
         ++stats->attributes[0];
         hold = true;
     } else if (region >= kFirstLearnable && region < kFirstHeld) {
         std::uint32_t index = static_cast<std::uint32_t>(learnableTop_ + region - kFirstLearnable);
-        if (index >= static_cast<std::uint32_t>(learnable_.Count())) return;
-        row = &learnable_.begin[index];
+        if (index >= static_cast<std::uint32_t>(static_cast<int>(learnable_.size()))) return;
+        row = &learnable_[index];
         if (row->price > experience_ || !row->learnable) return;
         stats->LearnSkill(Skills(), Skills()->FindLevel(row->key));
     } else {
         // 34 and up, and (as unsigned) anything below 0: the next level of a held perk.
         std::uint32_t index = static_cast<std::uint32_t>(perkTop_ + region - kFirstHeld);
-        if (index >= static_cast<std::uint32_t>(perks_.Count())) return;
-        row = &perks_.begin[index];
+        if (index >= static_cast<std::uint32_t>(static_cast<int>(perks_.size()))) return;
+        row = &perks_[index];
         if (row->price > experience_ || TextLength(row->nextKey) == 0) return;
         stats->LearnSkill(Skills(), Skills()->FindLevel(row->nextKey));
     }
@@ -146,10 +146,10 @@ void CTradePanel::UpdateHeld() {
     const TradeRow* row;
     std::uint8_t* level;
     if (region >= kFirstSchool && region < kScience) {
-        row = &schools_.begin[region - kFirstSchool];
+        row = &schools_[region - kFirstSchool];
         level = &stats->skills[region - kFirstSchool];
     } else if (region == kScience) {
-        row = &science_.begin[0];
+        row = &science_[0];
         level = &stats->attributes[0];
     } else {
         return;

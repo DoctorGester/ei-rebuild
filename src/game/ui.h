@@ -47,6 +47,7 @@ class CUiMesh;
 struct CDXSurface;
 class CSceneRenderer;   // model.h
 class CTextureDevice;   // texture.h
+class CPixelConverter;  // texture.h
 class CStream;          // core_streams.h
 class CUiSurface;
 
@@ -497,6 +498,12 @@ public:
     // The DC must be held. Returns DrawText's height scaled back to the layout (005F7E30), or 0
     // without a surface.
     int DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
+    // 005FDC00 / 005FDC60 (UiSurfaceGetDC / UiSurfaceReleaseDC below): the surface's DC held and
+    // released.
+    ui_gdi::GameDC* GetDC();
+    void ReleaseDC();
+    // 005FDE20 through its address (Rebirth patches it; ui_text_draw.cpp): DrawTextIn's line of text.
+    int DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
     // 005FD120 (ui_surface_create.cpp). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
     // 005FD760 (RET 8; ui_window.cpp). Sets (`frozen` nonzero) or clears the shown flag (4 of
@@ -580,6 +587,8 @@ struct UiSurfaceClass final : ei::CompiledTag<UiSurfaceClass> {
 // MFC wrapper; null without a DirectDraw surface) and the matching release.
 ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
 void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
+inline ui_gdi::GameDC* CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
+inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the
 // contents kept in memory while swapped out (007C7E74) and the surfaces' height * pitch (007C7E78).
@@ -742,9 +751,6 @@ public:
     // 005FE910 and 11 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBase,
     // then the memory freed when bit 0 of `flags` is set; returns this.
     CUiWindow* UiWindowDelete(unsigned flags);
-    // 0060E3C0 (slot 0 of the trade panel; ui_window_delete.cpp). TradePanelDestroy, then the memory
-    // freed when bit 0 of `flags` is set; returns this.
-    CUiWindow* TradePanelDelete(unsigned flags);
     // 005FE700 (RET 4). Constructor: the engine object base, an empty window of `ui` (arrays, the
     // rectangle and +0xA0..+0xD7 zeroed, rotation from 007C7E58), two materials of the manager
     // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
@@ -1131,7 +1137,7 @@ struct UiRenderer {
     std::uint8_t unused_00[0x08];
     long result_;                    // +0x08 the last device call's result
     std::uint8_t unused_0C[0x4C - 0x0C];
-    void* decoder_;                  // +0x4C the pixel decoder (slot 5 decodes an .mmp image's pixels)
+    CPixelConverter* decoder_;       // +0x4C the pixel decoder (slot 5 decodes an .mmp image's pixels)
     std::uint8_t unused_50[0x54 - 0x50];
     UiD3DDevice* device_;            // +0x54
     std::uint8_t unused_58[0x90 - 0x58];
@@ -2050,6 +2056,10 @@ public:
     // 00601AC0 (RET 4; the containers' slot 19, ui_container.cpp). The window's own surfaces
     // (006002C0), then every enabled child's slot 19 with `show`.
     void ShowChildren(int show);
+    // The container's compiled tables (C19, ui_container_class.h / ui_screen_tables.cpp) in place of game.exe's
+    // 00741008 / 00740FD4 (not Vtable(): a screen without its own would inherit the container's).
+    static void** ContainerVtable();
+    static void** ContainerInputVtable();
 
     UiPtrArray<CUiWindow> children_;          // +0x148
     UiInputSide** inputsBegin_;               // +0x158 extra input sides (STLport vector)
@@ -2303,6 +2313,9 @@ public:
     // 005F5FC0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CBattleScreen* BattleScreenDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740764 / 00740730.
+    static void** Vtable();
+    static void** InputVtable();
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
     // player's id, the ids of the others. Compared and copied as a whole (006381E0, 0064AF30).
@@ -2753,8 +2766,9 @@ void __fastcall QuickLoad(const char* slot);
 // Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible list rows.
 class CSaveLoadWindow : public CUiContainer {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00741388);
-    static constexpr std::uintptr_t kInputVtableAddress = std::uintptr_t(0x00741354);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741388 / 00741354.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);       // 00654660
     void OnDoubleClick(int buttons, int x, int y);     // 006547B0
     BOOL Draw(int pass);                               // 006544A0 (slot 20): slides in
@@ -2985,6 +2999,12 @@ public:
     // 00603B70 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CObjectivesWindow* ObjectivesDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 007411BC / 00741188.
+    static void** Vtable();
+    static void** InputVtable();
+    // 0064D970 (slot 26; ui_container_draws.cpp). The device's alpha reference back to the saved one
+    // (savedAlphaRef_); SetRenderState's result (not stored in the device object).
+    long RestoreAlphaRef();
     // 0064BE80 (slot 25, the window's Create; ui_objectives.cpp).
     void Build();
     // 0064CC10: shows zone `zone`: picture, exits, quests and description.
@@ -3108,8 +3128,9 @@ struct OptionRow {
 // the option groups (100..250 x 156..420), 13.. the rows of the shown group.
 class COptionsWindow : public CUiContainer {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00741FAC);
-    static constexpr std::uintptr_t kInputVtableAddress = std::uintptr_t(0x00741F78);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741FAC / 00741F78.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);       // 00650C20
     void OnDoubleClick(int buttons, int x, int y);     // 00650D70
     BOOL Draw(int pass);                               // 00650920 (slot 20): slides in
@@ -3304,6 +3325,9 @@ public:
     // 00633730 and 1 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody,
     // then the memory freed when bit 0 of `flags` is set; returns this.
     CMessageBox* MessageBoxDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00742348 / 00742314.
+    static void** Vtable();
+    static void** InputVtable();
 
     mfc::CString title_;             // +0x164 the text of the title key
     mfc::CString text_;              // +0x168 the text of the text key
@@ -3331,6 +3355,9 @@ public:
     // 005F8950 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CHelpWindow* HelpWindowDelete(unsigned flags);
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740E28 / 00740DF4.
+    static void** Vtable();
+    static void** InputVtable();
     // 00658E10 (slot 25; ui_help_window.cpp). Loads "saveload", makes a 256x256 texture, reads the
     // title and the pages (above; the keys replaced by their "tutor" texts, trailing CR / LF
     // trimmed); without the text or without pages the interface's pending value is set to 0 and
@@ -3489,6 +3516,9 @@ public:
     // the shade, frame and OK / cancel buttons as the message box's; regions OK (tip 0xC3B4),
     // cancel (0xC3B5), easy, hard.
     void Build();
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 0074225C / 00742228.
+    static void** Vtable();
+    static void** InputVtable();
 
     int easy_;                       // +0x180 1 easy, 0 hard (the default)
 };

@@ -304,6 +304,12 @@ int __fastcall SoundCloseStream(void* /*stream*/);
 namespace {
 
 constexpr int kVoiceCount = 15;
+// operator new[]'s block for the voices: the count, then the voices.
+struct VoiceBlock {
+    std::int32_t count;
+    SoundSlot voices[kVoiceCount];
+};
+static_assert(offsetof(VoiceBlock, voices) == 4);
 constexpr int kWaveOutMode = 2;             // the sound option choosing the wave mapper over DirectSound
 constexpr int kWaveMapper = -1;
 constexpr unsigned kMaxRate = 44100;
@@ -480,8 +486,7 @@ EI_REWRITTEN(0x006B6A10, StreamThreadEntry);
 // 006B68A0 (kDeviceCallback; no Ghidra function, S16c): DirectSoundEnumerateA's callback in Open. The
 // device's GUID pointer is appended to the aligned array `devices` (its SetSize by one, inlined in the
 // original); the enumeration goes on (TRUE).
-int __stdcall AddSoundDevice(void* guid, const char*, const char*, void* devices) {
-    auto* list = static_cast<lib::AlignedArray<int>*>(devices);
+int __stdcall AddSoundDevice(void* guid, const char*, const char*, lib::AlignedArray<int>* list) {
     const int at = list->size;
     list->SetSize(at + 1);
     (*list)[at] = static_cast<int>(reinterpret_cast<std::intptr_t>(guid));
@@ -701,13 +706,13 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     if (OpenStream(waveDriver) != 0)
         streamThread = mfc::impl::AfxBeginThread(StreamThreadEntry, this, kStreamThreadPriority, 0, 0, nullptr);
     // operator new[]: the count, then the voices.
-    auto* block = static_cast<std::int32_t*>(gamecrt::operator_new(sizeof(std::int32_t) + kVoiceCount * sizeof(SoundSlot)));
+    auto* block = gamecrt::operator_new_as<VoiceBlock>();
     SoundSlot* voices = nullptr;
     if (block != nullptr) {
-        *block = kVoiceCount;
-        voices = reinterpret_cast<SoundSlot*>(block + 1);
+        block->count = kVoiceCount;
+        voices = block->voices;
         // The CRT's eh vector constructor iterator: each voice's name string (006B6CC0, basic_string()).
-        for (int i = 0; i < kVoiceCount; ++i) stlp::StringAbi::ConstructDefault(static_cast<stlp::StringAbi*>(&voices[i].name));
+        for (int i = 0; i < kVoiceCount; ++i) stlp::StringAbi::ConstructDefault(&voices[i].name);
     }
     slots = voices;
     for (int i = 0; i < kVoiceCount; ++i) {

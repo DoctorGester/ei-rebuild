@@ -163,7 +163,11 @@ does not need a second pass:
   `src/lib/stlp_alloc.h`), not a `static_cast` at each allocation (tools/progress.py counts the
   pointer casts; check_cleanup does not); objects of a manager come typed from
   `CBaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
-  `itemdb::RecordAs<T>`, and a manager's context is a `CManagerContext` (CWorld, CParty).
+  `itemdb::RecordAs<T>`, and a manager's context is a `CManagerContext` (CWorld, CParty; its
+  slots 19, 20 and 22 return `CMapObjectManager*`, `CPlayerManager*` and `CSpellManager*`). A typed
+  stlp::vector is resized with `v.ResizeDefault<Element>(n)`, not through a `VectorAbi` downcast;
+  a window surface is drawn on through `CUiSurface::GetDC` / `ReleaseDC` / `DrawLine`, not a
+  per-file view struct derived from it.
 - one typed view instead of a cast per accessor (C15): a compiled tag's slots reach their object
   through `ObjectAs<T>()` (`src/lib/compiled_vtable.h`); an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure

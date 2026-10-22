@@ -25,8 +25,6 @@ const char* QuestPrefix() { return "q."; }
 
 // The escape menu (0x168 bytes, built inline as the battle screen's key handler does).
 constexpr std::size_t kEscMenuSize = 0x168;
-void** EscMenuVtable() { return ei::GamePointer<void*>(0x007412A4); }
-void** EscMenuInputVtable() { return ei::GamePointer<void*>(0x00741270); }
 
 constexpr int kScanCodeMask = 0x1FF;
 constexpr int kActionObjectives = 4;
@@ -111,8 +109,8 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
             if (memory) {
                 static_cast<CUiContainer*>(memory)->Construct(interface_);
                 menu = static_cast<CUiWindow*>(memory);
-                menu->vtable_ = EscMenuVtable();
-                menu->inputVtable_ = EscMenuInputVtable();
+                menu->vtable_ = CEscMenu::Vtable();
+                menu->inputVtable_ = CEscMenu::InputVtable();
             }
             interface_->PushWindow(menu, 1, 1);
         } else if (state_ == 3) {

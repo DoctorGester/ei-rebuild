@@ -50,6 +50,7 @@
 #include "ei/vcall.h"
 
 #include <cstring>
+#include <type_traits>
 
 namespace {
 
@@ -180,8 +181,7 @@ CItem* MakeItem(CWorldServer* world, CItem* itemRecord, bool refValueBase) {
 } // namespace
 
 void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const Vector3* position, Quaternion rotation,
-                               void* placementsArg) {
-    auto* placements = static_cast<PlacementArray*>(placementsArg);
+                               PlacementArray* placements) {
     // Destroyed after the two strings (declared after it), as the original does. Plain storage:
     // the original's constructor (0046C010) and inlined destructor build and tear it down.
     struct Message {
@@ -255,9 +255,10 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         CUnitServer* controller = unit->ServerController();
         AIBrain* brain = &controller->brain;
         brain->ClearModes();
-        void* memory = gamecrt::operator_new(0x24);
-        static_cast<std::uint32_t*>(memory)[1] = 0;   // +4, written before the null test
-        brain->AddMode((memory ? static_cast<PlayerMode*>(memory)->Construct() : nullptr));
+        auto* mode = gamecrt::operator_new_as<PlayerMode>();
+        mode->refs = 0;   // +4, written before the null test
+        mode->refsHigh = 0;
+        brain->AddMode(mode ? mode->Construct() : nullptr);
         brain->StopAction();
         SectorMapRemove(Sectors(), nullptr, unit);
         Vector3 free;
@@ -370,11 +371,7 @@ constexpr std::uint32_t kTorchLightKind = 0x2001;   // the torch's smoke particl
 int UpdateCountdown(const CEngineObject* object) { return CWorldServer::UpdateCountdownFor(object); }
 
 // Copies dwords (the original's REP MOVSD / dword moves; floats are not loaded on the FPU).
-void Copy(void* to, const void* from, std::size_t n) {
-    auto* d = static_cast<std::uint32_t*>(to);
-    auto* s = static_cast<const std::uint32_t*>(from);
-    for (std::size_t i = 0; i < n / 4; ++i) d[i] = s[i];
-}
+void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
 
 // The map object's CString name (+0xA4) as the string it is.
 mfc::CString* NameString(CMapObject* object) { return &object->name; }
@@ -387,8 +384,9 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     // source.
     auto* spec = message->As<ObjectSpec>();
     Spec& base = *message;
-    auto created = [this, spec]() {
-        return MapObjectManager()->CreateObjectAs<CMapObject>(spec->parentId, spec->base.id);
+    // The object of the spec's class (parentId), as the class the kind makes.
+    auto created = [this, spec]<class T>(std::type_identity<T>) {
+        return MapObjectManager()->CreateObjectAs<T>(spec->parentId, spec->base.id);
     };
     auto allowed = [this](CMapObject* object) {
         return (ObjectSlots(object)->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;
@@ -425,12 +423,12 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         return object->id_;
     };
     CBaseManager* timedManager = manager48_;
-    auto* objectManager = static_cast<CMapObjectManager*>(MapObjectManager());
+    CMapObjectManager* objectManager = MapObjectManager();
 
     switch (base.kind) {
     case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
         auto* flame = message->As<mapspec::FlameSpec>();
-        CMapObject* object = created();
+        CTorchObject* object = created(std::type_identity<CTorchObject>{});
         if (!allowed(object)) return refuse(object);
         int id = object->id_;
         if (id == -1) return -1;
@@ -456,7 +454,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             if (spell) spell->Release();
         }
         base.object = object;
-        CTorchObjectSpec* torch = static_cast<CTorchObject*>(object)->spec;
+        CTorchObjectSpec* torch = object->spec;
         auto* companion = object->ServerCompanion();
         *NameString(object) = spec->texture;
         companionTexts(companion);
@@ -485,7 +483,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         return result;
     }
     case 7: {   // a magic trap: updated every tick (no texts, not in the sector map)
-        CMapObject* object = created();
+        MagicTrap* object = created(std::type_identity<MagicTrap>{});
         if (!allowed(object)) return refuse(object);
         int id = object->id_;
         if (id == -1) return -1;
@@ -502,14 +500,22 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();
-        static_cast<MagicTrap*>(object)->SetUp(&message->As<mapspec::TrapSpec>()->trap);
+        object->SetUp(&message->As<mapspec::TrapSpec>()->trap);
         return result;
     }
     case 1:
     case 5:
     case 8:
     case 9: {   // map objects, units (5) and levers (8)
-        CMapObject* object = created();
+        CUnit* unit = nullptr;
+        Lever* lever = nullptr;
+        CMapObject* object;
+        if (base.kind == 5)
+            object = unit = created(std::type_identity<CUnit>{});
+        else if (base.kind == 8)
+            object = lever = created(std::type_identity<Lever>{});
+        else
+            object = created(std::type_identity<CMapObject>{});
         if (spec->shadow) object->flags_ |= 0x20000;
         if (gamecrt::mbscmp(spec->model.GetString(),
                             game::EmptyText()) != 0)
@@ -528,7 +534,6 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         int type = base.kind;
         if (type == 5) {
             auto* unitSpec = message->As<UnitSpec>();
-            auto* unit = static_cast<CUnit*>(object);
             unit->SetPlayer(nullptr);
             unit->SetSide(spec->side);
             UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
@@ -565,7 +570,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             object->MarkChanged(6);
             object->MarkChanged(0xB);
         } else if (type == 8) {
-            static_cast<Lever*>(object)->SetUp(&message->As<mapspec::LeverSpec>()->lever);
+            lever->SetUp(&message->As<mapspec::LeverSpec>()->lever);
             object->MarkChanged(5);
         } else {
             objectManager->GiveDefaults(object);
@@ -578,7 +583,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (spec->visible == 0) object->flags_ |= 8;
         object->SetUpAnimatedFigure(spec->texture);
         ObjectSlots(object)->UpdateSizeClasses();
-        if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
+        if (CUnit* asUnit = UnitOrNull(object)) asUnit->ServerController()->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);

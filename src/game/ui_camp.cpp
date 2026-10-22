@@ -845,23 +845,22 @@ namespace {
 
 // The rows' destructors, then the block (its capacity in rows).
 void DestroyRows(TradeRows& rows) {
-    for (TradeRow* at = rows.begin; at != rows.end; ++at) at->Destroy();
-    stlp::deallocate(rows.begin, static_cast<std::size_t>(rows.capacity - rows.begin) * 24);   // 006135F0
+    for (TradeRow* at = rows.begin(); at != rows.end(); ++at) at->Destroy();
+    stlp::deallocate(rows.Start(), rows.Capacity() * sizeof(TradeRow));   // 006135F0
 }
 
 } // namespace
 
-void __fastcall TradePanelDestroy(CUiWindow* window) {
-    auto* self = static_cast<CTradePanel*>(window);
-    self->texts_.Destruct();
-    stlp::deallocate(self->records_.begin, static_cast<std::size_t>(self->records_.capacity - self->records_.begin) * 60);   // 00613630
-    DestroyRows(self->science_);
-    DestroyRows(self->schools_);
-    DestroyRows(self->perks_);
-    DestroyRows(self->learnable_);
-    self->DestroyBase();
+void CTradePanel::DestroyBody() {
+    texts_.Destruct();
+    stlp::deallocate(records_.Start(), records_.Capacity() * sizeof(TradeRecord));   // 00613630
+    DestroyRows(science_);
+    DestroyRows(schools_);
+    DestroyRows(perks_);
+    DestroyRows(learnable_);
+    DestroyBase();
 }
-EI_REWRITTEN(0x0060E3E0, TradePanelDestroy);
+EI_REWRITTEN(0x0060E3E0, CTradePanel::DestroyBody);
 
 // --- 0060FE40: taking an item off the hero ---------------------------------------------------
 
@@ -1255,13 +1254,13 @@ CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     std::uint8_t compare = static_cast<std::uint8_t>(fromHeroScreen);
     models_.Construct(compare);
     textures_.Construct(compare);
-    vtable_ = ei::GamePointer<void*>(0x00740A2C);
-    inputVtable_ = ei::GamePointer<void*>(0x007409F8);
+    vtable_ = ItemScreenVtable();
+    inputVtable_ = ItemScreenInputVtable();
     std::memcpy(&fromHeroScreen_, &compare, 1);   // the byte as it is
     heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
     pageTitles_.Construct();
-    vtable_ = ei::GamePointer<void*>(0x0074091C);
-    inputVtable_ = ei::GamePointer<void*>(0x007408E8);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     return this;
 }
 EI_REWRITTEN(0x005F6240, CCampPages::Construct);

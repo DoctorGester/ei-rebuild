@@ -152,23 +152,19 @@ bool ServerActive() {
 }
 
 // The world's player list (CWorld::players_): the event dispatch.
-CPlayerManager* TheEvents() { return static_cast<CPlayerManager*>(TheServerWorld()->players_); }
+CPlayerManager* TheEvents() { return TheServerWorld()->players_; }
 
 // The world's spell manager (CWorld::manager4C_).
-CSpellManager* TheSpellManager() { return static_cast<CSpellManager*>(TheServerWorld()->manager4C_); }
+CSpellManager* TheSpellManager() { return TheServerWorld()->manager4C_; }
 
 
 
 // MFC containers the commands keep on the stack, built and destroyed through the originals: the
 // units found (CPtrList: constructor 004C96A0, destructor 004C96F0), the items given to a player
 // (constructor 004C98C0, AddTail 004C98F0, destructor 00427830) and the party slots (CArray of
-// 40-byte slots: constructor 004BB000, destructor 004BB020).
+// unit placements: constructor 004BB000, destructor 004BB020).
 using PtrList = mfc::CList<CUnit*>;
-struct PartySlot {
-    int unitId;
-    std::uint8_t unused_04[36];
-};
-using PartyArray = mfc::CArray<PartySlot>;
+using PartyArray = mfc::CArray<UnitPlacement>;
 using ObjectIterator = ObjectListIterator;
 
 // Damage description for KillUnit (vtable +0x7C; 0x34 bytes used): ResetDamageInfo (00522B40).
@@ -318,7 +314,7 @@ void RedeployParty(const SSCCmd* cmd) {
     ThePartyManager()->EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
     const PartyMemberArray& members = player->Party()->members_;
-    if (slots.size == 1 && members.size == 1) slots.data[0].unitId = static_cast<int>(members.data[0].unitId);
+    if (slots.size == 1 && members.size == 1) slots.data[0].id = static_cast<int>(members.data[0].unitId);
     state->SendParty();
     player->Server()->lastPosition_.z = -1313.0f;
     TheWorld()->Redeploy(player, &slots, 0);

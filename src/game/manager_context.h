@@ -14,6 +14,8 @@ class CItem;
 class CItemConstructor;
 struct CItemManager;
 class CLinkFigureLoader;   // model.h
+struct CMapObjectManager;  // unit_create.h
+class CPlayerManager;      // player_manager.h
 class CSpellConstructor;
 class CSpellManager;
 class CWorld;
@@ -26,8 +28,8 @@ public:
     virtual CItemConstructor* ItemConstructor();    // 16: 0055EBB0 (+0x58); the party's 0065F540
     virtual CSpellConstructor* SpellConstructor();  // 17: 0055EBC0 (+0x50); the party's 0065F550
     virtual CItemManager* ItemFactory();            // 18: 004BA000 (the world's itemManager_ +0x54); the party's itemManager_
-    virtual CBaseManager* MapObjectManager();       // 19: 0055EB70, the map object manager (+0x40)
-    virtual CBaseManager* PlayerList();             // 20: 0055EB50 (+0x38, players_)
+    virtual CMapObjectManager* MapObjectManager();  // 19: 0055EB70, the map object manager (+0x40); the party's null
+    virtual CPlayerManager* PlayerList();           // 20: 0055EB50 (+0x38, players_); the party's null
     // 21: 0055EB80 (+0x44): the side-specific halves' manager (the client's is a
     // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
     virtual CBaseManager* SpecificManager();

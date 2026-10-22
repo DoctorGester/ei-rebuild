@@ -20,8 +20,8 @@ namespace {
 std::int8_t g_guardPlain = /*0079026C*/ 1;   // 1: data in the clear
 std::uint32_t g_guardKey = /*007AFECC*/ {};
 // The players_ lists (+0x38) of the client world (007AF5B8) and the server world (007AFF60).
-CEngineObject* ClientPlayers() { return ei::GameData<CEngineObject*>(0x007AF5F0); }
-CEngineObject* ServerPlayers() { return ei::GameData<CEngineObject*>(0x007AFF98); }
+CPlayerManager* ClientPlayers() { return ei::GameData<CPlayerManager*>(0x007AF5F0); }
+CPlayerManager* ServerPlayers() { return ei::GameData<CPlayerManager*>(0x007AFF98); }
 // The party outside a game (007C82B0, a CParty like CPlayer + 0x70): its records, their
 // count and its gold.
 CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
@@ -39,7 +39,7 @@ void XorRange(UnitStats* stats, std::uint32_t key) {
 
 } // namespace
 
-void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t key) {
+void __fastcall GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
     if (!players) return;
     PlayerIterator it;
     for (CPlayer* player = it.First(players); player; player = it.Next()) {

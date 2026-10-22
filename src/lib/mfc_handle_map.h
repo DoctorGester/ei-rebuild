@@ -64,7 +64,7 @@ struct CMapPtrToPtr {
     CPlex* blocks;              // +0x14 m_pBlocks
     int blockSize;              // +0x18 m_nBlockSize
 
-    static void* Vtable() { return ei::GamePointer<void>(0x0074689C); }
+    static void* Vtable();   // compiled (C19, mfc_handle_map.cpp) in place of game.exe's 0074689C
 
     CMapPtrToPtr* Construct(int blockSize);                             // 007002C2 (returns this)
     void Destruct();                                                    // 00700375

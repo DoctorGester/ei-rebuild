@@ -26,10 +26,10 @@ public:
     virtual CEngineObject* ItemConstructor() { return World()->manager58_; }            // 16: 0055EBB0
     virtual CEngineObject* SpellConstructor() { return World()->manager50_; }           // 17: 0055EBC0
     virtual CItemManager* ItemFactory() { return World()->itemManager_; }               // 18: 004BA000
-    virtual CBaseManager* MapObjectManager() { return World()->manager40_; }            // 19: 0055EB70
-    virtual CBaseManager* PlayerList() { return World()->players_; }                    // 20: 0055EB50
+    virtual CMapObjectManager* MapObjectManager() { return World()->manager40_; }       // 19: 0055EB70
+    virtual CPlayerManager* PlayerList() { return World()->players_; }                  // 20: 0055EB50
     virtual CBaseManager* SpecificManager() { return World()->manager44_; }             // 21: 0055EB80
-    virtual CBaseManager* SpellManager() { return World()->manager4C_; }                // 22: 0055EBA0
+    virtual CSpellManager* SpellManager() { return World()->manager4C_; }               // 22: 0055EBA0
     virtual CLinkFigureLoader* FigureLoader() { return World()->figureLoader_; }        // 23: 0055EBD0
     // 24: 0055E940, CParty's copy of an item (the world's slots 18 and 22 are the getters it calls).
     virtual CItem* DuplicateItem(CItem* item) { return this->template As<CParty>()->CParty::MakeCopyOf(item); }

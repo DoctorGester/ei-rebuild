@@ -56,6 +56,9 @@ public:
     BOOL DrawView(int pass);
     // 0062AA40 (slot 26). The camera free again.
     void OnClose();
+    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740840 / 0074080C.
+    static void** Vtable();
+    static void** InputVtable();
 
     std::uint8_t unused_164[4];
 };
