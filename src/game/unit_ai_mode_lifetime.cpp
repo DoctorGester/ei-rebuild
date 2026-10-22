@@ -1,9 +1,7 @@
 // The unit AI modes' lifetime and constant slots: the Player and Patrol constructors (005D3760,
 // 005D0F60), the Patrol and Fear destructors (005D1240 / 005D1220, 005D2950 / 005D2930), their
 // GetType slots (005D1210, 005D2920), the abstract base's Execute (005D0A90), the abstract bases'
-// constructors (005D8850, 005D6D10), the patrol point array's destructors (005D8CF0, 005D8CD0) and
-// two list / array template helpers (005D9830, 005D9E10).
-#include "ai_mode_class.h"
+// constructors (005D8850, 005D6D10) and the patrol point array's destructors (005D8CF0, 005D8CD0).
 #include "unit_ai.h"
 #include "combat.h"
 
@@ -32,70 +30,67 @@ struct PatrolPointsClass final : PatrolPointsBaseClass {
 };
 } // namespace
 
-void AIMode::LookAroundExecute(AIBrain* brain) {
+AIMode::AIMode() {
+    refs_ = 0;
+    flags6_ = 0;
+    flags7_ = 0;
+}
+EI_REWRITTEN_SPECIAL(0x005D8850, AIMode::AIMode);
+
+AIActionMode::AIActionMode() {}
+EI_REWRITTEN_SPECIAL(0x005D6D10, AIActionMode::AIActionMode);
+
+void AIMode::Execute(AIBrain* brain) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(kRemarkIdle);
     brain->attention.LookAround(brain, 0);
 }
-EI_REWRITTEN(0x005D0A90, AIMode::LookAroundExecute);
+EI_REWRITTEN(0x005D0A90, AIMode::Execute);
 
-int __fastcall aimode::PatrolType(AIMode*) { return kTypePatrol; }
-EI_REWRITTEN(0x005D1210, aimode::PatrolType);
+int PatrolMode::GetType() { return kTypePatrol; }
+EI_REWRITTEN(0x005D1210, PatrolMode::GetType);
 
-int __fastcall aimode::FearType(AIMode*) { return kTypeFear; }
-EI_REWRITTEN(0x005D2920, aimode::FearType);
+int FearMode::GetType() { return kTypeFear; }
+EI_REWRITTEN(0x005D2920, FearMode::GetType);
 
-PlayerMode* PlayerMode::Construct() {
+PlayerMode::PlayerMode() {
     target = nullptr;
     leader = nullptr;
     point = Vector3{0.0f, 0.0f, 0.0f};
-    vtable = aimode::PlayerClass::Vtable();
     state = kStateFollow;
     run = 0;
-    return this;
 }
-EI_REWRITTEN(0x005D3760, PlayerMode::Construct);
+EI_REWRITTEN_SPECIAL(0x005D3760, PlayerMode::PlayerMode);
 
-PatrolMode* PatrolMode::Construct() {
+namespace {
+// A patrol mode's points as the constructor leaves them: none, the constructors' table.
+void ClearPoints(PatrolPointArray& points) {
     points.data = nullptr;
     points.growBy = 0;
     points.maxSize = 0;
     points.size = 0;
     points.vtable = PatrolPointsClass::Vtable();
-    vtable = aimode::PatrolClass::Vtable();
+}
+} // namespace
+
+PatrolMode::PatrolMode() {
+    ClearPoints(points);
     current = 0;
-    return this;
 }
-EI_REWRITTEN(0x005D0F60, PatrolMode::Construct);
+EI_REWRITTEN_SPECIAL(0x005D0F60, PatrolMode::PatrolMode);
 
-void PatrolMode::Destruct() {
-    vtable = aimode::PatrolClass::Vtable();
-    points.vtable = PatrolPointsBaseClass::Vtable();
-    if (points.data) {
-        // The elements' destructors: each look array's base destructor.
-        for (int i = 0; i < points.size; ++i) {
-            AILookArray& looks = points[i].looks;
-            looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
-            if (looks.data) gamecrt::operator_delete(looks.data);
-        }
-        gamecrt::operator_delete(points.data);
-    }
-    vtable = CRefCounted::RootVtable();
-}
-EI_REWRITTEN(0x005D1240, PatrolMode::Destruct);
-
-PatrolMode* PatrolMode::DeletingDestruct(int flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x005D1220, PatrolMode::DeletingDestruct);
+// Each point's looks freed (their base table), then the points (the array keeps its pointer and count).
+PatrolMode::~PatrolMode() { points.Destruct(); }
+EI_REWRITTEN_SPECIAL(0x005D1240, PatrolMode::~PatrolMode);
+EI_REWRITTEN_SPECIAL(0x005D1220, PatrolMode::~PatrolMode);
 
 // 005D1140 (slot 2): destroyed and built again in place (the reference count kept).
-void PatrolMode::Rebuild() {
-    Destruct();
-    Construct();
+int PatrolMode::OnShutdown() {
+    points.Destruct();
+    ClearPoints(points);
+    current = 0;
+    return 0;
 }
-EI_REWRITTEN(0x005D1140, PatrolMode::Rebuild);
+EI_REWRITTEN(0x005D1140, PatrolMode::OnShutdown);
 
 // 005D9E40 (and its thunk 005D9590; RET 8): point `index` copied into `out`: the position, then a
 // new look array sized to the source's (new looks zeroed) with each look copied.
@@ -110,19 +105,11 @@ PatrolPoint* PatrolPointArray::CopyAt(PatrolPoint* out, int index) const {
 EI_REWRITTEN(0x005D9E40, PatrolPointArray::CopyAt);
 EI_REWRITTEN(0x005D9590, PatrolPointArray::CopyAt);
 
-// 005D0F90 (slot 3): a copy with its own points. The reference count dword is cleared before the
-// allocation's null test; the abstract base's vtable stands while the points are copied, each
-// through a temporary copy of the source point (PatrolPointArray::CopyAt) whose looks are freed after.
+// 005D0F90 (slot 3): a copy with its own points, each through a temporary copy of the source point
+// (PatrolPointArray::CopyAt) whose looks are freed after.
 PatrolMode* PatrolMode::Clone() {
-    auto* clone = gamecrt::operator_new_as<PatrolMode>();
-    std::memset(&clone->refs, 0, 4);
+    auto* clone = new PatrolMode();
     if (!clone) return nullptr;
-    clone->vtable = aimode::ModeBaseClass::Vtable();
-    clone->points.data = nullptr;
-    clone->points.growBy = 0;
-    clone->points.maxSize = 0;
-    clone->points.size = 0;
-    clone->points.vtable = PatrolPointsClass::Vtable();
     clone->points.SetSize(points.size, -1);
     for (int i = 0; i < points.size; ++i) {
         PatrolPoint temporary;
@@ -139,54 +126,30 @@ PatrolMode* PatrolMode::Clone() {
         if (temporary.looks.data) gamecrt::operator_delete(temporary.looks.data);
     }
     clone->current = current;
-    clone->vtable = aimode::PatrolClass::Vtable();
     return clone;
 }
 EI_REWRITTEN(0x005D0F90, PatrolMode::Clone);
 
 FearMode* FearMode::Clone() {
-    auto* clone = gamecrt::operator_new_as<FearMode>();
-    std::memset(&clone->refs, 0, 4);
+    auto* clone = new FearMode(flag);
     if (!clone) return nullptr;
-    clone->vtable = aimode::ActionBaseClass::Vtable();
     clone->distance = distance;
     clone->spread = spread;
     clone->shelter = shelter;
     clone->fleePoint = fleePoint;
-    clone->flag = flag;
-    clone->vtable = aimode::FearClass::Vtable();
     return clone;
 }
 EI_REWRITTEN(0x005D2880, FearMode::Clone);
 
-int FearMode::Reset() {
-    Destruct();
-    Construct(0);
+int FearMode::OnShutdown() {
+    Init(0);
     return 0;
 }
-EI_REWRITTEN(0x005D28F0, FearMode::Reset);
+EI_REWRITTEN(0x005D28F0, FearMode::OnShutdown);
 
-void FearMode::Destruct() { vtable = CRefCounted::RootVtable(); }
-EI_REWRITTEN(0x005D2950, FearMode::Destruct);
-
-FearMode* FearMode::DeletingDestruct(int flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x005D2930, FearMode::DeletingDestruct);
-
-AIMode* __fastcall aimode::ConstructModeBase(AIMode* mode) {
-    mode->vtable = ModeBaseClass::Vtable();
-    return mode;
-}
-EI_REWRITTEN(0x005D8850, aimode::ConstructModeBase);
-
-AIMode* __fastcall aimode::ConstructActionBase(AIMode* mode) {
-    mode->vtable = ActionBaseClass::Vtable();
-    return mode;
-}
-EI_REWRITTEN(0x005D6D10, aimode::ConstructActionBase);
+FearMode::~FearMode() {}
+EI_REWRITTEN_SPECIAL(0x005D2950, FearMode::~FearMode);
+EI_REWRITTEN_SPECIAL(0x005D2930, FearMode::~FearMode);
 
 void PatrolPointArray::Destruct() {
     vtable = PatrolPointsBaseClass::Vtable();

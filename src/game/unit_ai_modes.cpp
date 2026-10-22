@@ -130,10 +130,10 @@ void __cdecl DestroyCandidates() { mfc::impl::DestructList<mfc::impl::PtrListCla
 
 // --- Shared slots --------------------------------------------------------------------------------
 
-int AIMode::Priority50(AIBrain*) { return kPriority; }
-EI_REWRITTEN(0x005D0A80, AIMode::Priority50);
+int AIMode::Evaluate(AIBrain*) { return kPriority; }
+EI_REWRITTEN(0x005D0A80, AIMode::Evaluate);
 
-void AIMode::EnterIdle(AIBrain* brain) {
+void AIMode::Enter(AIBrain* brain) {
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
     std::uint32_t roll = IsaacRandom::Global().Next();
@@ -141,13 +141,13 @@ void AIMode::EnterIdle(AIBrain* brain) {
     brain->decay = static_cast<float>(static_cast<double>(wide) * kDecayRandomScale + kDecayBase);
     brain->owner->SetBusy(0);
 }
-EI_REWRITTEN(0x005D0AF0, AIMode::EnterIdle);
+EI_REWRITTEN(0x005D0AF0, AIMode::Enter);
 
-void AIMode::ClearAction(AIBrain* brain) {
+void AIActionMode::Enter(AIBrain* brain) {
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
 }
-EI_REWRITTEN(0x005D0A50, AIMode::ClearAction);
+EI_REWRITTEN(0x005D0A50, AIActionMode::Enter);
 
 // --- Guard ---------------------------------------------------------------------------------------
 

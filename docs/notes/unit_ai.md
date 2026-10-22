@@ -54,7 +54,7 @@ address in its source comment; the per-function table that used to be here is go
   Walk, TurnTowards, AttackTarget, AttackWith, UseOn, CastAt, Follow, SetSeen, UpdateFollow (005D6F90-005D7E90); lookups FindMode,
   FindPatrolMode, FindPlayerMode, LeaderOrFollowed, PlayerModeLeader, AggressionEnemy (005D5DD0-005D5F20), IsNearPath 005D50E0 (AL),
   SetOwner 005D5080.
-- `unit_ai_modes.cpp`: Priority50 005D0A80, EnterIdle 005D0AF0 (random decay in [0.8, 1.2]), ClearAction, Guard / Sentry Set / Execute,
+- `unit_ai_modes.cpp`: AIMode::Evaluate 005D0A80 (50), AIMode::Enter 005D0AF0 (random decay in [0.8, 1.2]), AIActionMode::Enter, Guard / Sentry Set / Execute,
   Patrol (LastPoint, Evaluate), Suspection (Evaluate 005D1E90, Execute, Enter, Leave), Aggression Evaluate (10000 with chosen = enemy,
   or -1000) / Execute / Enter / Leave, CorpseWatcher Evaluate 005D27D0. `unit_ai_fear.cpp`: FearMode 005D2850-005D3680 (script UMFear /
   UMAg, alarm assembly; fields `distance`, `spread`, `shelter`, `fleePoint` (z 1 while a checked flight point is pending)),

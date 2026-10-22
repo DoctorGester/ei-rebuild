@@ -38,36 +38,6 @@ bool IsZero(double v) {
     return v == 0.0;
 }
 
-// A new counted object (00413250: operator new with the CRefObject count cleared).
-template <typename Mode>
-Mode* NewCounted() {
-    return net::NewRefObjectAs<Mode>();
-}
-
-// operator new with the count cleared when the allocation succeeded (the Sentry and Player cases
-// allocate inline).
-template <typename Mode>
-Mode* NewInline() {
-    auto* mode = gamecrt::operator_new_as<Mode>();
-    if (mode) {
-        mode->refs = 0;
-        mode->refsHigh = 0;
-    }
-    return mode;
-}
-
-AIMode* NewFear(std::uint8_t flag) {
-    auto* fear = NewCounted<FearMode>();
-    if (!fear) return nullptr;
-    fear->ClearFields();   // SV7b2: not left as memory held them
-    return fear->Construct(flag);
-}
-
-AIMode* NewCorpseWatcher() {
-    auto* mode = NewCounted<CorpseWatcherMode>();
-    return mode ? mode->ScriptCorpseWatcherModeConstruct() : nullptr;
-}
-
 // Patrol points from the record's patrols: each start on its half-cell's middle (z 0) and its
 // waypoints as looks of that point (the direction from the start, the wait and the turning time).
 void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
@@ -131,30 +101,25 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
 
     switch (record->type) {
     case kGuard: {
-        auto* mode = NewCounted<GuardMode>();
-        AddMode(mode ? mode->ScriptGuardModeConstruct(&record->guard, record->guardRadius, kNoWander) : nullptr);
+        AddMode(new GuardMode(&record->guard, record->guardRadius, kNoWander));
         break;
     }
     case kGuardAlarm: {
         const WorldAlarm& alarmAt = TheServerWorld()->alarms_[slot];
         Vector3 point{alarmAt.x, alarmAt.y, 0.0f};
-        auto* mode = NewCounted<GuardMode>();
-        AddMode(mode ? mode->ScriptGuardModeConstruct(&point, record->guardRadius, kNoWander) : nullptr);
+        AddMode(new GuardMode(&point, record->guardRadius, kNoWander));
         break;
     }
     case kSentry: {
-        auto* mode = NewInline<SentryMode>();
-        AddMode(mode ? mode->ScriptSentryModeConstruct(&record->guard) : nullptr);
+        AddMode(new SentryMode(&record->guard));
         break;
     }
     case kParty: {
-        auto* mode = NewInline<PlayerMode>();
-        AddMode(mode ? mode->Construct() : nullptr);
+        AddMode(new PlayerMode());
         break;
     }
     case kPatrol: {
-        auto* mode = NewCounted<PatrolMode>();
-        AddMode(mode ? mode->Construct() : nullptr);
+        AddMode(new PatrolMode());
         AddPatrolPoints(FindPatrolMode(), record);
         break;
     }
@@ -165,28 +130,18 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     if (record->type != 0 && record->type != kParty) {
         int reaction = static_cast<int>(record->alarm);
         if (reaction == kFight || reaction == kRevenge) {
-            AIMode* fight;
-            if (reaction == kFight) {
-                auto* mode = NewCounted<AggressionMode>();
-                fight = mode ? mode->ScriptAggressionModeConstruct() : nullptr;
-            } else {
-                auto* mode = NewCounted<AggressionMode>();
-                fight = mode ? mode->ScriptRevengeModeConstruct(1) : nullptr;
-            }
-            AddMode(fight);
-            auto* suspection = NewCounted<SuspectionMode>();
-            if (suspection) suspection->ClearFields();   // SV7d4: not left as memory held them
-            AddMode(suspection ? suspection->ScriptSuspectionModeConstruct() : nullptr);
-            AddMode(NewCorpseWatcher());
-            AddMode(NewFear(0));
+            AddMode(reaction == kFight ? new AggressionMode() : new AggressionMode(1));
+            AddMode(new SuspectionMode());
+            AddMode(new CorpseWatcherMode());
+            AddMode(new FearMode(0));
         }
         if (reaction == kWatch) {
-            AddMode(NewCorpseWatcher());
-            AddMode(NewFear(0));
+            AddMode(new CorpseWatcherMode());
+            AddMode(new FearMode(0));
         }
         if (reaction == kWatchFearful) {
-            AddMode(NewCorpseWatcher());
-            AddMode(NewFear(1));
+            AddMode(new CorpseWatcherMode());
+            AddMode(new FearMode(1));
         }
     }
 

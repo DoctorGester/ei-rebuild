@@ -1188,23 +1188,22 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     (the objects' slot 47 passes EAX on, which nothing reads).
   - **check_fp_fold**: once CWorld::SetTimeSpeed lost its slot registration the compiler inlined it into the
     server's (0058EEE0); its 1/15 is 0055FB50's own double (tools/check_fp_fold_allow.txt).
-  - **Left in world* / unit***: the tamed mode 0073F0C4 is PlayerMode's table (an AI mode: the harness digest names
-    it, `aimode::kTamedVtable`), with the other AI modes once the digest has another id; world_data's unit spec
-    tables 0073C6E0 / 0073FA58 (C21).
+  - **Left in world* / unit***: world_data's unit spec tables 0073C6E0 / 0073FA58 (C21). (The tamed mode 0073F0C4
+    went with the other AI modes; real classes since C28h.)
 - **Batch 17's families** (2026-10-22): combat_lifetime's containers, the AI modes, the 3D object halves and a dozen
   small ones: 33 rows (retired 355 -> 388), 4,825 -> 4,548 code cells, 1,099 -> 1,065 game data addresses.
   - **Second tables**: the brain constructor stores 0073F04C / 0073F070 / 0073F140, tables with the same slots as the
     container tags' 0073F034 / ... (twins the compiler emitted per instantiation site); one tag serves both.
     The shadow object's one-slot 0073DF68 is WoundsMaterial's (map_object_shadow.h): a real final class over
     CDeviceMaterial, whose slot 0 is now a pure `DeletingDestructor`.
-  - **AI modes** (ai_mode_class.h): `aimode::ModeClass<Self, T>` declares the base 0073D15C's 13 slots with its bodies,
-    `ActionModeClass` the action base's; one tag per mode (guard, sentry, follow, suspection, aggression, corpse
-    watcher, fear, patrol, player, tamed), users store `aimode::XClass::Vtable()`. Slot 2's original body leaves EAX
-    unset where ours returns `kNoResult` (0). The patrol points' CArray (unit_ai_mode_lifetime.cpp) is a
-    CompiledCollection.
-  - **The digest's mode id**: harness_digest.cpp's `ModeKinds()` pairs each mode's game.exe table
-    (`&ei::OriginalGameData<const std::uint8_t>(address)`) with its tag's `Vtable()`; `ModeId` maps the compiled table
-    to game.exe's address in the image, so `ai.mode` prints the same id in both runs and no golden changed.
+  - **AI modes** (real classes since C28h, unit_ai.h): AIMode (the base 0073D15C) and AIActionMode (0073D22C) over
+    CRefObject, one class per mode (guard, sentry, follow, suspection, aggression, corpse watcher, fear, patrol,
+    player, tamed: TamedMode derives from PlayerMode). AIMode's constructor clears the count and flags (the
+    original's creators did). Slot 2's original body leaves EAX unset where ours returns 0. The patrol points' CArray
+    (unit_ai_mode_lifetime.cpp) is a CompiledCollection.
+  - **The digest's mode id**: harness_digest.cpp's `ModeKinds()` lists each mode's game.exe table
+    (`&ei::OriginalGameData<const std::uint8_t>(address)`) in type order; in the image `ModeId` takes the kind from
+    `GetType()` (Follow's 10 the last), so `ai.mode` prints game.exe's address in both runs and no golden changed.
   - **3D object halves** (real classes since C28h): CObject3DSpecific (map_object_figures.h, 0073DEFC; slots 13-17
     pure), CObject3DServer (0073DFBC: 14 / 16 / 17 null slots) and CObject3DClientSpecific (map_object_shadow.h,
     0073DE90).

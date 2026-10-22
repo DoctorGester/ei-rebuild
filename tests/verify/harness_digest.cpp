@@ -8,7 +8,6 @@
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
-#include "../../src/game/ai_mode_class.h"
 #include "../../src/game/ai_motion.h"
 #include "../../src/game/camera.h"
 #include "../../src/game/combat.h"
@@ -154,7 +153,8 @@ std::uint32_t HashWords(const std::uint32_t* words, int count) {
 const char* Text(const char* s) { return s ? s : ""; }
 
 // The AI modes' kinds. A mode's id in the digest is game.exe's vtable address for its kind (what the goldens hold):
-// game.exe's modes keep that table, the image's the compiled tag's (ai_mode_class.h, CompiledModeTables) in its place.
+// game.exe's modes keep that table; the image's are C++ classes, named by their type (GetType, the kinds' order
+// below with Follow's 10 last).
 struct ModeKind {
     const void* original;   // game.exe's table: the id
     const char* name;
@@ -176,29 +176,14 @@ const std::vector<ModeKind>& ModeKinds() {
     return kinds;
 }
 
-// The image's tables of the kinds above, in their order (the image only).
-const std::vector<const void*>& CompiledModeTables() {
-    static const std::vector<const void*> tables = {
-        aimode::GuardClass::Vtable(),      aimode::PatrolClass::Vtable(),         aimode::SentryClass::Vtable(),
-        aimode::SuspectionClass::Vtable(), aimode::AggressionClass::Vtable(),     aimode::CorpseWatcherClass::Vtable(),
-        aimode::PlayerClass::Vtable(),     aimode::FearClass::Vtable(),           aimode::TamedClass::Vtable(),
-        aimode::FollowClass::Vtable(),
-    };
-    return tables;
-}
-
 // A mode's id: its kind's (above), else its table's address (none: 0).
-std::uint32_t ModeId(const AIMode* mode) {
+std::uint32_t ModeId(AIMode* mode) {
     if (!mode) return 0;
-    const void* table = mode->vtable;
+    const void* table = *reinterpret_cast<const void* const*>(mode);
     if (ei::Standalone()) {
-        const std::vector<const void*>& compiled = CompiledModeTables();
-        for (std::size_t i = 0; i < compiled.size(); ++i) {
-            if (compiled[i] == table) {
-                table = ModeKinds()[i].original;
-                break;
-            }
-        }
+        int type = mode->GetType();
+        if (type >= kModeGuard && type <= kModeTamed) table = ModeKinds()[static_cast<std::size_t>(type)].original;
+        else if (type == kModeFollow) table = ModeKinds()[9].original;
     }
     return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(table));
 }

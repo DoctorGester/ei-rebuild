@@ -3,7 +3,6 @@
 #include "map_spec.h"
 #include "unit_ai.h"
 
-#include "ai_mode_class.h"
 
 #include "combat.h"
 #include "console.h"
@@ -41,19 +40,6 @@ std::uint32_t FearDistanceBits() { return 0x41200000u /*0073FF00*/; }
 namespace {
 
 const Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
-
-// A new mode with the counted-object header cleared (the original writes +4 before testing the
-// allocation) and its vtable installed.
-template <typename Mode>
-Mode* NewMode(void* vtable) {
-    auto* mode = gamecrt::operator_new_as<Mode>();
-    if (mode) {
-        mode->refs = 0;
-        mode->refsHigh = 0;
-        mode->vtable = vtable;
-    }
-    return mode;
-}
 
 // The mode list's elements are owning pointers (RefPtr): released with RefPtr::Destroy, added
 // with RefPtr::Share (which may hand out a clone).
@@ -95,11 +81,11 @@ void DropCurrent(AIMode*& current) {
 } // namespace
 
 void AIBrain::AddMode(AIMode* mode) {
-    int type = mode->Virtuals()->GetType();
-    bool exclusive = mode->Virtuals()->Exclusive();
+    int type = mode->GetType();
+    bool exclusive = mode->Exclusive();
     for (auto* node = modes.head; node;) {
         auto* next = node->next;
-        AIModeVirtuals* old = node->data->Virtuals();
+        AIMode* old = node->data;
         if (old->GetType() == type || (exclusive && old->Exclusive())) {
             if (current == node->data) DropCurrent(current);
             RemoveModeNode(modes, node);
@@ -110,7 +96,7 @@ void AIBrain::AddMode(AIMode* mode) {
     auto* node = modes.NewNode(modes.tail, nullptr);
     if (mode != node->data) {
         AsRefPtr(&node->data)->Destroy();
-        AsRefPtr(&node->data)->Share(mode->Virtuals());
+        AsRefPtr(&node->data)->Share(mode);
     }
     if (modes.tail) modes.tail->next = node;
     else modes.head = node;
@@ -206,60 +192,45 @@ EI_REWRITTEN(0x005CB0F0, AIMemory::Reset);
 // --- Standard mode sets ---------------------------------------------------------------------------
 
 void AIBrain::AddGuardMode(const Vector3* point, float radius, float wander) {
-    auto* mode = NewMode<GuardMode>(aimode::GuardClass::Vtable());
-    if (mode) mode->Set(point, radius, wander);
-    AddMode(mode);
+    AddMode(new GuardMode(point, radius, wander));
 }
 EI_REWRITTEN(0x005D6300, AIBrain::AddGuardMode);
 
 void AIBrain::AddSuspectionMode() {
-    auto* mode = NewMode<SuspectionMode>(aimode::SuspectionClass::Vtable());
-    if (mode) mode->ClearFields();   // SV7d4: not left as memory held them
-    AddMode(mode);
+    AddMode(new SuspectionMode());   // point and level zeroed (SV7d4)
 }
 EI_REWRITTEN(0x005D63B0, AIBrain::AddSuspectionMode);
 
 void AIBrain::AddAggressionMode() {
-    auto* mode = NewMode<AggressionMode>(aimode::AggressionClass::Vtable());
-    if (mode) {
-        mode->enemy = nullptr;
-        mode->chosen.object = nullptr;
-        mode->chosen.part = -1;
-        mode->fixed = 0;
-    }
-    AddMode(mode);
+    AddMode(new AggressionMode());
 }
 EI_REWRITTEN(0x005D63F0, AIBrain::AddAggressionMode);
 
-void AIBrain::AddCorpseWatcherMode() { AddMode(NewMode<CorpseWatcherMode>(aimode::CorpseWatcherClass::Vtable())); }
+void AIBrain::AddCorpseWatcherMode() { AddMode(new CorpseWatcherMode()); }
 EI_REWRITTEN(0x005D6440, AIBrain::AddCorpseWatcherMode);
 
-FearMode* FearMode::Construct(std::uint8_t newFlag) {
-    vtable = aimode::FearClass::Vtable();
+void FearMode::Init(std::uint8_t newFlag) {
     std::uint32_t bits = FearDistanceBits();
     std::memcpy(&distance, &bits, sizeof(bits));
     spread = 3.0f;
     shelter.x = -1313.0f;    // unset (0xC4A42000)
     fleePoint.z = 0.0f;
     flag = newFlag;
-    return this;
 }
+
+FearMode::FearMode(std::uint8_t newFlag) {
+    ClearFields();   // SV7b2: not left as memory held them
+    Init(newFlag);
+}
+
+FearMode* FearMode::Construct(std::uint8_t newFlag) { return new (this) FearMode(newFlag); }
 EI_REPLACE_METHOD(0x005D2850, FearMode::Construct);
 
-void AIBrain::AddFearMode(std::uint8_t flag) {
-    auto* mode = NewMode<FearMode>(aimode::FearClass::Vtable());
-    if (mode) {
-        mode->ClearFields();   // SV7b2: not left as memory held them
-        mode->Construct(flag);    // inlined by the original
-    }
-    AddMode(mode);
-}
+void AIBrain::AddFearMode(std::uint8_t flag) { AddMode(new FearMode(flag)); }
 EI_REWRITTEN(0x005D6480, AIBrain::AddFearMode);
 
 void AIBrain::AddSentryMode(const Vector3* point) {
-    auto* mode = NewMode<SentryMode>(aimode::SentryClass::Vtable());
-    if (mode) mode->point = *point;
-    AddMode(mode);
+    AddMode(new SentryMode(point));
 }
 EI_REWRITTEN(0x005D65B0, AIBrain::AddSentryMode);
 
@@ -527,64 +498,25 @@ void WriteCopy(CStream* stream, const T& value) {
     stream->Write(&copy, sizeof(T));
 }
 
-// A new mode of `type` as Load constructs it before reading its data (the abstract bases'
-// constructors are overwritten by the vtables; the fields Load reads stay uninitialised). Null for
-// an unknown type (9, or above 10). The original writes +4 before testing the allocation.
+// A new mode of `type` as Load constructs it before reading its data (the fields Load reads stay
+// uninitialised). Null for an unknown type (9, or above 10).
 AIMode* NewModeOfType(int type) {
     switch (type) {
-    case kModeGuard: {
-        auto* mode = NewMode<GuardMode>(aimode::GuardClass::Vtable());
-        mode->failures = 0;
-        return mode;
-    }
-    case kModePatrol: {
-        auto* mode = NewMode<PatrolMode>(aimode::PatrolClass::Vtable());
-        mode->Construct();
-        return mode;
-    }
-    case kModeSentry:
-        return NewMode<SentryMode>(aimode::SentryClass::Vtable());
-    case kModeSuspection:
-        return NewMode<SuspectionMode>(aimode::SuspectionClass::Vtable());
-    case kModeAggression: {
-        auto* mode = NewMode<AggressionMode>(aimode::AggressionClass::Vtable());
-        mode->enemy = nullptr;
-        mode->chosen.object = nullptr;
-        mode->chosen.part = -1;
-        mode->fixed = 0;
-        return mode;
-    }
-    case kModeCorpseWatcher:
-        return NewMode<CorpseWatcherMode>(aimode::CorpseWatcherClass::Vtable());
-    case kModePlayer: {
-        auto* mode = NewMode<PlayerMode>(aimode::PlayerClass::Vtable());
-        mode->Construct();
-        return mode;
-    }
-    case kModeFear: {
-        auto* mode = NewMode<FearMode>(aimode::FearClass::Vtable());
-        mode->Construct(0);
-        return mode;
-    }
-    case kModeTamed: {
-        auto* mode = NewMode<PlayerMode>(aimode::PlayerClass::Vtable());
-        mode->Construct();
-        mode->vtable = aimode::TamedClass::Vtable();
-        return mode;
-    }
-    case kModeFollow: {
-        auto* mode = NewMode<FollowMode>(aimode::FollowClass::Vtable());
-        mode->leader = nullptr;
-        return mode;
-    }
-    default:
-        return nullptr;
+    case kModeGuard: return new GuardMode();
+    case kModePatrol: return new PatrolMode();
+    case kModeSentry: return new SentryMode();
+    case kModeSuspection: return new SuspectionMode();
+    case kModeAggression: return new AggressionMode();
+    case kModeCorpseWatcher: return new CorpseWatcherMode();
+    case kModePlayer: return new PlayerMode();
+    case kModeFear: return new FearMode(0);
+    case kModeTamed: return new TamedMode();
+    case kModeFollow: return new FollowMode();
+    default: return nullptr;
     }
 }
 
-void AssignCurrent(AIMode*& current, AIMode* mode) {
-    reinterpret_cast<RefPtr*>(&current)->Assign(mode ? mode->Virtuals() : nullptr);
-}
+void AssignCurrent(AIMode*& current, AIMode* mode) { reinterpret_cast<RefPtr*>(&current)->Assign(mode); }
 } // namespace
 
 void AIBrain::Load(CStream* stream) {
@@ -618,10 +550,10 @@ void AIBrain::Load(CStream* stream) {
         stream->Read(&type, 4);
         AIMode* mode = NewModeOfType(type);
         if (!mode) return;      // an unknown type leaves Load at once (the switch's default)
-        mode->Virtuals()->Load(stream);
+        mode->Load(stream);
         // The inlined AddTail: a node holding the mode (RefPtr::ShareAssign).
         auto* node = modes.NewNode(modes.tail, nullptr);
-        AsRefPtr(&node->data)->ShareAssign(mode->Virtuals());
+        AsRefPtr(&node->data)->ShareAssign(mode);
         if (modes.tail) modes.tail->next = node;
         else modes.head = node;
         modes.tail = node;
@@ -674,7 +606,7 @@ void AIBrain::Save(CStream* stream) {
     WriteCopy(stream, currentIndex);
     for (auto* node = modes.head; node;) {
         auto* next = node->next;
-        AIModeVirtuals* mode = node->data->Virtuals();
+        AIMode* mode = node->data;
         WriteCopy(stream, mode->GetType());
         mode->Save(stream);
         node = next;

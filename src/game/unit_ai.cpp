@@ -82,14 +82,6 @@ const char* MotivationFormat() { return "Unit %i new motivation %s with power of
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-void AIMode::Release() { static_cast<CRefObject*>((void*)this)->Release(); }
-int AIMode::Evaluate(AIBrain* brain) { return Virtuals()->Evaluate(brain); }
-void AIMode::Execute(AIBrain* brain) { Virtuals()->Execute(brain); }
-void AIMode::Enter(AIBrain* brain) { Virtuals()->Enter(brain); }
-void AIMode::Leave(AIBrain* brain) { Virtuals()->Leave(brain); }
-int AIMode::GetType() { return Virtuals()->GetType(); }
-void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDeleted(object); }
-
 void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
 
 AIRefTo<CUnit>* AIBrain::PopCorpse(AIRefTo<CUnit>* out) { return memory.corpses.PopHead(out); }
@@ -191,7 +183,7 @@ void AIBrain::Think() {
         if (best) best->Enter(this);
         AIMode* old = current;
         current = best;
-        if (best) ++best->refs;
+        if (best) ++best->refs_;
         if (old) old->Release();
     }
 

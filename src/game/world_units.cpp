@@ -226,10 +226,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         CUnitServer* controller = unit->ServerController();
         AIBrain* brain = &controller->brain;
         brain->ClearModes();
-        auto* mode = gamecrt::operator_new_as<PlayerMode>();
-        mode->refs = 0;   // +4, written before the null test
-        mode->refsHigh = 0;
-        brain->AddMode(mode ? mode->Construct() : nullptr);
+        brain->AddMode(new PlayerMode());
         brain->StopAction();
         Sectors()->Remove(unit);
         Vector3 free;

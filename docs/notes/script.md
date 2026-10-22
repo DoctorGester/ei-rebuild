@@ -151,11 +151,11 @@ size; object ids go through `FindObject` and `Assign` 004B24D0, group members th
   )`; then the quest name is emptied (the objectives stay; QStart frees them). The quest kill table (`QuestTable`, 007C87A8,
   hash_map by name at +0x0C) is looked up by QuestComplete through `QuestTable::Find` 004C9C90 (operator[]: a missing name
   gets a null entry).
-- Unit mode constructors (`script_unit_modes.cpp`, vtables in `aimode::` / `unit_ai.h`): 004BA1C0 `GuardMode` (0073D128) then
+- Unit mode constructors (`script_unit_modes.cpp`, the classes in `unit_ai.h`): 004BA1C0 `GuardMode` (0073D128) then
   `Set(point, radius, wander)`, 004BA360 `SentryMode` (0073D190), 004BA450 `FollowMode` (base 0073D15C, then the leader
   referenced, 0073D1C4), 004BA610 `SuspectionMode` (0073D1F8), 004BA710 / 004BA830 `AggressionMode` (0073D260; the second
-  with `fixed` = UMRevenge), 004BA920 `CorpseWatcherMode` (0073D294), 004BA1A0 `AILook` (UMPatrolLook). None sets the count
-  (+4): the commands write 0 there after operator new.
+  with `fixed` = UMRevenge), 004BA920 `CorpseWatcherMode` (0073D294), 004BA1A0 `AILook` (UMPatrolLook). None of the
+  original's sets the count (+4): the commands write 0 there after operator new; ours clear it in `AIMode`'s constructor.
 - Their own slots (A-S10, same file; `verify_script_unit_mode_slots.cpp`): Clone (slot 3) 004BA250 / 004BA3B0 / 004BA4A0 /
   004BA630 / 004BA730 / 004BA930, Reset (slot 2, OnShutdown: references dropped, constructor values back, EAX untouched)
   004BA2D0 / 004BA3F0 / 004BA510 / 004BA6B0 / 004BA7C0 / 004BA950, deleting destructors 004BA300 / 004BA340 / 004BA420 /

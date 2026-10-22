@@ -3,7 +3,6 @@
 // tamer's side (its own side kept at +0x90C), 3 in the tamer's party with a "tamed" AI mode; a
 // failed attempt (or one on a creature with a player) undoes the taming when it was the tamer's
 // side doing it, and counts as an attack. See docs/notes/combat.md ("Order lifecycle").
-#include "ai_mode_class.h"
 #include "combat.h"
 #include "engine_object.h"
 #include "map_object.h"
@@ -26,9 +25,8 @@ constexpr int kStatTaming = 2;
 
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
-// The brain (unit_ai.cpp, controller + 0x980): 005D3760 the player mode's constructor (0x24
-// bytes), 005D5F60 AddMode, 005D6140 RemoveMode(kind), 005D7790 StopAction.
-void* __fastcall ModePlayerConstruct(void* a0) { return static_cast<PlayerMode*>(a0)->Construct(); }
+// The brain (unit_ai.cpp, controller + 0x980): 005D5F60 AddMode, 005D6140 RemoveMode(kind),
+// 005D7790 StopAction.
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 template <typename T>
 void __fastcall ReferenceRelease(T** a0) { static_cast<AIRef*>((void*)a0)->Reset(); }
@@ -90,14 +88,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         tamerPlayer->ReleaseTamedUnits();   // 00665D20
         unit->SetSide(tamer->side);
         unit->SetPlayer(tamerPlayer);
-        auto* mode = gamecrt::operator_new_bytes_as<AIMode>(0x24);
-        mode->refs = 0;   // written before the test, as the original does (one dword)
-        mode->refsHigh = 0;
-        if (mode) {
-            ModePlayerConstruct(mode);
-            mode->vtable = aimode::TamedClass::Vtable();   // the tamed mode
-        }
-        brain.AddMode(mode);
+        brain.AddMode(new TamedMode());
         ClearReferenceList<false>(Brain()->memory.seenCorpses);
         ClearReferenceList<true>(Brain()->memory.corpses);
         Stage(this) = 3;

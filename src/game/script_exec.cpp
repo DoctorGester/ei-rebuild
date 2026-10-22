@@ -102,25 +102,6 @@ CWorldServer* TheWorld() { return TheServerWorld(); }
 // The world's AI map (CWorldServer +0x170); its sector map is at +0x124.
 CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
 
-// Unit modes (the brain's behaviour list): operator new for a mode, then its script constructor.
-// The command zeroes the reference dword (+4) before testing the pointer.
-template <typename Mode>
-Mode* NewMode(std::size_t size) {
-    auto* mode = gamecrt::operator_new_bytes_as<Mode>(size);
-    mode->refs = 0;
-    mode->refsHigh = 0;
-    return mode;
-}
-// Fear and Suspicion zero the mode's fields first (SV7b2, SV7d4: FearMode / SuspectionMode::ClearFields).
-FearMode* ConstructFear(FearMode* mode, int on) {
-    mode->ClearFields();
-    return mode->Construct(static_cast<std::uint8_t>(on));
-}
-SuspectionMode* ConstructSuspicion(SuspectionMode* mode) {
-    mode->ClearFields();
-    return mode->ScriptSuspectionModeConstruct();
-}
-
 // The named party records (party_records.h), through the originals: find 004A5E10 (a party),
 // add 004A5E90, remove 004A5FA0.
 NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
@@ -372,26 +353,26 @@ void UnitModes(const SSCCmd* cmd) {
     brain->RemoveModesOfType(7);
     switch (Round(cmd->floatArgs.data[0])) {
     case 0:
-        brain->AddMode(ConstructFear(NewMode<FearMode>(0x2C), 1));
-        brain->AddMode(ConstructSuspicion(NewMode<SuspectionMode>(0x18)));
-        brain->AddMode(NewMode<CorpseWatcherMode>(0x08)->ScriptCorpseWatcherModeConstruct());
+        brain->AddMode(new FearMode(1));
+        brain->AddMode(new SuspectionMode());
+        brain->AddMode(new CorpseWatcherMode());
         break;
     case 1:
-        brain->AddMode(ConstructFear(NewMode<FearMode>(0x2C), 0));
-        brain->AddMode(ConstructSuspicion(NewMode<SuspectionMode>(0x18)));
-        brain->AddMode(NewMode<CorpseWatcherMode>(0x08)->ScriptCorpseWatcherModeConstruct());
+        brain->AddMode(new FearMode(0));
+        brain->AddMode(new SuspectionMode());
+        brain->AddMode(new CorpseWatcherMode());
         break;
     case 2:
-        brain->AddMode(NewMode<AggressionMode>(0x18)->ScriptRevengeModeConstruct(1));
-        brain->AddMode(ConstructFear(NewMode<FearMode>(0x2C), 0));
-        brain->AddMode(ConstructSuspicion(NewMode<SuspectionMode>(0x18)));
-        brain->AddMode(NewMode<CorpseWatcherMode>(0x08)->ScriptCorpseWatcherModeConstruct());
+        brain->AddMode(new AggressionMode(1));
+        brain->AddMode(new FearMode(0));
+        brain->AddMode(new SuspectionMode());
+        brain->AddMode(new CorpseWatcherMode());
         break;
     case 3:
-        brain->AddMode(NewMode<AggressionMode>(0x18)->ScriptAggressionModeConstruct());
-        brain->AddMode(ConstructFear(NewMode<FearMode>(0x2C), 0));
-        brain->AddMode(ConstructSuspicion(NewMode<SuspectionMode>(0x18)));
-        brain->AddMode(NewMode<CorpseWatcherMode>(0x08)->ScriptCorpseWatcherModeConstruct());
+        brain->AddMode(new AggressionMode());
+        brain->AddMode(new FearMode(0));
+        brain->AddMode(new SuspectionMode());
+        brain->AddMode(new CorpseWatcherMode());
         break;
     default:
         break;
@@ -934,8 +915,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            auto* mode = NewMode<SentryMode>(0x14);
-            BrainOf(state)->AddMode(mode ? mode->ScriptSentryModeConstruct(&point) : nullptr);
+            BrainOf(state)->AddMode(new SentryMode(&point));
             break;
         }
         case 0x26:     // UMGuard(unit, x, y, radius)
@@ -947,23 +927,20 @@ BOOL ScriptRun::Execute(CScript* script) {
             float radius2;
             if (cmd->id == 0x26) std::memcpy(&radius2, "\x00\x00\x80\xBF", 4);   // -1.0f
             else radius2 = f[3];
-            auto* mode = NewMode<GuardMode>(0x20);
-            BrainOf(state)->AddMode(mode ? mode->ScriptGuardModeConstruct(&point, radius, radius2) : nullptr);
+            BrainOf(state)->AddMode(new GuardMode(&point, radius, radius2));
             break;
         }
         case 0xCA: {   // UMFollow(unit, leader)
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             CMapObject* leader = MapObjectArg(cmd, 1);
-            auto* mode = NewMode<FollowMode>(0x0C);
-            BrainOf(state)->AddMode(mode ? mode->ScriptFollowModeConstruct(leader) : nullptr);
+            BrainOf(state)->AddMode(new FollowMode(leader));
             break;
         }
         case 0x28: {   // UMPatrol
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            auto* mode = NewMode<PatrolMode>(0x20);
-            BrainOf(state)->AddMode(mode ? mode->Construct() : nullptr);
+            BrainOf(state)->AddMode(new PatrolMode());
             break;
         }
         case 0x29: {   // UMPatrolClear
@@ -999,8 +976,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!state) break;
             AIBrain* brain = BrainOf(state);
             brain->ClearModes();
-            auto* mode = NewMode<PlayerMode>(0x24);
-            brain->AddMode(mode ? mode->Construct() : nullptr);
+            brain->AddMode(new PlayerMode());
             brain->StopAction();
             break;
         }
@@ -1011,48 +987,40 @@ BOOL ScriptRun::Execute(CScript* script) {
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             AIBrain* brain = BrainOf(state);
-            auto* aggression = NewMode<AggressionMode>(0x18);
-            brain->AddMode(aggression ? aggression->ScriptAggressionModeConstruct() : nullptr);
-            auto* suspicion = NewMode<SuspectionMode>(0x18);
-            brain->AddMode(suspicion ? ConstructSuspicion(suspicion) : nullptr);
-            auto* watcher = NewMode<CorpseWatcherMode>(0x08);
-            brain->AddMode(watcher ? watcher->ScriptCorpseWatcherModeConstruct() : nullptr);
+            brain->AddMode(new AggressionMode());
+            brain->AddMode(new SuspectionMode());
+            brain->AddMode(new CorpseWatcherMode());
             break;
         }
         case 0x2D: {   // UMAggression
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            auto* mode = NewMode<AggressionMode>(0x18);
-            BrainOf(state)->AddMode(mode ? mode->ScriptAggressionModeConstruct() : nullptr);
+            BrainOf(state)->AddMode(new AggressionMode());
             break;
         }
         case 0x2E: {   // UMRevenge
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            auto* mode = NewMode<AggressionMode>(0x18);
-            BrainOf(state)->AddMode(mode ? mode->ScriptRevengeModeConstruct(1) : nullptr);
+            BrainOf(state)->AddMode(new AggressionMode(1));
             break;
         }
         case 0xC7: {   // UMFear(unit, on)
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             int on = IsZero(f[0]) ? 0 : 1;
-            auto* mode = NewMode<FearMode>(0x2C);
-            BrainOf(state)->AddMode(mode ? ConstructFear(mode, on) : nullptr);
+            BrainOf(state)->AddMode(new FearMode(static_cast<std::uint8_t>(on)));
             break;
         }
         case 0x2F: {   // UMSuspection
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            auto* mode = NewMode<SuspectionMode>(0x18);
-            BrainOf(state)->AddMode(mode ? ConstructSuspicion(mode) : nullptr);
+            BrainOf(state)->AddMode(new SuspectionMode());
             break;
         }
         case 0x30: {   // UMCorpseWatcher
             CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            auto* mode = NewMode<CorpseWatcherMode>(0x08);
-            BrainOf(state)->AddMode(mode ? mode->ScriptCorpseWatcherModeConstruct() : nullptr);
+            BrainOf(state)->AddMode(new CorpseWatcherMode());
             break;
         }
 

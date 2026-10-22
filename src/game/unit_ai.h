@@ -136,109 +136,69 @@ enum AIModeType {
     kModeFollow = 10,
 };
 
-// The modes' vtable as virtual functions. A mode is a reference-counted object (core_refcount.h:
-// slots 0-3 are CRefObject's, slot 2 the destructor body, 3 Clone), then:
-class AIModeVirtuals : public CRefObject {
+// Base of all modes (game.exe's abstract vtable 0073D15C): a reference-counted object (core_refcount.h: slots 0-3
+// are CRefObject's; OnShutdown and Clone are each mode's), then 4-12 below. AIActionMode (0073D22C) is the base of
+// the modes that act.
+class AIMode : public CRefObject {
 public:
-    virtual int Evaluate(AIBrain* brain) = 0;           // 4: the priority the mode claims this tick
-    virtual void Execute(AIBrain* brain) = 0;           // 5: runs while the mode is in charge
-    virtual void Enter(AIBrain* brain) = 0;             // 6
-    virtual void Leave(AIBrain* brain) = 0;             // 7
-    virtual int GetType() = 0;                          // 8
-    // 9: 1 for most modes; AddMode replaces a mode of another type when both answer 1.
-    virtual bool Exclusive() = 0;
-    virtual void OnObjectDeleted(CEngineObject* object) = 0;    // 10
-    virtual void Load(CStream* stream) = 0;            // 11
-    virtual void Save(CStream* stream) = 0;            // 12
-};
+    // 005D8850 (unit_ai_mode_lifetime.cpp): a new mode, no references and no flags (the original's creators
+    // cleared the count).
+    AIMode();
+    ~AIMode() override;   // 004BA330 (deleting: 004BA340; script_unit_modes.cpp)
 
-// Base of all modes (game.exe's vtables 0073D15C (abstract), 0073D22C (abstract)); the slots are
-// listed in AIModeVirtuals. The structs below have no C++ virtuals: their constructors install the
-// compiled tags' tables (ai_mode_class.h), whose slots call the bodies below.
-struct AIMode {
-    void* vtable;
-    std::int16_t refs;              // +0x04 (INC word / 0040A3A0)
-    std::int16_t refsHigh;              // +0x06 the reference dword's high half (zeroed with it)
-
-    AIModeVirtuals* Virtuals() { return reinterpret_cast<AIModeVirtuals*>(this); }
-    int Evaluate(AIBrain* brain);   // through the vtable
-    void Execute(AIBrain* brain);
-    void Enter(AIBrain* brain);
-    void Leave(AIBrain* brain);
-    int GetType();
-    void OnObjectDeleted(CEngineObject* object);
-    // 0040A3A0 (CRefObject::Release): drops a reference, deleting the mode at zero.
-    void Release();
-
-    // 005D0A80 (unit_ai_modes.cpp). Slot 4 of Guard, Sentry, Follow and the abstract base: always 50.
-    int Priority50(AIBrain* brain);
-    // 005D0AF0. Slot 6 of Guard, Patrol, Sentry, Follow and the abstract base: drop the action and
-    // target, pick a new alertness decay (0.8 + 0.4 * random) and clear the controller's busy flag.
-    void EnterIdle(AIBrain* brain);
-    // 005D0A50. Slot 6 (Enter) of CorpseWatcher, Player and the abstract base 0073D22C: drop the
-    // action and target.
-    void ClearAction(AIBrain* brain);
-    // 005D0A90 (unit_ai_mode_lifetime.cpp). Slot 5 (Execute) of the abstract base 0073D15C: the idle
-    // remark (1 in 1001), then LookAround(0).
-    void LookAroundExecute(AIBrain* brain);
-    // 00552090 / 00552140 (slot 4, RET 4): the player mode claims 10, the tamed one 100000000
-    // (unit_ai_player_mode_slots.cpp).
-    int PlayerPriority(AIBrain* brain);
-    int TamedPriority(AIBrain* brain);
-
-    // Shared slot implementations of the script-made modes (script_unit_modes.cpp).
-    // 004BA320 / 004BA330 / 004BA440 / 004BA6A0 / 004BA700 / 004BA9B0. Destructor body of the plain
-    // modes: the root vtable.
-    void DestructToRoot();
-    // 004BA340 (abstract base 0073D15C) / 004BA680 (0073D22C), slot 0 (RET 4). DestructToRoot, then
-    // operator delete when `flags` bit 0 is set; returns this.
-    AIMode* DeletingDestructBase(int flags);
-    // Slot 8 (GetType): 004BA410 Sentry 2, 004BA580 Follow 10, 004BA6D0 Suspection 3, 004BA860
-    // Aggression 4, 004BA980 CorpseWatcher 5.
-    int SentryType();
-    int FollowType();
-    int SuspectionType();
-    int AggressionType();
-    int CorpseWatcherType();
+    // 4: the priority the mode claims this tick. 005D0A80 (unit_ai_modes.cpp): always 50 (Guard, Sentry, Follow).
+    virtual int Evaluate(AIBrain* brain);
+    // 5: runs while the mode is in charge. 005D0A90 (unit_ai_mode_lifetime.cpp): the idle remark (1 in 1001),
+    // then LookAround(0).
+    virtual void Execute(AIBrain* brain);
+    // 6. 005D0AF0 (unit_ai_modes.cpp; Guard, Patrol, Sentry, Follow): drop the action and target, pick a new
+    // alertness decay (0.8 + 0.4 * random) and clear the controller's busy flag.
+    virtual void Enter(AIBrain* brain);
+    virtual void Leave(AIBrain*) {}                     // 7: 004BA220
+    virtual int GetType() = 0;                          // 8: AIModeType
+    // 9: 1 for most modes; AddMode replaces a mode of another type when both answer 1. 004BA240.
+    virtual bool Exclusive() { return true; }
+    virtual void OnObjectDeleted(CEngineObject*) {}    // 10: 004BA230
+    virtual void Load(CStream*) {}                     // 11: 004BA2B0
+    virtual void Save(CStream*) {}                     // 12: 004BA2C0
 };
 static_assert(sizeof(AIMode) == 8);
 
-// The modes' vtables are compiled tags (ai_mode_class.h: aimode::GuardClass::Vtable(), ...).
-// Shared slot implementations of the simple modes (registered once, used by several vtables).
-namespace aimode {
-// 005D1210 / 005D2920. Slot 8 (GetType) of Patrol (1) and Fear (7).
-int __fastcall PatrolType(AIMode* self);
-int __fastcall FearType(AIMode* self);
-// Tamed (type 8): a Player mode (PlayerMode::Construct) given its own vtable (00552150: GetType 8).
-// 00552090 / 00552140 (slot 4, RET 4): the player mode claims 10, the tamed one 100000000.
-// 005520A0 / 00552150 (slot 8): their types 6 and 8 (unit_ai_player_mode_slots.cpp).
-int __fastcall PlayerType(AIMode* self);
-int __fastcall TamedType(AIMode* self);
-// 005D8850 / 005D6D10 (unit_ai_mode_lifetime.cpp). The abstract bases' constructors: the vtable
-// 0073D15C / 0073D22C only; return the mode.
-AIMode* __fastcall ConstructModeBase(AIMode* mode);
-AIMode* __fastcall ConstructActionBase(AIMode* mode);
-} // namespace aimode
+// The abstract base of the modes that act (game.exe's vtable 0073D22C): Suspection, Aggression, CorpseWatcher,
+// Fear and Player.
+class AIActionMode : public AIMode {
+public:
+    AIActionMode();               // 005D6D10 (unit_ai_mode_lifetime.cpp)
+    ~AIActionMode() override;     // 004BA6A0 (deleting: 004BA680; script_unit_modes.cpp)
+    int Evaluate(AIBrain* brain) override = 0;
+    void Execute(AIBrain* brain) override = 0;
+    // 005D0A50 (unit_ai_modes.cpp): drop the action and target.
+    void Enter(AIBrain* brain) override;
+    bool Exclusive() override { return false; }   // 004BA620
+};
 
-// Guard (vtable 0073D128, 0x20 bytes): stay near a point.
-struct GuardMode : AIMode {
+// Guard (game.exe's vtable 0073D128, 0x20 bytes): stay near a point. The script's modes' lifetimes and small
+// slots are in script_unit_modes.cpp.
+class GuardMode : public AIMode {
+public:
+    // A mode AIBrain::Load fills: no failures yet.
+    GuardMode() { failures = 0; }
+    // 004BA1C0 (RET 0xC): Set.
+    GuardMode(const Vector3* point, float radius, float wander);
+    ~GuardMode() override;   // 004BA320 (deleting: 004BA300)
+    // 004BA2D0 (slot 2): no failures (EAX not set: 0).
+    int OnShutdown() override;
+    // 004BA250 (slot 3): a new mode with the fields copied (floats as dwords); null when the allocation fails.
+    GuardMode* Clone() override;
     // 005D0B70. Sets the point and the two radii (negative: the globals 007C540C / 007C53FC).
     void Set(const Vector3* point, float radius, float wander);
     // 005D0BE0 (slot 5). When idle: walk to a free place near the point (after 100 failures, near
     // the unit) and look around there.
-    void Execute(AIBrain* brain);
+    void Execute(AIBrain* brain) override;
+    int GetType() override { return kModeGuard; }   // 8: 004BA2F0
     // 005D0EB0 / 005D0F00 (slots 11 / 12).
-    void Load(CStream* stream);
-    void Save(CStream* stream);
-    // 004BA1C0 (RET 0xC; script_unit_modes.cpp). Constructor after operator new: the vtable, then Set.
-    GuardMode* ScriptGuardModeConstruct(const Vector3* newPoint, float newRadius, float newWander);
-    // The script-made modes' own slots (script_unit_modes.cpp). Clone (slot 3): a new mode (operator new,
-    // refs and flags 0) with the fields copied (floats as dwords); null when the allocation fails.
-    // Reset (slot 2, OnShutdown): back to what the constructor sets (EAX not set). Slot 0: the root
-    // vtable, then operator delete when `flags` bit 0 is set; returns this.
-    GuardMode* GuardClone() const;               // 004BA250
-    void GuardReset();                           // 004BA2D0
-    GuardMode* GuardDeletingDestruct(int flags); // 004BA300
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
 
     Vector3 point;                  // +0x08
     float radius;                   // +0x14
@@ -281,111 +241,116 @@ struct PatrolPoints : mfc::CArray<PatrolPoint, PatrolPointElements> {
 };
 using PatrolPointArray = PatrolPoints;
 
-// Patrol (vtable 0073FF40, 0x20 bytes): walk a list of points.
-struct PatrolMode : AIMode {
+// Patrol (game.exe's vtable 0073FF40, 0x20 bytes): walk a list of points.
+class PatrolMode : public AIMode {
+public:
+    // 005D0F60 (unit_ai_mode_lifetime.cpp): no points (the array's vtables), index 0.
+    PatrolMode();
+    // 005D1240 (deleting: 005D1220): frees every point's looks and the points.
+    ~PatrolMode() override;
+    // 005D1140 (slot 2): the points freed and the mode as new (the count kept; EAX not set: 0).
+    int OnShutdown() override;
+    // 005D0F90 (slot 3): a new mode (0x20 bytes) with copies of the points and `current`; null when the
+    // allocation fails.
+    PatrolMode* Clone() override;
     // 005D16B0 (slot 4). 50; without points: FatalError "Unit %i has no patrol points, switching to
     // guard", a point at the unit's position, and -1000.
-    int Evaluate(AIBrain* brain);
+    int Evaluate(AIBrain* brain) override;
     // 005D1700 (slot 5). When idle: on to the next point and its looks.
-    void Execute(AIBrain* brain);
+    void Execute(AIBrain* brain) override;
+    int GetType() override;   // 8: 005D1210, 1
     // 005D1690. The last point, or null.
     PatrolPoint* LastPoint();
     // 005D1930 / 005D1A40 (slots 11 / 12). The point count (the points' SetSize 004C9970), per point
     // its position, look count (the looks' SetSize 005D8EE0) and per look angle, time, wait and
     // (from version 0x44 when loading) the stop flag byte; then `current`.
-    void Load(CStream* stream);
-    void Save(CStream* stream);
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
     // 005D12B0 (through its address, so the verify wrapper sees Evaluate's calls).
     void AddPoint(const Vector3* position);
     // 005D12B0 (unit_ai_looks.cpp). Appends a point with no looks at ((n + 0.5) / 2, z 0) for
     // n = 2x rounded to nearest (so 0..0.5 above `position`, not the middle of its half-cell).
     void AppendPoint(const Vector3* position);
-    // unit_ai_mode_lifetime.cpp. 005D0F60: the vtables, no points, index 0 (+4 untouched); returns
-    // this. 005D1240: frees every point's looks and the points (the array keeps its pointer and
-    // count), the root vtable last. 005D1220 (slot 0, RET 4): the destructor, then operator
-    // delete when `flags` bit 0 is set; returns this.
-    PatrolMode* Construct();
-    void Destruct();
-    PatrolMode* DeletingDestruct(int flags);
-    // 005D1140 (slot 2): Destruct, then Construct (the count at +4 kept). 005D0F90 (slot 3): a new
-    // mode (0x20 bytes) with copies of the points and `current`; null when the allocation fails.
-    void Rebuild();
-    PatrolMode* Clone();
 
     PatrolPointArray points;        // +0x08 (vtables 0073FF74 / 0073FF80)
     int current;                    // +0x1C
 };
 static_assert(sizeof(PatrolMode) == 0x20);
 
-// Sentry (vtable 0073D190, 0x14 bytes): stand at a point.
-struct SentryMode : AIMode {
+// Sentry (game.exe's vtable 0073D190, 0x14 bytes): stand at a point.
+class SentryMode : public AIMode {
+public:
+    SentryMode() {}   // a mode AIBrain::Load fills
+    // 004BA360 (RET 4): Set.
+    explicit SentryMode(const Vector3* point);
+    ~SentryMode() override;   // 004BA440 (deleting: 004BA420)
+    int OnShutdown() override;        // 2: 004BA3F0, nothing (EAX not set: 0)
+    SentryMode* Clone() override;     // 3: 004BA3B0, as GuardMode's
     // 005D1B50. Sets the point.
     void Set(const Vector3* point);
     // 005D1B70 (slot 5). When idle: back to the point and look around.
-    void Execute(AIBrain* brain);
+    void Execute(AIBrain* brain) override;
+    int GetType() override;   // 8: 004BA410, 2
     // 005D1DA0 / 005D1DC0 (slots 11 / 12).
-    void Load(CStream* stream);
-    void Save(CStream* stream);
-    // 004BA360 (RET 4; script_unit_modes.cpp). Constructor after operator new: the vtable, then Set.
-    SentryMode* ScriptSentryModeConstruct(const Vector3* newPoint);
-    // Slots 3 / 2 / 0 as for GuardMode (script_unit_modes.cpp).
-    SentryMode* SentryClone() const;                 // 004BA3B0
-    void SentryReset();                              // 004BA3F0
-    SentryMode* SentryDeletingDestruct(int flags);   // 004BA420
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
 
     Vector3 point;                  // +0x08
 };
 static_assert(sizeof(SentryMode) == 0x14);
 
-// Follow (vtable 0073D1C4, 0x0C bytes): stay with a leader.
-struct FollowMode : AIMode {
+// Follow (game.exe's vtable 0073D1C4, 0x0C bytes): stay with a leader.
+class FollowMode : public AIMode {
+public:
+    // 004BA450 (RET 4): the leader referenced (none: a mode AIBrain::Load fills).
+    explicit FollowMode(CMapObject* leader = nullptr);
+    ~FollowMode() override;   // 004BA5B0 (deleting: 004BA590): the leader released and dropped
+    int OnShutdown() override;        // 2: 004BA510, the leader released and dropped (EAX not set: 0)
+    FollowMode* Clone() override;     // 3: 004BA4A0, the leader referenced
     // 005D1E10 (slot 5). When idle: action 6 (follow) with the leader as target.
-    void Execute(AIBrain* brain);
+    void Execute(AIBrain* brain) override;
+    int GetType() override;   // 8: 004BA580, 10
     // 005D1DE0 (slot 10). Drops the leader when it is the deleted object.
-    void OnObjectDeleted(CEngineObject* object);
+    void OnObjectDeleted(CEngineObject* object) override;
     // 005D1E60 / 005D1E80 (slots 11 / 12). Loads / saves the leader's reference.
-    void Load(CStream* stream);
-    void Save(CStream* stream);
-    // 004BA450 (RET 4; script_unit_modes.cpp). Constructor after operator new: the leader is referenced.
-    FollowMode* ScriptFollowModeConstruct(CMapObject* newLeader);
-    // Slots 3 / 2 / 0 (script_unit_modes.cpp). Clone and Reset reference / drop the leader. FollowDestruct:
-    // the leader released and dropped, the root vtable.
-    FollowMode* FollowClone() const;                 // 004BA4A0
-    void FollowReset();                              // 004BA510
-    FollowMode* FollowDeletingDestruct(int flags);   // 004BA590
-    void FollowDestruct();                           // 004BA5B0
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
 
     AIRefTo<CMapObject> leader;     // +0x08
 };
 static_assert(sizeof(FollowMode) == 0x0C);
 
-// Suspection (vtable 0073D1F8, 0x18 bytes): go and look where something was noticed.
-struct SuspectionMode : AIMode {
+// Suspection (game.exe's vtable 0073D1F8, 0x18 bytes): go and look where something was noticed.
+class SuspectionMode : public AIActionMode {
+public:
+    // The original's constructor (004BA610) stores the vtable only; ours zeroes the point and level too
+    // (ClearFields).
+    SuspectionMode() { ClearFields(); }
+    // 004BA610 (registered: the harness redirects game.exe's calls of it). The constructor in place.
+    SuspectionMode* Construct();
+    ~SuspectionMode() override;   // 004BA700 (deleting: 004BA6E0)
+    int OnShutdown() override;            // 2: 004BA6B0, nothing (EAX not set: 0)
+    SuspectionMode* Clone() override;     // 3: 004BA630, as GuardMode's
     // 005D1E90 (slot 4). Remembers a non-allied seen object, then takes over the brain's noticed
     // point and level (the level only grows down to the noticed one while the point is the same).
-    int Evaluate(AIBrain* brain);
+    int Evaluate(AIBrain* brain) override;
     // 005D1F80 (slot 5). Walk to the noticed point; near it the interest fades.
-    void Execute(AIBrain* brain);
+    void Execute(AIBrain* brain) override;
     // 005D21A0 (slot 6). Busy; walk to the point; remark 5.
-    void Enter(AIBrain* brain);
+    void Enter(AIBrain* brain) override;
     // 005D2310 (slot 7). Clears busy; remark 3.
-    void Leave(AIBrain* brain);
+    void Leave(AIBrain* brain) override;
+    int GetType() override;   // 8: 004BA6D0, 3
     // 005D2330 / 005D2360 (slots 11 / 12).
-    void Load(CStream* stream);
-    void Save(CStream* stream);
-    // 004BA610 (script_unit_modes.cpp). Constructor after operator new: the vtable only.
-    SuspectionMode* ScriptSuspectionModeConstruct();
-    // Point and level zeroed. The constructors leave them, but Evaluate keeps a point that compares
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
+    // Point and level zeroed. The original's constructor leaves them, but Evaluate keeps a point that compares
     // the same (a NaN always does) and the lower level, so every new mode starts from them zeroed: a
     // determinism fix, SV7d4; the harness zeroes the original's alike (tests/verify/harness_leftovers.h).
     void ClearFields() {
         point = {};
         level = 0;
     }
-    // Slots 3 / 2 / 0 as for GuardMode (script_unit_modes.cpp).
-    SuspectionMode* SuspectionClone() const;                 // 004BA630
-    void SuspectionReset();                                  // 004BA6B0
-    SuspectionMode* SuspectionDeletingDestruct(int flags);   // 004BA6E0
 
     Vector3 point;                  // +0x08
     int level;                      // +0x14
@@ -400,34 +365,34 @@ struct AITargetChoice {
 };
 static_assert(sizeof(AITargetChoice) == 8 && offsetof(AITargetChoice, object) == 4);
 
-// Aggression (vtable 0073D260, 0x18 bytes): fight an enemy.
-struct AggressionMode : AIMode {
+// Aggression (game.exe's vtable 0073D260, 0x18 bytes): fight an enemy.
+class AggressionMode : public AIActionMode {
+public:
+    // 004BA710: no enemy, the whole unit as the part to hit, enemy not fixed. 004BA830 (RET 4; UMRevenge): the
+    // same with `fixed` given.
+    AggressionMode();
+    explicit AggressionMode(std::uint8_t fixed);
+    ~AggressionMode() override;   // 004BA8C0 (deleting: 004BA8A0): the enemy released
+    // 004BA7C0 (slot 2): the enemy released, then the mode as new (EAX not set: 0).
+    int OnShutdown() override;
+    // 004BA730 (slot 3): references the enemy and copies `chosen` without a reference.
+    AggressionMode* Clone() override;
     // 005D2390 (slot 4). 10000 while there is an enemy to fight (the script's, or the best one
     // in sight), else -1000.
-    int Evaluate(AIBrain* brain);
+    int Evaluate(AIBrain* brain) override;
     // 005D2580 (slot 5). Attack the chosen enemy (or cast spell `chosen.part` at it).
-    void Execute(AIBrain* brain);
+    void Execute(AIBrain* brain) override;
     // 005D26D0 (slot 6). Busy; drops action and target; remark 6.
-    void Enter(AIBrain* brain);
+    void Enter(AIBrain* brain) override;
     // 005D2710 (slot 7). Forgets the noticed level when the enemy is gone or dead, drops the enemy,
     // clears busy; remark 4.
-    void Leave(AIBrain* brain);
+    void Leave(AIBrain* brain) override;
+    int GetType() override;   // 8: 004BA860, 4
+    // 004BA870 (slot 10, RET 4): the enemy released and dropped when it is `object`.
+    void OnObjectDeleted(CEngineObject* object) override;
     // 005D2770 / 005D27A0 (slots 11 / 12). The enemy's reference and `fixed`.
-    void Load(CStream* stream);
-    void Save(CStream* stream);
-    // 004BA710 (script_unit_modes.cpp). Constructor after operator new: no enemy, the whole unit as the
-    // part to hit, enemy not fixed. 004BA830 (RET 4; UMRevenge): the same with `fixed` from the argument's
-    // low byte.
-    AggressionMode* ScriptAggressionModeConstruct();
-    AggressionMode* ScriptRevengeModeConstruct(int newFixed);
-    // Slots 3 / 2 / 10 / 0 (script_unit_modes.cpp). Clone references the enemy and copies `chosen`
-    // without a reference. AggressionObjectDeleted (RET 4): the enemy released and dropped when it is
-    // `object`. AggressionDestruct: the enemy released, the root vtable.
-    AggressionMode* AggressionClone() const;                 // 004BA730
-    void AggressionReset();                                  // 004BA7C0
-    void AggressionObjectDeleted(CEngineObject* object);     // 004BA870
-    AggressionMode* AggressionDeletingDestruct(int flags);   // 004BA8A0
-    void AggressionDestruct();                               // 004BA8C0
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
 
     AIRefTo<CMapObject> enemy;      // +0x08
     std::uint8_t fixed;             // +0x0C enemy set by the script (no searching)
@@ -436,38 +401,39 @@ struct AggressionMode : AIMode {
 };
 static_assert(sizeof(AggressionMode) == 0x18);
 
-// CorpseWatcher (vtable 0073D294, 8 bytes): reports corpses the brain has seen.
-struct CorpseWatcherMode : AIMode {
+// CorpseWatcher (game.exe's vtable 0073D294, 8 bytes): reports corpses the brain has seen (slots 11 / 12 the
+// base's empty ones).
+class CorpseWatcherMode : public AIActionMode {
+public:
+    CorpseWatcherMode();                 // 004BA920
+    ~CorpseWatcherMode() override;       // 004BA9B0 (deleting: 004BA990)
+    int OnShutdown() override;           // 2: 004BA950, nothing (EAX not set: 0)
+    CorpseWatcherMode* Clone() override; // 3: 004BA930
     // 005D27D0 (slot 4). Takes one seen corpse off the brain's list and notes it as noticed
     // (level 800, kind -3). Never takes charge (-1000).
-    int Evaluate(AIBrain* brain);
-    // 004BA920 (script_unit_modes.cpp). Constructor after operator new: the vtable only.
-    CorpseWatcherMode* ScriptCorpseWatcherModeConstruct();
-    // Slots 3 / 2 / 0 as for GuardMode (script_unit_modes.cpp).
-    CorpseWatcherMode* CorpseWatcherClone() const;                 // 004BA930
-    void CorpseWatcherReset();                                     // 004BA950
-    CorpseWatcherMode* CorpseWatcherDeletingDestruct(int flags);   // 004BA990
+    int Evaluate(AIBrain* brain) override;
+    void Execute(AIBrain*) override {}   // 5: 004BA970
+    int GetType() override;              // 8: 004BA980, 5
 };
 
-// Fear (vtable 0073FF8C, 0x2C bytes): run from an enemy.
-struct FearMode : AIMode {
-    // 005D2850 (unit_ai_brain.cpp; after operator new). The vtable, distance from 0073FF00, 3, an
-    // unset point (x = -1313), +0x24 = 0 and `flag`; +4 and +0x14..+0x20 are left alone. Returns this.
+// Fear (game.exe's vtable 0073FF8C, 0x2C bytes): run from an enemy.
+class FearMode : public AIActionMode {
+public:
+    // 005D2850 (unit_ai_brain.cpp): distance from 0073FF00, 3, an unset point (x = -1313), +0x24 = 0 and
+    // `flag`. The original leaves shelter y / z and fleePoint x / y, which the saves write: ours zeroes every
+    // field first (ClearFields; a determinism fix, SV7b2; the harness zeroes the original's alike).
+    explicit FearMode(std::uint8_t flag);
+    // 005D2850 (registered: the harness redirects game.exe's calls of it). The constructor in place.
     FearMode* Construct(std::uint8_t flag);
-    // Every field after the count zeroed, before Construct: it leaves shelter y / z and fleePoint x / y,
-    // which the saves write (a determinism fix, SV7b2; the harness zeroes the original's alike).
     void ClearFields() { std::memset(&distance, 0, sizeof(FearMode) - offsetof(FearMode, distance)); }
-    // unit_ai_mode_lifetime.cpp. 005D2950: the root vtable. 005D2930 (slot 0, RET 4): that, then
-    // operator delete when `flags` bit 0 is set; returns this.
-    void Destruct();
-    FearMode* DeletingDestruct(int flags);
-    // 005D2880 (slot 3; unit_ai_mode_lifetime.cpp). A new mode with this one's fields (references
-    // 0; the abstract base's vtable stands while they are copied); null when the allocation fails.
-    FearMode* Clone();
-    // 005D28F0 (slot 2; unit_ai_mode_lifetime.cpp). Destroyed and built again in place without
-    // the flag: Construct(0)'s stores after the root vtable (the count and +0x14 .. +0x20 stay).
-    // EAX is 0 on return.
-    int Reset();
+    ~FearMode() override;   // 005D2950 (deleting: 005D2930; unit_ai_mode_lifetime.cpp)
+    // 005D28F0 (slot 2; unit_ai_mode_lifetime.cpp). The constructor's stores without the flag (the count and
+    // +0x14 .. +0x20 stay). EAX is 0 on return.
+    int OnShutdown() override;
+    // 005D2880 (slot 3; unit_ai_mode_lifetime.cpp). A new mode with this one's fields; null when the
+    // allocation fails.
+    FearMode* Clone() override;
+    int GetType() override;   // 8: 005D2920, 7
     // 005D2960 (slot 4; unit_ai_fear.cpp). Remembers a seen object (notice 1000 / -2; `distance`
     // grows to 1.5 times its distance) and calms `spread` towards 3. 15000 when a ranged unit (size
     // class below 6, no spell in slot 0, not slowed, load factor above 0.6) has its nearest enemy
@@ -478,21 +444,21 @@ struct FearMode : AIMode {
     // the last shelter). With `flag` the nearest player unit in sight inside `distance` is noticed.
     // Then noticedLevel / 6 when it is above 50 and the mode is in charge or the noticed point is
     // within `distance`; else `distance` moves a 31st back to the default and -1000.
-    int Evaluate(AIBrain* brain);
+    int Evaluate(AIBrain* brain) override;
     // 005D30A0 (slot 5; unit_ai_fear.cpp). Runs from the nearest enemy (calling allies to it), else
     // stays in shelter, else from the noticed point (forgotten unless `flag` and above 500): within
     // `distance`, and not walking on command, to `fleePoint` when one is pending, else 5 away plus
     // a random offset of at most `spread` (which first drops to 2.5 x `distance`), when a path is
     // found (action 1); `spread` doubles. Without an action: attack the best target in sight
     // (allies only, 005D0030), else stand and look away from the point.
-    void Execute(AIBrain* brain);
+    void Execute(AIBrain* brain) override;
     // 005D3650 (slot 6). Busy; drops action and target.
-    void Enter(AIBrain* brain);
+    void Enter(AIBrain* brain) override;
     // 005D3680 (slot 7). Clears busy.
-    void Leave(AIBrain* brain);
+    void Leave(AIBrain* brain) override;
     // 005D3690 / 005D36F0 (slots 11 / 12).
-    void Load(CStream* stream);
-    void Save(CStream* stream);
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
 
     float distance;                 // +0x08 how near danger counts (10, FearDefaultDistance)
     float spread;                   // +0x0C random spread of a flight point (3)
@@ -500,6 +466,10 @@ struct FearMode : AIMode {
     Vector3 fleePoint;              // +0x1C a checked flight point (z 1.0 while pending, else 0)
     std::uint8_t flag;              // +0x28
     std::uint8_t unused_29[3];
+
+private:
+    // The constructor's stores (and OnShutdown's).
+    void Init(std::uint8_t flag);
 };
 static_assert(sizeof(FearMode) == 0x2C);
 static_assert(offsetof(FearMode, flag) == 0x28);
@@ -507,39 +477,36 @@ static_assert(offsetof(FearMode, fleePoint) == 0x1C);
 // 0073FF00: a new Fear mode's distance, which `distance` returns to.
 inline float FearDefaultDistance() { return 10.0f /*0073FF00*/; }
 
-// Player (vtables 0073F0C4 / 0073F0F8, 0x24 bytes): the party's units.
-struct PlayerMode : AIMode {
+// Player (game.exe's vtable 0073F0F8, 0x24 bytes): the party's units. Its lifetime and small slots are in
+// unit_ai_player_mode_slots.cpp (A-U6).
+class PlayerMode : public AIActionMode {
+public:
     enum { kStateFollow = 0, kStateCommand = 1, kStateMoveTo = 2 };
 
-    // 005D3760 (unit_ai_mode_lifetime.cpp). Vtable 0073F0F8, no target or leader, point 0, state 0,
-    // not running (+4 and the padding untouched); returns this.
-    PlayerMode* Construct();
-    // unit_ai_player_mode_slots.cpp (A-U6). The tamed vtable 0073F0C4 is the player's with its own
-    // slots 0, 2, 3, 4 and 8. Slot 3 (Clone) 00551F50 / 00551E10: a new mode (refs 0, written
-    // before the allocation is tested) holding the same target and leader (one more reference
-    // each) with the same point, state and run. Slot 2 (OnShutdown) 00552000 / 00551EC0: Destruct,
-    // then Construct in place (the tamed one puts its vtable back); returns this.
-    // Destruct 005520D0 / 00552180 (identical): releases the leader, then the target, root vtable.
-    // Slot 0 005520B0 / 00552160 (RET 4): Destruct, operator delete when `flags` bit 0 is set.
-    PlayerMode* ClonePlayer();
-    PlayerMode* CloneTamed();
-    PlayerMode* ResetPlayer();
-    PlayerMode* ResetTamed();
-    void Destruct();
-    PlayerMode* DeletingDestruct(int flags);
+    // 005D3760 (unit_ai_mode_lifetime.cpp). No target or leader, point 0, state 0, not running.
+    PlayerMode();
+    // 005520D0 (deleting: 005520B0): releases the leader, then the target.
+    ~PlayerMode() override;
+    // 00552000 (slot 2): the references released, then the mode as new; EAX the mode.
+    int OnShutdown() override;
+    // 00551F50 (slot 3): a new mode holding the same target and leader (one more reference each) with the
+    // same point, state and run; null when the allocation fails.
+    PlayerMode* Clone() override;
+    int Evaluate(AIBrain* brain) override;   // 4: 00552090, 10
+    int GetType() override;                  // 8: 005520A0, 6
 
     // 005D4A90 (slot 5). State 0: follow the leader (unless the leader is moving itself) and fight
     // (005D4170); state 1: wait for the commanded action to end; state 2: walk to `point` (staying
     // with the party unless the player controls the unit directly) and fight on the way.
-    void Execute(AIBrain* brain);
+    void Execute(AIBrain* brain) override;
     // 005D37A0 (slot 10). Drops either reference when it is the deleted object.
-    void OnObjectDeleted(CEngineObject* object);
+    void OnObjectDeleted(CEngineObject* object) override;
     // 005D4CD0 (slot 11 of both vtables; unit_ai_modes.cpp, A-W14). The target's and the leader's
     // references, the point and the state. Saves of versions 0x46 .. 0x5D hold a group of objects
     // after them (ScriptGroup::Load), which is read and dropped.
-    void Load(CStream* stream);
+    void Load(CStream* stream) override;
     // 005D4DB0 (slot 12).
-    void Save(CStream* stream);
+    void Save(CStream* stream) override;
 
     // The player's commands (state 1 or 2: the unit does what it was told).
     // 005D39E0. Walk to `to` + `offset` (just `to` when the way there is blocked); forgets the leader
@@ -591,8 +558,24 @@ struct PlayerMode : AIMode {
     int state;                      // +0x1C
     std::uint8_t run;               // +0x20
     std::uint8_t unused_21[3];
+
+protected:
+    // Both OnShutdowns: the references released, then the constructor's stores.
+    void Reset();
 };
 static_assert(sizeof(PlayerMode) == 0x24);
+
+// Tamed (game.exe's vtable 0073F0C4, type 8): the Player mode a taming installs (combat_taming.cpp), with its
+// own slots 0, 2, 3, 4 and 8 (unit_ai_player_mode_slots.cpp).
+class TamedMode : public PlayerMode {
+public:
+    TamedMode() {}
+    ~TamedMode() override;   // 00552180 (deleting: 00552160): the player's body
+    int OnShutdown() override;               // 2: 00551EC0, as the player's
+    TamedMode* Clone() override;             // 3: 00551E10, as the player's
+    int Evaluate(AIBrain* brain) override;   // 4: 00552140, 100000000
+    int GetType() override;                  // 8: 00552150, 8
+};
 
 
 // 0052AF20 (counted_ref.cpp; fastcall, RET 4): a count read from `stream`, then that many counted
@@ -1180,6 +1163,6 @@ static_assert(offsetof(AIBrain, memory) == 0xD0);
 static_assert(sizeof(AIBrain) == 0x190);
 static_assert(offsetof(AIBrain, attention) == 0xA4);
 
-// The script-made modes' constructors and slots (004BA1A0-004BA9B0) are members of the mode structs
+// The script-made modes' constructors and slots (004BA1A0-004BA9B0) are members of the mode classes
 // above (script_unit_modes.cpp). Slots of 3 bytes (RET 4, MOV AL,1, XOR EAX,EAX ...) cannot be
 // hooked: 004BA220 / 004BA230 / 004BA240 / 004BA2B0 / 004BA2C0 / 004BA2F0 / 004BA620 / 004BA970.
