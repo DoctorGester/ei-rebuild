@@ -204,7 +204,7 @@ mfc::CString CIniFile::GetString(const char* section, const char* key, const cha
 }
 EI_REWRITTEN(0x00696030, CIniFile::GetString);
 
-BOOL CIniFile::GetList(const char* section, const char* key, console::CStringArray* out, char separator) {
+BOOL CIniFile::GetList(const char* section, const char* key, mfc::CStringArray* out, char separator) {
     mfc::CString value = ReadString(this, section, key, game::EmptyText());
     mfc::CString item;
     if (value.GetLength() == 0) return 0;

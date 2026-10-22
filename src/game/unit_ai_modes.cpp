@@ -887,7 +887,7 @@ void PlayerMode::Load(CStream* stream) {
         group.size = 0;
         group.maxSize = 0;
         group.growBy = 0;
-        group.Load(reinterpret_cast<ScriptStream*>(stream));
+        group.Load(stream);
         group.DestructBody();
     }
 }

@@ -193,7 +193,7 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
             console::CStringArray names;
             names.SetAtGrow(names.GetSize(), "magic\\FeebleMind\\start.wav");
             names.SetAtGrow(names.GetSize(), "magic\\FeebleMind\\circle.wav");
-            record->handle = sounds->AddSequence(reinterpret_cast<const SoundNameArray*>(&names), 0, position,
+            record->handle = sounds->AddSequence(&names, 0, position,
                                                  SoundNear(), SoundFar(), 0, -1, FeebleMindChooser);
             // The folder is empty here: the original plays the bare suffix.
             mfc::CString name;
