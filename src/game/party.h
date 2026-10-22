@@ -1,17 +1,15 @@
 #pragma once
 
-// CParty (vtable 00743000, GetClassName 0065F560 "CParty", 0x70 bytes): a party's data: its unit
-// records (+0x2C), the items it owns (+0x40), named variables (+0x54), a zone name (+0x68) and
-// its own item and spell managers and constructors. The player's inventory, the named party
-// records (party_records.h) and the camp's lists are parties. Its virtual slots 13-26 are the
-// manager getters CWorld has too (24: 0055E940 makes the party's own copy of an item). See
-// docs/notes/items_spells.md ("Party").
+// CParty (game.exe's vtable 00743000, class name "CParty", id 9): a party's data: its unit records,
+// the items it owns, named variables, a zone name and its own item and spell managers and
+// constructors. The player's inventory, the named party records (party_records.h) and the camp's
+// lists are parties. Its manager context getters (manager_context.h) answer only the item and spell
+// ones. See docs/notes/items_spells.md ("Party").
 
 #include "engine_object.h"
 #include "manager_context.h"
 #include "map_object_figures.h"
 #include "object_tables.h"
-#include "party_storage.h"
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -72,25 +70,34 @@ using PartyMemberArray = PartyMembers;
 
 class CParty : public CManagerContext {
 public:
-    // The compiled tables (C19, party_lifetime.cpp's PartyClass and PartyBaseClass over engine_object_class.h) in
-    // place of game.exe's 00743000 and the base's 0074306C, which the constructor stores first.
-    static void* Vtable();
-    static void* BaseVtable();
+    // 00661050. Empty record and item arrays, an empty variable map with NextPrime(100) buckets
+    // (its functor bytes are the original's uninitialised stack byte, left alone here), an empty
+    // zone name, no managers. The money and the entrance are left as they are.
+    CParty();
+    // 006613C0. A copy of `source`, as Assign makes it (it reads its source non-const: saving it
+    // makes its managers when it has none).
+    explicit CParty(CParty& source);
+    // 006611D0 (the deleting destructor 00661190). Clear(1, 1), Destroy, then the members.
+    ~CParty() override;
+    CParty& operator=(const CParty&) = delete;
 
-    // Slots 13-24: the manager context's getters (CManagerContext, manager_context.h; as CWorld's);
-    // a party has only the item and spell ones: 13-15, 19-21 and 23 return null (0065F4B0,
-    // 0065F530, 0065F4C0, 0065F4D0, 0065F4E0, 0065F4F0, 0065F500), 16 / 17 the constructors
-    // (0065F540 / 0065F550), 18 itemManager_, 22 spellManager_. Slot 18 (ItemFactory) under the
-    // party's name:
+    // 006614F0. Makes and counts the party's own item manager and spell manager (attached to this
+    // party), item constructor and spell constructor (created), then Clear(1, 0). Returns 1.
+    int Create() override;
+    // 00661640. Empties the record array, releases the items and frees their storage, then drops
+    // (count, delete) the item constructor, spell constructor, item manager and spell manager.
+    void Destroy() override;
+    const char* GetClassName() override;   // 0065F560 "CParty"
+    int GetClassId() override;             // 0065F570 9
+
+    CItemConstructor* ItemConstructor() override;     // 0065F540
+    CSpellConstructor* SpellConstructor() override;   // 0065F550
+    CItemManager* ItemFactory() override;             // 0065F520
+    CSpellManager* SpellManager() override;           // 0065F510
+    // The item factory under the party's name.
     CItemManager* ItemManager() { return ItemFactory(); }
-    // Slot 24 (DuplicateItem, 0055E940): a new item made like `item` (the item factory, slot 18)
-    // and given its values (its slot 15 with the spell manager, slot 22).
+    // A new item made like `item` (DuplicateItem: MakeCopyOf).
     CItem* CopyItem(CItem* item) { return DuplicateItem(item); }
-    // 0055E940 (RET 4; slot 24's body, in CWorld's base and client vtables too, whose slots 18 and
-    // 22 are the same getters). The item manager makes an item of `item`'s kind, prototype (high
-    // word of the packed id) and material (low word), which `item` then fills (its slot 15 with
-    // the spell manager). Returns the new item.
-    CItem* MakeCopyOf(CItem* item);
 
     // 00661DB0 (RET 0xC; party_items.cpp). Puts `item` among the party's items with a count of 1
     // (with `keepCount`, the item's own +0x48). With `merge`, an item the list already has that is
@@ -107,7 +114,7 @@ public:
     // from the back of the list.
     void RemoveQuestItems();
     // 00661FE0 (party_items.cpp). Every item released (slot 4; the count re-read after each), the
-    // list's storage freed and the list emptied (what DestroyParty and Clear inline).
+    // list's storage freed and the list emptied (what Destroy and Clear inline).
     void ReleaseAllItems();
 
     // 006628D0 (RET 0xC; party_members.cpp). Appends a unit record: Create (slot 2) when there is
@@ -140,24 +147,6 @@ public:
     // "z.<name>" set to 1 unless it is already nonzero (0 or NaN is set).
     void OpenEdgeExits();
 
-    // 00661050 (party_lifetime.cpp). Constructor body: CEngineObject's fields, empty record and
-    // item arrays, an empty variable map with NextPrime(100) buckets (its functor bytes are the
-    // original's uninitialised stack byte, left alone here), an empty zone name, no managers; the
-    // base vtable first, then the party's. +0x50 and +0x6C are left as they are. Returns this.
-    CParty* Construct();
-    // 006611D0. Destructor body: Clear(1, 1), DestroyParty, then the members' destructors (zone
-    // name, variable map, the item array's storage, the record array) and CEngineObject's.
-    void DestructBody();
-    // 00661190 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
-    CParty* DeletingDestruct(unsigned flags);
-    // 006614F0 (slot 2). Makes and counts the party's own item manager and spell manager
-    // (attached with slot 13 to this party), item constructor and spell constructor (slot 2),
-    // then Clear(1, 0). Returns 1.
-    BOOL CreateParty();
-    // 00661640 (slot 3). Empties the record array, releases the items and frees their storage,
-    // then drops (count, delete) the item constructor, spell constructor, item manager and spell
-    // manager.
-    void DestroyParty();
     // 00661700 (RET 8). Releases the items and frees their storage, empties the item manager
     // (slot 15) and the spell manager (slot 3; attached again with slot 13 unless `keepSpells`),
     // empties the record array, the variables (with `clearVariables`) and the zone name, and
@@ -180,32 +169,20 @@ public:
     // SaveParty's output (with variables) as stream field 1, read back with the archive's version.
     // ArchivePartyThroughHook goes through the address (party_manager.cpp), so its check runs.
     void ArchiveParty(ChunkArchive* ar);
-    // 00661300 (RET 4). operator=: Clear(1, 0), then `source` saved into a memory stream and
-    // loaded back into this party (variables included). Returns this.
+    // 00661300 (RET 4). Clear(1, 0), then `source` saved into a memory stream and loaded back into
+    // this party (variables included). Returns this.
     CParty* Assign(CParty* source);
-    // 006613C0 (RET 4). Copy constructor: Construct, then `source` copied as Assign does
-    // (without the Clear). Returns this.
-    CParty* CopyConstruct(CParty* source);
     // The money (+0x50; the camp's deals and the trade read it).
     int& Money() { return money_; }
 
-    CItemManager* itemManager_;             // +0x1C (slot 18 returns it)
-    CItemConstructor* itemConstructor_;     // +0x20 (slot 16)
-    CSpellManager* spellManager_;           // +0x24 (slot 22)
-    CSpellConstructor* spellConstructor_;   // +0x28 (slot 17)
-    PartyMemberArray members_;              // +0x2C
-    PartyItemArray items_;                  // +0x40
-    int money_;                         // +0x50 the party's money (Money(); cleared by Clear, saved masked)
-    NamedFloatTable variables_;             // +0x54 named variables (the script's "gtime" and the like)
-    mfc::CString zone_;                     // +0x68 the zone name ("gz1g" after a new game)
-    std::uint32_t entrance_;            // +0x6C the zone exit the party arrives by (cleared by Clear)
+    CItemManager* itemManager_;
+    CItemConstructor* itemConstructor_;
+    CSpellManager* spellManager_;
+    CSpellConstructor* spellConstructor_;
+    PartyMemberArray members_;
+    PartyItemArray items_;
+    int money_;                 // the party's money (Money(); cleared by Clear, saved masked)
+    NamedFloatTable variables_;   // named variables (the script's "gtime" and the like)
+    mfc::CString zone_;           // the zone name ("gz1g" after a new game)
+    std::uint32_t entrance_;      // the zone exit the party arrives by (cleared by Clear)
 };
-static_assert(offsetof(CParty, itemManager_) == 0x1C);
-static_assert(offsetof(CParty, money_) == 0x50);
-static_assert(offsetof(CParty, entrance_) == 0x6C);
-static_assert(offsetof(CParty, members_) == 0x2C);
-static_assert(offsetof(CParty, items_) == 0x40);
-static_assert(offsetof(CParty, variables_) == 0x54);
-static_assert(offsetof(CParty, zone_) == 0x68);
-static_assert(sizeof(CParty) == 0x70);
-static_assert(sizeof(CParty) == sizeof(PartyStorage));

@@ -448,7 +448,7 @@ public:
     void Tick();
 
     // The embedded party (party_storage.h).
-    CParty* Party() { return party_.Party(); }
+    CParty* Party() { return party_.Get(); }
     // The connection as the server's view of it (a CPlayerServer on the server world, null for
     // none).
     CPlayerServer* Server() const { return static_cast<CPlayerServer*>(connection_); }

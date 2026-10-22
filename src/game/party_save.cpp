@@ -202,12 +202,8 @@ CParty* CParty::Assign(CParty* source) {
 }
 EI_REWRITTEN(0x00661300, CParty::Assign);
 
-CParty* CParty::CopyConstruct(CParty* source) {
-    Construct();
-    CopyThrough(this, source);
-    return this;
-}
-EI_REWRITTEN(0x006613C0, CParty::CopyConstruct);
+CParty::CParty(CParty& source) : CParty() { CopyThrough(this, &source); }
+EI_REWRITTEN_SPECIAL(0x006613C0, CParty::CParty);
 
 // --- 006617F0 (A-H25): the party as a stream field of an archive --------------------------------------
 

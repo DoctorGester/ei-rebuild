@@ -2966,7 +2966,7 @@ title = "C28 party and manager context: CParty, CManagerContext's defaults, the 
 group = "cleanup"
 model = "opus"
 files = ["src/game/party.h", "src/game/party_lifetime.cpp", "src/game/party_storage.h", "src/game/manager_context.h", "src/game/app_lifetime.cpp"]
-note = "PartyClass / PartyBaseClass go: CManagerContext defines its slots (the party base table's null getters, Create 1, DuplicateItem MakeCopyOf), CParty gets a constructor / destructor; PartyStorage becomes a lib::InPlace<CParty>; PartyRecord (app_lifetime.cpp CompiledDeleter). The members' CArray stays a tagged header until C28o."
+note = "Done: CParty a real class (constructor, copy constructor, virtual destructor; Create / Destroy / class name / getters as overrides); PartyClass / PartyBaseClass gone; CManagerContext defines its getters (null), Create (0055E930) and MakeCopyOf (0055E940, still registered: WorldCopyItemOriginal) behind DuplicateItem; PartyStorage = lib::InPlace<CParty>, stack parties are plain locals; 006611D0 stays registered as a shim (PartyRecordsDestructOriginal). Left: PartyRecord's own table (CRefCounted root, C28e); the members' CArray (C28o)."
 
 [[ticket]]
 id = "C28d"

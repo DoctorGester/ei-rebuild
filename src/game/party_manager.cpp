@@ -19,8 +19,6 @@
 
 #pragma warning(disable : 4740) // naked forwarders
 
-static_assert(sizeof(PartyInPlace) == sizeof(CParty));
-
 namespace {
 
 // STLport members (library), called as the original does: the party map's clear() (004AD050,

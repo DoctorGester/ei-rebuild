@@ -568,7 +568,7 @@ void SavedParties::Select(const MpHeroRecord* hero) { outsideGame_.Assign(hero);
 EI_REWRITTEN(0x00662F80, SavedParties::Select);
 
 MpHeroRecord* MpHeroRecord::Construct() {
-    Party()->Construct();   // 00661050 by address: its wrapper runs
+    new (Party()) CParty();
     new (&file) mfc::CString();
     return this;
 }

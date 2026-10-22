@@ -41,13 +41,13 @@ struct TradeElement {
         to->revision = from.revision;
         // CParty's copy constructor takes its source non-const (it saves it into a stream).
         TradeRecord& source = const_cast<TradeRecord&>(from);
-        for (int i = 0; i < 3; ++i) to->parties[i].Party()->CopyConstruct(source.parties[i].Party());
+        for (int i = 0; i < 3; ++i) new (to->parties[i].Get()) CParty(*source.parties[i].Get());
     }
     static void Destroy(TradeRecord* p) {
-        for (int i = 3; i-- > 0;) p->parties[i].Party()->DestructBody();
+        for (int i = 3; i-- > 0;) p->parties[i]->~CParty();
     }
     static void Default(TradeRecord* p) {
-        for (net::PartyStorage& party : p->parties) party.Party()->Construct();
+        for (net::PartyStorage& party : p->parties) new (party.Get()) CParty();
     }
 };
 

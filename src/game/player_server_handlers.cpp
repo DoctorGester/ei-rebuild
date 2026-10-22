@@ -380,13 +380,6 @@ struct LocalStream {
     ~LocalStream() { Get()->Destruct(); }
     CMemoryStream* Get() { return bytes.Get(); }
 };
-// A party on the stack (constructor 00661050, destructor body 006611D0).
-struct LocalParty {
-    PartyStorage storage;
-    LocalParty() { Get()->Construct(); }
-    ~LocalParty() { Get()->DestructBody(); }
-    CParty* Get() { return storage.Party(); }
-};
 
 } // namespace
 
@@ -529,8 +522,8 @@ int CPlayerServer::OnBriefingDone() {
 }
 
 int CPlayerServer::OnNewParty() {
-    LocalParty local;
-    CParty* party = local.Get();
+    CParty local;
+    CParty* party = &local;
     party->LoadParty(&ReceivedMessages(), 1);
     if (party->members_.size != 1) return 0;
     int* key = &Owner()->partyId_;

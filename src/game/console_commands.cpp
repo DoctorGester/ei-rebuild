@@ -329,15 +329,10 @@ namespace {
 // to the game flow's request 5 / 6 (00581730 / 00581760: a copy of it) with the map name.
 template <void (GameFlow::*Request)(const char*, CParty*)>
 void RequestWithParty(CStringArray* args, const char* extra) {
-    PartyStorage storage;
-    CParty* party = storage.Party();
-    party->Construct();
-    party->AddMember("F", "Human Hero", extra);
-    {
-        mfc::CString map((*args)[0]);
-        (TheGameFlow()->*Request)(map, party);
-    }
-    party->DestructBody();
+    CParty party;
+    party.AddMember("F", "Human Hero", extra);
+    mfc::CString map((*args)[0]);
+    (TheGameFlow()->*Request)(map, &party);
 }
 } // namespace
 

@@ -5,10 +5,6 @@
 // registered here. See party.h and docs/notes/items_spells.md ("Party").
 #include "party.h"
 
-#include "class_names_640.h"
-#include "engine_object_class.h"
-#include "world_class_slots.h"
-
 #include "game_strings.h"
 #include "item.h"
 #include "spell.h"
@@ -18,7 +14,6 @@
 #include "lib/mfc_slots.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -189,62 +184,8 @@ void ReleaseItems(const PartyItemArray& items) {
 
 } // namespace
 
-namespace {
-
-// CParty's base's slots (game.exe's 0074306C): CEngineObject's deleting destructor (006611B0), Create 0055E930 (1),
-// Destroy / ClassName / ClassId pure, and the manager context's slots 13-26 as CWorld's (world_class.h): every getter
-// null (0065F4B0 ... 0065F500, 00661140 ... 00661180), 24 the party's copy of an item (0055E940), 25 / 26 null and 0
-// (0055EB20 / 0055EB30).
-template <typename Self, typename T>
-class PartyContextClass : public EngineObjectClass<Self, T> {
-public:
-    int Create() override { return PartyBaseCreate(this->Object()); }   // 2: 0055E930
-
-    virtual void* ThisWorld() { return nullptr; }                       // 13: 0065F4B0
-    virtual void* TimedObjectManager() { return nullptr; }              // 14: 00661140
-    virtual void* FigureManager() { return nullptr; }                   // 15: 0065F4C0
-    virtual CItemConstructor* ItemConstructor() { return nullptr; }     // 16: 00661150
-    virtual CSpellConstructor* SpellConstructor() { return nullptr; }   // 17: 00661160
-    virtual CItemManager* ItemManager() { return nullptr; }             // 18: 00661170
-    virtual void* MapObjectManager() { return nullptr; }                // 19: 0065F4D0
-    virtual void* PlayerList() { return nullptr; }                      // 20: 0065F4E0
-    virtual void* SpecificManager() { return nullptr; }                 // 21: 0065F4F0
-    virtual CSpellManager* SpellManager() { return nullptr; }           // 22: 00661180
-    virtual void* FigureLoader() { return nullptr; }                    // 23: 0065F500
-    virtual CItem* CopyItem(CItem* item) { return Party()->CParty::MakeCopyOf(item); }   // 24: 0055E940
-    virtual const char* TexturePath() { return nullptr; }               // 25: 0055EB20
-    virtual int IsServer() { return 0; }                                // 26: 0055EB30
-
-protected:
-    CParty* Party() { return this->template As<CParty>(); }
-};
-
-class PartyBaseClass final : public PartyContextClass<PartyBaseClass, CEngineObject> {};
-
-// The party's own (game.exe's 00743000): its destructor, Create / Destroy (006614F0 / 00661640), "CParty" / 9
-// (0065F560 / 0065F570), 14 null (0065F530) and the item and spell getters (0065F540 / 0065F550 / 0065F520 /
-// 0065F510).
-class PartyClass final : public PartyContextClass<PartyClass, CParty> {
-public:
-    int Create() override { return Party()->CreateParty(); }             // 2: 006614F0
-    void Destroy() override { Party()->DestroyParty(); }                 // 3: 00661640
-    const char* ClassName() override { return PartyClassName(Object()); }   // 11: 0065F560
-    int ClassId() override { return PartyClassId(Object()); }               // 12: 0065F570
-    void* TimedObjectManager() override { return nullptr; }                       // 14: 0065F530
-    CItemConstructor* ItemConstructor() override { return Party()->itemConstructor_; }     // 16: 0065F540
-    CSpellConstructor* SpellConstructor() override { return Party()->spellConstructor_; }  // 17: 0065F550
-    CItemManager* ItemManager() override { return Party()->itemManager_; }                 // 18: 0065F520
-    CSpellManager* SpellManager() override { return Party()->spellManager_; }              // 22: 0065F510
-};
-
-} // namespace
-
-void* CParty::Vtable() { return PartyClass::Vtable(); }
-void* CParty::BaseVtable() { return PartyBaseClass::Vtable(); }
-
-CParty* CParty::Construct() {
+CParty::CParty() {
     ClearFields();
-    ei::SetVtable(this, BaseVtable());
     members_.vtable = PartyMembers::Vtable();
     members_.data = nullptr;
     members_.growBy = 0;
@@ -255,21 +196,16 @@ CParty* CParty::Construct() {
     items_.capacity = 0;
     items_.size = 0;
     variables_.InitZeroedBuckets(100);
-    new (&zone_) mfc::CString();
     itemManager_ = nullptr;
     spellManager_ = nullptr;
     itemConstructor_ = nullptr;
     spellConstructor_ = nullptr;
-    ei::SetVtable(this, Vtable());
-    return this;
 }
-EI_REWRITTEN(0x00661050, CParty::Construct);
+EI_REWRITTEN_SPECIAL(0x00661050, CParty::CParty);
 
-void CParty::DestructBody() {
-    ei::SetVtable(this, Vtable());
+CParty::~CParty() {
     Clear(1, 1);
-    DestroyParty();
-    zone_.~CString();
+    CParty::Destroy();
     variables_.Destroy();
     if (items_.data != nullptr) gamecrt::operator_delete(items_.data[-1]);
     members_.vtable = PartyMembers::Vtable();
@@ -277,19 +213,24 @@ void CParty::DestructBody() {
         for (int i = 0; i != members_.size; ++i) members_.data[i].Destruct();
         gamecrt::operator_delete(members_.data);
     }
-    DestructBase();
 }
-EI_REPLACE_METHOD(0x006611D0, CParty::DestructBody);
+EI_REWRITTEN_SPECIAL(0x00661190, CParty::~CParty);
 
-CParty* CParty::DeletingDestruct(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00661190, CParty::DeletingDestruct);
+// 006611D0, the destructor called in place (its address is still called: originals_gameplay.h).
+void __fastcall DestroyPartyInPlace(CParty* party) { party->CParty::~CParty(); }
+EI_REPLACE(0x006611D0, DestroyPartyInPlace);
 
-BOOL CParty::CreateParty() {
-    // The base class's slot 2 (0055E930) only returns 1.
+const char* CParty::GetClassName() { return "CParty"; }
+int CParty::GetClassId() { return 9; }
+EI_REWRITTEN(0x0065F560, CParty::GetClassName);
+EI_REWRITTEN(0x0065F570, CParty::GetClassId);
+
+CItemConstructor* CParty::ItemConstructor() { return itemConstructor_; }
+CSpellConstructor* CParty::SpellConstructor() { return spellConstructor_; }
+CItemManager* CParty::ItemFactory() { return itemManager_; }
+CSpellManager* CParty::SpellManager() { return spellManager_; }
+
+int CParty::Create() {
     itemManager_ = new CItemManager();
     ++itemManager_->refCount_;   // not tested for null, as in the original
     itemManager_->Init(this);
@@ -309,9 +250,9 @@ BOOL CParty::CreateParty() {
     Clear(1, 0);
     return 1;
 }
-EI_REWRITTEN(0x006614F0, CParty::CreateParty);
+EI_REWRITTEN(0x006614F0, CParty::Create);
 
-void CParty::DestroyParty() {
+void CParty::Destroy() {
     members_.SetSize(0, -1);
     ReleaseItems(items_);
     items_.SetSize(0, -1);
@@ -320,7 +261,7 @@ void CParty::DestroyParty() {
     Drop(itemManager_);
     Drop(spellManager_);
 }
-EI_REWRITTEN(0x00661640, CParty::DestroyParty);
+EI_REWRITTEN(0x00661640, CParty::Destroy);
 
 void CParty::Clear(int clearVariables, int keepSpells) {
     ReleaseItems(items_);

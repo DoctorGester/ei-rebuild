@@ -145,8 +145,8 @@ struct LocalFileStream {
 // bytes, so the compiler neither constructs nor destroys it).
 struct LocalRecords {
     PartyStorage storage;
-    CParty* Party() { return storage.Party(); }
-    LocalRecords() { Party()->Construct(); }
+    CParty* Party() { return storage.Get(); }
+    LocalRecords() { new (Party()) CParty(); }
     ~LocalRecords() { PartyRecordsDestructOriginal(Party()); }
     LocalRecords(const LocalRecords&) = delete;
     LocalRecords& operator=(const LocalRecords&) = delete;
@@ -1736,7 +1736,7 @@ int GameFlow::LoadGame(const char* slot) {
 
 GameFlow* GameFlow::Construct() {
     new (&requestTarget_) mfc::CString();
-    RequestParty()->Construct();
+    new (RequestParty()) CParty();
     new (&zone7C_) mfc::CString();
     state_ = 0;
     return this;
@@ -1745,7 +1745,7 @@ EI_REPLACE_METHOD(0x00578460, GameFlow::Construct);
 
 void GameFlow::Destruct() {
     zone7C_.~CString();
-    RequestParty()->DestructBody();
+    RequestParty()->~CParty();
     requestTarget_.~CString();
 }
 EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
@@ -1988,21 +1988,10 @@ namespace {
 // MpHeroRecord::CopyRange (00664410), its element destructor DeletingDestruct (00664AE0, flag 0);
 // the records' copy constructor (006613C0) and the insert overflow (00619920) are in
 // originals_gameplay.h.
-// The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
-// zone name, the variables (00663330), the array at +0x40 (006643F0), 00664160 (+0x2C), the base
-// (00455930).
-
+// 00662FB0 inlines the entry's destructor: the file name, then the party's.
 void DestroyPartyEntry(MpHeroRecord* entry) {
-    CParty* records = entry->Party();
     entry->file.~CString();
-    ei::SetVtable(records, CParty::Vtable());
-    PartyResetOriginal(records, nullptr, 1, 1);
-    records->DestroyParty();   // 00661640
-    records->zone_.~CString();
-    records->variables_.Destroy();   // 00663330
-    records->items_.FreeData();   // 006643F0
-    records->members_.Destruct();   // 00664160
-    records->DestructBase();
+    entry->Party()->~CParty();
 }
 
 } // namespace
@@ -2025,7 +2014,7 @@ void SavedParties::Reload() {
         // The party records and the file name, side by side as the list's entries are.
         lib::InPlace<MpHeroRecord> storage;
         auto* entry = storage.Get();
-        entry->Party()->Construct();
+        new (entry->Party()) CParty();
         new (&entry->file) mfc::CString();
         entry->file = found.cFileName;
         if (entry->ReadFile(folder_)) {   // 00662DD0
@@ -2042,7 +2031,7 @@ void SavedParties::Reload() {
                 MpHeroRecord* eos = entries_.EndOfStorage();
                 if (finish != eos) {
                     if (finish) {
-                        finish->Party()->CopyConstruct(entry->Party());
+                        new (finish->Party()) CParty(*entry->Party());
                         new (&finish->file) mfc::CString(entry->file);
                     }
                     ++finish;

@@ -1824,7 +1824,7 @@ struct GameFlow {
     void UpdateFromServer();
 
     // The party of a request (party_storage.h; RequestPartyZone5 / 6 copy one in).
-    class CParty* RequestParty() { return requestParty_.Party(); }
+    class CParty* RequestParty() { return requestParty_.Get(); }
 
     // 00578460 / 005784D0 (A-W13; the static initialiser of the flow 007AFE20 and its atexit
     // function call them). The constructor body: empty names, the party constructed (00661050), no
@@ -1879,7 +1879,7 @@ struct MpHeroRecord {
     // the versions kSaveOldestVersion..kSaveVersion): false when the file does not read, else the party loaded
     // (with its variables) and the memory stream's ok flag.
     bool ReadFile(const char* folder);
-    CParty* Party() { return party.Party(); }
+    CParty* Party() { return party.Get(); }
 
     PartyStorage party;              // +0x00 CParty (party_storage.h)
     mfc::CString file;               // +0x70

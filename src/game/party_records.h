@@ -22,7 +22,7 @@ struct PartyRecord {
     PartyStorage party;         // +0x08 the party (constructor 00661050)
     mfc::CString name;          // +0x78 "" for the unnamed record
 
-    CParty* Party() { return party.Party(); }
+    CParty* Party() { return party.Get(); }
 
     // 004A5AF0 (virtual slot 1 Serialize, RET 4; party_manager.cpp). The name as string field 1,
     // the party (SaveParty / LoadParty with variables) as stream field 2.

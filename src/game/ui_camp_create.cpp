@@ -100,7 +100,7 @@ void SetVtables(CUiWindow* window, VtablePair vtables) {
 CItemInfoPanel* NewInfoPanel(CInterface3D* ui, CItemScreen* owner) {
     auto* panel = NewItemPanel<CItemInfoPanel>(ui, owner, ItemPanelVtables());
     if (!panel) return nullptr;
-    panel->ItemParty()->Construct();
+    new (panel->ItemParty()) CParty();
     panel->itemTexts_.Construct();
     panel->skillTexts_.Construct();
     SetVtables(panel, InfoPanelVtables());
@@ -126,8 +126,7 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
 
 // An item list of the constructors: made through its slot 2 (not checked, as in the original).
 CParty* NewItemList() {
-    CParty* memory = gamecrt::operator_new_as<CParty>();
-    CParty* list = memory ? memory->Construct() : nullptr;
+    CParty* list = new CParty();
     list->Create();
     return list;
 }

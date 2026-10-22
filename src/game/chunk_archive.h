@@ -21,7 +21,6 @@
 class CRefObject;
 struct ClassTemplate;
 struct LeverRecord;
-struct PartyInPlace;
 namespace gamehash { struct PartyTable; }   // party_manager.h
 struct PartyManagerEntry;
 struct PrintRecord;    // model.h

@@ -44,7 +44,7 @@ bool IsBroken(const CItem* item) {
     return x87::fistp(item->condition_) <= 0;
 }
 
-using ItemList = mfc::CTypedPtrList<CItem>;
+using UnitItems = mfc::CTypedPtrList<CItem>;
 } // namespace
 
 // --- Prototype names --------------------------------------------------------------------------
@@ -89,7 +89,7 @@ EI_REWRITTEN(0x00552780, CUnitServer::Shout);
 void CUnit::DropBrokenEquipment() {
     CPlayer* owner = player;
     if (!owner) return;   // the empty list's destructor (00429F10) has nothing to free
-    ItemList broken{};
+    UnitItems broken{};
     broken.vtable = mfc::impl::ItemListClass::Vtable();
     broken.blockSize = kPtrListBlockSize;
     CPlayerServer* messages = PlayerMessages(owner);
@@ -128,8 +128,8 @@ void CUnit::DropBrokenEquipment() {
 
     if (broken.count != 0) {
         owner->GiveItems(&broken, 1);
-        for (ItemList::Node* node = broken.head; node;) {
-            ItemList::Node* next = node->next;
+        for (UnitItems::Node* node = broken.head; node;) {
+            UnitItems::Node* next = node->next;
             node->data->Release();
             node = next;
         }

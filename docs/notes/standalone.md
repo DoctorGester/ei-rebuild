@@ -1454,9 +1454,12 @@ C28a-p, one family per commit; the order is in C28's ticket note). How a family 
   is in). The helper's `Vtable()`, `Construct` / `DestructBody` / `DeletingDestruct` and the layout asserts go.
 - Allocation: `new T()`. CEngineObject has the game heap's `operator new` (noexcept: null without memory, then no
   constructor runs, which the original's callers test) and `operator delete`, plus the placement pair; a derived
-  class declares no `operator delete` of its own (it would hide the placement delete: warning C4291). A class that
-  must be built in storage someone else allocates keeps a `Construct() { return new (this) X(); }` (world_create's
-  `Make`).
+  class declares no `operator delete` of its own (it would hide the placement delete: warning C4291). An object built
+  in storage someone else allocates is `new (place) X()` and `place->~X()`; one embedded in an owner whose own
+  Construct / Destruct bodies build it is a `lib::InPlace<X>` member (PartyStorage, party_storage.h); a local is a
+  plain `X x;`.
+- A constructor or destructor whose address is still called (an EI_ORIGINAL forwarder, C29) keeps a registered
+  `__fastcall` shim that calls it (party_lifetime.cpp's DestroyPartyInPlace at 006611D0).
 - The function-to-original map: virtuals are `EI_REWRITTEN(addr, X::Virtual)`; constructors and destructors, which
   have no address to take, are `EI_REWRITTEN_SPECIAL(addr, X::X)` / `(addr, X::~X)` (include/ei/hook.h). The
   original's scalar deleting destructor is tagged with the destructor's name too: check_signatures accepts a

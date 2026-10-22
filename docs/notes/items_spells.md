@@ -132,9 +132,9 @@ Verification: `PartyUnitRecord::Construct`, `ConstructPartyUnitRecords` (stdcall
 CItemConstructor / CSpellConstructor::Construct are S on seeded scratch (the party's variable map: bucket count and
 emptiness); Destruct, ClearItems, `PartyMemberArray::SetSize` (CParty +0x2C, MFC CArray<PartyUnitRecord>, vtable 00742FF4),
 `Serialize` (= `mfc::CArray::Serialize` with a minimal `mfc::CArchive`; vtable slot only, no caller), CParty
-DestructBody/DeletingDestruct/CreateParty (2)/DestroyParty (3)/Clear (RET 8) and `CSpellManager::Construct` (an empty map of
+destructor / Create / Destroy / Clear (RET 8) and `CSpellManager::Construct` (an empty map of
 193 buckets at +0xBC) are O. Record Load / Save, `LoadParty` / `SaveParty` (RET 8; the flag covers the variables; SaveParty
-draws the ISAAC key for +0x50, restored between runs), `Assign`, `CopyConstruct` (`party_save.cpp`): saves S into a scratch
+draws the ISAAC key for +0x50, restored between runs), `Assign`, the copy constructor (`party_save.cpp`): saves S into a scratch
 memory stream; record Load round-trips through Save; the rest O. `party_members.cpp` (O; party_records, ui_hero_screen
 (00616AC0)): `AddMember`, `FillFromPrototype` (takes the lists straight from the prototype instead of through 005143E0's
 CStringArrays: same names, same order), `Assign` (shallow: item list pointers copied), `CopyItemsFrom` (party slot 24 copies),
@@ -152,7 +152,7 @@ A constructed record has seven empty strings, empty lists, +0x724 0.8, +0x728 0.
 records, +0x40 items, +0x50, +0x54 hash_map<CString, float> variables, +0x68 zone name, +0x6C. Create attaches both managers
 to the party (slot 13), so the party is the context of its items (CItem::LoadItem's slot 22 finds the party's spell manager).
 Clear(1, 0) after Create re-attaches the spell manager. Global 007C8344 = the party being loaded (LoadingParty). StatsLoad /
-StatsSave are in originals_units.h. DestroyParty drops the four objects by count and deletes them whatever the count;
+StatsSave are in originals_units.h. Destroy drops the four objects by count and deletes them whatever the count;
 AddMember assigns the stack record's uninitialised statistics to the new record (BuildNpcStats overwrites them).
 
 ## Item texts (004E0000-004E15C0; item_db_text, scenario items)

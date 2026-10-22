@@ -5,8 +5,6 @@
 
 class CEngineObject;
 
-const char* __fastcall PartyClassName(CEngineObject*);
-int __fastcall PartyClassId(CEngineObject*);
 const char* __fastcall EffectSoundClassName(CEngineObject*);
 int __fastcall EffectSoundClassId(CEngineObject*);
 const char* __fastcall EffectSoundSeqClassName(CEngineObject*);

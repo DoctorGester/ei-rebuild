@@ -48,9 +48,6 @@ int __fastcall UiObjectClassId(CEngineObject*);                      // 00579590
 int __fastcall WorldBaseRunTick(CWorld*);
 // 0058A380: the server's slot 26 (IsServer) answers 1.
 int __fastcall WorldServerIsServer(CWorldServer*);
-// 0055E930: slot 2 (Create) of CParty's base vtable 0074306C answers 1 (CParty::Create 006614F0
-// also calls it directly).
-int __fastcall PartyBaseCreate(CEngineObject*);
 
 // The client world's getters: slot 25 the texture folder's text (+0x224), 33 the material manager
 // (+0x188), 34 the texture manager (+0x18C), 35 the light manager (+0x190), 36 the particle

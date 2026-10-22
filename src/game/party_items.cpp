@@ -144,14 +144,6 @@ EI_REWRITTEN(0x006A57F0, CItemSpell::CopyTo);
 
 // --- The party's items --------------------------------------------------------------------------
 
-CItem* CParty::MakeCopyOf(CItem* item) {
-    std::uint32_t packed = item->prototypeId_;
-    CItem* copy = ItemManager()->MakeItem(item->type_, packed >> 16, packed & 0xFFFF, -1);
-    item->CopyTo(copy, SpellManager());
-    return copy;
-}
-EI_REPLACE_METHOD(0x0055E940, CParty::MakeCopyOf);
-
 CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
     if (!item) return nullptr;
     int count = ByteFlag(keepCount) ? static_cast<int>(item->count_) : 1;

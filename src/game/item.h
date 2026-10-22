@@ -486,7 +486,7 @@ struct CItemManager : CResourceManager {
     static constexpr std::size_t kSize = 0xBC;
 
     // CResourceManager's constructor, then this class's vtable (inlined where the original makes
-    // one: the world's 0055EE40, a party's CreateParty 006614F0; world_managers.cpp).
+    // one: the world's 0055EE40, a party's Create 006614F0; world_managers.cpp).
     CItemManager();
     // 0055F400. CResourceManager's destructor.
     ~CItemManager() override;
