@@ -671,8 +671,7 @@ void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int qui
     screen->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
 }
 // The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
-// (index, 0) and 0063F7A0 (all).
-void __fastcall ActionPanelReset(void* a0) { static_cast<CHudActionColumn*>(a0)->ClearHighlights(); }
+// (index, 0) and 0063F7A0 (all: CHudActionColumn::ClearHighlights).
 // The client world (TheClientWorld(), 007AF5B8): the object under a screen point (x, y pair), the
 // ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
 // The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
@@ -732,7 +731,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         spells->selected_ = -1;
         CHudActionColumn* actions = actionColumn_;
         if (!actionLoop) {
-            ActionPanelReset(actions);
+            actions->ClearHighlights();
             return;
         }
         for (int i = 0; i < actions->count_; ++i) actions->Highlight(i, 0);

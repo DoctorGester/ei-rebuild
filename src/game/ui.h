@@ -539,7 +539,7 @@ public:
     // it): blits the surface onto the render target when it is shown.
     void Blit() {
         using Fn = void(__thiscall*)(CUiSurface*);
-        ei::VirtualSlot<Fn>(static_cast<void**>(vtable_), 0)(this);
+        ei::ObjectSlot<Fn>(this, 0)(this);
     }
     bool Shown() const { return (flags_ & kShown) != 0; }
     static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze (005FD760)
@@ -2549,7 +2549,7 @@ struct UiTextToken {
     // Slot 0: the deleting destructor (with 1: the memory is freed; 0065D8C0 format, 0065D8F0 word).
     void Delete() {
         using Fn = void(__thiscall*)(UiTextToken*, int);
-        ei::VirtualSlot<Fn>(static_cast<void**>(vtable_), 0)(this, 1);
+        ei::ObjectSlot<Fn>(this, 0)(this, 1);
     }
     // 0065D8E0 / 0065D960 (ui_scroll_text.cpp): the destructor body of a format token and of the
     // base: the base vtable 00742F24 back.
