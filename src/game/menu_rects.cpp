@@ -12,6 +12,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "game_data.h"
+#include "lib/gameapi.h"
 
 #include <cstdint>
 
@@ -42,9 +43,6 @@ constexpr MenuRect kRects[] = {
 
 // 00480080. game::FatalError(message); returns what the original returns to the caller.
 
-using SetRectFn = int(__stdcall*)(void*, int, int, int, int);
-SetRectFn ImportSetRect() { return ei::GameData<SetRectFn const>(0x0073B478); }
-
 } // namespace
 
 int CFigureManager::LoadMenuRects(std::uint8_t* rects) {
@@ -60,7 +58,6 @@ int CFigureManager::LoadMenuRects(std::uint8_t* rects) {
         return result;
     }
     IntArray values{nullptr, 0, 0, 0};
-    SetRectFn setRect = ImportSetRect();
     for (const MenuRect& entry : kRects) {
         values.SetSize(0, -1);
         reg->GetIntArray(entry.section, entry.name, &values);
@@ -70,7 +67,8 @@ int CFigureManager::LoadMenuRects(std::uint8_t* rects) {
             reg->Destroy();
             return result;
         }
-        setRect(rects + entry.offset, values.data[0], values.data[1], values.data[2], values.data[3]);
+        gameapi::SetRect(reinterpret_cast<RECT*>(rects + entry.offset), values.data[0], values.data[1], values.data[2],
+                         values.data[3]);
     }
     if (values.data) lib::FreeAligned32(values.data);
     reg->Destroy();

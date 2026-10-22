@@ -10,6 +10,8 @@
 #include "game/game_data.h"
 #include "game/asset_text.h"   // text::kUtf8
 
+#include <commdlg.h>
+
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
@@ -107,9 +109,6 @@ bool IsSeparator(char c) { return c == '\\' || c == '/'; }
 char* Next(char* p) { return const_cast<char*>(::MbsInc(p)); }
 const char* Next(const char* p) { return ::MbsInc(p); }
 
-// comdlg32's GetFileTitleA through the exe's import slot (gameapi.h covers the other DLLs).
-using GetFileTitleFn = short(WINAPI*)(const char*, char*, WORD);
-GetFileTitleFn& GetFileTitleImport() { return ei::GameData<GetFileTitleFn>(0x0073B748); }
 
 constexpr unsigned kMaxFileName = 256;   // _MAX_FNAME, the name getters' buffer
 
@@ -206,7 +205,7 @@ unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max) 
         into = scratch;
         max = MAX_PATH;
     }
-    if (GetFileTitleImport()(path, into, static_cast<WORD>(max)) != 0) return AfxGetFileName(path, title, max);
+    if (::GetFileTitleA(path, into, static_cast<WORD>(max)) != 0) return AfxGetFileName(path, title, max);
     return title ? 0 : static_cast<unsigned>(gameapi::lstrlenA(into) + 1);
 }
 
