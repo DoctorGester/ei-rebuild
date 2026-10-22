@@ -845,15 +845,15 @@ namespace {
 
 // The rows' destructors, then the block (its capacity in rows).
 void DestroyRows(TradeRows& rows) {
-    for (TradeRow* at = rows.begin; at != rows.end; ++at) at->Destroy();
-    stlp::deallocate(rows.begin, static_cast<std::size_t>(rows.capacity - rows.begin) * 24);   // 006135F0
+    for (TradeRow* at = rows.begin(); at != rows.end(); ++at) at->Destroy();
+    stlp::deallocate(rows.Start(), rows.Capacity() * sizeof(TradeRow));   // 006135F0
 }
 
 } // namespace
 
 void CTradePanel::DestroyBody() {
     texts_.Destruct();
-    stlp::deallocate(records_.begin, static_cast<std::size_t>(records_.capacity - records_.begin) * 60);   // 00613630
+    stlp::deallocate(records_.Start(), records_.Capacity() * sizeof(TradeRecord));   // 00613630
     DestroyRows(science_);
     DestroyRows(schools_);
     DestroyRows(perks_);

@@ -53,19 +53,14 @@ int SkillCount() { return static_cast<int>(SkillDb()->levels.end() - SkillRecord
 TradeRow BlankRow() { return TradeRow{}; }
 
 TradeRow* PushBack(TradeRows* rows, const TradeRow& value) {
-    if (rows->end != rows->capacity) {
-        if (rows->end) rows->end->CopyConstruct(&value);
-        ++rows->end;
-    } else {
-        static_cast<recordvec::TradeRowVector*>(reinterpret_cast<stlp::vector<TradeRow>*>(rows))->InsertOverflow(rows->end, value, 1);
-    }
-    return rows->end - 1;
+    rows->PushBack<recordvec::TradeRowElement>(value);
+    return rows->end() - 1;
 }
 
 // erase(begin, end): the copy over the empty tail does nothing; the rows are destroyed.
 void Clear(TradeRows* rows) {
-    for (TradeRow* row = rows->begin; row != rows->end; ++row) row->DeleteThis(0);
-    rows->end = rows->begin;
+    for (TradeRow* row = rows->begin(); row != rows->end(); ++row) row->DeleteThis(0);
+    rows->Finish() = rows->Start();
 }
 
 // Whether the text table has "perk <name>" (the key's temporaries released before returning).
@@ -278,18 +273,18 @@ void CTradePanel::DrawLists() {
             Down(&row);
             continue;
         }
-        DrawSchool(this, draw, &row, &schools_.begin[i], &value);
+        DrawSchool(this, draw, &row, &schools_[i], &value);
         Down(&row);
     }
     row = {15, 65, 180, 80};
-    DrawSchool(this, draw, &row, science_.begin, &value);
+    DrawSchool(this, draw, &row, science_.begin(), &value);
 
     // The perks held, ten rows from perkTop_; the price only where there is a next level.
     row = {15, 230, 180, 245};
     unsigned index = static_cast<unsigned>(perkTop_);
     for (int shown = 0; shown < 10; ++shown, ++index) {
-        if (index >= static_cast<unsigned>(perks_.Count())) break;
-        TradeRow* perk = &perks_.begin[index];
+        if (index >= static_cast<unsigned>(static_cast<int>(perks_.size()))) break;
+        TradeRow* perk = &perks_[index];
         draw->DrawLine(perk->name, &row, 0, kBright, 0, 1);
         if (perk->nextKey.GetLength() != 0) {
             std::uint32_t colour = PriceColour(perk->price, experience_);
@@ -304,8 +299,8 @@ void CTradePanel::DrawLists() {
     row = {215, 35, 380, 50};
     index = static_cast<unsigned>(learnableTop_);
     for (int shown = 0; shown < 23; ++shown, ++index) {
-        if (index >= static_cast<unsigned>(learnable_.Count())) break;
-        TradeRow* perk = &learnable_.begin[index];
+        if (index >= static_cast<unsigned>(static_cast<int>(learnable_.size()))) break;
+        TradeRow* perk = &learnable_[index];
         std::uint32_t textColour = kGrey;
         std::uint32_t priceColour = kGrey;
         if (perk->learnable) {
@@ -411,16 +406,10 @@ EI_REPLACE(0x00624F10, TradeBuild);
 void CTradePanel::ResetRecords() {
     // The vector emptied first (the records hold no resources). The original pushes uninitialised
     // stack bytes; 00626F10 writes all but +0x2B and +0x39..+0x3B. Ours pushes zeros.
-    records_.end = records_.begin;
+    records_.Finish() = records_.Start();
     const TradeRecord blank{};
     for (int i = 0; i < PartyRecordCount(); ++i) {
-        if (records_.end != records_.capacity) {
-            if (records_.end) *records_.end = blank;
-            ++records_.end;
-        } else {
-            static_cast<recordvec::TradeRecordVector*>(reinterpret_cast<stlp::vector<TradeRecord>*>(&records_))
-                ->InsertOverflow(records_.end, blank, 1);
-        }
+        records_.PushBack<recordvec::TradeRecordVector::Element>(blank);
         recordIndex_ = i;
         TradeSnapshotRecord(this);
     }
@@ -442,7 +431,7 @@ UnitStats* PartyMemberStats(int index) {
 
 void CTradePanel::SnapshotRecord() {
     if (recordIndex_ < 0) return;
-    TradeRecord& record = records_.begin[recordIndex_];
+    TradeRecord& record = records_[recordIndex_];
     const UnitStats* stats = PartyMemberStats(recordIndex_);
     for (int i = 0; i < 6; ++i) record.schools[i] = stats->skills[i];
     record.science = stats->attributes[0];
@@ -462,7 +451,7 @@ EI_REWRITTEN(0x00626F10, TradeSnapshotRecord);
 
 void CTradePanel::RestoreRecord() {
     if (recordIndex_ < 0) return;
-    TradeRecord& record = records_.begin[recordIndex_];
+    TradeRecord& record = records_[recordIndex_];
     UnitStats* stats = PartyMemberStats(recordIndex_);
     // The hit point maximum and the hit points the slots allow, before (both stored as float).
     const float oldMaximum = static_cast<float>(stats->HitPointCurve());
@@ -494,8 +483,8 @@ void CTradePanel::Settle(int keep, int all) {
     bool keepIt = static_cast<std::uint8_t>(keep) != 0;
     if (static_cast<std::uint8_t>(all)) {
         int saved = recordIndex_;
-        for (unsigned i = 0; i < static_cast<unsigned>(records_.end - records_.begin); ++i) {
-            if (!records_.begin[i].bought) continue;
+        for (unsigned i = 0; i < static_cast<unsigned>(records_.size()); ++i) {
+            if (!records_[i].bought) continue;
             recordIndex_ = static_cast<int>(i);
             if (keepIt)
                 TradeSnapshotRecord(this);
@@ -505,7 +494,7 @@ void CTradePanel::Settle(int keep, int all) {
         recordIndex_ = saved;
         return;
     }
-    if (!records_.begin[recordIndex_].bought) return;
+    if (!records_[recordIndex_].bought) return;
     if (keepIt)
         TradeSnapshotRecord(this);
     else

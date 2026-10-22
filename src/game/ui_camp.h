@@ -366,13 +366,8 @@ struct TradeRow {
 };
 static_assert(sizeof(TradeRow) == 0x18 && offsetof(TradeRow, key) == 0x04 && offsetof(TradeRow, nextKey) == 0x08 && offsetof(TradeRow, price) == 0x0C);
 
-// STLport vector<TradeRow>.
-struct TradeRows {
-    TradeRow* begin;
-    TradeRow* end;
-    TradeRow* capacity;
-    int Count() const { return static_cast<int>(reinterpret_cast<const char*>(end) - reinterpret_cast<const char*>(begin)) / 0x18; }
-};
+// STLport vector<TradeRow> (its element policy: recordvec::TradeRowElement).
+using TradeRows = stlp::vector<TradeRow>;
 
 // A party member's statistics as the trade panel keeps them (0x3C bytes, STLport vector at
 // CTradePanel +0x190; filled by 00626F10 from the local player's unit record `index`).
@@ -388,11 +383,7 @@ struct TradeRecord {
     std::uint8_t padAfterBought[3];  // +0x39 not written
 };
 static_assert(sizeof(TradeRecord) == 0x3C);
-struct TradeRecords {
-    TradeRecord* begin;
-    TradeRecord* end;
-    TradeRecord* capacity;
-};
+using TradeRecords = stlp::vector<TradeRecord>;
 
 class CTradePanel : public CUiItemPanel {
 public:
@@ -477,7 +468,7 @@ public:
     // bought for the hero shown (its record's bought byte, in AL).
     std::uint8_t Bought() const;
     // The record of the hero shown (recordIndex_).
-    const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
+    const TradeRecord& Record() const { return records_[recordIndex_]; }
 
     // (CUiItemPanel's owner_ +0x14C: the camp or the hero screen; slot 51 the hero record.)
     int recordIndex_;                // +0x150 the record 00626F10 fills

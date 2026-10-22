@@ -114,7 +114,7 @@ EI_REPLACE_METHOD(0x005F65F0, CCampPages::HeroAt);
 void CUiItemStrip::SetSlots(int slots) { slots_ = slots; }
 EI_REWRITTEN(0x00621F20, CUiItemStrip::SetSlots);
 
-std::uint8_t CTradePanel::Bought() const { return records_.begin[recordIndex_].bought; }
+std::uint8_t CTradePanel::Bought() const { return records_[recordIndex_].bought; }
 EI_REWRITTEN(0x00625510, CTradePanel::Bought);
 
 CItem* CItemInfoPanel::FirstItem() const { return itemCount_ ? items_[0] : nullptr; }
