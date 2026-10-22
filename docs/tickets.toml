@@ -2830,6 +2830,13 @@ group = "cleanup"
 model = "opus"
 note = "User 2026-10-22: the goal is a build that does not read game.exe. What the build still takes (CMakeLists.txt): the .rdata/.data bytes (gen_image_cells.py --bytes; C18 names what code reaches, C20 the code cells), the 8 dispatch-only functions' bytes (--dispatch, InstallHooks' EI_REPLACE_DISPATCH check), the resources (C23), and build.cmd's checks that compare with game.exe (named_data, rdata_literals, gen_image_cells --check, gen_iat --check, check_short_functions, check_static_init ...). This ticket: (1) a trial build whose unnamed bytes are zero (a gen_image_cells option), run on the suites to list exactly what still reads game.exe's bytes, the list in the note; (2) the dispatch-only functions without game.exe's bytes; (3) the checks skip with a note when no game.exe is configured, so the build runs without one."
 
+[[ticket]]
+id = "C18o"
+title = "Named data: named_data.py --emit and the game tables"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22 (agreed): script the mechanical part of C18. named_data.py --emit ADDRESS TYPE COUNT NAME prints a tagged initialiser from game.exe's bytes (strings decoded, pointers named), and a rewrite step turns GamePointer<T>(0x...) / GameData reads of a named range into the name; --check keeps both honest. Then the game-table pointer cells (src/standalone/image_cells.inc): key bindings 007857B0 (88), the .SEC per-file string constants (73), the zone / skill / folder / log-channel / small string tables (~95), the math function names. Manual: struct types; tables something else writes (Rebirth's script keyword table 0078BCA0, 442 cells: keep the live read in hooked runs); tables filled by static initialisers."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
