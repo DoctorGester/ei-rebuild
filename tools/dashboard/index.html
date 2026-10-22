@@ -269,7 +269,7 @@ function render(data) {
     ['reinterpret_cast', 'reinterpret_casts'], ['static_cast to a pointer type', 'pointer_static_casts'],
     ['Game data addresses (distinct literals)', 'data_addresses'], ['Struct names defined in several files', 'structs_defined_twice'],
     ['Anonymous namespaces', 'anonymous_namespaces']]) + peakRows('cleanup', [
-    ['Forwarder sites (EI_ORIGINAL)', 'forwarder_sites'], ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
+    ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
     ['Raw game addresses', 'raw_addresses'], ['__asm blocks', 'asm_blocks'], ['float_control pragmas', 'float_control']]);
   document.querySelector('#standalone tbody').innerHTML = peakRows('standalone', [
     ['MFC strings (CString)', 'mfc_strings'], ['MFC arrays', 'mfc_arrays'], ['MFC lists', 'mfc_lists'],
@@ -296,9 +296,8 @@ function render(data) {
     lineChart(h, [{ name: 'EI_REPLACE registrations', color: accent, get: tr('registrations') }],
       { title: 'Registrations', note: 'Our functions tied to a game.exe address; they go once nothing reaches game addresses (C20).' }),
     lineChart(h, [{ name: '__fastcall shims', color: accent, get: tr('fastcall_shims') },
-                  { name: 'Forwarder sites', color: good, get: p => p.cleanup.forwarder_sites },
                   { name: 'Struct names in several files', color: muted, get: tr('structs_defined_twice') }],
-      { title: 'Hook leftovers', note: 'Hook-calling-convention shims (C11), EI_ORIGINAL forwarders and duplicated layouts.' }),
+      { title: 'Hook leftovers', note: 'Hook-calling-convention shims (C11) and duplicated layouts.' }),
     lineChart(h, [{ name: 'Game data addresses', color: accent, get: tr('data_addresses') }],
       { title: 'Game data addresses', note: "Distinct literal addresses of game.exe's .rdata and .data in src/; C18 turns them into named globals." }),
     lineChart(h, [{ name: 'Named data ranges', color: accent, get: tr('named_ranges') },

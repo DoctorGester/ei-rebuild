@@ -5,10 +5,9 @@ commit's own files:
   - ported game code: functions and bytes rewritten (EI_REPLACE*, UI_INPUT_HANDLER / UI_WHEEL_HANDLER)
     against config/functions.csv minus library and dead code, overall and per address range;
   - lines of code under src/ (game, lib, render, hook) and tests/;
-  - cleanup artefacts: EI_ORIGINAL sites, functions forwarded from several files, At<>/Field<> uses,
-    VCall uses, __asm blocks, float_control pragmas, scenarios;
+  - cleanup artefacts: At<>/Field<> uses, VCall uses, __asm blocks, float_control pragmas, scenarios;
   - standalone readiness (docs/notes/standalone.md): what still ties the code to the original exe
-    (forwarders by target, game data addresses, uses of the exe's MFC / STLport / CRT / imports)
+    (game data addresses, uses of the exe's MFC / STLport / CRT / imports)
     and the single-byte text sites a UTF-8 switch has to visit;
   - the cleanup track (tools/progress.py's counts over all of src/, so both tools agree): casts,
     __fastcall shims, registrations, game data addresses, struct names defined twice; and from the
@@ -92,7 +91,6 @@ REPLACE = re.compile(r'(?:EI_REPLACE(?:_METHOD|_SHORT|_DISPATCH)?|EI_REWRITTEN)\
 # Standalone-only registrations (the exe's allocator and other library code the hooked game keeps).
 REPLACE_STANDALONE = re.compile(r'EI_REPLACE_STANDALONE\(\s*0x([0-9A-Fa-f]+)')
 HANDLER = re.compile(r'UI_(?:INPUT|WHEEL)_HANDLER\(\s*0x([0-9A-Fa-f]+)')
-ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
 CLEANUP = {
     'offset_access': re.compile(r'\b(?:At|Field)\s*<'),
     'vcall': re.compile(r'\bVCall\b'),
@@ -192,9 +190,9 @@ FILE_CACHE = {}
 
 
 def file_stats(path, text):
-    """One file's share of measure(): its loc part and lines, rewritten addresses, one EI_ORIGINAL
-    target per site, cleanup counts, standalone counts and data addresses."""
-    replaced, origins, cleanup, standalone, data = set(), [], defaultdict(int), defaultdict(int), set()
+    """One file's share of measure(): its loc part and lines, rewritten addresses, cleanup counts, standalone
+    counts and data addresses."""
+    replaced, cleanup, standalone, data = set(), defaultdict(int), defaultdict(int), set()
     standalone_only, track, data_all, structs = set(), {}, set(), set()
     part =('tests/scenarios' if path.startswith('tests/scenarios') else 'tests/verify'
             if path.startswith('tests/') else '/'.join(path.split('/')[:2]))
@@ -211,9 +209,6 @@ def file_stats(path, text):
             replaced |= {int(a, 16) for a in REPLACE.findall(code)}
             replaced |= {int(a, 16) for a in HANDLER.findall(code)}
             standalone_only |= {int(a, 16) for a in REPLACE_STANDALONE.findall(code)}
-            for a in ORIGINAL.findall(code):
-                cleanup['forwarder_sites'] += 1
-                origins.append(int(a, 16))
             if not path.startswith(('src/hook/', 'src/standalone/')):
                 for k, rx in CLEANUP.items():
                     cleanup[k] += len(rx.findall(code))
@@ -223,7 +218,7 @@ def file_stats(path, text):
                 if not path.startswith('src/lib/'):
                     for k, rx in STANDALONE.items():
                         standalone[k] += len(rx.findall(code))
-    return (part, text.count('\n'), replaced, origins, dict(cleanup), dict(standalone), data, standalone_only,
+    return (part, text.count('\n'), replaced, dict(cleanup), dict(standalone), data, standalone_only,
             track, data_all, structs)
 
 
@@ -242,7 +237,6 @@ def measure(tree):
 
     replaced, loc, cleanup = set(), defaultdict(int), defaultdict(int)
     standalone, data, standalone_only = defaultdict(int), set(), set()
-    origin_files = defaultdict(set)
     track, data_all, struct_files = defaultdict(int), set(), defaultdict(int)
     for path in tree.paths:
         if not path.endswith(('.cpp', '.h', '.inc', '.txt', '.py')):
@@ -258,7 +252,7 @@ def measure(tree):
             f = file_stats(path, text)
             if key[0]:
                 FILE_CACHE[key] = f
-        (part, lines, replaced_here, origins, counts, stand, data_here, standalone_here,
+        (part, lines, replaced_here, counts, stand, data_here, standalone_here,
          track_here, data_all_here, structs_here) = f
         for k, n in track_here.items():
             track[k] += n
@@ -268,26 +262,18 @@ def measure(tree):
         standalone_only |= standalone_here
         loc[part] += lines
         replaced |= replaced_here
-        for a in origins:
-            origin_files[a].add(path)
         for k, n in counts.items():
             cleanup[k] += n
         for k, n in stand.items():
             standalone[k] += n
         data |= data_here
-    cleanup['forwarded_from_several_files'] = sum(1 for f in origin_files.values() if len(f) > 1)
 
     total = sum(sizes.get(a, 0) for a in game)
     done = game & replaced
-    # Forwarders by what they reach: game code still original (goes with the port), code already
-    # rewritten (call it directly), and everything else (the exe's library code, to be our own).
-    forwarded = set(origin_files)
     patched = {int(m, 16) for m in re.findall(r'^\s*(?:0x)?([0-9A-Fa-f]{8})\b',
                                               tree.read('docs/rebirth-patched-functions.txt') or '', re.M)}
     left = game - done
     standalone.update(
-        forwarder_addresses=len(forwarded), forwarders_to_unported=len(forwarded & left),
-        forwarders_to_rewritten=len(forwarded & replaced), forwarders_to_library=len(forwarded - left - replaced),
         data_addresses=len(data), unported_functions=len(left),
         unported_unhookable=sum(1 for a in left if sizes.get(a, 0) < UNHOOKABLE_BYTES),
         unported_rebirth_patched=len(left & patched))

@@ -4,7 +4,7 @@ Counts EI_REPLACE / EI_REPLACE_METHOD registrations against the game functions i
 config/functions.csv (sizes from src/hook/function_sizes.inc).
 
 Then prints the "cleanup artefacts" block: the hook-era leftovers that docs/cleanup-plan.md wants to
-see fall (forwarders, naked functions, offset access, raw data addresses, duplicate layouts).
+see fall (naked functions, offset access, raw data addresses, duplicate layouts).
 """
 import csv, os, re, sys
 from collections import defaultdict
@@ -61,23 +61,9 @@ def count_files(sources, pattern):
     return sum(1 for s in sources if rx.search(s.code))
 
 
-def forwarder_counts(sources):
-    """(EI_ORIGINAL sites, distinct addresses)."""
-    sites = srcscan.forwarder_sites(sources)
-    return len(sites), len({address for address, _, _ in sites})
-
-
-def forwarded_from_several_files(sources):
-    """Addresses that have an EI_ORIGINAL forwarder in more than one file."""
-    files = defaultdict(set)
-    for address, source, _ in srcscan.forwarder_sites(sources):
-        files[address].add(source.path)
-    return sum(1 for paths in files.values() if len(paths) > 1)
-
-
-def naked_non_forwarders(sources):
-    """`__declspec(naked)` functions with a real body: the declaration reaches `{` before EI_ORIGINAL."""
-    stop = re.compile(r'EI_ORIGINAL|\{|;')
+def naked_functions(sources):
+    """`__declspec(naked)` functions with a body (the declaration reaches `{` before a `;`)."""
+    stop = re.compile(r'\{|;')
     count = 0
     for s in sources:
         for naked in re.finditer(r'__declspec\(naked\)', s.code):
@@ -153,12 +139,9 @@ def cleanup_artefacts(sources):
     def counts(table):
         return [(label, f'{count_matches(sources, pattern):,}') for label, pattern in table]
 
-    sites, distinct = forwarder_counts(sources)
     shims, shims_two = fastcall_shims(sources)
     return (
-        [('EI_ORIGINAL forwarders', f'{sites:,} sites, {distinct:,} distinct addresses'),
-         ('forwarded from several files', f'{forwarded_from_several_files(sources):,} addresses'),
-         ('naked, not forwarders', f'{naked_non_forwarders(sources):,}'),
+        [('naked functions', f'{naked_functions(sources):,}'),
          ('files with #pragma float_control', f"{count_files(sources, r'#\s*pragma\s+float_control'):,}")]
         + counts(RAW_ACCESS_COUNTS)
         + [('files defining their own At()', f'{own_at_helpers(sources):,}'),

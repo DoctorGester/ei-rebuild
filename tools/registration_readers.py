@@ -2,23 +2,25 @@
 
 A registration (EI_REPLACE, _METHOD, _DISPATCH, _STANDALONE, _SHORT, ui_hud.cpp's UI_INPUT_HANDLER /
 UI_WHEEL_HANDLER) makes our function the code for a game.exe address: in the image CodeAddress(address) is
-the function (image_code.cpp), in ei_vectors.exe a forwarder to the address jumps to it (hook_stub.cpp).
-Our code that calls the function by name needs none of that; the registration matters only where something
-holds the address itself. The readers, each a set of addresses:
+the function (image_code.cpp), in ei_vectors.exe too (hook_stub.cpp). Our code that calls the function by
+name needs none of that; the registration matters only where something holds the address itself. The
+readers, each a set of addresses:
 
-  run time (the image; ei_vectors for forwarders and code literals):
+  run time (the image; ei_vectors for code literals):
     cell:<group>     a code cell of game.exe's data holding it (src/standalone/image_code_cells.inc: vtable
                      slots, ThrowInfo, MFC CreateObject / message maps, the static initialiser list, CRT tables)
     static init      a call or store of the generated static initialisers / exit functions
                      (src/standalone/static_init.cpp, static_exit.cpp)
-    forwarder        an EI_ORIGINAL(address) in src/ (the image) or tests/ (the harness, the vector replay)
     code literal     the address written in src/ outside a registration (ei::Code<F>(0x...), handler tables,
                      callbacks, src/hook's and src/standalone's own: WinMain for HasCode, ...)
     named data       a function named in a named range's initialiser (config/named_data.csv, C18): named_data.py
                      --check compares its registration's address with game.exe's pointer
   the harness (verify build) and the vectors:
-    harness          the address written in tests/verify (game.exe forwarders, Code<F> of harness hooks, address tables)
+    harness          the address written in tests/verify (GameCode<F> of harness steps, address tables)
     vectors          the address written in tests/vectors (EI_RECORD recorders)
+  No reader: an EI_ORIGINAL(address) forwarder (tests/verify/harness_original.h; none in src/ since C29). It runs
+  only in game.exe (the harness's runs of the original, the vector recorders), where the address is the
+  original's own code and no registration of ours is installed.
     scenario / golden  a code address in a scenario's steps (comments left out) or a golden file
   the generators and checks that need a registration's address:
     short generator  a short game function (under five bytes) a rewrite registers: gen_short_functions.py would
@@ -39,7 +41,7 @@ usage: python tools/registration_readers.py [--list READER] [--unread] [--files]
                                                    [--only FILE]]
   (no option)  the split: per reader the registrations it reads (a registration can have several), and per
                first reader in the order above (each counted once)
-  --list R     the registrations whose first reader is R (a prefix: "cell", "cell:vtable", "forwarder", ...)
+  --list R     the registrations whose first reader is R (a prefix: "cell", "cell:vtable", "harness", ...)
   --unread     the unread registrations, file:line kind address name
   --files      the unread registrations per file
   --drop       writes EI_REWRITTEN in place of the unread registrations (files matching an --exclude regex and names
@@ -68,7 +70,7 @@ STATIC = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
 # slots (data), the sites addon.dll patches in game.exe (the original's runs only).
 NOT_READERS = ('src/hook/function_sizes.inc', 'src/standalone/image_code_cells.inc', 'src/standalone/image_cells.inc',
                'src/standalone/image_imports.inc', 'tests/verify/addon_sites.inc')
-ORDER = ['cell', 'static init', 'forwarder', 'code literal', 'named data', 'harness', 'vectors', 'scenario',
+ORDER = ['cell', 'static init', 'code literal', 'named data', 'harness', 'vectors', 'scenario',
          'golden', 'short generator', 'exit generator']
 # The code cells' groups (image_code_cells.inc's comment lines) by a short name.
 CELL_GROUPS = [('vtable', ('vtable',)), ('throwinfo', ('ThrowInfo',)), ('mfc', ('MFC',)),
@@ -136,7 +138,7 @@ def code_cells():
 
 
 def literal_readers(regs):
-    """address -> {reader} from the sources: static init, forwarders, literals in src/ and tests/."""
+    """address -> {reader} from the sources: static init, literals in src/ and tests/ (not a forwarder's)."""
     out = collections.defaultdict(set)
     spans = collections.defaultdict(list)
     for r in regs:
@@ -148,8 +150,6 @@ def literal_readers(regs):
                 continue
             code = srcscan.blank_comments(open(path, encoding='utf-8', errors='replace').read())
             own = spans.get(p, []) + [(m.start(), m.end()) for m in REWRITTEN.finditer(code)]
-            for m in ORIGINAL.finditer(code):
-                out[int(m.group(1), 16)].add('forwarder' if top == 'src' else 'forwarder:' + top.split('/')[1])
             for m in LITERAL.finditer(code):
                 a = int(m.group(1), 16)
                 if not TEXT_BEGIN <= a < TEXT_END or any(s <= m.start() < e for s, e in own):

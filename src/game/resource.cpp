@@ -252,10 +252,10 @@ void __fastcall FreeAllFilesHook(CMappedResource* self) { self->CMappedResource:
 } // namespace
 
 EI_REWRITTEN(0x00674850, CResourceBase::FindEntry);
-EI_REPLACE_METHOD(0x00671280, CMappedResource::Construct);
-EI_REPLACE_METHOD(0x006714A0, CMappedResource::Destroy);           // patched by Rebirth: vanilla only
+EI_REWRITTEN(0x00671280, CMappedResource::Construct);
+EI_REWRITTEN(0x006714A0, CMappedResource::Destroy);           // patched by Rebirth: vanilla only
 EI_REWRITTEN(0x006713A0, CMappedResource::DeletingDestroy);
-EI_REPLACE_METHOD(0x00671730, CMappedResource::OpenResourceImpl);   // patched by Rebirth: installs in the vanilla launch only
+EI_REWRITTEN(0x00671730, CMappedResource::OpenResourceImpl);   // patched by Rebirth: installs in the vanilla launch only
 EI_REWRITTEN(0x00671A40, CMappedResource::OpenFromMemoryImpl);
 EI_REWRITTEN(0x00671AC0, CloseResourceHook);
 EI_REWRITTEN(0x00671B40, CMappedResource::GetFileImpl);

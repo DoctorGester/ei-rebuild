@@ -86,7 +86,7 @@ void CUnitClientSpecific::BlinkClose(bool force) {
     BlitMipChain(skin, frame.at, face, &closed);
     eyesClosed = 1;
 }
-EI_REPLACE_METHOD(0x00538ED0, CUnitClientSpecific::BlinkClose);
+EI_REWRITTEN(0x00538ED0, CUnitClientSpecific::BlinkClose);
 
 void CUnitClientSpecific::BlinkOpen(bool force) {
     if (!faceTexture) return;
@@ -103,4 +103,4 @@ void CUnitClientSpecific::BlinkOpen(bool force) {
     BlitMipChain(skin, frame.at, face, &open);
     eyesClosed = 0;
 }
-EI_REPLACE_METHOD(0x00539010, CUnitClientSpecific::BlinkOpen);
+EI_REWRITTEN(0x00539010, CUnitClientSpecific::BlinkOpen);

@@ -21,8 +21,8 @@ build; the list and why each runs are in build.cmd). The others are run by hand 
 
 ## `progress.py` cleanup artefacts
 
-Counted over `src/*.cpp` and `*.h` with comments blanked first (`tools/srcscan.py`): EI_ORIGINAL forwarders
-(sites and distinct addresses), forwarded from several files, naked non-forwarders, files with `#pragma float_control`, unknown_XXX fields,
+Counted over `src/*.cpp` and `*.h` with comments blanked first (`tools/srcscan.py`): naked functions, files with
+`#pragma float_control`, unknown_XXX fields,
 `At<>` / `Field<>` uses, files defining their own `At()`, `ei::VCall` uses, game data addresses (distinct literals
 `0x0073xxxx`-`0x008Fxxxx`), `__fastcall Fn(T* self, void*)` shims, struct names defined in several files, and the rest listed in its output.
 
@@ -71,7 +71,8 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
 
 ## Forwarders (C3, C13, C29)
 
-src has no `EI_ORIGINAL` forwarder since C29 (from 1,426 at C13b2): our code calls every game function by name, the type
+src has no `EI_ORIGINAL` forwarder since C29 (from 1,426 at C13b2; the macro is the harness's only, so C29a dropped the
+always-zero counts from progress.py, dashboard_data.py, standalone_gaps.py and check_cleanup): our code calls every game function by name, the type
 puns the forwarders hid are `reinterpret_cast`s at the call, and the harness changes the image's behaviour through named seams
 (`IsaacRandom::SetSeedHook` / `SetDrawObserver`, `gamecrt::SetRandObserver`). The shared headers (`originals_<area>.h`),
 `gen_originals.py`, `check_forwarders.py`, `direct_calls.py`, `RedirectCode` / `CodeLink` and the vector replay's stand-ins went
