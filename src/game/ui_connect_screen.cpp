@@ -421,7 +421,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         }
         break;
     }
-    reinterpret_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
+    ContainerInput()->OnLeftDown(buttons, x, y);
 }
 
 void CMpConnectScreen::OnLButtonDouble(int buttons, int x, int y) {
@@ -434,7 +434,7 @@ void CMpConnectScreen::OnLButtonDouble(int buttons, int x, int y) {
             Connect();
         }
     }
-    static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
+    ContainerInput()->OnLeftDouble(buttons, x, y);
 }
 
 void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {

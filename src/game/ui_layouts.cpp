@@ -302,7 +302,7 @@ CSaveLoadWindow* NewSaveLoadWindow(CInterface3D* ui) {
     w->entriesCapacity_ = nullptr;
     w->isSave_ = false;
     w->sliding_ = false;
-    new (static_cast<void*>(&w->name_)) mfc::CString();
+    ::new (&w->name_) mfc::CString();
     SetVtables(w, CSaveLoadWindow::Vtable(), CSaveLoadWindow::InputVtable());
     return w;
 }
@@ -329,7 +329,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         ui->PlaySound("buttons\\menu\\ok.wav", 0);
         window.inputHandled_ = true;
     }
-    void* opened = nullptr;
+    CUiWindow* opened = nullptr;
     bool open = true;
     switch (region) {
     case 0:   // save
@@ -365,8 +365,8 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         open = false;
         break;
     }
-    if (open) ui->PushWindow(static_cast<CUiWindow*>(opened), 1, 1);
-    reinterpret_cast<UiContainerInput*>(window.InputSide())->OnLeftDown(buttons, x, y);
+    if (open) ui->PushWindow(opened, 1, 1);
+    window.ContainerInput()->OnLeftDown(buttons, x, y);
 }
 
 namespace {
@@ -397,10 +397,9 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
         ui->PlaySound(okSound, 0);
-        void* memory = gamecrt::operator_new(0x184);
-        CUiWindow* box = nullptr;
-        if (memory) {
-            box = (CUiWindow*)static_cast<CMessageBox*>(memory)->Construct(ui, "option_difficulty", game::EmptyText(), 0x20000, 3, 1);   // "option_difficulty", ""
+        CDifficultyBox* box = gamecrt::operator_new_as<CDifficultyBox>();
+        if (box) {
+            box->Construct(ui, "option_difficulty", game::EmptyText(), 0x20000, 3, 1);   // "option_difficulty", ""
             SetVtables(box, CDifficultyBox::Vtable(), CDifficultyBox::InputVtable());
         }
         ui->PushWindow(box, 1, 1);
@@ -444,7 +443,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             w->CUiContainer::Construct(ui);
             w->archive_->Construct();
             w->lines_.Construct();   // 00634300
-            new (static_cast<void*>(&w->name_)) mfc::CString("Titles");
+            ::new (&w->name_) mfc::CString("Titles");
             Screen8Member1D8(&w->player_);
             w->fromGame_ = true;
             SetVtables(w, CCreditsScreen::Vtable(), CCreditsScreen::InputVtable());
@@ -481,7 +480,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     default:
         break;
     }
-    reinterpret_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
+    ContainerInput()->OnLeftDown(buttons, x, y);
 }
 
 namespace {
@@ -510,14 +509,6 @@ SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
     InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
     return size;
 }
-
-CUiEditField* EditConstruct(void* memory, void*, CInterface3D* ui, RECT r) {
-    return static_cast<CUiEditField*>(memory)->Construct(ui, r);
-}
-void EditSetLook(CUiWindow* edit, void*, int a, int b, int font, int c, COLORREF text, COLORREF caret) {
-    static_cast<CUiEditField*>(edit)->SetLook(a, static_cast<char>(b), font, c, text, caret);
-}
-void EditSetText(CUiWindow* edit, void*, const char* text) { static_cast<CUiEditField*>(edit)->SetText(text); }
 } // namespace
 
 void CMessageBox::Build() {
@@ -540,13 +531,11 @@ void CMessageBox::Build() {
     rect = RECT{15, top - 35, 385, 450};
     BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
     if (flags_ & 4) {
-        void* memory = gamecrt::operator_new(0x17C);
-        edit_ = memory ? EditConstruct(memory, nullptr, interface_,
-                                       RECT{215, top + titleHeight + 30, 585, height + top + 30})
-                       : nullptr;
+        CUiEditField* memory = gamecrt::operator_new_as<CUiEditField>();
+        edit_ = memory ? memory->Construct(interface_, RECT{215, top + titleHeight + 30, 585, height + top + 30}) : nullptr;
         // (Like the original, the edit field is set up without checking the allocation.)
-        EditSetLook(edit_, nullptr, 15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
-        EditSetText(edit_, nullptr, editText_);
+        edit_->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
+        edit_->SetText(editText_);
         AddChild(edit_);
     } else {
         rect = RECT{15, top + titleHeight - 20, 385, 450};
@@ -724,8 +713,8 @@ void CCreditsScreen::Build() {
     {
         CUiScrollingSurface* memory = gamecrt::operator_new_as<CUiScrollingSurface>();   // 0x58 bytes
         RECT rect = {10, 0x96, 0x316, 0x1C2};
-        textSurface_ = static_cast<CUiScrollingSurface*>(
-            AddSurface(memory ? memory->Construct(ui, &rect) : nullptr));
+        textSurface_ = memory ? memory->Construct(ui, &rect) : nullptr;
+        AddSurface(textSurface_);
         textSurface_->Freeze(0, 0);
     }
     {

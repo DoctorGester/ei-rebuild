@@ -51,8 +51,7 @@ void __fastcall MpHeroRename(CMpHeroScreen*);
 void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 // 006167C0: the hero list drawn again (plain RET).
 // The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
-// container (RET 4); 0065C290 an edit window's text (RET 4).
-void EditSetText(void* edit, void*, const void* text) { static_cast<CUiEditField*>(edit)->SetText(static_cast<const char*>(text)); }
+// container (RET 4).
 __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGINAL(0x005FD760)
 
 // Back to the main menu: the text "reserved_04" (00578E20 / 004E0020) to 005F75B0 (thiscall on
@@ -137,7 +136,7 @@ void CMpHeroScreen::BackToNewHero() {
     surfaces_.data[0]->ReleaseDC();
     tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
-    EditSetText(nameEdit_, nullptr, Hero()->texts[0].GetString());
+    nameEdit_->SetText(Hero()->texts[0].GetString());
 }
 
 void CMpHeroScreen::FinishRename() {
@@ -270,7 +269,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             stats->stat20Base = 25.0f;
             stats->stat20 = 25.0f;
             hero->height = 0.7f;
-            EditSetText(nameEdit_, nullptr, game::EmptyText());
+            nameEdit_->SetText(game::EmptyText());
             statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
             Refresh();
             return;
@@ -341,7 +340,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         surfaces_.data[0]->ReleaseDC();
         turn_ = 0.0f;
         SetMode(this, nullptr, 10);
-        EditSetText(nameEdit_, nullptr, game::EmptyText());
+        nameEdit_->SetText(game::EmptyText());
         return;
     case 6:
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
@@ -393,11 +392,11 @@ void CMpHeroScreen::Rename() {
     mfc::CString name(MpHeroName(heroIndex_));
     int bar = name.Find(RenameBar());
     if (bar < 0) {
-        EditSetText(renameEdit_, nullptr, game::EmptyText());
+        renameEdit_->SetText(game::EmptyText());
     } else {
         mfc::CString typed = console::Ops(name).Mid(bar + 1);
         typed.TrimLeft();
-        EditSetText(renameEdit_, nullptr, typed.GetString());
+        renameEdit_->SetText(typed.GetString());
         name = name.Left(bar);
         name.TrimRight();
     }

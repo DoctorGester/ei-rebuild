@@ -19,7 +19,7 @@ void CBattleScreen::OnDeactivate() {
     for (std::uint8_t& key : orderKeys_) key = 0;
     viewPressed_ = false;
     boxSelecting_ = false;
-    static_cast<UiContainerInput*>(Input())->OnDeactivate();
+    ContainerInput()->OnDeactivate();
 }
 namespace {
 void __fastcall BattleScreenDeactivate(void* input) { WindowFromInput<CBattleScreen>(input)->OnDeactivate(); }
@@ -31,7 +31,7 @@ EI_REPLACE(0x00638A10, BattleScreenDeactivate);
 void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
-        static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
+        ContainerInput()->OnLeftDouble(buttons, x, y);
         if (inputHandled_) return;
     }
     viewPressed_ = true;

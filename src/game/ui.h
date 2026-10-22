@@ -43,6 +43,7 @@ static_assert(sizeof(ReturnedString) == 4);
 class CUiWindow;
 class CChatOverlay;
 struct UiInputSide;
+struct UiContainerInput;
 class CUiMesh;
 struct CDXSurface;
 class CSceneRenderer;   // model.h
@@ -2055,6 +2056,9 @@ public:
     // 00741008 / 00740FD4 (not Vtable(): a screen without its own would inherit the container's).
     static void** ContainerVtable();
     static void** ContainerInputVtable();
+    // The window's input side (+0x94) as the container's (UiContainerInput below), whose default
+    // handlers the screens call after their own.
+    UiContainerInput* ContainerInput();
 
     UiPtrArray<CUiWindow> children_;          // +0x148
     UiInputSide** inputsBegin_;               // +0x158 extra input sides (STLport vector)
@@ -2418,6 +2422,7 @@ struct UiContainerInput : UiInputSide {
     // holding (b, c).
     void Dispatch(int slot, int a, int b, int c, bool atPoint);
 };
+inline UiContainerInput* CUiContainer::ContainerInput() { return static_cast<UiContainerInput*>(Input()); }
 
 // The default handlers of a container's input side (`input` = window + 0x94).
 
