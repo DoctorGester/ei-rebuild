@@ -30,7 +30,7 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
 `--skip` leaves addresses), not typed. Keep a string by address only where code compares the pointer itself
 (`game::EmptyText()`, 0079B298), where the game writes into the string
 (the window title 0079BB24, the digit at 007930F6, the pointer cells LoadingMovieName 00791EE0), and in the CRT
-(`crt_locale` compares its locale names by pointer; `_iob` is not a string). A pointer-sized cell read as
+(`_iob` is not a string). A pointer-sized cell read as
 `const char* const*` holds the address of the text, not the text: read the cell's pointer first.
 
 ## 2. The image
@@ -189,7 +189,7 @@ each step green on the goldens and removing a measured tie:
   binds once its code is fixed, the registration or the address itself in game.exe, never a redirection or a stub;
   `RedirectCode` unbinds them all; the harness step `codebinding off` too, for an A/B), the static
   initialisers' calls (static_init.h), the code literals of src/ (handler tables, stats, callbacks, factories,
-  the WndProc and new handlers) and the CRT's takers of function pointers (exit's onexit list, qsort, the eh vector
+  the WndProc and new handlers) and the CRT's takers of function pointers (atexit, at the registration; qsort, the eh vector
   iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
   is not in yet (the stub would stick). **Code cells**: `tools/gen_image_cells.py` also writes
   image_code_cells.inc (7,928 cells of .rdata and .data holding a function start: vtable slots, ThrowInfo
@@ -444,24 +444,19 @@ kinds given.
   10022290 does) when the AddNewScriptCommands flag is on, else kScriptKeywords. game.exe (--no-hooks, the recorders)
   runs its own code on its own table or addon's; nothing of ours reads game.exe's copy. The script vectors' fixture
   "@ScriptKeywords" keeps its format; the replay compares the recorded table and markers with ours instead of
-  writing them into the stand-in. The CRT (S4c's ports read these): getqloc's `kLanguages` 007989E0 / `kCountries`
-  00798928 (TYPES `NameAbbreviation` `('P', '4s')`, crt_locale.cpp), `_ctype` as `kCtypeC` 00797DE0 (257 class
-  words) with `_pctype` / `_pwctype` `g_pctype` / `g_pwctype` 00797DD8 / 00797DDC (crt_locale_data.cpp, `{kCtypeC + 1}`:
-  named_data takes `NAME + k`, a named range's element k, as a pointer element; --emit does not write it, a person
-  does). `_iob` is not read: our streams are the host's FILE*, and the game's stdin / stdout / stderr are
+  writing them into the stand-in. The CRT's locale data (getqloc's tables, `_ctype` / `_pctype`, `__lc_category`) is
+  unread since C26 (setlocale and _setmbcp are the host CRT's; named_data still takes `NAME + k`, a named range's
+  element k, as a pointer element). `_iob` is not read: our streams are the host's FILE*, and the game's stdin / stdout / stderr are
   `libcrt::GameStream(0..2)`, three 0x20-byte stand-ins in crt_format.cpp that only HostFile compares (the vector
-  recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets g_pctype). These names
-  replaced C25's kept rows: the keyword table and the strings only its cells reached (0078BCA0, 0078CAC0, 0078B820 /
-  864 / 8A4, 0078BBD0, 00787B5C / 98 / B4), `_ctype` 00797DE0, the abbreviation tables 00798928 and their names
-  00747924; `__lc_category` 00797888 and its static "C" 00797778 are crt_locale.cpp's (C25c).
+  recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets the classes with SetReplayLocale).
+  config/image_kept.csv (C25) lost the rows these names replace: the keyword table and the strings only its cells
+  reached (0078BCA0, 0078CAC0, 0078B820 / 864 / 8A4, 0078BBD0, 00787B5C / 98 / B4), and the CRT's locale rows
+  (C18q, C26).
   **Left in the CRT**, by reason:
-  - read, not nameable yet: the locale categories `__lc_category` 00797888 (6 x {name, locale, init}; our setlocale
-    reads and writes `locale` and calls `init` for a category other than LC_CTYPE, which the game never sets) and the
-    static "C" 00797778 its `locale` cells point at: the `init` cells are code pointers to __init_dummy 006EA766,
-    __init_collate 006F4A40, __init_monetary 006F4589, __init_numeric 006F437D and __init_time 006F3E0E, none ported
-    or registered (InitCtype is __init_ctype 006F47FB, unregistered). Name the table once those have registered
-    ports, or once the check has a form for a code pointer to code we do not have.
-  - unread by our code (the host CRT or a literal does the work; C25 zero-fills): `__lc_time_curr` 00797A58 and
+  - unread by our code (the host CRT or a literal does the work; C25 zero-fills): the locale categories
+    `__lc_category` 00797888 with the static "C" 00797778, getqloc's tables 00798914-00798BE8, `__rgcode_page_info`
+    00797680-00797778, `_ctype` / `_pctype` / `_pwctype` 00797DD8-00797FE0 and the rest of the locale and multibyte
+    state (C26: setlocale / _setmbcp are the host's), `__lc_time_curr` 00797A58 and
     `__lc_time_c` 00797A60 (strftime / the time functions are the host's, mfc_time.cpp), printf's "(null)" 0079804C /
     00798050 (literals in crt_format.cpp), `_iob` 00798060 (its two cells to `_bufin`), getqloc's locale info table
     00798470 (27 rows of 0x2C, 54 cells; 006F5231 is its GetLocaleInfoA stand-in off NT, ours calls GetLocaleInfoA),
@@ -579,15 +574,11 @@ kinds given.
     00434980 beside it), the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
     a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
-    readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is lib/crt_locale_data.cpp (a file of
-    its own: ei_vectors links it with crt_format.cpp; the replay's "@CrtFormatLocale" writes g_decimalPoint, the
-    recorder reads game.exe's 00797FE8 and __lc_handle), crt_locale.cpp's code page / class flag / country tables,
-    crt_file's modes (zero constants) and crt_iostream's shared lock and ios count. **Left**: 00783E34 / 00783E38
+    readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
+    CRT's since C26 (lib/crt_locale_data.cpp reads it), crt_file's modes (zero constants) and crt_iostream's shared lock and ios count. **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
     yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
-    007AFF60), and of the CRT: the locale categories 00797888 with the static "C" 00797778 (their init
-    functions' code cells are not all ours; C18q named `_pctype` / `_pwctype` and stopped reading `_iob`), and the
-    heap / allocator state (`_crtheap` 007CAF08, `_pnhHeap` 007CAAD8, `_newmode` 007CAC7C, `_afxNewHandler`
+    007AFF60), and of the CRT the allocator state (`_pnhHeap` 007CAAD8, `_afxNewHandler`
     00796E14, STLport's node free lists 0079B224 and pool 0079B264-0079B26C): the harness calls our allocator in
     --no-hooks runs (harness_leftovers' ZeroedNew, CStrings), where a named heap handle would be ours (null), not
     game.exe's; name them together with a game.exe path for those calls.
@@ -1622,32 +1613,44 @@ the `--no-hooks` suite) keeps the registry.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
 
-- **State** (S4, S4c) is read where the exe keeps it: the game runs under a real LC_CTYPE locale (`__lc_handle` 007CABF0
-  nonzero after the text manager's Create 004DED20 calls setlocale(LC_CTYPE, the "Font CharSet" option, "english"
-  by default -> "English_United States.1252") and `_setmbcp(_MB_CP_LOCALE)`); tolower / toupper take `_tolower_lk`'s
-  LCMapStringW path, compares fold through a table rebuilt on a locale change, classes come from `_pctype`, lead bytes
-  from `_mbctype`. Single-byte paths only (`__mb_cur_max` 1). Until the game sets the locale it is the C locale.
-  Our setlocale / _setmbcp (crt_locale.cpp) is getqloc.c's name search, `__init_ctype` (GetStringTypeW, called
-  directly) and _setmbcp with setSBUpLow; no locks, no LC_ALL.
-- **Heap** (crt.cpp): malloc 006EABD1, free 006EA8AD, realloc 006ED69A, calloc 006F0317 (count * size unchecked),
-  _msize 006EEC7B, _strdup 006EEC50 use a Win32 heap of their own, `_crtheap` 007CAF08, made with `HeapCreate(0,
-  0x1000, 0)` at the first allocation, sizes rounded up to 16, through the image's import slots (gameapi.h), so the
-  harness's heap patches act on the image as on game.exe (SV7c2). operator new runs MFC's handler loop
+- **Locale** (C26): the host CRT's. The text manager's Create 004DED20 calls the host's setlocale(LC_CTYPE, the
+  "Font CharSet" option, "english" by default -> "English_United States.1252") and `_setmbcp(_MB_CP_LOCALE)`; the
+  host's start-up did __initmbctable's `_setmbcp(_MB_CP_ANSI)` (with EI_UTF8 the standalone's start-up sets
+  `_MB_CP_SBCS`: no lead bytes). What still reads the state directly (crt_format.cpp's _output, CaseFoldTable,
+  mfc_resource.cpp) goes through crt_locale_data.h (`_pctype`, the LC_CTYPE locale name as an LCID, `__lc_codepage`,
+  `_mbctype`, `_mbcasemap`). Both suites kept every golden the same with the switch (VC6 and the host build
+  LC_CTYPE's tables from the same GetStringTypeW / LCMapStringW calls; the C tables match for 0..255).
+- **Strings and characters** (crt.cpp, C26): the host CRT's: strncmp, strncpy, _stricmp, _strnicmp, _memicmp,
+  _mbscmp, _mbsicmp, _mbsinc, _ismbblead, isleadbyte, tolower, toupper, isalpha / isdigit / isspace / isprint,
+  _mbsncmp, _mbclen and _mbslwr behind their libcrt names (the EI_UTF8 branches and ei_vectors' recorded answers need
+  the names); memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and
+  _splitpath called by their own names. Both suites goldens the same, though the host's compares return a difference
+  rather than VC6's -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words
+  before `_pctype`.
+- **Heap** (crt.cpp): malloc 006EABD1 and free 006EA8AD are the host CRT's (C26: both suites goldens the same, the
+  image suite twice; until then a VC6-style Win32 heap of their own, `_crtheap` 007CAF08, sizes rounded up to 16,
+  through the image's import slots, SV7c2). realloc, calloc, _msize and _strdup had no callers. The harness's
+  repeatable heap, jitter, fill and trace (tests/verify/harness_heap.h) act on game.exe only now: the image's blocks
+  are the host heap's (its low-fragmentation front end), so a golden of the image already holds under other
+  addresses in every run. operator new runs MFC's handler loop
   (`_afxNewHandler` 00796E14, initial value `AfxNewHandler` 0070058F: throws the static CMemoryException); the
   STLport node allocator 00405950 / 00404D70 with refill 004060E0 and chunk_alloc 00406B70 is ported exactly (the
   pool is the exe's data). Nothing frees across heaps: our code takes game memory only through libcrt; the host CRT
   keeps its own (std containers, FILE buffers).
-- **atexit / exit**: our list, then the host CRT's exit. rand / srand: the seed is a thread_local in the image
+- **atexit / exit**: the host CRT's (C26: image goldens the same): atexit 006E727B / _onexit 006E71FD register with
+  `_crt_atexit` (the function converted to its code when registered), exit 006E8DA7 is std::exit, which runs that
+  table before the host's terminators. rand / srand: the seed is a thread_local in the image
   (`libcrt::RandState()`, which the harness's digest and randtrace read; the image has no _getptd 006F00D1).
 - **Formatting** (crt_format.cpp): sprintf 006E8715, vsprintf 006ECC47, fprintf 006EAEB0, printf 006E955F are VC6's
   `_output` (the `__lookuptable` state machine copied from 007476D0, `%I64`, `%Z`, "(null)"). Floats are not "17
   correct digits": `$I10_OUTPUT` builds them from a 12-byte long double (96-bit `__ld12mul` with truncated partial
   products, the exe's power-of-ten tables 0079AE60 / 0079AFC0), then `_fptostr` rounds half up; three exponent digits;
-  "1#INF" / "1#IND" / "1#QNAN" / "1#SNAN" ("%.2f" of infinity is "1.#J"); -0 prints as 0. atof 006E911A is
-  `__strgtold12` (24 digits, the 24th bumped when more follow and it is >= 5; exponents beyond 5200 saturate; 'd'
-  accepted) then `_ld12tod` (ties and some values above round down). sscanf 006EAEEC is `_input` for integers, %n,
-  %c / %s / %[ (floats and wide characters end the scan; a format that starts with %n reads a stale stack byte in the
-  original). The decimal point comes from 00797FE8.
+  "1#INF" / "1#IND" / "1#QNAN" / "1#SNAN" ("%.2f" of infinity is "1.#J"); -0 prints as 0. The decimal point is the
+  host's LC_NUMERIC one ("."). C26 tried the host's printf: the crt vectors differ (3 of 258 records: "%g" / "%.6g"
+  of FLT_MAX "3.40282e+38" for VC6's "3.40282e+038", infinity "inf" for "1.#INF") and so do six image goldens
+  (combat, combat_more, sound, unit_ai_cast, unit_ai_corpse, unit_ai_heal: the console's "skill=3.40282e+038"
+  attack line), so _output stays. atof and sscanf are the host CRT's (C26: goldens and the atof vectors the
+  same); callers use std::atof / sscanf_s.
 - **Files** (crt_file.cpp): _open is VC6's _sopen through the game's import slots (so the harness's save / install
   redirection applies), the handle wrapped as a host descriptor; fopen parses the mode as `_openfile` and wraps with
   `_fdopen`, so the game's CrtFile* is the host's FILE*; the stream and descriptor functions are the host's (a bad
@@ -1656,10 +1659,16 @@ the `--no-hooks` suite) keeps the registry.
   006ED534 is the host's. Fact from S4b1: a truncating open of a just-written file, then a write past its end, can
   read the gap back as old bytes on this machine under load (plain CreateFileA too).
 - **x87 entries** (crt_x87.cpp, naked, `__asm` exempt in check_cleanup): _ftol 006E853C (decodes the 80-bit value
-  with integers; the integer indefinite for NaN / infinity / |x| >= 2^63), _CIacos / _CIasin / _CIpow / _CIfmod and
-  their stack forms 006E7334 / 006E83D4 / 006E95A0, _hypot 006FD026. The CRT's control word keeps the caller's
+  with integers; the integer indefinite for NaN / infinity / |x| >= 2^63), _CIacos / _CIasin / _CIpow and
+  the stack forms 006E7334 / 006E83D4, _hypot 006FD026. The CRT's control word keeps the caller's
   precision and rounds to nearest, so the port computes at 53 bits and rounds each step to the caller's precision;
-  pow splits y log2(x) with fma errors, ties-to-even, exp2, ldexp; fmod is exact (keeps the CRT loader's NaN payload);
+  pow splits y log2(x) with fma errors, ties-to-even, exp2, ldexp. C26 tried the host CRT for the maths: acos / asin /
+  pow / _hypot (with fmod, modf and _controlfp) changed 14 image goldens (#vitals of the hero in effects_bow,
+  net_pair_quest, rebirth_fixes_ui, sound, spells_hero, ui_camp_make, ui_gallery_camp, ui_gallery_deals, units, whose
+  console prints "44.8744" for "44.8745"; #unit of the base's units in terrain_water_waves, ui_base_dialogue,
+  ui_base_topic, ui_gallery_base, zone_base_bz1g), so those stay ported; fmod (_CIfmod 006E95AA, fmod 006E95A0),
+  modf 006EAD0B, floor and ceil alone kept every golden and are the host's (std::fmod and so on). _controlfp stays
+  the port (SV10k below: the UCRT's differs in the control word and costs time, though the goldens were the same);
   `_hypothlp` runs at 64 bits with every step stored to a double and a denormal result cut off. errno / _matherr are
   not reproduced. The control word (SV10i): FNSTCW, and FLDCW only when the wanted word differs (x87::ControlWord /
   SetControlWord), put back only then; frexp / ldexp of normal doubles by the bits (std::frexp / std::ldexp save, set

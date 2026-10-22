@@ -830,7 +830,7 @@
 {DataId(0x00797674), 0x006EF5C6},
 {DataId(0x00797678), 0x006EF55F},
 {DataId(0x0079767C), 0x006EF5C6},
-// the CRT's next hook after the locale categories (00797888, named: crt_locale.cpp)
+// the CRT's next hook after the locale categories (00797888)
 {DataId(0x007978E0), 0x006E8DB8},
 // the CRT's table of six handlers (006F9696, read by 006E72E4)
 {DataId(0x00797B10), 0x006F9696},

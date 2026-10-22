@@ -14,6 +14,7 @@
 #include "game_strings.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <cstring>
 
 
@@ -112,10 +113,10 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
             self->Ban(connection);
         }
     case kKickBySerial:
-        if (self->IsHostConnection(CurrentConnectionObject())) self->Kick(self->FindConnectionBySerial(libcrt::Atoi(text->data())));
+        if (self->IsHostConnection(CurrentConnectionObject())) self->Kick(self->FindConnectionBySerial(std::atoi(text->data())));
         return;
     case kBanBySerial:
-        if (self->IsHostConnection(CurrentConnectionObject())) self->Ban(self->FindConnectionBySerial(libcrt::Atoi(text->data())));
+        if (self->IsHostConnection(CurrentConnectionObject())) self->Ban(self->FindConnectionBySerial(std::atoi(text->data())));
         return;
     default:
         return;

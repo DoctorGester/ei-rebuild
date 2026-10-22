@@ -23,6 +23,7 @@
 #include "game_data.h"
 
 #include <bit>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -516,7 +517,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         if (CSpell* spell = spells->CreateSpellFromText(extra)) constructor->SetSpellObject(spell);
     } else if (gamecrt::mbscmp(type, kMaterialType) == 0 &&
                extra.GetLength() != 0) {
-        constructor->count_ = libcrt::Atoi(extra);
+        constructor->count_ = std::atoi(extra);
     }
     CItem* item = constructor->EndCreateItem();
     if (!item) {

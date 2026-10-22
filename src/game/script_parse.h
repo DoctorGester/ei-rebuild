@@ -17,11 +17,10 @@ inline constexpr const char* kCommentOpen = /*0078BC8C*/ "/*";
 inline constexpr const char* kCommentClose = /*0078BC90*/ "*/";
 inline constexpr const char* kLineComment = /*0078BC94*/ "//";
 
-// Game CRT (locale-dependent ctype functions and the CRT's own atof).
+// Game CRT (locale-dependent ctype functions).
 int __cdecl IsDigit(int c);                                       // 006E9379
 int __cdecl IsSpace(int c);                                       // 006E93CE
 int __cdecl Mbscmp(const char* a, const char* b);                 // 006E848B
-double __cdecl Atof(const char* s);                               // 006E911A (result in ST0)
 
 // CString members beyond lib/mfc.h, called on existing strings through this view.
 struct StringOps : mfc::CString {

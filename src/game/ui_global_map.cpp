@@ -44,6 +44,7 @@
 #include "lib/nan_audit.h"
 #include "lib/mfc_string.h"
 
+#include <cmath>
 #include <concepts>
 
 #include <cstdint>
@@ -529,7 +530,7 @@ void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)
 
 
 // fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
-float FmodStored(float a, const float* divisor) { return static_cast<float>(libcrt::CiFmod(a, *divisor)); }
+float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }
 
 // The product the original inlines (r = b * a in its operand order), each component stored.
 Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {

@@ -12,6 +12,7 @@
 #include "game_data.h"
 #include "lib/mfc_string.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -73,7 +74,7 @@ BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray
     console::CStringArray codes;
     if (!ini->GetList(section, key, &codes, kListSeparator)) return 0;
     temp.SetSize(codes.GetSize(), -1);
-    for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(libcrt::Atoi(codes[i]));
+    for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(std::atoi(codes[i]));
     return 1;
 }
 
@@ -102,7 +103,7 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
         ok = ini->GetList(section, key, &codes, kListSeparator);
         if (ok) {
             temp.SetSize(codes.GetSize(), -1);
-            for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(libcrt::Atoi(codes[i]));
+            for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(std::atoi(codes[i]));
         }
     }
     if (ok) {
@@ -191,7 +192,7 @@ double CIniFile::GetDouble(const char* section, const char* key, double defaultV
     mfc::CString text;
     text.Format(kDoubleFormat, defaultValue);
     mfc::CString value = ReadString(this, section, key, text);
-    volatile double result = GameAtof(value);   // stored as a double, as the original does
+    volatile double result = std::atof(value);   // stored as a double, as the original does
     return result;
 }
 EI_REWRITTEN(0x00695F80, CIniFile::GetDouble);
@@ -241,7 +242,7 @@ BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
     int count = codes.GetSize();
     out->SetSize(count);
-    for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(libcrt::Atoi(codes[i]));
+    for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(std::atoi(codes[i]));
     return 1;
 }
 EI_REWRITTEN(0x00696830, CIniFile::GetIntArray);
@@ -266,7 +267,7 @@ BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, mfc::CArra
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
     reinterpret_cast<MfcDWords*>(out)->SetSize(codes.GetSize(), -1);
     for (int i = 0; i < codes.GetSize(); ++i)
-        out->data[i] = static_cast<std::uint32_t>(libcrt::Atoi(codes[i]));
+        out->data[i] = static_cast<std::uint32_t>(std::atoi(codes[i]));
     return 1;
 }
 EI_REWRITTEN(0x00696D80, CIniFile::GetMfcDWordArray);

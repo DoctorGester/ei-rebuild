@@ -417,7 +417,7 @@ void AIBrain::UpdateMove() {
         float end = static_cast<float>(CurrentWorldTick()) + move.looks.data->wait;     // FILD + FADD, FSTP float
         actionTime = x87::fistp(end);
         int remaining = move.looks.size - 1;
-        if (remaining != 0) libcrt::Memmove(move.looks.data, move.looks.data + 1, static_cast<unsigned>(remaining) << 4);
+        if (remaining != 0) std::memmove(move.looks.data, move.looks.data + 1, static_cast<unsigned>(remaining) << 4);
         --move.looks.size;
         return;
     }

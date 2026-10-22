@@ -35,6 +35,7 @@
 #include "party_manager.h"
 
 #include <cmath>
+#include <cstdlib>
 
 namespace {
 
@@ -123,7 +124,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         return;
     }
     if (Compare(topic_.Left(kConstructorPrefix), ConstructorTopic()) == 0) {
-        int constructor = libcrt::Atoi(console::Ops(topic_).Mid(kConstructorNumber));
+        int constructor = std::atoi(console::Ops(topic_).Mid(kConstructorNumber));
         if (ClassTemplates()->Find(constructor)) {
             GameSetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
             GameSendLeave04(kCampScreen);

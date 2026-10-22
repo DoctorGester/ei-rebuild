@@ -1,6 +1,6 @@
 // The game CRT's x87 entry points with register arguments (S4c, docs/notes/standalone.md): _ftol (ST0 in, its
-// 64-bit truncation in EDX:EAX, ST0 popped) and the _CI maths (_CIacos, _CIasin: ST0 in and out; _CIpow,
-// _CIfmod: ST1 and ST0 in, the result in ST0). A C++ function cannot be declared with that ABI, so each is a
+// 64-bit truncation in EDX:EAX, ST0 popped) and the _CI maths (_CIacos, _CIasin: ST0 in and out; _CIpow: ST1
+// and ST0 in, the result in ST0; fmod and _CIfmod are the host CRT's std::fmod, C26). A C++ function cannot be declared with that ABI, so each is a
 // naked entry that moves its arguments to the stack and calls a plain C++ body; this file is the one in
 // src/lib that tools/check_cleanup.py lets hold __asm, for these entries only.
 //
@@ -213,18 +213,6 @@ std::int64_t __cdecl FtolExtended(const unsigned char* value) {
 double __cdecl CiAcos(double x) { return ArcCosineOrSine(x, false); }
 double __cdecl CiAsin(double x) { return ArcCosineOrSine(x, true); }
 
-// x mod y as FPREM leaves it (exact, the sign of x; a zero x gives +0); the indefinite for a zero or
-// infinite y or an infinite x (the CRT's operand-class table, 00797630), NaNs as x87 addition propagates
-// them.
-double __cdecl CiFmod(double x, double y) {
-    const std::uint64_t xBits = Bits(x);
-    const std::uint64_t yBits = Bits(y);
-    if (IsNan(xBits) || IsNan(yBits)) return x + y;
-    if (y == 0.0 || IsInfinite(xBits) || IsInfinite(yBits)) return FromBits(kIndefinite);
-    if (x == 0.0) return 0.0;   // +0 for -0 too
-    return std::fmod(x, y);
-}
-
 // x^y (006E81C2): y log2(x) by FYL2X, then 2 to that as 2^n times the rounded 1 + (2^f - 1), f = t - n, n
 // the nearest integer (F2XM1, FSCALE). A negative x needs an integer y (the result negated for an odd
 // one), a zero x gives 1, a zero or an infinity; NaNs propagate, infinities as C has them.
@@ -270,54 +258,6 @@ double __cdecl CiPow(double x, double y) {
     const double power = Scale(control.Round(std::exp2(fraction)), static_cast<int>(whole));
     if (IsInfinite(Bits(power))) return control.Overflow(negate);
     return negate ? -power : power;
-}
-
-namespace {
-
-// An 80-bit value as fmod's argument loader (006F2DAE) builds it from a double: FLD for a finite one;
-// for an infinity or a NaN the exponent all ones and the mantissa's high dword the double's shifted
-// left 11 (with the low dword's top bits), but its low dword the double's own, unshifted (the
-// loader leaves out the SHL): a NaN's payload comes out changed.
-void LoadAsFmod(double value, unsigned char* to) {
-    const std::uint64_t bits = Bits(value);
-    if (Exponent(bits) != 0x7FF) {
-        __asm {
-            fld value
-            mov eax, to
-            fstp tbyte ptr [eax]
-        }
-        return;
-    }
-    const std::uint32_t high = static_cast<std::uint32_t>(bits >> 32);
-    const std::uint32_t low = static_cast<std::uint32_t>(bits);
-    const std::uint32_t mantissaHigh = (high << 11) | (low >> 21);
-    const std::uint16_t signAndExponent = static_cast<std::uint16_t>((high >> 16) | 0x7FFF);
-    std::memcpy(to, &low, 4);
-    std::memcpy(to + 4, &mantissaHigh, 4);
-    std::memcpy(to + 8, &signAndExponent, 2);
-}
-
-// x + y of two 80-bit values on the x87 (a NaN's propagation as FADD has it).
-__declspec(naked) double __cdecl AddExtended(const unsigned char* /*x*/, const unsigned char* /*y*/) {
-    __asm {
-        mov eax, [esp + 4]
-        fld tbyte ptr [eax]
-        mov eax, [esp + 8]
-        fld tbyte ptr [eax]
-        faddp st(1), st
-        ret
-    }
-}
-
-} // namespace
-
-double __cdecl StackFmod(double x, double y) {
-    if (!IsNan(Bits(x)) && !IsNan(Bits(y))) return CiFmod(x, y);
-    unsigned char loadedX[10];
-    unsigned char loadedY[10];
-    LoadAsFmod(x, loadedX);
-    LoadAsFmod(y, loadedY);
-    return AddExtended(loadedX, loadedY);
 }
 
 namespace {
@@ -419,7 +359,6 @@ __declspec(naked) double __cdecl CiAsinEntry() {
 }
 EI_REWRITTEN(0x006E7334, libcrt::CiAcos);
 EI_REWRITTEN(0x006E83D4, libcrt::CiAsin);
-EI_REWRITTEN(0x006E95A0, libcrt::StackFmod);
 EI_REWRITTEN(0x006FD026, libcrt::Hypot);
 EI_REWRITTEN(0x006E83C0, libcrt::CiAsinEntry);
 
@@ -439,21 +378,5 @@ __declspec(naked) double __cdecl CiPowEntry() {
     }
 }
 EI_REWRITTEN(0x006E81A0, libcrt::CiPowEntry);
-
-__declspec(naked) double __cdecl CiFmodEntry() {
-    __asm {
-        push ecx
-        push edx
-        sub esp, 16
-        fstp qword ptr [esp + 8]
-        fstp qword ptr [esp]
-        call CiFmod
-        add esp, 16
-        pop edx
-        pop ecx
-        ret
-    }
-}
-EI_REWRITTEN(0x006E95AA, libcrt::CiFmodEntry);
 
 } // namespace libcrt

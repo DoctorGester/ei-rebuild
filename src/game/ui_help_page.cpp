@@ -26,6 +26,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -149,12 +150,12 @@ void CHelpWindow::ShowPageVanilla() {
     if (texts->FindLine(kPositionLine)) {
         texts->Split(&words, 1);
         if (words.GetSize() > 3) {
-            page.left = libcrt::Atoi(words[1]);
-            page.top = libcrt::Atoi(words[2]);
-            page.right = libcrt::Atoi(words[3]);
+            page.left = std::atoi(words[1]);
+            page.top = std::atoi(words[2]);
+            page.right = std::atoi(words[3]);
             int rows = 1;
             if (words.GetSize() > 4) {
-                rows = libcrt::Atoi(words[4]);
+                rows = std::atoi(words[4]);
                 rowsGiven = true;
             }
             if (page.right - page.left < 300) page.right = page.left + 300;
@@ -198,11 +199,11 @@ void CHelpWindow::ShowPageVanilla() {
         texts->Split(&words, 1);
         if (Same(words[0], kScreenLine)) break;
         if (Same(words[0], kRectangleLine) && words.GetSize() > 4) {
-            const int top = libcrt::Atoi(words[2]);
-            const int bottom = libcrt::Atoi(words[4]);
+            const int top = std::atoi(words[2]);
+            const int bottom = std::atoi(words[4]);
             const int shift = TutorialFrameShift(this);
-            const int left = libcrt::Atoi(words[1]) + shift;
-            const int right = libcrt::Atoi(words[3]) + shift;
+            const int left = std::atoi(words[1]) + shift;
+            const int right = std::atoi(words[3]) + shift;
             CUiMesh* mark = AddSprite(nullptr);
             mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);

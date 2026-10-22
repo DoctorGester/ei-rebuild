@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 namespace {
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
@@ -33,7 +34,7 @@ const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";   //
 void RemoveCall(AIHeardCalls* calls, int index) {
     calls->data[index].Destruct();
     int after = calls->size - index - 1;
-    if (after != 0) libcrt::Memmove(&calls->data[index], &calls->data[index + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
+    if (after != 0) std::memmove(&calls->data[index], &calls->data[index + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
     --calls->size;
 }
 

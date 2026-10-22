@@ -33,12 +33,9 @@
 // The clock option "lfheap" (EI_HARNESS_CLOCK, run_all.py / compare.py --clock virtual,lfheap)
 // leaves both as the game has them, to see what they change.
 //
-// The standalone image (SV7c2) has the same heap: its malloc / free / realloc / calloc / _msize
-// (src/lib/crt.cpp, EI_REPLACE_STANDALONE) make _crtheap at their first call with HeapCreate(0,
-// 0x1000, 0) through the image's import slot and use HeapAlloc & co. through the image's slots, so
-// Install() patches the same slots there and everything below (reservation, jitter, fill, trace)
-// acts on the image's heap as on game.exe's. The image's main thread makes the heap at its first
-// allocation (InstallHooks' startup actions or the static initialisers).
+// The standalone image's malloc / free are the host CRT's (C26; src/lib/crt.cpp), which do not go
+// through the slots Install() patches there and make no _crtheap, so the reservation, jitter, fill and
+// trace below act on game.exe's heap only.
 //
 // EI_HEAP_JITTER=<seed>[,fill] (SV7a) moves the game's blocks without changing its calls: seeded spacer
 // blocks of the harness's between them in the reservation (made and freed at random, so the address

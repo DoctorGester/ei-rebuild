@@ -17,6 +17,7 @@
 #include "world.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -251,7 +252,7 @@ int CCamera::OpenFile(const char* name) {
                     mfc::CString tail = title.Right(4);
                     title = tail;
                 }
-                int number = libcrt::Atoi(title);
+                int number = std::atoi(title);
                 if (number > last) last = number;
             } while (more);
         }

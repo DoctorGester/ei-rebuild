@@ -13,10 +13,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
+#include <corecrt_startup.h>
 #include <malloc.h>
-#include <mutex>
+#include <mbctype.h>
+#include <mbstring.h>
+#include <ctype.h>
 #include <new>
-#include <vector>
 
 namespace gamecrt {
 
@@ -50,16 +52,14 @@ struct CaseFold {
     int fold[256];
 };
 
-unsigned CtypeHandle() { return libcrt::g_lcHandle[2]; }   // __lc_handle[LC_CTYPE]
-
 CaseFold caseFold;
 
 } // namespace
 
 const int* CaseFoldTable() {
     CaseFold& table = caseFold;
-    const unsigned handle = CtypeHandle();
-    const unsigned codePage = libcrt::g_lcCodePage;
+    const unsigned handle = libcrt::CtypeLocale();
+    const unsigned codePage = libcrt::CtypeCodePage();
     if (!table.built || table.localeHandle != handle || table.codePage != codePage) {
         for (int c = 0; c < 256; ++c) table.fold[c] = tolower(c);
         table.localeHandle = handle;
@@ -94,24 +94,6 @@ namespace libcrt {
 
 namespace {
 
-// The CRT's character class table pointer _pctype (00797DD8; the C locale's table + 1 entry, so -1 is
-// EOF) and its multibyte flags _mbctype + 1 (no lead bytes for a single-byte code page, the single-byte case
-// bits still set), with _mbcasemap, each byte's other case.
-const unsigned short* CharClasses() { return g_pctype; }
-const unsigned char* MultibyteFlags() { return g_mbCtype + 1; }
-const unsigned char* MultibyteCaseMap() { return g_mbCaseMap; }
-constexpr unsigned char kMbSingleUpper = 0x10;   // _SBUP in _mbctype
-
-constexpr unsigned short kDigit = 0x4;      // _DIGIT
-constexpr unsigned short kSpace = 0x8;      // _SPACE
-constexpr unsigned short kAlpha = 0x103;    // _ALPHA (_UPPER | _LOWER | 0x100)
-constexpr unsigned short kPrint = 0x157;    // _BLANK | _PUNCT | _ALPHA | _DIGIT
-constexpr unsigned short kLeadByte = 0x8000; // _LEADBYTE
-constexpr unsigned char kMbLead = 0x4;      // _M1 in _mbctype
-
-constexpr unsigned short kUpper = 0x1;      // _UPPER
-constexpr unsigned short kLower = 0x2;      // _LOWER
-
 // EI_UTF8 (text_case.h, ticket U5): every string is UTF-8, so case and character classes no longer come from
 // the locale or the ANSI code page's multibyte table. A byte past ASCII is part of a UTF-8 sequence: it has
 // no class and no case of its own, and is never a double-byte lead byte; the string compares and _mbslwr
@@ -119,234 +101,59 @@ constexpr unsigned short kLower = 0x2;      // _LOWER
 constexpr bool kUtf8 = EI_UTF8 != 0;
 // A byte (as the int the class functions take) past ASCII, or EOF.
 bool PastAscii(int c) { return c < 0 || c >= 0x80; }
-// A double-byte character's lead byte by the multibyte table (never with EI_UTF8).
-bool IsDoubleByteLead(unsigned char c) {
-    if constexpr (kUtf8) {
-        (void)c;
-        return false;
-    } else {
-        return (MultibyteFlags()[c] & kMbLead) != 0;
-    }
-}
-
-// The LC_CTYPE locale: its handle (__lc_handle[LC_CTYPE]; zero for "C") and code page (__lc_codepage).
-unsigned LocaleHandle() { return g_lcHandle[2]; }
-unsigned LocaleCodePage() { return g_lcCodePage; }
-
-// __crtLCMapStringA (006F1FDE) on its LCMapStringW path: the bytes (up to a zero, at most `count`)
-// to UTF-16 in the code page, mapped, and back; the bytes written, or 0.
-int MapStringByLocale(unsigned locale, unsigned long flags, const char* from, int count, char* to, int room,
-                      unsigned codePage) {
-    int length = 0;
-    while (length < count && from[length] != '\0') ++length;
-    wchar_t wide[4];
-    wchar_t mapped[8];
-    const int wideLength = gameapi::MultiByteToWideChar(codePage, MB_PRECOMPOSED | MB_ERR_INVALID_CHARS, from, length,
-                                                        nullptr, 0);
-    if (wideLength == 0 || wideLength > 4 ||
-        !gameapi::MultiByteToWideChar(codePage, MB_PRECOMPOSED, from, length, wide, wideLength))
-        return 0;
-    const int mappedLength = gameapi::LCMapStringW(locale, flags, wide, wideLength, nullptr, 0);
-    if (mappedLength == 0 || mappedLength > 8 || !gameapi::LCMapStringW(locale, flags, wide, wideLength, mapped, mappedLength))
-        return 0;
-    return gameapi::WideCharToMultiByte(codePage, WC_COMPOSITECHECK | WC_SEPCHARS, mapped, mappedLength, to, room, nullptr,
-                                        nullptr);
-}
-
-// _tolower_lk / _toupper_lk (006EBAC2 / 006E922F) under a locale: a byte without the class bit
-// `changes` (upper case for tolower) comes back as it is; otherwise the character (a lead byte and
-// the next one when the high byte is one) goes through LCMapString. Single-byte path (__mb_cur_max 1).
-int MapCaseByLocale(int c, unsigned long flags, unsigned short changes) {
-    if (c < 256 && !(CharClasses()[c] & changes)) return c;
-    char in[3];
-    int size;
-    const unsigned char high = static_cast<unsigned char>(c >> 8);
-    if (CharClasses()[high] & kLeadByte) {
-        in[0] = static_cast<char>(high);
-        in[1] = static_cast<char>(c);
-        in[2] = '\0';
-        size = 2;
-    } else {
-        in[0] = static_cast<char>(c);
-        in[1] = '\0';
-        size = 1;
-    }
-    unsigned char out[3];
-    const int written = MapStringByLocale(LocaleHandle(), flags, in, size, reinterpret_cast<char*>(out), 3, LocaleCodePage());
-    if (written == 0) return c;
-    return written == 1 ? out[0] : out[0] | out[1] << 8;
-}
-
-// tolower of every byte for the current locale, as the compare loops fold (rebuilt when the locale
-// handle, its code page or its class table changes).
-struct ByteFold {
-    unsigned handle = 0;
-    unsigned codePage = 0;
-    const unsigned short* classes = nullptr;
-    int fold[256] = {};
-};
-ByteFold byteFold;
-
-const int* FoldTable() {
-    ByteFold& table = byteFold;
-    const unsigned handle = LocaleHandle();
-    const unsigned codePage = LocaleCodePage();
-    const unsigned short* classes = CharClasses();
-    if (table.classes != classes || table.handle != handle || table.codePage != codePage) {
-        for (int c = 0; c < 256; ++c) table.fold[c] = Tolower(c);
-        table.handle = handle;
-        table.codePage = codePage;
-        table.classes = classes;
-    }
-    return table.fold;
-}
-
-// The digits of `value` in `radix` after an optional '-' (xtoa 006E9B63): least significant first,
-// then reversed in place.
-void UnsignedToText(unsigned long value, char* to, unsigned radix, bool negative) {
-    char* p = to;
-    if (negative) {
-        *p++ = '-';
-        value = 0 - value;
-    }
-    char* first = p;
-    do {
-        const unsigned digit = value % radix;
-        value /= radix;
-        *p++ = static_cast<char>(digit > 9 ? digit + 0x57 : digit + '0');
-    } while (value > 0);
-    *p-- = '\0';
-    do {
-        const char c = *p;
-        *p = *first;
-        *first = c;
-        --p;
-        ++first;
-    } while (first < p);
-}
-
-// `count` bytes of `from` (at most 255, _MAX_FNAME - 1) and a terminator, to `to` unless it is null.
-void CopyPart(char* to, const char* from, std::size_t count) {
-    if (!to) return;
-    if (count > 255) count = 255;
-    for (std::size_t i = 0; i < count; ++i) to[i] = from[i];
-    to[count] = '\0';
-}
 
 } // namespace
 
-// The compared length is the first string's up to and including its terminator, at most n: the
-// first differing byte decides, unsigned, as -1 or 1.
-int __cdecl Strncmp(const char* a, const char* b, std::size_t n) {
-    for (std::size_t i = 0; i < n; ++i) {
-        const unsigned char ca = static_cast<unsigned char>(a[i]);
-        const unsigned char cb = static_cast<unsigned char>(b[i]);
-        if (ca != cb) return ca < cb ? -1 : 1;
-        if (ca == 0) return 0;
-    }
-    return 0;
-}
+// The string and character functions are the host CRT's (C26: both suites goldens the same), under the host's
+// locale (crt_locale_data.h); with EI_UTF8 the case and class functions keep text_case.h's answers. These
+// names stay for the callers ei_vectors answers from the game CRT's records (tests/vectors/replay_crt.cpp) and
+// for the EI_UTF8 branches.
+int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
 EI_REWRITTEN(0x006E9180, libcrt::Strncmp);
 
 char* __cdecl Strncpy(char* to, const char* from, std::size_t n) {
-    std::size_t i = 0;
-    for (; i < n && from[i] != '\0'; ++i) to[i] = from[i];
-    for (; i < n; ++i) to[i] = '\0';
-    return to;
+#pragma warning(suppress : 4996)
+    return std::strncpy(to, from, n);
 }
 EI_REWRITTEN(0x006E7E80, libcrt::Strncpy);
 
-void* __cdecl Memmove(void* to, const void* from, std::size_t n) {
-    unsigned char* d = static_cast<unsigned char*>(to);
-    const unsigned char* s = static_cast<const unsigned char*>(from);
-    if (d <= s || d >= s + n) {
-        for (std::size_t i = 0; i < n; ++i) d[i] = s[i];
-    } else {
-        for (std::size_t i = n; i > 0; --i) d[i - 1] = s[i - 1];
-    }
-    return to;
-}
-EI_REWRITTEN(0x006E79A0, libcrt::Memmove);
-
-int __cdecl Strcmp(const char* a, const char* b) {
-    for (;; ++a, ++b) {
-        const unsigned char ca = static_cast<unsigned char>(*a);
-        const unsigned char cb = static_cast<unsigned char>(*b);
-        if (ca != cb) return ca < cb ? -1 : 1;
-        if (ca == 0) return 0;
-    }
-}
-
-// Bytes that differ are compared as tolower folds them (the "C" locale's A-Z, or _tolower_lk), as
-// unsigned bytes: -1 or 1.
 int __cdecl Stricmp(const char* a, const char* b) {
     if constexpr (kUtf8) {
         return text::CompareIgnoringCase(a, b, static_cast<std::size_t>(-1), true);
     } else {
-        const int* fold = FoldTable();
-        for (;; ++a, ++b) {
-            const unsigned char ca = static_cast<unsigned char>(*a);
-            const unsigned char cb = static_cast<unsigned char>(*b);
-            if (ca == cb) {
-                if (ca == 0) return 0;
-                continue;
-            }
-            const unsigned char la = static_cast<unsigned char>(fold[ca]);
-            const unsigned char lb = static_cast<unsigned char>(fold[cb]);
-            if (la != lb) return la < lb ? -1 : 1;
-        }
+        return _stricmp(a, b);
     }
 }
 EI_REWRITTEN(0x006F2230, libcrt::Stricmp);
 
-// A terminator in either string ends the compare (the raw bytes compared); otherwise the folded bytes.
 int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
     if (n == 0) return 0;
     if constexpr (kUtf8) {
         return text::CompareIgnoringCase(a, b, n, true);
     } else {
-        const int* fold = FoldTable();
-        for (; n > 0; --n, ++a, ++b) {
-            unsigned ca = static_cast<unsigned char>(*a);
-            unsigned cb = static_cast<unsigned char>(*b);
-            if (ca == 0 || cb == 0) return ca == cb ? 0 : ca < cb ? -1 : 1;
-            ca = static_cast<unsigned>(fold[ca]);
-            cb = static_cast<unsigned>(fold[cb]);
-            if (ca != cb) return ca < cb ? -1 : 1;
-        }
-        return 0;
+        return _strnicmp(a, b, n);
     }
 }
 EI_REWRITTEN(0x006FA1A0, libcrt::Strnicmp);
 
-// VC6's _memicmp: no terminator test; bytes that differ are compared folded (A-Z in the "C" locale,
-// _tolower_lk otherwise), as unsigned bytes: -1 or 1 (S16).
 int __cdecl Memicmp(const void* a, const void* b, std::size_t n) {
     if constexpr (kUtf8) {
         return text::CompareIgnoringCase(static_cast<const char*>(a), static_cast<const char*>(b), n, false);
     } else {
-        const int* fold = FoldTable();
-        const unsigned char* pa = static_cast<const unsigned char*>(a);
-        const unsigned char* pb = static_cast<const unsigned char*>(b);
-        for (; n > 0; --n, ++pa, ++pb) {
-            if (*pa == *pb) continue;
-            const unsigned char ca = static_cast<unsigned char>(fold[*pa]);
-            const unsigned char cb = static_cast<unsigned char>(fold[*pb]);
-            if (ca != cb) return ca < cb ? -1 : 1;
-        }
-        return 0;
+        return _memicmp(a, b, n);
     }
 }
 EI_REWRITTEN(0x006FD2F0, libcrt::Memicmp);
 
-// Single-byte code page (__ismbcodepage zero): strcmp and _stricmp.
-int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b) {
-    return Strcmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
-}
+int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b) { return _mbscmp(a, b); }
 EI_REWRITTEN(0x006E848B, libcrt::Mbscmp);
 
 int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b) {
-    return Stricmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
+    if constexpr (kUtf8) {
+        return Stricmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
+    } else {
+        return _mbsicmp(a, b);
+    }
 }
 EI_REWRITTEN(0x006E8767, libcrt::Mbsicmp);
 
@@ -354,8 +161,7 @@ unsigned char* __cdecl Mbsinc(const unsigned char* p) {
     if constexpr (kUtf8) {
         return const_cast<unsigned char*>(p + 1);
     } else {
-        const bool lead = (MultibyteFlags()[*p] & kMbLead) != 0;
-        return const_cast<unsigned char*>(p + (lead ? 2 : 1));
+        return _mbsinc(p);
     }
 }
 EI_REWRITTEN(0x006E9947, libcrt::Mbsinc);
@@ -365,7 +171,7 @@ int __cdecl Ismbblead(unsigned c) {
         (void)c;
         return 0;
     } else {
-        return (MultibyteFlags()[static_cast<unsigned char>(c)] & kMbLead) != 0 ? 1 : 0;
+        return _ismbblead(c);
     }
 }
 EI_REWRITTEN(0x006E99F2, libcrt::Ismbblead);
@@ -375,130 +181,64 @@ int __cdecl Isleadbyte(int c) {
         (void)c;
         return 0;
     } else {
-        return CharClasses()[static_cast<unsigned char>(c)] & kLeadByte;
+        return isleadbyte(c);
     }
 }
 EI_REWRITTEN(0x006E9A6C, libcrt::Isleadbyte);
 
-// In the "C" locale only A-Z / a-z change (any other int comes back as it is); under a locale,
-// MapCaseByLocale.
 int __cdecl Tolower(int c) {
-    if (LocaleHandle() == 0 || kUtf8) return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
-    return MapCaseByLocale(c, LCMAP_LOWERCASE, kUpper);
+    if constexpr (kUtf8) {
+        return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
+    } else {
+        return tolower(c);
+    }
 }
 EI_REPLACE(0x006EBA53, libcrt::Tolower);
 
 int __cdecl Toupper(int c) {
-    if (LocaleHandle() == 0 || kUtf8) return c >= 'a' && c <= 'z' ? c - 0x20 : c;
-    return MapCaseByLocale(c, LCMAP_UPPERCASE, kLower);
+    if constexpr (kUtf8) {
+        return c >= 'a' && c <= 'z' ? c - 0x20 : c;
+    } else {
+        return toupper(c);
+    }
 }
 EI_REWRITTEN(0x006E91C0, libcrt::Toupper);
 
-// The single-byte path (__mb_cur_max 1): the class bits of the table entry. isdigit and isspace
-// test the entry's low byte, isalpha and isprint the word (same results for their masks).
 int __cdecl Isalpha(int c) {
     if constexpr (kUtf8) {
-        if (PastAscii(c)) return 0;
+        return PastAscii(c) ? 0 : isalpha(c);
+    } else {
+        return isalpha(c);
     }
-    return CharClasses()[c] & kAlpha;
 }
 EI_REWRITTEN(0x006E92FB, libcrt::Isalpha);
 
 int __cdecl Isdigit(int c) {
     if constexpr (kUtf8) {
-        if (PastAscii(c)) return 0;
+        return PastAscii(c) ? 0 : isdigit(c);
+    } else {
+        return isdigit(c);
     }
-    return CharClasses()[c] & kDigit;
 }
 EI_REPLACE(0x006E9379, libcrt::Isdigit);
 
 int __cdecl Isspace(int c) {
     if constexpr (kUtf8) {
-        if (PastAscii(c)) return 0;
+        return PastAscii(c) ? 0 : isspace(c);
+    } else {
+        return isspace(c);
     }
-    return CharClasses()[c] & kSpace;
 }
 EI_REPLACE(0x006E93CE, libcrt::Isspace);
 
 int __cdecl Isprint(int c) {
     if constexpr (kUtf8) {
-        if (PastAscii(c)) return 0;
+        return PastAscii(c) ? 0 : isprint(c);
+    } else {
+        return isprint(c);
     }
-    return CharClasses()[c] & kPrint;
 }
 EI_REWRITTEN(0x006E944C, libcrt::Isprint);
-
-// Leading white space, a sign, then decimal digits; overflow wraps.
-long __cdecl Atol(const char* text) {
-    const unsigned char* p = reinterpret_cast<const unsigned char*>(text);
-    while (CharClasses()[*p] & kSpace) ++p;
-    unsigned c = *p++;
-    const unsigned sign = c;
-    if (c == '-' || c == '+') c = *p++;
-    unsigned long total = 0;
-    while (CharClasses()[c] & kDigit) {
-        total = total * 10 + (c - '0');
-        c = *p++;
-    }
-    return static_cast<long>(sign == '-' ? 0 - total : total);
-}
-
-int __cdecl Atoi(const char* text) { return static_cast<int>(Atol(text)); }
-EI_REWRITTEN(0x006E80D8, libcrt::Atoi);
-
-// Only radix 10 writes a minus sign; other radixes write the value's bits as unsigned.
-char* __cdecl Itoa(int value, char* buffer, int radix) {
-    UnsignedToText(static_cast<unsigned long>(value), buffer, static_cast<unsigned>(radix), radix == 10 && value < 0);
-    return buffer;
-}
-EI_REWRITTEN(0x006E9B36, libcrt::Itoa);
-
-// The drive when the second character is ':'; the directory up to the last '/' or '\'; the name up to
-// the last '.' after it; each part at most 255 characters. A lead byte skips the byte after it, as in
-// the original (also when that is the terminator).
-void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, char* ext) {
-    if (path[0] != '\0' && path[1] == ':') {
-        if (drive) {
-            drive[0] = path[0];
-            drive[1] = path[1];
-            drive[2] = '\0';
-        }
-        path += 2;
-    } else if (drive) {
-        drive[0] = '\0';
-    }
-    const char* afterSlash = nullptr;
-    const char* lastDot = nullptr;
-    const char* end = path;
-    if (*end != '\0') {
-        do {
-            const unsigned char c = static_cast<unsigned char>(*end);
-            if (IsDoubleByteLead(c)) {
-                ++end;
-            } else if (c == '/' || c == '\\') {
-                afterSlash = end + 1;
-            } else if (c == '.') {
-                lastDot = end;
-            }
-            ++end;
-        } while (*end != '\0');
-    }
-    const char* base = path;
-    if (afterSlash) {
-        CopyPart(dir, path, static_cast<std::size_t>(afterSlash - path));
-        base = afterSlash;
-    } else if (dir) {
-        dir[0] = '\0';
-    }
-    if (lastDot && lastDot >= base) {
-        CopyPart(name, base, static_cast<std::size_t>(lastDot - base));
-        CopyPart(ext, lastDot, static_cast<std::size_t>(end - lastDot));
-    } else {
-        CopyPart(name, base, static_cast<std::size_t>(end - base));
-        if (ext) ext[0] = '\0';
-    }
-}
-EI_REWRITTEN(0x006E8BEE, libcrt::Splitpath);
 
 namespace {
 
@@ -586,50 +326,7 @@ void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare com
 }
 EI_REWRITTEN(0x006E88FC, libcrt::Qsort);
 
-// ---- Plain string and memory functions; the multibyte ones by their single-byte path ----
-
-void* __cdecl Memcpy(void* to, const void* from, std::size_t n) { return Memmove(to, from, n); }
-EI_REWRITTEN(0x006EC3A0, libcrt::Memcpy);
-
-void* __cdecl Memset(void* to, int value, std::size_t n) { return std::memset(to, value, n); }
-EI_REWRITTEN(0x006E9CE0, libcrt::Memset);
-
-char* __cdecl Strstr(const char* text, const char* part) { return const_cast<char*>(std::strstr(text, part)); }
-EI_REWRITTEN(0x006EAE30, libcrt::Strstr);
-
-std::size_t __cdecl Wcslen(const wchar_t* text) { return std::wcslen(text); }
-EI_REWRITTEN(0x006EC6D5, libcrt::Wcslen);
-
-namespace {
-const char* AsText(const unsigned char* p) { return reinterpret_cast<const char*>(p); }
-unsigned char* AsBytes(const char* p) { return reinterpret_cast<unsigned char*>(const_cast<char*>(p)); }
-} // namespace
-
-// strchr / strrchr take the character as int and compare its low byte (0 finds the terminator).
-unsigned char* __cdecl Mbschr(const unsigned char* text, unsigned c) {
-    return AsBytes(std::strchr(AsText(text), static_cast<int>(c)));
-}
-EI_REWRITTEN(0x006EC6F2, libcrt::Mbschr);
-
-unsigned char* __cdecl Mbsrchr(const unsigned char* text, unsigned c) {
-    return AsBytes(std::strrchr(AsText(text), static_cast<int>(c)));
-}
-EI_REWRITTEN(0x006EC99C, libcrt::Mbsrchr);
-
-unsigned char* __cdecl Mbsstr(const unsigned char* text, const unsigned char* part) {
-    return AsBytes(Strstr(AsText(text), AsText(part)));
-}
-EI_REWRITTEN(0x006ECAB3, libcrt::Mbsstr);
-
-unsigned char* __cdecl Mbspbrk(const unsigned char* text, const unsigned char* set) {
-    return AsBytes(std::strpbrk(AsText(text), AsText(set)));
-}
-EI_REWRITTEN(0x006EC789, libcrt::Mbspbrk);
-
-int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
-    if (n == 0) return 0;
-    return Strncmp(AsText(a), AsText(b), n);
-}
+int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) { return _mbsncmp(a, b, n); }
 EI_REWRITTEN(0x006ECD2B, libcrt::Mbsncmp);
 
 std::size_t __cdecl Mbclen(const unsigned char* c) {
@@ -637,7 +334,7 @@ std::size_t __cdecl Mbclen(const unsigned char* c) {
         (void)c;
         return 1;
     } else {
-        return (MultibyteFlags()[*c] & kMbLead) ? 2 : 1;
+        return _mbclen(c);
     }
 }
 EI_REWRITTEN(0x006ECC98, libcrt::Mbclen);
@@ -646,22 +343,12 @@ unsigned char* __cdecl Mbslwr(unsigned char* text) {
     if constexpr (kUtf8) {
         text::LowerInPlace(reinterpret_cast<char*>(text));
     } else {
-        for (unsigned char* p = text; *p; ++p) {
-            const unsigned char flags = MultibyteFlags()[*p];
-            if (flags & kMbLead) {
-                if (!p[1]) break;
-                ++p;
-            } else if (flags & kMbSingleUpper) {
-                *p = MultibyteCaseMap()[*p];
-            }
-        }
+#pragma warning(suppress : 4996)
+        _mbslwr(text);
     }
     return text;
 }
 EI_REWRITTEN(0x006EC8A8, libcrt::Mbslwr);
-
-double __cdecl Floor(double value) { return std::floor(value); }
-EI_REWRITTEN(0x006E7F7E, libcrt::Floor);
 
 // ---- rand / srand ----
 
@@ -702,30 +389,6 @@ unsigned& RandState() { return RandSeed(); }
 EI_REPLACE(0x006E77EA, libcrt::Srand);
 
 // ---- Maths ----
-
-double __cdecl Ceil(double value) { return std::ceil(value); }
-EI_REWRITTEN(0x006E8B1F, libcrt::Ceil);
-
-// modf: the whole part truncated, the fraction value - whole (+0 for a negative whole number, where
-// std::modf gives -0); zero, infinity and NaN keep the value as the whole part, and the fraction is
-// the value itself (zero, NaN) or a zero of its sign (infinity).
-double __cdecl Modf(double value, double* whole) {
-    std::uint64_t bits;
-    std::memcpy(&bits, &value, sizeof bits);
-    const unsigned exponent = static_cast<unsigned>(bits >> 52) & 0x7FF;
-    if (exponent == 0x7FF) {
-        *whole = value;
-        if (bits & 0x000FFFFFFFFFFFFFull) return value;   // NaN
-        return std::copysign(0.0, value);
-    }
-    if ((bits << 1) == 0) {
-        *whole = value;
-        return value;
-    }
-    *whole = std::trunc(value);
-    return value - *whole;
-}
-EI_REWRITTEN(0x006EAD0B, libcrt::Modf);
 
 // _controlfp: the control word's abstract form with the masked bits replaced, set and returned.
 // The original (006EBBB4) is FNSTCW, 006EBC2A (hardware to abstract), the merge, 006EBCBC (abstract to hardware),
@@ -795,94 +458,19 @@ EI_REWRITTEN(0x006EBBB4, libcrt::Controlfp);
 // ---- The runtime the image owns (EI_REPLACE_STANDALONE: the hook build keeps the exe's) ----
 
 namespace {
-// MFC's new handler (_afxNewHandler, 00796E14) and the CRT's (_pnhHeap, 007CAAD8), with _newmode
-// (007CAC7C), which says whether malloc calls the CRT's too.
+// MFC's new handler (_afxNewHandler, 00796E14), which operator new calls, and the CRT's (_pnhHeap, 007CAAD8),
+// which _set_new_handler sets (malloc never calls it: the game leaves _newmode 0).
 gamecrt::NewHandler& AfxNewHandler() { return ei::GameData<gamecrt::NewHandler>(0x00796E14); }
 gamecrt::NewHandler& HeapNewHandler() { return ei::GameData<gamecrt::NewHandler>(0x007CAAD8); }
-int NewMode() { return ei::GameData<const int>(0x007CAC7C); }
-constexpr std::size_t kHeapMaxRequest = 0xFFFFFFE0;
-
-// The CRT's heap (_crtheap, 007CAF08) is a Win32 heap of its own, as in game.exe: VC6's _heap_init
-// (006F54E6) makes it with HeapCreate(0, 0x1000, 0) and on NT 5+ __heap_select picks the system heap,
-// so malloc and the rest are HeapAlloc / HeapFree / HeapReAlloc / HeapSize on it, the size rounded up
-// to 16 bytes (_heap_alloc 006EAC0F). The calls go through the image's import slots, where the
-// harness's repeatable heap and its jitter take them as in game.exe (tests/verify/harness_heap.h,
-// SV7c2). Made at the first allocation: the image's start-up has no _heap_init of its own.
-HANDLE& CrtHeap() { return ei::GameData<HANDLE>(0x007CAF08); }
-
-HANDLE Heap() {
-    HANDLE& heap = CrtHeap();
-    if (!heap) heap = gameapi::HeapCreate(0, 0x1000, 0);
-    return heap;
-}
-
-std::size_t Paragraphs(std::size_t size) { return ((size ? size : 1) + 0xF) & ~std::size_t(0xF); }
-
-// After a failed allocation (_callnewh): with _newmode set, the CRT's new handler may free memory and
-// ask for another try.
-bool TryAgain(std::size_t size) {
-    if (!NewMode()) return false;
-    const gamecrt::NewHandler handler = HeapNewHandler();
-    return handler && handler(size);
-}
 } // namespace
 
-void* __cdecl Malloc(std::size_t size) {
-    for (;;) {
-        if (size <= kHeapMaxRequest) {
-            if (void* p = gameapi::HeapAlloc(Heap(), 0, Paragraphs(size))) return p;
-        }
-        if (!TryAgain(size)) return nullptr;
-    }
-}
+// malloc and free are the host CRT's (C26; VC6's were HeapAlloc / HeapFree on a heap of their own, the size
+// rounded up to 16 bytes).
+void* __cdecl Malloc(std::size_t size) { return std::malloc(size); }
 EI_REPLACE_STANDALONE(0x006EABD1, libcrt::Malloc);
 
-void __cdecl Free(void* p) {
-    if (p) gameapi::HeapFree(Heap(), 0, p);
-}
+void __cdecl Free(void* p) { std::free(p); }
 EI_REPLACE_STANDALONE(0x006EA8AD, libcrt::Free);
-
-// A null block is malloc's; a zero size frees the block and gives null.
-void* __cdecl Realloc(void* p, std::size_t size) {
-    if (!p) return Malloc(size);
-    if (size == 0) {
-        Free(p);
-        return nullptr;
-    }
-    for (;;) {
-        if (size <= kHeapMaxRequest) {
-            size = Paragraphs(size);
-            if (void* q = gameapi::HeapReAlloc(Heap(), 0, p, size)) return q;
-        }
-        if (!TryAgain(size)) return nullptr;
-    }
-}
-EI_REWRITTEN(0x006ED69A, libcrt::Realloc);
-
-// The byte count is count * size without an overflow check, as in VC6.
-void* __cdecl Calloc(std::size_t count, std::size_t size) {
-    const std::size_t bytes = count * size;
-    const std::size_t rounded = bytes <= kHeapMaxRequest ? Paragraphs(bytes) : bytes;
-    for (;;) {
-        if (rounded <= kHeapMaxRequest) {
-            if (void* p = gameapi::HeapAlloc(Heap(), HEAP_ZERO_MEMORY, rounded)) return p;
-        }
-        if (!TryAgain(rounded)) return nullptr;
-    }
-}
-EI_REWRITTEN(0x006F0317, libcrt::Calloc);
-
-std::size_t __cdecl Msize(void* p) { return gameapi::HeapSize(Heap(), 0, p); }
-EI_REWRITTEN(0x006EEC7B, libcrt::Msize);
-
-char* __cdecl Strdup(const char* text) {
-    if (!text) return nullptr;
-    const std::size_t bytes = std::strlen(text) + 1;
-    char* copy = static_cast<char*>(Malloc(bytes));
-    if (copy) std::memcpy(copy, text, bytes);
-    return copy;
-}
-EI_REWRITTEN(0x006EEC50, libcrt::Strdup);
 
 gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler) {
     const gamecrt::NewHandler old = HeapNewHandler();
@@ -1019,52 +607,20 @@ EI_REWRITTEN(0x0043B310, libcrt::NodeDeallocateChecked);
 void __stdcall NodeDeallocateCheckedStd(void* p, std::size_t bytes) { NodeDeallocateChecked(p, bytes); }
 EI_REWRITTEN(0x00426450, libcrt::NodeDeallocateCheckedStd);
 
-namespace {
-// The onexit list, run last-registered first by exit (functions registered while it runs, too).
-std::mutex& ExitLock() {
-    static std::mutex lock;
-    return lock;
-}
-std::vector<ExitFunction>& ExitFunctions() {
-    static std::vector<ExitFunction> functions;
-    return functions;
-}
-} // namespace
-
+// The onexit list is the host CRT's (C26): _crt_atexit's table, which std::exit runs last-registered first
+// (functions registered while it runs, too) before the host's own terminators. A function registered at its
+// address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
 ExitFunction __cdecl OnExit(ExitFunction function) {
-    std::lock_guard<std::mutex> hold(ExitLock());
-    try {
-        ExitFunctions().push_back(function);
-    } catch (const std::bad_alloc&) {
-        return nullptr;
-    }
-    return function;
+    return _crt_atexit(ei::Code<ExitFunction>(reinterpret_cast<std::uintptr_t>(function))) == 0 ? function : nullptr;
 }
 EI_REWRITTEN(0x006E71FD, libcrt::OnExit);
 
 int __cdecl AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
 EI_REPLACE_STANDALONE(0x006E727B, libcrt::AtExit);
 
-// exit: the onexit list, then the host CRT's exit. The exe's own terminators (__xp / __xt, for the
-// game CRT's streams) have nothing to do in the image, where the streams are the host's. A function
-// registered at its address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
-void __cdecl Exit(int code) {
-    static bool exiting = false;
-    if (!exiting) {
-        exiting = true;
-        for (;;) {
-            ExitFunction function = nullptr;
-            {
-                std::lock_guard<std::mutex> hold(ExitLock());
-                if (ExitFunctions().empty()) break;
-                function = ExitFunctions().back();
-                ExitFunctions().pop_back();
-            }
-            if (function) ei::Code<ExitFunction>(reinterpret_cast<std::uintptr_t>(function))();
-        }
-    }
-    std::exit(code);
-}
+// exit: the host CRT's. The exe's own terminators (__xp / __xt, for the game CRT's streams) have nothing to do
+// in the image, where the streams are the host's.
+void __cdecl Exit(int code) { std::exit(code); }
 EI_REWRITTEN(0x006E8DA7, libcrt::Exit);
 
 } // namespace libcrt

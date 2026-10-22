@@ -40,7 +40,9 @@
 #include "game_singletons.h"
 
 #include <bit>
+#include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 
 namespace {
@@ -119,7 +121,7 @@ int WorldTick() { return TheServerWorld()->tick_; }
 // _CIfmod (006E95AA): ST1 mod ST0. GetWorldTime: (time * scale + offset) mod 24.
 float WorldTimeOfDay() {
     const CWorldServer* world = TheServerWorld();
-    return static_cast<float>(libcrt::CiFmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
+    return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
 // Release a slot's object and store `object` with a new reference.
@@ -592,7 +594,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
     case 0xAB: { // GetObjectByID (decimal string)
-        CEngineObject* o = TheServerWorld()->FindObject(libcrt::Atoi(stringArgs.data[0]));
+        CEngineObject* o = TheServerWorld()->FindObject(std::atoi(stringArgs.data[0]));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
                            stringArgs.data[0].GetString(), "GetObjectByID");
