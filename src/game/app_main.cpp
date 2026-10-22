@@ -207,7 +207,6 @@ constexpr DWORD kLittleMemory = 0x800000;
 
 // The objects.
 void* ClassRegistry() { return &ei::GameData<char>(0x0079B270); }
-void* LogicSettingsObject() { return &ei::GameData<char>(0x007C53F8); }
 void* QuestDatabaseObject() { return &TheQuestDatabase(); }
 void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
 void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
@@ -802,7 +801,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     StoreStartFolder();
     {
         mfc::CString settings = StartFolder() + "config\\ai.reg";
-        static_cast<LogicSettings*>(LogicSettingsObject())->Load(settings);
+        g_logicSettings.Load(settings);
     }
     OptionsLoadAt(options, nullptr, RegistryRoot());
     const gamecrt::NewHandler previousHandler =

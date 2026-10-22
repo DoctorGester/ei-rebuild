@@ -92,6 +92,7 @@ TYPES = {
     'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
     'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection (crt_iostream.cpp)
+    'LogicSettings': 'B' * 4 + 'f' * 39 + 'if' + 'f' * 9,   # logic_settings.h: loaded and padding, 39 floats, questsToRespawn, 10 floats
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
     'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy
