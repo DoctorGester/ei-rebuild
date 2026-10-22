@@ -113,8 +113,8 @@ EI_REWRITTEN(0x0047D970, CMemoryStream::DecompressTo);
 
 namespace delta {
 
-void __fastcall WriteRaw(const void* data, std::uint32_t size, BitStream* out) {
-    const auto* p = static_cast<const std::uint8_t*>(data);
+void __fastcall WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out) {
+    const std::uint8_t* p = data;
     std::uint32_t rest = size;
     out->PutBit(false);
     if (static_cast<int>(size) > 3) {
@@ -130,16 +130,16 @@ void __fastcall WriteRaw(const void* data, std::uint32_t size, BitStream* out) {
 }
 EI_REWRITTEN(0x0047E6D0, WriteRaw);
 
-void __fastcall WriteDiff(const void* old, const void* data, std::uint32_t size, BitStream* out) {
+void __fastcall WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out) {
     if (std::memcmp(old, data, size) == 0) {
         out->PutBit(true);
         return;
     }
     out->PutBit(false);
-    const auto* p = static_cast<const std::uint8_t*>(data);
+    const std::uint8_t* p = data;
     std::uint32_t rest = size;
     if (static_cast<int>(size) > 3) {
-        std::ptrdiff_t toOld = static_cast<const std::uint8_t*>(old) - p;
+        std::ptrdiff_t toOld = old - p;
         std::uint32_t words = size >> 2;
         rest = size - words * 4;
         do {
@@ -162,15 +162,16 @@ EI_REWRITTEN(0x0047E5E0, WriteDiff);
 // `keepSnapshot` the snapshot is updated in place; it is advanced past the bytes either way.
 void __fastcall WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
                                   BitStream* out) {
+    const auto* bytes = static_cast<const std::uint8_t*>(data);
     std::uint32_t end = snapshot->Position() + size;
     if (snapshot->Size() < end) {
-        WriteRaw(data, size, out);
+        WriteRaw(bytes, size, out);
         snapshot->Write(data, size);
         return;
     }
     std::uint8_t* buffer = snapshot->data_;
     std::uint8_t* current = buffer + snapshot->Position();
-    WriteDiff(current, data, size, out);
+    WriteDiff(current, bytes, size, out);
     if (keepSnapshot) std::memcpy(current, data, size);
     snapshot->Seek(snapshot->Position() + size);
 }
@@ -297,9 +298,8 @@ EI_REWRITTEN(0x0047E2D0, DeltaField::WriteStringBoth);
 std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::g_received->Read(data, size); }
 EI_REWRITTEN(0x0047E170, DeltaField::ReadRaw);
 
-void* DeltaField::ReadString(void* cstring) {
-    delta::g_received->ReadString(cstring);
-    return cstring;
+mfc::CString* DeltaField::ReadString(void* cstring) {
+    return delta::g_received->ReadString(cstring);
 }
 EI_REWRITTEN(0x0047E310, DeltaField::ReadString);
 
@@ -311,7 +311,7 @@ EI_REWRITTEN(0x0047E190, DeltaField::WriteStreamBoth);
 
 void DeltaField::ReadText(char* text, int size) {
     alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-    auto* string = static_cast<mfc::CString*>(ReadString(storage));
+    mfc::CString* string = ReadString(storage);
     if (string->GetLength() < size - 1) {
         const char* from = *string;
         std::memcpy(text, from, std::strlen(from) + 1);
@@ -332,7 +332,7 @@ namespace delta {
 int __fastcall GetBit(BitStream* reader) { return reader->GetBit() ? 1 : 0; }
 EI_REWRITTEN(0x0047EAE0, GetBit);
 
-bool __fastcall ReadDiff(const void* old, void* data, std::uint32_t size, BitStream* reader) {
+bool __fastcall ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader) {
     if (reader->GetBit()) {
         std::memcpy(data, old, size);
         return false;
@@ -340,7 +340,7 @@ bool __fastcall ReadDiff(const void* old, void* data, std::uint32_t size, BitStr
     auto* p = static_cast<std::uint8_t*>(data);
     std::uint32_t rest = size;
     if (static_cast<int>(size) > 3) {
-        std::ptrdiff_t toOld = static_cast<const std::uint8_t*>(old) - p;
+        std::ptrdiff_t toOld = old - p;
         std::uint32_t words = size >> 2;
         rest = size - words * 4;
         do {

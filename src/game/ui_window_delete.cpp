@@ -106,7 +106,7 @@ EI_REWRITTEN(0x00608ED0, CChatWindow::DestroyBody);
 void CUiItemStrip::DestroyForwarding() {
     list_.vtable = ItemArrayVtable();
     list_.FreeData();
-    window.DestroyBase();
+    DestroyBase();
 }
 EI_REWRITTEN(0x0060E2B0, CUiItemStrip::DestroyForwarding);
 

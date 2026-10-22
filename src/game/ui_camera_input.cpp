@@ -107,7 +107,7 @@ struct CameraInputClass final : InputSideClass<CameraInputClass, &UiInputSide::I
 };
 } // namespace
 
-void** CCameraInput::Vtable() { return static_cast<void**>(CameraInputClass::Vtable()); }
+void** CCameraInput::Vtable() { return CameraInputClass::Slots(); }
 
 CCameraInput* CCameraInput::Construct(CInterface3D* ui) {
     interface_ = ui;

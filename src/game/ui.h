@@ -43,6 +43,7 @@ static_assert(sizeof(ReturnedString) == 4);
 class CUiWindow;
 class CChatOverlay;
 struct UiInputSide;
+struct UiContainerInput;
 class CUiMesh;
 struct CDXSurface;
 class CSceneRenderer;   // model.h
@@ -50,6 +51,7 @@ class CTextureDevice;   // texture.h
 class CPixelConverter;  // texture.h
 class CStream;          // core_streams.h
 class CUiSurface;
+class CItemScreen;   // ui_item_info.h
 
 // The interface's screen fade and letterbox (CInterface3D +0x18), drawn over everything by the
 // interface's draw (005F5220). Only the fields its draw uses.
@@ -163,7 +165,7 @@ public:
     // "lmp_player_connected" .. "reserved_02"; others an empty key) from the text table,
     // formatted with `value` when it is not 0, constructed into `out`; returns `out`
     // (ui_interface_save.cpp).
-    void* MessageText(void* out, int id, const char* value);
+    mfc::CString* MessageText(void* out, int id, const char* value);
     // 005F8A80 (RET 4). Without `force`, takes the next queued message (the list at +0x84) into
     // +0xA4 (+0xA8 = 0), or returns when there is none. A non-empty +0xA4 then opens the message
     // window (0x194 bytes, vtables 00740E28 / 00740DF4) over the others, unless the option
@@ -1053,22 +1055,16 @@ public:
     void OnLeftDown(int buttons, int x, int y);
     // 0060E210 (RET 8; ui_item_panel_input.cpp). The blank panel's constructor (the camp's): the
     // window base, vtables 00741B58 / 00741B24, owner_ = `owner` (mode_ left). Returns this.
-    CUiItemPanel* ConstructBlank(CInterface3D* ui, CUiWindow* owner);
+    CUiItemPanel* ConstructBlank(CInterface3D* ui, CItemScreen* owner);
 
-    // The owner's slots the panels call (the camp 0074091C, the hero screen 0074214C).
+    // The owner's slots the panels call (the camp 0074091C, the hero screen 0074214C; ui_item_info.h).
     // Slot 42 (+0xA8): take `item` with the panel's action mode.
-    void OwnerTakeItem(void* item) {
-        using Fn = void(__thiscall*)(CUiWindow*, void*, int);
-        ei::VirtualSlot<Fn>(owner_->vtable_, 42)(owner_, item, mode_);
-    }
+    void OwnerTakeItem(CItem* item);
     // Slot 44 (+0xB0): help topic `topic` clicked.
-    void OwnerTopicClicked(int topic) {
-        using Fn = void(__thiscall*)(CUiWindow*, int, int);
-        ei::VirtualSlot<Fn>(owner_->vtable_, 44)(owner_, topic, mode_);
-    }
+    void OwnerTopicClicked(int topic);
 
     int mode_;                       // +0x148 the action mode handed to the owner (ItemCell::mode)
-    CUiWindow* owner_;               // +0x14C the item screen
+    CItemScreen* owner_;             // +0x14C the item screen
 };
 static_assert(offsetof(CUiItemPanel, mode_) == 0x148);
 static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
@@ -2060,6 +2056,9 @@ public:
     // 00741008 / 00740FD4 (not Vtable(): a screen without its own would inherit the container's).
     static void** ContainerVtable();
     static void** ContainerInputVtable();
+    // The window's input side (+0x94) as the container's (UiContainerInput below), whose default
+    // handlers the screens call after their own.
+    UiContainerInput* ContainerInput();
 
     UiPtrArray<CUiWindow> children_;          // +0x148
     UiInputSide** inputsBegin_;               // +0x158 extra input sides (STLport vector)
@@ -2423,6 +2422,7 @@ struct UiContainerInput : UiInputSide {
     // holding (b, c).
     void Dispatch(int slot, int a, int b, int c, bool atPoint);
 };
+inline UiContainerInput* CUiContainer::ContainerInput() { return static_cast<UiContainerInput*>(Input()); }
 
 // The default handlers of a container's input side (`input` = window + 0x94).
 

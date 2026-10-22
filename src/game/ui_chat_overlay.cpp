@@ -40,8 +40,8 @@ struct ChatOverlayInputClass final : InputSideClass<ChatOverlayInputClass, &CCha
     int KeyDown(int k, int r, int f) override { return SideWindow()->OnKeyDown(k, r, f), 0; }   // 9: 005E3230
     int Char(int k, int r, int f) override { return SideWindow()->OnChar(k, r, f), 0; }         // 10: 005E3550
 };
-void** ChatOverlayVtable() { return static_cast<void**>(ChatOverlayClass::Vtable()); }
-void** ChatOverlayInputVtable() { return static_cast<void**>(ChatOverlayInputClass::Vtable()); }
+void** ChatOverlayVtable() { return ChatOverlayClass::Slots(); }
+void** ChatOverlayInputVtable() { return ChatOverlayInputClass::Slots(); }
 // The typed line: at most 200 characters and narrower than 780 pixels in font 1.
 constexpr int kMaxTyped = 200;
 constexpr int kMaxTypedWidth = 0x30C;

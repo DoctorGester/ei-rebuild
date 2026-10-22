@@ -17,6 +17,7 @@
 #include "game_data.h"
 
 class CItem;     // item.h
+class CParty;    // party.h
 class CSpell;    // spell.h
 class CStream;   // core_streams.h
 
@@ -101,7 +102,7 @@ inline float FifthFactor() { return 0.2f /*0073BAD4*/; }
 } // namespace stock
 
 struct ItemStock {
-    void* context;                  // +0x00 the template's party object: slot 16 the item constructor,
+    CParty* context;                // +0x00 the template's party object: slot 16 the item constructor,
                                     //   slot 18 the item manager
     int classIndex;                 // +0x04 bit of the records' class masks
     StockPrototypeVector armors;    // +0x08
@@ -119,7 +120,7 @@ struct ItemStock {
     // six vectors empty, both maps empty with NextPrime(100) buckets (their functor bytes left as
     // they are; the original copies an uninitialised stack byte). Returns this. +0x78..+0xB7 are
     // not written.
-    ItemStock* Construct(void* context);
+    ItemStock* Construct(CParty* context);
 
     // 00699080 / 006990E0 / 00699140 / 006991A0 / 00699200 (RET 4; A-H25). `record` appended to the
     // armors / weapons / quick items / spells / modifiers unless null or already there.

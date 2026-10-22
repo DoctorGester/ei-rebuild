@@ -132,7 +132,7 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
         {
             mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
             const char* mapTitle = *SessionMapNameInto(&title);
-            Announce(*static_cast<mfc::CString*>(TheInterface()->MessageText(&text, 7, mapTitle)), nullptr);
+            Announce(*TheInterface()->MessageText(&text, 7, mapTitle), nullptr);
         }
     }
 
@@ -185,7 +185,7 @@ void ServerSession::LeaveZone() {
         {
             mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
             const char* mapTitle = *SessionMapNameInto(&title);
-            Announce(*static_cast<mfc::CString*>(TheInterface()->MessageText(&text, 6, mapTitle)), nullptr);
+            Announce(*TheInterface()->MessageText(&text, 6, mapTitle), nullptr);
         }
 
         std::uint8_t* entry;

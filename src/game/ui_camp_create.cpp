@@ -98,7 +98,7 @@ void SetVtables(CUiWindow* window, VtablePair vtables) {
 }
 
 // A description panel (its item list and text arrays constructed in place).
-CItemInfoPanel* NewInfoPanel(CInterface3D* ui, CUiWindow* owner) {
+CItemInfoPanel* NewInfoPanel(CInterface3D* ui, CItemScreen* owner) {
     auto* panel = NewItemPanel<CItemInfoPanel>(ui, owner, ItemPanelVtables());
     if (!panel) return nullptr;
     panel->ItemParty()->Construct();
@@ -110,14 +110,13 @@ CItemInfoPanel* NewInfoPanel(CInterface3D* ui, CUiWindow* owner) {
 
 // An item strip that hands its clicks to `owner` (the blank panel, the plain strip, its list,
 // then the forwarding strip's vtables).
-CUiItemStrip* NewStrip(CInterface3D* ui, CUiWindow* owner) {
-    void* memory = gamecrt::operator_new(sizeof(CUiItemStrip));
-    if (!memory) return nullptr;
-    auto* strip = static_cast<CUiItemStrip*>(memory);
-    static_cast<CUiItemPanel*>(memory)->ConstructBlank(ui, owner);
-    SetVtables(&strip->window, PlainStripVtables());
+CUiItemStrip* NewStrip(CInterface3D* ui, CItemScreen* owner) {
+    CUiItemStrip* strip = gamecrt::operator_new_as<CUiItemStrip>();
+    if (!strip) return nullptr;
+    strip->ConstructBlank(ui, owner);
+    SetVtables(strip, PlainStripVtables());
     strip->list_.Construct(ItemArrayVtable());
-    SetVtables(&strip->window, ForwardingStripVtables());
+    SetVtables(strip, ForwardingStripVtables());
     return strip;
 }
 
@@ -139,8 +138,6 @@ void BuildPanel(CUiWindow* panel) {
     using BuildFn = void(__thiscall*)(CUiWindow*);
     ei::VirtualSlot<BuildFn>(panel->vtable_, kSlotBuild)(panel);
 }
-
-UiPtrArray<char>* ItemsOf(CParty* list) { return reinterpret_cast<UiPtrArray<char>*>(&list->items_); }
 
 // The time in animation frames: milliseconds / 1024 (0073BB24) * 15 (0073C518).
 double FramesNow() {
@@ -270,9 +267,9 @@ void CCampPages::BuildPages() {
     // The party's items.
     CUiItemStrip* strip = NewStrip(interface_, this);
     itemStrip_ = strip;
-    AsContainer(this)->AddChild(strip ? &strip->window : nullptr);
-    itemStrip_->Setup(ItemsOf(LocalPlayerData()), 0);
-    itemStrip_->actionMode_ = kActionEquip;
+    AsContainer(this)->AddChild(strip);
+    itemStrip_->Setup(&LocalPlayerData()->items_, 0);
+    itemStrip_->mode_ = kActionEquip;
     itemStrip_->SetFilter(kFilterItems);
 
     // The hero's equipment (with the body) and quick items.
@@ -307,9 +304,9 @@ void CCampPages::BuildPages() {
     if (spellConstructor_) {
         strip = NewStrip(interface_, this);
         spellStrip_ = strip;
-        AsContainer(this)->AddChild(strip ? &strip->window : nullptr);
-        spellStrip_->Setup(ItemsOf(spellParts_[0]), 1);
-        spellStrip_->actionMode_ = kActionSpellParts;
+        AsContainer(this)->AddChild(strip);
+        spellStrip_->Setup(&spellParts_[0]->items_, 1);
+        spellStrip_->mode_ = kActionSpellParts;
         spellStrip_->SetFilter(kFilterSpells);
         spellStrip_->SetSlots(0);
 
@@ -332,9 +329,9 @@ void CCampPages::BuildPages() {
     if (itemConstructor_) {
         strip = NewStrip(interface_, this);
         partStrip_ = strip;
-        AsContainer(this)->AddChild(strip ? &strip->window : nullptr);
-        partStrip_->Setup(ItemsOf(itemParts_[0]), 1);
-        partStrip_->actionMode_ = kActionItemParts;
+        AsContainer(this)->AddChild(strip);
+        partStrip_->Setup(&itemParts_[0]->items_, 1);
+        partStrip_->mode_ = kActionItemParts;
         partStrip_->SetFilter(kFilterArmour);
         partStrip_->SetSlots(4);
 

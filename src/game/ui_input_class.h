@@ -51,12 +51,12 @@ public:
 // An extra input side whose slots do nothing (0x0C bytes; game.exe's 00741154: slots 9 / 11 are its own empty RET 0xC,
 // 005EB8A0 / 005EB8B0): the battle screen's, the briefing's, the main menu's and the view screens'.
 struct InertInputClass final : InputSideClass<InertInputClass, &UiInputSide::InputSideDelete> {};
-inline void** InertInputVtable() { return static_cast<void**>(InertInputClass::Vtable()); }
+inline void** InertInputVtable() { return InertInputClass::Slots(); }
 
 // The base input side (game.exe's 007401D0): slot 0 its own deleting destructor (005EA850), the rest the defaults.
 // The window base's constructor stores it first, the input sides' destructors leave it.
 struct InputSideBaseClass final : InputSideClass<InputSideBaseClass, &UiInputSide::InputSideBaseDelete> {};
-inline void** BaseInputVtable() { return static_cast<void**>(InputSideBaseClass::Vtable()); }
+inline void** BaseInputVtable() { return InputSideBaseClass::Slots(); }
 
 // The plain window's input side (game.exe's 00740F2C): the window's deleting destructor, the defaults.
 struct UiWindowInputClass final : InputSideClass<UiWindowInputClass, &CUiWindow::UiWindowDelete> {};

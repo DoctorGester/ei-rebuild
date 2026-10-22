@@ -155,7 +155,7 @@ void CString::AllocBuffer(int length) {
 #ifdef EI_VECTORS_REPLAY
     // ei_vectors has no fixed allocators: exactly the room asked for, as its own CString allocates
     // (tests/vectors/replay_mfc.cpp), so either may free the other's strings.
-    data = static_cast<CStringData*>(gamecrt::operator_new(sizeof(CStringData) + static_cast<std::size_t>(length) + 1));
+    data = gamecrt::operator_new_bytes_as<CStringData>(sizeof(CStringData) + static_cast<std::size_t>(length) + 1);
     data->allocLength = length;
 #else
     if (length <= 64) {
@@ -171,7 +171,7 @@ void CString::AllocBuffer(int length) {
         data = static_cast<CStringData*>(StringAlloc512().Alloc());
         data->allocLength = 512;
     } else {
-        data = static_cast<CStringData*>(gamecrt::operator_new(sizeof(CStringData) + static_cast<std::size_t>(length) + 1));
+        data = gamecrt::operator_new_bytes_as<CStringData>(sizeof(CStringData) + static_cast<std::size_t>(length) + 1);
         data->allocLength = length;
     }
 #endif
@@ -699,7 +699,7 @@ void __cdecl CString::Format(const char* format, ...) {
 // ---- Elements -----------------------------------------------------------------------------------
 
 void __stdcall ConstructStrings(CString* elements, int count) {
-    for (; count--; ++elements) ::new (static_cast<void*>(elements)) CString;
+    for (; count--; ++elements) ::new (elements) CString;
 }
 
 void __stdcall DestructStrings(CString* elements, int count) {

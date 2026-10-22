@@ -57,13 +57,13 @@ CUiMesh* Sprite(CUiWindow& w, int index) { return w.SceneMesh(index); }
 
 } // namespace
 
-void CUiItemStrip::Setup(UiPtrArray<char>* source, char top) {
-    window.LoadTexture(top ? kTopTexture : kBottomTexture, kTextureKind, nullptr);
+void CUiItemStrip::Setup(UiPtrArray<CItem>* source, char top) {
+    LoadTexture(top ? kTopTexture : kBottomTexture, kTextureKind, nullptr);
     Build(top);
-    window.regions_.data[0]->SetTip(0x4FB0, 1, 0);
-    window.regions_.data[1]->SetTip(0x4FB1, 1, 0);
-    window.AddSurface(NewSurface(window.interface_, 50, top_ + 15, 750, top_ + 35));
-    window.AddSurface(NewSurface(window.interface_, 50, top_ + 65, 750, top_ + 85));
+    regions_.data[0]->SetTip(0x4FB0, 1, 0);
+    regions_.data[1]->SetTip(0x4FB1, 1, 0);
+    AddSurface(NewSurface(interface_, 50, top_ + 15, 750, top_ + 35));
+    AddSurface(NewSurface(interface_, 50, top_ + 65, 750, top_ + 85));
     slots_ = 9;
     source_ = source;
 }
@@ -71,14 +71,14 @@ EI_REWRITTEN(0x00621160, CUiItemStrip::Setup);
 
 void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTips) {
     figures_ = names;
-    window.LoadTexture(kFigureTexture, kTextureKind, nullptr);
+    LoadTexture(kFigureTexture, kTextureKind, nullptr);
     Build(top);
     if (!noArrowTips) {
-        window.regions_.data[0]->SetTip(0x9DD0, 1, 0);
-        window.regions_.data[1]->SetTip(0x9DD1, 1, 0);
+        regions_.data[0]->SetTip(0x9DD0, 1, 0);
+        regions_.data[1]->SetTip(0x9DD1, 1, 0);
     }
     tabsEnabled_ = false;
-    for (int i = 2; i < 8; ++i) window.SceneMesh(i)->visible_ = 0;
+    for (int i = 2; i < 8; ++i) SceneMesh(i)->visible_ = 0;
 }
 EI_REPLACE_METHOD(0x00629A40, CUiItemStrip::SetupFigures);
 
@@ -88,23 +88,23 @@ BOOL CUiItemStrip::DrawFigures(int pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);   // _ftol
     const float frac = static_cast<float>(position - static_cast<float>(first));
-    Sprite(window, 0)->textureOffsetU_ = position_[tab_] > kZero ? std::bit_cast<float>(kDimmed) : 0.0f;
-    Sprite(window, 1)->textureOffsetU_ = static_cast<float>(count_ - 7) > position_[tab_] ? std::bit_cast<float>(kDimmed) : 0.0f;
-    Sprite(window, 9)->Place(kHalfCell - frac * kCell, static_cast<float>(top_), scale_ + scale_);
+    Sprite(*this, 0)->textureOffsetU_ = position_[tab_] > kZero ? std::bit_cast<float>(kDimmed) : 0.0f;
+    Sprite(*this, 1)->textureOffsetU_ = static_cast<float>(count_ - 7) > position_[tab_] ? std::bit_cast<float>(kDimmed) : 0.0f;
+    Sprite(*this, 9)->Place(kHalfCell - frac * kCell, static_cast<float>(top_), scale_ + scale_);
     for (int i = 0; i < 8; ++i) {
-        Sprite(window, 10 + i)->Place(((static_cast<float>(i) - frac) + kOne) * kCell, static_cast<float>(top_) + kHalfCell,
+        Sprite(*this, 10 + i)->Place(((static_cast<float>(i) - frac) + kOne) * kCell, static_cast<float>(top_) + kHalfCell,
                                       scale_);
     }
-    Sprite(window, 8)->visible_ = 0;
+    Sprite(*this, 8)->visible_ = 0;
     if (selected_ >= 0 && selected_ < count_) {
         int cell = selected_ - first;
         if (cell >= 0 && cell < 8) {
-            Sprite(window, 8)->visible_ = 1;
-            Sprite(window, 8)->Place(((static_cast<float>(cell) - frac) + kOne) * kCell,
+            Sprite(*this, 8)->visible_ = 1;
+            Sprite(*this, 8)->Place(((static_cast<float>(cell) - frac) + kOne) * kCell,
                                      static_cast<float>(top_) + kHalfCell, scale_ * kFrameDepth);
         }
     }
-    window.DrawBase(pass);
+    DrawBase(pass);
     mfc::CString name;
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
@@ -127,12 +127,12 @@ EI_REPLACE_METHOD(0x00629AD0, CUiItemStrip::CountFigures);
 
 void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
     OnLButtonDown(buttons, x, y);
-    if (window.RegionAt(x, y) != 8) return;
+    if (RegionAt(x, y) != 8) return;
     POINT point{x, y};
-    window.interface_->CallScalePointFromScreen(&point);
+    interface_->CallScalePointFromScreen(&point);
     int index = static_cast<int>(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]);   // _ftol
     if (index < 0 || index >= count_) return;
-    uiorig::PlayUiSound(window.interface_, OnOffSound(), 0);
+    uiorig::PlayUiSound(interface_, OnOffSound(), 0);
     ChooseFigure(owner_, figures_->begin()[index]);
 }
 namespace {

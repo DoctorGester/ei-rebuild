@@ -42,10 +42,10 @@ float AsFloat(int value) { return static_cast<float>(value); }
 
 } // namespace
 
-void** CUiScrollbar::Vtable() { return static_cast<void**>(ScrollbarTable::Vtable()); }
-void** CUiScrollbar::InputVtable() { return static_cast<void**>(ScrollbarInputTable::Vtable()); }
-void** CUiSlider::Vtable() { return static_cast<void**>(SliderTable::Vtable()); }
-void** CUiSlider::InputVtable() { return static_cast<void**>(SliderInputTable::Vtable()); }
+void** CUiScrollbar::Vtable() { return ScrollbarTable::Slots(); }
+void** CUiScrollbar::InputVtable() { return ScrollbarInputTable::Slots(); }
+void** CUiSlider::Vtable() { return SliderTable::Slots(); }
+void** CUiSlider::InputVtable() { return SliderInputTable::Slots(); }
 
 CUiScrollbar* CUiScrollbar::Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed) {
     CUiWindow::Construct(ui);

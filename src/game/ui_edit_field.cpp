@@ -138,8 +138,8 @@ std::uint32_t CharClass(int key) {
 }
 } // namespace
 
-void** CUiEditField::Vtable() { return static_cast<void**>(EditFieldTable::Vtable()); }
-void** CUiEditField::InputVtable() { return static_cast<void**>(EditFieldInputTable::Vtable()); }
+void** CUiEditField::Vtable() { return EditFieldTable::Slots(); }
+void** CUiEditField::InputVtable() { return EditFieldInputTable::Slots(); }
 
 CUiEditField* CUiEditField::Construct(CInterface3D* ui, RECT rect) {
     CUiWindow::Construct(ui);

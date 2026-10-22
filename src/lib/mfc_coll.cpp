@@ -60,7 +60,7 @@ void PlainArray<T, Class>::SetSize(int newSize, int newGrowBy) {
         data = nullptr;
         size = maxSize = 0;
     } else if (!data) {
-        data = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(newSize) * sizeof(T)));
+        data = gamecrt::operator_new_array<T>(static_cast<std::size_t>(newSize));
         std::memset(data, 0, static_cast<std::size_t>(newSize) * sizeof(T));
         size = maxSize = newSize;
     } else if (newSize <= maxSize) {
@@ -69,7 +69,7 @@ void PlainArray<T, Class>::SetSize(int newSize, int newGrowBy) {
     } else {
         int step = GrowthStep(growBy, size);
         int newMax = newSize < maxSize + step ? maxSize + step : newSize;
-        T* fresh = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(newMax) * sizeof(T)));
+        T* fresh = gamecrt::operator_new_array<T>(static_cast<std::size_t>(newMax));
         std::memcpy(fresh, data, static_cast<std::size_t>(size) * sizeof(T));
         std::memset(fresh + size, 0, static_cast<std::size_t>(newSize - size) * sizeof(T));
         gamecrt::operator_delete(data);
@@ -111,7 +111,7 @@ template struct PlainArray<unsigned, UIntArrayClass>;
 // ---- CStringArray -------------------------------------------------------------------------------
 
 void __cdecl CStringArray::ConstructElements(CString* elements, int count) {
-    for (; count--; ++elements) ::new (static_cast<void*>(elements)) CString;
+    for (; count--; ++elements) ::new (elements) CString;
 }
 
 void __cdecl CStringArray::DestructElements(CString* elements, int count) {
@@ -153,7 +153,7 @@ void CStringArray::SetSize(int newSize, int newGrowBy) {
         data = nullptr;
         size = maxSize = 0;
     } else if (!data) {
-        data = static_cast<CString*>(gamecrt::operator_new(static_cast<std::size_t>(newSize) * sizeof(CString)));
+        data = gamecrt::operator_new_array<CString>(static_cast<std::size_t>(newSize));
         ConstructElements(data, newSize);
         size = maxSize = newSize;
     } else if (newSize <= maxSize) {
@@ -163,7 +163,7 @@ void CStringArray::SetSize(int newSize, int newGrowBy) {
     } else {
         int step = GrowthStep(growBy, size);
         int newMax = newSize < maxSize + step ? maxSize + step : newSize;
-        auto* fresh = static_cast<CString*>(gamecrt::operator_new(static_cast<std::size_t>(newMax) * sizeof(CString)));
+        auto* fresh = gamecrt::operator_new_array<CString>(static_cast<std::size_t>(newMax));
         std::memcpy(static_cast<void*>(fresh), data, static_cast<std::size_t>(size) * sizeof(CString));
         ConstructElements(fresh + size, newSize - size);
         gamecrt::operator_delete(data);
@@ -236,22 +236,22 @@ void CStringArray::Serialize(CArchive* ar) {
 
 // The create functions: a new array from operator new, constructed; null when out of memory.
 void* __stdcall CreateCStringArray() {
-    auto* array = static_cast<CStringArray*>(gamecrt::operator_new(sizeof(CStringArray)));
+    auto* array = gamecrt::operator_new_as<CStringArray>();
     return array ? array->Construct() : nullptr;
 }
 
 void* __stdcall CreateCWordArray() {
-    auto* array = static_cast<CWordArray*>(gamecrt::operator_new(sizeof(CWordArray)));
+    auto* array = gamecrt::operator_new_as<CWordArray>();
     return array ? array->Construct() : nullptr;
 }
 
 void* __stdcall CreateCDWordArray() {
-    auto* array = static_cast<CDWordArray*>(gamecrt::operator_new(sizeof(CDWordArray)));
+    auto* array = gamecrt::operator_new_as<CDWordArray>();
     return array ? array->Construct() : nullptr;
 }
 
 void* __stdcall CreateCByteArray() {
-    auto* array = static_cast<CByteArray*>(gamecrt::operator_new(sizeof(CByteArray)));
+    auto* array = gamecrt::operator_new_as<CByteArray>();
     return array ? array->Construct() : nullptr;
 }
 
