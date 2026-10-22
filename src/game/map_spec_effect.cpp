@@ -4,6 +4,7 @@
 // save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
 #include "base_manager.h"
 #include "map_spec.h"
+#include "map_spec_class.h"
 #include "game_strings.h"
 #include "core_transform.h"
 #include "terrain.h"
@@ -83,25 +84,25 @@ EffectSpec* EffectSpec::EffectSpecDelete(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0046D350, EffectSpec::EffectSpecDelete);
+EI_REWRITTEN(0x0046D350, EffectSpec::EffectSpecDelete);
 ParticleSpec* ParticleSpec::ParticleSpecDelete(unsigned flags) {
     ParticleSpecDestruct();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0046D580, ParticleSpec::ParticleSpecDelete);
+EI_REWRITTEN(0x0046D580, ParticleSpec::ParticleSpecDelete);
 LightSpec* LightSpec::LightSpecDelete(unsigned flags) {
     LightSpecDestruct();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0046DA00, LightSpec::LightSpecDelete);
+EI_REWRITTEN(0x0046DA00, LightSpec::LightSpecDelete);
 
 // 0046D3D0 (slot 2): effects are managed under -3001 - id.
 void* EffectSpec::EffectSpecWorldObject() {
     return TheObjectManager()->FindObject(-3001 - base.id);
 }
-EI_REPLACE_METHOD(0x0046D3D0, EffectSpec::EffectSpecWorldObject);
+EI_REWRITTEN(0x0046D3D0, EffectSpec::EffectSpecWorldObject);
 
 CTransformObject* EffectSpec::Transform() const { return static_cast<CTransformObject*>(base.object); }
 
@@ -112,8 +113,8 @@ void EffectSpec::EffectSpecSetVisible(std::uint8_t newVisible) {
     if (newVisible != 0) flags &= ~0x40u;
     else flags |= 0x40;
 }
-EI_REPLACE_METHOD(0x0046D3F0, EffectSpec::EffectSpecSetVisible);
-EI_REPLACE_METHOD(0x0046E490, EffectSpec::EffectSpecSetVisible);   // the sound record's slot 11 (the same code)
+EI_REWRITTEN(0x0046D3F0, EffectSpec::EffectSpecSetVisible);
+EI_REWRITTEN(0x0046E490, EffectSpec::EffectSpecSetVisible);   // the sound record's slot 11 (the same code)
 
 // 0046D420 (slot 5): moves the record, not below the terrain, then slot 7.
 void EffectSpec::EffectSpecMove(float dx, float dy, float dz) {
@@ -125,7 +126,7 @@ void EffectSpec::EffectSpecMove(float dx, float dy, float dz) {
     if (ground > p.z) p.z = static_cast<float>(ground);
     base.Record()->ApplyObject();
 }
-EI_REPLACE_METHOD(0x0046D420, EffectSpec::EffectSpecMove);
+EI_REWRITTEN(0x0046D420, EffectSpec::EffectSpecMove);
 
 // 0046D4D0: takes the two strings (by value) and only destroys them.
 void __stdcall EffectNotify(std::uintptr_t kind, std::uintptr_t family) {
@@ -143,7 +144,7 @@ ParticleSpec* ParticleSpec::ParticleSpecConstruct() {
     effect.base.object = nullptr;
     effect.effect = nullptr;
     type = 0;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     effect.base.kind = 4;
     scale = 1.0f;
     return this;
@@ -155,7 +156,7 @@ mfc::CString* ParticleSpec::ParticleSpecTypeName(mfc::CString* out) {
     new (out) mfc::CString("Particle source");
     return out;
 }
-EI_REPLACE_METHOD(0x0046D550, ParticleSpec::ParticleSpecTypeName);
+EI_REWRITTEN(0x0046D550, ParticleSpec::ParticleSpecTypeName);
 
 // 0046D680 (slot 9): chunk DD01.
 void ParticleSpec::ParticleSpecSave() {
@@ -169,7 +170,7 @@ void ParticleSpec::ParticleSpecSave() {
     c.WriteFloat(0xDD07, Bits(scale));
     c.EndWrite();
 }
-EI_REPLACE_METHOD(0x0046D680, ParticleSpec::ParticleSpecSave);
+EI_REWRITTEN(0x0046D680, ParticleSpec::ParticleSpecSave);
 
 // 0046D730 (slot 0).
 void ParticleSpec::ParticleSpecOnChunk() {
@@ -184,7 +185,7 @@ void ParticleSpec::ParticleSpecOnChunk() {
     default: break;
     }
 }
-EI_REPLACE_METHOD(0x0046D730, ParticleSpec::ParticleSpecOnChunk);
+EI_REWRITTEN(0x0046D730, ParticleSpec::ParticleSpecOnChunk);
 
 // 0046D870 (slot 7): makes the source (when it has a type) or updates its effect.
 void ParticleSpec::ParticleSpecApply() {
@@ -201,7 +202,7 @@ void ParticleSpec::ParticleSpecApply() {
     std::memcpy(&particle->localPosition_, &b.position, 12);
     particle->MarkChanged();
 }
-EI_REPLACE_METHOD(0x0046D870, ParticleSpec::ParticleSpecApply);
+EI_REWRITTEN(0x0046D870, ParticleSpec::ParticleSpecApply);
 
 // ---- Lights (0073C788) -----------------------------------------------------------------------------
 
@@ -214,7 +215,7 @@ LightSpec* LightSpec::LightSpecConstruct() {
     colour.y = 1.0f;
     effect.visible = 1;
     shadows = 1;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     effect.base.kind = 2;
     radius = 10.0f;
     colour.z = 1.0f;
@@ -227,7 +228,7 @@ mfc::CString* LightSpec::LightSpecTypeName(mfc::CString* out) {
     new (out) mfc::CString("Light");
     return out;
 }
-EI_REPLACE_METHOD(0x0046D9D0, LightSpec::LightSpecTypeName);
+EI_REWRITTEN(0x0046D9D0, LightSpec::LightSpecTypeName);
 
 // 0046DB20 (slot 9): chunk AA01.
 void LightSpec::LightSpecSave() {
@@ -242,7 +243,7 @@ void LightSpec::LightSpecSave() {
     c.WriteString(0xAA08, effect.base.comment);
     c.EndWrite();
 }
-EI_REPLACE_METHOD(0x0046DB20, LightSpec::LightSpecSave);
+EI_REWRITTEN(0x0046DB20, LightSpec::LightSpecSave);
 
 // 0046DBF0 (slot 0).
 void LightSpec::LightSpecOnChunk() {
@@ -258,7 +259,7 @@ void LightSpec::LightSpecOnChunk() {
     default: break;
     }
 }
-EI_REPLACE_METHOD(0x0046DBF0, LightSpec::LightSpecOnChunk);
+EI_REWRITTEN(0x0046DBF0, LightSpec::LightSpecOnChunk);
 
 // 0046DD70 (slot 7): makes the light or updates its effect (colour, radius, position).
 void LightSpec::LightSpecApply() {
@@ -275,19 +276,19 @@ void LightSpec::LightSpecApply() {
     std::memcpy(&effect.Transform()->localPosition_, &b.position, 12);
     light->MarkChanged();
 }
-EI_REPLACE_METHOD(0x0046DD70, LightSpec::LightSpecApply);
+EI_REWRITTEN(0x0046DD70, LightSpec::LightSpecApply);
 
 // ---- Sounds (0073C7B8) -------------------------------------------------------------------------------
 
 // 0046DE70. Returns this.
 SoundSpec* SoundSpec::SoundSpecConstruct() {
     effect.base.SpecConstruct();
-    ei::SetVtable(this, EffectSpec::kVtableAddress);
+    ei::SetVtable(this, EffectSpec::Vtable());
     effect.base.object = nullptr;
     effect.effect = nullptr;
     effect.visible = 1;
     sounds.Construct();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     effect.base.kind = 3;
     sounds.SetSize(0, -1);
     volume = 10;
@@ -304,7 +305,7 @@ EI_REWRITTEN(0x0046DE70, SoundSpec::SoundSpecConstruct);
 
 // 0046DF70: the destructor body.
 void SoundSpec::SoundSpecDestruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     sounds.Destruct();
     effect.base.SpecDestruct();
 }
@@ -316,14 +317,14 @@ SoundSpec* SoundSpec::SoundSpecDelete(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0046DF50, SoundSpec::SoundSpecDelete);
+EI_REWRITTEN(0x0046DF50, SoundSpec::SoundSpecDelete);
 
 // 0046DF20 (slot 4): "Sound".
 mfc::CString* SoundSpec::SoundSpecTypeName(mfc::CString* out) {
     new (out) mfc::CString("Sound");
     return out;
 }
-EI_REPLACE_METHOD(0x0046DF20, SoundSpec::SoundSpecTypeName);
+EI_REWRITTEN(0x0046DF20, SoundSpec::SoundSpecTypeName);
 
 // 0046E090 (slot 9): chunk CC01.
 void SoundSpec::SoundSpecSave() {
@@ -342,7 +343,7 @@ void SoundSpec::SoundSpecSave() {
     c.WriteByte(0xCC0E, field0E);
     c.EndWrite();
 }
-EI_REPLACE_METHOD(0x0046E090, SoundSpec::SoundSpecSave);
+EI_REWRITTEN(0x0046E090, SoundSpec::SoundSpecSave);
 
 // 0046E190 (slot 0).
 void SoundSpec::SoundSpecOnChunk() {
@@ -365,7 +366,7 @@ void SoundSpec::SoundSpecOnChunk() {
     default: break;
     }
 }
-EI_REPLACE_METHOD(0x0046E190, SoundSpec::SoundSpecOnChunk);
+EI_REWRITTEN(0x0046E190, SoundSpec::SoundSpecOnChunk);
 
 // 0046E380 (slot 7): makes the sound (when it has sounds); otherwise moves the world object and
 // makes its effect again.
@@ -381,6 +382,6 @@ void SoundSpec::SoundSpecApply() {
     if (sounds.size > 0) MakeEffect(&effect);
     else effect.effect = nullptr;
 }
-EI_REPLACE_METHOD(0x0046E380, SoundSpec::SoundSpecApply);
+EI_REWRITTEN(0x0046E380, SoundSpec::SoundSpecApply);
 
 } // namespace mapspec

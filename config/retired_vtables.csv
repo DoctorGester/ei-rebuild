@@ -85,10 +85,23 @@ vtable,slots,class,file,note
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
 0073C550,13,LightningClass,src/game/class_slots.cpp,a lightning bolt (CLightning)
 0073C584,3,SpriteArrayClass,src/lib/mfc_slots.h,CArray (the weather and lightning sprites)
+0073C5C4,11,SpecBaseClass,src/game/map_spec_class.h,the zone records' base record (mapspec::Spec)
+0073C5F0,12,ObjectSpecClass,src/game/map_spec_class.h,an object record (mapspec::ObjectSpec)
+0073C620,12,FlameSpecClass,src/game/map_spec_class.h,a flame record (mapspec::FlameSpec)
+0073C650,12,TrapSpecClass,src/game/map_spec_class.h,a magic trap record (mapspec::TrapSpec)
 0073C680,3,TrapTargetsArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's targets; derived from 0073C6A4)
 0073C68C,3,TrapAreasArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's areas; derived from 0073C698)
 0073C698,3,TrapCircleArrayClass,src/lib/mfc_slots.h,CArray (a trap's circles)
 0073C6A4,3,TrapPointArrayClass,src/lib/mfc_slots.h,CArray (a trap's points)
+0073C6B0,12,LeverSpecClass,src/game/map_spec_class.h,a lever record (mapspec::LeverSpec)
+0073C6E0,12,UnitSpecClass,src/game/map_spec_class.h,"a unit record (mapspec::UnitSpec; also the world server's unit creation message)"
+0073C710,2,WaypointChunkClass,src/game/map_spec_unit.cpp,a unit record's waypoint chunk reader
+0073C718,2,PatrolChunkClass,src/game/map_spec_unit.cpp,a unit record's patrol chunk reader
+0073C720,2,BehaviourChunkClass,src/game/map_spec_unit.cpp,a unit record's behaviour chunk reader and writer
+0073C728,12,EffectSpecClass,src/game/map_spec_class.h,the effect records' base (mapspec::EffectSpec; stored by the sound record's constructor)
+0073C758,12,ParticleSpecClass,src/game/map_spec_class.h,a particle source record (mapspec::ParticleSpec)
+0073C788,12,LightSpecClass,src/game/map_spec_class.h,a light record (mapspec::LightSpec)
+0073C7B8,12,SoundSpecClass,src/game/map_spec_class.h,a sound record (mapspec::SoundSpec)
 0073C800,3,IndexArrayClass,src/lib/mfc_slots.h,CArray (a model file's index lists)
 0073C80C,3,SceneObjectArrayClass,src/lib/mfc_slots.h,CArray (the scene loader's 0x1C-byte CObject elements)
 0073C818,3,DwordMapClass,src/lib/mfc_slots.h,CMap (the scene loader's CMap<DWORD; DWORD> (and the maps a node record holds))
@@ -297,6 +310,7 @@ vtable,slots,class,file,note
 0073FA04,3,CellRowArrayClass,src/lib/mfc_slots.h,CArray (the AI map's cell rows)
 0073FA10,3,SharedObjectListClass,src/game/game_slots.h,CList (the world server's shared objects)
 0073FA4C,3,RefListAClass,src/game/game_slots.h,CList (the world server's new connections; 00598F40)
+0073FA58,12,ObjectSpecClass,src/game/map_spec_class.h,"the quick item effect's object record (UseQuickItem): a twin of 0073C5F0 with the same slots (slot 10 0058EDD0, the same body as 0046A6F0)"
 0073FA88,4,CItemLinkClass,src/game/item_link.cpp,an item's link record (the world server's)
 0073FAA4,3,PartyUnitArrayClass,src/lib/mfc_slots.h,CArray (the server's and interface's party unit arrays)
 0073FAB0,3,ExperienceListClass,src/lib/mfc_slots.h,CList (CWorldServer::AwardExperience's list)

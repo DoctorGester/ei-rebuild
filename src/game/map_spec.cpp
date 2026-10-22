@@ -4,6 +4,7 @@
 #include "ai_map.h"
 #include "base_manager.h"
 #include "map_spec.h"
+#include "map_spec_class.h"
 #include "game_strings.h"
 #include "map_object.h"
 
@@ -62,7 +63,7 @@ Spec* Spec::SpecConstruct() {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     new (&name) mfc::CString();
     new (&comment) mfc::CString();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     mfc::CString none("none");
     id = -1;
     spareId = -1;
@@ -78,7 +79,7 @@ EI_REWRITTEN(0x00469CA0, Spec::SpecConstruct);
 
 // 00469E50: the destructor body.
 void Spec::SpecDestruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     comment.~CString();
     name.~CString();
     chunk.Destruct();
@@ -91,24 +92,24 @@ Spec* Spec::SpecDelete(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00469E30, Spec::SpecDelete);
+EI_REWRITTEN(0x00469E30, Spec::SpecDelete);
 
 // 00469DB0 (slot 4): "error".
 mfc::CString* Spec::SpecTypeName(mfc::CString* out) {
     new (out) mfc::CString("error");
     return out;
 }
-EI_REPLACE_METHOD(0x00469DB0, Spec::SpecTypeName);
+EI_REWRITTEN(0x00469DB0, Spec::SpecTypeName);
 
 // 00469DE0 / 00469E00 (slots 6 and 8): slot 7.
 void Spec::SpecRemove() { Record()->ApplyObject(); }
-EI_REPLACE_DISPATCH(0x00469DE0, Spec::SpecRemove);
+EI_REWRITTEN(0x00469DE0, Spec::SpecRemove);
 void Spec::SpecRefresh() { Record()->ApplyObject(); }
-EI_REPLACE_DISPATCH(0x00469E00, Spec::SpecRefresh);
+EI_REWRITTEN(0x00469E00, Spec::SpecRefresh);
 
 // 00469F20 (slot 2): the object with the record's id.
 void* Spec::SpecWorldObject() { return TheObjectManager()->FindObject(id); }
-EI_REPLACE_METHOD(0x00469F20, Spec::SpecWorldObject);
+EI_REWRITTEN(0x00469F20, Spec::SpecWorldObject);
 
 // 00469F40 (slot 5): moves the record, then slot 7.
 void Spec::SpecMove(float dx, float dy, float dz) {
@@ -117,7 +118,7 @@ void Spec::SpecMove(float dx, float dy, float dz) {
     position.z = dz + position.z;
     Record()->ApplyObject();
 }
-EI_REPLACE_METHOD(0x00469F40, Spec::SpecMove);
+EI_REWRITTEN(0x00469F40, Spec::SpecMove);
 
 // ---- Objects (0073C5F0) ------------------------------------------------------------------------
 
@@ -130,7 +131,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     new (&parentIname) mfc::CString();
     new (&skinTexture) mfc::CString();
     parts.Construct();
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     mfc::CString none("none");
     base.kind = 1;
     parentId = 0;
@@ -153,7 +154,7 @@ EI_REWRITTEN(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
 
 // 0046AEB0: the destructor body.
 void ObjectSpec::ObjectSpecDestruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     parts.Destruct();
     skinTexture.~CString();
     parentIname.~CString();
@@ -171,8 +172,8 @@ ObjectSpec* ObjectSpec::ObjectSpecDelete(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0046A6F0, ObjectSpec::ObjectSpecDelete);
-EI_REPLACE_METHOD(0x0058EDD0, ObjectSpec::ObjectSpecDelete);   // slot 10 of 0073FA58 (through 0058EDF0; A-W14)
+EI_REWRITTEN(0x0046A6F0, ObjectSpec::ObjectSpecDelete);
+EI_REWRITTEN(0x0058EDD0, ObjectSpec::ObjectSpecDelete);   // slot 10 of 0073FA58 (through 0058EDF0; A-W14)
 
 // 0046A710: copies `from` (the base fields but its kind and chunk state, then the object's).
 // The original goes through a temporary copy of the base record; CStrings share their data
@@ -229,7 +230,7 @@ void ObjectSpec::ObjectSpecWriteFields() {
     FileWrite(c, &scale.x, 4);
     FileWrite(c, &scale.z, 4);
 }
-EI_REPLACE_METHOD(0x0046A940, ObjectSpec::ObjectSpecWriteFields);
+EI_REWRITTEN(0x0046A940, ObjectSpec::ObjectSpecWriteFields);
 
 // 0046A920 (slot 9): the record as chunk B001.
 void ObjectSpec::ObjectSpecSave() {
@@ -237,7 +238,7 @@ void ObjectSpec::ObjectSpecSave() {
     base.Record()->WriteFields();
     base.chunk.EndWrite();
 }
-EI_REPLACE_METHOD(0x0046A920, ObjectSpec::ObjectSpecSave);
+EI_REWRITTEN(0x0046A920, ObjectSpec::ObjectSpecSave);
 
 // 0046AB20 (slot 0): the chunk just read, by its id.
 void ObjectSpec::ObjectSpecOnChunk() {
@@ -275,7 +276,7 @@ void ObjectSpec::ObjectSpecOnChunk() {
     default: break;
     }
 }
-EI_REPLACE_METHOD(0x0046AB20, ObjectSpec::ObjectSpecOnChunk);
+EI_REWRITTEN(0x0046AB20, ObjectSpec::ObjectSpecOnChunk);
 
 // 0046AF70 (slot 6): removes the world object, then slot 7.
 void ObjectSpec::ObjectSpecRemove() {
@@ -285,7 +286,7 @@ void ObjectSpec::ObjectSpecRemove() {
     }
     base.Record()->ApplyObject();
 }
-EI_REPLACE_METHOD(0x0046AF70, ObjectSpec::ObjectSpecRemove);
+EI_REWRITTEN(0x0046AF70, ObjectSpec::ObjectSpecRemove);
 
 CMapObject* ObjectSpec::MapObject() const { return static_cast<CMapObject*>(base.object); }
 
@@ -293,7 +294,7 @@ CMapObject* ObjectSpec::MapObject() const { return static_cast<CMapObject*>(base
 void ObjectSpec::ObjectSpecRefresh() {
     if (base.object) MapObject()->MarkChanged(2);
 }
-EI_REPLACE_METHOD(0x0046AFA0, ObjectSpec::ObjectSpecRefresh);
+EI_REWRITTEN(0x0046AFA0, ObjectSpec::ObjectSpecRefresh);
 
 // 0046AFB0 (slot 7): makes the world object, or updates it from the record (position, rotation,
 // scale, visibility) while it is out of the editor's lists.
@@ -318,7 +319,7 @@ void ObjectSpec::ObjectSpecApply() {
     SectorMapAdd(AsSectorMap(TheSectorMap()), nullptr, base.object);
     Selection()->EndRefresh();
 }
-EI_REPLACE_METHOD(0x0046AFB0, ObjectSpec::ObjectSpecApply);
+EI_REWRITTEN(0x0046AFB0, ObjectSpec::ObjectSpecApply);
 
 // 0046B090 (slot 4): the player number ("%i").
 mfc::CString* ObjectSpec::ObjectSpecTypeName(mfc::CString* out) {
@@ -327,7 +328,7 @@ mfc::CString* ObjectSpec::ObjectSpecTypeName(mfc::CString* out) {
     new (out) mfc::CString(text);
     return out;
 }
-EI_REPLACE_METHOD(0x0046B090, ObjectSpec::ObjectSpecTypeName);
+EI_REWRITTEN(0x0046B090, ObjectSpec::ObjectSpecTypeName);
 
 // ---- Flames (0073C620) ------------------------------------------------------------------------
 
@@ -336,7 +337,7 @@ FlameSpec* FlameSpec::FlameSpecConstruct() {
     object.ObjectSpecConstruct();
     new (&sound) mfc::CString();
     offset = {0.0f, 0.0f, 0.0f};
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     object.base.kind = 6;
     std::uint32_t volumeBits = 0x3F333333;   // 0.7f
     std::memcpy(&volume, &volumeBits, 4);
@@ -347,7 +348,7 @@ EI_REWRITTEN(0x0046B210, FlameSpec::FlameSpecConstruct);
 
 // 0046B120: the destructor body.
 void FlameSpec::FlameSpecDestruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     sound.~CString();
     object.ObjectSpecDestruct();
 }
@@ -359,7 +360,7 @@ FlameSpec* FlameSpec::FlameSpecDelete(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0046B1F0, FlameSpec::FlameSpecDelete);
+EI_REWRITTEN(0x0046B1F0, FlameSpec::FlameSpecDelete);
 
 // 0046B310 (slot 7): the world object is always made again.
 void FlameSpec::FlameSpecApply() {
@@ -370,7 +371,7 @@ void FlameSpec::FlameSpecApply() {
     }
     WorldMakeObjectOriginal(TheServerWorld(), nullptr, &b);
 }
-EI_REPLACE_METHOD(0x0046B310, FlameSpec::FlameSpecApply);
+EI_REWRITTEN(0x0046B310, FlameSpec::FlameSpecApply);
 
 // 0046B340 (slot 9): chunk BBBF0000 with the flame's fields, then the common ones.
 void FlameSpec::FlameSpecSave() {
@@ -382,7 +383,7 @@ void FlameSpec::FlameSpecSave() {
     object.ObjectSpecWriteFields();
     c.EndWrite();
 }
-EI_REPLACE_METHOD(0x0046B340, FlameSpec::FlameSpecSave);
+EI_REWRITTEN(0x0046B340, FlameSpec::FlameSpecSave);
 
 // 0046B3C0 (slot 0).
 void FlameSpec::FlameSpecOnChunk() {
@@ -398,7 +399,7 @@ void FlameSpec::FlameSpecOnChunk() {
     default: object.ObjectSpecOnChunk(); break;
     }
 }
-EI_REPLACE_METHOD(0x0046B3C0, FlameSpec::FlameSpecOnChunk);
+EI_REWRITTEN(0x0046B3C0, FlameSpec::FlameSpecOnChunk);
 
 // ---- Magic traps (0073C650) --------------------------------------------------------------------
 
@@ -418,7 +419,7 @@ TrapSpec* TrapSpec::TrapSpecConstruct() {
     trap.points.size = 0;
     ei::SetVtable(&trap.points, mfc::impl::TrapTargetsArrayClass::Vtable());
     trap.period = 15;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     object.base.kind = 7;
     return this;
 }
@@ -441,14 +442,14 @@ TrapSpec* TrapSpec::TrapSpecDelete(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0046B550, TrapSpec::TrapSpecDelete);
+EI_REWRITTEN(0x0046B550, TrapSpec::TrapSpecDelete);
 
 // 0046B520 (slot 4): "MagicTrap".
 mfc::CString* TrapSpec::TrapSpecTypeName(mfc::CString* out) {
     new (out) mfc::CString("MagicTrap");
     return out;
 }
-EI_REPLACE_METHOD(0x0046B520, TrapSpec::TrapSpecTypeName);
+EI_REWRITTEN(0x0046B520, TrapSpec::TrapSpecTypeName);
 
 // 0046B680 (slot 9): chunk BBAB0000: the trap's fields (the arrays as a count and the raw
 // elements), then the common ones.
@@ -470,7 +471,7 @@ void TrapSpec::TrapSpecSave() {
     object.ObjectSpecWriteFields();
     c.EndWrite();
 }
-EI_REPLACE_METHOD(0x0046B680, TrapSpec::TrapSpecSave);
+EI_REWRITTEN(0x0046B680, TrapSpec::TrapSpecSave);
 
 // 0046B7D0 (slot 0).
 void TrapSpec::TrapSpecOnChunk() {
@@ -501,7 +502,7 @@ void TrapSpec::TrapSpecOnChunk() {
     default: object.ObjectSpecOnChunk(); break;
     }
 }
-EI_REPLACE_METHOD(0x0046B7D0, TrapSpec::TrapSpecOnChunk);
+EI_REWRITTEN(0x0046B7D0, TrapSpec::TrapSpecOnChunk);
 
 // ---- Levers (0073C6B0) -------------------------------------------------------------------------
 
@@ -516,7 +517,7 @@ LeverSpec* LeverSpec::LeverSpecConstruct() {
     lever.flag260 = 0;
     lever.keepsMapFlag = 0;
     lever.cycling = 0;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     object.base.kind = 8;
     return this;
 }
@@ -532,7 +533,7 @@ LeverSpec* LeverSpec::LeverSpecDelete(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0046BDA0, LeverSpec::LeverSpecDelete);
+EI_REWRITTEN(0x0046BDA0, LeverSpec::LeverSpecDelete);
 
 // 0046BE80 (slot 9): chunk BBAC0000.
 void LeverSpec::LeverSpecSave() {
@@ -547,7 +548,7 @@ void LeverSpec::LeverSpecSave() {
     object.ObjectSpecWriteFields();
     c.EndWrite();
 }
-EI_REPLACE_METHOD(0x0046BE80, LeverSpec::LeverSpecSave);
+EI_REWRITTEN(0x0046BE80, LeverSpec::LeverSpecSave);
 
 // 0046BF20 (slot 0).
 void LeverSpec::LeverSpecOnChunk() {
@@ -562,7 +563,7 @@ void LeverSpec::LeverSpecOnChunk() {
     default: object.ObjectSpecOnChunk(); break;
     }
 }
-EI_REPLACE_METHOD(0x0046BF20, LeverSpec::LeverSpecOnChunk);
+EI_REWRITTEN(0x0046BF20, LeverSpec::LeverSpecOnChunk);
 
 // ---- 0046A4B0: rotating a vector -----------------------------------------------------------------
 
