@@ -586,7 +586,7 @@ void CEffectLightning::UpdateEnds() {
 
 void CEffectLightning::Start(int update) {
     if (update != 0) return;
-    auto* created = static_cast<CLightning*>(BoltFactory()->CreateObject(0, -1));
+    auto* created = BoltFactory()->CreateObjectAs<CLightning>(0, -1);
     CLightning* old = bolt_;
     bolt_ = created;
     if (created != nullptr) ++created->refCount_;

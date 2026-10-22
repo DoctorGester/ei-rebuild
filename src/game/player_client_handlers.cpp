@@ -256,7 +256,7 @@ int CPlayerClient::OnTimedObjectAdded() {
     const int id = message[0];
     CPlayer* player = Owner();
     CBaseManager* manager = player->WorldContext()->TimedObjectManager();
-    auto* object = static_cast<CEffect*>(manager->CreateObject(message[1], id));
+    auto* object = manager->CreateObjectAs<CEffect>(message[1], id);
     if (!object) return 0;
     if (!object->Receive(0, &in_)) return 0;
     if (id > player->maxTimedId_) player->maxTimedId_ = id;

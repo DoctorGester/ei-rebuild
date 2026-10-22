@@ -153,7 +153,7 @@ void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count
 
 // 004BD260: CreateFX(x, y, z, volume, radius, name), a sound played once.
 void CScript::ScriptCreateFx(const SSCCmd* cmd) {
-    auto* sound = static_cast<CEffectSound*>(EffectManager()->CreateObject(kClassSound, -1));
+    auto* sound = EffectManager()->CreateObjectAs<CEffectSound>(kClassSound, -1);
     const float* f = cmd->floatArgs.data;
     sound->localPosition_ = {f[0], f[1], f[2]};
     std::memcpy(&sound->volume_, &f[3], 4);
@@ -212,7 +212,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
         source->idle = 1;
         return;
     }
-    auto* sound = static_cast<CEffectSound*>(EffectManager()->CreateObject(kClassSound, -1));
+    auto* sound = EffectManager()->CreateObjectAs<CEffectSound>(kClassSound, -1);
     source->object = sound;
     sound->localPosition_ = {source->position.x, source->position.y, source->position.z};
     std::memcpy(&sound->volume_, &source->volume, 4);
@@ -239,7 +239,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     if (f[0] >= 0.0f) node->data.id = static_cast<int>(f[0]);
     else node->data.id = nextParticleId_--;   // also NaN
 
-    auto* bolt = static_cast<CEffectLightning*>(EffectManager()->CreateObject(kClassLightning, -1));
+    auto* bolt = EffectManager()->CreateObjectAs<CEffectLightning>(kClassLightning, -1);
     node->data.object = bolt;
     ++bolt->refCount_;
     Vector3 to{f[4], f[5], f[6]};
@@ -287,7 +287,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
         source = &node->data;
     }
 
-    auto* particles = static_cast<CEffectParticle*>(EffectManager()->CreateObject(kClassParticles, -1));
+    auto* particles = EffectManager()->CreateObjectAs<CEffectParticle>(kClassParticles, -1);
     particles->type_ = particleType;
     particles->localPosition_ = {f[1], f[2], f[3]};
     ++particles->refCount_;

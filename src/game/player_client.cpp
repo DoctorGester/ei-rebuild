@@ -448,7 +448,7 @@ int CPlayerClient::OnPathMarker() {
     float value;
     in_.Read(&value, 4);
     if (kind != kKindNoPath) {
-        auto* walker = static_cast<CUnit*>(TheObjectManager()->CreateObject(kClassScratchUnit, -1));
+        auto* walker = TheObjectManager()->CreateObjectAs<CUnit>(kClassScratchUnit, -1);
         ++walker->refCount_;
         // The controller's slot 16 (00533DF0 for the client's): its path.
         AIPath* path = walker->ClientController()->MotionPath();

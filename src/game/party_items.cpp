@@ -62,7 +62,7 @@ void RemoveEntry(CItem**& data, CItem* entry) {
 // --- Items --------------------------------------------------------------------------------------
 
 CItem* CItem::Clone(CSpellManager* spells) {
-    auto* copy = static_cast<CItem*>(owner_->CreateObject(type_, -1));
+    auto* copy = owner_->CreateObjectAs<CItem>(type_, -1);
     if (CopyTo(copy, spells)) return copy;
     ++copy->refCount_;
     copy->Release();

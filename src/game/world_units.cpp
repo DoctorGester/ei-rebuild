@@ -388,7 +388,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     auto* spec = message->As<ObjectSpec>();
     Spec& base = *message;
     auto created = [this, spec]() {
-        return static_cast<CMapObject*>(MapObjectManager()->CreateObject(spec->parentId, spec->base.id));
+        return MapObjectManager()->CreateObjectAs<CMapObject>(spec->parentId, spec->base.id);
     };
     auto allowed = [this](CMapObject* object) {
         return (ObjectSlots(object)->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;
@@ -596,7 +596,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (!loadedFresh_) return -1;
         auto* sound = message->As<mapspec::SoundSpec>();
         if (sound->ambient) {
-            auto* ambient = static_cast<CEffectAmbientSound*>(timedManager->CreateObject(kTimedAmbientSound, base.id));
+            auto* ambient = timedManager->CreateObjectAs<CEffectAmbientSound>(kTimedAmbientSound, base.id);
             ambient->names_.Copy(sound->sounds);
             Copy(&ambient->localPosition_, &base.position, 12);
             ambient->volume_ = static_cast<float>(sound->volume);
@@ -605,7 +605,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             ambient->maxInterval_ = sound->maxInterval;
             return timed(ambient);
         }
-        auto* plain = static_cast<CEffectSound*>(timedManager->CreateObject(kTimedSound, base.id));
+        auto* plain = timedManager->CreateObjectAs<CEffectSound>(kTimedSound, base.id);
         if (sound->sounds.size < 1) {
             mfc::impl::MessageBoxText(worlddata::NoWaveNameText(), 0, 0);
         } else {
@@ -621,7 +621,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     case 2: {   // a light
         if (!loadedFresh_) return -1;
         auto* lightSpec = message->As<mapspec::LightSpec>();
-        auto* light = static_cast<CEffectPointLight*>(timedManager->CreateObject(kTimedLight, base.id));
+        auto* light = timedManager->CreateObjectAs<CEffectPointLight>(kTimedLight, base.id);
         Copy(&light->localPosition_, &base.position, 12);
         Copy(&light->range_, &lightSpec->radius, 4);
         Copy(&light->color_, &lightSpec->colour, 12);
@@ -630,7 +630,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     case 4: {   // a particle source
         if (!loadedFresh_) return -1;
         auto* particleSpec = message->As<mapspec::ParticleSpec>();
-        auto* particle = static_cast<CEffectParticle*>(timedManager->CreateObject(kTimedParticle, base.id));
+        auto* particle = timedManager->CreateObjectAs<CEffectParticle>(kTimedParticle, base.id);
         Copy(&particle->localPosition_, &base.position, 12);
         Copy(&particle->type_, &particleSpec->type, 4);
         Copy(&particle->size_, &particleSpec->scale, 4);

@@ -157,7 +157,7 @@ EI_REPLACE_METHOD(0x0050CC20, CFigureAnimationState::FindBone);
 
 int CFigureAnimationState::LinkPiece(FigureModel* model, const char* child, const char* parentName) {
     CBaseManager* manager = FigureManagerOf(this);
-    auto* bone = static_cast<FigureBone*>(manager->CreateObject(kBoneClass, -1));
+    auto* bone = manager->CreateObjectAs<FigureBone>(kBoneClass, -1);
     bone->name = child;
     bone->name2 = parentName;
     return LinkBone(model, bone);

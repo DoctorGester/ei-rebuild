@@ -669,13 +669,10 @@ namespace {
 // The prototypes' name map (hash_map<string, record*>): find or insert a {name, 0} pair
 // [00514880]; the prototype table's lookup by name [00514930].
 // CUnit: the second prototype by name [005308D0], the figure made from a model and its part names
-// [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
-// [005315B0 release all, 00531070 weapon, 00530730 armour, 00531180 quick item].
-void __fastcall Unit518860(void* a0) { static_cast<CObject3D*>(a0)->RestartPose(); }
-void __fastcall Unit50EA40(void* a0) { static_cast<CMapObject*>(a0)->WriteFullState(); }
-// The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
-// [006A39E0, on the item].
-void __fastcall Figure51C970(void* a0) { static_cast<CObject3DClientSpecific*>(a0)->RegisterPartMaterials(); }
+// [00516DA0], 00518840 / 00518860 (RestartPose) after it, 0050EA40 (WriteFullState), the position
+// [00517700], the items [005315B0 release all, 00531070 weapon, 00530730 armour, 00531180 quick item].
+// The figure's 0051C970 (RegisterPartMaterials) and its texture swap [0051C250: from, to (null:
+// none)]; an armour's type [006A39E0, on the item].
 
 bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     for (;; ++a, ++b) {
@@ -707,7 +704,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
             }
         }
         auto* manager = MapObjectManager();
-        auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unitId)));
+        auto* unit = manager->CreateObjectAs<CUnit>(kTypeHero, static_cast<int>(record->unitId));
         if (!unit) return;   // (the original leaves the loop: the same as returning here)
         UnitPrototypeRecord* prototype = unitdb::PrototypeTable().FindByName(record->texts[5]);
         unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - unitdb::PrototypeTable().begin : -1);
@@ -715,12 +712,12 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         unit->flags_ |= 0x4000000;
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
         CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
-        Figure51C970(figure);
+        figure->RegisterPartMaterials();
         unit->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
-        Unit518860(unit);
+        unit->RestartPose();
         const char* skin = record->texts[4];
         figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
-        Unit50EA40(unit);
+        unit->WriteFullState();
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(&record->stats);
         ObjectSetFigureScaleOriginal(unit, nullptr, &record->scaleX);

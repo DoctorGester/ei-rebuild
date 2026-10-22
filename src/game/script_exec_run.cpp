@@ -111,7 +111,7 @@ void RespawnFxSources(CScript* script) {
             fx.object->Release();
         }
         fx.object = nullptr;
-        auto* sound = static_cast<CEffectSound*>(EffectManager()->CreateObject(kClassSound, -1));
+        auto* sound = EffectManager()->CreateObjectAs<CEffectSound>(kClassSound, -1);
         fx.object = sound;
         float yOffset = FxOffset(fx.spread, IsaacRandom::Global().Next());
         float x = FxOffsetPlus(fx.spread, IsaacRandom::Global().Next(), fx.position.x);

@@ -59,7 +59,7 @@ EI_REWRITTEN(0x005AA510, CFigureManager::CreateWithArchives);
 
 CFigureMesh* CFigureManager::NewPart(const char* modelName, const char* partName, FigureModel*, std::uint32_t,
                                      std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t attached) {
-    auto* part = static_cast<CFigureMesh*>(CreateObject(kSharedPartClass + (attached != 0), -1));
+    auto* part = CreateObjectAs<CFigureMesh>(kSharedPartClass + (attached != 0), -1);
     part->name_ = partName;
     part->directory_ = modelName;
     return part;

@@ -170,7 +170,7 @@ CEngineObject* CMaterialManager::NewObjectImpl(int type) {
 }
 
 CMaterial* CMaterialManager::NewMaterial(int type) {
-    auto* material = static_cast<CMaterial*>(CreateObject(type, -1));
+    auto* material = CreateObjectAs<CMaterial>(type, -1);
     // The original sets the flag before its null check, so a failed creation faults there.
     if (!material) return nullptr;
     material->flags_ |= 8;
