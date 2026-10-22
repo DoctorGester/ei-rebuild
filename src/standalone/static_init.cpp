@@ -74,9 +74,8 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 004022B0: float fold
+    // 004022B0: float fold; 1 left out
     d.Begin(0x004022B0);
-    d.StoreFloat(0x0079B1B8, 3.1415927f /*0073B848*/ * 0.5f /*0073B86C*/);
     // 00401440: stores; 3 left out
     d.Begin(0x00401440);
     // 00401460: stores; 4 left out
@@ -583,17 +582,10 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 004D90C0: stores
+    // 004D90C0: stores; 3 left out
     d.Begin(0x004D90C0);
-    d.Store(0x007AA8A0, 0);
-    d.Store(0x007AA8A4, 0);
-    d.Store(0x007AA8A8, 0);
-    // 004D90E0: stores
+    // 004D90E0: stores; 4 left out
     d.Begin(0x004D90E0);
-    d.Store(0x007AA890, 0x3F800000);
-    d.Store(0x007AA894, 0);
-    d.Store(0x007AA898, 0);
-    d.Store(0x007AA89C, 0);
     // 004D9EF0: guarded atexit
     d.Begin(0x004D9EF0);
     if (d.Once(0x007CAEE4, 1)) {
@@ -787,33 +779,19 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 005053C0: stores
+    // 005053C0: stores; 3 left out
     d.Begin(0x005053C0);
-    d.Store(0x007AF0F0, 0);
-    d.Store(0x007AF0F4, 0);
-    d.Store(0x007AF0F8, 0);
-    // 005053E0: stores
+    // 005053E0: stores; 4 left out
     d.Begin(0x005053E0);
-    d.Store(0x007AF0E0, 0x3F800000);
-    d.Store(0x007AF0E4, 0);
-    d.Store(0x007AF0E8, 0);
-    d.Store(0x007AF0EC, 0);
     // 0050A560: guarded atexit
     d.Begin(0x0050A560);
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 0050A580: stores
+    // 0050A580: stores; 3 left out
     d.Begin(0x0050A580);
-    d.Store(0x007AF110, 0);
-    d.Store(0x007AF114, 0);
-    d.Store(0x007AF118, 0);
-    // 0050A5A0: stores
+    // 0050A5A0: stores; 4 left out
     d.Begin(0x0050A5A0);
-    d.Store(0x007AF100, 0x3F800000);
-    d.Store(0x007AF104, 0);
-    d.Store(0x007AF108, 0);
-    d.Store(0x007AF10C, 0);
     // 0050E190: guarded atexit
     d.Begin(0x0050E190);
     if (d.Once(0x007CAEE4, 1)) {
@@ -863,27 +841,17 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 00515B80: stores
+    // 00515B80: stores; 3 left out
     d.Begin(0x00515B80);
-    d.Store(0x007AF1D0, 0);
-    d.Store(0x007AF1D4, 0);
-    d.Store(0x007AF1D8, 0);
-    // 00515BA0: stores
+    // 00515BA0: stores; 4 left out
     d.Begin(0x00515BA0);
-    d.Store(0x007AF1C0, 0x3F800000);
-    d.Store(0x007AF1C4, 0);
-    d.Store(0x007AF1C8, 0);
-    d.Store(0x007AF1CC, 0);
     // 0051A150: guarded atexit
     d.Begin(0x0051A150);
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 0051A2A0: stores
+    // 0051A2A0: stores; 3 left out
     d.Begin(0x0051A2A0);
-    d.Store(0x007AF230, 0);
-    d.Store(0x007AF234, 0);
-    d.Store(0x007AF238, 0);
     // 0051A2C0: stores; 4 left out
     d.Begin(0x0051A2C0);
     // 0051A2F0: float fold; 1 left out
@@ -937,19 +905,15 @@ void StaticInitialisers(Do& d) {
     d.Store(0x007AF284, d.At(0x007C5708));
     d.StoreFloat(0x007AF28C, d.Log(1.1f /*0073E044*/));
     d.StoreFloat(0x007AF288, d.Log(1.6100000143051147 /*0073E118*/));
-    // 00528820: float fold
+    // 00528820: float fold; 1 left out
     d.Begin(0x00528820);
-    d.StoreFloat(0x007AF280, 35.0f /*0073E110*/ - 15.0f /*0073E10C*/);
     // 00529650: guarded atexit
     d.Begin(0x00529650);
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 00529670: stores
+    // 00529670: stores; 3 left out
     d.Begin(0x00529670);
-    d.Store(0x007AF2D0, 0);
-    d.Store(0x007AF2D4, 0);
-    d.Store(0x007AF2D8, 0);
     // 00529690: stores; 4 left out
     d.Begin(0x00529690);
     // 005296C0: float fold; 1 left out
@@ -986,9 +950,8 @@ void StaticInitialisers(Do& d) {
     if (d.Once(0x007CAEE4, 1)) {
     }
     d.AtExit(0x004013D0);
-    // 00533970: float fold
+    // 00533970: float fold; 1 left out
     d.Begin(0x00533970);
-    d.StoreFloat(0x007AF330, 3.1415927f /*0073EBE8*/ + 3.1415927f /*0073EBE8*/);
     // 00533900: stores; 3 left out
     d.Begin(0x00533900);
     // 00533920: stores; 4 left out
@@ -1146,12 +1109,8 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00589BA0);
     // 00589B50: stores; 3 left out
     d.Begin(0x00589B50);
-    // 00589B70: stores
+    // 00589B70: stores; 4 left out
     d.Begin(0x00589B70);
-    d.Store(0x007C2DE0, 0x3F800000);
-    d.Store(0x007C2DE4, 0);
-    d.Store(0x007C2DE8, 0);
-    d.Store(0x007C2DEC, 0);
     // 00589BC0: float fold; 1 left out
     d.Begin(0x00589BC0);
     // 00589BE0: constructor + atexit
@@ -1475,10 +1434,8 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E4D70);
     // 005E4D90: stores; 4 left out
     d.Begin(0x005E4D90);
-    // 005E4DC0: stores
+    // 005E4DC0: stores; 2 left out
     d.Begin(0x005E4DC0);
-    d.Store(0x007C7C90, 0x20);
-    d.Store(0x007C7C94, 0x20);
     // 005E4DD0: registered
     d.Begin(0x005E4DD0);
     d.Cdecl(0x005E4DD0);

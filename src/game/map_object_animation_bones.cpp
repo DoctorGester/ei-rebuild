@@ -70,8 +70,8 @@ void ClearTrack(AnimationTrack* track) {
     track->rotations = nullptr;
     track->vertexCount = 0;
     track->frames.SetSize(0, -1);
-    track->position = ei::GameData<const Vector3>(0x007AF110);
-    track->rotation = ei::GameData<const Quaternion>(0x007AF100);
+    track->position = kTrackDefaultPosition;
+    track->rotation = kTrackDefaultRotation;
     track->vertices.RemoveAll();
     track->time = 0.0f;
 }

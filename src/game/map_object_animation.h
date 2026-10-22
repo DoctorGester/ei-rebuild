@@ -15,6 +15,10 @@
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 struct FigureAnimation;   // map_object_figures.h
+
+// The animation tracks' defaults without key frames (static initialisers: the origin and the identity).
+inline constexpr Vector3 kTrackDefaultPosition = /*007AF110*/ {};
+inline constexpr Quaternion kTrackDefaultRotation = /*007AF100*/ {1.0f, 0.0f, 0.0f, 0.0f};
 struct FigureBone;        // map_object_figures.h
 
 // A part's track (only the fields used here): key frames of positions, rotations and morphed
@@ -26,7 +30,7 @@ struct AnimationTrack : CEngineObject {
     // 0050ACD0. The values at `time`: between key frame floor(time) (rounded from the CRT's
     // modf) and the next by the fraction - positions and morph vertices linearly, rotations by
     // Quaternion::Slerp; past the last key frame its values, without key frames the defaults
-    // (007AF110 / 007AF100). Remembers `time` (+0x48).
+    // (kTrackDefaultPosition / kTrackDefaultRotation). Remembers `time` (+0x48).
     void Evaluate(float time);
 
     // animation_track_lifetime.cpp (A-U10; 0x78 bytes).
@@ -59,7 +63,7 @@ struct AnimationTrack : CEngineObject {
     // contents), and each frame points at its vertex set, which follow one after another.
     void LoadKeyFrames(std::uint8_t** cursor);
     // 0050A8C0 (slot 3). No animation, bone or key frames (the vertex sets' block freed), the
-    // default position and rotation (007AF110 / 007AF100), no morphed vertices (freed), time 0.
+    // default position and rotation (kTrackDefaultPosition / kTrackDefaultRotation), no morphed vertices (freed), time 0.
     void DestroyTrack();
 
     const FigureAnimation* animation;   // +0x1C the animation playing (null: none)

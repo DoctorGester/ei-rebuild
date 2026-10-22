@@ -44,12 +44,8 @@ constexpr const char* kNoExit = "none";   // 007846F0
 // Set while LoadMobFile reads a .mob file (byte at 007C554C; the object loaders read it).
 std::uint8_t& LoadingMobFile() { return ei::GameData<std::uint8_t>(0x007C554C); }
 
-// The default orientation of new units (16 bytes at 007C2DE0), passed by value.
-Quaternion DefaultRotation() {
-    Quaternion value;
-    std::memcpy(&value, ei::GamePointer<const void>(0x007C2DE0), sizeof(value));
-    return value;
-}
+// The default orientation of new units, passed by value.
+Quaternion DefaultRotation() { return kNewUnitRotation; }
 
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------

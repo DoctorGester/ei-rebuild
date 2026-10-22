@@ -47,7 +47,7 @@ void AnimationTrack::Evaluate(float atTime) {
     } else if (positionCount != 0) {
         std::memcpy(&position, positions + 3 * (positionCount - 1), 12);
     } else {
-        std::memcpy(&position, ei::GamePointer<const void>(0x007AF110), 12);
+        position = kTrackDefaultPosition;
     }
 
     if (next < rotationCount) {
@@ -56,7 +56,7 @@ void AnimationTrack::Evaluate(float atTime) {
     } else if (rotationCount != 0) {
         std::memcpy(&rotation, rotations + 4 * (rotationCount - 1), 16);
     } else {
-        std::memcpy(&rotation, ei::GamePointer<const void>(0x007AF100), 16);
+        rotation = kTrackDefaultRotation;
     }
 
     if (next < frames.size) {

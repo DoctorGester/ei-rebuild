@@ -824,7 +824,7 @@ struct UnitStats {
     double Reduce(float value);
     // 00524020. `value` minus value * factor of each slot record of kind 1.
     double ReduceKind1(float value);
-    // 00528840. Two factors from stat10 and stat18 (relative to 15, over the global 007AF280).
+    // 00528840. Two factors from stat10 and stat18 (relative to 15, over 20).
     // The third argument is not used.
     void GetFactors(float* a, float* b, int unused);
 

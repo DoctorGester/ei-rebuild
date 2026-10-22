@@ -15,6 +15,10 @@
 #include <windows.h>
 
 class CTextureDevice;
+
+// The cursor's size in pixels: 32, or 16 for the small cursors (static initialisers set 32).
+inline LONG g_cursorWidth = /*007C7C90*/ 32;
+inline LONG g_cursorHeight = /*007C7C94*/ 32;
 struct CDXSurface;
 namespace mfc::impl { struct WinThread; }
 
@@ -139,7 +143,7 @@ public:
 
     // 005E60B0 (RET 0x10; ui_cursor_setup.cpp). Sets the cursor up on `device` (a reference
     // taken, the old one's dropped) in `mode` with `mouse`; `smallCursors` (low byte) picks 16-pixel
-    // cursors instead of 32 (the size globals 007C7C90 / 007C7C94). Makes the end event, the
+    // cursors instead of 32 (g_cursorWidth / g_cursorHeight). Makes the end event, the
     // bounds (the render target's size when there is a primary surface) and the background and
     // composition surfaces (cursor size and twice that, through 004EF7B0).
     void Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, int smallCursors);

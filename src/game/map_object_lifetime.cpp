@@ -49,8 +49,6 @@ constexpr std::uint32_t kTenth = 0x3DCCCCCD;          // 0.1
 constexpr std::uint32_t kThreeQuarters = 0x3F400000;  // 0.75
 constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
 
-// The figures' default scale (007AF1D0, three floats).
-const void* DefaultFigureScale() { return ei::GamePointer<const void>(0x007AF1D0); }
 
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
@@ -146,7 +144,7 @@ void CObject3D::SetUpObject3D() {
     attached = nullptr;
     animation = nullptr;
     std::memset(&scale, 0, sizeof(scale));
-    std::memcpy(&defaultScale, DefaultFigureScale(), sizeof(defaultScale));
+    defaultScale = kDefaultFigureScale;
     // The original leaves the view position as the heap held it, and the draw sorts read it for an
     // object listed only for its shadow before it was ever in view (a NaN there made UnitOrderLess
     // irreflexive: S17a). It starts at zero here, and in the original through a harness patch

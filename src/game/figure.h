@@ -64,7 +64,7 @@ public:
     // animation_node_lifetime.cpp (A-U10).
     // 00506710. The constructor: empty names and arrays (CArray vtables 0073C120 / 0073D9BC), the
     // four key cursors -1, identity pose and rest rotations, +0x9C / +0xAC and position_ from the
-    // defaults 007AF0E0 / 007AF0F0. The pose / rest positions and the morph stay unwritten.
+    // defaults (the identity and the origin). The pose / rest positions and the morph stay unwritten.
     // Returns this.
     CAnimationNode* Construct();
     // 005068C0. The destructor body: the mesh loses a reference (not released) and is forgotten,
@@ -111,8 +111,8 @@ public:
     int normalCursor_;                                   // +0x080 the same
     mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements> morphFrames_;   // +0x084 (vtable 0073D9BC)
     int morphCursor_;                                    // +0x098 the same
-    Quaternion defaultRotation_;                         // +0x09C 007AF0E0 (constructor); nothing reads it
-    Vector3 defaultPosition_;                            // +0x0AC 007AF0F0 (constructor); nothing reads it
+    Quaternion defaultRotation_;                         // +0x09C the identity (constructor); nothing reads it
+    Vector3 defaultPosition_;                            // +0x0AC the origin (constructor); nothing reads it
     Quaternion poseRotation_;                            // +0x0B8 the node's rotation in the figure
     Vector3 posePosition_;                               // +0x0C8 its position in the figure
     lib::AlignedArray<Vector3> pointsB_;                 // +0x0D4 one per morph point, zeroed

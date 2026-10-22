@@ -38,6 +38,9 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
+// New units' orientation (a static initialiser: the identity; world_party.cpp, world_zone.cpp).
+inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0.0f};
+
 using BOOL = int;
 
 struct ScriptGroup;

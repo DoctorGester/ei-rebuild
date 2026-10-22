@@ -17,8 +17,8 @@ namespace {
 
 constexpr int kNoKey = -1;   // the key cursors before the first ResetPose
 
-const Quaternion& DefaultRotation() { return ei::GameData<const Quaternion>(0x007AF0E0); }
-const Vector3& DefaultPosition() { return ei::GameData<const Vector3>(0x007AF0F0); }
+constexpr Quaternion kDefaultRotation = /*007AF0E0*/ {1.0f, 0.0f, 0.0f, 0.0f};   // static initialisers: the identity
+constexpr Vector3 kDefaultPosition = /*007AF0F0*/ {};               // and the origin
 
 } // namespace
 
@@ -48,9 +48,9 @@ CAnimationNode* CAnimationNode::Construct() {
     spare034_ = 0;
     frameCount_ = 0;
     parent_ = nullptr;
-    position_ = DefaultPosition();
-    defaultPosition_ = DefaultPosition();
-    defaultRotation_ = DefaultRotation();
+    position_ = kDefaultPosition;
+    defaultPosition_ = kDefaultPosition;
+    defaultRotation_ = kDefaultRotation;
     spare010_[0] = 0;
     spare010_[1] = 0;
     return this;

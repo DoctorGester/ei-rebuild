@@ -30,7 +30,7 @@ float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile flo
 #define EI_HALF_TURN 0.4f /*0073B868*/    // 0.4f: TurnUpTowards' reduced step
 #define EI_MIN_AXIS 0.00001 /*0073B860*/    // 1e-5: shorter rotation axes count as none
 #define EI_PI 3.141592653589793 /*0073B840*/          // pi
-#define EI_HEADING_OFFSET GameFloat(0x0079B1B8)   // 0.0f (a .data float nothing writes)
+constexpr float kHeadingOffset = /*0079B1B8*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // The vector helpers as the original calls them, results unrounded in ST0.
 
@@ -259,11 +259,11 @@ void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
 }
 
 // 00402220: the local rotation becomes a turn about +Z by atan2(dir[1], dir[0]) (plus the
-// constant at 0079B1B8, 0).
+// heading offset, pi / 2).
 void CTransformObject::SetHeading(const float* dir) {
     Vector3 axis = MakeVector(0.0f, 0.0f, 1.0f);
     Quaternion heading;
-    const Quaternion* r = heading.SetAxisAngle(axis, static_cast<float>(x87::fpatan(dir[1], dir[0]) + D(EI_HEADING_OFFSET)));
+    const Quaternion* r = heading.SetAxisAngle(axis, static_cast<float>(x87::fpatan(dir[1], dir[0]) + D(kHeadingOffset)));
     std::memcpy(&localRotation_, r, sizeof(Quaternion));
 }
 

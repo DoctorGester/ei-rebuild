@@ -18,9 +18,6 @@
 
 namespace {
 
-// The cursor's size in pixels (007C7C90 / 007C7C94): 32, or 16 for the small cursors.
-LONG& CursorWidth() { return ei::GameData<LONG>(0x007C7C90); }
-LONG& CursorHeight() { return ei::GameData<LONG>(0x007C7C94); }
 constexpr LONG kLargeSize = 0x20;
 constexpr LONG kSmallSize = 0x10;
 
@@ -44,8 +41,8 @@ CDXSurface* NewSurface(CTextureDevice* device, LONG width, LONG height) {
 
 void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, int smallCursors) {
     const LONG size = static_cast<std::uint8_t>(smallCursors) ? kSmallSize : kLargeSize;
-    CursorWidth() = size;
-    CursorHeight() = size;
+    g_cursorWidth = size;
+    g_cursorHeight = size;
     position_.x = 0;
     motion_.x = 0;
     position_.y = 0;
@@ -69,8 +66,8 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
         bounds_.right = device_->renderTarget_->width;
         bounds_.bottom = device_->renderTarget_->height;
     }
-    AssignHolder(under_, NewSurface(device_, CursorWidth(), CursorHeight()));
-    AssignHolder(target_, NewSurface(device_, CursorWidth() * 2, CursorHeight() * 2));
+    AssignHolder(under_, NewSurface(device_, g_cursorWidth, g_cursorHeight));
+    AssignHolder(target_, NewSurface(device_, g_cursorWidth * 2, g_cursorHeight * 2));
 }
 EI_REWRITTEN(0x005E60B0, CCursor::Init);
 

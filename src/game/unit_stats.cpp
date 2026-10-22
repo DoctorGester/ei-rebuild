@@ -30,9 +30,8 @@ constexpr float kPointEight = std::bit_cast<float>(0x3F4CCCCDu);    // 0073CCA8 
 constexpr int kLevelBase6E8 = 0x3E;
 constexpr int kLevelBase6E9 = 0x41;
 
-// 007AF280 (beside the skill database; written at 0052882C): the stat range GetFactors divides by.
-constexpr std::uintptr_t kFactorStatRange = std::uintptr_t(0x007AF280);
-float FactorStatRange() { return ei::GameData<const float>(kFactorStatRange); }
+// The stat range GetFactors divides by (a static initialiser: 35 - 15).
+constexpr float kFactorStatRange = /*007AF280*/ 20.0f;
 
 // The skill level record `index`, or null when there is none.
 const SkillLevelRecord* LevelRecord(std::uint32_t index) {
@@ -158,8 +157,8 @@ double UnitStats::ReduceKind1(float value) {
 EI_REPLACE_METHOD(0x00524020, UnitStats::ReduceKind1);
 
 void UnitStats::GetFactors(float* a, float* b, int) {
-    double x = (stat10 - kFactorBase) / FactorStatRange();   // both kept on the FPU stack
-    double y = kOne - (stat18 - kFactorBase) / FactorStatRange();
+    double x = (stat10 - kFactorBase) / kFactorStatRange;   // both kept on the FPU stack
+    double y = kOne - (stat18 - kFactorBase) / kFactorStatRange;
     *a = static_cast<float>(y * kPointThree + x * kPointSeven);
     *b = static_cast<float>((y * kPointEight + x * kPointTwo) * kPointEight + kPointTwo);
 }

@@ -141,6 +141,7 @@ address,size,name,file
 00797FE4,4,g_mbCurMax,src/lib/crt_locale_data.cpp
 00797FE8,2,g_decimalPoint,src/lib/crt_locale_data.cpp
 00798914,20,kNonDefaultCountryIds,src/lib/crt_locale.cpp
+0079B1B8,4,kHeadingOffset,src/game/core_transform_math.cpp
 0079B2A4,4,kHalfPi,src/game/camera.h
 0079B5B8,16,kIdentityRotation,src/game/camera.h
 0079B5C8,12,kZeroVector,src/game/camera.h
@@ -204,6 +205,8 @@ address,size,name,file
 007A9D40,2068,g_random,src/game/random.cpp
 007AA5A0,68,g_partyManager,src/game/app_lifetime.cpp
 007AA61C,4,g_scriptQuestName,src/game/script_exec_helpers.cpp
+007AA890,16,kSkyDrawA,src/game/sky_object.cpp
+007AA8A0,12,kSkyDrawB,src/game/sky_object.cpp
 007AB8D8,20,g_unreadSet,src/game/buffered_file.cpp
 007ABA30,16,g_points,src/game/effects_weather_draw.cpp
 007ABB98,2560,g_swayYByPlace,src/game/weather_noise.cpp
@@ -236,11 +239,21 @@ address,size,name,file
 007AF020,16,g_projected,src/game/renderer_strip.cpp
 007AF030,16,g_indices,src/game/renderer_strip.cpp
 007AF040,16,g_clipped,src/game/renderer_strip.cpp
+007AF0E0,16,kDefaultRotation,src/game/animation_node_lifetime.cpp
+007AF0F0,12,kDefaultPosition,src/game/animation_node_lifetime.cpp
+007AF100,16,kTrackDefaultRotation,src/game/map_object_animation.h
+007AF110,12,kTrackDefaultPosition,src/game/map_object_animation.h
+007AF1C0,16,kIdentityOrientation,src/game/object3d_lifetime.cpp
+007AF1D0,12,kDefaultFigureScale,src/game/map_object_figures.h
 007AF1E0,16,g_pixels,src/game/map_object_shadow.cpp
 007AF1F0,1,g_freed,src/game/map_object_shadow.cpp
 007AF1F8,16,g_points,src/game/map_object_shadow.cpp
 007AF208,16,g_quads,src/game/map_object_shadow.cpp
+007AF230,12,kDefaultLight,src/game/map_object_shadow.cpp
 007AF268,24,g_skillDatabase,src/game/unit_db_globals.cpp
+007AF280,4,kFactorStatRange,src/game/unit_stats.cpp
+007AF2D0,12,kDefaultColour,src/game/torch_spec.cpp
+007AF330,4,kFullTurn,src/game/unit_client_path.cpp
 007AF358,128,g_unitDatabase,src/game/unit_db_globals.cpp
 007AF438,1,g_destroyed,src/game/game_folders.cpp
 007AF450,4,g_registryRoot,src/game/game_folders.cpp
@@ -282,6 +295,7 @@ address,size,name,file
 007AFF38,16,g_added,src/game/world_sync.cpp
 007AFF48,16,g_collected,src/game/world_sync.cpp
 007AFF58,1,g_staticsGuard,src/game/world_sync.cpp
+007C2DE0,16,kNewUnitRotation,src/game/world.h
 007C2DFC,4,g_weatherDelay,src/game/world_weather.cpp
 007C2E00,16,g_texturePoints,src/game/figure_rasterise.cpp
 007C2E10,1,g_texturePointsGuard,src/game/figure_rasterise.cpp
@@ -306,6 +320,8 @@ address,size,name,file
 007C5518,1,g_loadingHolderReleased,src/game/bink_video.cpp
 007C551C,4,g_loadingHolder,src/game/bink_video.cpp
 007C7BD8,184,g_cursor,src/game/ui_cursor_setup.cpp
+007C7C90,4,g_cursorWidth,src/game/ui_cursor.h
+007C7C94,4,g_cursorHeight,src/game/ui_cursor.h
 007C7CD8,16,kIdentityOrientation,src/game/ui_mesh_draw.cpp
 007C7D20,4,kFullTurn,src/game/ui_item_view.cpp
 007C7D24,4,kTilt,src/game/ui_hero_preview.cpp
