@@ -83,8 +83,7 @@ struct QuestBriefingTable {
 };
 static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefingTable) == 0x20);
 
-// The quest database (007C87A8): the quests and the briefings, each with its index by name
-// (script.h's QuestTable is the quests' half as the script commands read it).
+// The quest database (007C87A8): the quests and the briefings, each with its index by name.
 struct QuestDatabase {
     using QuestIndex = stlp::hash_map<stlp::string, QuestRecord*, stlp::StringHash>;
 
@@ -103,6 +102,11 @@ struct QuestDatabase {
     // 006ADF40 (database_destruct.cpp, S3c; the exit function 006ADF30). The members from the
     // last: each index's nodes and buckets, then its records and their storage.
     void Destruct();
+    // 004C9C90 and its copy 0064F550 (RET 4; script_quest.cpp; the script commands' quest
+    // lookup, QuestComplete awards the record's +0x0C). The record of quest `name`, null if none.
+    // The index's operator[] (the game's find_or_insert 004CE110 on a {name, null} pair) leaves a
+    // null entry for a missing name.
+    QuestRecord* FindQuest(const char* name);
 
     stlp::vector<QuestRecord> quests;   // +0x00
     QuestIndex questsByName;            // +0x0C

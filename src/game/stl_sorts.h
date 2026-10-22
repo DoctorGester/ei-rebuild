@@ -61,7 +61,7 @@ void __fastcall ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEnt
 // The objectives window's quests (ui_objectives.cpp, the names of the shown zone's "q.<zone>.<quest>"
 // variables) by their quest record's order (+0x1C), the highest first and a name without a record
 // before all (also before itself: the original's scans run off the range then). Every comparison
-// looks both names up in the quest table 007C87B4 (QuestTable::Find, which adds a null entry for a
+// looks both names up in the quest table 007C87B4 (QuestDatabase::FindQuest, which adds a null entry for a
 // new name), the first argument's first: the original inlines that lookup in each helper (a string
 // key, a {key, null} pair, find_or_insert, the pair and the key freed), every copy allocating
 // alike. Copies of the CStrings only share them. 0064F310 (RET 0xC) __introsort_loop, 0064F9A0

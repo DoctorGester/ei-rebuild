@@ -1,6 +1,7 @@
 // The quest under construction: QStart names it and drops the old objectives, the QObj* commands
 // add objectives, QFinish (004BAAB0, script_exec_helpers.cpp) turns them into a script. See script.h
 // and docs/notes/script.md.
+#include "quest_records.h"
 #include "script.h"
 
 #include "lib/crt.h"
@@ -49,10 +50,10 @@ EI_REWRITTEN(0x004BAA40, ScriptQuestStart);
 EI_REWRITTEN(0x004BAE10, ScriptQuestAddObjective);
 
 // 004C9C90: the key, then a {key, null} pair copied from it; the pair is destroyed before the key.
-QuestRecord* QuestTable::Find(const char* name) {
+QuestRecord* QuestDatabase::FindQuest(const char* name) {
     stlp::string key(name);
-    Map::Pair pair{key, nullptr};
-    return byName.FindOrInsert(pair)->value;   // 004CE110
+    QuestIndex::Pair pair{key, nullptr};
+    return questsByName.FindOrInsert(pair)->value;   // 004CE110
 }
-EI_REWRITTEN(0x004C9C90, QuestTable::Find);
-EI_REWRITTEN(0x0064F550, QuestTable::Find);
+EI_REWRITTEN(0x004C9C90, QuestDatabase::FindQuest);
+EI_REWRITTEN(0x0064F550, QuestDatabase::FindQuest);

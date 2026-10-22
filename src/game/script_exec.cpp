@@ -1203,14 +1203,14 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x9F: {   // QuestComplete(player, quest)
             if (IsMultiplayerClient()) {
                 if (FinishQuestMap(Text(cmd, 0)) != 0) {
-                    QuestRecord* quest = TheQuestTable()->Find(Text(cmd, 0));
+                    QuestRecord* quest = TheQuestDatabase().FindQuest(Text(cmd, 0));
                     if (quest) TheWorld()->AwardExperience(nullptr, quest->exp);
                 }
                 break;
             }
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            QuestRecord* quest = TheQuestTable()->Find(Text(cmd, 0));
+            QuestRecord* quest = TheQuestDatabase().FindQuest(Text(cmd, 0));
             if (!quest) break;
             TheWorld()->AwardExperience(player, quest->exp);
             ClassTemplatesQuestCompleted(ThePartyManager());
