@@ -46,6 +46,7 @@ vtable,slots,class,file,note
 0073BF5C,15,SessionBaseClass,src/game/net_classes.h,the session base (SessionBase)
 0073BFA4,2,DebugPanelClass,src/game/string_map.cpp,the debug information panel (CDebugPanel)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
+0073BFB4,3,FontTable,src/lib/mfc_gdi.cpp,the game's CFont (the debug panel's, the interface's and the console's fonts)
 0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
 0073C0E4,3,FakeUnitRecord9CArrayClass,src/game/record_arrays.h,CArray (a fake unit's 0x9C-byte records)
 0073C0F0,3,FakeUnitBoneArraysClass,src/lib/mfc_slots.h,CArray (a fake unit's 20-byte CObject elements)

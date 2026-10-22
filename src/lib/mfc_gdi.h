@@ -25,7 +25,7 @@ CHandleMap* __stdcall MapHGDIOBJ(BOOL create);     // 00709FEE afxMapHGDIOBJ
 
 // CGdiObject (8 bytes): vtable, m_hObject. The tables of CGdiObject and its classes are compiled (C19,
 // mfc_gdi.cpp) in place of game.exe's: CGdiObject 007463D4, CBrush 007463C4, CPen 007463B4, CTempGdiObject
-// 0074645C (0 GetRuntimeClass, 1 the deleting destructor, 2 Serialize).
+// 0074645C, CFont 0073BFB4 (0 GetRuntimeClass, 1 the deleting destructor, 2 Serialize).
 struct CGdiObject {
     void* vtable;
     HGDIOBJ handle;     // +0x04 m_hObject
@@ -65,8 +65,9 @@ static_assert(sizeof(CPen) == 8);
 
 struct CDC;
 
-// CFont (vtable 0073BFB4).
+// CFont (its table compiled in place of game.exe's 0073BFB4: mfc_gdi.cpp's FontTable).
 struct CFont : CGdiObject {
+    static void* Vtable();
     // 0070BBE5: a font of `pointSize` tenths of a point, the face name and DEFAULT_CHARSET, through
     // CreatePointFontIndirect.
     BOOL CreatePointFont(int pointSize, const char* faceName, CDC* dc);

@@ -16,7 +16,6 @@ address,what,reason
 006E73EB,address,"_purecall (the pure slots of game.exe's tables left: CTransformObject's 0073BA38, the map objects' 0073DAA0 / 0073DDD4, the item strip's 00741A1C): reached only by a bug; the image's INT3 report names the caller, more than the CRT's R6025 would"
 #
 # --- MFC classes the image makes, with slots nothing of ours calls ---
-0073BFB4,vtable,"CFont: slot 0 GetRuntimeClass only (the interface deletes its fonts through slot 1, ours)"
 #
 # --- MFC classes the image never makes (their constructors have no code in it) ---
 007472B0,vtable,"type_info: the exe's RTTI records are static data, never deleted (the image's RTTI is the host compiler's)"
