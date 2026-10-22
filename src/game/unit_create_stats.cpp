@@ -78,12 +78,6 @@ std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fi
 // Not rewritten / rewritten elsewhere, through their game addresses:
 // 00523370 UnitVitals::Reset, 005233E0 UnitStats::Reset, 00523960 AddScaledExperience,
 // 00525AF0 RefillSlots, all in unit_vitals.cpp / unit_stats_pack.cpp.
-// 0051FE00. Skill database: the skill named `name` by _mbsicmp, or null. Not rewritten.
-void* FindSkill(void* database, void*, const void* name) { return static_cast<SkillDatabase*>(database)->FindLevel(static_cast<const char*>(name)); }
-// 00526450. Statistics: learns `skill` of the skill database (UnitStats::LearnSkill).
-void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
-    stats->LearnSkill(database, record);
-}
 // 00524CD0. Statistics: recomputes the current values at `scale`. Not rewritten.
 // This file's functions through their addresses, so their verify wrappers stay in the path.
 // 0050F050 CMapObject::SetServerData, 00517700 CObject3D::SetFigureScale, 005308A0
@@ -169,8 +163,8 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
     if (!npc) return;
     stats->AddScaledExperience(npc->experience);
     for (const mfc::CString* name = npc->skillNames.begin(); name != npc->skillNames.end(); ++name) {
-        void* skill = FindSkill(SkillDb(), nullptr, name->GetString());
-        if (skill) LearnSkillAt(stats, nullptr, SkillDb(), skill);
+        ::SkillLevelRecord* skill = SkillDb()->FindLevel(name->GetString());   // 0051FE00
+        if (skill) stats->LearnSkill(SkillDb(), skill);                        // 00526450
     }
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
 }
@@ -475,7 +469,7 @@ float CurveHitPoints(UnitStats* stats) {
 }
 } // namespace
 
-void UnitStats::LearnSkill(const void* database, const void* record) {
+void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelRecord* record) {
     float oldMaximum = CurveHitPoints(this);
     float oldHitPoints = static_cast<float>(ReduceAt(this, nullptr, oldMaximum));
     int index = SkillRecordIndex(database, nullptr, record);
@@ -555,7 +549,7 @@ bool NamesRequirement(const mfc::CString& text) {
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }
 } // namespace
 
-BOOL UnitStats::CanLearn(const void* database, const ::SkillLevelRecord* record) {
+BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record) {
     if (!record->learnable) return 0;
     EI_NAN_AUDIT(stat10, stat18, stat20);
     if (stat10 < record->RequiredStat(0)) return 0;
@@ -567,7 +561,7 @@ BOOL UnitStats::CanLearn(const void* database, const ::SkillLevelRecord* record)
         if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return 0;   // unchecked
     }
     if (NamesRequirement(record->requiredLevelName)) {
-        int required = static_cast<const SkillDatabase*>(database)->IndexOf(record->requiredLevelName);
+        int required = database->IndexOf(record->requiredLevelName);
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }
     // No level of the same skill id may be known in another skill.
@@ -579,7 +573,7 @@ BOOL UnitStats::CanLearn(const void* database, const ::SkillLevelRecord* record)
         if (!known || known->exclusionGroup != record->exclusionGroup) continue;
         if (SkillRecordIndex(database, nullptr, known) / 3 != group) return 0;
     }
-    int own = static_cast<const SkillDatabase*>(database)->IndexOf(record->name);
+    int own = database->IndexOf(record->name);
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
 }
 EI_REWRITTEN(0x005260A0, UnitStats::CanLearn);

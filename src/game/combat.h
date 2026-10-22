@@ -715,7 +715,7 @@ public:
     // 005468D0. Fills the CList `list` with the units lifted off the sector map for a path: away
     // from `point`, those near it outside the player's group; the party members that move (with
     // `moving`) or follow this unit. Only for a player's units with +0x100 == 1.
-    void LiftNearby(void* list, const float* point, char moving);
+    void LiftNearby(mfc::CTypedPtrList<CUnit>* list, const float* point, char moving);
     // 0054EB30. Tells a party unit's player how a path to `path`'s goal turned out (0066D490 and
     // messages 0x0E / 0x01), unless the brain's mode is 6.
     void ReportPath(AIPath* path, char partial);

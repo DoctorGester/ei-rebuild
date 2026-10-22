@@ -26,6 +26,7 @@ namespace gamehash { struct PartyTable; }   // party_manager.h
 struct PartyManagerEntry;
 struct PrintRecord;    // model.h
 struct PrintRecord2;
+struct SpeechRecord;   // unit_client_models.h
 struct QuestBriefingRecord;
 struct QuestRecord;
 struct SkillLevelRecord;
@@ -41,6 +42,8 @@ namespace acks {   // acks_db.h
 struct UnitAcks;
 struct ModelAcks;
 struct ExtraAcks;
+struct Speeches;
+struct EnvironmentSpeeches;
 }
 
 class ChunkArchive {
@@ -149,11 +152,11 @@ public:
     void IntField(int id, int* value);
 
     // The ack records' helpers (acks_db.cpp). 006E4F40 (RET 8): an acks::SpeechRecord as chunk `id`.
-    void SerializeSpeech(int id, void* speech);
+    void SerializeSpeech(int id, SpeechRecord* speech);
     // 006E42F0 / 006E4410 (RET 0xC; the third argument, the archive again, is unused): an
     // acks::SpeechList / a vector of acks::EnvironmentSpeech as chunk `id`.
-    void SerializeSpeechList(int id, void* list, void* unused);
-    void SerializeEnvironmentSpeeches(int id, void* list, void* unused);
+    void SerializeSpeechList(int id, acks::Speeches* list, void* unused);
+    void SerializeEnvironmentSpeeches(int id, acks::EnvironmentSpeeches* list, void* unused);
     // 00465090 (RET 0xC; app_device_list.cpp): the lever records as chunk `id`, one chunk 1 per
     // record (emptied and resized to the number of chunks when loading). The last argument is not read.
     void SerializeLevers(int id, stlp::vector<LeverRecord>* list, int unused);

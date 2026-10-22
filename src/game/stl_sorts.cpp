@@ -69,8 +69,8 @@ using ServerSort = stlp::Sort<MpAddressEntry, ByColumn>;
 
 struct ByQuestOrder {
     bool operator()(const mfc::CString& a, const mfc::CString& b) const {
-        auto* first = static_cast<const QuestRecord*>(TheQuestTable()->Find(a));
-        auto* second = static_cast<const QuestRecord*>(TheQuestTable()->Find(b));
+        const QuestRecord* first = TheQuestTable()->Find(a);
+        const QuestRecord* second = TheQuestTable()->Find(b);
         return !first || (second && static_cast<unsigned>(first->order) > static_cast<unsigned>(second->order));
     }
 };

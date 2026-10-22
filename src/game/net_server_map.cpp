@@ -68,8 +68,8 @@ void ServerSession::SetMap(const stlp::string* name) {
     if (name != &current->text_) current->text_.AssignFrom(*name);
     if (name != &mapName_) mapName_.AssignFrom(*name);
 
-    void* world = TheGameFlow();
-    static_cast<GameFlow*>(world)->RegisterQuests(name->data());
+    GameFlow* world = TheGameFlow();
+    world->RegisterQuests(name->data());
     WorldPrepareMap(world, nullptr, name->data());
     {
         mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls

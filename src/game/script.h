@@ -1106,13 +1106,15 @@ void __fastcall ScriptQuestStart(const char* name);
 // 004BAE10 (__fastcall, the value on the stack). Appends {type, text, value} to the objectives.
 void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value);
 
+struct QuestRecord;   // quest_records.h
+
 // The quest kill table (007C87A8): quest records by name (QuestComplete awards the record's +0x0C).
 struct QuestTable {
-    using Map = stlp::hash_map<stlp::string, void*, stlp::StringHash>;
+    using Map = stlp::hash_map<stlp::string, QuestRecord*, stlp::StringHash>;
 
     // 004C9C90 and its copy 0064F550 (RET 4). The record of quest `name`, null if none. The map's operator[] (the game's
     // find_or_insert 004CE110 on a {name, null} pair) leaves a null entry for a missing name.
-    void* Find(const char* name);
+    QuestRecord* Find(const char* name);
 
     std::uint8_t unused_00[0x0C];
     Map byName;             // +0x0C
