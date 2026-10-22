@@ -221,6 +221,11 @@ address,size,name,file
 007AA890,16,kSkyDrawA,src/game/sky_object.cpp
 007AA8A0,12,kSkyDrawB,src/game/sky_object.cpp
 007AB8D8,20,g_unreadSet,src/game/buffered_file.cpp
+007AB8F0,4,g_twoPi,src/game/sys_info.cpp
+007AB8F8,264,g_sysInfo,src/game/sys_info.cpp
+007ABA00,4,g_halfPi,src/game/sys_info.cpp
+007ABA04,4,g_quarterPi,src/game/sys_info.cpp
+007ABA08,4,g_inversePi,src/game/sys_info.cpp
 007ABA30,16,g_points,src/game/effects_weather_draw.cpp
 007ABB98,2560,g_swayYByPlace,src/game/weather_noise.cpp
 007AC598,2560,g_swayXByPlace,src/game/weather_noise.cpp
@@ -340,6 +345,8 @@ address,size,name,file
 007C54E4,1,g_candidatesGuard,src/game/unit_ai_modes.cpp
 007C5518,1,g_loadingHolderReleased,src/game/bink_video.cpp
 007C551C,4,g_loadingHolder,src/game/bink_video.cpp
+007C7B64,1,g_cheatEnabled,src/game/console.h
+007C7B68,4,g_filterMask,src/game/console.h
 007C7BD8,184,g_cursor,src/game/ui_cursor_setup.cpp
 007C7C90,4,g_cursorWidth,src/game/ui_cursor.h
 007C7C94,4,g_cursorHeight,src/game/ui_cursor.h
@@ -413,6 +420,7 @@ address,size,name,file
 007CADA4,4,kGameCommitMode,src/lib/crt_file.cpp
 007CAE90,24,g_sharedLock,src/lib/crt_iostream.cpp
 007CAEC8,4,g_liveIosCount,src/lib/crt_iostream.cpp
+007CAED0,20,g_processorInfo,src/game/sys_info.cpp
 007CC058,4,g_mbCodePage,src/lib/crt_locale_data.cpp
 007CC060,12,g_mbUlInfo,src/lib/crt_locale_data.cpp
 007CC06C,4,g_isMbCodePage,src/lib/crt_locale_data.cpp

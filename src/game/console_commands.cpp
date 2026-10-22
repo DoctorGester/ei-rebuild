@@ -152,7 +152,7 @@ void __fastcall Filter(CStringArray* args) {
         static constexpr const char* kLabels[] = {"AI: ", "\nEVENT: ", "\nGRAPHICS: ", "\nRPG: ", "\nUNITACKS: ", "\nNET: "};
         GameOStream& os = Out();
         for (int i = 0; i < 6; ++i)   // "AI: on", "\nEVENT: off", ...
-            os << kLabels[i] << (FilterMask() & (1u << i) ? "on" : "off");
+            os << kLabels[i] << (g_filterMask & (1u << i) ? "on" : "off");
         return EndLine(os);
     }
     unsigned type;
@@ -166,11 +166,11 @@ void __fastcall Filter(CStringArray* args) {
     else if (ArgIs(args, 0, "all")) type = ~0u;
     else return PrintLine("Invalid parameters");
     if (args->GetSize() <= 1) {
-        FilterMask() = type;
+        g_filterMask = type;
     } else if (ArgOn(args, 1)) {
-        FilterMask() |= type;
+        g_filterMask |= type;
     } else if (ArgOff(args, 1)) {
-        FilterMask() &= ~type;
+        g_filterMask &= ~type;
     } else {
         PrintLine("Invalid parameters");
     }

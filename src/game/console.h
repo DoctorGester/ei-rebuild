@@ -160,10 +160,10 @@ extern void (*g_consoleLineObserver)(const char* line);
 
 inline ConsoleStreambuf* MainStreambuf() { return ei::GamePointer<ConsoleStreambuf>(0x007C5868); }
 
-// 007C7B68: the message categories shown (bit per filter, "filter" command).
-inline unsigned& FilterMask() { return ei::GameData<unsigned>(0x007C7B68); }
-// 007C7B64: set by the cheat word; unlocks the second command map and the script lines.
-inline bool& CheatEnabled() { return ei::GameData<bool>(0x007C7B64); }
+// The message categories shown (bit per filter, "filter" command).
+inline unsigned g_filterMask = /*007C7B68*/ {};
+// Set by the cheat word; unlocks the second command map and the script lines.
+inline bool g_cheatEnabled = /*007C7B64*/ {};
 
 // The console window (the interface manager 007C7D50 keeps it at +0x14). Lines are kept as text;
 // the surface is redrawn by 005E4800.

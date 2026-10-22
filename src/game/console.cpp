@@ -140,7 +140,7 @@ EI_REPLACE_METHOD(0x005DC240, ConsoleStreambuf::DeletingDestruct);
 // 005DC150: moves the put area (and `c`, unless EOF) into the line, when this streambuf's
 // category is shown; a hidden category keeps its put area as it is. Always returns 0.
 int ConsoleStreambuf::Overflow(int c) {
-    if (filter_ == 0 || (FilterMask() & filter_) != 0) {
+    if (filter_ == 0 || (g_filterMask & filter_) != 0) {
         const char* end = pptr_;
         for (const char* p = pbase_; p < end; ++p) Ops(line_).AppendChar(*p);
         if (c != -1) Ops(line_).AppendChar(static_cast<char>(c));
@@ -217,7 +217,7 @@ void __fastcall Execute(const char* text) {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) RegisterAddonCommands();
     char first = command.GetString()[0];
     if (first == '@' || first == '#' || first == '$') {
-        if (CheatEnabled() && local) {
+        if (g_cheatEnabled && local) {
             mfc::CString script = Ops(command).Mid(1);
             if (first == '@')
                 RunScriptLine(&script, &args, "WorldScript(", ")");
@@ -239,12 +239,12 @@ void __fastcall Execute(const char* text) {
         (Command(PublicCommands(), command))(&args);
         return;
     }
-    if (!CheatEnabled()) {
+    if (!g_cheatEnabled) {
         char* p = Ops(command).GetBuffer(12);
         for (; *p; ++p) *p ^= 0x66;
         Ops(command).ReleaseBuffer(-1);
         if (std::strcmp(command, game::consoletexts::CheatWord()) == 0) {
-            CheatEnabled() = true;
+            g_cheatEnabled = true;
             PrintLine("Activated!");
             return;
         }

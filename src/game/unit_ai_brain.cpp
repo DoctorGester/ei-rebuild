@@ -308,7 +308,7 @@ void AIBrain::CallAllies(const Vector3* point) {
         if (other == self || !(GameDiplomacy()->allied_[self->side] & (1u << (other->side & 31)))) continue;
         mfc::CString message;
         AIBrain* ally = other->ServerController()->Brain();
-        if (console::FilterMask() & 1) {
+        if (console::g_filterMask & 1) {
             double dz = self->localPosition_.z - other->localPosition_.z;
             double dy = self->localPosition_.y - other->localPosition_.y;
             double dx = self->localPosition_.x - other->localPosition_.x;
