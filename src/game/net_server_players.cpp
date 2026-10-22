@@ -129,10 +129,10 @@ void* ServerSession::FindConnectionBySerial(int serial) {
 EI_REWRITTEN(0x0041A270, ServerSession::FindConnectionBySerial);
 
 // 0041A2E0: the player with id `id`, or null.
-void* ServerSession::FindPlayer(int id) {
+PlayerMessage* ServerSession::FindPlayer(int id) {
     const auto& players = players_;
     for (RefNode* node = players.First(); node != players.End(); node = node->next)
-        if (players.At(node)->id_ == id) return Value(node);
+        if (players.At(node)->id_ == id) return players.At(node);
     return nullptr;
 }
 EI_REWRITTEN(0x0041A2E0, ServerSession::FindPlayer);

@@ -118,7 +118,7 @@ int CPlayerServer::OnPause() {
             leader = own;
         else if (own != leader)
             return 1;
-        auto* record = static_cast<net::LoginMessage*>(server->FindPlayer(leader));
+        net::PlayerMessage* record = server->FindPlayer(leader);
         if (record && !(record->flags7_ & CRefCounted::kDetached) && mode != 3)
             server->AnnounceText(kTextPause, record->name_.data(), nullptr);
     }

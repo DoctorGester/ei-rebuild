@@ -595,7 +595,7 @@ public:
     void SetPassword(const char* text);                   // 0041A140
     void* FindGuestConnection(const stlp::string* name);     // 0041A170
     void* FindConnectionBySerial(int serial);             // 0041A270
-    void* FindPlayer(int id);                             // 0041A2E0
+    PlayerMessage* FindPlayer(int id);                    // 0041A2E0
     void AnnounceToGuests(int kind, const char* text);    // 0041A500
     void Kick(void* connection);                          // 0041A550
     void Ban(void* connection);                           // 0041A620
