@@ -111,18 +111,14 @@ namespace {
 // Object model helpers not rewritten yet.
 __declspec(naked) Vector3* __fastcall TransformVector(const void*, void*, Vector3*, const Vector3*)
     EI_ORIGINAL(0x00560E10)
-// CStringArray element by value (004698A0: a CString constructed into `out`).
-mfc::CString* StringArrayGetAt(const recordarrays::PartNames* names, mfc::CString* out, int index) {
-    names->CopyAt(out, index);
+// CStringArray element by value (004698A0, PartNames::CopyAt: a CString copy-constructed into `out`).
+mfc::CString* StringArrayGetAt(const mfc::CStringArray* names, mfc::CString* out, int index) {
+    new (out) mfc::CString(names->data[index]);
     return out;
 }
 
 // "Bodypart \"%s\" for object \"%s\" not found\n"
 const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not found\n"; }
-
-// A CStringArray (MFC: vtable, CString data, size, capacity, grow-by), as the server companion and the
-// 3D object lay theirs out by hand (unit.h, map_object_figures.h).
-using NameArray = recordarrays::PartNames;
 
 void ResetCellSet(FootprintCellSet* set) {
     set->SetSize(0, -1);
@@ -149,8 +145,8 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     // The AI map lives on the server, so the companion is a CMapObjectServer (the client one is 0x58
     // bytes).
     auto* server = mapObject->ServerCompanion();
-    const NameArray* names = reinterpret_cast<const NameArray*>(&server->strings);
-    if (names->size == 0) names = reinterpret_cast<const NameArray*>(&mapObject->partNames);
+    const mfc::CStringArray* names = &server->strings;
+    if (names->size == 0) names = &mapObject->partNames;
 
     bool hasBridge = false;
     for (int n = 0; n < names->size; ++n) {
