@@ -182,7 +182,7 @@ void CHudMap::UpdateVanilla() {
     if (northTime_ > 0.0f) northTime_ = static_cast<float>(northTime_ - WindowFrameTimeOriginal(this));
     SetTint(sceneObjects_.data[11], northTime_ > 0.0f ? 1.0f : 0.5f);
 }
-EI_REPLACE_METHOD(0x00642B40, CHudMap::UpdateVanilla);
+EI_REWRITTEN(0x00642B40, CHudMap::UpdateVanilla);
 
 // --- The unit panel ------------------------------------------------------------------------------
 
@@ -233,7 +233,7 @@ void CHudUnitPanel::UpdateVanilla() {
     interface_->hudPanelsIn_[0] = slideDirection_ > 0.0f ? 1 : 0;
     interface_->hudBodyPart_ = bodyPart_;
 }
-EI_REPLACE_METHOD(0x00647FB0, CHudUnitPanel::UpdateVanilla);
+EI_REWRITTEN(0x00647FB0, CHudUnitPanel::UpdateVanilla);
 
 // --- 006456E0: the unit panel's setup ----------------------------------------------------------------
 

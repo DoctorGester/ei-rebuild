@@ -1116,6 +1116,39 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     slots, the placeholder slots need their real signatures), CRefObject's 0073BB58 (net_connection.cpp stores it:
     after C21), the map spec chunk readers (C21), the streams (the harness names their Write slots), the MFC library
     kind.
+- **Batch 19's families** (2026-10-22): CRefObject, the scene renderer and 42 window tables: 45 rows (retired
+  417 -> 462), 4,229 -> 3,393 code cells, about 145 registrations EI_REWRITTEN.
+  - **CRefObject** (core_streams.cpp's RefObjectBaseClass, `CRefObject::Vtable()`) in place of 0073BB58: the deleting
+    destructor, the empty Serialize, slots 2 / 3 `_purecall`. The net files store it (net_connection.cpp's one line).
+  - **The scene renderer** is a real virtual class (model.h): `CVisualizator` declares game.exe's 0073D8A0 (slot 0 and
+    4-6, 8-24 pure, 1 the virtual destructor, 2 / 3 / 7 the base's bodies) and `CSceneRenderer` over it overrides every
+    slot and adds SetView (25) in place of 0073D93C. The registered constructor and destructor bodies are
+    `new (this) CSceneRenderer()` and `this->CSceneRenderer::~CSceneRenderer()`; the slot bodies other code registers
+    go through `__fastcall` shims (rule 4). `CTextManager::CreateImpl`'s unread registration is EI_REWRITTEN.
+  - **Windows** (ui_window_class.h): `UiWindowClass<Self, Delete>` declares a window's 25 slots with the plain
+    window's bodies (CTransformObject's 0-17 with the interface objects' 2 / 11 / 12, 18 Build empty, 19 ShowSurfaces,
+    20 DrawBase, 21 UpdateRegionTips, 22 RedrawBase, 23 RedrawTips, 24 Update empty); slot 0 is `Delete`. It does not
+    derive from TransformObjectClass: that one's slot 0 names the class's DeletingDestruct, which every instantiation
+    then needs. ScrollbarClass adds 24-26, PanelClass casts to a panel whose slot 0 is a base's destructor, and
+    ScrollbarInputClass / PanelInputClass give the input sides' handlers. The plain window (`CUiWindow::PlainVtable()` /
+    `PlainInputVtable()`, not `Vtable()`: a derived window would inherit it, batch 14's trap) and the base input side
+    (`BaseInputVtable()`, ui_input_class.h); the scroll bar, slider, scrolling text, spin, edit field and tooltip; the
+    view screen's unit pick; the chat overlay, the briefing's chat window, the item screens' icon window and the
+    scrolling RichEdit surface (2 slots); the HUD's top panel, clock, movement panel, unit panel, map, weapon bar,
+    quick items, spell and action columns and portraits. The HUD's Rebirth-patched slot bodies (the movement panel's
+    setup, the map's and the unit panel's update, the unit panel's draw) are the vanilla bodies, which reproduce
+    WideScreen behind its flag as the image runs them (no addon.dll in the image). The `UI_INPUT_HANDLER` macros of
+    ui_hud.cpp became EI_REWRITTEN lines.
+  - **The harness id**: ui_census.cpp's `WindowKinds` lists each compiled window table with game.exe's address of its
+    kind (`ei::OriginalGameData`), as harness_digest.cpp's ModeKinds does for the AI modes; `RealVtable` names a
+    compiled window by that address and no longer looks for stand-in copies in game data (the window slot checks'
+    stand-ins are gone; slot_recorder.h has no user left). `ReadSurface` takes the compiled surface tables.
+    kKnownWindows / WindowReady name screens (containers), none of them compiled yet.
+  - **Left**: the containers and screens (00741008 and the 42 / 55-slot tables: they need a ContainerClass over
+    UiWindowClass's 25 slots, and kKnownWindows / WindowReady / CSaveLoadWindow / COptionsWindow's kVtableAddress a
+    mapping like WindowKinds), the camp's panels (007418E0, 00741504-00741C60, the item info panel 007404A8 /
+    007404DC: named in ui_camp_create.cpp, C15's area), the console 00740034, the map spec chunk readers (C21), the
+    streams and the MFC library kind.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never

@@ -18,7 +18,6 @@
 #include "game_singletons.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"      // SetVtable
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -28,11 +27,10 @@
 
 #include <bit>
 #include <cstdint>
+#include <new>
 
 namespace {
 
-constexpr std::uintptr_t kBaseVtable = std::uintptr_t(0x0073D8A0);
-constexpr std::uintptr_t kRendererVtable = std::uintptr_t(0x0073D93C);
 constexpr float kColourScale = 255.0f;          // 0073C370
 constexpr float kInverseColourScale = std::bit_cast<float>(0x3B808081u);   // 0073D904, 1 / 255
 constexpr std::uint32_t kFigureHidden = 0x80;   // CFigureMesh::flags_
@@ -45,18 +43,25 @@ IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_;
 
 } // namespace
 
-// --- Base class (vtable 0073D8A0) ------------------------------------------------------------------
+// --- Base class (CVisualizator; C19: compiled in place of game.exe's 0073D8A0) ----------------------
 
-CSceneRenderer* CSceneRenderer::ConstructBase() {
+CVisualizator* CVisualizator::SetUpBase() {
     pipeline_ = nullptr;
-    ei::SetVtable(this, kBaseVtable);
     flags_ = 0;
     sun_ = nullptr;
     return this;
 }
-EI_REWRITTEN(0x00500440, CSceneRenderer::ConstructBase);
+EI_REWRITTEN(0x00500440, CVisualizator::SetUpBase);
 
-void CSceneRenderer::DestroyBase() {
+CVisualizator::CVisualizator() { SetUpBase(); }
+
+void CVisualizator::operator delete(void* memory) { gamecrt::operator_delete(memory); }
+
+void CVisualizator::CreateRenderer(void* window, options::GameOptions* settings) { CreateBase(window, settings); }
+void CVisualizator::DestroyRenderer() { DestroyBase(); }
+void CVisualizator::SetColour(std::uint32_t colour) { SetBaseColour(colour); }
+
+void CVisualizator::DestroyBase() {
     CLight* sun = sun_;
     sun_ = nullptr;
     if (sun) sun->Release();
@@ -68,23 +73,22 @@ void CSceneRenderer::DestroyBase() {
     graphicsLibrary_ = nullptr;
     graphicsProcessor_ = nullptr;
 }
-EI_REPLACE_METHOD(0x005006E0, CSceneRenderer::DestroyBase);
+EI_REWRITTEN(0x005006E0, CVisualizator::DestroyBase);
 
 // The member destructor of pipeline_ then finds it null.
-void CSceneRenderer::DestructBase() {
-    ei::SetVtable(this, kBaseVtable);
-    DestroyBase();
-}
-EI_REWRITTEN(0x00500480, CSceneRenderer::DestructBase);
+CVisualizator::~CVisualizator() { DestroyBase(); }
 
-CSceneRenderer* CSceneRenderer::DeleteBase(unsigned flags) {
-    DestructBase();
+void CVisualizator::DestructBase() { this->CVisualizator::~CVisualizator(); }
+EI_REWRITTEN(0x00500480, CVisualizator::DestructBase);
+
+CVisualizator* CVisualizator::DeleteBase(unsigned flags) {
+    this->CVisualizator::~CVisualizator();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00500460, CSceneRenderer::DeleteBase);
+EI_REWRITTEN(0x00500460, CVisualizator::DeleteBase);
 
-void CSceneRenderer::SetBaseColour(std::uint32_t colour) {
+void CVisualizator::SetBaseColour(std::uint32_t colour) {
     colour_ = colour;
     ITransformPipeline* transform = pipeline_->transform_;
     // Each byte (FILD of a 64-bit integer) times the float constant, stored as the float argument.
@@ -93,18 +97,18 @@ void CSceneRenderer::SetBaseColour(std::uint32_t colour) {
     const int blue = static_cast<int>(colour & 0xFF);
     transform->SetAmbient(red * kInverseColourScale, green * kInverseColourScale, blue * kInverseColourScale);
 }
-EI_REPLACE_METHOD(0x00500740, CSceneRenderer::SetBaseColour);
+EI_REWRITTEN(0x00500740, CVisualizator::SetBaseColour);
 
-void CSceneRenderer::SetSun(CLight* light) {
+void CVisualizator::SetSun(CLight* light) {
     CLight* old = sun_;
     sun_ = light;
     if (light) ++light->refCount_;
     if (old) old->Release();
     if (pipeline_ && pipeline_->transform_) pipeline_->transform_->AddSun(sun_);
 }
-EI_REWRITTEN(0x005007C0, CSceneRenderer::SetSun);
+EI_REWRITTEN(0x005007C0, CVisualizator::SetSun);
 
-void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) {
+void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);
     // Each product is stored as a float, then FISTP rounds it to the nearest integer.
     const std::uint32_t red = static_cast<std::uint32_t>(x87::fistp(r * kColourScale));
@@ -112,40 +116,39 @@ void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) 
     const std::uint32_t blue = static_cast<std::uint32_t>(x87::fistp(b * kColourScale));
     SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
 }
-EI_REWRITTEN(0x00500800, CSceneRenderer::SetSunAndAmbient);
+EI_REWRITTEN(0x00500800, CVisualizator::SetSunAndAmbient);
 
-// --- The renderer (vtable 0073D93C) --------------------------------------------------------------
+// --- The renderer (C19: compiled in place of game.exe's 0073D93C) -----------------------------------
 
 // 00500960 (cdecl, no arguments). The renderer.
 CSceneRenderer* __cdecl SceneRenderer() { return TheSceneRenderer(); }
 EI_REWRITTEN(0x00500960, SceneRenderer);
 
-CSceneRenderer* CSceneRenderer::ConstructRenderer() {
-    ConstructBase();
+CSceneRenderer::CSceneRenderer() {
     device_ = nullptr;
     helper_ = nullptr;
-    ei::SetVtable(this, kRendererVtable);
-    return this;
 }
+
+CSceneRenderer* CSceneRenderer::ConstructRenderer() { return new (this) CSceneRenderer(); }
 EI_REPLACE_METHOD(0x00500A70, CSceneRenderer::ConstructRenderer);
 
-void CSceneRenderer::DestructRenderer() {
-    ei::SetVtable(this, kRendererVtable);
+CSceneRenderer::~CSceneRenderer() {
     CTextureDevice* device = device_;
     device_ = nullptr;
     if (device) device->Release();
     // The helper's member destructor: released, the pointer left as it is.
     if (helper_ && --helper_->refs_ == 0) helper_->DeleteThis(1);
-    DestructBase();
 }
+
+void CSceneRenderer::DestructRenderer() { this->CSceneRenderer::~CSceneRenderer(); }
 EI_REPLACE_METHOD(0x00500AC0, CSceneRenderer::DestructRenderer);
 
 void* CSceneRenderer::DeleteRendererImpl(unsigned flags) {
-    DestructRenderer();
+    this->CSceneRenderer::~CSceneRenderer();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00500AA0, CSceneRenderer::DeleteRendererImpl);
+EI_REWRITTEN(0x00500AA0, CSceneRenderer::DeleteRendererImpl);
 
 void CSceneRenderer::DestroyRenderer() {
     DestroyBase();
@@ -158,7 +161,7 @@ void CSceneRenderer::DestroyRenderer() {
     if (device) device->Release();
 }
 void __fastcall RendererDestroyHook(CSceneRenderer* self) { self->CSceneRenderer::DestroyRenderer(); }
-EI_REPLACE(0x005019F0, RendererDestroyHook);
+EI_REWRITTEN(0x005019F0, RendererDestroyHook);
 
 int CSceneRenderer::ClearFrame() {
     const std::uint32_t colour = fogColour_;
@@ -171,11 +174,11 @@ int CSceneRenderer::ClearFrame() {
     return 1;
 }
 int __fastcall RendererClearFrameHook(CSceneRenderer* self) { return self->CSceneRenderer::ClearFrame(); }
-EI_REPLACE(0x00501A40, RendererClearFrameHook);
+EI_REWRITTEN(0x00501A40, RendererClearFrameHook);
 
 std::uint32_t CSceneRenderer::ZEnable() { return device_->zEnable_; }
 std::uint32_t __fastcall RendererZEnableHook(CSceneRenderer* self) { return self->CSceneRenderer::ZEnable(); }
-EI_REPLACE(0x00501AA0, RendererZEnableHook);
+EI_REWRITTEN(0x00501AA0, RendererZEnableHook);
 
 // The holder is stored; no device lock. The stage's texture is null on
 // the switch-over (no holder has a DirectDraw surface); the new renderer draws with the holder.
@@ -189,16 +192,16 @@ int CSceneRenderer::SetTextureImpl(int stage, void* texture) {
     ++device->textureChanges_;
     return 1;
 }
-EI_REPLACE_METHOD(0x00501AF0, CSceneRenderer::SetTextureImpl);
+EI_REWRITTEN(0x00501AF0, CSceneRenderer::SetTextureImpl);
 
 void CSceneRenderer::SetColourImpl(std::uint32_t colour) {
     SetBaseColour(colour);
     device_->colour_ = colour;
 }
-EI_REPLACE_METHOD(0x00501CC0, CSceneRenderer::SetColourImpl);
+EI_REWRITTEN(0x00501CC0, CSceneRenderer::SetColourImpl);
 
 void CSceneRenderer::DrawLineListImpl(void* lines) { static_cast<LineBatch*>(lines)->Draw(pipeline_, device_); }
-EI_REPLACE_METHOD(0x00501CE0, CSceneRenderer::DrawLineListImpl);
+EI_REWRITTEN(0x00501CE0, CSceneRenderer::DrawLineListImpl);
 
 int CSceneRenderer::DrawFigureImpl(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
                                tagRECT* screen) {
@@ -206,7 +209,7 @@ int CSceneRenderer::DrawFigureImpl(void* figure, const void* unknownA, const voi
     if (mesh->flags_ & kFigureHidden) return 1;
     return mesh->drawer_->DrawPlain(device_, reinterpret_cast<int>(unknownA), reinterpret_cast<int>(unknownB), reinterpret_cast<int>(material), alpha, screen);
 }
-EI_REPLACE_METHOD(0x00501D00, CSceneRenderer::DrawFigureImpl);
+EI_REWRITTEN(0x00501D00, CSceneRenderer::DrawFigureImpl);
 
 int CSceneRenderer::DrawFigureLitImpl(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
                                   CTexture* textureA, CTexture* textureB) {
@@ -214,20 +217,24 @@ int CSceneRenderer::DrawFigureLitImpl(void* figure, const void* lights, void* ma
     if (mesh->flags_ & kFigureHidden) return 1;
     return mesh->drawer_->DrawLit(device_, static_cast<const FigureLights*>(lights), static_cast<CMaterial*>(material), alpha, screen, textureA, textureB);
 }
-EI_REPLACE_METHOD(0x00501D40, CSceneRenderer::DrawFigureLitImpl);
+EI_REWRITTEN(0x00501D40, CSceneRenderer::DrawFigureLitImpl);
 
 void CSceneRenderer::GetGamma(float* brightness, float* contrast, float* gamma) const {
     *brightness = brightness_;
     *contrast = contrast_;
     *gamma = gamma_;
 }
-EI_REPLACE_METHOD(0x00504A40, CSceneRenderer::GetGamma);
+void __fastcall RendererGetGammaHook(const CSceneRenderer* self, void*, float* brightness, float* contrast, float* gamma) {
+    self->CSceneRenderer::GetGamma(brightness, contrast, gamma);
+}
+EI_REWRITTEN(0x00504A40, RendererGetGammaHook);
 
 // The original sets the cooperative level and the display mode again in full screen, restores every
 // DirectDraw surface and reloads the textures. The switch-over (device.h) has no DirectDraw surfaces
 // to lose, nor a display mode to set again (a lost Direct3D 11 device is ticket R9c's): true.
 bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
-EI_REPLACE_METHOD(0x00504780, CSceneRenderer::RestoreSurfaces);
+bool __fastcall RendererRestoreSurfacesHook(CSceneRenderer* self) { return self->CSceneRenderer::RestoreSurfaces(); }
+EI_REWRITTEN(0x00504780, RendererRestoreSurfacesHook);
 
 // --- The device object's counted holder (+0x20) ----------------------------------------------------
 

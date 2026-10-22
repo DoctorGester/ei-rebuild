@@ -4,6 +4,7 @@
 #include "model.h"
 #include "ui_item_info.h"
 #include "ui_camp.h"
+#include "ui_window_class.h"
 #include "core_streams.h"
 
 #include "ei/hook.h"
@@ -100,7 +101,7 @@ void CItemIconWindow::Build() {
     sprite()->Rectangle(7.8f, 100.0f, 200.0f, 280.0f, 300.0f, 320.0f, 0xFE, 0x22, 0x9A, 0x4A);
     sprite()->Rectangle(7.8f, 100.0f, 300.0f, 280.0f, 400.0f, 320.0f, 0x9A, 0x22, 0xFE, 0x4A);
 }
-EI_REPLACE_METHOD(0x005F2A90, CItemIconWindow::Build);
+EI_REWRITTEN(0x005F2A90, CItemIconWindow::Build);
 
 // --- 005F2E00: the first two bars moved ------------------------------------------------------------
 
@@ -120,13 +121,25 @@ EI_REWRITTEN(0x005F2E00, CItemIconWindow::PlaceBars);
 namespace {
 } // namespace
 
+namespace {
+// The icon window's compiled tables (C19, ui_window_class.h) in place of game.exe's 00740444 / 00740410: the window's
+// slots with its own Build (18), the input side's defaults.
+struct IconWindowClass final : UiWindowClass<IconWindowClass, &CUiWindow::UiWindowDelete> {
+    void Build() override { static_cast<CItemIconWindow*>(AsWindow())->Build(); }   // 18: 005F2A90
+};
+void** IconWindowVtable() { return static_cast<void**>(IconWindowClass::Vtable()); }
+void** IconWindowInputVtable() { return static_cast<void**>(UiWindowInputClass::Vtable()); }
+} // namespace
+
+void** CItemIconWindow::Vtable() { return IconWindowVtable(); }
+
 void CItemScreen::CreateBase() {
     void* memory = gamecrt::operator_new(0x148);
     CUiWindow* icons = nullptr;
     if (memory) {
         icons = static_cast<CUiWindow*>(memory)->Construct(interface_);
-        icons->vtable_ = ei::GamePointer<void*>(0x00740444);
-        icons->inputVtable_ = ei::GamePointer<void*>(0x00740410);
+        icons->vtable_ = IconWindowVtable();
+        icons->inputVtable_ = IconWindowInputVtable();
     }
     iconWindow_ = icons;
     AddChild(icons);

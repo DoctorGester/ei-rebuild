@@ -99,4 +99,4 @@ int CSceneRenderer::DrawRectangleImpl(int left, int top, int right, int bottom, 
     render::state::Render(kZBias, 0);
     return 1;
 }
-EI_REPLACE_METHOD(0x005041F0, CSceneRenderer::DrawRectangleImpl);
+EI_REWRITTEN(0x005041F0, CSceneRenderer::DrawRectangleImpl);

@@ -35,7 +35,7 @@ const char* EmptyText() { return "?"; }
 
 // The header of a clone (the base constructors inlined) and of a fresh or rebuilt message.
 void CloneHeader(Message* copy, const Message* source) {
-    ei::SetVtable(copy, CRefObject::kVtableAddress);
+    ei::SetVtable(copy, CRefObject::Vtable());
     copy->version_ = source->version_;
     ei::SetVtable(copy, Message::Vtable());
 }
@@ -1043,7 +1043,7 @@ void PartyMessage::Destruct() {   // 004178F0
 ServerEntry* ServerEntry::Clone() {   // 00412590
     auto* p = NewMessageMemory<ServerEntry>();
     if (!p) return nullptr;
-    ei::SetVtable(p, CRefObject::kVtableAddress);
+    ei::SetVtable(p, CRefObject::Vtable());
     p->address_ = address_;
     std::memcpy(&p->timeout_, &timeout_, 4);   // the floats copied as dwords
     std::memcpy(&p->ping_, &ping_, 4);

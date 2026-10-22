@@ -23,7 +23,7 @@ int CSceneRenderer::SetFogColourStateImpl(std::uint32_t colour) {
     if (hr != 0) return game::FatalError("Can't set fog color 0x%X.\n", colour);
     return 1;
 }
-EI_REPLACE_METHOD(0x00501AB0, CSceneRenderer::SetFogColourStateImpl);
+EI_REWRITTEN(0x00501AB0, CSceneRenderer::SetFogColourStateImpl);
 
 // 00501C60 (thiscall on the renderer, RET 8). Sets SRCBLEND, then DESTBLEND (D3DBLEND values: the
 // particle draw 00498940 passes 5, 2 for additive sources and 5, 6 to go back). A failure is
@@ -37,7 +37,7 @@ int CSceneRenderer::SetBlendImpl(std::uint32_t source, std::uint32_t dest) {
     if (hr != 0) return app::FatalErrorCode(hr, "Can't set destination alpha blend mode.\n");
     return 1;
 }
-EI_REPLACE_METHOD(0x00501C60, CSceneRenderer::SetBlendImpl);
+EI_REWRITTEN(0x00501C60, CSceneRenderer::SetBlendImpl);
 
 // 004EB170 (thiscall on the device object, RET 4). The current material (material_, counted; the
 // old one released through its slot 0 when its count reaches 0); without a material stage 1's

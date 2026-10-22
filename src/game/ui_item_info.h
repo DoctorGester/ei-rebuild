@@ -144,6 +144,8 @@ public:
     // 005F2E00 (RET 4; the exchange window with 300). Places the two bars (sprites 25, 26) across
     // the left and right columns (0..100, 100..200) at y - 20..y + 20 (depth 7.8, scale 100).
     void PlaceBars(int y);
+    // The compiled table (C19, ui_window_class.h) in place of game.exe's 00740444.
+    static void** Vtable();
 };
 
 // The item screens (the camp, the multiplayer hero screen and the exchange window share these

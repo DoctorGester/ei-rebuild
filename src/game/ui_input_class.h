@@ -7,7 +7,8 @@
 // 005E28A0: RET / RET 0xC, EAX left as it was: 0 here, which no caller reads), 7 / 8 a double click as a press
 // (005E2860 / 005E2880), 12 the wheel not used (005E28B0, 0). Slot 0 is `Delete`: a member of the window class, the
 // window's deleting destructor through the side (SUB ECX,0x94; JMP), or for an extra side of its own (a container's
-// +0x158 list) UiInputSide's. A tag's own handlers override the slots; `this` is the side, SideWindow() the window.
+// +0x158 list, the view screen's unit pick) a member of UiInputSide or of the side's class. A tag's own handlers
+// override the slots; `this` is the side, SideWindow() the window.
 
 #include "ui.h"
 
@@ -30,7 +31,7 @@ public:
     }
 
     virtual void* DeleteWindow(unsigned flags) {   // 0
-        if constexpr (std::is_same_v<Window, UiInputSide>) return (Side()->*Delete)(flags);
+        if constexpr (std::is_base_of_v<UiInputSide, Window>) return (static_cast<Window*>(Side())->*Delete)(flags);
         else return (SideWindow()->*Delete)(flags);
     }
     virtual void Deactivate() {}                                                            // 1: 005E2800
@@ -51,3 +52,11 @@ public:
 // 005EB8A0 / 005EB8B0): the battle screen's, the briefing's, the main menu's and the view screens'.
 struct InertInputClass final : InputSideClass<InertInputClass, &UiInputSide::InputSideDelete> {};
 inline void** InertInputVtable() { return static_cast<void**>(InertInputClass::Vtable()); }
+
+// The base input side (game.exe's 007401D0): slot 0 its own deleting destructor (005EA850), the rest the defaults.
+// The window base's constructor stores it first, the input sides' destructors leave it.
+struct InputSideBaseClass final : InputSideClass<InputSideBaseClass, &UiInputSide::InputSideBaseDelete> {};
+inline void** BaseInputVtable() { return static_cast<void**>(InputSideBaseClass::Vtable()); }
+
+// The plain window's input side (game.exe's 00740F2C): the window's deleting destructor, the defaults.
+struct UiWindowInputClass final : InputSideClass<UiWindowInputClass, &CUiWindow::UiWindowDelete> {};

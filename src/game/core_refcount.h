@@ -43,7 +43,9 @@ void* PlainRootVtable();
 // out-of-line copies are rewritten here.
 class CRefObject : public CRefCounted {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BB58);
+    // The base part's compiled table (C19, core_streams.cpp; game.exe's 0073BB58): 0 ValueDeletingDestruct, 1 the
+    // empty Serialize, 2 / 3 `_purecall`. The derived classes' constructors and copies store it first.
+    static void* Vtable();
 
     virtual int OnShutdown() = 0;           // 2: the object is still shared and about to lose its owner
     virtual CRefObject* Clone() = 0;        // 3: the copy handed out when a kCopyOnShare object is shared

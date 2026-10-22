@@ -2,6 +2,7 @@
 // See ui.h and docs/notes/items_spells.md (A-H19).
 
 #include "ui.h"
+#include "ui_window_class.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -15,19 +16,27 @@
 
 namespace {
 
-constexpr std::uintptr_t kSpinVtable = std::uintptr_t(0x00742D5C);
-constexpr std::uintptr_t kSpinInputVtable = std::uintptr_t(0x00742D28);
+// The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742D5C / 00742D28: the window's slots; the
+// input side's click (2), and a left double click that does nothing (7: 0065C000, RET 0xC).
+struct SpinTable final : UiWindowClass<SpinTable, &CUiSpin::SpinDelete> {};
+struct SpinInputTable final : InputSideClass<SpinInputTable, &CUiSpin::SpinDelete> {
+    int LeftDown(int b, int x, int y) override { return SideWindow()->OnLButtonDown(b, x, y), 0; }   // 2: 0065BFD0
+    int LeftDouble(int, int, int) override { return 0; }                                           // 7: 0065C000
+};
 constexpr int kSurfaceFormat = 5;
 constexpr int kTextFormat = 1;
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 } // namespace
 
+void** CUiSpin::Vtable() { return static_cast<void**>(SpinTable::Vtable()); }
+void** CUiSpin::InputVtable() { return static_cast<void**>(SpinInputTable::Vtable()); }
+
 CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
     CUiWindow::Construct(ui);
     texts_.Construct();
-    vtable_ = ei::GamePointer<void*>(kSpinVtable);
-    inputVtable_ = ei::GamePointer<void*>(kSpinInputVtable);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     rect_ = rect;
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     AddSurface(memory ? memory->ConstructOnRect(ui, &rect, kSurfaceFormat) : nullptr);
@@ -75,4 +84,4 @@ void CUiSpin::OnLButtonDown(int, int, int) {
     SetValue(value_ + 1);
 }
 
-EI_REPLACE_METHOD(0x0065BFD0, InputForward<&CUiSpin::OnLButtonDown>::Call);
+EI_REWRITTEN(0x0065BFD0, InputForward<&CUiSpin::OnLButtonDown>::Call);

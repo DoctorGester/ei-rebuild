@@ -57,6 +57,24 @@ struct PlainRootClass final : ei::CompiledTag<PlainRootClass> {
 
 void* PlainRootVtable() { return PlainRootClass::Vtable(); }
 
+extern "C" int __cdecl _purecall();
+
+namespace {
+// The counted value's compiled table (C19; game.exe's 0073BB58): 0 the deleting destructor, 1 Serialize (empty,
+// RET 4), 2 / 3 the compiler CRT's `_purecall` (game.exe's 006E73EB): a derived constructor stores its own table
+// before anything can call them.
+struct RefObjectBaseClass final : ei::CompiledDeleter<RefObjectBaseClass, &CRefObject::ValueDeletingDestruct> {
+    virtual void Serialize(ChunkArchive*) {}            // 1
+    virtual int OnShutdown() { return _purecall(); }    // 2
+    virtual CRefObject* Clone() {                       // 3
+        _purecall();
+        return nullptr;
+    }
+};
+} // namespace
+
+void* CRefObject::Vtable() { return RefObjectBaseClass::Vtable(); }
+
 void __fastcall RefObjectDestructBase(void* self) { SetVtable(self, CRefCounted::RootVtable()); }
 EI_REWRITTEN(0x00412720, RefObjectDestructBase);
 EI_REWRITTEN(0x00413430, RefObjectDestructBase);
@@ -76,7 +94,7 @@ EI_REWRITTEN(0x00412730, CRefCounted::RootDeletingDestruct);
 EI_REWRITTEN(0x005B3570, CRefCounted::RootDeletingDestruct);   // S13: the unit shape's (calls its copy 005B3590)
 
 void* __fastcall RefValueConstructBase(void* self) {
-    SetVtable(self, CRefObject::kVtableAddress);
+    SetVtable(self, CRefObject::Vtable());
     return self;
 }
 EI_REWRITTEN(0x00419720, RefValueConstructBase);
@@ -86,7 +104,7 @@ CRefObject* CRefObject::ValueDeletingDestruct(unsigned flags) {
     DeleteIf(this, flags);
     return this;
 }
-EI_REPLACE_METHOD(0x00412700, CRefObject::ValueDeletingDestruct);
+EI_REWRITTEN(0x00412700, CRefObject::ValueDeletingDestruct);
 EI_REWRITTEN(0x00562750, CRefObject::ValueDeletingDestruct);   // byte-identical copies (A-W12)
 EI_REWRITTEN(0x0058FBC0, CRefObject::ValueDeletingDestruct);
 

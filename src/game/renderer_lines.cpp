@@ -87,7 +87,7 @@ int CSceneRenderer::PolylineImpl(const ScreenPoints* points, std::uint32_t colou
     DeleteVertices(vertices);
     return 1;
 }
-EI_REPLACE_METHOD(0x005045D0, CSceneRenderer::PolylineImpl);
+EI_REWRITTEN(0x005045D0, CSceneRenderer::PolylineImpl);
 
 // 0049B4B0 (fastcall: the device object, the points; `colour` on the stack, RET 4). Flat shaded
 // (Gouraud again after); returns the last SetRenderState's result.

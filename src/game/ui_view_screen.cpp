@@ -99,6 +99,19 @@ EI_REPLACE_METHOD(0x0062AA40, CViewScreen::OnClose);
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 
+namespace {
+// The compiled table (C19, ui_input_class.h) in place of game.exe's 00740278: the clicks (2 / 5) and keys (9 / 11).
+struct UnitPickInputClass final : InputSideClass<UnitPickInputClass, &UnitPickInput::DeleteThis> {
+    UnitPickInput* Pick() { return static_cast<UnitPickInput*>(Side()); }
+    int LeftDown(int b, int x, int y) override { return Pick()->OnLeftDown(b, x, y), 0; }    // 2: 005EB940
+    int RightDown(int b, int x, int y) override { return Pick()->OnRightDown(b, x, y), 0; }  // 5: 005EBB40
+    int KeyDown(int k, int r, int f) override { return Pick()->OnKeyDown(k, r, f), 0; }      // 9: 005EBB80
+    int KeyUp(int k, int r, int f) override { return Pick()->OnKeyUp(k, r, f), 0; }          // 11: 005EBBC0
+};
+} // namespace
+
+void** UnitPickInput::Vtable() { return static_cast<void**>(UnitPickInputClass::Vtable()); }
+
 UnitPickInput* UnitPickInput::Construct(CInterface3D* ui) {
     owner_ = ui;
     picked_ = UiDwordArray{DwordArrayVtable(), nullptr, 0, 0, 0};
@@ -119,7 +132,7 @@ UnitPickInput* UnitPickInput::DeleteThis(int flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x005EB8F0, UnitPickInput::DeleteThis);
+EI_REWRITTEN(0x005EB8F0, UnitPickInput::DeleteThis);
 
 void UnitPickInput::OnLeftDown(int, int x, int y) {
     CWorldClient* world = TheClientWorld();
@@ -150,7 +163,7 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
         }
     }
 }
-EI_REPLACE_METHOD(0x005EB940, UnitPickInput::OnLeftDown);
+EI_REWRITTEN(0x005EB940, UnitPickInput::OnLeftDown);
 
 void UnitPickInput::OnRightDown(int, int, int) {
     if (picked_.data) {
@@ -161,7 +174,7 @@ void UnitPickInput::OnRightDown(int, int, int) {
     picked_.size = 0;
     TheClientWorld()->Deselect(nullptr);
 }
-EI_REPLACE_METHOD(0x005EBB40, UnitPickInput::OnRightDown);
+EI_REWRITTEN(0x005EBB40, UnitPickInput::OnRightDown);
 
 void UnitPickInput::OnKeyDown(int key, int, int) {
     if (key == kVkControl) {
@@ -170,9 +183,9 @@ void UnitPickInput::OnKeyDown(int key, int, int) {
         GameSetServerPaused(GameServerPaused() == 0);
     }
 }
-EI_REPLACE_METHOD(0x005EBB80, UnitPickInput::OnKeyDown);
+EI_REWRITTEN(0x005EBB80, UnitPickInput::OnKeyDown);
 
 void UnitPickInput::OnKeyUp(int key, int, int) {
     if (key == kVkControl) TheCursor()->SetShape(kCursorNormal);
 }
-EI_REPLACE_METHOD(0x005EBBC0, UnitPickInput::OnKeyUp);
+EI_REWRITTEN(0x005EBBC0, UnitPickInput::OnKeyUp);
