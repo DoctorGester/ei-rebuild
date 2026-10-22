@@ -32,8 +32,8 @@ const char* const kFakeUnitName = "CFakeUnit";
 constexpr int kClassLightning = 0x1E;
 constexpr int kClassHoover = 0x1F;
 
-// 007A9694: set once the lightning noise table has been loaded (00468A00).
-int& LightningNoiseLoaded() { return ei::GameData<int>(0x007A9694); }
+// Set once the lightning noise table has been loaded (00468A00).
+int g_lightningNoiseLoaded = /*007A9694*/ {};
 
 } // namespace
 
@@ -114,8 +114,8 @@ void LightningSegment::Destruct() {
 EI_REWRITTEN(0x00468920, LightningSegment::Destruct);
 
 int CLightningManager::Create() {
-    if (!LightningNoiseLoaded()) {
-        LightningNoiseLoaded() = 1;
+    if (!g_lightningNoiseLoaded) {
+        g_lightningNoiseLoaded = 1;
         LoadLightningNoiseOriginal();
     }
     return CBaseManager::Create();

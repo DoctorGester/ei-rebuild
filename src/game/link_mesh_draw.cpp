@@ -48,12 +48,13 @@ void __cdecl FreeMovedPackets() { g_movedPackets.FreeData(); }   // 004F2B20
 // A screen or texture point of the shadow's rasteriser (moved as one qword; texture.h).
 using PixelPair = RasterTriangle::Point;
 
-// A part's texture coordinates in 0..255 (007AEEB8; a local static of 004F4850: bit 0 of 007AEEC8
-// says it is constructed, and the exit handler 004F4B30 frees its block).
+// A part's texture coordinates in 0..255 (a local static of 004F4850: bit 0 of its guard says it is
+// constructed, and the exit handler 004F4B30 frees its block).
 constinit lib::AlignedArray<RasterTriangle::Point> g_texturePixels = /*007AEEB8*/ {};
+std::uint8_t g_texturePixelsGuard = /*007AEEC8*/ {};
 void __cdecl FreeTexturePixels() { g_texturePixels.FreeData(); }   // 004F4B30
 lib::AlignedArray<PixelPair>& TexturePixels() {
-    auto& constructed = ei::GameData<std::uint8_t>(0x007AEEC8);
+    auto& constructed = g_texturePixelsGuard;
     auto& pixels = g_texturePixels;
     if (!(constructed & 1)) {
         constructed |= 1;

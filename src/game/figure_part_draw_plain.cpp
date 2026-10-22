@@ -35,7 +35,7 @@ using ColourArray = lib::AlignedArray<std::uint32_t>;
 constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E60*/ {};
 lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }   // 005A7A50
-std::uint8_t& Guard() { return ei::GameData<std::uint8_t>(0x007C2E70); }
+std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 // 005A7160: the node's animation at a time (float bits). 005A7290: after the draw (the renderer).
@@ -81,8 +81,8 @@ std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpre
 int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha,
                                    RECT* rect) {
     if (mesh_->flags_ & 0x80) return 1;
-    if (!(Guard() & 1)) {
-        Guard() |= 1;
+    if (!(g_movedPositionsGuard & 1)) {
+        g_movedPositionsGuard |= 1;
         MovedPositions() = lib::AlignedArray<VertexPacket>{};
         GameAtExit(FreeMovedPositions);   // 005A7A50
     }

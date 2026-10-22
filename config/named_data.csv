@@ -142,6 +142,7 @@ address,size,name,file
 00791744,16,kTransparency,src/game/ai_map.cpp
 00791EE0,4,g_loadingMovieName,src/game/app_main.cpp
 00793AD8,4,g_connectTextColour,src/game/ui_screens.h
+00794E3C,4,g_nextRecordObjectId,src/game/player_server_handlers.cpp
 00796960,64,kAnimationSpeeds,src/game/terrain_sector.cpp
 007969D0,384,g_soundClasses,src/game/terrain_ambience.cpp
 00796CD0,24,g_classCDib,src/game/dib.cpp
@@ -208,6 +209,7 @@ address,size,name,file
 0079C1F4,1,g_glowGuards,src/game/lightning_draw.cpp
 0079C1F8,1600,g_noiseSide,src/game/lightning.cpp
 0079C838,1600,g_noiseUp,src/game/lightning.cpp
+007A9694,4,g_lightningNoiseLoaded,src/game/class_slots.cpp
 007A9738,16,g_scratch,src/game/world_object_sets.cpp
 007A9748,1,g_scratchGuard,src/game/world_object_sets.cpp
 007A9780,4,g_keepSnapshot1,src/game/net_delta.h
@@ -263,6 +265,7 @@ address,size,name,file
 007AEE64,4,g_directDrawDrivers,src/game/static_lists.cpp
 007AEE94,4,g_holderCount,src/game/device.h
 007AEEB8,16,g_texturePixels,src/game/link_mesh_draw.cpp
+007AEEC8,1,g_texturePixelsGuard,src/game/link_mesh_draw.cpp
 007AEED0,16,g_movedPackets,src/game/link_mesh_draw.cpp
 007AEF60,20,g_indices,src/game/renderer_sprites.cpp
 007AEF78,20,g_outcodes,src/game/renderer_sprites.cpp
@@ -299,6 +302,7 @@ address,size,name,file
 007AF2D0,12,kDefaultColour,src/game/torch_spec.cpp
 007AF330,4,kFullTurn,src/game/unit_client_path.cpp
 007AF358,128,g_unitDatabase,src/game/unit_db_globals.cpp
+007AF40C,4,g_squaredCallRadius,src/game/combat_actions.cpp
 007AF438,1,g_destroyed,src/game/game_folders.cpp
 007AF450,4,g_registryRoot,src/game/game_folders.cpp
 007AF454,4,g_startFolder,src/game/game_folders.cpp
@@ -348,6 +352,7 @@ address,size,name,file
 007C2E48,16,g_movedPositions,src/game/figure_part_draw.cpp
 007C2E58,1,g_movedPositionsGuard,src/game/figure_part_draw.cpp
 007C2E60,16,g_movedPositions,src/game/figure_part_draw_plain.cpp
+007C2E70,1,g_movedPositionsGuard,src/game/figure_part_draw_plain.cpp
 007C2EF4,1,g_blocksGuard,src/game/ai_region_reach.cpp
 007C2F24,1,g_floodGuard,src/game/ai_region_reach.cpp
 007C2F48,8,g_findFreeSpiral,src/game/ai_map.cpp
@@ -361,6 +366,7 @@ address,size,name,file
 007C3038,28,g_smoothPool,src/game/ai_path_smooth.cpp
 007C3058,4860,g_smoothTables,src/game/ai_path_smooth.cpp
 007C4378,4,kOrderAngleLimit,src/game/ai_path_state.cpp
+007C53F8,204,g_logicSettings,src/game/logic_settings.h
 007C54E4,1,g_candidatesGuard,src/game/unit_ai_modes.cpp
 007C5518,1,g_loadingHolderReleased,src/game/bink_video.cpp
 007C551C,4,g_loadingHolder,src/game/bink_video.cpp
@@ -427,6 +433,7 @@ address,size,name,file
 007C899C,4,kHalfPi,src/game/ground_print.cpp
 007C89C8,96,g_printsDatabase,src/game/database_globals.cpp
 007C8A60,96,g_ackDatabase,src/game/database_globals.cpp
+007C8BA8,1,g_chNil,src/lib/mfc_file.cpp
 007CAADC,4,kGameUmask,src/lib/crt_file.cpp
 007CAB20,4,g_mbSystemSet,src/lib/crt_locale_data.cpp
 007CAB24,6,g_cachedId,src/lib/crt_locale_data.cpp
