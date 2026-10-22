@@ -220,8 +220,6 @@ namespace {
 // 004E6BA0 (thiscall): drops a holder reference.
 void ReleaseHolder(SurfaceHolder* holder) { holder->Release(); }
 
-std::uint32_t& KeptBytesTotal() { return ei::GameData<std::uint32_t>(0x007C7E74); }
-std::uint32_t& SurfaceBytesTotal() { return ei::GameData<std::uint32_t>(0x007C7E78); }
 
 } // namespace
 
@@ -243,7 +241,7 @@ void CUiSurface::SwapContents(int restore) {
             if (made) ++made->refCount;
             if (previous) ReleaseHolder(previous);
             DirectPixels(holder_, &desc, true);   // (no memory: the description stays empty)
-            SurfaceBytesTotal() += static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
+            UiSurfaceBytes() += static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
         }
         if (!kept_) {
             ui_native::Restored(this);
@@ -252,7 +250,7 @@ void CUiSurface::SwapContents(int restore) {
         SurfaceHolder* holder = holder_;
         gameapi::EnterCriticalSection(TheDeviceLock());
         if (DirectPixels(holder, &desc)) std::memcpy(desc.bits, kept_, keptSize_);
-        KeptBytesTotal() -= keptSize_;
+        UiSurfaceKeptBytes() -= keptSize_;
         gameapi::LeaveCriticalSection(TheDeviceLock());
         gamecrt::operator_delete(kept_);
         kept_ = nullptr;
@@ -269,9 +267,9 @@ void CUiSurface::SwapContents(int restore) {
     keptSize_ = static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
     kept_ = gamecrt::operator_new_array<std::uint8_t>(keptSize_);
     if (direct) std::memcpy(kept_, desc.bits, keptSize_);
-    KeptBytesTotal() += keptSize_;
+    UiSurfaceKeptBytes() += keptSize_;
     gameapi::LeaveCriticalSection(TheDeviceLock());
-    SurfaceBytesTotal() -= keptSize_;
+    UiSurfaceBytes() -= keptSize_;
     SurfaceHolder* released = holder_;
     holder_ = nullptr;
     if (released && --released->refCount == 0) {

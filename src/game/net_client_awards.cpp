@@ -41,7 +41,6 @@ constexpr int kClassQuestItem = 0x14;
 CWorldServer* World() { return TheServerWorld(); }
 // 00594180: player 0 of the world (the local player), or null.
 CPlayer* LocalPlayer() { return World()->GetPlayer(0); }
-std::uint32_t Unknown7B00BC() { return ei::GameData<const std::uint32_t>(0x007B00BC); }
 
 void InitList(GivenItems& list, void* vtable) {
     list.vtable = vtable;
@@ -154,7 +153,7 @@ void ClientSession::TickImpl(double dt) {
     }
     if (self->awards_.First() == self->awards_.End() || TheServerWorld()->sessionKind_ != 3) return;
     CPlayer* player = LocalPlayer();
-    if (!player || player->connection_->state_ != 1 || !Unknown7B00BC()) return;
+    if (!player || player->connection_->state_ != 1 || !World()->zoneLoaded_) return;
     ApplyAwards();
 }
 EI_REWRITTEN(0x0041CCD0, ClientSession::TickImpl);

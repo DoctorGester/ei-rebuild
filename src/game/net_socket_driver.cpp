@@ -333,4 +333,10 @@ int __fastcall MasterLinkTick(MasterLink* self) {
 }
 EI_REPLACE(0x00440DE0, MasterLinkTick);
 
+// 0047C330, the exit function of Winsock's static initialiser 0047C300 (WSAStartup 1.1): WSACleanup once the network
+// threads are gone. The original waits while their count (007A9774) is non-zero; only the thread procedure 0047C3A0
+// counts them, and nothing starts it (config/dead_code.csv), so there is never one to wait for.
+void __cdecl CleanUpWinsock() { libcrt::imports::WsaCleanup(); }
+EI_REPLACE(0x0047C330, CleanUpWinsock);
+
 } // namespace net

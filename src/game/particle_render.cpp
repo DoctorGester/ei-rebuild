@@ -7,6 +7,7 @@
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
 #include "at_exit_functions.h"
+#include "lib/static_object.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -37,12 +38,12 @@ double Unsigned(std::uint32_t value) {
 constinit lib::AlignedArray<ParticleVertex> g_vertices = /*007A9BD0*/ {};
 lib::AlignedArray<ParticleVertex>& Vertices() { return g_vertices; }
 void __cdecl FreeVertices() { g_vertices.FreeData(); }   // 00497D10
-ParticleSpriteArray& Sprites() { return ei::GameData<ParticleSpriteArray>(0x007A9BE0); }
+static_assert(sizeof(ParticleSpriteArray) == 0x14);
+constinit lib::StaticObject<ParticleSpriteArray> g_sprites = /*007A9BE0*/ {};
+ParticleSpriteArray& Sprites() { return *g_sprites; }
+void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 00497D30 (00468D80)
 // The guard bits of the arrays below (function-local statics in the original).
 std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};
-
-// The world clock: whole ticks (007AF61C) and the fraction of the current one (007AFCA8).
-float TickFraction() { return ei::GameData<const volatile float>(0x007AFCA8); }
 
 constexpr int kReserve = 0x1000;
 
@@ -53,7 +54,7 @@ void ConstructArrays() {
     if (!(g_arraysConstructed & 1)) {
         g_arraysConstructed |= 1;
         ConstructSpriteArray(&Sprites());
-        GameAtExit(ei::static_init::Exit00497D30);
+        GameAtExit(DestroySprites);
     }
     if (!(g_arraysConstructed & 2)) {
         Vertices().data = nullptr;
@@ -68,7 +69,7 @@ void ConstructArrays() {
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
     double ticks = CurrentClientTick();
-    float fraction = static_cast<float>((ticks + D(TickFraction())) - ticks);
+    float fraction = static_cast<float>((ticks + D(ClientTickFraction())) - ticks);
     float one;
     std::uint32_t oneBits = 0x3F800000;
     std::memcpy(&one, &oneBits, sizeof(one));
@@ -98,6 +99,7 @@ EI_REPLACE_METHOD(0x00497CE0, CSceneRenderer::BindHeldTexture);
 
 // 00497D50. CArray::SetSize for the 8-byte sprites: new elements are zeroed.
 EI_REPLACE_METHOD(0x00497D50, ParticleSpriteArray::SetSize);
+EI_REPLACE(0x00497D30, DestroySprites);
 
 // 004976B0. Off screen (the renderer's clip test on the bounds says 2) only counts the hidden
 // ticks. Otherwise the arrays are reserved for 0x1000 particles, sized to this source's, filled,

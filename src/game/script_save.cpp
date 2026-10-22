@@ -15,8 +15,6 @@
 
 namespace {
 
-// The script being saved; the run saver (004BB320) finds a run's instance through it.
-CScript*& SavingScript() { return ei::GameData<CScript*>(0x007AA620); }
 
 void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
 
@@ -142,7 +140,7 @@ void ScriptRun::Save(ScriptStream* stream) const {
     stream->Write(&ticks, 4);
     stream->Write(&sleepStart, 4);
     int instance = 0;
-    const auto* node = SavingScript()->instances_.head;
+    const auto* node = g_streamedScript->instances_.head;
     for (; node; node = node->next, ++instance) {
         if (static_cast<const void*>(killFlag) == &node->data) break;
     }
@@ -152,7 +150,7 @@ void ScriptRun::Save(ScriptStream* stream) const {
 EI_REWRITTEN(0x004BB320, ScriptRun::Save);
 
 void CScript::SaveState(ScriptStream* stream) {
-    SavingScript() = this;
+    g_streamedScript = this;
 
     const auto& lights = pointLights_;
     WriteInt(stream, lights.size);
@@ -182,7 +180,7 @@ void CScript::SaveState(ScriptStream* stream) {
 
     stream->Write(&loaded_, 4);
     stream->Write(&fileCount_, 4);
-    SavingScript() = nullptr;
+    g_streamedScript = nullptr;
     ScriptAreasSave(&areas_, stream);
 }
 EI_REPLACE_METHOD(0x004C0F90, CScript::SaveState);

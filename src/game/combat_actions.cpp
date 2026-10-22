@@ -48,6 +48,8 @@ constexpr int kNoiseKind = 0x1A;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kSkillOnTarget = 0x18A95;
+// PropagateHostility's squared call radius: the original rounds it to a float through this global.
+float g_squaredCallRadius = /*007AF40C*/ {};
 constexpr std::uint32_t kSpellOnWeapon = 0x10000;       // CSpell::targetFlags_: cast by the item
 constexpr std::uint32_t kSpellNotOnHit = 0x180000;      // spell prototype 0x18: fires when not hit
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
@@ -333,8 +335,8 @@ void CUnitServer::PropagateHostility() {
     claimedHostile |= unit->relationsA;
     CWorldServer* world = ServerWorld();
     double radius = brain.callRadius;
-    // The squared radius goes through a global (007AF40C) and is compared as an int.
-    volatile float* limit = ei::GamePointer<volatile float>(0x007AF40C);
+    // The squared radius goes through a global and is compared as an int.
+    volatile float* limit = &g_squaredCallRadius;
     *limit = static_cast<float>(radius * radius);
     CDiplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;

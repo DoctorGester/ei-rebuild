@@ -13,17 +13,18 @@
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "world.h"
 
 namespace unitrecord {
 namespace {
 
-// The item and spell factory (global pointer at 007AFFB4) and the spell manager the spells are made for
-// (007AFFAC). The record names its items by their names.
+// The item and spell factory (the server world's item manager) and the spell manager the spells are made for. The
+// record names its items by their names.
 CItem* CreateItem(CItemManager* factory, const char* name) {   // 006AC970 (patched by Rebirth)
     return ItemManagerCreateItemOriginal(factory, nullptr, name);
 }
-CItemManager* TheFactory() { return ei::GameData<CItemManager*>(0x007AFFB4); }
-CSpellManager* SpellOwner() { return ei::GameData<CSpellManager*>(0x007AFFAC); }
+CItemManager* TheFactory() { return TheServerWorld()->itemManager_; }
+CSpellManager* SpellOwner() { return TheServerWorld()->manager4C_; }
 
 void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
     const mfc::CStringArray& quick = record.lists[UnitRecord::kQuickItems];

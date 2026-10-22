@@ -22,6 +22,9 @@ using namespace ei::vectors::stats;
 
 constexpr std::uint32_t kCap = 256;
 
+// The recorders run in game.exe: its logic settings, not our g_logicSettings.
+const LogicSettings& OriginalLogicSettings() { return ei::OriginalGameData<const LogicSettings>(0x007C53F8); }
+
 template <typename T>
 struct Recorded {
     Sampler sampler;
@@ -282,7 +285,7 @@ double __fastcall Value6E8Record(UnitStats* self) {
 }
 double __fastcall Value6E9Record(UnitStats* self) {
     auto v = Zeroed<LevelCall>();
-    v.setting = GameLogicSettings().backstabAdd;
+    v.setting = OriginalLogicSettings().backstabAdd;
     v.level = self->skillLevels[0x6E9 - 0x6D3];
     if (v.level != 0) v.record = LevelOf(v.level + 0x41u);
     std::uint16_t cw = ControlWord();
@@ -299,7 +302,7 @@ double(__fastcall* s_dexterityRatio)(UnitStats*);
 double __fastcall StrengthRatioRecord(UnitStats* self) {
     auto v = Zeroed<RatioCall>();
     v.stat = self->stat10;
-    v.setting = GameLogicSettings().hpVal[0];
+    v.setting = OriginalLogicSettings().hpVal[0];
     std::uint16_t cw = ControlWord();
     double result = s_strengthRatio(self);
     v.result = result;
@@ -309,7 +312,7 @@ double __fastcall StrengthRatioRecord(UnitStats* self) {
 double __fastcall DexterityRatioRecord(UnitStats* self) {
     auto v = Zeroed<RatioCall>();
     v.stat = self->stat18;
-    v.setting = GameLogicSettings().mpVal[0];
+    v.setting = OriginalLogicSettings().mpVal[0];
     std::uint16_t cw = ControlWord();
     double result = s_dexterityRatio(self);
     v.result = result;
@@ -340,8 +343,8 @@ int __fastcall SchoolPriceRecord(int from, int to) {
     auto v = Zeroed<SchoolPriceCall>();
     v.from = from;
     v.to = to;
-    v.skillVal[0] = GameLogicSettings().skillVal[0];
-    v.skillVal[1] = GameLogicSettings().skillVal[1];
+    v.skillVal[0] = OriginalLogicSettings().skillVal[0];
+    v.skillVal[1] = OriginalLogicSettings().skillVal[1];
     std::uint16_t cw = ControlWord();
     int result = s_schoolPrice(from, to);
     v.result = result;
@@ -363,9 +366,9 @@ int __fastcall SkillPriceRecord(UnitStats* self, void*, const char* record) {
     v.exponent = level->WorthExponent();
     if (v.index % 3 > 0) v.previousExponent = db->levels[static_cast<std::size_t>(v.index - 1)].WorthExponent();
     std::memcpy(v.skillLevels, self->skillLevels, sizeof(v.skillLevels));
-    v.skillVal[0] = GameLogicSettings().skillVal[0];
-    v.skillVal[1] = GameLogicSettings().skillVal[1];
-    v.perkPowerBase = GameLogicSettings().perkPowerBase;
+    v.skillVal[0] = OriginalLogicSettings().skillVal[0];
+    v.skillVal[1] = OriginalLogicSettings().skillVal[1];
+    v.perkPowerBase = OriginalLogicSettings().perkPowerBase;
     std::uint16_t cw = ControlWord();
     int result = s_skillPrice(self, nullptr, record);
     v.result = result;
@@ -411,7 +414,7 @@ void __fastcall ProtectionBlockRecord(UnitParams* self, void*, const UnitVitalsP
     if (!keyed) {
         v.difficulty = ei::OriginalGameData<options::GameOptions>(0x0079BC70).difficulty_;   // game.exe's own: the recording runs the original
         if (v.difficulty < 0 || v.difficulty >= 3) recordable = false;
-        else v.factor = GameLogicSettings().absorption[v.difficulty];
+        else v.factor = OriginalLogicSettings().absorption[v.difficulty];
     }
     std::uint16_t cw = ControlWord();
     s_protectionBlock(self, nullptr, vitals, out, keyed);

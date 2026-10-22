@@ -351,9 +351,9 @@ named range (C18) or another, `image_trace.py --check` a traced read outside the
 C18 (a named, typed definition in our code) or a literal; when the list is empty the trial's bytes are the product's
 and the build needs nothing of game.exe (the resources are the host's own since C23).
 
-C25a took six rows and added four (out_of_range's throw information, found by the static proof below; left besides
-those: the CRT's locale categories' names and "C", C18q's list, and the tick, the send rates and the step directions,
-C18):
+C25a took six rows and added four (out_of_range's throw information, found by the static proof below). With C18q and
+C18 the list is six rows: those four and the CRT's locale category names 007472E4 and static "C" 00797778 (C18q's
+"Left in the CRT": `__lc_category`'s init cells point at unported code):
 - **Written globals at addon sites**: WideScreen's layout widths 00742B08 (800) / 007428AC (695) are
   `widescreen::g_layoutWidth` / `g_panelRight` (ui_widescreen.cpp, tagged; Startup writes them as addon did; the clock and
   the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
@@ -405,7 +405,7 @@ after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
 after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
 which took the pointer cells from 1,522 to 1,243, 243 -> 234 after C18q's script keyword and CRT tables, pointer cells
-1,243 -> 711). C18 turns them into named C++
+1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -767,8 +767,7 @@ kinds given.
         the record reads game.exe's copies through `ei::OriginalGameData` (a type alias where the type has a
         template argument: the literal check's pattern takes no nested `<>`), the replay fills ours by the
         record's order.
-      - Not this rule (C19): an object that carries game.exe's vtable: the particle draw order 007A9C50, the CArrays
-        007A9CC8 / 007AA608, the save stream (CMemoryStream 007AFDF8), the console's log ostream 007C5810 (built by
+      - Not this rule (C19): an object that carries game.exe's vtable: the CArrays 007A9CC8 / 007AA608, the save stream (CMemoryStream 007AFDF8), the console's log ostream 007C5810 (built by
         006FC42F with the iostream virtual base table 00748284; combat's 007AF3E8, the AI's 007C53C4 and the
         console's 007C54E8 store its address, so they wait with it) and the other ostreams 007C55B0-007C7B38.
     - **Unread objects** (config/unread_data.csv, written by gen_static_init.py): an object nothing but its
@@ -795,6 +794,38 @@ kinds given.
     The verify build has no run where the original's initialisers and ours meet (since S21e game.exe runs only the
     original), so the comparison is the build's: exact for stores and folds of literals; a definition that a
     call fills (the sway curves) is compared at its zero start, and the goldens cover what the call builds.
+  - **The remaining objects** (C18, 2026-10-22; 247 -> 130):
+    - **Singletons' fields read as members**: what was left of the client / server worlds', the scene renderer's and
+      the camera's fields (managers, tick and its fraction, terrain, scripts, diplomacy, flags, wind, platforms) is
+      read through the object (`TheClientWorld()->manager3C_`); the accessors that need world.h are out of line in
+      world_singletons.cpp (game_singletons.h declares them; replay_path.cpp defines CurrentWorldTick for the path
+      vectors). TheMatrixDevice was the scene pipeline (ScenePipeline()), 007AFDB0 the origin (worlddata::kOrigin),
+      007C5488 / 007C548C the logic settings' considerModifier / considerLogBase. Check a lone address with
+      `named_data.py --owner` and against the logic settings (007C53F8) and the options (0079BC70) first.
+    - **Whole objects with a hand-ported initialiser**: the logic settings (g_logicSettings, its initialiser 005CDFB0;
+      TYPES `LogicSettings`; the stats recorder reads game.exe's copy), and the constructed statics as
+      `lib::StaticObject<T>` (zero storage, STATIC_OBJECT_BYTES) whose initialiser and exit function are ported on the
+      name and registered at their addresses, each with a row in extra_function_sizes.csv / function_sizes.inc: the
+      particles' draw order 007A9C50, the unit shape cache 007C2F70 (defined in ai_movement.cpp, which the path
+      vectors link), the AI events' pool 007C43A8 (and the free list 007C53F0, ai_grids.cpp), the terrain's projection
+      outcodes 007C88D0, the sector spiral's builder 005BF8E0. A function-local static's exit function is ported
+      beside it and the port registers its own (`GameAtExit(DestroyX)`): the glow's and the particles' sprite arrays,
+      ai_region_reach's point arrays, Aggression's candidate list, the water patch, UseResources' CString.
+    - **gen_static_init**: REVIEWED_SPLIT splits one initialiser's stores where they are two objects (005229C0: the hit
+      log pointer 007AF284 is read, the ln folds above it are not); RETIRED_STATICS lists functions whose port builds
+      none of the original's function-local statics, so their runtime atexit sites never run (006BFF40, the terrain
+      draw: its tile arrays 007C8848..007C88C8); a fold of ln in an unread object is `????????` in unread_data.csv.
+      Winsock's exit function 0047C330 is ported without the wait (only dead code counts the threads 007A9774).
+    - **Addon sites**: named_data.py's NAMED_ADDON_SITES lets a named range hold the site of a Rebirth patch disabled
+      here (SetDefaultRate's 00783E34: net::g_remoteRate, a plain int a flag can write); addon_sites.inc still names
+      it for the harness in game.exe.
+    - **Left**: the MFC / console static state (the console ostreams 007C55A8-007C7B38 with their buffers and the
+      log pointers that hold their addresses: C19's vtables first), MFC's module / thread state and window classes
+      (mfc_state.cpp, mfc_window.cpp: C18r; the console streams: C18s), the save stream 007AFDF8 and the received stream
+      007C83D0 (CMemoryStream, game.exe's vtable), the singletons themselves (0079B2A8, 007AF060, 007AF5B8, 007AFF60,
+      0079BF00, 007AEE78), the loading movie 007C5520 / 007C554C, 0079BC28 and 007AEDD0-DC (src/render), the
+      Rebirth-patched floats 007428AC / 00742B08, STLport's free lists 0079B224-0079B22C (the harness calls our
+      allocator in game.exe), the damping scale 007C2F8C (an initialiser stores ln 0.6: a call's result).
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 
 ### Compiler-made vtables (C19)

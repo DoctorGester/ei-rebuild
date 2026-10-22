@@ -16,36 +16,36 @@
 
 #include <cstdint>
 
+RECT g_menuRects[kMenuRects] = /*007C8048*/ {};
+
 namespace {
 
-
-
-// The entries in the order the original reads them: section, name, error, offset of the RECT.
+// The entries in the order the original reads them: section, name, error, the RECT's index.
 struct MenuRect {
     const char* section;
     const char* name;
     const char* error;
-    int offset;
+    int index;
 };
 constexpr MenuRect kRects[] = {
-    {"MainMenu", "NewGame", "Can't get rect for MM NewGame\n", 0x00},
-    {"MainMenu", "LoadGame", "Can't get rect for MM LoadGame\n", 0x10},
-    {"MainMenu", "ExitGame", "Can't get rect for MM ExitGame\n", 0x20},
-    {"MainMenu", "Options", "Can't get rect for MM Options\n", 0x30},
-    {"MainMenu", "Credits", "Can't get rect for MM Credits\n", 0x40},
-    {"MainMenu", "Multiplayer", "Can't get rect for MM Multiplayer\n", 0x50},
-    {"EscMenu", "SaveGame", "Can't get rect for EM SaveGame\n", 0x60},
-    {"EscMenu", "LoadGame", "Can't get rect for EM LoadGame\n", 0x70},
-    {"EscMenu", "Options", "Can't get rect for EM Options\n", 0xA0},
-    {"EscMenu", "ResumeGame", "Can't get rect for EM ResumeGame\n", 0x80},
-    {"EscMenu", "ExitMM", "Can't get rect for EM ExitMM\n", 0x90},
+    {"MainMenu", "NewGame", "Can't get rect for MM NewGame\n", 0},
+    {"MainMenu", "LoadGame", "Can't get rect for MM LoadGame\n", 1},
+    {"MainMenu", "ExitGame", "Can't get rect for MM ExitGame\n", 2},
+    {"MainMenu", "Options", "Can't get rect for MM Options\n", 3},
+    {"MainMenu", "Credits", "Can't get rect for MM Credits\n", 4},
+    {"MainMenu", "Multiplayer", "Can't get rect for MM Multiplayer\n", 5},
+    {"EscMenu", "SaveGame", "Can't get rect for EM SaveGame\n", 6},
+    {"EscMenu", "LoadGame", "Can't get rect for EM LoadGame\n", 7},
+    {"EscMenu", "Options", "Can't get rect for EM Options\n", 10},
+    {"EscMenu", "ResumeGame", "Can't get rect for EM ResumeGame\n", 8},
+    {"EscMenu", "ExitMM", "Can't get rect for EM ExitMM\n", 9},
 };
 
 // 00480080. game::FatalError(message); returns what the original returns to the caller.
 
 } // namespace
 
-int CFigureManager::LoadMenuRects(std::uint8_t* rects) {
+int CFigureManager::LoadMenuRects(RECT* rects) {
     // The .reg reader (0x18 bytes on the stack, constructed and destroyed by hand).
     lib::InPlace<CFileRegistry> storage;
     auto* reg = storage.Get();
@@ -67,7 +67,7 @@ int CFigureManager::LoadMenuRects(std::uint8_t* rects) {
             reg->Destroy();
             return result;
         }
-        gameapi::SetRect(reinterpret_cast<RECT*>(rects + entry.offset), values.data[0], values.data[1], values.data[2],
+        gameapi::SetRect(&rects[entry.index], values.data[0], values.data[1], values.data[2],
                          values.data[3]);
     }
     if (values.data) lib::FreeAligned32(values.data);

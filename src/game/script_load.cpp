@@ -28,6 +28,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "game_slots.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -45,7 +46,7 @@ namespace {
 
 // Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
 // 00593AA0 the world's FindObject (007AFF60).
-CBaseManager* Registry() { return ei::GameData<CBaseManager*>(0x007AFFA8); }
+CBaseManager* Registry() { return TheServerWorld()->manager48_; }
 
 // CArray template members (out of line), __thiscall (size, growBy).
 // Copies (CArray::Copy / ScriptVars assignment), __thiscall (source).
@@ -151,8 +152,6 @@ int ReadInt(ScriptStream* stream) {
 // The stream's format version (+8); areas are saved from 0x57 on.
 int StreamVersion(const ScriptStream* stream) { return static_cast<int>(stream->version_); }
 
-// The script being loaded (as in Save; the run loader finds a run's instance through it).
-CScript*& LoadingScript() { return ei::GameData<CScript*>(0x007AA620); }
 
 // An object id as the list loaders resolve it: -1 is none, else the registry's object (the list's
 // effect class) with its reference count raised.
@@ -166,7 +165,7 @@ T* AcquireById(int id) {
 
 // The world's first script (007C27D4 = world +0x12874, the only script a savegame holds): block
 // ids resolve in its lists whatever script is loaded.
-const CScript* SavedScript() { return ei::GamePointer<const CScript>(0x007C27D4); }
+const CScript* SavedScript() { return TheServerWorld()->MainScript(); }
 
 // CScript::FindBlock on the saved script, as the loaders inline it.
 ScriptDecl* FindBlock(int id) { return SavedScript()->FindBlock(id); }
@@ -569,7 +568,7 @@ void __fastcall ScriptRunsLoad(ScriptRuns* list, ScriptStream* stream) {
         stream->Read(&instanceIndex, 4);
         int* killFlag = nullptr;
         int k = 0;
-        for (auto* inst = LoadingScript()->instances_.head; inst; ++k) {
+        for (auto* inst = g_streamedScript->instances_.head; inst; ++k) {
             ScriptDefinition* instance = &inst->data;
             inst = inst->next;
             if (k == instanceIndex) {
@@ -588,7 +587,7 @@ EI_REWRITTEN(0x004CAC00, ScriptRunsLoad);
 // Reads what ScriptSave (004C0F90) wrote, in the same order. Sets 007AA620 to the script while
 // the runs are read. Areas are read only from stream version 0x57 on.
 void CScript::LoadState(ScriptStream* stream) {
-    LoadingScript() = this;
+    g_streamedScript = this;
 
     // Point lights (+0x00; 0x20-byte slots).
     mfc::impl::ArrayAs<gamearrays::PointLights>(pointLights_).SetSize(ReadInt(stream), -1);   // 004C5CB0
@@ -628,7 +627,7 @@ void CScript::LoadState(ScriptStream* stream) {
     ScriptRunsLoad(&runs_, stream);
     stream->Read(&loaded_, 4);
     stream->Read(&fileCount_, 4);
-    LoadingScript() = nullptr;
+    g_streamedScript = nullptr;
 
     if (StreamVersion(stream) < 0x57) return;
     auto& areas = areas_;

@@ -51,8 +51,8 @@ RECT ScreenOf(const CSceneRenderer* renderer) {
 // --- The overlays (005F5320) ---
 
 // The surfaces' memory totals (CUiSurface::SwapContents keeps them).
-int SurfaceBytesKept() { return ei::GameData<const volatile int>(0x007C7E74); }
-int SurfaceBytesAllocated() { return ei::GameData<const volatile int>(0x007C7E78); }
+int SurfaceBytesKept() { return static_cast<int>(UiSurfaceKeptBytes()); }
+int SurfaceBytesAllocated() { return static_cast<int>(UiSurfaceBytes()); }
 // The option byte 00784753: backdrops of a quarter of the layout, stretched over it.
 
 constexpr int kRedrawSlot = 22;   // a window's surfaces blit themselves

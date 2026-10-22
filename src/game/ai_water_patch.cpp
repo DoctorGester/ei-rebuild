@@ -23,7 +23,13 @@
 
 namespace {
 
-CUnitShape*& Patch() { return ei::GameData<CUnitShape*>(0x007C2F64); }
+// The patch (a counted pointer, a function-local static of StampWaterPatch: guard bit 0 of g_guard), released at
+// exit by 005B80C0 (005B80D0, a counted pointer's release).
+CUnitShape* g_patch = /*007C2F64*/ {nullptr};
+CUnitShape*& Patch() { return g_patch; }
+void __cdecl ReleasePatch() {   // 005B80C0
+    if (g_patch) g_patch->Release();
+}
 std::uint8_t g_guard = /*007C2F68*/ {};
 std::uint8_t& Guard() { return g_guard; }
 
@@ -52,7 +58,7 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     if (!(Guard() & 1)) {
         Guard() |= 1;
         Patch() = nullptr;
-        GameAtExit(ei::static_init::Exit005B80C0);
+        GameAtExit(ReleasePatch);
     }
     if (!Patch() || (Patch()->flags7_ & CRefObject::kDetached)) {
         CUnitShape* fresh = NewPatch();
@@ -78,3 +84,5 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
 }
 
 EI_REWRITTEN(0x005B7EF0, CAIMap::StampWaterPatch);
+
+EI_REPLACE(0x005B80C0, ReleasePatch);

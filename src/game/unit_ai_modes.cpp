@@ -28,6 +28,7 @@
 #include "lib/mfc_slots.h"
 #include "logic_settings.h"
 #include "game_arrays.h"
+#include "lib/static_object.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -39,7 +40,7 @@ constexpr float kZero = 0.0f;                                           // 0073B
 constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
 constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
 // Diplomacy: one mask of allied sides per side (007C2BC4).
-const std::uint32_t* Diplomacy() { return ei::GamePointer<const std::uint32_t>(0x007C2BC4); }
+const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
 
 
 // The server side of a unit's player (CPlayer::connection_, a CPlayerServer here; CUnit::player is
@@ -122,10 +123,13 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
     if (previous == kUnsetBits) std::memcpy(&brain->previousPosition, where, sizeof(Vector3));
 }
 
-// The static candidate list of Aggression::Evaluate (007C54C8, guard bit 0 of 007C54E4): a CPtrList
-// built by 004C96A0.
-AIObjectList& Candidates() { return ei::GameData<AIObjectList>(0x007C54C8); }
+// The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a CPtrList built by
+// 004C96A0, destroyed at exit by 005D2570 (through 004C96F0).
+static_assert(sizeof(AIObjectList) == 0x1C);
+constinit lib::StaticObject<AIObjectList> g_candidates = /*007C54C8*/ {};
+AIObjectList& Candidates() { return *g_candidates; }
 std::uint8_t g_candidatesGuard = /*007C54E4*/ {};
+void __cdecl DestroyCandidates() { mfc::impl::DestructList<mfc::impl::PtrListClass>(*g_candidates); }   // 005D2570
 
 } // namespace
 
@@ -502,7 +506,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     if (!(guard & 1)) {
         guard |= 1;
         mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&Candidates(), 10);
-        GameAtExit(ei::static_init::Exit005D2570);
+        GameAtExit(DestroyCandidates);
     }
     CUnit* self = brain->owner->unit;
     brain->memory.FindEnemies(self, &Candidates());
@@ -900,3 +904,5 @@ void PlayerMode::Save(CStream* stream) {
     stream->Write(&state, 4);
 }
 EI_REWRITTEN(0x005D4DB0, PlayerMode::Save);
+
+EI_REPLACE(0x005D2570, DestroyCandidates);

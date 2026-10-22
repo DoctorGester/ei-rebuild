@@ -326,7 +326,8 @@ public:
     virtual void BlurShadow(void* pixels, int width, int height);
     virtual void BlurShadow2(void* pixels, int width, int height);
 };
-inline CPixelConverter* PixelConverter() { return ei::GameData<CPixelConverter*>(0x007AF06C); }
+// The scene renderer's graphics processor (2DintMMX.dll's; world_singletons.cpp).
+CPixelConverter* PixelConverter();
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
 // A byte buffer aligned to 32 bytes (the engine's aligned array; its out-of-line SetSize is 00694300).

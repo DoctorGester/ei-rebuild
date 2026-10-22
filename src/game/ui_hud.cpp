@@ -43,6 +43,7 @@
 #include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world_data.h"
 
 namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";     // 00794460
@@ -76,7 +77,7 @@ constexpr std::uint32_t kTintDim = 0x3F333333;   // 0.7f: the movement panel's o
 
 constexpr const char* kSoundClock = "buttons\\battle\\clock.wav";     // 0079447C
 // The world's update period in milliseconds: the game's speed.
-int& UpdatePeriod() { return ei::GameData<int>(0x0078FF34); }
+int& UpdatePeriod() { return worlddata::g_updatePeriod; }
 constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 

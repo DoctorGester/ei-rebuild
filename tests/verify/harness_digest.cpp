@@ -773,7 +773,7 @@ Entity& Slot(State& state, const Key& key) {
 // state, and per cached sector with water (by sx, sy) the vertices with a water material and hashes
 // of their positions and speculars.
 void ReadWater(State& state) {
-    const Terrain* t = camera::TheTerrain();
+    const Terrain* t = TheTerrain();
     if (!t) return;
     Builder b;
     b.entity = &Slot(state, {kWater, -1});

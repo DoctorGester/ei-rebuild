@@ -87,8 +87,6 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 
-float Global7C5488() { return GameLogicSettings().considerModifier; }
-float Global7C548C() { return GameLogicSettings().considerLogBase; }
 // Difficulty (0079BEC0) and the attack factor per difficulty (007C54AC, floats).
 float DifficultyAttackFactor() {
     int difficulty = options::TheOptions()->difficulty_;
@@ -422,8 +420,8 @@ EI_REPLACE_METHOD(0x005500A0, CUnitServer::MoveModeMask);
 
 int CUnitServer::Level() {
     float experience = Combat().experience;
-    float base = Global7C5488();
-    float step = Global7C548C();
+    float base = GameLogicSettings().considerModifier;
+    float step = GameLogicSettings().considerLogBase;
     // ln(experience / base) / ln(step), as FYL2X with FLDLN2, rounded to float, then FISTP.
     const float ratio = static_cast<float>(x87::flog(static_cast<double>(experience) / base) / x87::flog(step));
     return x87::fistp(ratio);

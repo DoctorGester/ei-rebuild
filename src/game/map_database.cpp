@@ -28,6 +28,7 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
+#include "game_singletons.h"
 
 #include <cstring>
 #include <type_traits>
@@ -50,7 +51,7 @@ int TextReader::Split(console::CStringArray* words, int flag) {
     return CTextManager::Split(words, flag);
 }
 mfc::BOOL TextReader::Close() { return TextClose(this); }
-TextReader* TheTextReader() { return ei::GameData<TextReader*>(0x007AF788); }
+TextReader* TheTextReader() { return static_cast<TextReader*>(TheTextManager()); }
 
 // Element constructors / destructors of the record arrays: the allods' (00460720 / 004606F0), the
 // maps' (004607E0 / 004607B0) and the exits' (004606A0 / 00460670) instantiations.

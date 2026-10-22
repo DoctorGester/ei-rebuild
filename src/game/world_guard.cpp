@@ -19,9 +19,6 @@ namespace {
 
 std::int8_t g_guardPlain = /*0079026C*/ 1;   // 1: data in the clear
 std::uint32_t g_guardKey = /*007AFECC*/ {};
-// The players_ lists (+0x38) of the client world (007AF5B8) and the server world (007AFF60).
-CPlayerManager* ClientPlayers() { return ei::GameData<CPlayerManager*>(0x007AF5F0); }
-CPlayerManager* ServerPlayers() { return ei::GameData<CPlayerManager*>(0x007AFF98); }
 // The party outside a game (007C82B0, a CParty like CPlayer + 0x70): its records, their
 // count and its gold.
 CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
@@ -59,8 +56,8 @@ void __fastcall GuardPlayers(CPlayerManager* players, char units, std::uint32_t 
 void __stdcall GuardPlayerData(char plain) {
     if (plain == g_guardPlain) return;
     if (!plain) g_guardKey = IsaacRandom::Global().Next();   // a new key each time the data is hidden
-    GuardPlayers(ClientPlayers(), 0, g_guardKey);
-    GuardPlayers(ServerPlayers(), 1, g_guardKey);
+    GuardPlayers(TheClientWorld()->players_, 0, g_guardKey);
+    GuardPlayers(TheServerWorld()->players_, 1, g_guardKey);
     std::uint32_t key = g_guardKey;
     GlobalGold() ^= static_cast<int>(key);
     for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(&GlobalParty()->members_.data[i].stats, key);

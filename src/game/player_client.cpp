@@ -69,7 +69,6 @@ struct LoginRequest {
 };
 static_assert(sizeof(LoginRequest) == 0x88);
 
-CCamera* Camera() { return ei::GameData<CCamera*>(0x007AF7C8); }
 libcrt::Ostream* GameCout() { return ei::GamePointer<libcrt::Ostream>(0x007C56B0); }
 // The texts the original reads from the exe: the traffic log, the login, the dispatch errors.
 const char* TextClientToServer() { return "client to server, size = "; }
@@ -159,7 +158,7 @@ int CPlayerClient::Pump() {
     case kStateLoggedIn:
         return 1;
     case kStateSendingCamera: {
-        const Vector3* anchor = CameraAnchor(Camera());
+        const Vector3* anchor = CameraAnchor(TheClientWorld()->camera_);
         float point[2] = {anchor->x, anchor->y};
         WriteByte(&out_, kRequestCamera);
         out_.Write(point, sizeof(point));
@@ -461,7 +460,7 @@ int CPlayerClient::OnPathMarker() {
         reading->EndField();
         if (MarkersShown()) {
             walker->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
-            auto* source = ParticleManagerObject()->CreateSource(kPathParticles);
+            auto* source = TheParticleManager()->CreateSource(kPathParticles);
             pathSource = source;
             source->Attach(walker);
             source->typeParam = value;
@@ -474,7 +473,7 @@ int CPlayerClient::OnPathMarker() {
         walker->Release();
     }
     if (MarkersShown()) {
-        auto* marker = ParticleManagerObject()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
+        auto* marker = TheParticleManager()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->localPosition_ = at;
         CEngineObject* owner = player_;
         CUnit* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
@@ -647,7 +646,7 @@ int CPlayerClient::OnNewObject() {
     }
     if (Same(model, TextWisp())) {
         auto* source =
-            ParticleManagerObject()->CreateSource(kWispParticles);
+            TheParticleManager()->CreateSource(kWispParticles);
         source->Attach(object);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;
@@ -872,8 +871,6 @@ void __cdecl ConstructPartyIdSet() {   // 00668B40
     GameAtExit(ei::Code<void(__cdecl*)()>(0x00668B60));
 }
 void __cdecl DestroyPartyIdSet() { g_partyIdSet->Destroy(); }   // 00668B60
-// 007AFCA4: read only here (no code writes it); slot 43 runs when it is at least 1.
-int FadeInGate() { return ei::GameData<const int>(0x007AFCA4); }
 
 int ReadDword(BitStream* in) {
     int value;
@@ -909,7 +906,7 @@ int CPlayerClient::OnPartyState() {
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
         if (PartyIdSet().Find(static_cast<std::uint32_t>(id)) == nullptr && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
-            FadeInGate() >= 1)
+            TheClientWorld()->ticksRun_ >= 1)
             unit->Controller()->RestartFadeIn();
     }
     PartyIdSet().Clear();

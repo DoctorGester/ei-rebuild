@@ -48,5 +48,5 @@ static_assert(offsetof(CDiplomacy, allied_) == 0x00);
 static_assert(offsetof(CDiplomacy, hostile_) == 0x80);
 static_assert(sizeof(CDiplomacy) == 0x100);
 
-// 007C2BC4: the game's diplomacy table.
-inline CDiplomacy* GameDiplomacy() { return ei::GamePointer<CDiplomacy>(0x007C2BC4); }
+// The game's diplomacy table (the server world's; world_singletons.cpp).
+CDiplomacy* GameDiplomacy();

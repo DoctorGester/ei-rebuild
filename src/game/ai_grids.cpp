@@ -241,8 +241,10 @@ EI_REWRITTEN(0x005BDD50, lib::AlignedArray<AITerrainType>::ElementAt);
 
 // ---- The event table ------------------------------------------------------------------------------
 
+AIEvent* g_freeEvents = /*007C53F0*/ {nullptr};
+
 namespace {
-AIEvent*& FreeEvents() { return ei::GameData<AIEvent*>(0x007C53F0); }
+AIEvent*& FreeEvents() { return g_freeEvents; }
 
 void AllocateEventCells(AIEventTable* table) {
     table->cells = static_cast<AIEventCell*>(

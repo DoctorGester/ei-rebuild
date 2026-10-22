@@ -19,6 +19,7 @@
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "world.h"
 
 #include <cstring>
 
@@ -36,9 +37,6 @@ inline double D(float f) { return f; }
 constexpr std::uint32_t kFarBits = 0x47C35000;     // 100000.0f
 constexpr std::uint32_t kNearBits = 0xC7C35000;    // -100000.0f
 
-
-// The world's wind (007AF5DC: direction, then strength), copied as four dwords.
-const void* WorldWind() { return ei::GamePointer<const void>(0x007AF5DC); }
 
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, sizeof(f)); }
 
@@ -260,7 +258,9 @@ struct TickSteps {
 // alive (flag 4) or has particles, an attached one while it emits or has particles.
 int CParticleSource::Tick() {
     if (hiddenTicks > 0x38 && (flags_ & 0x20)) return 1;
-    std::memcpy(&windDirection, WorldWind(), sizeof(Vector3) + sizeof(float));
+    const CWorldClient* world = TheClientWorld();
+    std::memcpy(&windDirection, world->windDirection_, sizeof(windDirection));
+    std::memcpy(&windStrength, &world->windStrength_, sizeof(windStrength));
     SetBits(boundsMin.x, kFarBits);
     SetBits(boundsMin.y, kFarBits);
     SetBits(boundsMin.z, kFarBits);

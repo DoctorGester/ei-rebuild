@@ -24,6 +24,7 @@
 #include "render/render.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/static_object.h"
 
 namespace terrain {
 namespace {
@@ -564,9 +565,9 @@ ProjectionBuffer& ProjectionInput() { return g_projectionInput; }
 ProjectionBuffer& ProjectionOutput() { return g_projectionOutput; }
 
 // The exit functions their static initialisers (006BFA00, 006BFA60) register: each frees its buffer, once (a guard
-// bit each in 007C88C9; bit 4 is the outcodes' destructor's, 006BFAE0, which the generated static_exit.cpp still
-// runs, so the byte keeps its address until the outcodes array 007C88D0 is named, C19).
-std::uint8_t& Freed() { return ei::GameData<std::uint8_t>(0x007C88C9); }
+// bit each in g_freed; bit 4 is the outcodes' destructor's, 006BFAE0).
+std::uint8_t g_freed = /*007C88C9*/ {};
+std::uint8_t& Freed() { return g_freed; }
 void __cdecl FreeProjectionInput() {   // 006BFA30
     if (Freed() & 1) return;
     Freed() = static_cast<std::uint8_t>(Freed() | 1);
@@ -577,7 +578,20 @@ void __cdecl FreeProjectionOutput() {   // 006BFA90
     Freed() = static_cast<std::uint8_t>(Freed() | 2);
     g_projectionOutput.FreeData();
 }
-FlagArray& ProjectionOutcodes() { return ei::GameData<FlagArray>(0x007C88D0); }
+// The projected vertices' outcodes (a CByteArray): built empty by its static initialiser 006BFAC0 (006FF5EA),
+// destroyed at exit, once, by 006BFAE0 (006FF61D).
+static_assert(sizeof(FlagArray) == 0x14);
+constinit lib::StaticObject<FlagArray> g_projectionOutcodes = /*007C88D0*/ {};
+FlagArray& ProjectionOutcodes() { return *g_projectionOutcodes; }
+void __cdecl DestroyProjectionOutcodes() {   // 006BFAE0
+    if (Freed() & 4) return;
+    Freed() = static_cast<std::uint8_t>(Freed() | 4);
+    mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
+}
+void __cdecl ConstructProjectionOutcodes() {   // 006BFAC0
+    mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
+    GameAtExit(DestroyProjectionOutcodes);
+}
 constexpr int kProjectionVertices = 0x330;
 
 
@@ -689,4 +703,6 @@ EI_REWRITTEN(0x006BFC80, SectorData::Project);
 } // namespace terrain
 
 EI_REPLACE(0x006BFA30, terrain::FreeProjectionInput);
+EI_REPLACE(0x006BFAC0, terrain::ConstructProjectionOutcodes);
+EI_REPLACE(0x006BFAE0, terrain::DestroyProjectionOutcodes);
 EI_REPLACE(0x006BFA90, terrain::FreeProjectionOutput);

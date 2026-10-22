@@ -157,7 +157,7 @@ namespace {
 // "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
 // "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( %f,%f,%f,...,"nature\lightning\%i.wav" )
 //  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
-CScript& ScriptQueue() { return ei::GameData<CScript>(0x007C29CC); }   // a command queue (004D23A0 adds a line)
+CScript& ScriptQueue() { return *TheServerWorld()->SecondScript(); }   // a command queue (004D23A0 adds a line)
 
 float Half() { return 0.5f /*0073B86C*/; }   // 0.5
 

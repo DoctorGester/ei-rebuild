@@ -63,8 +63,6 @@ bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
-// The figure manager (global 007AF5F4) and the texture manager (007AF744).
-CFigureManager* FigureManager() { return ei::GameData<CFigureManager* const>(0x007AF5F4); }
 
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
@@ -85,7 +83,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
     if (slot >= 7) return false;
     if (armourIds[slot] == itemId) return true;
     armourIds[slot] = itemId;
-    CFigureManager* manager = FigureManager();
+    CFigureManager* manager = TheFigureManager();
     int row = RowOfSlot(static_cast<int>(slot));
     if (row < 0) return true;
 
@@ -151,7 +149,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
     FigureModel* model;
     {
         stlp::string name(unit->name);
-        model = FigureManager()->FindModel(&name);
+        model = TheFigureManager()->FindModel(&name);
     }
     if (!model) return false;   // the slot stays cleared
     for (int i = 0; i < 7; ++i) {
@@ -200,7 +198,7 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     FigureModel* model;
     {
         stlp::string name(unit->name);
-        model = FigureManager()->FindModel(&name);
+        model = TheFigureManager()->FindModel(&name);
     }
     if (previous != kNone) {
         WeaponModelParts(previous >> 16, &names);

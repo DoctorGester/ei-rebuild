@@ -27,6 +27,7 @@
 #include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world_data.h"
 
 #include <cstring>
 
@@ -42,7 +43,7 @@ const char* FollowName() { return "follow"; }
 const char* ScienceName() { return "science"; }
 
 // The world's update period in milliseconds: the game's speed.
-int& UpdatePeriod() { return ei::GameData<int>(0x0078FF34); }
+int& UpdatePeriod() { return worlddata::g_updatePeriod; }
 constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 

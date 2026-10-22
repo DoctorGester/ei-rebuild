@@ -860,6 +860,9 @@ class CStream;       // core_streams.h
 // The world's AI events (CWorldServer + 0x2838; its viewer part makes the noises): a time wheel of
 // 1024 ticks x 16 sides and a grid of 8 x 8 cells (rows of width cells). Its tick is the viewer's
 // `tick` (Advance sets it).
+// The free event records, chained through AIEvent::next (ai_grids.cpp; the pool is ai_events.cpp's).
+extern AIEvent* g_freeEvents;
+
 struct AIEventTable : AIViewer {
     // 005C9530 (RET 4; world_tick.cpp's Tick). The wheel moves to `tick`: every event of that
     // tick's 16 slots leaves its cell list and goes to the free list; the slots empty. A first

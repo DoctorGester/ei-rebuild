@@ -144,6 +144,9 @@ public:
     // and parts (CWorldClient::ProjectDecal).
     static constexpr int kClipStack = 2;
     static constexpr int kDecalStack = 14;
+    // Stack 0 is the picking's (the view matrix pushed onto it), 9 the view matrices.
+    static constexpr int kPickStack = 0;
+    static constexpr int kViewStack = 9;
 
     // 004F16A0. Classifies `bounds` against the view volume of the current (top) matrix:
     // 2 = entirely outside one clip plane, 0 = entirely inside, 1 = crossing or not decided.
@@ -207,9 +210,9 @@ static_assert(sizeof(CTransformPipeline) == 0x94);   // as 00500540 allocates it
 // is texture.h's RendererBaseClass.
 struct TransformPipelineClass final : ei::CompiledDeleter<TransformPipelineClass, &CTransformPipeline::DeleteScalar> {};
 
-// The scene's pipeline (the global pointer at 007AF068; world_client_view.cpp calls it the render
-// device): stacks 1 and 2 take the scene matrices (004D9B80), 5 the world draw's, 9 the views.
-inline CTransformPipeline* ScenePipeline() { return ei::GameData<CTransformPipeline* const>(0x007AF068); }
+// The scene renderer's pipeline (world_singletons.cpp): stacks 1 and 2 take the scene matrices (004D9B80), 5 the world
+// draw's, 9 the views.
+CTransformPipeline* ScenePipeline();
 
 struct tagRECT;
 struct ScreenPoints;   // renderer_lines.h
@@ -219,6 +222,7 @@ class GameOptions;
 }
 class CLight;   // spell.h
 class CTexture;   // texture.h
+class CPixelConverter;   // texture.h
 
 // The renderer's counted helper object (0x118 bytes, render_helper.cpp's RenderHelperClass table in place of
 // game.exe's 0073D840, constructor 004FCA60 with the
@@ -389,7 +393,7 @@ public:
 
     std::uint32_t flags_;            // +0x04 bit 0: the software cursor option; bit 1 set by the creation (00500B70)
     CTransformPipeline* pipeline_;   // +0x08 counted
-    void* graphicsProcessor_;        // +0x0C 2DintMMX.dll's GetGraphicsProcessor() (00500540)
+    CPixelConverter* graphicsProcessor_;   // +0x0C 2DintMMX.dll's GetGraphicsProcessor() (00500540)
     void* graphicsLibrary_;          // +0x10 the HMODULE of 2DintMMX.dll
     std::uint32_t fogColour_;        // +0x14 also the colour the frame is cleared with
     std::uint32_t colour_;           // +0x18 the draw colour (slot 7)

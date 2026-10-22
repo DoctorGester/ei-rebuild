@@ -4,7 +4,4 @@ address,size,owner,kind,what
 0074C608,72,src/lib/stlp_string.cpp,rdata table,"out_of_range's own catchable type, its catchable type array (4) and the ThrowInfo 0074C640 (stlp_string.cpp's OutOfRangeThrowInfo; static check, C25a)"
 00783C40,100,src/lib/stlp_string.cpp,data text,"the type descriptors of exception, __Named_exception and logic_error (the vtable cell, "".?AV..."" names): the catch matching of out_of_range's throw (static check, C25a)"
 00783D98,36,src/lib/stlp_string.cpp,data text,"out_of_range's type descriptor ("".?AVout_of_range@stlport@@"") (static check, C25a)"
-00783E34,8,src/game/net_session_tick.cpp,data constant,"the send rates 2500 / 12500 (SessionBase::RateFor; console_commands.cpp; 00783E34 is an addon site)"
-0078FF34,4,src/game/app_main.cpp,data constant,"the tick length 55 ms (the frame clock; ui_hud*.cpp, ui_battle_*.cpp, the harness's clock)"
-00791978,36,src/game/ai_path_smooth.cpp,data table,"the step directions int[9] (ai_map.h DirectionSteps, ai_motion.cpp DirectionTable; MakeSmoothStep)"
 00797778,4,src/lib/crt_locale.cpp,data text,"the static locale name ""C"" (StaticC, __lc_category's cells)"

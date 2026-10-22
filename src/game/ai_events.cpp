@@ -17,6 +17,7 @@
 #include "lib/mfc_slots.h"
 #include "lib/static_object.h"
 #include "game_data.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -30,8 +31,10 @@ constexpr int kWheelMask = kWheelTicks - 1;
 
 // The records' pool (a CList<AIEvent> whose nodes hold them; AddHead is its own instantiation
 // 005CDB00, the template's here) and the free list (chained through AIEvent::next).
-mfc::CList<AIEvent>& AIEventPool() { return ei::GameData<mfc::CList<AIEvent>>(0x007C43A8); }
-AIEvent*& FreeEvents() { return ei::GameData<AIEvent*>(0x007C53F0); }
+static_assert(sizeof(mfc::CList<AIEvent>) == 0x1C);
+constinit lib::StaticObject<mfc::CList<AIEvent>> g_eventPool = /*007C43A8*/ {};
+mfc::CList<AIEvent>& AIEventPool() { return *g_eventPool; }
+AIEvent*& FreeEvents() { return g_freeEvents; }
 
 void PushFree(AIEvent* event) {
     event->next = FreeEvents();
@@ -45,6 +48,17 @@ void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
     pool->RemoveAll();
 }
 EI_REPLACE(0x005CDBA0, AIEventPoolDestruct);
+
+namespace {
+// The pool's static initialiser (0x400 nodes a block, 005CDAD0) and the exit function it registers.
+void __cdecl DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }   // 005C8FB0
+void __cdecl ConstructEventPool() {   // 005C8F90
+    mfc::impl::ConstructListHeader<mfc::impl::StaticListClass>(&*g_eventPool, 0x400);
+    GameAtExit(DestroyEventPool);
+}
+} // namespace
+EI_REPLACE(0x005C8F90, ConstructEventPool);
+EI_REPLACE(0x005C8FB0, DestroyEventPool);
 
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {
     // Each coordinate is scaled, stored to a float and rounded to nearest (FISTP).
