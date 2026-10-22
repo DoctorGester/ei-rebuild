@@ -24,8 +24,8 @@ void SetMinusOne(T& field) {
     std::memcpy(&field, &kMinusOne, 4);
 }
 
-// The item's link (+0x1C): a CRefCounted with a 16-bit count, kept as a raw dword.
-CRefCounted* Link(std::uint32_t value) { return reinterpret_cast<CRefCounted*>(static_cast<std::uintptr_t>(value)); }
+// The item's link (+0x1C): a CRefCounted with a 16-bit count.
+CRefCounted* Link(void* value) { return static_cast<CRefCounted*>(value); }
 
 // The spell let go through its slot 4 (Release) after the pointer is cleared.
 void DropSpell(CSpell*& spell) {
@@ -38,7 +38,7 @@ void DropSpell(CSpell*& spell) {
 
 CItem* CItem::Construct() {
     ClearFields();
-    link_ = 0;
+    link_ = nullptr;
     spell_ = nullptr;
     SetVtable(this, Vtable());
     SetMinusOne(condition_);
@@ -64,7 +64,7 @@ int CItem::Create() {
 void CItem::Destroy() {
     DropSpell(spell_);
     CRefCounted* link = Link(link_);
-    link_ = 0;
+    link_ = nullptr;
     if (link != nullptr && --link->refs_ == 0) delete link;
 }
 

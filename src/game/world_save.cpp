@@ -98,7 +98,7 @@ using DwordList = mfc::CList<std::uint32_t>;
 
 // The item link record of an item of the item manager (CItem::link_).
 CItemLink* LinkOf(CEngineObject* item) {
-    return reinterpret_cast<CItemLink*>(static_cast<std::uintptr_t>(static_cast<CItem*>(item)->link_));
+    return static_cast<CItem*>(item)->ServerLink();
 }
 
 // The memory stream locals of LoadSave / SaveWorld are built in place.
@@ -516,7 +516,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     if (record) record->vtable = CItemLink::Vtable();
                     record->value = value;
                     CItemLink* old = LinkOf(object);
-                    static_cast<CItem*>(object)->link_ = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(record));
+                    static_cast<CItem*>(object)->link_ = record;
                     if (record) ++record->references;
                     if (old) RefObjectRelease(old);
                 }
