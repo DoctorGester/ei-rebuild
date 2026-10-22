@@ -40,8 +40,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
     GameInfoRecord* record = &read;
     stlp::StringElement::Default(&record->name);
     stlp::StringElement::Default(&record->description);
-    GameBuffer buffer;
-    buffer.ConstructGrowing();
+    GrowingBuffer buffer;
     CoderState coder;
     coder.Construct();
     in->Seek(0);
@@ -76,7 +75,6 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
         }
     }
     coder.out.End();
-    static_cast<GameBuffer*>(&buffer)->DestructGrowing();
 }
 EI_REWRITTEN(0x0041D600, ClientSession::ReadServerListImpl);
 

@@ -68,7 +68,6 @@ ClientBase::~ClientBase() {
     waiting_.Release();
     recordvec::QueryVector::Destruct(&queries_.list);   // 0041F7F0
     servers_.Release();
-    static_cast<GameBuffer*>(&joinData_)->DestructGrowing();
 }
 EI_REWRITTEN_SPECIAL(0x0041C530, ClientBase::~ClientBase);
 EI_REWRITTEN_SPECIAL(0x0041C450, ClientBase::~ClientBase);

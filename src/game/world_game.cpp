@@ -974,13 +974,11 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     net::NetAddress address = {};
     static_cast<net::NetAddress*>(&address)->Parse(kLocalHost, net::g_gamePort);
     {
-        GameBuffer hello;
-        hello.ConstructGrowing();
+        GrowingBuffer hello;
         char secret[kPasswordSize] = {};
         if (password) gamecrt::strncpy(secret, password, kPasswordSize);
         hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
         net::GameClient()->Join(&address, &hello);
-        static_cast<GameBuffer*>(&hello)->DestructGrowing();
     }
     LocalLogin()->host_ = 1;
     const char* shown = name && *name ? name : kServerName;
@@ -1003,13 +1001,11 @@ void GameFlow::StartClient() {
 EI_REWRITTEN(0x0057EA50, GameFlow::StartClient);
 
 void GameFlow::JoinServer(const net::NetAddress* address, const char* password) {
-    GameBuffer hello;
-    hello.ConstructGrowing();
+    GrowingBuffer hello;
     char secret[kPasswordSize] = {};
     if (password) gamecrt::strncpy(secret, password, kPasswordSize);
     hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
     net::GameClient()->Join(const_cast<net::NetAddress*>(address), &hello);
-    static_cast<GameBuffer*>(&hello)->DestructGrowing();
 }
 EI_REWRITTEN(0x0057E970, GameFlow::JoinServer);
 

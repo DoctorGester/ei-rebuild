@@ -240,9 +240,8 @@ std::uint32_t SessionBase::RateFor(const NetAddress* address) {
 EI_REWRITTEN(0x00436F80, SessionBase::RateFor);
 
 void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
-    lib::InPlace<GameBuffer> storage;
-    auto* buffer = storage.Get();
-    buffer->ConstructGrowing();
+    GrowingBuffer storage;
+    auto* buffer = &storage;
     std::uint8_t kind = 1;
     if (buffer->cur + 1 <= buffer->end) {
         buffer->flags |= 1;
@@ -259,7 +258,6 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
         buffer->WriteMore(&id, 4u);
     }
     socket_.SendTo(address, buffer);
-    static_cast<GameBuffer*>(buffer)->DestructGrowing();
 }
 EI_REWRITTEN(0x00436FA0, SessionBase::SendLeave);
 
@@ -280,9 +278,8 @@ SessionBase::~SessionBase() {
     for (ClientNode* node = clients_->next; node != clients_; node = node->next) {
         Connection* connection = node->connection;
         std::uint32_t id = connection->id_;
-        lib::InPlace<GameBuffer> storage;
-        auto* buffer = storage.Get();
-        buffer->ConstructGrowing();
+        GrowingBuffer storage;
+        auto* buffer = &storage;
         std::uint8_t kind = 1;
         buffer->BufferWrite(&kind, 1);
         if (buffer->cur + 4 <= buffer->end) {
@@ -292,7 +289,6 @@ SessionBase::~SessionBase() {
             buffer->WriteMore(&id, 4u);
         }
         socket_.SendTo(&connection->address_, buffer);
-        static_cast<GameBuffer*>(buffer)->DestructGrowing();
     }
     libcrt::DestroyElements(handlers_[2], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);
     libcrt::DestroyElements(handlers_[1], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);

@@ -126,8 +126,8 @@ vtable,slots,class,file,note
 0073CA08,1,dead class,-,stored only by dead code 0047C8E0
 0073CA0C,1,dead class,-,stored only by dead code 0047C8E0 / 0047CA00 / 0047CA70
 0073CA10,14,dead class,-,stored only by dead code 0047CAA0 / 0047CC60 / 0047CD40 / 0047CEB0 / 0047CFA0
-0073CA48,7,BufferViewBaseClass,src/game/net_coder.h,the fixed view's base (the views' destructors leave it)
-0073CA64,7,BufferViewClass,src/game/net_coder.h,a fixed view over memory owned elsewhere
+0073CA48,7,GameBuffer,src/game/net_coder.h,the byte buffer base (the views' destructors leave it)
+0073CA64,7,BufferView,src/game/net_coder.h,a fixed view over memory owned elsewhere
 0073CAB0,1,CGameException,src/game/dx_errors.h,the thrown error object's base
 0073CAB4,1,CDXException,src/game/dx_errors.h,the thrown error object
 0073CFD0,18,CParticleSource,src/game/effects.h,a particle source (CParticleSource)
@@ -191,7 +191,7 @@ vtable,slots,class,file,note
 0073D4F4,25,CServerSpecificManager,src/game/server_specific_manager.h,
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
-0073D624,7,GrowingBufferClass,src/game/net_coder.h,the growing byte buffer
+0073D624,7,GrowingBuffer,src/game/net_coder.h,the growing byte buffer
 0073D644,13,CSysInfo,src/game/sys_info.h,the system information (CSysInfo)
 0073D6B4,13,CVisibilityFog,src/game/effects.h,the visibility fog (CVisibilityFog)
 0073D760,1,CTextureDevice,src/game/texture.h,the device object (CTextureDevice)

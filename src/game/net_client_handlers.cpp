@@ -299,8 +299,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
         chunks.push_back(chunk);
     }
     if (count == file->chunkCount_) {
-        GameBuffer buffer;
-        buffer.ConstructGrowing();
+        GrowingBuffer buffer;
         // std::sort by the chunks' index (the instantiation's two halves).
         if (chunks.begin() != chunks.end()) {
             int depth = 0;
@@ -315,7 +314,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
                 std::memcpy(buffer.cur, data, FileChunkMessage::kDataSize);
                 buffer.cur += FileChunkMessage::kDataSize;
             } else {
-                buffer.WriteMoreGrowing(data, FileChunkMessage::kDataSize);
+                buffer.WriteMore(data, FileChunkMessage::kDataSize);
             }
         }
         // The buffer rewound and its written length set to the file's (the last chunk is padded).
@@ -325,7 +324,6 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
         if (buffer.high > buffer.end) buffer.Grow(static_cast<std::uint32_t>(size));
         WriteMapFile(file->name_.data(), &buffer);
         DropRequestsFor(self, file);
-        buffer.DestructGrowing();
     }
     chunks.FreeStorage();
 }

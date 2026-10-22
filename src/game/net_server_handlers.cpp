@@ -44,8 +44,7 @@ std::uint32_t TakeDword(BufferCursor* cursor) {
 // constructors make them), written into a growing buffer and sent from the session's socket to
 // the master's address; the result of the send is not looked at.
 void ServerSession::AnnounceToMaster() {
-    GameBuffer buffer;
-    buffer.ConstructGrowing();
+    GrowingBuffer buffer;
     GameInfoRecord info;
     stlp::string& name = info.name;
     stlp::string& description = info.description;
@@ -73,7 +72,6 @@ void ServerSession::AnnounceToMaster() {
     // EI_Plugin's NewMaster (its call at 0041ABDA sends as SendTo does, then the copy).
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) second_master::CopyAnnouncement(socket_.socket, buffer);
 
-    buffer.DestructGrowing();
 }
 EI_REWRITTEN(0x0041AA10, ServerSession::AnnounceToMaster);
 

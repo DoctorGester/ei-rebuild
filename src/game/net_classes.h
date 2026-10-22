@@ -100,19 +100,22 @@ static_assert(sizeof(NetAddress) == 0x10);
 
 // The TCP link to the master server (0x40 bytes; constructor 00440C60, destructor 00440D40, tick
 // 00440DE0; net_socket_driver.cpp). The master request box (ui_screens.h) holds one.
-struct MasterLink {
-    // 0x00440C60 (net_socket_driver.cpp).
-    MasterLink* Construct(const void* address);
+class MasterLink {
+public:
+    // 00440C60 (net_socket_driver.cpp): a non-blocking TCP socket connecting to `address` (state 1), or state 0.
+    explicit MasterLink(const void* address);
+    // 00440D40 (net_socket_driver.cpp): the socket closed (when open), then the buffers.
+    ~MasterLink();
+    MasterLink(const MasterLink&) = delete;
+    MasterLink& operator=(const MasterLink&) = delete;
+
     enum State : std::int32_t { kClosed = 0, kConnecting = 1, kReceiving = 2, kDone = 3, kSending = 4 };
 
-    GameBuffer out;              // +0x00 what is sent once connected
-    GameBuffer in;               // +0x1C what was received
+    GrowingBuffer out;           // +0x00 what is sent once connected
+    GrowingBuffer in;            // +0x1C what was received
     std::uint32_t socket;        // +0x38 (-1: none)
     std::int32_t state;          // +0x3C State
 };
-static_assert(sizeof(MasterLink) == 0x40);
-// 00440D40 (net_socket_driver.cpp): the socket closed (when open) and the buffers destroyed.
-void __fastcall MasterLinkDestruct(MasterLink* self);
 
 // The network log (g_netLog; null when logging is off): an old iostream whose inserters are library
 // code, called at their addresses (net_session_tick.cpp).
@@ -146,8 +149,8 @@ inline SessionBase* g_currentSession = /*0079B920*/ {nullptr};
 // The connection being updated or read (null outside the session code).
 inline Connection* g_currentConnection = /*0079B924*/ {nullptr};
 // The buffer every update packet is built in and the one datagrams are received into (net_session.cpp).
-extern lib::StaticObject<GameBuffer> g_sendBuffer;
-extern lib::StaticObject<GameBuffer> g_receiveBuffer;
+extern lib::StaticObject<GrowingBuffer> g_sendBuffer;
+extern lib::StaticObject<GrowingBuffer> g_receiveBuffer;
 inline GameBuffer* SendBuffer() { return &*g_sendBuffer; }
 inline GameBuffer* ReceiveBuffer() { return &*g_receiveBuffer; }
 // The game client and the game server (null when there is none): counted pointers, cleared by their static
@@ -260,14 +263,19 @@ static_assert(sizeof(ServerEntry) == 0x48);
 // A server the client asks directly (0x2C bytes; constructor 00443770): its address and the reply
 // last seen.
 struct Query {
-    // 00443E90 (slot 0, the deleting destructor; net_lobby.cpp). The reply buffer destroyed, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
+    // 00443770 (net_lobby.cpp): a zero address and an empty growing buffer.
+    Query();
+    // 00444270 (RET 4; net_lobby.cpp): the address and the reply buffer copied.
+    Query(const Query& from);
+    // The vector's copy loop's assignment: the address, then the reply buffer's (004DAA80).
+    Query& operator=(const Query& from) = default;
+    // 00443790 (net_lobby.cpp): the reply buffer destroyed.
+    ~Query();
+    // 00443E90 (slot 0, the deleting destructor; net_lobby.cpp). The destructor, then the memory freed when bit 0
+    // of `flags` is set; returns this.
     Query* QueryDelete(unsigned flags);
-    // 00444270 (RET 4; net_lobby.cpp). Copy constructor: the address and the reply buffer copied.
-    // Returns this.
-    Query* QueryCopy(const Query* from);
     NetAddress address;
-    GameBuffer reply;            // +0x10
+    GrowingBuffer reply;         // +0x10
 };
 static_assert(sizeof(Query) == 0x2C);
 
@@ -683,12 +691,12 @@ public:
     // 004428A0. A server from the master server's list.
     void AddServer(ServerEntry* entry);
     // 00442980. Starts joining the host at `address` with `data` sent along.
-    void Join(const NetAddress* address, const GameBuffer* data);
+    void Join(const NetAddress* address, const GrowingBuffer* data);
     // 00442A40. The entry of the `index`th server found, or null.
     ServerEntry* ServerAt(int index);
 
     NetAddress host_;                   // +0x2568 the host joined or being asked
-    GameBuffer joinData_;               // +0x2578 sent with every join request (a growing buffer)
+    GrowingBuffer joinData_;            // +0x2578 sent with every join request
     std::uint32_t joinId_;              // +0x2594 rand() << 16 | tick count
     std::uint32_t joinState_;           // +0x2598 JoinState
     std::uint8_t refusal_;              // +0x259C the reason the host gave

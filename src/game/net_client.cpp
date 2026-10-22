@@ -43,7 +43,6 @@ EI_REWRITTEN(0x0041C420, ClientVectorConstruct);
 // socket.
 ClientBase::ClientBase() {
     host_ = NetAddress{};
-    joinData_.ConstructGrowing();
     servers_.Construct();
     ClientVectorConstruct(&queries_);
     waiting_.Construct();

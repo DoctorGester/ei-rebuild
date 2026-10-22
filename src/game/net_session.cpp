@@ -37,21 +37,21 @@ void __cdecl DestroySendBuffer() {
     std::uint8_t flags = g_bufferFlags;
     if (flags & 1) return;
     g_bufferFlags = static_cast<std::uint8_t>(flags | 1);
-    net::g_sendBuffer->DestructGrowing();
+    net::g_sendBuffer.Destroy();
 }
 void __cdecl DestroyReceiveBuffer() {
     std::uint8_t flags = g_bufferFlags;
     if (flags & 2) return;
     g_bufferFlags = static_cast<std::uint8_t>(flags | 2);
-    net::g_receiveBuffer->DestructGrowing();
+    net::g_receiveBuffer.Destroy();
 }
 // Their static initialisers (00432CA0 / 00432CE0, in the list's order).
 void __cdecl ConstructSendBuffer() {
-    net::g_sendBuffer->ConstructGrowing();
+    net::g_sendBuffer.Construct();
     libcrt::AtExit(DestroySendBuffer);
 }
 void __cdecl ConstructReceiveBuffer() {
-    net::g_receiveBuffer->ConstructGrowing();
+    net::g_receiveBuffer.Construct();
     libcrt::AtExit(DestroyReceiveBuffer);
 }
 
@@ -73,8 +73,8 @@ namespace net {
 
 // Zero at the start; built and destroyed by the functions above (docs/notes/standalone.md, "The static initialisers'
 // objects").
-constinit lib::StaticObject<GameBuffer> g_receiveBuffer = /*0079B8E0*/ {};
-constinit lib::StaticObject<GameBuffer> g_sendBuffer = /*0079B900*/ {};
+constinit lib::StaticObject<GrowingBuffer> g_receiveBuffer = /*0079B8E0*/ {};
+constinit lib::StaticObject<GrowingBuffer> g_sendBuffer = /*0079B900*/ {};
 
 void __cdecl Pump() {
     std::uint32_t now = gameapi::timeGetTime();

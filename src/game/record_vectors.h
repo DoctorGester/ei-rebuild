@@ -361,16 +361,10 @@ using ExtraAcksVector = stlp::VectorAbi<acks::ExtraAcks, ExtraAcksElement>;
 // the destructor (the reply buffer's 004DA910).
 struct QueryElement {
     using R = net::Query;
-    static void Construct(R* to, const R& from) { to->QueryCopy(&from); }
-    static void Assign(R& to, const R& from) {
-        to.address = from.address;
-        to.reply.AssignFrom(&from.reply);
-    }
-    static void Default(R* p) {
-        std::memset(&p->address, 0, sizeof(p->address));
-        p->reply.ConstructGrowing();
-    }
-    static void Destroy(R* p) { p->reply.DestructGrowing(); }
+    static void Construct(R* to, const R& from) { new (to) R(from); }
+    static void Assign(R& to, const R& from) { to = from; }
+    static void Default(R* p) { new (p) R(); }
+    static void Destroy(R* p) { p->~R(); }
 };
 
 using QueryVector = stlp::VectorAbi<net::Query, QueryElement>;

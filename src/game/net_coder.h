@@ -4,107 +4,40 @@
 // (00579B80 / 00579830), multiplayer map transfers (00662AC0) and network messages (0047D7F0 /
 // 0047D970, 0041D600). See docs/notes/network.md, "Compression". Names provisional.
 
-#include "ei/vcall.h"
-#include "lib/compiled_vtable.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 
-// A byte buffer (0x1C bytes). Two classes share the layout:
-//   0073D624  growing buffer (constructor 004DA7F0, destructor 004DA910): slot 0 / 1 make room
-//             for n more bytes to read / write (004DA630 / 004DA6B0: a new block of
-//             (base - begin + cur + n) * 2 + 0x40 bytes), slot 2 commit (empty), slot 3 (0), slot 4
-//             writes past the end, growing (004DA740), slot 5 deleting destructor (004DA8F0), slot 6
-//             Seek (004DA860, grows when needed).
-//   0073CA64  fixed view over memory owned elsewhere: slots 0 / 1 / 2 empty, 3 / 4 (0), 5 deleting
-//             destructor (0047D940, body 0047D960), 6 Seek (0047D930). Its base 0073CA48 has only
-//             slot 2 (empty, 0047D900) and slot 5 (deleting destructor 0047D910); the views live on
-//             the stack and are destroyed by setting the base's vtable (inlined, or 0047D960 when
-//             unwinding).
-// Like the streams, the class is __declspec(novtable): our rewrites of the game's constructors (or
-// InitView) store the vtables, and C++ never does. The tables are the compiled tags below (C19; game.exe's
-// three are retired). Copies are byte copies, the vtable included, as they were when this was a plain
-// struct (the verify wrappers copy buffers).
+// A byte buffer (0x1C bytes), abstract (game.exe's 0073CA48 is its table: 2 Commit, 5 the deleting destructor):
+//   GrowingBuffer (game.exe's 0073D624): slots 0 / 1 make room for n more bytes to read / write (a new block of
+//             (base - begin + cur + n) * 2 + 0x40 bytes), slot 4 writes past the end, growing, slot 6 Seek (grows when
+//             needed).
+//   BufferView (0073CA64): a fixed view over memory owned elsewhere (on the stack): slots 0 / 1 empty, 3 / 4 (0).
+//   BufferedStream (buffered_file.h): a window onto a file.
 namespace stlp {
 class string;
 }
 
-class __declspec(novtable) GameBuffer {
+class GameBuffer {
 public:
-    // Body of the slot at 004DA580 (registered by member pointer).
-    void ReserveViewImpl(std::int32_t);
-    void* DeleteViewBase(unsigned deleteFlags);
-    // 0047D940 (slot 5, RET 4) and the base's 0047D910 (slot 5 of 0073CA48, RET 4): deleting
-    // destructors (the base's vtable left; freed when bit 0 of `flags` is set). Return `self`.
-    void* DeleteView(unsigned deleteFlags);
-    // The fixed view's own slots (free functions registered at their addresses, rewrite-guide rule 4).
-    // 0047D930 (slot 6, RET 4): the cursor moved to `position` bytes from the start; returns it.
-    std::uint8_t* SeekView(std::int32_t position);
-    // 004DA8F0 (slot 5, RET 4): DestructGrowing, freed when bit 0 of `flags` is set; returns `self`.
-    GameBuffer* DeleteGrowing(unsigned deleteFlags);
-    // The growing buffer's slots (game_buffer.cpp).
-    // 004DA630 / 004DA6B0 (slots 0 / 1, RET 4, byte-identical): always moves the contents to a new
-    // block of (base - begin + cur + size) * 2 + 0x40 bytes (callers test the room first).
-    void ReserveGrowing(std::int32_t size);
-    // 004DA860 (slot 6, RET 4): `high` raised to the cursor, the cursor moved to begin + position; past
-    // `end` the contents move to a block of position * 2 + 0x40 bytes. Returns the cursor, or the new
-    // capacity when it grew (EAX as the original leaves it).
-    std::uint8_t* SeekGrowing(std::int32_t position);
-    // 004DA740 (slot 4, RET 8): grows as Reserve, then copies `size` bytes to the cursor; returns `size`.
-    int WriteMoreGrowing(const void* from, std::uint32_t size);
-    // 004DA5A0 / 004DA5B0 (view slots 3 / 4) and 004DA730 (growing slot 3), RET 8: 0.
-    int NothingMore(const void*, std::uint32_t);
+    GameBuffer(const GameBuffer&) = delete;
+    GameBuffer& operator=(const GameBuffer&) = delete;
+
+    virtual void ReserveRead(std::int32_t size) = 0;                // 0: room for `size` more bytes to read
+    virtual void ReserveWrite(std::int32_t size) = 0;               // 1: room for `size` more bytes to write
+    virtual std::uint32_t Commit() { return 0; }                    // 2: 0047D900 (empty: EAX as it was; no caller reads it)
+    virtual int ReadMore(void* to, std::uint32_t size) = 0;         // 3: a read past the end (0 in both classes)
+    virtual int WriteMore(const void* from, std::uint32_t size) = 0;   // 4: a write past the end (the growing buffer grows)
+    virtual ~GameBuffer() {}                                        // 5: 0047D910 (deleting; net_coder.cpp)
+    virtual std::uint8_t* Seek(std::int32_t position) = 0;          // 6: the cursor to `position` bytes from the start
+
     // 00401340
     unsigned ReadBytes(void* to, unsigned size);
     // The byte buffer's read helpers (net_game_info.cpp).
     // 00401310
     GameBuffer* CopyOut(void* to, unsigned size);
-    GameBuffer() {}
-    GameBuffer(const GameBuffer& other) { std::memcpy(static_cast<void*>(this), &other, sizeof(GameBuffer)); }
-    GameBuffer& operator=(const GameBuffer& other) {
-        std::memcpy(static_cast<void*>(this), &other, sizeof(GameBuffer));
-        return *this;
-    }
-
-    virtual void ReserveRead(std::int32_t size);                    // 0: room for `size` more bytes to read
-    virtual void ReserveWrite(std::int32_t size);                   // 1: room for `size` more bytes to write
-    virtual std::uint32_t Commit();                                 // 2: after a cursor stored its position in `cur` (empty; EAX as it was)
-    virtual int ReadMore(void* to, std::uint32_t size);             // 3: a read past the end (0 in both classes)
-    virtual int WriteMore(const void* from, std::uint32_t size);    // 4: a write past the end (the growing buffer grows)
-    virtual ~GameBuffer() {}                                        // 5: deleting destructor
-    virtual std::uint8_t* Seek(std::int32_t position);              // 6: the cursor to `position` bytes from the start
-
-    // A fixed view (vtable 0073CA64, flags 2) over [first, last), as the coder's callers build it.
-    void InitView(std::uint8_t* first, std::uint8_t* last) {
-        ei::SetVtable(this, ViewVtable());
-        begin = first;
-        cur = first;
-        end = last;
-        high = last;
-        base = 0;
-        flags = 2;
-    }
-
-    // The compiled tables (the tags below): the growing buffer's (game.exe's 0073D624), the fixed view's (0073CA64)
-    // and the view's base (0073CA48).
-    static void* GrowingVtable();
-    static void* ViewVtable();
-    static void* ViewBaseVtable();
-
-    // The growing buffer's non-virtual members (game_buffer.cpp).
-    // 004DA7F0. Constructor: growing vtable, base 0, flags 6, a 0x20-byte block (cursor and high at
-    // its start). Returns this.
-    GameBuffer* ConstructGrowing();
-    // 004DA9E0 (RET 4). Copy constructor: growing vtable, base 0, a block of `from`'s capacity with
-    // all of its bytes, the same cursor / high offsets and flags. Returns this.
-    GameBuffer* ConstructCopy(const GameBuffer* from);
-    // 004DAA80 (RET 4). Assignment: frees the block, then copies as ConstructCopy (vtable and base
-    // kept). Returns this.
-    GameBuffer* AssignFrom(const GameBuffer* from);
-    // 004DA910. Destructor body: growing vtable, the block freed, the view base's vtable left.
-    void DestructGrowing();
-    // 004DA5C0 (RET 4). Moves the contents to a new block of size * 2 + 0x40 bytes.
+    // 004DA5C0 (RET 4; game_buffer.cpp). Moves the contents to a new block of size * 2 + 0x40 bytes.
     void Grow(std::uint32_t size);
     // game_buffer_strings.cpp (A-S4). Length-prefixed strings: the length * 2 in one byte, or
     // length * 2 + 1 in four bytes from 0x80 on.
@@ -142,64 +75,62 @@ public:
     std::uint8_t* high;        // +0x10 highest position written (updated lazily)
     std::int32_t base;         // +0x14 position of `begin` in the whole stream (0 for these)
     std::uint32_t flags;       // +0x18 (bit 0: written through a cursor)
+
+protected:
+    GameBuffer() {}
 };
+// tests/vectors/record_coder.cpp reads game.exe's buffers through this layout.
 static_assert(offsetof(GameBuffer, begin) == 0x04);
 static_assert(offsetof(GameBuffer, flags) == 0x18);
 static_assert(sizeof(GameBuffer) == 0x1C);
 
-extern "C" int __cdecl _purecall();
-
-// The buffers' compiled tags (C19; docs/notes/standalone.md, "Batch 15's families"): GameBufferClass has the view
-// base's slots (0073CA48: 2 the empty commit, 5 its deleting destructor, the rest `_purecall`); the view's and the
-// growing buffer's tags override them with the bodies their game.exe tables reached.
-template <typename Self>
-class GameBufferClass : public ei::CompiledTag<Self> {
+// The growing buffer (game.exe's 0073D624; game_buffer.cpp).
+class GrowingBuffer final : public GameBuffer {
 public:
-    virtual void ReserveRead(std::int32_t) { _purecall(); }                       // 0
-    virtual void ReserveWrite(std::int32_t) { _purecall(); }                      // 1
-    virtual std::uint32_t Commit() { return 0; }   // 2: 0047D900 (empty: EAX as it was; no caller reads it)
-    virtual int ReadMore(void*, std::uint32_t) { return _purecall(); }            // 3
-    virtual int WriteMore(const void*, std::uint32_t) { return _purecall(); }     // 4
-    virtual void* DeleteScalar(unsigned deleteFlags) { return Buffer()->DeleteViewBase(deleteFlags); }   // 5: 0047D910
-    virtual std::uint8_t* Seek(std::int32_t) {                                     // 6
-        _purecall();
-        return nullptr;
+    // 004DA7F0: base 0, flags 6, a 0x20-byte block (cursor and high at its start).
+    GrowingBuffer();
+    // 004DA9E0 (RET 4): base 0, a block of `from`'s capacity with all of its bytes, the same cursor / high offsets and
+    // flags.
+    GrowingBuffer(const GrowingBuffer& from);
+    // 004DAA80 (RET 4): the block freed, then copied as the copy constructor (base kept).
+    GrowingBuffer& operator=(const GrowingBuffer& from);
+    // 004DA910 (deleting: 004DA8F0): the block freed.
+    ~GrowingBuffer() override;
+
+    // 0 / 1: 004DA630 / 004DA6B0 (RET 4, byte-identical): always moves the contents to a new block of
+    // (base - begin + cur + size) * 2 + 0x40 bytes (callers test the room first).
+    void ReserveRead(std::int32_t size) override;
+    void ReserveWrite(std::int32_t size) override;
+    int ReadMore(void*, std::uint32_t) override;   // 3: 004DA730 (RET 8): 0
+    // 4: 004DA740 (RET 8): grows as ReserveWrite, then copies `size` bytes to the cursor; returns `size`.
+    int WriteMore(const void* from, std::uint32_t size) override;
+    // 6: 004DA860 (RET 4): `high` raised to the cursor, the cursor moved to begin + position; past `end` the contents
+    // move to a block of position * 2 + 0x40 bytes. Returns the cursor, or the new capacity when it grew (EAX as the
+    // original leaves it).
+    std::uint8_t* Seek(std::int32_t position) override;
+};
+
+// A fixed view (game.exe's 0073CA64, flags 2) over [first, last), as the coder's callers build it (net_coder.cpp).
+class BufferView final : public GameBuffer {
+public:
+    BufferView(std::uint8_t* first, std::uint8_t* last) {
+        begin = first;
+        cur = first;
+        end = last;
+        high = last;
+        base = 0;
+        flags = 2;
     }
+    // 0047D960 / 004DA850 (deleting: 0047D940): the view owns nothing.
+    ~BufferView() override;
 
-protected:
-    GameBuffer* Buffer() { return this->template ObjectAs<GameBuffer>(); }
+    void ReserveRead(std::int32_t) override;    // 0: 004DA580 (RET 4; nothing to reserve)
+    void ReserveWrite(std::int32_t) override;   // 1: 004DA590
+    int ReadMore(void*, std::uint32_t) override;          // 3: 004DA5A0 (RET 8): 0
+    int WriteMore(const void*, std::uint32_t) override;   // 4: 004DA5B0
+    // 6: 0047D930 (RET 4): the cursor moved to `position` bytes from the start; returns it.
+    std::uint8_t* Seek(std::int32_t position) override;
 };
-
-struct BufferViewBaseClass final : GameBufferClass<BufferViewBaseClass> {};
-
-class BufferViewClass final : public GameBufferClass<BufferViewClass> {
-public:
-    void ReserveRead(std::int32_t size) override { Buffer()->ReserveViewImpl(size); }    // 0: 004DA580
-    void ReserveWrite(std::int32_t size) override { Buffer()->ReserveViewImpl(size); }   // 1: 004DA590
-    int ReadMore(void* to, std::uint32_t size) override { return Buffer()->NothingMore(to, size); }           // 3: 004DA5A0
-    int WriteMore(const void* from, std::uint32_t size) override { return Buffer()->NothingMore(from, size); }   // 4: 004DA5B0
-    void* DeleteScalar(unsigned deleteFlags) override { return Buffer()->DeleteView(deleteFlags); }   // 5: 0047D940
-    std::uint8_t* Seek(std::int32_t position) override { return Buffer()->SeekView(position); }      // 6: 0047D930
-};
-
-class GrowingBufferClass final : public GameBufferClass<GrowingBufferClass> {
-public:
-    void ReserveRead(std::int32_t size) override { Buffer()->ReserveGrowing(size); }    // 0: 004DA630
-    void ReserveWrite(std::int32_t size) override { Buffer()->ReserveGrowing(size); }   // 1: 004DA6B0
-    int ReadMore(void* to, std::uint32_t size) override { return Buffer()->NothingMore(to, size); }   // 3: 004DA730
-    int WriteMore(const void* from, std::uint32_t size) override {                                   // 4: 004DA740
-        return Buffer()->WriteMoreGrowing(from, size);
-    }
-    void* DeleteScalar(unsigned deleteFlags) override { return Buffer()->DeleteGrowing(deleteFlags); }   // 5: 004DA8F0
-    std::uint8_t* Seek(std::int32_t position) override { return Buffer()->SeekGrowing(position); }      // 6: 004DA860
-};
-
-inline void* GameBuffer::GrowingVtable() { return GrowingBufferClass::Vtable(); }
-inline void* GameBuffer::ViewVtable() { return BufferViewClass::Vtable(); }
-inline void* GameBuffer::ViewBaseVtable() { return BufferViewBaseClass::Vtable(); }
-
-// 0047D960: the base's vtable left (the view owns nothing).
-void __fastcall BufferViewDestruct(GameBuffer* self);
 
 
 // A cursor over a GameBuffer (0x18 bytes) that reads and writes bytes and LSB-first bit fields.

@@ -273,8 +273,8 @@ public:
     std::uint32_t ackMask_;             // +0x1124 bit k: packet ackBase_ - 1 - k acknowledged already
     std::uint16_t ackBase_;             // +0x1128 the peer's newest acknowledged sequence
     std::uint16_t unused_112A;
-    GameBuffer reliableOut_;            // +0x112C
-    GameBuffer reliableIn_;             // +0x1148
+    GrowingBuffer reliableOut_;         // +0x112C
+    GrowingBuffer reliableIn_;          // +0x1148
     std::uint32_t padding_1164;
 };
 

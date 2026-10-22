@@ -57,20 +57,16 @@ std::uint32_t BufferLength(GameBuffer& b) {
 // buffer, whose bytes then replace `out`'s (Resize, Seek 0, Write, Seek 0). The view is destroyed
 // (its base vtable) before the buffer.
 void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
-    GameBuffer result;
-    result.ConstructGrowing();
+    GrowingBuffer result;
     std::uint8_t* data = self->data_;
     std::uint8_t* last = data + self->Size();
-    GameBuffer view;
-    view.InitView(data, last);
+    BufferView view(data, last);
     (coder->*code)(&view, &result);
     out->Resize(BufferLength(result));
     out->Seek(0);
     std::uint32_t length = BufferLength(result);
     out->Write(result.begin, length);
     out->Seek(0);
-    ei::SetVtable(&view, GameBuffer::ViewBaseVtable());
-    static_cast<GameBuffer*>(&result)->DestructGrowing();
 }
 } // namespace
 

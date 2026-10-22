@@ -129,7 +129,7 @@ EI_REWRITTEN(0x0061E3E0, CMessageBox::DestroyBody);
 EI_REWRITTEN(0x00633750, CMessageBox::DestroyBody);
 
 void CMasterRequestBox::DestroyBody() {
-    net::MasterLinkDestruct(&link_);   // 00440D40
+    link_.~MasterLink();   // 00440D40
     CMessageBox::DestroyBody();
 }
 EI_REWRITTEN(0x0061E460, CMasterRequestBox::DestroyBody);

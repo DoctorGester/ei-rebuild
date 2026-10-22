@@ -110,7 +110,7 @@ struct LocalQueries {
     LocalQueries() { queries.extra = 0; }
     ~LocalQueries() {
         stlp::vector<net::Query>& list = queries.list;
-        for (net::Query* query = list.begin(); query != list.end(); ++query) query->reply.DestructGrowing();
+        for (net::Query* query = list.begin(); query != list.end(); ++query) query->~Query();
         if (list.begin())
             libcrt::NodeDeallocate(list.begin(), static_cast<std::size_t>(list.EndOfStorage() - list.begin()) * sizeof(net::Query));
     }
@@ -814,7 +814,7 @@ CMasterRequestBox* CMasterRequestBox::Construct(CInterface3D* ui, const char* ti
                                                 std::uint32_t result, const net::NetAddress* address,
                                                 std::uint32_t extra) {
     CMessageBox::Construct(ui, titleKey, textKey, static_cast<int>(result), kBoxFlagsCancel, kBoxFormat);
-    link_.Construct(address);
+    new (&link_) net::MasterLink(address);
     vtable_ = Vtable();
     inputVtable_ = InputVtable();
     bar_ = AddSprite(nullptr);

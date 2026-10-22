@@ -39,8 +39,12 @@ public:
         reserved_ = true;
         return 0;
     }
+    // The growing buffer's (004DA860: `high` raised first; the room is always there) or the view's (0047D930).
     std::uint8_t* Seek(std::int32_t position) override {
-        return growing_ ? SeekGrowing(position) : SeekView(position);
+        if (growing_ && cur > high) high = cur;
+        cur = begin + position;
+        if (cur > end) reserved_ = true;
+        return cur;
     }
 
     bool Reserved() const { return reserved_; }

@@ -160,20 +160,11 @@ bool ServerRuns() {
     return server && !(server->flags7_ & CRefCounted::kDetached);
 }
 
-// A growing buffer on the stack. Raw storage: the game's constructor makes the object, and its
-// slots are called through the vtable that constructor stores.
-struct LocalBuffer {
-    LocalBuffer() { Get()->ConstructGrowing(); }
-    ~LocalBuffer() { Get()->DestructGrowing(); }
-    GameBuffer* Get() { return storage.Get(); }
-    lib::InPlace<GameBuffer> storage;
-};
-
 // The game server lists the file at `path` under `name` for its clients: the whole file, read
 // into a buffer through a buffered file.
 void ShareQuestFile(const char* path, const char* name) {
-    LocalBuffer local;
-    GameBuffer* data = local.Get();
+    GrowingBuffer local;
+    GameBuffer* data = &local;
     BufferedFile source;   // the original's inlined constructor and destructor
     source.Open(path, kReadBinary, kReadOnlyFlags);
     net::BufferUpdateHigh(&source);

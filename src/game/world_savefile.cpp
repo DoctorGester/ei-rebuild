@@ -59,11 +59,7 @@ struct LocalCoder {
 };
 
 struct LocalBuffer {
-    GameBuffer b;
-    LocalBuffer() { b.ConstructGrowing(); }
-    ~LocalBuffer() { static_cast<GameBuffer*>(&b)->DestructGrowing(); }
-    LocalBuffer(const LocalBuffer&) = delete;
-    LocalBuffer& operator=(const LocalBuffer&) = delete;
+    GrowingBuffer b;
 };
 
 } // namespace
@@ -73,8 +69,7 @@ void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemor
     // A view over the data (flags 2).
     std::uint8_t* begin = data->data_;
     std::uint8_t* last = begin + data->Size();
-    GameBuffer view;
-    view.InitView(begin, last);
+    BufferView view(begin, last);
     {
         LocalBuffer packed;
         std::uint8_t compressed = 1;
@@ -112,7 +107,6 @@ void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemor
             }
         }   // the decoder's cursor ends here, then `check` and `packed` go
     }
-    ei::SetVtable(&view, GameBuffer::ViewBaseVtable());
 }
 
 bool __fastcall SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file) {

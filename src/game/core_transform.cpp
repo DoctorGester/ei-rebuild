@@ -5,6 +5,7 @@
 #include "core_maths.h"
 #include "engine_object_class.h"
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"

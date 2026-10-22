@@ -1151,9 +1151,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Spells and light** (spell_class.h; real classes since C28b): CSpellClass, CSpellContainerClass, CSpellConstructorClass, and CLightClass
     over the new `TransformObjectClass<Self, T>` (engine_object_class.h: CTransformObject's slots 13-17 with the base's
     bodies). 0074399C stays: the harness names it.
-  - **GameBuffer** (net_coder.h): `GameBufferClass<Self>` declares the view base's six slots (2 Commit returns 0, 5
-    its deleting destructor, the rest `_purecall`); BufferViewClass and GrowingBufferClass over it.
-    tests/vectors/record_coder.cpp now recognises game.exe's buffers by `&ei::OriginalGameData<const
+  - **GameBuffer** (net_coder.h): the abstract GameBuffer (0073CA48: 2 Commit returns 0, 5 its deleting destructor)
+    with GrowingBuffer (0073D624) and BufferView (0073CA64) over it, real C++ classes since C28k (locals and members
+    are built and destroyed by C++; MasterLink and Query became real classes with them).
+    tests/vectors/record_coder.cpp recognises game.exe's buffers by `&ei::OriginalGameData<const
     std::uint8_t>(0x0073D624 / 0x0073CA64)`, which named_data allows in tests.
   - **World effects** (world_effect.h; real classes since C28f): CEffect declares 18-23 over the transform's; the point
     light's own radius is slot 24 (LightRadius; its slot 19 is the base's), the missile's MoveParts slot 24. 007435D8 is a

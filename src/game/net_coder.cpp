@@ -410,33 +410,24 @@ void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
 }
 EI_REPLACE_METHOD(0x00430960, CoderState::Decompress);
 
-// --- The fixed view and its base (BufferViewClass, BufferViewBaseClass; net_coder.h) ------------------
+// --- The fixed view and the buffer base (BufferView, GameBuffer; net_coder.h) ----------------------------
 
 // 004DA580 / 004DA590 (slots 0 / 1 of the view, RET 4): nothing to reserve.
-void GameBuffer::ReserveViewImpl(std::int32_t) {}
-EI_REPLACE_METHOD(0x004DA580, GameBuffer::ReserveViewImpl);
-EI_REPLACE_METHOD(0x004DA590, GameBuffer::ReserveViewImpl);
+void BufferView::ReserveRead(std::int32_t) {}
+EI_REWRITTEN(0x004DA580, BufferView::ReserveRead);
+void BufferView::ReserveWrite(std::int32_t) {}
+EI_REWRITTEN(0x004DA590, BufferView::ReserveWrite);
 
-std::uint8_t* GameBuffer::SeekView(std::int32_t position) {
+std::uint8_t* BufferView::Seek(std::int32_t position) {
     cur = begin + position;
     return cur;
 }
-EI_REWRITTEN(0x0047D930, GameBuffer::SeekView);
+EI_REWRITTEN(0x0047D930, BufferView::Seek);
 
-void __fastcall BufferViewDestruct(GameBuffer* self) { ei::SetVtable(self, GameBuffer::ViewBaseVtable()); }
-EI_REWRITTEN(0x0047D960, BufferViewDestruct);
-EI_REWRITTEN(0x004DA850, BufferViewDestruct);
+BufferView::~BufferView() {}
+EI_REWRITTEN_SPECIAL(0x0047D960, BufferView::~BufferView);
+EI_REWRITTEN_SPECIAL(0x004DA850, BufferView::~BufferView);
+EI_REWRITTEN_SPECIAL(0x0047D940, BufferView::~BufferView);
 
-void* GameBuffer::DeleteView(unsigned deleteFlags) {
-    BufferViewDestruct(this);
-    if (deleteFlags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0047D940, GameBuffer::DeleteView);
-
-void* GameBuffer::DeleteViewBase(unsigned deleteFlags) {
-    ei::SetVtable(this, ViewBaseVtable());
-    if (deleteFlags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0047D910, GameBuffer::DeleteViewBase);
+// The base's deleting destructor (0047D910): nothing of its own.
+EI_REWRITTEN_SPECIAL(0x0047D910, GameBuffer::~GameBuffer);

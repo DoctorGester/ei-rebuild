@@ -144,26 +144,18 @@ EI_REWRITTEN(0x00441640, BufferLength);
 
 // 00443770 / 00443790 / 00443E90 / 00444270: the query's constructor (a zero address and an empty
 // growing buffer), destructor, deleting destructor and copy constructor.
-Query* __fastcall QueryConstruct(Query* self) {
-    std::memset(&self->address, 0, sizeof(self->address));
-    self->reply.ConstructGrowing();
-    return self;
-}
-EI_REWRITTEN(0x00443770, QueryConstruct);
-void __fastcall QueryDestruct(Query* self) { static_cast<GameBuffer*>(&self->reply)->DestructGrowing(); }
-EI_REWRITTEN(0x00443790, QueryDestruct);
+Query::Query() { std::memset(&address, 0, sizeof(address)); }
+EI_REWRITTEN_SPECIAL(0x00443770, Query::Query);
+Query::~Query() {}
+EI_REWRITTEN_SPECIAL(0x00443790, Query::~Query);
 Query* Query::QueryDelete(unsigned flags) {
-    static_cast<GameBuffer*>(&reply)->DestructGrowing();
+    this->~Query();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
 EI_REWRITTEN(0x00443E90, Query::QueryDelete);
-Query* Query::QueryCopy(const Query* from) {
-    address = from->address;
-    reply.ConstructCopy(&from->reply);
-    return this;
-}
-EI_REWRITTEN(0x00444270, Query::QueryCopy);
+Query::Query(const Query& from) : address(from.address), reply(from.reply) {}
+EI_REWRITTEN_SPECIAL(0x00444270, Query::Query);
 
 // 00443E20 / 00443760: the temporary counted pointer handed to the list insert (set from a raw
 // pointer without a reference; cleared when unwinding).
@@ -176,21 +168,18 @@ EI_REWRITTEN(0x00443E20, HolderInit);
 // ---- Client: sending ------------------------------------------------------------------------------
 
 void ClientBase::SendPing(const NetAddress* address) {
-    GameBuffer b;
-    b.ConstructGrowing();
+    GrowingBuffer b;
     std::uint8_t kind = 3;
     Put(&b, &kind, 1);
     float time = static_cast<float>(time_);
     Put(&b, &time, 4);
     Send(address, &b);
-    static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 EI_REWRITTEN(0x00441660, ClientBase::SendPing);
 
 void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     std::uint32_t rate = RateFor(address);
-    GameBuffer b;
-    b.ConstructGrowing();
+    GrowingBuffer b;
     std::uint8_t kind = 4;
     Put(&b, &kind, 1);
     Put(&b, &magic_, 4);
@@ -200,7 +189,6 @@ void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     unsigned length = static_cast<unsigned>(data->PositionOf(data->high));
     Put(&b, data->begin, length);
     Send(address, &b);
-    static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 EI_REWRITTEN(0x00441740, ClientBase::SendJoin);
 
@@ -432,19 +420,15 @@ void ClientBase::Ask(const NetAddress* address) {
             ++v.Finish();
         } else {
             Query temporary;
-            QueryConstruct(&temporary);
             v.InsertOverflow<recordvec::QueryElement>(v.end(), temporary, 1);
-            static_cast<GameBuffer*>(&temporary.reply)->DestructGrowing();
         }
         v.back().address = *address;
-        GameBuffer b;
-        b.ConstructGrowing();
+        GrowingBuffer b;
         std::uint8_t kind = 3;
         b.BufferWrite(&kind, 1);
         float time = static_cast<float>(time_);
         b.BufferWrite(&time, 4);
         Send(address, &b);
-        static_cast<GameBuffer*>(&b)->DestructGrowing();
     }
     ServerNode* node = FindServer(this, address);
     if (node != servers_.End()) {
@@ -504,7 +488,7 @@ EI_REWRITTEN(0x004428A0, ClientBase::AddServer);
 
 // Unless already asking that host: a new join id (rand() << 16 | GetTickCount() & 0xFFFF), the
 // first retry at once.
-void ClientBase::Join(const NetAddress* address, const GameBuffer* data) {
+void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
     if (joinState_ == kAsking && SameAddress(address, &host_)) return;
     host_ = *address;
     std::uint32_t id = static_cast<std::uint32_t>(gamecrt::rand()) << 16;
@@ -514,7 +498,7 @@ void ClientBase::Join(const NetAddress* address, const GameBuffer* data) {
     SetBits(retryTimer_, 0);
     SetBits(retryInterval_, kFirstRetry);
     refusal_ = 0;
-    joinData_.AssignFrom(data);
+    joinData_ = *data;
 }
 EI_REWRITTEN(0x00442980, ClientBase::Join);
 
@@ -572,9 +556,8 @@ EI_REWRITTEN(0x00442AD0, ClientBase::Tick);
 
 // The magic and the entry go through a cursor.
 void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
-    GameBuffer b;
+    GrowingBuffer b;
     GameBuffer* buffer = &b;   // slot 4 through the vtable
-    b.ConstructGrowing();
     RefPtr entry{nullptr};
     Describe(&entry);
     if (entry.ptr) {
@@ -604,7 +587,6 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
         Send(address, &b);
         entry.Destroy();
     }
-    static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 EI_REWRITTEN(0x00442C60, ServerBase::SendInfo);
 
@@ -654,13 +636,11 @@ void ServerBase::Tick(double dt) {
 namespace {
 // "Accepted" (packet 6) with the join's id, to `to`.
 void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
-    GameBuffer b;
-    b.ConstructGrowing();
+    GrowingBuffer b;
     std::uint8_t kind = 6;
     b.BufferWrite(&kind, 1);
     b.BufferWrite(&id, 4);
     self->Send(to, &b);
-    static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 } // namespace
 
@@ -720,14 +700,12 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
         return;
     }
 
-    GameBuffer b;
-    b.ConstructGrowing();
+    GrowingBuffer b;
     std::uint8_t kind = 7;
     b.BufferWrite(&kind, 1);
     b.BufferWrite(&id, 4);
     b.BufferWrite(&reason, 1);
     Send(from, &b);
-    static_cast<GameBuffer*>(&b)->DestructGrowing();
 }
 
 EI_REWRITTEN(0x00443080, ServerBase::OnLogin);

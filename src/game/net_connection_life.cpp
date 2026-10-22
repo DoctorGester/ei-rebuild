@@ -45,8 +45,8 @@ void FreeReceived(Connection* c) { c->received_.FreeStorage(); }
 
 // Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
 void DestroyForReset(Connection* c) {
-    static_cast<GameBuffer*>(&c->reliableIn_)->DestructGrowing();
-    static_cast<GameBuffer*>(&c->reliableOut_)->DestructGrowing();
+    c->reliableIn_.~GrowingBuffer();
+    c->reliableOut_.~GrowingBuffer();
     c->incoming_.Release<ChunkElement>();   // 00439D40
     c->headers_.Release<ChunkElement>();
     trees::Attached::Destroy(&c->attached_);
@@ -69,6 +69,7 @@ void DestroyForReset(Connection* c) {
 // 00432DA0: the constructor (id). Builds every container, then: the send sequence starts at the
 // tick count, the round trip at the session's maxRoundTrip_ (or 0073BF34 without a session), its
 // square average is the square of what the memory held, send interval 0.04, budget 220.
+// The reliable streams are members, built before the body (the original builds them last).
 Connection::Connection(std::uint32_t id) {
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
     received_.ConstructEmpty();   // vector<int>() (00438CE0)
@@ -96,8 +97,6 @@ Connection::Connection(std::uint32_t id) {
     incoming_.head = sentinel;
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
-    reliableOut_.ConstructGrowing();
-    reliableIn_.ConstructGrowing();
     std::uint32_t tick = gameapi::GetTickCount();
     id_ = 0;
     SessionBase* session = g_currentSession;
@@ -137,9 +136,8 @@ int Connection::OnShutdown() {
 EI_REWRITTEN(0x00433320, Connection::OnShutdown);
 
 // 004334E0 (deleting: 004334C0).
+// The reliable streams are members, destroyed after the body (the original frees them first).
 Connection::~Connection() {
-    static_cast<GameBuffer*>(&reliableIn_)->DestructGrowing();
-    static_cast<GameBuffer*>(&reliableOut_)->DestructGrowing();
     incoming_.Clear<ChunkElement>();   // 0043D420
     stlp::deallocate(incoming_.End(), sizeof(HeaderNode));   // 00439D80
     headers_.Clear<ChunkElement>();
@@ -174,7 +172,9 @@ Connection* Connection::Clone() { return NewCounted<Connection>(*this); }
 EI_REWRITTEN(0x00433060, Connection::Clone);
 
 // The copy as 00433060 builds it, field by field.
-Connection::Connection(const Connection& other) : CRefObject() {
+// The reliable streams are members, copied before the body (the original copies them last).
+Connection::Connection(const Connection& other)
+    : CRefObject(), reliableOut_(other.reliableOut_), reliableIn_(other.reliableIn_) {
     sendSequence_ = other.sendSequence_;
     lastReceived_ = other.lastReceived_;
     sequenceHigh_ = other.sequenceHigh_;
@@ -201,8 +201,6 @@ Connection::Connection(const Connection& other) : CRefObject() {
     incoming_.CopyConstruct<ChunkElement>(other.incoming_);
     ackMask_ = other.ackMask_;
     ackBase_ = other.ackBase_;
-    reliableOut_.ConstructCopy(&other.reliableOut_);
-    reliableIn_.ConstructCopy(&other.reliableIn_);
 }
 
 } // namespace net

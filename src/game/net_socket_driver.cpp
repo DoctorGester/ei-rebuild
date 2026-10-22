@@ -226,13 +226,11 @@ EI_REWRITTEN(0x00440BE0, SocketDriver::Receive);
 // ---- The master server link ----------------------------------------------------------------------
 
 // 00440C60: a non-blocking TCP socket connecting to `address` (state 1), or state 0.
-MasterLink* MasterLink::Construct(const void* address) {
-    out.ConstructGrowing();
-    in.ConstructGrowing();
+MasterLink::MasterLink(const void* address) {
     socket = libcrt::imports::Socket(2, 1, 6);
     if (socket == kNoSocket) {
         state = 0;
-        return this;
+        return;
     }
     std::uint8_t any[16] = {};
     any[0] = 2;
@@ -240,23 +238,20 @@ MasterLink* MasterLink::Construct(const void* address) {
         if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
         socket = kNoSocket;
         state = 0;
-        return this;
+        return;
     }
     std::uint32_t one = 1;
     libcrt::imports::IoctlSocket(socket, kNonBlocking, &one);
     libcrt::imports::Connect(socket, address, 0x10);
     state = 1;
-    return this;
 }
-EI_REWRITTEN(0x00440C60, MasterLink::Construct);
+EI_REWRITTEN_SPECIAL(0x00440C60, MasterLink::MasterLink);
 
-// 00440D40: closes the socket (left as it is) and destroys the buffers.
-void __fastcall MasterLinkDestruct(MasterLink* self) {
-    if (self->socket != kNoSocket) libcrt::imports::CloseSocket(self->socket);
-    static_cast<GameBuffer*>(&self->in)->DestructGrowing();
-    static_cast<GameBuffer*>(&self->out)->DestructGrowing();
+// 00440D40: closes the socket (left as it is); the buffers are destroyed after it (in, then out).
+MasterLink::~MasterLink() {
+    if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
 }
-EI_REWRITTEN(0x00440D40, MasterLinkDestruct);
+EI_REWRITTEN_SPECIAL(0x00440D40, MasterLink::~MasterLink);
 
 // 00440DE0: one step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing
 // buffer at once, blocking (then 2); receiving (2) into the incoming buffer until the peer closes
