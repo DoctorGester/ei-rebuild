@@ -87,6 +87,5 @@ constexpr const char* kTypeBriefings[4] = {"intro_1", "intro_2", "intro_3", "int
 
 // ---- The saved multiplayer parties -------------------------------------------------------------
 constexpr const char* kPartyFilePattern = "\\*.mp";
-constexpr std::uintptr_t kRecordsVtable = std::uintptr_t(0x00743000);
 
 } // namespace flowdata

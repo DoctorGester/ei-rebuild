@@ -341,6 +341,9 @@ vtable,slots,class,file,note
 00742F20,1,WordTokenClass,src/game/ui.h,a scrolling text's word (UiWordToken)
 00742F24,1,TextTokenClass,src/game/ui.h,a scrolling text's base token (UiTextToken)
 00742F28,1,FormatTokenClass,src/game/ui.h,a scrolling text's format token (UiFormatToken)
+00742FF4,3,PartyMemberArrayClass,src/game/party_lifetime.cpp,CArray (a party's unit records)
+00743000,27,PartyClass,src/game/party_lifetime.cpp,the party (CParty)
+0074306C,27,PartyBaseClass,src/game/party_lifetime.cpp,CParty's base (the manager context's getters null)
 00743104,13,PlayerClass,src/game/player.cpp,a world player (CPlayer)
 00743138,3,PlayerListClass,src/lib/mfc_slots.h,CList (a player's list)
 007432E0,7,CMappedResource,src/game/resource.h,

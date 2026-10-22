@@ -56,9 +56,11 @@ struct PartyUnitRecordElements {
     static void Construct(PartyUnitRecord* records, int count) { ConstructPartyUnitRecords(records, count); }
     static void Destruct(PartyUnitRecord* records, int count);   // party_lifetime.cpp
 };
-// A party's unit records: an MFC CArray<PartyUnitRecord> (CObject vtable 00742FF4). Its SetSize
-// (00663FA0, RET 8) is registered on the template (party_lifetime.cpp).
+// A party's unit records: an MFC CArray<PartyUnitRecord> (CObject vtable Vtable(), in place of game.exe's
+// 00742FF4). Its SetSize (00663FA0, RET 8) is registered on the template (party_lifetime.cpp).
 struct PartyMembers : mfc::CArray<PartyUnitRecord, PartyUnitRecordElements> {
+    // The compiled table (C19, party_lifetime.cpp's PartyMemberArrayClass over mfc_slots.h's CompiledCollection).
+    static void* Vtable();
     // 00664160 (party_lifetime.cpp). The array's destructor body: its vtable, the records destroyed
     // and the storage freed.
     void Destruct();
@@ -66,13 +68,13 @@ struct PartyMembers : mfc::CArray<PartyUnitRecord, PartyUnitRecordElements> {
     PartyMembers* DeletingDestruct(unsigned flags);
 };
 using PartyMemberArray = PartyMembers;
-constexpr std::uintptr_t kPartyMemberArrayVtable = std::uintptr_t(0x00742FF4);
 
 class CParty : public CEngineObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743000);
-    // The base class's vtable, which the constructor stores first.
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0074306C);
+    // The compiled tables (C19, party_lifetime.cpp's PartyClass and PartyBaseClass over engine_object_class.h) in
+    // place of game.exe's 00743000 and the base's 0074306C, which the constructor stores first.
+    static void* Vtable();
+    static void* BaseVtable();
 
     // Slots 13-24: the manager context's getters, as CWorld's (world.h); a party has only the item
     // and spell ones. Slots declared `void Name()` keep their place in the order only (their
