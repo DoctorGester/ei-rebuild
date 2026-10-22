@@ -526,11 +526,12 @@ Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float
 
 // Triangle index buffer of a figure part: 3 uint16 indices per triangle, an engine aligned array
 // (lib::AlignedArray). Its SetSize (004F57B0, growBy -1 keeps the step) is AlignedArray::SetSize.
-struct IndexTriangle {
+// A triangle corner: position index, a second index (normal?) and texture coordinate index.
+struct MeshCorner {
     std::uint16_t index[3];
 };
-static_assert(sizeof(IndexTriangle) == 6);
-using TriangleIndexArray = lib::AlignedArray<IndexTriangle>;
+static_assert(sizeof(MeshCorner) == 6);
+using TriangleIndexArray = lib::AlignedArray<MeshCorner>;
 
 class CMappedResource;
 

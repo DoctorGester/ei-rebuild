@@ -71,15 +71,6 @@ void SetElementCount(CParticleSource* s, int n) {
 
 // The bolt's ten points (the source's elements): where the bolt touches the ground, the direction
 // of its fork, and how far the emission has got.
-struct BoltPoint {
-    Vector3 pos;                // +0x00 on the ground
-    Vector3 fork;               // +0x0C
-    Vector3 base;               // +0x18 copy of pos
-    std::uint8_t unused_24[0xC];
-    int emitted;                // +0x30 point 0: particles emitted along the bolt
-    int bursts;                 // +0x34 point 0
-};
-static_assert(sizeof(BoltPoint) == sizeof(ParticleElement));
 
 constexpr float kTwoPi = std::bit_cast<float>(0x40C90FD0u);
 #define EI_POINT_THREE 0.3f /*0073C54C*/       // 0.3
@@ -122,9 +113,9 @@ void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
     float cy = static_cast<float>(D(by) + D(s->origin.y));
     (void)static_cast<float>(D(bz) + D(s->origin.z));
     float cz = static_cast<float>(TheClientWorld()->ClientRawSurfaceHeight(cx, cy) + D(EI_POINT_THREE));
-    BoltPoint* points = reinterpret_cast<BoltPoint*>(s->elements);
+    ParticleElement* points = s->elements;
     points[i].pos = {cx, cy, cz};
-    points[i].base = {cx, cy, cz};
+    points[i].bolt.base = {cx, cy, cz};
 
     double inverse = D(EI_ONE) / std::sqrt(LengthSquared2DUnrounded<double>(dir.y, dir.x) + D(EI_QUARTER));
     dir.x = static_cast<float>(inverse * D(dir.x));
@@ -134,24 +125,24 @@ void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
     float fz = static_cast<float>(halfInverse * D(EI_HALF));
     float fy = static_cast<float>(D(dir.y) * D(EI_HALF));
     float fx = static_cast<float>(D(dir.x) * D(EI_HALF));
-    points = reinterpret_cast<BoltPoint*>(s->elements);
-    points[i].fork = {fx, fy, fz};
-    points[i].emitted = 0;
-    points[i].bursts = 0;
+    points = s->elements;
+    points[i].bolt.fork = {fx, fy, fz};
+    points[i].bolt.emitted = 0;
+    points[i].ticks = 0;   // bursts
 }
 
 // Particles along the bolt: two per point (the odd ones flicker with a random size and frame).
-int EmitAlongBolt(CParticleSource* s, Particle* p, BoltPoint* points) {
-    int emitted = points[0].emitted;
+int EmitAlongBolt(CParticleSource* s, Particle* p, ParticleElement* points) {
+    int emitted = points[0].bolt.emitted;
     p->frame = 0;
     p->life = 10;
     int index = emitted / 2;
-    p->frameTimer = points[0].emitted & 1;
+    p->frameTimer = points[0].bolt.emitted & 1;
     p->state = index + 1;
     std::memcpy(&p->pos, &points[index].pos, sizeof(Vector3));
     std::memset(&p->size, 0, sizeof(float));
     p->aux0 = std::bit_cast<float>(0x3DCCCCCDu);     // 0.1
-    ++points[0].emitted;
+    ++points[0].bolt.emitted;
     if (p->frameTimer == 0) return 1;
     std::uint32_t roll = IsaacRandom::Global().Next();
     p->aux0 = static_cast<float>((Unsigned(roll) * EI_SCALE_0_9 + D(EI_HALF)) * D(s->size) * D(EI_POINT_TWO));
@@ -163,7 +154,7 @@ int EmitAlongBolt(CParticleSource* s, Particle* p, BoltPoint* points) {
 
 // A burst at the impact point: a random direction inside the unit disc (ten tries), spread by a
 // random angle and distance.
-int EmitBurst(CParticleSource* s, Particle* p, BoltPoint* points) {
+int EmitBurst(CParticleSource* s, Particle* p, ParticleElement* points) {
     p->color = 0x40FFFFFF;
     p->frame = 8;
     IsaacRandom::Global().Next();
@@ -209,13 +200,13 @@ int EmitSpark(CParticleSource* s, Particle* p) {
     p->frameTimer = 1;
     double u = Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_1;
     double w = D(EI_ONE) - u;
-    BoltPoint* points = reinterpret_cast<BoltPoint*>(s->elements);
+    ParticleElement* points = s->elements;
     std::memcpy(&p->pos, &points[index].pos, sizeof(Vector3));
     std::memset(&p->size, 0, sizeof(float));
-    const BoltPoint& n = reinterpret_cast<BoltPoint*>(s->elements)[index];
-    float bx = static_cast<float>(w * D(n.base.x));
-    float by = static_cast<float>(w * D(n.base.y));
-    float bz = static_cast<float>(w * D(n.base.z));
+    const ParticleElement& n = s->elements[index];
+    float bx = static_cast<float>(w * D(n.bolt.base.x));
+    float by = static_cast<float>(w * D(n.bolt.base.y));
+    float bz = static_cast<float>(w * D(n.bolt.base.z));
     float px = static_cast<float>(u * D(n.pos.x));
     float py = static_cast<float>(u * D(n.pos.y));
     double pz = u * D(n.pos.z);
@@ -228,14 +219,6 @@ int EmitSpark(CParticleSource* s, Particle* p) {
 // --- Modifier1-12 (0x201B-0x2026) ---------------------------------------------------------------
 
 // Points scattered around the carrier (the source's elements).
-struct ModifierPoint {
-    Vector3 pos;                // +0x00 world position
-    Vector3 start;              // +0x0C copy of pos
-    Vector3 offset;             // +0x18 from the emission point
-    std::uint8_t unused_24[0x10];
-    int fade;                   // +0x34 point 0: index into kFadeAlpha
-};
-static_assert(sizeof(ModifierPoint) == sizeof(ParticleElement));
 
 #define EI_TEN 10.0f /*0073BAAC*/               // 10.0
 #define EI_ZERO 0.0f /*0073B858*/              // 0.0
@@ -303,7 +286,7 @@ void PlaceModifierPoints(CParticleSource* s) {
     float twice = static_cast<float>(D(radius) + D(radius));
     Vector3 axis = ModifierAxis(s, twice);
     for (int i = 0; i < s->elementCount; ++i) {
-        reinterpret_cast<ModifierPoint*>(s->elements)[i].fade = 0;
+        s->elements[i].ticks = 0;   // the fade step
         float x, y;
         double z, lengthSq;
         for (;;) {
@@ -324,13 +307,13 @@ void PlaceModifierPoints(CParticleSource* s) {
         double scale = D(twice) / std::sqrt(lengthSq);
         EI_NAN_AUDIT(s->size);
         if (s->size < EI_ZERO) scale = scale * D(EI_SMALL_RING);
-        ModifierPoint& point = reinterpret_cast<ModifierPoint*>(s->elements)[i];
+        ParticleElement& point = s->elements[i];
         float ex = static_cast<float>(scale * D(x));
         float ey = static_cast<float>(scale * D(y));
         float ez = static_cast<float>(scale * z);
-        point.offset.x = ex;
-        point.offset.y = ey;
-        point.offset.z = ez;
+        point.ring.offset.x = ex;
+        point.ring.offset.y = ey;
+        point.ring.offset.z = ez;
         float wx = static_cast<float>(D(ex) + D(s->origin.x));
         float wy = static_cast<float>(D(ey) + D(s->origin.y));
         float wz = static_cast<float>(D(ez) + D(s->origin.z));
@@ -338,7 +321,7 @@ void PlaceModifierPoints(CParticleSource* s) {
         point.pos.y = wy;
         point.pos.z = wz;
         point.pos.z = static_cast<float>(D(s->spreadMin.x) + D(point.pos.z));
-        std::memcpy(&point.start, &point.pos, sizeof(Vector3));
+        std::memcpy(&point.ring.start, &point.pos, sizeof(Vector3));
     }
 }
 
@@ -360,11 +343,11 @@ int CParticleSource::EmitLightning(Particle* p, int) {
         Vector3 dir;
         for (int i = 0; i < elementCount; ++i) PlaceBoltPoint(this, i, dir);
     }
-    BoltPoint* points = reinterpret_cast<BoltPoint*>(elements);
+    ParticleElement* points = elements;
     p->color = 0xFFFFFFFF;
-    if (points[0].emitted < elementCount * 2) return EmitAlongBolt(this, p, points);
+    if (points[0].bolt.emitted < elementCount * 2) return EmitAlongBolt(this, p, points);
     p->state = 0;
-    if (particles.count < 200 && points[0].bursts < 5) return EmitBurst(this, p, points);
+    if (particles.count < 200 && points[0].ticks < 5) return EmitBurst(this, p, points);   // bursts
     return EmitSpark(this, p);
 }
 EI_REWRITTEN(0x004923B0, CParticleSource::EmitLightning);
@@ -387,9 +370,10 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
         SetElementCount(this, count);
         PlaceModifierPoints(this);
     }
-    ModifierPoint* points = reinterpret_cast<ModifierPoint*>(elements);
-    p->color = (static_cast<std::uint32_t>(kFadeAlpha[points[0].fade]) << 24) | 0xFFFFFF;
-    if (points[0].fade == 0 && index < elementCount) {
+    ParticleElement* points = elements;
+    const int fade = points[0].ticks;
+    p->color = (static_cast<std::uint32_t>(kFadeAlpha[fade]) << 24) | 0xFFFFFF;
+    if (points[0].ticks == 0 && index < elementCount) {
         unsigned kind = static_cast<unsigned>(type_ - 0x201B);
         if (kind <= 11) p->frame = static_cast<int>(kind);
         p->state = index;
@@ -407,10 +391,10 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     double w = D(EI_ONE) - D(u);
     p->life = 5;
     p->frame = static_cast<int>((frameRoll & 3) + 12);
-    const ModifierPoint& e = reinterpret_cast<ModifierPoint*>(elements)[pick];
-    float b0 = static_cast<float>(w * D(e.start.x));
-    float b1 = static_cast<float>(w * D(e.start.y));
-    double b2 = w * D(e.start.z);
+    const ParticleElement& e = elements[pick];
+    float b0 = static_cast<float>(w * D(e.ring.start.x));
+    float b1 = static_cast<float>(w * D(e.ring.start.y));
+    double b2 = w * D(e.ring.start.z);
     double a0 = D(u) * D(e.pos.x);
     float a1 = static_cast<float>(D(u) * D(e.pos.y));
     float a2 = static_cast<float>(D(u) * D(e.pos.z));
@@ -426,7 +410,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     std::memcpy(&p->aux0, &jx, sizeof(float));
     std::memcpy(&p->aux1, &jy, sizeof(float));
     std::memcpy(&p->aux2, &jz, sizeof(float));
-    std::memcpy(&p->pos, &reinterpret_cast<ModifierPoint*>(elements)[pick].start, sizeof(Vector3));
+    std::memcpy(&p->pos, &elements[pick].ring.start, sizeof(Vector3));
     SetBits(&p->size, 0x3D75C28F);   // 0.06
     return 1;
 }
@@ -529,9 +513,9 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
     double lifted = TheClientWorld()->ClientRawSurfaceHeight(p->pos.x, p->pos.y) + D(EI_TENTH);
     p->pos.z = static_cast<float>(lifted);
-    const float* plane = reinterpret_cast<const float*>(elements);
-    double along = (D(p->pos.x) - D(origin.x)) * D(plane[6]) + (D(p->pos.y) - D(origin.y)) * D(plane[7]);
-    float onPlane = static_cast<float>(D(plane[3]) - along * D(plane[8]) + D(EI_TENTH));
+    const auto& plane = elements[0].plane;
+    double along = (D(p->pos.x) - D(origin.x)) * D(plane.normal.x) + (D(p->pos.y) - D(origin.y)) * D(plane.normal.y);
+    float onPlane = static_cast<float>(D(plane.height) - along * D(plane.normal.z) + D(EI_TENTH));
     float ground = static_cast<float>(lifted);
     p->pos.z = SelectLess(ground, onPlane, onPlane, ground);
     std::memcpy(&p->size, &p->aux0, sizeof(float));
@@ -548,9 +532,9 @@ EI_REWRITTEN(0x004933F0, CParticleSource::UpdateGroundDust);
 // emitting.
 void CParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
-        float* plane = reinterpret_cast<float*>(e);
-        static_cast<PlatformSet*>(PlaneMap())->SurfacePlane(origin.x, origin.y, reinterpret_cast<Vector3*>(plane + 6), plane + 3);
-        if (plane[8] != 0.0f) plane[8] = static_cast<float>(D(EI_ONE) / D(plane[8]));   // a NaN stays the same NaN
+        auto& plane = e->plane;
+        static_cast<PlatformSet*>(PlaneMap())->SurfacePlane(origin.x, origin.y, &plane.normal, &plane.height);
+        if (plane.normal.z != 0.0f) plane.normal.z = static_cast<float>(D(EI_ONE) / D(plane.normal.z));   // a NaN stays the same NaN
     }
     if (++e->ticks > 1) flags_ &= ~1u;
 }
@@ -670,7 +654,7 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
     int foot = static_cast<int>(IsaacRandom::Global().Next() & 1);
     p->state = foot;
     const ParticleElement& e = elements[foot];
-    if (reinterpret_cast<const std::int32_t*>(&e)[12] >= 0) std::memcpy(&p->pos, &e.pos, sizeof(Vector3));
+    if (e.foot.countdown >= 0) std::memcpy(&p->pos, &e.pos, sizeof(Vector3));
     else std::memcpy(&p->pos, &origin, sizeof(Vector3));
     SetBits(&p->size, 0x3F800000);
     std::memset(&p->size, 0, sizeof(float));

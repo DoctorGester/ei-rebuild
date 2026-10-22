@@ -485,12 +485,13 @@ CItem* AddToRecord(CParty* party, PartyUnitRecord* record, CItem* item) {
     return added;
 }
 
-// A fresh item record (ItemSourceRef, item.h) for the item's link (+0x1C).
-ItemSourceRef* NewItemRecord(bool refValueBase) {
-    auto* memory = gamecrt::operator_new_as<ItemSourceRef>();
-    memory->refs = 0;   // before the null test
+// A fresh item record (CItemLink, item.h) for the item's link (+0x1C).
+CItemLink* NewItemRecord(bool refValueBase) {
+    auto* memory = gamecrt::operator_new_as<CItemLink>();
+    memory->references = 0;   // the count's whole dword, before the null test
+    memory->refsHigh = 0;
     if (!memory) return nullptr;
-    if (!refValueBase) return reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());
+    if (!refValueBase) return memory->Construct();
     RefValueConstructBase(memory);
     memory->vtable = CItemLink::Vtable();
     return memory;
@@ -512,16 +513,16 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         CItem* item = unit->GetWeapon(slot);
         if (!item) continue;
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
-        ItemSourceRef* ref = NewItemRecord(false);
-        ref->itemId = static_cast<std::uint32_t>(entry->id_);
+        CItemLink* ref = NewItemRecord(false);
+        ref->value = static_cast<std::uint32_t>(entry->id_);
         RefPtrAssign(&item->link_, nullptr, ref);
     }
     for (int slot = 0; slot < kWornSlots; ++slot) {
         CItem* item = unit->WornItem(slot);
         if (!item) continue;
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
-        ItemSourceRef* ref = NewItemRecord(true);
-        ref->itemId = static_cast<std::uint32_t>(entry->id_);
+        CItemLink* ref = NewItemRecord(true);
+        ref->value = static_cast<std::uint32_t>(entry->id_);
         RefPtrAssign(&item->link_, nullptr, ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
@@ -532,12 +533,11 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         if (entry) ++entry->refCount_;
         CEngineObject* added = (CEngineObject*)record->AddQuickItem(entry);
         if (entry) entry->Release();
-        ItemSourceRef* ref = NewItemRecord(true);
-        ref->itemId = static_cast<std::uint32_t>(added->id_);
+        CItemLink* link = NewItemRecord(true);
+        link->value = static_cast<std::uint32_t>(added->id_);
         // The counted pointer's assignment, inlined (16-bit count at +4).
-        auto* link = reinterpret_cast<CItemLink*>(ref);
-        CItemLink* old = reinterpret_cast<CItemLink*>(static_cast<std::uintptr_t>(item->link_));
-        item->link_ = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(link));
+        CItemLink* old = item->ServerLink();
+        item->link_ = link;
         if (link) ++link->references;
         if (old) RefObjectRelease(old);
     }

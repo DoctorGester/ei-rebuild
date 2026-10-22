@@ -51,9 +51,8 @@ inline float Half() { return 0.5f /*0073B86C*/; }
 inline float LineAngleOffset() { return 3.1415927f /*0073F8EC*/; }
 inline float LineSpacing() { return 1.2f /*0073CDF4*/; }
 
-// The unit record's (mapspec::UnitSpec) vtable and its behaviour records' destructor body.
+// The unit record's (mapspec::UnitSpec) vtable.
 constexpr std::uintptr_t kUnitSpecVtable = std::uintptr_t(0x0073C6E0);
-constexpr std::uintptr_t kBehaviourDestructor = std::uintptr_t(0x0046C290);
 
 // ---- UseQuickItem (0058ECE0) -------------------------------------------------------------------
 

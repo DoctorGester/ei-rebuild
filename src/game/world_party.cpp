@@ -295,10 +295,10 @@ EI_REWRITTEN(0x00594CE0, CWorldServer::CopyItem);
 
 void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
     if (unit->player) {
-        if (auto* link = reinterpret_cast<ItemSourceRef*>(item->link_)) {
+        if (CItemLink* link = item->ServerLink()) {
             CParty* party = unit->player->Party();
             if (party->Find(unit->id_)) {
-                CItem* source = FindItem(party->ItemManager(), link->itemId);
+                CItem* source = FindItem(party->ItemManager(), link->value);
                 if (source) --source->count_;
             }
         }

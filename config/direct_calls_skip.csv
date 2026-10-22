@@ -23,7 +23,7 @@ address,reason
 004DA910,src/game/atexit_400.cpp passes a T * as void* (the target is GameBuffer's method)
 004DEFC0,src/game/ui_objectives.cpp passes a UiTexts * as void* (the target is CTextManager's method)
 004E0020,src/game/ui_item_info.cpp passes a Texts * as void* (the target is CTextManager's method)
-0055FB00,src/game/world_server.cpp passes a WorldBase * as void* (the target is CWorld's method)
+0055FB00,src/game/world_effect_internal.h passes a void* world (the target is CWorld's method)
 0058E520,src/game/script_exec_helpers.cpp passes a World * as void* (the target is CWorldServer's method)
 00593AA0,src/game/script_group.cpp passes a ObjectRegistry * as void* (the target is CWorldServer's method)
 0059F030,src/game/sky_object.cpp passes a CSkyObject * as void* (the target is CFigureMesh's method)

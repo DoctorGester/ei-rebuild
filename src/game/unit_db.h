@@ -187,11 +187,9 @@ struct UnitModelRecord {
     CStringVector soundNames;       // +0x138 0x23 (0053A8E0 counts the .wav files of each)
     // +0x144 the number of sound files of each soundNames entry (an STLport vector<int>; counted
     // at startup, 0053A8E0; not serialised).
-    std::uint32_t* soundCounts;
-    std::uint32_t* soundCountsEnd;
-    std::uint32_t* soundCountsEndOfStorage;
+    stlp::vector<std::uint32_t> soundCounts;
 
-    const std::uint32_t* SoundCounts() const { return soundCounts; }
+    const std::uint32_t* SoundCounts() const { return soundCounts.begin(); }
     std::uint32_t idleSoundChance;  // +0x150 0x25 percent
     std::uint32_t attackSoundChance;    // +0x154 0x26 percent
     // The eyes on the skin texture (in 256ths of its width; the blink, 00538ED0 / 00539010; read

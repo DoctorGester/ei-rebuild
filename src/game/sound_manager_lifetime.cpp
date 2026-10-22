@@ -12,6 +12,7 @@
 
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
+#include "../lib/stlp_string.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -35,6 +36,13 @@ int CompareText(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
 }
 CRITICAL_SECTION* Lock(std::uint8_t* storage) { return reinterpret_cast<CRITICAL_SECTION*>(storage); }
+
+// The manager's MP3 stream part (+0x100, from streamState on): what 006BA9C0 / 006BAAC0 / 006BAC90
+// get as `this`.
+void* StreamOf(CSoundManager* manager) { return const_cast<std::int32_t*>(&manager->streamState); }
+CSoundManager* ManagerOf(void* stream) {
+    return reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
+}
 } // namespace
 
 const char* CSoundManager::GetClassName() { return kSoundManagerClassNameAddress; }
@@ -138,7 +146,7 @@ int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, in
         manager->streamReader.Seek(offset, 0);
         manager->streamReadPosition = offset;
     }
-    int left = manager->streamFileSize - manager->streamReadPosition;
+    int left = static_cast<int>(manager->streamFileSize) - manager->streamReadPosition;
     if (size > left) size = left;
     if (manager->streamReader.Read(static_cast<char*>(buffer), size) < 0) return 0;
     manager->streamReadPosition += size;
@@ -154,13 +162,8 @@ constexpr int kListBlockSize = 10;
 constexpr unsigned kMapBuckets = 100;
 constexpr int kFullVolume = 100;
 constexpr int kNoSwitch = 4;   // RequestStream's "switch at the current position"
-
-// The element constructors / destructors the CRT's eh vector iterators run on the emitters and the
-// sequences (compiler-generated; config/library.csv).
-constexpr std::uintptr_t kEmitterConstruct = std::uintptr_t(0x006B63D0);
-constexpr std::uintptr_t kEmitterDestruct = std::uintptr_t(0x006B63E0);
-constexpr std::uintptr_t kSequenceConstruct = std::uintptr_t(0x006B63F0);
-constexpr std::uintptr_t kSequenceDestruct = std::uintptr_t(0x006B6400);
+constexpr int kEmitterCount = 16;
+constexpr int kSequenceCount = 8;
 
 // Miles (game.exe's imports 0073B7D4 / 0073B7D0).
 using AilVoidFn = void(__stdcall*)();
@@ -220,10 +223,10 @@ CSoundManager::CSoundManager() {
     midiArray1F4.Construct();
     ConstructFader(midiFader);
     gameapi::InitializeCriticalSection(Lock(midiLock));
-    libcrt::ConstructElements(emitters, sizeof(SoundEmitter), 16, reinterpret_cast<libcrt::ElementFunction>(kEmitterConstruct),
-                              reinterpret_cast<libcrt::ElementFunction>(kEmitterDestruct));
-    libcrt::ConstructElements(sequences, sizeof(SoundSequence), 8, reinterpret_cast<libcrt::ElementFunction>(kSequenceConstruct),
-                              reinterpret_cast<libcrt::ElementFunction>(kSequenceDestruct));
+    // The CRT's eh vector constructor iterator (006E8693) over the emitters and the sequences: each
+    // element's constructor in order.
+    for (SoundEmitter& emitter : emitters) ConstructEmitter(&emitter);
+    for (SoundSequence& sequence : sequences) ConstructSequence(&sequence);
     ConstructList(cacheList, gameslots::WaveListClass::Vtable());
     // hashtable(n, hash, equal, allocator) (006BBF90 / 006BC2B0); the functor bytes, never read,
     // are 0 here (the original's are stack bytes).
@@ -246,8 +249,9 @@ CSoundManager::~CSoundManager() {
     cacheList.vtable = gameslots::WaveListClass::Vtable();
     for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
-    libcrt::DestroyElements(sequences, sizeof(SoundSequence), 8, reinterpret_cast<libcrt::ElementFunction>(kSequenceDestruct));
-    libcrt::DestroyElements(emitters, sizeof(SoundEmitter), 16, reinterpret_cast<libcrt::ElementFunction>(kEmitterDestruct));
+    // The CRT's eh vector destructor iterator (006E859F): each element's destructor, last to first.
+    for (int i = kSequenceCount; --i >= 0;) DestructSequence(&sequences[i]);
+    for (int i = kEmitterCount; --i >= 0;) DestructEmitter(&emitters[i]);
     gameapi::DeleteCriticalSection(Lock(midiLock));
     midiArray1F4.FreeData();
     midiArray1E4.FreeData();
@@ -290,10 +294,7 @@ void CSoundManager::ResetStream() {
 }
 
 // 006BA9C0 runs on the manager's +0x100 (the MP3 stream part).
-void __fastcall SoundResetStream(void* stream) {
-    auto* manager = reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
-    manager->ResetStream();
-}
+void __fastcall SoundResetStream(void* stream) { ManagerOf(stream)->ResetStream(); }
 
 EI_REPLACE_METHOD(0x006B6040, CSoundManager::Construct);
 EI_REWRITTEN(0x006B65D0, CSoundManager::DestructBody);
@@ -319,11 +320,8 @@ constexpr unsigned kPrefUseWaveOut = 0xF;
 // The sound option (0 off: startup does not open sound; 2 the wave mapper).
 int SoundOption() { return options::TheOptions()->audio_; }
 
-// The voice constructor / destructor the CRT's eh vector iterators run (compiler-generated, the
-// name string's; config/library.csv), the DirectSoundEnumerateA callback appending each device's
-// GUID pointer to an aligned array (006B68A0), the stream thread's entry (006B6A10 -> 006BB910).
-constexpr std::uintptr_t kVoiceConstruct = std::uintptr_t(0x006B6CC0);
-constexpr std::uintptr_t kVoiceDestruct = std::uintptr_t(0x006B6D30);
+// The DirectSoundEnumerateA callback appending each device's GUID pointer to an aligned array
+// (006B68A0), the stream thread's entry (006B6A10 -> 006BB910).
 constexpr std::uintptr_t kDeviceCallback = std::uintptr_t(0x006B68A0);
 
 // DirectSound and Miles through game.exe's import table (all __stdcall).
@@ -376,10 +374,6 @@ constexpr int kStreamRate = 44100;
 constexpr int kStereo16 = 3;       // DIG_F_STEREO_16
 constexpr int kSignedPcm = 1;      // DIG_PCM_SIGN
 
-void* StreamOf(CSoundManager* manager) { return const_cast<std::int32_t*>(&manager->streamState); }
-CSoundManager* ManagerOf(void* stream) {
-    return reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
-}
 
 // The stream thread's (StreamThread).
 using BufferReadyFn = int(__stdcall*)(void*);
@@ -565,7 +559,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
     mfc::CString path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
     if (CompareText(m->nextName, game::EmptyText()) == 0 ||
-        m->streamReader.OpenFile(path, reinterpret_cast<std::uint32_t*>(&m->streamFileSize)) == 0) {
+        m->streamReader.OpenFile(path, &m->streamFileSize) == 0) {
         Silence(m, to, bytes);
         m->streamState = 0;
         CodecClose(m);
@@ -714,8 +708,8 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     if (block != nullptr) {
         *block = kVoiceCount;
         voices = reinterpret_cast<SoundSlot*>(block + 1);
-        libcrt::ConstructElements(voices, sizeof(SoundSlot), kVoiceCount, reinterpret_cast<libcrt::ElementFunction>(kVoiceConstruct),
-                              reinterpret_cast<libcrt::ElementFunction>(kVoiceDestruct));
+        // The CRT's eh vector constructor iterator: each voice's name string (006B6CC0, basic_string()).
+        for (int i = 0; i < kVoiceCount; ++i) stlp::StringAbi::ConstructDefault(static_cast<stlp::StringAbi*>(&voices[i].name));
     }
     slots = voices;
     for (int i = 0; i < kVoiceCount; ++i) {
@@ -756,7 +750,8 @@ void CSoundManager::Close() {
         }
         // operator delete[]: the count stands before the voices.
         std::int32_t* block = reinterpret_cast<std::int32_t*>(slots) - 1;
-        libcrt::DestroyElements(slots, sizeof(SoundSlot), *block, reinterpret_cast<libcrt::ElementFunction>(kVoiceDestruct));
+        // The CRT's eh vector destructor iterator: each voice's name string (006B6D30), last to first.
+        for (int i = *block; --i >= 0;) slots[i].name.~string();
         gamecrt::operator_delete(block);
     }
     DeleteDeferred();

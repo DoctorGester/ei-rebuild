@@ -3652,7 +3652,7 @@ EI_REWRITTEN(0x00495C80, CParticleSource::UpdateFeetCloud);
 void CParticleSource::TickFeetCloud(ParticleElement* e) {
     if (attachedTo && ClassOf(attachedTo) == kUnitClass) {
         CObject3D* unit = attachedTo;
-        void* part = FindFigurePart(unit, *ElementInt(e, 0x34) ? kLeftFoot : kRightFoot);
+        void* part = FindFigurePart(unit, e->ticks ? kLeftFoot : kRightFoot);
         if (!part) part = FindFigurePart(unit, kBody);
         if (part) {
             Vector3 at;
@@ -3669,7 +3669,7 @@ void CParticleSource::TickFeetCloud(ParticleElement* e) {
     }
     Vector3 offset;
     AttachmentOffset(&offset, ElementFloat(e, 0x18));
-    *ElementInt(e, 0x30) = 0;
+    e->foot.countdown = 0;
 }
 EI_REWRITTEN(0x00495E00, CParticleSource::TickFeetCloud);
 

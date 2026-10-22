@@ -26,11 +26,6 @@ namespace {
 // 005B40F0: resets the dirty rectangle (+4).
 __declspec(naked) void __fastcall ResetDirty(void*, void*) EI_ORIGINAL(0x005B40F0)
 
-// Destructors of the members (thiscall).
-// 006E859F: the CRT's `eh vector destructor iterator` (array, element size, count, destructor).
-void __stdcall VectorDestroy(void* a0, unsigned a1, int a2, std::uintptr_t a3) {
-    libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3));
-}
 
 
 void ConstructUnitLayerOf(CAIMap* self, CUnitLayer* layer, std::uintptr_t vtable) {
@@ -101,9 +96,11 @@ void __fastcall DestructAIMap(CAIMap* self) {
     FreeGrid(self->forwardSearch.levels);
     FreeGrid(self->forwardSearch.nodes);
     CRegionMap& regions = self->regionMap;
-    VectorDestroy(regions.regions, 0x10, 8, kRegionGridDestructor);
-    VectorDestroy(regions.cells, 0x10, 8, kCellGridDestructor);
-    VectorDestroy(regions.edges, 0x10, 8, kEdgeGridDestructor);
+    // The CRT's eh vector destructor iterator (006E859F): each grid freed (00598480 / 00598460 /
+    // 00598440), last to first.
+    for (int i = 8; --i >= 0;) FreeGrid(regions.regions[i]);
+    for (int i = 8; --i >= 0;) FreeGrid(regions.cells[i]);
+    for (int i = 8; --i >= 0;) FreeGrid(regions.edges[i]);
     regions.local.Destruct();
     FreeGrid(regions.backward.records);
     FreeGrid(regions.forward.records);

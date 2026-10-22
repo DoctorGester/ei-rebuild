@@ -50,30 +50,13 @@ double Ease(float slide) {
     return 1.0f - e;
 }
 
-// The sound system (global pointer at 007AF784) and the display settings object (007AF060), as
-// the options window's cancel puts their settings back.
-struct UiSoundSystem {
-    void SetVolumeA(int value) {   // 006B7740
-        reinterpret_cast<CSoundManager*>(this)->SetEffectsVolume(value);
-    }
-    void SetVolumeB(int value) {   // 006B7A00
-        reinterpret_cast<CSoundManager*>(this)->SetMusicVolume(value);
-    }
-    void SetVolumeC(int value) {   // 006B78A0
-        reinterpret_cast<CSoundManager*>(this)->SetSpeechVolume(value);
-    }
-};
-
+// The display settings object (007AF060), as the options window's cancel puts its settings back
+// (the sound manager's volumes too: 006B7740 / 006B7A00 / 006B78A0).
 struct UiDisplaySettings {
     void** vtable_;   // slot 22: applies three values (gamma and two more)
 };
 // 00500960 (not rewritten). Returns the display settings object (007AF060).
 UiDisplaySettings* DisplaySettings() { return (UiDisplaySettings*)SceneRenderer(); }
-
-template <typename T>
-T Global(std::uintptr_t address) {
-    return ei::GameData<T>(address);
-}
 } // namespace
 
 // --- Forwarders --------------------------------------------------------------------------------
@@ -121,7 +104,7 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
         }
         break;
     }
-    reinterpret_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
+    static_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
 }
 
 void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
@@ -207,9 +190,9 @@ EI_REPLACE_METHOD(0x00654450, CSaveLoadWindow::OnDialogResult);
 
 void COptionsWindow::RestoreSettings() {
     // The values the window saved when it opened (0079BCC4..0079BD04).
-    Global<UiSoundSystem*>(0x007AF784)->SetVolumeA(options::TheOptions()->audioSfx_);
-    Global<UiSoundSystem*>(0x007AF784)->SetVolumeB(options::TheOptions()->audioStreaming_);
-    Global<UiSoundSystem*>(0x007AF784)->SetVolumeC(options::TheOptions()->audioSpeech_);
+    TheSoundManager()->SetEffectsVolume(options::TheOptions()->audioSfx_);
+    TheSoundManager()->SetMusicVolume(options::TheOptions()->audioStreaming_);
+    TheSoundManager()->SetSpeechVolume(options::TheOptions()->audioSpeech_);
     UiDisplaySettings* display = DisplaySettings();
     using Fn = void(__thiscall*)(UiDisplaySettings*, std::uint32_t, std::uint32_t, std::uint32_t);
     ei::VirtualSlot<Fn>(display->vtable_, 22)(display, std::bit_cast<std::uint32_t>(options::TheOptions()->brightness_),
@@ -247,7 +230,7 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
             }
         }
     }
-    reinterpret_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
+    static_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
 }
 
 void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
@@ -330,11 +313,11 @@ void COptionsWindow::Update() {
             settings_[i].value_ = value;
             unsigned id = static_cast<unsigned>(settings_[i].definition_->id_);
             if (id == kSettingVolumeA) {
-                Global<UiSoundSystem*>(0x007AF784)->SetVolumeA(value);
+                TheSoundManager()->SetEffectsVolume(value);
             } else if (id == kSettingVolumeB) {
-                Global<UiSoundSystem*>(0x007AF784)->SetVolumeB(value);
+                TheSoundManager()->SetMusicVolume(value);
             } else if (id == kSettingVolumeC) {
-                Global<UiSoundSystem*>(0x007AF784)->SetVolumeC(value);
+                TheSoundManager()->SetSpeechVolume(value);
             } else if (id >= kSettingGammaFirst && id <= kSettingGammaLast) {
                 const OptionSetting* gamma = settings_.begin() + kSettingGammaFirst;
                 float r = static_cast<float>(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
@@ -457,11 +440,11 @@ EI_REPLACE_METHOD(0x0065B340, InputForward<&CUiScrollbar::OnMouseUp>::Call);
 
 BOOL CUiTooltip::Draw(int pass) {
     if (!Shown()) return 1;
-    return reinterpret_cast<CUiWindow*>(this)->DrawBase(pass);
+    return DrawBase(pass);
 }
 
 void CUiTooltip::Redraw() {
-    if (Shown()) reinterpret_cast<CUiWindow*>(this)->RedrawBase();
+    if (Shown()) RedrawBase();
 }
 
 EI_REPLACE_METHOD(0x0065EA50, CUiTooltip::Draw);

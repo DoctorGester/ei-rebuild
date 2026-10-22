@@ -28,6 +28,12 @@ T Read(const char** cursor) {
     return value;
 }
 
+// The array of T the file data holds at `at` (unaligned records the loaders copy).
+template <typename T>
+const T* FileArray(const char* at) {
+    return reinterpret_cast<const T*>(at);
+}
+
 // Appends `count` elements to an aligned array; returns where they start.
 template <typename T>
 int Append(lib::AlignedArray<T>& array, const T* from, int count) {
@@ -65,7 +71,7 @@ void SetW(VertexPacket& packet) {
 // past it), morphed by s, t, u; w = 1.
 void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t, float u) {
     for (int b = 0; b < 3; ++b) {
-        const float* versions = reinterpret_cast<const float*>(*cursor);
+        const float* versions = FileArray<float>(*cursor);
         for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph8(versions + k, s, t, u);
         *cursor += 0x80;
     }
@@ -75,7 +81,7 @@ void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t
 // The same for the older records (3 blocks of 6 versions, 0x120 bytes).
 void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t, float u) {
     for (int b = 0; b < 3; ++b) {
-        const float* versions = reinterpret_cast<const float*>(*cursor);
+        const float* versions = FileArray<float>(*cursor);
         for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph6(versions + k, s, t, u);
         *cursor += 0x60;
     }
@@ -248,11 +254,9 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, c
     const char* corners = indices + fig.indexCount * 2;
     const char* words = corners + fig.cornerCount * static_cast<int>(sizeof(MeshCorner));
     *cursor = words + fig.wordCount * 4;
-    mesh->AddPart(name, packets, count, reinterpret_cast<const NormalPacket*>(normals), fig.normalCount,
-                  reinterpret_cast<const TexCoord*>(texCoords), fig.texCoordCount,
-                  reinterpret_cast<const MeshCorner*>(corners), fig.cornerCount,
-                  reinterpret_cast<const std::uint32_t*>(words), fig.wordCount,
-                  reinterpret_cast<const std::uint16_t*>(indices), fig.indexCount);
+    mesh->AddPart(name, packets, count, FileArray<NormalPacket>(normals), fig.normalCount,
+                  FileArray<TexCoord>(texCoords), fig.texCoordCount, FileArray<MeshCorner>(corners), fig.cornerCount,
+                  FileArray<std::uint32_t>(words), fig.wordCount, FileArray<std::uint16_t>(indices), fig.indexCount);
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
 EI_REWRITTEN(0x004F7F00, CLinkFigureLoader::LoadFigPart);
@@ -288,11 +292,9 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, c
     int indexCount = Read<int>(cursor);
     const char* indices = *cursor;
     *cursor += indexCount * 2;
-    mesh->AddPart(name, packets, count, reinterpret_cast<const NormalPacket*>(normals), normalCount,
-                  reinterpret_cast<const TexCoord*>(texCoords), texCoordCount,
-                  reinterpret_cast<const MeshCorner*>(corners), cornerCount,
-                  reinterpret_cast<const std::uint32_t*>(words), wordCount,
-                  reinterpret_cast<const std::uint16_t*>(indices), indexCount);
+    mesh->AddPart(name, packets, count, FileArray<NormalPacket>(normals), normalCount,
+                  FileArray<TexCoord>(texCoords), texCoordCount, FileArray<MeshCorner>(corners), cornerCount,
+                  FileArray<std::uint32_t>(words), wordCount, FileArray<std::uint16_t>(indices), indexCount);
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
 EI_REWRITTEN(0x004F87D0, CLinkFigureLoader::LoadOldPart);
@@ -352,13 +354,9 @@ namespace {
 // Moves the elements after [start, start + count) down over them and shortens the array (the
 // capacity and block stay).
 template <typename T>
-void CloseGap(T* data, int& size, int start, int count, int elementBytes) {
+void CloseGap(T* data, int& size, int start, int count) {
     int after = size - start - count;
-    if (after != 0) {
-        auto* bytes = reinterpret_cast<std::uint8_t*>(data);
-        std::memmove(bytes + start * elementBytes, bytes + (start + count) * elementBytes,
-                     static_cast<std::size_t>(after) * static_cast<std::size_t>(elementBytes));
-    }
+    if (after != 0) std::memmove(data + start, data + start + count, static_cast<std::size_t>(after) * sizeof(T));
     size -= count;
 }
 
@@ -406,12 +404,12 @@ bool CLinkMesh::RemovePartImpl(const stlp::string* name) {
     LinkPartRanges removed = node->second;
     static_cast<lib_trees::LinkRanges*>(&ranges_)->EraseAt(node);   // 004F4E40
 
-    CloseGap(vertices_.data, vertices_.size, removed.vertices.start, removed.vertices.count, sizeof(VertexPacket));
-    CloseGap(normals_.data, normals_.size, removed.normals.start, removed.normals.count, sizeof(NormalPacket));
-    CloseGap(texCoords_.data, texCoords_.size, removed.texCoords.start, removed.texCoords.count, sizeof(TexCoord));
-    CloseGap(corners_.data, corners_.size, removed.corners.start, removed.corners.count, sizeof(MeshCorner));
-    CloseGap(words_.data, words_.size, removed.words.start, removed.words.count, 4);
-    CloseGap(indices_.data, indices_.size, removed.indices.start, removed.indices.count, 2);
+    CloseGap(vertices_.data, vertices_.size, removed.vertices.start, removed.vertices.count);
+    CloseGap(normals_.data, normals_.size, removed.normals.start, removed.normals.count);
+    CloseGap(texCoords_.data, texCoords_.size, removed.texCoords.start, removed.texCoords.count);
+    CloseGap(corners_.data, corners_.size, removed.corners.start, removed.corners.count);
+    CloseGap(words_.data, words_.size, removed.words.start, removed.words.count);
+    CloseGap(indices_.data, indices_.size, removed.indices.start, removed.indices.count);
 
     for (LinkRangeMap::Node* n = ranges_.begin(); n != ranges_.end(); n = LinkRangeMap::Next(n)) {
         LinkPartRanges& r = n->second;
@@ -433,7 +431,7 @@ bool CLinkMesh::GetPartDataImpl(const stlp::string* name, VertexPacket** vertice
     if (node == ranges_.end()) return false;
     const LinkPartRanges& r = node->second;
     *vertices = vertices_.data + r.vertices.start;
-    *corners = reinterpret_cast<MeshCorner*>(corners_.data + r.corners.start);
+    *corners = corners_.data + r.corners.start;
     *indices = indices_.data + r.indices.start;
     *indexCount = r.indices.count;
     *vertexCount = r.vertices.count;

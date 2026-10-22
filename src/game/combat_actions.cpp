@@ -245,7 +245,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     item->charge_ = item->charge_ - cost;
     world->AddCounted(item);
     auto* player = unit->player;
-    const auto* link = reinterpret_cast<const CItemLink*>(static_cast<std::uintptr_t>(item->link_));
+    const CItemLink* link = item->ServerLink();
     if (!player || !link) return;
     CResourceManager* items = player->Party()->ItemManager();
     CItem* copy = FindItem(items, link->value);

@@ -128,7 +128,7 @@ CWorldClient* CWorldClient::Construct() {
     dynamicNodes_.InitBuckets(100);
     dynamicMaxId_ = 0;
     screenEntries_.Construct();
-    hits_ = {};
+    hits_.ConstructEmpty();
     lineLists_.InitBuckets(100);
     lastLineListKey_ = 0;
     // Both sector grids at 1 x 1 (Setup makes them 4 x 4).

@@ -69,7 +69,6 @@ void BlockCostElements::Construct(BlockCost* elements, int count) { mfc::PlainEl
 namespace {
 // The region map's constructor helper: the CRT's `eh vector constructor iterator` (array, size,
 // count, ctor, dtor).
-void __stdcall VectorConstruct(void* a0, unsigned a1, int a2, void* a3, void* a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
 
 // The region map's per size class grids are allocated for their size by 005B1550 (edge words,
 // +0x11C), 005B15F0 (representative cells, +0x19C) and 005B1680 (regions, +0x21C).
@@ -613,12 +612,10 @@ CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
     local.cellRowMax = 0;
     local.cellRowCount = 0;
     local.map = nullptr;
-    VectorConstruct(self->edges, sizeof(self->edges[0]), 8, reinterpret_cast<void*>(kEdgeGridConstructor),
-                    reinterpret_cast<void*>(kEdgeGridDestructor));
-    VectorConstruct(self->cells, sizeof(self->cells[0]), 8, reinterpret_cast<void*>(kCellGridConstructor),
-                    reinterpret_cast<void*>(kCellGridDestructor));
-    VectorConstruct(self->regions, sizeof(self->regions[0]), 8, reinterpret_cast<void*>(kRegionGridConstructor),
-                    reinterpret_cast<void*>(kRegionGridDestructor));
+    // The CRT's eh vector constructor iterator (006E8693) over each grid array, in order.
+    for (SearchGrid<std::int16_t>& grid : self->edges) ConstructEdgeGrid(&grid);            // 005AF580
+    for (SearchGrid<std::uint8_t>& grid : self->cells) ConstructRepresentativeGrid(&grid);  // 005AF590
+    for (SearchGrid<std::uint16_t>& grid : self->regions) ConstructRegionGrid(&grid);       // 005AF5A0
     self->forward.Attach(self, false);
     self->backward.Attach(self, true);
     self->progress = nullptr;
