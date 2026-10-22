@@ -1,6 +1,6 @@
 // ei_hook.dll inside ei_standalone.exe (src/standalone/host.cpp; docs/notes/standalone.md section 2).
 // The host is an ordinary exe that reads no game.exe and keeps what of game.exe's range is free reserved with no
-// access (S18k; game.exe's resources are the host's own, S18j); the DLL's static
+// access (S18k); the DLL's static
 // initialisation has put .rdata, .data and the import slots in its own storage (image_data.cpp,
 // image_imports.cpp); here the registrations become game.exe's code (image_code.cpp), the code cells of
 // its data are pointed at them, and WinMain runs.
@@ -153,8 +153,8 @@ std::size_t CheckGuard() {
 
 // ---- game.exe's module, as the image's code sees it ------------------------------------------------
 // The game's module is the host's (S18j): WinMain's hInstance and GetModuleHandleA(NULL) are ei_standalone.exe,
-// which has game.exe's resources built in (tools/gen_resources.py), so LoadIconA, LoadStringA, FindResourceA ...
-// and DirectInput take the handle as it is, and GetModuleFileNameA(NULL) names the host. Only the command line
+// which has none of game.exe's resources (C23: the strings are literals in our code), so DirectInput and the window
+// class take the handle as it is, and GetModuleFileNameA(NULL) names the host. Only the command line
 // is routed: the game's arguments after game.exe's path, as the original's.
 
 LPSTR WINAPI ImageCommandLine() { return g_commandLine.data(); }
@@ -216,15 +216,9 @@ const Route* Routes() {
     return routes;
 }
 
-// Checks that the host has game.exe's resources (its icon), that ImageRoute took every route and routes Miles's
-// LoadLibraryA. False when one of them is not so.
+// Checks that ImageRoute took every route and routes Miles's LoadLibraryA. False when one of them is not so.
 bool RouteImageCalls() {
     bool ok = true;
-    constexpr int kGameIcon = 0x69;   // the window class's icon (app_main.cpp's kIcon)
-    if (!FindResourceA(GetModuleHandleA(nullptr), MAKEINTRESOURCEA(kGameIcon), RT_GROUP_ICON)) {
-        Log("standalone: the host has no game.exe resources (icon %d)", kGameIcon);
-        ok = false;
-    }
     for (int i = 0; i < kRoutes; ++i) {
         if (g_routed[i]) continue;
         Log("standalone: game.exe's import %s!%s not found to route", Routes()[i].dll, Routes()[i].function);
@@ -300,7 +294,7 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
         static_cast<unsigned>(kImageBegin), static_cast<unsigned>(kImageEnd), open ? "NOT all guarded" : "guarded", open,
         taken ? *taken : 0u, static_cast<void*>(GetModuleHandleA(nullptr)));
     const bool routed = RouteImageCalls();
-    Log("standalone: game.exe's resources in the host, its command line%s routed; arguments: '%s'", routed ? "" : " not",
+    Log("standalone: the game's command line%s routed; arguments: '%s'", routed ? "" : " not",
         g_commandLine.c_str() + g_argumentsAt);
     const int missingImports = ImageImportsMissing();
     // What the static initialisers call that has no code yet (logged; not a failure of the check).

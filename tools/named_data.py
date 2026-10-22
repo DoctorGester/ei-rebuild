@@ -51,7 +51,22 @@ the kinds given also list their addresses.
 --refs BEGIN [END]: the original's code reaching game.exe's data in [BEGIN, END] (its absolute operands), by function
 and our registration of it: the extent of an object and every function that reads or writes it directly.
 
-usage: python tools/named_data.py --check | --update | --owner BEGIN [END] | --split [KIND ...] | --refs BEGIN [END] [--exe game.exe]
+--emit ADDRESS TYPE COUNT NAME (C18o): prints the tagged definition of COUNT elements of TYPE (a TYPES key; COUNT
+'4x10' for rows) at ADDRESS from game.exe's bytes as the static initialisers leave them, by the same packing --check
+uses run in reverse: numbers as literals (floats the shortest that round-trips), char array fields and pointers to a
+string's start as string literals, pointers to a named range's start by its name, to code by our registration's
+function, zero as nullptr. What it cannot name prints as `/*?ADDRESS*/ nullptr` with a line for a person on stderr;
+it then packs the text back and says where it differs. The declaration is `constexpr` (a string table
+`const char* const`): drop it for a table the code writes. Paste it, run --update.
+
+--rewrite NAME [--apply] (C18o): in src/, the reads of a named range (in config/named_data.csv: run --update first)
+by address, `GamePointer<T>(0x...)` / `GameData<T>(0x...)` (a `DataId(0x...)` argument too) where T is the element
+type and the address an element's start, become the name (`NAME`, `(NAME + k)`, `NAME[k]`); the other mentions
+(DataId constants, other types, a field's address, tests/) are listed for a person. Without --apply it only lists.
+--check stays the proof of both steps.
+
+usage: python tools/named_data.py --check | --update | --owner BEGIN [END] | --split [KIND ...] | --refs BEGIN [END]
+                                  | --emit ADDRESS TYPE COUNT NAME | --rewrite NAME [--apply]  [--exe game.exe]
 """
 import argparse, collections, csv, os, re, struct, sys
 
@@ -88,6 +103,9 @@ TYPES = {
     'MaterialKindFile': 'iP',
     'OptionDefinition': 'iPiiii', 'ActionDefinition': 'iPii',   # ui.h: id, name, kind, maximum, group, row / id, name, group, row
     'ScriptParticleType': 'Pii', 'AmbientSoundClass': 'Pififi',   # script.h: name, type, lifetime / terrain_ambience.cpp
+    # A char array field is one code 'Ns' (a tuple of codes then): a string literal, zero padded (fewer than N chars).
+    'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
+    'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
     'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
     'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges
@@ -183,7 +201,7 @@ class Definition:
         if fmt is None:
             self.problem = f'{self.type} is no element type tools/named_data.py knows (TYPES)'
             return
-        if 'P' in fmt:
+        if any(c == 'P' or c.endswith('s') for c in fmt):   # pointers or char array fields
             self.pack_pointers(fmt, img, targets)
             return
         values = []
@@ -326,6 +344,13 @@ def _pack_pointers(self, fmt, img, targets):
     for i, (kind, v) in enumerate(values):
         code = fmt[i % len(fmt)]
         at = self.address + len(out)
+        if code.endswith('s'):   # a char array field: a string literal, zero padded
+            width = int(code[:-1])
+            if kind != 'text' or len(v) >= width:
+                self.problem = f'{v!r} at {at:08X} is no string literal shorter than {width} ({self.type}\'s field {i % len(fmt)})'
+                return
+            out += v.ljust(width, b'\0')
+            continue
         if code != 'P':
             if kind != 'number':
                 self.problem = f'{v!r} at {at:08X} is no number ({self.type}\'s field {i % len(fmt)})'
@@ -712,6 +737,301 @@ def check(img, update, img_path):
     return 1 if problems else 0
 
 
+# ---- --emit: a tagged initialiser from game.exe's bytes (C18o) ---------------------------------------------------
+
+def initialised_image(img, img_path):
+    """game.exe's image as the static initialisers leave it (what --check compares with), and the dwords a call's
+    result went to (unknown)."""
+    values, unknown = initialised(img_path)
+    img = bytearray(img)
+    for a, v in (values or {}).items():
+        if v is not None:
+            struct.pack_into('<I', img, a - BASE, v)
+    return img, unknown
+
+
+def codes_of(fmt):
+    """The field codes of a TYPES format: one per character, or the tuple's (a char array field is 'Ns')."""
+    return list(fmt)
+
+
+def code_size(code):
+    return 4 if code == 'P' else struct.calcsize('<' + code)
+
+
+def c_literal(data):
+    """A C++ string literal of `data` (bytes): printable ASCII as is, the usual escapes, other bytes as three-digit
+    octal escapes (which end where they should, unlike \\x)."""
+    out = []
+    for b in data:
+        ch = chr(b)
+        if ch in '"\\':
+            out.append('\\' + ch)
+        elif ch == '\n':
+            out.append('\\n')
+        elif ch == '\r':
+            out.append('\\r')
+        elif ch == '\t':
+            out.append('\\t')
+        elif 0x20 <= b < 0x7F:
+            out.append(ch)
+        else:
+            out.append(f'\\{b:03o}')
+    return '"' + ''.join(out) + '"'
+
+
+def short_float(value, code):
+    """The shortest decimal that packs back to the same float ('f') or double ('d') bits."""
+    bits = struct.pack('<' + code, value)
+    if value != value or value in (float('inf'), float('-inf')):
+        return None
+    for digits in range(1, 18):
+        text = f'{value:.{digits}g}'
+        if struct.pack('<' + code, float(text)) == bits:
+            break
+    if 'e' not in text and '.' not in text:
+        text += '.0'
+    return text + ('f' if code == 'f' else '')
+
+
+class Namer:
+    """What a pointer of game.exe's data names in an initialiser: a named range (its start), a function of ours with a
+    registration (EI_REPLACE*), a string literal (the zero-terminated text at a string's start), nullptr."""
+    def __init__(self, img, sources):
+        defs = definitions(sources)
+        targets = Targets(defs, sources)
+        self.img = img
+        self.ranges = {}
+        for name, address in targets.ranges.items():
+            self.ranges.setdefault(address, name)
+        self.functions = collections.defaultdict(list)
+        for name, addresses in targets.functions.items():
+            for a in addresses:
+                self.functions[a].append(name)
+
+    def string_at(self, cell):
+        """The text at `cell` when it looks like a string's start: the byte before is a terminator (or another
+        string's pad) and the text is printable (Windows-1251 letters and the usual control characters allowed)."""
+        text = c_string(self.img, cell)
+        if text is None:
+            return None
+        before = self.img[cell - BASE - 1]
+        if before != 0 and cell % 4:
+            return None
+        if any(b < 0x20 and b not in (9, 10, 13) or b == 0x7F for b in text):
+            return None
+        return text
+
+    def name(self, cell):
+        """(the initialiser's token, None) or (a placeholder, the reason a person has to look)."""
+        if cell == 0:
+            return 'nullptr', None
+        if cell in self.ranges:
+            return self.ranges[cell], None
+        if TEXT[0] <= cell < TEXT[1]:
+            names = self.functions.get(cell)
+            if names:
+                return names[0], None if len(names) == 1 else f'{cell:08X} has the registrations {", ".join(names)}'
+            return f'/*?{cell:08X}*/ nullptr', f'{cell:08X} is code with no registration (EI_REPLACE*)'
+        text = self.string_at(cell)
+        if text is not None:
+            return c_literal(text), None
+        return f'/*?{cell:08X}*/ nullptr', f'{cell:08X} is game.exe\'s data that is no string start and no named range'
+
+
+def emit_values(img, namer, address, fmt, count):
+    """The element texts (each a list of field texts) and the problems for a person."""
+    codes = codes_of(fmt)
+    at = address
+    elements, problems = [], []
+    for _ in range(count):
+        fields = []
+        for code in codes:
+            o = at - BASE
+            if code == 'P':
+                cell = struct.unpack_from('<I', img, o)[0]
+                token, problem = namer.name(cell)
+                if problem:
+                    problems.append(f'{at:08X}: {problem}')
+                fields.append(token)
+            elif code.endswith('s'):
+                width = int(code[:-1])
+                raw = bytes(img[o:o + width])
+                text = raw.split(b'\0', 1)[0]
+                if raw[len(text):].strip(b'\0') or len(text) == width:
+                    problems.append(f'{at:08X}: char[{width}] holds bytes past its text: no string literal')
+                fields.append(c_literal(text))
+            elif code in 'fd':
+                value = struct.unpack_from('<' + code, img, o)[0]
+                text = short_float(value, code)
+                if text is None:
+                    problems.append(f'{at:08X}: {value} has no literal; write its bits (std::bit_cast)')
+                    text = '0'
+                fields.append(text)
+            else:
+                value = struct.unpack_from('<' + code, img, o)[0]
+                fields.append(str(value) if code.islower() or value < 0x10000 else f'0x{value:X}')
+            at += code_size(code)
+        elements.append(fields)
+    return elements, problems, at - address
+
+
+def layout(elements, single, indent='    ', width=120):
+    """The initialiser's lines: a scalar table flows, a struct table has one braced element per line."""
+    items = [f[0] if single else '{' + ', '.join(f) + '}' for f in elements]
+    lines, line = [], indent
+    for item in items:
+        piece = item + ','
+        if not single:
+            lines.append(indent + piece)
+            continue
+        if line.strip() and len(line) + 1 + len(piece) > width:
+            lines.append(line)
+            line = indent
+        line += (' ' if line.strip() else '') + piece
+    if line.strip():
+        lines.append(line)
+    lines[-1] = lines[-1].rstrip(',')
+    return lines
+
+
+def emit(img, img_path, address, type_, shape, name):
+    """--emit: prints a tagged definition of `shape` (a count, or rows: '4x10') elements of `type_` at `address` from
+    game.exe's bytes (as the static initialisers leave them), then packs it back as --check would."""
+    fmt = element_format(type_)
+    if fmt is None:
+        sys.exit(f'named_data: {type_} is no element type tools/named_data.py knows (TYPES)')
+    bounds = [int(n, 0) for n in shape.lower().split('x')]
+    count = 1
+    for n in bounds:
+        count *= n
+    img, unknown = initialised_image(img, img_path)
+    sources = srcscan.load_sources()
+    namer = Namer(img, sources)
+    elements, problems, size = emit_values(img, namer, address, fmt, count)
+    late = sorted(a for a in unknown if address <= a < address + size)
+    if late:
+        problems.append(f'{late[0]:08X}: a static initialiser stores a call\'s result here: port it by hand')
+    single = len(codes_of(fmt)) == 1
+    pointer = type_.endswith('*')
+    if type_ == 'char*':
+        decl = f'const char* const {name}'
+    else:
+        decl = f'constexpr {type_} {name}'
+    if count == 1 and single:
+        value = elements[0][0]
+        body = value if pointer and value.startswith('"') else '{' + value + '}'
+        lines = [f'{"constexpr const char*" if type_ == "char*" else "constexpr " + type_} {name} = /*{address:08X}*/ '
+                 f'{body};']
+        dims = ''
+    else:
+        dims = ''.join(f'[{n}]' for n in bounds)
+        row = bounds[-1] if len(bounds) > 1 else count
+        inner = []
+        for r in range(0, count, row):   # rows of the last bound, each braced (one bound: the list itself)
+            part = layout(elements[r:r + row], single, '        ' if len(bounds) > 1 else '    ')
+            if len(bounds) > 1 and len(part) == 1 and len(part[0]) < 112:
+                part = ['    {' + part[0].strip() + '},']
+            elif len(bounds) > 1:
+                part = ['    {'] + part + ['    },']
+            inner += part
+        if len(bounds) > 1:
+            inner[-1] = inner[-1].rstrip(',')
+        lines = [f'{decl}{dims} = /*{address:08X}*/ {{'] + inner + ['};']
+        body = '{' + '\n'.join(lines[1:-1]) + '}'
+    print('\n'.join(lines))
+    # The proof: pack the text back as --check does.
+    d = Definition('<emit>', 1, type_, name, dims, address, body)
+    d.pack(img, Targets(definitions(sources), sources))
+    want = bytes(img[address - BASE:address - BASE + size])
+    if d.problem:
+        problems.append(f'packing it back: {d.problem}')
+    elif d.packed != want:
+        at = next((i for i in range(min(len(want), len(d.packed))) if d.packed[i] != want[i]), min(len(want), len(d.packed)))
+        problems.append(f'packing it back differs at {address + at:08X}')
+    lo, hi = address, address + size
+    print(f'// named_data --emit: {count} x {type_} = {size} byte(s), {lo:08X}..{hi:08X}', file=sys.stderr)
+    for p in problems:
+        print(f'// named_data --emit: for a person: {p}', file=sys.stderr)
+    return 1 if problems else 0
+
+
+# ---- --rewrite: the reads of a just-named range by the name (C18o) ------------------------------------------------
+
+READS = re.compile(r'(?:\bei::)?\b(GamePointer|GameData)\s*<\s*([^<>()]*?)\s*>\s*\(\s*(?:(?:ei::)?DataId\s*\(\s*)?'
+                   r'0[xX]00([0-9A-Fa-f]{6})\s*\)?\s*\)')
+IDS = re.compile(r'(?:\bei::)?\b(DataId|GameAddress|OriginalGameData)\s*(?:<[^<>()]*>)?\s*\(\s*0[xX]00([0-9A-Fa-f]{6})\s*\)')
+ADDRESS = re.compile(r'0[xX]00([0-9A-Fa-f]{6})\b')
+
+
+def plain_type(text):
+    return re.sub(r'\s+', '', re.sub(r'\b(?:const|volatile|ei::)\s*', '', text))
+
+
+def rewrite(name, apply_):
+    """--rewrite NAME: in src/, `GamePointer<T>(0x...)` and `GameData<T>(0x...)` of an address in NAME's range, where T
+    is its element type, become the name (`NAME`, `(NAME + k)`, `NAME[k]`); every other mention of the range (DataId
+    constants, field offsets, other types, tests/) is listed for a person. Without --apply it only lists."""
+    sources = srcscan.load_sources()
+    found = [d for d in definitions(sources) if d.name == name]
+    if len(found) != 1:
+        sys.exit(f'named_data: {len(found)} tagged definition(s) named {name}')
+    d = found[0]
+    fmt = element_format(d.type)
+    if fmt is None:
+        sys.exit(f'named_data: {d.type} is no element type tools/named_data.py knows (TYPES)')
+    esize = sum(code_size(c) for c in codes_of(fmt)) if d.type != 'char' else 1
+    rows = [r for r in read_csv() if r[2] == name]
+    if not rows:
+        sys.exit(f'named_data: {name} is not in config/named_data.csv yet: run --update first')
+    lo, size = rows[0][0], rows[0][1]
+    hi = lo + size
+    element = plain_type(d.type)
+    changed, left = 0, []
+    for rel, full in other_files():
+        if rel.endswith(('image_cells.inc', 'image_code_cells.inc')):
+            continue
+        with open(full, encoding='utf-8', errors='replace', newline='') as f:   # line ends kept
+            raw = f.read()
+        code = srcscan.blank_comments(raw)
+        if not any(lo <= int(m.group(1), 16) < hi for m in ADDRESS.finditer(code)):
+            continue
+        edits = []
+        for m in READS.finditer(code):
+            a = int(m.group(3), 16)
+            if not lo <= a < hi:
+                continue
+            k, r = divmod(a - lo, esize)
+            if rel.startswith('tests/') or r or plain_type(m.group(2)) != element:
+                continue
+            if m.group(1) == 'GamePointer':
+                text = name if k == 0 else f'({name} + {k})'
+            else:
+                text = f'{name}[{k}]'
+            edits.append((m.start(), m.end(), text))
+        taken = [(s, e) for s, e, _ in edits]
+        for m in ADDRESS.finditer(code):
+            a = int(m.group(1), 16)
+            if lo <= a < hi and not any(s <= m.start() < e for s, e in taken):
+                line = raw.count('\n', 0, m.start()) + 1
+                text = raw.splitlines()[line - 1].strip()
+                left.append(f'{rel}:{line}: {text[:140]}')
+        for s, e, text in edits:
+            line = raw.count('\n', 0, s) + 1
+            print(f'{rel}:{line}: {raw[s:e]} -> {text}' + ('' if rel == d.path else f'  (defined in {d.path})'))
+        if edits and apply_:
+            for s, e, text in sorted(edits, reverse=True):
+                raw = raw[:s] + text + raw[e:]
+            with open(full, 'w', encoding='utf-8', newline='') as f:
+                f.write(raw)
+        changed += len(edits)
+    for item in left:
+        print(f'for a person: {item}')
+    print(f'named_data: {changed} read(s) of {name} {"rewritten" if apply_ else "to rewrite (--apply)"}, '
+          f'{len(left)} mention(s) left for a person')
+    return 0
+
+
 # ---- the split of what is left (C18's measure) -------------------------------------------------------------------
 
 GENERATED = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
@@ -804,8 +1124,14 @@ def main():
     ap.add_argument('--owner', nargs='+', metavar='ADDRESS', help='BEGIN [END]: the global objects holding it')
     ap.add_argument('--split', nargs='*', metavar='KIND')
     ap.add_argument('--refs', nargs='+', metavar='ADDRESS', help='BEGIN [END]: the code reaching game.exe\'s data there')
+    ap.add_argument('--emit', nargs=4, metavar=('ADDRESS', 'TYPE', 'COUNT', 'NAME'),
+                    help='print a tagged definition from game.exe\'s bytes')
+    ap.add_argument('--rewrite', metavar='NAME', help='list the reads of a named range to rewrite to its name')
+    ap.add_argument('--apply', action='store_true', help='with --rewrite: write the rewrites')
     ap.add_argument('--exe')
     a = ap.parse_args()
+    if a.rewrite:
+        return rewrite(a.rewrite, a.apply)
     try:
         path = exe_path.find_exe(a.exe)
         img = image(path)
@@ -817,6 +1143,9 @@ def main():
         return split(img, set(a.split))
     if a.refs:
         return refs(img, int(a.refs[0], 16), int(a.refs[-1], 16))
+    if a.emit:
+        address, type_, shape, name = a.emit
+        return emit(img, path, int(address, 16), type_, shape, name)
     return check(img, a.update, path)
 
 

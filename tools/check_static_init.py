@@ -7,7 +7,7 @@
     one it calls got ported): run tools/gen_static_init.py.
   - Each address is where it belongs: stores, fills, float results and guards in .data (or its
     zero-filled tail), float and double operands in .rdata (or .data, an earlier fold's result), call targets and exit functions in .text,
-    import slots in the import address table.
+    import calls name a member of lib/import_table.h's ImportTable (an import of game.exe).
   - A float fold of .rdata literals (tagged, tools/rdata_literals.py; S18e1) gives the same float
     whether it is computed as the original does (x87 order, 53 bits) or as the compiler may fold it
     (C++ precedence, in double or in float).
@@ -24,6 +24,7 @@ exit code 1 on any problem
 import argparse, os, re, struct, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gen_iat  # noqa: E402
 import gen_static_init as gen  # noqa: E402
 import rdata_literals as rdata  # noqa: E402
 
@@ -35,7 +36,7 @@ WHERE = [   # (pattern, which group holds an address, sections it may be in)
     (re.compile(r'd\.(?:Cdecl|Stdcall|Thiscall|AtExit)\((0x[0-9A-F]{8})'), ('.text',)),
     (re.compile(r'd\.Thiscall\(0x[0-9A-F]{8}, (0x[0-9A-F]{8})'), ('.data',)),
 ]
-IMPORT = re.compile(r'd\.Import\((0x[0-9A-F]{8})')
+IMPORT = re.compile(r'd\.Import\(&ei::ImportTable::(\w+)')
 FOLD = re.compile(r'd\.StoreFloat\((0x[0-9A-F]{8}), (.*)\);')
 FOLD_TOKEN = re.compile(rdata.TAG.pattern + r'|d\.(?:Float|Double|Log)\(|([-+*/])')
 
@@ -139,7 +140,7 @@ def main():
         if sizes.get(fn) != size or extra.get(fn) != size:
             problems.append(f'exit function {fn:08X}: {size} bytes, function_sizes.inc has {sizes.get(fn)}, '
                             f'extra_function_sizes.csv {extra.get(fn)} (run tools/gen_static_init.py)')
-    iat = img.iat()
+    members = {gen_iat.member(dll, fn, o) for _, dll, fn, o in gen_iat.imports(gen.exe_path.resolve(args.exe))}
     cases = [(int(m.group(1), 16), m.group(2)) for m in
              re.finditer(r'^    case (0x[0-9A-F]{8}):[^\n]*\n((?:        (?!return)[^\n]*\n)*)', exit_text, re.M)]
     for a, body in cases:
@@ -154,9 +155,8 @@ def main():
                 if img.section(v) not in sections:
                     problems.append(f'{a:08X}: {m.group(0)}...: {v:08X} is in {img.section(v)}, not {"/".join(sections)}')
         for m in IMPORT.finditer(body):
-            v = int(m.group(1), 16)
-            if not iat[0] <= v < iat[1]:
-                problems.append(f'{a:08X}: import slot {v:08X} is outside the import address table')
+            if m.group(1) not in members:
+                problems.append(f'{a:08X}: {m.group(1)} is no import of game.exe')
     for p in problems:
         print('check_static_init:', p)
     calls = sum(len(re.findall(r'd\.(?:Cdecl|Stdcall|Thiscall|Import)\(', body)) for _, _, body in ours)

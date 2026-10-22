@@ -53,20 +53,16 @@ using BinkCloseFn = void(__stdcall*)(BinkHeader*);
 using BinkVolumeFn = void(__stdcall*)(BinkHeader*, int);
 using BinkSoundSystemFn = void(__stdcall*)(void*, void*);   // (open function, Miles driver)
 using BinkGotoFn = void(__stdcall*)(BinkHeader*, unsigned, int);
-template <typename F>
-F BinkSlot(std::uintptr_t slot) {
-    return ei::GameData<F>(slot);
-}
-BinkFn BinkWait() { return BinkSlot<BinkFn>(0x0073B728); }
-BinkFn BinkDoFrame() { return BinkSlot<BinkFn>(0x0073B718); }
-BinkFn BinkNextFrame() { return BinkSlot<BinkFn>(0x0073B724); }
-BinkCopyFn BinkCopyToBuffer() { return BinkSlot<BinkCopyFn>(0x0073B740); }
-BinkOpenFn BinkOpen() { return BinkSlot<BinkOpenFn>(0x0073B720); }
-BinkCloseFn BinkClose() { return BinkSlot<BinkCloseFn>(0x0073B73C); }
-BinkVolumeFn BinkSetVolume() { return BinkSlot<BinkVolumeFn>(0x0073B730); }
-BinkSoundSystemFn BinkSetSoundSystem() { return BinkSlot<BinkSoundSystemFn>(0x0073B734); }
-void* BinkOpenMiles() { return BinkSlot<void*>(0x0073B738); }
-BinkGotoFn BinkGoto() { return BinkSlot<BinkGotoFn>(0x0073B714); }
+BinkFn BinkWait() { return ei::ImportAs<BinkFn>(ei::Imports().BinkWait); }
+BinkFn BinkDoFrame() { return ei::ImportAs<BinkFn>(ei::Imports().BinkDoFrame); }
+BinkFn BinkNextFrame() { return ei::ImportAs<BinkFn>(ei::Imports().BinkNextFrame); }
+BinkCopyFn BinkCopyToBuffer() { return ei::ImportAs<BinkCopyFn>(ei::Imports().BinkCopyToBuffer); }
+BinkOpenFn BinkOpen() { return ei::ImportAs<BinkOpenFn>(ei::Imports().BinkOpen); }
+BinkCloseFn BinkClose() { return ei::ImportAs<BinkCloseFn>(ei::Imports().BinkClose); }
+BinkVolumeFn BinkSetVolume() { return ei::ImportAs<BinkVolumeFn>(ei::Imports().BinkSetVolume); }
+BinkSoundSystemFn BinkSetSoundSystem() { return ei::ImportAs<BinkSoundSystemFn>(ei::Imports().BinkSetSoundSystem); }
+void* BinkOpenMiles() { return ei::ImportAs<void*>(ei::Imports().BinkOpenMiles); }
+BinkGotoFn BinkGoto() { return ei::ImportAs<BinkGotoFn>(ei::Imports().BinkGoto); }
 // BinkOpen, as the import slot reaches it: with Rebirth's MoviesPatch (addon's slot) the mod's
 // Movies\ copy when there is one. In a hooked Rebirth launch the slot is addon's already.
 BinkHeader* OpenBink(const char* name, unsigned flags) {

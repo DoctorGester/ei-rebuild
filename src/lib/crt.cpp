@@ -1074,43 +1074,44 @@ EI_REWRITTEN(0x006E8DA7, libcrt::Exit);
 namespace libcrt::imports {
 
 namespace {
+// The import as the thunk's function type.
 template <typename F>
-F Slot(F, std::uintptr_t address) { return ei::GameData<F>(address); }
+F Slot(F, FARPROC import) { return ei::ImportAs<F>(import); }
 } // namespace
 
-std::uint16_t __stdcall Htons(std::uint16_t v) { return Slot(&Htons, 0x0073B704)(v); }                 // 006E60E2, ord 9
-void* __stdcall GetHostByName(const char* name) { return Slot(&GetHostByName, 0x0073B700)(name); }       // 006E60E8, ord 52
-std::uint32_t __stdcall InetAddr(const char* text) { return Slot(&InetAddr, 0x0073B6FC)(text); }       // 006E60EE, ord 10
-std::uint16_t __stdcall Ntohs(std::uint16_t v) { return Slot(&Ntohs, 0x0073B6F8)(v); }                   // 006E60F4, ord 15
+std::uint16_t __stdcall Htons(std::uint16_t v) { return Slot(&Htons, ei::Imports().htons)(v); }                 // 006E60E2, ord 9
+void* __stdcall GetHostByName(const char* name) { return Slot(&GetHostByName, ei::Imports().gethostbyname)(name); }       // 006E60E8, ord 52
+std::uint32_t __stdcall InetAddr(const char* text) { return Slot(&InetAddr, ei::Imports().inet_addr)(text); }       // 006E60EE, ord 10
+std::uint16_t __stdcall Ntohs(std::uint16_t v) { return Slot(&Ntohs, ei::Imports().ntohs)(v); }                   // 006E60F4, ord 15
 void* __stdcall GetHostByAddr(const void* address, int length, int type) {                             // 006E60FA, ord 51
-    return Slot(&GetHostByAddr, 0x0073B6F4)(address, length, type);
+    return Slot(&GetHostByAddr, ei::Imports().gethostbyaddr)(address, length, type);
 }
-int __stdcall GetHostName(char* name, int length) { return Slot(&GetHostName, 0x0073B6F0)(name, length); } // 006E6100, ord 57
-int __stdcall WsaStartup(std::uint16_t version, void* data) { return Slot(&WsaStartup, 0x0073B6EC)(version, data); } // 006E6106, ord 115
-int __stdcall WsaCleanup() { return Slot(&WsaCleanup, 0x0073B6E8)(); }                                  // 006E610C, ord 116
-int __stdcall CloseSocket(std::uint32_t s) { return Slot(&CloseSocket, 0x0073B6E4)(s); }                 // 006E6112, ord 3
+int __stdcall GetHostName(char* name, int length) { return Slot(&GetHostName, ei::Imports().gethostname)(name, length); } // 006E6100, ord 57
+int __stdcall WsaStartup(std::uint16_t version, void* data) { return Slot(&WsaStartup, ei::Imports().WSAStartup)(version, data); } // 006E6106, ord 115
+int __stdcall WsaCleanup() { return Slot(&WsaCleanup, ei::Imports().WSACleanup)(); }                                  // 006E610C, ord 116
+int __stdcall CloseSocket(std::uint32_t s) { return Slot(&CloseSocket, ei::Imports().closesocket)(s); }                 // 006E6112, ord 3
 int __stdcall SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length) {     // 006E6118, ord 21
-    return Slot(&SetSockOpt, 0x0073B6E0)(s, level, option, value, length);
+    return Slot(&SetSockOpt, ei::Imports().setsockopt)(s, level, option, value, length);
 }
 int __stdcall IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument) {                    // 006E611E, ord 12
-    return Slot(&IoctlSocket, 0x0073B708)(s, command, argument);
+    return Slot(&IoctlSocket, ei::Imports().ioctlsocket)(s, command, argument);
 }
-int __stdcall Bind(std::uint32_t s, const void* address, int length) { return Slot(&Bind, 0x0073B6DC)(s, address, length); } // 006E6124, ord 2
-std::uint32_t __stdcall Socket(int family, int type, int protocol) { return Slot(&Socket, 0x0073B6D4)(family, type, protocol); } // 006E612A, ord 23
+int __stdcall Bind(std::uint32_t s, const void* address, int length) { return Slot(&Bind, ei::Imports().bind)(s, address, length); } // 006E6124, ord 2
+std::uint32_t __stdcall Socket(int family, int type, int protocol) { return Slot(&Socket, ei::Imports().socket)(family, type, protocol); } // 006E612A, ord 23
 int __stdcall SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength) { // 006E6130, ord 20
-    return Slot(&SendTo, 0x0073B70C)(s, data, length, flags, to, toLength);
+    return Slot(&SendTo, ei::Imports().sendto)(s, data, length, flags, to, toLength);
 }
 int __stdcall RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength) { // 006E6136, ord 17
-    return Slot(&RecvFrom, 0x0073B6CC)(s, data, length, flags, from, fromLength);
+    return Slot(&RecvFrom, ei::Imports().recvfrom)(s, data, length, flags, from, fromLength);
 }
-int __stdcall Connect(std::uint32_t s, const void* address, int length) { return Slot(&Connect, 0x0073B6C8)(s, address, length); } // 006E613C, ord 4
-int __stdcall Recv(std::uint32_t s, void* data, int length, int flags) { return Slot(&Recv, 0x0073B6D8)(s, data, length, flags); } // 006E6142, ord 16
-int __stdcall Send(std::uint32_t s, const void* data, int length, int flags) { return Slot(&Send, 0x0073B6D0)(s, data, length, flags); } // 006E6148, ord 19
+int __stdcall Connect(std::uint32_t s, const void* address, int length) { return Slot(&Connect, ei::Imports().connect)(s, address, length); } // 006E613C, ord 4
+int __stdcall Recv(std::uint32_t s, void* data, int length, int flags) { return Slot(&Recv, ei::Imports().recv)(s, data, length, flags); } // 006E6142, ord 16
+int __stdcall Send(std::uint32_t s, const void* data, int length, int flags) { return Slot(&Send, ei::Imports().send)(s, data, length, flags); } // 006E6148, ord 19
 int __stdcall Select(int count, void* read, void* write, void* except, const void* timeout) {         // 006E614E, ord 18
-    return Slot(&Select, 0x0073B6C4)(count, read, write, except, timeout);
+    return Slot(&Select, ei::Imports().select)(count, read, write, except, timeout);
 }
 long __stdcall DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer) { // 006E61F0
-    return Slot(&DirectInputCreateEx, 0x0073B044)(instance, version, iid, out, outer);
+    return Slot(&DirectInputCreateEx, ei::Imports().DirectInputCreateEx)(instance, version, iid, out, outer);
 }
 
 EI_REWRITTEN(0x006E60E2, Htons);

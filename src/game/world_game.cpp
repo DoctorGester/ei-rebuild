@@ -1277,17 +1277,13 @@ int __stdcall LoadMission(CStream* file) {
 
 namespace {
 
-// MFC CFileFind (0x1C bytes) members, and the Win32 calls through game.exe's import slots (harness
-// runs redirect those to harness_saves).
-using CreateDirectoryFn = BOOL(__stdcall*)(const char*, void*);
-using DeleteFileFn = BOOL(__stdcall*)(const char*);
-CreateDirectoryFn ImportCreateDirectory() { return ei::GameData<CreateDirectoryFn const>(0x0073B1B8); }
-DeleteFileFn ImportDeleteFile() { return ei::GameData<DeleteFileFn const>(0x0073B20C); }
+// MFC CFileFind (0x1C bytes) members. CreateDirectoryA and DeleteFileA go through the import slots (gameapi.h):
+// harness runs redirect them to harness_saves.
 
 } // namespace
 
 void __fastcall ClearSaveFolder(const char* path) {
-    ImportCreateDirectory()(path, nullptr);
+    gameapi::CreateDirectoryA(path, nullptr);
     mfc::CFileFind finder;
     int found;
     {
@@ -1298,7 +1294,7 @@ void __fastcall ClearSaveFolder(const char* path) {
     while (found) {
         found = finder.FindNext();
         mfc::CString file(finder.GetFilePath());
-        ImportDeleteFile()(file);
+        gameapi::DeleteFileA(file);
     }
     finder.Close();
 }
@@ -2049,17 +2045,21 @@ void SavedParties::Reload() {
 namespace {
 
 constexpr const char* kQuestFilePattern = "*.mq";
-// The map names of the three allods, each list ended by an empty name.
-constexpr std::uintptr_t kGipatMaps = ei::DataId(0x00790270);       // zone2 .. zone9
-constexpr std::uintptr_t kIngosMaps = ei::DataId(0x00790298);       // zone12, zone13
-constexpr std::uintptr_t kSuslangerMaps = ei::DataId(0x007902C0);   // zone17, zone18
-const char* const* NameList(std::uintptr_t address) { return ei::GamePointer<const char* const>(address); }
+// The map names of the allods (Gipat, Ingos, Suslanger, and a fourth list nothing reads), each list ended by an
+// empty name.
+constexpr const char* kAllodMaps[4][10] = /*00790270*/ {
+    {"zone2", "zone3", "zone3obr", "zone4", "zone5", "zone6", "zone7", "zone8", "zone9", ""},
+    {"zone12", "zone13", "", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
+    {"zone17", "zone18", "", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr},
+    {"zone19", "", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}
+};
+constexpr int kGipat = 0, kIngos = 1, kSuslanger = 2;
 
 // The allod of a map name: the first list that has it.
 int AllodOfMap(const char* map) {
-    if (NameInList(NameList(kGipatMaps), map)) return 0;
-    if (NameInList(NameList(kIngosMaps), map)) return 1;
-    return NameInList(NameList(kSuslangerMaps), map) ? 2 : 3;
+    if (NameInList(kAllodMaps[kGipat], map)) return kGipat;
+    if (NameInList(kAllodMaps[kIngos], map)) return kIngos;
+    return NameInList(kAllodMaps[kSuslanger], map) ? kSuslanger : 3;
 }
 
 // push_back of an entry with two empty names (its id is not set, as in the original).

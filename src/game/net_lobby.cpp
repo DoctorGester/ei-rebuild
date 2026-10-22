@@ -21,6 +21,7 @@
 #include "record_vectors.h"
 #include "../hook/log.h"
 #include "game_data.h"
+#include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -511,8 +512,7 @@ void ClientBase::Join(const NetAddress* address, const GameBuffer* data) {
     if (joinState_ == kAsking && SameAddress(address, &host_)) return;
     host_ = *address;
     std::uint32_t id = static_cast<std::uint32_t>(gamecrt::rand()) << 16;
-    using TickCount = std::uint32_t(__stdcall*)();
-    id |= (ei::GameData<TickCount const>(0x0073B344))() & 0xFFFF;
+    id |= gameapi::GetTickCount() & 0xFFFF;
     joinId_ = id;
     joinState_ = kAsking;
     SetBits(retryTimer_, 0);

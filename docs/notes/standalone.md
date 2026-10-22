@@ -72,11 +72,12 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
   `StrayGameAddress`'s report (`the data seam was asked for game.exe's code at ...`); a game address is itself only in
   game.exe, an address outside game.exe's range (a resolved pointer, null) is itself in both. `ei::Standalone()` is
   "the main module exports `EiStandaloneHost`" (the host's marker; game.exe exports nothing).
-  **Resources** (S18j): game.exe's are the host's own: `tools/gen_resources.py` writes every leaf of game.exe's .rsrc
-  tree (two cursors and MFC's cursor group, five bitmaps, the icon group 105 and its three icons, two dialogs, twelve
-  string blocks) as a .res at build time (build/<cfg>/image/game_resources.res, from `EI_GAME_EXE`, not committed)
-  that the linker builds in. WinMain's hInstance and GetModuleHandleA(NULL) are the host, so the resource calls,
-  DirectInput and MFC's null resource handle need no wrapper; GetModuleFileNameA(NULL) names ei_standalone.exe (the
+  **Resources** (S18j, C23): the host has none of game.exe's. Its one resource is a VERSIONINFO of its own
+  (`src/standalone/host.rc`, committed, linked by CMake's RC language); the game's strings are literals in our code
+  (the window title "Evil Islands" and class "EIGAME" in app_main.cpp; MFC's strings in `mfc_resource.cpp`'s table,
+  only the ids our code can reach); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
+  no icon (C24). WinMain's hInstance and GetModuleHandleA(NULL) are the host, so DirectInput needs no wrapper;
+  GetModuleFileNameA(NULL) names ei_standalone.exe (the
   message box title; app_dxversion's exe folder, which only tells dgVoodoo beside it from the system's DirectDraw;
   GetCommandLineA's first token too).
   Then it loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
@@ -87,8 +88,7 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
   folder; without `--run` it builds the image, checks the code table and the cells and exits.
 - **What comes from game.exe at build time** (S18k: nothing at run time): the sections' bytes
   (`tools/gen_image_cells.py --bytes`, build/<cfg>/image/, which also checks the 1.06 timestamp; C25 measured which
-  of them the image reads: "The build without game.exe" below), the resources (gen_resources.py, until C23); the
-  section places are constants (game_data.h, image_code.cpp, hook.cpp's `kCodeBegin`-`kCodeEnd`, the registrations'
+  of them the image reads: "The build without game.exe" below); the section places are constants (game_data.h, image_code.cpp, hook.cpp's `kCodeBegin`-`kCodeEnd`, the registrations'
   bounds). InstallHooks reads game.exe's file only in game.exe itself (the recorders' stolen bytes). The 8
   dispatch-only functions (`MOV EAX,[ECX]; JMP [EAX+n]`) need no bytes since C25: the four with a port are
   EI_REWRITTEN (their callers call the virtual), `EI_REPLACE_DISPATCH` and its byte check are gone.
@@ -163,9 +163,9 @@ each step green on the goldens and removing a measured tie:
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
   .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under F:\games: vanilla's
   and Rebirth's differ in one .text byte only, S18e3).
-  **The cells**: 1523 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
+  **The cells**: 1243 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
   runs with `--check`): the aligned dwords of .rdata (past the import table) and .data whose value lies in the
-  range, less text and the cells inside named ranges (C18, below); 864 point into .data, 659 into .rdata. Text that reads as an address is of two kinds:
+  range, less text and the cells inside named ranges (C18, below); 610 point into .data, 633 into .rdata. Text that reads as an address is of two kinds:
   string tails (the dword's bytes printable up to a zero and the four bytes before printable too) and short words
   ("Any", "May", "sky", "say", "day": `xxy\0` reads 0079xxxx) whose target would be mid-text (the byte before it
   printable ASCII; a string pointer points at a start). Into .rdata the filters are not enough (`?t\0` reads
@@ -177,13 +177,11 @@ each step green on the goldens and removing a measured tie:
   types 41; RTTI, a vtable's slot -1 -> complete object locator 53, locator -> class hierarchy 53, hierarchy ->
   base class array 53, array -> base class descriptors 128) or in a REVIEWED_RDATA group: CCmdTarget's maps and CWnd's / CWinApp's message
   maps (11), the type descriptors' vtable (type_info's, 74, in .data), and the CRT's string tables in .data (the
-  locale category names, __lc_time_c, the math functions' names, "(null)", setlocale's language / country tables
+  locale category names, __lc_time_c, "(null)", setlocale's language / country tables
   (142), the run-time error messages). Cells into .data are in REVIEWED_DATA groups (cell range, count, what it
-  is; a new cell or a changed count fails): in .rdata the per-file `const char* const` copies of ".SEC" (73) and a few other
-  string constants, MFC's CCmdTarget maps (3), the message map entry 00746C80, RTTI locators and base class
+  is; a new cell or a changed count fails): in .rdata MFC's CCmdTarget maps (3), the message map entry 00746C80, RTTI locators and base class
   descriptors (117) and EH catchable types (12) to their type descriptors (in .data); in .data the
-  string-pointer tables (the key bindings' command table, the action definitions, the script's particle types
-  and keyword table (442), skills, log channels, ambient sounds, ...) and the CRT / MFC cells (the lock table,
+  string-pointer tables (the script's keyword table (442) and comment tokens) and the CRT / MFC cells (the lock table,
   `_iob`, `_pctype`, the small-block heap's self-linked region list, `_tzname`, `__lconv_c`, CString's empty
   string and `_afxDataNil`). Every cell lies inside the range and is fixed up in its new place. game.exe's own
   code points at .rdata too (FuncInfo addresses in its EH prologues, string immediates), but none of it runs in
@@ -232,22 +230,40 @@ each step green on the goldens and removing a measured tie:
   `kImportsBegin`-`kImportsEnd`, 0073B000-0073B820, .rdata's first 0x820 bytes) moves with .data at the same shift:
   the storage starts at 0073B000 (low 16 bits 0xB000; the .rdata between the table and .data has its place there,
   unused until S18h), so `GameAddress` maps two ranges with one `g_dataShift`. `tools/gen_iat.py` writes the table
-  (src/standalone/image_imports.inc, committed, 504 slots: slot, DLL, function or ordinal; build.cmd runs it with
-  `--check`) and gameapi.h. Right after the move (same init_seg(compiler) object, before the harness's static
+  as a struct (src/lib/import_table.h: `ei::ImportTable`, one member per slot named after its import, `_AIL_startup@0`
+  -> `AIL_startup`, ordinals by the export they name, `WSOCK32_end`-style members for the DLLs' zero terminators;
+  `ei::Imports()` is it through the seam), the image's list (src/standalone/image_imports.inc, 504 imports:
+  ImportTable member, DLL, function or ordinal) and gameapi.h, all committed; build.cmd runs it with `--check`.
+  Right after the move (same init_seg(compiler) object, before the harness's static
   constructor takes its slots) `ResolveImageImports` loads each DLL (the working directory, else System32;
   dinput always the system's; game.exe's folder came first until S18k) and fills our slots;
   GetCommandLineA gets its wrapper there (`ImageRoute`, hook/standalone.cpp; the resource, module and DirectInput
-  wrappers went with S18j). Everything that calls through a slot by its address reaches our table through the seam:
-  gameapi.h, the static initialisers' `Import`, Bink's slots, the harness's `PatchSlot` / `WatchWrites` (in game.exe
-  all of them are the slot itself). `iat` is sealed in config/data_seam.csv (76 raw uses -> 0; data_seam.py's
-  helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
+  wrappers went with S18j). Our code names no slot by address (C18): it calls through `ei::Imports().X` (gameapi.h's
+  routed imports, Miles, Bink, Winsock, DirectInput, the static initialisers' `Import(&ei::ImportTable::Sleep, ...)`)
+  or the Windows function itself (below); the harness's `PatchSlot` / `WatchWrites` still take slots by address
+  through the seam (tests/, in game.exe the slot itself). `iat` is sealed in config/data_seam.csv (76 raw uses -> 0;
+  data_seam.py's helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
+  **Which calls read the slot** (C18, gen_iat.py's `routed()`): in the image a slot holds the export unless the image
+  routes it (ImageRoute: GetCommandLineA; with EI_UTF8 the `EI_UTF8_ROUTE` list of game/system_text.cpp), the
+  harness takes it (any import slot address tests/ names: window focus, cursor, files and saves, profile, registry,
+  clocks, heap, Winsock, Miles) or our code takes it by address (`&gameapi::X`: hook/paths.cpp's RegQueryValueExA in
+  game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (67, with gen_iat's KEEP:
+  GetVersionExA, deprecated in the SDK: a direct call warns); the other 344 are `using ::X;`, the Windows function through ei_hook.dll's own imports
+  (`#pragma comment(lib)` for the seven DLLs). A harness route on a new slot makes `--check` fail until gen_iat.py
+  is rerun, which moves that function back to the slot. In game.exe our code does not run (S21), except
+  hook/paths.cpp and the harness, which keep the slots they patch. Rebirth's only import slot patch (MoviesPatch,
+  BinkOpen 0073B720) is ours behind its flag in the image (mod_folders.cpp); Miles, Bink, Winsock, DirectInput,
+  DirectDraw and DirectSound stay table calls: the table loads them from the game folder (Miles, Bink, dgVoodoo's
+  DDraw) or the system (dinput), which ei_hook.dll's own imports would not. The table is still needed as it is:
+  the harness patches it and those families call through it; the slots of the direct functions are only resolved
+  (and could go once the harness names its routes by import).
   **game.exe's own table** is not there, as the rest of the old .rdata (S18h, S18k) (the read of an old slot names its
   import, above; S18f had an INT3 trap per old slot instead); a slot of ours whose import did not resolve leads to a
   trap (`OnTrap`), and the launch-free check fails. **Direct callers**: none run: the image has no .text (S18i,
   S18k; S18f-S18h checked it held only INT3 and our jumps), so no `CALL [slot]` / `JMP [slot]` of the
   original exists. No pointer
   cell of .rdata or .data holds a slot's address (a scan of game.exe's aligned dwords), and our code reaches slots
-  only through literal addresses, which the sealed check covers. Not routed to our table: ui_census's game.exe
+  only through `ei::Imports()` and the harness through literal addresses, which the sealed check covers. Not routed to our table: ui_census's game.exe
   import hooks (`PatchModule(GetModuleHandleA(nullptr))` is the host in the image, as before S18f).
 
 - **.rdata constants as literals** (S18e, `tools/rdata_literals.py`): a float, double or integer cell that no code writes is
@@ -306,7 +322,7 @@ each step green on the goldens and removing a measured tie:
 | S18g | .rdata sealed: vtables (SetVtable through the seam), tables, the harness's vtable tables | raw .rdata uses 365 -> 0 |
 | S18h | .rdata moves into the storage with .data (one range, one shift): bytes from the build, 5531 cells (4460 into .rdata: walked EH / RTTI / MFC structures, reviewed string tables), guarded, old import slots under the guard | the host's copy of .rdata |
 | S18i | code pointers in our sections fixed up to our functions (21,636 code cells; a stub reports an unregistered one), static init calls, forwarders and code literals through CodeAddress, .text guarded | the jumps in .text |
-| S18j | game.exe's resources built into ei_standalone.exe (a .res from the build), the module handle the host's, no header copy (the page guarded) | game.exe loaded as a data file, the resource / module / DirectInput wrappers, the headers at 0x400000 |
+| S18j | game.exe's resources built into ei_standalone.exe (a .res from the build; C23 replaced it with a VERSIONINFO of the host's own), the module handle the host's, no header copy (the page guarded) | game.exe loaded as a data file, the resource / module / DirectInput wrappers, the headers at 0x400000 |
 | S18k | an ordinary host (no fixed base, no range in its image; free parts of the range reserved as the guard), no read of game.exe (dispatch bytes from the build, imports from the game folder), stray game addresses reported by the seam | the address image (dashboard "image ties" 5 -> 0) |
 
 Not on this path: named, typed globals in place of a section's bytes (C18, below) and vtables as real virtual
@@ -330,22 +346,23 @@ What the image still takes of game.exe's .rdata / .data bytes, measured two ways
   suite with goldens the same, not a boot. With an empty list the trial does not read game.exe at all.
 
 `config/image_kept.csv` is that list (address, size, owner file, kind, what): whole objects, also the parts no run
-reaches (the locale abbreviation tables, "reserved_02"); `gen_image_cells.py --check` refuses a range that overlaps a
+reaches (the locale abbreviation tables); `gen_image_cells.py --check` refuses a range that overlaps a
 named range (C18) or another, `image_trace.py --check` a traced read outside the list. Each row is a candidate for
-C18 (a named, typed definition in our code) or a literal; when the list is empty the build no longer needs game.exe's
-section bytes, only its resources (C23).
+C18 (a named, typed definition in our code) or a literal; when the list is empty the trial's bytes are the product's
+and the build needs nothing of game.exe (the resources are the host's own since C23).
 
 Without a game.exe (tools/exe_path.py finds none in run\vanilla / run\rebirth / EI_EXE, or `EI_NO_GAME_EXE=1`)
 build.cmd skips the checks that compare with it (check_fp_fold, rdata_literals, named_data, check_short_functions,
 check_static_init, `gen_image_cells --check`, `gen_iat --check`) with one line; CMake still needs it for the section
-bytes and the resources.
+bytes.
 
 ### Named data (C18)
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
 after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
-after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state). C18 turns them into named C++
+after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
+which took the pointer cells from 1,522 to 1,243). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -417,6 +434,23 @@ kinds given.
 - **The bytes**: gen_image_cells.py --bytes writes the csv's ranges zero (CMake's custom command depends on the
   csv), so the image's copy of the sections no longer carries them; what the check proves unreachable is also
   unread at run time.
+- **The scripted part (C18o)**: `python tools/named_data.py --emit ADDRESS TYPE COUNT NAME` prints the tagged
+  definition from game.exe's bytes (as its static initialisers leave them) by TYPES' packing in reverse: strings and
+  `char[N]` fields (TYPES code `'Ns'`, e.g. `UiKeyName` `('i', 'P', '64s')`) as literals, pointers to a named range's
+  start by name, to code by our registration's function, zero as nullptr; COUNT `4x10` gives rows. What it cannot
+  name prints as `/*?ADDRESS*/ nullptr` with a line on stderr (a pointer into another record, a number that is no
+  pointer: the range starts or ends elsewhere), and it packs its own text back as --check does. Paste, adjust the
+  declaration (drop `constexpr` for a table the code writes; `extern` in the header when several files read it), run
+  `--update`, then `--rewrite NAME [--apply]`: the `GamePointer<T>(0x...)` / `GameData<T>(0x...)` reads of an
+  element's start with T the element type become `NAME` / `(NAME + k)` / `NAME[k]`; DataId constants, other types and
+  field addresses are listed for a person. Then drop the emptied REVIEWED_DATA / REVIEWED_RDATA groups of
+  gen_image_cells.py (their counts fail otherwise) and regenerate image_cells.inc. **Unread copies**: a table only
+  dead code read (src/game/dead_code_tables.cpp: the units' model folders 0078F7EC, read by the uncalled 00532650,
+  and 007932F4) and the per-file copies of a header constant nothing of ours reads (src/game/header_constant_copies.cpp:
+  72 copies of ".SEC"; a port names the copy it reads in its own file, ai_map_load.cpp's 0073FD1C / 0073FD20) are
+  `[[maybe_unused]]` definitions, so their bytes come from the source too; the CRT's math function names 00797CC0
+  (crt_x87.cpp) likewise, its readers have no registration. Left: the script keyword table 0078BCA0 (Rebirth swaps
+  it), the CRT / MFC tables a static initialiser or the CRT's start-up fills.
 - **A batch** (the method; batch 1 did the interface's .rdata tables, 13 addresses: ui_hero_preview's four clear
   rectangle tables, ui_item_view's school glow colours and its pi / 5.0 floats, ui_briefing_people's speaker places,
   ui_hud_slide's part positions, the camp body slots of ui_container_draws / ui_hero_panels):
@@ -1341,11 +1375,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 
-- **Resources** (S18j): built into the host from game.exe ("How it runs"); the game's module is the host's.
-  MFC's module state has null instance and resource handles in the original too (the game never runs AfxWinInit),
-  so LoadStringA(NULL) loads from the process's own module in both. Checked by `render_cursor_present`'s
-  `windowicon menu_icon` (the window class's icons are the module's icon 105, drawn to frames\menu_icon.bmp; its
-  `cursorcheck` frames show the game's cursor, which is game data, not a resource).
+- **Resources** (S18j, C23): none of game.exe's ("How it runs"); the game's module is the host's. MFC's module state has
+  null instance and resource handles in the original too (the game never runs AfxWinInit); `AfxLoadString` answers from
+  a table in code. Checked by `render_cursor_present`'s `windowtitle` (the window's title "Evil Islands" and class
+  "EIGAME"; its `cursorcheck` frames show the game's cursor, which is game data, not a resource).
 - **game.exe at run time**: none since S18k ("What comes from game.exe at build time", above). The harness's run_all
   hands ei_launch none (S18k1).
 - **Command line**: `ei_standalone ... -- <game args>` is WinMain's line and GetCommandLineA's after `"<game.exe>"`.

@@ -3107,15 +3107,8 @@ static_assert(offsetof(CObjectivesWindow, objectiveTexts_) == 0x1D8 && offsetof(
 static_assert(offsetof(CObjectivesWindow, bar_) == 0x1BC);
 static_assert(sizeof(CObjectivesWindow) == 0x1F0);
 
-// The game's table of key names (0x48 bytes each, 88 of them from 007857B0 to 00787070).
-struct UiKeyName {
-    int scan_;                       // +0x00 scan code
-    std::uint8_t unused_04[4];
-    char name_[0x40];                // +0x08
-};
-static_assert(sizeof(UiKeyName) == 0x48);
-inline const UiKeyName* UiKeyNames() { return ei::GamePointer<const UiKeyName>(0x007857B0); }
-constexpr int kUiKeyNameCount = 88;
+// The game's table of key names (object_tables.h's UiKeyName, g_keyNames).
+inline const UiKeyName* UiKeyNames() { return g_keyNames; }
 
 // A key binding row of the options window (0x18 bytes, vector at +0x36C; rows_ point at them;
 // copy constructor 00652FF0, destructor 006537E0 with 0).

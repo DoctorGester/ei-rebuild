@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(EvilIslands CXX)
+project(EvilIslands CXX RC)
 
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
     message(FATAL_ERROR "Build for 32-bit x86 (game.exe and its DLLs are 32-bit). Use the x86 vcvars environment.")
@@ -156,16 +156,8 @@ add_executable(ei_launch tools/launcher/launch.cpp)
 
 # The standalone host (docs/notes/standalone.md section 2): an ordinary exe (S18k: no fixed base, no read of game.exe)
 # that reserves what of game.exe's range is free (the guard) and runs ei_hook.dll's code for it.
-# game.exe's resources (icons, cursors, bitmaps, dialogs, strings) are the host's own (S18j): a .res written from
-# game.exe at build time (tools/gen_resources.py, not committed) that the linker builds in.
-set(EI_IMAGE_RESOURCES ${CMAKE_BINARY_DIR}/image/game_resources.res)
-add_custom_command(OUTPUT ${EI_IMAGE_RESOURCES}
-    COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tools/gen_resources.py --exe ${EI_GAME_EXE} --res ${EI_IMAGE_RESOURCES}
-    DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_resources.py ${EI_GAME_EXE}
-    COMMENT "Writing game.exe's resources"
-    VERBATIM)
-set_source_files_properties(${EI_IMAGE_RESOURCES} PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
-add_executable(ei_standalone src/standalone/host.cpp ${EI_IMAGE_RESOURCES})
+# The host's one resource is its version information (src/standalone/host.rc, C23): game.exe's own resources are not used.
+add_executable(ei_standalone src/standalone/host.cpp src/standalone/host.rc)
 target_include_directories(ei_standalone PRIVATE src)
 # Temporary (user 2026-10-21): a fixed preferred base above game.exe's range, so ASLR never loads the host inside
 # 0x400000-0x7D7000 (one build landed at 004E0000, leaving part of the guard unreserved). Relocations stay
