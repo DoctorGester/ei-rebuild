@@ -164,6 +164,10 @@ does not need a second pass:
   pointer casts; check_cleanup does not); objects of a manager come typed from
   `CBaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
   `itemdb::RecordAs<T>`, and a manager's context is a `CManagerContext` (CWorld, CParty).
+- one typed view instead of a cast per accessor (C15): a compiled tag's slots reach their object
+  through `ObjectAs<T>()` (`src/lib/compiled_vtable.h`); an object embedded in another and built by
+  the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure
+  virtual slots (`src/lib/static_object.h`), not a byte array with a casting accessor.
 `build.cmd` runs `tools/check_cleanup.py`: per file, the counts of these patterns may only go down
 (config/cleanup_baseline.csv; a new file starts at zero). After a cleanup ticket lowers them, run
 `python tools/check_cleanup.py --update`.
