@@ -90,7 +90,7 @@ public:
         ClassIdMap classIds;     // +0x00 vtable -> class id
         FactoryMap factories;    // +0x14 class id -> factory
     };
-    static ClassRegistry& Registry() { return ei::GameData<ClassRegistry>(0x0079B270); }
+    static ClassRegistry& Registry();   // g_classRegistry 0079B270 (chunk_archive.cpp)
 
     // The current chunk: the top of the stack.
     Ref* Current() { return &stack_.End()->prev->data; }

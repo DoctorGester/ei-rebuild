@@ -85,6 +85,10 @@ struct CScreenFade {
 };
 static_assert(offsetof(CScreenFade, lastTime_) == 0x0C && offsetof(CScreenFade, letterbox_) == 0x10);
 
+// The key of the multiplayer message 12's text (CInterface3D::MessageText), "reserved_02": EI_Plugin's Pause
+// writes its digit, '2' for a pause and '3' ("reserved_03") for a resume (player_server_orders.cpp).
+extern char g_pauseMessageKey[12];
+
 // The interface manager (CInterface3D; created by 005F4990, which reads the screen size from the
 // render target). Only the members used by the rewritten code; the object is created by original
 // code, so its size is not asserted.
@@ -1094,7 +1098,7 @@ static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
 // Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
-inline strmap::CDebugPanel* DebugInfoPanel() { return ei::GamePointer<strmap::CDebugPanel>(0x0079B930); }
+strmap::CDebugPanel* DebugInfoPanel();   // strmap::g_debugPanel 0079B930 (string_map.cpp)
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
 

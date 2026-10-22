@@ -12,7 +12,8 @@ bytes leave the image's generated copy of the sections (gen_image_cells.py --byt
 --check (build.cmd):
   * every tagged initialiser is game.exe's bytes at the tag: its numbers are packed by the declared element type
     (TYPES; a struct type its fields' formats, nested braces flattened) and compared with the file's bytes
-    (.rdata past the import table, .data and its zero-filled tail; no addon.dll site, no two ranges overlapping);
+    (.rdata past the import table, .data and its zero-filled tail; no addon.dll site but NAMED_ADDON_SITES, the ones
+    the image writes itself, no two ranges overlapping);
   * config/named_data.csv lists exactly the tagged ranges (address, size, name, file): `--update` writes it, and
     the build's gen_image_cells.py --bytes reads it;
   * a pointer element (TYPES 'P': `const char* const kX[] = /*addr*/ {"a", "b"};`, a struct's pointer field, or
@@ -170,6 +171,8 @@ STATIC_OBJECT_BYTES = {
     'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'mfc::CArray<FogSprite>': 0x14, 'SpriteArray': 0x14, 'ParticleSpriteArray': 0x14, 'BlockPointArray': 0x14, 'AIObjectList': 0x1C, 'ParticleDepthArray': 0x14, 'UnitShapeCache': 0x1C,
     'mfc::CList<AIEvent>': 0x1C, 'FlagArray': 0x14, 'mfc::CArray<ScriptQuestObjective>': 0x14,
     'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,
+    'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
+    'CDebugPanel': 0x44, 'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,
 }
 
 
@@ -463,9 +466,12 @@ def addon_sites():
 # generated list of sites that names them (game.exe's addresses, for harness_addon.cpp).
 RETIRED_ADDON_SITES = {0x007432F4}   # ResOverride: CMappedResource's slot 5, GetFile (007432E0, C19 batch 3)
 # The addon.dll sites a named range may hold (and addon_sites.inc may name, for the harness in game.exe): a patch
-# disabled here (config/rebirth_patches.csv), whose cell is a plain global of ours that the image's flag would write.
-# address -> why.
+# disabled here (config/rebirth_patches.csv), whose cell is a plain global of ours that the image's flag would write,
+# or one the image's code reproduces by writing our global (C25a: WideScreen). address -> why. One in .rdata is written
+# all the same (not const).
 NAMED_ADDON_SITES = {
+    0x00742B08: "WideScreen's layout width: widescreen::g_layoutWidth, written by ui_widescreen.cpp's Startup",
+    0x007428AC: "WideScreen's panels' right column: widescreen::g_panelRight, written by ui_widescreen.cpp's Startup",
     0x00783E34: "SetDefaultRate (disabled here) writes Settings\\Rate over net::g_remoteRate (net_session_tick.cpp)",
 }
 ADDON_SITES_INC = 'tests/verify/addon_sites.inc'
@@ -664,7 +670,8 @@ def check(img, update, img_path):
         if not (RDATA[0] <= lo and hi <= RDATA[1] or DATA[0] <= lo and hi <= DATA[1]):
             problems.append(f'{d.where()}: {d.name} {lo:08X}+{d.size} is not in .rdata past the import table or .data')
             continue
-        if hi <= RDATA[1] and not d.const:
+        own_site = any(lo <= a < hi for a in NAMED_ADDON_SITES)
+        if hi <= RDATA[1] and not d.const and not own_site:
             problems.append(f'{d.where()}: {d.name} is in .rdata, which nothing writes: declare it constexpr')
         want = bytes(img[lo - BASE:hi - BASE])
         late = sorted(a for a in unknown if lo <= a < hi)

@@ -129,3 +129,10 @@ int __cdecl libcrt::Fclose(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fclose")
 int __cdecl libcrt::Fseek(gamecrt::CrtFile*, long, int) EI_UNLINKED("libcrt::Fseek")
 long __cdecl libcrt::Ftell(gamecrt::CrtFile*) EI_UNLINKED("libcrt::Ftell")
 std::size_t __cdecl libcrt::Fread(void*, std::size_t, std::size_t, gamecrt::CrtFile*) EI_UNLINKED("libcrt::Fread")
+
+// world_construct.cpp (the server world, g_serverWorld) is not linked: the scripts' replays see a zero world, as they
+// saw the stand-in's zero bytes before C18t named it (no fixture fills it).
+CWorldServer* TheServerWorld() {
+    alignas(8) static unsigned char world[sizeof(CWorldServer)] = {};
+    return reinterpret_cast<CWorldServer*>(world);
+}

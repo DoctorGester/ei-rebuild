@@ -43,6 +43,9 @@
 #include "game_singletons.h"
 #include "options.h"
 
+// Set while a .mob file loads (CWorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
+std::uint8_t g_loadingMovieOff = /*007C554C*/ {};
+
 namespace {
 
 // Bink through game.exe's import table (stdcall; the image's: ei_hook.dll's table, S18f).
@@ -72,24 +75,16 @@ BinkHeader* OpenBink(const char* name, unsigned flags) {
 
 constexpr unsigned kBinkSurface32R = 4;                      // BinkCopyToBuffer: R, G, B, X bytes (checked offline)
 
-// The loading screen's movie (005DA400): globals from 007C5520 on (its surface holder 007C551C is g_loadingHolder).
-struct LoadingMovie {
-    RECT screen;                // 007C5520
-    std::uint8_t unused_10[0x2C - 0x10];
-    char off;                   // 007C554C
-    std::uint8_t unused_2D[3];
-    BinkHeader* bink;           // 007C5550
-    unsigned surfaceType;       // 007C5554
-};
-static_assert(offsetof(LoadingMovie, off) == 0x2C);
-static_assert(offsetof(LoadingMovie, bink) == 0x30);
-static_assert(offsetof(LoadingMovie, surfaceType) == 0x34);
+// The loading screen's movie (005DA400): where it is drawn on the screen, its Bink handle and the surface type it
+// was opened for (its surface holder is g_loadingHolder; the off switch g_loadingMovieOff, bink_video.h).
+RECT g_loadingScreen = /*007C5520*/ {};
+BinkHeader* g_loadingBink = /*007C5550*/ {nullptr};
+unsigned g_loadingSurfaceType = /*007C5554*/ {};
 
 // Game globals.
 int MoviesMode() { return options::TheOptions()->video_; }           // 0 off, 1 at size, 2 stretched to the width
 int MovieSound() { return options::TheOptions()->audio_; }
 int MovieVolume() { return options::TheOptions()->audioStreaming_; }          // percent
-LoadingMovie& Loading() { return ei::GameData<LoadingMovie>(0x007C5520); }
 
 // The movie's surface holder: null at the start (the static initialiser 005DA360 stores it); the exit function that
 // initialiser registers releases it once (guard bit in 007C5518). docs/notes/standalone.md, "The static initialisers'
@@ -270,35 +265,34 @@ EI_REWRITTEN(0x005DB3F0, PlayMovie);
 // frame stretched over the screen of the primary surface. Nothing when 007C554C is set.
 void __fastcall ShowLoadingMovie(int progress) {
     net::Pump();   // 004122D0
-    LoadingMovie& movie = Loading();
-    if (movie.off) return;
+    if (g_loadingMovieOff) return;
     CursorShowOriginal(TheCursor(), nullptr, 0);
     if (!g_loadingHolder) {
         // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
         std::string path = DataFolderText();
         path += "Movies\\";
         path += app::g_loadingMovieName;  // progres.bik, or the zone's
-        if (movie.bink) {
-            BinkClose()(movie.bink);
-            movie.bink = nullptr;
+        if (g_loadingBink) {
+            BinkClose()(g_loadingBink);
+            g_loadingBink = nullptr;
         }
-        movie.bink = OpenBink(path.c_str(), 0);
-        if (!movie.bink) {
+        g_loadingBink = OpenBink(path.c_str(), 0);
+        if (!g_loadingBink) {
             game::DebugLog("Can't open video file \"%s\"\n", path.c_str());   // "Can't open video file \"%s\""
             return;
         }
         RECT screen;
         gameapi::CopyRect(&screen, &TheRenderDevice()->screen_);
         CDXSurface* holder =
-            NewMovieHolder(TheRenderDevice(), static_cast<int>(movie.bink->width), static_cast<int>(movie.bink->height));
+            NewMovieHolder(TheRenderDevice(), static_cast<int>(g_loadingBink->width), static_cast<int>(g_loadingBink->height));
         CDXSurface* old = g_loadingHolder;
         g_loadingHolder = holder;
         if (old) old->Release();
-        movie.surfaceType = SurfaceType();
-        movie.screen = screen;
+        g_loadingSurfaceType = SurfaceType();
+        g_loadingScreen = screen;
         TheCursor()->SaveBackground(1);
     }
-    BinkHeader* bink = movie.bink;
+    BinkHeader* bink = g_loadingBink;
     int last = static_cast<int>(bink->frames) - 1;
     if (last < progress) progress = last;
     unsigned target = static_cast<unsigned>(progress) + 1;
@@ -310,20 +304,20 @@ void __fastcall ShowLoadingMovie(int progress) {
         BinkDoFrame()(bink);
         CopyFrame(bink, &frame);
         decoded = true;
-        bink = movie.bink;
+        bink = g_loadingBink;
         BinkGoto()(bink, bink->frameNum + 1, 0);
-        bink = movie.bink;
+        bink = g_loadingBink;
         if (bink->frames == bink->lastFrame) break;
     }
     TheCursor()->TakeLock();
-    bink = movie.bink;
+    bink = g_loadingBink;
     CDXSurface* holder = g_loadingHolder;
     RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
     CDXSurface* primary = holder->device->primary_;
     if (!device::SameSurface(primary, holder)) {
-        const void* key = &movie;   // the loading movie in the new renderer
+        const void* key = &g_loadingScreen;   // the loading movie in the new renderer
         if (decoded) render::MovieFrame(key, frame.data(), source.right, source.bottom);
-        render::MovieBlit(key, ToRender(movie.screen));
+        render::MovieBlit(key, ToRender(g_loadingScreen));
         PresentMovieFrame();
     }
     TheCursor()->SaveBackground(1);
@@ -380,10 +374,9 @@ EI_REWRITTEN(0x005DBA50, CBinkVideo::Open);
 // --- Closing (A-W14) --------------------------------------------------------------------------------
 
 void CloseLoadingMovie() {
-    LoadingMovie& movie = Loading();
-    BinkClose()(movie.bink);
+    BinkClose()(g_loadingBink);
     CDXSurface* holder = g_loadingHolder;
-    movie.bink = nullptr;
+    g_loadingBink = nullptr;
     g_loadingHolder = nullptr;
     if (holder) holder->Release();
     CursorShowOriginal(TheCursor(), nullptr, 1);

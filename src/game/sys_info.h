@@ -29,7 +29,7 @@ struct ProcessorInfo {
 };
 static_assert(offsetof(ProcessorInfo, terminator) == 0x0C && offsetof(ProcessorInfo, features) == 0x10 &&
               sizeof(ProcessorInfo) == 0x14);
-inline constexpr std::uint32_t kProcessorMmx = 0x00800000;   // CPUID.1:EDX bit 23
+inline constexpr std::uint32_t kProcessorMmx = 1u << 23;   // CPUID.1:EDX bit 23
 inline constexpr std::uint32_t kProcessorSse = 0x02000000;   // CPUID.1:EDX bit 25
 extern ProcessorInfo g_processorInfo;   // sys_info.cpp
 inline ProcessorInfo* TheProcessorInfo() { return &g_processorInfo; }

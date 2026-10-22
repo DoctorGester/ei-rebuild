@@ -332,10 +332,52 @@ named range (C18) or another, `image_trace.py --check` a traced read outside the
 C18 (a named, typed definition in our code) or a literal; when the list is empty the trial's bytes are the product's
 and the build needs nothing of game.exe (the resources are the host's own since C23).
 
+C25a took six rows and added four (out_of_range's throw information, found by the static proof below). With C18q and
+C18 the list is six rows: those four and the CRT's locale category names 007472E4 and static "C" 00797778 (C18q's
+"Left in the CRT": `__lc_category`'s init cells point at unported code):
+- **Written globals at addon sites**: WideScreen's layout widths 00742B08 (800) / 007428AC (695) are
+  `widescreen::g_layoutWidth` / `g_panelRight` (ui_widescreen.cpp, tagged; Startup writes them as addon did; the clock and
+  the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
+  .rdata, and be named by tests/verify/addon_sites.inc (game.exe's address, for harness_addon.cpp in game.exe).
+- **A ported static initialiser**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64) is
+  mfc_window.cpp's RegisterDragListMessage (5 bytes, a jump to its body: rows in extra_function_sizes.csv /
+  function_sizes.inc); static_init.cpp calls it.
+- **Named**: ostream's virtual base table `kOstreamVirtualBases` {0, 8} (crt_iostream.cpp), OnNewParty's next record id
+  `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
+  message table and SetPauseTextDigit share it, so a resume shows "reserved_03" as with EI_Plugin).
+- **MFC's empty string**: `_afxInitData` {-1, 0, 0} and its character are mfc_string.cpp's `g_nilString`; DataNil() /
+  PchNil() read `g_dataNil`, which is ours in the image and game.exe's `_afxDataNil` (00796E4C) when the code runs in
+  game.exe (the harness and the vector recorders handle game.exe's strings there: the empty string one side makes and
+  the other releases must be the same; tests/verify/harness_startup.cpp sets it at static initialisation). game.exe's cells 00796E48 / 00796E4C stay in image_cells.inc, unread.
+- **Unread tables, no definition**: the 72 `.SEC` copies and the dead code's two tables (C18o's
+  header_constant_copies.cpp / dead_code_tables.cpp) are gone; their cells are gen_image_cells.py's `UNREAD` groups
+  (counted, left out of the cells like LEFT_STRUCTURES): game.exe's bytes unshifted, zero in the trial.
+
+**The static proof** (C25a, `gen_image_cells.py --check`, build.cmd; the trace stays the cross-check): the runs only
+show what they reach, so the check takes every root our code can read from: each game data address src/ names in the
+moved range (the 231 of named_data.py --split's count there; game_data.h's / image_data.cpp's section bounds left out)
+and, transitively, the target of every pointer cell inside a root's object or a kept range. A root passes in the
+import table, in .data's zero-filled tail (from 0079C000: zero fill is exact), in a named range or in a kept range;
+otherwise its object, from the root to the next start (another root, a cell's target, a named or kept range, an
+absolute operand of game.exe's code, a section's end; `ROOT_SIZES` where the object is shorter, _afxNewHandler),
+may hold no nonzero dword of game.exe's but cells and the static initialisers' stores. 229 roots after C18q, 86 after C18s, 62 after C18t, 0
+failing. The first run (before C18q) failed 14 that no suite reaches: out_of_range's throw information (its catchable
+types, the array, the type descriptors' names: our frame handler reads them for stlp_string.cpp's throw; four kept
+rows now), `_iob[0..2]`'s flags (unread since C18q's stream stand-ins), MFC's empty string through the game.exe-only
+literal 00796E4C (moved to the harness: tests/verify/harness_startup.cpp sets `g_dataNil` in game.exe), and
+_afxNewHandler's object running into an unreferenced GUID (ROOT_SIZES). The harness's literals (tests/) are not roots:
+the product has no harness.
+
+**The switch** (C25a, ready): CMake's `EI_IMAGE_BYTES_FROM_EXE` (one `set` in CMakeLists.txt, ON). OFF makes the trial's
+form the product's: `--bytes --zero` always, no game.exe lookup (`--exe` passed only when EI_GAME_EXE is set), and
+gen_image_cells reads game.exe only for the list's rows. Set it OFF once config/image_kept.csv is empty and
+`gen_image_cells.py --check` passes (the static proof above, which then also guards every later change); then drop the
+non-zero path of write_bytes and EI_IMAGE_ZERO_TRIAL / build.cmd's `trial`.
+
 Without a game.exe (tools/exe_path.py finds none in run\vanilla / run\rebirth / EI_EXE, or `EI_NO_GAME_EXE=1`)
 build.cmd skips the checks that compare with it (check_fp_fold, rdata_literals, named_data, check_short_functions,
 check_static_init, `gen_image_cells --check`, `gen_iat --check`) with one line; CMake still needs it for the section
-bytes.
+bytes until the switch.
 
 ### Named data (C18)
 
@@ -344,7 +386,7 @@ after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
 after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
 which took the pointer cells from 1,522 to 1,243, 243 -> 234 after C18q's script keyword and CRT tables, pointer cells
-1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams). C18 turns them into named C++
+1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams, 90 -> 56 after C18t's singletons with C25a's rows). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -427,11 +469,11 @@ kinds given.
   element's start with T the element type become `NAME` / `(NAME + k)` / `NAME[k]`; DataId constants, other types and
   field addresses are listed for a person. Then drop the emptied REVIEWED_DATA / REVIEWED_RDATA groups of
   gen_image_cells.py (their counts fail otherwise) and regenerate image_cells.inc. **Unread copies**: a table only
-  dead code read (src/game/dead_code_tables.cpp: the units' model folders 0078F7EC, read by the uncalled 00532650,
-  and 007932F4) and the per-file copies of a header constant nothing of ours reads (src/game/header_constant_copies.cpp:
-  72 copies of ".SEC"; a port names the copy it reads in its own file, ai_map_load.cpp's 0073FD1C / 0073FD20) are
-  `[[maybe_unused]]` definitions, so their bytes come from the source too; the CRT's math function names 00797CC0
-  (crt_x87.cpp) likewise, its readers have no registration. Left: the CRT / MFC tables a static initialiser or the
+  dead code read (the units' model folders 0078F7EC, read by the uncalled 00532650, and 007932F4) and the per-file
+  copies of a header constant nothing of ours reads (72 copies of ".SEC"; a port names the copy it reads in its own
+  file, ai_map_load.cpp's 0073FD1C / 0073FD20) were `[[maybe_unused]]` definitions until C25a dropped them (their
+  cells are gen_image_cells' UNREAD groups); the CRT's math function names 00797CC0 (crt_x87.cpp) stay named, its
+  readers have no registration. Left: the CRT / MFC tables a static initialiser or the
   CRT's start-up fills (C18q's list below).
 - **The script keyword table and the CRT's tables (C18q)**: `kScriptKeywords` (script.h, script_parse.cpp; 0078BCA0,
   225 keywords and the null entry, TYPES `ScriptKeyword` 'PiPP') and the lexer's comment markers 0078BC8C..94
@@ -638,7 +680,7 @@ kinds given.
       - The exit function: ported on the name and registered at its address (EI_REPLACE; function_sizes.inc already
         has it, gen_static_init wrote it there); the initialiser's `d.AtExit(address)` stays at its place in the list
         and gen_static_init leaves the registered function out of static_exit.cpp. It goes next to the definition
-        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles); atexit_400.cpp has older ones.
+        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles, camera_object.cpp's DestroyCamera).
       - A constructor whose result is no constant (CString's empty string: a copy of 00796E48, a run-time pointer;
         `CString(const char*)` allocates) runs in list order: the initialiser is ported on the name and registered at
         its address (a row in config/extra_function_sizes.csv and function_sizes.inc: Ghidra has no function there),
@@ -768,11 +810,24 @@ kinds given.
       kModeLog 007C54E8; a file's own ostream view (AiLogStream, UnitLogStream, GameOstream, net::LogStream) reads the
       stream through `console::StreamAs<View>`. The ostream constructor still points the vbtable at game.exe's 00748284
       (crt_iostream.cpp, a kept row: C25a / C26).
-    - **Left**: MFC's module / thread state and window classes (mfc_state.cpp, mfc_window.cpp: C18r), the save stream 007AFDF8 and the received stream
-      007C83D0 (CMemoryStream, game.exe's vtable), the singletons themselves (0079B2A8, 007AF060, 007AF5B8, 007AFF60,
-      0079BF00, 007AEE78), the loading movie 007C5520 / 007C554C, 0079BC28 and 007AEDD0-DC (src/render), the
-      Rebirth-patched floats 007428AC / 00742B08, STLport's free lists 0079B224-0079B22C (the harness calls our
-      allocator in game.exe), the damping scale 007C2F8C (an initialiser stores ln 0.6: a call's result).
+    - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
+      007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
+      (renderer_lifetime.cpp), the map database 0079BF00, the debug panel 0079B930 (string_map.cpp), the class registry
+      0079B270 (chunk_archive.cpp), clip's work words 0079B668, the network buffers 0079B8E0 / 0079B900, the save stream
+      007AFDF8 and the received messages 007C83D0 (with its destroyed flag 007C83C8) are `lib::StaticObject` with their
+      initialisers and exit functions ported next to them (atexit_400.cpp is gone); game_singletons.h's accessors are
+      out of line. Plain globals: the main window 0079BC28 (app::g_mainWindow; render_game.h's Addresses hold
+      pointers to it and the renderer), the stage blocks 007AEDD0 (g_stageBlocks, keyed by StageBlock), the loading
+      movie's 007C5520 / 007C554C-54, the network buffer flags 0079B8FC, the damping scale 007C2F8C (its initialiser
+      005B2FB0, ln 0.6 on the x87, ported in ai_refresh.cpp). The harness reads game.exe's copies through
+      harness_objects.h (`ei::Standalone() ? ours : &ei::OriginalGameData<T>(address)`), and in a --no-hooks run calls
+      game.exe's own PickAt2 / UnitAt / GameSendLeave04 / GameSetConstructionVariable (EI_ORIGINAL), which read them.
+    - **Left**: MFC's module / thread state, window classes and the generated initialisers' / exits' MFC objects
+      (007C8BB8-007CAAA0: C18r), the CRT's (C26), EmptyText 0079B298 (15 pointer cells of game.exe's data point at it
+      and code compares its address), the function-local statics' guard 007CAEE4 (175 generated `d.Once` tests:
+      gen_static_init would have to name it), STLport's free lists 0079B224-0079B22C and its throw info 0074C640 (the
+      harness calls our allocator in game.exe), and the section bounds in game_data.h (0073B000,
+      0073B820, 00783000, 007CD000, 007D7000: the image's layout, not data).
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 
 ### Compiler-made vtables (C19)

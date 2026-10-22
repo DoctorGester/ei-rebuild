@@ -9,6 +9,9 @@
 #include <cstring>
 #include "originals_library.h"
 #include "game_data.h"
+#include "game_arrays.h"
+#include "lib/mfc_coll.h"
+#include "lib/static_object.h"
 
 namespace {
 
@@ -38,8 +41,16 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
     return (c3 << 24) | (c1 << 8) | (c2 << 16) | c0;
 }
 
-// The work buffer 0079B668: a CWordArray (SetSize is MFC's, 006FEEFA).
-mfc::CArray<std::uint16_t>& WorkWords() { return ei::GameData<mfc::CArray<std::uint16_t>>(0x0079B668); }
+// The work buffer: a CWordArray (SetSize is MFC's, 006FEEFA), zero at the start: built by the static initialiser
+// 0042D8E0 in the list's order and destroyed by the exit function it registers (0042D900); both ported on the name and
+// registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_workWords = /*0079B668*/ {};
+mfc::CArray<std::uint16_t>& WorkWords() { return *g_workWords; }
+void __cdecl DestroyWorkWords() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_workWords); }   // 0042D900
+void __cdecl ConstructWorkWords() {                                                                        // 0042D8E0
+    mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_workWords);
+    GameAtExit(DestroyWorkWords);
+}
 
 void Emit(std::uint16_t index) { clip::Buffer()[clip::g_bufferCount++] = index; }
 
@@ -79,6 +90,8 @@ int ClipPlane(TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int*
 } // namespace
 
 namespace clip {
+
+std::uint16_t* Buffer() { return WorkWords().data; }
 
 void __fastcall LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVertex* out) {
     out->x = (b->x - a->x) * t + a->x;
@@ -151,3 +164,6 @@ int __fastcall ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, st
 EI_REWRITTEN(0x0042D910, ClipTriangle);
 
 } // namespace clip
+
+EI_REPLACE(0x0042D8E0, ConstructWorkWords);
+EI_REPLACE(0x0042D900, DestroyWorkWords);

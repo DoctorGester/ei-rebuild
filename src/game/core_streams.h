@@ -218,8 +218,11 @@ struct QueueStream {
 };
 static_assert(sizeof(QueueStream) == 0x28 && offsetof(QueueStream, bytes) == 0);
 
-// The game's save stream: the global CMemoryStream at 007AFDF8 (defined in world_game.cpp).
+// The game's save stream: the global CMemoryStream g_saveStream 007AFDF8 (world_game.cpp).
 CMemoryStream* GameSaveStream();
+// The stream the received packets are decompressed into (with the network queue's vtable; ReceiveMessages fills it):
+// g_receivedMessages 007C83D0 (player_server_handlers.cpp).
+CMemoryStream& ReceivedMessages();
 
 // The harness's view of the memory streams' writes (verify builds; the save trace,
 // tests/verify/harness_savetrace.cpp): the stream, the size and the slot's return address

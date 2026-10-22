@@ -6,6 +6,9 @@
 #include "core_refcount.h"
 
 #include "ei/hook.h"
+#include "hash_tables_400.h"   // ClassRegistryConstruct / Destruct
+#include "lib/static_object.h"
+#include "originals_library.h"   // GameAtExit
 #include "lib/mfc.h"
 
 #include <cstring>
@@ -51,6 +54,23 @@ void ChunkArchive::Ref::Reset() {
     size = 0;
 }
 EI_REWRITTEN(0x00409E80, ChunkArchive::Ref::Reset);
+
+// The class registry, zero at the start: built by the static initialiser 00408D30 in the list's order and destroyed by
+// the exit function it registers (00408D50); both ported on the name and registered at their addresses
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<ChunkArchive::ClassRegistry> g_classRegistry = /*0079B270*/ {};
+ChunkArchive::ClassRegistry& ChunkArchive::Registry() { return *g_classRegistry; }
+
+namespace {
+void __cdecl DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry); }   // 00408D50
+void __cdecl ConstructClassRegistry() {                                                     // 00408D30
+    hash400::ClassRegistryConstruct(&*g_classRegistry);
+    GameAtExit(DestroyClassRegistry);
+}
+} // namespace
+
+EI_REPLACE(0x00408D30, ConstructClassRegistry);
+EI_REPLACE(0x00408D50, DestroyClassRegistry);
 
 void ChunkArchive::PopChunk() {
     Stack::Erase<RefElement>(stack_.End()->prev);

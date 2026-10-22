@@ -2855,7 +2855,7 @@ id = "C25a"
 title = "Build without game.exe: the rest of the kept list, then the zero bytes as the product"
 group = "cleanup"
 model = "opus"
-note = "After C25 and C18q (2026-10-22). config/image_kept.csv lists what the image still reads of game.exe's .rdata/.data (C25: trace + zero-filled trial, ALL PASS, goldens the same). C18q takes the script keyword table and the CRT string tables (rows 0078B820-0078D724, 00787B5C/98/B4, 007472E4, 00747924, 00797778, 00798928; delete them from the list when named). The rest: the addon-site floats 007428AC / 00742B08, commctrl_DragListMsg 00746D8C, ostream's vbtable 00748284, the send rates 00783E34, the tick 0078FF34, the direction table 00791978, OnNewParty's 00794E3C, MFC's _afxInitData 00796E50, the C ctype table 00797DE0: as named data or literals (addon sites stay writable). When the list is empty: --zero becomes the bytes' only mode (gen_image_cells --bytes without game.exe), CMake's EI_GAME_EXE lookup optional, build.cmd's checks already skip without one. Check: image_trace.py --check on an EI_IMAGE_TRACE=1 suite, the trial suite with goldens the same."
+note = "Done 2026-10-22. Named or ported six kept rows: WideScreen's widths 00742B08 / 007428AC as widescreen::g_layoutWidth / g_panelRight (named_data NAMED_ADDON_SITES: written, in .rdata), the DragList static initialiser 007043FA ported (mfc_window.cpp RegisterDragListMessage; extra_function_sizes row), ostream's vbtable kOstreamVirtualBases 00748284, OnNewParty's g_nextRecordObjectId 00794E3C (C18 named it too; merged), MFC's _afxInitData as mfc_string.cpp's g_nilString (g_dataNil: game.exe's _afxDataNil in game.exe, set by tests/verify/harness_startup.cpp). C25b fixed: g_pauseMessageKey 007930EC shared by MessageText and SetPauseTextDigit. Dropped header_constant_copies.cpp / dead_code_tables.cpp (their cells are gen_image_cells' UNREAD groups; the trace saw no read). Static proof (coordinator): gen_image_cells --check's zero_roots checks every root src/ names in the moved range and the cells its object holds (zero tail, named, kept, or only cells and initialiser stores); 14 failed at first, 0 now (117 roots after C18, 86 after C18s): out_of_range's throw information is 4 new kept rows (C25c). The switch: CMakeLists.txt's set(EI_IMAGE_BYTES_FROM_EXE ON) -> OFF (zero bytes, no game.exe lookup; tested at configure + bytes), not made: the list has 6 rows (C25c's 4, C18q's locale 007472E4 / 00797778). Suites: image 121 the same, original 114, trial 121, trace ALL PASS with image_trace --check 0."
 
 [[ticket]]
 id = "C25b"
@@ -2890,7 +2890,7 @@ id = "C18t"
 title = "Named data: the multi-file objects and the small game* leftovers"
 group = "cleanup"
 model = "opus"
-note = "After C18s: 90 game data addresses left (named_data.py --split). This takes 'several files' (22) and the src/game, src/render, src/standalone, src/hook singles (about 20). Not crt* (C26), mfc* (C18r), not the generated static-init-only group unless an object falls out."
+note = "After C18s: 90 game data addresses left (named_data.py --split). This takes 'several files' (22) and the src/game, src/render, src/standalone, src/hook singles (about 20). Not crt* (C26), mfc* (C18r), not the generated static-init-only group unless an object falls out. Done 2026-10-22: the worlds, camera, scene renderer, device lock, map database, debug panel, class registry, clip work words, network buffers, save stream and received messages are lib::StaticObject with their 14 initialisers (rows in extra_function_sizes.csv / function_sizes.inc) and exits ported next to them (atexit_400.cpp gone); main window, stage blocks (StageBlock enum), loading movie, buffer flags and the damping scale 007C2F8C (initialiser 005B2FB0 ported) are plain globals; four constants that only looked like addresses rewritten. The harness reads game.exe's objects through harness_objects.h and in --no-hooks runs calls game.exe's PickAt2 / UnitAt / GameSendLeave04 / GameSetConstructionVariable. Game data addresses 90 -> 61 (56 after merging C25a), zero-bytes roots 62. Image suite ALL PASS, goldens 121 same / 23 without; original ALL PASS, 114 / 12. Left: EmptyText 0079B298 (15 pointer cells point at it, its address compared), the statics' guard 007CAEE4 (175 generated d.Once tests), STLport's free lists 0079B224-22C and throw info 0074C640, MFC's generated-init objects 007C8BB8-007CAAA0 (C18r), CRT (C26), section bounds."
 
 [[ticket]]
 id = "C27"
@@ -3073,6 +3073,13 @@ group = "cleanup"
 model = "opus"
 files = ["src/game/engine_object_class.h", "src/lib/compiled_vtable.h", "include/ei/vcall.h", "src/game/game_data.h", "tools/check_cleanup.py"]
 note = "When C28a-o are done: delete engine_object_class.h, compiled_vtable.h, ei::SetVtable / VirtualSlot (include/ei/vcall.h, game_data.h), drop the offsetof / sizeof asserts left that guard nothing leaving the process or coming from the data image, add the patterns to check_cleanup's counts, update docs (rewrite-guide, standalone-cleanup, notes/standalone.md 'Compiler-made vtables')."
+
+[[ticket]]
+id = "C25c"
+title = "Build without game.exe: out_of_range's throw information, then the switch"
+group = "cleanup"
+depends = ["C25a"]
+note = "User 2026-10-22: no switch; the game.exe-free build is the only build; no reference to game.exe in the build; drop the tools that only served the move (kept list, image trace, switch-only checks, named_data move modes). Locale rows go into our source if C26 hasn't removed them."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

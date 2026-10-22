@@ -12,6 +12,7 @@
 #include "originals_world.h"
 #include "party.h"
 #include "unit.h"
+#include "ui.h"
 #include "unit_ai.h"
 #include "world.h"
 
@@ -33,19 +34,10 @@ constexpr int kTextPause = 0xC;                       // the session's announcem
 constexpr int kStateJoined = 1;
 constexpr int kStateSendingCamera = 2;
 
-// The stream the received packets are decompressed into (007C83D0).
-CMemoryStream& Received() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 
-// The last digit of "reserved_02" (007930EC), the key of the pause announcement's text
-// (CInterface3D::MessageText, message 12). EI_Plugin's Pause writes it in .rdata: '2' for a pause,
-// '3' ("reserved_03") for a resume.
-void SetPauseTextDigit(std::uint8_t pause) {
-    auto* digit = ei::GamePointer<char>(0x007930F6);
-    DWORD old;
-    VirtualProtect(digit, 1, PAGE_READWRITE, &old);
-    *digit = static_cast<char>('3' - pause);
-    VirtualProtect(digit, 1, old, &old);
-}
+// The last digit of "reserved_02", the key of the pause announcement's text (CInterface3D::MessageText,
+// message 12). EI_Plugin's Pause writes it: '2' for a pause, '3' ("reserved_03") for a resume.
+void SetPauseTextDigit(std::uint8_t pause) { g_pauseMessageKey[10] = static_cast<char>('3' - pause); }
 
 // A unit of the player's world (the server's).
 CUnit* FindUnit(CPlayer* player, int id) {
@@ -86,7 +78,7 @@ int CPlayerServer::OnGameStateRequest() {
     if (state_ != kStateJoined) return 0;
     CPlayer* player = Owner();
     int state;
-    Received().Read(&state, 4);
+    ReceivedMessages().Read(&state, 4);
     player->sessionKind100_ = state;
     TheServerWorld()->CollectParty(player, &placements_);
     SendParty();
@@ -103,7 +95,7 @@ int CPlayerServer::OnGameStateRequest() {
 
 int CPlayerServer::OnPause() {
     std::uint8_t pause = 0;
-    Received().Read(&pause, 1);
+    ReceivedMessages().Read(&pause, 1);
     net::ServerSession* server = net::GameServer();
     // EI_Plugin's Pause (the mode from its ini): 1 and 2 jump from 0066FAFE to their bytes at 0066FB62,
     // which write the text key's digit and go on to announce resumes too; 2 also replaces the leader
@@ -128,7 +120,7 @@ int CPlayerServer::OnPause() {
 
 int CPlayerServer::OnCastAtObject() {
     CastAtObject message;
-    Received().Read(&message, sizeof(message));
+    ReceivedMessages().Read(&message, sizeof(message));
     CPlayer* player = Owner();
     CMapObject* target = player->WorldContext()->ObjectWithId(message.targetId);
     CUnit* unit = FindUnit(player, message.unitId);
@@ -142,7 +134,7 @@ int CPlayerServer::OnCastAtObject() {
 
 int CPlayerServer::OnCastAtPoint() {
     CastAtPoint message;
-    Received().Read(&message, sizeof(message));
+    ReceivedMessages().Read(&message, sizeof(message));
     CUnit* unit = FindUnit(Owner(), message.unitId);
     if (Able(unit)) {
         AIBrain* brain = unit->ServerController()->Brain();
@@ -156,7 +148,7 @@ int CPlayerServer::OnCastAtPoint() {
 
 int CPlayerServer::OnWantedWeapon() {
     UnitByte message;
-    Received().Read(&message, sizeof(message));
+    ReceivedMessages().Read(&message, sizeof(message));
     CUnit* unit = FindUnit(Owner(), message.unitId);
     if (Able(unit)) unit->ServerController()->SetWantedWeapon(message.value);
     return 1;
@@ -164,7 +156,7 @@ int CPlayerServer::OnWantedWeapon() {
 
 int CPlayerServer::OnMoveStyle() {
     UnitByte message;
-    Received().Read(&message, sizeof(message));
+    ReceivedMessages().Read(&message, sizeof(message));
     CUnit* unit = FindUnit(Owner(), message.unitId);
     if (unit && Alive(unit)) unit->ServerController()->SetMoveStyle(message.value);
     return 1;
@@ -172,15 +164,15 @@ int CPlayerServer::OnMoveStyle() {
 
 int CPlayerServer::OnUnitLookup() {
     int values[2];
-    Received().Read(&values[0], 4);
-    Received().Read(&values[1], 4);
+    ReceivedMessages().Read(&values[0], 4);
+    ReceivedMessages().Read(&values[1], 4);
     FindUnit(Owner(), values[0]);
     return 1;
 }
 
 int CPlayerServer::OnFollow() {
     int ids[2];   // unit, leader
-    Received().Read(ids, 8);
+    ReceivedMessages().Read(ids, 8);
     CPlayer* player = Owner();
     CUnit* unit = FindUnit(player, ids[0]);
     if (!unit) return 1;
@@ -192,17 +184,17 @@ int CPlayerServer::OnFollow() {
 
 int CPlayerServer::OnUnitFlag438() {
     int id;
-    Received().Read(&id, 4);
+    ReceivedMessages().Read(&id, 4);
     CUnit* unit = FindUnit(Owner(), id);
     std::int8_t value = 0;
-    Received().Read(&value, 1);
+    ReceivedMessages().Read(&value, 1);
     if (unit) unit->SetUnknown438(value);
     return 1;
 }
 
 int CPlayerServer::OnLastPosition() {
     std::uint32_t xy[2];   // copied as dwords, as the original does
-    Received().Read(xy, 8);
+    ReceivedMessages().Read(xy, 8);
     std::memcpy(&lastPosition_.x, &xy[0], 4);
     std::memcpy(&lastPosition_.y, &xy[1], 4);
     return 1;

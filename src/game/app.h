@@ -33,9 +33,10 @@ CDirectInputMouse*& Mouse();
 // while it is set); whether QuitGame may post the quit message (cleared while a timed movie plays); a movie of
 // the frames being written (the loop then runs a fixed time a frame); the console's switch that prints the
 // client speed; what the video memory allows (little memory besides the textures, little texture memory) and
-// whether a device was named on the command line; the loading screen's movie file.
+// whether a device was named on the command line; the loading screen's movie file. g_mainWindow is the game window.
 extern char g_windowTitle[256];
 extern HINSTANCE g_instance;
+extern HWND g_mainWindow;
 extern std::uint8_t g_active;
 extern std::uint8_t g_activationChanged;
 extern std::uint8_t g_interfaceHasScreen;

@@ -54,8 +54,6 @@ constexpr int kOrderUse = 6;                          // AIOrder::kind
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
 constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
 
-// The stream the received packets are decompressed into (007C83D0; ReceiveMessages fills it).
-CMemoryStream& ReceivedMessages() { return ei::GameData<CMemoryStream>(0x007C83D0); }
 // The shares a revived hero loses: of the party's money (007C5490) and of its experience above the
 // NPC record's floor (007C5494). Set at startup.
 float MoneyPenalty() { return GameLogicSettings().lostMoney; }
@@ -78,6 +76,30 @@ void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
 }
 
 } // namespace
+
+// The stream the received packets are decompressed into (core_streams.h), zero at the start: built by the static
+// initialiser 0066C4D0 in the list's order and destroyed once (bit 0 of 007C83C8) by the exit function it registers
+// (0066C520); both ported on the name and registered at their addresses (docs/notes/standalone.md, "The static
+// initialisers' objects").
+constinit lib::StaticObject<CMemoryStream> g_receivedMessages = /*007C83D0*/ {};
+CMemoryStream& ReceivedMessages() { return *g_receivedMessages; }
+
+namespace {
+std::uint8_t g_receivedMessagesDestroyed = /*007C83C8*/ {};
+void __cdecl DestroyReceivedMessages() {   // 0066C520
+    std::uint8_t flags = g_receivedMessagesDestroyed;
+    if (flags & 1) return;
+    g_receivedMessagesDestroyed = static_cast<std::uint8_t>(flags | 1);
+    g_receivedMessages->Destruct();
+}
+void __cdecl ConstructReceivedMessages() {   // 0066C4D0
+    g_receivedMessages->ConstructQueueStream();
+    GameAtExit(DestroyReceivedMessages);
+}
+} // namespace
+
+EI_REPLACE(0x0066C4D0, ConstructReceivedMessages);
+EI_REPLACE(0x0066C520, DestroyReceivedMessages);
 
 // --- 0066F4C0: the leader died ----------------------------------------------------------------------
 

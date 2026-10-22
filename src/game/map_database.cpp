@@ -316,3 +316,20 @@ CMapDatabase* CMapDatabase::Construct() {
     return this;
 }
 EI_REPLACE_METHOD(0x0045E820, CMapDatabase::Construct);
+
+// The map database, zero at the start: built by the static initialiser 0045E6C0 in the list's order and destroyed by
+// the exit function it registers (0045E6E0); both ported on the name and registered at their addresses
+// (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<CMapDatabase> g_mapDatabase = /*0079BF00*/ {};
+CMapDatabase* TheMapDatabase() { return &*g_mapDatabase; }
+
+namespace {
+void __cdecl DestroyMapDatabase() { g_mapDatabase->Destruct(); }   // 0045E6E0
+void __cdecl ConstructMapDatabase() {                              // 0045E6C0
+    g_mapDatabase->Construct();
+    GameAtExit(DestroyMapDatabase);
+}
+} // namespace
+
+EI_REPLACE(0x0045E6C0, ConstructMapDatabase);
+EI_REPLACE(0x0045E6E0, DestroyMapDatabase);

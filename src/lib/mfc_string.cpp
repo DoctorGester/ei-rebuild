@@ -16,6 +16,21 @@
 
 namespace mfc::impl {
 
+#ifndef EI_VECTORS_REPLAY
+namespace {
+
+// The shared empty string: _afxInitData {-1, 0, 0} (game.exe's 00796E50) and its characters right after it.
+struct NilString {
+    CStringData data;
+    char chars[4];
+};
+constinit NilString g_nilString = {{-1, 0, 0}, {}};
+
+} // namespace
+
+constinit CStringData* g_dataNil = &g_nilString.data;
+#endif
+
 namespace {
 
 using uchar = unsigned char;

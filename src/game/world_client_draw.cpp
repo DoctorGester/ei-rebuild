@@ -69,11 +69,6 @@ void SetRenderState(CTextureDevice* renderer, int state, std::uint32_t value) {
     device::SetRenderState(device::D3D(renderer), static_cast<D3DRENDERSTATETYPE>(state), value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
-// The renderer's state block handles: 007AEDD0 the scene's, 007AEDD8 the alpha passes', 007AEDDC
-// the terrain's.
-const std::uint32_t& StateBlockScene() { return ei::GameData<const std::uint32_t>(0x007AEDD0); }
-const std::uint32_t& StateBlockAlpha() { return ei::GameData<const std::uint32_t>(0x007AEDD8); }
-const std::uint32_t& StateBlockTerrain() { return ei::GameData<const std::uint32_t>(0x007AEDDC); }
 void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
     renderer->lastLoadResult_ = device::ApplyStateBlock(device::D3D(renderer), handle);
     render::state::Block(handle);
@@ -288,7 +283,7 @@ int CWorldClient::Render() {
     void* sky = skyDome_;
     if ((flags & 0x1000) && sky) {
         SetRenderState(renderer, 15, 0);
-        ApplyStateBlock(renderer, StateBlockScene());
+        ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
         SetRenderState(renderer, 14, 0);
         SetRenderState(renderer, 22, 1);
         SetRenderState(renderer, 29, 1);
@@ -305,7 +300,7 @@ int CWorldClient::Render() {
         camera_->GroundPoint(&frame);
         CCamera* camera = camera_;
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
-        ApplyStateBlock(renderer, StateBlockTerrain());
+        ApplyStateBlock(renderer, g_stageBlocks[kTerrainBlock]);
         terrain_->DrawGround(TheSceneRenderer());
     }
     DrawPassAt(this);
@@ -316,14 +311,14 @@ int CWorldClient::Render() {
         CCamera* camera = camera_;
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         SetRenderState(renderer, 15, 0);
-        ApplyStateBlock(renderer, StateBlockScene());
+        ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
         terrain_->DrawWater(TheSceneRenderer());
     }
     // The shadow map's casters the game did not draw (R20; the map is fitted to the ground drawn above).
     HandOverOutsideCasters(this);
     net::Pump();
     if (flags_ & 0x400) {
-        ApplyStateBlock(renderer, StateBlockAlpha());
+        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         SetRenderState(TheRenderDevice(), 27, 1);
         SetRenderState(TheRenderDevice(), 15, 0);
         SetRenderState(TheRenderDevice(), 19, 5);
@@ -343,7 +338,7 @@ int CWorldClient::Render() {
         RainSnow()->DrawImpl(TheSceneRenderer());
         SetRenderState(renderer, 14, 1);
     }
-    ApplyStateBlock(renderer, StateBlockScene());
+    ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
     net::Pump();
     DrawLineLists();
     PopMatrix(device->stacks_[kStackWorld]);
@@ -351,7 +346,7 @@ int CWorldClient::Render() {
     PopMatrix(device->stacks_[kStackScene1]);
     if (flags_ & 0x2000) {
         SetRenderState(renderer, 7, 0);
-        ApplyStateBlock(renderer, StateBlockAlpha());
+        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         renderer->distanceFog_ = 0;
         numbers_->Draw(TheSceneRenderer());
         renderer->distanceFog_ = 1;
@@ -499,7 +494,7 @@ int CWorldClient::DrawPass() {
     // The frame's window rectangles (an STLport list of 32-byte nodes).
     stlp::list<ScreenEntry>& queued = screenEntries_;
     if (flags_ & 0xC0) {
-        ApplyStateBlock(renderer, StateBlockAlpha());
+        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         using Node = stlp::list<ScreenEntry>::Node;
         Node* node = queued.head->next;
         while (node != queued.head) {
@@ -530,7 +525,7 @@ int CWorldClient::DrawPass() {
     if ((flags_ & 0x80) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
         SortByModel(FrameList::VisibleUnits);
         SetRenderState(renderer, 24, 10);
-        ApplyStateBlock(renderer, StateBlockAlpha());
+        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         DrawEach(FrameList::VisibleUnits, kDrawUnit);
         CEngineObject** end = FrameObjects(FrameList::VisibleUnits).end();
         for (CEngineObject** p = FrameObjects(FrameList::VisibleUnits).begin(); p != end; ++p) QueueScreenEntry(*p, &queued);
@@ -538,7 +533,7 @@ int CWorldClient::DrawPass() {
 
     // Light effects (three lists of the client, each behind its setting).
     if (!ListEmpty(bloodPrints_) || !ListEmpty(footprints_) || !ListEmpty(scorchMarks_)) {
-        ApplyStateBlock(renderer, StateBlockAlpha());
+        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);
         if (LightEffects1B8()) DrawLightEffects(bloodPrints_);
@@ -569,7 +564,7 @@ int CWorldClient::DrawPass() {
         matrix.m[11] = product;
         PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene2);
         PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene1);
-        ApplyStateBlock(renderer, StateBlockAlpha());
+        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);
         DrawEach(FrameList::Shadow5D, kDrawShadow);

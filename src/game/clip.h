@@ -22,9 +22,9 @@ static_assert(offsetof(TLVertex, color) == 0x10);
 
 namespace clip {
 
-// The work buffer: an MFC CWordArray at 0079B668 (data pointer 0079B66C), the number of indices
-// in it (0079B68C) and the last intersection parameter (0079B664).
-inline std::uint16_t*& Buffer() { return ei::GameData<std::uint16_t*>(0x0079B66C); }
+// The work buffer: an MFC CWordArray (g_workWords, clip.cpp), the number of indices in it (0079B68C) and the last
+// intersection parameter (0079B664).
+std::uint16_t* Buffer();
 inline int g_bufferCount = /*0079B68C*/ {};
 inline float g_lastRatio = /*0079B664*/ {};
 
