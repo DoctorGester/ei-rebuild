@@ -3,10 +3,23 @@
 #include "ai_unit_layer.h"
 
 #include "ei/hook.h"
+#include "lib/compiled_vtable.h"
 
 #include <cstring>
 
 namespace {
+
+// The derived layers' tables: the compiler's (C19; game.exe's 0073FD74 small, 0073FD6C large; the same
+// slots): 0 Set, 1 Merge. The base's is ai_grids.cpp's.
+struct SmallUnitLayerClass final : ei::CompiledTag<SmallUnitLayerClass> {
+    virtual void Set(const UnitLayerNode* block) { reinterpret_cast<CUnitLayer*>(this)->SetSmall(block); }       // 0
+    virtual void Merge(const UnitLayerNode* block) { reinterpret_cast<CUnitLayer*>(this)->MergeSmall(block); }   // 1
+};
+struct LargeUnitLayerClass final : ei::CompiledTag<LargeUnitLayerClass> {
+    virtual void Set(const UnitLayerNode* block) { reinterpret_cast<CUnitLayer*>(this)->SetLarge(block); }       // 0
+    virtual void Merge(const UnitLayerNode* block) { reinterpret_cast<CUnitLayer*>(this)->MergeLarge(block); }   // 1
+};
+
 using NodeList = mfc::CList<UnitLayerNode>;
 
 // A node from the free list, or a new one appended to the layer's list. The original copies an
@@ -114,7 +127,7 @@ void CUnitLayer::SetSmall(const UnitLayerNode* block) {
         }
     }
 }
-EI_REPLACE_METHOD(0x005B39D0, CUnitLayer::SetSmall);
+EI_REWRITTEN(0x005B39D0, CUnitLayer::SetSmall);
 
 void CUnitLayer::MergeSmall(const UnitLayerNode* block) {
     int x, y;
@@ -128,14 +141,14 @@ void CUnitLayer::MergeSmall(const UnitLayerNode* block) {
         }
     }
 }
-EI_REPLACE_METHOD(0x005B3A70, CUnitLayer::MergeSmall);
+EI_REWRITTEN(0x005B3A70, CUnitLayer::MergeSmall);
 
 void CUnitLayer::SetLarge(const UnitLayerNode* block) {
     int x, y;
     if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) std::memcpy(map->waterDepth[y + r] + x, &block->levels[r * 4], 4);
 }
-EI_REPLACE_METHOD(0x005B3B20, CUnitLayer::SetLarge);
+EI_REWRITTEN(0x005B3B20, CUnitLayer::SetLarge);
 
 void CUnitLayer::MergeLarge(const UnitLayerNode* block) {
     int x, y;
@@ -149,4 +162,7 @@ void CUnitLayer::MergeLarge(const UnitLayerNode* block) {
         }
     }
 }
-EI_REPLACE_METHOD(0x005B3B90, CUnitLayer::MergeLarge);
+EI_REWRITTEN(0x005B3B90, CUnitLayer::MergeLarge);
+
+void* CUnitLayer::SmallVtable() { return SmallUnitLayerClass::Vtable(); }
+void* CUnitLayer::LargeVtable() { return LargeUnitLayerClass::Vtable(); }

@@ -4,6 +4,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "game_data.h"
@@ -19,7 +20,15 @@ namespace {
 
 constexpr float kCellSize = 1.0f;   // 0073FDD0
 constexpr float kZero = 0.0f;
+
+// The compiler's one-slot tables (C19): a sector's (game.exe's 0073FADC) and the sector map's (0073F9DC),
+// slot 0 the scalar deleting destructor.
+struct SectorClass final : ei::CompiledDeleter<SectorClass, &Sector::DeletingDestruct> {};
+struct SectorMapClass final : ei::CompiledDeleter<SectorMapClass, &CSectorMap::DeletingDestruct> {};
 } // namespace
+
+void* Sector::Vtable() { return SectorClass::Vtable(); }
+void* CSectorMap::Vtable() { return SectorMapClass::Vtable(); }
 
 // ---- Sectors ------------------------------------------------------------------------------------
 
@@ -74,7 +83,7 @@ void __stdcall ConstructSectors(Sector* sectors, int count) {
         sectors->objects = {mfc::impl::ClientObjectListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->units = {mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
         sectors->occluders.Construct(mfc::impl::SectorOccluderArrayClass::Vtable());
-        ei::SetVtable(sectors, kSectorVtable);
+        ei::SetVtable(sectors, Sector::Vtable());
         sectors->Clear();
     }
 }
@@ -101,7 +110,7 @@ EI_REWRITTEN(0x00599330, CSectorMap::DestructSectors);
 EI_REWRITTEN(0x005BD1C0, mfc::impl::ArrayHeader<mfc::impl::SectorArrayClass>::Construct);   // the sectors array's constructor (SectorArrayClass is built from DestructSectors: not in ei_vectors)
 
 void CSectorMap::DestructBody() {
-    vtable = ei::GamePointer<void>(kVtableAddress);
+    vtable = Vtable();
     DestructSectors(&sectors);
 }
 EI_REWRITTEN(0x0058A700, CSectorMap::DestructBody);
@@ -111,7 +120,7 @@ CSectorMap* CSectorMap::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0058A780, CSectorMap::DeletingDestruct);
+EI_REWRITTEN(0x0058A780, CSectorMap::DeletingDestruct);
 
 bool CSectorMap::Add(CMapObject* object) {
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * object->localPosition_.x - 0.5f);
