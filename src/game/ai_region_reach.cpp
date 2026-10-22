@@ -366,7 +366,7 @@ void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
             for (int yy = lo; yy < hi; ++yy)
                 for (int xx = lo; xx < hi; ++xx) {
                     int x = bx * 8 + xx, y = by * 8 + yy;
-                    if (x < 0 || y < 0 || x >= map->width || y >= map->height) continue;
+                    if (x < 0 || y < 0 || x >= map->cells.width || y >= map->cells.height) continue;
                     int nibble = static_cast<int>((map->cells[y][x].passable >> (c * 4)) & 0xF);
                     if (nibble == 0) continue;
                     if (!(nibble > best) && found) continue;
@@ -566,7 +566,7 @@ void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
 
 void CRegionMap::Attach(CAIMap* map) {
     local.Attach(map, false);
-    int width = map->width / 8, height = map->height / 8;
+    int width = map->cells.width / 8, height = map->cells.height / 8;
     for (int c = 0; c < 8; ++c) {
         Fit(edges[c], width, height, &AllocateEdgeGrid);
         Fit(cells[c], width, height, &AllocateZeroedByteGrid);

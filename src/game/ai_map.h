@@ -345,6 +345,9 @@ struct SearchGrid {
     T** rows;
     int width, height;
 
+    // Row y (grid[y][x] is the cell at (x, y)).
+    T* operator[](int y) const { return rows[y]; }
+
     // ai_grids.cpp. 005CD3A0 (RET 8; the visibility marks, VisibilityGrid + 8). Reallocated to
     // newWidth x newHeight (the cells are not kept or cleared) unless the grid already has that size.
     void Resize(int newWidth, int newHeight);
@@ -820,11 +823,7 @@ public:
     // whole map refreshed (or added to the dirty rectangle while batching).
     void AttachTerrain();
 
-    // The cells', the occluder words' and the water depths' grids as the grid template sees them
-    // (block, rows, width, height), and the AI events that follow the map in the world.
-    SearchGrid<AIMapCell>& CellGrid() { return *reinterpret_cast<SearchGrid<AIMapCell>*>(&cellBlock); }
-    SearchGrid<std::uint32_t>& OccluderGrid() { return *reinterpret_cast<SearchGrid<std::uint32_t>*>(&occluderBlock); }
-    SearchGrid<std::int8_t>& WaterGrid() { return *reinterpret_cast<SearchGrid<std::int8_t>*>(&waterBlock); }
+    // The AI events that follow the map in the world.
     AIEventTable* Events() { return reinterpret_cast<AIEventTable*>(this + 1); }
 
     // The sector map embedded at +0x124 (sector_map.h).
@@ -1027,9 +1026,7 @@ public:
     CSectorMap sectorMap;               // +0x124 (CSectorMap::Vtable; game.exe: 0073F9DC)
     FootprintCellSet footprint;         // +0x14C scratch for MarkFootprint
     FootprintCellSet bridges;           // +0x1A0
-    std::int8_t* waterBlock;            // +0x1F4 the water depths' grid (WaterGrid) from here
-    std::int8_t** waterDepth;           // +0x1F8 rows of per-cell water depth
-    int waterWidth, waterHeight;        // +0x1FC
+    SearchGrid<std::int8_t> waterDepth;  // +0x1F4 per-cell water depth
     // +0x204 the standing levels' special areas (ClearUnmarkedArea): RefreshArea reads the first
     // list for levels 0..4, the second for 5 and 6, the third for 7 (the other three are not read
     // there). CArray<{int, int}> (mfc_slots.h's AreaListClass), filled by FillAreaLists (005B4150).
@@ -1041,13 +1038,8 @@ public:
     LocalSearch forwardSearch;                      // +0x2594
     LocalSearch backwardSearch;                     // +0x2614
     int lastFootprintOwner;             // +0x2694 set by StampFootprint
-    AIMapCell* cellBlock;               // +0x2698 the cells' grid (CellGrid) from here
-    AIMapCell** cells;                  // +0x269C rows of cells
-    int width;                          // +0x26A0
-    int height;                         // +0x26A4
-    std::uint32_t* occluderBlock;       // +0x26A8 the occluder words' grid (OccluderGrid) from here
-    std::uint32_t** occluders;          // +0x26AC rows of per-cell occluder words (see LineOfSight)
-    int occluderWidth, occluderHeight;  // +0x26B0
+    SearchGrid<AIMapCell> cells;        // +0x2698 the map's cells (cells.width x cells.height)
+    SearchGrid<std::uint32_t> occluders;  // +0x26A8 per-cell occluder words (see LineOfSight)
     SearchGrid<std::int8_t> marks;      // +0x26B8 per-cell marks: path directions (BuildCellsTo), reach answers
 };
 static_assert(offsetof(CAIMap, batching) == 0x01 && offsetof(CAIMap, refreshUnits) == 0x02);
@@ -1056,26 +1048,22 @@ static_assert(offsetof(CAIMap, dirtyMinY) == 0x0C && offsetof(CAIMap, dirtyMaxY)
 static_assert(offsetof(CAIMap, passCosts) == 0x14);
 static_assert(offsetof(CAIMap, sectorMap) == 0x124);
 static_assert(offsetof(CAIMap, areaLists) == 0x204);
-static_assert(offsetof(CAIMap, waterWidth) == 0x1FC && offsetof(CAIMap, waterHeight) == 0x200);
 static_assert(offsetof(CAIMap, stepCosts) == 0x94);
 static_assert(offsetof(CAIMap, climbLarge) == 0xD4);
 static_assert(offsetof(CAIMap, climbSmall) == 0xE8);
 static_assert(offsetof(CAIMap, materials) == 0xFC);
-static_assert(offsetof(CAIMap, waterBlock) == 0x1F4);
-static_assert(offsetof(CAIMap, cellBlock) == 0x2698 && offsetof(CAIMap, occluderBlock) == 0x26A8);
+static_assert(offsetof(CAIMap, waterDepth) == 0x1F4);
+static_assert(offsetof(CAIMap, cells) == 0x2698 && offsetof(CAIMap, occluders) == 0x26A8);
 static_assert(offsetof(CAIMap, bridgeHeights) == 0x10C);
 static_assert(offsetof(CAIMap, heightScale) == 0x120);
 static_assert(offsetof(CAIMap, footprint) == 0x14C);
 static_assert(offsetof(CAIMap, bridges) == 0x1A0);
-static_assert(offsetof(CAIMap, waterDepth) == 0x1F8);
 static_assert(offsetof(CAIMap, unitLayerSmall) == 0x27C && offsetof(CAIMap, unitLayerLarge) == 0x12A4);
 static_assert(offsetof(CAIMap, regionMap) == 0x22F8);
 static_assert(offsetof(CAIMap, smoother) == 0x22CC);
 static_assert(offsetof(CAIMap, forwardSearch) == 0x2594);
 static_assert(offsetof(CAIMap, backwardSearch) == 0x2614);
 static_assert(offsetof(CAIMap, lastFootprintOwner) == 0x2694);
-static_assert(offsetof(CAIMap, cells) == 0x269C);
-static_assert(offsetof(CAIMap, occluders) == 0x26AC);
 static_assert(offsetof(CAIMap, marks) == 0x26B8);
 static_assert(sizeof(CAIMap) == 0x26C8);   // the AI events follow (Events)
 // 005B3C30 (thiscall; ai_map_construct.cpp; the world server's constructor 00589ED0). Returns self.

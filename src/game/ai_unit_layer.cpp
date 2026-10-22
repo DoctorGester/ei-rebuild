@@ -113,8 +113,8 @@ bool BlockInMap(const CAIMap* map, const UnitLayerNode* block, int* x, int* y) {
     std::memcpy(halves, &block->key, sizeof(halves));
     *x = halves[0] * 4;
     *y = halves[1] * 4;
-    return static_cast<unsigned>(*y) < static_cast<unsigned>(map->height) &&
-           static_cast<unsigned>(*x) < static_cast<unsigned>(map->width);
+    return static_cast<unsigned>(*y) < static_cast<unsigned>(map->cells.height) &&
+           static_cast<unsigned>(*x) < static_cast<unsigned>(map->cells.width);
 }
 } // namespace
 

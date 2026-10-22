@@ -281,18 +281,18 @@ void BuildMap(const SavedMap& s) {
     std::memset(block, 0, sizeof(CAIMap) + 0x1000);
     CAIMap* map = static_cast<CAIMap*>(block);
     map->loaded = true;
-    map->width = s.width;
-    map->height = s.height;
+    map->cells.width = s.width;
+    map->cells.height = s.height;
     std::memcpy(map->passCosts, s.passCosts, sizeof(s.passCosts));
     std::memcpy(map->passCostsAlt, s.passCostsAlt, sizeof(s.passCostsAlt));
     std::memcpy(map->stepCosts, s.stepCosts, sizeof(s.stepCosts));
     FillClimb(map->climbLarge, s.climbLarge);
     FillClimb(map->climbSmall, s.climbSmall);
     map->heightScale = s.heightScale;
-    SizeGrid(map->CellGrid(), s.cells.width, s.cells.height);
-    SizeGrid(map->WaterGrid(), s.water.width, s.water.height);
-    map->waterWidth = s.water.width;
-    map->waterHeight = s.water.height;
+    SizeGrid(map->cells, s.cells.width, s.cells.height);
+    SizeGrid(map->waterDepth, s.water.width, s.water.height);
+    map->waterDepth.width = s.water.width;
+    map->waterDepth.height = s.water.height;
     SizeGrid(map->marks, s.marks.width, s.marks.height);
     CRegionMap& r = map->regionMap;
     for (int c = 0; c < 8; ++c) {
@@ -312,16 +312,16 @@ void BuildMap(const SavedMap& s) {
 bool PrepareMap(const SavedMap& s, Reader& r) {
     if (g_mapOf != &s) BuildMap(s);
     CAIMap* map = g_map;
-    CopyGrid(map->CellGrid(), s.cells);
-    CopyGrid(map->WaterGrid(), s.water);
+    CopyGrid(map->cells, s.cells);
+    CopyGrid(map->waterDepth, s.water);
     CopyGrid(map->marks, s.marks);
     std::vector<std::uint8_t> regions = s.regionBytes;
     const std::uint8_t planes = r.Get<std::uint8_t>();
     bool ok = r.ok() && !(planes & ~kCallAll);
     if (ok && (planes & kCallCells))
-        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->cellBlock), static_cast<std::uint32_t>(s.cells.bytes.size() / 9), 9);
+        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->cells.data), static_cast<std::uint32_t>(s.cells.bytes.size() / 9), 9);
     if (ok && (planes & kCallWater))
-        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->waterBlock), static_cast<std::uint32_t>(s.water.bytes.size()), 1);
+        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->waterDepth.data), static_cast<std::uint32_t>(s.water.bytes.size()), 1);
     if (ok && (planes & kCallMarks))
         ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->marks.data), static_cast<std::uint32_t>(s.marks.bytes.size()), 1);
     if (ok && (planes & kCallRegions))

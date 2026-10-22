@@ -124,9 +124,9 @@ void CAIMap::ClearMarksAround(const PathCellList* chain) {
     int x0 = minX * kBlock - kMargin, x1 = maxX * kBlock + kBlock + kMargin;
     int y0 = minY * kBlock - kMargin, y1 = maxY * kBlock + kBlock + kMargin;
     if (x0 < 0) x0 = 0;
-    if (width < x1) x1 = width;
+    if (cells.width < x1) x1 = cells.width;
     if (y0 < 0) y0 = 0;
-    if (height < y1) y1 = height;
+    if (cells.height < y1) y1 = cells.height;
     for (int y = y0; y < y1; ++y)
         for (int x = x0; x < x1; ++x) marks.rows[y][x] = 0;
 }

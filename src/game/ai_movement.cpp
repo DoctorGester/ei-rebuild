@@ -147,7 +147,7 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     // The original also asks the unit for its movement speeds (0052F920) and ignores them.
     int x = CellOf(unit->localPosition_.x);
     int y = CellOf(unit->localPosition_.y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     if (HasKind3Occluder(x, y)) {
         int sizeClass = unit->sizeClass;
         int level = x87::fistp(static_cast<float>(static_cast<double>(ClassHeights()[sizeClass]) * heightScale));
@@ -227,7 +227,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
         for (int x = eyeX - reach; x < eyeX + reach; ++x) {
             int gx = x - grid->originX;
             int gy = y - grid->originY;
-            if (x * 9 < 0 || y < 0 || x >= width || y >= height) continue;
+            if (x * 9 < 0 || y < 0 || x >= cells.width || y >= cells.height) continue;
             Vector3 cell;
             cell.x = static_cast<float>(static_cast<double>(x) * half);
             cell.y = static_cast<float>(static_cast<double>(y) * half);

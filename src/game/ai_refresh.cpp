@@ -43,15 +43,15 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (x0 > x1 || y0 > y1) return;
     if (x0 < 0) x0 = 0;
     if (y0 < 0) y0 = 0;
-    if (width - 1 < x1) x1 = width - 1;
-    if (height - 1 < y1) y1 = height - 1;
+    if (cells.width - 1 < x1) x1 = cells.width - 1;
+    if (cells.height - 1 < y1) y1 = cells.height - 1;
     // The inner rectangle, and the outer one grown by 3 cells.
     int ix0 = x0, ix1 = x1, iy0 = y0, iy1 = y1;
     int ox0 = x0 - 3, ox1 = x1 + 3, oy0 = y0 - 3, oy1 = y1 + 3;
     if (ox0 < 0) ox0 = 0;
     if (oy0 < 0) oy0 = 0;
-    if (width - 1 < ox1) ox1 = width - 1;
-    if (height - 1 < oy1) oy1 = height - 1;
+    if (cells.width - 1 < ox1) ox1 = cells.width - 1;
+    if (cells.height - 1 < oy1) oy1 = cells.height - 1;
 
     alignas(4) std::uint8_t scratch[0x34];
     for (int level = 0; level < kLevels; ++level) {
@@ -82,19 +82,19 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     // The three outermost rows and columns are never passable.
     for (int x = ox0; x <= ox1; ++x) {
         CellWord(this, x, 0) = 0;
-        CellWord(this, x, height - 1) = 0;
+        CellWord(this, x, cells.height - 1) = 0;
         CellWord(this, x, 1) = 0;
-        CellWord(this, x, height - 2) = 0;
+        CellWord(this, x, cells.height - 2) = 0;
         CellWord(this, x, 2) = 0;
-        CellWord(this, x, height - 3) = 0;
+        CellWord(this, x, cells.height - 3) = 0;
     }
     for (int y = oy0; y <= oy1; ++y) {
         CellWord(this, 0, y) = 0;
-        CellWord(this, width - 1, y) = 0;
+        CellWord(this, cells.width - 1, y) = 0;
         CellWord(this, 1, y) = 0;
-        CellWord(this, width - 2, y) = 0;
+        CellWord(this, cells.width - 2, y) = 0;
         CellWord(this, 2, y) = 0;
-        CellWord(this, width - 3, y) = 0;
+        CellWord(this, cells.width - 3, y) = 0;
     }
 
     if (!refreshUnits) return;
@@ -280,8 +280,8 @@ int MaxStep(const ClimbTable& table) {
 void CAIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
     if (x0 < 2) x0 = 2;
     if (y0 < 2) y0 = 2;
-    if (width - 3 < x1) x1 = width - 3;
-    if (height - 3 < y1) y1 = height - 3;
+    if (cells.width - 3 < x1) x1 = cells.width - 3;
+    if (cells.height - 3 < y1) y1 = cells.height - 3;
     int maxLarge = MaxStep(climbLarge);
     int maxSmall = MaxStep(climbSmall);
     const CellOffset* offsets = SteepOffsets();
@@ -313,8 +313,8 @@ void CAIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
 void CAIMap::ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0, int y1) {
     if (-dx > x0) x0 = -dx;
     if (-dy > y0) y0 = -dy;
-    if (width - dx - 1 < x1) x1 = width - dx - 1;
-    if (height - dy - 1 < y1) y1 = height - dy - 1;
+    if (cells.width - dx - 1 < x1) x1 = cells.width - dx - 1;
+    if (cells.height - dy - 1 < y1) y1 = cells.height - dy - 1;
     // The shift count is the low 5 bits of level * 4, as SHL does it.
     std::uint32_t keep = ~(0xFu << ((level * 4) & 31));
     for (int y = y0; y <= y1; ++y)
