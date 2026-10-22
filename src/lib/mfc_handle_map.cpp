@@ -184,6 +184,23 @@ BOOL CMapPtrToPtr::RemoveKey(void* key) {
     return FALSE;
 }
 
+// The next entry is the next in the chain, else the head of a later bucket.
+void CMapPtrToPtr::GetNextAssoc(Assoc*& position, void*& key, void*& value) const {
+    Assoc* assoc = position;
+    if (assoc == StartPosition()) {
+        for (std::uint32_t bucket = 0; bucket < hashSize; ++bucket)
+            if ((assoc = table[bucket]) != nullptr) break;
+    }
+    Assoc* next = assoc->next;
+    if (!next) {
+        for (std::uint32_t bucket = HashKey(assoc->key) % hashSize + 1; bucket < hashSize; ++bucket)
+            if ((next = table[bucket]) != nullptr) break;
+    }
+    position = next;
+    key = assoc->key;
+    value = assoc->value;
+}
+
 EI_REWRITTEN(0x007002C2, CMapPtrToPtr::Construct);
 EI_REWRITTEN(0x00700375, CMapPtrToPtr::Destruct);
 EI_REPLACE_METHOD(0x007002E9, CMapPtrToPtr::DeletingDestructor);
@@ -195,8 +212,41 @@ EI_REWRITTEN(0x00700404, CMapPtrToPtr::GetAssocAt);
 EI_REWRITTEN(0x00700436, CMapPtrToPtr::GetValueAt);
 EI_REWRITTEN(0x0070048B, CMapPtrToPtr::At);
 EI_REWRITTEN(0x007004DB, CMapPtrToPtr::RemoveKey);
+EI_REWRITTEN(0x0070051D, CMapPtrToPtr::GetNextAssoc);
 
 // ---- CHandleMap -----------------------------------------------------------------------------------
+
+namespace {
+// CHandleMap's compiled table (C19; game.exe's 0074685C): 0 the deleting destructor (006E6CEC).
+struct HandleMapTable final : ei::CompiledDeleter<HandleMapTable, &CHandleMap::DeletingDestructor> {};
+} // namespace
+
+void* CHandleMap::Vtable() { return HandleMapTable::Vtable(); }
+
+void CHandleMap::Destruct() {
+    vtable = Vtable();
+    DeleteTemp();
+    temporaryMap.Destruct();
+    permanentMap.Destruct();
+}
+
+CHandleMap* CHandleMap::DeletingDestructor(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+
+void CHandleMap::DeleteTemp() {
+    CMapPtrToPtr::Assoc* position = temporaryMap.count ? CMapPtrToPtr::StartPosition() : nullptr;
+    while (position) {
+        void* handle;
+        void* object;
+        temporaryMap.GetNextAssoc(position, handle, object);
+        SetHandles(object, nullptr);
+        if (object) static_cast<CObjectVirtuals*>(object)->DeletingDestructor(1);
+    }
+    temporaryMap.RemoveAll();
+}
 
 CHandleMap* CHandleMap::Construct(const CRuntimeClass* cls, unsigned offset, int handles) {
     permanentMap.Construct(10);
@@ -238,6 +288,9 @@ void* CHandleMap::FromHandle(HANDLE handle) {
 }
 
 EI_REWRITTEN(0x00703617, CHandleMap::Construct);
+EI_REWRITTEN(0x006E6D08, CHandleMap::Destruct);
+EI_REWRITTEN(0x006E6CEC, CHandleMap::DeletingDestructor);
+EI_REWRITTEN(0x0070373B, CHandleMap::DeleteTemp);
 EI_REPLACE_METHOD(0x0070367C, CHandleMap::FromHandle);
 
 } // namespace mfc::impl

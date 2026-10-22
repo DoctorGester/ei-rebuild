@@ -525,6 +525,7 @@ vtable,slots,class,file,note
 00746610,5,NotSupportedExceptionTable,src/lib/mfc_exception.cpp,CNotSupportedException (_simpleNotSupportedException)
 007467A0,3,UIntArrayTable,src/lib/mfc_coll.cpp,CUIntArray (slot 2 CObject's empty Serialize)
 00746808,5,ArchiveExceptionTable,src/lib/mfc_exception.cpp,CArchiveException
+0074685C,1,HandleMapTable,src/lib/mfc_handle_map.cpp,"CHandleMap (the image's DC and GDI object maps, mfc_gdi.cpp)"
 0074689C,3,MapPtrToPtrTable,src/lib/mfc_handle_map.cpp,CMapPtrToPtr (the handle maps' maps)
 00746FB0,3,CPtrArray,-,"stored only by game.exe's MFC constructor / destructor 006FFC8E / 006FFCC1, which no code of ours calls"
 00746FE8,3,CPtrList,-,"stored only by game.exe's MFC constructor / destructor 006FFED9 / 00700048, which no code of ours calls"

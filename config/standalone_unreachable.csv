@@ -25,7 +25,6 @@ address,what,reason
 007467A0,vtable,"CUIntArray: slot 0 GetRuntimeClass only"
 0074689C,vtable,"CMapPtrToPtr: slot 0 GetRuntimeClass only"
 0073BFB4,vtable,"CFont: slot 0 GetRuntimeClass only (the interface deletes its fonts through slot 1, ours)"
-0074685C,vtable,"CHandleMap: the deleting destructor; the image's maps (mfc_gdi.cpp MapHDC / MapHGDIOBJ) live until the process ends"
 0074646C,vtable,"CResourceException: MFC's one static object, not auto-deleted (Delete never frees it through slot 1); handlers catch by C++ type, not IsKindOf (slot 0)"
 00746484,vtable,"CUserException: MFC's one static object, not auto-deleted; no IsKindOf"
 007465F8,vtable,"CMemoryException: MFC's one static object, not auto-deleted; no IsKindOf"
