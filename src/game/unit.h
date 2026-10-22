@@ -55,6 +55,7 @@ struct UnitBodyPart {
 static_assert(sizeof(UnitBodyPart) == 0x1C);
 
 struct AIPath;       // ai_map.h
+struct PathOrder;    // ai_map.h
 struct UnitMotion;   // ai_motion.h
 struct SpeechRecord; // unit_client_models.h
 class CObject3D;     // map_object_figures.h
@@ -87,7 +88,7 @@ public:
     virtual void FiguresLoaded();           // 13: client 005344E0, base 00533B90
     virtual void RestartAnimation(float time);  // 14: client 005352B0 (the animations the unit names at +0x254 / +0x255 from frame `time`)
     virtual void Unused15();                // 15: empty everywhere (base 00533BB0, client 00535580)
-    virtual AIPath* Path();                 // 16: server +0x3C (00546090), client +0x38 (00533DF0)
+    virtual PathOrder* Path();              // 16: server +0x3C (00546090), client +0x38 (00533DF0)
     virtual void Unused17();                // 17: empty (server 005460B0, client 00534130)
     virtual void PlayerChanged(void* player);   // 18: client 00534140, base empty (00533BC0)
     // 19: server 005533B0 (1), client 00533BD0 (0); both read the low byte. CUnit's slot 33

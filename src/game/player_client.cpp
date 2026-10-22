@@ -452,7 +452,7 @@ int CPlayerClient::OnPathMarker() {
         auto* walker = TheObjectManager()->CreateObjectAs<CUnit>(kClassScratchUnit, -1);
         ++walker->refCount_;
         // The controller's slot 16 (00533DF0 for the client's): its path.
-        AIPath* path = walker->ClientController()->MotionPath();
+        PathOrder* path = walker->ClientController()->MotionPath();
         DeltaField* writing = field->BeginWriteB(0);
         PathWriteOriginal(path, nullptr, writing);
         writing->EndField();

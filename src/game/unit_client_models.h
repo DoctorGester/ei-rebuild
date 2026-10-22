@@ -5,6 +5,7 @@
 // (GetClassName "CUnitClientSpecific", class id 0x3D, vtable 0073ECD8); names provisional. See
 // docs/notes/units.md ("Creation, databases, save").
 
+#include "ai_map.h"   // PathOrder
 #include "console.h"
 #include "engine_object.h"
 
@@ -20,7 +21,6 @@ class CTexture;          // texture.h
 struct tagRECT;          // windows.h RECT
 class CUnit;
 struct UnitPrototypeRecord;   // unit_db.h
-struct AIPath;    // ai_map.h
 struct FigureAnimation;   // map_object_figures.h
 struct Vector3;   // maths.h
 
@@ -272,7 +272,7 @@ public:
     bool Speak(ClientSpeech* speech);
 
     // unit_client_lifetime.cpp (A-U2).
-    // 00533FE0. Virtual slot 2 (Create): no sources, times, animation or motion order (AIPath::Reset
+    // 00533FE0. Virtual slot 2 (Create): no sources, times, animation or motion order (PathOrder::Reset
     // on +0x38), weapon / arrow shown, +0x76 = 1 (snap the heading), fully faded in, no sounds,
     // speech, flash, footprint or blink, every armour and weapon model -1, the face texture
     // released. Returns 1.
@@ -369,15 +369,14 @@ public:
     // blinks.
     void DropFaceTexture();
 
-    AIPath* MotionPath() { return reinterpret_cast<AIPath*>(motionOrder); }
+    PathOrder* MotionPath() { return &motion; }
 
     CUnit* unit;                    // +0x1C
     CParticleSource* sources[3];    // +0x20 particle sources the controller keeps (counted)
     float lastAnimationTime;        // +0x2C the animation state's time (+0x60) at the last update
     const FigureAnimation* lastAnimation;   // +0x30 the animation at the last update
     float lastTime;                 // +0x34 the world time the unit was last advanced to (slot 40)
-    std::uint8_t motionOrder[0x20]; // +0x38 the order part of a path (AIPath; slot 16): MotionOrder()
-    mfc::CTypedPtrList<void> list58;        // +0x58 an MFC list (vtable 0073EDB0, block size 0x80)
+    PathOrder motion;               // +0x38 the order part of a path (slot 16)
     std::uint8_t weaponHidden;      // +0x74 ShowWeaponParts' state (cleared by a weapon change)
     std::uint8_t arrowHidden;       // +0x75 the bow's arrow part is flagged hidden
     std::uint8_t snapHeading;       // +0x76 the next path placement turns the unit to the path at once (00535850)
@@ -404,7 +403,7 @@ static_assert(offsetof(CUnitClientSpecific, lastAnimationTime) == 0x2C);
 static_assert(offsetof(CUnitClientSpecific, lastAnimation) == 0x30);
 static_assert(offsetof(CUnitClientSpecific, lastTime) == 0x34);
 static_assert(offsetof(CUnitClientSpecific, footprint) == 0x80);
-static_assert(offsetof(CUnitClientSpecific, motionOrder) == 0x38);
+static_assert(offsetof(CUnitClientSpecific, motion) == 0x38);
 static_assert(offsetof(CUnitClientSpecific, weaponHidden) == 0x74);
 static_assert(offsetof(CUnitClientSpecific, fadeIn) == 0x78);
 static_assert(offsetof(CUnitClientSpecific, speechSound) == 0x90);

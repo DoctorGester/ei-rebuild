@@ -117,7 +117,7 @@ void CUnit::WriteNetStateImpl() {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(10)) {
-        AIPath* path = unit->Controller()->Path();
+        PathOrder* path = unit->Controller()->Path();
         PathWriteOriginal(path, nullptr, field);
         field->EndField();
     }
@@ -330,10 +330,10 @@ std::uint32_t CUnit::ReadNetStateImpl(int first) {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(10)) {
-        AIPath* path = unit->Controller()->Path();
+        PathOrder* path = unit->Controller()->Path();
         path->ReadState(field);
         if (unit->pathTimeShift == 1) path->ShiftTime(-1);
-        AIPath* path2 = unit->Controller()->Path();
+        PathOrder* path2 = unit->Controller()->Path();
         path2->ForgetObject(unit->id_);
         float walk, run;
         unit->GetMoveSpeeds(&walk, &run);

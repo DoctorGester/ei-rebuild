@@ -726,11 +726,11 @@ public:
     // offers (its slot 44, for the unit's size) whose path is cheapest becomes the order's point
     // (flag18 set), its path into `motionOrder` (if given); false when no spot can be reached.
     // Every order's point gets z -1 first. Callers test AL.
-    bool FindUseSpot(UnitAction* order, AIPath* motionOrder);
+    bool FindUseSpot(UnitAction* order, PathOrder* motionOrder);
     // 0054E250. Simulates the unit along `motionOrder` (a path order, kind 2) in steps of 5 ticks
     // until the order's target is in reach (and seen, when the order needs a line of sight); the
     // time it takes (ST0), 0 for other kinds.
-    double TimeUntilAction(const AIOrder* order, AIPath* motionOrder);
+    double TimeUntilAction(const AIOrder* order, PathOrder* motionOrder);
     // 0054E600. Plans the way to `order`'s target: the use spot, the path (target lifted off the
     // sector map) and whether the unit can act from its end, with the player's path message;
     // the unit shouts `shout` when it can, 0x0B / 0x0E when not. Units without a player plan only

@@ -13,8 +13,8 @@ class CWorld;   // world.h
 
 // The arrays are mfc::CArray (lib/mfc.h).
 
-// The order (MotionOrder, the first 0x20 bytes of AIPath) is in ai_map.h.
-inline MotionOrder* OrderOf(AIPath* path) { return &path->motionOrder; }
+// The order (MotionOrder, the first 0x20 bytes of PathOrder) is in ai_map.h.
+inline MotionOrder* OrderOf(PathOrder* path) { return &path->motionOrder; }
 
 // A point of the trajectory (0x1C bytes).
 struct MotionPoint {
@@ -58,12 +58,12 @@ struct UnitMotion {
     // 005C6FC0. Sample for a path order; `time` is relative to the order's start.
     bool SamplePath(float time, bool* turning, float* position, float* direction, float* speed, int* cellX,
                     int* cellY);
-    // 005C67D0. Rebuilds the trajectory for `order` (an AIPath with its steps).
-    void Build(AIPath* order);
+    // 005C67D0. Rebuilds the trajectory for `order` (a PathOrder with its steps).
+    void Build(PathOrder* order);
     // 005C6270. Empties the trajectory. Returns 0 (EAX, as the original).
     int Clear();
     // 005C6750. Stores the path cells of the steps in the trajectory points.
-    void AssignCells(AIPath* order);
+    void AssignCells(PathOrder* order);
     // 005C66C0. Splits every waypoint segment into points, one per path cell.
     void Subdivide();
     // 005C6370. Adds the points of the segment from `a` to `b` covering `cells` path cells.

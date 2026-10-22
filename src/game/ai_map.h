@@ -193,7 +193,7 @@ using BlockPointArray = mfc::CArray<BlockPoint>;
 using ClimbTable = mfc::CArray<int>;
 
 
-// The first 0x20 bytes of AIPath: what the unit is told to do. Kinds:
+// The first 0x20 bytes of PathOrder: what the unit is told to do. Kinds:
 //   0 stand at (x, y) facing `angle` (set by Start / Reset),
 //   1 turn to direction `arg5` (an angle) at rate `arg6` (0: the unit's own rate),
 //   2 follow the steps to the target (arg5, arg6) (SetTarget),
@@ -211,15 +211,11 @@ struct MotionOrder {
 };
 static_assert(sizeof(MotionOrder) == 0x20);
 
-// A unit's path (name and layout provisional). Its methods at 005C7xxx steer along `steps`.
-struct AIPath {
-    void LoadPath(CStream* stream);
-    void SavePath(CStream* stream);
-    void StandAndTurn(int time, const CMapObject* unit, const Vector3* direction, std::uint32_t rateBits);
-    void StandAndTrack(int time, const CMapObject* unit, int id, int from, int to);
-    void StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int a, int b);
-    void StandStill(const CMapObject* unit);
-    // The order in the first 0x20 bytes (MotionOrder, ai_motion.h); src/game/ai_motion.cpp.
+// A motion order with the steps it walks next (0x3C bytes): the first part of a unit's path
+// (AIPath) and all the client's controller keeps of one (CUnitClientSpecific + 0x38). The
+// controller's slot 16 returns it. Its methods at 005C7xxx steer along `steps`.
+struct PathOrder {
+    // The order in the first 0x20 bytes (MotionOrder); src/game/ai_motion.cpp.
     // 005C7D50. Stand still at (0, 0); the steps are emptied. Returns 0 (EAX, as the original).
     int Reset();
     // 005C7B00. Stand at world `position` facing `direction` from world time `time`; the steps are
@@ -248,27 +244,41 @@ struct AIPath {
     // outputs. ReadState empties the steps and reads them back.
     void WriteState(DeltaField* field);
     void ReadState(DeltaField* field);
-    // 005B23A0. Empties the path, the steps and the order.
-    void Clear();
-    // 005B22C0 (RET 4; ai_path_cells.cpp). The path as a motion order in `out` (its step list
-    // constructed): the order, the steps; and for an order that follows steps (kind 2) the rest
-    // of the path appended, repeats removed, every step's speed 0x200 and the target set.
-    void ToMotionOrder(AIPath* out) const;
     // 005C8230 / 005C8370 (RET 4; ai_path_save.cpp). The order and its steps in the save stream:
     // kind, x / y, angle, start time and the three arguments (4, 8, 4, 4, 0xC bytes), the steps'
     // count, then each step (8 bytes). Loading appends that many steps and reads over every step
     // from the head.
     void LoadOrder(CStream* stream);
     void SaveOrder(CStream* stream);
+    // 0054EAC0 (ai_path_cells.cpp, A-W14). The constructor: the step list empty, blocks of 0x80;
+    // the order itself is left as it is. Returns this.
+    PathOrder* ConstructSteps();
+
+    MotionOrder motionOrder;    // +0x00 (ai_motion.cpp)
+    PathCellList steps;         // +0x20 the next cells to walk (at most 32)
+};
+static_assert(sizeof(PathOrder) == 0x3C);
+
+// A unit's path (name and layout provisional): its order and next steps (PathOrder), the rest of
+// the cells and the search's state.
+struct AIPath : PathOrder {
+    void LoadPath(CStream* stream);
+    void SavePath(CStream* stream);
+    void StandAndTurn(int time, const CMapObject* unit, const Vector3* direction, std::uint32_t rateBits);
+    void StandAndTrack(int time, const CMapObject* unit, int id, int from, int to);
+    void StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int a, int b);
+    void StandStill(const CMapObject* unit);
+    // 005B23A0. Empties the path, the steps and the order.
+    void Clear();
+    // 005B22C0 (RET 4; ai_path_cells.cpp). The path as a motion order in `out` (its step list
+    // constructed): the order, the steps; and for an order that follows steps (kind 2) the rest
+    // of the path appended, repeats removed, every step's speed 0x200 and the target set.
+    void ToMotionOrder(PathOrder* out) const;
     // 006706A0 (player_server_handlers.cpp). An out-of-line copy of the inlined constructor: both
     // cell lists empty (blocks of 0x80), no excluded blocks (vtable PointArrayClass), then
     // Clear. Returns this.
     // The destructor body is 00546100 (Destruct).
     AIPath* Construct();
-    // 0054EAC0 (ai_path_cells.cpp, A-W14). The constructor of a motion order (the first 0x3C bytes
-    // of a path): the step list empty, blocks of 0x80; the order itself is left as it is. Returns
-    // this.
-    AIPath* ConstructSteps();
     // 00546100 (combat_lifetime.cpp, A-U7). The destructor body: the excluded blocks freed (vtable
     // 0073F07C), then both cell lists emptied with their vtable (0073EDB0).
     void Destruct();
@@ -276,13 +286,11 @@ struct AIPath {
     // 0074326C * 0073B86C, z 0. Returns `out`.
     Vector3* TargetPoint(Vector3* out) const;
 
-    MotionOrder motionOrder;    // +0x00 (ai_motion.cpp)
-    PathCellList steps;         // +0x20 the next cells to walk (at most 32)
     PathCellList cells;         // +0x3C the rest of the path
     float targetX, targetY;     // +0x58 in half-cells
     Vector3 goal;               // +0x60 world position asked for
     bool reached;               // +0x6C no cells left
-    bool failed;                // +0x6D the last search failed; search again
+    std::uint8_t failed;        // +0x6D 1: the last search failed; search again
     bool flag6E, flag6F;        // +0x6E, +0x6F
     // +0x70 the blocks the long-range plan avoids (PlanLongPath adds the region it failed in;
     // vtable 0073F07C, constructor 00557230, destructor 00557250).

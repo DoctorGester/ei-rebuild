@@ -34,7 +34,7 @@ void CUnit::SetHostileMask(std::uint32_t mask) {
 EI_REPLACE_METHOD(0x0052E970, CUnit::SetHostileMask);
 
 void CUnit::RefreshMotion() {
-    AIPath* path = Controller()->Path();
+    PathOrder* path = Controller()->Path();
     path->ForgetObject(id_);
     float speed, turnRate;
     GetMoveSpeeds(&speed, &turnRate);

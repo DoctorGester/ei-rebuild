@@ -197,14 +197,12 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
 // The idle key of the unit now (weapon and movement bits).
 std::uint32_t IdleKeyNow(CUnitServer* self) { return WeaponAndModeBits(self); }
 
-// A motion order on the stack (0x3C bytes): the order header (MotionOrder, 0x20 bytes) and its
-// step list (a CList of path cells, vtable 0073EDB0, blocks of 0x80), as 005B22C0
-// (AIPath::ToMotionOrder) fills it. The header is zeroed (the original leaves it uninitialised).
-struct LocalMotionOrder {
-    MotionOrder header;     // +0x00
-    PathCellList steps;     // +0x20
+// A motion order on the stack (PathOrder, 0x3C bytes): the order header and its step list (a
+// CList of path cells, vtable 0073EDB0, blocks of 0x80), as 005B22C0 (AIPath::ToMotionOrder)
+// fills it. The header is zeroed (the original leaves it uninitialised).
+struct LocalMotionOrder : PathOrder {
     LocalMotionOrder() {
-        std::memset(&header, 0, sizeof(header));
+        std::memset(&motionOrder, 0, sizeof(motionOrder));
         mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&steps, 0x80);
     }
     ~LocalMotionOrder() {
@@ -589,7 +587,7 @@ bool CUnitServer::PathTo(const float* point, float range) {
     unit->altPassCosts = before;
     if (!found) {
         // +0xA9, read as a byte: the original compares it with 1.
-        std::uint8_t blocked = reinterpret_cast<const std::uint8_t&>(Motion(this)->failed);
+        std::uint8_t blocked = Motion(this)->failed;
         movingAnimation = 0;
         StandStill();
         SetState(kStateChasing);
@@ -703,7 +701,7 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
         if (!self->player) return;
         message = kMessageCannotDo;
     } else {
-        path->ToMotionOrder(reinterpret_cast<AIPath*>(&end));
+        path->ToMotionOrder(&end);
         float dy = self->localPosition_.y - goal[1];
         float dx = self->localPosition_.x - goal[0];
         float reached = LengthSquared2DUnrounded(dx, dy);
