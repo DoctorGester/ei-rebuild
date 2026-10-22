@@ -2892,6 +2892,27 @@ group = "cleanup"
 model = "opus"
 note = "After C18s: 90 game data addresses left (named_data.py --split). This takes 'several files' (22) and the src/game, src/render, src/standalone, src/hook singles (about 20). Not crt* (C26), mfc* (C18r), not the generated static-init-only group unless an object falls out."
 
+[[ticket]]
+id = "C27"
+title = "Docs to their actual state: drop hooked-era rules from rewrite-guide, cleanup-plan, standalone-cleanup and notes"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: update the docs to their actual state. Since S21 (2026-10-16) game.exe runs only as the original; our code runs only in the standalone image, which has no game.exe code. Rules that only made sense when our functions ran inside game.exe (original memory layout, offsetof asserts, registering every rewrite at its address, naked forwarders, RET n matching, virtual-method hook shims, vtable thunks) go or get rewritten. Keep docs lean: delete rather than annotate history. Layout rule already rewritten in rewrite-guide.md (5bb2909c0)."
+
+[[ticket]]
+id = "C28"
+title = "Real virtual classes: replace the hand-built vtables (166 static Vtable(), SetVtable, slot calls) and drop layout asserts nothing needs"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: the code should look like normal game code, not fake vtable finagling. C19 compiled game.exe's tables but kept a raw table pointer at offset 0 (helper *Class templates, engine_object_class.h, mfc_slots.h), so 166 'static void* Vtable()' in 49 files and 511 SetVtable / VirtualSlot uses. Convert family by family (engine objects, managers, MFC collections, UI windows, network messages, ...) to ordinary C++ classes with virtual functions; drop offsetof/sizeof asserts unless bytes leave the process (saves, packets) or come from the data image. Each family: both suites keep their goldens (goldens are layout-independent). Split into child tickets per family."
+
+[[ticket]]
+id = "C29"
+title = "Forwarders to direct calls: EI_ORIGINAL callers call our functions by name"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: don't tie the standalone to game.exe addresses for the harness either. The harness's standalone hooks (FixedIsaacSeed at 0049F660, the traced rand at 006E77F7, via RedirectCode) become named seams in our code that the harness sets (e.g. a deterministic-seed switch in our Isaac seeding, a draw callback in our rand). Then every EI_ORIGINAL forwarder goes, RedirectCode and CodeLink binding go, and the address registry stays only where something still needs an address (the game.exe side of the harness patches game.exe by address, which is fine). Model opus, not sonnet."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
