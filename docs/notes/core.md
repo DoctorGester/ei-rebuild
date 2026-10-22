@@ -289,8 +289,8 @@ to which template:
 
 ## Open items
 
-- Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) stay original and are reached through forwarders;
-  the standalone build replaces them (C14a-d).
+- Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) are ported (src/lib, src/game's game_* files);
+  C14a-d replace them with standard types.
 - Static initialisers run before the hooks install (004632A0 the lever table constructor, 0045E820): a port of one is
   compared at WinMain's entry instead (start-up checks; 00444740, 00458870 and others, app.md "A-E2"). `WinMain`
   (00456440) itself can be hooked and is ported (app.md).
