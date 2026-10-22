@@ -42,8 +42,8 @@ struct Particle {
     float prevSize;             // +0x1C
     Vector3 velocity;           // +0x20 smoke: initial offset; spheres: orbit offset
     float aux0;                 // +0x2C \ per-type scratch the emitter and update callbacks
-    float aux1;                 // +0x30 | share (angles, speeds, growth; aux2 often holds
-    int aux2;                   // +0x34 / float bits)
+    float aux1;                 // +0x30 | share (angles, speeds, growth, steps)
+    float aux2;                 // +0x34 /
     Vector3 drift;              // +0x38 smoke: rise in z; debris: speed; spheres: x = size factor
     int frame;                  // +0x44 texture frame
     int prevFrame;              // +0x48
@@ -57,12 +57,15 @@ struct Particle {
 static_assert(sizeof(Particle) == 0x64);
 
 // One element of a source's own array (+0x154, 0x38 bytes each, 32-byte aligned). What the slots
-// hold depends on the source type; code indexes element 0 and reads element 1 through it.
+// hold depends on the source type (the views below, by the callbacks of particle_callbacks.cpp and
+// particle_emitters.cpp that use them); code indexes element 0 and reads element 1 through it.
 struct ParticleElement {
     Vector3 pos;                // +0x00
     union {
         float value[10];        // +0x0C (value[3] = +0x18, value[5] = +0x20, ...)
-        // Lightning (EmitLightning, particle_emitters.cpp): a point of the bolt, on the ground.
+        std::int32_t word[10];  // the same slots as dwords (the set-ups clear some the type never reads)
+        // Lightning (EmitLightning, particle_emitters.cpp): a point of the bolt, on the ground;
+        // LightningBlast's heads (TickLightning) move by fork and remember their position in base.
         struct {
             Vector3 fork;       // +0x0C
             Vector3 base;       // +0x18 pos as placed
@@ -71,7 +74,7 @@ struct ParticleElement {
         } bolt;
         // Modifier1-12 (EmitModifier): a point of the ring around the carrier.
         struct {
-            Vector3 start;      // +0x0C pos as placed
+            Vector3 start;      // +0x0C pos as placed (TickModifier: the last position)
             Vector3 offset;     // +0x18 from the emission point
         } ring;
         // The ground plane under the source (TickGroundPlane, PlatformSet::SurfacePlane).
@@ -79,18 +82,191 @@ struct ParticleElement {
             float height;       // +0x0C
             float unused_10[2];
             Vector3 normal;     // +0x18 its z replaced by its reciprocal when not 0
+            std::uint8_t unused_24[0xC];
+            std::uint32_t color;    // +0x30 the ground dust's colour (0x203A / 0x203B)
         } plane;
         // FeetCloud (TickFeetCloud): a foot; ticks says which (nonzero: the left).
         struct {
-            float unused_0C[9];
+            std::uint8_t unused_0C[0xC];
+            float radius;       // +0x18 the carrier's radius (AttachmentOffset)
+            float unused_1C[5];
             std::int32_t countdown;   // +0x30 reset every tick; the cloud starts at the foot while >= 0
         } foot;
+        // Casting (0x2027-0x202A): element 0 the effect's state (pos.x 1 once set up, ticks the
+        // countdown the alpha follows), elements 1.. the swirls.
+        struct {
+            float growth;       // +0x0C the particles' growth per tick
+            float unused_10[2];
+            float radius;       // +0x18
+            float size;         // +0x1C the particles' size
+            float unused_20[4];
+            std::int32_t alpha; // +0x30
+        } cast;
+        struct {
+            std::uint8_t unused_0C[0xC];
+            Vector3 position;    // +0x18 drifting by velocity
+            Vector3 velocity;    // +0x24
+        } swirl;
+        // Protection spheres and AntiMagic (0x2015-0x2017, 0x201A): element 0 (pos.z the height
+        // above the carrier); element 1's pos is the carrier's smoothed motion.
+        struct {
+            std::uint8_t unused_0C[0xC];
+            float radius;       // +0x18 the sphere's
+            float unused_1C;
+            float speed;        // +0x20 the carrier's (0 below 0.01)
+        } sphere;
+        struct {
+            std::uint8_t unused_0C[0xC];
+            float tiltCos;      // +0x18 element 1: the tilt's cosine and sine (0.01 radians)
+            float tiltSin;      // +0x1C
+        } sphereTilt;
+        // Casting (0x200B) and Healing (0x2006): a ring of flames (pos its centre, relative to
+        // the source; ticks its countdown).
+        struct {
+            float radius;       // +0x0C
+            float angle;        // +0x10 of its leading flame
+            float rise;         // +0x14 per tick
+            Vector3 centre;      // +0x18 its starting centre
+        } flames;
+        // CastingIllusion ... Healing (0x202B-0x202E): an orbiting light (pos its world position).
+        struct {
+            float turnCos;      // +0x0C the cosine and sine of its turn per tick
+            float turnSin;      // +0x10
+            float scale;        // +0x14 the carrier's radius (times -1 for 0x202C)
+            Vector3 relative;    // +0x18 its position relative to the source (element 0's x: the orbit)
+            Vector3 previous;    // +0x24 its last world position
+        } orbiter;
+        // Link (0x2014): element 0 the beam's length and its inverse (ticks the alpha cap);
+        // elements 1-3 the beam's frame (direction, side, their cross product).
+        struct {
+            std::uint8_t unused_0C[0xC];
+            float length;       // +0x18
+            float inverseLength;    // +0x1C
+        } link;
+        struct {
+            std::uint8_t unused_0C[0xC];
+            Vector3 axis;        // +0x18 a unit vector
+        } linkAxis;
+        // FireBlast (0x2002): a fragment flying out (pos its position).
+        struct {
+            Vector3 velocity;   // +0x0C
+            float radius;       // +0x18 the flame radius
+            float growth;       // +0x1C its growth per tick
+            float decay;        // +0x20 the growth's factor per tick
+            float frame;        // +0x24 a random frame (0..5)
+            float sizeFactor;   // +0x28 0 or 1
+            float unused_2C;
+            std::int32_t age;   // +0x30 in ticks
+        } fragment;
+        // Geyser / Fireworks (0x2009): a vent (pos the jet's angles and strength, ticks the
+        // eruption's remaining ticks).
+        struct {
+            float unused_0C[9];
+            std::int32_t pause; // +0x30 before the next eruption
+        } vent;
+        // Shower (0x200F, 0x2031-0x2033): a direction (pos); element 0's ticks is the texture frame.
+        struct {
+            float unused_0C[9];
+            std::int32_t age;   // +0x30 in ticks; element 0: negative until the directions are chosen
+        } ray;
+        // Bag (0x203C): a ball (pos its position, ticks its countdown).
+        struct {
+            Vector3 step;        // +0x0C its last step
+            Vector3 velocity;   // +0x18
+            std::uint8_t unused_24[0xC];
+            std::int32_t age;   // +0x30 its kind, then its age (indexes the sizes)
+        } ball;
+        // 0x202F: the ring around the carrier (ticks its age).
+        struct {
+            std::uint8_t unused_0C[0xC];
+            float radius;       // +0x18
+            float unused_1C;
+            float height;       // +0x20 the carrier's
+            float unused_24[2];
+            float foot;         // +0x2C the ring's offset below the carrier's centre
+        } column;
+        // Mushroom and Transform (0x200E, 0x2052): pos.x the puffs' spread, pos.z the cap's height.
+        struct {
+            std::uint8_t unused_0C[0xC];
+            Vector3 stem;        // +0x18 the stem's foot
+        } mushroom;
+        // BlueGas (0x2013): pos the carrier's figure offset.
+        struct {
+            std::uint8_t unused_0C[0xC];
+            float radius;       // +0x18 the gas radius
+            float unused_1C;
+            float height;       // +0x20 the carrier's
+        } gas;
+        // Tornado and CurseHolder (0x200A, 0x2050): a ring of the funnel (pos its centre); element 0
+        // also holds the funnel's own values.
+        struct {
+            float unused_0C[6];
+            float height;       // +0x24 the funnel's
+            float bend;         // +0x28 0: the rings sway with the source's motion, else they lean
+            float damping;      // +0x2C the particles' spin damping
+        } funnel;
+        // Cylinder1 / Cylinder2 (0x203F, 0x2040): a star (pos relative to the source, ticks its
+        // countdown).
+        struct {
+            Vector3 step;        // +0x0C its last step
+            float rotation[2];  // +0x18 the cosine and sine of its turn per tick
+            float unused_20;
+            float inverseOrbit; // +0x24
+            float orbit;        // +0x28 the orbit radius
+            float rise;         // +0x2C per tick
+        } star;
+        // Banshee (0x200D): pos.z the ring's height, ticks the countdown.
+        struct {
+            float radius;       // +0x0C easing towards 30 times the source's height
+        } banshee;
+        // ClayRing (0x2018): a point on the ground (pos; ticks the countdown).
+        struct {
+            Vector3 previous;    // +0x0C its previous position
+            Vector3 direction;   // +0x18 turning a little each tick
+        } clay;
+        // Falling (0x2034-0x2037): a gust.
+        struct {
+            float reach;        // +0x0C
+            float direction;    // +0x10 radians, truncated
+            float unused_14[7];
+            std::int32_t age;   // +0x30
+        } wind;
+        // StartTrans (0x2051): element 0 (ticks the countdown).
+        struct {
+            std::uint8_t unused_0C[0xC];
+            float scale;        // +0x18 the glow's size, growing with the source's
+            float count;        // +0x1C the emitted count, rising by 0.4 per tick
+        } trans;
+        // ShapeChange glow (0x2039): element 0.
+        struct {
+            std::uint8_t unused_0C[0xC];
+            Vector3 mark;        // +0x18 the last point glowed at
+            std::uint8_t unused_24[0xC];
+            std::uint32_t color;    // +0x30 by the alpha field
+        } glow;
     };
     int ticks;                  // +0x34 (lightning point 0: bursts; modifier point 0: the fade step)
 };
 static_assert(sizeof(ParticleElement) == 0x38);
 static_assert(offsetof(ParticleElement, bolt.emitted) == 0x30 && offsetof(ParticleElement, ring.offset) == 0x18);
-static_assert(offsetof(ParticleElement, plane.normal) == 0x18 && offsetof(ParticleElement, foot.countdown) == 0x30);
+static_assert(offsetof(ParticleElement, plane.normal) == 0x18 && offsetof(ParticleElement, plane.color) == 0x30);
+static_assert(offsetof(ParticleElement, foot.radius) == 0x18 && offsetof(ParticleElement, foot.countdown) == 0x30);
+static_assert(offsetof(ParticleElement, cast.radius) == 0x18 && offsetof(ParticleElement, cast.alpha) == 0x30);
+static_assert(offsetof(ParticleElement, swirl.velocity) == 0x24 && offsetof(ParticleElement, sphere.speed) == 0x20);
+static_assert(offsetof(ParticleElement, sphereTilt.tiltSin) == 0x1C && offsetof(ParticleElement, flames.centre) == 0x18);
+static_assert(offsetof(ParticleElement, orbiter.previous) == 0x24 && offsetof(ParticleElement, link.inverseLength) == 0x1C);
+static_assert(offsetof(ParticleElement, linkAxis.axis) == 0x18 && offsetof(ParticleElement, fragment.sizeFactor) == 0x28);
+static_assert(offsetof(ParticleElement, fragment.age) == 0x30 && offsetof(ParticleElement, vent.pause) == 0x30);
+static_assert(offsetof(ParticleElement, ray.age) == 0x30 && offsetof(ParticleElement, ball.velocity) == 0x18);
+static_assert(offsetof(ParticleElement, ball.age) == 0x30 && offsetof(ParticleElement, column.foot) == 0x2C);
+static_assert(offsetof(ParticleElement, column.height) == 0x20 && offsetof(ParticleElement, mushroom.stem) == 0x18);
+static_assert(offsetof(ParticleElement, gas.height) == 0x20 && offsetof(ParticleElement, funnel.height) == 0x24);
+static_assert(offsetof(ParticleElement, funnel.damping) == 0x2C && offsetof(ParticleElement, star.rotation) == 0x18);
+static_assert(offsetof(ParticleElement, star.inverseOrbit) == 0x24 && offsetof(ParticleElement, star.rise) == 0x2C);
+static_assert(offsetof(ParticleElement, banshee.radius) == 0x0C && offsetof(ParticleElement, clay.direction) == 0x18);
+static_assert(offsetof(ParticleElement, wind.direction) == 0x10 && offsetof(ParticleElement, wind.age) == 0x30);
+static_assert(offsetof(ParticleElement, trans.count) == 0x1C && offsetof(ParticleElement, glow.mark) == 0x18);
+static_assert(offsetof(ParticleElement, glow.color) == 0x30 && offsetof(ParticleElement, word[9]) == 0x30);
 
 class CParticleSource;
 class CObject3D;
