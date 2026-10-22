@@ -152,6 +152,8 @@ address,size,name,file
 007471B0,24,kClassCTempMenu,src/lib/mfc_runtime_class.h
 007471D8,24,kClassCMenu,src/lib/mfc_runtime_class.h
 00783E30,4,g_gamePort,src/game/net_classes.h
+00783E34,4,g_remoteRate,src/game/net_session_tick.cpp
+00783E38,4,g_localRate,src/game/net_session_tick.cpp
 00784750,1,g_interfaceHasScreen,src/game/app_main.cpp
 00784751,1,g_quitAllowed,src/game/app_main.cpp
 00784752,1,g_movieMode,src/game/app_helpers.cpp
@@ -220,6 +222,7 @@ address,size,name,file
 0079169C,32,kSizeClassHeights,src/game/ai_map.cpp
 007916BC,136,kSteepOffsets,src/game/ai_refresh.cpp
 00791744,16,kTransparency,src/game/ai_map.cpp
+00791978,36,kDirectionSteps,src/game/ai_map.h
 00791EE0,4,g_loadingMovieName,src/game/app_main.cpp
 007932F4,12,kDemoWords,src/game/dead_code_tables.cpp
 00793378,8,kFolders,src/game/ui_briefing_phrases.cpp
