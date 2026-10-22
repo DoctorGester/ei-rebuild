@@ -156,9 +156,8 @@ int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t 
 std::size_t __cdecl Mbclen(const unsigned char* c);                             // 006ECC98
 unsigned char* __cdecl Mbslwr(unsigned char* text);                             // 006EC8A8
 
-// rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread: in the hook build the
-// game CRT's own (_tiddata::_holdrand, +0x14 of _getptd's block, which the harness and the verify
-// wrappers save and restore), in the standalone image a thread_local starting at 1.
+// rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread (the game CRT's _tiddata::_holdrand),
+// a thread_local starting at 1.
 int __cdecl Rand();                                                             // 006E77F7
 void __cdecl Srand(unsigned seed);                                              // 006E77EA
 // The calling thread's seed itself (the harness's digest and random trace read it; S16a: the image has no
@@ -313,9 +312,6 @@ inline int __cdecl mbsicmp(const char* a, const char* b) {
 inline const char* __cdecl mbsinc(const char* p) {
     return reinterpret_cast<const char*>(libcrt::Mbsinc(reinterpret_cast<const unsigned char*>(p)));
 }
-// The game CRT's _getptd (006F00D1, plain RET): game.exe's per-thread data (allocated on first use), for the paths
-// that run in game.exe (the harness's rand, errno); the image has no code at the address and never calls it.
-inline void* __cdecl GameThreadData() { return reinterpret_cast<void*(__cdecl*)()>(0x006F00D1)(); }
 } // namespace gamecrt
 
 // The import thunks of WSOCK32 (by ordinal) and DINPUT (defined in crt.cpp): the same call through the same

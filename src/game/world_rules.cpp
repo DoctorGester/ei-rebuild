@@ -18,8 +18,6 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
-#include <bit>
-#include <cstring>
 #include <new>
 
 namespace {
@@ -29,8 +27,6 @@ CPlayer* LocalPlayer() { return TheClientWorld()->LocalView()->player_; }
 
 // 00460AF0: a player's named float variable (its party's variables_).
 float Variable(CPlayer* player, const char* name) { return player->Party()->variables_.Get(name); }
-
-CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(object); }
 
 } // namespace
 
@@ -58,72 +54,8 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) {
     return ObjectSlots(first)->IsDead() == 0;
 }
 
-namespace {
-
-// The first part set's texture of a drawn object's model, null without one.
-const CTexture* RankTexture(CObject3DClientSpecific* model) {
-    const TextureParts* rank = model->partSets[0];
-    return rank ? rank->texture : nullptr;
-}
-
-// The texture's and the figure's order without their addresses (address_order::DrawBefore): null
-// first, then by name, a figure then by its morph weights (their bits); 0 for the same keys.
-int CompareTextures(const CTexture* a, const CTexture* b) {
-    if (!a || !b) return (a != nullptr) - (b != nullptr);
-    const char* aName = a->name_;
-    const char* bName = b->name_;
-    return std::strcmp(aName ? aName : "", bName ? bName : "");
-}
-
-int CompareFigures(const CLinkMesh* a, const CLinkMesh* b) {
-    if (!a || !b) return (a != nullptr) - (b != nullptr);
-    if (a->name_ < b->name_) return -1;
-    if (b->name_ < a->name_) return 1;
-    for (int i = 0; i < 3; ++i) {
-        const auto wa = std::bit_cast<std::uint32_t>(a->morphWeights_[i]);
-        const auto wb = std::bit_cast<std::uint32_t>(b->morphWeights_[i]);
-        if (wa != wb) return wa < wb ? -1 : 1;
-    }
-    return 0;
-}
-
-bool DepthBefore(CEngineObject* a, CEngineObject* b) {
-    EI_NAN_AUDIT(Object3D(a)->worldPosition_.z, Object3D(b)->worldPosition_.z);
-    return Object3D(a)->worldPosition_.z < Object3D(b)->worldPosition_.z;
-}
-
-} // namespace
-
-// By the first part set's texture (its address), then the figure (its address), then the view depth.
-bool UnitOrderLess::LessByAddress(CEngineObject* a, CEngineObject* b) {
-    if (!a || !b) return false;
-    auto* groupA = Object3D(a)->ClientSpecific();
-    auto* groupB = Object3D(b)->ClientSpecific();
-    if (!groupA || !groupB) return false;
-    const auto ra = reinterpret_cast<std::uint32_t>(RankTexture(groupA));
-    const auto rb = reinterpret_cast<std::uint32_t>(RankTexture(groupB));
-    if (ra < rb) return true;   // the original's `rankB && ra < rb`: rb is 0 without a rank
-    if (ra != rb) return false;
-    auto sa = reinterpret_cast<std::uint32_t>(Object3D(a)->figure.object);
-    auto sb = reinterpret_cast<std::uint32_t>(Object3D(b)->figure.object);
-    if (sa < sb) return true;
-    if (sa != sb) return false;
-    return DepthBefore(a, b);
-}
-
-bool address_order::DrawBefore(CEngineObject* a, CEngineObject* b) {
-    if (!a || !b) return false;
-    auto* groupA = Object3D(a)->ClientSpecific();
-    auto* groupB = Object3D(b)->ClientSpecific();
-    if (!groupA || !groupB) return false;
-    if (int c = CompareTextures(RankTexture(groupA), RankTexture(groupB))) return c < 0;
-    if (int c = CompareFigures(Object3D(a)->figure, Object3D(b)->figure)) return c < 0;
-    return DepthBefore(a, b);
-}
-
-bool UnitOrderLess::Less(CEngineObject* a, CEngineObject* b) {
-    return address_order::ById() ? address_order::DrawBefore(a, b) : LessByAddress(a, b);
-}
+// Texture and figure by name, then the view depth (address_order::DrawBefore, address_order.cpp).
+bool UnitOrderLess::Less(CEngineObject* a, CEngineObject* b) { return address_order::DrawBefore(a, b); }
 
 BOOL EntryIdLess::Less(const stlp::list<RefPtr>::Node* a, const stlp::list<RefPtr>::Node* b) {
     using Variables = stlp::CountedRefListOf<net::VariableMessage>;

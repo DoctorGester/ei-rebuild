@@ -10,7 +10,7 @@
 // 702 or 1884 under EI_HEAP_JITTER). In harness runs both sides order by object id instead (null
 // first, then CEngineObject::id_), the way the update countdown already uses the id (harness_heap.h):
 //
-//   - ours: ScriptGroup::OrderById (the standalone orders by id always);
+//   - ours: always (ScriptGroup::After, the standalone);
 //   - the original: the comparator's start jumps to an id comparison, and each of the four inline
 //     address comparisons (`CMP a,b / JNZ / JBE`, with the instruction before it where five bytes
 //     need it) jumps to a stub of ours that compares the ids and jumps back to the original's
@@ -25,7 +25,7 @@
 
 namespace ei::verify::script_order {
 
-// Before the game starts: ours orders by id, and PatchOriginal will patch the original.
+// Before the game starts: PatchOriginal will patch the original.
 void Install();
 // On the main thread once hooks are installed (the first message loop pass): the original's sites.
 void PatchOriginal();

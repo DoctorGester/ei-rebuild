@@ -12,6 +12,7 @@
 #include "../../src/game/unit_db.h"
 
 #include "ei/hook.h"
+#include "game/game_data.h"
 
 #include <cstring>
 
@@ -209,11 +210,24 @@ std::uint16_t __fastcall MaxRecord(const std::uint16_t* damage) {
 
 // ---- SV4d: what the formulas read of the game's settings and the skill database ----
 
+// game.exe's skill database (007AF268): the recording runs the original, which fills its own (H30).
+SkillDatabase* GameSkillDb() { return &ei::OriginalGameData<SkillDatabase>(0x007AF268); }
+
+// Its level record and skill record `index`, or null past the end (as unitdb::SkillLevelAt / SkillAt).
+const SkillLevelRecord* GameSkillLevelAt(std::uint32_t index) {
+    const stlp::vector<SkillLevelRecord>& levels = GameSkillDb()->levels;
+    return index < static_cast<std::uint32_t>(levels.end() - levels.begin()) ? levels.begin() + index : nullptr;
+}
+const SkillRecord* GameSkillAt(std::uint32_t index) {
+    const stlp::vector<SkillRecord>& skills = GameSkillDb()->skills;
+    return index < static_cast<std::uint32_t>(skills.end() - skills.begin()) ? skills.begin() + index : nullptr;
+}
+
 // Level record `index` as a LevelView.
 LevelView LevelOf(std::uint32_t index) {
     LevelView v{};
     v.index = index;
-    const SkillLevelRecord* record = unitdb::SkillLevelAt(index);
+    const SkillLevelRecord* record = GameSkillLevelAt(index);
     if (record) {
         v.exists = 1;
         v.value = record->values[7];
@@ -225,7 +239,7 @@ LevelView LevelOf(std::uint32_t index) {
 // The first letter of skill `index`'s first stat name, or -1 without the record or a name (the
 // original then faults or reads past the names: such calls are not recorded).
 int LetterOf(std::uint32_t index) {
-    const SkillRecord* record = unitdb::SkillAt(index);
+    const SkillRecord* record = GameSkillAt(index);
     if (!record || record->statNames.size() == 0) return -1;
     const char* name = record->statNames.begin()[0];
     return name ? static_cast<unsigned char>(name[0]) : -1;
@@ -357,7 +371,7 @@ Recorded<SkillPriceCall> g_skillPrice("UnitStats::SkillPrice");
 int(__fastcall* s_skillPrice)(UnitStats*, void*, const char*);
 int __fastcall SkillPriceRecord(UnitStats* self, void*, const char* record) {
     auto v = Zeroed<SkillPriceCall>();
-    const SkillDatabase* db = SkillDb();
+    const SkillDatabase* db = GameSkillDb();
     auto* level = reinterpret_cast<const SkillLevelRecord*>(record);
     const std::ptrdiff_t offset = record - reinterpret_cast<const char*>(db->levels.begin());
     const std::ptrdiff_t stride = sizeof(SkillLevelRecord);
@@ -387,7 +401,7 @@ int __fastcall IndexOfLevelRecord(SkillDatabase* self, void*, const SkillLevelRe
     std::uint16_t cw = ControlWord();
     int result = s_indexOfLevel(self, nullptr, record);
     v.result = result;
-    if (self == SkillDb()) g_indexOfLevel.sampler.Offer(v, cw);
+    if (self == GameSkillDb()) g_indexOfLevel.sampler.Offer(v, cw);
     return result;
 }
 
@@ -461,7 +475,7 @@ int __fastcall PickLocationRecord(UnitStats* self, void*, int location) {
     auto v = Zeroed<PickLocationCall>();
     for (int i = 0; i < 6; ++i) v.kinds[i] = self->slots[i].kind;
     v.location = location;
-    IsaacRandom& rng = IsaacRandom::Global();
+    IsaacRandom& rng = ei::OriginalGameData<IsaacRandom>(0x007A9D40);   // game.exe's generator
     std::uint32_t countBefore = rng.count_;
     std::uint16_t cw = ControlWord();
     int result = s_pickLocation(self, nullptr, location);

@@ -206,7 +206,9 @@ one), keeps the game active when it loses focus (it otherwise pauses), and opens
 shared reading. The image draws with our renderer (`EI_RENDER=new,present`, no display mode
 change, so none of its runs needs the machine to itself); dgVoodoo draws the original code (`--no-hooks`,
 `--widescreen --record`'s addon runs, compare.py's original side). Passed runs of the original code are cached in
-`build\reference` by scenario commit and install (`--fresh` plays them again; the key leaves out the harness).
+`build\reference` by scenario commit, install and the harness's sources (run_all.py `harness_files`: tests/verify,
+src/hook and what they include; game.exe's side runs no game code of ours), so they play again only when the harness
+changes (`--fresh`: always).
 The standalone runs (the default, or `--standalone`) start `ei_standalone.exe` instead of game.exe (install
 `standalone`: the image on the vanilla data, our renderer; `ei_launch --standalone` with `--game` the install, no game.exe: the image reads none since S18k) and on the Rebirth install (`standalone-rebirth`:
 the Rebirth data and

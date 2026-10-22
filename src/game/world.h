@@ -1651,12 +1651,10 @@ struct DepthLess {
     bool Less(const ScreenEntry* a, const ScreenEntry* b);
 };
 // 00574300. The draw lists' order (DrawPass): by the first part set's texture, then the figure, then
-// the view depth (+0x30). The original compares the texture and the figure by address; with
-// address_order::ById (harness runs, the standalone) by name instead (address_order::DrawBefore).
+// the view depth (+0x30). The original compares the texture and the figure by address; ours by name
+// (address_order::DrawBefore).
 struct UnitOrderLess {
     bool Less(CEngineObject* a, CEngineObject* b);
-    // The original's order: texture and figure by address.
-    static bool LessByAddress(CEngineObject* a, CEngineObject* b);
 };
 // 00589580. Orders the client's variable nodes (ClientSession::variables_) by their stamp
 // (VariableMessage::serial_).

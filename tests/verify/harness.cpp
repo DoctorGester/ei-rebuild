@@ -528,7 +528,11 @@ constexpr int kLocalPlayer = 0;
 constexpr int kZoneRecordKind = 0x28;                   // map.txt type: 0 game, 1 edge, 2 brief
 
 // The local world player (CWorldServer::GetPlayer 00594180, thiscall, RET 4) or null.
-void* LocalWorldPlayer() { return HarnessServerWorld()->GetPlayer(kLocalPlayer); }
+void* LocalWorldPlayer() {
+    CWorldServer* world = HarnessServerWorld();
+    return ei::Standalone() ? static_cast<void*>(world->GetPlayer(kLocalPlayer))
+                            : OriginalCode<void*(__thiscall*)(CWorldServer*, int)>(0x00594180)(world, kLocalPlayer);
+}
 // Its server connection (the world player's +0x20, a CPlayerServer in single player; StateOf in
 // script_exec.cpp) or null; the connection's +0x20 is its state (1 in the world, 3 leaving the zone).
 void* LocalConnection() {
@@ -889,7 +893,7 @@ void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     *slot = replacement;
     VirtualProtect(slot, sizeof(*slot), old, &old);
     // A vtable slot's original is game.exe's code address: in the image it goes with the code cells (S18i).
-    if (!importSlot) ei::FixUpCodePointer(reinterpret_cast<std::uintptr_t*>(&original));
+    if (!importSlot && ei::Standalone()) ei::FixUpCodePointer(reinterpret_cast<std::uintptr_t*>(&original));
 }
 
 // Saves. The game keeps them under <game root>saves\ and rewrites saves\current\ whenever it
@@ -980,7 +984,9 @@ bool UnderRoot(const char* full, const char* root, const char** relative) {
 // The overlay path of `path`, or null when `path` is not under the game's root.
 const char* ShadowOf(const char* path, char (&buffer)[MAX_PATH]) {
     if (!path || !*path) return nullptr;
-    const char* folder = DataFolderText();   // CString data, may be empty
+    // The game folder's CString data, may be empty: ours in the image, game.exe's own (007AF460) in its runs.
+    const char* folder = ei::Standalone() ? DataFolderText()
+                                          : static_cast<const char*>(ei::OriginalGameData<const mfc::CString>(0x007AF460));
     if (folder && *folder && !g_rootDirs[1][0]) {
         if (!GetFullPathNameA(folder, MAX_PATH, g_rootDirs[1], nullptr)) g_rootDirs[1][0] = '\0';
     }
@@ -1238,7 +1244,7 @@ int __fastcall HeldServerUpdate(void* server, void*) {
     int result;
     {
         timing::Scope scope(timing::Server);
-        result = ei::Code<WorldUpdate>(kServerUpdate)(server, nullptr);
+        result = GameCode<WorldUpdate>(kServerUpdate)(server, nullptr);
     }
     if (g_heldTickLength) TickLength() = g_heldTickLength;
     {
@@ -1253,7 +1259,7 @@ int __fastcall HeldClientSegment(void* client, void*) {
     int result;
     {
         timing::Scope scope(timing::Client);
-        result = ei::Code<WorldUpdate>(kClientSegment)(client, nullptr);
+        result = GameCode<WorldUpdate>(kClientSegment)(client, nullptr);
     }
     if (g_heldTickLength) TickLength() = g_heldTickLength;
     return result;
@@ -1368,7 +1374,7 @@ void WriteReport() {
     if (std::string patched = addon::Failure(); !patched.empty()) failures.push_back("addon: " + patched);   // harness_addon.h
     if (std::string differed = uicompare::Failure(); !differed.empty()) failures.push_back(differed);   // harness_ui.h
     const char* missed = "";
-    if (const int count = render::MissedSurfaceWrites(&missed))   // a writer without a mark (R16a, R16b)
+    if (const int count = ei::Standalone() ? render::MissedSurfaceWrites(&missed) : 0)   // a writer without a mark (R16a, R16b)
         failures.push_back(std::to_string(count) + " window surface or memory texture change(s) without a SurfaceWritten mark, the first: " + missed);
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
@@ -1431,7 +1437,7 @@ constexpr std::uintptr_t kFrameCameraUpdateCall = 0x00457595;
 constexpr std::uintptr_t kCameraUpdate = 0x0040FB30;
 void __fastcall HeldCameraUpdate(void* camera, void*, float dt) {
     if (clock::Frozen()) return;
-    ei::Code<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
+    GameCode<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
     camera_trace::Frame(camera, dt);
 }
 
@@ -1442,7 +1448,7 @@ constexpr std::uintptr_t kFrameStepCall = 0x004575FD;
 constexpr std::uintptr_t kFrameStep = 0x00458010;
 void __fastcall HandOffThenFrameStep(bool draw, bool cursor) {
     pair::HandOff();
-    ei::Code<void(__fastcall*)(bool, bool)>(kFrameStep)(draw, cursor);
+    GameCode<void(__fastcall*)(bool, bool)>(kFrameStep)(draw, cursor);
 }
 
 // Points the rel32 of the CALL at `site` (which must call `expected`) at `to`.
@@ -1660,6 +1666,14 @@ void PostKey(const std::string& name, KeyPart part = KeyPart::Both) {
     if (part != KeyPart::Down) PostMessageA(GameWindow(), WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
 }
 
+// The image's renderer's present counts; none in game.exe's runs (the original's drawing).
+render::CursorPresentInfo HarnessCursorPresents() {
+    return ei::Standalone() ? render::CursorPresents() : render::CursorPresentInfo{};
+}
+render::WindowPresentInfo HarnessWindowPresents() {
+    return ei::Standalone() ? render::WindowPresents() : render::WindowPresentInfo{};
+}
+
 // The client area mouse steps aim at: the game window's, or in the switch-over the frame's
 // (render::FrameInWindow: the frame may be scaled into a larger window, R9c); a point of it reaches
 // the window through ToWindow.
@@ -1667,12 +1681,12 @@ RECT GameClient() {
     RECT client{};
     int width = 0, height = 0;
     render::Rect placed{};
-    if (render::FrameInWindow(&width, &height, &placed)) return RECT{0, 0, width, height};
+    if (ei::Standalone() && render::FrameInWindow(&width, &height, &placed)) return RECT{0, 0, width, height};
     GetClientRect(GameWindow(), &client);
     return client;
 }
 POINT ToWindow(int x, int y) {
-    render::FrameToWindow(&x, &y);
+    if (ei::Standalone()) render::FrameToWindow(&x, &y);
     return POINT{x, y};
 }
 
@@ -1724,7 +1738,7 @@ std::string CursorCheck(const std::string& argument) {
     unsigned least = 0, most = ~0u;
     if (sscanf_s(argument.c_str(), "%63s %u %u", name, unsigned(sizeof(name)), &least, &most) < 2)
         return "cursorcheck needs <name>|- <min> [max]";
-    render::CursorPresentInfo info = render::CursorPresents();
+    const render::CursorPresentInfo info = HarnessCursorPresents();
     std::uint32_t count = info.presents - g_cursorMark;
     Log("harness: cursorcheck: %u presents by the cursor thread since cursormark (last at %d,%d-%d,%d); %d composed "
         "frames checked, %d differed; in all %u moves handed over, refused: %u picture, %u no frame, %u recent frame, %u outside",
@@ -1748,13 +1762,14 @@ std::string CursorCheck(const std::string& argument) {
     int width = 0, height = 0;
     std::vector<std::uint8_t> bgr;
     std::string path;
-    if (!render::ReadCursorPresent(&width, &height, &bgr) || !capture::WriteFrame(name, width, height, bgr, &path))
+    if (!ei::Standalone() || !render::ReadCursorPresent(&width, &height, &bgr) ||
+        !capture::WriteFrame(name, width, height, bgr, &path))
         return std::string("cursorcheck: cannot write the cursor thread's frame ") + name;
     g_capturedFrames.push_back(path + " (the cursor thread's last present)");
     const CursorImage* image = HarnessCursor()->image_;
     if (!image) return "cursorcheck: the cursor has no image";
     int fx = g_mouseX, fy = g_mouseY;
-    render::WindowToFrame(&fx, &fy);
+    if (ei::Standalone()) render::WindowToFrame(&fx, &fy);
     int dx = info.lastTo.left - (fx - image->hotX), dy = info.lastTo.top - (fy - image->hotY);
     Log("harness: cursorcheck: %s; the mouse at frame (%d, %d), hot spot (%d, %d), the cursor %d, %d from mouse less hot spot",
         path.c_str(), fx, fy, image->hotX, image->hotY, dx, dy);
@@ -1829,7 +1844,7 @@ void PostWheel(int x, int y, int delta) {
 // scaling (005F7D20, patched by Rebirth) and then to the window's client size.
 void PostRegionMouse(const std::string& verb, int index) {
     auto* ui = HarnessInterface();
-    CUiWindow* window = ui->GetActiveWindow();
+    CUiWindow* window = HarnessActiveWindow(ui);
     if (!window || index < 0 || index >= window->regions_.size || !window->regions_.data[index]) {
         Log("harness: %s %d: no such region (window %p, %d regions)", verb.c_str(), index, window,
             window ? window->regions_.size : 0);
@@ -1840,7 +1855,8 @@ void PostRegionMouse(const std::string& verb, int index) {
                 (region->bounds_.top + region->bounds_.bottom) / 2 + region->offsetY_};
     Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window,
         region->bounds_.left, region->bounds_.top, region->bounds_.right, region->bounds_.bottom, region->enabled_);
-    ui->ScalePointToScreenEntry(&point);
+    if (ei::Standalone()) ui->ScalePointToScreenEntry(&point);
+    else OriginalCode<int(__thiscall*)(const CInterface3D*, POINT*)>(0x005F7D20)(ui, &point);
     RECT client = GameClient();
     if (ui->width_ > 0 && ui->height_ > 0) {
         point.x = point.x * (client.right - client.left) / ui->width_;
@@ -1894,7 +1910,9 @@ void* HarnessUnitAt(CWorldClient* world, const POINT* p) {
 std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
     const bool byId = name[0] == '#';   // a map object: the battle screen's object pick
-    int id = byId ? std::atoi(name + 1) : TextKeyFromName(name);
+    int id = byId                ? std::atoi(name + 1)
+             : ei::Standalone() ? TextKeyFromName(name)
+                                : OriginalCode<int(__fastcall*)(const char*)>(0x00461360)(name);   // game.exe's own
     auto* world = reinterpret_cast<std::uint8_t*>(HarnessClientWorld());
     auto* header = *reinterpret_cast<std::uint8_t**>(world + kClientPickList);
     if (!header) return label + ": no pick list (not in a game)";
@@ -2112,9 +2130,23 @@ std::string LookAt(const std::string& argument) {
 // 0-3), and the quick item panel's (+0x198) unit, entries shown and region items, the spell
 // column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
 // fewer than that many of its unit's own quick items (regions 0-3).
+// CUnit's item slots (thiscall, RET 4): ours in the image, game.exe's own in its runs.
+CItem* UnitQuickItem(CUnit* unit, std::uint32_t slot) {   // 00531920
+    return ei::Standalone() ? unit->GetQuickItem(slot)
+                            : OriginalCode<CItem*(__thiscall*)(CUnit*, std::uint32_t)>(0x00531920)(unit, slot);
+}
+CItem* UnitSpell(CUnit* unit, std::uint32_t slot) {   // 005319A0
+    return ei::Standalone() ? unit->GetSpell(slot)
+                            : OriginalCode<CItem*(__thiscall*)(CUnit*, std::uint32_t)>(0x005319A0)(unit, slot);
+}
+CItemWeapon* UnitWeapon(CUnit* unit, std::uint32_t slot) {   // 005318B0
+    return ei::Standalone() ? unit->GetWeapon(slot)
+                            : OriginalCode<CItemWeapon*(__thiscall*)(CUnit*, std::uint32_t)>(0x005318B0)(unit, slot);
+}
+
 std::string HudState(const std::string& argument) {
     auto* ui = HarnessInterface();
-    auto* screen = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
+    auto* screen = reinterpret_cast<std::uint8_t*>(HarnessActiveWindow(ui));
     if (!screen) return "hudstate: no window on top";
     auto at = [](const void* base, int offset) {
         return *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(base) + offset);
@@ -2126,7 +2158,7 @@ std::string HudState(const std::string& argument) {
         CUnit* member = battle->party_[i];
         if (!member) continue;
         void* quick[4];
-        for (int s = 0; s < 4; ++s) quick[s] = member->GetQuickItem(s);
+        for (int s = 0; s < 4; ++s) quick[s] = UnitQuickItem(member, s);
         Log("harness: hudstate: member %d %p flags %08X, quick items %p %p %p %p", i, member,
             at(member, 0x08), quick[0], quick[1], quick[2], quick[3]);
     }
@@ -2156,7 +2188,7 @@ std::string HudState(const std::string& argument) {
         // Each spell slot of the column's unit: the spell's prototype index and target flags.
         if (CUnit* unit = spells->unit_) {
             for (unsigned s = 0; s < 8; ++s) {
-                auto* item = static_cast<CItem*>(unit->GetSpell(s));
+                CItem* item = UnitSpell(unit, s);
                 if (!item) continue;
                 auto* spell = static_cast<CSpell*>(item->spell_);
                 Log("harness: hudstate: spell slot %u item %p, prototype %d, flags %08X", s, item,
@@ -2169,9 +2201,9 @@ std::string HudState(const std::string& argument) {
                                         : reinterpret_cast<int(__thiscall*)(CItemWeapon*)>(0x006A07F0)(weapon);
             };
             for (unsigned w = 0; w < 4; ++w)
-                if (CEngineObject* weapon = unit->GetWeapon(w))
-                    Log("harness: hudstate: weapon slot %u item %p kind %d%s", w, weapon,
-                        weaponType(static_cast<CItemWeapon*>(weapon)), unit->activeWeapon == w ? " (in use)" : "");
+                if (CItemWeapon* weapon = UnitWeapon(unit, w))
+                    Log("harness: hudstate: weapon slot %u item %p kind %d%s", w, static_cast<void*>(weapon),
+                        weaponType(weapon), unit->activeWeapon == w ? " (in use)" : "");
         }
     }
     if (!argument.empty()) {
@@ -2194,7 +2226,7 @@ std::string CampPutOn(const std::string& argument) {
     int count = 0;
     if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
     auto* ui = HarnessInterface();
-    auto* camp = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
+    auto* camp = reinterpret_cast<std::uint8_t*>(HarnessActiveWindow(ui));
     if (!camp || RealWindowVtable(*reinterpret_cast<const std::uintptr_t*>(camp)) !=
                      reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const std::uint8_t>(0x0074091C)))
         return "campputon: the camp is not on top";
@@ -2276,7 +2308,7 @@ std::uintptr_t TopWindowVtable(CUiWindow* top) {
 // Whether the awaited window is on top and takes input (see the step's description).
 bool WindowReady(std::uintptr_t vtable) {
     auto* ui = HarnessInterface();
-    CUiWindow* top = ui->GetActiveWindow();
+    CUiWindow* top = HarnessActiveWindow(ui);
     if (!top || ui->queuedWindow_ || HarnessFlow()->state_ != 0) return false;
     const std::uintptr_t real = TopWindowVtable(top);
     if (real != vtable) return false;
@@ -2288,7 +2320,7 @@ bool WindowReady(std::uintptr_t vtable) {
 // For failure messages: the window on top and what keeps it from counting.
 std::string DescribeTopWindow() {
     auto* ui = HarnessInterface();
-    CUiWindow* top = ui->GetActiveWindow();
+    CUiWindow* top = HarnessActiveWindow(ui);
     const std::uintptr_t vtable = TopWindowVtable(top);
     const char* name = "?";
     for (const KnownWindow& w : KnownWindows())
@@ -2827,7 +2859,7 @@ void RunSteps() {
         g_waitingFrames = false;
     }
     if (g_waitingPresent) {
-        render::WindowPresentInfo now = render::WindowPresents();
+        const render::WindowPresentInfo now = HarnessWindowPresents();
         bool presented = now.presents > g_waitPresentFrom;
         bool checked = !g_waitPresentGamma ||
                        (now.rampChecks > g_rampChecksSeen && !now.rampCheckPending && !now.rampIdentity);
@@ -2857,15 +2889,15 @@ void RunSteps() {
         }
     }
     if (g_waitingNewDevice) {
-        render::WindowPresentInfo now = render::WindowPresents();
+        const render::WindowPresentInfo now = HarnessWindowPresents();
         // Made again, and (presenting on the game window) a frame presented on the new device.
-        bool presented = !render::PresentsItself() || now.presents > now.presentsAtRecovery;
+        bool presented = !ei::Standalone() || !render::PresentsItself() || now.presents > now.presentsAtRecovery;
         const char* verb = g_newDeviceRemoved ? "removedevice" : "losedevice";
         if (now.deviceRecoveries > g_newDeviceFrom && presented && !now.failed) {
             Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX, removed reason %08lX%s)%s",
                 verb, now.deviceLosses, now.deviceRecoveries, static_cast<unsigned long>(now.lastLossResult),
                 static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated ? ", simulated" : "",
-                render::PresentsItself() ? " presents on the game window" : "");
+                ei::Standalone() && render::PresentsItself() ? " presents on the game window" : "");
             // A real removal: reported by the device itself (not LoseDevice's stand-in), and the new
             // device removable again.
             if (g_newDeviceRemoved &&
@@ -2878,10 +2910,10 @@ void RunSteps() {
                 g_failures.push_back(what);
             }
             g_waitingNewDevice = false;
-        } else if (now.failed || !render::Active() || Now() >= g_newDeviceDeadline) {
+        } else if (now.failed || !HarnessRenderActive() || Now() >= g_newDeviceDeadline) {
             char what[200];
             std::snprintf(what, sizeof(what), "%s: %s (%d lost, %d made again, %u presented since)", verb,
-                          now.failed || !render::Active() ? "the new renderer failed" : "timed out", now.deviceLosses,
+                          now.failed || !HarnessRenderActive() ? "the new renderer failed" : "timed out", now.deviceLosses,
                           now.deviceRecoveries, now.presents - now.presentsAtRecovery);
             Log("harness: %s", what);
             g_failures.push_back(what);
@@ -3088,7 +3120,7 @@ void RunSteps() {
             HarnessInterfaceHasScreen() = 0;
             HarnessFlow()->state_ = 3;
         } else if (s.verb == "load") {
-            HarnessFlow()->requestTarget_ = s.argument.c_str();
+            HarnessSetString(&HarnessFlow()->requestTarget_, s.argument.c_str());
             HarnessFlow()->state_ = 2;
         } else if (s.verb == "hold" || s.verb == "release") {
             std::string bad;
@@ -3175,9 +3207,11 @@ void RunSteps() {
             if (!ui->root_) {
                 g_failures.push_back("chat: the interface has no chat overlay");
             } else if (std::atoi(s.argument.c_str()) != 0) {
-                ui->ChatKeyEnter();
+                if (ei::Standalone()) ui->ChatKeyEnter();
+                else OriginalCode<void(__thiscall*)(CInterface3D*)>(0x005F7C60)(ui);
             } else {
-                ui->root_->SetOpen(false);
+                if (ei::Standalone()) ui->root_->SetOpen(false);
+                else OriginalCode<void(__thiscall*)(CChatOverlay*, int)>(0x005E36C0)(ui->root_, 0);
             }
         } else if (s.verb == "typeunicode") {
             if (std::string failure = utf8typing::Type(GameWindow(), s.argument); !failure.empty())
@@ -3222,7 +3256,7 @@ void RunSteps() {
             std::string error = SameFileStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "masterhost") {
-            HarnessOptions()->masterServerName_ = s.argument.c_str();
+            HarnessSetString(&HarnessOptions()->masterServerName_, s.argument.c_str());
         } else if (s.verb == "waterwaves") {
             if (s.argument == "0" || s.argument == "1") HarnessOptions()->enableWaterWaves_ = s.argument == "1";
             else g_failures.push_back("waterwaves needs 0 or 1");
@@ -3251,7 +3285,10 @@ void RunSteps() {
                 g_failures.push_back("zone needs <name> [exit]");
                 continue;
             }
-            const auto* record = reinterpret_cast<const std::uint8_t*>(HarnessMapDatabase()->FindMap(name));
+            CMapDatabase* maps = HarnessMapDatabase();   // CMapDatabase::FindMap 0045E850 (thiscall)
+            const auto* record = reinterpret_cast<const std::uint8_t*>(
+                ei::Standalone() ? maps->FindMap(name)
+                                 : OriginalCode<MapRecord*(__thiscall*)(CMapDatabase*, const char*)>(0x0045E850)(maps, name));
             void* connection = LocalConnection();
             Log("harness: zone %s: %s", name, DescribeLocalPlayer().c_str());
             if (!record) {
@@ -3394,7 +3431,7 @@ void RunSteps() {
             std::string error = BlinkStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "terrainlevels") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: terrainlevels %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
@@ -3409,7 +3446,7 @@ void RunSteps() {
                 g_failures.push_back("levelsteps needs a frame name, a least and a most fraction");
                 continue;
             }
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: levelsteps %s: not the new renderer (the original code): no level map", frame);
                 continue;
             }
@@ -3433,7 +3470,7 @@ void RunSteps() {
                 g_failures.push_back("hues needs a frame name, a least and a most fraction");
                 continue;
             }
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: hues %s: not the new renderer (the original code): ignored", frame);
                 continue;
             }
@@ -3461,7 +3498,7 @@ void RunSteps() {
                 g_failures.push_back("mmplevels needs the largest mean difference allowed");
                 continue;
             }
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: mmplevels: not the new renderer (the original code): no decoded textures");
                 continue;
             }
@@ -3476,7 +3513,7 @@ void RunSteps() {
             g_capturedFrames.push_back(text);
             if (check.levels == 0 || check.worst > most) g_failures.push_back(text);
         } else if (s.verb == "smooth") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: smooth %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
@@ -3490,7 +3527,7 @@ void RunSteps() {
                 g_failures.push_back("smoothcheck needs two frame names, a least and a most fraction");
                 continue;
             }
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: smoothcheck %s %s: not the new renderer (the original code): skipped", plain, smooth);
                 continue;
             }
@@ -3514,7 +3551,7 @@ void RunSteps() {
                 g_failures.push_back(text);
         } else if (s.verb == "smoothorder") {
             static render::SmoothOrder order = render::SmoothOrder::Game;
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: smoothorder %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
@@ -3543,7 +3580,7 @@ void RunSteps() {
             else ok = ok && info.multisampledPasses >= 2 && info.copiesInto >= 1 && info.depthCopiesBack >= 2;
             if (!ok) g_failures.push_back(text);
         } else if (s.verb == "shadows") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: shadows %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
@@ -3551,7 +3588,7 @@ void RunSteps() {
             else if (s.argument == "rebuild") render::RebuildShadowTextures();
             else g_failures.push_back("shadows needs classic, map or rebuild");
         } else if (s.verb == "shadowcasters") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: shadowcasters %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
@@ -3560,7 +3597,7 @@ void RunSteps() {
             else if (s.argument == "walked") render::SetOffscreenCasters(render::OffscreenCasters::Walked);
             else g_failures.push_back("shadowcasters needs view, all or walked");
         } else if (s.verb == "shadowfacing") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: shadowfacing %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
@@ -3568,7 +3605,7 @@ void RunSteps() {
             else if (s.argument == "all") render::SetShadowFacing(render::ShadowFacing::All);
             else g_failures.push_back("shadowfacing needs others or all");
         } else if (s.verb == "shadowview" || s.verb == "shadowshift") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: %s %s: not the new renderer (the original code): ignored", s.verb.c_str(), s.argument.c_str());
                 continue;
             }
@@ -3576,14 +3613,14 @@ void RunSteps() {
             else if (s.argument == "on" || s.argument == "off") render::SetShadowView(s.argument == "on");
             else g_failures.push_back("shadowview needs on or off");
         } else if (s.verb == "shadowbuild") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: shadowbuild %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
             if (s.argument == "skip" || s.argument == "full") render::SetShadowBuildFull(s.argument == "full");
             else g_failures.push_back("shadowbuild needs skip or full");
         } else if (s.verb == "terraincache") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: terraincache %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
@@ -3602,7 +3639,7 @@ void RunSteps() {
                 g_failures.push_back("terraincache needs on, off or check");
             }
         } else if (s.verb == "meshcache") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: meshcache %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
@@ -3621,14 +3658,14 @@ void RunSteps() {
                 g_failures.push_back("meshcache needs on, off or check");
             }
         } else if (s.verb == "meshcorners") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: meshcorners %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
             if (s.argument == "read" || s.argument == "full") render::SetMeshCornersFull(s.argument == "full");
             else g_failures.push_back("meshcorners needs read or full");
         } else if (s.verb == "memorytextures") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: memorytextures %s: not the new renderer (the original code): ignored", s.argument.c_str());
                 continue;
             }
@@ -3641,7 +3678,7 @@ void RunSteps() {
                 g_failures.push_back("shadowcheck needs the least number of casters");
                 continue;
             }
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: shadowcheck: not the new renderer (the original code): skipped");
                 continue;
             }
@@ -3661,7 +3698,7 @@ void RunSteps() {
                 info.lost > 0 || info.outsideCasters < leastOutside)
                 g_failures.push_back(text);
         } else if (s.verb == "renderstats") {
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 Log("harness: renderstats %s: not the new renderer (the original code): skipped", s.argument.c_str());
                 continue;
             }
@@ -3811,7 +3848,7 @@ void RunSteps() {
             int seconds = 10;
             char what[16] = "";
             sscanf_s(s.argument.c_str(), "%d %15s", &seconds, what, unsigned(sizeof(what)));
-            g_waitPresentFrom = render::WindowPresents().presents;
+            g_waitPresentFrom = HarnessWindowPresents().presents;
             g_waitPresentGamma = std::strcmp(what, "gamma") == 0;
             g_waitPresentDeadline.Set(static_cast<DWORD>(seconds) * 1000);
             g_waitingPresent = true;
@@ -3819,7 +3856,7 @@ void RunSteps() {
         } else if (s.verb == "losedevice" || s.verb == "removedevice") {
             int seconds = 10;
             sscanf_s(s.argument.c_str(), "%d", &seconds);
-            if (!render::Active()) {
+            if (!HarnessRenderActive()) {
                 g_failures.push_back(s.verb + ": the new renderer is not on");
                 continue;
             }
@@ -3846,7 +3883,7 @@ void RunSteps() {
             Sleep(ms);   // ei_hook's own Sleep: real time, the game's clocks are not touched
             Log("harness: stall: the main thread was away for %lu ms", ms);
         } else if (s.verb == "cursormark") {
-            g_cursorMark = render::CursorPresents().presents;
+            g_cursorMark = HarnessCursorPresents().presents;
             Log("harness: cursormark: %u presents by the cursor thread so far", g_cursorMark);
         } else if (s.verb == "cursorcheck") {
             std::string error = CursorCheck(s.argument);
@@ -4491,7 +4528,7 @@ struct Harness {
             if (!g_keepHeap) address_order::Install();   // object sets by id, SetSun by sector (harness_address_order.h)
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
-            render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
+            if (ei::Standalone()) render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
             if (ei::Standalone()) IsaacRandom::SetSeedHook(&FixedSeed);

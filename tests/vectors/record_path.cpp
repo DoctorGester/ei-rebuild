@@ -17,6 +17,7 @@
 #include "../../src/hook/log.h"
 
 #include "ei/hook.h"
+#include "../verify/harness_original.h"
 #include "game/game_data.h"
 #include "game/game_singletons.h"
 
@@ -224,7 +225,8 @@ UnitState StateOf(CUnit* unit) {
     s.sizeClass = unit->sizeClass;
     s.standingHeight = unit->standingHeight;
     s.altPassCosts = unit->altPassCosts;
-    unit->GetMoveSpeeds(&s.forwardSpeed, &s.backwardSpeed);   // no side effects
+    // game.exe's CUnit::GetMoveSpeeds (0052F920; no side effects): the recording runs the original (H30).
+    ei::verify::OriginalCode<void(__thiscall*)(CUnit*, float*, float*)>(0x0052F920)(unit, &s.forwardSpeed, &s.backwardSpeed);
     return s;
 }
 

@@ -325,17 +325,6 @@ int Fileno(const gamecrt::CrtFile* file) {
 
 namespace gamecrt {
 
-int fileno(const CrtFile* file) {
-    if (ei::Standalone()) return libcrt::Fileno(file);
-    // VC6's FILE: _ptr, _cnt, _base, _flag, then _file.
-    struct GameFile {
-        char* ptr;
-        int count;
-        char* base;
-        int flag;
-        int descriptor;
-    };
-    return reinterpret_cast<const GameFile*>(file)->descriptor;
-}
+int fileno(const CrtFile* file) { return libcrt::Fileno(file); }
 
 } // namespace gamecrt

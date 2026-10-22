@@ -28,13 +28,6 @@ unsigned short CharClass(int c) { return CharClasses()[c]; }
 constexpr unsigned short kDigit = 0x4;
 constexpr unsigned short kLeadByte = 0x8000;
 
-// errno = EILSEQ (wctomb): the game CRT's per-thread errno in the hook build (_getptd + 8); the image's
-// callers never read it.
-void SetIllegalSequence() {
-    static const bool standalone = ei::Standalone();
-    if (!standalone) static_cast<int*>(gamecrt::GameThreadData())[2] = 42;
-}
-
 // ---- The 12-byte long double (_LDBL12): a 96-bit number as six 16-bit words, lowest first ----
 // As a long double: w[0] the extra low word, w[1..2] the low mantissa dword, w[3..4] the high one
 // (bit 79 the integer bit), w[5] sign and exponent (bias 0x3FFF). As a plain 96-bit number (the
@@ -527,8 +520,7 @@ int WideToBytes(char* to, wchar_t c) {
                                                       MbCurMax(), nullptr, &defaultUsed);
         if (size != 0 && !defaultUsed) return size;
     }
-    SetIllegalSequence();
-    return -1;
+    return -1;   // the original's errno = EILSEQ: its callers never read it
 }
 
 // ---- _output (006F17D4) ----

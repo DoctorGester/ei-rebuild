@@ -26,6 +26,7 @@
 #include "game/game_data.h"
 #include "../../src/game/model.h"   // CSceneRenderer
 #include "harness_objects.h"
+#include "harness_original.h"
 
 #include <windows.h>
 #include <ddraw.h>
@@ -213,7 +214,7 @@ bool WriteBmp(const char* path, const Image& image) {
 void Capture() {
     // The image (the new renderer presents by itself): the old render target holds nothing worth
     // keeping; the new frame is the capture.
-    if (render::Active()) {
+    if (HarnessRenderActive()) {
         render::EndFrame();
         Image frame;
         char path[MAX_PATH];
@@ -279,7 +280,7 @@ void __fastcall CaptureThenCursorLock(void* cursor) {
         if (g_skip > 0) --g_skip;
         else Capture();
     }
-    ei::Code<void(__fastcall*)(void*)>(kCursorLock)(cursor);
+    ei::verify::GameCode<void(__fastcall*)(void*)>(kCursorLock)(cursor);
 }
 
 } // namespace

@@ -266,7 +266,7 @@ void Check(const ui::CanvasInfo& canvas, const std::unordered_map<const void*, s
 // A native surface is about to go (ui_native::g_goneObserver): its canvas compared before it is dropped (the
 // status surface lives inside one frame of ShowStatusText's own).
 void OnNativeGone(const CUiSurface* surface) {
-    if (!render::Active() || ui::CurrentMode() != ui::Mode::Both || !surface->holder_) return;
+    if (!HarnessRenderActive() || ui::CurrentMode() != ui::Mode::Both || !surface->holder_) return;
     std::vector<ui::CanvasInfo> canvases;
     ui::Canvases(&canvases);
     for (const ui::CanvasInfo& canvas : canvases)
@@ -276,13 +276,14 @@ void OnNativeGone(const CUiSurface* surface) {
 } // namespace
 
 void Install() {
+    if (!ei::Standalone()) return;   // the image's interface only
     g_previousObserver = g_uiSurfaceOwnerObserver;
     g_uiSurfaceOwnerObserver = &OnOwner;
     ui_native::g_goneObserver = &OnNativeGone;
 }
 
 void Frame() {
-    if (!render::Active() || ui::CurrentMode() != ui::Mode::Both) return;
+    if (!HarnessRenderActive() || ui::CurrentMode() != ui::Mode::Both) return;
     static bool logged = false;
     if (!logged) Log("harness: uiboth: the interface's canvases compared with GDI's drawing after each frame");
     logged = true;
@@ -301,7 +302,7 @@ void Frame() {
 bool Step(const std::string& verb, const std::string& argument, std::string* error) {
     if (verb != "uipath" && verb != "uimask" && verb != "uidiff" && verb != "uidiffcheck" && verb != "uimirror" && verb != "uifault")
         return false;
-    if (!render::Active()) {
+    if (!HarnessRenderActive()) {
         Log("harness: %s: skipped in a run of the original code", verb.c_str());
         return true;
     }

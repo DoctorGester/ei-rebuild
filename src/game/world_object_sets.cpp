@@ -54,12 +54,9 @@ void CountingPass(int shift, const ObjectSet& src, ObjectSet& dst) {
     }
 }
 
-bool g_byId = false;   // address_order::UseIds
-
 } // namespace
 
-void address_order::UseIds() { g_byId = true; }
-bool address_order::ById() { return g_byId || ei::Standalone(); }
+bool address_order::ById() { return ei::Standalone(); }
 
 bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b) {
     if (ById()) {

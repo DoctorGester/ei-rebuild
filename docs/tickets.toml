@@ -3110,6 +3110,14 @@ group = "cleanup"
 model = "sonnet"
 note = "From C29's report: drop the 23 unread registrations in src/lib/crt*.cpp now C26 is merged (registration_readers.py --drop without the crt exclusion); teach registration_readers that tests' forwarders run only in game.exe and drop the 12 registrations only they read; remove the forwarder counts from progress.py, dashboard_data.py, standalone_gaps.py and check_cleanup's EI_ORIGINAL column."
 
+[[ticket]]
+id = "H30a"
+title = "Fold the image-only order switches now ours never runs in game.exe"
+group = "cleanup"
+size = 0.5
+model = "sonnet"
+note = "From H30: nothing of ours runs in game.exe, so address_order::ById (world_object_sets.cpp, terrain_animation.cpp, net_client_handlers.cpp), ScriptGroup::After's address path (script_group.cpp), CWorldServer::SpreadUpdateCountdownsById / g_countdownsById (world_server.cpp; the harness's image branch sets it) and render::Active's Standalone test are always on in the image: keep only the image's path. Check the other ei::Standalone() tests in src/game (win_registry.cpp, settings_file.cpp:227, mod_folders.cpp:237) against ei_vectors, whose replays run without the image."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
