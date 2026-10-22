@@ -72,11 +72,12 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
   `StrayGameAddress`'s report (`the data seam was asked for game.exe's code at ...`); a game address is itself only in
   game.exe, an address outside game.exe's range (a resolved pointer, null) is itself in both. `ei::Standalone()` is
   "the main module exports `EiStandaloneHost`" (the host's marker; game.exe exports nothing).
-  **Resources** (S18j): game.exe's are the host's own: `tools/gen_resources.py` writes every leaf of game.exe's .rsrc
-  tree (two cursors and MFC's cursor group, five bitmaps, the icon group 105 and its three icons, two dialogs, twelve
-  string blocks) as a .res at build time (build/<cfg>/image/game_resources.res, from `EI_GAME_EXE`, not committed)
-  that the linker builds in. WinMain's hInstance and GetModuleHandleA(NULL) are the host, so the resource calls,
-  DirectInput and MFC's null resource handle need no wrapper; GetModuleFileNameA(NULL) names ei_standalone.exe (the
+  **Resources** (S18j, C23): the host has none of game.exe's. Its one resource is a VERSIONINFO of its own
+  (`src/standalone/host.rc`, committed, linked by CMake's RC language); the game's strings are literals in our code
+  (the window title "Evil Islands" and class "EIGAME" in app_main.cpp; MFC's strings in `mfc_resource.cpp`'s table,
+  only the ids our code can reach); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
+  no icon (C24). WinMain's hInstance and GetModuleHandleA(NULL) are the host, so DirectInput needs no wrapper;
+  GetModuleFileNameA(NULL) names ei_standalone.exe (the
   message box title; app_dxversion's exe folder, which only tells dgVoodoo beside it from the system's DirectDraw;
   GetCommandLineA's first token too).
   Then it loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
@@ -87,7 +88,7 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
   folder; without `--run` it builds the image, checks the code table and the cells and exits.
 - **What comes from game.exe at build time** (S18k: nothing at run time): the sections' bytes and the dispatch-only
   functions' bytes (`tools/gen_image_cells.py --bytes / --dispatch`, build/<cfg>/image/, which also checks the 1.06
-  timestamp), the resources (gen_resources.py); the section places are constants (game_data.h, image_code.cpp,
+  timestamp); the section places are constants (game_data.h, image_code.cpp,
   hook.cpp's `kCodeBegin`-`kCodeEnd`, the registrations' bounds). InstallHooks reads game.exe's file only in game.exe
   itself (the recorders' stolen bytes). `EI_REPLACE_DISPATCH` thunks are compared with dispatch_bytes.inc (8
   dispatch-only functions; 3 registered).
@@ -305,7 +306,7 @@ each step green on the goldens and removing a measured tie:
 | S18g | .rdata sealed: vtables (SetVtable through the seam), tables, the harness's vtable tables | raw .rdata uses 365 -> 0 |
 | S18h | .rdata moves into the storage with .data (one range, one shift): bytes from the build, 5531 cells (4460 into .rdata: walked EH / RTTI / MFC structures, reviewed string tables), guarded, old import slots under the guard | the host's copy of .rdata |
 | S18i | code pointers in our sections fixed up to our functions (21,636 code cells; a stub reports an unregistered one), static init calls, forwarders and code literals through CodeAddress, .text guarded | the jumps in .text |
-| S18j | game.exe's resources built into ei_standalone.exe (a .res from the build), the module handle the host's, no header copy (the page guarded) | game.exe loaded as a data file, the resource / module / DirectInput wrappers, the headers at 0x400000 |
+| S18j | game.exe's resources built into ei_standalone.exe (a .res from the build; C23 replaced it with a VERSIONINFO of the host's own), the module handle the host's, no header copy (the page guarded) | game.exe loaded as a data file, the resource / module / DirectInput wrappers, the headers at 0x400000 |
 | S18k | an ordinary host (no fixed base, no range in its image; free parts of the range reserved as the guard), no read of game.exe (dispatch bytes from the build, imports from the game folder), stray game addresses reported by the seam | the address image (dashboard "image ties" 5 -> 0) |
 
 Not on this path: named, typed globals in place of a section's bytes (C18, below) and vtables as real virtual
@@ -1312,11 +1313,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 
-- **Resources** (S18j): built into the host from game.exe ("How it runs"); the game's module is the host's.
-  MFC's module state has null instance and resource handles in the original too (the game never runs AfxWinInit),
-  so LoadStringA(NULL) loads from the process's own module in both. Checked by `render_cursor_present`'s
-  `windowicon menu_icon` (the window class's icons are the module's icon 105, drawn to frames\menu_icon.bmp; its
-  `cursorcheck` frames show the game's cursor, which is game data, not a resource).
+- **Resources** (S18j, C23): none of game.exe's ("How it runs"); the game's module is the host's. MFC's module state has
+  null instance and resource handles in the original too (the game never runs AfxWinInit); `AfxLoadString` answers from
+  a table in code. Checked by `render_cursor_present`'s `windowtitle` (the window's title "Evil Islands" and class
+  "EIGAME"; its `cursorcheck` frames show the game's cursor, which is game data, not a resource).
 - **game.exe at run time**: none since S18k ("What comes from game.exe at build time", above). The harness's run_all
   hands ei_launch none (S18k1).
 - **Command line**: `ei_standalone ... -- <game args>` is WinMain's line and GetCommandLineA's after `"<game.exe>"`.

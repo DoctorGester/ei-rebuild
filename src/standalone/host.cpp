@@ -1,8 +1,8 @@
 // ei_standalone: runs the rebuilt game without game.exe (docs/notes/standalone.md section 2).
 //
 // The host is an ordinary exe (S18k): it neither reads game.exe nor lays out anything at game.exe's addresses.
-// game.exe's resources are its own (S18j: built in from game.exe by tools/gen_resources.py at build time, and the
-// game's hInstance is this module); ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from
+// The game's hInstance is this module (S18j), whose one resource is its version information (host.rc; C23: the game's
+// strings are literals in our code, no icon yet); ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from
 // the build (src/standalone/image_data.cpp), resolves game.exe's imports into a table of its own as it initialises
 // (image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp), points the code
 // cells of game.exe's data at them and runs WinMain. Forwarders, function pointers in the data and vtable slots reach
