@@ -52,6 +52,37 @@ protected:
 // (CEngineObject::BaseVtable).
 class EngineObjectBaseClass final : public EngineObjectClass<EngineObjectBaseClass, CEngineObject> {};
 
+// CBaseManager's slots over CEngineObject's (game.exe's 0073B870): 2 / 3 / 9 / 10 the manager's, 13-24 its own (14
+// _purecall), each the body game.exe's base manager table reached, called qualified.
+template <typename Self, typename T>
+class ManagerClass : public EngineObjectClass<Self, T> {
+public:
+    int Create() override { return Manager()->CBaseManager::Create(); }    // 2: 00403020
+    void Destroy() override { Manager()->CBaseManager::Destroy(); }        // 3: 004031E0
+    void Load(CStream* stream) override { Manager()->LoadImpl(stream); }   // 9: 004046E0
+    void Save(CStream* stream) override { Manager()->SaveImpl(stream); }   // 10: 00404760
+    virtual BOOL Init(CManagerContext* context) { return Manager()->InitImpl(context); }   // 13: 004031B0
+    virtual CEngineObject* NewObject(int) {                                                 // 14: pure
+        _purecall();
+        return nullptr;
+    }
+    virtual void DestroyAll() { Manager()->CBaseManager::DestroyAll(); }   // 15: 004034E0
+    virtual BOOL AddArchive(const char* path) { return Manager()->CBaseManager::AddArchiveImpl(path); }        // 16
+    virtual BOOL RemoveArchive(const char* path) { return Manager()->CBaseManager::RemoveArchiveImpl(path); }  // 17
+    virtual BOOL RemoveAllArchives() { return Manager()->CBaseManager::RemoveAllArchives(); }                  // 18
+    virtual void* GetFile(const char* name, std::uint32_t* size) {                                             // 19
+        return Manager()->CBaseManager::GetFileImpl(name, size);
+    }
+    virtual bool CloseFile(void* data) { return Manager()->CBaseManager::CloseFileImpl(data); }   // 20: 00402DA0
+    virtual BOOL HasFile(const char* name) { return Manager()->CBaseManager::HasFileImpl(name); }   // 21: 00402DB0
+    virtual void FreeAllFiles() {}                                                                  // 22: 00402DC0
+    virtual CEngineObject* CreateObject(int type, int id) { return Manager()->CreateObjectImpl(type, id); }   // 23
+    virtual int ReleaseObject(CEngineObject* object) { return Manager()->ReleaseObjectImpl(object); }        // 24
+
+protected:
+    CBaseManager* Manager() { return this->template As<CBaseManager>(); }
+};
+
 // CTransformObject's slots 13-17 over CEngineObject's (game.exe's 0073BA38 has the base's bodies there).
 template <typename Self, typename T>
 class TransformObjectClass : public EngineObjectClass<Self, T> {

@@ -1,6 +1,8 @@
 // CResourceManager (00674D90-00675530, 005AA360). See resource_manager.h.
 #include "resource_manager.h"
 
+#include "engine_object_class.h"
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
@@ -37,7 +39,7 @@ static_assert(std::is_trivially_destructible_v<stlp::vector<ArchiveEntry>>);
 CResourceManager* CResourceManager::Construct() {
     ConstructBase();
     std::memset(&archives_, 0, sizeof(archives_));
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, BaseVtable());
     return this;
 }
 EI_REWRITTEN(0x00674D90, CResourceManager::Construct);
@@ -45,7 +47,7 @@ EI_REWRITTEN(0x00674D90, CResourceManager::Construct);
 CResourceManager::CResourceManager() { std::memset(&archives_, 0, sizeof(archives_)); }
 
 void CResourceManager::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, BaseVtable());
     TearDownResourceManager();
     DestructBody();
 }
@@ -65,7 +67,7 @@ CResourceManager* CResourceManager::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00674DD0, CResourceManager::DeletingDestruct);
+EI_REWRITTEN(0x00674DD0, CResourceManager::DeletingDestruct);
 
 void CResourceManager::Destroy() {
     CloseAll(archives_);
@@ -156,16 +158,41 @@ void __fastcall DestroyHook(CResourceManager* self) { self->CResourceManager::De
 BOOL __fastcall RemoveAllArchivesHook(CResourceManager* self) { return self->CResourceManager::RemoveAllArchives(); }
 void __fastcall FreeAllFilesHook(CResourceManager* self) { self->CResourceManager::FreeAllFiles(); }
 } // namespace
-EI_REPLACE(0x00674F40, DestroyHook);
+EI_REWRITTEN(0x00674F40, DestroyHook);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
 EI_REPLACE(0x00512720, DestroyHook);
 EI_REPLACE(0x0068E8F0, DestroyHook);
 EI_REPLACE(0x006AC800, DestroyHook);
-EI_REPLACE_METHOD(0x00675050, CResourceManager::AddArchiveImpl);
-EI_REPLACE_METHOD(0x00675200, CResourceManager::RemoveArchiveImpl);
-EI_REPLACE(0x00675340, RemoveAllArchivesHook);
-EI_REPLACE_METHOD(0x00675440, CResourceManager::GetFileImpl);
-EI_REPLACE_METHOD(0x00675490, CResourceManager::CloseFileImpl);
-EI_REPLACE_METHOD(0x006754E0, CResourceManager::HasFileImpl);
-EI_REPLACE(0x00675530, FreeAllFilesHook);
+EI_REWRITTEN(0x00675050, CResourceManager::AddArchiveImpl);
+EI_REWRITTEN(0x00675200, CResourceManager::RemoveArchiveImpl);
+EI_REWRITTEN(0x00675340, RemoveAllArchivesHook);
+EI_REWRITTEN(0x00675440, CResourceManager::GetFileImpl);
+EI_REWRITTEN(0x00675490, CResourceManager::CloseFileImpl);
+EI_REWRITTEN(0x006754E0, CResourceManager::HasFileImpl);
+EI_REWRITTEN(0x00675530, FreeAllFilesHook);
+
+namespace {
+// game.exe's 00743338 compiled (C19): the base manager's slots with the archive slots 3 and 16-22 of
+// CResourceManager's bodies (called qualified); 25 the folder name, _purecall.
+class ResourceManagerClass final : public ManagerClass<ResourceManagerClass, CResourceManager> {
+public:
+    void Destroy() override { Resources()->CResourceManager::Destroy(); }                      // 3: 00674F40
+    BOOL AddArchive(const char* path) override { return Resources()->AddArchiveImpl(path); }        // 16: 00675050
+    BOOL RemoveArchive(const char* path) override { return Resources()->RemoveArchiveImpl(path); }  // 17: 00675200
+    BOOL RemoveAllArchives() override { return Resources()->CResourceManager::RemoveAllArchives(); }   // 18: 00675340
+    void* GetFile(const char* name, std::uint32_t* size) override { return Resources()->GetFileImpl(name, size); }   // 19
+    bool CloseFile(void* data) override { return Resources()->CloseFileImpl(data); }            // 20: 00675490
+    BOOL HasFile(const char* name) override { return Resources()->HasFileImpl(name); }          // 21: 006754E0
+    void FreeAllFiles() override { Resources()->CResourceManager::FreeAllFiles(); }             // 22: 00675530
+    virtual const char* GetFolderName() {                                                       // 25: pure
+        _purecall();
+        return nullptr;
+    }
+
+private:
+    CResourceManager* Resources() { return As<CResourceManager>(); }
+};
+} // namespace
+
+void* CResourceManager::BaseVtable() { return ResourceManagerClass::Vtable(); }

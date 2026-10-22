@@ -448,6 +448,7 @@ vtable,slots,class,file,note
 00743300,8,CMMIOResource,src/game/resource.h,
 00743320,1,CResourceStream,src/game/resource_stream.h,the sound system's file reader
 00743324,1,CResourceBase,src/game/resource.h,the archive readers' base
+00743338,26,ResourceManagerClass,src/game/resource_manager.cpp,"CResourceManager's own table (Construct / Destruct; slots 11, 12, 14, 25 _purecall)"
 007433EC,24,CEffectSoundClass,src/game/world_effect_class.h,positional sound
 0074344C,24,CEffectSoundSeqClass,src/game/world_effect_class.h,sound sequence
 007434AC,24,CEffectBaseClass,src/game/world_effect_class.h,the effects' abstract base

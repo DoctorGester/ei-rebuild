@@ -18,13 +18,14 @@ static_assert(sizeof(ArchiveEntry) == 16);
 
 // Base of the managers that load their data from archives (CTextureManager, CFigureManager, ...):
 // CBaseManager's archive slots (16-22) over a list of open archives, and a 26th slot, the folder
-// name. Name provisional; vtable 00743338 (slots 11, 12, 14 and 25 are _purecall there).
-// resource_manager.cpp. Like CBaseManager, still made by the constructor body for most managers;
-// one with real C++ constructors (CTextureManager) gets the compiler's vtables, this class's a
-// replica of 00743338.
+// name. Name provisional; game.exe's vtable 00743338 (slots 11, 12, 14 and 25 are _purecall there)
+// is retired (C19): the constructor and destructor bodies (Construct, which no code of ours calls,
+// and Destruct) store BaseVtable() (resource_manager.cpp's ResourceManagerClass). resource_manager.cpp.
+// Every derived manager has real C++ constructors (CTextureManager) and the compiler's vtables.
 class CResourceManager : public CBaseManager {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743338);
+    // The table Construct / Destruct store (game.exe's 00743338, compiled).
+    static void* BaseVtable();
 
     // Slot 0 is the scalar deleting destructor 00674DD0 (DeletingDestruct).
     // 3: 00674F40. Closes and deletes every archive, then CBaseManager::Destroy.
