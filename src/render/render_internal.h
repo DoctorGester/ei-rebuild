@@ -184,7 +184,7 @@ struct Command {
 
 // The receivers' shader parameters of the shadow map (render_shadows.cpp; shaders/shadow_receiver.hlsli).
 struct ShadowParams {
-    float on[4];       // x: on, y: strength, z: one texel (uv), w: constant depth bias
+    float on[4];       // x: on, y: strength, z: 1 the shadow alone (SetShadowView), w: constant depth bias
     float scale[4];    // xyz: shadow clip units to world units (normals), w: largest depth slope
     float camera[4];   // xyz: the camera in shadow clip space, w: the receiver's own caster id (0: none; R22)
     float soft[4];     // x: filter radius (uv) per unit of blocker distance (clip z), y: the blocker

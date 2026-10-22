@@ -186,6 +186,8 @@ std::size_t g_strengthsCount = 0;
 bool g_outsideOn = true;   // SetOffscreenCasters: not View
 bool g_walkedOnly = false; // SetOffscreenCasters: Walked
 bool g_facingAll = false;  // SetShadowFacing: All
+bool g_shadowView = false; // SetShadowView (R25)
+int g_shadowShift = 0;     // SetShadowShift (R25): texels
 // How the meshes drawn on screen with a texture cut it out (alpha test or blending, and the least alpha
 // kept), by the texture's view: a caster outside the view with that texture cuts it out the same way;
 // one whose texture was not drawn yet cuts below one half (a texture with alpha is drawn alpha-tested
@@ -223,6 +225,9 @@ sg_pipeline g_reducePipeline{}, g_dilatePipeline{};
 sg_image g_cells{}, g_range{};
 sg_view g_cellsAttachment{}, g_cellsTexture{}, g_rangeAttachment{}, g_rangeTexture{};
 sg_sampler g_point{};
+sg_sampler g_rangeLinear{};   // the receivers read the range filtered (R25)
+sg_image g_rangeDummy{};      // the range's 1 x 1 stand-in without a map (an image the filtered read accepts)
+sg_view g_rangeDummyAttachment{}, g_rangeDummyTexture{};
 // The casters' ids (R22): the image the caster pass writes beside the map, a 1 x 1 one bound without a map,
 // and each casting object's id this frame (from 1; PrepareShadows).
 sg_image g_ids{}, g_idDummy{};
@@ -352,6 +357,21 @@ sg_sampler PointSampler() {
     return g_point;
 }
 
+// The receivers' read of the range (R25): bilinear between the four cells around the point, clamped at
+// the map's edges (shaders/shadow_receiver.hlsli).
+sg_sampler RangeSampler() {
+    if (g_rangeLinear.id) return g_rangeLinear;
+    sg_sampler_desc d{};
+    d.min_filter = SG_FILTER_LINEAR;
+    d.mag_filter = SG_FILTER_LINEAR;
+    d.mipmap_filter = SG_FILTER_NEAREST;
+    d.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
+    d.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
+    d.label = "ei-shadow-range-linear";
+    g_rangeLinear = sg_make_sampler(&d);
+    return g_rangeLinear;
+}
+
 // The id `object` casts with this frame (0: none; R22).
 float CasterId(const void* object) {
     auto it = object ? g_casterIds.find(object) : g_casterIds.end();
@@ -441,6 +461,8 @@ sg_sampler CompareSampler() {
 void EnsureDummy() {
     if (!g_idDummy.id)
         MakeColour(1, kIdFormat, "ei-shadow-ids-none", &g_idDummy, &g_idDummyAttachment, &g_idDummyTexture);
+    if (!g_rangeDummy.id)
+        MakeRange(1, "ei-shadow-range-none", &g_rangeDummy, &g_rangeDummyAttachment, &g_rangeDummyTexture);
     if (!g_dummy.id && !MakeDepth(1, "ei-shadow-none", &g_dummy, &g_dummyAttachment, &g_dummyTexture)) return;
     if (g_dummyCleared) return;
     sg_pass pass{};
@@ -606,8 +628,8 @@ const Fit& FitMap(Frame& f) {
     double extent = std::max(hi.x - lo.x, hi.y - lo.y) + 2.0;
     extent = std::ceil(extent / kExtentStep) * kExtentStep;
     double texel = extent / kMapSize;
-    double x0 = std::floor(((lo.x + hi.x) * 0.5 - extent * 0.5) / texel) * texel;
-    double y0 = std::floor(((lo.y + hi.y) * 0.5 - extent * 0.5) / texel) * texel;
+    double x0 = (std::floor(((lo.x + hi.x) * 0.5 - extent * 0.5) / texel) - g_shadowShift) * texel;
+    double y0 = (std::floor(((lo.y + hi.y) * 0.5 - extent * 0.5) / texel) - g_shadowShift / 2) * texel;
 
     g_fit.ok = true;
     g_fit.firstGround = firstGround;
@@ -769,6 +791,24 @@ void SetShadowFacing(ShadowFacing mode) {
 #endif
 }
 
+void SetShadowView(bool on) {
+#if defined(EI_RENDER_VALIDATION)
+    if (on != g_shadowView) ei::Log("render: shadow map: %s", on ? "the shadow alone" : "the frame as drawn");
+    g_shadowView = on;
+#else
+    (void)on;
+#endif
+}
+
+void SetShadowShift(int texels) {
+#if defined(EI_RENDER_VALIDATION)
+    if (texels != g_shadowShift) ei::Log("render: shadow map: origin moved by %d, %d texels", texels, texels / 2);
+    g_shadowShift = texels;
+#else
+    (void)texels;
+#endif
+}
+
 namespace {
 bool g_shadowBuildFull = false;          // the harness's "shadowbuild full" (R16e1)
 unsigned g_shadowTextureGeneration = 0;  // RebuildShadowTextures
@@ -880,7 +920,7 @@ void PrepareShadows(Frame& f) {
     ShadowParams p{};
     p.on[0] = 1.0f;
     p.on[1] = kStrength;
-    p.on[2] = 1.0f / static_cast<float>(kMapSize);
+    p.on[2] = g_shadowView ? 1.0f : 0.0f;
     p.on[3] = static_cast<float>(kDepthBias / depth);
     p.scale[0] = static_cast<float>(extent * 0.5);
     p.scale[1] = static_cast<float>(extent * 0.5);
@@ -895,13 +935,16 @@ void PrepareShadows(Frame& f) {
         p.camera[2] = static_cast<float>(c.z);
     }
     p.soft[0] = static_cast<float>(depth * kSunSize / extent);
-    p.soft[1] = static_cast<float>(kWidestRadius / extent);
+    // The widest filter, in texels: kWidestRadius, at most what the dilation's cells reach.
+    const double widestTexels = std::min(kWidestRadius / extent * kMapSize, (kMostCellsAround - 1) * kRangeCell - 1.0);
+    p.soft[1] = static_cast<float>(widestTexels / kMapSize);
     p.soft[2] = static_cast<float>(kLeastRadius / kMapSize);
     p.soft[3] = static_cast<float>(kMapSize);
-    // The cells around a cell that hold every texel the search and the filter read (+1 for the
-    // bilinear comparisons' second texel).
-    double reachTexels = kWidestRadius / extent * kMapSize + 1.0;
-    g_cellsAround = std::min(kMostCellsAround, static_cast<int>(std::ceil(reachTexels / kRangeCell)));
+    // The cells around a cell that hold every texel the search and the filter read (+1 texel for the
+    // bilinear comparisons' second texel), and one cell more: the receivers read the range filtered
+    // between the four cells around a pixel (R25), each of which must hold the pixel's taps.
+    double reachTexels = widestTexels + 1.0;
+    g_cellsAround = std::min(kMostCellsAround, static_cast<int>(std::ceil(reachTexels / kRangeCell)) + 1);
     sh.params = p;
     sh.on = true;
     g_info.made = true;
@@ -1099,10 +1142,11 @@ void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot) {
     bool on = g_mapTexture.id && g_rangeTexture.id && CurrentFrame().shadow.on;
     b.views[viewSlot] = on ? g_mapTexture : g_dummyTexture;
     b.samplers[samplerSlot] = CompareSampler();
-    // The range: with no map the depth dummy stands in (the shaders read neither then).
-    b.views[viewSlot + 1] = on ? g_rangeTexture : g_dummyTexture;
-    b.samplers[samplerSlot + 1] = PointSampler();
+    // The range, read filtered: with no map its 1 x 1 stand-in (the shaders read neither then).
+    b.views[viewSlot + 1] = on ? g_rangeTexture : g_rangeDummyTexture;
+    b.samplers[samplerSlot + 1] = RangeSampler();
     b.views[viewSlot + 2] = on && g_idsTexture.id ? g_idsTexture : g_idDummyTexture;
+    b.samplers[samplerSlot + 2] = PointSampler();
 }
 
 void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot) {
@@ -1119,10 +1163,10 @@ void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot) {
     int rangeView = viewSlot + 1, rangeSampler = samplerSlot + 1;
     s.views[rangeView].texture.stage = SG_SHADERSTAGE_FRAGMENT;
     s.views[rangeView].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[rangeView].texture.sample_type = SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT;
+    s.views[rangeView].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
     s.views[rangeView].texture.hlsl_register_t_n = static_cast<std::uint8_t>(rangeView);
     s.samplers[rangeSampler].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[rangeSampler].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
+    s.samplers[rangeSampler].sampler_type = SG_SAMPLERTYPE_FILTERING;
     s.samplers[rangeSampler].hlsl_register_s_n = static_cast<std::uint8_t>(rangeSampler);
     s.texture_sampler_pairs[rangeView].stage = SG_SHADERSTAGE_FRAGMENT;
     s.texture_sampler_pairs[rangeView].view_slot = static_cast<std::uint8_t>(rangeView);
@@ -1132,9 +1176,13 @@ void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot) {
     s.views[idView].texture.image_type = SG_IMAGETYPE_2D;
     s.views[idView].texture.sample_type = SG_IMAGESAMPLETYPE_UINT;
     s.views[idView].texture.hlsl_register_t_n = static_cast<std::uint8_t>(idView);
-    s.texture_sampler_pairs[idView].stage = SG_SHADERSTAGE_FRAGMENT;   // sokol wants one (read by Load)
+    int idSampler = samplerSlot + 2;   // sokol wants a pair (the ids are read by Load), not filtering
+    s.samplers[idSampler].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.samplers[idSampler].sampler_type = SG_SAMPLERTYPE_NONFILTERING;
+    s.samplers[idSampler].hlsl_register_s_n = static_cast<std::uint8_t>(idSampler);
+    s.texture_sampler_pairs[idView].stage = SG_SHADERSTAGE_FRAGMENT;
     s.texture_sampler_pairs[idView].view_slot = static_cast<std::uint8_t>(idView);
-    s.texture_sampler_pairs[idView].sampler_slot = static_cast<std::uint8_t>(rangeSampler);
+    s.texture_sampler_pairs[idView].sampler_slot = static_cast<std::uint8_t>(idSampler);
 }
 
 void DestroyShadows() {
@@ -1146,13 +1194,16 @@ void DestroyShadows() {
     DestroyTarget(&g_map, &g_mapAttachment, &g_mapTexture);
     DestroyTarget(&g_ids, &g_idsAttachment, &g_idsTexture);
     DestroyTarget(&g_idDummy, &g_idDummyAttachment, &g_idDummyTexture);
+    DestroyTarget(&g_rangeDummy, &g_rangeDummyAttachment, &g_rangeDummyTexture);
     g_casterIds.clear();
     DestroyTarget(&g_dummy, &g_dummyAttachment, &g_dummyTexture);
     g_dummyCleared = false;
     DestroyTarget(&g_cells, &g_cellsAttachment, &g_cellsTexture);
     DestroyTarget(&g_range, &g_rangeAttachment, &g_rangeTexture);
-    if (g_point.id) sg_destroy_sampler(g_point);
-    g_point = sg_sampler{};
+    for (sg_sampler* s : {&g_point, &g_rangeLinear}) {
+        if (s->id) sg_destroy_sampler(*s);
+        *s = sg_sampler{};
+    }
     for (sg_pipeline* p : {&g_reducePipeline, &g_dilatePipeline}) {
         if (p->id) sg_destroy_pipeline(*p);
         *p = sg_pipeline{};
