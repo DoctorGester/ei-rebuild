@@ -323,7 +323,7 @@ int CWorldServer::SendZone(CPlayer* player) {
     std::memset(&message, 0, sizeof(message));
     message.version_ = 2000000000;
     message.ok_ = 1;
-    ei::SetVtable(&message, kMemoryStreamVtable);
+    ei::SetVtable(&message, CMemoryStream::MemoryStreamVtable());
     message.data_ = nullptr;
     message.Reset();
 
@@ -368,7 +368,7 @@ int CWorldServer::SendZone(CPlayer* player) {
         }
         if (result != 0) player->connection_->ItemsGiven(&player->items_, 0);
     }
-    ei::SetVtable(&message, kMemoryStreamVtable);
+    ei::SetVtable(&message, CMemoryStream::MemoryStreamVtable());
     if (message.data_) gamecrt::operator_delete(message.data_);
     return result;
 }

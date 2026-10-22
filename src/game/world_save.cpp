@@ -53,7 +53,8 @@ namespace {
 
 // ---- Constants --------------------------------------------------------------------------------
 
-// kMemoryStreamVtable and kStreamVtable (its CStream base; compiled tables in place of 0073BD90 / 0073BDB0): core_streams.h.
+// The memory streams' tables are CMemoryStream::MemoryStreamVtable() and CStream::StreamVtable() (its base; compiled tables
+// in place of 0073BD90 / 0073BDB0): core_streams.h.
 // The CArray<int> vtable is mfc::impl::IntArrayClass::Vtable(), the script group's mfc::impl::ScriptGroupClass::Vtable() (set
 // after 004C2030), the item link record's CItemLink::Vtable() (item.h).
 constexpr std::uint32_t kStreamLimit = 2000000000;            // CStream +0x08 as constructed
@@ -99,7 +100,7 @@ using DwordList = mfc::CList<std::uint32_t>;
 // The memory stream locals of LoadSave / SaveWorld are built in place.
 void InitMemoryStream(CMemoryStream* stream) {
     std::memset(stream, 0, sizeof(*stream));
-    ei::SetVtable(stream, kMemoryStreamVtable);
+    ei::SetVtable(stream, CMemoryStream::MemoryStreamVtable());
     stream->version_ = kStreamLimit;
     stream->ok_ = 1;
     stream->data_ = nullptr;
@@ -107,9 +108,9 @@ void InitMemoryStream(CMemoryStream* stream) {
 }
 
 void DestroyMemoryStream(CMemoryStream* stream) {
-    ei::SetVtable(stream, kMemoryStreamVtable);
+    ei::SetVtable(stream, CMemoryStream::MemoryStreamVtable());
     if (stream->data_) gamecrt::operator_delete(stream->data_);
-    ei::SetVtable(stream, kStreamVtable);
+    ei::SetVtable(stream, CStream::StreamVtable());
 }
 
 // A CMemoryStream local: built in place, its buffer freed when it goes out of scope.
@@ -614,7 +615,7 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
 void ConstructSaveStream(CMemoryStream* stream) {
     std::memset(stream, 0, sizeof(*stream));
     stream->ConstructBase();
-    ei::SetVtable(stream, kMemoryStreamVtable);
+    ei::SetVtable(stream, CMemoryStream::MemoryStreamVtable());
     stream->data_ = nullptr;
     stream->Reset();
 }
@@ -735,11 +736,11 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
         node = next;
     }
 
-    ei::SetVtable(&current, kMemoryStreamVtable);
+    ei::SetVtable(&current, CMemoryStream::MemoryStreamVtable());
     if (current.data_) gamecrt::operator_delete(current.data_);
-    ei::SetVtable(&base, kMemoryStreamVtable);
+    ei::SetVtable(&base, CMemoryStream::MemoryStreamVtable());
     if (base.data_) gamecrt::operator_delete(base.data_);
-    ei::SetVtable(&current, kStreamVtable);
+    ei::SetVtable(&current, CStream::StreamVtable());
 }
 
 // ---- The shared-object list -------------------------------------------------------------------

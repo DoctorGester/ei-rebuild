@@ -77,11 +77,17 @@ struct CMapPtrToPtr {
     void* GetValueAt(void* key) const;                                  // 00700436 (null when missing)
     void** At(void* key);                                               // 0070048B operator[]
     BOOL RemoveKey(void* key);                                          // 007004DB
+    // 0070051D: the entry at `position` (StartPosition(): the first one) and the position after it (null after the
+    // last). The map must not be empty.
+    void GetNextAssoc(Assoc*& position, void*& key, void*& value) const;
+
+    // BEFORE_START_POSITION.
+    static Assoc* StartPosition() { return reinterpret_cast<Assoc*>(-1); }
 };
 static_assert(sizeof(CMapPtrToPtr) == 0x1C);
 static_assert(sizeof(CMapPtrToPtr::Assoc) == 12);
 
-// CHandleMap (0x48 bytes, vtable 0074685C).
+// CHandleMap (0x48 bytes; a compiled table, C19, in place of game.exe's 0074685C: slot 0 the deleting destructor).
 struct CHandleMap {
     void* vtable;
     CMapPtrToPtr permanentMap;      // +0x04 (blocks of 10)
@@ -90,9 +96,18 @@ struct CHandleMap {
     unsigned handleOffset;          // +0x40 where the object keeps its handle
     int handleCount;                // +0x44 1, or 2 (a DC's output and attribute handles)
 
-    static void* Vtable() { return ei::GamePointer<void>(0x0074685C); }
+    static void* Vtable();
 
     CHandleMap* Construct(const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount);   // 00703617
+    // ~CHandleMap (006E6D08): DeleteTemp, then the two maps destroyed. The scalar deleting destructor (006E6CEC,
+    // slot 0): it, then the memory freed when bit 0 of `flags` is set. The image's maps are never destroyed
+    // (mfc_gdi.cpp MapHDC / MapHGDIOBJ live until the process ends).
+    void Destruct();
+    CHandleMap* DeletingDestructor(unsigned flags);
+    // 0070373B: every temporary object's handles cleared and the object deleted (slot 1 with 1), then the
+    // temporary map emptied. The original also returns at once for a null map (MFC's `this == NULL` test); every
+    // caller here has one.
+    void DeleteTemp();
     // 0070367C: the object of `handle` (null for null): the permanent one, else the temporary one,
     // else a new temporary object of objectClass (under the critical new handler; a CMemoryException
     // when none could be made). A temporary object's handles are (re)written.

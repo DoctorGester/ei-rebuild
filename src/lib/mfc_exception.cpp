@@ -112,9 +112,21 @@ private:
     CArchiveException* This() { return reinterpret_cast<CArchiveException*>(this); }
 };
 
+// CFileException (game.exe's 00745E4C).
+struct FileExceptionTable final : ExceptionTable<FileExceptionTable, &kClassCFileException> {
+    void* DeleteScalar(unsigned flags) override { return This()->DeletingDestructor(flags); }   // 1: 006E6319
+    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override {     // 3: 00703135
+        return This()->GetErrorMessage(error, maxError, helpContext);
+    }
+
+private:
+    CFileException* This() { return reinterpret_cast<CFileException*>(this); }
+};
+
 } // namespace
 
 void* CArchiveException::Vtable() { return ArchiveExceptionTable::Vtable(); }
+void* CFileException::Vtable() { return FileExceptionTable::Vtable(); }
 
 CSimpleException* CSimpleException::Construct(BOOL autoDeleteFlag, unsigned id, void* classVtable) {
     reinterpret_cast<CException*>(this)->ConstructAutoDelete(autoDeleteFlag);

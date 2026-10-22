@@ -6,6 +6,11 @@
 // destructors store `Tag::Vtable()`; the original's dispatch through the field reaches the tag's slots. The tag is
 // never an object of its own: only its table is used (mfc_slots.h's CompiledCollection is the collections' tag).
 
+#include "ei/hook.h"
+
+#include <intrin.h>
+
+#include <cstdint>
 #include <new>
 #include <type_traits>
 
@@ -50,5 +55,12 @@ public:
         return (this->template ObjectAs<Target>()->*Delete)(flags);
     }
 };
+
+// The body of a compiled table's slot whose game.exe body at `address` is not ported: the image never reaches it
+// (config/standalone_unreachable.csv lists the address with the reason: the class is never made, or never called
+// through that slot). Reached anyway, it is reported as missing code at `address`, as game.exe's table's slot was.
+[[noreturn]] __declspec(noinline) inline void UnportedSlot(std::uintptr_t address) {
+    ReportNoCode(address, reinterpret_cast<std::uintptr_t>(_ReturnAddress()));
+}
 
 } // namespace ei

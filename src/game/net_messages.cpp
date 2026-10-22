@@ -884,7 +884,7 @@ namespace {
 // The memory stream's constructor as the factory and the reset inline it.
 void InitMemberStream(CMemoryStream& s) {
     s.version_ = 2000000000;
-    ei::SetVtable(&s, kMemoryStreamVtable);
+    ei::SetVtable(&s, CMemoryStream::MemoryStreamVtable());
     s.data_ = nullptr;
     s.capacity_ = 0;
     s.position_ = 0;
@@ -895,9 +895,9 @@ void InitMemberStream(CMemoryStream& s) {
 }
 void FreeMemberStream(CMemoryStream& s) {
     std::uint8_t* data = s.data_;
-    ei::SetVtable(&s, kMemoryStreamVtable);
+    ei::SetVtable(&s, CMemoryStream::MemoryStreamVtable());
     if (data) gamecrt::operator_delete(data);
-    ei::SetVtable(&s, kStreamVtable);
+    ei::SetVtable(&s, CStream::StreamVtable());
 }
 } // namespace
 

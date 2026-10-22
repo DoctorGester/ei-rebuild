@@ -13,6 +13,7 @@
 // classes reach it from their own destructors. Checked in game by verify_mfc_state.cpp until S21d.
 
 #include <windows.h>
+#include "compiled_vtable.h"
 #include "game/game_data.h"
 
 namespace mfc::impl {
@@ -48,7 +49,36 @@ struct CCmdTarget {
 };
 static_assert(sizeof(CCmdTarget) == 0x1C);
 
+struct CRuntimeClass;
 struct CWnd;
+
+// CCmdTarget's 20 slots as CWnd's and CWinThread's compiled tables have them (C19; MFC 4.2's CCmdTarget virtuals):
+// 0 GetRuntimeClass, 1 the scalar deleting destructor, 2 Serialize (CObject's, empty), 3-19 the command routing
+// and OLE automation slots, unported: only MFC's own message routing and IDispatch call them, none of which the
+// image has (config/standalone_unreachable.csv). 4 and 10 are the class's own.
+template <typename Self, const CRuntimeClass* kClass>
+struct CmdTargetTable : ei::CompiledTag<Self> {
+    virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }                 // 0
+    virtual void* DeleteScalar(unsigned flags) = 0;                                         // 1
+    virtual void Serialize(void*) {}                                                        // 2: 00444B00
+    virtual BOOL OnCmdMsg(UINT, int, void*, void*) { ei::UnportedSlot(0x00703FFA); }       // 3
+    virtual void OnFinalRelease() = 0;                                                      // 4
+    virtual BOOL IsInvokeAllowed(long) { ei::UnportedSlot(0x00704109); }                   // 5
+    virtual BOOL GetDispatchIID(IID*) { ei::UnportedSlot(0x0070410F); }                    // 6
+    virtual UINT GetTypeInfoCount() { ei::UnportedSlot(0x00704114); }                      // 7
+    virtual void* GetTypeLibCache() { ei::UnportedSlot(0x00704117); }                      // 8
+    virtual HRESULT GetTypeLib(LCID, void**) { ei::UnportedSlot(0x0070411A); }             // 9
+    virtual const void* GetMessageMap() const = 0;                                          // 10
+    virtual const void* GetCommandMap() const { ei::UnportedSlot(0x007041C4); }            // 11
+    virtual const void* GetDispatchMap() const { ei::UnportedSlot(0x00704167); }           // 12
+    virtual const void* GetConnectionMap() const { ei::UnportedSlot(0x007041B4); }         // 13
+    virtual const void* GetInterfaceMap() const { ei::UnportedSlot(0x00704173); }          // 14
+    virtual const void* GetEventSinkMap() const { ei::UnportedSlot(0x0070416D); }          // 15
+    virtual BOOL OnCreateAggregates() { ei::UnportedSlot(0x007041AB); }                    // 16
+    virtual void* GetInterfaceHook(const void*) { ei::UnportedSlot(0x007041AF); }          // 17
+    virtual BOOL GetExtraConnectionPoints(void*) { ei::UnportedSlot(0x007041BF); }         // 18
+    virtual void* GetConnectionHook(const IID&) { ei::UnportedSlot(0x007041BA); }          // 19
+};
 
 // COleControlSite (the members used here).
 struct COleControlSite {
@@ -58,7 +88,9 @@ struct COleControlSite {
     CWnd* windowControl;        // +0x24 m_pWndCtrl
 };
 
-// CWnd (0x3C bytes, vtable 00746DA8).
+// CWnd (0x3C bytes). Its table and CTempWnd's are compiled (C19, mfc_window.cpp's WndTable) in place of game.exe's
+// 00746DA8 / 00746EC4: 46 slots, the destructors ported, the rest unported (MFC's four static windows are never
+// called through their table).
 struct CWnd {
     CCmdTarget base;            // +0x00
     HWND window;                // +0x1C m_hWnd
@@ -70,8 +102,8 @@ struct CWnd {
     void* controlContainer;     // +0x34 m_pCtrlCont (a COleControlContainer, a CObject)
     COleControlSite* controlSite;   // +0x38 m_pCtrlSite
 
-    static void* Vtable() { return ei::GamePointer<void>(0x00746DA8); }
-    static void* TempVtable() { return ei::GamePointer<void>(0x00746EC4); }   // CTempWnd's
+    static void* Vtable();
+    static void* TempVtable();   // CTempWnd's
 
     // 00704546 CWnd(HWND): CCmdTarget's constructor, CWnd's vtable, CWnd's members cleared and the
     // handle kept (returns this). The static initialisers build MFC's four static windows with it
@@ -83,16 +115,19 @@ struct CWnd {
     // CCmdTarget's destructor. The original's unwind frame (CCmdTarget destroyed when DestroyWindow
     // throws) is not kept: no game window is a CWnd.
     void Destruct();
+    // 0070452A (slot 1): Destruct, then the memory freed when bit 0 of `deleteFlags` is set.
+    CWnd* DeletingDestructor(unsigned deleteFlags);
 };
 static_assert(sizeof(CWnd) == 0x3C);
 
-// CMenu (8 bytes, vtable 007471FC): vtable, m_hMenu.
+// CMenu (8 bytes): vtable, m_hMenu. Its table and CTempMenu's are compiled (C19, mfc_window.cpp's MenuTable) in
+// place of game.exe's 007471FC / 00747214; their create functions are the only makers, and nothing calls those.
 struct CMenu {
     void* vtable;
     HMENU menu;         // +0x04 m_hMenu
 
-    static void* Vtable() { return ei::GamePointer<void>(0x007471FC); }
-    static void* TempVtable() { return ei::GamePointer<void>(0x00747214); }   // CTempMenu's
+    static void* Vtable();
+    static void* TempVtable();   // CTempMenu's
 };
 static_assert(sizeof(CMenu) == 8);
 

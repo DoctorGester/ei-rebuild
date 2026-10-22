@@ -221,15 +221,6 @@ static_assert(sizeof(QueueStream) == 0x28 && offsetof(QueueStream, bytes) == 0);
 // The game's save stream: the global CMemoryStream at 007AFDF8 (defined in world_game.cpp).
 CMemoryStream* GameSaveStream();
 
-// The stream tables under the names the world_* and net_* code uses (`ei::SetVtable(stream,
-// kMemoryStreamVtable)`): each converts to its compiled table.
-struct StreamTableName {
-    void* (*table)();
-    operator const void*() const { return table(); }
-};
-inline constexpr StreamTableName kStreamVtable{&CStream::StreamVtable};
-inline constexpr StreamTableName kMemoryStreamVtable{&CMemoryStream::MemoryStreamVtable};
-
 // The harness's view of the memory streams' writes (verify builds; the save trace,
 // tests/verify/harness_savetrace.cpp): the stream, the size and the slot's return address
 // (`_AddressOfReturnAddress()`), before the bytes are written. game.exe's run has the harness take
