@@ -25,7 +25,7 @@ static int __stdcall IdAfterForOriginal(const CEngineObject* x, const CEngineObj
         g_tieLogged = true;
         ei::Log("harness: script group members %p and %p share id %d: the id order cannot settle them", x, y, x->id_);
     }
-    if (!x || !y) return x != nullptr ? 1 : 0;   // as ScriptGroup::IdAfter
+    if (!x || !y) return x != nullptr ? 1 : 0;   // as ScriptGroup::After
     return x->id_ > y->id_ ? 1 : 0;
 }
 

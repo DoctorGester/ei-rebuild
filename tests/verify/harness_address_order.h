@@ -4,7 +4,7 @@
 // clock; ticket T2f, docs/notes/standalone-verification.md "T2f"; src/game/address_order.h lists
 // them). Like script groups (harness_script_order.h), both sides use the same order instead:
 //
-//   - ours: always (address_order::ById is true in the standalone);
+//   - ours: always (src/game/address_order.h);
 //   - the original: the object sets' sort 0047ADF0 jumps to a sort by id (then address), the
 //     comparison of DiffObjectSets' merge (0047B4C0) to a stub that compares the same way, and
 //     SetSun's comparator 006C8E90 to one that compares the sectors it was meant to, and the draw

@@ -1627,7 +1627,7 @@ EI_REWRITTEN(0x00578A60, CWorldClient::ExitTarget);
 EI_REWRITTEN(0x005618E0, CWorldClient::ClientGroundHeight);
 EI_REWRITTEN(0x00561930, CWorldClient::ClientSurfaceHeight);
 EI_REWRITTEN(0x0056CE40, CWorldClient::ShowNumber);
-EI_REPLACE_METHOD(0x0056DE80, CWorldClient::LoadUnitFaces);
+EI_REWRITTEN(0x0056DE80, CWorldClient::LoadUnitFaces);
 EI_REWRITTEN(0x00567400, CWorldClient::RemoveUnitsOf);
 EI_REWRITTEN(0x00566330, CWorldClient::SendFlag10);
 EI_REWRITTEN(0x00570860, SectorGrid::Move);

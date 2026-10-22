@@ -3118,7 +3118,7 @@ id = "C29a"
 title = "C29 leftovers: crt* unread registrations, always-zero forwarder counts in tools"
 group = "cleanup"
 model = "sonnet"
-note = "From C29's report: drop the 23 unread registrations in src/lib/crt*.cpp now C26 is merged (registration_readers.py --drop without the crt exclusion); teach registration_readers that tests' forwarders run only in game.exe and drop the 12 registrations only they read; remove the forwarder counts from progress.py, dashboard_data.py, standalone_gaps.py and check_cleanup's EI_ORIGINAL column."
+note = "From C29's report: drop the 23 unread registrations in src/lib/crt*.cpp now C26 is merged (registration_readers.py --drop without the crt exclusion); teach registration_readers that tests' forwarders run only in game.exe and drop the 12 registrations only they read; remove the forwarder counts from progress.py, dashboard_data.py, standalone_gaps.py and check_cleanup's EI_ORIGINAL column. Done (2026-10-22): registration_readers counts no EI_ORIGINAL forwarder as a reader (tests/ only, game.exe only); --drop --exclude src/lib/mfc_ wrote EI_REWRITTEN for 35 (23 in crt*.cpp, 12 the harness's / record_crt's forwarders alone named: TemplateTable::Find, console Execute, CMappedResource x3, blink x2, LoadUnitFaces, PickSurface, Tolower / Isdigit / Isspace). Forwarder counts gone from progress.py (naked functions now counted plainly), srcscan.py, dashboard_data.py + dashboard page, standalone_gaps.py (literals and data only) and check_cleanup (column dropped from cleanup_baseline.csv). standalone_unreachable.csv's harness-only 006F00D1 line went (covered nothing). Left: 9 unread non-short registrations from C28's vtable work (mfc_exception x6, mfc_state x2, manager_context MakeCopyOf) and 3 open standalone_gaps data references (004E0000, 00610020 from .rsrc text; 006F47FB at 007978A8): C29b. Suite: image 121 same / 23 without."
 
 [[ticket]]
 id = "H30a"
@@ -3126,7 +3126,21 @@ title = "Fold the image-only order switches now ours never runs in game.exe"
 group = "cleanup"
 size = 0.5
 model = "sonnet"
-note = "From H30: nothing of ours runs in game.exe, so address_order::ById (world_object_sets.cpp, terrain_animation.cpp, net_client_handlers.cpp), ScriptGroup::After's address path (script_group.cpp), CWorldServer::SpreadUpdateCountdownsById / g_countdownsById (world_server.cpp; the harness's image branch sets it) and render::Active's Standalone test are always on in the image: keep only the image's path. Check the other ei::Standalone() tests in src/game (win_registry.cpp, settings_file.cpp:227, mod_folders.cpp:237) against ei_vectors, whose replays run without the image."
+note = "From H30: nothing of ours runs in game.exe, so address_order::ById (world_object_sets.cpp, terrain_animation.cpp, net_client_handlers.cpp), ScriptGroup::After's address path (script_group.cpp), CWorldServer::SpreadUpdateCountdownsById / g_countdownsById (world_server.cpp; the harness's image branch sets it) and render::Active's Standalone test are always on in the image: keep only the image's path. Check the other ei::Standalone() tests in src/game (win_registry.cpp, settings_file.cpp:227, mod_folders.cpp:237) against ei_vectors, whose replays run without the image. Done (2026-10-22): address_order::ById, ScriptGroup::IdAfter / the address path, CWorldServer::SpreadUpdateCountdownsById / g_countdownsById, render::Active's Standalone test, and every ei::Standalone() test in src/game (win_registry.cpp's registry path, settings_file::ReadValue's registry read, modfolders::Active) keep only the image's path: ei_vectors' hook_stub Standalone() returns true, and the harness's game.exe side calls none of them (render calls go through HarnessRenderActive). src/hook and src/standalone keep theirs (that code runs in game.exe). The object sets' radix sort went with the address order (0047B120, scratch 007A9738/48, exit 0047B1D0: gen_static_init RETIRED_STATICS, named_data.csv updated); SetSun's CompareSlots folded into CompareSectors. Harness: harness_heap's image branch no longer sets the countdowns (ours always by id). Suites: image 121 same / 23 without, original 114 / 12."
+
+[[ticket]]
+id = "C29b"
+title = "Unread registrations after C28 and standalone_gaps' three open references"
+group = "cleanup"
+depends = ["C28"]
+note = "From C29a: registration_readers --unread lists 9 non-short registrations nothing reads since C28's vtable conversions (mfc_exception.cpp 6, mfc_state.cpp 2, manager_context.cpp MakeCopyOf): drop them with --drop once C28 is done there. standalone_gaps lists 3 open data references on main: 004E0000 (CTextManager::IsPastEnd) and 00610020 (CCampScreen::BestPartySkill) spelled by .rsrc dialog text 007D48D4 / 007D4038..., and 006F47FB (lib) at 007978A8 (C26's locale tables?): list them in config/standalone_unreachable.csv with the reason, or show they are reachable."
+
+[[ticket]]
+id = "H30b"
+title = "Harness: read game.exe's objects through its own views, so game headers leave the reference key"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22 16:26: we are no longer layout matched, so the harness can't depend on our classes. Today it does: harness_digest runs the same code in game.exe, reading members at our offsets (w->objects_, CUnit::scriptName) and calling virtuals at our slot numbers (o->GetClassId()). Vanilla passes only because C28 keeps member and virtual order. Do this first when work resumes, before any cleanup that could reorder members."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

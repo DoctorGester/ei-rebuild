@@ -82,9 +82,9 @@ Exception* Exception::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x006E7CE6, libcrt::Exception::DeletingDestruct);
+EI_REWRITTEN(0x006E7CE6, libcrt::Exception::DeletingDestruct);
 
 const char* Exception::What() const { return text ? text : UnknownException(); }
-EI_REPLACE_METHOD(0x006E7DBE, libcrt::Exception::What);
+EI_REWRITTEN(0x006E7DBE, libcrt::Exception::What);
 
 } // namespace libcrt

@@ -224,13 +224,7 @@ void Flush() {
 }
 
 long ReadValue(const char* path, const char* name, unsigned long* type, void* data, unsigned long* size) {
-    if (ei::Standalone()) return Query(nullptr, path, name, type, data, size);
-    HKEY key;
-    const LSTATUS status = text::sys::RegOpenKeyExA(HKEY_CURRENT_USER, path, 0, KEY_READ, &key);
-    if (status != ERROR_SUCCESS) return status;
-    const LSTATUS read = text::sys::RegQueryValueExA(key, name, nullptr, type, static_cast<BYTE*>(data), size);
-    RegCloseKey(key);
-    return read;
+    return Query(nullptr, path, name, type, data, size);
 }
 
 void AddReadFilter(ReadFilter filter) {

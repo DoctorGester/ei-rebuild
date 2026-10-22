@@ -212,7 +212,7 @@ int __cdecl Tolower(int c) {
         return tolower(c);
     }
 }
-EI_REPLACE(0x006EBA53, libcrt::Tolower);
+EI_REWRITTEN(0x006EBA53, libcrt::Tolower);
 
 int __cdecl Toupper(int c) {
     if constexpr (kUtf8) {
@@ -239,7 +239,7 @@ int __cdecl Isdigit(int c) {
         return isdigit(c);
     }
 }
-EI_REPLACE(0x006E9379, libcrt::Isdigit);
+EI_REWRITTEN(0x006E9379, libcrt::Isdigit);
 
 int __cdecl Isspace(int c) {
     if constexpr (kUtf8) {
@@ -248,7 +248,7 @@ int __cdecl Isspace(int c) {
         return isspace(c);
     }
 }
-EI_REPLACE(0x006E93CE, libcrt::Isspace);
+EI_REWRITTEN(0x006E93CE, libcrt::Isspace);
 
 int __cdecl Isprint(int c) {
     if constexpr (kUtf8) {
@@ -468,10 +468,10 @@ constinit gamecrt::NewHandler g_heapNewHandler = /*007CAAD8*/ {nullptr};
 // malloc and free are the host CRT's (C26; VC6's were HeapAlloc / HeapFree on a heap of their own, the size
 // rounded up to 16 bytes).
 void* __cdecl Malloc(std::size_t size) { return std::malloc(size); }
-EI_REPLACE_STANDALONE(0x006EABD1, libcrt::Malloc);
+EI_REWRITTEN(0x006EABD1, libcrt::Malloc);
 
 void __cdecl Free(void* p) { std::free(p); }
-EI_REPLACE_STANDALONE(0x006EA8AD, libcrt::Free);
+EI_REWRITTEN(0x006EA8AD, libcrt::Free);
 
 gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler) {
     const gamecrt::NewHandler old = g_heapNewHandler;
@@ -490,7 +490,7 @@ void* __cdecl OperatorNew(std::size_t size) {
 EI_REPLACE_STANDALONE(0x007005AF, libcrt::OperatorNew);
 
 void __cdecl OperatorDelete(void* p) { Free(p); }
-EI_REPLACE_STANDALONE(0x007005D8, libcrt::OperatorDelete);
+EI_REWRITTEN(0x007005D8, libcrt::OperatorDelete);
 
 // ---- The STLport node allocator (__node_alloc<true, 0>, no lock) ----
 //
@@ -619,7 +619,7 @@ ExitFunction __cdecl OnExit(ExitFunction function) {
 EI_REWRITTEN(0x006E71FD, libcrt::OnExit);
 
 int __cdecl AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
-EI_REPLACE_STANDALONE(0x006E727B, libcrt::AtExit);
+EI_REWRITTEN(0x006E727B, libcrt::AtExit);
 
 // exit: the host CRT's. The exe's own terminators (__xp / __xt, for the game CRT's streams) have nothing to do
 // in the image, where the streams are the host's.
@@ -680,7 +680,7 @@ EI_REWRITTEN(0x006E60F4, Ntohs);
 EI_REWRITTEN(0x006E60FA, GetHostByAddr);
 EI_REWRITTEN(0x006E6100, GetHostName);
 EI_REPLACE(0x006E6106, WsaStartup);
-EI_REPLACE(0x006E610C, WsaCleanup);
+EI_REWRITTEN(0x006E610C, WsaCleanup);
 EI_REWRITTEN(0x006E6112, CloseSocket);
 EI_REWRITTEN(0x006E6118, SetSockOpt);
 EI_REWRITTEN(0x006E611E, IoctlSocket);
@@ -737,7 +737,7 @@ void __stdcall ConstructElements(void* array, std::size_t size, int count, Eleme
     }
     unwind.done = true;
 }
-EI_REPLACE(0x006E8693, libcrt::ConstructElements);
+EI_REWRITTEN(0x006E8693, libcrt::ConstructElements);
 
 void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
     destroy = ElementCode(destroy);
@@ -749,6 +749,6 @@ void __stdcall DestroyElements(void* array, std::size_t size, int count, Element
     }
     unwind.done = true;
 }
-EI_REPLACE(0x006E859F, libcrt::DestroyElements);
+EI_REWRITTEN(0x006E859F, libcrt::DestroyElements);
 
 } // namespace libcrt

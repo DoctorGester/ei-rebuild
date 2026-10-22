@@ -373,7 +373,7 @@ EI_REPLACE(0x0056A510, FreeVisible54);
 
 EI_REWRITTEN(0x0056A990, CWorldClient::CollectVisible);
 EI_REWRITTEN(0x0056BF30, CWorldClient::PickGround);
-EI_REPLACE_METHOD(0x0056C350, CWorldClient::PickSurface);
+EI_REWRITTEN(0x0056C350, CWorldClient::PickSurface);
 EI_REPLACE(0x005740D0, IntroSortByModel);
 EI_REPLACE(0x00574390, FinalSortByModel);
 EI_REWRITTEN(0x00573D50, IntroSortByModelUse);

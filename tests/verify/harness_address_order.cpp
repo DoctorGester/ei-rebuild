@@ -31,7 +31,7 @@ using ObjectSet = lib::AlignedArray<std::uint32_t>;
 bool g_wanted = false;
 bool g_patched = false;
 
-// The order of address_order::ObjectBefore with ById: the object's id, then its address.
+// The order of address_order::ObjectBefore: the object's id, then its address.
 bool IdBefore(std::uint32_t a, std::uint32_t b) {
     int ia = reinterpret_cast<const CEngineObject*>(a)->id_;
     int ib = reinterpret_cast<const CEngineObject*>(b)->id_;

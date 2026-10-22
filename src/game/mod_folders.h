@@ -30,7 +30,7 @@ struct CStringArray;
 
 namespace modfolders {
 
-// Whether the rewritten code applies patch `p` itself: the standalone image with the flag on.
+// Whether the rewritten code applies patch `p` itself: its flag is on.
 bool Active(ei::rebirth::Patch p);
 
 // The mod's folder with a trailing '\' (AddonPath), empty without one.
