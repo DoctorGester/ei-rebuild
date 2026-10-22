@@ -204,7 +204,7 @@ public:
 
     // 006C85A0. Vertex (x, y, z) at grid position (ix, iy) of `layer`, or null outside the map or
     // where the sector has no such layer.
-    const float* VertexAt(int ix, int iy, int layer);
+    const Vector3* VertexAt(int ix, int iy, int layer);
 
     // 006C8140 (RET 0x10; terrain_landscape.cpp). Sector (sx, sy) when it has any of the `wanted`
     // stages built (1 loaded, 2 geometry, 4 lit), else null. Sectors live in an LRU cache: a hit
@@ -352,6 +352,6 @@ static_assert(sizeof(Terrain) == 0xAFC);
 
 // 006BE3A0. Height at (x, y) of the plane through triangle v0 v1 v2 ((x, y, z) each); the average
 // of the three heights when the triangle is degenerate. A free __fastcall function.
-float __fastcall PlaneHeight(const float* v0, const float* v1, float x, float y, const float* v2);
+float __fastcall PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2);
 
 static_assert(sizeof(void*) == 4, "game.exe is 32-bit");
