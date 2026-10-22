@@ -37,12 +37,6 @@ public:
     std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }   // 49
     void WriteNetState() override { WriteTorchNetState(); }                         // 50
 
-    // The registrations of the constructor and destructors (C20 retires them): 0052BEE0 the
-    // constructor in place (returns this), 0052BF60 the destructor, 0052BF40 (slot 0, RET 4) the
-    // destructor, then operator delete when `flags` bit 0 is set (returns this).
-    CTorchObject* Construct();
-    void DestructBody();
-    CTorchObject* DeletingDestruct(int flags);
     // map_object_create.cpp (U6). 0052BFC0 (slot 2, Create): the map object's Create (0050E770),
     // the spec released and cleared, 5 network fields (SetSize 0050FA30 inlined), then
     // DeltaState::Reset. Returns 1.

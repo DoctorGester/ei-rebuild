@@ -96,16 +96,8 @@ CLinkMeshBase::CLinkMeshBase(const stlp::string* name) : refCount_(0), name_(*na
 
 // The name goes after the body (a member).
 CLinkMeshBase::~CLinkMeshBase() { headers_.Destroy(); }
-
-void CLinkMeshBase::DestructBase() { this->CLinkMeshBase::~CLinkMeshBase(); }
-EI_REWRITTEN(0x004F2D40, CLinkMeshBase::DestructBase);
-
-CLinkMeshBase* CLinkMeshBase::DeletingDestructBase(unsigned flags) {
-    this->CLinkMeshBase::~CLinkMeshBase();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004F2E00, CLinkMeshBase::DeletingDestructBase);
+EI_REWRITTEN_SPECIAL(0x004F2D40, CLinkMeshBase::~CLinkMeshBase);   // reached only from EH unwinding in the original
+EI_REWRITTEN_SPECIAL(0x004F2E00, CLinkMeshBase::~CLinkMeshBase);   // deleting
 
 CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u)
     : CLinkMeshBase(name) {
@@ -138,16 +130,9 @@ CLinkMesh::~CLinkMesh() {
     normals_.FreeData();
     vertices_.FreeData();
 }
+EI_REWRITTEN_SPECIAL(0x004F2E40, CLinkMesh::~CLinkMesh);
 
-void CLinkMesh::Destruct() { this->CLinkMesh::~CLinkMesh(); }
-EI_REWRITTEN(0x004F2E40, CLinkMesh::Destruct);
-
-void* CLinkMesh::DeleteThisImpl(unsigned flags) {
-    this->CLinkMesh::~CLinkMesh();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004F2E20, CLinkMesh::DeleteThisImpl);
+EI_REWRITTEN_SPECIAL(0x004F2E20, CLinkMesh::~CLinkMesh);   // deleting
 
 // The virtual slots: the registered bodies (the draws' in link_mesh_draw.cpp).
 bool CLinkMesh::HasPart(const stlp::string* name) { return HasPartImpl(name); }

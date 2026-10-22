@@ -57,33 +57,16 @@ FigureDrawerBase::FigureDrawerBase() {
 
 // The original's 005A7080 clears the flags, then its inlined base part the mesh.
 FigureDrawerBase::~FigureDrawerBase() { mesh_ = nullptr; }
-
-void FigureDrawerBase::DestructDrawerBase() { this->FigureDrawerBase::~FigureDrawerBase(); }
-EI_REWRITTEN(0x005A70C0, FigureDrawerBase::DestructDrawerBase);
-
-FigureDrawerBase* FigureDrawerBase::DeletingDestructBase(unsigned flags) {   // 005A70A0
-    this->FigureDrawerBase::~FigureDrawerBase();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x005A70A0, FigureDrawerBase::DeletingDestructBase);
+EI_REWRITTEN_SPECIAL(0x005A70C0, FigureDrawerBase::~FigureDrawerBase);
+EI_REWRITTEN_SPECIAL(0x005A70A0, FigureDrawerBase::~FigureDrawerBase);   // deleting
 
 FigureMeshDrawer::FigureMeshDrawer() = default;
 
-FigureMeshDrawer* FigureMeshDrawer::Construct() { return new (this) FigureMeshDrawer(); }
-EI_REWRITTEN(0x005A7010, FigureMeshDrawer::Construct);
+EI_REWRITTEN_SPECIAL(0x005A7010, FigureMeshDrawer::FigureMeshDrawer);
 
 FigureMeshDrawer::~FigureMeshDrawer() { flags_ = 0; }
-
-void FigureMeshDrawer::Destruct() { this->FigureMeshDrawer::~FigureMeshDrawer(); }
-EI_REWRITTEN(0x005A7080, FigureMeshDrawer::Destruct);
-
-FigureMeshDrawer* FigureMeshDrawer::DeletingDestruct(unsigned flags) {   // 005A7060
-    this->FigureMeshDrawer::~FigureMeshDrawer();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x005A7060, FigureMeshDrawer::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x005A7080, FigureMeshDrawer::~FigureMeshDrawer);
+EI_REWRITTEN_SPECIAL(0x005A7060, FigureMeshDrawer::~FigureMeshDrawer);   // deleting
 
 int FigureMeshDrawer::CreateDrawer() {   // 005A70E0
     flags_ = 0;

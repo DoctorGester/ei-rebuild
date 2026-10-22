@@ -23,15 +23,9 @@ public:
     // The deleting destructor (slot 0) frees into the game's heap.
     const char* GetClassName() override;   // 11: the class name
     int GetClassId() override;             // 12: ClassId
-
-    // The registrations (C20 retires them): the constructor in place (returns this), the
-    // destructor, slot 0 (RET 4: the destructor, then operator delete when `flags` bit 0 is set;
-    // returns this).
-    PlainMapObject* Construct();
-    void DestructBody();
-    PlainMapObject* DeletingDestruct(int flags);
 };
 
+// Constructor, destructor, deleting destructor; slots 11 / 12.
 using CTree = PlainMapObject<0x52>;          // 005296E0, 00529770, 00529750; 11 / 12: 00529730 / 00529740
 using CStone = PlainMapObject<0x53>;         // 005298A0, 00529930, 00529910; 005298F0 / 00529900
 using CBuilding = PlainMapObject<0x54>;      // 005297C0, 00529850, 00529830; 00529810 / 00529820

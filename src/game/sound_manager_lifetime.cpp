@@ -49,12 +49,7 @@ int CSoundManager::CreateBody() {
 }
 EI_REWRITTEN(0x006B6D70, CSoundManager::CreateBody);
 
-CSoundManager* CSoundManager::DeletingDestruct(unsigned flags) {
-    this->CSoundManager::~CSoundManager();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x006B62B0, CSoundManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x006B62B0, CSoundManager::~CSoundManager);   // deleting
 
 // 006B7060. The list's RemoveHead (inlined), then the archive's deleting destructor.
 void CSoundManager::ClearWaveSources() {
@@ -231,7 +226,7 @@ CSoundManager::CSoundManager() {
     Reset();
 }
 
-CSoundManager* CSoundManager::Construct() { return new (this) CSoundManager(); }
+EI_REWRITTEN_SPECIAL(0x006B6040, CSoundManager::CSoundManager);
 
 // The archive, the strings and the stream reader are destroyed after the body (the archive after the
 // registries; in the original between them, through 006714A0's address for Rebirth: the same
@@ -259,8 +254,7 @@ CSoundManager::~CSoundManager() {
     registry0CC.Destroy();
     soundRegistry.Destroy();
 }
-
-void CSoundManager::DestructBody() { this->CSoundManager::~CSoundManager(); }
+EI_REWRITTEN_SPECIAL(0x006B65D0, CSoundManager::~CSoundManager);
 
 void CSoundManager::ResetStream() {
     streamState = 0;
@@ -291,8 +285,6 @@ void CSoundManager::ResetStream() {
 // 006BA9C0 runs on the manager's +0x100 (the MP3 stream part).
 void __fastcall SoundResetStream(void* stream) { ManagerOf(stream)->ResetStream(); }
 
-EI_REWRITTEN(0x006B6040, CSoundManager::Construct);
-EI_REWRITTEN(0x006B65D0, CSoundManager::DestructBody);
 EI_REWRITTEN(0x006BA9C0, SoundResetStream);
 
 // --- A-H18: Open, Close, Reset ------------------------------------------------------------------------

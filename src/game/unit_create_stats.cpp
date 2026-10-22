@@ -618,14 +618,10 @@ EI_REWRITTEN(0x00513B60, CMapObjectManager::ApplyPrototype);
 // --- The factory ------------------------------------------------------------------------------
 
 namespace {
-// The constructors on the new block (each returns it): T::Construct (ConstructOn, base_manager.h),
-// and the fake unit's.
+// The constructors on the new block (each returns it; ConstructOn, base_manager.h).
 using Constructor = void*(__fastcall*)(void* block);
 template <class T>
-constexpr Constructor ConstructAt = ConstructOn<T, &T::Construct>;
-void* __fastcall ConstructFakeUnit(void* block) {
-    return fakeunit::FakeUnitConstruct(static_cast<scene::FakeUnitScene*>(block));
-}
+constexpr Constructor ConstructAt = ConstructOn<T>;
 struct FactoryEntry {
     int classId;
     std::size_t size;
@@ -639,7 +635,7 @@ constexpr FactoryEntry kFactory[] = {
     {0x36, 0x238, ConstructAt<CBuilding>},                // 005297C0
     {0x37, 0x238, ConstructAt<CStone>},                   // 005298A0
     {0x38, 0x238, ConstructAt<CStuffObject>},             // 00529980
-    {0x39, 0x580, ConstructFakeUnit},                     // 004466D0
+    {0x39, 0x580, ConstructAt<scene::FakeUnitScene>},     // 004466D0
     {0x3A, 0x23C, ConstructAt<CTorchObject>},             // 0052BEE0
     {0x3B, 0x290, ConstructAt<MagicTrap>},                // 00529DD0
     {0x3C, 0x264, ConstructAt<Lever>},                    // 0052B1F0

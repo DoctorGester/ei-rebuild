@@ -1396,10 +1396,6 @@ public:
     void Destroy() override;               // 3: 005E6D70 DestroySprite
     const char* GetClassName() override;   // 11: 005AACC0 "CI3DFigure"
     int GetClassId() override;             // 12: 005AACD0 (0x46)
-    // The registrations (C20 retires them): 005AAD00 the destructor, 005AACE0 (slot 0) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void Destruct();
-    CUiMesh* DeletingDestruct(unsigned flags);
 
     // The array sizes (RET 4; ui_mesh_draw.cpp): each is the aligned array's SetSize(count); the
     // quads (005EA210) then get z 0 and w 1 in every block, the vertices (005EA600) +2 zero in

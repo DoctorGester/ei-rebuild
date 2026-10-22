@@ -430,10 +430,6 @@ public:
     int GetClassId() override;             // 12: 00691920 (6)
     // 00690FA0. Frees block_ (an aligned block) and clears it.
     void FreeBlock();
-    // The registrations of the destructors (C20 retires them): 00691950 the destructor, 00691930
-    // (slot 0) the destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void DestructBody();
-    CTexture* DeletingDestruct(unsigned flags);
 
     mfc::CString* Name() { return &name_; }
 

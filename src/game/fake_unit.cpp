@@ -103,24 +103,11 @@ int FakeUnitScene::LoadScene(const char* file, const char* regFile) {
     return 1;
 }
 
-void* FakeUnitScene::DeleteScalar(unsigned flags) {
-    this->FakeUnitScene::~FakeUnitScene();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
+EI_REWRITTEN_SPECIAL(0x004466D0, FakeUnitScene::FakeUnitScene);
+EI_REWRITTEN_SPECIAL(0x00446910, FakeUnitScene::~FakeUnitScene);
+EI_REWRITTEN_SPECIAL(0x004468F0, FakeUnitScene::~FakeUnitScene);   // deleting
 
-// The registrations (C20 retires them).
 namespace fakeunit {
-
-// 004466D0: the constructor, in place.
-void* __fastcall FakeUnitConstruct(FakeUnitScene* self) { return new (self) FakeUnitScene(); }
-EI_REWRITTEN(0x004466D0, FakeUnitConstruct);
-
-// 00446910: the destructor.
-void __fastcall FakeUnitDestruct(FakeUnitScene* self) { self->FakeUnitScene::~FakeUnitScene(); }
-EI_REWRITTEN(0x00446910, FakeUnitDestruct);
-
-EI_REWRITTEN(0x004468F0, FakeUnitScene::DeleteScalar);
 
 // The slots of game.exe's 0073BFE8 (retired) are the compiled table's; nothing reaches their
 // addresses (tools/registration_readers.py).

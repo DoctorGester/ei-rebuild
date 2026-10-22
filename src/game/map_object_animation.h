@@ -47,12 +47,6 @@ struct AnimationTrack : CEngineObject {
     const char* GetClassName() override;   // 11: 0050A6E0 "CAnimationTrack" (small_slots_500.cpp)
     int GetClassId() override;             // 12: 0050A6F0 (0x22)
 
-    // The registrations (C20 retires them): 0050A5D0 the constructor in place (returns this),
-    // 0050A720 the destructor, 0050A700 (slot 0) the destructor, then operator delete when bit 0 of
-    // `flags` is set (returns this).
-    AnimationTrack* Construct();
-    void DestructBody();
-    AnimationTrack* DeleteTrack(unsigned flags);
     // 0050A810 (slot 2). DestroyTrack's reset; returns 1.
     int CreateTrack();
     // 0050AAF0 (RET 4; animation_track_lifetime.cpp). The key frames from the model entry at

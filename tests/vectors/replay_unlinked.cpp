@@ -53,7 +53,7 @@ void ScriptLightning::ScriptLightningDestruct() EI_UNLINKED("ScriptLightning::Sc
 
 // record_arrays.cpp's other element types.
 void scene::InitFigurePart(CPlainFigureMesh*) EI_UNLINKED("scene::InitFigurePart")
-CMaterial* CMaterial::Construct() EI_UNLINKED("CMaterial::Construct")
+void scene::InitHelper(CMaterial*) EI_UNLINKED("scene::InitHelper")
 void recordarrays::InitDeltaField(DeltaField*) EI_UNLINKED("recordarrays::InitDeltaField")
 void recordarrays::DestroyDeltaField(DeltaField*) EI_UNLINKED("recordarrays::DestroyDeltaField")
 void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")

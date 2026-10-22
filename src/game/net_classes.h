@@ -269,11 +269,9 @@ struct Query {
     Query(const Query& from);
     // The vector's copy loop's assignment: the address, then the reply buffer's (004DAA80).
     Query& operator=(const Query& from) = default;
-    // 00443790 (net_lobby.cpp): the reply buffer destroyed.
+    // 00443790 (net_lobby.cpp): the reply buffer destroyed. 00443E90 is its scalar deleting destructor, which the
+    // vector's erase calls with 0.
     ~Query();
-    // 00443E90 (slot 0, the deleting destructor; net_lobby.cpp). The destructor, then the memory freed when bit 0
-    // of `flags` is set; returns this.
-    Query* QueryDelete(unsigned flags);
     NetAddress address;
     GrowingBuffer reply;         // +0x10
 };

@@ -49,9 +49,7 @@ CTorchObjectClientSpec::CTorchObjectClientSpec() {
     light_ = nullptr;
     particles_ = nullptr;
 }
-
-CTorchObjectClientSpec* CTorchObjectClientSpec::Construct() { return new (this) CTorchObjectClientSpec(); }
-EI_REWRITTEN(0x0052D0D0, CTorchObjectClientSpec::Construct);
+EI_REWRITTEN_SPECIAL(0x0052D0D0, CTorchObjectClientSpec::CTorchObjectClientSpec);
 
 CTorchObjectClientSpec::~CTorchObjectClientSpec() {
     HideEffects();
@@ -68,15 +66,8 @@ CTorchObjectClientSpec::~CTorchObjectClientSpec() {
     // The members' destructors find both null; then the spec's destructor.
 }
 
-void CTorchObjectClientSpec::DestructClient() { this->CTorchObjectClientSpec::~CTorchObjectClientSpec(); }
-EI_REWRITTEN(0x0052D1D0, CTorchObjectClientSpec::DestructClient);
-
-CTorchObjectClientSpec* CTorchObjectClientSpec::DeleteClient(unsigned flags) {
-    this->CTorchObjectClientSpec::~CTorchObjectClientSpec();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0052D1B0, CTorchObjectClientSpec::DeleteClient);
+EI_REWRITTEN_SPECIAL(0x0052D1D0, CTorchObjectClientSpec::~CTorchObjectClientSpec);
+EI_REWRITTEN_SPECIAL(0x0052D1B0, CTorchObjectClientSpec::~CTorchObjectClientSpec);   // deleting
 
 int CTorchObjectClientSpec::CreateClient() {
     CreateSpec();

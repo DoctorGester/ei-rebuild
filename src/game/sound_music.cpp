@@ -310,9 +310,7 @@ CMusicSystem::CMusicSystem() {
     themeCount = 0;
     ResetThemes();
 }
-
-CMusicSystem* CMusicSystem::Construct() { return new (this) CMusicSystem(); }
-EI_REWRITTEN(0x006B4350, CMusicSystem::Construct);
+EI_REWRITTEN_SPECIAL(0x006B4350, CMusicSystem::CMusicSystem);
 
 void CMusicSystem::ResetThemes() {
     state = 0;
@@ -334,16 +332,8 @@ CMusicSystem::~CMusicSystem() {
     ResetThemes();
     ThemesDestruct(&themesVtable);
 }
-
-void CMusicSystem::DestructBody() { this->CMusicSystem::~CMusicSystem(); }
-EI_REWRITTEN(0x006B44B0, CMusicSystem::DestructBody);
-
-CMusicSystem* CMusicSystem::DeletingDestruct(unsigned flags) {
-    this->CMusicSystem::~CMusicSystem();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x006B4490, CMusicSystem::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x006B44B0, CMusicSystem::~CMusicSystem);
+EI_REWRITTEN_SPECIAL(0x006B4490, CMusicSystem::~CMusicSystem);   // deleting
 
 void CMusicSystem::FadeOut() { TheSoundManager()->FadeOutStream(); }
 void CMusicSystem::FadeIn() { TheSoundManager()->FadeInStream(); }

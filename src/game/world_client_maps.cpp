@@ -1073,17 +1073,14 @@ EI_REWRITTEN(0x00566030, CWorldClient::Select);
 namespace {
 
 
-// The sound manager's constructor (006B6040).
-void* __fastcall ConstructSoundManager(void* memory) { return static_cast<CSoundManager*>(memory)->Construct(); }
-
 std::uint8_t* New(std::size_t size) { return gamecrt::operator_new_array<std::uint8_t>(size); }
 
-// A heap object made by its constructor (null without memory), stored and referenced (the
-// original does not test the pointer before counting).
+// A heap object (operator new[]'s memory) made by its constructor (null without memory), stored and
+// referenced (the original does not test the pointer before counting).
 template <typename T>
-T* MakeCounted(std::size_t size, void* (__fastcall* construct)(void*)) {
-    std::uint8_t* memory = New(size);
-    auto* object = static_cast<T*>(memory ? construct(memory) : nullptr);
+T* MakeCounted() {
+    std::uint8_t* memory = New(sizeof(T));
+    T* object = memory ? new (memory) T() : nullptr;
     ++object->refCount_;
     return object;
 }
@@ -1182,7 +1179,7 @@ int CWorldClient::Create() {
     }
     LoadLights(worlddata::LightsTableText());
     lightingMark_ = 0;
-    sounds_ = MakeCounted<CSoundManager>(0x8C0, ConstructSoundManager);
+    sounds_ = MakeCounted<CSoundManager>();   // 006B6040
 
     texts_ = new CTextManager();
     ++texts_->refCount_;

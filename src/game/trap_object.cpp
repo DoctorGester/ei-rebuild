@@ -38,16 +38,8 @@ CTrapObject::CTrapObject() {
     CreateMapObject();
     flags_ &= ~kFlag40;
 }
-
-CTrapObject* CTrapObject::Construct() { return new (this) CTrapObject(); }
-EI_REWRITTEN(0x00529A80, CTrapObject::Construct);
-
-CTrapObject* CTrapObject::DeletingDestruct(int flags) {
-    this->CTrapObject::~CTrapObject();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00529B30, CTrapObject::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00529A80, CTrapObject::CTrapObject);
+EI_REWRITTEN_SPECIAL(0x00529B30, CTrapObject::~CTrapObject);   // deleting
 
 int CTrapObject::CreateTrap() {
     int result = CreateMapObject();
@@ -131,9 +123,4 @@ EI_REWRITTEN(0x00529F50, MagicTrapClassName);
 int __fastcall MagicTrapClassId(MagicTrap* self) { return self->MagicTrap::GetClassId(); }
 EI_REWRITTEN(0x00529F60, MagicTrapClassId);
 
-MagicTrap* MagicTrap::DeletingDestruct(int flags) {
-    this->MagicTrap::~MagicTrap();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00529F70, MagicTrap::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00529F70, MagicTrap::~MagicTrap);   // deleting

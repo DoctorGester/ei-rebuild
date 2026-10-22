@@ -83,9 +83,7 @@ CFigureAnimationState::CFigureAnimationState() {
     ConstructList(&queue, mfc::impl::AnimationStateListClass::Vtable());
     Reset();
 }
-
-CFigureAnimationState* CFigureAnimationState::Construct() { return new (this) CFigureAnimationState(); }
-EI_REWRITTEN(0x0050C5F0, CFigureAnimationState::Construct);
+EI_REWRITTEN_SPECIAL(0x0050C5F0, CFigureAnimationState::CFigureAnimationState);
 
 CFigureAnimationState::~CFigureAnimationState() {
     ReleaseBones();
@@ -95,16 +93,9 @@ CFigureAnimationState::~CFigureAnimationState() {
     bones.vtable = mfc::impl::BoneListClass::Vtable();
     bones.RemoveAll();
 }
+EI_REWRITTEN_SPECIAL(0x0050C730, CFigureAnimationState::~CFigureAnimationState);
 
-void CFigureAnimationState::DestructBody() { this->CFigureAnimationState::~CFigureAnimationState(); }
-EI_REWRITTEN(0x0050C730, CFigureAnimationState::DestructBody);
-
-CFigureAnimationState* CFigureAnimationState::DeleteState(unsigned flags) {
-    this->CFigureAnimationState::~CFigureAnimationState();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0050C710, CFigureAnimationState::DeleteState);
+EI_REWRITTEN_SPECIAL(0x0050C710, CFigureAnimationState::~CFigureAnimationState);   // deleting
 
 int CFigureAnimationState::Create() { return CreateState(); }
 void CFigureAnimationState::Destroy() { DestroyState(); }

@@ -33,9 +33,7 @@ AnimationTrack::AnimationTrack() {
     vertices.Construct();
     DestroyTrack();
 }
-
-AnimationTrack* AnimationTrack::Construct() { return new (this) AnimationTrack(); }
-EI_REWRITTEN(0x0050A5D0, AnimationTrack::Construct);
+EI_REWRITTEN_SPECIAL(0x0050A5D0, AnimationTrack::AnimationTrack);
 
 void AnimationTrack::DestroyTrack() {
     animation = nullptr;
@@ -64,16 +62,9 @@ AnimationTrack::~AnimationTrack() {
     vertices.FreeData();
     frames.FreeData();
 }
+EI_REWRITTEN_SPECIAL(0x0050A720, AnimationTrack::~AnimationTrack);
 
-void AnimationTrack::DestructBody() { this->AnimationTrack::~AnimationTrack(); }
-EI_REWRITTEN(0x0050A720, AnimationTrack::DestructBody);
-
-AnimationTrack* AnimationTrack::DeleteTrack(unsigned flags) {
-    this->AnimationTrack::~AnimationTrack();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0050A700, AnimationTrack::DeleteTrack);
+EI_REWRITTEN_SPECIAL(0x0050A700, AnimationTrack::~AnimationTrack);   // deleting
 
 int AnimationTrack::Create() { return CreateTrack(); }
 void AnimationTrack::Destroy() { DestroyTrack(); }

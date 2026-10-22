@@ -238,9 +238,7 @@ CUnit::CUnit() {
     player = nullptr;
     Reset();
 }
-
-CUnit* CUnit::Construct() { return new (this) CUnit(); }
-EI_REWRITTEN(0x0052E110, CUnit::Construct);
+EI_REWRITTEN_SPECIAL(0x0052E110, CUnit::CUnit);
 
 void CUnit::Reset() {
     scriptName.Empty();
@@ -300,16 +298,8 @@ CUnit::~CUnit() {
     mfc::impl::DestructArrayOf<mfc::impl::MotionWaypointBaseClass>(m->waypoints);
     mfc::impl::DestructArrayOf<mfc::impl::MotionPointArrayClass>(m->points);
 }
-
-void CUnit::DestructBody() { this->CUnit::~CUnit(); }
-EI_REWRITTEN(0x0052E310, CUnit::DestructBody);
-
-CUnit* CUnit::DeletingDestructor(std::uint32_t flags) {
-    this->CUnit::~CUnit();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0052E2A0, CUnit::DeletingDestructor);
+EI_REWRITTEN_SPECIAL(0x0052E310, CUnit::~CUnit);
+EI_REWRITTEN_SPECIAL(0x0052E2A0, CUnit::~CUnit);   // deleting
 
 // --- Companions -------------------------------------------------------------------------------
 

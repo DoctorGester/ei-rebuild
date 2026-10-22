@@ -485,12 +485,6 @@ public:
     // 00530920. unknown_23C = `index`. Returns `index` (EAX).
     int SetPrototype23CIndex(int index);
 
-    // map_object_lifetime.cpp. The registrations of the constructor and destructors (C20 retires
-    // them): 0052E110 constructs in place (returns this), 0052E310 the destructor, 0052E2A0 (slot
-    // 0) the destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    CUnit* Construct();
-    void DestructBody();
-    CUnit* DeletingDestructor(std::uint32_t flags);
     // 0052E5B0. Back to a blank unit: no name, prototypes, controller (released), relations,
     // player, side, items (the slots cleared without releasing) or carried array; standard
     // sizes and movement modes, the parameter block cleared (00523550), the network records

@@ -44,9 +44,7 @@ SceneSkin::SceneSkin() {
     spareArray.capacity = 0;
     spareArray.size = 0;
 }
-
-SceneSkin* SceneSkin::Construct() { return new (this) SceneSkin(); }
-EI_REWRITTEN(0x00508700, SceneSkin::Construct);
+EI_REWRITTEN_SPECIAL(0x00508700, SceneSkin::SceneSkin);
 
 SceneSkin::~SceneSkin() {
     if (DropRoot(this)) bones.SetSize(0, -1);
@@ -57,8 +55,7 @@ SceneSkin::~SceneSkin() {
     if (bones.data) lib::FreeAligned32(bones.data);
 }
 
-void SceneSkin::Destruct() { this->~SceneSkin(); }
-EI_REWRITTEN(0x005087B0, SceneSkin::Destruct);
+EI_REWRITTEN_SPECIAL(0x005087B0, SceneSkin::~SceneSkin);
 
 int SceneSkin::Create() {
     if (DropRoot(this)) {

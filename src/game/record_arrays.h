@@ -76,7 +76,7 @@ using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour,
 struct BehaviourArrayClass final
     : mfc::impl::CompiledCollection<BehaviourArrayClass, &Behaviours::Destruct<BehaviourArrayClass>, &Behaviours::Serialize> {};
 
-// A fake unit's 0x220-byte figure parts, 0x18C-byte scene records and 0x9C-byte records (FakeUnitConstruct).
+// A fake unit's 0x220-byte figure parts, 0x18C-byte scene records and 0x9C-byte records (FakeUnitScene's constructor).
 struct FakeUnitPartArrayClass final
     : mfc::impl::CompiledCollection<FakeUnitPartArrayClass, &mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>, &FigureParts::Serialize> {};
 struct FakeUnitSceneRecordArrayClass final

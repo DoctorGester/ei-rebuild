@@ -3,9 +3,6 @@
 #include "map_object_kinds.h"
 
 #include "ei/hook.h"
-#include "lib/crt.h"
-
-#include <new>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -23,25 +20,8 @@ PlainMapObject<ClassId>::PlainMapObject() {
 }
 
 template <int ClassId>
-PlainMapObject<ClassId>* PlainMapObject<ClassId>::Construct() {
-    return new (this) PlainMapObject();
-}
-
-template <int ClassId>
 PlainMapObject<ClassId>::~PlainMapObject() {
     DestroyMapObject();
-}
-
-template <int ClassId>
-void PlainMapObject<ClassId>::DestructBody() {
-    this->PlainMapObject::~PlainMapObject();
-}
-
-template <int ClassId>
-PlainMapObject<ClassId>* PlainMapObject<ClassId>::DeletingDestruct(int flags) {
-    this->PlainMapObject::~PlainMapObject();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
 }
 
 template <int ClassId>
@@ -59,18 +39,18 @@ template class PlainMapObject<0x53>;
 template class PlainMapObject<0x54>;
 template class PlainMapObject<0x56>;
 
-EI_REWRITTEN(0x005296E0, CTree::Construct);
-EI_REWRITTEN(0x00529770, CTree::DestructBody);
-EI_REWRITTEN(0x00529750, CTree::DeletingDestruct);
-EI_REWRITTEN(0x005297C0, CBuilding::Construct);
-EI_REWRITTEN(0x00529850, CBuilding::DestructBody);
-EI_REWRITTEN(0x00529830, CBuilding::DeletingDestruct);
-EI_REWRITTEN(0x005298A0, CStone::Construct);
-EI_REWRITTEN(0x00529930, CStone::DestructBody);
-EI_REWRITTEN(0x00529910, CStone::DeletingDestruct);
-EI_REWRITTEN(0x00529980, CStuffObject::Construct);
-EI_REWRITTEN(0x00529A10, CStuffObject::DestructBody);
-EI_REWRITTEN(0x005299F0, CStuffObject::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x005296E0, CTree::CTree);
+EI_REWRITTEN_SPECIAL(0x00529770, CTree::~CTree);
+EI_REWRITTEN_SPECIAL(0x00529750, CTree::~CTree);   // deleting
+EI_REWRITTEN_SPECIAL(0x005297C0, CBuilding::CBuilding);
+EI_REWRITTEN_SPECIAL(0x00529850, CBuilding::~CBuilding);
+EI_REWRITTEN_SPECIAL(0x00529830, CBuilding::~CBuilding);   // deleting
+EI_REWRITTEN_SPECIAL(0x005298A0, CStone::CStone);
+EI_REWRITTEN_SPECIAL(0x00529930, CStone::~CStone);
+EI_REWRITTEN_SPECIAL(0x00529910, CStone::~CStone);   // deleting
+EI_REWRITTEN_SPECIAL(0x00529980, CStuffObject::CStuffObject);
+EI_REWRITTEN_SPECIAL(0x00529A10, CStuffObject::~CStuffObject);
+EI_REWRITTEN_SPECIAL(0x005299F0, CStuffObject::~CStuffObject);   // deleting
 
 const char* __fastcall TreeClassName(CTree* self) { return self->CTree::GetClassName(); }
 EI_REWRITTEN(0x00529730, TreeClassName);

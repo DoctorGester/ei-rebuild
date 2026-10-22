@@ -282,11 +282,6 @@ struct SceneMesh : CTransformObject {
     void SaveTransform(mfc::CFileVirtuals* file) override;   // 16: 004547D0 (nothing)
     void LoadTransform(mfc::CFileVirtuals* file) override;   // 17: 004547E0 (nothing)
 
-    // The registrations (C20 retires them): 00454830 the destructor, 00454810 (slot 0) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void Destruct();
-    SceneMesh* DeletingDestruct(unsigned flags);
-
     std::uint8_t unused_054[0x94 - 0x54];
     mfc::CString name;                  // +0x094
     // +0x098 / +0x0C8 aligned blocks no loader code we know fills; the destructor frees them.
@@ -358,10 +353,6 @@ struct SceneSkin {
     // 005087B0. The destructor: the root bone destroyed and deleted (the bone list emptied), the
     // names emptied and destroyed, the arrays' blocks freed (the name, a member, after them).
     ~SceneSkin();
-    // The registrations (C20 retires them): 00508700 constructs in place (returns this), 005087B0
-    // the destructor.
-    SceneSkin* Construct();
-    void Destruct();
     // 00508870. The root bone destroyed and deleted (the bone list's block freed), the clock 0, the
     // name "none", no names, +0x4C 0. Returns 1.
     int Create();
@@ -403,9 +394,9 @@ inline constexpr Vector3 kZeroVector = /*0079B9B0*/ {0.0f, 0.0f, 0.0f};
 // 0078441C: "node %s have NONULL pivot (x=%g, y=%g, z=%g)" (BuildBone's fatal error).
 inline const char* NonNullPivotText() { return "node %s have NONULL pivot\nx = %g\ty = %g\tz = %g\n"; }
 
-// The helpers (+0x56C) are materials (material.h): built by CMaterial's constructor (0068DBC0;
-// ConstructElements 00454E40, SetSize 00453550), destroyed through slot 0.
-inline void InitHelper(CMaterial* p) { p->Construct(); }
+// The helpers (+0x56C) are materials (material.h): built by CMaterial's constructor (InitHelper,
+// material.cpp; 0068DBC0; ConstructElements 00454E40, SetSize 00453550), destroyed through slot 0.
+void InitHelper(CMaterial* p);
 using HelperElements = mfc::impl::EachElements<CMaterial, InitHelper, mfc::impl::DeleteThroughFirst<CMaterial>>;
 using HelperArray = mfc::CArray<CMaterial, HelperElements>;
 
@@ -448,10 +439,6 @@ public:
     // 62 (RET 8): 00446BA0. Loads the scene (LoadFakeUnitScene); on success each figure gets a new
     // object of class 0x45 from the world's side-specific manager. Returns the loader's 0, or 1.
     virtual int LoadScene(const char* file, const char* regFile);
-
-    // The registrations (C20 retires them): 004468F0, the destructor, then operator delete with
-    // flags bit 0 (returns this).
-    void* DeleteScalar(unsigned flags);
 
     std::uint8_t unused_4DC[4];         // +0x4DC the skin's alignment (its clock is a double in the original)
     SceneSkin skin;                     // +0x4E0 (0x50 bytes)
@@ -540,8 +527,3 @@ inline const char* BmpExtText() { return ".bmp"; }
 
 } // namespace scene
 
-// 004466D0 (fake_unit.cpp): the fake unit's constructor (the unit, the skin, four empty arrays).
-// Returns `self`.
-namespace fakeunit {
-void* __fastcall FakeUnitConstruct(scene::FakeUnitScene* self);
-} // namespace fakeunit

@@ -148,12 +148,7 @@ Query::Query() { std::memset(&address, 0, sizeof(address)); }
 EI_REWRITTEN_SPECIAL(0x00443770, Query::Query);
 Query::~Query() {}
 EI_REWRITTEN_SPECIAL(0x00443790, Query::~Query);
-Query* Query::QueryDelete(unsigned flags) {
-    this->~Query();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00443E90, Query::QueryDelete);
+EI_REWRITTEN_SPECIAL(0x00443E90, Query::~Query);   // deleting
 Query::Query(const Query& from) : address(from.address), reply(from.reply) {}
 EI_REWRITTEN_SPECIAL(0x00444270, Query::Query);
 
@@ -460,7 +455,7 @@ void ClientBase::Forget(const NetAddress* address) {
         // erase(q), inlined: the tail copied down, the last query destroyed.
         if (q + 1 != v.end()) stlp::CopyAssignTagged<Query, recordvec::QueryElement>(q + 1, v.end(), q, address, nullptr);
         --v.Finish();
-        v.end()->QueryDelete(0);
+        v.end()->~Query();
     }
     ServerNode* node = servers_.End()->next;
     while (node != servers_.End()) {

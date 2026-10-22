@@ -119,12 +119,6 @@ public:
     // ((1 - +0xCC) + +0xCC * record scale) * |offset| + userRadius.
     void CollectUseSpots(LeverSpots* out, float userRadius);
 
-    // lever_object.cpp (A-U6). The registrations of the constructor and destructors (C20 retires
-    // them): 0052B1F0 the constructor in place (returns this), 0052B320 the destructor, 0052B300
-    // (slot 0, RET 4) the destructor, then operator delete when `flags` bit 0 is set (returns this).
-    Lever* Construct();
-    void DestructBody();
-    Lever* DeletingDestruct(int flags);
     // 0052B370 (slot 2, Create). The map object's Create, then as the constructor's tail. Returns
     // the map object's result.
     int CreateLever();

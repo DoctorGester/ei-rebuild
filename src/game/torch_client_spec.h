@@ -44,12 +44,6 @@ public:
     void SetFlameSlot(const float* colour, float value, const float* values) override { SetLightAt(colour, value, values); }   // 17
     void SetNameSlot(const char* name) override { SetSound(name); }   // 18
 
-    // The registrations (C20 retires them): 0052D0D0 the constructor in place (returns this),
-    // 0052D1D0 the destructor, 0052D1B0 (slot 0, RET 4) the destructor, then operator delete when
-    // bit 0 of `flags` is set (returns this).
-    CTorchObjectClientSpec* Construct();
-    void DestructClient();
-    CTorchObjectClientSpec* DeleteClient(unsigned flags);
     // 0052D2A0 (slot 2). CreateSpec, the light and particles dropped (released), sound_ 0. Returns 1.
     int CreateClient();
     // 0052D2E0 (slot 3). HideEffects (through the vtable), the light dropped, the particles stopped

@@ -42,13 +42,6 @@ public:
     const char* GetClassName() override;   // 11: 004D9270 "CSkyObject" (0078DB14)
     int GetClassId() override;             // 12: 004D9280 (0x20)
 
-    // The registrations (C20 retires them): 004D9110 constructs in place (returns this), 004D92B0
-    // the destructor, 004D9290 (slot 0) the destructor, then operator delete when bit 0 of `flags`
-    // is set (returns this).
-    CSkyObject* Construct();
-    void Destruct();
-    CSkyObject* DeletingDestruct(unsigned flags);
-
     // 004D9360 (RET 0x34). Lights the vertices. Each vertex's haze (distances_) is recomputed
     // when the vertex count changed: 0 below the horizon (vertex z < 1), else sqrt(-normal z).
     // A vertex without haze gets `ambient` as its diffuse colour (alpha 0) and no specular; the

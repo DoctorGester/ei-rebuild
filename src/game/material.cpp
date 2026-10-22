@@ -1,6 +1,7 @@
 // The material (CMaterial) and the material manager (CMaterialManager): material.h. A-H24; see
 // docs/notes/items_spells.md ("Materials").
 #include "material.h"
+#include "scene_loader.h"   // scene::InitHelper
 
 #include "game_strings.h"
 #include "mod_folders.h"
@@ -47,25 +48,18 @@ CMaterial::CMaterial() {
     ResetFields(this);
     entries.PopAll();
 }
+EI_REWRITTEN_SPECIAL(0x0068DBC0, CMaterial::CMaterial);
 
-CMaterial* CMaterial::Construct() { return new (this) CMaterial(); }
-EI_REWRITTEN(0x0068DBC0, CMaterial::Construct);
+// A fake unit's helper built in its array's storage (scene_loader.h's HelperElements).
+void scene::InitHelper(CMaterial* p) { new (p) CMaterial(); }
 
 // The names go after the body (name3, name2, then name after the deque in the original).
 CMaterial::~CMaterial() {
     entries.PopAll();
     entries.Destroy();
 }
-
-void CMaterial::Destruct() { this->CMaterial::~CMaterial(); }
-EI_REWRITTEN(0x0068DE30, CMaterial::Destruct);
-
-CMaterial* CMaterial::DeletingDestruct(unsigned flags) {
-    this->CMaterial::~CMaterial();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0068DD20, CMaterial::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0068DE30, CMaterial::~CMaterial);
+EI_REWRITTEN_SPECIAL(0x0068DD20, CMaterial::~CMaterial);   // deleting
 
 int CMaterial::Create() {
     ResetFields(this);
@@ -113,13 +107,10 @@ CMaterialManager::ColorTable::Node* EnterKey(CMaterialManager::ColorTable& table
 } // namespace
 
 CMaterialManager::CMaterialManager() { colors_.InitBuckets(kColorTableHint); }
-
 EI_REWRITTEN_SPECIAL(0x0068E3F0, CMaterialManager::CMaterialManager);
 
 CMaterialManager::~CMaterialManager() { colors_.Destroy(); }
-
 EI_REWRITTEN_SPECIAL(0x0068E540, CMaterialManager::~CMaterialManager);
-
 EI_REWRITTEN_SPECIAL(0x0068E520, CMaterialManager::~CMaterialManager);
 
 int CMaterialManager::Create() {

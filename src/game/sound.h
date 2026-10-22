@@ -331,9 +331,6 @@ struct CSoundManager : CEngineObject {
     // A-H14 (sound_manager_lifetime.cpp).
     // 006B6D70 (slot 2, the engine object's Create; named so, rule 4): Reset, then 1.
     int CreateBody();
-    // 006B62B0 (slot 0, RET 4; registered, C20 retires it). The destructor, then operator delete
-    // when bit 0 of `flags` is set. Returns this.
-    CSoundManager* DeletingDestruct(unsigned flags);
     // 006B7060. Every wave source removed from the list and deleted (slot 0).
     void ClearWaveSources();
     // 006B7AB0 (RET 4). Opens the archive `path` and appends it to the wave sources. 1 (also when
@@ -359,11 +356,6 @@ struct CSoundManager : CEngineObject {
     // empty unless the stream plays or switches.
     mfc::CString CurrentStreamName();
 
-    // A-H15 (sound_manager_lifetime.cpp). The registrations of the constructor and destructor
-    // (C20 retires them): 006B6040 the constructor in place (returns this), 006B65D0 the
-    // destructor.
-    CSoundManager* Construct();
-    void DestructBody();
     // 006BA9C0 (`this` is the manager's +0x100, the MP3 stream). The stream state reset: no
     // sample, file or codec, the positions -1, both names empty, switch mode 4, no read
     // position, the music fader at volume 100 with no fade.
@@ -519,12 +511,6 @@ struct CMusicSystem : CEngineObject {
     void PlayJingle(const char* name);                 // 006B5270
     int UpdateMusic();                                // 006B5350 (vtable slot 6)
 
-    // A-H13 (sound_music.cpp). The registrations of the constructor and destructors (C20 retires
-    // them): 006B4350 the constructor in place (returns this), 006B44B0 the destructor,
-    // 006B4490 (slot 0, RET 4) the destructor, then operator delete when bit 0 of `flags` is set.
-    CMusicSystem* Construct();
-    void DestructBody();
-    CMusicSystem* DeletingDestruct(unsigned flags);
     // 006B4690 (slot 3, the engine object's Destroy; named so, rule 4). State 0, the themes
     // destroyed and freed, credits / main menu / jingle / combat track "none", jinglePlaying,
     // calmDue, inCombat and holding 0.

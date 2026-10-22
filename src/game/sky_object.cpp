@@ -49,19 +49,9 @@ CSkyObject::~CSkyObject() { distances_.FreeData(); }
 
 const char* CSkyObject::GetClassName() { return kClassName; }
 int CSkyObject::GetClassId() { return kClassId; }
-
-CSkyObject* CSkyObject::Construct() { return new (this) CSkyObject(); }
-EI_REWRITTEN(0x004D9110, CSkyObject::Construct);
-
-void CSkyObject::Destruct() { this->CSkyObject::~CSkyObject(); }
-EI_REWRITTEN(0x004D92B0, CSkyObject::Destruct);
-
-CSkyObject* CSkyObject::DeletingDestruct(unsigned flags) {
-    this->CSkyObject::~CSkyObject();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004D9290, CSkyObject::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x004D9110, CSkyObject::CSkyObject);
+EI_REWRITTEN_SPECIAL(0x004D92B0, CSkyObject::~CSkyObject);
+EI_REWRITTEN_SPECIAL(0x004D9290, CSkyObject::~CSkyObject);   // deleting
 
 void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour) {
     const std::uint32_t r = Truncate(ambient.r * kColourScale);

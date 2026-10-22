@@ -63,13 +63,6 @@ public:
     const char* GetClassName() override;   // 11: 0068DD00 "CMaterial"
     int GetClassId() override;             // 12: 0068DD10 (5)
 
-    // The registrations of the constructor and destructors (C20 retires them): 0068DBC0 the
-    // constructor in place (returns this), 0068DE30 the destructor, 0068DD20 (slot 0) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    CMaterial* Construct();
-    void Destruct();
-    CMaterial* DeletingDestruct(unsigned flags);
-
     mfc::CString name;                      // +0x1C
     MaterialColors colors;                  // +0x20
     stlp::deque<MaterialEntry> entries;     // +0x64

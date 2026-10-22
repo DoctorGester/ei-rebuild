@@ -77,16 +77,8 @@ EI_REWRITTEN(0x005006E0, CVisualizator::DestroyBase);
 
 // The member destructor of pipeline_ then finds it null.
 CVisualizator::~CVisualizator() { DestroyBase(); }
-
-void CVisualizator::DestructBase() { this->CVisualizator::~CVisualizator(); }
-EI_REWRITTEN(0x00500480, CVisualizator::DestructBase);
-
-CVisualizator* CVisualizator::DeleteBase(unsigned flags) {
-    this->CVisualizator::~CVisualizator();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00500460, CVisualizator::DeleteBase);
+EI_REWRITTEN_SPECIAL(0x00500480, CVisualizator::~CVisualizator);
+EI_REWRITTEN_SPECIAL(0x00500460, CVisualizator::~CVisualizator);   // deleting
 
 void CVisualizator::SetBaseColour(std::uint32_t colour) {
     colour_ = colour;
@@ -175,12 +167,7 @@ EI_REPLACE(0x00500950, DestroySceneRenderer);
 EI_REPLACE(0x004F0B10, ConstructDeviceLock);
 EI_REPLACE(0x004F0B30, DestroyDeviceLock);
 
-void* CSceneRenderer::DeleteRendererImpl(unsigned flags) {
-    this->CSceneRenderer::~CSceneRenderer();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00500AA0, CSceneRenderer::DeleteRendererImpl);
+EI_REWRITTEN_SPECIAL(0x00500AA0, CSceneRenderer::~CSceneRenderer);   // deleting
 
 void CSceneRenderer::DestroyRenderer() {
     DestroyBase();

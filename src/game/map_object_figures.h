@@ -202,8 +202,6 @@ struct FigureBone : CEngineObject {
     const char* GetClassName() override;   // 11: 0050B190 "CAnimationNode"
     int GetClassId() override;             // 12: 0050B1A0 (0x21)
 
-    // The registrations (C20 retires them): 0050AF40 the constructor in place (returns this).
-    FigureBone* Construct();
     // 0050B370 (slot 2, EAX 1). Reset: names "", no parent, the child list emptied (its blocks
     // freed), mesh, pose, animator and +0x54 / +0x58 forgotten, the default position and rotation
     // (the animation tracks' defaults), no matrices (the block kept), morph 0.
@@ -211,10 +209,6 @@ struct FigureBone : CEngineObject {
     // 0050B510 (slot 3). Releases the mesh (forgotten first), the animator, +0x54 and +0x58 (the
     // pose is only forgotten), then CreateBone's reset.
     void DestroyBone();
-    // 0050B1D0 the destructor; 0050B1B0 (slot 0, RET 4) the destructor, then operator delete with
-    // flags bit 0 (returns this).
-    void DestructBody();
-    FigureBone* DeleteBone(unsigned flags);
 
     // 0050C230 (RET 4; figure_bones.cpp, A-U9). Places this bone and, recursively, its children: a
     // child turns its offset by the parent's rotation ((w^2 - u.u) o + 2w (u x o) + 2 (u.o) u, the
@@ -284,12 +278,6 @@ public:
     const char* GetClassName() override;   // 11: 0050C6F0 "CAnimationSystem2"
     int GetClassId() override;             // 12: 0050C700 (0x21)
 
-    // The registrations (C20 retires them): 0050C5F0 the constructor in place (returns this; the
-    // map object factory's class 0x300D, unit_create_stats.cpp), 0050C730 the destructor, 0050C710
-    // (slot 0) the destructor, then operator delete with flags bit 0 (returns this).
-    CFigureAnimationState* Construct();
-    void DestructBody();
-    CFigureAnimationState* DeleteState(unsigned flags);
     // 0050C860 (slot 2). Reset with `changed` set first. Returns 1.
     int CreateState();
     // 0050C8E0 (slot 3). ReleaseBones, then Reset (the root only forgotten).

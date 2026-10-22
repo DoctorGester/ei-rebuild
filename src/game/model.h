@@ -378,10 +378,6 @@ public:
     void* CreateBase(void* window, options::GameOptions* settings);
     // 00500440 (the base constructor's work, renderer_lifetime.cpp): flags_, pipeline_ and sun_ cleared. Returns this.
     CVisualizator* SetUpBase();
-    // 00500480. The base destructor (DestroyBase, the base's compiled table left), called qualified.
-    void DestructBase();
-    // 00500460 (base slot 1, RET 4). DestructBase, operator delete when bit 0 of `flags` is set.
-    CVisualizator* DeleteBase(unsigned flags);
     // 005006E0 (base slot 3). The sun dropped (set to null, then released) and the transform object
     // told (AddSun with null), the pipeline dropped, the graphics library (2DintMMX.dll) freed and
     // its processor forgotten.
@@ -569,7 +565,6 @@ public:
     // The slots' bodies (registered at their addresses).
     int PolylineImpl(const ScreenPoints* points, std::uint32_t colour);
     int SetFogColourStateImpl(std::uint32_t colour);
-    void* DeleteRendererImpl(unsigned flags);
     void CreateRendererImpl(void* window, options::GameOptions* settings);
     void SetColourImpl(std::uint32_t colour);
     int SetBlendImpl(std::uint32_t source, std::uint32_t dest);

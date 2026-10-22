@@ -122,16 +122,8 @@ CTexture::~CTexture() {
     // The counted surface pointer is null by now; the extra block (its pointer is not cleared).
     if (extra_.data) lib::FreeAligned32(extra_.data);
 }
-
-void CTexture::DestructBody() { this->CTexture::~CTexture(); }
-EI_REWRITTEN(0x00691950, CTexture::DestructBody);
-
-CTexture* CTexture::DeletingDestruct(unsigned deleteFlags) {
-    this->CTexture::~CTexture();
-    if (deleteFlags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00691930, CTexture::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00691950, CTexture::~CTexture);
+EI_REWRITTEN_SPECIAL(0x00691930, CTexture::~CTexture);   // deleting
 
 namespace {
 // The virtual slots' entry points (rewrite-guide rule 4).

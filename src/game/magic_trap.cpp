@@ -310,9 +310,7 @@ MagicTrap::MagicTrap() {
     singleTarget = 0;
     period = static_cast<int>(kDefaultPeriod);
 }
-
-MagicTrap* MagicTrap::Construct() { return new (this) MagicTrap(); }
-EI_REWRITTEN(0x00529DD0, MagicTrap::Construct);
+EI_REWRITTEN_SPECIAL(0x00529DD0, MagicTrap::MagicTrap);
 
 MagicTrap::~MagicTrap() {
     DestroyMapObject();
@@ -330,9 +328,7 @@ MagicTrap::~MagicTrap() {
     if (area.data) gamecrt::operator_delete(area.data);
     if (spell) spell->Release();
 }
-
-void MagicTrap::DestructBody() { this->MagicTrap::~MagicTrap(); }
-EI_REWRITTEN(0x00529F90, MagicTrap::DestructBody);
+EI_REWRITTEN_SPECIAL(0x00529F90, MagicTrap::~MagicTrap);
 
 void MagicTrap::Load(CStream* stream) { LoadTrap(stream); }
 void MagicTrap::Save(CStream* stream) { SaveTrap(stream); }

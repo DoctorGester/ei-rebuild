@@ -35,13 +35,10 @@ enum ServerObjectType {
 // --- CServerSpecificManager ---------------------------------------------------------------------
 
 CServerSpecificManager::CServerSpecificManager() {}
-
 EI_REWRITTEN_SPECIAL(0x004D6900, CServerSpecificManager::CServerSpecificManager);
 
 CServerSpecificManager::~CServerSpecificManager() {}
-
 EI_REWRITTEN_SPECIAL(0x004D6960, CServerSpecificManager::~CServerSpecificManager);
-
 EI_REWRITTEN_SPECIAL(0x004D6940, CServerSpecificManager::~CServerSpecificManager);
 
 const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
@@ -84,16 +81,8 @@ CTorchObjectSpec::CTorchObjectSpec() {
 }
 
 CTorchObjectSpec::~CTorchObjectSpec() { DestroySpec(); }
-
-void CTorchObjectSpec::Destruct() { this->CTorchObjectSpec::~CTorchObjectSpec(); }
-EI_REWRITTEN(0x004D6BA0, CTorchObjectSpec::Destruct);
-
-CTorchObjectSpec* CTorchObjectSpec::DeletingDestruct(unsigned flags) {
-    this->CTorchObjectSpec::~CTorchObjectSpec();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004D6B80, CTorchObjectSpec::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x004D6BA0, CTorchObjectSpec::~CTorchObjectSpec);
+EI_REWRITTEN_SPECIAL(0x004D6B80, CTorchObjectSpec::~CTorchObjectSpec);   // deleting
 
 const char* CTorchObjectSpec::GetClassName() { return kTorchSpecClassName; }
 int CTorchObjectSpec::GetClassId() { return kTorchSpecClassId; }

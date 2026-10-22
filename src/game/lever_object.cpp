@@ -56,21 +56,11 @@ Lever::Lever() {
     CreateMapObject();
     ResetLever(this);
 }
-
-Lever* Lever::Construct() { return new (this) Lever(); }
-EI_REWRITTEN(0x0052B1F0, Lever::Construct);
+EI_REWRITTEN_SPECIAL(0x0052B1F0, Lever::Lever);
 
 Lever::~Lever() { DestroyMapObject(); }
-
-void Lever::DestructBody() { this->Lever::~Lever(); }
-EI_REWRITTEN(0x0052B320, Lever::DestructBody);
-
-Lever* Lever::DeletingDestruct(int flags) {
-    this->Lever::~Lever();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0052B300, Lever::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0052B320, Lever::~Lever);
+EI_REWRITTEN_SPECIAL(0x0052B300, Lever::~Lever);   // deleting
 
 int Lever::CreateLever() {
     int result = CreateMapObject();

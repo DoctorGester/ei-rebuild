@@ -37,11 +37,6 @@ public:
     bool ApplyScience(int first, int second) override;
     int AcceptsKey(const LockKey* key) override { return KeyFits(key); }   // 42
 
-    // The registrations (C20 retires them): 00529A80 the constructor in place (returns this),
-    // 00529B30 (slot 0, RET 4) the destructor, then operator delete when `flags` bit 0 is set
-    // (returns this).
-    CTrapObject* Construct();
-    CTrapObject* DeletingDestruct(int flags);
     // 00529B60 (slot 2). The map object's Create, flags_ bit 0x40 cleared; returns Create's result.
     int CreateTrap();
     // 00529B80 (slot 6). The map object's update; then, armed (flags_ 0x80000) on the server (the

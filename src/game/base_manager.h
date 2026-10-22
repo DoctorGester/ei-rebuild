@@ -173,11 +173,11 @@ namespace misc400 {
 void __fastcall ManagerDestruct(CBaseManager* self);
 } // namespace misc400
 
-// A constructor member of T (thiscall, no arguments, returns this) as the plain `void* (__fastcall*)(void*)`
-// the object factories take (misc_400.cpp, world_create.cpp, world_client_maps.cpp).
-template <typename T, T* (T::*Construct)()>
+// T's constructor on `memory` as the plain `void* (__fastcall*)(void*)` the map object factory takes
+// (unit_create_stats.cpp). Returns the object.
+template <typename T>
 void* __fastcall ConstructOn(void* memory) {
-    return (static_cast<T*>(memory)->*Construct)();
+    return new (memory) T();
 }
 
 // The effect manager (the world's timed objects, +0x48; world_effect_lifetime.cpp /

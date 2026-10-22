@@ -145,16 +145,8 @@ EI_REWRITTEN(0x005E6C60, CUiMesh::CreateSprite);
 
 CUiMesh::CUiMesh() {}
 CUiMesh::~CUiMesh() {}
-
-void CUiMesh::Destruct() { this->CUiMesh::~CUiMesh(); }
-EI_REWRITTEN(0x005AAD00, CUiMesh::Destruct);
-
-CUiMesh* CUiMesh::DeletingDestruct(unsigned flags) {
-    this->CUiMesh::~CUiMesh();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x005AACE0, CUiMesh::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x005AAD00, CUiMesh::~CUiMesh);
+EI_REWRITTEN_SPECIAL(0x005AACE0, CUiMesh::~CUiMesh);   // deleting
 
 int CUiMesh::Create() { return CreateSprite(); }
 void CUiMesh::Destroy() { DestroySprite(); }

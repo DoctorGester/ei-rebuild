@@ -26,11 +26,6 @@ class CLight;        // spell.h
 struct FigureDrawerBase : CEngineObject {
     // The deleting destructors (slot 0) free into the game's heap.
 
-    // The registrations (C20 retires them): 005A70C0 the destructor, 005A70A0 (slot 0 of the base,
-    // RET 4) the destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    void DestructDrawerBase();
-    FigureDrawerBase* DeletingDestructBase(unsigned flags);
-
     CFigureMesh* mesh_;         // +0x1C the mesh it draws
 
 protected:
@@ -66,12 +61,6 @@ struct FigureMeshDrawer : FigureDrawerBase {
     const char* GetClassName() override;   // 11: 005A7040 "CFigureClientSpecific" (world_class_slots.cpp)
     int GetClassId() override;             // 12: 005A7050 (0x36)
 
-    // The registrations (C20 retires them): 005A7010 the constructor in place (returns this; the
-    // client-specific factory, misc_400.cpp), 005A7080 the destructor, 005A7060 (slot 0, RET 4) the
-    // destructor, then operator delete when bit 0 of `flags` is set (returns this).
-    FigureMeshDrawer* Construct();
-    void Destruct();
-    FigureMeshDrawer* DeletingDestruct(unsigned flags);
     // 005A70E0 (slot 2). No flags; +0x30 becomes (1, 1, 1). Returns 1.
     int CreateDrawer();
     // 005A7130 (slot 3). No mesh, no flags.
@@ -190,12 +179,6 @@ public:
     // The deleting destructors free into the game's heap.
     static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
-    // The registrations (C20 retires them): 004F2D40 the destructor (reached only from EH unwinding
-    // in the original), 004F2E00 (slot 0 of the base, RET 4) the destructor, then operator delete
-    // when bit 0 of `flags` is set (returns this).
-    void DestructBase();
-    CLinkMeshBase* DeletingDestructBase(unsigned flags);
-
     int refCount_;                    // +0x04
     stlp::string name_;               // +0x08
     LinkHeaderMap headers_;           // +0x14
@@ -271,12 +254,8 @@ public:
                         Vector2* points, float* bounds);
     int RasterisePartImpl(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target);
 
-    // The registrations (C20 retires them): 004F2C00 the constructor in place (RET 0x14, returns
-    // this; the loader's LoadLinkFile / MakeFigure call it), 004F2E40 the destructor, 004F2E20 (slot
-    // 0, RET 4) the destructor, then operator delete when bit 0 of `flags` is set (returns this).
+    // 004F2C00: the constructor in place (RET 0x14, returns this; the loader's LoadLinkFile / MakeFigure call it).
     CLinkMesh* Construct(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u);
-    void Destruct();
-    void* DeleteThisImpl(unsigned flags);
 
     // 004F4B50 (A-S8). An estimate of the mesh's bytes: 2 * (indices + 3 * corners + 2 * (words + 0x2C
     // + 2 * (texture coordinates + 8 * (vertices + normals) + 6 * parts))), from the element counts.

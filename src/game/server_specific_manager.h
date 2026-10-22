@@ -69,11 +69,6 @@ public:
     virtual void SetFlameSlot(const float* colour, float value, const float* values) { SetFlame(colour, value, values); }   // 17: 0052C5C0
     virtual void SetNameSlot(const char* name) { SetName(name); }   // 18: 0052C600
 
-    // The registrations (C20 retires them): 004D6BA0 the destructor, 004D6B80 (slot 0) the
-    // destructor, then operator delete when `flags` bit 0 is set (returns this).
-    void Destruct();
-    CTorchObjectSpec* DeletingDestruct(unsigned flags);
-
     // torch_spec.cpp (A-U6). Slots 2 / 3 (0052C610 / 0052C680; other names so they are no
     // overrides): Create clears +0x1C / +0x20 and the name, values 1, 10, 1, 1, 1, 1, both colours
     // the default colour (black), returns 1; Destroy clears +0x1C and the name. Slots 9 / 10 (0052C490 /

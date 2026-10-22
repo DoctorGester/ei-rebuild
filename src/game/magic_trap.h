@@ -42,12 +42,6 @@ public:
     int GetClassId() override;                             // 12: 00529F60 (0x61)
     bool IsSynchronised() override { return true; }        // 29: 00529AE0 (the trap's)
 
-    // The registrations (C20 retires them): 00529DD0 the constructor in place (returns this),
-    // 00529F90 the destructor, 00529F70 (slot 0, RET 4; trap_object.cpp) the destructor, then
-    // operator delete when `flags` bit 0 is set (returns this).
-    MagicTrap* Construct();
-    void DestructBody();
-    MagicTrap* DeletingDestruct(int flags);
     // 0052B070 (virtual slot 10, RET 4). The map object part (0050F900), the spell's id (-1:
     // none), the circles (count, then 12 bytes each), the units inside (count, then each id
     // through 0050E290), the points (count, then 8 bytes each), the period, countdown, +0x28C and

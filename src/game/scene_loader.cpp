@@ -661,17 +661,10 @@ SceneMesh::~SceneMesh() {
     spareBlocks098.FreeData();
 }
 
-void SceneMesh::Destruct() { this->SceneMesh::~SceneMesh(); }
+EI_REWRITTEN_SPECIAL(0x00454830, SceneMesh::~SceneMesh);
+EI_REWRITTEN_SPECIAL(0x00454810, SceneMesh::~SceneMesh);   // deleting
 
 void InitSceneMesh(SceneMesh* p) { new (p) SceneMesh(); }
-EI_REWRITTEN(0x00454830, SceneMesh::Destruct);
-
-SceneMesh* SceneMesh::DeletingDestruct(unsigned flags) {
-    this->SceneMesh::~SceneMesh();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00454810, SceneMesh::DeletingDestruct);
 
 int SceneMesh::Create() { return 1; }
 void SceneMesh::Destroy() {}

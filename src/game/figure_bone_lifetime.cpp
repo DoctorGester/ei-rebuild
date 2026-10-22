@@ -41,9 +41,7 @@ FigureBone::FigureBone() {
     matrices.size = 0;
     CreateBone();
 }
-
-FigureBone* FigureBone::Construct() { return new (this) FigureBone(); }
-EI_REWRITTEN(0x0050AF40, FigureBone::Construct);
+EI_REWRITTEN_SPECIAL(0x0050AF40, FigureBone::FigureBone);
 
 int FigureBone::CreateBone() {
     // The original assigns "none" (007846F0) to all three names, not an empty string.
@@ -90,16 +88,9 @@ FigureBone::~FigureBone() {
     children.vtable = mfc::impl::BoneListClass::Vtable();
     children.RemoveAll();
 }
+EI_REWRITTEN_SPECIAL(0x0050B1D0, FigureBone::~FigureBone);
 
-void FigureBone::DestructBody() { this->FigureBone::~FigureBone(); }
-EI_REWRITTEN(0x0050B1D0, FigureBone::DestructBody);
-
-FigureBone* FigureBone::DeleteBone(unsigned flags) {
-    this->FigureBone::~FigureBone();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0050B1B0, FigureBone::DeleteBone);
+EI_REWRITTEN_SPECIAL(0x0050B1B0, FigureBone::~FigureBone);   // deleting
 
 int FigureBone::Create() { return CreateBone(); }
 void FigureBone::Destroy() { DestroyBone(); }

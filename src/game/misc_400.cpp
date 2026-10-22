@@ -24,12 +24,6 @@
 namespace misc400 {
 
 
-CEngineObject* New(std::size_t size, void* (__fastcall* construct)(void*)) {
-    void* memory = gamecrt::operator_new(size);
-    return memory ? static_cast<CEngineObject*>(construct(memory)) : nullptr;
-}
-
-
 // 0042D6F0: the destructor.
 void __fastcall ManagerDestruct(CBaseManager* self) {
     auto* manager = static_cast<CClientSpecificManager*>(self);
@@ -50,12 +44,12 @@ int CClientSpecificManager::GetClassId() { return 0x30; }
 // 00666D10, 0052D0D0) each return this.
 CEngineObject* CClientSpecificManager::NewObject(int type) {
     switch (type) {
-    case 'E': return misc400::New(0x3C, ConstructOn<FigureMeshDrawer, &FigureMeshDrawer::Construct>);
+    case 'E': return new FigureMeshDrawer();
     case 'F': return new CObject3DClientSpecific();
     case 'G': return new CMapObjectClientSpecific();
     case 'H': return new CUnitClientSpecific();
     case 'I': return new CPlayerClient();
-    case 'K': return misc400::New(0x64, ConstructOn<CTorchObjectClientSpec, &CTorchObjectClientSpec::Construct>);
+    case 'K': return new CTorchObjectClientSpec();
     default: return nullptr;
     }
 }
