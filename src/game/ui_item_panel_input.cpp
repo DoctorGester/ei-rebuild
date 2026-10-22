@@ -24,9 +24,8 @@ EI_REWRITTEN(0x005EE310, InputForward<&CUiItemPanel::OnLeftDown>::Call);
 // 0060E210: the blank panel's constructor.
 CUiItemPanel* CUiItemPanel::ConstructBlank(CInterface3D* ui, CItemScreen* owner) {
     Construct(ui);
-    vtable_ = BlankVtable();
     owner_ = owner;
-    inputVtable_ = BlankInputVtable();
+    SetTagTables(BlankVtable(), BlankInputVtable());
     return this;
 }
 EI_REWRITTEN(0x0060E210, CUiItemPanel::ConstructBlank);

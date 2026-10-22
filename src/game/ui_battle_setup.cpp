@@ -51,15 +51,15 @@ struct TopPanelInputClass final : InputSideClass<TopPanelInputClass, &CHudTopPan
 // and update), the unit panel's 007426F8 / 007426C4 (its draw, 20, and update; the wheel, 12) and the map's 00742660 /
 // 0074262C (its update; the wheel). The input sides: the left button and mouse moves.
 struct TopPanelClass final : UiWindowClass<TopPanelClass, &CHudTopPanel::HudTopPanelDelete> {
-    void Update() override { AsWindow()->Update(); }   // 24: 00649FF0
+    void Update() override { AsWindow()->Window::Update(); }   // 24: 00649FF0
 };
 struct ClockClass final : PanelClass<ClockClass, &CUiWindow::UiWindowDelete, CHudClock> {
-    void Update() override { AsPanel()->Update(); }   // 24: 006488E0
+    void Update() override { AsPanel()->PanelType::Update(); }   // 24: 006488E0
 };
 struct ClockInputClass final : PanelInputClass<ClockInputClass, &CUiWindow::UiWindowDelete, CHudClock> {};
 struct MovePanelClass final : PanelClass<MovePanelClass, &CUiWindow::UiWindowDelete, CHudMovePanel> {
     void Build() override { AsPanel()->SetupVanilla(); }   // 18: 00649190 (WideScreen behind its flag, W3)
-    void Update() override { AsPanel()->Update(); }        // 24: 00649550
+    void Update() override { AsPanel()->PanelType::Update(); }        // 24: 00649550
 };
 struct MovePanelInputClass final : PanelInputClass<MovePanelInputClass, &CUiWindow::UiWindowDelete, CHudMovePanel> {};
 struct UnitPanelClass final : UiWindowClass<UnitPanelClass, &CHudUnitPanel::HudUnitPanelDelete> {
@@ -88,8 +88,7 @@ Panel* NewPlainPanel(CInterface3D* ui, CBattleScreen* owner) {
     if (!panel) return nullptr;
     panel->Construct(ui);
     panel->owner_ = owner;
-    panel->vtable_ = Panel::Vtable();
-    panel->inputVtable_ = Panel::InputVtable();
+    panel->SetTagTables(Panel::Vtable(), Panel::InputVtable());
     return panel;
 }
 
@@ -109,7 +108,7 @@ void** CHudMap::InputVtable() { return MapInputClass::Slots(); }
 
 // --- Create (00635250) ---------------------------------------------------------------------------
 
-void CBattleScreen::Create() {
+void CBattleScreen::CreateScreen() {
     float mapZoom = 1.0f;
     portraitMode_ = 0;
     mfc::CString savedText;
@@ -155,11 +154,7 @@ void CBattleScreen::Create() {
     }
 
     // The screen's own input handler (InertInputVtable(), 0x0C bytes).
-    auto* input = gamecrt::operator_new_as<UiInputSide>();
-    if (input) {
-        input->vtable_ = InertInputVtable();
-        input->owner_ = interface_;
-    }
+    UiInputSide* input = new UiInertInput(interface_);
     AddInput(input);   // 00600CC0
 
     CreateTexture(0x100, 0x100, 0x20);
@@ -202,8 +197,7 @@ void CBattleScreen::Create() {
             ::new (&panel->strings_[1]) mfc::CString;
             panel->texts_.Construct();
             panel->partLabels_.Construct();
-            panel->vtable_ = CHudUnitPanel::Vtable();
-            panel->inputVtable_ = CHudUnitPanel::InputVtable();
+            panel->SetTagTables(CHudUnitPanel::Vtable(), CHudUnitPanel::InputVtable());
         }
         unitPanel_ = panel;
     }
@@ -224,8 +218,7 @@ void CBattleScreen::Create() {
                 points->capacity = 0;
                 points->size = 0;
             }
-            panel->vtable_ = CHudMap::Vtable();
-            panel->inputVtable_ = CHudMap::InputVtable();
+            panel->SetTagTables(CHudMap::Vtable(), CHudMap::InputVtable());
         }
         map_ = panel;
     }
@@ -241,7 +234,7 @@ void CBattleScreen::Create() {
     movePanel_ = NewPlainPanel<CHudMovePanel>(interface_, this);
     AddChild(movePanel_);
     movePanel_->AddObject(objects_.data[2]);
-    movePanel_->VirtualBuild();
+    movePanel_->Build();
 
     CUiScrollText* messageLog = gamecrt::operator_new_as<CUiScrollText>();   // 0x1C8 bytes
     messageLog_ = messageLog ? messageLog->Construct(interface_, game::EmptyText(), RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f)
@@ -256,8 +249,7 @@ void CBattleScreen::Create() {
             panel->owner_ = this;
             ::new (&panel->pageTexts_[0]) mfc::CString;
             ::new (&panel->pageTexts_[1]) mfc::CString;
-            panel->vtable_ = CHudTopPanel::Vtable();
-            panel->inputVtable_ = TopPanelInputClass::Slots();
+            panel->SetTagTables(CHudTopPanel::Vtable(), TopPanelInputClass::Slots());
         }
         topPanel_ = panel;
     }
@@ -278,8 +270,7 @@ void CBattleScreen::Create() {
     }
     topPanel_->ShowItems();
 
-    CCameraInput* camera = gamecrt::operator_new_as<CCameraInput>();
-    AddInput(camera ? reinterpret_cast<UiInputSide*>(camera->Construct(interface_)) : nullptr);
+    AddInput(new CCameraInput(interface_));
 
     TheCamera()->flags_ &= ~0x40u;
     pendingAction_ = 0;
@@ -296,7 +287,7 @@ void CBattleScreen::Create() {
     LoadPersonTexts(&personTexts_);
     spare_ = 0;
     if (IsMultiplayerClient()) {
-        VirtualPlayersChanged(1);
+        PlayersChanged(1);
     }
     clientParty_.camera = -1;
 }
@@ -318,7 +309,7 @@ BOOL CBattleScreen::Draw(void* target) {
         static_cast<CSceneRenderer*>(target)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
     }
-    InputMouseMove(0, MouseScreenX(), MouseScreenY());
+    Input()->MouseMove(0, MouseScreenX(), MouseScreenY());
     // The depth buffer (and stencil, when the device has one) is cleared before the panels draw.
     UiRenderer* renderer = interface_->renderer_;
     DWORD flags = kClearTarget;
@@ -335,5 +326,5 @@ BOOL CBattleScreen::Draw(void* target) {
     return 1;
 }
 
-EI_REWRITTEN(0x00635250, CBattleScreen::Create);
+EI_REWRITTEN(0x00635250, CBattleScreen::CreateScreen);
 EI_REWRITTEN(0x00636020, CBattleScreen::Draw);

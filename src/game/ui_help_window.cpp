@@ -53,7 +53,7 @@ int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 
 } // namespace
 
-void CHelpWindow::Build() {
+void CHelpWindow::CreateScreen() {
     LoadTexture(SaveLoadTexture(), 3, nullptr);
     CreateTexture(0x100, 0x100, 0x20);
     CTextManager* texts = TheTextManager();
@@ -85,7 +85,7 @@ void CHelpWindow::Build() {
     SetRenderState(interface_->renderer_->device_, kRenderStateAlphaRef, 1);
     ShowPage();
 }
-EI_REWRITTEN(0x00658E10, CHelpWindow::Build);
+EI_REWRITTEN(0x00658E10, CHelpWindow::CreateScreen);
 
 void CHelpWindow::Close() {
     pulsing_.ClearWith([](CUiMesh**) {});
@@ -123,7 +123,7 @@ void CHelpWindow::Finish() {
 }
 
 void CHelpWindow::OnLeftDown(int buttons, int x, int y) {
-    InputOf(this)->OnLeftDown(buttons, x, y);
+    CUiContainer::LeftDown(buttons, x, y);
     switch (RegionAt(x, y)) {
     case 0:
         if (page_ > 0) {
@@ -148,17 +148,17 @@ void CHelpWindow::OnLeftDown(int buttons, int x, int y) {
 }
 
 void CHelpWindow::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->OnKeyDown(key, repeat, flags);
+    CUiContainer::KeyDown(key, repeat, flags);
     if (key == VK_RETURN && page_ < lines_.size - 1) {
         interface_->PlaySound(NextSound(), 0);
         ++page_;
         ShowPage();
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
     if (key != VK_RETURN && key != VK_ESCAPE && KeyActions()[flags & 0x1FF] != kHelpAction) return;
     Finish();
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 namespace {

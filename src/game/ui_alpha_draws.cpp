@@ -41,7 +41,7 @@ void CUiContainer::DrawChildrenImpl(int pass) {
     for (int i = 0; i < children.size; ++i) {
         CUiWindow* child = children[i];
         if (!child->enabled_) continue;
-        child->VirtualDrawChild(pass);
+        child->DrawChild(pass);
     }
     SetState(this, kAlphaRef, savedRef);
 }

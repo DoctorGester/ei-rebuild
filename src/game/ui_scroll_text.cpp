@@ -279,8 +279,7 @@ CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT
     CUiScrollbar::Construct(ui, rect, depth, 0, kScrollSpeed);
     tokens_.Construct(mfc::impl::TokenPtrArrayClass::Vtable());   // CArray<UiTextToken*>
     lines_.Construct(mfc::impl::LinePtrArrayClass::Vtable());   // CArray<UiTextLine*>
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     AddSurface(memory ? memory->ConstructOnRect(interface_, &rect, kSurfaceFormat) : nullptr);
     CUiScrollbar::SetRect(&rect);
@@ -309,8 +308,7 @@ void CUiScrollText::PlaceText(const RECT& rect) {
 }
 
 void CUiScrollText::DestroyBody() {
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     DeleteTokens();
     tokens_.SetSize(0, -1);
     for (int i = 0; i < lines_.size; ++i) gamecrt::operator_delete(lines_.data[i]);

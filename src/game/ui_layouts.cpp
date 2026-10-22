@@ -107,7 +107,7 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
 
 // --- Save/load window (00653DD0) -------------------------------------------------------------
 
-void CSaveLoadWindow::Build() {
+void CSaveLoadWindow::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
     LoadTexture("saveload", 3, 0);
     // The selected save's picture (5:6:5, in the new renderer's memory: ui_saveload.cpp).
@@ -174,7 +174,7 @@ void CSaveLoadWindow::Build() {
     ShowPicture();
     if (!sliding_) interface_->OpenHelp(0);
 }
-EI_REWRITTEN(0x00653DD0, CSaveLoadWindow::Build);
+EI_REWRITTEN(0x00653DD0, CSaveLoadWindow::CreateScreen);
 
 // --- Options window (006503C0) ------------------------------------------------------------------
 
@@ -189,7 +189,7 @@ const char* OptionGroupName(int index) {
 }
 } // namespace
 
-void COptionsWindow::Build() {
+void COptionsWindow::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
     LoadTexture("saveload", 3, 0);
     CreateTexture(0x100, 0x100, 0x1E);
@@ -244,13 +244,13 @@ void COptionsWindow::Build() {
     ShowGroup(0);
     if (!sliding_) interface_->OpenHelp(0);
 }
-EI_REWRITTEN(0x006503C0, COptionsWindow::Build);
+EI_REWRITTEN(0x006503C0, COptionsWindow::CreateScreen);
 
 // --- Esc menu (0062AB20) ------------------------------------------------------------------------
 
 // The five regions' rectangles (menus.reg) the game keeps at 007C80A8.
 
-void CEscMenu::Build() {
+void CEscMenu::CreateScreen() {
     window.rect_ = RECT{0, 0, 800, 600};
     CUiModel* model = window.AddModel();
     model->Load("unmoco1", "escMenu00", "escMenu00labels");
@@ -272,7 +272,7 @@ void CEscMenu::Build() {
     window.models_.data[0]->Play(1);
     window.interface_->PlaySound("buttons\\menu\\shift.wav", 0);
 }
-EI_REWRITTEN(0x0062AB20, CEscMenu::Build);
+EI_REWRITTEN(0x0062AB20, CEscMenu::CreateScreen);
 
 // --- Esc menu clicks (0062AE90) -------------------------------------------------------------------
 
@@ -282,8 +282,7 @@ namespace {
 // methods are declared __fastcall with the unused EDX.
 
 void SetVtables(CUiWindow* window, void** main, void** input) {
-    window->vtable_ = main;
-    window->inputVtable_ = input;
+    window->SetTagTables(main, input);
 }
 
 // The inlined COptionsWindow constructor.
@@ -318,7 +317,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
     int region = window.RegionAt(x, y);
     if (region >= 0) {
         ui->PlaySound("buttons\\menu\\ok.wav", 0);
-        window.inputHandled_ = true;
+        window.handled_ = true;
     }
     CUiWindow* opened = nullptr;
     bool open = true;
@@ -357,7 +356,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     }
     if (open) ui->PushWindow(opened, 1, 1);
-    window.ContainerInput()->OnLeftDown(buttons, x, y);
+    window.CUiContainer::LeftDown(buttons, x, y);
 }
 
 namespace {
@@ -471,7 +470,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     default:
         break;
     }
-    ContainerInput()->OnLeftDown(buttons, x, y);
+    CUiContainer::LeftDown(buttons, x, y);
 }
 
 namespace {
@@ -497,7 +496,7 @@ SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
 }
 } // namespace
 
-void CMessageBox::Build() {
+void CMessageBox::CreateScreen() {
     LoadTexture("saveload", 3, 0);
     CUiSurface* surface = NewSurface(interface_, 200, 50, 600, 500);
     AddSurface(surface);
@@ -551,11 +550,11 @@ void CMessageBox::Build() {
         AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B5, 1, 0);
     }
 }
-EI_REWRITTEN(0x00634790, CMessageBox::Build);
+EI_REWRITTEN(0x00634790, CMessageBox::CreateScreen);
 
 // --- Difficulty question (006337B0) ---------------------------------------------------------------
 
-void CDifficultyBox::Build() {
+void CDifficultyBox::CreateScreen() {
     LoadTexture("saveload", 3, 0);
     CUiSurface* surface = NewSurface(interface_, 200, 100, 600, 500);
     AddSurface(surface);
@@ -617,7 +616,7 @@ void CDifficultyBox::Build() {
     AddRect(this, boxLeft, row, boxRight, row + 0x15);
     AddRect(this, boxLeft, row + 0x18, boxRight, row + 0x2D);
 }
-EI_REWRITTEN(0x006337B0, CDifficultyBox::Build);
+EI_REWRITTEN(0x006337B0, CDifficultyBox::CreateScreen);
 
 // --- Titles (0062B7D0) ----------------------------------------------------------------------------
 
@@ -639,7 +638,7 @@ struct TitlesTokenizer : TextTokenizer {
 
 } // namespace
 
-void CCreditsScreen::Build() {
+void CCreditsScreen::CreateScreen() {
     CInterface3D* ui = interface_;
     const mfc::CString& name = name_;
     if (!fromGame_) {
@@ -717,4 +716,4 @@ void CCreditsScreen::Build() {
                                              0);
     finished_ = false;
 }
-EI_REWRITTEN(0x0062B7D0, CCreditsScreen::Build);
+EI_REWRITTEN(0x0062B7D0, CCreditsScreen::CreateScreen);

@@ -137,17 +137,17 @@ void __fastcall CampScreenDestroy(CItemScreen* self);
 // +0x1AC, then both caches as above (ui_item_screen.cpp).
 void __fastcall Screen9Destroy(CItemScreen* self);
 
-// The item screens' icon window (0x148 bytes, vtables 00740444 / 00740410; made by 005EDD80).
-class CItemIconWindow : public CUiWindow {
+// The item screens' icon window (0x148 bytes, game.exe's tables 00740444 / 00740410; made by 005EDD80). Its
+// destructors are the window's (005EE020).
+class CItemIconWindow final : public CUiWindow {
 public:
+    explicit CItemIconWindow(CInterface3D* ui) : CUiWindow(ui) {}
     // 005F2A90 (slot 18). The frame sprites: a strip of 8 cells over the layout's middle, the
     // column edges and corners of four 200-wide columns, and six bars.
-    void Build();
+    void Build() override;
     // 005F2E00 (RET 4; the exchange window with 300). Places the two bars (sprites 25, 26) across
     // the left and right columns (0..100, 100..200) at y - 20..y + 20 (depth 7.8, scale 100).
     void PlaceBars(int y);
-    // The compiled table (C19, ui_window_class.h) in place of game.exe's 00740444.
-    static void** Vtable();
 };
 
 // The item screens (the camp, the multiplayer hero screen and the exchange window share these
@@ -209,43 +209,47 @@ public:
     // the item strips and panels call on their owner, as the original does.
     void VirtualTakeItem(CItem* item, int mode) {                                   // 42 (+0xA8)
         using Fn = void(__thiscall*)(CItemScreen*, CItem*, int);
-        ei::VirtualSlot<Fn>(vtable_, 42)(this, item, mode);
+        ei::VirtualSlot<Fn>(TagTable(), 42)(this, item, mode);
     }
     bool VirtualCanEquip(CItem* item, int mode) {                                   // 43 (+0xAC, AL)
         using Fn = bool(__thiscall*)(CItemScreen*, CItem*, int);
-        return ei::VirtualSlot<Fn>(vtable_, 43)(this, item, mode);
+        return ei::VirtualSlot<Fn>(TagTable(), 43)(this, item, mode);
     }
     void VirtualTopicClicked(int topic, int mode) {                                 // 44 (+0xB0)
         using Fn = void(__thiscall*)(CItemScreen*, int, int);
-        ei::VirtualSlot<Fn>(vtable_, 44)(this, topic, mode);
+        ei::VirtualSlot<Fn>(TagTable(), 44)(this, topic, mode);
     }
     void VirtualBestPartySkill(int school, int* skill, int* mana) {                 // 45 (+0xB4)
         using Fn = void(__thiscall*)(CItemScreen*, int, int*, int*);
-        ei::VirtualSlot<Fn>(vtable_, 45)(this, school, skill, mana);
+        ei::VirtualSlot<Fn>(TagTable(), 45)(this, school, skill, mana);
     }
-    void VirtualRefreshWeapons() { CallVirtual(46); }                               // 46 (+0xB8)
-    void VirtualRefreshStats() { CallVirtual(47); }                                 // 47 (+0xBC)
-    void VirtualNextHero() { CallVirtual(48); }                                     // 48 (+0xC0)
-    void VirtualPreviousHero() { CallVirtual(49); }                                 // 49 (+0xC4)
+    void VirtualRefreshWeapons() { CallSlot(46); }                                  // 46 (+0xB8)
+    void VirtualRefreshStats() { CallSlot(47); }                                    // 47 (+0xBC)
+    void VirtualNextHero() { CallSlot(48); }                                        // 48 (+0xC0)
+    void VirtualPreviousHero() { CallSlot(49); }                                    // 49 (+0xC4)
+    void CallSlot(int slot) {
+        using Fn = void(__thiscall*)(CItemScreen*);
+        ei::VirtualSlot<Fn>(TagTable(), slot)(this);
+    }
     CUnit* VirtualHeroUnit(int index) {                                             // 50 (+0xC8)
         using Fn = CUnit*(__thiscall*)(CItemScreen*, int);
-        return ei::VirtualSlot<Fn>(vtable_, 50)(this, index);
+        return ei::VirtualSlot<Fn>(TagTable(), 50)(this, index);
     }
     PartyUnitRecord* VirtualHeroRecord() {                                          // 51 (+0xCC) the shown hero
         using Fn = PartyUnitRecord*(__thiscall*)(CItemScreen*);
-        return ei::VirtualSlot<Fn>(vtable_, 51)(this);
+        return ei::VirtualSlot<Fn>(TagTable(), 51)(this);
     }
     void VirtualChooseFigure(const char* prototype) {                               // 52 (+0xD0)
         using Fn = void(__thiscall*)(CItemScreen*, const char*);
-        ei::VirtualSlot<Fn>(vtable_, 52)(this, prototype);
+        ei::VirtualSlot<Fn>(TagTable(), 52)(this, prototype);
     }
     double VirtualWeight() {                                                        // 53 (+0xD4, ST0)
         using Fn = double(__thiscall*)(CItemScreen*);
-        return ei::VirtualSlot<Fn>(vtable_, 53)(this);
+        return ei::VirtualSlot<Fn>(TagTable(), 53)(this);
     }
     int VirtualPrice(CItem* item, int kind) {                                       // 54 (+0xD8)
         using Fn = int(__thiscall*)(CItemScreen*, CItem*, int);
-        return ei::VirtualSlot<Fn>(vtable_, 54)(this, item, kind);
+        return ei::VirtualSlot<Fn>(TagTable(), 54)(this, item, kind);
     }
 
     CItemInfoPanel* descPanel_;      // +0x164

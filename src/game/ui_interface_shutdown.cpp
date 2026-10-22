@@ -39,8 +39,8 @@ void CInterface3D::Shutdown() {
     TheCursor()->SetShape(kCursorWait);
     while (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->Input()->Deactivate();
-        stackEnd_[-1]->CloseWindow();
-        if (CUiWindow* top = stackEnd_[-1]) top->DeleteWindow();
+        ScreenOf(stackEnd_[-1])->CloseScreen();
+        delete stackEnd_[-1];
         --stackEnd_;
     }
     ResetInput();
@@ -66,7 +66,7 @@ void CInterface3D::Shutdown() {
     DeleteSurface(fpsSurface_);
     fpsSurface_ = nullptr;
     // The queued window is deleted but its pointer kept (the original does not clear it).
-    if (queuedWindow_) queuedWindow_->DeleteWindow();
+    delete queuedWindow_;
     DeleteSurface(backdrop_);
     backdrop_ = nullptr;
     DeleteSurface(secondBackdrop_);
@@ -75,7 +75,7 @@ void CInterface3D::Shutdown() {
     block5C_ = nullptr;
     DebugInfoPanel()->Release();
     if (root_) {
-        root_->DeleteWindow();
+        delete root_;
         root_ = nullptr;
     }
     if (console_) {

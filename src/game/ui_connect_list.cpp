@@ -70,7 +70,7 @@ float SortArrowX(int column) {
     return 0.0f;   // (not reached with keys 1-8; the original leaves a stack slot as it is)
 }
 
-void Draw(CUiSurface* surface, const char* text, RECT* rect, int format) {
+void DrawLabel(CUiSurface* surface, const char* text, RECT* rect, int format) {
     surface->DrawTextIn(text, rect, kFont, TextColour(), format, 1);
 }
 // addon's wrapper of the text draw: the text goes through a 90-byte buffer (strcpy_s there; a longer one
@@ -79,7 +79,7 @@ void Draw(CUiSurface* surface, const char* text, RECT* rect, int format) {
 void DrawEllipsis(CUiSurface* surface, const char* text, RECT* rect, int format) {
     char buffer[kExtendedTextSize];
     text::CopyFitting(buffer, kExtendedTextSize, text);
-    Draw(surface, buffer, rect, format | kFormatEllipsis);
+    DrawLabel(surface, buffer, rect, format | kFormatEllipsis);
 }
 void Down(RECT* rect, int dy = kRowHeight) { gameapi::OffsetRect(rect, 0, dy); }
 
@@ -115,18 +115,18 @@ void CMpConnectScreen::DrawListVanilla() {
     sprite(kSpriteSelection)->visible_ = 0;
     // The two buttons' texts.
     RECT button{390, 345, 520, 365};
-    Draw(surface, label(10), &button, kFormatCentre);
+    DrawLabel(surface, label(10), &button, kFormatCentre);
     button = RECT{390, 369, 520, 389};
-    Draw(surface, label(11), &button, kFormatCentre);
+    DrawLabel(surface, label(11), &button, kFormatCentre);
     // The column titles.
     RECT row{20, 8, 290, 29};
-    Draw(surface, label(12), &row, 0);
+    DrawLabel(surface, label(12), &row, 0);
     row.left = 150;
-    Draw(surface, label(13), &row, 0);
+    DrawLabel(surface, label(13), &row, 0);
     row.left = 178;
-    Draw(surface, label(14), &row, 0);
+    DrawLabel(surface, label(14), &row, 0);
     row.left = 248;
-    Draw(surface, label(15), &row, 0);
+    DrawLabel(surface, label(15), &row, 0);
     row.left = 12;
     row.right = layout.rowRight;
     CUiMesh* arrow = sprite(kSpriteSortArrow);
@@ -166,27 +166,27 @@ void CMpConnectScreen::DrawListVanilla() {
             if (extended)
                 DrawEllipsis(surface, text, &row, kFormatNoPrefix);
             else
-                Draw(surface, text, &row, kFormatNoPrefix);
+                DrawLabel(surface, text, &row, kFormatNoPrefix);
         } else {
             if (extended) {
                 RECT nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
                 nameRect.right = kExtendedNameRight;
                 DrawEllipsis(surface, entry.name, &nameRect, kFormatNoPrefix);
             } else {
-                Draw(surface, entry.name, &row, kFormatNoPrefix);
+                DrawLabel(surface, entry.name, &row, kFormatNoPrefix);
             }
             row.left = 142;
             text.Format("%d/%d", entry.players, entry.maxPlayers);
-            Draw(surface, text, &row, 0);
+            DrawLabel(surface, text, &row, 0);
             row.left = 170;
             if (entry.gameType == kNewGameType)
                 text = "?";
             else
                 text.Format("%s", allod(entry.gameType));
-            Draw(surface, text, &row, 0);
+            DrawLabel(surface, text, &row, 0);
             row.left = layout.rowLeftPing;
             text.Format("%d", entry.ping);
-            Draw(surface, text, &row, kFormatRight);
+            DrawLabel(surface, text, &row, kFormatRight);
             row.left = 12;
         }
         Down(&row);
@@ -200,25 +200,25 @@ void CMpConnectScreen::DrawListVanilla() {
         row = RECT{340, 20, 590, 44};
         if (selected_ == 0) {
             for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible_ = 1;
-            Draw(surface, label(0), &row, 0);
+            DrawLabel(surface, label(0), &row, 0);
             Down(&row);
             Down(&row);
             text.Format("%s %d", label(2), maxPlayers_);
-            Draw(surface, text, &row, 0);
+            DrawLabel(surface, text, &row, 0);
             Down(&row);
             Down(&row);
-            Draw(surface, label(3), &row, 0);
+            DrawLabel(surface, label(3), &row, 0);
             Down(&row);
             row.left = 390;
             for (int i = 0; i < kGameTypes; ++i) {
-                Draw(surface, allod(i), &row, 0);
+                DrawLabel(surface, allod(i), &row, 0);
                 Down(&row);
             }
             row.left = 370;
             Down(&row, 12);
-            Draw(surface, label(16), &row, 0);
+            DrawLabel(surface, label(16), &row, 0);
             Down(&row);
-            Draw(surface, label(17), &row, 0);
+            DrawLabel(surface, label(17), &row, 0);
         } else {
             text.Format("%s %s", label(0), entry.name.GetString());
             if (extended) {
@@ -227,30 +227,30 @@ void CMpConnectScreen::DrawListVanilla() {
                 row.top += lines * kRowHeight - kRowHeight;
                 row.bottom += lines * kRowHeight - kRowHeight;
             } else {
-                Draw(surface, text, &row, 0);
+                DrawLabel(surface, text, &row, 0);
             }
             Down(&row);
             text.Format("%s %d / %d", label(1), entry.players, entry.maxPlayers);
-            Draw(surface, text, &row, 0);
+            DrawLabel(surface, text, &row, 0);
             Down(&row);
             if (entry.gameType == kNewGameType)
                 text = texts_[3] + " ?";
             else
                 text.Format("%s %s", label(3), allod(entry.gameType));
-            Draw(surface, text, &row, 0);
+            DrawLabel(surface, text, &row, 0);
             Down(&row);
             text.Format("%s %s", label(4), entry.description.GetString());
             int lines = surface->DrawWrappedText(text, &row, 3, kFont, TextColour(), 0, 1);
             for (; lines != 0; --lines) Down(&row);
             stlp::string address;
             text.Format("%s %s", label(5), entry.address.ToString(&address)->data());
-            Draw(surface, text, &row, 0);
+            DrawLabel(surface, text, &row, 0);
             Down(&row);
             text.Format("%s %d", label(6), entry.ping);
-            Draw(surface, text, &row, 0);
+            DrawLabel(surface, text, &row, 0);
             Down(&row);
             if (entry.password) {
-                Draw(surface, label(21), &row, 0);
+                DrawLabel(surface, label(21), &row, 0);
                 Down(&row);
             }
         }

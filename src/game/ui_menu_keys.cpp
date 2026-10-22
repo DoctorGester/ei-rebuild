@@ -74,17 +74,17 @@ void CSaveLoadWindow::ShowSelection() {
 
 void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     if (sliding_) return;
-    InputOf(this)->OnKeyDown(key, repeat, flags);
+    CUiContainer::KeyDown(key, repeat, flags);
     int step = 0;
     switch (key) {
     case kKeyEnter:
         Confirm();
-        inputHandled_ = true;
+        handled_ = true;
         break;
     case kKeyEsc:
         interface_->PlaySound(game::CancelSoundText(), 0);
         interface_->SetPendingValue(kCloseSaveLoad);
-        inputHandled_ = true;
+        handled_ = true;
         break;
     case kKeyPageUp: step = -kListRows; break;
     case kKeyPageDown: step = kListRows; break;
@@ -96,9 +96,9 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         interface_->PlaySound(game::SelectSoundText(), 0);
         selected_ += step;
         ShowSelection();
-        inputHandled_ = true;
+        handled_ = true;
     }
-    if (inputHandled_ || !isSave_) return;
+    if (handled_ || !isSave_) return;
 
     // Editing the name. The first edit of an ordinary save starts from its title (Backspace and
     // Delete from an empty name); the quick and automatic saves keep their names.
@@ -150,7 +150,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     RefreshListVanilla();
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 // --- 00655050 ------------------------------------------------------------------------------------
@@ -197,18 +197,18 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
         break;
     }
     }
-    InputOf(this)->OnChar(key, repeat, flags);
+    CUiContainer::Char(key, repeat, flags);
 }
 
 // --- 00650E40 ------------------------------------------------------------------------------------
 
 void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
     if (sliding_) return;
-    InputOf(this)->OnKeyDown(key, repeat, flags);
+    CUiContainer::KeyDown(key, repeat, flags);
     if (waitingForKey_) {
         // The key for the selected binding row, by scan code.
         int scan = flags & 0x1FF;
-        inputHandled_ = true;
+        handled_ = true;
         if (scan == kScanEsc) {
             waitingForKey_ = false;
             RefreshRows();
@@ -263,7 +263,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             waitingForKey_ = true;
         } else {
             if (!row.setting_ || !row.setting_->spin_) {
-                inputHandled_ = true;
+                handled_ = true;
                 return;
             }
             int value;
@@ -272,7 +272,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         }
         interface_->PlaySound(game::OkSoundText(), 0);
         RefreshRows();
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
     case kKeyEsc:
@@ -318,7 +318,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
     default:
         return;
     }
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 // --- Entry points --------------------------------------------------------------------------------

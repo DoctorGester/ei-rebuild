@@ -406,7 +406,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         }
         break;
     }
-    ContainerInput()->OnLeftDown(buttons, x, y);
+    CUiContainer::LeftDown(buttons, x, y);
 }
 
 void CMpConnectScreen::OnLButtonDouble(int buttons, int x, int y) {
@@ -419,22 +419,22 @@ void CMpConnectScreen::OnLButtonDouble(int buttons, int x, int y) {
             Connect();
         }
     }
-    ContainerInput()->OnLeftDouble(buttons, x, y);
+    CUiContainer::LeftDouble(buttons, x, y);
 }
 
 void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->OnKeyDown(key, repeat, flags);
+    CUiContainer::KeyDown(key, repeat, flags);
     int step;
     switch (key) {
     case VK_RETURN:
         Connect();
-        inputHandled_ = true;
+        handled_ = true;
         return;
     case VK_ESCAPE:
         interface_->PlaySound(CancelSound(), 0);
         TheGameFlow()->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
-        inputHandled_ = true;
+        handled_ = true;
         return;
     case VK_UP: step = -1; break;
     case VK_DOWN: step = 1; break;
@@ -445,7 +445,7 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
     interface_->PlaySound(SelectSound(), 0);
     selected_ += step;
     SelectAndScroll();
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 EI_REWRITTEN(0x0061C700, InputForward<&CMpConnectScreen::OnLButtonDown>::Call);
@@ -627,7 +627,7 @@ EI_REWRITTEN(0x0061D470, CMpConnectScreen::RebuildList);
 
 // --- 0061B2C0: Create (the vanilla body) ----------------------------------------------------------
 
-void CMpConnectScreen::Create() {
+void CMpConnectScreen::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
     LoadTexture(SaveLoadTexture(), kTextureKind, nullptr);
     LoadTexture(ScrollbarTexture(), kTextureKind, nullptr);
@@ -804,7 +804,7 @@ void CMpConnectScreen::Create() {
     note->DrawTextIn(texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
     UiSurfaceReleaseDC(note);
 }
-EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::Create);
+EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::CreateScreen);
 // Rebirth's patches in Create: addon's ExtendedServerName sites (0061B5CE, 0061BB51, 0061BC09, 0061BC0B,
 // 0061BC0E) and EI_Plugin's NPlayers (0061BAF7, 0061BB82).
 
@@ -815,8 +815,7 @@ CMasterRequestBox* CMasterRequestBox::Construct(CInterface3D* ui, const char* ti
                                                 std::uint32_t extra) {
     CMessageBox::Construct(ui, titleKey, textKey, static_cast<int>(result), kBoxFlagsCancel, kBoxFormat);
     new (&link_) net::MasterLink(address);
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     bar_ = AddSprite(nullptr);
     bar_->texture_ = nullptr;
     bar_->flags_ |= kPlainSprite;

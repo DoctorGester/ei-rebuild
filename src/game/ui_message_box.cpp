@@ -52,7 +52,7 @@ void CMessageBox::CopyEditText() {
 }
 
 void CMessageBox::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->OnLeftDown(buttons, x, y);
+    CUiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     if (region == 0) {
         if (result_ == kExitResult) {
@@ -70,8 +70,8 @@ void CMessageBox::OnLButtonDown(int buttons, int x, int y) {
 }
 
 void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->OnKeyDown(key, repeat, flags);
-    if (inputHandled_) return;
+    CUiContainer::KeyDown(key, repeat, flags);
+    if (handled_) return;
     if (key == VK_RETURN) {
         if (result_ == kExitResult) {
             PlayExitMovieAndQuit();
@@ -86,7 +86,7 @@ void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
     } else {
         return;
     }
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 namespace {
@@ -123,8 +123,8 @@ void CDifficultyBox::OnLButtonDown(int, int x, int y) {
 }
 
 void CDifficultyBox::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->OnKeyDown(key, repeat, flags);
-    if (inputHandled_) return;
+    CUiContainer::KeyDown(key, repeat, flags);
+    if (handled_) return;
     if (key == VK_RETURN) {
         GameDifficulty() = easy_;
         interface_->PlaySound(OkSound(), 0);
@@ -135,7 +135,7 @@ void CDifficultyBox::OnKeyDown(int key, int repeat, int flags) {
     } else {
         return;
     }
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 namespace {

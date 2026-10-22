@@ -179,7 +179,7 @@ bool VoiceEnded(int handle) {
 
 // --- 006024B0: slot 25 --------------------------------------------------------------------------
 
-void CBriefingScreen::Create() {
+void CBriefingScreen::CreateScreen() {
     chatActive_ = 0;
     autosave_ = false;
     if (LoadingGame())
@@ -241,14 +241,9 @@ void CBriefingScreen::Create() {
     GameSetWeather(0, 0.0f);
 
     // The screen's own input side (its third dword is left as allocated) and the view's.
-    auto* input = gamecrt::operator_new_as<UiInputSide>();   // 0x0C bytes
-    if (input) {
-        input->vtable_ = InertInputVtable();
-        input->owner_ = interface_;
-    }
+    UiInputSide* input = new UiInertInput(interface_);   // 0x0C bytes
     AddInput(input);
-    CCameraInput* cameraInput = gamecrt::operator_new_as<CCameraInput>();
-    AddInput(cameraInput ? reinterpret_cast<UiInputSide*>(cameraInput->Construct(interface_)) : nullptr);
+    AddInput(new CCameraInput(interface_));
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
     // not checked for null, as the original), the alternate limits, no target.
@@ -268,7 +263,7 @@ void CBriefingScreen::Create() {
         CChatWindow* chat = gamecrt::operator_new_as<CChatWindow>();
         chat_ = chat ? chat->Construct(interface_) : nullptr;
         AddChild(chat_);
-        VirtualShowChat(1);
+        PlayersChanged(1);
     } else {
         chat_ = nullptr;
     }
@@ -283,7 +278,7 @@ void CBriefingScreen::Create() {
     markPhase_ = 0.0f;
 }
 
-EI_REWRITTEN(0x006024B0, CBriefingScreen::Create);
+EI_REWRITTEN(0x006024B0, CBriefingScreen::CreateScreen);
 
 // --- 00604130: slot 24 --------------------------------------------------------------------------
 

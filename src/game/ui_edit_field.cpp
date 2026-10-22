@@ -82,7 +82,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
         return;
     }
     DrawContentsVanilla();
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 EI_REWRITTEN(0x0065C610, InputForward<&CUiEditField::OnKeyDown>::Call);
@@ -133,8 +133,7 @@ void** CUiEditField::InputVtable() { return EditFieldInputTable::Slots(); }
 CUiEditField* CUiEditField::Construct(CInterface3D* ui, RECT rect) {
     CUiWindow::Construct(ui);
     new (&Text()) mfc::CString;
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     charClasses_ = kClassDigit | kClassLetter | kClassOther | kClassSeparator;
     centred_ = 0;
     font_ = 1;
@@ -173,7 +172,7 @@ void CUiEditField::OnChar(int key, int, int) {
         caret_ += text::TypedLength(key);
     }
     DrawContentsVanilla();
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 EI_REWRITTEN(0x0065C930, InputForward<&CUiEditField::OnChar>::Call);

@@ -227,7 +227,7 @@ void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
 }
 } // namespace
 
-void CMpHeroScreen::Destroy() {
+void CMpHeroScreen::DestroyBody() {
     DestroyVoices(voiceLists_[1]);
     DestroyVoices(voiceLists_[0]);
     text_.~CString();
@@ -243,7 +243,7 @@ void CMpHeroScreen::Destroy() {
     DestroyContainer();
 }
 namespace {
-void __fastcall HeroScreenDestroy(CMpHeroScreen* self) { self->Destroy(); }
+void __fastcall HeroScreenDestroy(CMpHeroScreen* self) { self->DestroyBody(); }
 } // namespace
 EI_REWRITTEN(0x00633260, HeroScreenDestroy);
 

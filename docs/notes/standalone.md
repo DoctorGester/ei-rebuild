@@ -1484,6 +1484,20 @@ C28a-p, one family per commit; the order is in C28's ticket note). How a family 
   destructor tag whose original pops 4 more (the flags argument).
 - game.exe's tables stay in config/retired_vtables.csv; their rows name the real class and its header.
 
+The window base (C28l, ui.h): `UiInputSide` (007401D0: the input slots 1-12 as virtuals, `handled_`) and
+`CUiWindow : CUiWindowBase, UiInputSide` (CUiWindowBase is CTransformObject plus the 0x40 bytes before +0x94, so
+the input side lands at +0x94 and the compiler's adjustor thunks are game.exe's SUB ECX,0x94; JMP) with slots 18-24
+as virtuals; `CUiContainer` adds 25-41 (25 / 26 `_purecall`) and its input dispatch as the input-side overrides
+(screens call the defaults qualified, `CUiContainer::LeftDown(...)`). Real classes too: the inert extra side
+(`UiInertInput`, 00741154), the battle camera's (`CCameraInput`), the view screen's unit pick (`UnitPickInput`) and
+the item screens' icon window (`CItemIconWindow`). Until C28m the screens and panels keep their tag tables: they
+build the base in place (`CUiWindow::Construct` / `CUiContainer::Construct`), store their tables (`SetTagTables`),
+destroy it qualified (`DestroyBase` / `DestroyContainer`), and a tag's call to a name the base made virtual is
+qualified (`AsScreen()->ScreenType::Update()`), which otherwise would go back through the table. Member pointers of
+the windows are two words: `EI_REWRITTEN`'s record points at a constant holding `&fn`, and `ei::MemberAddress`
+takes the code word (adjustment 0). The harness names a compiled window by its table or, for the real classes, by
+`typeid` (harness_windows.cpp's `WindowKind`).
+
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 
 - **Resources** (S18j, C23): none of game.exe's ("How it runs"); the game's module is the host's. MFC's module state has

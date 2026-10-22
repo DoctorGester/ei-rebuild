@@ -110,14 +110,10 @@ EI_REWRITTEN(0x006335E0, CMainMenu::AddVersionLine);
 
 // --- 006326B0: Create (slot 25) --------------------------------------------------------------
 
-void CMainMenu::Create() {
+void CMainMenu::CreateScreen() {
     interface_->ResetSavedState();
     TheGameFlow()->UseResources(false);
-    UiInputSide* inert = gamecrt::operator_new_as<UiInputSide>();   // 0xC bytes
-    if (inert) {
-        inert->vtable_ = InertInputVtable();
-        inert->owner_ = interface_;
-    }
+    UiInputSide* inert = new UiInertInput(interface_);   // 0xC bytes
     AddInput(inert);
     hovered_ = -1;
     rect_ = RECT{0, 0, 800, 600};
@@ -142,7 +138,7 @@ void CMainMenu::Create() {
     hour_ = 0.0f;
     TheMusicSystem()->PlayMainMenu();
 }
-EI_REWRITTEN(0x006326B0, CMainMenu::Create);
+EI_REWRITTEN(0x006326B0, CMainMenu::CreateScreen);
 
 // --- 00632B10: Update (slot 24, every frame) ---------------------------------------------------
 
@@ -223,12 +219,12 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
         }
         hovered_ = region;
     }
-    InputOf(this)->OnMouseMove(buttons, x, y);
+    CUiContainer::MouseMove(buttons, x, y);
 }
 EI_REWRITTEN(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
 
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->OnKeyDown(key, repeat, flags);
+    CUiContainer::KeyDown(key, repeat, flags);
     if (key != VK_ESCAPE) return;
     CMessageBox* box = gamecrt::operator_new_as<CMessageBox>();
     if (box) box = box->Construct(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);

@@ -38,6 +38,8 @@ inline constexpr Quaternion kHudRestRotation = /*007C8150*/ {1.0f, 0.0f, 0.0f, 0
 namespace console { class ConsoleWindow; }
 class CFigureManager;   // figure_manager.h
 class CItem;
+class CParty;
+class CUnit;
 namespace ui_gdi { struct GameFont; struct GameDC; }
 
 // A CString an item's or a spell's virtual method returns (by hidden pointer); released when it goes.
@@ -50,7 +52,6 @@ static_assert(sizeof(ReturnedString) == 4);
 class CUiWindow;
 class CChatOverlay;
 struct UiInputSide;
-struct UiContainerInput;
 class CUiMesh;
 struct CDXSurface;
 class CSceneRenderer;   // model.h
@@ -229,12 +230,12 @@ public:
     // (RET 4) the players changed (slot 36), 005F8310 (RET 0xC) an exchange between players ended
     // (slot 37). 005F86D0: the bottom window saves its state (slot 40; the save game 0057B3B0).
     void OnItemsPicked(void* items, int money, int crippled);
-    void OnUnitJoined(void* unit);
-    void OnUnitLeft(void* unit);
+    void OnUnitJoined(CUnit* unit);
+    void OnUnitLeft(CUnit* unit);
     void OnGameLost();
     void OnUnitSpeech(int id, unsigned event);
     void OnPlayersChanged(int added);
-    void OnExchangeDone(void* partyB, void* partyA, void* partyC);
+    void OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC);
     void SaveWindowState();
     // 005F82F0 (RET 8). A chat line (`text` from player `number`) for the root window's chat
     // (005E2A30 on +0x1C).
@@ -653,68 +654,119 @@ public:
 };
 static_assert(sizeof(CUiModel) == 4);
 
-// An input side: a window's own at +0x94 ({vtable, interface, handled flag}), or a separate handler
-// a container keeps in its list (+0x158; e.g. the battle camera's keys, constructed by 005EACB0).
-// The interface hands each event to the top window's side (00457970 -> 005F76A0..005F7BE0) through
-// a slot, thiscall: 1 deactivate (no arguments; the window loses the top, 005F7350); 2 / 3 left
-// button down / up, 4 mouse move, 5 / 6 right button down / up, 7 / 8 left / right double click
-// (button flags, x, y in screen pixels); 9 key down, 10 character (WM_CHAR), 11 key up (key,
-// repeat, scan code and flags); 12 wheel (key flags, delta, x, y).
+// An input side: a window's own at +0x94 (CUiWindow's second base), or a separate handler a container
+// keeps in its list (+0x158; e.g. the battle camera's keys, CCameraInput). The interface hands each
+// event to the top window's side (00457970 -> 005F76A0..005F7BE0): 1 deactivate (the window loses the
+// top, 005F7350); 2 / 3 left button down / up, 4 mouse move, 5 / 6 right button down / up, 7 / 8 left /
+// right double click (button flags, x, y in screen pixels); 9 key down, 10 character (WM_CHAR), 11 key
+// up (key, repeat, scan code and flags); 12 wheel (key flags, delta, x, y). The handlers return EAX,
+// which only the wheel's callers read. Its own table is game.exe's base input side 007401D0: 1-6 and
+// 9-11 do nothing (short_functions.cpp), 7 / 8 a double click is a press, 12 the wheel is not used.
 struct UiInputSide {
     enum Slot : int {
-        kDeactivate = 1,
-        kLeftDown = 2,
-        kLeftUp = 3,
-        kMouseMove = 4,
-        kRightDown = 5,
-        kRightUp = 6,
-        kLeftDouble = 7,
-        kRightDouble = 8,
-        kKeyDown = 9,
-        kChar = 10,
-        kKeyUp = 11,
-        kWheel = 12,
+        kEventDeactivate = 1,
+        kEventLeftDown = 2,
+        kEventLeftUp = 3,
+        kEventMouseMove = 4,
+        kEventRightDown = 5,
+        kEventRightUp = 6,
+        kEventLeftDouble = 7,
+        kEventRightDouble = 8,
+        kEventKeyDown = 9,
+        kEventChar = 10,
+        kEventKeyUp = 11,
+        kEventWheel = 12,
     };
-    // Slot 1.
-    void Deactivate() {
-        using Fn = void(__thiscall*)(UiInputSide*);
-        ei::VirtualSlot<Fn>(vtable_, kDeactivate)(this);
-    }
-    // Slots 2-11: (buttons, x, y) or (key, repeat, flags). Returns the handler's EAX.
-    int Event(int slot, int a, int b, int c) {
-        using Fn = int(__thiscall*)(UiInputSide*, int, int, int);
-        return ei::VirtualSlot<Fn>(vtable_, slot)(this, a, b, c);
-    }
-    // 005E2860 / 005E2880 (slots 7 / 8 of the base input side 007401D0 and most screens;
-    // ui_input_defaults.cpp; RET 0xC): a double click is handled as a single press, slot 2 / 5 with
-    // the same arguments; the handler's EAX is returned.
-    int LeftDoubleAsDown(int buttons, int x, int y);
-    int RightDoubleAsDown(int buttons, int x, int y);
-    // 005E28B0 (slot 12 of the base input side 007401D0 and of every window without a wheel
-    // handler; RET 0x10; ui_small_members.cpp): the wheel is not used, 0.
-    int WheelIgnored(int flags, int delta, int x, int y);
-    // 005EACD0 and 1 more (slot 0, the deleting destructor; ui_window_delete.cpp). The base vtable
-    // stored back and the memory freed when bit 0 of `flags` is set; returns this.
-    UiInputSide* InputSideDelete(unsigned flags);
-    // 005EA850 (slot 0, the deleting destructor; ui_window_delete.cpp). The base vtable stored back
-    // and the memory freed when bit 0 of `flags` is set; returns this.
-    UiInputSide* InputSideBaseDelete(unsigned flags);
-    // Slot 12. The handlers return 1.
-    int Wheel(int flags, int delta, int x, int y) {
-        using Fn = int(__thiscall*)(UiInputSide*, int, int, int, int);
-        return ei::VirtualSlot<Fn>(vtable_, kWheel)(this, flags, delta, x, y);
-    }
+    // The handled flag is left as it is (a dispatcher clears it before each event).
+    explicit UiInputSide(CInterface3D* ui) : interface_(ui) {}
+    // 005EA850 (slot 0 of 007401D0, ui_window_delete.cpp).
+    virtual ~UiInputSide();
+    virtual void Deactivate() {}                                           // 1
+    virtual int LeftDown(int, int, int) { return 0; }                      // 2
+    virtual int LeftUp(int, int, int) { return 0; }                        // 3
+    virtual int MouseMove(int, int, int) { return 0; }                     // 4
+    virtual int RightDown(int, int, int) { return 0; }                     // 5
+    virtual int RightUp(int, int, int) { return 0; }                       // 6
+    // 005E2860 / 005E2880 (RET 0xC; ui_input_defaults.cpp): a double click is handled as a single
+    // press, slot 2 / 5 with the same arguments; that handler's EAX is returned.
+    virtual int LeftDouble(int buttons, int x, int y);                     // 7
+    virtual int RightDouble(int buttons, int x, int y);                    // 8
+    virtual int KeyDown(int, int, int) { return 0; }                       // 9
+    virtual int Char(int, int, int) { return 0; }                          // 10
+    virtual int KeyUp(int, int, int) { return 0; }                         // 11
+    // 005E28B0 (RET 0x10; ui_small_members.cpp): the wheel is not used, 0.
+    virtual int Wheel(int flags, int delta, int x, int y);                 // 12
+    // Slots 2-11 by number (the containers' dispatch): (buttons, x, y) or (key, repeat, flags).
+    int Event(int slot, int a, int b, int c);
 
-    void** vtable_;
-    void* owner_;                    // +0x04 the interface for a window's own side
+    // Input sides live on the game's heap (ui_window_delete.cpp: gamecrt::operator_new / delete); `new`
+    // gives null without memory and then constructs nothing.
+    static void* operator new(std::size_t size) noexcept;
+    static void* operator new(std::size_t, void* place) noexcept { return place; }
+    static void operator delete(void* block);
+    static void operator delete(void*, void*) noexcept {}
+
+    CInterface3D* interface_;        // +0x04
     bool handled_;                   // +0x08 set by a handler that used the event
 };
-static_assert(offsetof(UiInputSide, handled_) == 0x08);
 
-// Base of the interface windows (constructor 005FE700; compiled tables for game.exe's 00740F60 / 00740F2C).
-// It derives from the engine's transform object, which is kept opaque here.
-class CUiWindow {
+// The extra input side whose slots do nothing (0x0C bytes; game.exe's 00741154, whose slots 9 / 11 are its
+// own empty RET 0xC, 005EB8A0 / 005EB8B0): the battle screen's, the briefing's, the main menu's and the view
+// screens'. Destructor 00602BA0, deleting 00602B80 (ui_window_delete.cpp).
+struct UiInertInput final : UiInputSide {
+    explicit UiInertInput(CInterface3D* ui) : UiInputSide(ui) {}
+    ~UiInertInput() override;
+    int KeyDown(int, int, int) override { return 0; }   // 9
+    int KeyUp(int, int, int) override { return 0; }     // 11
+};
+
+// The window's part below its input side (+0x00..+0x94): the engine's transform object and 0x40 bytes the
+// window's code never touches (the original's window base, inlined in the window's constructor).
+class CUiWindowBase : public CTransformObject {
+protected:
+    std::uint8_t unused_054[0x94 - 0x54];
+};
+
+// Base of the interface windows (constructor 005FE700; game.exe's tables 00740F60 / 00740F2C). Its input side is
+// its second base, at +0x94: the handlers get `this` = window + 0x94 (the compiler's adjustor thunks, as the
+// original's SUB ECX,0x94; JMP).
+class CUiWindow : public CUiWindowBase, public UiInputSide {
 public:
+    // 005FE700 (RET 4; ui_window.cpp). An empty window of `ui` (arrays, the rectangle and +0xA0..+0xD7
+    // zeroed, the identity rotation), two materials of the manager 007AF740 (+0xF0 white, +0xEC black; one
+    // reference each), enabled (+0xE8 = 1, then Show(1)).
+    explicit CUiWindow(CInterface3D* ui);
+    // 005FE930 (ui_window.cpp): releases the three objects at +0xEC..+0xF4, the scene objects, surfaces,
+    // regions, referenced objects and models (in that order), clears +0x08, then the engine object's. The
+    // deleting destructor 005FE910 and its copies (ui_window_delete.cpp).
+    ~CUiWindow() override;
+    using CEngineObject::operator new;
+    using CEngineObject::operator delete;
+
+    // The interface objects' slots (world_class_slots.h): 2 answers 1, 3 does nothing, 11 / 12 the name
+    // "Sorry, no other way." and the id 0x45.
+    int Create() override;
+    void Destroy() override {}
+    const char* GetClassName() override;
+    int GetClassId() override;
+    virtual void Build() {}                                             // 18: 00579550 (empty)
+    virtual void Show(int show) { ShowSurfaces(show); }                // 19
+    virtual BOOL Draw(int pass) { return DrawBase(pass); }             // 20
+    virtual void DrawChild(int pass) { UpdateRegionTips(pass); }       // 21
+    virtual void Redraw() { RedrawBase(); }                            // 22
+    virtual void RedrawTips() { RedrawRegionTips(); }                  // 23
+    virtual void Update() {}                                           // 24: 005EE010 (empty)
+
+    // C28 transition (C28m): a window class whose tables are still a compiled tag's (ui_window_class.h)
+    // builds the window base in place (Construct), stores its tag's tables (SetTagTables), destroys the
+    // base in its destructor body (DestroyBase) and frees itself through UiWindowDelete.
+    CUiWindow* Construct(CInterface3D* ui) { return new (this) CUiWindow(ui); }
+    void SetTagTables(void** window, void** input);
+    void DestroyBase() { this->CUiWindow::~CUiWindow(); }
+    CUiWindow* UiWindowDelete(unsigned flags);
+    // The window's table in the old slot numbering, for the slots of derived windows still reached by number.
+    void** TagTable() const { return *reinterpret_cast<void** const*>(this); }
+
     // 005FFCC0. Index of the first region containing the screen point (x, y), or -1.
     int RegionAt(int x, int y) const;
     // 005FFD30. Whether the screen point (x, y) lies in the window rectangle.
@@ -722,7 +774,7 @@ public:
     // 005FEBF0. Updates every region's tooltip with the current mouse position (argument unused).
     void UpdateRegionTips(int unused);
 
-    // 006002A0. Sets the enabled flag; with `notify` also calls virtual slot 19 with it.
+    // 006002A0. Sets the enabled flag; with `notify` also calls Show with it.
     void SetEnabled(int enabled, int notify);
 
     // 005FEDD0. Appends an object and takes a reference (null is ignored).
@@ -755,125 +807,19 @@ public:
     // 005FFD80 / 005FFF40. 3D model previews.
     CUiModel* AddModel();
     void ClearModels();
-    // 005FE930. Destructor body: releases the three objects at +0xEC..+0xF4, the scene objects,
-    // surfaces, regions, referenced objects and models (in that order), clears +0x08, then the
-    // engine object's base destructor (ui_window.cpp).
-    void DestroyBase();
-    // 005FE910 and 11 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBase,
-    // then the memory freed when bit 0 of `flags` is set; returns this.
-    CUiWindow* UiWindowDelete(unsigned flags);
-    // 005FE700 (RET 4). Constructor: the engine object base, an empty window of `ui` (arrays, the
-    // rectangle and +0xA0..+0xD7 zeroed, the identity rotation), two materials of the manager
-    // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
-    // with 1). Returns this (ui_window.cpp).
-    CUiWindow* Construct(CInterface3D* ui);
-    // The plain window's compiled tables (C19, ui_window_class.h / ui_input_class.h) in place of game.exe's 00740F60 /
-    // 00740F2C (not Vtable(): a derived window without its own would inherit the plain one's).
-    static void** PlainVtable();
-    static void** PlainInputVtable();
 
-    // +0x00..+0x54 the engine's transform object (CTransformObject, core_transform.h), of which
-    // the window's code touches only these.
-    void** vtable_;
-    std::uint8_t unused_004[0x08 - 0x04];    // CEngineObject: refCount_
-    std::uint32_t flags_;                    // +0x08 engine object flags; 0 from the constructor and the destructor
-    std::uint8_t unused_00C[0x1C - 0x0C];    // CEngineObject: id_ .. prototypeId_
-    Vector3 localPosition_;                  // +0x1C (0, 0, 0) from the constructor
-    std::uint8_t unused_028[0x34 - 0x28];    // CTransformObject: worldPosition_
-    Quaternion localRotation_;               // +0x34 the identity (the constructor)
-    Quaternion worldRotation_;               // +0x44 the identity
-    std::uint8_t unused_054[0x94 - 0x54];
-    // The input side starts at +0x94: {vtable, interface, handled flag}. Its handlers get `this`
-    // = window + 0x94. Slots: 2 button down, 3 button up, 4 mouse move, 7 double click, 9 key
-    // down, 12 wheel; each takes (buttons or key, x, y) in screen pixels.
-    void* InputSide() { return &inputVtable_; }
-    UiInputSide* Input() { return reinterpret_cast<UiInputSide*>(&inputVtable_); }
+    // The input side (+0x94).
+    UiInputSide* Input() { return this; }
     // Takes the mouse for the next button-up (what every button-down handler does).
-    void CaptureMouse() { interface_->mouseCapture_ = InputSide(); }
+    void CaptureMouse() { interface_->mouseCapture_ = Input(); }
     // Button-up handlers act only when they took the mouse; they release it first.
     bool ReleaseMouse() {
-        if (interface_->mouseCapture_ != InputSide()) return false;
+        if (interface_->mouseCapture_ != Input()) return false;
         interface_->mouseCapture_ = nullptr;
         return true;
     }
-    // Slot 33 (+0x84): a quest variable changed (CInterface3D::OnQuestVariable).
-    void OnQuestVariable(const char* name, float value) {
-        using Fn = void(__thiscall*)(CUiWindow*, const char*, float);
-        ei::VirtualSlot<Fn>(vtable_, 33)(this, name, value);
-    }
-    // The interface's news slots (CInterface3D::OnItemsPicked .. SaveWindowState; the battle
-    // screen's implementations are in ui_camp.h): 28 items picked up, 29 / 30 a unit joined / left,
-    // 31 the game ended, 32 a unit speaks, 36 the players changed, 37 an exchange ended, 40 the
-    // window's part of a save game.
-    void VirtualItemsPicked(void* items, int money, int crippled) {
-        using Fn = void(__thiscall*)(CUiWindow*, void*, int, int);
-        ei::VirtualSlot<Fn>(vtable_, 28)(this, items, money, crippled);
-    }
-    void VirtualUnitJoined(void* unit) {
-        using Fn = void(__thiscall*)(CUiWindow*, void*);
-        ei::VirtualSlot<Fn>(vtable_, 29)(this, unit);
-    }
-    void VirtualUnitLeft(void* unit) {
-        using Fn = void(__thiscall*)(CUiWindow*, void*);
-        ei::VirtualSlot<Fn>(vtable_, 30)(this, unit);
-    }
-    void VirtualGameOver(int won) {
-        using Fn = void(__thiscall*)(CUiWindow*, int);
-        ei::VirtualSlot<Fn>(vtable_, 31)(this, won);
-    }
-    void VirtualSpeech(int id, unsigned event, char* extra) {
-        using Fn = void(__thiscall*)(CUiWindow*, int, unsigned, char*);
-        ei::VirtualSlot<Fn>(vtable_, 32)(this, id, event, extra);
-    }
-    // Slot 34 (+0x88): a "briefing <name>" string event.
-    void VirtualShowBriefing(const char* name) {
-        using Fn = void(__thiscall*)(CUiWindow*, const char*);
-        ei::VirtualSlot<Fn>(vtable_, 34)(this, name);
-    }
-    // Slot 35 (+0x8C): whether the window lets the interface stop asking (pollTop_).
-    bool VirtualReadyToStopPolling() {
-        using Fn = bool(__thiscall*)(CUiWindow*);
-        return ei::VirtualSlot<Fn>(vtable_, 35)(this);
-    }
-    void VirtualPlayersChanged(int added) {
-        using Fn = void(__thiscall*)(CUiWindow*, int);
-        ei::VirtualSlot<Fn>(vtable_, 36)(this, added);
-    }
-    void VirtualExchangeDone(void* partyB, void* partyA, void* partyC) {
-        using Fn = void(__thiscall*)(CUiWindow*, void*, void*, void*);
-        ei::VirtualSlot<Fn>(vtable_, 37)(this, partyB, partyA, partyC);
-    }
-    // Slot 38 (+0x98): a multiplayer screen's player list window for kicking (mode 1) or
-    // banning (2) a player (the console's kick / ban without a name).
-    void VirtualPlayerList(int mode) {
-        using Fn = void(__thiscall*)(CUiWindow*, int);
-        ei::VirtualSlot<Fn>(vtable_, 38)(this, mode);
-    }
-    // Slot 39 (+0x9C): the camp's DebugFill (the console's "give <player> assortment").
-    void VirtualDebugFill() { CallVirtual(39); }
-    void VirtualSaveState() { CallVirtual(40); }
-    // Slot 27 (+0x6C): the value a window above left pending when it closed.
-    void VirtualMessageResult(int result) {
-        using Fn = void(__thiscall*)(CUiWindow*, int);
-        ei::VirtualSlot<Fn>(vtable_, 27)(this, result);
-    }
-    // Slot 26 (+0x68): the window is closed (taken off the screen, before it is deleted).
-    void CloseWindow() {
-        using Fn = void(__thiscall*)(CUiWindow*);
-        ei::VirtualSlot<Fn>(vtable_, 26)(this);
-    }
-    // Slot 0: the deleting destructor (with 1: the memory is freed).
-    void DeleteWindow() {
-        using Fn = void(__thiscall*)(CUiWindow*, int);
-        ei::VirtualSlot<Fn>(vtable_, 0)(this, 1);
-    }
-    // The window's own mouse move handler (input slot 4), through its input vtable.
-    void InputMouseMove(int buttons, int x, int y) {
-        using Handler = void(__thiscall*)(void*, int, int, int);
-        reinterpret_cast<Handler>(inputVtable_[4])(InputSide(), buttons, x, y);
-    }
-    // 005FEB90 (RET 4; ui_window.cpp). Base drawing (virtual slot 20): the scene objects through
-    // the sprite draw (005E6D90), then the models (005FC2F0); returns 1.
+    // 005FEB90 (RET 4; ui_window.cpp). Base drawing (slot 20): the scene objects through the sprite draw
+    // (005E6D90), then the models (005FC2F0); returns 1.
     BOOL DrawBase(int pass);
     // 005EC300 (RET 0x14; the camp and the multiplayer hero screen). Draws `model` (a hero) as a
     // preview: clears the depth buffer (all of it, then the preview's screen rectangles), turns it
@@ -895,9 +841,9 @@ public:
     // 005FF0B0 (RET 0xC; ui_window.cpp). A new CPU-filled texture (00691D80) appended to the
     // referenced objects with one more reference and flag 0x40000; null when none is made.
     CEngineObject* CreateTexture(int width, int height, int kind);
-    // 006002C0 (RET 4; virtual slot 19 of the plain windows, ui_window.cpp). `show` 0: every
-    // surface keeps its contents in memory and lets its DirectDraw surface go (005FD7A0 with 0);
-    // otherwise the shown surfaces (flag 4) get theirs back (005FD7A0 with `show`).
+    // 006002C0 (RET 4; slot 19 of the plain windows, ui_window.cpp). `show` 0: every surface keeps its
+    // contents in memory and lets its DirectDraw surface go (005FD7A0 with 0); otherwise the shown
+    // surfaces (flag 4) get theirs back (005FD7A0 with `show`).
     void ShowSurfaces(int show);
     // 005FF3C0 (RET 4; ui_window.cpp). Object `name` of the model manager (007AF5F4; null: a new
     // interface sprite, CUiMesh) added to the scene objects (once: one reference taken and the
@@ -908,42 +854,12 @@ public:
     void RedrawBase();
     // 005FED00 (ui_window.cpp). Base slot 23: each region's tooltip follows the mouse (as
     // UpdateRegionTips) and redraws itself (its slot 22), region by region.
-    void RedrawTips();
-    // Slots 22, 23 and 24 (+0x58, +0x5C, +0x60) through the vtable: redraw, tooltips, update.
-    // Slot 20 (+0x50): the window's per-frame draw in the renderer's pass (returns 1).
-    BOOL VirtualDraw(void* pass) {
-        using Fn = BOOL(__thiscall*)(CUiWindow*, void*);
-        return ei::VirtualSlot<Fn>(vtable_, 20)(this, pass);
-    }
-    BOOL VirtualDraw(int pass) {
-        using Fn = BOOL(__thiscall*)(CUiWindow*, int);
-        return ei::VirtualSlot<Fn>(vtable_, 20)(this, pass);
-    }
-    // Slot 21 (+0x54): the draw a window with child windows (00600F70) gives each enabled child,
-    // with the pass.
-    void VirtualDrawChild(int pass) {
-        using Fn = void(__thiscall*)(CUiWindow*, int);
-        ei::VirtualSlot<Fn>(vtable_, 21)(this, pass);
-    }
-    // Slot 18 (+0x48): a panel's Build (its sprites, regions and surfaces).
-    void VirtualBuild() { CallVirtual(18); }
-    void VirtualRedraw() { CallVirtual(22); }
-    void VirtualRedrawTips() { CallVirtual(23); }
-    void VirtualUpdate() { CallVirtual(24); }
+    void RedrawRegionTips();
     // Slot 25 (+0x64) of the item panels and strips: the item under the screen point (x, y), or
     // null; a panel may set a help topic instead.
     CItem* VirtualItemAt(int x, int y, int* topic) {
         using Fn = CItem*(__thiscall*)(CUiWindow*, int, int, int*);
-        return ei::VirtualSlot<Fn>(vtable_, 25)(this, x, y, topic);
-    }
-    // Slot 19 (+0x4C): show or hide the window's surfaces (and a container's children).
-    void VirtualShow(int show) {
-        using Fn = void(__thiscall*)(CUiWindow*, int);
-        ei::VirtualSlot<Fn>(vtable_, 19)(this, show);
-    }
-    void CallVirtual(int slot) {
-        using Fn = void(__thiscall*)(CUiWindow*);
-        ei::VirtualSlot<Fn>(vtable_, slot)(this);
+        return ei::VirtualSlot<Fn>(TagTable(), 25)(this, x, y, topic);
     }
     // 005EE400 (slot 25 of the panels without items of their own: the description panel 007404DC,
     // the blank item panel 00741B58, 00741A1C, the trade panel 007417A8 and the stats panel
@@ -952,10 +868,6 @@ public:
     // Scene object `index` as the interface sprite it is.
     CUiMesh* SceneMesh(int index) const;   // defined after CUiMesh
 
-    void** inputVtable_;                      // +0x94 secondary vtable (input handlers)
-    CInterface3D* interface_;                 // +0x98
-    bool inputHandled_;                       // +0x9C set by a handler that used the event
-    std::uint8_t unused_09D[0xA0 - 0x09D];
     std::uint8_t spareA0_[0xD8 - 0xA0];       // +0xA0 zeroed by the constructor; no rewritten code reads it
     RECT rect_;                               // +0xD8 layout coordinates
     int enabled_;                             // +0xE8
@@ -977,28 +889,14 @@ extern void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurfac
 // directly; `writes` for the ones that change the surface's pixels; `caller` the stack slot of the
 // helper's return address (where its caller's chain starts). Null otherwise.
 extern void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bool writes, void* const* caller);
-static_assert(offsetof(CUiWindow, inputVtable_) == 0x94);
-static_assert(offsetof(CUiWindow, interface_) == 0x98);
-static_assert(offsetof(CUiWindow, inputHandled_) == 0x9C);
+// The harness reads game.exe's windows (their regions and surfaces, the input side at +0x94).
+static_assert(sizeof(CUiWindowBase) == 0x94);
+static_assert(offsetof(CUiWindow, surfaces_) == 0x118 && offsetof(CUiWindow, regions_) == 0x128);
 static_assert(sizeof(CUiWindow) == 0x148);
-static_assert(offsetof(CUiWindow, rect_) == 0xD8);
-static_assert(offsetof(CUiWindow, flags_) == 0x08 && offsetof(CUiWindow, localPosition_) == 0x1C);
-static_assert(offsetof(CUiWindow, localRotation_) == 0x34 && offsetof(CUiWindow, worldRotation_) == 0x44);
-static_assert(offsetof(CUiWindow, spareA0_) == 0xA0 && offsetof(CUiWindow, heldObject_) == 0xF4);
-static_assert(offsetof(CUiWindow, enabled_) == 0xE8);
-static_assert(offsetof(CUiWindow, blackMaterial_) == 0xEC);
-static_assert(offsetof(CUiWindow, objects_) == 0xF8);
-static_assert(offsetof(CUiWindow, regions_) == 0x128);
-static_assert(offsetof(CUiWindow, models_) == 0x138);
 
 // The tooltip attached to a region (0x184 bytes, vtables 00742F64 / 00742F30, constructor
 // 0065E320; ui_tooltip.cpp, A-H20). Its surface is made while it is shown (0065E580).
 struct CUiTooltip : CUiWindow {
-    // Slot 0: the deleting destructor (with 1: the memory is freed).
-    void Delete() {
-        using Fn = void(__thiscall*)(CUiTooltip*, int);
-        ei::VirtualSlot<Fn>(vtable_, 0)(this, 1);
-    }
     // 0065E320 (RET 0x14; ui_tooltip.cpp). Constructor: the window, no lines, idle, of `region`;
     // a non-empty `text` is split at newlines into the lines and measured (Measure). Returns this.
     CUiTooltip* Construct(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra);
@@ -1106,7 +1004,6 @@ constexpr int kKeyActionCount = 0x200;
 // members of the panel classes, registered through small shims that convert the pointer.
 // Coordinates below are the 800x600 layout of the original (Rebirth moves some panels).
 
-class CUnit;
 class CItem;
 class CHudQuickItems;
 class CHudSpellColumn;
@@ -2002,12 +1899,64 @@ static_assert(sizeof(CHudTopPanel) == 0x16C);   // CBattleScreen's operator new
 
 // --- Screens with child windows: the save/load and options windows (ui_menus.cpp) -----------
 
-// Base of the screens that hold child windows and extra input handlers (vtable 00741008,
-// constructor 00600B20): the Esc menu, the save/load and options windows, the battle screen.
-// Its input side's default handlers (00601110 button down, 006011F0 up, 006012D0 move,
-// 00601570 double click, 00601820 key) pass the event on to the handlers and children.
+// Base of the screens that hold child windows and extra input handlers (constructor 00600B20; game.exe's
+// tables 00741008 / 00740FD4): the Esc menu, the save/load and options windows, the battle screen. Its input
+// handlers pass an event on to the extra input sides (+0x158) in order, then to the enabled children (for the
+// mouse events only those whose rectangle holds the point, CUiWindow::ContainsPoint), each with its handled flag
+// cleared first, until one sets it; that sets the container's own flag. Most screens keep some of these handlers
+// and call them after their own (ui_container.cpp; docs/notes/ui.md, "Container input dispatch").
 class CUiContainer : public CUiWindow {
 public:
+    // 00600B20 (RET 4; ui_container.cpp): the window base (005FE700), no children or extra input sides.
+    explicit CUiContainer(CInterface3D* ui);
+    // 00600BA0 (ui_container.cpp): the extra input sides and the children deleted, both lists freed, then the
+    // window base's (005FE930). The deleting destructor 00600B80 and its copies (ui_window_delete.cpp).
+    ~CUiContainer() override;
+
+    void Show(int show) override { ShowChildren(show); }              // 19
+    BOOL Draw(int pass) override { return DrawContainerImpl(pass); }   // 20
+    void DrawChild(int pass) override { DrawChildrenImpl(pass); }     // 21
+    void Redraw() override { RedrawContainer(); }                     // 22
+    void RedrawTips() override { RedrawChildTips(); }                 // 23
+    void Update() override { UpdateBase(); }                          // 24
+    // The screens' slots the interface calls (CInterface3D): 25 the screen's Create and 26 taken off the screen
+    // (pure in game.exe's table: _purecall), then 27-41 game.exe's shared RET stubs 005795A0-00579680.
+    virtual void CreateScreen();                                       // 25
+    virtual void CloseScreen();                                        // 26
+    virtual void MessageResult(int) {}                                 // 27: the value a window above left pending when it closed
+    virtual void ItemsPicked(void*, int, int) {}                       // 28: items picked up (items, money, crippled)
+    virtual void UnitJoined(CUnit*) {}                                 // 29
+    virtual void UnitLeft(CUnit*) {}                                   // 30
+    virtual void GameOver(int) {}                                      // 31
+    virtual void Speech(int, unsigned, char*) {}                       // 32: a unit speaks
+    virtual void QuestVariable(const char*, float) {}                  // 33: a quest variable changed
+    virtual void ShowBriefing(const char*) {}                          // 34: a "briefing <name>" string event
+    virtual bool ReadyToStopPolling() { return false; }                // 35: whether the interface may stop asking (pollTop_)
+    virtual void PlayersChanged(int) {}                                // 36
+    virtual void ExchangeDone(CParty*, CParty*, CParty*) {}            // 37: an exchange ended
+    virtual void PlayerList(int) {}                                    // 38: the player list for kicking (1) or banning (2)
+    virtual void DebugFill() {}                                        // 39: the console's "give <player> assortment"
+    virtual void SaveState() {}                                        // 40: the window's part of a save game
+    virtual const char* HelpTopic() { return nullptr; }                // 41
+
+    void Deactivate() override;                                        // 00601A60: every side and child, no flags
+    int LeftDown(int buttons, int x, int y) override;                  // 00601110
+    int LeftUp(int buttons, int x, int y) override;                    // 006011F0
+    int MouseMove(int buttons, int x, int y) override;                 // 006012D0
+    int RightDown(int buttons, int x, int y) override;                 // 006013B0
+    int RightUp(int buttons, int x, int y) override;                   // 00601490
+    int LeftDouble(int buttons, int x, int y) override;                // 00601570
+    int RightDouble(int buttons, int x, int y) override;               // 00601650
+    int KeyDown(int key, int repeat, int flags) override;              // 00601820
+    int Char(int key, int repeat, int flags) override;                 // 006018E0
+    int KeyUp(int key, int repeat, int flags) override;                // 006019A0
+    int Wheel(int flags, int delta, int x, int y) override;            // 00601730 (returns 1)
+
+    // C28 transition (C28m): see CUiWindow.
+    CUiContainer* Construct(CInterface3D* ui) { return new (this) CUiContainer(ui); }
+    void DestroyContainer() { this->CUiContainer::~CUiContainer(); }
+    CUiContainer* UiContainerDelete(unsigned flags);
+
     // Body of the slot at 00600F70 (registered by member pointer).
     void DrawChildrenImpl(int pass);
     // 00600270 (ui_container.cpp; it does not use the window). Time since the last frame in
@@ -2030,36 +1979,25 @@ public:
     void RedrawChildTips();
     // 00600D30. Adds a child window (null is ignored; ui_window.cpp).
     void AddChild(CUiWindow* child);
-    // 00600B20 (RET 4; ui_container.cpp). Constructor: the window base (005FE700), no children or
-    // extra input sides, vtables 00741008 / 00740FD4. Returns this.
-    CUiContainer* Construct(CInterface3D* ui);
-    // 00600BA0 (ui_container.cpp). Destructor body: the extra input sides and the children deleted
-    // (their slot 0 with 1), both lists freed, then the window base's (005FE930).
-    void DestroyContainer();
-    // 00600B80 and 3 more (slot 0, the deleting destructor; ui_window_delete.cpp).
-    // DestroyContainer, then the memory freed when bit 0 of `flags` is set; returns this.
-    CUiContainer* UiContainerDelete(unsigned flags);
     // 00600CC0 (RET 4; ui_container.cpp). Appends an extra input side (null is ignored).
     void AddInput(UiInputSide* input);
     // 00601AC0 (RET 4; the containers' slot 19, ui_container.cpp). The window's own surfaces
     // (006002C0), then every enabled child's slot 19 with `show`.
     void ShowChildren(int show);
-    // The container's compiled tables (C19, ui_container_class.h / ui_screen_tables.cpp) in place of game.exe's
-    // 00741008 / 00740FD4 (not Vtable(): a screen without its own would inherit the container's).
-    static void** ContainerVtable();
-    static void** ContainerInputVtable();
-    // The window's input side (+0x94) as the container's (UiContainerInput below), whose default
-    // handlers the screens call after their own.
-    UiContainerInput* ContainerInput();
 
     UiPtrArray<CUiWindow> children_;          // +0x148
     UiInputSide** inputsBegin_;               // +0x158 extra input sides (STLport vector)
     UiInputSide** inputsEnd_;                 // +0x15C
     UiInputSide** inputsCapacity_;            // +0x160
+
+private:
+    // The input handlers' shared loop: `slot` of every side and child; `atPoint` limits the children to those
+    // holding (b, c).
+    void Dispatch(int slot, int a, int b, int c, bool atPoint);
 };
-static_assert(offsetof(CUiContainer, children_) == 0x148);
-static_assert(offsetof(CUiContainer, inputsBegin_) == 0x158);
 static_assert(sizeof(CUiContainer) == 0x164);
+// A window on the interface's stack as the screen it is (every window pushed there is a container).
+inline CUiContainer* ScreenOf(CUiWindow* window) { return static_cast<CUiContainer*>(window); }
 
 // --- Battle screen --------------------------------------------------------------------------
 //
@@ -2105,7 +2043,7 @@ public:
 
     // 00635250 (slot 25). Reads the screen's saved state when a game is being loaded, else
     // remembers the local player's first hero; creates the panels and the "pers" texts table.
-    void Create();
+    void CreateScreen() override;
     // 00636020 (slot 20). Draws the screen: the menu object's frame call, the viewport (with
     // +0x1C1), a mouse move at the current position, clears the depth (and stencil) buffer, then
     // the panels (00600EF0). Rebirth's AddNewConsoleCommands applies "nogui" first. Returns 1.
@@ -2241,12 +2179,6 @@ public:
     // message log. Then event 0x30 shows that member's timed face (+0x48 1, +0x4C 0), events
     // 0xB..0x15 make its portrait shake (kind 2) after a random delay.
     void OnUnitSpeech(int id, unsigned event, char* extra);
-    // Slot 32 (+0x80) through the vtable (OnUnitSpeech, RET 0xC): the unit with `id` speaks about
-    // `event`.
-    void VirtualUnitSpeech(int id, unsigned event, char* extra) {
-        using Fn = void(__thiscall*)(CBattleScreen*, int, unsigned, char*);
-        ei::VirtualSlot<Fn>(vtable_, 32)(this, id, event, extra);
-    }
 
     // Slots of the screen's main vtable (00740764; ui_battle_slots.cpp).
     // 00635E60 (slot 26). The screen closes: the camera back to free placement (kFree), the world
@@ -2387,36 +2319,6 @@ static_assert(offsetof(CBattleScreen, personTexts_) == 0x1F0 && offsetof(CBattle
 static_assert(offsetof(CBattleScreen, clientParty_) == 0x204 && sizeof(CBattleScreen::PartyIds) == 0x1C);
 static_assert(offsetof(CBattleScreen, itemUseKey_) == 0x220 && offsetof(CBattleScreen, portraitMode_) == 0x22C);
 static_assert(sizeof(CBattleScreen) == 0x230);
-
-// A container's own input side (window + 0x94, ui_container.cpp's ContainerInputClass in place of
-// game.exe's 00740FD4; most screens keep some of these handlers in their own input vtables). An
-// event goes to the extra input sides (+0x158) in order, then to the enabled children (for the mouse events only those whose rectangle holds the
-// point, CUiWindow::ContainsPoint), each with its handled flag cleared first, until one sets it;
-// that sets the container's own flag. ui_container.cpp.
-struct UiContainerInput : UiInputSide {
-    CUiContainer* Container() {
-        return reinterpret_cast<CUiContainer*>(reinterpret_cast<char*>(this) - offsetof(CUiWindow, inputVtable_));
-    }
-    void OnDeactivate();                                // 00601A60: every side and child, no flags
-    void OnLeftDown(int buttons, int x, int y);         // 00601110
-    void OnLeftUp(int buttons, int x, int y);           // 006011F0
-    void OnMouseMove(int buttons, int x, int y);        // 006012D0
-    void OnRightDown(int buttons, int x, int y);        // 006013B0
-    void OnRightUp(int buttons, int x, int y);          // 00601490
-    void OnLeftDouble(int buttons, int x, int y);       // 00601570
-    void OnRightDouble(int buttons, int x, int y);      // 00601650
-    void OnKeyDown(int key, int repeat, int flags);     // 00601820
-    void OnChar(int key, int repeat, int flags);        // 006018E0
-    void OnKeyUp(int key, int repeat, int flags);       // 006019A0
-    int OnWheel(int flags, int delta, int x, int y);    // 00601730 (RET 0x10; returns 1)
-
-    // The shared loop: `slot` of every side and child; `atPoint` limits the children to those
-    // holding (b, c).
-    void Dispatch(int slot, int a, int b, int c, bool atPoint);
-};
-inline UiContainerInput* CUiContainer::ContainerInput() { return static_cast<UiContainerInput*>(Input()); }
-
-// The default handlers of a container's input side (`input` = window + 0x94).
 
 // A scroll bar (vtables 00742C18 / 00742BE4, constructor 0065AEA0; the battle screen's message
 // log 0065CC00 derives from it). Regions: 0 the up arrow, 1 the down arrow, 2 the track.
@@ -2809,7 +2711,7 @@ public:
     void FillEntries();
 
     // 00653DD0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
-    void Build();
+    void CreateScreen() override;
 
     int EntryCount() const { return static_cast<int>(entries_.end() - entries_.begin()); }
     // 006577B0 (ui_menus.cpp). The selected save's title becomes the name being edited.
@@ -2989,7 +2891,7 @@ public:
     // (savedAlphaRef_); SetRenderState's result (not stored in the device object).
     long RestoreAlphaRef();
     // 0064BE80 (slot 25, the window's Create; ui_objectives.cpp).
-    void Build();
+    void CreateScreen() override;
     // 0064CC10: shows zone `zone`: picture, exits, quests and description.
     void ShowZone(const char* zone);
     // 0064DC60 (__fastcall): when the selected quest changed, its description in the log and a
@@ -3152,7 +3054,7 @@ public:
     // Cancel: puts back the volumes and the display settings the window started with.
     static void RestoreSettings();
     // 006503C0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
-    void Build();
+    void CreateScreen() override;
     // 0062B180 (the destructor body; slot 0 0062B160 deletes; ui_menus.cpp): the group titles, the
     // settings' and the bindings' strings and storage, then the container's (00600BA0).
     void DestroyOptions();
@@ -3271,7 +3173,7 @@ public:
     // 200..600 x 50..500 with the title and the text (or the edit field) centred vertically as a
     // block, the dark shade and frame behind it and the buttons below (regions with tips
     // 0xC3B4 OK / 0xC3B5 cancel).
-    void Build();
+    void CreateScreen() override;
     // 00634D20 (input side slot 2, RET 0xC; ui_message_box.cpp). The container's handler first;
     // then region 0 (OK): for the exit question (result_ 0xFFFF0000) the exit movie and the game
     // quits; otherwise the OK sound and, with the edit field, its text copied into editText_;
@@ -3331,7 +3233,7 @@ public:
     // trimmed); without the text or without pages the interface's pending value is set to 0 and
     // nothing else happens. Otherwise the page is clamped to the pages, the pulse restarted, the
     // device's alpha reference set to 1 and the page shown (00659420).
-    void Build();
+    void CreateScreen() override;
     // 006590F0 (slot 26). Empties the two lists, then the surfaces, regions and scene objects.
     void Close();
     // 0065A5E0 (slot 24). The children's update, then the pulse: its time advanced by the frame
@@ -3481,7 +3383,7 @@ public:
     // "difficulty_easy" / "difficulty_hard" labels; the check boxes beside them (hard checked),
     // the shade, frame and OK / cancel buttons as the message box's; regions OK (tip 0xC3B4),
     // cancel (0xC3B5), easy, hard.
-    void Build();
+    void CreateScreen() override;
     // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 0074225C / 00742228.
     static void** Vtable();
     static void** InputVtable();

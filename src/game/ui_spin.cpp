@@ -34,8 +34,7 @@ void** CUiSpin::InputVtable() { return SpinInputTable::Slots(); }
 CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
     CUiWindow::Construct(ui);
     texts_.Construct();
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     rect_ = rect;
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     AddSurface(memory ? memory->ConstructOnRect(ui, &rect, kSurfaceFormat) : nullptr);

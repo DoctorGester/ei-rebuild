@@ -27,40 +27,40 @@ void Send(const CInterface3D* ui, int slot, int buttons, int x, int y) {
 
 void CInterface3D::OnLeftDown(int buttons, int x, int y) {
     doubleClick_ = false;
-    Send(this, UiInputSide::kLeftDown, buttons, x, y);
+    Send(this, UiInputSide::kEventLeftDown, buttons, x, y);
 }
 EI_REWRITTEN(0x005F76A0, CInterface3D::OnLeftDown);
 
 void CInterface3D::OnLeftUp(int buttons, int x, int y) {
-    Send(this, UiInputSide::kLeftUp, buttons, x, y);
+    Send(this, UiInputSide::kEventLeftUp, buttons, x, y);
     doubleClick_ = false;
 }
 EI_REWRITTEN(0x005F76E0, CInterface3D::OnLeftUp);
 
-void CInterface3D::OnMouseMove(int buttons, int x, int y) { Send(this, UiInputSide::kMouseMove, buttons, x, y); }
+void CInterface3D::OnMouseMove(int buttons, int x, int y) { Send(this, UiInputSide::kEventMouseMove, buttons, x, y); }
 EI_REWRITTEN(0x005F7740, CInterface3D::OnMouseMove);
 
 void CInterface3D::OnRightDown(int buttons, int x, int y) {
     rightDown_ = true;
-    Send(this, UiInputSide::kRightDown, buttons, x, y);
+    Send(this, UiInputSide::kEventRightDown, buttons, x, y);
 }
 EI_REWRITTEN(0x005F7780, CInterface3D::OnRightDown);
 
 void CInterface3D::OnRightUp(int buttons, int x, int y) {
     rightDown_ = false;
-    Send(this, UiInputSide::kRightUp, buttons, x, y);
+    Send(this, UiInputSide::kEventRightUp, buttons, x, y);
 }
 EI_REWRITTEN(0x005F77C0, CInterface3D::OnRightUp);
 
 void CInterface3D::OnLeftDouble(int buttons, int x, int y) {
     doubleClick_ = true;
-    Send(this, UiInputSide::kLeftDouble, buttons, x, y);
+    Send(this, UiInputSide::kEventLeftDouble, buttons, x, y);
 }
 EI_REWRITTEN(0x005F7800, CInterface3D::OnLeftDouble);
 
 void CInterface3D::OnRightDouble(int buttons, int x, int y) {
     rightDown_ = true;
-    Send(this, UiInputSide::kRightDouble, buttons, x, y);
+    Send(this, UiInputSide::kEventRightDouble, buttons, x, y);
 }
 EI_REWRITTEN(0x005F7840, CInterface3D::OnRightDouble);
 
@@ -85,10 +85,10 @@ void CInterface3D::OnChar(int key, int repeat, int flags) {
         return;
     }
     if ((IsMultiplayerClient() & 0xFF) && root_->chatOpen_) {   // TEST AL,AL
-        root_->Input()->Event(UiInputSide::kChar, key, repeat, flags);
+        root_->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
         return;
     }
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Event(UiInputSide::kChar, key, repeat, flags);
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
 }
 EI_REWRITTEN(0x005F7B40, CInterface3D::OnChar);
 
@@ -103,7 +103,7 @@ void CInterface3D::OnKeyUp(int key, int repeat, int flags) {
         console_->OnKeyUp(key, repeat, flags);
         return;
     }
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Event(UiInputSide::kKeyUp, key, repeat, flags);
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Event(UiInputSide::kEventKeyUp, key, repeat, flags);
 }
 EI_REWRITTEN(0x005F7BE0, CInterface3D::OnKeyUp);
 
@@ -121,8 +121,8 @@ void CInterface3D::CloseAll() {
     TheCursor()->SetShape(kCursorWait);
     while (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->Input()->Deactivate();
-        stackEnd_[-1]->CloseWindow();
-        if (CUiWindow* top = stackEnd_[-1]) top->DeleteWindow();
+        ScreenOf(stackEnd_[-1])->CloseScreen();
+        delete stackEnd_[-1];
         --stackEnd_;
     }
     ctrlDown_ = false;

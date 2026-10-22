@@ -35,6 +35,7 @@ To* ScreenAs(From* window) {
 template <typename Self, auto Delete, typename Screen = std::remove_pointer_t<decltype(UiWindowDeleteType(Delete))>>
 class ContainerClass : public UiWindowClass<Self, Delete> {
 public:
+    using ScreenType = Screen;
     void Show(int show) override { Container()->ShowChildren(show); }                  // 19: 00601AC0
     BOOL Draw(int pass) override { return Container()->DrawContainerImpl(pass); }      // 20: 00600EF0
     void DrawChild(int pass) override { Container()->DrawChildrenImpl(pass); }         // 21: 00600F70
@@ -91,23 +92,23 @@ protected:
 };
 
 // A container's input side (game.exe's 00740FD4 and the screens' 13-slot input tables): every handler passes the
-// event on to the extra input sides and the children (UiContainerInput); a screen's tag overrides the handlers its
+// event on to the extra input sides and the children (CUiContainer's handlers); a screen's tag overrides the handlers its
 // table has of its own, on AsScreen().
 template <typename Self, auto Delete, typename Screen = std::remove_pointer_t<decltype(InputSideWindowType(Delete))>>
 class ContainerInputClass : public InputSideClass<Self, Delete> {
 public:
-    UiContainerInput* Input() { return static_cast<UiContainerInput*>(this->Side()); }
+    CUiContainer* Container() { return reinterpret_cast<CUiContainer*>(static_cast<CUiWindow*>(this->Side())); }
     Screen* AsScreen() { return ScreenAs<Screen>(this->SideWindow()); }
-    void Deactivate() override { Input()->OnDeactivate(); }                                       // 1: 00601A60
-    int LeftDown(int b, int x, int y) override { return Input()->OnLeftDown(b, x, y), 0; }         // 2: 00601110
-    int LeftUp(int b, int x, int y) override { return Input()->OnLeftUp(b, x, y), 0; }             // 3: 006011F0
-    int MouseMove(int b, int x, int y) override { return Input()->OnMouseMove(b, x, y), 0; }       // 4: 006012D0
-    int RightDown(int b, int x, int y) override { return Input()->OnRightDown(b, x, y), 0; }       // 5: 006013B0
-    int RightUp(int b, int x, int y) override { return Input()->OnRightUp(b, x, y), 0; }           // 6: 00601490
-    int LeftDouble(int b, int x, int y) override { return Input()->OnLeftDouble(b, x, y), 0; }     // 7: 00601570
-    int RightDouble(int b, int x, int y) override { return Input()->OnRightDouble(b, x, y), 0; }   // 8: 00601650
-    int KeyDown(int k, int r, int f) override { return Input()->OnKeyDown(k, r, f), 0; }           // 9: 00601820
-    int Char(int k, int r, int f) override { return Input()->OnChar(k, r, f), 0; }                 // 10: 006018E0
-    int KeyUp(int k, int r, int f) override { return Input()->OnKeyUp(k, r, f), 0; }               // 11: 006019A0
-    int Wheel(int f, int d, int x, int y) override { return Input()->OnWheel(f, d, x, y); }        // 12: 00601730
+    void Deactivate() override { Container()->CUiContainer::Deactivate(); }                                     // 1: 00601A60
+    int LeftDown(int b, int x, int y) override { return Container()->CUiContainer::LeftDown(b, x, y); }         // 2: 00601110
+    int LeftUp(int b, int x, int y) override { return Container()->CUiContainer::LeftUp(b, x, y); }             // 3: 006011F0
+    int MouseMove(int b, int x, int y) override { return Container()->CUiContainer::MouseMove(b, x, y); }       // 4: 006012D0
+    int RightDown(int b, int x, int y) override { return Container()->CUiContainer::RightDown(b, x, y); }       // 5: 006013B0
+    int RightUp(int b, int x, int y) override { return Container()->CUiContainer::RightUp(b, x, y); }           // 6: 00601490
+    int LeftDouble(int b, int x, int y) override { return Container()->CUiContainer::LeftDouble(b, x, y); }     // 7: 00601570
+    int RightDouble(int b, int x, int y) override { return Container()->CUiContainer::RightDouble(b, x, y); }   // 8: 00601650
+    int KeyDown(int k, int r, int f) override { return Container()->CUiContainer::KeyDown(k, r, f); }           // 9: 00601820
+    int Char(int k, int r, int f) override { return Container()->CUiContainer::Char(k, r, f); }                 // 10: 006018E0
+    int KeyUp(int k, int r, int f) override { return Container()->CUiContainer::KeyUp(k, r, f); }               // 11: 006019A0
+    int Wheel(int f, int d, int x, int y) override { return Container()->CUiContainer::Wheel(f, d, x, y); }     // 12: 00601730
 };

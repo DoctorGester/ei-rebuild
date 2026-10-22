@@ -183,7 +183,7 @@ void PatchOriginal() {
 
 bool CheckPlayerList(std::uintptr_t briefing, std::string* text) {
     CUiWindow* top = HarnessActiveWindow(HarnessInterface());
-    const std::uintptr_t vtable = top ? RealWindowVtable(*reinterpret_cast<const std::uintptr_t*>(top)) : 0;
+    const std::uintptr_t vtable = top ? WindowKind(top) : 0;
     auto* client = ei::Standalone() ? net::GameClient() : ei::OriginalGameData<net::ClientSession*>(0x0079B5D8);
     char line[200];
     bool ok = false;

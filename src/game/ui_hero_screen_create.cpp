@@ -79,8 +79,7 @@ using VoiceList = MpVoiceVector;
 CUiContainer* AsContainer(CMpHeroScreen* screen) { return screen; }
 
 void SetVtables(CUiWindow* window, VtablePair vtables) {
-    window->vtable_ = vtables.main;
-    window->inputVtable_ = vtables.input;
+    window->SetTagTables(vtables.main, vtables.input);
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
@@ -128,7 +127,7 @@ bool ModelNameIsFemale(const mfc::CString& model) {
 
 } // namespace
 
-void CMpHeroScreen::Create() {
+void CMpHeroScreen::CreateScreen() {
     TheGameFlow()->UseResources(true);
     LoadTexture("campinfo", kTextureKind, nullptr);
     CUiModel* model = AddModel();
@@ -232,7 +231,7 @@ void CMpHeroScreen::Create() {
     statsPanel_ = stats;
     AsContainer(this)->AddChild(stats);
     stats->AddObject(texture(kPanelTexture));
-    stats->VirtualBuild();
+    stats->Build();
 
     // The equipment (without the body) and the quick items.
     auto* equipment = NewItemPanel<CHeroEquipPanel>(interface_, this, EquipPanelVtables());
@@ -261,7 +260,7 @@ void CMpHeroScreen::Create() {
     tradePanel_ = trade;
     AsContainer(this)->AddChild(trade);
     trade->AddObject(texture(kPanelTexture));
-    trade->VirtualBuild();
+    trade->Build();
 
     {
         CUiScrollbar* bar = NewScrollbar(interface_, RECT{110, 250, 384, 490});
@@ -419,6 +418,6 @@ void CMpHeroScreen::Create() {
     // Rebirth's WideScreen (addon's handler after the original): the curtains, hidden (sprites 19, 20).
     widescreen::AddCurtains(this, 0);
 }
-EI_REWRITTEN(0x00613EA0, CMpHeroScreen::Create);
+EI_REWRITTEN(0x00613EA0, CMpHeroScreen::CreateScreen);
 // In a Rebirth launch EI_Plugin.asi also patches the function (EiPluginFixes at +D15 / +E7B, the
 // figures' sex test above).

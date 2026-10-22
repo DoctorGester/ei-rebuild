@@ -26,37 +26,19 @@ public:
     using Window = std::remove_pointer_t<decltype(InputSideWindowType(Delete))>;
 
     UiInputSide* Side() { return this->template ObjectAs<UiInputSide>(); }
-    Window* SideWindow() {
-        return reinterpret_cast<Window*>(reinterpret_cast<char*>(this) - offsetof(CUiWindow, inputVtable_));
-    }
+    Window* SideWindow() { return reinterpret_cast<Window*>(static_cast<CUiWindow*>(Side())); }
 
-    virtual void* DeleteWindow(unsigned flags) {   // 0
-        if constexpr (std::is_base_of_v<UiInputSide, Window>) return (static_cast<Window*>(Side())->*Delete)(flags);
-        else return (SideWindow()->*Delete)(flags);
-    }
+    virtual void* DeleteWindow(unsigned flags) { return (SideWindow()->*Delete)(flags); }   // 0
     virtual void Deactivate() {}                                                            // 1: 005E2800
     virtual int LeftDown(int, int, int) { return 0; }                                       // 2: 005E2810
     virtual int LeftUp(int, int, int) { return 0; }                                         // 3: 005E2820
     virtual int MouseMove(int, int, int) { return 0; }                                      // 4: 005E2830
     virtual int RightDown(int, int, int) { return 0; }                                      // 5: 005E2840
     virtual int RightUp(int, int, int) { return 0; }                                        // 6: 005E2850
-    virtual int LeftDouble(int buttons, int x, int y) { return Side()->LeftDoubleAsDown(buttons, x, y); }     // 7
-    virtual int RightDouble(int buttons, int x, int y) { return Side()->RightDoubleAsDown(buttons, x, y); }   // 8
+    virtual int LeftDouble(int buttons, int x, int y) { return Side()->UiInputSide::LeftDouble(buttons, x, y); }     // 7
+    virtual int RightDouble(int buttons, int x, int y) { return Side()->UiInputSide::RightDouble(buttons, x, y); }   // 8
     virtual int KeyDown(int, int, int) { return 0; }                                        // 9: 005EA840
     virtual int Char(int, int, int) { return 0; }                                           // 10: 005EA800
     virtual int KeyUp(int, int, int) { return 0; }                                          // 11: 005E28A0
-    virtual int Wheel(int flags, int delta, int x, int y) { return Side()->WheelIgnored(flags, delta, x, y); }   // 12
+    virtual int Wheel(int flags, int delta, int x, int y) { return Side()->UiInputSide::Wheel(flags, delta, x, y); }   // 12
 };
-
-// An extra input side whose slots do nothing (0x0C bytes; game.exe's 00741154: slots 9 / 11 are its own empty RET 0xC,
-// 005EB8A0 / 005EB8B0): the battle screen's, the briefing's, the main menu's and the view screens'.
-struct InertInputClass final : InputSideClass<InertInputClass, &UiInputSide::InputSideDelete> {};
-inline void** InertInputVtable() { return InertInputClass::Slots(); }
-
-// The base input side (game.exe's 007401D0): slot 0 its own deleting destructor (005EA850), the rest the defaults.
-// The window base's constructor stores it first, the input sides' destructors leave it.
-struct InputSideBaseClass final : InputSideClass<InputSideBaseClass, &UiInputSide::InputSideBaseDelete> {};
-inline void** BaseInputVtable() { return InputSideBaseClass::Slots(); }
-
-// The plain window's input side (game.exe's 00740F2C): the window's deleting destructor, the defaults.
-struct UiWindowInputClass final : InputSideClass<UiWindowInputClass, &CUiWindow::UiWindowDelete> {};

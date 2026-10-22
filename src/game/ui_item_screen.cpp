@@ -7,7 +7,6 @@
 #include "ui_item_info.h"
 #include "ui_camp.h"
 #include "ui_screens.h"
-#include "ui_window_class.h"
 #include "core_streams.h"
 
 #include "ei/hook.h"
@@ -117,32 +116,12 @@ EI_REWRITTEN(0x005F2E00, CItemIconWindow::PlaceBars);
 
 // --- 005EDD80: the item screens' base Create ------------------------------------------------------
 
-namespace {
-} // namespace
-
-namespace {
-// The icon window's compiled tables (C19, ui_window_class.h) in place of game.exe's 00740444 / 00740410: the window's
-// slots with its own Build (18), the input side's defaults.
-struct IconWindowClass final : UiWindowClass<IconWindowClass, &CUiWindow::UiWindowDelete> {
-    void Build() override { ObjectAs<CItemIconWindow>()->Build(); }   // 18: 005F2A90
-};
-void** IconWindowVtable() { return IconWindowClass::Slots(); }
-void** IconWindowInputVtable() { return UiWindowInputClass::Slots(); }
-} // namespace
-
-void** CItemIconWindow::Vtable() { return IconWindowVtable(); }
-
 void CItemScreen::CreateBase() {
-    CItemIconWindow* icons = gamecrt::operator_new_as<CItemIconWindow>();
-    if (icons) {
-        icons->Construct(interface_);
-        icons->vtable_ = IconWindowVtable();
-        icons->inputVtable_ = IconWindowInputVtable();
-    }
+    CItemIconWindow* icons = new CItemIconWindow(interface_);
     iconWindow_ = icons;
     AddChild(icons);
     iconWindow_->AddObject(objects_.data[0]);
-    iconWindow_->VirtualBuild();
+    iconWindow_->Build();
     LoadTexture("modifiers2", 3, 0);
     LoadTexture("campslots", 3, 0);
     std::uint32_t zero = 0;

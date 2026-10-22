@@ -117,18 +117,18 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     if (key == VK_RETURN) {
         if (IsMultiplayerClient()) {
             interface_->ChatKeyEnter();
-            inputHandled_ = true;
+            handled_ = true;
             return;
         }
     } else if (key == VK_BACK) {
         if (IsMultiplayerClient()) {
             interface_->ChatKeyBackspace();
-            inputHandled_ = true;
+            handled_ = true;
             return;
         }
     }
-    InputOf(this)->OnKeyDown(key, repeat, flags);
-    if (inputHandled_) return;
+    CUiContainer::KeyDown(key, repeat, flags);
+    if (handled_) return;
     if (flags & kKeyRepeated) return;
 
     CBattleScreen* hud = Hud(this);
@@ -146,7 +146,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             return;
         }
         interface_->PushWindow(CEscMenu::New(interface_), 1, 1);
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
 
@@ -158,7 +158,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         clock->interface_->PlaySound(ClockSound(), 0);
         const bool paused = GameClientPaused();
         GameSendFlag10(paused ? 0 : 1);
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
     case kActionNormalSpeed:
@@ -186,7 +186,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             window->Setup(zone, nullptr, 0, 0);
         }
         clock->interface_->PushWindow(window, 1, 1);
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
     case kActionCameraToUnit:
@@ -228,12 +228,12 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             }
             panel->ShowModeVanilla(mode);
         }
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
     case kActionMoveFlag:
         movePanel_->ToggleFlag();
-        inputHandled_ = true;
+        handled_ = true;
         return;
     case kActionFollow:
         hud->actionColumn_->Select(ActionButton(FollowName()));
@@ -330,12 +330,12 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             MarkPortrait(i);
             if (CUnit* unit = hud->party_[i]) TheClientWorld()->Select(unit);
         }
-        if (hud->party_.size != 0 && hud->party_[0]) hud->VirtualUnitSpeech(hud->party_[0]->id_, 0, nullptr);
+        if (hud->party_.size != 0 && hud->party_[0]) hud->Speech(hud->party_[0]->id_, 0, nullptr);
         RefreshSelection();
         return;
     case kActionMessage:
         interface_->ShowMessage(1);
-        inputHandled_ = true;
+        handled_ = true;
         return;
     default:
         return;

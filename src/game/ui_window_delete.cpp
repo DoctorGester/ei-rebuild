@@ -66,24 +66,21 @@ T* FreeIfAsked(T* self, unsigned flags) {
 
 // --- Destructor bodies -------------------------------------------------------------------------
 
-// 005EACF0 / 00602BA0: an input side's (the battle camera's 00740208, the inert extra side
-// 00741154): the base input vtable back.
-void __fastcall InputSideDestroy(UiInputSide* side) { side->vtable_ = BaseInputVtable(); }
-EI_REWRITTEN(0x005EACF0, InputSideDestroy);
-EI_REWRITTEN(0x00602BA0, InputSideDestroy);
+// The input sides' storage: the game's heap.
+void* UiInputSide::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void UiInputSide::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-// 005EA850 (RET 4): the base input side's own deleting destructor (slot 0 of 007401D0): its
-// vtable stored, freed with bit 0 of `flags`; returns the side.
-UiInputSide* UiInputSide::InputSideBaseDelete(unsigned flags) {
-    vtable_ = BaseInputVtable();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x005EA850, UiInputSide::InputSideBaseDelete);
+// 005EA850 (RET 4): the base input side's deleting destructor (slot 0 of 007401D0).
+UiInputSide::~UiInputSide() {}
+EI_REWRITTEN_SPECIAL(0x005EA850, UiInputSide::~UiInputSide);
+
+// 00602BA0, deleting 00602B80: the inert extra side's (00741154), the base side's table back.
+UiInertInput::~UiInertInput() {}
+EI_REWRITTEN_SPECIAL(0x00602BA0, UiInertInput::~UiInertInput);
+EI_REWRITTEN_SPECIAL(0x00602B80, UiInertInput::~UiInertInput);
 
 void CItemInfoPanel::DestroyBody() {
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     skillTexts_.Destruct();
     itemTexts_.Destruct();
     ItemParty()->CParty::~CParty();
@@ -250,20 +247,20 @@ void CSaveLoadWindow::DestroyBody() {
 }
 EI_REWRITTEN(0x006070C0, CSaveLoadWindow::DestroyBody);
 
-EI_REWRITTEN(0x005F5F50, CUiContainer::DestroyContainer);
-EI_REWRITTEN(0x005F5F80, CUiContainer::DestroyContainer);
-EI_REWRITTEN(0x00603CF0, CUiContainer::DestroyContainer);
-EI_REWRITTEN(0x005EE040, CUiWindow::DestroyBase);
-EI_REWRITTEN(0x005EE410, CUiWindow::DestroyBase);
-EI_REWRITTEN(0x0060E280, CUiWindow::DestroyBase);
-EI_REWRITTEN(0x0060E300, CUiWindow::DestroyBase);
-EI_REWRITTEN(0x0060E330, CUiWindow::DestroyBase);
-EI_REWRITTEN(0x0060E5D0, CUiWindow::DestroyBase);
-EI_REWRITTEN(0x0060E670, CUiWindow::DestroyBase);
-EI_REWRITTEN(0x0060E6A0, CUiWindow::DestroyBase);
-EI_REWRITTEN(0x006157F0, CUiWindow::DestroyBase);
-EI_REWRITTEN(0x00635DA0, CUiWindow::DestroyBase);
-EI_REWRITTEN(0x00635DD0, CUiWindow::DestroyBase);
+EI_REWRITTEN_SPECIAL(0x005F5F50, CUiContainer::~CUiContainer);
+EI_REWRITTEN_SPECIAL(0x005F5F80, CUiContainer::~CUiContainer);
+EI_REWRITTEN_SPECIAL(0x00603CF0, CUiContainer::~CUiContainer);
+EI_REWRITTEN_SPECIAL(0x005EE040, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x005EE410, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x0060E280, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x0060E300, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x0060E330, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x0060E5D0, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x0060E670, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x0060E6A0, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x006157F0, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x00635DA0, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x00635DD0, CUiWindow::~CUiWindow);
 // --- Deleting destructors (slot 0) --------------------------------------------------------------
 
 // 005FE910 (the plain window, 00740F60) and the windows whose body is the window's.
@@ -271,36 +268,29 @@ CUiWindow* CUiWindow::UiWindowDelete(unsigned flags) {
     DestroyBase();
     return FreeIfAsked(this, flags);
 }
-EI_REWRITTEN(0x005FE910, CUiWindow::UiWindowDelete);
-EI_REWRITTEN(0x005EE020, CUiWindow::UiWindowDelete);   // the item screens' icon window (00740444)
-EI_REWRITTEN(0x0060E240, CUiWindow::UiWindowDelete);   // 00741B58
-EI_REWRITTEN(0x0060E260, CUiWindow::UiWindowDelete);   // the item strip (00741A1C)
-EI_REWRITTEN(0x0060E2E0, CUiWindow::UiWindowDelete);   // the hero equipment (007418E0)
-EI_REWRITTEN(0x0060E310, CUiWindow::UiWindowDelete);   // the quick item strip (00741844)
-EI_REWRITTEN(0x0060E5B0, CUiWindow::UiWindowDelete);   // the constructors' first pages (0074170C)
-EI_REWRITTEN(0x0060E650, CUiWindow::UiWindowDelete);   // the item maker (007415D4)
-EI_REWRITTEN(0x0060E680, CUiWindow::UiWindowDelete);   // the repair grid (00741538)
-EI_REWRITTEN(0x006157D0, CUiWindow::UiWindowDelete);   // the figure strips (00741BF4)
-EI_REWRITTEN(0x00635D80, CUiWindow::UiWindowDelete);   // the game clock (007425C8)
-EI_REWRITTEN(0x00635DB0, CUiWindow::UiWindowDelete);   // the movement panel (00742530)
+EI_REWRITTEN_SPECIAL(0x005FE910, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x005EE020, CUiWindow::~CUiWindow);   // the item screens' icon window (00740444)
+EI_REWRITTEN_SPECIAL(0x0060E240, CUiWindow::~CUiWindow);   // 00741B58
+EI_REWRITTEN_SPECIAL(0x0060E260, CUiWindow::~CUiWindow);   // the item strip (00741A1C)
+EI_REWRITTEN_SPECIAL(0x0060E2E0, CUiWindow::~CUiWindow);   // the hero equipment (007418E0)
+EI_REWRITTEN_SPECIAL(0x0060E310, CUiWindow::~CUiWindow);   // the quick item strip (00741844)
+EI_REWRITTEN_SPECIAL(0x0060E5B0, CUiWindow::~CUiWindow);   // the constructors' first pages (0074170C)
+EI_REWRITTEN_SPECIAL(0x0060E650, CUiWindow::~CUiWindow);   // the item maker (007415D4)
+EI_REWRITTEN_SPECIAL(0x0060E680, CUiWindow::~CUiWindow);   // the repair grid (00741538)
+EI_REWRITTEN_SPECIAL(0x006157D0, CUiWindow::~CUiWindow);   // the figure strips (00741BF4)
+EI_REWRITTEN_SPECIAL(0x00635D80, CUiWindow::~CUiWindow);   // the game clock (007425C8)
+EI_REWRITTEN_SPECIAL(0x00635DB0, CUiWindow::~CUiWindow);   // the movement panel (00742530)
 
 // 00600B80 (the plain container, 00741008) and the containers whose body is the container's.
 CUiContainer* CUiContainer::UiContainerDelete(unsigned flags) {
     DestroyContainer();
     return FreeIfAsked(this, flags);
 }
-EI_REWRITTEN(0x00600B80, CUiContainer::UiContainerDelete);
-EI_REWRITTEN(0x005F5F30, CUiContainer::UiContainerDelete);   // screen 7 (00740840)
-EI_REWRITTEN(0x005F5F60, CUiContainer::UiContainerDelete);   // the main menu (00740688)
-EI_REWRITTEN(0x00603CD0, CUiContainer::UiContainerDelete);   // the escape menu (007412A4)
+EI_REWRITTEN_SPECIAL(0x00600B80, CUiContainer::~CUiContainer);
+EI_REWRITTEN_SPECIAL(0x005F5F30, CUiContainer::~CUiContainer);   // screen 7 (00740840)
+EI_REWRITTEN_SPECIAL(0x005F5F60, CUiContainer::~CUiContainer);   // the main menu (00740688)
+EI_REWRITTEN_SPECIAL(0x00603CD0, CUiContainer::~CUiContainer);   // the escape menu (007412A4)
 
-// 005EACD0 / 00602B80: the battle camera's input side (00740208), the inert extra side (00741154).
-UiInputSide* UiInputSide::InputSideDelete(unsigned flags) {
-    InputSideDestroy(this);
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005EACD0, UiInputSide::InputSideDelete);
-EI_REWRITTEN(0x00602B80, UiInputSide::InputSideDelete);
 
 // 005E28C0: the chat overlay (007400DC).
 CChatOverlay* CChatOverlay::ChatOverlayDelete(unsigned flags) {
@@ -441,7 +431,7 @@ EI_REWRITTEN(0x0062B160, COptionsWindow::OptionsWindowDelete);
 
 // 00633240: the multiplayer hero screen (0074214C).
 CMpHeroScreen* CMpHeroScreen::HeroScreenDelete(unsigned flags) {
-    Destroy();
+    DestroyBody();
     return FreeIfAsked(this, flags);
 }
 EI_REWRITTEN(0x00633240, CMpHeroScreen::HeroScreenDelete);
@@ -500,21 +490,21 @@ EI_REWRITTEN(0x0063FF50, CHudPortraits::HudPortraitsDelete);
 
 // Each is UiInput::DeleteWindow of the window class's own deleting destructor.
 EI_REWRITTEN(0x005E3C80, UiInput::DeleteWindow<&CChatOverlay::ChatOverlayDelete>);
-EI_REWRITTEN(0x00600AC0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REWRITTEN(0x005F45F0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REWRITTEN(0x00613D50, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REWRITTEN(0x00613D60, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REWRITTEN(0x00613D70, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REWRITTEN(0x00613D80, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REWRITTEN(0x00613D90, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REWRITTEN(0x00613DA0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
+EI_REWRITTEN_SPECIAL(0x00600AC0, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x005F45F0, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x00613D50, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x00613D60, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x00613D70, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x00613D80, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x00613D90, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x00613DA0, CUiWindow::~CUiWindow);
 EI_REWRITTEN(0x00613DD0, UiInput::DeleteWindow<&CHeroStatsPanel::StatsPanelDelete>);
-EI_REWRITTEN(0x00613DE0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REWRITTEN(0x0061B210, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REWRITTEN(0x00601E70, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
-EI_REWRITTEN(0x005FC140, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
-EI_REWRITTEN(0x005FC120, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
-EI_REWRITTEN(0x0060C7E0, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
+EI_REWRITTEN_SPECIAL(0x00613DE0, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x0061B210, CUiWindow::~CUiWindow);
+EI_REWRITTEN_SPECIAL(0x00601E70, CUiContainer::~CUiContainer);
+EI_REWRITTEN_SPECIAL(0x005FC140, CUiContainer::~CUiContainer);
+EI_REWRITTEN_SPECIAL(0x005FC120, CUiContainer::~CUiContainer);
+EI_REWRITTEN_SPECIAL(0x0060C7E0, CUiContainer::~CUiContainer);
 EI_REWRITTEN(0x005F4600, UiInput::DeleteWindow<&CItemInfoPanel::ItemInfoPanelDelete>);
 EI_REWRITTEN(0x005FC0E0, UiInput::DeleteWindow<&CBattleScreen::BattleScreenDelete>);
 EI_REWRITTEN(0x005FC0C0, UiInput::DeleteWindow<&CItemScreen::ItemScreenDelete>);
@@ -543,6 +533,6 @@ EI_REWRITTEN(0x0064BD20, UiInput::DeleteWindow<&CHudActionColumn::HudActionColum
 EI_REWRITTEN(0x0064BD30, UiInput::DeleteWindow<&CHudPortraits::HudPortraitsDelete>);
 EI_REWRITTEN(0x0064BD40, UiInput::DeleteWindow<&CHudUnitPanel::HudUnitPanelDelete>);
 EI_REWRITTEN(0x0064BD50, UiInput::DeleteWindow<&CHudMap::HudMapDelete>);
-EI_REWRITTEN(0x0064BD60, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);   // the game clock
-EI_REWRITTEN(0x0064BD70, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);   // the movement panel
+EI_REWRITTEN_SPECIAL(0x0064BD60, CUiWindow::~CUiWindow);   // the game clock
+EI_REWRITTEN_SPECIAL(0x0064BD70, CUiWindow::~CUiWindow);   // the movement panel
 EI_REWRITTEN(0x0064BD80, UiInput::DeleteWindow<&CHudTopPanel::HudTopPanelDelete>);

@@ -262,7 +262,7 @@ std::string Size(int width, int height) {
 std::string WindowLabel(const CUiWindow* window, const CUiSurface* surface) {
     std::uintptr_t vtable = 0;
     if (!SafeRead(window, &vtable, sizeof(vtable))) return "W?";
-    vtable = RealWindowVtable(vtable);  // game.exe's table of a compiled window's kind
+    vtable = WindowKind(window);  // game.exe's table of the window's kind
     CUiSurface** data = nullptr;
     int size = 0;
     SafeRead(&window->surfaces_.data, &data, sizeof(data));

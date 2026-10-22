@@ -336,7 +336,7 @@ void CUiItemStrip::OnLButtonDown(int, int x, int y) {
     if (region == 0 || region == 1) {
         if (!UiShiftDown(ui)) {
             uiorig::PlayUiSound(ui, kSoundCampScroll, 0);
-            UiCapture(ui) = CaptureValue(InputOf(this));
+            UiCapture(ui) = Input();
             scrollDirection_ = region == 0 ? 1 : 2;
         } else {
             // Shift jumps to the start or (clamped later) the end.
@@ -349,7 +349,7 @@ void CUiItemStrip::OnLButtonDown(int, int x, int y) {
         uiorig::PlayUiSound(ui, kSoundCampMode, 0);
         SetTab(region - 2);
     }
-    if (region >= 0) inputHandled_ = true;
+    if (region >= 0) handled_ = true;
 }
 
 void CUiItemStrip::OnLButtonUp(int, int, int) {
@@ -547,10 +547,10 @@ PartyUnitRecord* CMpHeroScreen::GetHero() { return LocalPlayerData()->members_.d
 EI_REWRITTEN(0x00616900, CMpHeroScreen::GetHero);
 
 void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
-    InputOf(this)->OnLeftUp(flags, x, y);
+    CUiContainer::LeftUp(flags, x, y);
     // Releasing a rotate arrow.
     void*& capture = UiCapture(interface_);
-    if (capture == CaptureValue(InputOf(this))) capture = nullptr;
+    if (capture == Input()) capture = nullptr;
     rotating_ = 0;
 }
 
@@ -562,8 +562,7 @@ CUiWindow* CEscMenu::New(CInterface3D* ui) {
     CEscMenu* menu = gamecrt::operator_new_as<CEscMenu>();
     if (!menu) return nullptr;
     menu->window.Construct(ui);
-    menu->window.vtable_ = Vtable();
-    menu->window.inputVtable_ = InputVtable();
+    menu->window.SetTagTables(Vtable(), InputVtable());
     return &menu->window;
 }
 
@@ -602,15 +601,15 @@ void CEscMenu::OnMouseMove(int flags, int x, int y) {
         hovered_ = -1;
         break;
     }
-    InputOf(this)->OnMouseMove(flags, x, y);
+    window.CUiContainer::MouseMove(flags, x, y);
 }
 
 void CEscMenu::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->OnKeyDown(key, repeat, flags);
+    window.CUiContainer::KeyDown(key, repeat, flags);
     if (key == VK_ESCAPE) {
         uiorig::PlayUiSound(window.interface_, kSoundMenuOk, 0);
         window.interface_->SetPendingValue(0);
-        window.inputHandled_ = true;
+        window.handled_ = true;
     }
 }
 
@@ -648,20 +647,20 @@ EI_REWRITTEN(0x0062C010, InputForward<&CCreditsScreen::OnKeyDown>::Call);
 // --- CExchangeScreen --------------------------------------------------------------------------
 
 void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->OnKeyDown(key, repeat, flags);
-    if (inputHandled_) return;
+    CUiContainer::KeyDown(key, repeat, flags);
+    if (handled_) return;
     switch (key) {
     case VK_BACK:
         interface_->ChatKeyBackspace();
-        inputHandled_ = true;
+        handled_ = true;
         break;
     case VK_RETURN:
         interface_->ChatKeyEnter();
-        inputHandled_ = true;
+        handled_ = true;
         break;
     case VK_ESCAPE:
         net::ClientDropParty(net::GameClient());
-        inputHandled_ = true;
+        handled_ = true;
         break;
     }
 }

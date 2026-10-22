@@ -63,7 +63,7 @@ public:
     virtual BOOL Draw(int pass) { return AsWindow()->DrawBase(pass); }          // 20: 005FEB90
     virtual void DrawChild(int pass) { AsWindow()->UpdateRegionTips(pass); }    // 21: 005FEBF0
     virtual void Redraw() { AsWindow()->RedrawBase(); }                         // 22: 005FECC0
-    virtual void RedrawTips() { AsWindow()->CUiWindow::RedrawTips(); }          // 23: 005FED00
+    virtual void RedrawTips() { AsWindow()->RedrawRegionTips(); }               // 23: 005FED00
     virtual void Update() {}                                                    // 24: 005EE010 (empty)
 
 protected:
@@ -71,9 +71,6 @@ protected:
     CEngineObject* Object() { return this->template ObjectAs<CEngineObject>(); }
     CTransformObject* Transform() { return this->template ObjectAs<CTransformObject>(); }
 };
-
-// The plain window's table (game.exe's 00740F60): the window base's constructor and destructor store it.
-struct UiWindowBaseClass final : UiWindowClass<UiWindowBaseClass, &CUiWindow::UiWindowDelete> {};
 
 // The scroll bar's slots over the window's (game.exe's 00742C18): 24 Update (scrolling while an arrow is held), 25
 // SetPosition and 26 SetRect, its own. The slider (00742CBC) and the scrolling text (00742E9C) override them.
@@ -99,6 +96,9 @@ public:
 // `Panel` (AsPanel), for the slots its table has of its own.
 template <typename Self, auto Delete, typename Panel>
 class PanelClass : public UiWindowClass<Self, Delete> {
+public:
+    using PanelType = Panel;
+
 protected:
     Panel* AsPanel() { return static_cast<Panel*>(this->AsWindow()); }
 };

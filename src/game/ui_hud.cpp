@@ -94,7 +94,7 @@ constexpr std::uint32_t kCameraFollows = 8;
 void CHudWeaponBar::OnMouseDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
-    inputHandled_ = true;
+    handled_ = true;
     CaptureMouse();
 }
 EI_REWRITTEN(0x0063C6D0, InputForward<&CHudWeaponBar::OnMouseDown>::Call);
@@ -103,7 +103,7 @@ void CHudWeaponBar::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
-    inputHandled_ = true;
+    handled_ = true;
     int previous = selected_;
     if (previous == region) return;
     if (previous >= 0 && previous < count_) Highlight(previous, 0);
@@ -117,7 +117,7 @@ EI_REWRITTEN(0x0063C710, InputForward<&CHudWeaponBar::OnMouseUp>::Call);
 
 void CHudWeaponBar::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (region >= 0 && region < count_) inputHandled_ = true;
+    if (region >= 0 && region < count_) handled_ = true;
 }
 EI_REWRITTEN(0x0063C7D0, InputForward<&CHudWeaponBar::OnMouseMove>::Call);
 
@@ -166,20 +166,20 @@ EI_REWRITTEN(0x0063FD50, CHudActionColumn::Draw);
 
 void CHudQuickItems::OnMouseDown(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) < 0) return;
-    inputHandled_ = true;
+    handled_ = true;
     CaptureMouse();
 }
 EI_REWRITTEN(0x0063DAA0, InputForward<&CHudQuickItems::OnMouseDown>::Call);
 
 void CHudQuickItems::OnDoubleClick(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) < 0) return;
-    inputHandled_ = true;
+    handled_ = true;
     CaptureMouse();
 }
 EI_REWRITTEN(0x0063DAE0, InputForward<&CHudQuickItems::OnDoubleClick>::Call);
 
 void CHudQuickItems::OnMouseMove(int, int x, int y) {
-    if (RegionItem(RegionAt(x, y)) >= 0) inputHandled_ = true;
+    if (RegionItem(RegionAt(x, y)) >= 0) handled_ = true;
 }
 EI_REWRITTEN(0x0063E270, InputForward<&CHudQuickItems::OnMouseMove>::Call);
 
@@ -200,7 +200,7 @@ EI_REWRITTEN(0x0063D9D0, CHudQuickItems::Update);
 void CHudSpellColumn::OnMouseDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
-    inputHandled_ = true;
+    handled_ = true;
     CaptureMouse();
 }
 EI_REWRITTEN(0x0063F1E0, InputForward<&CHudSpellColumn::OnMouseDown>::Call);
@@ -212,7 +212,7 @@ void CHudSpellColumn::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
-    inputHandled_ = true;
+    handled_ = true;
     if (interface_->doubleClick_)
         ClickAlternate(region);
     else
@@ -222,7 +222,7 @@ EI_REWRITTEN(0x0063F260, InputForward<&CHudSpellColumn::OnMouseUp>::Call);
 
 void CHudSpellColumn::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (region >= 0 && region < count_) inputHandled_ = true;
+    if (region >= 0 && region < count_) handled_ = true;
 }
 EI_REWRITTEN(0x0063F2D0, InputForward<&CHudSpellColumn::OnMouseMove>::Call);
 
@@ -231,7 +231,7 @@ EI_REWRITTEN(0x0063F2D0, InputForward<&CHudSpellColumn::OnMouseMove>::Call);
 void CHudActionColumn::OnMouseDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
-    inputHandled_ = true;
+    handled_ = true;
     CaptureMouse();
 }
 EI_REWRITTEN(0x0063FDA0, InputForward<&CHudActionColumn::OnMouseDown>::Call);
@@ -240,14 +240,14 @@ void CHudActionColumn::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
-    inputHandled_ = true;
+    handled_ = true;
     Select(region);
 }
 EI_REWRITTEN(0x0063FDE0, InputForward<&CHudActionColumn::OnMouseUp>::Call);
 
 void CHudActionColumn::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
-    if (region >= 0 && region < count_) inputHandled_ = true;
+    if (region >= 0 && region < count_) handled_ = true;
 }
 EI_REWRITTEN(0x0063FE40, InputForward<&CHudActionColumn::OnMouseMove>::Call);
 
@@ -264,7 +264,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
     int mode = PortraitMode(interface_);
     if (mode == 0) {
         if (region < 0) return;
-        inputHandled_ = true;
+        handled_ = true;
         if (region < owner_->party_.size) CaptureMouse();
         return;
     }
@@ -302,7 +302,7 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region < 0) return;
-    inputHandled_ = true;
+    handled_ = true;
     CBattleScreen* owner = owner_;
     // 00638EF0 through its address: Rebirth patches it (FixSpellSelfCasting; rule 9).
     if (region < owner->party_.size) static_cast<CBattleScreen*>(owner)->SelectUnit(owner->party_[region], 0, 0);
@@ -313,7 +313,7 @@ void CHudPortraits::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (PortraitMode(interface_) == 0) {
         if (region < 0) return;
-        inputHandled_ = true;
+        handled_ = true;
         CBattleScreen* owner = owner_;
         if (region < owner->party_.size) owner->HoverUnit(owner->party_[region], 0, 0);
         return;
@@ -327,7 +327,7 @@ EI_REWRITTEN(0x00641EA0, InputForward<&CHudPortraits::OnMouseMove>::Call);
 void CHudMap::OnMouseDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0) {
-        inputHandled_ = true;
+        handled_ = true;
         CaptureMouse();
     }
     if (region != 3 && region != 4) return;
@@ -353,7 +353,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         interface_->PlaySound(kSoundSling, 0);
         slideDirection_ = -slideDirection_;
         sliding_ = 1;
-        inputHandled_ = true;
+        handled_ = true;
         return;
     case 1:     // the round map (zoomed)
     case 2: {   // the map area
@@ -380,24 +380,24 @@ void CHudMap::OnMouseUp(int, int x, int y) {
             focus.y = worldY;
             view->SetFocus(&focus);
         }
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
     case 5:     // "camera north"
         interface_->PlaySound(kSoundClick, 0);
         TheCamera()->SetHeading(0.0f);
         northTime_ = 0.5f;
-        inputHandled_ = true;
+        handled_ = true;
         return;
     default:
-        if (region >= 0) inputHandled_ = true;
+        if (region >= 0) handled_ = true;
         return;
     }
 }
 EI_REWRITTEN(0x00645210, InputForward<&CHudMap::OnMouseUp>::Call);
 
 void CHudMap::OnMouseMove(int, int x, int y) {
-    if (RegionAt(x, y) >= 0) inputHandled_ = true;
+    if (RegionAt(x, y) >= 0) handled_ = true;
 }
 EI_REWRITTEN(0x00645610, InputForward<&CHudMap::OnMouseMove>::Call);
 
@@ -405,7 +405,7 @@ EI_REWRITTEN(0x00645610, InputForward<&CHudMap::OnMouseMove>::Call);
 
 void CHudUnitPanel::OnMouseDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
-    inputHandled_ = true;
+    handled_ = true;
     CaptureMouse();
 }
 EI_REWRITTEN(0x00648330, InputForward<&CHudUnitPanel::OnMouseDown>::Call);
@@ -417,7 +417,7 @@ void CHudUnitPanel::OnMouseUp(int, int x, int y) {
         interface_->PlaySound(kSoundSling, 0);
         sliding_ = 1;
         slideDirection_ = -slideDirection_;
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
     if (region > 0 && region <= 4) {
@@ -426,17 +426,17 @@ void CHudUnitPanel::OnMouseUp(int, int x, int y) {
         // Scene objects 3-6 are the body parts.
         for (int i = 0; i < 4; ++i) SetTint(sceneObjects_.data[3 + i], bodyPart_ == i ? kTintOn : kTintOff);
     }
-    if (region >= 0) inputHandled_ = true;
+    if (region >= 0) handled_ = true;
 }
 EI_REWRITTEN(0x00648370, InputForward<&CHudUnitPanel::OnMouseUp>::Call);
 
 void CHudUnitPanel::OnMouseMove(int, int x, int y) {
-    if (RegionAt(x, y) >= 0) inputHandled_ = true;
+    if (RegionAt(x, y) >= 0) handled_ = true;
 }
 EI_REWRITTEN(0x006484C0, InputForward<&CHudUnitPanel::OnMouseMove>::Call);
 
 BOOL CHudUnitPanel::OnWheel(int, int, int x, int y) {
-    if (RegionAt(x, y) >= 0) inputHandled_ = true;
+    if (RegionAt(x, y) >= 0) handled_ = true;
     return 1;
 }
 EI_REWRITTEN(0x006484F0, InputForward<&CHudUnitPanel::OnWheel>::Call);
@@ -445,7 +445,7 @@ EI_REWRITTEN(0x006484F0, InputForward<&CHudUnitPanel::OnWheel>::Call);
 
 void CHudClock::OnMouseDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
-    inputHandled_ = true;
+    handled_ = true;
     CaptureMouse();
 }
 EI_REWRITTEN(0x00648D30, InputForward<&CHudClock::OnMouseDown>::Call);
@@ -455,7 +455,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     const int region = RegionAt(x, y);
     switch (region) {
     case 0: {   // the pause button
-        inputHandled_ = true;
+        handled_ = true;
         interface_->PlaySound(kSoundClock, 0);
         const bool paused = GameClientPaused();
         GameSendFlag10(paused ? 0 : 1);
@@ -463,7 +463,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     }
     case 1:     // the normal speed
     case 2:     // the fast speed
-        inputHandled_ = true;
+        handled_ = true;
         // Rebirth's MPSpeedControl (the JNEs at 00648DFE / 00648E65 aimed at the next instruction).
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         if (GameClientPaused()) GameSendFlag10(0);
@@ -473,7 +473,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
         interface_->PlaySound(kSoundClock, 0);
         return;
     case 3:     // the objectives
-        inputHandled_ = true;
+        handled_ = true;
         OpenObjectives();
         return;
     default:
@@ -483,7 +483,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
 EI_REWRITTEN(0x00648D70, InputForward<&CHudClock::OnMouseUp>::Call);
 
 void CHudClock::OnMouseMove(int, int x, int y) {
-    if (RegionAt(x, y) >= 0) inputHandled_ = true;
+    if (RegionAt(x, y) >= 0) handled_ = true;
 }
 EI_REWRITTEN(0x00649160, InputForward<&CHudClock::OnMouseMove>::Call);
 
@@ -504,7 +504,7 @@ EI_REWRITTEN(0x00648F10, CHudClock::OpenObjectives);
 
 void CHudMovePanel::OnMouseDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
-    inputHandled_ = true;
+    handled_ = true;
     CaptureMouse();
 }
 EI_REWRITTEN(0x00649630, InputForward<&CHudMovePanel::OnMouseDown>::Call);
@@ -513,7 +513,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
     if (region == -1) return;
-    inputHandled_ = true;
+    handled_ = true;
     if (region == 0) {
         ToggleFlag();
         return;
@@ -532,7 +532,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
 EI_REWRITTEN(0x00649670, InputForward<&CHudMovePanel::OnMouseUp>::Call);
 
 void CHudMovePanel::OnMouseMove(int, int x, int y) {
-    if (RegionAt(x, y) >= 0) inputHandled_ = true;
+    if (RegionAt(x, y) >= 0) handled_ = true;
 }
 EI_REWRITTEN(0x00649750, InputForward<&CHudMovePanel::OnMouseMove>::Call);
 
@@ -593,7 +593,7 @@ EI_REWRITTEN(0x00649550, CHudMovePanel::Update);
 
 void CHudTopPanel::OnMouseDown(int, int x, int y) {
     if (RegionAt(x, y) < 0) return;
-    inputHandled_ = true;
+    handled_ = true;
     CaptureMouse();
 }
 EI_REWRITTEN(0x0064A1C0, CHudTopPanel::OnMouseDown);
@@ -606,29 +606,29 @@ void CHudTopPanel::OnMouseUp(int, int x, int y) {
         interface_->PlaySound(kSoundSling, 0);
         sliding_ = 1;
         slideDirection_ = -slideDirection_;
-        inputHandled_ = true;
+        handled_ = true;
         return;
     case 1:
     case 2:
         page_ = region - 1;
         ShowPage();
         interface_->PlaySound(kSoundClick, 0);
-        inputHandled_ = true;
+        handled_ = true;
         return;
     default:
-        if (region >= 0) inputHandled_ = true;
+        if (region >= 0) handled_ = true;
         return;
     }
 }
 EI_REWRITTEN(0x0064A200, CHudTopPanel::OnMouseUp);
 
 void CHudTopPanel::OnMouseMove(int, int x, int y) {
-    if (RegionAt(x, y) >= 0) inputHandled_ = true;
+    if (RegionAt(x, y) >= 0) handled_ = true;
 }
 EI_REWRITTEN(0x0064A2C0, CHudTopPanel::OnMouseMove);
 
 BOOL CHudTopPanel::OnWheel(int, int, int x, int y) {
-    if (RegionAt(x, y) >= 0) inputHandled_ = true;
+    if (RegionAt(x, y) >= 0) handled_ = true;
     return 1;
 }
 EI_REWRITTEN(0x0064A2F0, CHudTopPanel::OnWheel);
@@ -873,7 +873,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             CUnit* member = party_[i];
             if (!member || !(member->flags_ & kFlagSelected)) continue;
             LocalView()->SendFollow(member, unit);
-            VirtualUnitSpeech(party_[i]->id_, kOrderEventFollow, nullptr);
+            Speech(party_[i]->id_, kOrderEventFollow, nullptr);
             NodPortrait(this, i);
         }
         CHudQuickItems* quick = quickItems_;
@@ -943,7 +943,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     // Unchecked, as in the original (region -1 reads +0x168).
     int entry = RegionItem(region);
     if (entry < 0) return;
-    inputHandled_ = true;
+    handled_ = true;
     if (region < 4 && entries_[entry].own) {
         if (interface_->doubleClick_)
             UseNow(region);

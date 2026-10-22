@@ -7,20 +7,28 @@
 
 #include <windows.h>
 #include "game_data.h"
+#include "ui.h"
 
 class CInterface3D;
 
-// The battle camera's input side (Vtable() in place of game.exe's 00740208, 0x2C bytes, constructed by 005EACB0; one
-// of the
-// battle screen's extra input sides). Keys move the camera along x_ / y_ / z_ (set by the key-down,
-// cleared by the key-up); the right button turns the view while held.
-class CCameraInput {
+// The battle camera's input side (game.exe's table 00740208, 0x2C bytes; one of the battle screen's extra input
+// sides). Keys move the camera along x_ / y_ / z_ (set by the key-down, cleared by the key-up); the right button
+// turns the view while held.
+class CCameraInput final : public UiInputSide {
 public:
-    // The compiled table (C19, ui_camera_input.cpp's CameraInputClass over ui_input_class.h's InputSideClass).
-    static void** Vtable();
-    // 005EACB0 (RET 4; ui_camera_input.cpp). Constructor: Vtable(), the interface, not
-    // turning, the axes 0 (handled_ and the press points left). Returns this.
-    CCameraInput* Construct(CInterface3D* ui);
+    // 005EACB0 (RET 4; ui_camera_input.cpp). The interface, not turning, the axes 0 (handled_ and the press points
+    // left).
+    explicit CCameraInput(CInterface3D* ui);
+    // 005EACF0, deleting 005EACD0 (ui_camera_input.cpp): the base side's table back.
+    ~CCameraInput() override;
+    void Deactivate() override { OnDeactivate(); }                                         // 1
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }       // 4
+    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }       // 5
+    int RightUp(int b, int x, int y) override { return OnRightUp(b, x, y), 0; }           // 6
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }           // 9
+    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }               // 11
+    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }        // 12
+
     // 005EADD0 (slot 9, RET 0xC; ui_camera_keys.cpp).
     void OnKeyDown(int key, int repeat, int flags);
     // 005EB090 (slot 11, RET 0xC; ui_camera_input.cpp). A direction key released (actions 5-10 of
@@ -53,10 +61,6 @@ public:
     // (the delta's low word) * 00740240 steps.
     BOOL OnWheel(int keys, int delta, int x, int y);
 
-    void** vtable_;
-    CInterface3D* interface_;        // +0x04
-    bool handled_;                   // +0x08 the input used the event
-    std::uint8_t unused_09[3];
     POINT pressScreen_;              // +0x0C where the right button went down (screen)
     POINT pressLayout_;              // +0x14 the same in layout coordinates
     bool turning_;                   // +0x1C the right button is held
@@ -65,9 +69,6 @@ public:
     float y_;                        // +0x24 forward / back
     float z_;                        // +0x28 up / down
 };
-static_assert(offsetof(CCameraInput, pressLayout_) == 0x14);
-static_assert(offsetof(CCameraInput, x_) == 0x20);
-static_assert(sizeof(CCameraInput) == 0x2C);
 
 // 005EADD0 (thiscall on the input object, RET 0xC; slot 9 of CCameraInput::Vtable()): see
 // ui_camera_keys.cpp.

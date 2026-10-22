@@ -12,17 +12,12 @@
 
 namespace {
 
-// --- The container (00741008 / 00740FD4) ----------------------------------------------------------
-
-struct ContainerBaseClass final : ContainerClass<ContainerBaseClass, &CUiContainer::UiContainerDelete> {};
-struct ContainerBaseInputClass final : ContainerInputClass<ContainerBaseInputClass, &CUiContainer::UiContainerDelete> {};
-
 // --- The battle screen (00740764 / 00740730) -------------------------------------------------------
 
 struct BattleScreenClass final : ContainerClass<BattleScreenClass, &CBattleScreen::BattleScreenDelete> {
-    BOOL Draw(int pass) override { return AsScreen()->Draw(reinterpret_cast<void*>(pass)); }   // 20: 00636020
-    void Update() override { AsScreen()->Update(); }                                          // 24: 00638280
-    void CreateScreen() override { AsScreen()->Create(); }                                    // 25: 00635250
+    BOOL Draw(int pass) override { return AsScreen()->ScreenType::Draw(reinterpret_cast<void*>(pass)); }   // 20: 00636020
+    void Update() override { AsScreen()->ScreenType::Update(); }                                          // 24: 00638280
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                                    // 25: 00635250
     void CloseScreen() override { AsScreen()->Close(); }                                      // 26: 00635E60
     void MessageResult(int result) override { AsScreen()->OnMessageResult(result); }          // 27: 00635EB0
     void ItemsPicked(void* items, int money, int crippled) override {                         // 28: 00636150
@@ -35,7 +30,7 @@ struct BattleScreenClass final : ContainerClass<BattleScreenClass, &CBattleScree
     void QuestVariable(const char* name, float value) override { AsScreen()->OnQuestVariable(name, value); }    // 33: 006369D0
     bool ReadyToStopPolling() override { return AsScreen()->PollShown(); }                    // 35: 006360F0
     void PlayerList(int mode) override { AsScreen()->SetPortraitMode(mode); }                 // 38: 005F5FB0
-    void SaveState() override { AsScreen()->SaveState(); }                                    // 40: 00635080
+    void SaveState() override { AsScreen()->ScreenType::SaveState(); }                                    // 40: 00635080
 };
 struct BattleScreenInputClass final : ContainerInputClass<BattleScreenInputClass, &CBattleScreen::BattleScreenDelete> {
     void Deactivate() override { AsScreen()->OnDeactivate(); }                                        // 1: 00638A10
@@ -52,8 +47,8 @@ struct BattleScreenInputClass final : ContainerInputClass<BattleScreenInputClass
 
 struct MainMenuClass final : ContainerClass<MainMenuClass, &CUiContainer::UiContainerDelete, CMainMenu> {
     BOOL Draw(int pass) override { return AsScreen()->DrawImpl(pass); }                // 20: 00632A90
-    void Update() override { AsScreen()->Update(); }                                   // 24: 00632B10
-    void CreateScreen() override { AsScreen()->Create(); }                             // 25: 006326B0
+    void Update() override { AsScreen()->ScreenType::Update(); }                                   // 24: 00632B10
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                             // 25: 006326B0
     void CloseScreen() override { AsScreen()->Close(); }                               // 26: 00632910
     void MessageResult(int result) override { AsScreen()->OnMessageResult(result); }   // 27: 00632940
 };
@@ -67,8 +62,8 @@ struct MainMenuInputClass final : ContainerInputClass<MainMenuInputClass, &CUiCo
 
 struct BriefingScreenClass final : ContainerClass<BriefingScreenClass, &CBriefingScreen::BriefingDelete> {
     BOOL Draw(int pass) override { return AsScreen()->DrawImpl(pass); }                // 20: 00602BF0
-    void Update() override { AsScreen()->Update(); }                                   // 24: 00604130
-    void CreateScreen() override { AsScreen()->Create(); }                             // 25: 006024B0
+    void Update() override { AsScreen()->ScreenType::Update(); }                                   // 24: 00604130
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                             // 25: 006024B0
     void CloseScreen() override { AsScreen()->Close(); }                               // 26: 00602BB0
     void MessageResult(int result) override { AsScreen()->OnMessageResult(static_cast<std::uint32_t>(result)); }   // 27: 00606F40
     void UnitJoined(CUnit* unit) override { AsScreen()->OnUnitJoined(unit); }          // 29: 00602C90
@@ -78,7 +73,7 @@ struct BriefingScreenClass final : ContainerClass<BriefingScreenClass, &CBriefin
     bool ReadyToStopPolling() override { return true; }                                // 35: 00608D10 (AL 1)
     void PlayersChanged(int show) override { AsScreen()->ShowChat(static_cast<char>(show)); }   // 36: 00603090
     void PlayerList(int mode) override { AsScreen()->SetChatActive(mode); }            // 38: 005F6B70
-    void SaveState() override { AsScreen()->SaveState(); }                             // 40: 00602490
+    void SaveState() override { AsScreen()->ScreenType::SaveState(); }                             // 40: 00602490
 };
 struct BriefingScreenInputClass final : ContainerInputClass<BriefingScreenInputClass, &CBriefingScreen::BriefingDelete> {
     int LeftDown(int b, int x, int y) override { return AsScreen()->OnLeftDown(b, x, y), 0; }         // 2: 006030F0
@@ -91,7 +86,7 @@ struct BriefingScreenInputClass final : ContainerInputClass<BriefingScreenInputC
 
 struct ViewScreenClass final : ContainerClass<ViewScreenClass, &CUiContainer::UiContainerDelete, CViewScreen> {
     BOOL Draw(int pass) override { return AsScreen()->DrawView(pass); }   // 20: 0062AA50
-    void CreateScreen() override { AsScreen()->Build(); }                 // 25: 0062A830
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                 // 25: 0062A830
     void CloseScreen() override { AsScreen()->OnClose(); }                // 26: 0062AA40
 };
 // Its input side is the container's (0074080C: every handler the container's, slot 0 the container's delete).
@@ -101,12 +96,12 @@ struct ViewScreenInputClass final : ContainerInputClass<ViewScreenInputClass, &C
 
 struct GlobalMapClass final : ContainerClass<GlobalMapClass, &CGlobalMap::GlobalMapDelete> {
     BOOL Draw(int pass) override { return Container()->DrawBlendedImpl(pass); }        // 20: 0062EFC0
-    void Update() override { AsScreen()->Update(); }                                   // 24: 0062F050
-    void CreateScreen() override { AsScreen()->Create(); }                             // 25: 0062D350
+    void Update() override { AsScreen()->ScreenType::Update(); }                                   // 24: 0062F050
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                             // 25: 0062D350
     void CloseScreen() override { AsScreen()->Close(); }                               // 26: 0062EDD0
     void MessageResult(int result) override { AsScreen()->OnMessageResult(result); }   // 27: 0062EE30
-    void SaveState() override { AsScreen()->SaveState(); }                             // 40: 0062D330
-    const char* HelpTopic() override { return AsScreen()->HelpTopic(); }               // 41: 0062EE70
+    void SaveState() override { AsScreen()->ScreenType::SaveState(); }                             // 40: 0062D330
+    const char* HelpTopic() override { return AsScreen()->ScreenType::HelpTopic(); }               // 41: 0062EE70
 };
 struct GlobalMapInputClass final : ContainerInputClass<GlobalMapInputClass, &CGlobalMap::GlobalMapDelete> {
     void Deactivate() override { AsScreen()->OnDeactivate(); }                                      // 1: 0062FF10
@@ -121,8 +116,8 @@ struct GlobalMapInputClass final : ContainerInputClass<GlobalMapInputClass, &CGl
 // --- The titles, screen 8 (00740C3C / 00740C08) ----------------------------------------------------
 
 struct TitlesClass final : ContainerClass<TitlesClass, &CTitlesScreen::TitlesDelete, CCreditsScreen> {
-    BOOL Draw(int pass) override { return AsScreen()->Draw(pass); }                    // 20: 0062BD80
-    void CreateScreen() override { AsScreen()->Build(); }                              // 25: 0062B7D0
+    BOOL Draw(int pass) override { return AsScreen()->ScreenType::Draw(pass); }                    // 20: 0062BD80
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                              // 25: 0062B7D0
     void CloseScreen() override { AsScreen()->OnClose(); }                             // 26: 0062BD00
     void MessageResult(int result) override { AsScreen()->OnMessageResult(result); }   // 27: 0062BFD0
 };
@@ -135,8 +130,8 @@ struct TitlesInputClass final : ContainerInputClass<TitlesInputClass, &CTitlesSc
 
 struct HelpWindowClass final : ContainerClass<HelpWindowClass, &CHelpWindow::HelpWindowDelete> {
     BOOL Draw(int pass) override { return Container()->DrawAlphaRefImpl(pass); }   // 20: 0065A6D0
-    void Update() override { AsScreen()->Update(); }                               // 24: 0065A5E0
-    void CreateScreen() override { AsScreen()->Build(); }                          // 25: 00658E10
+    void Update() override { AsScreen()->ScreenType::Update(); }                               // 24: 0065A5E0
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                          // 25: 00658E10
     void CloseScreen() override { AsScreen()->Close(); }                           // 26: 006590F0
 };
 struct HelpWindowInputClass final : ContainerInputClass<HelpWindowInputClass, &CHelpWindow::HelpWindowDelete> {
@@ -147,10 +142,10 @@ struct HelpWindowInputClass final : ContainerInputClass<HelpWindowInputClass, &C
 // --- The objectives window (007411BC / 00741188) ---------------------------------------------------
 
 struct ObjectivesClass final : ContainerClass<ObjectivesClass, &CObjectivesWindow::ObjectivesDelete> {
-    void Update() override { AsScreen()->Update(); }                       // 24: 0064E760
-    void CreateScreen() override { AsScreen()->Build(); }                  // 25: 0064BE80
+    void Update() override { AsScreen()->ScreenType::Update(); }                       // 24: 0064E760
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                  // 25: 0064BE80
     void CloseScreen() override { AsScreen()->RestoreAlphaRef(); }         // 26: 0064D970
-    const char* HelpTopic() override { return AsScreen()->HelpTopic(); }   // 41: 0064D990
+    const char* HelpTopic() override { return AsScreen()->ScreenType::HelpTopic(); }   // 41: 0064D990
 };
 struct ObjectivesInputClass final : ContainerInputClass<ObjectivesInputClass, &CObjectivesWindow::ObjectivesDelete> {
     int LeftDown(int b, int x, int y) override { return AsScreen()->OnLButtonDown(b, x, y), 0; }   // 2: 0064E330
@@ -160,7 +155,7 @@ struct ObjectivesInputClass final : ContainerInputClass<ObjectivesInputClass, &C
 // --- The Esc menu (007412A4 / 00741270) ------------------------------------------------------------
 
 struct EscMenuClass final : ContainerClass<EscMenuClass, &CUiContainer::UiContainerDelete, CEscMenu> {
-    void CreateScreen() override { AsScreen()->Build(); }                              // 25: 0062AB20
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                              // 25: 0062AB20
     void CloseScreen() override { AsScreen()->OnClose(); }                             // 26: 0062ACB0
     void MessageResult(int result) override { AsScreen()->OnMessageResult(result); }   // 27: 0062ACC0
 };
@@ -173,9 +168,9 @@ struct EscMenuInputClass final : ContainerInputClass<EscMenuInputClass, &CUiCont
 // --- The save / load window (00741388 / 00741354) --------------------------------------------------
 
 struct SaveLoadClass final : ContainerClass<SaveLoadClass, &CSaveLoadWindow::SaveLoadDelete> {
-    BOOL Draw(int pass) override { return AsScreen()->Draw(pass); }                   // 20: 006544A0
-    void Update() override { AsScreen()->Update(); }                                  // 24: 006545E0
-    void CreateScreen() override { AsScreen()->Build(); }                             // 25: 00653DD0
+    BOOL Draw(int pass) override { return AsScreen()->ScreenType::Draw(pass); }                   // 20: 006544A0
+    void Update() override { AsScreen()->ScreenType::Update(); }                                  // 24: 006545E0
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                             // 25: 00653DD0
     void CloseScreen() override { AsScreen()->CloseDialog(); }                        // 26: 00654430
     void MessageResult(int result) override { AsScreen()->OnDialogResult(result); }   // 27: 00654450
 };
@@ -189,13 +184,13 @@ struct SaveLoadInputClass final : ContainerInputClass<SaveLoadInputClass, &CSave
 // --- The options window (00741FAC / 00741F78) ------------------------------------------------------
 
 struct OptionsClass final : ContainerClass<OptionsClass, &COptionsWindow::OptionsWindowDelete> {
-    BOOL Draw(int pass) override { return AsScreen()->Draw(pass); }                   // 20: 00650920
-    void Redraw() override { AsScreen()->Redraw(); }                                  // 22: 00650A20
-    void Update() override { AsScreen()->Update(); }                                  // 24: 00650A30
-    void CreateScreen() override { AsScreen()->Build(); }                             // 25: 006503C0
+    BOOL Draw(int pass) override { return AsScreen()->ScreenType::Draw(pass); }                   // 20: 00650920
+    void Redraw() override { AsScreen()->ScreenType::Redraw(); }                                  // 22: 00650A20
+    void Update() override { AsScreen()->ScreenType::Update(); }                                  // 24: 00650A30
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                             // 25: 006503C0
     void CloseScreen() override {}                                                    // 26: 006508D0 (empty)
     void MessageResult(int result) override { AsScreen()->OnDialogResult(result); }   // 27: 006508E0
-    const char* HelpTopic() override { return AsScreen()->HelpTopic(); }              // 41: 00650900
+    const char* HelpTopic() override { return AsScreen()->ScreenType::HelpTopic(); }              // 41: 00650900
 };
 struct OptionsInputClass final : ContainerInputClass<OptionsInputClass, &COptionsWindow::OptionsWindowDelete> {
     int LeftDown(int b, int x, int y) override { return AsScreen()->OnMouseDown(b, x, y), 0; }       // 2: 00650C20
@@ -209,7 +204,7 @@ struct OptionsInputClass final : ContainerInputClass<OptionsInputClass, &COption
 template <typename Self, auto Delete, typename Box>
 class MessageBoxBaseClass : public ContainerClass<Self, Delete, Box> {
 public:
-    void CreateScreen() override { this->AsScreen()->Build(); }       // 25: 00634790 (the difficulty question 006337B0)
+    void CreateScreen() override { this->AsScreen()->Box::CreateScreen(); }       // 25: 00634790 (the difficulty question 006337B0)
     void CloseScreen() override { this->AsScreen()->OnClose(); }      // 26: 00634D00
 };
 template <typename Self, auto Delete, typename Box>
@@ -225,7 +220,7 @@ struct DifficultyBoxInputClass final
     : MessageBoxInputBaseClass<DifficultyBoxInputClass, &CMessageBox::MessageBoxDelete, CDifficultyBox> {};
 struct MasterRequestBoxClass final
     : MessageBoxBaseClass<MasterRequestBoxClass, &CMasterRequestBox::MasterRequestBoxDelete, CMessageBox> {
-    void Update() override { ObjectAs<CMasterRequestBox>()->Update(); }   // 24: 0061E4E0
+    void Update() override { ObjectAs<CMasterRequestBox>()->CMasterRequestBox::Update(); }   // 24: 0061E4E0
 };
 struct MasterRequestBoxInputClass final
     : MessageBoxInputBaseClass<MasterRequestBoxInputClass, &CMasterRequestBox::MasterRequestBoxDelete, CMessageBox> {};
@@ -233,8 +228,8 @@ struct MasterRequestBoxInputClass final
 // --- The multiplayer connection screen (00741CD0 / 00741C9C) ----------------------------------------
 
 struct ConnectScreenClass final : ContainerClass<ConnectScreenClass, &CMpConnectScreen::ConnectScreenDelete> {
-    void Update() override { AsScreen()->Update(); }                                                     // 24: 0061C430
-    void CreateScreen() override { AsScreen()->Create(); }                                               // 25: 0061B2C0
+    void Update() override { AsScreen()->ScreenType::Update(); }                                                     // 24: 0061C430
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                                               // 25: 0061B2C0
     void CloseScreen() override {}                                                                       // 26: 0061C2D0 (empty)
     void MessageResult(int result) override { AsScreen()->OnBoxResult(static_cast<std::uint32_t>(result)); }   // 27: 0061C2E0
 };
@@ -251,13 +246,13 @@ struct ItemScreenBaseClass final : ItemScreenClass<ItemScreenBaseClass, &CItemSc
 struct ItemScreenBaseInputClass final : ContainerInputClass<ItemScreenBaseInputClass, &CItemScreen::ItemScreenDelete> {};
 
 struct CampClass final : ItemScreenClass<CampClass, &CItemScreen::CampScreenDelete, CCampPages> {
-    BOOL Draw(int pass) override { return AsScreen()->Draw(pass); }                    // 20: 0060F050
-    void Update() override { AsScreen()->Update(); }                                   // 24: 0060F6B0
-    void CreateScreen() override { AsScreen()->Create(); }                             // 25: 0060C870
+    BOOL Draw(int pass) override { return AsScreen()->ScreenType::Draw(pass); }                    // 20: 0060F050
+    void Update() override { AsScreen()->ScreenType::Update(); }                                   // 24: 0060F6B0
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                             // 25: 0060C870
     void CloseScreen() override { AsScreen()->Close(); }                               // 26: 0060E6B0
     void MessageResult(int result) override { AsScreen()->OnMessageResult(result); }   // 27: 0060E900
-    void DebugFill() override { AsScreen()->DebugFill(); }                             // 39: 00612CF0
-    const char* HelpTopic() override { return AsScreen()->HelpTopic(); }               // 41: 0060E980
+    void DebugFill() override { AsScreen()->ScreenType::DebugFill(); }                             // 39: 00612CF0
+    const char* HelpTopic() override { return AsScreen()->ScreenType::HelpTopic(); }               // 41: 0060E980
     void TakeItem(CItem* item, int mode) override { AsScreen()->MoveItem(item, mode); }              // 42: 00610AD0
     bool CanEquip(CItem* item, int mode) override { return AsScreen()->CanEquip(item, mode); }       // 43: 006100E0
     void TopicClicked(int page, int unused) override { Camp()->ShowPageTabs(page, unused); }         // 44: 006110F0
@@ -282,9 +277,9 @@ struct CampInputClass final : ContainerInputClass<CampInputClass, &CItemScreen::
 };
 
 struct ExchangeClass final : ItemScreenClass<ExchangeClass, &CItemScreen::Screen9Delete, CExchangeScreen> {
-    BOOL Draw(int pass) override { return AsScreen()->Draw(pass); }                    // 20: 0062C9C0
-    void Update() override { AsScreen()->Update(); }                                   // 24: 0062C930
-    void CreateScreen() override { AsScreen()->Create(); }                             // 25: 0062C250
+    BOOL Draw(int pass) override { return AsScreen()->ScreenType::Draw(pass); }                    // 20: 0062C9C0
+    void Update() override { AsScreen()->ScreenType::Update(); }                                   // 24: 0062C930
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                             // 25: 0062C250
     void CloseScreen() override { AsScreen()->Close(); }                               // 26: 0062C8F0
     void MessageResult(int result) override { AsScreen()->OnMessageResult(result); }   // 27: 0062C920
     void ExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) override {        // 37: 0062D210
@@ -299,9 +294,9 @@ struct ExchangeInputClass final : ContainerInputClass<ExchangeInputClass, &CItem
 };
 
 struct MpHeroScreenClass final : ItemScreenClass<MpHeroScreenClass, &CMpHeroScreen::HeroScreenDelete> {
-    BOOL Draw(int pass) override { return AsScreen()->Draw(pass); }                    // 20: 006159E0
-    void Update() override { AsScreen()->Update(); }                                   // 24: 00617820
-    void CreateScreen() override { AsScreen()->Create(); }                             // 25: 00613EA0
+    BOOL Draw(int pass) override { return AsScreen()->ScreenType::Draw(pass); }                    // 20: 006159E0
+    void Update() override { AsScreen()->ScreenType::Update(); }                                   // 24: 00617820
+    void CreateScreen() override { AsScreen()->ScreenType::CreateScreen(); }                             // 25: 00613EA0
     void CloseScreen() override { AsScreen()->Close(); }                               // 26: 00615850
     void MessageResult(int result) override { AsScreen()->OnMessageResult(result); }   // 27: 00615940
     void TakeItem(CItem* item, int mode) override { AsScreen()->OnItemChosen(item, mode); }         // 42: 00618980
@@ -324,8 +319,6 @@ void** Table() {
 
 } // namespace
 
-void** CUiContainer::ContainerVtable() { return Table<ContainerBaseClass>(); }
-void** CUiContainer::ContainerInputVtable() { return Table<ContainerBaseInputClass>(); }
 void** CBattleScreen::Vtable() { return Table<BattleScreenClass>(); }
 void** CBattleScreen::InputVtable() { return Table<BattleScreenInputClass>(); }
 void** CMainMenu::Vtable() { return Table<MainMenuClass>(); }

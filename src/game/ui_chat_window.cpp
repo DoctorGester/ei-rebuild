@@ -104,8 +104,7 @@ CChatWindow* CChatWindow::Construct(CInterface3D* ui) {
     players_.Finish() = nullptr;
     players_.EndOfStorage() = nullptr;
     texts_.Construct();
-    vtable_ = MainVtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(MainVtable(), InputVtable());
     // EI_Plugin's NPlayers (00608D9D, 00608DE4): the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect_ = RECT{left, 0, 800, 0xA0};
@@ -290,7 +289,7 @@ EI_REWRITTEN(0x006095A0, CChatWindow::Update);
 void CChatWindow::OnLButtonDown(int, int x, int y) {
     int index = RegionAt(x, y);
     if (index < 0 || static_cast<unsigned>(index) >= players_.size()) return;
-    inputHandled_ = true;
+    handled_ = true;
     int pick = ActiveBriefing(interface_)->chatActive_;
     if (pick != 0) {
         char text[0x80];

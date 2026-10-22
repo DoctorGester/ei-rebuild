@@ -98,11 +98,11 @@ static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
 
 void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     if (chatActive_) {
-        if (chat_) chat_->Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
+        if (chat_) chat_->Input()->LeftDown(buttons, x, y);
         return;
     }
-    InputOf(this)->OnLeftDown(buttons, x, y);
-    if (inputHandled_) return;
+    CUiContainer::LeftDown(buttons, x, y);
+    if (handled_) return;
     switch (state_) {
     case 0: {
         POINT point = {x, y};
@@ -144,11 +144,11 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
 void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (chatActive_) {
         TheCursor()->SetShape(kCursorChat);
-        if (chat_) chat_->Input()->Event(UiInputSide::kMouseMove, buttons, x, y);
+        if (chat_) chat_->Input()->MouseMove(buttons, x, y);
         return;
     }
     TheCursor()->SetShape(kCursorNormal);
-    InputOf(this)->OnMouseMove(buttons, x, y);
+    CUiContainer::MouseMove(buttons, x, y);
     if (state_ == 1) {
         int region = RegionAt(x, y);
         int hovered = -1;
@@ -206,10 +206,10 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
 
 void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
     if (chatActive_) return;
-    ContainerInput()->OnLeftDouble(buttons, x, y);
-    if (inputHandled_) return;
+    CUiContainer::LeftDouble(buttons, x, y);
+    if (handled_) return;
     if (state_ != 0) {
-        Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
+        Input()->LeftDown(buttons, x, y);
         return;
     }
     POINT point = {x, y};
@@ -217,7 +217,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
     if (IsPerson(object)) {
         for (BriefingMover* mover = movers_->next; mover != movers_; mover = mover->next)
             if (mover->person->id_ == object->id_) return;
-        Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
+        Input()->LeftDown(buttons, x, y);
         return;
     }
     if (!noWalk_) WalkLeaderTo(this, x, y, 1);

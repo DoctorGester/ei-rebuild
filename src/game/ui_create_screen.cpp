@@ -45,8 +45,7 @@ Node* EmptyList() {
 
 // The window's two vtables, the window's (+0x00) first, then its input side's (+0x94).
 void SetVtables(CUiWindow* w, void** vtable, void** inputVtable) {
-    w->vtable_ = vtable;
-    w->Input()->vtable_ = inputVtable;
+    w->SetTagTables(vtable, inputVtable);
 }
 
 } // namespace
@@ -168,8 +167,7 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
         SetRenderState(ui->renderer_->device_, state[0], state[1]);
     }
     app::g_interfaceHasScreen = 1;
-    using CreateFn = void(__thiscall*)(CUiWindow*);
-    ei::VirtualSlot<CreateFn>(window->vtable_, 25)(window);
+    ScreenOf(window)->CreateScreen();
     app::PumpMessages();
     ui->mouseCapture_ = nullptr;
     Cursor()->SetShape(0);
@@ -203,9 +201,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
     doubleClick_ = false;
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Deactivate();
     if (stackBegin_ != stackEnd_) {
-        CUiWindow* top = stackEnd_[-1];
-        using Fn = void(__thiscall*)(CUiWindow*, int);
-        ei::VirtualSlot<Fn>(top->vtable_, 19)(top, 0);
+        stackEnd_[-1]->Show(0);
     }
     if (!window) game::FatalError("Cannot activate NULL interface screen\n");
     OpenOnTop(this, window);
@@ -239,14 +235,8 @@ void CInterface3D::Activate(CUiWindow* window) {
     Cursor()->SetShape(3);
     while (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->Input()->Deactivate();
-        using VoidFn = void(__thiscall*)(CUiWindow*);
-        CUiWindow* top = stackEnd_[-1];
-        ei::VirtualSlot<VoidFn>(top->vtable_, 26)(top);
-        top = stackEnd_[-1];
-        if (top) {
-            using DeleteFn = void(__thiscall*)(CUiWindow*, int);
-            ei::VirtualSlot<DeleteFn>(top->vtable_, 0)(top, 1);
-        }
+        ScreenOf(stackEnd_[-1])->CloseScreen();
+        delete stackEnd_[-1];
         --stackEnd_;
     }
     ResetInput();
@@ -306,8 +296,7 @@ EI_REWRITTEN(0x005F8A80, CInterface3D::ShowMessage);
 void CInterface3D::OpenHelp(int flag) {
     if (stackBegin_ == stackEnd_) return;
     CUiWindow* active = stackEnd_[-1];
-    using TopicFn = const char*(__thiscall*)(CUiWindow*);
-    const char* topic = ei::VirtualSlot<TopicFn>(active->vtable_, 41)(active);
+    const char* topic = ScreenOf(active)->HelpTopic();
     if (!topic) return;
     int seen = -1;
     // The seen-topics map (find 005FAEA0; operator[], lower_bound 005FAF30 and an insert at that
@@ -390,10 +379,9 @@ CCreditsScreen* CCreditsScreen::Construct(CInterface3D* ui, int flag, const char
     self->lines_.Construct();   // the header from the node pool, linked to itself
     new (&self->name_) mfc::CString(text);
     static_cast<CBinkVideo*>(&self->player_)->Construct();
-    vtable_ = Vtable();
     const auto low = static_cast<std::uint8_t>(flag);
     std::memcpy(&self->fromGame_, &low, 1);
-    self->Input()->vtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     return self;
 }
 EI_REWRITTEN(0x005F6D50, CCreditsScreen::Construct);

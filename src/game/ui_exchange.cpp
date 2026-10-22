@@ -65,7 +65,7 @@ EI_REWRITTEN(0x0062C930, CExchangeScreen::Update);
 // --- 0062CF70: the left button (input slot 2) --------------------------------------------------------
 
 void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->OnLeftDown(buttons, x, y);
+    CUiContainer::LeftDown(buttons, x, y);
     switch (RegionAt(x, y)) {
     case kAcceptRegion: {
         net::PartyMessage* offer = LiveOffer();
@@ -126,8 +126,7 @@ constexpr int kStripActionTake = 1;
 constexpr int kGridMode = 5;
 
 void SetVtables(CUiWindow* window, VtablePair vtables) {
-    window->vtable_ = vtables.main;
-    window->inputVtable_ = vtables.input;
+    window->SetTagTables(vtables.main, vtables.input);
 }
 
 // A window of `size` bytes built on the window base with the vtable pair, or null.
@@ -149,7 +148,7 @@ CUiContainer* AsContainer(CExchangeScreen* screen) { return screen; }
 
 } // namespace
 
-void CExchangeScreen::Create() {
+void CExchangeScreen::CreateScreen() {
     LoadTexture("campinfo", 3, nullptr);
     CUiRegion* region = AddRegion();
     region->SetRect(12, 450, 52, 490);
@@ -234,7 +233,7 @@ void CExchangeScreen::Create() {
     AddSurface(NewSurface(interface_, 0xD2, 0x10E));
     AddSurface(NewSurface(interface_, 0x6E, 0xAA));
 }
-EI_REWRITTEN(0x0062C250, CExchangeScreen::Create);
+EI_REWRITTEN(0x0062C250, CExchangeScreen::CreateScreen);
 
 // --- 0062C9C0: Draw (slot 20) ----------------------------------------------------------------------
 

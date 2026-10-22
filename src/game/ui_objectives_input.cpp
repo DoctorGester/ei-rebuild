@@ -44,7 +44,7 @@ QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName
 } // namespace
 
 void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->OnLeftDown(buttons, x, y);
+    CUiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones_.end() - zones_.begin());
     switch (region) {
@@ -105,7 +105,7 @@ constexpr int kActionObjectives = 4;   // "obj" in the key table
 } // namespace
 
 void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->OnKeyDown(key, repeat, flags);
+    CUiContainer::KeyDown(key, repeat, flags);
     int step = 0;
     switch (key) {
     case kKeyEnter:
@@ -118,12 +118,12 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
             GamePassTime(exit.distance_);
             RequestZone(shownZone_, index);
         }
-        inputHandled_ = true;
+        handled_ = true;
         break;
     case kKeyEsc:
         interface_->PlaySound(twoButtons_ == 0 ? OkSound() : CancelSound(), 0);
         interface_->SetPendingValue(0);
-        inputHandled_ = true;
+        handled_ = true;
         break;
     case kKeyPageUp: step = -5; break;
     case kKeyPageDown: step = 5; break;
@@ -135,9 +135,9 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
         interface_->PlaySound(SelectSound(), 0);
         selectedQuest_ += step;
         RefreshQuests();
-        inputHandled_ = true;
+        handled_ = true;
     }
-    if (!inputHandled_ && KeyActions()[flags & 0x1FF] == kActionObjectives && twoButtons_ == 0) {
+    if (!handled_ && KeyActions()[flags & 0x1FF] == kActionObjectives && twoButtons_ == 0) {
         interface_->PlaySound(MessageOkSound(), 0);
         interface_->SetPendingValue(0);
     }

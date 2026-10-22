@@ -27,7 +27,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 KINDS = ['EI_REPLACE', 'EI_REPLACE_STANDALONE', 'EI_REPLACE_SHORT', 'EI_RECORD']   # include/ei/hook.h RegKind
 SET_OF = ['plain replacement', 'plain replacement', 'plain replacement', 'recorder']
 RECORD = struct.Struct('<IIII')   # address, file (VA of the string), line, kind
-ORIGIN = struct.Struct('<IIII')   # EI_REWRITTEN: address, function (VA), file (VA of the string), line
+ORIGIN = struct.Struct('<IIII')   # EI_REWRITTEN: address, VA of a constant holding &fn (or of a name), file (VA of the string), line
 
 
 class Image:

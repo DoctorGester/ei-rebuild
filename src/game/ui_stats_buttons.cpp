@@ -118,7 +118,7 @@ void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
         }
         if (heldRegion_ > 0) {
             holdTime_ = kFirstHold;
-            UiCapture(interface_) = CaptureValue(InputOf(this));
+            UiCapture(interface_) = Input();
         }
         return;
     }

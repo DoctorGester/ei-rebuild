@@ -17,45 +17,37 @@ std::uint32_t FrameMilliseconds() {
     return ei::ObjectSlot<Fn>(display, 6)(display);
 }
 
-// Slot 0 of an input side or a window: the deleting destructor (with 1: the memory is freed).
-void DeleteInstance(void* object) {
-    using Fn = void(__thiscall*)(void*, int);
-    ei::ObjectSlot<Fn>(object, 0)(object, 1);
-}
 } // namespace
 
 // --- Construction and destruction --------------------------------------------------------------
 
-CUiContainer* CUiContainer::Construct(CInterface3D* ui) {
-    CUiWindow::Construct(ui);
+CUiContainer::CUiContainer(CInterface3D* ui) : CUiWindow(ui) {
     children_ = UiPtrArray<CUiWindow>{};
     // The extra input sides (an empty STLport vector; the original stores the low byte of `ui` as
     // its allocator into +0x160 and overwrites it with the null capacity at once).
     inputsBegin_ = nullptr;
     inputsEnd_ = nullptr;
     inputsCapacity_ = nullptr;
-    vtable_ = ContainerVtable();
-    inputVtable_ = ContainerInputVtable();
-    return this;
 }
-EI_REWRITTEN(0x00600B20, CUiContainer::Construct);
+EI_REWRITTEN_SPECIAL(0x00600B20, CUiContainer::CUiContainer);
 
-void CUiContainer::DestroyContainer() {
-    vtable_ = ContainerVtable();
-    inputVtable_ = ContainerInputVtable();
-    for (UiInputSide** side = inputsBegin_; side != inputsEnd_; ++side)
-        if (*side) DeleteInstance(*side);
-    for (int i = 0; i < children_.size; ++i)
-        if (CUiWindow* child = children_.data[i]) DeleteInstance(child);
+CUiContainer::~CUiContainer() {
+    for (UiInputSide** side = inputsBegin_; side != inputsEnd_; ++side) delete *side;
+    for (int i = 0; i < children_.size; ++i) delete children_.data[i];
     children_.SetSize(0, -1);
     // The vector's storage goes back to the node pool (the pointers are left as they are).
     if (inputsBegin_)
         stlp::deallocate(inputsBegin_, static_cast<std::size_t>(inputsCapacity_ - inputsBegin_) * sizeof(UiInputSide*));
     // The children array's destructor (its storage is already freed).
     if (children_.data) lib::FreeAligned32(children_.data);
-    DestroyBase();
 }
-EI_REWRITTEN(0x00600BA0, CUiContainer::DestroyContainer);
+EI_REWRITTEN_SPECIAL(0x00600BA0, CUiContainer::~CUiContainer);
+
+extern "C" int __cdecl _purecall();
+
+// Slots 25 / 26 are pure in game.exe's table: a screen that does not override them never gets on the screen.
+void CUiContainer::CreateScreen() { _purecall(); }
+void CUiContainer::CloseScreen() { _purecall(); }
 
 // STLport's push_back: when full, a block of size + max(size, 1) pointers from the node pool
 // (00601B70, _M_insert_overflow), the old block back to the pool.
@@ -86,7 +78,7 @@ double CUiContainer::FrameTime() { return x87::FromUnsigned(FrameMilliseconds())
 EI_REWRITTEN(0x00600270, CUiContainer::FrameTime);
 
 void CUiContainer::UpdateBase() {
-    for (int i = 0; i < children_.size; ++i) children_.data[i]->VirtualUpdate();
+    for (int i = 0; i < children_.size; ++i) children_.data[i]->Update();
 }
 EI_REWRITTEN(0x006010E0, CUiContainer::UpdateBase);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
@@ -98,17 +90,17 @@ void CUiContainer::RedrawContainer() {
     RedrawBase();
     for (int i = 0; i < children_.size; ++i) {
         CUiWindow* child = children_.data[i];
-        if (child->enabled_) child->VirtualRedraw();
+        if (child->enabled_) child->Redraw();
     }
 }
 EI_REWRITTEN(0x00601040, CUiContainer::RedrawContainer);
 
 void CUiContainer::RedrawChildTips() {
     if (!interface_->drawing_) return;
-    RedrawTips();
+    RedrawRegionTips();
     for (int i = 0; i < children_.size; ++i) {
         CUiWindow* child = children_.data[i];
-        if (child->enabled_) child->VirtualRedrawTips();
+        if (child->enabled_) child->RedrawTips();
     }
 }
 EI_REWRITTEN(0x00601090, CUiContainer::RedrawChildTips);
@@ -117,15 +109,15 @@ void CUiContainer::ShowChildren(int show) {
     ShowSurfaces(show);
     for (int i = 0; i < children_.size; ++i) {
         CUiWindow* child = children_.data[i];
-        if (child->enabled_) child->VirtualShow(show);
+        if (child->enabled_) child->Show(show);
     }
 }
 EI_REWRITTEN(0x00601AC0, CUiContainer::ShowChildren);
 
 // --- Input dispatch ----------------------------------------------------------------------------
 
-void UiContainerInput::Dispatch(int slot, int a, int b, int c, bool atPoint) {
-    CUiContainer* self = Container();
+void CUiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
+    CUiContainer* self = this;
     handled_ = false;
     for (UiInputSide** side = self->inputsBegin_; side != self->inputsEnd_; ++side) {
         (*side)->handled_ = false;
@@ -140,57 +132,87 @@ void UiContainerInput::Dispatch(int slot, int a, int b, int c, bool atPoint) {
         if (!child->enabled_) continue;
         if (atPoint && !child->ContainsPoint(b, c)) continue;
         child = self->children_.data[i];
-        child->inputHandled_ = false;
+        child->handled_ = false;
         child->Input()->Event(slot, a, b, c);
-        if (self->children_.data[i]->inputHandled_) {
+        if (self->children_.data[i]->handled_) {
             handled_ = true;
             return;
         }
     }
 }
 
-void UiContainerInput::OnDeactivate() {
-    CUiContainer* self = Container();
+void CUiContainer::Deactivate() {
+    CUiContainer* self = this;
     for (UiInputSide** side = self->inputsBegin_; side != self->inputsEnd_; ++side) (*side)->Deactivate();
     for (int i = 0; i < self->children_.size; ++i) self->children_.data[i]->Input()->Deactivate();
 }
-EI_REWRITTEN(0x00601A60, UiContainerInput::OnDeactivate);
+EI_REWRITTEN(0x00601A60, CUiContainer::Deactivate);
 
-void UiContainerInput::OnLeftDown(int buttons, int x, int y) { Dispatch(kLeftDown, buttons, x, y, true); }
-EI_REWRITTEN(0x00601110, UiContainerInput::OnLeftDown);
+int CUiContainer::LeftDown(int buttons, int x, int y) {
+    Dispatch(kEventLeftDown, buttons, x, y, true);
+    return 0;
+}
+EI_REWRITTEN(0x00601110, CUiContainer::LeftDown);
 
-void UiContainerInput::OnLeftUp(int buttons, int x, int y) { Dispatch(kLeftUp, buttons, x, y, true); }
-EI_REWRITTEN(0x006011F0, UiContainerInput::OnLeftUp);
+int CUiContainer::LeftUp(int buttons, int x, int y) {
+    Dispatch(kEventLeftUp, buttons, x, y, true);
+    return 0;
+}
+EI_REWRITTEN(0x006011F0, CUiContainer::LeftUp);
 
-void UiContainerInput::OnMouseMove(int buttons, int x, int y) { Dispatch(kMouseMove, buttons, x, y, true); }
-EI_REWRITTEN(0x006012D0, UiContainerInput::OnMouseMove);
+int CUiContainer::MouseMove(int buttons, int x, int y) {
+    Dispatch(kEventMouseMove, buttons, x, y, true);
+    return 0;
+}
+EI_REWRITTEN(0x006012D0, CUiContainer::MouseMove);
 
-void UiContainerInput::OnRightDown(int buttons, int x, int y) { Dispatch(kRightDown, buttons, x, y, true); }
-EI_REWRITTEN(0x006013B0, UiContainerInput::OnRightDown);
+int CUiContainer::RightDown(int buttons, int x, int y) {
+    Dispatch(kEventRightDown, buttons, x, y, true);
+    return 0;
+}
+EI_REWRITTEN(0x006013B0, CUiContainer::RightDown);
 
-void UiContainerInput::OnRightUp(int buttons, int x, int y) { Dispatch(kRightUp, buttons, x, y, true); }
-EI_REWRITTEN(0x00601490, UiContainerInput::OnRightUp);
+int CUiContainer::RightUp(int buttons, int x, int y) {
+    Dispatch(kEventRightUp, buttons, x, y, true);
+    return 0;
+}
+EI_REWRITTEN(0x00601490, CUiContainer::RightUp);
 
-void UiContainerInput::OnLeftDouble(int buttons, int x, int y) { Dispatch(kLeftDouble, buttons, x, y, true); }
-EI_REWRITTEN(0x00601570, UiContainerInput::OnLeftDouble);
+int CUiContainer::LeftDouble(int buttons, int x, int y) {
+    Dispatch(kEventLeftDouble, buttons, x, y, true);
+    return 0;
+}
+EI_REWRITTEN(0x00601570, CUiContainer::LeftDouble);
 
-void UiContainerInput::OnRightDouble(int buttons, int x, int y) { Dispatch(kRightDouble, buttons, x, y, true); }
-EI_REWRITTEN(0x00601650, UiContainerInput::OnRightDouble);
+int CUiContainer::RightDouble(int buttons, int x, int y) {
+    Dispatch(kEventRightDouble, buttons, x, y, true);
+    return 0;
+}
+EI_REWRITTEN(0x00601650, CUiContainer::RightDouble);
 
 // Key events reach every enabled child, wherever the mouse is.
-void UiContainerInput::OnKeyDown(int key, int repeat, int flags) { Dispatch(kKeyDown, key, repeat, flags, false); }
-EI_REWRITTEN(0x00601820, UiContainerInput::OnKeyDown);
+int CUiContainer::KeyDown(int key, int repeat, int flags) {
+    Dispatch(kEventKeyDown, key, repeat, flags, false);
+    return 0;
+}
+EI_REWRITTEN(0x00601820, CUiContainer::KeyDown);
 
-void UiContainerInput::OnChar(int key, int repeat, int flags) { Dispatch(kChar, key, repeat, flags, false); }
-EI_REWRITTEN(0x006018E0, UiContainerInput::OnChar);
+int CUiContainer::Char(int key, int repeat, int flags) {
+    Dispatch(kEventChar, key, repeat, flags, false);
+    return 0;
+}
+EI_REWRITTEN(0x006018E0, CUiContainer::Char);
 
-void UiContainerInput::OnKeyUp(int key, int repeat, int flags) { Dispatch(kKeyUp, key, repeat, flags, false); }
-EI_REWRITTEN(0x006019A0, UiContainerInput::OnKeyUp);
+int CUiContainer::KeyUp(int key, int repeat, int flags) {
+    Dispatch(kEventKeyUp, key, repeat, flags, false);
+    return 0;
+}
+EI_REWRITTEN(0x006019A0, CUiContainer::KeyUp);
 
 // The wheel's four arguments go on unchanged; the children are tested at (x, y). Returns 1 (the
 // interface's wheel dispatch 005F7880 passes it on).
-int UiContainerInput::OnWheel(int flags, int delta, int x, int y) {
-    CUiContainer* self = Container();
+int CUiContainer::Wheel(int flags, int delta, int x, int y) {
+    CUiContainer* self = this;
     handled_ = false;
     for (UiInputSide** side = self->inputsBegin_; side != self->inputsEnd_; ++side) {
         (*side)->handled_ = false;
@@ -204,13 +226,13 @@ int UiContainerInput::OnWheel(int flags, int delta, int x, int y) {
         CUiWindow* child = self->children_.data[i];
         if (!child->enabled_ || !child->ContainsPoint(x, y)) continue;
         child = self->children_.data[i];
-        child->inputHandled_ = false;
+        child->handled_ = false;
         child->Input()->Wheel(flags, delta, x, y);
-        if (self->children_.data[i]->inputHandled_) {
+        if (self->children_.data[i]->handled_) {
             handled_ = true;
             return 1;
         }
     }
     return 1;
 }
-EI_REWRITTEN(0x00601730, UiContainerInput::OnWheel);
+EI_REWRITTEN(0x00601730, CUiContainer::Wheel);

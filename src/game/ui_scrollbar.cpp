@@ -52,8 +52,7 @@ CUiScrollbar* CUiScrollbar::Construct(CInterface3D* ui, RECT rect, float depth, 
     maxPosition_ = maximum;
     speed_ = speed;
     depth_ = depth;
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     moved_ = true;
     state_ = 0;
     position_ = -1;
@@ -119,8 +118,7 @@ EI_REWRITTEN(0x0065B490, CUiScrollbar::SetRect);
 
 CUiSlider* CUiSlider::Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed) {
     CUiScrollbar::Construct(ui, rect, depth, maximum, speed);
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     return this;
 }
 EI_REWRITTEN(0x0065BC30, CUiSlider::Construct);
@@ -146,14 +144,14 @@ void CUiScrollbar::OnMouseMove(int, int x, int y) {
         int along = point.y - grabY_;
         CallSetPosition(Truncate(static_cast<double>(along - track_.top) * maxPosition_ / (track_.bottom - track_.top)));
     }
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 int CUiScrollbar::OnWheel(int, int delta, int x, int y) {
     if (RegionAt(x, y) == kTrackRegion) {
         double step = static_cast<double>(static_cast<short>(delta)) * speed_ * WheelStep();
         accumulated_ = static_cast<float>(accumulated_ - step);
-        inputHandled_ = true;
+        handled_ = true;
     }
     return 1;
 }
@@ -184,7 +182,7 @@ void CUiSlider::OnMouseMove(int, int x, int y) {
         int along = point.x - grabX_;
         CallSetPosition(Truncate(static_cast<double>(along - track_.left) * maxPosition_ / (track_.right - track_.left)));
     }
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 EI_REWRITTEN(0x0065B1A0, InputForward<&CUiScrollbar::OnMouseMove>::Call);

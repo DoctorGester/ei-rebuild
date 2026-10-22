@@ -77,12 +77,12 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         if (key == VK_ESCAPE) chatActive_ = 0;
         return;
     }
-    InputOf(this)->OnKeyDown(key, repeat, flags);
+    CUiContainer::KeyDown(key, repeat, flags);
     switch (key) {
     case VK_BACK:
         if (IsMultiplayerClient()) {
             interface_->ChatKeyBackspace();
-            inputHandled_ = true;
+            handled_ = true;
             return;
         }
         break;
@@ -96,7 +96,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
             interface_->PlaySound(ClickSound(), 0);
             FinishDialogue();
         }
-        inputHandled_ = true;
+        handled_ = true;
         return;
     case VK_ESCAPE:
         if (state_ == 0) {
@@ -112,7 +112,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         } else if (state_ == 1) {
             state_ = 0;
         }
-        inputHandled_ = true;
+        handled_ = true;
         return;
     case VK_SPACE:
         if (state_ == 3) {
@@ -124,7 +124,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         } else if (state_ == 2) {
             StartDialogue(1, 0);
         }
-        inputHandled_ = true;
+        handled_ = true;
         return;
     default:
         break;
@@ -136,7 +136,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         break;
     case kActionLeader:
         if (leader_) TheCamera()->SetTarget(leader_);
-        inputHandled_ = true;
+        handled_ = true;
         break;
     case kActionQuickSave:
         ::QuickSave(QuickSaveName(), static_cast<char>(0));

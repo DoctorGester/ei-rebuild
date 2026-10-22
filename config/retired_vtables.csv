@@ -354,14 +354,14 @@ vtable,slots,class,file,note
 007400A8,13,ChatOverlayInputClass,src/game/ui_chat_overlay.cpp,the chat overlay's input side
 007400DC,25,ChatOverlayClass,src/game/ui_chat_overlay.cpp,the multiplayer chat overlay (CChatOverlay)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
-007401D0,13,InputSideBaseClass,src/game/ui_input_class.h,the base input side (also stored by game.exe's dead 005EA830 / 005EB620 and the unwind-only 005FE900)
-00740208,13,CameraInputClass,src/game/ui_camera_input.cpp,the battle camera's input side (CCameraInput)
+007401D0,13,UiInputSide,src/game/ui.h,the base input side (also stored by game.exe's dead 005EA830 / 005EB620 and the unwind-only 005FE900)
+00740208,13,CCameraInput,src/game/ui_camera_keys.h,the battle camera's input side (CCameraInput)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
-00740278,13,UnitPickInputClass,src/game/ui_view_screen.cpp,the view screen's unit pick input side (UnitPickInput)
+00740278,13,UnitPickInput,src/game/ui_view_screen.h,the view screen's unit pick input side (UnitPickInput)
 007402AC,3,UnitPtrArrayClass,src/lib/mfc_slots.h,CArray (the interface's unit pointer arrays)
 007403F8,4,ItemTurnClass,src/game/ui_item_screen.cpp,an item's turning state (ItemTurn)
-00740410,13,UiWindowInputClass,src/game/ui_input_class.h,the item screens' icon window's input side (the plain window's)
-00740444,25,IconWindowClass,src/game/ui_item_screen.cpp,the item screens' icon window (CItemIconWindow)
+00740410,13,CItemIconWindow,src/game/ui_item_info.h,the item screens' icon window's input side (CItemIconWindow's UiInputSide)
+00740444,25,CItemIconWindow,src/game/ui_item_info.h,the item screens' icon window (CItemIconWindow)
 007404A8,13,InfoPanelInputClass,src/game/ui_item_panel_tables.cpp,the item description panel's input side (CItemInfoPanel)
 007404DC,26,InfoPanelClass,src/game/ui_item_panel_tables.cpp,the item description panel (CItemInfoPanel)
 00740578,13,BriefingScreenInputClass,src/game/ui_screen_tables.cpp,the briefing screen's input side
@@ -388,12 +388,12 @@ vtable,slots,class,file,note
 00740DF4,13,HelpWindowInputClass,src/game/ui_screen_tables.cpp,the help window's input side
 00740E28,42,HelpWindowClass,src/game/ui_screen_tables.cpp,the help / message window (CHelpWindow)
 00740F28,1,UiSurfaceClass,src/game/ui.h,a window's off-screen surface (CUiSurface)
-00740F2C,13,UiWindowInputClass,src/game/ui_input_class.h,the plain window's input side
-00740F60,25,UiWindowBaseClass,src/game/ui_window_class.h,the plain window (CUiWindow)
-00740FD4,5,ContainerBaseInputClass,src/game/ui_screen_tables.cpp,a container's input side (UiContainerInput)
-00740FE8,8,ContainerBaseInputClass,src/game/ui_screen_tables.cpp,the container input side's tail (a byte match in 006DBE20 split it off)
-00741008,42,ContainerBaseClass,src/game/ui_screen_tables.cpp,the container (CUiContainer)
-00741154,13,InertInputClass,src/game/ui_input_class.h,an inert extra input side
+00740F2C,13,CUiWindow,src/game/ui.h,the plain window's input side (CUiWindow's UiInputSide)
+00740F60,25,CUiWindow,src/game/ui.h,the plain window (CUiWindow)
+00740FD4,5,CUiContainer,src/game/ui.h,a container's input side (CUiContainer's UiInputSide)
+00740FE8,8,CUiContainer,src/game/ui.h,the container input side's tail (a byte match in 006DBE20 split it off)
+00741008,42,CUiContainer,src/game/ui.h,the container (CUiContainer)
+00741154,13,UiInertInput,src/game/ui.h,an inert extra input side
 00741188,13,ObjectivesInputClass,src/game/ui_screen_tables.cpp,the objectives window's input side
 007411BC,42,ObjectivesClass,src/game/ui_screen_tables.cpp,the objectives window (CObjectivesWindow)
 00741264,3,ObjectiveExitArrayClass,src/lib/mfc_slots.h,CArray (the objectives window's exits)

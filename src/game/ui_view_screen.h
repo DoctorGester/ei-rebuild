@@ -6,22 +6,23 @@
 // docs/notes/ui.md, section 4.
 
 #include "ui.h"
-#include "ui_input_class.h"
 #include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
 
-// The picked units' input side (compiled table; game.exe's 00740278, 0x20 bytes; one of screen 7's extra inputs).
-// The other slots are the base input's (vtable 007401D0).
-struct UnitPickInput : UiInputSide {
-    // 005EB8C0 (RET 4). Constructor: the interface, an empty id list. Returns this.
-    UnitPickInput* Construct(CInterface3D* ui);
-    // 005EB910. Destructor body: the list freed, the base input's vtable.
-    void Destruct();
-    // 005EB8F0 (slot 0, RET 4). The destructor, then operator delete when bit 0 of `flags` is
-    // set. Returns this.
-    UnitPickInput* DeleteThis(int flags);
+// The picked units' input side (game.exe's table 00740278, 0x20 bytes; one of screen 7's extra inputs). The other
+// slots are the base input side's.
+struct UnitPickInput final : UiInputSide {
+    // 005EB8C0 (RET 4). The interface, an empty id list.
+    explicit UnitPickInput(CInterface3D* ui);
+    // 005EB910, deleting 005EB8F0. The list freed.
+    ~UnitPickInput() override;
+    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }     // 2
+    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }   // 5
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }       // 9
+    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }           // 11
+
     // 005EB940 (slot 2, RET 0xC). Without Ctrl: a unit under the point (00565D00) is added to the
     // list (its id) and controlled (00566030); else each listed unit still in the client world
     // walks to the ground point under it. With Ctrl and a unit under the point: each listed unit
@@ -35,14 +36,8 @@ struct UnitPickInput : UiInputSide {
     // 005EBBC0 (slot 11, RET 0xC). Ctrl released: cursor 0.
     void OnKeyUp(int key, int repeat, int flags);
 
-    // The compiled table (C19, ui_input_class.h) in place of game.exe's 00740278, and the base input side's.
-    static void** Vtable();
-    static void** BaseVtable() { return BaseInputVtable(); }
-
     UiDwordArray picked_;            // +0x0C ids of the picked units (CDWordArray, SetSize 0059C660)
 };
-static_assert(offsetof(UnitPickInput, picked_) == 0x0C);
-static_assert(sizeof(UnitPickInput) == 0x20);
 
 // Screen 7 (vtables 00740840 / 0074080C, 0x168 bytes: a container; CreateScreen constructs it
 // inline). Its slots but 20, 25 and 26 are the container's.
@@ -51,7 +46,7 @@ public:
     // 0062A830 (slot 25, the screen's Create). Three extra inputs: an inert one (vtable 00741154),
     // UnitPickInput, the battle camera's keys (005EACB0); the camera no longer free, its focus at
     // (30, 30) and its rotation turned by 225 degrees about x (premultiplied).
-    void Build();
+    void CreateScreen() override;
     // 0062AA50 (slot 20, RET 4). The client glue's per-frame step (00578910); returns 1.
     BOOL DrawView(int pass);
     // 0062AA40 (slot 26). The camera free again.

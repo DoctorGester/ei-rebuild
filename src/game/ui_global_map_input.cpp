@@ -175,12 +175,12 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
 }
 
 void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->OnKeyDown(key, repeat, flags);
+    CUiContainer::KeyDown(key, repeat, flags);
     if (key == VK_ESCAPE) {
         interface_->PushWindow(CEscMenu::New(interface_), 1, 1);
-        inputHandled_ = true;
+        handled_ = true;
     }
-    if (inputHandled_) return;
+    if (handled_) return;
     int action = KeyActions()[flags & kScanCodeMask];
     if (action == kActionQuickSave)
         ::QuickSave(QuickSaveName(), static_cast<char>(0));
@@ -194,7 +194,7 @@ void CGlobalMap::OnMessageResult(int) {
     turning_ = 0;
     dragging_ = false;
     selectPending_ = 1;
-    InputMouseMove(0, x, y);
+    Input()->MouseMove(0, x, y);
 }
 
 void CGlobalMap::Close() {

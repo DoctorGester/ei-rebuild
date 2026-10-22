@@ -78,13 +78,11 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
     camp->models_.Construct(compare);
     camp->textures_.Construct(compare);
-    camp->vtable_ = CItemScreen::ItemScreenVtable();
-    camp->inputVtable_ = CItemScreen::ItemScreenInputVtable();
+    camp->SetTagTables(CItemScreen::ItemScreenVtable(), CItemScreen::ItemScreenInputVtable());
     camp->fromHeroScreen_ = true;   // opened from the hero screen
     camp->heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
     camp->pageTitles_.Construct();
-    camp->vtable_ = CCampPages::Vtable();
-    camp->inputVtable_ = CCampPages::InputVtable();
+    camp->SetTagTables(CCampPages::Vtable(), CCampPages::InputVtable());
     return camp;
 }
 
@@ -157,8 +155,8 @@ void CMpHeroScreen::FinishRename() {
 }
 
 void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->OnKeyDown(key, repeat, flags);
-    if (inputHandled_) return;
+    CUiContainer::KeyDown(key, repeat, flags);
+    if (handled_) return;
     CInterface3D* ui = interface_;
     bool renaming = renameEdit_->focused_;
     int heroStep = 0;
@@ -173,7 +171,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
             MpHeroAddNew(this);
         else if (mode_ == kModeNewHero)
             MpHeroCreate(this);
-        inputHandled_ = true;
+        handled_ = true;
         return;
     case VK_ESCAPE:
         if (renaming) {
@@ -187,7 +185,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             SetMode(this, nullptr, kModeList);
         }
-        inputHandled_ = true;
+        handled_ = true;
         return;
     case VK_PRIOR:
         heroStep = -10;
@@ -220,19 +218,19 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
     } else {
         return;
     }
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     if (renameEdit_->focused_) return;
-    InputOf(this)->OnLeftDown(flags, x, y);
-    if (inputHandled_) return;
+    CUiContainer::LeftDown(flags, x, y);
+    if (handled_) return;
     CInterface3D* ui = interface_;
     int region = RegionAt(x, y);
     auto rotate = [&](int direction) {
         uiorig::PlayUiSound(ui, game::RotateSoundText(), 0);
         rotating_ = direction;
-        UiCapture(ui) = CaptureValue(InputOf(this));
+        UiCapture(ui) = Input();
     };
 
     if (mode_ == 10) {
@@ -472,8 +470,7 @@ CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
     new (&screen->hostPassword_) mfc::CString();
     screen->allodNames_.Construct();
     screen->texts_.Construct();
-    screen->vtable_ = CMpConnectScreen::Vtable();
-    screen->inputVtable_ = CMpConnectScreen::InputVtable();
+    screen->SetTagTables(CMpConnectScreen::Vtable(), CMpConnectScreen::InputVtable());
     return screen;
 }
 } // namespace

@@ -30,7 +30,7 @@ int IndexIn(CItem* const* list, int count, const CItem* item) {
 }
 
 // The owner's slot 46 (+0xB8): the shown weapons refreshed.
-void RefreshWeapons(CUiWindow* owner) { owner->CallVirtual(46); }
+void RefreshWeapons(CUiWindow* owner) { static_cast<CItemScreen*>(owner)->VirtualRefreshWeapons(); }
 
 } // namespace
 

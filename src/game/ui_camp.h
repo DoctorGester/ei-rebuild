@@ -48,8 +48,7 @@ T* NewItemPanel(CInterface3D* ui, CItemScreen* owner, VtablePair vtables) {
     CUiItemPanel* panel = memory;
     panel->Construct(ui);
     panel->owner_ = owner;
-    panel->vtable_ = vtables.main;
-    panel->inputVtable_ = vtables.input;
+    panel->SetTagTables(vtables.main, vtables.input);
     return memory;
 }
 
@@ -151,7 +150,7 @@ public:
     // 0062D350 (slot 25). Builds the map of the local player's allod: the island model, the
     // zones, the quests the player holds ("q.<zone>.<quest>" = 1) and the links to zones the
     // player may enter ("z.<zone>" = 2), the clock text, the camp and turn buttons, the weather.
-    void Create();
+    void CreateScreen() override;
     // 0062F050 (slot 24, every frame). While turning, turns the model and moves the markers and
     // their regions with it; bobs the current zone's arrow, animates the layers, refreshes the
     // zone selection when asked, draws the weather into texture 4, sets the cursor.
@@ -496,7 +495,7 @@ public:
     // 0060C870 (slot 25; Rebirth-patched; ui_camp_create.cpp, reproducing WideScreen, so hooked in
     // both launches). BuildPages, then with Rebirth's WideScreen the two curtains over the
     // screen's margins, shown (widescreen::AddCurtains; sprites 10 and 11).
-    void Create();
+    void CreateScreen() override;
     // The original Create's body (not a function of the game). Builds the camp: the server flag
     // set; the constructor's class template from the player's "constr.current" (none found: back
     // to the world, nothing built)

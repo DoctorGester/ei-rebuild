@@ -100,7 +100,7 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
         }
         break;
     }
-    ContainerInput()->OnLeftDown(buttons, x, y);
+    CUiContainer::LeftDown(buttons, x, y);
 }
 
 void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
@@ -116,7 +116,7 @@ void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
             Confirm();
         }
     }
-    ContainerInput()->OnLeftDouble(buttons, x, y);
+    CUiContainer::LeftDouble(buttons, x, y);
 }
 
 BOOL CSaveLoadWindow::Draw(int pass) {
@@ -226,7 +226,7 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
             }
         }
     }
-    ContainerInput()->OnLeftDown(buttons, x, y);
+    CUiContainer::LeftDown(buttons, x, y);
 }
 
 void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
@@ -247,7 +247,7 @@ void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
             RefreshRows();
         }
     }
-    ContainerInput()->OnLeftDouble(buttons, x, y);
+    CUiContainer::LeftDouble(buttons, x, y);
 }
 
 BOOL COptionsWindow::Draw(int pass) {
@@ -368,7 +368,7 @@ BOOL CUiScrollbar::TakePosition(int* position) {
 
 void CUiScrollbar::CallSetPosition(int position) {
     using Fn = void(__thiscall*)(CUiScrollbar*, int);
-    ei::VirtualSlot<Fn>(vtable_, 25)(this, position);
+    ei::VirtualSlot<Fn>(TagTable(), 25)(this, position);
 }
 
 void CUiScrollbar::Update() {
@@ -409,7 +409,7 @@ void CUiScrollbar::OnMouseDown(int, int x, int y) {
         state_ = 1;
         grabX_ = point.x - (thumb_.left + thumb_.right) / 2;
         grabY_ = point.y - (thumb_.top + thumb_.bottom) / 2;
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
     int region = RegionAt(x, y);
@@ -417,14 +417,14 @@ void CUiScrollbar::OnMouseDown(int, int x, int y) {
     CaptureMouse();
     state_ = region == 0 ? 2 : 3;
     accumulated_ = 0.0f;
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 void CUiScrollbar::OnMouseUp(int, int, int) {
     state_ = 0;
     interface_->mouseCapture_ = nullptr;
     accumulated_ = 0.0f;
-    inputHandled_ = true;
+    handled_ = true;
 }
 
 EI_REWRITTEN(0x0065B090, CUiScrollbar::TakePosition);

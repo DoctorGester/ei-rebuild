@@ -522,7 +522,7 @@ void CObjectivesWindow::ShowQuest() {
 
 // --- 0064BE80: Create ------------------------------------------------------------------------------
 
-void CObjectivesWindow::Build() {
+void CObjectivesWindow::CreateScreen() {
     UiD3DDevice* device = interface_->renderer_->device_;
     GetRenderState(device, kRenderStateAlphaRef, &savedAlphaRef_);
     SetRenderState(device, kRenderStateAlphaRef, 1);
@@ -724,7 +724,7 @@ void CObjectivesWindow::DrawQuestList() {
 
 EI_REPLACE(0x0064BE00, ConstructLastQuest);
 EI_REPLACE(0x0064BE20, DestroyLastQuest);
-EI_REWRITTEN(0x0064BE80, CObjectivesWindow::Build);
+EI_REWRITTEN(0x0064BE80, CObjectivesWindow::CreateScreen);
 EI_REWRITTEN(0x0064D9B0, CObjectivesWindow::DrawQuestList);
 EI_REWRITTEN(0x0064CC10, CObjectivesWindow::ShowZone);
 EI_REWRITTEN(0x0064DC60, CObjectivesWindow::ShowQuest);

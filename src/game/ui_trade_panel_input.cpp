@@ -105,7 +105,7 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
     if (hold) {
         heldRegion_ = region;
         holdTime_ = kFirstHold;
-        UiCapture(interface_) = CaptureValue(InputOf(this));
+        UiCapture(interface_) = Input();
     }
 }
 EI_REWRITTEN(0x00626920, InputForward<&CTradePanel::OnLButtonDown>::Call);

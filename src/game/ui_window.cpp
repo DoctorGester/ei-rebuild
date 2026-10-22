@@ -3,12 +3,13 @@
 #include "figure_mesh.h"
 #include "texture.h"
 #include "ui.h"
-#include "ui_window_class.h"
+#include "world_class_slots.h"
 
 #include "material.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "ei/vcall.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -27,17 +28,6 @@ int Mul(int a, int b) {
     return static_cast<int>(static_cast<std::uint32_t>(a) * static_cast<std::uint32_t>(b));
 }
 
-// Virtual slot 19 of a window (called with the new enabled state).
-void CallSlot19(CUiWindow* window, int value) {
-    using Fn = void(__thiscall*)(CUiWindow*, int);
-    ei::VirtualSlot<Fn>(window->vtable_, 19)(window, value);
-}
-
-// The deleting destructor (slot 0) of a region's tooltip.
-void DeleteTooltip(CUiTooltip* tip) {
-    using Fn = void*(__thiscall*)(CUiTooltip*, int);
-    ei::VirtualSlot<Fn>(tip->vtable_, 0)(tip, 1);
-}
 } // namespace
 
 
@@ -171,16 +161,16 @@ void CUiWindow::UpdateRegionTips(int) {
 EI_REWRITTEN(0x005FEBF0, CUiWindow::UpdateRegionTips);
 
 // The same per region, each tooltip then redrawn (its slot 22; the tooltip is re-read).
-void CUiWindow::RedrawTips() {
+void CUiWindow::RedrawRegionTips() {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
     interface_->ScalePointFromScreenEntry(&mouse);
     for (int i = 0; i < regions_.size; ++i) {
         CUiRegion* region = regions_.data[i];
         if (region->tip_) region->OnMouseMove(mouse.x, mouse.y);
-        if (CUiTooltip* tip = regions_.data[i]->tip_) tip->VirtualRedraw();
+        if (CUiTooltip* tip = regions_.data[i]->tip_) tip->Redraw();
     }
 }
-EI_REWRITTEN(0x005FED00, CUiWindow::RedrawTips);
+EI_REWRITTEN(0x005FED00, CUiWindow::RedrawRegionTips);
 
 BOOL CUiWindow::DrawBase(int pass) {
     for (int i = 0; i < sceneObjects_.size; ++i)
@@ -200,7 +190,7 @@ EI_REWRITTEN(0x005FECC0, CUiWindow::RedrawBase);
 
 void CUiWindow::SetEnabled(int enabled, int notify) {
     enabled_ = enabled;
-    if (notify) CallSlot19(this, enabled);
+    if (notify) Show(enabled);
 }
 EI_REWRITTEN(0x006002A0, CUiWindow::SetEnabled);
 
@@ -491,23 +481,16 @@ void ClearArray(UiPtrArray<T>& array) {
 }
 } // namespace
 
-void** CUiWindow::PlainVtable() { return UiWindowBaseClass::Slots(); }
-void** CUiWindow::PlainInputVtable() { return UiWindowInputClass::Slots(); }
-
-CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
-    EngineObjectConstruct(reinterpret_cast<CEngineObject*>(this));
+CUiWindow::CUiWindow(CInterface3D* ui) : UiInputSide(ui) {
+    ClearFields();
     localRotation_.SetIdentity();   // two identity rotations (0040CB00, inlined here)
     worldRotation_.SetIdentity();
-    interface_ = ui;
-    inputVtable_ = BaseInputVtable();
     std::memset(spareA0_, 0, sizeof(spareA0_));
     ClearArray(objects_);
     ClearArray(sceneObjects_);
     ClearArray(surfaces_);
     ClearArray(regions_);
     ClearArray(models_);
-    vtable_ = PlainVtable();
-    inputVtable_ = PlainInputVtable();
     flags_ = 0;
     rect_ = RECT{0, 0, 0, 0};
     localRotation_ = kIdentityRotation;
@@ -525,10 +508,18 @@ CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     materials->FillMaterial(black, 0x16);
     PrepareMaterial(black, 0.0f);
     enabled_ = 1;
-    CallSlot19(this, 1);
-    return this;
+    Show(1);
 }
-EI_REWRITTEN(0x005FE700, CUiWindow::Construct);
+EI_REWRITTEN_SPECIAL(0x005FE700, CUiWindow::CUiWindow);
+
+void CUiWindow::SetTagTables(void** window, void** input) {
+    ei::SetVtable(this, window);
+    ei::SetVtable(Input(), input);
+}
+
+int CUiWindow::Create() { return UiObjectCreate(this); }
+const char* CUiWindow::GetClassName() { return UiObjectClassName(this); }
+int CUiWindow::GetClassId() { return UiObjectClassId(this); }
 
 // --- 00600D30: CUiContainer::AddChild ------------------------------------------------------------
 
@@ -538,11 +529,9 @@ void CUiContainer::AddChild(CUiWindow* child) {
 }
 EI_REWRITTEN(0x00600D30, CUiContainer::AddChild);
 
-// --- 005FE930: the destructor body -------------------------------------------------------------
+// --- 005FE930: the destructor -----------------------------------------------------------------
 
-void CUiWindow::DestroyBase() {
-    vtable_ = PlainVtable();
-    inputVtable_ = PlainInputVtable();
+CUiWindow::~CUiWindow() {
     for (CEngineObject** held : {&blackMaterial_, &whiteMaterial_, &heldObject_}) {
         if (*held) (*held)->Release();
         *held = nullptr;
@@ -580,9 +569,5 @@ void CUiWindow::DestroyBase() {
     if (surfaces_.data) lib::FreeAligned32(surfaces_.data);
     if (sceneObjects_.data) lib::FreeAligned32(sceneObjects_.data);
     if (objects_.data) lib::FreeAligned32(objects_.data);
-    // The CTransformObject and CEngineObject levels.
-    inputVtable_ = BaseInputVtable();
-    vtable_ = static_cast<void**>(CTransformObject::BaseVtable());
-    reinterpret_cast<CEngineObject*>(this)->DestructBase();
 }
-EI_REWRITTEN(0x005FE930, CUiWindow::DestroyBase);
+EI_REWRITTEN_SPECIAL(0x005FE930, CUiWindow::~CUiWindow);

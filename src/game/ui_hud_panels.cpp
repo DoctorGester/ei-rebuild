@@ -72,7 +72,7 @@ CPlayerClient* Orders() { return TheClientWorld()->LocalView(); }
 
 void CUiScrollbar::CallSetRect(const RECT* rect) {
     using Fn = void(__thiscall*)(CUiScrollbar*, const RECT*);
-    ei::VirtualSlot<Fn>(vtable_, 26)(this, rect);
+    ei::VirtualSlot<Fn>(TagTable(), 26)(this, rect);
 }
 
 // --- Unit panel ----------------------------------------------------------------------------------

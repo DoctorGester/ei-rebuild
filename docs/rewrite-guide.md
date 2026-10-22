@@ -183,7 +183,7 @@ does not need a second pass:
   (`mfc::CTypedPtrList<netlink::NetLink>`); an inlined free of a 12-byte node is
   `stlp::PushSmallNode(node)`; a map whose element policy is not the default is subscripted with a
   named one (`headers_.Subscript<lib_trees::LinkHeaderElement>(name)`); a window's handled flag is
-  its `inputHandled_` member. A counted object is tested with `IsLive(object)` (core_refcount.h: set and
+  its `handled_` member (UiInputSide). A counted object is tested with `IsLive(object)` (core_refcount.h: set and
   not detached), not a per-file `Live(const void*)`; the server session's connections are `Connection*`
   and its player records `PlayerMessage*` (FindGuestConnection, FindPlayer, Kick, Ban); a file
   written by a transform slot is an `mfc::CFileVirtuals*`, and so is a chunk's `Chunk::File()`. A use order's spots

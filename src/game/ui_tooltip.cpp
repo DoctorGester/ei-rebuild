@@ -74,8 +74,7 @@ void** CUiTooltip::InputVtable() { return TooltipInputTable::Slots(); }
 CUiTooltip* CUiTooltip::Construct(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra) {
     CUiWindow::Construct(ui);
     lines_.Construct();
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     timer_ = 0.0f;
     state_ = 0;
     region_ = region;

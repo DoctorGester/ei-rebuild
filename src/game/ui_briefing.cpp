@@ -95,7 +95,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     default:
         break;
     }
-    if (IsMultiplayerClient()) VirtualShowChat(1);
+    if (IsMultiplayerClient()) PlayersChanged(1);
 }
 
 // --- 00602C90: slot 29 --------------------------------------------------------------------------

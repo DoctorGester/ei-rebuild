@@ -201,7 +201,7 @@ void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
 
 } // namespace
 
-void CGlobalMap::Create() {
+void CGlobalMap::CreateScreen() {
     autosave_ = false;
     if (GameSaveStream()->size_ != 0)
         GameSaveStream()->Resize(0);
@@ -496,8 +496,7 @@ void CGlobalMap::Create() {
         weatherIndex_ = i;
         SetWeather();
     }
-    using UpdateFn = void(__thiscall*)(CUiWindow*);
-    ei::VirtualSlot<UpdateFn>(vtable_, 24)(this);   // slot 24 (+0x60)
+    Update();   // slot 24 (+0x60)
     windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);   // buttons\globalmap\wind.wav
     if (autosave_) {
         if (options::TheOptions()->autosave_ != 0) ::QuickSave("saveb", static_cast<char>(1));
@@ -506,7 +505,7 @@ void CGlobalMap::Create() {
     interface_->OpenHelp(0);
 }
 
-EI_REWRITTEN(0x0062D350, CGlobalMap::Create);
+EI_REWRITTEN(0x0062D350, CGlobalMap::CreateScreen);
 
 // --- Update (0062F050) -----------------------------------------------------------------------------
 
@@ -547,8 +546,7 @@ void CGlobalMap::Update() {
     if (dragging_ && turning_ == 0) {
         POINT cursor;
         gameapi::GetCursorPos(&cursor);
-        using MoveFn = void(__thiscall*)(void*, int, int, int);
-        ei::VirtualSlot<MoveFn>(inputVtable_, 4)(InputSide(), 0, cursor.x, cursor.y);   // +0x10
+        Input()->MouseMove(0, cursor.x, cursor.y);   // input slot 4 (+0x10)
     }
     MapBuilder builder(this);
     if (turning_ != 0 || dragging_) {
@@ -671,8 +669,7 @@ CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     turn_.y = 0.0f;
     turn_.z = 0.0f;
     ::new (&shownName_) mfc::CString;
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     return this;
 }
 EI_REWRITTEN(0x005F67A0, CGlobalMap::Construct);

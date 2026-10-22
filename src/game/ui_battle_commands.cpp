@@ -136,7 +136,7 @@ void CBattleScreen::ToggleMember(int index) {
         CUnit* member = unitAt(i);
         if (member && chosen.data[i] != 0) {
             TheClientWorld()->Select(member);
-            if (index == i) VirtualUnitSpeech(unitAt(i)->id_, 0, nullptr);
+            if (index == i) Speech(unitAt(i)->id_, 0, nullptr);
         }
     }
 
@@ -178,7 +178,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         portraits_->slots_[i].wobbleKind_ = 1;
         int targetLevel = target->Level();
         int memberLevel = unitAt(i)->Level();
-        if (targetLevel - memberLevel > 5) VirtualUnitSpeech(unitAt(i)->id_, 10, nullptr);
+        if (targetLevel - memberLevel > 5) Speech(unitAt(i)->id_, 10, nullptr);
     }
     if (units.size != 0) LocalView(TheClientWorld())->SendAttack(&units, target, kind, ctrl & 0xFF);
     units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();

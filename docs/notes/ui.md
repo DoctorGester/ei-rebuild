@@ -25,7 +25,7 @@ message-box result, 42 and up screen-specific. Input slots: 1 deactivate, 2 left
 right down / up, 7 / 8 double clicks, 9 key down `(vk, repeat, scan|flags)`, 10 char, 11 key up, 12 wheel `(keys,
 delta, x, y)`; handlers `RET 0xC` (wheel `RET 0x10`) and return 1 on every path. A button-down handler that takes the
 mouse stores its input side in `CInterface3D +0x0C` (`mouseCapture_`); the button-up handler acts only when the capture
-is its own and clears it; a handler sets `+0x9C` (`inputHandled_`) when it used the event, which stops the container
+is its own and clears it; a handler sets `+0x9C` (`handled_`) when it used the event, which stops the container
 passing it on.
 
 **How the screens open.** `CInterface3D::CreateScreen` (005F5BA0) is called by the client's message 7 handler (00669D50)
@@ -153,7 +153,7 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
 - `CUiItemPanel::OnLButtonDown` (005EE310, input 2 of every item panel; S, ui_camp_deals), `ItemModel` (or a counted 100 x
   100 stand-in sprite).
 - Small and multiplayer-only functions (no scenario unless named; `verify_ui_small_slots.cpp`, `verify_ui_small_members.cpp`
-  list the scenario per address): `UiInputSide::LeftDoubleAsDown` / `RightDoubleAsDown` (slot 7 / 8 of most input sides;
+  list the scenario per address): `UiInputSide::LeftDouble` / `RightDouble` (slot 7 / 8 of most input sides;
   `dblclick`), `CCampPages::DebugFill` (slot 39, only the vtable refers to it), `CChatWindow` (base screen,
   `ui_chat_window.cpp`: players vector +0x150 of counted `PlayerMessage`s, front insert = the inlined `insert(begin(),
   x)`, overflow 0060A120), exchange `Create` / `Draw` (children constructed inline; `ui_exchange.cpp`),

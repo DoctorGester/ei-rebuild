@@ -416,7 +416,7 @@ EI_REWRITTEN(0x006381E0, CBattleScreen::PartyIds::Equals);
 void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
-        InputOf(this)->OnLeftUp(buttons, x, y);
+        CUiContainer::LeftUp(buttons, x, y);
         return;
     }
     viewPressed_ = false;
@@ -475,8 +475,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 world->Select(unitAt(static_cast<int>(node->data)));
             }
             int id = unitAt(first)->id_;
-            using EventFn = void(__thiscall*)(void*, int, int, int);
-            ei::VirtualSlot<EventFn>(vtable_, 0x80 / 4)(this, id, 0, 0);
+            Speech(id, 0, nullptr);   // slot 32 (+0x80)
         }
     }
     RefreshSelection();

@@ -25,24 +25,21 @@ T* FreeIfAsked(T* self, unsigned flags) {
 // --- Bodies -------------------------------------------------------------------------------------
 
 void CUiScrollbar::DestroyBody() {
-    vtable_ = CUiScrollbar::Vtable();
-    inputVtable_ = CUiScrollbar::InputVtable();
+    SetTagTables(CUiScrollbar::Vtable(), CUiScrollbar::InputVtable());
     DestroyBase();
 }
 EI_REWRITTEN(0x0065AFC0, CUiScrollbar::DestroyBody);
 EI_REWRITTEN(0x0065BCB0, CUiScrollbar::DestroyBody);
 
 void CUiSpin::DestroyBody() {
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     texts_.Destruct();
     DestroyBase();
 }
 EI_REWRITTEN(0x0065BE10, CUiSpin::DestroyBody);
 
 void CUiEditField::DestroyBody() {
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     Text().~CString();
     DestroyBase();
 }

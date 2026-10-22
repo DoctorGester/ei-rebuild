@@ -2212,7 +2212,7 @@ std::string CampPutOn(const std::string& argument) {
     if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
     auto* ui = HarnessInterface();
     auto* camp = reinterpret_cast<std::uint8_t*>(HarnessActiveWindow(ui));
-    if (!camp || RealWindowVtable(*reinterpret_cast<const std::uintptr_t*>(camp)) !=
+    if (!camp || WindowKind(camp) !=
                      reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const std::uint8_t>(0x0074091C)))
         return "campputon: the camp is not on top";
     int page = *reinterpret_cast<int*>(camp + 0x190);
@@ -2239,7 +2239,7 @@ std::string CampPutOn(const std::string& argument) {
 
 // --- waitwindow <seconds> <window> (ticket T1) ----------------------------------------------
 // The interface windows a scenario waits for, by game.exe's table of each (ui.h, ui_screens.h, ui_camp.h): the window
-// on top has it at +0 in game.exe's run; in the image its compiled table, which RealWindowVtable names by game.exe's
+// on top has it at +0 in game.exe's run; in the image its class, which WindowKind names by game.exe's table
 // (harness_windows.h).
 struct KnownWindow {
     const char* name;
@@ -2285,9 +2285,9 @@ bool WindowVtable(const std::string& name, std::uintptr_t* vtable) {
     return true;
 }
 
-// game.exe's table of the window on top (RealWindowVtable of its own), 0 without one.
+// game.exe's table of the window on top (WindowKind), 0 without one.
 std::uintptr_t TopWindowVtable(CUiWindow* top) {
-    return top ? ei::OriginalAddress(RealWindowVtable(*reinterpret_cast<const std::uintptr_t*>(top))) : 0;
+    return top ? ei::OriginalAddress(WindowKind(top)) : 0;
 }
 
 // Whether the awaited window is on top and takes input (see the step's description).

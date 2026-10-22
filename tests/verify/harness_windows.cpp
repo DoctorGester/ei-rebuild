@@ -10,22 +10,27 @@
 #include "ei/hook.h"
 #include "game/game_data.h"
 
+#include <typeinfo>
 #include <vector>
 
 namespace ei::verify {
 
 namespace {
 
-// A compiled window table of the image with game.exe's table it stands for.
-struct WindowKind {
-    const void* original;   // game.exe's table: the label
-    const void* compiled;   // the image's
+// A window class of the image with game.exe's table of it: a real C++ class by its type, one still built over a
+// compiled tag (C28m) by the tag's table.
+struct Kind {
+    const void* original;          // game.exe's table: the label
+    const void* compiled;          // the tag's table, or null
+    const std::type_info* type;    // the class, or null
+    Kind(const void* o, const void* c) : original(o), compiled(c), type(nullptr) {}
+    Kind(const void* o, const std::type_info& t) : original(o), compiled(nullptr), type(&t) {}
 };
 
-const std::vector<WindowKind>& WindowKinds() {
-    static const std::vector<WindowKind> kinds = {
+const std::vector<Kind>& WindowKinds() {
+    static const std::vector<Kind> kinds = {
         // the plain window, the controls, the chat, the icon window and the HUD panels (batch 19)
-        {&ei::OriginalGameData<const std::uint8_t>(0x00740F60), CUiWindow::PlainVtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740F60), typeid(CUiWindow)},
         {&ei::OriginalGameData<const std::uint8_t>(0x00742C18), CUiScrollbar::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x00742CBC), CUiSlider::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x00742E9C), CUiScrollText::Vtable()},
@@ -34,7 +39,7 @@ const std::vector<WindowKind>& WindowKinds() {
         {&ei::OriginalGameData<const std::uint8_t>(0x00742F64), CUiTooltip::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x007400DC), CChatOverlay::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x00741478), CChatWindow::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00740444), CItemIconWindow::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00740444), typeid(CItemIconWindow)},
         {&ei::OriginalGameData<const std::uint8_t>(0x00742498), CHudTopPanel::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x00742530), CHudMovePanel::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x007425C8), CHudClock::Vtable()},
@@ -46,7 +51,7 @@ const std::vector<WindowKind>& WindowKinds() {
         {&ei::OriginalGameData<const std::uint8_t>(0x00742980), CHudActionColumn::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x00742A18), CHudPortraits::Vtable()},
         // the containers and screens (batch 20)
-        {&ei::OriginalGameData<const std::uint8_t>(0x00741008), CUiContainer::ContainerVtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00741008), typeid(CUiContainer)},
         {&ei::OriginalGameData<const std::uint8_t>(0x00740764), CBattleScreen::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x00740688), CMainMenu::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x007405AC), CBriefingScreen::Vtable()},
@@ -86,10 +91,15 @@ const std::vector<WindowKind>& WindowKinds() {
 
 } // namespace
 
-std::uintptr_t RealWindowVtable(std::uintptr_t vtable) {
+std::uintptr_t WindowKind(const void* window) {
+    const std::uintptr_t vtable = *static_cast<const std::uintptr_t*>(window);
     if (!ei::Standalone()) return vtable;   // game.exe's windows keep game.exe's tables
-    for (const WindowKind& kind : WindowKinds())
-        if (reinterpret_cast<std::uintptr_t>(kind.compiled) == vtable) return reinterpret_cast<std::uintptr_t>(kind.original);
+    for (const Kind& kind : WindowKinds())
+        if (kind.compiled && reinterpret_cast<std::uintptr_t>(kind.compiled) == vtable)
+            return reinterpret_cast<std::uintptr_t>(kind.original);
+    const std::type_info& type = typeid(*static_cast<const CUiWindow*>(window));
+    for (const Kind& kind : WindowKinds())
+        if (kind.type && *kind.type == type) return reinterpret_cast<std::uintptr_t>(kind.original);
     return vtable;
 }
 

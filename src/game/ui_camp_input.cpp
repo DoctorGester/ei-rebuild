@@ -37,13 +37,12 @@ constexpr int kRegionFirstPage = 4;
 constexpr int kRegionLastPage = 11;
 constexpr int kEquipmentPage = 0;
 constexpr int kLeavePage = 7;
-constexpr int kSlotRefreshWeapons = 46;
 constexpr std::uint32_t kAnswerYes = 0x10001;
 
 } // namespace
 
 void CCampPages::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->OnLeftDown(buttons, x, y);
+    CUiContainer::LeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     switch (region) {
     case kRegionAction:
@@ -70,7 +69,7 @@ void CCampPages::OnLButtonDown(int buttons, int x, int y) {
 }
 
 void CCampPages::OnLButtonUp(int buttons, int x, int y) {
-    InputOf(this)->OnLeftUp(buttons, x, y);
+    CUiContainer::LeftUp(buttons, x, y);
     ReleaseMouse();
     turning_ = 0;
 }
@@ -78,7 +77,7 @@ void CCampPages::OnLButtonUp(int buttons, int x, int y) {
 void CCampPages::OnKeyDown(int key, int repeat, int flags) {
     if (key == VK_ESCAPE) {
         ShowPage(kLeavePage);
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
     if ((key == VK_BACK || key == VK_RETURN) && IsMultiplayerClient()) {
@@ -86,10 +85,10 @@ void CCampPages::OnKeyDown(int key, int repeat, int flags) {
             interface_->ChatKeyBackspace();
         else
             interface_->ChatKeyEnter();
-        inputHandled_ = true;
+        handled_ = true;
         return;
     }
-    InputOf(this)->OnKeyDown(key, repeat, flags);
+    CUiContainer::KeyDown(key, repeat, flags);
 }
 
 void CCampPages::OnMessageResult(int result) {
@@ -101,7 +100,7 @@ void CCampPages::OnMessageResult(int result) {
     hero->RemoveWeapon(weapon);   // 00660A50: the weapon list's Remove
     hero->weaponIndex = 0xFFFFFFFFu;
     itemStrip_->ScrollToItem(item);
-    CallVirtual(kSlotRefreshWeapons);
+    VirtualRefreshWeapons();
 }
 EI_REWRITTEN(0x0060E900, CCampPages::OnMessageResult);
 

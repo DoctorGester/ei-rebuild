@@ -33,14 +33,19 @@ struct HookRegistrar {
     HookRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen, void** original);
 };
 
-// Address of a member function, for registering class methods as replacements.
-// Valid for non-virtual members of classes with single inheritance (the only kind we hook).
+// Address of a member function, for registering class methods as replacements. Valid for non-virtual members.
+// A class with several bases (the windows, C28l) has two-word member pointers: the code and the adjustment of
+// `this`, which must be 0 (a member of the first base chain); null otherwise.
 template <typename T>
 void* MemberAddress(T member) {
-    void* p;
-    static_assert(sizeof(member) == sizeof(p), "multiple/virtual inheritance member pointer");
-    std::memcpy(&p, &member, sizeof(p));
-    return p;
+    static_assert(sizeof(member) == sizeof(void*) || sizeof(member) == 2 * sizeof(void*),
+                  "virtual inheritance member pointer");
+    struct {
+        void* code;
+        int adjust;
+    } p{};
+    std::memcpy(&p, &member, sizeof(member));
+    return p.adjust == 0 ? p.code : nullptr;
 }
 
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
@@ -177,23 +182,24 @@ struct RegRecord {
 // --drop writes one in place of each registration it drops.
 #pragma section(".eiorg", read, write)
 namespace ei {
-template <typename F>
+// `code` points at a constant holding &fn (a member pointer of a class with several bases is two words, C28l), or
+// at the name of a constructor or destructor (EI_REWRITTEN_SPECIAL); the record stays four words.
 struct OriginRecord {
-    static_assert(sizeof(F) == sizeof(void*), "multiple/virtual inheritance member pointer");
     std::uintptr_t address;
-    F code;
+    const void* code;
     const char* file;
     int line;
 };
 } // namespace ei
 #define EI_REWRITTEN(addr, fn) \
-    __declspec(allocate(".eiorg")) static ::ei::OriginRecord<decltype(&fn)> EI_CAT(ei_rewritten_, __LINE__) = \
-        {addr, &fn, __FILE__, __LINE__}
+    static constexpr auto EI_CAT(ei_rewritten_fn_, __LINE__) = &fn; \
+    __declspec(allocate(".eiorg")) static ::ei::OriginRecord EI_CAT(ei_rewritten_, __LINE__) = \
+        {addr, &EI_CAT(ei_rewritten_fn_, __LINE__), __FILE__, __LINE__}
 // The same for a constructor or destructor, which has no address to take (C28): `EI_REWRITTEN_SPECIAL(0x...,
 // CItem::CItem);`, `(0x..., CItem::~CItem);` (also for the original's scalar deleting destructor). The record holds
 // the name; the tools read the line like an EI_REWRITTEN one.
 #define EI_REWRITTEN_SPECIAL(addr, name) \
-    __declspec(allocate(".eiorg")) static ::ei::OriginRecord<const char*> EI_CAT(ei_rewritten_, __LINE__) = \
+    __declspec(allocate(".eiorg")) static ::ei::OriginRecord EI_CAT(ei_rewritten_, __LINE__) = \
         {addr, #name, __FILE__, __LINE__}
 
 // Run `fn` (void()) once in the standalone image before the registrations are taken (StartupAction).

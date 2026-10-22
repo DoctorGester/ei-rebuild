@@ -42,9 +42,8 @@ class CTradePanel;
 // Offset of the input sub-object (the second vtable) inside every window.
 constexpr std::ptrdiff_t kUiInputOffset = 0x94;
 
-// The input sub-object at window+0x94: the base screen class's handlers (vtable 00741008 subclass
-// of CUiWindow), not rewritten. Derived handlers call them first or last, as the original does.
-struct UiInput : UiContainerInput {   // the default handlers (UiContainerInput::On...)
+// The input side at window+0x94 as the tag tables see it (C28 transition, C28m).
+struct UiInput {
     // The input side's slot 0 of a window (SUB ECX,0x94; JMP to the window's deleting destructor,
     // ui_window_delete.cpp): `Delete` is that window class's own method; returns the window.
     template <auto Delete>
@@ -63,9 +62,6 @@ struct MemberClass<R (C::*)(A...)> {
 template <typename T>
 T* WindowFromInput(void* input) {
     return reinterpret_cast<T*>(static_cast<char*>(input) - kUiInputOffset);
-}
-inline UiInput* InputOf(void* window) {
-    return reinterpret_cast<UiInput*>(static_cast<char*>(window) + kUiInputOffset);
 }
 
 template <auto Delete>
@@ -88,12 +84,6 @@ struct InputForward<Method, R (C::*)(A...)> {
 inline void*& UiCapture(CInterface3D* ui) { return ui->mouseCapture_; }
 // A shift key is held (set by the key-down dispatch 005F78C0).
 inline bool UiShiftDown(const CInterface3D* ui) { return ui->shiftDown_ != 0; }
-
-// What the original stores as the capture: the input sub-object of `window`, or null for a null
-// window (LEA EAX,[ESI-0x94]; NEG; SBB; AND ESI).
-inline void* CaptureValue(void* input) {
-    return static_cast<char*>(input) - kUiInputOffset != nullptr ? input : nullptr;
-}
 
 // Not rewritten.
 namespace uiorig {
@@ -420,7 +410,7 @@ public:
     // 00633260 (the destructor body; slot 0 00633240 deletes): the two voice lists' entries and
     // storage, the CString +0x1F4, the two string vectors, the texture and model caches (objects
     // released, nodes erased), then the container's body (00600BA0).
-    void Destroy();
+    void DestroyBody();
     // 00633240 (slot 0, the deleting destructor; ui_window_delete.cpp). Destroy, then the memory
     // freed when bit 0 of `flags` is set; returns this.
     CMpHeroScreen* HeroScreenDelete(unsigned flags);
@@ -498,7 +488,7 @@ public:
     // (00662FB0), the list's scroll range, the list drawn, the first hero selected (-1 without
     // one) and mode 9 (00615D30); with Rebirth's WideScreen then the two curtains over the
     // screen's margins, hidden (widescreen::AddCurtains; sprites 19 and 20).
-    void Create();
+    void CreateScreen() override;
     // The hero list's scroll bar after the count changed (DeleteHero and AddNewHero inline it):
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
@@ -655,7 +645,7 @@ public:
     // archive, chunk 1; an extra word of 0 becomes a random one xor the tick count) and given to
     // the client (00442300) when the file opens; nothing selected, the list rebuilt and drawn,
     // the help topic (005F86F0 with 0), and surface 1 with text 8 ("connecting").
-    void Create();
+    void CreateScreen() override;
     // 0061C430 (slot 24). Surface 1 ("connecting") shown while the client asks a host (join
     // state 1); when it stops asking, a refusal box ("lmp_server_full",
     // "..._you_are_banned", "..._wrong_password", else "..._cannot_connect"; text key + "_msg")
@@ -809,7 +799,7 @@ public:
     void OnMessageResult(int result);
     // 0062AB20 (slot 25, the menu's Create): the stone model and the five regions, whose
     // rectangles come from menus.reg (007C80A8..007C80E8; ui_layouts.cpp).
-    void Build();
+    void CreateScreen();
     // 0062AE90 (input slot 2): opens the save window (region 0), the load window (1; neither in
     // multiplayer), resumes (2), asks to quit (3) or opens the options (4) (ui_layouts.cpp).
     void OnLButtonDown(int buttons, int x, int y);
@@ -915,7 +905,7 @@ public:
     // (one record per line: "#scroll" flag, speed, two texts); the scrolling text surface (+0x164)
     // and the header surface (+0x168), both frozen; the display's +0x14 kept in savedDisplay_ and
     // cleared; the player +0x1D8 starts "Movies\<name>.bik".
-    void Build();
+    void CreateScreen() override;
     // 0062BD80 (slot 20, RET 4; ui_credits.cpp). Once the game time passes nextLineAt_ and the
     // text has stopped: both surfaces frozen, then the next line: its text file loaded and started
     // (a "#scroll" line scrolls at its speed under its header, another stays for its speed in
@@ -978,7 +968,7 @@ public:
     // six regions; the default music, the map edge fade kept (+0x178) and set to 6, rain by a coin
     // toss (+0x16C), daylight between 7 and 21 (+0x16D), the rain started before 7; the camera path
     // "MainMenu.cam" and the menu music.
-    void Create();
+    void CreateScreen() override;
     // 006335E0. A surface (100, 480)-(780, 600) with the "version_name" text, added to the window.
     void AddVersionLine();
     // 00632B10 (slot 24, every frame). The children's update; with rain the weather turns on at 0
@@ -1036,7 +1026,7 @@ public:
     // 100), the local party's item strip (forwarding, action 1, items), the players' figure strip
     // (top, no arrow tips), the trade grid over both offers (mode 5) and the money field (0..200 x
     // 0x15E..0x16E, empty), and four 200-wide surfaces.
-    void Create();
+    void CreateScreen() override;
     // 0062C9C0 (slot 20, RET 4; ui_exchange.cpp). The item (or help topic) under the mouse from
     // the strip, else the grid, goes to the description panel; the four surfaces get
     // "xch_current_money" with the local party's money and "xch_accept", "xch_money_offer", and

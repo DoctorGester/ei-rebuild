@@ -1250,13 +1250,11 @@ CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     std::uint8_t compare = static_cast<std::uint8_t>(fromHeroScreen);
     models_.Construct(compare);
     textures_.Construct(compare);
-    vtable_ = ItemScreenVtable();
-    inputVtable_ = ItemScreenInputVtable();
+    SetTagTables(ItemScreenVtable(), ItemScreenInputVtable());
     std::memcpy(&fromHeroScreen_, &compare, 1);   // the byte as it is
     heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
     pageTitles_.Construct();
-    vtable_ = Vtable();
-    inputVtable_ = InputVtable();
+    SetTagTables(Vtable(), InputVtable());
     return this;
 }
 EI_REWRITTEN(0x005F6240, CCampPages::Construct);

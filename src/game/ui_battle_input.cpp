@@ -18,7 +18,7 @@ void CBattleScreen::OnDeactivate() {
     for (std::uint8_t& key : orderKeys_) key = 0;
     viewPressed_ = false;
     boxSelecting_ = false;
-    ContainerInput()->OnDeactivate();
+    CUiContainer::Deactivate();
 }
 namespace {
 void __fastcall BattleScreenDeactivate(void* input) { WindowFromInput<CBattleScreen>(input)->OnDeactivate(); }
@@ -30,8 +30,8 @@ EI_REWRITTEN(0x00638A10, BattleScreenDeactivate);
 void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
-        ContainerInput()->OnLeftDouble(buttons, x, y);
-        if (inputHandled_) return;
+        CUiContainer::LeftDouble(buttons, x, y);
+        if (handled_) return;
     }
     viewPressed_ = true;
     pressX_ = x;
@@ -46,7 +46,7 @@ EI_REWRITTEN(0x00638AD0, InputForward<&CBattleScreen::OnLeftDouble>::Call);
 
 void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
     if (portraitMode_ != 0) return;
-    InputOf(this)->OnKeyUp(key, repeat, flags);
+    CUiContainer::KeyUp(key, repeat, flags);
     int action = KeyActions()[flags & 0x1FF] - kFirstOrderKeyAction;
     if (action >= 0 && action < 6) orderKeys_[kOrderKeyOfAction[action]] = 0;
 }
@@ -60,12 +60,12 @@ BOOL CBattleScreen::OnWheel(int flags, int delta, int x, int y) {
     if (portraitMode_ != 0) return 1;
     CUiWindow* const panels[4] = {map_, unitPanel_, messageLog_, topPanel_};
     for (CUiWindow* panel : panels) {
-        panel->inputHandled_ = false;
+        panel->handled_ = false;
         panel->Input()->Wheel(flags, delta, x, y);
-        if (panel->inputHandled_) return 1;
+        if (panel->handled_) return 1;
     }
     for (CUiWindow* panel : panels) panel->SetEnabled(0, 0);
-    InputOf(this)->OnWheel(flags, delta, x, y);
+    CUiContainer::Wheel(flags, delta, x, y);
     for (CUiWindow* panel : panels) panel->SetEnabled(1, 0);
     return 1;
 }

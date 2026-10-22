@@ -596,7 +596,7 @@ BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
         if (zoom > D(zoomMax_)) std::memcpy(&zoom_, &zoomMax_, sizeof(zoom_));
         zoom_ = zoom_ >= 1.0f ? zoom_ : 1.0f;
     }
-    inputHandled_ = true;
+    handled_ = true;
     return 1;
 }
 

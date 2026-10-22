@@ -280,7 +280,7 @@ EI_REWRITTEN(0x005E3700, CChatOverlay::DrawTyped);
 
 void CChatOverlay::OnKeyDown(int key, int, int) {
     if (!chatOpen_) return;
-    inputHandled_ = true;
+    handled_ = true;
     switch (key) {
     case VK_BACK: {   // by character (U4), as Delete and the caret's steps
         if (caret_ <= 0) break;
@@ -349,8 +349,7 @@ CChatOverlay* CChatOverlay::Construct(CInterface3D* ui) {
     sentinel->prev = sentinel;
     lines_.head = sentinel;
     new (&typed_) mfc::CString;
-    vtable_ = ChatOverlayVtable();
-    inputVtable_ = ChatOverlayInputVtable();
+    SetTagTables(ChatOverlayVtable(), ChatOverlayInputVtable());
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     AddSurface(memory ? memory->Construct(interface_, kTypedLeft, kTypedTop, kTypedRight,
                                                                     kTypedBottom, kTypedFormat, 1)

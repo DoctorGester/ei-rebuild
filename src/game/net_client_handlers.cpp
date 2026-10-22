@@ -371,7 +371,7 @@ void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message)
     for (TradeRecordNode* node = self->tradeRecords_.First(); node != self->tradeRecords_.End(); node = node->next) {
         TradeRecord& record = node->data;
         if (record.revision == b && record.acceptedRevision == a) {
-            TheInterface()->OnExchangeDone(&record.parties[1], &record.parties[0], &record.parties[2]);
+            TheInterface()->OnExchangeDone(record.parties[1].Get(), record.parties[0].Get(), record.parties[2].Get());
             break;
         }
     }

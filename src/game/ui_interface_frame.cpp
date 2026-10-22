@@ -54,8 +54,8 @@ void CInterface3D::Update() {
         doubleClick_ = false;
         if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Deactivate();
         if (stackBegin_ != stackEnd_) {
-            stackEnd_[-1]->CloseWindow();
-            if (CUiWindow* top = stackEnd_[-1]) top->DeleteWindow();
+            ScreenOf(stackEnd_[-1])->CloseScreen();
+            delete stackEnd_[-1];
             --stackEnd_;
         }
         app::PumpMessages();
@@ -77,8 +77,8 @@ void CInterface3D::Update() {
             serverFlag_ = 0;
         }
         if (stackBegin_ != stackEnd_) {
-            stackEnd_[-1]->VirtualShow(1);
-            stackEnd_[-1]->VirtualMessageResult(static_cast<int>(pendingValue_));
+            stackEnd_[-1]->Show(1);
+            ScreenOf(stackEnd_[-1])->MessageResult(static_cast<int>(pendingValue_));
         }
         if (pendingValue_ == kLeaveGame) {
             closeAll_ = true;
@@ -88,14 +88,14 @@ void CInterface3D::Update() {
         mouseCapture_ = nullptr;
         SetCursorShape(0);
     }
-    if (pollTop_ && stackBegin_ != stackEnd_) pollTop_ = !stackEnd_[-1]->VirtualReadyToStopPolling();
+    if (pollTop_ && stackBegin_ != stackEnd_) pollTop_ = !ScreenOf(stackEnd_[-1])->ReadyToStopPolling();
     if (closeAll_) {
         closeAll_ = false;
         SetCursorShape(3);
         while (stackBegin_ != stackEnd_) {
             stackEnd_[-1]->Input()->Deactivate();
-            stackEnd_[-1]->CloseWindow();
-            if (CUiWindow* top = stackEnd_[-1]) top->DeleteWindow();
+            ScreenOf(stackEnd_[-1])->CloseScreen();
+            delete stackEnd_[-1];
             --stackEnd_;
         }
         ResetInput();
@@ -117,9 +117,9 @@ void CInterface3D::Update() {
                            : nullptr;
         PushWindow(box, 1, 1);
     } else if (stackBegin_ != stackEnd_) {
-        stackEnd_[-1]->VirtualUpdate();
+        stackEnd_[-1]->Update();
     }
-    root_->VirtualUpdate();
+    root_->Update();
 }
 // ---- String events (005F8070) ------------------------------------------------------------------
 
@@ -167,17 +167,17 @@ void CInterface3D::OnStringEvent(const char* event) {
         int number = words.size > 2 ? TextKeyFromName(words.data[2]) : 0;
         int kind = Compare(words.data[0], "say_block") != 0 ? 0x2A : 0x2B;
         if (stackBegin_ != stackEnd_)
-            top()->VirtualSpeech(number, static_cast<unsigned>(kind), const_cast<char*>(words.data[1].GetString()));
+            ScreenOf(top())->Speech(number, static_cast<unsigned>(kind), const_cast<char*>(words.data[1].GetString()));
     } else if (Compare(words.data[0], "tutorial") == 0) {   // queued
         if (words.size < 2) return;
         stlp::list<mfc::CString>::Insert(messages_.End(), words.data[1]);
     } else if (Compare(words.data[0], "briefing") == 0) {
         if (words.size < 2 || stackBegin_ == stackEnd_) return;
-        top()->VirtualShowBriefing(words.data[1].GetString());
+        ScreenOf(top())->ShowBriefing(words.data[1].GetString());
     } else if (Compare(words.data[0], "autosave") == 0) {
         pollTop_ = true;
     } else if (Compare(words.data[0], "endofgame") == 0) {
-        if (stackBegin_ != stackEnd_) top()->VirtualGameOver(1);
+        if (stackBegin_ != stackEnd_) ScreenOf(top())->GameOver(1);
     }
 }
 

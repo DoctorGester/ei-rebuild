@@ -30,7 +30,7 @@ CUiTooltip* NewTooltip(CUiRegion* region, const char* text, int flag, int extra)
 
 void CUiRegion::SetTip(int textId, int flag, int extra) {
     if (textId == 0) {
-        if (tip_) tip_->Delete();
+        delete tip_;
         tip_ = NewTooltip(this, "", 1, 0);
         return;
     }
@@ -38,13 +38,13 @@ void CUiRegion::SetTip(int textId, int flag, int extra) {
     text.Format(kTipText, textId);
     CTextManager* texts = TheTextManager();
     if (texts->Open(text)) texts->ReadToHash(&text, 1);
-    if (tip_) tip_->Delete();
+    delete tip_;
     tip_ = NewTooltip(this, text, flag, extra);
 }
 EI_REWRITTEN(0x005FC730, CUiRegion::SetTip);
 
 void CUiRegion::SetTipString(const char* text, int flag, int extra) {
-    if (tip_) tip_->Delete();
+    delete tip_;
     tip_ = NewTooltip(this, text, flag, extra);
 }
 EI_REWRITTEN(0x005FC6B0, CUiRegion::SetTipString);
@@ -59,7 +59,7 @@ EI_REWRITTEN(0x005FC690, CUiRegion::SetTipText);
 // --- 005FC600: the destructor body --------------------------------------------------------------
 
 void CUiRegion::ReleaseContents() {
-    if (tip_) tip_->Delete();
+    delete tip_;
     points_.FreeData();
 }
 EI_REWRITTEN(0x005FC600, CUiRegion::ReleaseContents);

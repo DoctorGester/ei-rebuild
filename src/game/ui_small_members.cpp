@@ -62,8 +62,8 @@ EI_REWRITTEN(0x006324E0, GlobalMapPlace::AssignCopy);
 
 // --- Default answers of the windows' slots ---------------------------------------------------------------
 
-int UiInputSide::WheelIgnored(int, int, int, int) { return 0; }
-EI_REWRITTEN(0x005E28B0, UiInputSide::WheelIgnored);
+int UiInputSide::Wheel(int, int, int, int) { return 0; }
+EI_REWRITTEN(0x005E28B0, UiInputSide::Wheel);
 
 void* CUiWindow::NoItemAt(int, int, int* topic) {
     *topic = 0;
@@ -193,7 +193,7 @@ void CInterface3D::ChatKeyBackspace() {
 }
 EI_REWRITTEN(0x005F7C80, CInterface3D::ChatKeyBackspace);
 
-void CCampPages::OnKeyUp(int key, int repeat, int flags) { InputOf(this)->OnKeyUp(key, repeat, flags); }
+void CCampPages::OnKeyUp(int key, int repeat, int flags) { CUiContainer::KeyUp(key, repeat, flags); }
 EI_REWRITTEN(0x0060F690, InputForward<&CCampPages::OnKeyUp>::Call);
 
 int CHeroStatsPanel::OnLButtonUp(int, int, int) {

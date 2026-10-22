@@ -193,7 +193,7 @@ public:
     // of the base (people_), the zone's music and camera limits, the screen's own inputs (InertInputVtable()
     // and the view's 005EACB0) and a network client's chat window. A saved game's screen part is
     // dropped (the save stream resized to 0).
-    void Create();
+    void CreateScreen() override;
     // 00604130 (slot 24; ui_briefing_create.cpp). Per frame: markPhase_, the children, everything
     // hidden but by state; the movers walk, turn or give up after 30 s (put at their place) and the
     // done ones go; then by state: 0 / 1 the people with open topics are marked (dialogue event 1,
@@ -208,11 +208,6 @@ public:
     // Update's part for states 0 and 1: with exitPending_, a party and exit_'s zone not "none" nor
     // visited ("z.<zone>" not 1), the party leaves through exit_ once 00578A20 allows it.
     void LeaveIfExitOpen();
-    // Slot 36 (ShowChat for this screen) through the vtable.
-    void VirtualShowChat(int show) {
-        using Fn = void(__thiscall*)(CBriefingScreen*, int);
-        ei::VirtualSlot<Fn>(vtable_, 36)(this, show);
-    }
 
     // Input side (window + 0x94; ui_briefing_input.cpp).
     // 006030F0 (input 2). Left button down: with the chat window active (chatActive_) it gets the
@@ -241,7 +236,7 @@ public:
     // menu (state 0), ends the start (2: 006064E0 with 1, 0) or the topic choice (1); Space the
     // next phrase. Other keys while walking by their action (0079BF70): 4 the objectives window
     // when a quest of this allod ("q.<quest>.<zone>.." = 1) is active, 0xB the camera to the
-    // leader, '5' / '6' quick save / load "saveq". Every handled key sets inputHandled_.
+    // leader, '5' / '6' quick save / load "saveq". Every handled key sets handled_.
     void OnKeyDown(int key, int repeat, int flags);
 
     // 00608B60 (RET 4). Opens the topics of `person` (00607360): none leaves state 0; otherwise

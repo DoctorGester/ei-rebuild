@@ -61,8 +61,6 @@ void* ItemArrayVtable() { return mfc::impl::ItemStripArrayClass::Vtable(); }   /
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }   // CArray<record*>
 
 constexpr int kSurfaceFormat = 5;
-constexpr int kSlotBuild = 18;          // the statistics and trade panels' Build
-constexpr int kSlotNextHero = 48;
 constexpr int kHeroClass = 0x32;        // the prototype class of a party record that becomes a unit
 constexpr std::uint32_t kRecordBias = 100000000;   // added to the records' ids while the client world takes them
 constexpr int kIdleAnimation = 0x21;    // the skill animation the heroes play in the camp
@@ -86,8 +84,7 @@ CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f /*0073B84C*/; }
 
 void SetVtables(CUiWindow* window, VtablePair vtables) {
-    window->vtable_ = vtables.main;
-    window->inputVtable_ = vtables.input;
+    window->SetTagTables(vtables.main, vtables.input);
 }
 
 // A description panel (its item list and text arrays constructed in place).
@@ -127,8 +124,7 @@ CParty* NewItemList() {
 
 // Slot 18 of a panel: its Build.
 void BuildPanel(CUiWindow* panel) {
-    using BuildFn = void(__thiscall*)(CUiWindow*);
-    ei::VirtualSlot<BuildFn>(panel->vtable_, kSlotBuild)(panel);
+    panel->Build();
 }
 
 // The time in animation frames: milliseconds / 1024 (0073BB24) * 15 (0073C518).
@@ -138,7 +134,7 @@ double FramesNow() {
 
 } // namespace
 
-void CCampPages::Create() {
+void CCampPages::CreateScreen() {
     BuildPages();
     widescreen::AddCurtains(this, 1);
 }
@@ -390,8 +386,7 @@ void CCampPages::BuildPages() {
     for (int i = 0; i < count; ++i) player->members_.data[i].unitId -= kRecordBias;
 
     hero_ = -1;
-    using NextHeroFn = void(__thiscall*)(CCampPages*);
-    ei::VirtualSlot<NextHeroFn>(vtable_, kSlotNextHero)(this);
+    VirtualNextHero();
 
     // The pages' titles.
     CTextManager* texts = GameClientTexts();
@@ -457,4 +452,4 @@ void CCampPages::BuildPages() {
     }
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REWRITTEN(0x0060C870, CCampPages::Create);
+EI_REWRITTEN(0x0060C870, CCampPages::CreateScreen);

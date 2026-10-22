@@ -29,7 +29,7 @@ int Distance(int a, int b) { return a < b ? b - a : a - b; }
 void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
         TheCursor()->SetShape(kCursorPickPlayer);
-        if (portraits_) portraits_->InputMouseMove(buttons, x, y);
+        if (portraits_) portraits_->Input()->MouseMove(buttons, x, y);
         return;
     }
     TheCursor()->SetShape(kCursorArrow);
@@ -46,8 +46,8 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
             return;
         }
     } else {
-        InputOf(this)->OnMouseMove(buttons, x, y);
-        if (inputHandled_) return;
+        CUiContainer::MouseMove(buttons, x, y);
+        if (handled_) return;
     }
     // The original passes the address of its own (x, y) arguments and reads them back.
     POINT point = {x, y};
@@ -62,12 +62,12 @@ EI_REWRITTEN(0x00639D60, InputForward<&CBattleScreen::OnMouseMove>::Call);
 
 void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
-        if (portraits_) portraits_->Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
+        if (portraits_) portraits_->Input()->LeftDown(buttons, x, y);
         return;
     }
     if (!viewPressed_) {
-        InputOf(this)->OnLeftDown(buttons, x, y);
-        if (inputHandled_) return;
+        CUiContainer::LeftDown(buttons, x, y);
+        if (handled_) return;
     }
     viewPressed_ = true;
     pressX_ = x;

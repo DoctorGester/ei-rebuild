@@ -33,7 +33,7 @@ constexpr int kRepeat = 0x4000;
 
 // The input side's key-down handler (slot 9) of a window.
 void WindowKeyDown(CUiWindow* window, int key, int repeat, int flags) {
-    window->Input()->Event(UiInputSide::kKeyDown, key, repeat, flags);
+    window->Input()->Event(UiInputSide::kEventKeyDown, key, repeat, flags);
 }
 
 } // namespace
