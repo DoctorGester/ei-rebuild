@@ -143,8 +143,6 @@ unsigned char* __cdecl libcrt::Mbsinc(const unsigned char* p) {
     return const_cast<unsigned char*>(p + 1);
 }
 
-int __cdecl libcrt::Ismbcdigit(unsigned c) { return Ascii(c, "_ismbcdigit") >= '0' && c <= '9'; }
-
 int __cdecl libcrt::Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
     for (; n; --n, ++a, ++b) {
         Ascii(*a, "_mbsncmp");

@@ -9,6 +9,7 @@
 #include "game/game_data.h"
 
 #include <cstring>
+#include <mbstring.h>
 #include <new>
 #include <vector>
 
@@ -30,8 +31,9 @@ uchar* U(char* p) { return reinterpret_cast<uchar*>(p); }
 char* Inc(const char* p) { return const_cast<char*>(::MbsInc(p)); }
 // _tcschr with a char the library sign-extends (movsx) before the call.
 bool Contains(const char* set, char c) { return libcrt::Mbschr(U(set), static_cast<unsigned>(static_cast<int>(c))) != nullptr; }
-bool IsSpace(char c) { return libcrt::Ismbcspace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
-bool IsDigit(char c) { return libcrt::Ismbcdigit(static_cast<unsigned>(static_cast<int>(c))) != 0; }
+// _istspace / _istdigit (_ismbcspace / _ismbcdigit, the host CRT's) of the sign-extended char.
+bool IsSpace(char c) { return _ismbcspace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
+bool IsDigit(char c) { return _ismbcdigit(static_cast<unsigned>(static_cast<int>(c))) != 0; }
 
 // The reference count updates and lstrlen, the Windows functions (no route takes their import slots).
 LONG Increment(long* refs) { return ::InterlockedIncrement(refs); }

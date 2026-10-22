@@ -22,15 +22,10 @@ namespace {
 
 // ---- The CRT data the conversions read (as crt.cpp's) ----
 
-// The locale state is crt_locale_data.h's: ei_vectors replays the conversions with the decimal point and class
-// words recorded in the game (tests/vectors/crt_format_vectors.h).
-// The decimal point of the LC_NUMERIC locale (__decimal_point[0]).
-char DecimalPoint() { return g_decimalPoint[0]; }
+// The locale state is crt_locale_data.h's (the host CRT's): ei_vectors replays the conversions with the decimal
+// point and class words recorded in the game (tests/vectors/crt_format_vectors.h).
 // _pctype: the class word of a byte; a negative char indexes the words before.
-unsigned short CharClass(int c) { return g_pctype[c]; }
-unsigned LocaleHandle() { return g_lcHandle[2]; }   // __lc_handle[LC_CTYPE]
-unsigned LocaleCodePage() { return g_lcCodePage; }  // __lc_codepage
-int MbCurMax() { return g_mbCurMax; }               // __mb_cur_max
+unsigned short CharClass(int c) { return CharClasses()[c]; }
 constexpr unsigned short kDigit = 0x4;
 constexpr unsigned short kSpace = 0x8;
 constexpr unsigned short kLeadByte = 0x8000;
@@ -523,14 +518,14 @@ void CropZeros(char* text) {
 
 // wctomb (006F9846): one wide character in the locale's code page; -1 (errno EILSEQ) when it has none.
 int WideToBytes(char* to, wchar_t c) {
-    if (LocaleHandle() == 0) {
+    if (CtypeLocale() == 0) {
         if (static_cast<unsigned short>(c) < 0x100) {
             *to = static_cast<char>(c);
             return 1;
         }
     } else {
         BOOL defaultUsed = FALSE;
-        const int size = gameapi::WideCharToMultiByte(LocaleCodePage(), WC_COMPOSITECHECK | WC_SEPCHARS, &c, 1, to,
+        const int size = gameapi::WideCharToMultiByte(CtypeCodePage(), WC_COMPOSITECHECK | WC_SEPCHARS, &c, 1, to,
                                                       MbCurMax(), nullptr, &defaultUsed);
         if (size != 0 && !defaultUsed) return size;
     }

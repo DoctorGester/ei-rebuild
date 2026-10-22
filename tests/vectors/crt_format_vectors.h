@@ -4,7 +4,7 @@
 // (src/lib/crt_format.cpp, S4a). Recorded by record_crt_format.cpp, replayed by replay_crt_format.cpp.
 //
 // "@CrtFormatLocale" (fixture): what the conversions read of the CRT's locale, the decimal point
-// (game.exe's __decimal_point 00797FE8; ours libcrt::g_decimalPoint) and the class words of _pctype (00797DD8)
+// (game.exe's __decimal_point 00797FE8; ours libcrt::DecimalPoint, set by SetReplayLocale) and the class words of _pctype (00797DD8)
 // for 0..255. Taken at the first call after the
 // game has set its LC_CTYPE locale; a call while the locale differs from it is not recorded.
 //

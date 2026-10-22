@@ -15,10 +15,9 @@ namespace mfc::impl {
 
 namespace {
 
-// The game CRT's multibyte flags (_mbctype + 1); _istlead is the lead-byte bit.
-const unsigned char* MultibyteFlags() { return libcrt::g_mbCtype + 1; }
+// _istlead: the lead-byte bit of the CRT's multibyte flags (crt_locale_data.h).
 constexpr unsigned char kMbLead = 0x4;   // _M1
-bool IsLeadByte(char c) { return (MultibyteFlags()[static_cast<unsigned char>(c)] & kMbLead) != 0; }
+bool IsLeadByte(char c) { return (libcrt::MultibyteFlags()[static_cast<unsigned char>(c)] & kMbLead) != 0; }
 
 // A "%1".."%9" or "%A".."%Z" at `at`: its index into the strings ('1' is 0, 'A' is 9; '0' is -1).
 bool Reference(const char* at, int& index) {

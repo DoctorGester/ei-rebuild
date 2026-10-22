@@ -49,7 +49,7 @@ zones), options_defaults' value names and the lexer's comment tokens. The string
 `--skip` leaves addresses), not typed. Keep a string by address only where code compares the pointer itself
 (`game::EmptyText()`, 0079B298), where the game writes into the string
 (the window title 0079BB24, the digit at 007930F6, the pointer cells LoadingMovieName 00791EE0), and in the CRT
-(`crt_locale` compares its locale names by pointer; `_iob` is not a string). A pointer-sized cell read as
+(`_iob` is not a string). A pointer-sized cell read as
 `const char* const*` holds the address of the text, not the text: read the cell's pointer first.
 
 ## 2. The image
@@ -460,24 +460,19 @@ kinds given.
   10022290 does) when the AddNewScriptCommands flag is on, else kScriptKeywords. game.exe (--no-hooks, the recorders)
   runs its own code on its own table or addon's; nothing of ours reads game.exe's copy. The script vectors' fixture
   "@ScriptKeywords" keeps its format; the replay compares the recorded table and markers with ours instead of
-  writing them into the stand-in. The CRT (S4c's ports read these): getqloc's `kLanguages` 007989E0 / `kCountries`
-  00798928 (TYPES `NameAbbreviation` `('P', '4s')`, crt_locale.cpp), `_ctype` as `kCtypeC` 00797DE0 (257 class
-  words) with `_pctype` / `_pwctype` `g_pctype` / `g_pwctype` 00797DD8 / 00797DDC (crt_locale_data.cpp, `{kCtypeC + 1}`:
-  named_data takes `NAME + k`, a named range's element k, as a pointer element; --emit does not write it, a person
-  does). `_iob` is not read: our streams are the host's FILE*, and the game's stdin / stdout / stderr are
+  writing them into the stand-in. The CRT's locale data (getqloc's tables, `_ctype` / `_pctype`, `__lc_category`) is
+  unread since C26 (setlocale and _setmbcp are the host CRT's; named_data still takes `NAME + k`, a named range's
+  element k, as a pointer element). `_iob` is not read: our streams are the host's FILE*, and the game's stdin / stdout / stderr are
   `libcrt::GameStream(0..2)`, three 0x20-byte stand-ins in crt_format.cpp that only HostFile compares (the vector
-  recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets g_pctype). config/image_kept.csv
-  (C25) lost the rows these names replace: the keyword table and the strings only its cells reached (0078BCA0,
-  0078CAC0, 0078B820 / 864 / 8A4, 0078BBD0, 00787B5C / 98 / B4), `_ctype` 00797DE0, the abbreviation tables 00798928
-  and their names 00747924; the zero-filled trial (`build.cmd verify trial`) runs the image suite without them.
+  recorder reads game.exe's `_pctype` through OriginalGameData; the replay sets the classes with SetReplayLocale).
+  config/image_kept.csv (C25) lost the rows these names replace: the keyword table and the strings only its cells
+  reached (0078BCA0, 0078CAC0, 0078B820 / 864 / 8A4, 0078BBD0, 00787B5C / 98 / B4), and the CRT's locale rows
+  (C18q, C26); the zero-filled trial (`build.cmd verify trial`) runs the image suite without them.
   **Left in the CRT**, by reason:
-  - read, not nameable yet: the locale categories `__lc_category` 00797888 (6 x {name, locale, init}; our setlocale
-    reads and writes `locale` and calls `init` for a category other than LC_CTYPE, which the game never sets) and the
-    static "C" 00797778 its `locale` cells point at: the `init` cells are code pointers to __init_dummy 006EA766,
-    __init_collate 006F4A40, __init_monetary 006F4589, __init_numeric 006F437D and __init_time 006F3E0E, none ported
-    or registered (InitCtype is __init_ctype 006F47FB, unregistered). Name the table once those have registered
-    ports, or once the check has a form for a code pointer to code we do not have.
-  - unread by our code (the host CRT or a literal does the work; C25 zero-fills): `__lc_time_curr` 00797A58 and
+  - unread by our code (the host CRT or a literal does the work; C25 zero-fills): the locale categories
+    `__lc_category` 00797888 with the static "C" 00797778, getqloc's tables 00798914-00798BE8, `__rgcode_page_info`
+    00797680-00797778, `_ctype` / `_pctype` / `_pwctype` 00797DD8-00797FE0 and the rest of the locale and multibyte
+    state (C26: setlocale / _setmbcp are the host's), `__lc_time_curr` 00797A58 and
     `__lc_time_c` 00797A60 (strftime / the time functions are the host's, mfc_time.cpp), printf's "(null)" 0079804C /
     00798050 (literals in crt_format.cpp), `_iob` 00798060 (its two cells to `_bufin`), getqloc's locale info table
     00798470 (27 rows of 0x2C, 54 cells; 006F5231 is its GetLocaleInfoA stand-in off NT, ours calls GetLocaleInfoA),
@@ -597,15 +592,11 @@ kinds given.
     00434980 beside it), the select timeout and net_delta.h's keep / read state. **The "campaign mode" 007C2CC4 is not
     a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
-    readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is lib/crt_locale_data.cpp (a file of
-    its own: ei_vectors links it with crt_format.cpp; the replay's "@CrtFormatLocale" writes g_decimalPoint, the
-    recorder reads game.exe's 00797FE8 and __lc_handle), crt_locale.cpp's code page / class flag / country tables,
-    crt_file's modes (zero constants) and crt_iostream's shared lock and ios count. **Left**: 00783E34 / 00783E38
+    readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
+    CRT's since C26 (lib/crt_locale_data.cpp reads it), crt_file's modes (zero constants) and crt_iostream's shared lock and ios count. **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
     yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
-    007AFF60), and of the CRT: the locale categories 00797888 with the static "C" 00797778 (their init
-    functions' code cells are not all ours; C18q named `_pctype` / `_pwctype` and stopped reading `_iob`), and the
-    heap / allocator state (`_crtheap` 007CAF08, `_pnhHeap` 007CAAD8, `_newmode` 007CAC7C, `_afxNewHandler`
+    007AFF60), and of the CRT the heap / allocator state (`_crtheap` 007CAF08, `_pnhHeap` 007CAAD8, `_newmode` 007CAC7C, `_afxNewHandler`
     00796E14, STLport's node free lists 0079B224 and pool 0079B264-0079B26C): the harness calls our allocator in
     --no-hooks runs (harness_leftovers' ZeroedNew, CStrings), where a named heap handle would be ours (null), not
     game.exe's; name them together with a game.exe path for those calls.
@@ -1578,13 +1569,14 @@ the `--no-hooks` suite) keeps the registry.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
 
-- **State** (S4, S4c) is read where the exe keeps it: the game runs under a real LC_CTYPE locale (`__lc_handle` 007CABF0
-  nonzero after the text manager's Create 004DED20 calls setlocale(LC_CTYPE, the "Font CharSet" option, "english"
-  by default -> "English_United States.1252") and `_setmbcp(_MB_CP_LOCALE)`); tolower / toupper take `_tolower_lk`'s
-  LCMapStringW path, compares fold through a table rebuilt on a locale change, classes come from `_pctype`, lead bytes
-  from `_mbctype`. Single-byte paths only (`__mb_cur_max` 1). Until the game sets the locale it is the C locale.
-  Our setlocale / _setmbcp (crt_locale.cpp) is getqloc.c's name search, `__init_ctype` (GetStringTypeW, called
-  directly) and _setmbcp with setSBUpLow; no locks, no LC_ALL.
+- **Locale** (C26): the host CRT's. The text manager's Create 004DED20 calls the host's setlocale(LC_CTYPE, the
+  "Font CharSet" option, "english" by default -> "English_United States.1252") and `_setmbcp(_MB_CP_LOCALE)`; the
+  host's start-up did __initmbctable's `_setmbcp(_MB_CP_ANSI)`. The ported class and case functions read the host's
+  state (crt_locale_data.h: `_pctype`, the LC_CTYPE locale name as an LCID, `__lc_codepage`, `_mbctype`,
+  `_mbcasemap`); tolower / toupper take `_tolower_lk`'s LCMapStringW path, compares fold through a table rebuilt on a
+  locale change. Single-byte paths only (`__mb_cur_max` 1). _ismbcdigit / _ismbcspace (CString's parsing) are the
+  host's. Both suites kept every golden the same with the switch (VC6 and the host build LC_CTYPE's tables from the
+  same GetStringTypeW / LCMapStringW calls; the C tables match for 0..255).
 - **Heap** (crt.cpp): malloc 006EABD1, free 006EA8AD, realloc 006ED69A, calloc 006F0317 (count * size unchecked),
   _msize 006EEC7B, _strdup 006EEC50 use a Win32 heap of their own, `_crtheap` 007CAF08, made with `HeapCreate(0,
   0x1000, 0)` at the first allocation, sizes rounded up to 16, through the image's import slots (gameapi.h), so the

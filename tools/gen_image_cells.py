@@ -91,6 +91,8 @@ REVIEWED_DATA = [
     (0x00796E48, 0x00796E4C, 2, 'MFC CString\'s shared empty string (afxEmptyString\'s data) and _afxDataNil'),
     (0x00797898, 0x007978C8, 5, 'the CRT\'s locale categories (00797888): their locale names'),
     (0x00797A58, 0x00797A58, 1, 'the CRT\'s __lc_time_curr: __lc_time_c (day and month names)'),
+    (0x00797DD8, 0x00797DDC, 2, 'the CRT\'s _pctype / _pwctype: the C locale\'s _ctype + 1 (unread: the classes are the '
+                                'host CRT\'s, C26)'),
     (0x00797C04, 0x00797C44, 4, 'the CRT\'s lock table (_locktable, _mtinitlocks 006F0741): preallocated critical '
                                 'sections'),
     (0x00798060, 0x00798068, 2, '_iob[0] (stdin) _ptr and _base: the static stdin buffer _bufin'),
@@ -136,6 +138,8 @@ REVIEWED_RDATA = [
     (0x00797888, 0x007978C4, 6, 'the CRT\'s locale categories (00797888): their names ("LC_ALL", ...)'),
     (0x00797A60, 0x00797B08, 43, 'the CRT\'s __lc_time_c: day and month names, AM / PM, the date and time formats'),
     (0x0079804C, 0x00798050, 2, 'the CRT\'s "(null)" strings of printf (narrow and wide)'),
+    (0x00798928, 0x00798BE0, 88, 'getqloc\'s country and language name tables (__rg_country 00798928, __rg_language '
+                                 '007989E0): their names (unread: setlocale is the host CRT\'s, C26)'),
     (0x0079847C, 0x007988FC, 54, 'the CRT\'s locale info table (00798470, 27 rows of 0x2C) of 006F5231, getqloc\'s '
                                  'GetLocaleInfoA stand-in off NT (ours calls GetLocaleInfoA): language and country names'),
     (0x0079AC34, 0x0079ACBC, 17, 'the CRT\'s run-time error messages (number, text)'),
@@ -210,6 +214,7 @@ NOT_CODE = [
     (0x0078FC44, 0x0078FC44, 1, '"her": text (leather)'),
     (0x00792EF8, 0x00792EF8, 1, '" %s": text'),
     (0x00792F84, 0x00792F84, 1, '" %s": text'),
+    (0x00797724, 0x00797724, 1, "__rgcode_page_info's ulInfo of code page 950 (_setmbcp's table; the host CRT's, C26)"),
 ]
 
 # Candidates the text filters keep that are text: short words whose bytes read as an address in .rdata.

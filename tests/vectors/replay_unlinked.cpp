@@ -87,7 +87,7 @@ void ScriptPointLight::ScriptPointLightLoad(ScriptStream*) EI_UNLINKED("ScriptPo
 void ScriptFxSource::ScriptFxSourceLoad(ScriptStream*) EI_UNLINKED("ScriptFxSource::ScriptFxSourceLoad")
 void __stdcall ScriptLightningElementsDestruct(ScriptLightning*, int) EI_UNLINKED("ScriptLightningElementsDestruct")
 
-// The game CRT's ports (crt.cpp, crt_file.cpp, crt_locale.cpp, crt_x87.cpp read the game CRT's data)
+// The game CRT's ports (crt.cpp, crt_file.cpp, crt_x87.cpp read the game CRT's data)
 // that no replay reaches: the node allocator (stlp.cpp), the multibyte string functions CString uses
 // (mfc_string.cpp), memmove and qsort (script_group.cpp), srand (random.cpp), acos (quaternion.cpp),
 // fwrite (crt_format.cpp); replay_crt.cpp has the ones the replays call.
@@ -98,7 +98,6 @@ unsigned char* __cdecl libcrt::Mbsrchr(const unsigned char*, unsigned) EI_UNLINK
 unsigned char* __cdecl libcrt::Mbsstr(const unsigned char*, const unsigned char*) EI_UNLINKED("libcrt::Mbsstr")
 unsigned char* __cdecl libcrt::Mbspbrk(const unsigned char*, const unsigned char*) EI_UNLINKED("libcrt::Mbspbrk")
 unsigned char* __cdecl libcrt::Mbslwr(unsigned char*) EI_UNLINKED("libcrt::Mbslwr")
-int __cdecl libcrt::Ismbcspace(unsigned) EI_UNLINKED("libcrt::Ismbcspace")
 std::size_t __cdecl libcrt::Wcslen(const wchar_t*) EI_UNLINKED("libcrt::Wcslen")
 void* __cdecl libcrt::Memmove(void*, const void*, std::size_t) EI_UNLINKED("libcrt::Memmove")
 void __cdecl libcrt::Qsort(void*, std::size_t, std::size_t, int(__cdecl*)(const void*, const void*)) EI_UNLINKED("libcrt::Qsort")

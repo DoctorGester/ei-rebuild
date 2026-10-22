@@ -304,12 +304,11 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
         ReportImageFailure("game.exe's imports did not all resolve");
         return 1;
     }
-    // As the CRT's start-up: the multibyte code page (__initmbctable, the C initialiser 00783BC0), the
-    // static initialisers, WinMain, then exit with its result (the CRT's exit runs the functions the
-    // initialisers registered with atexit).
+    // As the CRT's start-up: the static initialisers, WinMain, then exit with its result (the CRT's exit runs
+    // the functions the initialisers registered with atexit). The multibyte code page (__initmbctable, the C
+    // initialiser 00783BC0) is the host CRT's, set at its own start-up (C26).
     InstallProfiler();   // EI_PROFILE=1: samples this thread from the start-up on
     render::PrepareDevice();   // the renderer's device made while the game starts up
-    libcrt::InitMultibyteTable();
     static_init::RunStaticInitialisers();
     using WinMainFn = int(__stdcall*)(HINSTANCE, HINSTANCE, char*, int);
     const int result = Code<WinMainFn>(kGameWinMain)(GetModuleHandleA(nullptr), nullptr,

@@ -14,7 +14,9 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
+#include <clocale>
 #include <cstring>
+#include <mbctype.h>
 #include <iterator>
 #include <string>
 #include <unordered_map>
@@ -88,9 +90,6 @@ bool SameName(const TextSourceNode* node, const char* path) {
 // 004DEC40 through its address: Rebirth patches it (rule 9).
 __declspec(naked) void __fastcall TextSourcesListKeysOriginal(TextSources*, void*, mfc::CStringArray*, const char*)
     EI_ORIGINAL(0x004DEC40)
-
-constexpr int kLocaleCtype = 2;     // LC_CTYPE
-constexpr int kMbcpLocale = -4;     // _MB_CP_LOCALE
 
 void CloseAndDelete(CMappedResource* source) {
     ForgetConvertedTexts(source);
@@ -202,12 +201,12 @@ EI_REWRITTEN(0x004DEFA0, CTextManager::ListKeys);
 
 int CTextManager::CreateImpl() {
     // LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise), then the
-    // multibyte code page from it: the game's only locale set-up (docs/notes/standalone.md, S4c). With
+    // multibyte code page from it: the game's only locale set-up, on the host CRT (C26; docs/notes/standalone.md). With
     // EI_UTF8 the text is UTF-8 and the CRT's case and classes do not depend on a locale (lib/text_case.h):
     // the option is not used and LC_CTYPE stays "C".
     if constexpr (!text::kUtf8) {
-        libcrt::Setlocale(kLocaleCtype, options::TheOptions()->fontCharSet_);
-        libcrt::Setmbcp(kMbcpLocale);
+        std::setlocale(LC_CTYPE, options::TheOptions()->fontCharSet_);
+        _setmbcp(_MB_CP_LOCALE);
     }
     return 1;
 }

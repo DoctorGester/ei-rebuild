@@ -19,9 +19,9 @@ using namespace ei::vectors::crt_format;
 unsigned short g_classes[256];   // _pctype points here once the fixture ran
 
 bool CheckLocale(Reader& r, char*, std::size_t) {
-    libcrt::g_decimalPoint[0] = r.Get<char>();
+    const char decimalPoint = r.Get<char>();
     for (unsigned short& word : g_classes) word = r.Get<unsigned short>();
-    libcrt::g_pctype = g_classes;
+    libcrt::SetReplayLocale(decimalPoint, g_classes);
     return true;
 }
 EI_VECTOR_CHECK_BYTES("@CrtFormatLocale", CheckLocale);

@@ -50,16 +50,14 @@ struct CaseFold {
     int fold[256];
 };
 
-unsigned CtypeHandle() { return libcrt::g_lcHandle[2]; }   // __lc_handle[LC_CTYPE]
-
 CaseFold caseFold;
 
 } // namespace
 
 const int* CaseFoldTable() {
     CaseFold& table = caseFold;
-    const unsigned handle = CtypeHandle();
-    const unsigned codePage = libcrt::g_lcCodePage;
+    const unsigned handle = libcrt::CtypeLocale();
+    const unsigned codePage = libcrt::CtypeCodePage();
     if (!table.built || table.localeHandle != handle || table.codePage != codePage) {
         for (int c = 0; c < 256; ++c) table.fold[c] = tolower(c);
         table.localeHandle = handle;
@@ -94,12 +92,8 @@ namespace libcrt {
 
 namespace {
 
-// The CRT's character class table pointer _pctype (00797DD8; the C locale's table + 1 entry, so -1 is
-// EOF) and its multibyte flags _mbctype + 1 (no lead bytes for a single-byte code page, the single-byte case
-// bits still set), with _mbcasemap, each byte's other case.
-const unsigned short* CharClasses() { return g_pctype; }
-const unsigned char* MultibyteFlags() { return g_mbCtype + 1; }
-const unsigned char* MultibyteCaseMap() { return g_mbCaseMap; }
+// The character classes (_pctype), the multibyte flags (_mbctype + 1: no lead bytes for a single-byte code page,
+// the single-byte case bits still set) and _mbcasemap are the host CRT's (crt_locale_data.h).
 constexpr unsigned char kMbSingleUpper = 0x10;   // _SBUP in _mbctype
 
 constexpr unsigned short kDigit = 0x4;      // _DIGIT
@@ -128,10 +122,6 @@ bool IsDoubleByteLead(unsigned char c) {
         return (MultibyteFlags()[c] & kMbLead) != 0;
     }
 }
-
-// The LC_CTYPE locale: its handle (__lc_handle[LC_CTYPE]; zero for "C") and code page (__lc_codepage).
-unsigned LocaleHandle() { return g_lcHandle[2]; }
-unsigned LocaleCodePage() { return g_lcCodePage; }
 
 // __crtLCMapStringA (006F1FDE) on its LCMapStringW path: the bytes (up to a zero, at most `count`)
 // to UTF-16 in the code page, mapped, and back; the bytes written, or 0.
@@ -172,7 +162,7 @@ int MapCaseByLocale(int c, unsigned long flags, unsigned short changes) {
         size = 1;
     }
     unsigned char out[3];
-    const int written = MapStringByLocale(LocaleHandle(), flags, in, size, reinterpret_cast<char*>(out), 3, LocaleCodePage());
+    const int written = MapStringByLocale(CtypeLocale(), flags, in, size, reinterpret_cast<char*>(out), 3, CtypeCodePage());
     if (written == 0) return c;
     return written == 1 ? out[0] : out[0] | out[1] << 8;
 }
@@ -189,8 +179,8 @@ ByteFold byteFold;
 
 const int* FoldTable() {
     ByteFold& table = byteFold;
-    const unsigned handle = LocaleHandle();
-    const unsigned codePage = LocaleCodePage();
+    const unsigned handle = CtypeLocale();
+    const unsigned codePage = CtypeCodePage();
     const unsigned short* classes = CharClasses();
     if (table.classes != classes || table.handle != handle || table.codePage != codePage) {
         for (int c = 0; c < 256; ++c) table.fold[c] = Tolower(c);
@@ -383,13 +373,13 @@ EI_REWRITTEN(0x006E9A6C, libcrt::Isleadbyte);
 // In the "C" locale only A-Z / a-z change (any other int comes back as it is); under a locale,
 // MapCaseByLocale.
 int __cdecl Tolower(int c) {
-    if (LocaleHandle() == 0 || kUtf8) return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
+    if (CtypeLocale() == 0 || kUtf8) return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
     return MapCaseByLocale(c, LCMAP_LOWERCASE, kUpper);
 }
 EI_REPLACE(0x006EBA53, libcrt::Tolower);
 
 int __cdecl Toupper(int c) {
-    if (LocaleHandle() == 0 || kUtf8) return c >= 'a' && c <= 'z' ? c - 0x20 : c;
+    if (CtypeLocale() == 0 || kUtf8) return c >= 'a' && c <= 'z' ? c - 0x20 : c;
     return MapCaseByLocale(c, LCMAP_UPPERCASE, kLower);
 }
 EI_REWRITTEN(0x006E91C0, libcrt::Toupper);

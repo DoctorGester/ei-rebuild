@@ -122,12 +122,11 @@ void SetReplayCtype(const ReplayCtype& ctype);
 
 // The game CRT's own functions, ported (S4, docs/notes/standalone.md section 2). Each is registered
 // at its library address, so the forwarders above and the exe's remaining library code reach these
-// bodies; verify_crt.cpp compared them with the originals until S21d. MSVC 6 behaviour for the CRT
-// state in the exe's data, read as the originals read it: the LC_CTYPE locale handle and code page
-// (case changes go through LCMapStringW under a locale, as _tolower_lk does), the character class
-// table _pctype (a negative argument indexes the same bytes before it) and the lead-byte flags
-// _mbctype. Only the single-byte paths are ported (__mb_cur_max 1, __ismbcodepage 0: the game's
-// code page). In the standalone image that data holds the "C" locale.
+// bodies; verify_crt.cpp compared them with the originals until S21d. MSVC 6 behaviour for the locale
+// state, which is the host CRT's (C26, crt_locale_data.h): the LC_CTYPE locale and code page (case
+// changes go through LCMapStringW under a locale, as _tolower_lk does), the character class table
+// _pctype (a negative argument indexes the words before it) and the lead-byte flags _mbctype. Only the
+// single-byte paths are ported (__mb_cur_max 1, __ismbcodepage 0: the game's code page).
 namespace libcrt {
 
 int __cdecl Strncmp(const char* a, const char* b, std::size_t n);              // 006E9180
@@ -293,26 +292,6 @@ struct Exception {
     int ownsText;
 };
 static_assert(sizeof(Exception) == 12);
-
-// The locale (S4c, src/lib/crt_locale.cpp). setlocale and _setmbcp are the image's only (the hook build
-// keeps the exe's; the game's text manager sets LC_CTYPE from its "Font CharSet" option, then the
-// multibyte code page from it); LC_ALL is not ported (never called). InitMultibyteTable is the CRT
-// start-up's __initmbctable (006EA218: _setmbcp(_MB_CP_ANSI) once), for the image's start. InitCtype is
-// __init_ctype (006F47FB; LC_CTYPE's table builder, called by setlocale; 0 on success).
-struct LocaleId {   // VC6's LC_ID
-    unsigned short language;
-    unsigned short country;
-    unsigned short codePage;
-};
-static_assert(sizeof(LocaleId) == 6);
-char* __cdecl Setlocale(int category, const char* locale);                     // 006EA234
-int __cdecl Setmbcp(int codePage);                                              // 006E9E30
-void InitMultibyteTable();
-int InitCtype();
-// _ismbcdigit / _ismbcspace: a byte by _pctype, a double-byte character (lead byte high) by its class
-// in the multibyte code page (0 without one).
-int __cdecl Ismbcdigit(unsigned c);                                             // 006ECE1A
-int __cdecl Ismbcspace(unsigned c);                                             // 006ECEA9
 
 // The runtime the hook build keeps sharing with the exe (registered with EI_REPLACE_STANDALONE): the
 // heap (the modern CRT's in the image), operator new's handler loop, the atexit list and exit.
