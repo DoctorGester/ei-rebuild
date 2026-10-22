@@ -84,7 +84,7 @@ void Assign(CRefObject** slot, CRefObject* object) {
 
 net::PlayerMessage* PlayerOf(CRefObject* object) { return static_cast<net::PlayerMessage*>(object); }
 // The active screen: the briefing, whose chat window this is (its chatActive_ is the pick mode).
-CBriefingScreen* ActiveBriefing(CInterface3D* ui) { return static_cast<CBriefingScreen*>(ui->GetActiveWindow()); }
+CBriefingScreen* ActiveBriefing(CInterface3D* ui) { return ui->ActiveWindowAs<CBriefingScreen>(); }
 bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 
 // The inlined strcmp(a, b) == 0.

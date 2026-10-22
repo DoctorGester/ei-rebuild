@@ -35,9 +35,6 @@
 #include "originals_render.h"
 #include "originals_world.h"
 
-// 005683D0 (__fastcall: CL `body`, EDX the dressed unit record; RET 4 the record list). Defined below;
-// DressUnit calls it through its address so that its verify wrapper sees the calls.
-void __fastcall UnitTextureRecords(char body, const void* record, void* list);
 
 namespace {
 
@@ -64,7 +61,7 @@ using IdList = UnitIdList;
 // The byte distance between a vector's ends, as the original tests it (the count's bits, times 4).
 template <typename T>
 std::uintptr_t ByteSpan(stlp::vector<T>& list) {
-    return reinterpret_cast<std::uintptr_t>(list.Finish()) - reinterpret_cast<std::uintptr_t>(list.Start());
+    return static_cast<std::uintptr_t>(list.Finish() - list.Start()) * sizeof(T);
 }
 
 // --- Forwarders ----------------------------------------------------------------------------------
@@ -84,19 +81,13 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // [004F5DF0: ECX place, EDX string] and overflow [004DCE90: position, string, count], range insert
 // [00575E50: position, first, last, tag]; the node allocator [00405950: ECX bytes].
 void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
-inline char* __fastcall NodeAllocate(int a0) { return (char*)libcrt::NodeAllocate((std::size_t)a0); }
 
 
 // --- The dressed units ---------------------------------------------------------------------------
 
-// What the texture cache composes a skin from (0x28 bytes): the texture records as raw bytes
-// (an aligned array), the texture file names, the composite's size.
-struct SkinComposition {
-    lib::AlignedArray<char> bytes;
-    console::CStringArray names;
-    int size;
-};
-static_assert(sizeof(SkinComposition) == 0x28 && offsetof(SkinComposition, size) == 0x24);
+// What the texture cache composes a skin from: SkinRequest (unit_client_models.h), the texture
+// records as its layer bytes, the texture file names, the composite's size as its flags.
+using SkinComposition = SkinRequest;
 
 // The vector 005683D0 fills: 12-byte texture records (copied into the set as bytes): a kind (0x32
 // the body, 0x3005 an armour piece, 0x3004 a weapon), the item id and the item record's type.
@@ -108,11 +99,18 @@ struct TextureRecord {
 static_assert(sizeof(TextureRecord) == 12);
 using RecordList = stlp::vector<TextureRecord>;
 
+} // namespace
+
+// 005683D0 (__fastcall: CL `body`, EDX the dressed unit record; RET 4 the record list). Defined below.
+void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list);
+
+namespace {
+
 // The texture records copied into the set's byte array (SetSize inlined: kept contents, 0 frees).
 void CopyRecords(SkinComposition& set, const RecordList& list) {
     int size = static_cast<int>(list.size()) * static_cast<int>(sizeof(TextureRecord));
-    set.bytes.SetSize(size);
-    std::memcpy(set.bytes.data, list.begin(), static_cast<std::size_t>(size));
+    set.layers.SetSize(size);
+    std::memcpy(set.layers.data, list.begin(), static_cast<std::size_t>(size));
 }
 
 // The original's inlined strcpy / strcat: the bytes up to and including the terminator.
@@ -133,7 +131,7 @@ void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t i
         ArmorModelName(&name, id >> 16, id & 0xFFFF);
         AppendName(model, name, buffer);
     }
-    set.names.SetAtGrow(set.names.GetSize(), buffer);
+    set.textures.SetAtGrow(set.textures.GetSize(), buffer);
 }
 
 // The weapons (items 1 and 2): the one whose armour layer (+0xB8) is lower first when both exist.
@@ -171,14 +169,13 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
         WeaponRecordModelName(&name, weapon, material);   // 006A0BF0
         AppendName(model, name, buffer);
     }
-    set.names.SetAtGrow(set.names.GetSize(), buffer);
+    set.textures.SetAtGrow(set.textures.GetSize(), buffer);
 }
 
 // The texture cache is the client world's texture manager (+0x18C).
 void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const mfc::CString& name, int size, int kind) {
-    set.size = size;
-    // (The set has the request's layout: the bytes as an aligned array, the names, the size.)
-    self->textureManager_->Compose(&out, reinterpret_cast<const SkinRequest*>(&set), &name, &name, 3, 0, 0x5551);
+    set.flags = size;
+    self->textureManager_->Compose(&out, &set, &name, &name, 3, 0, 0x5551);
     self->textureManager_->FindOrLoad(kind, name);
 }
 
@@ -190,8 +187,8 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     list.ConstructEmpty();   // 0056F570
     lib::InPlace<SkinComposition> setStorage;
     SkinComposition& set = *setStorage.Get();
-    set.bytes.Construct();
-    new (&set.names) console::CStringArray;
+    set.layers.Construct();
+    new (&set.textures) console::CStringArray;
 
     const std::uint32_t* items = record->items.Start();
     if (ByteSpan(record->items) & ~std::uintptr_t{3}) {
@@ -199,13 +196,13 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         UnitTextureRecords(1, record, &list);
         CopyRecords(set, list);
         mfc::CString skin;
-        set.names.SetSize(0, -1);
+        set.textures.SetSize(0, -1);
         if (prototype) {
             skin.Format("%sskin_%.2d.mmp", ModelPrefix(model), prototype->skin);
         } else {
             skin.Format("%sskin_00.mmp", ModelPrefix(model));
         }
-        set.names.SetAtGrow(set.names.GetSize(), skin);
+        set.textures.SetAtGrow(set.textures.GetSize(), skin);
         for (int slot = 3; slot <= 6; ++slot) {
             if (items[slot] != kNone) AddItem(set, model, items[slot]);
         }
@@ -221,7 +218,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
         UnitTextureRecords(0, record, &list);
         CopyRecords(set, list);
-        set.names.SetSize(0, -1);
+        set.textures.SetSize(0, -1);
         if (items[0] != kNone) AddItem(set, model, items[0]);
         AddExtraWeapon(set, model, record);
         if (record->modelNumber != -1) {
@@ -232,8 +229,8 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         Compose(self, built, set, name, 0x80, 2);
     }
 
-    set.names.~CStringArray();
-    set.bytes.FreeData();   // 0051E5B0
+    set.textures.~CStringArray();
+    set.layers.FreeData();   // 0051E5B0
     list.FreeStorage();   // 0056F590
 }
 
@@ -250,10 +247,10 @@ void Reserve(StringList& list, int needed) {
     stlp::string* storage;
     if (list.Start()) {
         storage = StringList::AllocateAndCopy<stlp::StringElement>(static_cast<std::size_t>(needed), list.Start(), list.Finish());
-        for (stlp::string* s = list.Start(); s != list.Finish(); ++s) static_cast<stlp::StringAbi*>(s)->DeletingDestructor(0);
+        for (stlp::string* s = list.Start(); s != list.Finish(); ++s) s->~string();   // 004DDC90 with 0
         StringsFree(list.Start(), Capacity(list));
     } else {
-        storage = needed ? reinterpret_cast<stlp::string*>(NodeAllocate(needed * static_cast<int>(sizeof(stlp::string)))) : nullptr;
+        storage = needed ? stlp::allocate_as<stlp::string>(static_cast<std::size_t>(needed)) : nullptr;
     }
     list.Start() = storage;
     list.Finish() = storage + size;
@@ -263,9 +260,9 @@ void Reserve(StringList& list, int needed) {
 void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
-    alignas(4) char firstStorage[sizeof(StringList)];
+    lib::InPlace<StringList> firstStorage;
     lib::InPlace<StringList> secondStorage;
-    StringList& first = *reinterpret_cast<StringList*>(firstStorage);
+    StringList& first = *firstStorage.Get();
     StringList& second = *secondStorage.Get();
     first.ConstructEmpty();   // 0053BB80
     second.ConstructEmpty();
@@ -297,7 +294,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 
     for (stlp::string* s = second.Start(); s != second.Finish(); ++s) s->~string();
     stlp::deallocate(second.Start(), static_cast<std::size_t>(Capacity(second)) * 12);   // 0053BF40
-    for (stlp::string* s = first.Start(); s != first.Finish(); ++s) static_cast<stlp::StringAbi*>(s)->DeletingDestructor(0);
+    for (stlp::string* s = first.Start(); s != first.Finish(); ++s) s->~string();   // 004DDC90 with 0
     stlp::deallocate(first.Start(), static_cast<std::size_t>(Capacity(first)) * 12);   // 0053BF40
 }
 
@@ -305,10 +302,8 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 
 // 00568800 (thiscall, RET 8). `others` and `dressed` are vectors of unit records (0x3C / 0x24
 // bytes); the dressed units (the second argument) come first.
-void CWorldClient::BuildUnitSkins(const void* othersVector, const void* dressedVector) {
-    auto* dressed = static_cast<stlp::vector<DressedUnitRecord>*>(const_cast<void*>(dressedVector));
+void CWorldClient::BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed) {
     for (DressedUnitRecord* r = dressed->Start(); r != dressed->Finish(); ++r) DressUnit(this, r);
-    auto* others = static_cast<stlp::vector<FiguredUnitRecord>*>(const_cast<void*>(othersVector));
     for (FiguredUnitRecord* r = others->Start(); r != others->Finish(); ++r) FigureUnit(this, r);
 }
 EI_REPLACE_METHOD(0x00568800, CWorldClient::BuildUnitSkins);
@@ -319,10 +314,8 @@ EI_REPLACE_METHOD(0x00568800, CWorldClient::BuildUnitSkins);
 // and [1] the shown extra weapon (0x3004, the weapon's type) when its index is within the list.
 // items[1..6] are read whatever the item list's size; an id past its table reads through a null
 // record as the original does (it faults).
-void __fastcall UnitTextureRecords(char body, const void* recordPointer, void* listPointer) {
+void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list) {
     constexpr std::uint32_t kBody = 0x32, kArmourPiece = 0x3005, kWeapon = 0x3004;
-    auto* record = static_cast<const DressedUnitRecord*>(recordPointer);
-    auto* list = static_cast<RecordList*>(listPointer);
     list->clear();   // 0056F2F0 erase(begin, end)
     auto& items = const_cast<IdList&>(record->items);
     if ((ByteSpan(items) & ~std::uintptr_t{3}) == 0) return;

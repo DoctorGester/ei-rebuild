@@ -62,7 +62,7 @@ src/game/unit_ai_options.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_client_attack.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_create_stats.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_client_draw.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/world_client_maps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
+src/game/world_client_maps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_client_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_effect_internal.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_effect_visual.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2

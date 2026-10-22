@@ -176,7 +176,13 @@ does not need a second pass:
   `CItemScreen::Virtual*` (VirtualHeroRecord, VirtualPrice, ...), a panel's Build through
   `CUiWindow::VirtualBuild`, not a `VirtualSlot` with a local function type; three pointers that
   are an STLport vector are an `stlp::vector<T>` member, called with the element policy
-  (`entries_.InsertOverflow<recordvec::SaveEntryElement>(...)`).
+  (`entries_.InsertOverflow<recordvec::SaveEntryElement>(...)`). The interface's active screen is
+  `CInterface3D::ActiveWindowAs<Screen>()`; a counted helper a world holds is a `RefPtrTo<T>` field
+  read with `Get()`; the new connections a player source hands over are a `JoinedLinks`
+  (`mfc::CTypedPtrList<netlink::NetLink>`); an inlined free of a 12-byte node is
+  `stlp::PushSmallNode(node)`; a map whose element policy is not the default is subscripted with a
+  named one (`headers_.Subscript<lib_trees::LinkHeaderElement>(name)`); a window's handled flag is
+  its `inputHandled_` member.
 - one typed view instead of a cast per accessor (C15): a compiled tag's slots reach their object
   through `ObjectAs<T>()` (`src/lib/compiled_vtable.h`); an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure

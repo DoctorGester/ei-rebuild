@@ -84,10 +84,6 @@ struct InputForward<Method, R (C::*)(A...)> {
     R Call(A... args) { return (WindowFromInput<C>(this)->*Method)(args...); }
 };
 
-// The window's input side's handled flag (+0x9C): set by a handler that consumed the event; the
-// interface manager then stops passing it on.
-inline bool& UiHandled(void* window) { return static_cast<CUiWindow*>(window)->Input()->handled_; }
-
 // The input sub-object that captured the mouse (scroll arrows held down), or null.
 inline void*& UiCapture(CInterface3D* ui) { return ui->mouseCapture_; }
 // A shift key is held (set by the key-down dispatch 005F78C0).

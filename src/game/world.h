@@ -52,10 +52,13 @@ class CPlayerClient;   // player_client.h
 class CScript;   // script.h
 namespace netlink {
 class NetLink;   // net_link.h
+class DriverSession;   // net_link.h
 }
 namespace net {
 struct NetAddress;   // net_classes.h
 }
+class CWorldHandle;    // below
+class CClientHandle;   // below
 class CBaseManager;
 struct CSoundManager;   // sound.h
 class CSectorMap;   // sector_map.h
@@ -272,8 +275,8 @@ public:
     CItemManager* itemManager_;          // +0x54 items (slot 18)
     CEngineObject* manager58_;            // +0x58 (slot 16)
     // +0x5C a counted helper (0xC bytes, vtable 0073F240) WorldCreateManagers shares in.
-    RefPtr shared5C_;
-    RefPtr netSession_;                   // +0x60 the network session (a netlink::DriverSession; OpenSession)
+    RefPtrTo<CWorldHandle> shared5C_;
+    RefPtrTo<netlink::DriverSession> netSession_;   // +0x60 the network session (OpenSession)
     int tick_;                            // +0x64 game time in ticks
     int updateCount_;                     // +0x068 world updates run (the server's Update)
     // +0x06C paused: the server's Update skips the players and the tick while it is set; the
@@ -1035,15 +1038,15 @@ public:
     // 0: 0055F260 (DeletingDestruct)
     int OnShutdown() override;          // 2: 0055F1E0 (the link released; built again in place)
     CWorldHandle* Clone() override;     // 3: 0055F1A0 (the same link, counted)
-    void TakeNew(void* joined) override;   // 6: 00478880 (the pending link appended, then dropped here; player_sources.cpp)
-    void TakeNewImpl(void* joined);   // body of the slot above (registered by member pointer)
+    void TakeNew(JoinedLinks* joined) override;   // 6: 00478880 (the pending link appended, then dropped here; player_sources.cpp)
+    void TakeNewImpl(JoinedLinks* joined);   // body of the slot above (registered by member pointer)
 
     // 0055F280. The link released, the root vtable left.
     void Destruct();
     // 0055F260 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
     CWorldHandle* DeletingDestruct(unsigned flags);
 
-    CRefObject* pendingLink_;           // +0x08 counted; handed over by slot 6
+    netlink::NetLink* pendingLink_;     // +0x08 counted; handed over by slot 6
 };
 static_assert(offsetof(CWorldHandle, pendingLink_) == 0x08);
 
@@ -1059,8 +1062,8 @@ public:
     CClientHandle* Clone() override;    // 3: 005626B0 (a new handle, count 0; null without memory)
     // 6: 00562700 (RET 4). The client takes no connections: every link of the list is released
     // and the list emptied (its blocks freed).
-    void TakeNew(void* joined) override;
-    void TakeNewImpl(void* joined);   // body of the slot above (registered by member pointer)
+    void TakeNew(JoinedLinks* joined) override;
+    void TakeNewImpl(JoinedLinks* joined);   // body of the slot above (registered by member pointer)
 };
 static_assert(sizeof(CClientHandle) == 8);
 
@@ -1176,7 +1179,7 @@ public:
     void MoveObject2Impl(CEngineObject* object, const float* position);
     // Body of the slot at 005618A0 (registered by member pointer).
     void MoveObjectImpl(CEngineObject* object, const float* position);
-    void BuildUnitSkins(const void* othersVector, const void* dressedVector);
+    void BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed);
     // 005641F0, vtable slot 6 (world_client.cpp). The client's tick ("Segment"): autosave event
     // and sound volumes on frame 10, the terrain, sound and session updates, the objects and units,
     // effect lists, the lights' grey levels, the map state every 32 ticks. Returns 1; 0 when the
@@ -1284,8 +1287,8 @@ public:
     // With `animateUnits` 0 units are only queued on the deferred list; otherwise they are animated
     // (slot 25) and filed like other objects. `withScripted` lets heroes with a text-key id
     // through. Returns how many objects were queued for the model-touch list (007AF508).
-    int CollectVisible(void* list, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
-                       char withScripted);
+    int CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
+                       char animateUnits, char withScripted);
     // 0056BF30 (RET 0xC). The ground point under screen pixel (x, y): inverts the current view
     // matrix and iterates on the terrain height (Terrain::HeightAt). Returns out (x, y, z).
     Vector3* PickGround(Vector3* out, int x, int y);
@@ -1367,7 +1370,7 @@ public:
     // replay of the recording `path`, or a driver for the game client's first connection (false
     // without an active client or connection; the argument is unused). Each empties the maps
     // (ClearMaps, ResetZoneObjects) and reconnects the session (CPlayer::Connect null, then the link).
-    void SetPlayer(std::uint8_t* player);
+    void SetPlayer(CWorldHandle* player);
     void PlayRecording(const char* path);
     bool JoinGameClient(const char* unused);
     // 00566E20 / 00566E70 (world_client_session.cpp). The player sources (+0x5C, +0x1C8) and the
@@ -1574,7 +1577,7 @@ public:
     static void** __fastcall EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out,
                                              stlp::list<GroundPrint>::Node* pos);
     int lightLevelsCountdown_;            // +0x1C4 time left before the blood prints are lit again (Segment); 0 after Setup
-    RefPtr handle_;                       // +0x1C8 (vtable 0073F628)
+    RefPtrTo<CClientHandle> handle_;      // +0x1C8 the client's player source (vtable 0073F628)
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
     CTextManager* texts_;                 // +0x1D0 the text resources (counted)
     PlatformSet platforms_;               // +0x1D4

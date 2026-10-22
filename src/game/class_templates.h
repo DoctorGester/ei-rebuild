@@ -10,6 +10,7 @@
 #include "lib/stlp.h"
 
 class CParty;   // party.h
+struct PartyManager;   // party_manager.h
 class ChunkArchive;
 
 #include <cstddef>
@@ -89,7 +90,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t);
 
 // 004A88E0 (__thiscall on the party manager 007AA5A0, the script's quest completion): sets byte
 // +0x38 of every template (+0x38 vector). Leaves the template count in EAX.
-unsigned __fastcall ClassTemplatesQuestCompleted(void* manager);
+unsigned __fastcall ClassTemplatesQuestCompleted(PartyManager* manager);
 
 // class_template_stock.cpp (A-S4): the trader stock of a camp's constructor record.
 // 004A6DF0 (__thiscall). With flag +0x0C: the items party (+0x3C) is emptied and refilled from the

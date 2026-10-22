@@ -14,34 +14,27 @@
 
 namespace {
 
-using LinkList = mfc::CTypedPtrList<CRefObject>;
-
 // AddTail of a counted link as both slots inline it: a new node after the tail (its element
 // zeroed, so nothing is released), the link stored with one more reference.
-void AppendCounted(LinkList* list, CRefObject* link) {
-    LinkList::Node* node = list->NewNode(list->tail, nullptr);
-    node->data = link;
+void AppendCounted(JoinedLinks* list, netlink::NetLink* link) {
+    list->AddTail(link);
     ++link->refs_;
-    if (list->tail) list->tail->next = node;
-    else list->head = node;
-    list->tail = node;
 }
 
 } // namespace
 
-void CWorldHandle::TakeNewImpl(void* joined) {
-    if (pendingLink_) AppendCounted(static_cast<LinkList*>(joined), pendingLink_);
-    CRefObject* link = pendingLink_;
+void CWorldHandle::TakeNewImpl(JoinedLinks* joined) {
+    if (pendingLink_) AppendCounted(joined, pendingLink_);
+    netlink::NetLink* link = pendingLink_;
     pendingLink_ = nullptr;
     if (link) link->Release();
 }
 
 namespace netlink {
 
-void DriverSession::TakeNewImpl(void* joined) {
-    auto* list = static_cast<LinkList*>(joined);
+void DriverSession::TakeNewImpl(JoinedLinks* list) {
     for (DriverNode* node = holders_->next; node != holders_; node = node->next) {
-        CRefObject* link = node->value.ptr;
+        DriverLink* link = node->Driver();
         if (link && !(link->flags7_ & CRefCounted::kDetached)) AppendCounted(list, link);
     }
     // The holders list cleared: each reference dropped, the node pushed on the allocator's list of
@@ -50,8 +43,7 @@ void DriverSession::TakeNewImpl(void* joined) {
         DriverNode* current = node;
         node = node->next;
         if (CRefObject* link = current->value.ptr) link->Release();
-        current->next = static_cast<DriverNode*>(stlp::SmallNodeFreeList());
-        stlp::SmallNodeFreeList() = current;
+        stlp::PushSmallNode(current);
     }
     holders_->next = holders_;
     holders_->prev = holders_;

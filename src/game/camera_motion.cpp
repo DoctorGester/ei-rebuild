@@ -183,16 +183,14 @@ void CCamera::ClampAboveObjects() {
     for (NearbyNode* node = list.head->next; node != list.head;) {
         NearbyNode* next = node->next;
         if (node) {
-            node->next = static_cast<NearbyNode*>(camera::NodeFreeList());
-            camera::NodeFreeList() = node;
+            stlp::PushSmallNode(node);
         }
         node = next;
     }
     list.head->next = list.head;
     list.head->prev = list.head;
     if (list.head) {
-        list.head->next = static_cast<NearbyNode*>(camera::NodeFreeList());
-        camera::NodeFreeList() = list.head;
+        stlp::PushSmallNode(list.head);
     }
 }
 EI_REWRITTEN(0x0040D710, CCamera::AlignToTarget);

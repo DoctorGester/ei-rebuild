@@ -423,9 +423,9 @@ int CWorldClient::Segment() {
     if (!paused_) {
         if (arrayManager_) arrayManager_->RunTick();
     }
-    if (shared5C_.ptr) static_cast<CWorldHandle*>(shared5C_.ptr)->Pump();
-    if (handle_.ptr) static_cast<CWorldHandle*>(handle_.ptr)->Pump();
-    if (CRefObject* p = netSession_.ptr) static_cast<netlink::DriverSession*>(p)->PumpDrivers(net::GameClient());
+    if (CWorldHandle* source = shared5C_.Get()) source->Pump();
+    if (CClientHandle* source = handle_.Get()) source->Pump();
+    if (netlink::DriverSession* session = netSession_.Get()) session->PumpDrivers(net::GameClient());
     if (CPlayer* session = Session()) {
         CPlayerConnection* view = session->connection_;
         if (!paused_) PlayerTickOriginal(session);
