@@ -123,12 +123,6 @@ mfc::CString* CMapObject::SetSecondName(const char* text) {
 }
 EI_REWRITTEN(0x0050F150, CMapObject::SetSecondName);
 
-void CMapObject::SaveTransformSlot(mfc::CFileVirtuals* file) { SaveTransformImpl(file); }
-EI_REWRITTEN(0x00516350, CMapObject::SaveTransformSlot);
-
-void CMapObject::LoadTransformSlot(mfc::CFileVirtuals* file) { LoadTransformImpl(file); }
-EI_REWRITTEN(0x00516360, CMapObject::LoadTransformSlot);
-
 // --- The virtual slots (vtable 0073DAA0) for the compiler's tables (C19) -------------------------------
 // The bodies above and in map_object*.cpp / object_small_slots.cpp, called without dispatch.
 

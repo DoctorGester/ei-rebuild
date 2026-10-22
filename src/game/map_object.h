@@ -321,10 +321,6 @@ public:
     std::uint32_t ReadState(int first, CMemoryStream* reader);
     // 0050F150 (RET 4). The second name (+0x1A8) becomes `text`. Returns the string.
     mfc::CString* SetSecondName(const char* text);
-    // 00516350 / 00516360 (slots 16 / 17, RET 4; CObject3D's too). The transform written to /
-    // read from the MFC file (CTransformObject 00401510 / 00401540, called directly).
-    void SaveTransformSlot(mfc::CFileVirtuals* file);
-    void LoadTransformSlot(mfc::CFileVirtuals* file);
 
     // The object as its CObject3D base (map_object_figures.h).
     CObject3D* Object3D() { return this; }

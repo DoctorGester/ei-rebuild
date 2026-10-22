@@ -20,19 +20,14 @@ class CTransformObject : public CEngineObject {
 public:
     // 13: 00401490. Copies the local and world transform; returns this.
     virtual CTransformObject* CopyTransform(const CTransformObject& other);
-    CTransformObject* CopyTransformImpl(const CTransformObject& other);   // body of the slot above (registered by member pointer)
     // 14: 0040CB80. worldRotation = parent * localRotation. Overridden by 00516370 in units.
     virtual void CombineRotation(const Quaternion& parent);
-    void CombineRotationImpl(const Quaternion& parent);   // body of the slot above (registered by member pointer)
     // 15: 0040CC30. Recomputes the world transform from the parent's rotation and position.
     virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition);
-    void UpdateWorldImpl(const Quaternion& parentRotation, const Vector3& parentPosition);   // body of the slot above (registered by member pointer)
     // 16: 00401510. Writes the local transform to an MFC CFile (slot 14, Write).
     virtual void SaveTransform(mfc::CFileVirtuals* file);
-    void SaveTransformImpl(mfc::CFileVirtuals* file);   // body of the slot above (registered by member pointer)
     // 17: 00401540. Reads the local transform from an MFC CFile (slot 13, Read).
     virtual void LoadTransform(mfc::CFileVirtuals* file);
-    void LoadTransformImpl(mfc::CFileVirtuals* file);   // body of the slot above (registered by member pointer)
 
     // Rotation helpers (core_transform_math.cpp).
     void WorldMatrix(float* m) const;                    // 00401570: 4x4 world matrix

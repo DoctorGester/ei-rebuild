@@ -117,7 +117,7 @@ int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator
     return 1;
 }
 
-void CFigureMesh::LoadFromMemoryImpl(char** cursor, float s, float t, float u) {
+void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) {
     if (flags_ & kLoaded) return;
     std::uint32_t magic;
     std::memcpy(&magic, *cursor, 4);
@@ -126,8 +126,8 @@ void CFigureMesh::LoadFromMemoryImpl(char** cursor, float s, float t, float u) {
     flags_ |= kLoaded;
 }
 
-EI_REWRITTEN(0x005A2490, CFigureMesh::LoadFromMemoryImpl);
-EI_REWRITTEN(0x005A4CF0, CFigureMesh::LoadFromMemoryImpl);   // byte-identical (class 0x41's slot 19)
+EI_REWRITTEN(0x005A2490, CFigureMesh::LoadFromMemory);
+EI_REWRITTEN(0x005A4CF0, CFigureMesh::LoadFromMemory);   // byte-identical (class 0x41's slot 19)
 EI_REWRITTEN(0x005AC1A0, CFigureManager::NewFigure);
 EI_REWRITTEN(0x005AC2B0, CFigureManager::NewPart);
 EI_REWRITTEN(0x005A9EB0, FigureModel::Open);

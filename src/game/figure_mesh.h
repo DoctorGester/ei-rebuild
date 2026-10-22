@@ -84,9 +84,8 @@ struct FigureLights {
 // and world position and rotation). The parts of an object's figure (CObject3D::parts) are these.
 // A real virtual class (C19): the classes 0x41 (CSharedFigureMesh), 0x42 (CPlainFigureMesh), 0x43
 // (CUiMesh, ui.h) and 0x44 (CSkyObject, sky_object.h) have C++ constructors and the compiler's
-// vtables. The slot bodies are plain members registered by address (Create's is CreateMesh,
-// CopyFigure's CopyFigureImpl, ...); the virtuals call them. Abstract: slots 20 and 21 are the
-// derived classes'. game.exe's base vtable 0073C224 (20 slots) is retired.
+// vtables. Abstract: slots 20 and 21 are the derived classes'. game.exe's base vtable 0073C224 (20 slots) is
+// retired.
 class CFigureMesh : public CTransformObject {
 public:
     // The vtable (game.exe's base 0073C224 and the pure slots 20 and 21). The slots not listed are
@@ -96,11 +95,21 @@ public:
     const char* GetName() override;        // 7: 00453440 (name_)
     const char* GetClassName() override;   // 11: 00453450 "CFigure"
     int GetClassId() override;             // 12: 00453460 (0x44)
-    // 15: 0059F510 SetPose. 16: 0059F710 SaveToFile (the mesh written to an MFC CFile).
-    void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) override;
+    // 15: 0059F510 (RET 8; figure_mesh_file.cpp): sets the rotation (slot 14 with `rotation`), rotates the
+    // position (+0x1C) by it into +0x28 (+ `offset`, copied to +0x110) and rebuilds the rotation matrix at
+    // +0xE0 from the stored quaternion (+0x44).
+    void UpdateWorld(const Quaternion& rotation, const Vector3& offset) override;
+    // 16: 0059F710 (RET 4; figure_mesh_file.cpp): writes the mesh to an MFC CFile: the name (+0x120, length
+    // then characters), each buffer (buffers_) as a count and its elements, a 0, then centre, box, radius and
+    // +0x158 / +0x15C. CPlainFigureMesh::LoadTransform reads it back.
     void SaveTransform(mfc::CFileVirtuals* file) override;
-    virtual void CopyFigure(const CFigureMesh* other);   // 18: 0059F0F0 CopyFigureImpl
-    // 19: 005A2480 LoadNothing (the meshes' is LoadFromMemoryImpl).
+    // 18: 0059F0F0 (RET 4): copies another mesh's transform (00401490), name, the shared buffer
+    // descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
+    virtual void CopyFigure(const CFigureMesh* other);
+    // 19: 005A2490 / 005A4CF0 (classes 0x42-0x44 / 0x41, byte-identical; RET 0x10; figure_manager.cpp, A-W12).
+    // Loads the mesh from memory at *cursor once (flags_ 0x20 set afterwards): data whose first dword starts
+    // with "FIG" through slot 20, other data through slot 21. (The abstract base's own slot 19 is
+    // LoadNothing below.)
     virtual void LoadFromMemory(char** cursor, float s, float t, float u);
     virtual void LoadFig(char** cursor, float s, float t, float u) = 0;   // 20: "FIG" data
     virtual void LoadOld(char** cursor, float s, float t, float u) = 0;   // 21: the older format
@@ -112,23 +121,12 @@ public:
     // `bounds_`. RET 0x14.
     void LoadBounds(char** cursor, float s, float t, float u, std::uint32_t magic);
 
-    // 005A2490 / 005A4CF0 (vtable slot 19 of classes 0x42-0x44 / 0x41, byte-identical; RET 0x10;
-    // figure_manager.cpp, A-W12). Loads the mesh from memory at *cursor once (flags_ 0x20 set
-    // afterwards): data whose first dword starts with "FIG" through slot 20, other data through
-    // slot 21.
-    void LoadFromMemoryImpl(char** cursor, float s, float t, float u);
-    // 005A2480 (slot 19 of the base vtable 0073C224, class 0x44; RET 0x10; figure_mesh_life.cpp).
-    // The base has no mesh to read: only marks itself loaded (flags_ 0x20).
+    // 005A2480 (slot 19 of the abstract base's vtable 0073C224; RET 0x10; figure_mesh_life.cpp). The base
+    // has no mesh to read: only marks itself loaded (flags_ 0x20).
     void LoadNothing(char** cursor, float s, float t, float u);
     // 005A37C0 (the interface's item models, 005EBFB0; figure_mesh.cpp). Fits bounds_ around the
     // vertices (the transform pipeline's slot 7); nothing without vertices.
     void FitVertexBounds();
-
-    // 005A5C70 (slot 20 of class 0x41): the same, but only the vertices and records are copied;
-    // the other buffers point into the file data.
-    void LoadFigShared(char** cursor, float s, float t, float u);
-    // 005A4D60 (slot 21 of class 0x41): the same, the last four buffers pointing into the data.
-    void LoadOldShared(char** cursor, float s, float t, float u);
 
     // 0059FDF0 (called by 00518100 for every part of a CObject3D): grows the world-space box
     // [min, max] by the 8 corners of this part's box (bounds_) transformed by its matrix
@@ -153,17 +151,6 @@ public:
     // into `target` through `rasteriser`, each triangle with its texture coordinates scaled to 0..255
     // (keyed when the target has key texels); returns the number of points used (4 per vertex).
     int Rasterise(CPixelConverter* rasteriser, const RasterTriangle::Point* points, RasterTarget* target);
-    // 0059F0F0 (slot 18, RET 4): copies another mesh's transform (00401490), name, the shared
-    // buffer descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
-    void CopyFigureImpl(const CFigureMesh* other);
-    // 0059F510 (slot 15, CTransformObject::UpdateWorld's place; RET 8): sets the rotation (slot 14
-    // with `rotation`), rotates the position (+0x1C) by it into +0x28 (+ `offset`, copied to +0x110)
-    // and rebuilds the rotation matrix at +0xE0 from the stored quaternion (+0x44).
-    void SetPose(const Quaternion& rotation, const Vector3& offset);
-    // 0059F710 (slot 16, RET 4; figure_mesh_file.cpp): writes the mesh to an MFC CFile: the name
-    // (+0x120, length then characters), each buffer (buffers_) as a count and its elements, a 0,
-    // then centre, box, radius and +0x158 / +0x15C. CPlainFigureMesh::LoadFromFile reads it back.
-    void SaveToFile(mfc::CFileVirtuals* file);
 
     // Lifetime (figure_mesh_life.cpp, A-W13).
     // 0059F210 (slot 2 of every figure class; 005A6C70 / 005A6E00 jump to it). No drawer, flags,
@@ -172,8 +159,6 @@ public:
     // 0059F2B0 (slot 3 of vtable 0073C224): names and colour arrays emptied, the buffer descriptor
     // cleared, the drawer let go (released), no flags.
     void Clear();
-    // 005A6E10 (slot 3 of class 0x41): the vertices and normals emptied, then Clear.
-    void ClearSharedMesh();
     // 0059F390 (RET 4). Lets the old drawer go (released) and takes `drawer` (one more reference,
     // its mesh_ set).
     void SetDrawer(FigureMeshDrawer* drawer);
@@ -200,7 +185,7 @@ public:
 
     // CEngineObject: flags_ 0x20 loaded, 0x40 drawn through drawer_ (its screen_ is where the part
     // was last drawn), 0x80 hidden; type_ the class id (0x41-0x44). CTransformObject: localPosition_
-    // relative to the object (a bone places it, 0050C230), worldPosition_ SetPose's moved position,
+    // relative to the object (a bone places it, 0050C230), worldPosition_ UpdateWorld's moved position,
     // localRotation_ and worldRotation_.
     // +0x054 part -> object: the rotation, the local position as column 3 (the draws build it,
     // ObjectWorldMatrix in map_object_shadow.h).
@@ -218,7 +203,7 @@ public:
     std::uint32_t flatColour_;
     std::uint32_t flatSpecular_;
     std::uint32_t spareDC_;             // +0x0DC cleared by Create, copied by CopyFrom; nothing reads it
-    // +0x0E0 the pose matrix (row-major): SetPose's rotation, its translation row (+0x110) the
+    // +0x0E0 the pose matrix (row-major): UpdateWorld's rotation, its translation row (+0x110) the
     // moved position.
     Matrix4 poseMatrix_;
     mfc::CString name_;                 // +0x120 (the scene loader names it after its mesh)
@@ -268,12 +253,14 @@ public:
     // 005AADC0's work: the normals and vertices freed, then CFigureMesh's destructor.
     ~CSharedFigureMesh() override;
 
-    // The vtable: CFigureMesh's but for 0, 3 and 19-21 (slot 2, 005A6E00, jumps to CreateMesh).
-    void Destroy() override;                                                // 3: 005A6E10 ClearSharedMesh
-    void LoadFromMemory(char** cursor, float s, float t, float u) override; // 19: 005A4CF0 LoadFromMemoryImpl
-    void LoadFig(char** cursor, float s, float t, float u) override;        // 20: 005A5C70 LoadFigShared
-    void LoadOld(char** cursor, float s, float t, float u) override;        // 21: 005A4D60 LoadOldShared
-
+    // The vtable: CFigureMesh's but for 0, 3 and 20-21 (slot 2, 005A6E00, jumps to CreateMesh).
+    // 3: 005A6E10 (figure_mesh_life.cpp). The vertices and normals emptied, then Clear.
+    void Destroy() override;
+    // 20: 005A5C70 (figure_mesh.cpp). CPlainFigureMesh's, but only the vertices and records are copied; the
+    // other buffers point into the file data.
+    void LoadFig(char** cursor, float s, float t, float u) override;
+    // 21: 005A4D60 (figure_mesh.cpp). CPlainFigureMesh's, the last four buffers pointing into the data.
+    void LoadOld(char** cursor, float s, float t, float u) override;
 };
 
 // Class 0x42 (game.exe's vtable 0073C1C4, retired; 24 slots; 0x220 bytes): a mesh that owns all its
@@ -287,34 +274,26 @@ public:
     // 00454510's work: the six arrays freed (last first), then CFigureMesh's destructor.
     ~CPlainFigureMesh() override;
 
-    // The vtable: CFigureMesh's but for 0, 3, 17 and 19-23 (slot 2, 005A6C70, jumps to CreateMesh).
-    void Destroy() override;                                                // 3: 005A6C80 ClearMesh
-    void LoadTransform(mfc::CFileVirtuals* file) override;                                // 17: 0059F8F0 LoadFromFile
-    void LoadFromMemory(char** cursor, float s, float t, float u) override; // 19: 005A2490 LoadFromMemoryImpl
-    void LoadFig(char** cursor, float s, float t, float u) override;        // 20: 005A2500 LoadFigImpl
-    void LoadOld(char** cursor, float s, float t, float u) override;        // 21: 005A3800 LoadOldImpl
-    virtual void MirrorX();                                                 // 22: 005A4B30 MirrorXImpl
-    virtual void MirrorY();                                                 // 23: 005A4BF0 MirrorYImpl
+    // The vtable: CFigureMesh's but for 0, 3, 17 and 20-23 (slot 2, 005A6C70, jumps to CreateMesh).
+    // 3: 005A6C80 (figure_mesh_life.cpp). The mesh's own arrays emptied, then Clear.
+    void Destroy() override;
+    // 17: 0059F8F0 (RET 4; figure_mesh_file.cpp): reads the mesh SaveTransform wrote.
+    void LoadTransform(mfc::CFileVirtuals* file) override;
+    // 20: 005A2500. Loads a "FIG" mesh from memory at *cursor (advanced past it), morphing FIG8 vertices;
+    // once only (flag 0x20). RET 0x10.
+    void LoadFig(char** cursor, float s, float t, float u) override;
+    // 21: 005A3800. The older format without a FIG header, chosen by slot 19 (005A2490) when the data does
+    // not start with "FIG": 6 corner versions of the bounds and of every vertex, each array preceded by its
+    // count. RET 0x10.
+    void LoadOld(char** cursor, float s, float t, float u) override;
+    // 22: 005A4B30 / 23: 005A4BF0. Mirror the mesh in x / y (negates that component of every vertex and
+    // normal) and swap the first two corners of every triangle.
+    virtual void MirrorX();
+    virtual void MirrorY();
 
-    // 005A2500 (slot 20). Loads a "FIG" mesh from memory at *cursor (advanced past it), morphing
-    // FIG8 vertices; once only (flag 0x20). RET 0x10.
-    void LoadFigImpl(char** cursor, float s, float t, float u);
-    // 005A3800 (slot 21): the older format without a FIG header, chosen by slot 19 (005A2490) when
-    // the data does not start with "FIG": 6 corner versions of the bounds and of every vertex, each
-    // array preceded by its count. RET 0x10.
-    void LoadOldImpl(char** cursor, float s, float t, float u);
-    // 005A4B30 (slot 22) / 005A4BF0 (slot 23): mirror the mesh in x / y (negates that component of
-    // every vertex and normal) and swap the first two corners of every triangle.
-    void MirrorXImpl();
-    void MirrorYImpl();
     // 005A6D40: points the buffer descriptor at the mesh's own arrays and sizes the colour arrays
     // (one per normal).
     void RefreshBuffers();
-    // 0059F8F0 (slot 17, RET 4; figure_mesh_file.cpp): reads the mesh SaveToFile wrote.
-    void LoadFromFile(mfc::CFileVirtuals* file);
-    // 005A6C80 (slot 3): the mesh's own arrays emptied, then Clear.
-    void ClearMesh();
-
 
     lib::AlignedArray<MeshCorner> corners_;       // +0x1E0
     lib::AlignedArray<std::uint32_t> words_;      // +0x1F0

@@ -161,7 +161,7 @@ EI_REPLACE(0x005F4780, DestroyInterface);
 void CUiMesh::DestroySprite() {
     material_ = nullptr;
     texture_ = nullptr;
-    ClearMesh();
+    CPlainFigureMesh::Destroy();
 }
 EI_REWRITTEN(0x005E6D70, CUiMesh::DestroySprite);
 

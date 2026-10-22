@@ -58,7 +58,7 @@ EI_REWRITTEN(0x00532AA0, UnitApplyBaseScaleHook);
 
 std::uintptr_t CUnit::LoadFigures() {
     if (flags_ & kFlagFiguresLoaded) return 1;
-    std::uintptr_t result = static_cast<std::uintptr_t>(CObject3D::LoadFiguresImpl());
+    std::uintptr_t result = CObject3D::LoadFigures();
     Controller()->FiguresLoaded();
     return result;
 }

@@ -346,7 +346,7 @@ void LoadArray(lib::AlignedArray<T>& array, char** cursor, int count) {
 
 } // namespace
 
-void CPlainFigureMesh::LoadFigImpl(char** cursor, float s, float t, float u) {
+void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     FigHeader header;
     std::memcpy(&header, *cursor, sizeof(header));
@@ -390,9 +390,9 @@ void CPlainFigureMesh::LoadFigImpl(char** cursor, float s, float t, float u) {
     buffers_.words = words_.data;
     flags_ |= 0x20;
 }
-EI_REWRITTEN(0x005A2500, CPlainFigureMesh::LoadFigImpl);
+EI_REWRITTEN(0x005A2500, CPlainFigureMesh::LoadFig);
 
-void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
+void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     FigHeader header;
     std::memcpy(&header, *cursor, sizeof(header));
@@ -436,7 +436,7 @@ void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
     colorsB_.SetSize(normals_.size * 4);
     flags_ |= 0x20;
 }
-EI_REWRITTEN(0x005A5C70, CFigureMesh::LoadFigShared);
+EI_REWRITTEN(0x005A5C70, CSharedFigureMesh::LoadFig);
 
 // ---- Old (non-FIG) format -----------------------------------------------------------------------
 
@@ -493,7 +493,7 @@ void SkipRecords34(char** cursor) {
 
 } // namespace
 
-void CPlainFigureMesh::LoadOldImpl(char** cursor, float s, float t, float u) {
+void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     LoadOldCommon(this, cursor, s, t, u, false);
     LoadArray(texCoords_, cursor, ReadCount(cursor));
@@ -519,9 +519,9 @@ void CPlainFigureMesh::LoadOldImpl(char** cursor, float s, float t, float u) {
     buffers_.indices = indices_.data;
     flags_ |= 0x20;
 }
-EI_REWRITTEN(0x005A3800, CPlainFigureMesh::LoadOldImpl);
+EI_REWRITTEN(0x005A3800, CPlainFigureMesh::LoadOld);
 
-void CFigureMesh::LoadOldShared(char** cursor, float s, float t, float u) {
+void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     // Unlike the other three loaders, this one does not test the loaded flag.
     LoadOldCommon(this, cursor, s, t, u, true);
     // The rest stays in the file data.
@@ -548,7 +548,7 @@ void CFigureMesh::LoadOldShared(char** cursor, float s, float t, float u) {
     colorsB_.SetSize(normals_.size * 4);
     flags_ |= 0x20;
 }
-EI_REWRITTEN(0x005A4D60, CFigureMesh::LoadOldShared);
+EI_REWRITTEN(0x005A4D60, CSharedFigureMesh::LoadOld);
 
 // ---- World-space box ----------------------------------------------------------------------------
 
@@ -622,26 +622,26 @@ void __cdecl FreeOffsetVertices() { g_offsetVertices.FreeData(); }   // 005A0CB0
 
 EI_REPLACE(0x005A0CB0, FreeOffsetVertices);
 
-void CPlainFigureMesh::MirrorXImpl() {
+void CPlainFigureMesh::MirrorX() {
     NegateBlock(vertices_, 0);
     NegateBlock(normals_, 0);
     ReverseWinding(indices_);
     BuffersChanged();
 }
-EI_REWRITTEN(0x005A4B30, CPlainFigureMesh::MirrorXImpl);
+EI_REWRITTEN(0x005A4B30, CPlainFigureMesh::MirrorX);
 
 void CFigureMesh::FitVertexBounds() {
     if (vertices_.size != 0) FitBounds(&bounds_, vertices_.data, vertices_.size);
 }
 EI_REWRITTEN(0x005A37C0, CFigureMesh::FitVertexBounds);
 
-void CPlainFigureMesh::MirrorYImpl() {
+void CPlainFigureMesh::MirrorY() {
     NegateBlock(vertices_, 1);
     NegateBlock(normals_, 1);
     ReverseWinding(indices_);
     BuffersChanged();
 }
-EI_REWRITTEN(0x005A4BF0, CPlainFigureMesh::MirrorYImpl);
+EI_REWRITTEN(0x005A4BF0, CPlainFigureMesh::MirrorY);
 
 EI_REPLACE_METHOD(0x005A6E70, lib::AlignedArray<std::uint32_t>::SetSize);
 

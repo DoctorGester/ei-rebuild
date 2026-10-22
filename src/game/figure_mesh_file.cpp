@@ -28,7 +28,7 @@ int ReadCount(mfc::CFileVirtuals* file) {
 
 } // namespace
 
-void CFigureMesh::SaveToFile(mfc::CFileVirtuals* file) {
+void CFigureMesh::SaveTransform(mfc::CFileVirtuals* file) {
     int length = name_.GetLength();
     WriteCount(file, length);
     Write(file, name_.GetString(), length);
@@ -53,7 +53,7 @@ void CFigureMesh::SaveToFile(mfc::CFileVirtuals* file) {
     Write(file, &meshType_, 4);
 }
 
-void CPlainFigureMesh::LoadFromFile(mfc::CFileVirtuals* file) {
+void CPlainFigureMesh::LoadTransform(mfc::CFileVirtuals* file) {
     BuffersChanged();
     int length = ReadCount(file);
     Read(file, name_.GetBufferSetLength(length), length);
@@ -95,9 +95,9 @@ float One() { return 1.0f /*0073B84C*/; }
 
 } // namespace
 
-void CFigureMesh::CopyFigureImpl(const CFigureMesh* other) {
+void CFigureMesh::CopyFigure(const CFigureMesh* other) {
     BuffersChanged();
-    CTransformObject::CopyTransformImpl(*other);   // 00401490: the transform base's copy
+    CTransformObject::CopyTransform(*other);   // 00401490: the transform base's copy
     name_ = other->name_;
     buffers_.corners = other->buffers_.corners;
     buffers_.cornerCount = other->buffers_.cornerCount;
@@ -118,7 +118,7 @@ void CFigureMesh::CopyFigureImpl(const CFigureMesh* other) {
     meshType_ = other->meshType_;
 }
 
-void CFigureMesh::SetPose(const Quaternion& rotation, const Vector3& offset) {
+void CFigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset) {
     // Slot 14 stores the quaternion as the world rotation (+0x44).
     CombineRotation(rotation);
     // The position (+0x1C) rotated by the quaternion (w, v):
@@ -186,7 +186,7 @@ void CFigureMesh::SetPose(const Quaternion& rotation, const Vector3& offset) {
     std::memcpy(&m[14], &moved[2], sizeof(float));
 }
 
-EI_REWRITTEN(0x0059F0F0, CFigureMesh::CopyFigureImpl);
-EI_REWRITTEN(0x0059F510, CFigureMesh::SetPose);
-EI_REWRITTEN(0x0059F710, CFigureMesh::SaveToFile);
-EI_REWRITTEN(0x0059F8F0, CPlainFigureMesh::LoadFromFile);
+EI_REWRITTEN(0x0059F0F0, CFigureMesh::CopyFigure);
+EI_REWRITTEN(0x0059F510, CFigureMesh::UpdateWorld);
+EI_REWRITTEN(0x0059F710, CFigureMesh::SaveTransform);
+EI_REWRITTEN(0x0059F8F0, CPlainFigureMesh::LoadTransform);

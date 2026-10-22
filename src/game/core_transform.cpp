@@ -11,12 +11,12 @@
 #include <cmath>
 #include <cstring>
 
-CTransformObject* CTransformObject::CopyTransformImpl(const CTransformObject& other) {
+CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other) {
     std::memmove(&localPosition_, &other.localPosition_, sizeof(CTransformObject) - offsetof(CTransformObject, localPosition_));
     return this;
 }
 
-void CTransformObject::CombineRotationImpl(const Quaternion& g) {
+void CTransformObject::CombineRotation(const Quaternion& g) {
     const Quaternion& f = localRotation_;
     float w = f.w * g.w - DotUnrounded<Sum3::XYZ>(f.x, f.y, f.z, g.x, g.y, g.z);
     float x = ((f.z * g.y - f.y * g.z) + f.x * g.w) + f.w * g.x;
@@ -34,7 +34,7 @@ void CTransformObject::CombineRotationImpl(const Quaternion& g) {
 // recomputed (identically) in each component rather than held in a float local. 2 u.L is written
 // (2u).L, the form /fp:fast gives the written-out ((u.L) * 2): the same value (doubling is exact),
 // and an inlined sum times 2 is regrouped differently (vecmath.h, Dot2DUnrounded).
-void CTransformObject::UpdateWorldImpl(const Quaternion& q, const Vector3& p) {
+void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     CombineRotation(q);
     const float ux = q.x, uy = q.y, uz = q.z;
     const Vector3& l = localPosition_;
@@ -59,32 +59,23 @@ void CTransformObject::UpdateWorldImpl(const Quaternion& q, const Vector3& p) {
     worldPosition_.z = z;
 }
 
-void CTransformObject::SaveTransformImpl(mfc::CFileVirtuals* file) {
+void CTransformObject::SaveTransform(mfc::CFileVirtuals* file) {
     // An MFC CFile, written through its vtable (slot 14).
     file->Write(&localPosition_, 12u);
     file->Write(&localRotation_, 16u);
 }
 
-void CTransformObject::LoadTransformImpl(mfc::CFileVirtuals* file) {
+void CTransformObject::LoadTransform(mfc::CFileVirtuals* file) {
     // An MFC CFile, read through its vtable (slot 13).
     file->Read(&localPosition_, 12u);
     file->Read(&localRotation_, 16u);
 }
 
-EI_REWRITTEN(0x00401490, CTransformObject::CopyTransformImpl);
-EI_REWRITTEN(0x0040CB80, CTransformObject::CombineRotationImpl);
-EI_REWRITTEN(0x0040CC30, CTransformObject::UpdateWorldImpl);
-EI_REWRITTEN(0x00401510, CTransformObject::SaveTransformImpl);
-EI_REWRITTEN(0x00401540, CTransformObject::LoadTransformImpl);
-
-// The virtual slots 13-17 for a class whose vtable is the compiler's (C19: CSkyObject): the bodies above.
-CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other) { return CopyTransformImpl(other); }
-void CTransformObject::CombineRotation(const Quaternion& parent) { CombineRotationImpl(parent); }
-void CTransformObject::UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {
-    UpdateWorldImpl(parentRotation, parentPosition);
-}
-void CTransformObject::SaveTransform(mfc::CFileVirtuals* file) { SaveTransformImpl(file); }
-void CTransformObject::LoadTransform(mfc::CFileVirtuals* file) { LoadTransformImpl(file); }
+EI_REWRITTEN(0x00401490, CTransformObject::CopyTransform);
+EI_REWRITTEN(0x0040CB80, CTransformObject::CombineRotation);
+EI_REWRITTEN(0x0040CC30, CTransformObject::UpdateWorld);
+EI_REWRITTEN(0x00401510, CTransformObject::SaveTransform);
+EI_REWRITTEN(0x00401540, CTransformObject::LoadTransform);
 
 void CCamera::GroundPoint(Vector3* out) const {
     const Quaternion& r = localRotation_;

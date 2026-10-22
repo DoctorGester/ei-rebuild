@@ -96,7 +96,7 @@ void CFigureMesh::Clear() {
 }
 EI_REWRITTEN(0x0059F2B0, CFigureMesh::Clear);
 
-void CPlainFigureMesh::ClearMesh() {
+void CPlainFigureMesh::Destroy() {
     vertices_.SetSize(0);
     normals_.SetSize(0);
     corners_.SetSize(0);
@@ -105,14 +105,14 @@ void CPlainFigureMesh::ClearMesh() {
     texCoords_.SetSize(0);
     Clear();
 }
-EI_REWRITTEN(0x005A6C80, CPlainFigureMesh::ClearMesh);
+EI_REWRITTEN(0x005A6C80, CPlainFigureMesh::Destroy);
 
-void CFigureMesh::ClearSharedMesh() {
+void CSharedFigureMesh::Destroy() {
     vertices_.SetSize(0);
     normals_.SetSize(0);
     Clear();
 }
-EI_REWRITTEN(0x005A6E10, CFigureMesh::ClearSharedMesh);
+EI_REWRITTEN(0x005A6E10, CSharedFigureMesh::Destroy);
 
 // --- Destruction --------------------------------------------------------------------------------
 
@@ -168,33 +168,13 @@ EI_REWRITTEN_SPECIAL(0x004543A0, CPlainFigureMesh::~CPlainFigureMesh);
 // constructor.
 void scene::InitFigurePart(CPlainFigureMesh* p) { new (p) CPlainFigureMesh(); }
 
-// --- The virtual slots (the registered bodies) ---------------------------------------------------
+// --- Small virtuals ----------------------------------------------------------------------------
 
 int CFigureMesh::Create() { return CreateMesh(); }
 void CFigureMesh::Destroy() { Clear(); }
 const char* CFigureMesh::GetName() { return name_; }
 const char* CFigureMesh::GetClassName() { return "CFigure"; }
 int CFigureMesh::GetClassId() { return 0x44; }
-void CFigureMesh::UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition) {
-    SetPose(parentRotation, parentPosition);
-}
-void CFigureMesh::SaveTransform(mfc::CFileVirtuals* file) { SaveToFile(file); }
-void CFigureMesh::CopyFigure(const CFigureMesh* other) { CopyFigureImpl(other); }
-void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) { LoadNothing(cursor, s, t, u); }
-
-
-void CSharedFigureMesh::Destroy() { ClearSharedMesh(); }
-void CSharedFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) { LoadFromMemoryImpl(cursor, s, t, u); }
-void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) { LoadFigShared(cursor, s, t, u); }
-void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) { LoadOldShared(cursor, s, t, u); }
-
-void CPlainFigureMesh::Destroy() { ClearMesh(); }
-void CPlainFigureMesh::LoadTransform(mfc::CFileVirtuals* file) { LoadFromFile(file); }
-void CPlainFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) { LoadFromMemoryImpl(cursor, s, t, u); }
-void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) { LoadFigImpl(cursor, s, t, u); }
-void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) { LoadOldImpl(cursor, s, t, u); }
-void CPlainFigureMesh::MirrorX() { MirrorXImpl(); }
-void CPlainFigureMesh::MirrorY() { MirrorYImpl(); }
 
 // --- Drawer and owner ---------------------------------------------------------------------------
 

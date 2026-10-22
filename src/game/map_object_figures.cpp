@@ -191,7 +191,7 @@ EI_REWRITTEN(0x005164B0, CObject3D::AddPart);
 
 // --- Loading ----------------------------------------------------------------------------------
 
-int CObject3D::LoadFiguresImpl() {
+std::uintptr_t CObject3D::LoadFigures() {
     if (flags_ & kFlagFiguresLoaded) return 1;
     CFigureManager* manager = FigureManagerOf(this);
     FigureModel* model;
@@ -221,4 +221,4 @@ int CObject3D::LoadFiguresImpl() {
     flags_ |= kFlagFiguresLoaded;
     return 1;
 }
-EI_REWRITTEN(0x00517500, CObject3D::LoadFiguresImpl);
+EI_REWRITTEN(0x00517500, CObject3D::LoadFigures);

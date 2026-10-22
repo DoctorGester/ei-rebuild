@@ -375,29 +375,36 @@ public:
     int Create() override { return Create3D(); }          // 2: 00515F70
     void Destroy() override { Destroy3D(); }               // 3: 00516080
     void ClearState() override { RemoveAllEffectSources(); }   // 5: 00515E90
-    // 13: 00401490 and 15: 0040CC30 are CTransformObject's. 16 / 17: 00516350 / 00516360 hand the
-    // file to CTransformObject's 00401510 / 00401540 (the same work as its slots).
-    // 14: 00516370 (CombineRotation3D). worldRotation_ = parent * localRotation_.
+    // 13: 00401490 and 15: 0040CC30 are CTransformObject's.
+    // 14: 00516370. worldRotation_ = parent * localRotation_.
     void CombineRotation(const Quaternion& parent) override;
+    // 16 / 17: 00516350 / 00516360 hand the file to CTransformObject's 00401510 / 00401540.
+    void SaveTransform(mfc::CFileVirtuals* file) override;
+    void LoadTransform(mfc::CFileVirtuals* file) override;
     // 18 (0x48, RET 4; AL): whether the object may play the animation entry (FigureAnimation);
     // 0050E400: any. CUnit 00532DA0 (AcceptsTarget: its flags +0x18 for heroes).
     virtual bool AcceptsAnimation(const void* animation);
     // 19 (RET 4): 00516D50 AttachSpecific (no result: 0). CMapObject 0050E890, units 0052E870.
     virtual std::uintptr_t AttachObject(CEngineObject* object);
-    // 20: 005161E0 (CopyFigureImpl).
+    // 20: 005161E0 (object3d_slots.cpp). Takes `other`'s parts (the array copied, no references taken) and
+    // its transform (CTransformObject::CopyTransform 00401490).
     virtual void CopyFigure(const CObject3D* other);
     // 21 (0x54, AL): whether the object is invisible: 00515D40 false; map objects 0050FA10.
     virtual bool InvisibleSlot();
     // 22 / 23 / 24 (0x58 / 0x5C / 0x60, RET 4): draw the figure / draw it and collect its screen
     // rectangle / draw its shadow with the scene context (00516460 / 00516420 / 00516490: the side
-    // half's slots 19 / 20; 1 without one).
+    // half's slots 19 / 20, slot 23 first emptying dirtyRect to have it filled; 1 without one, else the
+    // half's result; object3d_slots.cpp).
     virtual int DrawFigure(void* context);
     virtual int DrawCollectDirty(void* context);
     virtual int DrawFigureShadow(void* context);
     // 25 (RET 4): 0050E410 empty; units 0052FC40.
     virtual void AdvanceTime(float time);
-    // 26: loads the figure (00517500 LoadFiguresImpl, units 0052E910). Returns 1 (or the loader's
-    // EAX).
+    // 26: 00517500 (map_object_figures.cpp; units 0052E910). Loads the figure named by +0xA4 and builds the
+    // pending parts (+0xE0) at the current scale; each part not yet in +0xD0 joins it (referenced), learns its
+    // owner and is announced to the animation (+0x98) and the attached object (+0x94, slot 13). Non-units mark
+    // every part and themselves (flags_ 8 / 0x200). Then +0x94's slot 21 and flags_ 0x80. Returns 1 (also
+    // when already loaded).
     virtual std::uintptr_t LoadFigures();
 
     // 00518310. The bounding box of the parts (+0xD0, only those within 1e9 squared of the
@@ -412,13 +419,6 @@ public:
     // animation (+0x98, 0050D7C0) and recomputes the bounds. Returns what the original leaves in
     // EAX on the rebuild path (0 when the scale did not change).
     std::uintptr_t SetFigureScale(const float* newScale);
-
-    // 00517500. Virtual slot 26's body: loads the figure named by +0xA4 and builds the pending parts
-    // (+0xE0) at the current scale; each part not yet in +0xD0 joins it (referenced), learns its
-    // owner and is announced to the animation (+0x98) and the attached object (+0x94, slot 13).
-    // Non-units mark every part and themselves (flags_ 8 / 0x200). Then +0x94's slot 21 and
-    // flags_ 0x80. Returns 1 (also when already loaded).
-    int LoadFiguresImpl();
 
     // 005164B0. Adds `part` to the parts unless it is there: referenced, told its owner, announced
     // to the animation and to the attached object (whose slot 13 result is returned). Returns 1
@@ -530,12 +530,6 @@ public:
     void RemoveEffectSource(CEngineObject* source);
 
     // object3d_slots.cpp (A-U2).
-    // 00516370. Virtual slot 14 (CTransformObject::CombineRotation's place; the same body as
-    // 0040CB80): worldOrientation = parent * orientation.
-    void CombineRotation3D(const Quaternion* parent);
-    // 005161E0. Virtual slot 20's body: takes `other`'s parts (the array copied, no references
-    // taken) and its transform (CTransformObject::CopyTransform 00401490).
-    void CopyFigureImpl(const CObject3D* other);
     // 00516D50. Virtual slot 19: a side half (type 0x46) replaces the attached one, which is
     // detached (+0x1C cleared) and released; the new one points back here and gains a reference.
     // Other objects (and null) are ignored.
@@ -543,12 +537,6 @@ public:
     // 00515E90. Virtual slot 5: every effect source is taken out of the list, detached (004849F0
     // with null) and released.
     void RemoveAllEffectSources();
-    // 00516460 / 00516420 / 00516490. Virtual slots 22 / 23 / 24's bodies: the side half draws
-    // the figure (its slot 19; slot 23 first empties dirtyRect and has it filled) / the shadow
-    // (its slot 20). 1 without a side half, else the half's result.
-    int DrawFigureImpl(void* context);
-    int DrawCollectDirtyImpl(void* context);
-    int DrawFigureShadowImpl(void* context);
 
     // object3d_small_methods.cpp (A-U12).
     // 005161A0 (RET 4). `half` (of any type, or null) replaces the attached half: the old one is

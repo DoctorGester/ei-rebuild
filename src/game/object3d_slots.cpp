@@ -16,15 +16,23 @@ namespace {
 constexpr int kSpecificType = 0x46;   // the side halves' type_
 } // namespace
 
-void CObject3D::CombineRotation3D(const Quaternion* parent) { CombineRotationImpl(*parent); }
-EI_REWRITTEN(0x00516370, CObject3D::CombineRotation3D);
+// The same body as the base's 0040CB80.
+void CObject3D::CombineRotation(const Quaternion& parent) { CTransformObject::CombineRotation(parent); }
+EI_REWRITTEN(0x00516370, CObject3D::CombineRotation);
 
-void CObject3D::CopyFigureImpl(const CObject3D* other) {
+// CTransformObject's 00401510 / 00401540, called directly.
+void CObject3D::SaveTransform(mfc::CFileVirtuals* file) { CTransformObject::SaveTransform(file); }
+EI_REWRITTEN(0x00516350, CObject3D::SaveTransform);
+
+void CObject3D::LoadTransform(mfc::CFileVirtuals* file) { CTransformObject::LoadTransform(file); }
+EI_REWRITTEN(0x00516360, CObject3D::LoadTransform);
+
+void CObject3D::CopyFigure(const CObject3D* other) {
     parts.SetSize(other->parts.size, -1);
     std::memcpy(parts.data, other->parts.data, static_cast<std::size_t>(other->parts.size & 0x3FFFFFFF) * sizeof(void*));
-    CopyTransformImpl(*other);
+    CTransformObject::CopyTransform(*other);
 }
-EI_REWRITTEN(0x005161E0, CObject3D::CopyFigureImpl);
+EI_REWRITTEN(0x005161E0, CObject3D::CopyFigure);
 
 void CObject3D::AttachSpecific(CEngineObject* half) {
     if (!half || half->type_ != kSpecificType) return;
@@ -53,30 +61,24 @@ void CObject3D::RemoveAllEffectSources() {
 }
 EI_REWRITTEN(0x00515E90, CObject3D::RemoveAllEffectSources);
 
-int CObject3D::DrawFigureImpl(void* context) { return attached ? Specific()->DrawParts(context, nullptr) : 1; }
-EI_REWRITTEN(0x00516460, CObject3D::DrawFigureImpl);
+int CObject3D::DrawFigure(void* context) { return attached ? Specific()->DrawParts(context, nullptr) : 1; }
+EI_REWRITTEN(0x00516460, CObject3D::DrawFigure);
 
-int CObject3D::DrawCollectDirtyImpl(void* context) {
+int CObject3D::DrawCollectDirty(void* context) {
     gameapi::SetRectEmpty(DirtyRect());
     return attached ? Specific()->DrawParts(context, dirtyRect) : 1;
 }
-EI_REWRITTEN(0x00516420, CObject3D::DrawCollectDirtyImpl);
+EI_REWRITTEN(0x00516420, CObject3D::DrawCollectDirty);
 
-int CObject3D::DrawFigureShadowImpl(void* context) { return attached ? Specific()->DrawPartsShadow(context) : 1; }
-EI_REWRITTEN(0x00516490, CObject3D::DrawFigureShadowImpl);
+int CObject3D::DrawFigureShadow(void* context) { return attached ? Specific()->DrawPartsShadow(context) : 1; }
+EI_REWRITTEN(0x00516490, CObject3D::DrawFigureShadow);
 
-// --- The virtual slots (vtable 0073DDD4) for the compiler's tables (C19) -------------------------------
+// --- Small virtuals ----------------------------------------------------------------------------
 
-void CObject3D::CombineRotation(const Quaternion& parent) { CombineRotation3D(&parent); }
 bool CObject3D::AcceptsAnimation(const void*) { return true; }
 std::uintptr_t CObject3D::AttachObject(CEngineObject* object) {
     AttachSpecific(object);
     return 0;
 }
-void CObject3D::CopyFigure(const CObject3D* other) { CopyFigureImpl(other); }
 bool CObject3D::InvisibleSlot() { return false; }
-int CObject3D::DrawFigure(void* context) { return DrawFigureImpl(context); }
-int CObject3D::DrawCollectDirty(void* context) { return DrawCollectDirtyImpl(context); }
-int CObject3D::DrawFigureShadow(void* context) { return DrawFigureShadowImpl(context); }
 void CObject3D::AdvanceTime(float) {}
-std::uintptr_t CObject3D::LoadFigures() { return static_cast<std::uintptr_t>(LoadFiguresImpl()); }
