@@ -4,6 +4,7 @@
 // touches DirectDraw or Direct3D except the COM pointer's Release. Most are byte-identical to
 // copies rewritten elsewhere; each says which. See docs/notes/renderer.md (section 12).
 #include "clip.h"            // TLVertex
+#include "core_refcount.h"
 #include "engine_object.h"
 #include "model.h"           // CTransformPipeline
 #include "texture.h"
@@ -23,9 +24,9 @@
 
 namespace {
 
-// The vtables the destructors leave: the engine's counted root (0073C368) and the renderer's own
+// The vtables the destructors leave: the engine's plain counted root (PlainRootVtable) and the renderer's own
 // counted base (RendererBaseClass: CDXSurface, the device object and the pipeline derive from it).
-void SetRootVtable(void* object) { ei::SetVtable(object, 0x0073C368); }
+void SetRootVtable(void* object) { ei::SetVtable(object, PlainRootVtable()); }
 void SetRendererBaseVtable(void* object) { ei::SetVtable(object, RendererBaseClass::Vtable()); }
 
 } // namespace

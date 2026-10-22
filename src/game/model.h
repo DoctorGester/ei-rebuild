@@ -220,10 +220,12 @@ class GameOptions;
 class CLight;   // spell.h
 class CTexture;   // texture.h
 
-// The renderer's counted helper object (0x118 bytes, vtable 0073D840, constructor 004FCA60 with the
+// The renderer's counted helper object (0x118 bytes, render_helper.cpp's RenderHelperClass table in place of
+// game.exe's 0073D840, constructor 004FCA60 with the
 // Direct3D device and a flag). Slot 0 is the deleting destructor.
 // A render state preset the helper keeps (counted; slot 0 is the deleting destructor).
-// (vtable 0073D880; its base's, 0073D888, has the pure slot 1.)
+// (render_helper.cpp's RenderPresetClass table in place of game.exe's 0073D880; its base's, 0073D888, has the
+// pure slot 1.)
 class __declspec(novtable) CRenderPreset {
 public:
     void* DeleteScalar(unsigned flags);
@@ -649,7 +651,7 @@ public:
     // 004F6BD0 (A-S8). Each archive closed (slot 3) and deleted, the archive list emptied, each
     // figure set destroyed (005A9C90) and freed, the device object released (the field cleared
     // first), the cache emptied (ClearCache's walk), then the containers' storage; the counted
-    // root's vtable (0073C368) left.
+    // root's vtable (PlainRootVtable()) left.
     void Destruct();
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D808);

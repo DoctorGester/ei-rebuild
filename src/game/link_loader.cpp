@@ -1,5 +1,6 @@
 // The link figure loader's .lnk reading and mesh cache (A-S7): 004DB9C0, 004F7020-004F7D20. See
 // link_figure.h and CLinkFigureLoader in model.h.
+#include "core_refcount.h"
 #include "link_figure.h"
 
 #include "model.h"
@@ -323,7 +324,7 @@ void CLinkFigureLoader::Destruct() {
     figureSets_.Destroy();
     ClearArchives(archives_);
     stlp::deallocate(archives_, sizeof(LinkArchiveNode));
-    ei::SetVtable(this, CLinkMesh::kRootVtableAddress);
+    ei::SetVtable(this, PlainRootVtable());
 }
 
 void* CLinkFigureLoader::DeleteThisImpl(unsigned flags) {

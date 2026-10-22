@@ -45,11 +45,11 @@ public:
     const LONG* Poll(int unused);
     const LONG* PollThroughHook(int unused) { return Poll(unused); }
     // 004578D0 (A-E1; app_lifetime.cpp). Destructor body: the vtable, Shutdown, the two counted
-    // pointers' releases (both already null), the root vtable (0073C368).
+    // pointers' releases (both already null), the root vtable (PlainRootVtable()).
     void Destruct();
     // 004578B0 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
     CDirectInputMouse* DeletingDestruct(unsigned flags);
-    // 00457950 (slot 0 of the root class, vtable 0073C368; RET 4): the root vtable stored, then
+    // 00457950 (slot 0 of the root class, game.exe's 0073C368; RET 4): the root vtable stored, then
     // operator delete when bit 0 of `flags` is set. Returns the object.
     CDirectInputMouse* RootDeletingDestruct(unsigned flags);
     // The mouse's one-slot table (app_lifetime.cpp): the compiler's, slot 0 DeletingDestruct (C19;

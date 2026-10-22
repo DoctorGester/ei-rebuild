@@ -37,7 +37,7 @@ struct MaterialStage {
 };
 static_assert(sizeof(MaterialStage) == 0x14 && offsetof(MaterialStage, texture) == 0x10);
 
-// A device material (counted; vtable slot 0 the deleting destructor; the root vtable 0073C368).
+// A device material (counted; vtable slot 0 the deleting destructor; the root vtable PlainRootVtable()).
 // Made by the game's code (the wounds material, WoundsMaterial in map_object_shadow.h, is one);
 // only the layout the device reads is declared.
 class __declspec(novtable) CDeviceMaterial {

@@ -135,10 +135,9 @@ static_assert(sizeof(LinkHeaderMap) == 0x0C && sizeof(LinkHeaderMap::Node) == 0x
 
 // A figure's mesh's base (game.exe's 0073D7CC, retired; slots 1-14 pure there; no object of the
 // base alone exists): the reference count, the name and the part headers. Below it is the engine's
-// counted root (0073C368, one slot, no fields), whose table other classes' destructors still store.
+// counted root (PlainRootVtable(), core_refcount.h: one slot, no fields), whose table other classes' destructors store.
 class CLinkMeshBase {
 public:
-    static constexpr std::uintptr_t kRootVtableAddress = std::uintptr_t(0x0073C368);   // the counted root (one slot)
 
     // 0: the deleting destructor (CLinkMesh's 004F2E20; the base's 004F2E00). Counted users delete
     // the mesh when its last reference goes.

@@ -99,7 +99,7 @@ struct PointerVectorsPair {
     stlp::vector<void*> second;   // +0x10
 };
 
-// 004F69F0: the counted root's vtable (0073C368) stored (unwind funclets and the deleting destructor
+// 004F69F0: the plain counted root's vtable (PlainRootVtable) stored (unwind funclets and the deleting destructor
 // 004F6A00).
 void __fastcall SetRootVtable(void* self);
 

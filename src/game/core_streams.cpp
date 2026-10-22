@@ -45,6 +45,18 @@ struct CountedRootClass final : ei::CompiledDeleter<CountedRootClass, &CRefCount
 
 void* CRefCounted::RootVtable() { return CountedRootClass::Vtable(); }
 
+namespace {
+// The plain counted root's compiled table (C19; game.exe's 0073C368): 0 the deleting destructor.
+struct PlainRootClass final : ei::CompiledTag<PlainRootClass> {
+    virtual void* DeleteScalar(unsigned flags) {   // 0: 00457950
+        SetVtable(this, PlainRootVtable());
+        return DeleteIf(this, flags);
+    }
+};
+} // namespace
+
+void* PlainRootVtable() { return PlainRootClass::Vtable(); }
+
 void __fastcall RefObjectDestructBase(void* self) { SetVtable(self, CRefCounted::RootVtable()); }
 EI_REWRITTEN(0x00412720, RefObjectDestructBase);
 EI_REWRITTEN(0x00413430, RefObjectDestructBase);
