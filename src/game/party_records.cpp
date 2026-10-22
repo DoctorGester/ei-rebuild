@@ -36,24 +36,19 @@ const char* const kFirstZone = "gz1g";
 const char* const kGameTime = "gtime";
 constexpr std::uint32_t kSix = 0x40C00000;                                     // 6.0f
 
-// The record's inlined constructor (operator new's result may be null; the caller then writes
-// through null as the original does).
+// A new record with no references (the original clears the count dword before testing the
+// allocation; ours tests first).
 PartyRecord* NewRecord() {
-    auto* record = gamecrt::operator_new_as<PartyRecord>();
-    record->refCount = 0;   // the reference dword, both halves
-    record->refsHigh = 0;
+    auto* record = new PartyRecord();
     if (!record) return nullptr;
-    record->vtable = CRefCounted::RootVtable();
-    new (record->Party()) CParty();
-    ::new (&record->name) mfc::CString;   // afxEmptyString
-    record->vtable = PartyRecord::Vtable();
-    record->Party()->Create();   // slot 2
+    record->refs_ = 0;
+    record->flags6_ = 0;
+    record->flags7_ = 0;
     return record;
 }
 
 void Release(PartyRecord* record) {
-    // A counted object (base vtable 0073BB68): slot 0, the deleting destructor, with 1 at zero.
-    if (record && --record->refCount == 0) delete reinterpret_cast<CRefCounted*>(record);
+    if (record && --record->refs_ == 0) delete record;
 }
 
 const char* NameOf(const PartyRecord* record) { return record->name.GetString(); }
@@ -70,7 +65,7 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     list->text10 = game::EmptyText();
 
     PartyRecord* temp = NewRecord();
-    if (temp) ++temp->refCount;
+    if (temp) ++temp->refs_;
     if (list->records.Finish() == list->records.EndOfStorage()) {
         stlp::AsRefPtrs(list->records).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(list->records.Finish()), stlp::AsRefPtr(temp), 1);
     } else {
@@ -101,13 +96,13 @@ void NamedPartyRecords::Add(const char* name) {
     PartyRecord* record = NewRecord();
     record->name = name;
     PartyRecord* temp = record;
-    if (temp) ++temp->refCount;
+    if (temp) ++temp->refs_;
     if (records.Finish() == records.EndOfStorage()) {
         stlp::AsRefPtrs(records).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(records.Finish()), stlp::AsRefPtr(temp), 1);
     } else {
         if (records.Finish()) {
             *records.Finish() = temp;
-            if (temp) ++temp->refCount;
+            if (temp) ++temp->refs_;
         }
         ++records.Finish();
     }
@@ -126,7 +121,7 @@ void NamedPartyRecords::Remove(const char* name) {
                 PartyRecord* next = p[1];
                 PartyRecord* old = p[0];
                 p[0] = next;
-                if (next) ++next->refCount;
+                if (next) ++next->refs_;
                 Release(old);
             }
         }

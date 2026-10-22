@@ -1208,8 +1208,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     pure), CObject3DServer (0073DFBC: 14 / 16 / 17 null slots) and CObject3DClientSpecific (map_object_shadow.h,
     0073DE90).
   - **Small ones**: the theme array 007440CC and the map database's maps 0073C3E8 (CompiledCollection; game_slots.h's
-    MapRecordArrayClass over BuiltZoneRecords), the class template 0073D0C4, the party record 0073C360 and the mouse
-    0073C350 (`ei::CompiledDeleter` plus Serialize), the debug panel 0073BFA4, CDib 00744288, the AI map's unit layers
+    MapRecordArrayClass over BuiltZoneRecords), the mouse 0073C350 (`ei::CompiledDeleter`), the debug panel 0073BFA4,
+    the class template 0073D0C4, the party record 0073C360 (real CRefCounted classes since C28i; ClassTemplate keeps
+    a `Construct` that runs its constructor in place for 004A6580's registration, which the harness's zeroing patch
+    calls) and CDib 00744288 (a real class since C28i), the AI map's unit layers
     0073FD7C / 0073FD74 / 0073FD6C, a sector 0073FADC and the sector map 0073F9DC (real classes since C28h: CUnitLayer,
     CSmallUnitLayer, CLargeUnitLayer, Sector and CSectorMap, members of CAIMap, whose constructor and destructor
     are its own since then).
@@ -1238,7 +1240,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     `InGameVtables`) and the window slot checks' stand-in tables need a window's vtable to be game data, so the
     windows' main tables (007418E0 and the other 26-slot ones) wait for a harness id as the AI modes' (batch 17).
   - **Engine objects** (engine_object_class.h): CHoover (0073C434) is a real class since C28e, CLightning (0073C550)
-    and CCamera (0073B9E0) since C28f; PlayerClass (00743104) and SysInfoClass (0073D644).
+    and CCamera (0073B9E0) since C28f, CSysInfo (0073D644; its global a lib::StaticObject) since C28i; PlayerClass
+    (00743104).
     The classes' `DeleteScalar` became `DeletingDestruct` (EngineObjectClass's slot 0 names it). CParticleSource
     (0073CFD0) and CRainSnow (0073F4C8 with its tail 0073F4E8; its slots 11 / 12, "CWeather" and 0x1D, are dead
     code's) are real classes since C28f.

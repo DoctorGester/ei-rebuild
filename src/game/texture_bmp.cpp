@@ -32,21 +32,6 @@ const char* AlphaNot8BitText() { return "Alpha-file %s must be 8bit gray instead
 
 // The game's .bmp reader (CDib, dib.h): Read takes an open file (a short or non-"BM" file: a message
 // box, nothing read), Size gives 0 x 0 without a header.
-using GameBitmap = CDib;
-
-// A GameBitmap constructed and destroyed with the scope (the original's locals).
-class Bitmap {
-public:
-    Bitmap() { dib_.Construct(); }
-    ~Bitmap() { dib_.Destruct(); }
-    Bitmap(const Bitmap&) = delete;
-    Bitmap& operator=(const Bitmap&) = delete;
-    GameBitmap& operator*() { return dib_; }
-    GameBitmap* operator->() { return &dib_; }
-
-private:
-    GameBitmap dib_;
-};
 
 // The .bmp's pixels as 0068FBF0 writes them into `out` (`pitch` bytes a row): `rows` rows of
 // `perRow` 16-bit pixels, the colours read on as B, G, R bytes without the .bmp's row padding (and
@@ -80,22 +65,22 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     layout.Split(&format_);
     mfc::CFile file;
     mfc::CFile alphaFile;
-    Bitmap colour;
-    Bitmap alpha;
+    CDib colour;
+    CDib alpha;
     if (!file.Open(path, mfc::CFile::modeRead, nullptr)) {
         game::DebugLog(CantLoadText(), GetName());
         return 0;
     }
-    colour->Read(&file);
+    colour.Read(&file);
     file.Close();
     SIZE size;
-    colour->Size(&size);
+    colour.Size(&size);
     const int width = size.cx, height = size.cy;
     bool withAlpha = false;
     if (alphaFile.Open(alphaPath, mfc::CFile::modeRead, nullptr)) {
-        alpha->Read(&alphaFile);
+        alpha.Read(&alphaFile);
         alphaFile.Close();
-        WORD bits = alpha->header->biBitCount;
+        WORD bits = alpha.header->biBitCount;
         if (bits == 8)
             withAlpha = true;
         else
@@ -103,7 +88,7 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     }
     height_ = static_cast<std::uint32_t>(height);
     width_ = static_cast<std::uint32_t>(width);
-    const std::uint8_t* alphaBits = withAlpha ? alpha->bits : nullptr;
+    const std::uint8_t* alphaBits = withAlpha ? alpha.bits : nullptr;
 
     // The new renderer's memory is the texture.
     CDXSurface* memory = NewMemoryTextureHolder(device, width, height, format_.words);
@@ -115,7 +100,7 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     SurfacePixels pixels;
     DirectPixels(memory, &pixels);
     gameapi::EnterCriticalSection(TheDeviceLock());
-    WritePixels(pixels.bits, pixels.pitch, width, height, pixels.height, pixels.width, colour->bits, alphaBits, layout);
+    WritePixels(pixels.bits, pixels.pitch, width, height, pixels.height, pixels.width, colour.bits, alphaBits, layout);
     gameapi::LeaveCriticalSection(TheDeviceLock());
     flags_ |= kTextureLoaded;
     return 1;

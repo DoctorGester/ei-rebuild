@@ -1,5 +1,5 @@
 // CSysInfo (004DDCB0-004DE8B0; A-S11, A-E2). The system information object is a global (007AB8F8;
-// an engine object, CSysInfo::Vtable() in place of game.exe's 0073D644, class id 0xD) holding five texts about the machine and what
+// an engine object, game.exe's vtable 0073D644, class id 0xD) holding five texts about the machine and what
 // Windows reported. A static initialiser (table entry 00783320: 004DDD30) constructs it and
 // registers its destructor with atexit; the constructor (004DDD6F) calls Create, which collects
 // everything (004DDF28). All of that runs before the hooks install, so the game never reaches the
@@ -10,8 +10,6 @@
 // spills ECX). See docs/notes/script.md (A-S11, A-E2).
 #include "sys_info.h"
 #include "at_exit_functions.h"
-
-#include "engine_object_class.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -177,74 +175,30 @@ EI_REWRITTEN(0x004DDF28, CSysInfo::Collect);
 
 // ---- The object ------------------------------------------------------------------------------------
 
-// 004DDD6F.
-CSysInfo* CSysInfo::Construct() {
-    ei::SetVtable(this, CEngineObject::BaseVtable());
+CSysInfo::CSysInfo() {
     ClearFields();
-    new (&computerName_) mfc::CString();
-    new (&userName_) mfc::CString();
-    new (&systemName_) mfc::CString();
-    new (&systemVersion_) mfc::CString();
-    new (&servicePack_) mfc::CString();
-    ei::SetVtable(this, Vtable());
     Collect();   // Create (004DDF05), called directly
-    return this;
 }
-EI_REWRITTEN(0x004DDD6F, CSysInfo::Construct);
+EI_REWRITTEN_SPECIAL(0x004DDD6F, CSysInfo::CSysInfo);
 
-// 004DDF05 (slot 2, Create): everything collected; returns 1. The constructor calls it directly.
-int __fastcall SysInfoCreate(CSysInfo* self) {
-    self->Collect();
+CSysInfo::~CSysInfo() = default;
+EI_REWRITTEN_SPECIAL(0x004DDE75, CSysInfo::~CSysInfo);
+EI_REWRITTEN_SPECIAL(0x004DE8B0, CSysInfo::~CSysInfo);
+
+int CSysInfo::Create() {
+    Collect();
     return 1;
 }
-EI_REWRITTEN(0x004DDF05, SysInfoCreate);
+EI_REWRITTEN(0x004DDF05, CSysInfo::Create);
+EI_REWRITTEN(0x004DDF1D, CSysInfo::Destroy);
 
-// 004DDF1D (slot 3, Destroy): nothing.
-void __fastcall SysInfoDestroy(CSysInfo*) {}
-EI_REWRITTEN(0x004DDF1D, SysInfoDestroy);
-
-// 004DE890 / 004DE8A0 (slots 11 / 12): the class name and id.
-const char* __fastcall SysInfoClassName(CSysInfo*) { return SysInfoClassNameText(); }
-EI_REWRITTEN(0x004DE890, SysInfoClassName);
-int __fastcall SysInfoClassId(CSysInfo*) { return CSysInfo::kClassId; }
-EI_REWRITTEN(0x004DE8A0, SysInfoClassId);
-
-// 004DDE75: the destructor body: its vtable, the five texts from the last to the first, the engine
-// object's base destructor.
-void __fastcall SysInfoDestruct(CSysInfo* self) {
-    ei::SetVtable(self, CSysInfo::Vtable());
-    self->servicePack_.~CString();
-    self->systemVersion_.~CString();
-    self->systemName_.~CString();
-    self->userName_.~CString();
-    self->computerName_.~CString();
-    self->DestructBase();
-}
-EI_REWRITTEN(0x004DDE75, SysInfoDestruct);
-
-// 004DE8B0 (slot 0, RET 4): the destructor, then operator delete when bit 0 of `flags` is set.
-CSysInfo* CSysInfo::DeletingDestruct(unsigned flags) {
-    SysInfoDestruct(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004DE8B0, CSysInfo::DeletingDestruct);
-
-namespace {
-// The compiled table (C19, engine_object_class.h): 2 Create, 3 Destroy, 11 / 12.
-class SysInfoClass final : public EngineObjectClass<SysInfoClass, CSysInfo> {
-public:
-    int Create() override { return SysInfoCreate(As<CSysInfo>()); }               // 2: 004DDF05
-    void Destroy() override { SysInfoDestroy(As<CSysInfo>()); }                   // 3: 004DDF1D
-    const char* ClassName() override { return SysInfoClassName(As<CSysInfo>()); }   // 11: 004DE890
-    int ClassId() override { return SysInfoClassId(As<CSysInfo>()); }               // 12: 004DE8A0
-};
-} // namespace
-
-void* CSysInfo::Vtable() { return SysInfoClass::Vtable(); }
+const char* CSysInfo::GetClassName() { return SysInfoClassNameText(); }
+EI_REWRITTEN(0x004DE890, CSysInfo::GetClassName);
+int CSysInfo::GetClassId() { return kClassId; }
+EI_REWRITTEN(0x004DE8A0, CSysInfo::GetClassId);
 
 // 004DDD60 (cdecl; registered with atexit by the static initialiser): the global's destructor.
-void __cdecl SysInfoAtExit() { SysInfoDestruct(TheSysInfo()); }
+void __cdecl SysInfoAtExit() { g_sysInfo.Destroy(); }
 EI_REPLACE(0x004DDD60, SysInfoAtExit);
 
 // ---- The static initialisers (each table entry is a stub that calls the function after it) --------
@@ -272,7 +226,7 @@ EI_REPLACE(0x004DDD0F, SysInfoStaticInversePi);
 
 // 004DDD3F: the global constructed. 004DDD4E: its destructor registered with atexit. 004DDD30: the
 // table's entry: both.
-void __cdecl SysInfoStaticConstruct() { TheSysInfo()->Construct(); }
+void __cdecl SysInfoStaticConstruct() { g_sysInfo.Construct(); }
 EI_REWRITTEN(0x004DDD3F, SysInfoStaticConstruct);
 void __cdecl SysInfoStaticRegisterExit() { libcrt::AtExit(SysInfoAtExit); }   // 004DDD60
 EI_REWRITTEN(0x004DDD4E, SysInfoStaticRegisterExit);

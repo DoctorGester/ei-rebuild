@@ -8,17 +8,11 @@
 #include "party.h"
 
 #include "ei/hook.h"
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
 namespace {
-
-// ClassTemplate's table (C19; game.exe's 0073D0C4, the same slots): 0 the scalar deleting destructor, 1 Serialize.
-struct ClassTemplateClass final : ei::CompiledDeleter<ClassTemplateClass, &ClassTemplate::DeletingDestruct> {
-    virtual void Serialize(ChunkArchive* ar) { ObjectAs<ClassTemplate>()->Serialize(ar); }   // 1
-};
 
 // list<CItem*>'s constructor (004A9CD0 inlined): a sentinel node from the node pool linked to itself.
 void ListConstruct(StockList* list) {
@@ -74,21 +68,21 @@ ItemStock* ItemStock::Construct(CParty* owner) {
 }
 EI_REWRITTEN(0x004A66C0, ItemStock::Construct);
 
-ClassTemplate* ClassTemplate::Construct() {
-    vtable = CRefCounted::RootVtable();
+ClassTemplate::ClassTemplate() : weightsTail{} {
     new (ItemsParty()) CParty();
     new (SpellsParty()) CParty();
     allowed.Construct(ItemsParty());
     magic.Construct(SpellsParty());
-    vtable = ClassTemplateClass::Vtable();
     ItemsParty()->Create();
     SpellsParty()->Create();
     type = -1;
     flag0C = 0;
     flag0D = 0;
     flag38 = 1;
-    return this;
 }
+
+// 004A6580 is the constructor; the registration is Construct's.
+ClassTemplate* ClassTemplate::Construct() { return new (this) ClassTemplate(); }
 EI_REPLACE_METHOD(0x004A6580, ClassTemplate::Construct);
 
 void ItemStock::Destruct() {
@@ -104,24 +98,16 @@ void ItemStock::Destruct() {
     armors.FreeStorage();
 }
 
-void ClassTemplate::Destruct() {
-    vtable = ClassTemplateClass::Vtable();
+ClassTemplate::~ClassTemplate() {
     ItemsParty()->Destroy();
     SpellsParty()->Destroy();
     magic.Destruct();
     allowed.Destruct();
     SpellsParty()->~CParty();
     ItemsParty()->~CParty();
-    vtable = CRefCounted::RootVtable();
 }
-EI_REWRITTEN(0x004A6A90, ClassTemplate::Destruct);
-
-ClassTemplate* ClassTemplate::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004A6A70, ClassTemplate::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x004A6A90, ClassTemplate::~ClassTemplate);
+EI_REWRITTEN_SPECIAL(0x004A6A70, ClassTemplate::~ClassTemplate);
 
 void ClassTemplate::SetLevels(const float* base, const float* scroll) {
     allowed.SetLevels(base, scroll);

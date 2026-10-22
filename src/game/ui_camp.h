@@ -73,7 +73,7 @@ void LoadPersonTexts(PersonTextMap* map);
 inline int BoxSelectThreshold() { return options::TheOptions()->cameraFrameSelectionArea_; }
 
 struct ItemHoverInfo;
-struct ClassTemplate;
+class ClassTemplate;
 struct PartyUnitRecord;
 
 // The statistics' names, also their text keys: the six skill schools followed by "Science"; the

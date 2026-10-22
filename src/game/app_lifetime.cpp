@@ -30,70 +30,55 @@
 namespace {
 
 
-CParty* PartyOf(PartyRecord* record) { return record->Party(); }
-
-// The compiler's tables in place of game.exe's (C19): the party record's 0073C360 (0 the deleting
-// destructor, 1 Serialize) and the mouse's 0073C350 (0 the deleting destructor).
-struct PartyRecordClass final : ei::CompiledDeleter<PartyRecordClass, &PartyRecord::DeletingDestruct> {
-    virtual void Serialize(ChunkArchive* ar) { ObjectAs<PartyRecord>()->Serialize(ar); }   // 1
-};
+// The compiler's table in place of game.exe's (C19): the mouse's 0073C350 (0 the deleting destructor).
 struct MouseClass final : ei::CompiledDeleter<MouseClass, &CDirectInputMouse::DeletingDestruct> {};
 
 // A counted pointer's release (00439910): the object deleted with its last reference.
-template <typename T>
-void ReleaseCounted(T* object) {
-    if (object) reinterpret_cast<CRefObject*>(object)->Release();
+void ReleaseCounted(CRefCounted* object) {
+    if (object && --object->refs_ == 0) delete object;
 }
 
 } // namespace
 
 // ---- The registry's creators ----------------------------------------------------------------------
 
+// The original clears the count dword before testing the allocation; ours tests first.
 PartyRecord* __cdecl CreatePartyRecord() {
-    auto* record = gamecrt::operator_new_as<PartyRecord>();
-    // The count's dword is cleared before the null check, as the original does.
-    record->refCount = 0;
-    record->refsHigh = 0;
+    auto* record = new PartyRecord();
     if (!record) return nullptr;
-    record->vtable = CRefCounted::RootVtable();
-    new (PartyOf(record)) CParty();
-    new (&record->name) mfc::CString();
-    record->vtable = PartyRecord::Vtable();
-    PartyOf(record)->Create();
+    record->refs_ = 0;
+    record->flags6_ = 0;
+    record->flags7_ = 0;
     return record;
 }
 EI_REPLACE(0x00457740, CreatePartyRecord);
 
 ClassTemplate* __cdecl CreateClassTemplate() {
-    auto* created = gamecrt::operator_new_as<ClassTemplate>();
-    created->refCount = 0;
-    created->refsHigh = 0;
+    auto* created = new ClassTemplate();
     if (!created) return nullptr;
-    std::memset(created->weightsTail, 0, sizeof(created->weightsTail));   // SV7b2: never set, saved
-    return created->Construct();
+    created->refs_ = 0;
+    created->flags6_ = 0;
+    created->flags7_ = 0;
+    return created;
 }
 EI_REPLACE(0x00457850, CreateClassTemplate);
 
 // ---- The party record -----------------------------------------------------------------------------
 
-void* PartyRecord::Vtable() { return PartyRecordClass::Vtable(); }
 void* CDirectInputMouse::Vtable() { return MouseClass::Vtable(); }
 
-void PartyRecord::Destruct() {
-    vtable = PartyRecord::Vtable();
-    PartyOf(this)->Destroy();
-    name.~CString();
-    PartyOf(this)->~CParty();
-    vtable = CRefCounted::RootVtable();
+PartyRecord::PartyRecord() {
+    new (Party()) CParty();
+    Party()->Create();   // slot 2
 }
-EI_REWRITTEN(0x004577E0, PartyRecord::Destruct);
 
-PartyRecord* PartyRecord::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
+// The original destroys the name before the party's destructor; ours after (it is a member).
+PartyRecord::~PartyRecord() {
+    Party()->Destroy();
+    Party()->~CParty();
 }
-EI_REWRITTEN(0x004577C0, PartyRecord::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x004577E0, PartyRecord::~PartyRecord);
+EI_REWRITTEN_SPECIAL(0x004577C0, PartyRecord::~PartyRecord);
 
 // ---- The DirectInput mouse ------------------------------------------------------------------------
 

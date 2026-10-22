@@ -19,7 +19,7 @@
 #include <cstdint>
 
 class CRefObject;
-struct ClassTemplate;
+class ClassTemplate;
 struct LeverRecord;
 namespace gamehash { struct PartyTable; }   // party_manager.h
 struct PartyManagerEntry;

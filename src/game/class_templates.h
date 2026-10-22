@@ -1,10 +1,11 @@
 #pragma once
 
-// Class templates (0x28C bytes; the compiler's vtable in place of game.exe's 0073D0C4, C19): one per
+// Class templates (0x28C bytes; game.exe's vtable 0073D0C4, a counted object): one per
 // hero class a new game offers, each with the weapons, armors, items, spells and modifiers that class
 // may use (the records' class masks). Built by 004A7630 at new game into the vector at +0x38 of the
 // object at 007AA5A0. Names are provisional.
 
+#include "core_refcount.h"
 #include "item_stock.h"
 #include "party_storage.h"
 #include "lib/stlp.h"
@@ -16,23 +17,25 @@ class ChunkArchive;
 #include <cstddef>
 #include <cstdint>
 
-struct ClassTemplate {
-    // 004A6580 (class_template_stock.cpp). Constructor body (+4 is left to the caller): the base
-    // vtable, the two parties (CParty's constructor), the stocks (ItemStock::Construct on the items /
-    // spells party; the first one inlined in the original), the vtable, both parties created (slot
-    // 2), class -1, both flags 0, flag38 1. Returns this.
+class ClassTemplate : public CRefCounted {
+public:
+    // 004A6580 (class_template_stock.cpp; the count is the creator's): the two parties (CParty's
+    // constructor), the stocks (ItemStock::Construct on the items / spells party; the first one
+    // inlined in the original), both parties created (slot 2), class -1, both flags 0, flag38 1.
+    // weightsTail is zeroed too (SV7b2: the original never sets it, and saves it).
+    ClassTemplate();
+    // 004A6A90 (deleting: 004A6A70; class_template_stock.cpp): both parties destroyed (slot 3), the
+    // stocks' maps and vectors freed (the magic stock first, each stock's context cleared), both
+    // parties' destructors (spells first).
+    ~ClassTemplate() override;
+    // 004A6C40 (slot 1, RET 4; party_manager.cpp). Fields 1 class (4 bytes), 2 / 3 the flags (1 byte
+    // each), 4 the weights and the 4 bytes after them (0x28), stream field 5 (both parties without
+    // variables, then both stocks' lists: SaveLists 0069BAC0 / LoadLists 0069B5B0), field 6 flag38
+    // (1 byte).
+    void Serialize(ChunkArchive* ar) override;
+    // The constructor run on `this` (004A6580's registration: the harness's zeroing patch calls it,
+    // tests/verify/harness_leftovers.cpp). Returns this.
     ClassTemplate* Construct();
-    // 004A6A90 (class_template_stock.cpp). Destructor body: the vtable, both parties destroyed (slot
-    // 3), the stocks' maps and vectors freed (the magic stock first, each stock's context cleared),
-    // both parties' destructor bodies (spells first), the base vtable.
-    void Destruct();
-    // 004A6A70 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
-    ClassTemplate* DeletingDestruct(unsigned flags);
-    // 004A6C40 (slot 1 Serialize, RET 4; party_manager.cpp). Fields 1 class (4 bytes), 2 / 3 the
-    // flags (1 byte each), 4 the weights and the 4 bytes after them (0x28), stream field 5 (both
-    // parties without variables, then both stocks' lists: SaveLists 0069BAC0 / LoadLists
-    // 0069B5B0), field 6 flag38 (1 byte).
-    void Serialize(ChunkArchive* ar);
     // 004A6DC0 (__thiscall, RET 8; class_template_stock.cpp). Both stocks take the 8 base and 8 scroll
     // levels (ItemStock::SetLevels).
     void SetLevels(const float* base, const float* scroll);
@@ -40,9 +43,6 @@ struct ClassTemplate {
     CParty* ItemsParty() { return items.Get(); }
     CParty* SpellsParty() { return spells.Get(); }
 
-    void* vtable;                   // ClassTemplateClass (game.exe: 0073D0C4; base CRefCounted::RootVtable())
-    std::int16_t refCount;          // +0x04 counted pointers (the dword is cleared before construction)
-    std::int16_t refsHigh;              // +0x06 the reference dword's high half (zeroed with it)
     int type;                       // +0x08 class 1..5; bit (type - 1) of the records' class masks
     std::uint8_t flag0C;            // +0x0C
     std::uint8_t flag0D;            // +0x0D

@@ -1,6 +1,6 @@
 #pragma once
 
-// The system information object (CSysInfo; the global at 007AB8F8, vtable CSysInfo::Vtable() in place of game.exe's 0073D644, class id 0xD):
+// The system information object (CSysInfo; the global at 007AB8F8, game.exe's vtable 0073D644, class id 0xD):
 // five texts about the machine and what Windows reported about itself, collected once by the
 // constructor, which a static initialiser runs before WinMain. See sys_info.cpp and
 // docs/notes/script.md (A-S11, A-E2).
@@ -12,6 +12,7 @@
 #include "game_data.h"
 
 #include <windows.h>
+#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 #include <cstddef>
 #include <cstdint>
@@ -37,10 +38,8 @@ inline ProcessorInfo* TheProcessorInfo() { return &g_processorInfo; }
 // EFLAGS ID bit can be flipped; as in the original it stays flipped). Both writers inline this.
 void ReadProcessorInfo();
 
-struct CSysInfo : CEngineObject {
-    CSysInfo* DeletingDestruct(unsigned flags);
-    // The compiled table (C19, sys_info.cpp's SysInfoClass; game.exe's 0073D644).
-    static void* Vtable();
+class CSysInfo final : public CEngineObject {
+public:
     static constexpr int kClassId = 0xD;
     // flags_ bits.
     static constexpr std::uint32_t kMmx = 0x8;       // always set by Collect
@@ -50,8 +49,16 @@ struct CSysInfo : CEngineObject {
     static constexpr std::uint32_t kWindows98 = 0x80;
     static constexpr std::uint32_t kWindowsNt = 0x100;
 
-    // 004DDD6F: the engine object's fields, the five empty texts, the vtable, then Create.
-    CSysInfo* Construct();
+    // 004DDD6F: the engine object's fields, the five empty texts, then Create (called directly).
+    CSysInfo();
+    // 004DDE75 (deleting: 004DE8B0): the five texts from the last to the first.
+    ~CSysInfo() override;
+
+    int Create() override;                  // 2: 004DDF05 everything collected; 1
+    void Destroy() override {}              // 3: 004DDF1D (empty)
+    const char* GetClassName() override;    // 11: 004DE890 "CSysInfo"
+    int GetClassId() override;              // 12: 004DE8A0 (0xD)
+
     // 004DDF28: everything below filled from the system; returns 1.
     int Collect();
     // 004DE6F3: `version_` (GetVersionExA) and the platform's family name into systemName_ (Collect
@@ -79,10 +86,6 @@ static_assert(offsetof(CSysInfo, computerName_) == 0x1C && offsetof(CSysInfo, se
 
 extern lib::StaticObject<CSysInfo> g_sysInfo;   // sys_info.cpp: constructed by its static initialiser
 inline CSysInfo* TheSysInfo() { return &*g_sysInfo; }
-
-// 004DDE75: the destructor body (its vtable, the five texts from the last to the first, the engine
-// object's base destructor).
-void __fastcall SysInfoDestruct(CSysInfo* self);
 
 // The translation unit's static initialisers (they run before WinMain; a start-up check compared
 // what they left, verify_static_initialisers.cpp until S21d). The four constants: 2 pi, pi / 2, pi / 4 and

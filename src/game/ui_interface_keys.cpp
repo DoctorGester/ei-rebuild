@@ -25,7 +25,7 @@ namespace {
 std::uint8_t KeyCharacter(int scan) { return static_cast<std::uint8_t>(KeyActions()[scan]); }
 
 // The screen capture (CallCaptureSurface on [007AF080] + 0x18); the picture (dib.h) is written with
-// CDib::Write and deleted through its slot 1.
+// CDib::Write and deleted.
 
 std::uint32_t g_shotCounter = /*007C7E24*/ {};
 
@@ -72,8 +72,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         reinterpret_cast<mfc::impl::CFile*>(file)->ConstructOpen(name, 0x1001);   // 0070108B: modeCreate | modeWrite
         picture->Write(file);
         file->Close();
-        using DeleteFn = void(__thiscall*)(void*, int);
-        ei::ObjectSlot<DeleteFn>(picture, 1)(picture, 1);
+        delete picture;
         file->~CFile();
         return;
     }

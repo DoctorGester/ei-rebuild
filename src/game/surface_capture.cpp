@@ -50,11 +50,7 @@ CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     DDPIXELFORMAT format;
     device::ScreenFormat(self->bitsPerPixel == 16 ? 16 : 32, &format);
     const int width = rect->right - rect->left, height = rect->bottom - rect->top;
-    auto* dib = gamecrt::operator_new_as<CDib>();
-    if (dib) {
-        dib->ConstructSized(width, height, self->bitsPerPixel, format.dwRBitMask, format.dwGBitMask,
-                         format.dwBBitMask);
-    }
+    auto* dib = new CDib(width, height, self->bitsPerPixel, format.dwRBitMask, format.dwGBitMask, format.dwBBitMask);
     std::uint8_t* out = dib->AllocateBits();
     const int pixelBytes = BytesPerPixel(self->bitsPerPixel);
     if (!out || (pixelBytes != 2 && pixelBytes != 4) || width <= 0 || height <= 0) return dib;

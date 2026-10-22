@@ -102,7 +102,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     rect[3] = height;
     CDib* bitmap = CaptureSurfaceRect(device->primary_, reinterpret_cast<const RECT*>(rect));
     if (bitmap) bitmap->Write(&file);
-    if (bitmap) bitmap->Delete(1);   // through its slot 1 in the original (always a CDib)
+    delete bitmap;
     file.Close();
     ++g_movieFrame;
 }

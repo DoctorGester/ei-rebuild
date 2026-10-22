@@ -73,7 +73,7 @@ vtable,slots,class,file,note
 0073C274,18,SceneMesh,src/game/scene_loader.h,CFakeFigure (the scene's meshes 004545C0)
 0073C2BC,3,FaceGroupArrayClass,src/game/record_arrays.h,CArray<FaceGroup> (a scene mesh's face groups)
 0073C350,1,MouseClass,src/game/app_lifetime.cpp,the DirectInput mouse (CDirectInputMouse)
-0073C360,2,PartyRecordClass,src/game/app_lifetime.cpp,a named party record (PartyRecord)
+0073C360,2,PartyRecord,src/game/party_records.h,a named party record (PartyRecord)
 0073C368,1,PlainRootClass,src/game/core_streams.cpp,the plain counted root (the renderer's, the figures' and the mouse's destructors leave it)
 0073C37C,3,BehaviourPatrolsArrayClass,src/lib/mfc_slots.h,CArray (a unit record behaviour's patrols; derived from PatrolArrayClass)
 0073C388,3,ArrayBaseClass,src/lib/mfc_slots.h,CArray (the base vtable the element arrays' destructors restore (patrols; motion records))
@@ -134,7 +134,7 @@ vtable,slots,class,file,note
 0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
 0073D024,3,ParticleDepthArrayClass,src/game/game_arrays.h,CArray (the particles' draw order 007A9C50)
 0073D030,3,CCloudNoise,src/game/global_map_clouds.h,the cloud noise base (CCloudNoise; slots 0 / 1 _purecall)
-0073D0C4,2,ClassTemplateClass,src/game/class_template_stock.cpp,a hero class template (ClassTemplate)
+0073D0C4,2,ClassTemplate,src/game/class_templates.h,a hero class template (ClassTemplate)
 0073D110,3,ScriptGroupClass,src/game/game_arrays.h,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table)
 0073D11C,3,ObjectRefArrayClass,src/game/game_arrays.h,CArray (CArray<ScriptObjectRef> as a script group's base; destructor 004C2290)
 0073D128,13,GuardMode,src/game/unit_ai.h,the Guard AI mode
@@ -192,7 +192,7 @@ vtable,slots,class,file,note
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
 0073D624,7,GrowingBufferClass,src/game/net_coder.h,the growing byte buffer
-0073D644,13,SysInfoClass,src/game/sys_info.cpp,the system information (CSysInfo)
+0073D644,13,CSysInfo,src/game/sys_info.h,the system information (CSysInfo)
 0073D6B4,13,CVisibilityFog,src/game/effects.h,the visibility fog (CVisibilityFog)
 0073D760,1,DeviceObjectClass,src/game/texture.h,the device object (CTextureDevice)
 0073D764,1,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
@@ -558,7 +558,7 @@ vtable,slots,class,file,note
 00744228,3,TerrainArrayCClass,src/lib/mfc_slots.h,CArray (the terrain builder's arrays; 006CC530)
 00744264,1,PrintRecord,src/game/model.h,a prints.db record
 00744268,1,PrintRecord2,src/game/model.h,prints.db's second record type
-00744288,3,DibClass,src/game/dib.cpp,CDib
+00744288,3,CDib,src/game/dib.h,CDib
 00745DF4,21,PlainFileTable,src/lib/mfc_file.cpp,CFile
 00745E4C,5,FileExceptionTable,src/lib/mfc_exception.cpp,CFileException
 00745EE8,19,FileFindTable,src/lib/mfc_file.cpp,CFileFind

@@ -27,8 +27,7 @@ namespace {
 // The records and templates are reference-counted objects (root vtable 0073BB68) held by counted
 // pointers, whose release the original inlines (004A5D70 / 004A7EA0): one reference less, the
 // object deleted (slot 0 with 1) at zero.
-void Release(void* object) {
-    auto* counted = static_cast<CRefCounted*>(object);
+void Release(CRefCounted* counted) {
     if (counted && --counted->refs_ == 0) delete counted;
 }
 
@@ -36,7 +35,7 @@ void Release(void* object) {
 // reference before the old one is released.
 template <typename T>
 void AssignCounted(T*& slot, CRefObject* object) {
-    void* old = slot;
+    T* old = slot;
     slot = static_cast<T*>(static_cast<void*>(object));
     if (object) ++object->refs_;
     Release(old);

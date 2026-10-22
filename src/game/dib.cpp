@@ -3,7 +3,6 @@
 #include "dib.h"
 
 #include "ei/hook.h"
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/mfc_runtime_class.h"
 #include "lib/mfc_state.h"
@@ -12,16 +11,6 @@
 #include <cstring>
 
 namespace {
-
-// CDib's table: the compiler's (C19; game.exe's 00744288, the same slots): 0 GetRuntimeClass, 1 the scalar
-// deleting destructor, 2 Serialize.
-struct DibClass final : ei::CompiledTag<DibClass> {
-    virtual const void* GetRuntimeClass() const { return ObjectAs<CDib>()->GetRuntimeClass(); }   // 0
-    virtual CDib* Delete(unsigned flags) { return ObjectAs<CDib>()->Delete(flags); }                   // 1
-    virtual void Serialize(mfc::CArchive* archive) { ObjectAs<CDib>()->Serialize(archive); }          // 2
-};
-
-const void* DibVtable() { return DibClass::Vtable(); }
 
 constexpr int kMaskBytes = 3 * sizeof(std::uint32_t);   // the channel masks of a BI_BITFIELDS header
 constexpr std::uint16_t kPaletteVersion = 0x300;
@@ -39,10 +28,7 @@ std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
 }
 
 // 006D49E0: the runtime class's CreateObject.
-void* __stdcall CreateDib() {
-    auto* dib = gamecrt::operator_new_as<CDib>();
-    return dib ? dib->Construct() : nullptr;
-}
+void* __stdcall CreateDib() { return new CDib(); }
 EI_REPLACE(0x006D49E0, CreateDib);
 
 using mfc::impl::CRuntimeClass;
@@ -59,8 +45,10 @@ EI_REPLACE(0x006D4A70, LinkDibClass);
 
 std::uint32_t DibImageSize(const BITMAPINFOHEADER* header) { return ImageSize(header); }
 
-CDib* CDib::Construct() {
-    vtable = DibVtable();
+void* CDib::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CDib::operator delete(void* block) { gamecrt::operator_delete(block); }
+
+CDib::CDib() {
     bitsOwner = kNotOwned;
     headerOwner = kNotOwned;
     headerMemory = nullptr;
@@ -75,30 +63,17 @@ CDib* CDib::Construct() {
     bitmap = nullptr;
     palette = nullptr;
     Empty();
-    return this;
 }
-EI_REWRITTEN(0x006D4AA0, CDib::Construct);
+EI_REWRITTEN_SPECIAL(0x006D4AA0, CDib::CDib);
 
-CDib* CDib::ConstructSized(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green,
-                           std::uint32_t blue) {
-    vtable = DibVtable();
+CDib::CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
     Create(width, height, bitCount, red, green, blue);
-    return this;
 }
-EI_REWRITTEN(0x006D4B30, CDib::ConstructSized);
+EI_REWRITTEN_SPECIAL(0x006D4B30, CDib::CDib);
 
-void CDib::Destruct() {
-    vtable = DibVtable();
-    Empty();
-}
-EI_REWRITTEN(0x006D4CD0, CDib::Destruct);
-
-CDib* CDib::Delete(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x006D4B10, CDib::Delete);
+CDib::~CDib() { Empty(); }
+EI_REWRITTEN_SPECIAL(0x006D4CD0, CDib::~CDib);
+EI_REWRITTEN_SPECIAL(0x006D4B10, CDib::~CDib);
 
 const void* CDib::GetRuntimeClass() const { return &g_classCDib; }
 EI_REWRITTEN(0x006D4A60, CDib::GetRuntimeClass);

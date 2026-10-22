@@ -1,9 +1,10 @@
 #pragma once
 
-// Named party records (0x7C bytes, vtable Vtable() in place of 0073C360, base 0073BB68): a party object and the name
+// Named party records (0x7C bytes; game.exe's vtable 0073C360, a counted object): a party object and the name
 // scripts refer to it by. The object at 007AA5A0 keeps them in a vector at +0x24 followed by two
 // strings. Names are provisional.
 
+#include "core_refcount.h"
 #include "party_storage.h"
 
 #include "lib/mfc.h"
@@ -15,26 +16,22 @@
 class CParty;
 class ChunkArchive;
 
-struct PartyRecord {
-    void* vtable;
-    std::int16_t refCount;      // +0x04 counted pointers (the dword is cleared before construction)
-    std::int16_t refsHigh;              // +0x06 the reference dword's high half (zeroed with it)
+class PartyRecord : public CRefCounted {
+public:
+    // The record's constructor (inlined in its creators; the count is theirs): the party
+    // constructed and created (slot 2), an empty name.
+    PartyRecord();
+    // 004577E0 (deleting: 004577C0; app_lifetime.cpp): the party destroyed (slot 3) and its
+    // destructor, the name.
+    ~PartyRecord() override;
+    // 004A5AF0 (slot 1, RET 4; party_manager.cpp). The name as string field 1, the party (SaveParty /
+    // LoadParty with variables) as stream field 2.
+    void Serialize(ChunkArchive* ar) override;
+
     PartyStorage party;         // +0x08 the party (constructor 00661050)
     mfc::CString name;          // +0x78 "" for the unnamed record
 
     CParty* Party() { return party.Get(); }
-
-    // 004A5AF0 (virtual slot 1 Serialize, RET 4; party_manager.cpp). The name as string field 1,
-    // the party (SaveParty / LoadParty with variables) as stream field 2.
-    void Serialize(ChunkArchive* ar);
-    // 004577E0 (A-E1; app_lifetime.cpp). Destructor body: the vtable, the party destroyed (slot
-    // 3), the name, the party's destructor body, the root vtable.
-    void Destruct();
-    // 004577C0 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
-    PartyRecord* DeletingDestruct(unsigned flags);
-    // The record's table (app_lifetime.cpp): the compiler's, slot 0 DeletingDestruct, slot 1
-    // Serialize (C19; game.exe's 0073C360, the same slots).
-    static void* Vtable();
 };
 static_assert(sizeof(PartyRecord) == 0x7C);
 // 00457740 (A-E1; app_lifetime.cpp). A new unnamed record with no references (operator new and the

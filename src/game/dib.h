@@ -1,5 +1,5 @@
-// CDib (006D49E0-006D6AB0; MFC class "CDib", runtime class 00796CD0; the compiler's vtable in place
-// of 00744288, C19): a device independent bitmap as a .bmp file holds one. The game reads loose
+// CDib (006D49E0-006D6AB0; MFC class "CDib", runtime class 00796CD0; game.exe's vtable 00744288,
+// CObject's three slots): a device independent bitmap as a .bmp file holds one. The game reads loose
 // textures\<name>.bmp overrides with it (texture_bmp.cpp) and writes the screenshots and movie
 // frames a surface capture (below) fills. See docs/notes/models.md ("CDib").
 #pragma once
@@ -10,24 +10,28 @@
 #include <cstddef>
 #include <cstdint>
 
-struct CDib {
+class CDib {
+public:
     // Who frees `header` / `bits`.
     enum Owner : int { kNotOwned = 0, kNew = 1, kGlobal = 2 };
 
     // 006D4AA0: an empty bitmap.
-    CDib* Construct();
-    // 006D4B30 (RET 0x18): Create's bitmap (nothing but the vtable is set first).
-    CDib* ConstructSized(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green,
-                         std::uint32_t blue);
-    // 006D4CD0.
-    void Destruct();
-    // 006D4B10 (slot 1, RET 4): the destructor, and the object's memory freed with bit 0 of `flags`.
-    CDib* Delete(unsigned flags);
-    // 006D4A60 (slot 0): the class's CRuntimeClass.
-    const void* GetRuntimeClass() const;
-    // 006D5BB0 (slot 2, RET 4): the archive is flushed, then the bitmap written to or read from its
-    // file.
-    void Serialize(mfc::CArchive* archive);
+    CDib();
+    // 006D4B30 (RET 0x18): Create's bitmap (the fields are left to Create).
+    CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
+
+    // 0: 006D4A60. The class's CRuntimeClass.
+    virtual const void* GetRuntimeClass() const;
+    // 1: 006D4CD0 (deleting: 006D4B10). Empty.
+    virtual ~CDib();
+    // 2: 006D5BB0 (RET 4). The archive is flushed, then the bitmap written to or read from its file.
+    virtual void Serialize(mfc::CArchive* archive);
+
+    // On the game's heap (dib.cpp): null without memory, and then no constructor runs.
+    static void* operator new(std::size_t size) noexcept;
+    static void* operator new(std::size_t, void* place) noexcept { return place; }
+    static void operator delete(void* block);
+    static void operator delete(void*, void*) noexcept {}
 
     // 006D4BA0 (RET 0x18). A new header for `width` x `height` pixels of `bitCount` bits, without a
     // colour table and without bits (AllocateBits). 16 and 32 bits: BI_BITFIELDS with the three
@@ -52,7 +56,6 @@ struct CDib {
     // bytes of bits. An MFC exception from the writes: a message box and 0. Returns 1.
     int Write(mfc::CFile* file);
 
-    const void* vtable;              // dib.cpp's DibClass: GetRuntimeClass, Delete, Serialize
     RGBQUAD* colours;                // +0x04: after the header
     HBITMAP bitmap;                  // +0x08
     std::uint8_t* bits;              // +0x0C

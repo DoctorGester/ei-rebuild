@@ -134,11 +134,11 @@ constexpr std::uint32_t kZeroWeights[9] = {};
 // and weights set, filled, then appended to the vector through a temporary counted pointer.
 void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uint8_t flag0D,
                  const std::uint32_t (&weights)[9]) {
-    auto* memory = gamecrt::operator_new_as<ClassTemplate>();
-    memory->refCount = 0;
-    memory->refsHigh = 0;
-    std::memset(memory->weightsTail, 0, sizeof(memory->weightsTail));   // SV7b2: never set, saved
-    ClassTemplate* t = memory ? memory->Construct() : nullptr;
+    // The original clears the count dword before testing the allocation; ours tests first.
+    auto* t = new ClassTemplate();
+    t->refs_ = 0;
+    t->flags6_ = 0;
+    t->flags7_ = 0;
     t->type = type;
     t->flag0C = flag0C;
     t->flag0D = flag0D;
@@ -146,14 +146,14 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     ClassTemplateFill(t);
 
     ClassTemplate* temp = t;
-    if (temp) ++temp->refCount;
+    if (temp) ++temp->refs_;
     if (v->Finish() == v->EndOfStorage()) {
         stlp::AsRefPtrs(*v).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(v->Finish()), stlp::AsRefPtr(temp), 1);
     } else {
         if (v->Finish()) reinterpret_cast<RefPtr*>(v->Finish())->CopyCounted(reinterpret_cast<const RefPtr*>(&temp));
         ++v->Finish();
     }
-    if (temp && --temp->refCount == 0 && temp) delete reinterpret_cast<CRefCounted*>(temp);   // slot 0 with 1
+    if (temp && --temp->refs_ == 0) delete temp;
 }
 
 } // namespace
