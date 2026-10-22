@@ -231,23 +231,16 @@ void CMappedResource::FreeAllFiles() {
     filesByName_.Clear();
 }
 
-// Hooks. Virtual methods are installed through shims that call the body non-virtually; taking a
-// pointer to a virtual member would give a vtable-dispatch thunk instead.
-namespace {
-void __fastcall CloseResourceHook(CMappedResource* self) { self->CMappedResource::CloseResource(); }
-void __fastcall FreeAllFilesHook(CMappedResource* self) { self->CMappedResource::FreeAllFiles(); }
-} // namespace
-
 EI_REWRITTEN(0x00674850, CResourceBase::FindEntry);
 EI_REWRITTEN_SPECIAL(0x00671280, CMappedResource::CMappedResource);
 EI_REWRITTEN(0x006714A0, CMappedResource::Destroy);           // patched by Rebirth: vanilla only
 EI_REWRITTEN_SPECIAL(0x006713A0, CMappedResource::~CMappedResource);   // deleting
 EI_REWRITTEN(0x00671730, CMappedResource::OpenResource);   // patched by Rebirth: installs in the vanilla launch only
 EI_REWRITTEN(0x00671A40, CMappedResource::OpenFromMemory);
-EI_REWRITTEN(0x00671AC0, CloseResourceHook);
+EI_REWRITTEN(0x00671AC0, CMappedResource::CloseResource);
 EI_REWRITTEN(0x00671B40, CMappedResource::GetFile);
 EI_REWRITTEN(0x00671E00, CMappedResource::CloseFile);
-EI_REWRITTEN(0x00672040, FreeAllFilesHook);
+EI_REWRITTEN(0x00672040, CMappedResource::FreeAllFiles);
 
 // --- CMappedFile -------------------------------------------------------------------------------
 

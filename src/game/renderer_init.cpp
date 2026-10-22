@@ -318,7 +318,4 @@ void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     pipeline_->transform_->SetViewportSize(static_cast<float>(screen->right - screen->left),
                                            static_cast<float>(screen->bottom - screen->top));
 }
-void __fastcall RendererSetViewHook(CSceneRenderer* self, void*, const tagRECT* screen, float fieldOfView) {
-    self->CSceneRenderer::SetView(screen, fieldOfView);
-}
-EI_REWRITTEN(0x005015A0, RendererSetViewHook);
+EI_REWRITTEN(0x005015A0, CSceneRenderer::SetView);

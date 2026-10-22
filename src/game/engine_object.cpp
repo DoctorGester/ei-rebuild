@@ -28,7 +28,8 @@ void CEngineObject::Load(CStream*) {}
 void CEngineObject::Save(CStream*) {}
 
 // 00455980 (slot 4). When the last reference goes, the owning manager releases the object (its
-// slot 24, CBaseManager::ReleaseObject).
+// slot 24, CBaseManager::ReleaseObject). The original leaves `this` in EAX, or what the manager's slot 24
+// leaves there; no caller reads it.
 void CEngineObject::Release() {
     if (--refCount_ == 0) owner_->ReleaseObject(this);
 }
@@ -37,19 +38,10 @@ void CEngineObject::Release() {
 const char* CEngineObject::GetName() { return "noname"; }
 const char* CEngineObject::GetDescription() { return "nodesc"; }
 
-namespace {
-// The original leaves `this` in EAX, or what the manager's slot 24 leaves there.
-int __fastcall ReleaseHook(CEngineObject* self) {
-    if (--self->refCount_ == 0) return self->owner_->ReleaseObject(self);
-    return reinterpret_cast<int>(self);
-}
-const char* __fastcall GetNameHook(CEngineObject* self) { return self->CEngineObject::GetName(); }
-const char* __fastcall GetDescriptionHook(CEngineObject* self) { return self->CEngineObject::GetDescription(); }
-} // namespace
 EI_REWRITTEN(0x00402D40, CEngineObject::CopyFrom);
-EI_REWRITTEN(0x00455980, ReleaseHook);
-EI_REWRITTEN(0x00402CE0, GetNameHook);
-EI_REWRITTEN(0x00402CF0, GetDescriptionHook);
+EI_REWRITTEN(0x00455980, CEngineObject::Release);
+EI_REWRITTEN(0x00402CE0, CEngineObject::GetName);
+EI_REWRITTEN(0x00402CF0, CEngineObject::GetDescription);
 
 CManagerContext* CEngineObject::ManagerContext() const { return owner_->context_; }
 EI_REWRITTEN(0x00455940, CEngineObject::ManagerContext);

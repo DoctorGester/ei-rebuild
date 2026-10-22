@@ -156,12 +156,8 @@ void CSky::Destruct() {
 }
 EI_REWRITTEN(0x005636A0, CSky::Destruct);
 
-namespace {
-const char* __fastcall ClassNameHook(CSkyObject* self) { return self->CSkyObject::GetClassName(); }
-int __fastcall ClassIdHook(CSkyObject* self) { return self->CSkyObject::GetClassId(); }
-} // namespace
-EI_REWRITTEN(0x004D9270, ClassNameHook);
-EI_REWRITTEN(0x004D9280, ClassIdHook);
+EI_REWRITTEN(0x004D9270, CSkyObject::GetClassName);
+EI_REWRITTEN(0x004D9280, CSkyObject::GetClassId);
 EI_REWRITTEN(0x004D9360, CSkyObject::Light);
 EI_REWRITTEN(0x004D9DE0, CSky::Light);
 

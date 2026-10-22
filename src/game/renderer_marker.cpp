@@ -72,8 +72,4 @@ int CSceneRenderer::DrawSelectionMarker(const Vector3* point, float size, const 
     device_->DrawFlatBlocks(blocks, reinterpret_cast<const char*>(uvs), kBlocks, indices, 18, kColour, kSpecular, nullptr, 1.0f);
     return 1;
 }
-int __fastcall RendererMarkerHook(CSceneRenderer* self, void*, const Vector3* point, float size, const Vector3* axisX,
-                                  const Vector3* axisY) {
-    return self->CSceneRenderer::DrawSelectionMarker(point, size, axisX, axisY);
-}
-EI_REWRITTEN(0x00503A40, RendererMarkerHook);
+EI_REWRITTEN(0x00503A40, CSceneRenderer::DrawSelectionMarker);

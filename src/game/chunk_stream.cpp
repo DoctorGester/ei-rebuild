@@ -25,9 +25,6 @@ void FileWrite(mfc::CFileVirtuals* file, const void* data, std::uint32_t size) {
 std::uint32_t FilePosition(mfc::CFileVirtuals* file) { return file->GetPosition(); }
 void FileSeek(mfc::CFileVirtuals* file, std::int32_t offset, std::uint32_t from) { file->Seek(offset, from); }
 
-// The hook of slot 1 (a virtual: registered through this shim).
-mfc::CFileVirtuals* __fastcall ChunkFileHook(Chunk* self) { return self->Chunk::File(); }
-
 // A chunk holding one value: header, then the value (counted with the header).
 void WriteValueChunk(Chunk* chunk, std::uint32_t id, const void* value, std::uint32_t valueSize) {
     int size = kHeader + static_cast<int>(valueSize);
@@ -72,7 +69,7 @@ EI_REWRITTEN(0x0042BF00, Chunk::Advance);
 void Chunk::OnChunk() {}   // 0042BEE0 (short_functions.cpp)
 
 mfc::CFileVirtuals* Chunk::File() { return parent_ ? parent_->File() : nullptr; }
-EI_REWRITTEN(0x0042BF40, ChunkFileHook);
+EI_REWRITTEN(0x0042BF40, Chunk::File);
 
 // --- Writing -----------------------------------------------------------------------------------
 

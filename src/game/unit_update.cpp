@@ -42,19 +42,16 @@ std::uintptr_t CUnit::RecomputeScale() {
     Controller()->Resettle();
     return 0;
 }
-std::uintptr_t __fastcall UnitRecomputeScaleHook(CUnit* self) { return self->CUnit::RecomputeScale(); }
-EI_REWRITTEN(0x00532A80, UnitRecomputeScaleHook);
+EI_REWRITTEN(0x00532A80, CUnit::RecomputeScale);
 
 std::uintptr_t CUnit::EffectsChanged() {
     Controller()->EffectsChanged();
     return 0;
 }
-std::uintptr_t __fastcall UnitEffectsChangedHook(CUnit* self) { return self->CUnit::EffectsChanged(); }
-EI_REWRITTEN(0x00532AB0, UnitEffectsChangedHook);
+EI_REWRITTEN(0x00532AB0, CUnit::EffectsChanged);
 
 std::uint32_t CUnit::ApplyBaseScale() { return static_cast<std::uint32_t>(SetFigureScale(&baseScale.x)); }
-std::uint32_t __fastcall UnitApplyBaseScaleHook(CUnit* self) { return self->CUnit::ApplyBaseScale(); }
-EI_REWRITTEN(0x00532AA0, UnitApplyBaseScaleHook);
+EI_REWRITTEN(0x00532AA0, CUnit::ApplyBaseScale);
 
 std::uintptr_t CUnit::LoadFigures() {
     if (flags_ & kFlagFiguresLoaded) return 1;
@@ -62,8 +59,7 @@ std::uintptr_t CUnit::LoadFigures() {
     Controller()->FiguresLoaded();
     return result;
 }
-std::uintptr_t __fastcall UnitLoadFiguresHook(CUnit* self) { return self->CUnit::LoadFigures(); }
-EI_REWRITTEN(0x0052E910, UnitLoadFiguresHook);
+EI_REWRITTEN(0x0052E910, CUnit::LoadFigures);
 
 std::uintptr_t CUnit::AttachObject(CEngineObject* object) {
     if (!object || object->type_ != kControllerType) return CMapObject::AttachObject(object);
@@ -82,8 +78,7 @@ int CUnit::StatsChanged() {
     if (controller) Controller()->RepackStats();
     return 1;
 }
-int __fastcall UnitStatsChangedHook(CUnit* self) { return self->CUnit::StatsChanged(); }
-EI_REWRITTEN(0x0052EB50, UnitStatsChangedHook);
+EI_REWRITTEN(0x0052EB50, CUnit::StatsChanged);
 
 std::uintptr_t CUnit::ScaleEffectChanged(int value) {
     if (!controller) return 0;
@@ -102,8 +97,7 @@ std::uintptr_t CUnit::UpdateSizeClasses() {
     Controller()->UpdateSizeClasses();
     return 0;
 }
-std::uintptr_t __fastcall UnitUpdateSizeClassesHook(CUnit* self) { return self->CUnit::UpdateSizeClasses(); }
-EI_REWRITTEN(0x00530A50, UnitUpdateSizeClassesHook);
+EI_REWRITTEN(0x00530A50, CUnit::UpdateSizeClasses);
 
 float* CUnit::StandPoint(float* out) {
     float x = localPosition_.x;

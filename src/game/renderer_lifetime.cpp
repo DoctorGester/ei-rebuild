@@ -175,8 +175,7 @@ void CSceneRenderer::DestroyRenderer() {
     device_ = nullptr;
     if (device) device->Release();
 }
-void __fastcall RendererDestroyHook(CSceneRenderer* self) { self->CSceneRenderer::DestroyRenderer(); }
-EI_REWRITTEN(0x005019F0, RendererDestroyHook);
+EI_REWRITTEN(0x005019F0, CSceneRenderer::DestroyRenderer);
 
 int CSceneRenderer::ClearFrame() {
     const std::uint32_t colour = fogColour_;
@@ -188,12 +187,10 @@ int CSceneRenderer::ClearFrame() {
     gameapi::LeaveCriticalSection(TheDeviceLock());
     return 1;
 }
-int __fastcall RendererClearFrameHook(CSceneRenderer* self) { return self->CSceneRenderer::ClearFrame(); }
-EI_REWRITTEN(0x00501A40, RendererClearFrameHook);
+EI_REWRITTEN(0x00501A40, CSceneRenderer::ClearFrame);
 
 std::uint32_t CSceneRenderer::ZEnable() { return device_->zEnable_; }
-std::uint32_t __fastcall RendererZEnableHook(CSceneRenderer* self) { return self->CSceneRenderer::ZEnable(); }
-EI_REWRITTEN(0x00501AA0, RendererZEnableHook);
+EI_REWRITTEN(0x00501AA0, CSceneRenderer::ZEnable);
 
 // The holder is stored; no device lock. The stage's texture is null on
 // the switch-over (no holder has a DirectDraw surface); the new renderer draws with the holder.
@@ -239,17 +236,13 @@ void CSceneRenderer::GetGamma(float* brightness, float* contrast, float* gamma) 
     *contrast = contrast_;
     *gamma = gamma_;
 }
-void __fastcall RendererGetGammaHook(const CSceneRenderer* self, void*, float* brightness, float* contrast, float* gamma) {
-    self->CSceneRenderer::GetGamma(brightness, contrast, gamma);
-}
-EI_REWRITTEN(0x00504A40, RendererGetGammaHook);
+EI_REWRITTEN(0x00504A40, CSceneRenderer::GetGamma);
 
 // The original sets the cooperative level and the display mode again in full screen, restores every
 // DirectDraw surface and reloads the textures. The switch-over (device.h) has no DirectDraw surfaces
 // to lose, nor a display mode to set again (a lost Direct3D 11 device is ticket R9c's): true.
 bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
-bool __fastcall RendererRestoreSurfacesHook(CSceneRenderer* self) { return self->CSceneRenderer::RestoreSurfaces(); }
-EI_REWRITTEN(0x00504780, RendererRestoreSurfacesHook);
+EI_REWRITTEN(0x00504780, CSceneRenderer::RestoreSurfaces);
 
 // --- The device object's counted holder (+0x20) ----------------------------------------------------
 

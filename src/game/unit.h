@@ -243,10 +243,8 @@ public:
 
     CItem* CarriedItem(int index) const;
 
-    // The overrides of CMapObject's slots are registered through __fastcall ...Hook shims (rewrite
-    // guide rule 4); calls that meant this body and not the slot are qualified (CUnit::...).
-    // Every slot game.exe's 0073EA8C changes is declared (C19); the slots whose bodies are
-    // registered by address under other names call them (unit_update.cpp).
+    // Every slot game.exe's 0073EA8C changes is declared (C19); calls that meant this body and not the slot
+    // are qualified (CUnit::...). Some slots call bodies named otherwise (unit_update.cpp).
     int Create() override;                   // 2: 0052E400 CreateUnit
     void Destroy() override;                 // 3: 0052E590 DestroyUnit
     void ClearState() override;              // 5: 0052E740 ReleaseUnit

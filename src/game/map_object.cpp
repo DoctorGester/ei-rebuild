@@ -195,8 +195,7 @@ std::uintptr_t CMapObject::RecomputeScale() {
     if (world) changeStamp = UpdateCount(world);
     return reinterpret_cast<std::uintptr_t>(world);
 }
-std::uintptr_t __fastcall RecomputeScaleHook(CMapObject* self) { return self->CMapObject::RecomputeScale(); }
-EI_REWRITTEN(0x0050F2D0, RecomputeScaleHook);
+EI_REWRITTEN(0x0050F2D0, CMapObject::RecomputeScale);
 
 std::uint32_t CMapObject::ResetScale() {
     std::memcpy(&scale, &baseScale, sizeof(scale));

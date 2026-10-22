@@ -75,8 +75,4 @@ bool CSceneRenderer::SetGamma(float brightness, float contrast, float gamma) {
     render::SetGammaRamp(ramp.red, ramp.green, ramp.blue);
     return true;
 }
-// Slot 22 is not declared virtual in CSceneRenderer, so the member is registered as it is.
-bool __fastcall RendererSetGammaHook(CSceneRenderer* self, void*, float brightness, float contrast, float gamma) {
-    return self->CSceneRenderer::SetGamma(brightness, contrast, gamma);
-}
-EI_REWRITTEN(0x00504A60, RendererSetGammaHook);
+EI_REWRITTEN(0x00504A60, CSceneRenderer::SetGamma);

@@ -127,11 +127,9 @@ EI_REWRITTEN_SPECIAL(0x00691930, CTexture::~CTexture);   // deleting
 
 namespace {
 // The virtual slots' entry points (rewrite-guide rule 4).
-int __fastcall TextureCreateHook(CTexture* self) { return self->CTexture::Create(); }
-void __fastcall TextureDestroyHook(CTexture* self) { self->CTexture::Destroy(); }
 } // namespace
-EI_REWRITTEN(0x00691A00, TextureCreateHook);
-EI_REWRITTEN(0x00691A70, TextureDestroyHook);
+EI_REWRITTEN(0x00691A00, CTexture::Create);
+EI_REWRITTEN(0x00691A70, CTexture::Destroy);
 
 // --- CTextureManager -------------------------------------------------------------------------------
 
