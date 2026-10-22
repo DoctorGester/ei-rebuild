@@ -2,6 +2,7 @@
 // code outside this file (or STLport strings) and are reached through their original addresses.
 // See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
+#include "quest_records.h"
 #include "game_strings.h"
 #include "core_refcount.h"
 
@@ -77,15 +78,16 @@ void ServerSession::SetMap(const stlp::string* name) {
         Announce(*TheInterface()->MessageText(&text, 5, mapTitle), nullptr);
     }
 
-    std::uint8_t* entry;
+    QuestBriefingRecord* entry;
     {
         stlp::string registryName = stlp::Plus(*name, game::ZoneSuffix1Text());
-        entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), registryName);
+        entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), registryName);
     }
     if (!entry) return;
 
-    for (auto** it = *reinterpret_cast<const char***>(entry + 0x2C); it != *reinterpret_cast<const char***>(entry + 0x30); ++it) {
-        stlp::string resourceName(*it);
+    const CStringVector& quests = entry->lists[2];   // the quests given
+    for (const mfc::CString* it = quests.begin(); it != quests.end(); ++it) {
+        stlp::string resourceName(it->GetString());
         RefNode* added;
         FindOrAddVariable(&added, &resourceName);
         auto* record = variables_.At(added);

@@ -21,7 +21,7 @@ void* __fastcall MotionSegmentConstruct(void* self) { return self; }
 EI_REPLACE(0x0052E230, MotionSegmentConstruct);
 
 void CUnit::SetMotionSpeeds(float speed, float turnRate) {
-    AIPath* path = Controller()->Path();
+    PathOrder* path = Controller()->Path();
     path->ForgetObject(id_);
     UnitMotion* unitMotion = Motion();
     unitMotion->segment = -1;

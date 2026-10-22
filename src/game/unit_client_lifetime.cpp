@@ -14,7 +14,7 @@
 namespace {
 constexpr int kNone = -1;
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;
-constexpr int kList58BlockSize = 0x80;
+constexpr int kStepBlockSize = 0x80;
 
 // Takes the face texture and releases it.
 void ReleaseFace(CUnitClientSpecific* self) {
@@ -86,8 +86,8 @@ void CUnitClientSpecific::DestructClientBody() {
     speech->next = speech;
     speech->prev = speech;
     stlp::deallocate(speech, sizeof(ClientSpeechNode));
-    list58.vtable = mfc::impl::CellListClass::Vtable();
-    list58.RemoveAll();
+    motion.steps.vtable = mfc::impl::CellListClass::Vtable();
+    motion.steps.RemoveAll();
     ei::SetVtable(this, CUnitController::Vtable());
     unit = nullptr;
     DestructBase();
@@ -98,13 +98,13 @@ CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     ClearFields();
     ei::SetVtable(this, CUnitController::Vtable());
     unit = nullptr;
-    list58.vtable = mfc::impl::CellListClass::Vtable();
-    list58.count = 0;
-    list58.free = nullptr;
-    list58.tail = nullptr;
-    list58.head = nullptr;
-    list58.blocks = nullptr;
-    list58.blockSize = kList58BlockSize;
+    motion.steps.vtable = mfc::impl::CellListClass::Vtable();
+    motion.steps.count = 0;
+    motion.steps.free = nullptr;
+    motion.steps.tail = nullptr;
+    motion.steps.head = nullptr;
+    motion.steps.blocks = nullptr;
+    motion.steps.blockSize = kStepBlockSize;
     auto* header = stlp::allocate_as<ClientSpeechNode>();
     speech = header;
     header->next = header;

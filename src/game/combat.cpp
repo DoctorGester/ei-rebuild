@@ -715,7 +715,7 @@ EI_REWRITTEN(0x00552FB0, CUnitServer::UpdateSizeClasses);
 
 void CUnitServer::UpdateMoveFactors() {
     const CWorldServer* world = ServerWorld();
-    double factor = std::bit_cast<float>(world->nightLevel_);
+    double factor = world->nightLevel_;
     double scaled = (factor * Combat().daySightPercent) * kWorldFactorScale;
     moveFactors[0] = kOne;
     moveFactors[2] = kOne;

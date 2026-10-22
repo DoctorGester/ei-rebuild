@@ -728,9 +728,9 @@ public:
     // zone's units) and, for a new game, where it starts. 0 when the player state refused it.
     int SendZone(CPlayer* player);
 
-    // +0x084 WorldDayTime's value (0058CCD0; float bits): the script's IsNight reads it, the units'
+    // +0x084 WorldDayTime's value (0058CCD0): the script's IsNight reads it, the units'
     // movement factors scale by it.
-    std::uint32_t nightLevel_;
+    float nightLevel_;
     std::uint32_t weatherFactor_;         // +0x088 float bits: 1 dry, 0.9 in rain or snow (the units' fourth movement factor)
     WorldAlarm alarms_[5];                // +0x08C
     // +0x0DC the zone's weather kind (its record's setting2C): 3 storms with lightning strikes,

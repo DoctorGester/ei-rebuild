@@ -28,7 +28,6 @@ std::uint32_t BridgeKey(int x, int y) {
 }
 
 
-std::uint16_t& FlagsWord(AIMapCell* cell) { return *reinterpret_cast<std::uint16_t*>(&cell->flags); }
 
 } // namespace
 
@@ -39,7 +38,7 @@ void BridgeHeights::RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* oc
     BridgeNode* node = Find(BridgeKey(x, y));
     if (!node) return;
     cell->groundLevel = static_cast<std::uint16_t>(node->value);
-    FlagsWord(cell) = static_cast<std::uint16_t>((FlagsWord(cell) & 0xFFC0) | ((node->value >> 16) & 0x3F));
+    cell->flags = static_cast<std::uint8_t>((cell->flags & 0xC0) | ((node->value >> 16) & 0x3F));
     *occluder = (*occluder & 0xFFFFFFE0u) | ((node->value >> 24) & 0x1F);
     Erase(node);   // 005BCE60
 }
@@ -58,8 +57,8 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
             if (!BridgeDeckAt(x, y, &deck)) {
                 if (cell->flags & kCellBridge)
                     bridgeHeights.RestoreCell(x, y, &cells[y][x], &occluders[y][x]);
-                std::uint16_t w = FlagsWord(cell) & 0xFFBF;
-                FlagsWord(cell) = static_cast<std::uint16_t>(((w & 0x3F) ? 0x80 : 0) | (w & 0xFF7F));
+                auto w = static_cast<std::uint8_t>(cell->flags & 0xBF);
+                cell->flags = static_cast<std::uint8_t>(((w & 0x3F) ? 0x80 : 0) | (w & 0x7F));
             } else {
                 BridgeNode* node = bridgeHeights.Find(BridgeKey(x, y));
                 int saved = node ? static_cast<std::uint16_t>(node->value) : 0;
@@ -84,7 +83,7 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
             }
         }
         if (!AddOccluderRecord(&c)) return false;
-        FlagsWord(cell) = static_cast<std::uint16_t>((FlagsWord(cell) & 0xFF40) | 0x40);
+        cell->flags = static_cast<std::uint8_t>((cell->flags & 0x40) | 0x40);
         std::uint16_t deck = static_cast<std::uint16_t>(c.high);
         if (cell->groundLevel <= deck) cell->groundLevel = deck;
         std::uint32_t& occluder = occluders[y][x];

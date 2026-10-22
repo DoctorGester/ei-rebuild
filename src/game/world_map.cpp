@@ -299,7 +299,7 @@ void CWorldServer::ResetState() {
     ScriptReset(SecondScript());
     ResetAIMap(AIMap());
     zoneLoaded_ = 0;
-    nightLevel_ = 0;
+    nightLevel_ = 0.0f;
     for (WorldAlarm& alarm : alarms_) {
         alarm.active = 0;
         alarm.time = 0;

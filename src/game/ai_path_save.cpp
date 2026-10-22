@@ -68,7 +68,7 @@ void AIPath::SavePath(CStream* stream) {
 
 // ---- The order (005C8230 / 005C8370) ----------------------------------------------------------
 
-void AIPath::LoadOrder(CStream* stream) {
+void PathOrder::LoadOrder(CStream* stream) {
     MotionOrder* order = OrderOf(this);
     stream->Read(&order->kind, 4);
     stream->Read(&order->x, 8);
@@ -86,7 +86,7 @@ void AIPath::LoadOrder(CStream* stream) {
     }
 }
 
-void AIPath::SaveOrder(CStream* stream) {
+void PathOrder::SaveOrder(CStream* stream) {
     MotionOrder* order = OrderOf(this);
     stream->Write(&order->kind, 4);
     stream->Write(&order->x, 8);
@@ -104,5 +104,5 @@ void AIPath::SaveOrder(CStream* stream) {
 
 EI_REWRITTEN(0x005B2430, AIPath::LoadPath);
 EI_REWRITTEN(0x005B2570, AIPath::SavePath);
-EI_REWRITTEN(0x005C8230, AIPath::LoadOrder);
-EI_REWRITTEN(0x005C8370, AIPath::SaveOrder);
+EI_REWRITTEN(0x005C8230, PathOrder::LoadOrder);
+EI_REWRITTEN(0x005C8370, PathOrder::SaveOrder);

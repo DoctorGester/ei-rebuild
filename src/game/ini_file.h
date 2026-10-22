@@ -35,7 +35,7 @@ public:
     mfc::CString GetString(const char* section, const char* key, const char* defaultValue);
     // 00696090. Appends the items of the value split at `separator` (trimmed) to `out`. Returns 0
     // when the value is empty.
-    BOOL GetList(const char* section, const char* key, console::CStringArray* out, char separator);
+    BOOL GetList(const char* section, const char* key, mfc::CStringArray* out, char separator);
 
     // Lists of integers (atoi of each item) into the different array types. Each returns 0, `out`
     // untouched, when the value is empty; otherwise `out` holds exactly the items.

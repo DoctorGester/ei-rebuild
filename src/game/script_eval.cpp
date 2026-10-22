@@ -474,7 +474,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(static_cast<int>(GameCameraPathPlaying()));
         return;
     case 0xAA:   // IsNight (the world's day-time value, copied as a float)
-        CopyFloat(result, reinterpret_cast<const float*>(&TheServerWorld()->nightLevel_));
+        CopyFloat(result, &TheServerWorld()->nightLevel_);
         return;
     case 0xB5:   // GetWorldTime
         *result = WorldTimeOfDay();

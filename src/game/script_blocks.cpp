@@ -92,26 +92,10 @@ EI_REWRITTEN(0x004BCE10, CScript::FindArea);
 // CPlex block of `blockSize` 12-byte nodes is chained onto the free list (last node first) when
 // it is empty; the element is constructed (004CC800) and then assigned null (released if set).
 ScriptObjectRef* CScript::NewTempObject() {
-    using Node = mfc::CList<ScriptObjectRef>::Node;
-    static_assert(sizeof(Node) == 0xC);
+    static_assert(sizeof(ScriptTempObjects::Node) == 0xC);
     auto& list = tempObjects_;
-    Node* tail = list.tail;
-    if (!list.free) {
-        mfc::CPlex* block = mfc::PlexCreate(list.blocks, static_cast<unsigned>(list.blockSize), sizeof(Node));
-        Node* first = reinterpret_cast<Node*>(block + 1);
-        for (int i = list.blockSize - 1; i >= 0; --i) {
-            Node* node = first + i;
-            node->next = list.free;
-            list.free = node;
-        }
-    }
-    Node* node = list.free;
-    list.free = node->next;
-    node->prev = tail;
-    node->next = nullptr;
-    ++list.count;
+    ScriptTempObjects::Node* node = list.NewNode(list.tail, nullptr);   // the element zeroed (004CC800)
     ScriptObjectRef* ref = &node->data;
-    mfc::PlainElements<ScriptObjectRef>::Construct(ref, 1);   // 004CC800
     if (ref->object) ref->object->Release();
     ref->object = nullptr;
     if (list.tail) list.tail->next = node;

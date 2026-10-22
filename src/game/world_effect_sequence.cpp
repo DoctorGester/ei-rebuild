@@ -73,7 +73,7 @@ void CEffectSoundSeq::Start(int update) {
     if (withFirst) list.SetAtGrow(list.GetSize(), first);
     Chooser chooser = ChooserFor(others.GetSize(), withFirst);
     for (int i = 0; i < others.GetSize(); ++i) list.SetAtGrow(list.GetSize(), others[i]);
-    sound_ = sounds->AddSequence(reinterpret_cast<const SoundNameArray*>(&list), noFade_ != 0 ? 1000 : 0,
+    sound_ = sounds->AddSequence(&list, noFade_ != 0 ? 1000 : 0,
                                  &localPosition_.x, volume_, radius_, 0, -1, chooser);
 }
 

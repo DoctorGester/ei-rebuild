@@ -79,7 +79,7 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 
 // The server's AI map's refreshUnits (007B00D2), cleared around path searches, and its sector
 // map (007B01F4).
-bool& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
+std::uint8_t& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 CAIMap* MapOf(CWorldServer* world) { return world->AIMap(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
@@ -110,18 +110,14 @@ static_assert(sizeof(AIPath) == 0x88);
 
 // A motion order on the stack (the order and its step list), as 005B22C0 fills it. The order
 // part is zeroed (the original leaves it uninitialised until it is filled).
-struct LocalMotionOrder {
-    MotionOrder order;
-    PathCellList steps;
+struct LocalMotionOrder : PathOrder {
     LocalMotionOrder() {
-        std::memset(&order, 0, sizeof(order));
+        std::memset(&motionOrder, 0, sizeof(motionOrder));
         mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&steps, 0x80);
     }
     ~LocalMotionOrder() { mfc::impl::DestructList<mfc::impl::CellListClass>(steps); }
     LocalMotionOrder(const LocalMotionOrder&) = delete;
     LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
-    // The order as the path it starts: a motion order is an AIPath's first 0x3C bytes.
-    AIPath* Path() { return reinterpret_cast<AIPath*>(this); }
 };
 static_assert(sizeof(LocalMotionOrder) == 0x3C);
 
@@ -160,15 +156,15 @@ using UnitPtrList = mfc::CTypedPtrList<CUnit>;
 // The messages of a unit's player (CPlayer::connection_).
 CPlayerServer* PlayerConnection(CPlayer* player) { return player->Server(); }
 
-void PathMessage(CUnit* unit, const void* motion, const float* point, int kind, int flag, float limit) {
-    if (unit->player) PlayerConnection(unit->player)->SendPathMessage(unit, const_cast<void*>(motion), point, kind, flag, std::bit_cast<std::uint32_t>(limit));
+void PathMessage(CUnit* unit, PathOrder* motion, const float* point, int kind, int flag, float limit) {
+    if (unit->player) PlayerConnection(unit->player)->SendPathMessage(unit, motion, point, kind, flag, std::bit_cast<std::uint32_t>(limit));
 }
 
 } // namespace
 
 // --- A use order's spot -----------------------------------------------------------------------
 
-bool CUnitServer::FindUseSpot(UnitAction* order, AIPath* out) {
+bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
     CWorldServer* world = ServerWorld();
     order->point.z = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
@@ -213,7 +209,7 @@ EI_REWRITTEN(0x0054DF50, CUnitServer::FindUseSpot);
 
 // --- The time along a path until an action is possible -----------------------------------------
 
-double CUnitServer::TimeUntilAction(const AIOrder* order, AIPath* motionOrder) {
+double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) {
     const MotionOrder* pathOrder = OrderOf(motionOrder);
     if (pathOrder->kind != kMotionPath) return 0.0f;
     ObjectWorld(this);
@@ -283,14 +279,14 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     if (!order->target) std::memcpy(&point, &order->point, sizeof(point));
     else order->target->AimPoint(&point);
     bool ok;
-    if (!FindUseSpot(order, route.Path())) {
-        PathMessage(unit, route.Path(), &point.x, 3, 1, kFar);
+    if (!FindUseSpot(order, &route)) {
+        PathMessage(unit, &route, &point.x, 3, 1, kFar);
         ok = false;
     } else {
         if (!player) return true;
         if (CanReachTarget(order) && CanPlanAction(order)) {
             // The action can be done from here.
-            PathMessage(unit, route.Path(), &point.x, 3, 0, kFar);
+            PathMessage(unit, &route, &point.x, 3, 0, kFar);
             if ((shout <= 0x29 || shout == 0x30) && shout != 0xFFFFFFFFu && unit->player)
                 PlayerMessage(PlayerConnection(unit->player), unit, static_cast<int>(shout));
             return true;
@@ -312,7 +308,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {
             Vector3 destination;
-            const Vector3* at = route.Path()->Destination(&destination);
+            const Vector3* at = route.Destination(&destination);
             if (!CanReachTarget(order)) return false;
             float x = unit->localPosition_.x, y = unit->localPosition_.y, z = unit->localPosition_.z;
             unit->localPosition_.x = at->x;
@@ -327,7 +323,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         if (order->flag18 == 0) {
             LocalPath path;
             CMapObject* target = order->target;
-            bool savedFlag = false;
+            std::uint8_t savedFlag = 0;
             if (target) {
                 savedFlag = PathFlag();
                 PathFlag() = false;
@@ -344,13 +340,13 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
                 SectorMapAdd(ServerSectors(), nullptr, target);
                 PathFlag() = savedFlag;
             }
-            path.Path()->ToMotionOrder(route.Path());   // a motion order is an AIPath's first part
+            path.Path()->ToMotionOrder(&route);
             ok = actsFromDestination();
-            if (ok) best = static_cast<float>(TimeUntilAction(order, route.Path()));
+            if (ok) best = static_cast<float>(TimeUntilAction(order, &route));
         } else {
             ok = actsFromDestination();
         }
-        PathMessage(unit, route.Path(), &point.x, kind, ok ? 0 : 1, best);
+        PathMessage(unit, &route, &point.x, kind, ok ? 0 : 1, best);
         if (ok) {
             Shout(shout);
             return true;
@@ -363,7 +359,7 @@ EI_REWRITTEN(0x0054E600, CUnitServer::PlanOrderRoute);
 
 // --- A party unit's move -----------------------------------------------------------------------
 
-void CUnitServer::PlanMove(const float* point, int moving, int run, float range) {
+void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float range) {
     CWorldServer* world = ServerWorld();
     LocalPath path;
     UnitPtrList lifted{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};

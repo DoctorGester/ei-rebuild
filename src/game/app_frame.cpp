@@ -126,7 +126,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
         mfc::CString path(mfc::CString::kUnset);
         IniSetPath(ini, nullptr, *ConcatText(&path, &TheDataFolder(), "config\\movie.ini"));
     }
-    reinterpret_cast<CIniFile*>(ini)->GetList(section, "movies", reinterpret_cast<console::CStringArray*>(&list), ',');
+    reinterpret_cast<CIniFile*>(ini)->GetList(section, "movies", &list, ',');
     if (clearFirst) ClearScreen();
     for (int i = 0; i < list.size; ++i) {
         {

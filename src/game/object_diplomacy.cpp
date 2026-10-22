@@ -2,6 +2,7 @@
 
 #include "core_streams.h"
 #include "object.h"
+#include "player_messages.h"   // CPlayer::units_
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -10,9 +11,6 @@ namespace {
 
 // SHL r32,CL: the count is masked to 5 bits.
 std::uint32_t Bit(int n) { return 1u << (static_cast<unsigned>(n) & 31); }
-
-// A party's members: an STLport hash_map<key, CUnit*> at party +0x40, walked in iterator order.
-using PartyMembers = stlp::hash_map<std::uint32_t, CUnit*, stlp::IntHash>;
 
 } // namespace
 
@@ -48,8 +46,8 @@ void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUn
     for (CEngineObject* object = it.First(WorldObjectManager()); object; object = it.Next()) {
         CUnit* unit = UnitOrNull(object);
         if (!unit) continue;
-        if (FieldAt<int>(unit, unitfield::kPlayer) != player) continue;
-        std::uint32_t mask = FieldAt<std::uint32_t>(unit, unitfield::kHostileMask);
+        if (unit->side != player) continue;
+        std::uint32_t mask = unit->relationsA;
         mask = relation == kRelationHostile ? mask | Bit(other) : mask & ~Bit(other);
         unit->SetHostileMask(mask);
     }
@@ -84,17 +82,16 @@ EI_REWRITTEN(0x004557F0, CDiplomacy::WriteTo);
 
 void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim, int) {
     if (!attacker || !victim) return;
-    if (allied_[FieldAt<int>(victim, unitfield::kPlayer)] & Bit(FieldAt<int>(attacker, unitfield::kPlayer))) return;
-    victim->AddHostileMask(FieldAt<std::uint32_t>(victim, unitfield::kHostileMask) |
-                               Bit(FieldAt<int>(attacker, unitfield::kPlayer)));
+    if (allied_[victim->side] & Bit(attacker->side)) return;
+    victim->AddHostileMask(victim->relationsA | Bit(attacker->side));
     victim->flags_ |= 0x80000;
-    char* party = FieldAt<char*>(victim, unitfield::kParty);
+    // The victim's party: the player's units, walked in iterator order.
+    const CPlayer* party = victim->player;
     if (!party) return;
-    auto* members = reinterpret_cast<const PartyMembers*>(party + 0x40);
-    for (const PartyMembers::Node* node = members->First(); node && node->value; node = members->After(node)) {
+    const CPlayer::UnitMap* members = &party->units_;
+    for (const CPlayer::UnitMap::Node* node = members->First(); node && node->value; node = members->After(node)) {
         CUnit* unit = node->value;
-        unit->AddHostileMask(FieldAt<std::uint32_t>(unit, unitfield::kHostileMask) |
-                                 Bit(FieldAt<int>(attacker, unitfield::kPlayer)));
+        unit->AddHostileMask(unit->relationsA | Bit(attacker->side));
     }
 }
 EI_REWRITTEN(0x00455680, CDiplomacy::OnAttack);

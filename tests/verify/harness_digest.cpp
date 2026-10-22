@@ -29,6 +29,7 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <bit>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
@@ -211,7 +212,7 @@ void ReadWorld(CWorldServer* w, Builder& b) {
     b.Float("wind.y", wind[1]);
     b.Float("wind.z", wind[2]);
     b.Bits("windStrength", w->windStrength_);
-    b.Bits("nightLevel", w->nightLevel_);
+    b.Bits("nightLevel", std::bit_cast<std::uint32_t>(w->nightLevel_));
     b.Bits("weatherFactor", w->weatherFactor_);
     for (int i = 0; i < 5; ++i) {
         const WorldAlarm& a = w->alarms_[i];

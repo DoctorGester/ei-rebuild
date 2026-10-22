@@ -176,7 +176,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         }
         HitLog()->Put(kTypeNames[type]);
         UnitLogStream* log = HitLog()->Put(kPassedDamage);
-        *reinterpret_cast<int*>(reinterpret_cast<char*>(log) + 4) = 1;
+        log->floatUsed = 1;
         log->Put(static_cast<double>(typeDamage));
         if (slot.kind == 1) {
             HitLog()->Put(kCrippled);

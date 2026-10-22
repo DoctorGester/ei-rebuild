@@ -34,7 +34,7 @@ std::int16_t StepFromCode(std::uint16_t code, std::int16_t previous) {
 }
 } // namespace
 
-void AIPath::WriteState(DeltaField* field) {
+void PathOrder::WriteState(DeltaField* field) {
     MotionOrder* order = OrderOf(this);
     std::uint8_t byte = static_cast<std::uint8_t>(order->kind);
     field->WriteDelta(&byte, 1);
@@ -65,9 +65,9 @@ void AIPath::WriteState(DeltaField* field) {
         if (yCode == kStepWritten) field->WriteBoth(&cell.y, 2);
     }
 }
-EI_REPLACE_METHOD(0x005C7DB0, AIPath::WriteState);
+EI_REPLACE_METHOD(0x005C7DB0, PathOrder::WriteState);
 
-void AIPath::ReadState(DeltaField* field) {
+void PathOrder::ReadState(DeltaField* field) {
     MotionOrder* order = OrderOf(this);
     std::uint8_t byte = 0;
     field->ReadDelta(&byte, 1);
@@ -101,4 +101,4 @@ void AIPath::ReadState(DeltaField* field) {
         previousY = cell.y;
     }
 }
-EI_REWRITTEN(0x005C7FC0, AIPath::ReadState);
+EI_REWRITTEN(0x005C7FC0, PathOrder::ReadState);

@@ -47,7 +47,7 @@ struct ClassTemplate {
     std::uint8_t flag0C;            // +0x0C
     std::uint8_t flag0D;            // +0x0D
     std::uint8_t unused_0E[2];
-    std::uint32_t weights[9];       // +0x10..+0x30 floats (bit patterns)
+    float weights[9];               // +0x10..+0x30
     std::uint8_t weightsTail[4];        // +0x34 field 4's tenth dword (archived with weights)
     std::uint8_t flag38;            // +0x38 set by the constructor and by a quest completion (004A88E0)
     std::uint8_t unused_39[3];

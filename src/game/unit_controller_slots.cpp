@@ -130,7 +130,7 @@ EI_REWRITTEN(0x00533C90, CUnitController::ReturnFalse);
 // --- The client controller -------------------------------------------------------------------------------
 
 // 00533DF0 (slot 16): the order part of the unit's path. Four bytes (too short to hook).
-AIPath* __fastcall ClientControllerPath(CUnitClientSpecific* self) { return self->MotionPath(); }
+PathOrder* __fastcall ClientControllerPath(CUnitClientSpecific* self) { return self->MotionPath(); }
 EI_REPLACE(0x00533DF0, ClientControllerPath);
 
 // 00533E00 / 00533E10 (slots 11 / 12).
@@ -182,7 +182,7 @@ public:
     virtual int FiguresLoaded() { return ControllerFiguresLoaded(Controller()); }   // 13: 00533B90
     virtual void RestartAnimation(float) {}                    // 14: 00533BA0 (RET 4)
     virtual void Unused15() {}                                 // 15: 00533BB0
-    virtual AIPath* Path() {                                   // 16: pure
+    virtual PathOrder* Path() {                                // 16: pure
         _purecall();
         return nullptr;
     }
@@ -246,7 +246,7 @@ public:
     int FiguresLoaded() override { return Client()->FiguresLoaded(); }                 // 13: 005344E0
     void RestartAnimation(float time) override { Client()->RestartAnimation(time); }   // 14: 005352B0
     void Unused15() override {}                                   // 15: 00535580 (empty)
-    AIPath* Path() override { return ClientControllerPath(Client()); }   // 16: 00533DF0
+    PathOrder* Path() override { return ClientControllerPath(Client()); }   // 16: 00533DF0
     void Unused17() override {}                                   // 17: 00534130 (empty)
     void PlayerChanged(void* player) override { Client()->OwnerPlayerChanged(player); }   // 18: 00534140
     int Level() override { return Client()->Level(); }            // 24: 00539160
@@ -288,7 +288,7 @@ public:
     void Save(CStream* stream) override { Server()->SaveServer(stream); }   // 10: 005561C0
     const char* ClassName() override { return UnitServerClassName(Server()); }   // 11: 005460C0
     int ClassId() override { return UnitServerClassId(Server()); }               // 12: 005460D0
-    AIPath* Path() override { return Server()->MotionSlot(); }    // 16: 00546090
+    PathOrder* Path() override { return Server()->MotionSlot(); }    // 16: 00546090
     void Unused17() override { Server()->EmptySlot17(); }         // 17: 005460B0
     int RefreshVitals(int withHitPoints) override { return Server()->RefreshVitals(static_cast<char>(withHitPoints)); }   // 19: 005533B0
     int TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) override { return Server()->TakeHit(hit, attacker, source); }   // 20: 00553F40

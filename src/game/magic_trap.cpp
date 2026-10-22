@@ -90,7 +90,7 @@ void Append(PtrList* list, CUnit* unit) {
 } // namespace
 
 void MagicTrap::UpdateVictims() {
-    VictimList* victims = reinterpret_cast<VictimList*>(&inside);
+    VictimList* victims = &inside;
     for (VictimNode* node = victims->head; node;) {
         VictimNode* next = node->next;
         if (!StaysInside(this, node->data)) {

@@ -26,8 +26,6 @@ constinit lib::StaticObject<acks::AckDatabase> g_ackDatabase = /*007C8A60*/ {};
 
 // The briefings by name (world_data.h): the database's briefing table's index.
 stlp::NameMap& worlddata::QuestBriefings() { return reinterpret_cast<stlp::NameMap&>(TheQuestDatabase().briefings.index); }
-// The quests as the script commands read them (script.h): the database's first half.
-QuestTable* TheQuestTable() { return reinterpret_cast<QuestTable*>(&TheQuestDatabase()); }
 
 namespace {
 

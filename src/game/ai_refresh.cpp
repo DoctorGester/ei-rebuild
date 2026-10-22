@@ -187,7 +187,7 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     AIMapCell* cell = &cells[y][x];
     std::uint32_t* occluder = &occluders[y][x];
     AITerrainType* terrain = &materials.data[*occluder & 0x1F];
-    std::uint16_t extra = *reinterpret_cast<std::uint16_t*>(&cell->flags);
+    std::uint8_t extra = cell->flags;   // read as a word; only the low six bits are used
     if ((*occluder & 0x100) && !(cell->flags & 0x3F)) return (terrain->openMarks >> (level * 4)) & 0xF;
 
     int bottom = cell->groundLevel;
