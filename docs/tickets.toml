@@ -2351,7 +2351,7 @@ id = "C14"
 title = "Standard types instead of MFC / STLport containers and strings"
 group = "cleanup"
 size = 5
-note = "Split 2026-10-22 (user): C14a strings, C14b arrays/lists, C14c maps, C14d archives; scripted rewrites, queued after C27."
+note = "User 2026-10-22: R16i goes first; C14a-d wait."
 
 [[ticket]]
 id = "C15"
