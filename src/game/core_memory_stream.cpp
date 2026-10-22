@@ -37,7 +37,7 @@ void CMemoryStream::Write(const void* buffer, std::uint32_t size) {
     if (position_ + size > capacity_) {
         std::uint32_t old = capacity_;
         capacity_ = (old + size) * 2;
-        auto* grown = static_cast<std::uint8_t*>(gamecrt::operator_new(capacity_));
+        auto* grown = gamecrt::operator_new_array<std::uint8_t>(capacity_);
         std::memcpy(grown, data_, old);
         gamecrt::operator_delete(data_);
         data_ = grown;
@@ -76,7 +76,7 @@ void CMemoryStream::Resize(std::uint32_t size) {
     }
     std::uint8_t* old = data_;
     std::uint32_t capacity = (size >> 1) + size + 0x10;
-    data_ = static_cast<std::uint8_t*>(gamecrt::operator_new(capacity));
+    data_ = gamecrt::operator_new_array<std::uint8_t>(capacity);
     std::memcpy(data_, old, size_);
     capacity_ = capacity;
     position_ = 0;
@@ -95,7 +95,7 @@ void CMemoryStream::SetSize(std::uint32_t size) {
         return;
     }
     if (data_) gamecrt::operator_delete(data_);
-    auto* fresh = static_cast<std::uint8_t*>(gamecrt::operator_new(size));
+    auto* fresh = gamecrt::operator_new_array<std::uint8_t>(size);
     capacity_ = size;
     size_ = size;
     data_ = fresh;

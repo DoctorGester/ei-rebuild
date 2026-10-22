@@ -126,7 +126,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     if (DirectPixels(from, &fromPixels, true) && DirectPixels(to, &toPixels)) StretchCopy(toPixels, fromPixels);
 
     int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
-    auto* pixels = static_cast<std::uint16_t*>(gamecrt::operator_new(static_cast<std::size_t>(count) * 2));
+    auto* pixels = gamecrt::operator_new_array<std::uint16_t>(static_cast<std::size_t>(count));
     SurfaceHolder* holder = HolderOf(copy);
     gameapi::EnterCriticalSection(TheDeviceLock());
     SurfacePixels copied;
@@ -267,7 +267,7 @@ void CUiSurface::SwapContents(int restore) {
     bool direct = DirectPixels(holder, &desc, true);   // (no memory: an empty copy)
     if (kept_) gamecrt::operator_delete(kept_);
     keptSize_ = static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
-    kept_ = static_cast<std::uint8_t*>(gamecrt::operator_new(keptSize_));
+    kept_ = gamecrt::operator_new_array<std::uint8_t>(keptSize_);
     if (direct) std::memcpy(kept_, desc.bits, keptSize_);
     KeptBytesTotal() += keptSize_;
     gameapi::LeaveCriticalSection(TheDeviceLock());

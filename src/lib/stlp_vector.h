@@ -44,7 +44,7 @@ public:
         }
         std::size_t old = size();
         std::size_t len = old + (old > 1 ? old : 1);
-        T* fresh = static_cast<T*>(allocate(len * sizeof(T)));
+        T* fresh = allocate_as<T>(len);
         T* out = fresh;
         for (T* p = start_; p != finish_; ++p, ++out) new (out) T(*p);
         new (out) T(x);
@@ -295,7 +295,7 @@ public:
     }
 
 private:
-    static T* Allocate(std::size_t n) { return static_cast<T*>(allocate(n * sizeof(T))); }
+    static T* Allocate(std::size_t n) { return allocate_as<T>(n); }
     template <typename E>
     void Release() {
         for (T* p = start_; p != finish_; ++p) E::Destroy(p);

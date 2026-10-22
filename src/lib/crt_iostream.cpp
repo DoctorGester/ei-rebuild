@@ -291,7 +291,7 @@ int Streambuf::DefaultPbackfail(int c) {
 EI_REPLACE_METHOD(0x006FCD30, libcrt::Streambuf::DefaultPbackfail);
 
 int Streambuf::DefaultDoallocate() {
-    char* reserve = static_cast<char*>(gamecrt::operator_new(kReserveSize));
+    char* reserve = gamecrt::operator_new_array<char>(kReserveSize);
     if (!reserve) return kEof;
     Setb(reserve, reserve + kReserveSize, 1);
     return 1;

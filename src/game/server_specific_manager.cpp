@@ -63,15 +63,13 @@ CEngineObject* CServerSpecificManager::NewObjectImpl(int type) {
         if (void* p = gamecrt::operator_new_zeroed(0x20)) return Object3DServerConstruct(static_cast<CObject3DSpecific*>(p));
         return nullptr;
     case kMapObjectServer:
-        if (void* p = gamecrt::operator_new_zeroed(sizeof(CMapObjectServer)))
-            return static_cast<CMapObjectServer*>(p)->Construct();
+        if (auto* p = gamecrt::operator_new_zeroed_as<CMapObjectServer>()) return p->Construct();
         return nullptr;
     case kUnitServer:
-        if (void* p = gamecrt::operator_new_zeroed(0xB20)) return static_cast<CUnitServer*>(p)->Construct();
+        if (auto* p = gamecrt::operator_new_zeroed_as<CUnitServer>()) return p->Construct();
         return nullptr;
     case kPlayerServer:
-        if (void* p = gamecrt::operator_new_zeroed(0x5128))   // 0066C540
-            return static_cast<CPlayerServer*>(p)->Construct();
+        if (auto* p = gamecrt::operator_new_zeroed_as<CPlayerServer>()) return p->Construct();   // 0066C540
         return nullptr;
     case kTorchObjectSpec:
         if (void* p = gamecrt::operator_new_zeroed(sizeof(CTorchObjectSpec))) return new (p) CTorchObjectSpec();

@@ -177,7 +177,7 @@ public:
     // The constructor (e.g. 004393C0 / 0043A590 + 0043A570): a header node from the node pool,
     // _M_empty_initialize, no elements.
     void Construct() {
-        header_ = static_cast<Node*>(allocate(sizeof(Node)));
+        header_ = allocate_as<Node>();
         EmptyInitialize();
         count_ = 0;
     }
@@ -209,7 +209,7 @@ public:
     // _M_create_node (e.g. 0043DF00): a node from the pool, the value copied into it.
     template <typename E = Element>
     static Node* CreateNode(const Value& v) {
-        Node* z = static_cast<Node*>(allocate(sizeof(Node)));
+        Node* z = allocate_as<Node>();
         E::Copy(reinterpret_cast<Value*>(&z->first), v);
         return z;
     }
@@ -249,7 +249,7 @@ public:
     // copied with their colours (_M_copy) and leftmost / rightmost found again, then the count.
     template <typename E = Element>
     void CopyFrom(const map& from) {
-        header_ = static_cast<Node*>(allocate(sizeof(Node)));
+        header_ = allocate_as<Node>();
         count_ = 0;
         compare_ = from.compare_;
         if (!from.header_->parent) {

@@ -275,7 +275,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
     ScriptBinding local{0, 0, 0}, global{0, 0, 0};
     ScriptSubCall sub{0, 0, nullptr};
 
-    if (void* memory = gamecrt::operator_new(sizeof(SSCCmd))) sub.cmd = static_cast<SSCCmd*>(memory)->Construct();
+    if (auto* memory = gamecrt::operator_new_as<SSCCmd>()) sub.cmd = memory->Construct();
     // Extra leading slots: an assignment keeps the variable index and type in floats 0 and 1, a
     // script call the script index in float 0 and its name in string 0.
     if (assignment) floatCount = 2;

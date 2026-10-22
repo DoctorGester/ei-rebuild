@@ -66,7 +66,7 @@ struct QueueStreamElement {
     static void Destroy(CMemoryStream* p) { static_cast<CStream*>(p)->~CStream(); }
     static void Default(CMemoryStream* p) { p->ConstructQueueStream(); }
 };
-static_assert(sizeof(stlp::list<CMemoryStream>::Node) == sizeof(netlink::QueueNode));
+static_assert(sizeof(stlp::list<CMemoryStream>::Node) == 0x30);
 
 // CLinkFigureLoader's archives (LinkArchiveNode, 24-byte nodes): pair<string, CMMIOResource*>.
 // The string copied into a block of its length + 1 (0042A2B0); T() is an empty string with room for

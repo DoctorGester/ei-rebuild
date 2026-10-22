@@ -49,8 +49,8 @@ CEffectShowVisibility* CEffectShowVisibility::Construct() {
     SearchGrid<std::uint8_t>& cells = grid_.cells;
     cells.width = 1;
     cells.height = 1;
-    cells.data = static_cast<std::uint8_t*>(gamecrt::operator_new(1));
-    cells.rows = static_cast<std::uint8_t**>(gamecrt::operator_new(cells.height * 4));
+    cells.data = gamecrt::operator_new_array<std::uint8_t>(1);
+    cells.rows = gamecrt::operator_new_array<std::uint8_t*>(cells.height);
     for (int row = 0; row < cells.height; ++row) cells.rows[row] = cells.data + row * cells.width;
     observerId_ = -1;
     seerId_ = -1;

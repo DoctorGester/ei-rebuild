@@ -24,6 +24,9 @@ struct LeverRecord;
 struct PartyInPlace;
 namespace gamehash { struct PartyTable; }   // party_manager.h
 struct PartyManagerEntry;
+struct PrintRecord;    // model.h
+struct PrintRecord2;
+struct SpeechRecord;   // unit_client_models.h
 struct QuestBriefingRecord;
 struct QuestRecord;
 struct SkillLevelRecord;
@@ -34,6 +37,13 @@ struct UnitNpcRecord;
 struct UnitPrototypeRecord;
 namespace mfc {
 class CString;
+}
+namespace acks {   // acks_db.h
+struct UnitAcks;
+struct ModelAcks;
+struct ExtraAcks;
+struct Speeches;
+struct EnvironmentSpeeches;
 }
 
 class ChunkArchive {
@@ -122,11 +132,11 @@ public:
     // one chunk 1 per record (`occurrence` selects the record); loading replaces the vector's
     // contents. The third argument (the callers pass the database file's data) is unused but
     // popped: RET 0xC.
-    void SerializePrints(int id, void* records, void* unused);      // 006D23A0 vector<PrintRecord>
-    void SerializePrints2(int id, void* records, void* unused);     // 006D25F0 vector<PrintRecord2>
-    void SerializeAcks(int id, void* records, void* unused);        // 006DB430 (0x1C4-byte records)
-    void SerializeAcks2(int id, void* records, void* unused);       // 006DB680 (0x5C-byte records)
-    void SerializeAcks3(int id, void* records, void* unused);       // 006DB8D0 (0x38-byte records)
+    void SerializePrints(int id, stlp::vector<PrintRecord>* records, void* unused);      // 006D23A0 vector<PrintRecord>
+    void SerializePrints2(int id, stlp::vector<PrintRecord2>* records, void* unused);     // 006D25F0 vector<PrintRecord2>
+    void SerializeAcks(int id, stlp::vector<acks::UnitAcks>* records, void* unused);     // 006DB430
+    void SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records, void* unused);   // 006DB680
+    void SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void* unused);   // 006DB8D0
 
     // The party manager's chunks (party_manager.cpp, A-S9). The third argument is unused but
     // popped (RET 0xC). Loading empties the container first and takes one record per chunk 1.
@@ -142,11 +152,11 @@ public:
     void IntField(int id, int* value);
 
     // The ack records' helpers (acks_db.cpp). 006E4F40 (RET 8): an acks::SpeechRecord as chunk `id`.
-    void SerializeSpeech(int id, void* speech);
+    void SerializeSpeech(int id, SpeechRecord* speech);
     // 006E42F0 / 006E4410 (RET 0xC; the third argument, the archive again, is unused): an
     // acks::SpeechList / a vector of acks::EnvironmentSpeech as chunk `id`.
-    void SerializeSpeechList(int id, void* list, void* unused);
-    void SerializeEnvironmentSpeeches(int id, void* list, void* unused);
+    void SerializeSpeechList(int id, acks::Speeches* list, void* unused);
+    void SerializeEnvironmentSpeeches(int id, acks::EnvironmentSpeeches* list, void* unused);
     // 00465090 (RET 0xC; app_device_list.cpp): the lever records as chunk `id`, one chunk 1 per
     // record (emptied and resized to the number of chunks when loading). The last argument is not read.
     void SerializeLevers(int id, stlp::vector<LeverRecord>* list, int unused);

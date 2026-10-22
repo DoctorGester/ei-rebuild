@@ -62,7 +62,7 @@ EI_REWRITTEN(0x00438930, TypeRegistry::Create);
 SessionBase* SessionBase::Construct() {
     ei::SetVtable(this, CRefCounted::RootVtable());
     // The connection list: an empty STLport list (a 12-byte sentinel linked to itself).
-    auto* sentinel = static_cast<ClientNode*>(stlp::allocate(sizeof(ClientNode)));
+    auto* sentinel = stlp::allocate_as<ClientNode>();
     clients_ = sentinel;
     sentinel->next = sentinel;
     sentinel->prev = sentinel;

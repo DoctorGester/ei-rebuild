@@ -497,7 +497,7 @@ void CGlobalMap::Create() {
     GameSetWeather(0, 0.0f);   // clear
     (ei::GameData<SoundMixer*>(0x007AF760))->ResetMusic();
     {
-        auto* weather = static_cast<CCloudNoise*>(gamecrt::operator_new(0x34));
+        auto* weather = gamecrt::operator_new_as<CCloudNoise>();
         if (weather) {
             weather->Construct(0x100);
             ei::SetVtable(weather, CCloudNoise::MapVtable());

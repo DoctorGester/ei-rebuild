@@ -81,9 +81,9 @@ EI_REWRITTEN(0x00688EC0, CSpellManager::CreateSpellObject);
 
 CEngineObject* CSpellManager::NewObjectImpl(int type) {
     if (type == kClassSpell) {
-        if (void* memory = gamecrt::operator_new(sizeof(CSpell))) return static_cast<CSpell*>(memory)->Construct();
+        if (auto* memory = gamecrt::operator_new_as<CSpell>()) return memory->Construct();
     } else if (type == kClassSpellContainer) {
-        if (void* memory = gamecrt::operator_new(sizeof(CSpellContainer))) return static_cast<CSpellContainer*>(memory)->Construct();
+        if (auto* memory = gamecrt::operator_new_as<CSpellContainer>()) return memory->Construct();
     }
     return nullptr;
 }
@@ -159,7 +159,7 @@ CSpellContainer* CSpellContainer::Construct() {
     ClearFields();
     modifiers_.Construct();
     // The code string: empty, with room for 8 bytes (00424E40).
-    codes_ = codesEnd_ = static_cast<char*>(stlp::allocate(8));
+    codes_ = codesEnd_ = stlp::allocate_as<char>(8);
     codesCapacity_ = codes_ + 8;
     *codesEnd_ = '\0';
     Spell()->Construct();

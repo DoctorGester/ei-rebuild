@@ -180,22 +180,22 @@ WoundsMaterial::WoundsMaterial() {
 
 int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
-    void* manager = TheTextureManager();
+    CTextureManager* manager = TheTextureManager();
     if (!woundsTexture) {
-        AssignTexture(&woundsTexture, static_cast<CTextureManager*>(manager)->FindTypedTexture(kWoundsTextureKind, name));
+        AssignTexture(&woundsTexture, manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {
-            AssignTexture(&woundsTexture, static_cast<CTextureManager*>(manager)->FindOrCreate(kWoundsTextureKind, name));
+            AssignTexture(&woundsTexture, manager->FindOrCreate(kWoundsTextureKind, name));
             if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->GetClassName(), object->id_);
         }
     }
     AlignedBuffer extra{};
-    static_cast<CTextureManager*>(manager)->LoadMmpExtra(name, &extra);
+    manager->LoadMmpExtra(name, &extra);
     const AlignedBuffer& loaded = woundsTexture->extra_;
     bool same = extra.size != 0 && loaded.size == extra.size &&
                 std::memcmp(loaded.data, extra.data, static_cast<std::size_t>(extra.size)) == 0;
     if (!same) {
         woundsTexture->flags_ &= ~kTextureLoaded;
-        if (!static_cast<CTextureManager*>(manager)->LoadTexture(woundsTexture)) {
+        if (!manager->LoadTexture(woundsTexture)) {
             AssignTexture(&woundsTexture, nullptr);
             AsCountedRef(woundsMaterial).Assign(nullptr);
             extra.FreeData();

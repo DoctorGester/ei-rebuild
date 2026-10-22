@@ -1138,7 +1138,7 @@ libcrt::Ostream* const kNetLog = ei::GamePointer<libcrt::Ostream>(0x007C56B0);  
 
 } // namespace
 
-void CWorldServer::AcceptNewPlayers(void* lobby) {
+void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
     mfc::CTypedPtrList<netlink::NetLink> joined;
     joined.vtable = gameslots::RefListAClass::Vtable();
     joined.head = nullptr;
@@ -1151,7 +1151,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
         mfc::impl::ListAs<gamelists::Refs>(&joined)->RemoveAll();   // 00598EF0: the connections released
         return;
     }
-    static_cast<CPlayerSource*>(lobby)->TakeNew(&joined);   // the new connections
+    lobby->TakeNew(&joined);   // the new connections
     for (auto* node = joined.head; node;) {
         auto* next = node->next;
         netlink::NetLink* connection = node->data;
@@ -1196,7 +1196,7 @@ struct EntryPicks {
     const ZoneEntry** items = nullptr;
     int count = 0;
     explicit EntryPicks(int capacity) {
-        items = static_cast<const ZoneEntry**>(gamecrt::operator_new(static_cast<std::size_t>(capacity > 0 ? capacity : 1) * 4));
+        items = gamecrt::operator_new_array<const ZoneEntry*>(static_cast<std::size_t>(capacity > 0 ? capacity : 1));
     }
     ~EntryPicks() { gamecrt::operator_delete(items); }
     EntryPicks(const EntryPicks&) = delete;
@@ -1209,8 +1209,7 @@ struct EntryPicks {
 
 } // namespace
 
-void __stdcall PickZones(void* outArg, int id, const char* exclude) {
-    auto* out = static_cast<OutStrings*>(outArg);
+void __stdcall PickZones(OutStrings* out, int id, const char* exclude) {
     const ZoneTable& table = g_zoneTable;
     int total = static_cast<int>(table.size());
     EntryPicks pending(total);
@@ -2058,11 +2057,6 @@ constexpr std::uintptr_t kIngosMaps = ei::DataId(0x00790298);       // zone12, z
 constexpr std::uintptr_t kSuslangerMaps = ei::DataId(0x007902C0);   // zone17, zone18
 const char* const* NameList(std::uintptr_t address) { return ei::GamePointer<const char* const>(address); }
 
-// 00587480. The zone table's _M_insert_overflow(pos, value, count) (recordvec::ZoneTableVector's).
-void ZoneTableInsertOverflow(ZoneTable* table, ZoneEntry* pos, const ZoneEntry* value, unsigned count) {
-    static_cast<recordvec::ZoneTableVector*>(table)->InsertOverflow(pos, *value, count);
-}
-
 // The allod of a map name: the first list that has it.
 int AllodOfMap(const char* map) {
     if (NameInList(NameList(kGipatMaps), map)) return 0;
@@ -2081,7 +2075,7 @@ void AppendEmptyEntry(ZoneTable& table) {
         return;
     }
     ZoneEntry empty{};   // destroyed from the last name
-    ZoneTableInsertOverflow(&table, table.Finish(), &empty, 1);
+    table.InsertOverflow<recordvec::ZoneTableVector::Element>(table.Finish(), empty, 1);   // 00587480
 }
 
 } // namespace

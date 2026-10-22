@@ -945,7 +945,7 @@ char* __fastcall NodeChunkAlloc(std::size_t size, int* count) {
             reinterpret_cast<FreeBlock*>(ChunkStart())->next = list;
             list = reinterpret_cast<FreeBlock*>(ChunkStart());
         }
-        ChunkStart() = static_cast<char*>(gamecrt::operator_new(request));
+        ChunkStart() = gamecrt::operator_new_array<char>(request);
         if (!ChunkStart()) {
             // Out of memory: a free block of this size or larger becomes the chunk.
             bool found = false;
@@ -961,7 +961,7 @@ char* __fastcall NodeChunkAlloc(std::size_t size, int* count) {
             }
             if (found) continue;
             ChunkEnd() = nullptr;
-            ChunkStart() = static_cast<char*>(gamecrt::operator_new(request));
+            ChunkStart() = gamecrt::operator_new_array<char>(request);
         }
         PoolHeapSize() += request;
         ChunkEnd() = ChunkStart() + request;

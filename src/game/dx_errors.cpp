@@ -203,7 +203,7 @@ constexpr std::size_t kBuffer = 0x400;
 // The message: an operator new copy of `text`.
 char* CopyMessage(const char* text) {
     std::size_t size = std::strlen(text) + 1;
-    auto* message = static_cast<char*>(gamecrt::operator_new(size));
+    auto* message = gamecrt::operator_new_array<char>(size);
     std::memcpy(message, text, size);
     return message;
 }

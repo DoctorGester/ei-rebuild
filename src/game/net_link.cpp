@@ -26,21 +26,11 @@ namespace {
 constexpr std::uint32_t kStreamLimit = 2000000000;
 
 // --- Library (STLport list<CMemoryStream> of the queue) and other callees -----------------------
-// The queue as recordlist::StreamQueue's list: its constructors (00478D50 / 00479150), insert of a
-// default element (00478FF0), erase (004790F0), clear (00479570) and range insert (004795B0); the
-// node pool (00405950 / 00404D70) and the header's deallocation (00479530, n nodes).
-using Queue = recordlist::StreamQueue;
-Queue::List* AsQueue(QueueNode** queue) { return reinterpret_cast<Queue::List*>(queue); }
-Queue::Node* AsNode(QueueNode* node) { return reinterpret_cast<Queue::Node*>(node); }
-QueueNode* InsertDefault(QueueNode** queue, QueueNode* pos) {
-    Queue::Node* inserted;
-    static_cast<Queue*>(AsQueue(queue))->InsertDefault(&inserted, AsNode(pos));
-    return reinterpret_cast<QueueNode*>(inserted);
-}
-void Erase(QueueNode** queue, QueueNode* pos) {
-    Queue::Node* next;
-    static_cast<Queue*>(AsQueue(queue))->Erase(&next, AsNode(pos));
-}
+// The queue's members with recordlist::StreamQueue's element (record_lists.h): its constructors
+// (00478D50 / 00479150), insert of a default element (00478FF0), erase (004790F0), clear (00479570)
+// and range insert (004795B0); the node pool (00405950 / 00404D70) and the header's deallocation
+// (00479530, n nodes).
+using QueueElement = recordlist::QueueStreamElement;
 inline void* __fastcall NodeAllocate(std::size_t a0) { return libcrt::NodeAllocate(a0); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
 // The game's memmove (006E79A0).
@@ -228,7 +218,7 @@ LoopbackLink* LoopbackLink::New() {
     auto* self = net::NewMessageMemory<LoopbackLink>();
     if (!self) return nullptr;
     self->NetLink::Construct();
-    static_cast<Queue*>(AsQueue(&self->queue_))->Construct(nullptr);
+    self->queue_.Construct();
     self->peer_ = nullptr;   // 00478FB0, the null counted pointer
     ei::SetVtable(self, Vtable());
     return self;
@@ -237,16 +227,17 @@ LoopbackLink* LoopbackLink::New() {
 // The queue's destructor as 004787A0 inlines it: every element's deleting destructor (flags 0),
 // the node back to the pool; then the header.
 void LoopbackLink::DestroyQueue() {
-    for (QueueNode* node = queue_->next; node != queue_;) {
+    QueueNode* head = queue_.head;
+    for (QueueNode* node = head->next; node != head;) {
         QueueNode* current = node;
         node = node->next;
-        CStream* stream = &current->stream;
+        CStream* stream = &current->data;
         stream->~CStream();
         if (current) NodeFree(current, sizeof(QueueNode));
     }
-    queue_->next = queue_;
-    queue_->prev = queue_;
-    if (queue_) NodeFree(queue_, sizeof(QueueNode));
+    head->next = head;
+    head->prev = head;
+    if (head) NodeFree(head, sizeof(QueueNode));
 }
 
 // The first goes to the player's link (+8); null for a null player. Without memory for the second
@@ -287,12 +278,12 @@ EI_REPLACE_METHOD(0x00478780, LoopbackLink::DeletingDestruct);
 int LoopbackLink::OnShutdown() {   // 00478610
     ei::SetVtable(this, Vtable());
     ReleaseCounted(peer_);
-    Queue::Clear(AsQueue(&queue_));
-    stlp::deallocate(queue_, 48);   // 00479530
+    queue_.Clear<QueueElement>();
+    stlp::deallocate(queue_.head, 48);   // 00479530
     record_.Destruct();
     ei::SetVtable(this, CRefCounted::RootVtable());
     NetLink::Construct();
-    static_cast<Queue*>(AsQueue(&queue_))->Construct(nullptr);
+    queue_.Construct();
     peer_ = nullptr;
     ei::SetVtable(this, Vtable());
     return 0;
@@ -304,12 +295,12 @@ LoopbackLink* LoopbackLink::Clone() {   // 004784D0
     auto* copy = net::NewMessageMemory<LoopbackLink>();
     if (!copy) return nullptr;
     copy->ConstructCopyOf(this);
-    copy->queue_ = nullptr;
+    copy->queue_.head = nullptr;
     auto* header = static_cast<QueueNode*>(NodeAllocate(sizeof(QueueNode)));
-    copy->queue_ = header;
+    copy->queue_.head = header;
     header->next = header;
-    copy->queue_->prev = copy->queue_;
-    static_cast<Queue*>(AsQueue(&copy->queue_))->InsertRange(AsNode(copy->queue_->next), AsNode(queue_->next), AsNode(queue_));
+    copy->queue_.head->prev = copy->queue_.head;
+    StreamQueue::InsertRange<QueueElement>(copy->queue_.head->next, queue_.First(), queue_.End());
     copy->peer_ = peer_;
     if (copy->peer_) ++copy->peer_->refs_;
     ei::SetVtable(copy, Vtable());
@@ -319,15 +310,15 @@ LoopbackLink* LoopbackLink::Clone() {   // 004784D0
 bool LoopbackLink::Connected() { return IsLive(peer_); }   // 00478710
 
 bool LoopbackLink::Alive() {   // 00478730
-    if (queue_->next != queue_) return true;
+    if (!queue_.Empty()) return true;
     return IsLive(peer_);
 }
 
-bool LoopbackLink::HasIncoming() { return queue_->next != queue_; }   // 00478750
+bool LoopbackLink::HasIncoming() { return !queue_.Empty(); }   // 00478750
 
 int LoopbackLink::IncomingCount() {   // 00478760
     int count = 0;
-    for (QueueNode* node = queue_->next; node != queue_; node = node->next) ++count;
+    for (QueueNode* node = queue_.First(); node != queue_.End(); node = node->next) ++count;
     return count;
 }
 
@@ -336,8 +327,8 @@ int LoopbackLink::IncomingCount() {   // 00478760
 bool LoopbackLink::SendImpl(CStream* stream) {   // 00478220
     LoopbackLink* peer = peer_;
     if (!IsLive(peer)) return false;
-    InsertDefault(&peer->queue_, peer->queue_);
-    CStream* last = &peer_->queue_->prev->stream;
+    StreamQueue::InsertDefault<QueueElement>(peer->queue_.End());
+    CStream* last = &peer_->queue_.head->prev->data;
     last->CopyFrom(stream);
     return true;
 }
@@ -345,9 +336,9 @@ bool LoopbackLink::SendImpl(CStream* stream) {   // 00478220
 // The front of the queue copied into `stream` (its slot 7) and dropped, then recorded as the base
 // does. False when nothing is queued.
 bool LoopbackLink::ReceiveImpl(CStream* stream) {   // 00478270
-    if (queue_->next == queue_) return false;
-    stream->CopyFrom(&queue_->next->stream);
-    Erase(&queue_, queue_->next);
+    if (queue_.Empty()) return false;
+    stream->CopyFrom(&queue_.First()->data);
+    StreamQueue::Erase<QueueElement>(queue_.First());
     Record(stream);
     return true;
 }

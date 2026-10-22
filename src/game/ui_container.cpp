@@ -93,7 +93,7 @@ void CUiContainer::AddInput(UiInputSide* input) {
     }
     std::size_t size = static_cast<std::size_t>(inputsEnd_ - inputsBegin_);
     std::size_t length = size + (size > 1 ? size : 1);
-    auto** fresh = static_cast<UiInputSide**>(stlp::allocate(length * sizeof(UiInputSide*)));
+    auto** fresh = stlp::allocate_as<UiInputSide*>(length);
     for (std::size_t i = 0; i < size; ++i) fresh[i] = inputsBegin_[i];
     fresh[size] = input;
     if (inputsBegin_)

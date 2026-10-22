@@ -30,6 +30,7 @@ struct UnitParams;
 struct UnitPrototypeRecord;   // unit_db.h
 struct UnitModelRecord;       // unit_db.h
 struct SkillLevelRecord;      // unit_db.h
+struct SkillDatabase;         // unit_db.h
 struct DamageInfo;   // spell.h
 struct FootprintPart;   // ai_map.h
 
@@ -912,7 +913,7 @@ struct UnitStats {
     // (index / 3 is the skill, index % 3 + 1 the level) unless the unit knows it at that level or
     // better; when the hit point maximum of the curve (before and after, both above 1) changes,
     // the slots are healed by what keeps the hit points in proportion (00525800).
-    void LearnSkill(const void* database, const void* record);
+    void LearnSkill(const SkillDatabase* database, const ::SkillLevelRecord* record);
     // unit_create_stats.cpp. 00526C70. The attack skill for weapon type `type` (0-4 use skill 0,
     // 5 and 6 skill 1, 8 the bonused skill 0; others 0): for text-key units the skill byte, the
     // weapon prototype's bonus (+0x7B / +0x7C) and the stat the skill's name starts with minus 25,
@@ -923,7 +924,7 @@ struct UnitStats {
     // attribute (+0x14 name, +0x18 index, +0x20 value) and skill level (+0x0C name) present unless
     // named "none" or empty, no known level of the same skill id (+0x10) in another skill, and the
     // record's own level (by its name, +0x04) above the one known. 0/1 in EAX.
-    BOOL CanLearn(const void* database, const ::SkillLevelRecord* record);
+    BOOL CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record);
     // unit_skill_price.cpp. 00528050. The experience learning skill level `record` (of the level
     // records 007AF274) costs: what its +0x30 is worth over the level below's (1.61 ^ (value /
     // 007C5480) * 007C547C, truncated; the first level of a skill over 0), times 007C5484 ^ (the

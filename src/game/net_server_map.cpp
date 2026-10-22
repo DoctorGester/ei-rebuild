@@ -68,8 +68,8 @@ void ServerSession::SetMap(const stlp::string* name) {
     if (name != &current->text_) current->text_.AssignFrom(*name);
     if (name != &mapName_) mapName_.AssignFrom(*name);
 
-    void* world = TheGameFlow();
-    static_cast<GameFlow*>(world)->RegisterQuests(name->data());
+    GameFlow* world = TheGameFlow();
+    world->RegisterQuests(name->data());
     WorldPrepareMap(world, nullptr, name->data());
     {
         mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
@@ -120,17 +120,9 @@ void ServerSession::SetMap(const stlp::string* name) {
 // current map (+0x25D4), loading each zone's quests.
 void ServerSession::QueueMapList() {
     UnloadQuestTexts();
-    struct {
-        stlp::string* start;
-        stlp::string* finish;
-        stlp::string* eos;
-    } zones;
-    zones.start = nullptr;
-    zones.finish = nullptr;
-    stlp::string* none = nullptr;
-    zones.eos = none;   // the allocator proxy's constructor
+    stlp::vector<stlp::string> zones;   // empty
     PickZones(&zones, kind_, mapName_.data());
-    for (stlp::string* zone = zones.start; zone != zones.finish; ++zone) {
+    for (stlp::string* zone = zones.begin(); zone != zones.end(); ++zone) {
         {
             stlp::string key = stlp::Plus(*zone, game::ZoneSuffix1Text());
             auto* message = NewMessageMemory<ZoneMessage>();
@@ -146,8 +138,8 @@ void ServerSession::QueueMapList() {
         }
         FlowLoadQuestsOriginal(zone->data());
     }
-    for (stlp::string* zone = zones.start; zone != zones.finish; ++zone) zone->~string();
-    NamesFree(zones.start, static_cast<std::size_t>(zones.eos - zones.start));
+    for (stlp::string* zone = zones.begin(); zone != zones.end(); ++zone) zone->~string();
+    NamesFree(zones.begin(), static_cast<std::size_t>(zones.EndOfStorage() - zones.begin()));
 }
 
 // 004193F0: when the held map message names `name`: drops it, empties the queued messages

@@ -61,7 +61,7 @@ void Resize(stlp::vector<T>* v, std::size_t count, const T& value) {
     if (added == 0) return;
     if (static_cast<std::size_t>(v->EndOfStorage() - v->Finish()) < added) {
         const std::size_t capacity = size + (size > added ? size : added);
-        T* fresh = static_cast<T*>(stlp::allocate(capacity * sizeof(T)));
+        T* fresh = stlp::allocate_as<T>(capacity);
         if (size != 0) std::memcpy(fresh, v->Start(), size * sizeof(T));
         v->FreeStorage();
         v->Start() = fresh;
@@ -76,7 +76,7 @@ void Resize(stlp::vector<T>* v, std::size_t count, const T& value) {
 template <typename T>
 void CopyConstruct(stlp::vector<T>* v, const stlp::vector<T>& source) {
     const std::size_t count = source.size();
-    T* block = count != 0 ? static_cast<T*>(stlp::allocate(count * sizeof(T))) : nullptr;
+    T* block = count != 0 ? stlp::allocate_as<T>(count) : nullptr;
     if (count != 0) std::memcpy(block, source.begin(), count * sizeof(T));
     v->Start() = block;
     v->Finish() = v->EndOfStorage() = block + count;
@@ -107,7 +107,7 @@ void AssignStates(StateVector* out, const StateVector& source) {
     const std::size_t count = source.size();
     const std::size_t capacity = static_cast<std::size_t>(out->EndOfStorage() - out->Start());
     if (count > capacity) {
-        auto* fresh = static_cast<State*>(stlp::allocate(count * sizeof(State)));
+        auto* fresh = stlp::allocate_as<State>(count);
         std::memcpy(fresh, source.begin(), count * sizeof(State));
         if (out->Start()) stlp::deallocate(out->Start(), capacity * sizeof(State));
         out->Start() = fresh;

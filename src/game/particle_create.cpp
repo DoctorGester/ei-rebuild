@@ -882,9 +882,8 @@ CParticleSource* __stdcall NewParticleSource(int type) {
     // The source starts zeroed (SV7b7): nothing here or in Reset sets the emission point (origin, +0x98) and
     // the first Tick takes the motion from it, so a source never attached emitted distance / emitSpacing
     // tries (each a GlobalRandom draw) from whatever the heap held. The harness zeroes the original's alike.
-    void* memory = gamecrt::operator_new_zeroed(sizeof(CParticleSource));
-    if (!memory) return nullptr;
-    auto* s = static_cast<CParticleSource*>(memory);
+    auto* s = gamecrt::operator_new_zeroed_as<CParticleSource>();
+    if (!s) return nullptr;
     EngineObjectConstruct(s);
     s->localRotation_.SetIdentity();
     s->worldRotation_.SetIdentity();

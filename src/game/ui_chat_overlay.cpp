@@ -190,7 +190,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     COLORREF colour = kWhite;
     for (int i = 0; i < plain.GetSize(); ++i) {
         // insert(end()) of an empty line (005E3A10).
-        auto* node = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+        auto* node = stlp::allocate_as<Node>();
         new (&node->data.text) mfc::CString;
         new (&node->data.name) mfc::CString;
         node->data.time = 0;
@@ -358,7 +358,7 @@ void** CChatOverlay::Vtable() { return ChatOverlayVtable(); }
 CChatOverlay* CChatOverlay::Construct(CInterface3D* ui) {
     CUiWindow::Construct(ui);
     using Node = stlp::list<ChatLine>::Node;
-    auto* sentinel = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+    auto* sentinel = stlp::allocate_as<Node>();
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
     lines_.head = sentinel;

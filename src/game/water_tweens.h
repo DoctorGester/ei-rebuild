@@ -5,6 +5,7 @@
 #include "lib/mfc.h"
 
 class CStream;   // core_streams.h
+class Terrain;   // terrain.h
 
 // A gradual change of one water level (script SetWaterLevel(index, level, time)): `value` moves
 // by `step` per world update for `steps` updates.
@@ -28,7 +29,7 @@ struct WaterTweens : mfc::CArray<TweenEntry> {
     // 006D4570 (006D47E0 identical): the count, then the entries.
     void Save(CStream* stream) const;
     // 006D45D0. Reads the array and applies each entry's value to `terrain` (006CC7F0).
-    void Load(CStream* stream, void* terrain);
+    void Load(CStream* stream, Terrain* terrain);
     // 006D4660. Reads the array only (the inlined SetSize of another CArray instantiation).
     void LoadEntries(CStream* stream);
     // The read part of both loads: the count (the original reads it into a slot that still holds

@@ -139,7 +139,7 @@ void CDebugPanel::Init(CInterface3D* ui) {
     ui_ = ui;
     surface_ = nullptr;
     visible_ = 0;
-    auto* font = static_cast<ui_gdi::GameFont*>(gamecrt::operator_new(8));
+    auto* font = gamecrt::operator_new_as<ui_gdi::GameFont>();
     if (font) {
         font->handle = nullptr;
         font->vtable = ei::GamePointer<void*>(kFontVtable);

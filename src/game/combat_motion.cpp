@@ -631,8 +631,7 @@ bool CUnitServer::PathTo(const float* point, float range) {
 }
 EI_REWRITTEN(0x00548700, CUnitServer::PathTo);
 
-void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
-    auto* list = static_cast<UnitList*>(listIn);
+void CUnitServer::LiftNearby(UnitList* list, const float* point, char moving) {
     CWorldServer* world = ContextOf(this);
     CPlayer* player = unit->player;
     // RemoveAll.

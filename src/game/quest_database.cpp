@@ -40,9 +40,6 @@ using ListElement = stlp::ObjectElement<mfc::CString>;
 // The quest and briefing vectors' push_back (006B0710 / 006B0780).
 using QuestElement = recordvec::QuestVector::Element;
 using BriefingElement = recordvec::BriefingVector::Element;
-// The record destructors [quest 006AF4D0, briefing 006AF5A0].
-void __fastcall QuestDestroy(void* record) { static_cast<QuestRecord*>(record)->Destruct(); }
-void __fastcall BriefingDestroy(void* record) { static_cast<QuestBriefingRecord*>(record)->Destruct(); }
 // The quest index: find by the record's name (006B0870), clear (006B0520), operator[] (0064EE90).
 // The briefing index: find 006B07C0 / 006B0930, clear 006B0590, operator[] 004297A0; the
 // add-unless-present used for the later briefings 006B0600.
@@ -187,9 +184,9 @@ bool QuestDatabase::LoadRegistry(const void* image) {
         ReadReceiveBriefing(reg, db, briefing);
         ReadRejectBriefing(reg, db, briefing);
         ReadCompleteBriefing(reg, db, briefing);
-        BriefingDestroy(briefing);
+        briefing->Destruct();   // 006AF5A0
     }
-    QuestDestroy(quest);
+    quest->Destruct();   // 006AF4D0
     reg.Destroy();
     return true;
 }
