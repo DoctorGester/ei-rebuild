@@ -596,7 +596,7 @@ kinds given.
     CRT's since C26 (lib/crt_locale_data.cpp reads it), crt_file's modes (zero constants) and crt_iostream's shared lock and ios count. **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
     yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
-    007AFF60), and of the CRT the heap / allocator state (`_crtheap` 007CAF08, `_pnhHeap` 007CAAD8, `_newmode` 007CAC7C, `_afxNewHandler`
+    007AFF60), and of the CRT the allocator state (`_pnhHeap` 007CAAD8, `_afxNewHandler`
     00796E14, STLport's node free lists 0079B224 and pool 0079B264-0079B26C): the harness calls our allocator in
     --no-hooks runs (harness_leftovers' ZeroedNew, CStrings), where a named heap handle would be ours (null), not
     game.exe's; name them together with a game.exe path for those calls.
@@ -1577,10 +1577,12 @@ the `--no-hooks` suite) keeps the registry.
   locale change. Single-byte paths only (`__mb_cur_max` 1). _ismbcdigit / _ismbcspace (CString's parsing) are the
   host's. Both suites kept every golden the same with the switch (VC6 and the host build LC_CTYPE's tables from the
   same GetStringTypeW / LCMapStringW calls; the C tables match for 0..255).
-- **Heap** (crt.cpp): malloc 006EABD1, free 006EA8AD, realloc 006ED69A, calloc 006F0317 (count * size unchecked),
-  _msize 006EEC7B, _strdup 006EEC50 use a Win32 heap of their own, `_crtheap` 007CAF08, made with `HeapCreate(0,
-  0x1000, 0)` at the first allocation, sizes rounded up to 16, through the image's import slots (gameapi.h), so the
-  harness's heap patches act on the image as on game.exe (SV7c2). operator new runs MFC's handler loop
+- **Heap** (crt.cpp): malloc 006EABD1 and free 006EA8AD are the host CRT's (C26: both suites goldens the same, the
+  image suite twice; until then a VC6-style Win32 heap of their own, `_crtheap` 007CAF08, sizes rounded up to 16,
+  through the image's import slots, SV7c2). realloc, calloc, _msize and _strdup had no callers. The harness's
+  repeatable heap, jitter, fill and trace (tests/verify/harness_heap.h) act on game.exe only now: the image's blocks
+  are the host heap's (its low-fragmentation front end), so a golden of the image already holds under other
+  addresses in every run. operator new runs MFC's handler loop
   (`_afxNewHandler` 00796E14, initial value `AfxNewHandler` 0070058F: throws the static CMemoryException); the
   STLport node allocator 00405950 / 00404D70 with refill 004060E0 and chunk_alloc 00406B70 is ported exactly (the
   pool is the exe's data). Nothing frees across heaps: our code takes game memory only through libcrt; the host CRT

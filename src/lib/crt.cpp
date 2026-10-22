@@ -785,94 +785,19 @@ EI_REWRITTEN(0x006EBBB4, libcrt::Controlfp);
 // ---- The runtime the image owns (EI_REPLACE_STANDALONE: the hook build keeps the exe's) ----
 
 namespace {
-// MFC's new handler (_afxNewHandler, 00796E14) and the CRT's (_pnhHeap, 007CAAD8), with _newmode
-// (007CAC7C), which says whether malloc calls the CRT's too.
+// MFC's new handler (_afxNewHandler, 00796E14), which operator new calls, and the CRT's (_pnhHeap, 007CAAD8),
+// which _set_new_handler sets (malloc never calls it: the game leaves _newmode 0).
 gamecrt::NewHandler& AfxNewHandler() { return ei::GameData<gamecrt::NewHandler>(0x00796E14); }
 gamecrt::NewHandler& HeapNewHandler() { return ei::GameData<gamecrt::NewHandler>(0x007CAAD8); }
-int NewMode() { return ei::GameData<const int>(0x007CAC7C); }
-constexpr std::size_t kHeapMaxRequest = 0xFFFFFFE0;
-
-// The CRT's heap (_crtheap, 007CAF08) is a Win32 heap of its own, as in game.exe: VC6's _heap_init
-// (006F54E6) makes it with HeapCreate(0, 0x1000, 0) and on NT 5+ __heap_select picks the system heap,
-// so malloc and the rest are HeapAlloc / HeapFree / HeapReAlloc / HeapSize on it, the size rounded up
-// to 16 bytes (_heap_alloc 006EAC0F). The calls go through the image's import slots, where the
-// harness's repeatable heap and its jitter take them as in game.exe (tests/verify/harness_heap.h,
-// SV7c2). Made at the first allocation: the image's start-up has no _heap_init of its own.
-HANDLE& CrtHeap() { return ei::GameData<HANDLE>(0x007CAF08); }
-
-HANDLE Heap() {
-    HANDLE& heap = CrtHeap();
-    if (!heap) heap = gameapi::HeapCreate(0, 0x1000, 0);
-    return heap;
-}
-
-std::size_t Paragraphs(std::size_t size) { return ((size ? size : 1) + 0xF) & ~std::size_t(0xF); }
-
-// After a failed allocation (_callnewh): with _newmode set, the CRT's new handler may free memory and
-// ask for another try.
-bool TryAgain(std::size_t size) {
-    if (!NewMode()) return false;
-    const gamecrt::NewHandler handler = HeapNewHandler();
-    return handler && handler(size);
-}
 } // namespace
 
-void* __cdecl Malloc(std::size_t size) {
-    for (;;) {
-        if (size <= kHeapMaxRequest) {
-            if (void* p = gameapi::HeapAlloc(Heap(), 0, Paragraphs(size))) return p;
-        }
-        if (!TryAgain(size)) return nullptr;
-    }
-}
+// malloc and free are the host CRT's (C26; VC6's were HeapAlloc / HeapFree on a heap of their own, the size
+// rounded up to 16 bytes).
+void* __cdecl Malloc(std::size_t size) { return std::malloc(size); }
 EI_REPLACE_STANDALONE(0x006EABD1, libcrt::Malloc);
 
-void __cdecl Free(void* p) {
-    if (p) gameapi::HeapFree(Heap(), 0, p);
-}
+void __cdecl Free(void* p) { std::free(p); }
 EI_REPLACE_STANDALONE(0x006EA8AD, libcrt::Free);
-
-// A null block is malloc's; a zero size frees the block and gives null.
-void* __cdecl Realloc(void* p, std::size_t size) {
-    if (!p) return Malloc(size);
-    if (size == 0) {
-        Free(p);
-        return nullptr;
-    }
-    for (;;) {
-        if (size <= kHeapMaxRequest) {
-            size = Paragraphs(size);
-            if (void* q = gameapi::HeapReAlloc(Heap(), 0, p, size)) return q;
-        }
-        if (!TryAgain(size)) return nullptr;
-    }
-}
-EI_REWRITTEN(0x006ED69A, libcrt::Realloc);
-
-// The byte count is count * size without an overflow check, as in VC6.
-void* __cdecl Calloc(std::size_t count, std::size_t size) {
-    const std::size_t bytes = count * size;
-    const std::size_t rounded = bytes <= kHeapMaxRequest ? Paragraphs(bytes) : bytes;
-    for (;;) {
-        if (rounded <= kHeapMaxRequest) {
-            if (void* p = gameapi::HeapAlloc(Heap(), HEAP_ZERO_MEMORY, rounded)) return p;
-        }
-        if (!TryAgain(rounded)) return nullptr;
-    }
-}
-EI_REWRITTEN(0x006F0317, libcrt::Calloc);
-
-std::size_t __cdecl Msize(void* p) { return gameapi::HeapSize(Heap(), 0, p); }
-EI_REWRITTEN(0x006EEC7B, libcrt::Msize);
-
-char* __cdecl Strdup(const char* text) {
-    if (!text) return nullptr;
-    const std::size_t bytes = std::strlen(text) + 1;
-    char* copy = static_cast<char*>(Malloc(bytes));
-    if (copy) std::memcpy(copy, text, bytes);
-    return copy;
-}
-EI_REWRITTEN(0x006EEC50, libcrt::Strdup);
 
 gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler) {
     const gamecrt::NewHandler old = HeapNewHandler();

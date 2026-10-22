@@ -298,12 +298,6 @@ using ExitFunction = void(__cdecl*)();
 ExitFunction __cdecl OnExit(ExitFunction function);                             // 006E71FD
 int __cdecl AtExit(ExitFunction function);                                      // 006E727B
 void __cdecl Exit(int code);                                                    // 006E8DA7
-// The rest of the heap, on the host heap Malloc / Free use (S4b; _newmode and the CRT's new handler as in
-// Malloc).
-void* __cdecl Realloc(void* p, std::size_t size);                               // 006ED69A
-void* __cdecl Calloc(std::size_t count, std::size_t size);                      // 006F0317
-std::size_t __cdecl Msize(void* p);                                             // 006EEC7B
-char* __cdecl Strdup(const char* text);                                         // 006EEC50
 
 // Files (S4b, src/lib/crt_file.cpp; image only, like the heap: MFC's CStdioFile shares the exe's FILE
 // table and descriptors in the hook build). A file is opened as VC6's _sopen opens it, through the
