@@ -36,10 +36,7 @@ struct NormalPacket {
 struct TexCoord {
     std::uint32_t w[2];
 };
-// A triangle corner: position index, a second index (normal?) and texture coordinate index.
-struct MeshCorner {
-    std::uint16_t index[3];
-};
+// MeshCorner (a triangle corner): model.h.
 static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6);
 
 // What the renderer draws from (+0x9C): pointers and counts of the mesh's arrays (class 0x41 points
