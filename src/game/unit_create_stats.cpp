@@ -190,7 +190,7 @@ EI_REWRITTEN(0x005145D0, NpcPrototypeTable::FindByName);
 
 // --- Builders ---------------------------------------------------------------------------------
 
-int UnitStatsBuilder::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
+int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     if (!stats) {
         SetBits(vitals->hitPoints, kThousand);
         SetBits(vitals->maxHitPoints, kThousand);
@@ -236,9 +236,9 @@ int UnitStatsBuilder::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     }
     return 1;
 }
-EI_REWRITTEN(0x005134F0, UnitStatsBuilder::SetDefaults);
+EI_REWRITTEN(0x005134F0, CMapObjectManager::SetDefaults);
 
-int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name) {
+int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);
     if (!prototype) {
         SetDefaults(vitals, stats);
@@ -310,7 +310,7 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
     LearnNpcSkills(stats, npc);
     return 1;
 }
-EI_REPLACE_METHOD(0x005136D0, UnitStatsBuilder::BuildFromPrototype);
+EI_REPLACE_METHOD(0x005136D0, CMapObjectManager::BuildFromPrototype);
 
 int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);
@@ -586,7 +586,7 @@ EI_REWRITTEN(0x005260A0, UnitStats::CanLearn);
 
 // --- Applying a prototype ---------------------------------------------------------------------
 
-int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
+int CMapObjectManager::ApplyPrototype(CEngineObject* object, const char* name) {
     UnitVitals vitals{};   // zeroed (the original's start as the stack held them; SV7b3)
     UnitStats stats{};
     auto* mapObject = static_cast<CMapObject*>(object);
@@ -631,7 +631,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
     object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().begin) : 0xFFFFFFFFu;
     return 1;
 }
-EI_REPLACE_METHOD(0x00513B60, UnitStatsBuilder::ApplyPrototype);
+EI_REPLACE_METHOD(0x00513B60, CMapObjectManager::ApplyPrototype);
 
 // --- The factory ------------------------------------------------------------------------------
 

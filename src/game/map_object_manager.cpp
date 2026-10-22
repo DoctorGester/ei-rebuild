@@ -135,7 +135,6 @@ FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, st
 EI_REWRITTEN(0x00512B20, CMapObjectManager::FindAnimation);
 
 int CMapObjectManager::GiveDefaults(CEngineObject* object) {
-    auto* builder = reinterpret_cast<UnitStatsBuilder*>(this);
     // The vitals and statistics start zeroed, so the fields Reset and SetDefaults leave (the slots'
     // shares and factors, fixedMaxHitPoints, builtFlags, the layers' spare values, ...) are 0, not
     // what the stack held: a determinism fix (SV7b3). The original's were CWorldServer::CreateObject's
@@ -145,12 +144,12 @@ int CMapObjectManager::GiveDefaults(CEngineObject* object) {
     UnitVitals vitals{};
     vitals.Reset();
     if (object->GetClassId() != kClassUnit) {
-        builder->SetDefaults(&vitals, nullptr);
+        SetDefaults(&vitals, nullptr);
         ObjectSlots(object)->SetServerData(&vitals);
     } else {
         UnitStats stats{};
         stats.Reset();
-        builder->SetDefaults(&vitals, &stats);
+        SetDefaults(&vitals, &stats);
         ObjectSlots(object)->SetStats(&stats);
     }
     ObjectSlots(object)->ScaleEffectChanged(0);

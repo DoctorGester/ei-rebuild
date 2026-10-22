@@ -360,9 +360,6 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
 
 namespace {
 
-// Object setup, through the original addresses (thiscall as fastcall).
-__declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
-__declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
 void __fastcall UnitSetDiplomacy(CUnit* a0, void*, int a2) { a0->SetHostileMask((std::uint32_t)a2); }
 
 // The timed objects' types (world_effect.h).
@@ -428,6 +425,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         return object->id_;
     };
     CBaseManager* timedManager = manager48_;
+    auto* objectManager = static_cast<CMapObjectManager*>(MapObjectManager());
 
     switch (base.kind) {
     case 6: {   // a torch (flame) with its state object (a campfire when it stands on the ground)
@@ -472,7 +470,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->MarkChanged(2);
         object->MarkChanged(4);
         if (spec->visible == 0) object->flags_ |= 8;
-        ManagerRegister(MapObjectManager(), nullptr, object);
+        objectManager->GiveDefaults(object);
         if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         object->SetUpAnimatedFigure(spec->texture);
         id = object->id_;
@@ -534,8 +532,8 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             unit->SetPlayer(nullptr);
             unit->SetSide(spec->side);
             UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
-            ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
-            static_cast<CMapObjectManager*>(MapObjectManager())->GiveStartingEquipment(unit, unitSpec->prototype);
+            objectManager->ApplyPrototype(object, unitSpec->prototype);
+            objectManager->GiveStartingEquipment(unit, unitSpec->prototype);
             const mfc::CStringArray& worn = unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
@@ -570,7 +568,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             static_cast<Lever*>(object)->SetUp(reinterpret_cast<const LeverSetup*>(message->As<mapspec::LeverSpec>()->stats));
             object->MarkChanged(5);
         } else {
-            ManagerRegister(MapObjectManager(), nullptr, object);
+            objectManager->GiveDefaults(object);
         }
         place(object);
         object->MarkChanged(2);

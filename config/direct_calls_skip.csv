@@ -61,8 +61,6 @@ address,reason
 00661C10,src/game/world_save.cpp passes a uint8_t [48] as void* (the target is CParty's method)
 0046AEB0,src/game/world_units.cpp passes a mapspec::UnitSpec * as void* (the target is mapspec::ObjectSpec's method)
 004DEDB0,src/game/world_client_maps.cpp passes a ClientTexts * as void* (the target is CTextManager's method)
-00513630,src/game/world_units.cpp passes a CEngineObject * as void* (the target is CMapObjectManager's method)
-00513B60,src/game/world_units.cpp passes a CEngineObject * as void* (the target is UnitStatsBuilder's method)
 005636A0,world_client_maps.cpp: the target's header (sky_object.h) clashes with <windows.h>'s GetClassName macro there
 00485360,world_effect_visual.cpp: the target's header brings a second LightManager()
 00485480,world_effect_visual.cpp: the target's header brings a second LightManager()

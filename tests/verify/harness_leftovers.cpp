@@ -45,7 +45,7 @@ int __fastcall ZeroedStatsReset(UnitStats* stats) {
 
 // CMapObject::TakePrototype's copy: the builder gets no statistics, so with a prototype it returns
 // without touching the vitals, which are then packed.
-int __fastcall ZeroedVitalsBuild(UnitStatsBuilder* builder, void*, UnitVitals* vitals, UnitStats* stats,
+int __fastcall ZeroedVitalsBuild(CMapObjectManager* builder, void*, UnitVitals* vitals, UnitStats* stats,
                                  const char* name) {
     if (vitals) std::memset(vitals, 0, sizeof(UnitVitals));
     return builder->BuildFromPrototype(vitals, stats, name);

@@ -92,7 +92,7 @@ void CMapObject::TakePrototypeImpl(const char* prototype) {
     // too), and the original then packs what its stack held; the harness zeroes them there too
     // (a determinism fix, SV7b3, harness_leftovers.h).
     UnitVitals vitals{};
-    reinterpret_cast<UnitStatsBuilder*>(owner_)->BuildFromPrototype(&vitals, nullptr, prototype);
+    MapObjectManagerOf(this)->BuildFromPrototype(&vitals, nullptr, prototype);
     vitals.Pack(PackedVitals());
 }
 EI_REPLACE_METHOD(0x0050E9B0, CMapObject::TakePrototypeImpl);
