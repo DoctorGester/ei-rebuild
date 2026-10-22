@@ -95,7 +95,7 @@ int Compare(const char* a, const char* b) {
     return gamecrt::mbsicmp(a, b);
 }
 
-CUnitClientSpecific* Model(CUnit* unit) { return reinterpret_cast<CUnitClientSpecific*>(unit->controller); }
+CUnitClientSpecific* Model(CUnit* unit) { return unit->ClientController(); }
 
 // The speaker's eyes: blinking (`blinks`), or open.
 void SetBlink(CUnit* unit, std::uint8_t blinks) {

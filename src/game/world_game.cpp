@@ -1998,8 +1998,8 @@ void DestroyPartyEntry(MpHeroRecord* entry) {
 
 void SavedParties::Reload() {
     // Empty the list.
-    MpHeroRecord*& finish = finish_;
-    MpHeroRecord* end = MpHeroRecord::CopyRange(finish, finish, entries_);
+    MpHeroRecord*& finish = entries_.Finish();
+    MpHeroRecord* end = MpHeroRecord::CopyRange(finish, finish, entries_.begin());
     for (MpHeroRecord* entry = end; entry != finish; ++entry) entry->DeletingDestruct(0);
     finish = end;
 
@@ -2028,7 +2028,7 @@ void SavedParties::Reload() {
                 variables->Clear();   // inlined: each chain's nodes freed (004616A0), the count zeroed
             }
             if (entry->Party()->members_.size == 1) {
-                MpHeroRecord* eos = eos_;
+                MpHeroRecord* eos = entries_.EndOfStorage();
                 if (finish != eos) {
                     if (finish) {
                         finish->Party()->CopyConstruct(entry->Party());
@@ -2036,7 +2036,7 @@ void SavedParties::Reload() {
                     }
                     ++finish;
                 } else {
-                    static_cast<libcontainers::HeroRecordAbi*>(reinterpret_cast<libcontainers::HeroRecords*>(&entries_))
+                    static_cast<libcontainers::HeroRecordAbi*>(&entries_)
                         ->InsertOverflow(finish, *entry, 1);   // 00619920
                 }
             }

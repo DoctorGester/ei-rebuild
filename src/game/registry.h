@@ -30,6 +30,7 @@ class CStringArray;
 // The int / float arrays the registry fills: engine aligned arrays of dwords (lib::AlignedArray;
 // the inlined SetSize allocates through 00453A10 / 004D9ED0).
 using DwordArray = lib::AlignedArray<std::uint32_t>;
+using IntArray = lib::AlignedArray<std::int32_t>;
 
 enum RegistryType : std::uint8_t {
     kRegInt = 0,
@@ -77,7 +78,7 @@ public:
 
     // 00695410 / 00695600. An int / float array (or a single value) into `out`. Without the key
     // `out` is emptied and the result is 0.
-    BOOL GetIntArray(const char* section, const char* key, DwordArray* out);
+    BOOL GetIntArray(const char* section, const char* key, IntArray* out);
     BOOL GetFloatArray(const char* section, const char* key, DwordArray* out);
     // 006958E0. A string array (or a single string) into `out`. Without the key `out` is emptied
     // and the result is 0.

@@ -53,8 +53,8 @@ Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
     b.y1 = x87::fistp(static_cast<float>(static_cast<double>(r) + cy)) + 1;
     if (b.x0 < 0) b.x0 = 0;
     if (b.y0 < 0) b.y0 = 0;
-    if (b.x1 >= map->width - 1) b.x1 = map->width - 1;
-    if (b.y1 >= map->height - 1) b.y1 = map->height - 1;
+    if (b.x1 >= map->cells.width - 1) b.x1 = map->cells.width - 1;
+    if (b.y1 >= map->cells.height - 1) b.y1 = map->cells.height - 1;
     return b;
 }
 

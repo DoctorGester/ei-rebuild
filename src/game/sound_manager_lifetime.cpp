@@ -571,8 +571,8 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     gameapi::EnterCriticalSection(&m->nameLock);
     m->streamName = m->nextName;
     gameapi::LeaveCriticalSection(&m->nameLock);
-    m->soundRegistry.GetIntArray(m->streamName, kSwitchMarkers, reinterpret_cast<DwordArray*>(&m->markers));
-    m->soundRegistry.GetIntArray(m->streamName, kLoopMarkers, reinterpret_cast<DwordArray*>(&m->markers2));
+    m->soundRegistry.GetIntArray(m->streamName, kSwitchMarkers, &m->markers);
+    m->soundRegistry.GetIntArray(m->streamName, kLoopMarkers, &m->markers2);
     m->streamLoopAt = m->markers2.size > 0 ? m->markers2[0] : kNoLoop;
     m->streamSwitchAt = kNeverSwitch;
     CodecClose(m);

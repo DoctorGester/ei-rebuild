@@ -44,7 +44,7 @@ void CInterface3D::ConsoleAddText(const char* text) {
 }
 EI_REWRITTEN(0x005F7EB0, CInterface3D::ConsoleAddText);
 
-void CInterface3D::SetConsoleRect(const int* rect) {
+void CInterface3D::SetConsoleRect(const RECT* rect) {
     if (console_) console_->SetRect(rect);
 }
 EI_REWRITTEN(0x005F7ED0, CInterface3D::SetConsoleRect);

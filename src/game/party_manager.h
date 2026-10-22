@@ -87,10 +87,10 @@ struct PartyManager {
     // (004A6360), the script's redeploy.
     void BeginRedeploy(CParty* party);
     void EndRedeploy(CParty* party);
-    // 004A8790 (RET 0x10, four stack arguments, the first two unused): key 0 resets `target` (00661700(1,
-    // 0)); else the party stored under the key is copied into it (00661300). False when the key is not
-    // stored. Sets AL only.
-    bool LoadParty(int unused1, int unused2, const int* key, CParty* target) const;
+    // 004A8790 (RET 0x10, four stack arguments; the login's name and password are not read): key 0
+    // resets `target` (00661700(1, 0)); else the party stored under the key is copied into it
+    // (00661300). False when the key is not stored. Sets AL only.
+    bool LoadParty(const char* name, const char* password, const int* key, CParty* target) const;
     // 004A8800 (RET 8). Copies `source` into the party stored under the key (operator[] 004A91B0 creates
     // it when missing; the copy reads `source` non-const). True.
     bool StoreParty(const int* key, CParty* source);

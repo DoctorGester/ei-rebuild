@@ -583,13 +583,13 @@ namespace {
 
 using Collect = HitCollector* (HitCollector::*)(ScreenEntryNode*, ScreenEntryNode*, ScreenHits*, long, long,
                                                 CBaseManager*);
-CEngineObject* Pick(CWorldClient* client, const long* point, Collect collect) {
+CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     ScreenHits& hits = client->hits_;
     hits.Finish() = hits.Start();   // erase(begin, end): __copy of nothing
     CBaseManager* manager = client->MapObjectManager();
     stlp::list<ScreenEntry>& screen = client->screenEntries_;
     HitCollector functor;
-    (functor.*collect)(screen.head->next, screen.head, &hits, point[0], point[1], manager);
+    (functor.*collect)(screen.head->next, screen.head, &hits, point->x, point->y, manager);
     if (hits.begin() == hits.end()) return nullptr;
 
     // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level
@@ -620,8 +620,8 @@ CEngineObject* Pick(CWorldClient* client, const long* point, Collect collect) {
 
 } // namespace
 
-CEngineObject* CWorldClient::PickAt(const long* point) { return Pick(this, point, &HitCollector::CollectBounds); }
-CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, point, &HitCollector::CollectParts); }
+CEngineObject* CWorldClient::PickAt(const POINT* point) { return Pick(this, point, &HitCollector::CollectBounds); }
+CEngineObject* CWorldClient::PickAt2(const POINT* point) { return Pick(this, point, &HitCollector::CollectParts); }
 
 namespace {
 // From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
@@ -637,7 +637,7 @@ CUnit* FirstUnitHit(CWorldClient* client, CEngineObject* object) {
 }
 } // namespace
 
-CUnit* CWorldClient::UnitAt(const long* point) {
+CUnit* CWorldClient::UnitAt(const POINT* point) {
     if (CEngineObject* picked = PickAt2(point)) {
         if (CUnit* unit = FirstUnitHit(this, picked)) return unit;
     }
@@ -645,7 +645,7 @@ CUnit* CWorldClient::UnitAt(const long* point) {
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
-CUnit* CWorldClient::UnitAt2(const long* point) {
+CUnit* CWorldClient::UnitAt2(const POINT* point) {
     CEngineObject* picked = PickAt2(point);
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
@@ -758,13 +758,13 @@ std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std:
 
 } // namespace
 
-void CWorldClient::ObjectsInRange(const float* point, float radius, stlp::list<CObject3D*>* out) {
+void CWorldClient::ObjectsInRange(const Vector3* point, float radius, stlp::list<CObject3D*>* out) {
     float maxX = terrain_->width - 1.0f;
     float maxY = terrain_->height - 1.0f;
-    float y1 = MinOf(MaxZero(point[1] + radius), maxY);
-    float x1 = MinOf(MaxZero(point[0] + radius), maxX);
-    float y0 = MaxZero(MinOf(MaxZero(point[1] - radius), maxY));
-    float x0 = MaxZero(MinOf(MaxZero(point[0] - radius), maxX));
+    float y1 = MinOf(MaxZero(point->y + radius), maxY);
+    float x1 = MinOf(MaxZero(point->x + radius), maxX);
+    float y0 = MaxZero(MinOf(MaxZero(point->y - radius), maxY));
+    float x0 = MaxZero(MinOf(MaxZero(point->x - radius), maxX));
     std::uint32_t& firstX = rangeFirstX_;
     std::uint32_t& firstY = rangeFirstY_;
     std::uint32_t& lastX = rangeLastX_;
@@ -780,13 +780,13 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, stlp::list<C
     for (SectorList* cell = &grid.rows_[y][x]; cell;) {
         for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
             CMapObject* object = ObjectSlots(node->data);
-            float pz = point[2];
+            float pz = point->z;
             float ox = object->localPosition_.x + object->center.x;
             float oy = object->localPosition_.y + object->center.y;
             double reach = libcrt::Hypot(object->above.x, object->above.y) + radius;
-            float dx = ox - point[0];
-            float dy = oy - point[1];
-            float dz = pz - point[2];
+            float dx = ox - point->x;
+            float dy = oy - point->y;
+            float dz = pz - point->z;
             double distance = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
             double limit = reach * reach;
             // FCOMPP + TEST AH,1: skipped when the limit is below (or unordered).

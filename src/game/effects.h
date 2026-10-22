@@ -17,6 +17,7 @@
 #include "core_transform.h"
 #include "maths.h"
 #include "model.h"   // ClipBounds
+#include "search_grid.h"
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -737,13 +738,13 @@ struct FogGrid {
     // the cells again when the size changed.
     void Read(CMemoryStream* stream);
     void Write(CMemoryStream* stream);
+    // 005C8D40 (ai_movement.cpp; CAIMap::MarkVisibleCells). Grows the grid to cover (x - n .. x + n,
+    // y - n .. y + n); the first call (x0 = 0x7FFFFFFF) sizes and clears it.
+    void Grow(int x, int y, int n);
 
-    int x0;                         // +0x00
+    int x0;                         // +0x00 map cell of cells[0][0]; 0x7FFFFFFF before the first Grow
     int y0;                         // +0x04
-    std::uint8_t* cells;            // +0x08 width * height bytes (operator new)
-    std::uint8_t** rows;            // +0x0C one pointer per row into cells (operator new)
-    int width;                      // +0x10
-    int height;                     // +0x14
+    SearchGrid<std::uint8_t> cells; // +0x08 width * height bytes and the row table (operator new)
 };
 static_assert(sizeof(FogGrid) == 0x18);
 

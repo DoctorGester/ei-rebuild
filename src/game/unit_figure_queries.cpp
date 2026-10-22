@@ -47,9 +47,7 @@ constexpr float kMosquitoExtentScale = 2.0f;    // 0073CDB8
 // which virtual slot 18 accepts; one picked with rand()), or of the key's kind only (00519380);
 // null when none (both RET 4).
 FigureAnimation* CallRandomAnimation(CUnit* unit, std::uint32_t key) { return unit->RandomAnimation(key); }
-FigureAnimation* CallRandomAnimationOfKind(CUnit* unit, std::uint32_t key) {
-    return unit->RandomAnimationOfKind(key);
-}
+FigureAnimation* CallRandomAnimationOfKind(CUnit* unit, std::uint32_t key) { return unit->RandomAnimationOfKind(key); }
 
 // `v` turned by the rotation `q` as the original spells it out: 2 (u.v) u + (s^2 - u.u) v +
 // 2 s (u x v), with u the vector part and s the scalar part.

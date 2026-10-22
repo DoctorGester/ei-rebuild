@@ -30,7 +30,7 @@ std::uint32_t WithIndex(std::uint32_t word, int index) {
 
 bool CAIMap::AddOccluderRecord(FootprintCell* cell) {
     int x = cell->x, y = cell->y;
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     if (cell->low >= cell->high) return true;
     std::uint32_t& word = occluders[y][x];
     if (word & kNone) {
@@ -68,7 +68,7 @@ bool CAIMap::AddOccluderRecord(FootprintCell* cell) {
 
 bool CAIMap::ClearOccluderRecord(FootprintCell* cell) {
     int x = cell->x, y = cell->y;
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     if (cell->low >= cell->high) return true;
     std::uint32_t& word = occluders[y][x];
     if (word & kNone) return false;

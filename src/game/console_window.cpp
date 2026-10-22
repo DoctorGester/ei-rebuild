@@ -15,29 +15,23 @@ namespace console {
 // 005E3E90: the rectangle in pixels, clamped to at least 76x69 and at most the screen; the number
 // of 15-pixel lines that fit below the 24-pixel margin, less one; the clamped rectangle back in
 // 800x600 coordinates. A shown window gets a new surface.
-void ConsoleWindow::SetRect(const int* rect) {
+void ConsoleWindow::SetRect(const RECT* rect) {
     int screenWidth = screen_->width_;
     int screenHeight = screen_->height_;
-    screenRect_[0] = rect[0];
-    screenRect_[1] = rect[1];
-    screenRect_[2] = rect[2];
-    screenRect_[3] = rect[3];
+    screenRect_ = *rect;
     // The 3D interface scales 800x600 to pixels (005F7CA0, Rebirth-patched, so through its address).
-    screen_->CallScaleRectToScreen(reinterpret_cast<RECT*>(screenRect_));
-    width_ = screenRect_[2] - screenRect_[0];
-    height_ = screenRect_[3] - screenRect_[1];
+    screen_->CallScaleRectToScreen(&screenRect_);
+    width_ = screenRect_.right - screenRect_.left;
+    height_ = screenRect_.bottom - screenRect_.top;
     if (width_ < 0x4C) width_ = 0x4C;
     if (width_ > screenWidth) width_ = screenWidth;
     if (height_ < 0x45) height_ = 0x45;
     if (height_ > screenHeight) height_ = screenHeight;
     visibleLines_ = (height_ - 0x18) / 15 - 1;
-    screenRect_[2] = screenRect_[0] + width_;
-    screenRect_[3] = screenRect_[1] + height_;
-    rect_[0] = screenRect_[0];
-    rect_[1] = screenRect_[1];
-    rect_[2] = screenRect_[2];
-    rect_[3] = screenRect_[3];
-    InterfaceScaleRectFromScreenOriginal(screen_, nullptr, reinterpret_cast<tagRECT*>(rect_));
+    screenRect_.right = screenRect_.left + width_;
+    screenRect_.bottom = screenRect_.top + height_;
+    rect_ = screenRect_;
+    InterfaceScaleRectFromScreenOriginal(screen_, nullptr, &rect_);
     if (shown_) {
         Show(false);
         Show(true);

@@ -1947,8 +1947,7 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
         }
     }
     for (const POINT& p : candidates) {
-        int at[2] = {p.x, p.y};
-        void* hit = byId ? static_cast<void*>(reinterpret_cast<CWorldClient*>(world)->PickAt2(reinterpret_cast<const long*>(at))) : reinterpret_cast<CWorldClient*>(world)->UnitAt(reinterpret_cast<const long*>(at));
+        void* hit = byId ? static_cast<void*>(reinterpret_cast<CWorldClient*>(world)->PickAt2(&p)) : reinterpret_cast<CWorldClient*>(world)->UnitAt(&p);
         if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
             *point = p;
             *unit = hit;

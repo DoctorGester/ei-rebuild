@@ -95,27 +95,22 @@ void SavedParties::SaveAll() {
         return;
     ClearSaveFolder(folder_);
     // The count is read again after each write.
-    for (unsigned i = 0; i < static_cast<unsigned>(finish_ - entries_); ++i) entries_[i].WriteFile(folder_);
+    for (unsigned i = 0; i < static_cast<unsigned>(entries_.size()); ++i) entries_[i].WriteFile(folder_);
 }
 EI_REWRITTEN(0x006632B0, SavedParties::SaveAll);
 
 SavedParties* SavedParties::Construct() {
     new (&folder_) mfc::CString();
-    entries_ = nullptr;
-    finish_ = nullptr;
-    eos_ = nullptr;
-    OutsideGame()->Construct();
+    entries_.ConstructEmpty();
+    outsideGame_.Construct();
     return this;
 }
 EI_REPLACE_METHOD(0x0065F580, SavedParties::Construct);
 
 void SavedParties::Destruct() {
-    OutsideGame()->Destruct();
-    MpHeroRecord* begin = entries_;
-    MpHeroRecord* end = finish_;
-    for (MpHeroRecord* entry = begin; entry != end; ++entry) entry->Destruct();
-    if (begin != nullptr)
-        stlp::deallocate(begin, static_cast<std::size_t>(eos_ - begin) * sizeof(MpHeroRecord));
+    outsideGame_.Destruct();
+    for (MpHeroRecord& entry : entries_) entry.Destruct();
+    entries_.FreeStorage();
     folder_.~CString();
 }
 EI_REPLACE_METHOD(0x0065F2D0, SavedParties::Destruct);

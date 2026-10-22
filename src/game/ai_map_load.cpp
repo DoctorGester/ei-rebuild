@@ -454,8 +454,8 @@ int CAIMap::LoadTerrain(const char* path) {
 
     const int cellsX = description.header.sectorsX * kSectorCells;
     const int cellsY = description.header.sectorsY * kSectorCells;
-    ResizeGrid(CellGrid(), cellsX, cellsY, AllocateCellGrid);
-    ResizeGrid(OccluderGrid(), cellsX, cellsY, AllocateOccluderGrid);
+    ResizeGrid(cells, cellsX, cellsY, AllocateCellGrid);
+    ResizeGrid(occluders, cellsX, cellsY, AllocateOccluderGrid);
     ResizeGrid(marks, cellsX, cellsY, AllocateBytes);
     for (int sectorY = 0; sectorY < description.header.sectorsY; ++sectorY) {
         for (int sectorX = 0; sectorX < description.header.sectorsX; ++sectorX) {
@@ -477,15 +477,15 @@ void CAIMap::AttachTerrain() {
     refreshUnits = false;
     BuildOpenMarks();
     InitCostTables(this);
-    SearchGrid<std::int8_t>& water = WaterGrid();
-    ResizeGrid(water, width, height, AllocateBytes);
+    SearchGrid<std::int8_t>& water = waterDepth;
+    ResizeGrid(water, cells.width, cells.height, AllocateBytes);
     std::memset(water.data, 0, static_cast<std::size_t>(water.height * water.width));
     forwardSearch.Attach(this, false);
     backwardSearch.Attach(this, true);
     regionMap.Attach(this);
-    AIEventsSetupAt(Events(), nullptr, this, static_cast<float>(width) * kCellSize, static_cast<float>(height) * kCellSize);
-    SectorMap()->Init(width, height, this);
-    QueueRefresh(0, width - 1, 0, height - 1);
+    AIEventsSetupAt(Events(), nullptr, this, static_cast<float>(cells.width) * kCellSize, static_cast<float>(cells.height) * kCellSize);
+    SectorMap()->Init(cells.width, cells.height, this);
+    QueueRefresh(0, cells.width - 1, 0, cells.height - 1);
 }
 
 int CAIMap::Load(const char* path) {

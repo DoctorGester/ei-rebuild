@@ -870,7 +870,7 @@ static_assert(offsetof(AIViewer, facing) == 0x14);
 // cells `seer` sees as `observer` would be seen, into `grid` (cleared to one cell first): within
 // sight (the two units' sight values, at least 0) inside the cone, up to the observer's mode
 // height; within hearing all around; within the peripheral range in the front half.
-void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* grid);
+void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid);
 static_assert(offsetof(AIViewer, ready) == 0x28);
 
 // An AI event (0x30 bytes): filed in its map cell's list for its side and in the time wheel's slot

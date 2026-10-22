@@ -188,7 +188,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
         // Stand the object on the ground (or bridge deck) under its centre.
         int cx = WorldToCell(mapObject->localPosition_.x), cy = WorldToCell(mapObject->localPosition_.y);
         float ground;
-        if (cx < 0 || cy < 0 || cx >= width || cy >= height) {
+        if (cx < 0 || cy < 0 || cx >= cells.width || cy >= cells.height) {
             ground = 0.0f;
         } else if (cells[cy][cx].flags & kCellBridge) {
             ground = static_cast<float>(bridgeHeights.HeightAt(static_cast<short>(cx), static_cast<short>(cy))) / heightScale;
@@ -242,7 +242,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
                     float sy = iay + p1.y + jby;
                     float sz = iaz + p1.z + jbz;
                     int x = WorldToCell(sx), y = WorldToCell(sy);
-                    if (!(x < width && y < height && x >= 0 && y >= 0)) continue;
+                    if (!(x < cells.width && y < cells.height && x >= 0 && y >= 0)) continue;
                     int z = x87::fistp(sz * heightScale);
                     if (z > 0x3FC) z = 0x3FC;
                     else if (z < 0) z = 0;

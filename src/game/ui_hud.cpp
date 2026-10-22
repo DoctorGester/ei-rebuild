@@ -713,8 +713,8 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
     auto objectAt = [x, y]() {
-        int point[2] = {x, y};
-        return static_cast<CUnit*>(TheClientWorld()->PickAt2(reinterpret_cast<const long*>(point)));
+        POINT point = {x, y};
+        return static_cast<CUnit*>(TheClientWorld()->PickAt2(&point));
     };
     // The portrait of member `index` flashes after a short random delay.
     auto flash = [this](int index) { NodPortrait(this, index); };
@@ -725,7 +725,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         pendingAction_ = 0;
         pendingSlot_ = -1;
         pendingItem_ = -1;
-        for (int i = 0; i < kQuickSlots; ++i) reinterpret_cast<CHudQuickItems*>(quick)->Highlight(i, 0);
+        for (int i = 0; i < kQuickSlots; ++i) quick->Highlight(i, 0);
         quick->selected_ = -1;
         CHudSpellColumn* spells = spellColumn_;
         for (int i = 0; i < spells->count_; ++i) spells->Highlight(i, 0);
@@ -966,7 +966,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     CBattleScreen* screen = owner_;
     auto clearPanels = [screen](int value) {
         CHudQuickItems* quick = screen->quickItems_;
-        for (int i = 0; i < kQuickSlots; ++i) reinterpret_cast<CHudQuickItems*>(quick)->Highlight(i, 0);
+        for (int i = 0; i < kQuickSlots; ++i) quick->Highlight(i, 0);
         quick->selected_ = value;
         CHudSpellColumn* spells = screen->spellColumn_;
         for (int i = 0; i < spells->count_; ++i) spells->Highlight(i, 0);

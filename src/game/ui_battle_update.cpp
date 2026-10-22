@@ -195,6 +195,7 @@ void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
+using UnitList = stlp::list<CEngineObject*>;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 void*& NodeFreeList() { return ei::GameData<void*>(0x0079B228); }   // the 12-byte nodes
 
@@ -293,10 +294,11 @@ void RebuildClientParty(CBattleScreen* screen) {
 }
 
 // Frees a list's nodes (00404D70) and empties it (the header is freed by the caller).
-void FreeListNodes(List* list) {
-    ListNode* header = list->head;
-    for (ListNode* node = header->next; node != header;) {
-        ListNode* next = node->next;
+template <typename L>
+void FreeListNodes(L* list) {
+    auto* header = list->head;
+    for (auto* node = header->next; node != header;) {
+        auto* next = node->next;
         if (node) NodeFree(node, 0xC);
         node = next;
     }
@@ -363,14 +365,14 @@ void CBattleScreen::Update() {
     // The selection box: party units inside it are marked (flag 0x100 and their figure's slot 26
     // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
     if (boxSelecting_) {
-        List units;
+        UnitList units;
         units.Construct();   // 00411850
-        TheClientWorld()->UnitsInBox(reinterpret_cast<const long*>(&selectionBox_), reinterpret_cast<stlp::list<CEngineObject*>*>(&units));
+        TheClientWorld()->UnitsInBox(&selectionBox_.left, &units);
         List inside;
         inside.Construct();   // 00404A70
-        for (ListNode* node = units.head->next; node != units.head; node = node->next) {
+        for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
-                if (reinterpret_cast<std::uintptr_t>(party->data[i]) != node->data) continue;
+                if (static_cast<CEngineObject*>(party->data[i]) != node->data) continue;
                 List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
             }
         }
@@ -399,7 +401,7 @@ void CBattleScreen::Update() {
         if (inside.head) NodeFree(inside.head, 0xC);
         FreeListNodes(&units);
         if (units.head) {
-            *reinterpret_cast<void**>(units.head) = NodeFreeList();
+            units.head->next = static_cast<UnitList::Node*>(NodeFreeList());
             NodeFreeList() = units.head;
         }
     }
@@ -439,14 +441,6 @@ EI_REWRITTEN(0x006381E0, CBattleScreen::PartyIds::Equals);
 
 // --- 00638B30: the battle screen's left button release -----------------------------------------
 
-namespace {
-
-// The world (007AF5B8, thiscall): 00565E40 (RET 4) the unit at a screen point (x, y), 00566100
-// (RET 4) with 0 clears the selection (the selected units' flag 0x10 and marks).
-CUnit* UnitAtPoint(CWorldClient* world, void*, int* point) { return world->UnitAt(reinterpret_cast<const long*>(point)); }
-
-} // namespace
-
 void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
@@ -457,26 +451,25 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     CWorldClient* world = TheClientWorld();
     if (!boxSelecting_ || IsMultiplayerClient()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
-        int point[2] = {x, y};
-        CUnit* unit = UnitAtPoint(world, nullptr, point);
+        POINT point = {x, y};
+        CUnit* unit = world->UnitAt(&point);   // 00565E40
         if (unit && !(unit->flags_ & 0x400000)) unit = nullptr;
-        SelectUnitAt(this, nullptr, unit, point[0], point[1]);
+        SelectUnitAt(this, nullptr, unit, point.x, point.y);
         return;
     }
 
     auto* party = &party_;
     auto unitAt = [&](int i) { return party->data[i]; };
     int first = -1;
-    List units;
+    UnitList units;
     units.Construct();   // 00411850
-    world->UnitsInBox(reinterpret_cast<const long*>(&selectionBox_),
-                                                  reinterpret_cast<stlp::list<CEngineObject*>*>(&units));
+    world->UnitsInBox(&selectionBox_.left, &units);
     List inside;
     inside.Construct();   // 00404A70
     if (units.head->next != units.head) {
-        for (ListNode* node = units.head->next; node != units.head; node = node->next) {
+        for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
-                if (reinterpret_cast<std::uintptr_t>(party->data[i]) != node->data) continue;
+                if (static_cast<CEngineObject*>(party->data[i]) != node->data) continue;
                 List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
                 if (first < 0) first = i;
             }
@@ -520,7 +513,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (inside.head) NodeFree(inside.head, 0xC);
     FreeListNodes(&units);
     if (units.head) {
-        *reinterpret_cast<void**>(units.head) = NodeFreeList();
+        units.head->next = static_cast<UnitList::Node*>(NodeFreeList());
         NodeFreeList() = units.head;
     }
 }

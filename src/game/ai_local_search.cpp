@@ -49,7 +49,7 @@ int CdqAbs(int v) {
 void FillCellRows(LocalSearch* search) {
     for (int i = 0; i < kWindow; ++i) {
         int row = search->originY + i;
-        if (row >= 0 && row < search->map->height) search->cellRows[i] = search->map->cells[row] + search->originX;
+        if (row >= 0 && row < search->map->cells.height) search->cellRows[i] = search->map->cells[row] + search->originX;
     }
 }
 
@@ -73,9 +73,9 @@ WindowRange OnMapRange(const LocalSearch* search) {
     WindowRange r;
     r.x0 = -search->originX > 0 ? -search->originX : 1;
     r.y0 = -search->originY > 0 ? -search->originY : 1;
-    r.x1 = search->map->width - search->originX - 1;
+    r.x1 = search->map->cells.width - search->originX - 1;
     if (r.x1 > 32) r.x1 = 32;
-    r.y1 = search->map->height - search->originY - 1;
+    r.y1 = search->map->cells.height - search->originY - 1;
     if (r.y1 > 32) r.y1 = 32;
     return r;
 }
@@ -270,8 +270,8 @@ EI_REPLACE_METHOD(0x005C3200, LocalSearch::PathTo);
 
 bool LocalSearch::PlaceWindow(int x0, int y0, int x1, int y1) {
     if (CdqAbs(x0 - x1) >= 32 || CdqAbs(y0 - y1) >= 32) return false;
-    if (x0 < 0 || x0 >= map->width || x1 < 0 || x1 >= map->width) return false;
-    if (y0 < 0 || y0 >= map->height || y1 < 0 || y1 >= map->height) return false;
+    if (x0 < 0 || x0 >= map->cells.width || x1 < 0 || x1 >= map->cells.width) return false;
+    if (y0 < 0 || y0 >= map->cells.height || y1 < 0 || y1 >= map->cells.height) return false;
     int ox = (x0 + x1) / 2 - 16;
     int oy = (y0 + y1) / 2 - 16;
     int minX = x1 <= x0 ? x1 : x0;

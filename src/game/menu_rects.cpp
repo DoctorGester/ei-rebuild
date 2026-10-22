@@ -42,9 +42,6 @@ constexpr MenuRect kRects[] = {
 
 // 00480080. game::FatalError(message); returns what the original returns to the caller.
 
-// An aligned array of ints (data, size, capacity, growBy); the block pointer is kept at data[-1].
-using IntArray = lib::AlignedArray<int>;
-
 using SetRectFn = int(__stdcall*)(void*, int, int, int, int);
 SetRectFn ImportSetRect() { return ei::GameData<SetRectFn const>(0x0073B478); }
 
@@ -65,8 +62,8 @@ int CFigureManager::LoadMenuRects(std::uint8_t* rects) {
     IntArray values{nullptr, 0, 0, 0};
     SetRectFn setRect = ImportSetRect();
     for (const MenuRect& entry : kRects) {
-        reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values)->SetSize(0, -1);
-        reg->GetIntArray(entry.section, entry.name, reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values));
+        values.SetSize(0, -1);
+        reg->GetIntArray(entry.section, entry.name, &values);
         if (values.size != 4) {
             int result = game::FatalError(entry.error);
             if (values.data) lib::FreeAligned32(values.data);

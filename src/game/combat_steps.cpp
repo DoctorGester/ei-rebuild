@@ -5,6 +5,7 @@
 #include "combat_plan.h"
 
 #include "item.h"
+#include "map_object_figures.h"
 #include "maths.h"
 #include "random.h"
 
@@ -128,16 +129,16 @@ namespace {
 // precision a double holds it exactly).
 int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
 
-// Ticks of entry `index`'s `field` (frameCount the whole animation, moment the moment of the
+// Ticks of entry `index`'s `frames` (frameCount the whole animation, moment the moment of the
 // action): the frame count (FILD of the zero-extended dword, stored as a float) divided by the
 // unit's speed factor for the entry, truncated. Inlined many times by the original.
-int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::*field) {
+int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::*frames) {
     FigureAnimation* entry = unit->AnimationEntry(index);
     if (!entry) return 0;
-    volatile std::int64_t wide = entry->*field;
-    float frames = static_cast<float>(wide);
+    volatile std::int64_t wide = entry->*frames;
+    float frameCount = static_cast<float>(wide);
     double speed = unit->ActionSpeed(entry);
-    return FtolQuotient(frames, speed);
+    return FtolQuotient(frameCount, speed);
 }
 
 // Appends the first step of `steps` (as the original copies it) to `out`.

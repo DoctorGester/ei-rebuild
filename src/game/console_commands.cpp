@@ -66,8 +66,8 @@ void SetDebugInfoRect(int left, int top, int right, int bottom) {
     TheInterface()->SetDebugInfoRect(&rect);
 }
 void SetConsoleRect(int left, int top, int right, int bottom) {
-    int rect[4] = {left, top, right, bottom};
-    TheInterface()->SetConsoleRect(rect);
+    RECT rect = {left, top, right, bottom};
+    TheInterface()->SetConsoleRect(&rect);
 }
 
 } // namespace

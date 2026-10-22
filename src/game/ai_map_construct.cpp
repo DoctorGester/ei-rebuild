@@ -57,9 +57,9 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->footprint.hashed = true;
     self->bridges.cells.Construct();
     self->bridges.hashed = true;
-    self->waterWidth = 1;
-    self->waterHeight = 1;
-    AllocateGrid(self->WaterGrid());
+    self->waterDepth.width = 1;
+    self->waterDepth.height = 1;
+    AllocateGrid(self->waterDepth);
     for (mfc::CArray<AreaOffset>& list : self->areaLists) list.Construct(mfc::impl::AreaListClass::Vtable());
     ConstructUnitLayerOf(self, &self->unitLayerSmall, CUnitLayer::SmallVtable());
     ConstructUnitLayerOf(self, &self->unitLayerLarge, CUnitLayer::LargeVtable());
@@ -69,8 +69,8 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     mfc::impl::ConstructHeader<mfc::impl::CellRowArrayClass>(&self->forwardSearch.cellRowsVtable);
     self->forwardSearch.map = nullptr;
     self->backwardSearch.Construct(nullptr);
-    self->CellGrid().Construct(1, 1);
-    self->OccluderGrid().Construct(1, 1);
+    self->cells.Construct(1, 1);
+    self->occluders.Construct(1, 1);
     self->marks.Construct(1, 1);
     self->Events()->Construct();
     self->loaded = false;
@@ -87,8 +87,8 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
 void __fastcall DestructAIMap(CAIMap* self) {
     self->Events()->Destroy();
     FreeGrid(self->marks);
-    FreeGrid(self->OccluderGrid());
-    FreeGrid(self->CellGrid());
+    FreeGrid(self->occluders);
+    FreeGrid(self->cells);
     mfc::impl::DestructHeader<mfc::impl::CellRowArrayClass>(&self->backwardSearch.cellRowsVtable);
     FreeGrid(self->backwardSearch.levels);
     FreeGrid(self->backwardSearch.nodes);
@@ -107,7 +107,7 @@ void __fastcall DestructAIMap(CAIMap* self) {
     mfc::impl::DestructList<mfc::impl::NodeListClass>(self->unitLayerLarge.nodes);   // 005995E0
     mfc::impl::DestructList<mfc::impl::NodeListClass>(self->unitLayerSmall.nodes);
     for (int list = 5; list >= 0; --list) mfc::impl::DestructArrayOf<mfc::impl::AreaListClass>(self->areaLists[list]);
-    FreeGrid(self->WaterGrid());
+    FreeGrid(self->waterDepth);
     self->bridges.cells.FreeData();
     self->footprint.cells.FreeData();
     self->sectorMap.vtable = CSectorMap::Vtable();

@@ -109,7 +109,7 @@ BOOL CUiItemStrip::DrawFigures(int pass) {
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
         if (index < 0 || index >= count_) continue;
-        name = *reinterpret_cast<const mfc::CString*>(&figures_->begin()[index]);
+        name = figures_->begin()[index];
         HeroFaceCell cell;
         cell.prototype = name;
         cell.x = ((static_cast<float>(i) - frac) + kOne) * kCell;

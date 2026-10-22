@@ -140,7 +140,7 @@ void CCamera::ClampAboveObjects() {
     SampleTerrain(p, zero, zero, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
     NearbyList list;
     list.Construct();   // 00411850
-    TheClientWorld()->ObjectsInRange(reinterpret_cast<const float*>(p), 16.0f, &list);
+    TheClientWorld()->ObjectsInRange(p, 16.0f, &list);
     float best = 0.0f;
     for (NearbyNode* node = list.head->next; node != list.head; node = node->next) {
         const CObject3D* object = node->data;

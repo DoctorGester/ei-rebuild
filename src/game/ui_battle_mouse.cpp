@@ -51,9 +51,9 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
         if (inputHandled_) return;
     }
     // The original passes the address of its own (x, y) arguments and reads them back.
-    int point[2] = {x, y};
-    CUnit* unit = TheClientWorld()->UnitAt(reinterpret_cast<const long*>(point));
-    HoverUnit(unit, point[0], point[1]);
+    POINT point = {x, y};
+    CUnit* unit = TheClientWorld()->UnitAt(&point);
+    HoverUnit(unit, point.x, point.y);
 }
 namespace {
 } // namespace

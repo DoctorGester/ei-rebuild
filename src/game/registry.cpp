@@ -39,7 +39,8 @@ std::uint32_t HomeSlot(const char* name, std::uint16_t slots) {
 }
 
 // GetIntArray / GetFloatArray: the values are copied as dwords.
-BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key, unsigned type, DwordArray* out) {
+template <typename T>
+BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key, unsigned type, lib::AlignedArray<T>* out) {
     int isScalar;
     const std::uint8_t* value = registry->FindData(section, key, type, &isScalar);
     if (!value) {
@@ -58,7 +59,7 @@ BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key
         }
     }
     out->SetSize(count);
-    for (int i = 0; i < count; ++i) out->data[i] = U32(value + 4 * i);
+    for (int i = 0; i < count; ++i) out->data[i] = static_cast<T>(U32(value + 4 * i));
     return 1;
 }
 
@@ -241,7 +242,7 @@ void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* 
 }
 EI_REWRITTEN(0x00694DC0, CFileRegistry::GetStringBuffer);
 
-BOOL CFileRegistry::GetIntArray(const char* section, const char* key, DwordArray* out) {
+BOOL CFileRegistry::GetIntArray(const char* section, const char* key, IntArray* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegInt, out);
 }
 EI_REWRITTEN(0x00695410, CFileRegistry::GetIntArray);

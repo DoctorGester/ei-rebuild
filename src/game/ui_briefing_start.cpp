@@ -97,7 +97,7 @@ void EraseMover(BriefingMover* node) {
 // dialogue waited for it.
 void DropMover(BriefingMover* movers, const CUnit* person, Vector3* place, Vector3* direction) {
     for (BriefingMover* node = movers->next; node != movers; node = node->next) {
-        if (node->person != reinterpret_cast<const CEngineObject*>(person)) continue;
+        if (node->person != person) continue;
         if (!node->waited) {
             *place = Vector3{node->target.x, node->target.y, node->target.z};
             *direction = Vector3{node->direction.x, node->direction.y, node->direction.z};
@@ -254,7 +254,7 @@ void CBriefingScreen::FinishDialogue() {
         CUnit* unit = speaker->unit;
         CPlayerServer* server = LocalServerPlayer()->Server();
         if (server) server->SendPair19(kEventLeaves, unit->id_);
-        auto* model = reinterpret_cast<CUnitClientSpecific*>(unit->controller);
+        CUnitClientSpecific* model = unit->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
         auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unit->id_);

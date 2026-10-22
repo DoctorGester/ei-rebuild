@@ -218,7 +218,7 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
             if (region >= 0 && region < 6)
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
-                animation = reinterpret_cast<CMapObjectManager*>(TheObjectManager())->FindAnimation(&name, kRestPoseKind);
+                animation = static_cast<CMapObjectManager*>(TheObjectManager())->FindAnimation(&name, kRestPoseKind);
             stones->PlayAnimation(static_cast<FigureAnimation*>(animation), 1);
             interface_->PlaySound(kStoneSound, 0);
         }

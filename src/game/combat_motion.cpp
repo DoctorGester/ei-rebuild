@@ -652,12 +652,12 @@ void CUnitServer::LiftNearby(UnitList* list, const float* point, char moving) {
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f /*0073CA98*/) {
         CSectorMap* sectors = world->Sectors();
         sectors->FindUnitsInRadius(reinterpret_cast<const Vector3*>(point), list, 4.0f);
-        void* group = &player->Server()->partyUnits_;
+        const ScriptGroup* group = &player->Server()->partyUnits_;
         for (UnitList::Node* node = list->head; node;) {
             UnitList::Node* current = node;
             node = node->next;
             CUnit* other = current->data;
-            if (reinterpret_cast<const ScriptGroup*>(group)->Contains(other) == 0) {
+            if (group->Contains(other) == 0) {
                 SectorMapRemove(sectors, nullptr, other);
                 continue;
             }

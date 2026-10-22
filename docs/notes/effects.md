@@ -33,7 +33,7 @@ The factory constructs class 0x5B, Moshka (100) and Tornado (0x65) through their
 
 CEffectShowVisibility (0x5E, vtable 0074381C, 0x170): +0x14C observer, +0x150 seer (SetUnits 0067C640, from vision fog
 0x17 with caster and target), +0x154 counted fog object (client: made by the fog manager *007AF75C, 004E28D0), +0x158
-FogGrid (cells / rows allocated by the constructor). The server's Tick follows the seer, recomputes the grid (005CD210)
+FogGrid (origin and a `SearchGrid<uint8_t>` of marks, allocated by the constructor; `CAIMap::MarkVisibleCells` grows it, `FogGrid::Grow`). The server's Tick follows the seer, recomputes the grid (005CD210)
 and marks the effect changed; Pack / Unpack send the grid through a stack memory stream (FogGrid Write / Read 005C8CC0 /
 005C8BF0); Start reveals it in the fog (`CVisibilityFog::Reveal`). Reset does not reset the base. Not rewritten: 0067C5D0 (FogGrid free), 0067C450 / 0067C460 (class name / id). Script casts
 have no caster, so only `spells_hero.txt` reaches it (see below).
