@@ -96,6 +96,8 @@ public:
     CBaseManager* DeletingDestruct(unsigned flags);
     // 00403F40. Object registered under `id`, or null.
     CEngineObject* FindObject(unsigned id) const;
+    // FindObject in a manager whose objects are T's.
+    template <class T> T* FindObjectAs(unsigned id) const { return static_cast<T*>(FindObject(id)); }
     // 00403720. Sets context_ (as Init does).
     void SetContext(void* context);
     // 004039B0. The object registered under `id` leaves the registration tables (it stays alive

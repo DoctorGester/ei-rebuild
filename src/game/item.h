@@ -545,7 +545,7 @@ public:
 };
 
 // The item with id `id` in an item manager (a party's, the world's item factory), or null.
-inline CItem* FindItem(const CBaseManager* items, unsigned id) { return static_cast<CItem*>(items->FindObject(id)); }
+inline CItem* FindItem(const CBaseManager* items, unsigned id) { return items->FindObjectAs<CItem>(id); }
 
 // An item known to be a weapon as the CItemWeapon it is: a weapon slot's item (CUnit::weapons,
 // PartyUnitRecord::weapons hold weapons only), an item of the weapon kind, the copy or match of a

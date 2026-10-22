@@ -80,10 +80,10 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
     ScaleToSpeed(&velocity, &speed);
 
     float size = PowerScaled(e, worlddata::FireballScale());
-    e->CreateParticle(1, 0x2000, &from, size, 1.0f, &velocity, nullptr);
-    if (e->caster) static_cast<CEffectParticle*>(e->visual)->unitId_ = e->caster->id_;   // the particle's unit (no null check)
+    CEffectParticle* particle = e->CreateParticle(1, 0x2000, &from, size, 1.0f, &velocity, nullptr);   // the visual
+    if (e->caster) particle->unitId_ = e->caster->id_;   // the particle's unit (no null check)
     e->targetPoint.z = GroundPlus(e, kWorldSlotGroundHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
-    static_cast<CEffectParticle*>(e->visual)->SetTarget(&e->targetPoint);
+    particle->SetTarget(&e->targetPoint);
     if (speed * ConstAt(worlddata::FireballNear()) > distance) {
         e->CreateSound(0, "magic\\FireBall\\start.wav", &e->position, &velocity, kVolume, kHearing);
     } else {
@@ -104,8 +104,8 @@ Next StartLightStrike(CSpellEffect* e) {
     Vector3 top = e->targetPoint;
     top.z = top.z + ConstAt(worlddata::StrikeHeight());
     float power = Power(e);
-    CEngineObject* bolt = CreateObject(e, kClassLightning);
-    static_cast<CEffectLightning*>(bolt)->SetEnds(&top, &e->position, power * ConstAt(worlddata::StrikeWidth()));
+    auto* bolt = CreateObject<CEffectLightning>(e, kClassLightning);
+    bolt->SetEnds(&top, &e->position, power * ConstAt(worlddata::StrikeWidth()));
     e->SetVisual(bolt);
 
     float alpha = Power(e);
@@ -154,7 +154,7 @@ Next StartFireWall(CSpellEffect* e, const Vector3& from) {
     Vector3 direction = WallDirection(centre, from);
     Vector3 span;
     WallSpan(&direction, &e->Spell()->radius_, &span);
-    if (e->visual) static_cast<CEffectWall*>(e->visual)->SetDirection(&span);
+    if (e->visual) e->Visual<CEffectWall>()->SetDirection(&span);
     e->position = centre;
     e->timer = static_cast<int>(e->Spell()->duration_);
     e->state = 2;
@@ -181,8 +181,8 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     b.z = span.z + e->targetPoint.z;
     a.z = GroundPlus(e, kWorldSlotGroundHeight, a, ConstPtr(worlddata::OneRef()));
     b.z = GroundPlus(e, kWorldSlotGroundHeight, b, ConstPtr(worlddata::OneRef()));
-    CEngineObject* bolt = CreateObject(e, kClassLightning);
-    static_cast<CEffectLightning*>(bolt)->SetEnds(&a, &b, 0.0f);
+    auto* bolt = CreateObject<CEffectLightning>(e, kClassLightning);
+    bolt->SetEnds(&a, &b, 0.0f);
     e->SetVisual(bolt);
     e->position = centre;
     e->timer = static_cast<int>(e->Spell()->duration_);
@@ -259,8 +259,8 @@ Next StartVisionFog(CSpellEffect* e) {
     if (!e->caster || !e->target) return Next::Done;
     int targetId = e->target->id_;
     int casterId = e->caster->id_;
-    CEngineObject* shown = CreateObject(e, kClassShowVisibility);
-    static_cast<CEffectShowVisibility*>(shown)->SetUnits(casterId, targetId);
+    auto* shown = CreateObject<CEffectShowVisibility>(e, kClassShowVisibility);
+    shown->SetUnits(casterId, targetId);
     SetPosition(shown, &kZeroVector);
     e->SetVisual(shown);
     Vector3 scratch;
@@ -274,7 +274,7 @@ Next StartHealing(CSpellEffect* e) {
     if (e->target->GetClassId() != spellfx::kClassUnit) return Next::Done;   // no null check
     // Controller slot 21, Heal: the original pushes the amount's bits (MOV/PUSH), which a float
     // argument would load and store through the FPU, so the slot takes the bits.
-    auto* unit = static_cast<CUnit*>(e->target);
+    CUnit* unit = TargetUnit(e);
     unit->Controller()->Heal(Bits(e->Spell()->damage_));
     float size = Power(e);
     e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);
@@ -311,7 +311,7 @@ Next StartLink(CSpellEffect* e) {
         direction.x = to->x - from.x;
         direction.y = to->y - from.y;
         direction.z = to->z - from.z;
-        static_cast<CEffectWall*>(e->visual)->SetDirection(&direction);
+        e->Visual<CEffectWall>()->SetDirection(&direction);
     }
     e->CreateSoundSequence(&from, &kZeroVector, "magic\\Link\\start.wav", "magic\\Link\\circle.wav", -1, kVolume, kHearing);
     return Next::Set;
@@ -340,7 +340,7 @@ Next StartTeleport(CSpellEffect* e) {
 Next StartCharm(CSpellEffect* e) {
     if (e->target->GetClassId() != spellfx::kClassUnit) return Next::Leave;   // no null check
     if (!IsUnit(e->caster)) return Next::Leave;
-    CUnitServer* tamed = ControllerOf(e->target);
+    CUnitServer* tamed = ControllerOf(TargetUnit(e));
     CUnitServer* tamer = ControllerOf(e->caster);
     float skill = tamer->stats.stat20 + e->Spell()->damage_;
     auto side = [](CUnitServer* controller) { return controller->unit->player; };
@@ -416,7 +416,7 @@ void CSpellEffect::Start(int type) {
 }
 EI_REWRITTEN(0x0067F870, CSpellEffect::Start);
 
-void CSpellEffect::SetVisual(CEngineObject* object) {
+void CSpellEffect::SetVisual(CEffect* object) {
     Assign(this, &visual, object);
     WorldAddTimed(world, nullptr, visual);
 }
@@ -428,13 +428,13 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
     switch (type) {
     case 6: {
         Vector3 direction;
-        std::memcpy(&direction, &static_cast<CEffectWall*>(visual)->direction_, sizeof(direction));
+        std::memcpy(&direction, &Visual<CEffectWall>()->direction_, sizeof(direction));
         SpellFootprint()->AlongDirection(aiMap, &position, kHalfBits, &direction);
         break;
     }
     case 7: {
         Vector3 half;
-        HalfSpan(visual, &half);
+        HalfSpan(Visual<CEffectLightning>(), &half);
         SpellFootprint()->AlongDirection(aiMap, &position, kHalfBits, &half);
         break;
     }
@@ -454,7 +454,7 @@ EI_REWRITTEN(0x0067EFC0, CSpellEffect::UpdateFootprint);
 
 void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget, int particleType, float power,
                                const char* soundName, const Vector3* color, float range) {
-    CEffectArrow* arrow = static_cast<CEffectArrow*>(CreateObject(this, kClassArrow));
+    auto* arrow = CreateObject<CEffectArrow>(this, kClassArrow);
     if (!arrow) return;
     std::memcpy(&arrow->lightColor_, color, 12);
     std::memcpy(&arrow->lightRange_, &range, 4);
@@ -467,15 +467,15 @@ void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget
         arrow->fromCaster_ = 1;
         arrow->casterId_ = caster->id_;
     }
-    Assign(this, &visual, arrow);
+    Assign<CEffect>(this, &visual, arrow);
     WorldAddTimed(world, nullptr, visual);
 }
 EI_REWRITTEN(0x0067F170, CSpellEffect::CreateArrow);
 
-CEngineObject* CSpellEffect::CreateParticle(int keep, int particleType, const Vector3* at, float size, float alpha,
-                                            const Vector3* velocity, CEngineObject* attachTo) {
+CEffectParticle* CSpellEffect::CreateParticle(int keep, int particleType, const Vector3* at, float size, float alpha,
+                                              const Vector3* velocity, CEngineObject* attachTo) {
     int classId = (particleType == 0x2010 || particleType == 0x2014) ? kClassWall : kClassParticle;
-    CEffectParticle* particle = static_cast<CEffectParticle*>(CreateObject(this, classId));
+    auto* particle = CreateObject<CEffectParticle>(this, classId);   // a CEffectWall for the walls
     particle->type_ = particleType;
     SetPosition(particle, at);
     std::memcpy(&particle->size_, &size, 4);
@@ -483,7 +483,7 @@ CEngineObject* CSpellEffect::CreateParticle(int keep, int particleType, const Ve
     std::memcpy(&particle->alpha_, &alpha, 4);
     if (attachTo) particle->SetAttachedTo(attachTo->id_);
     if (keep) {
-        Assign(this, &visual, particle);
+        Assign<CEffect>(this, &visual, particle);
         WorldAddTimed(world, nullptr, visual);
     } else {
         WorldAddTimed(world, nullptr, particle);
@@ -492,25 +492,24 @@ CEngineObject* CSpellEffect::CreateParticle(int keep, int particleType, const Ve
 }
 EI_REWRITTEN(0x0067F260, CSpellEffect::CreateParticle);
 
-void CSpellEffect::CreateLightning(const Vector3* from, CEngineObject* boltTarget, CEngineObject* source, float power,
+void CSpellEffect::CreateLightning(const Vector3* from, CMapObject* boltTarget, CEngineObject* source, float power,
                                    int flag) {
     if (!boltTarget) return;
-    auto* hit = static_cast<CUnit*>(boltTarget);
-    Vector3 to = hit->localPosition_;
-    HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &hit->above.z,
+    Vector3 to = boltTarget->localPosition_;
+    HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &boltTarget->above.z,
                       ConstPtr(worlddata::TargetHeight()), &to.z);
-    CEngineObject* bolt = CreateObject(this, kClassLightning);
-    static_cast<CEffectLightning*>(bolt)->SetEnds(from, &to, power * ConstAt(worlddata::BoltWidthScale()));
-    static_cast<CEffectLightning*>(bolt)->SetObjects(source ? source->id_ : -1, boltTarget->id_);
-    static_cast<CEffectLightning*>(bolt)->SetFlag(static_cast<unsigned char>(flag));
-    Assign(this, &visual, bolt);
+    auto* bolt = CreateObject<CEffectLightning>(this, kClassLightning);
+    bolt->SetEnds(from, &to, power * ConstAt(worlddata::BoltWidthScale()));
+    bolt->SetObjects(source ? source->id_ : -1, boltTarget->id_);
+    bolt->SetFlag(static_cast<unsigned char>(flag));
+    Assign<CEffect>(this, &visual, bolt);
     WorldAddTimed(world, nullptr, visual);
 }
 EI_REWRITTEN(0x0067F410, CSpellEffect::CreateLightning);
 
 void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, const Vector3* velocity, float volume,
                                float hearing) {
-    CEffectSound* effect = static_cast<CEffectSound*>(CreateObject(this, kClassSound));
+    auto* effect = CreateObject<CEffectSound>(this, kClassSound);
     SetPosition(effect, at);
     effect->noFade_ = 1;
     std::memcpy(&effect->radius_, &hearing, 4);
@@ -518,7 +517,7 @@ void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, co
     std::memcpy(effect->name_, name, std::strlen(name) + 1);
     effect->SetVelocity(velocity);
     effect->looping_ = keep;
-    if (keep) Assign(this, &sound, effect);
+    if (keep) Assign<CEffect>(this, &sound, effect);
     WorldAddTimed(world, nullptr, effect);
 }
 EI_REWRITTEN(0x0067F580, CSpellEffect::CreateSound);
@@ -526,7 +525,7 @@ EI_REWRITTEN(0x0067F580, CSpellEffect::CreateSound);
 void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocity, const char* first,
                                        const char* pattern, int count, float volume, float hearing) {
     mfc::CString name;
-    CEffectSoundSeq* effect = static_cast<CEffectSoundSeq*>(CreateObject(this, kClassSoundSequence));
+    auto* effect = CreateObject<CEffectSoundSeq>(this, kClassSoundSequence);
     SetPosition(effect, at);
     effect->SetVelocity(velocity);
     std::memcpy(&effect->radius_, &hearing, 4);
@@ -542,13 +541,13 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
             names.SetAtGrow(names.size, name);
         }
     }
-    Assign(this, &sound, effect);
+    Assign<CEffect>(this, &sound, effect);
     WorldAddTimed(world, nullptr, effect);
 }
 EI_REWRITTEN(0x0067F660, CSpellEffect::CreateSoundSequence);
 
 void CSpellEffect::CreatePointLight(const Vector3* at, const Vector3* color, float range, const Vector3* velocity) {
-    CEffectPointLight* effect = static_cast<CEffectPointLight*>(CreateObject(this, kClassPointLight));
+    auto* effect = CreateObject<CEffectPointLight>(this, kClassPointLight);
     std::memcpy(&effect->color_, color, 12);
     SetPosition(effect, at);
     std::memcpy(&effect->range_, &range, 4);

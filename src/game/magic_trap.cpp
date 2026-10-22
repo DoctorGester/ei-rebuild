@@ -376,7 +376,7 @@ void MagicTrap::LoadTrap(CStream* stream) {
     // fails leaves the previous value there (at first the stream pointer itself).
     auto value = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&value, 4);
-    SetSpell(this, value == -1 ? nullptr : static_cast<CSpell*>(manager->FindObject(value)));
+    SetSpell(this, value == -1 ? nullptr : manager->FindObjectAs<CSpell>(value));
     stream->Read(&value, 4);
     area.SetSize(value, -1);
     for (int i = 0; i < area.size; ++i) stream->Read(&area.data[i], sizeof(TrapCircle));
