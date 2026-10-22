@@ -1768,7 +1768,7 @@ struct GameFlow {
     // 00580840 (RET 4; world_briefing.cpp). The client's variable at `node` (an element of
     // ClientSession::variables_) changed: "q." variables go to the quest log (007C7D50) and the
     // client world. The original's ECX is the node as well; only the argument is read.
-    static void OnVariableChanged(const stlp::list<RefPtr>::Node* node);
+    static void __stdcall OnVariableChanged(const stlp::list<RefPtr>::Node* node);
     // 005810A0 (RET 4; world_briefing.cpp). Registers a quest folder once: the flow loads its
     // quests (005809D0), then with "<folder>\quest.reg" in the texts the quest table reads it,
     // the map database loads "<folder>\map.txt" and the folder joins the list at 007AFDC0.

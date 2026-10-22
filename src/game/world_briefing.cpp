@@ -233,7 +233,7 @@ EI_REPLACE(0x005809D0, LoadZoneQuests);
 
 // ---- Quest variables ------------------------------------------------------------------------------
 
-void GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node) {
+void __stdcall GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node) {
     const net::VariableMessage* record = stlp::CountedRefListOf<net::VariableMessage>::At(node);
     mfc::CString name(record->name_.data());
     const float value = record->value_;
