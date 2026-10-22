@@ -96,9 +96,8 @@ bool Contains(const IdArray& ids, int id) {
 // Whether a quest item's description names this zone.
 bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     bool found = false;
-    for (unsigned i = 0; i < static_cast<unsigned>(info->zonesEnd - info->zonesBegin); ++i)
-        if (gamecrt::mbsicmp(info->zonesBegin[i].GetString(),
-                            zone) == 0)
+    for (unsigned i = 0; i < static_cast<unsigned>(info->zones.size()); ++i)
+        if (gamecrt::mbsicmp(info->zones[i].GetString(), zone) == 0)
             found = true;
     return found;
 }
