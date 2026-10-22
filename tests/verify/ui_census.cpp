@@ -27,6 +27,7 @@
 // last frame is reported too.
 #include "ui_census.h"
 #include "harness_objects.h"
+#include "harness_windows.h"
 #include "harness_starter.h"
 
 #include "../../src/game/console.h"
@@ -211,40 +212,6 @@ bool InGameVtables(std::uintptr_t vtable) {
     return vtable >= ei::kImportsEnd && vtable < 0x007D7000;
 }
 
-// The windows the image builds with compiled tables (C19, ui_window_class.h), each with game.exe's table it stands in
-// for: a window's label is game.exe's address of its kind (what game.exe's run prints), as the digest's AI modes are
-// (harness_digest.cpp, ModeKinds).
-struct WindowKind {
-    const void* original;   // game.exe's table: the label
-    const void* compiled;   // the image's
-};
-
-const std::vector<WindowKind>& WindowKinds() {
-    static const std::vector<WindowKind> kinds = {
-        {&ei::OriginalGameData<const std::uint8_t>(0x00740F60), CUiWindow::PlainVtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742C18), CUiScrollbar::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742CBC), CUiSlider::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742E9C), CUiScrollText::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742D5C), CUiSpin::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742DF4), CUiEditField::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742F64), CUiTooltip::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x007400DC), CChatOverlay::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00741478), CChatWindow::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00740444), CItemIconWindow::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742498), CHudTopPanel::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742530), CHudMovePanel::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x007425C8), CHudClock::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742660), CHudMap::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x007426F8), CHudUnitPanel::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0074279C), CHudWeaponBar::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x0074283C), CHudQuickItems::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x007428E4), CHudSpellColumn::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742980), CHudActionColumn::Vtable()},
-        {&ei::OriginalGameData<const std::uint8_t>(0x00742A18), CHudPortraits::Vtable()},
-    };
-    return kinds;
-}
-
 // The surfaces' tables: game.exe's data, or the compiled CUiSurface (00740F28) and scrolling surface (00742FD8) ones.
 bool SurfaceVtable(std::uintptr_t vtable) {
     return InGameVtables(vtable) || vtable == reinterpret_cast<std::uintptr_t>(UiSurfaceClass::Vtable()) ||
@@ -286,18 +253,11 @@ std::string Size(int width, int height) {
 }
 
 
-// A window's table as its label names it: game.exe's for a compiled one (WindowKinds), else its own.
-std::uintptr_t RealVtable(std::uintptr_t vtable) {
-    for (const WindowKind& kind : WindowKinds())
-        if (reinterpret_cast<std::uintptr_t>(kind.compiled) == vtable) return reinterpret_cast<std::uintptr_t>(kind.original);
-    return vtable;
-}
-
 // "W<window vtable>#<index in its surfaces>" for a window's surface.
 std::string WindowLabel(const CUiWindow* window, const CUiSurface* surface) {
     std::uintptr_t vtable = 0;
     if (!SafeRead(window, &vtable, sizeof(vtable))) return "W?";
-    vtable = RealVtable(vtable);
+    vtable = RealWindowVtable(vtable);  // game.exe's table of a compiled window's kind
     CUiSurface** data = nullptr;
     int size = 0;
     SafeRead(&window->surfaces_.data, &data, sizeof(data));

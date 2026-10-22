@@ -9,6 +9,7 @@
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_briefing.h"
 #include "harness_objects.h"
+#include "harness_windows.h"
 #include "../../src/game/terrain_sector.h"
 #include "../../src/game/world.h"
 #include "../../src/hook/log.h"
@@ -164,13 +165,13 @@ void PatchOriginal() {
     Log("harness: address orders by object id, sector and name, the player list by binding (%d of %d original sites)", patched, int(sizeof(kSites) / sizeof(kSites[0])));
 }
 
-bool CheckPlayerList(const std::uintptr_t (&briefing)[2], std::string* text) {
+bool CheckPlayerList(std::uintptr_t briefing, std::string* text) {
     CUiWindow* top = HarnessInterface()->GetActiveWindow();
-    const std::uintptr_t vtable = top ? *reinterpret_cast<const std::uintptr_t*>(top) : 0;
+    const std::uintptr_t vtable = top ? RealWindowVtable(*reinterpret_cast<const std::uintptr_t*>(top)) : 0;
     auto* client = ei::Standalone() ? net::GameClient() : ei::OriginalGameData<net::ClientSession*>(0x0079B5D8);
     char line[200];
     bool ok = false;
-    if (!top || (vtable != briefing[0] && vtable != briefing[1])) {
+    if (!top || vtable != briefing) {
         std::snprintf(line, sizeof(line), "the base screen is not on top");
     } else if (!client || !static_cast<CBriefingScreen*>(top)->chat_) {
         std::snprintf(line, sizeof(line), "no network client, or its base screen has no player list");

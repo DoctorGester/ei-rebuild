@@ -118,7 +118,8 @@ void PrintLine(const char* text);
 // (+0x50) on overflow; sync hands the line to the console window.
 class ConsoleStreambuf {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00740034);
+    // The compiled table (C19, console.cpp) in place of game.exe's 00740034.
+    static void* Vtable();
     ConsoleStreambuf* Construct(unsigned filter);         // 005DC200
     void Destruct();                                      // 005DC260
     ConsoleStreambuf* DeletingDestruct(unsigned flags);   // 005DC240 (vtable slot 0)
@@ -150,6 +151,10 @@ public:
 static_assert(sizeof(ConsoleStreambuf) == 0x454);
 static_assert(offsetof(ConsoleStreambuf, base_) == 0x10 && offsetof(ConsoleStreambuf, filter_) == 0x4C &&
               offsetof(ConsoleStreambuf, line_) == 0x50 && offsetof(ConsoleStreambuf, buffer_) == 0x54);
+
+// The harness's view of the console (verify builds): sync's line, after overflow(EOF) and before the console window
+// gets it. game.exe's run has the harness take game.exe's sync slot instead.
+extern void (*g_consoleLineObserver)(const char* line);
 
 inline ConsoleStreambuf* MainStreambuf() { return ei::GamePointer<ConsoleStreambuf>(0x007C5868); }
 

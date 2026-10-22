@@ -5,6 +5,7 @@
 #include "mfc_state.h"
 
 #include "ei/hook.h"
+#include "compiled_vtable.h"
 
 #include <cstring>
 #include <new>
@@ -266,6 +267,27 @@ constinit CRuntimeClass g_classCWordArray = /*00796F20*/ {"CWordArray", 0x14, 0,
 constinit CRuntimeClass g_classCDWordArray = /*00797140*/ {"CDWordArray", 0x14, 0, &CreateCDWordArray, &kClassCObject, nullptr};
 constinit CRuntimeClass g_classCByteArray = /*00797198*/ {"CByteArray", 0x14, 0, &CreateCByteArray, &kClassCObject, nullptr};
 
+// The arrays' compiled tables (C19) in place of game.exe's 00745F5C (CStringArray), 00745F78 (CWordArray), 007464B8
+// (CDWordArray), 00746560 (CByteArray) and 007467A0 (CUIntArray): 0 GetRuntimeClass (the class's record), 1 the
+// deleting destructor, 2 Serialize (CUIntArray's is CObject's, empty).
+template <typename Self, typename Array, const CRuntimeClass* kClass, bool kSerializes = true>
+struct ArrayTable : ei::CompiledTag<Self> {
+    virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }                   // 0
+    virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }  // 1
+    virtual void Serialize(CArchive& archive) {                                               // 2
+        if constexpr (kSerializes) This()->Serialize(&archive);
+        else static_cast<void>(archive);
+    }
+
+private:
+    Array* This() { return reinterpret_cast<Array*>(this); }
+};
+struct StringArrayTable final : ArrayTable<StringArrayTable, CStringArray, &g_classCStringArray> {};
+struct WordArrayTable final : ArrayTable<WordArrayTable, CWordArray, &g_classCWordArray> {};
+struct DWordArrayTable final : ArrayTable<DWordArrayTable, CDWordArray, &g_classCDWordArray> {};
+struct ByteArrayTable final : ArrayTable<ByteArrayTable, CByteArray, &g_classCByteArray> {};
+struct UIntArrayTable final : ArrayTable<UIntArrayTable, CUIntArray, &kClassCUIntArray, false> {};
+
 // The static initialisers (the exe's list holds the first instruction of each: a jump to the body).
 void __cdecl LinkStringArrayClass() { AfxClassInit(&g_classCStringArray); }
 void __cdecl LinkWordArrayClass() { AfxClassInit(&g_classCWordArray); }
@@ -273,6 +295,12 @@ void __cdecl LinkDWordArrayClass() { AfxClassInit(&g_classCDWordArray); }
 void __cdecl LinkByteArrayClass() { AfxClassInit(&g_classCByteArray); }
 
 } // namespace
+
+void* CStringArray::Vtable() { return StringArrayTable::Vtable(); }
+void* WordArrayClass::Vtable() { return WordArrayTable::Vtable(); }
+void* DWordArrayClass::Vtable() { return DWordArrayTable::Vtable(); }
+void* ByteArrayClass::Vtable() { return ByteArrayTable::Vtable(); }
+void* UIntArrayClass::Vtable() { return UIntArrayTable::Vtable(); }
 
 // ---- Registrations ------------------------------------------------------------------------------
 

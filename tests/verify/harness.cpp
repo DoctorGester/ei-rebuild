@@ -429,6 +429,7 @@
 #include "harness_hooks.h"
 #include "harness_settings.h"
 #include "harness_starter.h"
+#include "harness_windows.h"
 #include "harness_input.h"
 #include "harness_install.h"
 #include "harness_net.h"
@@ -446,6 +447,7 @@
 #include "../../src/lib/mfc.h"
 #include "../../src/game/asset_text.h"   // text::kUtf8 (the "utf8" step prefix)
 #include "../../src/game/device.h"   // IDirectDraw7
+#include "../../src/game/console.h"   // console::g_consoleLineObserver
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_cursor.h"
 #include "harness_objects.h"
@@ -484,10 +486,11 @@ namespace ei::verify {
 namespace {
 constexpr std::uintptr_t kPeekMessageASlot = 0x0073B458;   // game.exe import table
 
-// The console's streambuf (class with vtable 00740034, instance 007C5868): overflow() collects the
+// The console's streambuf (game.exe's table 00740034, instance 007C5868): overflow() collects the
 // text in a CString at +0x50; sync() (slot 1, 005DC1B0) hands the finished line to the console
-// window and clears it. Hooking sync gives every line the console prints.
-constexpr std::uintptr_t kConsoleStreambufSyncSlot = 0x00740034 + 4;
+// window and clears it. Taking game.exe's sync slot gives every line the console prints; the image's
+// streambuf has a compiled table (C19) and hands the line to console::g_consoleLineObserver.
+constexpr int kConsoleStreambufSyncSlot = 1;
 using SyncFn = int(__thiscall*)(void*);
 using OverflowFn = int(__thiscall*)(void*, int);
 SyncFn g_sync;
@@ -645,7 +648,7 @@ DWORD g_newDeviceDeadline = 0;
 constexpr unsigned kNotReady = ~0u;
 bool g_waitingWindow = false;
 std::string g_waitWindowName;
-std::uintptr_t g_waitWindowVtables[2] = {};
+std::uintptr_t g_waitWindowVtable = 0;   // game.exe's table (KnownWindows)
 Deadline g_waitWindowDeadline;
 unsigned g_waitWindowReadyFrom = kNotReady;
 // A pending "waitunit": the unit's script name, when it started and gives up.
@@ -677,10 +680,7 @@ std::string g_captureName;
 DWORD g_captureDeadline = 0;
 std::vector<std::string> g_capturedFrames;
 
-int __fastcall ConsoleSync(void* self, void*) {
-    OverflowFn overflow = (*reinterpret_cast<OverflowFn**>(self))[7];
-    overflow(self, -1);   // move pending characters into the line (the original does this too)
-    const char* text = *reinterpret_cast<const char**>(static_cast<char*>(self) + 0x50);
+void OnConsoleLine(const char* text) {
     if (text && *text) {
         std::string line(text);
         while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
@@ -689,6 +689,11 @@ int __fastcall ConsoleSync(void* self, void*) {
             if (line.find(r) != std::string::npos) g_failures.push_back("rejected output: " + line);
         g_console.push_back(std::move(line));
     }
+}
+int __fastcall ConsoleSync(void* self, void*) {
+    OverflowFn overflow = (*reinterpret_cast<OverflowFn**>(self))[7];
+    overflow(self, -1);   // move pending characters into the line (the original does this too)
+    OnConsoleLine(*reinterpret_cast<const char**>(static_cast<char*>(self) + 0x50));
     return g_sync(self);
 }
 decltype(&::PeekMessageA) g_peekMessage;
@@ -2204,7 +2209,8 @@ std::string CampPutOn(const std::string& argument) {
     if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
     auto* ui = HarnessInterface();
     auto* camp = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
-    if (!camp || *reinterpret_cast<void**>(camp) != ei::GamePointer<void>(0x0074091C))
+    if (!camp || RealWindowVtable(*reinterpret_cast<const std::uintptr_t*>(camp)) !=
+                     reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const std::uint8_t>(0x0074091C)))
         return "campputon: the camp is not on top";
     int page = *reinterpret_cast<int*>(camp + 0x190);
     auto* strip = *reinterpret_cast<std::uint8_t**>(camp + 0x1E0);
@@ -2229,59 +2235,67 @@ std::string CampPutOn(const std::string& argument) {
 }
 
 // --- waitwindow <seconds> <window> (ticket T1) ----------------------------------------------
-// The interface windows a scenario waits for, by the two vtables each is built with (the window
-// on top has one of them at +0; ui.h, ui_screens.h, ui_camp.h).
+// The interface windows a scenario waits for, by game.exe's table of each (ui.h, ui_screens.h, ui_camp.h): the window
+// on top has it at +0 in game.exe's run; in the image its compiled table, which RealWindowVtable names by game.exe's
+// (harness_windows.h).
 struct KnownWindow {
     const char* name;
-    std::uintptr_t vtables[2];
+    const void* vtable;
 };
-constexpr KnownWindow kKnownWindows[] = {
-    {"menu", {ei::DataId(0x00740688), ei::DataId(0x00740654)}},         // CMainMenu (CreateScreen 2)
-    {"battle", {ei::DataId(0x00740764), ei::DataId(0x00740730)}},       // the in-game screen (CreateScreen 1)
-    {"briefing", {ei::DataId(0x007405AC), ei::DataId(0x00740578)}},     // the base / briefing screen (CreateScreen 3)
-    {"map", {ei::DataId(0x00740B08), ei::DataId(0x00740B3C)}},          // the island map (CreateScreen 4)
-    {"camp", {ei::DataId(0x007408E8), ei::DataId(0x0074091C)}},         // CCampScreen (CreateScreen 5)
-    {"view", {ei::DataId(0x00740840), ei::DataId(0x0074080C)}},         // CViewScreen (CreateScreen 7)
-    {"trade", {ei::DataId(0x00740D18), ei::DataId(0x00740CE4)}},        // trading between players (CreateScreen 9)
-    {"escmenu", {ei::DataId(0x00741270), ei::DataId(0x007412A4)}},      // CEscMenu
-    {"saveload", {ei::DataId(0x00741388), ei::DataId(0x00741354)}},     // CSaveLoadWindow
-    {"options", {ei::DataId(0x00741FAC), ei::DataId(0x00741F78)}},      // COptionsWindow
-    {"objectives", {ei::DataId(0x007411BC), ei::DataId(0x00741188)}},   // CObjectivesWindow
-    {"help", {ei::DataId(0x00740E28), ei::DataId(0x00740DF4)}},         // the help / message window
-    {"msgbox", {ei::DataId(0x00742348), ei::DataId(0x00742314)}},       // CMessageBox
-    {"difficulty", {ei::DataId(0x0074225C), ei::DataId(0x00742228)}},   // CDifficultyBox
-    {"heroes", {ei::DataId(0x00742118), ei::DataId(0x0074214C)}},       // the multiplayer hero screen (main menu region 5)
-    {"titles", {ei::DataId(0x00740C08), ei::DataId(0x00740C3C)}},       // CCreditsScreen
-};
+const std::vector<KnownWindow>& KnownWindows() {
+    static const std::vector<KnownWindow> windows = {
+        {"menu", &ei::OriginalGameData<const std::uint8_t>(0x00740688)},         // CMainMenu (CreateScreen 2)
+        {"battle", &ei::OriginalGameData<const std::uint8_t>(0x00740764)},       // the in-game screen (CreateScreen 1)
+        {"briefing", &ei::OriginalGameData<const std::uint8_t>(0x007405AC)},     // the base / briefing screen (CreateScreen 3)
+        {"map", &ei::OriginalGameData<const std::uint8_t>(0x00740B3C)},          // the island map (CreateScreen 4)
+        {"camp", &ei::OriginalGameData<const std::uint8_t>(0x0074091C)},         // CCampScreen (CreateScreen 5)
+        {"view", &ei::OriginalGameData<const std::uint8_t>(0x00740840)},         // CViewScreen (CreateScreen 7)
+        {"trade", &ei::OriginalGameData<const std::uint8_t>(0x00740D18)},        // trading between players (CreateScreen 9)
+        {"escmenu", &ei::OriginalGameData<const std::uint8_t>(0x007412A4)},      // CEscMenu
+        {"saveload", &ei::OriginalGameData<const std::uint8_t>(0x00741388)},     // CSaveLoadWindow
+        {"options", &ei::OriginalGameData<const std::uint8_t>(0x00741FAC)},      // COptionsWindow
+        {"objectives", &ei::OriginalGameData<const std::uint8_t>(0x007411BC)},   // CObjectivesWindow
+        {"help", &ei::OriginalGameData<const std::uint8_t>(0x00740E28)},         // the help / message window
+        {"msgbox", &ei::OriginalGameData<const std::uint8_t>(0x00742348)},       // CMessageBox
+        {"difficulty", &ei::OriginalGameData<const std::uint8_t>(0x0074225C)},   // CDifficultyBox
+        {"heroes", &ei::OriginalGameData<const std::uint8_t>(0x0074214C)},       // the multiplayer hero screen (main menu region 5)
+        {"titles", &ei::OriginalGameData<const std::uint8_t>(0x00740C3C)},       // CCreditsScreen
+    };
+    return windows;
+}
+std::uintptr_t KnownWindowVtable(const char* name) {
+    for (const KnownWindow& w : KnownWindows())
+        if (std::strcmp(name, w.name) == 0) return reinterpret_cast<std::uintptr_t>(w.vtable);
+    return 0;
+}
 
-// The vtables of `name` (a name above or one vtable in hex, game.exe's address), where they are in this
-// process (the data seam); false when unknown.
-bool WindowVtables(const std::string& name, std::uintptr_t (&vtables)[2]) {
-    for (const KnownWindow& w : kKnownWindows) {
-        if (name == w.name) {
-            vtables[0] = ei::GameAddress(w.vtables[0]);
-            vtables[1] = ei::GameAddress(w.vtables[1]);
-            return true;
-        }
+// game.exe's table of the window `name` (a name above, or one table in hex, game.exe's address); false when unknown.
+bool WindowVtable(const std::string& name, std::uintptr_t* vtable) {
+    if (std::uintptr_t known = KnownWindowVtable(name.c_str())) {
+        *vtable = known;
+        return true;
     }
     char* end = nullptr;
     unsigned long value = std::strtoul(name.c_str(), &end, 16);
     if (name.empty() || *end || value < 0x00401000 || value >= 0x00800000) return false;
-    vtables[0] = vtables[1] = ei::GameAddress(value);
+    *vtable = value;
     return true;
 }
 
+// game.exe's table of the window on top (RealWindowVtable of its own), 0 without one.
+std::uintptr_t TopWindowVtable(CUiWindow* top) {
+    return top ? ei::OriginalAddress(RealWindowVtable(*reinterpret_cast<const std::uintptr_t*>(top))) : 0;
+}
+
 // Whether the awaited window is on top and takes input (see the step's description).
-bool WindowReady(std::uintptr_t (&vtables)[2]) {
+bool WindowReady(std::uintptr_t vtable) {
     auto* ui = HarnessInterface();
     CUiWindow* top = ui->GetActiveWindow();
     if (!top || ui->queuedWindow_ || HarnessFlow()->state_ != 0) return false;
-    std::uintptr_t vtable = *reinterpret_cast<const std::uintptr_t*>(top);
-    if (vtable != vtables[0] && vtable != vtables[1]) return false;
-    if (vtable == ei::GameAddress(CSaveLoadWindow::kVtableAddress) || vtable == ei::GameAddress(CSaveLoadWindow::kInputVtableAddress))
-        return !reinterpret_cast<CSaveLoadWindow*>(top)->sliding_;
-    if (vtable == ei::GameAddress(COptionsWindow::kVtableAddress) || vtable == ei::GameAddress(COptionsWindow::kInputVtableAddress))
-        return !reinterpret_cast<COptionsWindow*>(top)->sliding_;
+    const std::uintptr_t real = TopWindowVtable(top);
+    if (real != vtable) return false;
+    if (real == KnownWindowVtable("saveload")) return !static_cast<CSaveLoadWindow*>(top)->sliding_;
+    if (real == KnownWindowVtable("options")) return !static_cast<COptionsWindow*>(top)->sliding_;
     return true;
 }
 
@@ -2289,13 +2303,13 @@ bool WindowReady(std::uintptr_t (&vtables)[2]) {
 std::string DescribeTopWindow() {
     auto* ui = HarnessInterface();
     CUiWindow* top = ui->GetActiveWindow();
-    std::uintptr_t vtable = top ? *reinterpret_cast<const std::uintptr_t*>(top) : 0;
+    const std::uintptr_t vtable = TopWindowVtable(top);
     const char* name = "?";
-    for (const KnownWindow& w : kKnownWindows)
-        if (vtable == ei::GameAddress(w.vtables[0]) || vtable == ei::GameAddress(w.vtables[1])) name = w.name;
+    for (const KnownWindow& w : KnownWindows())
+        if (vtable == reinterpret_cast<std::uintptr_t>(w.vtable)) name = w.name;
     char text[200];
     std::snprintf(text, sizeof(text), "top window %p vtable %08X (%s), queued %p, request %d, campaign mode %d", top,
-                  unsigned(ei::OriginalAddress(vtable)), top ? name : "none", ui->queuedWindow_, HarnessFlow()->state_,
+                  unsigned(vtable), top ? name : "none", ui->queuedWindow_, HarnessFlow()->state_,
                   HarnessCampaignMode());
     return text;
 }
@@ -2892,7 +2906,7 @@ void RunSteps() {
     }
     if (g_waitingWindow) {
         // Ready on two frames in a row, and done in an input loop pass (input steps follow).
-        if (!WindowReady(g_waitWindowVtables)) g_waitWindowReadyFrom = kNotReady;
+        if (!WindowReady(g_waitWindowVtable)) g_waitWindowReadyFrom = kNotReady;
         else if (g_waitWindowReadyFrom == kNotReady) g_waitWindowReadyFrom = g_frames;
         if (g_waitWindowReadyFrom != kNotReady && g_frames >= g_waitWindowReadyFrom + 2 && g_inputLoop) {
             const CScreenFade* fade = HarnessInterface()->fade_;
@@ -3036,7 +3050,7 @@ void RunSteps() {
                 while (rest && *rest == ' ') ++rest;
                 name = rest ? rest : "";
             }
-            if (!WindowVtables(name, g_waitWindowVtables)) {
+            if (!WindowVtable(name, &g_waitWindowVtable)) {
                 g_failures.push_back("waitwindow: unknown window '" + name + "'");
                 continue;
             }
@@ -3746,10 +3760,8 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
         } else if (s.verb == "checkplayers") {
-            std::uintptr_t vtables[2] = {};
             std::string why;
-            WindowVtables("briefing", vtables);
-            if (!address_order::CheckPlayerList(vtables, &why)) g_failures.push_back("checkplayers: " + why);
+            if (!address_order::CheckPlayerList(KnownWindowVtable("briefing"), &why)) g_failures.push_back("checkplayers: " + why);
         } else if (s.verb == "checkshot") {
             int index = -1, tolerance = 8;
             char frame[64] = "";
@@ -4462,7 +4474,10 @@ struct Harness {
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
         PatchSlot(kTranslateMessageSlot, &HarnessTranslateMessage, g_translateMessage);
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
-        PatchSlot(kConsoleStreambufSyncSlot, reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
+        if (ei::Standalone()) console::g_consoleLineObserver = &OnConsoleLine;
+        else
+            PatchSlot(reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const SyncFn>(0x00740034) + kConsoleStreambufSyncSlot),
+                      reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
         PatchSlot(kCreateFileASlot, &RedirectedCreateFile, g_createFile);
         crash::WatchWrites(kWriteFileSlot);
         PatchSlot(kDeleteFileASlot, &RedirectedDeleteFile, g_deleteFile);

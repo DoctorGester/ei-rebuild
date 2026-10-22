@@ -19,10 +19,6 @@
 
 namespace {
 
-void** MessageBoxVtable() { return ei::GamePointer<void*>(0x00742348); }
-void** MessageBoxInputVtable() { return ei::GamePointer<void*>(0x00742314); }
-void** ObjectivesVtable() { return ei::GamePointer<void*>(0x007411BC); }
-void** ObjectivesInputVtable() { return ei::GamePointer<void*>(0x00741188); }
 void* ObjectiveExitsVtable() { return mfc::impl::ObjectiveExitArrayClass::Vtable(); }
 // The portraits' compiled tables (C19, ui_window_class.h) in place of game.exe's 00742A18 / 007429E4: its update (24);
 // the input side's left button and mouse moves.
@@ -48,8 +44,8 @@ CMessageBox* CMessageBox::Construct(CInterface3D* ui, const char* titleKey, cons
     result_ = result;
     flags_ = flags;
     format_ = format;
-    vtable_ = MessageBoxVtable();
-    inputVtable_ = MessageBoxInputVtable();
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     mfc::CString text;
     CTextManager* texts = TheTextManager();
     texts->GetString(titleKey, &text);
@@ -85,8 +81,8 @@ CObjectivesWindow* CObjectivesWindow::Construct(CInterface3D* ui) {
     questPlaces_.Finish() = nullptr;
     questPlaces_.EndOfStorage() = nullptr;
     objectiveTexts_.Construct();
-    vtable_ = ObjectivesVtable();
-    inputVtable_ = ObjectivesInputVtable();
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     return this;
 }
 EI_REWRITTEN(0x0063B5D0, CObjectivesWindow::Construct);

@@ -1,6 +1,7 @@
 // The save trace (harness_savetrace.h; ticket SV7a).
 #include "harness_savetrace.h"
 
+#include "../../src/game/core_streams.h"
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "game/game_data.h"
@@ -17,9 +18,9 @@ namespace ei::verify::savetrace {
 
 namespace {
 
-// The memory streams' vtables (CMemoryStream 0073BD90; the second one, 0073C960, with the same
-// slots 1-7) and the slots the trace uses: 2 Write(buffer, size), 5 Position().
-constexpr std::uintptr_t kStreamVtables[] = {0x0073BD90, 0x0073C960};
+// The slots the trace uses: 2 Write(buffer, size), 5 Position(). game.exe's run takes slot 2 of
+// game.exe's memory stream tables (CMemoryStream 0073BD90; the second one, 0073C960, with the same
+// slots 1-7); the image's tables are compiled (C19) and tell g_memoryStreamWriteObserver.
 constexpr int kWriteSlot = 2;
 constexpr int kPositionSlot = 5;
 constexpr int kCallers = 4;
@@ -75,6 +76,8 @@ void Note(void* stream, std::uint32_t size, void* const* frame) {
     LeaveCriticalSection(&g_lock);
 }
 
+void ObservedWrite(CMemoryStream* stream, std::uint32_t size, void* const* frame) { Note(stream, size, frame); }
+
 template <int kVtable>
 void __fastcall TracedWrite(void* stream, void* edx, const void* buffer, std::uint32_t size) {
     Note(stream, size, static_cast<void* const*>(_AddressOfReturnAddress()));
@@ -93,9 +96,11 @@ void Install(std::uintptr_t selfBase, std::uintptr_t selfEnd) {
     g_selfEnd = selfEnd;
     InitializeCriticalSection(&g_lock);
     g_streams = new std::unordered_map<void*, Trace>;
+    if (ei::Standalone()) g_memoryStreamWriteObserver = &ObservedWrite;
     const WriteFn traced[2] = {&TracedWrite<0>, &TracedWrite<1>};
-    for (int i = 0; i < 2; ++i) {
-        auto* slot = ei::GamePointer<WriteFn>(kStreamVtables[i]) + kWriteSlot;
+    void* const tables[2] = {&ei::OriginalGameData<std::uint8_t>(0x0073BD90), &ei::OriginalGameData<std::uint8_t>(0x0073C960)};
+    for (int i = 0; i < 2 && !ei::Standalone(); ++i) {
+        auto* slot = static_cast<WriteFn*>(tables[i]) + kWriteSlot;
         DWORD old;
         VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
         g_writes[i] = *slot;

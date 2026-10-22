@@ -13,11 +13,12 @@
 //   0073BD90  CMemoryStream (below). 0073C960 is a second vtable with the same slots 1-7 and
 //             another copy of the deleting destructor (004790D0); the network queue's streams use it.
 //
-// Streams are built and torn down by the game's constructor and destructor bodies (or the
-// rewrites of them below, called explicitly where the original inlines them), which store the
-// game's vtables. The classes are __declspec(novtable) and their C++ destructors are empty, so C++
-// never stores a vtable of its own: a CMemoryStream local or member is plain storage until one of
-// those bodies runs, as in the original.
+// Streams are built and torn down by the constructor and destructor bodies below (called
+// explicitly where the original inlines them), which store the compiled tables in place of
+// game.exe's three (C19, core_streams.cpp: CStream::StreamVtable(), CMemoryStream::
+// MemoryStreamVtable() / QueueStreamVtable()). The classes are __declspec(novtable) and their C++
+// destructors are empty, so C++ never stores a vtable of its own: a CMemoryStream local or member
+// is plain storage until one of those bodies runs, as in the original.
 
 #include "core_refcount.h"
 #include "engine_object.h"
@@ -38,7 +39,8 @@ class CString;
 // (net_link.h).
 class __declspec(novtable) CStream {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BDB0);
+    // The compiled table (C19) in place of game.exe's 0073BDB0.
+    static void* StreamVtable();
 
     virtual ~CStream() {}                                               // 0: 00417400 (deleting destructor)
     virtual std::uint32_t Read(void* buffer, std::uint32_t size) = 0;   // 1: returns the bytes read
@@ -125,9 +127,10 @@ static_assert(sizeof(CStream) == 0x0C);
 // Resize and SetSize flush and reset that state.
 class __declspec(novtable) CMemoryStream : public CStream {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BD90);
-    // The second vtable (same slots 1-7), the network queue's streams (ConstructQueueStream).
-    static constexpr std::uintptr_t kQueueVtableAddress = std::uintptr_t(0x0073C960);
+    // The compiled tables (C19) in place of game.exe's 0073BD90 and the second one, 0073C960 (same
+    // slots 1-7), the network queue's streams (ConstructQueueStream).
+    static void* MemoryStreamVtable();
+    static void* QueueStreamVtable();
 
     ~CMemoryStream() override {}                                        // 0: 004173B0 (deleting destructor)
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 004A5380 (a short read zero-fills, clears ok_)
@@ -218,9 +221,20 @@ static_assert(sizeof(QueueStream) == 0x28 && offsetof(QueueStream, bytes) == 0);
 // The game's save stream: the global CMemoryStream at 007AFDF8 (defined in world_game.cpp).
 CMemoryStream* GameSaveStream();
 
-// The stream vtables under the names the world_* and net_* code uses.
-constexpr std::uintptr_t kStreamVtable = CStream::kVtableAddress;
-constexpr std::uintptr_t kMemoryStreamVtable = CMemoryStream::kVtableAddress;
+// The stream tables under the names the world_* and net_* code uses (`ei::SetVtable(stream,
+// kMemoryStreamVtable)`): each converts to its compiled table.
+struct StreamTableName {
+    void* (*table)();
+    operator const void*() const { return table(); }
+};
+inline constexpr StreamTableName kStreamVtable{&CStream::StreamVtable};
+inline constexpr StreamTableName kMemoryStreamVtable{&CMemoryStream::MemoryStreamVtable};
+
+// The harness's view of the memory streams' writes (verify builds; the save trace,
+// tests/verify/harness_savetrace.cpp): the stream, the size and the slot's return address
+// (`_AddressOfReturnAddress()`), before the bytes are written. game.exe's run has the harness take
+// game.exe's slots instead.
+extern void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame);
 
 // CRefObject root (vtable 0073BB68).
 void __fastcall RefObjectDestructBase(void* self);                                 // 00412720, 00413430

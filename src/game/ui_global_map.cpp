@@ -688,8 +688,8 @@ CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     turn_.y = 0.0f;
     turn_.z = 0.0f;
     ::new (&shownName_) mfc::CString;
-    vtable_ = ei::GamePointer<void*>(0x00740B3C);
-    inputVtable_ = ei::GamePointer<void*>(0x00740B08);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     return this;
 }
 EI_REWRITTEN(0x005F67A0, CGlobalMap::Construct);

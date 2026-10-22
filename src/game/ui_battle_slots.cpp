@@ -42,8 +42,6 @@ float SelectedFaceAngle() {
 }
 
 // The load window the game-over box opens (0x194 bytes, built inline).
-void** SaveLoadVtable() { return ei::GamePointer<void*>(0x00741388); }
-void** SaveLoadInputVtable() { return ei::GamePointer<void*>(0x00741354); }
 
 constexpr std::uint32_t kLeaveZoneYes = 0x10001;
 constexpr std::uint32_t kGameOverLoad = 0x20001;
@@ -227,8 +225,8 @@ void CBattleScreen::OnMessageResult(int result) {
             window->isSave_ = false;
             window->sliding_ = false;
             new (static_cast<void*>(&window->name_)) mfc::CString();
-            window->vtable_ = SaveLoadVtable();
-            window->inputVtable_ = SaveLoadInputVtable();
+            window->vtable_ = CSaveLoadWindow::Vtable();
+            window->inputVtable_ = CSaveLoadWindow::InputVtable();
         }
         // (Like the original, the flags are written again without checking the allocation.)
         window->isSave_ = false;

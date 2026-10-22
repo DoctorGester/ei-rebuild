@@ -34,8 +34,6 @@ namespace {
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 
 // The load window the game-over box opens (0x194 bytes, built inline).
-void** SaveLoadVtable() { return ei::GamePointer<void*>(0x00741388); }
-void** SaveLoadInputVtable() { return ei::GamePointer<void*>(0x00741354); }
 
 constexpr std::uint32_t kLeaveZoneYes = 0x10001;
 constexpr std::uint32_t kGameOverLoad = 0x20001;
@@ -96,8 +94,8 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
             window->isSave_ = false;
             window->sliding_ = false;
             new (static_cast<void*>(&window->name_)) mfc::CString();
-            window->vtable_ = SaveLoadVtable();
-            window->inputVtable_ = SaveLoadInputVtable();
+            window->vtable_ = CSaveLoadWindow::Vtable();
+            window->inputVtable_ = CSaveLoadWindow::InputVtable();
         }
         // (Like the original, the flags are written again without checking the allocation.)
         window->isSave_ = false;
@@ -224,8 +222,6 @@ void CBriefingScreen::SaveState() {
     GameSaveStream()->Write(&zero, 4);
 }
 EI_REPLACE_METHOD(0x00602490, CBriefingScreen::SaveState);
-// 0062D330: the global map's slot 40, byte-identical (one zero dword).
-EI_REPLACE_METHOD(0x0062D330, CBriefingScreen::SaveState);
 EI_REPLACE_METHOD(0x00606F40, CBriefingScreen::OnMessageResult);
 
 // --- 00607720 -----------------------------------------------------------------------------------
