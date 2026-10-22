@@ -77,7 +77,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* items, void* /*unused*/, int* gold) {
     bool keyed = IsTextKey(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
-    void* manager = world->ItemFactory();
+    CItemManager* manager = world->ItemFactory();
     const UnitPrototypeRecord* prototype = cunit->GetPrototype();
     *gold = 0;
     if (prototype) {
@@ -108,10 +108,10 @@ int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* i
     while (cunit->carriedCount != 0) cunit->RemoveCarried(0);
     if (keyed) {
         for (int slot = 0; slot < 7; ++slot) {
-            CItem* armour = cunit->WornItem(slot);
+            CItemArmor* armour = cunit->WornItem(slot);
             if (!armour) continue;
             Append(drops, armour);
-            cunit->UnequipArmour(static_cast<CItemArmor*>(armour)->GetType());   // a worn item is armour
+            cunit->UnequipArmour(armour->GetType());
         }
         for (int slot = 0; slot < 4; ++slot) {
             CItemWeapon* weapon = cunit->GetWeapon(slot);

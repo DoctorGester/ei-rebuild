@@ -383,10 +383,10 @@ public:
     // 00530730. Puts armour piece `item` (condition +0x20 rounding above 0) into the armour slot
     // of its type (referenced; the controller's slot 26 gets its id) and releases the piece
     // that was there. Returns that piece (null for an item that does not qualify).
-    CItem* EquipArmour(CItem* item);
+    CItemArmor* EquipArmour(CItem* item);
     // 00530840. Empties armour slot `slot` (the controller's slot 27 gets the piece's type, the
     // piece is released). Returns the piece (released).
-    CItem* UnequipArmour(int slot);
+    CItemArmor* UnequipArmour(int slot);
     // 005315B0. Releases every item (weapons, armour with the controller's slots 27 and 28, quick
     // items, spells, the carried ones) and frees the carried array.
     void ReleaseAllItems();
@@ -509,7 +509,7 @@ public:
     // 00530560. Twice above.z (+0x14C), unrounded in ST0.
     double DoubleHeight() const;
     // 00530830 (RET 4). The armour piece worn in `slot` (armor[slot], unchecked).
-    CItem* WornItem(int slot) const;
+    CItemArmor* WornItem(int slot) const;
     // 0052E740. Virtual slot 5 (the release): SetPlayer(null), the controller's slot 5, every
     // item slot released and emptied (quick items, weapons, spells, armour), the carried items
     // released (no null test) and their array freed (grow-by kept).
@@ -570,7 +570,7 @@ public:
     CItem* weapons[4];              // +0x440
     CItem* quickItems[4];           // +0x450
     CItem* spells[8];               // +0x460
-    CItem* armor[7];                // +0x480
+    CItemArmor* armor[7];           // +0x480 a piece per armour type
     void* carriedVtable;            // +0x49C the vtable of the carried items' CArray (CarriedArrayClass)
     CItem** carried;                // +0x4A0 CArray of further items
     int carriedCount;               // +0x4A4
@@ -950,7 +950,7 @@ struct UnitStats {
     // three, table kArmourCoverage; 7 none): for each covered slot that is used, layer GetTypeGroup()
     // gains the piece's absorb values (+0x4C for the first, +0x68 for the others), its +0x00
     // the piece's mask (+0x84 / +0x88) and its state 3.
-    void AddArmourLayer(CEngineObject* armour);
+    void AddArmourLayer(CItemArmor* piece);
     // 00523300. Zeroes layers 1 and 2 of every slot, then adds each piece `unit` wears whose
     // +0x20 (a float) rounds above 0.
     void RebuildArmourLayers(CUnit* unit);

@@ -100,7 +100,7 @@ BOOL CItemWeapon::CopyToImpl(CItem* target, CSpellManager* spells) {
 
 BOOL CItemArmor::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CItem::CopyToImpl(target, spells)) return 0;
-    auto* armor = static_cast<CItemArmor*>(target);
+    auto* armor = AsArmor(target);
     std::memcpy(armor->absorb_, absorb_, sizeof(absorb_));
     armor->layerMask_[0] = layerMask_[0];
     armor->layerMask_[1] = layerMask_[1];
@@ -121,7 +121,7 @@ BOOL CItemQuest::CopyToImpl(CItem* target, CSpellManager* spells) {
 
 BOOL CItemLoot::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CItem::CopyToImpl(target, spells)) return 0;
-    auto* loot = static_cast<CItemLoot*>(target);
+    auto* loot = AsLoot(target);
     loot->kind_ = kind_;
     loot->recordType_ = recordType_;
     loot->index_ = index_;

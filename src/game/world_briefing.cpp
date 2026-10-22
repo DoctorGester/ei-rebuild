@@ -50,7 +50,7 @@ bool IsEmpty(const mfc::CString& s) {
 } // namespace
 
 mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing) {
-    void* texts = TheTextManager();
+    CTextManager* texts = TheTextManager();
     bool missing;
     {
         mfc::CString prefix(game::briefingwords::BriefingSection());
@@ -61,7 +61,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     // The first "#show" line whose second word is not "Hero" names the speaker.
     console::CStringArray words;
     while (TextFindLineOriginal(texts, nullptr, game::briefingwords::ShowTag())) {
-        static_cast<CTextManager*>(texts)->Split(&words, 1);
+        texts->Split(&words, 1);
         if (words.GetSize() >= 2 &&
             gamecrt::mbsicmp(words[1].GetString(),
                             game::briefingwords::Hero()) != 0)
@@ -140,10 +140,10 @@ void GameFlow::ForgetBriefing(const char* briefing) {
 }
 
 void UnloadQuestTexts() {
-    void* texts = TheTextManager();
+    CTextManager* texts = TheTextManager();
     if (!texts) return;
     LoadedFiles& files = QuestFiles();
-    for (stlp::string* file = files.begin(); file != files.end(); ++file) static_cast<CTextManager*>(texts)->RemoveSource(file->data());
+    for (stlp::string* file = files.begin(); file != files.end(); ++file) texts->RemoveSource(file->data());
     // The original's inlined erase(begin(), end()) moves nothing and destroys them all.
     files.clear();
 }
@@ -273,7 +273,7 @@ bool ActiveSession(const std::uint8_t* s) { return s && !(*reinterpret_cast<cons
 } // namespace
 
 void GameFlow::RegisterQuests(const char* folder) {
-    void* texts = TheTextManager();
+    CTextManager* texts = TheTextManager();
     if (!texts) return;
     if (!FlowLoadQuestsOriginal(folder)) return;
     StringVector& folders = QuestFolders();
@@ -284,11 +284,11 @@ void GameFlow::RegisterQuests(const char* folder) {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::QuestRegistry();
         // (004DEFC0 in the original; the registry is binary, read as it is: CTextManager::OpenData.)
-        registered = static_cast<CTextManager*>(texts)->OpenData(path) != 0;
+        registered = texts->OpenData(path) != 0;
     }
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
-    TheQuestDatabase().LoadRegistry(static_cast<CTextManager*>(texts)->cursor_);   // 006AE8E0 (its result not read)
+    TheQuestDatabase().LoadRegistry(texts->cursor_);   // 006AE8E0 (its result not read)
     {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::MapList();
@@ -316,14 +316,14 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
         peer = *reinterpret_cast<std::uint8_t* const*>(server + 0x25A8);
     if (!peer) return new (out) mfc::CString(game::EmptyText());
     name = *reinterpret_cast<const char* const*>(peer + 0x0C);
-    void* texts = TheTextManager();
+    CTextManager* texts = TheTextManager();
     int found;
     {
         mfc::CString prefix(game::briefingwords::QuestSection());
         mfc::CString section = prefix + name;
         found = TextsOpenSection(texts, nullptr, section);
     }
-    if (found) static_cast<CTextManager*>(texts)->ReadLine(&name, 1);
+    if (found) texts->ReadLine(&name, 1);
     return new (out) mfc::CString(name);
 }
 

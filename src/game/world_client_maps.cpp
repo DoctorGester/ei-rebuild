@@ -733,7 +733,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         if (record->weaponCount != 0) controller->ShowWeapon(0);
         for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
             CItem* armour = record->armor[j];
-            if (allArmour || static_cast<CItemArmor*>(armour)->GetType() != 0) unit->EquipArmour(armour);
+            if (allArmour || AsArmor(armour)->GetType() != 0) unit->EquipArmour(armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
             unit->AddQuickItem(record->quickItems[j]);

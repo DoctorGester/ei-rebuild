@@ -18,6 +18,7 @@ class CWorldServer;   // world.h
 class CTextManager;   // item_db_text.h
 class CBaseManager;   // base_manager.h
 class CTextureManager;   // texture.h
+class CMaterialManager;   // material.h
 struct CSoundManager;   // sound.h
 struct CMusicSystem;   // sound.h
 class CTextureDevice;   // texture.h
@@ -53,6 +54,8 @@ inline CWorldServer* TheServerWorld() { return ei::GamePointer<CWorldServer>(0x0
 inline CTextManager* TheTextManager() { return ei::GameData<CTextManager* const>(0x007AF788); }
 inline CBaseManager* TheObjectManager() { return ei::GameData<CBaseManager* const>(0x007AF5F8); }
 inline CTextureManager* TheTextureManager() { return ei::GameData<CTextureManager* const>(0x007AF744); }
+// 007AF740: the material manager (the UI windows and the terrain pages make their materials there).
+inline CMaterialManager* TheMaterialManager() { return ei::GameData<CMaterialManager* const>(0x007AF740); }
 inline CSoundManager* TheSoundManager() { return ei::GameData<CSoundManager* const>(0x007AF784); }
 inline CMusicSystem* TheMusicSystem() { return ei::GameData<CMusicSystem* const>(0x007AF760); }
 

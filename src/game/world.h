@@ -34,6 +34,7 @@ using BOOL = int;
 
 struct ScriptGroup;
 class CItem;       // item.h
+struct CItemManager;   // item.h
 class CParty;      // party.h
 class CParticleSource;   // effects.h
 class CAIMap;       // ai_map.h
@@ -204,7 +205,7 @@ public:
     virtual CBaseManager* FigureManager();  // 15: the figure manager (+0x3C)
     virtual void ItemConstructor();       // 16: 0055EBB0 (+0x58)
     virtual void SpellConstructor();      // 17: 0055EBC0 (+0x50)
-    virtual CBaseManager* ItemFactory(); // 18: 004BA000 (+0x54, itemManager_)
+    virtual CItemManager* ItemFactory(); // 18: 004BA000 (+0x54, itemManager_)
     virtual CBaseManager* MapObjectManager();   // 19: 0055EB70, the map object manager (+0x40)
     virtual CBaseManager* PlayerList();   // 20: 0055EB50 (+0x38, players_)
     // 21: 0055EB80 (+0x44): the side-specific halves' manager (the client's is a
@@ -312,7 +313,7 @@ public:
     CBaseManager* manager48_;            // +0x48 the timed objects (spells, effects; slot 14)
     CBaseManager* manager4C_;            // +0x4C (slot 22)
     CEngineObject* manager50_;            // +0x50 (slot 17)
-    CBaseManager* itemManager_;          // +0x54 items (slot 18)
+    CItemManager* itemManager_;          // +0x54 items (slot 18)
     CEngineObject* manager58_;            // +0x58 (slot 16)
     // +0x5C a counted helper (0xC bytes, vtable 0073F240) WorldCreateManagers shares in.
     RefPtr shared5C_;
@@ -2100,7 +2101,7 @@ inline stlp::list<CEngineObject*>* FrameDeferredUnits() { return &*g_deferredUni
 // shot's arrow); each use counts it down.
 inline int& NextClientObjectId() { return ei::GameData<int>(0x007AF63C); }
 // 007AFFB4: the world server's item manager (the item factory, CWorld slot 18 / itemManager_).
-inline CBaseManager* WorldItemManager() { return ei::GameData<CBaseManager* const>(0x007AFFB4); }
+inline CItemManager* WorldItemManager() { return ei::GameData<CItemManager* const>(0x007AFFB4); }
 
 
 // 00578E30 (thiscall on the client glue 007AFEA4, unused; RET 0x18; world_weather.cpp). A

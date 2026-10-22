@@ -150,7 +150,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         break;
     }
     case kItemLoot: {
-        auto* loot = static_cast<CItemLoot*>(item);
+        auto* loot = AsLoot(item);
         if (loot->kind_ == 0) {
             KeyName(recordName, LootAt(prototypeIndex)->text04);
             ReadItemText(this, mfc::CString(kLootItem) + recordName, name, description);

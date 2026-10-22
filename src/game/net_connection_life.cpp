@@ -24,7 +24,7 @@ namespace net {
 
 namespace {
 
-using AttachedMap = stlp::map<CRefObject*, AttachedId>;
+using AttachedMap = trees::Attached;
 
 // CRT eh vector constructor / destructor iterators (stdcall).
 void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
@@ -55,7 +55,7 @@ void DestroyForReset(Connection* c) {
     GrowingBufferDestruct(&c->reliableOut_);
     c->incoming_.Release<ChunkElement>();   // 00439D40
     c->headers_.Release<ChunkElement>();
-    c->attached_.Destroy<stlp::TreeElement<AttachedMap::Value>>();
+    trees::Attached::Destroy(&c->attached_);
     trees::Records::Destroy(&c->records_);
     c->acknowledged_.Release<PacketRecordElement>();   // 004399C0
     c->history_.Release<PacketRecordElement>();
@@ -82,20 +82,20 @@ Connection* Connection::Construct(std::uint32_t id) {
     address_ = NetAddress{};
     VectorCtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolConstruct), Callback(IdPoolDestruct));
     freedIds_.Construct();   // 00439120
-    static_cast<trees::SentIds*>(&bySentId_)->ConstructWith(&tags[3], &tags[2]);   // 004393C0
-    static_cast<trees::Objects*>(&byObject_)->ConstructWith(&tags[2], &tags[3]);
+    bySentId_.ConstructWith(&tags[3], &tags[2]);   // 004393C0
+    byObject_.ConstructWith(&tags[2], &tags[3]);
     VectorCtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Construct), Callback(trees::Entries::Destroy));
     history_.Construct();   // 00439960
     acknowledged_.Construct();
     // The trees' comparison byte is copied from the stack slot of the id argument.
-    static_cast<trees::Records*>(&records_)->ConstructBase(&tags[3]);
+    records_.ConstructBase(&tags[3]);
     records_.Count() = 0;
     records_.Compare() = static_cast<std::uint8_t>(id);
-    records_.EmptyInitialize();
-    static_cast<trees::Attached*>(&attached_)->ConstructBase(&tags[3]);
+    trees::Records::EmptyInitialize(&records_);
+    attached_.ConstructBase(&tags[3]);
     attached_.Compare() = static_cast<std::uint8_t>(id);
     attached_.Count() = 0;
-    attached_.EmptyInitialize();
+    trees::Attached::EmptyInitialize(&attached_);
     headers_.Construct();   // 00439CE0
     // The list's allocator proxy (0043A980) holds null until the sentinel is made.
     auto* sentinel = static_cast<HeaderNode*>(NodeAllocate(sizeof(HeaderNode)));
@@ -158,7 +158,7 @@ void Connection::Destruct() {
     stlp::deallocate(incoming_.End(), sizeof(HeaderNode));   // 00439D80
     headers_.Clear<ChunkElement>();
     stlp::deallocate(headers_.End(), sizeof(HeaderNode));
-    attached_.Clear<stlp::TreeElement<AttachedMap::Value>>();
+    trees::Attached::Clear(&attached_);
     trees::Attached::FreeHeader(&attached_);
     trees::Records::Clear(&records_);
     trees::Records::FreeHeader(&records_);
@@ -207,19 +207,19 @@ Connection* Connection::Clone() {
     copy->address_ = address_;
     std::memcpy(&copy->sendInterval_, &sendInterval_, offsetof(Connection, idPools_) - offsetof(Connection, sendInterval_));
     for (int i = 0; i < kMessageTypes; ++i) copy->idPools_[i].CopyFrom(idPools_[i]);
-    static_cast<netlists::FreedBatchAbi*>(&copy->freedIds_)->CopyConstruct(&freedIds_);   // 00437930
+    copy->freedIds_.CopyConstruct<FreedIdsElement>(freedIds_);   // 00437930
     copy->freedTimer_ = freedTimer_;
-    static_cast<trees::SentIds*>(&copy->bySentId_)->CopyConstruct(&bySentId_);   // 00437AA0
-    static_cast<trees::Objects*>(&copy->byObject_)->CopyConstruct(&byObject_);
-    for (int i = 0; i < 11; ++i) static_cast<trees::Entries*>(&copy->priorities_[i])->CopyConstruct(&priorities_[i]);
-    static_cast<netlists::SentPacketAbi*>(&copy->history_)->CopyConstruct(&history_);   // 00437F60
-    static_cast<netlists::SentPacketAbi*>(&copy->acknowledged_)->CopyConstruct(&acknowledged_);
-    static_cast<trees::Records*>(&copy->records_)->CopyConstruct(&records_);
-    static_cast<trees::Attached*>(&copy->attached_)->CopyConstruct(&attached_);
+    copy->bySentId_.CopyConstruct(&bySentId_);   // 00437AA0
+    copy->byObject_.CopyConstruct(&byObject_);
+    for (int i = 0; i < 11; ++i) copy->priorities_[i].CopyConstruct(&priorities_[i]);
+    copy->history_.CopyConstruct<PacketRecordElement>(history_);   // 00437F60
+    copy->acknowledged_.CopyConstruct<PacketRecordElement>(acknowledged_);
+    copy->records_.CopyConstruct(&records_);
+    copy->attached_.CopyConstruct(&attached_);
     copy->headerSequence_ = headerSequence_;
     copy->incomingSequence_ = incomingSequence_;
-    static_cast<netlists::ChunkAbi*>(&copy->headers_)->CopyConstruct(&headers_);   // 00438690
-    static_cast<netlists::ChunkAbi*>(&copy->incoming_)->CopyConstruct(&incoming_);
+    copy->headers_.CopyConstruct<ChunkElement>(headers_);   // 00438690
+    copy->incoming_.CopyConstruct<ChunkElement>(incoming_);
     copy->ackMask_ = ackMask_;
     copy->ackBase_ = ackBase_;
     copy->reliableOut_.ConstructCopy(&reliableOut_);

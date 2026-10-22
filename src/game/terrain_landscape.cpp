@@ -327,9 +327,6 @@ void Terrain::SetWaves(const Vector3* direction, float strength) {
 
 namespace {
 
-// The texture manager (007AF744) and the material manager (007AF740).
-void* Materials() { return ei::GameData<void* const>(0x007AF740); }
-
 constexpr int kPageTexture = 0xB;     // texture kind of the terrain pages
 constexpr int kPageMaterial = 0x12;   // material kind
 constexpr int kExtraPages = 2;        // <map>L00, <map>L01
@@ -353,7 +350,7 @@ int Terrain::SetupPages(int count) {
         CTexture* texture = TheTextureManager()->FindOrCreate(kPageTexture, name);
         pageTextures[i] = texture;
         ++texture->refCount_;
-        CMaterial* material = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(Materials())->NewMaterial(kPageMaterial));
+        CMaterial* material = TheMaterialManager()->NewMaterial(kPageMaterial);
         pageMaterials[i] = material;
         ++material->refCount_;
         material->name = "Wood";

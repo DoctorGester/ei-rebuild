@@ -94,14 +94,14 @@ void CUnit::DropBrokenEquipment() {
     broken.blockSize = kPtrListBlockSize;
     void* messages = PlayerMessages(owner);
 
-    for (CItem*& slot : armor) {
+    for (CItemArmor*& slot : armor) {
         if (!slot || !IsBroken(slot)) continue;
         ++slot->refCount_;
         broken.AddTail(slot);
-        CEngineObject* piece = slot;
+        CItemArmor* piece = slot;
         slot = nullptr;
         if (piece) {
-            Controller()->ArmourTakenOff(static_cast<std::uint32_t>(static_cast<CItemArmor*>(piece)->GetType()));
+            Controller()->ArmourTakenOff(static_cast<std::uint32_t>(piece->GetType()));
             piece->Release();
         }
         MarkChanged(kPartEquipment);

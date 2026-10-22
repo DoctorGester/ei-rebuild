@@ -94,7 +94,7 @@ CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
     if (!body_ || region < kFirstBodySlot || region >= kBodySlotEnd) return nullptr;
     *topic = region - 4;
     for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
-        auto* armour = static_cast<CItemArmor*>(hero->armor[i]);
+        CItemArmor* armour = AsArmor(hero->armor[i]);
         if (armour->GetType() == region - kFirstBodySlot) return armour;
     }
     return nullptr;

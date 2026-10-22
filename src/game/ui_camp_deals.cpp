@@ -100,7 +100,7 @@ void ReturnResults(CCampPages* camp, CParty* results, CParty* constructorList, C
 namespace {
 // A new item named `name` from the results' item manager, counted.
 CItemLoot* NewLoot(CParty* party, const char* name) {
-    auto* item = static_cast<CItemLoot*>(ItemManagerCreateItemOriginal(party->ItemManager(), nullptr, name));
+    auto* item = AsLoot(ItemManagerCreateItemOriginal(party->ItemManager(), nullptr, name));
     ++item->refCount_;
     return item;
 }
@@ -149,7 +149,7 @@ constexpr int kSpellContainerClass = 0x3008;
 
 // A new item named `name` from the results' item manager added to them (when one is made).
 void AddNamed(CParty* results, const char* name, std::uint32_t prototypeIndex, bool setIndex) {
-    auto* item = static_cast<CItemLoot*>(ItemManagerCreateItemOriginal(results->ItemManager(), nullptr, name));
+    auto* item = AsLoot(ItemManagerCreateItemOriginal(results->ItemManager(), nullptr, name));
     if (!item) return;
     ++item->refCount_;
     if (setIndex) item->index_ = prototypeIndex;
@@ -211,10 +211,10 @@ void StockSpells(CCampPages* camp, CParty* list) {
             const char* name = item->spell_->GetPrototype()->code;
             stock->AddSpell(itemdb::TheSpellDatabase().spells.Named(name));
         } else if (UiItemKinds::IsSpell(item)) {
-            std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
+            std::uint32_t index = AsLoot(item)->index_;
             stock->AddSpell(itemdb::SpellAt(index));
         } else if (UiItemKinds::IsModifier(item)) {
-            std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
+            std::uint32_t index = AsLoot(item)->index_;
             stock->AddModifier(itemdb::SpellModifierAt(index));
         }
     }
@@ -236,10 +236,10 @@ void StockItems(CCampPages* camp, CParty* list) {
             else if (item->type_ == kArmorClass) kind = kRecordArmor;
             else if (item->type_ == kQuickItemClass) kind = kRecordQuickItem;
         } else if (UiItemKinds::IsPart(item)) {
-            auto* loot = static_cast<CItemLoot*>(item);
+            auto* loot = AsLoot(item);
             index = loot->index_;
             if (loot->recordType_ <= kRecordQuickItem) kind = static_cast<int>(loot->recordType_);
-        } else if (item->type_ == kLootClass && static_cast<CItemLoot*>(item)->kind_ == kKindOwnPrice) {
+        } else if (item->type_ == kLootClass && AsLoot(item)->kind_ == kKindOwnPrice) {
             list->RemoveItem(item, 1);
         }
         if (kind == static_cast<int>(kRecordWeapon))
