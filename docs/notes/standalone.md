@@ -405,7 +405,7 @@ after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
 after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
 which took the pointer cells from 1,522 to 1,243, 243 -> 234 after C18q's script keyword and CRT tables, pointer cells
-1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22). C18 turns them into named C++
+1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -680,8 +680,8 @@ kinds given.
       007C8968-007C8970, 007C8978, 007C8988), player_client_handlers' fixed view rotation 007C8388, and the game's
       ISAAC generator 007A9D40 (a mutable zero-start global, `IsaacRandom g_random = /*007A9D40*/ {}`; the stores
       zero its first dword). A product or quotient of two named constants that the original computes at run time
-      is `static_cast<float>` (check_fp_fold: sound_manager's 100 / (pi / 2)). Left as they are: 007AF3E8 and
-      007C53C4 store the address of the log stream 007C5810 (a constructed object, not yet a name), 007C2F24 is a
+      is `static_cast<float>` (check_fp_fold: sound_manager's 100 / (pi / 2)). Left as they are (then): 007AF3E8 and
+      007C53C4 store the address of the log stream 007C5810 (named since C18s), 007C2F24 is a
       function-local guard (run-time state), 0079B2A0 (2 pi) and the folds that only game.exe's own code reads (the
       per-window pi / 2 and 1 / 1 copies in 007C7B70-007C8844) are no hand code's; sky_object 007AA890 /
       007AA8A0, the unit objects 007AF280 / 007AF284, the animation / object3d / map_object lifetime objects
@@ -767,9 +767,8 @@ kinds given.
         the record reads game.exe's copies through `ei::OriginalGameData` (a type alias where the type has a
         template argument: the literal check's pattern takes no nested `<>`), the replay fills ours by the
         record's order.
-      - Not this rule (C19): an object that carries game.exe's vtable: the CArrays 007A9CC8 / 007AA608, the save stream (CMemoryStream 007AFDF8), the console's log ostream 007C5810 (built by
-        006FC42F with the iostream virtual base table 00748284; combat's 007AF3E8, the AI's 007C53C4 and the
-        console's 007C54E8 store its address, so they wait with it) and the other ostreams 007C55B0-007C7B38.
+      - Not this rule (C19): an object that carries game.exe's vtable: the CArrays 007A9CC8 / 007AA608, the save stream
+        (CMemoryStream 007AFDF8). The console's ostreams and their log pointers are named since C18s (below).
     - **Unread objects** (config/unread_data.csv, written by gen_static_init.py): an object nothing but its
       initialiser reaches needs no name. `unread_objects` takes each run of contiguous dword stores of one
       initialiser that stores constants only (kinds stores, float fold, copy) into .data and keeps it when no
@@ -819,9 +818,18 @@ kinds given.
     - **Addon sites**: named_data.py's NAMED_ADDON_SITES lets a named range hold the site of a Rebirth patch disabled
       here (SetDefaultRate's 00783E34: net::g_remoteRate, a plain int a flag can write); addon_sites.inc still names
       it for the harness in game.exe.
-    - **Left**: the MFC / console static state (the console ostreams 007C55A8-007C7B38 with their buffers and the
-      log pointers that hold their addresses: C19's vtables first), MFC's module / thread state and window classes
-      (mfc_state.cpp, mfc_window.cpp: C18r; the console streams: C18s), the save stream 007AFDF8 and the received stream
+    - **The console's streams and command maps (C18s, 121 -> 90)**: console_streams.cpp names the eight streambufs
+      (`lib::StaticObject<ConsoleStreambuf>`, 0x454 bytes, 0x458 apart), the eight ostreams (`console::OStreamObject`:
+      the ostream and its ios, the virtual base, 0x58 bytes; trivial, so a plain `constinit` aggregate, TYPES
+      'OStreamObject') and the two command maps (`lib::StaticObject<CommandMap>`), with their 18 initialisers
+      (005DC050 / 005DC120, 005DC1E0-005DC3F0, 005DC420-005DC5E0) and 18 exit functions ported on the names and
+      registered (rows in extra_function_sizes.csv / function_sizes.inc). The log pointers are `constexpr` pointers whose
+      initialiser names the stream (`{&console::g_aiLogOut}`: named_data takes a qualified name of a range): unit_hits'
+      kHitLog 007AF284, ai_alarm's kAlarmLog 007C2EB8, combat's kCombatLog 007AF3E8, unit_ai's kAiLog 007C53C4 and
+      kModeLog 007C54E8; a file's own ostream view (AiLogStream, UnitLogStream, GameOstream, net::LogStream) reads the
+      stream through `console::StreamAs<View>`. The ostream constructor still points the vbtable at game.exe's 00748284
+      (crt_iostream.cpp, a kept row: C25a / C26).
+    - **Left**: MFC's module / thread state and window classes (mfc_state.cpp, mfc_window.cpp: C18r), the save stream 007AFDF8 and the received stream
       007C83D0 (CMemoryStream, game.exe's vtable), the singletons themselves (0079B2A8, 007AF060, 007AF5B8, 007AFF60,
       0079BF00, 007AEE78), the loading movie 007C5520 / 007C554C, 0079BC28 and 007AEDD0-DC (src/render), the
       Rebirth-patched floats 007428AC / 00742B08, STLport's free lists 0079B224-0079B22C (the harness calls our

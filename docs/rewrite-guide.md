@@ -26,8 +26,11 @@ comes from a bug we already hit.
 ## Where code goes
 
 - `src/game/<area>.h/.cpp`: rewritten game code. Provisional names; comment each function with its
-  original address. Classes mirror the original memory layout exactly, with `static_assert`s on sizes
-  and offsets. Unknown bytes are `unknown_XXX` fields.
+  original address. Classes are normal C++: real virtual functions, members of their real types, no
+  hand-built vtables and no layout asserts. Since S21 (2026-10-16) no game.exe code shares our objects, so
+  nothing needs the original memory layout; goldens don't depend on it either. Keep game.exe's byte layout
+  only where bytes leave the process (save files, network packets) or come from game.exe's data image
+  (until C18/C25 finish), and say so where you do.
 - `src/lib/`: shared compatibility code. `crt.h` (the game's own CRT: operator new/delete, string
   functions, file I/O), `mfc.h` (CString, CFile, CFileFind, CArray, CList, CTypedPtrList, CPlex),
   `containers.h` (the engine's aligned arrays), `stlp.h` (STLport
@@ -138,8 +141,7 @@ comes from a bug we already hit.
 
 New and changed code is written the way the cleanup plan (docs/cleanup-plan.md) wants it, so it
 does not need a second pass:
-- fields are members of the class's one declaration (in its header, with `static_assert`s on
-  offsets), not `At<>`/`Field<>` offsets or `*At` view structs; add the members you need;
+- fields are members of the class's one declaration (in its header), not `At<>`/`Field<>` offsets or `*At` view structs; add the members you need;
 - virtual calls go through declared and named virtual functions, not `VCall` and not a placeholder
   `SlotNN()` (name the slot when you call it);
 - no byte arithmetic on pointers with literal offsets (`reinterpret_cast<uint8_t*>(p) + 0x..`);

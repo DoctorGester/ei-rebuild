@@ -51,7 +51,6 @@ constexpr const char* kGraphExtension = ".grp";
 // ---- StartServer / AcceptPlayers ---------------------------------------------------------------
 constexpr const char* kLocalHost = "127.0.0.1";
 constexpr const char* kServerName = "Server";
-constexpr std::uintptr_t kNetLogStream = std::uintptr_t(0x007C56B0);  // the network log's ostream
 constexpr const char* kAcceptedPlayer = "Accepted player ";
 
 // ---- ClearSaveFolder ---------------------------------------------------------------------------

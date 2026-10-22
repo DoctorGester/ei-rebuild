@@ -10,6 +10,7 @@
 #include "../lib/crt_iostream.h"
 #include "../lib/stlp.h"
 #include "../lib/stlp_tree_cstring.h"
+#include "../lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -104,11 +105,33 @@ public:
 };
 static_assert(sizeof(GameOStream) == 8);
 
-// 007C55A8: the console's ostream (its streambuf is ConsoleStreambuf 007C5868).
-inline GameOStream& Out() { return ei::GameData<GameOStream>(0x007C55A8); }
-// 007C5760: another of the console's ostreams (its message filter not identified); the battle
-// screen prints the "Terrain Coords" of a click on the ground to it (00638EF0).
-inline GameOStream& Out7C5760() { return ei::GameData<GameOStream>(0x007C5760); }
+// One of the console's eight static ostreams as the original lays it out (0x58 bytes): the ostream part and its
+// ios, the virtual base, right after it. Zero until its static initialiser constructs it on its streambuf
+// (ostream(streambuf*, 1), 006FC42F); the exit function that initialiser registers destroys it (console_streams.cpp).
+struct OStreamObject : GameOStream {
+    libcrt::Ios ios;
+};
+static_assert(sizeof(OStreamObject) == 0x58);
+
+// The ostreams, one per message filter (their streambufs below): the console itself, then all, unitacks (the AI
+// alarm's log), net (the network log), rpg (the hit log), graphics (the battle screen's "Terrain Coords" of a click
+// on the ground, 00638EF0), event, ai (combat's and the AI's logs).
+extern OStreamObject g_consoleOut;      // 007C55A8
+extern OStreamObject g_allLogOut;       // 007C5600
+extern OStreamObject g_unitAcksLogOut;  // 007C5658
+extern OStreamObject g_netLogOut;       // 007C56B0
+extern OStreamObject g_rpgLogOut;       // 007C5708
+extern OStreamObject g_graphicsLogOut;  // 007C5760
+extern OStreamObject g_eventLogOut;     // 007C57B8
+extern OStreamObject g_aiLogOut;        // 007C5810
+// The console's ostream.
+inline GameOStream& Out() { return g_consoleOut; }
+// A log stream seen through one of the game's per-file ostream views (inserters only, no data of their own).
+template <class View>
+View* StreamAs(libcrt::Ostream& stream) {
+    static_assert(sizeof(View) == sizeof(libcrt::Ostream));
+    return static_cast<View*>(&stream);
+}
 // `<< '\n' << flush`, how every console message ends.
 void EndLine(GameOStream& os);
 // Out() << text, then EndLine.
@@ -158,7 +181,15 @@ static_assert(offsetof(ConsoleStreambuf, base_) == 0x10 && offsetof(ConsoleStrea
 // gets it. game.exe's run has the harness take game.exe's sync slot instead.
 extern void (*g_consoleLineObserver)(const char* line);
 
-inline ConsoleStreambuf* MainStreambuf() { return ei::GamePointer<ConsoleStreambuf>(0x007C5868); }
+// The streambufs, one per message filter (console_streams.cpp; zero until their static initialisers construct them).
+extern lib::StaticObject<ConsoleStreambuf> g_consoleBuf;       // 007C5868 (filter 0)
+extern lib::StaticObject<ConsoleStreambuf> g_allLogBuf;        // 007C5CC0 (-1)
+extern lib::StaticObject<ConsoleStreambuf> g_netLogBuf;        // 007C6118 (0x20)
+extern lib::StaticObject<ConsoleStreambuf> g_unitAcksLogBuf;   // 007C6570 (0x10)
+extern lib::StaticObject<ConsoleStreambuf> g_rpgLogBuf;        // 007C69C8 (8)
+extern lib::StaticObject<ConsoleStreambuf> g_graphicsLogBuf;   // 007C6E20 (4)
+extern lib::StaticObject<ConsoleStreambuf> g_eventLogBuf;      // 007C7278 (2)
+extern lib::StaticObject<ConsoleStreambuf> g_aiLogBuf;         // 007C76D0 (1)
 
 // The message categories shown (bit per filter, "filter" command).
 inline unsigned g_filterMask = /*007C7B68*/ {};
@@ -230,9 +261,13 @@ static_assert(sizeof(CommandNode) == 0x18);
 // if missing.
 CommandHandler& Command(CommandMap* map, const mfc::CString& key);
 
-// 007C7B28: commands always available; 007C7B38: commands after the cheat word.
-inline CommandMap* PublicCommands() { return ei::GamePointer<CommandMap>(0x007C7B28); }
-inline CommandMap* CheatCommands() { return ei::GamePointer<CommandMap>(0x007C7B38); }
+static_assert(sizeof(CommandMap) == 0xC);
+// The commands always available and those after the cheat word (console_streams.cpp; built empty by their static
+// initialisers, destroyed at exit).
+extern lib::StaticObject<CommandMap> g_publicCommands;   // 007C7B28
+extern lib::StaticObject<CommandMap> g_cheatCommands;    // 007C7B38
+inline CommandMap* PublicCommands() { return &g_publicCommands.Get(); }
+inline CommandMap* CheatCommands() { return &g_cheatCommands.Get(); }
 
 // The registrations the executor makes on every call, in its order: map, name, handler.
 struct CommandRegistration {

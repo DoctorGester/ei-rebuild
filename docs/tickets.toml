@@ -2883,7 +2883,35 @@ id = "C18s"
 title = "Named data: the console's log streams and the log pointers"
 group = "cleanup"
 model = "opus"
-note = "Follow-up of C18's remaining-objects batch (2026-10-22; game data 247 -> 130; MFC's and the CRT's objects are C18r). The console's eight channel streambufs 007C5868 (the console), 007C76D0 (ai 1), 007C7278 (event 2), 007C6E20 (graphics 4), 007C69C8 (rpg 8), 007C6570 (unitacks 0x10), 007C6118 (net 0x20), 007C5CC0 (all -1) are built by 005DC200 (mask) in the static initialisers 005DC1F0..005DC3F0 and destroyed by 005DC260 (exit stubs 005DC2C0..005DC410); their eight ostreams 007C55A8 / 007C5600 / 007C5658 / 007C56B0 / 007C5708 / 007C5760 / 007C57B8 / 007C5810 by 006FC42F (buffer, 1) in 005DC420..005DC5E0, destroyed by 006FC502 + 006FCEDC (the ios virtual base; exits 005DC440..005DC600). Name each as lib::StaticObject<ConsoleStreambuf> / lib::StaticObject<GameOStream> once the ostream's construction no longer needs game.exe's vbtable 00748284 (image_kept row) and vtables (C19), and port the 16 initialisers and exit stubs on the names (rows in extra_function_sizes.csv / function_sizes.inc, as sector_spiral.cpp and particle_draw.cpp do). Then the log pointers the initialisers fill with a stream's address become named pointers whose initialiser names the stream (a pointer element): 007AF284 (hits, <- 007C5708), 007C2EB8 (alarm, <- 007C5658), 007AF3E8 / 007C53C4 / 007C54E8 (combat, AI, console, <- 007C5810); and the command maps 007C7B28 / 007C7B38 (console.h). Check: named_data / check_static_init 0, both suites, goldens the same."
+note = "Follow-up of C18's remaining-objects batch (2026-10-22; game data 247 -> 130; MFC's and the CRT's objects are C18r). The console's eight channel streambufs 007C5868 (the console), 007C76D0 (ai 1), 007C7278 (event 2), 007C6E20 (graphics 4), 007C69C8 (rpg 8), 007C6570 (unitacks 0x10), 007C6118 (net 0x20), 007C5CC0 (all -1) are built by 005DC200 (mask) in the static initialisers 005DC1F0..005DC3F0 and destroyed by 005DC260 (exit stubs 005DC2C0..005DC410); their eight ostreams 007C55A8 / 007C5600 / 007C5658 / 007C56B0 / 007C5708 / 007C5760 / 007C57B8 / 007C5810 by 006FC42F (buffer, 1) in 005DC420..005DC5E0, destroyed by 006FC502 + 006FCEDC (the ios virtual base; exits 005DC440..005DC600). Name each as lib::StaticObject<ConsoleStreambuf> / lib::StaticObject<GameOStream> once the ostream's construction no longer needs game.exe's vbtable 00748284 (image_kept row) and vtables (C19), and port the 16 initialisers and exit stubs on the names (rows in extra_function_sizes.csv / function_sizes.inc, as sector_spiral.cpp and particle_draw.cpp do). Then the log pointers the initialisers fill with a stream's address become named pointers whose initialiser names the stream (a pointer element): 007AF284 (hits, <- 007C5708), 007C2EB8 (alarm, <- 007C5658), 007AF3E8 / 007C53C4 / 007C54E8 (combat, AI, console, <- 007C5810); and the command maps 007C7B28 / 007C7B38 (console.h). Check: named_data / check_static_init 0, both suites, goldens the same. Done 2026-10-22: console_streams.cpp names the 8 streambufs, 8 ostreams (OStreamObject) and 2 command maps with their 18 initialisers / 18 exit functions ported; the 5 log pointers are constexpr pointers naming their stream. Game data addresses 121 -> 90. Image suite ALL PASS, goldens 121 same / 23 without; original 114 / 12. Left: ostream's vbtable 00748284 (crt_iostream.cpp, C25a/C26)."
+
+[[ticket]]
+id = "C18t"
+title = "Named data: the multi-file objects and the small game* leftovers"
+group = "cleanup"
+model = "opus"
+note = "After C18s: 90 game data addresses left (named_data.py --split). This takes 'several files' (22) and the src/game, src/render, src/standalone, src/hook singles (about 20). Not crt* (C26), mfc* (C18r), not the generated static-init-only group unless an object falls out."
+
+[[ticket]]
+id = "C27"
+title = "Docs to their actual state: drop hooked-era rules from rewrite-guide, cleanup-plan, standalone-cleanup and notes"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: update the docs to their actual state. Since S21 (2026-10-16) game.exe runs only as the original; our code runs only in the standalone image, which has no game.exe code. Rules that only made sense when our functions ran inside game.exe (original memory layout, offsetof asserts, registering every rewrite at its address, naked forwarders, RET n matching, virtual-method hook shims, vtable thunks) go or get rewritten. Keep docs lean: delete rather than annotate history. Layout rule already rewritten in rewrite-guide.md (5bb2909c0)."
+
+[[ticket]]
+id = "C28"
+title = "Real virtual classes: replace the hand-built vtables (166 static Vtable(), SetVtable, slot calls) and drop layout asserts nothing needs"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: the code should look like normal game code, not fake vtable finagling. C19 compiled game.exe's tables but kept a raw table pointer at offset 0 (helper *Class templates, engine_object_class.h, mfc_slots.h), so 166 'static void* Vtable()' in 49 files and 511 SetVtable / VirtualSlot uses. Convert family by family (engine objects, managers, MFC collections, UI windows, network messages, ...) to ordinary C++ classes with virtual functions; drop offsetof/sizeof asserts unless bytes leave the process (saves, packets) or come from the data image. Each family: both suites keep their goldens (goldens are layout-independent). Split into child tickets per family."
+
+[[ticket]]
+id = "C29"
+title = "Forwarders to direct calls: EI_ORIGINAL callers call our functions by name"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: don't tie the standalone to game.exe addresses for the harness either. The harness's standalone hooks (FixedIsaacSeed at 0049F660, the traced rand at 006E77F7, via RedirectCode) become named seams in our code that the harness sets (e.g. a deterministic-seed switch in our Isaac seeding, a draw callback in our rand). Then every EI_ORIGINAL forwarder goes, RedirectCode and CodeLink binding go, and the address registry stays only where something still needs an address (the game.exe side of the harness patches game.exe by address, which is fine). Model opus, not sonnet."
 
 [[ticket]]
 id = "C25c"

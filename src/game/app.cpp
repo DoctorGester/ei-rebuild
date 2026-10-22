@@ -5,6 +5,7 @@
 // original addresses.
 #include "device.h"   // the old device's calls
 #include "app.h"
+#include "console.h"
 #include "player_client.h"
 #include "world_glue.h"
 #include "sound.h"
@@ -48,8 +49,8 @@ HWND MainWindow() { return ei::GameData<HWND>(0x0079BC28); }
 // The interface (007C7D50) takes the input: pending windows closed before and after each message
 // (005F5AB0), then the message with (wParam, x, y) (005F76A0-005F7BE0; ui_interface_input.cpp).
 
-// The console's ostream (007C55A8).
-libcrt::Ostream* Console() { return ei::GamePointer<libcrt::Ostream>(0x007C55A8); }
+// The console's ostream.
+libcrt::Ostream* Console() { return &console::g_consoleOut; }
 
 // Objects told about activation changes: the cursor (007C7BD8), the display device
 // (RenderDeviceObject), the scene renderer, the mouse (pointer at 0079BA08) and the sound manager

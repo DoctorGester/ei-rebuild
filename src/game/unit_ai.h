@@ -603,8 +603,8 @@ class CSpell;
 namespace console {
 class GameOStream;
 }
-// 007C53C4: the stream the AI's perception messages go to.
-inline console::GameOStream* AiLog() { return ei::GameData<console::GameOStream*>(0x007C53C4); }
+// The stream the AI's perception messages go to (the AI stream; unit_ai.cpp).
+console::GameOStream* AiLog();
 
 // 005CA050 (ECX = out, EDX = point; unit_ai_brain.cpp). Copies x and y of a point (the AI events'
 // and the heard calls' noticed points); returns `out`.

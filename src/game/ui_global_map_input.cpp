@@ -95,7 +95,7 @@ void CGlobalMap::OnRightUp(int, int, int) {
 void CGlobalMap::OnMouseMove(int, int x, int y) {
     if (dragging_) {
         POINT drag{MouseDragX(), MouseDragY()};
-        (console::Out7C5760() <<static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y) << '\n').Flush();
+        (console::g_graphicsLogOut <<static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y) << '\n').Flush();
         // Rebirth's WideScreen scales the drag without the margin (0063008C: addon's entry 005F7DFE).
         interface_->CallScalePointFromScreenNoMargin(&drag);
         float turned = static_cast<float>(static_cast<float>(drag.x) * 0.0033333334f /*00740204*/ + angle_);   // 1 / 300
