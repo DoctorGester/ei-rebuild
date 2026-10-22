@@ -2,6 +2,7 @@
 // for the unit under the cursor or selected (called by 006462A0). Each line is a label from the
 // panel's label table followed by values, drawn with the panel surface's text routine and moved
 // down 15 pixels. See docs/notes/ui.md ("Battle HUD panels").
+#include "combat.h"
 #include "console.h"
 #include "game_strings.h"
 #include "object_tables.h"
@@ -56,19 +57,6 @@ double __fastcall WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
 __declspec(naked) void __fastcall DescriptionLines(void*, console::CStringArray*, int) EI_ORIGINAL(0x005F13A0)
 // The session (007AFE20): a multiplayer client [0057F440, AL].
 
-// What the unit's controller (+0x240, slot 50) reports for the info panel (0x20 bytes).
-struct CombatInfo {
-    int unused_00;
-    std::uint32_t damageType;       // +0x04 below 7: "dmg_<n>" names it
-    int unused_08;
-    float damageMin;                // +0x0C
-    float damageMax;                // +0x10
-    int unused_14;
-    int attack;                     // +0x18
-    int defence;                    // +0x1C
-};
-static_assert(sizeof(CombatInfo) == 0x20);
-constexpr int kCombatInfoSlot = 50;
 
 // The speed shown: (00742408 * speed) * 00742AEC unrounded, the speed from 0052FAF0 (mode 3) for a
 // unit outside the group, else from 0052FA20.
@@ -145,15 +133,15 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.text.Format(kValueUnit, panel.labels[6].GetString(), vision, panel.labels[13].GetString());
     panel.DrawLine();
 
-    CombatInfo combat;
-    void* controller = unitIn->controller;
-    reinterpret_cast<void(__fastcall*)(void*, void*, CombatInfo*)>((*static_cast<void***>(controller))[kCombatInfoSlot])(
-        controller, nullptr, &combat);
+    // The controller's attack parameters (slot 50): attack, defence, the damage type (below 7
+    // unsigned: "dmg_<n>" names it) and range.
+    AttackParams combat;
+    unitIn->Controller()->GetAttackParams(&combat);
     panel.text.Format(kValue, panel.labels[3].GetString(), combat.attack);
     panel.DrawLine();
     panel.text.Format(kValue, panel.labels[4].GetString(), combat.defence);
     panel.DrawLine();
-    if (combat.damageType < 7) {
+    if (static_cast<std::uint32_t>(combat.damageType) < 7) {
         panel.text.Format(kDamageKey, combat.damageType);
         TextsGetString(texts, nullptr, panel.text, &suffix);   // else the move text stays
     }

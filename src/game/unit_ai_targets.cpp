@@ -55,7 +55,7 @@ float PrototypeSize(CUnit* unit) {
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
 std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
-    return ExcessDamageOriginal(option->damage, nullptr, reinterpret_cast<const std::uint16_t*>(target->ServerController()->protection));
+    return ExcessDamageOriginal(option->damage, nullptr, target->ServerController()->protection);
 }
 
 // Cases 2 and 3: the damage summed over the group members within the option's radius of the
