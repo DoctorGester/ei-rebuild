@@ -406,7 +406,7 @@ void CSaveLoadWindow::FillEntries() {
         int position;
         scrollbar_->TakePosition(&position);
         scrollbar_->SetMaximum(EntryCount() - kVisibleRows);
-        scrollbar_->CallSetPosition(position);
+        scrollbar_->SetPosition(position);
     } else {
         scrollbar_->SetMaximum(0);
     }

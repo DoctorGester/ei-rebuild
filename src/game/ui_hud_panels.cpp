@@ -70,10 +70,6 @@ CPlayerClient* Orders() { return TheClientWorld()->LocalView(); }
 
 } // namespace
 
-void CUiScrollbar::CallSetRect(const RECT* rect) {
-    using Fn = void(__thiscall*)(CUiScrollbar*, const RECT*);
-    ei::VirtualSlot<Fn>(TagTable(), 26)(this, rect);
-}
 
 // --- Unit panel ----------------------------------------------------------------------------------
 
@@ -265,11 +261,11 @@ void CHudTopPanel::ShowPage() {
     CUiScrollText* log = owner_->MessageLog();
     if (page_ == 0) {
         log->SetText(pageTexts_[0]);
-        log->CallSetPosition(log->maxPosition_);
+        log->SetPosition(log->maxPosition_);
         log->moved_ = true;
     } else {
         log->SetText(pageTexts_[1]);
-        log->CallSetPosition(0);
+        log->SetPosition(0);
     }
 }
 EI_REWRITTEN(0x0064A320, CHudTopPanel::ShowPage);
@@ -318,7 +314,7 @@ void CHudTopPanel::ShowItems() {
     if (page_ == 1) {
         CUiScrollText* log = owner_->MessageLog();
         log->SetText(text);
-        log->CallSetPosition(0);
+        log->SetPosition(0);
     }
     merged.RemoveAll();
 }
@@ -333,7 +329,7 @@ void CHudTopPanel::Layout() {
     static_cast<CUiMesh*>(sceneObjects_.data[4])->PlaceBody(230.0f, 10.0f - offset, 10.0f);
     static_cast<CUiMesh*>(sceneObjects_.data[5])->PlaceBody(400.0f, 47.5f - offset, 18.0f);
     RECT rect{190, 25 - offset_, 610, 89 - offset_};
-    owner_->MessageLog()->CallSetRect(&rect);
+    owner_->MessageLog()->SetRect(&rect);
     for (int i = 1; i < regions_.size; ++i) {
         regions_.data[i]->offsetX_ = 0;
         regions_.data[i]->offsetY_ = -offset_;

@@ -222,8 +222,7 @@ void CExchangeScreen::CreateScreen() {
     grid_->mode_ = kGridMode;
 
     // The money offered.
-    auto* field = gamecrt::operator_new_as<CUiEditField>();
-    moneyField_ = field ? field->Construct(interface_, RECT{0, 0x15E, 200, 0x16E}) : nullptr;
+    moneyField_ = new CUiEditField(interface_, RECT{0, 0x15E, 200, 0x16E});
     AsContainer(this)->AddChild(moneyField_);
     moneyField_->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
     moneyField_->SetText("");

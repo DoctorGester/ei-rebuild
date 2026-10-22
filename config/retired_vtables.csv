@@ -351,8 +351,8 @@ vtable,slots,class,file,note
 0073FF80,3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
 0073FF8C,13,FearMode,src/game/unit_ai.h,the Fear AI mode
 00740034,11,ConsoleStreambufClass,src/game/console.cpp,the console streambuf (ConsoleStreambuf; nine instances, one per message filter)
-007400A8,13,ChatOverlayInputClass,src/game/ui_chat_overlay.cpp,the chat overlay's input side
-007400DC,25,ChatOverlayClass,src/game/ui_chat_overlay.cpp,the multiplayer chat overlay (CChatOverlay)
+007400A8,13,CChatOverlay,src/game/ui.h,the chat overlay's input side
+007400DC,25,CChatOverlay,src/game/ui.h,the multiplayer chat overlay (CChatOverlay)
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 007401D0,13,UiInputSide,src/game/ui.h,the base input side (also stored by game.exe's dead 005EA830 / 005EB620 and the unwind-only 005FE900)
 00740208,13,CCameraInput,src/game/ui_camera_keys.h,the battle camera's input side (CCameraInput)
@@ -401,8 +401,8 @@ vtable,slots,class,file,note
 007412A4,42,EscMenuClass,src/game/ui_screen_tables.cpp,the Esc menu (CEscMenu)
 00741354,13,SaveLoadInputClass,src/game/ui_screen_tables.cpp,the save / load window's input side
 00741388,42,SaveLoadClass,src/game/ui_screen_tables.cpp,the save / load window (CSaveLoadWindow)
-00741444,13,ChatWindowInputClass,src/game/ui_chat_window.cpp,the briefing's chat window's input side
-00741478,25,ChatWindowClass,src/game/ui_chat_window.cpp,the briefing's chat window (CChatWindow)
+00741444,13,CChatWindow,src/game/ui_briefing.h,the briefing's chat window's input side
+00741478,25,CChatWindow,src/game/ui_briefing.h,the briefing's chat window (CChatWindow)
 00741504,13,RepairGridInputClass,src/game/ui_item_panel_tables.cpp,the camp repair grid's input side (CRepairGrid)
 00741538,26,RepairGridClass,src/game/ui_item_panel_tables.cpp,the camp repair grid (CRepairGrid)
 007415A0,13,ItemMakerInputClass,src/game/ui_item_panel_tables.cpp,the camp item maker's input side (CConstructorPage)
@@ -464,23 +464,23 @@ vtable,slots,class,file,note
 00742980,25,ActionColumnClass,src/game/ui_hud_build.cpp,the HUD action column (CHudActionColumn)
 007429E4,13,PortraitsInputClass,src/game/ui_screen_constructors.cpp,the HUD portraits' input side
 00742A18,25,PortraitsClass,src/game/ui_screen_constructors.cpp,the HUD portraits (CHudPortraits)
-00742BE4,13,ScrollbarInputTable,src/game/ui_scrollbar.cpp,the scroll bar's input side
-00742C18,27,ScrollbarTable,src/game/ui_scrollbar.cpp,the scroll bar (CUiScrollbar)
-00742C88,13,SliderInputTable,src/game/ui_scrollbar.cpp,the options slider's input side
-00742CBC,27,SliderTable,src/game/ui_scrollbar.cpp,the options slider (CUiSlider)
-00742D28,13,SpinInputTable,src/game/ui_spin.cpp,the options spin's input side
-00742D5C,25,SpinTable,src/game/ui_spin.cpp,the options spin (CUiSpin)
-00742DC0,13,EditFieldInputTable,src/game/ui_edit_field.cpp,the edit field's input side
-00742DF4,25,EditFieldTable,src/game/ui_edit_field.cpp,the edit field (CUiEditField)
-00742E68,13,ScrollTextInputTable,src/game/ui_scroll_text.cpp,the scrolling text's input side
-00742E9C,27,ScrollTextTable,src/game/ui_scroll_text.cpp,the scrolling text (CUiScrollText)
+00742BE4,13,CUiScrollbar,src/game/ui.h,the scroll bar's input side
+00742C18,27,CUiScrollbar,src/game/ui.h,the scroll bar (CUiScrollbar)
+00742C88,13,CUiSlider,src/game/ui.h,the options slider's input side
+00742CBC,27,CUiSlider,src/game/ui.h,the options slider (CUiSlider)
+00742D28,13,CUiSpin,src/game/ui.h,the options spin's input side
+00742D5C,25,CUiSpin,src/game/ui.h,the options spin (CUiSpin)
+00742DC0,13,CUiEditField,src/game/ui.h,the edit field's input side
+00742DF4,25,CUiEditField,src/game/ui.h,the edit field (CUiEditField)
+00742E68,13,CUiScrollText,src/game/ui.h,the scrolling text's input side
+00742E9C,27,CUiScrollText,src/game/ui.h,the scrolling text (CUiScrollText)
 00742F08,3,LinePtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's line pointers)
 00742F14,3,TokenPtrArrayClass,src/lib/mfc_slots.h,CArray (the scroll text's token pointers)
 00742F20,1,WordTokenClass,src/game/ui.h,a scrolling text's word (UiWordToken)
 00742F24,1,TextTokenClass,src/game/ui.h,a scrolling text's base token (UiTextToken)
 00742F28,1,FormatTokenClass,src/game/ui.h,a scrolling text's format token (UiFormatToken)
-00742F30,13,TooltipInputTable,src/game/ui_tooltip.cpp,a region tooltip's input side
-00742F64,25,TooltipTable,src/game/ui_tooltip.cpp,a region's tooltip (CUiTooltip)
+00742F30,13,CUiTooltip,src/game/ui.h,a region tooltip's input side
+00742F64,25,CUiTooltip,src/game/ui.h,a region's tooltip (CUiTooltip)
 00742FD8,2,ScrollingSurfaceClass,src/game/ui_scrolling_surface.cpp,the scrolling RichEdit surface (CUiScrollingSurface)
 00742FF4,3,PartyMemberArrayClass,src/game/party_lifetime.cpp,CArray (a party's unit records)
 00743000,27,CParty,src/game/party.h,the party (CParty)

@@ -106,18 +106,13 @@ class CRefObject;
 // offer, and the status texts ("lmp_status_zone" .. "lmp_exch_they_offer"). Multiplayer only.
 class CChatWindow : public CUiWindow {
 public:
-    // 00608D20 (RET 4). Constructor: the window base, an empty player vector and text array, the
-    // vtables, the rectangle 0x1D0, 0, 800, 0xA0, a surface over 0x1D0..800 x 0x4B..0x69 (format 5),
-    // no faces, the six texts from the text table. Returns this.
-    CChatWindow* Construct(CInterface3D* ui);
-    // 00608ED0 (ui_window_delete.cpp). The destructor body: the texts, each held player released,
-    // the vector's storage, then the window's.
-    void DestroyBody();
-    // 00608EB0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CChatWindow* ChatWindowDelete(unsigned flags);
-    // The compiled table (C19, ui_window_class.h) in place of game.exe's 00741478.
-    static void** Vtable();
+    // 00608D20 (RET 4). The window base, an empty player vector and text array (game.exe's tables
+    // 00741478 / 00741444), the rectangle 0x1D0, 0, 800, 0xA0, a surface over 0x1D0..800 x 0x4B..0x69
+    // (format 5), no faces, the six texts from the text table.
+    explicit CChatWindow(CInterface3D* ui);
+    // 00608ED0 (ui_window_delete.cpp; deleting 00608EB0, the input side's 0060C7D0): the texts, each
+    // held player released, the vector's storage.
+    ~CChatWindow() override;
     // 00608F90 (RET 8). A face: every fourth one first makes a 256 x 256 texture (kind 0x20);
     // `texture` is copied into the newest texture's quarter (count % 4: left / right, top / bottom)
     // and a sprite of `model` placed at the face's centre (depth 7, scale 0.3, turned pi * 1.05
@@ -135,7 +130,7 @@ public:
     // exchange); otherwise surface 0 is cleared and each listed player gets its status (state
     // 0..4: texts 0, 1, 2, 3, 3) on the first line and "we offer" (our offer's partner) or "they
     // offer" (an offer from it) on the second, white, 0x38 pixels per player from x 0x118 leftwards.
-    void Update();
+    void Update() override;
     // Input side (`this` the window). 006097E0 (slot 2, RET 0xC): a click on a face (the event
     // marked used): with the active window's player pick (CBriefingScreen +0x2A0) 1 / 2 the
     // player's serial goes to the server as command 4 / 5 ("%d") and the pick ends; otherwise the
@@ -144,6 +139,8 @@ public:
     // pick is on, the cursor's shape 0.
     void OnLButtonDown(int buttons, int x, int y);
     void OnMouseMove(int buttons, int x, int y);
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }    // 4
 
     int listed_;                              // +0x148 players listed
     int portraits_;                           // +0x14C faces added

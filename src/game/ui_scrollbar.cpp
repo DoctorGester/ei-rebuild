@@ -3,7 +3,6 @@
 // position. See ui.h and docs/notes/items_spells.md (A-H19, A-H20).
 
 #include "ui.h"
-#include "ui_window_class.h"
 #include "ui_screens.h"
 
 #include "ei/hook.h"
@@ -13,20 +12,6 @@
 
 namespace {
 
-// The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742C18 / 00742BE4 (the scroll bar) and
-// 00742CBC / 00742C88 (the slider: 25 / 26 and the drag along x its own).
-struct ScrollbarTable final : ScrollbarClass<ScrollbarTable, &CUiScrollbar::ScrollbarDelete> {};
-struct ScrollbarInputTable final : ScrollbarInputClass<ScrollbarInputTable, &CUiScrollbar::ScrollbarDelete> {};
-struct SliderTable final : ScrollbarClass<SliderTable, &CUiScrollbar::ScrollbarDelete> {
-    CUiSlider* Slider() { return ObjectAs<CUiSlider>(); }
-    void SetPosition(int position) override { Slider()->CUiSlider::SetPosition(position); }   // 25: 0065B730
-    void SetRect(const RECT* rect) override { Slider()->CUiSlider::SetRect(rect); }           // 26: 0065B8B0
-};
-struct SliderInputTable final : ScrollbarInputClass<SliderInputTable, &CUiScrollbar::ScrollbarDelete> {
-    int MouseMove(int b, int x, int y) override {   // 4: 0065B810
-        return static_cast<CUiSlider*>(SideWindow())->CUiSlider::OnMouseMove(b, x, y), 0;
-    }
-};
 constexpr int kTextureKind = 3;
 
 // The thumb sits slightly in front of the track (0.1 at 0073B850) and 5 to the right of the
@@ -42,17 +27,12 @@ float AsFloat(int value) { return static_cast<float>(value); }
 
 } // namespace
 
-void** CUiScrollbar::Vtable() { return ScrollbarTable::Slots(); }
-void** CUiScrollbar::InputVtable() { return ScrollbarInputTable::Slots(); }
-void** CUiSlider::Vtable() { return SliderTable::Slots(); }
-void** CUiSlider::InputVtable() { return SliderInputTable::Slots(); }
-
-CUiScrollbar* CUiScrollbar::Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed) {
-    CUiWindow::Construct(ui);
+// game.exe's tables 00742C18 / 00742BE4 (the scroll bar) and 00742CBC / 00742C88 (the slider: 25 / 26 and the drag
+// along x its own).
+CUiScrollbar::CUiScrollbar(CInterface3D* ui, RECT rect, float depth, int maximum, float speed) : CUiWindow(ui) {
     maxPosition_ = maximum;
     speed_ = speed;
     depth_ = depth;
-    SetTagTables(Vtable(), InputVtable());
     moved_ = true;
     state_ = 0;
     position_ = -1;
@@ -62,9 +42,8 @@ CUiScrollbar* CUiScrollbar::Construct(CInterface3D* ui, RECT rect, float depth, 
     CUiScrollbar::SetRect(&rect);
     CUiScrollbar::SetPosition(0);
     accumulated_ = 0.0f;
-    return this;
 }
-EI_REWRITTEN(0x0065AEA0, CUiScrollbar::Construct);
+EI_REWRITTEN_SPECIAL(0x0065AEA0, CUiScrollbar::CUiScrollbar);
 
 void CUiScrollbar::SetPosition(int position) {
     if (position < 0) position = 0;
@@ -112,16 +91,11 @@ void CUiScrollbar::SetRect(const RECT* rect) {
 
     int position = position_;
     position_ = position - 1;
-    CallSetPosition(position);
+    SetPosition(position);
 }
 EI_REWRITTEN(0x0065B490, CUiScrollbar::SetRect);
 
-CUiSlider* CUiSlider::Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed) {
-    CUiScrollbar::Construct(ui, rect, depth, maximum, speed);
-    SetTagTables(Vtable(), InputVtable());
-    return this;
-}
-EI_REWRITTEN(0x0065BC30, CUiSlider::Construct);
+EI_REWRITTEN_SPECIAL(0x0065BC30, CUiSlider::CUiSlider);
 
 // --- A-H20: dragging, the wheel, the slider's position --------------------------------------------
 
@@ -142,7 +116,7 @@ void CUiScrollbar::OnMouseMove(int, int x, int y) {
         POINT point{x, y};
         interface_->ScalePointFromScreenEntry(&point);
         int along = point.y - grabY_;
-        CallSetPosition(Truncate(static_cast<double>(along - track_.top) * maxPosition_ / (track_.bottom - track_.top)));
+        SetPosition(Truncate(static_cast<double>(along - track_.top) * maxPosition_ / (track_.bottom - track_.top)));
     }
     handled_ = true;
 }
@@ -180,11 +154,11 @@ void CUiSlider::OnMouseMove(int, int x, int y) {
         POINT point{x, y};
         interface_->ScalePointFromScreenEntry(&point);
         int along = point.x - grabX_;
-        CallSetPosition(Truncate(static_cast<double>(along - track_.left) * maxPosition_ / (track_.right - track_.left)));
+        SetPosition(Truncate(static_cast<double>(along - track_.left) * maxPosition_ / (track_.right - track_.left)));
     }
     handled_ = true;
 }
 
-EI_REWRITTEN(0x0065B1A0, InputForward<&CUiScrollbar::OnMouseMove>::Call);
-EI_REWRITTEN(0x0065B430, InputForward<&CUiScrollbar::OnWheel>::Call);
-EI_REWRITTEN(0x0065B810, InputForward<&CUiSlider::OnMouseMove>::Call);
+EI_REWRITTEN(0x0065B1A0, CUiScrollbar::OnMouseMove);
+EI_REWRITTEN(0x0065B430, CUiScrollbar::OnWheel);
+EI_REWRITTEN(0x0065B810, CUiSlider::OnMouseMove);

@@ -87,15 +87,9 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
     return memory ? memory->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
 }
 
-CUiScrollbar* NewScrollbar(CInterface3D* ui, RECT rect) {
-    CUiScrollbar* memory = gamecrt::operator_new_as<CUiScrollbar>();
-    return memory ? memory->Construct(ui, rect, 3.0f, 0, 1.0f) : nullptr;
-}
+CUiScrollbar* NewScrollbar(CInterface3D* ui, RECT rect) { return new CUiScrollbar(ui, rect, 3.0f, 0, 1.0f); }
 
-CUiEditField* NewEditField(CInterface3D* ui, RECT rect) {
-    CUiEditField* memory = gamecrt::operator_new_as<CUiEditField>();
-    return memory ? memory->Construct(ui, rect) : nullptr;
-}
+CUiEditField* NewEditField(CInterface3D* ui, RECT rect) { return new CUiEditField(ui, rect); }
 
 // std::sort(begin, end) as the original inlines it (its first level of the introsort loop does
 // the same steps as the out-of-line loop).

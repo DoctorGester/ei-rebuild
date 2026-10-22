@@ -4,7 +4,6 @@
 // and CUiRegion::OnMouseMove keeps calling it through its address). See ui.h and
 // docs/notes/items_spells.md.
 #include "ui.h"
-#include "ui_window_class.h"
 #include "options.h"
 #include "ui_widescreen.h"
 
@@ -22,13 +21,6 @@
 #include <cstring>
 
 namespace {
-// The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742F64 / 00742F30: drawn (20) and redrawn
-// (22) only while shown; the input side's defaults.
-struct TooltipTable final : UiWindowClass<TooltipTable, &CUiTooltip::TooltipDelete> {
-    BOOL Draw(int pass) override { return AsWindow()->CUiTooltip::Draw(pass); }   // 20: 0065EA50
-    void Redraw() override { AsWindow()->CUiTooltip::Redraw(); }                   // 22: 0065EA80
-};
-struct TooltipInputTable final : InputSideClass<TooltipInputTable, &CUiTooltip::TooltipDelete> {};
 constexpr int kFont = 0;
 constexpr char kLineSeparator = '\n';
 constexpr int kPaddingX = 12;               // added to the widest line
@@ -68,18 +60,14 @@ SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
 }
 } // namespace
 
-void** CUiTooltip::Vtable() { return TooltipTable::Slots(); }
-void** CUiTooltip::InputVtable() { return TooltipInputTable::Slots(); }
-
-CUiTooltip* CUiTooltip::Construct(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra) {
-    CUiWindow::Construct(ui);
+// game.exe's tables 00742F64 / 00742F30: drawn (20) and redrawn (22) only while shown; the input side's defaults.
+CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra) : CUiWindow(ui) {
     lines_.Construct();
-    SetTagTables(Vtable(), InputVtable());
     timer_ = 0.0f;
     state_ = 0;
     region_ = region;
     // An empty text leaves the measurements and the two arguments unwritten.
-    if (!text || !*text) return this;
+    if (!text || !*text) return;
     lines_.SetSize(0, -1);
     text::Split(text, &lines_, kLineSeparator);
     width_ = 0;
@@ -108,15 +96,13 @@ CUiTooltip* CUiTooltip::Construct(CInterface3D* ui, CUiRegion* region, const cha
     }
     width_ += kPaddingX;
     height_ += kPaddingY;
-    return this;
 }
-EI_REWRITTEN(0x0065E320, CUiTooltip::Construct);
+EI_REWRITTEN_SPECIAL(0x0065E320, CUiTooltip::CUiTooltip);
 
-void CUiTooltip::DestroyBody() {
-    lines_.Destruct();
-    DestroyBase();
-}
-EI_REWRITTEN(0x0065E4F0, CUiTooltip::DestroyBody);
+CUiTooltip::~CUiTooltip() { lines_.Destruct(); }
+EI_REWRITTEN_SPECIAL(0x0065E4F0, CUiTooltip::~CUiTooltip);
+EI_REWRITTEN_SPECIAL(0x0065E4D0, CUiTooltip::~CUiTooltip);   // the deleting destructor
+EI_REWRITTEN_SPECIAL(0x0065EAC0, CUiTooltip::~CUiTooltip);   // the input side's (SUB ECX,0x94; JMP)
 
 void CUiTooltip::SetText(const char* text) {
     if (!text || !*text) return;

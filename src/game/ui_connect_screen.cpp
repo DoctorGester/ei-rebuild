@@ -461,7 +461,7 @@ void CMpConnectScreen::SelectAndScroll() {
     selectedAddress_ = entries_.begin()[row].address;
     if (!(scrollTop_ + kRows > row)) scrollTop_ = row - (kRows - 1);
     if (scrollTop_ > row) scrollTop_ = row;
-    scroll_->CallSetPosition(scrollTop_);
+    scroll_->SetPosition(scrollTop_);
     scroll_->TakePosition(&scrollTop_);
     DrawListVanilla();
 }
@@ -617,7 +617,7 @@ void CMpConnectScreen::RebuildList() {
         int position;
         scroll_->TakePosition(&position);
         scroll_->SetMaximum(static_cast<int>(entries_.size()) - kRows);
-        scroll_->CallSetPosition(position);
+        scroll_->SetPosition(position);
     } else {
         scroll_->SetMaximum(0);
     }
@@ -711,9 +711,7 @@ void CMpConnectScreen::CreateScreen() {
 
     AddSurface(NewSurface(interface_, 100, 100, 700, 500));
     {
-        auto* memory = gamecrt::operator_new_as<CUiScrollbar>();
-        scroll_ = memory ? memory->Construct(interface_, RECT{108, 132, 384, 492}, 3.0f, 0, 1.0f)
-                         : nullptr;
+        scroll_ = new CUiScrollbar(interface_, RECT{108, 132, 384, 492}, 3.0f, 0, 1.0f);
         AddChild(scroll_);
     }
     {
@@ -725,21 +723,15 @@ void CMpConnectScreen::CreateScreen() {
         const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
         const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
         const int right = extended ? kExtendedFieldRight : 650;
-        auto* memory = gamecrt::operator_new_as<CUiSlider>();
-        playersSlider_ =
-            memory ? memory->Construct(interface_, RECT{450, 196, 650, 206}, 3.0f, maximum, 1.0f)
-                   : nullptr;
+        playersSlider_ = new CUiSlider(interface_, RECT{450, 196, 650, 206}, 3.0f, maximum, 1.0f);
         AddChild(playersSlider_);
         RECT rect{450, 196, right, 206};
-        playersSlider_->CallSetRect(&rect);
-        playersSlider_->CallSetPosition(position);
+        playersSlider_->SetRect(&rect);
+        playersSlider_->SetPosition(position);
         maxPlayers_ = 6;
     }
     {
-        CUiEditField* memory = gamecrt::operator_new_as<CUiEditField>();
-        nameEdit_ = memory ? memory->Construct(
-                                 interface_, RECT{450, 144, extended ? kExtendedFieldRight : 650, 160})
-                           : nullptr;
+        nameEdit_ = new CUiEditField(interface_, RECT{450, 144, extended ? kExtendedFieldRight : 650, 160});
         AddChild(nameEdit_);
         // ExtendedServerName (0061BC09, 0061BC0B, 0061BC0E): the classes 15, font 0, at most 50
         // characters (the name taken from the hero below still stops at 10).

@@ -366,11 +366,6 @@ BOOL CUiScrollbar::TakePosition(int* position) {
     return 1;
 }
 
-void CUiScrollbar::CallSetPosition(int position) {
-    using Fn = void(__thiscall*)(CUiScrollbar*, int);
-    ei::VirtualSlot<Fn>(TagTable(), 25)(this, position);
-}
-
 void CUiScrollbar::Update() {
     if (state_ == 2 || state_ == 3) {
         // The container's FrameTime does not use the window; the original calls it the same way.
@@ -398,7 +393,7 @@ void CUiScrollbar::Update() {
             accumulated_ = static_cast<float>(rest);
         } while (rest <= -1.0f);   // ends on a NaN (the original's did not)
     }
-    if (steps != 0) CallSetPosition(position_ + steps);
+    if (steps != 0) SetPosition(position_ + steps);
 }
 
 void CUiScrollbar::OnMouseDown(int, int x, int y) {

@@ -897,17 +897,11 @@ static_assert(sizeof(CUiWindow) == 0x148);
 // The tooltip attached to a region (0x184 bytes, vtables 00742F64 / 00742F30, constructor
 // 0065E320; ui_tooltip.cpp, A-H20). Its surface is made while it is shown (0065E580).
 struct CUiTooltip : CUiWindow {
-    // 0065E320 (RET 0x14; ui_tooltip.cpp). Constructor: the window, no lines, idle, of `region`;
-    // a non-empty `text` is split at newlines into the lines and measured (Measure). Returns this.
-    CUiTooltip* Construct(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra);
-    // 0065E4F0 (ui_tooltip.cpp). Destructor body: the lines (006FE958), then the window's.
-    void DestroyBody();
-    // 0065E4D0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set. Returns this.
-    CUiTooltip* TooltipDelete(unsigned flags);
-    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742F64 / 00742F30.
-    static void** Vtable();
-    static void** InputVtable();
+    // 0065E320 (RET 0x14; ui_tooltip.cpp). The window, no lines, idle, of `region`; a non-empty
+    // `text` is split at newlines into the lines and measured.
+    CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra);
+    // 0065E4F0 (ui_tooltip.cpp; deleting 0065E4D0, the input side's 0065EAC0): the lines (006FE958).
+    ~CUiTooltip() override;
     // 0065E540 (RET 4; ui_tooltip.cpp). A non-empty `text` replaces the lines and they are drawn
     // (the size is not measured again); null or empty: nothing.
     void SetText(const char* text);
@@ -925,9 +919,9 @@ struct CUiTooltip : CUiWindow {
     // sprites and the surface and becomes 0. States 0 and 4: nothing.
     void OnMouseMove(int x, int y);
     // 0065EA50 (window slot 20; ui_menus.cpp). Draws only while shown; returns 1 otherwise.
-    BOOL Draw(int pass);
+    BOOL Draw(int pass) override;
     // 0065EA80 (slot 22). Redraws (005FECC0, the window's base slot 22) only while shown.
-    void Redraw();
+    void Redraw() override;
     bool Shown() const { return state_ != 1 && state_ != 0; }
 
     mfc::CStringArray lines_;        // +0x148 the text's lines (none for an empty text)
@@ -2326,9 +2320,17 @@ class CUiScrollbar : public CUiWindow {
 public:
     // 0065B090. The position; returns 1 (and clears the flag) when it moved since the last call.
     BOOL TakePosition(int* position);
+    // 0065AEA0 (RET 0x20; ui_scrollbar.cpp, A-H19). A window of `ui` with the "Scrollbar" texture
+    // (kind 3), four sprites (track, thumb, up, down) and three regions, laid out over `rect`
+    // (SetRect, called directly) at `depth`, `maximum` positions, scrolling `speed` lines per
+    // second; then SetPosition(0) from -1.
+    CUiScrollbar(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
+    // 0065AFC0 (and the slider's 0065BCB0; ui_control_delete.cpp; deleting 0065AFA0 / 0065BC90, the
+    // input sides' 0065CB70 / 0065CB80): only the window's.
+    ~CUiScrollbar() override;
     // 0065B360 (slot 24, every frame). Scrolls while an arrow is held: whole steps of the
     // accumulated amount move the position (virtual slot 25, SetPosition).
-    void Update();
+    void Update() override;
     void OnMouseDown(int buttons, int x, int y);   // 0065B240: thumb drag or an arrow
     void OnMouseUp(int buttons, int x, int y);     // 0065B340
     // 0065B1A0 (input slot 4, RET 0xC; ui_scrollbar.cpp, A-H20). While the thumb is dragged
@@ -2340,40 +2342,26 @@ public:
     // scrolls: the accumulated amount less delta (its low 16 bits) times speed_ over 120 (Update
     // applies it), the event used. Returns 1.
     int OnWheel(int flags, int delta, int x, int y);
-    // Virtual slot 25 (0065B0C0 for the plain scroll bar): moves to `position`, clamped.
-    void CallSetPosition(int position);
-    // Virtual slot 26 (0065B490; 0065D0A0 for the scrolling text): places the bar over the layout
-    // rectangle `rect` (rect_, arrows, thumb and regions; the text's surface and line width).
-    void CallSetRect(const RECT* rect);
-    // 0065AEA0 (RET 0x20; ui_scrollbar.cpp, A-H19). Constructor: a window of `ui` with the
-    // "Scrollbar" texture (kind 3), four sprites (track, thumb, up, down) and three regions, laid
-    // out over `rect` (SetRect, called directly) at `depth`, `maximum` positions, scrolling
-    // `speed` lines per second; then SetPosition(0) from -1. Returns this.
-    CUiScrollbar* Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
     // 0065B0C0 (slot 25 of the plain bar, RET 4). `position` clamped to 0..maximum, moved_ set;
     // a new position moves the thumb sprite (1) and thumb_ along the track: the offset is the
     // track's height times the position over the maximum, truncated.
-    void SetPosition(int position);
-    // 0065B490 (slot 26 of the plain bar, RET 4). rect_, the track (the right 10 pixels less
-    // 26 at either end), the four sprites and the three regions (up arrow, down arrow, the rest);
-    // then the position set again through slot 25 (one below first, so it counts as a change).
-    void SetRect(const RECT* rect);
+    virtual void SetPosition(int position);
+    // 0065B490 (slot 26 of the plain bar, RET 4; 0065D0A0 for the scrolling text). rect_, the track
+    // (the right 10 pixels less 26 at either end), the four sprites and the three regions (up arrow,
+    // down arrow, the rest); then the position set again through slot 25 (one below first, so it
+    // counts as a change).
+    virtual void SetRect(const RECT* rect);
+    // The input side (game.exe's 00742BE4): the thumb and arrows by the left button, the drag, the wheel.
+    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }       // 2
+    int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }           // 3
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }      // 4
+    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }       // 12
     // 0065AFE0 (RET 4; ui_scroll_text.cpp, A-H20). The maximum (negative: 0), moved_ set, the four
     // sprites shown only for a maximum above 0; then the position set again through slot 25 (one
     // below first, so it counts as a change).
     void SetMaximum(int maximum);
     // 0065B720 (ui_scroll_text.cpp). The maximum position.
     int Maximum() const;
-    // 0065AFC0 (and the slider's 0065BCB0; ui_control_delete.cpp, A-H20). Destructor body: the
-    // scroll bar's vtables, then the window's (005FE930).
-    void DestroyBody();
-    // 0065AFA0 (the slider's 0065BC90; RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor:
-    // DestroyBody, then the memory freed when bit 0 of `flags` is set. Returns this.
-    CUiScrollbar* ScrollbarDelete(unsigned flags);
-    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742C18 / 00742BE4.
-    static void** Vtable();
-    static void** InputVtable();
-
     int maxPosition_;                // +0x148
     float speed_;                    // +0x14C lines per second while an arrow is held (/16)
     int position_;                   // +0x150
@@ -2404,22 +2392,20 @@ static_assert(sizeof(CUiScrollbar) == 0x18C);
 // regions 0 the left arrow, 1 the right arrow, 2 the track. ui_options.cpp.
 class CUiSlider : public CUiScrollbar {
 public:
-    // 0065BC30 (RET 0x20; ui_scrollbar.cpp): CUiScrollbar's constructor (0065AEA0) with the
-    // slider's vtables. Returns this.
+    // 0065BC30 (RET 0x20; ui_scrollbar.cpp): the scroll bar's (0065AEA0), then the slider's tables.
     // (`depth` goes to depth_ +0x17C, `maximum` to +0x148, `speed` to speed_ +0x14C.)
-    CUiSlider* Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
+    CUiSlider(CInterface3D* ui, RECT rect, float depth, int maximum, float speed)
+        : CUiScrollbar(ui, rect, depth, maximum, speed) {}
     // 0065B730 (slot 25, RET 4; ui_scrollbar.cpp, A-H20). The scroll bar's SetPosition along the
     // track's width: the thumb sprite at (track left + offset, track top + 5), the thumb 28 wide
     // and 10 high.
-    void SetPosition(int position);
+    void SetPosition(int position) override;
     // 0065B810 (input slot 4, RET 0xC; ui_scrollbar.cpp, A-H20). The scroll bar's drag along x.
     void OnMouseMove(int buttons, int x, int y);
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
     // 0065B8B0 (slot 26, RET 4). Lays the slider out over `rect` (layout coordinates) and sets
     // the position again (through slot 25, so it counts as moved).
-    void SetRect(const RECT* rect);
-    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742CBC / 00742C88.
-    static void** Vtable();
-    static void** InputVtable();
+    void SetRect(const RECT* rect) override;
 };
 static_assert(sizeof(CUiSlider) == 0x18C);
 
@@ -2494,21 +2480,15 @@ struct UiTextLine {
 // battle screen's message log and the objectives window's quest log.
 class CUiScrollText : public CUiScrollbar {
 public:
-    // 0065CC00 (RET 0x1C; ui_scroll_text.cpp, A-H20). Constructor: a scroll bar over `rect` (by
-    // value) at `depth` (maximum 0, 20 lines per second), the two arrays, a surface over the
-    // rectangle (format 5; null when the allocation fails), laid out as SetRect without the
-    // virtual call, then `text` tokenised and laid out, position 0 (slot 25, then the plain bar's
-    // SetPosition), justified (align_ 2). Returns this.
-    CUiScrollText* Construct(CInterface3D* ui, const char* text, RECT rect, float depth);
-    // 0065CE20 (ui_scroll_text.cpp). Destructor body: the tokens deleted (slot 0), the lines
-    // freed, both arrays' storage freed, then the scroll bar's (its vtables and the window's).
-    void DestroyBody();
-    // 0065CE00 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set. Returns this.
-    CUiScrollText* ScrollTextDelete(unsigned flags);
-    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742E9C / 00742E68.
-    static void** Vtable();
-    static void** InputVtable();
+    // 0065CC00 (RET 0x1C; ui_scroll_text.cpp, A-H20). A scroll bar over `rect` (by value) at
+    // `depth` (maximum 0, 20 lines per second), the two arrays, a surface over the rectangle
+    // (format 5; null when the allocation fails), laid out as SetRect without the virtual call,
+    // then `text` tokenised and laid out, position 0 (slot 25, then the plain bar's SetPosition),
+    // justified (align_ 2). game.exe's tables 00742E9C / 00742E68.
+    CUiScrollText(CInterface3D* ui, const char* text, RECT rect, float depth);
+    // 0065CE20 (ui_scroll_text.cpp; deleting 0065CE00, the input side's 0065E2B0). The tokens
+    // deleted (slot 0), the lines freed, both arrays' storage freed, then the scroll bar's.
+    ~CUiScrollText() override;
     // 0065CF30 (RET 4; ui_scroll_text.cpp). Appends `text`: scrolled to the end first, then kept
     // that far from the end (the position plus the growth of the maximum).
     void AddText(const char* text);
@@ -2517,10 +2497,10 @@ public:
     void SetText(const char* text);
     // 0065D0A0 (slot 26, RET 4; ui_scroll_text.cpp). The scroll bar's SetRect (0065B490), then the
     // surface moved to the rectangle's corner and the text laid out over it (PlaceText).
-    void SetRect(const RECT* rect);
+    void SetRect(const RECT* rect) override;
     // 0065D120 (slot 20, RET 4; ui_scroll_text.cpp). Draws the lines again when the position
     // moved, then the window's base drawing; returns its result (1).
-    BOOL Draw(int pass);
+    BOOL Draw(int pass) override;
     // 0065D450 (ui_scroll_text.cpp). Every token deleted and the token array emptied (the lines
     // stay until the next layout).
     void Clear();
@@ -2572,11 +2552,13 @@ static_assert(sizeof(CUiScrollText) == 0x1C8);
 // OptionSetting read as a separate UiSpin.
 class CUiSpin : public CUiWindow {
 public:
-    // 0065BCD0 (RET 0x18; ui_spin.cpp, A-H19). Constructor: the window over the layout rectangle
-    // `rect` (by value; also kept at +0x164), a surface of it (format 5; null when the allocation
-    // fails), the first text `text` (null: the exe's empty text), not changed, value 0 (SetValue).
-    // Returns this.
-    CUiSpin* Construct(CInterface3D* ui, RECT rect, const char* text);
+    // 0065BCD0 (RET 0x18; ui_spin.cpp, A-H19). The window over the layout rectangle `rect` (by
+    // value; also kept at +0x164), a surface of it (format 5; null when the allocation fails), the
+    // first text `text` (null: the exe's empty text), not changed, value 0 (SetValue).
+    CUiSpin(CInterface3D* ui, RECT rect, const char* text);
+    // 0065BE10 (ui_control_delete.cpp, A-H20; deleting 0065BDF0, the input side's 0065CB90): the
+    // texts (006FE958).
+    ~CUiSpin() override;
     // 0065BE70 (RET 4; ui_spin.cpp). Appends a text (null: the empty text).
     void AddText(const char* text);
     // 0065BEB0 / 0065BEE0 (RET 4; ui_spin.cpp). The value, and whether it changed since the last
@@ -2584,18 +2566,11 @@ public:
     // one is kept), its text drawn on the cleared surface (format 1, colour 0xA7D7E4), changed.
     bool GetValue(int* value);
     void SetValue(int value);
-    // 0065BE10 (ui_control_delete.cpp, A-H20). Destructor body: the spin's vtables, the texts
-    // (006FE958), then the window's.
-    void DestroyBody();
-    // 0065BDF0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set. Returns this.
-    CUiSpin* SpinDelete(unsigned flags);
-    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742D5C / 00742D28.
-    static void** Vtable();
-    static void** InputVtable();
     // 0065BFD0 (input side slot 2, RET 0xC; ui_spin.cpp, A-H25). A click: the message box's OK
     // sound and the next value (SetValue: back to the first past the last text).
     void OnLButtonDown(int flags, int x, int y);
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
+    int LeftDouble(int, int, int) override { return 0; }                              // 7: 0065C000 (RET 0xC)
 
     mfc::CStringArray texts_;        // +0x148
     int value_;                      // +0x15C
@@ -3109,21 +3084,16 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     void DrawContentsVanilla();
     mfc::CString& Text() { return text_; }
-    // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). Constructor: the window, an empty text,
-    // vtables 00742DF4 / 00742DC0, every character class, font 1, at most 50 characters, colours
-    // 0xFFFFFF / 0xFF, no surfaces, then a surface (format 5) over `rect` (kept in area_; null when
-    // the allocation fails), the text drawn, focused. caret_, editing_ and changed_ are left as
-    // they are. Returns this.
-    CUiEditField* Construct(CInterface3D* ui, RECT rect);
-    // 0065C140 (ui_control_delete.cpp, A-H20). Destructor body: the field's vtables, the text
-    // released, then the window's.
-    void DestroyBody();
-    // 0065C120 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set. Returns this.
-    CUiEditField* EditFieldDelete(unsigned flags);
-    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742DF4 / 00742DC0.
-    static void** Vtable();
-    static void** InputVtable();
+    // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). The window, an empty text (game.exe's tables
+    // 00742DF4 / 00742DC0), every character class, font 1, at most 50 characters, colours 0xFFFFFF /
+    // 0xFF, no surfaces, then a surface (format 5) over `rect` (kept in area_; null when the
+    // allocation fails), the text drawn, focused. caret_, editing_ and changed_ are left as they are.
+    CUiEditField(CInterface3D* ui, RECT rect);
+    // 0065C140 (ui_control_delete.cpp, A-H20; deleting 0065C120, the input side's 0065CBA0): the
+    // text released (the member), then the window's.
+    ~CUiEditField() override;
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }   // 9
+    int Char(int k, int r, int f) override { return OnChar(k, r, f), 0; }         // 10
     // 0065C930 (input side slot 10, RET 0xC; ui_edit_field.cpp, A-H19). While focused and
     // without Ctrl held, a character other than Backspace, Tab, Enter and Esc whose class (digit 1,
     // letter or space 2, '.' or ':' 8, other 4) is allowed: the first one starts editing from an
@@ -3301,19 +3271,14 @@ static_assert(sizeof(ChatLine) == 0x10);
 // it is open.
 class CChatOverlay : public CUiWindow {
 public:
-    // 005E28E0 (ui_window_delete.cpp). The destructor body: the typed line, every chat line
-    // (destroyed, node freed), the list's sentinel, then the window's.
-    void DestroyBody();
-    // 005E28C0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CChatOverlay* ChatOverlayDelete(unsigned flags);
-    // The compiled table (C19, ui_window_class.h) in place of game.exe's 007400DC.
-    static void** Vtable();
-    // 005E26F0 (RET 4; ui_chat_overlay.cpp). Constructor: the window base, an empty line list
-    // (its sentinel from the node pool), an empty typed line, the compiled tables (game.exe's 007400DC / 007400A8), the
-    // typed line's surface over (10, 573)-(790, 590) (format 4), closed, the caret at 0, then the
-    // typed line drawn (005E3700, Rebirth-patched). Returns this.
-    CChatOverlay* Construct(CInterface3D* ui);
+    // 005E26F0 (RET 4; ui_chat_overlay.cpp). The window base, an empty line list (its sentinel from
+    // the node pool), an empty typed line (game.exe's tables 007400DC / 007400A8), the typed line's
+    // surface over (10, 573)-(790, 590) (format 4), closed, the caret at 0, then the typed line drawn
+    // (005E3700, Rebirth-patched).
+    explicit CChatOverlay(CInterface3D* ui);
+    // 005E28E0 (ui_window_delete.cpp; deleting 005E28C0, the input side's 005E3C80): every chat line
+    // (destroyed, node freed), the list's sentinel; the typed line (the member).
+    ~CChatOverlay() override;
     // 005E2A30 (RET 8; ui_chat_overlay.cpp; CInterface3D::OnChatLine). Adds a chat line from
     // player `number` (unused): the text is broken into lines narrower than 780 pixels (font 1;
     // at spaces, a word wider than a line on its own), "^<digit>" switching the colour (a missing
@@ -3343,11 +3308,13 @@ public:
     // then the line is drawn. The character is not marked used.
     void OnKeyDown(int key, int repeat, int flags);
     void OnChar(int key, int repeat, int flags);
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }   // 9
+    int Char(int k, int r, int f) override { return OnChar(k, r, f), 0; }         // 10
     // 005E2990 (slot 24). Lines older than 20 s (timeGetTime) are erased.
-    void Update();
+    void Update() override;
     // 005E29E0 (slot 22). Each line's surface placed at (10, 10 + 16 * row) and blitted, then the
     // window's own redraw (005FECC0).
-    void Redraw();
+    void Redraw() override;
 
     stlp::list<ChatLine> lines_;     // +0x148
     bool chatOpen_;                  // +0x14C a multiplayer client's chat line is open (it takes the keys)

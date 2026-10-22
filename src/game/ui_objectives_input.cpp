@@ -223,7 +223,7 @@ void CObjectivesWindow::RefreshQuests() {
     const int row = selectedQuest_;
     if (firstRow_ + kVisibleRows <= row) firstRow_ = row - (kVisibleRows - 1);
     if (row < firstRow_) firstRow_ = row;
-    bar_->CallSetPosition(firstRow_);
+    bar_->SetPosition(firstRow_);
     bar_->TakePosition(&firstRow_);
     DrawQuestList();
     ShowQuest();

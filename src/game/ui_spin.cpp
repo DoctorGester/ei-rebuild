@@ -2,7 +2,6 @@
 // See ui.h and docs/notes/items_spells.md (A-H19).
 
 #include "ui.h"
-#include "ui_window_class.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -15,26 +14,16 @@
 
 namespace {
 
-// The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742D5C / 00742D28: the window's slots; the
-// input side's click (2), and a left double click that does nothing (7: 0065C000, RET 0xC).
-struct SpinTable final : UiWindowClass<SpinTable, &CUiSpin::SpinDelete> {};
-struct SpinInputTable final : InputSideClass<SpinInputTable, &CUiSpin::SpinDelete> {
-    int LeftDown(int b, int x, int y) override { return SideWindow()->OnLButtonDown(b, x, y), 0; }   // 2: 0065BFD0
-    int LeftDouble(int, int, int) override { return 0; }                                           // 7: 0065C000
-};
 constexpr int kSurfaceFormat = 5;
 constexpr int kTextFormat = 1;
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 } // namespace
 
-void** CUiSpin::Vtable() { return SpinTable::Slots(); }
-void** CUiSpin::InputVtable() { return SpinInputTable::Slots(); }
-
-CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
-    CUiWindow::Construct(ui);
+// game.exe's tables 00742D5C / 00742D28: the window's slots; the input side's click (2) and a left double click
+// that does nothing (7: 0065C000, RET 0xC).
+CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) {
     texts_.Construct();
-    SetTagTables(Vtable(), InputVtable());
     rect_ = rect;
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     AddSurface(memory ? memory->ConstructOnRect(ui, &rect, kSurfaceFormat) : nullptr);
@@ -42,9 +31,8 @@ CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
     changed_ = false;
     layout_ = rect;
     SetValue(0);
-    return this;
 }
-EI_REWRITTEN(0x0065BCD0, CUiSpin::Construct);
+EI_REWRITTEN_SPECIAL(0x0065BCD0, CUiSpin::CUiSpin);
 
 void CUiSpin::AddText(const char* text) { texts_.SetAtGrow(texts_.size, text ? text : game::EmptyText()); }
 EI_REWRITTEN(0x0065BE70, CUiSpin::AddText);
@@ -82,4 +70,4 @@ void CUiSpin::OnLButtonDown(int, int, int) {
     SetValue(value_ + 1);
 }
 
-EI_REWRITTEN(0x0065BFD0, InputForward<&CUiSpin::OnLButtonDown>::Call);
+EI_REWRITTEN(0x0065BFD0, CUiSpin::OnLButtonDown);

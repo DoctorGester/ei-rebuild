@@ -15,13 +15,10 @@
 namespace {
 
 constexpr const char* kTipText = "tip %d";   // 0079321C
-constexpr std::size_t kTooltipSize = 0x184;
 
 // A new tooltip of `region` (null when the allocation fails, as in the original).
 CUiTooltip* NewTooltip(CUiRegion* region, const char* text, int flag, int extra) {
-    void* memory = gamecrt::operator_new(kTooltipSize);
-    if (!memory) return nullptr;
-    return static_cast<CUiTooltip*>(memory)->Construct(region->interface_, region, text, flag, extra);
+    return new CUiTooltip(region->interface_, region, text, flag, extra);
 }
 
 } // namespace

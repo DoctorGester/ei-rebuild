@@ -283,13 +283,10 @@ void COptionsWindow::BuildSettings() {
 
         int top = definition->row_ * 24;
         if (definition->kind_ == kSliderKind) {
-            auto* memory = gamecrt::operator_new_as<CUiSlider>();
-            CUiSlider* slider = memory ? memory->Construct(interface_, RECT{0, 0, 100, 100}, 3.0f,
-                                                                                   definition->maximum_, 1.0f)
-                                       : nullptr;
+            auto* slider = new CUiSlider(interface_, RECT{0, 0, 100, 100}, 3.0f, definition->maximum_, 1.0f);
             setting.bar_ = slider;
             RECT rect = {530, top + 163, 680, top + 173};
-            slider->CallSetRect(&rect);   // (a failed allocation is called through, as in the original)
+            slider->SetRect(&rect);   // (a failed allocation is called through, as in the original)
             AddChild(slider);
             setting.spin_ = nullptr;
         } else if (definition->kind_ == kSpinKind) {
@@ -297,10 +294,7 @@ void COptionsWindow::BuildSettings() {
             text = TextOffDefault();
             TheTextManager()->GetString(TextOptionOff(), &text);
             if (i == kDifficultySetting) TheTextManager()->GetString(TextDifficultyHard(), &text);
-            CUiSpin* memory = gamecrt::operator_new_as<CUiSpin>();
-            setting.spin_ = memory ? memory->Construct(interface_, RECT{530, top + 160, 690, top + 176},
-                                                                             text)
-                                   : nullptr;
+            setting.spin_ = new CUiSpin(interface_, RECT{530, top + 160, 690, top + 176}, text);
             text = TextOnDefault();
             TheTextManager()->GetString(TextOptionOn(), &text);
             if (i == kDifficultySetting) TheTextManager()->GetString(TextDifficultyEasy(), &text);
@@ -434,7 +428,7 @@ void COptionsWindow::LoadSettings() {
 
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         if (s[i].bar_)
-            s[i].bar_->CallSetPosition(s[i].value_);
+            s[i].bar_->SetPosition(s[i].value_);
         else if (s[i].spin_)
             s[i].spin_->SetValue(s[i].value_);
     }
@@ -537,6 +531,6 @@ void CUiSlider::SetRect(const RECT* rect) {
     // The position set again (one below first, so slot 25 sees a change).
     int position = position_;
     position_ = position - 1;
-    CallSetPosition(position);
+    SetPosition(position);
 }
 EI_REWRITTEN(0x0065B8B0, CUiSlider::SetRect);

@@ -239,7 +239,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
         AddRegion()->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
     topics_.SetAtGrow(topics_.size, GoodbyeTopic());
     topicBar_->SetMaximum(topics_.size > kTopicRows ? topics_.size - kTopicRows : 0);
-    topicBar_->CallSetPosition(0);
+    topicBar_->SetPosition(0);
     topicTop_ = 0;
     hoveredTopic_ = -1;
     DrawTopics();

@@ -63,7 +63,7 @@ void CSaveLoadWindow::ShowSelection() {
     int selected = selected_;
     if (!(firstVisible_ + kListRows > selected)) firstVisible_ = selected - (kListRows - 1);
     if (firstVisible_ > selected) firstVisible_ = selected;
-    scrollbar_->CallSetPosition(firstVisible_);
+    scrollbar_->SetPosition(firstVisible_);
     scrollbar_->TakePosition(&firstVisible_);
     TakeSelectedTitle();
     RefreshListVanilla();
@@ -292,7 +292,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         if (!setting || !setting->bar_) return;
         int position;
         setting->bar_->TakePosition(&position);
-        rows_[selectedRow_].setting_->bar_->CallSetPosition(key == kKeyLeft ? position - 1 : position + 1);
+        rows_[selectedRow_].setting_->bar_->SetPosition(key == kKeyLeft ? position - 1 : position + 1);
         return;
     }
     case kKeyUp:

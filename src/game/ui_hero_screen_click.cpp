@@ -617,7 +617,7 @@ void CMpHeroScreen::RefreshHeroScroll() {
         int position;
         bar->TakePosition(&position);
         bar->SetMaximum(static_cast<int>(MpHeroCount() - kListRows));
-        bar->CallSetPosition(position);
+        bar->SetPosition(position);
         bar->TakePosition(&heroTop_);
     } else {
         bar->SetMaximum(0);

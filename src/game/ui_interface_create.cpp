@@ -121,8 +121,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     auto* window = gamecrt::operator_new_as<console::ConsoleWindow>();
     console_ = window ? window->Construct(this) : nullptr;
     DebugInfoPanel()->Init(this);
-    auto* chat = gamecrt::operator_new_as<CChatOverlay>();
-    root_ = chat ? chat->Construct(this) : nullptr;
+    root_ = new CChatOverlay(this);
     mouseX_ = 0;
     mouseCapture_ = nullptr;
     backdrop_ = nullptr;

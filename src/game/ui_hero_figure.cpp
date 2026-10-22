@@ -109,7 +109,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     std::uint32_t count = static_cast<std::uint32_t>(
         (reinterpret_cast<char*>(voices.end()) - reinterpret_cast<char*>(voices.begin())) >> 3);
     voiceScroll_->SetMaximum(count > kVoiceRows ? static_cast<int>(count) - kVoiceRows : 0);
-    voiceScroll_->CallSetPosition(0);
+    voiceScroll_->SetPosition(0);
     if (mode_ == kModeNewHero) DrawVoices();
     if (records.data) gamecrt::operator_delete(records.data);
 }

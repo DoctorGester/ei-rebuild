@@ -335,7 +335,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (skip && last) {
         // Skipped to the end: the whole text at once, scrolled to its end; everyone listens.
         text_->SetText(dialogueText_);
-        text_->CallSetPosition(text_->maxPosition_);
+        text_->SetPosition(text_->maxPosition_);
         text_->moved_ = true;
         for (BriefingSpeaker* p = speakers_; p != speakersEnd_; ++p) {
             SetBlink(p->unit, 0);

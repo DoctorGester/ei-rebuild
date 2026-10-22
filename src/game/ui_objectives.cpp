@@ -351,7 +351,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         }
         int rows = quests->GetSize();
         bar_->SetMaximum(rows > 5 ? rows - 5 : 0);
-        bar_->CallSetPosition(0);
+        bar_->SetPosition(0);
         firstRow_ = 0;
         RefreshQuests();
 
@@ -537,12 +537,8 @@ void CObjectivesWindow::CreateScreen() {
     }
 
     // The quest log (left, below the list) and the list's scroll bar.
-    CUiScrollText* questLog = gamecrt::operator_new_as<CUiScrollText>();   // 0x1C8 bytes
-    AddChild(questLog ? questLog->Construct(interface_, game::EmptyText(), RECT{60, 190, 384, 510}, 10.0f)
-                      : nullptr);
-    CUiScrollbar* bar = gamecrt::operator_new_as<CUiScrollbar>();   // 0x18C bytes
-    bar_ = bar ? bar->Construct(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f)
-               : nullptr;
+    AddChild(new CUiScrollText(interface_, game::EmptyText(), RECT{60, 190, 384, 510}, 10.0f));
+    bar_ = new CUiScrollbar(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar_);
 
     LoadTexture("saveload", 3, 0);

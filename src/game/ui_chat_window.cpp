@@ -9,7 +9,6 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "ui.h"
-#include "ui_window_class.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
 #include "unit_db.h"
@@ -28,17 +27,6 @@
 namespace {
 
 
-// The compiled tables (C19, ui_window_class.h) in place of game.exe's 00741478 / 00741444: its own update (24); the
-// input side's click (2) and mouse move (4).
-struct ChatWindowClass final : UiWindowClass<ChatWindowClass, &CChatWindow::ChatWindowDelete> {
-    void Update() override { AsWindow()->CChatWindow::Update(); }   // 24: 006095A0
-};
-struct ChatWindowInputClass final : InputSideClass<ChatWindowInputClass, &CChatWindow::ChatWindowDelete> {
-    int LeftDown(int b, int x, int y) override { return SideWindow()->OnLButtonDown(b, x, y), 0; }   // 2: 006097E0
-    int MouseMove(int b, int x, int y) override { return SideWindow()->OnMouseMove(b, x, y), 0; }    // 4: 00609900
-};
-void** MainVtable() { return ChatWindowClass::Slots(); }
-void** InputVtable() { return ChatWindowInputClass::Slots(); }
 
 // The status texts' keys, in texts_ order.
 const char* TextKey(int i) {
@@ -96,15 +84,9 @@ bool SameText(const char* a, const char* b) {
 
 // --- 00608D20: the constructor ------------------------------------------------------------------
 
-void** CChatWindow::Vtable() { return MainVtable(); }
-
-CChatWindow* CChatWindow::Construct(CInterface3D* ui) {
-    CUiWindow::Construct(ui);
-    players_.Start() = nullptr;
-    players_.Finish() = nullptr;
-    players_.EndOfStorage() = nullptr;
+// game.exe's tables 00741478 / 00741444: its own update (24); the input side's click (2) and mouse move (4).
+CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     texts_.Construct();
-    SetTagTables(MainVtable(), InputVtable());
     // EI_Plugin's NPlayers (00608D9D, 00608DE4): the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect_ = RECT{left, 0, 800, 0xA0};
@@ -117,9 +99,8 @@ CChatWindow* CChatWindow::Construct(CInterface3D* ui) {
         TheTextManager()->GetString(TextKey(i), &text);
         texts_.SetAtGrow(texts_.size, text);
     }
-    return this;
 }
-EI_REWRITTEN(0x00608D20, CChatWindow::Construct);
+EI_REWRITTEN_SPECIAL(0x00608D20, CChatWindow::CChatWindow);
 // EI_Plugin.asi patches the constructor and Update (NPlayers: the window's left edge and the first status
 // column) and ShowPlayers (Fixes: the faces' sex and the prototype fallback) in a Rebirth launch.
 
@@ -322,5 +303,5 @@ void CChatWindow::OnMouseMove(int, int x, int y) {
 
 namespace {
 } // namespace
-EI_REWRITTEN(0x006097E0, InputForward<&CChatWindow::OnLButtonDown>::Call);
-EI_REWRITTEN(0x00609900, InputForward<&CChatWindow::OnMouseMove>::Call);
+EI_REWRITTEN(0x006097E0, CChatWindow::OnLButtonDown);
+EI_REWRITTEN(0x00609900, CChatWindow::OnMouseMove);

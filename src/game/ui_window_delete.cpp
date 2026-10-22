@@ -88,14 +88,15 @@ void CItemInfoPanel::DestroyBody() {
 }
 EI_REWRITTEN(0x005EE380, CItemInfoPanel::DestroyBody);
 
-void CChatWindow::DestroyBody() {
+CChatWindow::~CChatWindow() {
     texts_.Destruct();
     for (CRefObject* player : players_)
         if (player) player->Release();
     players_.FreeStorage();
-    DestroyBase();
 }
-EI_REWRITTEN(0x00608ED0, CChatWindow::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x00608ED0, CChatWindow::~CChatWindow);
+EI_REWRITTEN_SPECIAL(0x00608EB0, CChatWindow::~CChatWindow);   // deleting
+EI_REWRITTEN_SPECIAL(0x0060C7D0, CChatWindow::~CChatWindow);   // the input side's
 
 void CUiItemStrip::DestroyForwarding() {
     list_.vtable = ItemArrayVtable();
@@ -142,12 +143,10 @@ void ChatLine::Destroy() {
 }
 EI_REWRITTEN(0x005E2670, ChatLine::Destroy);
 
-void CChatOverlay::DestroyBody() {
-    typed_.~CString();
-    DestroyList(lines_, [](ChatLine* line) { line->Destroy(); });
-    DestroyBase();
-}
-EI_REWRITTEN(0x005E28E0, CChatOverlay::DestroyBody);
+CChatOverlay::~CChatOverlay() { DestroyList(lines_, [](ChatLine* line) { line->Destroy(); }); }
+EI_REWRITTEN_SPECIAL(0x005E28E0, CChatOverlay::~CChatOverlay);
+EI_REWRITTEN_SPECIAL(0x005E28C0, CChatOverlay::~CChatOverlay);   // deleting
+EI_REWRITTEN_SPECIAL(0x005E3C80, CChatOverlay::~CChatOverlay);   // the input side's
 
 void CBattleScreen::DestroyBody() {
     FreeVectorStorage(clientParty_.without.begin(), clientParty_.without.EndOfStorage());
@@ -292,13 +291,6 @@ EI_REWRITTEN_SPECIAL(0x005F5F60, CUiContainer::~CUiContainer);   // the main men
 EI_REWRITTEN_SPECIAL(0x00603CD0, CUiContainer::~CUiContainer);   // the escape menu (007412A4)
 
 
-// 005E28C0: the chat overlay (007400DC).
-CChatOverlay* CChatOverlay::ChatOverlayDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005E28C0, CChatOverlay::ChatOverlayDelete);
-
 // 005EE420: the description panel (007404DC).
 CItemInfoPanel* CItemInfoPanel::ItemInfoPanelDelete(unsigned flags) {
     DestroyBody();
@@ -372,13 +364,6 @@ CSaveLoadWindow* CSaveLoadWindow::SaveLoadDelete(unsigned flags) {
     return FreeIfAsked(this, flags);
 }
 EI_REWRITTEN(0x006070A0, CSaveLoadWindow::SaveLoadDelete);
-
-// 00608EB0: the chat window (00741478).
-CChatWindow* CChatWindow::ChatWindowDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x00608EB0, CChatWindow::ChatWindowDelete);
 
 // 0060E290: the forwarding item strip (0074197C).
 CUiItemStrip* CUiItemStrip::ForwardingStripDelete(unsigned flags) {
@@ -489,7 +474,6 @@ EI_REWRITTEN(0x0063FF50, CHudPortraits::HudPortraitsDelete);
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 
 // Each is UiInput::DeleteWindow of the window class's own deleting destructor.
-EI_REWRITTEN(0x005E3C80, UiInput::DeleteWindow<&CChatOverlay::ChatOverlayDelete>);
 EI_REWRITTEN_SPECIAL(0x00600AC0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x005F45F0, CUiWindow::~CUiWindow);
 EI_REWRITTEN_SPECIAL(0x00613D50, CUiWindow::~CUiWindow);
@@ -516,7 +500,6 @@ EI_REWRITTEN(0x005FC0F0, UiInput::DeleteWindow<&CTitlesScreen::TitlesDelete>);
 EI_REWRITTEN(0x005FC0D0, UiInput::DeleteWindow<&CHelpWindow::HelpWindowDelete>);
 EI_REWRITTEN(0x0060C7C0, UiInput::DeleteWindow<&CObjectivesWindow::ObjectivesDelete>);
 EI_REWRITTEN(0x0060C7B0, UiInput::DeleteWindow<&CSaveLoadWindow::SaveLoadDelete>);
-EI_REWRITTEN(0x0060C7D0, UiInput::DeleteWindow<&CChatWindow::ChatWindowDelete>);
 EI_REWRITTEN(0x00613DC0, UiInput::DeleteWindow<&CUiItemStrip::ForwardingStripDelete>);
 EI_REWRITTEN(0x00613DB0, UiInput::DeleteWindow<&CTradePanel::TradePanelDelete>);
 EI_REWRITTEN(0x00613DF0, UiInput::DeleteWindow<&CSpellMakerPage::SpellMakerDelete>);

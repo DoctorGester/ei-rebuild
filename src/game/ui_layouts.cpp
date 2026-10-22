@@ -67,10 +67,7 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
 }
 
 CUiScrollbar* NewScrollbar(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiScrollbar* memory = gamecrt::operator_new_as<CUiScrollbar>();
-    if (!memory) return nullptr;
-    RECT rect = {left, top, right, bottom};
-    return memory->Construct(ui, rect, 3.0f, 0, 1.0f);
+    return new CUiScrollbar(ui, RECT{left, top, right, bottom}, 3.0f, 0, 1.0f);
 }
 
 // The frame colours of the windows (texels of the shared frame texture).
@@ -516,8 +513,7 @@ void CMessageBox::CreateScreen() {
     rect = RECT{15, top - 35, 385, 450};
     BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
     if (flags_ & 4) {
-        CUiEditField* memory = gamecrt::operator_new_as<CUiEditField>();
-        edit_ = memory ? memory->Construct(interface_, RECT{215, top + titleHeight + 30, 585, height + top + 30}) : nullptr;
+        edit_ = new CUiEditField(interface_, RECT{215, top + titleHeight + 30, 585, height + top + 30});
         // (Like the original, the edit field is set up without checking the allocation.)
         edit_->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
         edit_->SetText(editText_);

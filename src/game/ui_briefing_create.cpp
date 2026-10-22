@@ -211,13 +211,9 @@ void CBriefingScreen::CreateScreen() {
     surface = gamecrt::operator_new_as<CUiSurface>();
     AddSurface(surface ? surface->Construct(interface_, 0, 0, 250, 30, kSurfaceFormat, 1) : nullptr);
 
-    CUiScrollbar* bar = gamecrt::operator_new_as<CUiScrollbar>();
-    topicBar_ = bar ? bar->Construct(interface_, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f)
-                       : nullptr;
+    topicBar_ = new CUiScrollbar(interface_, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f);
     AddChild(topicBar_);
-    CUiScrollText* scrollText = gamecrt::operator_new_as<CUiScrollText>();   // 0x1C8 bytes
-    text_ = scrollText ? scrollText->Construct(interface_, game::EmptyText(), RECT{165, 426, 635, 570}, 10.0f)
-                       : nullptr;
+    text_ = new CUiScrollText(interface_, game::EmptyText(), RECT{165, 426, 635, 570}, 10.0f);
     AddChild(text_);
 
     SetMeshesVisible(this, 0);
@@ -260,8 +256,7 @@ void CBriefingScreen::CreateScreen() {
     speaking_ = nullptr;
 
     if (IsMultiplayerClient()) {
-        CChatWindow* chat = gamecrt::operator_new_as<CChatWindow>();
-        chat_ = chat ? chat->Construct(interface_) : nullptr;
+        chat_ = new CChatWindow(interface_);
         AddChild(chat_);
         PlayersChanged(1);
     } else {

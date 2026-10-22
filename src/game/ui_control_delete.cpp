@@ -1,8 +1,6 @@
-// Destructors of the interface controls (A-H20): the scroll bar, options slider, spin, edit field,
-// scrolling text and tooltip (destructor bodies and slot 0, the scalar deleting destructors, with their input
-// sides' copies: `this` moved back from the input side at +0x94, then the window's), and the
-// scrolling text's tokens. The scrolling text's body is in ui_scroll_text.cpp. See ui.h and
-// docs/notes/items_spells.md.
+// Destructors of the interface controls (A-H20): the scroll bar and options slider, the spin and the edit field
+// (the scrolling text's and the tooltip's are in ui_scroll_text.cpp / ui_tooltip.cpp), and the scrolling text's
+// tokens. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 #include "ui_screens.h"
 
@@ -22,76 +20,25 @@ T* FreeIfAsked(T* self, unsigned flags) {
 }
 } // namespace
 
-// --- Bodies -------------------------------------------------------------------------------------
+// --- The controls' destructors (with their deleting destructors and the input sides' copies: SUB ECX,0x94; JMP) --
 
-void CUiScrollbar::DestroyBody() {
-    SetTagTables(CUiScrollbar::Vtable(), CUiScrollbar::InputVtable());
-    DestroyBase();
-}
-EI_REWRITTEN(0x0065AFC0, CUiScrollbar::DestroyBody);
-EI_REWRITTEN(0x0065BCB0, CUiScrollbar::DestroyBody);
+CUiScrollbar::~CUiScrollbar() {}
+EI_REWRITTEN_SPECIAL(0x0065AFC0, CUiScrollbar::~CUiScrollbar);
+EI_REWRITTEN_SPECIAL(0x0065BCB0, CUiScrollbar::~CUiScrollbar);   // the slider's
+EI_REWRITTEN_SPECIAL(0x0065AFA0, CUiScrollbar::~CUiScrollbar);   // deleting
+EI_REWRITTEN_SPECIAL(0x0065BC90, CUiScrollbar::~CUiScrollbar);   // the slider's deleting
+EI_REWRITTEN_SPECIAL(0x0065CB70, CUiScrollbar::~CUiScrollbar);   // input side
+EI_REWRITTEN_SPECIAL(0x0065CB80, CUiScrollbar::~CUiScrollbar);   // the slider's input side
 
-void CUiSpin::DestroyBody() {
-    SetTagTables(Vtable(), InputVtable());
-    texts_.Destruct();
-    DestroyBase();
-}
-EI_REWRITTEN(0x0065BE10, CUiSpin::DestroyBody);
+CUiSpin::~CUiSpin() { texts_.Destruct(); }
+EI_REWRITTEN_SPECIAL(0x0065BE10, CUiSpin::~CUiSpin);
+EI_REWRITTEN_SPECIAL(0x0065BDF0, CUiSpin::~CUiSpin);   // deleting
+EI_REWRITTEN_SPECIAL(0x0065CB90, CUiSpin::~CUiSpin);   // input side
 
-void CUiEditField::DestroyBody() {
-    SetTagTables(Vtable(), InputVtable());
-    Text().~CString();
-    DestroyBase();
-}
-EI_REWRITTEN(0x0065C140, CUiEditField::DestroyBody);
-
-// --- Deleting destructors (slot 0) ----------------------------------------------------------------
-
-// 0065AFA0 / 0065BC90: the scroll bar (00742C18) and the slider (00742CBC).
-CUiScrollbar* CUiScrollbar::ScrollbarDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0065AFA0, CUiScrollbar::ScrollbarDelete);
-EI_REWRITTEN(0x0065BC90, CUiScrollbar::ScrollbarDelete);
-
-// 0065BDF0: the spin (00742D5C).
-CUiSpin* CUiSpin::SpinDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0065BDF0, CUiSpin::SpinDelete);
-
-// 0065C120: the edit field (00742DF4).
-CUiEditField* CUiEditField::EditFieldDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0065C120, CUiEditField::EditFieldDelete);
-
-// 0065CE00: the scrolling text (00742E9C).
-CUiScrollText* CUiScrollText::ScrollTextDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0065CE00, CUiScrollText::ScrollTextDelete);
-
-// 0065E4D0: a region's tooltip (00742F64).
-CUiTooltip* CUiTooltip::TooltipDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0065E4D0, CUiTooltip::TooltipDelete);
-
-// The input sides' slot 0 (SUB ECX,0x94; JMP to the window's): 0065CB70 the scroll bar's, 0065CB80
-// the slider's, 0065CB90 the spin's, 0065CBA0 the edit field's, 0065E2B0 the scrolling text's,
-// 0065EAC0 the tooltip's.
-EI_REWRITTEN(0x0065CB70, UiInput::DeleteWindow<&CUiScrollbar::ScrollbarDelete>);
-EI_REWRITTEN(0x0065CB80, UiInput::DeleteWindow<&CUiScrollbar::ScrollbarDelete>);
-EI_REWRITTEN(0x0065CB90, UiInput::DeleteWindow<&CUiSpin::SpinDelete>);
-EI_REWRITTEN(0x0065CBA0, UiInput::DeleteWindow<&CUiEditField::EditFieldDelete>);
-EI_REWRITTEN(0x0065E2B0, UiInput::DeleteWindow<&CUiScrollText::ScrollTextDelete>);
-EI_REWRITTEN(0x0065EAC0, UiInput::DeleteWindow<&CUiTooltip::TooltipDelete>);
+CUiEditField::~CUiEditField() {}
+EI_REWRITTEN_SPECIAL(0x0065C140, CUiEditField::~CUiEditField);
+EI_REWRITTEN_SPECIAL(0x0065C120, CUiEditField::~CUiEditField);   // deleting
+EI_REWRITTEN_SPECIAL(0x0065CBA0, CUiEditField::~CUiEditField);   // input side
 
 // --- The scrolling text's tokens ------------------------------------------------------------------
 

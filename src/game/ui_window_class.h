@@ -72,26 +72,6 @@ protected:
     CTransformObject* Transform() { return this->template ObjectAs<CTransformObject>(); }
 };
 
-// The scroll bar's slots over the window's (game.exe's 00742C18): 24 Update (scrolling while an arrow is held), 25
-// SetPosition and 26 SetRect, its own. The slider (00742CBC) and the scrolling text (00742E9C) override them.
-template <typename Self, auto Delete>
-class ScrollbarClass : public UiWindowClass<Self, Delete> {
-public:
-    void Update() override { this->AsWindow()->CUiScrollbar::Update(); }                               // 24: 0065B360
-    virtual void SetPosition(int position) { this->AsWindow()->CUiScrollbar::SetPosition(position); }   // 25: 0065B0C0
-    virtual void SetRect(const RECT* rect) { this->AsWindow()->CUiScrollbar::SetRect(rect); }           // 26: 0065B490
-};
-
-// The scroll bar's input side (game.exe's 00742BE4): the thumb and arrows by the left button, the drag, the wheel.
-template <typename Self, auto Delete>
-class ScrollbarInputClass : public InputSideClass<Self, Delete> {
-public:
-    int LeftDown(int b, int x, int y) override { return this->SideWindow()->CUiScrollbar::OnMouseDown(b, x, y), 0; }    // 2
-    int LeftUp(int b, int x, int y) override { return this->SideWindow()->CUiScrollbar::OnMouseUp(b, x, y), 0; }        // 3
-    int MouseMove(int b, int x, int y) override { return this->SideWindow()->CUiScrollbar::OnMouseMove(b, x, y), 0; }   // 4
-    int Wheel(int f, int d, int x, int y) override { return this->SideWindow()->CUiScrollbar::OnWheel(f, d, x, y); }     // 12
-};
-
 // A window class whose slot 0 is a base's deleting destructor (the plain window's, say): the window as
 // `Panel` (AsPanel), for the slots its table has of its own.
 template <typename Self, auto Delete, typename Panel>

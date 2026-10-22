@@ -4,7 +4,6 @@
 // drawing), the scroll bar's maximum and the tokens' destructor bodies. See ui.h and
 // docs/notes/items_spells.md.
 #include "ui.h"
-#include "ui_window_class.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -248,13 +247,6 @@ EI_REWRITTEN(0x0065D150, CUiScrollText::DrawLines);
 // --- A-H20: construction, texts, layout ----------------------------------------------------------
 
 namespace {
-// The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742E9C / 00742E68: the scroll bar's with
-// its own drawing (20) and layout (26).
-struct ScrollTextTable final : ScrollbarClass<ScrollTextTable, &CUiScrollText::ScrollTextDelete> {
-    BOOL Draw(int pass) override { return AsWindow()->CUiScrollText::Draw(pass); }          // 20: 0065D120
-    void SetRect(const RECT* rect) override { AsWindow()->CUiScrollText::SetRect(rect); }   // 26: 0065D0A0
-};
-struct ScrollTextInputTable final : ScrollbarInputClass<ScrollTextInputTable, &CUiScrollText::ScrollTextDelete> {};
 constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held
 constexpr int kBarWidth = 14;                // the text's rectangle stops short of the bar
 constexpr int kSurfaceFormat = 5;
@@ -272,14 +264,11 @@ void TokenizeText(CUiScrollText* self, const char* text) {
 void LayOut(CUiScrollText* self) { self->Layout(); }
 } // namespace
 
-void** CUiScrollText::Vtable() { return ScrollTextTable::Slots(); }
-void** CUiScrollText::InputVtable() { return ScrollTextInputTable::Slots(); }
-
-CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT rect, float depth) {
-    CUiScrollbar::Construct(ui, rect, depth, 0, kScrollSpeed);
+// The scroll bar's tables with its own drawing (20) and layout (26).
+CUiScrollText::CUiScrollText(CInterface3D* ui, const char* text, RECT rect, float depth)
+    : CUiScrollbar(ui, rect, depth, 0, kScrollSpeed) {
     tokens_.Construct(mfc::impl::TokenPtrArrayClass::Vtable());   // CArray<UiTextToken*>
     lines_.Construct(mfc::impl::LinePtrArrayClass::Vtable());   // CArray<UiTextLine*>
-    SetTagTables(Vtable(), InputVtable());
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     AddSurface(memory ? memory->ConstructOnRect(interface_, &rect, kSurfaceFormat) : nullptr);
     CUiScrollbar::SetRect(&rect);
@@ -288,12 +277,11 @@ CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT
     tokens_.SetSize(0, -1);
     TokenizeText(this, text);
     LayOut(this);
-    CallSetPosition(0);
+    SetPosition(0);
     CUiScrollbar::SetPosition(0);
     align_ = kJustified;
-    return this;
 }
-EI_REWRITTEN(0x0065CC00, CUiScrollText::Construct);
+EI_REWRITTEN_SPECIAL(0x0065CC00, CUiScrollText::CUiScrollText);
 
 void CUiScrollText::DeleteTokens() {
     for (int i = 0; i < tokens_.size; ++i)
@@ -307,8 +295,7 @@ void CUiScrollText::PlaceText(const RECT& rect) {
     LayOut(this);
 }
 
-void CUiScrollText::DestroyBody() {
-    SetTagTables(Vtable(), InputVtable());
+CUiScrollText::~CUiScrollText() {
     DeleteTokens();
     tokens_.SetSize(0, -1);
     for (int i = 0; i < lines_.size; ++i) gamecrt::operator_delete(lines_.data[i]);
@@ -317,19 +304,20 @@ void CUiScrollText::DestroyBody() {
     lines_.FreeData();
     tokens_.vtable = mfc::impl::TokenPtrArrayClass::Vtable();
     tokens_.FreeData();
-    CUiScrollbar::DestroyBody();
 }
-EI_REWRITTEN(0x0065CE20, CUiScrollText::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x0065CE20, CUiScrollText::~CUiScrollText);
+EI_REWRITTEN_SPECIAL(0x0065CE00, CUiScrollText::~CUiScrollText);   // the deleting destructor
+EI_REWRITTEN_SPECIAL(0x0065E2B0, CUiScrollText::~CUiScrollText);   // the input side's (SUB ECX,0x94; JMP)
 
 void CUiScrollText::AddText(const char* text) {
-    CallSetPosition(maxPosition_);
+    SetPosition(maxPosition_);
     int position;
     moved_ = true;
     TakePosition(&position);
     int before = Maximum();
     TokenizeText(this, text);
     LayOut(this);
-    CallSetPosition(Maximum() - before + position);
+    SetPosition(Maximum() - before + position);
 }
 EI_REWRITTEN(0x0065CF30, CUiScrollText::AddText);
 
@@ -337,7 +325,7 @@ void CUiScrollText::SetText(const char* text) {
     Clear();
     TokenizeText(this, text);
     LayOut(this);
-    CallSetPosition(0);
+    SetPosition(0);
 }
 EI_REWRITTEN(0x0065CFE0, CUiScrollText::SetText);
 
@@ -415,7 +403,7 @@ void CUiScrollbar::SetMaximum(int maximum) {
     for (int i = 0; i < kScrollbarSprites; ++i) SceneMesh(i)->visible_ = visible;
     int position = position_;
     position_ = position - 1;
-    CallSetPosition(position);
+    SetPosition(position);
 }
 EI_REWRITTEN(0x0065AFE0, CUiScrollbar::SetMaximum);
 
