@@ -89,7 +89,6 @@ bool& ToMainMenu() { return TheInterface()->closeAll_; }
 // The network sessions are open (CInterface3D::disconnected_: BeginMultiplayerGame sets it, a missing zone clears it).
 bool& SessionsOpen() { return TheInterface()->disconnected_; }
 
-void* const kScripts = ei::GamePointer<void>(0x007AFDF8);
 libcrt::Ostream* const kConsole = ei::GamePointer<libcrt::Ostream>(0x007C55A8);
 
 // The map database's zone records (MapRecord, object_tables.h).
@@ -116,7 +115,7 @@ __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int
 // The scenario.sav parts: the party (004A8560), the input state (005F85C0 save), the
 // scripts (004A54D0 reset, 004A5250 save into a stream), the globals (00410C10).
 __declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8560)
-void ScriptsReset(void* scripts) { reinterpret_cast<CMemoryStream*>(scripts)->Resize(0); }
+void ScriptsReset(CMemoryStream* scripts) { scripts->Resize(0); }
 // The console's ostream.
 
 const mfc::CString& RecordName(MapRecord* record) { return record->name; }
@@ -254,10 +253,10 @@ int GameFlow::SaveGame(const char* slot) {
     } scenarioOwner{&scenario};
     PartySave(ThePartyManager(), nullptr, &scenario);
     TheInterface()->SaveState(&scenario);
-    ScriptsReset(kScripts);
+    ScriptsReset(GameSaveStream());
     TheInterface()->SaveWindowState();
-    scenario.WriteSized(static_cast<CStream*>(kScripts));
-    ScriptsReset(kScripts);
+    scenario.WriteSized(GameSaveStream());
+    ScriptsReset(GameSaveStream());
     TheCamera()->SaveState(&scenario);
     SaveFileWrite(&file.stream, kMagicScenario, SaveVersion(), &scenario);
     file.Close();
@@ -1156,7 +1155,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
     for (auto* node = joined.head; node;) {
         auto* next = node->next;
         netlink::NetLink* connection = node->data;
-        CPlayer* player = static_cast<CPlayer*>(PlayerCreateOriginal(players_));
+        CPlayer* player = PlayerCreateOriginal(players_);
         player->Connect(connection);
         player->dirty_ = 0xFFFFFFFFu;
         player->sessionKind100_ = sessionKind_;
@@ -1447,8 +1446,6 @@ constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone 
 __declspec(naked) int __stdcall LeaveZoneAt(CParty*) EI_ORIGINAL(0x0057A780)
 __declspec(naked) int __stdcall StartNetworkZoneAt(const char*) EI_ORIGINAL(0x0057BDF0)
 __declspec(naked) void __fastcall LoadGameAt(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057ABA0)
-// 005F74F0 (the interface 007C7D50): closes its windows for the zone change.
-void __fastcall InterfaceCloseAll(void* a0) { static_cast<CInterface3D*>(a0)->CloseAll(); }
 // The client world (007AF5B8): its tick (005641F0), a zone check (00566D80, AL); the server's
 // update (0058DFF0); the network pump (004122D0).
 int __fastcall ClientSegmentAt(void* client) { return ClientSegmentOriginal(client); }
@@ -1466,8 +1463,8 @@ std::uint8_t& AutoplayOn() { return ei::GameData<std::uint8_t>(0x007B007C); }
 // item database globals the switch reloads.
 const char* ResourcesPath() { return options::TheOptions()->resourcesPath_.GetString(); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
-void* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
-void* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
+itemdb::SpellDatabase* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
+itemdb::ItemDatabase* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
 
 } // namespace
 
@@ -1478,9 +1475,9 @@ void __fastcall SwitchResourceDatabases(const char* name) {
     units->CountSoundFiles(TheSoundManager());
     SkillDb()->Reset();
     SkillDatabaseLoadOriginal(SkillDb(), nullptr, ResourcesPath(), name);
-    static_cast<itemdb::SpellDatabase*>(SpellTablesObject())->Reset();
+    SpellTablesObject()->Reset();
     SpellTablesLoadOriginal(SpellTablesObject(), nullptr, ResourcesPath(), name);
-    static_cast<itemdb::ItemDatabase*>(ItemDatabaseObject())->Reset();
+    ItemDatabaseObject()->Reset();
     ItemDatabaseLoadOriginal(ItemDatabaseObject(), nullptr, ResourcesPath(), name);
 }
 EI_REWRITTEN(0x0057CB50, SwitchResourceDatabases);
@@ -1521,7 +1518,7 @@ void GameFlow::ProcessRequest() {
         LocalRecords records;
         LeaveZoneAt(records.Party());
     }
-    InterfaceCloseAll(TheInterface());
+    TheInterface()->CloseAll();   // 005F74F0: its windows closed for the zone change
     TheServerWorld()->TeardownZone();
     // (0057DEE0's body is inlined here in the original, with the databases' switch 0057CB50 out of line.)
     UseResources(Active(net::GameClient()));
@@ -1601,7 +1598,7 @@ constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the glob
 // 005F8420), the scripts (004A51C0, a stream method), the globals (00410AB0); the world from
 // mission.sav (00579E60, a flow method, from the file stream).
 __declspec(naked) void __fastcall PartyLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8310)
-void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, void* a2) { a0->ReadSized(static_cast<CStream*>(a2)); }
+void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, CStream* a2) { a0->ReadSized(a2); }
 int& LoadedScriptsVersion() { return ei::GameData<int>(0x007AFE00); }
 
 } // namespace
@@ -1655,9 +1652,9 @@ int GameFlow::LoadGame(const char* slot) {
     PartyLoad(ThePartyManager(), nullptr, &scenario);
     int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
-        ScriptsReset(kScripts);
+        ScriptsReset(GameSaveStream());
         TheInterface()->LoadState(&scenario);
-        StreamLoadScripts(&scenario, nullptr, kScripts);
+        StreamLoadScripts(&scenario, nullptr, GameSaveStream());
         version = static_cast<int>(scenario.version_);
         LoadedScriptsVersion() = version;
     }

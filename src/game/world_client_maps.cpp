@@ -1094,7 +1094,6 @@ __declspec(naked) int __fastcall LoadLightsAt(void*, void*, const char*) EI_ORIG
 __declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGINAL(0x004DEDB0)
 // Constructors (thiscall; some take a block size or count).
 __declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
-void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
 
 std::uint8_t* New(std::size_t size) { return static_cast<std::uint8_t*>(gamecrt::operator_new(size)); }
 
@@ -1260,7 +1259,7 @@ int CWorldClient::Setup() {
     ++manager->refCount_;
     manager->Init(this);
 
-    session_ = static_cast<CPlayer*>(SessionFor(players_));
+    session_ = PlayerCreateOriginal(players_);
 
     auto* handle = gamecrt::operator_new_as<CRefObject>();
     handle->refs_ = 0;   // (refs and flags written before the pointer is tested)
@@ -1672,7 +1671,7 @@ int CWorldClient::LoadZone(CStream* block) {
     }
 
     // The local server's pending messages follow this block in the view's stream.
-    LocalView()->AppendReceived(static_cast<CMemoryStream*>(GameObject7C2D60()));
+    LocalView()->AppendReceived(GameObject7C2D60());
     ticksRun_ = 0;
     BuildUnitSkinsAt(this, nullptr, &looks.figured, &looks.dressed);
     // A wind option other than 0 sets the waves.

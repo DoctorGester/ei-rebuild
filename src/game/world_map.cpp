@@ -266,7 +266,7 @@ void CWorldServer::SendFreshObjects() {
     }
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
-    CPlayer* temporary = (CPlayer*)PlayerCreateOriginal((void*)players_);
+    CPlayer* temporary = PlayerCreateOriginal(players_);
     CPlayerServer* state = temporary->Server();
     lib::AlignedArray<CEngineObject*> objects{nullptr, 0, 0, 0};
     for (auto* node = fresh.head; node;) {
