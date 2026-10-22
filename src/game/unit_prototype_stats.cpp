@@ -14,7 +14,7 @@ void CUnit::TakePrototypeImpl(const char* prototype) {
     UnitStats stats{};
     vitals.Reset();
     stats.Reset();
-    static_cast<UnitStatsBuilder*>(static_cast<void*>(owner_))->BuildFromPrototype(&vitals, &stats, prototype);
+    MapObjectManagerOf(this)->BuildFromPrototype(&vitals, &stats, prototype);
     vitals.Pack(&packedVitals);
     stats.Pack(nullptr, Params());
 }

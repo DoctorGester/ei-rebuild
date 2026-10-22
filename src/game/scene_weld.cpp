@@ -34,26 +34,26 @@ double WeldDistance() {
 // 0044C4A0. `unit`: the fake unit (meshes: CArray at +0x544, 0x18C each); `nodes`: the scene's
 // nodes, one per mesh (morph keys at +0xD0). A position or coordinate within the weld distance of
 // an earlier kept one (or a NaN distance) maps to it, otherwise it is kept.
-void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
+void __fastcall WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes) {
     PointBuffer points{};
     DwordBuffer pointMap{};
     UvBuffer coords{};
     DwordBuffer coordMap{};
-    VtArray& meshes = unit->meshes;
+    MeshArray& meshes = unit->meshes;
     if (meshes.size <= 0) return;
     const double weld = WeldDistance();
     for (int m = 0; m < meshes.size; ++m) {
-        SceneMesh* mesh = &Typed<MeshArray>(meshes).data[m];
+        SceneMesh* mesh = &meshes.data[m];
         PointBuffer& positions = mesh->positions;
 
         points.SetSize(0);
         pointMap.SetSize(0);
         pointMap.SetSize(positions.size);
         for (int i = 0; i < positions.size; ++i) {
-            const Vector3& p = reinterpret_cast<Vector3*>(positions.data)[i];
+            const Vector3& p = positions.data[i].point;
             int index = 0;
             for (; index < points.size; ++index) {
-                const Vector3& q = reinterpret_cast<Vector3*>(points.data)[index];
+                const Vector3& q = points.data[index].point;
                 float dx = q.x - p.x, dy = q.y - p.y, dz = q.z - p.z;
                 double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz));
                 EI_NAN_AUDIT(length);
@@ -69,7 +69,7 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
         std::memcpy(positions.data, points.data, static_cast<std::size_t>(points.size) * sizeof(Vector3));
 
         // The node's morph keys (0x14 each, an aligned point array at +4) move to the merged list.
-        SceneNode* node = &Typed<NodeArray>(*nodes).data[m];
+        SceneNode* node = &nodes->data[m];
         auto& morph = node->morphKeys;
         for (int k = 0; k < morph.size; ++k) {
             lib::AlignedArray<Vector3>& keyPoints = morph.data[k].points;
@@ -86,10 +86,10 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
         coordMap.SetSize(0);
         coordMap.SetSize(texCoords.size);
         for (int i = 0; i < texCoords.size; ++i) {
-            const float* uv = reinterpret_cast<float*>(texCoords.data) + i * 2;
+            const float* uv = texCoords.data[i].uv;
             int index = 0;
             for (; index < coords.size; ++index) {
-                const float* known = reinterpret_cast<float*>(coords.data) + index * 2;
+                const float* known = coords.data[index].uv;
                 float du = known[0] - uv[0], dv = known[1] - uv[1];
                 const double distance = libcrt::Hypot(du, dv);
                 EI_NAN_AUDIT(distance);

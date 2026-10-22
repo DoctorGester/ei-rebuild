@@ -80,7 +80,7 @@ void TryLightningStrike(CWorldServer* world) {
     if (aiMap->LargestStepAlong(&ground, &sky) >= One()) return;   // NaN goes on (C0 set)
 
     CBaseManager* manager = world->TimedObjectManager();
-    auto* lightning = static_cast<CEffectTornado*>(manager->CreateObject(kTypeLightning, -1));
+    auto* lightning = manager->CreateObjectAs<CEffectTornado>(kTypeLightning, -1);
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
     sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;

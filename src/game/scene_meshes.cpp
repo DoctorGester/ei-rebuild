@@ -169,9 +169,9 @@ void BuildPairs(SceneMesh* mesh) {
     GameQsort(list.data, static_cast<unsigned>(list.size), 4, kComparePairs);
     if (list.size & 3) {
         int missing = 4 - (list.size & 3);
-        const auto* last = reinterpret_cast<const std::uint16_t*>(list.data) + (list.size - 1) * 2;
-        std::uint16_t vertex = last[0];
-        std::uint16_t position = last[1];
+        const std::uint32_t last = list.data[list.size - 1];   // words: vertex, position
+        std::uint16_t vertex = static_cast<std::uint16_t>(last);
+        std::uint16_t position = static_cast<std::uint16_t>(last >> 16);
         for (int i = 0; i < missing; ++i) {
             ++position;
             int at = list.size;
@@ -191,14 +191,14 @@ void BuildPairs(SceneMesh* mesh) {
 
 // 0044CFF0 (__fastcall: the unit's mesh array). The record list (vtable 0073C19C) is shared by all
 // meshes and freed at the end.
-void __fastcall IndexMeshCorners(VtArray* meshes) {
+void __fastcall IndexMeshCorners(MeshArray* meshes) {
     RecordArray records{mfc::impl::MeshCornerArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (int m = 0; m < meshes->size; ++m) {
         CornerMap corners = NewMap<CornerMap>(mfc::impl::CornerMapAClass::Vtable());
         IndexMap indices = NewMap<IndexMap>(mfc::impl::CornerMapBClass::Vtable());
-        BuildCornerTable(&Typed<MeshArray>(*meshes).data[m], records, corners, indices);
-        IndexFaceCorners(&Typed<MeshArray>(*meshes).data[m]);
-        BuildPairs(&Typed<MeshArray>(*meshes).data[m]);
+        BuildCornerTable(&meshes->data[m], records, corners, indices);
+        IndexFaceCorners(&meshes->data[m]);
+        BuildPairs(&meshes->data[m]);
         DestroyMap(indices, mfc::impl::CornerMapBClass::Vtable());
         corners.vtable = mfc::impl::CornerMapAClass::Vtable();
         corners.RemoveAll();   // 00453F80

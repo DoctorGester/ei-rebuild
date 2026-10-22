@@ -68,7 +68,7 @@ bool ServerSession::AdmitImpl(std::uint32_t address, const std::uint8_t** passwo
     while (banned != banned_.End() && banned->data.ip != from->ip) banned = banned->next;
     if (banned != banned_.End()) return false;
 
-    const std::uint8_t* stored = password_;
+    const char* stored = password_;
     if (stored[0]) {
         *reason = 3;
         std::uint8_t given[kPasswordSize] = {};
@@ -85,7 +85,7 @@ bool ServerSession::AdmitImpl(std::uint32_t address, const std::uint8_t** passwo
 
 // 0041A140: the join password (at most 20 bytes, zero-filled).
 void ServerSession::SetPassword(const char* text) {
-    char* stored = reinterpret_cast<char*>(password_);
+    char* stored = password_;
     std::memset(stored, 0, kPasswordSize);
     gamecrt::strncpy(stored, text, kPasswordSize);
 }

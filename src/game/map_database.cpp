@@ -1,6 +1,15 @@
-// The map database loader (0045EA20). See map_database.h for the file format.
+// The map database loader (0045EA20): CMapDatabase's allods, maps and exits (object_tables.h) filled
+// from map.txt / map-LMP.txt.
+//
+// The file is read line by line through the text manager (007AF788) and split into words. Lines
+// starting with a directive word set the current record:
+//   #allod <name>, then 5 lines with one word each (the allod's other names)
+//   #zone <name> <allod> <game|brief|edge>       a new map, the current one from here
+//   #res, #camera, #maps, #figure (each followed by a line of words), #weather, #cage, #restrict,
+//   #sky                                         fields of the current map
+//   #exit (then "<target> <n>")                  a new exit of the current map
+//   #deploy, #remove, #passtime, #view, #deployangle   fields of the current exit
 #include "item_db_text.h"
-#include "map_database.h"
 #include "angles.h"
 #include "game_strings.h"
 
@@ -21,6 +30,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <type_traits>
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -54,9 +64,9 @@ constexpr ElementFn DestructExits = mfc::impl::DestructElementsAt<gamearrays::Ex
 
 // *out = float(GameAtof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does
 // (the factor is the product of two doubles at 0073C3B8 and 0073BA30, rounded by the FPU).
-void StoreRadians(void* out, const char* text) {
+void StoreRadians(float* out, const char* text) {
     const double degrees = GameAtof(text);
-    *static_cast<float*>(out) = static_cast<float>(degrees * ei::kRadiansPerDegree);
+    *out = static_cast<float>(degrees * ei::kRadiansPerDegree);
 }
 
 bool Is(const char* word, const char* text) {
@@ -64,56 +74,46 @@ bool Is(const char* word, const char* text) {
 }
 
 
-// The body of an MFC CArray (after its vtable).
-struct ArrayBody {
-    char* data;
-    int size;
-    int max;
-    int grow;
-};
-
-// CArray::SetSize(size, -1) as the original inlines it.
-void SetSize(ArrayBody& a, int size, int elementSize, ElementFn construct, ElementFn destruct) {
+// CArray::SetSize(size, -1) as the original inlines it, with the instantiation's element
+// constructor and destructor.
+template <typename Array>
+void SetSize(Array& a, int size, ElementFn construct, ElementFn destruct) {
+    using T = std::remove_pointer_t<decltype(a.data)>;
     if (size == 0) {
         if (a.data) {
             destruct(a.data, a.size);
             gamecrt::operator_delete(a.data);
             a.data = nullptr;
         }
-        a.max = 0;
+        a.maxSize = 0;
         a.size = 0;
     } else if (!a.data) {
-        a.data = static_cast<char*>(gamecrt::operator_new(size * elementSize));
+        a.data = static_cast<T*>(gamecrt::operator_new(size * sizeof(T)));
         construct(a.data, size);
-        a.max = size;
+        a.maxSize = size;
         a.size = size;
-    } else if (size <= a.max) {
-        if (size > a.size) construct(a.data + a.size * elementSize, size - a.size);
-        else if (size < a.size) destruct(a.data + size * elementSize, a.size - size);
+    } else if (size <= a.maxSize) {
+        if (size > a.size) construct(a.data + a.size, size - a.size);
+        else if (size < a.size) destruct(a.data + size, a.size - size);
         a.size = size;
     } else {
-        int grow = a.grow;
+        int grow = a.growBy;
         if (grow == 0) {
             grow = a.size / 8;
             if (grow < 4) grow = 4;
             else if (grow > 1024) grow = 1024;
         }
-        int capacity = a.max + grow;
+        int capacity = a.maxSize + grow;
         if (size >= capacity) capacity = size;
-        char* data = static_cast<char*>(gamecrt::operator_new(capacity * elementSize));
-        std::memcpy(data, a.data, a.size * elementSize);
-        construct(data + a.size * elementSize, size - a.size);
+        T* data = static_cast<T*>(gamecrt::operator_new(capacity * sizeof(T)));
+        std::memcpy(static_cast<void*>(data), a.data, a.size * sizeof(T));
+        construct(data + a.size, size - a.size);
         gamecrt::operator_delete(a.data);
         a.data = data;
         a.size = size;
-        a.max = capacity;
+        a.maxSize = capacity;
     }
 }
-
-ArrayBody& Body(void* array) { return *reinterpret_cast<ArrayBody*>(static_cast<char*>(array) + 4); }
-mfc::CString& StringAt(char* p, std::size_t offset) { return *reinterpret_cast<mfc::CString*>(p + offset); }
-template <typename T>
-void Set(char* p, std::size_t offset, T v) { std::memcpy(p + offset, &v, sizeof(v)); }
 
 class Loader {
 public:
@@ -125,8 +125,8 @@ private:
     void Split() { reader_->Split(&words_, 1); }
     const char* Word(int i) const { return words_[i]; }
     int Count() const { return words_.size; }
-    char* Map() { return reinterpret_cast<char*>(db_->maps.data) + map_ * map::kSize; }
-    char* Exit() { return Body(Map() + map::kExits).data + exit_ * exit::kSize; }
+    MapRecord& Map() { return db_->maps.data[map_]; }
+    ZoneExit& Exit() { return Map().exits.data[exit_]; }
 
     void AddAllod();
     void AddMap();
@@ -142,53 +142,49 @@ private:
 };
 
 void Loader::AddAllod() {
-    ArrayBody& allods = *reinterpret_cast<ArrayBody*>(&db_->allods.data);
+    mfc::CArray<AllodRecord>& allods = db_->allods;
     int index = allods.size;
-    SetSize(allods, index + 1, allod::kSize, ConstructAllods, DestructAllods);
-    char* a = allods.data + index * allod::kSize;
-    StringAt(a, allod::kNames) = words_[1];
-    for (int i = 1; i < 6; ++i) {
+    SetSize(allods, index + 1, ConstructAllods, DestructAllods);
+    allods.data[index].name = words_[1];
+    for (int i = 0; i < 5; ++i) {
         Split();
-        StringAt(allods.data + index * allod::kSize, allod::kNames + i * 4) = words_[0];
+        allods.data[index].otherNames[i] = words_[0];
     }
 }
 
 void Loader::AddMap() {
-    ArrayBody& maps = *reinterpret_cast<ArrayBody*>(&db_->maps.data);
-    SetSize(maps, maps.size + 1, map::kSize, ConstructMaps, DestructMaps);
+    SetSize(db_->maps, db_->maps.size + 1, ConstructMaps, DestructMaps);
     ++map_;
     exit_ = -1;
-    StringAt(Map(), map::kName) = words_[1];
-    StringAt(Map(), map::kAllod) = words_[2];
+    Map().name = words_[1];
+    Map().allod = words_[2];
     const char* allodName = words_[2];
     for (int i = 0; i < db_->allods.size; ++i) {
-        char* a = reinterpret_cast<char*>(db_->allods.data) + i * allod::kSize;
-        if (gamecrt::mbsicmp(*reinterpret_cast<const char* const*>(a), allodName) != 0)
-            continue;
-        auto* mapList = reinterpret_cast<mfc::CArray<std::uint32_t>*>(a + allod::kMaps);
-        mapList->SetAtGrow(mapList->size, static_cast<std::uint32_t>(map_));   // 00460500
+        AllodRecord& allod = db_->allods.data[i];
+        if (gamecrt::mbsicmp(allod.name.GetString(), allodName) != 0) continue;
+        allod.maps.SetAtGrow(allod.maps.size, map_);   // 00460500
         break;
     }
-    if (Is(Word(3), game::mapwords::Game())) Set<int>(Map(), map::kKind, 0);
-    else if (Is(Word(3), game::mapwords::Brief())) Set<int>(Map(), map::kKind, 2);
-    else if (Is(Word(3), game::mapwords::Edge())) Set<int>(Map(), map::kKind, 1);
-    Set<int>(Map(), map::kWeather, 1);
-    Set<int>(Map(), map::kCave, 0);
-    Set<std::uint8_t>(Map(), map::kRestricted, 0);
-    Set<std::uint8_t>(Map(), map::kCage, 0);
+    if (Is(Word(3), game::mapwords::Game())) Map().kind = 0;
+    else if (Is(Word(3), game::mapwords::Brief())) Map().kind = 2;
+    else if (Is(Word(3), game::mapwords::Edge())) Map().kind = 1;
+    Map().setting2C = 1;   // the weather
+    Map().setting30 = 0;   // no cave
+    Map().restricted = false;
+    Map().cage = false;
 }
 
 void Loader::AddExit() {
-    ArrayBody& exits = Body(Map() + map::kExits);
-    SetSize(exits, exits.size + 1, exit::kSize, ConstructExits, DestructExits);
+    ZoneExits& exits = Map().exits;
+    SetSize(exits, exits.size + 1, ConstructExits, DestructExits);
     ++exit_;
-    Set<int>(Exit(), exit::kView, 0);
-    Set<std::uint8_t>(Exit(), exit::kHasDeployAngle, 0);
-    Set<int>(Exit(), exit::kDeployAngle, 0);
+    Exit().view = 0.0f;
+    Exit().hasDeployAngle = 0;
+    Exit().deployAngle = 0.0f;
     Split();
     if (Count() > 1) {
-        StringAt(Exit(), exit::kTarget) = words_[0];
-        Set<int>(Exit(), exit::kTargetIndex, libcrt::Atoi(Word(1)) - 1);
+        Exit().target = words_[0];
+        Exit().entrance = libcrt::Atoi(Word(1)) - 1;
     }
 }
 
@@ -197,45 +193,47 @@ bool Loader::MapLine(const char* word) {
     if (Is(word, game::mapwords::Res())) {
         Split();
         if (Count() > 1) {
-            StringAt(Map(), map::kRes1) = words_[0];
-            StringAt(Map(), map::kRes2) = words_[1];
+            Map().map = words_[0];
+            Map().mob = words_[1];
         }
     } else if (Is(word, game::mapwords::Camera())) {
         Split();
-        if (Count() > 0) StringAt(Map(), map::kCamera) = words_[0];
+        if (Count() > 0) Map().camera = words_[0];
     } else if (Is(word, game::mapwords::Maps())) {
         Split();
         if (Count() > 1) {
-            Set<int>(Map(), map::kSizeX, libcrt::Atoi(Word(0)));
-            Set<int>(Map(), map::kSizeY, libcrt::Atoi(Word(1)));
+            Map().sizeX = libcrt::Atoi(Word(0));
+            Map().sizeY = libcrt::Atoi(Word(1));
         }
         Split();
         if (Count() > 1) {
-            StringAt(Map(), map::kMaps1) = words_[0];
-            StringAt(Map(), map::kMaps2) = words_[1];
+            Map().picture = words_[0];
+            Map().picture2 = words_[1];
         }
     } else if (Is(word, game::mapwords::Figure())) {
         Split();
-        if (Count() > 0) StringAt(Map(), map::kFigure) = words_[0];
+        if (Count() > 0) Map().figure = words_[0];
     } else if (Is(word, game::mapwords::Weather())) {
         Split();
         if (Count() > 0) {
-            if (Is(Word(0), game::NoneText())) Set<int>(Map(), map::kWeather, 0);
-            else if (Is(Word(0), game::mapwords::Snow())) Set<int>(Map(), map::kWeather, 2);
-            else if (Is(Word(0), game::mapwords::Tornado())) Set<int>(Map(), map::kWeather, 3);
-            else Set<int>(Map(), map::kWeather, 1);
+            if (Is(Word(0), game::NoneText())) Map().setting2C = 0;
+            else if (Is(Word(0), game::mapwords::Snow())) Map().setting2C = 2;
+            else if (Is(Word(0), game::mapwords::Tornado())) Map().setting2C = 3;
+            else Map().setting2C = 1;
         }
     } else if (Is(word, game::mapwords::Cage())) {
-        Set<std::uint8_t>(Map(), map::kCage, 1);
+        Map().cage = true;
     } else if (Is(word, game::mapwords::Restrict())) {
         Split();
         if (Count() > 2) {
-            Set<std::uint8_t>(Map(), map::kRestricted, 1);
-            for (int i = 0; i < 3; ++i) Set<float>(Map(), map::kRestrict + i * 4, static_cast<float>(GameAtof(Word(i))));
+            Map().restricted = true;
+            Map().restrictX = static_cast<float>(GameAtof(Word(0)));
+            Map().restrictY = static_cast<float>(GameAtof(Word(1)));
+            Map().restrictRadius = static_cast<float>(GameAtof(Word(2)));
         }
     } else if (Is(word, game::mapwords::Sky())) {
         Split();
-        if (Count() > 0) Set<int>(Map(), map::kCave, Is(Word(0), game::mapwords::Cave()) ? 1 : 0);
+        if (Count() > 0) Map().setting30 = Is(Word(0), game::mapwords::Cave()) ? 1 : 0;
     } else if (Is(word, game::mapwords::Exit())) {
         AddExit();
     } else {
@@ -251,26 +249,31 @@ void Loader::ExitLine(const char* word) {
         // "#deploy" sets both quadruples, "#remove" only the second.
         Split();
         if (Count() > 3) {
-            for (int i = 0; i < 4; ++i) {
+            // Word i to the area's i-th coordinate (x1, y1, x2, y2), and to deploy[i].
+            auto put = [&](int i, float& area) {
                 float v = static_cast<float>(GameAtof(Word(i)));
-                Set<float>(Exit(), exit::kRemove + i * 4, v);
-                if (deploy) Set<float>(Exit(), exit::kDeploy + i * 4, v);
-            }
-            Set<int>(Exit(), exit::kAngle, 0);
+                area = v;
+                if (deploy) Exit().deploy[i] = v;
+            };
+            put(0, Exit().x1);
+            put(1, Exit().y1);
+            put(2, Exit().x2);
+            put(3, Exit().y2);
+            Exit().angle = 0.0f;
         }
-        if (Count() > 4) StoreRadians(Exit() + exit::kAngle, Word(4));
+        if (Count() > 4) StoreRadians(&Exit().angle, Word(4));
     } else if (Is(word, game::mapwords::PassTime())) {
         Split();
-        if (Count() > 0) Set<float>(Exit(), exit::kPassTime, static_cast<float>(GameAtof(Word(0))));
+        if (Count() > 0) Exit().passTime = static_cast<float>(GameAtof(Word(0)));
     } else if (Is(word, game::mapwords::View())) {
         Split();
         words_.SetAtGrow(Count(), game::mapwords::Zero());
-        StoreRadians(Exit() + exit::kView, Word(0));
+        StoreRadians(&Exit().view, Word(0));
     } else if (Is(word, game::mapwords::DeployAngle())) {
-        Set<std::uint8_t>(Exit(), exit::kHasDeployAngle, 1);
+        Exit().hasDeployAngle = 1;
         Split();
         words_.SetAtGrow(Count(), game::mapwords::Zero());
-        StoreRadians(Exit() + exit::kDeployAngle, Word(0));
+        StoreRadians(&Exit().deployAngle, Word(0));
     }
 }
 

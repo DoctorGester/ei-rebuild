@@ -189,7 +189,7 @@ Vector3* CubicCurve3::Evaluate(Vector3* out, float t) const {
 EI_REWRITTEN(0x0040E460, CubicCurve3::Evaluate);
 
 int CCamera::PlaybackStart() {
-    if (keyCount_ == 0) return 0;
+    if (keys_.size == 0) return 0;
     std::memcpy(&localPosition_, &keys_[0].position, sizeof(Vector3));
     std::memcpy(&localRotation_, &keys_[0].rotation, sizeof(Quaternion));
     return 1;
@@ -197,19 +197,19 @@ int CCamera::PlaybackStart() {
 EI_REWRITTEN(0x0040F1B0, CCamera::PlaybackStart);
 
 int CCamera::PlaybackStep(float time) {
-    if (!(flags_ & kPlaying) || keyCount_ == 0) return 0;
-    const CameraKey* keys = keys_;
-    if (keyIndex_ >= keyCount_ - 1) {
-        std::memcpy(&localPosition_, &keys[keyCount_ - 1].position, sizeof(Vector3));
-        std::memcpy(&localRotation_, &keys[keyCount_ - 1].rotation, sizeof(Quaternion));
+    if (!(flags_ & kPlaying) || keys_.size == 0) return 0;
+    const CameraKey* keys = keys_.data;
+    if (keyIndex_ >= keys_.size - 1) {
+        std::memcpy(&localPosition_, &keys[keys_.size - 1].position, sizeof(Vector3));
+        std::memcpy(&localRotation_, &keys[keys_.size - 1].rotation, sizeof(Quaternion));
         return 0;
     }
     double next = D(keys[keyIndex_ + 1].time) + timeOffset_;
     while (time > next) {
         ++keyIndex_;
-        if (keyIndex_ >= keyCount_ - 1) {
-            std::memcpy(&localPosition_, &keys[keyCount_ - 1].position, sizeof(Vector3));
-            std::memcpy(&localRotation_, &keys[keyCount_ - 1].rotation, sizeof(Quaternion));
+        if (keyIndex_ >= keys_.size - 1) {
+            std::memcpy(&localPosition_, &keys[keys_.size - 1].position, sizeof(Vector3));
+            std::memcpy(&localRotation_, &keys[keys_.size - 1].rotation, sizeof(Quaternion));
             flags_ &= ~kPlaying;
             return 0;
         }

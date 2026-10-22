@@ -35,10 +35,10 @@ int CCamera::LoadPath(const char* name, int settle) {
 
     // As many keys as the file holds whole; the array is resized as the engine's aligned arrays
     // are (the old keys kept when it grows) and filled with one read.
-    KeyArray()->SetSize(static_cast<int>(file.GetLength() / sizeof(CameraKey)));
-    file.Read(keys_, static_cast<unsigned>(keyCount_) * sizeof(CameraKey));
+    keys_.SetSize(static_cast<int>(file.GetLength() / sizeof(CameraKey)));
+    file.Read(keys_.data, static_cast<unsigned>(keys_.size) * sizeof(CameraKey));
 
-    if (settle != 0 && keyCount_ > settle && settle > 1) {
+    if (settle != 0 && keys_.size > settle && settle > 1) {
         // The first key (of the first `settle`) more than the gap after its predecessor: every key
         // before it takes its position and rotation (the times stay).
         for (int first = 1; first < settle; ++first) {

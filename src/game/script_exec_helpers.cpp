@@ -161,8 +161,8 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     Lights(this)[i].id = id;
     Lights(this)[i].removeWhenDone = 0;
     ScriptPointLight* slot = &Lights(this)[i];
-    slot->object = EffectManager()->CreateObject(0x4B, -1);
-    CEffectPointLight* object = static_cast<CEffectPointLight*>(Lights(this)[i].object);
+    slot->object = EffectManager()->CreateObjectAs<CEffectPointLight>(0x4B, -1);
+    CEffectPointLight* object = Lights(this)[i].object;
     ++object->refCount_;
     f = cmd->floatArgs.data;
     const float scale = 0.003921569f /*0073C36C*/;   // 1 / 255
@@ -198,7 +198,7 @@ void CScript::MovePointLight(const SSCCmd* cmd) {
     light->moving = 1;
     light->removeWhenDone = x87::fistp(f[5]);
     light->steps = x87::fistp(f[4]);
-    LightStep(light, &f[1], &static_cast<CEffectPointLight*>(light->object)->localPosition_.x);
+    LightStep(light, &f[1], &light->object->localPosition_.x);
 }
 EI_REWRITTEN(0x004BD820, CScript::MovePointLight);
 

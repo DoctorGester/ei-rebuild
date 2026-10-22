@@ -519,10 +519,9 @@ bool ReadTimed(CEngineObject* o, Builder& b) {
 
 // A missile of the server's list (a CSpellEffect, spell.h: a spell on its way or lasting). Its
 // visual (the flying CEffectArrow, a wall, a cloud) is a timed object: "timed<visual>".
-std::string DescribeMissile(const Projectile* p) {
-    const auto* e = reinterpret_cast<const CSpellEffect*>(p);
+std::string DescribeMissile(const CSpellEffect* e) {
     std::uint32_t vtable;
-    std::memcpy(&vtable, e->header, 4);
+    std::memcpy(&vtable, static_cast<const void*>(e), 4);
     if (vtable != ei::GameAddress(CSpellEffect::kVtableAddress)) {
         char text[24];
         std::snprintf(text, sizeof(text), "vtable 0x%08X", unsigned(ei::OriginalAddress(vtable)));
@@ -531,10 +530,9 @@ std::string DescribeMissile(const Projectile* p) {
     return "spell " + std::to_string(e->Spell()->prototypeId_ >> 16);
 }
 
-void ReadMissile(const Projectile* p, Builder& b) {
-    const auto* e = reinterpret_cast<const CSpellEffect*>(p);
+void ReadMissile(const CSpellEffect* e, Builder& b) {
     std::uint32_t vtable;
-    std::memcpy(&vtable, e->header, 4);
+    std::memcpy(&vtable, static_cast<const void*>(e), 4);
     if (vtable != ei::GameAddress(CSpellEffect::kVtableAddress)) return;   // not a CSpellEffect: its description says so
     b.Int("state", e->state);
     b.Bits("flags", e->flags);

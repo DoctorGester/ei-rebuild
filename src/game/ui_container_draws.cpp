@@ -119,7 +119,7 @@ int CHeroEquipPanel::DrawImpl(int pass) {
         frame(1)->visible_ = 0;
     }
     DrawBase(pass);
-    auto* owner = reinterpret_cast<CItemScreen*>(owner_);
+    auto* owner = static_cast<CItemScreen*>(owner_);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) {
         ItemCell cell{hero->weapons[i], static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
                       mode_};

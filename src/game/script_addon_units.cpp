@@ -40,7 +40,6 @@ static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) { return unit->GetP
 // last argument: the id is a text key, >= 1000000000).
 
 
-float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
 ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]; }
 
 // CMapObject::IsDead (slot 55) of any object: 0 alive, 1 dead (addon's 10013192).
@@ -71,9 +70,9 @@ void ForObjectsNear(float x, float y, float radius, Visit visit) {
 // A float field of the unit's data object, 0 and invalid arguments without one.
 bool DataField(Call* call, float UnitStats::* field, const char* function) {
     auto* data = UnitData(ObjectArg(call, 0));
-    *FloatResult(call) = 0.0f;
+    *call->FloatResult() = 0.0f;
     if (!data) return InvalidArguments(function);
-    Store(FloatResult(call), data->stats.*field);
+    Store(call->FloatResult(), data->stats.*field);
     return true;
 }
 
@@ -89,14 +88,14 @@ void ForWorldObjects(Visit visit) {
 
 // The unit's party's player number (party +0x24); -1 without.
 bool GetPlayerOfUnit(Call* call) {
-    Store(FloatResult(call), -1.0f);
+    Store(call->FloatResult(), -1.0f);
     CEngineObject* unit = ObjectArg(call, 0)->object;
     if (!unit) return Report("GetPlayerOfUnit", "Unit doesn't exists");
     CUnit* asUnit = UnitOrNull(unit);
     if (!asUnit) return Report("GetPlayerOfUnit", "Object with ID %d must be a Unit", unit->id_);
     CPlayer* party = asUnit->player;
     if (!party) return Report("GetPlayerOfUnit", "Unit doesn't have associated player: ID = %d", unit->id_);
-    Store(FloatResult(call), static_cast<float>(party->playerId_));
+    Store(call->FloatResult(), static_cast<float>(party->playerId_));
     return true;
 }
 
@@ -104,7 +103,7 @@ bool GetPlayerOfUnit(Call* call) {
 bool GetUnitExp(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     const char* what = call->cmd->stringArgs.size == 0 ? "max" : call->cmd->stringArgs.data[0].GetString();
-    *FloatResult(call) = 0.0f;
+    *call->FloatResult() = 0.0f;
     if (!data) return InvalidArguments("GetUnitExp");
     float value;
     if (Stricmp(what, "max") == 0) {
@@ -119,7 +118,7 @@ bool GetUnitExp(Call* call) {
     } else {
         return InvalidArguments("GetUnitExp");
     }
-    Store(FloatResult(call), value);
+    Store(call->FloatResult(), value);
     return true;
 }
 
@@ -130,18 +129,18 @@ bool GetArmor(Call* call) {
     const float* f = call->cmd->floatArgs.data;
     int kind = Ftol(f[0]);
     int part = Ftol(f[1]);
-    *FloatResult(call) = 0.0f;
+    *call->FloatResult() = 0.0f;
     if (static_cast<unsigned>(part) > 6 || kind > 5 || !data) return InvalidArguments("GetArmor");
     if (kind >= 0) {
         float sum = 0.0f;
         const UnitStatSlot& slot = data->stats.slots[kind];
         for (int i = 0; i < 3; ++i) sum = slot.layers[i].absorb[part] + sum;
-        Store(FloatResult(call), sum);
+        Store(call->FloatResult(), sum);
     } else {
         char* unit = reinterpret_cast<char*>(data->unit);
         float block[7];
         UnitParameterBlock(unit + 0x330, nullptr, unit + 0x17C, block, data->unit->id_ >= 1000000000 ? 1 : 0);
-        Store(FloatResult(call), block[part]);
+        Store(call->FloatResult(), block[part]);
     }
     return true;
 }
@@ -165,7 +164,7 @@ bool NearestUnit(Call* call) {
             radius = distance;
         }
     });
-    (*static_cast<ScriptObjectRef**>(call->result))->Assign(best);
+    call->ObjectResult()->Assign(best);
     return true;
 }
 
@@ -179,9 +178,9 @@ bool UnitsNearPoint(Call* call) {
     Store(&radius, f[2]);
     int filter = TruncateX87(f[3]);
     bool units = (filter & 1) != 0, others = ((filter >> 1) & 1) != 0, living = ((filter >> 2) & 1) != 0;
-    (*static_cast<ScriptGroup**>(call->result))->SetSize(0, -1);
+    call->GroupResult()->SetSize(0, -1);
     ForObjectsNear(x, y, radius, [&](CEngineObject* object) {
-        if (PassesFilter(object, units, others, living)) (*static_cast<ScriptGroup**>(call->result))->Insert(object);
+        if (PassesFilter(object, units, others, living)) call->GroupResult()->Insert(object);
     });
     return true;
 }
@@ -193,13 +192,13 @@ bool RandObj(Call* call) {
     int size = group->size;
     if (size) {
         std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(size);
-        (*static_cast<ScriptObjectRef**>(call->result))->Assign(group->data[index].object);
+        call->ObjectResult()->Assign(group->data[index].object);
     }
     return true;
 }
 
 bool PlayerExists(Call* call) {
-    Store(FloatResult(call), GetPlayer(Ftol(call->cmd->floatArgs.data[0])) ? 1.0f : 0.0f);
+    Store(call->FloatResult(), GetPlayer(Ftol(call->cmd->floatArgs.data[0])) ? 1.0f : 0.0f);
     return true;
 }
 
@@ -215,7 +214,7 @@ bool GetMaxEncumbrance(Call* call) { return DataField(call, &UnitStats::capacity
 bool GetSkill(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     const char* name = call->cmd->stringArgs.data[0];
-    *FloatResult(call) = 0.0f;
+    *call->FloatResult() = 0.0f;
     if (!data) return InvalidArguments("GetSkill");
     static const struct {
         const char* name;
@@ -225,7 +224,7 @@ bool GetSkill(Call* call) {
                    {"elemental", false, 3}, {"sense", false, 4}, {"astral", false, 5}};
     for (const auto& skill : kSkills)
         if (Stricmp(name, skill.name) == 0) {
-            Store(FloatResult(call), static_cast<float>(static_cast<int>(skill.attribute ? data->stats.attributes[skill.index] : data->stats.skills[skill.index])));
+            Store(call->FloatResult(), static_cast<float>(static_cast<int>(skill.attribute ? data->stats.attributes[skill.index] : data->stats.skills[skill.index])));
             return true;
         }
     return InvalidArguments("GetSkill");
@@ -235,7 +234,7 @@ bool GetSkill(Call* call) {
 bool GetPerk(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     const char* name = call->cmd->stringArgs.data[0];
-    *FloatResult(call) = 0.0f;
+    *call->FloatResult() = 0.0f;
     if (!data) return InvalidArguments("GetPerk");
     static const char* const kPerks[] = {"sword", "axe", "dagger", "spear", "hammer", "bow", "crossbow",
                                          "fire", "lightning", "acid", "illusion", "divination",
@@ -244,7 +243,7 @@ bool GetPerk(Call* call) {
                                          "dexterity", "intelligence"};
     for (int i = 0; i < static_cast<int>(sizeof(kPerks) / sizeof(kPerks[0])); ++i)
         if (Stricmp(name, kPerks[i]) == 0) {
-            Store(FloatResult(call), static_cast<float>(static_cast<int>(data->stats.skillLevels[i])));
+            Store(call->FloatResult(), static_cast<float>(static_cast<int>(data->stats.skillLevels[i])));
             return true;
         }
     return InvalidArguments("GetPerk");
@@ -255,7 +254,7 @@ bool GetPrototype(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetPrototype");
     const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
-    *static_cast<mfc::CString*>(call->result) = prototype->name.GetString();
+    *call->StringResult() = prototype->name.GetString();
     return true;
 }
 
@@ -263,35 +262,35 @@ bool GetRace(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetRace");
     const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
-    *static_cast<mfc::CString*>(call->result) = prototype->modelName.GetString();
+    *call->StringResult() = prototype->modelName.GetString();
     return true;
 }
 
 // The object's class id, -1 without an object.
 bool GetObjectTypeID(Call* call) {
-    Store(FloatResult(call), -1.0f);
+    Store(call->FloatResult(), -1.0f);
     CEngineObject* object = ObjectArg(call, 0)->object;
-    if (object) Store(FloatResult(call), static_cast<float>(object->GetClassId()));
+    if (object) Store(call->FloatResult(), static_cast<float>(object->GetClassId()));
     return true;
 }
 
 // GetObjectsOnMap(-1): every object of the world's object map; GetObjectsOnMap(class, ...): those
 // whose class id is one of the (truncated) arguments.
 bool GetObjectsOnMap(Call* call) {
-    ScriptGroup* group = *static_cast<ScriptGroup**>(call->result);
+    ScriptGroup* group = call->GroupResult();
     group->SetSize(0, -1);
     const mfc::CArray<float>& classes = call->cmd->floatArgs;
     bool all = classes.size == 1 && classes.data[0] == -1.0f;
     ForWorldObjects([&](CEngineObject* object) {
         if (!object) return;
         if (all) {
-            (*static_cast<ScriptGroup**>(call->result))->Insert(object);
+            call->GroupResult()->Insert(object);
             return;
         }
         int id = object->GetClassId();
         for (int i = 0; i < call->cmd->floatArgs.size; ++i)
             if (id == Ftol(call->cmd->floatArgs.data[i])) {
-                (*static_cast<ScriptGroup**>(call->result))->Insert(object);
+                call->GroupResult()->Insert(object);
                 return;
             }
     });
@@ -300,26 +299,26 @@ bool GetObjectsOnMap(Call* call) {
 
 // A unit with a text-key id in a party.
 bool IsPlayer(Call* call) {
-    *FloatResult(call) = 0.0f;
+    *call->FloatResult() = 0.0f;
     CEngineObject* unit = ObjectArg(call, 0)->object;
     CUnit* asUnit = UnitOrNull(unit);
-    if (asUnit && asUnit->id_ >= 1000000000 && asUnit->player) Store(FloatResult(call), 1.0f);
+    if (asUnit && asUnit->id_ >= 1000000000 && asUnit->player) Store(call->FloatResult(), 1.0f);
     return true;
 }
 
 // IsDead / IsAlive (replace the game's): 0 for a missing object or a non-unit, else the unit's
 // death state is 1 / 0.
 bool IsDead(Call* call) {
-    *FloatResult(call) = 0.0f;
+    *call->FloatResult() = 0.0f;
     CEngineObject* unit = ObjectArg(call, 0)->object;
-    if (unit && IsUnit(unit)) Store(FloatResult(call), DeathState(unit) == 1 ? 1.0f : 0.0f);
+    if (unit && IsUnit(unit)) Store(call->FloatResult(), DeathState(unit) == 1 ? 1.0f : 0.0f);
     return true;
 }
 
 bool IsAlive(Call* call) {
-    *FloatResult(call) = 0.0f;
+    *call->FloatResult() = 0.0f;
     CEngineObject* unit = ObjectArg(call, 0)->object;
-    if (unit && IsUnit(unit)) Store(FloatResult(call), DeathState(unit) == 0 ? 1.0f : 0.0f);
+    if (unit && IsUnit(unit)) Store(call->FloatResult(), DeathState(unit) == 0 ? 1.0f : 0.0f);
     return true;
 }
 

@@ -74,8 +74,8 @@ struct ReleasedElements {
 };
 // A missile: its counted pointer released (0059B4B0).
 struct ProjectileElements {
-    static void Construct(Projectile**, int) {}
-    static void Destruct(Projectile** slot, int count) {
+    static void Construct(CSpellEffect**, int) {}
+    static void Destruct(CSpellEffect** slot, int count) {
         for (; count > 0; --count, ++slot) RefPtrRelease(reinterpret_cast<RefPtr*>(slot));
     }
 };
@@ -270,7 +270,7 @@ void CWorldServer::Destruct() {
     Teardown();
     DestroyList<SharedObjectElements>(sharedObjects_, gameslots::SharedObjectListClass::Vtable());   // CList<SharedObject>
     DestroyList<ReleasedElements>(counted_, gameslots::ItemObjectListClass::Vtable());   // CList<CEngineObject*>
-    DestroyList<ProjectileElements>(projectiles_, gameslots::RefListBClass::Vtable());   // CList<Projectile*>
+    DestroyList<ProjectileElements>(projectiles_, gameslots::RefListBClass::Vtable());   // CList<CSpellEffect*>
     zoneHeader_.Destruct();
     timedObjects_.map.Destroy();
     namedObjects_.map.Destroy();

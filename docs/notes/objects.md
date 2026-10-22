@@ -94,7 +94,7 @@ CAnimationNode ResetPose / Rewind, SceneSkin::Rewind; ResetPose: the pose of the
 (Hamilton), position = parent pose + position_ turned by the parent, root alone, pointsB_ = pointsA_, key cursors 0; 00508A30
 inside 00508990's Ghidra body is unreferenced), `figure_slots.cpp` / `aligned_arrays.cpp`, `options*.cpp` (GameOptions
 LoadFromRegistry over 0x26C bytes, SaveToRegistry, defaults, destructor), `map_database.cpp` (CMapDatabase::Load 0045EA20:
-map.txt / map-LMP.txt through the text manager 007AF788; directives in `map_database.h`), `unit_record.cpp` /
+map.txt / map-LMP.txt through the text manager 007AF788; its directives described there), `unit_record.cpp` /
 `hoover_loot.cpp` (UnitRecord::ApplyTo: controller +0x270, +0x8A8 blocks; a dead unit's loot), `app.cpp` (WindowProc, DispatchInput,
 PumpMessages, StartFirstMap; WM_ACTIVATE flags 0079BC5C / 0079BC5D), `map_spec*.cpp` (the zone file's records: base, object,
 flame, magic trap, lever, unit with behaviours / patrols / waypoints, particle source, light, sound; chunk readers / writers,

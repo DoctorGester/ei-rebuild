@@ -16,9 +16,11 @@
 #include "base_manager.h"
 #include "core_transform.h"
 #include "maths.h"
+#include "model.h"   // ClipBounds
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/mfc_coll.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
@@ -353,6 +355,12 @@ void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*
 void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
                                ParticleDepth value, int compare, void* distanceTag);    // 00499C20
 
+// One texture frame's UV rectangle (a particle source's frames, 16 bytes each).
+struct SourceFrame {
+    float u0, v0, u1, v1;
+};
+static_assert(sizeof(SourceFrame) == 16);
+
 // A particle source: a transform object (CTransformObject, whose vtable the factory stores on the
 // way): localPosition_ (+0x1C) is where it emits relative to what it is attached to, localRotation_
 // (+0x34) the identity after Reset.
@@ -573,17 +581,13 @@ public:
     int elementGrowBy;              // +0x160
     Vector3 boundsMin;              // +0x164 over the particles, rebuilt every tick
     Vector3 boundsMax;              // +0x170
-    std::uint32_t boundsFlags;      // +0x17C bit 1 set by the tick
-    Vector3 boundsCenter;           // +0x180
-    std::uint32_t unused_18C;
-    Vector3 boundsLow;              // +0x190 boundsMin - boundsCenter
-    Vector3 boundsHigh;             // +0x19C boundsMax - boundsCenter
+    // +0x17C the bounds the renderer clips by: flags bit 1 set by the tick, the box (boundsMin and
+    // boundsMax less the centre) relative to the centre; the radius is not written.
+    ClipBounds clip;
     std::uint8_t unused_1A8[0x1B4 - 0x1A8];
     mfc::CTypedPtrList<Particle> particles;     // +0x1B4
-    int frameBase;                  // +0x1D0 address of the frame UV rectangles (16 bytes each, 32-byte aligned)
-    int frameRectCount;             // +0x1D4 (an MFC-style array: data, size, max, grow by)
-    int frameRectCapacity;          // +0x1D8
-    int frameRectGrowBy;            // +0x1DC
+    // +0x1D0 the frame UV rectangles (32-byte aligned); the original inlines the array's SetSize.
+    lib::AlignedArray<SourceFrame> frames;
     EmitCallback emitFn;            // +0x1E0
     UpdateCallback updateFn;        // +0x1E4
     ElementCallback elementFn;      // +0x1E8
@@ -595,8 +599,7 @@ static_assert(offsetof(CParticleSource, size) == 0x10C);
 static_assert(offsetof(CParticleSource, extent) == 0x130);
 static_assert(offsetof(CParticleSource, elements) == 0x154);
 static_assert(offsetof(CParticleSource, distance) == 0xC8);
-static_assert(offsetof(CParticleSource, boundsFlags) == 0x17C);
-static_assert(offsetof(CParticleSource, boundsHigh) == 0x19C);
+static_assert(offsetof(CParticleSource, clip) == 0x17C);
 static_assert(offsetof(CParticleSource, particles) == 0x1B4);
 static_assert(offsetof(CParticleSource, emitFn) == 0x1E0);
 static_assert(sizeof(CParticleSource::EmitCallback) == 4);   // single inheritance: a plain code address
@@ -620,7 +623,7 @@ struct ParticleVertex {
 };
 struct ParticleSprite {
     std::uint32_t color;            // ARGB
-    int frame;                      // texture frame index (+ the source's base +0x1D0)
+    const SourceFrame* frame;       // the particle's frame among its source's frames
 };
 // 007A9BD0: data 32-byte aligned (00468F70), the block address below it.
 using ParticleVertexArray = lib::AlignedArray<ParticleVertex>;
@@ -684,10 +687,10 @@ public:
     // The draws' work arrays.
     lib::AlignedArray<Vector4> projected;       // +0x028 the positions projected (four per packet)
     lib::AlignedArray<VertexPacket> positions;  // +0x038 the particles' corners (w not written)
-    mfc::CArray<std::uint8_t> outcodes;         // +0x048 CByteArray: a clip outcode per position
-    mfc::CArray<std::uint8_t> frames;           // +0x05C CByteArray: a texture frame (0..3) per particle
+    mfc::impl::CByteArray outcodes;             // +0x048 a clip outcode per position
+    mfc::impl::CByteArray frames;               // +0x05C a texture frame (0..3) per particle
     lib::AlignedArray<TLVertex> vertices;       // +0x070 what is drawn (colours never written)
-    mfc::CArray<std::uint16_t> indices;         // +0x080 CWordArray: 0, 1, 2, ... (filled elsewhere)
+    mfc::impl::CWordArray indices;              // +0x080 0, 1, 2, ... (filled elsewhere)
     lib::AlignedArray<int> offsets;             // +0x094 the grid's 81 cell offsets (filled elsewhere)
     int particleCount;              // +0x0A4 positions built by the last draw
     Vector3 wind;                   // +0x0A8
@@ -766,17 +769,13 @@ public:
     // Not rewritten (forwarders).
     CWorld* World();                                // 00455950 (CEngineObject)
 
-    int boundsKind;                 // +0x1C 3 once computed
-    Vector3 center;                 // +0x20
-    float radius;                   // +0x2C
-    Vector3 boundsMin;              // +0x30 relative to center
-    Vector3 boundsMax;              // +0x3C
+    ClipBounds bounds;              // +0x1C flags 3 once computed; the box relative to the centre
     Vector3 boundsSpare;            // +0x48 zeroed with the bounds, never read
     CellMap cells;                  // +0x54
     std::uint8_t boundsValid;       // +0x68
     std::uint8_t unused_69[3];
 };
-static_assert(offsetof(CVisibilityFog, boundsKind) == 0x1C);
+static_assert(offsetof(CVisibilityFog, bounds) == 0x1C);
 static_assert(offsetof(CVisibilityFog, cells) == 0x54);
 // The fog object's slots 2 / 3 (004E23D0: ClearCells, returns 1; 004E2440: ClearCells) and 11 / 12
 // (004E24A0 "CVisibilityFog", 004E24B0 0x5F); effects_weather.cpp.

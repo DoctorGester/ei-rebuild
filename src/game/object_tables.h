@@ -29,7 +29,7 @@ struct AllodRecord {
 };
 static_assert(offsetof(AllodRecord, otherNames) == 0x04 && offsetof(AllodRecord, maps) == 0x18 && sizeof(AllodRecord) == 0x2C);
 
-// One "#exit" of a map entry (0x3C bytes; map_database.h has the loader's view): the map database's
+// One "#exit" of a map entry (0x3C bytes; map_database.cpp loads it): the map database's
 // record, which the world server copies (SetZoneExits) and sends to the client world.
 struct ZoneExit {
     float passTime;                 // +0x00 "#passtime": the time the way takes

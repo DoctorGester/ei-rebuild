@@ -12,6 +12,7 @@
 #include "console.h"
 #include "item_db_text.h"
 #include "net_classes.h"
+#include "net_messages.h"   // MapMessage
 #include "quest_records.h"
 #include "mod_folders.h"
 #include "world_map_files.h"
@@ -268,7 +269,8 @@ bool Equal(const stlp::string& s, const char* text) {
     return s.size() == length && std::memcmp(s.data(), text, length) == 0;
 }
 
-bool ActiveSession(const std::uint8_t* s) { return s && !(*reinterpret_cast<const std::uint32_t*>(s + 4) & 0x80000000u); }
+// A session or message still in use (not shut down by its owner).
+bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
 } // namespace
 
@@ -306,16 +308,16 @@ void GameFlow::RegisterQuests(const char* folder) {
 
 mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
     mfc::CString name;
-    // The peer's map: the client's +0x25F4, else the server's +0x25A8 (name at +0x0C).
-    const std::uint8_t* peer = nullptr;
-    auto* client = reinterpret_cast<std::uint8_t*>(net::GameClient());
-    auto* server = reinterpret_cast<std::uint8_t*>(net::GameServer());
-    if (ActiveSession(client) && ActiveSession(*reinterpret_cast<std::uint8_t* const*>(client + 0x25F4)))
-        peer = *reinterpret_cast<std::uint8_t* const*>(client + 0x25F4);
-    else if (ActiveSession(server) && ActiveSession(*reinterpret_cast<std::uint8_t* const*>(server + 0x25A8)))
-        peer = *reinterpret_cast<std::uint8_t* const*>(server + 0x25A8);
+    // The peer's map message: the client's, else the server's (the map's name its text).
+    const net::MapMessage* peer = nullptr;
+    const net::ClientSession* client = net::GameClient();
+    const net::ServerSession* server = net::GameServer();
+    if (Active(client) && Active(client->map_))
+        peer = client->map_;
+    else if (Active(server) && Active(server->map_.Get()))
+        peer = server->map_.Get();
     if (!peer) return new (out) mfc::CString(game::EmptyText());
-    name = *reinterpret_cast<const char* const*>(peer + 0x0C);
+    name = peer->text_.data();
     CTextManager* texts = TheTextManager();
     int found;
     {

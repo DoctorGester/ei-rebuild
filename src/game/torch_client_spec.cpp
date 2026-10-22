@@ -119,8 +119,8 @@ void CTorchObjectClientSpec::ShowEffects() {
         camera::TheTerrain()->AddLight(light_);
     }
     if (sound_) TheSoundManager()->StopSound(sound_);
-    const float far = values_[1] * kShowFarFactor;
-    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, far, 1, 0);
+    const float farRadius = values_[1] * kShowFarFactor;
+    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
 }
 EI_REWRITTEN(0x0052D580, CTorchObjectClientSpec::ShowEffects);
 
@@ -191,8 +191,8 @@ EI_REPLACE_METHOD(0x0052D410, CTorchObjectClientSpec::SetLightAt);
 void CTorchObjectClientSpec::SetSound(const char* name) {
     SetName(name);
     if (sound_) TheSoundManager()->StopSound(sound_);
-    const float far = values_[1] * kSetFarFactor;
-    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, far, 1, 0);
+    const float farRadius = values_[1] * kSetFarFactor;
+    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
 }
 EI_REWRITTEN(0x0052D520, CTorchObjectClientSpec::SetSound);
 

@@ -249,14 +249,9 @@ public:
     // the keys before the first gap of more than 500 time units among the first `settle` take
     // the pose of the key after the gap. Returns 0 when the file does not open, else 1.
     int LoadPath(const char* name, int settle);
-    // The keys as the engine's aligned array they are (+0x2F0..+0x2FC: data, size, capacity,
-    // grow step).
-    lib::AlignedArray<CameraKey>* KeyArray() { return reinterpret_cast<lib::AlignedArray<CameraKey>*>(&keys_); }
-
-    CameraKey* keys_;           // +0x2F0 (the block start is kept in the dword before the keys)
-    int keyCount_;              // +0x2F4
-    std::uint32_t keyCapacity_; // +0x2F8 the keys' capacity
-    std::uint32_t keyGrowBy_;   // +0x2FC the keys' grow step (0: an eighth of the size, 4..1024)
+    // +0x2F0 the recorded path's keys, the engine's aligned array (the block start kept in the
+    // dword before the keys; grow step 0: an eighth of the size, 4..1024).
+    lib::AlignedArray<CameraKey> keys_;
     float timeOffset_;          // +0x300
     int keyIndex_;              // +0x304
 };

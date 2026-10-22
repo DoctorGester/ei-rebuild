@@ -70,8 +70,7 @@ inline float TorchLightScale() { return 10.0f /*0073BAAC*/; }  // the flame's ra
 
 // ---- The client world's Setup (00561E50) --------------------------------------------------------
 
-// The game's folders (CStrings): the data folder and the text resources' folder.
-inline const void* TextPathString() { return &TheTextFolder(); }
+// The textures' folder under the text folder (TheTextFolder) and the lights table.
 inline const char* TexturesFolderText() { return "textures\\"; }
 inline const char* LightsTableText() { return "LightsGipat.ini"; }
 inline const char* GipathText() { return "gipath"; }
@@ -107,11 +106,9 @@ inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
 // ---- WorldCreateManagers (0055EE40) -----------------------------------------------------------
 
-// The game's folders (CStrings: TheDataFolder, TheTextFolder, TheDiscFolder the base folder; game_singletons.h)
-// and the configured paths they are set from (the CStrings 0079BC90 / 0079BC94 / 0079BC98; their
-// text pointers).
-inline void* TextFolderString() { return &TheTextFolder(); }
-inline void* BaseFolderString() { return &TheDiscFolder(); }
+// The configured paths the game's folders (TheDataFolder, TheTextFolder, TheDiscFolder the base
+// folder; game_singletons.h) are set from (the CStrings 0079BC90 / 0079BC94 / 0079BC98; their text
+// pointers).
 inline const char* ConfiguredDataPath() { return options::TheOptions()->workPath_.GetString(); }
 inline const char* ConfiguredTextPath() { return options::TheOptions()->resourcesPath_.GetString(); }
 inline const char* ConfiguredBasePath() { return options::TheOptions()->cdRomPath_.GetString(); }

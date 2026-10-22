@@ -195,8 +195,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         if (!unit || unitDead(unit)) break;
         Vector3 at = unitPosition(unit);
         if (!first || first->CanUseQuickItem(pendingSlot_, &at.x) != 0) break;
-        void* item = first->GetQuickItem(pendingSlot_);
-        if (item && reinterpret_cast<CItem*>(item)->GetCategory() == kCategoryWand && unit != first) break;
+        CItem* item = first->GetQuickItem(pendingSlot_);
+        if (item && item->GetCategory() == kCategoryWand && unit != first) break;
         shape = kCursorCast;
         break;
     }

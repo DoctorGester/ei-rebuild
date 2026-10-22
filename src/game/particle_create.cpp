@@ -758,22 +758,11 @@ const char* SetupType(CParticleSource* s) {
     }
 }
 
-// One texture frame's UV rectangle.
-struct FrameRect {
-    float u0, v0, u1, v1;
-};
-static_assert(sizeof(FrameRect) == 16);
-
-// The frame rectangle array (+0x1D0 data, +0x1D4 size, +0x1D8 capacity, +0x1DC grow by); the
-// original inlines its SetSize(n).
-using FrameArray = lib::AlignedArray<FrameRect>;
-
 // The frames are cells of a grid `columns` wide, row 0 at the top (v = 1), each inset by 1/512.
 void BuildFrames(CParticleSource* s) {
     float step = static_cast<float>(D(EI_ONE) / static_cast<double>(s->frameColumns));
-    auto& frames = *reinterpret_cast<FrameArray*>(&s->frameBase);
-    frames.SetSize(s->frameCount);
-    FrameRect* rect = frames.data;
+    s->frames.SetSize(s->frameCount);
+    SourceFrame* rect = s->frames.data;
     for (int i = 0; i < s->frameCount; ++i, ++rect) {
         double column = static_cast<double>(i % s->frameColumns);
         float row = static_cast<float>(static_cast<double>(i / s->frameColumns));
@@ -904,7 +893,7 @@ CParticleSource* __stdcall NewParticleSource(int type) {
     s->elementGrowBy = 0;
     s->elementCapacity = 0;
     s->elementCount = 0;
-    std::memset(&s->boundsFlags, 0, 0x38);
+    std::memset(static_cast<void*>(&s->clip), 0, offsetof(CParticleSource, particles) - offsetof(CParticleSource, clip));
     ei::SetVtable(&s->particles, mfc::impl::ClientListClass::Vtable());
     s->particles.count = 0;
     s->particles.free = nullptr;
@@ -913,10 +902,10 @@ CParticleSource* __stdcall NewParticleSource(int type) {
     s->particles.blocks = nullptr;
     s->particles.blockSize = 10;
     // 00498E20 (the frame rectangle array) and 004983F0 (the texture holder) only zero their fields.
-    s->frameBase = 0;
-    s->frameRectGrowBy = 0;
-    s->frameRectCapacity = 0;
-    s->frameRectCount = 0;
+    s->frames.data = nullptr;
+    s->frames.growBy = 0;
+    s->frames.capacity = 0;
+    s->frames.size = 0;
     s->texture = nullptr;
     ei::SetVtable(s, CParticleSource::Vtable());
     s->Reset();
@@ -936,7 +925,7 @@ void CParticleSource::Destruct() {
     ei::SetVtable(this, Vtable());
     Clear();
     if (texture) texture->Release();
-    if (frameBase) gamecrt::operator_delete(reinterpret_cast<void**>(static_cast<std::uintptr_t>(frameBase))[-1]);
+    if (frames.data) lib::AlignedArray<SourceFrame>::Free(frames.data);
     ei::SetVtable(&particles, mfc::impl::ClientListClass::Vtable());
     particles.count = 0;
     particles.free = nullptr;

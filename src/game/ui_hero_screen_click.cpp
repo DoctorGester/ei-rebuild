@@ -536,7 +536,7 @@ void __fastcall MpHeroRefresh(CMpHeroScreen* self) { self->RefreshHero(); }
 EI_REPLACE(0x00618850, MpHeroRefresh);
 
 void CMpHeroScreen::CreateHero() {
-    mfc::CString name(reinterpret_cast<CUiEditField*>(nameEdit_)->text_);
+    mfc::CString name(nameEdit_->text_);
     auto* hero = Hero();
     auto* stats = &hero->stats;
     double sum = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
@@ -604,8 +604,8 @@ EI_REWRITTEN(0x00664410, MpHeroRecord::CopyRange);
 namespace {
 // The heroes' folder (007C82A0, a CString; the records follow it) and the records as a vector.
 const mfc::CString& MpHeroesFolder() { return TheSavedParties().folder_; }
-MpHeroRecord*& MpHeroesBegin() { return reinterpret_cast<MpHeroRecord*&>(TheSavedParties().entries_); }
-MpHeroRecord*& MpHeroesEnd() { return reinterpret_cast<MpHeroRecord*&>(TheSavedParties().finish_); }
+MpHeroRecord*& MpHeroesBegin() { return TheSavedParties().entries_; }
+MpHeroRecord*& MpHeroesEnd() { return TheSavedParties().finish_; }
 // The count as the original computes it: a signed division, compared unsigned.
 std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(static_cast<int>(MpHeroesEnd() - MpHeroesBegin())); }
 constexpr std::uint32_t kListRows = 10;
@@ -658,7 +658,7 @@ EI_REPLACE_METHOD(0x00615940, CMpHeroScreen::OnMessageResult);
 // --- 00617A50: the new hero added to the list ----------------------------------------------------
 
 namespace {
-MpHeroRecord*& MpHeroesCapacity() { return reinterpret_cast<MpHeroRecord*&>(TheSavedParties().eos_); }
+MpHeroRecord*& MpHeroesCapacity() { return TheSavedParties().eos_; }
 const char* HeroFilePattern() { return "%s*.mp"; }
 const char* HeroFileFormat() { return "%d.mp"; }
 

@@ -93,7 +93,7 @@ int __fastcall MapObjectManagerClassId(CMapObjectManager* self) { return self->C
 EI_REPLACE(0x00512620, MapObjectManagerClassId);
 
 int CMapObjectManager::CreateManager() {
-    mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextFolderString()));
+    mfc::CString folder(TheTextFolder());
     if (!CBaseManager::Create()) return 0;
     AddArchive(folder + "database.res");   // the exe's 00784818
     return 1;
@@ -108,7 +108,7 @@ CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
     if (!object) return nullptr;
     auto* figures = manager->ContextAsWorld()->FigureManager();
     static_cast<CMapObject*>(object)->SetAnimationState(
-        static_cast<CFigureAnimationState*>(figures->CreateObject(kAnimationStateClass, kNoId)));
+        figures->CreateObjectAs<CFigureAnimationState>(kAnimationStateClass, kNoId));
     CMapObjectVirtuals* slots = ObjectSlots(object);
     slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kObject3DHalf, kNoId));
     slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kMapObjectHalf, kNoId));
@@ -134,8 +134,7 @@ FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, st
 }
 EI_REWRITTEN(0x00512B20, CMapObjectManager::FindAnimation);
 
-int CMapObjectManager::GiveDefaults(CEngineObject* object) {
-    auto* builder = reinterpret_cast<UnitStatsBuilder*>(this);
+int CMapObjectManager::GiveDefaults(CMapObject* object) {
     // The vitals and statistics start zeroed, so the fields Reset and SetDefaults leave (the slots'
     // shares and factors, fixedMaxHitPoints, builtFlags, the layers' spare values, ...) are 0, not
     // what the stack held: a determinism fix (SV7b3). The original's were CWorldServer::CreateObject's
@@ -145,15 +144,15 @@ int CMapObjectManager::GiveDefaults(CEngineObject* object) {
     UnitVitals vitals{};
     vitals.Reset();
     if (object->GetClassId() != kClassUnit) {
-        builder->SetDefaults(&vitals, nullptr);
-        ObjectSlots(object)->SetServerData(&vitals);
+        SetDefaults(&vitals, nullptr);
+        object->SetServerData(&vitals);
     } else {
         UnitStats stats{};
         stats.Reset();
-        builder->SetDefaults(&vitals, &stats);
-        ObjectSlots(object)->SetStats(&stats);
+        SetDefaults(&vitals, &stats);
+        object->SetStats(&stats);
     }
-    ObjectSlots(object)->ScaleEffectChanged(0);
+    object->ScaleEffectChanged(0);
     object->prototypeId_ = 0;
     return 1;
 }

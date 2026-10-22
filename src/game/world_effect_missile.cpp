@@ -333,7 +333,7 @@ void CEffectArrowFigure::Start(int update) {
     mfc::CString model(game::ArrowFigureModelText());
     mfc::CString texture(game::ArrowFigureTextureText());
     int id = NextClientObjectId()--;
-    auto* object = static_cast<CMapObject*>(TheObjectManager()->CreateObject(kClassFigureObject, id));
+    auto* object = TheObjectManager()->CreateObjectAs<CMapObject>(kClassFigureObject, id);
     if (object != figure_) {
         CountedRefResetOriginal(&figure_);
         if (object != nullptr) ++object->refCount_;

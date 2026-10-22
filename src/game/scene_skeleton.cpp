@@ -21,6 +21,11 @@
 
 namespace scene {
 void __fastcall MakeFrameRelative(CAnimationNode*, CAnimationNode*, int);
+
+void __stdcall ConstructNodeFrames(void* records, int count) {
+    mfc::impl::KeyFrames::ConstructElements(static_cast<mfc::impl::KeyFrame40*>(records), count);
+}
+
 namespace {
 
 // The node's children (+0x10C; CArray<node*>, SetSize 00453790).
@@ -31,10 +36,6 @@ void CopyRest(SceneNode* node) {
     std::memcpy(&node->restRotation, &node->rotation, sizeof(Quaternion));
     std::memcpy(&node->restPivot, &node->pivot, sizeof(Vector3));
 }
-// 00453730: constructs n 40-byte frame records [pointer, count] (mfc::impl::KeyFrames').
-void __stdcall ConstructFrameRecords(void* records, int count) {
-    mfc::impl::KeyFrames::ConstructElements(static_cast<mfc::impl::KeyFrame40*>(records), count);
-}
 
 bool SameAsZero(const Vector3& v) {
     Vector3 zero;
@@ -42,10 +43,6 @@ bool SameAsZero(const Vector3& v) {
     EI_NAN_AUDIT(v.x, v.y, v.z);
     return v.x == zero.x && v.y == zero.y && v.z == zero.z;
 }
-
-// The frame array (MFC CArray of NodeFrame; elements constructed by 00453730, never destroyed).
-using FrameArray = mfc::CArray<NodeFrame, OriginalElements<NodeFrame, ConstructFrameRecords>>;
-FrameArray& Frames(SceneNode* node) { return Typed<FrameArray>(node->frames); }
 
 // The node's children as the CArray<node*> instantiation resizes them.
 ChildArray& Children(SceneNode* node) { return node->children; }
@@ -81,8 +78,8 @@ EI_REWRITTEN(0x004491C0, CopyRestPose);
 // 00449030: links each node to its children (nodes whose parent name equals its name, _mbscmp),
 // finds the root (the last node with an empty parent name, -1 when none) and copies the rest pose
 // from it down. Without a root the original reads and writes the element before the array; kept.
-int __fastcall FindRootNode(VtArray* nodeArray) {
-    NodeArray& nodes = Typed<NodeArray>(*nodeArray);
+int __fastcall FindRootNode(NodeArray* nodeArray) {
+    NodeArray& nodes = *nodeArray;
     int root = -1;
     for (int i = 0; i < nodes.size; ++i) {
         if (nodes.data[i].parent.GetLength() == 0) root = i;
@@ -111,9 +108,9 @@ EI_REWRITTEN(0x00449030, FindRootNode);
 // ECX: the unit's meshes (CArray, 0x18C each; slot 7 of a mesh is its name), EDX: the nodes;
 // `frames` (its low word counts), `skin`. 1, or 0 without a root node; a first rotation key not
 // at frame 0 is a fatal error (game::FatalError's result is returned if it comes back).
-int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames, SceneSkin* skin) {
-    MeshArray& meshes = Typed<MeshArray>(*meshArray);
-    NodeArray& nodes = Typed<NodeArray>(*nodeArray);
+int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneSkin* skin) {
+    MeshArray& meshes = *meshArray;
+    NodeArray& nodes = *nodeArray;
     for (int i = 0; i < nodes.size; ++i) {
         SceneNode* node = &nodes.data[i];
         const NodeRotationKey& rotationKey = node->rotationKeys.data[0];
@@ -159,7 +156,7 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
         PointBuffer& positions = mesh->positions;
         const Vector3& pivot = node->pivot;
         for (int i = 0; i < positions.size; ++i) {
-            Vector3& p = reinterpret_cast<Vector3&>(positions.data[i]);   // the file's bits as floats
+            Vector3& p = positions.data[i].point;   // the file's bits as floats
             p = p - pivot;
             float rx = DotUnrounded<Sum3::XYZ>(m00, m01, m02, p.x, p.y, p.z);
             float ry = DotUnrounded<Sum3::XYZ>(m10, m11, m12, p.x, p.y, p.z);
@@ -177,7 +174,7 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
     for (int m = 0; m < meshes.size; ++m) {
         for (int j = 0; j < nodes.size; ++j) {
             SceneNode* node = &nodes.data[j];
-            FrameArray& records = Frames(node);
+            NodeFrameArray& records = node->frames;
             records.SetSize(static_cast<std::int16_t>(frames));
             NodeFrame* first = records.data;
             first->pivot = node->pivot;

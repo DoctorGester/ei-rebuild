@@ -159,6 +159,13 @@ void SetOffscreenCasters(OffscreenCasters mode);
 // only the faces turned to the sun (as before R22: faces turned away kept as the game lit them).
 enum class ShadowFacing { Others, All };
 void SetShadowFacing(ShadowFacing mode);
+// The harness build's shadow map checks (R25). SetShadowView (its "shadowview on|off"): the receivers show
+// only how much sun the map hides (white lit, black at the full strength), no texture, colour or fog.
+// SetShadowShift (its "shadowshift <texels>"): the map's origin moved by that many whole texels across
+// and half as many along its other side; its texels lie on the world as before, only which texels share
+// a range cell changes, so a filter that depends on the cells shows it.
+void SetShadowView(bool on);
+void SetShadowShift(int texels);
 // R16e1: with the shadow map nothing reads an object shadow's classic texture (0051CE60's 64 x 64
 // raster, its blur and the copy into the shadow texture) or its decal's flat draw (dropped by
 // BeginMesh); the game reads only the parts' points, the bounds, the quad and the decal's projection

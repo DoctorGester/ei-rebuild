@@ -55,7 +55,7 @@ EI_REWRITTEN(0x006886F0, SpellSequence::Destruct);
 // --- CSpellManager -------------------------------------------------------------------------------
 
 CSpell* CSpellManager::CreateSpellObject(int id) {
-    auto* spell = static_cast<CSpell*>(CreateObject(kClassSpell, -1));
+    auto* spell = CreateObjectAs<CSpell>(kClassSpell, -1);
     if (id == -1) return spell;
     const auto packed = static_cast<std::uint32_t>(id);
     const std::uint32_t low = packed & 0xFFFF;

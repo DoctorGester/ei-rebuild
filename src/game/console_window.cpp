@@ -16,14 +16,14 @@ namespace console {
 // of 15-pixel lines that fit below the 24-pixel margin, less one; the clamped rectangle back in
 // 800x600 coordinates. A shown window gets a new surface.
 void ConsoleWindow::SetRect(const int* rect) {
-    int screenWidth = screen_[0];
-    int screenHeight = screen_[1];
+    int screenWidth = screen_->width_;
+    int screenHeight = screen_->height_;
     screenRect_[0] = rect[0];
     screenRect_[1] = rect[1];
     screenRect_[2] = rect[2];
     screenRect_[3] = rect[3];
     // The 3D interface scales 800x600 to pixels (005F7CA0, Rebirth-patched, so through its address).
-    reinterpret_cast<const CInterface3D*>(screen_)->CallScaleRectToScreen(reinterpret_cast<RECT*>(screenRect_));
+    screen_->CallScaleRectToScreen(reinterpret_cast<RECT*>(screenRect_));
     width_ = screenRect_[2] - screenRect_[0];
     height_ = screenRect_[3] - screenRect_[1];
     if (width_ < 0x4C) width_ = 0x4C;
@@ -37,8 +37,7 @@ void ConsoleWindow::SetRect(const int* rect) {
     rect_[1] = screenRect_[1];
     rect_[2] = screenRect_[2];
     rect_[3] = screenRect_[3];
-    InterfaceScaleRectFromScreenOriginal(reinterpret_cast<CInterface3D*>(screen_), nullptr,
-                                         reinterpret_cast<tagRECT*>(rect_));
+    InterfaceScaleRectFromScreenOriginal(screen_, nullptr, reinterpret_cast<tagRECT*>(rect_));
     if (shown_) {
         Show(false);
         Show(true);

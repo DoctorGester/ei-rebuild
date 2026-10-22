@@ -25,10 +25,12 @@ reach other classes after the cleanup, and what is left. The classes themselves 
   bits (`MOV` / `PUSH`), and a float argument would go through the FPU (`FLD` / `FSTP`).
 - Duplicate forwarders left to the forwarder ticket: 006B8600 (Play3D: world_effect.cpp and map_object_companion.cpp); 006FE11F / 006FE216 (CString
   TrimRight / TrimLeft: spell_text.cpp, ini_file.cpp, item_constructor.cpp, originals_library.h).
-- Hidden offsets: spell_effect_internal.h (the prototype reads `Prototype(e) + 0x2C / 0x64 / 0x70`), spell_cast.cpp (`DwordAt` / `FloatAt` on the
-  prototype). The naked x87 helpers in spell_effect_internal.h call the world's height slots 27 /
-  28 by number.
-- `CSpellEffect` and world.h's `Projectile` describe the same class (0xA8 bytes, 0067E510); they should become one declaration.
+- The naked x87 helpers in spell_effect_internal.h call the world's height slots 27 / 28 by number. (The prototype's hidden offsets are typed
+  fields now, and world.h's `Projectile` became `CSpellEffect` (C15).)
+- `CSpellEffect::spell_` stays bytes with `Spell()` casting it: CSpell is abstract, so `lib::InPlace` cannot hold it. world_effect.h's embedded
+  effects have the same problem.
+- The bounds the renderer clips by are `ClipBounds` in CParticleSource (`clip`), CVisibilityFog and CLightning (`bounds`), so `ClipTest` takes them
+  with no cast (C15).
 
 ## Meanings of formerly unknown fields (ticket F1)
 

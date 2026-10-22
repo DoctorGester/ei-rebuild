@@ -145,7 +145,6 @@ namespace {
 
 
 // A companion (+0x170) as its virtual interface.
-CMapObjectCompanion* CompanionOf(CEngineObject* companion) { return static_cast<CMapObjectCompanion*>(companion); }
 
 // Whether the stream read against (delta::g_readSnapshot) is consumed: slot 5 (position) == slot 4 (size).
 std::uint32_t SnapshotConsumed() {
@@ -205,7 +204,7 @@ std::uint32_t CMapObject::ReadNetStateImpl(int first) {
         field->ReadRaw(&effect->ending, 1);
     }
     if (GetClassId() != world::kClassUnit)
-        CompanionOf(companion)->EffectsChanged(first == 0 ? 1 : 0);
+        companion->EffectsChanged(first == 0 ? 1 : 0);
     complete &= SnapshotConsumed();
     field->EndField();
     return complete;
@@ -274,7 +273,7 @@ std::uint32_t CUnit::ReadNetStateImpl(int first) {
             if (flags & 4) kind |= 4;
             float lost = hpBefore - hpNow;
             int damage = static_cast<int>(static_cast<std::int64_t>(lost * maxHp));   // _ftol
-            CompanionOf(unit->companion)->Hit(damage, kind);
+            unit->companion->Hit(damage, kind);
             if (kind & 4) {
                 unit->Controller()->Wound(lost);
             }
@@ -387,7 +386,7 @@ std::uint32_t CUnit::ReadNetStateImpl(int first) {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(3)) {
-        CompanionOf(unit->companion)->EffectsChanged(first == 0 ? 1 : 0);
+        unit->companion->EffectsChanged(first == 0 ? 1 : 0);
         field->EndField();
     }
     if (changed) {

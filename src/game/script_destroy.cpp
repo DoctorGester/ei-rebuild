@@ -7,6 +7,7 @@
 // calls the arrays' out-of-line destructors for most of its variables instead.
 #include "game_lists.h"
 #include "script.h"
+#include "world_effect.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"

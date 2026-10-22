@@ -49,7 +49,7 @@ int CFigureManager::CreateWithArchives() {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& path : modfolders::FigureArchives()) AddArchive(path.c_str());
     }
-    mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
+    mfc::CString folder(TheTextFolder());
     AddArchive(folder + kFiguresArchive);
     AddArchive(folder + kMenusArchive);
     LoadMenuRects(ei::GamePointer<std::uint8_t>(kMenuRects));
@@ -59,7 +59,7 @@ EI_REWRITTEN(0x005AA510, CFigureManager::CreateWithArchives);
 
 CFigureMesh* CFigureManager::NewPart(const char* modelName, const char* partName, FigureModel*, std::uint32_t,
                                      std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t attached) {
-    auto* part = static_cast<CFigureMesh*>(CreateObject(kSharedPartClass + (attached != 0), -1));
+    auto* part = CreateObjectAs<CFigureMesh>(kSharedPartClass + (attached != 0), -1);
     part->name_ = partName;
     part->directory_ = modelName;
     return part;
@@ -68,7 +68,7 @@ CFigureMesh* CFigureManager::NewPart(const char* modelName, const char* partName
 CEngineObject* CFigureManager::NewFigure(const char* name) {
     CEngineObject* object = CreateObject(kFigureClass, -1);
     if (!name) return object;
-    auto* figure = reinterpret_cast<CFigureMesh*>(object);
+    auto* figure = static_cast<CFigureMesh*>(object);
     figure->name_ = name;
     figure->directory_ = game::EmptyText();
     mfc::CString path;

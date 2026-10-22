@@ -273,11 +273,9 @@ EI_REWRITTEN(0x00436FA0, SessionBase::SendLeave);
 namespace net {
 
 namespace {
-// CRT eh vector destructor iterator (ptr, element size, count, destructor), the handler vector's
-// destructor.
-void __stdcall VectorDestructorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
-// The handler vectors' destructor (the vector base's: the storage freed).
-constexpr auto HandlerVectorDestructor = stlp::VectorAbi<void*>::DestroyBase;
+// The handler vectors' destructor (the vector base's: the storage freed), as the CRT's eh vector
+// destructor iterator takes it.
+constexpr auto HandlerVectorDestructor = libcrt::Element<stlp::VectorAbi<void*>::DestroyBase>;
 // The clients list: its nodes and sentinel go back to the pool (00439E60, 0043AB30).
 } // namespace
 
@@ -300,9 +298,9 @@ void SessionBase::Destruct() {
         socket_.SendTo(&connection->address_, buffer);
         GrowingBufferDestruct(buffer);
     }
-    VectorDestructorIterator(handlers_[2], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
-    VectorDestructorIterator(handlers_[1], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
-    VectorDestructorIterator(handlers_[0], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
+    libcrt::DestroyElements(handlers_[2], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);
+    libcrt::DestroyElements(handlers_[1], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);
+    libcrt::DestroyElements(handlers_[0], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);
     socket_.Destruct();
     types_.byType.Destroy();     // clear 0043D590, the buckets 0043AAB0
     types_.byVtable.Destroy();   // clear 0043B4D0, the buckets 0043A2B0

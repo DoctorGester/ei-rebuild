@@ -138,7 +138,7 @@ void PlaceMover(BriefingMover* node) {
 
 // A walking mover near its target starts turning (its server unit turns over a second).
 void StepWalking(BriefingMover* node) {
-    const CUnit* person = reinterpret_cast<const CUnit*>(node->person);
+    const CUnit* person = static_cast<const CUnit*>(node->person);
     float dy = node->target.y - person->localPosition_.y;
     float dx = node->target.x - person->localPosition_.x;
     if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
@@ -151,7 +151,7 @@ void StepWalking(BriefingMover* node) {
 
 // A turning mover whose facing (the client unit's -y axis, flat) is near its direction is done.
 void StepTurning(BriefingMover* node) {
-    const CUnit* person = reinterpret_cast<const CUnit*>(node->person);
+    const CUnit* person = static_cast<const CUnit*>(node->person);
     Vector3 axis;
     person->localRotation_.AxisY(&axis);
     float facingX = static_cast<float>(-axis.x);

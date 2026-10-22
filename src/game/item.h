@@ -560,6 +560,10 @@ inline CItemArmor* AsArmor(CItem* item) { return static_cast<CItemArmor*>(item);
 // The original reads its fields without a class test.
 inline CItemLoot* AsLoot(CItem* item) { return static_cast<CItemLoot*>(item); }
 inline const CItemLoot* AsLoot(const CItem* item) { return static_cast<const CItemLoot*>(item); }
+// An item known to be a quick item / a quest item: the copy or match of one (the base IsSameAs
+// compares the classes first), an item of class kClassQuestItem.
+inline CItemQuick* AsQuick(CItem* item) { return static_cast<CItemQuick*>(item); }
+inline CItemQuest* AsQuest(CItem* item) { return static_cast<CItemQuest*>(item); }
 
 // The item manager (007AFFB4; 0xBC bytes, as the world and every party make one; a real virtual
 // class: the compiler makes its vtable, C19, game.exe's 0073F25C is retired). Only the functions

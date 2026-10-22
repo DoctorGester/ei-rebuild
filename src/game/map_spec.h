@@ -124,6 +124,9 @@ struct Spec {
 
     // The record seen through its vtable.
     SpecRecord* Record() { return reinterpret_cast<SpecRecord*>(this); }
+    // The whole record this base record starts: every record begins with its base record (at +0 of
+    // ObjectSpec / EffectSpec and of the records built on them); `kind` tells which one it is.
+    template <class Record> Record* As() { return reinterpret_cast<Record*>(this); }
 
     Chunk chunk;                 // +0x00
     std::int32_t id;             // +0x18 the object's id (-1)

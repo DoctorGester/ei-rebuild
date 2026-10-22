@@ -20,7 +20,7 @@ constexpr std::uint32_t kKeyLoops = 0x80000000;
 // The bone's animator, made by its manager (counted) on first use.
 AnimationTrack* AnimatorOf(FigureBone* bone) {
     if (!bone->animator) {
-        auto* made = static_cast<AnimationTrack*>(bone->owner_->CreateObject(kAnimatorClass, -1));
+        auto* made = bone->owner_->CreateObjectAs<AnimationTrack>(kAnimatorClass, -1);
         bone->animator = made;
         ++made->refCount_;
         bone->animator->bone = bone;

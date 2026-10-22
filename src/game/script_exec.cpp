@@ -157,8 +157,6 @@ CPlayerManager* TheEvents() { return static_cast<CPlayerManager*>(TheServerWorld
 // The world's spell manager (CWorld::manager4C_).
 CSpellManager* TheSpellManager() { return static_cast<CSpellManager*>(TheServerWorld()->manager4C_); }
 
-// A particle source's effect (ScriptParticleSource::object).
-CEffectParticle* ParticleOf(ScriptParticleSource* source) { return static_cast<CEffectParticle*>(source->object); }
 
 
 // MFC containers the commands keep on the stack, built and destroyed through the originals: the
@@ -559,18 +557,18 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x12: {   // AttachParticleSource(id, objectId)
             int objectId = Round(f[1]);
-            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) ParticleOf(entry)->SetAttachedTo(objectId);
+            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) entry->object->SetAttachedTo(objectId);
             break;
         }
         case 0xE7: {   // AttachParticles(id, object)
             CEngineObject* object = Arg(cmd, 0);
             if (!object) break;
             int objectId = object->id_;
-            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) ParticleOf(entry)->SetAttachedTo(objectId);
+            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) entry->object->SetAttachedTo(objectId);
             break;
         }
         case 0xBA: {   // SetParticleSourceSize(id, size)
-            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) static_cast<CEffectParticle*>(entry->object)->SetSize(f[1]);
+            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) entry->object->SetSize(f[1]);
             break;
         }
         case 0x1A: {   // DeleteLightning(id): every lightning with the id (list +0x4C, head +0x50)

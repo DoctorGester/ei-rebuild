@@ -104,12 +104,13 @@ int ObjectId(const CEngineObject* object) { return object ? object->id_ : -1; }
 
 void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
 
-// The effect object saved under `id` (-1: none), with a reference taken.
-CEngineObject* ReadObject(ScriptStream* stream) {
+// The effect object saved under `id` (-1: none), with a reference taken (the slot's effect class).
+template <class T>
+T* ReadObject(ScriptStream* stream) {
     int id;
     stream->Read(&id, 4);
     if (id == -1) return nullptr;
-    CEngineObject* object = EffectManager()->FindObject(id);
+    auto* object = static_cast<T*>(EffectManager()->FindObject(id));
     if (object) ++object->refCount_;
     return object;
 }
@@ -117,8 +118,9 @@ CEngineObject* ReadObject(ScriptStream* stream) {
 std::size_t Length(const char* s) { return std::strlen(s); }
 
 // Takes the effect object out of the world's timed objects and drops the reference to it.
-void DropEffect(CEngineObject** slot) {
-    if (CEngineObject* object = *slot) {
+template <class T>
+void DropEffect(T** slot) {
+    if (T* object = *slot) {
         TheServerWorld()->RemoveTimedObject(object->id_);
         (*slot)->Release();
     }
@@ -153,7 +155,7 @@ void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count
 
 // 004BD260: CreateFX(x, y, z, volume, radius, name), a sound played once.
 void CScript::ScriptCreateFx(const SSCCmd* cmd) {
-    auto* sound = static_cast<CEffectSound*>(EffectManager()->CreateObject(kClassSound, -1));
+    auto* sound = EffectManager()->CreateObjectAs<CEffectSound>(kClassSound, -1);
     const float* f = cmd->floatArgs.data;
     sound->localPosition_ = {f[0], f[1], f[2]};
     std::memcpy(&sound->volume_, &f[3], 4);
@@ -212,7 +214,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
         source->idle = 1;
         return;
     }
-    auto* sound = static_cast<CEffectSound*>(EffectManager()->CreateObject(kClassSound, -1));
+    auto* sound = EffectManager()->CreateObjectAs<CEffectSound>(kClassSound, -1);
     source->object = sound;
     sound->localPosition_ = {source->position.x, source->position.y, source->position.z};
     std::memcpy(&sound->volume_, &source->volume, 4);
@@ -239,7 +241,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     if (f[0] >= 0.0f) node->data.id = static_cast<int>(f[0]);
     else node->data.id = nextParticleId_--;   // also NaN
 
-    auto* bolt = static_cast<CEffectLightning*>(EffectManager()->CreateObject(kClassLightning, -1));
+    auto* bolt = EffectManager()->CreateObjectAs<CEffectLightning>(kClassLightning, -1);
     node->data.object = bolt;
     ++bolt->refCount_;
     Vector3 to{f[4], f[5], f[6]};
@@ -287,7 +289,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
         source = &node->data;
     }
 
-    auto* particles = static_cast<CEffectParticle*>(EffectManager()->CreateObject(kClassParticles, -1));
+    auto* particles = EffectManager()->CreateObjectAs<CEffectParticle>(kClassParticles, -1);
     particles->type_ = particleType;
     particles->localPosition_ = {f[1], f[2], f[3]};
     ++particles->refCount_;
@@ -319,7 +321,7 @@ void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
     source->moving = 1;
     source->deleteAfterMove = x87::RoundToInt(f[5]);
     source->steps = x87::RoundToInt(f[4]);
-    const Vector3& at = static_cast<CEffectParticle*>(source->object)->localPosition_;
+    const Vector3& at = source->object->localPosition_;
     float inverse = 1.0f / static_cast<float>(source->steps);
     source->step.x = (f[1] - at.x) * inverse;
     source->step.y = (f[2] - at.y) * inverse;
@@ -375,7 +377,7 @@ void ScriptLightning::ScriptLightningSave(ScriptStream* stream) const {
 
 // 004B18B0
 void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
-    object = ReadObject(stream);
+    object = ReadObject<CEffectPointLight>(stream);
     stream->Read(&id, 4);
     stream->Read(&removeWhenDone, 4);
     stream->Read(&moving, 4);
@@ -385,7 +387,7 @@ void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
 
 // 004B1B40
 void ScriptFxSource::ScriptFxSourceLoad(ScriptStream* stream) {
-    object = ReadObject(stream);
+    object = ReadObject<CEffectSound>(stream);
     stream->Read(&id, 4);
     {
         mfc::CString read(mfc::CString::kUnset);

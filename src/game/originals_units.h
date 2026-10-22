@@ -24,7 +24,6 @@ struct SightTarget;
 struct UnitAction;
 struct PartyUnitRecord;
 struct UnitPrototypeTable;
-struct UnitStatsBuilder;
 struct UnitStats;
 struct UnitVitals;
 

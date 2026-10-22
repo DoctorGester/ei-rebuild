@@ -155,7 +155,7 @@ void CWorldClient::LoadSky() {
     auto* sky = gamecrt::operator_new_as<CSky>();
     skyDome_ = sky ? sky->Construct() : nullptr;
     auto* figures = FigureManager();
-    auto* object = static_cast<CSkyObject*>(figures->CreateObject(kSkyFigureClass, kSkyObjectId));
+    auto* object = figures->CreateObjectAs<CSkyObject>(kSkyFigureClass, kSkyObjectId);
     if (!object) return;
     object->name_ = SkyPartName();
     object->directory_ = game::EmptyText();

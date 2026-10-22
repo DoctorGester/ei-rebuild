@@ -64,8 +64,8 @@ void Attach(CBaseManager* manager, CWorld* world) { manager->Init(world); }
 int __fastcall WorldCreateManagers(CWorld* world) {
     world->paused_ = 0;
     TheDataFolder() = worlddata::ConfiguredDataPath();
-    *reinterpret_cast<mfc::CString*>(worlddata::TextFolderString()) = worlddata::ConfiguredTextPath();
-    *reinterpret_cast<mfc::CString*>(worlddata::BaseFolderString()) = worlddata::ConfiguredBasePath();
+    TheTextFolder() = worlddata::ConfiguredTextPath();
+    TheDiscFolder() = worlddata::ConfiguredBasePath();
     world->tick_ = 0;
     // The wind: along x, no strength.
     const float direction[3] = {1.0f, 0.0f, 0.0f};

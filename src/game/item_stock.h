@@ -16,6 +16,8 @@
 #include "item_db.h"
 #include "game_data.h"
 
+class CItem;     // item.h
+class CSpell;    // spell.h
 class CStream;   // core_streams.h
 
 // STLport vectors of record pointers: the item prototypes (weapons, armours, quick items), the spells,
@@ -37,9 +39,14 @@ static_assert(sizeof(StockMaterial) == 0x10);
 
 using StockMaterialVector = stlp::vector<StockMaterial>;
 
-// STLport list of pointers (the list object is the sentinel pointer).
-using StockList = stlp::list<void*>;
+// STLport lists of pointers (the list object is the sentinel pointer): the generated items
+// (list<CItem*>, counted once) and the generated spells (list<CSpell*>, GenerateSpells; counted
+// while held). The recipe map's lists hold recipe pointers (stlp::StringListPair's list<void*>).
+using StockList = stlp::list<CItem*>;
 using StockListNode = StockList::Node;
+using StockSpellList = stlp::list<CSpell*>;
+using StockSpellListNode = StockSpellList::Node;
+using StockRecipeList = stlp::list<void*>;
 
 // The spell recipes' records (0x34 bytes, inline in a SpellRecipeVector).
 constexpr int kSpellRecipeSize = 0x34;
@@ -206,7 +213,7 @@ struct ItemStock {
     // repeated modifier while it fits and fewer than 8 (a kind 'm' one scales the cost and stops
     // once the cost is not above the base cost). The spell built from them (00689310, may be null)
     // is appended, counted, to `out`.
-    void GenerateSpells(StockList* out, const float* levels, unsigned threshold);
+    void GenerateSpells(StockSpellList* out, const float* levels, unsigned threshold);
 
     // 0069B5B0 (RET 4; from the class template serializer 004A6C40 when loading). Reads five
     // counted name lists from `stream` and appends the records they name, unless

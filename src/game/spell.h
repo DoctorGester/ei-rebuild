@@ -128,11 +128,16 @@ struct DamageInfo {
 };
 static_assert(sizeof(DamageInfo) == 0x3C);
 
-// A spell being applied (the object built by 00682650 and friends). Only the fields read here.
-// It embeds the CSpell it applies at +0x34 (Spell()): the effect reads the spell's packed id,
-// effect record, damage, radius (area), missile speed and duration (also the number of targets the
-// damage is split between, and the lasting effects' ticks).
-struct CSpellEffect {
+// A spell being applied (0xA8 bytes; Construct 0067E510, created by CWorldServer::CastSpell 0058E670):
+// the world server's missiles (ProjectileList, world.h). It embeds the CSpell it applies at +0x34
+// (Spell()): the effect reads the spell's packed id, effect record, damage, radius (area), missile
+// speed and duration (also the number of targets the damage is split between, and the lasting
+// effects' ticks). Reference counted through a 16-bit count at +4.
+struct __declspec(novtable) CSpellEffect {
+    // Slot 0 (game.exe's vtable 0074399C, set by Construct): the scalar deleting destructor
+    // (0067E5B0, DeletingDestruct; flags 1: free it). Declared only: called through the vtable.
+    virtual void* DeletingDestructor(unsigned flags);
+
     // 00683950. Fills `out` with the damage this effect deals; split between the targets when
     // there are several. Returns 1.
     BOOL GetDamage(DamageInfo* out);
@@ -230,7 +235,12 @@ struct CSpellEffect {
     void Load(CStream* stream);
     void Save(CStream* stream);
 
-    std::uint8_t header[0x08];  // +0x00 vtable and reference count (the Projectile object)
+    // +0x04 the reference count (16 bits; LoadSave and CastSpell clear the whole dword of a new
+    // allocation before its null test and the constructor).
+    union {
+        std::uint32_t references;
+        std::int16_t referenceCount;
+    };
     CWorldServer* world;        // +0x08
     std::uint32_t flags;        // +0x0C bit 0: the caster gets no credit for the hit
     Vector3 position;           // +0x10
@@ -238,7 +248,9 @@ struct CSpellEffect {
     CUnit* caster;              // +0x20 the casting unit (counted; null for traps and scripts)
     Vector3 targetPoint;        // +0x24
     int state;                  // +0x30 0 casting, 1 missile, 2 lasting, else ends
-    std::uint8_t spell_[0x5C];  // +0x34 the CSpell (Spell())
+    // +0x34 the CSpell (Spell()), constructed and destroyed by Construct / Destruct (an abstract
+    // class: its vtable is the compiled CSpellClass's, spell_class.h, so not a member).
+    std::uint8_t spell_[0x5C];
     CEngineObject* visual;      // +0x90 particle source, wall, lightning or missile (counted)
     CEngineObject* sound;       // +0x94 (counted)
     CEngineObject* light;       // +0x98 (counted)
@@ -251,6 +263,7 @@ struct CSpellEffect {
     CSpell* Spell() { return reinterpret_cast<CSpell*>(spell_); }
     const CSpell* Spell() const { return reinterpret_cast<const CSpell*>(spell_); }
 };
+static_assert(offsetof(CSpellEffect, referenceCount) == 0x04);
 static_assert(offsetof(CSpellEffect, world) == 0x08);
 static_assert(offsetof(CSpellEffect, caster) == 0x20);
 static_assert(offsetof(CSpellEffect, state) == 0x30);
@@ -559,7 +572,7 @@ public:
     // The light registered under `id` (every object the factory makes is a CLight), or null.
     CLight* LightWithId(unsigned id) const { return static_cast<CLight*>(FindObject(id)); }
     // A new light of `type` (CreateObject, slot 23): every object the factory makes is a CLight.
-    CLight* CreateLight(int type, int id = -1) { return static_cast<CLight*>(CreateObject(type, id)); }
+    CLight* CreateLight(int type, int id = -1) { return CreateObjectAs<CLight>(type, id); }
 
     std::uint32_t unused_B0[4];    // +0xB0
     CEngineObject* held_;           // +0xC0 released by the destructor

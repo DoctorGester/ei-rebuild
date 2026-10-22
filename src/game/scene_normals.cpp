@@ -30,11 +30,11 @@ double WeldDistance() {
 
 } // namespace
 
-void __fastcall ComputeMeshNormals(VtArray* meshes) {
+void __fastcall ComputeMeshNormals(MeshArray* meshes) {
     DwordBuffer facesOfVertex{};
     const double weld = WeldDistance();
     for (int m = 0; m < meshes->size; ++m) {
-        SceneMesh* mesh = &Typed<MeshArray>(*meshes).data[m];
+        SceneMesh* mesh = &meshes->data[m];
         PointBuffer& normals = mesh->normals;
         PointBuffer& positions = mesh->positions;
         FaceBuffer& faces = mesh->faces;
@@ -81,7 +81,7 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
         int count = normals.size;
         blocks.SetSize(count % 4 == 0 ? count / 4 : count / 4 + 1);
         for (int b = 0; b < blocks.size; ++b) {
-            float* block = reinterpret_cast<float*>(blocks.data) + b * 16;
+            float* block = blocks.data[b].block;
             for (int lane = 0; lane < 4; ++lane) {
                 std::uint32_t one = 0x3F800000u, zero = 0;
                 std::memcpy(&block[lane], &one, 4);
@@ -91,16 +91,16 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
             }
         }
         for (int j = 0; j < normals.size; ++j) {
-            float* block = reinterpret_cast<float*>(blocks.data) + (j / 4) * 16 + (j & 3);
-            const Vector3& n = reinterpret_cast<Vector3*>(normals.data)[j];
+            float* block = blocks.data[j / 4].block + (j & 3);
+            const Vector3& n = normals.data[j].point;
             std::memcpy(&block[0], &n.x, 4);
             std::memcpy(&block[4], &n.y, 4);
             std::memcpy(&block[8], &n.z, 4);
         }
         count = normals.size;
         if (count & 3) {
-            Vector3 last = reinterpret_cast<Vector3*>(normals.data)[count - 1];
-            float* block = reinterpret_cast<float*>(blocks.data) + (count / 4) * 16;
+            Vector3 last = normals.data[count - 1].point;
+            float* block = blocks.data[count / 4].block;
             for (int lane = count & 3; lane < 4; ++lane) {
                 block[lane] = last.x;
                 block[4 + lane] = last.y;
@@ -116,17 +116,17 @@ EI_REWRITTEN(0x0044DCF0, ComputeMeshNormals);
 // positions packed four at a time into 64-byte blocks at +0xA8 (x[4], y[4], z[4], w[4] = 1); every
 // lane starts as the first position, so the unused lanes of the last block keep it.
 void __fastcall PackMeshPositions(FakeUnitScene* unit) {
-    VtArray& meshes = unit->meshes;
+    MeshArray& meshes = unit->meshes;
     for (int m = 0; m < meshes.size; ++m) {
-        SceneMesh* mesh = &Typed<MeshArray>(meshes).data[m];
+        SceneMesh* mesh = &meshes.data[m];
         PointBuffer& positions = mesh->positions;
         BlockBuffer& blocks = mesh->positionBlocks;
         int count = positions.size;
         blocks.SetSize(count % 4 == 0 ? count / 4 : count / 4 + 1);
         for (int b = 0; b < blocks.size; ++b) {
-            float* block = reinterpret_cast<float*>(blocks.data) + b * 16;
+            float* block = blocks.data[b].block;
             for (int lane = 0; lane < 4; ++lane) {
-                const std::uint32_t* first = reinterpret_cast<std::uint32_t*>(positions.data);
+                const std::uint32_t* first = positions.data[0].v;
                 std::uint32_t one = 0x3F800000u;
                 std::memcpy(&block[lane], &first[0], 4);
                 std::memcpy(&block[4 + lane], &first[1], 4);
@@ -135,8 +135,8 @@ void __fastcall PackMeshPositions(FakeUnitScene* unit) {
             }
         }
         for (int j = 0; j < positions.size; ++j) {
-            float* block = reinterpret_cast<float*>(blocks.data) + (j / 4) * 16 + (j & 3);
-            const std::uint32_t* p = reinterpret_cast<std::uint32_t*>(positions.data) + j * 3;
+            float* block = blocks.data[j / 4].block + (j & 3);
+            const std::uint32_t* p = positions.data[j].v;
             std::uint32_t one = 0x3F800000u;
             std::memcpy(&block[0], &p[0], 4);
             std::memcpy(&block[4], &p[1], 4);
@@ -167,7 +167,7 @@ void __fastcall ComputeMeshBounds(SceneMesh* mesh) {
     std::memcpy(&minY, &highest, 4);
     std::memcpy(&minZ, &highest, 4);
     for (int i = 0; i < positions.size; ++i) {
-        const Vector3& p = reinterpret_cast<Vector3*>(positions.data)[i];
+        const Vector3& p = positions.data[i].point;
         maxX = SelectBelow(p.x, maxX);
         minX = SelectBelow(minX, p.x);
         maxY = SelectBelow(p.y, maxY);

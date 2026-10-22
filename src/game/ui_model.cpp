@@ -119,7 +119,7 @@ EI_REWRITTEN(0x005FC2F0, CUiModel::Draw);
 // 005FC1F0 (RET 0xC). The figure's steps go through their addresses (rewritten, with wrappers).
 void CUiModel::Load(const char* name, const char* from, const char* to) {
     auto* manager = TheClientWorld()->MapObjectManager();
-    auto* object = static_cast<CObject3D*>(manager->CreateObject(kPreviewClass, kPreviewId));
+    auto* object = manager->CreateObjectAs<CObject3D>(kPreviewClass, kPreviewId);
     object_ = object;
     ++object->refCount_;
     object->flags_ |= kPreviewObject;

@@ -25,6 +25,7 @@
 
 class CStream;              // core_streams.h
 class CMapObjectServer;     // unit.h
+class CMapObjectCompanion;  // below
 struct DeltaState;          // net_delta.h
 class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
 class Terrain;              // camera.h
@@ -346,7 +347,7 @@ public:
     // +0x000-0x16C: CObject3D (position +0x1C, orientation +0x34, the side half `attached` +0x94,
     // name +0xA4 (the prototype name for units), scale +0xC4, bounds centre +0x128 (GroundPoint),
     // radius +0x134, half box `above` +0x144).
-    CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
+    CMapObjectCompanion* companion; // +0x170 CMapObjectServer / CMapObjectClientSpecific
     // The companion as the server's CMapObjectServer (on the server; defined in unit.h).
     CMapObjectServer* ServerCompanion() const;
     // +0x174 world updates until the object's effects are next looked at (5 after Create; the
@@ -396,8 +397,8 @@ constexpr int kResetScale = 30;           // 0x78
 // vtable 0073EA8C, derives from CMapObject).
 using CMapObjectVirtuals = CMapObject;
 
-// A map object's companion (CMapObjectServer / CMapObjectClientSpecific) as the base class calls it.
-// The two classes (unit.h) do not derive from it; CompanionSlots reaches a companion through it.
+// A map object's companion (CMapObjectServer / CMapObjectClientSpecific, unit.h, derive from it) as
+// the base class calls it. CompanionSlots takes an object handed over as a companion.
 class __declspec(novtable) CMapObjectCompanion : public CEngineObject {
 public:
     void HitNothing(int, int);

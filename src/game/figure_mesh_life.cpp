@@ -13,7 +13,7 @@
 #include "link_figure.h"
 #include "originals_core.h"
 #include "originals_world.h"
-#include "record_arrays.h"   // InitFigurePart
+#include "scene_loader.h"   // InitFigurePart
 
 #include <cstring>
 #include <new>
@@ -199,7 +199,7 @@ EI_REWRITTEN(0x004543A0, CPlainFigureMesh::DeletingDestruct);
 // 00453240 (the scene's figure records, record_arrays.h) inlines ConstructBase, then writes zeros
 // over the mesh's six arrays (+0x1C0..+0x21C) and stores the class 0x42 vtable: CPlainFigureMesh's
 // constructor.
-void recordarrays::InitFigurePart(CPlainFigureMesh* p) { new (p) CPlainFigureMesh(); }
+void scene::InitFigurePart(CPlainFigureMesh* p) { new (p) CPlainFigureMesh(); }
 
 // --- The virtual slots (the registered bodies) ---------------------------------------------------
 
@@ -264,7 +264,7 @@ CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
     if (type < kFirstFigureClass || type > kLastFigureClass || object == nullptr) return object;
     CBaseManager* drawers = static_cast<CManagerContext*>(context_)->SpecificManager();
-    auto* drawer = static_cast<FigureMeshDrawer*>(drawers->CreateObject(kDrawerClass, -1));
+    auto* drawer = drawers->CreateObjectAs<FigureMeshDrawer>(kDrawerClass, -1);
     static_cast<CFigureMesh*>(object)->SetDrawer(drawer);
     return object;
 }
