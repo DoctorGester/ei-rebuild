@@ -1138,11 +1138,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     its deleting destructor, the rest `_purecall`); BufferViewClass and GrowingBufferClass over it.
     tests/vectors/record_coder.cpp now recognises game.exe's buffers by `&ei::OriginalGameData<const
     std::uint8_t>(0x0073D624 / 0x0073CA64)`, which named_data allows in tests.
-  - **World effects** (world_effect_class.h): `EffectClass<Self, T>` (CEffect's 18-23 over the transform's), ParticleClass,
-    MissileClass and one tag per effect. The point light's own Radius is slot 24 (its slot 19 is the base's). EngineObjectClass
-    needs `T::DeletingDestruct`, so CEffect's DeletingDestructEffect was renamed. 007435D8 is a byte match inside an FDIV
-    operand of 005E1680: retired as the particle table's tail.
-  - **Small ones**: the unit shape (ai_unit_shape.cpp) and the item link (item_link.cpp) as RefObject-shaped tags;
+  - **World effects** (world_effect.h; real classes since C28f): CEffect declares 18-23 over the transform's; the point
+    light's own radius is slot 24 (LightRadius; its slot 19 is the base's), the missile's MoveParts slot 24. 007435D8 is a
+    byte match inside an FDIV operand of 005E1680: retired as the particle table's tail.
+  - **Small ones**: the unit shape (ai_unit_shape.cpp) and the item link (item_link.cpp) (real classes since C28e);
     the terrain (TransformObjectClass, slot 14 its own CombineRotation; tail 0073F6E8 a byte match in 006E81C2) and the
     text manager (world_client_class.h); the player sources' base 0073F38C (slots 2-4 and 6 `_purecall`), the server's
     counted helper 0073F240 and the client's source 0073F628 (world_sessions.cpp), the bridge manager 0073F4FC

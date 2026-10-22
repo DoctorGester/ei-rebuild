@@ -74,8 +74,7 @@ inline void* FindObject(void* manager, void*, int id) { return static_cast<CBase
 // 00532860 (unit). A point of the unit (its effect origin); returns `out`.
 __declspec(naked) inline Vector3* __fastcall UnitEffectPoint(void* /*unit*/, void*, Vector3* /*out*/) EI_ORIGINAL(0x00532860)
 
-// The world an object belongs to (the effects' manager context is the world, too). The effects
-// reach their own slots 18-23 through TimedSlots / EffectSlots (world_effect.h).
+// The world an object belongs to (the effects' manager context is the world, too).
 inline CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 inline CWorld* ContextWorld(const CEngineObject* object) { return object->WorldContext(); }
 

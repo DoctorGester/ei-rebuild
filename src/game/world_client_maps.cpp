@@ -1013,7 +1013,7 @@ void CWorldClient::ResetZoneObjects() {
             });
     ObjectListIterator it{nullptr, nullptr};
     for (CEngineObject* object = it.First(TimedObjectManager()); object; object = it.Next()) object->Release();
-    if (bird_) TimedSlots(bird_)->Reset();
+    if (bird_) bird_->Reset();
     // The iterator's destructor, inlined: the manager's count drops without a release.
     if (it.manager) --it.manager->refCount_;
 }

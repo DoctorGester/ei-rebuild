@@ -64,7 +64,7 @@ static bool IsVirtualCallThunk(const void* replacement) {
 }
 
 // The first entry registered for `address` whose replacement or recorder is such a thunk. A game function
-// that is itself a bare vtable dispatch (00675D40 DestroyEffect, 00469DE0 / 00469E00 SpecRemove / SpecRefresh,
+// that is itself a bare vtable dispatch (00675D40 CEffect::Destroy, 00469DE0 / 00469E00 SpecRemove / SpecRefresh,
 // 00552F30) is EI_REWRITTEN: its callers call the virtual (C25 retired EI_REPLACE_DISPATCH, whose check needed
 // game.exe's bytes of the 8 such functions).
 static const HookEntry* ThunkEntryAt(std::uintptr_t address) {

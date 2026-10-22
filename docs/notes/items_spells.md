@@ -432,8 +432,8 @@ table (+0xBC) maps a key to a D3DMATERIAL7 (MaterialColors); an absent key is en
 found) is `stlp::deque<T>` now; its instantiations went to library.csv. Not hookable: 0068DCF0 (slot 7, 4 bytes). Differs:
 NewMaterial returns null on a failed creation (the original faults).
 
-**Small slots and copies (A-H24).** class_names_640.cpp: the name / id slots (11 / 12) of CParty, the twelve CEffect*
-classes, CSpell, CTexture, the six CItem* classes and CItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
+**Small slots and copies (A-H24).** The name / id slots (11 / 12) of CParty, the twelve CEffect* classes
+(world_effect_lifetime.cpp), CSpell, CTexture, the six CItem* classes and CItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
 manager's folder, 0067E150 the effect manager's Create (world_managers.cpp, O). Party containers (party_lifetime.cpp, O):
 `CArray<PartyUnitRecord>` destructor body / slot 0, DestructElements, the record's deleting destructor; ui_hero_screen_click.cpp:
 MpHeroRecord's deleting destructor, copy() of hero records (Assign each). Byte-identical copies registered beside their
@@ -458,7 +458,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   DestructBody / DeletingDestruct (O), `CTextureManager::GetFileData / NewTextureOfType / FindOrCreate (named, not loaded; no
   null check) / FindOrLoad` (O), `ReloadAll` (after a lost device: no scenario), `TrimCache` (cached bytes against
   videoMemoryTenth_, signed; every 32 client ticks; O), the effect base's out-of-line destructor, slot 0, constructor, missile
-  Reset, default Tick, ReadSavedStrings (effects.md; O, TickDefault P, constructor and ReadSavedStrings S).
+  Reset, default RunTick, ReadSavedStrings (effects.md; O, RunTick P, constructor and ReadSavedStrings S).
 - Records: `ArmorRecord / QuickItemRecord / QuestItemRecord / LootItemRecord` assignment (item_db_records.cpp; O),
   `ItemRecordHead::ConstructBase` (vtable 00744060), `MaterialRecordHead::CopyConstruct` (S), `QuestBriefingTable::Add`
   (quest_records.h: the database's +0x20, vector + index by name; push_back 006B0780, clear 006B0590, find 006B0930 through

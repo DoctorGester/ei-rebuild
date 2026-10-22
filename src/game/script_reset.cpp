@@ -99,7 +99,7 @@ void __fastcall ScriptReset(CScript* script) {
         CEngineObject* object = lights.data[i].object;
         if (!object) continue;
         TheServerWorld()->RemoveTimedObject(object->id_);
-        lights.data[i].object->Release();
+        static_cast<CEngineObject*>(lights.data[i].object)->Release();   // reloaded, through the vtable
     }
     std::memset(lights.data, 0, static_cast<unsigned>(lights.size) * sizeof(ScriptPointLight));
 

@@ -2,7 +2,6 @@
 // and docs/notes/effects.md ("Missiles and visibility").
 #include "lib/static_object.h"
 #include "world_effect.h"
-#include "world_effect_class.h"
 
 #include "map_object.h"
 #include "originals_engine.h"
@@ -18,7 +17,6 @@
 
 #include <cstring>
 
-using ei::SetVtable;
 
 namespace {
 
@@ -35,8 +33,7 @@ void ReleaseFog(CVisibilityFog*& fog) {
 } // namespace
 
 
-CEffectShowVisibility* CEffectShowVisibility::Construct() {
-    ConstructEffect();
+CEffectShowVisibility::CEffectShowVisibility() {
     fog_ = nullptr;
     SearchGrid<std::uint8_t>& cells = grid_.cells;
     cells.width = 1;
@@ -46,24 +43,14 @@ CEffectShowVisibility* CEffectShowVisibility::Construct() {
     for (int row = 0; row < cells.height; ++row) cells.rows[row] = cells.data + row * cells.width;
     observerId_ = -1;
     seerId_ = -1;
-    SetVtable(this, Vtable());
-    return this;
 }
 
 // The destructor body resets twice (inline, then slot 18), frees the grid and destroys the base.
-void CEffectShowVisibility::Destruct() {
-    SetVtable(this, Vtable());
+CEffectShowVisibility::~CEffectShowVisibility() {
     Reset();
     Reset();
     gamecrt::operator_delete(grid_.cells.data);
     gamecrt::operator_delete(grid_.cells.rows);
-    DestructEffect();
-}
-
-CEffectShowVisibility* CEffectShowVisibility::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
 }
 
 // The base is not reset: only the grid (taken out of the fog first), the units and the fog.
@@ -105,7 +92,7 @@ void CEffectShowVisibility::Pack(DeltaField* field) {
     field->WriteStreamBoth(&stream);
 }
 
-int CEffectShowVisibility::Tick() {
+int CEffectShowVisibility::RunTick() {
     if (!WorldContext()->IsServer()) return 1;
     CUnit* seer = WorldFindUnit(ObjectWorld(this), nullptr, seerId_);
     CUnit* observer = WorldFindUnit(ObjectWorld(this), nullptr, observerId_);
@@ -117,26 +104,26 @@ int CEffectShowVisibility::Tick() {
     return 1;
 }
 
-void CEffectShowVisibility::LoadState(CStream* s) {
+void CEffectShowVisibility::Load(CStream* s) {
     s->Read(&observerId_, 4);
     s->Read(&seerId_, 4);
 }
 
-void CEffectShowVisibility::SaveState(CStream* s) {
+void CEffectShowVisibility::Save(CStream* s) {
     int copy = observerId_;
     s->Write(&copy, 4);
     copy = seerId_;
     s->Write(&copy, 4);
 }
 
-EI_REWRITTEN(0x0067C340, CEffectShowVisibility::Construct);
-EI_REWRITTEN(0x0067C490, CEffectShowVisibility::Destruct);
-EI_REWRITTEN(0x0067C470, CEffectShowVisibility::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0067C340, CEffectShowVisibility::CEffectShowVisibility);
+EI_REWRITTEN_SPECIAL(0x0067C490, CEffectShowVisibility::~CEffectShowVisibility);
+EI_REWRITTEN_SPECIAL(0x0067C470, CEffectShowVisibility::~CEffectShowVisibility);
 EI_REWRITTEN(0x0067C5F0, CEffectShowVisibility::Reset);
 EI_REWRITTEN(0x0067C640, CEffectShowVisibility::SetUnits);
 EI_REWRITTEN(0x0067C660, CEffectShowVisibility::Start);
 EI_REWRITTEN(0x0067C6B0, CEffectShowVisibility::Unpack);
 EI_REWRITTEN(0x0067C7A0, CEffectShowVisibility::Pack);
-EI_REWRITTEN(0x0067C840, CEffectShowVisibility::Tick);
-EI_REWRITTEN(0x0067C8E0, CEffectShowVisibility::LoadState);
-EI_REWRITTEN(0x0067C910, CEffectShowVisibility::SaveState);
+EI_REWRITTEN(0x0067C840, CEffectShowVisibility::RunTick);
+EI_REWRITTEN(0x0067C8E0, CEffectShowVisibility::Load);
+EI_REWRITTEN(0x0067C910, CEffectShowVisibility::Save);

@@ -380,7 +380,7 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
 ## Cleanup left and unverified points
 
 - Declarations found in cleanup: CMapObjectCompanion slot 17 IsDead, CMapObjectVirtuals slot 40 KeyId, world_effect.h
-  CTimedObjectVirtuals (18-20), Terrain::heightRange, WeaponRecord bonuses / damageTypes; script "danger" is
+  CEffect's slots 18-20, Terrain::heightRange, WeaponRecord bonuses / damageTypes; script "danger" is
   CPlayerServer::refreshPending_, GetAIClass reads CUnit::sizeClass, GameTime's fraction is tickFraction_; CWorldServer
   sentObjects_ (+0x12D88) and zoneHeader_ (+0x12E00, a CMemoryStream built by 0041DD70 in 00589ED0, called through a
   CStream* so the slot dispatch stays), MainScript() (the CScript at +0x12874; globals_ holds "Heroes"); CPlayer link_

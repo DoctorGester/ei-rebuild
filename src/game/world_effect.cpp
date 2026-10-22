@@ -50,24 +50,24 @@ void MoveByVelocity(CEffect* e) {
 
 void CEffect::SendFull() {
     DeltaField* field = state_.BeginWriteB(0);
-    EffectSlots(this)->Pack(field);
+    Pack(field);
     state_.EndField();
 }
 
 void CEffect::SendDelta() {
     DeltaField* field = state_.BeginWriteB(1);
-    EffectSlots(this)->Pack(field);
+    Pack(field);
     state_.EndField();
 }
 
 int CEffect::Receive(int update, BitStream* reader) {
     DeltaField* field = state_.BeginReadB(update, reader);
-    int result = EffectSlots(this)->Unpack(update, field);
+    int result = Unpack(update, field);
     state_.EndField();
     return result;
 }
 
-void CEffect::ResetBase() { ClearBase(this); }
+void CEffect::Reset() { ClearBase(this); }
 
 void __fastcall ReadSavedStrings(mfc::CStringArray* array, CStream* stream) {
     int count;
@@ -86,13 +86,13 @@ void CEffect::MarkChanged() {
 
 void CEffect::UpdateMoving() { moving_ = IsMoving(velocity_); }
 
-int CEffect::CreateEffect() {
-    TimedSlots(this)->Reset();
+int CEffect::Create() {
+    Reset();
     SendFull();
     return 1;
 }
 
-void CEffect::DestroyEffect() { TimedSlots(this)->Reset(); }
+void CEffect::Destroy() { Reset(); }
 
 void CEffect::SetVelocity(const Vector3* velocity) {
     std::memcpy(&velocity_, velocity, sizeof(Vector3));
@@ -102,7 +102,7 @@ void CEffect::SetVelocity(const Vector3* velocity) {
 
 Vector3* CEffect::Position(void*) { return &localPosition_; }
 
-double CEffect::DefaultRadius() { return ConstAt(worlddata::DefaultRadius()); }
+double CEffect::Radius() { return ConstAt(worlddata::DefaultRadius()); }
 
 // --- CEffectSound --------------------------------------------------------------------------------
 
@@ -118,7 +118,7 @@ void CEffectSound::Reset() {
     fresh_ = 1;
 }
 
-int CEffectSound::Tick() {
+int CEffectSound::RunTick() {
     std::uint8_t wasFresh = fresh_;
     fresh_ = 0;
     if (moving_ != 0) {
@@ -150,7 +150,7 @@ int CEffectSound::Unpack(int update, DeltaField* field) {
     moving_ = IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
-    EffectSlots(this)->Start(update);
+    Start(update);
     return 1;
 }
 
@@ -166,7 +166,7 @@ void CEffectSound::Pack(DeltaField* field) {
     field->WriteDelta(&noFade_, 1);
 }
 
-void CEffectSound::LoadState(CStream* stream) {
+void CEffectSound::Load(CStream* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, name_, 0x100);
     Read(stream, &volume_, 4);
@@ -179,7 +179,7 @@ void CEffectSound::LoadState(CStream* stream) {
     Read(stream, &noFade_, 1);
 }
 
-void CEffectSound::SaveState(CStream* stream) {
+void CEffectSound::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, name_, 0x100);
     WriteCopy(stream, &volume_);
@@ -204,7 +204,7 @@ void CEffectSoundSeq::Reset() {
     noFade_ = 0;
 }
 
-int CEffectSoundSeq::Tick() {
+int CEffectSoundSeq::RunTick() {
     if (moving_ != 0) {
         MoveByVelocity(this);
         if (sound_ != 0)
@@ -226,7 +226,7 @@ void CEffectSoundSeq::Pack(DeltaField* field) {
     field->WriteDelta(&noFade_, 1);
 }
 
-void CEffectSoundSeq::LoadState(CStream* stream) {
+void CEffectSoundSeq::Load(CStream* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, &velocity_, 12);
     stream->ReadInto(&name_);
@@ -238,7 +238,7 @@ void CEffectSoundSeq::LoadState(CStream* stream) {
     Read(stream, &noFade_, 1);
 }
 
-void CEffectSoundSeq::SaveState(CStream* stream) {
+void CEffectSoundSeq::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &velocity_, 12);
     Write(stream, name_, static_cast<std::uint32_t>(std::strlen(name_) + 1));
@@ -294,7 +294,7 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&maxInterval_, 4);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
-    EffectSlots(this)->Start(update);
+    Start(update);
     return 1;
 }
 
@@ -312,7 +312,7 @@ void CEffectAmbientSound::Pack(DeltaField* field) {
     field->WriteDelta(&value, 4);
 }
 
-void CEffectAmbientSound::LoadState(CStream* stream) {
+void CEffectAmbientSound::Load(CStream* stream) {
     Read(stream, &localPosition_, 12);
     ReadSavedStrings(&names_, stream);
     Read(stream, &volume_, 4);
@@ -321,7 +321,7 @@ void CEffectAmbientSound::LoadState(CStream* stream) {
     Read(stream, &maxInterval_, 4);
 }
 
-void CEffectAmbientSound::SaveState(CStream* stream) {
+void CEffectAmbientSound::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
     int count = names_.size;
     Write(stream, &count, 4);
@@ -342,34 +342,34 @@ double CEffectAmbientSound::Radius() { return radius_; }
 EI_REWRITTEN(0x00675B40, CEffect::SendFull);
 EI_REWRITTEN(0x00675B70, CEffect::SendDelta);
 EI_REWRITTEN(0x00675BA0, CEffect::Receive);
-EI_REWRITTEN(0x00675BE0, CEffect::ResetBase);
+EI_REWRITTEN(0x00675BE0, CEffect::Reset);
 EI_REWRITTEN(0x00675CA0, CEffect::MarkChanged);
-EI_REWRITTEN(0x00675D10, CEffect::CreateEffect);
-EI_REWRITTEN(0x00675D40, CEffect::DestroyEffect);
+EI_REWRITTEN(0x00675D10, CEffect::Create);
+EI_REWRITTEN(0x00675D40, CEffect::Destroy);
 EI_REWRITTEN(0x00675D50, CEffect::SetVelocity);
 EI_REWRITTEN(0x00675FA0, CEffect::Position);
-EI_REWRITTEN(0x006768F0, CEffect::DefaultRadius);
+EI_REWRITTEN(0x006768F0, CEffect::Radius);
 
 EI_REWRITTEN(0x00676200, CEffectSound::Reset);
-EI_REWRITTEN(0x006762F0, CEffectSound::Tick);
+EI_REWRITTEN(0x006762F0, CEffectSound::RunTick);
 EI_REWRITTEN(0x006763A0, CEffectSound::Start);
 EI_REWRITTEN(0x00676430, CEffectSound::Unpack);
 EI_REWRITTEN(0x00676550, CEffectSound::Pack);
-EI_REWRITTEN(0x006765F0, CEffectSound::LoadState);
-EI_REWRITTEN(0x006766D0, CEffectSound::SaveState);
+EI_REWRITTEN(0x006765F0, CEffectSound::Load);
+EI_REWRITTEN(0x006766D0, CEffectSound::Save);
 EI_REWRITTEN(0x00676050, CEffectSound::Radius);
 
 EI_REWRITTEN(0x00676B10, CEffectSoundSeq::Reset);
-EI_REWRITTEN(0x00677250, CEffectSoundSeq::Tick);
+EI_REWRITTEN(0x00677250, CEffectSoundSeq::RunTick);
 EI_REWRITTEN(0x00677180, CEffectSoundSeq::Pack);
-EI_REWRITTEN(0x006772D0, CEffectSoundSeq::LoadState);
-EI_REWRITTEN(0x00677430, CEffectSoundSeq::SaveState);
+EI_REWRITTEN(0x006772D0, CEffectSoundSeq::Load);
+EI_REWRITTEN(0x00677430, CEffectSoundSeq::Save);
 EI_REWRITTEN(0x00676930, CEffectSoundSeq::Radius);
 
 EI_REWRITTEN(0x00677870, CEffectAmbientSound::Reset);
 EI_REWRITTEN(0x00677950, CEffectAmbientSound::Start);
 EI_REWRITTEN(0x006779D0, CEffectAmbientSound::Unpack);
 EI_REWRITTEN(0x00677B20, CEffectAmbientSound::Pack);
-EI_REWRITTEN(0x00677BF0, CEffectAmbientSound::LoadState);
-EI_REWRITTEN(0x00677C60, CEffectAmbientSound::SaveState);
+EI_REWRITTEN(0x00677BF0, CEffectAmbientSound::Load);
+EI_REWRITTEN(0x00677C60, CEffectAmbientSound::Save);
 EI_REWRITTEN(0x00677690, CEffectAmbientSound::Radius);

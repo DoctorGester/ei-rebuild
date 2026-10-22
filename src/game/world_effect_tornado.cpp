@@ -2,7 +2,6 @@
 // See world_effect.h and docs/notes/effects.md ("Tornado").
 #include "effects.h"
 #include "world_effect.h"
-#include "world_effect_class.h"
 #include "game_data.h"
 
 #include "game_strings.h"
@@ -24,7 +23,6 @@
 #include <cmath>
 #include <cstring>
 
-using ei::SetVtable;
 
 namespace {
 
@@ -63,31 +61,20 @@ bool SnapshotReadToEnd() {
 } // namespace
 
 
-CEffectTornado* CEffectTornado::Construct() {
-    ConstructEffect();
+CEffectTornado::CEffectTornado() {
     source_ = nullptr;
-    SetVtable(this, Vtable());
     sound_ = -1;
     Reset();   // inline in the original
-    return this;
 }
 
-void CEffectTornado::Destruct() {
-    SetVtable(this, Vtable());
+CEffectTornado::~CEffectTornado() {
     Reset();   // inline in the original
     Reset();   // through slot 18
     if (source_ != nullptr) source_->Release();
-    DestructEffect();
-}
-
-CEffectTornado* CEffectTornado::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
 }
 
 void CEffectTornado::Reset() {
-    ResetBase();
+    CEffect::Reset();
     if (source_ != nullptr) source_->StopAndClear();
     if (sound_ != -1) TheSoundManager()->StopSound(sound_);
     sound_ = -1;
@@ -117,7 +104,7 @@ void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
     launchTick_ = effect::ContextWorld(this)->tick_;
 }
 
-int CEffectTornado::Tick() {
+int CEffectTornado::RunTick() {
     if (moving_ != 0) {
         localPosition_ = Vector3{static_cast<float>(localPosition_.x + velocity_.x), static_cast<float>(localPosition_.y + velocity_.y),
                                  static_cast<float>(localPosition_.z + velocity_.z)};
@@ -184,14 +171,14 @@ void CEffectTornado::Start(int update) {
     for (int i = 1; i < behind; ++i) source_->RunTick();
 }
 
-void CEffectTornado::LoadState(CStream* s) {
+void CEffectTornado::Load(CStream* s) {
     s->Read(&localPosition_, 12);
     s->Read(&velocity_, 12);
     s->Read(&framesLeft_, 4);
     s->Read(&launchTick_, 4);
 }
 
-void CEffectTornado::SaveState(CStream* s) {
+void CEffectTornado::Save(CStream* s) {
     s->Write(&localPosition_, 12);
     s->Write(&velocity_, 12);
     int copy = framesLeft_;
@@ -200,14 +187,14 @@ void CEffectTornado::SaveState(CStream* s) {
     s->Write(&copy, 4);
 }
 
-EI_REWRITTEN(0x0067D670, CEffectTornado::Construct);
-EI_REWRITTEN(0x0067D800, CEffectTornado::Destruct);
-EI_REWRITTEN(0x0067D7E0, CEffectTornado::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0067D670, CEffectTornado::CEffectTornado);
+EI_REWRITTEN_SPECIAL(0x0067D800, CEffectTornado::~CEffectTornado);
+EI_REWRITTEN_SPECIAL(0x0067D7E0, CEffectTornado::~CEffectTornado);
 EI_REWRITTEN(0x0067D970, CEffectTornado::Reset);
 EI_REWRITTEN(0x0067DA50, CEffectTornado::Launch);
-EI_REWRITTEN(0x0067DBD0, CEffectTornado::Tick);
+EI_REWRITTEN(0x0067DBD0, CEffectTornado::RunTick);
 EI_REWRITTEN(0x0067DDD0, CEffectTornado::Unpack);
 EI_REWRITTEN(0x0067DEB0, CEffectTornado::Pack);
 EI_REWRITTEN(0x0067DF10, CEffectTornado::Start);
-EI_REWRITTEN(0x0067E020, CEffectTornado::LoadState);
-EI_REWRITTEN(0x0067E070, CEffectTornado::SaveState);
+EI_REWRITTEN(0x0067E020, CEffectTornado::Load);
+EI_REWRITTEN(0x0067E070, CEffectTornado::Save);
