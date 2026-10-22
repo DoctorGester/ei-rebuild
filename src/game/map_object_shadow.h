@@ -58,12 +58,33 @@ static_assert(sizeof(TextureParts) == 0x14);
 
 struct WoundsMaterial;   // below
 
-// The client's half of a 3D object: a CObject3DSpecific (its slots are the base's virtuals, the
-// compiled table object3d_specific_slots.cpp makes), with the shadow, the part sets and the skins.
-// Members that are slot bodies have names of their own, so none of them overrides a slot.
+// The client's half of a 3D object (GetClassName "CObject3DClientSpecific", class id 0x37, game.exe's
+// vtable 0073DE90): a CObject3DSpecific with the shadow, the part sets and the skins.
 class CObject3DClientSpecific : public CObject3DSpecific {
 public:
-    CObject3DClientSpecific* DeleteScalar(unsigned flags);
+    // object3d_client_parts.cpp (A-U12). 0051AB00: the empty arrays and names, the shadow sphere
+    // zeroed, cursor -1, the shadow texture and the wounds texture / material dropped, bounds and
+    // pulse clock 0.
+    CObject3DClientSpecific();
+    // 0051AD90 (deleting: 0051AD70): Destroy, the names, the wounds material and texture and the
+    // shadow texture released, the arrays' blocks freed.
+    ~CObject3DClientSpecific() override;
+    // 0051AEC0 (slot 2). The cursor -1, flags_ 0, the shadow and wounds textures and the wounds
+    // material dropped, bounds and sphere 0, no part sets (not freed), touch time 0, scale 1.
+    // Returns 1.
+    int Create() override;
+    // 0051AF70 (slot 3). The shadow and wounds textures and the wounds material dropped, both part
+    // sets destroyed and deleted, every texture and material released and the arrays emptied; no
+    // object, touch time and flags_ 0.
+    void Destroy() override;
+    // object3d_specific_slots.cpp. 0051AD50 / 0051AD60 (slots 11 / 12): "CObject3DClientSpecific", 0x37.
+    const char* GetClassName() override;
+    int GetClassId() override;
+    // Slots 19 / 20: Draw and DrawShadow below (`context` is the scene renderer).
+    int DrawParts(void* context, int* dirty) override { return Draw(static_cast<CSceneRenderer*>(context), dirty); }
+    int DrawPartsShadow(void* context) override { return DrawShadow(static_cast<CSceneRenderer*>(context)); }
+    // Slot 23: PartRectsMeet below.
+    int PartsIntersectRect(const long* rect) override { return PartRectsMeet(reinterpret_cast<const RECT*>(rect)); }
     // 0051CE60. Draws the object's shadow (`context` is the scene renderer, 007AF060). When shadows
     // are on for its kind (0079BD0C > 0 and the per-kind switch) and the object is shown: unless
     // the shadow is still valid, sums the lights reaching the object into a direction (tilted
@@ -111,44 +132,24 @@ public:
     // a material, a new one (blended 5 / 6, the renderer helper's preset 4) gets two stages: the
     // first part set's texture, then the wounds texture. Returns 1.
     int ShowWounds(const char* name);
-    // object3d_specific_slots.cpp (A-U4). 0051AD20: virtual slot 18 (GetScale; the class declares no
-    // virtuals, so the member is registered as it is): x, y, z = figureScale. 0051C970: each drawn part (the cursor +0x48 walks them
-    // from 0, up to the first null) registers its material with the world's material manager
-    // (world slot 33, 0068EAF0 with the part's type_).
-    void ExtraScale(float* x, float* y, float* z);
+    // object3d_specific_slots.cpp (A-U4). 0051AD20: virtual slot 18: x, y, z = figureScale. 0051C970:
+    // each drawn part (the cursor +0x48 walks them from 0, up to the first null) registers its
+    // material with the world's material manager (world slot 33, 0068EAF0 with the part's type_).
+    void GetScale(float* x, float* y, float* z) override;
     void RegisterPartMaterials();
     // object3d_specific_slots.cpp (A-U11). Slots 22-24, the screen picking (RET 4; a shown object only,
     // flags_ 0x20 of the 3D object): 0051C130 whether the point (x, y) is in the object's dirtyRect;
     // 0051C160 in the screen rectangle of one of its parts with their own mesh (part flags 0x40);
     // 0051C1D0 whether `rect` meets such a part's rectangle (a non-empty intersection).
-    int DirtyRectContains(const long* point);
-    int PartRectsContain(const long* point);
+    int BoundsContainPoint(const long* point) override;
+    int PartsContainPoint(const long* point) override;
     int PartRectsMeet(const RECT* rect);
     // Slots 16 / 17 (RET 4): 0051B2E0 the object's part named `name` (CObject3D::FindPart), 0051B2D0
     // its part of type `type` (CObject3D::FindPartOfType).
-    CFigureMesh* ObjectPartNamed(const char* name);
-    CFigureMesh* ObjectPartOfType(int type);
+    CFigureMesh* FindPart(const char* name) override;
+    CFigureMesh* FindPartOfType(int type) override;
 
-    // object3d_client_parts.cpp (A-U12): the part sets, lifetime and skins.
-    // 0051AB00. The constructor: the engine object, the base half (vtable 0073DEFC, no object), the
-    // empty arrays and names, the shadow sphere zeroed, then the vtable 0073DE90, cursor -1, the
-    // shadow texture and the wounds texture / material dropped, bounds and pulse clock 0. Returns this.
-    CObject3DClientSpecific* Construct();
-    // 0051AD90. The destructor body: DestroyClient, the names, the wounds material and texture and
-    // the shadow texture released, the arrays' blocks freed, then the base half's.
-    void DestructBody();
-    // 0051AD70 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
-    CObject3DClientSpecific* DeletingDestruct(unsigned flags);
-    // The compiled table (object3d_halves.cpp, C19) in place of game.exe's 0073DE90.
-    static void* Vtable();
-    // 0051AEC0 (slot 2). The cursor -1, flags_ 0, the shadow and wounds textures and the wounds
-    // material dropped, bounds and sphere 0, no part sets (not freed), touch time 0, scale 1.
-    // Returns 1.
-    int CreateClient();
-    // 0051AF70 (slot 3). The shadow and wounds textures and the wounds material dropped, both part
-    // sets destroyed and deleted, every texture and material released and the arrays emptied; no
-    // object, touch time and flags_ 0.
-    void DestroyClient();
+    // object3d_client_parts.cpp (A-U12): the part sets and skins.
     // The wounds material slot (+0xDC) cleared and the material it held released (deleted at its
     // last reference): CountedRef<WoundsMaterial>::Assign(nullptr) as 0051AB00, 0051AEC0 and
     // 0051C920 inline it (0051AF70 calls the copy 0051E570 instead).
@@ -156,13 +157,13 @@ public:
     // 0051B050 (slot 13, RET 4). `part` joins the group of its material (piece +0x158) in the set
     // of its texture (piece +0x15C), both made on first use (FindOrAddTexture, FindOrAddMaterial);
     // referenced unless already there. 0 when no set has the texture, else 1.
-    int PartAdded(CFigureMesh* part);
+    int OnPartAdded(CFigureMesh* part) override;
     // 0051B210 (slot 14, RET 4). The part named `name` (slot 16) leaves its group and is released.
     // Returns it, or null when there is none or no group holds it.
-    CFigureMesh* RemovePartNamed(const char* name);
+    CFigureMesh* RemoveFromPartSets(const char* name) override;
     // 0051B160 (slot 15, RET 4). `part` leaves its group and is released: 1, or 0 when no group
     // holds it.
-    int PartRemoved(CFigureMesh* part);
+    int OnPartRemoved(CFigureMesh* part) override;
     // 0051B2F0 (RET 4). The texture of kind `kind`: one of `textures`, else a new one of the client
     // world (005655D0) for a new part set, the first for the skin kinds (1, 3, 4, 6-9, 0xB,
     // 0xD-0x10), the second for any other; an existing set only has its texture's kind changed (the
@@ -184,12 +185,14 @@ public:
     // 0051CB30 (slot 21). Every material takes the world material manager's colours for its kind
     // (0068EAF0; the cursor walks them), then SetSkins with the names kept (the second only when it
     // is not "none").
-    void ApplyWorldMaterials();
+    void ApplyMaterials() override;
     // 0051C9F0 (RET 4). With `lit` every material's emissive colour is pushed on its stack and set
     // to white (alpha kept); without, each takes back the colour last pushed (if any).
     void SetMaterialsLit(int lit);
-    // 0051C9E0 (slot 26, RET 4): SetMaterialsLit. 0051C9D0 (slot 25, RET 4): nothing.
-    void SetLitSlot(int lit);
+    // 0051C9E0 (slot 26, RET 4): SetMaterialsLit. 0051C9D0 (slot 25, RET 4): nothing (EmptySlot25,
+    // registered at its address).
+    void SetLit(int lit) override;
+    void Unused25(int) override {}
     void EmptySlot25(int);
     // object3d_client_shadow_state.cpp (A-U12).
     // 0051E200. Whether shadows are drawn for the object's kind: 0079BD0C above 0 and the switch of
@@ -228,7 +231,7 @@ public:
     mfc::CString secondSkinName;    // +0xE4 the second set's
     float pulseClock;               // +0xE8 frames counted by the invisible / stunned pulses
     std::uint32_t touchTime;        // +0xEC the frame time the model was last kept loaded (CollectVisible)
-    Vector3 figureScale;            // +0xF0 the figure's extra scale (slot 18, ExtraScale)
+    Vector3 figureScale;            // +0xF0 the figure's extra scale (slot 18, GetScale)
 };
 static_assert(offsetof(CObject3DClientSpecific, object) == 0x1C);
 static_assert(offsetof(CObject3DClientSpecific, textures) == 0x28);

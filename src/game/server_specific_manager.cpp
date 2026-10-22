@@ -52,7 +52,7 @@ int CServerSpecificManager::GetClassId() { return kManagerClassId; }
 CEngineObject* CServerSpecificManager::NewObject(int type) {
     switch (type) {
     case kObject3DServer:
-        if (void* p = gamecrt::operator_new_zeroed(0x20)) return Object3DServerConstruct(static_cast<CObject3DSpecific*>(p));
+        if (void* p = gamecrt::operator_new_zeroed(sizeof(CObject3DServer))) return new (p) CObject3DServer();
         return nullptr;
     case kMapObjectServer:
         if (void* p = gamecrt::operator_new_zeroed(sizeof(CMapObjectServer))) return new (p) CMapObjectServer();

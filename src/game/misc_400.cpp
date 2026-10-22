@@ -51,7 +51,7 @@ int CClientSpecificManager::GetClassId() { return 0x30; }
 CEngineObject* CClientSpecificManager::NewObject(int type) {
     switch (type) {
     case 'E': return misc400::New(0x3C, ConstructOn<FigureMeshDrawer, &FigureMeshDrawer::Construct>);
-    case 'F': return misc400::New(0xFC, ConstructOn<CObject3DClientSpecific, &CObject3DClientSpecific::Construct>);
+    case 'F': return new CObject3DClientSpecific();
     case 'G': return new CMapObjectClientSpecific();
     case 'H': return new CUnitClientSpecific();
     case 'I': return misc400::New(0x50F8, ConstructOn<CPlayerClient, &CPlayerClient::Construct>);

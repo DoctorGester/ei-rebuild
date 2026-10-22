@@ -1205,10 +1205,9 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **The digest's mode id**: harness_digest.cpp's `ModeKinds()` pairs each mode's game.exe table
     (`&ei::OriginalGameData<const std::uint8_t>(address)`) with its tag's `Vtable()`; `ModeId` maps the compiled table
     to game.exe's address in the image, so `ai.mode` prints the same id in both runs and no golden changed.
-  - **3D object halves** (object3d_specific_slots.cpp): `HalfClass<Self, T>` (slots 13-26), HalfBaseClass (0073DEFC),
-    Object3DServerClass (0073DFBC: 14 / 16 / 17 null slots) and Object3DClientSpecificClass (0073DE90);
-    `CObject3DSpecific::BaseVtable()` / `ServerVtable()`, `CObject3DClientSpecific::Vtable()`. Their deleting destructors
-    are `DeletingDestruct` (EngineObjectClass's slot 0).
+  - **3D object halves** (real classes since C28h): CObject3DSpecific (map_object_figures.h, 0073DEFC; slots 13-17
+    pure), CObject3DServer (0073DFBC: 14 / 16 / 17 null slots) and CObject3DClientSpecific (map_object_shadow.h,
+    0073DE90).
   - **Small ones**: the theme array 007440CC and the map database's maps 0073C3E8 (CompiledCollection; game_slots.h's
     MapRecordArrayClass over BuiltZoneRecords), the class template 0073D0C4, the party record 0073C360 and the mouse
     0073C350 (`ei::CompiledDeleter` plus Serialize), the debug panel 0073BFA4, CDib 00744288, the AI map's unit layers

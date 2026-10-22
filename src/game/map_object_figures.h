@@ -93,52 +93,42 @@ static_assert(offsetof(AnimationDatabase, animations) == 0x2C);
 
 class CBaseManager;   // base_manager.h
 
-// The side-specific half of a 3D object (CObject3D + 0x94): CObject3DClientSpecific (class id
-// 0x37; map_object_shadow.h) on the client, CObject3DServer (0x38, stubs) on the server. Only the
-// slots the rewritten code calls are named; CObject3DClientSpecific derives from this declaration
-// (the server half has no class), the 3D object reaches its half through CObject3D::Specific(). Their constructors
-// and destructors store compiled tags' tables (object3d_halves.cpp, C19) in place of game.exe's
-// 0073DEFC (the base half's, BaseVtable), 0073DFBC (the server's, ServerVtable) and 0073DE90 (the
-// client's, CObject3DClientSpecific::Vtable).
+// The side-specific half of a 3D object (CObject3D + 0x94; this abstract base had game.exe's vtable
+// 0073DEFC): CObject3DClientSpecific (class id 0x37, 0073DE90; map_object_shadow.h) on the client,
+// CObject3DServer (0x38, 0073DFBC, stubs; below) on the server. The 3D object reaches its half through
+// CObject3D::Specific().
 class CObject3DSpecific;
 class CObject3DClientSpecific;   // map_object_shadow.h
-// 0051F240 (object3d_halves.cpp). The server half's constructor (the engine object's fields inline): no
-// object. Returns the half.
-CObject3DSpecific* __fastcall Object3DServerConstruct(CObject3DSpecific* self);
-// object3d_halves.cpp: the server half's slots 2 (1), 3 (no object), 11 / 12 (its class name and id) and
-// the base half's empty slot 21.
-int __fastcall Object3DServerCreate(CObject3DSpecific* self);
-void __fastcall Object3DServerDestroy(CObject3DSpecific* self);
-const char* __fastcall Object3DServerClassName(CObject3DSpecific* self);
-int __fastcall Object3DServerClassId(CObject3DSpecific* self);
+// object3d_halves.cpp. 0051AC80 (the base half's slot 21): nothing (registered at its address).
 void __fastcall SpecificBaseNothing(CObject3DSpecific* self);
 class CObject3DSpecific : public CEngineObject {
 public:
-    // The compiled tables of the base half and of the server half (object3d_halves.cpp).
-    static void* BaseVtable();
-    static void* ServerVtable();
-    // 0051F2E0 (slot 0 of the server half, RET 4; object3d_halves.cpp). The destructor, then freed when
-    // bit 0 of `flags` is set. Returns this.
-    CObject3DSpecific* DeletingDestruct(unsigned flags);
+    // The base constructor both halves inline: the engine object's fields, no object.
+    CObject3DSpecific() {
+        ClearFields();
+        object = nullptr;
+    }
+    // object3d_specific_slots.cpp. 0051AD00 (deleting: 0051ACE0): no object.
+    ~CObject3DSpecific() override;
+    // 0051ACC0 / 0051ACD0 (slots 25 / 26; object3d_halves.cpp): nothing (registered at their addresses).
     void IgnoreArgument(int);
-    int ReturnZero(const void*);
-    int DrawNothing(void* /*context*/, int* /*dirty*/);
-    virtual int OnPartAdded(CFigureMesh* part);      // 13: client 0051B050, server 0051F270 (0)
+
+    virtual int OnPartAdded(CFigureMesh* part) = 0;   // 13: client 0051B050, server 0051F270 (0)
     // 14: (name) client 0051B210: the part named (slot 16) taken out of the drawn part sets (+0x20,
-    // +0x24) and released; returns it or null. Server 0051F290. Slots declared `void Name()` keep
-    // their place in the order only (docs/notes/map_objects.md ("Virtual slot names")).
-    virtual CFigureMesh* RemoveFromPartSets(const char* name);
-    virtual int OnPartRemoved(CFigureMesh* part);    // 15: client 0051B160, server 0051F280 (0)
-    virtual CFigureMesh* FindPart(const char* name); // 16: client 0051B2E0 (a part by name, 005169A0); server 0051F2B0 (0)
-    virtual void FindPartById();                    // 17: client 0051B2D0 (a part by id, 00516920)
-    // 18: the figure's extra scale: client +0xF0..+0xF8 (0051AD20), server 1, 1, 1 (0051AC30).
+    // +0x24) and released; returns it or null. Server 0051F290.
+    virtual CFigureMesh* RemoveFromPartSets(const char* name) = 0;
+    virtual int OnPartRemoved(CFigureMesh* part) = 0;      // 15: client 0051B160, server 0051F280 (0)
+    virtual CFigureMesh* FindPart(const char* name) = 0;   // 16: client 0051B2E0 (a part by name, 005169A0); server 0051F2B0 (0)
+    virtual CFigureMesh* FindPartOfType(int type) = 0;     // 17: client 0051B2D0 (a part by type, 00516920); server 0051F2A0 (0)
+    // 18: the figure's extra scale: client +0xF0..+0xF8 (0051AD20), base 1, 1, 1 (0051AC30).
     virtual void GetScale(float* x, float* y, float* z);
-    // 19 / 20: client 0051B7E0 (CObject3DClientSpecific::Draw) / 0051CE60 (DrawShadow); server 0051AC60 / 0051AC70.
+    // 19 / 20: client 0051B7E0 (CObject3DClientSpecific::Draw) / 0051CE60 (DrawShadow); base 0051AC60 /
+    // 0051AC70 (0).
     virtual int DrawParts(void* context, int* dirty);
     virtual int DrawPartsShadow(void* context);
     // 21: client 0051CB30 (after LoadFigures): the world's materials (slot 33) to the parts, then the
-    // skin texture (+0xE0 / +0xE4, 0051C250). Server 0051AC80.
-    virtual void ApplyMaterials();
+    // skin texture (+0xE0 / +0xE4, 0051C250). Base 0051AC80 (empty).
+    virtual void ApplyMaterials() {}
     // 22-24 (screen picking): client 0051C130 the point in the object's dirtyRect (flags_ 0x20) /
     // 0051C1D0 a rect meeting a drawn part's screen rect / 0051C160 the point in one. Server
     // 0051AC90 / 0051ACB0 / 0051ACA0.
@@ -148,10 +138,27 @@ public:
     virtual int PartsIntersectRect(const long* rect);
     // 24: whether the point is in the rectangle (+0x94 + 0x20) of a part with flag 0x40 (PickAt2).
     virtual int PartsContainPoint(const long* point);
-    virtual void Unused25(int);                     // 25: client 0051C9D0, server 0051ACC0 (empty)
-    virtual void SetLit(int lit);                   // 26: client 0051C9E0 (0051C9F0): the object's light is on / off
+    virtual void Unused25(int) {}                   // 25: client 0051C9D0, base 0051ACC0 (empty)
+    virtual void SetLit(int) {}                     // 26: client 0051C9E0 (0051C9F0): the object's light is on / off; base 0051ACD0
 
     CObject3D* object;              // +0x1C the object it belongs to
+};
+
+// The server's half (GetClassName "CObject3DServer", class id 0x38, game.exe's vtable 0073DFBC, 0x20
+// bytes; object3d_halves.cpp): no parts, nothing drawn.
+class CObject3DServer : public CObject3DSpecific {
+public:
+    CObject3DServer();             // 0051F240. The factory allocates it zeroed.
+    ~CObject3DServer() override;   // 0051F300 (deleting: 0051F2E0): the base half's
+    int Create() override;         // 2: 0051F320 (1)
+    void Destroy() override;       // 3: 0051F330 (no object)
+    const char* GetClassName() override;   // 11: 0051F2C0 "CObject3DServer"
+    int GetClassId() override;             // 12: 0051F2D0 (0x38)
+    int OnPartAdded(CFigureMesh* part) override;                // 13: 0051F270 (0)
+    CFigureMesh* RemoveFromPartSets(const char* name) override; // 14: 0051F290 (null)
+    int OnPartRemoved(CFigureMesh* part) override;              // 15: 0051F280 (0)
+    CFigureMesh* FindPart(const char* name) override;           // 16: 0051F2B0 (null)
+    CFigureMesh* FindPartOfType(int type) override;             // 17: 0051F2A0 (null)
 };
 
 class CObject3D;

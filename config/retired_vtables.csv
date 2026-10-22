@@ -228,10 +228,10 @@ vtable,slots,class,file,note
 0073DDD4,5,Object3DBaseClass,src/game/map_object_tables.cpp,"CObject3D's own table (Construct / DestructBody; 27 slots, 11 / 12 _purecall: slots 5-26 are gen_image_cells.py's NOT_CODE)"
 0073DE40,3,FrameArrayClass,src/lib/mfc_slots.h,CArray (a 3D object's frames)
 0073DE4C,3,Object3DListClass,src/lib/mfc_slots.h,CList (a 3D object's effect sources)
-0073DE90,27,Object3DClientSpecificClass,src/game/object3d_specific_slots.cpp,a 3D object's client half (CObject3DClientSpecific)
-0073DEFC,27,HalfBaseClass,src/game/object3d_specific_slots.cpp,a 3D object's half: the base (CObject3DSpecific)
+0073DE90,27,CObject3DClientSpecific,src/game/map_object_shadow.h,a 3D object's client half
+0073DEFC,27,CObject3DSpecific,src/game/map_object_figures.h,a 3D object's half: the base
 0073DF68,1,WoundsMaterial,src/game/map_object_shadow.h,the wounds material (a device material; slot 0 0051C710)
-0073DFBC,27,Object3DServerClass,src/game/object3d_specific_slots.cpp,a 3D object's server half (CObject3DServer)
+0073DFBC,27,CObject3DServer,src/game/map_object_figures.h,a 3D object's server half
 0073E178,61,PlainMapObject,src/game/map_object_kinds.h,CTree (PlainMapObject<0x52>)
 0073E26C,61,PlainMapObject,src/game/map_object_kinds.h,CBuilding (PlainMapObject<0x54>)
 0073E360,61,PlainMapObject,src/game/map_object_kinds.h,CStone (PlainMapObject<0x53>)

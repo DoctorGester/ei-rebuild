@@ -115,10 +115,7 @@ EI_REWRITTEN(0x0051A370, TextureParts::Destruct);
 
 // --- Lifetime -------------------------------------------------------------------------------------
 
-CObject3DClientSpecific* CObject3DClientSpecific::Construct() {
-    EngineObjectConstruct(this);
-    ei::SetVtable(this, CObject3DSpecific::BaseVtable());
-    object = nullptr;
+CObject3DClientSpecific::CObject3DClientSpecific() {
     textures = {};
     materials = {};
     vertices = {};
@@ -128,9 +125,6 @@ CObject3DClientSpecific* CObject3DClientSpecific::Construct() {
     std::memset(&sphere, 0, 0x38);
     woundsTexture = nullptr;
     woundsMaterial = nullptr;
-    new (&skinName) mfc::CString();
-    new (&secondSkinName) mfc::CString();
-    ei::SetVtable(this, Vtable());
     materialCursor = -1;
     AssignCounted<CTexture>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
@@ -140,11 +134,10 @@ CObject3DClientSpecific* CObject3DClientSpecific::Construct() {
     bounds[1] = 0.0f;
     bounds[0] = 0.0f;
     pulseClock = 0.0f;
-    return this;
 }
-EI_REWRITTEN(0x0051AB00, CObject3DClientSpecific::Construct);
+EI_REWRITTEN_SPECIAL(0x0051AB00, CObject3DClientSpecific::CObject3DClientSpecific);
 
-int CObject3DClientSpecific::CreateClient() {
+int CObject3DClientSpecific::Create() {
     materialCursor = -1;
     flags_ = 0;
     AssignCounted<CTexture>(&texture, nullptr);
@@ -163,9 +156,9 @@ int CObject3DClientSpecific::CreateClient() {
     figureScale.x = 1.0f;
     return 1;
 }
-EI_REWRITTEN(0x0051AEC0, CObject3DClientSpecific::CreateClient);
+EI_REWRITTEN(0x0051AEC0, CObject3DClientSpecific::Create);
 
-void CObject3DClientSpecific::DestroyClient() {
+void CObject3DClientSpecific::Destroy() {
     AssignCounted<CTexture>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
     woundsMaterial.Assign(nullptr);   // the call to 0051E570
@@ -193,13 +186,10 @@ void CObject3DClientSpecific::DestroyClient() {
     touchTime = 0;
     flags_ = 0;
 }
-EI_REWRITTEN(0x0051AF70, CObject3DClientSpecific::DestroyClient);
+EI_REWRITTEN(0x0051AF70, CObject3DClientSpecific::Destroy);
 
-void CObject3DClientSpecific::DestructBody() {
-    ei::SetVtable(this, Vtable());
-    DestroyClient();
-    secondSkinName.~CString();
-    skinName.~CString();
+CObject3DClientSpecific::~CObject3DClientSpecific() {
+    CObject3DClientSpecific::Destroy();
     if (woundsMaterial) woundsMaterial->Release();
     if (woundsTexture) woundsTexture->Release();
     if (texture) texture->Release();
@@ -208,18 +198,9 @@ void CObject3DClientSpecific::DestructBody() {
     if (vertices.data) lib::FreeAligned32(vertices.data);
     if (materials.data) lib::FreeAligned32(materials.data);
     if (textures.data) lib::FreeAligned32(textures.data);
-    ei::SetVtable(this, CObject3DSpecific::BaseVtable());
-    object = nullptr;
-    DestructBase();
 }
-EI_REWRITTEN(0x0051AD90, CObject3DClientSpecific::DestructBody);
-
-CObject3DClientSpecific* CObject3DClientSpecific::DeletingDestruct(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0051AD70, CObject3DClientSpecific::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0051AD90, CObject3DClientSpecific::~CObject3DClientSpecific);
+EI_REWRITTEN_SPECIAL(0x0051AD70, CObject3DClientSpecific::~CObject3DClientSpecific);
 
 // --- Parts, textures and materials ----------------------------------------------------------------
 
@@ -285,7 +266,7 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
 }
 EI_REWRITTEN(0x0051B470, CObject3DClientSpecific::FindOrAddMaterial);
 
-int CObject3DClientSpecific::PartAdded(CFigureMesh* part) {
+int CObject3DClientSpecific::OnPartAdded(CFigureMesh* part) {
     int materialKind = static_cast<int>(part->materialValue_);
     int textureKind = static_cast<int>(part->meshType_);
     bool known = false;
@@ -314,17 +295,17 @@ int CObject3DClientSpecific::PartAdded(CFigureMesh* part) {
     }
     return 1;
 }
-EI_REWRITTEN(0x0051B050, CObject3DClientSpecific::PartAdded);
+EI_REWRITTEN(0x0051B050, CObject3DClientSpecific::OnPartAdded);
 
-int CObject3DClientSpecific::PartRemoved(CFigureMesh* part) { return RemoveFromGroups(this, part) ? 1 : 0; }
-EI_REWRITTEN(0x0051B160, CObject3DClientSpecific::PartRemoved);
+int CObject3DClientSpecific::OnPartRemoved(CFigureMesh* part) { return RemoveFromGroups(this, part) ? 1 : 0; }
+EI_REWRITTEN(0x0051B160, CObject3DClientSpecific::OnPartRemoved);
 
-CFigureMesh* CObject3DClientSpecific::RemovePartNamed(const char* name) {
+CFigureMesh* CObject3DClientSpecific::RemoveFromPartSets(const char* name) {
     CFigureMesh* part = FindPart(name);   // slot 16
     if (!part) return nullptr;
     return RemoveFromGroups(this, part) ? part : nullptr;
 }
-EI_REWRITTEN(0x0051B210, CObject3DClientSpecific::RemovePartNamed);
+EI_REWRITTEN(0x0051B210, CObject3DClientSpecific::RemoveFromPartSets);
 
 CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
     if (!replacement) return nullptr;
@@ -380,7 +361,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
 }
 EI_REWRITTEN(0x0051C250, CObject3DClientSpecific::SetSkins);
 
-void CObject3DClientSpecific::ApplyWorldMaterials() {
+void CObject3DClientSpecific::ApplyMaterials() {
     CMaterialManager* manager = WorldContext()->MaterialManager();
     if (materials.size <= 0) {
         materialCursor = -1;
@@ -398,7 +379,7 @@ void CObject3DClientSpecific::ApplyWorldMaterials() {
     else
         SetSkins(skinName, secondSkinName);
 }
-EI_REWRITTEN(0x0051CB30, CObject3DClientSpecific::ApplyWorldMaterials);
+EI_REWRITTEN(0x0051CB30, CObject3DClientSpecific::ApplyMaterials);
 
 void CObject3DClientSpecific::SetMaterialsLit(int lit) {
     if (lit) {
@@ -421,8 +402,8 @@ void CObject3DClientSpecific::SetMaterialsLit(int lit) {
 }
 EI_REWRITTEN(0x0051C9F0, CObject3DClientSpecific::SetMaterialsLit);
 
-void CObject3DClientSpecific::SetLitSlot(int lit) { SetMaterialsLit(lit); }
-EI_REWRITTEN(0x0051C9E0, CObject3DClientSpecific::SetLitSlot);
+void CObject3DClientSpecific::SetLit(int lit) { SetMaterialsLit(lit); }
+EI_REWRITTEN(0x0051C9E0, CObject3DClientSpecific::SetLit);
 
 void CObject3DClientSpecific::EmptySlot25(int) {}
 EI_REPLACE_METHOD(0x0051C9D0, CObject3DClientSpecific::EmptySlot25);
