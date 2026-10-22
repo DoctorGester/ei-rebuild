@@ -3,6 +3,7 @@
 // by name. See party_records.h and docs/notes/world.md ("Party records and class templates").
 #include "object_tables.h"
 #include "party_records.h"
+#include "party_manager.h"
 #include "core_refcount.h"
 #include "game_strings.h"
 #include "class_templates.h"
@@ -44,7 +45,8 @@ constexpr std::uint32_t kSix = 0x40C00000;                                     /
 // through null as the original does).
 PartyRecord* NewRecord() {
     auto* record = gamecrt::operator_new_as<PartyRecord>();
-    *reinterpret_cast<std::uint32_t*>(&record->refCount) = 0;
+    record->refCount = 0;   // the reference dword, both halves
+    record->refsHigh = 0;
     if (!record) return nullptr;
     record->vtable = ei::GamePointer<void>(0x0073BB68);
     record->Party()->Construct();
@@ -59,7 +61,7 @@ void Release(PartyRecord* record) {
     if (record && --record->refCount == 0) delete reinterpret_cast<CRefCounted*>(record);
 }
 
-const char* NameOf(const PartyRecord* record) { return *reinterpret_cast<const char* const*>(&record->name); }
+const char* NameOf(const PartyRecord* record) { return record->name.GetString(); }
 
 } // namespace
 
@@ -145,8 +147,6 @@ namespace {
 
 // The party object: 00661300 CopyFrom(const Party*), 00661700 Reset(int, int).
 
-char* Field(void* manager, std::size_t offset) { return static_cast<char*>(manager) + offset; }
-
 // The party stored under `key` (find, inlined), null if none.
 CParty* FindParty(const PartyMap& parties, int key) {
     PartyMap::Node* node = parties.Find(static_cast<std::uint32_t>(key));
@@ -155,15 +155,15 @@ CParty* FindParty(const PartyMap& parties, int key) {
 
 } // namespace
 
-void __fastcall PartyManagerNewGame(void* manager) {
-    PartyRecordsReset(reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24)));
-    reinterpret_cast<ClassTemplateVector*>(Field(manager, 0x38))->Build(0);
+void __fastcall PartyManagerNewGame(PartyManager* manager) {
+    PartyRecordsReset(&manager->records);
+    manager->templates.Build(0);
 }
 EI_REPLACE(0x004A88A0, PartyManagerNewGame);
 
-void __fastcall PartyManagerNewGameFour(void* manager) {
-    PartyRecordsReset(reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24)));
-    reinterpret_cast<ClassTemplateVector*>(Field(manager, 0x38))->Build(1);
+void __fastcall PartyManagerNewGameFour(PartyManager* manager) {
+    PartyRecordsReset(&manager->records);
+    manager->templates.Build(1);
 }
 EI_REWRITTEN(0x004A88C0, PartyManagerNewGameFour);
 
