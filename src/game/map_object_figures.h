@@ -5,6 +5,7 @@
 // one per figure piece) and their bounding box, and the scale the figure was built for. Names
 // provisional; see docs/notes/map_objects.md ("Figures").
 
+#include "core_refcount.h"   // CountedRef
 #include "core_transform.h"
 #include "engine_object.h"
 #include "figure_mesh.h"            // CFigureMesh (an object's figure parts)
@@ -361,21 +362,8 @@ static_assert(offsetof(CFigureAnimationState, morphS) == 0x68);
 static_assert(offsetof(CFigureAnimationState, changed) == 0x74);
 static_assert(sizeof(CFigureAnimationState) == 0x78);
 
-// A counted reference: the pointer slot is the `this` of 00519580 (the 3D object's figure, a
-// CLinkMesh) and of its byte-identical copies 0051E570 (the client half's wounds material) and
-// 0051E4F0 (that material's helper preset), both called by 0051C3D0. T's count is at +0x04 and its
-// slot 0 deletes it; object3d_lifetime.cpp defines Assign for those three types.
-template <typename T>
-struct CountedRef {
-    // object = `value`: the new one gains a reference, the old one loses one and is deleted (its
-    // slot 0 with 1) when that was the last.
-    void Assign(T* value);
-
-    T* object;
-};
-
-// A counted pointer slot viewed as the reference the game's copies of Assign take as `this`
-// (CObject3D::FigureRef for the figure; the wounds material and its preset in 0051C3D0 / 0051AF70).
+// A counted pointer slot of a shared type viewed as the reference the game's copies of Assign take
+// as `this` (CDeviceMaterial::preset, the wounds material's preset in 0051C3D0).
 template <typename T>
 inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedRef<T>*>(&slot); }
 
@@ -617,8 +605,6 @@ public:
     CObject3DSpecific* Specific() const { return attached; }
     // The same half on the client: the CObject3DClientSpecific (defined in map_object_shadow.h).
     CObject3DClientSpecific* ClientSpecific() const;
-    // The figure (+0xF0) as the counted reference 00519580 assigns.
-    CountedRef<CLinkMesh>& FigureRef() { return *reinterpret_cast<CountedRef<CLinkMesh>*>(&figure); }
     // The object as the CTransformObject it starts with (core_transform.h).
 
     Matrix4 worldMatrix;            // +0x054 object -> world: the rotation, the position as column 3
@@ -634,8 +620,9 @@ public:
     FigurePartArray parts;          // +0x0D0
     FigurePartArray pendingParts;   // +0x0E0 built by LoadFigures
     // +0x0F0 the figure (counted; slot 0 deletes), made by the figure cache: the parts' piece
-    // headers (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
-    CLinkMesh* figure;
+    // headers (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through; 00519580
+    // assigns it.
+    CountedRef<CLinkMesh> figure;
     Vector3 defaultScale;           // +0x0F4 from 007AF1D0 (constructor, Create3D)
     int dirtyRect[4];               // +0x100 RECT: the screen area the last DrawCollectDirty covered
     mfc::CStringArray partNames;    // +0x110 the figure's part names (00517990), in the order of the

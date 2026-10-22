@@ -187,7 +187,7 @@ public:
     // (without the Clear). Returns this.
     CParty* CopyConstruct(CParty* source);
     // The money (+0x50; the camp's deals and the trade read it).
-    int& Money() { return reinterpret_cast<int&>(money_); }
+    int& Money() { return money_; }
 
     CItemManager* itemManager_;             // +0x1C (slot 18 returns it)
     CItemConstructor* itemConstructor_;     // +0x20 (slot 16)
@@ -195,7 +195,7 @@ public:
     CSpellConstructor* spellConstructor_;   // +0x28 (slot 17)
     PartyMemberArray members_;              // +0x2C
     PartyItemArray items_;                  // +0x40
-    std::uint32_t money_;               // +0x50 the party's money (Money(); cleared by Clear, saved masked)
+    int money_;                         // +0x50 the party's money (Money(); cleared by Clear, saved masked)
     NamedFloatTable variables_;             // +0x54 named variables (the script's "gtime" and the like)
     mfc::CString zone_;                     // +0x68 the zone name ("gz1g" after a new game)
     std::uint32_t entrance_;            // +0x6C the zone exit the party arrives by (cleared by Clear)

@@ -208,7 +208,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
 
 void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
     if (chatActive_) return;
-    static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
+    ContainerInput()->OnLeftDouble(buttons, x, y);
     if (inputHandled_) return;
     if (state_ != 0) {
         Input()->Event(UiInputSide::kLeftDown, buttons, x, y);

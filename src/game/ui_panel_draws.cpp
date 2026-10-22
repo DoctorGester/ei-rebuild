@@ -31,7 +31,7 @@ const char* CostFormat() { return "%s %d (%d)"; }
 
 // 005ECA10 (rewritten, ui_item_view.cpp): the owner screen draws
 // an item's model in a cell (RET 8).
-void DrawItem(CUiWindow* owner, int pass, ItemCell* cell) { reinterpret_cast<CItemScreen*>(owner)->DrawItem(pass, cell); }
+void DrawItem(CItemScreen* owner, int pass, ItemCell* cell) { owner->DrawItem(pass, cell); }
 
 
 // The depth buffer (and the stencil when the device has one) cleared over `rect` (null: all of

@@ -22,24 +22,14 @@ namespace {
 
 
 
-// A surface's DC (005FDC00 / 005FDC60), its clear (005FE2F0) and a line of text (005FDE20,
-// Rebirth-patched).
-struct StripSurface : CUiSurface {
-    void* GetDC() { return UiSurfaceGetDC(this); }
-    void Clear() { SurfaceClearOriginal(this); }
-    int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);
-    void ReleaseDC() { UiSurfaceReleaseDC(this); }
-};
-int StripSurface::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
-
 // The owner's virtual slots 43 (whether the strip's mode takes the item; AL) and 54 (a number
 // shown under the item for mode `mode`).
-bool OwnerTakes(CUiWindow* owner, char* item, int mode) {
-    using Fn = bool(__thiscall*)(CUiWindow*, char*, int);
+bool OwnerTakes(CUiWindow* owner, CItem* item, int mode) {
+    using Fn = bool(__thiscall*)(CUiWindow*, CItem*, int);
     return ei::VirtualSlot<Fn>(owner->vtable_, 0xAC / 4)(owner, item, mode);
 }
-int OwnerNumber(CUiWindow* owner, char* item, int mode) {
-    using Fn = int(__thiscall*)(CUiWindow*, char*, int);
+int OwnerNumber(CUiWindow* owner, CItem* item, int mode) {
+    using Fn = int(__thiscall*)(CUiWindow*, CItem*, int);
     return ei::VirtualSlot<Fn>(owner->vtable_, 0xD8 / 4)(owner, item, mode);
 }
 
@@ -61,7 +51,7 @@ void CUiItemStrip::Build(char top) {
         std::uint32_t bits = 0x40800000;   // 4.0
         std::memcpy(&scale_, &bits, 4);
     }
-    window.rect_ = RECT{0, top_, 800, top_ + 100};
+    rect_ = RECT{0, top_, 800, top_ + 100};
     for (float& position : position_) std::memset(&position, 0, 4);
     std::memset(&pending_, 0, 4);
     std::memset(&velocity_, 0, 4);
@@ -73,23 +63,23 @@ void CUiItemStrip::Build(char top) {
 
     // Regions 0 / 1 the scroll arrows, 2-4 and 5-7 the tab buttons at the left and right ends,
     // 8 the items.
-    AddRect(&window, 30, top_ + 35, 50, top_ + 65);
-    AddRect(&window, 750, top_ + 35, 770, top_ + 65);
-    AddRect(&window, 0, top_ + 5, 30, top_ + 35);
-    AddRect(&window, 0, top_ + 35, 30, top_ + 65);
-    AddRect(&window, 0, top_ + 65, 30, top_ + 95);
-    AddRect(&window, 770, top_ + 5, 800, top_ + 35);
-    AddRect(&window, 770, top_ + 35, 800, top_ + 65);
-    AddRect(&window, 770, top_ + 65, 800, top_ + 95);
-    AddRect(&window, 50, top_, 750, top_ + 100);
+    AddRect(this, 30, top_ + 35, 50, top_ + 65);
+    AddRect(this, 750, top_ + 35, 770, top_ + 65);
+    AddRect(this, 0, top_ + 5, 30, top_ + 35);
+    AddRect(this, 0, top_ + 35, 30, top_ + 65);
+    AddRect(this, 0, top_ + 65, 30, top_ + 95);
+    AddRect(this, 770, top_ + 5, 800, top_ + 35);
+    AddRect(this, 770, top_ + 35, 800, top_ + 65);
+    AddRect(this, 770, top_ + 65, 800, top_ + 95);
+    AddRect(this, 50, top_, 750, top_ + 100);
 
     const float y = static_cast<float>(top_);
     const float hundred = 100.0f /*0073BAB0*/;   // 100.0
     // The ends' faces.
     float depth = scale_ * 0.8f /*0073CCA8*/;  // 0.8
-    UiMeshRectangleOriginal((void*)window.AddSprite(0), nullptr, depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
+    UiMeshRectangleOriginal(AddSprite(0), nullptr, depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
     depth = scale_ * 0.8f /*0073CCA8*/;
-    UiMeshRectangleOriginal((void*)window.AddSprite(0), nullptr, depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
+    UiMeshRectangleOriginal(AddSprite(0), nullptr, depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
     // The tab buttons (y + 5, 35, 65, 95; depth scale * 0.6).
     const float y5 = 5.0f /*0073BF34*/, y35 = 35.0f /*007403E0*/, y65 = 65.0f /*00741350*/,
                 y95 = 95.0f /*00741F08*/;
@@ -104,21 +94,21 @@ void CUiItemStrip::Build(char top) {
         static constexpr int kV[3][2] = {{0x82, 0xAA}, {0xAC, 0xD4}, {0xD6, 0xFE}};
         for (int i = 0; i < 3; ++i) {
             depth = scale_ * 0.6f /*0073CDE0*/;   // 0.6
-            UiMeshRectangleOriginal((void*)window.AddSprite(0), nullptr, depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i], tab.u0, kV[i][0], tab.u1, kV[i][1]);
+            UiMeshRectangleOriginal(AddSprite(0), nullptr, depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i], tab.u0, kV[i][0], tab.u1, kV[i][1]);
         }
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
-    CUiMesh* frame = window.AddSprite(0);
+    CUiMesh* frame = AddSprite(0);
     UiMeshFramedOriginal((void*)frame, nullptr, scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flags_ |= 0x100;
     frame->flatColour_ = 0xFF8B8B37;
     frame->texture_ = nullptr;
     frame->visible_ = 0;
     // The background: eight cells between the ends (depth scale * 2), then a frame per 100 pixels.
-    UiMeshCellsOriginal((void*)window.AddSprite(0), nullptr, scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
+    UiMeshCellsOriginal(AddSprite(0), nullptr, scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
     const float fifty = 50.0f /*0074023C*/, hundredFifty = 150.0f /*0073D618*/;
     for (int x = 0; x < 800; x += 100) {
-        CUiMesh* cell = window.AddSprite(0);
+        CUiMesh* cell = AddSprite(0);
         const float fx = static_cast<float>(x);
         UiMeshFramedOriginal((void*)cell, nullptr, scale_, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72, 0x72);
     }
@@ -137,17 +127,17 @@ BOOL CUiItemStrip::Draw(int pass) {
     const float hundred = 100.0f /*0073BAB0*/, fifty = 50.0f /*0074023C*/, one = 1.0f /*0073B84C*/;
     // The scroll arrows (sprites 0 and 1) show their dim frame while the strip can move that way.
     const float dim = 0.1953125f;   // 0x3E480000
-    window.SceneMesh(0)->textureOffsetU_ = position_[tab_] > 0.0f /*0073B858*/ ? dim : 0.0f;
-    window.SceneMesh(1)->textureOffsetU_ = static_cast<float>(list_.size - 7) > position_[tab_] ? dim : 0.0f;
+    SceneMesh(0)->textureOffsetU_ = position_[tab_] > 0.0f /*0073B858*/ ? dim : 0.0f;
+    SceneMesh(1)->textureOffsetU_ = static_cast<float>(list_.size - 7) > position_[tab_] ? dim : 0.0f;
 
-    window.SceneMesh(9)->Place(fifty - frac * hundred, static_cast<float>(top_), scale_ + scale_);
+    SceneMesh(9)->Place(fifty - frac * hundred, static_cast<float>(top_), scale_ + scale_);
     for (int i = 0; i < 8; ++i) {
-        window.SceneMesh(10 + i)
+        SceneMesh(10 + i)
             ->Place(((static_cast<float>(i) - frac) + one) * hundred, static_cast<float>(top_) + fifty, scale_);
     }
-    window.DrawBase(pass);
+    DrawBase(pass);
 
-    char* shown[8];
+    CItem* shown[8];
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
         if (index < 0 || index >= list_.size) {
@@ -155,14 +145,14 @@ BOOL CUiItemStrip::Draw(int pass) {
             continue;
         }
         ItemCell cell;
-        cell.item = reinterpret_cast<CItem*>(list_.data[index]);
+        cell.item = list_.data[index];
         shown[i] = list_.data[index];
         cell.size = 100.0f;
-        cell.mode = actionMode_;
+        cell.mode = mode_;
         cell.x = ((static_cast<float>(i) - frac) + one) * hundred;
         cell.y = static_cast<float>(top_) + fifty;
         cell.depth = scale_ * 1.5f /*0073C51C*/;   // 1.5
-        static_cast<CItemScreen*>(owner_)->DrawItem(pass, &cell);   // the owner screen's item cell draw
+        owner_->DrawItem(pass, &cell);   // the owner screen's item cell draw
     }
 
     // The text rectangle of cell i: 70 x 20 from 15 pixels into the cell.
@@ -177,28 +167,28 @@ BOOL CUiItemStrip::Draw(int pass) {
     };
     const char* const kNumber = "%d";
     mfc::CString text;
-    auto* counts = static_cast<StripSurface*>(window.surfaces_.data[0]);
+    CUiSurface* counts = surfaces_.data[0];
     counts->GetDC();
-    counts->Clear();
+    SurfaceClearOriginal(counts);
     for (int i = 0; i < 8; ++i) {
         if (!shown[i]) continue;
-        int count = *reinterpret_cast<const int*>(shown[i] + 0x48);
+        int count = static_cast<int>(shown[i]->count_);
         if (count == 1) continue;
         text.Format(kNumber, count);
         RECT rect = cellRect(i);
-        counts->Text(text, &rect, 1, 0xA7D7E4, 2, 1);
+        counts->DrawLine(text, &rect, 1, 0xA7D7E4, 2, 1);
     }
     counts->ReleaseDC();
-    auto* numbers = static_cast<StripSurface*>(window.surfaces_.data[1]);
+    CUiSurface* numbers = surfaces_.data[1];
     numbers->GetDC();
-    numbers->Clear();
+    SurfaceClearOriginal(numbers);
     for (int i = 0; i < 8; ++i) {
-        char* item = shown[i];
+        CItem* item = shown[i];
         if (!item || slots_ == 9) continue;
-        if (!OwnerTakes(owner_, item, actionMode_)) continue;
+        if (!OwnerTakes(owner_, item, mode_)) continue;
         text.Format(kNumber, OwnerNumber(owner_, item, slots_));
         RECT rect = cellRect(i);
-        numbers->Text(text, &rect, 1, 0xA7D7E4, 1, 1);
+        numbers->DrawLine(text, &rect, 1, 0xA7D7E4, 1, 1);
     }
     numbers->ReleaseDC();
     return 1;

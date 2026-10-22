@@ -35,7 +35,8 @@ constexpr float kFogTileSize = 0.25f;
 
 constexpr std::size_t kFogBuckets = 100;   // the hint the cell map is created with
 
-CTexture** TextureHolder(ClientArrayManager* self) { return reinterpret_cast<CTexture**>(&self->current); }
+// The manager's current-object slot holds the fog texture.
+HeldTexture* TextureHolder(ClientArrayManager* self) { return reinterpret_cast<HeldTexture*>(&self->current); }
 
 } // namespace
 
@@ -59,7 +60,7 @@ EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObjectImpl);
 // 004E2990 (slot 2, Create): the texture, the tile table, then the manager's own Create (its
 // result).
 int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
-    HeldTexture::Of(TextureHolder(self))->Load(kFogTextureKind, FogTextureName());
+    TextureHolder(self)->Load(kFogTextureKind, FogTextureName());
     FogTile* tiles = FogTiles();
     for (int i = 0; i < kFogTiles; ++i) {
         FogTile& tile = tiles[i];

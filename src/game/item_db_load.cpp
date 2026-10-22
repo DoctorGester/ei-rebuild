@@ -198,11 +198,11 @@ void itemdb::SpellModifierRecord::Serialize(ChunkArchive* ar) {
 EI_REWRITTEN(0x00683AF0, itemdb::SpellModifierRecord::Serialize);
 
 void itemdb::SpellListRecord::Serialize(ChunkArchive* ar) {
-    ar->StringField(1, &name);
-    StringListField(ar, 2, &list0C);
-    StringListField(ar, 3, &list18);
-    ar->StringField(4, &text24);
-    ar->Field(5, &value30, 4);
+    ar->StringField(1, &spell);
+    StringListField(ar, 2, &required);
+    StringListField(ar, 3, &optional);
+    ar->StringField(4, &repeated);
+    ar->Field(5, &classMask, 4);
 }
 EI_REWRITTEN(0x00683D40, itemdb::SpellListRecord::Serialize);
 

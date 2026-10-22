@@ -482,19 +482,9 @@ static_assert(offsetof(CTexture, surface_) == 0x5C);
 // 00500970. Makes sure the held texture is loaded: a null one is a fatal error ("Final loading data to
 // NULL texture!", its result returned); one with flags_ bit 3 gives 1; otherwise the texture
 // manager's LoadTexture (006922A0) and its result.
-int __fastcall TextureHolderEnsureLoaded(CTexture** holder);
+int __fastcall TextureHolderEnsureLoaded(struct HeldTexture* holder);
 // (A counted engine object pointer's assignment, 004EBE60, is HeldEngineObject::Assign, engine_object.h.)
-// A counted texture pointer as the original's helpers take it: by address, thiscall on the pointer.
-struct HeldTexture {
-    CTexture* texture;
-
-    static HeldTexture* Of(CTexture** holder) { return reinterpret_cast<HeldTexture*>(holder); }
-    // 00500A00 (RET 8). Drops the texture (set to null, then released) and takes the texture
-    // manager's registered or cached texture of `kind` named `name`, or a new one of `kind`
-    // (CreateObject(kind, -1)), named `name` (one more reference).
-    void Load(int kind, const char* name);
-};
-static_assert(sizeof(HeldTexture) == 4);
+// (A counted texture pointer, HeldTexture, is in model.h.)
 static_assert(offsetof(CTexture, block_) == 0x60);
 static_assert(sizeof(CTexture) == 0x68);
 

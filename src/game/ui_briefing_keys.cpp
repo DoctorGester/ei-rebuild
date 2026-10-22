@@ -23,8 +23,6 @@ const char* ClickSound() { return "buttons\\base\\click1.wav"; }
 const char* QuickSaveName() { return "saveq"; }
 const char* QuestPrefix() { return "q."; }
 
-// The escape menu (0x168 bytes, built inline as the battle screen's key handler does).
-constexpr std::size_t kEscMenuSize = 0x168;
 
 constexpr int kScanCodeMask = 0x1FF;
 constexpr int kActionObjectives = 4;
@@ -104,15 +102,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     case VK_ESCAPE:
         if (state_ == 0) {
-            void* memory = gamecrt::operator_new(kEscMenuSize);
-            CUiWindow* menu = nullptr;
-            if (memory) {
-                static_cast<CUiContainer*>(memory)->Construct(interface_);
-                menu = static_cast<CUiWindow*>(memory);
-                menu->vtable_ = CEscMenu::Vtable();
-                menu->inputVtable_ = CEscMenu::InputVtable();
-            }
-            interface_->PushWindow(menu, 1, 1);
+            interface_->PushWindow(CEscMenu::New(interface_), 1, 1);
         } else if (state_ == 3) {
             interface_->PlaySound(ClickSound(), 0);
             while (state_ == 3) NextPhrase(1);

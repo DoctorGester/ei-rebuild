@@ -103,7 +103,8 @@ static_assert(offsetof(SpellRecord, classMask) == 0x80);
 static_assert(sizeof(SpellRecord) == 0x84);
 
 // The spell database's three lists of 0x34-byte records (007C8550 / 007C855C / 007C8568, chunks
-// 3-5 of spells.sdb; destructor 00589860): a name, two string lists, a text and a value.
+// 3-5 of spells.sdb; destructor 00589860): the spell recipes of scrolls, armours and weapons
+// (item_stock.h's SpellRecipe; ItemStock::FillSpellMaps reads them).
 struct SpellListRecord {
     // 00683D40 (RET 4; item_db_load.cpp, A-H21). String 1, the lists as chunks 2 / 3 (one string
     // field 1 per entry; loading erases the list (00583CB0) and resizes it (004DC900) first),
@@ -120,14 +121,15 @@ struct SpellListRecord {
     // The list vector's resize(n) temporary (S10a): empty strings with room for 8 bytes, empty lists.
     void ConstructDefault();
 
-    stlp::string name;                  // +0x00
-    stlp::vector<stlp::string> list0C;  // +0x0C
-    stlp::vector<stlp::string> list18;  // +0x18
-    stlp::string text24;                // +0x24
-    std::uint32_t value30;              // +0x30
+    stlp::string spell;                     // +0x00 the spell's name
+    stlp::vector<stlp::string> required;    // +0x0C modifier names
+    stlp::vector<stlp::string> optional;    // +0x18 modifier names
+    stlp::string repeated;                  // +0x24 the modifier repeated while it fits
+    std::uint32_t classMask;                // +0x30 bit per ItemStock::classIndex
 };
-static_assert(offsetof(SpellListRecord, list0C) == 0x0C);
-static_assert(offsetof(SpellListRecord, text24) == 0x24);
+static_assert(offsetof(SpellListRecord, required) == 0x0C);
+static_assert(offsetof(SpellListRecord, repeated) == 0x24);
+static_assert(offsetof(SpellListRecord, classMask) == 0x30);
 static_assert(sizeof(SpellListRecord) == 0x34);
 
 // A spell modifier prototype (kSpellModifierSize bytes; 007C8530).

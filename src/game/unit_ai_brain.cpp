@@ -146,8 +146,8 @@ void AIBrain::Reset() {
     decay = 1.0f;
     action = kActionNone;
     memory.Reset();
-    actionPoint = Vector3{0.0f, 0.0f, 0.0f};
-    looks.SetSize(0, -1);
+    move.point = Vector3{0.0f, 0.0f, 0.0f};
+    move.looks.SetSize(0, -1);
     if (target) {
         target->Release();
         target = nullptr;
@@ -167,8 +167,8 @@ void AIBrain::Init() {
     decay = 1.0f;
     action = kActionNone;
     memory.Reset();
-    actionPoint = Vector3{0.0f, 0.0f, 0.0f};
-    looks.SetSize(0, -1);
+    move.point = Vector3{0.0f, 0.0f, 0.0f};
+    move.looks.SetSize(0, -1);
     if (target) target.Reset();
     if (seen) seen.Reset();
     owner = nullptr;
@@ -598,8 +598,8 @@ void AIBrain::Load(CStream* stream) {
     int value;
     stream->Read(&value, 4);
     action = value;
-    stream->Read(&actionPoint, 12);
-    LoadLooks(&looks, stream);
+    stream->Read(&move.point, 12);
+    LoadLooks(&move.looks, stream);
     stream->Read(&actionTime, 4);
     target.Load(stream, TheServerWorld());
     seen.Load(stream, TheServerWorld());
@@ -656,8 +656,8 @@ EI_REWRITTEN(0x005D8310, AIBrain::Load);
 
 void AIBrain::Save(CStream* stream) {
     WriteCopy(stream, action);
-    stream->Write(&actionPoint, 12);
-    SaveLooks(&looks, stream);
+    stream->Write(&move.point, 12);
+    SaveLooks(&move.looks, stream);
     WriteCopy(stream, actionTime);
     target.Save(stream);
     seen.Save(stream);

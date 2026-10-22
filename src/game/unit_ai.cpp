@@ -376,8 +376,8 @@ void AIBrain::UpdateMove() {
     if (o->action.kind == 1 || o->action2.kind == 1 || o->action.kind == 2 || o->action2.kind == 2) return;
     if (o->orderStopped) {
         CUnit* unit = o->unit;
-        double dy = actionPoint.y - unit->localPosition_.y;     // kept on the FPU stack
-        double dx = actionPoint.x - unit->localPosition_.x;
+        double dy = move.point.y - unit->localPosition_.y;     // kept on the FPU stack
+        double dx = move.point.x - unit->localPosition_.x;
         // TEST AH,0x41; JNZ: continue below when <= or unordered.
         if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
             if (target) target.Reset();
@@ -387,7 +387,7 @@ void AIBrain::UpdateMove() {
         }
     }
     if (actionTime == kNoTime) {
-        if (looks.size == 0) {
+        if (move.looks.size == 0) {
             if (target) {
                 target.Reset();
                 target = nullptr;
@@ -396,7 +396,7 @@ void AIBrain::UpdateMove() {
             return;
         }
         actionTime = kLookStarted;
-        AILook* look = looks.data;
+        AILook* look = move.looks.data;
         double angle = look->angle;
         Vector3 direction;
         direction.z = 0.0f;
@@ -406,12 +406,12 @@ void AIBrain::UpdateMove() {
         return;
     }
     if (actionTime == kLookStarted) {
-        if (looks.data->stopFirst) o->StopQueued();
-        float end = static_cast<float>(CurrentWorldTick()) + looks.data->wait;     // FILD + FADD, FSTP float
+        if (move.looks.data->stopFirst) o->StopQueued();
+        float end = static_cast<float>(CurrentWorldTick()) + move.looks.data->wait;     // FILD + FADD, FSTP float
         actionTime = x87::fistp(end);
-        int remaining = looks.size - 1;
-        if (remaining != 0) libcrt::Memmove(looks.data, looks.data + 1, static_cast<unsigned>(remaining) << 4);
-        --looks.size;
+        int remaining = move.looks.size - 1;
+        if (remaining != 0) libcrt::Memmove(move.looks.data, move.looks.data + 1, static_cast<unsigned>(remaining) << 4);
+        --move.looks.size;
         return;
     }
     if (CurrentWorldTick() > actionTime) actionTime = kNoTime;
@@ -462,16 +462,16 @@ void AIBrain::AttackTarget(CMapObject* object) {
     if (owner->unit->player) {
         AIOrder order{};
         order.kind = 3;
-        order.what = 6;
-        order.object = nullptr;
-        order.flag = 0;
+        order.source = 6;
+        order.target = nullptr;
+        order.flag18 = 0;
         if (object) {
-            order.object = object;
+            order.target = object;
             ++object->refCount_;
         }
-        if (owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
-        if (order.object) order.object->Release();
-        order.object = nullptr;
+        if (owner->CanReachAndPlan(&order)) flags = -1;
+        if (order.target) order.target->Release();
+        order.target = nullptr;
     }
     owner->OrderAttack(target, 6, 0, flags);
 }

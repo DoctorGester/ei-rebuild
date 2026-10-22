@@ -51,8 +51,7 @@ void __fastcall MpHeroRename(CMpHeroScreen*);
 void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 // 006167C0: the hero list drawn again (plain RET).
 // The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
-// container (RET 4); 0065C290 an edit window's text (RET 4).
-void EditSetText(void* edit, void*, const void* text) { static_cast<CUiEditField*>(edit)->SetText(static_cast<const char*>(text)); }
+// container (RET 4).
 __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGINAL(0x005FD760)
 
 // Back to the main menu: the text "reserved_04" (00578E20 / 004E0020) to 005F75B0 (thiscall on
@@ -124,20 +123,20 @@ mfc::CString& MpHeroName(int index) {
 } // namespace
 
 void CMpHeroScreen::CloseRenameEdit() {
-    SurfaceFreeze(window.surfaces_.data[3], nullptr, 0, 0);
+    SurfaceFreeze(surfaces_.data[3], nullptr, 0, 0);
     renameEdit_->SetEnabled(0, 1);
     renameEdit_->SetFocused(false);
 }
 
 void CMpHeroScreen::BackToNewHero() {
-    uiorig::PlayUiSound(window.interface_, game::CancelSoundText(), 0);
+    uiorig::PlayUiSound(interface_, game::CancelSoundText(), 0);
     statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
-    window.surfaces_.data[0]->GetDC();
-    window.surfaces_.data[0]->Clear();
-    window.surfaces_.data[0]->ReleaseDC();
+    surfaces_.data[0]->GetDC();
+    surfaces_.data[0]->Clear();
+    surfaces_.data[0]->ReleaseDC();
     tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
-    EditSetText(nameEdit_, nullptr, Hero()->texts[0].GetString());
+    nameEdit_->SetText(Hero()->texts[0].GetString());
 }
 
 void CMpHeroScreen::FinishRename() {
@@ -165,7 +164,7 @@ void CMpHeroScreen::FinishRename() {
 void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->OnKeyDown(key, repeat, flags);
     if (UiHandled(this)) return;
-    CInterface3D* ui = window.interface_;
+    CInterface3D* ui = interface_;
     bool renaming = renameEdit_->focused_;
     int heroStep = 0;
     int voiceStep = 0;
@@ -233,8 +232,8 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     if (renameEdit_->focused_) return;
     InputOf(this)->OnLeftDown(flags, x, y);
     if (UiHandled(this)) return;
-    CInterface3D* ui = window.interface_;
-    int region = window.RegionAt(x, y);
+    CInterface3D* ui = interface_;
+    int region = RegionAt(x, y);
     auto rotate = [&](int direction) {
         uiorig::PlayUiSound(ui, game::RotateSoundText(), 0);
         rotating_ = direction;
@@ -270,7 +269,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             stats->stat20Base = 25.0f;
             stats->stat20 = 25.0f;
             hero->height = 0.7f;
-            EditSetText(nameEdit_, nullptr, game::EmptyText());
+            nameEdit_->SetText(game::EmptyText());
             statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
             Refresh();
             return;
@@ -336,12 +335,12 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         VirtualChooseFigure(defaults_[0]);
         statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
-        window.surfaces_.data[0]->GetDC();
-        window.surfaces_.data[0]->Clear();
-        window.surfaces_.data[0]->ReleaseDC();
+        surfaces_.data[0]->GetDC();
+        surfaces_.data[0]->Clear();
+        surfaces_.data[0]->ReleaseDC();
         turn_ = 0.0f;
         SetMode(this, nullptr, 10);
-        EditSetText(nameEdit_, nullptr, game::EmptyText());
+        nameEdit_->SetText(game::EmptyText());
         return;
     case 6:
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
@@ -360,8 +359,8 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // The hero's inventory: the camp screen.
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
-        CCampPages* camp = BuildCamp(window.interface_, &flags);
-        window.interface_->PushWindow(camp, 0, 1);
+        CCampPages* camp = BuildCamp(interface_, &flags);
+        interface_->PushWindow(camp, 0, 1);
         return;
     }
     default:
@@ -393,15 +392,15 @@ void CMpHeroScreen::Rename() {
     mfc::CString name(MpHeroName(heroIndex_));
     int bar = name.Find(RenameBar());
     if (bar < 0) {
-        EditSetText(renameEdit_, nullptr, game::EmptyText());
+        renameEdit_->SetText(game::EmptyText());
     } else {
         mfc::CString typed = console::Ops(name).Mid(bar + 1);
         typed.TrimLeft();
-        EditSetText(renameEdit_, nullptr, typed.GetString());
+        renameEdit_->SetText(typed.GetString());
         name = name.Left(bar);
         name.TrimRight();
     }
-    auto* surface = window.surfaces_.data[3];
+    auto* surface = surfaces_.data[3];
     SurfaceFreeze(surface, nullptr, 1, 0);
     surface->GetDC();
     surface->Clear();
@@ -423,7 +422,7 @@ bool IsVoice(const UnitSoundEntry& entry) { return (entry.flags & kVoiceFlags) =
 } // namespace
 
 void CMpHeroScreen::PlayVoice() {
-    window.interface_->StopSound(voiceSound_);
+    interface_->StopSound(voiceSound_);
     voiceSound_ = -1;
     auto* hero = Hero();
     UnitPrototypeRecord* prototype;
@@ -452,7 +451,7 @@ void CMpHeroScreen::PlayVoice() {
     };
     int index = gamecrt::rand() * count / 0x7FFF % count;
     for (int tries = 0; tries < count && voiceSound_ == -1; ++tries) {
-        voiceSound_ = window.interface_->PlaySound(nth(index)->sound, 0);
+        voiceSound_ = interface_->PlaySound(nth(index)->sound, 0);
         index = (index + 1) % count;
     }
 }
@@ -485,7 +484,7 @@ CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
 } // namespace
 
 void CMpHeroScreen::Continue() {
-    CInterface3D* ui = window.interface_;
+    CInterface3D* ui = interface_;
     ui->PlaySound(SoundOk(), 0);
     if (heroIndex_ >= 0 && static_cast<unsigned>(heroIndex_) < static_cast<unsigned>(HeroCount())) {
         MpHeroesObject()->SaveAll();
@@ -537,10 +536,10 @@ void CMpHeroScreen::CreateHero() {
     float points = AttributePoints();
     EI_NAN_AUDIT(sum, points);
     if (sum != points || name.GetLength() == 0) {
-        window.interface_->PlaySound(SoundCancel(), 0);
+        interface_->PlaySound(SoundCancel(), 0);
         return;
     }
-    window.interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
+    interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
     weapon_ = static_cast<int>(hero->weaponCount) > 0 ? hero->weapons[0] : nullptr;
     weaponPanel_->ShowWeapon(weapon_);
     armor_ = static_cast<int>(hero->quickItemCount) > 0 ? hero->quickItems[0] : nullptr;
@@ -685,7 +684,7 @@ int HighestFileNumber(const char* pattern) {
 } // namespace
 
 void CMpHeroScreen::AddNewHero() {
-    window.interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
+    interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
     auto* hero = Hero();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)

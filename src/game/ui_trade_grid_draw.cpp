@@ -50,7 +50,7 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, CUiSurface* surface
         int y = (i / 4) * 100;
         ItemCell cell{items[i], static_cast<float>(x) + 250.0f /*0073BF48*/, static_cast<float>(y) + yOffset,
                       i <= 3 ? bigSize : smallSize, 100.0f, grid->mode_};
-        static_cast<CItemScreen*>(grid->owner_)->DrawItem(pass, &cell);
+        grid->owner_->DrawItem(pass, &cell);
         int pieces = static_cast<int>(cell.item->count_);
         if (pieces > 1) {
             text.Format("%d", pieces);

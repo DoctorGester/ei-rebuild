@@ -50,8 +50,6 @@ constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a se
 constexpr int kKeyRepeated = 0x4000;            // the key was already down
 constexpr int kScanCodeMask = 0x1FF;
 constexpr int kQuickSlots = 8;
-// The escape menu (0x168 bytes, built inline).
-constexpr std::size_t kEscMenuSize = 0x168;
 
 // The key actions (the key table's values; the original's jump table at 0063B4DC).
 enum KeyAction {
@@ -148,15 +146,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             hud->actionColumn_->ClearHighlights();
             return;
         }
-        void* memory = gamecrt::operator_new(kEscMenuSize);
-        CUiWindow* menu = nullptr;
-        if (memory) {
-            static_cast<CUiContainer*>(memory)->Construct(interface_);
-            menu = static_cast<CUiWindow*>(memory);
-            menu->vtable_ = CEscMenu::Vtable();
-            menu->inputVtable_ = CEscMenu::InputVtable();
-        }
-        interface_->PushWindow(menu, 1, 1);
+        interface_->PushWindow(CEscMenu::New(interface_), 1, 1);
         inputHandled_ = true;
         return;
     }

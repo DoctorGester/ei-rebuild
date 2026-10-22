@@ -183,7 +183,7 @@ void CUiWindow::RedrawTips() {
     for (int i = 0; i < regions_.size; ++i) {
         CUiRegion* region = regions_.data[i];
         if (region->tip_) region->OnMouseMove(mouse.x, mouse.y);
-        if (CUiTooltip* tip = regions_.data[i]->tip_) reinterpret_cast<CUiWindow*>(tip)->VirtualRedraw();
+        if (CUiTooltip* tip = regions_.data[i]->tip_) tip->VirtualRedraw();
     }
 }
 EI_REPLACE_METHOD(0x005FED00, CUiWindow::RedrawTips);
@@ -493,8 +493,8 @@ void ClearArray(UiPtrArray<T>& array) {
 }
 } // namespace
 
-void** CUiWindow::PlainVtable() { return static_cast<void**>(UiWindowBaseClass::Vtable()); }
-void** CUiWindow::PlainInputVtable() { return static_cast<void**>(UiWindowInputClass::Vtable()); }
+void** CUiWindow::PlainVtable() { return UiWindowBaseClass::Slots(); }
+void** CUiWindow::PlainInputVtable() { return UiWindowInputClass::Slots(); }
 
 CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     EngineObjectConstruct(reinterpret_cast<CEngineObject*>(this));

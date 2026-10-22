@@ -51,11 +51,11 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
                 if (brain->owner->unit->player) {
                     AttackOrder order{};
                     order.kind = 3;
-                    order.what = 6;
+                    order.source = 6;
                     ++chosen->refCount_;
-                    order.object = chosen;
-                    if (brain->owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
-                    order.object.Reset();
+                    order.target = chosen;
+                    if (brain->owner->CanReachAndPlan(&order)) flags = -1;
+                    order.target.Reset();
                 }
                 brain->owner->OrderAttack(brain->target, 6, 0, flags);
             } else {

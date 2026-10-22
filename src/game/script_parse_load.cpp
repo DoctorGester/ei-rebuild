@@ -76,7 +76,7 @@ void TokensDestruct(ScriptTokenList* tokens) {
 // 006FE268 / 006FE296: ConstructElements / DestructElements for CString (the library's
 // mfc::impl::ConstructStrings / DestructStrings do exactly this).
 void ConstructStrings(mfc::CString* elements, int count) {
-    for (; count--; ++elements) ::new (static_cast<void*>(elements)) mfc::CString;
+    for (; count--; ++elements) ::new (elements) mfc::CString;
 }
 void DestructStrings(mfc::CString* elements, int count) {
     for (; count--; ++elements) elements->~CString();

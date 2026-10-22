@@ -81,7 +81,7 @@ CUnit* ReadUnit(CStream* stream, const CBaseManager* objects) {
 void LoadOrder(CStream* stream, UnitAction* order) {
     stream->Read(&order->kind, 4);
     stream->Read(&order->source, 4);
-    AIRef::Of(&order->target)->Load(stream, TheServerWorld());
+    order->target.Load(stream, TheServerWorld());
     stream->Read(&order->point, 0xC);
     stream->Read(&order->param, 4);
     stream->Read(&order->modifier, 1);
@@ -91,7 +91,7 @@ void LoadOrder(CStream* stream, UnitAction* order) {
 void SaveOrder(CStream* stream, UnitAction* order) {
     stream->Write(&order->kind, 4);
     stream->Write(&order->source, 4);
-    AIRef::Of(&order->target)->Save(stream);
+    order->target.Save(stream);
     stream->Write(&order->point, 0xC);
     WriteCopy(stream, order->param);
     WriteCopy(stream, order->modifier);

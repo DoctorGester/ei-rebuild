@@ -470,7 +470,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 list.tail = node;
             }
 
-            TimeWheelLoad(timeWheel_, nullptr, stream);
+            TimeWheelLoad(AIEvents(), nullptr, stream);
             CommandQueueLoad(MainScript(), nullptr, stream);
             diplomacy_.ReadFrom(stream);
             stream->Read(&climate_, 4);
@@ -690,7 +690,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     }
     WriteCopy(stream, static_cast<std::uint8_t>(0));
 
-    TimeWheelSave(timeWheel_, nullptr, stream);
+    TimeWheelSave(AIEvents(), nullptr, stream);
     CommandQueueSave(MainScript(), nullptr, stream);
     diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);

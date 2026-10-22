@@ -5,6 +5,7 @@
 // onto the ground under the object. Names provisional; see docs/notes/map_objects.md
 // ("Shadows").
 
+#include "core_refcount.h"   // CountedRef
 #include "engine_object.h"
 #include "maths.h"
 
@@ -52,6 +53,8 @@ struct TextureParts {
     lib::AlignedArray<PartGroup*> groups;   // +0x04 owned
 };
 static_assert(sizeof(TextureParts) == 0x14);
+
+struct WoundsMaterial;   // below
 
 class CObject3DClientSpecific : public CEngineObject {
 public:
@@ -143,7 +146,7 @@ public:
     void DestroyClient();
     // The wounds material slot (+0xDC) cleared and the material it held released (deleted at its
     // last reference): CountedRef<WoundsMaterial>::Assign(nullptr) as 0051AB00, 0051AEC0 and
-    // 0051C920 inline it (0051AF70 calls the copy 0051E570 instead, through AsCountedRef).
+    // 0051C920 inline it (0051AF70 calls the copy 0051E570 instead).
     void ClearWoundsMaterial();
     // 0051B050 (slot 13, RET 4). `part` joins the group of its material (piece +0x158) in the set
     // of its texture (piece +0x15C), both made on first use (FindOrAddTexture, FindOrAddMaterial);
@@ -220,7 +223,7 @@ public:
     std::uint8_t unused_BC[0xC8 - 0xBC];    // +0xBC zeroed with the bounds
     int drawnRect[4];               // +0xC8 RECT: the screen area of the dirty parts Draw drew
     CTexture* woundsTexture;        // +0xD8 the wounds texture (counted; 0051C3D0 loads it)
-    struct WoundsMaterial* woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)
+    CountedRef<WoundsMaterial> woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)
     mfc::CString skinName;          // +0xE0 the first set's texture name (SetSkins)
     mfc::CString secondSkinName;    // +0xE4 the second set's
     float pulseClock;               // +0xE8 frames counted by the invisible / stunned pulses

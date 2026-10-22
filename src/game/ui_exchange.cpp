@@ -138,12 +138,11 @@ void SetVtables(CUiWindow* window, VtablePair vtables) {
 // A window of `size` bytes built on the window base with the vtable pair, or null.
 template <typename T>
 T* NewChild(std::size_t size, CInterface3D* ui, VtablePair vtables) {
-    void* memory = gamecrt::operator_new(size);
-    if (!memory) return nullptr;
-    auto* window = static_cast<CUiWindow*>(memory);
+    T* window = gamecrt::operator_new_bytes_as<T>(size);
+    if (!window) return nullptr;
     window->Construct(ui);
     SetVtables(window, vtables);
-    return static_cast<T*>(memory);
+    return window;
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
@@ -182,7 +181,7 @@ void CExchangeScreen::Create() {
     sprite->tint_[1] = 0.5f;
     sprite->tint_[2] = 0.5f;
     CreateBase();
-    static_cast<CItemIconWindow*>(iconWindow_)->PlaceBars(300);
+    iconWindow_->PlaceBars(300);
 
     // The scratch party (made through its slot 2, not checked), our offer cleared, the partner's.
     auto* party = gamecrt::operator_new_as<CParty>();
@@ -209,21 +208,21 @@ void CExchangeScreen::Create() {
     // The local party's items (the strip that hands clicks to this screen).
     CUiItemStrip* strip = gamecrt::operator_new_as<CUiItemStrip>();
     if (strip) {
-        strip->window.Construct(interface_);
+        strip->Construct(interface_);
         strip->owner_ = this;
         strip->list_.Construct(ItemArrayVtable());
-        SetVtables(&strip->window, ForwardingStripVtables());
+        SetVtables(strip, ForwardingStripVtables());
     }
     strip_ = strip;
-    AsContainer(this)->AddChild(strip ? &strip->window : nullptr);
-    strip_->Setup(reinterpret_cast<UiPtrArray<char>*>(&LocalParty()->items_), 0);
-    strip_->actionMode_ = kStripActionTake;
+    AsContainer(this)->AddChild(strip);
+    strip_->Setup(&LocalParty()->items_, 0);
+    strip_->mode_ = kStripActionTake;
     strip_->SetFilter(0);
 
     // The players.
     figures_ = NewChild<CUiItemStrip>(kFigureStripSize, interface_, FigureStripVtables());
     if (figures_) figures_->owner_ = this;
-    AsContainer(this)->AddChild(figures_ ? &figures_->window : nullptr);
+    AsContainer(this)->AddChild(figures_);
     figures_->SetupFigures(&names_, 1, 1);
 
     // Both offers.
@@ -270,7 +269,7 @@ BOOL CExchangeScreen::Draw(int pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
     hoveredItem_ = nullptr;
     int topic = 0;
-    hoveredItem_ = strip_->window.VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic);
+    hoveredItem_ = strip_->VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic);
     if (!hoveredItem_ && !topic)
         hoveredItem_ = grid_->VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic);
     if (hoveredItem_) {

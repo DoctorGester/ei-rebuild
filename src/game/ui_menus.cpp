@@ -104,7 +104,7 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
         }
         break;
     }
-    static_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
+    ContainerInput()->OnLeftDown(buttons, x, y);
 }
 
 void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
@@ -120,7 +120,7 @@ void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
             Confirm();
         }
     }
-    static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
+    ContainerInput()->OnLeftDouble(buttons, x, y);
 }
 
 BOOL CSaveLoadWindow::Draw(int pass) {
@@ -230,7 +230,7 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
             }
         }
     }
-    static_cast<UiContainerInput*>(InputSide())->OnLeftDown(buttons, x, y);
+    ContainerInput()->OnLeftDown(buttons, x, y);
 }
 
 void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
@@ -251,7 +251,7 @@ void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
             RefreshRows();
         }
     }
-    static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
+    ContainerInput()->OnLeftDouble(buttons, x, y);
 }
 
 BOOL COptionsWindow::Draw(int pass) {

@@ -238,22 +238,22 @@ struct PrintElement {
     static void Construct(R* to, const R& from) {
         ei::SetVtable(to, R::Vtable());
         new (&to->name) stlp::string(from.name);
-        std::memcpy(Values(*to), Values(from), sizeof(R) - offsetof(R, values2));
+        std::memcpy(Values(*to), Values(from), sizeof(R) - offsetof(R, look2));
     }
     static void Assign(R& to, const R& from) {
         to.name.AssignFrom(from.name);
-        std::memcpy(Values(to), Values(from), sizeof(R) - offsetof(R, values2));
+        std::memcpy(Values(to), Values(from), sizeof(R) - offsetof(R, look2));
     }
     static void Default(R* p) {
         stlp::StringElement::Default(&p->name);
-        std::memset(Values(*p), 0, sizeof(R) - offsetof(R, values2));
+        std::memset(Values(*p), 0, sizeof(R) - offsetof(R, look2));
         ei::SetVtable(p, R::Vtable());
     }
     static void Destroy(R* p) { p->name.~string(); }
 
 private:
-    static void* Values(R& r) { return r.values2; }
-    static const void* Values(const R& r) { return r.values2; }
+    static void* Values(R& r) { return &r.look2; }
+    static const void* Values(const R& r) { return &r.look2; }
 };
 
 using PrintVector = stlp::VectorAbi<PrintRecord, PrintElement<PrintRecord>>;

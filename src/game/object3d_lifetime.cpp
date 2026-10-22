@@ -70,7 +70,7 @@ int CObject3D::Create3D() {
 EI_REWRITTEN(0x00515F70, CObject3D::Create3D);
 
 void CObject3D::Destroy3D() {
-    FigureRef().Assign(nullptr);
+    figure.Assign(nullptr);
     while (effectSources.head) RemoveEffectSource(effectSources.head->data);
     if (animation) {
         animation->DetachMeshes();

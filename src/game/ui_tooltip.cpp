@@ -78,8 +78,8 @@ SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
 }
 } // namespace
 
-void** CUiTooltip::Vtable() { return static_cast<void**>(TooltipTable::Vtable()); }
-void** CUiTooltip::InputVtable() { return static_cast<void**>(TooltipInputTable::Vtable()); }
+void** CUiTooltip::Vtable() { return TooltipTable::Slots(); }
+void** CUiTooltip::InputVtable() { return TooltipInputTable::Slots(); }
 
 CUiTooltip* CUiTooltip::Construct(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra) {
     CUiWindow::Construct(ui);

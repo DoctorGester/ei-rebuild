@@ -19,6 +19,7 @@ namespace mfc::impl { struct CStdioFile; }   // lib/mfc_file.h
 namespace ui_gdi { struct GameFont; }
 struct SpeechRecord;            // unit_client_models.h
 class CInterface3D;             // ui.h
+class CUiContainer;             // ui.h
 namespace acks { struct Speeches; struct EnvironmentSpeeches; }   // acks_db.h
 
 namespace console {
@@ -249,7 +250,7 @@ void RegisterAddonCommands();
 // What RegisterAddonCommands puts in the maps, in its order ("help" replaces the game's, which
 // addon's own "help" calls first).
 extern const CommandRegistration kAddonCommandRegistrations[6];
-void ApplyAddonGuiVisibility(void* screen);
+void ApplyAddonGuiVisibility(CUiContainer* screen);
 void RunAddonAutoExec();
 // 004DC200: splits a console line at spaces into `out` (a token in double quotes keeps its spaces
 // and quotes); returns 1.

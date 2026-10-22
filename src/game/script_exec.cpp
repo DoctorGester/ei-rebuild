@@ -172,12 +172,11 @@ using ObjectIterator = ObjectListIterator;
 // ---- Small accessors the original calls out of line (004B9F20-004BAA30) -------------------------
 
 // The unit's server half (CUnit::controller).
-void* UnitState(CUnit* unit) { return unit->controller; }
-CUnitServer* Controller(void* state) { return static_cast<CUnitServer*>(state); }
-AIBrain* BrainOf(void* state) { return Controller(state)->Brain(); }
+CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
+AIBrain* BrainOf(CUnitServer* state) { return state->Brain(); }
 // The brain's patrol mode, null when it has none.
-PatrolMode* PatrolOf(void* state) { return BrainOf(state)->FindPatrolMode(); }
-UnitStats* StatsOf(void* state) { return &Controller(state)->stats; }
+PatrolMode* PatrolOf(CUnitServer* state) { return BrainOf(state)->FindPatrolMode(); }
+UnitStats* StatsOf(CUnitServer* state) { return &state->stats; }
 Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->localPosition_; }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }
@@ -186,9 +185,15 @@ CMapObject* MapObjectArg(const SSCCmd* cmd, int i) { return ObjectSlots(Arg(cmd,
 const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs.data[i]; }
 
 // The unit's server half when argument 0 is a unit that has one, else null.
-void* UnitStateArg(const SSCCmd* cmd) {
+CUnitServer* UnitStateArg(const SSCCmd* cmd) {
     CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
     return unit ? UnitState(unit) : nullptr;
+}
+
+// Argument 0 when it is a lever (class id kClassLever), else null.
+Lever* LeverArg(const SSCCmd* cmd) {
+    CEngineObject* object = Arg(cmd, 0);
+    return object && object->GetClassId() == kClassLever ? static_cast<Lever*>(object) : nullptr;
 }
 
 // Finds the particle source with `id`.
@@ -243,7 +248,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
         map->MoveInSectors(object, &point);
-        if (CUnit* unit = UnitOrNull(object)) Controller(UnitState(unit))->ResyncWithUnit();
+        if (CUnit* unit = UnitOrNull(object)) UnitState(unit)->ResyncWithUnit();
         map->SetRefreshUnits(1);
         object->MarkChanged(2);
         return;
@@ -252,7 +257,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     Vector3 point = {f[0], f[1], f[2]};
     map->MoveInSectors(object, &point);
     if (CUnit* unit = UnitOrNull(object)) {
-        Controller(UnitState(unit))->ResyncWithUnit();
+        UnitState(unit)->ResyncWithUnit();
         EI_NAN_AUDIT(oldZ, Position(object)->z);
         if (oldZ != Position(object)->z) object->MarkChanged(2);
         return;
@@ -276,7 +281,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
             free = *Position(unit);
             map->FindFreeCellNear(unit, Position(unit), &free);
             *Position(unit) = free;
-            Controller(UnitState(unit))->ResyncWithUnit();
+            UnitState(unit)->ResyncWithUnit();
         }
         map->AddToSectors(unit);
     }
@@ -285,7 +290,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
 }
 
 void GiveSkill(const SSCCmd* cmd) {
-    void* state = cmd->objectArgs.data[0]->GetUnitPerception();
+    CUnitServer* state = cmd->objectArgs.data[0]->GetUnitPerception();
     if (!state) return;
     // The skill names (0078B8FC..0078B8B0) in the order the original tests them; science goes to
     // SetScience, the others to SetSkill with their index.
@@ -294,7 +299,7 @@ void GiveSkill(const SSCCmd* cmd) {
     static const int kIndex[] = {0, 0, 1, 2, 3, 4, 5, 6, 7};
     for (int i = 0; i < 9; ++i) {
         if (gamecrt::mbsicmp(Text(cmd, 0), kNames[i]) != 0) continue;
-        CUnit* owner = Controller(state)->unit;
+        CUnit* owner = state->unit;
         int value = Ftol(cmd->floatArgs.data[0]);
         UnitStats* stats = StatsOf(state);
         if (i == 0) stats->RaiseAttribute(kIndex[i], value, owner);
@@ -371,7 +376,7 @@ void CastSpell(const SSCCmd* cmd, bool atUnit) {
 
 void UnitModes(const SSCCmd* cmd) {
     // UMAg: aggression set 0..3 replaces modes 3, 4, 5 and 7.
-    void* state = UnitStateArg(cmd);
+    CUnitServer* state = UnitStateArg(cmd);
     if (!state) return;
     AIBrain* brain = BrainOf(state);
     brain->RemoveModesOfType(3);
@@ -447,7 +452,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         case 0xB9: {   // SleepUntilIdle(unit): while the brain has an action (+0x984)
             CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
-            if (unit && Controller(UnitState(unit))->Brain()->action != 0) cont = 0;
+            if (unit && UnitState(unit)->Brain()->action != 0) cont = 0;
             break;
         }
         case 0x08: {   // a declared script: start an instance with the call's arguments
@@ -698,23 +703,23 @@ BOOL ScriptRun::Execute(CScript* script) {
         // ---- Levers -----------------------------------------------------------------------------
         case 0x91:     // SwitchLeverState(lever, state)
         case 0x9E: {   // SwitchLeverStateEx(lever, state, time)
-            CEngineObject* lever = Arg(cmd, 0);
-            if (!lever || lever->GetClassId() != kClassLever) break;
+            Lever* lever = LeverArg(cmd);
+            if (!lever) break;
             float time;
             if (cmd->id == 0x91) std::memcpy(&time, "\x00\x00\x20\xC1", 4);   // -10.0f
             else time = f[1];
-            static_cast<Lever*>(lever)->SetState(Ftol(f[0]), time);
+            lever->SetState(Ftol(f[0]), time);
             break;
         }
         case 0xCC: {   // EnableLever(lever, on)
-            CEngineObject* lever = Arg(cmd, 0);
-            if (!lever || lever->GetClassId() != kClassLever) break;
-            static_cast<Lever*>(lever)->Enable(!IsZero(f[0]));
+            Lever* lever = LeverArg(cmd);
+            if (!lever) break;
+            lever->Enable(!IsZero(f[0]));
             break;
         }
         case 0xAC: {   // SetScience(lever, a, b, four flags)
-            CEngineObject* lever = Arg(cmd, 0);
-            if (!lever || lever->GetClassId() != kClassLever) break;
+            Lever* lever = LeverArg(cmd);
+            if (!lever) break;
             LockKey lock = {1, 0, 0};
             lock.id = static_cast<std::uint32_t>(Ftol(f[0]));
             lock.level = static_cast<std::uint32_t>(Ftol(f[1]));
@@ -723,7 +728,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!IsZero(f[3])) lock.mask |= 2;
             if (!IsZero(f[4])) lock.mask |= 4;
             if (!IsZero(f[5])) lock.mask |= 8;
-            static_cast<Lever*>(lever)->SetLock(&lock);
+            lever->SetLock(&lock);
             break;
         }
 
@@ -758,7 +763,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x44: {   // InflictDamage(unit, amount)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             DamageInfo damage = {};
             damage.typeWeights[5] = 1.0f;
@@ -768,7 +773,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             damage.multiplier = 1.0f;
             damage.location = 1;
             // TakeHit(hit, attacker, source): three arguments (the original pushes the first 0 early).
-            ServerSlots(Controller(state))->TakeHitSlot(&damage, nullptr, nullptr);
+            ServerSlots(state)->TakeHitSlot(&damage, nullptr, nullptr);
             break;
         }
         case 0x83: {   // AddUnitUnderControl(player, unit)
@@ -811,8 +816,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             CItem* spell = TheWorld()->CreateSpellNamed(Text(cmd, 0));
             if (!spell) break;
             unit->AddSpell(spell);
-            void* state = UnitState(unit);
-            ServerSlots(Controller(state))->RefreshEquipment();
+            CUnitServer* state = UnitState(unit);
+            ServerSlots(state)->RefreshEquipment();
             break;
         }
         case 0xCD:   // GiveSkill(unit, skill, value)
@@ -821,9 +826,9 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xCE:     // GiveStrength(unit, value)
         case 0xCF:     // GiveDexterity
         case 0xD0: {   // GiveIntelligence
-            void* state = cmd->objectArgs.data[0]->GetUnitPerception();
+            CUnitServer* state = cmd->objectArgs.data[0]->GetUnitPerception();
             if (!state) break;
-            CUnit* owner = Controller(state)->unit;
+            CUnit* owner = state->unit;
             int value = Ftol(f[0]);
             UnitStats* stats = StatsOf(state);
             if (cmd->id == 0xCE) stats->RaiseStrength(value, owner);
@@ -834,22 +839,22 @@ BOOL ScriptRun::Execute(CScript* script) {
 
         // ---- Unit orders (the brain at the unit's +0x240 object +0x980) -------------------------
         case 0x02: {   // MoveToPoint(unit, x, y)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             BrainOf(state)->Walk(&point, 0, 0);
             break;
         }
         case 0x03: {   // RotateTo(unit, x, y)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
-            const Vector3* at = Position(Controller(state)->unit);
+            const Vector3* at = Position(state->unit);
             Vector3 direction = {f[0] - at->x, f[1] - at->y, -at->z};
             BrainOf(state)->TurnTowards(&direction, 0);
             break;
         }
         case 0x04: {   // MoveToObject(unit, target)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             CEngineObject* target = Arg(cmd, 1);
             if (!state || !target) break;
             Vector3 point = {Position(target)->x, Position(target)->y, 0.0f};
@@ -857,24 +862,24 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x3B: {   // Follow(unit, leader)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (state) BrainOf(state)->Follow(MapObjectArg(cmd, 1));
             break;
         }
         case 0x3C: {   // Attack(unit, target)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             CMapObject* target = MapObjectArg(cmd, 1);
             if (target) BrainOf(state)->AttackTarget(target);
             break;
         }
         case 0xE8: {   // ResetTarget(unit)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (state) BrainOf(state)->ResetBehaviour();
             break;
         }
         case 0x3D: {   // Cast(unit, x, y): at the ground height there
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             float x = f[0];
             float y = f[1];
@@ -890,29 +895,29 @@ BOOL ScriptRun::Execute(CScript* script) {
             CastSpell(cmd, true);
             break;
         case 0x34: {   // Idle(unit)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             BrainOf(state)->ClearModes();
             BrainOf(state)->StopAction();
             break;
         }
         case 0x33: {   // Guard(unit, x, y, radius)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             BrainOf(state)->StandardGuard(&point, f[2]);
             break;
         }
         case 0x94: {   // Sentry(unit, x, y)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             BrainOf(state)->StandardSentry(&point);
             break;
         }
         case 0x1B: {   // PlayAnimation(unit, name)
-            void* state = UnitStateArg(cmd);
-            if (state) Controller(state)->PlayAnimation(Text(cmd, 0));
+            CUnitServer* state = UnitStateArg(cmd);
+            if (state) state->PlayAnimation(Text(cmd, 0));
             break;
         }
         case 0xC9:     // Lie
@@ -920,26 +925,26 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x3F:     // Stand
         case 0x40:     // Walk
         case 0x41: {   // Run
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             int style = cmd->id == 0xC9 ? 0 : cmd->id == 0x3E ? 1 : cmd->id == 0x41 ? 3 : 2;
-            Controller(state)->SetMoveStyle(style);   // 0 lie, 1 crawl, 2 walk, 3 run
+            state->SetMoveStyle(style);   // 0 lie, 1 crawl, 2 walk, 3 run
             break;
         }
         case 0xB0: {   // Rest(unit)
-            void* state = UnitStateArg(cmd);
-            if (state) Controller(state)->StopQueued();
+            CUnitServer* state = UnitStateArg(cmd);
+            if (state) state->StopQueued();
             break;
         }
 
         // ---- Unit modes -------------------------------------------------------------------------
         case 0x24: {   // UMClear
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (state) BrainOf(state)->ClearModes();
             break;
         }
         case 0x25: {   // UMSentry(unit, x, y)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             auto* mode = NewMode<SentryMode>(0x14);
@@ -948,7 +953,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x26:     // UMGuard(unit, x, y, radius)
         case 0x27: {   // UMGuardEx(unit, x, y, radius, radius2)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             float radius = f[2];
@@ -960,7 +965,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xCA: {   // UMFollow(unit, leader)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             CMapObject* leader = MapObjectArg(cmd, 1);
             auto* mode = NewMode<FollowMode>(0x0C);
@@ -968,21 +973,21 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x28: {   // UMPatrol
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             auto* mode = NewMode<PatrolMode>(0x20);
             BrainOf(state)->AddMode(mode ? mode->Construct() : nullptr);
             break;
         }
         case 0x29: {   // UMPatrolClear
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             PatrolMode* patrol = BrainOf(state)->FindPatrolMode();
             if (patrol) patrol->points.SetSize(0, -1);
             break;
         }
         case 0x2A: {   // UMPatrolAddPoint(unit, x, y)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             PatrolMode* patrol = PatrolOf(state);
             if (!patrol) break;
@@ -991,7 +996,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x2B: {   // UMPatrolAddPointLook(unit, x, y, z): a look at the last point
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             PatrolMode* patrol = PatrolOf(state);
             if (!patrol) break;
@@ -1003,7 +1008,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x31: {   // UMPlayer
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             AIBrain* brain = BrainOf(state);
             brain->ClearModes();
@@ -1016,7 +1021,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             UnitModes(cmd);
             break;
         case 0x2C: {   // UMStandard: aggression, suspicion, corpse watcher
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             AIBrain* brain = BrainOf(state);
             auto* aggression = NewMode<AggressionMode>(0x18);
@@ -1028,21 +1033,21 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x2D: {   // UMAggression
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             auto* mode = NewMode<AggressionMode>(0x18);
             BrainOf(state)->AddMode(mode ? mode->ScriptAggressionModeConstruct() : nullptr);
             break;
         }
         case 0x2E: {   // UMRevenge
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             auto* mode = NewMode<AggressionMode>(0x18);
             BrainOf(state)->AddMode(mode ? mode->ScriptRevengeModeConstruct(1) : nullptr);
             break;
         }
         case 0xC7: {   // UMFear(unit, on)
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             int on = IsZero(f[0]) ? 0 : 1;
             auto* mode = NewMode<FearMode>(0x2C);
@@ -1050,14 +1055,14 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x2F: {   // UMSuspection
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             auto* mode = NewMode<SuspectionMode>(0x18);
             BrainOf(state)->AddMode(mode ? ConstructSuspicion(mode) : nullptr);
             break;
         }
         case 0x30: {   // UMCorpseWatcher
-            void* state = UnitStateArg(cmd);
+            CUnitServer* state = UnitStateArg(cmd);
             if (!state) break;
             auto* mode = NewMode<CorpseWatcherMode>(0x08);
             BrainOf(state)->AddMode(mode ? mode->ScriptCorpseWatcherModeConstruct() : nullptr);

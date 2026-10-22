@@ -474,7 +474,7 @@ void CUnitServer::DestructBody() {
     gamelists::OwnedRefs::Destruct<gameslots::OwnedRefListClass>(mfc::impl::ListAs<gamelists::OwnedRefs>(&b->modes));   // 005575F0
     BrainArrayDestroy(&b->seen);
     BrainArrayDestroy(&b->target);
-    Brain14Destroy(&b->looks);
+    Brain14Destroy(&b->move.looks);
     idleAnimation.DestructSteps();
     moveAnimation.DestructSteps();
     SetVtable(&armourSpells, gameslots::ArmourSpellListClass::Vtable());

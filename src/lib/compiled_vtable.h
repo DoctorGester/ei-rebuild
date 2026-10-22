@@ -28,6 +28,8 @@ void* CompiledVtable() {
 template <typename Self>
 struct CompiledTag {
     static void* Vtable() { return CompiledVtable<Self>(); }
+    // The same table as its slots, for classes whose vtable field is a `void**`.
+    static void** Slots() { return static_cast<void**>(CompiledVtable<Self>()); }
 
 protected:
     // The object a slot runs on, as a T. The tag is never an object of its own: its slots are reached through the

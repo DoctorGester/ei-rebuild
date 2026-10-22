@@ -175,26 +175,26 @@ Vector3* AIPath::TargetPoint(Vector3* out) const {
     return out;
 }
 
-void AIOrder::MakeUse(CMapObject* target, int use) {
+void AIOrder::MakeUse(CMapObject* object, int use) {
     Clear();
     kind = kOrderUse;
-    if (target != object) {
-        if (object) object->Release();
-        object = nullptr;
-        if (target) ++target->refCount_;
-        object = target;
+    if (object != target) {
+        if (target) target->Release();
+        target = nullptr;
+        if (object) ++object->refCount_;
+        target = object;
     }
-    what = use;
+    source = static_cast<std::uint32_t>(use);
 }
 
 Vector3* AIOrder::AimPoint(Vector3* out) const {
-    if (object == nullptr) {
+    if (target == nullptr) {
         out->x = point.x;
         out->y = point.y;
         out->z = point.z;
         return out;
     }
-    object->AimPoint(out);
+    target->AimPoint(out);
     return out;
 }
 
@@ -222,7 +222,7 @@ int CPlayerServer::OnUseOrder() {
         AIPath path;
         path.Construct();
         AIOrder order;
-        order.object = nullptr;
+        order.target = nullptr;
         order.Clear();
         order.MakeUse(object, kind);
         Vector3 aim;
@@ -245,7 +245,7 @@ int CPlayerServer::OnUseOrder() {
             if (!nearest) break;
             if (!first) first = nearest;
             CUnitServer* controller = nearest->ServerController();
-            if (controller->CanReachAndPlan(AsUnitAction(&order))) {
+            if (controller->CanReachAndPlan(&order)) {
                 chosen = nearest;
                 accepted = true;
                 break;
@@ -257,7 +257,7 @@ int CPlayerServer::OnUseOrder() {
             } else {
                 from = *PositionOf(nearest);
             }
-            if (controller->CanReachAndPlanFrom(AsUnitAction(&order), &from)) {
+            if (controller->CanReachAndPlanFrom(&order, &from)) {
                 chosen = nearest;
                 accepted = true;
                 break;
@@ -265,8 +265,8 @@ int CPlayerServer::OnUseOrder() {
             units.RemoveAt(nearestIndex, 1);
         }
         if (!accepted) chosen = first;
-        if (order.object) order.object->Release();   // the counted reference's reset (0052B030)
-        order.object = nullptr;
+        if (order.target) order.target->Release();   // the counted reference's reset (0052B030)
+        order.target = nullptr;
         path.Destruct();
     } else if (units.size == 1) {
         chosen = units[0];

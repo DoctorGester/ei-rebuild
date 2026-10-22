@@ -17,7 +17,7 @@ How the item family is declared after the cleanup (`item*.h` / `item_*.cpp`, `it
 - `CItemConstructor` (00744020): `Create` / `Destroy` overrides. `CItemManager` (0073F25C): `Create` and `NewObject` overrides with file-local hooks.
 - `item_db.h`: the database records are typed structs, with typed accessors (`MaterialAt`, `WeaponAt`, `ArmorAt`, `QuickItemAt`, `SpellAt`,
   `SpellModifierAt`) and `kWeaponCodes` / `kArmorCodes`. `item_stock.h`: the stock's vectors are `stlp::vector` (StockPtrVector, StockMaterialVector,
-  StockStringVector, SpellRecipeVector of `SpellRecipe`, `stock::CandidateVector`); writes go through `Start()` / `Finish()` / `EndOfStorage()`.
+  StockStringVector, SpellRecipeVector of `SpellRecipe` = `itemdb::SpellListRecord`, the spell database's `lists[3]` themselves, `stock::CandidateVector`); writes go through `Start()` / `Finish()` / `EndOfStorage()`.
 
 ## Left
 

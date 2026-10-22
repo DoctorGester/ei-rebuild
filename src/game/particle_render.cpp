@@ -90,7 +90,7 @@ EI_REPLACE_METHOD(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
 EI_REPLACE_METHOD(0x0059A670, mfc::CTypedPtrList<Particle>::GetNext);
 EI_REPLACE_METHOD(0x005BD340, mfc::CTypedPtrList<Particle>::GetNext);
 
-int CSceneRenderer::BindHeldTexture(int stage, CTexture** holder) {
+int CSceneRenderer::BindHeldTexture(int stage, HeldTexture* holder) {
     TextureHolderEnsureLoaded(holder);
     return SetTexture(stage, *holder);
 }

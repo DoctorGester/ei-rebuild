@@ -585,7 +585,8 @@ item screen and +0x150 an item list holding a copy of the described item (00661D
 while Ctrl is down, or a spell container (0x3008) -> 005EF5D0. The statistics (UnitStats methods, WeaponStat84 / 88,
 WeaponPrototypeSkillBonus) are called by name and truncated with the game's `_ftol` as they come back in ST0 (unrounded: those
 rewrites return double). The item screens keep model (+0x170) and figure texture (+0x180) caches (STLport
-map<string, {object, last use}>, limit 30, or 20 with 00784754); each item has a turning state (vtable 007403F8, 0x18 bytes, at the
+map<string, {object, last use}>, limit 30, or 20 with 00784754; `CItemScreen::models_` hides `CUiWindow::models_`, the window's
+UI models, in every screen derived from it: the hero screen's mode switch reads `CUiWindow::models_`); each item has a turning state (vtable 007403F8, 0x18 bytes, at the
 item's +0x1C) whose glow and angle wrap keep unrounded x87 values (inline asm). The sprite builders use the original's FPU sequence
 for circle points and call the out-of-line array copies. `00700EFE` is `CString::MakeLower`. In the switch-over the surface
 functions work on game-owned memory (renderer.md, "Interface windows").

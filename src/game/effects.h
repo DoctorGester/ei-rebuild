@@ -592,7 +592,7 @@ public:
     EmitCallback emitFn;            // +0x1E0
     UpdateCallback updateFn;        // +0x1E4
     ElementCallback elementFn;      // +0x1E8
-    CTexture* texture;              // +0x1EC texture holder (bound by 00497CE0)
+    HeldTexture texture;            // +0x1EC texture holder (bound by 00497CE0)
 };
 static_assert(offsetof(CParticleSource, attachedTo) == 0x94);
 static_assert(offsetof(CParticleSource, emitChance) == 0xCC);
@@ -682,7 +682,7 @@ public:
     int BuildSnow(CSceneRenderer* renderer);
     void DrawParticles(CSceneRenderer* renderer, int vertexCount);
 
-    CTexture* texture;              // +0x01C counted texture ("RainSnow")
+    HeldTexture texture;            // +0x01C counted texture ("RainSnow")
     class CWorldClient* world;      // +0x020 the client world (set after construction)
     int sound;                      // +0x024 rain loop handle in the sound manager (0: none)
     // The draws' work arrays.

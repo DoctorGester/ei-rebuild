@@ -27,6 +27,16 @@ void ReleaseHeld(T** holder) {
     ObjectHolderRelease(reinterpret_cast<CEngineObject**>(holder));
 }
 
+// The armour spells' 12-byte records (00558100): an engine object, a dword and a byte the
+// assignment copies (the three bytes after it are left).
+struct ArmourSpellRecord {
+    CEngineObject* object;
+    std::uint32_t value;
+    std::uint8_t flag;
+    std::uint8_t pad[3];
+};
+static_assert(sizeof(ArmourSpellRecord) == 12);
+
 namespace gamelists {
 
 using mfc::impl::Bytes;
@@ -36,8 +46,8 @@ using mfc::impl::ListAbi;
 // Counted pointers released by their plain release (RefPtrRelease) or by the owner's (Destroy).
 inline void ReleaseRef(RefPtr* p) { RefPtrRelease(p); }
 inline void DestroyRef(RefPtr* p) { p->Destroy(); }
-// 12-byte records whose first dword holds an engine object (released through slot 4).
-inline void ReleaseHolder(Bytes<12>* p) { ObjectHolderRelease(reinterpret_cast<CEngineObject**>(p)); }
+// The armour spells' records: their engine object released through slot 4.
+inline void ReleaseHolder(ArmourSpellRecord* p) { ObjectHolderRelease(&p->object); }
 // The world's shared objects: the object array at +0x0C destroyed (00594950, 0059A100 inlined).
 inline void DestroySharedObject(SharedObject* p) {
     gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>(
@@ -53,7 +63,7 @@ using EngineObjects = ListAbi<CEngineObject*, EachElements<CEngineObject*, nullp
 using ObjectRefs = ListAbi<ScriptObjectRef, EachElements<ScriptObjectRef, nullptr, gamearrays::ReleaseAndClear>>;
 using Refs = ListAbi<RefPtr, EachElements<RefPtr, nullptr, ReleaseRef>>;
 using OwnedRefs = ListAbi<RefPtr, EachElements<RefPtr, nullptr, DestroyRef>>;
-using Holders = ListAbi<Bytes<12>, EachElements<Bytes<12>, nullptr, ReleaseHolder>>;
+using Holders = ListAbi<ArmourSpellRecord, EachElements<ArmourSpellRecord, nullptr, ReleaseHolder>>;
 using SharedObjects = ListAbi<SharedObject, EachElements<SharedObject, nullptr, DestroySharedObject>>;
 using Waves = ListAbi<WaveRecord, EachElements<WaveRecord, InitWave, DestroyWave>>;
 

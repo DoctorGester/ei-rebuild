@@ -65,7 +65,7 @@ using stock::TakenPrototypes;
 
 // The template's party object (ItemStock::context): slot 16 the item constructor, 18 the item
 // manager, 22 the spell manager.
-CParty* PartyOf(const ItemStock* stock) { return static_cast<CParty*>(static_cast<CEngineObject*>(stock->context)); }
+CParty* PartyOf(const ItemStock* stock) { return stock->context; }
 CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)->ItemConstructor(); }
 
 int Compare(const char* a, const char* b) {

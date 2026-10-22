@@ -66,8 +66,8 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
 // 0041A490: Announce with text `kind` of the text table formatted with `text`.
 void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player) {
     std::uint32_t line = 0;   // CString
-    void* formatted = TheInterface()->MessageText(&line, kind, text);
-    Announce(*static_cast<const char**>(formatted), player);
+    mfc::CString* formatted = TheInterface()->MessageText(&line, kind, text);
+    Announce(formatted->GetString(), player);
     CStringDestroy(&line);
 }
 

@@ -159,7 +159,8 @@ does not need a second pass:
   to its `ListAbi` / `VectorAbi`;
 - parameters and fields carry their types (C21): no `void*` that every caller and the body cast;
   raw blocks come typed from `gamecrt::operator_new_as<T>()` / `operator_new_zeroed_as<T>()` /
-  `operator_new_array<T>(count)` and `stlp::allocate_as<T>(count)` (`src/lib/crt.h`,
+  `operator_new_array<T>(count)`, `operator_new_bytes_as<T>(bytes)` (a block shorter or longer
+  than T: a figure strip, a CString's data) and `stlp::allocate_as<T>(count)` (`src/lib/crt.h`,
   `src/lib/stlp_alloc.h`), not a `static_cast` at each allocation (tools/progress.py counts the
   pointer casts; check_cleanup does not); objects of a manager come typed from
   `CBaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
@@ -167,11 +168,20 @@ does not need a second pass:
   slots 19, 20 and 22 return `CMapObjectManager*`, `CPlayerManager*` and `CSpellManager*`). A typed
   stlp::vector is resized with `v.ResizeDefault<Element>(n)`, not through a `VectorAbi` downcast;
   a window surface is drawn on through `CUiSurface::GetDC` / `ReleaseDC` / `DrawLine`, not a
-  per-file view struct derived from it.
+  per-file view struct derived from it. A window class that shares another's layout derives from
+  it (CUiItemStrip : CUiItemPanel, CMpHeroScreen : CItemScreen) instead of holding a `CUiWindow
+  window` member and being punned; the item panels' owner_ is the CItemScreen. A compiled tag's
+  table goes into a `void**` vtable field as `Tag::Slots()`, and a container's input side is
+  `CUiContainer::ContainerInput()`.
 - one typed view instead of a cast per accessor (C15): a compiled tag's slots reach their object
   through `ObjectAs<T>()` (`src/lib/compiled_vtable.h`); an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure
-  virtual slots (`src/lib/static_object.h`), not a byte array with a casting accessor.
+  virtual slots (`src/lib/static_object.h`), not a byte array with a casting accessor. A counted
+  pointer the game's helpers take by address is a field of the holder type (`CountedRef<T>`,
+  `HeldTexture`, `HeldDevice`, `AIRefTo<T>`: reads see the object, a plain store counts nothing),
+  not a `T*` field and a `Holder::Of(&field)` cast; a record that starts with another struct's
+  fields derives from it (UnitAction : AIOrder, SectorBox : ClipBounds) and the functions that
+  read only the prefix take the base.
 `build.cmd` runs `tools/check_cleanup.py`: per file, the counts of these patterns may only go down
 (config/cleanup_baseline.csv; a new file starts at zero). After a cleanup ticket lowers them, run
 `python tools/check_cleanup.py --update`.

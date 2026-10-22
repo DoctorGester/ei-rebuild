@@ -30,9 +30,9 @@
 
 #include <cstring>
 
-void __fastcall DiffObjectSets(lib::AlignedArray<std::uint32_t>* sent, lib::AlignedArray<std::uint32_t>* current,
-                               lib::AlignedArray<std::uint32_t>* added, lib::AlignedArray<std::uint32_t>* gone,
-                               lib::AlignedArray<std::uint32_t>* same);   // 0047B1F0 (world_object_sets.cpp)
+void __fastcall DiffObjectSets(lib::AlignedArray<CEngineObject*>* sent, lib::AlignedArray<CEngineObject*>* current,
+                               lib::AlignedArray<CEngineObject*>* added, lib::AlignedArray<CEngineObject*>* gone,
+                               lib::AlignedArray<CEngineObject*>* same);   // 0047B1F0 (world_object_sets.cpp)
 
 namespace {
 
@@ -94,10 +94,9 @@ using AtExitFunction = void(__cdecl*)();
 // The player state's (CPlayerServer) messages and updates.
 // 0047B1F0 (world_object_sets.cpp). Compares the ids in `known` with the objects in `current`;
 // fills `added`, `kept` and `removed`.
-void DiffSets(void* known, StaticPtrArray* current, StaticPtrArray* added, StaticPtrArray* kept, StaticPtrArray* removed) {
-    using Set = lib::AlignedArray<std::uint32_t>;
-    ::DiffObjectSets(static_cast<Set*>(known), reinterpret_cast<Set*>(current), reinterpret_cast<Set*>(added),
-                     reinterpret_cast<Set*>(kept), reinterpret_cast<Set*>(removed));
+void DiffSets(PlayerObjectArray* known, StaticPtrArray* current, StaticPtrArray* added, StaticPtrArray* kept,
+              StaticPtrArray* removed) {
+    ::DiffObjectSets(known, current, added, kept, removed);
 }
 // The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured
 // groups 005985E0 / 005986B0, the dressed records 00598790 / 00598860: gamehash's tables), the unit

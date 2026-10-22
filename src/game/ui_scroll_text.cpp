@@ -282,8 +282,8 @@ void TokenizeText(CUiScrollText* self, const char* text) {
 void LayOut(CUiScrollText* self) { self->Layout(); }
 } // namespace
 
-void** CUiScrollText::Vtable() { return static_cast<void**>(ScrollTextTable::Vtable()); }
-void** CUiScrollText::InputVtable() { return static_cast<void**>(ScrollTextInputTable::Vtable()); }
+void** CUiScrollText::Vtable() { return ScrollTextTable::Slots(); }
+void** CUiScrollText::InputVtable() { return ScrollTextInputTable::Slots(); }
 
 CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT rect, float depth) {
     CUiScrollbar::Construct(ui, rect, depth, 0, kScrollSpeed);

@@ -128,15 +128,15 @@ Panel* NewPlainPanel(CInterface3D* ui, std::size_t size, CBattleScreen* owner) {
 
 } // namespace
 
-void** CHudTopPanel::Vtable() { return static_cast<void**>(TopPanelClass::Vtable()); }
-void** CHudClock::Vtable() { return static_cast<void**>(ClockClass::Vtable()); }
-void** CHudClock::InputVtable() { return static_cast<void**>(ClockInputClass::Vtable()); }
-void** CHudMovePanel::Vtable() { return static_cast<void**>(MovePanelClass::Vtable()); }
-void** CHudMovePanel::InputVtable() { return static_cast<void**>(MovePanelInputClass::Vtable()); }
-void** CHudUnitPanel::Vtable() { return static_cast<void**>(UnitPanelClass::Vtable()); }
-void** CHudUnitPanel::InputVtable() { return static_cast<void**>(UnitPanelInputClass::Vtable()); }
-void** CHudMap::Vtable() { return static_cast<void**>(MapClass::Vtable()); }
-void** CHudMap::InputVtable() { return static_cast<void**>(MapInputClass::Vtable()); }
+void** CHudTopPanel::Vtable() { return TopPanelClass::Slots(); }
+void** CHudClock::Vtable() { return ClockClass::Slots(); }
+void** CHudClock::InputVtable() { return ClockInputClass::Slots(); }
+void** CHudMovePanel::Vtable() { return MovePanelClass::Slots(); }
+void** CHudMovePanel::InputVtable() { return MovePanelInputClass::Slots(); }
+void** CHudUnitPanel::Vtable() { return UnitPanelClass::Slots(); }
+void** CHudUnitPanel::InputVtable() { return UnitPanelInputClass::Slots(); }
+void** CHudMap::Vtable() { return MapClass::Slots(); }
+void** CHudMap::InputVtable() { return MapInputClass::Slots(); }
 
 // --- Create (00635250) ---------------------------------------------------------------------------
 
@@ -289,7 +289,7 @@ void CBattleScreen::Create() {
             ::new (&panel->pageTexts_[0]) mfc::CString;
             ::new (&panel->pageTexts_[1]) mfc::CString;
             panel->vtable_ = CHudTopPanel::Vtable();
-            panel->inputVtable_ = static_cast<void**>(TopPanelInputClass::Vtable());
+            panel->inputVtable_ = TopPanelInputClass::Slots();
         }
         topPanel_ = panel;
     }
@@ -310,8 +310,8 @@ void CBattleScreen::Create() {
     }
     TopPanelShowPageOriginal(topPanel_);
 
-    memory = gamecrt::operator_new(0x2C);
-    AddInput(memory ? reinterpret_cast<UiInputSide*>(static_cast<CCameraInput*>(memory)->Construct(interface_)) : nullptr);
+    CCameraInput* camera = gamecrt::operator_new_as<CCameraInput>();
+    AddInput(camera ? reinterpret_cast<UiInputSide*>(camera->Construct(interface_)) : nullptr);
 
     ei::GameData<std::uint32_t>(0x0079B2B0) &= ~0x40u;
     pendingAction_ = 0;

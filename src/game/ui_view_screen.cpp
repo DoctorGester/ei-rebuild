@@ -110,7 +110,7 @@ struct UnitPickInputClass final : InputSideClass<UnitPickInputClass, &UnitPickIn
 };
 } // namespace
 
-void** UnitPickInput::Vtable() { return static_cast<void**>(UnitPickInputClass::Vtable()); }
+void** UnitPickInput::Vtable() { return UnitPickInputClass::Slots(); }
 
 UnitPickInput* UnitPickInput::Construct(CInterface3D* ui) {
     owner_ = ui;

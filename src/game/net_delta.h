@@ -46,15 +46,15 @@ inline BitStream* g_received = /*007A9798*/ {nullptr};
 void __fastcall WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
                                   BitStream* out);
 // 0047E5E0. Bits and changed words of `data` against `old` (no snapshot stream).
-void __fastcall WriteDiff(const void* old, const void* data, std::uint32_t size, BitStream* out);
+void __fastcall WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out);
 // 0047E6D0. All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
-void __fastcall WriteRaw(const void* data, std::uint32_t size, BitStream* out);
+void __fastcall WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out);
 
 // 0047EAE0. BitStream::GetBit as a function: 0 or 1 in EAX.
 int __fastcall GetBit(BitStream* reader);
 // 0047EB20. Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
 // otherwise the changed words from `reader` (returns true; the result is in AL only).
-bool __fastcall ReadDiff(const void* old, void* data, std::uint32_t size, BitStream* reader);
+bool __fastcall ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader);
 
 } // namespace delta
 
@@ -99,8 +99,9 @@ struct DeltaField {
     void WriteStringBoth(const char* text);
     // 0047E170. Reads raw bytes from the reader; returns what the stream's Read returns.
     std::uint32_t ReadRaw(void* data, std::uint32_t size);
-    // 0047E310. Reads a CString from the reader; returns `cstring`.
-    void* ReadString(void* cstring);
+    // 0047E310. Reads a CString from the reader into `cstring` (raw storage it constructs, as
+    // CStream::ReadString); returns it.
+    mfc::CString* ReadString(void* cstring);
     // 0047E340 (RET 8; A-E1). Reads a string (ReadString) into `text`, a buffer of `size` bytes: a
     // string of size - 1 characters or more leaves `text` empty instead.
     void ReadText(char* text, int size);

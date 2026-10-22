@@ -1637,12 +1637,12 @@ int CWorldClient::LoadZone(CStream* block) {
     if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~kLandscapeSelfShadowing;
     terrain->SetLightInterval(worlddata::LightingFrequencyOption() / kFrameMilliseconds);
     if (skyDome_) {
-        CTexture** holder = &skyDome_->texture;
+        HeldTexture* holder = &skyDome_->texture;
         if (cave == kCave) {
-            HeldTexture::Of(holder)->Load(kSkyTextureKind, worlddata::CaveSkyText());
+            holder->Load(kSkyTextureKind, worlddata::CaveSkyText());
             skyDome_->turns = 0;
         } else {
-            HeldTexture::Of(holder)->Load(kSkyTextureKind, worlddata::OpenSkyText());
+            holder->Load(kSkyTextureKind, worlddata::OpenSkyText());
             skyDome_->turns = 1;
         }
     }
