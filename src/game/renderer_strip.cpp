@@ -203,7 +203,8 @@ EI_REWRITTEN(0x00502A20, CTextureDevice::DrawTlTriangles);
 // clips (points flagged by the transform object are skipped), 2 only sizes the buffers; u runs over
 // `uLength` along the ribbon (0.875 at the start when it is 0), v from `vStart` over `vSize`.
 // Returns the draw's result (1 when nothing is drawn).
-int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, float uLength, float vStart, float vSize) {
+int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLength, float vStart, float vSize) {
+    const int* points = static_cast<const int*>(pointArray);
     CTransformPipeline* pipeline = pipeline_;
     ITransformPipeline* transform = pipeline->transform_;
     EnsureStatics();
@@ -309,7 +310,7 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
     render::state::Render(D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(savedDest));
     return result;
 }
-EI_REWRITTEN(0x00501D90, CSceneRenderer::DrawStripImpl);
+EI_REWRITTEN(0x00501D90, CSceneRenderer::DrawStrip);
 
 EI_REWRITTEN(0x00504E50, lib::AlignedArray<std::uint16_t>::Add);
 EI_REPLACE(0x00502C00, FreeStrip);

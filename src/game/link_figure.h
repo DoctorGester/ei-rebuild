@@ -190,8 +190,8 @@ protected:
 
 // A figure's mesh (0xB0 bytes; constructor 004F2C00, destructor 004F2E40): the parts' elements
 // concatenated in the arrays. A real virtual class (C19): the compiler makes its vtable (game.exe's
-// 0073D790 is retired). The slot bodies are the ...Impl members, registered by address; slots 7-14
-// draw parts through the device (link_mesh_draw.cpp).
+// 0073D790 is retired). Slots 7-14 draw parts through the device
+// (link_mesh_draw.cpp).
 class CLinkMesh : public CLinkMeshBase {
 public:
     // 004F2C00. The base's part, the coefficients stored, the arrays and the ranges map empty, the
@@ -226,33 +226,6 @@ public:
     int ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
                     Vector2* points, float* bounds) override;
     int RasterisePart(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target) override;
-
-    // The slots' bodies (registered by member pointer).
-    bool HasPartImpl(const stlp::string* name);
-    void CollectPartNamesImpl(stlp::vector<stlp::string>* out);
-    bool LoadPartImpl(const stlp::string* name);
-    bool RemovePartImpl(const stlp::string* name);
-    bool GetPartDataImpl(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
-                         std::uint16_t** indices, int* vertexCount, int* indexCount);
-    bool FlatColoursImpl(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
-                         lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);
-    bool LightPartImpl(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
-                       lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);
-    int DrawPartMovedImpl(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
-                          lib::AlignedArray<std::uint32_t>* speculars, lib::AlignedArray<Vector3>* offsets,
-                          std::uint32_t u, std::uint32_t v);
-    int DrawPartImpl(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
-                     lib::AlignedArray<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v);
-    int DrawPartMovedTexturedImpl(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
-                                  lib::AlignedArray<std::uint32_t>* colours,
-                                  lib::AlignedArray<std::uint32_t>* speculars,
-                                  lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v);
-    int DrawPartTexturedImpl(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
-                             lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
-                             std::uint32_t u, std::uint32_t v);
-    int ProjectPartImpl(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
-                        Vector2* points, float* bounds);
-    int RasterisePartImpl(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target);
 
     // 004F4B50 (A-S8). An estimate of the mesh's bytes: 2 * (indices + 3 * corners + 2 * (words + 0x2C
     // + 2 * (texture coordinates + 8 * (vertices + normals) + 6 * parts))), from the element counts.

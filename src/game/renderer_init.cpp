@@ -216,7 +216,7 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 } // namespace
 
 // 00500B70 (thiscall, RET 8).
-void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
+void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::state::Reset();   // a new device: nothing it has is known yet
     CreateBase(window, settings);
     // The switch-over (the new renderer presents, device.h): no DirectDraw driver is listed or
@@ -271,7 +271,7 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
 
     CreateHelper(this, settings);
 }
-EI_REWRITTEN(0x00500B70, CSceneRenderer::CreateRendererImpl);
+EI_REWRITTEN(0x00500B70, CSceneRenderer::CreateRenderer);
 
 EI_REWRITTEN(0x005019D0, CTransformPipeline::Top);
 void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {

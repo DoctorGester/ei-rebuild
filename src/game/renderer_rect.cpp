@@ -33,7 +33,9 @@ void Count(CTextureDevice* device, int vertices, int primitives) {
 } // namespace
 
 // 005041F0. Returns 0 when the rectangle is inverted (right < left or bottom < top), else 1.
-int CSceneRenderer::DrawRectangleImpl(int left, int top, int right, int bottom, char alpha, char outline) {
+int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int alphaArgument, int outlineArgument) {
+    const char alpha = static_cast<char>(alphaArgument);   // the low bytes count
+    const char outline = static_cast<char>(outlineArgument);
     if (right < left || bottom < top) return 0;
     CTextureDevice* device = device_;
     std::uint32_t colour = static_cast<std::uint32_t>(static_cast<std::uint8_t>(alpha)) << 24;
@@ -98,4 +100,4 @@ int CSceneRenderer::DrawRectangleImpl(int left, int top, int right, int bottom, 
     render::state::Render(kZBias, 0);
     return 1;
 }
-EI_REWRITTEN(0x005041F0, CSceneRenderer::DrawRectangleImpl);
+EI_REWRITTEN(0x005041F0, CSceneRenderer::DrawRectangle);

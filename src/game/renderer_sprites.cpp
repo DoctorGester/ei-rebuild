@@ -400,7 +400,8 @@ EI_REWRITTEN(0x00503680, CTextureDevice::DrawIndexedDirect);
 // byte counts) the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and
 // restored). The view matrix is the top of the pipeline's clip stack, transposed. Returns 1, or
 // 0 when a draw fails (the blend is then left as it is).
-int CSceneRenderer::DrawSpritesImpl(char additive, const void* pointArray, const void* spriteArray) {
+int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* spriteArray) {
+    const char additive = static_cast<char>(additiveArgument);   // only its low byte counts
     const auto* points = static_cast<const PointArray*>(pointArray);
     const auto* sprites = static_cast<const SpriteArray*>(spriteArray);
     CTransformPipeline* pipeline = pipeline_;
@@ -450,7 +451,7 @@ int CSceneRenderer::DrawSpritesImpl(char additive, const void* pointArray, const
     }
     return 1;
 }
-EI_REWRITTEN(0x00502CA0, CSceneRenderer::DrawSpritesImpl);
+EI_REWRITTEN(0x00502CA0, CSceneRenderer::DrawSprites);
 
 EI_REWRITTEN(0x00504F70, lib::AlignedArray<TLVertex>::SetSize);
 EI_REWRITTEN(0x00505080, lib::AlignedArray<TLVertex>::SetSizeDiscardStep);

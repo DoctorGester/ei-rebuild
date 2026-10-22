@@ -447,7 +447,7 @@ DWORD CreateRenderer() {
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
-    SceneRenderer()->CreateRendererImpl(g_mainWindow, options);
+    SceneRenderer()->CreateRenderer(g_mainWindow, options);
 
     DDSCAPS2 caps = {};
     DWORD total = 0, free = 0;

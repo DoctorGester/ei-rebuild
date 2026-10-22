@@ -113,7 +113,7 @@ volatile double g_minimumTilt = 20.0;
 // 00692140 / 00690FC0 / 00691030. The render surface, locked and unlocked.
 // 0056C750 (CWorldClient::ProjectDecal). The shadow projector: lays the texture's quad on
 // the ground.
-// 00501AF0 (CSceneRenderer::SetTextureImpl). Texture stages: binds a texture.
+// 00501AF0 (CSceneRenderer::SetTexture). Texture stages: binds a texture.
 // 006CB020. Light manager: is the point lit, AL.
 // 004EA4A0 (CTextureDevice::DrawFlatBlocks). Device: draws the shadow geometry.
 // 004018A0 Quaternion::PreMultiply; 005A0CD0 CFigureMesh::DrawOffset.
@@ -529,7 +529,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         float alpha = static_cast<float>(static_cast<double>(half->fadeIn) * kAlphaScale);
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
-    TheSceneRenderer()->SetTextureImpl(0, texture);
+    TheSceneRenderer()->SetTexture(0, texture);
     std::uint8_t lit = TheTerrain()->EdgeFade(&object->localPosition_);
     if (!makeTexture) return 1;   // the shadow map draws it
     TheRenderDevice()

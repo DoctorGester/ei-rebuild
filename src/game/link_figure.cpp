@@ -130,51 +130,6 @@ EI_REWRITTEN_SPECIAL(0x004F2E40, CLinkMesh::~CLinkMesh);
 
 EI_REWRITTEN_SPECIAL(0x004F2E20, CLinkMesh::~CLinkMesh);   // deleting
 
-// The virtual slots: the registered bodies (the draws' in link_mesh_draw.cpp).
-bool CLinkMesh::HasPart(const stlp::string* name) { return HasPartImpl(name); }
-void CLinkMesh::CollectPartNames(stlp::vector<stlp::string>* out) { CollectPartNamesImpl(out); }
-bool CLinkMesh::LoadPart(const stlp::string* name) { return LoadPartImpl(name); }
-bool CLinkMesh::RemovePart(const stlp::string* name) { return RemovePartImpl(name); }
-bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
-                            std::uint16_t** indices, int* vertexCount, int* indexCount) {
-    return GetPartDataImpl(name, vertices, corners, indices, vertexCount, indexCount);
-}
-bool CLinkMesh::FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
-                            lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars) {
-    return FlatColoursImpl(name, colour, specular, colours, speculars);
-}
-bool CLinkMesh::LightPart(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
-                          lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars) {
-    return LightPartImpl(name, lights, material, alpha, colours, speculars);
-}
-int CLinkMesh::DrawPartMoved(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
-                             lib::AlignedArray<std::uint32_t>* speculars, lib::AlignedArray<Vector3>* offsets,
-                             std::uint32_t u, std::uint32_t v) {
-    return DrawPartMovedImpl(name, flags, colours, speculars, offsets, u, v);
-}
-int CLinkMesh::DrawPart(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
-                        lib::AlignedArray<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) {
-    return DrawPartImpl(name, flags, colours, speculars, u, v);
-}
-int CLinkMesh::DrawPartMovedTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
-                                     lib::AlignedArray<std::uint32_t>* colours,
-                                     lib::AlignedArray<std::uint32_t>* speculars,
-                                     lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
-    return DrawPartMovedTexturedImpl(name, flags, first, second, colours, speculars, offsets, u, v);
-}
-int CLinkMesh::DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
-                                lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
-                                std::uint32_t u, std::uint32_t v) {
-    return DrawPartTexturedImpl(name, flags, first, second, colours, speculars, u, v);
-}
-int CLinkMesh::ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
-                           Vector2* points, float* bounds) {
-    return ProjectPartImpl(name, offsets, matrix, points, bounds);
-}
-int CLinkMesh::RasterisePart(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target) {
-    return RasterisePartImpl(name, pixels, target);
-}
-
 bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount,
                         const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
                         const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
@@ -365,19 +320,19 @@ void CLinkMesh::UpdateScreenRect() {
 void __fastcall LinkMeshUpdateScreenRect(CLinkMesh* self) { self->CLinkMesh::UpdateScreenRect(); }
 EI_REWRITTEN(0x004F45E0, LinkMeshUpdateScreenRect);
 
-bool CLinkMesh::HasPartImpl(const stlp::string* name) { return ranges_.find(*name) != ranges_.end(); }
-EI_REWRITTEN(0x004F3040, CLinkMesh::HasPartImpl);
+bool CLinkMesh::HasPart(const stlp::string* name) { return ranges_.find(*name) != ranges_.end(); }
+EI_REWRITTEN(0x004F3040, CLinkMesh::HasPart);
 
-void CLinkMesh::CollectPartNamesImpl(stlp::vector<stlp::string>* out) {
+void CLinkMesh::CollectPartNames(stlp::vector<stlp::string>* out) {
     for (LinkRangeMap::Node* node = ranges_.begin(); node != ranges_.end(); node = LinkRangeMap::Next(node))
         out->push_back(node->first);
 }
-EI_REWRITTEN(0x004F2FB0, CLinkMesh::CollectPartNamesImpl);
+EI_REWRITTEN(0x004F2FB0, CLinkMesh::CollectPartNames);
 
-bool CLinkMesh::LoadPartImpl(const stlp::string* name) { return loader_->LoadPartInto(this, name); }
-EI_REWRITTEN(0x004F30D0, CLinkMesh::LoadPartImpl);
+bool CLinkMesh::LoadPart(const stlp::string* name) { return loader_->LoadPartInto(this, name); }
+EI_REWRITTEN(0x004F30D0, CLinkMesh::LoadPart);
 
-bool CLinkMesh::RemovePartImpl(const stlp::string* name) {
+bool CLinkMesh::RemovePart(const stlp::string* name) {
     LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps (R16d)
@@ -403,9 +358,9 @@ bool CLinkMesh::RemovePartImpl(const stlp::string* name) {
     }
     return true;
 }
-EI_REWRITTEN(0x004F3530, CLinkMesh::RemovePartImpl);
+EI_REWRITTEN(0x004F3530, CLinkMesh::RemovePart);
 
-bool CLinkMesh::GetPartDataImpl(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
+bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                             std::uint16_t** indices, int* vertexCount, int* indexCount) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
@@ -417,4 +372,4 @@ bool CLinkMesh::GetPartDataImpl(const stlp::string* name, VertexPacket** vertice
     *vertexCount = r.vertices.count;
     return true;
 }
-EI_REWRITTEN(0x004F3780, CLinkMesh::GetPartDataImpl);
+EI_REWRITTEN(0x004F3780, CLinkMesh::GetPartData);

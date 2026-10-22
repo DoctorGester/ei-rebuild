@@ -453,13 +453,13 @@ static_assert(sizeof(HeldDevice) == 4);
 
 class CSceneRenderer : public CVisualizator {
 public:
-    int SetFogColourState(std::uint32_t colour) override { return SetFogColourStateImpl(colour); }   // 0
+    // 0: 00501AB0 (device_states.cpp).
+    int SetFogColourState(std::uint32_t colour) override;
     // 1: 00500AA0 (RET 4; renderer_lifetime.cpp). The device object dropped (null, then released), the helper
     // released (left set), then the base's destructor.
     ~CSceneRenderer() override;
-    void CreateRenderer(void* window, options::GameOptions* settings) override {   // 2: 00500B70
-        CreateRendererImpl(window, settings);
-    }
+    // 2: 00500B70 (renderer_init.cpp).
+    void CreateRenderer(void* window, options::GameOptions* settings) override;
     // 3: 005019F0 (renderer_lifetime.cpp). The base part's DestroyBase, flags_ bit 1 cleared, the
     // helper and the device object dropped (each set to null, then released).
     void DestroyRenderer() override;
@@ -480,50 +480,40 @@ public:
     std::uint32_t FrameTime() override { return frameTime_; }
     // 7: 00501CC0 (RET 4). Sets the colour the next draws are tinted with (kept at +0x18 and in the
     // device object's colour_), the transform object's ambient from it (SetBaseColour).
-    void SetColour(std::uint32_t colour) override { SetColourImpl(colour); }
+    void SetColour(std::uint32_t colour) override;
     // 8: 00501A40 (EAX 1). Clears the render target and the depth (and the stencil when the device
     // has one) to the fog colour and 1.
     int ClearFrame() override;
     // 9: 00501AA0. The device object's z-buffer setting (CTextureDevice::zEnable_).
     std::uint32_t ZEnable() override;
     // 10: 00501C60 (RET 8; device_states.cpp). Sets SRCBLEND, then DESTBLEND.
-    int SetBlend(std::uint32_t source, std::uint32_t dest) override { return SetBlendImpl(source, dest); }
+    int SetBlend(std::uint32_t source, std::uint32_t dest) override;
     // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
-    int SetTexture(int stage, void* texture) override { return SetTextureImpl(stage, texture); }
+    int SetTexture(int stage, void* texture) override;
     // 12: 00501BB0 (RET 0x10; renderer_triangles.cpp). Draws pre-transformed vertices (D3DTLVERTEX,
     // FVF 0x1C4) as an indexed triangle list with the current state. Returns 1.
-    int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount) override {
-        return DrawTrianglesImpl(const_cast<void*>(vertices), vertexCount, indices, indexCount);
-    }
+    int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount) override;
     // 13: 00501D40 (RET 0x1C). Draws `figure` (a CFigureMesh) through its drawer's lit draw
     // (005A7A70) with `lights`, the drawing context `material`, `alpha`, `screen` (or null) and two
     // textures, unless it is hidden (flags +8 bit 0x80). Returns 1.
     int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen, CTexture* textureA,
-                      CTexture* textureB) override {
-        return DrawFigureLitImpl(figure, lights, material, alpha, screen, textureA, textureB);
-    }
+                      CTexture* textureB) override;
     // 14: 00501D00 (RET 0x18). Draws `figure` through its drawer (+0x94, 005A7640) unless it is
     // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
     // rectangle drawn, `material` (null, or an interface sprite's material) is passed on. The second
     // and third arguments are not read there.
     int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
-                   tagRECT* screen) override {
-        return DrawFigureImpl(figure, unknownA, unknownB, material, alpha, screen);
-    }
+                   tagRECT* screen) override;
     // 15: 00501CE0 (RET 4). Draws a line list (0049B780 with the pipeline and the device object).
-    void DrawLineList(void* lines) override { DrawLineListImpl(lines); }
-    // 16 (six arguments). Draws a strip along `points` (a lightning segment's aligned points) of
+    void DrawLineList(void* lines) override;
+    // 16: 00501D90 (RET 0x18; renderer_strip.cpp). Draws a strip along `points` (a lightning segment's aligned points) of
     // `width` with the bound texture: `visibility` the bounds' clip result, the texture's `length`
     // and `offset` along it (0 and 0: untextured lengthwise), `slant` 0.25 at every call known.
-    int DrawStrip(void* points, float width, int visibility, float length, float offset, float slant) override {
-        return DrawStripImpl(static_cast<const int*>(points), width, visibility, length, offset, slant);
-    }
-    // 17 (RET 0xC). Draws sprites facing the view with the bound texture: `points` an aligned array
+    int DrawStrip(void* points, float width, int visibility, float length, float offset, float slant) override;
+    // 17: 00502CA0 (RET 0xC; renderer_sprites.cpp). Draws sprites facing the view with the bound texture: `points` an aligned array
     // of centres and sizes (x, y, z, size), `sprites` a CArray of their colours and texture
     // rectangles. The first argument is 0 at every call known.
-    int DrawSprites(int unknown, void* points, void* sprites) override {
-        return DrawSpritesImpl(static_cast<char>(unknown), points, sprites);
-    }
+    int DrawSprites(int unknown, void* points, void* sprites) override;
     // 18: 00503A40 (RET 0x10, EAX 1; renderer_marker.cpp, A-U9). The selection marker under a selected
     // unit (00569E40's draw pass): a flat green arrow of half-transparent 0x8000FF00, 0.3 above
     // `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the device's flat
@@ -531,11 +521,9 @@ public:
     int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX, const Vector3* axisY) override;
     // 19: 005041F0 (RET 0x18; renderer_rect.cpp). A black rectangle (left, top, right, bottom in
     // screen pixels) of `alpha` over the current blend state, with `outline` a white frame. Returns 1.
-    int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) override {
-        return DrawRectangleImpl(left, top, right, bottom, static_cast<char>(alpha), static_cast<char>(outline));
-    }
+    int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) override;
     // 20: 005045D0 (RET 8; renderer_lines.cpp). A screen polyline in `colour`.
-    int Polyline(const ScreenPoints* points, std::uint32_t colour) override { return PolylineImpl(points, colour); }
+    int Polyline(const ScreenPoints* points, std::uint32_t colour) override;
     // 21: 00504860 (RET 0x10). Draws `texture` at (x, y) scaled by `scale` as a
     // pre-transformed strip of four vertices (z 0.9, white, specular 0xFF000000) through stage 0
     // (slot 11). 0 without a texture, else 1.
@@ -561,23 +549,6 @@ public:
     // matrix stacks emptied and filled again for `screen` and a field of view (0: the camera's), as
     // the creation fills them, then the transform object's projection and viewport size.
     virtual void SetView(const tagRECT* screen, float fieldOfView);
-
-    // The slots' bodies (registered at their addresses).
-    int PolylineImpl(const ScreenPoints* points, std::uint32_t colour);
-    int SetFogColourStateImpl(std::uint32_t colour);
-    void CreateRendererImpl(void* window, options::GameOptions* settings);
-    void SetColourImpl(std::uint32_t colour);
-    int SetBlendImpl(std::uint32_t source, std::uint32_t dest);
-    int SetTextureImpl(int stage, void* texture);
-    int DrawTrianglesImpl(void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount);
-    int DrawFigureLitImpl(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
-                          CTexture* textureA, CTexture* textureB);
-    int DrawFigureImpl(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
-                       tagRECT* screen);
-    void DrawLineListImpl(void* lines);
-    int DrawStripImpl(const int* points, float width, int mode, float uLength, float vStart, float vSize);
-    int DrawSpritesImpl(char additive, const void* pointArray, const void* spriteArray);
-    int DrawRectangleImpl(int left, int top, int right, int bottom, char alpha, char outline);
 
     // 00497CE0 (RET 8; particle_render.cpp). Makes sure the texture in `holder` is loaded
     // (00500970) and binds it to `stage` through slot 11.

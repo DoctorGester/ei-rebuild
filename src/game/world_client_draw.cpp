@@ -588,7 +588,7 @@ int CWorldClient::DrawPass() {
     stlp::list<int>& selected = list7BC_;
     if (!ListEmpty(selected) && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
-        TheSceneRenderer()->SetTextureImpl(0, nullptr);
+        TheSceneRenderer()->SetTexture(0, nullptr);
         CMapObjectManager* manager = manager40_;
         using Node = stlp::list<int>::Node;
         Node* head = selected.head;

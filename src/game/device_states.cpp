@@ -15,19 +15,19 @@
 
 // 00501AB0 (thiscall on the renderer, RET 4). Sets FOGCOLOR; a failure is a fatal error (its
 // result returned), else 1.
-int CSceneRenderer::SetFogColourStateImpl(std::uint32_t colour) {
+int CSceneRenderer::SetFogColourState(std::uint32_t colour) {
     IDirect3DDevice7* d3d = device::D3D(device_);
     long hr = device::SetRenderState(d3d, D3DRENDERSTATE_FOGCOLOR, colour);
     render::state::Render(D3DRENDERSTATE_FOGCOLOR, colour);
     if (hr != 0) return game::FatalError("Can't set fog color 0x%X.\n", colour);
     return 1;
 }
-EI_REWRITTEN(0x00501AB0, CSceneRenderer::SetFogColourStateImpl);
+EI_REWRITTEN(0x00501AB0, CSceneRenderer::SetFogColourState);
 
 // 00501C60 (thiscall on the renderer, RET 8). Sets SRCBLEND, then DESTBLEND (D3DBLEND values: the
 // particle draw 00498940 passes 5, 2 for additive sources and 5, 6 to go back). A failure is
 // reported (004800E0, its result returned; DESTBLEND is then not set), else 1.
-int CSceneRenderer::SetBlendImpl(std::uint32_t source, std::uint32_t dest) {
+int CSceneRenderer::SetBlend(std::uint32_t source, std::uint32_t dest) {
     long hr = device::SetRenderState(device::D3D(device_), D3DRENDERSTATE_SRCBLEND, source);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, source);
     if (hr != 0) return app::FatalErrorCode(hr, "Can't set source alpha blend mode.\n");
@@ -36,7 +36,7 @@ int CSceneRenderer::SetBlendImpl(std::uint32_t source, std::uint32_t dest) {
     if (hr != 0) return app::FatalErrorCode(hr, "Can't set destination alpha blend mode.\n");
     return 1;
 }
-EI_REWRITTEN(0x00501C60, CSceneRenderer::SetBlendImpl);
+EI_REWRITTEN(0x00501C60, CSceneRenderer::SetBlend);
 
 void* CDeviceMaterial::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CDeviceMaterial::operator delete(void* block) { gamecrt::operator_delete(block); }

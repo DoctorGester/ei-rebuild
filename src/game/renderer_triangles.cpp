@@ -20,7 +20,8 @@ constexpr DWORD kFvf = 0x1C4;   // D3DFVF_TLVERTEX
 }
 
 // 00501BB0. Returns 1.
-int CSceneRenderer::DrawTrianglesImpl(void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount) {
+int CSceneRenderer::DrawTriangles(const void* vertexData, int vertexCount, const std::uint16_t* indices, unsigned indexCount) {
+    void* vertices = const_cast<void*>(vertexData);
     CTextureDevice* device = device_;
     if (device->distanceFog_) device->pipeline_->transform_->FogVertices(static_cast<TLVertex*>(vertices), vertexCount);
     if (render::TlDraw(device, vertices, static_cast<int>(kFvf), vertexCount, indices, static_cast<int>(indexCount),
@@ -36,4 +37,4 @@ int CSceneRenderer::DrawTrianglesImpl(void* vertices, int vertexCount, const std
     device->drawCount_ += 1;
     return 1;
 }
-EI_REWRITTEN(0x00501BB0, CSceneRenderer::DrawTrianglesImpl);
+EI_REWRITTEN(0x00501BB0, CSceneRenderer::DrawTriangles);

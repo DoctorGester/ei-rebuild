@@ -197,7 +197,7 @@ EI_REWRITTEN(0x00501AA0, RendererZEnableHook);
 
 // The holder is stored; no device lock. The stage's texture is null on
 // the switch-over (no holder has a DirectDraw surface); the new renderer draws with the holder.
-int CSceneRenderer::SetTextureImpl(int stage, void* texture) {
+int CSceneRenderer::SetTexture(int stage, void* texture) {
     CTextureDevice* device = device_;
     CDXSurface*& bound = device->stageSurfaces_[stage];
     CDXSurface* surface = texture ? static_cast<CTexture*>(texture)->surface_ : nullptr;
@@ -207,32 +207,32 @@ int CSceneRenderer::SetTextureImpl(int stage, void* texture) {
     ++device->textureChanges_;
     return 1;
 }
-EI_REWRITTEN(0x00501AF0, CSceneRenderer::SetTextureImpl);
+EI_REWRITTEN(0x00501AF0, CSceneRenderer::SetTexture);
 
-void CSceneRenderer::SetColourImpl(std::uint32_t colour) {
+void CSceneRenderer::SetColour(std::uint32_t colour) {
     SetBaseColour(colour);
     device_->colour_ = colour;
 }
-EI_REWRITTEN(0x00501CC0, CSceneRenderer::SetColourImpl);
+EI_REWRITTEN(0x00501CC0, CSceneRenderer::SetColour);
 
-void CSceneRenderer::DrawLineListImpl(void* lines) { static_cast<LineBatch*>(lines)->Draw(pipeline_, device_); }
-EI_REWRITTEN(0x00501CE0, CSceneRenderer::DrawLineListImpl);
+void CSceneRenderer::DrawLineList(void* lines) { static_cast<LineBatch*>(lines)->Draw(pipeline_, device_); }
+EI_REWRITTEN(0x00501CE0, CSceneRenderer::DrawLineList);
 
-int CSceneRenderer::DrawFigureImpl(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
+int CSceneRenderer::DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
                                tagRECT* screen) {
     auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
     return mesh->drawer_->DrawPlain(device_, reinterpret_cast<int>(unknownA), reinterpret_cast<int>(unknownB), reinterpret_cast<int>(material), alpha, screen);
 }
-EI_REWRITTEN(0x00501D00, CSceneRenderer::DrawFigureImpl);
+EI_REWRITTEN(0x00501D00, CSceneRenderer::DrawFigure);
 
-int CSceneRenderer::DrawFigureLitImpl(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
+int CSceneRenderer::DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
                                   CTexture* textureA, CTexture* textureB) {
     auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
     return mesh->drawer_->DrawLit(device_, static_cast<const FigureLights*>(lights), static_cast<CMaterial*>(material), alpha, screen, textureA, textureB);
 }
-EI_REWRITTEN(0x00501D40, CSceneRenderer::DrawFigureLitImpl);
+EI_REWRITTEN(0x00501D40, CSceneRenderer::DrawFigureLit);
 
 void CSceneRenderer::GetGamma(float* brightness, float* contrast, float* gamma) const {
     *brightness = brightness_;
