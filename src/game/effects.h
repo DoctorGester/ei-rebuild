@@ -60,10 +60,37 @@ static_assert(sizeof(Particle) == 0x64);
 // hold depends on the source type; code indexes element 0 and reads element 1 through it.
 struct ParticleElement {
     Vector3 pos;                // +0x00
-    float value[10];            // +0x0C (value[3] = +0x18, value[5] = +0x20, ...)
-    int ticks;                  // +0x34
+    union {
+        float value[10];        // +0x0C (value[3] = +0x18, value[5] = +0x20, ...)
+        // Lightning (EmitLightning, particle_emitters.cpp): a point of the bolt, on the ground.
+        struct {
+            Vector3 fork;       // +0x0C
+            Vector3 base;       // +0x18 pos as placed
+            std::uint8_t unused_24[0xC];
+            int emitted;        // +0x30 point 0: particles emitted along the bolt
+        } bolt;
+        // Modifier1-12 (EmitModifier): a point of the ring around the carrier.
+        struct {
+            Vector3 start;      // +0x0C pos as placed
+            Vector3 offset;     // +0x18 from the emission point
+        } ring;
+        // The ground plane under the source (TickGroundPlane, PlatformSet::SurfacePlane).
+        struct {
+            float height;       // +0x0C
+            float unused_10[2];
+            Vector3 normal;     // +0x18 its z replaced by its reciprocal when not 0
+        } plane;
+        // FeetCloud (TickFeetCloud): a foot; ticks says which (nonzero: the left).
+        struct {
+            float unused_0C[9];
+            std::int32_t countdown;   // +0x30 reset every tick; the cloud starts at the foot while >= 0
+        } foot;
+    };
+    int ticks;                  // +0x34 (lightning point 0: bursts; modifier point 0: the fade step)
 };
 static_assert(sizeof(ParticleElement) == 0x38);
+static_assert(offsetof(ParticleElement, bolt.emitted) == 0x30 && offsetof(ParticleElement, ring.offset) == 0x18);
+static_assert(offsetof(ParticleElement, plane.normal) == 0x18 && offsetof(ParticleElement, foot.countdown) == 0x30);
 
 class CParticleSource;
 class CObject3D;
