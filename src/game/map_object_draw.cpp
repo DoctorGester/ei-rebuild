@@ -219,4 +219,4 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     Finish(lights, list);
     return 1;
 }
-EI_REPLACE_METHOD(0x0051B7E0, CObject3DClientSpecific::Draw);
+EI_REWRITTEN(0x0051B7E0, CObject3DClientSpecific::Draw);

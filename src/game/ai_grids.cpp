@@ -10,11 +10,14 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/compiled_vtable.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstring>
+
+extern "C" int __cdecl _purecall();
 
 // ---- Allocate / free ------------------------------------------------------------------------------
 
@@ -189,6 +192,16 @@ void LocalSearch::Destruct() {
 }
 EI_REWRITTEN(0x0058AA60, LocalSearch::Destruct);
 
+namespace {
+// The unit layer base's table: the compiler's (C19; game.exe's 0073FD7C, the same slots), both slots pure.
+struct UnitLayerBaseClass final : ei::CompiledTag<UnitLayerBaseClass> {
+    virtual void Set(const UnitLayerNode*) { _purecall(); }     // 0: pure
+    virtual void Merge(const UnitLayerNode*) { _purecall(); }   // 1: pure
+};
+} // namespace
+
+void* CUnitLayer::BaseVtable() { return UnitLayerBaseClass::Vtable(); }
+
 CUnitLayer* CUnitLayer::Construct() {
     nodes.vtable = mfc::impl::NodeListClass::Vtable();
     nodes.count = 0;
@@ -197,7 +210,7 @@ CUnitLayer* CUnitLayer::Construct() {
     nodes.head = nullptr;
     nodes.blocks = nullptr;
     nodes.blockSize = 0x400;
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, BaseVtable());
     for (UnitLayerNode*& bucket : buckets) bucket = nullptr;
     freeNodes = nullptr;
     return this;

@@ -34,6 +34,7 @@ vtable,slots,class,file,note
 0073BF38,4,ConnectionClass,src/game/net_connection.h,a connection (Connection)
 0073BF4C,4,ReplicaEntryClass,src/game/net_connection.h,a replicated object's tracking record (ReplicaEntry)
 0073BF5C,15,SessionBaseClass,src/game/net_classes.h,the session base (SessionBase)
+0073BFA4,2,DebugPanelClass,src/game/string_map.cpp,the debug information panel (CDebugPanel)
 0073BFAC,2,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (CDebugPanel::Construct stores 0073BFA4 only)
 0073BFE8,63,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
 0073C0E4,3,FakeUnitRecord9CArrayClass,src/game/record_arrays.h,CArray (a fake unit's 0x9C-byte records)
@@ -57,12 +58,15 @@ vtable,slots,class,file,note
 0073C1C4,24,CPlainFigureMesh,src/game/figure_mesh.h,class 0x42 (the factory and the scene's figure records 00453240)
 0073C274,18,SceneMesh,src/game/scene_loader.h,CFakeFigure (the scene's meshes 004545C0)
 0073C2BC,3,FaceGroupArrayClass,src/game/record_arrays.h,CArray<FaceGroup> (a scene mesh's face groups)
+0073C350,1,MouseClass,src/game/app_lifetime.cpp,the DirectInput mouse (CDirectInputMouse)
+0073C360,2,PartyRecordClass,src/game/app_lifetime.cpp,a named party record (PartyRecord)
 0073C37C,3,BehaviourPatrolsArrayClass,src/lib/mfc_slots.h,CArray (a unit record behaviour's patrols; derived from PatrolArrayClass)
 0073C388,3,ArrayBaseClass,src/lib/mfc_slots.h,CArray (the base vtable the element arrays' destructors restore (patrols; motion records))
 0073C394,3,PatrolArrayClass,src/lib/mfc_slots.h,CArray (patrols; 32 bytes with a waypoint array at +0xC)
 0073C3A0,3,WaypointArrayClass,src/lib/mfc_slots.h,CArray (a patrol's waypoints; derived from ArrayBaseClass)
 0073C3D0,3,IntArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> / CDWordArray-like: the zone and quest id lists; the climb tables)
 0073C3DC,3,AllodArrayClass,src/lib/mfc_slots.h,CArray (the map database's allods)
+0073C3E8,3,MapRecordArrayClass,src/game/game_slots.h,CArray<MapRecord> (the map database's maps)
 0073C3F4,3,ExitArrayClass,src/game/game_arrays.h,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores)
 0073C400,3,MapRecordItemsClass,src/game/game_arrays.h,CArray (the array inside a map record; derived from ExitArrayClass)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
@@ -97,8 +101,17 @@ vtable,slots,class,file,note
 0073CAB4,1,GameErrorClass,src/game/dx_errors.h,the thrown error object (GameErrorFormat / GameErrorFormatResult)
 0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
 0073D024,3,ParticleDepthArrayClass,src/game/game_arrays.h,CArray (the particles' draw order 007A9C50)
+0073D0C4,2,ClassTemplateClass,src/game/class_template_stock.cpp,a hero class template (ClassTemplate)
 0073D110,3,ScriptGroupClass,src/game/game_arrays.h,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table)
 0073D11C,3,ObjectRefArrayClass,src/game/game_arrays.h,CArray (CArray<ScriptObjectRef> as a script group's base; destructor 004C2290)
+0073D128,13,GuardClass,src/game/ai_mode_class.h,the Guard AI mode
+0073D15C,13,ModeBaseClass,src/game/ai_mode_class.h,the AI modes' abstract base (CAIMode)
+0073D190,13,SentryClass,src/game/ai_mode_class.h,the Sentry AI mode
+0073D1C4,13,FollowClass,src/game/ai_mode_class.h,the Follow AI mode
+0073D1F8,13,SuspectionClass,src/game/ai_mode_class.h,the Suspection AI mode
+0073D22C,13,ActionBaseClass,src/game/ai_mode_class.h,the acting AI modes' abstract base
+0073D260,13,AggressionClass,src/game/ai_mode_class.h,the Aggression AI mode
+0073D294,13,CorpseWatcherClass,src/game/ai_mode_class.h,the CorpseWatcher AI mode
 0073D2C8,3,PartySlotArrayClass,src/lib/mfc_slots.h,CArray (the script's party slots)
 0073D2D4,3,ScriptStringValuesClass,src/game/game_arrays.h,CArray<CString> (the script variables' string values and names; destructor 004BC810)
 0073D2E0,3,ScriptFloatValuesClass,src/lib/mfc_slots.h,CArray (the script variables' float values; derived from ScriptFloatsClass)
@@ -172,6 +185,10 @@ vtable,slots,class,file,note
 0073DD6C,21,CMapObjectServerClass,src/game/map_object_companion_slots.cpp,the map objects' server companion (CMapObjectServer)
 0073DE40,3,FrameArrayClass,src/lib/mfc_slots.h,CArray (a 3D object's frames)
 0073DE4C,3,Object3DListClass,src/lib/mfc_slots.h,CList (a 3D object's effect sources)
+0073DE90,27,Object3DClientSpecificClass,src/game/object3d_specific_slots.cpp,a 3D object's client half (CObject3DClientSpecific)
+0073DEFC,27,HalfBaseClass,src/game/object3d_specific_slots.cpp,a 3D object's half: the base (CObject3DSpecific)
+0073DF68,1,WoundsMaterial,src/game/map_object_shadow.h,the wounds material (a device material; slot 0 0051C710)
+0073DFBC,27,Object3DServerClass,src/game/object3d_specific_slots.cpp,a 3D object's server half (CObject3DServer)
 0073E178,61,PlainMapObject,src/game/map_object_kinds.h,CTree (PlainMapObject<0x52>)
 0073E26C,61,PlainMapObject,src/game/map_object_kinds.h,CBuilding (PlainMapObject<0x54>)
 0073E360,61,PlainMapObject,src/game/map_object_kinds.h,CStone (PlainMapObject<0x53>)
@@ -204,10 +221,15 @@ vtable,slots,class,file,note
 0073F028,3,OwnedRefListClass,src/game/game_slots.h,CList (a map object controller's counted pointers)
 0073F034,3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour> (the server unit's brain)
 0073F040,3,AttackOptionArrayClass,src/lib/mfc_slots.h,CArray (a unit's attack options)
+0073F04C,3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour>: the brain constructor's second table with 0073F034's slots
 0073F058,3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's object records)
 0073F064,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit's 0x18-byte memory records)
+0073F070,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit memory's calls): the constructor's second table with 0073F064's slots
 0073F07C,3,PointArrayClass,src/lib/mfc_slots.h,CArray (a unit's point lists)
+0073F0C4,13,TamedClass,src/game/ai_mode_class.h,the Tamed AI mode (the Player mode's slots but 2-4 and 8)
+0073F0F8,13,PlayerClass,src/game/ai_mode_class.h,the Player AI mode
 0073F12C,3,LootListClass,src/lib/mfc_slots.h,CList (the loot lists)
+0073F140,3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's reports): the constructor's second table with 0073F058's slots
 0073F18C,42,CWorldBaseClass,src/game/world_class.h,the worlds' base (CWorld)
 0073F234,3,CountdownArrayClass,src/lib/mfc_slots.h,CArray (the world's countdowns)
 0073F240,7,CWorldHandleClass,src/game/world_sessions.cpp,the server world's counted helper (a player source)
@@ -242,6 +264,7 @@ vtable,slots,class,file,note
 0073F8C8,9,BufferedStream,src/game/buffered_file.h,
 0073F928,42,CWorldServerClass,src/game/world_class.h,the server world
 0073F9D0,3,RefListBClass,src/game/game_slots.h,CList (the world server's counted pointers)
+0073F9DC,1,SectorMapClass,src/game/sector_map.cpp,the sector map (CSectorMap)
 0073F9E0,3,AreaListClass,src/lib/mfc_slots.h,CArray (the AI map's area lists; after CSectorMap's one-slot table 0073F9DC)
 0073F9EC,3,SectorArrayClass,src/game/record_arrays.h,CArray (the AI map's sectors)
 0073F9F8,3,NodeListClass,src/lib/mfc_slots.h,CList (the AI map's node lists)
@@ -254,6 +277,7 @@ vtable,slots,class,file,note
 0073FABC,3,ObjectPtrArrayBaseClass,src/game/game_arrays.h,CArray (an array of object pointers; the base 0059A100 restores)
 0073FAC8,3,ObjectPtrArrayClass,src/game/game_arrays.h,CArray (a save's shared object pointers; derived from ObjectPtrArrayBaseClass)
 0073FAD4,2,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
+0073FADC,1,SectorClass,src/game/sector_map.cpp,a world sector (Sector)
 0073FAE0,3,SectorOccluderArrayClass,src/lib/mfc_slots.h,CArray (a sector's occluders; after the sector's one-slot table 0073FADC)
 0073FB10,13,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
 0073FB44,13,FigureDrawerBase,src/game/link_figure.h,the drawer's base (stored by its destructors 005A7080 / 005A70C0)
@@ -264,6 +288,9 @@ vtable,slots,class,file,note
 0073FCFC,3,BlockCostListClass,src/lib/mfc_slots.h,CList (the AI's block cost lists)
 0073FD58,1,UnitShapeCache,src/game/ai_shape_cache.h,the unit shapes' cache (007C2F70)
 0073FD5C,4,CUnitShapeClass,src/game/ai_unit_shape.cpp,a unit's footprint on the AI map's unit layers
+0073FD6C,2,LargeUnitLayerClass,src/game/ai_unit_layer.cpp,the AI map's large-unit layer
+0073FD74,2,SmallUnitLayerClass,src/game/ai_unit_layer.cpp,the AI map's small-unit layer
+0073FD7C,2,UnitLayerBaseClass,src/game/ai_grids.cpp,the AI map's unit layer base (CUnitLayer)
 0073FD9C,3,WaypointListClass,src/lib/mfc_slots.h,CList (the AI plan's waypoint lists)
 0073FDE0,3,SpiralCellArrayClass,src/lib/mfc_slots.h,CArray (the sector spiral's cells)
 0073FDEC,3,SpiralOffsetArrayClass,src/game/game_arrays.h,CArray (the sector spiral's offsets 007C2FF8)
@@ -273,6 +300,10 @@ vtable,slots,class,file,note
 0073FE34,3,SmoothNodeArrayClass,src/game/game_arrays.h,CArray (the path smoother's node pool 007C3038)
 0073FEB4,3,StaticListClass,src/lib/mfc_slots.h,CList (the list a static initialiser builds (005CDAD0))
 0073FF34,3,AttentionListClass,src/lib/mfc_slots.h,CList (AIAttention::Choose's list)
+0073FF40,13,PatrolClass,src/game/ai_mode_class.h,the Patrol AI mode
+0073FF74,3,PatrolPointsClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the constructors')
+0073FF80,3,PatrolPointsBaseClass,src/game/unit_ai_mode_lifetime.cpp,CArray (a patrol mode's points; the destructors': the same slots)
+0073FF8C,13,FearClass,src/game/ai_mode_class.h,the Fear AI mode
 0074019C,13,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 00740244,13,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
 007402AC,3,UnitPtrArrayClass,src/lib/mfc_slots.h,CArray (the interface's unit pointer arrays)
@@ -343,6 +374,7 @@ vtable,slots,class,file,note
 00744064,1,ArmorRecordClass,src/game/item_db.h,an armour record (ArmorRecord)
 00744068,1,WeaponRecordClass,src/game/item_db.h,a weapon record (WeaponRecord)
 00744098,13,CMusicSystem,src/game/sound.h,
+007440CC,3,ThemeArrayClass,src/game/record_arrays.h,CArray<MusicTheme> (the music system's themes)
 007440F0,13,CSoundManager,src/game/sound.h,
 00744124,3,WaveListClass,src/game/game_slots.h,CList (the sound cache's wave records)
 00744130,3,SoundListClass,src/lib/mfc_slots.h,CList (the sound manager's list)
@@ -354,3 +386,4 @@ vtable,slots,class,file,note
 00744228,3,TerrainArrayCClass,src/lib/mfc_slots.h,CArray (the terrain builder's arrays; 006CC530)
 00744264,1,PrintRecord,src/game/model.h,a prints.db record
 00744268,1,PrintRecord2,src/game/model.h,prints.db's second record type
+00744288,3,DibClass,src/game/dib.cpp,CDib

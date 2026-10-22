@@ -38,7 +38,7 @@ EI_REWRITTEN(0x004CB6D0, ScalarDeleting<&gamelists::ObjectRefs::Destruct<ObjectR
 EI_REWRITTEN(0x0052CC30, ScalarDeleting<&gamelists::ObjectRefs::Destruct<VictimListClass>>::Delete);
 EI_REWRITTEN(0x00571E70, ScalarDeleting<&gamearrays::ObjectPtrs::Destruct<ClientObjectPtrArrayClass>>::Delete);
 EI_REWRITTEN(0x005989B0, ScalarDeleting<&gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>>::Delete);
-EI_REPLACE_METHOD(0x00556AB0, ScalarDeleting<&ObjectValues::Destruct<MemoryObjectArrayClass>>::Delete);
+EI_REWRITTEN(0x00556AB0, ScalarDeleting<&ObjectValues::Destruct<MemoryObjectArrayClass>>::Delete);
 EI_REWRITTEN(0x00558700, ScalarDeleting<&ObjectValues::Destruct<MemoryObjectArrayClass>>::Delete);
 EI_REWRITTEN(0x00511FF0, ScalarDeleting<&EffectObjects::Destruct<EffectObjectArrayClass>>::Delete);
 EI_REWRITTEN(0x00558820, ScalarDeleting<&gamelists::Holders::Destruct<ArmourSpellListClass>>::Delete);
@@ -84,9 +84,9 @@ EI_REWRITTEN(0x004C3BE0, gamearrays::Groups::Serialize);       // the script's g
 EI_REWRITTEN(0x004C5E60, gamearrays::PointLights::Serialize);  // the script's point lights
 EI_REWRITTEN(0x004C9E20, gamearrays::Objectives::Serialize);   // a quest's objectives
 EI_REWRITTEN(0x00460270, gamearrays::Exits::Serialize);        // a zone's exits
-EI_REPLACE_METHOD(0x0045FEB0, BuiltZoneRecords::Serialize);         // the map database's zones
+EI_REWRITTEN(0x0045FEB0, BuiltZoneRecords::Serialize);         // the map database's zones
 EI_REWRITTEN(0x00511C30, gamearrays::Particles::Serialize);    // a map object client's effect particles
-EI_REPLACE_METHOD(0x00556E10, ObjectValues::Serialize);             // a unit memory's object records
+EI_REWRITTEN(0x00556E10, ObjectValues::Serialize);             // a unit memory's object records
 EI_REWRITTEN(0x004C55C0, BuiltCommands::Serialize);            // a command block
 
 // Lists whose loader builds, assigns and releases a temporary (S6d).

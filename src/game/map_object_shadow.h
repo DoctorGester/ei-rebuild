@@ -130,7 +130,9 @@ public:
     // the shadow texture released, the arrays' blocks freed, then the base half's.
     void DestructBody();
     // 0051AD70 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
-    CObject3DClientSpecific* DeleteClient(unsigned flags);
+    CObject3DClientSpecific* DeletingDestruct(unsigned flags);
+    // The compiled table (object3d_halves.cpp, C19) in place of game.exe's 0073DE90.
+    static void* Vtable();
     // 0051AEC0 (slot 2). The cursor -1, flags_ 0, the shadow and wounds textures and the wounds
     // material dropped, bounds and sphere 0, no part sets (not freed), touch time 0, scale 1.
     // Returns 1.
@@ -248,13 +250,16 @@ static_assert(offsetof(CObject3DClientSpecific, figureScale) == 0xF0 && offsetof
 // outside the view (R20, world_client_shadow_casters.cpp) share it.
 bool ShadowCastStrength(CObject3D* object, float* strength);
 
-// The material that draws a wounds texture (a CDeviceMaterial, device_material.h: 0x24 bytes,
-// vtable 0073DF68 over the counted root 0073C368; 0051C3D0 makes it, slot 0 0051C710 deletes it):
-// blend 1, source 5 (D3DBLEND_SRCALPHA), destination 6 (D3DBLEND_INVSRCALPHA), the renderer
-// helper's preset 4, two stages.
-struct __declspec(novtable) WoundsMaterial : CDeviceMaterial {
+// The material that draws a wounds texture (a CDeviceMaterial, device_material.h: 0x24 bytes; the
+// compiler's vtable in place of game.exe's 0073DF68 (C19), over the counted root 0073C368; 0051C3D0
+// makes it, slot 0 0051C710 deletes it): blend 1, source 5 (D3DBLEND_SRCALPHA), destination 6
+// (D3DBLEND_INVSRCALPHA), the renderer helper's preset 4, two stages.
+struct WoundsMaterial final : CDeviceMaterial {
     static constexpr std::uintptr_t kRootVtableAddress = std::uintptr_t(0x0073C368);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DF68);
+    // The constructor 0051C3D0 inlines (unit_client_wounds.cpp).
+    WoundsMaterial();
+    // Slot 0: DeleteScalar, called without dispatch.
+    void DeletingDestructor(unsigned flags) override { WoundsMaterial::DeleteScalar(flags); }
     // 0051C710 (slot 0, RET 4; object3d_halves.cpp). The destructor body, then freed when bit 0 of
     // `flags` is set. Returns this.
     WoundsMaterial* DeleteScalar(unsigned flags);

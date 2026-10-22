@@ -8,6 +8,7 @@
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
+#include "../../src/game/ai_mode_class.h"
 #include "../../src/game/ai_motion.h"
 #include "../../src/game/camera.h"
 #include "../../src/game/combat.h"
@@ -150,17 +151,49 @@ std::uint32_t HashWords(const std::uint32_t* words, int count) {
 
 const char* Text(const char* s) { return s ? s : ""; }
 
-// The AI mode a vtable belongs to (unit_ai.h), or null for one not listed.
-const char* ModeName(const void* vtable) {
-    static const std::pair<const void*, const char*> kModes[] = {
-        {aimode::kGuardVtable, "guard"},         {aimode::kPatrolVtable, "patrol"},
-        {aimode::kSentryVtable, "sentry"},       {aimode::kSuspectionVtable, "suspection"},
-        {aimode::kAggressionVtable, "aggression"}, {aimode::kCorpseWatcherVtable, "corpsewatcher"},
-        {aimode::kPlayerVtable, "player"},       {aimode::kFearVtable, "fear"},
-        {aimode::kTamedVtable, "tamed"},         {aimode::kFollowVtable, "follow"},
+// The AI modes' kinds. A mode's id in the digest is game.exe's vtable address for its kind (what the goldens hold):
+// game.exe's modes keep that table, the image's the compiled tag's (ai_mode_class.h) in its place.
+struct ModeKind {
+    const void* original;   // game.exe's table: the id
+    const void* compiled;   // the image's
+    const char* name;
+};
+
+const std::vector<ModeKind>& ModeKinds() {
+    static const std::vector<ModeKind> kinds = {
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D128), aimode::GuardClass::Vtable(), "guard"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073FF40), aimode::PatrolClass::Vtable(), "patrol"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D190), aimode::SentryClass::Vtable(), "sentry"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D1F8), aimode::SuspectionClass::Vtable(), "suspection"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D260), aimode::AggressionClass::Vtable(), "aggression"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D294), aimode::CorpseWatcherClass::Vtable(), "corpsewatcher"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073F0F8), aimode::PlayerClass::Vtable(), "player"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073FF8C), aimode::FearClass::Vtable(), "fear"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073F0C4), aimode::TamedClass::Vtable(), "tamed"},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0073D1C4), aimode::FollowClass::Vtable(), "follow"},
     };
-    for (const auto& m : kModes)
-        if (m.first == vtable) return m.second;
+    return kinds;
+}
+
+// A mode's id: its kind's (above), else its table's address (none: 0).
+std::uint32_t ModeId(const AIMode* mode) {
+    if (!mode) return 0;
+    const void* table = mode->vtable;
+    if (ei::Standalone()) {
+        for (const ModeKind& kind : ModeKinds()) {
+            if (kind.compiled == table) {
+                table = kind.original;
+                break;
+            }
+        }
+    }
+    return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(table));
+}
+
+// The name of the kind an id belongs to, or null for one not listed.
+const char* ModeName(const void* id) {
+    for (const ModeKind& kind : ModeKinds())
+        if (kind.original == id) return kind.name;
     return nullptr;
 }
 
@@ -293,11 +326,10 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     b.Int("ai.reports", brain.memory.reports.GetSize());
     b.Int("ai.calls", brain.memory.calls.GetSize());
     b.Unsigned("ai.seesEnemy", brain.memory.seesEnemy);
-    // The modes by their vtables (game.exe's addresses; ModeName lists the known ones).
-    auto modeBits = [](const AIMode* mode) { return mode ? static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(mode->vtable)) : 0u; };
-    b.Mode("ai.mode", modeBits(brain.current));
+    // The modes by their kinds' ids (ModeId: game.exe's vtable addresses; ModeName lists the known ones).
+    b.Mode("ai.mode", ModeId(brain.current));
     int i = 0;
-    for (auto* n = brain.modes.head; n; n = n->next) b.Mode("ai.modes#", modeBits(n->data), i++);
+    for (auto* n = brain.modes.head; n; n = n->next) b.Mode("ai.modes#", ModeId(n->data), i++);
 }
 
 void ReadController(CUnit* u, Builder& b);
@@ -880,7 +912,7 @@ std::string FieldValue(const Field& f) {
     case Kind::Unsigned: std::snprintf(text, sizeof(text), "%u", f.value); break;
     case Kind::Bits: std::snprintf(text, sizeof(text), "0x%08X", f.value); break;
     case Kind::Mode: {
-        // An AI mode by name, one ModeName does not know by its vtable (none: 0).
+        // An AI mode by name, one ModeName does not know by its id (its table; none: 0).
         const char* mode = ModeName(reinterpret_cast<const void*>(static_cast<std::uintptr_t>(f.value)));
         if (mode) std::snprintf(text, sizeof(text), "%s", mode);
         else std::snprintf(text, sizeof(text), "0x%08X", f.value);

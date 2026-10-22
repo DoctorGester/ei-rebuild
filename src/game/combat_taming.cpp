@@ -3,6 +3,7 @@
 // tamer's side (its own side kept at +0x90C), 3 in the tamer's party with a "tamed" AI mode; a
 // failed attempt (or one on a creature with a player) undoes the taming when it was the tamer's
 // side doing it, and counts as an attack. See docs/notes/combat.md ("Order lifecycle").
+#include "ai_mode_class.h"
 #include "combat.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
@@ -14,7 +15,6 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"   // SetVtable
 #include "originals_engine.h"
 
 #include <cstdint>
@@ -99,7 +99,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         mode->refsHigh = 0;
         if (mode) {
             ModePlayerConstruct(mode);
-            ei::SetVtable(mode, std::uintptr_t(0x0073F0C4));   // the player mode's vtable
+            mode->vtable = aimode::TamedClass::Vtable();   // the tamed mode
         }
         brain.AddMode(mode);
         ClearReferenceList<false>(Brain()->memory.seenCorpses);

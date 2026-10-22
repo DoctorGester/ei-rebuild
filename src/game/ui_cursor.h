@@ -52,6 +52,9 @@ public:
     // 00457950 (slot 0 of the root class, vtable 0073C368; RET 4): the root vtable stored, then
     // operator delete when bit 0 of `flags` is set. Returns the object.
     CDirectInputMouse* RootDeletingDestruct(unsigned flags);
+    // The mouse's one-slot table (app_lifetime.cpp): the compiler's, slot 0 DeletingDestruct (C19;
+    // game.exe's 0073C350, the same slot).
+    static void* Vtable();
 
     // The mouse data format Setup gives the device (dinput.lib's c_dfDIMouse, 00745D00, as a
     // DIDATAFORMAT): ours, since game.exe keeps its object table (006E6180) in its code section,

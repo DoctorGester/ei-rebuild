@@ -204,7 +204,7 @@ Terrain* Terrain::DeletingDestruct(unsigned flags) {
 EI_REWRITTEN(0x00562B60, Terrain::DeletingDestruct);
 
 void Sector::Destruct() {
-    ei::SetVtable(this, kSectorVtable);
+    ei::SetVtable(this, Vtable());
     Clear();
     occluders.vtable = mfc::impl::SectorOccluderArrayClass::Vtable();
     occluders.FreeData();
@@ -219,7 +219,7 @@ Sector* Sector::DeletingDestruct(unsigned flags) {
     Destruct();
     return DeleteIf(this, flags);
 }
-EI_REPLACE_METHOD(0x0059E080, Sector::DeletingDestruct);
+EI_REWRITTEN(0x0059E080, Sector::DeletingDestruct);
 
 void CWorldClient::Destruct() {
     ei::SetVtable(this, Vtable());

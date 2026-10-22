@@ -8,11 +8,17 @@
 #include "party.h"
 
 #include "ei/hook.h"
+#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
 namespace {
+
+// ClassTemplate's table (C19; game.exe's 0073D0C4, the same slots): 0 the scalar deleting destructor, 1 Serialize.
+struct ClassTemplateClass final : ei::CompiledDeleter<ClassTemplateClass, &ClassTemplate::DeletingDestruct> {
+    virtual void Serialize(ChunkArchive* ar) { reinterpret_cast<ClassTemplate*>(this)->Serialize(ar); }   // 1
+};
 
 // list<CItem*>'s constructor (004A9CD0 inlined): a sentinel node from the node pool linked to itself.
 void ListConstruct(StockList* list) {
@@ -74,7 +80,7 @@ ClassTemplate* ClassTemplate::Construct() {
     SpellsParty()->Construct();
     allowed.Construct(ItemsParty());
     magic.Construct(SpellsParty());
-    vtable = ei::GamePointer<void>(kVtableAddress);
+    vtable = ClassTemplateClass::Vtable();
     ItemsParty()->Create();
     SpellsParty()->Create();
     type = -1;
@@ -99,7 +105,7 @@ void ItemStock::Destruct() {
 }
 
 void ClassTemplate::Destruct() {
-    vtable = ei::GamePointer<void>(kVtableAddress);
+    vtable = ClassTemplateClass::Vtable();
     ItemsParty()->Destroy();
     SpellsParty()->Destroy();
     magic.Destruct();
@@ -115,7 +121,7 @@ ClassTemplate* ClassTemplate::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004A6A70, ClassTemplate::DeletingDestruct);
+EI_REWRITTEN(0x004A6A70, ClassTemplate::DeletingDestruct);
 
 void ClassTemplate::SetLevels(const float* base, const float* scroll) {
     allowed.SetLevels(base, scroll);

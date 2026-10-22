@@ -28,7 +28,7 @@ __declspec(naked) void __fastcall ResetDirty(void*, void*) EI_ORIGINAL(0x005B40F
 
 
 
-void ConstructUnitLayerOf(CAIMap* self, CUnitLayer* layer, std::uintptr_t vtable) {
+void ConstructUnitLayerOf(CAIMap* self, CUnitLayer* layer, void* vtable) {
     layer->Construct();
     layer->map = self;
     ei::SetVtable(layer, vtable);
@@ -48,7 +48,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->bridgeHeights.Construct(100);   // 005BCCD0
     mfc::impl::ConstructArrayOf<mfc::impl::SectorArrayClass>(self->sectorMap.sectors);
     CSectorMap& sectors = self->sectorMap;
-    sectors.vtable = ei::GamePointer<void>(CSectorMap::kVtableAddress);
+    sectors.vtable = CSectorMap::Vtable();
     sectors.aiMap = nullptr;
     sectors.height = 0;
     sectors.added = 0;
@@ -61,8 +61,8 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->waterHeight = 1;
     AllocateGrid(self->WaterGrid());
     for (mfc::CArray<AreaOffset>& list : self->areaLists) list.Construct(mfc::impl::AreaListClass::Vtable());
-    ConstructUnitLayerOf(self, &self->unitLayerSmall, CUnitLayer::kSmallVtableAddress);
-    ConstructUnitLayerOf(self, &self->unitLayerLarge, CUnitLayer::kLargeVtableAddress);
+    ConstructUnitLayerOf(self, &self->unitLayerSmall, CUnitLayer::SmallVtable());
+    ConstructUnitLayerOf(self, &self->unitLayerLarge, CUnitLayer::LargeVtable());
     ConstructRegionMap(&self->regionMap);   // 005AF3D0
     self->forwardSearch.nodes.Construct(1, 1);
     reinterpret_cast<SearchGrid<std::int8_t>*>(&self->forwardSearch.levels)->Construct(1, 1);   // 005BCBD0
@@ -110,7 +110,7 @@ void __fastcall DestructAIMap(CAIMap* self) {
     FreeGrid(self->WaterGrid());
     self->bridges.cells.FreeData();
     self->footprint.cells.FreeData();
-    self->sectorMap.vtable = ei::GamePointer<void>(CSectorMap::kVtableAddress);
+    self->sectorMap.vtable = CSectorMap::Vtable();
     CSectorMap::DestructSectors(&self->sectorMap.sectors);
     self->bridgeHeights.Destroy();   // 005984A0
     self->materials.FreeData();

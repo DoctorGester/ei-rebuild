@@ -71,9 +71,9 @@ using DeltaFields = ArrayAbi<DeltaField, EachElements<DeltaField, InitDeltaField
 void InitTheme(MusicTheme* p);
 void __fastcall DestroyTheme(MusicTheme* p);
 using Themes = ArrayAbi<MusicTheme, EachElements<MusicTheme, InitTheme, DestroyTheme>>;
-struct ThemeArrayClass {   // CArray<MusicTheme> (CMusicSystem +0x1C)
-    static void* Vtable() { return ei::GamePointer<void>(CMusicSystem::kThemeArrayVtable); }
-};
+// CArray<MusicTheme> (CMusicSystem +0x1C).
+struct ThemeArrayClass final
+    : mfc::impl::CompiledCollection<ThemeArrayClass, &Themes::Destruct<ThemeArrayClass>, &Themes::Serialize> {};
 
 // The sound cache's wave records (0x1C bytes): the name an empty string with room for 8 bytes
 // (006BE240), its buffer freed (006B90C0, the record's destructor; 006BE210 calls it).
