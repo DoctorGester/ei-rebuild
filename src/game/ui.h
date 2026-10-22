@@ -197,7 +197,7 @@ public:
     // 005F7EB0 / 005F7ED0 / 005F7EF0 (RET 4). The console window's AddText / SetRect / SetHistory,
     // when there is one.
     void ConsoleAddText(const char* text);
-    void SetConsoleRect(const int* rect);
+    void SetConsoleRect(const RECT* rect);
     void SetConsoleHistory(int lines);
     // 005F7F10 (RET 4). The debug information panel's rectangle (00444C10; the interface is not
     // used).

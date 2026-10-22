@@ -15,7 +15,7 @@ namespace console {
 namespace {
 constexpr int kFontSize = 90;            // tenths of a point
 constexpr const char* kFontFace = "Courier New";
-constexpr int kInitialRect[4] = {0, 0, 800, 150};
+constexpr RECT kInitialRect = {0, 0, 800, 150};
 constexpr int kHistory = 0x100;
 constexpr int kNoCommand = -1;
 // MFC CFont's vtable (an empty CGdiObject: no handle yet).
@@ -44,8 +44,8 @@ ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
         if (font_) font_->Delete();
         font_ = nullptr;
     }
-    int rect[4] = {kInitialRect[0], kInitialRect[1], kInitialRect[2], kInitialRect[3]};
-    SetRect(rect);
+    RECT rect = kInitialRect;
+    SetRect(&rect);
     history_ = kHistory;
     if (lines_.GetSize() > kHistory) lines_.RemoveAt(0, lines_.GetSize() - kHistory);
     DrawLines();

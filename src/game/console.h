@@ -168,7 +168,7 @@ public:
     // rectangle (0, 0)-(800, 150) and a 256-line history (older lines dropped); the lines drawn.
     // Returns this.
     ConsoleWindow* Construct(CInterface3D* screen);
-    void SetRect(const int* rect);   // 005E3E90 (800x600 coordinates)
+    void SetRect(const RECT* rect);   // 005E3E90 (800x600 coordinates)
     void SetHistory(int lines);      // 005E3F90
     void AddText(const char* text);  // 005E4090 (continues the last line; '\n' starts a new one)
     // Drawing and input (ui_console_window.cpp):
@@ -195,8 +195,8 @@ public:
     int anchor_;                     // +0x2C other end of the selection (== caret_: none)
     int width_;                      // +0x30 pixels, at least 76
     int height_;                     // +0x34 pixels, at least 69
-    int rect_[4];                    // +0x38 the window in 800x600 coordinates (after clamping)
-    int screenRect_[4];              // +0x48 the window in pixels
+    RECT rect_;                      // +0x38 the window in 800x600 coordinates (after clamping)
+    RECT screenRect_;                // +0x48 the window in pixels
     CStringArray lines_;             // +0x58
     int history_;                    // +0x6C lines kept
     int visibleLines_;               // +0x70
