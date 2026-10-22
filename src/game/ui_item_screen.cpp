@@ -4,6 +4,7 @@
 #include "model.h"
 #include "ui_item_info.h"
 #include "ui_camp.h"
+#include "ui_screens.h"
 #include "ui_window_class.h"
 #include "core_streams.h"
 
@@ -207,34 +208,12 @@ EI_REWRITTEN(0x005F6620, CampScreenDestroy);
 
 // --- 005F7010: screen 9's destructor body (vtable 00740D18) ---------------------------------------
 
-namespace {
-// STLport's node allocator for small blocks (free lists at 0079B224 by 8-byte size class; larger
-// blocks go back to the heap), inlined by the original.
-void DeallocateNodes(void* block, std::uint32_t bytes) {
-    if (bytes > 0x80) {
-        gamecrt::operator_delete(block);
-        return;
-    }
-    void** lists = ei::GamePointer<void*>(0x0079B224);
-    std::uint32_t index = (bytes - 1) >> 3;
-    *static_cast<void**>(block) = lists[index];
-    lists[index] = block;
-}
-} // namespace
-
 void __fastcall Screen9Destroy(CItemScreen* self) {
-    auto* bytes = reinterpret_cast<std::uint8_t*>(self);
-    // The vector of CStrings at +0x1AC (begin, end, capacity).
-    std::uint8_t* begin;
-    std::uint8_t* end;
-    std::uint8_t* capacity;
-    std::memcpy(&begin, bytes + 0x1AC, 4);
-    std::memcpy(&end, bytes + 0x1B0, 4);
-    for (std::uint8_t* at = begin; at != end; at += 4) CStringDestroy(at);
-    std::memcpy(&begin, bytes + 0x1AC, 4);
-    std::memcpy(&capacity, bytes + 0x1B4, 4);
-    std::uint32_t entries = static_cast<std::uint32_t>(static_cast<int>(capacity - begin) >> 2);
-    if (begin) DeallocateNodes(begin, entries * 4);
+    // The exchange window's figure names (vector<CString> at +0x1AC): the strings, then the
+    // storage through STLport's node allocator (00404D70, inlined by the original).
+    MpStringVector& names = static_cast<CExchangeScreen*>(self)->names_;
+    for (mfc::CString* at = names.begin(); at != names.end(); ++at) CStringDestroy(at);
+    stlp::deallocate(names.begin(), static_cast<std::size_t>(names.EndOfStorage() - names.begin()) * sizeof(mfc::CString));
     DestroyCache(self->textures_);
     DestroyCache(self->models_);
     DestroyContainerBody(self);

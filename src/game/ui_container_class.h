@@ -80,7 +80,7 @@ public:
     virtual void RefreshStats() {}                                                            // 47: 005F63D0
     virtual void NextHero() {}                                                                // 48: 005F63E0
     virtual void PreviousHero() {}                                                            // 49: 005F63F0
-    virtual CUnit* HeroUnit(int index) { return static_cast<CUnit*>(Items()->HeroUnitDefault(index)); }   // 50: 005F6400
+    virtual CUnit* HeroUnit(int index) { return Items()->HeroUnitDefault(index); }   // 50: 005F6400
     virtual PartyUnitRecord* HeroRecord() { return nullptr; }                                 // 51: 005F6410
     virtual void ChooseFigure(const char*) {}                                                 // 52: 005F6420 (RET 4)
     virtual double Weight() { return Items()->WeightDefault(); }                              // 53: 005F6430 (ST0)

@@ -82,7 +82,7 @@ void CItemScreen::BestPartySkillDefault(int, int* skill, int* mana) {
 }
 EI_REPLACE_METHOD(0x005F63A0, CItemScreen::BestPartySkillDefault);
 
-void* CItemScreen::HeroUnitDefault(int) { return nullptr; }
+CUnit* CItemScreen::HeroUnitDefault(int) { return nullptr; }
 EI_REPLACE_METHOD(0x005F6400, CItemScreen::HeroUnitDefault);
 
 float CItemScreen::WeightDefault() { return 0.0f /*0073B858*/; }

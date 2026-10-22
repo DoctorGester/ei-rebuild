@@ -200,7 +200,7 @@ public:
     // RET 8) no price.
     bool CanEquipDefault(CItem* item, int mode);
     void BestPartySkillDefault(int school, int* skill, int* mana);
-    void* HeroUnitDefault(int index);
+    CUnit* HeroUnitDefault(int index);
     float WeightDefault();
     int PriceDefault(CItem* item, int kind);
 
