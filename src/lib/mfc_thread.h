@@ -19,7 +19,8 @@ namespace mfc::impl {
 
 using ThreadProc = UINT(__cdecl*)(void* parameter);
 
-// CWinThread (0x68 bytes, vtable 007466E0).
+// CWinThread (0x68 bytes; a compiled table, C19, mfc_thread.cpp, in place of game.exe's 007466E0: 31 slots, the
+// destructor and Delete ported, the message loop's unported: the game's threads only run their procedure).
 struct WinThread {
     CCmdTarget base;
     void* mainWnd;                  // +0x1C m_pMainWnd
@@ -35,7 +36,7 @@ struct WinThread {
     POINT cursorLast;               // +0x5C m_ptCursorLast
     UINT msgLast;                   // +0x64 m_nMsgLast
 
-    static void* Vtable() { return ei::GamePointer<void>(0x007466E0); }
+    static void* Vtable();
 
     // 0070C259 (thiscall, RET 8, returns this): CCmdTarget's constructor, the vtable, the procedure
     // and its parameter, then CommonConstruct.
@@ -43,9 +44,12 @@ struct WinThread {
     // 0070C2F6 (thiscall): no windows, no thread yet, the message state cleared, the cursor position
     // (GetCursorPos), no filter or OLE hook, deleted when its thread ends.
     void CommonConstruct();
-    // 00702596 Delete (vtable slot 0x1E): the deleting destructor when autoDelete is set. The
-    // destructor (0070E132) closes the thread handle and stops being the current thread.
+    // 00702596 Delete (vtable slot 0x1E): the deleting destructor when autoDelete is set.
     void Delete();
+    // ~CWinThread (0070E132): the thread handle closed, no longer the current thread, then CCmdTarget's destructor.
+    // The scalar deleting destructor (0070C29D, slot 1): it, then the memory freed when bit 0 of `flags` is set.
+    void Destruct();
+    WinThread* DeletingDestructor(unsigned flags);
 };
 static_assert(sizeof(WinThread) == 0x68);
 static_assert(offsetof(WinThread, thread) == 0x28 && offsetof(WinThread, threadParams) == 0x4C);
