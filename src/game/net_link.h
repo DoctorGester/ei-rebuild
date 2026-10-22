@@ -265,7 +265,7 @@ public:
     // 00479D20 (slot 0).
     DriverLink* DeletingDestruct(unsigned flags);
 
-    net::Connection* player_;    // +0x50 counted
+    RefPtrTo<net::Connection> player_;   // +0x50 counted
 };
 static_assert(offsetof(DriverLink, player_) == 0x50);
 static_assert(sizeof(DriverLink) == 0x54);
