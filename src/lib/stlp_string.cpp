@@ -4,12 +4,11 @@
 
 #include "ei/hook.h"
 #include "game/originals_library.h"
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
-#include "game/game_data.h"
 
 #include <algorithm>
 #include <cstring>
+#include <exception>
 #include <new>
 
 namespace stlp {
@@ -169,36 +168,35 @@ bool __fastcall StringAbi::Equals(const string* a, const string* b) { return *a 
 
 namespace {
 
-// MSVC 6's out_of_range (0x10C bytes): std::exception, then __Named_exception's name.
-struct OutOfRange {
-    libcrt::Exception base;
-    char name[0x100];
-};
-static_assert(sizeof(OutOfRange) == 0x10C);
+// STLport's out_of_range (C25c: a class of ours, thrown by the compiler with its own throw information in place of
+// game.exe's ThrowInfo 0074C640, catchable types and type descriptors, and of its tables 0073B994 / 0073BE8C):
+// std::exception, __Named_exception's 256-byte name (its what), logic_error. Nothing catches one by type.
+class NamedException : public std::exception {
+public:
+    // 004219A0: the text copied into the name (strncpy, the last byte zero).
+    explicit NamedException(const string& what) {
+        gamecrt::strncpy(name_, what.data(), sizeof(name_));
+        name_[sizeof(name_) - 1] = 0;
+    }
+    const char* what() const noexcept override { return name_; }   // 0040C430
 
-// __Named_exception's and out_of_range's compiled tables (C19) in place of game.exe's 0073B994 / 0073BE8C: 0 the
-// scalar deleting destructor (0040C480 / 0041F740: ~exception, then the memory freed), 1 what (0040C430: the name).
-template <typename Self>
-struct NamedExceptionTable : ei::CompiledDeleter<Self, &libcrt::Exception::DeletingDestruct> {
-    virtual const char* What() { return this->template ObjectAs<OutOfRange>()->name; }   // 1
+private:
+    char name_[0x100];
 };
-struct NamedExceptionClass final : NamedExceptionTable<NamedExceptionClass> {};
-struct OutOfRangeClass final : NamedExceptionTable<OutOfRangeClass> {};
-const void* OutOfRangeThrowInfo() { return ei::GamePointer<const void>(0x0074C640); }
-const char* BasicStringText() { return "basic_string"; }
+class LogicError : public NamedException {
+public:
+    using NamedException::NamedException;
+};
+class OutOfRange : public LogicError {
+public:
+    using LogicError::LogicError;
+};
 
 } // namespace
 
 void __fastcall ThrowOutOfRange() {
-    const string what(BasicStringText());
-    OutOfRange error;
-    error.base.Construct();
-    error.base.vtable = NamedExceptionClass::Vtable();
-    gamecrt::strncpy(error.name, what.data(), sizeof(error.name));
-    error.name[sizeof(error.name) - 1] = 0;
-    error.base.vtable = OutOfRangeClass::Vtable();
-    libcrt::CxxThrowException(&error, OutOfRangeThrowInfo());
-    __assume(0);
+    const string what("basic_string");
+    throw OutOfRange(what);
 }
 
 } // namespace stlp

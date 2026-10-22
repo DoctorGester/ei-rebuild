@@ -7,7 +7,7 @@ a header (/FI through the CL variable) whose overloads for the three kinds are d
 configuration with `ninja -k 0`, and lists each call site the compiler refused (C2280), with the kind and
 the operand's type. The worktree's own sources are not touched.
 
-    python tools/cast_scan.py [--jobs 4] [--exe PATH]   # build/cast_scan/sites.txt: kind file:line to <- from
+    python tools/cast_scan.py [--jobs 4]   # build/cast_scan/sites.txt: kind file:line to <- from
 
 Before dropping a cast (rewrite guide, "Clean code"):
 - SAME: drop it (`(&x)->f()` becomes `x.f()`).
@@ -83,18 +83,17 @@ def copy_tree(out):
     return tree, header, count
 
 
-def build(out, tree, header, jobs, exe):
+def build(out, tree, header, jobs):
     vs = os.environ.get('EI_VSROOT', r'E:\bin\vs\buildtools')
     tools = vs + r'\Common7\IDE\CommonExtensions\Microsoft\CMake'
     log = os.path.join(out, 'build.log')
     script = os.path.join(out, 'scan.cmd')
-    exe_arg = ' -DEI_GAME_EXE="%s"' % exe if exe else ''
     open(script, 'w').write('\r\n'.join([
         '@echo off',
         'call "%s\\VC\\Auxiliary\\Build\\vcvars32.bat" >nul || exit /b 1' % vs,
         'set PATH=%s\\CMake\\bin;%s\\Ninja;%%PATH%%' % (tools, tools),
         'set CL=/FI"%s"' % header,
-        'cmake -S "%s" -B "%s\\b" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=OFF%s >nul || exit /b 1' % (tree, out, exe_arg),
+        'cmake -S "%s" -B "%s\\b" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=OFF >nul || exit /b 1' % (tree, out),
         'cmake --build "%s\\b" -j %d -- -k 0 > "%s" 2>&1' % (out, jobs, log),
         'exit /b 0', '']))
     subprocess.run(['cmd', '/c', script], check=True)
@@ -104,16 +103,11 @@ def build(out, tree, header, jobs, exe):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('--jobs', type=int, default=4)
-    parser.add_argument('--exe', help="game.exe for the build's generated data (default: tools/exe_path.py's)")
     parser.add_argument('--out', default=os.path.join(ROOT, 'build', 'cast_scan'))
     args = parser.parse_args()
-    if not args.exe:
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        import exe_path
-        args.exe = exe_path.find_exe()
     tree, header, count = copy_tree(args.out)
     print('%d pointer static_casts rewritten in %s' % (count, tree))
-    log = build(args.out, tree, header, args.jobs, args.exe)
+    log = build(args.out, tree, header, args.jobs)
     sites = set()
     other = []
     for line in open(log, encoding='utf-8', errors='replace'):
