@@ -153,13 +153,14 @@ REVIEWED_RDATA = [
 ]
 
 # Code cells of the structures the tool walks (code_structures()): kind, the number of cells, what. The vtables'
-# 7258 are game.exe's; the retired ones' (config/retired_vtables.csv, C19: classes whose vtable is the compiler's now)
-# are not code cells: nothing installs those vtables, and the image holds their bytes zero (write_bytes).
-VTABLE_SLOT_CELLS = 7258
+# 7252 are game.exe's (7258 until C19 batch 23 dropped six false rows: five EH unwind entries and the "ime" text);
+# the retired ones' (config/retired_vtables.csv, C19: classes whose vtable is the compiler's now) are not code
+# cells: nothing installs those vtables, and the image holds their bytes zero (write_bytes).
+VTABLE_SLOT_CELLS = 7252
 CODE_STRUCTURES = [
     ('vtable', None, "a vtable's slots (config/vtables.csv)"),
     ('vtable-retired', None, "a retired vtable's slots (config/retired_vtables.csv): not code cells"),
-    ('eh-unwind', 13129, "C++ EH: FuncInfo -> its unwind map: each state's unwind action (a funclet): not code cells"),
+    ('eh-unwind', 13134, "C++ EH: FuncInfo -> its unwind map: each state's unwind action (a funclet): not code cells"),
     ('eh-handler', 382, 'C++ EH: try block -> its catch handlers: the handler (a funclet): not code cells'),
     ('eh-throw', 2, "C++ EH: ThrowInfo: the thrown object's destructor"),
     ('eh-copy', 5, "C++ EH: ThrowInfo -> catchable type: the thrown object's copy constructor"),
@@ -178,7 +179,8 @@ LEFT_KINDS = ('vtable-retired', 'eh-unwind', 'eh-handler')
 # Code cells outside those structures, as looked at in game.exe: (first cell, last cell, the number of dwords in the
 # code section, what). Every dword of the range whose value lies in the code section is a code cell.
 CODE_REVIEWED = [
-    (0x00746A14, 0x00747064, 35, "MFC message map entries (CWnd's, CWinApp's; AFX_MSGMAP_ENTRY): their handlers"),
+    (0x00746A14, 0x00746E5C, 30, "MFC message map entries (CWnd's, CWinApp's; AFX_MSGMAP_ENTRY): their handlers"),
+    (0x00746E64, 0x00747064, 5, "MFC message map entries (CWnd's, CWinApp's; AFX_MSGMAP_ENTRY): their handlers"),
     (0x00783BBC, 0x00783BE4, 6, "the CRT's C initialisers and terminators (__xi_a..__xi_z 00783BB4-00783BCC, __xp, "
                                    "__xt): __initmbctable and the CRT's own"),
     (0x00796E14, 0x00796E14, 1, "MFC's _afxNewHandler: AfxNewHandler (operator new's handler loop calls it)"),
@@ -198,6 +200,8 @@ NOT_CODE = [
                                    'past its five-slot row (006E0437 reads 0073DDE8): nothing stores the table'),
     (0x00745D14, 0x00745D14, 1, "c_dfDIMouse's object array (dinput.lib's data inside game.exe's code section; "
                                    "CDirectInputMouse::MouseDataFormat is our copy)"),
+    (0x00746E60, 0x00746E60, 1, '"ime": text of MFC (00704BE6 hands it lstrcmpiA; once a false one-slot row of '
+                                   'config/vtables.csv)'),
     (0x007472B8, 0x007472E0, 4, "the CRT's SEH scope tables ({enclosing level, filter, handler}): read by "
                                    "_except_handler3 for frames of game.exe's own code only"),
     (0x00747324, 0x00747390, 10, "the CRT's SEH scope tables"),

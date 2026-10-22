@@ -20,13 +20,7 @@
 {DataId(0x0073D6DC), 0x00402D10},
 {DataId(0x0073D6E0), 0x004E24A0},
 {DataId(0x0073D6E4), 0x004E24B0},
-{DataId(0x00746E60), 0x00656D69},
 {DataId(0x007472B0), 0x006E7DF4},
-{DataId(0x0074E824), 0x00712588},
-{DataId(0x00753B04), 0x0071687E},
-{DataId(0x00758904), 0x0071A92B},
-{DataId(0x00758B0C), 0x0071AAD0},
-{DataId(0x00758B14), 0x0071AAD8},
 // C++ EH: ThrowInfo: the thrown object's destructor
 {DataId(0x00749CEC), 0x0040C500},
 {DataId(0x0074C644), 0x0041F760},
@@ -816,6 +810,7 @@
 {DataId(0x00746D18), 0x00416F66},
 {DataId(0x00746D2C), 0x0073726F},
 {DataId(0x00746D88), 0x0059414C},
+// MFC message map entries (CWnd's, CWinApp's; AFX_MSGMAP_ENTRY): their handlers
 {DataId(0x00746F84), 0x004C4C44},
 {DataId(0x00747014), 0x00707041},
 {DataId(0x00747034), 0x0070AB6C},

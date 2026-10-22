@@ -23,6 +23,12 @@ def main():
         for r in csv.DictReader(f):
             funcs.append((int(r['address'], 16), r['name'], r['kind']))
     starts = [a for a, _, _ in funcs]
+    # A slot 0 that is no function is no vtable: an EH funclet (functions.csv kind `eh`: the dword is an unwind map
+    # entry's action, e.g. 0074E824) or bytes config/dead_code.csv calls no function start (00746E60's dword is the
+    # text "ime" that 00704BE6 hands lstrcmpiA).
+    not_slot0 = {a for a, _, kind in funcs if kind == 'eh'}
+    with open(os.path.join(ROOT, 'config', 'dead_code.csv')) as f:
+        not_slot0 |= {int(r['address'], 16) for r in csv.DictReader(f) if 'not a function start' in r['evidence']}
     def func_at(va):
         i = bisect.bisect_right(starts, va) - 1
         return funcs[i] if i >= 0 else None
@@ -63,7 +69,7 @@ def main():
 
     rows = []
     for vt in sorted(refs):
-        if vt % 4 or not in_text(u32(vt)):
+        if vt % 4 or not in_text(u32(vt)) or u32(vt) in not_slot0:
             continue
         n = 0
         while vt + 4 * n < RDATA[1] and in_text(u32(vt + 4 * n)):
