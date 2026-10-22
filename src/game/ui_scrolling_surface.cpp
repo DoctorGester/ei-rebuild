@@ -58,7 +58,7 @@ int HeightInTwips(const CUiScrollingSurface* surface, const ui_gdi::GameDC* dc) 
 
 namespace {
 struct ScrollingSurfaceClass final : ei::CompiledTag<ScrollingSurfaceClass> {
-    CUiScrollingSurface* Surface() { return reinterpret_cast<CUiScrollingSurface*>(this); }
+    CUiScrollingSurface* Surface() { return ObjectAs<CUiScrollingSurface>(); }
     virtual void Draw() { Surface()->Draw(); }                                                         // 0: 0065F170
     virtual void* DeletingDestruct(unsigned flags) { return Surface()->DeletingDestruct(flags); }       // 1: 0065EDC0
 };

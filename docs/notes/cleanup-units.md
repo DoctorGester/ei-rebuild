@@ -42,8 +42,8 @@ is still left. The units themselves are in `units.md`; the conventions are those
 - `carried` (+0x49C..+0x4AF) and PartyUnitRecord's four item lists could be `mfc::CArray`.
 - `UnequipArmour` / `ReleaseAllItems` call controller slot 27 by hand: the original reads the vtable before evaluating
   the argument, which a virtual call would reorder.
-- Item fields used as floats through the item family's names: condition `CItem::unknown_20` / `unknown_24` (unit_hits'
-  `ItemFloat`, `IsBroken`), count `unknown_48`, spell cost `CSpell::unknown_40`; `UnitPrototypeRecord::unknown_24` is
+- Item fields used as floats through the item family's names: condition `CItem::condition_` / `conditionMax_` are floats
+  (unit_hits' WearItem and ApplyHit / DamageSlot take the `CItem*`), count `count_`, spell cost `CSpell::unknown_40`; `UnitPrototypeRecord::unknown_24` is
   a height (compared with 1.5 for size class 0). They belong to their families' tickets.
 - `CMapObjectManager` (unit_create.h) reads its world at +0xAC by hand.
 - Unknowns still unnamed in CUnit: `unknown_438` (copied to the party record's +0x780), `unknown_43C` (cell flag 0x80),

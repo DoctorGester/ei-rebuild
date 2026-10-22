@@ -87,8 +87,8 @@ ReverbFn AilSetSampleReverb() { return ei::GameData<ReverbFn>(0x0073B764); }
 void* EndOfSampleCallback() { return ei::Code<void*>(0x006B75E0); }
 
 // The cache's operator[] on the slot's wave name (006BBDF0): the slot of the wave's cache list
-// node, whose +0x20 is the use count.
-std::uint8_t*& CacheEntry(stlp::NameMap& cache, const SoundSlot* slot) { return stlp::NamedSlot<std::uint8_t>(cache, slot->name); }
+// node (its record's uses counts the voices playing it).
+WaveNode*& CacheEntry(stlp::NameMap& cache, const SoundSlot* slot) { return stlp::NamedSlot<WaveNode>(cache, slot->name); }
 // The deferred record of `handle` set (find_or_insert 006BCFF0, which may rehash first).
 void SetDeferred(DeferredMap& deferred, std::int32_t handle, DeferredSound* rec) {
     deferred.FindOrInsert({handle, nullptr})->value = rec;
@@ -135,8 +135,7 @@ void CSoundManager::ApplyVolumePan(SoundSlot* slot) const {
 
 // Ends a voice: releases its cached wave, stops the sample and frees the slot.
 void CSoundManager::EndSlot(SoundSlot* slot) {
-    std::uint8_t* entry = CacheEntry(cache, slot);
-    --*reinterpret_cast<std::int32_t*>(entry + 0x20);
+    --CacheEntry(cache, slot)->data.uses;
     AilEndSample()(slot->sample);
     slot->playing = 0;
     slot->finished = 0;
@@ -626,8 +625,7 @@ void CSoundManager::Tick() {
     for (int i = 0; i < 15; ++i) {
         SoundSlot* slot = &slots[i];
         if (slot->finished == 0 || slot->playing == 0) continue;
-        std::uint8_t* entry = CacheEntry(cache, slot);
-        --*reinterpret_cast<std::int32_t*>(entry + 0x20);
+        --CacheEntry(cache, slot)->data.uses;
         AilEndSample()(slot->sample);
         slot->handle = -1;
         slot->playing = 0;

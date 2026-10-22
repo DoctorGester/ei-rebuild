@@ -338,7 +338,7 @@ void CUnitServer::PropagateHostility() {
     *limit = static_cast<float>(radius * radius);
     CDiplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;
-    UnitListNode* node = reinterpret_cast<UnitList*>(&brain.memory.nearby)->head;
+    UnitListNode* node = brain.memory.nearby.head;
     while (node) {
         CUnit* other = node->data;
         node = node->next;

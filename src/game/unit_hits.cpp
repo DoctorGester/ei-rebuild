@@ -44,11 +44,6 @@ constexpr int kRemarkWeaponWorn = 0x26;
 constexpr int kRemarkArmLost = 0x1E;
 constexpr int kRemarkLegLost = 0x1F;
 
-// Item fields used by the wear (CItem, item.h does not name them).
-constexpr int kItemCondition = 0x20;        // float
-constexpr int kItemMaxCondition = 0x24;     // float
-constexpr int kItemPieces = 0x48;           // int: the wear is shared between them
-
 // The damage type names of the slot log (0078F6D8 ... 0078F694; 0078F68C for others).
 const char* const kTypeNames[kDamageTypes] = {
     "impaling",
@@ -67,10 +62,6 @@ const char* const kDead = " HL is dead";
 // location, (first piece, second piece of a limb) at the inner layer, then at the outer one, as the original
 // indexes them.
 constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1, 7, 3, 6, 1, 7, 4, 5, 2, 7, 4, 5, 2, 7};
-
-float& ItemFloat(CEngineObject* item, int offset) {
-    return *reinterpret_cast<float*>(reinterpret_cast<char*>(item) + offset);
-}
 
 float Max0(float value) { return value <= kZero ? kZero : value; }   // the original's select
 } // namespace
@@ -99,19 +90,18 @@ void Remark(CUnit* unit, int code) {
 }
 } // namespace
 
-void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int brokenRemark, int wornRemark) {
+void __fastcall WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark) {
     EI_NAN_AUDIT(amount);
     if (!item || !unit || amount <= kZero) return;
-    float before = ItemFloat(item, kItemCondition);
-    float threshold = ItemFloat(item, kItemMaxCondition) * GameLogicSettings().itemDurabilityCritical;
-    int pieces = *reinterpret_cast<int*>(reinterpret_cast<char*>(item) + kItemPieces);
+    float before = item->condition_;
+    float threshold = item->conditionMax_ * GameLogicSettings().itemDurabilityCritical;
+    int pieces = static_cast<int>(item->count_);   // the wear is shared between the stack's pieces
     if (pieces > 0) {
-        ItemFloat(item, kItemCondition) =
-            static_cast<float>(ItemFloat(item, kItemCondition) - amount / static_cast<double>(pieces));   // FILD: exact
+        item->condition_ = static_cast<float>(item->condition_ - amount / static_cast<double>(pieces));   // FILD: exact
     } else {
-        ItemFloat(item, kItemCondition) = ItemFloat(item, kItemCondition) - amount;
+        item->condition_ = item->condition_ - amount;
     }
-    float condition = ItemFloat(item, kItemCondition);
+    float condition = item->condition_;
     if (x87::fistp(condition) <= 0) {
         Remark(unit, brokenRemark);
         return;
@@ -144,7 +134,7 @@ void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount) {
 }
 EI_REWRITTEN(0x00525720, WearArmour);
 
-int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon) {
+int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon) {
     bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
     int damaged = 0;
     UnitStatSlot& slot = slots[hit->location];
@@ -202,7 +192,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
 }
 EI_REWRITTEN(0x00525070, UnitStats::DamageSlot);
 
-int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon) {
+int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon) {
     if (hit->location >= kLocations) return 0;
     if (hit->location == 0) flags |= 2;
     EI_NAN_AUDIT(hit->typeWeights[5], hit->amount);

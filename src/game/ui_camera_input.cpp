@@ -96,7 +96,7 @@ namespace {
 // The camera input's compiled table (C19; game.exe's 00740208): slot 0 UiInputSide's deleting destructor, the
 // camera's handlers, the base's others.
 struct CameraInputClass final : InputSideClass<CameraInputClass, &UiInputSide::InputSideDelete> {
-    CCameraInput* Input() { return reinterpret_cast<CCameraInput*>(this); }
+    CCameraInput* Input() { return ObjectAs<CCameraInput>(); }
     void Deactivate() override { Input()->OnDeactivate(); }                                   // 1: 005EB580
     int MouseMove(int b, int x, int y) override { return Input()->OnMouseMove(b, x, y), 0; }   // 4: 005EB210
     int RightDown(int b, int x, int y) override { return Input()->OnRightDown(b, x, y), 0; }   // 5: 005EAD00

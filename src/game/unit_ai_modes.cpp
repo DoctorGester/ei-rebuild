@@ -50,7 +50,7 @@ inline const CPlayerServer* PlayerServerOf(const CPlayer* player) {
 }
 
 template <typename T>
-void ReleaseRef(T*& ref) {
+void ReleaseRef(AIRefTo<T>& ref) {
     if (ref) {
         ref->Release();
         ref = nullptr;
@@ -833,7 +833,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
     CUnit* self = brain->owner->unit;
     if (newLeader == self) {
         if (leader) {
-            AIRef::Of(&leader)->Reset();
+            leader.Reset();
             leader = nullptr;
         }
         return;
@@ -843,7 +843,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
         CUnit* unit = newLeader;
         for (;;) {
             PlayerMode* mode = PlayerModeOf(unit);
-            CUnit* next = mode ? mode->leader : nullptr;
+            CUnit* next = mode ? mode->leader.object : nullptr;
             if (!next) break;
             if (next == self) {
                 AIBrain* own = next->ServerController()->Brain();
@@ -877,7 +877,7 @@ void PlayerMode::Load(CStream* stream) {
     // The save versions that wrote a group of objects after the mode.
     constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
     target.Load(stream, TheServerWorld());
-    AIRef::Of(&leader)->Load(stream, TheServerWorld());
+    leader.Load(stream, TheServerWorld());
     stream->Read(&point, sizeof(Vector3));
     stream->Read(&state, 4);
     if (stream->version_ >= kGroupFirst && stream->version_ < kGroupEnd) {
@@ -895,7 +895,7 @@ EI_REWRITTEN(0x005D4CD0, PlayerMode::Load);
 
 void PlayerMode::Save(CStream* stream) {
     target.Save(stream);
-    AIRef::Of(&leader)->Save(stream);
+    leader.Save(stream);
     stream->Write(&point, sizeof(Vector3));
     stream->Write(&state, 4);
 }

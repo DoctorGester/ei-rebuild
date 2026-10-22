@@ -95,7 +95,7 @@ int CUnitClientSpecific::UpdateClient() {
         fadeIn = next >= 1.0f ? 1.0f : next;   // the original's select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
-        unit->Object3D()->ClientSpecific()->SetLit(0);
+        unit->Object3D()->ClientSpecific()->SetMaterialsLit(0);
 
     if (blinks) {
         if (blinkTimer > 0) {

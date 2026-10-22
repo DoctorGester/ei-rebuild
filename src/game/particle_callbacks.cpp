@@ -997,7 +997,7 @@ int CParticleSource::EmitLink(Particle* p, int) {
     Vector3 start;
     start.Construct(static_cast<float>(D(p->velocity.x) + D(origin.x)), static_cast<float>(D(origin.y) + D(p->velocity.y)),
                     static_cast<float>(D(origin.z) + D(p->velocity.z)));
-    reinterpret_cast<Vector4*>(p)->FromPoint(start);
+    p->PlaceAt(start);
     double factor;
     EI_NAN_AUDIT(reachRounded);
     if ((Next() & 3) == 0 && D(reachRounded) < D(EI_LINK_HALF)) {
@@ -2091,7 +2091,7 @@ int CParticleSource::EmitStench(Particle* p, int) {
     start.x = static_cast<float>(cx + D(p->velocity.x));
     start.y = static_cast<float>(D(cy) + D(p->velocity.y));
     start.z = static_cast<float>(D(cz) + D(p->velocity.z));
-    reinterpret_cast<Vector4*>(p)->FromPoint(start);
+    p->PlaceAt(start);
     p->size = static_cast<float>(D(radius) * D(EI_GAS_SIZE));
     return 1;
 }
@@ -2967,7 +2967,7 @@ int CParticleSource::EmitAcidRay(Particle* p, int) {
     }
     Vector3 start;
     PlaceAcid(this, p, lifetime - p->life, start);
-    reinterpret_cast<Vector4*>(p)->FromPoint(start);
+    p->PlaceAt(start);
     p->size = static_cast<float>(D(kAcidSize[lifetime - p->life]) * D(size));
     return 1;
 }

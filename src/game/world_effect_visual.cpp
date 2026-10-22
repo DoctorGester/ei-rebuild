@@ -153,7 +153,7 @@ int CEffectPointLight::Tick() {
 
 void CEffectPointLight::Start(int update) {
     if (update == 0) {
-        AssignHeld(&light_, LightFactory()->CreateLight(0x31));
+        light_.Assign(LightFactory()->CreateLight(0x31));
         Vector3 position;
         std::memcpy(&position.x, &localPosition_.x, sizeof(float));
         std::memcpy(&position.y, &localPosition_.y, sizeof(float));
@@ -332,8 +332,7 @@ void CEffectParticle::Spawn() {
         return;
     }
 
-    HeldEngineObject::Of(reinterpret_cast<CEngineObject**>(&source_))   // 0056F1A0
-        ->Assign(ParticleManager()->CreateSource(type_));
+    source_.Assign(ParticleManager()->CreateSource(type_));   // 0056F1A0
     std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);

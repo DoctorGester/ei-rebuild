@@ -200,7 +200,7 @@ void CUnitClientSpecific::SparkEffect(int) {
     source->Attach(unit);
     source->attachPoint = kSparkAttach;
     auto* half = unit->Object3D()->ClientSpecific();
-    if (flashCountdown == 0) half->SetLit(1);
+    if (flashCountdown == 0) half->SetMaterialsLit(1);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }
 EI_REWRITTEN(0x00537C00, CUnitClientSpecific::SparkEffect);

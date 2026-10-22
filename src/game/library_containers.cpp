@@ -22,11 +22,7 @@ void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value) {
 
 } // namespace libcontainers
 
-HeldEngineObject* HeldEngineObject::Construct(CEngineObject* const* value) {
-    object = *value;
-    if (object) ++object->refCount_;
-    return this;
-}
+// (_Construct of a held engine object, 004FB680 / 004298F0, is HeldObject::Construct, engine_object.h.)
 
 namespace libcontainers {
 

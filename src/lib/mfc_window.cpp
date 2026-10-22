@@ -61,12 +61,12 @@ struct WndTable : CmdTargetTable<Self, kClass> {
 };
 // game.exe's 00746DA8 (0: 0070D35D, 1: 0070452A).
 struct PlainWndTable final : WndTable<PlainWndTable, &kClassCWnd> {
-    void* DeleteScalar(unsigned flags) override { return reinterpret_cast<CWnd*>(this)->DeletingDestructor(flags); }
+    void* DeleteScalar(unsigned flags) override { return ObjectAs<CWnd>()->DeletingDestructor(flags); }
 };
 // CTempWnd (game.exe's 00746EC4; 0: 0070D3C8, 1: 0070D3A3): ~CWnd, the memory back to the fixed allocator.
 struct TempWndTable final : WndTable<TempWndTable, &kClassCTempWnd> {
     void* DeleteScalar(unsigned flags) override {
-        auto* self = reinterpret_cast<CWnd*>(this);
+        auto* self = ObjectAs<CWnd>();
         self->Destruct();
         if (flags & 1) TempWndAlloc().Free(self);
         return self;

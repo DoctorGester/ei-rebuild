@@ -16,9 +16,6 @@ namespace {
 
 constexpr int kNoObject = -1;
 
-template <class T>
-AIRef& Ref(T*& object) { return *reinterpret_cast<AIRef*>(&object); }
-
 // One of the three counted effect objects by the id read (-1 none), looked up in the world's timed
 // object manager; `id` keeps what the previous read left (the original's one stack slot).
 template <class T>
@@ -44,8 +41,8 @@ void SaveEffectObject(CStream* stream, const CEngineObject* object) {
 void CSpellEffect::Load(CStream* stream) {
     world = g_loadingProjectileWorld;
     stream->Read(&position, 12);
-    Ref(caster).Load(stream, world);
-    Ref(target).Load(stream, world);
+    caster.Load(stream, world);
+    target.Load(stream, world);
     stream->Read(&targetPoint, 12);
     stream->Read(&state, 4);
     Spell()->Load(stream);
@@ -66,8 +63,8 @@ EI_REWRITTEN(0x0067E7D0, CSpellEffect::Load);
 
 void CSpellEffect::Save(CStream* stream) {
     stream->Write(&position, 12);
-    Ref(caster).Save(stream);
-    Ref(target).Save(stream);
+    caster.Save(stream);
+    target.Save(stream);
     stream->Write(&targetPoint, 12);
     stream->Write(&state, 4);
     Spell()->Save(stream);
