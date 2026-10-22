@@ -18,9 +18,6 @@ namespace {
 
 constexpr int kChildBlockSize = 10;
 
-// The animation tracks' defaults (AnimationTrack::Evaluate without key frames).
-const Vector3& DefaultPosition() { return ei::GameData<const Vector3>(0x007AF110); }
-const Quaternion& DefaultRotation() { return ei::GameData<const Quaternion>(0x007AF100); }
 
 // The mesh is a counted engine object (its slot 4 releases it).
 void ReleaseMesh(CFigureMesh* mesh) { mesh->Release(); }
@@ -60,8 +57,8 @@ int FigureBone::CreateBone() {
     animator = nullptr;
     counted54 = nullptr;
     counted58 = nullptr;
-    position = DefaultPosition();
-    rotation = DefaultRotation();
+    position = kTrackDefaultPosition;
+    rotation = kTrackDefaultRotation;
     matrices.SetSizeDiscard(0);
     morphS = 0.0f;
     morphT = 0.0f;

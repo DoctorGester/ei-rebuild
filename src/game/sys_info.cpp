@@ -26,7 +26,17 @@
 #include <cstring>
 #include <new>
 
+// What CPUID function 1 reported, the system information object (constructed by its static initialiser) and
+// the translation unit's four constants, which their ported initialisers store.
+ProcessorInfo g_processorInfo = /*007CAED0*/ {};
+constinit lib::StaticObject<CSysInfo> g_sysInfo = /*007AB8F8*/ {};
+
 namespace {
+
+float g_twoPi = /*007AB8F0*/ {};
+float g_halfPi = /*007ABA00*/ {};
+float g_quarterPi = /*007ABA04*/ {};
+float g_inversePi = /*007ABA08*/ {};
 
 const char* SysInfoClassNameText() { return "CSysInfo"; }
 
@@ -36,7 +46,6 @@ constexpr std::uint32_t kEflagsId = 0x00200000;   // EFLAGS.ID: can be flipped w
 constexpr unsigned kFirstWindows98Build = 1998;
 
 // The translation unit's constants and what they are made of (the exe's pi, 2, 4 and 1).
-float& GameFloatAt(std::uintptr_t address) { return ei::GameData<float>(address); }
 float Pi() { return 3.1415927f /*0073D640*/; }
 
 // The guard of a function-local static with an empty destructor (bit 0 of 007CAEE4).
@@ -242,13 +251,13 @@ EI_REPLACE(0x004DDD60, SysInfoAtExit);
 
 // 004DDCBA / 004DDCD7 / 004DDCF8 / 004DDD19: the four constants, each one operation on the exe's
 // pi rounded to a float by the store.
-void __cdecl SysInfoInitTwoPi() { GameFloatAt(0x007AB8F0) = static_cast<float>(Pi() + Pi()); }
+void __cdecl SysInfoInitTwoPi() { g_twoPi = static_cast<float>(Pi() + Pi()); }
 EI_REWRITTEN(0x004DDCBA, SysInfoInitTwoPi);
-void __cdecl SysInfoInitHalfPi() { GameFloatAt(0x007ABA00) = static_cast<float>(Pi() / 2.0f /*0073CDB8*/); }
+void __cdecl SysInfoInitHalfPi() { g_halfPi = static_cast<float>(Pi() / 2.0f /*0073CDB8*/); }
 EI_REWRITTEN(0x004DDCD7, SysInfoInitHalfPi);
-void __cdecl SysInfoInitQuarterPi() { GameFloatAt(0x007ABA04) = static_cast<float>(Pi() / 4.0f /*0073BAA0*/); }
+void __cdecl SysInfoInitQuarterPi() { g_quarterPi = static_cast<float>(Pi() / 4.0f /*0073BAA0*/); }
 EI_REWRITTEN(0x004DDCF8, SysInfoInitQuarterPi);
-void __cdecl SysInfoInitInversePi() { GameFloatAt(0x007ABA08) = static_cast<float>(1.0f /*0073B84C*/ / Pi()); }
+void __cdecl SysInfoInitInversePi() { g_inversePi = static_cast<float>(1.0f /*0073B84C*/ / Pi()); }
 EI_REWRITTEN(0x004DDD19, SysInfoInitInversePi);
 
 // 004DDCB0 / 004DDCCD / 004DDCEE / 004DDD0F: the table's entries for them.

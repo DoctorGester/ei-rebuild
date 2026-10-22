@@ -31,7 +31,7 @@ namespace app {
 namespace {
 
 
-bool Running() { return ei::GameData<std::uint8_t>(0x0079BC5C) != 0 && ei::GameData<std::uint8_t>(0x00784750) != 0; }
+bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 
 __declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5320)
 // The software cursor's lock (005E65F0), unless the harness hooks the call (ei/main_loop.h): its frame
@@ -83,13 +83,13 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     CursorDrawFrame(TheCursor());   // 005E54A0
     if (DevicePresent(TheRenderDevice())) game::FatalError("Can't flip render surface");   // 004EF610: "Can't flip render surface"
     TheCursor()->ReleaseLock();
-    if (!ei::GameData<std::uint8_t>(0x0079BC54)) return;
+    if (!app::g_recordingFrames) return;
     char path[256];
     gamecrt::sprintf(path, "%sshot%.4d.bmp", MovieFolder().GetString(), g_movieFrame);
     mfc::CFile file;
     if (!file.Open(path, 0x1001, nullptr)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
-        ei::GameData<std::uint8_t>(0x0079BC54) = 0;
+        app::g_recordingFrames = 0;
         return;
     }
     // {0, 0, width, height} of the render target's surface; without one the original passes two

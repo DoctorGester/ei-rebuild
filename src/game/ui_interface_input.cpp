@@ -135,7 +135,7 @@ void CInterface3D::CloseAll() {
     // The original deactivates the top window here too, which cannot exist any more.
     if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Deactivate();
     app::PumpMessages();
-    InterfaceHasScreen() = false;
+    app::g_interfaceHasScreen = 0;
 }
 EI_REWRITTEN(0x005F74F0, CInterface3D::CloseAll);
 

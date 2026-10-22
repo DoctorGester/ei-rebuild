@@ -29,25 +29,20 @@ namespace ei::vectors::path {
 
 constexpr const char* kFamily = "path";
 
-// Game data the searches read at fixed addresses (ai_map.h, ai_map.cpp, ai_plan.cpp).
+// Game data the searches read (ai_map.h, ai_map.cpp, ai_plan.cpp), as plain ranges: game.exe's address and size
+// (record_path.cpp's OfferTables lists them; the replay copies each to the stand-in at its address, where the
+// tables our code now names, kDirectionDx / kDirectionDy / kSizeClassHeights, are no longer read).
 struct Range {
     std::uint32_t address;
     std::uint32_t size;
 };
-constexpr Range kTableRanges[] = {
-    {ei::DataId(0x00791108), 36},   // DirectionDx
-    {ei::DataId(0x0079112C), 36},   // DirectionDy
-    {ei::DataId(0x00791978), 36},   // DirectionSteps (indexed from its middle)
-    {ei::DataId(0x0079169C), 32},   // the size classes' standing heights
-    {ei::DataId(0x0073F0A8), 8},    // PlanLongPath's distance for aiming at the best cell
-    {ei::DataId(0x0073B86C), 4},    // 0.5
-};
+constexpr std::uint32_t kPlainTableRanges = 6;
 // Then the named tables (sector_map.h, ai_map.h; the record reads game.exe's at their addresses, the
 // replay fills ours), each range with game.exe's address: the spiral's radius tree's depth and mask
 // (8 bytes) as the last range; three CArrays read through their data pointer ({address of the CArray,
 // element size}, in this order: the spiral's lengths per radius, the radius tree's keys, the spiral's
 // offsets {dx, dy}); the smoother's 81 SmoothTables (3 CArrays each).
-constexpr std::uint32_t kTableRangeCount = static_cast<std::uint32_t>(std::size(kTableRanges)) + 1;
+constexpr std::uint32_t kTableRangeCount = kPlainTableRanges + 1;
 constexpr std::uint32_t kRadiusTreeBytes = 8;
 constexpr std::uint32_t kTableArrayCount = 3;
 constexpr std::uint32_t kTableArrayElementSize = 4;

@@ -437,10 +437,16 @@ static_assert(offsetof(LocalSearch, costs) == 0x60);
 static_assert(offsetof(LocalSearch, backward) == 0x7C);
 static_assert(sizeof(LocalSearch) == 0x80);
 
-// The direction steps 1..8 of the block searches and paths (00791108 / 0079112C; index 0 unused):
-// 1 = (0, -1), then clockwise towards -x as in PathCell::Step.
-inline const int* DirectionDx() { return ei::GameData<const int[9]>(0x00791108); }
-inline const int* DirectionDy() { return ei::GameData<const int[9]>(0x0079112C); }
+// The standing height of each of the 8 levels (size classes): the occluders' refresh (ai_refresh.cpp) and the
+// movement's speed costs (ai_movement.cpp) scale it to the cells' height units.
+inline constexpr float kLevelHeights[8] = /*007912BC*/ {2.0f, 0.4f, 1.0f, 1.6f, 2.2f, 1.7f, 3.0f, 6.0f};
+
+// The direction steps 1..8 of the block searches and paths (index 0 unused): 1 = (0, -1), then clockwise towards
+// -x as in PathCell::Step.
+inline constexpr int kDirectionDx[9] = /*00791108*/ {0, 0, -1, -1, -1, 0, 1, 1, 1};
+inline constexpr int kDirectionDy[9] = /*0079112C*/ {0, -1, -1, 0, 1, 1, 1, 0, -1};
+inline const int* DirectionDx() { return kDirectionDx; }
+inline const int* DirectionDy() { return kDirectionDy; }
 
 // A block of a block search (24 bytes): open records wait in sorted doubly linked buckets; a
 // settled one moves to the search's `touched` chain (through `next`).

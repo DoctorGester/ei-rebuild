@@ -1482,8 +1482,6 @@
 {DataId(0x007907C8), DataId(0x007907DC)},
 {DataId(0x007907CC), DataId(0x007907D4)},
 {DataId(0x007907D0), DataId(0x007907DC)},
-// the loading movie's name ("progres.bik")
-{DataId(0x00791EE0), DataId(0x00790A70)},
 // "War", "Magic", "Islands": strings read by 00602190
 {DataId(0x007932F4), DataId(0x00793310)},
 {DataId(0x007932F8), DataId(0x00793308)},

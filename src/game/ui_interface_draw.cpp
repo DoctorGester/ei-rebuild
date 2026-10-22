@@ -1,6 +1,7 @@
 // The interface's per-frame draw (CInterface3D::Draw 005F5220, called by the main loop between the
 // scene's BeginScene and EndScene) and the screen fade drawn over it (CScreenFade::Draw 005E69C0).
 // See docs/notes/ui.md, section 3, and docs/notes/renderer.md, section 2.
+#include "app.h"
 #include "ui.h"
 #include "world.h"
 #include "game_strings.h"
@@ -53,7 +54,6 @@ RECT ScreenOf(const CSceneRenderer* renderer) {
 int SurfaceBytesKept() { return ei::GameData<const volatile int>(0x007C7E74); }
 int SurfaceBytesAllocated() { return ei::GameData<const volatile int>(0x007C7E78); }
 // The option byte 00784753: backdrops of a quarter of the layout, stretched over it.
-bool SmallBackdrops() { return ei::GameData<const volatile std::uint8_t>(0x00784753) != 0; }
 
 constexpr int kRedrawSlot = 22;   // a window's surfaces blit themselves
 constexpr int kTipsSlot = 23;     // its tooltips follow the mouse and redraw
@@ -71,7 +71,7 @@ void CallSlot(void* window, int slot) {
 // and 005F5568..005F5571: 1 -> 0, 600 -> height, 800 -> width).
 void MakeBackdrop(CInterface3D* ui) {
     auto* surface = gamecrt::operator_new_as<CUiSurface>();
-    if (SmallBackdrops()) {
+    if (app::g_littleOtherMemory != 0) {
         ui->backdrop_ = surface ? surface->Construct(ui, 0, 0, 400, 300, 6, 1) : nullptr;
         ui->backdrop_->SetRect(0, 0, 800, 600);
     } else if (widescreen::Active()) {

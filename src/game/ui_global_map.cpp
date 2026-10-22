@@ -574,7 +574,7 @@ void CGlobalMap::Update() {
                                  D(0.25f /*0073C3B0*/) +
                              D(angle_));
         angle_ = turned;
-        angle_ = FmodStored(turned, ei::GamePointer<const float>(0x007C8020));
+        angle_ = FmodStored(turned, &kGlobalMapFullTurn);
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Vector3 side = {1.0f, 0.0f, 0.0f};
         Quaternion spin;

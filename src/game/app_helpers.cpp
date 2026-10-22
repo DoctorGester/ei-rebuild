@@ -1,6 +1,7 @@
 // Small application helpers of 00455950-00457720 (A-E1): the free disk space, the quit flag, the
 // movie mode byte, the copy protection's delayed check and two CEngineObject helpers. See
 // docs/notes/app.md.
+#include "app.h"
 #include "app_helpers.h"
 
 #include "base_manager.h"
@@ -52,11 +53,11 @@ double __fastcall DiskFreeSpace(const char* path) {
 
 // 00455F10 (the value in CL). Whether QuitGame posts the quit message (cleared while a timed
 // movie plays).
-void __fastcall SetQuitAllowed(std::uint8_t allowed) { QuitAllowed() = allowed; }
+void __fastcall SetQuitAllowed(std::uint8_t allowed) { g_quitAllowed = allowed; }
 
 // 00455F20 (the exit code in ECX). Posts WM_QUIT when quitting is allowed; returns whether it did.
 bool __fastcall QuitGame(int exitCode) {
-    if (!QuitAllowed()) return false;
+    if (!g_quitAllowed) return false;
     gameapi::PostQuitMessage(exitCode);
     return true;
 }

@@ -84,7 +84,7 @@ public:
 
     // torch_spec.cpp (A-U6). Slots 2 / 3 (0052C610 / 0052C680; other names so they are no
     // overrides): Create clears +0x1C / +0x20 and the name, values 1, 10, 1, 1, 1, 1, both colours
-    // the global 007AF2D0, returns 1; Destroy clears +0x1C and the name. Slots 9 / 10 (0052C490 /
+    // the default colour (black), returns 1; Destroy clears +0x1C and the name. Slots 9 / 10 (0052C490 /
     // 0052C500, RET 4): +0x20, the name (004E5840; written with its terminator), +0x28, +0x2C, the
     // four values +0x30 and both colours. Slots 16-18 (RET 0xC / 0xC / 4): set +0x20, the first
     // colour and +0x28; the second colour, +0x2C and the four values; the name.
@@ -105,7 +105,7 @@ public:
     std::uint32_t lightKind_;   // +0x20 the light's kind (SetLight; saved and sent)
     mfc::CString name_;         // +0x24
     float values_[6];           // +0x28 Create: 1, 10, 1, 1, 1, 1
-    float colours_[2][3];       // +0x40 Create: both 007AF2D0..D8
+    float colours_[2][3];       // +0x40 Create: both black
 };
 static_assert(offsetof(CTorchObjectSpec, torch_) == 0x1C);
 static_assert(offsetof(CTorchObjectSpec, name_) == 0x24);

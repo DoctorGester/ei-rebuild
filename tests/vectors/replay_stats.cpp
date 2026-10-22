@@ -149,7 +149,6 @@ EI_VECTOR_CHECK("MaxDamage", MaxCall, CheckMax);
 // ---- SV4d: the formulas that read the game's settings and the skill database. Each check writes what
 // the record read to the stand-in (src/game/game_data.h; cleared before every record).
 
-constexpr std::uintptr_t kFactorStatRange = 0x007AF280;   // unit_stats.cpp
 constexpr std::uint32_t kMostLevelRecords = 4096;
 
 // Points a skill database vector at `first`..`last` (its start and finish pointers, written as
@@ -292,7 +291,10 @@ bool CheckGetFactors(const FactorsCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
     stats.stat10 = v.stat10;
     stats.stat18 = v.stat18;
-    ei::GameData<float>(kFactorStatRange) = v.range;
+    if (v.range != 20.0f) {   // unit_stats.cpp's kFactorStatRange, a constant of ours
+        std::snprintf(d, n, "recorded range %g, ours 20", v.range);
+        return false;
+    }
     float out[2] = {};
     stats.GetFactors(&out[0], v.aliased ? &out[0] : &out[1], 0);
     const float b = v.aliased ? out[0] : out[1];

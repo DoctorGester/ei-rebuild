@@ -98,6 +98,11 @@ void Shade(CUiWindow* window, float depth, float left, float top, float right, f
 }
 
 // The window's 3D model: the stone menu (`escMenu00`) turned about x.
+// The menu models' tilts about x (static initialisers: pi * 0.5).
+constexpr float kEscMenuTilt = /*007C7FB0*/ 1.5707964f;
+constexpr float kOptionsTilt = /*007C81A0*/ 1.5707964f;
+constexpr float kSaveLoadTilt = /*007C81C8*/ 1.5707964f;
+
 CUiModel* AddMenuModel(CUiWindow* window, float angle) {
     CUiModel* model = window->AddModel();
     model->Load("unmoco1", "escMenu00", "escMenu00labels");   // "unmoco1", "escMenu00", "escMenu00labels"
@@ -150,7 +155,7 @@ void CSaveLoadWindow::Build() {
     scrollbar_ = NewScrollbar(interface_, 108, 108, 384, 492);
     AddChild(scrollbar_);
 
-    CUiModel* model = AddMenuModel(this, ei::GameData<const float>(0x007C81C8));
+    CUiModel* model = AddMenuModel(this, kSaveLoadTilt);
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     model->ShowAllParts(0);
     if (isSave_) {
@@ -232,7 +237,7 @@ void COptionsWindow::Build() {
     for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
     AddSurface(NewSurface(interface_, 100, 100, 700, 500));
 
-    CUiModel* model = AddMenuModel(this, ei::GameData<const float>(0x007C81A0));
+    CUiModel* model = AddMenuModel(this, kOptionsTilt);
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     model->ShowAllParts(0);
     model->ShowPart("options", 1);
@@ -262,7 +267,7 @@ void CEscMenu::Build() {
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
-    turn.SetAxisAngle(axis, ei::GameData<const float>(0x007C7FB0));
+    turn.SetAxisAngle(axis, kEscMenuTilt);
     std::memcpy(&model->object_->localRotation_, &turn, sizeof(turn));
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the

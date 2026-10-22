@@ -36,11 +36,7 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 float Pi() { return 3.1415927f /*007423F8*/; }
-float TurnPeriod() { return GameFloat(0x007C8140); }      // a global the clock also uses
-float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle
-const Quaternion* Identity() { return ei::GamePointer<const Quaternion>(0x007C8150); }
 bool GamePaused() { return ei::GameData<const volatile bool>(0x007AF624); }   // 00578D50
 int SelectedUnitId() { return ei::GameData<const volatile int>(0x0079B3C4); }
 
@@ -128,7 +124,7 @@ Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
 }
 
 float RandomTilt(std::uint32_t r) {
-    return static_cast<float>((x87::FromUnsigned(r) * RandomScale31() - 1.0f) * D(WobbleAngle()) * kTwelfth);
+    return static_cast<float>((x87::FromUnsigned(r) * RandomScale31() - 1.0f) * D(kHudQuarterTurn) * kTwelfth);
 }
 
 Quaternion AxisAngle(float x, float y, float z, float angle) {
@@ -254,21 +250,21 @@ void CHudPortraits::Update() {
                 case 1:   // nod
                     if (static_cast<float>(D(Pi()) * kWobbleSpan) > t)
                         wobble = AxisAngle(1.0f, 0.0f, 0.0f,
-                                           static_cast<float>(D(WobbleAngle()) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
+                                           static_cast<float>(D(kHudQuarterTurn) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
                     else
                         slot.wobbleKind_ = 0;
                     break;
                 case 2:   // shake
-                    if (D(TurnPeriod()) * kWobbleSpan > D(t))
+                    if (static_cast<float>(D(kHudFullTurn) * kWobbleSpan) > t)
                         wobble = AxisAngle(0.0f, 1.0f, 0.0f,
-                                           static_cast<float>(D(WobbleAngle()) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
+                                           static_cast<float>(D(kHudQuarterTurn) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
                     else
                         slot.wobbleKind_ = 0;
                     break;
                 case 3:   // turn towards the target and back
-                    if (D(TurnPeriod()) / D(slot.wobbleSpeed_) > D(t)) {
+                    if (D(kHudFullTurn) / D(slot.wobbleSpeed_) > D(t)) {
                         float w = static_cast<float>(kHalf - x87::fcos(D(t) * D(slot.wobbleSpeed_)) * kHalf);
-                        wobble.Slerp(w, *Identity(), slot.wobbleTarget_);
+                        wobble.Slerp(w, kHudRestRotation, slot.wobbleTarget_);
                     } else {
                         slot.wobbleKind_ = 0;
                     }

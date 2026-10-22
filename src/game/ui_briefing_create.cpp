@@ -1,5 +1,6 @@
 // The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
 // 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
+#include "app.h"
 #include "core_streams.h"
 #include "options.h"
 #include "game_strings.h"
@@ -419,7 +420,7 @@ void CBriefingScreen::LeaveIfExitOpen() {
     records.SetSize(1);
     records[0] = party->members_.data;
     if (GamePartyInExit(&records, exit_, &second)) {
-        InterfaceHasScreen() = false;
+        app::g_interfaceHasScreen = 0;
         GameLeaveThroughExit(exit_);
     }
     second.FreeData();

@@ -1153,12 +1153,13 @@ EI_REPLACE_METHOD(0x0060F980, CCampPages::RefreshStats);
 // --- 0060F6B0 / 0060F710 / 0060F7A0 / 0060F830: turning and choosing the hero ------------------
 
 namespace {
-// fmod(turn + sign * 2 * seconds, *[007C7EE8]) through the game's _CIfmod, as the original
+// fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, as the original
 // computes it on the FPU.
+constexpr float kCampFullTurn = /*007C7EE8*/ 6.2831855f;   // a static initialiser: pi + pi
 float TurnedBy(double seconds, float turn, bool backwards) {
     const double twice = seconds + seconds;
     const double turned = backwards ? turn - twice : twice + turn;
-    return static_cast<float>(libcrt::CiFmod(turned, ei::GameData<const float>(0x007C7EE8)));
+    return static_cast<float>(libcrt::CiFmod(turned, kCampFullTurn));
 }
 
 constexpr int kHeroClass = 0x32;

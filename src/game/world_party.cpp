@@ -39,7 +39,6 @@ namespace {
 float Half() { return 0.5f /*0073B86C*/; }            // 0.5f
 float CellSize() { return 1.0f /*0073F904*/; }        // the map cell size
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
-const void* NoRotation() { return ei::GamePointer<const void>(0x007C2DE0); }           // 16 bytes: the identity rotation
 void* PtrListVtable() { return mfc::impl::ItemListClass::Vtable(); }                    // the item lists' CPtrList
 void* IdArrayVtable() { return mfc::impl::IdArrayClass::Vtable(); }   // CArray<int>
 void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }   // the record pointers' CArray
@@ -201,7 +200,7 @@ void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placeme
     float centreX = static_cast<float>(AIMap()->cells.width * cell * Half());
     float centreY = static_cast<float>(AIMap()->cells.height * cell * Half());
     Quaternion rotation;
-    std::memcpy(&rotation, NoRotation(), sizeof(rotation));
+    std::memcpy(&rotation, &kNewUnitRotation, sizeof(rotation));
     Vector3 start{0.0f, 0.0f, 0.0f};
     std::uint32_t startValue = 0;
     const ZoneExit* exit = nullptr;

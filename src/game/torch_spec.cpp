@@ -15,8 +15,8 @@
 namespace {
 constexpr float kDefaultValue = 1.0f;
 constexpr float kDefaultValue2C = 10.0f;
-// 007AF2D0: the default colour both colours start from.
-const float* DefaultColour() { return ei::GamePointer<const float>(0x007AF2D0); }
+// The default colour both colours start from (a static initialiser: black).
+constexpr float kDefaultColour[3] = /*007AF2D0*/ {};
 } // namespace
 
 int CTorchObjectSpec::CreateSpec() {
@@ -26,8 +26,8 @@ int CTorchObjectSpec::CreateSpec() {
     values_[1] = kDefaultValue2C;
     values_[0] = kDefaultValue;
     for (int i = 2; i < 6; ++i) values_[i] = kDefaultValue;
-    std::memcpy(colours_[0], DefaultColour(), sizeof(colours_[0]));
-    std::memcpy(colours_[1], DefaultColour(), sizeof(colours_[1]));
+    std::memcpy(colours_[0], kDefaultColour, sizeof(colours_[0]));
+    std::memcpy(colours_[1], kDefaultColour, sizeof(colours_[1]));
     return 1;
 }
 EI_REWRITTEN(0x0052C610, CTorchObjectSpec::CreateSpec);

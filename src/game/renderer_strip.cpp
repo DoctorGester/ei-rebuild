@@ -50,20 +50,20 @@ void __cdecl FreeIndices() { g_indices.FreeData(); }   // 00502C60
 constinit lib::AlignedArray<std::uint8_t> g_clipped = /*007AF040*/ {};
 lib::AlignedArray<std::uint8_t>& Clipped() { return g_clipped; }    // a flag byte per point
 void __cdecl FreeClipped() { g_clipped.FreeData(); }   // 00502C80
-std::uint8_t& Guards() { return ei::GameData<std::uint8_t>(0x007AF050); }
-// The texture coordinates of the next cross section: u (007AF05C) and the two v values.
-float& CurrentU() { return ei::GameData<float>(0x007AF05C); }
-float& TopV() { return ei::GameData<float>(0x007AF058); }
-float& BottomV() { return ei::GameData<float>(0x007AF054); }
+std::uint8_t g_guards = /*007AF050*/ {};   // the function-local arrays constructed
+// The texture coordinates of the next cross section: u and the two v values.
+float g_bottomV = /*007AF054*/ {};
+float g_topV = /*007AF058*/ {};
+float g_currentU = /*007AF05C*/ {};
 
 // The index array's SetAtGrow (00452FC0) and Add (00504E50).
 
 // One function-local static array: constructed empty once (its guard bit), destroyed at exit.
 template <typename T>
 void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, void(__cdecl* onExit)()) {
-    if (Guards() & bit) return;
+    if (g_guards & bit) return;
     array = lib::AlignedArray<T>{};
-    Guards() |= bit;
+    g_guards |= bit;
     GameAtExit(onExit);
 }
 
@@ -88,7 +88,7 @@ constexpr float kWidthScale = 15.0f;
 
 // The texture coordinates of a new cross-section vertex: the current u and `v` (copied as bits).
 void SetUv(TLVertex* vertex, const float& v) {
-    std::memcpy(&vertex->u, &CurrentU(), sizeof(float));
+    std::memcpy(&vertex->u, &g_currentU, sizeof(float));
     std::memcpy(&vertex->v, &v, sizeof(float));
 }
 
@@ -108,12 +108,12 @@ void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** ar
     top->x = static_cast<float>(acrossX + top->x);
     const double acrossY = k * dx;
     top->y = static_cast<float>(top->y - acrossY);
-    SetUv(top, TopV());
+    SetUv(top, g_topV);
     TLVertex* bottom = *array + (*count)++;
     *bottom = *first;
     bottom->x = static_cast<float>(static_cast<double>(bottom->x) - offsetX);
     bottom->y = static_cast<float>(acrossY + bottom->y);
-    SetUv(bottom, BottomV());
+    SetUv(bottom, g_bottomV);
 }
 
 // The two triangles of the last two cross sections (count - 4 .. count - 1).
@@ -147,12 +147,12 @@ void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVerte
     *top = *src;
     top->x = static_cast<float>(k * direction[1] + top->x);
     top->y = static_cast<float>(top->y - k * direction[0]);
-    SetUv(top, TopV());
+    SetUv(top, g_topV);
     TLVertex* bottom = *array + (*count)++;
     *bottom = *src;
     bottom->x = static_cast<float>(bottom->x - k * direction[1]);
     bottom->y = static_cast<float>(k * direction[0] + bottom->y);
-    SetUv(bottom, BottomV());
+    SetUv(bottom, g_bottomV);
 }
 
 // --- 00502B90 / 00502AC0 / 00502A20 ---------------------------------------------------------------
@@ -227,13 +227,13 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
     if (mode == 2) return 1;
     if (points[1] < 2) return 1;
 
-    CurrentU() = 0.0f;
+    g_currentU = 0.0f;
     float step = static_cast<float>(uLength / static_cast<double>(points[1] - 1));
     float zero = 0.0f;
     EI_NAN_AUDIT(uLength);
-    if (uLength == zero) CurrentU() = 0.875f;
-    BottomV() = vStart + vSize;
-    std::memcpy(&TopV(), &vStart, 4);
+    if (uLength == zero) g_currentU = 0.875f;
+    g_bottomV = vStart + vSize;
+    std::memcpy(&g_topV, &vStart, 4);
 
     int clipped = mode;
     if (mode == 0) {
@@ -263,7 +263,7 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
         bool started = false;
         for (int i = 1; i < Strip().size; ++i) {
             if (!started) EmitFirstSection(StripAt(i - 1), StripAt(i), RibbonData(), &count, widthBits);
-            CurrentU() = CurrentU() + step;
+            g_currentU = g_currentU + step;
             float direction[2];
             StripDirection(direction, i, i == Strip().size - 1 ? 1 : 2, &Strip());
             EmitSection(StripAt(i), direction, RibbonData(), &count, width);
@@ -276,7 +276,7 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
         for (int i = 1; i < Strip().size; ++i) {
             const std::uint8_t* flags = Clipped().data;
             if (flags[i - 1] && flags[i]) {
-                CurrentU() = CurrentU() + step;
+                g_currentU = g_currentU + step;
                 started = false;
                 continue;
             }
@@ -285,7 +285,7 @@ int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, floa
                 StripDirection(direction, i, 1, &Strip());
                 EmitSection(StripAt(i - 1), direction, RibbonData(), &count, width);
             }
-            CurrentU() = CurrentU() + step;
+            g_currentU = g_currentU + step;
             float direction[2];
             StripDirection(direction, i, i == Strip().size - 1 ? 1 : 2, &Strip());
             EmitSection(StripAt(i), direction, RibbonData(), &count, width);

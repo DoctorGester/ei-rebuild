@@ -93,7 +93,6 @@ static_assert(offsetof(LoadingMovie, surfaceType) == 0x34);
 int MoviesMode() { return options::TheOptions()->video_; }           // 0 off, 1 at size, 2 stretched to the width
 int MovieSound() { return options::TheOptions()->audio_; }
 int MovieVolume() { return options::TheOptions()->audioStreaming_; }          // percent
-const char* LoadingMovieName() { return ei::GameData<const char*>(0x00791EE0); }
 LoadingMovie& Loading() { return ei::GameData<LoadingMovie>(0x007C5520); }
 
 // The movie's surface holder: null at the start (the static initialiser 005DA360 stores it); the exit function that
@@ -107,8 +106,8 @@ void __cdecl ReleaseLoadingHolder() {   // 005DA380
     g_loadingHolderReleased = static_cast<std::uint8_t>(g_loadingHolderReleased | 1);
     if (g_loadingHolder) g_loadingHolder->Release();
 }
-// 00455F10 (fastcall, CL): sets the byte 00784751 (cleared while a timed movie plays).
-void SetFlag784751(std::uint8_t value) { ei::GameData<std::uint8_t>(0x00784751) = value; }
+// 00455F10 (fastcall, CL): sets app::g_quitAllowed (cleared while a timed movie plays).
+void SetQuitAllowed(std::uint8_t value) { app::g_quitAllowed = value; }
 
 // The decoded frame as BinkCopyToBuffer's 32-bit R, G, B, X type, for the new renderer.
 void CopyFrame(BinkHeader* bink, std::vector<std::uint8_t>* frame) {
@@ -214,7 +213,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
         to.right = width + to.left;
         to.bottom = height + to.top;
     }
-    if (frameTime) SetFlag784751(0);
+    if (frameTime) SetQuitAllowed(0);
     DWORD start = gameapi::timeGetTime() - frameTime;
     bool escaped = false;
     std::vector<std::uint8_t> frame;
@@ -262,7 +261,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     }
     BinkClose()(bink);
     if (holder) holder->Release();
-    SetFlag784751(1);
+    SetQuitAllowed(1);
     TheCursor()->SaveBackground(1);
     CursorShowOriginal(TheCursor(), nullptr, 1);
     return escaped ? 0 : 1;
@@ -282,7 +281,7 @@ void __fastcall ShowLoadingMovie(int progress) {
         // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
         std::string path = DataFolderText();
         path += "Movies\\";
-        path += LoadingMovieName();  // progres.bik, or the zone's
+        path += app::g_loadingMovieName;  // progres.bik, or the zone's
         if (movie.bink) {
             BinkClose()(movie.bink);
             movie.bink = nullptr;

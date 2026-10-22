@@ -39,7 +39,7 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+constexpr float kMenuTilt = /*007C7F14*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 VtablePair ItemPanelVtables() { return {CUiItemPanel::BlankVtable(), CUiItemPanel::BlankInputVtable()}; }
 VtablePair InfoPanelVtables() { return {CItemInfoPanel::Vtable(), CItemInfoPanel::InputVtable()}; }
@@ -70,8 +70,8 @@ constexpr int kPanelTexture = 0, kItemTexture = 2, kSaveLoadTexture = 3, kFirstQ
 // surfaces_: 0 the hero list, 1 its four commands, 2 the voices, 3 the name being changed.
 constexpr int kSurfaceCommands = 1, kSurfaceRename = 3;
 
-// The menu model's turn about x: 007C7F14 (an angle set at start) times 1.2 (0073CDF4).
-float MenuTurn() { return GameFloat(0x007C7F14) * 1.2f /*0073CDF4*/; }
+// The menu model's turn about x: pi / 2 times 1.2.
+float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
 
 // The saved heroes' reload (00662FB0, plain RET): Rebirth-patched, so through its address (as the
 // screen's mode, 00615D30, originals_ui.h).

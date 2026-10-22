@@ -43,7 +43,7 @@
 namespace {
 
 inline double D(float f) { return f; }
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+constexpr float kFullTurn = /*007C7D20*/ 6.2831855f;   // a static initialiser: pi + pi
 
 
 // The game's _ftol of a float times the float at `scale`, the product unrounded.
@@ -101,7 +101,7 @@ CEngineObject* CachedObject(ItemObjectCache* cache, const char* name, bool textu
 // A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 (FILD of the
 // unsigned word; FMUL float; FMUL double; FSTP float).
 float RandomPhase(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * GameFloat(0x007C7D20) * 2.3283064370807974e-10 /*0073C468*/);
+    return static_cast<float>(x87::FromUnsigned(random) * kFullTurn * 2.3283064370807974e-10 /*0073C468*/);
 }
 
 // The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the
@@ -144,8 +144,8 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
     // above, not when equal or unordered).
     double angle = static_cast<double>(dt) * turn->speed + turn->angle;
     turn->angle = static_cast<float>(angle);
-    while (angle > GameFloat(0x007C7D20)) {
-        angle = static_cast<double>(turn->angle) - GameFloat(0x007C7D20);
+    while (angle > kFullTurn) {
+        angle = static_cast<double>(turn->angle) - kFullTurn;
         turn->angle = static_cast<float>(angle);
     }
 }

@@ -44,7 +44,7 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
+constexpr float kMenuTilt = /*007C7F40*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 const char* CancelSound() { return "buttons\\messbox\\cancel.wav"; }
 const char* SelectSound() { return "buttons\\save\\select.wav"; }
@@ -145,10 +145,10 @@ const char* MenuButtonLabel() { return "button03_multiplayer"; }
 const char* AllodNameFormat() { return "lmp_allod_name_%d"; }
 const char* ConnectionTextFormat() { return "lmp_connection_%d"; }
 const char* NameEnd() { return "|"; }
-// The model's turn about x: 007C7F40 (an angle set at start) times 1.2 (0073CDF4).
-float MenuTurn() { return GameFloat(0x007C7F40) * 1.2f /*0073CDF4*/; }
+// The model's turn about x: pi / 2 times 1.2.
+float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
 // The interface's text colour (the list draw changes it per row).
-std::uint32_t TextColour() { return ei::GameData<const volatile std::uint32_t>(0x00793AD8); }
+std::uint32_t TextColour() { return g_connectTextColour; }
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 // ExtendedServerName's values in Create (addon.dll: operands at 0061B5CE, 0061BB51, 0061BC09).
 constexpr float kExtendedSelectionRight = 381.5f;

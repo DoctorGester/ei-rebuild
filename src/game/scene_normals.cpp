@@ -22,11 +22,7 @@ namespace scene {
 namespace {
 
 
-double WeldDistance() {
-    double d;
-    std::memcpy(&d, ei::GamePointer<const void>(0x0073B860), sizeof(d));
-    return d;
-}
+double WeldDistance() { return 0.00001 /*0073B860*/; }
 
 } // namespace
 

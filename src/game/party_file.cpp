@@ -24,8 +24,6 @@ namespace {
 
 constexpr unsigned kPartyFileMagic = 0x114;
 
-int SaveVersion() { return ei::GameData<const int>(0x00790260); }
-int NewestReadVersion() { return ei::GameData<const int>(0x00790268); }
 const char* TempFileName() { return "temp.mp"; }
 
 mfc::CString InFolder(const char* folder, const mfc::CString& name) { return mfc::CString(folder) + name; }
@@ -75,7 +73,7 @@ void MpHeroRecord::WriteFile(const char* folder) {
         LocalStreams streams;
         streams.file.Open(InFolder(folder, file), netlink::FileStream::kOpenWrite, 0);
         Party()->SaveParty(&streams.data, 1);
-        SaveFileWrite(&streams.file, kPartyFileMagic, SaveVersion(), &streams.data);
+        SaveFileWrite(&streams.file, kPartyFileMagic, kSaveVersion, &streams.data);
     }
     gameapi::DeleteFileA(TempFile(folder));
 }
@@ -84,7 +82,7 @@ EI_REWRITTEN(0x00662AC0, MpHeroRecord::WriteFile);
 bool MpHeroRecord::ReadFile(const char* folder) {
     LocalStreams streams;
     streams.file.Open(InFolder(folder, file), netlink::FileStream::kOpenRead, 1);
-    if (!SaveFileRead(&streams.data, kPartyFileMagic, SaveVersion(), NewestReadVersion(), &streams.file)) return false;
+    if (!SaveFileRead(&streams.data, kPartyFileMagic, kSaveVersion, kSaveOldestVersion, &streams.file)) return false;
     Party()->LoadParty(&streams.data, 1);
     return streams.data.ok_ != 0;
 }

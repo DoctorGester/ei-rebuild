@@ -134,10 +134,10 @@ void CBattleScreen::ToggleMember(int index) {
         std::uint32_t value = chosen.data[i];
         portraits->SceneMesh(i * 5 + 4)->visible_ = static_cast<int>(value);
         Quaternion turn;
-        const Quaternion* rest = ei::GamePointer<const Quaternion>(0x007C8150);   // identity
+        const Quaternion* rest = &kHudRestRotation;
         if (value != 0) {
             const Vector3 axis = {-1.0f, 0.0f, 0.0f};
-            const float angle = ei::GameData<const volatile float>(0x007C8144) *
+            const float angle = kHudQuarterTurn *
                                 0.14285715f /*0073CDCC*/;   // 1/7
             rest = turn.SetAxisAngle(axis, angle);
         }

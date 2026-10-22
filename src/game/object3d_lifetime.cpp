@@ -15,8 +15,7 @@
 
 namespace {
 // Globals the game fills at startup: the identity quaternion and the default figure scale.
-const Quaternion& IdentityOrientation() { return ei::GameData<const Quaternion>(0x007AF1C0); }
-const float* DefaultFigureScale() { return ei::GamePointer<const float>(0x007AF1D0); }
+constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 
 // The counted objects CountedRef holds: their count (+0x04) and their deletion (slot 0 with 1).
 inline int& CountOf(CLinkMesh* figure) { return figure->refCount_; }
@@ -48,7 +47,7 @@ EI_REPLACE_METHOD(0x0051E4F0, CountedRef<CRenderPreset>::Assign);
 
 int CObject3D::Create3D() {
     std::memset(&localPosition_, 0, sizeof(localPosition_));
-    localRotation_ = IdentityOrientation();
+    localRotation_ = kIdentityOrientation;
     attached = nullptr;
     flags_ = 0;
     spare09C = 0;
@@ -57,7 +56,7 @@ int CObject3D::Create3D() {
     CLinkMesh* old = figure;
     figure = nullptr;
     DropReference(old);
-    std::memcpy(&defaultScale, DefaultFigureScale(), sizeof(defaultScale));
+    defaultScale = kDefaultFigureScale;
     std::memset(&boundsFlags, 0, reinterpret_cast<char*>(&partBoxArrayVtable) - reinterpret_cast<char*>(&boundsFlags));
     if (partBoxes) {
         gamecrt::operator_delete(partBoxes);

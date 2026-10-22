@@ -109,7 +109,7 @@ void CInterface3D::Update() {
         }
         ResetInput();
         app::PumpMessages();
-        ei::GameData<bool>(0x00784750) = false;
+        app::g_interfaceHasScreen = 0;
     }
     if (queuedWindow_) {
         Activate(queuedWindow_);

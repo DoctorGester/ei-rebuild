@@ -367,7 +367,7 @@ kinds given.
   the original read through memory: terrain_sector's kSectorExtension); a struct with pointer fields takes string
   literals, names and nullptr in its initialiser (material.cpp's kMaterialKindFiles).
 - **The check** (`python tools/named_data.py --check`, build.cmd): the initialiser's numbers, packed by the declared
-  element type (`TYPES`: the scalars, GUID as `IHH8B`; nested braces are flattened, a `[n]` bound must match the
+  element type (`TYPES`: the scalars, GUID as `IHH` and 8 `B`; nested braces are flattened, a `[n]` bound must match the
   count), are game.exe's bytes at the tag (.rdata past the import table, or .data and its zero-filled tail);
   config/named_data.csv lists exactly the tagged ranges (address, size, name, file; `--update` writes it); and
   nothing else reaches a range: no address literal of src/ or tests/ (.cpp, .h, .inc, comments blanked) inside it,

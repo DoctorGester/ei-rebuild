@@ -410,7 +410,7 @@ public:
     // with a hero selected at depth 553, new hero at 400). Returns 1.
     BOOL Draw(int pass);
     // 00617820 (slot 24). The children's update; a held rotate arrow turns the preview by twice the
-    // frame time (modulo 007C7F10); the two scroll bars' moves redraw the hero list and the voices;
+    // frame time (modulo 2 pi); the two scroll bars' moves redraw the hero list and the voices;
     // on the new hero's page the create button (scene object 9) is bright only when the three
     // attributes add up to 00741C98's points and the name is not empty.
     void Update();
@@ -613,6 +613,10 @@ struct MpAddresses : stlp::vector<MpAddressEntry> {
 };
 using MpAddressList = MpAddresses;
 
+// The colour the connect list's texts and its line are drawn in: set per row and for the details by the list draw
+// and left as it is for the next draw's titles; Create's texts take it too.
+inline std::uint32_t g_connectTextColour = /*00793AD8*/ 0xA7D7E4;
+
 class CMpConnectScreen : public CUiContainer {
 public:
     // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741CD0 / 00741C9C.
@@ -639,7 +643,7 @@ public:
     // 0061B2C0 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
     // only). The screen over 800 x 600: the "saveload" and "scrollbar" textures, the stone menu
     // model ("unmoco2" with "MainMenu00labels", parts "but03" and "button03_multiplayer") at
-    // (400, 350, 8) turned about x by 007C7F40 * 1.2; the regions (above) with tips 0x9E98,
+    // (400, 350, 8) turned about x by pi / 2 * 1.2; the regions (above) with tips 0x9E98,
     // 0x9E99, 0x9EA2 and 0x9EA3 on the first four; sprites 0 / 1 the two buttons, 2 the selection
     // bar (plain 0xC8A06800), 3 the sort arrow (the scroll bar's texture, hidden), 4 / 5 the
     // unlisted and password switches, 6-9 the game type tabs (their names "lmp_allod_name_%d"
@@ -708,7 +712,7 @@ public:
     // 0x9EA5, set once: newGameTips_); otherwise they are off and the tips empty. Texts 10 and 11
     // by the two buttons, the column titles (texts 12-15), the sort arrow (sprite 3: turned for an
     // odd key, at its column while a key is set) and a line under the titles (a pen of the text
-    // colour); 15 rows from scrollTop_ in the colour of the entry's state (00793AD8: 1 0x31B3FF,
+    // colour); 15 rows from scrollTop_ in the colour of the entry's state (g_connectTextColour: 1 0x31B3FF,
     // 2 0x31E3EE, else 0xA7D7E4): the new game row "<text 7> <the name typed>", the others name,
     // players "n/m", the game type's allod name ("?" for 4) and the ping; the selection frame
     // (sprite 2) on the selected row. Then the selected entry's details at the right in 0xA7D7E4:

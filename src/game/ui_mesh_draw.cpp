@@ -31,7 +31,7 @@ constexpr int kStackView = 2;
 
 // The identity orientation (w 1, x y z 0; set by 005E6C30 at start): a sprite's first orientation,
 // and what the draw hands DrawFigure as its second argument (not read on that path).
-const Quaternion& IdentityOrientation() { return ei::GameData<const Quaternion>(0x007C7CD8); }
+constexpr Quaternion kIdentityOrientation = /*007C7CD8*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 constexpr float kSpriteDepth = 10.0f;
 constexpr std::uint32_t kOpaqueBlack = 0xFF000000;
 const char* SetTextureFailed() { return "CI3DFigure::Draw.\n SetTexture failed.\n"; }
@@ -102,7 +102,7 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
     const float origin[3] = {0.0f, 0.0f, 0.0f};
     render::SetInterfaceDraw(true);   // the new renderer streams interface sprites (R16d)
-    const int drawn = renderer->DrawFigure(this, &IdentityOrientation(), origin, material_, 0xFF, nullptr);
+    const int drawn = renderer->DrawFigure(this, &kIdentityOrientation, origin, material_, 0xFF, nullptr);
     render::SetInterfaceDraw(false);
     renderer->SetColour(saved);
     if (!drawn) return game::FatalError(DrawFailed());
@@ -132,7 +132,7 @@ int CUiMesh::CreateSprite() {
     tintSpare_[0] = 0.0f;
     tintSpare_[1] = 0.0f;
     tintSpare_[2] = 0.0f;
-    localRotation_ = IdentityOrientation();
+    localRotation_ = kIdentityOrientation;
     localPosition_.x = 0.0f;
     localPosition_.y = 0.0f;
     localPosition_.z = kSpriteDepth;

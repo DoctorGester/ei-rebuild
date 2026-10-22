@@ -17,12 +17,13 @@
 
 namespace {
 
-// The game's own copies of the interface ids, the system mouse's id and the mouse data format.
-const GUID& InputInterfaceId() { return ei::GameData<const GUID>(0x00744F10); }    // IID_IDirectInput7A
-const GUID& DeviceInterfaceId() { return ei::GameData<const GUID>(0x00744EA0); }   // IID_IDirectInputDevice7A
-const GUID& SystemMouseId() { return ei::GameData<const GUID>(0x00744DD0); }       // GUID_SysMouse
-// c_dfDIMouse's axes (the game's GUID_XAxis, GUID_YAxis, GUID_ZAxis).
-const GUID* AxisId(std::uintptr_t address) { return ei::GamePointer<const GUID>(address); }
+// The game's own copies of the interface ids, the system mouse's id and c_dfDIMouse's axes.
+constexpr GUID kGuidSysMouse = /*00744DD0*/ {0x6F1D2B60, 0xD5A0, 0x11CF, {0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}};
+constexpr GUID kGuidZAxis = /*00744E60*/ {0xA36D02E2, 0xC9F3, 0x11CF, {0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}};
+constexpr GUID kGuidYAxis = /*00744E70*/ {0xA36D02E1, 0xC9F3, 0x11CF, {0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}};
+constexpr GUID kGuidXAxis = /*00744E80*/ {0xA36D02E0, 0xC9F3, 0x11CF, {0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00}};
+constexpr IID kIidDirectInputDevice7 = /*00744EA0*/ {0x57D7C6BC, 0x2356, 0x11D3, {0x8E, 0x9D, 0x00, 0xC0, 0x4F, 0x68, 0x44, 0xAE}};
+constexpr IID kIidDirectInput7 = /*00744F10*/ {0x9A4CB684, 0x236D, 0x11D3, {0x8E, 0x9D, 0x00, 0xC0, 0x4F, 0x68, 0x44, 0xAE}};
 
 const char* const kNoInput = "Can't create direct input object\n";        // "Can't create direct input object\n"
 const char* const kNoDevice = "Can't create direct input device for mouse\n";       // "Can't create direct input device for mouse\n"
@@ -57,9 +58,9 @@ int Reported(HRESULT result, const char* text) { return app::FatalErrorCode(resu
 const void* CDirectInputMouse::MouseDataFormat() {
     constexpr DWORD kOptional = 0x80000000;   // DIDFT_OPTIONAL (DirectInput 8's headers only)
     static DIOBJECTDATAFORMAT objects[] = {
-        {AxisId(0x00744E80), 0, DIDFT_AXIS | DIDFT_ANYINSTANCE, 0},
-        {AxisId(0x00744E70), 4, DIDFT_AXIS | DIDFT_ANYINSTANCE, 0},
-        {AxisId(0x00744E60), 8, DIDFT_AXIS | DIDFT_ANYINSTANCE | kOptional, 0},
+        {&kGuidXAxis, 0, DIDFT_AXIS | DIDFT_ANYINSTANCE, 0},
+        {&kGuidYAxis, 4, DIDFT_AXIS | DIDFT_ANYINSTANCE, 0},
+        {&kGuidZAxis, 8, DIDFT_AXIS | DIDFT_ANYINSTANCE | kOptional, 0},
         {nullptr, 12, DIDFT_BUTTON | DIDFT_ANYINSTANCE, 0},
         {nullptr, 13, DIDFT_BUTTON | DIDFT_ANYINSTANCE, 0},
         {nullptr, 14, DIDFT_BUTTON | DIDFT_ANYINSTANCE | kOptional, 0},
@@ -72,12 +73,12 @@ const void* CDirectInputMouse::MouseDataFormat() {
 
 int CDirectInputMouse::Setup(HWND window, HINSTANCE instance) {
     void* input = nullptr;
-    HRESULT result = libcrt::imports::DirectInputCreateEx(instance, kInputVersion, &InputInterfaceId(), &input, nullptr);
+    HRESULT result = libcrt::imports::DirectInputCreateEx(instance, kInputVersion, &kIidDirectInput7, &input, nullptr);
     if (result < 0) return Reported(result, kNoInput);
     Adopt(input_, static_cast<IDirectInput7A*>(input));
 
     void* device = nullptr;
-    result = input_->CreateDeviceEx(SystemMouseId(), DeviceInterfaceId(), &device, nullptr);
+    result = input_->CreateDeviceEx(kGuidSysMouse, kIidDirectInputDevice7, &device, nullptr);
     if (result < 0) return Reported(result, kNoDevice);
     Adopt(device_, static_cast<IDirectInputDevice7A*>(device));
 

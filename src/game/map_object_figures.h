@@ -22,6 +22,9 @@
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CObject3D;
+
+// The figures' default scale (a static initialiser: zeros; CObject3D's constructor and Create3D).
+inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
 class CLinkMesh;          // link_figure.h: an object's figure (+0xF0)
 class CTransformObject;   // core_transform.h
 struct tagRECT;           // windows.h
@@ -197,7 +200,7 @@ struct FigureBone : CEngineObject {
     FigureBone* Construct();
     // 0050B370 (slot 2, EAX 1). Reset: names "", no parent, the child list emptied (its blocks
     // freed), mesh, pose, animator and +0x54 / +0x58 forgotten, the default position and rotation
-    // (007AF110 / 007AF100, the animation tracks' defaults), no matrices (the block kept), morph 0.
+    // (the animation tracks' defaults), no matrices (the block kept), morph 0.
     int CreateBone();
     // 0050B510 (slot 3). Releases the mesh (forgotten first), the animator, +0x54 and +0x58 (the
     // pose is only forgotten), then CreateBone's reset.
@@ -410,7 +413,7 @@ public:
     // 00515BD0. The constructor: the engine object and transform bases (vtables 0073B8E0,
     // 0073BA38), identity orientations, empty name, part list (Object3DListClass), arrays and
     // string array, the bounds cleared, then the vtable 0073DDD4 and the default figure scale
-    // from 007AF1D0. Returns this.
+    // from kDefaultFigureScale. Returns this.
     CObject3D* Construct();
     // 00515D70. The destructor body: the parts released (00516080), the frame array, string
     // array, figure (counted), part arrays, list blocks and name freed, then the transform and
@@ -530,9 +533,9 @@ public:
 
     // object3d_lifetime.cpp (A-U).
     // 00515F70. Virtual slot 2 (Create; another name so it is no override): position 0, the
-    // identity orientation (007AF1C0), no side half (dropped without a release), flags 0, no
+    // identity orientation, no side half (dropped without a release), flags 0, no
     // animation database, scale 0, the figure released (deleted at its last reference), the
-    // default scale (007AF1D0) at +0xF4, the bounds cleared and the part boxes freed. Returns 1.
+    // default scale (kDefaultFigureScale) at +0xF4, the bounds cleared and the part boxes freed. Returns 1.
     int Create3D();
     // 00516080. Virtual slot 3 (Destroy): the figure released (00519580), every effect source
     // removed (00518AE0), the animation state lets go of its parts (0050D3A0), is detached and
@@ -623,7 +626,7 @@ public:
     // headers (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through; 00519580
     // assigns it.
     CountedRef<CLinkMesh> figure;
-    Vector3 defaultScale;           // +0x0F4 from 007AF1D0 (constructor, Create3D)
+    Vector3 defaultScale;           // +0x0F4 kDefaultFigureScale (constructor, Create3D)
     int dirtyRect[4];               // +0x100 RECT: the screen area the last DrawCollectDirty covered
     mfc::CStringArray partNames;    // +0x110 the figure's part names (00517990), in the order of the
                                     // part boxes (CUnit::partBoxes, +0x160)

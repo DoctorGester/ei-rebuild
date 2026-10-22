@@ -5,6 +5,7 @@
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -74,14 +75,15 @@ struct LineBatch {
 };
 static_assert(offsetof(LineBatch, count) == 0x14 && sizeof(LineBatch) == 0x20);
 
-// The line lists' work arrays in the exe's data: the projected points (007A9CB8; x, y, z, rhw each,
-// resized without keeping its contents) and their clip outcodes (007A9CC8, an MFC CByteArray).
+// The line lists' work arrays: the projected points (x, y, z, rhw each, resized without keeping its contents) and
+// their clip outcodes (an MFC CByteArray built by a static initialiser).
 struct ProjectedPoint {
     float x, y, z, rhw;
 };
 extern lib::AlignedArray<ProjectedPoint> g_lineProjected;   // renderer_lines.cpp
 inline lib::AlignedArray<ProjectedPoint>& LineProjected() { return g_lineProjected; }
-inline mfc::CArray<std::uint8_t>& LineOutcodes() { return ei::GameData<mfc::CArray<std::uint8_t>>(0x007A9CC8); }
+extern lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes;   // renderer_lines.cpp
+inline mfc::CArray<std::uint8_t>& LineOutcodes() { return *g_lineOutcodes; }
 
 // 0049B4B0 (fastcall: the device object, the points; the colour on the stack, RET 4).
 long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);

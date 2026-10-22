@@ -101,7 +101,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
         EI_NAN_AUDIT(hearing, loudness, distance);
         if (hearing * loudness <= distance) continue;
         mfc::CString text;
-        if (console::FilterMask() & 1) {
+        if (console::g_filterMask & 1) {
             const double between = vecmath::Distance<Sum3::XYZ>(other->localPosition_, unit->localPosition_);
             text.Format(kHeardFormat, other->id_, unit->id_, between);
         }

@@ -75,11 +75,11 @@ TYPES = {
     'int': 'i', 'long': 'i', 'LONG': 'i', 'std::int32_t': 'i', 'int32_t': 'i',
     'unsigned': 'I', 'DWORD': 'I', 'std::uint32_t': 'I', 'uint32_t': 'I',
     'short': 'h', 'std::int16_t': 'h', 'std::uint16_t': 'H', 'WORD': 'H',
-    'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
-    'RECT': 'iiii', 'GUID': 'IHH8B', 'IID': 'IHH8B', 'CLSID': 'IHH8B',
+    'bool': 'B', 'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
+    'RECT': 'iiii', 'POINT': 'ii', 'HINSTANCE': 'I', 'HWND': 'I', 'GUID': 'IHH' + 'B' * 8, 'IID': 'IHH' + 'B' * 8, 'CLSID': 'IHH' + 'B' * 8,   # one code per number
     'DecalBuilder': 'B' * 0x7C,   # ground_decal.h
     'SpiralCache': 'if',   # ai_map.h: length, radius
-    'Vector3': 'fff', 'Quaternion': 'ffff',
+    'Vector3': 'fff', 'Quaternion': 'ffff', 'FogTile': 'ffff',   # effects.h
     'IsaacRandom': 'I' * 0x205,   # random.h: seeded_, count_, results_[256], memory_[256], a_, b_, c_
     'WeatherNoiseCurve': 'f' * (128 + 128 * 4),   # weather_noise.h: the samples, then the segments
     # Pointers ('P', a dword of game.exe's: what it points at is compared, not the address; see Definition.pack).
@@ -88,6 +88,7 @@ TYPES = {
     'MaterialKindFile': 'iP',
     'OptionDefinition': 'iPiiii', 'ActionDefinition': 'iPii',   # ui.h: id, name, kind, maximum, group, row / id, name, group, row
     'ScriptParticleType': 'Pii', 'AmbientSoundClass': 'Pififi',   # script.h: name, type, lifetime / terrain_ambience.cpp
+    'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
     'LocaleId': 'HHH',                       # lib/crt.h: VC6's LC_ID
     'CodePageInfo': 'IIII' + 'B' * 32,       # crt_locale.cpp: __rgcode_page_info's code page, ulInfo, ranges
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection (crt_iostream.cpp)
@@ -141,8 +142,8 @@ STATIC_OBJECT_BYTES = {
     'acks::AckDatabase': 0x60, 'SkillDatabase': 0x18, 'UnitDatabase': 0x80, 'LeverRecordTable': 0x20,
     'PartyManager': 0x44, 'SavedParties': 0x84, 'FootprintCellSet': 0x54, 'IntSet': 0x14, 'UnreadSet': 0x14,
     'CCursor': 0xB8, 'CInterface3D': 0xB0, 'GameFlow': 0x84, 'options::GameOptions': 0x26C,
-    'mfc::CArray<int>': 0x14, 'RadiusTree': 0x1C, 'mfc::CArray<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
-    'SmoothTable[81]': 0x12FC,
+    'mfc::CArray<int>': 0x14, 'mfc::CArray<std::uint8_t>': 0x14, 'mfc::CArray<std::uint16_t>': 0x14, 'RadiusTree': 0x1C, 'mfc::CArray<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
+    'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'mfc::CArray<FogSprite>': 0x14, 'mfc::CArray<ScriptQuestObjective>': 0x14,
 }
 
 

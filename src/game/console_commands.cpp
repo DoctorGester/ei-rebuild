@@ -1,5 +1,6 @@
 // Console command handlers (game.exe 0x005DD920-0x005E0A8B). Each gets the command's arguments,
 // already lower-cased, in ECX. See docs/notes/console.md.
+#include "app.h"
 #include "ei/x87.h"
 #include "console.h"
 
@@ -151,7 +152,7 @@ void __fastcall Filter(CStringArray* args) {
         static constexpr const char* kLabels[] = {"AI: ", "\nEVENT: ", "\nGRAPHICS: ", "\nRPG: ", "\nUNITACKS: ", "\nNET: "};
         GameOStream& os = Out();
         for (int i = 0; i < 6; ++i)   // "AI: on", "\nEVENT: off", ...
-            os << kLabels[i] << (FilterMask() & (1u << i) ? "on" : "off");
+            os << kLabels[i] << (g_filterMask & (1u << i) ? "on" : "off");
         return EndLine(os);
     }
     unsigned type;
@@ -165,11 +166,11 @@ void __fastcall Filter(CStringArray* args) {
     else if (ArgIs(args, 0, "all")) type = ~0u;
     else return PrintLine("Invalid parameters");
     if (args->GetSize() <= 1) {
-        FilterMask() = type;
+        g_filterMask = type;
     } else if (ArgOn(args, 1)) {
-        FilterMask() |= type;
+        g_filterMask |= type;
     } else if (ArgOff(args, 1)) {
-        FilterMask() &= ~type;
+        g_filterMask &= ~type;
     } else {
         PrintLine("Invalid parameters");
     }
@@ -396,7 +397,7 @@ void __fastcall Net(CStringArray* args) {
         if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = libcrt::Atoi((*args)[1]);
     }
     if (Mbsicmp((*args)[0], "time") == 0)
-        *ei::GamePointer<int>(0x0079BC60) = libcrt::Atoi((*args)[1]);
+        app::g_showClientSpeed = libcrt::Atoi((*args)[1]);
     if (Mbsicmp((*args)[0], "zone") == 0 && ServerActive(Server())) {
         mfc::CString zone((*args)[1]);
         Server()->SendCommand(0, zone);

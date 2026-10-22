@@ -38,6 +38,9 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
+// New units' orientation (a static initialiser: the identity; world_party.cpp, world_zone.cpp).
+inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0.0f};
+
 using BOOL = int;
 
 struct ScriptGroup;
@@ -1900,7 +1903,7 @@ struct MpHeroRecord {
     // file deleted.
     void WriteFile(const char* folder);
     // 00662DD0 (RET 4, AL; party_file.cpp). Reads the party from `folder` + file (magic 0x114,
-    // the versions 00790260..00790268): false when the file does not read, else the party loaded
+    // the versions kSaveOldestVersion..kSaveVersion): false when the file does not read, else the party loaded
     // (with its variables) and the memory stream's ok flag.
     bool ReadFile(const char* folder);
     CParty* Party() { return party.Party(); }
@@ -1984,12 +1987,15 @@ int __stdcall LoadMission(CStream* file);
 // world_savefile.cpp. 00579B80 (ECX = file stream, EDX = magic; RET 8): writes the header
 // (004A5340), at version > 0x6B a checksum, then a flag byte and the LZ-compressed data (or, when
 // decompressing it does not give the data back, 0 and the raw data). 00579830 (ECX = memory
-// stream, EDX = magic; RET 0xC; AL): reads one back (versions up to 00790264 uncompressed);
+// stream, EDX = magic; RET 0xC; AL): reads one back (versions up to kSaveLastUncompressedVersion uncompressed);
 // false on a bad header or checksum.
 void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data);
 bool __fastcall SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file);
+// The save version written, which is also the newest read, and the oldest version read.
+inline constexpr int kSaveVersion = /*00790260*/ 116;
 // The newest save version stored uncompressed (SaveFileRead reads those as they are).
 inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 100;
+inline constexpr int kSaveOldestVersion = /*00790268*/ 66;
 
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed

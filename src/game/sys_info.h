@@ -8,6 +8,7 @@
 #include "engine_object.h"
 
 #include "lib/mfc.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <windows.h>
@@ -30,7 +31,8 @@ static_assert(offsetof(ProcessorInfo, terminator) == 0x0C && offsetof(ProcessorI
               sizeof(ProcessorInfo) == 0x14);
 inline constexpr std::uint32_t kProcessorMmx = 0x00800000;   // CPUID.1:EDX bit 23
 inline constexpr std::uint32_t kProcessorSse = 0x02000000;   // CPUID.1:EDX bit 25
-inline ProcessorInfo* TheProcessorInfo() { return ei::GamePointer<ProcessorInfo>(0x007CAED0); }
+extern ProcessorInfo g_processorInfo;   // sys_info.cpp
+inline ProcessorInfo* TheProcessorInfo() { return &g_processorInfo; }
 // The terminator cleared, then CPUID function 1 into the globals when the processor has CPUID (the
 // EFLAGS ID bit can be flipped; as in the original it stays flipped). Both writers inline this.
 void ReadProcessorInfo();
@@ -75,16 +77,16 @@ static_assert(offsetof(CSysInfo, computerName_) == 0x1C && offsetof(CSysInfo, se
               offsetof(CSysInfo, memory_) == 0x30 && offsetof(CSysInfo, system_) == 0x50 &&
               offsetof(CSysInfo, version_) == 0x74 && sizeof(CSysInfo) == 0x108);
 
-inline CSysInfo* TheSysInfo() { return ei::GamePointer<CSysInfo>(0x007AB8F8); }
+extern lib::StaticObject<CSysInfo> g_sysInfo;   // sys_info.cpp: constructed by its static initialiser
+inline CSysInfo* TheSysInfo() { return &*g_sysInfo; }
 
 // 004DDE75: the destructor body (its vtable, the five texts from the last to the first, the engine
 // object's base destructor).
 void __fastcall SysInfoDestruct(CSysInfo* self);
 
 // The translation unit's static initialisers (they run before WinMain; a start-up check compared
-// what they left, verify_static_initialisers.cpp until S21d). The four constants: 2 pi at
-// 007AB8F0, pi / 2 at 007ABA00, pi / 4 at 007ABA04, 1 / pi at 007ABA08 (copies of a header's
-// constants; nothing found reading these).
+// what they left, verify_static_initialisers.cpp until S21d). The four constants: 2 pi, pi / 2, pi / 4 and
+// 1 / pi (copies of a header's constants; nothing found reading these).
 void __cdecl SysInfoInitTwoPi();       // 004DDCBA
 void __cdecl SysInfoInitHalfPi();      // 004DDCD7
 void __cdecl SysInfoInitQuarterPi();   // 004DDCF8

@@ -53,7 +53,7 @@ int ShadowSwitch(int classId) {
     if (classId == 0x52) return options::TheOptions()->floraShadow_;
     return options::TheOptions()->buildingShadow_;
 }
-const Vector3* DefaultLight() { return ei::GamePointer<const Vector3>(0x007AF230); }
+constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros
 // The work buffers: the parts' points projected into the light's view, their texture pixels, and
 // the ground quad (one block of four corners).
 using ShadowPoints = lib::AlignedArray<Vector2>;
@@ -163,7 +163,7 @@ bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
                        static_cast<float>(static_cast<double>(at.z) - from.z)};
     EI_NAN_AUDIT(distanceSquared);
     if (distanceSquared == 0.0f) {
-        std::memcpy(&towards, DefaultLight(), sizeof(towards));
+        towards = kDefaultLight;
     } else {
         double inverse = kOneDouble / std::sqrt(distanceSquared);
         towards.x = static_cast<float>(towards.x * inverse);
@@ -303,7 +303,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
 
     // The lights reaching the object.
     Vector3 sum;
-    std::memcpy(&sum, DefaultLight(), sizeof(sum));
+    sum = kDefaultLight;
     ObjectListIteratorOf<CLight> lights{};
     for (CLight* light = lights.First(TheLightFactory()); light; light = lights.Next()) {
         if (light->flags_ & kLightOff || light->flags_ & kLightRemoved) continue;

@@ -46,7 +46,7 @@ const char* const kSelectVoiceKey = "lmp_select_voice";
 // The points a new hero's three attributes must add up to before it can be created.
 float NewHeroPoints() { return 75.0f /*00741C98*/; }
 // The preview's full turn (2 pi), the modulus of its angle.
-float FullTurn() { return ei::GameData<const volatile float>(0x007C7F10); }
+constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: pi + pi
 // The multiplayer heroes object (its vector at +4: SavedHero).
 SavedParties* MpHeroesObject() { return &TheSavedParties(); }
 // CArray<record*> (the party's records handed to the client world).
@@ -151,7 +151,7 @@ void CMpHeroScreen::Update() {
         double step = WindowFrameTimeOriginal(this);
         step += step;
         double angle = rotating_ == 1 ? step + turn_ : turn_ - step;
-        turn_ = static_cast<float>(std::fmod(angle, static_cast<double>(FullTurn())));
+        turn_ = static_cast<float>(std::fmod(angle, static_cast<double>(kFullTurn)));
     }
     int position;
     if (heroScroll_->TakePosition(&position)) {

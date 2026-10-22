@@ -1,6 +1,7 @@
 // The main menu (CMainMenu, ui_screens.h): its Create, version line, per-frame update, close, message
 // answers, mouse move and keys; the interface's saved-state reset and the regions' SetRect from a
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
+#include "app.h"
 #include "app_helpers.h"
 #include "options.h"
 #include "sound.h"
@@ -198,7 +199,7 @@ void CMainMenu::OnMessageResult(int result) {
             mfc::CString path = *GameBasePathString() + kIntroMovie;
             PlayMovie(path, 0, 1, 1, 1, 1, 1);
         }
-        InterfaceHasScreen() = false;
+        app::g_interfaceHasScreen = 0;
         TheGameFlow()->RequestState3();
     } else if (static_cast<std::uint32_t>(result) == 0xCCCCCCCC) {
         GameStartAmbience();

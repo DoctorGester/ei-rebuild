@@ -1,6 +1,7 @@
 // The titles window's frame and close (0062BD80, 0062BD00) and its script lines' destructor
 // (0062BCB0). The window's Create is in ui_layouts.cpp, its input in ui_screens.cpp. See
 // ui_screens.h (CCreditsScreen) and docs/notes/ui.md ("Main menu, dialogs, escape menu, credits").
+#include "app.h"
 #include "app_helpers.h"
 #include "bink_video.h"
 #include "model.h"
@@ -80,7 +81,7 @@ BOOL CCreditsScreen::Draw(int pass) {
     if (!player_.Frame(app::MovieMode() != 1) && finished_) {
         player_.Close();
         PlayMoviesOriginal(mfc::operator+(name_, kOutroSuffix), 0, 0, 0, 0);
-        InterfaceHasScreen() = false;
+        app::g_interfaceHasScreen = 0;
         Close();
         return 1;
     }
@@ -94,7 +95,7 @@ void CCreditsScreen::OnClose() {
     lines_.ClearWith([](TitleLine* line) { line->Destroy(); });
     gameapi::SystemParametersInfoA(kSetFontSmoothing, static_cast<UINT>(fontSmoothing_), nullptr, 0);
     SceneRenderer()->fogColour_ = static_cast<std::uint32_t>(savedDisplay_);
-    InterfaceHasScreen() = true;
+    app::g_interfaceHasScreen = 1;
     CursorShowOriginal(TheCursor(), nullptr, 1);
 }
 EI_REPLACE_METHOD(0x0062BD00, CCreditsScreen::OnClose);

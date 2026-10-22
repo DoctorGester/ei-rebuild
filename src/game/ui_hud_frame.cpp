@@ -36,7 +36,6 @@ template <std::floating_point T> float FloatFromBits(T) = delete;
 
 float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 float Pi() { return 3.1415927f /*007423F8*/; }
-float BlinkRate() { return GameFloat(0x007C8140); }   // radians per blink phase unit (a global)
 // The original reads its constants from memory at run time; Rebirth rewrites some of them
 // (00742B08, the clock's x, for its widescreen layout), so they are read the same way.
 float PausedHand() { return 0.9166667f /*00742B18*/; }   // hand angle while paused, in pi
@@ -111,7 +110,7 @@ void CHudClock::Update() {
             blink_ = static_cast<float>(next);
         } while (next >= 1.0f);
     }
-    float pulse = static_cast<float>(x87::fcos(D(BlinkRate()) * D(blink_)) * PulseAmplitude() + PulseMiddle());
+    float pulse = static_cast<float>(x87::fcos(D(kHudFullTurn) * D(blink_)) * PulseAmplitude() + PulseMiddle());
 
     float handAngle;
     if (GamePaused()) {
@@ -175,8 +174,6 @@ namespace {
 constexpr float kSlingX = 400.0f;               // the sling button's place: x
 constexpr float kSlingInY = -52.0f;             // y while the panel slides out (turned over)
 constexpr float kSlingOutY = 83.0f;             // y otherwise
-// The sling button's rotation while the panel is shown (a global quaternion at 007C8150).
-const void* SlingRestRotation() { return ei::GamePointer<const void>(0x007C8150); }
 } // namespace
 
 void CHudTopPanel::Update() {
@@ -206,7 +203,7 @@ void CHudTopPanel::Update() {
             Turn(sling, 1.0f, Pi());
             y = kSlingInY;
         } else {
-            std::memcpy(&Sprite(sling)->localRotation_, SlingRestRotation(), 16);
+            std::memcpy(&Sprite(sling)->localRotation_, &kHudRestRotation, 16);
             y = kSlingOutY;
         }
         Sprite(sling)->Place(kSlingX, y, FloatFromBits(kSpriteDepth));

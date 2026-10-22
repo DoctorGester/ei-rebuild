@@ -121,7 +121,7 @@ D3DDEVICEDESC7 DeviceCaps() {
     d.dwTextureOpCaps = 0x00FFFFFF;    // every D3DTEXOPCAPS_
     d.wMaxTextureBlendStages = 8;
     d.wMaxSimultaneousTextures = 8;
-    d.deviceGUID = device::IidHalDevice();
+    d.deviceGUID = device::kIidHalDevice;
     return d;
 }
 

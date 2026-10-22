@@ -15,8 +15,6 @@
 namespace {
 
 // The tracks' defaults without key frames (Evaluate).
-const Vector3& DefaultPosition() { return ei::GameData<const Vector3>(0x007AF110); }
-const Quaternion& DefaultRotation() { return ei::GameData<const Quaternion>(0x007AF100); }
 
 // A count at the cursor, which moves past it.
 int ReadCount(std::uint8_t** cursor) {
@@ -48,8 +46,8 @@ void AnimationTrack::DestroyTrack() {
     rotations = nullptr;
     vertexCount = 0;
     frames.RemoveAll();
-    position = DefaultPosition();
-    rotation = DefaultRotation();
+    position = kTrackDefaultPosition;
+    rotation = kTrackDefaultRotation;
     vertices.RemoveAll();
     time = 0.0f;
 }

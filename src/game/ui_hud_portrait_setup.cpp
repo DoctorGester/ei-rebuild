@@ -29,15 +29,12 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 float Half() { return 0.5f /*0073B86C*/; }            // 0.5
 float Texel() { return 0.00390625f /*0073EEB8*/; }           // 1 / 256
 float Seventh() { return 0.14285715f /*0073CDCC*/; }         // 1 / 7
 float Pi() { return 3.1415927f /*007423F8*/; }
 float Thin() { return 0.2f /*0073BAD4*/; }            // 0.2
 float Fat() { return 0.8f /*0073CCA8*/; }             // 0.8
-float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle (ui_hud_portraits.cpp)
-const Quaternion& Identity() { return ei::GameData<const Quaternion>(0x007C8150); }
 
 // The inlined strcmp(a, b) == 0.
 bool SameText(const char* a, const char* b) {
@@ -137,7 +134,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
         face = AddSprite(nullptr);
         face->SetRectangle(7.0f, 100.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 580.0f, 0, 0, 0x80,
                            0x80);
-        slots_[count_].restA_ = Identity();
+        slots_[count_].restA_ = kHudRestRotation;
     }
     HudPortraitSlot& slot = slots_[count_];
     slot.current_ = slot.restA_;
@@ -175,7 +172,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     flash->visible_ = 0;
 
     Sprite(sceneObjects_.data[column * 5 + 4])->visible_ = 0;   // the column's frame
-    slots_[column].restB_ = Identity();
+    slots_[column].restB_ = kHudRestRotation;
     ++count_;
     AddRegion()->CallSetRect(x, 510, right, 600);
 }
@@ -214,7 +211,7 @@ void CHudPortraits::Rebuild(int wide) {
         if (owner_->party_[i]->flags_ & 0x10) {
             Sprite(sceneObjects_.data[i * 5 + 4])->visible_ = 1;
             Quaternion turn;
-            slots_[i].restB_ = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, WobbleAngle() * Seventh());
+            slots_[i].restB_ = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * Seventh());
         }
         slots_[i].flash_ = 0.0f;
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;

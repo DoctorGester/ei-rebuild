@@ -26,8 +26,6 @@
 namespace {
 
 // The cursor's size (the hot spots are given for a 32-pixel cursor).
-LONG CursorWidth() { return ei::GameData<LONG>(0x007C7C90); }
-LONG CursorHeight() { return ei::GameData<LONG>(0x007C7C94); }
 
 
 // The mask of `count` pixels of a row: all ones where the pixel's colour is 0 (16 bits: the whole
@@ -66,8 +64,8 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     height = static_cast<LONG>(pictureHeight);
     frames = static_cast<int>(count);
     width = static_cast<LONG>(pictureWidth / count);
-    hotX = static_cast<int>(CursorWidth()) * hotSpotX / 32;
-    hotY = static_cast<int>(CursorHeight()) * hotSpotY / 32;
+    hotX = static_cast<int>(g_cursorWidth) * hotSpotX / 32;
+    hotY = static_cast<int>(g_cursorHeight) * hotSpotY / 32;
     std::uint32_t maskBytes = (static_cast<std::uint32_t>(holder->bitsPerPixel) * pictureHeight * pictureWidth) >> 3;
     saved = gamecrt::operator_new_array<std::uint8_t>(maskBytes);
 

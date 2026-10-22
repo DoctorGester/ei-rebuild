@@ -9,7 +9,22 @@
 #include "../../src/game/game_singletons.h"
 #include "../../src/game/options.h"
 #include "../../src/game/world.h"   // CWorldServer::sessionKind_
+#include "../../src/game/app.h"
 #include "ei/hook.h"
+
+// The application's globals (app.h).
+inline const char* HarnessWindowTitle() {
+    return ei::Standalone() ? app::g_windowTitle : &ei::OriginalGameData<const char>(0x0079BB24);
+}
+inline std::uint8_t& HarnessInterfaceHasScreen() {
+    return ei::Standalone() ? app::g_interfaceHasScreen : ei::OriginalGameData<std::uint8_t>(0x00784750);
+}
+inline std::uint8_t& HarnessRecordingFrames() {
+    return ei::Standalone() ? app::g_recordingFrames : ei::OriginalGameData<std::uint8_t>(0x0079BC54);
+}
+inline bool HarnessActive() {
+    return (ei::Standalone() ? app::g_active : ei::OriginalGameData<std::uint8_t>(0x0079BC5C)) != 0;
+}
 
 inline CCursor* HarnessCursor() {
     return ei::Standalone() ? TheCursor() : &ei::OriginalGameData<CCursor>(0x007C7BD8);

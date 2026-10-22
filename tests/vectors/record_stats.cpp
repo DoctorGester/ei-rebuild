@@ -229,8 +229,6 @@ int LetterOf(std::uint32_t index) {
 }
 
 constexpr int kSkillLevelBytes = 0x24;                // UnitStats::SkillPrice sums these
-constexpr std::uintptr_t kFactorStatRange = 0x007AF280;   // unit_stats.cpp
-
 // 00527050
 Recorded<SkillBonusCall> g_skillWithBonus("UnitStats::SkillWithBonus");
 double(__fastcall* s_skillWithBonus)(UnitStats*, void*, std::uint32_t);
@@ -326,7 +324,7 @@ void __fastcall GetFactorsRecord(UnitStats* self, void*, float* a, float* b, int
     auto v = Zeroed<FactorsCall>();
     v.stat10 = self->stat10;
     v.stat18 = self->stat18;
-    v.range = ei::GameData<const float>(kFactorStatRange);
+    v.range = ei::OriginalGameData<const float>(0x007AF280);   // unit_stats.cpp's kFactorStatRange
     v.aliased = a == b;
     std::uint16_t cw = ControlWord();
     s_getFactors(self, nullptr, a, b, unused);

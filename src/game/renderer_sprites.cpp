@@ -24,7 +24,9 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
+#include "game_arrays.h"
 #include "lib/mfc_coll.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -70,9 +72,15 @@ void __cdecl FreeUnused() { g_unused.FreeData(); }   // 00503A20
 constinit lib::AlignedArray<TLVertex> g_corners = /*007AEF90*/ {};
 lib::AlignedArray<TLVertex>& Corners() { return g_corners; }     // 4 per sprite
 void __cdecl FreeCorners() { g_corners.FreeData(); }   // 00503A00
-mfc::CArray<std::uint8_t>& Outcodes() { return ei::GameData<mfc::CArray<std::uint8_t>>(0x007AEF78); }      // a byte per corner
-mfc::CArray<std::uint16_t>& Indices() { return ei::GameData<mfc::CArray<std::uint16_t>>(0x007AEF60); }
-std::uint8_t& Guards() { return ei::GameData<std::uint8_t>(0x007AEFB0); }
+// A CByteArray of a byte per corner and a CWordArray of indices: constructed on the first draw, destroyed by the exit
+// functions it registers (ported here on the names; docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_outcodes = /*007AEF78*/ {};
+constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_indices = /*007AEF60*/ {};
+mfc::CArray<std::uint8_t>& Outcodes() { return *g_outcodes; }
+mfc::CArray<std::uint16_t>& Indices() { return *g_indices; }
+void __cdecl DestroyOutcodes() { mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes); }   // 005039F0 (006FF61D)
+void __cdecl DestroyIndices() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_indices); }     // 005039E0 (006FEECD)
+std::uint8_t g_guards = /*007AEFB0*/ {};   // the draw's statics constructed (bits 1, 2, 4, 8)
 constinit lib::AlignedArray<TLVertex> g_cornersCopy = /*007AEFE8*/ {};
 lib::AlignedArray<TLVertex>& CornersCopy() { return g_cornersCopy; } // the records point here
 void __cdecl FreeCornersCopy() { g_cornersCopy.FreeData(); }   // 005039C0
@@ -85,39 +93,39 @@ void __cdecl FreeOrder() { g_order.FreeData(); }   // 00503980
 constinit lib::AlignedArray<SpriteSortRecord*> g_spare = /*007AEFB8*/ {};
 lib::AlignedArray<SpriteSortRecord*>& Spare() { return g_spare; }
 void __cdecl FreeSpare() { g_spare.FreeData(); }   // 00503960
-std::uint8_t& SortGuards() { return ei::GameData<std::uint8_t>(0x007AEFF8); }
+std::uint8_t g_sortGuards = /*007AEFF8*/ {};   // the sort's statics constructed (bits 1, 2, 4, 8)
 
 void(__cdecl* AtExit(std::uintptr_t address))() { return reinterpret_cast<void(__cdecl*)()>(address); }
 
 // First use: the two aligned arrays are zeroed, the MFC arrays constructed; each gets its exit handler.
 void EnsureStatics() {
-    if (!(Guards() & 1)) {
-        Guards() |= 1;
+    if (!(g_guards & 1)) {
+        g_guards |= 1;
         Unused() = lib::AlignedArray<ProjectedVertex>{};
         GameAtExit(AtExit(0x00503A20));
     }
-    if (!(Guards() & 2)) {
-        Guards() |= 2;
+    if (!(g_guards & 2)) {
+        g_guards |= 2;
         Corners() = lib::AlignedArray<TLVertex>{};
         GameAtExit(AtExit(0x00503A00));
     }
-    if (!(Guards() & 4)) {
-        Guards() |= 4;
-        reinterpret_cast<mfc::impl::CByteArray*>(&Outcodes())->Construct();   // 006FF5EA
-        GameAtExit(AtExit(0x005039F0));
+    if (!(g_guards & 4)) {
+        g_guards |= 4;
+        mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes);   // 006FF5EA
+        GameAtExit(DestroyOutcodes);
     }
-    if (!(Guards() & 8)) {
-        Guards() |= 8;
-        reinterpret_cast<mfc::impl::CWordArray*>(&Indices())->Construct();    // 006FEE9A
-        GameAtExit(AtExit(0x005039E0));
+    if (!(g_guards & 8)) {
+        g_guards |= 8;
+        mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_indices);    // 006FEE9A
+        GameAtExit(DestroyIndices);
     }
 }
 
 // One of the sort's statics, constructed (zeroed) on the first batch.
 template <typename T>
 void EnsureSortStatic(std::uint8_t bit, lib::AlignedArray<T>& array, std::uintptr_t onExit) {
-    if (SortGuards() & bit) return;
-    SortGuards() |= bit;
+    if (g_sortGuards & bit) return;
+    g_sortGuards |= bit;
     array = lib::AlignedArray<T>{};
     GameAtExit(AtExit(onExit));
 }
@@ -456,3 +464,5 @@ EI_REPLACE(0x005039C0, FreeCornersCopy);
 EI_REPLACE(0x005039A0, FreeRecords);
 EI_REPLACE(0x00503980, FreeOrder);
 EI_REPLACE(0x00503960, FreeSpare);
+EI_REPLACE(0x005039F0, DestroyOutcodes);
+EI_REPLACE(0x005039E0, DestroyIndices);

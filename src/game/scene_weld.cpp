@@ -23,11 +23,7 @@ namespace {
 // The aligned arrays' instantiations used here: points (Add 0044F2E0), texture coordinates (Add
 // 0044FBB0); the element is passed as its bits.
 
-double WeldDistance() {
-    double d;
-    std::memcpy(&d, ei::GamePointer<const void>(0x0073B860), sizeof(d));
-    return d;
-}
+double WeldDistance() { return 0.00001 /*0073B860*/; }
 
 } // namespace
 

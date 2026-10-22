@@ -38,7 +38,7 @@ constexpr float kHalf = 0.5f;                 // 0073B86C
 constexpr float kHalfTurn = 3.1416f;          // 0073CF80
 constexpr float kDecay = -0.3f;               // 0073CDFC
 constexpr float kAnimationRate = 15.0f;       // 0073C518
-float FullTurn() { return ei::GameData<const float>(0x007AF330); }   // set at start-up
+constexpr float kFullTurn = /*007AF330*/ 6.2831855f;   // a static initialiser: pi + pi
 
 } // namespace
 
@@ -86,9 +86,9 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
             if (!(gap > kHalfTurn)) break;   // (a NaN gap ends the loop too)
             // Bring the smaller angle up by a full turn until they are within half a turn.
             if (target > current)
-                current = FullTurn() + current;
+                current = kFullTurn + current;
             else
-                target = FullTurn() + target;
+                target = kFullTurn + target;
         }
         double weight = x87::fexp(static_cast<double>(rate * kDecay));
         double heading = (1.0 - weight) * target + weight * current;
