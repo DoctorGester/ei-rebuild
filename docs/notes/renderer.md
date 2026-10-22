@@ -1057,11 +1057,44 @@ across runs; the goldens check the game state.
    profile suggested: 0.1-0.5 ms a frame for the whole device mesh path, item 11). The renderer's own CPU
    (terrain, hand-over, textures, end of frame, shadow map) is 2.0 ms of the fight's frame and 1.0 of the town's; GPU frame
    1.2 / 1.4 ms.
-9. **R16i GPU lighting and shadows (later: it changes the look and waits for the user).** Sun and point lights per pixel
-   and shadow maps (or GPU-drawn shadow textures) instead of the terrain lit per vertex (about 2 ms a frame on the
-   CPU), figures lit per draw (3DfpFPU slots 39-44) and 64 x 64 CPU-rasterised object shadows; the game's vertex
-   colours stay as the fallback behind an option. Check: the user's review of side-by-side frames; with the option off
-   the frames match today's at 8 / 0.1%.
+9. **R16i GPU lighting (done; no option: the GPU path is the only one).** `render_lighting.cpp`,
+   `shaders/scene_lighting.hlsli`, `render_terrain.cpp`, `shaders/mesh.hlsl`. The light objects stay the game's (the
+   sun, its colour and the ambient, the torches and point lights with their positions, colours and ranges); what
+   they light is done per pixel.
+   - **The ground.** The world's draw hands over the frame's light (`render::SceneLighting`: the sun, the ambient,
+     the landscape's point lights, the camera); the terrain shader lights each pixel by the vertex lighting's own
+     rules (ShadeSun, LightVertex: ambient times one less the water's loss, the sun's facing over the material's
+     colour, each point light's falloff, its specular part into the specular word) from the vertex normals and
+     material colours. SectorData::Light no longer lights vertices; it keeps the edge fade and the water's
+     specular word (LightSpecular: the harness digest hashes the water), and runs the sun's ray march
+     (Terrain::SunReaches) only where it could load a sector or refresh the sector cache's order
+     (`SunMarchTouchesNothing`; the cache's builds draw from the global ISAAC). The `kLit` bit and the relight
+     countdowns stay (they pace those calls).
+   - **The figures.** 3DfpFPU's LightMesh (1000D910, disassembled) lit a part per draw: per channel the larger of the
+     ambient and the sun's colour times N.L in the model's space, the larger of that and each point light's colour
+     times N.L times its falloff, plus the emissive, at most 1, and for a crown part a pull towards the mean over
+     the sphere. The part draw (`figure_part_draw.cpp`) now hands that over (`render::MeshLighting`: the model
+     matrix, the sun, the ambient SetBaseColour last gave the transform object (`TransformAmbientColour`), the
+     material's colours times the objects' lighting coefficient, the draw's lights in reach) with the part's normals
+     and corner words; `mesh.hlsl` lights each pixel the same way (the crown's mean analytic: 0.6 of the way). The
+     colour arrays hold white with the material's alpha (`CMaterial::GpuLitColour`); a mesh kept on the GPU
+     (R16d) is no longer relit each frame. The speculars and flag 0x10 (moved / static) are as before.
+   - **Shadows in the light.** A shadow takes away the sun's part: lit = the smaller of the light with the sun
+     hidden (the ambient plus the material's own, as the ray march left a vertex) and the sunlit light x (1 -
+     hidden x strength x the face's turn towards the map's sun), so never lighter than half the sunlit light. Receivers look up the map at their point moved 1.5 map texels along the normal
+     (normal-offset bias). The ground casts into the map (its faces turned away from the sun). R22's caster ids are
+     gone: a receiver darkens by its own N.L like any other (the ids' R16UI image, the harness's `shadowfacing`).
+   - **What stays on the CPU, and why.** The blood prints' levels (GroundPrint's `colour_` is saved:
+     GroundPrint::Save); the sky's lighting (CSkyObject::Light, small; a candidate); the sun's reference in the
+     part's light list (AddSun: the light's count); the CLight fields only the device read (world position, local
+     direction, lit colours) are no longer written.
+   - **Looks that changed (the user's review).** Point lights cast no shadow: the town's fires light the inside of
+     the gate's shadow (render_shadows_outside's floor lowered to 0.3%); a point light per pixel shows a bright
+     spot where the vertices smeared it (the hero's light on stone floors); creatures are lit per pixel (N.L across
+     a face, not per vertex). Follow-up: point-light shadows (ticket R16i1).
+   Check: render_lighting (frames for review: zone1's start, creatures on slopes, a fight, zone1 at night, the town
+   bz1g by day and at night with its campfire), render_shadows*, render_scene, render_stats; the goldens the same
+   (the digest's water hash, saves). Cost: see the R16i measurements below.
 
 10. **R16j Object shadows from a sun shadow map (done; user 2026-10-20).** `render_shadows.cpp`. The game hands over the
     sun (00569E40: `Terrain::sun`'s direction), the object each figure draw's meshes belong to (0056AFE0's object
@@ -1157,7 +1190,9 @@ across runs; the goldens check the game state.
     outside), town 0.65-0.72 / 0.25-0.29 (26, 44, 35k), moved town 1.2-1.4 / 0.32-0.40 (32, 111, 83k); the map's
     GPU pass within the runs' noise (0.21-0.69 ms either way). The corners are copied every frame (no cache
     across frames yet).
-    **Whose shadow it is (R22; the user: on a mound beside a pine the shadow covered some of the mound's faces
+    **Whose shadow it is (R22, replaced by R16i: with the GPU lighting a face turned away from the sun has no sun
+    light to lose, so the ids below are gone and a receiver darkens by N.L with a normal-offset bias; what follows
+    is history; the user: on a mound beside a pine the shadow covered some of the mound's faces
     and stopped at their edges).** The game lights objects much as the ground around them, not by the sun's
     direction (the mound, a flora object with the grass texture, cannot be told from the ground with the
     classic decals). R16j left every face turned away from the sun (the face normal from the screen
@@ -1200,8 +1235,7 @@ across runs; the goldens check the game state.
     search taps read the cells' own nearest filtered too; the searched radius is blended in from the bound
     between half a cell and a cell (no step where the search starts; a search that finds nothing ends lit
     only from a cell on). The widest radius is capped to what kMostCellsAround cells reach (only below a
-    22-unit extent). The ids are paired with the point sampler on the next slot (sokol: a UINT view wants a
-    non-filtering sampler); without a map a 1 x 1 RGBA32F stand-in is bound for the range. Measured in the
+    22-unit extent). Without a map a 1 x 1 RGBA32F stand-in is bound for the range. Measured in the
     user's frame (Rebirth, 4K, shadow view): the per-cell squares and cuts are gone; the grain of the
     turned taps still changes as the sun turns (frames at 8 ms: 4-9% of the soldier's region changes by
     more than 8 of 255 in the shadow view between frames, about the same before and after; in the real
