@@ -903,7 +903,7 @@ CParticleSource* __stdcall NewParticleSource(int type) {
     s->elementGrowBy = 0;
     s->elementCapacity = 0;
     s->elementCount = 0;
-    std::memset(&s->boundsFlags, 0, 0x38);
+    std::memset(static_cast<void*>(&s->clip), 0, offsetof(CParticleSource, particles) - offsetof(CParticleSource, clip));
     ei::SetVtable(&s->particles, mfc::impl::ClientListClass::Vtable());
     s->particles.count = 0;
     s->particles.free = nullptr;

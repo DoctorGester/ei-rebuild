@@ -204,44 +204,44 @@ CWorld* CVisibilityFog::World() { return ObjectWorld(this); }
 
 // The bounding box (0.5 larger than the cell centres) and sphere of all cells, for culling.
 void CVisibilityFog::ComputeBounds() {
-    boundsMin = {kFar, kFar, kFar};
-    boundsMax = {-kFar, -kFar, -kFar};
+    bounds.boxMin = {kFar, kFar, kFar};
+    bounds.boxMax = {-kFar, -kFar, -kFar};
     cells.ForEach([this](CellMap::Node* n) {
         const Vector3& p = n->value.pos;
-        boundsMin.x = p.x >= boundsMin.x ? boundsMin.x : p.x;
-        boundsMin.y = p.y >= boundsMin.y ? boundsMin.y : p.y;
-        boundsMin.z = p.z >= boundsMin.z ? boundsMin.z : p.z;
-        boundsMax.x = boundsMax.x >= p.x ? boundsMax.x : p.x;
-        boundsMax.y = boundsMax.y >= p.y ? boundsMax.y : p.y;
-        boundsMax.z = boundsMax.z >= p.z ? boundsMax.z : p.z;
+        bounds.boxMin.x = p.x >= bounds.boxMin.x ? bounds.boxMin.x : p.x;
+        bounds.boxMin.y = p.y >= bounds.boxMin.y ? bounds.boxMin.y : p.y;
+        bounds.boxMin.z = p.z >= bounds.boxMin.z ? bounds.boxMin.z : p.z;
+        bounds.boxMax.x = bounds.boxMax.x >= p.x ? bounds.boxMax.x : p.x;
+        bounds.boxMax.y = bounds.boxMax.y >= p.y ? bounds.boxMax.y : p.y;
+        bounds.boxMax.z = bounds.boxMax.z >= p.z ? bounds.boxMax.z : p.z;
     });
-    boundsMax.x = LoadFloat(boundsMax.x) + kHalf;
-    boundsMax.y = LoadFloat(boundsMax.y) + kHalf;
-    boundsMax.z = LoadFloat(boundsMax.z) + kHalf;
-    boundsMin.x = LoadFloat(boundsMin.x) - kHalf;
-    boundsMin.y = LoadFloat(boundsMin.y) - kHalf;
-    boundsMin.z = LoadFloat(boundsMin.z) - kHalf;
+    bounds.boxMax.x = LoadFloat(bounds.boxMax.x) + kHalf;
+    bounds.boxMax.y = LoadFloat(bounds.boxMax.y) + kHalf;
+    bounds.boxMax.z = LoadFloat(bounds.boxMax.z) + kHalf;
+    bounds.boxMin.x = LoadFloat(bounds.boxMin.x) - kHalf;
+    bounds.boxMin.y = LoadFloat(bounds.boxMin.y) - kHalf;
+    bounds.boxMin.z = LoadFloat(bounds.boxMin.z) - kHalf;
     // The x sum stays on the FPU stack until it is halved; y and z go through float temporaries.
-    float sy = static_cast<float>(LoadFloat(boundsMin.y) + LoadFloat(boundsMax.y));
-    float sz = static_cast<float>(LoadFloat(boundsMin.z) + LoadFloat(boundsMax.z));
-    float cx = static_cast<float>((LoadFloat(boundsMax.x) + LoadFloat(boundsMin.x)) * kHalf);
+    float sy = static_cast<float>(LoadFloat(bounds.boxMin.y) + LoadFloat(bounds.boxMax.y));
+    float sz = static_cast<float>(LoadFloat(bounds.boxMin.z) + LoadFloat(bounds.boxMax.z));
+    float cx = static_cast<float>((LoadFloat(bounds.boxMax.x) + LoadFloat(bounds.boxMin.x)) * kHalf);
     float cy = static_cast<float>(sy * kHalf);
     float cz = static_cast<float>(sz * kHalf);
-    center.x = cx;
-    center.y = cy;
-    center.z = cz;
-    boundsMin.x = LoadFloat(boundsMin.x) - cx;
-    boundsMin.y = LoadFloat(boundsMin.y) - cy;
-    boundsMin.z = LoadFloat(boundsMin.z) - cz;
-    boundsMax.x = LoadFloat(boundsMax.x) - cx;
-    boundsMax.y = LoadFloat(boundsMax.y) - cy;
-    boundsMax.z = LoadFloat(boundsMax.z) - cz;
-    float x = LoadFloat(boundsMax.x);
-    float y = LoadFloat(boundsMax.y);
-    float z = LoadFloat(boundsMax.z);
+    bounds.center.x = cx;
+    bounds.center.y = cy;
+    bounds.center.z = cz;
+    bounds.boxMin.x = LoadFloat(bounds.boxMin.x) - cx;
+    bounds.boxMin.y = LoadFloat(bounds.boxMin.y) - cy;
+    bounds.boxMin.z = LoadFloat(bounds.boxMin.z) - cz;
+    bounds.boxMax.x = LoadFloat(bounds.boxMax.x) - cx;
+    bounds.boxMax.y = LoadFloat(bounds.boxMax.y) - cy;
+    bounds.boxMax.z = LoadFloat(bounds.boxMax.z) - cz;
+    float x = LoadFloat(bounds.boxMax.x);
+    float y = LoadFloat(bounds.boxMax.y);
+    float z = LoadFloat(bounds.boxMax.z);
     boundsSpare = {0.0f, 0.0f, 0.0f};
-    radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z)));
-    boundsKind = 3;
+    bounds.radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z)));
+    bounds.flags = 3;
     boundsValid = 1;
 }
 EI_REWRITTEN(0x004E1770, CVisibilityFog::ComputeBounds);

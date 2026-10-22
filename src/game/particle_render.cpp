@@ -104,7 +104,7 @@ EI_REPLACE_METHOD(0x00497D50, ParticleSpriteArray::SetSize);
 int CParticleSource::Draw(void* renderer) {
     if (particles.count == 0) return 1;
     CTransformPipeline* pipeline = static_cast<CTransformPipeline**>(renderer)[2];
-    if (pipeline->ClipTest(reinterpret_cast<const ClipBounds*>(&boundsFlags)) == 2) {
+    if (pipeline->ClipTest(&clip) == 2) {
         ++hiddenTicks;
         return 1;
     }

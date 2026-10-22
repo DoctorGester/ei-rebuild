@@ -16,6 +16,7 @@
 #include "base_manager.h"
 #include "core_transform.h"
 #include "maths.h"
+#include "model.h"   // ClipBounds
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -573,11 +574,9 @@ public:
     int elementGrowBy;              // +0x160
     Vector3 boundsMin;              // +0x164 over the particles, rebuilt every tick
     Vector3 boundsMax;              // +0x170
-    std::uint32_t boundsFlags;      // +0x17C bit 1 set by the tick
-    Vector3 boundsCenter;           // +0x180
-    std::uint32_t unused_18C;
-    Vector3 boundsLow;              // +0x190 boundsMin - boundsCenter
-    Vector3 boundsHigh;             // +0x19C boundsMax - boundsCenter
+    // +0x17C the bounds the renderer clips by: flags bit 1 set by the tick, the box (boundsMin and
+    // boundsMax less the centre) relative to the centre; the radius is not written.
+    ClipBounds clip;
     std::uint8_t unused_1A8[0x1B4 - 0x1A8];
     mfc::CTypedPtrList<Particle> particles;     // +0x1B4
     int frameBase;                  // +0x1D0 address of the frame UV rectangles (16 bytes each, 32-byte aligned)
@@ -595,8 +594,7 @@ static_assert(offsetof(CParticleSource, size) == 0x10C);
 static_assert(offsetof(CParticleSource, extent) == 0x130);
 static_assert(offsetof(CParticleSource, elements) == 0x154);
 static_assert(offsetof(CParticleSource, distance) == 0xC8);
-static_assert(offsetof(CParticleSource, boundsFlags) == 0x17C);
-static_assert(offsetof(CParticleSource, boundsHigh) == 0x19C);
+static_assert(offsetof(CParticleSource, clip) == 0x17C);
 static_assert(offsetof(CParticleSource, particles) == 0x1B4);
 static_assert(offsetof(CParticleSource, emitFn) == 0x1E0);
 static_assert(sizeof(CParticleSource::EmitCallback) == 4);   // single inheritance: a plain code address
@@ -765,17 +763,13 @@ public:
     // Not rewritten (forwarders).
     CWorld* World();                                // 00455950 (CEngineObject)
 
-    int boundsKind;                 // +0x1C 3 once computed
-    Vector3 center;                 // +0x20
-    float radius;                   // +0x2C
-    Vector3 boundsMin;              // +0x30 relative to center
-    Vector3 boundsMax;              // +0x3C
+    ClipBounds bounds;              // +0x1C flags 3 once computed; the box relative to the centre
     Vector3 boundsSpare;            // +0x48 zeroed with the bounds, never read
     CellMap cells;                  // +0x54
     std::uint8_t boundsValid;       // +0x68
     std::uint8_t unused_69[3];
 };
-static_assert(offsetof(CVisibilityFog, boundsKind) == 0x1C);
+static_assert(offsetof(CVisibilityFog, bounds) == 0x1C);
 static_assert(offsetof(CVisibilityFog, cells) == 0x54);
 // The fog object's slots 2 / 3 (004E23D0: ClearCells, returns 1; 004E2440: ClearCells) and 11 / 12
 // (004E24A0 "CVisibilityFog", 004E24B0 0x5F); effects_weather.cpp.

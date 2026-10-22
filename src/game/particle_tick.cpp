@@ -241,16 +241,16 @@ struct TickSteps {
         float cx = static_cast<float>((D(s->boundsMax.x) + D(s->boundsMin.x)) * D(EI_HALF));
         float cy = static_cast<float>((D(s->boundsMax.y) + D(s->boundsMin.y)) * D(EI_HALF));
         float cz = static_cast<float>((D(s->boundsMax.z) + D(s->boundsMin.z)) * D(EI_HALF));
-        s->boundsCenter.x = cx;
-        s->boundsCenter.y = cy;
-        s->boundsCenter.z = cz;
-        s->boundsLow.x = static_cast<float>(D(s->boundsMin.x) - D(cx));
-        s->boundsLow.y = static_cast<float>(D(s->boundsMin.y) - D(cy));
-        s->boundsLow.z = static_cast<float>(D(s->boundsMin.z) - D(cz));
-        s->boundsHigh.x = static_cast<float>(D(s->boundsMax.x) - D(cx));
-        s->boundsHigh.y = static_cast<float>(D(s->boundsMax.y) - D(cy));
-        s->boundsHigh.z = static_cast<float>(D(s->boundsMax.z) - D(cz));
-        s->boundsFlags |= 2;
+        s->clip.center.x = cx;
+        s->clip.center.y = cy;
+        s->clip.center.z = cz;
+        s->clip.boxMin.x = static_cast<float>(D(s->boundsMin.x) - D(cx));
+        s->clip.boxMin.y = static_cast<float>(D(s->boundsMin.y) - D(cy));
+        s->clip.boxMin.z = static_cast<float>(D(s->boundsMin.z) - D(cz));
+        s->clip.boxMax.x = static_cast<float>(D(s->boundsMax.x) - D(cx));
+        s->clip.boxMax.y = static_cast<float>(D(s->boundsMax.y) - D(cy));
+        s->clip.boxMax.z = static_cast<float>(D(s->boundsMax.z) - D(cz));
+        s->clip.flags |= 2;
     }
 };
 

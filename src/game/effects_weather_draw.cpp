@@ -53,7 +53,7 @@ constexpr int kOutOfView = 2;
 int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     if (cells.Size() == 0) return 1;
     if (cells.Size() > kBoundsCells && !boundsValid) ComputeBounds();
-    if (renderer->pipeline_->ClipTest(reinterpret_cast<const ClipBounds*>(&boundsKind)) == kOutOfView) return 1;
+    if (renderer->pipeline_->ClipTest(&bounds) == kOutOfView) return 1;
 
     if (!(WorkArrayGuards() & kSpritesConstructed)) {
         WorkArrayGuards() |= kSpritesConstructed;
