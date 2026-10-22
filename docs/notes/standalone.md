@@ -1259,6 +1259,32 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     would zero the text, so it needs find_vtables to drop the row), type_info 007472B0 (named_data refuses it: the
     exe's RTTI descriptors point at it), and the one-slot .data rows 0073B984, 0073D6B4, 0074E824, 00753B04, 00758904,
     00758B0C, 00758B14 (not looked at).
+- **Batch 23's families** (2026-10-22): the item strips, CVisibilityFog, stlp's length_error and type_info, and six
+  false rows dropped: every row of config/vtables.csv is retired now (613 rows; retired 604 -> 613, 974 -> 832 code
+  cells, game data addresses 874 -> 867).
+  - **Item strips** (ui_item_panel_tables.cpp): `ItemStripClass` over ItemPanelClass<.., CUiItemStrip> (24 Update,
+    26 RebuildList) and `ItemStripInputClass` (2 / 3 / 4 the strip's buttons and drag, 12 the wheel) for the plain
+    strip 00741A1C / 007419E8 (slot 26 is game.exe's _purecall 006E73EB: `ei::UnportedSlot`), the forwarding strip
+    0074197C / 00741948 (0 ForwardingStripDelete, 20 Draw, 25 ItemAt, input 2 OnLButtonDownForward) and the figure
+    strips 00741BF4 / 00741C60 (20 DrawFigures, 25 FigureItemAt, 26 CountFigures, input 2 OnFigureClick). Accessors
+    `CUiItemStrip::PlainVtable()` / `ForwardingVtable()` / `FigureVtable()` and their `...InputVtable()`;
+    harness_windows.cpp maps the three window tables.
+  - **CVisibilityFog** (effects_weather.cpp's VisibilityFogClass over EngineObjectClass, 0073D6B4): 2 / 3 the cells
+    cleared, 6 UpdateCells, 11 / 12; the fog manager's NewObject and the destructor body store `CVisibilityFog::Vtable()`.
+  - **Retired with no class of ours**: 0073B984 is stlp's length_error (stored only by game.exe's string growth
+    0040C2A0, 0040C6E0, 00421800, 004269A0, 0042B700; our ports never throw it). The ~140 functions that name the
+    address compare a hash table's prime pointer with the end of __stl_prime_list (0073B914 + 28 dwords), which is
+    the same address: no read of the table. type_info 007472B0 (game.exe's CRT): the 74 RTTI type descriptors' vtable
+    field points at it; nothing in the image calls a descriptor's virtual (the frame handlers compare descriptors by
+    address and name; none is destroyed), so named_data.py's RETIRED_POINTED lets those pointer cells point at the
+    zero table.
+  - **False rows** (find_vtables.py now skips a candidate whose slot 0 is an EH funclet, functions.csv kind `eh`, or
+    config/dead_code.csv's "not a function start"): 00746E60 (the text "ime" 00704BE6 hands lstrcmpiA; now a
+    NOT_CODE cell of gen_image_cells.py, the MFC message map group split around it) and the EH unwind entries
+    0074E824, 00753B04, 00758904, 00758B0C, 00758B14 (now eh-unwind cells, left). Only those rows were taken out of
+    config/vtables.csv: a full rerun of find_vtables.py also rewrites installed_by lists from today's functions.csv
+    and finds five new one-slot rows (0074676C, 0074718C, 007474B8, 00747E2C, 00747E30: text or data, unchecked) and
+    a second slot for 00746768; review those before regenerating the csv.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
@@ -1274,9 +1300,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   0073EAA0, 007435B4, 00743618, 00743678, 007436D8, 00743738, 00743AA8, 00743ADC (devirtualised slot calls of the
   tables before them), 0073BF08, 0073E6E8, 0073E850, 0073F4E8, 00740FE8, 007418E8, 0074247C, 007435D8 (byte matches:
   inside the table before them), 0073D764 (shared slots with 0073D760 / 0073D768 until batch 12
-  gave each one slot: a candidate now), 0073B984 (an exception base: six stores
-  but some 140 compares with its address in game.exe's code; kept for the library batch) and the five one-slot rows 0074E824,
-  00753B04, 00758904, 00758B0C, 00758B14 (EH unwind map entries, not vtables). The library kind's unstored MFC
+  gave each one slot: a candidate now); 0073B984 and the EH unwind entries went in batch 23. The library kind's unstored MFC
   vtables (CClientDC, CWinApp, ...; config/standalone_unreachable.csv) go with the library batch.
 - **Ids for later families**: the harness names objects by game.exe's vtable (window labels in goldens: the census's
   `W00740688#3`, `waitwindow`, the digest's AI modes). A converted class needs an id that both game.exe runs (golden
