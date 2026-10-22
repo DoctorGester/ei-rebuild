@@ -389,8 +389,13 @@ happen (the harness logs "share id" if one does).
   canonical orders a twin block allocated early moved a script group's last member. Those reads are canonical now,
   so a golden that changes with the allocation order is a missing canonicalisation: check with the jitter passes.
 - **Comparators over floats** must stay irreflexive: a NaN key sent STLport's unguarded scans off the list (S17a).
-- **The reference cache** keys on the scenario commit, not the harness: after a harness change compare fresh runs of
-  the original (`--fresh`).
+- **The reference cache** keys on the scenario commit, the install and the harness (H30; run_all.py `harness_files`:
+  tests/verify, the recorders, src/hook, the launcher, config/harness, the few game .cpp files the harness calls in
+  game.exe, `HARNESS_SHARED`, and every header they include). In game.exe the harness runs no game code of ours: it
+  calls game.exe's functions (tests/verify/harness_original.h `OriginalCode`, `GameCode` for code both sides call)
+  and reads game.exe's objects (`ei::OriginalGameData`); ours sits behind `ei::Standalone()`. A src/ static
+  initialiser builds host state only (it runs in game.exe too). A new call from game.exe's side into a src .cpp goes
+  into `HARNESS_SHARED`, or the cache misses its changes.
 
 ## 9. Open
 

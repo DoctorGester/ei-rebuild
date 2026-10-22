@@ -458,11 +458,22 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
 # ---- the reference cache: runs of the original code (on dgVoodoo) kept by what decides them (ticket R10)
 #
 # The original code does not change, so a run of it only needs playing again when its scenario, its install's
-# files, the clock or the game's EI_* settings change. A passed run's folder (frames, report, log; not
+# files, the clock, the game's EI_* settings or the harness change. A passed run's folder (frames, report, log; not
 # harness_saves) is kept in <main checkout>/build/reference/<scenario>-<install>/<key>/ with cached.json (run()'s
-# results); run() copies it into the run folder instead of playing it. The harness's own sources
-# (tests/verify/harness*) are in the key, so a digest or clock change plays the original again; other harness
-# changes that alter what a reference run captures need --fresh.
+# results); run() copies it into the run folder instead of playing it. The harness is what ei_hook.dll runs in
+# game.exe: since H30 only game.exe's own code and the files harness_files() lists (HARNESS_SOURCES, HARNESS_SHARED
+# and the headers they include), so a change of the game's code (src/game, src/lib, src/render) keeps the runs
+# cached and any change of the harness plays them again.
+
+# What game.exe's side of the harness builds from (H30): the harness, the vector recorders, the hook framework, the
+# launcher and the harness's settings; the game's .cpp files it calls in game.exe (HARNESS_SHARED: kept to these);
+# and every header they include. Nothing else of src/ runs in game.exe (its static initialisers build host state only).
+HARNESS_SOURCES = ('tests/verify/*', 'tests/vectors/record_*.cpp', 'tests/vectors/vectors_record.cpp', 'src/hook/*',
+                   'tools/launcher/*', 'config/harness/**/*')
+HARNESS_SHARED = ('src/game/address_order.cpp',      # the draw lists' order by name (harness_address_order.cpp)
+                  'src/lib/rebirth.cpp',             # the Rebirth flags (harness_addon.cpp, hook/rebirth_hook.cpp)
+                  'src/standalone/image_data.cpp')   # ei::GameData's shift (0 in game.exe)
+QUOTED_INCLUDE = re.compile(rb'^[ \t]*#[ \t]*include[ \t]*"([^"]+)"', re.M)
 
 CACHED_NOTE = 'reference cache: '     # the note of a run taken from the cache (no time recorded for it)
 REFERENCE_KEEP = 3                     # keys kept per <scenario>-<install> (other worktrees' scenario revisions)
@@ -518,11 +529,47 @@ def install_fingerprint(root, install, environ=None):
     return h.hexdigest()
 
 
+@functools.cache
+def harness_files(root):
+    """{path relative to root: content} of the files game.exe's side of the harness builds from: HARNESS_SOURCES,
+    HARNESS_SHARED and the files their quoted includes name (from the including file's folder, include/ or src/)."""
+    todo = [path for pattern in HARNESS_SOURCES + HARNESS_SHARED
+            for path in glob.glob(os.path.join(root, *pattern.split('/')), recursive=True) if os.path.isfile(path)]
+    files = {}
+    while todo:
+        path = os.path.normpath(todo.pop())
+        name = os.path.relpath(path, root).replace(os.sep, '/')
+        if name in files:
+            continue
+        try:
+            with open(path, 'rb') as f:
+                files[name] = f.read()
+        except OSError:
+            continue
+        for included in QUOTED_INCLUDE.findall(files[name]):
+            for base in (os.path.dirname(path), os.path.join(root, 'include'), os.path.join(root, 'src')):
+                candidate = os.path.join(base, included.decode('utf-8', 'replace'))
+                if os.path.isfile(candidate):
+                    todo.append(candidate)
+                    break
+    return files
+
+
+@functools.cache
+def harness_digest(root):
+    """One hash of harness_files(root)."""
+    h = hashlib.sha1()
+    for name, content in sorted(harness_files(root).items()):
+        h.update(f'{name}\0{len(content)}\0'.encode())
+        h.update(content)
+    return h.hexdigest()
+
+
 def reference_key(name, install, root, clock, environ):
     """The cache key of a run of the original code, or None when it is not cached (the scenario has uncommitted
     edits or no commit). Made of: the scenario's last commit (work.scenario_revs, as WB6's timing table), the
-    install's files, the harness's sources, the tools its "# prepare:" lines run, the clock override and the game's
-    EI_* settings."""
+    install's files, the harness's sources (harness_files), the tools its "# prepare:" lines run, the clock override and
+    the game's EI_* settings."""
     try:
         import work
         rev = work.scenario_revs(root).get(name, '')
@@ -534,9 +581,7 @@ def reference_key(name, install, root, clock, environ):
     settings = {k: v for k, v in game_environment(environ).items() if k != 'EI_RENDER'}    # run_once drops it
     h.update(json.dumps(settings, sort_keys=True).encode())
     h.update(install_fingerprint(root, install, environ).encode())
-    for source in sorted(glob.glob(os.path.join(root, 'tests', 'verify', 'harness*'))):
-        with contextlib.suppress(OSError), open(source, 'rb') as f:
-            h.update(f.read())
+    h.update(harness_digest(root).encode())
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     if peer := peer_scenario(scenario):          # a pair: the peer's steps decide the run too
         with contextlib.suppress(OSError), open(peer, 'rb') as f:
