@@ -1,4 +1,4 @@
-"""Ratchet on cleanup-plan patterns (docs/cleanup-plan.md, "Hook-era leftovers the plan removes").
+"""Ratchet on cleanup-plan patterns (docs/cleanup-plan.md, "What is left and what removes it").
 
 New code is written the clean way: members instead of raw offsets, virtual calls instead of VCall,
 named globals and plain C++ floats. This counts, per file under src/, the patterns the cleanup

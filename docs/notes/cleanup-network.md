@@ -63,7 +63,7 @@ qualified member).
 - The reset slots (slot 2) return 0 (the originals leave EAX undefined; only `CRefObject::Shutdown` passes it on and nobody reads it);
   `ReplicaEntry`'s reset returns 0; the `if (!this)` of the inlined placement new is left out.
 - `Connection::Close` passes a two-word hash iterator out-parameter to 0042A810 (a 4-byte local overran the stack).
-- Calls made "at" an address on purpose (`net_lobby.cpp`'s `...At` forwarders, the server base tick from the game server's tick) stay. A
+- Calls made "at" an address (`net_lobby.cpp`'s `...At` forwarders, the server base tick from the game server's tick): C29. A
   call on a local buffer's slot is made through a pointer in `SendInfo` (a call on the local itself was devirtualised and did not link).
 
 ## Left

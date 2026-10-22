@@ -454,8 +454,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   original reads past its code table), `CItemSpell::PictureName` ("initqi1item"), `CItemQuest::GetUse` (slot 21: kind 8, the
   value at +0x4C, 0; P).
 - Effects and textures: `CSpellEffect::Init` (every cast) / `Forget` (an object leaving the world during a cast; O),
-  `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444 / 8888` (texture_slots.cpp; Compose keeps its
-  forwarders so the wrappers run; S), `CTexture::Create` (slot 2; block_ cleared, not freed) / Destroy (slot 3) / FreeBlock /
+  `MapEffect::Tick` (S), `MmpHeader::SetNoFormat / SetFormat5551 / 4444 / 8888` (texture_slots.cpp; S), `CTexture::Create` (slot 2; block_ cleared, not freed) / Destroy (slot 3) / FreeBlock /
   DestructBody / DeletingDestruct (O), `CTextureManager::GetFileData / NewTextureOfType / FindOrCreate (named, not loaded; no
   null check) / FindOrLoad` (O), `ReloadAll` (after a lost device: no scenario), `TrimCache` (cached bytes against
   videoMemoryTenth_, signed; every 32 client ticks; O), the effect base's out-of-line destructor, slot 0, constructor, missile
@@ -508,10 +507,8 @@ uninitialised stack byte; see A-Z1), 0067E4E0 (the constructor of the global at 
 
 ## A-H26: the Rebirth-patched functions' vanilla bodies
 
-Each one is the function as the exe on disk has it. The installer skips a function whose bytes differ in memory, so these
-hook in the vanilla launch only and their wrappers run only there; our callers keep going through the EI_ORIGINAL forwarder
-(rule 9), which is why the UI ones are named `...Vanilla` beside a forwarder of the plain name. Patched callees are reached
-through their addresses: 00671730 / 006714A0 (resource open / destructor), 00480080 (FatalError), 005E6FA0 (sprite Place).
+Each one is the function as the exe on disk has it; Rebirth's change, where reproduced, is behind its flag (rewrite guide
+rule 9). The UI ones are named `...Vanilla` beside a forwarder of the plain name (C29 makes those calls direct).
 V: S side by side, O ours only. Behaviour is in the code (file in brackets); the notes below are what the code does not make
 obvious.
 

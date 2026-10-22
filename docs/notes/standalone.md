@@ -2,34 +2,15 @@
 
 The product is the standalone image: `ei_standalone.exe` lays out game.exe's data without its code and runs our
 code from `ei_hook.dll`. game.exe runs only as the original game (the harness's references). This file holds how
-the image works, where the library code lives and what it must keep, the UTF-8 plan and what the hook retirement
-left. How changes are checked: docs/notes/standalone-verification.md. Per-ticket history: `git log --grep=<ID>`.
+the image works, where the library code lives and what it must keep, the UTF-8 plan and game.exe's role. How
+changes are checked: docs/notes/standalone-verification.md. Per-ticket history: `git log --grep=<ID>`.
 
-## 1. What ties the code to the exe (measured 2026-10-15)
+## 1. What ties the code to the exe
 
-| Tie | Count |
-|---|---|
-| Unported game functions | 0 (S2 did the last 200, all under 5 bytes; 00656D69 is not a function) |
-| Forwarders (`EI_ORIGINAL`) | 284 sites under src/ after C13d (3,817 addresses before C13, 294 sites before C13d): Rebirth-patched callees, the skip list's type-recovery rows, vector recorders and harness / replay entries (docs/notes/cleanup-tooling.md); forwarders to library code without a registration are 0 since S12g / S6e (operator new / delete 007005AF / 007005D8 are the image's allocator) |
-| Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions |
-| Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
-| Static initialisers | 748 in the .data list 00783004-00783BB0, all generated (S3); 190 exit functions generated (S3a, S16a) |
-| Runtime uses outside src/lib | `mfc::` 3,481, `stlp::` 1,009, `gamecrt::` 1,191 (865 new / delete), `gameapi::` 536 |
-
-`tools/dashboard_data.py` measures the current numbers (the dashboard's standalone panel). C13 made 1,001 forwarders
-direct calls with `tools/direct_calls.py` (`--report -v --cast --library` lists the rest and why each stays; the
-skip list config/direct_calls_skip.csv; check_cleanup ratchets the count per file). C13a recovered the real types
-of about 360 more (per-file shims replaced by the real classes: the script interpreter's world, brain, AI map, lever,
-stats and mode calls, the options' registry key, the window procedure's input; float bits passed with std::bit_cast);
-C13a1 replaced the rest of the per-file shims (the UnitController overlay by CUnitServer, the script interpreter's
-call-only shims, the game glue objects, UiInput by UiContainerInput, the global map's and the stats panel's views, the
-registries by CFileRegistry, ui_gdi.h's GDI views by mfc::impl's classes, the sprite views by CUiMesh) and made 336
-forwarder sites direct calls (2,352 to 2,014). `direct_calls.py --loose` also converts forwarders whose types differ
-in ways a call site can spell (a cast written at the call; `--exclude` leaves files out, `--cast-sites` names calls that
-need a static_cast). The game glue (00578xxx) ignores `this`: its world_glue.h functions are called without the dummy
-this / EDX. 534 "types differ" (431 under --loose) and 102 skip-list rows are left for C13a2. S18 (after C13a2) removes
-the rest: generated definitions for the data addresses, vtables as real virtual classes, imports linked directly,
-plain new / delete; then the image and the read of game.exe go.
+The list, each item with the ticket that removes it: docs/standalone-cleanup.md. The counts: `python tools/progress.py`
+and `tools/dashboard_data.py` (the dashboard's standalone panel). `tools/direct_calls.py` (`--report -v --cast --library`)
+lists the forwarders left and why each stays (skip list config/direct_calls_skip.csv). The game glue (00578xxx) ignores
+`this`: its world_glue.h functions are called without the dummy this / EDX.
 
 **Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_/check_static_init,
 gen_/check_short_functions, gen_image_cells, gen_iat, check_signatures, check_stolen, check_fp_fold, find_vtables,
@@ -351,10 +332,52 @@ named range (C18) or another, `image_trace.py --check` a traced read outside the
 C18 (a named, typed definition in our code) or a literal; when the list is empty the trial's bytes are the product's
 and the build needs nothing of game.exe (the resources are the host's own since C23).
 
+C25a took six rows and added four (out_of_range's throw information, found by the static proof below). With C18q and
+C18 the list is six rows: those four and the CRT's locale category names 007472E4 and static "C" 00797778 (C18q's
+"Left in the CRT": `__lc_category`'s init cells point at unported code):
+- **Written globals at addon sites**: WideScreen's layout widths 00742B08 (800) / 007428AC (695) are
+  `widescreen::g_layoutWidth` / `g_panelRight` (ui_widescreen.cpp, tagged; Startup writes them as addon did; the clock and
+  the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
+  .rdata, and be named by tests/verify/addon_sites.inc (game.exe's address, for harness_addon.cpp in game.exe).
+- **A ported static initialiser**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64) is
+  mfc_window.cpp's RegisterDragListMessage (5 bytes, a jump to its body: rows in extra_function_sizes.csv /
+  function_sizes.inc); static_init.cpp calls it.
+- **Named**: ostream's virtual base table `kOstreamVirtualBases` {0, 8} (crt_iostream.cpp), OnNewParty's next record id
+  `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
+  message table and SetPauseTextDigit share it, so a resume shows "reserved_03" as with EI_Plugin).
+- **MFC's empty string**: `_afxInitData` {-1, 0, 0} and its character are mfc_string.cpp's `g_nilString`; DataNil() /
+  PchNil() read `g_dataNil`, which is ours in the image and game.exe's `_afxDataNil` (00796E4C) when the code runs in
+  game.exe (the harness and the vector recorders handle game.exe's strings there: the empty string one side makes and
+  the other releases must be the same; tests/verify/harness_startup.cpp sets it at static initialisation). game.exe's cells 00796E48 / 00796E4C stay in image_cells.inc, unread.
+- **Unread tables, no definition**: the 72 `.SEC` copies and the dead code's two tables (C18o's
+  header_constant_copies.cpp / dead_code_tables.cpp) are gone; their cells are gen_image_cells.py's `UNREAD` groups
+  (counted, left out of the cells like LEFT_STRUCTURES): game.exe's bytes unshifted, zero in the trial.
+
+**The static proof** (C25a, `gen_image_cells.py --check`, build.cmd; the trace stays the cross-check): the runs only
+show what they reach, so the check takes every root our code can read from: each game data address src/ names in the
+moved range (the 231 of named_data.py --split's count there; game_data.h's / image_data.cpp's section bounds left out)
+and, transitively, the target of every pointer cell inside a root's object or a kept range. A root passes in the
+import table, in .data's zero-filled tail (from 0079C000: zero fill is exact), in a named range or in a kept range;
+otherwise its object, from the root to the next start (another root, a cell's target, a named or kept range, an
+absolute operand of game.exe's code, a section's end; `ROOT_SIZES` where the object is shorter, _afxNewHandler),
+may hold no nonzero dword of game.exe's but cells and the static initialisers' stores. 229 roots after C18q, 86 after C18s, 0
+failing. The first run (before C18q) failed 14 that no suite reaches: out_of_range's throw information (its catchable
+types, the array, the type descriptors' names: our frame handler reads them for stlp_string.cpp's throw; four kept
+rows now), `_iob[0..2]`'s flags (unread since C18q's stream stand-ins), MFC's empty string through the game.exe-only
+literal 00796E4C (moved to the harness: tests/verify/harness_startup.cpp sets `g_dataNil` in game.exe), and
+_afxNewHandler's object running into an unreferenced GUID (ROOT_SIZES). The harness's literals (tests/) are not roots:
+the product has no harness.
+
+**The switch** (C25a, ready): CMake's `EI_IMAGE_BYTES_FROM_EXE` (one `set` in CMakeLists.txt, ON). OFF makes the trial's
+form the product's: `--bytes --zero` always, no game.exe lookup (`--exe` passed only when EI_GAME_EXE is set), and
+gen_image_cells reads game.exe only for the list's rows. Set it OFF once config/image_kept.csv is empty and
+`gen_image_cells.py --check` passes (the static proof above, which then also guards every later change); then drop the
+non-zero path of write_bytes and EI_IMAGE_ZERO_TRIAL / build.cmd's `trial`.
+
 Without a game.exe (tools/exe_path.py finds none in run\vanilla / run\rebirth / EI_EXE, or `EI_NO_GAME_EXE=1`)
 build.cmd skips the checks that compare with it (check_fp_fold, rdata_literals, named_data, check_short_functions,
 check_static_init, `gen_image_cells --check`, `gen_iat --check`) with one line; CMake still needs it for the section
-bytes.
+bytes until the switch.
 
 ### Named data (C18)
 
@@ -446,11 +469,11 @@ kinds given.
   element's start with T the element type become `NAME` / `(NAME + k)` / `NAME[k]`; DataId constants, other types and
   field addresses are listed for a person. Then drop the emptied REVIEWED_DATA / REVIEWED_RDATA groups of
   gen_image_cells.py (their counts fail otherwise) and regenerate image_cells.inc. **Unread copies**: a table only
-  dead code read (src/game/dead_code_tables.cpp: the units' model folders 0078F7EC, read by the uncalled 00532650,
-  and 007932F4) and the per-file copies of a header constant nothing of ours reads (src/game/header_constant_copies.cpp:
-  72 copies of ".SEC"; a port names the copy it reads in its own file, ai_map_load.cpp's 0073FD1C / 0073FD20) are
-  `[[maybe_unused]]` definitions, so their bytes come from the source too; the CRT's math function names 00797CC0
-  (crt_x87.cpp) likewise, its readers have no registration. Left: the CRT / MFC tables a static initialiser or the
+  dead code read (the units' model folders 0078F7EC, read by the uncalled 00532650, and 007932F4) and the per-file
+  copies of a header constant nothing of ours reads (72 copies of ".SEC"; a port names the copy it reads in its own
+  file, ai_map_load.cpp's 0073FD1C / 0073FD20) were `[[maybe_unused]]` definitions until C25a dropped them (their
+  cells are gen_image_cells' UNREAD groups); the CRT's math function names 00797CC0 (crt_x87.cpp) stay named, its
+  readers have no registration. Left: the CRT / MFC tables a static initialiser or the
   CRT's start-up fills (C18q's list below).
 - **The script keyword table and the CRT's tables (C18q)**: `kScriptKeywords` (script.h, script_parse.cpp; 0078BCA0,
   225 keywords and the null entry, TYPES `ScriptKeyword` 'PiPP') and the lexer's comment markers 0078BC8C..94
@@ -1624,9 +1647,9 @@ the `--no-hooks` suite) keeps the registry.
 - config/library.csv names are often wrong for STLport / MFC rows (destructors named clear, AddTail named a
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
   commas in names broke rows once (0055C730, 00561B00: now quoted).
-- Library bodies live in src/lib, layout- and allocator-compatible with the exe; game-element instantiations in
-  src/game (game_arrays, game_lists, game_slots, game_hashes, record_*, library_*). C13 made the matching CRT / MFC
-  call sites direct (libcrt::Fopen ...); the rest still go through forwarders (C13a2).
+- Library bodies live in src/lib; game-element instantiations in src/game (game_arrays, game_lists, game_slots,
+  game_hashes, record_*, library_*). Callers call them by name (libcrt::Fopen ...); the forwarders left are C29's, and
+  C14a-d replace the containers with standard ones.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
 
@@ -2049,66 +2072,24 @@ bytes compared and copied whole) or display text (fixed for UTF-8 with EI_UTF8; 
   the chat overlay: more than one line, each valid UTF-8, joined back to the text), and the frame comparison
   above.
 
-## 5. The hook retirement (S21-S21e, 2026-10-16)
+## 5. game.exe's role
 
-User 2026-10-15: the standalone image is the only product, checked by the goldens and the function vectors.
-- **Gone**: hooked runs of game.exe (`--hooked`, `--native`, `--dgvoodoo`, the hooked side of `--widescreen` and
-  compare.py, `EI_COVER=hooks`, `EI_PLAIN`); the verify wrappers (640 tests/verify/verify_*.cpp, verify.cpp,
-  verified.txt, disabled.txt, the start-up checks; the last commit with them is S21d's parent); InstallHooks'
-  game.exe mode (trampolines for rewrites, Rebirth detection, rebirth_sites.inc, DumpPatchedFunctions, FollowAddon,
-  `EI_RECORD_OURS`); check_returns and check_patched_calls; the "call Rebirth-patched callees through their
-  addresses" rule (rewrite guide rule 9: Rebirth's patches are flags now).
-- **game.exe** always runs the original: ei_launch sets `EI_NO_HOOKS=1` for it (`--no-hooks` is accepted and changes
-  nothing; the image never gets it). Its only hooks are the vector recorders with `EI_VECTORS=1` (refused when
-  addon.dll is loaded: recordings are the vanilla code's) and the harness's own patches.
+game.exe runs only as the original game, for the harness's references; none of our code runs in it.
+- ei_launch sets `EI_NO_HOOKS=1` for game.exe (`--no-hooks` is accepted and changes nothing; the image never gets it). Its
+  only hooks are the vector recorders with `EI_VECTORS=1` (refused when addon.dll is loaded: recordings are the vanilla
+  code's) and the harness's own patches, by address (that side of the harness keeps game.exe's addresses).
 - **Builds**: `release` is the product (the image); `verify` (CMake option EI_HARNESS) is the image plus the harness
   (tests/verify) and the recorders (tests/vectors).
-- **What stays**: the original's harness (goldens, vectors, widescreen references, the reference cache), the image's
-  harness, golden.py / savefile.py, ei_vectors.exe, the frame tools, the Rebirth flags, and the build checks that
-  hold for the image (check_registrations, check_short_functions, check_static_init, check_fp_fold, check_thunks,
-  check_x87, check_forwarders, check_cleanup, check_signatures, check_stolen for the recorders).
-- **Scenarios** (S21a): a line `# no original: <install>... <reason>` leaves a scenario's `--no-hooks` runs out of
-  plans (renderer-only scenarios, rebirth_flags on the vanilla data, render_present_fullscreen). render_movie and
-  render_terrain were dropped (their goldens equalled render_movie_present's / render_scene's).
-- How verification works now: docs/notes/standalone-verification.md section 1.
-- EI_PROFILE=1 samples the image (S21f): EiStandaloneMain calls InstallProfiler before WinMain; none of the samples is
-  game.exe's code (it has none), and profile_report names the image's functions `ours:`.
-- S21g: `harness_heap.cpp`'s order observer and heap::Aside are gone. S21h: the EI_REBIRTH_IMPLEMENTS declarations are gone
-  (they disagreed with config/rebirth_patches.csv: 23 declarations named patches the csv does not have, the Eip* plugin features and three WideScreen
-  functions, and 37 "implemented" csv rows had none; the csv's status column is the record).
-- Left: 81 src/ comments about calls through an address "so the verify wrapper sees it" (C13 / C13a1 made most such
-  calls direct; the rest are C13a2's), tests/coverage/reach.txt (the last hook build's reach, kept).
-
-**S21c1 (2026-10-16): the original's goldens repeat again; the cause was the user's real mouse.** Two fresh
-`--clock virtual,randtrace` passes of the six scenarios: 1 and 2 goldens differed (zone_gz15h_tornado V / R), each
-time first in two client units' flag 0x400 (CWorldClient's "model kept loaded" mark, CollectVisible: which models were
-in view), then the camera in the saves (focus x 109.999 against 111.684) and the particles' draws (CParticleSource::Tick,
-one draw apart after a sound started in one run only), and from there every random draw. All on the client side, in
-view of the camera: the camera had moved. The harness answers GetCursorPos with its own mouse, but the original's
-window under dgVoodoo covers the desktop (client area at 0,0, 3840x2160) and is not cloaked (WB12 cloaks the image's
-only), so the real cursor, wherever it rests, is over the topmost game window: Windows sends that window WM_MOUSEMOVE
-with the cursor's coordinates when the cursor moves and when a starting game's window appears under it (logged: the
-cursor at (0, 1823), the left edge, which scrolls the camera). The input dispatcher (00457970) takes it as the harness's
-own. The game also polls a background DirectInput mouse (0065EAD0 non-exclusive, background; 005E52E0 sums its motion
-for right-button turning), which reads the hardware whatever window is in front. Which run got the stray move
-depended on where the user's cursor was and which window was on top. Why it showed from about 04:18 on is not proven;
-likely the image's windows (the default suite since S21, cloaked since WB12) stopped lying over the original's, so
-the original's own windows now take the stray moves. WB14 (loopback binds; 0 binds in single-player runs) and SV7b6a /
-SV7c2 were not involved: with the mouse left out and all of them in, the goldens repeat.
-- tests/verify/harness_input.cpp / .h (both the original and the image): the game window's subclass
-  (AlwaysActiveWindowProc) answers WM_NCHITTEST with HTNOWHERE, so the real cursor over it makes only non-client
-  messages (to DefWindowProc); the harness's posted messages never hit-test. DirectInputCreateEx's import slot
-  (0073B044) is routed: the game's CreateDeviceEx for GUID_SysMouse gets its device's GetDeviceState wrapped, the
-  state zeroed after each read (no motion, no buttons; counted when the hardware had any). The report's `MOUSE:` line:
-  reads, real moves left out, hit tests over the window.
-- Runs (`work.py test S21c1 ... --jobs 4`): before the fix, two passes of the six (randtrace) gave 1 and 2 differing
-  goldens. With it: the six scenarios 12 the same (3 runs with the real cursor over the window, left out). `--no-hooks
-  --golden --fresh`, every golden scenario: pass 1, 136 runs ALL PASS, 126 goldens the same, 0 differ (32 runs with
-  hit tests left out, 1 to 11 each; no DirectInput motion: the user's mouse stood still); pass 2 the same (126 the
-  same, 0 differ). The first build routed the DirectInput slot at the harness's start, which in the image came before
-  the host's own routing of it (RouteImageCalls: "not found to route", then E_INVALIDARG and the game's "Can't create
-  direct input object" box in every image run); it is now routed at the game's CreateWindowExA. Final build: `--golden`
-  (the image) 186 runs ALL PASS, 174 goldens the same, 0 differ; `--no-hooks --golden --fresh` twice: 136 runs ALL PASS,
-  126 the same, 0 differ each time (about 30 runs a pass with the real cursor over a window, left out). After merging
-  main (S21d): `--golden` 186 runs ALL PASS, 175 the same, 0 differ; `--no-hooks --golden --fresh` 136 runs ALL PASS,
-  126 the same, 0 differ.
+- What runs against it: the original's harness (goldens, vectors, widescreen references, the reference cache);
+  how verification works: docs/notes/standalone-verification.md section 1.
+- **Scenarios**: a line `# no original: <install>... <reason>` leaves a scenario's `--no-hooks` runs out of plans
+  (renderer-only scenarios, rebirth_flags on the vanilla data, render_present_fullscreen).
+- EI_PROFILE=1 samples the image: EiStandaloneMain calls InstallProfiler before WinMain, and profile_report names the
+  image's functions `ours:`.
+- **The user's real mouse is kept out of both games** (tests/verify/harness_input.cpp / .h): the game window's subclass
+  (AlwaysActiveWindowProc) answers WM_NCHITTEST with HTNOWHERE, so the real cursor over it makes only non-client messages;
+  the harness's posted messages never hit-test. DirectInputCreateEx's import slot (0073B044) is routed at the game's
+  CreateWindowExA (routing it at the harness's start came before the image's own routing and broke DirectInput): the
+  game's GetDeviceState for GUID_SysMouse is wrapped and the state zeroed after each read. The report's `MOUSE:` line
+  counts reads, real moves left out and hit tests. Without it the original's goldens did not repeat: dgVoodoo's window
+  covers the desktop and is not cloaked, so the resting cursor sent WM_MOUSEMOVE to it and scrolled the camera.

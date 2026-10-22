@@ -252,8 +252,7 @@ template in `lib/stlp_algo.h`), `world_game.cpp` (GameFlow), `world_glue.cpp` (t
 
 Facts a worker needs that the code comments do not say:
 
-- Rebirth-patched, so hooked in the vanilla launch only (rewrite guide rule 9; the callers keep the forwarders at the
-  original addresses): MapsFolder 0055E990, MapPath 00595BA0, MapFileExists 005812F0, WriteMapFile 005813A0,
+- Rebirth-patched (rewrite guide rule 9): MapsFolder 0055E990, MapPath 00595BA0, MapFileExists 005812F0, WriteMapFile 005813A0,
   CFigureManager::CreateWithArchives 005AA510, AIEventTable::Setup 005C9310, CWorldServer::NewZone 00595480,
   GameFlow::BuildZoneTable 0057F560, LoadZoneQuests 005809D0, CWorldClient::LoadZone 00567AB0, CAIMap::Load 005B43C0, the
   Bink loading movie close 005DA3C0.

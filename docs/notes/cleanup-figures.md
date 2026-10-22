@@ -13,7 +13,7 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
   size) and `boxPivot_` (+0x1B4). The classes 0x41 (`CSharedFigureMesh`), 0x42 (`CPlainFigureMesh`) and 0x43 (`CUiMesh`)
   are C++ classes with the compiler's vtables (C19 batch 6); CFigureMesh declares slots 18-21, CPlainFigureMesh 22 / 23.
 - `CFigureMesh` derives from `CTransformObject` (CEngineObject +0x00..0x1B, local / world position and rotation +0x1C..0x53). Its slot
-  bodies have names that override no base virtual (EI_REPLACE_METHOD would register a vcall thunk; the virtuals call them): slot 2
+  bodies have names that override no base virtual (the virtuals call them; C28 folds them in): slot 2
   `CreateMesh` (0059F210), slot 18 `CopyFigureImpl` (0059F0F0), slots 19-23 `LoadFromMemoryImpl`, `LoadFigImpl`, `LoadOldImpl`,
   `MirrorXImpl`, `MirrorYImpl`, 0059F3D0 `SetObject`; the CObject3D pointer at +0x98 is `object_`; the +0x94 drawer is `FigureMeshDrawer`, not
   CLinkMesh, though both have the screen RECT at +0x20. `using FigurePart = CFigureMesh` stays only for ui_model.cpp, player_client.cpp and

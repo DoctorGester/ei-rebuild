@@ -85,6 +85,10 @@ struct CScreenFade {
 };
 static_assert(offsetof(CScreenFade, lastTime_) == 0x0C && offsetof(CScreenFade, letterbox_) == 0x10);
 
+// The key of the multiplayer message 12's text (CInterface3D::MessageText), "reserved_02": EI_Plugin's Pause
+// writes its digit, '2' for a pause and '3' ("reserved_03") for a resume (player_server_orders.cpp).
+extern char g_pauseMessageKey[12];
+
 // The interface manager (CInterface3D; created by 005F4990, which reads the screen size from the
 // render target). Only the members used by the rewritten code; the object is created by original
 // code, so its size is not asserted.

@@ -4,7 +4,7 @@ Code: `src/game/console.h` / `console.cpp` (streambuf, executor, tokenizer, scri
 streambuf and ostream layouts), `console_commands.cpp` (handlers), `console_window.cpp` (window text and placement),
 `console_addon.cpp` (Rebirth's commands, `Patch::AddNewConsoleCommands`, and AutoExec: rebirth.md). The window's surface,
 drawing and key input (005E3FD0, 005E4180, 005E44A0, 005E4800, 005E4A10) are in ui.md section 3 (`ui_console_window.cpp`).
-Verify wrappers: `tests/verify/verify_console.cpp`. Scenario: `tests/scenarios/console.txt` (about 30 s: public commands and
+Scenario: `tests/scenarios/console.txt` (about 30 s: public commands and
 tokenizer (case, extra spaces, quotes) in the menu, the cheat word, every rewritten command's messages and settings (the
 filter mask ends at its start value 0); in a game the script lines (spaces inside and outside quotes, a script error),
 listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), give, and the console window's own input).

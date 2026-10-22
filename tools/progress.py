@@ -46,7 +46,7 @@ def main():
           f' + {len(other)} library/dead/other')
 
 
-# ---- cleanup artefacts (docs/cleanup-plan.md, "Hook-era leftovers the plan removes") -------------------------------------
+# ---- cleanup artefacts (docs/cleanup-plan.md, "What is left and what removes it") -------------------------------------
 # Every count runs over src/ (*.cpp, *.h) with comments blanked; `sources` is srcscan.load_sources().
 
 def count_matches(sources, pattern):

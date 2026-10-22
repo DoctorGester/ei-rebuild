@@ -955,3 +955,4 @@ address,size,note
 00578530,22,static initialiser of the save stream 007AFDF8 (no Ghidra function)
 0066C4D0,22,static initialiser of the received messages stream 007C83D0 (no Ghidra function)
 005B2FB0,17,static initialiser of the occluders' damping scale 007C2F8C (no Ghidra function)
+007043FA,5,static initialiser of MFC's DragList message id 007CAA64: a jump to the body (C25a; no Ghidra function)

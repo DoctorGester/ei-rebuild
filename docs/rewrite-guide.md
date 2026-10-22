@@ -1,7 +1,11 @@
 # Rewrite guide
 
-How to rewrite a function of game.exe in this repo. Read it fully before starting; every rule here
-comes from a bug we already hit.
+How to write and change the game's code in this repo (ports, cleanup and fixes). Read it fully before
+starting; every rule here comes from a bug we already hit.
+
+Our code runs only in the standalone image (docs/notes/standalone.md), which contains no game.exe code.
+game.exe runs only as the original game, for the harness's references (goldens, function vectors), and
+the harness patches it by address there. Nothing of ours shares memory or calls with game.exe's code.
 
 ## Setup
 
@@ -14,28 +18,32 @@ comes from a bug we already hit.
   file offset == VA - 0x400000.
 - Build: `build.cmd verify` and `build.cmd release` (PowerShell: `cmd /c "<repo>\build.cmd verify"`).
   Both must build without errors or warnings in files you touched.
-- Do not launch the game. Integration runs happen centrally, one game at a time, with the harness
-  (`harness.cmd tests\scenarios\<scenario>.txt`, see README). You may add a scenario under
-  `tests/scenarios/` that exercises your area (script commands via `@...`, checks via `check` and
-  `waitfor`); it will be run at integration.
+- Games only through `python tools/work.py test <ID> [run_all args]` (docs/worker-brief.md). You may add a
+  scenario under `tests/scenarios/` that exercises your area (script commands via `@...`, checks via
+  `check` and `waitfor`); its golden is recorded centrally.
 - Run `python tools/check_x87.py` (after `build.cmd release`) and `tools\check_signatures.cmd` (after
   `build.cmd verify`) before handing back, and `python tools/check_stolen.py` after adding a vector
-  recorder. check_signatures compares every hooked, forwarded or recorded declaration's stack
-  arguments with the original's RET n.
+  recorder. check_signatures compares the stack arguments of registered, forwarded and recorded
+  declarations with the original's RET n: a recorder runs inside game.exe, and a registration or a
+  forwarder is reached with the original's calling convention (rule 3).
 
 ## Where code goes
 
 - `src/game/<area>.h/.cpp`: rewritten game code. Provisional names; comment each function with its
   original address. Classes are normal C++: real virtual functions, members of their real types, no
-  hand-built vtables and no layout asserts. Since S21 (2026-10-16) no game.exe code shares our objects, so
-  nothing needs the original memory layout; goldens don't depend on it either. Keep game.exe's byte layout
-  only where bytes leave the process (save files, network packets) or come from game.exe's data image
-  (until C18/C25 finish), and say so where you do.
+  hand-built vtables and no layout asserts. No game.exe code shares our objects, so nothing needs the
+  original memory layout; goldens don't depend on it either. Keep game.exe's byte layout only where
+  bytes leave the process (save files, network packets) or come from game.exe's data image (until
+  C18/C25 finish), and say so where you do. The hand-built tables still in the code (`static void*
+  Vtable()`, `ei::SetVtable`, the slot templates of engine_object_class.h, mfc_slots.h and
+  compiled_vtable.h) are C28's to convert: add no new ones.
 - `src/lib/`: shared compatibility code. `crt.h` (the game's own CRT: operator new/delete, string
   functions, file I/O), `mfc.h` (CString, CFile, CFileFind, CArray, CList, CTypedPtrList, CPlex),
   `containers.h` (the engine's aligned arrays), `stlp.h` (STLport
-  string/vector/hash_map on the game's node allocator), `gameapi.h` (Win32 through the game's import
-  table; generated). Add to these only when needed, in small separate additions.
+  string/vector/hash_map on the game's node allocator), `gameapi.h` (the Win32 imports; generated: the
+  ones the harness or the image routes go through the image's import slots). C14a-d move the code to
+  standard containers and strings with scripted rewrites. Add to these only when needed, in small
+  separate additions.
 - `tests/vectors/`: function vectors (recorders, replay checks; see Verification).
 - Shared headers others use: `src/game/engine_object.h` (CEngineObject virtual interface),
   `src/lib/vecmath.h` (Vector2/3/4, Quaternion, Matrix4 and inline helpers with named sum
@@ -48,46 +56,42 @@ comes from a bug we already hit.
    drop instructions (it omitted an FNSTSW in 006C1C00, making a min-select look like a bit test):
    when a sequence looks odd, check the raw bytes in game.exe (capstone) before reproducing it. Ghidra misreads calling conventions, misses
    register arguments and drops return values.
-2. **Return values:** check what the original leaves in EAX/AL/ST0 and what callers read.
-   - A "void" setter that ends with `MOV EAX,ECX` returns `this` (the Vector3 constructor crashed the
-     game when we returned void).
-   - Functions that set all of EAX to 0/1 return `BOOL` (int); ones that set only AL return `bool`.
-3. **Calling conventions:** `__thiscall` methods become C++ members registered with
-   `EI_REPLACE_METHOD(addr, Class::Method)`. `__fastcall`/`__stdcall`/`__cdecl` free functions use
-   `EI_REPLACE(addr, Function)`. Count `RET n` to confirm stack arguments, and declare every one of
-   them even when the function never reads it (five loaders declared with one argument too few left
-   4 bytes on the caller's stack and crashed the game at startup). A rewrite whose address nothing
-   reaches (every caller calls it by name; tools/registration_readers.py) is not registered: write
-   `EI_REWRITTEN(addr, Function)`, which keeps it in the tools' function-to-original map (check_fp_fold,
-   check_signatures, coverage, progress; C20d).
-4. **Virtual methods** cannot be registered by member pointer (that yields a vtable thunk). Declare
-   the virtuals in vtable order, implement the body, and register a shim:
-   `bool __fastcall FooHook(Cls* self, void*, args...) { return self->Cls::Foo(args...); }`.
-   Do not give a non-virtual method the same name and signature as a base-class virtual
-   (`CEngineObject::Create`, `Destroy`, `Release`, `Load`, `Save`, `GetName`, ...): it silently becomes
-   an override, and the hook lands on a dispatch thunk that loops forever. The installer now refuses
-   thunks and logs "virtual-call thunk". `build.cmd` also runs
-   `tools/check_thunks.py`, which fails the build when an `EI_REPLACE_METHOD` names a method that is
-   virtual, or overrides one, in its class or a base class (matched by name, from the headers).
-5. **Not-yet-rewritten callees** are forwarders: `__declspec(naked) R Cls::Fn(args) EI_ORIGINAL(0xADDR)`.
-   Look in `src/game/originals_<area>.h` first and use the shared declaration (`...Original`) when
-   the function has one; when it has none and a second file needs it, move it there instead of
-   declaring another forwarder. Decide its signature from the disassembly (RET n, what callers read
-   in EAX/AL/ST0). `build.cmd` runs `tools/check_forwarders.py`, which fails on any function newly
-   forwarded from more than one file. A rewritten function is called directly (rule 9), never
-   through a forwarder: `python tools/direct_calls.py --report` lists the forwarders to rewritten
-   code and `--apply --scope <files>` rewrites their call sites (C13; `check_cleanup` ratchets the
-   `EI_ORIGINAL` count per file). A few stay forwarders on purpose: an entry the harness replaces
-   (the fixed ISAAC seed 0049F660, tests/verify `JumpTo` / `JumpFrom`), Rebirth-patched callees,
-   vector recorders and the rows of config/direct_calls_skip.csv.
-   Naked functions cannot have members with constructors/destructors in the class layout path; use raw
-   pointers in layouts where needed (see `mfc::CFile`).
-6. **Memory and CRT:** allocate and free with `gamecrt::operator_new/operator_delete` (the game's heap),
-   STL containers through `stlp::` (the game's node pool), MFC lists through `mfc::CTypedPtrList`.
-   Call the game's CRT (`gamecrt::tolower`, `strnicmp`, `sprintf`, ...) and Win32 through `gameapi::`.
+2. **Return values:** check what the original leaves in EAX/AL/ST0 and which callers read it: that is
+   the function's result. Functions that set all of EAX to 0/1 return `BOOL` (int); ones that set
+   only AL return `bool`. A float left unrounded in ST0 is rule 7's.
+3. **Registrations and calling conventions.** A rewrite is an ordinary function or member, called by
+   name. Write `EI_REWRITTEN(addr, Function)` next to it: it registers nothing and keeps the function
+   in the tools' function-to-original map (check_fp_fold, check_signatures, coverage, progress; C20d).
+   Register it at its address (`EI_REPLACE` / `EI_REPLACE_METHOD`) only while something still reaches
+   that address: a code cell of game.exe's data image (a static initialiser, a CRT / MFC table), a code
+   literal or an `EI_ORIGINAL` forwarder (`python tools/registration_readers.py` names the readers; C20
+   retires them). Such a function keeps the original's calling convention and declares every stack
+   argument the original's `RET n` pops, read or not (five loaders declared with one argument too few
+   left 4 bytes on the caller's stack and crashed the game at startup). `build.cmd` runs
+   `tools/check_registrations.py` (one registration per address).
+4. **Virtual methods are never registered**: a pointer to a virtual member is a dispatch thunk, which
+   jumps through the object's table back into itself (`build.cmd` runs `tools/check_thunks.py`, which
+   fails on an `EI_REPLACE_METHOD` naming a method that is virtual, or overrides one, by name). The
+   tables are the compiler's (C19), so nothing reaches a slot's address: a virtual is `EI_REWRITTEN`.
+   The `...Hook` shims and `...Impl` bodies left from registering slots are C28's to fold into the
+   virtuals. Do not give a non-virtual method the same name and signature as a base-class virtual
+   (`CEngineObject::Create`, `Destroy`, `Release`, `Load`, `Save`, `GetName`, ...): it silently
+   becomes an override.
+5. **No new forwarders.** Every function of game.exe is ported: call it by name (include its header, or
+   declare it there). The `EI_ORIGINAL(0xADDR)` forwarders left (`src/game/originals_<area>.h`;
+   `python tools/progress.py` counts them) jump to the function registered at their address; C29 turns
+   each into a direct call, and the harness's two redirections in the image (the fixed ISAAC seed
+   0049F660, the traced rand 006E77F7) into named seams in our code. `build.cmd` runs
+   `tools/check_forwarders.py` (no function forwarded from more than one file), and `check_cleanup`
+   ratchets the `EI_ORIGINAL` count per file. Forwarders that stay for a narrower reason: the vector
+   recorders' and tests/verify's (they call game.exe's own code in its runs).
+6. **Memory and CRT:** allocate and free game objects with `gamecrt::operator_new` / `operator_delete`
+   (src/lib/crt.h; other code frees them there), containers through `stlp::` / `mfc::` until C14 moves
+   them to standard types. Call the CRT functions whose game behaviour differs from the host's through
+   `gamecrt::` (C26 decides which those are) and Win32 through `gameapi::`.
 7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction
    sequences (no new naked FPU helpers, `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact, the game runs its main
-   thread at 24-bit precision anyway, and the standalone build will use SSE2 (docs/cleanup-plan.md). The existing hand-copied helpers stay
+   thread at 24-bit precision anyway, and an SSE2 build is planned (C16d, docs/cleanup-plan.md). The existing hand-copied helpers stay
    until the cleanup removes them. When an integer or a branch follows from a float that sits on a rounding edge, a rare difference there is
    expected: say so in the notes rather than copying the FPU sequence.
    - The build is `/arch:IA32 /fp:precise` (x87): the grouping written is the grouping compiled, and a `static_cast<float>`, a float local or a float
@@ -122,11 +126,8 @@ comes from a bug we already hit.
    `a >= b ? otherwise : ifLess` (exact for NaN). The audit is complete (C16c-C16g; docs/notes/cleanup-tooling.md
    names the few original tests kept and why).
 9. **Rebirth's patches are flags.** The standalone image never loads Rebirth's addon.dll or
-   EI_Plugin.asi; what they change in game.exe is our code's to reproduce. (Until S21e rewrites also
-   ran inside game.exe, where the installer skipped functions addon.dll had patched and rewritten
-   callers had to reach them through their original addresses; C13 makes those calls direct;
-   tools/direct_calls.py still leaves Rebirth-patched callees and shims as forwarders and lists
-   them.) The image keeps Rebirth's data constants in memory as addon writes them (00742B08,
+   EI_Plugin.asi; what they change in game.exe is our code's to reproduce, inside our functions behind
+   flags; a patched function is called by name like any other. The image keeps Rebirth's data constants in memory as addon writes them (00742B08,
    the interface's 800-pixel layout width, becomes its widescreen width in WideScreen's startup
    action): read such constants from memory, as the original does, instead of compiling their values
    in. A rewrite may reproduce a Rebirth patch behind its flag (`ei::rebirth::Enabled(Patch::<name>)`,
@@ -142,19 +143,20 @@ comes from a bug we already hit.
 New and changed code is written the way the cleanup plan (docs/cleanup-plan.md) wants it, so it
 does not need a second pass:
 - fields are members of the class's one declaration (in its header), not `At<>`/`Field<>` offsets or `*At` view structs; add the members you need;
+- classes are normal C++ ("Where code goes"): real virtual functions, no hand-built tables, no layout
+  asserts unless the bytes leave the process or come from game.exe's data image;
 - virtual calls go through declared and named virtual functions, not `VCall` and not a placeholder
   `SlotNN()` (name the slot when you call it);
 - no byte arithmetic on pointers with literal offsets (`reinterpret_cast<uint8_t*>(p) + 0x..`);
-- game globals are named (`constexpr` address in one header, or an accessor), not literal
-  addresses in the code; hook registrations (`EI_REPLACE`, `EI_ORIGINAL`, `EI_RECORD`) keep theirs;
+- game globals are named variables (C18, `tools/named_data.py`), not literal addresses in the code;
+  `EI_REWRITTEN`, the registrations, the forwarders and `EI_RECORD` keep their address;
 - no `__asm`, no `#pragma float_control` (rule 7);
-- forwarders come from `src/game/originals_<area>.h` (rule 5);
+- no new forwarders (rule 5);
 - containers use the shared templates: `mfc::CArray<T>`, `mfc::CList<T>`, `mfc::CTypedPtrList<T>`
   (`src/lib/mfc.h`), `lib::AlignedArray<T>` (the engine's 32-byte aligned arrays,
   `src/lib/containers.h`) and `stlp::` (`src/lib/stlp.h`). Do not declare a container layout per
   file (`struct FooArray { void* vtable; T* data; int size; ... }`, `struct ListNode { next, prev }`)
-  and do not hand-inline SetSize / RemoveAt / Add: call the template's member, or forward to the
-  original instantiation with the template as its parameter type. Which original addresses belong
+  and do not hand-inline SetSize / RemoveAt / Add: call the template's member. Which original addresses belong
   to which template: `docs/notes/core.md`, "Shared containers". stlp::list's and vector's
   members are templates on the element policy (`SectorList::Erase<stlp::HeldObject>(node)`,
   `v.InsertOverflow<Abi::Element>(...)`): call them on the typed container rather than casting it
@@ -172,9 +174,8 @@ does not need a second pass:
   a window surface is drawn on through `CUiSurface::GetDC` / `ReleaseDC` / `DrawLine`, not a
   per-file view struct derived from it. A window class that shares another's layout derives from
   it (CUiItemStrip : CUiItemPanel, CMpHeroScreen : CItemScreen) instead of holding a `CUiWindow
-  window` member and being punned; the item panels' owner_ is the CItemScreen. A compiled tag's
-  table goes into a `void**` vtable field as `Tag::Slots()`, and a container's input side is
-  `CUiContainer::ContainerInput()`. An item screen's slots 42-54 are called through
+  window` member and being punned; the item panels' owner_ is the CItemScreen. A container's input
+  side is `CUiContainer::ContainerInput()`. An item screen's slots 42-54 are called through
   `CItemScreen::Virtual*` (VirtualHeroRecord, VirtualPrice, ...), a panel's Build through
   `CUiWindow::VirtualBuild`, not a `VirtualSlot` with a local function type; three pointers that
   are an STLport vector are an `stlp::vector<T>` member, called with the element policy
@@ -191,8 +192,7 @@ does not need a second pass:
   are a `UseSpotArray` (map_object.h, `mfc::CArray<Vector3>`: slot 44, the levers, FindUseSpot); a pair message's
   connection is a `RefPtrTo<Connection>`; the changed variables are an `stlp::vector<VariableNode*>`; a map object's
   slots are called on the typed object or through `ObjectSlots(object)`, not a hand-written vtable call or a cast per file.
-- one typed view instead of a cast per accessor (C15): a compiled tag's slots reach their object
-  through `ObjectAs<T>()` (`src/lib/compiled_vtable.h`); an object embedded in another and built by
+- one typed view instead of a cast per accessor (C15): an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure
   virtual slots (`src/lib/static_object.h`), not a byte array with a casting accessor. A counted
   pointer the game's helpers take by address is a field of the holder type (`CountedRef<T>`,
@@ -206,9 +206,8 @@ does not need a second pass:
 
 ## Verification
 
-The standalone image is the product (docs/notes/standalone.md section 5); nothing runs our code
-inside game.exe, and the verify wrappers that compared each rewrite with the original in game were
-deleted in S21d (git history has them). A rewrite is held to the original's behaviour by:
+A change is held to the original's behaviour by the two checks below. Neither depends on the heap or
+on memory layout, so a change of a class's layout is checked like any other change.
 
 - **Goldens** (tests/golden, docs/notes/standalone-verification.md): a scenario recorded from the
   original game (`--no-hooks`) and replayed on the image (`work.py test <ID> --golden`), its
@@ -224,7 +223,8 @@ deleted in S21d (git history has them). A rewrite is held to the original's beha
 ## Notes
 
 Record in `docs/notes/<area>.md`:
-- forwarders you added (address, what they are) and anything else the standalone build must replace;
+- anything you leave tied to game.exe (an address, a byte layout, and why), also in
+  docs/standalone-cleanup.md;
 - original bugs you kept;
 - functions you skipped and why;
 - how each rewrite is checked (the scenario with a golden that reaches it, or its vectors).

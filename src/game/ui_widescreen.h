@@ -54,6 +54,11 @@ struct Layout {
 
 // The layout (computed in Startup; on first use if something asks earlier).
 const Layout& Get();
+
+// The layout widths addon writes (game.exe's .rdata floats 00742B08 800.0 and 007428AC 695.0; Startup adds `extra`
+// with the wide layout). Every reader reads them from memory (rewrite-guide rule 9).
+extern float g_layoutWidth;   // the layout's right edge: the clock's centre x (CHudClock::Update)
+extern float g_panelRight;    // the bottom panels' right column: the quick items' x (CHudQuickItems::SetUnit)
 inline bool Active() { return Get().active; }
 
 // addon's panel offset (100BD0A0): added to the x of every region rectangle and point and every
@@ -67,11 +72,6 @@ void SetPanelOffset(int offset);
 // Active(), else 0. addon adds it to (right edge) or takes it off (left edge) the builders' layout
 // constants (its operands at the W3 sites).
 int EdgeShift();
-
-// The layout widths addon writes over game.exe's .rdata floats 00742B08 and 007428AC (ticket W1): the layout's right
-// edge (800, the clock's centre) and the bottom panels' right column (695), each + extra while Active().
-float LayoutWidth();
-float PanelRight();
 
 // addon's handlers at a panel builder's entry: the panel offset -EdgeShift() for a panel at the
 // screen's left edge, +EdgeShift() at its right; and at its exit (every return), 0 again, also

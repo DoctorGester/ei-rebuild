@@ -1,8 +1,7 @@
 address,size,owner,kind,what
-007428AC,4,src/game/ui_battle_update.cpp,rdata constant,695.0f: the quick items' x (CHudQuickItems::SetUnit); an addon site of ui_widescreen.cpp
-00742B08,4,src/game/ui_hud_frame.cpp,rdata constant,800.0f: the clock's width (CHudClock::Update); an addon site of ui_widescreen.cpp
-00746D8C,24,src/standalone/static_init.cpp,rdata text,"""commctrl_DragListMsg"": RegisterWindowMessageA's name (the DragList message, MFC's static initialiser)"
 007472E4,64,src/lib/crt_locale.cpp,rdata text,"the locale categories' names (""LC_TIME"" .. ""LC_ALL""; __lc_category's cells)"
-00748284,8,src/lib/crt_iostream.cpp,rdata table,"ostream's virtual base table {0, 8} (Ostream::Construct)"
-00796E50,12,src/lib/mfc_string.h,data table,"MFC's empty string data _afxInitData {-1, 0, 0} (CString::AssignCopy, _afxDataNil / _afxPchNil's cells)"
+00749C50,84,src/lib/stlp_string.cpp,rdata table,"out_of_range's catchable types for logic_error, __Named_exception and exception (0x1C each; their type descriptors and copy constructors are cells): CxxThrowException and our frame handler read them for OutOfRangeThrowInfo's throw (found by gen_image_cells' static check, C25a)"
+0074C608,72,src/lib/stlp_string.cpp,rdata table,"out_of_range's own catchable type, its catchable type array (4) and the ThrowInfo 0074C640 (stlp_string.cpp's OutOfRangeThrowInfo; static check, C25a)"
+00783C40,100,src/lib/stlp_string.cpp,data text,"the type descriptors of exception, __Named_exception and logic_error (the vtable cell, "".?AV..."" names): the catch matching of out_of_range's throw (static check, C25a)"
+00783D98,36,src/lib/stlp_string.cpp,data text,"out_of_range's type descriptor ("".?AVout_of_range@stlport@@"") (static check, C25a)"
 00797778,4,src/lib/crt_locale.cpp,data text,"the static locale name ""C"" (StaticC, __lc_category's cells)"

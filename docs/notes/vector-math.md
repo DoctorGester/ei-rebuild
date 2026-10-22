@@ -45,8 +45,7 @@ unit_ai_memory.cpp NearestEnemy is ZXY, ForceSee is ZYX).
 
 ## 4. Types and hooked helpers
 
-Types (src/lib/vecmath.h; same layouts as before, sizes asserted; aggregates, no constructors, so naked forwarders and
-`{x, y, z}` initialisation keep working; global namespace): `Vector2` (x, y), `Vector3` (x, y, z), `Vector4` (x, y, z, w),
+Types (src/lib/vecmath.h; aggregates, no constructors, so `{x, y, z}` initialisation works; global namespace): `Vector2` (x, y), `Vector3` (x, y, z), `Vector4` (x, y, z, w),
 `Quaternion` (w, x, y, z: w first), `Matrix4` (float m[16], row-major), `MatrixRows` (float m[12]: 3 rows of a 4x4,
 stride 16, `Transform` 00560E10). The hooked members are declared in the structs, their bodies stay in src/game; maths.h
 includes vecmath.h; the free out-of-line originals keep their declarations in maths.h / object_maths.h / core_maths.h.

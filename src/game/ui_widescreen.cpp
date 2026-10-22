@@ -9,7 +9,6 @@
 #include "hook/log.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 #include "settings_file.h"
 
 #include <cmath>
@@ -19,10 +18,6 @@
 
 namespace widescreen {
 namespace {
-
-// The layout widths addon rewrites in game.exe's .rdata (its floats 800.0 and 695.0): ours, written by Startup.
-float g_layoutWidth = 800.0f;
-float g_panelRight = 695.0f;
 
 constexpr int kLayoutWidth = 800;
 constexpr int kLayoutHeight = 600;
@@ -105,6 +100,9 @@ int MulDiv64(int a, int b, int divisor) {
 }
 
 } // namespace
+
+float g_layoutWidth = /*00742B08*/ 800.0f;
+float g_panelRight = /*007428AC*/ 695.0f;
 
 const Layout& Get() {
     if (!g_computed) {
@@ -218,8 +216,6 @@ void ShowHeroCurtains(CUiWindow* window, int mode) {
 
 // addon's apply function: 0x320 + extra written at 0065E7C3, -0x320 - extra at 0065E7CA.
 int LayoutRight() { return kLayoutWidth + Get().extra; }
-float LayoutWidth() { return g_layoutWidth; }
-float PanelRight() { return g_panelRight; }
 
 
 } // namespace widescreen

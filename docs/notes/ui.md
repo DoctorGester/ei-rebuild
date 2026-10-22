@@ -63,9 +63,8 @@ top window's input slot 9. In-game hotkeys are looked up by scan code in the tab
 
 **Rebirth** (WideScreen, rebirth.md) patches the five scaling helpers, the sprite placement (005E6FA0, 005E70E0, 005E7D60,
 005E7680, 005E99D0), CUiRegion::SetRect / AddPoint, 005FDE20 (text), 005F8340 (text extent), many screen builders and key
-handlers, and the constant 00742B08 (the clock's x centre, 800): callers go through the original addresses (rule 9).
-The Rebirth-patched functions are the VANILLA bodies in our code: the installer hooks them in the vanilla launch only,
-rewritten callers keep their `EI_ORIGINAL` forwarders, and none of Rebirth's patches is reproduced.
+handlers, and the constant 00742B08 (the clock's x centre, 800). Our code reproduces the patches behind their flags
+(rewrite guide rule 9; rebirth.md, config/rebirth_patches.csv).
 
 ## 2. Interface manager and window base (`ui_interface.cpp`, `ui_window.cpp`)
 

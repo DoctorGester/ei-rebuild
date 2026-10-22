@@ -2,7 +2,6 @@
 // its quest variable notice (006369D0, slot 33), the selection's refresh (00637DC0) and the quick
 // item panel's unit (0063D2B0). See docs/notes/ui.md ("Battle screen").
 #include "camera.h"
-#include "ui_widescreen.h"
 #include "item.h"
 #include "player_client.h"
 #include "player_messages.h"
@@ -18,6 +17,7 @@
 #include "text_reader.h"
 #include "ui.h"
 #include "ui_camp.h"
+#include "ui_widescreen.h"
 #include "unit.h"
 #include "unit_db.h"
 
@@ -78,11 +78,11 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         entry.id = item->id_;
         entry.item = item;
     };
-    // The sprite just added: placed in its row (x from the panel's right column, 695; Rebirth moves it), its
+    // The sprite just added: placed in its row (x from the panels' right column, 695; Rebirth moves it), its
     // region pointing at it, scaled, opaque.
     auto place = [&](int slot) {
         CEngineObject* sprite = sceneObjects_.data[shownCount_ - 1];
-        const float right = widescreen::PanelRight();
+        const float right = widescreen::g_panelRight;
         if (slot < 4)
             SpritePlaceOriginal((void*)sprite, nullptr, right - static_cast<float>(slot * 50), 575.0f, 20.0f);
         else

@@ -36,8 +36,8 @@ float FloatFromBits(std::uint32_t bits) {
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
 float Pi() { return 3.1415927f /*007423F8*/; }
-// The original reads its constants from memory at run time; Rebirth rewrites one of them (the clock's x, for its
-// widescreen layout: widescreen::LayoutWidth).
+// The original reads its constants from memory at run time; Rebirth rewrites one of them (the clock's x,
+// widescreen::g_layoutWidth, for its widescreen layout).
 float PausedHand() { return 0.9166667f /*00742B18*/; }   // hand angle while paused, in pi
 float FastHand() { return 0.5833333f /*00742B14*/; }   // at fast speed
 float NormalHand() { return 0.75f /*0073C524*/; }   // at normal speed
@@ -47,7 +47,7 @@ float FaceStep() { return 0.083333336f /*00741438*/; }   // one hour of the face
 float FaceOffset() { return 15.0f /*0073C518*/; }   // 15 hours
 float HandRadius() { return 73.0f /*00742B10*/; }   // 73
 float DialRadius() { return 30.0f /*0073BAF0*/; }   // 30
-float CentreX() { return widescreen::LayoutWidth(); }   // the clock centre (800; the widescreen layout's width)
+float CentreX() { return widescreen::g_layoutWidth; }   // the clock centre (800; Rebirth's widescreen width)
 float CentreY() { return 600.0f /*00742B0C*/; }   // 600
 float BlinkBase() { return 1.4f /*0073CDF8*/; }   // 1.4
 float PulseAmplitude() { return 0.3f /*0073C54C*/; }   // 0.3
