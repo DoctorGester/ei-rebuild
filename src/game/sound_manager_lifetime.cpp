@@ -35,7 +35,6 @@ const char* const kBackslash = "\\";
 int CompareText(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
 }
-CRITICAL_SECTION* Lock(std::uint8_t* storage) { return reinterpret_cast<CRITICAL_SECTION*>(storage); }
 
 // The manager's MP3 stream part (+0x100, from streamState on): what 006BA9C0 / 006BAAC0 / 006BAC90
 // get as `this`.
@@ -132,11 +131,11 @@ int CSoundManager::SetPath(const char* folder, const char* registryPath) {
 EI_REPLACE_METHOD(0x006BAE20, CSoundManager::SetPath);
 
 mfc::CString CSoundManager::CurrentStreamName() {
-    gameapi::EnterCriticalSection(Lock(nameLock));
+    gameapi::EnterCriticalSection(&nameLock);
     mfc::CString name;
     if (streamState == 1 || streamState == 2) name = streamName;
     else name = game::EmptyText();
-    gameapi::LeaveCriticalSection(Lock(nameLock));
+    gameapi::LeaveCriticalSection(&nameLock);
     return name;
 }
 EI_REWRITTEN(0x006BAEA0, CSoundManager::CurrentStreamName);
@@ -217,12 +216,12 @@ CSoundManager::CSoundManager() {
     musicFader.SetHold(0);
     markers.Construct();
     markers2.Construct();
-    gameapi::InitializeCriticalSection(Lock(nameLock));
-    gameapi::InitializeCriticalSection(Lock(streamLock));
+    gameapi::InitializeCriticalSection(&nameLock);
+    gameapi::InitializeCriticalSection(&streamLock);
     midiArray1E4.Construct();
     midiArray1F4.Construct();
     ConstructFader(midiFader);
-    gameapi::InitializeCriticalSection(Lock(midiLock));
+    gameapi::InitializeCriticalSection(&midiLock);
     // The CRT's eh vector constructor iterator (006E8693) over the emitters and the sequences: each
     // element's constructor in order.
     for (SoundEmitter& emitter : emitters) ConstructEmitter(&emitter);
@@ -252,11 +251,11 @@ CSoundManager::~CSoundManager() {
     // The CRT's eh vector destructor iterator (006E859F): each element's destructor, last to first.
     for (int i = kSequenceCount; --i >= 0;) DestructSequence(&sequences[i]);
     for (int i = kEmitterCount; --i >= 0;) DestructEmitter(&emitters[i]);
-    gameapi::DeleteCriticalSection(Lock(midiLock));
+    gameapi::DeleteCriticalSection(&midiLock);
     midiArray1F4.FreeData();
     midiArray1E4.FreeData();
-    gameapi::DeleteCriticalSection(Lock(streamLock));
-    gameapi::DeleteCriticalSection(Lock(nameLock));
+    gameapi::DeleteCriticalSection(&streamLock);
+    gameapi::DeleteCriticalSection(&nameLock);
     markers2.FreeData();
     markers.FreeData();
     waveSources.vtable = mfc::impl::SoundListClass::Vtable();
@@ -450,7 +449,7 @@ void CSoundManager::StreamThread() {
         last = now;
         if (elapsed < kStreamPeriodMs) gameapi::Sleep(kStreamPeriodMs - elapsed);
 
-        gameapi::EnterCriticalSection(Lock(streamLock));
+        gameapi::EnterCriticalSection(&streamLock);
         musicFader.Update();
         AilSetSampleVolume()(streamSample, musicFader.level);
         for (;;) {
@@ -465,7 +464,7 @@ void CSoundManager::StreamThread() {
             AilLoadSampleBuffer()(streamSample, half, streamBuffers[buffer], streamBufferSize);
             ReadStreamOriginal(this, nullptr, StreamOf(this));
         }
-        gameapi::LeaveCriticalSection(Lock(streamLock));
+        gameapi::LeaveCriticalSection(&streamLock);
     }
     mfc::impl::AfxEndThread(0, 1);
 }
@@ -563,15 +562,15 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
         Silence(m, to, bytes);
         m->streamState = 0;
         CodecClose(m);
-        gameapi::EnterCriticalSection(Lock(m->nameLock));
+        gameapi::EnterCriticalSection(&m->nameLock);
         m->streamName = game::EmptyText();
-        gameapi::LeaveCriticalSection(Lock(m->nameLock));
+        gameapi::LeaveCriticalSection(&m->nameLock);
         return;
     }
     m->streamState = 1;
-    gameapi::EnterCriticalSection(Lock(m->nameLock));
+    gameapi::EnterCriticalSection(&m->nameLock);
     m->streamName = m->nextName;
-    gameapi::LeaveCriticalSection(Lock(m->nameLock));
+    gameapi::LeaveCriticalSection(&m->nameLock);
     m->soundRegistry.GetIntArray(m->streamName, kSwitchMarkers, reinterpret_cast<DwordArray*>(&m->markers));
     m->soundRegistry.GetIntArray(m->streamName, kLoopMarkers, reinterpret_cast<DwordArray*>(&m->markers2));
     m->streamLoopAt = m->markers2.size > 0 ? m->markers2[0] : kNoLoop;

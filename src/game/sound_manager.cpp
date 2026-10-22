@@ -774,7 +774,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
     if (enabled == 0) return 1;
     if (musicFader.volume == 0) return 1;
     if (streamCodec == nullptr) return 0;
-    CRITICAL_SECTION* lock = reinterpret_cast<CRITICAL_SECTION*>(streamLock);
+    CRITICAL_SECTION* lock = &streamLock;
     gameapi::EnterCriticalSection(lock);
     int m = 4;
     if (streamState != 0) {
@@ -864,7 +864,7 @@ EI_REWRITTEN(0x006BB020, CSoundManager::RequestStream);
 // other modes request silence ("") the RequestStream way.
 void CSoundManager::StopStream(int mode) {
     if (enabled == 0) return;
-    CRITICAL_SECTION* lock = reinterpret_cast<CRITICAL_SECTION*>(streamLock);
+    CRITICAL_SECTION* lock = &streamLock;
     gameapi::EnterCriticalSection(lock);
     if (streamState != 0) {
         if (mode == 4) {

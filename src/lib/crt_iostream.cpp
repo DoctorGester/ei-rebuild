@@ -20,8 +20,6 @@ namespace {
 
 constexpr int kEof = -1;
 
-CRITICAL_SECTION* Section(std::uint8_t* lock) { return reinterpret_cast<CRITICAL_SECTION*>(lock); }
-
 // The exe's vtables the constructors and destructors write: streambuf's, ios's, and ostream's for its ios;
 // ostream's virtual base table (the ios 8 bytes in).
 const void* StreambufVtable() { return ei::GamePointer<const void>(0x007482AC); }
@@ -135,19 +133,19 @@ int Streambuf::Sputc(int c) {
 }
 
 void Streambuf::Lock() {
-    if (lockFlag < 0) gameapi::EnterCriticalSection(Section(lock));
+    if (lockFlag < 0) gameapi::EnterCriticalSection(&lock);
 }
 
 void Streambuf::Unlock() {
-    if (lockFlag < 0) gameapi::LeaveCriticalSection(Section(lock));
+    if (lockFlag < 0) gameapi::LeaveCriticalSection(&lock);
 }
 
 void Ios::Lock() {
-    if (lockFlag < 0) gameapi::EnterCriticalSection(Section(lock));
+    if (lockFlag < 0) gameapi::EnterCriticalSection(&lock);
 }
 
 void Ios::Unlock() {
-    if (lockFlag < 0) gameapi::LeaveCriticalSection(Section(lock));
+    if (lockFlag < 0) gameapi::LeaveCriticalSection(&lock);
 }
 
 // ---- streambuf -----------------------------------------------------------------------------------------
@@ -167,14 +165,14 @@ Streambuf* Streambuf::Construct(char* buffer, int length) {
         ebuf = nullptr;
     }
     lockFlag = -1;
-    gameapi::InitializeCriticalSection(Section(lock));
+    gameapi::InitializeCriticalSection(&lock);
     return this;
 }
 EI_REWRITTEN(0x006FCAD2, libcrt::Streambuf::Construct);
 
 void Streambuf::Destruct() {
     SetVtable(StreambufVtable());
-    gameapi::DeleteCriticalSection(Section(lock));
+    gameapi::DeleteCriticalSection(&lock);
     DefaultSync();
     if (allocated && base) gamecrt::operator_delete(base);
 }
@@ -315,7 +313,7 @@ Ios* Ios::Construct() {
     state = kBad;
     precision = 6;
     fill = ' ';
-    gameapi::InitializeCriticalSection(Section(lock));
+    gameapi::InitializeCriticalSection(&lock);
     if (g_liveIosCount++ == 0) gameapi::InitializeCriticalSection(&g_sharedLock);
     return this;
 }
@@ -325,7 +323,7 @@ void Ios::Destruct() {
     lockFlag = -1;
     vtable = IosVtable();
     if (--g_liveIosCount == 0) gameapi::DeleteCriticalSection(&g_sharedLock);
-    gameapi::DeleteCriticalSection(Section(lock));
+    gameapi::DeleteCriticalSection(&lock);
     if (deleteBuffer && bp) delete bp;
     bp = nullptr;
     state = kBad;

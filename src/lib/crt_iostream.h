@@ -7,6 +7,7 @@
 // ios 007482E8, ostream's ios 00748280), which the constructors write.
 
 #include <cstdint>
+#include <windows.h>   // CRITICAL_SECTION
 
 namespace libcrt {
 
@@ -60,7 +61,7 @@ public:
     char* gptr;                  // +0x28
     char* egptr;                 // +0x2C
     int lockFlag;                // +0x30
-    std::uint8_t lock[0x18];     // +0x34 CRITICAL_SECTION
+    CRITICAL_SECTION lock;       // +0x34
 
 private:
     void SetVtable(const void* table) { *reinterpret_cast<const void**>(this) = table; }
@@ -123,7 +124,7 @@ struct Ios {
     char fill;                   // +0x2C
     int width;                   // +0x30
     int lockFlag;                // +0x34
-    std::uint8_t lock[0x18];     // +0x38 CRITICAL_SECTION
+    CRITICAL_SECTION lock;       // +0x38
 };
 static_assert(sizeof(Ios) == 0x50);
 
