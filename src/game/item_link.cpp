@@ -36,7 +36,7 @@ CItemLink* CItemLink::Construct() {
 EI_REPLACE_METHOD(0x0058FBB0, CItemLink::Construct);
 
 void CItemLink::Reset() {
-    vtable = ei::GamePointer<void>(CRefCounted::kVtableAddress);
+    vtable = CRefCounted::RootVtable();
     vtable = Vtable();
 }
 EI_REWRITTEN(0x0058FB90, CItemLink::Reset);

@@ -221,7 +221,6 @@ struct CSpellEffect {
     // drops the effect); else 1, the caster released and cleared when it is `object`.
     BOOL Forget(CEngineObject* object);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0074399C);
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073BB68);
 
     // spell_effect_save.cpp (RET 4). 0067E960: the position, caster and target ids, the target
     // point, the state, the spell (its slot 10), the packed id, the visual / sound / light ids (-1

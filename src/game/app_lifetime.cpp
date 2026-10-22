@@ -31,7 +31,6 @@
 
 namespace {
 
-void* const kCountedRootVtable = ei::GamePointer<void>(0x0073BB68);
 void* const kMouseRootVtable = ei::GamePointer<void>(0x0073C368);
 
 CParty* PartyOf(PartyRecord* record) { return record->Party(); }
@@ -59,7 +58,7 @@ PartyRecord* __cdecl CreatePartyRecord() {
     record->refCount = 0;
     record->refsHigh = 0;
     if (!record) return nullptr;
-    record->vtable = kCountedRootVtable;
+    record->vtable = CRefCounted::RootVtable();
     PartyOf(record)->Construct();
     new (&record->name) mfc::CString();
     record->vtable = PartyRecord::Vtable();
@@ -88,7 +87,7 @@ void PartyRecord::Destruct() {
     PartyOf(this)->Destroy();
     name.~CString();
     PartyOf(this)->DestructBody();
-    vtable = kCountedRootVtable;
+    vtable = CRefCounted::RootVtable();
 }
 EI_REWRITTEN(0x004577E0, PartyRecord::Destruct);
 

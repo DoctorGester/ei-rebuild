@@ -3,6 +3,7 @@ vtable,slots,class,file,note
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
 0073BB28,6,ServerEntryClass,src/game/net_messages.h,ReplicatedClass (the lobby's server entry)
 0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base; slots 2-5 _purecall)
+0073BB68,2,CountedRootClass,src/game/core_streams.cpp,the counted root (CRefCounted; every counted class's destructor leaves it)
 0073BB70,17,ServerSessionClass,src/game/net_classes.h,the game server (ServerSession)
 0073BBB4,17,ServerBaseClass,src/game/net_classes.h,the server base (ServerBase; slot 15 _purecall)
 0073BBF8,6,LoginMessageClass,src/game/net_messages.h,ReplicatedClass (message type 5)

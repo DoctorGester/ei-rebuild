@@ -141,7 +141,7 @@ EI_REWRITTEN(0x00432DA0, Connection::Construct);
 int Connection::OnShutdown() {
     ei::SetVtable(this, Vtable());
     DestroyForReset(this);
-    ei::SetVtable(this, CRefCounted::kVtableAddress);
+    ei::SetVtable(this, CRefCounted::RootVtable());
     return static_cast<int>(reinterpret_cast<std::uintptr_t>(Construct(0)));
 }
 namespace {
@@ -175,7 +175,7 @@ void Connection::Destruct() {
     stlp::deallocate(freedIds_.End(), sizeof(FreedBatch));   // 0043B180
     VectorDtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
     FreeReceived(this);
-    ei::SetVtable(this, CRefCounted::kVtableAddress);
+    ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x004334E0, Connection::Destruct);
 
@@ -281,7 +281,7 @@ ReplicaEntry* ReplicaEntry::Clone() {
 int ReplicaEntry::OnShutdown() {
     ei::SetVtable(this, Vtable());
     ReleaseEntryObject(this);
-    ei::SetVtable(this, CRefCounted::kVtableAddress);
+    ei::SetVtable(this, CRefCounted::RootVtable());
     object_.ptr = nullptr;
     ei::SetVtable(this, Vtable());
     version_ = 0;
@@ -300,7 +300,7 @@ EI_REWRITTEN(0x00434430, ReplicaEntryResetHook);
 void ReplicaEntry::Destruct() {
     ei::SetVtable(this, Vtable());
     ReleaseEntryObject(this);
-    ei::SetVtable(this, CRefCounted::kVtableAddress);
+    ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x004344C0, ReplicaEntry::Destruct);
 

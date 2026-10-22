@@ -317,7 +317,7 @@ void SessionBase::Destruct() {
     clients_->next = clients_;
     clients_->prev = clients_;
     stlp::deallocate(clients_, sizeof(ClientNode));
-    ei::SetVtable(this, CRefCounted::kVtableAddress);
+    ei::SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x00436A50, SessionBase::Destruct);
 
