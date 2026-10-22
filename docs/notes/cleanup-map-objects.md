@@ -20,7 +20,7 @@ still left. The objects themselves (layouts, slots, behaviour) are in `map_objec
 - `CObject3DClientSpecific::Draw` / `DrawShadow` take the `CSceneRenderer*` (model.h). Draw uses the pipeline's matrix stacks (PushMatrix,
   PushMatrixProduct, PopMatrix on stacks 1-3); the shadow uses stack 10. `FigurePart` has `orientation` (+0x34) and `worldMatrix` (+0x54);
   `ObjectWorldMatrix` is shared by the draw and the shadow. `CTorchObject::CreateTorch` is a member (`map_object_create.cpp`).
-  `CObject3D::FigureRef()` (the counted figure) and `DirtyRect()` replace hand-made casts. `LightManager()` is one copy in map_object.h; the
+  `CObject3D::figure` is a `CountedRef<CLinkMesh>` (`figure.Assign` is 00519580) and `DirtyRect()` replaces hand-made casts. `LightManager()` is one copy in map_object.h; the
   client file uses spell.h's `TheLightFactory()->litIds_`. The shadow's naked `Fpatan` is `x87::fpatan`.
 
 ## Behaviour notes

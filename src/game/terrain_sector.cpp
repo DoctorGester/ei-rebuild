@@ -383,15 +383,15 @@ void ComputeBounds(SectorData& s) {
     s.minZ = static_cast<float>(low);
     double cz = (static_cast<double>(s.maxZ) - low) * Half() + low;
     float centreZ = static_cast<float>(cz);
-    s.box.centre.x = static_cast<float>(half + x0);
-    s.box.centre.y = static_cast<float>(half + y0);
-    s.box.centre.z = centreZ;
-    s.box.low.x = static_cast<float>(-half);
-    s.box.low.y = static_cast<float>(-half);
-    s.box.low.z = static_cast<float>(s.minZ - cz);
-    s.box.high.x = static_cast<float>(half);
-    s.box.high.y = static_cast<float>(half);
-    s.box.high.z = static_cast<float>(s.maxZ - cz);
+    s.box.center.x = static_cast<float>(half + x0);
+    s.box.center.y = static_cast<float>(half + y0);
+    s.box.center.z = centreZ;
+    s.box.boxMin.x = static_cast<float>(-half);
+    s.box.boxMin.y = static_cast<float>(-half);
+    s.box.boxMin.z = static_cast<float>(s.minZ - cz);
+    s.box.boxMax.x = static_cast<float>(half);
+    s.box.boxMax.y = static_cast<float>(half);
+    s.box.boxMax.z = static_cast<float>(s.maxZ - cz);
     s.box.flags |= 2;
     double q = half * Half();
     double r = half * MinusHalf();
@@ -399,15 +399,15 @@ void ComputeBounds(SectorData& s) {
     for (int i = 0; i < 2; ++i) {
         float by = static_cast<float>((i + Half()) * half + y0);
         for (int j = 0; j < 2; ++j, ++box) {
-            box->centre.x = static_cast<float>((j + Half()) * half + x0);
-            box->centre.y = by;
-            box->centre.z = centreZ;
-            box->low.x = static_cast<float>(r);
-            box->low.y = static_cast<float>(r);
-            box->low.z = static_cast<float>(s.minZ - cz);
-            box->high.x = static_cast<float>(q);
-            box->high.y = static_cast<float>(q);
-            box->high.z = static_cast<float>(s.maxZ - cz);
+            box->center.x = static_cast<float>((j + Half()) * half + x0);
+            box->center.y = by;
+            box->center.z = centreZ;
+            box->boxMin.x = static_cast<float>(r);
+            box->boxMin.y = static_cast<float>(r);
+            box->boxMin.z = static_cast<float>(s.minZ - cz);
+            box->boxMax.x = static_cast<float>(q);
+            box->boxMax.y = static_cast<float>(q);
+            box->boxMax.z = static_cast<float>(s.maxZ - cz);
             box->flags |= 2;
         }
     }
@@ -584,10 +584,7 @@ constexpr int kProjectionVertices = 0x330;
 constexpr int kQuarterCells = 16;
 constexpr int kRow = 33;
 
-// A quarter's box is a ClipBounds followed by three unused dwords.
-static_assert(offsetof(SectorBox, low) == offsetof(ClipBounds, boxMin) &&
-              offsetof(SectorBox, high) == offsetof(ClipBounds, boxMax) &&
-              offsetof(SectorBox, centre) == offsetof(ClipBounds, center));
+
 
 } // namespace
 
