@@ -1133,9 +1133,9 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     registry keys on the stored table, so every store uses `X::Vtable()`.
   - **Sessions** (net_classes.h): SessionBaseClass (15 slots), ServerBaseClass / ClientBaseClass (17) and the final
     ServerSessionClass / ClientSessionClass. **Connection, replica entry** (net_connection.h: `RefObjectClass`).
-    **Links** (net_link.h): FileStreamClass, NetLinkClass and its Loopback / Replay / Framed / Driver tags,
-    DriverSessionClass. net_link.cpp's slot registrations stay registered (C11 batch 30 owns that file).
-  - **Items** (item_class.h over engine_object_class.h): EngineObjectClass declares CEngineObject's 13 slots with the
+    **Links** (net_link.h): NetLinkClass and its Loopback / Replay / Framed / Driver tags (FileStream is a real class),
+    (DriverSession is a real class since C28g). net_link.cpp's slot registrations stay registered (C11 batch 30 owns that file).
+  - **Items** (item_class.h over engine_object_class.h; real classes since C28a): EngineObjectClass declares CEngineObject's 13 slots with the
     base's bodies (Release keeps the hook's EAX: this, or the manager's slot 24 result); ItemClass adds CItem's 14-21
     (17-20 return a CString by value: the caller's hidden result, as game.exe's); one tag per item class (the
     scroll's slots 9, 10, 13 and 14 are CItemQuick's bodies) and the item constructor's.
@@ -1149,22 +1149,21 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     needs another recognition first.
 - **Batch 15's families** (2026-10-22): the spells', GameBuffer's, the world's and the units' tables: 39 rows,
   5,666 -> 5,175 code cells, 194 slot registrations EI_REWRITTEN, 1,138 -> 1,108 game data addresses.
-  - **Spells and light** (spell_class.h): CSpellClass, CSpellContainerClass, CSpellConstructorClass, and CLightClass
+  - **Spells and light** (spell_class.h; real classes since C28b): CSpellClass, CSpellContainerClass, CSpellConstructorClass, and CLightClass
     over the new `TransformObjectClass<Self, T>` (engine_object_class.h: CTransformObject's slots 13-17 with the base's
     bodies). 0074399C stays: the harness names it.
   - **GameBuffer** (net_coder.h): `GameBufferClass<Self>` declares the view base's six slots (2 Commit returns 0, 5
     its deleting destructor, the rest `_purecall`); BufferViewClass and GrowingBufferClass over it.
     tests/vectors/record_coder.cpp now recognises game.exe's buffers by `&ei::OriginalGameData<const
     std::uint8_t>(0x0073D624 / 0x0073CA64)`, which named_data allows in tests.
-  - **World effects** (world_effect_class.h): `EffectClass<Self, T>` (CEffect's 18-23 over the transform's), ParticleClass,
-    MissileClass and one tag per effect. The point light's own Radius is slot 24 (its slot 19 is the base's). EngineObjectClass
-    needs `T::DeletingDestruct`, so CEffect's DeletingDestructEffect was renamed. 007435D8 is a byte match inside an FDIV
-    operand of 005E1680: retired as the particle table's tail.
-  - **Small ones**: the unit shape (ai_unit_shape.cpp) and the item link (item_link.cpp) as RefObject-shaped tags;
-    the terrain (TransformObjectClass, slot 14 its own CombineRotation; tail 0073F6E8 a byte match in 006E81C2) and the
-    text manager (world_client_class.h); the player sources' base 0073F38C (slots 2-4 and 6 `_purecall`), the server's
-    counted helper 0073F240 and the client's source 0073F628 (world_sessions.cpp), the bridge manager 0073F4FC
-    (world_construct.cpp). Generated EI_REPLACE_SHORT rows (short_functions.cpp) are never dropped.
+  - **World effects** (world_effect.h; real classes since C28f): CEffect declares 18-23 over the transform's; the point
+    light's own radius is slot 24 (LightRadius; its slot 19 is the base's), the missile's MoveParts slot 24. 007435D8 is a
+    byte match inside an FDIV operand of 005E1680: retired as the particle table's tail.
+  - **Small ones**: the unit shape (ai_unit_shape.cpp) and the item link (item_link.cpp) (real classes since C28e);
+    the terrain (terrain.h, slot 14 its own CombineRotation; tail 0073F6E8 a byte match in 006E81C2), the text manager
+    (item_db_text.h), the player sources' base 0073F38C (slots 2-4 and 6 pure), the server's counted helper 0073F240,
+    the client's source 0073F628 and the network session 0073F3A8 (world.h, net_link.h) are real classes since C28g;
+    the bridge manager 0073F4FC (world_construct.cpp). Generated EI_REPLACE_SHORT rows (short_functions.cpp) are never dropped.
   - **Trap: `python tools/find_vtables.py --help` runs the tool** and rewrites config/vtables.csv; restore it with git.
   - **Left in world* / unit***: the map object companions 0073DBEC / 0073DD6C (irregular slots), the worlds 0073F18C /
     0073F41C / 0073F928 (42-43 slots), the unit client's 0073ECD8 / 0073EDBC / 0073F0C4, the AI modes (the harness
@@ -1225,7 +1224,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     AI modes, the party records, the spell effect, ...); `PlainRootVtable()` (core_refcount.h, PlainRootClass) in place
     of 0073C368, the renderer's, the figures' and the mouse's root.
   - **Small tags**: render_helper.cpp's RenderHelperClass (0073D840) and RenderPresetClass (0073D880); the cloud
-    noise's CloudNoiseBaseClass (0073D030, slots 0 / 1 `_purecall`) and GlobalMapCloudsClass (007420D4); the item
+    noise's 0073D030 and 007420D4 (CCloudNoise and CGlobalMapClouds, real classes since C28f); the item
     turn's ItemTurnClass (007403F8); link_loader_create.cpp's LinkFigureLoaderClass (0073D808) and its abstract base
     LinkFigureLoaderBaseClass (0073D824).
   - **Input sides** (ui_input_class.h): `InputSideClass<Self, Delete>` declares an input side's 13 slots with the base
@@ -1237,11 +1236,11 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     `InertInputVtable()`). The window tables themselves stay game.exe's: the census (ui_census.cpp's
     `InGameVtables`) and the window slot checks' stand-in tables need a window's vtable to be game data, so the
     windows' main tables (007418E0 and the other 26-slot ones) wait for a harness id as the AI modes' (batch 17).
-  - **Engine objects** (engine_object_class.h): HooverClass (0073C434) and LightningClass (0073C550) in
-    class_slots.cpp, PlayerClass (00743104), SysInfoClass (0073D644), CameraClass (0073B9E0, transform),
-    ParticleSourceClass (0073CFD0, transform) and RainSnowClass (0073F4C8 with its tail 0073F4E8; its slots 11 / 12,
-    "CWeather" and 0x1D, are dead code's). The classes' `DeleteScalar` became `DeletingDestruct` (EngineObjectClass's
-    slot 0 names it).
+  - **Engine objects** (engine_object_class.h): CHoover (0073C434) is a real class since C28e, CLightning (0073C550)
+    and CCamera (0073B9E0) since C28f; PlayerClass (00743104) and SysInfoClass (0073D644).
+    The classes' `DeleteScalar` became `DeletingDestruct` (EngineObjectClass's slot 0 names it). CParticleSource
+    (0073CFD0) and CRainSnow (0073F4C8 with its tail 0073F4E8; its slots 11 / 12, "CWeather" and 0x1D, are dead
+    code's) are real classes since C28f.
   - **The party** (party_lifetime.cpp): PartyBaseClass (0074306C) and PartyClass (00743000) over a
     PartyContextClass that declares the manager context's slots 13-26 as the worlds' (world_class.h) with the base's
     bodies (every getter null; 24 the party's copy of an item); the party overrides Create / Destroy, its class name
@@ -1316,10 +1315,15 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     overflow, 8 EOF, the rest old iostream's streambuf defaults). Only ConsoleStreambuf changed (no ConsoleWindow
     edits). The image's harness reads each line through `console::g_consoleLineObserver` (set under
     `ei::Standalone()`); game.exe's run still takes game.exe's sync slot.
-  - **The streams** (core_streams.cpp): StreamClass (0073BDB0, 1-6 `_purecall`), MemoryStreamClass (0073BD90 with its
-    tail 0073BD98) and QueueStreamClass (0073C960). The stores call the accessors (`ei::SetVtable(stream,
-    CMemoryStream::MemoryStreamVtable())`, `CStream::StreamVtable()`, `CMemoryStream::QueueStreamVtable()`; batch 21
-    switched the last world_* / net_* users and removed the `kStreamVtable` / `kMemoryStreamVtable` names).
+  - **The streams** (core_streams.h; real classes since C28e): CStream (0073BDB0, 1-6 pure), CMemoryStream (0073BD90
+    with its tail 0073BD98; 0073C960 is the original's second copy of its table, stored by 0066C4F0) and FileStream
+    (net_link.h, 0073C8D8). Locals are plain, members of hand-built owners use placement new and the destructor;
+    ChunkArchive and DeltaField have real constructors and destructors over them.
+  - **The counted root** (core_refcount.h): CRefCounted / CRefObject have C++ constructors (the count left to the
+    creator) and destructors and the game heap's `operator new` / `delete`; CItemLink (item.h) and CUnitShape
+    (ai_unit_layer.h) derive from them as real classes. The root's and the counted value's compiled tables
+    (RootVtable, CRefObject::Vtable, PlainRootVtable) stay until the network (C28k) and the other derived families
+    are real classes.
     The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
     with its return address); game.exe's run still takes the Write slots.
   - **The library kind**: MFC's CStringArray, CWordArray, CDWordArray, CByteArray, CUIntArray (mfc_coll.cpp's
@@ -1408,8 +1412,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     strips 00741BF4 / 00741C60 (20 DrawFigures, 25 FigureItemAt, 26 CountFigures, input 2 OnFigureClick). Accessors
     `CUiItemStrip::PlainVtable()` / `ForwardingVtable()` / `FigureVtable()` and their `...InputVtable()`;
     harness_windows.cpp maps the three window tables.
-  - **CVisibilityFog** (effects_weather.cpp's VisibilityFogClass over EngineObjectClass, 0073D6B4): 2 / 3 the cells
-    cleared, 6 UpdateCells, 11 / 12; the fog manager's NewObject and the destructor body store `CVisibilityFog::Vtable()`.
+  - **CVisibilityFog** (effects.h, 0073D6B4; a real class since C28f): 2 / 3 the cells cleared, 6 UpdateCells, 11 / 12.
   - **Retired with no class of ours**: 0073B984 is stlp's length_error (stored only by game.exe's string growth
     0040C2A0, 0040C6E0, 00421800, 004269A0, 0042B700; our ports never throw it). The ~140 functions that name the
     address compare a hash table's prime pointer with the end of __stl_prime_list (0073B914 + 28 dwords), which is
@@ -1448,6 +1451,32 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   `typeid` once no game.exe table is left in that hierarchy) in the image; when the label text changes, re-record with
   `--no-hooks --golden --fresh`. Slots the harness patches (`PatchSlot`, harness_savetrace) need a hook in our code
   instead.
+
+### Real classes (C28)
+
+C19 left most families on compiled tag classes: the class keeps game.exe's layout and its constructor body stores a
+tag's compiled table (`ei::SetVtable(this, X::Vtable())`, engine_object_class.h, compiled_vtable.h, mfc_slots.h),
+whose slots call `...Impl` bodies or `__fastcall ...Hook` shims. C28 makes each family ordinary C++ (child tickets
+C28a-p, one family per commit; the order is in C28's ticket note). How a family converts (C28a, the items):
+- The constructor body becomes the C++ constructor (no SetVtable), Destruct / DestructBody the virtual destructor,
+  DeletingDestruct the compiler's scalar deleting destructor. The destructor calls its own Destroy qualified
+  (`CItem::Destroy()`), as the original's does.
+- The slot bodies are the virtual overrides (the `Impl` split folded into the virtual of the same name, base calls
+  qualified); class names and ids are `GetClassName` / `GetClassId` overrides (`#undef GetClassName` where windows.h
+  is in). The helper's `Vtable()`, `Construct` / `DestructBody` / `DeletingDestruct` and the layout asserts go.
+- Allocation: `new T()`. CEngineObject has the game heap's `operator new` (noexcept: null without memory, then no
+  constructor runs, which the original's callers test) and `operator delete`, plus the placement pair; a derived
+  class declares no `operator delete` of its own (it would hide the placement delete: warning C4291). An object built
+  in storage someone else allocates is `new (place) X()` and `place->~X()`; one embedded in an owner whose own
+  Construct / Destruct bodies build it is a `lib::InPlace<X>` member (PartyStorage, party_storage.h); a local is a
+  plain `X x;`.
+- A constructor or destructor whose address is still called (an EI_ORIGINAL forwarder, C29) keeps a registered
+  `__fastcall` shim that calls it (party_lifetime.cpp's DestroyPartyInPlace at 006611D0).
+- The function-to-original map: virtuals are `EI_REWRITTEN(addr, X::Virtual)`; constructors and destructors, which
+  have no address to take, are `EI_REWRITTEN_SPECIAL(addr, X::X)` / `(addr, X::~X)` (include/ei/hook.h). The
+  original's scalar deleting destructor is tagged with the destructor's name too: check_signatures accepts a
+  destructor tag whose original pops 4 more (the flags argument).
+- game.exe's tables stay in config/retired_vtables.csv; their rows name the real class and its header.
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 

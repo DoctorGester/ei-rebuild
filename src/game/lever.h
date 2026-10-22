@@ -86,7 +86,6 @@ public:
     // 0052B320. The map object's Destroy (0050E840), then its destructor.
     ~Lever() override;
     // The deleting destructor (slot 0, 0052B300) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int Create() override { return CreateLever(); }        // 2: 0052B370
     int RunTick() override { return UpdateLever(); }       // 6: 0052B490

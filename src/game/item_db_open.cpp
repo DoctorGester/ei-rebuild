@@ -19,7 +19,6 @@ namespace {
 using dbfile::FillStream;
 using dbfile::LoadTable;
 using dbfile::LocalResource;
-using dbfile::LocalStream;
 
 // The chunks of spells.sdb and items.idb.
 constexpr int kSpellsChunk = 1;
@@ -69,8 +68,8 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     void* data = resource.Get()->CMappedResource::GetFileImpl("spells.sdb", &size);
     if (!data) return game::FatalError("Can't open spells database\n");
 
-    LocalStream local;
-    CMemoryStream* stream = &local.stream;
+    CMemoryStream local;
+    CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
     // The serialisers' unused third argument, as the original passes it: the file's size.
     void* const unused = reinterpret_cast<void*>(static_cast<std::uintptr_t>(size));
@@ -82,13 +81,11 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
 
     // The three lists through one archive, built and destroyed in place.
     ChunkArchive ar;
-    ar.ConstructLocal();
     ar.Open(stream, 1, 1);
     for (int i = 0; i < 3; ++i) ar.SerializeSpellLists(kFirstListChunk + i, &lists[i], unused);
     ar.Close(stream);
     resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();
-    ar.DestructLocal();
     return 1;
 }
 EI_REWRITTEN(0x00684550, SpellDatabase::Load);
@@ -104,8 +101,8 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
     void* data = resource.Get()->CMappedResource::GetFileImpl("items.idb", &size);
     if (!data) return game::FatalError("Can't open items database\n");
 
-    LocalStream local;
-    CMemoryStream* stream = &local.stream;
+    CMemoryStream local;
+    CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
     // The serialisers' unused third argument is the file's data here.

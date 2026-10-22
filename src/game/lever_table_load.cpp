@@ -32,22 +32,20 @@ int LeverRecordTable::Load(const char* folder) {
     void* data = resource.Get()->CMappedResource::GetFileImpl("Levers.ldb", &size);
     if (!data) return game::FatalError("Can't open Levers database\n");
 
-    LocalStream local;
-    local.Fill(data, size);
+    CMemoryStream local;
+    FillStream(local, data, size);
 
     // The records as chunk 1 of an archive opened for loading (the file's size is the serialiser's
     // unused third argument), then every record entered under its model's name: a record of a name
     // seen before replaces the earlier one.
     ChunkArchive archive;
-    archive.Construct();
-    archive.Open(&local.stream, 1, 1);
+    archive.Open(&local, 1, 1);
     archive.SerializeLevers(1, reinterpret_cast<stlp::vector<LeverRecord>*>(this), static_cast<int>(size));
-    archive.Close(&local.stream);
+    archive.Close(&local);
     for (LeverRecord* record = begin; record != end; ++record) {
         stlp::string key(record->name.GetString());
         byName[key] = record;
     }
-    archive.Destruct();
 
     resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();

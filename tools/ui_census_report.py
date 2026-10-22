@@ -53,7 +53,7 @@ def load_replacements(bare_only=False):
     written without a class, as written (no aliases)."""
     out = {}
     short = collections.defaultdict(set)
-    pattern = re.compile(r'(?:EI_REPLACE(?:_METHOD)?|EI_REWRITTEN)\(\s*(0x[0-9A-Fa-f]+)\s*,\s*([\w:]+)\s*\)')
+    pattern = re.compile(r'(?:EI_REPLACE(?:_METHOD)?|EI_REWRITTEN(?:_SPECIAL)?)\(\s*(0x[0-9A-Fa-f]+)\s*,\s*([\w:~]+)\s*\)')
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True):
         for m in pattern.finditer(open(path, encoding='utf-8', errors='replace').read()):
             out.setdefault(m.group(2), int(m.group(1), 16))

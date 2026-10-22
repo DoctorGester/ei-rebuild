@@ -1,7 +1,6 @@
 // Constructor and destructor bodies of the spell objects: the effect record (MapEffect), the spell
 // (CSpell) and the cast spell (CSpellEffect). See spell.h.
 #include "spell.h"
-#include "spell_class.h"
 
 #include "map_object.h"
 #include "unit.h"
@@ -42,10 +41,9 @@ EI_REWRITTEN(0x00688510, MapEffect::Construct);
 
 // --- CSpell --------------------------------------------------------------------------------------
 
-CSpell* CSpell::Construct() {
+CSpell::CSpell() {
     ClearFields();
     Effect().Construct();
-    SetVtable(this, Vtable());
     speed_ = 0;
     range_ = 0;
     targetCount_ = 0;
@@ -56,30 +54,24 @@ CSpell* CSpell::Construct() {
     prototypeField14_ = 0;
     skillNeeded_ = 1;
     std::memset(modifiers_, 0, sizeof(modifiers_));
-    return this;
 }
-EI_REWRITTEN(0x0068B1F0, CSpell::Construct);
+EI_REWRITTEN_SPECIAL(0x0068B1F0, CSpell::CSpell);
 
-void CSpell::Destruct() {
-    SetVtable(this, Vtable());
-    ClearModifiers();
-    DestructBase();
-}
-EI_REWRITTEN(0x0068B2C0, CSpell::Destruct);
+CSpell::~CSpell() { CSpell::Destroy(); }
+EI_REWRITTEN_SPECIAL(0x0068B2C0, CSpell::~CSpell);
+EI_REWRITTEN_SPECIAL(0x0068B2A0, CSpell::~CSpell);
 
-CSpell* CSpell::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0068B2A0, CSpell::DeletingDestruct);
+const char* CSpell::GetClassName() { return "CSpell"; }
+int CSpell::GetClassId() { return 0x4F; }
+EI_REWRITTEN(0x0068B280, CSpell::GetClassName);
+EI_REWRITTEN(0x0068B290, CSpell::GetClassId);
 
 // --- CSpellEffect --------------------------------------------------------------------------------
 
 CSpellEffect* CSpellEffect::Construct() {
     target = nullptr;
     caster = nullptr;
-    Spell()->Construct();
+    new (Spell()) CSpell();
     visual = nullptr;
     sound = nullptr;
     light = nullptr;
@@ -105,7 +97,7 @@ void CSpellEffect::Destruct() {
     if (light) light->Release();
     if (sound) sound->Release();
     if (visual) visual->Release();
-    Spell()->Destruct();
+    Spell()->CSpell::~CSpell();
     if (caster) caster->Release();
     caster = nullptr;
     if (target) target->Release();

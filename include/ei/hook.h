@@ -189,6 +189,12 @@ struct OriginRecord {
 #define EI_REWRITTEN(addr, fn) \
     __declspec(allocate(".eiorg")) static ::ei::OriginRecord<decltype(&fn)> EI_CAT(ei_rewritten_, __LINE__) = \
         {addr, &fn, __FILE__, __LINE__}
+// The same for a constructor or destructor, which has no address to take (C28): `EI_REWRITTEN_SPECIAL(0x...,
+// CItem::CItem);`, `(0x..., CItem::~CItem);` (also for the original's scalar deleting destructor). The record holds
+// the name; the tools read the line like an EI_REWRITTEN one.
+#define EI_REWRITTEN_SPECIAL(addr, name) \
+    __declspec(allocate(".eiorg")) static ::ei::OriginRecord<const char*> EI_CAT(ei_rewritten_, __LINE__) = \
+        {addr, #name, __FILE__, __LINE__}
 
 // Run `fn` (void()) once in the standalone image before the registrations are taken (StartupAction).
 #define EI_STARTUP_ACTION(fn) static ::ei::StartupActionRegistrar EI_CAT(ei_action_, __LINE__)(&fn, #fn)

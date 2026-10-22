@@ -271,7 +271,6 @@ struct SceneMesh : CTransformObject {
     // (a member) and the engine object's destructor.
     ~SceneMesh() override;
     // The deleting destructor (slot 0, 00454810) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // The vtable (game.exe's 0073C274, retired). The slots not listed are CTransformObject's
     // (1, 4-6, 8-10, 13-15).
@@ -440,7 +439,6 @@ public:
     // unit's destructor.
     ~FakeUnitScene() override;
     // The deleting destructor (slot 0, 004468F0) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // The slots of game.exe's 0073BFE8 that differ from CUnit's (fake_unit.cpp).
     int Create() override;                  // 2: 00446AF0 the skin created and owned, then CreateUnit

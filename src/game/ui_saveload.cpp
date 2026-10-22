@@ -72,13 +72,9 @@ BOOL IsDirectory(const mfc::CFileFind& find) {
 mfc::CString FilePath(const mfc::CFileFind& find) { return find.GetFilePath(); }   // 006E6722
 mfc::CString FileName(const mfc::CFileFind& find) { return find.GetFileName(); }   // 006E684B
 
-// A file stream local as the original builds and tears it down inline (net_link.h).
+// A file stream on the stack with the reads and writes the save list uses (net_link.h).
 struct LocalFileStream {
     netlink::FileStream s;
-    LocalFileStream() { s.Construct(); }
-    ~LocalFileStream() { s.Destruct(); }
-    LocalFileStream(const LocalFileStream&) = delete;
-    LocalFileStream& operator=(const LocalFileStream&) = delete;
 
     // The stream's direction byte, then the CFile's virtual Open.
     void Open(const char* path, unsigned flags, std::uint8_t reading) { s.Open(path, flags, reading); }

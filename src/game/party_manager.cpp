@@ -8,14 +8,13 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "party.h"
-#include "resource_local.h"   // LocalStream
+#include "resource_local.h"   // FillStream
 
 #include "ei/hook.h"
 #include "record_vectors.h"
 #include "game_hashes.h"
 #include "lib/stlp_vector_refs.h"
 
-static_assert(sizeof(PartyInPlace) == sizeof(CParty));
 
 namespace {
 
@@ -186,16 +185,16 @@ EI_REWRITTEN(0x004A64B0, NamedPartyRecords::Serialize);
 // ---- The archived objects (slot 1 Serialize) ---------------------------------------------------------
 
 void PartyRecord::Serialize(ChunkArchive* ar) {
-    LocalStream local;
+    CMemoryStream local;
     ar->CStringField(1, &name);
     CParty* p = Party();
     if (!ar->loading_) {
-        p->SaveParty(&local.stream, 1);
-        ar->StreamField(2, &local.stream);
+        p->SaveParty(&local, 1);
+        ar->StreamField(2, &local);
     } else {
-        ar->StreamField(2, &local.stream);
-        local.stream.version_ = static_cast<std::uint32_t>(ar->version_);
-        p->LoadParty(&local.stream, 1);
+        ar->StreamField(2, &local);
+        local.version_ = static_cast<std::uint32_t>(ar->version_);
+        p->LoadParty(&local, 1);
     }
 }
 EI_REWRITTEN(0x004A5AF0, PartyRecord::Serialize);
@@ -205,22 +204,22 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(2, &flag0C, 1);
     ar->Field(3, &flag0D, 1);
     ar->Field(4, weights, sizeof(weights) + sizeof(weightsTail));
-    LocalStream local;
+    CMemoryStream local;
     CParty* itemsParty = ItemsParty();
     CParty* spellsParty = SpellsParty();
     if (!ar->loading_) {
-        itemsParty->SaveParty(&local.stream, 0);
-        spellsParty->SaveParty(&local.stream, 0);
-        allowed.SaveLists(&local.stream);
-        magic.SaveLists(&local.stream);
-        ar->StreamField(5, &local.stream);
+        itemsParty->SaveParty(&local, 0);
+        spellsParty->SaveParty(&local, 0);
+        allowed.SaveLists(&local);
+        magic.SaveLists(&local);
+        ar->StreamField(5, &local);
     } else {
-        ar->StreamField(5, &local.stream);
-        local.stream.version_ = static_cast<std::uint32_t>(ar->version_);
-        itemsParty->LoadParty(&local.stream, 0);
-        spellsParty->LoadParty(&local.stream, 0);
-        allowed.LoadLists(&local.stream);
-        magic.LoadLists(&local.stream);
+        ar->StreamField(5, &local);
+        local.version_ = static_cast<std::uint32_t>(ar->version_);
+        itemsParty->LoadParty(&local, 0);
+        spellsParty->LoadParty(&local, 0);
+        allowed.LoadLists(&local);
+        magic.LoadLists(&local);
     }
     ar->Field(6, &flag38, 1);
 }
@@ -233,10 +232,10 @@ namespace {
 // `to` becomes a copy of `from` (with variables) through a memory stream, as the original inlines
 // it (CParty::Assign without its Clear).
 void CopyParty(CParty* to, CParty* from) {
-    LocalStream local;
-    from->SaveParty(&local.stream, 1);
-    local.stream.CMemoryStream::SeekImpl(0);
-    to->LoadParty(&local.stream, 1);
+    CMemoryStream local;
+    from->SaveParty(&local, 1);
+    local.CMemoryStream::Seek(0);
+    to->LoadParty(&local, 1);
 }
 
 CParty* RecordParty(PartyRecord* record) { return record->Party(); }
@@ -288,22 +287,22 @@ void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
 } // namespace
 
 void PartyManager::Load(CMemoryStream* from) {
-    LocalStream local;
-    from->ReadSized(&local.stream);
-    local.stream.CMemoryStream::SeekImpl(0);
-    LocalArchive archive;
-    archive.archive.Open(&local.stream, 1, static_cast<int>(from->version_));
-    ArchiveManager(this, &archive.archive);
-    archive.archive.Close(&local.stream);
+    CMemoryStream local;
+    from->ReadSized(&local);
+    local.CMemoryStream::Seek(0);
+    ChunkArchive archive;
+    archive.Open(&local, 1, static_cast<int>(from->version_));
+    ArchiveManager(this, &archive);
+    archive.Close(&local);
 }
 EI_REWRITTEN(0x004A8310, PartyManager::Load);
 
 void PartyManager::Save(CMemoryStream* to) {
-    LocalStream local;
-    LocalArchive archive;
-    archive.archive.Open(&local.stream, 0, static_cast<int>(to->version_));
-    ArchiveManager(this, &archive.archive);
-    archive.archive.Close(&local.stream);
-    to->WriteSized(&local.stream);
+    CMemoryStream local;
+    ChunkArchive archive;
+    archive.Open(&local, 0, static_cast<int>(to->version_));
+    ArchiveManager(this, &archive);
+    archive.Close(&local);
+    to->WriteSized(&local);
 }
 EI_REWRITTEN(0x004A8560, PartyManager::Save);

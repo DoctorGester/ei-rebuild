@@ -174,8 +174,22 @@ void CRainSnow::Start(int newMode, float duration) {
 }
 EI_REWRITTEN(0x004E3FC0, CRainSnow::Start);
 
-void CRainSnow::DestructBody() {
-    ei::SetVtable(this, Vtable());
+CRainSnow::CRainSnow() {
+    ClearFields();
+    texture = nullptr;
+    projected.Construct();
+    positions.Construct();
+    outcodes.Construct();
+    frames.Construct();
+    vertices.Construct();
+    indices.Construct();
+    offsets.Construct();
+    world = nullptr;
+    sound = 0;
+    Clear();
+}
+
+CRainSnow::~CRainSnow() {
     Clear();
     offsets.FreeData();
     indices.Destruct();   // 006FEECD
@@ -185,30 +199,14 @@ void CRainSnow::DestructBody() {
     positions.FreeData();
     projected.FreeData();
     if (texture) texture->Release();
-    DestructBase();
 }
-EI_REWRITTEN(0x005616C0, CRainSnow::DestructBody);
+EI_REWRITTEN_SPECIAL(0x005616C0, CRainSnow::~CRainSnow);
+EI_REWRITTEN_SPECIAL(0x005617E0, CRainSnow::~CRainSnow);
 
-CRainSnow* CRainSnow::DeletingDestruct(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x005617E0, CRainSnow::DeletingDestruct);
-
-namespace {
-// The compiled table (C19, engine_object_class.h): 2 Create (0), 3 Clear, 11 / 12 the class name "CWeather" and
-// id 0x1D (005617C0 / 005617D0; nothing asks).
-class RainSnowClass final : public EngineObjectClass<RainSnowClass, CRainSnow> {
-public:
-    int Create() override { return 0; }                                  // 2: 005617A0
-    void Destroy() override { As<CRainSnow>()->Clear(); }                // 3: 005617B0 (a thunk to 004E3B80)
-    const char* ClassName() override { return "CWeather"; }             // 11: 005617C0
-    int ClassId() override { return 0x1D; }                             // 12: 005617D0
-};
-} // namespace
-
-void* CRainSnow::Vtable() { return RainSnowClass::Vtable(); }
+const char* CRainSnow::GetClassName() { return "CWeather"; }
+int CRainSnow::GetClassId() { return 0x1D; }
+EI_REWRITTEN(0x005617C0, CRainSnow::GetClassName);
+EI_REWRITTEN(0x005617D0, CRainSnow::GetClassId);
 
 // --- Visibility fog -----------------------------------------------------------------------------
 
@@ -342,50 +340,33 @@ void CVisibilityFog::ClearCells() {
     boundsValid = 0;
 }
 
-void CVisibilityFog::Destruct() {
-    ei::SetVtable(this, Vtable());
+namespace {
+constexpr std::size_t kFogBuckets = 100;   // the hint the cell map is created with
+} // namespace
+
+CVisibilityFog::CVisibilityFog() {
+    ClearFields();
+    std::memset(static_cast<void*>(&bounds), 0, offsetof(CVisibilityFog, cells) - offsetof(CVisibilityFog, bounds));
+    cells.InitBuckets(kFogBuckets);
+    boundsValid = 0;
+}
+
+CVisibilityFog::~CVisibilityFog() {
     ClearCells();
     cells.Destroy();
-    DestructBase();
 }
-EI_REWRITTEN(0x004E24E0, CVisibilityFog::Destruct);
+EI_REWRITTEN_SPECIAL(0x004E24E0, CVisibilityFog::~CVisibilityFog);
+EI_REWRITTEN_SPECIAL(0x004E24C0, CVisibilityFog::~CVisibilityFog);
 
-CVisibilityFog* CVisibilityFog::DeletingDestruct(int flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004E24C0, CVisibilityFog::DeletingDestruct);
-
-namespace {
-constexpr int kFogClassId = 0x5F;
-} // namespace
-// Slots 2 / 3 (004E23D0 returns 1), 11 / 12 ("CVisibilityFog" 0078DE80, 0x5F).
-int __fastcall FogCreate(CVisibilityFog* self) {
-    self->ClearCells();
+int CVisibilityFog::Create() {
+    ClearCells();
     return 1;
 }
-void __fastcall FogDestroy(CVisibilityFog* self) { self->ClearCells(); }
-const char* __fastcall FogClassName(CVisibilityFog*) { return "CVisibilityFog"; }
-int __fastcall FogClassId(CVisibilityFog*) { return kFogClassId; }
-EI_REWRITTEN(0x004E23D0, FogCreate);
-EI_REWRITTEN(0x004E2440, FogDestroy);
-EI_REWRITTEN(0x004E24A0, FogClassName);
-EI_REWRITTEN(0x004E24B0, FogClassId);
-
-namespace {
-// The compiled table (C19, engine_object_class.h) in place of game.exe's 0073D6B4: 0 the deleting destructor, 2 / 3
-// the cells cleared (2 returns 1), 6 the cells' fade, 11 / 12 the class name and id.
-class VisibilityFogClass final : public EngineObjectClass<VisibilityFogClass, CVisibilityFog> {
-public:
-    int Create() override { return FogCreate(As<CVisibilityFog>()); }                 // 2: 004E23D0
-    void Destroy() override { FogDestroy(As<CVisibilityFog>()); }                     // 3: 004E2440
-    int RunTick() override { return As<CVisibilityFog>()->UpdateCells(); }            // 6: 004E1AB0
-    const char* ClassName() override { return FogClassName(As<CVisibilityFog>()); }   // 11: 004E24A0
-    int ClassId() override { return FogClassId(As<CVisibilityFog>()); }               // 12: 004E24B0
-};
-} // namespace
-
-void* CVisibilityFog::Vtable() { return VisibilityFogClass::Vtable(); }
+const char* CVisibilityFog::GetClassName() { return "CVisibilityFog"; }
+int CVisibilityFog::GetClassId() { return 0x5F; }
+EI_REWRITTEN(0x004E23D0, CVisibilityFog::Create);
+EI_REWRITTEN(0x004E2440, CVisibilityFog::Destroy);
+EI_REWRITTEN(0x004E24A0, CVisibilityFog::GetClassName);
+EI_REWRITTEN(0x004E24B0, CVisibilityFog::GetClassId);
 
 EI_REPLACE(0x004E1C50, DestroyDeadCells);

@@ -83,14 +83,6 @@ struct TextBuffer {
 
 const char* QuestPrefix() { return "q."; }
 
-// A memory stream on the stack, as the original builds (0041DD70 inlined) and destroys it.
-struct MemoryStream {
-    lib::InPlace<CMemoryStream> bytes;
-    MemoryStream() { Get()->Construct(); }
-    ~MemoryStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return bytes.Get(); }
-};
-
 // The client world's readers of the zone (00567AB0, Rebirth-patched) and two other state blocks
 // (00567A60, 00567950); all RET 4 with the block.
 // 005F7F30 (RET 0xC): the quest log (007C7D50) passes (list, a, b) to its top screen's slot 28.
@@ -165,15 +157,15 @@ int CPlayerClient::SendToServer() {
     if (link == nullptr) return 1;
     int sent = 0;
     if (link->Connected()) {
-        QueueStream packed;
-        out_.CompressTo(&compressor_, packed.Get());
+        CMemoryStream packed;
+        out_.CompressTo(&compressor_, &packed);
         if (Owner()->logTraffic_ != 0) {
-            std::uint32_t packedSize = packed.Get()->size_;
+            std::uint32_t packedSize = packed.size_;
             std::uint32_t size = out_.Size();
             GameCout()->PutText(TextClientToServer())->PutUnsigned(size)->PutText(TextSqueezedSize())
                 ->PutUnsigned(packedSize)->PutChar('\n')->Apply(libcrt::FlushManipulator);
         }
-        sent = link->Send(packed.Get()) ? 1 : 0;
+        sent = link->Send(&packed) ? 1 : 0;
     }
     out_.Resize(0);
     return sent;
@@ -199,9 +191,9 @@ int CPlayerClient::ReceiveMessages() {
     netlink::NetLink* link = Owner()->link_;
     if (link == nullptr) return 0;
     if (!link->HasIncoming()) return 1;
-    QueueStream packet;
-    if (!link->Receive(packet.Get())) return 0;
-    packet.Get()->DecompressTo(&decompressor_, &in_);
+    CMemoryStream packet;
+    if (!link->Receive(&packet)) return 0;
+    packet.DecompressTo(&decompressor_, &in_);
     return DispatchMessages() != 0 ? 1 : 0;
 }
 
@@ -261,24 +253,24 @@ int CPlayerClient::OnJingle() {
 }
 
 int CPlayerClient::OnZone() {
-    MemoryStream block;
-    if (in_.ReadStream(block.Get()) == 0) return 0;
+    CMemoryStream block;
+    if (in_.ReadStream(&block) == 0) return 0;
     static_cast<CPlayer*>(Owner())->Clear();
-    TheClientWorld()->LoadZone(block.Get());
+    TheClientWorld()->LoadZone(&block);
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock3() {
-    MemoryStream block;
-    if (in_.ReadStream(block.Get()) == 0) return 0;
-    TheClientWorld()->LoadItemsAndSpells(block.Get());
+    CMemoryStream block;
+    if (in_.ReadStream(&block) == 0) return 0;
+    TheClientWorld()->LoadItemsAndSpells(&block);
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock5() {
-    MemoryStream block;
-    if (in_.ReadStream(block.Get()) == 0) return 0;
-    TheClientWorld()->LoadNewItemsAndSpells(block.Get());
+    CMemoryStream block;
+    if (in_.ReadStream(&block) == 0) return 0;
+    TheClientWorld()->LoadNewItemsAndSpells(&block);
     return 1;
 }
 
@@ -385,11 +377,11 @@ int CPlayerClient::OnParty() {
     NamedFloatTable saved;
     saved.CopyConstruct(party->variables_);
     {
-        MemoryStream block;
-        in_.ReadSized(block.Get());
-        block.Get()->CMemoryStream::SeekImpl(0);
+        CMemoryStream block;
+        in_.ReadSized(&block);
+        block.CMemoryStream::Seek(0);
         if (in_.ok_) {
-            party->LoadParty(block.Get(), 1);
+            party->LoadParty(&block, 1);
             mfc::CList<std::uint32_t>& recharging = Owner()->recharging_;
             recharging.RemoveAll();
             ObjectListIteratorOf<CItem> walk{};
@@ -415,17 +407,15 @@ int CPlayerClient::OnParty() {
 }
 
 int CPlayerClient::OnPartyUpdate() {
-    MemoryStream block;
-    in_.ReadSized(block.Get());
-    block.Get()->CMemoryStream::SeekImpl(0);
-    if (in_.ok_) Owner()->Party()->LoadParty(block.Get(), 0);
+    CMemoryStream block;
+    in_.ReadSized(&block);
+    block.CMemoryStream::Seek(0);
+    if (in_.ok_) Owner()->Party()->LoadParty(&block, 0);
     return 1;
 }
 
 int CPlayerClient::OnPathMarker() {
-    lib::InPlace<DeltaField> fieldBytes;
-    auto* field = fieldBytes.Get();
-    field->Construct();
+    DeltaField field;
     CParticleSource* pathSource = nullptr;
     int kind;
     in_.Read(&kind, 4);
@@ -443,10 +433,10 @@ int CPlayerClient::OnPathMarker() {
         ++walker->refCount_;
         // The controller's slot 16 (00533DF0 for the client's): its path.
         PathOrder* path = walker->ClientController()->MotionPath();
-        DeltaField* writing = field->BeginWriteB(0);
+        DeltaField* writing = field.BeginWriteB(0);
         path->WriteState(writing);
         writing->EndField();
-        DeltaField* reading = field->BeginReadB(0, &in_);
+        DeltaField* reading = field.BeginReadB(0, &in_);
         path->ReadState(reading);
         reading->EndField();
         if (MarkersShown()) {
@@ -470,7 +460,6 @@ int CPlayerClient::OnPathMarker() {
         CUnit* unit = static_cast<CWorld*>(owner->ManagerContext())->FindUnit(unitId);
         if (unit != nullptr) unit->ClientController()->SetMarkers(pathSource, marker);
     }
-    field->Destruct();
     return 1;
 }
 
@@ -781,8 +770,8 @@ CPlayerClient* CPlayerClient::Construct() {
     ei::SetVtable(this, CPlayerConnection::Vtable());
     player_ = nullptr;
     handlers_.Construct();
-    in_.ConstructQueueStream();
-    out_.ConstructQueueStream();
+    new (&in_) CMemoryStream();
+    new (&out_) CMemoryStream();
     compressor_.Construct();
     decompressor_.Construct();
     partyUnitIds_.Construct();
@@ -799,8 +788,8 @@ void CPlayerClient::DestructBody() {
     partyUnitIds_.FreeData();
     decompressor_.out.End();
     compressor_.out.End();
-    out_.Destruct();
-    in_.Destruct();
+    out_.~CMemoryStream();
+    in_.~CMemoryStream();
     handlers_.FreeData();
     ei::SetVtable(this, CPlayerConnection::Vtable());
     player_ = nullptr;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 // windows.h's GetClassName macro (GetClassNameA) renames slot 11 in a file that includes windows.h
@@ -66,6 +67,13 @@ public:
     // The fields the (always inlined) constructor sets, in its order: no references, id -1, no
     // flags, kind 0, no owner.
     void ClearFields();
+
+    // Engine objects live on the game's heap (engine_object.cpp: gamecrt::operator_new / delete).
+    // `new` gives null without memory and then constructs nothing, as the original's callers test.
+    static void* operator new(std::size_t size) noexcept;
+    static void* operator new(std::size_t, void* place) noexcept { return place; }
+    static void operator delete(void* block);
+    static void operator delete(void*, void*) noexcept {}
 
     int refCount_;          // +0x04
     std::uint32_t flags_;   // +0x08

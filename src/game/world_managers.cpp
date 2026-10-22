@@ -82,61 +82,50 @@ template <typename T> T* DeleteIf(T* self, unsigned flags) {
 } // namespace
 
 CPlayerManager::CPlayerManager() {}
-CPlayerManager* CPlayerManager::Construct() { return new (this) CPlayerManager(); }
 CPlayerManager::~CPlayerManager() {}
 const char* CPlayerManager::GetClassName() { return kPlayerManagerName; }
 int CPlayerManager::GetClassId() { return kPlayerManagerId; }
 
-const char* __fastcall PlayerManagerClassName(CPlayerManager* self) { return self->CPlayerManager::GetClassName(); }
-int __fastcall PlayerManagerClassId(CPlayerManager* self) { return self->CPlayerManager::GetClassId(); }
 void __fastcall PlayerManagerDestruct(CPlayerManager* self) { self->CPlayerManager::~CPlayerManager(); }   // 0055F350
 CPlayerManager* CPlayerManager::DeleteScalar(unsigned flags) {   // 0055F330
     this->CPlayerManager::~CPlayerManager();
     return DeleteIf(this, flags);
 }
-EI_REWRITTEN(0x0055F310, PlayerManagerClassName);
-EI_REWRITTEN(0x0055F320, PlayerManagerClassId);
+EI_REWRITTEN(0x0055F310, CPlayerManager::GetClassName);
+EI_REWRITTEN(0x0055F320, CPlayerManager::GetClassId);
 EI_REWRITTEN(0x0055F350, PlayerManagerDestruct);
 EI_REWRITTEN(0x0055F330, CPlayerManager::DeleteScalar);
 
 CEffectManager::CEffectManager() {}
-CEffectManager* CEffectManager::Construct() { return new (this) CEffectManager(); }
 CEffectManager::~CEffectManager() {}
 int CEffectManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 const char* CEffectManager::GetClassName() { return kEffectManagerName; }
 int CEffectManager::GetClassId() { return kEffectManagerId; }
-CEngineObject* CEffectManager::NewObject(int type) { return NewObjectImpl(type); }
 
-const char* __fastcall EffectManagerClassName(CEffectManager* self) { return self->CEffectManager::GetClassName(); }
-int __fastcall EffectManagerClassId(CEffectManager* self) { return self->CEffectManager::GetClassId(); }
 void __fastcall EffectManagerDestruct(CEffectManager* self) { self->CEffectManager::~CEffectManager(); }   // 0055F3A0
 CBaseManager* CEffectManager::DeleteScalar(unsigned flags) {   // 0055F380
     this->CEffectManager::~CEffectManager();
     return DeleteIf(this, flags);
 }
-EI_REWRITTEN(0x0055F360, EffectManagerClassName);
-EI_REWRITTEN(0x0055F370, EffectManagerClassId);
+EI_REWRITTEN(0x0055F360, CEffectManager::GetClassName);
+EI_REWRITTEN(0x0055F370, CEffectManager::GetClassId);
 EI_REWRITTEN(0x0055F3A0, EffectManagerDestruct);
 EI_REWRITTEN(0x0055F380, CEffectManager::DeleteScalar);
 // 0067E150 (slot 2; A-H24).
-BOOL __fastcall EffectManagerCreate(CEffectManager* self) { return self->CEffectManager::Create(); }
-EI_REWRITTEN(0x0067E150, EffectManagerCreate);
+EI_REWRITTEN(0x0067E150, CEffectManager::Create);
 
 CItemManager::CItemManager() {}
-CItemManager* CItemManager::Construct() { return new (this) CItemManager(); }
 CItemManager::~CItemManager() {}
 const char* CItemManager::GetClassName() { return kItemManagerName; }
 int CItemManager::GetClassId() { return kItemManagerId; }
 const char* CItemManager::GetFolderName() { return kItemsFolderName; }
 
-const char* __fastcall ItemManagerClassName(CItemManager* self) { return self->CItemManager::GetClassName(); }
-int __fastcall ItemManagerClassId(CItemManager* self) { return self->CItemManager::GetClassId(); }
 void __fastcall ItemManagerDestruct(CItemManager* self) { self->CItemManager::~CItemManager(); }   // 0055F400
 CItemManager* CItemManager::DeleteScalar(unsigned flags) {   // 0055F3E0
     this->CItemManager::~CItemManager();
     return DeleteIf(this, flags);
 }
-EI_REWRITTEN(0x0055F3C0, ItemManagerClassName);
-EI_REWRITTEN(0x0055F3D0, ItemManagerClassId);
+EI_REWRITTEN(0x0055F3C0, CItemManager::GetClassName);
+EI_REWRITTEN(0x0055F3D0, CItemManager::GetClassId);
 EI_REWRITTEN(0x0055F400, ItemManagerDestruct);
 EI_REWRITTEN(0x0055F3E0, CItemManager::DeleteScalar);

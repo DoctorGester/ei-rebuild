@@ -259,11 +259,8 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
 // ---- The bird and quest variables ----------------------------------------------------------------
 
 void CWorldClient::SummonBird() {
-    if (!bird_) {
-        auto* memory = gamecrt::operator_new_as<CEffectMoshka>();
-        bird_ = memory ? memory->Construct() : nullptr;
-    }
-    TimedSlots(bird_)->Reset();
+    if (!bird_) bird_ = new CEffectMoshka();
+    bird_->Reset();
     auto* leader = session_->Party()->members_.data;
     bird_->Follow(static_cast<int>(leader->unitId));
 }

@@ -102,7 +102,7 @@ EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set stru
           '__asm block': 'src/lib/crt_x87.cpp'}
 # A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_REWRITTEN(...)/UI_INPUT_HANDLER(...) is how
 # hooks are written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
-REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REWRITTEN|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|REPLACE_STANDALONE)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
+REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REWRITTEN|REWRITTEN_SPECIAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|REPLACE_STANDALONE)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
 
 
 def strip_comments(text):

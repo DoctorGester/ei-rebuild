@@ -187,7 +187,6 @@ struct FigureBone : CEngineObject {
     // then the names' and the engine object's.
     ~FigureBone() override;
     // The deleting destructor (slot 0, 0050B1B0) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // The vtable: CEngineObject's but for 0, 2, 3, 7, 11 and 12 (small_slots_500.cpp: 7, 11, 12).
     int Create() override;                 // 2: 0050B370 CreateBone
@@ -271,7 +270,6 @@ public:
     // then the engine object's.
     ~CFigureAnimationState() override;
     // The deleting destructor (slot 0, 0050C710) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12 (small_slots_500.cpp: 11, 12).
     int Create() override;                 // 2: 0050C860 CreateState

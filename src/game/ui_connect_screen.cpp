@@ -104,16 +104,6 @@ void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_
     ui->PushWindow(box, 1, 1);
 }
 
-// The file stream the address book is written with, built and torn down inline (the archive is
-// LocalArchive, chunk_archive.h).
-struct LocalFileStream {
-    LocalFileStream() { stream.Construct(); }
-    ~LocalFileStream() { stream.Destruct(); }
-    LocalFileStream(const LocalFileStream&) = delete;
-    LocalFileStream& operator=(const LocalFileStream&) = delete;
-    netlink::FileStream stream;
-};
-
 // The queries Create reads from the address book: an empty vector, its replies and storage
 // released at the end (inline in the original; the node allocator's deallocate, 00404D70).
 struct LocalQueries {
@@ -551,18 +541,17 @@ EI_REWRITTEN(0x0061D0D0, CMpConnectScreen::MasterRequest);
 // --- 0061D1C0: config\addrbook.ini ----------------------------------------------------------------
 
 void CMpConnectScreen::SaveAddressBook() {
-    LocalArchive local;
-    LocalFileStream file;
-    if (!file.stream.Open(TheDataFolder() + AddressBookFile(), netlink::FileStream::kOpenWrite, 0)) return;
-    ChunkArchive& archive = local.archive;
-    archive.Open(&file.stream, 0, 1);
+    ChunkArchive archive;
+    netlink::FileStream file;
+    if (!file.Open(TheDataFolder() + AddressBookFile(), netlink::FileStream::kOpenWrite, 0)) return;
+    archive.Open(&file, 0, 1);
     net::ClientQueries* queries = &net::GameClient()->queries_;
     if (archive.EnterChunk(1)) {
         queries->Serialize(&archive);
         archive.LeaveChunk();
     }
-    archive.Close(&file.stream);
-    file.stream.Close();
+    archive.Close(&file);
+    file.Close();
 }
 EI_REWRITTEN(0x0061D1C0, CMpConnectScreen::SaveAddressBook);
 
@@ -781,17 +770,16 @@ void CMpConnectScreen::Create() {
     spare_ = 0;
     // The address book: the queries the client asks.
     LocalQueries book;
-    LocalArchive local;
-    LocalFileStream file;
-    if (file.stream.Open(TheDataFolder() + AddressBookFile(), netlink::FileStream::kOpenRead, 1)) {
-        ChunkArchive& archive = local.archive;
-        archive.Open(&file.stream, 1, 1);
+    ChunkArchive archive;
+    netlink::FileStream file;
+    if (file.Open(TheDataFolder() + AddressBookFile(), netlink::FileStream::kOpenRead, 1)) {
+        archive.Open(&file, 1, 1);
         if (archive.EnterChunk(1)) {
             book.queries.Serialize(&archive);
             archive.LeaveChunk();
         }
-        archive.Close(&file.stream);
-        file.stream.Close();
+        archive.Close(&file);
+        file.Close();
         if (book.queries.extra == 0) {
             const std::uint32_t random = IsaacRandom::Global().Next();
             book.queries.extra = gameapi::GetTickCount() ^ random;

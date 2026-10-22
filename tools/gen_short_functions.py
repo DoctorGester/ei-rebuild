@@ -84,7 +84,7 @@ def game_functions():
 
 # EI_REWRITTEN (C20d): a rewrite without a registration is ported too (no generated EI_REPLACE_SHORT at its address,
 # and gen_static_init.py neither inlines nor decodes it).
-REGISTERED = re.compile(r'\b(?:EI_REPLACE(?:_METHOD|_DISPATCH)?|EI_REWRITTEN|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)')
+REGISTERED = re.compile(r'\b(?:EI_REPLACE(?:_METHOD|_DISPATCH)?|EI_REWRITTEN(?:_SPECIAL)?|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)')
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 
 

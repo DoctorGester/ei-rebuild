@@ -882,32 +882,11 @@ void TradeMessage::Destruct() {   // 00416FC0
 // ================================================================================================
 // 0073BD78 PartyMemberMessage.
 
-namespace {
-// The memory stream's constructor as the factory and the reset inline it.
-void InitMemberStream(CMemoryStream& s) {
-    s.version_ = 2000000000;
-    ei::SetVtable(&s, CMemoryStream::MemoryStreamVtable());
-    s.data_ = nullptr;
-    s.capacity_ = 0;
-    s.position_ = 0;
-    s.size_ = 0;
-    s.ok_ = 1;
-    s.bitMask_ = 0x80;
-    s.bitsIndex_ = -1;
-}
-void FreeMemberStream(CMemoryStream& s) {
-    std::uint8_t* data = s.data_;
-    ei::SetVtable(&s, CMemoryStream::MemoryStreamVtable());
-    if (data) gamecrt::operator_delete(data);
-    ei::SetVtable(&s, CStream::StreamVtable());
-}
-} // namespace
-
 Message* __fastcall PartyMemberMessage::Create() {   // 00417300
     auto* p = NewMessageMemory<PartyMemberMessage>();
     if (!p) return nullptr;
     p->version_ = 1;
-    InitMemberStream(p->stream_);
+    new (&p->stream_) CMemoryStream();
     ei::SetVtable(p, Vtable());
     return p;
 }
@@ -917,8 +896,7 @@ PartyMemberMessage* PartyMemberMessage::Clone() {   // 00417420
     auto* p = NewMessageMemory<PartyMemberMessage>();
     if (!p) return nullptr;
     CloneHeader(p, this);
-    CMemoryStream& stream = p->stream_;
-    InitMemberStream(stream);
+    CMemoryStream& stream = *new (&p->stream_) CMemoryStream();
     stream.SetSize(stream_.size_);
     CStream* copy = &stream;
     copy->Read(stream_.data_, stream.size_);
@@ -927,10 +905,10 @@ PartyMemberMessage* PartyMemberMessage::Clone() {   // 00417420
 }
 int PartyMemberMessage::OnShutdown() {   // 004174F0
     ei::SetVtable(this, Vtable());
-    FreeMemberStream(stream_);
+    stream_.~CMemoryStream();
     ei::SetVtable(this, CRefCounted::RootVtable());
     version_ = 1;
-    InitMemberStream(stream_);
+    new (&stream_) CMemoryStream();
     ei::SetVtable(this, Vtable());
     return 0;
 }
@@ -948,7 +926,7 @@ void PartyMemberMessage::Read(BufferCursor* cursor) {   // 004175B0
 }
 void PartyMemberMessage::Destruct() {   // 00417620
     ei::SetVtable(this, Vtable());
-    FreeMemberStream(stream_);
+    stream_.~CMemoryStream();
     ei::SetVtable(this, CRefCounted::RootVtable());
 }
 

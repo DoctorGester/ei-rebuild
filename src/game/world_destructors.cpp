@@ -15,7 +15,6 @@
 #include "terrain.h"
 #include "world.h"
 #include "world_class.h"
-#include "world_client_class.h"
 #include "world_data.h"
 #include "world_deleting_destructors.h"
 
@@ -161,46 +160,9 @@ CParticleManager::~CParticleManager() {
     freeParticles.RemoveAll();
 }
 
-void CParticleManager::Destruct() { this->CParticleManager::~CParticleManager(); }
-EI_REWRITTEN(0x005627C0, CParticleManager::Destruct);
+EI_REWRITTEN_SPECIAL(0x005627C0, CParticleManager::~CParticleManager);
 
-CParticleManager* CParticleManager::DeletingDestruct(unsigned flags) {
-    this->CParticleManager::~CParticleManager();
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x005627A0, CParticleManager::DeletingDestruct);
-
-void Terrain::Destruct() {
-    ei::SetVtable(this, Vtable());
-    Terrain::DestroyImpl();
-    waterLevels.vtable = mfc::impl::ClientMapArrayClass::Vtable();
-    waterLevels.FreeData();
-    textAE0.~CString();
-    visibleColumnLast.FreeData();
-    visibleColumnFirst.FreeData();
-    wavePhases.FreeData();
-    lights.Destroy();
-    sectorCache.vtable = mfc::impl::ClientList2Class::Vtable();
-    sectorCache.RemoveAll();
-    vertexTiles.FreeData();
-    archive.Destroy();
-    textureFrames.FreeData();
-    textureClass.FreeData();
-    materials.FreeData();
-    textFC.~CString();
-    textF8.~CString();
-    pageMaterials.FreeData();
-    pageTextures.FreeData();
-    ei::SetVtable(this, CTransformObject::BaseVtable());
-    CEngineObject::DestructBase();
-}
-EI_REWRITTEN(0x00562B80, Terrain::Destruct);
-
-Terrain* Terrain::DeletingDestruct(unsigned flags) {
-    Destruct();
-    return DeleteIf(this, flags);
-}
-EI_REWRITTEN(0x00562B60, Terrain::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x005627A0, CParticleManager::~CParticleManager);
 
 void Sector::Destruct() {
     ei::SetVtable(this, Vtable());
@@ -228,7 +190,7 @@ void CWorldClient::Destruct() {
     windowClass_.~CString();
     appName_.~CString();
     list7BC_.Destroy();
-    RainSnow()->DestructBody();
+    RainSnow()->~CRainSnow();
     texturePath_.~CString();
     platforms_.DestructBody();
     handle_.Destroy();
@@ -270,7 +232,7 @@ void CWorldServer::Destruct() {
     DestroyList<SharedObjectElements>(sharedObjects_, gameslots::SharedObjectListClass::Vtable());   // CList<SharedObject>
     DestroyList<ReleasedElements>(counted_, gameslots::ItemObjectListClass::Vtable());   // CList<CEngineObject*>
     DestroyList<ProjectileElements>(projectiles_, gameslots::RefListBClass::Vtable());   // CList<CSpellEffect*>
-    zoneHeader_.Destruct();
+    zoneHeader_.~CMemoryStream();
     timedObjects_.map.Destroy();
     namedObjects_.map.Destroy();
     otherMapObjects_.map.Destroy();

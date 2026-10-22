@@ -27,23 +27,11 @@ const char* TempFileName() { return "temp.mp"; }
 mfc::CString InFolder(const char* folder, const mfc::CString& name) { return mfc::CString(folder) + name; }
 mfc::CString TempFile(const char* folder) { return mfc::CString(folder) + TempFileName(); }
 
-// The file stream and the memory stream the originals build on the stack (inlined constructors
-// and destructors: the memory stream torn down first).
+// The file stream and the memory stream the originals build on the stack (the memory stream
+// torn down first).
 struct LocalStreams {
     netlink::FileStream file;
     CMemoryStream data;
-    LocalStreams() {
-        std::memset(static_cast<void*>(&file), 0, sizeof(file));
-        std::memset(static_cast<void*>(&data), 0, sizeof(data));
-        file.Construct();
-        data.Construct();
-    }
-    ~LocalStreams() {
-        data.Destruct();
-        file.Destruct();
-    }
-    LocalStreams(const LocalStreams&) = delete;
-    LocalStreams& operator=(const LocalStreams&) = delete;
 };
 
 // Whether a file name is "<digits>.<anything>": a '.' and only digits before the last one.

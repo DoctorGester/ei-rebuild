@@ -25,21 +25,25 @@ class CEffect;              // world_effect.h
 class CEffectParticle;      // world_effect.h
 class CEffectPointLight;    // world_effect.h
 
-// A spell instance (game.exe's vtable 00743A94; the compiled CSpellClass, spell_class.h). prototypeId_ of CEngineObject is the packed id: spell
-// prototype index << 16.
+// A spell instance ("CSpell", class id 0x4F; game.exe's vtable 00743A94 is retired). prototypeId_ of CEngineObject is
+// the packed id: spell prototype index << 16.
 class CSpell : public CEngineObject {
 public:
-    static void* Vtable();   // the compiled table (spell_class.h; game.exe's 00743A94 and its tail 00743AA8)
+    // spell_lifetime.cpp. 0068B1F0: the base fields, the effect record (MapEffect::Construct), +0x30..+0x4C 0, +0x50 1,
+    // no modifiers. 0068B2C0: Destroy (inlined), then the base's. 0068B2A0: slot 0.
+    CSpell();
+    ~CSpell() override;
 
-    // spell_lifetime.cpp. 0068B1F0: the base fields, the effect record (MapEffect::Construct),
-    // +0x30..+0x4C 0, +0x50 1, no modifiers; returns this. 0068B2C0: the inlined ClearModifiers
-    // (slot 3), then the base's destructor body. 0068B2A0: slot 0 (operator delete with flag 1).
-    CSpell* Construct();
-    void Destruct();
-    CSpell* DeletingDestruct(unsigned flags);
-
-    // 0068B320. Virtual slot 2: clears the parameters and the modifier list. Returns 1.
-    BOOL Clear();   // vtable slot 2; deliberately not named Create (that would override CEngineObject::Create)
+    // 2: 0068B320. Clears the parameters and the modifier list. Returns 1.
+    int Create() override;
+    // 3: 0068B350 (spell_cast.cpp). ClearState (slot 5), then the modifier list cleared.
+    void Destroy() override;
+    // 9 / 10: 0068B860 / 0068B920 (spell_save.cpp): the effect record (+0x1C), +0x30..+0x4C, the modifiers, flags_
+    // and +0x50. Load clears the modifiers first.
+    void Load(CStream* stream) override;
+    void Save(CStream* stream) override;
+    const char* GetClassName() override;   // 11: 0068B280 "CSpell"
+    int GetClassId() override;             // 12: 0068B290 (0x4F)
 
     // 0068B430. Copies the parameters from a spell prototype record. Returns 1.
     BOOL InitFromPrototype(const itemdb::SpellRecord* prototype);
@@ -65,10 +69,6 @@ public:
     // according to the target flags in the low 16 bits of flags_ (+0x3C).
     bool CanAffect(const CEngineObject* caster, CEngineObject* target) const;
 
-    // 0068B350. Virtual slot 3 (Destroy; not named so to stay non-virtual): calls slot 5 and
-    // clears the modifier list.
-    void ClearModifiers();
-
     // 0068B370. Copies the parameters, the modifiers and the packed id into `target` (whose slot 3
     // runs first).
     void CopyTo(CSpell* target);
@@ -76,10 +76,6 @@ public:
     // 0068B410. A new spell made by `manager` (CreateSpellObject(-1)) with this spell's contents.
     CSpell* Clone(class CSpellManager* manager);
 
-    // 0068B860 / 0068B920 (vtable slots 9 / 10, Load / Save; spell_save.cpp): the effect record
-    // (+0x1C), +0x30..+0x4C, the modifiers, flags_ and +0x50. Load clears the modifiers first.
-    void LoadSpell(CStream* stream);
-    void SaveSpell(CStream* stream);
     // +0x1C..+0x2F has the layout of an active effect record (map_object.h), which a buff copies.
     MapEffect& Effect() { return *reinterpret_cast<MapEffect*>(&prototypeIndex_); }
     const MapEffect& Effect() const { return *reinterpret_cast<const MapEffect*>(&prototypeIndex_); }
@@ -240,8 +236,7 @@ struct __declspec(novtable) CSpellEffect {
     AIRefTo<CUnit> caster;      // +0x20 the casting unit (counted; null for traps and scripts)
     Vector3 targetPoint;        // +0x24
     int state;                  // +0x30 0 casting, 1 missile, 2 lasting, else ends
-    // +0x34 the CSpell (Spell()), constructed and destroyed by Construct / Destruct (an abstract
-    // class: its vtable is the compiled CSpellClass's, spell_class.h, so not a member).
+    // +0x34 the CSpell (Spell()), constructed and destroyed by Construct / Destruct (C28e makes it a member).
     lib::AbstractInPlace<CSpell> spell_;
     CEffect* visual;            // +0x90 particle source, wall, lightning or missile (counted; Visual<T>)
     CEffect* sound;             // +0x94 a sound or a sound sequence (counted)
@@ -277,20 +272,27 @@ int __fastcall IsSpellTarget(CUnit* unit);
 using SpellModifierList = stlp::list<itemdb::SpellModifierRecord*>;
 using SpellModifierNode = SpellModifierList::Node;
 
-// A spell under construction (GetClassName "CSpellContainer", game.exe's vtable 00743AC8, 0x90 bytes,
-// created by the spell manager as class 0x3003): a prototype, the modifiers added so far, and the
-// CSpell (at +0x30) that Build computes from them.
+// A spell under construction ("CSpellContainer", class id 0x1A, 0x90 bytes, created by the spell manager as class
+// 0x3003; game.exe's vtable 00743AC8 is retired): a prototype, the modifiers added so far, and the CSpell (at +0x30)
+// that Build computes from them.
 class CSpellContainer : public CEngineObject {
 public:
-    // 0068BD80. Virtual slot 2: forgets the prototype and the modifiers and clears the spell
-    // (its slot 2). Returns 1.
-    BOOL Reset();
+    // spell_manager.cpp. 0068BA80: the base fields, an empty modifier list (its sentinel allocated), an empty code
+    // string with room for 8 bytes, the spell, an empty name, then Create (inlined). 0068BC50: the destructor (the
+    // list emptied, the spell's Destroy, the string, the list's sentinel; the name and the spell after it, where
+    // the original destroys them before the string). 0068BC30: slot 0.
+    CSpellContainer();
+    ~CSpellContainer() override;
 
-    // 0068BDD0. Virtual slot 3: slot 5, then the same as Reset but the spell gets its slot 3.
-    void Shutdown();
-
-    // 0068BC00. Virtual slot 7: the name pointer at +0x8C.
-    const char* NameField();
+    // 2: 0068BD80 (spell_cast.cpp). Forgets the prototype and the modifiers and clears the spell (its Create).
+    // Returns 1.
+    int Create() override;
+    // 3: 0068BDD0. ClearState (slot 5), then the same as Create but the spell gets its Destroy.
+    void Destroy() override;
+    // 7: 0068BC00. The name (+0x8C).
+    const char* GetName() override;
+    const char* GetClassName() override;   // 11: 0068BC10 "CSpellContainer"
+    int GetClassId() override;             // 12: 0068BC20 (0x1A)
 
     // 0068BE30. Appends `modifier` (a modifier record) to the list. Null is a fatal error (its
     // result is returned). Returns 1.
@@ -307,32 +309,16 @@ public:
     // level. The area becomes a radius (sqrt(area / pi)); the modifier list is sorted. Returns 1.
     BOOL Build();
 
-    CSpell* Spell() { return spell_.Get(); }
-
-    // spell_manager.cpp. 0068BA80: the base fields, an empty modifier list (its sentinel
-    // allocated), an empty code string with room for 8 bytes, the spell (CSpell::Construct inlined),
-    // an empty name, then Reset inlined. Returns this. 0068BC50: the destructor body (the list
-    // emptied, the spell's slot 3, the name, the spell's destructor, the string, the list's
-    // sentinel, the base). 0068BC30: slot 0.
-    CSpellContainer* Construct();
-    void Destruct();
-    CSpellContainer* DeletingDestruct(unsigned flags);
-    static void* Vtable();   // the compiled table (spell_class.h; game.exe's 00743AC8 and its tails 00743ADC / 00743AE8)
+    CSpell* Spell() { return &spell_; }
 
     const itemdb::SpellRecord* prototype_;   // +0x1C
     SpellModifierList modifiers_;   // +0x20
     char* codes_;                   // +0x24 STLport string: modifier index + 1 per modifier
     char* codesEnd_;                // +0x28
     char* codesCapacity_;           // +0x2C
-    lib::AbstractInPlace<CSpell> spell_;   // +0x30 the CSpell (Spell())
+    CSpell spell_;                  // +0x30 (Spell())
     mfc::CString name_;             // +0x8C (always empty)
 };
-static_assert(offsetof(CSpellContainer, modifiers_) == 0x20);
-static_assert(offsetof(CSpellContainer, spell_) == 0x30);
-static_assert(sizeof(CSpellContainer) == 0x90);
-// 0068BC10 / 0068BC20 (slots 11 / 12, spell_manager.cpp): "CSpellContainer", class id 0x1A.
-const char* __fastcall SpellContainerClassName(CSpellContainer*);
-int __fastcall SpellContainerClassId(CSpellContainer*);
 
 // The spell manager's "sequences" (+0xBC, keyed by the high half of a packed spell id): containers
 // keyed by the low half, and the largest low half asked for. Nothing in the game fills them, so
@@ -366,11 +352,6 @@ public:
     int GetClassId() override;               // 12: 00688960 (0x33)
     const char* GetFolderName() override;    // 25: 00688940 "spells"
 
-    // The registrations (C20 retires them): 00688840 the constructor in place (returns this),
-    // 00688990 the destructor, 00688970 (slot 0) the destructor, then operator delete when bit 0
-    // of `flags` is set (returns this).
-    CSpellManager* Construct();
-
     // 00688EB0. A new CSpellContainer (manager slot 23 with class 0x3003, key -1).
     CSpellContainer* NewContainer();
 
@@ -388,9 +369,6 @@ public:
     void Destroy() override;
     // 14: 00688CD0. A new CSpell (0x3002) or CSpellContainer (0x3003), constructed; else null.
     CEngineObject* NewObject(int type) override;
-    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
-    void Destruct();
-    CSpellManager* DeletingDestruct(unsigned flags);
 
     // 00689310. Builds a spell from `prototype` and up to 8 modifier records of `modifiers` (an
     // STLport list<char*>, passed as a pointer to its sentinel pointer) through the context's
@@ -417,27 +395,21 @@ static_assert(offsetof(CSpellManager, sequences_) == 0xBC);
 // 00688950 / 00688960 (slots 11 / 12): "CSpellManager", class id 0x33.
 static_assert(sizeof(CSpellManager) == 0xD4);
 
-// The spell constructor (GetClassName "CSpellConstructor", game.exe's vtable 007439C8, 0x24 bytes).
+// The spell constructor ("CSpellConstructor", class id 0x1B, 0x24 bytes; game.exe's vtable 007439C8 is retired).
 class CSpellConstructor : public CEngineObject {
 public:
-    static void* Vtable();   // the compiled table (spell_class.h; game.exe's 007439C8)
+    // 00683FF0 (party_lifetime.cpp): CEngineObject's fields, no manager or container. 006840A0 (spell_cast.cpp,
+    // A-H21): the destructor: Destroy (inlined), then the container member's release (null by then). 00684080:
+    // slot 0.
+    CSpellConstructor();
+    ~CSpellConstructor() override;
 
-    // 00683FF0 (party_lifetime.cpp). Constructor body: CEngineObject's fields, no manager or
-    // container, the vtable. Returns this.
-    CSpellConstructor* Construct();
-
-    // 006840A0 (spell_cast.cpp, A-H21). Destructor body: the vtable, the container released, the
-    // manager's count dropped (+4), then the container member's release (null by then) and
-    // CEngineObject's.
-    void DestructBody();
-    // 00684080 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
-    CSpellConstructor* DeletingDestruct(unsigned flags);
-
-    // 00684120. Virtual slot 2: releases the container and forgets the manager. Returns 1.
-    BOOL Reset();
-
-    // 00684150. Virtual slot 3: the same, also dropping the manager's count (+4).
-    void Detach();
+    // 2: 00684120. Releases the container and forgets the manager. Returns 1.
+    int Create() override;
+    // 3: 00684150. The same, also dropping the manager's count (+4).
+    void Destroy() override;
+    const char* GetClassName() override;   // 11: 00684060 "CSpellConstructor"
+    int GetClassId() override;             // 12: 00684070 (0x1B)
 
     // 006841A0. Releases the container and counts a reference to `manager` (+4, no release).
     void SetManager(CSpellManager* manager);
@@ -456,12 +428,8 @@ public:
     CSpellManager* manager_;        // +0x1C counted (+4) but never released
     CSpellContainer* container_;    // +0x20
 };
-static_assert(sizeof(CSpellConstructor) == 0x24);
-// 00684060 / 00684070 (spell_cast.cpp, A-H21): "CSpellConstructor", class id 0x1B.
-const char* __fastcall SpellConstructorClassName(CSpellConstructor*);
-int __fastcall SpellConstructorClassId(CSpellConstructor*);
 
-// A light (game.exe's vtable 00743AFC, GetClassName "CLight", class id 10). type_ 0x31 is a point light.
+// A light ("CLight", class id 10; game.exe's vtable 00743AFC is retired). type_ 0x31 is a point light.
 // A transform object: localPosition_ is the light's position (a point light's, and where a
 // directional light is drawn from); worldPosition_ holds the position in the space of the mesh
 // being lit (the mesh drawer 005A7A70 writes it), localRotation_ / worldRotation_ start identity.
@@ -477,11 +445,13 @@ public:
 
     // light.cpp (A-H23). 0068CED0: the base fields, identity rotations, everything from +0x94 to
     // +0xFC zero but +0xE4 / +0xE8 1.0, the range sqrt(FLT_MAX) with its square and inverse.
-    // Returns this. 0068CFE0: the destructor body (CTransformObject's vtable, then the base's).
-    // 0068CFC0: slot 0.
-    CLight* Construct();
-    void Destruct();
-    CLight* DeletingDestruct(unsigned flags);
+    // 0068CFE0: the destructor (nothing of its own). 0068CFC0: slot 0.
+    CLight();
+    ~CLight() override;
+    int Create() override;                  // 2: 0068CFF0 (1)
+    void Destroy() override;                // 3: 0068D000 flags_ bit 5 cleared
+    const char* GetClassName() override;    // 11: 0068CFA0 "CLight"
+    int GetClassId() override;              // 12: 0068CFB0 (10)
     // 0068D010 (RET 8). A point light (kind 1) of `color` at `position` (also kept at +0xC8);
     // flags_ bit 3 (changed). Returns 1.
     BOOL SetPoint(const Vector3* color, const Vector3* position);
@@ -499,7 +469,6 @@ public:
     void AddDirectional(Vector4* out, float scale, const Vector4* base, const Vector3* normal) const;
     void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
                   float distance) const;
-    static void* Vtable();   // the compiled table (spell_class.h; game.exe's 00743AFC)
 
     std::uint8_t unused_54[0x94 - 0x54];
     int kind_;                      // +0x94 1 point, 3 directional
@@ -526,12 +495,6 @@ static_assert(offsetof(CLight, range_) == 0xE0);
 static_assert(offsetof(CLight, unused_54) == 0x54 && offsetof(CLight, direction_) == 0xD4 &&
               offsetof(CLight, localDirection_) == 0x108);
 
-// 0068CFF0 / 0068D000 (slots 2 / 3, light.cpp): Create returns 1; Destroy clears flags_ bit 5.
-// 0068CFA0 / 0068CFB0 (slots 11 / 12): "CLight", class id 10.
-int __fastcall LightCreate(CLight*);
-void __fastcall LightDestroy(CLight*);
-const char* __fastcall LightClassName(CLight*);
-int __fastcall LightClassId(CLight*);
 
 // The light factory (GetClassName "CLightManager", class id 0x29, vtable 00743B50, 0xD8 bytes; the
 // global pointer at 007AF748): CreateObject (slot 23) makes lights by class (0x2E: the renderer's
@@ -548,19 +511,11 @@ public:
     const char* GetClassName() override;     // 11: 0068D950 "CLightManager"
     int GetClassId() override;               // 12: 0068D960 (0x29)
 
-    // The registrations (C20 retires them): 0068D850 the constructor in place (returns this),
-    // 0068D990 the destructor, 0068D970 (slot 0) the destructor, then operator delete when bit 0
-    // of `flags` is set (returns this).
-    CLightFactory* Construct();
-    void Destruct();
-    CLightFactory* DeletingDestruct(unsigned flags);
     // 14: 0068DA40. A new CLight (0x134 bytes) of type 0x2E or 0x31 (its type_); other types are
     // logged and give null.
     CEngineObject* NewObject(int type) override;
-    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
     // 23: 0068DAD0. CBaseManager::CreateObject, then flags_ bit 7 cleared (no null check).
     CEngineObject* CreateObject(int type, int id) override;
-    CEngineObject* CreateObjectImpl(int type, int id);   // body of the slot above (registered by member pointer)
     // The light registered under `id` (every object the factory makes is a CLight), or null.
     CLight* LightWithId(unsigned id) const { return FindObjectAs<CLight>(id); }
     // A new light of `type` (CreateObject, slot 23): every object the factory makes is a CLight.
@@ -575,9 +530,6 @@ public:
 };
 static_assert(offsetof(CLightFactory, held_) == 0xC0 && offsetof(CLightFactory, litIds_) == 0xD4 &&
               sizeof(CLightFactory) == 0xD8);
-// 0068D950 / 0068D960 (slots 11 / 12): "CLightManager", class id 0x29.
-const char* __fastcall LightManagerClassName(CLightFactory*);
-int __fastcall LightManagerClassId(CLightFactory*);
 
 // 006893F0. The code (+0x04) of the spell prototype whose name matches (_mbsicmp); null if none.
 char* __stdcall SpellCodeByName(const char* name);

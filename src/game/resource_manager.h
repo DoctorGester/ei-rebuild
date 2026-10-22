@@ -18,29 +18,18 @@ static_assert(sizeof(ArchiveEntry) == 16);
 
 // Base of the managers that load their data from archives (CTextureManager, CFigureManager, ...):
 // CBaseManager's archive slots (16-22) over a list of open archives, and a 26th slot, the folder
-// name. Name provisional; game.exe's vtable 00743338 (slots 11, 12, 14 and 25 are _purecall there)
-// is retired (C19): the constructor and destructor bodies (Construct, which no code of ours calls,
-// and Destruct) store BaseVtable() (resource_manager.cpp's ResourceManagerClass). resource_manager.cpp.
-// Every derived manager has real C++ constructors (CTextureManager) and the compiler's vtables.
+// name. Name provisional; game.exe's vtable 00743338 is retired. resource_manager.cpp.
 class CResourceManager : public CBaseManager {
 public:
-    // The table Construct / Destruct store (game.exe's 00743338, compiled).
-    static void* BaseVtable();
-
-    // Slot 0 is the scalar deleting destructor 00674DD0 (DeletingDestruct).
+    // Slot 0 is the scalar deleting destructor 00674DD0.
     // 3: 00674F40. Closes and deletes every archive, then CBaseManager::Destroy.
     void Destroy() override;
     BOOL AddArchive(const char* path) override;                     // 16: 00675050
-    BOOL AddArchiveImpl(const char* path);   // body of the slot above (registered by member pointer)
     BOOL RemoveArchive(const char* path) override;                  // 17: 00675200
-    BOOL RemoveArchiveImpl(const char* path);   // body of the slot above (registered by member pointer)
     BOOL RemoveAllArchives() override;                              // 18: 00675340
     void* GetFile(const char* name, std::uint32_t* size) override;  // 19: 00675440
-    void* GetFileImpl(const char* name, std::uint32_t* size);   // body of the slot above (registered by member pointer)
     bool CloseFile(void* data) override;                            // 20: 00675490
-    bool CloseFileImpl(void* data);   // body of the slot above (registered by member pointer)
     BOOL HasFile(const char* name) override;                        // 21: 006754E0
-    BOOL HasFileImpl(const char* name);   // body of the slot above (registered by member pointer)
     void FreeAllFiles() override;                                   // 22: 00675530
 
     // 25: the manager's folder name ("textures" 00691200, "spells" 00688940, ...; the item,
@@ -50,20 +39,12 @@ public:
     // 005AA360: CFigureManager's slot 16, AddArchive with memory-mapped archives.
     BOOL AddMmioArchive(const char* path);
 
-    // 00674D90 constructor body (returns this), 00674DF0 destructor body, 00674DD0 scalar deleting
-    // destructor.
-    CResourceManager* Construct();
-    void Destruct();
-    CResourceManager* DeletingDestruct(unsigned flags);
-    // The destructor of a manager with real C++ constructors: Destruct's part past the vtable store
-    // (TearDownResourceManager), then CBaseManager's.
+    // 00674DF0: every archive closed and deleted, CBaseManager::Destroy, the list freed, then CBaseManager's.
     ~CResourceManager() override;
 
 protected:
-    // No archives (Construct's part past CBaseManager's); for derived classes with real C++
-    // constructors.
+    // 00674D90: no archives.
     CResourceManager();
-    void TearDownResourceManager();
 
 private:
     BOOL AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*));

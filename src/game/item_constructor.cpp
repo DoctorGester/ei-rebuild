@@ -4,7 +4,6 @@
 // object), SetPrototype / SetMaterial / SetSpellObject, then EndCreateItem, whose Build fills the
 // item from a temporary database record: the prototype's values combined with the material's.
 #include "item.h"
-#include "item_class.h"
 #include "spell.h"
 
 #include "console.h"
@@ -125,7 +124,7 @@ std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHea
 
 // --- CItem ---------------------------------------------------------------------------------------
 
-void CItem::InitFromRecordImpl(const ItemRecordHead* head) {
+void CItem::InitFromRecord(const ItemRecordHead* head) {
     // The condition and the charge pass through the FPU in the original (FLD, FST, FSTP), which
     // quiets a signalling NaN; the other fields are copied as dwords.
     std::memcpy(&conditionMax_, &head->condition, sizeof(float));
@@ -138,7 +137,7 @@ void CItem::InitFromRecordImpl(const ItemRecordHead* head) {
     value3C_ = head->value3C;
     magicLevel_ = head->magicLevel;
 }
-EI_REWRITTEN(0x006A0490, CItem::InitFromRecordImpl);
+EI_REWRITTEN(0x006A0490, CItem::InitFromRecord);
 
 void CItem::AttachSpell(CSpell* spell) {
     CSpell* previous = spell_;
@@ -175,27 +174,27 @@ void CItemConstructor::Destroy() {
     spell_ = nullptr;
 }
 
-namespace {
-// Slots 2 and 3's entry points (rule 4).
-int __fastcall ConstructorCreateHook(CItemConstructor* self) { return self->CItemConstructor::Create(); }
-void __fastcall ConstructorDestroyHook(CItemConstructor* self) { self->CItemConstructor::Destroy(); }
-} // namespace
-EI_REWRITTEN(0x006A5B90, ConstructorCreateHook);
-EI_REWRITTEN(0x006A5BD0, ConstructorDestroyHook);
+EI_REWRITTEN(0x006A5B90, CItemConstructor::Create);
+EI_REWRITTEN(0x006A5BD0, CItemConstructor::Destroy);
 
-void CItemConstructor::DestructBody() {
-    ei::SetVtable(this, Vtable());
-    CItemConstructor::Destroy();
-    DestructBase();
+CItemConstructor::CItemConstructor() {
+    ClearFields();
+    material_ = nullptr;
+    prototype_ = nullptr;
+    item_ = nullptr;
+    spell_ = nullptr;
+    manager_ = nullptr;
 }
-EI_REWRITTEN(0x006A5B20, CItemConstructor::DestructBody);
+EI_REWRITTEN_SPECIAL(0x006A5AB0, CItemConstructor::CItemConstructor);
 
-CItemConstructor* CItemConstructor::DeletingDestruct(unsigned flags) {
-    DestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x006A5B00, CItemConstructor::DeletingDestruct);
+CItemConstructor::~CItemConstructor() { CItemConstructor::Destroy(); }
+EI_REWRITTEN_SPECIAL(0x006A5B20, CItemConstructor::~CItemConstructor);
+EI_REWRITTEN_SPECIAL(0x006A5B00, CItemConstructor::~CItemConstructor);   // the scalar deleting destructor
+
+const char* CItemConstructor::GetClassName() { return "CItemConstructor"; }
+int CItemConstructor::GetClassId() { return 0x1C; }
+EI_REWRITTEN(0x006A5AE0, CItemConstructor::GetClassName);
+EI_REWRITTEN(0x006A5AF0, CItemConstructor::GetClassId);
 
 void CItemConstructor::SetManager(CBaseManager* manager) {
     if (manager_) --manager_->refCount_;

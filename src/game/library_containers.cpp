@@ -31,7 +31,7 @@ void __fastcall SetRootVtable(void* self) { ei::SetVtable(self, PlainRootVtable(
 
 
 void HeroRecordElement::Construct(MpHeroRecord* to, const MpHeroRecord& from) {
-    to->Party()->CopyConstruct(const_cast<MpHeroRecord&>(from).Party());   // 006613C0 (reads the source non-const)
+    new (to->Party()) CParty(*const_cast<MpHeroRecord&>(from).Party());   // 006613C0 (reads the source non-const)
     new (&to->file) mfc::CString(from.file);
 }
 

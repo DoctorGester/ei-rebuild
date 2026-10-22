@@ -1,8 +1,6 @@
 // CResourceManager (00674D90-00675530, 005AA360). See resource_manager.h.
 #include "resource_manager.h"
 
-#include "engine_object_class.h"
-
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
@@ -32,41 +30,20 @@ void CloseAll(stlp::vector<ArchiveEntry>& archives) {
 
 // --- Construction and destruction ---------------------------------------------------------------
 
-// The archive list has no destructor (the bodies free it); its default constructor only nulls it.
+// The archive list has no destructor (the destructor frees it); its default constructor only nulls it.
 static_assert(std::is_trivially_destructible_v<stlp::vector<ArchiveEntry>>);
 
-CResourceManager* CResourceManager::Construct() {
-    ConstructBase();
-    std::memset(&archives_, 0, sizeof(archives_));
-    ei::SetVtable(this, BaseVtable());
-    return this;
-}
-EI_REWRITTEN(0x00674D90, CResourceManager::Construct);
-
 CResourceManager::CResourceManager() { std::memset(&archives_, 0, sizeof(archives_)); }
+EI_REWRITTEN_SPECIAL(0x00674D90, CResourceManager::CResourceManager);
 
-void CResourceManager::Destruct() {
-    ei::SetVtable(this, BaseVtable());
-    TearDownResourceManager();
-    DestructBody();
-}
-EI_REWRITTEN(0x00674DF0, CResourceManager::Destruct);
-
-CResourceManager::~CResourceManager() { TearDownResourceManager(); }
-
-void CResourceManager::TearDownResourceManager() {
+CResourceManager::~CResourceManager() {
     CloseAll(archives_);
     CBaseManager::Destroy();
     archives_.clear();
     archives_.FreeStorage();
 }
-
-CResourceManager* CResourceManager::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00674DD0, CResourceManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00674DF0, CResourceManager::~CResourceManager);
+EI_REWRITTEN_SPECIAL(0x00674DD0, CResourceManager::~CResourceManager);
 
 void CResourceManager::Destroy() {
     CloseAll(archives_);
@@ -81,7 +58,7 @@ CMappedResource* __fastcall ConstructMappedResource(void* memory) { return stati
 CMappedResource* __fastcall ConstructMmioResource(void* memory) { return static_cast<CMMIOResource*>(memory)->Construct(); }
 } // namespace
 
-BOOL CResourceManager::AddArchiveImpl(const char* path) {
+BOOL CResourceManager::AddArchive(const char* path) {
     return AddArchiveOf(path, sizeof(CMappedResource), ConstructMappedResource);
 }
 
@@ -106,7 +83,7 @@ BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedR
     return 1;
 }
 
-BOOL CResourceManager::RemoveArchiveImpl(const char* path) {
+BOOL CResourceManager::RemoveArchive(const char* path) {
     for (ArchiveEntry* e = archives_.begin(); e != archives_.end(); ++e) {
         if (!SameName(e->name, path)) continue;
         e->resource->CloseResource();
@@ -122,19 +99,19 @@ BOOL CResourceManager::RemoveAllArchives() {
     return 1;
 }
 
-void* CResourceManager::GetFileImpl(const char* name, std::uint32_t* size) {
+void* CResourceManager::GetFile(const char* name, std::uint32_t* size) {
     for (ArchiveEntry& e : archives_)
         if (void* data = e.resource->GetFile(name, size)) return data;
     return nullptr;
 }
 
-bool CResourceManager::CloseFileImpl(void* data) {
+bool CResourceManager::CloseFile(void* data) {
     for (ArchiveEntry& e : archives_)
         if (e.resource->CloseFile(data)) return true;
     return false;
 }
 
-BOOL CResourceManager::HasFileImpl(const char* name) {
+BOOL CResourceManager::HasFile(const char* name) {
     for (ArchiveEntry& e : archives_)
         if (e.resource->FindEntry(name) != -1) return 1;
     return 0;
@@ -144,54 +121,15 @@ void CResourceManager::FreeAllFiles() {
     for (ArchiveEntry& e : archives_) e.resource->FreeAllFiles();
 }
 
-// The slots whose bodies are registered by member pointer.
-BOOL CResourceManager::AddArchive(const char* path) { return AddArchiveImpl(path); }
-BOOL CResourceManager::RemoveArchive(const char* path) { return RemoveArchiveImpl(path); }
-void* CResourceManager::GetFile(const char* name, std::uint32_t* size) { return GetFileImpl(name, size); }
-bool CResourceManager::CloseFile(void* data) { return CloseFileImpl(data); }
-BOOL CResourceManager::HasFile(const char* name) { return HasFileImpl(name); }
-
-namespace {
-// The virtual slots' entry points (rewrite-guide rule 4).
-void __fastcall DestroyHook(CResourceManager* self) { self->CResourceManager::Destroy(); }
-BOOL __fastcall RemoveAllArchivesHook(CResourceManager* self) { return self->CResourceManager::RemoveAllArchives(); }
-void __fastcall FreeAllFilesHook(CResourceManager* self) { self->CResourceManager::FreeAllFiles(); }
-} // namespace
-EI_REWRITTEN(0x00674F40, DestroyHook);
-// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
-// code at them): the same replacement, so their calls skip its check.
-EI_REWRITTEN(0x00512720, DestroyHook);
-EI_REWRITTEN(0x0068E8F0, DestroyHook);
-EI_REWRITTEN(0x006AC800, DestroyHook);
-EI_REWRITTEN(0x00675050, CResourceManager::AddArchiveImpl);
-EI_REWRITTEN(0x00675200, CResourceManager::RemoveArchiveImpl);
-EI_REWRITTEN(0x00675340, RemoveAllArchivesHook);
-EI_REWRITTEN(0x00675440, CResourceManager::GetFileImpl);
-EI_REWRITTEN(0x00675490, CResourceManager::CloseFileImpl);
-EI_REWRITTEN(0x006754E0, CResourceManager::HasFileImpl);
-EI_REWRITTEN(0x00675530, FreeAllFilesHook);
-
-namespace {
-// game.exe's 00743338 compiled (C19): the base manager's slots with the archive slots 3 and 16-22 of
-// CResourceManager's bodies (called qualified); 25 the folder name, _purecall.
-class ResourceManagerClass final : public ManagerClass<ResourceManagerClass, CResourceManager> {
-public:
-    void Destroy() override { Resources()->CResourceManager::Destroy(); }                      // 3: 00674F40
-    BOOL AddArchive(const char* path) override { return Resources()->AddArchiveImpl(path); }        // 16: 00675050
-    BOOL RemoveArchive(const char* path) override { return Resources()->RemoveArchiveImpl(path); }  // 17: 00675200
-    BOOL RemoveAllArchives() override { return Resources()->CResourceManager::RemoveAllArchives(); }   // 18: 00675340
-    void* GetFile(const char* name, std::uint32_t* size) override { return Resources()->GetFileImpl(name, size); }   // 19
-    bool CloseFile(void* data) override { return Resources()->CloseFileImpl(data); }            // 20: 00675490
-    BOOL HasFile(const char* name) override { return Resources()->HasFileImpl(name); }          // 21: 006754E0
-    void FreeAllFiles() override { Resources()->CResourceManager::FreeAllFiles(); }             // 22: 00675530
-    virtual const char* GetFolderName() {                                                       // 25: pure
-        _purecall();
-        return nullptr;
-    }
-
-private:
-    CResourceManager* Resources() { return As<CResourceManager>(); }
-};
-} // namespace
-
-void* CResourceManager::BaseVtable() { return ResourceManagerClass::Vtable(); }
+EI_REWRITTEN(0x00674F40, CResourceManager::Destroy);
+// The compiler's jump thunks to it (functions.csv "thunk" rows).
+EI_REWRITTEN(0x00512720, CResourceManager::Destroy);
+EI_REWRITTEN(0x0068E8F0, CResourceManager::Destroy);
+EI_REWRITTEN(0x006AC800, CResourceManager::Destroy);
+EI_REWRITTEN(0x00675050, CResourceManager::AddArchive);
+EI_REWRITTEN(0x00675200, CResourceManager::RemoveArchive);
+EI_REWRITTEN(0x00675340, CResourceManager::RemoveAllArchives);
+EI_REWRITTEN(0x00675440, CResourceManager::GetFile);
+EI_REWRITTEN(0x00675490, CResourceManager::CloseFile);
+EI_REWRITTEN(0x006754E0, CResourceManager::HasFile);
+EI_REWRITTEN(0x00675530, CResourceManager::FreeAllFiles);

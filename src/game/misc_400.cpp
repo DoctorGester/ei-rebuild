@@ -37,22 +37,18 @@ void __fastcall ManagerDestruct(CBaseManager* self) {
 }
 
 // 0042D6B0 / 0042D6C0: slots 11 and 12.
-const char* __fastcall ManagerClassName(CClientSpecificManager* self) { return self->CClientSpecificManager::GetClassName(); }
-int __fastcall ManagerClassId(CClientSpecificManager* self) { return self->CClientSpecificManager::GetClassId(); }
 
 } // namespace misc400
 
 CClientSpecificManager::CClientSpecificManager() {}
 CClientSpecificManager::~CClientSpecificManager() {}
-CClientSpecificManager* CClientSpecificManager::Construct() { return new (this) CClientSpecificManager(); }
 const char* CClientSpecificManager::GetClassName() { return "CClientSpecificManager"; }
 int CClientSpecificManager::GetClassId() { return 0x30; }
-CEngineObject* CClientSpecificManager::NewObject(int type) { return NewObjectImpl(type); }
 
 // 0042D700 (slot 14): a new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
 // failed allocation. The constructors (005A7010 the figure drawer, 0051AB00, 00510450, 00533AD0,
 // 00666D10, 0052D0D0) each return this.
-CEngineObject* CClientSpecificManager::NewObjectImpl(int type) {
+CEngineObject* CClientSpecificManager::NewObject(int type) {
     switch (type) {
     case 'E': return misc400::New(0x3C, ConstructOn<FigureMeshDrawer, &FigureMeshDrawer::Construct>);
     case 'F': return misc400::New(0xFC, ConstructOn<CObject3DClientSpecific, &CObject3DClientSpecific::Construct>);
@@ -86,11 +82,11 @@ std::uint32_t BufferCursor::Start(std::uint8_t* first, std::uint32_t, std::uint3
     return 0;
 }
 
-EI_REWRITTEN(0x0042D690, CClientSpecificManager::Construct);
+EI_REWRITTEN_SPECIAL(0x0042D690, CClientSpecificManager::CClientSpecificManager);
 EI_REWRITTEN(0x0042D6F0, misc400::ManagerDestruct);
-EI_REWRITTEN(0x0042D6B0, misc400::ManagerClassName);
-EI_REWRITTEN(0x0042D6C0, misc400::ManagerClassId);
-EI_REWRITTEN(0x0042D700, CClientSpecificManager::NewObjectImpl);
+EI_REWRITTEN(0x0042D6B0, CClientSpecificManager::GetClassName);
+EI_REWRITTEN(0x0042D6C0, CClientSpecificManager::GetClassId);
+EI_REWRITTEN(0x0042D700, CClientSpecificManager::NewObject);
 EI_REWRITTEN(0x00406B30, misc400::AlignedWords);
 EI_REWRITTEN(0x00406B50, misc400::AlignedDwords);
 EI_REWRITTEN(0x00430FC0, BufferCursor::Start);

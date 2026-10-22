@@ -1,8 +1,6 @@
-// Small virtual slots of classes below 0x004C0000 (A-E1): CHoover, CLightning, its segments and its
-// manager, CFakeUnit, and the CUnit slots the fake unit shares. Each is a __fastcall shim on the
-// slot's address (this in ECX), as object.cpp's getters are: the classes' own virtual interfaces
-// are not declared in C++. Main thread. See docs/notes/objects.md ("A-E1: small slots").
-#include "engine_object_class.h"
+// Small virtual slots of classes below 0x004C0000 (A-E1): the lightning manager, CFakeUnit, and the
+// CUnit slots the fake unit shares. Each is a __fastcall shim on the slot's address (this in ECX), as
+// object.cpp's getters are. Main thread. See docs/notes/objects.md ("A-E1: small slots").
 #include "game_strings.h"
 #include "item.h"
 #include "lightning.h"
@@ -24,93 +22,14 @@
 
 namespace {
 
-const char* const kHooverName = "CHoover";
-const char* const kLightningName = "CLightning";
 const char* const kFakeUnitName = "CFakeUnit";
-
-constexpr int kClassLightning = 0x1E;
-constexpr int kClassHoover = 0x1F;
 
 // Set once the lightning noise table has been loaded (00468A00).
 int g_lightningNoiseLoaded = /*007A9694*/ {};
 
 } // namespace
 
-// ---- CHoover (HooverClass in place of game.exe's 0073C434) ---------------------------------------------
-
-// 00461C60, slot 0 (RET 4): the destructor body, then operator delete when bit 0 of `flags` is set.
-CHoover* CHoover::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00461C60, CHoover::DeletingDestruct);
-
-// 00461C90, slot 2 (Create): 1.
-int __fastcall HooverCreate(CHoover*) { return 1; }
-EI_REWRITTEN(0x00461C90, HooverCreate);
-
-// 00461C40 / 00461C50, slots 11 / 12.
-const char* __fastcall HooverGetClassName(const CHoover*) { return kHooverName; }
-EI_REWRITTEN(0x00461C40, HooverGetClassName);
-int __fastcall HooverGetClassId(const CHoover*) { return kClassHoover; }
-EI_REWRITTEN(0x00461C50, HooverGetClassId);
-
-namespace {
-// The compiled table (C19, engine_object_class.h): 2 Create, 3 Destroy (empty: 00461CA0), 11 / 12.
-class HooverClass final : public EngineObjectClass<HooverClass, CHoover> {
-public:
-    int Create() override { return HooverCreate(As<CHoover>()); }                       // 2: 00461C90
-    void Destroy() override {}                                                          // 3: 00461CA0
-    const char* ClassName() override { return HooverGetClassName(As<CHoover>()); }      // 11: 00461C40
-    int ClassId() override { return HooverGetClassId(As<CHoover>()); }                  // 12: 00461C50
-};
-} // namespace
-
-void* CHoover::Vtable() { return HooverClass::Vtable(); }
-
-// ---- CLightning (LightningClass in place of game.exe's 0073C550) and its manager ---------------------
-
-// 004687F0, slot 0 (RET 4).
-CLightning* CLightning::DeletingDestruct(unsigned flags) {
-    LightningDestruct(this);
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004687F0, CLightning::DeletingDestruct);
-
-// 004687D0 / 004687E0, slots 11 / 12.
-const char* __fastcall LightningGetClassName(const CLightning*) { return kLightningName; }
-EI_REWRITTEN(0x004687D0, LightningGetClassName);
-int __fastcall LightningGetClassId(const CLightning*) { return kClassLightning; }
-EI_REWRITTEN(0x004687E0, LightningGetClassId);
-
-namespace {
-// The compiled table (C19, engine_object_class.h): 2 Register, 3 Reset, 11 / 12.
-class LightningClass final : public EngineObjectClass<LightningClass, CLightning> {
-public:
-    int Create() override { return As<CLightning>()->Register(); }                      // 2: 00466EA0
-    void Destroy() override { As<CLightning>()->Reset(); }                              // 3: 00468790
-    const char* ClassName() override { return LightningGetClassName(As<CLightning>()); }   // 11: 004687D0
-    int ClassId() override { return LightningGetClassId(As<CLightning>()); }               // 12: 004687E0
-};
-} // namespace
-
-void* CLightning::Vtable() { return LightningClass::Vtable(); }
-
-LightningSegment* LightningSegment::Construct() {
-    points.data = nullptr;
-    points.size = 0;
-    points.capacity = 0;
-    points.growBy = 0;
-    return this;
-}
-EI_REWRITTEN(0x00468900, LightningSegment::Construct);
-
-void LightningSegment::Destruct() {
-    if (points.data) LightningPointArray::Free(points.data);
-}
-EI_REWRITTEN(0x00468920, LightningSegment::Destruct);
+// ---- The lightning manager --------------------------------------------------------------------------
 
 int CLightningManager::Create() {
     if (!g_lightningNoiseLoaded) {
@@ -119,10 +38,7 @@ int CLightningManager::Create() {
     }
     return CBaseManager::Create();
 }
-namespace {
-int __fastcall LightningManagerCreateHook(CLightningManager* self) { return self->CLightningManager::Create(); }
-} // namespace
-EI_REWRITTEN(0x004689D0, LightningManagerCreateHook);
+EI_REWRITTEN(0x004689D0, CLightningManager::Create);
 
 // ---- CFakeUnit (vtable 0073BFE8) ------------------------------------------------------------------
 
@@ -192,21 +108,22 @@ EI_REWRITTEN(0x004467C0, CMapObject::SetVisibilityModeImpl);
 // ---- CItem's base bodies of slots 17-21 (vtables 00743DA4 and 0073C474) ---------------------------
 
 // 00462300 / 00462330 / 00462360 / 00462390 (RET 4; four identical copies), slots 17-20: the names
-// a plain item does not have. An empty text built in the caller's result, which is returned.
-mfc::CString* CItem::EmptyName(mfc::CString* out) {
-    return new (out) mfc::CString(game::EmptyText());
-}
-EI_REWRITTEN(0x00462300, CItem::EmptyName);
-EI_REWRITTEN(0x00462330, CItem::EmptyName);
-EI_REWRITTEN(0x00462360, CItem::EmptyName);
-EI_REWRITTEN(0x00462390, CItem::EmptyName);
+// a plain item does not have. An empty text built in the caller's result.
+mfc::CString CItem::ModelName() { return mfc::CString(game::EmptyText()); }
+mfc::CString CItem::FirstListName() { return mfc::CString(game::EmptyText()); }
+mfc::CString CItem::FigureName() { return mfc::CString(game::EmptyText()); }
+mfc::CString CItem::PictureName() { return mfc::CString(game::EmptyText()); }
+EI_REWRITTEN(0x00462300, CItem::ModelName);
+EI_REWRITTEN(0x00462330, CItem::FirstListName);
+EI_REWRITTEN(0x00462360, CItem::FigureName);
+EI_REWRITTEN(0x00462390, CItem::PictureName);
 
 // 004623C0 (RET 4), slot 21, which every class but the quest item keeps: the caller's result
-// zeroed and returned. (Slot 16, 004622F0, is four bytes and cannot be hooked.)
-ItemUse* CItem::NoUse(ItemUse* out) {
+// zeroed and returned.
+ItemUse* CItem::GetUse(ItemUse* out) {
     out->kind = 0;
     out->value = 0;
     out->extra = 0;
     return out;
 }
-EI_REWRITTEN(0x004623C0, CItem::NoUse);
+EI_REWRITTEN(0x004623C0, CItem::GetUse);

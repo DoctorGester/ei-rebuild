@@ -17,7 +17,6 @@ namespace {
 using dbfile::FillStream;
 using dbfile::LoadTable;
 using dbfile::LocalResource;
-using dbfile::LocalStream;
 
 // The chunks of quests.qdb.
 constexpr int kQuestsChunk = 1;
@@ -33,8 +32,8 @@ int QuestDatabase::Load(const char* folder) {
     void* data = resource.Get()->CMappedResource::GetFileImpl("quests.qdb", &size);
     if (!data) return game::FatalError("Can't open quests database\n");
 
-    LocalStream local;
-    CMemoryStream* stream = &local.stream;
+    CMemoryStream local;
+    CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
     // The serialisers' unused third argument is a stack slot the original has not written yet.

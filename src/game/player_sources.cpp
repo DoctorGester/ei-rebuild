@@ -23,7 +23,7 @@ void AppendCounted(JoinedLinks* list, netlink::NetLink* link) {
 
 } // namespace
 
-void CWorldHandle::TakeNewImpl(JoinedLinks* joined) {
+void CWorldHandle::TakeNew(JoinedLinks* joined) {
     if (pendingLink_) AppendCounted(joined, pendingLink_);
     netlink::NetLink* link = pendingLink_;
     pendingLink_ = nullptr;
@@ -32,7 +32,7 @@ void CWorldHandle::TakeNewImpl(JoinedLinks* joined) {
 
 namespace netlink {
 
-void DriverSession::TakeNewImpl(JoinedLinks* list) {
+void DriverSession::TakeNew(JoinedLinks* list) {
     for (DriverNode* node = holders_->next; node != holders_; node = node->next) {
         DriverLink* link = node->Driver();
         if (link && !(link->flags7_ & CRefCounted::kDetached)) AppendCounted(list, link);
@@ -51,5 +51,5 @@ void DriverSession::TakeNewImpl(JoinedLinks* list) {
 
 } // namespace netlink
 
-EI_REWRITTEN(0x00478880, CWorldHandle::TakeNewImpl);
-EI_REWRITTEN(0x0047A230, netlink::DriverSession::TakeNewImpl);
+EI_REWRITTEN(0x00478880, CWorldHandle::TakeNew);
+EI_REWRITTEN(0x0047A230, netlink::DriverSession::TakeNew);

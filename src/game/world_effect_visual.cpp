@@ -123,7 +123,7 @@ void CEffectPointLight::Reset() {
     lightFlags_ = 0;
 }
 
-int CEffectPointLight::Tick() {
+int CEffectPointLight::RunTick() {
     if (moving_ == 0) return 1;
     float x = localPosition_.x + velocity_.x;
     float y = localPosition_.y + velocity_.y;
@@ -204,7 +204,7 @@ int CEffectPointLight::Unpack(int update, DeltaField* field) {
     moving_ = IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
-    EffectSlots(this)->Start(update);
+    Start(update);
     return 1;
 }
 
@@ -217,7 +217,7 @@ void CEffectPointLight::Pack(DeltaField* field) {
     field->WriteDelta(&lightFlags_, 4);
 }
 
-void CEffectPointLight::LoadState(CStream* stream) {
+void CEffectPointLight::Load(CStream* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, &color_, 12);
     Read(stream, &range_, 4);
@@ -227,7 +227,7 @@ void CEffectPointLight::LoadState(CStream* stream) {
     Read(stream, &lightFlags_, 4);
 }
 
-void CEffectPointLight::SaveState(CStream* stream) {
+void CEffectPointLight::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &color_, 12);
     WriteCopy(stream, &range_);
@@ -235,7 +235,7 @@ void CEffectPointLight::SaveState(CStream* stream) {
     WriteCopy(stream, &lightFlags_);
 }
 
-double CEffectPointLight::Radius() { return static_cast<double>(ConstAt(worlddata::DefaultRadius())) + range_; }
+double CEffectPointLight::LightRadius() { return static_cast<double>(ConstAt(worlddata::DefaultRadius())) + range_; }
 
 // --- CEffectParticle -----------------------------------------------------------------------------
 
@@ -310,7 +310,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
         }
     }
     localPosition_ = position;
-    EffectSlots(this)->Start(update);
+    Start(update);
     return 1;
 }
 
@@ -416,7 +416,7 @@ void CEffectParticle::Attach() {
     if (object == nullptr) std::memcpy(&source_->localPosition_, &saved, sizeof(Vector3));
 }
 
-void CEffectParticle::LoadState(CStream* stream) {
+void CEffectParticle::Load(CStream* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, &type_, 4);
     Read(stream, &size_, 4);
@@ -432,7 +432,7 @@ void CEffectParticle::LoadState(CStream* stream) {
     Read(stream, &param164_, 4);
 }
 
-void CEffectParticle::SaveState(CStream* stream) {
+void CEffectParticle::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &type_, 4);
     WriteCopy(stream, &size_);
@@ -445,7 +445,7 @@ void CEffectParticle::SaveState(CStream* stream) {
     WriteCopy(stream, &param164_);
 }
 
-int CEffectParticle::Tick() {
+int CEffectParticle::RunTick() {
     unitId_ = -1;
     if (moving_ != 0) {
         Vector3 d;
@@ -540,13 +540,13 @@ void CEffectWall::Pack(DeltaField* field) {
     field->WriteFloat16x3(&direction_.x);
 }
 
-void CEffectWall::LoadState(CStream* stream) {
-    CEffectParticle::LoadState(stream);
+void CEffectWall::Load(CStream* stream) {
+    CEffectParticle::Load(stream);
     Read(stream, &direction_, 12);
 }
 
-void CEffectWall::SaveState(CStream* stream) {
-    CEffectParticle::SaveState(stream);
+void CEffectWall::Save(CStream* stream) {
+    CEffectParticle::Save(stream);
     Write(stream, &direction_, 12);
 }
 
@@ -601,7 +601,7 @@ int CEffectLightning::Unpack(int update, DeltaField* field) {
     if (!SnapshotReadToEnd()) return 0;
     UpdateEnds();
     localPosition_ = position;
-    EffectSlots(this)->Start(update);
+    Start(update);
     return 1;
 }
 
@@ -632,7 +632,7 @@ void CEffectLightning::SetEnds(const Vector3* from, const Vector3* to, float wid
     MarkChanged();
 }
 
-void CEffectLightning::LoadState(CStream* stream) {
+void CEffectLightning::Load(CStream* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, &from_, 12);
     Read(stream, &to_, 12);
@@ -643,7 +643,7 @@ void CEffectLightning::LoadState(CStream* stream) {
     Read(stream, &flag_, 1);
 }
 
-void CEffectLightning::SaveState(CStream* stream) {
+void CEffectLightning::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &from_, 12);
     Write(stream, &to_, 12);
@@ -664,7 +664,7 @@ void CEffectLightning::SetFlag(std::uint8_t flag) {
     MarkChanged();
 }
 
-int CEffectLightning::Tick() {
+int CEffectLightning::RunTick() {
     if (bolt_ == nullptr || (toObject_ == -1 && fromObject_ == -1)) return 1;
     UpdateEnds();
     bolt_->SetEndpoints(&from_, &to_);
@@ -674,13 +674,13 @@ int CEffectLightning::Tick() {
 // --- Hooks ---------------------------------------------------------------------------------------
 
 EI_REWRITTEN(0x006780C0, CEffectPointLight::Reset);
-EI_REWRITTEN(0x006781B0, CEffectPointLight::Tick);
+EI_REWRITTEN(0x006781B0, CEffectPointLight::RunTick);
 EI_REWRITTEN(0x006782D0, CEffectPointLight::Start);
 EI_REWRITTEN(0x00678520, CEffectPointLight::Unpack);
 EI_REWRITTEN(0x00678610, CEffectPointLight::Pack);
-EI_REWRITTEN(0x00678690, CEffectPointLight::LoadState);
-EI_REWRITTEN(0x00678740, CEffectPointLight::SaveState);
-EI_REWRITTEN(0x00677F70, CEffectPointLight::Radius);
+EI_REWRITTEN(0x00678690, CEffectPointLight::Load);
+EI_REWRITTEN(0x00678740, CEffectPointLight::Save);
+EI_REWRITTEN(0x00677F70, CEffectPointLight::LightRadius);
 
 EI_REWRITTEN(0x00678A90, CEffectParticle::Reset);
 EI_REWRITTEN(0x00678BA0, CEffectParticle::Position);
@@ -693,24 +693,24 @@ EI_REWRITTEN(0x006792B0, CEffectParticle::SetSize);
 EI_REWRITTEN(0x006792E0, CEffectParticle::SetColors);
 EI_REWRITTEN(0x00679310, CEffectParticle::SetTarget);
 EI_REWRITTEN(0x00679350, CEffectParticle::Attach);
-EI_REWRITTEN(0x006793E0, CEffectParticle::LoadState);
-EI_REWRITTEN(0x006794E0, CEffectParticle::SaveState);
-EI_REWRITTEN(0x006795C0, CEffectParticle::Tick);
+EI_REWRITTEN(0x006793E0, CEffectParticle::Load);
+EI_REWRITTEN(0x006794E0, CEffectParticle::Save);
+EI_REWRITTEN(0x006795C0, CEffectParticle::RunTick);
 
 EI_REWRITTEN(0x00679AF0, CEffectWall::Reset);
 EI_REWRITTEN(0x00679C30, CEffectWall::SetDirection);
 EI_REWRITTEN(0x00679C70, CEffectWall::Unpack);
 EI_REWRITTEN(0x00679DB0, CEffectWall::Pack);
-EI_REWRITTEN(0x00679EA0, CEffectWall::LoadState);
-EI_REWRITTEN(0x00679ED0, CEffectWall::SaveState);
+EI_REWRITTEN(0x00679EA0, CEffectWall::Load);
+EI_REWRITTEN(0x00679ED0, CEffectWall::Save);
 
 EI_REWRITTEN(0x0067A1B0, CEffectLightning::Reset);
 EI_REWRITTEN(0x0067A370, CEffectLightning::Start);
 EI_REWRITTEN(0x0067A490, CEffectLightning::Unpack);
 EI_REWRITTEN(0x0067A600, CEffectLightning::Pack);
 EI_REWRITTEN(0x0067A6B0, CEffectLightning::SetEnds);
-EI_REWRITTEN(0x0067A770, CEffectLightning::LoadState);
-EI_REWRITTEN(0x0067A7F0, CEffectLightning::SaveState);
+EI_REWRITTEN(0x0067A770, CEffectLightning::Load);
+EI_REWRITTEN(0x0067A7F0, CEffectLightning::Save);
 EI_REWRITTEN(0x0067A890, CEffectLightning::SetObjects);
 EI_REWRITTEN(0x0067A8C0, CEffectLightning::SetFlag);
-EI_REWRITTEN(0x0067A8F0, CEffectLightning::Tick);
+EI_REWRITTEN(0x0067A8F0, CEffectLightning::RunTick);
