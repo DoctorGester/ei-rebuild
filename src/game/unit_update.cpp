@@ -183,11 +183,11 @@ std::uint32_t CUnit::ReadNetState(int first) { return ReadNetStateImpl(first); }
 void CUnit::WriteNetState() { WriteNetStateImpl(); }
 void CUnit::PlaceOnGround(float offset) { PlaceOnGroundImpl(offset); }
 Vector3* CUnit::PositionAt(Vector3* out, int time) {
-    PositionAtImpl(&out->x, time);
+    PositionAtImpl(out, time);
     return out;
 }
 Vector3* CUnit::AimPoint(Vector3* out) {
-    AimPointImpl(&out->x);
+    AimPointImpl(out);
     return out;
 }
 int CUnit::IsLargeUnit() { return static_cast<int>(obstacle); }

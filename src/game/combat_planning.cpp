@@ -359,7 +359,7 @@ EI_REWRITTEN(0x0054E600, CUnitServer::PlanOrderRoute);
 
 // --- A party unit's move -----------------------------------------------------------------------
 
-void CUnitServer::PlanMove(const float* point, int moving, int run, float range) {
+void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float range) {
     CWorldServer* world = ServerWorld();
     LocalPath path;
     UnitPtrList lifted{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};

@@ -510,7 +510,7 @@ EI_REWRITTEN(0x005D7CE0, AIBrain::UseOn);
 
 void AIBrain::Walk(const Vector3* point, int run, int unknown) {
     action = kActionWalk;
-    owner->OrderMove(&point->x, run, unknown, 1000000.0f);    // 0x49742400
+    owner->OrderMove(point, run, unknown, 1000000.0f);    // 0x49742400
 }
 EI_REWRITTEN(0x005D7AE0, AIBrain::Walk);
 
@@ -523,7 +523,7 @@ EI_REWRITTEN(0x005D7B30, AIBrain::TurnTowards);
 void AIBrain::CastAt(int spell, const Vector3* point, int run) {
     if (!owner->IsScrollSource(spell)) action = kActionCast;
     actionTime = spell;
-    owner->OrderCastAt(spell, &point->x, run);
+    owner->OrderCastAt(spell, point, run);
 }
 EI_REWRITTEN(0x005D7DA0, AIBrain::CastAt);
 

@@ -21,7 +21,7 @@ struct Vector3;
 
 __declspec(naked) inline bool __fastcall PlanPath(CAIMap*, void*, CUnit*, int, int, int, int, AIPath*, int, int)
     EI_ORIGINAL(0x005B9C90)
-__declspec(naked) inline bool __fastcall MapFindPath(void*, void*, CUnit*, const void* /*target*/, void* /*path*/, float /*range*/, float /*minDistance*/)
+__declspec(naked) inline bool __fastcall MapFindPath(void*, void*, CUnit*, const Vector3* /*target*/, AIPath* /*path*/, float /*range*/, float /*minDistance*/)
     EI_ORIGINAL(0x005BB350)
 // 005C0DF0 / 005C1010 (rewritten as CSectorMap::Add / Remove): put an object into / take it out of the
 // sector grid cell of its position; AL = whether it was done.

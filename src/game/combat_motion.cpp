@@ -572,7 +572,7 @@ EI_REWRITTEN(0x0054A150, CUnitServer::ChangeMoveMode);
 
 // --- Paths --------------------------------------------------------------------------------------
 
-bool CUnitServer::PathTo(const float* point, float range) {
+bool CUnitServer::PathTo(const Vector3* point, float range) {
     ManagerContextOf(this);
     UpdateSneak();
     motionChanged = 0;
@@ -629,7 +629,7 @@ bool CUnitServer::PathTo(const float* point, float range) {
 }
 EI_REWRITTEN(0x00548700, CUnitServer::PathTo);
 
-void CUnitServer::LiftNearby(UnitList* list, const float* point, char moving) {
+void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) {
     CWorldServer* world = ContextOf(this);
     CPlayer* player = unit->player;
     // RemoveAll.
@@ -644,12 +644,12 @@ void CUnitServer::LiftNearby(UnitList* list, const float* point, char moving) {
     if (!player || player->sessionKind100_ != 1) return;
     // Away from the point: the units near it that are not in the player's group (+0x510C of its
     // messages object) are lifted off the sector map and stay in the list.
-    float dx = point[0] - unit->localPosition_.x;
-    float dy = point[1] - unit->localPosition_.y;
-    float dz = point[2] - unit->localPosition_.z;
+    float dx = point->x - unit->localPosition_.x;
+    float dy = point->y - unit->localPosition_.y;
+    float dz = point->z - unit->localPosition_.z;
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f /*0073CA98*/) {
         CSectorMap* sectors = world->Sectors();
-        sectors->FindUnitsInRadius(reinterpret_cast<const Vector3*>(point), list, 4.0f);
+        sectors->FindUnitsInRadius(point, list, 4.0f);
         const ScriptGroup* group = &player->Server()->partyUnits_;
         for (UnitList::Node* node = list->head; node;) {
             UnitList::Node* current = node;

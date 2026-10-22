@@ -330,10 +330,10 @@ bool CUnitServer::StartMove() {
         return result;
     }
     // Plan the way with the units near the goal lifted off the sector map.
-    LiftNearby(&lifted, &action.point.x, action.source != 0);
+    LiftNearby(&lifted, &action.point, action.source != 0);
     CAIMap* map = ServerWorld()->AIMap();
     unit->altPassCosts = map->CellFlag80At(&unit->localPosition_);
-    bool found = PathTo(&action.point.x, action.point.z);
+    bool found = PathTo(&action.point, action.point.z);
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
@@ -729,7 +729,7 @@ void CUnitServer::ApproachTarget() {
             EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(goal, motion.goal));
             if (DistanceSquaredXYUnrounded<double>(goal, motion.goal) <= kNearPoint) return;
         }
-        if (PathTo(&goal.x, std::bit_cast<float>(kFarBits))) {
+        if (PathTo(&goal, std::bit_cast<float>(kFarBits))) {
             double h = HalfScale();
             Vector3 heading;
             heading.x = static_cast<float>(h * motion.targetX);
@@ -872,7 +872,7 @@ void CUnitServer::ApproachTarget() {
     point.x = static_cast<float>(static_cast<double>(unit->localPosition_.x) * kLong + nearX);
     point.y = static_cast<float>(static_cast<double>(unitY) + farOffset);
     point.z = goal.z;
-    if (!PathTo(&point.x, static_cast<float>(patience)))
+    if (!PathTo(&point, static_cast<float>(patience)))
         stoodBlocked = 1;
     SectorMapAdd(TheServerWorld()->Sectors(), nullptr, chased);
 

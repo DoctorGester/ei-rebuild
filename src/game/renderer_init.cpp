@@ -195,9 +195,9 @@ void SetRenderStates(CSceneRenderer* renderer, const GameOptions* settings) {
 // +0x100 = 1e12, +0x104 = 1e-12 (stored as dwords).
 void AddDefaultLight(CSceneRenderer* renderer) {
     CLight* light = TheLightFactory()->CreateLight(0x2E);
-    float colour[3] = {1.0f, 1.0f, 1.0f};
+    Vector3 colour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
-    light->SetDirectional(reinterpret_cast<const Vector3*>(colour), &position);   // 0068D0A0
+    light->SetDirectional(&colour, &position);   // 0068D0A0
     const std::uint32_t range = 0x49742400, rangeSquared = 0x5368D4A5, inverseRangeSquared = 0x2B8CBCCC;
     std::memcpy(&light->range_, &range, 4);
     std::memcpy(&light->rangeSquared_, &rangeSquared, 4);
