@@ -227,6 +227,11 @@ address,size,name,file
 007ABA04,4,g_quarterPi,src/game/sys_info.cpp
 007ABA08,4,g_inversePi,src/game/sys_info.cpp
 007ABA30,16,g_points,src/game/effects_weather_draw.cpp
+007ABA40,20,g_sprites,src/game/effects_weather_draw.cpp
+007ABA54,1,g_workArrayGuards,src/game/effects_weather_draw.cpp
+007ABA58,256,g_fogTiles,src/game/effects.h
+007ABB58,12,g_deadCells,src/game/effects_weather.cpp
+007ABB64,1,g_deadCellsGuard,src/game/effects_weather.cpp
 007ABB98,2560,g_swayYByPlace,src/game/weather_noise.cpp
 007AC598,2560,g_swayXByPlace,src/game/weather_noise.cpp
 007ACF98,2560,g_swayZByHeight,src/game/weather_noise.cpp

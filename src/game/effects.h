@@ -726,7 +726,7 @@ struct FogCell {
 };
 static_assert(sizeof(FogCell) == 0x18);
 
-// The texture coordinates of the fog texture's 4 x 4 tiles (007ABA58, 16 records; the fog manager's
+// The texture coordinates of the fog texture's 4 x 4 tiles (16 records; the fog manager's
 // Create fills them, the fog's draw hands them to the renderer): a tile's u range, and its v range
 // counted down from 1 a row.
 struct FogTile {
@@ -735,7 +735,7 @@ struct FogTile {
     float u1;   // +0x08 u0 + 1/4
     float v0;   // +0x0C 1 - (row + 1) / 4
 };
-inline FogTile* FogTiles() { return ei::GamePointer<FogTile>(0x007ABA58); }
+inline FogTile g_fogTiles[16] = /*007ABA58*/ {};
 
 // The squares currently seen: rows of bytes, nonzero = visible.
 struct FogGrid {

@@ -13,6 +13,7 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
+#include "lib/static_object.h"
 #include "originals_library.h"
 #include "game_data.h"
 
@@ -29,17 +30,18 @@ struct FogSprite {
     const FogTile* tile;
 };
 
-// The draw's work arrays, statics of the original function: the sprites' centres and sizes
-// (007ABA30) and their records (007ABA40, a CArray with the vtable 0073C584), bit 0 / bit 1 of
-// 007ABA54 set once the records / the points are constructed. The exit handlers that free them
-// are 004E2280 (the records, left in the exe) and 004E2260 (the points, ported here).
+// The draw's work arrays, statics of the original function: the sprites' centres and sizes and their records (a
+// CArray of SpriteArrayClass), bit 0 / bit 1 of the guard set once the records / the points are constructed. The
+// exit handlers that free them are 004E2280 (the records) and 004E2260 (the points), both ported here.
 using FogPointArray = lib::AlignedArray<ParticleVertex>;
 using FogSpriteArray = mfc::CArray<FogSprite>;
 constinit lib::AlignedArray<ParticleVertex> g_points = /*007ABA30*/ {};
 lib::AlignedArray<ParticleVertex>& Points() { return g_points; }
 void __cdecl FreePoints() { g_points.FreeData(); }   // 004E2260
-FogSpriteArray& Sprites() { return ei::GameData<FogSpriteArray>(0x007ABA40); }
-std::uint8_t& WorkArrayGuards() { return ei::GameData<std::uint8_t>(0x007ABA54); }
+constinit lib::StaticObject<mfc::CArray<FogSprite>> g_sprites = /*007ABA40*/ {};
+FogSpriteArray& Sprites() { return *g_sprites; }
+void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 004E2280 (00468D80)
+std::uint8_t g_workArrayGuards = /*007ABA54*/ {};
 constexpr std::uint8_t kSpritesConstructed = 1;
 constexpr std::uint8_t kPointsConstructed = 2;
 
@@ -56,13 +58,13 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     if (cells.Size() > kBoundsCells && !boundsValid) ComputeBounds();
     if (renderer->pipeline_->ClipTest(&bounds) == kOutOfView) return 1;
 
-    if (!(WorkArrayGuards() & kSpritesConstructed)) {
-        WorkArrayGuards() |= kSpritesConstructed;
+    if (!(g_workArrayGuards & kSpritesConstructed)) {
+        g_workArrayGuards |= kSpritesConstructed;
         Sprites().Construct(mfc::impl::SpriteArrayClass::Vtable());
-        GameAtExit(ei::static_init::Exit004E2280);
+        GameAtExit(DestroySprites);
     }
-    if (!(WorkArrayGuards() & kPointsConstructed)) {
-        WorkArrayGuards() |= kPointsConstructed;
+    if (!(g_workArrayGuards & kPointsConstructed)) {
+        g_workArrayGuards |= kPointsConstructed;
         Points().Construct();
         GameAtExit(FreePoints);   // 004E2260
     }
@@ -81,7 +83,7 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
         point->size = kFogSpriteSize;
         const int alpha = x87::fistp(static_cast<float>(cell.alpha * kColourScale));
         sprite->colour = (static_cast<std::uint32_t>(alpha) << 24) | 0x00FFFFFFu;
-        sprite->tile = FogTiles() + cell.frame;
+        sprite->tile = g_fogTiles + cell.frame;
         ++point;
         ++sprite;
     }
@@ -134,3 +136,5 @@ void CRainSnow::PrepareBuffers() {
 }
 EI_REWRITTEN(0x004E3C20, CRainSnow::PrepareBuffers);
 EI_REPLACE(0x004E2260, FreePoints);
+
+EI_REPLACE(0x004E2280, DestroySprites);

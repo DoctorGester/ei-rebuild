@@ -61,7 +61,7 @@ EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObjectImpl);
 // result).
 int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
     TextureHolder(self)->Load(kFogTextureKind, FogTextureName());
-    FogTile* tiles = FogTiles();
+    FogTile* tiles = g_fogTiles;
     for (int i = 0; i < kFogTiles; ++i) {
         FogTile& tile = tiles[i];
         tile.u0 = static_cast<float>(i & 3) * kFogTileSize;

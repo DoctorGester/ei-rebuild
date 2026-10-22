@@ -57,16 +57,17 @@ double Unsigned(std::uint32_t value) {
 
 // The game's atexit (006E727B).
 
-// vector<uint32> as the fog's static list of cells to drop (007ABB58), with the original's
-// constructor (004E2BA0) and insert-overflow (004E2FA0).
+// vector<uint32> as the fog's static list of cells to drop (a function-local static: constructed on the first
+// update, its guard bit 0), with the original's constructor (004E2BA0) and insert-overflow (004E2FA0).
 using KeyVector = stlp::vector<std::uint32_t>;
 static_assert(sizeof(KeyVector) == 12);
 void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count) {
     v->InsertOverflow<stlp::PlainElement<std::uint32_t>>(pos, *value, count);
 }
 
-KeyVector& DeadCells() { return ei::GameData<KeyVector>(0x007ABB58); }
-std::uint8_t& DeadCellsGuard() { return ei::GameData<std::uint8_t>(0x007ABB64); }
+constinit stlp::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
+std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
+void __cdecl DestroyDeadCells() { stlp::VectorAbi<std::uint32_t>::DestroyBase(&g_deadCells); }   // 004E1C50 (004E2A20)
 
 // The cell map's own insert (004E2E90: resize, then insert a copy of the pair unless the key
 // exists; returns the pair) and erase by key (004E2F00): the 28-byte dword-keyed table's.
@@ -265,11 +266,11 @@ EI_REWRITTEN(0x004E1770, CVisibilityFog::ComputeBounds);
 // are dropped below 0.01; every cell steps its texture tile. Returns whether the fog is still
 // needed (referenced elsewhere or has cells).
 int CVisibilityFog::UpdateCells() {
-    KeyVector& dead = DeadCells();
-    if (!(DeadCellsGuard() & 1)) {
-        DeadCellsGuard() |= 1;
+    KeyVector& dead = g_deadCells;
+    if (!(g_deadCellsGuard & 1)) {
+        g_deadCellsGuard |= 1;
         dead.ConstructEmpty();   // 004E2BA0
-        GameAtExit(ei::static_init::Exit004E1C50);
+        GameAtExit(DestroyDeadCells);
     }
     dead.Finish() = dead.Start();
     World();   // called and ignored, as in the original
@@ -390,3 +391,5 @@ public:
 } // namespace
 
 void* CVisibilityFog::Vtable() { return VisibilityFogClass::Vtable(); }
+
+EI_REPLACE(0x004E1C50, DestroyDeadCells);
