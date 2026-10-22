@@ -919,3 +919,7 @@ address,size,note
 005F4680,22,static initialiser of the interface manager (no Ghidra function)
 00578440,22,static initialiser of the game flow (no Ghidra function)
 00458700,22,static initialiser of the options (no Ghidra function)
+00498910,22,static initialiser of the particles' draw order 007A9C50 (no Ghidra function)
+005B31C0,22,static initialiser of the unit shape cache 007C2F70 (no Ghidra function)
+005C8F90,27,static initialiser of the AI events' pool 007C43A8 (no Ghidra function)
+006BFAC0,22,static initialiser of the terrain's projection outcodes 007C88D0 (no Ghidra function)

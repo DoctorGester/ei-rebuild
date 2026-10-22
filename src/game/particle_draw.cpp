@@ -12,6 +12,9 @@
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "camera.h"
+#include "game_arrays.h"
+#include "lib/static_object.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -19,7 +22,18 @@ namespace {
 
 inline double D(float f) { return f; }
 
-ParticleDepthArray& DrawOrder() { return ei::GameData<ParticleDepthArray>(0x007A9C50); }
+// The particles' draw order: built empty by its static initialiser 00498910 (the constructor 00498E60), destroyed
+// at exit by 00498930 (00498E80).
+static_assert(sizeof(ParticleDepthArray) == 0x14);
+constinit lib::StaticObject<ParticleDepthArray> g_drawOrder = /*007A9C50*/ {};
+ParticleDepthArray& DrawOrder() { return *g_drawOrder; }
+void __cdecl DestroyDrawOrder() {   // 00498930
+    mfc::impl::DestructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
+}
+void __cdecl ConstructDrawOrder() {   // 00498910
+    mfc::impl::ConstructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
+    GameAtExit(DestroyDrawOrder);
+}
 
 // The camera's orientation (0079B2DC).
 const Quaternion& CameraRotation() { return TheCamera()->localRotation_; }
@@ -258,3 +272,6 @@ int CParticleManager::DrawAll(void* renderer) {
     return 1;
 }
 EI_REWRITTEN(0x00498940, CParticleManager::DrawAll);
+
+EI_REPLACE(0x00498910, ConstructDrawOrder);
+EI_REPLACE(0x00498930, DestroyDrawOrder);

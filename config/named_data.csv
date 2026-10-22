@@ -314,6 +314,7 @@ address,size,name,file
 007A9BF8,4,kSpinAngle,src/game/particle_callbacks.cpp
 007A9BFC,48,g_bagSizes,src/game/particle_callbacks.cpp
 007A9C30,16,kIdentityRotation,src/game/particle_create.cpp
+007A9C50,20,g_drawOrder,src/game/particle_draw.cpp
 007A9C98,12,kDegenerateNormal,src/game/face_normal.cpp
 007A9CB8,16,g_lineProjected,src/game/renderer_lines.cpp
 007A9CC8,20,g_lineOutcodes,src/game/renderer_lines.cpp
@@ -456,12 +457,15 @@ address,size,name,file
 007C2F60,1,g_spiralGuard,src/game/ai_plan.cpp
 007C2F64,4,g_patch,src/game/ai_water_patch.cpp
 007C2F68,1,g_guard,src/game/ai_water_patch.cpp
+007C2F70,28,g_unitShapes,src/game/ai_movement.cpp
 007C2FC0,20,g_spiralLengths,src/game/sector_spiral.cpp
 007C2FD8,28,g_spiralRadii,src/game/sector_spiral.cpp
 007C2FF8,20,g_spiralOffsets,src/game/sector_spiral.cpp
 007C3038,28,g_smoothPool,src/game/ai_path_smooth.cpp
 007C3058,4860,g_smoothTables,src/game/ai_path_smooth.cpp
 007C4378,4,kOrderAngleLimit,src/game/ai_path_state.cpp
+007C43A8,28,g_eventPool,src/game/ai_events.cpp
+007C53F0,4,g_freeEvents,src/game/ai_grids.cpp
 007C53F8,204,g_logicSettings,src/game/logic_settings.h
 007C54C8,28,g_candidates,src/game/unit_ai_modes.cpp
 007C54E4,1,g_candidatesGuard,src/game/unit_ai_modes.cpp
@@ -514,6 +518,8 @@ address,size,name,file
 007C8808,4,kHalfPi,src/game/sound_manager.cpp
 007C8840,4,g_blocksWithFree,src/game/terrain_lights.cpp
 007C8844,4,g_fullBlocks,src/game/terrain_lights.cpp
+007C88C9,1,g_freed,src/game/terrain_sector.cpp
+007C88D0,20,g_projectionOutcodes,src/game/terrain_sector.cpp
 007C88E8,16,g_projectionOutput,src/game/terrain_sector.cpp
 007C88F8,16,g_projectionInput,src/game/terrain_sector.cpp
 007C8908,4,kWaterFalloff,src/game/terrain_lighting.cpp

@@ -18,6 +18,9 @@
 #include "originals_ai.h"
 #include "game_data.h"
 
+// The unit shape cache (ai_shape_cache.h). Here, not in ai_shape_cache.cpp, so the path vectors' replay links it.
+constinit lib::StaticObject<UnitShapeCache> g_unitShapes = /*007C2F70*/ {};
+
 namespace {
 // The sector map through its original address (rewritten in sector_map.cpp), so the verify build's
 // wrapper sees the call.
