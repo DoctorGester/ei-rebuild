@@ -171,7 +171,7 @@ void SetMeshesVisible(CUiWindow* window, int visible, int first = 0) {
 
 // The speaker's lips stop (CUnitClientSpecific's blink: eyes open).
 void StopTalking(CUnit* speaker) {
-    auto* model = reinterpret_cast<CUnitClientSpecific*>(speaker->controller);
+    CUnitClientSpecific* model = speaker->ClientController();
     model->blinks = 0;
     model->BlinkOpen(true);
 }

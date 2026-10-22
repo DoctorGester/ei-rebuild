@@ -145,7 +145,7 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     ClearDepth(DeviceOf(this), 7, slots, 1.0f);
     for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
         CItem* item = hero->armor[i];
-        int type = reinterpret_cast<CItemArmor*>(item)->GetType();
+        int type = static_cast<CItemArmor*>(item)->GetType();
         ItemCell cell{item, static_cast<float>(centreX[type]), static_cast<float>(centreY[type]), 6.0f, 100.0f,
                       mode_};
         owner->DrawItem(pass, &cell);

@@ -316,7 +316,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     if (entry != speakersEnd_) {
         CPlayerServer* server = LocalServerPlayer()->Server();
         if (server) server->SendPair19(kEventLeaves, person->id_);
-        auto* model = reinterpret_cast<CUnitClientSpecific*>(person->controller);
+        CUnitClientSpecific* model = person->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
         if (auto* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, person->id_)) {

@@ -333,7 +333,7 @@ void CEffectParticle::Spawn() {
     }
 
     HeldEngineObject::Of(reinterpret_cast<CEngineObject**>(&source_))   // 0056F1A0
-        ->Assign(reinterpret_cast<CParticleManager*>(ParticleManager())->CreateSource(type_));
+        ->Assign(ParticleManager()->CreateSource(type_));
     std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);

@@ -24,8 +24,10 @@ searches per leg) -> `BuildCellsTo` (005B9A20).
 
 ## Facts
 
-- `CAIMap + 0x1F8` is named `waterDepth` but the large-unit layer's Set / Merge also write signed
-  bytes there (the small layer writes the cells' `level` byte).
+- The map's grids are `SearchGrid` members (search_grid.h; `grid[y][x]` reads a row): `waterDepth` (+0x1F4),
+  `cells` (+0x2698, the map's size is `cells.width` x `cells.height`), `occluders` (+0x26A8), `marks` (+0x26B8).
+  The large-unit layer's Set / Merge also write signed bytes into `waterDepth`'s rows (the small layer writes
+  the cells' `level` byte).
 - CUnitLayer (CAIMap + 0x27C small, + 0x12A4 large; 0x1028 bytes): MFC CList of every node ever
   allocated, 1024 hash buckets by (block x * 17 + block y), 4x4 blocks; vtable 0073FD74 (small) /
   0073FD6C (large), slots 0 Set / 1 Merge. Shape cache: owner 007C2F70, hash_map 007C2F78, shapes
