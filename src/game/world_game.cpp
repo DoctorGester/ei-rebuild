@@ -1988,7 +1988,7 @@ namespace {
 void DestroyPartyEntry(MpHeroRecord* entry) {
     CParty* records = entry->Party();
     entry->file.~CString();
-    ei::SetVtable(records, kRecordsVtable);
+    ei::SetVtable(records, CParty::Vtable());
     PartyResetOriginal(records, nullptr, 1, 1);
     records->DestroyParty();   // 00661640
     records->zone_.~CString();

@@ -5,6 +5,7 @@
 #include "options.h"
 #include "sound.h"
 #include "ui.h"
+#include "ui_input_class.h"
 #include "ui_screens.h"
 
 #include "base_manager.h"
@@ -46,8 +47,6 @@ std::uint32_t InterfaceOptions() { return ei::GameData<const volatile std::uint3
 // The tick count of the menu's next lightning chance.
 std::uint32_t g_nextLightningTick = /*007C811C*/ {};
 
-// An input side whose every slot does nothing.
-void** InertInputVtable() { return ei::GamePointer<void*>(0x00741154); }
 constexpr int kStonesObject = 2;                            // the object manager's id of the stones
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 constexpr float kMenuEdgeFade = 6.0f;

@@ -48,7 +48,7 @@ void PlayerMode::Destruct() {
     leader = nullptr;
     if (target) target->Release();
     target = nullptr;
-    vtable = aimode::kRootVtable;
+    vtable = CRefCounted::RootVtable();
 }
 EI_REPLACE_METHOD(0x005520D0, PlayerMode::Destruct);
 EI_REPLACE_METHOD(0x00552180, PlayerMode::Destruct);

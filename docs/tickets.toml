@@ -2562,7 +2562,7 @@ title = "Compiler-made vtables: real virtual classes instead of game.exe's table
 group = "cleanup"
 model = "opus"
 depends = ["C18"]
-note = "Batch 17 (2026-10-22): 33 rows retired (355 -> 388), code cells 4,825 -> 4,548, game data addresses 1,099 -> 1,065. combat_lifetime's second container tables 0073F04C / F070 / F140 and WoundsMaterial 0073DF68; the AI modes (ai_mode_class.h, 14 rows incl. 0073F0C4) with the digest's ModeKind id (game.exe's address in both runs, goldens unchanged); the 3D object halves 0073DE90 / DEFC / DFBC; theme array, class template, map array, debug panel, CDib, party record, mouse; the AI map's unit layers and the sectors. Suites: --golden 121 the same, --no-hooks --golden --fresh 114 the same. Next: the counted root 0073BB68, render helper 0073D880, cloud noise 0073D030 + 007420D4, map spec chunks 0073C710/18/20 (after C21), UI 007403F8 / 00740FD4 / 007418E0 / 00742464, the MFC library kind."
+note = "Batch 18 (2026-10-22): 29 rows retired (388 -> 417): the counted roots 0073BB68 / 0073C368, the render helper and preset, the cloud noise, the item turn, input sides (container, top panel, camera, inert 00741154), the figure loader, seven engine objects, the party (00743000 / 0074306C / 00742FF4) and the player connections (007431E0 / 00743180 / 00743280). Code cells 4,548 -> 4,229; game data addresses 1,065 -> 1,039 (vtables 171); 109 registrations EI_REWRITTEN. Suites: 121 image goldens the same (hooks), 114 the same (no-hooks fresh). Left: window main tables (harness census), scene renderer 0073D93C / 0073D8A0, CRefObject 0073BB58 (after C21), map spec readers, streams, MFC."
 
 [[ticket]]
 id = "C20"

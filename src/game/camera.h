@@ -1,6 +1,6 @@
 #pragma once
 
-// The camera (CCamera, class id 0x43, vtable 0073B9E0), the settings record it reads, its saved
+// The camera (CCamera, class id 0x43, vtable CCamera::Vtable() in place of game.exe's 0073B9E0), the settings record it reads, its saved
 // views, shakes and recorded paths, and the engine globals and containers its code uses.
 // camera.cpp: update, view placement, focus, zoom, saved views, shakes, recorded-path playback.
 // camera_motion.cpp: aiming, turning upright, keeping above objects. camera_object.cpp: the
@@ -117,18 +117,19 @@ static_assert(sizeof(ViewStack) == 0x28);
 void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vector3* unused2, float step,
                              float halfX, float halfY, float* average, float* minimum, float* maximum);
 
-// The camera ("CCamera", vtable 0073B9E0). Flags (+0x08): 0x8 following the target, 0x10 a camera
+// The camera ("CCamera", vtable Vtable() in place of game.exe's 0073B9E0). Flags (+0x08): 0x8 following the target, 0x10 a camera
 // file is open, 0x20 playing a camera file, 0x40 free (scripted) placement, 0x100 focus kept
 // inside a circle, 0x200 the alternate limits.
 class CCamera : public CTransformObject {
 public:
-    CCamera* DeleteScalar(unsigned flags);
+    CCamera* DeletingDestruct(unsigned flags);
     void GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const;
     // camera_object.cpp. 0040E910 (RET 4): starts recording into ".\camera\" + `name` (1 when the file
     // can be made). 0040ECB0: stops recording (the file name emptied); returns 1.
     int OpenFile(const char* name);
     int RecordFrame(std::uint32_t time);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073B9E0);
+    // The compiled table (C19, camera_object.cpp's CameraClass; game.exe's 0073B9E0).
+    static void* Vtable();
 
     static constexpr std::uint32_t kFollowing = 0x8;
     static constexpr std::uint32_t kRecording = 0x10;

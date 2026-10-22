@@ -10,13 +10,15 @@
 
 class CInterface3D;
 
-// The battle camera's input side (vtable 00740208, 0x2C bytes, constructed by 005EACB0; one of the
+// The battle camera's input side (Vtable() in place of game.exe's 00740208, 0x2C bytes, constructed by 005EACB0; one
+// of the
 // battle screen's extra input sides). Keys move the camera along x_ / y_ / z_ (set by the key-down,
 // cleared by the key-up); the right button turns the view while held.
 class CCameraInput {
 public:
-    static void** Vtable() { return ei::GamePointer<void*>(0x00740208); }
-    // 005EACB0 (RET 4; ui_camera_input.cpp). Constructor: vtable 00740208, the interface, not
+    // The compiled table (C19, ui_camera_input.cpp's CameraInputClass over ui_input_class.h's InputSideClass).
+    static void** Vtable();
+    // 005EACB0 (RET 4; ui_camera_input.cpp). Constructor: Vtable(), the interface, not
     // turning, the axes 0 (handled_ and the press points left). Returns this.
     CCameraInput* Construct(CInterface3D* ui);
     // 005EADD0 (slot 9, RET 0xC; ui_camera_keys.cpp).
@@ -67,5 +69,5 @@ static_assert(offsetof(CCameraInput, pressLayout_) == 0x14);
 static_assert(offsetof(CCameraInput, x_) == 0x20);
 static_assert(sizeof(CCameraInput) == 0x2C);
 
-// 005EADD0 (thiscall on the input object, RET 0xC; slot 9 of vtable 00740208): see
+// 005EADD0 (thiscall on the input object, RET 0xC; slot 9 of CCameraInput::Vtable()): see
 // ui_camera_keys.cpp.

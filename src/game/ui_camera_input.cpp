@@ -7,6 +7,7 @@
 #include "camera.h"
 #include "ui.h"
 #include "ui_cursor.h"
+#include "ui_input_class.h"
 #include "ui_widescreen.h"
 
 #include "ei/hook.h"
@@ -90,6 +91,23 @@ void LetCursorGo() {
 }
 
 } // namespace
+
+namespace {
+// The camera input's compiled table (C19; game.exe's 00740208): slot 0 UiInputSide's deleting destructor, the
+// camera's handlers, the base's others.
+struct CameraInputClass final : InputSideClass<CameraInputClass, &UiInputSide::InputSideDelete> {
+    CCameraInput* Input() { return reinterpret_cast<CCameraInput*>(this); }
+    void Deactivate() override { Input()->OnDeactivate(); }                                   // 1: 005EB580
+    int MouseMove(int b, int x, int y) override { return Input()->OnMouseMove(b, x, y), 0; }   // 4: 005EB210
+    int RightDown(int b, int x, int y) override { return Input()->OnRightDown(b, x, y), 0; }   // 5: 005EAD00
+    int RightUp(int b, int x, int y) override { return Input()->OnRightUp(b, x, y), 0; }       // 6: 005EAD50
+    int KeyDown(int k, int r, int f) override { return Input()->OnKeyDown(k, r, f), 0; }       // 9: 005EADD0
+    int KeyUp(int k, int r, int f) override { return Input()->OnKeyUp(k, r, f), 0; }           // 11: 005EB090
+    int Wheel(int f, int d, int x, int y) override { return Input()->OnWheel(f, d, x, y); }    // 12: 005EB540
+};
+} // namespace
+
+void** CCameraInput::Vtable() { return static_cast<void**>(CameraInputClass::Vtable()); }
 
 CCameraInput* CCameraInput::Construct(CInterface3D* ui) {
     interface_ = ui;
@@ -252,9 +270,9 @@ BOOL CCameraInput::OnWheel(int, int delta, int, int) {
 namespace {
 void __fastcall CameraInputDeactivate(CCameraInput* self) { self->OnDeactivate(); }
 } // namespace
-EI_REPLACE_METHOD(0x005EB090, CCameraInput::OnKeyUp);
-EI_REPLACE_METHOD(0x005EAD00, CCameraInput::OnRightDown);
-EI_REPLACE_METHOD(0x005EAD50, CCameraInput::OnRightUp);
-EI_REPLACE_METHOD(0x005EB210, CCameraInput::OnMouseMove);
-EI_REPLACE(0x005EB580, CameraInputDeactivate);
-EI_REPLACE_METHOD(0x005EB540, CCameraInput::OnWheel);
+EI_REWRITTEN(0x005EB090, CCameraInput::OnKeyUp);
+EI_REWRITTEN(0x005EAD00, CCameraInput::OnRightDown);
+EI_REWRITTEN(0x005EAD50, CCameraInput::OnRightUp);
+EI_REWRITTEN(0x005EB210, CCameraInput::OnMouseMove);
+EI_REWRITTEN(0x005EB580, CameraInputDeactivate);
+EI_REWRITTEN(0x005EB540, CCameraInput::OnWheel);

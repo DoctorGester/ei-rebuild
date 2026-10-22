@@ -54,14 +54,18 @@ struct UnitPlacement {
 };
 static_assert(sizeof(UnitPlacement) == 0x28);
 
-// A world player's connection to its client (CPlayer::connection_): CPlayerServer (vtable 00743280)
-// or CPlayerClient (00743180), both derived from it (its own vtable 007431E0). It names the slots
-// after CEngineObject's that the player calls; the subclasses' slot bodies are registered by address
-// (non-virtual members under other names, rewrite guide rule 4), and their objects carry the game's
-// vtables (Construct), so no compiler vtable is made.
+// A world player's connection to its client (CPlayer::connection_): CPlayerServer or CPlayerClient, both
+// derived from it. It names the slots after CEngineObject's that the player calls; the subclasses' slot bodies are
+// non-virtual members under other names (rewrite guide rule 4), and their objects carry the compiled tables
+// (player_connection_class.h; Construct stores them) in place of game.exe's 007431E0 (its own), 00743280 (the
+// server's) and 00743180 (the client's).
 class CPlayerConnection : public CEngineObject {
 public:
-    CPlayerConnection* DeleteScalar(unsigned flags);
+    // The compiled table (C19, player_client.cpp's PlayerConnectionClass).
+    static void* Vtable();
+    // 00666F70 (slot 0, RET 4; player_client.cpp): ConnectionDestructBody, then operator delete when bit 0 of `flags`
+    // is set.
+    CPlayerConnection* DeletingDestruct(unsigned flags);
     virtual void ForgetSentObjects();       // 13: server 0066CE50 (sent objects, party units); client empty
     virtual void UnitChanged(CUnit* unit);  // 14: client 00667BA0 (the unit's controller); server empty
     virtual void ResetState();              // 15: server 0066CF20, client 00667600
@@ -262,6 +266,8 @@ public:
     void SendPair19(std::uint8_t a, std::uint32_t b);
 
     // A-H15: the lifetime and the connection slots (player_messages.cpp unless noted).
+    // The compiled table (C19, player_messages.cpp's PlayerServerClass).
+    static void* Vtable();
     // 0066C540. Constructor body (0x5128 bytes, made by the server's specific manager): the
     // engine object's fields, an empty handler table, the outgoing stream (a queue stream), the
     // placements, both coders, the sent arrays and groups, then ClearServerState. Returns this.
@@ -357,11 +363,13 @@ double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
 void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets);
 
 
-// A world player (vtable 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by 0066C110).
+// A world player (vtable Vtable() in place of game.exe's 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by
+// 0066C110).
 // player.cpp: the constructor, destructor, Create / Destroy and the item and unit lists.
 class CPlayer : public CEngineObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743104);
+    // The compiled table (C19, player.cpp's PlayerClass).
+    static void* Vtable();
     // The world objects the player knows, by id, each counted once (player_sync.cpp): the map
     // objects and the timed objects (effects).
     using MapObjectMap = stlp::hash_map<int, CMapObject*, stlp::IntHash>;

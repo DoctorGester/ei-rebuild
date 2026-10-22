@@ -4,6 +4,7 @@
 #include "base_manager.h"
 #include "object_tables.h"
 #include "player_messages.h"
+#include "player_connection_class.h"
 #include "item.h"
 #include "game_singletons.h"
 #include "party.h"
@@ -337,8 +338,6 @@ BOOL CPlayerServer::CreateServer() {
 
 namespace {
 
-constexpr std::uintptr_t kConnectionVtable = std::uintptr_t(0x007431E0);   // CPlayerConnection's own
-constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x00743280);
 constexpr const char* kClassNameAddress = "CPlayerServer";
 constexpr int kClassId = 0x3B;
 
@@ -364,7 +363,7 @@ constexpr int kPathKindNoPath = 3;
 
 CPlayerServer* CPlayerServer::Construct() {
     ClearFields();
-    ei::SetVtable(this, kConnectionVtable);
+    ei::SetVtable(this, CPlayerConnection::Vtable());
     player_ = nullptr;
     handlers_.Construct();
     out_.ConstructQueueStream();
@@ -380,13 +379,13 @@ CPlayerServer* CPlayerServer::Construct() {
     ConstructGroup(group50F8_);
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&partyUnits_);
     partyUnits_.vtable = mfc::impl::ScriptGroupClass::Vtable();
-    ei::SetVtable(this, kServerVtable);
+    ei::SetVtable(this, Vtable());
     ClearServerState();
     return this;
 }
 
 void CPlayerServer::DestructBody() {
-    ei::SetVtable(this, kServerVtable);
+    ei::SetVtable(this, Vtable());
     ClearServerState();
     ScriptGroupDestructOriginal(&partyUnits_);
     ScriptGroupDestructOriginal(&group50F8_);
@@ -398,7 +397,7 @@ void CPlayerServer::DestructBody() {
     if (placements_.data) gamecrt::operator_delete(placements_.data);
     out_.Destruct();
     handlers_.FreeData();
-    ei::SetVtable(this, kConnectionVtable);
+    ei::SetVtable(this, CPlayerConnection::Vtable());
     player_ = nullptr;
     DestructBase();
 }
@@ -411,6 +410,35 @@ CPlayerServer* CPlayerServer::DeletingDestruct(unsigned flags) {
 
 const char* __fastcall PlayerServerClassName(CPlayerServer*) { return kClassNameAddress; }
 int __fastcall PlayerServerClassId(CPlayerServer*) { return kClassId; }
+
+namespace {
+// The server's table (game.exe's 00743280).
+class PlayerServerClass final : public ConnectionClass<PlayerServerClass, CPlayerServer> {
+public:
+    int Create() override { return Server()->CreateServer(); }   // 2: 0066C9A0
+    void Destroy() override { Server()->ClearServerState(); }    // 3: 0066CC50
+    const char* ClassName() override { return PlayerServerClassName(Server()); }   // 11: 0066C730
+    int ClassId() override { return PlayerServerClassId(Server()); }               // 12: 0066C740
+    void ForgetSentObjects() override { Server()->ReleaseSentObjects(); }          // 13: 0066CE50
+    void UnitChanged(CUnit*) override {}                                            // 14: 0066D0F0 (RET 4)
+    void ResetState() override { Server()->ClearServerState(); }                    // 15: 0066CF20
+    void Leave() override { Server()->LeaveAndFlush(); }                            // 16: 0066D020
+    void ItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag) override {    // 17: 0066E7D0
+        Server()->SendItemsGiven(items, flag);
+    }
+    void ItemsTaken() override { Server()->Send17(); }                              // 18: 0066EA10
+    void ItemTaken(CEngineObject* item) override { Server()->SendObject0A(item); }  // 19: 0066EA30
+    void LeaderDied() override { Server()->OnLeaderDied(); }                        // 20: 0066F4C0
+    void TickDone() override { Server()->ClearGroup50F8(); }                        // 21: 0066D090
+    void ItemUsed(CEngineObject* item) override { Server()->SendObject14(item); }   // 22: 0066EB40
+    int Receive() override { return Server()->ReceiveMessages(); }                 // 23: 0066D270
+
+private:
+    CPlayerServer* Server() { return As<CPlayerServer>(); }
+};
+} // namespace
+
+void* CPlayerServer::Vtable() { return PlayerServerClass::Vtable(); }
 
 void CPlayerServer::ReleaseSentObjects() {
     ReleaseAll(sentObjects_);
@@ -452,16 +480,16 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, void* path, const float
 
 EI_REWRITTEN(0x0066C540, CPlayerServer::Construct);
 EI_REWRITTEN(0x0066C770, CPlayerServer::DestructBody);
-EI_REPLACE_METHOD(0x0066C750, CPlayerServer::DeletingDestruct);
-EI_REPLACE(0x0066C730, PlayerServerClassName);
-EI_REPLACE(0x0066C740, PlayerServerClassId);
-EI_REPLACE_METHOD(0x0066CC50, CPlayerServer::ClearServerState);
-EI_REPLACE_METHOD(0x0066CF20, CPlayerServer::ClearServerState);
-EI_REPLACE_METHOD(0x0066CE50, CPlayerServer::ReleaseSentObjects);
-EI_REPLACE_METHOD(0x0066D090, CPlayerServer::ClearGroup50F8);
+EI_REWRITTEN(0x0066C750, CPlayerServer::DeletingDestruct);
+EI_REWRITTEN(0x0066C730, PlayerServerClassName);
+EI_REWRITTEN(0x0066C740, PlayerServerClassId);
+EI_REWRITTEN(0x0066CC50, CPlayerServer::ClearServerState);
+EI_REWRITTEN(0x0066CF20, CPlayerServer::ClearServerState);
+EI_REWRITTEN(0x0066CE50, CPlayerServer::ReleaseSentObjects);
+EI_REWRITTEN(0x0066D090, CPlayerServer::ClearGroup50F8);
 EI_REWRITTEN(0x0066D490, CPlayerServer::SendPathMessage);
 
-EI_REPLACE_METHOD(0x0066C9A0, CPlayerServer::CreateServer);
+EI_REWRITTEN(0x0066C9A0, CPlayerServer::CreateServer);
 
 EI_REWRITTEN(0x0066EE10, CPlayerServer::SetVariable);
 EI_REPLACE_METHOD(0x0066EE80, CPlayerServer::SetVariableMax);
@@ -474,11 +502,11 @@ EI_REWRITTEN(0x0066ECD0, CPlayerServer::SendState72);
 EI_REWRITTEN(0x0066F240, CPlayerServer::SendState73);
 EI_REWRITTEN(0x0066ED30, CPlayerServer::SendPosition04);
 EI_REWRITTEN(0x0066EDA0, CPlayerServer::SendPosition0F);
-EI_REPLACE_METHOD(0x0066EA10, CPlayerServer::Send17);
-EI_REPLACE_METHOD(0x0066EA30, CPlayerServer::SendObject0A);
+EI_REWRITTEN(0x0066EA10, CPlayerServer::Send17);
+EI_REWRITTEN(0x0066EA30, CPlayerServer::SendObject0A);
 EI_REWRITTEN(0x0066EA70, CPlayerServer::SendPair16);
 EI_REWRITTEN(0x0066EAC0, CPlayerServer::SendObjects0C);
-EI_REPLACE_METHOD(0x0066EB40, CPlayerServer::SendObject14);
+EI_REWRITTEN(0x0066EB40, CPlayerServer::SendObject14);
 EI_REWRITTEN(0x0066EB90, CPlayerServer::SendText0D);
 EI_REWRITTEN(0x0066F1F0, CPlayerServer::SendText08);
 EI_REWRITTEN(0x0066F280, CPlayerServer::SendValue15);

@@ -149,7 +149,7 @@ CWorldClient* CWorldClient::Construct() {
     new (&texturePath_) mfc::CString();
 
     CRainSnow* rain = RainSnow();
-    ConstructEngineObject(rain, CRainSnow::kRainSnowVtable);
+    ConstructEngineObject(rain, CRainSnow::Vtable());
     rain->texture = nullptr;
     rain->projected.Construct();
     rain->positions.Construct();

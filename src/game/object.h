@@ -52,7 +52,7 @@ float __fastcall UnitGetValue328(const CUnit* unit);         // slot 60: 004468A
 const char* __fastcall FigureGetName(const CEngineObject* figure);       // 00453440
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure);   // 004547C0
 
-// "CHoover" (class id 0x1F, vtable 0073C434): no fields of its own seen.
+// "CHoover" (class id 0x1F, vtable Vtable() in place of game.exe's 0073C434): no fields of its own seen.
 class CItem;    // item.h
 class CUnit;    // unit.h
 class CWorld;   // world.h
@@ -62,8 +62,9 @@ public:
     // dead `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.
     int CollectLoot(CWorld* world, CUnit* unit, mfc::CTypedPtrList<CItem>* dropList,
                     mfc::CTypedPtrList<CItem>* itemList, void* unused, int* gold);
-    CHoover* DeleteScalar(unsigned flags);
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C434);
+    CHoover* DeletingDestruct(unsigned flags);
+    // The compiled table (C19, class_slots.cpp's HooverClass).
+    static void* Vtable();
 
     // 00461C10. Constructor body: the engine object's fields cleared, then its vtable. Returns
     // this.

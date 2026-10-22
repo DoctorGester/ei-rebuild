@@ -2,6 +2,7 @@
 // state, the base half's empty slots (vtable 0073DEFC), the server half (CObject3DServer, class id
 // 0x38, vtable 0073DFBC, 0x20 bytes), the wounds material's destructor and the copies of a named
 // texture and a material stage. Layouts: map_object_shadow.h, map_object_figures.h.
+#include "core_refcount.h"
 #include "map_object_shadow.h"
 #include "options.h"
 
@@ -182,7 +183,7 @@ void __fastcall WoundsMaterialDestruct(WoundsMaterial* self) {
     if (CRenderPreset* preset = self->preset) {
         if (--preset->refs_ == 0) preset->DeleteThis(1);
     }
-    ei::SetVtable(self, WoundsMaterial::kRootVtableAddress);
+    ei::SetVtable(self, PlainRootVtable());
 }
 EI_REWRITTEN(0x0051C730, WoundsMaterialDestruct);
 

@@ -11,8 +11,8 @@
 // 0065F560 / 0065F570: "CParty", 9.
 const char* __fastcall PartyClassName(CEngineObject*) { return "CParty"; }
 int __fastcall PartyClassId(CEngineObject*) { return 0x9; }
-EI_REPLACE(0x0065F560, PartyClassName);
-EI_REPLACE(0x0065F570, PartyClassId);
+EI_REWRITTEN(0x0065F560, PartyClassName);
+EI_REWRITTEN(0x0065F570, PartyClassId);
 
 // The world's effects (world_effect_*.cpp).
 // 00676060 / 00676070: "CEffectSound", 0x48.

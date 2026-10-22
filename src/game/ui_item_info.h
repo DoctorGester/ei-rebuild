@@ -96,9 +96,11 @@ void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
 // model / texture cache beyond its limit (ui_item_screen.cpp).
 void __fastcall TrimItemCache(ItemObjectCache* cache);
 
-// An item's turning state (0x18 bytes, vtable 007403F8, a counted object at the item's +0x1C, its
-// count a 16-bit word): made by the item draw (005ECA10) and the moves (005EE1B0).
+// An item's turning state (0x18 bytes, vtable Vtable() in place of game.exe's 007403F8, a counted object at the
+// item's +0x1C, its count a 16-bit word): made by the item draw (005ECA10) and the moves (005EE1B0).
 struct ItemTurn {
+    // The compiled table (C19, ui_item_screen.cpp): 0 DeletingDestruct, 1 Serialize (empty), 2 ResetVtable, 3 Clone.
+    static void* Vtable();
     // 005ED710 (slot 3, ui_item_screen.cpp). A new state with the same angle, speed, flag and glow
     // and no references (null when the allocation fails, after writing the count through it).
     ItemTurn* Clone() const;
@@ -106,7 +108,7 @@ struct ItemTurn {
     // `flags`; returns this.
     ItemTurn* DeletingDestruct(unsigned flags);
     // 005ED760 (slot 2; ui_small_members.cpp). The object's vtables written again, the counted
-    // root's (0073BB68) and then its own (007403F8): a construction in place.
+    // root's (CRefCounted::RootVtable()) and then its own (Vtable()): a construction in place.
     void ResetVtable();
 
     void* vtable;

@@ -107,7 +107,7 @@ void CSpellEffect::Destruct() {
     caster = nullptr;
     if (target) target->Release();
     target = nullptr;
-    SetVtable(this, kBaseVtableAddress);
+    SetVtable(this, CRefCounted::RootVtable());
 }
 EI_REWRITTEN(0x0067E5D0, CSpellEffect::Destruct);
 

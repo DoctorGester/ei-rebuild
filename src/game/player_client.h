@@ -1,6 +1,6 @@
 #pragma once
 
-// The client side of a player's connection (CPlayerClient, vtable 00743180; 00666FD0-0066A880): it
+// The client side of a player's connection (CPlayerClient, game.exe's vtable 00743180; 00666FD0-0066A880): it
 // sends the client's requests (+0x5C) compressed to the server and runs the server's messages
 // (+0x34) through its handler table (built by 00667230). The single-player game runs it next to
 // CPlayerServer (player_messages.h) over the loopback link. Names are provisional; see
@@ -169,7 +169,9 @@ public:
     void StopRecording();
 
     // A-H21 (player_client.cpp).
-    // 00666D10. Constructor body: CEngineObject's fields, the connection's vtable (007431E0) and no
+    // The compiled table (C19, player_client.cpp's PlayerClientClass).
+    static void* Vtable();
+    // 00666D10. Constructor body: CEngineObject's fields, the connection's vtable (Vtable()) and no
     // player, the members constructed (the streams with the queue's vtable 0073C960), then the
     // client's vtable and Clear inlined. Returns this.
     CPlayerClient* Construct();

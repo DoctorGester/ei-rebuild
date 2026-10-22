@@ -220,10 +220,12 @@ class GameOptions;
 class CLight;   // spell.h
 class CTexture;   // texture.h
 
-// The renderer's counted helper object (0x118 bytes, vtable 0073D840, constructor 004FCA60 with the
+// The renderer's counted helper object (0x118 bytes, render_helper.cpp's RenderHelperClass table in place of
+// game.exe's 0073D840, constructor 004FCA60 with the
 // Direct3D device and a flag). Slot 0 is the deleting destructor.
 // A render state preset the helper keeps (counted; slot 0 is the deleting destructor).
-// (vtable 0073D880; its base's, 0073D888, has the pure slot 1.)
+// (render_helper.cpp's RenderPresetClass table in place of game.exe's 0073D880; its base's, 0073D888, has the
+// pure slot 1.)
 class __declspec(novtable) CRenderPreset {
 public:
     void* DeleteScalar(unsigned flags);
@@ -569,13 +571,15 @@ static_assert(offsetof(FigureModel, animationCache) == 0x0C && sizeof(FigureMode
 FigureModel* __fastcall ConstructFigureModel(FigureModel* model);
 void __fastcall DestroyFigureModel(FigureModel* model);
 
-// Loads .lnk link files and the figures they name (vtable 0073D808, 7 slots; created at startup with
+// Loads .lnk link files and the figures they name (Vtable() in place of game.exe's 0073D808, 7 slots; created at
+// startup with
 // figures.res and menus.res by 004F68C0, a Rebirth-patched function). A figure is a CLinkMesh of
 // parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made in a
 // multimap by name (a counted reference each) and hands out a cached one whose coefficients are
 // within 1e-5 (squared distance, the double at 0073B860) unless asked for a fresh one. Parts come
 // from the figure's own archive set when there is one (004FAB00), else from the open archives
-// as "<figure><part>.fig". link_loader.cpp (A-S7). The game's code stores the vtable (novtable).
+// as "<figure><part>.fig". link_loader.cpp (A-S7). The constructor stores the compiled tables
+// (link_loader_create.cpp; the class is novtable).
 class CLinkMesh;
 class CTextureDevice;
 class ITransformPipeline;
@@ -649,10 +653,13 @@ public:
     // 004F6BD0 (A-S8). Each archive closed (slot 3) and deleted, the archive list emptied, each
     // figure set destroyed (005A9C90) and freed, the device object released (the field cleared
     // first), the cache emptied (ClearCache's walk), then the containers' storage; the counted
-    // root's vtable (0073C368) left.
+    // root's vtable (PlainRootVtable()) left.
     void Destruct();
 
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D808);
+    // The compiled tables (C19, link_loader_create.cpp): the loader's (game.exe's 0073D808) and its abstract base's
+    // (0073D824: slot 0 leaves the plain counted root's table and frees, 1-6 _purecall).
+    static void* Vtable();
+    static void* BaseVtable();
 
     int refCount_;                    // +0x04
     ITransformPipeline* pipeline_;    // +0x08 the renderer's (+0x24) +0xAC -> +0xC

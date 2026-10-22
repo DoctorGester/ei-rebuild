@@ -302,8 +302,8 @@ UiInputSide* UiInputSide::InputSideDelete(unsigned flags) {
     InputSideDestroy(this);
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005EACD0, UiInputSide::InputSideDelete);
-EI_REPLACE_METHOD(0x00602B80, UiInputSide::InputSideDelete);
+EI_REWRITTEN(0x005EACD0, UiInputSide::InputSideDelete);
+EI_REWRITTEN(0x00602B80, UiInputSide::InputSideDelete);
 
 // 005E28C0: the chat overlay (007400DC).
 CChatOverlay* CChatOverlay::ChatOverlayDelete(unsigned flags) {
@@ -443,7 +443,7 @@ COptionsWindow* COptionsWindow::OptionsWindowDelete(unsigned flags) {
 EI_REPLACE_METHOD(0x0062B160, COptionsWindow::OptionsWindowDelete);
 
 // 0062EDA0: the global map's clouds (slot 2 of 007420D4): the base's own (00499E30) does the same.
-EI_REPLACE_METHOD(0x0062EDA0, CCloudNoise::DeletingDestructImpl);
+EI_REWRITTEN(0x0062EDA0, CCloudNoise::DeletingDestructImpl);
 
 // 00633240: the multiplayer hero screen (0074214C).
 CMpHeroScreen* CMpHeroScreen::HeroScreenDelete(unsigned flags) {
@@ -517,7 +517,7 @@ EI_REPLACE_METHOD(0x00613DA0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>)
 EI_REPLACE_METHOD(0x00613DD0, UiInput::DeleteWindow<&CHeroStatsPanel::StatsPanelDelete>);
 EI_REPLACE_METHOD(0x00613DE0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REPLACE_METHOD(0x0061B210, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x00601E70, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
+EI_REWRITTEN(0x00601E70, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x005FC140, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x005FC120, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x0060C7E0, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
@@ -551,4 +551,4 @@ EI_REPLACE_METHOD(0x0064BD40, UiInput::DeleteWindow<&CHudUnitPanel::HudUnitPanel
 EI_REPLACE_METHOD(0x0064BD50, UiInput::DeleteWindow<&CHudMap::HudMapDelete>);
 EI_REPLACE_METHOD(0x0064BD60, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);   // the game clock
 EI_REPLACE_METHOD(0x0064BD70, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);   // the movement panel
-EI_REPLACE_METHOD(0x0064BD80, UiInput::DeleteWindow<&CHudTopPanel::HudTopPanelDelete>);
+EI_REWRITTEN(0x0064BD80, UiInput::DeleteWindow<&CHudTopPanel::HudTopPanelDelete>);

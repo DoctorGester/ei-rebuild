@@ -4,6 +4,7 @@
 // touches DirectDraw or Direct3D except the COM pointer's Release. Most are byte-identical to
 // copies rewritten elsewhere; each says which. See docs/notes/renderer.md (section 12).
 #include "clip.h"            // TLVertex
+#include "core_refcount.h"
 #include "engine_object.h"
 #include "model.h"           // CTransformPipeline
 #include "texture.h"
@@ -23,9 +24,9 @@
 
 namespace {
 
-// The vtables the destructors leave: the engine's counted root (0073C368) and the renderer's own
+// The vtables the destructors leave: the engine's plain counted root (PlainRootVtable) and the renderer's own
 // counted base (RendererBaseClass: CDXSurface, the device object and the pipeline derive from it).
-void SetRootVtable(void* object) { ei::SetVtable(object, 0x0073C368); }
+void SetRootVtable(void* object) { ei::SetVtable(object, PlainRootVtable()); }
 void SetRendererBaseVtable(void* object) { ei::SetVtable(object, RendererBaseClass::Vtable()); }
 
 } // namespace
@@ -56,7 +57,7 @@ void* CRendererBase::DeleteScalar(unsigned flags) {
 }
 EI_REWRITTEN(0x004E7800, CRendererBase::DeleteScalar);
 
-// 004F6A00 (RET 4): the figure loader's base class (vtable 0073D824, slot 0; the constructor
+// 004F6A00 (RET 4): the figure loader's base class (CLinkFigureLoader::BaseVtable(), slot 0; the constructor
 // 004F68C0 stores it before the loader's own): the root's vtable left (004F69F0, inlined here),
 // then the block freed. Nothing calls it either.
 struct CLoaderBase {
@@ -67,7 +68,7 @@ void* CLoaderBase::DeleteScalar(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004F6A00, CLoaderBase::DeleteScalar);
+EI_REWRITTEN(0x004F6A00, CLoaderBase::DeleteScalar);
 
 // ---- Matrices ---------------------------------------------------------------------------------------
 
