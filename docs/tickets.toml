@@ -2885,6 +2885,13 @@ group = "cleanup"
 model = "opus"
 note = "Follow-up of C18's remaining-objects batch (2026-10-22; game data 247 -> 130; MFC's and the CRT's objects are C18r). The console's eight channel streambufs 007C5868 (the console), 007C76D0 (ai 1), 007C7278 (event 2), 007C6E20 (graphics 4), 007C69C8 (rpg 8), 007C6570 (unitacks 0x10), 007C6118 (net 0x20), 007C5CC0 (all -1) are built by 005DC200 (mask) in the static initialisers 005DC1F0..005DC3F0 and destroyed by 005DC260 (exit stubs 005DC2C0..005DC410); their eight ostreams 007C55A8 / 007C5600 / 007C5658 / 007C56B0 / 007C5708 / 007C5760 / 007C57B8 / 007C5810 by 006FC42F (buffer, 1) in 005DC420..005DC5E0, destroyed by 006FC502 + 006FCEDC (the ios virtual base; exits 005DC440..005DC600). Name each as lib::StaticObject<ConsoleStreambuf> / lib::StaticObject<GameOStream> once the ostream's construction no longer needs game.exe's vbtable 00748284 (image_kept row) and vtables (C19), and port the 16 initialisers and exit stubs on the names (rows in extra_function_sizes.csv / function_sizes.inc, as sector_spiral.cpp and particle_draw.cpp do). Then the log pointers the initialisers fill with a stream's address become named pointers whose initialiser names the stream (a pointer element): 007AF284 (hits, <- 007C5708), 007C2EB8 (alarm, <- 007C5658), 007AF3E8 / 007C53C4 / 007C54E8 (combat, AI, console, <- 007C5810); and the command maps 007C7B28 / 007C7B38 (console.h). Check: named_data / check_static_init 0, both suites, goldens the same. Done 2026-10-22: console_streams.cpp names the 8 streambufs, 8 ostreams (OStreamObject) and 2 command maps with their 18 initialisers / 18 exit functions ported; the 5 log pointers are constexpr pointers naming their stream. Game data addresses 121 -> 90. Image suite ALL PASS, goldens 121 same / 23 without; original 114 / 12. Left: ostream's vbtable 00748284 (crt_iostream.cpp, C25a/C26)."
 
+[[ticket]]
+id = "C18t"
+title = "Named data: the multi-file objects and the small game* leftovers"
+group = "cleanup"
+model = "opus"
+note = "After C18s: 90 game data addresses left (named_data.py --split). This takes 'several files' (22) and the src/game, src/render, src/standalone, src/hook singles (about 20). Not crt* (C26), mfc* (C18r), not the generated static-init-only group unless an object falls out."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
