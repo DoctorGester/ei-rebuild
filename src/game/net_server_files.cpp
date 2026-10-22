@@ -65,10 +65,11 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     data->Seek(0);
     std::int32_t remaining = size;
     for (std::int32_t i = 0; i < chunkCount; ++i) {
-        static_cast<FileChunkMessage*>(chunks.begin()[i].ptr)->file_.Assign(file);
-        static_cast<FileChunkMessage*>(chunks.begin()[i].ptr)->index_ = static_cast<std::uint16_t>(i);
+        auto* piece = static_cast<FileChunkMessage*>(chunks.begin()[i].ptr);
+        piece->file_.Assign(file);
+        piece->index_ = static_cast<std::uint16_t>(i);
         unsigned n = static_cast<unsigned>(remaining > kChunkSize ? kChunkSize : remaining);
-        std::uint8_t* to = static_cast<FileChunkMessage*>(chunks.begin()[i].ptr)->data_;
+        std::uint8_t* to = piece->data_;
         if (data->cur + n > data->high) {
             data->ReadPastEnd(to, n);
         } else if (data->cur + n > data->end) {

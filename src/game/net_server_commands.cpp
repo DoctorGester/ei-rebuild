@@ -47,7 +47,7 @@ bool ServerSession::IsHostConnection(const Connection* connection) {
         auto* binding = bindings_.At(node);
         if (binding->ConnectionRef().ptr != connection) continue;
         auto* player = binding->Player();
-        if (player && !(player->flags7_ & CRefObject::kDetached) && player->host_) return true;
+        if (IsLive(player) && player->host_) return true;
     }
     return false;
 }
@@ -101,14 +101,14 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
         if (!self->IsHostConnection(CurrentConnectionObject())) return;
         for (;;) {
             Connection* connection = self->FindGuestConnection(text);
-            if (!connection || (connection->flags7_ & CRefObject::kDetached)) return;
+            if (!IsLive(connection)) return;
             self->Kick(connection);
         }
     case kBanByName:
         if (!self->IsHostConnection(CurrentConnectionObject())) return;
         for (;;) {
             Connection* connection = self->FindGuestConnection(text);
-            if (!connection || (connection->flags7_ & CRefObject::kDetached)) return;
+            if (!IsLive(connection)) return;
             self->Ban(connection);
         }
     case kKickBySerial:

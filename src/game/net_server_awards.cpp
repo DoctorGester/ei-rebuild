@@ -188,7 +188,7 @@ void ServerSession::LeaveZone() {
 
         std::uint8_t* entry;
         {
-            stlp::string key = stlp::Plus(static_cast<MapMessage*>(holder->ptr)->text_, game::ZoneSuffix1Text());
+            stlp::string key = stlp::Plus(holder->Get()->text_, game::ZoneSuffix1Text());
             stlp::string lookup(key.data());
             entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), lookup);
         }

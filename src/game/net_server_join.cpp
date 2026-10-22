@@ -21,9 +21,6 @@
 namespace net {
 
 namespace {
-// The record just appended to a list of counted pointers.
-template <typename List>
-CRefObject* LastObject(const List& list) { return list.End()->prev->data.ptr; }
 // The serial the next player record gets.
 std::uint32_t g_playerSerial = /*0079B60C*/ {};
 
@@ -51,7 +48,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     self->players_.Insert(self->players_.End(), *value);
     ref.ptr = nullptr;
     ref.Destroy();
-    auto* record = static_cast<PlayerMessage*>(LastObject(self->players_));
+    PlayerMessage* record = self->players_.Back();
 
     auto* binding = NewMessageMemory<BindingMessage>();
     if (binding) {
@@ -64,7 +61,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     self->bindings_.Insert(self->bindings_.End(), *value);
     ref.ptr = nullptr;
     ref.Destroy();
-    auto* bound = static_cast<BindingMessage*>(LastObject(self->bindings_));
+    BindingMessage* bound = self->bindings_.Back();
 
     stlp::string* name = &record->name_;
     if (&msg->name_ != name) name->AssignFrom(msg->name_);

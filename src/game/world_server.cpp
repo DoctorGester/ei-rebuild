@@ -10,6 +10,7 @@
 #include "core_maths.h"
 #include "map_object.h"
 #include "net_classes.h"
+#include "net_messages.h"
 #include "spell.h"
 #include "script.h"
 #include "world_effect.h"
@@ -37,8 +38,7 @@ net::ServerSession* ActiveGameServer() {
 // Player index used by the shared-object list: -1 when not in a multiplayer game or unknown.
 int SharedListPlayer(int playerId) {
     if (net::ServerSession* server = ActiveGameServer()) {
-        if (auto* record = static_cast<std::uint8_t*>(server->FindPlayer(playerId)))
-            return *reinterpret_cast<int*>(record + 0x30);
+        if (net::PlayerMessage* record = server->FindPlayer(playerId)) return record->serial_;
     }
     return -1;
 }
