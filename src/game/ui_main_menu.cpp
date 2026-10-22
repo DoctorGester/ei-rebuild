@@ -93,9 +93,7 @@ EI_REWRITTEN(0x0062AC90, CUiRegion::SetRectFrom);
 // --- 006335E0: the version line --------------------------------------------------------------
 
 void CMainMenu::AddVersionLine() {
-    CUiSurface* surface = nullptr;
-    if (CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>())
-        surface = memory->Construct(interface_, 100, 480, 780, 600, 5, 1);
+    CUiSurface* surface = new CUiSurface(interface_, 100, 480, 780, 600, 5, 1);
     UiSurfaceGetDC(surface);
     static_cast<CUiSurface*>(surface)->Clear();
     mfc::CString text;

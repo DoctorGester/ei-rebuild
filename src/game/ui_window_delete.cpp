@@ -124,8 +124,7 @@ EI_REWRITTEN_SPECIAL(0x00620300, CMasterRequestBox::~CMasterRequestBox);   // th
 
 void ChatLine::Destroy() {
     if (CUiSurface* shown = surface) {
-        shown->ReleaseContents();
-        gamecrt::operator_delete(shown);
+        delete shown;
     }
     surface = nullptr;
     name.~CString();

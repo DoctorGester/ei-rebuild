@@ -147,8 +147,7 @@ constexpr int kTextureKind = 3;
 constexpr int kScrollbarTexture = 1;   // objects_: 0 "saveload", 1 "scrollbar"
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    return memory ? memory->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
+    return new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
 }
 
 // A write the way the box's constructor inlines it: in place (marking the buffer written) when it

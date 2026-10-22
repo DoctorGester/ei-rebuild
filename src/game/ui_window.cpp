@@ -265,8 +265,7 @@ EI_REWRITTEN(0x005FFA90, CUiWindow::AddSurface);
 void CUiWindow::RemoveSurfaceAt(int index) {
     if (CUiSurface* surface = surfaces_.data[index]) {
         if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
-        surface->ReleaseContents();
-        gamecrt::operator_delete(surface);
+        delete surface;
     }
     surfaces_.RemoveAt(index);
 }
@@ -276,8 +275,7 @@ void CUiWindow::ClearSurfaces() {
     for (int i = 0; i < surfaces_.size; ++i) {
         if (CUiSurface* surface = surfaces_.data[i]) {
             if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
-            surface->ReleaseContents();
-            gamecrt::operator_delete(surface);
+            delete surface;
         }
     }
     surfaces_.RemoveAll();
@@ -536,8 +534,7 @@ CUiWindow::~CUiWindow() {
     for (int i = 0; i < surfaces_.size; ++i) {
         if (CUiSurface* surface = surfaces_.data[i]) {
             if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
-            surface->ReleaseContents();
-            gamecrt::operator_delete(surface);
+            delete surface;
         }
     }
     surfaces_.SetSize(0, -1);

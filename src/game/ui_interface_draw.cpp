@@ -67,15 +67,14 @@ void CallSlot(void* window, int slot) {
 // the full-size one the mode's size in pixels, unscaled (addon's operands at 005F546A..005F5473
 // and 005F5568..005F5571: 1 -> 0, 600 -> height, 800 -> width).
 void MakeBackdrop(CInterface3D* ui) {
-    auto* surface = gamecrt::operator_new_as<CUiSurface>();
     if (app::g_littleOtherMemory != 0) {
-        ui->backdrop_ = surface ? surface->Construct(ui, 0, 0, 400, 300, 6, 1) : nullptr;
+        ui->backdrop_ = new CUiSurface(ui, 0, 0, 400, 300, 6, 1);
         ui->backdrop_->SetRect(0, 0, 800, 600);
     } else if (widescreen::Active()) {
         const widescreen::Layout& wide = widescreen::Get();
-        ui->backdrop_ = surface ? surface->Construct(ui, 0, 0, wide.width, wide.height, 4, 0) : nullptr;
+        ui->backdrop_ = new CUiSurface(ui, 0, 0, wide.width, wide.height, 4, 0);
     } else {
-        ui->backdrop_ = surface ? surface->Construct(ui, 0, 0, 800, 600, 4, 1) : nullptr;
+        ui->backdrop_ = new CUiSurface(ui, 0, 0, 800, 600, 4, 1);
     }
     ui_native::Adopt(ui->backdrop_, "backdrop");
 }

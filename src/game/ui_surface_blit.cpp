@@ -1,4 +1,4 @@
-// A window surface's draw (CUiSurface vtable slot 0, 005FDA80, __fastcall on the surface; called by
+// A window surface's draw (CUiSurface::Blit, slot 0, 005FDA80; called by
 // CUiWindow's surface pass 005FECC0 and the interface's draw 005F5320 for the backdrop and the frame
 // rate surface): when the surface exists and is shown (flags_ bit 4), the part of its screen
 // rectangle (rect_) inside the screen (the interface's width_ and height_) is blitted from the
@@ -20,7 +20,8 @@
 #include <cstdint>
 
 // 005FDA80.
-void __fastcall UiSurfaceBlit(CUiSurface* surface) {
+void CUiSurface::Blit() {
+    CUiSurface* surface = this;
     CDXSurface* holder = surface->holder_;
     std::uint32_t flags = surface->flags_;
     if (!holder || !(flags & 4)) return;
@@ -43,4 +44,4 @@ void __fastcall UiSurfaceBlit(CUiSurface* surface) {
     else
         render::SurfaceBlit(holder, destination, stretched ? nullptr : &part, keyed, surface->background_);
 }
-EI_REWRITTEN(0x005FDA80, UiSurfaceBlit);
+EI_REWRITTEN(0x005FDA80, CUiSurface::Blit);

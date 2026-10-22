@@ -152,8 +152,7 @@ EI_REWRITTEN(0x00444A70, CDebugPanel::Init);
 // 00444BD0: frees the panel surface and the font.
 void CDebugPanel::Release() {
     if (CUiSurface* surface = surface_) {
-        surface->ReleaseContents();
-        gamecrt::operator_delete(surface);
+        delete surface;
     }
     surface_ = nullptr;
     if (ui_gdi::GameFont* font = font_) font->Delete();
@@ -242,16 +241,14 @@ void CDebugPanel::Show(std::uint8_t show) {
     visible_ = show;
     if (show) {
         if (!surface_) {
-            CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-            surface_ = memory ? memory->ConstructOnRect(ui_, &shown_, 5) : nullptr;
+            surface_ = new CUiSurface(ui_, &shown_, 5);
         }
         lastDraw_ = gameapi::timeGetTime();
         Redraw();
         return;
     }
     if (CUiSurface* surface = surface_) {
-        surface->ReleaseContents();
-        gamecrt::operator_delete(surface);
+        delete surface;
     }
     surface_ = nullptr;
 }

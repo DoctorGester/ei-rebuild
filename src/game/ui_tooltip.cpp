@@ -176,8 +176,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
             gameapi::OffsetRect(&rect, 0, -(rect.bottom - y));
             if (rect.top < 0) gameapi::OffsetRect(&rect, 0, -rect.top);
         }
-        auto* memory = gamecrt::operator_new_as<CUiSurface>();
-        AddSurface(memory ? memory->ConstructOnRect(interface_, &rect, kSurfaceFormat) : nullptr);
+        AddSurface(new CUiSurface(interface_, &rect, kSurfaceFormat));
         return;
     }
     case kAppearing:

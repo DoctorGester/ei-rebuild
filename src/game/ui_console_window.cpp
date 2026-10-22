@@ -58,17 +58,14 @@ void ConsoleWindow::Show(bool shown) {
     shown_ = shown;
     if (shown) {
         if (!surface_) {
-            CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();   // 0x38 bytes
-            surface_ = memory ? memory->ConstructOnRect(screen_, &rect_, 4)
-                              : nullptr;
+            surface_ = new CUiSurface(screen_, &rect_, 4);
         }
         DrawLines();
         DrawInput();
         return;
     }
     if (CUiSurface* surface = surface_) {
-        surface->ReleaseContents();
-        gamecrt::operator_delete(surface);
+        delete surface;
     }
     surface_ = nullptr;
 }

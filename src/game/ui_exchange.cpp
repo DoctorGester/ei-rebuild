@@ -117,8 +117,7 @@ constexpr int kStripActionTake = 1;
 constexpr int kGridMode = 5;
 
 CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    return memory ? memory->Construct(ui, 0, top, 200, bottom, kSurfaceFormat, 1) : nullptr;
+    return new CUiSurface(ui, 0, top, 200, bottom, kSurfaceFormat, 1);
 }
 
 CUiContainer* AsContainer(CExchangeScreen* screen) { return screen; }

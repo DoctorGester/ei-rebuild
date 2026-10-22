@@ -269,8 +269,7 @@ CUiScrollText::CUiScrollText(CInterface3D* ui, const char* text, RECT rect, floa
     : CUiScrollbar(ui, rect, depth, 0, kScrollSpeed) {
     tokens_.Construct(mfc::impl::TokenPtrArrayClass::Vtable());   // CArray<UiTextToken*>
     lines_.Construct(mfc::impl::LinePtrArrayClass::Vtable());   // CArray<UiTextLine*>
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    AddSurface(memory ? memory->ConstructOnRect(interface_, &rect, kSurfaceFormat) : nullptr);
+    AddSurface(new CUiSurface(interface_, &rect, kSurfaceFormat));
     CUiScrollbar::SetRect(&rect);
     PlaceText(rect);
     DeleteTokens();

@@ -205,10 +205,8 @@ void CBriefingScreen::CreateScreen() {
     AddSprite(nullptr)->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 
     // Surface 0 the topic rows, 1 a person's label.
-    CUiSurface* surface = gamecrt::operator_new_as<CUiSurface>();
-    AddSurface(surface ? surface->Construct(interface_, 200, 430, 600, 570, kSurfaceFormat, 1) : nullptr);
-    surface = gamecrt::operator_new_as<CUiSurface>();
-    AddSurface(surface ? surface->Construct(interface_, 0, 0, 250, 30, kSurfaceFormat, 1) : nullptr);
+    AddSurface(new CUiSurface(interface_, 200, 430, 600, 570, kSurfaceFormat, 1));
+    AddSurface(new CUiSurface(interface_, 0, 0, 250, 30, kSurfaceFormat, 1));
 
     topicBar_ = new CUiScrollbar(interface_, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f);
     AddChild(topicBar_);

@@ -1,5 +1,5 @@
-// The window surface's constructors and destructor body (CUiSurface, 0x38 bytes, UiSurfaceClass):
-// 005FCF80 (a window showing an .mmp picture), 005FD120 (ReleaseContents), 005FCC00 (thiscall:
+// The window surface's constructors and destructor (CUiSurface, 0x38 bytes):
+// 005FCF80 (a window showing an .mmp picture), 005FD120 (the destructor), 005FCC00 (thiscall:
 // interface, layout left, top, right, bottom, format, scale flag; RET 0x1C) and 005FCDD0 (thiscall:
 // interface, layout rectangle, format; always scaled; RET 0xC). Both scale the rectangle to the
 // screen (005F7CA0, Rebirth's wide-screen patch sits there), make a surface holder of its size
@@ -73,7 +73,6 @@ void Begin(CUiSurface* self, CInterface3D* ui, int format) {
     ui_native::Forget(self);   // (a surface made again where another was)
     self->holder_ = nullptr;
     self->flags_ = static_cast<std::uint32_t>(format);
-    self->vtable_ = UiSurfaceClass::Vtable();
     self->background_ = 0;
     self->interface_ = ui;
 }
@@ -81,10 +80,12 @@ void Begin(CUiSurface* self, CInterface3D* ui, int format) {
 
 } // namespace
 
-// 005FD120. The destructor body: frees the kept bytes (total 007C7E74), takes the surface's
+void* CUiSurface::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
+void CUiSurface::operator delete(void* block) { gamecrt::operator_delete(block); }
+
+// 005FD120. The destructor: frees the kept bytes (total 007C7E74), takes the surface's
 // height * pitch off 007C7E78, drops the holder and empties the screen rectangle.
-void CUiSurface::ReleaseContents() {
-    vtable_ = UiSurfaceClass::Vtable();
+CUiSurface::~CUiSurface() {
     ui_native::Forget(this);
     if (std::uint8_t* kept = kept_) {
         gamecrt::operator_delete(kept);
@@ -97,17 +98,16 @@ void CUiSurface::ReleaseContents() {
     if (holder) holder->Release();
     gameapi::SetRectEmpty(&rect_);
 }
-EI_REWRITTEN(0x005FD120, CUiSurface::ReleaseContents);
+EI_REWRITTEN_SPECIAL(0x005FD120, CUiSurface::~CUiSurface);
 
 // 005FCF80 (thiscall: interface, picture name by value; RET 8). A window showing the picture
 // "<name>.mmp" from the texture manager (007AF744 slots 19 / 20: GetFile, CloseFile), through a
 // picture holder (004EFC60); its size is the picture's, the screen rectangle (0, 0, width, height),
 // flag 1.
-CUiSurface* CUiSurface::ConstructFromPicture(CInterface3D* ui, mfc::CString name) {
+CUiSurface::CUiSurface(CInterface3D* ui, mfc::CString name) {
     CUiSurface* self = this;
     ui_native::Forget(self);
     self->holder_ = nullptr;
-    self->vtable_ = UiSurfaceClass::Vtable();
     self->background_ = 0;
     self->interface_ = ui;
     CBaseManager* manager = TheTextureManager();
@@ -130,27 +130,24 @@ CUiSurface* CUiSurface::ConstructFromPicture(CInterface3D* ui, mfc::CString name
     self->kept_ = nullptr;
     self->keptSize_ = 0;
     self->flags_ |= CUiSurface::kFromPicture;
-    return this;
 }
-EI_REWRITTEN(0x005FCF80, CUiSurface::ConstructFromPicture);
+EI_REWRITTEN_SPECIAL(0x005FCF80, CUiSurface::CUiSurface);
 
 // 005FCC00 (the scale flag is a byte).
-CUiSurface* CUiSurface::Construct(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag) {
+CUiSurface::CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag) {
     Begin(this, ui, format);
     rect_.left = left;
     rect_.top = top;
     rect_.right = right;
     rect_.bottom = bottom;
     Finish(this, static_cast<char>(flag) != 0);
-    return this;
 }
-EI_REWRITTEN(0x005FCC00, CUiSurface::Construct);
+EI_REWRITTEN_SPECIAL(0x005FCC00, CUiSurface::CUiSurface);
 
 // 005FCDD0.
-CUiSurface* CUiSurface::ConstructOnRect(CInterface3D* ui, const RECT* rect, int format) {
+CUiSurface::CUiSurface(CInterface3D* ui, const RECT* rect, int format) {
     Begin(this, ui, format);
     rect_ = *rect;
     Finish(this, true);
-    return this;
 }
-EI_REWRITTEN(0x005FCDD0, CUiSurface::ConstructOnRect);
+EI_REWRITTEN_SPECIAL(0x005FCDD0, CUiSurface::CUiSurface);

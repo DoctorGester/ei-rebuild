@@ -1113,7 +1113,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     texture.h's CDXDirectDraw 0073D770, CTextureDevice 0073D760 over it and CDXSurface 0073D774, model.h's
     CTransformPipeline 0073D778, whose MatrixStack members construct and free themselves); 0073D764 with no class (only the dead 004E72A0 / 004E76B0 / 004E7700 store it);
     UnitShapeCache 0073FD58 (a real virtual class: CreateShape calls CreateUnitShape, Construct constructs in place);
-    CUiSurface's UiSurfaceClass 00740F28 (slot 0 Blit, UiSurfaceBlit) and the scrolling text's tokens (TextTokenClass
+    CUiSurface 00740F28 (a real class since C28m: slot 0 Blit; CUiScrollingSurface 00742FD8 over it, built with
+    `new`, freed with `delete`) and the scrolling text's tokens (TextTokenClass
     00742F24, FormatTokenClass 00742F28, WordTokenClass 00742F20; ui.h); CResourceBase / CResourceStream
     (00743324 / 00743320: real virtual classes since C15 batch 11); the item records (item_db.h, 00744054-00744068: real
     classes since C28i, ItemRecordHead abstract with Kind as slot 0 (its 00744060's slot is the compiler CRT's

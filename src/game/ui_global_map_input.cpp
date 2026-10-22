@@ -202,8 +202,7 @@ void CGlobalMap::Close() {
     CUiSurface* backdrop = backdrop_;
     weather_ = nullptr;
     if (backdrop) {
-        backdrop->ReleaseContents();
-        gamecrt::operator_delete(backdrop);
+        delete backdrop;
     }
     backdrop_ = nullptr;
     interface_->StopSound(windSound_);

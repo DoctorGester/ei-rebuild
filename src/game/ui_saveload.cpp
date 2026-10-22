@@ -438,9 +438,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
     if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    CUiSurface* surface =
-        memory != nullptr ? memory->Construct(Interface(), 0, 0, kScreenWidth, kScreenHeight, 4, 1) : nullptr;
+    CUiSurface* surface = new CUiSurface(Interface(), 0, 0, kScreenWidth, kScreenHeight, 4, 1);
     surface->CaptureScreen();
     TheCursor()->ChangeShape(3);
     Interface()->serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
@@ -481,8 +479,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     shot.Close();
     gamecrt::operator_delete(pixels);
     if (surface != nullptr) {
-        surface->ReleaseContents();
-        gamecrt::operator_delete(surface);
+        delete surface;
     }
     TheCursor()->ChangeShape(0);
 }

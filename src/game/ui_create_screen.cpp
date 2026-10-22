@@ -178,8 +178,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
 namespace {
 void DeleteBackdrop(CUiSurface* surface) {
     if (!surface) return;
-    surface->ReleaseContents();
-    gamecrt::operator_delete(surface);
+    delete surface;
 }
 } // namespace
 

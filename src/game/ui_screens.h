@@ -793,18 +793,16 @@ struct TitleLine {
 };
 static_assert(sizeof(TitleLine) == 0x10 && offsetof(TitleLine, text) == 8 && offsetof(TitleLine, style) == 0xC);
 
-// The titles' scrolling text surface (0x58 bytes, vtable 00742FD8: slot 0 Draw, slot 1 the deleting
+// The titles' scrolling text surface (0x58 bytes, game.exe's table 00742FD8: slot 0 the draw, slot 1 the deleting
 // destructor; ui_scrolling_surface.cpp).
 class CUiScrollingSurface : public CUiSurface {
 public:
     // 0065ED30 (RET 8). A surface of format 5 over the layout rectangle; "Riched20.dll" loaded and
     // a hidden multi-line "RichEdit20A" child of the game window created; white background, the
-    // offsets and the speed 0 (startTime_ and textLength_ are left as they were). Returns this.
-    CUiScrollingSurface* Construct(CInterface3D* ui, const RECT* rect);
-    // 0065EDE0. Destructor body: the control destroyed, the library freed, the surface released.
-    void DestructBody();
-    // 0065EDC0 (slot 1, RET 4).
-    CUiScrollingSurface* DeletingDestruct(unsigned deleteFlags);
+    // offsets and the speed 0 (startTime_ and textLength_ are left as they were).
+    CUiScrollingSurface(CInterface3D* ui, const RECT* rect);
+    // 0065EDE0 (slot 1, deleting 0065EDC0): the control destroyed, the library freed, the surface released.
+    virtual ~CUiScrollingSurface();
     // 0065EF30 (RET 8). Loads the text file `name` of `archive` into the surface (LoadRtf) and
     // closes it; whether it was found.
     bool Load(CMappedResource* archive, const char* name);
@@ -813,7 +811,7 @@ public:
     bool LoadRtf(const void* data, std::uint32_t size);
     // 0065F170 (slot 0). While the speed is not 0 the offset moves by the game time passed times
     // the speed (truncated) and the text is rendered again; then the surface's own draw (005FDA80).
-    void Draw();
+    void Blit() override;
     // 0065F1C0 (RET 8). Starts the text at `speed` (0: still), from below the surface when
     // `fromBelow` (the offset minus the surface's height in twips; the DC taken and released for
     // its resolution); the end offset 0, the start time the game time.
@@ -834,9 +832,6 @@ public:
     int textLength_;            // +0x4C characters (set when the text is loaded)
     int endOffset_;             // +0x50 offset_ when the end of the text came into view (0: not yet)
     HMODULE richEditLibrary_;   // +0x54 "Riched20.dll" (null when it did not load)
-
-    // The compiled table (C19, ui_scrolling_surface.cpp) in place of game.exe's 00742FD8: 0 Draw, 1 DeletingDestruct.
-    static void* Vtable();
 };
 static_assert(offsetof(CUiScrollingSurface, richEdit_) == 0x38);
 static_assert(offsetof(CUiScrollingSurface, endOffset_) == 0x50);

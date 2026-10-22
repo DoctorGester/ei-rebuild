@@ -158,9 +158,7 @@ CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) 
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    if (!memory) return nullptr;
-    return memory->Construct(ui, left, top, right, bottom, 5, 1);
+        return new CUiSurface(ui, left, top, right, bottom, 5, 1);
 }
 
 // Direct3D render states (Set fed to the renderer's mirror).

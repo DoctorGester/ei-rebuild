@@ -19,11 +19,6 @@
 #include <new>
 
 namespace {
-// Slot `slot` of `object`'s vtable, as a function of the object alone returning EAX.
-using ObjectSlot = int(__thiscall*)(void*);
-ObjectSlot SlotOf(void* object, int slot) { return reinterpret_cast<ObjectSlot>((*static_cast<void***>(object))[slot]); }
-constexpr int kSlotBlit = 0;
-constexpr int kSlotRelease = 4;
 } // namespace
 
 // --- 005F6080 / 005F5F90: the battle screen's members constructed by CreateScreen 1 ---------------------
@@ -177,9 +172,8 @@ EI_REWRITTEN(0x005ED760, ItemTurn::ResetVtable);
 
 // --- Handlers ----------------------------------------------------------------------------------------------
 
-int console::ConsoleWindow::Blit() {
-    if (!surface_) return 0;
-    return SlotOf(surface_, kSlotBlit)(surface_);
+void console::ConsoleWindow::Blit() {
+    if (surface_) surface_->Blit();
 }
 EI_REWRITTEN(0x005E3FC0, console::ConsoleWindow::Blit);
 

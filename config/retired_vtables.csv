@@ -387,7 +387,7 @@ vtable,slots,class,file,note
 00740D18,55,CExchangeScreen,src/game/ui_screens.h,the exchange between players (CExchangeScreen)
 00740DF4,13,CHelpWindow,src/game/ui.h,the help window's input side
 00740E28,42,CHelpWindow,src/game/ui.h,the help / message window (CHelpWindow)
-00740F28,1,UiSurfaceClass,src/game/ui.h,a window's off-screen surface (CUiSurface)
+00740F28,1,CUiSurface,src/game/ui.h,a window's off-screen surface (CUiSurface)
 00740F2C,13,CUiWindow,src/game/ui.h,the plain window's input side (CUiWindow's UiInputSide)
 00740F60,25,CUiWindow,src/game/ui.h,the plain window (CUiWindow)
 00740FD4,5,CUiContainer,src/game/ui.h,a container's input side (CUiContainer's UiInputSide)
@@ -481,7 +481,7 @@ vtable,slots,class,file,note
 00742F28,1,FormatTokenClass,src/game/ui.h,a scrolling text's format token (UiFormatToken)
 00742F30,13,CUiTooltip,src/game/ui.h,a region tooltip's input side
 00742F64,25,CUiTooltip,src/game/ui.h,a region's tooltip (CUiTooltip)
-00742FD8,2,ScrollingSurfaceClass,src/game/ui_scrolling_surface.cpp,the scrolling RichEdit surface (CUiScrollingSurface)
+00742FD8,2,CUiScrollingSurface,src/game/ui_screens.h,the scrolling RichEdit surface (CUiScrollingSurface)
 00742FF4,3,PartyMemberArrayClass,src/game/party_lifetime.cpp,CArray (a party's unit records)
 00743000,27,CParty,src/game/party.h,the party (CParty)
 0074306C,27,CManagerContext,src/game/manager_context.h,CParty's base (the manager context's getters null)

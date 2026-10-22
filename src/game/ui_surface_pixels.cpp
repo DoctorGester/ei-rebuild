@@ -112,12 +112,8 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     if (!HolderOf(this)) return nullptr;
     ui_native::Sync(this);
     // A surface of the wanted size in this one's format, and this one stretched into it.
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    CUiSurface* copy = nullptr;
-    if (memory) {
-        int format = static_cast<int>(flags_);   // the format, as the constructors store it
-        copy = memory->Construct(interface_, 0, 0, width, height, format, 0);
-    }
+    const int format = static_cast<int>(flags_);   // the format, as the constructors store it
+    CUiSurface* copy = new CUiSurface(interface_, 0, 0, width, height, format, 0);
     SurfaceHolder* from = HolderOf(this);
     SurfaceHolder* to = HolderOf(copy);
     SurfacePixels fromPixels, toPixels;
@@ -144,8 +140,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     }
     gameapi::LeaveCriticalSection(TheDeviceLock());
     if (copy) {
-        copy->ReleaseContents();
-        gamecrt::operator_delete(copy);
+        delete copy;
     }
     return pixels;
 }

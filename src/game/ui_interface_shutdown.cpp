@@ -20,8 +20,7 @@ constexpr int kCursorWait = 3;
 // A surface the interface owns: its destructor body, then the memory.
 void DeleteSurface(CUiSurface* surface) {
     if (!surface) return;
-    surface->ReleaseContents();
-    gamecrt::operator_delete(surface);
+    delete surface;
 }
 } // namespace
 

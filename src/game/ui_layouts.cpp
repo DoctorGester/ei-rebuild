@@ -61,9 +61,7 @@ CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) 
 
 // A surface of the window over the layout rectangle (left, top, right, bottom).
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    if (!memory) return nullptr;
-    return memory->Construct(ui, left, top, right, bottom, 5, 1);
+        return new CUiSurface(ui, left, top, right, bottom, 5, 1);
 }
 
 CUiScrollbar* NewScrollbar(CInterface3D* ui, int left, int top, int right, int bottom) {
@@ -609,16 +607,14 @@ void CCreditsScreen::CreateScreen() {
 
     // The scrolling text (10..790 x 150..450) and the header (10..790 x 110..140), frozen.
     {
-        CUiScrollingSurface* memory = gamecrt::operator_new_as<CUiScrollingSurface>();   // 0x58 bytes
         RECT rect = {10, 0x96, 0x316, 0x1C2};
-        textSurface_ = memory ? memory->Construct(ui, &rect) : nullptr;
+        textSurface_ = new CUiScrollingSurface(ui, &rect);
         AddSurface(textSurface_);
         textSurface_->Freeze(0, 0);
     }
     {
-        CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
         RECT rect = {10, 0x6E, 0x316, 0x8C};
-        headerSurface_ = AddSurface(memory ? memory->ConstructOnRect(ui, &rect, 5) : nullptr);
+        headerSurface_ = AddSurface(new CUiSurface(ui, &rect, 5));
         headerSurface_->Freeze(0, 0);
     }
     if (fromGame_) GameSetServerPaused(0);

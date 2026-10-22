@@ -34,8 +34,7 @@ void SetCursorShape(int shape) { TheCursor()->ChangeShape(shape); }
 
 void ReleaseBackdrop(CUiSurface* surface) {
     if (!surface) return;
-    surface->ReleaseContents();
-    gamecrt::operator_delete(surface);
+    delete surface;
 }
 
 } // namespace

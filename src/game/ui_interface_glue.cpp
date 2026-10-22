@@ -59,17 +59,13 @@ EI_REWRITTEN(0x005F7F10, CInterface3D::SetDebugInfoRect);
 void CInterface3D::ShowFps(int on) {
     if (!static_cast<std::uint8_t>(on)) {
         if (fpsSurface_) {
-            fpsSurface_->ReleaseContents();
-            gamecrt::operator_delete(fpsSurface_);
+            delete fpsSurface_;
         }
         fpsSurface_ = nullptr;
         return;
     }
     if (fpsSurface_) return;
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    fpsSurface_ = memory ? memory->Construct(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom,
-                                                                      kFpsFormat, 1)
-                         : nullptr;
+    fpsSurface_ = new CUiSurface(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, kFpsFormat, 1);
     ui_native::Adopt(fpsSurface_, "fps");
 }
 EI_REWRITTEN(0x005F5700, CInterface3D::ShowFps);
@@ -138,10 +134,7 @@ void CInterface3D::SaveWindowState() {
 EI_REWRITTEN(0x005F86D0, CInterface3D::SaveWindowState);
 
 void CInterface3D::ShowStatusText(const char* text) {
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    statusSurface_ = memory ? memory->Construct(this, 0, kStatusTop, kLayoutWidth, kStatusBottom,
-                                                                         kStatusFormat, 1)
-                            : nullptr;
+    statusSurface_ = new CUiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, kStatusFormat, 1);
     if (!statusSurface_) return;
     ui_native::Adopt(statusSurface_, "status");
     UiSurfaceGetDC(statusSurface_);
@@ -151,8 +144,7 @@ void CInterface3D::ShowStatusText(const char* text) {
     UiSurfaceReleaseDC(statusSurface_);
     app::FrameStep(true, true);
     if (statusSurface_) {
-        statusSurface_->ReleaseContents();
-        gamecrt::operator_delete(statusSurface_);
+        delete statusSurface_;
     }
     statusSurface_ = nullptr;
 }

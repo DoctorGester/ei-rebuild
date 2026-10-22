@@ -55,19 +55,7 @@ int HeightInTwips(const CUiScrollingSurface* surface, const ui_gdi::GameDC* dc) 
 }
 } // namespace
 
-namespace {
-struct ScrollingSurfaceClass final : ei::CompiledTag<ScrollingSurfaceClass> {
-    CUiScrollingSurface* Surface() { return ObjectAs<CUiScrollingSurface>(); }
-    virtual void Draw() { Surface()->Draw(); }                                                         // 0: 0065F170
-    virtual void* DeletingDestruct(unsigned flags) { return Surface()->DeletingDestruct(flags); }       // 1: 0065EDC0
-};
-} // namespace
-
-void* CUiScrollingSurface::Vtable() { return ScrollingSurfaceClass::Vtable(); }
-
-CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT* rect) {
-    ConstructOnRect(ui, rect, kSurfaceFormat);
-    vtable_ = Vtable();
+CUiScrollingSurface::CUiScrollingSurface(CInterface3D* ui, const RECT* rect) : CUiSurface(ui, rect, kSurfaceFormat) {
     richEditLibrary_ = nullptr;
     richEditLibrary_ = gameapi::LoadLibraryA(kRichEditLibrary);
     richEdit_ = gameapi::CreateWindowExA(0, kRichEditClass, nullptr, WS_CHILD | ES_MULTILINE, 0, 0, 0, 0, app::g_mainWindow,
@@ -77,27 +65,19 @@ CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT
     speed_ = 0.0f;
     offset_ = 0;
     endOffset_ = 0;
-    return this;
 }
-EI_REWRITTEN(0x0065ED30, CUiScrollingSurface::Construct);
+EI_REWRITTEN_SPECIAL(0x0065ED30, CUiScrollingSurface::CUiScrollingSurface);
 
-void CUiScrollingSurface::DestructBody() {
-    vtable_ = Vtable();
+// Then the surface's (005FD120).
+CUiScrollingSurface::~CUiScrollingSurface() {
     gameapi::DestroyWindow(richEdit_);
     if (richEditLibrary_) {
         gameapi::FreeLibrary(richEditLibrary_);
         richEditLibrary_ = nullptr;
     }
-    ReleaseContents();
 }
-EI_REWRITTEN(0x0065EDE0, CUiScrollingSurface::DestructBody);
-
-CUiScrollingSurface* CUiScrollingSurface::DeletingDestruct(unsigned deleteFlags) {
-    DestructBody();
-    if (deleteFlags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x0065EDC0, CUiScrollingSurface::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0065EDE0, CUiScrollingSurface::~CUiScrollingSurface);
+EI_REWRITTEN_SPECIAL(0x0065EDC0, CUiScrollingSurface::~CUiScrollingSurface);   // deleting
 
 bool CUiScrollingSurface::Load(CMappedResource* archive, const char* name) {
     std::uint32_t size = 0;
@@ -147,7 +127,7 @@ void CUiScrollingSurface::RenderText() {
 }
 EI_REWRITTEN(0x0065F020, CUiScrollingSurface::RenderText);
 
-void CUiScrollingSurface::Draw() {
+void CUiScrollingSurface::Blit() {
     EI_NAN_AUDIT(speed_);
     if (speed_ != 0.0f) {
         const float now = GameTime();
@@ -155,9 +135,9 @@ void CUiScrollingSurface::Draw() {
         startTime_ = now;
         RenderText();
     }
-    UiSurfaceBlit(this);
+    CUiSurface::Blit();
 }
-EI_REWRITTEN(0x0065F170, CUiScrollingSurface::Draw);
+EI_REWRITTEN(0x0065F170, CUiScrollingSurface::Blit);
 
 void CUiScrollingSurface::Start(float speed, char fromBelow) {
     endOffset_ = 0;

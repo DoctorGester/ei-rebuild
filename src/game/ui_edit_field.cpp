@@ -129,8 +129,7 @@ CUiEditField::CUiEditField(CInterface3D* ui, RECT rect) : CUiWindow(ui) {
     caretColour_ = 0xFF;
     ClearSurfaces();
     area_ = rect;
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    AddSurface(memory ? memory->ConstructOnRect(interface_, &area_, kSurfaceFormat) : nullptr);
+    AddSurface(new CUiSurface(interface_, &area_, kSurfaceFormat));
     DrawContentsVanilla();
     focused_ = true;
 }

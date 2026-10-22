@@ -217,10 +217,20 @@ bool InGameVtables(std::uintptr_t vtable) {
     return vtable >= ei::kImportsEnd && vtable < 0x007D7000;
 }
 
-// The surfaces' tables: game.exe's data, or the compiled CUiSurface (00740F28) and scrolling surface (00742FD8) ones.
+// A table of the image's CUiSurface or CUiScrollingSurface (game.exe's 00740F28 / 00742FD8): its run-time type
+// read the way typeid reads it (the complete object locator before the table, its type descriptor at +0x0C),
+// guarded, since the object may be gone.
+bool CompiledSurfaceVtable(std::uintptr_t vtable) {
+    std::uintptr_t locator = 0, type = 0;
+    if (!vtable || !SafeRead(reinterpret_cast<const void*>(vtable - 4), &locator, sizeof(locator))) return false;
+    if (!locator || !SafeRead(reinterpret_cast<const void*>(locator + 0x0C), &type, sizeof(type))) return false;
+    return type == reinterpret_cast<std::uintptr_t>(&typeid(CUiSurface)) ||
+           type == reinterpret_cast<std::uintptr_t>(&typeid(CUiScrollingSurface));
+}
+
+// The surfaces' tables: game.exe's data, or the image's classes.
 bool SurfaceVtable(std::uintptr_t vtable) {
-    return InGameVtables(vtable) || (ei::Standalone() && (vtable == reinterpret_cast<std::uintptr_t>(UiSurfaceClass::Vtable()) ||
-                                                          vtable == reinterpret_cast<std::uintptr_t>(CUiScrollingSurface::Vtable())));
+    return InGameVtables(vtable) || (ei::Standalone() && CompiledSurfaceVtable(vtable));
 }
 
 // The members of a CUiSurface the census reads; false when it cannot be read or is no surface.
@@ -235,7 +245,9 @@ bool ReadSurface(const CUiSurface* surface, SurfaceView* view) {
     alignas(4) unsigned char raw[sizeof(CUiSurface)];
     if (!SafeRead(surface, raw, sizeof(raw))) return false;
     const auto* copy = reinterpret_cast<const CUiSurface*>(raw);
-    if (!SurfaceVtable(reinterpret_cast<std::uintptr_t>(copy->vtable_))) return false;
+    std::uintptr_t vtable = 0;
+    std::memcpy(&vtable, raw, sizeof(vtable));
+    if (!SurfaceVtable(vtable)) return false;
     view->dc = copy->dc_;
     view->holder = copy->holder_;
     view->width = copy->width_;

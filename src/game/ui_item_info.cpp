@@ -1066,10 +1066,7 @@ CItemInfoPanel::CItemInfoPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPa
 void CItemInfoPanel::Build(int x, int y) {
     x_ = x;
     y_ = y;
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    CUiSurface* surface = nullptr;
-    if (memory) surface = memory->Construct(interface_, x_, y_, x_ + 200, y_ + 300, 5, 1);
-    AddSurface(surface);
+    AddSurface(new CUiSurface(interface_, x_, y_, x_ + 200, y_ + 300, 5, 1));
     Texts* texts = TextManager();
     mfc::CString text, key;
     mfc::CStringArray* itemTexts = &itemTexts_;

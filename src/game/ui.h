@@ -484,10 +484,29 @@ static_assert(offsetof(CUiRegion, bounds_) == 0x14);
 static_assert(offsetof(CUiRegion, offsetX_) == 0x28);
 static_assert(sizeof(CUiRegion) == 0x34);
 
-// An off-screen DirectDraw surface a window draws into (0x38 bytes, vtable 00740F28, constructed by
-// 005FCC00/005FCDD0). Only the placement members are named.
+// An off-screen DirectDraw surface a window draws into (0x38 bytes; game.exe's table 00740F28: slot 0 the
+// blit; no destructor slot: the owners destroy it directly).
 class CUiSurface {
 public:
+    // 005FCC00 (RET 0x1C; ui_surface_create.cpp). A surface of the layout rectangle (left, top, right,
+    // bottom) with format `format`, scaled to the screen when the low byte of `flag` is set.
+    CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
+    // 005FCDD0 (RET 0xC; ui_surface_create.cpp). Over the layout rectangle `rect` (always scaled) with
+    // format `format`.
+    CUiSurface(CInterface3D* ui, const RECT* rect, int format);
+    // 005FCF80 (RET 8; ui_surface_create.cpp). Showing the picture "<name>.mmp" of the texture manager
+    // at its own size (screen rectangle 0, 0, width, height).
+    CUiSurface(CInterface3D* ui, mfc::CString name);
+    // 005FD120 (ui_surface_create.cpp): the kept bytes and the DirectDraw surface released, the screen
+    // rectangle emptied. Not virtual: game.exe's table has no destructor (a window's surface list
+    // destroys a scrolling surface as a plain one, as the original does).
+    ~CUiSurface();
+    // The game's heap (null without memory: then no constructor runs).
+    static void* operator new(std::size_t size) noexcept;
+    static void operator delete(void* block);
+    // Slot 0 (005FDA80, ui_surface_blit.cpp): blits the surface onto the render target when it is shown.
+    virtual void Blit();
+
     // 0x005FD240 (ui_surface_pixels.cpp).
     std::uint32_t PixelAt(int x, int y);
     // 005FD3A0. Sets the screen rectangle from layout coordinates.
@@ -514,22 +533,10 @@ public:
     void ReleaseDC();
     // 005FDE20 through its address (Rebirth patches it; ui_text_draw.cpp): DrawTextIn's line of text.
     int DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
-    // 005FD120 (ui_surface_create.cpp). Destructor body: releases the DirectDraw surface.
-    void ReleaseContents();
     // 005FD760 (RET 8; ui_window.cpp). Sets (`frozen` nonzero) or clears the shown flag (4 of
     // +0x0C): setting it puts kept contents (+0x1C) back into a surface (005FD7A0 with 1); clearing
     // it with `restore` set keeps the contents in memory and releases the surface (005FD7A0 with 0).
     void Freeze(int frozen, int restore);
-    // 005FCC00 (ui_surface_create.cpp). Constructor: a surface of the layout rectangle (left, top,
-    // right, bottom) with format `format`, scaled to the screen when the low byte of `flag` is set;
-    // returns this.
-    CUiSurface* Construct(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
-    // 005FCDD0 (RET 0xC; ui_surface_create.cpp). Constructor over the layout rectangle `rect` (always
-    // scaled) with format `format`; returns this.
-    CUiSurface* ConstructOnRect(CInterface3D* ui, const RECT* rect, int format);
-    // 005FCF80 (RET 8; ui_surface_create.cpp). Constructor showing the picture "<name>.mmp" of the
-    // texture manager at its own size (screen rectangle 0, 0, width, height); returns this.
-    CUiSurface* ConstructFromPicture(CInterface3D* ui, mfc::CString name);
     // 005FD3D0. Copies the screen's rect_ into the surface (nothing when it is the screen).
     // 005FD440 (vtable slot 4, RET 8). A new[] block of width * height 5:6:5 pixels: the surface
     // stretched to that size through a temporary surface. 005FE440. Greys the surface in place
@@ -543,12 +550,6 @@ public:
     std::uint16_t* Rgb565Copy(int width, int height);
     void Greyscale();
 
-    // Slot 0 (005FDA80, ui_surface_blit.cpp; UiSurfaceBlit below, for the classes that draw over
-    // it): blits the surface onto the render target when it is shown.
-    void Blit() {
-        using Fn = void(__thiscall*)(CUiSurface*);
-        ei::ObjectSlot<Fn>(this, 0)(this);
-    }
     bool Shown() const { return (flags_ & kShown) != 0; }
     static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze (005FD760)
 
@@ -565,7 +566,6 @@ public:
 
     static constexpr std::uint32_t kFromPicture = 1;   // flags_: made by 005FCF80 from an .mmp picture
 
-    void* vtable_;
     CInterface3D* interface_;        // +0x04
     HDC dc_;                         // +0x08 while the DC is held (005FDC00 .. 005FDC60)
     std::uint32_t flags_;            // +0x0C (the constructors store the format here, then set kShown)
@@ -587,12 +587,6 @@ static_assert(offsetof(CUiSurface, kept_) == 0x1C);
 static_assert(offsetof(CUiSurface, keptSize_) == 0x20);
 static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
-// 005FDA80 (ui_surface_blit.cpp): CUiSurface's own draw (slot 0), for the classes that draw over it.
-void __fastcall UiSurfaceBlit(CUiSurface* surface);
-// The surface's compiled table (C19, lib/compiled_vtable.h; game.exe's 00740F28): slot 0 is the draw above.
-struct UiSurfaceClass final : ei::CompiledTag<UiSurfaceClass> {
-    virtual void Blit() { UiSurfaceBlit(ObjectAs<CUiSurface>()); }   // 0
-};
 // 005FDC00 / 005FDC60 (ui_surface_dc.cpp; CUiSurface::GetDC / ReleaseDC): the surface's CDC (a temporary
 // MFC wrapper; null without a DirectDraw surface) and the matching release.
 ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);

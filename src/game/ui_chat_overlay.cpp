@@ -176,14 +176,10 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
 
         node->data.name = plain[i];
         node->data.time = now;
-        CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-        CUiSurface* surface =
-            memory ? memory->Construct(
-                         interface_, 0, 0, TextWidth(interface_, plain[i], kLineFont) + kLineSurfacePad,
-                         kLineSurfaceHeight, kLineSurfaceFormat, 1)
-                   : nullptr;
+        const int width = TextWidth(interface_, plain[i], kLineFont) + kLineSurfacePad;
+        CUiSurface* surface = new CUiSurface(interface_, 0, 0, width, kLineSurfaceHeight, kLineSurfaceFormat, 1);
         UiSurfaceGetDC(surface);
-        static_cast<CUiSurface*>(surface)->Clear();
+        surface->Clear();
         const mfc::CString& codes = formatted[i];
         mfc::CString drawn;
         mfc::CString piece;
@@ -332,10 +328,7 @@ CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
     lines_.head = sentinel;
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    AddSurface(memory ? memory->Construct(interface_, kTypedLeft, kTypedTop, kTypedRight,
-                                                                    kTypedBottom, kTypedFormat, 1)
-                      : nullptr);
+    AddSurface(new CUiSurface(interface_, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, kTypedFormat, 1));
     chatOpen_ = false;
     caret_ = 0;
     DrawTyped();

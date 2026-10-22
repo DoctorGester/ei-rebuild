@@ -71,8 +71,7 @@ CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f /*0073B84C*/; }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    return memory ? memory->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
+    return new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
 }
 
 // An item list of the constructors: made through its slot 2 (not checked, as in the original).

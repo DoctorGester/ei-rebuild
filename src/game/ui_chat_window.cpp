@@ -90,9 +90,7 @@ CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     // EI_Plugin's NPlayers (00608D9D, 00608DE4): the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect_ = RECT{left, 0, 800, 0xA0};
-    auto* memory = gamecrt::operator_new_as<CUiSurface>();
-    AddSurface(memory ? memory->Construct(interface_, left, 0x4B, 800, 0x69, kSurfaceFormat, 1)
-                      : nullptr);
+    AddSurface(new CUiSurface(interface_, left, 0x4B, 800, 0x69, kSurfaceFormat, 1));
     portraits_ = 0;
     mfc::CString text;
     for (int i = 0; i < kTextCount; ++i) {

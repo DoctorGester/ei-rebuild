@@ -25,8 +25,7 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) {
     texts_.Construct();
     rect_ = rect;
-    CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
-    AddSurface(memory ? memory->ConstructOnRect(ui, &rect, kSurfaceFormat) : nullptr);
+    AddSurface(new CUiSurface(ui, &rect, kSurfaceFormat));
     texts_.SetAtGrow(texts_.size, text ? text : game::EmptyText());
     changed_ = false;
     layout_ = rect;
