@@ -73,10 +73,10 @@ CCamera* CCamera::Construct() {
     }
     viewStack_.Construct(0);
     new (&fileName_) mfc::CString;   // the empty string
-    keys_ = nullptr;
-    keyGrowBy_ = 0;
-    keyCapacity_ = 0;
-    keyCount_ = 0;
+    keys_.data = nullptr;
+    keys_.growBy = 0;
+    keys_.capacity = 0;
+    keys_.size = 0;
     ei::SetVtable(this, kVtableAddress);
     std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
     std::memcpy(&offsetA4_, &camera::kZeroVector, sizeof(Vector3));
@@ -108,7 +108,7 @@ EI_REPLACE_METHOD(0x0040C8B0, CCamera::Construct);
 void CCamera::Destruct() {
     ei::SetVtable(this, kVtableAddress);
     targetId_ = -1;
-    if (keys_) lib::FreeAligned32(keys_);   // block start kept before the keys
+    if (keys_.data) lib::FreeAligned32(keys_.data);   // block start kept before the keys
     fileName_.~CString();
     viewStack_.Destroy();   // the nodes (00411E20), then the map (00411EA0)
     shakes_.Destroy();      // the nodes, then the sentinel (00411B30)
