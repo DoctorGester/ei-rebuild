@@ -46,7 +46,7 @@ SpellDatabase* SpellDatabase::Construct() {
 template <typename Record>
 void NamedRecordTable<Record>::Construct() {
     records.ConstructEmpty();
-    ByName().InitBuckets(kBuckets);
+    names.InitBuckets(kBuckets);
 }
 
 ItemDatabase* ItemDatabase::Construct() {

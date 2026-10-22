@@ -106,8 +106,8 @@ inline const SpellRecipeVector* ScrollSpellRecipes() {
     return reinterpret_cast<const SpellRecipeVector*>(&itemdb::TheSpellDatabase().lists[0]);
 }
 // The spell and modifier maps by name (operator[] inserts a null record: NamedRecord).
-inline RecordNameMap& SpellsByName() { return itemdb::TheSpellDatabase().spells.Names(); }
-inline RecordNameMap& ModifiersByName() { return itemdb::TheSpellDatabase().modifiers.Names(); }
+inline itemdb::SpellTable::CodeIndex& SpellsByName() { return itemdb::TheSpellDatabase().spells.byCode; }
+inline itemdb::SpellModifierTable::CodeIndex& ModifiersByName() { return itemdb::TheSpellDatabase().modifiers.byCode; }
 // The material draw's factors of the prototype's price (read from the exe as the original does):
 // 00743D78 (a seventh) and 0073BAD4 (0.2).
 inline float SeventhFactor() { return 0.14285715f /*00743D78*/; }
