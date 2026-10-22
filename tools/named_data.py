@@ -141,7 +141,7 @@ STATIC_OBJECT_BYTES = {
     'acks::AckDatabase': 0x60, 'SkillDatabase': 0x18, 'UnitDatabase': 0x80, 'LeverRecordTable': 0x20,
     'PartyManager': 0x44, 'SavedParties': 0x84, 'FootprintCellSet': 0x54, 'IntSet': 0x14, 'UnreadSet': 0x14,
     'CCursor': 0xB8, 'CInterface3D': 0xB0, 'GameFlow': 0x84, 'options::GameOptions': 0x26C,
-    'mfc::CArray<int>': 0x14, 'RadiusTree': 0x1C, 'mfc::CArray<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
+    'mfc::CArray<int>': 0x14, 'mfc::CArray<std::uint8_t>': 0x14, 'mfc::CArray<std::uint16_t>': 0x14, 'RadiusTree': 0x1C, 'mfc::CArray<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
     'SmoothTable[81]': 0x12FC,
 }
 

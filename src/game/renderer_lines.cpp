@@ -19,6 +19,10 @@
 
 #include "ei/hook.h"
 #include "lib/containers.h"
+#include "game_arrays.h"
+#include "lib/mfc_coll.h"
+#include "lib/static_object.h"
+#include "originals_library.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -138,13 +142,23 @@ EI_REWRITTEN(0x0049B4B0, DeviceDrawLineStrip);
 // initialisers' objects"). 0049B730's array (007A9CA8) is never used: config/unread_data.csv.
 constinit LineBuffer g_lineVertices = /*007A9CE0*/ {};
 constinit lib::AlignedArray<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
+constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes = /*007A9CC8*/ {};
 
 namespace {
 void __cdecl FreeLineVertices() {   // 0049B490
     if (g_lineVertices.data) lib::FreeAligned32(g_lineVertices.data);
 }
 void __cdecl FreeLineProjected() { g_lineProjected.FreeData(); }   // 0049B710
+void __cdecl DestroyLineOutcodes() {   // 0049B6D0 (CByteArray's destructor 006FF61D)
+    mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
+}
+void __cdecl ConstructLineOutcodes() {   // 0049B6B0 (CByteArray's constructor 006FF5EA)
+    mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
+    GameAtExit(DestroyLineOutcodes);
+}
 } // namespace
 
 EI_REPLACE(0x0049B490, FreeLineVertices);
 EI_REPLACE(0x0049B710, FreeLineProjected);
+EI_REPLACE(0x0049B6B0, ConstructLineOutcodes);
+EI_REPLACE(0x0049B6D0, DestroyLineOutcodes);

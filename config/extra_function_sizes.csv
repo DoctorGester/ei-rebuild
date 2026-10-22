@@ -877,6 +877,7 @@ address,size,note
 005DA360,22,static initialiser of the loading movie's surface holder (no Ghidra function)
 00455E30,17,static initialiser of the copy protection's check list (no Ghidra function)
 004ED520,17,static initialiser of the DirectDraw driver list (no Ghidra function)
+0049B6B0,22,static initialiser of the line lists' outcodes (no Ghidra function)
 0056A3F0,17,static initialiser of the frame's deferred unit list (no Ghidra function)
 005BF810,22,static initialiser of the sector spiral's offsets (no Ghidra function)
 005BF840,22,static initialiser of the sector spiral's radius tree (no Ghidra function)
