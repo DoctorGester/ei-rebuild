@@ -1915,7 +1915,8 @@ public:
 };
 static_assert(offsetof(CHudMovePanel, mode_) == 0x14C && offsetof(CHudMovePanel, flag_) == 0x150);
 
-// Top panel (set up by 00649AF0, vtables 00742498 / 00742464; 180..620 x 0..100). Regions: 0
+// Top panel (set up by 00649AF0, vtables 00742498 / ui_battle_setup.cpp's TopPanelInputClass (game.exe's 00742464);
+// 180..620 x 0..100). Regions: 0
 // the sling button, 1 and 2 the two page buttons, 3 the whole panel.
 class CHudTopPanel : public CUiWindow {
 public:
@@ -2347,9 +2348,9 @@ static_assert(offsetof(CBattleScreen, clientParty_) == 0x204 && sizeof(CBattleSc
 static_assert(offsetof(CBattleScreen, itemUseKey_) == 0x220 && offsetof(CBattleScreen, portraitMode_) == 0x22C);
 static_assert(sizeof(CBattleScreen) == 0x230);
 
-// A container's own input side (window + 0x94, input vtable 00740FD4; most screens keep some of
-// these handlers in their own input vtables). An event goes to the extra input sides (+0x158) in
-// order, then to the enabled children (for the mouse events only those whose rectangle holds the
+// A container's own input side (window + 0x94, ui_container.cpp's ContainerInputClass in place of
+// game.exe's 00740FD4; most screens keep some of these handlers in their own input vtables). An
+// event goes to the extra input sides (+0x158) in order, then to the enabled children (for the mouse events only those whose rectangle holds the
 // point, CUiWindow::ContainsPoint), each with its handled flag cleared first, until one sets it;
 // that sets the container's own flag. ui_container.cpp.
 struct UiContainerInput : UiInputSide {

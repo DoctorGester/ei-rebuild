@@ -5,6 +5,7 @@
 // called through its original address.
 #include "core_streams.h"
 #include "ui.h"
+#include "ui_input_class.h"
 #include "ui_camera_keys.h"
 #include "ui_camp.h"
 #include "game_strings.h"
@@ -38,6 +39,14 @@
 using console::CStringArray;
 
 namespace {
+// The top panel's input side's compiled table (C19, ui_input_class.h; game.exe's 00742464 with its tail 0074247C):
+// the panel's mouse and wheel handlers, the base's others.
+struct TopPanelInputClass final : InputSideClass<TopPanelInputClass, &CHudTopPanel::HudTopPanelDelete> {
+    int LeftDown(int b, int x, int y) override { return SideWindow()->OnMouseDown(b, x, y), 0; }     // 2
+    int LeftUp(int b, int x, int y) override { return SideWindow()->OnMouseUp(b, x, y), 0; }         // 3
+    int MouseMove(int b, int x, int y) override { return SideWindow()->OnMouseMove(b, x, y), 0; }    // 4
+    int Wheel(int f, int d, int x, int y) override { return SideWindow()->OnWheel(f, d, x, y); }     // 12
+};
 
 // --- Not rewritten -------------------------------------------------------------------------------
 
@@ -246,7 +255,7 @@ void CBattleScreen::Create() {
             ::new (&panel->pageTexts_[0]) mfc::CString;
             ::new (&panel->pageTexts_[1]) mfc::CString;
             panel->vtable_ = ei::GamePointer<void*>(0x00742498);
-            panel->inputVtable_ = ei::GamePointer<void*>(0x00742464);
+            panel->inputVtable_ = static_cast<void**>(TopPanelInputClass::Vtable());
         }
         topPanel_ = panel;
     }

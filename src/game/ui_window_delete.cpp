@@ -517,7 +517,7 @@ EI_REPLACE_METHOD(0x00613DA0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>)
 EI_REPLACE_METHOD(0x00613DD0, UiInput::DeleteWindow<&CHeroStatsPanel::StatsPanelDelete>);
 EI_REPLACE_METHOD(0x00613DE0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REPLACE_METHOD(0x0061B210, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x00601E70, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
+EI_REWRITTEN(0x00601E70, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x005FC140, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x005FC120, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x0060C7E0, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
@@ -551,4 +551,4 @@ EI_REPLACE_METHOD(0x0064BD40, UiInput::DeleteWindow<&CHudUnitPanel::HudUnitPanel
 EI_REPLACE_METHOD(0x0064BD50, UiInput::DeleteWindow<&CHudMap::HudMapDelete>);
 EI_REPLACE_METHOD(0x0064BD60, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);   // the game clock
 EI_REPLACE_METHOD(0x0064BD70, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);   // the movement panel
-EI_REPLACE_METHOD(0x0064BD80, UiInput::DeleteWindow<&CHudTopPanel::HudTopPanelDelete>);
+EI_REWRITTEN(0x0064BD80, UiInput::DeleteWindow<&CHudTopPanel::HudTopPanelDelete>);
