@@ -172,6 +172,7 @@ vtable,slots,class,file,note
 0073DD6C,21,CMapObjectServerClass,src/game/map_object_companion_slots.cpp,the map objects' server companion (CMapObjectServer)
 0073DE40,3,FrameArrayClass,src/lib/mfc_slots.h,CArray (a 3D object's frames)
 0073DE4C,3,Object3DListClass,src/lib/mfc_slots.h,CList (a 3D object's effect sources)
+0073DF68,1,WoundsMaterial,src/game/map_object_shadow.h,the wounds material (a device material; slot 0 0051C710)
 0073E178,61,PlainMapObject,src/game/map_object_kinds.h,CTree (PlainMapObject<0x52>)
 0073E26C,61,PlainMapObject,src/game/map_object_kinds.h,CBuilding (PlainMapObject<0x54>)
 0073E360,61,PlainMapObject,src/game/map_object_kinds.h,CStone (PlainMapObject<0x53>)
@@ -204,10 +205,13 @@ vtable,slots,class,file,note
 0073F028,3,OwnedRefListClass,src/game/game_slots.h,CList (a map object controller's counted pointers)
 0073F034,3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour> (the server unit's brain)
 0073F040,3,AttackOptionArrayClass,src/lib/mfc_slots.h,CArray (a unit's attack options)
+0073F04C,3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour>: the brain constructor's second table with 0073F034's slots
 0073F058,3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's object records)
 0073F064,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit's 0x18-byte memory records)
+0073F070,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit memory's calls): the constructor's second table with 0073F064's slots
 0073F07C,3,PointArrayClass,src/lib/mfc_slots.h,CArray (a unit's point lists)
 0073F12C,3,LootListClass,src/lib/mfc_slots.h,CList (the loot lists)
+0073F140,3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's reports): the constructor's second table with 0073F058's slots
 0073F18C,42,CWorldBaseClass,src/game/world_class.h,the worlds' base (CWorld)
 0073F234,3,CountdownArrayClass,src/lib/mfc_slots.h,CArray (the world's countdowns)
 0073F240,7,CWorldHandleClass,src/game/world_sessions.cpp,the server world's counted helper (a player source)

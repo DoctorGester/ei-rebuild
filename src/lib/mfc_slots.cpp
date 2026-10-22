@@ -122,7 +122,7 @@ EI_REWRITTEN(0x00476D70, ScalarDeleting<&SceneObjects::Destruct<SceneObjectArray
 EI_REWRITTEN(0x00452950, ScalarDeleting<&AlignedAt4Records::Destruct<AlignedAt4ArrayClass>>::Delete);
 EI_REWRITTEN(0x0050A410, ScalarDeleting<&AlignedAt8Records::Destruct<AlignedAt8ArrayClass>>::Delete);
 EI_REWRITTEN(0x00452A30, ScalarDeleting<&TextureNames::Destruct<TextureNameArrayClass>>::Delete);
-EI_REPLACE_METHOD(0x00556B50, ScalarDeleting<&MemoryRecords::Destruct<MemoryRecordArrayClass>>::Delete);
+EI_REWRITTEN(0x00556B50, ScalarDeleting<&MemoryRecords::Destruct<MemoryRecordArrayClass>>::Delete);
 EI_REWRITTEN(0x00558720, ScalarDeleting<&MemoryRecords::Destruct<MemoryRecordArrayClass>>::Delete);
 EI_REWRITTEN(0x005FB870, ScalarDeleting<&GlobalMapPoints::Destruct<GlobalMapPointArrayClass>>::Delete);
 EI_REWRITTEN(0x005FB890, ScalarDeleting<&GlobalMapPoints::Destruct<GlobalMapPathArrayClass>>::Delete);
@@ -347,7 +347,7 @@ EI_REWRITTEN(0x00451A70, NamedStrings::Serialize);   // TextureNameArrayClass
 EI_REWRITTEN(0x005FB120, GlobalMapZoneRecords::Serialize);    // GlobalMapZoneArrayClass
 EI_REWRITTEN(0x005FB380, GlobalMapPointRecords::Serialize);   // GlobalMapPointArrayClass
 EI_REWRITTEN(0x005FB5F0, GlobalMapPointRecords::Serialize);   // GlobalMapPathArrayClass
-EI_REPLACE_METHOD(0x00557050, MemoryCallRecords::Serialize);       // MemoryRecordArrayClass
+EI_REWRITTEN(0x00557050, MemoryCallRecords::Serialize);       // MemoryRecordArrayClass
 
 // More lists of plain elements (the AI's, the client maps' platforms) and AIAttention's records.
 EI_REWRITTEN(0x0056FEA0, List4C::Serialize);          // PlatformListClass

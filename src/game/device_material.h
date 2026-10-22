@@ -42,7 +42,7 @@ static_assert(sizeof(MaterialStage) == 0x14 && offsetof(MaterialStage, texture) 
 // only the layout the device reads is declared.
 class __declspec(novtable) CDeviceMaterial {
 public:
-    virtual void DeletingDestructor(unsigned flags);   // 0
+    virtual void DeletingDestructor(unsigned flags) = 0;   // 0
 
     // Drops a reference; the deleting destructor (slot 0, with 1) at zero.
     void Release() {

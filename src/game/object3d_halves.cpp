@@ -194,7 +194,7 @@ WoundsMaterial* WoundsMaterial::DeleteScalar(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0051C710, WoundsMaterial::DeleteScalar);
+EI_REWRITTEN(0x0051C710, WoundsMaterial::DeleteScalar);
 
 // 0051C800. A named texture's destructor: the texture released, the name freed.
 void __fastcall NamedTextureDestruct(NamedTexture* self) {
