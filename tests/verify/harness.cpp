@@ -305,10 +305,6 @@
 //                             casting into it, the ground and some meshes sampling it, and every object
 //                             whose shadow the game draws and that was drawn casting into it (render::
 //                             ShadowState). Skipped in a run of the original code
-//   shadowfacing others|all   with the shadow map, a receiver's faces turned away from the sun take other
-//                             objects' shadows (others, R22: render::SetShadowFacing; the default) or no
-//                             shadow at all (all: as before R22), from the next frame. Ignored in a run of
-//                             the original code
 //   shadowview on|off         with the shadow map, the receivers show only the sun the map hides (white lit,
 //                             black fully shadowed; render::SetShadowView, R25), from the next frame
 //   shadowshift <texels>      with the shadow map, its origin moved by <texels> whole texels across and half
@@ -3526,14 +3522,6 @@ void RunSteps() {
             else if (s.argument == "all") render::SetOffscreenCasters(render::OffscreenCasters::All);
             else if (s.argument == "walked") render::SetOffscreenCasters(render::OffscreenCasters::Walked);
             else g_failures.push_back("shadowcasters needs view, all or walked");
-        } else if (s.verb == "shadowfacing") {
-            if (!render::Active()) {
-                Log("harness: shadowfacing %s: not the new renderer (the original code): ignored", s.argument.c_str());
-                continue;
-            }
-            if (s.argument == "others") render::SetShadowFacing(render::ShadowFacing::Others);
-            else if (s.argument == "all") render::SetShadowFacing(render::ShadowFacing::All);
-            else g_failures.push_back("shadowfacing needs others or all");
         } else if (s.verb == "shadowview" || s.verb == "shadowshift") {
             if (!render::Active()) {
                 Log("harness: %s %s: not the new renderer (the original code): ignored", s.verb.c_str(), s.argument.c_str());

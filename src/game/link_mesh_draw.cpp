@@ -190,8 +190,8 @@ bool CLinkMesh::FlatColoursImpl(const stlp::string* name, std::uint32_t colour, 
 }
 EI_REWRITTEN(0x004F3AD0, CLinkMesh::FlatColoursImpl);
 
-// 004F3870 (slot 8, RET 0x18, AL). The arrays sized as above; the transform object lights the
-// part into `colours` (LightMesh, with the material's light vector); every specular is the alpha
+// 004F3870 (slot 8, RET 0x18, AL). The arrays sized as above; the colours the part lit on the GPU keeps
+// (R16i: CMaterial::GpuLitColour; the transform object's LightMesh lit them before); every specular is the alpha
 // byte in the top byte, over the material's specular colour (components times 255, truncated by
 // _ftol and OR-ed in unmasked) when the material keeps its speculars.
 bool CLinkMesh::LightPartImpl(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
@@ -202,10 +202,8 @@ bool CLinkMesh::LightPartImpl(const stlp::string* name, const FigureLights* ligh
     colours->SetSizeDiscard(r.normals.count * 4);
     speculars->SetSizeDiscard(r.normals.count * 4);
 
-    std::uint32_t lightVector[3];
-    std::memcpy(lightVector, &material->colors.emissive, sizeof(lightVector));
-    pipeline_->LightMesh(vertices_.data + r.vertices.start, normals_.data + r.normals.start, colours->data,
-                         words_.data + r.words.start, r.words.count, lights->data, lights->count, lightVector);
+    (void)lights;   // the GPU's (figure_part_draw.cpp, PartLighting)
+    Fill(*colours, material->GpuLitColour());
 
     const std::uint32_t alphaByte = static_cast<std::uint32_t>(alpha) & 0xFF;
     if (material->flags_ & kMaterialKeepsSpecular) {

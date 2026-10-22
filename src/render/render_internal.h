@@ -35,8 +35,9 @@ struct Vertex {
     std::uint32_t colour;     // D3DCOLOR (bytes B, G, R, A)
     std::uint32_t specular;   // D3DCOLOR; its alpha is the fog factor (255 no fog)
     float u, v;
+    Vector3 normal;           // model space (a figure mesh lit on the GPU, R16i), else zero
 };
-static_assert(sizeof(Vertex) == 28);
+static_assert(sizeof(Vertex) == 40);
 
 // One texture stage of the old device for a pass (D3DTEXTURESTAGESTATETYPE values).
 struct StageState {
@@ -149,6 +150,7 @@ struct MeshBatch {
     int light = -1;           // index into Frame::shadow.lights: it samples the shadow map (render_shadows.cpp)
     CachedMesh* cached = nullptr;   // the mesh kept on the GPU it draws (R16d), else the frame's stream
     float uOffset = 0.0f, vOffset = 0.0f;   // added to a cached mesh's texture coordinates (MeshDraw::moveUv)
+    int lighting = -1;        // index into Frame::meshLights: lit on the GPU (R16i), else the vertex colours
 };
 
 // A window surface's blit: the image read at the blit, the screen and source rectangles.
@@ -186,7 +188,7 @@ struct Command {
 struct ShadowParams {
     float on[4];       // x: on, y: strength, z: 1 the shadow alone (SetShadowView), w: constant depth bias
     float scale[4];    // xyz: shadow clip units to world units (normals), w: largest depth slope
-    float camera[4];   // xyz: the camera in shadow clip space, w: the receiver's own caster id (0: none; R22)
+    float camera[4];   // xyz: the camera in shadow clip space
     float soft[4];     // x: filter radius (uv) per unit of blocker distance (clip z), y: the blocker
                        // search's radius (uv, the widest filter), z: the narrowest filter (uv), w: texels a side
 };
@@ -199,12 +201,33 @@ struct LightParams {
     float sunColour[4];
     float ambient[4];
     float counts[4];       // x: the point lights
+    float mapSun[4];       // xyz: the direction the shadow map's light travels (MapLightDirection), unit
     float points[kMostSceneLights][2][4];   // position xyz, 1 / range squared; colour rgb, w: 1 specular
 };
-static_assert(sizeof(LightParams) == 64 + kMostSceneLights * 32);
+static_assert(sizeof(LightParams) == 80 + kMostSceneLights * 32);
 void LightUniforms(LightParams* params);
 // The sun's travel direction as kept (the terrain casters keep the faces turned away from it).
 Vector3 SceneSunDirection();
+// The direction the shadow map's light travels for the sun's `sun` (render::ShadowSun's): the sun at least
+// 20 degrees above the horizon, unit (render_shadows.cpp). False without a direction. The receivers lit on
+// the GPU weigh the map's darkening by their facing to it (the map's sun is what casts).
+bool MapLightDirection(const Vector3& sun, Vector3* travel);
+// A figure part lit on the GPU (R16i, render::MeshLighting; shaders/mesh.hlsl), as part of the mesh
+// shader's fragment uniforms: the sun and the lights in the part's model space, their colours times the
+// material's diffuse colour and the coefficient. MeshLightUniforms makes them (render_lighting.cpp); the
+// lights nearest the part's origin are kept, at most kMostMeshLights.
+constexpr int kMostMeshLights = 8;
+struct MeshLightParams {
+    float on[4];           // x: 1 lit, y: the crown's pull (0 none), z: the lights
+    float sun[4];          // xyz: towards the sun in model space (as the game's: the direction's inverse)
+    float sunColour[4];    // rgb: the sun's lit colour (none: 0)
+    float ambient[4];      // rgb
+    float emissive[4];     // rgb
+    float mapSun[4];       // xyz: towards the shadow map's light in model space (MapLightDirection), unit
+    float points[kMostMeshLights][2][4];   // model-space position xyz, 1 / range squared; lit colour rgb
+};
+static_assert(sizeof(MeshLightParams) == 96 + kMostMeshLights * 32);
+void MeshLightUniforms(const MeshLighting& lighting, MeshLightParams* params);
 
 // A frame's object shadows (R16j, render_shadows.cpp): the sun handed over, the objects casting, and
 // what PrepareShadows made of them: the matrices from each receiving mesh's model space (and the
@@ -226,6 +249,7 @@ struct Frame {
     std::vector<Vertex> meshVertices;
     std::vector<std::uint32_t> meshIndices;
     std::vector<MeshBatch> meshBatches;
+    std::vector<MeshLightParams> meshLights;   // MeshBatch::lighting (R16i)
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
     std::vector<CanvasBatch> canvasBatches;
@@ -480,7 +504,7 @@ void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly);
 // writes what changed into the pool (before a pass); BindCachedMesh binds the pool with the mesh's first
 // index. MeshCacheFrameDone (after a present) drops meshes not drawn for a long time; DropMeshCache
 // gives up the pool (the device is lost: the meshes are placed and written again at their next draw).
-constexpr std::size_t kCachedVertexBytes = 20;   // a kept corner's geometry: position, texture coordinates
+constexpr std::size_t kCachedVertexBytes = 32;   // a kept corner's geometry: position, texture coordinates, normal
 // Every mesh draw handed over (BeginMesh), before anything else: what it wrote, for KeepMesh.
 void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
@@ -491,6 +515,11 @@ void MeshCacheFrameDone();
 void DropMeshCache();
 // The figure mesh of the draw being handed over (render::SetMeshSource's owner), or null.
 const void* MeshSourceOwner();
+// The lighting of the draw being handed over (render::SetMeshSource's), or null (R16i).
+const MeshLighting* MeshSourceLighting();
+// The model-space normal of the corners with colour index `index` (its word's normal; R16i), zero
+// without normals or words.
+Vector3 CornerNormal(const MeshDraw& mesh, int index);
 
 // Object shadows (R16j, render_shadows.cpp; docs/notes/renderer.md section 13). PrepareShadows, once a
 // frame before its first pass on the world: fits the shadow map
@@ -499,15 +528,12 @@ const void* MeshSourceOwner();
 // (two small passes: the receivers' early end and blocker search). The receivers' shaders
 // include shaders/shadow_receiver.hlsli (ps: `shadow_amount`, from the light rows' map position), take
 // ShadowParams in their uniforms and bind the map (or a cleared 1 x 1 one) with BindShadowMap.
-// ShadowUniforms' `object`: the object the receiving batch belongs to (MeshBatch::caster; none for the
-// ground), whose own shadow only falls on its faces turned to the sun (R22).
 void PrepareShadows(Frame& frame);
 void DrawShadowMap(Frame& frame);
-void ShadowUniforms(const Frame& frame, bool receives, ShadowParams* params, const void* object = nullptr);
+void ShadowUniforms(const Frame& frame, bool receives, ShadowParams* params);
 void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot);
 // The shader descriptions of the map's texture (a depth view) and comparison sampler at the slots,
-// of its depth range per cell (RGBA32F, Load) with a point sampler at the slots after them, and of
-// its caster ids (R16UI, Load; R22) at the view slot after that.
+// and of its depth range per cell (RGBA32F, read filtered) with its sampler at the slots after them.
 void DescribeShadowMap(sg_shader_desc& s, int viewSlot, int samplerSlot);
 void DestroyShadows();
 // The game's hand-over (render_shadows.cpp): the object whose meshes are being handed over.

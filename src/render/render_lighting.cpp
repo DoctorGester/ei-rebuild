@@ -1,7 +1,8 @@
 // The GPU lighting's scene light (R16i; docs/notes/renderer.md section 16): what the world's draw hands
-// over once a frame (render::SceneLighting) kept for the terrain and mesh shaders' uniforms
+// over once a frame (render::SceneLighting) kept for the terrain shader's uniforms
 // (shaders/scene_lighting.hlsli). The point lights nearest the camera (by the distance to their reach)
-// are kept, at most kMostSceneLights.
+// are kept, at most kMostSceneLights. A figure part's light (render::MeshLighting) becomes the mesh
+// shader's uniforms (MeshLightUniforms) in the part's model space.
 #include "render.h"
 #include "render_internal.h"
 
@@ -60,7 +61,80 @@ bool GpuTerrainLighting() { return Active(); }
 
 namespace detail {
 
-void LightUniforms(LightParams* params) { *params = g_params; }
+void LightUniforms(LightParams* params) {
+    *params = g_params;
+    const ShadowFrame& sh = CurrentFrame().shadow;
+    Vector3 travel{params->sun[0], params->sun[1], params->sun[2]};
+    if (sh.haveSun) MapLightDirection(sh.sun, &travel);
+    params->mapSun[0] = travel.x;
+    params->mapSun[1] = travel.y;
+    params->mapSun[2] = travel.z;
+}
+
+void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
+    MeshLightParams p{};
+    // The model matrix's inverse: rows of its upper 3 x 3's inverse (the cross products of its columns
+    // over the determinant); the translation `at` taken off first.
+    const float* m = l.model.m;
+    const Vector3 ax{m[0], m[4], m[8]}, ay{m[1], m[5], m[9]}, az{m[2], m[6], m[10]};
+    const Vector3 at{m[3], m[7], m[11]};
+    Vector3 r0 = Cross(ay, az), r1 = Cross(az, ax), r2 = Cross(ax, ay);
+    const float determinant = vecmath::Dot<Sum3::XYZ>(ax, r0);
+    if (std::fabs(determinant) > 1e-20f) {
+        r0 /= determinant;
+        r1 /= determinant;
+        r2 /= determinant;
+    } else {   // singular: taken as the identity
+        r0 = Vector3{1.0f, 0.0f, 0.0f};
+        r1 = Vector3{0.0f, 1.0f, 0.0f};
+        r2 = Vector3{0.0f, 0.0f, 1.0f};
+    }
+    auto toModel = [&](const Vector3& v) {
+        return Vector3{vecmath::Dot<Sum3::XYZ>(r0, v), vecmath::Dot<Sum3::XYZ>(r1, v), vecmath::Dot<Sum3::XYZ>(r2, v)};
+    };
+    const float* diffuse = l.diffuseColour;
+    p.on[0] = 1.0f;
+    p.on[1] = l.crown ? 0.6f : 0.0f;   // 0073CDE0
+    if (l.sun) {
+        const Vector3 towards = toModel(-l.sunDirection);   // as 005A7A70's TransformSun (no translation)
+        p.sun[0] = towards.x;
+        p.sun[1] = towards.y;
+        p.sun[2] = towards.z;
+        for (int k = 0; k < 3; ++k) p.sunColour[k] = diffuse[k] * l.sunColour[k] * l.coefficient;
+    }
+    for (int k = 0; k < 3; ++k) {
+        p.ambient[k] = l.ambientColour[k];
+        p.emissive[k] = l.emissiveColour[k];
+    }
+    const ShadowFrame& sh = CurrentFrame().shadow;
+    Vector3 travel = l.sunDirection;
+    if (sh.haveSun) MapLightDirection(sh.sun, &travel);
+    const Vector3 towardsMap = toModel(-travel);
+    const float mapLength = Length<Sum3::XYZ>(towardsMap);
+    if (mapLength > 1e-20f) {
+        p.mapSun[0] = towardsMap.x / mapLength;
+        p.mapSun[1] = towardsMap.y / mapLength;
+        p.mapSun[2] = towardsMap.z / mapLength;
+    }
+    // The lights nearest the part's origin.
+    static std::vector<std::pair<float, int>> order;
+    order.clear();
+    for (int i = 0; i < l.lightCount && l.lights; ++i)
+        order.emplace_back(LengthSquared<Sum3::XYZ>(l.lights[i].position - at), i);
+    std::stable_sort(order.begin(), order.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    const int count = (std::min)(static_cast<int>(order.size()), kMostMeshLights);
+    for (int k = 0; k < count; ++k) {
+        const MeshLightSource& s = l.lights[order[static_cast<std::size_t>(k)].second];
+        const Vector3 position = toModel(s.position - at);
+        p.points[k][0][0] = position.x;
+        p.points[k][0][1] = position.y;
+        p.points[k][0][2] = position.z;
+        p.points[k][0][3] = s.inverseRangeSquared;
+        for (int j = 0; j < 3; ++j) p.points[k][1][j] = diffuse[j] * s.colour[j] * l.coefficient;
+    }
+    p.on[2] = static_cast<float>(count);
+    *params = p;
+}
 
 Vector3 SceneSunDirection() { return Vector3{g_params.sun[0], g_params.sun[1], g_params.sun[2]}; }
 

@@ -7,7 +7,8 @@
 // The material's state blocks are opaque to us, so the state is read back from the old device
 // rather than decoded; later the materials will be read from the game's data. A figure mesh drawn
 // through the figure part draws is kept on the GPU (render_mesh_cache.cpp, R16d) and its batches draw
-// from that pool; every other mesh is built into the frame's stream.
+// from that pool; every other mesh is built into the frame's stream. A figure part the game hands over
+// with its lighting (MeshSource::lighting, R16i) is lit in the shader from its normals.
 #include "render.h"
 #include "render_internal.h"
 
@@ -37,6 +38,7 @@ struct Pending {
     float fogScale = 0.0f;
     const void* caster = nullptr;   // render::BeginCaster's object
     CachedMesh* cached = nullptr;   // kept on the GPU (R16d), else built into the frame's stream
+    int lighting = -1;              // Frame::meshLights (R16i)
 };
 Pending g_pending;
 int g_dropped = 0;
@@ -81,6 +83,7 @@ bool Build(Frame& f, Pending& p) {
         v.position.z = block[8 + lane];
         v.colour = m.colours[c[1]];
         v.specular = m.speculars[c[1]];
+        v.normal = CornerNormal(m, c[1]);
         v.u = m.uvs[c[2] * 2];
         v.v = m.uvs[c[2] * 2 + 1];
         if (m.moveUv) {
@@ -106,8 +109,9 @@ struct VsParams {
     float shift[4];
     Matrix4 light;
     float uvOffset[4];
+    float normalOffset[4];   // x: world units (R16i)
 };
-static_assert(sizeof(VsParams) == 176);
+static_assert(sizeof(VsParams) == 192);
 struct FsParams {
     float fogColour[4];
     float factor[4];
@@ -120,8 +124,12 @@ struct FsParams {
     float patchMap[4];
     float patchInside[4];
     ShadowParams shadow;
+    MeshLightParams lighting;   // R16i
 };
-static_assert(sizeof(FsParams) == 224);
+static_assert(sizeof(FsParams) == 224 + sizeof(MeshLightParams));
+// How far along its normal a receiver's point is moved before it is looked up in the shadow map, in the
+// map's texels (as the ground's, shaders/terrain.hlsl).
+constexpr float kNormalOffset = 1.5f;
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
@@ -304,9 +312,9 @@ void ApplyPassState(sg_pipeline_desc& p, const PassState& s) {
 bool CreateMeshShader() {
     sg_shader_desc s{};
     SetBytecode(s, kMeshShader);
-    const char* const semantics[4] = {"POSITION", "COLOR", "COLOR", "TEXCOORD"};
-    const std::uint8_t indices[4] = {0, 0, 1, 0};
-    for (int i = 0; i < 4; ++i) {
+    const char* const semantics[5] = {"POSITION", "COLOR", "COLOR", "TEXCOORD", "NORMAL"};
+    const std::uint8_t indices[5] = {0, 0, 1, 0, 0};
+    for (int i = 0; i < 5; ++i) {
         s.attrs[i].base_type = SG_SHADERATTRBASETYPE_FLOAT;
         s.attrs[i].hlsl_sem_name = semantics[i];
         s.attrs[i].hlsl_sem_index = indices[i];
@@ -338,8 +346,9 @@ bool CreateMeshShader() {
 }
 
 void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly) {
-    // The frame's stream: Vertex (position, colour, specular, texture coordinates) in buffer 0. A mesh
-    // kept on the GPU: position and texture coordinates in buffer 0, colour and specular in buffer 1.
+    // The frame's stream: Vertex (position, colour, specular, texture coordinates, normal) in buffer 0. A
+    // mesh kept on the GPU: position, texture coordinates and normal in buffer 0, colour and specular in
+    // buffer 1.
     const int uv = positionsOnly ? 1 : 3;
     p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
     p.layout.attrs[0].offset = 0;
@@ -352,6 +361,8 @@ void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly) {
         p.layout.attrs[uv].offset = 20;
     }
     if (positionsOnly) return;
+    p.layout.attrs[4].format = SG_VERTEXFORMAT_FLOAT3;
+    p.layout.attrs[4].offset = cached ? 20 : 28;
     for (int k = 1; k <= 2; ++k) {
         p.layout.attrs[k].format = SG_VERTEXFORMAT_UBYTE4N;
         if (cached) {
@@ -414,7 +425,10 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     vs.uvOffset[0] = batch.uOffset;
     vs.uvOffset[1] = batch.vOffset;
     FsParams fs{};
-    ShadowUniforms(f, batch.light >= 0, &fs.shadow, batch.caster);
+    ShadowUniforms(f, batch.light >= 0, &fs.shadow);
+    if (fs.shadow.on[0] > 0.5f && fs.shadow.soft[3] > 0.0f)   // the map's texel in world units
+        vs.normalOffset[0] = fs.shadow.scale[0] * 2.0f / fs.shadow.soft[3] * kNormalOffset;
+    if (batch.lighting >= 0) fs.lighting = f.meshLights[static_cast<std::size_t>(batch.lighting)];
     fs.fogColour[0] = static_cast<float>((s.fogColour >> 16) & 0xFF) / 255.0f;
     fs.fogColour[1] = static_cast<float>((s.fogColour >> 8) & 0xFF) / 255.0f;
     fs.fogColour[2] = static_cast<float>(s.fogColour & 0xFF) / 255.0f;
@@ -489,6 +503,17 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending.device = static_cast<char*>(device);
     g_pending.matrix = AddMatrix(clip);
     g_pending.caster = CurrentCaster();
+    // A figure part lit on the GPU (R16i), unless the draw set its colours to the device's. Only its
+    // normals are read (the other mesh draws' callers may pass anything there).
+    if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
+        MeshLightParams params;
+        MeshLightUniforms(*lighting, &params);
+        f.meshLights.push_back(params);
+        g_pending.lighting = static_cast<int>(f.meshLights.size()) - 1;
+    } else {
+        g_pending.mesh.normals = nullptr;
+        g_pending.mesh.words = nullptr;
+    }
     // The old path fogs the projected vertices by distance (slot 35 of the transform object at the
     // pipeline's +0xC: range start +0x34, 255 / length +0x3C).
     g_pending.distanceFog = mesh.distanceFog;
@@ -544,6 +569,7 @@ bool MeshPass(void* device) {
         batch.flat = !g_pending.mesh.corners;
         batch.caster = g_pending.caster;
         batch.cached = g_pending.cached;
+        batch.lighting = g_pending.lighting;
         if (batch.cached && g_pending.mesh.moveUv) {   // the stream has them added (Build)
             batch.uOffset = g_pending.mesh.uOffset;
             batch.vOffset = g_pending.mesh.vOffset;

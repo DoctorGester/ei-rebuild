@@ -43,16 +43,14 @@ Texture2D<float> shadow_map : register(t1);
 SamplerComparisonState shadow_smp : register(s1);
 Texture2D<float4> shadow_range : register(t2);
 SamplerState shadow_linear : register(s2);   // the range, filtered (R25)
-Texture2D<uint> shadow_ids : register(t3);   // the caster id per map texel (R22)
-SamplerState shadow_point : register(s3);    // paired with the ids (read by Load)
 float4 ps_main(vs_out i) : SV_Target0 {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     float4 t = tex.Sample(smp, i.uv);
     if (flags.x > 1.5) return float4(t.r, 90.0 / 255.0, 165.0 / 255.0, 1.0);
     float hidden = 0.0;   // how much of the sun the map hides
     if (shadow_on.x > 0.5) {
-        hidden = shadow_amount(shadow_map, shadow_smp, shadow_range, shadow_linear, shadow_ids, i.shadow.xyz, dsx,
-                               dsy, shadow_on, shadow_scale, shadow_camera, shadow_soft, i.pos.xy) / shadow_on.y;
+        hidden = shadow_amount(shadow_map, shadow_smp, shadow_range, shadow_linear, i.shadow.xyz, dsx, dsy, shadow_on,
+                               shadow_scale, shadow_soft, i.pos.xy);
         if (shadow_on.z > 0.5) return float4((1.0 - hidden).xxx, 1.0);   // the harness's shadowview
     }
     float len = length(i.normal);

@@ -405,6 +405,11 @@ protected:
     CVisualizator();   // 00500440's work (SetUpBase)
 };
 
+// R16i: the ambient colour (r, g, b in 0..1) SetBaseColour last gave the transform object: 3DfpFPU's object
+// is one for every renderer, and its LightMesh lit the figure parts with it; the parts lit on the GPU
+// take it from here (figure_part_draw.cpp).
+const float* TransformAmbientColour();
+
 // The scene renderer (the global at 007AF060, 26 slots; 00500960 returns it). C19: a real virtual class over
 // CVisualizator, the compiler's table in place of game.exe's 0073D93C; the static initialiser's constructor
 // (00500A70) and the exit's destructor (00500AC0) construct and destroy it in place.

@@ -182,11 +182,6 @@ void BeginShadowWalk();
 void EndShadowWalk();
 enum class OffscreenCasters { View, All, Walked };
 void SetOffscreenCasters(OffscreenCasters mode);
-// SetShadowFacing (the harness build's "shadowfacing others|all", R22): others (the default): a receiver's
-// own object shadows only its faces turned to the sun, every other object all its faces; all: every caster
-// only the faces turned to the sun (as before R22: faces turned away kept as the game lit them).
-enum class ShadowFacing { Others, All };
-void SetShadowFacing(ShadowFacing mode);
 // The harness build's shadow map checks (R25). SetShadowView (its "shadowview on|off"): the receivers show
 // only how much sun the map hides (white lit, black at the full strength), no texture, colour or fog.
 // SetShadowShift (its "shadowshift <texels>"): the map's origin moved by that many whole texels across
@@ -379,6 +374,13 @@ struct MeshDraw {
     bool distanceFog;                  // the old path fogs the vertices by distance (device +0x158)
     float zScale;                      // the depth is multiplied by it (0 taken as 1)
     bool coloursWritten;               // the draw set every colour to the device's (flag 4)
+    // R16i: the normals (blocks of four as the positions; `normalCount` normals) and the words ((position,
+    // normal) index pairs, by the corners' colour index; `wordCount` of them) of a figure mesh lit on the
+    // GPU (MeshSource::lighting); null without.
+    const float* normals;
+    int normalCount;
+    const std::uint16_t* words;
+    int wordCount;
 };
 
 // A texture loaded from its .mmp file (00690430): `data` the file in memory, the levels from
@@ -516,6 +518,32 @@ struct TerrainCacheInfo {
 };
 TerrainCacheInfo TerrainCacheState();
 
+// R16i: a figure part lit on the GPU (the figure part draw 005A7A70; docs/notes/renderer.md section 16),
+// as 3DfpFPU's LightMesh lit its words: per channel the largest of the ambient colour, the sun (the
+// material's diffuse colour times the sun's colour times `coefficient`, times the cosine to the sun) and
+// each light (the same with its colour, times the cosine and 1 - distance^2 / range^2 where that is not
+// below 0), plus the emissive colour, at most 1; the alpha the diffuse colour's. The lights and the
+// sun are taken into the part's model space (the inverse of `model`); `crown`: the colours pulled 0.6 of
+// the way to the part's average (the flora's special light on the "crown" meshes).
+struct MeshLightSource {
+    Vector3 position;              // the landscape's space
+    float inverseRangeSquared;
+    float colour[3];
+};
+struct MeshLighting {
+    Matrix4 model;                 // the part's model space to the landscape's (row-major)
+    bool sun;                      // a sun (else no sun light)
+    Vector3 sunDirection;          // the direction its light travels
+    float sunColour[3];
+    float ambientColour[3];        // the transform object's (CVisualizator::SetBaseColour's last)
+    float diffuseColour[4];        // the material's
+    float emissiveColour[3];
+    float coefficient;             // the options' objects lighting coefficient (CLight::SetLitColors)
+    bool crown;
+    const MeshLightSource* lights;   // the lights within the object's reach (its draw's list)
+    int lightCount;
+};
+
 // R16d: the figure mesh the next mesh draws (004E9010 / 004E9A50) draw. The new renderer keeps the
 // mesh's corners (positions and texture coordinates in model space, colours) on the GPU under `owner`
 // and builds and uploads again only what the game says changed: the colours when the draw wrote them,
@@ -527,6 +555,7 @@ struct MeshSource {
     const void* shared;    // the link figure (CLinkMesh) whose part it draws, else null
     bool moved;            // the positions handed over are a copy with the per-vertex offsets added
     bool coloursWritten;   // this draw wrote the mesh's colour arrays (lit, flat colours)
+    const MeshLighting* lighting = nullptr;   // R16i: lit on the GPU (the draw's colours: only their alpha)
 };
 void SetMeshSource(const MeshSource* source);
 // The game changed a figure mesh (CFigureMesh) or link figure (CLinkMesh) in place: its vertices'

@@ -37,6 +37,7 @@ using namespace detail;
 struct MeshVertex {
     Vector3 position;
     float u, v;
+    Vector3 normal;   // CornerNormal (R16i)
 };
 static_assert(sizeof(MeshVertex) == kCachedVertexBytes);
 
@@ -64,13 +65,17 @@ struct MeshFrom {
     int cornerCount = 0;
     const std::uint16_t* indices = nullptr;
     int indexCount = 0;
+    const float* normals = nullptr;
+    const std::uint16_t* words = nullptr;
+    int wordCount = 0;
     MeshChanges own, link;   // the figure mesh's and the link figure's changes when built
     std::uint32_t colourWrites = 0;   // the colour array's (MeshChanged on the array's data)
 
     bool SameArrays(const MeshFrom& o) const {
         return shared == o.shared && positions == o.positions && positionCount == o.positionCount && colours == o.colours &&
                speculars == o.speculars && uvs == o.uvs && corners == o.corners && cornerCount == o.cornerCount &&
-               indices == o.indices && indexCount == o.indexCount && own.rebuilt == o.own.rebuilt &&
+               indices == o.indices && indexCount == o.indexCount && normals == o.normals && words == o.words &&
+               wordCount == o.wordCount && own.rebuilt == o.own.rebuilt &&
                link.rebuilt == o.link.rebuilt;
     }
     bool SamePositions(const MeshFrom& o) const {
@@ -138,18 +143,22 @@ MeshFrom FromOf(const MeshDraw& m) {
     f.cornerCount = m.cornerCount;
     f.indices = m.indices;
     f.indexCount = m.indexCount;
+    f.normals = m.normals;
+    f.words = m.words;
+    f.wordCount = m.wordCount;
     f.own = ChangesOf(g_source.owner);
     f.colourWrites = ChangesOf(m.colours).colours;
     f.link = ChangesOf(g_source.shared);
     return f;
 }
 
-// Corner `i`'s position (blocks of four vertices: x[4], y[4], z[4], 4 unused) and texture coordinates.
+// Corner `i`'s position (blocks of four vertices: x[4], y[4], z[4], 4 unused), texture coordinates and normal.
 MeshVertex CornerVertex(const MeshDraw& m, int i) {
     const std::uint16_t* c = m.corners + i * 3;
     const float* block = m.positions + (c[0] / 4) * 16;
     int lane = c[0] % 4;
-    return MeshVertex{{block[lane], block[4 + lane], block[8 + lane]}, m.uvs[c[2] * 2], m.uvs[c[2] * 2 + 1]};
+    return MeshVertex{{block[lane], block[4 + lane], block[8 + lane]}, m.uvs[c[2] * 2], m.uvs[c[2] * 2 + 1],
+                      CornerNormal(m, c[1])};
 }
 
 // The mesh's corners and triangles as the frame's stream builds them (render_mesh.cpp), in `out`;
@@ -375,6 +384,17 @@ void NoteMeshDraw(const MeshDraw& m) {
 }
 
 const void* MeshSourceOwner() { return g_haveSource ? g_source.owner : nullptr; }
+
+const MeshLighting* MeshSourceLighting() { return g_haveSource ? g_source.lighting : nullptr; }
+
+Vector3 CornerNormal(const MeshDraw& m, int index) {
+    if (!m.normals || !m.words || index >= m.wordCount) return Vector3{};
+    const int normal = m.words[index * 2 + 1];
+    if (normal >= m.normalCount) return Vector3{};
+    const float* block = m.normals + (normal / 4) * 16;
+    const int lane = normal % 4;
+    return Vector3{block[lane], block[4 + lane], block[8 + lane]};
+}
 
 int CachedIndexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.indices.size()); }
 

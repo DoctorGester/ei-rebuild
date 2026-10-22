@@ -1428,6 +1428,7 @@ void Present() {
     g_frame.meshVertices.clear();
     g_frame.meshIndices.clear();
     g_frame.meshBatches.clear();
+    g_frame.meshLights.clear();
     g_frame.blitBatches.clear();
     g_frame.clears.clear();
     g_frame.canvasBatches.clear();

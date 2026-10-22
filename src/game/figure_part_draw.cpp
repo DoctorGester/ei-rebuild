@@ -1,9 +1,9 @@
 // The draw of one figure part (005A7A70, thiscall on the part's drawer, RET 0x1C): the drawer's
 // mesh (FigureMeshDrawer::mesh_, a CFigureMesh) is clip-tested against the view; animated meshes
 // (type 13..16) are advanced to the current time; the mesh's colours are filled (flat meshes, flag
-// 0x100) or lit once (flag 0x10 marks them lit): the lights are moved into the mesh's space through
-// the inverse of the model matrix, the transform object (or the owner's figure) computes the
-// colours, the "crown" mesh is pulled 0.6 of the way to its average colour when 0079BD28 is set; then the
+// 0x100) or lit once (flag 0x10 marks them lit; R16i: the new renderer lights them on the GPU from the
+// part's light handed over with every draw, render::MeshLighting: the sun, the lights within reach, the
+// material, the "crown" mesh pulled 0.6 of the way to its average colour when 0079BD28 is set); then the
 // mesh is drawn through the device (004E9010 / 004E9A50, with the per-vertex offsets added into a
 // copy when there are any) or, when the mesh's owner has a figure (CObject3D::figure), through
 // that figure's own slots; the screen rectangle goes to the drawer and to `rect`. See
@@ -44,110 +44,19 @@ constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E48*/ {};
 lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }   // 005A8AE0
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
-// The ambient level the lights' colours are set with (0079BE9C, float bits), the "crown" option
-// (0079BD28) and the renderer (007AF060).
-std::uint32_t AmbientBits() { return std::bit_cast<std::uint32_t>(options::TheOptions()->objectsLightingCoeff_); }
+// The scale the lights' colours are set with (0079BE9C) and the "crown" option (0079BD28).
+float LightingCoefficient() { return options::TheOptions()->objectsLightingCoeff_; }
 int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 // 005A7160: the drawer's animation at a time (float bits). 005A7290: after the draw (the renderer).
-// A light's colours for a material (its two colours at +0x20 / +0x40) at the ambient level (float bits;
-// CLight::SetLitColors, 0068D280).
-void LightForMaterial(CLight* light, CMaterial* material, std::uint32_t ambient) {
-    light->SetLitColors(reinterpret_cast<const float*>(material), std::bit_cast<float>(ambient));
-}
 
 // The mesh's name: its slot 7, CEngineObject::GetName.
 const char* MeshName(CFigureMesh* mesh) { return mesh->GetName(); }
 
 // --- x87 sequences --------------------------------------------------------------------------------
-
-// The inverse of the model matrix's upper 3x4 part (`m` row-major 4x4, the translation in column
-// 3): out[0..11] three rows of four. Column 0's cofactors make the determinant and the inverse's
-// column 0; the doubles are what the original keeps on the FPU stack (the cofactor of m4, 1 / det,
-// out[2]); the others and the outputs are rounded to floats, and the translations reload the
-// rounded outputs. Returns 0 (out untouched) when the determinant is 0 (FCOM 0.0, TEST AH,40h).
-int InvertModelMatrix(const float* m, float* out) {
-    const double cofactor4 = static_cast<double>(m[2]) * m[9] - static_cast<double>(m[10]) * m[1];
-    const float cofactor8 = static_cast<float>(static_cast<double>(m[6]) * m[1] - static_cast<double>(m[2]) * m[5]);
-    const float cofactor0 = static_cast<float>(static_cast<double>(m[10]) * m[5] - static_cast<double>(m[9]) * m[6]);
-    const double det = DotUnrounded<Sum3::ZYX, double>(cofactor0, cofactor4, cofactor8, m[0], m[4], m[8]);
-    EI_NAN_AUDIT(det);
-    if (det == 0.0) return 0;
-    const double inverse = 1.0 / det;
-    out[0] = static_cast<float>(cofactor0 * inverse);
-    out[1] = static_cast<float>(cofactor4 * inverse);
-    const double out2 = cofactor8 * inverse;
-    out[2] = static_cast<float>(out2);
-    out[3] = static_cast<float>(-DotUnrounded<Sum3::ZXY, double>(out[0], out[1], out2, m[3], m[7], m[11]));
-    out[4] = static_cast<float>((static_cast<double>(m[8]) * m[6] - static_cast<double>(m[10]) * m[4]) * inverse);
-    out[5] = static_cast<float>((static_cast<double>(m[10]) * m[0] - static_cast<double>(m[8]) * m[2]) * inverse);
-    out[6] = static_cast<float>((static_cast<double>(m[2]) * m[4] - static_cast<double>(m[0]) * m[6]) * inverse);
-    // (y + z) + x and (y + x) + z in the original: the same sums.
-    out[7] = static_cast<float>(-DotUnrounded<Sum3::ZYX, double>(out[4], out[5], out[6], m[3], m[7], m[11]));
-    out[8] = static_cast<float>((static_cast<double>(m[9]) * m[4] - static_cast<double>(m[8]) * m[5]) * inverse);
-    out[9] = static_cast<float>((static_cast<double>(m[8]) * m[1] - static_cast<double>(m[0]) * m[9]) * inverse);
-    out[10] = static_cast<float>((static_cast<double>(m[0]) * m[5] - static_cast<double>(m[4]) * m[1]) * inverse);
-    out[11] = static_cast<float>(-DotUnrounded<Sum3::XYZ, double>(out[8], out[9], out[10], m[3], m[7], m[11]));
-    return 1;
-}
-
-// A light's position into the mesh's space: each row ((r2*z + r1*y) + r0*x) + r3, rounded once
-// (rows of four floats; the original writes z, y, x in that order).
-void TransformPoint(const float* rows, const float* point, float* out) {
-    for (int row = 2; row >= 0; --row) {
-        const float* r = rows + 4 * row;
-        out[row] = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(r[0], r[1], r[2], point[0], point[1], point[2]) + r[3]);
-    }
-}
-
-// The sun's direction into the mesh's space: the direction negated, no translation, with the
-// original's order per row: (z + y) + x for the z and y rows, (x + z) + y for the x row.
-void TransformSun(const float* rows, const float* direction, float* out) {
-    const double x = -static_cast<double>(direction[0]);
-    const double y = -static_cast<double>(direction[1]);
-    const double z = -static_cast<double>(direction[2]);
-    out[2] = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(x, y, z, rows[8], rows[9], rows[10]));
-    out[1] = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(x, y, z, rows[4], rows[5], rows[6]));
-    out[0] = static_cast<float>(DotUnrounded<Sum3::ZXY, double>(x, y, z, rows[0], rows[1], rows[2]));
-}
-
-// The "crown" mesh: every colour's channels pulled 0.6 of the way (0073CDE0) to the average colour.
-// The sums accumulate channel * (1 / count) unrounded (1 / count rounded to a float); the averages
-// are rounded, except that the first colour takes the red one unrounded (the original keeps it on
-// the FPU stack into the first iteration); the new channels are rounded to floats, then to integers
-// by FISTP; alpha is kept.
-void CrownBlend(std::uint32_t* colours, int count) {
-    constexpr float kPull = 0.6f;   // 0073CDE0
-    const float share = static_cast<float>(1.0 / static_cast<double>(count));
-    if (count <= 0) return;
-    const auto channel = [](std::uint32_t colour, int shift) { return static_cast<int>((colour >> shift) & 0xFF); };
-    double red = 0.0, green = 0.0, blue = 0.0;
-    for (int i = 0; i < count; ++i) {
-        const std::uint32_t colour = colours[i];
-        red += static_cast<double>(channel(colour, 16)) * share;
-        green += static_cast<double>(channel(colour, 8)) * share;
-        blue += static_cast<double>(channel(colour, 0)) * share;
-    }
-    const float redAverage = static_cast<float>(red);
-    const float greenAverage = static_cast<float>(green);
-    const float blueAverage = static_cast<float>(blue);
-    double redTarget = red;
-    for (int i = 0; i < count; ++i) {
-        const std::uint32_t colour = colours[i];
-        const int r = channel(colour, 16), g = channel(colour, 8), b = channel(colour, 0);
-        const float newRed = static_cast<float>((redTarget - r) * kPull + r);
-        const float newGreen = static_cast<float>((static_cast<double>(greenAverage) - g) * kPull + g);
-        const float newBlue = static_cast<float>((static_cast<double>(blueAverage) - b) * kPull + b);
-        const auto ri = static_cast<std::uint32_t>(x87::fistp(newRed));
-        const auto gi = static_cast<std::uint32_t>(x87::fistp(newGreen));
-        const auto bi = static_cast<std::uint32_t>(x87::fistp(newBlue));
-        colours[i] = ((((ri << 8) | gi) << 8) | (colour & 0xFF000000u)) | bi;
-        redTarget = redAverage;
-    }
-}
 
 // *target = *offset + *target (FLD offset, FADD, FSTP).
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
@@ -183,11 +92,13 @@ struct Part {
     CLinkMesh* figure;        // the mesh owner's figure (CObject3D::figure), or null
     int drawFlags;            // 1 rectangle wanted, 2 crossing the view, 8 material flag 0x10
     bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
+    const render::MeshLighting* lighting = nullptr;   // lit on the GPU (R16i; not a flat mesh)
 
     CFigureMesh* Mesh() const { return node->mesh_; }
     // The new renderer keeps the mesh on the GPU (R16d): what the device's draw below draws.
     render::MeshSource Source(bool throughFigure) const {
-        return render::MeshSource{Mesh(), throughFigure ? figure : nullptr, Mesh()->offsets_.size != 0, coloursWritten};
+        return render::MeshSource{Mesh(), throughFigure ? figure : nullptr, Mesh()->offsets_.size != 0, coloursWritten,
+                                  lighting};
     }
     ColourArray& Colours() const { return Mesh()->colorsA_; }
     ColourArray& Speculars() const { return Mesh()->colorsB_; }
@@ -216,48 +127,59 @@ void FlatColours(Part& part) {
     Fill(part.Speculars(), part.Mesh()->flatSpecular_);
 }
 
-// The inverse model matrix of the last call, used when the matrix is singular (the original then
-// reads stack slots it did not write, which usually hold the previous part's inverse).
-float g_lastInverse[12];
+// The part's light for the GPU (R16i, render::MeshLighting), every draw of a mesh that is not flat: the
+// model matrix (stack 3), the scene's sun (SceneSun), the ambient colour the transform object was given
+// (TransformAmbientColour), the material's diffuse and emissive colours, the options' coefficient, the
+// crown, and the lights within the object's reach (its draw's list; their positions in the landscape's
+// space). What 005A7A70 handed 3DfpFPU's LightMesh, which no longer runs.
+std::vector<render::MeshLightSource> g_partLights;
+render::MeshLighting g_partLighting;
 
-// Lighting (once, flag 0x10): the lights and the sun (SceneSun) into the mesh's space, their
-// colours for the material, then the figure (LightPart) or the transform object (LightMesh) lights
-// the mesh; the crown blend; the speculars become the alpha unless the material keeps them.
+const render::MeshLighting* PartLighting(const Part& part) {
+    render::MeshLighting& l = g_partLighting;
+    l = render::MeshLighting{};
+    l.model = *part.device->pipeline_->Top(3);
+    if (const CLight* sun = worlddata::SceneSun()) {
+        l.sun = true;
+        l.sunDirection = sun->direction_;
+        for (int k = 0; k < 3; ++k) l.sunColour[k] = sun->color_[k];
+    }
+    const float* ambient = TransformAmbientColour();
+    for (int k = 0; k < 3; ++k) l.ambientColour[k] = ambient[k];
+    const MaterialColors& c = part.material->colors;
+    l.diffuseColour[0] = c.diffuse.x;
+    l.diffuseColour[1] = c.diffuse.y;
+    l.diffuseColour[2] = c.diffuse.z;
+    l.diffuseColour[3] = c.diffuse.w;
+    l.emissiveColour[0] = c.emissive.x;
+    l.emissiveColour[1] = c.emissive.y;
+    l.emissiveColour[2] = c.emissive.z;
+    l.coefficient = LightingCoefficient();
+    l.crown = CrownOption() != 0 && libcrt::Stricmp(MeshName(part.Mesh()), "crown") == 0;
+    g_partLights.clear();
+    for (int i = 0; part.lights && i < part.lights->count; ++i) {
+        const CLight* light = part.lights->data[i];
+        g_partLights.push_back(render::MeshLightSource{light->localPosition_, light->inverseRangeSquared_,
+                                                       {light->color_[0], light->color_[1], light->color_[2]}});
+    }
+    l.lights = g_partLights.data();
+    l.lightCount = static_cast<int>(g_partLights.size());
+    return &l;
+}
+
+// Lighting (once, flag 0x10). R16i: the new renderer lights the part on the GPU (PartLighting); the
+// colours keep only LightMesh's alpha (the material's diffuse alpha; white otherwise), through the figure
+// (LightPart) or here; the speculars become the alpha unless the material keeps them. The transform
+// object is still given the scene's sun (it holds a reference to it, as before).
 void Light(Part& part) {
     part.coloursWritten = true;
-    CTransformPipeline* pipeline = part.device->pipeline_;
-    ITransformPipeline* transform = pipeline->transform_;
-    InvertModelMatrix(pipeline->Top(3)->m, g_lastInverse);
-    std::uint32_t ambient = AmbientBits();
-    for (int i = 0; i < part.lights->count; ++i) {
-        CLight* light = part.lights->data[i];
-        Vector3 moved;
-        TransformPoint(g_lastInverse, &light->localPosition_.x, &moved.x);
-        std::memcpy(&light->worldPosition_, &moved, sizeof(moved));
-        LightForMaterial(light, part.material, ambient);
-    }
-    if (CLight* sun = worlddata::SceneSun()) {
-        Vector3 moved;
-        TransformSun(g_lastInverse, &sun->direction_.x, &moved.x);
-        std::memcpy(&sun->localDirection_, &moved, sizeof(moved));
-        LightForMaterial(sun, part.material, ambient);
-        transform->AddSun(sun);
-    }
-
+    if (CLight* sun = worlddata::SceneSun()) part.device->pipeline_->transform_->AddSun(sun);
     if (part.figure) {
         const char* name = MeshName(part.Mesh());
         stlp::string s(name);
         part.figure->LightPart(&s, part.lights, part.material, part.alpha, &part.Colours(), &part.Speculars());
     } else {
-        std::uint32_t vector[3];
-        std::memcpy(vector, &part.material->colors.emissive, sizeof(vector));
-        CFigureMesh* mesh = part.Mesh();
-        transform->LightMesh(mesh->buffers_.vertices, mesh->buffers_.normals, part.Colours().data, mesh->buffers_.words,
-                             mesh->buffers_.wordCount, part.lights->data, part.lights->count, vector);
-    }
-
-    if (CrownOption() != 0 && libcrt::Stricmp(MeshName(part.Mesh()), "crown") == 0) {
-        CrownBlend(part.Colours().data, part.Colours().size);
+        Fill(part.Colours(), part.material->GpuLitColour());
     }
     if (!(part.material->flags_ & 0x10)) {
         Fill(part.Speculars(), (static_cast<std::uint32_t>(part.alpha) & 0xFF) << 24);
@@ -389,8 +311,9 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     std::uint32_t meshFlags = part.Mesh()->flags_;
     if (meshFlags & 0x100) {
         FlatColours(part);
-    } else if (!(meshFlags & 0x10)) {
-        Light(part);
+    } else {
+        part.lighting = PartLighting(part);
+        if (!(meshFlags & 0x10)) Light(part);
     }
 
     if (visibility == 1) part.drawFlags = 2;

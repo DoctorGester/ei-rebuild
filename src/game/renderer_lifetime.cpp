@@ -35,6 +35,8 @@ namespace {
 constexpr float kColourScale = 255.0f;          // 0073C370
 constexpr float kInverseColourScale = std::bit_cast<float>(0x3B808081u);   // 0073D904, 1 / 255
 constexpr std::uint32_t kFigureHidden = 0x80;   // CFigureMesh::flags_
+// TransformAmbientColour: what SetBaseColour gave the transform object last.
+float g_transformAmbientColour[3] = {};
 constexpr std::uint32_t kTextureIsLoaded = 8;   // CTexture::flags_ (CEngineObject)
 
 // 0078EDF8: "Final loading data to NULL texture!" and a newline.
@@ -96,9 +98,14 @@ void CVisualizator::SetBaseColour(std::uint32_t colour) {
     const int red = static_cast<int>((colour >> 16) & 0xFF);
     const int green = static_cast<int>((colour >> 8) & 0xFF);
     const int blue = static_cast<int>(colour & 0xFF);
-    transform->SetAmbient(red * kInverseColourScale, green * kInverseColourScale, blue * kInverseColourScale);
+    g_transformAmbientColour[0] = red * kInverseColourScale;
+    g_transformAmbientColour[1] = green * kInverseColourScale;
+    g_transformAmbientColour[2] = blue * kInverseColourScale;
+    transform->SetAmbient(g_transformAmbientColour[0], g_transformAmbientColour[1], g_transformAmbientColour[2]);
 }
 EI_REWRITTEN(0x00500740, CVisualizator::SetBaseColour);
+
+const float* TransformAmbientColour() { return g_transformAmbientColour; }
 
 void CVisualizator::SetSun(CLight* light) {
     CLight* old = sun_;

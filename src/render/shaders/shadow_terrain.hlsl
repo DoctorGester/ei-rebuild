@@ -13,8 +13,7 @@ vs_out vs_main(vs_in i) {
     o.normal = i.normal;
     return o;
 }
-// The caster id image (R22) gets 0: the ground is no object.
-uint ps_main(vs_out i) : SV_Target0 {
+// Depth only.
+void ps_main(vs_out i) {
     if (dot(i.normal, sun.xyz) < 0.0) discard;
-    return 0;
 }
