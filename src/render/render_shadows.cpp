@@ -14,6 +14,8 @@
 // R16i: the map holds depth only (R22's caster ids are gone): the receivers lit on the GPU take the sun
 // away by their normals' facing (a face turned away gets no sun to lose), the others are shadowed on their
 // faces turned to the sun; both look the map up a little along their normal (the normal offset).
+// R16i2: a unit's meshes (BeginCaster's `figure`) compare from the unit's nearest depth in the map
+// (FigureFronts): no shadow of its own, every other caster's on every face, no normal offset.
 //
 // Space: the meshes' matrices are clip matrices (projection x view x model), the terrain's the same
 // for the landscape's space; that space is the one the map is fitted in (the inverse of the
@@ -153,6 +155,7 @@ bool Invert(const M4& a, M4* out) {
 // --- The game's hand-over ---------------------------------------------------------------------------
 
 const void* g_caster = nullptr;     // BeginCaster .. EndCaster
+bool g_casterFigure = false;        // ... a unit's draw (R16i2)
 ShadowInfo g_info, g_lastInfo;
 
 // --- R20: casters outside the view --------------------------------------------------------------------
@@ -713,8 +716,14 @@ void ShadowSun(const float direction[3]) {
     s.sun = Vector3{direction[0], direction[1], direction[2]};
 }
 
-void BeginCaster(const void* object) { g_caster = object; }
-void EndCaster() { g_caster = nullptr; }
+void BeginCaster(const void* object, bool figure) {
+    g_caster = object;
+    g_casterFigure = figure;
+}
+void EndCaster() {
+    g_caster = nullptr;
+    g_casterFigure = false;
+}
 
 void CastsShadow(const void* object, float strength) {
     if (!Active() || !object) return;
@@ -865,9 +874,33 @@ bool ClassicShadowSkipped() { return Active(); }
 
 ShadowInfo ShadowState() { return g_lastInfo; }
 
+namespace {
+
+// R16i2: a unit's meshes take only the shadows other objects cast. Each unit's nearest depth in the map
+// (the least over its receiving meshes' boxes, MeshBatch::box, through their light matrices) is kept on
+// its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
+// none of the unit's own depths, all at or behind it, darkens it, and every caster nearer the sun does.
+void FigureFronts(Frame& f) {
+    std::unordered_map<const void*, float> fronts;
+    for (const MeshBatch& b : f.meshBatches) {
+        if (!b.figure || b.light < 0 || !b.caster) continue;
+        const float* row = f.shadow.lights[static_cast<std::size_t>(b.light)].m + 8;   // the map's depth
+        double z = row[3];
+        for (int k = 0; k < 3; ++k) z += row[k] * static_cast<double>(row[k] < 0.0f ? b.box[3 + k] : b.box[k]);
+        auto [it, added] = fronts.emplace(b.caster, static_cast<float>(z));
+        if (!added && z < it->second) it->second = static_cast<float>(z);
+    }
+    if (fronts.empty()) return;
+    for (MeshBatch& b : f.meshBatches)
+        if (b.figure && b.light >= 0 && b.caster) b.front = fronts[b.caster];
+}
+
+} // namespace
+
 namespace detail {
 
 const void* CurrentCaster() { return g_caster; }
+bool CurrentCasterFigure() { return g_caster && g_casterFigure; }
 
 void NoteCasterPart(const void* part) {
     if (part && !g_walkedOnly) g_drawnParts.insert(part);
@@ -928,6 +961,7 @@ void PrepareShadows(Frame& f) {
             ++g_info.receivingMeshes;
         }
     }
+    FigureFronts(f);
 
     ShadowParams p{};
     p.on[0] = 1.0f;

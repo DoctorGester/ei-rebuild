@@ -5,6 +5,9 @@
 // follows the receiver's plane (its depth slope across the map, clamped). A receiver weighs it by its
 // facing to the sun, so a face turned away is not shadowed (its own object's shadow there would be acne):
 // the ground by its normal (R16i), the meshes by their face normal (`shadow_facing`, the derivatives).
+// A unit's meshes instead (R16i2) compare from the unit's nearest depth (`front`): no shadow of its own
+// (that flipped face by face on a low-poly creature), every other caster's on every face, its sun side
+// shaded by its lighting's N.L alone.
 // Soft edges (R16j2), contact-hardening as PCSS. `range` holds, per kRangeCell-texel cell of the map,
 // the nearest and the farthest depth of the cells within the widest filter's reach and one cell more
 // (x, y), and the cell's own nearest (z). It is read filtered (`range_smp`: bilinear between the four
@@ -52,7 +55,8 @@ float shadow_facing(float3 s, float3 dsx, float3 dsy, float4 scale, float4 cam) 
     return saturate(-n.z * 6.0);   // the sun's light travels along +z
 }
 float shadow_amount(Texture2D<float> map, SamplerComparisonState smp, Texture2D<float4> range, SamplerState range_smp,
-                    float3 s, float3 dsx, float3 dsy, float4 on, float4 scale, float4 soft, float2 pixel) {
+                    float3 s, float3 dsx, float3 dsy, float4 on, float4 scale, float4 soft, float2 pixel,
+                    float front) {
     if (on.x < 0.5) return 0.0;
     float2 uv = float2(s.x * 0.5 + 0.5, 0.5 - s.y * 0.5);
     if (any(uv < 0.0) || any(uv > 1.0) || s.z > 1.0) return 0.0;
@@ -62,6 +66,12 @@ float shadow_amount(Texture2D<float> map, SamplerComparisonState smp, Texture2D<
     if (abs(det) > 1e-24) slope = float2(uy.y * dsx.z - ux.y * dsy.z, ux.x * dsy.z - uy.x * dsx.z) / det;
     slope = clamp(slope, -scale.w, scale.w);
     float z = s.z - on.w;
+    // A unit's mesh (R16i2): compared as a plane facing the light at its object's nearest depth (`front`;
+    // above 1: not a unit), so only what lies nearer the sun than all of the unit shadows it.
+    if (front <= 1.0) {
+        z = min(s.z, front) - on.w;
+        slope = 0.0;
+    }
     float4 around = range.SampleLevel(range_smp, uv, 0.0);
     float reach = (abs(slope.x) + abs(slope.y)) * soft.y;   // the receiver's plane across the search
     if (around.x >= z + reach) return 0.0;

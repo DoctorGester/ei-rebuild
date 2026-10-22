@@ -148,6 +148,11 @@ struct MeshBatch {
     bool flat = false;        // the flat geometry (004EA4A0: decals, markers), no corners
     const void* caster = nullptr;   // the object drawing it (render::BeginCaster), if any
     int light = -1;           // index into Frame::shadow.lights: it samples the shadow map (render_shadows.cpp)
+    // R16i2: a unit's mesh (render::BeginCaster's `figure`): its corners' box in model space (low xyz,
+    // high xyz), and the nearest map depth of its object's boxes (PrepareShadows; above 1: none).
+    bool figure = false;
+    float box[6] = {};
+    float front = 2.0f;
     CachedMesh* cached = nullptr;   // the mesh kept on the GPU it draws (R16d), else the frame's stream
     float uOffset = 0.0f, vOffset = 0.0f;   // added to a cached mesh's texture coordinates (MeshDraw::moveUv)
     int lighting = -1;        // index into Frame::meshLights: lit on the GPU (R16i), else the vertex colours
@@ -542,6 +547,8 @@ void DestroyShadows();
 // ShadowFrameEnd: the frame's passes are recorded (the harness build's GPU time); ShadowFrameDone: the
 // frame is presented (ShadowState reports it).
 const void* CurrentCaster();
+// The object of CurrentCaster is a unit (render::BeginCaster's `figure`, R16i2).
+bool CurrentCasterFigure();
 // A caster's mesh drawn this frame was the figure mesh `part` (render::CasterPartDrawn, R20).
 void NoteCasterPart(const void* part);
 void ShadowFrameEnd();

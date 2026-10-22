@@ -37,6 +37,8 @@ struct Pending {
     float fogNear = 0.0f;
     float fogScale = 0.0f;
     const void* caster = nullptr;   // render::BeginCaster's object
+    bool figure = false;            // ... a unit's (R16i2), with its corners' box in model space
+    float box[6] = {};
     CachedMesh* cached = nullptr;   // kept on the GPU (R16d), else built into the frame's stream
     int lighting = -1;              // Frame::meshLights (R16i)
 };
@@ -61,6 +63,25 @@ Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
 }
 
 const Matrix4 kIdentity = {{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}};
+
+// The box of a mesh's positions in model space (low xyz, high xyz); false without positions.
+bool PositionBox(const MeshDraw& m, float box[6]) {
+    if (!m.positions || m.positionCount <= 0) return false;
+    for (int k = 0; k < 3; ++k) {
+        box[k] = 1e30f;
+        box[3 + k] = -1e30f;
+    }
+    for (int i = 0; i < m.positionCount; ++i) {
+        const float* block = m.positions + (i / 4) * 16;
+        int lane = i % 4;
+        for (int k = 0; k < 3; ++k) {
+            float v = block[4 * k + lane];
+            box[k] = v < box[k] ? v : box[k];
+            box[3 + k] = v > box[3 + k] ? v : box[3 + k];
+        }
+    }
+    return true;
+}
 
 // The mesh's corners as vertices and its triangles, once per mesh (the passes share them).
 bool Build(Frame& f, Pending& p) {
@@ -124,9 +145,10 @@ struct FsParams {
     float patchMap[4];
     float patchInside[4];
     ShadowParams shadow;
+    float shadowFigure[4];      // x: a unit's mesh (R16i2), y: its object's nearest map depth (MeshBatch::front)
     MeshLightParams lighting;   // R16i
 };
-static_assert(sizeof(FsParams) == 224 + sizeof(MeshLightParams));
+static_assert(sizeof(FsParams) == 240 + sizeof(MeshLightParams));
 // How far along its normal a receiver's point is moved before it is looked up in the shadow map, in the
 // map's texels (as the ground's, shaders/terrain.hlsl).
 constexpr float kNormalOffset = 1.5f;
@@ -429,6 +451,11 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     if (fs.shadow.on[0] > 0.5f && fs.shadow.soft[3] > 0.0f)   // the map's texel in world units
         vs.normalOffset[0] = fs.shadow.scale[0] * 2.0f / fs.shadow.soft[3] * kNormalOffset;
     if (batch.lighting >= 0) fs.lighting = f.meshLights[static_cast<std::size_t>(batch.lighting)];
+    if (batch.figure && batch.front <= 1.0f) {   // a unit's (R16i2): no shadow of its own to keep off
+        fs.shadowFigure[0] = 1.0f;
+        fs.shadowFigure[1] = batch.front;
+        vs.normalOffset[0] = 0.0f;
+    }
     fs.fogColour[0] = static_cast<float>((s.fogColour >> 16) & 0xFF) / 255.0f;
     fs.fogColour[1] = static_cast<float>((s.fogColour >> 8) & 0xFF) / 255.0f;
     fs.fogColour[2] = static_cast<float>(s.fogColour & 0xFF) / 255.0f;
@@ -503,6 +530,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending.device = static_cast<char*>(device);
     g_pending.matrix = AddMatrix(clip);
     g_pending.caster = CurrentCaster();
+    g_pending.figure = CurrentCasterFigure() && PositionBox(mesh, g_pending.box);
     // A figure part lit on the GPU (R16i), unless the draw set its colours to the device's. Only its
     // normals are read (the other mesh draws' callers may pass anything there).
     if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
@@ -568,6 +596,8 @@ bool MeshPass(void* device) {
         batch.model = true;
         batch.flat = !g_pending.mesh.corners;
         batch.caster = g_pending.caster;
+        batch.figure = g_pending.figure;
+        std::memcpy(batch.box, g_pending.box, sizeof(batch.box));
         batch.cached = g_pending.cached;
         batch.lighting = g_pending.lighting;
         if (batch.cached && g_pending.mesh.moveUv) {   // the stream has them added (Build)
