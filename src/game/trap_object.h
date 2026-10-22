@@ -24,7 +24,6 @@ public:
     // cleared. The destructor is the map object's (00529B50 jumps there: no Destroy).
     CTrapObject();
     // The deleting destructor (slot 0, 00529B30) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int Create() override { return CreateTrap(); }         // 2: 00529B60
     int RunTick() override { return UpdateTrap(); }        // 6: 00529B80

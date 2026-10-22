@@ -62,7 +62,6 @@ void CStream::ReplaceTagged(std::uint32_t id, CStream* replacement, CStream* out
     out->reading_ = 0;
     bool replaced = false;
     CMemoryStream block;
-    block.Construct();
     std::uint32_t tag;
     while (ReadTagged(&tag, &block)) {
         if (tag == id) {
@@ -73,7 +72,6 @@ void CStream::ReplaceTagged(std::uint32_t id, CStream* replacement, CStream* out
         }
     }
     if (!replaced) WriteTagged(out, id, replacement);
-    block.Destruct();
 }
 EI_REWRITTEN(0x004A4AF0, CStream::ReplaceTagged);
 

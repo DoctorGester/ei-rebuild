@@ -563,7 +563,7 @@ void SavedParties::Select(const MpHeroRecord* hero) { outsideGame_.Assign(hero);
 EI_REWRITTEN(0x00662F80, SavedParties::Select);
 
 MpHeroRecord* MpHeroRecord::Construct() {
-    Party()->Construct();   // 00661050 by address: its wrapper runs
+    new (Party()) CParty();
     new (&file) mfc::CString();
     return this;
 }
@@ -571,7 +571,7 @@ EI_REWRITTEN(0x00619540, MpHeroRecord::Construct);
 
 void MpHeroRecord::Destruct() {
     file.~CString();
-    static_cast<CParty*>(Party())->DestructBody();   // 006611D0 by address: its wrapper runs
+    Party()->CParty::~CParty();
 }
 EI_REWRITTEN(0x00619560, MpHeroRecord::Destruct);
 

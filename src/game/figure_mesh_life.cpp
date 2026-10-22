@@ -285,15 +285,14 @@ EI_REWRITTEN(0x0059F3D0, CFigureMesh::SetObject);
 
 CFigureManager::CFigureManager() { models_.InitBuckets(100); }
 
-CFigureManager* CFigureManager::Construct() { return new (this) CFigureManager(); }
-EI_REWRITTEN(0x005AA070, CFigureManager::Construct);
+EI_REWRITTEN_SPECIAL(0x005AA070, CFigureManager::CFigureManager);
 
 CEngineObject* CFigureManager::NewObject(int type) {
     return static_cast<CEngineObject*>(::CreateFigureObject(type));
 }
 
 CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {
-    CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
+    CEngineObject* object = CBaseManager::CreateObject(type, id);
     if (type < kFirstFigureClass || type > kLastFigureClass || object == nullptr) return object;
     CBaseManager* drawers = context_->SpecificManager();
     auto* drawer = drawers->CreateObjectAs<FigureMeshDrawer>(kDrawerClass, -1);

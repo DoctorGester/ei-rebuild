@@ -61,7 +61,7 @@ record size, signed, as the original computes it, also for a null record), `Name
 a null record filed under a new name). The trader stock's vectors hold typed record pointers (item_stock.h).
 
 Loading (item_db_load.cpp; O; startup, every scenario): `QuickItemTable / QuestItemTable / LootItemTable::Load`
-(a stack archive: ConstructLocal, Open, the vector serialisers, Close; then each record filed under its name with
+(a stack archive: a `ChunkArchive` local, Open, the vector serialisers, Close; then each record filed under its name with
 find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h; Rebirth's patched 006A67A0 calls them by address),
 `ChunkArchive::SerializeQuickItems / SerializeLoot / SerializeQuestItems` (the quest_records.cpp pattern; the loads call
 them by address), `SerializeMaterials / Weapons / Armors`, `ItemDatabase::DestructBody` 006A6570 (007C86D8; six tables last
@@ -132,9 +132,9 @@ Verification: `PartyUnitRecord::Construct`, `ConstructPartyUnitRecords` (stdcall
 CItemConstructor / CSpellConstructor::Construct are S on seeded scratch (the party's variable map: bucket count and
 emptiness); Destruct, ClearItems, `PartyMemberArray::SetSize` (CParty +0x2C, MFC CArray<PartyUnitRecord>, vtable 00742FF4),
 `Serialize` (= `mfc::CArray::Serialize` with a minimal `mfc::CArchive`; vtable slot only, no caller), CParty
-DestructBody/DeletingDestruct/CreateParty (2)/DestroyParty (3)/Clear (RET 8) and `CSpellManager::Construct` (an empty map of
+destructor / Create / Destroy / Clear (RET 8) and `CSpellManager::Construct` (an empty map of
 193 buckets at +0xBC) are O. Record Load / Save, `LoadParty` / `SaveParty` (RET 8; the flag covers the variables; SaveParty
-draws the ISAAC key for +0x50, restored between runs), `Assign`, `CopyConstruct` (`party_save.cpp`): saves S into a scratch
+draws the ISAAC key for +0x50, restored between runs), `Assign`, the copy constructor (`party_save.cpp`): saves S into a scratch
 memory stream; record Load round-trips through Save; the rest O. `party_members.cpp` (O; party_records, ui_hero_screen
 (00616AC0)): `AddMember`, `FillFromPrototype` (takes the lists straight from the prototype instead of through 005143E0's
 CStringArrays: same names, same order), `Assign` (shallow: item list pointers copied), `CopyItemsFrom` (party slot 24 copies),
@@ -152,7 +152,7 @@ A constructed record has seven empty strings, empty lists, +0x724 0.8, +0x728 0.
 records, +0x40 items, +0x50, +0x54 hash_map<CString, float> variables, +0x68 zone name, +0x6C. Create attaches both managers
 to the party (slot 13), so the party is the context of its items (CItem::LoadItem's slot 22 finds the party's spell manager).
 Clear(1, 0) after Create re-attaches the spell manager. Global 007C8344 = the party being loaded (LoadingParty). StatsLoad /
-StatsSave are in originals_units.h. DestroyParty drops the four objects by count and deletes them whatever the count;
+StatsSave are in originals_units.h. Destroy drops the four objects by count and deletes them whatever the count;
 AddMember assigns the stack record's uninitialised statistics to the new record (BuildNpcStats overwrites them).
 
 ## Item texts (004E0000-004E15C0; item_db_text, scenario items)
@@ -432,8 +432,8 @@ table (+0xBC) maps a key to a D3DMATERIAL7 (MaterialColors); an absent key is en
 found) is `stlp::deque<T>` now; its instantiations went to library.csv. Not hookable: 0068DCF0 (slot 7, 4 bytes). Differs:
 NewMaterial returns null on a failed creation (the original faults).
 
-**Small slots and copies (A-H24).** class_names_640.cpp: the name / id slots (11 / 12) of CParty, the twelve CEffect*
-classes, CSpell, CTexture, the six CItem* classes and CItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
+**Small slots and copies (A-H24).** The name / id slots (11 / 12) of CParty, the twelve CEffect* classes
+(world_effect_lifetime.cpp), CSpell, CTexture, the six CItem* classes and CItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
 manager's folder, 0067E150 the effect manager's Create (world_managers.cpp, O). Party containers (party_lifetime.cpp, O):
 `CArray<PartyUnitRecord>` destructor body / slot 0, DestructElements, the record's deleting destructor; ui_hero_screen_click.cpp:
 MpHeroRecord's deleting destructor, copy() of hero records (Assign each). Byte-identical copies registered beside their
@@ -458,7 +458,7 @@ Smaller ports (names in the code; V as above), grouped by what they are:
   DestructBody / DeletingDestruct (O), `CTextureManager::GetFileData / NewTextureOfType / FindOrCreate (named, not loaded; no
   null check) / FindOrLoad` (O), `ReloadAll` (after a lost device: no scenario), `TrimCache` (cached bytes against
   videoMemoryTenth_, signed; every 32 client ticks; O), the effect base's out-of-line destructor, slot 0, constructor, missile
-  Reset, default Tick, ReadSavedStrings (effects.md; O, TickDefault P, constructor and ReadSavedStrings S).
+  Reset, default RunTick, ReadSavedStrings (effects.md; O, RunTick P, constructor and ReadSavedStrings S).
 - Records: `ArmorRecord / QuickItemRecord / QuestItemRecord / LootItemRecord` assignment (item_db_records.cpp; O),
   `ItemRecordHead::ConstructBase` (vtable 00744060), `MaterialRecordHead::CopyConstruct` (S), `QuestBriefingTable::Add`
   (quest_records.h: the database's +0x20, vector + index by name; push_back 006B0780, clear 006B0590, find 006B0930 through

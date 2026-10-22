@@ -829,7 +829,7 @@ EI_REWRITTEN(0x00484710, CParticleSource::Clear);
 
 // 00485540 (vtable slot 2). Sets the source up for its type; 1, or for an unknown type the fatal
 // error report's result.
-int CParticleSource::CreateForType() {
+int CParticleSource::Create() {
     Reset();
     std::uint32_t farBound = 0x47C35000;     // 100000.0f
     SetBits(&boundsMin.x, farBound);
@@ -853,7 +853,7 @@ int CParticleSource::CreateForType() {
     BuildFrames(this);
     return 1;
 }
-EI_REWRITTEN(0x00485540, CParticleSource::CreateForType);
+EI_REWRITTEN(0x00485540, CParticleSource::Create);
 
 // --- Factory and destructor ----------------------------------------------------------------------
 
@@ -867,39 +867,37 @@ namespace {
 // empty element array, bounds, particle list (blocks of 10), frame rectangles and texture holder,
 // then Reset and the type. The original's EH frame only unwinds the member constructors, none of
 // which can throw.
-CParticleSource* __stdcall NewParticleSource(int type) {
-    // The source starts zeroed (SV7b7): nothing here or in Reset sets the emission point (origin, +0x98) and
-    // the first Tick takes the motion from it, so a source never attached emitted distance / emitSpacing
-    // tries (each a GlobalRandom draw) from whatever the heap held. The harness zeroes the original's alike.
-    auto* s = gamecrt::operator_new_zeroed_as<CParticleSource>();
-    if (!s) return nullptr;
-    EngineObjectConstruct(s);
-    s->localRotation_.SetIdentity();
-    s->worldRotation_.SetIdentity();
-    ei::SetVtable(s, CTransformObject::BaseVtable());
-    s->elements = nullptr;
-    s->elementGrowBy = 0;
-    s->elementCapacity = 0;
-    s->elementCount = 0;
-    std::memset(static_cast<void*>(&s->clip), 0, offsetof(CParticleSource, particles) - offsetof(CParticleSource, clip));
-    ei::SetVtable(&s->particles, mfc::impl::ClientListClass::Vtable());
-    s->particles.count = 0;
-    s->particles.free = nullptr;
-    s->particles.tail = nullptr;
-    s->particles.head = nullptr;
-    s->particles.blocks = nullptr;
-    s->particles.blockSize = 10;
+// A source never attached emits distance / emitSpacing tries (each a GlobalRandom draw) from the
+// emission point it was allocated with, so the memory comes zeroed.
+void* CParticleSource::operator new(std::size_t size) noexcept { return gamecrt::operator_new_zeroed(size); }
+
+CParticleSource::CParticleSource(int type) {
+    ClearFields();
+    localRotation_.SetIdentity();
+    worldRotation_.SetIdentity();
+    elements = nullptr;
+    elementGrowBy = 0;
+    elementCapacity = 0;
+    elementCount = 0;
+    std::memset(static_cast<void*>(&clip), 0, offsetof(CParticleSource, particles) - offsetof(CParticleSource, clip));
+    ei::SetVtable(&particles, mfc::impl::ClientListClass::Vtable());
+    particles.count = 0;
+    particles.free = nullptr;
+    particles.tail = nullptr;
+    particles.head = nullptr;
+    particles.blocks = nullptr;
+    particles.blockSize = 10;
     // 00498E20 (the frame rectangle array) and 004983F0 (the texture holder) only zero their fields.
-    s->frames.data = nullptr;
-    s->frames.growBy = 0;
-    s->frames.capacity = 0;
-    s->frames.size = 0;
-    s->texture = nullptr;
-    ei::SetVtable(s, CParticleSource::Vtable());
-    s->Reset();
-    s->type_ = type;
-    return s;
+    frames.data = nullptr;
+    frames.growBy = 0;
+    frames.capacity = 0;
+    frames.size = 0;
+    texture = nullptr;
+    Reset();
+    type_ = type;
 }
+
+CParticleSource* __stdcall NewParticleSource(int type) { return new CParticleSource(type); }
 EI_REWRITTEN(0x004981B0, NewParticleSource);
 
 CEngineObject* CParticleManager::NewObject(int type) {
@@ -909,8 +907,7 @@ CEngineObject* CParticleManager::NewObject(int type) {
 // 00498310. The destructor body: Clear (particles back to the pool, detached, Reset), release the
 // texture and free the frame rectangles if any are left, empty the particle list and free its
 // blocks, free the element array, then the engine object's base destructor.
-void CParticleSource::Destruct() {
-    ei::SetVtable(this, Vtable());
+CParticleSource::~CParticleSource() {
     Clear();
     if (texture) texture->Release();
     if (frames.data) lib::AlignedArray<SourceFrame>::Free(frames.data);
@@ -922,41 +919,14 @@ void CParticleSource::Destruct() {
     mfc::PlexFreeDataChain(particles.blocks);
     particles.blocks = nullptr;
     if (elements) lib::FreeAligned32(elements);
-    ei::SetVtable(this, CTransformObject::BaseVtable());
-    DestructBase();
 }
-EI_REWRITTEN(0x00498310, CParticleSource::Destruct);
+EI_REWRITTEN_SPECIAL(0x00498310, CParticleSource::~CParticleSource);
+EI_REWRITTEN_SPECIAL(0x004982F0, CParticleSource::~CParticleSource);
 
-// 004982F0 (slot 0, RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns this.
-CParticleSource* CParticleSource::DeletingDestruct(int flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x004982F0, CParticleSource::DeletingDestruct);
-
-// 004982D0 / 004982E0 (slots 11 / 12): the exe's "CParticle" (0078B020) and class id 12.
-const char* __fastcall ParticleSourceClassName(CParticleSource*) { return "CParticle"; }
-int __fastcall ParticleSourceClassId(CParticleSource*) { return 12; }
-EI_REWRITTEN(0x004982D0, ParticleSourceClassName);
-EI_REWRITTEN(0x004982E0, ParticleSourceClassId);
-
-namespace {
-// The compiled table (C19, engine_object_class.h): 2 Create, 3 Clear, 6 the tick, 11 / 12.
-class ParticleSourceClass final : public TransformObjectClass<ParticleSourceClass, CParticleSource> {
-public:
-    int Create() override { return Source()->CreateForType(); }                         // 2: 00485540
-    void Destroy() override { Source()->Clear(); }                                      // 3: 00484710
-    int RunTick() override { return Source()->Tick(); }                                 // 6: 00496EB0
-    const char* ClassName() override { return ParticleSourceClassName(Source()); }      // 11: 004982D0
-    int ClassId() override { return ParticleSourceClassId(Source()); }                  // 12: 004982E0
-
-private:
-    CParticleSource* Source() { return As<CParticleSource>(); }
-};
-} // namespace
-
-void* CParticleSource::Vtable() { return ParticleSourceClass::Vtable(); }
+const char* CParticleSource::GetClassName() { return "CParticle"; }
+int CParticleSource::GetClassId() { return 12; }
+EI_REWRITTEN(0x004982D0, CParticleSource::GetClassName);
+EI_REWRITTEN(0x004982E0, CParticleSource::GetClassId);
 
 // 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310, 004957D0, 00495A20, 00496260,
 // 004965D0: the element callbacks that do nothing (RET 4 each, no Ghidra functions), one per type that

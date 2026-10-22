@@ -42,7 +42,7 @@ CPlayer* CPlayer::Construct() {
     maxUnitId_ = 0;
     knownTimed_.InitBuckets(100);
     maxTimedId_ = 0;
-    Party()->Construct();
+    new (Party()) CParty();
     InitList(items_, mfc::impl::ItemListClass::Vtable());
     partyId_ = 0;
     InitList(recharging_, mfc::impl::PlayerListClass::Vtable());   // an MFC CList instantiation
@@ -76,7 +76,7 @@ void CPlayer::DestructBody() {
     recharging_.RemoveAll();
     items_.vtable = mfc::impl::ItemListClass::Vtable();
     items_.RemoveAll();
-    Party()->DestructBody();
+    Party()->~CParty();
     knownTimed_.Destroy();
     units_.Destroy();
     knownObjects_.Destroy();

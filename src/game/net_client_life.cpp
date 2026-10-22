@@ -18,9 +18,6 @@ namespace net {
 
 namespace {
 
-// The two parties (00661050 class, outside this range).
-void __fastcall PartyDestruct(void* a0) { static_cast<CParty*>(a0)->DestructBody(); }
-
 // The release a counted pointer's destructor inlines: one reference less, deleted at zero.
 void ReleaseInline(void* slot) {
     auto* object = static_cast<CRefObject*>(slot);
@@ -34,8 +31,8 @@ void ReleaseInline(void* slot) {
 // 0041CA10: the destructor body. The client's own vtable is not restored first (the original does
 // not either).
 void ClientSession::Destruct() {
-    PartyDestruct(&parties_[1]);
-    PartyDestruct(&parties_[0]);
+    parties_[1].Get()->CParty::~CParty();
+    parties_[0].Get()->CParty::~CParty();
     if (trade_) trade_->Release();
     tradeRecords_.Release<recordlist::TradeElement>();
     offers_.Release();

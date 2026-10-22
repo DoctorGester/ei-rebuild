@@ -122,10 +122,6 @@ void EffectParticle::ReleaseSource() {
 }
 EI_REWRITTEN(0x00511290, EffectParticle::ReleaseSource);
 
-// 00510340. A network record's destructor (the map object's destructor body, the record arrays'
-// SetSize and the arrow effects call it): net_delta.h's, the four streams' destructor bodies.
-EI_REWRITTEN(0x00510340, DeltaField::Destruct);
-
 // --- The compiled tables (C19) -------------------------------------------------------------------------
 // Compiled tags (engine_object_class.h) in place of game.exe's 0073DC54 (the base companion), 0073DBEC
 // (CMapObjectClientSpecific) and 0073DD6C (CMapObjectServer, one slot more: 20 TakeHit; its slot 14, 00515810, is

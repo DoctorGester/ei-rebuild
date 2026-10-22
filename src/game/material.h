@@ -50,7 +50,6 @@ public:
     // 0068DE30. The deque emptied and freed, the names, the engine object.
     ~CMaterial() override;
     // The deleting destructor (slot 0, 0068DD20) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     // 2: 0068DF90. Empty names, alpha 1, +0x90 / +0x98 0, the deque emptied; returns 1.
     int Create() override;
@@ -97,12 +96,6 @@ public:
     int GetClassId() override;               // 12: 0068E510 (0x27)
     const char* GetFolderName() override;    // 25: 0068E4F0 "materials"
 
-    // The registrations (C20 retires them): 0068E3F0 the constructor in place (returns this),
-    // 0068E540 the destructor, 0068E520 (slot 0) the destructor, then operator delete when bit 0
-    // of `flags` is set (returns this).
-    CMaterialManager* Construct();
-    void Destruct();
-    CMaterialManager* DeletingDestruct(unsigned flags);
     // 2: 0068E640 (A-H26; Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
     // Create (0 when it fails); the archive "materials.res" of the text folder (007AF45C) added;
     // then the colours of each of the eight kinds of kMaterialKindFiles (0x11 leather, wood,
@@ -113,7 +106,6 @@ public:
     int Create() override;
     // 14: 0068E900. A new CMaterial with type_ = `type`; null when the allocation fails.
     CEngineObject* NewObject(int type) override;
-    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
     // 0068E970 (RET 4). A material of `type` (slot 23 with id -1, flags_ |= 8 before the null
     // check) given the table's colours for its type_ (an absent key is entered first, its colours
     // the key's bits in every dword).
@@ -139,9 +131,3 @@ inline const void* MaterialFileColors(const void* data) {
     return static_cast<const char*>(data) + nameLength + 2;
 }
 
-// 0068E4F0 "materials", 0068E500 "CMaterialManager", 0068E510 0x27 (slots 25, 11, 12).
-const char* __fastcall MaterialManagerFolder(CMaterialManager* self);
-const char* __fastcall MaterialManagerClassName(CMaterialManager* self);
-int __fastcall MaterialManagerClassId(CMaterialManager* self);
-const char* __fastcall MaterialClassName(CMaterial* self);
-int __fastcall MaterialClassId(CMaterial* self);

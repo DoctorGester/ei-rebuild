@@ -169,9 +169,9 @@ void ClientSession::RecordTrade(const void* party) {
     TradeRecord* record = &tradeRecords_.End()->prev->data;   // the node just added
     record->acceptedRevision = ours->acceptedRevision_;
     record->revision = ours->revision_;
-    record->parties[0].Party()->Assign(parties_[0].Party());   // 00661300
-    record->parties[1].Party()->Assign(parties_[1].Party());
-    record->parties[2].Party()->Assign(static_cast<CParty*>(const_cast<void*>(party)));
+    record->parties[0]->Assign(parties_[0].Get());   // 00661300
+    record->parties[1]->Assign(parties_[1].Get());
+    record->parties[2]->Assign(static_cast<CParty*>(const_cast<void*>(party)));
 }
 EI_REWRITTEN(0x0041E0A0, ClientSession::RecordTrade);
 

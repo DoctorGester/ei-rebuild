@@ -31,7 +31,6 @@ const char* FogTextureName() { return "VisionFog"; }
 constexpr int kFogTiles = 16;
 constexpr float kFogTileSize = 0.25f;
 
-constexpr std::size_t kFogBuckets = 100;   // the hint the cell map is created with
 
 // The manager's current-object slot holds the fog texture.
 HeldTexture* TextureHolder(ClientArrayManager* self) { return reinterpret_cast<HeldTexture*>(&self->current); }
@@ -40,20 +39,8 @@ HeldTexture* TextureHolder(ClientArrayManager* self) { return reinterpret_cast<H
 
 // 004E2290 (slot 14, RET 4): a new CVisibilityFog, whatever the type asked: the engine object's
 // fields, everything up to the cell map zero, an empty cell map; null when the allocation fails.
-CEngineObject* ClientArrayManager::NewObjectImpl(int) {
-    CVisibilityFog* memory = gamecrt::operator_new_as<CVisibilityFog>();
-    if (!memory) return nullptr;
-    auto* fog = memory;
-    CEngineObject* object = fog;
-    ei::SetVtable(fog, CEngineObject::BaseVtable());
-    object->ClearFields();
-    std::memset(static_cast<void*>(&fog->bounds), 0, offsetof(CVisibilityFog, cells) - offsetof(CVisibilityFog, bounds));
-    fog->cells.InitBuckets(kFogBuckets);
-    ei::SetVtable(fog, CVisibilityFog::Vtable());
-    fog->boundsValid = 0;
-    return object;
-}
-EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObjectImpl);
+CEngineObject* ClientArrayManager::NewObject(int) { return new CVisibilityFog(); }
+EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObject);
 
 // 004E2990 (slot 2, Create): the texture, the tile table, then the manager's own Create (its
 // result).
@@ -104,7 +91,6 @@ EI_REWRITTEN(0x004E2760, VisFogManagerTick);
 int ClientArrayManager::Create() { return VisFogManagerCreate(this); }
 void ClientArrayManager::Destroy() { VisFogManagerDestroy(this); }
 int ClientArrayManager::RunTick() { return VisFogManagerTick(this); }
-CEngineObject* ClientArrayManager::NewObject(int type) { return NewObjectImpl(type); }
 
 // 004E28D0: a new fog (CreateObject(0, -1): registered and created), counted, at the list's end.
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* self) {

@@ -1,8 +1,9 @@
 #pragma once
 
 // The global map's moving cloud layer (A-S4; global_map_clouds.cpp): an abstract noise texture
-// (BaseVtable(), in place of game.exe's 0073D030: two pure slots and its deleting destructor 00499E30) whose only
-// class is the global map's (MapVtable(), in place of 007420D4: 0049A090, 0049A220, 0062EDA0). Three greyscale frames of
+// (CCloudNoise; game.exe's 0073D030: two pure slots and its deleting destructor 00499E30) whose only
+// class is the global map's (CGlobalMapClouds; 007420D4: 0049A090, 0049A220, 0062EDA0; both real
+// classes since C28f, the tables retired). Three greyscale frames of
 // `size` x `size` (the map uses 256) are kept: the one shown fades from the first into the second
 // while the third is built a slice per step from four layers of value noise; every 16 steps they
 // rotate. The blend goes through a 256-entry ARGB4444 alpha ramp. Names are provisional.
@@ -12,28 +13,23 @@
 #include <cstddef>
 #include <cstdint>
 
-class __declspec(novtable) CCloudNoise {
+class CCloudNoise {
 public:
-    // The compiled tables (C19, global_map_clouds.cpp): the base's (slots 0 / 1 _purecall) and the global map's.
-    static void* BaseVtable();
-    static void* MapVtable();
+    // 00499DC0 (RET 4). The buffers for `size`.
+    explicit CCloudNoise(int size);
+    CCloudNoise(const CCloudNoise&) = delete;
+    CCloudNoise& operator=(const CCloudNoise&) = delete;
 
-    // 0: 0049A090 (RET 4). A 32 x 32 layer of smoothed value noise into `out` (1 KB), seeded by
-    // three ISAAC words; the raw values go through `noise_`.
-    virtual void MakeLayer(std::uint8_t* out);
-    void MakeLayerImpl(std::uint8_t* out);   // body of the slot above (registered by member pointer)
-    // 1: 0049A220 (RET 8). Step `step` of building a frame into `out`: steps 1-4 make the layers
-    // (slot 0), steps 7-14 each fill 32 rows from them; the others do nothing.
-    virtual void Generate(std::uint8_t* out, int step);
-    void GenerateImpl(std::uint8_t* out, int step);   // body of the slot above (registered by member pointer)
-    // 2: 00499E30 (base) / 0062EDA0 (the map's class).
-    virtual CCloudNoise* DeletingDestruct(unsigned flags);
-    CCloudNoise* DeletingDestructImpl(unsigned flags);   // body of the slot above (registered by member pointer)
+    // On the game's heap (global_map_clouds.cpp): null without memory, and then no constructor runs.
+    static void* operator new(std::size_t size) noexcept;
+    static void operator delete(void* block);
 
-    // 00499DC0 (RET 4). The base constructor: its vtable, the buffers for `size`. Returns this.
-    CCloudNoise* Construct(int size);
-    // 00499E90. The base destructor body: its vtable, the six buffers freed.
-    void DestructBody();
+    // 0 / 1 (pure in the base).
+    virtual void MakeLayer(std::uint8_t* out) = 0;
+    virtual void Generate(std::uint8_t* out, int step) = 0;
+    // 2: 00499E90 (deleting: 00499E30). The six buffers freed.
+    virtual ~CCloudNoise();
+
     // 00499EE0. Builds the first two frames (all 16 steps each).
     void Start();
     // 00499F10 (RET 8). Advances the fade by seconds * speed (each whole unit one build step) and
@@ -54,8 +50,19 @@ public:
     int step_;                      // +0x2C build step of frames_[2] (0..15)
     int size_;                      // +0x30
 };
-static_assert(offsetof(CCloudNoise, ramp_) == 0x10);
-static_assert(offsetof(CCloudNoise, frames_) == 0x1C);
-static_assert(offsetof(CCloudNoise, size_) == 0x30);
-static_assert(sizeof(CCloudNoise) == 0x34);
+
+// The global map's clouds (ui_global_map.cpp; 256 x 256).
+class CGlobalMapClouds final : public CCloudNoise {
+public:
+    CGlobalMapClouds() : CCloudNoise(0x100) {}
+    // 0062EDC0 (deleting: 0062EDA0): the base's.
+    ~CGlobalMapClouds() override;
+
+    // 0: 0049A090 (RET 4). A 32 x 32 layer of smoothed value noise into `out` (1 KB), seeded by
+    // three ISAAC words; the raw values go through `noise_`.
+    void MakeLayer(std::uint8_t* out) override;
+    // 1: 0049A220 (RET 8). Step `step` of building a frame into `out`: steps 1-4 make the layers
+    // (slot 0), steps 7-14 each fill 32 rows from them; the others do nothing.
+    void Generate(std::uint8_t* out, int step) override;
+};
 

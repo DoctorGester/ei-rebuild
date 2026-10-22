@@ -73,7 +73,8 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    fails on an `EI_REPLACE_METHOD` naming a method that is virtual, or overrides one, by name). The
    tables are the compiler's (C19), so nothing reaches a slot's address: a virtual is `EI_REWRITTEN`.
    The `...Hook` shims and `...Impl` bodies left from registering slots are C28's to fold into the
-   virtuals. Do not give a non-virtual method the same name and signature as a base-class virtual
+   virtuals. Constructors and destructors are C++ ones, tagged `EI_REWRITTEN_SPECIAL(addr, X::X)` /
+   `(addr, X::~X)` (docs/notes/standalone.md, "Real classes"). Do not give a non-virtual method the same name and signature as a base-class virtual
    (`CEngineObject::Create`, `Destroy`, `Release`, `Load`, `Save`, `GetName`, ...): it silently
    becomes an override.
 5. **No forwarders.** Every function of game.exe is ported: call it by name (include its header, or

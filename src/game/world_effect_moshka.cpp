@@ -4,7 +4,6 @@
 #include "map_object_shadow.h"
 #include "unit_ai.h"
 #include "world_effect.h"
-#include "world_effect_class.h"
 #include "game_data.h"
 #include "map_object.h"
 
@@ -27,7 +26,6 @@
 #include <cmath>
 #include <cstring>
 
-using ei::SetVtable;
 
 namespace {
 
@@ -76,35 +74,24 @@ Vector3& PositionOf(CEngineObject* object) { return static_cast<CTransformObject
 } // namespace
 
 
-CEffectMoshka* CEffectMoshka::Construct() {
-    ConstructEffect();
+CEffectMoshka::CEffectMoshka() {
     bird_ = nullptr;
     source_ = nullptr;
-    SetVtable(this, Vtable());
     Reset();
-    return this;
 }
 
 // The original's first, inline reset clears the source through 0056F1A0 and the figure through
 // 0052B030; both end as Reset's.
-void CEffectMoshka::Destruct() {
-    SetVtable(this, Vtable());
+CEffectMoshka::~CEffectMoshka() {
     Reset();
     Reset();   // again through slot 18
     if (source_ != nullptr) source_->Release();
     if (bird_ != nullptr) bird_->Release();
     bird_ = nullptr;
-    DestructEffect();
-}
-
-CEffectMoshka* CEffectMoshka::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
 }
 
 void CEffectMoshka::Reset() {
-    ResetBase();
+    CEffect::Reset();
     if (bird_ != nullptr) TheClientWorld()->RemoveObject(bird_->id_);
     if (source_ != nullptr) source_->Stop();
     CEngineObject* source = source_;
@@ -118,7 +105,7 @@ void CEffectMoshka::Reset() {
     followedId_ = -1;
 }
 
-int CEffectMoshka::Tick() {
+int CEffectMoshka::RunTick() {
     Update(static_cast<float>(CurrentClientTick()));
     return 0;
 }
@@ -285,11 +272,11 @@ void CEffectMoshka::Follow(int objectId) {
 
 int CEffectMoshka::Unpack(int, DeltaField*) { return 1; }
 
-EI_REWRITTEN(0x0067C950, CEffectMoshka::Construct);
-EI_REWRITTEN(0x0067CAF0, CEffectMoshka::Destruct);
-EI_REWRITTEN(0x0067CAD0, CEffectMoshka::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0067C950, CEffectMoshka::CEffectMoshka);
+EI_REWRITTEN_SPECIAL(0x0067CAF0, CEffectMoshka::~CEffectMoshka);
+EI_REWRITTEN_SPECIAL(0x0067CAD0, CEffectMoshka::~CEffectMoshka);
 EI_REWRITTEN(0x0067CC90, CEffectMoshka::Reset);
-EI_REWRITTEN(0x0067CD70, CEffectMoshka::Tick);
+EI_REWRITTEN(0x0067CD70, CEffectMoshka::RunTick);
 EI_REWRITTEN(0x0067CD90, CEffectMoshka::FindPerch);
 EI_REWRITTEN(0x0067CEF0, CEffectMoshka::Update);
 EI_REWRITTEN(0x0067D420, CEffectMoshka::Follow);

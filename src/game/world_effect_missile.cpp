@@ -5,7 +5,6 @@
 #include "map_object_shadow.h"
 #include "unit_ai.h"
 #include "world_effect.h"
-#include "world_effect_class.h"
 
 #include "base_manager.h"
 #include "camera.h"
@@ -27,7 +26,6 @@
 #include <cstring>
 #include <new>
 
-using ei::SetVtable;
 
 namespace {
 
@@ -107,7 +105,7 @@ void CEffectMissile::SetTarget(int objectId) {
 // --- CEffectArrow --------------------------------------------------------------------------------
 
 
-int CEffectArrow::Tick() {
+int CEffectArrow::RunTick() {
     fromCaster_ = 0;
     int flying = Steer();
     localPosition_.x = localPosition_.x + velocity_.x;
@@ -117,18 +115,18 @@ int CEffectArrow::Tick() {
     return flying;
 }
 
-void CEffectMissile::ResetMissile() {
-    ResetBase();
+void CEffectMissile::Reset() {
+    CEffect::Reset();
     arrived_ = 0;
     targetId_ = -1;
     fromCaster_ = 0;
 }
 
 void CEffectArrow::Reset() {
-    ResetMissile();
-    Particle().Reset();
-    Light().Reset();
-    Sound().Reset();
+    CEffectMissile::Reset();
+    particle_.Reset();
+    light_.Reset();
+    sound_.Reset();
     casterId_ = -1;
     lightColor_ = Vector3{0.0f, 0.0f, 0.0f};
     lightRange_ = 0.0f;
@@ -137,32 +135,32 @@ void CEffectArrow::Reset() {
 }
 
 void CEffectArrow::MoveParts() {
-    Particle().localPosition_ = localPosition_;
-    Light().localPosition_ = localPosition_;
-    Sound().localPosition_ = localPosition_;
-    Particle().Start(1);
-    Light().Start(1);
-    Sound().Start(1);
+    particle_.localPosition_ = localPosition_;
+    light_.localPosition_ = localPosition_;
+    sound_.localPosition_ = localPosition_;
+    particle_.Start(1);
+    light_.Start(1);
+    sound_.Start(1);
 }
 
 void CEffectArrow::Start(int update) {
-    Particle().localPosition_ = localPosition_;
-    Light().localPosition_ = localPosition_;
-    Sound().localPosition_ = localPosition_;
-    Particle().type_ = particleType_;
-    std::memcpy(&Particle().size_, &particleSize_, 4);
-    Light().color_ = lightColor_;
-    std::memcpy(&Light().range_, &lightRange_, 4);
+    particle_.localPosition_ = localPosition_;
+    light_.localPosition_ = localPosition_;
+    sound_.localPosition_ = localPosition_;
+    particle_.type_ = particleType_;
+    std::memcpy(&particle_.size_, &particleSize_, 4);
+    light_.color_ = lightColor_;
+    std::memcpy(&light_.range_, &lightRange_, 4);
     Vector3 drift{kLightDrift, 0.0f, 0.0f};
-    Light().SetVelocity(&drift);
-    Light().lightFlags_ = kLightFlags;
+    light_.SetVelocity(&drift);
+    light_.lightFlags_ = kLightFlags;
     const char* name = soundName_;
-    std::memcpy(Sound().name_, name, std::strlen(name) + 1);   // unbounded, as the original
-    Sound().radius_ = kSoundRadius;
-    Sound().looping_ = 1;
-    Particle().Start(update);
-    Light().Start(update);
-    Sound().Start(update);
+    std::memcpy(sound_.name_, name, std::strlen(name) + 1);   // unbounded, as the original
+    sound_.radius_ = kSoundRadius;
+    sound_.looping_ = 1;
+    particle_.Start(update);
+    light_.Start(update);
+    sound_.Start(update);
 }
 
 int CEffectArrow::Unpack(int update, DeltaField* field) {
@@ -211,7 +209,7 @@ void CEffectArrow::Pack(DeltaField* field) {
     field->WriteDelta(&fromCaster_, 1);
 }
 
-void CEffectArrow::LoadState(CStream* s) {
+void CEffectArrow::Load(CStream* s) {
     s->Read(&localPosition_, 12);
     s->Read(&targetId_, 4);
     s->Read(&velocity_, 12);
@@ -226,7 +224,7 @@ void CEffectArrow::LoadState(CStream* s) {
     s->Read(&fromCaster_, 1);
 }
 
-void CEffectArrow::SaveState(CStream* s) {
+void CEffectArrow::Save(CStream* s) {
     std::uint32_t copy;
     s->Write(&localPosition_, 12);
     std::memcpy(&copy, &targetId_, 4);
@@ -248,37 +246,15 @@ void CEffectArrow::SaveState(CStream* s) {
     s->Write(&flag, 1);
 }
 
-// The constructor builds the base under the missile's vtable, then the three parts with their own
-// constructor bodies (inlined in the original), the empty name, and ends with Reset.
-CEffectArrow* CEffectArrow::Construct() {
-    ConstructEffect();
-    SetVtable(this, CEffectMissile::Vtable());
-    Particle().Construct();
-    Light().Construct();
-    Sound().Construct();
-    new (&soundName_) mfc::CString;
-    SetVtable(this, Vtable());
-    Reset();
-    return this;
-}
+// The base, then the three parts (their constructors inlined in the original) and the empty name;
+// Reset at the end.
+CEffectArrow::CEffectArrow() { Reset(); }
 
-// The destructor resets (slot 18), then destroys the name, the sound, the light, the particle part
-// and the base.
-void CEffectArrow::Destruct() {
-    SetVtable(this, Vtable());
-    Reset();
-    soundName_.~CString();
-    Sound().Destruct();
-    Light().Destruct();
-    Particle().Destruct();
-    DestructEffect();
-}
+// Reset (slot 18); then the name, the sound, the light, the particle part and the base go.
+CEffectArrow::~CEffectArrow() { Reset(); }
 
-CEffectArrow* CEffectArrow::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
+// The abstract missile's slot 0 (no live object has its table).
+CEffectMissile::~CEffectMissile() = default;
 
 // --- CEffectArrowFigure --------------------------------------------------------------------------
 
@@ -288,7 +264,7 @@ constexpr int kClassFigureObject = 0x38;   // the object manager's class of the 
 
 
 void CEffectArrowFigure::Reset() {
-    ResetMissile();
+    CEffectMissile::Reset();
     if (figure_ != nullptr) TheClientWorld()->RemoveObject(figure_->id_);
     hit_ = DamageInfo{};
     hit_.multiplier = 1.0f;
@@ -299,13 +275,13 @@ void CEffectArrowFigure::Reset() {
     casterId_ = -1;
 }
 
-int CEffectArrowFigure::Tick() {
+int CEffectArrowFigure::RunTick() {
     fromCaster_ = 0;
     Steer();
     localPosition_.x = localPosition_.x + velocity_.x;
     localPosition_.y = localPosition_.y + velocity_.y;
     localPosition_.z = localPosition_.z + velocity_.z;
-    if (!WorldContext()->IsServer()) MoveFigure();
+    if (!WorldContext()->IsServer()) MoveParts();
     CWorld* world = WorldOf(this);
     if (arrived_ != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
@@ -316,7 +292,7 @@ int CEffectArrowFigure::Tick() {
     return arrived_ == 0 ? 1 : 0;
 }
 
-void CEffectArrowFigure::MoveFigure() {
+void CEffectArrowFigure::MoveParts() {
     if (figure_ == nullptr) return;
     TheClientWorld()->objectGrid_.Move(figure_, &localPosition_.x);
     figure_->RollTowards(velocity_);
@@ -324,7 +300,7 @@ void CEffectArrowFigure::MoveFigure() {
 
 void CEffectArrowFigure::Start(int update) {
     if (update != 0) {
-        MoveFigure();
+        MoveParts();
         return;
     }
     mfc::CString model(game::ArrowFigureModelText());
@@ -383,7 +359,7 @@ void CEffectArrowFigure::Pack(DeltaField* field) {
     field->WriteDelta(&fromCaster_, 1);
 }
 
-void CEffectArrowFigure::LoadState(CStream* s) {
+void CEffectArrowFigure::Load(CStream* s) {
     s->Read(&localPosition_, 12);
     s->Read(&targetId_, 4);
     s->Read(&casterId_, 4);
@@ -394,7 +370,7 @@ void CEffectArrowFigure::LoadState(CStream* s) {
     s->Read(&fromCaster_, 1);
 }
 
-void CEffectArrowFigure::SaveState(CStream* s) {
+void CEffectArrowFigure::Save(CStream* s) {
     std::uint32_t copy;
     s->Write(&localPosition_, 12);
     std::memcpy(&copy, &targetId_, 4);
@@ -410,54 +386,42 @@ void CEffectArrowFigure::SaveState(CStream* s) {
     s->Write(&flag, 1);
 }
 
-// The constructor builds the base (the original under CTransformObject's vtable, ours under the
-// effect base's: both are overwritten), no figure, then Reset.
-CEffectArrowFigure* CEffectArrowFigure::Construct() {
-    ConstructEffect();
+// No figure, then Reset.
+CEffectArrowFigure::CEffectArrowFigure() {
     figure_ = nullptr;
-    SetVtable(this, Vtable());
     Reset();
-    return this;
 }
 
-void CEffectArrowFigure::Destruct() {
-    SetVtable(this, Vtable());
+CEffectArrowFigure::~CEffectArrowFigure() {
     Reset();
     Reset();   // again through slot 18
     if (figure_ != nullptr) figure_->Release();
     figure_ = nullptr;
-    DestructEffect();
 }
 
-CEffectArrowFigure* CEffectArrowFigure::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
-EI_REWRITTEN(0x0067BB90, CEffectArrowFigure::Construct);
-EI_REWRITTEN(0x0067BCD0, CEffectArrowFigure::Destruct);
-EI_REWRITTEN(0x0067BCB0, CEffectArrowFigure::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0067BB90, CEffectArrowFigure::CEffectArrowFigure);
+EI_REWRITTEN_SPECIAL(0x0067BCD0, CEffectArrowFigure::~CEffectArrowFigure);
+EI_REWRITTEN_SPECIAL(0x0067BCB0, CEffectArrowFigure::~CEffectArrowFigure);
 EI_REWRITTEN(0x0067BAA0, CEffectArrowFigure::Reset);
-EI_REWRITTEN(0x0067BE20, CEffectArrowFigure::Tick);
-EI_REWRITTEN(0x0067BEF0, CEffectArrowFigure::MoveFigure);
+EI_REWRITTEN(0x0067BE20, CEffectArrowFigure::RunTick);
+EI_REWRITTEN(0x0067BEF0, CEffectArrowFigure::MoveParts);
 EI_REWRITTEN(0x0067BF20, CEffectArrowFigure::Start);
 EI_REWRITTEN(0x0067C080, CEffectArrowFigure::Unpack);
 EI_REWRITTEN(0x0067C170, CEffectArrowFigure::Pack);
-EI_REWRITTEN(0x0067C200, CEffectArrowFigure::LoadState);
-EI_REWRITTEN(0x0067C290, CEffectArrowFigure::SaveState);
+EI_REWRITTEN(0x0067C200, CEffectArrowFigure::Load);
+EI_REWRITTEN(0x0067C290, CEffectArrowFigure::Save);
 
-EI_REWRITTEN(0x0067AE30, CEffectArrow::Construct);
-EI_REWRITTEN(0x0067B1C0, CEffectArrow::Destruct);
-EI_REWRITTEN(0x0067B1A0, CEffectArrow::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x0067AE30, CEffectArrow::CEffectArrow);
+EI_REWRITTEN_SPECIAL(0x0067B1C0, CEffectArrow::~CEffectArrow);
+EI_REWRITTEN_SPECIAL(0x0067B1A0, CEffectArrow::~CEffectArrow);
 EI_REWRITTEN(0x0067AAB0, CEffectMissile::Steer);
-EI_REWRITTEN(0x0067AA00, CEffectMissile::ResetMissile);
+EI_REWRITTEN(0x0067AA00, CEffectMissile::Reset);
 EI_REWRITTEN(0x0067AC70, CEffectMissile::SetTarget);
-EI_REWRITTEN(0x0067AC90, CEffectArrow::Tick);
+EI_REWRITTEN(0x0067AC90, CEffectArrow::RunTick);
 EI_REWRITTEN(0x0067AD10, CEffectArrow::Reset);
 EI_REWRITTEN(0x0067B450, CEffectArrow::MoveParts);
 EI_REWRITTEN(0x0067B4E0, CEffectArrow::Start);
 EI_REWRITTEN(0x0067B690, CEffectArrow::Unpack);
 EI_REWRITTEN(0x0067B800, CEffectArrow::Pack);
-EI_REWRITTEN(0x0067B8E0, CEffectArrow::LoadState);
-EI_REWRITTEN(0x0067B9A0, CEffectArrow::SaveState);
+EI_REWRITTEN(0x0067B8E0, CEffectArrow::Load);
+EI_REWRITTEN(0x0067B9A0, CEffectArrow::Save);

@@ -61,7 +61,7 @@ REGISTRATION = re.compile(
 ANY_REGISTRATION = re.compile(r'\b(?:EI_REPLACE(?:_METHOD|_DISPATCH|_SHORT|_STANDALONE)?|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(')
 ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
 # A rewrite without a registration (C20d): a line of the function-to-original map, which reads no address.
-REWRITTEN = re.compile(r'\bEI_REWRITTEN\s*\([^;]*\)\s*;')
+REWRITTEN = re.compile(r'\bEI_REWRITTEN(?:_SPECIAL)?\s*\([^;]*\)\s*;')
 LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX](?:00)?([4-7][0-9A-Fa-f]{5})(?![0-9A-Fa-f])')
 WORD = re.compile(r'(?<![0-9A-Za-z_])00([4-7][0-9A-Fa-f]{5})(?![0-9A-Za-z_])')
 CODE_CELLS = os.path.join(ROOT, 'src', 'standalone', 'image_code_cells.inc')

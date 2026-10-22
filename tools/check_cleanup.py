@@ -100,7 +100,7 @@ EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set stru
 # A literal address directly inside EI_REPLACE(...)/EI_REWRITTEN(...)/UI_INPUT_HANDLER(...) is how registrations
 # are written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest. (EI_ORIGINAL
 # forwarders are the harness's only since C29, tests/verify/harness_original.h: src/ cannot use the macro.)
-REGISTRATION = re.compile(r'(?:EI_(?:REWRITTEN|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|REPLACE_STANDALONE)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
+REGISTRATION = re.compile(r'(?:EI_(?:REWRITTEN|REWRITTEN_SPECIAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|REPLACE_STANDALONE)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
 
 
 def strip_comments(text):

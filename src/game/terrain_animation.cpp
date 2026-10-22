@@ -287,7 +287,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     }
 }
 
-int Terrain::RunTickImpl() {
+int Terrain::RunTick() {
     if (lightCountdown > 0 && --lightCountdown == 0) {
         lightCountdown = lightInterval;
         SetSun(sun, &ambient);
@@ -315,5 +315,5 @@ EI_REWRITTEN(0x006C3E30, SectorData::ScheduleRelight);
 EI_REWRITTEN(0x006C3E50, SectorData::RelightTick);
 EI_REWRITTEN(0x006C3E80, SectorData::Animate);
 EI_REWRITTEN(0x006C8ED0, Terrain::SetSun);
-EI_REWRITTEN(0x006CB1E0, Terrain::RunTickImpl);
+EI_REWRITTEN(0x006CB1E0, Terrain::RunTick);
 EI_REPLACE(0x006C9270, terrain::FreeSortedSectors);

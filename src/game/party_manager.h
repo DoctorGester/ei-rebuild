@@ -32,12 +32,9 @@ struct PartyManagerEntry {
 };
 static_assert(sizeof(PartyManagerEntry) == 0x14);
 
-// A map node's party: the CParty object itself (constructed by the map's own members, 004AB980;
-// held as storage here because the class is abstract in its C++ declaration).
-struct PartyInPlace {
-    PartyStorage storage;
-    CParty* Get() { return storage.Party(); }
-};
+// A map node's party: the CParty object itself, constructed and destroyed by the map's own members
+// (004AB980).
+using PartyInPlace = PartyStorage;
 
 namespace gamehash {
 

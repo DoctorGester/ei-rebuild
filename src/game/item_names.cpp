@@ -94,23 +94,23 @@ mfc::CString PictureNameOf(const NamedRecordTable<Record>& table, const char* co
 
 // --- Weapons and armors ---------------------------------------------------------------------------
 
-mfc::CString CItemWeapon::ModelNameImpl() { return ModelNameOf(TheItemDatabase().weapons, kWeaponCodes, prototypeId_); }
+mfc::CString CItemWeapon::ModelName() { return ModelNameOf(TheItemDatabase().weapons, kWeaponCodes, prototypeId_); }
 
-mfc::CString CItemWeapon::FirstListNameImpl() { return FirstListNameOf(TheItemDatabase().weapons, prototypeId_); }
+mfc::CString CItemWeapon::FirstListName() { return FirstListNameOf(TheItemDatabase().weapons, prototypeId_); }
 
-mfc::CString CItemWeapon::FigureNameImpl() { return HumanFigureName(this); }
+mfc::CString CItemWeapon::FigureName() { return HumanFigureName(this); }
 
-mfc::CString CItemWeapon::PictureNameImpl() {
+mfc::CString CItemWeapon::PictureName() {
     return PictureNameOf(TheItemDatabase().weapons, kWeaponCodes, kWeaponPicture, prototypeId_);
 }
 
-mfc::CString CItemArmor::ModelNameImpl() { return ModelNameOf(TheItemDatabase().armors, kArmorCodes, prototypeId_); }
+mfc::CString CItemArmor::ModelName() { return ModelNameOf(TheItemDatabase().armors, kArmorCodes, prototypeId_); }
 
-mfc::CString CItemArmor::FirstListNameImpl() { return FirstListNameOf(TheItemDatabase().armors, prototypeId_); }
+mfc::CString CItemArmor::FirstListName() { return FirstListNameOf(TheItemDatabase().armors, prototypeId_); }
 
-mfc::CString CItemArmor::FigureNameImpl() { return HumanFigureName(this); }
+mfc::CString CItemArmor::FigureName() { return HumanFigureName(this); }
 
-mfc::CString CItemArmor::PictureNameImpl() {
+mfc::CString CItemArmor::PictureName() {
     return PictureNameOf(TheItemDatabase().armors, kArmorCodes, kArmorPicture, prototypeId_);
 }
 
@@ -152,7 +152,7 @@ EI_REWRITTEN(0x006A0CC0, WeaponBaseFigure);
 
 // --- Quick items, quest items, scrolls -----------------------------------------------------------
 
-mfc::CString CItemQuick::FigureNameImpl() {
+mfc::CString CItemQuick::FigureName() {
     mfc::CString name;
     const ItemRecordHead* prototype = GetPrototype();
     if (prototype && gamecrt::mbsicmp(prototype->materialClass.GetString(),
@@ -166,32 +166,32 @@ mfc::CString CItemQuick::FigureNameImpl() {
     return name;
 }
 
-mfc::CString CItemQuick::PictureNameImpl() {
+mfc::CString CItemQuick::PictureName() {
     mfc::CString name;
     name.Format(kQuickPicture, Number(GetPrototype()));
     return name;
 }
 
-mfc::CString CItemQuest::FigureNameImpl() {
+mfc::CString CItemQuest::FigureName() {
     mfc::CString name;
     name.Format(kQuestFigure, Number(GetPrototype()));
     return name;
 }
 
-mfc::CString CItemQuest::PictureNameImpl() {
+mfc::CString CItemQuest::PictureName() {
     mfc::CString name;
     name.Format(kQuestPicture, Number(GetPrototype()));
     return name;
 }
 
-mfc::CString CItemSpell::FigureNameImpl() {
+mfc::CString CItemSpell::FigureName() {
     const SpellRecord* prototype = SpellAt(PrototypeIndex(spell_->prototypeId_));
     mfc::CString name;
     name.Format(kSpellFigure, prototype->icon);
     return name;
 }
 
-mfc::CString CItemSpell::PictureNameImpl() { return mfc::CString(kSpellPicture); }
+mfc::CString CItemSpell::PictureName() { return mfc::CString(kSpellPicture); }
 
 // --- Loot ----------------------------------------------------------------------------------------
 
@@ -200,7 +200,7 @@ enum LootKind : std::uint32_t { kLootSelf = 0, kLootMaterial = 1, kLootRecord = 
 enum LootRecord : std::uint32_t { kRecordWeapon, kRecordArmor, kRecordQuick, kRecordSpell, kRecordModifier };
 } // namespace
 
-mfc::CString CItemLoot::FigureNameImpl() {
+mfc::CString CItemLoot::FigureName() {
     mfc::CString name;
     if (kind_ == kLootRecord) {
         switch (recordType_) {
@@ -235,7 +235,7 @@ mfc::CString CItemLoot::FigureNameImpl() {
     return name;
 }
 
-mfc::CString CItemLoot::PictureNameImpl() {
+mfc::CString CItemLoot::PictureName() {
     mfc::CString name;
     if (kind_ == kLootRecord) {
         switch (recordType_) {
@@ -270,19 +270,19 @@ mfc::CString CItemLoot::PictureNameImpl() {
 
 // --- The virtual slots' entry points (rule 4): the name built in the caller's result -------------
 
-EI_REWRITTEN(0x006A0840, CItemWeapon::ModelNameImpl);
-EI_REWRITTEN(0x006A0F70, CItemWeapon::FirstListNameImpl);
-EI_REWRITTEN(0x006A2750, CItemWeapon::FigureNameImpl);
-EI_REWRITTEN(0x006A27E0, CItemWeapon::PictureNameImpl);
-EI_REWRITTEN(0x006A3240, CItemArmor::ModelNameImpl);
-EI_REWRITTEN(0x006A36A0, CItemArmor::FirstListNameImpl);
-EI_REWRITTEN(0x006A3720, CItemArmor::FigureNameImpl);
-EI_REWRITTEN(0x006A37B0, CItemArmor::PictureNameImpl);
-EI_REWRITTEN(0x006A3CD0, CItemQuick::FigureNameImpl);
-EI_REWRITTEN(0x006A4040, CItemQuick::PictureNameImpl);
-EI_REWRITTEN(0x006A45C0, CItemQuest::FigureNameImpl);
-EI_REWRITTEN(0x006A47B0, CItemQuest::PictureNameImpl);
-EI_REWRITTEN(0x006A5820, CItemSpell::FigureNameImpl);
-EI_REWRITTEN(0x006A58E0, CItemSpell::PictureNameImpl);
-EI_REWRITTEN(0x006A4B90, CItemLoot::FigureNameImpl);
-EI_REWRITTEN(0x006A5030, CItemLoot::PictureNameImpl);
+EI_REWRITTEN(0x006A0840, CItemWeapon::ModelName);
+EI_REWRITTEN(0x006A0F70, CItemWeapon::FirstListName);
+EI_REWRITTEN(0x006A2750, CItemWeapon::FigureName);
+EI_REWRITTEN(0x006A27E0, CItemWeapon::PictureName);
+EI_REWRITTEN(0x006A3240, CItemArmor::ModelName);
+EI_REWRITTEN(0x006A36A0, CItemArmor::FirstListName);
+EI_REWRITTEN(0x006A3720, CItemArmor::FigureName);
+EI_REWRITTEN(0x006A37B0, CItemArmor::PictureName);
+EI_REWRITTEN(0x006A3CD0, CItemQuick::FigureName);
+EI_REWRITTEN(0x006A4040, CItemQuick::PictureName);
+EI_REWRITTEN(0x006A45C0, CItemQuest::FigureName);
+EI_REWRITTEN(0x006A47B0, CItemQuest::PictureName);
+EI_REWRITTEN(0x006A5820, CItemSpell::FigureName);
+EI_REWRITTEN(0x006A58E0, CItemSpell::PictureName);
+EI_REWRITTEN(0x006A4B90, CItemLoot::FigureName);
+EI_REWRITTEN(0x006A5030, CItemLoot::PictureName);

@@ -1,11 +1,11 @@
 vtable,slots,class,file,note
-0073B870,25,BaseManagerClass,src/game/base_manager.cpp,"CBaseManager's own table (ConstructBase / DestructBody; slots 11, 12, 14 _purecall)"
+0073B870,25,CBaseManager,src/game/base_manager.h,"CBaseManager's own table (ConstructBase / DestructBody; slots 11, 12, 14 _purecall)"
 0073B8D4,3,TempListClass,src/lib/mfc_slots.h,CList (a pointer list built around each item creation (world quests))
 0073B8E0,13,EngineObjectBaseClass,src/game/engine_object_class.h,"CEngineObject's own table (the constructor bodies, DestructBase; slots 2, 3, 11, 12 _purecall)"
 0073B984,2,length_error,-,"stlp length_error (stored only by game.exe: 0040C2A0, 0040C6E0, 00421800, 004269A0, 0042B700; our ports never throw it); 0073B984 is also the end of __stl_prime_list (the compares)"
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
 0073B994,2,NamedException,src/lib/stlp_string.cpp,"__Named_exception (out_of_range's base; C25c: a class of ours, its table the compiler's)"
-0073B9E0,18,CameraClass,src/game/camera_object.cpp,the camera (CCamera)
+0073B9E0,18,CCamera,src/game/camera.h,the camera (CCamera)
 0073BA38,18,TransformBaseClass,src/game/engine_object_class.h,"CTransformObject's own table (ConstructBase and the derived classes' destructor bodies; slots 2, 3, 11, 12 _purecall)"
 0073BB28,6,ServerEntryClass,src/game/net_messages.h,ReplicatedClass (the lobby's server entry)
 0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base; slots 2-5 _purecall)
@@ -30,9 +30,9 @@ vtable,slots,class,file,note
 0073BD48,6,AwardMessageClass,src/game/net_messages.h,ReplicatedClass (message type 14)
 0073BD60,6,TradeMessageClass,src/game/net_messages.h,ReplicatedClass (message type 17)
 0073BD78,6,PartyMemberMessageClass,src/game/net_messages.h,ReplicatedClass (message type 16)
-0073BD90,2,MemoryStreamClass,src/game/core_streams.cpp,the memory stream (CMemoryStream)
-0073BD98,6,MemoryStreamClass,src/game/core_streams.cpp,the tail of 0073BD90 (a devirtualised slot call)
-0073BDB0,8,StreamClass,src/game/core_streams.cpp,the abstract stream (CStream; slots 1-6 _purecall)
+0073BD90,2,CMemoryStream,src/game/core_streams.h,the memory stream (CMemoryStream)
+0073BD98,6,CMemoryStream,src/game/core_streams.h,the tail of 0073BD90 (a devirtualised slot call)
+0073BDB0,8,CStream,src/game/core_streams.h,the abstract stream (CStream; slots 1-6 _purecall)
 0073BDD0,6,PartyMessageClass,src/game/net_messages.h,ReplicatedClass (message type 15)
 0073BDEC,17,ClientSessionClass,src/game/net_classes.h,the game client (ClientSession)
 0073BE30,17,ClientBaseClass,src/game/net_classes.h,the client base (ClientBase; slot 16 _purecall)
@@ -84,9 +84,9 @@ vtable,slots,class,file,note
 0073C3E8,3,MapRecordArrayClass,src/game/game_slots.h,CArray<MapRecord> (the map database's maps)
 0073C3F4,3,ExitArrayClass,src/game/game_arrays.h,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores)
 0073C400,3,MapRecordItemsClass,src/game/game_arrays.h,CArray (the array inside a map record; derived from ExitArrayClass)
-0073C434,13,HooverClass,src/game/class_slots.cpp,the loot hoover (CHoover)
+0073C434,13,CHoover,src/game/object.h,the loot hoover (CHoover)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
-0073C550,13,LightningClass,src/game/class_slots.cpp,a lightning bolt (CLightning)
+0073C550,13,CLightning,src/game/lightning.h,a lightning bolt (CLightning)
 0073C584,3,SpriteArrayClass,src/lib/mfc_slots.h,CArray (the weather and lightning sprites)
 0073C5C4,11,SpecBaseClass,src/game/map_spec_class.h,the zone records' base record (mapspec::Spec)
 0073C5F0,12,ObjectSpecClass,src/game/map_spec_class.h,an object record (mapspec::ObjectSpec)
@@ -116,10 +116,10 @@ vtable,slots,class,file,note
 0073C860,3,FilePointArrayClass,src/lib/mfc_slots.h,CArray (a model file's points)
 0073C86C,3,NormalArrayClass,src/lib/mfc_slots.h,CArray (a model file's normals)
 0073C8A4,13,NetLinkClass,src/game/net_link.h,the link base (NetLink; slots 2-6 and 11 _purecall)
-0073C8D8,8,FileStreamClass,src/game/net_link.h,the file stream (FileStream; the recordings and the save files)
+0073C8D8,8,FileStream,src/game/net_link.h,the file stream (FileStream; the recordings and the save files)
 0073C8F8,13,LoopbackLinkClass,src/game/net_link.h,the loopback link (LoopbackLink)
 0073C92C,13,ReplayLinkClass,src/game/net_link.h,the replay link (ReplayLink)
-0073C960,8,QueueStreamClass,src/game/core_streams.cpp,the network queue's memory streams (CMemoryStream::ConstructQueueStream)
+0073C960,8,CMemoryStream,src/game/core_streams.h,"the network queue's memory streams (0066C4F0's copy of CMemoryStream's table; one class here)"
 0073C990,14,DriverLinkClass,src/game/net_link.h,the driver link (DriverLink)
 0073C9C8,14,FramedLinkClass,src/game/net_link.h,the framed link (FramedLink; slots 2-5 / 11 / 13 _purecall)
 0073CA00,2,dead class,-,stored only by dead code 0047C280 / 0047C3A0 / 0047C680 / 0047CFA0
@@ -130,10 +130,10 @@ vtable,slots,class,file,note
 0073CA64,7,BufferViewClass,src/game/net_coder.h,a fixed view over memory owned elsewhere
 0073CAB0,1,GameErrorBaseClass,src/game/dx_errors.h,the thrown error object's base (GameErrorDestruct leaves it)
 0073CAB4,1,GameErrorClass,src/game/dx_errors.h,the thrown error object (GameErrorFormat / GameErrorFormatResult)
-0073CFD0,18,ParticleSourceClass,src/game/particle_create.cpp,a particle source (CParticleSource)
+0073CFD0,18,CParticleSource,src/game/effects.h,a particle source (CParticleSource)
 0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
 0073D024,3,ParticleDepthArrayClass,src/game/game_arrays.h,CArray (the particles' draw order 007A9C50)
-0073D030,3,CloudNoiseBaseClass,src/game/global_map_clouds.cpp,the cloud noise base (CCloudNoise; slots 0 / 1 _purecall)
+0073D030,3,CCloudNoise,src/game/global_map_clouds.h,the cloud noise base (CCloudNoise; slots 0 / 1 _purecall)
 0073D0C4,2,ClassTemplateClass,src/game/class_template_stock.cpp,a hero class template (ClassTemplate)
 0073D110,3,ScriptGroupClass,src/game/game_arrays.h,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table)
 0073D11C,3,ObjectRefArrayClass,src/game/game_arrays.h,CArray (CArray<ScriptObjectRef> as a script group's base; destructor 004C2290)
@@ -193,7 +193,7 @@ vtable,slots,class,file,note
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
 0073D624,7,GrowingBufferClass,src/game/net_coder.h,the growing byte buffer
 0073D644,13,SysInfoClass,src/game/sys_info.cpp,the system information (CSysInfo)
-0073D6B4,13,VisibilityFogClass,src/game/effects_weather.cpp,the visibility fog (CVisibilityFog; the fog manager NewObject and the destructor body)
+0073D6B4,13,CVisibilityFog,src/game/effects.h,the visibility fog (CVisibilityFog)
 0073D760,1,DeviceObjectClass,src/game/texture.h,the device object (CTextureDevice)
 0073D764,1,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
 0073D768,1,RendererBaseClass,src/game/texture.h,"the renderer's counted base (CDXSurface, the device object, the pipeline)"
@@ -275,15 +275,15 @@ vtable,slots,class,file,note
 0073F140,3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's reports): the constructor's second table with 0073F058's slots
 0073F18C,42,CWorldBaseClass,src/game/world_class.h,the worlds' base (CWorld)
 0073F234,3,CountdownArrayClass,src/lib/mfc_slots.h,CArray (the world's countdowns)
-0073F240,7,CWorldHandleClass,src/game/world_sessions.cpp,the server world's counted helper (a player source)
+0073F240,7,CWorldHandle,src/game/world.h,the server world's counted helper (a player source)
 0073F25C,26,CItemManager,src/game/item.h,
 0073F2C4,25,CEffectManager,src/game/base_manager.h,
 0073F328,25,CPlayerManager,src/game/player_manager.h,
-0073F38C,7,CPlayerSourceClass,src/game/world_sessions.cpp,the player sources' base
-0073F3A8,7,DriverSessionClass,src/game/net_link.h,the network session (DriverSession)
+0073F38C,7,CPlayerSource,src/game/player_source.h,the player sources' base
+0073F3A8,7,DriverSession,src/game/net_link.h,the network session (DriverSession)
 0073F41C,43,CWorldClientClass,src/game/world_class.h,the client world
-0073F4C8,8,RainSnowClass,src/game/effects_weather.cpp,the rain and snow layer (CRainSnow)
-0073F4E8,5,RainSnowClass,src/game/effects_weather.cpp,the rain and snow layer's tail (a byte match in 0046F1F0 split it off)
+0073F4C8,8,CRainSnow,src/game/effects.h,the rain and snow layer (CRainSnow)
+0073F4E8,5,CRainSnow,src/game/effects.h,the rain and snow layer's tail (a byte match in 0046F1F0 split it off)
 0073F4FC,13,BridgeManagerClass,src/game/world_construct.cpp,the client world's platform set (CBridgeManager)
 0073F530,3,ClientObjectListClass,src/lib/mfc_slots.h,CList (the client world's and the sectors' object lists)
 0073F53C,3,ClientObjectPtrArrayClass,src/game/game_slots.h,CArray (the client maps' engine object pointers)
@@ -291,11 +291,11 @@ vtable,slots,class,file,note
 0073F554,25,ClientArrayManager,src/game/world.h,
 0073F5B8,25,CLightningManager,src/game/lightning.h,
 0073F61C,3,ClientObjectList2Class,src/game/game_slots.h,CList (engine objects in the client maps)
-0073F628,7,CClientHandleClass,src/game/world_sessions.cpp,the client world's player source
+0073F628,7,CClientHandle,src/game/world.h,the client world's player source
 0073F644,25,CParticleManager,src/game/effects.h,
-0073F6A8,16,TerrainClass,src/game/world_client_class.h,the client's terrain
-0073F6E8,2,TerrainClass,src/game/world_client_class.h,the tail of 0073F6A8 (a byte match in 006E81C2)
-0073F6F0,13,CTextManagerClass,src/game/world_client_class.h,the client's text manager
+0073F6A8,16,Terrain,src/game/terrain.h,the client's terrain
+0073F6E8,2,Terrain,src/game/terrain.h,the tail of 0073F6A8 (a byte match in 006E81C2)
+0073F6F0,13,CTextManager,src/game/item_db_text.h,the client's text manager
 0073F724,3,ClientList2Class,src/lib/mfc_slots.h,CList (00570EA0's list)
 0073F730,3,ClientMapArrayClass,src/game/record_arrays.h,CArray (the client world's water levels)
 0073F73C,3,ClientList3Class,src/lib/mfc_slots.h,CList (005715D0's list)
@@ -317,7 +317,7 @@ vtable,slots,class,file,note
 0073FA10,3,SharedObjectListClass,src/game/game_slots.h,CList (the world server's shared objects)
 0073FA4C,3,RefListAClass,src/game/game_slots.h,CList (the world server's new connections; 00598F40)
 0073FA58,12,ObjectSpecClass,src/game/map_spec_class.h,"the quick item effect's object record (UseQuickItem): a twin of 0073C5F0 with the same slots (slot 10 0058EDD0, the same body as 0046A6F0)"
-0073FA88,4,CItemLinkClass,src/game/item_link.cpp,an item's link record (the world server's)
+0073FA88,4,CItemLink,src/game/item.h,an item's link record (the world server's)
 0073FAA4,3,PartyUnitArrayClass,src/lib/mfc_slots.h,CArray (the server's and interface's party unit arrays)
 0073FAB0,3,ExperienceListClass,src/lib/mfc_slots.h,CList (CWorldServer::AwardExperience's list)
 0073FABC,3,ObjectPtrArrayBaseClass,src/game/game_arrays.h,CArray (an array of object pointers; the base 0059A100 restores)
@@ -333,7 +333,7 @@ vtable,slots,class,file,note
 0073FCF0,3,AiMapListClass,src/lib/mfc_slots.h,CList (the AI map's lists)
 0073FCFC,3,BlockCostListClass,src/lib/mfc_slots.h,CList (the AI's block cost lists)
 0073FD58,1,UnitShapeCache,src/game/ai_shape_cache.h,the unit shapes' cache (007C2F70)
-0073FD5C,4,CUnitShapeClass,src/game/ai_unit_shape.cpp,a unit's footprint on the AI map's unit layers
+0073FD5C,4,CUnitShape,src/game/ai_unit_layer.h,a unit's footprint on the AI map's unit layers
 0073FD6C,2,LargeUnitLayerClass,src/game/ai_unit_layer.cpp,the AI map's large-unit layer
 0073FD74,2,SmallUnitLayerClass,src/game/ai_unit_layer.cpp,the AI map's small-unit layer
 0073FD7C,2,UnitLayerBaseClass,src/game/ai_grids.cpp,the AI map's unit layer base (CUnitLayer)
@@ -435,7 +435,7 @@ vtable,slots,class,file,note
 00741DD8,42,MasterRequestBoxClass,src/game/ui_screen_tables.cpp,the master server request box (CMasterRequestBox)
 00741F78,13,OptionsInputClass,src/game/ui_screen_tables.cpp,the options window's input side
 00741FAC,42,OptionsClass,src/game/ui_screen_tables.cpp,the options window (COptionsWindow)
-007420D4,3,GlobalMapCloudsClass,src/game/global_map_clouds.cpp,the global map's clouds (CCloudNoise)
+007420D4,3,CGlobalMapClouds,src/game/global_map_clouds.h,the global map's clouds (CCloudNoise)
 00742118,13,MpHeroScreenInputClass,src/game/ui_screen_tables.cpp,the hero screen's input side
 0074214C,55,MpHeroScreenClass,src/game/ui_screen_tables.cpp,the multiplayer hero screen (CMpHeroScreen)
 00742228,13,DifficultyBoxInputClass,src/game/ui_screen_tables.cpp,the difficulty question's input side
@@ -483,8 +483,8 @@ vtable,slots,class,file,note
 00742F64,25,TooltipTable,src/game/ui_tooltip.cpp,a region's tooltip (CUiTooltip)
 00742FD8,2,ScrollingSurfaceClass,src/game/ui_scrolling_surface.cpp,the scrolling RichEdit surface (CUiScrollingSurface)
 00742FF4,3,PartyMemberArrayClass,src/game/party_lifetime.cpp,CArray (a party's unit records)
-00743000,27,PartyClass,src/game/party_lifetime.cpp,the party (CParty)
-0074306C,27,PartyBaseClass,src/game/party_lifetime.cpp,CParty's base (the manager context's getters null)
+00743000,27,CParty,src/game/party.h,the party (CParty)
+0074306C,27,CManagerContext,src/game/manager_context.h,CParty's base (the manager context's getters null)
 00743104,13,PlayerClass,src/game/player.cpp,a world player (CPlayer)
 00743138,3,PlayerListClass,src/lib/mfc_slots.h,CList (a player's list)
 00743180,24,PlayerClientClass,src/game/player_client.cpp,a player's client side (CPlayerClient)
@@ -495,50 +495,50 @@ vtable,slots,class,file,note
 00743300,8,CMMIOResource,src/game/resource.h,
 00743320,1,CResourceStream,src/game/resource_stream.h,the sound system's file reader
 00743324,1,CResourceBase,src/game/resource.h,the archive readers' base
-00743338,26,ResourceManagerClass,src/game/resource_manager.cpp,"CResourceManager's own table (Construct / Destruct; slots 11, 12, 14, 25 _purecall)"
-007433EC,24,CEffectSoundClass,src/game/world_effect_class.h,positional sound
-0074344C,24,CEffectSoundSeqClass,src/game/world_effect_class.h,sound sequence
-007434AC,24,CEffectBaseClass,src/game/world_effect_class.h,the effects' abstract base
-0074350C,24,CEffectAmbientSoundClass,src/game/world_effect_class.h,ambient sound
-0074356C,18,CEffectPointLightClass,src/game/world_effect_class.h,point light
-007435B4,7,CEffectPointLightClass,src/game/world_effect_class.h,the tail of 0074356C (the destructors call slot 18 through the table's memory)
-007435D0,2,CEffectParticleClass,src/game/world_effect_class.h,particle source
-007435D8,16,CEffectParticleClass,src/game/world_effect_class.h,the tail of 007435D0 (a byte match in 005E1680's FDIV operand)
-00743618,6,CEffectParticleClass,src/game/world_effect_class.h,the tail of 007435D8 (the destructors call slot 18 through the table's memory)
-00743630,18,CEffectWallClass,src/game/world_effect_class.h,particle wall
-00743678,6,CEffectWallClass,src/game/world_effect_class.h,the tail of 00743630 (the destructors call slot 18 through the table's memory)
-00743690,18,CEffectLightningClass,src/game/world_effect_class.h,lightning bolt
-007436D8,6,CEffectLightningClass,src/game/world_effect_class.h,the tail of 00743690 (the destructors call slot 18 through the table's memory)
-007436F0,18,CEffectArrowClass,src/game/world_effect_class.h,spell missile
-00743738,7,CEffectArrowClass,src/game/world_effect_class.h,the tail of 007436F0 (the destructors call slot 18 through the table's memory)
-00743754,25,CEffectMissileClass,src/game/world_effect_class.h,the missiles' abstract base
-007437B8,25,CEffectArrowFigureClass,src/game/world_effect_class.h,bow or crossbow shot
-0074381C,24,CEffectShowVisibilityClass,src/game/world_effect_class.h,shown visibility
-0074387C,24,CEffectMoshkaClass,src/game/world_effect_class.h,the client's bird
-007438F8,24,CEffectTornadoClass,src/game/world_effect_class.h,tornado
+00743338,26,CResourceManager,src/game/resource_manager.h,"CResourceManager's own table (Construct / Destruct; slots 11, 12, 14, 25 _purecall)"
+007433EC,24,CEffectSound,src/game/world_effect.h,positional sound
+0074344C,24,CEffectSoundSeq,src/game/world_effect.h,sound sequence
+007434AC,24,CEffect,src/game/world_effect.h,the effects' abstract base
+0074350C,24,CEffectAmbientSound,src/game/world_effect.h,ambient sound
+0074356C,18,CEffectPointLight,src/game/world_effect.h,point light
+007435B4,7,CEffectPointLight,src/game/world_effect.h,the tail of 0074356C (the destructors call slot 18 through the table's memory)
+007435D0,2,CEffectParticle,src/game/world_effect.h,particle source
+007435D8,16,CEffectParticle,src/game/world_effect.h,the tail of 007435D0 (a byte match in 005E1680's FDIV operand)
+00743618,6,CEffectParticle,src/game/world_effect.h,the tail of 007435D8 (the destructors call slot 18 through the table's memory)
+00743630,18,CEffectWall,src/game/world_effect.h,particle wall
+00743678,6,CEffectWall,src/game/world_effect.h,the tail of 00743630 (the destructors call slot 18 through the table's memory)
+00743690,18,CEffectLightning,src/game/world_effect.h,lightning bolt
+007436D8,6,CEffectLightning,src/game/world_effect.h,the tail of 00743690 (the destructors call slot 18 through the table's memory)
+007436F0,18,CEffectArrow,src/game/world_effect.h,spell missile
+00743738,7,CEffectArrow,src/game/world_effect.h,the tail of 007436F0 (the destructors call slot 18 through the table's memory)
+00743754,25,CEffectMissile,src/game/world_effect.h,the missiles' abstract base
+007437B8,25,CEffectArrowFigure,src/game/world_effect.h,bow or crossbow shot
+0074381C,24,CEffectShowVisibility,src/game/world_effect.h,shown visibility
+0074387C,24,CEffectMoshka,src/game/world_effect.h,the client's bird
+007438F8,24,CEffectTornado,src/game/world_effect.h,tornado
 0074399C,2,SpellEffectClass,src/game/spell_lifetime.cpp,"the cast spell (CSpellEffect; the harness's digest recognises it by CSpellEffect::Vtable in the image)"
-007439C8,13,CSpellConstructorClass,src/game/spell_class.h,spell constructor
+007439C8,13,CSpellConstructor,src/game/spell.h,spell constructor
 00743A14,26,CSpellManager,src/game/spell.h,
-00743A94,5,CSpellClass,src/game/spell_class.h,spell
-00743AA8,8,CSpellClass,src/game/spell_class.h,the tail of 00743A94 (0068B2C0 / 0068BC50 call slot 5 through the table's memory)
-00743AC8,5,CSpellContainerClass,src/game/spell_class.h,spell container
-00743ADC,3,CSpellContainerClass,src/game/spell_class.h,the tail of 00743AC8 (0068BC50 calls slot 5 through the table's memory)
-00743AE8,5,CSpellContainerClass,src/game/spell_class.h,the tail of 00743ADC (a byte match in 006E81C2)
-00743AFC,18,CLightClass,src/game/spell_class.h,light
+00743A94,5,CSpell,src/game/spell.h,spell
+00743AA8,8,CSpell,src/game/spell.h,the tail of 00743A94 (0068B2C0 / 0068BC50 call slot 5 through the table's memory)
+00743AC8,5,CSpellContainer,src/game/spell.h,spell container
+00743ADC,3,CSpellContainer,src/game/spell.h,the tail of 00743AC8 (0068BC50 calls slot 5 through the table's memory)
+00743AE8,5,CSpellContainer,src/game/spell.h,the tail of 00743ADC (a byte match in 006E81C2)
+00743AFC,18,CLight,src/game/spell.h,light
 00743B50,25,CLightFactory,src/game/spell.h,
 00743BB4,13,CMaterial,src/game/material.h,
 00743C38,26,CMaterialManager,src/game/material.h,
 00743CB0,26,CTextureManager,src/game/texture.h,
 00743D18,3,TextureListClass,src/lib/mfc_slots.h,CList (the texture manager's list)
 00743D24,13,CTexture,src/game/texture.h,
-00743DA4,22,CItemClass,src/game/item_class.h,item (the base)
-00743DFC,22,CItemWeaponClass,src/game/item_class.h,weapon
-00743E54,22,CItemArmorClass,src/game/item_class.h,armour
-00743EAC,22,CItemQuickClass,src/game/item_class.h,quick item (potions and wands)
-00743F04,22,CItemQuestClass,src/game/item_class.h,quest item
-00743F5C,22,CItemLootClass,src/game/item_class.h,loot
-00743FB4,22,CItemSpellClass,src/game/item_class.h,scroll
-00744020,13,CItemConstructorClass,src/game/item_class.h,item constructor
+00743DA4,22,CItem,src/game/item.h,item (the base)
+00743DFC,22,CItemWeapon,src/game/item.h,weapon
+00743E54,22,CItemArmor,src/game/item.h,armour
+00743EAC,22,CItemQuick,src/game/item.h,quick item (potions and wands)
+00743F04,22,CItemQuest,src/game/item.h,quest item
+00743F5C,22,CItemLoot,src/game/item.h,loot
+00743FB4,22,CItemSpell,src/game/item.h,scroll
+00744020,13,CItemConstructor,src/game/item.h,item constructor
 00744054,1,LootItemRecordClass,src/game/item_db.h,a loot item record (LootItemRecord)
 00744058,1,QuestItemRecordClass,src/game/item_db.h,a quest item record (QuestItemRecord)
 0074405C,1,QuickItemRecordClass,src/game/item_db.h,a quick item record (QuickItemRecord)

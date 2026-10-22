@@ -175,19 +175,18 @@ void CExchangeScreen::Create() {
     iconWindow_->PlaceBars(300);
 
     // The scratch party (made through its slot 2, not checked), our offer cleared, the partner's.
-    auto* party = gamecrt::operator_new_as<CParty>();
-    scratch_ = party ? party->Construct() : nullptr;
+    scratch_ = new CParty();
     scratch_->Create();
     net::ClientSession* client = net::GameClient();
-    ownOffer_ = client->parties_[0].Party();
-    partnerOffer_ = client->parties_[1].Party();
-    static_cast<CParty*>(ownOffer_)->Clear(1, 0);
+    ownOffer_ = client->parties_[0].Get();
+    partnerOffer_ = client->parties_[1].Get();
+    ownOffer_->Clear(1, 0);
 
     // The description panel (its item list and text arrays constructed in place).
     auto* panel = NewChild<CItemInfoPanel>(sizeof(CItemInfoPanel), interface_, ItemPanelVtables());
     if (panel) {
         panel->owner_ = this;
-        panel->ItemParty()->Construct();
+        new (panel->ItemParty()) CParty();
         panel->itemTexts_.Construct();
         panel->skillTexts_.Construct();
         SetVtables(panel, InfoPanelVtables());

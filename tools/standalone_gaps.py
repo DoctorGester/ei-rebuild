@@ -33,7 +33,7 @@ import dashboard_data as dd  # noqa: E402
 
 REGISTERED = re.compile(r'\b(?:EI_REPLACE\w*|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)')
 # A rewrite without a registration (C20d): its address is the tools' map, not a literal the image reaches.
-REWRITTEN = re.compile(r'\bEI_REWRITTEN\s*\([^;]*\)\s*;')
+REWRITTEN = re.compile(r'\bEI_REWRITTEN(?:_SPECIAL)?\s*\([^;]*\)\s*;')
 CODE_LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([4-7][0-9A-Fa-f]{5})(?![0-9A-Fa-f])')
 TEXT_BEGIN, TEXT_END = 0x401000, 0x73A670
 

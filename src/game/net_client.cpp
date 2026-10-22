@@ -18,9 +18,8 @@ namespace net {
 namespace {
 
 // 004DA7F0: the growing byte buffer's constructor (net_coder.h, GameBuffer).
-// 00661050: the embedded party's constructor (CParty::Construct, called at its address).
-void PartyConstruct(PartyStorage* party) { party->Party()->Construct(); }
-static_assert(sizeof(PartyStorage) == sizeof(CParty));
+// 00661050: the embedded party's constructor.
+void PartyConstruct(PartyStorage* party) { new (party->Get()) CParty(); }
 // 0041F460: an empty STLport string (library).
 
 void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
@@ -126,8 +125,8 @@ ClientSession* ClientSession::Construct() {
     RegisterTradeHandler(1, Handler(0x0041F270));
     RegisterTradeHandler(2, Handler(0x0041F3A0));
 
-    parties_[0].Party()->Create();
-    parties_[1].Party()->Create();
+    parties_[0]->Create();
+    parties_[1]->Create();
     return this;
 }
 EI_REWRITTEN(0x0041BC40, ClientSession::Construct);

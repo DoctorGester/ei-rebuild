@@ -1,6 +1,7 @@
 #pragma once
 
-// The worlds' player sources (base vtable 0073F38C; world_sessions.cpp): reference objects the
+// The worlds' player sources (world_sessions.cpp; real classes since C28g, game.exe's base vtable
+// 0073F38C and the sources' retired): reference objects the
 // server world's update pumps (slot 5) and asks for new connections (slot 6, AcceptPlayers
 // 0058DAF0). Two kinds: the counted helper at CWorld + 0x5C (CWorldHandle, world.h: hands over a
 // pending link once) and the network session at CWorld + 0x60 (netlink::DriverSession, net_link.h).
@@ -21,18 +22,16 @@ using JoinedLinks = mfc::CTypedPtrList<netlink::NetLink>;
 
 class CPlayerSource : public CRefObject {
 public:
-    // The compiled table (world_sessions.cpp; game.exe's 0073F38C).
-    static void* Vtable();
+    // A new source: no references, no flags.
+    CPlayerSource() {
+        refs_ = 0;
+        flags6_ = 0;
+        flags7_ = 0;
+    }
+    ~CPlayerSource() override;   // 0055F2E0 (deleting: 0055F2F0); the base has no fields
 
-    // 0: 0055F2F0 (DeletingDestructBase); 2 / 3 / 4 / 6 pure in the base.
-    virtual bool Query();               // 4: the helpers 0055F250 / 005626F0 AL 0, the session 0047A220 AL 1
-    virtual void Pump();                // 5: 0055F190 (empty) in every source
-    virtual void TakeNew(JoinedLinks* joined);   // 6: new connections appended to the list
-
-    // 0055F2E0. The destructor body: the root vtable stored (the base has no fields).
-    void DestructBase();
-    // 0055F2F0 (slot 0 of the base vtable). DestructBase, then operator delete when bit 0 of
-    // `flags` is set. Returns this.
-    CPlayerSource* DeletingDestructBase(unsigned flags);
+    // 2 / 3 / 4 / 6 pure in the base.
+    virtual bool Query() = 0;           // 4: the helpers 0055F250 / 005626F0 AL 0, the session 0047A220 AL 1
+    virtual void Pump() {}              // 5: 0055F190 (empty) in every source
+    virtual void TakeNew(JoinedLinks* joined) = 0;   // 6: new connections appended to the list
 };
-static_assert(sizeof(CPlayerSource) == 8);

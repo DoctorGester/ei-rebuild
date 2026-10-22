@@ -51,11 +51,7 @@ int CItem::RunTick() {
     if (charge_ >= chargeMax_) std::memcpy(&charge_, &chargeMax_, sizeof(float));
     return 1;
 }
-namespace {
-// Slot 6's entry point (rule 4).
-int __fastcall ItemRunTickHook(CItem* self) { return self->CItem::RunTick(); }
-} // namespace
-EI_REWRITTEN(0x006A0070, ItemRunTickHook);
+EI_REWRITTEN(0x006A0070, CItem::RunTick);
 
 int CItemWeapon::GetType() {
     return WeaponAt(PrototypeIndex(prototypeId_))->type;
@@ -87,8 +83,8 @@ double CItemWeapon::RollDamage() {
 }
 EI_REWRITTEN(0x006A2DE0, CItemWeapon::RollDamage);
 
-BOOL CItemWeapon::IsSameAsImpl(CItem* item) {
-    if (!CItem::IsSameAsImpl(item)) return 0;
+BOOL CItemWeapon::IsSameAs(CItem* item) {
+    if (!CItem::IsSameAs(item)) return 0;
     CItemWeapon* other = AsWeapon(item);   // of this one's type (the base's test)
     if (other->actionValue_ != actionValue_) return 0;
     EI_NAN_AUDIT(other->damage_, damage_, other->damageSpread_, damageSpread_, other->reach_, reach_);
@@ -97,7 +93,7 @@ BOOL CItemWeapon::IsSameAsImpl(CItem* item) {
     if (other->reach_ != reach_) return 0;
     return 1;
 }
-EI_REWRITTEN(0x006A06C0, CItemWeapon::IsSameAsImpl);
+EI_REWRITTEN(0x006A06C0, CItemWeapon::IsSameAs);
 
 int CItemArmor::GetType() {
     return ArmorAt(PrototypeIndex(prototypeId_))->type;
@@ -126,11 +122,7 @@ float CItemLoot::GetPrice() {
     default: return -1.0f;
     }
 }
-namespace {
-// Slot 16's entry point (rule 4).
-float __fastcall LootGetPriceHook(CItemLoot* self) { return self->CItemLoot::GetPrice(); }
-} // namespace
-EI_REWRITTEN(0x006A5470, LootGetPriceHook);
+EI_REWRITTEN(0x006A5470, CItemLoot::GetPrice);
 
 namespace {
 WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }

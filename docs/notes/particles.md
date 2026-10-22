@@ -48,7 +48,7 @@ Every function carries its address in its source comment (grep it); the per-func
   manager's own part of its constructor (quietStart cleared), is `ParticleManagerClearQuietStart` in small_accessors.cpp; world_client_maps.cpp
   reaches it through its forwarder when the client world sets its managers up. `CParticleSource` slots 11 / 12 ("CParticle" 0078B020,
   class id 12) 004982D0 / 004982E0, slot 0 `DeletingDestruct` 004982F0.
-- `Clear` 00484710, `Reset` 004847E0, `WorldPosition` 00484AE0, `CreateForType` 00485540 (a 13 KB switch).
+- `Clear` 00484710, `Reset` 004847E0, `WorldPosition` 00484AE0, `Create` 00485540 (slot 2; a 13 KB switch).
 - The per-type callbacks of ~50 effects in 00490130-00496990 (EmitModifier 00490130, EmitLightning 004923B0, UpdatePortal, TickPortal,
   TickStartTrans, TickGroundPlane, UpdateGlow, UpdateSparks, UpdateGroundDust, Mushroom, Nuke, CastRing, Banshee, Tornado, Geyser, PoisonFog,
   Healing, Vulkan, Blast, FireBall, ArrowSmoke, AcidRay, Stench, Link, Orbit, Tendril, Shower, Falling, ClayRing, Teleport, Modifier,

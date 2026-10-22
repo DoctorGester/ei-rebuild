@@ -51,12 +51,12 @@ Quaternion DefaultRotation() { return kNewUnitRotation; }
 struct UnitRecordBuilder {
     PartyStorage storage;
 
-    CParty* Party() { return storage.Party(); }
-    void Construct() { Party()->Construct(); }
+    CParty* Party() { return storage.Get(); }
+    void Construct() { new (Party()) CParty(); }
     void Fill(const char* text, const char* prototype, const char* name) {
         Party()->AddMember(text, prototype, name);
     }
-    void Destruct() { static_cast<CParty*>(Party())->DestructBody(); }
+    void Destruct() { Party()->CParty::~CParty(); }
     PartyUnitRecord* Record() { return Party()->members_.data; }
 };
 

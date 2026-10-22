@@ -76,8 +76,8 @@ EI_REWRITTEN(0x004A66C0, ItemStock::Construct);
 
 ClassTemplate* ClassTemplate::Construct() {
     vtable = CRefCounted::RootVtable();
-    ItemsParty()->Construct();
-    SpellsParty()->Construct();
+    new (ItemsParty()) CParty();
+    new (SpellsParty()) CParty();
     allowed.Construct(ItemsParty());
     magic.Construct(SpellsParty());
     vtable = ClassTemplateClass::Vtable();
@@ -110,8 +110,8 @@ void ClassTemplate::Destruct() {
     SpellsParty()->Destroy();
     magic.Destruct();
     allowed.Destruct();
-    SpellsParty()->DestructBody();
-    ItemsParty()->DestructBody();
+    SpellsParty()->~CParty();
+    ItemsParty()->~CParty();
     vtable = CRefCounted::RootVtable();
 }
 EI_REWRITTEN(0x004A6A90, ClassTemplate::Destruct);

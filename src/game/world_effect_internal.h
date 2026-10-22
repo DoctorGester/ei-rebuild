@@ -66,8 +66,7 @@ inline void* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(
 // 00403F40. An object of a manager by id, or null.
 inline void* FindObject(void* manager, void*, int id) { return static_cast<CBaseManager*>(manager)->FindObject(id); }
 
-// The world an object belongs to (the effects' manager context is the world, too). The effects
-// reach their own slots 18-23 through TimedSlots / EffectSlots (world_effect.h).
+// The world an object belongs to (the effects' manager context is the world, too).
 inline CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 inline CWorld* ContextWorld(const CEngineObject* object) { return object->WorldContext(); }
 

@@ -21,7 +21,6 @@ public:
     // The map object's Destroy (0050E840), then its destructor.
     ~PlainMapObject() override;
     // The deleting destructor (slot 0) frees into the game's heap.
-    static void operator delete(void* block) { gamecrt::operator_delete(block); }
     const char* GetClassName() override;   // 11: the class name
     int GetClassId() override;             // 12: ClassId
 

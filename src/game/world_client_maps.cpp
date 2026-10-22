@@ -7,6 +7,7 @@
 // instantiations), the window hit collectors, the radius marker, the pending-map lookup and the
 // bounds-checked record accessors.
 #include "ground_print.h"
+#include "item_db_text.h"
 #include "hash_tables_400.h"
 #include "item.h"
 #include "lightning.h"
@@ -14,7 +15,6 @@
 #include "player_manager.h"
 #include "player_messages.h"
 #include "world.h"
-#include "world_client_class.h"
 #include "world_data.h"
 
 #include "sky_object.h"   // before windows.h (GetClassName)
@@ -1009,7 +1009,7 @@ void CWorldClient::ResetZoneObjects() {
             });
     ObjectListIterator it{nullptr, nullptr};
     for (CEngineObject* object = it.First(TimedObjectManager()); object; object = it.Next()) object->Release();
-    if (bird_) TimedSlots(bird_)->Reset();
+    if (bird_) bird_->Reset();
     // The iterator's destructor, inlined: the manager's count drops without a release.
     if (it.manager) --it.manager->refCount_;
 }
@@ -1084,6 +1084,15 @@ template <typename T>
 T* MakeCounted(std::size_t size, void* (__fastcall* construct)(void*)) {
     std::uint8_t* memory = New(size);
     auto* object = static_cast<T*>(memory ? construct(memory) : nullptr);
+    ++object->refCount_;
+    return object;
+}
+
+// A new object (its class's operator new and constructor), stored and referenced (the original does not
+// test the pointer before counting).
+template <typename T>
+T* NewCounted() {
+    T* object = new T();
     ++object->refCount_;
     return object;
 }
@@ -1175,62 +1184,19 @@ int CWorldClient::Setup() {
     lightingMark_ = 0;
     sounds_ = MakeCounted<CSoundManager>(0x8C0, ConstructSoundManager);
 
-    // The text resources: the engine object's fields (in the original's order), the table, then
-    // the class's constructor body.
-    auto* texts = gamecrt::operator_new_as<CTextManager>();
-    if (texts) {
-        ei::SetVtable(texts, CEngineObject::BaseVtable());
-        texts->refCount_ = 0;
-        texts->id_ = -1;
-        texts->prototypeId_ = 0;
-        texts->type_ = 0;
-        texts->flags_ = 0;
-        texts->owner_ = nullptr;
-        texts->sources_.Construct();   // 00562A80
-        ei::SetVtable(texts, CTextManager::Vtable());
-        texts->CreateImpl();   // 004DED20
-    }
-    texts_ = texts;
-    ++texts->refCount_;
-
-    // The terrain, its constructor inlined up to the class's own body (006C5620).
-    auto* terrain = gamecrt::operator_new_as<Terrain>();
-    if (terrain) {
-        terrain->ConstructBase();   // 00453400
-        terrain->pageTextures.data = nullptr;
-        terrain->pageTextures.growBy = 0;
-        terrain->pageTextures.capacity = 0;
-        terrain->pageTextures.size = 0;
-        terrain->pageMaterials.Construct();
-        ::new (&terrain->textF8) mfc::CString;
-        ::new (&terrain->textFC) mfc::CString;
-        terrain->materials.Construct();
-        terrain->textureClass.Construct();
-        terrain->textureFrames.Construct();
-        terrain->archive.Construct();
-        terrain->vertexTiles.Construct();
-        mfc::impl::ConstructListHeader<mfc::impl::ClientList2Class>(&terrain->sectorCache, 10);
-        terrain->lights.Construct(100);   // 00571050: the light table, then the highest id 0
-        terrain->maxLightId = 0;
-        terrain->wavePhases.Construct();
-        terrain->visibleColumnFirst.Construct();
-        terrain->visibleColumnLast.Construct();
-        ::new (&terrain->textAE0) mfc::CString;
-        mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&terrain->waterLevels);
-        ei::SetVtable(terrain, Terrain::Vtable());
-        terrain->Reset();
-    }
-    terrain_ = terrain;
-    ++terrain->refCount_;
+    texts_ = new CTextManager();
+    ++texts_->refCount_;
+    terrain_ = new Terrain();
+    ++terrain_->refCount_;
     zoneName_ = worlddata::GipathText();
 
-    manager44_ = MakeCounted<CBaseManager>(0xB0, ConstructOn<CClientSpecificManager, &CClientSpecificManager::Construct>);
+    manager44_ = NewCounted<CClientSpecificManager>();
     manager44_->Init(this);
-    textureManager_ = MakeCounted<CTextureManager>(0xF0, ConstructOn<CTextureManager, &CTextureManager::Construct>);
-    textureManager_->CBaseManager::InitImpl(this);   // 004031B0 called directly
-    manager188_ = MakeCounted<CMaterialManager>(0xD0, ConstructOn<CMaterialManager, &CMaterialManager::Construct>);
+    textureManager_ = NewCounted<CTextureManager>();
+    textureManager_->CBaseManager::Init(this);   // 004031B0 called directly
+    manager188_ = NewCounted<CMaterialManager>();
     manager188_->Init(this);
-    manager190_ = MakeCounted<CBaseManager>(0xD8, ConstructOn<CLightFactory, &CLightFactory::Construct>);
+    manager190_ = NewCounted<CLightFactory>();
     manager190_->Init(this);
 
     std::uint8_t* particleMemory = New(sizeof(CParticleManager));
@@ -1241,16 +1207,7 @@ int CWorldClient::Setup() {
 
     session_ = static_cast<CPlayer*>(players_->CreateSessionPlayer());
 
-    auto* handle = gamecrt::operator_new_as<CRefObject>();
-    handle->refs_ = 0;   // (refs and flags written before the pointer is tested)
-    handle->flags6_ = 0;
-    handle->flags7_ = 0;
-    CRefObject* created = nullptr;
-    if (handle) {
-        RefValueConstructBase(handle);
-        ei::SetVtable(handle, CClientHandle::Vtable());
-        created = handle;
-    }
+    CRefObject* created = new CClientHandle();
     if (created != handle_.ptr) {
         if (CRefObject* old = handle_.ptr) {
             if (old->refs_ != 1) {
@@ -1470,15 +1427,9 @@ CLightningManager::~CLightningManager() {
     newBolts_.RemoveAll();
 }
 
-void CLightningManager::Destruct() { this->CLightningManager::~CLightningManager(); }
-EI_REWRITTEN(0x00562EC0, CLightningManager::Destruct);
+EI_REWRITTEN_SPECIAL(0x00562EC0, CLightningManager::~CLightningManager);
 
-CLightningManager* CLightningManager::DeletingDestruct(unsigned flags) {
-    this->CLightningManager::~CLightningManager();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00562EA0, CLightningManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00562EA0, CLightningManager::~CLightningManager);
 
 ClientArrayManager::ClientArrayManager() {
     current = nullptr;
@@ -1492,15 +1443,9 @@ ClientArrayManager::~ClientArrayManager() {
     if (current) current->Release();
 }
 
-void ClientArrayManager::DestructBody() { this->ClientArrayManager::~ClientArrayManager(); }
-EI_REWRITTEN(0x00562DF0, ClientArrayManager::DestructBody);
+EI_REWRITTEN_SPECIAL(0x00562DF0, ClientArrayManager::~ClientArrayManager);
 
-ClientArrayManager* ClientArrayManager::DeletingDestruct(unsigned flags) {
-    this->ClientArrayManager::~ClientArrayManager();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00562DD0, ClientArrayManager::DeletingDestruct);
+EI_REWRITTEN_SPECIAL(0x00562DD0, ClientArrayManager::~ClientArrayManager);
 
 // ---- The zone's state block (00567AB0, A-W15) ----------------------------------------------------
 
