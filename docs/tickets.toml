@@ -410,7 +410,7 @@ size = 1
 model = "opus"
 depends = ["R16"]
 files = ["src/render/", "src/game/terrain_lighting.cpp"]
-note = "User 2026-10-22: with per-pixel sun lighting, R22's object-id shadow test (away-facing faces skip only their own object's shadow) can go back to plain N.L darkening plus normal-offset bias; remove the id target then."
+note = "User 2026-10-22: no flag. Goldens hold no frames (digest, console, saves) and capture checks compare within a run, so new GPU lighting is the only path; R16j's classicshadows option and CPU shadow-texture drawing go too where only drawing reads them. CPU lighting stays only where something other than drawing reads it."
 
 [[ticket]]
 id = "R16j"
