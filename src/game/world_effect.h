@@ -453,10 +453,8 @@ public:
     void Follow(int objectId);
     int Unpack(int update, DeltaField* field);    // 0067D640 (slot 21): 1
 
-    CParticleSource* Source() { return static_cast<CParticleSource*>(source_); }
-
     CMapObject* bird_;         // +0x14C the figure object (a stuff object, class 0x38, counted), null: none
-    CEngineObject* source_;    // +0x150 its CParticleSource (counted), null: none
+    CParticleSource* source_;  // +0x150 counted, null: none
     int followedId_;           // +0x154 world object id, -1: none
     float lastTime_;           // +0x158 Update's last `now`
     float timer_;              // +0x15C frames left in the state
@@ -491,9 +489,7 @@ public:
     void LoadState(CStream* stream);                 // 0067E020 (slot 9)
     void SaveState(CStream* stream);                 // 0067E070 (slot 10)
 
-    CParticleSource* Source() { return static_cast<CParticleSource*>(source_); }
-
-    CEngineObject* source_;    // +0x14C client: the CParticleSource (counted), null: none
+    CParticleSource* source_;  // +0x14C client: counted, null: none
     int sound_;                // +0x150 client: the looping sound's handle, -1: none
     int framesLeft_;           // +0x154 ticks still to move
     int launchTick_;           // +0x158 the world's tick at Launch (Start catches the source up, at most 30)

@@ -108,7 +108,7 @@ CEffectMoshka* CEffectMoshka::DeletingDestruct(unsigned flags) {
 void CEffectMoshka::Reset() {
     ResetBase();
     if (bird_ != nullptr) TheClientWorld()->RemoveObject(bird_->id_);
-    if (source_ != nullptr) Source()->Stop();
+    if (source_ != nullptr) source_->Stop();
     CEngineObject* source = source_;
     source_ = nullptr;
     if (source != nullptr) source->Release();
@@ -274,13 +274,13 @@ void CEffectMoshka::Follow(int objectId) {
         bird->animation->queue.RemoveAll();
         bird->animation->Play(first);
     }
-    CEngineObject* source = ParticleManagerObject()->CreateSource(kBirdParticles);
+    CParticleSource* source = ParticleManagerObject()->CreateSource(kBirdParticles);
     CEngineObject* old = source_;
     source_ = source;
     if (source != nullptr) ++source->refCount_;
     if (old != nullptr) old->Release();
-    Source()->ScaleSize(kBirdParticleScale);
-    Source()->Attach(bird_);
+    source_->ScaleSize(kBirdParticleScale);
+    source_->Attach(bird_);
     state_ = kPerched;
     timer_ = kPerchedFrames;
 }
