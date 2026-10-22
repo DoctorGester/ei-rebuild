@@ -59,7 +59,6 @@ namespace {
 // after 004C2030), the item link record's CItemLink::Vtable() (item.h).
 constexpr std::uint32_t kStreamLimit = 2000000000;            // CStream +0x08 as constructed
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
-constexpr int kMissileSize = sizeof(CSpellEffect);           // operator new size of a missile
 
 // Save format versions (WorldStream::version_) at which fields were added.
 constexpr int kVersionTimeSpeedFloat = 0x4C;   // the time speed is a float (an int before)
@@ -458,9 +457,9 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             for (;;) {
                 std::uint8_t more = ReadValue<std::uint8_t>(stream);
                 if (!more) break;
-                void* memory = gamecrt::operator_new(kMissileSize);
-                static_cast<CSpellEffect*>(memory)->references = 0;   // written before the null test
-                CSpellEffect* missile = memory ? static_cast<CSpellEffect*>(memory)->Construct() : nullptr;
+                CSpellEffect* memory = gamecrt::operator_new_as<CSpellEffect>();   // 0xA8 bytes
+                memory->references = 0;   // written before the null test
+                CSpellEffect* missile = memory ? memory->Construct() : nullptr;
                 missile->Load(stream);
                 auto& list = projectiles_;
                 ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);
@@ -844,9 +843,9 @@ void CWorldServer::PrepareSave() {
     for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node)) {
         CUnit* unit = UnitOrNull(node->value);
         if (!unit || ObjectSlots(unit)->IsDead()) continue;   // slot 55
-        CEngineObject* controller = unit->controller;
+        CUnitController* controller = unit->Controller();
         UnitStatsRefillSlotsOriginal(&unit->ServerController()->stats);
-        static_cast<CUnitController*>(controller)->RefreshVitals(0);   // slot 19 (+0x4C)
+        controller->RefreshVitals(0);   // slot 19 (+0x4C)
     }
 }
 

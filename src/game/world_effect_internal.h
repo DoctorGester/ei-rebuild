@@ -86,10 +86,10 @@ inline CWorld* ContextWorld(const CEngineObject* object) { return object->WorldC
 
 // The four streams of a field emptied (the original's 00675F70 or its inline copy).
 inline void EmptyField(DeltaField* f) {
-    static_cast<CMemoryStream*>((void*)&f->snapshot[0])->Resize(0);
-    static_cast<CMemoryStream*>((void*)&f->snapshot[1])->Resize(0);
-    static_cast<CMemoryStream*>((void*)&f->out[0])->Resize(0);
-    static_cast<CMemoryStream*>((void*)&f->out[1])->Resize(0);
+    f->snapshot[0].Resize(0);
+    f->snapshot[1].Resize(0);
+    f->out[0].Resize(0);
+    f->out[1].Resize(0);
 }
 
 // Every Unpack ends by checking that the snapshot was read to its end (Position, then Size).

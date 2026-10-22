@@ -238,7 +238,10 @@ void EmptyDeferred() {
 template <typename T>
 void DrawLightEffects(stlp::list<T>& list) {
     typename stlp::list<T>::Node* head = list.head;
-    for (typename stlp::list<T>::Node* node = head->next; node != head; node = node->next) static_cast<GroundPrint*>(&node->data)->Draw();
+    for (typename stlp::list<T>::Node* node = head->next; node != head; node = node->next) {
+        GroundPrint* print = &node->data;
+        print->Draw();
+    }
 }
 template <typename T>
 bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head; }
@@ -596,9 +599,9 @@ int CWorldClient::DrawPass() {
                 if (ObjectSlots(object)->IsDead() == 0) {
                     Vector3 point;
                     std::memcpy(&point, &object->localPosition_, sizeof(point));
-                    if (void* part = object->FindPartByPrefix(MarkerPartName())) {
+                    if (CFigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
                         Vector3 scratch;
-                        const float* at = object->PartWorldPosition(&scratch.x, static_cast<const CFigureMesh*>(part));
+                        const float* at = object->PartWorldPosition(&scratch.x, part);
                         std::memcpy(&point, at, sizeof(point));
                         point.z = Reload(object->localPosition_.z);
                     }
