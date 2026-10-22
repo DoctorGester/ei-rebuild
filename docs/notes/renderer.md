@@ -1095,7 +1095,15 @@ across runs; the goldens check the game state.
      a face, not per vertex). Follow-up: point-light shadows (ticket R16i1).
    Check: render_lighting (frames for review: zone1's start, creatures on slopes, a fight, zone1 at night, the town
    bz1g by day and at night with its campfire), render_shadows*, render_scene, render_stats; the goldens the same
-   (the digest's water hash, saves). Cost: see the R16i measurements below.
+   (the digest's water hash, saves). Cost (render_stats, vanilla 4K, per frame; before = this branch's base,
+   main of 2026-10-22, one run; after = two runs alone, the machine shared with other workers' games): main
+   thread CPU zone1 4.46 / 2.96-3.92 ms, fight 15.42 / 12.93-12.97, town 9.56 / 5.25-5.33; meshes relit a frame
+   22 / 0, 188 / 0, 58 / 0 and terrain pages relit 15 / 0, 14 / 0, 13 / 0; mesh uploads 42 / 54, 93 / 61, 305 /
+   42 KB; terrain uploads 228 / 312 KB in zone1 (its moving water pages' vertices carry the normal now: 36 bytes
+   against 20); GPU frame zone1 0.91 / 0.96-0.99, fight 1.89 / 1.66-1.87, town 2.13 / 3.46-3.75 in the first
+   stretch but 2.84 / 1.51-2.27 in the later one (noisy; per-pixel point lights over the ground at 4K are the
+   likely cost). Side by side (before | after): build\R16i\compare_*.png on E: (start, slope, fight, night,
+   town, town_night).
 
 10. **R16j Object shadows from a sun shadow map (done; user 2026-10-20).** `render_shadows.cpp`. The game hands over the
     sun (00569E40: `Terrain::sun`'s direction), the object each figure draw's meshes belong to (0056AFE0's object
