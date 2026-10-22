@@ -121,7 +121,7 @@ void DeleteRecord(ItemRecordHead* record) {
 // Index of `record` in `table` (the pointer difference divided by the stride, signed).
 template <typename Record>
 std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHead* record) {
-    return static_cast<std::uint32_t>(table.IndexOf(static_cast<const Record*>(record)));
+    return static_cast<std::uint32_t>(table.IndexOf(RecordAs<Record>(record)));
 }
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -219,7 +219,7 @@ void CItemConstructor::SetItem(CItem* item) {
 EI_REPLACE_METHOD(0x006A5C20, CItemConstructor::SetItem);
 
 BOOL CItemConstructor::BeginCreateItem(int kind, int key) {
-    CItem* item = static_cast<CItem*>(manager_->CreateObject(kind, key));
+    CItem* item = manager_->CreateObjectAs<CItem>(kind, key);
     if (!item) return game::FatalError(kCantCreateItem);
     if (item_) item_->Release();
     item_ = item;
@@ -312,8 +312,8 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
                         const MaterialRecordHead* material) {
     switch (classId) {
     case kClassWeapon: {
-        auto* to = static_cast<WeaponRecord*>(record);
-        auto* from = static_cast<const WeaponRecord*>(prototype);
+        auto* to = RecordAs<WeaponRecord>(record);
+        auto* from = RecordAs<WeaponRecord>(prototype);
         CopyBits(to->reach, from->reach);
         float damage = from->damage, factor = material->damageFactor;
         to->damage = damage * factor;
@@ -322,8 +322,8 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
         return IndexIn(TheItemDatabase().weapons, prototype);
     }
     case kClassArmor: {
-        auto* to = static_cast<ArmorRecord*>(record);
-        auto* from = static_cast<const ArmorRecord*>(prototype);
+        auto* to = RecordAs<ArmorRecord>(record);
+        auto* from = RecordAs<ArmorRecord>(prototype);
         to->firstFlags = from->firstFlags | material->armourFlags;
         to->othersFlags = from->othersFlags | material->armourFlags;
         // Seven absorption values in two rows, each scaled by the material's factor for its
@@ -338,14 +338,14 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
     }
     case kClassQuick:
     case kClassSpell:
-        CopyBits(static_cast<QuickItemRecord*>(record)->value70, static_cast<const QuickItemRecord*>(prototype)->value70);
+        CopyBits(RecordAs<QuickItemRecord>(record)->value70, RecordAs<QuickItemRecord>(prototype)->value70);
         return IndexIn(TheItemDatabase().quickItems, prototype);
     case kClassQuest:
         CopyBits(record->category, prototype->category);
         return IndexIn(TheItemDatabase().questItems, prototype);
     case kClassLoot: {
-        auto* to = static_cast<LootItemRecord*>(record);
-        auto* from = static_cast<const LootItemRecord*>(prototype);
+        auto* to = RecordAs<LootItemRecord>(record);
+        auto* from = RecordAs<LootItemRecord>(prototype);
         CopyBits(to->category, from->category);
         CopyBits(to->recordType, from->recordType);
         // Kind 1 (a material) takes the material's index when one is given.
@@ -375,7 +375,7 @@ BOOL CItemConstructor::Build() {
     item_->InitFromRecord(record);
     if (item_->GetClassId() == kClassQuick && static_cast<int>(prototype->category) == kCategoryWand) {
         CSpellManager* spellManager = manager_->context_->SpellManager();
-        CSpell* spell = spellManager->CreateSpellFromText((static_cast<const QuickItemRecord*>(prototype)->text7C).GetString());
+        CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->text7C).GetString());
         spell_ = spell;
         item_->SetSpell(spell);
     } else if (spell_) {

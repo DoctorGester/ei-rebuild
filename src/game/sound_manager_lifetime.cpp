@@ -29,7 +29,6 @@
 namespace {
 constexpr int kSoundManagerClassId = 0xE;
 constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
-constexpr std::size_t kArchiveBytes = sizeof(CMappedResource);
 const char* const kBackslash = "\\";
 
 int CompareText(const char* a, const char* b) {
@@ -73,8 +72,8 @@ EI_REWRITTEN(0x006B7060, CSoundManager::ClearWaveSources);
 // tested (the open call goes through a null object, as in the original).
 int CSoundManager::AddWaveSource(const char* path) {
     if (enabled == 0) return 1;
-    void* memory = gamecrt::operator_new(kArchiveBytes);
-    CMappedResource* source = memory != nullptr ? static_cast<CMappedResource*>(memory)->Construct() : nullptr;
+    CMappedResource* memory = gamecrt::operator_new_as<CMappedResource>();
+    CMappedResource* source = memory != nullptr ? memory->Construct() : nullptr;
     if (source->OpenResource(path, 0) == 0) {
         delete source;
         return 0;

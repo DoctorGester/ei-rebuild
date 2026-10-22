@@ -78,8 +78,7 @@ double UnitStats::AttributeWithItems(int index, CUnit* unit) {
     for (std::uint32_t i = 0; i < kQuickItems; ++i) {
         CItem* item = unit->GetQuickItem(i);
         if (!item) continue;
-        const auto* prototype =
-            reinterpret_cast<const itemdb::QuickItemRecord*>(item->GetPrototype());
+        const auto* prototype = itemdb::RecordAs<itemdb::QuickItemRecord>(item->GetPrototype());
         float bonus = static_cast<float>(prototype->attributeBonus[index]);   // any index, as the original
         best = best >= bonus ? best : bonus;   // the original's select
     }

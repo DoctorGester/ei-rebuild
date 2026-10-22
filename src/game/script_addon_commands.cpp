@@ -244,7 +244,7 @@ bool GiveUnitWeapon(Call* call) {
     if (slot == -1) return true;
     unit->pendingWeapon = slot;
     if (override) {
-        auto* weapon = static_cast<const itemdb::WeaponRecord*>(item->GetPrototype());
+        const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(item->GetPrototype());
         CombatStats& stats = unit->ServerController()->Combat();
         const UnitPrototypeRecord* prototype = unit->GetPrototype();
         Store(&stats.damage, item->damage_);
