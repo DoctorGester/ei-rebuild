@@ -110,7 +110,7 @@ void DestroyArray(AnimationSteps& array, void* vtable) {
 // --- CObject3D --------------------------------------------------------------------------------
 
 CObject3D* CObject3D::Construct() {
-    SetVtable(this, CEngineObject::kVtableAddress);
+    SetVtable(this, CEngineObject::BaseVtable());
     SetVtable(this, CTransformObject::kVtableAddress);
     ::new (&name) mfc::CString;
     SetUpObject3D();

@@ -33,7 +33,7 @@ float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
 // 0040CB20: the engine object's constructor body (inlined in most classes): vtable 0073B8E0,
 // id -1, everything else zero.
 CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self) {
-    ei::SetVtable(self, CEngineObject::kVtableAddress);
+    ei::SetVtable(self, CEngineObject::BaseVtable());
     self->refCount_ = 0;
     self->id_ = -1;
     self->prototypeId_ = 0;

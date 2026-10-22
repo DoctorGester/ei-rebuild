@@ -46,7 +46,7 @@ CEngineObject* ClientArrayManager::NewObjectImpl(int) {
     if (!memory) return nullptr;
     auto* fog = memory;
     CEngineObject* object = fog;
-    ei::SetVtable(fog, CEngineObject::kVtableAddress);
+    ei::SetVtable(fog, CEngineObject::BaseVtable());
     object->ClearFields();
     std::memset(static_cast<void*>(&fog->bounds), 0, offsetof(CVisibilityFog, cells) - offsetof(CVisibilityFog, bounds));
     fog->cells.InitBuckets(kFogBuckets);

@@ -48,6 +48,10 @@ protected:
     CEngineObject* Object() { return this->template ObjectAs<CEngineObject>(); }
 };
 
+// game.exe's 0073B8E0 compiled (C19): CEngineObject's own table, which its constructor and destructor bodies store
+// (CEngineObject::BaseVtable).
+class EngineObjectBaseClass final : public EngineObjectClass<EngineObjectBaseClass, CEngineObject> {};
+
 // CTransformObject's slots 13-17 over CEngineObject's (game.exe's 0073BA38 has the base's bodies there).
 template <typename Self, typename T>
 class TransformObjectClass : public EngineObjectClass<Self, T> {
