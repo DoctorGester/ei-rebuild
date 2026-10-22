@@ -170,7 +170,7 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     for (const auto& state : kStates) {
         SetRenderState(ui->renderer_->device_, state[0], state[1]);
     }
-    ei::GameData<std::uint8_t>(0x00784750) = 1;
+    app::g_interfaceHasScreen = 1;
     using CreateFn = void(__thiscall*)(CUiWindow*);
     ei::VirtualSlot<CreateFn>(window->vtable_, 25)(window);
     app::PumpMessages();
@@ -254,7 +254,7 @@ void CInterface3D::Activate(CUiWindow* window) {
     }
     ResetInput();
     app::PumpMessages();
-    ei::GameData<std::uint8_t>(0x00784750) = 0;
+    app::g_interfaceHasScreen = 0;
     if (!window) {
         game::FatalError("Cannot activate NULL interface screen\n");
         return;

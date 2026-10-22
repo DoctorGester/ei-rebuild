@@ -44,7 +44,6 @@ namespace {
 
 
 HWND MainWindow() { return ei::GameData<HWND>(0x0079BC28); }
-bool QuitOnClose() { return ei::GameData<std::uint8_t>(0x00784751) != 0; }   // Alt+F4 / WM_DESTROY quit
 
 // The interface (007C7D50) takes the input: pending windows closed before and after each message
 // (005F5AB0), then the message with (wParam, x, y) (005F76A0-005F7BE0; ui_interface_input.cpp).
@@ -57,20 +56,18 @@ libcrt::Ostream* Console() { return ei::GamePointer<libcrt::Ostream>(0x007C55A8)
 // (pointer at 007AF784).
 CDirectInputMouse* TheMouse() { return Mouse(); }
 
-std::uint8_t& ActiveFlag() { return ei::GameData<std::uint8_t>(0x0079BC5C); }
-std::uint8_t& ActivationSeen() { return ei::GameData<std::uint8_t>(0x0079BC5D); }
 
 LRESULT OnActivate(WPARAM wParam) {
     if ((wParam >> 16) != 0) {   // minimised
-        ActivationSeen() = 1;
-        ActiveFlag() = 0;
+        g_activationChanged = 1;
+        g_active = 0;
         return 1;
     }
     auto* sounds = TheSoundManager();
     unsigned state = wParam & 0xFFFF;
     if (state == 0) {   // WA_INACTIVE
-        ActiveFlag() = 0;
-        ActivationSeen() = 1;
+        g_active = 0;
+        g_activationChanged = 1;
         TheCursor()->ShowImage(0);
         CTextureDevice* device = TheRenderDevice();
         if (device && (device->flags_ & 1)) device->RestoreDisplayMode();
@@ -80,8 +77,8 @@ LRESULT OnActivate(WPARAM wParam) {
         return 1;
     }
     if (state > 2) return 1;
-    ActiveFlag() = 1;
-    ActivationSeen() = 1;
+    g_active = 1;
+    g_activationChanged = 1;
     gameapi::ShowWindow(MainWindow(), SW_RESTORE);
     if (CDirectInputMouse* mouse = TheMouse()) mouse->SetActive(1);
     CTextureDevice* device = TheRenderDevice();
@@ -93,7 +90,7 @@ LRESULT OnActivate(WPARAM wParam) {
             // argument from EAX after loading only AL, so its upper bytes are those of the device
             // pointer; the value below rebuilds them. The context is the mouse.
             std::uint32_t flags = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
-                                  (ei::GameData<std::uint8_t>(0x00784756) == 0 ? 1u : 0u);
+                                  (g_deviceNamed == 0 ? 1u : 0u);
             ResetCursors(options::TheOptions()->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(TheMouse())), 0,
                          static_cast<int>(flags));
         }
@@ -171,7 +168,7 @@ LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lP
         return 1;
     }
     case WM_DESTROY:
-        if (QuitOnClose()) gameapi::PostQuitMessage(0);
+        if (g_quitAllowed != 0) gameapi::PostQuitMessage(0);
         return 1;
     case WM_ACTIVATE:
         return OnActivate(wParam);
@@ -210,7 +207,7 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
         return Handled();
     case WM_SYSKEYDOWN:
         if (wParam == VK_F4 && AltDown(lParam)) {
-            if (QuitOnClose()) gameapi::PostQuitMessage(0);
+            if (g_quitAllowed != 0) gameapi::PostQuitMessage(0);
             return Handled();
         }
         input->OnKeyDown(w, Low(lParam), HighSigned(lParam));
@@ -306,7 +303,6 @@ EI_REWRITTEN(0x00456140, StartFirstMap);
 
 namespace {
 const char* FlipFailedText() { return "Can't flip to GDI surface.\n"; }
-const char* WindowTitle() { return ei::GamePointer<const char>(0x0079BB24); }      // the game window's title (a buffer)
 } // namespace
 
 // 004560D0 (A-E2).
@@ -319,7 +315,7 @@ int __fastcall ShowMessageBox(const char* text, int flags) {
         if (result != 0) FatalErrorCode(result, FlipFailedText());
     }
     // EI_UTF8: the image's MessageBoxA takes UTF-8 (system_text.h).
-    int answer = gameapi::MessageBoxA(MainWindow(), text, WindowTitle(), static_cast<UINT>(flags));
+    int answer = gameapi::MessageBoxA(MainWindow(), text, g_windowTitle, static_cast<UINT>(flags));
     gameapi::SetCursor(cursor);
     return answer;
 }

@@ -1,6 +1,7 @@
 // CWorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map
 // objects), the script's AddUnitToServer, and writing the map objects into a save. See world.h and
 // docs/notes/world.md.
+#include "app.h"
 #include "map_spec.h"
 #include "world.h"
 #include "model.h"   // TweenArray (countdowns_)
@@ -226,7 +227,6 @@ void CWorldServer::SaveMapObjects(CStream* out) {
 // ---- Loading movie (00595080) -------------------------------------------------------------------
 
 namespace {
-const char*& LoadingMovie() { return ei::GameData<const char*>(0x00791EE0); }
 bool SameName(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
@@ -241,23 +241,23 @@ void __stdcall SelectLoadingMovie(const char* zone) {
         if (map) allod = map->allod;
     }
     if (SameName(allod, "gipat")) {
-        LoadingMovie() = "progres2.bik";   // progres2.bik
+        app::g_loadingMovieName = "progres2.bik";   // progres2.bik
     } else if (SameName(allod, "ingos")) {
-        LoadingMovie() = "progres3.bik";   // progres3.bik
+        app::g_loadingMovieName = "progres3.bik";   // progres3.bik
     } else {
         bool suslanger = SameName(allod, "suslanger");
-        LoadingMovie() = "progres4.bik";   // progres4.bik
+        app::g_loadingMovieName = "progres4.bik";   // progres4.bik
         if (!suslanger) {
-            LoadingMovie() = "progres.bik";   // progres.bik
+            app::g_loadingMovieName = "progres.bik";   // progres.bik
             if (ei::rebirth::Enabled(ei::rebirth::Patch::FixProgressNames)) {
-                if (SameName(allod, "gipat2")) LoadingMovie() = "progres2.bik";
-                else if (SameName(allod, "jigran")) LoadingMovie() = kProgres5;
+                if (SameName(allod, "gipat2")) app::g_loadingMovieName = "progres2.bik";
+                else if (SameName(allod, "jigran")) app::g_loadingMovieName = kProgres5;
             }
         }
     }
     if (zone) {
-        if (libcrt::Stricmp(zone, "gz1g") == 0) LoadingMovie() = "progres1.bik";   // progres1.bik
-        if (libcrt::Stricmp(zone, "bz7g") == 0) LoadingMovie() = "progres1.bik";
+        if (libcrt::Stricmp(zone, "gz1g") == 0) app::g_loadingMovieName = "progres1.bik";   // progres1.bik
+        if (libcrt::Stricmp(zone, "bz7g") == 0) app::g_loadingMovieName = "progres1.bik";
     }
 }
 

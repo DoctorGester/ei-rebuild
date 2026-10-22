@@ -8,6 +8,7 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <cstdint>
 
 class CDirectInputMouse;   // ui_cursor.h
 namespace mfc {
@@ -25,6 +26,26 @@ mfc::CString& CommandLineMob();
 mfc::CString& CommandLineScript();
 mfc::CString& CameraFile();
 CDirectInputMouse*& Mouse();
+
+// The application's flags and handles (app_main.cpp). The game window's title (from the string table), the
+// instance; the window's activation as the window procedure leaves it; whether the interface shows a screen
+// (set when a screen is activated, cleared when every window is closed: the main loop runs its frames only
+// while it is set); whether QuitGame may post the quit message (cleared while a timed movie plays); a movie of
+// the frames being written (the loop then runs a fixed time a frame); the console's switch that prints the
+// client speed; what the video memory allows (little memory besides the textures, little texture memory) and
+// whether a device was named on the command line; the loading screen's movie file.
+extern char g_windowTitle[256];
+extern HINSTANCE g_instance;
+extern std::uint8_t g_active;
+extern std::uint8_t g_activationChanged;
+extern std::uint8_t g_interfaceHasScreen;
+extern std::uint8_t g_quitAllowed;
+extern std::uint8_t g_recordingFrames;
+extern int g_showClientSpeed;
+extern std::uint8_t g_littleOtherMemory;
+extern std::uint8_t g_littleTextureMemory;
+extern std::uint8_t g_deviceNamed;
+extern const char* g_loadingMovieName;
 
 // 00457D40. The game window's procedure (also called directly by the pump and the dispatcher).
 LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam);

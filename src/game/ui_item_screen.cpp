@@ -1,6 +1,7 @@
 // The item screens' common setup (the camp, the multiplayer hero screen and the exchange window):
 // the caches' trimming (005F2F20 / 005F2F90), the base Create (005EDD80) and the icon window's
 // frame (005F2A90, its slot 18). See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
+#include "app.h"
 #include "model.h"
 #include "ui_item_info.h"
 #include "ui_camp.h"
@@ -158,8 +159,8 @@ void CItemScreen::CreateBase() {
         using SetFn = void(__thiscall*)(void*, float, float);
         ei::ObjectSlot<SetFn>(target, 5)(target, 99.0f, 100.0f);
     }
-    // The caches keep 30 entries (20 with 00784754 set).
-    if (ei::GameData<const volatile char>(0x00784754) != 0) {
+    // The caches keep 30 entries (20 with little texture memory).
+    if (app::g_littleTextureMemory != 0) {
         textures_.limit = 20;
         TrimItemCache(&textures_);
         models_.limit = 20;

@@ -1,5 +1,6 @@
 // Console command handlers (game.exe 0x005DD920-0x005E0A8B). Each gets the command's arguments,
 // already lower-cased, in ECX. See docs/notes/console.md.
+#include "app.h"
 #include "ei/x87.h"
 #include "console.h"
 
@@ -396,7 +397,7 @@ void __fastcall Net(CStringArray* args) {
         if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = libcrt::Atoi((*args)[1]);
     }
     if (Mbsicmp((*args)[0], "time") == 0)
-        *ei::GamePointer<int>(0x0079BC60) = libcrt::Atoi((*args)[1]);
+        app::g_showClientSpeed = libcrt::Atoi((*args)[1]);
     if (Mbsicmp((*args)[0], "zone") == 0 && ServerActive(Server())) {
         mfc::CString zone((*args)[1]);
         Server()->SendCommand(0, zone);

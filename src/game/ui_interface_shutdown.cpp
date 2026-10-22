@@ -47,7 +47,7 @@ void CInterface3D::Shutdown() {
     }
     ResetInput();
     app::PumpMessages();
-    InterfaceHasScreen() = false;
+    app::g_interfaceHasScreen = 0;
 
     console::CStdioFile file;
     bool opened;

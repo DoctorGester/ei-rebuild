@@ -829,7 +829,7 @@ HWND WINAPI CreateWithoutActivating(DWORD exStyle, LPCSTR cls, LPCSTR name, DWOR
                                     HWND parent, HMENU menu, HINSTANCE instance, LPVOID param) {
     if (!parent) exStyle |= WS_EX_NOACTIVATE;
     char harnessTitle[300];
-    if (!parent && name && std::strcmp(name, &ei::GameData<char>(0x0079BB24)) == 0) {   // the game window (title = WinMain's)
+    if (!parent && name && std::strcmp(name, HarnessWindowTitle()) == 0) {   // the game window (title = WinMain's)
         std::snprintf(harnessTitle, sizeof(harnessTitle), "%s (harness)", name);
         name = harnessTitle;
     }
@@ -3099,7 +3099,7 @@ void RunSteps() {
             ConsoleExecute(s.argument.c_str());
         } else if (s.verb == "newgame") {
             // What the main menu's new-game button does after the intro movie (00632940).
-            ei::GameData<unsigned char>(0x00784750) = 0;
+            HarnessInterfaceHasScreen() = 0;
             HarnessFlow()->state_ = 3;
         } else if (s.verb == "load") {
             HarnessFlow()->requestTarget_ = s.argument.c_str();
@@ -3824,7 +3824,7 @@ void RunSteps() {
             g_capturedFrames.push_back(text);
             if (differing > limit) g_failures.push_back(text);
         } else if (s.verb == "record") {
-            ei::GameData<unsigned char>(0x0079BC54) = s.argument == "on" ? 1 : 0;
+            HarnessRecordingFrames() = s.argument == "on" ? 1 : 0;
         } else if (s.verb == "waitpresent") {
             int seconds = 10;
             char what[16] = "";
@@ -4153,7 +4153,7 @@ void ActivateWithoutForeground(HWND window) {
     static bool sent = false;
     if (sent || !ei::GameData<void*>(0x007AF080)) return;
     sent = true;
-    if (ei::GameData<std::uint8_t>(0x0079BC5C)) return;
+    if (HarnessActive()) return;
     Log("harness: the game window activated (nothing activates it: harness games never take the foreground)");
     SendMessageA(window, WM_ACTIVATE, WA_ACTIVE, 0);
 }

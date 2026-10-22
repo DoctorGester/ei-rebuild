@@ -78,8 +78,13 @@ address,size,name,file
 007471B0,24,kClassCTempMenu,src/lib/mfc_runtime_class.h
 007471D8,24,kClassCMenu,src/lib/mfc_runtime_class.h
 00783E30,4,g_gamePort,src/game/net_classes.h
+00784750,1,g_interfaceHasScreen,src/game/app_main.cpp
+00784751,1,g_quitAllowed,src/game/app_main.cpp
 00784752,1,g_movieMode,src/game/app_helpers.cpp
+00784753,1,g_littleOtherMemory,src/game/app_main.cpp
+00784754,1,g_littleTextureMemory,src/game/app_main.cpp
 00784755,1,g_littleNonLocalMemory,src/game/app_main.cpp
+00784756,1,g_deviceNamed,src/game/app_main.cpp
 00784758,4,g_clientSpeed,src/game/app_main.cpp
 00787070,960,kActionDefinitions,src/game/ui.h
 00787430,624,kOptionDefinitions,src/game/ui_options.cpp
@@ -127,6 +132,7 @@ address,size,name,file
 0079156C,304,kLevel5Table,src/game/ai_area_lists.cpp
 007916BC,136,kSteepOffsets,src/game/ai_refresh.cpp
 00791744,16,kTransparency,src/game/ai_map.cpp
+00791EE0,4,g_loadingMovieName,src/game/app_main.cpp
 00796960,64,kAnimationSpeeds,src/game/terrain_sector.cpp
 007969D0,384,g_soundClasses,src/game/terrain_ambience.cpp
 00796CD0,24,g_classCDib,src/game/dib.cpp
@@ -176,8 +182,14 @@ address,size,name,file
 0079BA1C,4,g_cameraFile,src/game/app_main.cpp
 0079BA20,2,g_windowClassAtom,src/game/app_main.cpp
 0079BA24,256,g_windowClassName,src/game/app_main.cpp
+0079BB24,256,g_windowTitle,src/game/app_main.cpp
+0079BC24,4,g_instance,src/game/app_main.cpp
 0079BC2C,4,g_protectionChecks,src/game/static_lists.cpp
+0079BC54,1,g_recordingFrames,src/game/app_main.cpp
 0079BC58,4,g_movieFrame,src/game/app_frame.cpp
+0079BC5C,1,g_active,src/game/app_main.cpp
+0079BC5D,1,g_activationChanged,src/game/app_main.cpp
+0079BC60,4,g_showClientSpeed,src/game/app_main.cpp
 0079BC64,4,g_serverBacklog,src/game/app_main.cpp
 0079BC68,4,g_clientBacklog,src/game/app_main.cpp
 0079BC70,620,g_options,src/game/options_global.cpp

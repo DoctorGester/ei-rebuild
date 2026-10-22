@@ -7,6 +7,7 @@
 // coordinates between the two; windows keep their regions in layout coordinates and convert the
 // mouse position before hit testing.
 
+#include "app.h"   // app::g_interfaceHasScreen
 #include "core_transform.h"
 #include "options.h"
 #include "debug_panel.h"
@@ -1079,9 +1080,6 @@ public:
 static_assert(offsetof(CUiItemPanel, mode_) == 0x148);
 static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
 
-// Set when a screen is activated (005F71C0 / 005F7350), cleared when every window is closed; the
-// main loop runs its frames only while it is set (00784750; app_frame.cpp's Running).
-inline bool& InterfaceHasScreen() { return ei::GameData<bool>(0x00784750); }
 
 // The client world (CWorldClient, world.h).
 // Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.

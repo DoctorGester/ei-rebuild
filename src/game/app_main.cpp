@@ -147,6 +147,20 @@ EI_REPLACE(0x00455D90, DestroyCommandLineMap);
 EI_REPLACE(0x00455DC0, DestroyMovieFolder);
 EI_REPLACE(0x00455DF0, ReleaseMouseAtExit);
 
+// The application's flags and handles (app.h).
+char g_windowTitle[256] = /*0079BB24*/ {""};
+HINSTANCE g_instance = /*0079BC24*/ {};
+std::uint8_t g_active = /*0079BC5C*/ {};
+std::uint8_t g_activationChanged = /*0079BC5D*/ {};
+std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
+std::uint8_t g_quitAllowed = /*00784751*/ 1;
+std::uint8_t g_recordingFrames = /*0079BC54*/ {};
+int g_showClientSpeed = /*0079BC60*/ {};
+std::uint8_t g_littleOtherMemory = /*00784753*/ 1;
+std::uint8_t g_littleTextureMemory = /*00784754*/ 1;
+std::uint8_t g_deviceNamed = /*00784756*/ 1;
+const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
+
 namespace {
 
 // Constants of the exe, read when they are used (a literal could be folded at another precision).
@@ -163,8 +177,6 @@ double Step(double value) {
 // instance and the window.
 std::uint16_t g_windowClassAtom = /*0079BA20*/ {};
 char g_windowClassName[256] = /*0079BA24*/ {""};
-char* WindowTitle() { return &ei::GameData<char>(0x0079BB24); }
-HINSTANCE& Instance() { return ei::GameData<HINSTANCE>(0x0079BC24); }
 HWND& MainWindow() { return ei::GameData<HWND>(0x0079BC28); }
 constexpr int kTextSize = 0x100;
 constexpr UINT kTitleString = 0x65;
@@ -178,10 +190,6 @@ mfc::CString& StartFolder() { return TheStartFolder(); }
 mfc::CString& DiscFolder() { return TheDiscFolder(); }
 mfc::CString& TextFolder() { return TheTextFolder(); }
 
-// The window's activation as the window procedure left it (app.cpp).
-std::uint8_t& Active() { return ei::GameData<std::uint8_t>(0x0079BC5C); }
-std::uint8_t& ActivationChanged() { return ei::GameData<std::uint8_t>(0x0079BC5D); }
-
 // The loop's clock: the time of the last pass (a function-local static of the original: guard bit
 // 0 of 0079B9FC), the time not yet run by the server and by the client (milliseconds), and the
 // client's speed.
@@ -190,21 +198,11 @@ DWORD g_lastTime = /*0079B9F8*/ {};
 std::uint32_t g_serverBacklog = /*0079BC64*/ {};
 std::uint32_t g_clientBacklog = /*0079BC68*/ {};
 float g_clientSpeed = /*00784758*/ 1.0f;
-// The console's switch that prints the client speed every frame.
-int& ShowClientSpeed() { return ei::GameData<int>(0x0079BC60); }
-// A movie of the frames is being written (app_frame.cpp): the loop then runs a fixed time a frame.
-std::uint8_t& RecordingFrames() { return ei::GameData<std::uint8_t>(0x0079BC54); }
 
 // What the video memory allows (bytes read elsewhere): little texture memory, little memory besides
 // the textures, little non-local memory; and whether a device was named on the command line.
-std::uint8_t& LittleOtherMemory() { return ei::GameData<std::uint8_t>(0x00784753); }
-std::uint8_t& LittleTextureMemory() { return ei::GameData<std::uint8_t>(0x00784754); }
 std::uint8_t g_littleNonLocalMemory = /*00784755*/ 1;
-std::uint8_t& DeviceNamed() { return ei::GameData<std::uint8_t>(0x00784756); }
 constexpr DWORD kLittleMemory = 0x800000;
-
-// The loading screen's movie file.
-const char*& LoadingMovieName() { return ei::GameData<const char*>(0x00791EE0); }
 
 // The objects.
 void* ClassRegistry() { return &ei::GameData<char>(0x0079B270); }
@@ -342,7 +340,7 @@ void ReadCommandLine(const char* commandLine) {
 // The window class registered; a game that runs already is brought to the front instead and this
 // one exits.
 void RegisterWindowClass(HINSTANCE instance) {
-    gameapi::LoadStringA(instance, kTitleString, WindowTitle(), kTextSize);
+    gameapi::LoadStringA(instance, kTitleString, g_windowTitle, kTextSize);
     gameapi::LoadStringA(instance, kClassNameString, g_windowClassName, kTextSize);
     WNDCLASSEXA windowClass;
     windowClass.cbSize = sizeof(windowClass);
@@ -359,12 +357,12 @@ void RegisterWindowClass(HINSTANCE instance) {
     windowClass.lpszClassName = g_windowClassName;
     g_windowClassAtom = gameapi::RegisterClassExA(&windowClass);
 
-    HWND other = gameapi::FindWindowA(MAKEINTRESOURCEA(g_windowClassAtom), WindowTitle());
+    HWND other = gameapi::FindWindowA(MAKEINTRESOURCEA(g_windowClassAtom), g_windowTitle);
     if (!other) return;
     DWORD otherProcess = 0;
     gameapi::GetWindowThreadProcessId(other, &otherProcess);
     ei::Log("app: another game window exists (window %p of process %lu, class and title \"%s\" the same): the one-instance "
-            "check ends this game with exit code -1", static_cast<void*>(other), otherProcess, WindowTitle());
+            "check ends this game with exit code -1", static_cast<void*>(other), otherProcess, g_windowTitle);
     const DWORD foregroundThread = gameapi::GetWindowThreadProcessId(gameapi::GetForegroundWindow(), nullptr);
     const DWORD otherThread = gameapi::GetWindowThreadProcessId(other, nullptr);
     if (otherThread != foregroundThread || gameapi::IsIconic(other)) {
@@ -480,13 +478,13 @@ DWORD CreateRenderer() {
     DWORD other = free;
     caps.dwCaps = DDSCAPS_TEXTURE;
     device::GetAvailableVidMem(TheRenderDevice()->ddraw_, &caps, &total, &free);
-    LittleTextureMemory() = free <= kLittleMemory;
+    g_littleTextureMemory = free <= kLittleMemory;
     if (free < other) other -= free;
-    LittleOtherMemory() = other <= kLittleMemory;
+    g_littleOtherMemory = other <= kLittleMemory;
     caps.dwCaps = DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM;
     device::GetAvailableVidMem(TheRenderDevice()->ddraw_, &caps, &total, &free);
     g_littleNonLocalMemory = free <= kLittleMemory;
-    DeviceNamed() = options->driverIndex_ != 0;
+    g_deviceNamed = options->driverIndex_ != 0;
     TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);
     return free;
 }
@@ -586,8 +584,8 @@ std::uint32_t ClientClockMs() {
 // renderer was created) and the renderer runs; inactive, the renderer stops and the desktop is
 // repainted.
 void TakeActivationChange() {
-    if (!ActivationChanged()) return;
-    if (Active()) {
+    if (!g_activationChanged) return;
+    if (g_active) {
         if (TheSceneRenderer()->flags_ & 2) {
             CTextureDevice* device = TheRenderDevice();
             gameapi::EnterCriticalSection(TheDeviceLock());
@@ -600,7 +598,7 @@ void TakeActivationChange() {
         SceneRenderer()->flags_ &= ~1u;
         gameapi::InvalidateRect(nullptr, nullptr, TRUE);
     }
-    ActivationChanged() = 0;
+    g_activationChanged = 0;
 }
 
 // The milliseconds since the last pass.
@@ -693,7 +691,7 @@ bool RunPass() {
     if (elapsed > 0x80000000u) elapsed = 0;
     net::Pump();
     if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
-    if (RecordingFrames()) {
+    if (g_recordingFrames) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
         const double frame = Step(1000.0f /*0073C34C*/ / static_cast<double>(options::TheOptions()->movieCapturingFps_));
         elapsed = gamecrt::Ftol(libcrt::Ceil(frame));
@@ -711,7 +709,7 @@ bool RunPass() {
         const double balance = Step(static_cast<double>(client->PumpIncomingCount()) - fraction);
         const float roundedBalance = static_cast<float>(balance);
         g_clientSpeed = SpeedForBalance(balance, roundedBalance);
-        if (ShowClientSpeed()) PrintClientSpeed(g_clientSpeed, roundedBalance);
+        if (g_showClientSpeed) PrintClientSpeed(g_clientSpeed, roundedBalance);
 
         // The camera runs on the real time of the pass, a tick at a time (the smooth camera: also on
         // the client time that passed, which the client's ticks moved it by without the option).
@@ -820,8 +818,8 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
 
     mfc::CString folder;
     CreateFolders(folder);
-    Instance() = instance;
-    MainWindow() = gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_windowClassAtom), WindowTitle(), WS_POPUP | WS_CLIPSIBLINGS, 0, 0,
+    g_instance = instance;
+    MainWindow() = gameapi::CreateWindowExA(0, MAKEINTRESOURCEA(g_windowClassAtom), g_windowTitle, WS_POPUP | WS_CLIPSIBLINGS, 0, 0,
                                             options->resolutionX_, options->resolutionY_, nullptr, nullptr, instance, nullptr);
     if (!MainWindow()) return 0;
     gameapi::ShowWindow(MainWindow(), show);
@@ -836,7 +834,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     if (options->audio_) reusedSlot = OpenSound();
 
     PlayMoviesOriginal("Start", 1, 1, 1, 1);
-    LoadingMovieName() = "Progres.bik";
+    g_loadingMovieName = "Progres.bik";
     ShowLoadingMovie(0);
     CloseLoadingMovie();
     LoadDatabases();
@@ -845,7 +843,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     // The last argument's upper three bytes are whatever the call before left in ECX in the
     // original; only the low byte is a value (the shapes' flag: no device named).
     SetUpCursors(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
-                 DeviceNamed() == 0);
+                 g_deviceNamed == 0);
     InterfaceCreateAt(TheInterface(), nullptr, TheRenderDevice());
     TheMapDatabase()->LoadAll();
     StartFirstMap();

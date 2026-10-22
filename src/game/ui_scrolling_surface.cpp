@@ -1,6 +1,7 @@
 // The titles' scrolling text surface (CUiScrollingSurface, ui_screens.h; 0065ED30-0065F21E): a
 // window surface with a hidden RichEdit control holding an RTF text, formatted into the surface
 // at a scroll offset that moves with the game time. See docs/notes/items_spells.md (A-H17, A-H25).
+#include "app.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -31,7 +32,6 @@ const char* const kRichEditLibrary = "Riched20.dll";
 const char* const kRichEditClass = "RichEdit20A";
 
 HWND GameWindow() { return ei::GameData<HWND>(0x0079BC28); }
-HINSTANCE GameInstance() { return ei::GameData<HINSTANCE>(0x0079BC24); }
 
 // The block being streamed into the RichEdit (the original reads it through a CMemFile; its
 // callback is 0065EF10).
@@ -72,7 +72,7 @@ CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT
     richEditLibrary_ = nullptr;
     richEditLibrary_ = gameapi::LoadLibraryA(kRichEditLibrary);
     richEdit_ = gameapi::CreateWindowExA(0, kRichEditClass, nullptr, WS_CHILD | ES_MULTILINE, 0, 0, 0, 0, GameWindow(),
-                                         nullptr, GameInstance(), nullptr);
+                                         nullptr, app::g_instance, nullptr);
     offsetX_ = 0;
     background_ = kWhite;
     speed_ = 0.0f;

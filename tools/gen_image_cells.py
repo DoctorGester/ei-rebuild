@@ -92,7 +92,6 @@ REVIEWED_DATA = [
     (0x0078F974, 0x0078F9A8, 14, 'a table of strings read by 005370F0'),
     (0x00790270, 0x007902EC, 18, 'the zone names ("zone2", ...) after the save versions (00790260)'),
     (0x007907AC, 0x007907D0, 10, 'a table of strings ("bz1g", ...) read by 00591800'),
-    (0x00791EE0, 0x00791EE0, 1, 'the loading movie\'s name ("progres.bik")'),
     (0x007932F4, 0x007932FC, 3, '"War", "Magic", "Islands": strings read by 00602190'),
     (0x00793378, 0x0079337C, 2, 'two strings read by 00604C50'),
     (0x00793BD4, 0x00793C0C, 15, 'the skill names ("Melee", ... "Encumbrance"), read by 00625880'),
