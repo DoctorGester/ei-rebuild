@@ -2949,7 +2949,7 @@ id = "C25c"
 title = "Build without game.exe: out_of_range's throw information, then the switch"
 group = "cleanup"
 depends = ["C25a"]
-note = "Found by C25a's static check (gen_image_cells --check, zero_roots): stlp_string.cpp's OutOfRangeThrowInfo 0074C640 throws with game.exe's ThrowInfo, so its catchable types (00749C50 +84, 0074C608 +72 with the array and the ThrowInfo) and the type descriptors' names (00783C40 +100, 00783D98 +36) are kept rows. Make out_of_range a compiler-thrown class (as C18e did for MFC's exceptions; its vtables are C19's) or name the records; with C18q's locale rows (007472E4, 00797778) gone the list is empty: set CMakeLists.txt's EI_IMAGE_BYTES_FROM_EXE OFF (docs/notes/standalone.md 'The switch'), drop write_bytes' non-zero path and the trial."
+note = "User 2026-10-22: no switch; the game.exe-free build is the only build; no reference to game.exe in the build; drop the tools that only served the move (kept list, image trace, switch-only checks, named_data move modes). Locale rows go into our source if C26 hasn't removed them."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
