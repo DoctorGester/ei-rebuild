@@ -419,6 +419,6 @@ void CMpHeroScreen::Create() {
     // Rebirth's WideScreen (addon's handler after the original): the curtains, hidden (sprites 19, 20).
     widescreen::AddCurtains(this, 0);
 }
-EI_REPLACE_METHOD(0x00613EA0, CMpHeroScreen::Create);
+EI_REWRITTEN(0x00613EA0, CMpHeroScreen::Create);
 // In a Rebirth launch EI_Plugin.asi also patches the function (EiPluginFixes at +D15 / +E7B, the
 // figures' sex test above).

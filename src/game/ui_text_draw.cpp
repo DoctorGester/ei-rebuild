@@ -63,7 +63,7 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
     interface_->ScalePointFromScreenCopyEntry(&extent);
     return extent.y;
 }
-EI_REPLACE_METHOD(0x005FDE20, CUiSurface::DrawTextIn);
+EI_REWRITTEN(0x005FDE20, CUiSurface::DrawTextIn);
 
 // --- 005F8340 ----------------------------------------------------------------------------------------------
 
@@ -84,4 +84,4 @@ SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
     out->cy = static_cast<int>(static_cast<unsigned>(size.cy) * kLayoutHeight) / height_;
     return out;
 }
-EI_REPLACE_METHOD(0x005F8340, CInterface3D::TextExtent);
+EI_REWRITTEN(0x005F8340, CInterface3D::TextExtent);

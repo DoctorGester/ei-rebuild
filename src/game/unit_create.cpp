@@ -135,4 +135,4 @@ void CUnit::DropBrokenEquipment() {
     }
     broken.RemoveAll();
 }
-EI_REPLACE_METHOD(0x00532AC0, CUnit::DropBrokenEquipment);
+EI_REWRITTEN(0x00532AC0, CUnit::DropBrokenEquipment);

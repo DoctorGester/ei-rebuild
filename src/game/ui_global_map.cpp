@@ -512,7 +512,7 @@ void CGlobalMap::Create() {
     interface_->OpenHelp(0);
 }
 
-EI_REPLACE_METHOD(0x0062D350, CGlobalMap::Create);
+EI_REWRITTEN(0x0062D350, CGlobalMap::Create);
 
 // --- Update (0062F050) -----------------------------------------------------------------------------
 
@@ -638,7 +638,7 @@ void CGlobalMap::Update() {
     TheCursor()->ChangeShape(dragging_ ? 0x16 : 0);
 }
 
-EI_REPLACE_METHOD(0x0062F050, CGlobalMap::Update);
+EI_REWRITTEN(0x0062F050, CGlobalMap::Update);
 
 // --- 005F67A0: the constructor --------------------------------------------------------------------
 

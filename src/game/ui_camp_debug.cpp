@@ -138,4 +138,4 @@ void CCampPages::DebugFill() {
             AddNamed(spells, PrototypeItem(), static_cast<std::uint32_t>(i), kInstructionCount);
     }
 }
-EI_REPLACE_METHOD(0x00612CF0, CCampPages::DebugFill);
+EI_REWRITTEN(0x00612CF0, CCampPages::DebugFill);

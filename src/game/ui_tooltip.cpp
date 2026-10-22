@@ -220,4 +220,4 @@ void CUiTooltip::OnMouseMove(int x, int y) {
         return;
     }
 }
-EI_REPLACE_METHOD(0x0065E580, CUiTooltip::OnMouseMove);
+EI_REWRITTEN(0x0065E580, CUiTooltip::OnMouseMove);

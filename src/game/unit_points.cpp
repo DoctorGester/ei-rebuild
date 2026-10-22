@@ -118,6 +118,6 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
 }
 
 Vector3* CUnit::PositionAtImpl(Vector3* out, int time) { return PredictPosition(this, out, time); }
-EI_REPLACE_METHOD(0x0052FCC0, CUnit::PositionAtImpl);
+EI_REWRITTEN(0x0052FCC0, CUnit::PositionAtImpl);
 Vector3* CUnit::AimPointImpl(Vector3* out) { return ActionPoint(this, out); }
-EI_REPLACE_METHOD(0x0052FDF0, CUnit::AimPointImpl);
+EI_REWRITTEN(0x0052FDF0, CUnit::AimPointImpl);

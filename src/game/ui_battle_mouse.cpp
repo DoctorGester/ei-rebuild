@@ -56,7 +56,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00639D60, InputForward<&CBattleScreen::OnMouseMove>::Call);
+EI_REWRITTEN(0x00639D60, InputForward<&CBattleScreen::OnMouseMove>::Call);
 
 // --- 00638A40: the left button went down on the battle screen ------------------------------------
 
@@ -76,7 +76,7 @@ void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00638A40, InputForward<&CBattleScreen::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00638A40, InputForward<&CBattleScreen::OnLButtonDown>::Call);
 
 // --- 0063B920: a unit's name line --------------------------------------------------------------
 

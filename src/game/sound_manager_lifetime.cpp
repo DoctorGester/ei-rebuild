@@ -110,7 +110,7 @@ void CSoundManager::ListWaveFiles(mfc::CStringArray* out, const char* pattern) {
     }
     names.Destruct();
 }
-EI_REPLACE_METHOD(0x006B7110, CSoundManager::ListWaveFiles);
+EI_REWRITTEN(0x006B7110, CSoundManager::ListWaveFiles);
 
 // 006BAE20. Called at startup (00456440).
 int CSoundManager::SetPath(const char* folder, const char* registryPath) {
@@ -124,7 +124,7 @@ int CSoundManager::SetPath(const char* folder, const char* registryPath) {
     if (missing) soundPath += kBackslash;
     return soundRegistry.Open(registryPath) != 0 ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x006BAE20, CSoundManager::SetPath);
+EI_REWRITTEN(0x006BAE20, CSoundManager::SetPath);
 
 mfc::CString CSoundManager::CurrentStreamName() {
     gameapi::EnterCriticalSection(&nameLock);
@@ -189,16 +189,16 @@ SoundEmitter* __fastcall ConstructEmitter(SoundEmitter* emitter) {
     emitter->names.Construct();
     return emitter;
 }
-EI_REPLACE(0x006B63D0, ConstructEmitter);
+EI_REWRITTEN(0x006B63D0, ConstructEmitter);
 void __fastcall DestructEmitter(SoundEmitter* emitter) { emitter->names.Destruct(); }
-EI_REPLACE(0x006B63E0, DestructEmitter);
+EI_REWRITTEN(0x006B63E0, DestructEmitter);
 SoundSequence* __fastcall ConstructSequence(SoundSequence* sequence) {
     sequence->names.Construct();
     return sequence;
 }
-EI_REPLACE(0x006B63F0, ConstructSequence);
+EI_REWRITTEN(0x006B63F0, ConstructSequence);
 void __fastcall DestructSequence(SoundSequence* sequence) { sequence->names.Destruct(); }
-EI_REPLACE(0x006B6400, DestructSequence);
+EI_REWRITTEN(0x006B6400, DestructSequence);
 
 // The stream reader, the strings and the archive are members the compiler constructs (before the
 // body here; the stream reader first in the original's body, the archive between the registries).
@@ -291,7 +291,7 @@ void CSoundManager::ResetStream() {
 // 006BA9C0 runs on the manager's +0x100 (the MP3 stream part).
 void __fastcall SoundResetStream(void* stream) { ManagerOf(stream)->ResetStream(); }
 
-EI_REPLACE_METHOD(0x006B6040, CSoundManager::Construct);
+EI_REWRITTEN(0x006B6040, CSoundManager::Construct);
 EI_REWRITTEN(0x006B65D0, CSoundManager::DestructBody);
 EI_REWRITTEN(0x006BA9C0, SoundResetStream);
 
@@ -661,7 +661,7 @@ void CSoundManager::ReadStreamVanilla(void* /*stream*/) {
     }
     SwitchStream(this, buffer + currentBytes, restBytes);
 }
-EI_REPLACE_METHOD(0x006BB3A0, CSoundManager::ReadStreamVanilla);
+EI_REWRITTEN(0x006BB3A0, CSoundManager::ReadStreamVanilla);
 
 // 006B75E0 (A-H25; Miles calls it on its own thread when a voice's sample ends; registered by its
 // address in sound_manager.cpp). The voice (the sample's user data 1) is marked finished; the

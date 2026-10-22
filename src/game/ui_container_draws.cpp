@@ -78,15 +78,15 @@ int CUiContainer::DrawContainerImpl(int pass) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00600EF0, CUiContainer::DrawContainerImpl);
+EI_REWRITTEN(0x00600EF0, CUiContainer::DrawContainerImpl);
 
 // 00602BF0 (screen 3, the base / briefing screen). Returns 00600EF0's result.
 int CBriefingScreen::DrawImpl(int pass) { return ScreenDraw(this, pass, true); }
-EI_REPLACE_METHOD(0x00602BF0, CBriefingScreen::DrawImpl);
+EI_REWRITTEN(0x00602BF0, CBriefingScreen::DrawImpl);
 
 // 00632A90 (screen 2). Returns 00600EF0's result.
 int CMainMenu::DrawImpl(int pass) { return ScreenDraw(this, pass, false); }
-EI_REPLACE_METHOD(0x00632A90, CMainMenu::DrawImpl);
+EI_REWRITTEN(0x00632A90, CMainMenu::DrawImpl);
 
 // 00622420. The owner (+0x14C) slot 51 gives the hero's data: +0x730 / +0x734 the quick items
 // (the strip's left part), +0x740 / +0x744 the other list (from the right), +0x750 / +0x754 the
@@ -153,4 +153,4 @@ long CObjectivesWindow::RestoreAlphaRef() {
     render::state::Render(kAlphaRef, value);
     return hr;
 }
-EI_REPLACE_METHOD(0x0064D970, CObjectivesWindow::RestoreAlphaRef);
+EI_REWRITTEN(0x0064D970, CObjectivesWindow::RestoreAlphaRef);

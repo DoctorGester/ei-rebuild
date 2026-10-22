@@ -149,7 +149,7 @@ bool CSectorMap::Add(CMapObject* object) {
     }
     return false;
 }
-EI_REPLACE_METHOD(0x005C0DF0, CSectorMap::Add);
+EI_REWRITTEN(0x005C0DF0, CSectorMap::Add);
 
 mfc::CTypedPtrList<CUnit>* CSectorMap::UnitsAt(int sx, int sy) {
     if (sx < 0 || sy < 0 || sx >= width || sy >= height) return nullptr;
@@ -303,7 +303,7 @@ void* __fastcall BuildSectorSpiral(void* self) {
     BuildSectorSpiralAt(SpiralLengthArray(), SpiralRadiusTree(), SpiralOffsetArray());
     return self;
 }
-EI_REPLACE(0x005BF8F0, BuildSectorSpiral);
+EI_REWRITTEN(0x005BF8F0, BuildSectorSpiral);
 
 // 005BF8E0, the static initialiser (cdecl) that builds the spiral at its place in the list. The object it passes
 // (007C2FB8) has no fields and nothing reads it.
@@ -384,4 +384,4 @@ bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
     object->sectorCellX = cellX;
     return true;
 }
-EI_REPLACE_METHOD(0x005C11D0, CSectorMap::Move);
+EI_REWRITTEN(0x005C11D0, CSectorMap::Move);

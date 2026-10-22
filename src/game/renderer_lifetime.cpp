@@ -128,7 +128,7 @@ CSceneRenderer::CSceneRenderer() {
 }
 
 CSceneRenderer* CSceneRenderer::ConstructRenderer() { return new (this) CSceneRenderer(); }
-EI_REPLACE_METHOD(0x00500A70, CSceneRenderer::ConstructRenderer);
+EI_REWRITTEN(0x00500A70, CSceneRenderer::ConstructRenderer);
 
 CSceneRenderer::~CSceneRenderer() {
     CTextureDevice* device = device_;
@@ -139,7 +139,7 @@ CSceneRenderer::~CSceneRenderer() {
 }
 
 void CSceneRenderer::DestructRenderer() { this->CSceneRenderer::~CSceneRenderer(); }
-EI_REPLACE_METHOD(0x00500AC0, CSceneRenderer::DestructRenderer);
+EI_REWRITTEN(0x00500AC0, CSceneRenderer::DestructRenderer);
 
 // The scene renderer and the device's lock, zero at the start: built by their static initialisers (00500930, 004F0B10)
 // in the list's order and destroyed by the exit functions those register (00500950, 004F0B30); all ported on the

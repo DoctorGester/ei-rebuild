@@ -239,7 +239,7 @@ int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, const void
                indexCount, &uOffset, &vOffset, alpha, flags};
     return DrawMesh(this, a, nullptr);
 }
-EI_REPLACE_METHOD(0x004E9010, CTextureDevice::DrawMeshBlocks);
+EI_REWRITTEN(0x004E9010, CTextureDevice::DrawMeshBlocks);
 
 // 004E9A50 (thiscall on the device, RET 0x50): the same with two textures for the draw (004EB370).
 int CTextureDevice::DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions,
@@ -253,4 +253,4 @@ int CTextureDevice::DrawMeshBlocks2(void* firstTexture, void* secondTexture, con
     Textures textures{firstTexture, secondTexture};
     return DrawMesh(this, a, &textures);
 }
-EI_REPLACE_METHOD(0x004E9A50, CTextureDevice::DrawMeshBlocks2);
+EI_REWRITTEN(0x004E9A50, CTextureDevice::DrawMeshBlocks2);

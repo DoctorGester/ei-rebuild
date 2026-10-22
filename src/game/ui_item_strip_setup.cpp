@@ -71,7 +71,7 @@ void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTip
     tabsEnabled_ = false;
     for (int i = 2; i < 8; ++i) SceneMesh(i)->visible_ = 0;
 }
-EI_REPLACE_METHOD(0x00629A40, CUiItemStrip::SetupFigures);
+EI_REWRITTEN(0x00629A40, CUiItemStrip::SetupFigures);
 
 // --- The figure strips' slots ----------------------------------------------------------------------
 
@@ -111,10 +111,10 @@ BOOL CUiItemStrip::DrawFigures(int pass) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00629AF0, CUiItemStrip::DrawFigures);
+EI_REWRITTEN(0x00629AF0, CUiItemStrip::DrawFigures);
 
 void CUiItemStrip::CountFigures() { count_ = static_cast<int>(figures_->end() - figures_->begin()); }
-EI_REPLACE_METHOD(0x00629AD0, CUiItemStrip::CountFigures);
+EI_REWRITTEN(0x00629AD0, CUiItemStrip::CountFigures);
 
 void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
     OnLButtonDown(buttons, x, y);
@@ -128,4 +128,4 @@ void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00629DB0, InputForward<&CUiItemStrip::OnFigureClick>::Call);
+EI_REWRITTEN(0x00629DB0, InputForward<&CUiItemStrip::OnFigureClick>::Call);

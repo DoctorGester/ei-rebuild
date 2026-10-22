@@ -171,4 +171,4 @@ void CInterface3D::Create(CTextureDevice* device) {
     fpsFrames_ = 0;
     disconnected_ = false;
 }
-EI_REPLACE_METHOD(0x005F4990, CInterface3D::Create);
+EI_REWRITTEN(0x005F4990, CInterface3D::Create);

@@ -35,22 +35,22 @@ int CUnit::Tick() {
     Update();
     return 1;
 }
-EI_REPLACE_METHOD(0x0052F7D0, CUnit::Tick);
+EI_REWRITTEN(0x0052F7D0, CUnit::Tick);
 
 std::uintptr_t CUnit::RecomputeScale() {
     CMapObject::RecomputeScale();
     return Controller()->Resettle();
 }
 std::uintptr_t __fastcall UnitRecomputeScaleHook(CUnit* self) { return self->CUnit::RecomputeScale(); }
-EI_REPLACE(0x00532A80, UnitRecomputeScaleHook);
+EI_REWRITTEN(0x00532A80, UnitRecomputeScaleHook);
 
 std::uintptr_t CUnit::EffectsChanged() { return Controller()->EffectsChanged(); }
 std::uintptr_t __fastcall UnitEffectsChangedHook(CUnit* self) { return self->CUnit::EffectsChanged(); }
-EI_REPLACE(0x00532AB0, UnitEffectsChangedHook);
+EI_REWRITTEN(0x00532AB0, UnitEffectsChangedHook);
 
 std::uint32_t CUnit::ApplyBaseScale() { return static_cast<std::uint32_t>(SetFigureScale(&baseScale.x)); }
 std::uint32_t __fastcall UnitApplyBaseScaleHook(CUnit* self) { return self->CUnit::ApplyBaseScale(); }
-EI_REPLACE(0x00532AA0, UnitApplyBaseScaleHook);
+EI_REWRITTEN(0x00532AA0, UnitApplyBaseScaleHook);
 
 std::uintptr_t CUnit::LoadFigures() {
     if (flags_ & kFlagFiguresLoaded) return 1;
@@ -59,7 +59,7 @@ std::uintptr_t CUnit::LoadFigures() {
     return result;
 }
 std::uintptr_t __fastcall UnitLoadFiguresHook(CUnit* self) { return self->CUnit::LoadFigures(); }
-EI_REPLACE(0x0052E910, UnitLoadFiguresHook);
+EI_REWRITTEN(0x0052E910, UnitLoadFiguresHook);
 
 std::uintptr_t CUnit::AttachObjectImpl(CEngineObject* object) {
     if (!object || object->type_ != kControllerType) return CMapObject::AttachObjectImpl(object);
@@ -71,7 +71,7 @@ std::uintptr_t CUnit::AttachObjectImpl(CEngineObject* object) {
     static_cast<CUnitController*>(object)->unit_ = this;
     return static_cast<std::uintptr_t>(++controller->refCount_);
 }
-EI_REPLACE_METHOD(0x0052E870, CUnit::AttachObjectImpl);
+EI_REWRITTEN(0x0052E870, CUnit::AttachObjectImpl);
 
 int CUnit::StatsChanged() {
     PackVitals();
@@ -79,24 +79,24 @@ int CUnit::StatsChanged() {
     return 1;
 }
 int __fastcall UnitStatsChangedHook(CUnit* self) { return self->CUnit::StatsChanged(); }
-EI_REPLACE(0x0052EB50, UnitStatsChangedHook);
+EI_REWRITTEN(0x0052EB50, UnitStatsChangedHook);
 
 std::uintptr_t CUnit::ScaleEffectChangedImpl(int value) {
     if (!controller) return 0;
     return static_cast<std::uintptr_t>(Controller()->RefreshVitals(value));
 }
-EI_REPLACE_METHOD(0x0052EB30, CUnit::ScaleEffectChangedImpl);
+EI_REWRITTEN(0x0052EB30, CUnit::ScaleEffectChangedImpl);
 
 std::uintptr_t CUnit::SetStatsImpl(const UnitStats* stats) {
     int classId = controller->GetClassId();
     if (classId != kClassUnitServer) return static_cast<std::uintptr_t>(classId);
     return ServerController()->SetStats(stats);
 }
-EI_REPLACE_METHOD(0x00530A20, CUnit::SetStatsImpl);
+EI_REWRITTEN(0x00530A20, CUnit::SetStatsImpl);
 
 std::uintptr_t CUnit::UpdateSizeClasses() { return Controller()->UpdateSizeClasses(); }
 std::uintptr_t __fastcall UnitUpdateSizeClassesHook(CUnit* self) { return self->CUnit::UpdateSizeClasses(); }
-EI_REPLACE(0x00530A50, UnitUpdateSizeClassesHook);
+EI_REWRITTEN(0x00530A50, UnitUpdateSizeClassesHook);
 
 float* CUnit::StandPoint(float* out) {
     float x = localPosition_.x;
@@ -118,7 +118,7 @@ float* CUnit::StandPoint(float* out) {
     out[2] = static_cast<float>(height + lift);
     return out;
 }
-EI_REPLACE_METHOD(0x005303A0, CUnit::StandPoint);
+EI_REWRITTEN(0x005303A0, CUnit::StandPoint);
 
 void CUnit::PlaceOnGroundImpl(float offset) {
     float x = localPosition_.x;
@@ -135,7 +135,7 @@ void CUnit::PlaceOnGroundImpl(float offset) {
         localPosition_.z = static_cast<float>(world->GroundHeightAt(x, y));
     }
 }
-EI_REPLACE_METHOD(0x0052F740, CUnit::PlaceOnGroundImpl);
+EI_REWRITTEN(0x0052F740, CUnit::PlaceOnGroundImpl);
 
 void CUnit::SetFromStats(UnitStats* stats) {
     stats->Pack(this, Params());
@@ -144,7 +144,7 @@ void CUnit::SetFromStats(UnitStats* stats) {
     packedVitals.maxHitPoints = static_cast<std::int16_t>(gamecrt::Ftol(limit));
     packedVitals.hitPoints = static_cast<std::int16_t>(gamecrt::Ftol(stats->Reduce(limit)));
 }
-EI_REPLACE_METHOD(0x00532A20, CUnit::SetFromStats);
+EI_REWRITTEN(0x00532A20, CUnit::SetFromStats);
 
 int CUnit::Level() {
     if (IsTextKey(id_) & 0xFF) return Controller()->Level();
@@ -152,7 +152,7 @@ int CUnit::Level() {
         unitdb::PrototypeRecord(prototypeId_);
     return static_cast<int>(prototype->level);
 }
-EI_REPLACE_METHOD(0x00532D40, CUnit::Level);
+EI_REWRITTEN(0x00532D40, CUnit::Level);
 
 // --- The virtual slots (vtable 0073EA8C) for the compiler's table (C19) ---------------------------
 

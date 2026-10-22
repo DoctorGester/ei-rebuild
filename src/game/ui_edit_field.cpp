@@ -238,4 +238,4 @@ void CUiEditField::DrawContentsVanilla() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REPLACE_METHOD(0x0065C2E0, CUiEditField::DrawContentsVanilla);
+EI_REWRITTEN(0x0065C2E0, CUiEditField::DrawContentsVanilla);

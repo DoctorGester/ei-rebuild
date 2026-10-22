@@ -96,7 +96,7 @@ void CUiRegion::SetRect(int left, int top, int right, int bottom) {
     enabled_ = true;
     rectOnly_ = true;
 }
-EI_REPLACE_METHOD(0x005FC9E0, CUiRegion::SetRect);
+EI_REWRITTEN(0x005FC9E0, CUiRegion::SetRect);
 
 void CUiRegion::ClearShape() {
     points_.RemoveAll();
@@ -125,7 +125,7 @@ void CUiRegion::AddPoint(int x, int y) {
     points_[index].y = y;
     if (points_.size > 2) enabled_ = true;
 }
-EI_REPLACE_METHOD(0x005FCA70, CUiRegion::AddPoint);
+EI_REWRITTEN(0x005FCA70, CUiRegion::AddPoint);
 
 void CUiRegion::OnMouseMove(int x, int y) {
     if (!tip_) return;
@@ -168,7 +168,7 @@ void CUiWindow::UpdateRegionTips(int) {
         if (region->tip_) region->OnMouseMove(mouse.x, mouse.y);
     }
 }
-EI_REPLACE_METHOD(0x005FEBF0, CUiWindow::UpdateRegionTips);
+EI_REWRITTEN(0x005FEBF0, CUiWindow::UpdateRegionTips);
 
 // The same per region, each tooltip then redrawn (its slot 22; the tooltip is re-read).
 void CUiWindow::RedrawTips() {
@@ -180,7 +180,7 @@ void CUiWindow::RedrawTips() {
         if (CUiTooltip* tip = regions_.data[i]->tip_) tip->VirtualRedraw();
     }
 }
-EI_REPLACE_METHOD(0x005FED00, CUiWindow::RedrawTips);
+EI_REWRITTEN(0x005FED00, CUiWindow::RedrawTips);
 
 BOOL CUiWindow::DrawBase(int pass) {
     for (int i = 0; i < sceneObjects_.size; ++i)
@@ -188,7 +188,7 @@ BOOL CUiWindow::DrawBase(int pass) {
     for (int i = 0; i < models_.size; ++i) models_.data[i]->Draw(reinterpret_cast<UiDrawPass*>(pass));
     return 1;
 }
-EI_REPLACE_METHOD(0x005FEB90, CUiWindow::DrawBase);
+EI_REWRITTEN(0x005FEB90, CUiWindow::DrawBase);
 
 void CUiWindow::RedrawBase() {
     for (int i = 0; i < surfaces_.size; ++i) {
@@ -196,7 +196,7 @@ void CUiWindow::RedrawBase() {
         if (surface->Shown()) surface->Blit();
     }
 }
-EI_REPLACE_METHOD(0x005FECC0, CUiWindow::RedrawBase);
+EI_REWRITTEN(0x005FECC0, CUiWindow::RedrawBase);
 
 void CUiWindow::SetEnabled(int enabled, int notify) {
     enabled_ = enabled;
@@ -324,7 +324,7 @@ void CUiWindow::ShowSurfaces(int show) {
         if (show == 0 || surface->Shown()) surface->CallSwapContents(show);
     }
 }
-EI_REPLACE_METHOD(0x006002C0, CUiWindow::ShowSurfaces);
+EI_REWRITTEN(0x006002C0, CUiWindow::ShowSurfaces);
 
 void CUiSurface::CallSwapContents(int restore) { SwapContents(restore); }
 
@@ -337,7 +337,7 @@ void CUiSurface::Freeze(int frozen, int restore) {
     flags_ &= ~kShown;
     if (restore) CallSwapContents(0);
 }
-EI_REPLACE_METHOD(0x005FD760, CUiSurface::Freeze);
+EI_REWRITTEN(0x005FD760, CUiSurface::Freeze);
 
 CUiRegion* CUiWindow::AddRegion() {
     auto* region = gamecrt::operator_new_as<CUiRegion>();

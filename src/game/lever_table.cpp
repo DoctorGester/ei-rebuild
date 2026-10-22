@@ -76,7 +76,7 @@ void __fastcall LeverTableDestruct(Table* self) {
     *reinterpret_cast<void**>(storage) = *freeList;
     *freeList = storage;
 }
-EI_REPLACE(0x00463120, LeverTableDestruct);
+EI_REWRITTEN(0x00463120, LeverTableDestruct);
 
 } // namespace levertable
 

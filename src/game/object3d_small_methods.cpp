@@ -33,7 +33,7 @@ void CObject3D::SetSpecific(CObject3DSpecific* half) {
         ++attached->refCount_;
     }
 }
-EI_REPLACE_METHOD(0x005161A0, CObject3D::SetSpecific);
+EI_REWRITTEN(0x005161A0, CObject3D::SetSpecific);
 
 void FootprintPart::SetIgnored(bool ignored) {
     if (ignored)
@@ -41,27 +41,27 @@ void FootprintPart::SetIgnored(bool ignored) {
     else
         flags &= ~kBoxIgnored;
 }
-EI_REPLACE_METHOD(0x005174E0, FootprintPart::SetIgnored);
+EI_REWRITTEN(0x005174E0, FootprintPart::SetIgnored);
 
 void CObject3D::SetPartFlags(std::uint32_t mask) {
     for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flags_ |= mask;
 }
-EI_REPLACE_METHOD(0x00517910, CObject3D::SetPartFlags);
+EI_REWRITTEN(0x00517910, CObject3D::SetPartFlags);
 
 void CObject3D::ClearPartFlags(std::uint32_t mask) {
     for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flags_ &= ~mask;
 }
-EI_REPLACE_METHOD(0x00517950, CObject3D::ClearPartFlags);
+EI_REWRITTEN(0x00517950, CObject3D::ClearPartFlags);
 
 void CObject3D::SetPartsFlatColour(std::uint32_t value) {
     for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatColour_ = value;
 }
-EI_REPLACE_METHOD(0x00519500, CObject3D::SetPartsFlatColour);
+EI_REWRITTEN(0x00519500, CObject3D::SetPartsFlatColour);
 
 void CObject3D::SetPartsFlatSpecular(std::uint32_t value) {
     for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatSpecular_ = value;
 }
-EI_REPLACE_METHOD(0x00519530, CObject3D::SetPartsFlatSpecular);
+EI_REWRITTEN(0x00519530, CObject3D::SetPartsFlatSpecular);
 
 void CObject3D::SetAnimationState(CFigureAnimationState* state) {
     if (animation) {
@@ -74,28 +74,28 @@ void CObject3D::SetAnimationState(CFigureAnimationState* state) {
         animation->owner = this;
     }
 }
-EI_REPLACE_METHOD(0x005187D0, CObject3D::SetAnimationState);
+EI_REWRITTEN(0x005187D0, CObject3D::SetAnimationState);
 
 void CObject3D::PlayAnimation(FigureAnimation* figureAnimation, int) {
     if (animation) animation->Play(figureAnimation);
 }
-EI_REPLACE_METHOD(0x005187B0, CObject3D::PlayAnimation);
+EI_REWRITTEN(0x005187B0, CObject3D::PlayAnimation);
 
 int CObject3D::PlayAnimationSecond(int, FigureAnimation* figureAnimation) {
     if (animation) animation->Play(figureAnimation);
     return 1;
 }
-EI_REPLACE_METHOD(0x00518840, CObject3D::PlayAnimationSecond);
+EI_REWRITTEN(0x00518840, CObject3D::PlayAnimationSecond);
 
 int CObject3D::AttachPartMesh(CEngineObject* part) {
     if (!animation) return 0;
     return animation->AttachMesh(part);
 }
-EI_REPLACE_METHOD(0x00518820, CObject3D::AttachPartMesh);
+EI_REWRITTEN(0x00518820, CObject3D::AttachPartMesh);
 
 void CObject3D::RestartPose() {
     if (!animation) return;
     animation->SetTime(kFirstFrame);
     animation->PlaceIfChanged();
 }
-EI_REPLACE_METHOD(0x00518860, CObject3D::RestartPose);
+EI_REWRITTEN(0x00518860, CObject3D::RestartPose);

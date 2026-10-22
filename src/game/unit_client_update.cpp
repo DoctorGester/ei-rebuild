@@ -59,13 +59,13 @@ CMaterial* CObject3DClientSpecific::FirstMaterial() {
     materialCursor = 0;
     return materials[0];
 }
-EI_REPLACE_METHOD(0x0051B6D0, CObject3DClientSpecific::FirstMaterial);
+EI_REWRITTEN(0x0051B6D0, CObject3DClientSpecific::FirstMaterial);
 
 CMaterial* CObject3DClientSpecific::NextMaterial() {
     ++materialCursor;
     return materials.size > materialCursor ? materials[materialCursor] : nullptr;
 }
-EI_REPLACE_METHOD(0x0051B6F0, CObject3DClientSpecific::NextMaterial);
+EI_REWRITTEN(0x0051B6F0, CObject3DClientSpecific::NextMaterial);
 
 int CUnitClientSpecific::UpdateClient() {
     if (unit->pathTimeShift == 1) MotionPath()->ShiftTime(1);

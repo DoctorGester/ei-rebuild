@@ -51,4 +51,4 @@ int QuestDatabase::Load(const char* folder) {
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
-EI_REPLACE_METHOD(0x006AE3A0, QuestDatabase::Load);
+EI_REWRITTEN(0x006AE3A0, QuestDatabase::Load);

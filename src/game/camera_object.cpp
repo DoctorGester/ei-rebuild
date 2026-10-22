@@ -102,7 +102,7 @@ CCamera* CCamera::Construct() {
     fieldOfView_ = DefaultAngle();
     return this;
 }
-EI_REPLACE_METHOD(0x0040C8B0, CCamera::Construct);
+EI_REWRITTEN(0x0040C8B0, CCamera::Construct);
 
 // 0040CE60: the destructor body: no target, the camera path keys and file name freed, the view
 // stack and shake list destroyed, then the transform base.
@@ -116,7 +116,7 @@ void CCamera::Destruct() {
     ei::SetVtable(this, CTransformObject::BaseVtable());
     DestructBase();
 }
-EI_REPLACE_METHOD(0x0040CE60, CCamera::Destruct);
+EI_REWRITTEN(0x0040CE60, CCamera::Destruct);
 
 // The camera, zero at the start: built by the static initialiser 0040C880 in the list's order and destroyed by the
 // exit function it registers (0040C8A0); both ported on the name and registered at their addresses

@@ -66,7 +66,7 @@ void CUiMesh::PlaceBody(float x, float y, float depth) {
     localPosition_.y = placedY;
     std::memcpy(&localPosition_.z, &depth, sizeof(float));
 }
-EI_REPLACE_METHOD(0x005E6FA0, CUiMesh::PlaceBody);
+EI_REWRITTEN(0x005E6FA0, CUiMesh::PlaceBody);
 
 // 005E6D90 (RET 4). Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds
 // the placement from the orientation and position, pushes it on the view and world stacks, then

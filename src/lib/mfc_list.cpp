@@ -41,13 +41,13 @@ EI_REWRITTEN(0x0056FD40, ListHeader<ClientListClass>::Construct);
 EI_REWRITTEN(0x00570EA0, ListHeader<ClientList2Class>::Construct);
 EI_REWRITTEN(0x005715D0, ListHeader<ClientList3Class>::Construct);
 EI_REWRITTEN(0x00598EC0, ListHeader<TempListClass>::Construct);
-EI_REPLACE_METHOD(0x005CDAD0, ListHeader<StaticListClass>::Construct);
+EI_REWRITTEN(0x005CDAD0, ListHeader<StaticListClass>::Construct);
 EI_REWRITTEN(0x00545750, ListHeader<CellListClass>::ConstructFixed<0x80>);
 
 // The destructor: the vtable, RemoveAll.
 EI_REWRITTEN(0x00405130, PtrList::Destruct<TempListClass>);
 EI_REWRITTEN(0x00427830, PtrList::Destruct<ItemListClass>);
-EI_REPLACE(0x004C96F0, PtrList::Destruct<PtrListClass>);
+EI_REWRITTEN(0x004C96F0, PtrList::Destruct<PtrListClass>);
 EI_REWRITTEN(0x00476050, Map32::ElementAt);
 EI_REWRITTEN(0x00453F80, Map32::RemoveAll);
 EI_REWRITTEN(0x00476140, Map32::Destruct<DwordMapClass>);

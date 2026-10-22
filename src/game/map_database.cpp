@@ -309,7 +309,7 @@ CMapDatabase* CMapDatabase::Construct() {
     maps.Construct(gameslots::MapRecordArrayClass::Vtable());
     return this;
 }
-EI_REPLACE_METHOD(0x0045E820, CMapDatabase::Construct);
+EI_REWRITTEN(0x0045E820, CMapDatabase::Construct);
 
 // The map database, zero at the start: built by the static initialiser 0045E6C0 in the list's order and destroyed by
 // the exit function it registers (0045E6E0); both ported on the name and registered at their addresses

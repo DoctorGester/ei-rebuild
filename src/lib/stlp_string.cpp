@@ -208,7 +208,7 @@ EI_REWRITTEN(0x004A8930, StringAbi::CopyConstruct);
 EI_REWRITTEN(0x004F5DF0, StringAbi::ConstructAt);
 EI_REWRITTEN(0x0040C5A0, StringAbi::ConstructFromText);
 EI_REWRITTEN(0x0041F460, StringAbi::ConstructDefault);
-EI_REPLACE(0x006B6CC0, StringAbi::ConstructDefault);
+EI_REWRITTEN(0x006B6CC0, StringAbi::ConstructDefault);
 EI_REWRITTEN(0x00424E40, StringAbi::AllocateBlock);
 EI_REWRITTEN(0x00427D60, StringAbi::PlusText);
 EI_REWRITTEN(0x00427E80, StringAbi::PlusString);

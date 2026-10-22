@@ -224,7 +224,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
     }
     return true;
 }
-EI_REPLACE(0x005809D0, LoadZoneQuests);
+EI_REWRITTEN(0x005809D0, LoadZoneQuests);
 
 // ---- Quest variables ------------------------------------------------------------------------------
 

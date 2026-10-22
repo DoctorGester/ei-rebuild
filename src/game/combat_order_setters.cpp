@@ -89,19 +89,19 @@ void CUnitServer::SetMoveStyle(int style) {
     }
     if (style != kStyleWalk && style != kStyleRun) action.modifier = 0;
 }
-EI_REPLACE_METHOD(0x00555270, CUnitServer::SetMoveStyle);
+EI_REWRITTEN(0x00555270, CUnitServer::SetMoveStyle);
 
 void CUnitServer::SetWantedWeapon(int slot) {
     boredTicks = 0;
     unit->pendingWeapon = slot;
 }
-EI_REPLACE_METHOD(0x005552E0, CUnitServer::SetWantedWeapon);
+EI_REWRITTEN(0x005552E0, CUnitServer::SetWantedWeapon);
 
 void CUnitServer::OrderSteal(CMapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
     QueueUse(this, target, kSourceSteal, 0, run, kShoutSteal);
 }
-EI_REPLACE_METHOD(0x005553B0, CUnitServer::OrderSteal);
+EI_REWRITTEN(0x005553B0, CUnitServer::OrderSteal);
 
 void CUnitServer::OrderTame(CMapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
@@ -109,19 +109,19 @@ void CUnitServer::OrderTame(CMapObject* target, int run) {
     if (other->player == unit->player || other->prototypeId_ == kUntameable) return;
     QueueUse(this, target, kSourceTame, 0, run, kShoutTame);
 }
-EI_REPLACE_METHOD(0x00555480, CUnitServer::OrderTame);
+EI_REWRITTEN(0x00555480, CUnitServer::OrderTame);
 
 void CUnitServer::OrderUse(CMapObject* target, int spot, int run) {
     if (!target) return;
     QueueUse(this, target, kSourceUse, spot, run, kShoutUse);
 }
-EI_REPLACE_METHOD(0x00555570, CUnitServer::OrderUse);
+EI_REWRITTEN(0x00555570, CUnitServer::OrderUse);
 
 void CUnitServer::OrderSearchBody(CMapObject* target, int run) {
     if (!target || target->IsDead() == 0 || target == unit) return;
     QueueUse(this, target, kSourceSearchBody, 0, run, kShoutSearchBody);
 }
-EI_REPLACE_METHOD(0x00555630, CUnitServer::OrderSearchBody);
+EI_REWRITTEN(0x00555630, CUnitServer::OrderSearchBody);
 
 bool CUnitServer::TargetBusy(CMapObject* target) {
     if (target->flags_ & kFlagShared) return !TheServerWorld()->IsObjectShared(target->id_, unit->id_);
@@ -137,7 +137,7 @@ bool CUnitServer::TargetBusy(CMapObject* target) {
     }
     return false;
 }
-EI_REPLACE_METHOD(0x0054C760, CUnitServer::TargetBusy);
+EI_REWRITTEN(0x0054C760, CUnitServer::TargetBusy);
 
 void CUnitServer::PlayAnimation(const char* name) {
     const FigureAnimation* entry;

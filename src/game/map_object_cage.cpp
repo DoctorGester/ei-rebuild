@@ -48,7 +48,7 @@ void CageInterpolator::InterpolateCube(const float** stream) {
     point.z = Add(cpScaled.z, point.z);
     *stream += 0x60 / sizeof(float);
 }
-EI_REPLACE_METHOD(0x0050B8C0, CageInterpolator::InterpolateCube);
+EI_REWRITTEN(0x0050B8C0, CageInterpolator::InterpolateCube);
 
 void CageInterpolator::InterpolatePrism(const float** stream) {
     const float* p = *stream;
@@ -84,4 +84,4 @@ void CageInterpolator::InterpolatePrism(const float** stream) {
     point.z = Add(h.z, point.z);
     *stream += 0x48 / sizeof(float);
 }
-EI_REPLACE_METHOD(0x0050BC00, CageInterpolator::InterpolatePrism);
+EI_REWRITTEN(0x0050BC00, CageInterpolator::InterpolatePrism);

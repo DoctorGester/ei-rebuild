@@ -280,7 +280,7 @@ void CUnitClientSpecific::UpdateArrow() {
         arrowHidden = 1;
     }
 }
-EI_REPLACE_METHOD(0x00538C20, CUnitClientSpecific::UpdateArrow);
+EI_REWRITTEN(0x00538C20, CUnitClientSpecific::UpdateArrow);
 
 void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,

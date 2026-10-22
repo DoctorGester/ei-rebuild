@@ -59,7 +59,7 @@ int __cdecl scriptparse::ScriptError(CScript* script, int line, int code, const 
     va_end(args);
     return result;
 }
-EI_REPLACE(0x004CF470, ScriptError);
+EI_REWRITTEN(0x004CF470, ScriptError);
 // AddNewScriptCommands hooks 004CF4A2 only to copy the error to addon.log (not reproduced).
 
 // ---- Keyword table ------------------------------------------------------------------------------

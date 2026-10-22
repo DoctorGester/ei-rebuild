@@ -184,7 +184,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
     units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (units.data) gamecrt::operator_delete(units.data);
 }
-EI_REPLACE_METHOD(0x00637190, CBattleScreen::AttackUnit);
+EI_REWRITTEN(0x00637190, CBattleScreen::AttackUnit);
 
 void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
     auto* party = &party_;
@@ -315,4 +315,4 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         }
     }
 }
-EI_REPLACE_METHOD(0x006366F0, CBattleScreen::OnUnitSpeech);
+EI_REWRITTEN(0x006366F0, CBattleScreen::OnUnitSpeech);

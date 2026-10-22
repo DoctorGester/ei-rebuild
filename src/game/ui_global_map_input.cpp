@@ -206,21 +206,21 @@ void CGlobalMap::Close() {
     backdrop_ = nullptr;
     interface_->StopSound(windSound_);
 }
-EI_REPLACE_METHOD(0x0062EDD0, CGlobalMap::Close);
-EI_REPLACE_METHOD(0x0062EE30, CGlobalMap::OnMessageResult);
+EI_REWRITTEN(0x0062EDD0, CGlobalMap::Close);
+EI_REWRITTEN(0x0062EE30, CGlobalMap::OnMessageResult);
 
 namespace {
 void __fastcall GlobalMapDeactivate(void* input) { WindowFromInput<CGlobalMap>(input)->OnDeactivate(); }
 } // namespace
-EI_REPLACE(0x0062FF10, GlobalMapDeactivate);
+EI_REWRITTEN(0x0062FF10, GlobalMapDeactivate);
 
 // 0062D330 (slot 40): the briefing screen's SaveState (00602490), byte for byte.
 void CGlobalMap::SaveState() {
     int zero = 0;
     GameSaveStream()->Write(&zero, 4);
 }
-EI_REPLACE_METHOD(0x0062D330, CGlobalMap::SaveState);
-EI_REPLACE_METHOD(0x0062FF60, InputForward<&CGlobalMap::OnRightDown>::Call);
-EI_REPLACE_METHOD(0x0062FFC0, InputForward<&CGlobalMap::OnRightUp>::Call);
-EI_REPLACE_METHOD(0x00630010, InputForward<&CGlobalMap::OnMouseMove>::Call);
-EI_REPLACE_METHOD(0x00630580, InputForward<&CGlobalMap::OnKeyDown>::Call);
+EI_REWRITTEN(0x0062D330, CGlobalMap::SaveState);
+EI_REWRITTEN(0x0062FF60, InputForward<&CGlobalMap::OnRightDown>::Call);
+EI_REWRITTEN(0x0062FFC0, InputForward<&CGlobalMap::OnRightUp>::Call);
+EI_REWRITTEN(0x00630010, InputForward<&CGlobalMap::OnMouseMove>::Call);
+EI_REWRITTEN(0x00630580, InputForward<&CGlobalMap::OnKeyDown>::Call);

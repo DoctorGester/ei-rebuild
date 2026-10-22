@@ -215,14 +215,14 @@ UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self) {
 
 EI_REWRITTEN(0x0053EE70, unitdb::DestroyModelRecord);
 EI_REWRITTEN(0x0053F010, unitdb::DestroyModelSlot);
-EI_REPLACE(0x0053A050, unitdb::DestroyUnitDatabase);
+EI_REWRITTEN(0x0053A050, unitdb::DestroyUnitDatabase);
 EI_REWRITTEN(0x00539CE0, unitdb::DestroyNpcTable);
-EI_REPLACE(0x0051FB50, unitdb::DestroySkillDatabase);
+EI_REWRITTEN(0x0051FB50, unitdb::DestroySkillDatabase);
 EI_REWRITTEN(0x0053EBC0, unitdb::DestroyPrototypeRecord);
 EI_REWRITTEN(0x0053ED30, unitdb::DestroyNpcRecord);
 EI_REWRITTEN(0x00539B20, unitdb::DestroyPrototypeTable);
 EI_REWRITTEN(0x00539E70, unitdb::DestroyModelTable);
-EI_REPLACE(0x00539A10, unitdb::ConstructUnitDatabase);
+EI_REWRITTEN(0x00539A10, unitdb::ConstructUnitDatabase);
 EI_REWRITTEN(0x0053EFF0, unitdb::DestroyLevelRecord);
 EI_REWRITTEN(0x00540840, UnitLevelRecord::DeleteScalar);
 EI_REWRITTEN(0x005407E0, UnitPrototypeRecord::DeleteScalar);

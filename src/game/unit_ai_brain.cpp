@@ -422,7 +422,7 @@ EI_REWRITTEN(0x005CD670, AIReports::SetSize);
 EI_REWRITTEN(0x005CD800, AIReports::RemoveAt);
 EI_REWRITTEN(0x00558D10, AIReportElements::Construct);
 std::uintptr_t CUnitServer::AddHostileMask(std::uint32_t mask) { return unit->AddHostileMask(mask); }
-EI_REPLACE_METHOD(0x00552CF0, CUnitServer::AddHostileMask);
+EI_REWRITTEN(0x00552CF0, CUnitServer::AddHostileMask);
 
 void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
     for (int i = 0; i < size; ++i) {

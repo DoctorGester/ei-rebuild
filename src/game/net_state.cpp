@@ -394,7 +394,7 @@ std::uint32_t CUnit::ReadNetStateImpl(int first) {
     return complete;
 }
 
-EI_REPLACE_METHOD(0x0052EF90, CUnit::ReadNetStateImpl);
+EI_REWRITTEN(0x0052EF90, CUnit::ReadNetStateImpl);
 EI_REWRITTEN(0x0050EC30, CMapObject::ReadNetStateImpl);
 EI_REWRITTEN(0x0050EAF0, CMapObject::WriteNetStateImpl);
-EI_REPLACE_METHOD(0x0052EC70, CUnit::WriteNetStateImpl);
+EI_REWRITTEN(0x0052EC70, CUnit::WriteNetStateImpl);

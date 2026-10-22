@@ -46,10 +46,10 @@ int __fastcall ReleaseHook(CEngineObject* self) {
 const char* __fastcall GetNameHook(CEngineObject* self) { return self->CEngineObject::GetName(); }
 const char* __fastcall GetDescriptionHook(CEngineObject* self) { return self->CEngineObject::GetDescription(); }
 } // namespace
-EI_REPLACE_METHOD(0x00402D40, CEngineObject::CopyFromImpl);
-EI_REPLACE(0x00455980, ReleaseHook);
-EI_REPLACE(0x00402CE0, GetNameHook);
-EI_REPLACE(0x00402CF0, GetDescriptionHook);
+EI_REWRITTEN(0x00402D40, CEngineObject::CopyFromImpl);
+EI_REWRITTEN(0x00455980, ReleaseHook);
+EI_REWRITTEN(0x00402CE0, GetNameHook);
+EI_REWRITTEN(0x00402CF0, GetDescriptionHook);
 
 CEngineObject* CEngineObject::DeletingDestruct(unsigned flags) {
     DestructBase();
@@ -61,7 +61,7 @@ EI_REWRITTEN(0x00402D20, CEngineObject::DeletingDestruct);
 EI_REWRITTEN(0x006611B0, CEngineObject::DeletingDestruct);
 
 CManagerContext* CEngineObject::ManagerContext() const { return owner_->context_; }
-EI_REPLACE_METHOD(0x00455940, CEngineObject::ManagerContext);
+EI_REWRITTEN(0x00455940, CEngineObject::ManagerContext);
 
 CBaseManager* CEngineObject::SetOwner(CBaseManager* owner) {
     CBaseManager* previous = owner_;

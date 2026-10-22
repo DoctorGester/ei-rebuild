@@ -342,7 +342,7 @@ int __cdecl game::FatalError(const char* format, ...) {
     if (++app::g_fatalErrorCount >= 1 && !carryOn) libcrt::Exit(-1);
     return 0;
 }
-EI_REPLACE(0x00480080, game::FatalError);
+EI_REWRITTEN(0x00480080, game::FatalError);
 
 namespace app {
 

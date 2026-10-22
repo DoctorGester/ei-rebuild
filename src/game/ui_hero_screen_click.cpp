@@ -367,9 +367,9 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     CallShowHero(index);
 }
 
-EI_REPLACE_METHOD(0x00617050, InputForward<&CMpHeroScreen::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00617050, InputForward<&CMpHeroScreen::OnLButtonDown>::Call);
 
-EI_REPLACE_METHOD(0x00618A10, InputForward<&CMpHeroScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x00618A10, InputForward<&CMpHeroScreen::OnKeyDown>::Call);
 
 // --- 00618060: rename ---------------------------------------------------------------------------
 
@@ -520,7 +520,7 @@ void CMpHeroScreen::RefreshHero() {
 namespace {
 void __fastcall MpHeroRefresh(CMpHeroScreen* self) { self->RefreshHero(); }
 } // namespace
-EI_REPLACE(0x00618850, MpHeroRefresh);
+EI_REWRITTEN(0x00618850, MpHeroRefresh);
 
 void CMpHeroScreen::CreateHero() {
     mfc::CString name(nameEdit_->text_);
@@ -640,7 +640,7 @@ void CMpHeroScreen::OnMessageResult(int result) {
     }
     SetMode(this, nullptr, kModeList);
 }
-EI_REPLACE_METHOD(0x00615940, CMpHeroScreen::OnMessageResult);
+EI_REWRITTEN(0x00615940, CMpHeroScreen::OnMessageResult);
 
 // --- 00617A50: the new hero added to the list ----------------------------------------------------
 

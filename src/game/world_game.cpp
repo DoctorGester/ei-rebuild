@@ -1709,14 +1709,14 @@ GameFlow* GameFlow::Construct() {
     state_ = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00578460, GameFlow::Construct);
+EI_REWRITTEN(0x00578460, GameFlow::Construct);
 
 void GameFlow::Destruct() {
     zone7C_.~CString();
     RequestParty()->DestructBody();
     requestTarget_.~CString();
 }
-EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
+EI_REWRITTEN(0x005784D0, GameFlow::Destruct);
 
 // The flow, zero at the start: built by the static initialiser 00578440 in the list's order and destroyed by the exit
 // function it registers (005784C0); both ported on the name and registered at their addresses (docs/notes/standalone.md,
@@ -1742,7 +1742,7 @@ void GameFlow::SetNetworkZone(const char* zone) {
     zone7C_ = zone;
     if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZone(zone);
 }
-EI_REPLACE_METHOD(0x0057ED60, GameFlow::SetNetworkZone);
+EI_REWRITTEN(0x0057ED60, GameFlow::SetNetworkZone);
 
 int CurrentSaveSize() {
     mfc::CFileFind find;
@@ -1758,7 +1758,7 @@ int CurrentSaveSize() {
     }
     return total;
 }
-EI_REPLACE(0x0057BC30, CurrentSaveSize);
+EI_REWRITTEN(0x0057BC30, CurrentSaveSize);
 
 // ---- After starting the sessions (0057EB10) -----------------------------------------------------
 
@@ -2093,12 +2093,12 @@ void GameFlow::BuildZoneTable() {
     }
     find.Close();
 }
-EI_REPLACE_METHOD(0x0057F560, GameFlow::BuildZoneTable);
+EI_REWRITTEN(0x0057F560, GameFlow::BuildZoneTable);
 EI_REPLACE(0x0057F4A0, DestroyZoneTable);
 
-EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
+EI_REWRITTEN(0x0057B3B0, GameFlow::SaveGame);
 EI_REWRITTEN(0x0057F0F0, GameFlow::ReturnLocalParty);
-EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
+EI_REWRITTEN(0x0057F150, GameFlow::UpdateAndAcknowledge);
 EI_REWRITTEN(0x0057FB60, GameFlow::RequestBriefing);
 EI_REWRITTEN(0x0057F820, NameInList);
 EI_REWRITTEN(0x0057AAB0, ClearSaveFolder);
@@ -2125,15 +2125,15 @@ EI_REWRITTEN(0x0057F190, GameFlow::UpdateMultiplayerVariable);
 EI_REWRITTEN(0x0057E6B0, GameFlow::MultiplayerZoneInto);
 EI_REWRITTEN(0x0057F280, GameFlow::BeginMultiplayerGame);
 EI_REWRITTEN(0x0057AA80, CWorldServer::ZoneNameInto);
-EI_REPLACE(0x0057A780, LeaveZone);
-EI_REPLACE(0x0057A060, EnterZone);
-EI_REPLACE(0x0057BDF0, StartNetworkZone);
-EI_REPLACE_METHOD(0x0057C460, GameFlow::StartZone);
+EI_REWRITTEN(0x0057A780, LeaveZone);
+EI_REWRITTEN(0x0057A060, EnterZone);
+EI_REWRITTEN(0x0057BDF0, StartNetworkZone);
+EI_REWRITTEN(0x0057C460, GameFlow::StartZone);
 EI_REWRITTEN(0x0057BD10, GameFlow::StartNewGame);
-EI_REPLACE_METHOD(0x0057C700, GameFlow::ProcessRequest);
-EI_REPLACE_METHOD(0x0057ABA0, GameFlow::LoadGame);
-EI_REPLACE_METHOD(0x0057EB10, GameFlow::AfterServerStart);
-EI_REPLACE_METHOD(0x005800C0, GameFlow::UpdateFromServer);
-EI_REPLACE_METHOD(0x00662FB0, SavedParties::Reload);
+EI_REWRITTEN(0x0057C700, GameFlow::ProcessRequest);
+EI_REWRITTEN(0x0057ABA0, GameFlow::LoadGame);
+EI_REWRITTEN(0x0057EB10, GameFlow::AfterServerStart);
+EI_REWRITTEN(0x005800C0, GameFlow::UpdateFromServer);
+EI_REWRITTEN(0x00662FB0, SavedParties::Reload);
 
 EI_REPLACE(0x0057E6A0, DestroyLastResources);

@@ -142,7 +142,7 @@ void CMainMenu::Create() {
     hour_ = 0.0f;
     TheMusicSystem()->PlayMainMenu();
 }
-EI_REPLACE_METHOD(0x006326B0, CMainMenu::Create);
+EI_REWRITTEN(0x006326B0, CMainMenu::Create);
 
 // --- 00632B10: Update (slot 24, every frame) ---------------------------------------------------
 
@@ -170,7 +170,7 @@ void CMainMenu::Update() {
     }
     hour_ = static_cast<float>(GameServerTimeOfDay());
 }
-EI_REPLACE_METHOD(0x00632B10, CMainMenu::Update);
+EI_REWRITTEN(0x00632B10, CMainMenu::Update);
 
 // --- 00632910: Close (slot 26) -----------------------------------------------------------------
 
@@ -179,7 +179,7 @@ void CMainMenu::Close() {
     GameStopSounds(1);
     GameStopAmbience();
 }
-EI_REPLACE_METHOD(0x00632910, CMainMenu::Close);
+EI_REWRITTEN(0x00632910, CMainMenu::Close);
 
 // --- 00632940: a message box's answer (slot 27) -----------------------------------------------
 
@@ -204,7 +204,7 @@ void CMainMenu::OnMessageResult(int result) {
         AddVersionLine();
     }
 }
-EI_REPLACE_METHOD(0x00632940, CMainMenu::OnMessageResult);
+EI_REWRITTEN(0x00632940, CMainMenu::OnMessageResult);
 
 // --- 00633400 / 00633540: the mouse move and the keys -------------------------------------------
 
@@ -225,7 +225,7 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
     }
     InputOf(this)->OnMouseMove(buttons, x, y);
 }
-EI_REPLACE_METHOD(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
+EI_REWRITTEN(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
 
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->OnKeyDown(key, repeat, flags);
@@ -234,4 +234,4 @@ void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     if (box) box = box->Construct(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);
     interface_->PushWindow(box, 1, 1);
 }
-EI_REPLACE_METHOD(0x00633540, InputForward<&CMainMenu::OnKeyDown>::Call);
+EI_REWRITTEN(0x00633540, InputForward<&CMainMenu::OnKeyDown>::Call);

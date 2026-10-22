@@ -274,13 +274,13 @@ CUiWindow* CUiWindow::UiWindowDelete(unsigned flags) {
 EI_REWRITTEN(0x005FE910, CUiWindow::UiWindowDelete);
 EI_REWRITTEN(0x005EE020, CUiWindow::UiWindowDelete);   // the item screens' icon window (00740444)
 EI_REWRITTEN(0x0060E240, CUiWindow::UiWindowDelete);   // 00741B58
-EI_REPLACE_METHOD(0x0060E260, CUiWindow::UiWindowDelete);   // the item strip (00741A1C)
+EI_REWRITTEN(0x0060E260, CUiWindow::UiWindowDelete);   // the item strip (00741A1C)
 EI_REWRITTEN(0x0060E2E0, CUiWindow::UiWindowDelete);   // the hero equipment (007418E0)
 EI_REWRITTEN(0x0060E310, CUiWindow::UiWindowDelete);   // the quick item strip (00741844)
 EI_REWRITTEN(0x0060E5B0, CUiWindow::UiWindowDelete);   // the constructors' first pages (0074170C)
 EI_REWRITTEN(0x0060E650, CUiWindow::UiWindowDelete);   // the item maker (007415D4)
 EI_REWRITTEN(0x0060E680, CUiWindow::UiWindowDelete);   // the repair grid (00741538)
-EI_REPLACE_METHOD(0x006157D0, CUiWindow::UiWindowDelete);   // the figure strips (00741BF4)
+EI_REWRITTEN(0x006157D0, CUiWindow::UiWindowDelete);   // the figure strips (00741BF4)
 EI_REWRITTEN(0x00635D80, CUiWindow::UiWindowDelete);   // the game clock (007425C8)
 EI_REWRITTEN(0x00635DB0, CUiWindow::UiWindowDelete);   // the movement panel (00742530)
 
@@ -289,10 +289,10 @@ CUiContainer* CUiContainer::UiContainerDelete(unsigned flags) {
     DestroyContainer();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x00600B80, CUiContainer::UiContainerDelete);
-EI_REPLACE_METHOD(0x005F5F30, CUiContainer::UiContainerDelete);   // screen 7 (00740840)
-EI_REPLACE_METHOD(0x005F5F60, CUiContainer::UiContainerDelete);   // the main menu (00740688)
-EI_REPLACE_METHOD(0x00603CD0, CUiContainer::UiContainerDelete);   // the escape menu (007412A4)
+EI_REWRITTEN(0x00600B80, CUiContainer::UiContainerDelete);
+EI_REWRITTEN(0x005F5F30, CUiContainer::UiContainerDelete);   // screen 7 (00740840)
+EI_REWRITTEN(0x005F5F60, CUiContainer::UiContainerDelete);   // the main menu (00740688)
+EI_REWRITTEN(0x00603CD0, CUiContainer::UiContainerDelete);   // the escape menu (007412A4)
 
 // 005EACD0 / 00602B80: the battle camera's input side (00740208), the inert extra side (00741154).
 UiInputSide* UiInputSide::InputSideDelete(unsigned flags) {
@@ -321,7 +321,7 @@ CBattleScreen* CBattleScreen::BattleScreenDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005F5FC0, CBattleScreen::BattleScreenDelete);
+EI_REWRITTEN(0x005F5FC0, CBattleScreen::BattleScreenDelete);
 
 // 005F6450 / 005F6600 / 005F6FF0: the item screen (00740A2C), the camp (0074091C), screen 9
 // (00740D18).
@@ -329,59 +329,59 @@ CItemScreen* CItemScreen::ItemScreenDelete(unsigned flags) {
     ItemScreenDestroy(this);
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005F6450, CItemScreen::ItemScreenDelete);
+EI_REWRITTEN(0x005F6450, CItemScreen::ItemScreenDelete);
 CItemScreen* CItemScreen::CampScreenDelete(unsigned flags) {
     CampScreenDestroy(this);
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005F6600, CItemScreen::CampScreenDelete);
+EI_REWRITTEN(0x005F6600, CItemScreen::CampScreenDelete);
 CItemScreen* CItemScreen::Screen9Delete(unsigned flags) {
     Screen9Destroy(this);
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005F6FF0, CItemScreen::Screen9Delete);
+EI_REWRITTEN(0x005F6FF0, CItemScreen::Screen9Delete);
 
 // 005F6900: the global map (00740B3C).
 CGlobalMap* CGlobalMap::GlobalMapDelete(unsigned flags) {
     GlobalMapDestroy(this);
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005F6900, CGlobalMap::GlobalMapDelete);
+EI_REWRITTEN(0x005F6900, CGlobalMap::GlobalMapDelete);
 
 // 005F6B80: the briefing / base screen (007405AC).
 CBriefingScreen* CBriefingScreen::BriefingDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005F6B80, CBriefingScreen::BriefingDelete);
+EI_REWRITTEN(0x005F6B80, CBriefingScreen::BriefingDelete);
 
 // 005F6E20: screen 8, the titles (00740C3C).
 CTitlesScreen* CTitlesScreen::TitlesDelete(unsigned flags) {
     Screen8Destroy(this);
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005F6E20, CTitlesScreen::TitlesDelete);
+EI_REWRITTEN(0x005F6E20, CTitlesScreen::TitlesDelete);
 
 // 005F8950: the help window (00740E28).
 CHelpWindow* CHelpWindow::HelpWindowDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005F8950, CHelpWindow::HelpWindowDelete);
+EI_REWRITTEN(0x005F8950, CHelpWindow::HelpWindowDelete);
 
 // 00603B70: the objectives window (007411BC).
 CObjectivesWindow* CObjectivesWindow::ObjectivesDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x00603B70, CObjectivesWindow::ObjectivesDelete);
+EI_REWRITTEN(0x00603B70, CObjectivesWindow::ObjectivesDelete);
 
 // 006070A0: the save / load window (00741388).
 CSaveLoadWindow* CSaveLoadWindow::SaveLoadDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x006070A0, CSaveLoadWindow::SaveLoadDelete);
+EI_REWRITTEN(0x006070A0, CSaveLoadWindow::SaveLoadDelete);
 
 // 00608EB0: the chat window (00741478).
 CChatWindow* CChatWindow::ChatWindowDelete(unsigned flags) {
@@ -395,7 +395,7 @@ CUiItemStrip* CUiItemStrip::ForwardingStripDelete(unsigned flags) {
     DestroyForwarding();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0060E290, CUiItemStrip::ForwardingStripDelete);
+EI_REWRITTEN(0x0060E290, CUiItemStrip::ForwardingStripDelete);
 
 // 0060E340: the statistics column (00741ABC).
 CHeroStatsPanel* CHeroStatsPanel::StatsPanelDelete(unsigned flags) {
@@ -423,21 +423,21 @@ CMpConnectScreen* CMpConnectScreen::ConnectScreenDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x00618550, CMpConnectScreen::ConnectScreenDelete);
+EI_REWRITTEN(0x00618550, CMpConnectScreen::ConnectScreenDelete);
 
 // 0061E440: the master request box (00741DD8).
 CMasterRequestBox* CMasterRequestBox::MasterRequestBoxDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0061E440, CMasterRequestBox::MasterRequestBoxDelete);
+EI_REWRITTEN(0x0061E440, CMasterRequestBox::MasterRequestBoxDelete);
 
 // 0062B160: the options window (00741FAC).
 COptionsWindow* COptionsWindow::OptionsWindowDelete(unsigned flags) {
     DestroyOptions();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0062B160, COptionsWindow::OptionsWindowDelete);
+EI_REWRITTEN(0x0062B160, COptionsWindow::OptionsWindowDelete);
 
 // 0062EDA0: the global map's clouds (slot 2 of 007420D4): the base's own (00499E30) does the same.
 EI_REWRITTEN(0x0062EDA0, CCloudNoise::DeletingDestructImpl);
@@ -447,15 +447,15 @@ CMpHeroScreen* CMpHeroScreen::HeroScreenDelete(unsigned flags) {
     Destroy();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x00633240, CMpHeroScreen::HeroScreenDelete);
+EI_REWRITTEN(0x00633240, CMpHeroScreen::HeroScreenDelete);
 
 // 00633730 / 00634770: the difficulty question (0074225C), the message box (00742348).
 CMessageBox* CMessageBox::MessageBoxDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x00633730, CMessageBox::MessageBoxDelete);
-EI_REPLACE_METHOD(0x00634770, CMessageBox::MessageBoxDelete);
+EI_REWRITTEN(0x00633730, CMessageBox::MessageBoxDelete);
+EI_REWRITTEN(0x00634770, CMessageBox::MessageBoxDelete);
 
 // The battle HUD's panels (bodies in ui_hud_destroy.cpp and ui_screen_constructors.cpp).
 CHudMap* CHudMap::HudMapDelete(unsigned flags) {
@@ -507,38 +507,38 @@ EI_REWRITTEN(0x00600AC0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REWRITTEN(0x005F45F0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REWRITTEN(0x00613D50, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REWRITTEN(0x00613D60, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x00613D70, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
+EI_REWRITTEN(0x00613D70, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REWRITTEN(0x00613D80, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REWRITTEN(0x00613D90, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REWRITTEN(0x00613DA0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REWRITTEN(0x00613DD0, UiInput::DeleteWindow<&CHeroStatsPanel::StatsPanelDelete>);
 EI_REWRITTEN(0x00613DE0, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
-EI_REPLACE_METHOD(0x0061B210, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
+EI_REWRITTEN(0x0061B210, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);
 EI_REWRITTEN(0x00601E70, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
-EI_REPLACE_METHOD(0x005FC140, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
-EI_REPLACE_METHOD(0x005FC120, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
-EI_REPLACE_METHOD(0x0060C7E0, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
+EI_REWRITTEN(0x005FC140, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
+EI_REWRITTEN(0x005FC120, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
+EI_REWRITTEN(0x0060C7E0, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REWRITTEN(0x005F4600, UiInput::DeleteWindow<&CItemInfoPanel::ItemInfoPanelDelete>);
-EI_REPLACE_METHOD(0x005FC0E0, UiInput::DeleteWindow<&CBattleScreen::BattleScreenDelete>);
-EI_REPLACE_METHOD(0x005FC0C0, UiInput::DeleteWindow<&CItemScreen::ItemScreenDelete>);
-EI_REPLACE_METHOD(0x005FC100, UiInput::DeleteWindow<&CItemScreen::CampScreenDelete>);
-EI_REPLACE_METHOD(0x005FC110, UiInput::DeleteWindow<&CItemScreen::Screen9Delete>);
-EI_REPLACE_METHOD(0x005FC130, UiInput::DeleteWindow<&CGlobalMap::GlobalMapDelete>);
-EI_REPLACE_METHOD(0x005FC0B0, UiInput::DeleteWindow<&CBriefingScreen::BriefingDelete>);
-EI_REPLACE_METHOD(0x005FC0F0, UiInput::DeleteWindow<&CTitlesScreen::TitlesDelete>);
-EI_REPLACE_METHOD(0x005FC0D0, UiInput::DeleteWindow<&CHelpWindow::HelpWindowDelete>);
-EI_REPLACE_METHOD(0x0060C7C0, UiInput::DeleteWindow<&CObjectivesWindow::ObjectivesDelete>);
-EI_REPLACE_METHOD(0x0060C7B0, UiInput::DeleteWindow<&CSaveLoadWindow::SaveLoadDelete>);
+EI_REWRITTEN(0x005FC0E0, UiInput::DeleteWindow<&CBattleScreen::BattleScreenDelete>);
+EI_REWRITTEN(0x005FC0C0, UiInput::DeleteWindow<&CItemScreen::ItemScreenDelete>);
+EI_REWRITTEN(0x005FC100, UiInput::DeleteWindow<&CItemScreen::CampScreenDelete>);
+EI_REWRITTEN(0x005FC110, UiInput::DeleteWindow<&CItemScreen::Screen9Delete>);
+EI_REWRITTEN(0x005FC130, UiInput::DeleteWindow<&CGlobalMap::GlobalMapDelete>);
+EI_REWRITTEN(0x005FC0B0, UiInput::DeleteWindow<&CBriefingScreen::BriefingDelete>);
+EI_REWRITTEN(0x005FC0F0, UiInput::DeleteWindow<&CTitlesScreen::TitlesDelete>);
+EI_REWRITTEN(0x005FC0D0, UiInput::DeleteWindow<&CHelpWindow::HelpWindowDelete>);
+EI_REWRITTEN(0x0060C7C0, UiInput::DeleteWindow<&CObjectivesWindow::ObjectivesDelete>);
+EI_REWRITTEN(0x0060C7B0, UiInput::DeleteWindow<&CSaveLoadWindow::SaveLoadDelete>);
 EI_REWRITTEN(0x0060C7D0, UiInput::DeleteWindow<&CChatWindow::ChatWindowDelete>);
-EI_REPLACE_METHOD(0x00613DC0, UiInput::DeleteWindow<&CUiItemStrip::ForwardingStripDelete>);
+EI_REWRITTEN(0x00613DC0, UiInput::DeleteWindow<&CUiItemStrip::ForwardingStripDelete>);
 EI_REWRITTEN(0x00613DB0, UiInput::DeleteWindow<&CTradePanel::TradePanelDelete>);
 EI_REWRITTEN(0x00613DF0, UiInput::DeleteWindow<&CSpellMakerPage::SpellMakerDelete>);
-EI_REPLACE_METHOD(0x0061B220, UiInput::DeleteWindow<&CMpConnectScreen::ConnectScreenDelete>);
-EI_REPLACE_METHOD(0x00620300, UiInput::DeleteWindow<&CMasterRequestBox::MasterRequestBoxDelete>);
-EI_REPLACE_METHOD(0x0062B770, UiInput::DeleteWindow<&COptionsWindow::OptionsWindowDelete>);
-EI_REPLACE_METHOD(0x006345F0, UiInput::DeleteWindow<&CMpHeroScreen::HeroScreenDelete>);
-EI_REPLACE_METHOD(0x006345E0, UiInput::DeleteWindow<&CMessageBox::MessageBoxDelete>);
-EI_REPLACE_METHOD(0x00634FD0, UiInput::DeleteWindow<&CMessageBox::MessageBoxDelete>);
+EI_REWRITTEN(0x0061B220, UiInput::DeleteWindow<&CMpConnectScreen::ConnectScreenDelete>);
+EI_REWRITTEN(0x00620300, UiInput::DeleteWindow<&CMasterRequestBox::MasterRequestBoxDelete>);
+EI_REWRITTEN(0x0062B770, UiInput::DeleteWindow<&COptionsWindow::OptionsWindowDelete>);
+EI_REWRITTEN(0x006345F0, UiInput::DeleteWindow<&CMpHeroScreen::HeroScreenDelete>);
+EI_REWRITTEN(0x006345E0, UiInput::DeleteWindow<&CMessageBox::MessageBoxDelete>);
+EI_REWRITTEN(0x00634FD0, UiInput::DeleteWindow<&CMessageBox::MessageBoxDelete>);
 EI_REWRITTEN(0x0064BCF0, UiInput::DeleteWindow<&CHudWeaponBar::HudWeaponBarDelete>);
 EI_REWRITTEN(0x0064BD00, UiInput::DeleteWindow<&CHudQuickItems::HudQuickItemsDelete>);
 EI_REWRITTEN(0x0064BD10, UiInput::DeleteWindow<&CHudSpellColumn::HudSpellColumnDelete>);

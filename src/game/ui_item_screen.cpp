@@ -71,7 +71,7 @@ void __fastcall TrimItemCache(ItemObjectCache* cache) {
     }
 }
 EI_REWRITTEN(0x005F2F20, TrimItemCache);
-EI_REPLACE(0x005F2F90, TrimItemCache);
+EI_REWRITTEN(0x005F2F90, TrimItemCache);
 
 // --- 005F2A90: the icon window's frame -------------------------------------------------------------
 
@@ -303,4 +303,4 @@ CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
     }
     return moved;
 }
-EI_REPLACE_METHOD(0x005EE2C0, CItemScreen::ReturnAll);
+EI_REWRITTEN(0x005EE2C0, CItemScreen::ReturnAll);

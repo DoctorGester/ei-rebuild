@@ -715,5 +715,5 @@ EI_REWRITTEN(0x0058FD90, CWorldServer::StoreParty);
 EI_REWRITTEN(0x00590A40, CWorldServer::CollectParty);
 EI_REWRITTEN(0x00590C70, CWorldServer::SyncPartyRecords);
 EI_REWRITTEN(0x005911C0, CWorldServer::AwardExperience);
-EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);
+EI_REWRITTEN(0x00592090, CWorldServer::CompleteBriefing);
 EI_REWRITTEN(0x00591DE0, CWorldServer::ApplyMercBriefing);

@@ -322,7 +322,7 @@ void CHudTopPanel::ShowItems() {
     }
     merged.RemoveAll();
 }
-EI_REPLACE_METHOD(0x0064A7A0, CHudTopPanel::ShowItems);
+EI_REWRITTEN(0x0064A7A0, CHudTopPanel::ShowItems);
 
 void CHudTopPanel::Layout() {
     // Place (005E6FA0) is Rebirth-patched: through its address.

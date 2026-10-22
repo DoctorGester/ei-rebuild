@@ -391,7 +391,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
     key.Close();
     key.Destroy();
 }
-EI_REPLACE_METHOD(0x0045B210, GameOptions::LoadFromRegistry);
+EI_REWRITTEN(0x0045B210, GameOptions::LoadFromRegistry);
 
 void GameOptions::SaveToRegistry(const char* path) {
     mfc::CString resolution;
@@ -426,6 +426,6 @@ void GameOptions::SaveToRegistry(const char* path) {
     key.Close();
     key.Destroy();
 }
-EI_REPLACE_METHOD(0x0045C560, GameOptions::SaveToRegistry);
+EI_REWRITTEN(0x0045C560, GameOptions::SaveToRegistry);
 
 } // namespace options

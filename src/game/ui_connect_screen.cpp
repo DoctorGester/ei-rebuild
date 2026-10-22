@@ -328,7 +328,7 @@ void CMpConnectScreen::Update() {
     nameEdit_->changed_ = false;
     if (renamed) DrawListVanilla();
 }
-EI_REPLACE_METHOD(0x0061C430, CMpConnectScreen::Update);
+EI_REWRITTEN(0x0061C430, CMpConnectScreen::Update);
 
 // --- 0061C2E0: a box answered (slot 27) -----------------------------------------------------------
 
@@ -349,7 +349,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
         net::GameClient()->gameType_ = entries_[selected_].gameType;
     }
 }
-EI_REPLACE_METHOD(0x0061C2E0, CMpConnectScreen::OnBoxResult);
+EI_REWRITTEN(0x0061C2E0, CMpConnectScreen::OnBoxResult);
 
 // --- 0061C700 / 0061CA30 / 0061CAD0: input --------------------------------------------------------
 
@@ -458,9 +458,9 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
     inputHandled_ = true;
 }
 
-EI_REPLACE_METHOD(0x0061C700, InputForward<&CMpConnectScreen::OnLButtonDown>::Call);
-EI_REPLACE_METHOD(0x0061CA30, InputForward<&CMpConnectScreen::OnLButtonDouble>::Call);
-EI_REPLACE_METHOD(0x0061CAD0, InputForward<&CMpConnectScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x0061C700, InputForward<&CMpConnectScreen::OnLButtonDown>::Call);
+EI_REWRITTEN(0x0061CA30, InputForward<&CMpConnectScreen::OnLButtonDouble>::Call);
+EI_REWRITTEN(0x0061CAD0, InputForward<&CMpConnectScreen::OnKeyDown>::Call);
 
 // --- 0061CC00: the selection kept in the list and in view -----------------------------------------
 
@@ -546,7 +546,7 @@ void CMpConnectScreen::MasterRequest() {
                : nullptr;
     interface_->PushWindow(box, 1, 1);
 }
-EI_REPLACE_METHOD(0x0061D0D0, CMpConnectScreen::MasterRequest);
+EI_REWRITTEN(0x0061D0D0, CMpConnectScreen::MasterRequest);
 
 // --- 0061D1C0: config\addrbook.ini ----------------------------------------------------------------
 
@@ -816,7 +816,7 @@ void CMpConnectScreen::Create() {
     note->DrawTextIn(texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
     UiSurfaceReleaseDC(note);
 }
-EI_REPLACE_METHOD(0x0061B2C0, CMpConnectScreen::Create);
+EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::Create);
 // Rebirth's patches in Create: addon's ExtendedServerName sites (0061B5CE, 0061BB51, 0061BC09, 0061BC0B,
 // 0061BC0E) and EI_Plugin's NPlayers (0061BAF7, 0061BB82).
 
@@ -846,4 +846,4 @@ void CMasterRequestBox::Update() {
     if (net::MasterLinkTick(&link_) == net::MasterLink::kDone || net::MasterLinkTick(&link_) == net::MasterLink::kClosed)
         interface_->SetPendingValue(CMpConnectScreen::kBoxMaster | kAnswerCancel);
 }
-EI_REPLACE_METHOD(0x0061E4E0, CMasterRequestBox::Update);
+EI_REWRITTEN(0x0061E4E0, CMasterRequestBox::Update);

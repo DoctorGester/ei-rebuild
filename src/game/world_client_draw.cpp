@@ -347,7 +347,7 @@ int CWorldClient::Render() {
     render::EndWorld();
     return 1;
 }
-EI_REPLACE_METHOD(0x00569E40, CWorldClient::Render);
+EI_REWRITTEN(0x00569E40, CWorldClient::Render);
 
 // 00569D60 (A-W13).
 int CWorldClient::DrawLineLists() {
@@ -629,4 +629,4 @@ int CWorldClient::DrawPass() {
     touchedModels.EraseRange<stlp::PlainElement<CEngineObject*>>(touchedModels.begin(), touchedModels.end());
     return 1;
 }
-EI_REPLACE_METHOD(0x0056AFE0, CWorldClient::DrawPass);
+EI_REWRITTEN(0x0056AFE0, CWorldClient::DrawPass);

@@ -219,7 +219,7 @@ void Terrain::LightAreaOf(CLight* light, const Vector3* delta, LightArea* area) 
     }
     LightAreaFromBounds(sectorsX, sectorsY, minX, minY, maxX, maxY, area);
 }
-EI_REPLACE_METHOD(0x006CAA70, Terrain::LightAreaOf);
+EI_REWRITTEN(0x006CAA70, Terrain::LightAreaOf);
 
 void Terrain::RelightArea(const LightArea* area) {
     for (int sy = area->firstSectorY; sy <= area->lastSectorY; ++sy) {

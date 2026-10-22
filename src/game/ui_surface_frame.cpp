@@ -39,4 +39,4 @@ void CUiSurface::Fill(COLORREF colour) {
 EI_REWRITTEN(0x005FE370, CUiSurface::Fill);
 
 void CUiSurface::Clear() { Fill(background_); }
-EI_REPLACE_METHOD(0x005FE2F0, CUiSurface::Clear);
+EI_REWRITTEN(0x005FE2F0, CUiSurface::Clear);

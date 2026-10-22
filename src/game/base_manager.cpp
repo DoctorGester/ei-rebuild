@@ -340,8 +340,8 @@ EI_REWRITTEN(0x00403020, CreateHook);
 EI_REWRITTEN(0x004031E0, DestroyHook);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
-EI_REPLACE(0x0066C100, DestroyHook);
-EI_REPLACE(0x0067E160, DestroyHook);
+EI_REWRITTEN(0x0066C100, DestroyHook);
+EI_REWRITTEN(0x0067E160, DestroyHook);
 EI_REWRITTEN(0x004046E0, CBaseManager::LoadImpl);
 EI_REWRITTEN(0x00404760, CBaseManager::SaveImpl);
 EI_REWRITTEN(0x004031B0, CBaseManager::InitImpl);
@@ -367,7 +367,7 @@ CEngineObject* CBaseManager::FindObject(unsigned id) const {
     auto* node = objects_.Find(id);
     return node ? node->value : nullptr;
 }
-EI_REPLACE_METHOD(0x00403F40, CBaseManager::FindObject);
+EI_REWRITTEN(0x00403F40, CBaseManager::FindObject);
 
 void CBaseManager::SetContext(CManagerContext* context) { context_ = context; }
 EI_REWRITTEN(0x00403720, CBaseManager::SetContext);

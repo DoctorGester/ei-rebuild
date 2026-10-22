@@ -160,7 +160,7 @@ void ObjectSpec::ObjectSpecDestruct() {
     model.~CString();
     base.SpecDestruct();
 }
-EI_REPLACE_METHOD(0x0046AEB0, ObjectSpec::ObjectSpecDestruct);
+EI_REWRITTEN(0x0046AEB0, ObjectSpec::ObjectSpecDestruct);
 EI_REWRITTEN(0x0058EDF0, ObjectSpec::ObjectSpecDestruct);
 
 // 0046A6F0 (slot 10).

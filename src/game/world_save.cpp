@@ -856,7 +856,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     scriptsActive_ = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x00595480, CWorldServer::NewZone);
+EI_REWRITTEN(0x00595480, CWorldServer::NewZone);
 
 EI_REWRITTEN(0x005956E0, CWorldServer::PrepareSave);
 EI_REWRITTEN(0x00589CA0, SharedObject::Load);

@@ -136,7 +136,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
         DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), previewModel_, turn_, kNewHeroDepth, 0);
     return 1;
 }
-EI_REPLACE_METHOD(0x006159E0, CMpHeroScreen::Draw);
+EI_REWRITTEN(0x006159E0, CMpHeroScreen::Draw);
 
 // --- 00617820: Update (slot 24) ----------------------------------------------------------------
 
@@ -174,7 +174,7 @@ void CMpHeroScreen::Update() {
     button->tint_[1] = shade;
     button->tint_[2] = shade;
 }
-EI_REPLACE_METHOD(0x00617820, CMpHeroScreen::Update);
+EI_REWRITTEN(0x00617820, CMpHeroScreen::Update);
 
 // --- 00615850: Close (slot 26) -----------------------------------------------------------------
 
@@ -193,7 +193,7 @@ void CMpHeroScreen::Close() {
     descPanel_->Describe(nullptr);
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REPLACE_METHOD(0x00615850, CMpHeroScreen::Close);
+EI_REWRITTEN(0x00615850, CMpHeroScreen::Close);
 
 // --- 00615800: a voice entry's destructor -------------------------------------------------------
 

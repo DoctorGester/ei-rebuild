@@ -258,8 +258,8 @@ void CMapObject::TearDownMapObject() {
 EI_REWRITTEN(0x0050E660, CMapObject::DestructBody);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
-EI_REPLACE_METHOD(0x00529B20, CMapObject::DestructBody);
-EI_REPLACE_METHOD(0x00529B50, CMapObject::DestructBody);
+EI_REWRITTEN(0x00529B20, CMapObject::DestructBody);
+EI_REWRITTEN(0x00529B50, CMapObject::DestructBody);
 
 // --- CUnit ------------------------------------------------------------------------------------
 
@@ -296,7 +296,7 @@ CUnit::CUnit() {
 }
 
 CUnit* CUnit::Construct() { return new (this) CUnit(); }
-EI_REPLACE_METHOD(0x0052E110, CUnit::Construct);
+EI_REWRITTEN(0x0052E110, CUnit::Construct);
 
 void CUnit::Reset() {
     scriptName.Empty();
@@ -341,7 +341,7 @@ void CUnit::Reset() {
     MapObject()->NetState()->Reset();
     fightAtWill = 1;
 }
-EI_REPLACE_METHOD(0x0052E5B0, CUnit::Reset);
+EI_REWRITTEN(0x0052E5B0, CUnit::Reset);
 
 CUnit::~CUnit() {
     // The vtable's slot 5 (0052E740, the release from the player), called directly as the original
@@ -358,14 +358,14 @@ CUnit::~CUnit() {
 }
 
 void CUnit::DestructBody() { this->CUnit::~CUnit(); }
-EI_REPLACE_METHOD(0x0052E310, CUnit::DestructBody);
+EI_REWRITTEN(0x0052E310, CUnit::DestructBody);
 
 CUnit* CUnit::DeletingDestructor(std::uint32_t flags) {
     this->CUnit::~CUnit();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0052E2A0, CUnit::DeletingDestructor);
+EI_REWRITTEN(0x0052E2A0, CUnit::DeletingDestructor);
 
 // --- Companions -------------------------------------------------------------------------------
 
@@ -381,7 +381,7 @@ CMapObjectServer* CMapObjectServer::Construct() {
     vitals.Reset();
     return this;
 }
-EI_REPLACE_METHOD(0x00515610, CMapObjectServer::Construct);
+EI_REWRITTEN(0x00515610, CMapObjectServer::Construct);
 
 void CMapObjectServer::DestructBody() {
     SetVtable(this, CMapObjectServer::Vtable());
@@ -417,7 +417,7 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     lightStateB = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00510450, CMapObjectClientSpecific::Construct);
+EI_REWRITTEN(0x00510450, CMapObjectClientSpecific::Construct);
 
 void CMapObjectClientSpecific::DestructBody() {
     SetVtable(this, CMapObjectClientSpecific::Vtable());

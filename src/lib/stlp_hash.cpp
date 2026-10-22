@@ -51,13 +51,13 @@ EI_REWRITTEN(0x006BBF90, Map8::Construct);
 EI_REWRITTEN(0x006BC2B0, Map8::Construct);
 // hash_map() / hash_set() (100 buckets): 8 instantiations, and the one with a dword after it.
 EI_REWRITTEN(0x004639D0, Map8::ConstructDefault);
-EI_REPLACE(0x004DC830, Map8::ConstructDefault);
+EI_REWRITTEN(0x004DC830, Map8::ConstructDefault);
 EI_REWRITTEN(0x005725E0, Map8::ConstructDefault);
 EI_REWRITTEN(0x00581790, Map8::ConstructDefault);
 EI_REWRITTEN(0x005985E0, Map8::ConstructDefault);
 EI_REWRITTEN(0x00598790, Map8::ConstructDefault);
 EI_REWRITTEN(0x005BCCD0, Map8::ConstructDefault);
-EI_REPLACE(0x0066B320, Map8::ConstructDefault);
+EI_REWRITTEN(0x0066B320, Map8::ConstructDefault);
 EI_REWRITTEN(0x004067B0, Map8::Clear);
 EI_REWRITTEN(0x00406E80, Map8::Clear);
 EI_REWRITTEN(0x00407050, Map8::Clear);
@@ -118,8 +118,8 @@ EI_REWRITTEN(0x00571050, stlp::ConstructTableWithDword);
 // ~hashtable() (library.csv: "clear"): 12-byte nodes (2), 8-byte nodes (2).
 EI_REWRITTEN(0x004A8B70, Map8::Destroy);
 EI_REWRITTEN(0x005984A0, Map8::Destroy);
-EI_REPLACE(0x004DB8A0, Set4::Destroy);
-EI_REPLACE(0x00668B70, Set4::Destroy);
+EI_REWRITTEN(0x004DB8A0, Set4::Destroy);
+EI_REWRITTEN(0x00668B70, Set4::Destroy);
 EI_REWRITTEN(0x004AB720, stlp::RecordsByName::Named);
 EI_REWRITTEN(0x004AB820, stlp::RecordsByName::Named);
 EI_REWRITTEN(0x0052CA40, stlp::RecordsByName::Named);

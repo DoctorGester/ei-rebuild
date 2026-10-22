@@ -55,8 +55,8 @@ void __cdecl DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get())
 
 } // namespace static_lists
 
-EI_REPLACE(0x004ED540, static_lists::ConstructDirectDrawDrivers);
-EI_REPLACE(0x0056A410, static_lists::ConstructDeferredUnits);
+EI_REWRITTEN(0x004ED540, static_lists::ConstructDirectDrawDrivers);
+EI_REWRITTEN(0x0056A410, static_lists::ConstructDeferredUnits);
 EI_REPLACE(0x00455E30, static_lists::ConstructProtectionChecksList);
 EI_REPLACE(0x00455F00, static_lists::DestroyProtectionChecks);
 EI_REPLACE(0x004ED520, static_lists::ConstructDriversList);
@@ -68,5 +68,5 @@ EI_REPLACE(0x0056A4C0, static_lists::DestroyDeferredUnits);
 // node returned to the pool, then the sentinel. 004584E0: the copy protection's check list 0079BC2C
 // (bytes; the exit function 00455F00). 004F0520: the DirectDraw driver list 007AEE64 (each driver's
 // description, then its name; the guarded exit function 004ED5F0).
-EI_REPLACE(0x004584E0, stlp::ListAbi<std::uint8_t>::Destruct);
-EI_REPLACE(0x004F0520, stlp::ListAbi<DirectDrawDriver>::Destruct);
+EI_REWRITTEN(0x004584E0, stlp::ListAbi<std::uint8_t>::Destruct);
+EI_REWRITTEN(0x004F0520, stlp::ListAbi<DirectDrawDriver>::Destruct);

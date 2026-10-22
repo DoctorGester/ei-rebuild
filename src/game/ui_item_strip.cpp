@@ -184,7 +184,7 @@ BOOL CUiItemStrip::Draw(int pass) {
     numbers->ReleaseDC();
     return 1;
 }
-EI_REPLACE_METHOD(0x00621B50, CUiItemStrip::Draw);
+EI_REWRITTEN(0x00621B50, CUiItemStrip::Draw);
 
 // --- 00620A50: the strip's per-frame scroll ---------------------------------------------------
 
@@ -298,4 +298,4 @@ void CUiItemStrip::Update() {
 namespace {
 void __fastcall ItemStripUpdate(CUiItemStrip* self) { self->Update(); }
 } // namespace
-EI_REPLACE(0x00620A50, ItemStripUpdate);
+EI_REWRITTEN(0x00620A50, ItemStripUpdate);

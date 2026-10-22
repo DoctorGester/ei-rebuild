@@ -283,7 +283,7 @@ void CBriefingScreen::Create() {
     markPhase_ = 0.0f;
 }
 
-EI_REPLACE_METHOD(0x006024B0, CBriefingScreen::Create);
+EI_REWRITTEN(0x006024B0, CBriefingScreen::Create);
 
 // --- 00604130: slot 24 --------------------------------------------------------------------------
 
@@ -421,4 +421,4 @@ void CBriefingScreen::LeaveIfExitOpen() {
     records.FreeData();
 }
 
-EI_REPLACE_METHOD(0x00604130, CBriefingScreen::Update);
+EI_REWRITTEN(0x00604130, CBriefingScreen::Update);

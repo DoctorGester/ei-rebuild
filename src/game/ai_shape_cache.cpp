@@ -69,7 +69,7 @@ UnitShapeCache* UnitShapeCache::Construct() {
     shapes.InitBuckets(kFirstBuckets);
     return this;
 }
-EI_REPLACE_METHOD(0x005B32E0, UnitShapeCache::Construct);
+EI_REWRITTEN(0x005B32E0, UnitShapeCache::Construct);
 
 void UnitShapeCache::Destruct() {
     shapes.ClearWith([](Map::Node* node) {
@@ -79,7 +79,7 @@ void UnitShapeCache::Destruct() {
     });
     shapes.Destroy();
 }
-EI_REPLACE_METHOD(0x005B31F0, UnitShapeCache::Destruct);
+EI_REWRITTEN(0x005B31F0, UnitShapeCache::Destruct);
 
 namespace {
 void __cdecl DestroyUnitShapes() { g_unitShapes->Destruct(); }   // 005B31E0

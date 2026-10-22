@@ -35,7 +35,7 @@ constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 // --- 0062BFD0: a window above the titles closed (slot 27) ---------------------------------------------
 
 void CCreditsScreen::OnMessageResult(int) { player_.Close(); }
-EI_REPLACE_METHOD(0x0062BFD0, CCreditsScreen::OnMessageResult);
+EI_REWRITTEN(0x0062BFD0, CCreditsScreen::OnMessageResult);
 
 // --- 0065EF30: the scrolling surface's load (ui_scrolling_surface.cpp), through its address -------
 
@@ -85,7 +85,7 @@ BOOL CCreditsScreen::Draw(int pass) {
     }
     return DrawContainer(pass);
 }
-EI_REPLACE_METHOD(0x0062BD80, CCreditsScreen::Draw);
+EI_REWRITTEN(0x0062BD80, CCreditsScreen::Draw);
 
 // --- 0062BD00: the close ---------------------------------------------------------------------------
 
@@ -96,4 +96,4 @@ void CCreditsScreen::OnClose() {
     app::g_interfaceHasScreen = 1;
     TheCursor()->ShowImage(1);
 }
-EI_REPLACE_METHOD(0x0062BD00, CCreditsScreen::OnClose);
+EI_REWRITTEN(0x0062BD00, CCreditsScreen::OnClose);

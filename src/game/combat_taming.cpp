@@ -133,4 +133,4 @@ void CUnitServer::UndoTaming() {
     if (Stage(this) > 1) unit->SetSide(ownSide);
     Stage(this) = 0;
 }
-EI_REPLACE_METHOD(0x00552280, CUnitServer::UndoTaming);
+EI_REWRITTEN(0x00552280, CUnitServer::UndoTaming);

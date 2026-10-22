@@ -114,4 +114,4 @@ CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
     fadeIn = 1.0f;
     return this;
 }
-EI_REPLACE_METHOD(0x00533AD0, CUnitClientSpecific::ConstructClient);
+EI_REWRITTEN(0x00533AD0, CUnitClientSpecific::ConstructClient);

@@ -168,7 +168,7 @@ CStream* CStream::DeletingDestruct(unsigned flags) {
     DeleteIf(this, flags);
     return this;
 }
-EI_REPLACE_METHOD(0x00417400, CStream::DeletingDestruct);
+EI_REWRITTEN(0x00417400, CStream::DeletingDestruct);
 
 mfc::CString* CStream::ReadString(void* out) {
     mfc::CString text;
@@ -192,15 +192,15 @@ CMemoryStream* CMemoryStream::Construct() {
     bitsIndex_ = -1;
     return this;
 }
-EI_REPLACE_METHOD(0x0041DD70, CMemoryStream::Construct);
+EI_REWRITTEN(0x0041DD70, CMemoryStream::Construct);
 
 void CMemoryStream::Destruct() {
     SetVtable(this, MemoryStreamVtable());
     if (data_) gamecrt::operator_delete(data_);
     SetVtable(this, StreamVtable());
 }
-EI_REPLACE_METHOD(0x004173D0, CMemoryStream::Destruct);
-EI_REPLACE_METHOD(0x004790A0, CMemoryStream::Destruct);   // byte-identical copy (vtable 0073C960)
+EI_REWRITTEN(0x004173D0, CMemoryStream::Destruct);
+EI_REWRITTEN(0x004790A0, CMemoryStream::Destruct);   // byte-identical copy (vtable 0073C960)
 
 // The originals call their own copy of the destructor body out of line.
 CMemoryStream* CMemoryStream::DeletingDestruct(unsigned flags) {
@@ -208,8 +208,8 @@ CMemoryStream* CMemoryStream::DeletingDestruct(unsigned flags) {
     DeleteIf(this, flags);
     return this;
 }
-EI_REPLACE_METHOD(0x004173B0, CMemoryStream::DeletingDestruct);
-EI_REPLACE_METHOD(0x004790D0, CMemoryStream::DeletingDestruct);
+EI_REWRITTEN(0x004173B0, CMemoryStream::DeletingDestruct);
+EI_REWRITTEN(0x004790D0, CMemoryStream::DeletingDestruct);
 
 void CMemoryStream::Clear() {
     if (data_) gamecrt::operator_delete(data_);
@@ -221,7 +221,7 @@ void CMemoryStream::Clear() {
     bitMask_ = 0x80;
     bitsIndex_ = -1;
 }
-EI_REPLACE(0x00417350, MemoryStreamClearHook);
+EI_REWRITTEN(0x00417350, MemoryStreamClearHook);
 
 void CMemoryStream::Reset() {
     ok_ = 1;
@@ -262,4 +262,4 @@ CoderState* CoderState::Construct() {
     window[0x7FF] = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x0042FCA0, CoderState::Construct);
+EI_REWRITTEN(0x0042FCA0, CoderState::Construct);

@@ -203,7 +203,7 @@ void CMapPtrToPtr::GetNextAssoc(Assoc*& position, void*& key, void*& value) cons
 
 EI_REWRITTEN(0x007002C2, CMapPtrToPtr::Construct);
 EI_REWRITTEN(0x00700375, CMapPtrToPtr::Destruct);
-EI_REPLACE_METHOD(0x007002E9, CMapPtrToPtr::DeletingDestructor);
+EI_REWRITTEN(0x007002E9, CMapPtrToPtr::DeletingDestructor);
 EI_REWRITTEN(0x00700305, CMapPtrToPtr::InitHashTable);
 EI_REWRITTEN(0x0070034A, CMapPtrToPtr::RemoveAll);
 EI_REWRITTEN(0x0070039E, CMapPtrToPtr::NewAssoc);

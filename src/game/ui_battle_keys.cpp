@@ -342,4 +342,4 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-EI_REPLACE_METHOD(0x0063A560, InputForward<&CBattleScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x0063A560, InputForward<&CBattleScreen::OnKeyDown>::Call);

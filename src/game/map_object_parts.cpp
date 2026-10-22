@@ -56,7 +56,7 @@ CFigureMesh* CObject3D::FindPart(const char* partName) {
     if (CFigureMesh* part = FirstPart(parts, named)) return part;
     return FirstPart(pendingParts, named);
 }
-EI_REPLACE_METHOD(0x005169A0, CObject3D::FindPart);
+EI_REWRITTEN(0x005169A0, CObject3D::FindPart);
 
 int CObject3D::RemovePart(CFigureMesh* part) {
     if (attached) Specific()->OnPartRemoved(part);
@@ -73,7 +73,7 @@ int CObject3D::RemovePart(CFigureMesh* part) {
     part->Release();
     return 1;
 }
-EI_REPLACE_METHOD(0x005167E0, CObject3D::RemovePart);
+EI_REWRITTEN(0x005167E0, CObject3D::RemovePart);
 
 CFigureMesh* CObject3D::RemovePartNamed(const char* partName) {
     CFigureMesh* part = FindPart(partName);
@@ -81,7 +81,7 @@ CFigureMesh* CObject3D::RemovePartNamed(const char* partName) {
     RemovePart(part);
     return part;
 }
-EI_REPLACE_METHOD(0x005168F0, CObject3D::RemovePartNamed);
+EI_REWRITTEN(0x005168F0, CObject3D::RemovePartNamed);
 
 float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
     float scaleX, scaleY, scaleZ;
@@ -125,7 +125,7 @@ FigureAnimation* CObject3D::AnimationAt(std::uint32_t key) {
     std::uint32_t index = key & 0xFF;
     return index < animations->count ? &animations->animations[index] : nullptr;
 }
-EI_REPLACE_METHOD(0x00518F80, CObject3D::AnimationAt);
+EI_REWRITTEN(0x00518F80, CObject3D::AnimationAt);
 
 FigureAnimation* CObject3D::FindSkillAnimation(int number) {
     if (!Animations()) return nullptr;
@@ -136,13 +136,13 @@ FigureAnimation* CObject3D::FindSkillAnimation(int number) {
     }
     return nullptr;
 }
-EI_REPLACE_METHOD(0x00518FC0, CObject3D::FindSkillAnimation);
+EI_REWRITTEN(0x00518FC0, CObject3D::FindSkillAnimation);
 
 double CObject3D::AnimationFactor(float time) {
     if (GetClassId() != kClassUnit || !Animations()) return 1.0;
     return animations->TimeFactor(time);
 }
-EI_REPLACE_METHOD(0x00518D30, CObject3D::AnimationFactor);
+EI_REWRITTEN(0x00518D30, CObject3D::AnimationFactor);
 
 int CObject3D::FindPartIndex(const char* partName) {
     for (int i = 0; i < partNames.size; ++i)
@@ -151,4 +151,4 @@ int CObject3D::FindPartIndex(const char* partName) {
             return i;
     return -1;
 }
-EI_REPLACE_METHOD(0x00517990, CObject3D::FindPartIndex);
+EI_REWRITTEN(0x00517990, CObject3D::FindPartIndex);

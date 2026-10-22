@@ -67,4 +67,4 @@ void AnimationTrack::Evaluate(float atTime) {
     }
     std::memcpy(&time, &atTime, 4);
 }
-EI_REPLACE_METHOD(0x0050ACD0, AnimationTrack::Evaluate);
+EI_REWRITTEN(0x0050ACD0, AnimationTrack::Evaluate);

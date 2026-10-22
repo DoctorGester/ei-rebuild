@@ -124,7 +124,7 @@ CIniFile* CIniFile::Construct() {
     ::new (&path_) mfc::CString;   // afxEmptyString
     return this;
 }
-EI_REPLACE_METHOD(0x00695B80, CIniFile::Construct);
+EI_REWRITTEN(0x00695B80, CIniFile::Construct);
 
 CIniFile* CIniFile::ConstructWithPath(const char* path) {
     ::new (&path_) mfc::CString;
@@ -137,10 +137,10 @@ BOOL CIniFile::SetPath(const char* path) {
     path_ = path;
     return 1;
 }
-EI_REPLACE_METHOD(0x00695BF0, CIniFile::SetPath);
+EI_REWRITTEN(0x00695BF0, CIniFile::SetPath);
 
 void CIniFile::Destruct() { path_.~CString(); }
-EI_REPLACE_METHOD(0x00695BE0, CIniFile::Destruct);
+EI_REWRITTEN(0x00695BE0, CIniFile::Destruct);
 
 // --- Readers ---------------------------------------------------------------------------------------
 

@@ -296,7 +296,7 @@ void PartyManager::Load(CMemoryStream* from) {
     ArchiveManager(this, &archive.archive);
     archive.archive.Close(&local.stream);
 }
-EI_REPLACE_METHOD(0x004A8310, PartyManager::Load);
+EI_REWRITTEN(0x004A8310, PartyManager::Load);
 
 void PartyManager::Save(CMemoryStream* to) {
     LocalStream local;
@@ -306,4 +306,4 @@ void PartyManager::Save(CMemoryStream* to) {
     archive.archive.Close(&local.stream);
     to->WriteSized(&local.stream);
 }
-EI_REPLACE_METHOD(0x004A8560, PartyManager::Save);
+EI_REWRITTEN(0x004A8560, PartyManager::Save);

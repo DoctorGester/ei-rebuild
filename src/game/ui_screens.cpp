@@ -240,7 +240,7 @@ void CUiItemStrip::RebuildList() {
     }
     count_ = list_.size;
 }
-EI_REPLACE_METHOD(0x006212F0, CUiItemStrip::RebuildList);
+EI_REWRITTEN(0x006212F0, CUiItemStrip::RebuildList);
 
 int CUiItemStrip::TabOf(const CItem* item) {
     switch (filter_) {
@@ -309,7 +309,7 @@ CItem* CUiItemStrip::ItemAt(int x, int y, int* cursor) {
     if (index < 0 || index >= list_.size) return nullptr;
     return list_.data[index];
 }
-EI_REPLACE_METHOD(0x00621F30, CUiItemStrip::ItemAt);
+EI_REWRITTEN(0x00621F30, CUiItemStrip::ItemAt);
 
 void CUiItemStrip::SettleScroll() {
     // Releasing an arrow completes the step under way: the pending scroll keeps its fraction of a
@@ -378,11 +378,11 @@ void CUiItemStrip::OnLButtonDownForward(int flags, int x, int y) {
 }
 
 // Entry points on the input sub-object.
-EI_REPLACE_METHOD(0x00620E10, InputForward<&CUiItemStrip::OnLButtonDown>::Call);
-EI_REPLACE_METHOD(0x00621010, InputForward<&CUiItemStrip::OnLButtonUp>::Call);
-EI_REPLACE_METHOD(0x00620F10, InputForward<&CUiItemStrip::OnMouseMove>::Call);
-EI_REPLACE_METHOD(0x006210F0, InputForward<&CUiItemStrip::OnWheel>::Call);
-EI_REPLACE_METHOD(0x006212A0, InputForward<&CUiItemStrip::OnLButtonDownForward>::Call);
+EI_REWRITTEN(0x00620E10, InputForward<&CUiItemStrip::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00621010, InputForward<&CUiItemStrip::OnLButtonUp>::Call);
+EI_REWRITTEN(0x00620F10, InputForward<&CUiItemStrip::OnMouseMove>::Call);
+EI_REWRITTEN(0x006210F0, InputForward<&CUiItemStrip::OnWheel>::Call);
+EI_REWRITTEN(0x006212A0, InputForward<&CUiItemStrip::OnLButtonDownForward>::Call);
 
 // --- Heroes' skills ---------------------------------------------------------------------------
 
@@ -421,7 +421,7 @@ void CCampScreen::BestPartySkill(int school, int* skill, int* mana) {
     *skill = bestSkill;
     *mana = bestMana;
 }
-EI_REPLACE_METHOD(0x00610020, CCampScreen::BestPartySkill);
+EI_REWRITTEN(0x00610020, CCampScreen::BestPartySkill);
 
 void CCampScreen::ShowPageTabs(int page, int) {
     switch (page) {
@@ -454,7 +454,7 @@ void CCampScreen::ShowPageTabs(int page, int) {
         break;
     }
 }
-EI_REPLACE_METHOD(0x006110F0, CCampScreen::ShowPageTabs);
+EI_REWRITTEN(0x006110F0, CCampScreen::ShowPageTabs);
 
 // --- CMpHeroScreen ----------------------------------------------------------------------------
 
@@ -505,7 +505,7 @@ double CMpHeroScreen::EquipmentWeight() {
 
     return weight;
 }
-EI_REPLACE_METHOD(0x006193C0, CMpHeroScreen::EquipmentWeight);
+EI_REWRITTEN(0x006193C0, CMpHeroScreen::EquipmentWeight);
 
 void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
     VirtualHeroRecord();   // called for nothing, as in the original
@@ -532,7 +532,7 @@ void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
     }
     VirtualRefreshStats();
 }
-EI_REPLACE_METHOD(0x00618980, CMpHeroScreen::OnItemChosen);
+EI_REWRITTEN(0x00618980, CMpHeroScreen::OnItemChosen);
 
 bool CMpHeroScreen::CanEquip(CItem* item, int) {
     if (item->type_ != kTypeSpellContainer) return true;
@@ -541,10 +541,10 @@ bool CMpHeroScreen::CanEquip(CItem* item, int) {
     return HeroCanUseSpell(&VirtualHeroRecord()->stats, spell);
 
 }
-EI_REPLACE_METHOD(0x006188E0, CMpHeroScreen::CanEquip);
+EI_REWRITTEN(0x006188E0, CMpHeroScreen::CanEquip);
 
 PartyUnitRecord* CMpHeroScreen::GetHero() { return LocalPlayerData()->members_.data; }
-EI_REPLACE_METHOD(0x00616900, CMpHeroScreen::GetHero);
+EI_REWRITTEN(0x00616900, CMpHeroScreen::GetHero);
 
 void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
     InputOf(this)->OnLeftUp(flags, x, y);
@@ -554,7 +554,7 @@ void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
     rotating_ = 0;
 }
 
-EI_REPLACE_METHOD(0x006177D0, InputForward<&CMpHeroScreen::OnLButtonUp>::Call);
+EI_REWRITTEN(0x006177D0, InputForward<&CMpHeroScreen::OnLButtonUp>::Call);
 
 // --- CEscMenu ---------------------------------------------------------------------------------
 
@@ -624,10 +624,10 @@ void CEscMenu::OnMessageResult(int result) {
         uiorig::LeaveGame();
     }
 }
-EI_REPLACE_METHOD(0x0062ACC0, CEscMenu::OnMessageResult);
+EI_REWRITTEN(0x0062ACC0, CEscMenu::OnMessageResult);
 
-EI_REPLACE_METHOD(0x0062AD10, InputForward<&CEscMenu::OnMouseMove>::Call);
-EI_REPLACE_METHOD(0x0062B300, InputForward<&CEscMenu::OnKeyDown>::Call);
+EI_REWRITTEN(0x0062AD10, InputForward<&CEscMenu::OnMouseMove>::Call);
+EI_REWRITTEN(0x0062B300, InputForward<&CEscMenu::OnKeyDown>::Call);
 
 // --- CCreditsScreen ---------------------------------------------------------------------------
 
@@ -642,8 +642,8 @@ void CCreditsScreen::OnKeyDown(int key, int, int) {
     if (key == VK_RETURN || key == VK_ESCAPE || key == VK_SPACE) Close();
 }
 
-EI_REPLACE_METHOD(0x0062BFE0, InputForward<&CCreditsScreen::OnLButtonDown>::Call);
-EI_REPLACE_METHOD(0x0062C010, InputForward<&CCreditsScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x0062BFE0, InputForward<&CCreditsScreen::OnLButtonDown>::Call);
+EI_REWRITTEN(0x0062C010, InputForward<&CCreditsScreen::OnKeyDown>::Call);
 
 // --- CExchangeScreen --------------------------------------------------------------------------
 
@@ -666,4 +666,4 @@ void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-EI_REPLACE_METHOD(0x0062D090, InputForward<&CExchangeScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x0062D090, InputForward<&CExchangeScreen::OnKeyDown>::Call);

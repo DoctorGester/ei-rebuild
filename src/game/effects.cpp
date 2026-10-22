@@ -94,19 +94,19 @@ void CParticleSource::ScaleSize(float factor) {
     height = factor * height;
     emitSpacing = factor * emitSpacing;
 }
-EI_REPLACE_METHOD(0x00485480, CParticleSource::ScaleSize);
+EI_REWRITTEN(0x00485480, CParticleSource::ScaleSize);
 
 void CParticleSource::StopEmitting() { flags_ = (flags_ & ~1u) | 4u; }
-EI_REPLACE_METHOD(0x00485440, CParticleSource::StopEmitting);
+EI_REWRITTEN(0x00485440, CParticleSource::StopEmitting);
 
 void CParticleSource::StartEmitting() { flags_ |= 5u; }
-EI_REPLACE_METHOD(0x00485450, CParticleSource::StartEmitting);
+EI_REWRITTEN(0x00485450, CParticleSource::StartEmitting);
 
 void CParticleSource::Stop() {
     flags_ &= ~5u;
     Attach(nullptr);
 }
-EI_REPLACE_METHOD(0x00485360, CParticleSource::Stop);
+EI_REWRITTEN(0x00485360, CParticleSource::Stop);
 
 // --- Particle updates ---------------------------------------------------------------------------
 
@@ -125,7 +125,7 @@ int CParticleSource::UpdateFalling(Particle* p) {
     p->drift.z = fall >= terminal ? fall : terminal;
     return 1;
 }
-EI_REPLACE_METHOD(0x0048F670, CParticleSource::UpdateFalling);
+EI_REWRITTEN(0x0048F670, CParticleSource::UpdateFalling);
 
 // Clouds: cycle the texture frames; once the source stops emitting, raise the alpha byte (it wraps:
 // the original's arithmetic) until it is at most 9, then drop the particle.
@@ -318,7 +318,7 @@ void CParticleSource::TickNuke(ParticleElement* e) {
     if (emitCount > 8) emitCount = emitCount / 2;
     if (e->ticks == 13) flags_ &= ~1u;
 }
-EI_REPLACE_METHOD(0x004892E0, CParticleSource::TickNuke);
+EI_REWRITTEN(0x004892E0, CParticleSource::TickNuke);
 
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
 // the particle limit.

@@ -161,7 +161,7 @@ void SSCCmd::CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCa
         game::FatalError("SSCCmd::CalcParameters, unknown function parameter type");
     }
 }
-EI_REPLACE_METHOD(0x004B4030, SSCCmd::CalcParameters);
+EI_REWRITTEN(0x004B4030, SSCCmd::CalcParameters);
 
 void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     PrepareArguments(script, vars);
@@ -543,7 +543,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
 }
-EI_REPLACE_METHOD(0x004B41E0, SSCCmd::CalcFloat);
+EI_REWRITTEN(0x004B41E0, SSCCmd::CalcFloat);
 
 void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** result) {
     PrepareArguments(script, vars);

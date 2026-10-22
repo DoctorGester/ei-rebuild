@@ -124,7 +124,7 @@ void CHudClock::SetupVanilla(int fast) {
     dial_ = 0.0f;
     widescreen::LeavePanel();
 }
-EI_REPLACE_METHOD(0x00648520, CHudClock::SetupVanilla);
+EI_REWRITTEN(0x00648520, CHudClock::SetupVanilla);
 
 // --- 00649190: the movement panel --------------------------------------------------------------------
 

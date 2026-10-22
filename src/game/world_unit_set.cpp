@@ -39,7 +39,7 @@ void DressedUnitRecord::Write(CStream* stream) {
     Put(stream, &byte, 1);
     PutWord(stream, static_cast<std::uint32_t>(modelNumber));
 }
-EI_REPLACE_METHOD(0x00558FA0, DressedUnitRecord::Write);
+EI_REWRITTEN(0x00558FA0, DressedUnitRecord::Write);
 
 void UnitSet::Write(CStream* stream) {
     // The number of figured records over every group.

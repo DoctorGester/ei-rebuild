@@ -724,7 +724,7 @@ void CObjectivesWindow::DrawQuestList() {
 
 EI_REPLACE(0x0064BE00, ConstructLastQuest);
 EI_REPLACE(0x0064BE20, DestroyLastQuest);
-EI_REPLACE_METHOD(0x0064BE80, CObjectivesWindow::Build);
+EI_REWRITTEN(0x0064BE80, CObjectivesWindow::Build);
 EI_REWRITTEN(0x0064D9B0, CObjectivesWindow::DrawQuestList);
 EI_REWRITTEN(0x0064CC10, CObjectivesWindow::ShowZone);
 EI_REWRITTEN(0x0064DC60, CObjectivesWindow::ShowQuest);
@@ -745,4 +745,4 @@ void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButt
 EI_REWRITTEN(0x0064BE40, CObjectivesWindow::Setup);
 
 const char* CObjectivesWindow::HelpTopic() const { return twoButtons_ ? kGlobalMapTopic : kMissionTopic; }
-EI_REPLACE_METHOD(0x0064D990, CObjectivesWindow::HelpTopic);
+EI_REWRITTEN(0x0064D990, CObjectivesWindow::HelpTopic);

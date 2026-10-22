@@ -723,7 +723,7 @@ EI_REWRITTEN(0x006E6C31, CFixedAlloc::Alloc);
 EI_REWRITTEN(0x006E6CC0, CFixedAlloc::Free);
 
 EI_REWRITTEN(0x007009DE, CString::ConstructText);
-EI_REPLACE(0x00700970, shim::Destruct);
+EI_REWRITTEN(0x00700970, shim::Destruct);
 EI_REWRITTEN(0x007007DD, CString::AllocBuffer);
 EI_REWRITTEN(0x0070085F, CString::FreeData);
 EI_REWRITTEN(0x00700919, CString::CopyBeforeWrite);

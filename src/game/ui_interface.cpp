@@ -96,36 +96,36 @@ int CInterface3D::ScaleRectToScreenEntry(RECT* rect) const {
     if (!this && widescreen::Active()) return widescreen::RectToScreen(rect, false);
     return ScaleRectToScreen(rect);
 }
-EI_REPLACE_METHOD(0x005F7CA0, CInterface3D::ScaleRectToScreenEntry);
+EI_REWRITTEN(0x005F7CA0, CInterface3D::ScaleRectToScreenEntry);
 
 int CInterface3D::ScalePointToScreenEntry(POINT* point) const {
     if (!this && widescreen::Active()) return widescreen::PointToScreen(point, false);
     return ScalePointToScreen(point);
 }
-EI_REPLACE_METHOD(0x005F7D20, CInterface3D::ScalePointToScreenEntry);
+EI_REWRITTEN(0x005F7D20, CInterface3D::ScalePointToScreenEntry);
 
 int CInterface3D::ScalePointFromScreenCopyEntry(POINT* point) const {
     if (!this && widescreen::Active()) return widescreen::PointFromScreen(point, false);
     return ScalePointFromScreenCopy(point);
 }
-EI_REPLACE_METHOD(0x005F7E30, CInterface3D::ScalePointFromScreenCopyEntry);
+EI_REWRITTEN(0x005F7E30, CInterface3D::ScalePointFromScreenCopyEntry);
 
 int CInterface3D::ScaleRectFromScreenEntry(RECT* rect) const {
     if (!this && widescreen::Active()) return widescreen::RectFromScreen(rect, false);
     return ScaleRectFromScreen(rect);
 }
-EI_REPLACE_METHOD(0x005F7DA0, CInterface3D::ScaleRectFromScreenEntry);
+EI_REWRITTEN(0x005F7DA0, CInterface3D::ScaleRectFromScreenEntry);
 
 int CInterface3D::ScalePointFromScreenEntry(POINT* point) const {
     if (!this && widescreen::Active()) return widescreen::PointFromScreen(point, false);
     return ScalePointFromScreen(point);
 }
-EI_REPLACE_METHOD(0x005F7E00, CInterface3D::ScalePointFromScreenEntry);
+EI_REWRITTEN(0x005F7E00, CInterface3D::ScalePointFromScreenEntry);
 
 CUiWindow* CInterface3D::GetActiveWindow() const {
     return stackBegin_ != stackEnd_ ? stackEnd_[-1] : nullptr;
 }
-EI_REPLACE_METHOD(0x005F7590, CInterface3D::GetActiveWindow);
+EI_REWRITTEN(0x005F7590, CInterface3D::GetActiveWindow);
 
 void CInterface3D::SetPendingValue(std::uint32_t value) {
     pendingFlag_ = true;

@@ -159,7 +159,7 @@ void CUnitServer::SetUnitMoveMode2(int mode) {
     unit->moveMode2 = mode;
     unit->MarkChanged(kPartMoveModes);
 }
-EI_REPLACE_METHOD(0x00546830, CUnitServer::SetUnitMoveMode2);
+EI_REWRITTEN(0x00546830, CUnitServer::SetUnitMoveMode2);
 
 void CUnitServer::SyncMoveModes() {
     if (action.kind == kOrderAttack) moveMode2.flag4 = 1;
@@ -179,7 +179,7 @@ void CUnitServer::SyncMoveModes() {
     if (action.modifier && moveMode.mode == kModeRun) moveMode2.wasMode3 |= 2;
     if (!unit->player && moveMode2.flag4) moveMode2.wasMode3 |= 1;
 }
-EI_REPLACE_METHOD(0x0054A620, CUnitServer::SyncMoveModes);
+EI_REWRITTEN(0x0054A620, CUnitServer::SyncMoveModes);
 
 namespace {
 // The melee reach test of 0054C8B0 as 0054A6E0 inlines it: false when the target (a living unit
@@ -681,7 +681,7 @@ void CUnitServer::ExecuteOrder() {
     ClearAction(&action);
     if (action2.kind == kOrderEmpty) Idle();
 }
-EI_REPLACE_METHOD(0x0054D960, CUnitServer::ExecuteOrder);
+EI_REWRITTEN(0x0054D960, CUnitServer::ExecuteOrder);
 
 // --- Closing in --------------------------------------------------------------------------------
 

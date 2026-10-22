@@ -155,7 +155,7 @@ GameOptions::GameOptions() {
 
 // 00458870 (thiscall; returns the object).
 GameOptions* __fastcall OptionsConstruct(GameOptions* self) { return new (self) GameOptions; }
-EI_REPLACE(0x00458870, OptionsConstruct);
+EI_REWRITTEN(0x00458870, OptionsConstruct);
 
 // The static initialiser 00458700 and the exit function 00458720 it registers, ported on the name (g_options,
 // options_global.cpp) and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").

@@ -33,7 +33,7 @@ void CObject3DClientSpecific::RegisterPartMaterials() {
         material = materials[materialCursor];
     }
 }
-EI_REPLACE_METHOD(0x0051C970, CObject3DClientSpecific::RegisterPartMaterials);
+EI_REWRITTEN(0x0051C970, CObject3DClientSpecific::RegisterPartMaterials);
 
 // --- A-U11: screen picking, part lookups, class slots, the base half's destructor -----------------
 
@@ -93,7 +93,7 @@ CFigureMesh* CObject3D::FindPartOfType(int type) {
         if (pendingParts.data[i]->type_ == type) return pendingParts.data[i];
     return nullptr;
 }
-EI_REPLACE_METHOD(0x00516920, CObject3D::FindPartOfType);
+EI_REWRITTEN(0x00516920, CObject3D::FindPartOfType);
 
 namespace {
 // Slots 11 / 12 (0051AD50 / 0051AD60): the class name and id 0x37.
@@ -116,7 +116,7 @@ CObject3DClientSpecific* CObject3DClientSpecific::DeleteScalar(unsigned flags) {
 }
 EI_REWRITTEN(0x0051AD50, ClientSpecificClassName);
 EI_REWRITTEN(0x0051AD60, ClientSpecificClassId);
-EI_REPLACE(0x0051AD00, SpecificBaseDestruct);
+EI_REWRITTEN(0x0051AD00, SpecificBaseDestruct);
 EI_REWRITTEN(0x0051ACE0, CObject3DClientSpecific::DeleteScalar);
 
 namespace {

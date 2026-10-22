@@ -106,7 +106,7 @@ void AnimationSteps::Load(CStream* stream) {
     for (int i = 0; i < size; ++i) stream->Read(&data[i], sizeof(AnimationStep));
     stream->Read(&extra, sizeof(extra));
 }
-EI_REPLACE_METHOD(0x00544EF0, AnimationSteps::Load);
+EI_REWRITTEN(0x00544EF0, AnimationSteps::Load);
 
 void AnimationSteps::Save(CStream* stream) {
     int written = size;
@@ -115,7 +115,7 @@ void AnimationSteps::Save(CStream* stream) {
     int last = extra;
     stream->Write(&last, sizeof(last));
 }
-EI_REPLACE_METHOD(0x00544F60, AnimationSteps::Save);
+EI_REWRITTEN(0x00544F60, AnimationSteps::Save);
 
 void __fastcall OrderPlanReset(OrderPlan* plan) {
     AnimationSteps& list = plan->animation;

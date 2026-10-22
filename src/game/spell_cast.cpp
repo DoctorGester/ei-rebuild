@@ -380,5 +380,5 @@ BOOL CSpellConstructor::AddModifier(itemdb::SpellModifierRecord* modifier) {
     container_->Build();
     return 1;
 }
-EI_REPLACE_METHOD(0x006842A0, CSpellConstructor::AddModifier);
+EI_REWRITTEN(0x006842A0, CSpellConstructor::AddModifier);
 

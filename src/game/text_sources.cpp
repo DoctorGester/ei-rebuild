@@ -185,7 +185,7 @@ void TextSources::ListKeys(mfc::CStringArray* out, const char* pattern) {
         out->Append(found);
     }
 }
-EI_REPLACE_METHOD(0x004DEC40, TextSources::ListKeys);
+EI_REWRITTEN(0x004DEC40, TextSources::ListKeys);
 
 void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
     sources_.ListKeys(out, pattern);
@@ -213,7 +213,7 @@ EI_REWRITTEN(0x004DE930, TextSources::Add);
 EI_REWRITTEN(0x004DEAF0, TextSources::Remove);
 EI_REWRITTEN(0x004DEB60, TextSources::Clear);
 EI_REWRITTEN(0x005628E0, TextSources::DestructList);
-EI_REPLACE_METHOD(0x004DEDB0, CTextManager::AddSource);
+EI_REWRITTEN(0x004DEDB0, CTextManager::AddSource);
 EI_REWRITTEN(0x004DEDD0, CTextManager::RemoveSource);
 EI_REWRITTEN(0x004DED40, CTextManager::ClearSources);
 EI_REWRITTEN(0x005629B0, CTextManager::Destruct);

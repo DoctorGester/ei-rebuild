@@ -139,7 +139,7 @@ void CObject3DClientSpecific::HideWounds() {
     if (oldTexture) oldTexture->Release();
     ClearWoundsMaterial();
 }
-EI_REPLACE_METHOD(0x0051C920, CObject3DClientSpecific::HideWounds);
+EI_REWRITTEN(0x0051C920, CObject3DClientSpecific::HideWounds);
 
 namespace {
 constexpr int kWoundsTextureKind = 6;

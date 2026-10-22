@@ -371,7 +371,7 @@ void CUnitServer::AdvanceAnimation() {
     }
     unit->SetMotionMode(kind);
 }
-EI_REPLACE_METHOD(0x00546F30, CUnitServer::AdvanceAnimation);
+EI_REWRITTEN(0x00546F30, CUnitServer::AdvanceAnimation);
 
 bool CUnitServer::PopFinishedSteps() {
     bool popped = false;
@@ -410,7 +410,7 @@ void CUnitServer::ShowCurrentStep() {
     if (head.animation != 0xFF || head.variant != 0xFF)
         unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
-EI_REPLACE_METHOD(0x00546C10, CUnitServer::ShowCurrentStep);
+EI_REWRITTEN(0x00546C10, CUnitServer::ShowCurrentStep);
 
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     // The steps are copied in twice (each time resized first), as the original does.
@@ -621,7 +621,7 @@ bool CUnitServer::ActionInReach() {
     EI_NAN_AUDIT(distanceSq, Plan(this).rangeSq);
     return distanceSq < Plan(this).rangeSq;   // closer
 }
-EI_REPLACE_METHOD(0x00549D40, CUnitServer::ActionInReach);
+EI_REWRITTEN(0x00549D40, CUnitServer::ActionInReach);
 
 // --- Item spells --------------------------------------------------------------------------------
 

@@ -32,7 +32,7 @@ EI_REWRITTEN(0x00425040, Vector1::DestroyBase);
 EI_REWRITTEN(0x0042D2C0, Vector1::DestroyBase);
 EI_REWRITTEN(0x004DEAB0, Vector1::DestroyBase);
 EI_REWRITTEN(0x00598D80, Vector1::DestroyBase);
-EI_REPLACE(0x006B6D30, Vector1::DestroyBase);   // S16a: the sound voices' string (no Ghidra function)
+EI_REWRITTEN(0x006B6D30, Vector1::DestroyBase);   // S16a: the sound voices' string (no Ghidra function)
 EI_REWRITTEN(0x006B72E0, Vector1::DestroyBase);
 EI_REWRITTEN(0x00405BF0, Vector4::DestroyBase);
 EI_REWRITTEN(0x00405DB0, Vector4::DestroyBase);
@@ -43,7 +43,7 @@ EI_REWRITTEN(0x0043AAB0, Vector4::DestroyBase);
 EI_REWRITTEN(0x004AEDA0, Vector4::DestroyBase);
 EI_REWRITTEN(0x004AEF50, Vector4::DestroyBase);
 EI_REWRITTEN(0x004AF100, Vector4::DestroyBase);
-EI_REPLACE(0x004E2A20, Vector4::DestroyBase);
+EI_REWRITTEN(0x004E2A20, Vector4::DestroyBase);
 EI_REWRITTEN(0x005150D0, Vector4::DestroyBase);
 EI_REWRITTEN(0x00520EB0, Vector4::DestroyBase);
 EI_REWRITTEN(0x0053B930, Vector4::DestroyBase);
@@ -55,12 +55,12 @@ EI_REWRITTEN(0x005F9880, Vector4::DestroyBase);
 EI_REWRITTEN(0x00609F50, Vector4::DestroyBase);
 EI_REWRITTEN(0x006BC4D0, Vector4::DestroyBase);
 EI_REWRITTEN(0x006BC510, Vector4::DestroyBase);
-EI_REPLACE(0x0056E800, Vector4::DestroyBase);
-EI_REPLACE(0x0069BE20, Vector4::DestroyBase);
-EI_REPLACE(0x004A8C60, Vector4::DestroyBase);
-EI_REPLACE(0x004A8D00, Vector4::DestroyBase);
-EI_REPLACE(0x004A8D50, Vector4::DestroyBase);
-EI_REPLACE(0x004A8CB0, Vector16::DestroyBase);
+EI_REWRITTEN(0x0056E800, Vector4::DestroyBase);
+EI_REWRITTEN(0x0069BE20, Vector4::DestroyBase);
+EI_REWRITTEN(0x004A8C60, Vector4::DestroyBase);
+EI_REWRITTEN(0x004A8D00, Vector4::DestroyBase);
+EI_REWRITTEN(0x004A8D50, Vector4::DestroyBase);
+EI_REWRITTEN(0x004A8CB0, Vector16::DestroyBase);
 EI_REWRITTEN(0x0043B6C0, Vector4::InsertOverflow);
 EI_REWRITTEN(0x0043B850, Vector4::InsertOverflow);
 EI_REWRITTEN(0x0043D5F0, Vector4::InsertOverflow);
@@ -135,7 +135,7 @@ EI_REWRITTEN(0x004DCE90, StringVector::InsertOverflow);
 EI_REWRITTEN(0x00575E50, StringVector::RangeInsert);
 EI_REWRITTEN(0x00581860, StringVector::Clear);
 EI_REWRITTEN(0x00583CB0, StringVector::EraseRange);
-EI_REPLACE(0x00421260, StringVector::Destruct);   // S3c: the quest files and folders 007AFDD0 / 007AFDC0 at exit
+EI_REWRITTEN(0x00421260, StringVector::Destruct);   // S3c: the quest files and folders 007AFDD0 / 007AFDC0 at exit
 EI_REWRITTEN(0x0043D7E0, stlp::ConstructAt<std::uint16_t>);
 EI_REWRITTEN(0x0043D7F0, stlp::ConstructAt<std::uint32_t>);
 EI_REWRITTEN(0x0064B620, stlp::ConstructAt<std::uint32_t>);

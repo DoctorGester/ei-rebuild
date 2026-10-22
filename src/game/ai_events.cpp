@@ -45,7 +45,7 @@ void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
     pool->vtable = mfc::impl::StaticListClass::Vtable();
     pool->RemoveAll();
 }
-EI_REPLACE(0x005CDBA0, AIEventPoolDestruct);
+EI_REWRITTEN(0x005CDBA0, AIEventPoolDestruct);
 
 namespace {
 // The pool's static initialiser (0x400 nodes a block, 005CDAD0) and the exit function it registers.
@@ -88,7 +88,7 @@ void AIEventTable::Advance(int now) {
         slots[tick & kWheelMask][side] = nullptr;
     }
 }
-EI_REPLACE_METHOD(0x005C9530, AIEventTable::Advance);
+EI_REWRITTEN(0x005C9530, AIEventTable::Advance);
 
 void AIEventTable::ForgetUnit(CUnitServer* controller) {
     CUnit* unit = controller->unit;
@@ -143,7 +143,7 @@ void AIEventTable::Load(CStream* stream) {
         slot = event;
     }
 }
-EI_REPLACE_METHOD(0x005CAE30, AIEventTable::Load);
+EI_REWRITTEN(0x005CAE30, AIEventTable::Load);
 
 void AIEventTable::Save(CStream* stream) {
     for (int y = 0; y < height; ++y) {
@@ -168,7 +168,7 @@ void AIEventTable::Save(CStream* stream) {
     const char end = 0;
     stream->Write(&end, 1);
 }
-EI_REPLACE_METHOD(0x005CAFA0, AIEventTable::Save);
+EI_REWRITTEN(0x005CAFA0, AIEventTable::Save);
 
 // ---- Setup for a map (005C9310, A-W14) --------------------------------------------------------------
 
@@ -228,4 +228,4 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     archive->CMappedResource::Destroy();
     return 1;
 }
-EI_REPLACE_METHOD(0x005C9310, AIEventTable::Setup);
+EI_REWRITTEN(0x005C9310, AIEventTable::Setup);

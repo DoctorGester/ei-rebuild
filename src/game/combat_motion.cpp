@@ -225,7 +225,7 @@ bool CUnitServer::CanReactFor(int ticks) {
         return false;
     return true;
 }
-EI_REPLACE_METHOD(0x00549D00, CUnitServer::CanReactFor);
+EI_REWRITTEN(0x00549D00, CUnitServer::CanReactFor);
 
 // --- Playing an animation ----------------------------------------------------------------------
 

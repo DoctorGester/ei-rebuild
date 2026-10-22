@@ -60,9 +60,9 @@ float Sum3(float a, float b, float c) { return static_cast<float>((static_cast<d
 
 // 00519E80 / 00519D70: SetAtGrow / SetSize (RET 8). The original's SetAtGrow(-1) stores through
 // the null array it has just freed; ours does too (data[-1] of null), both fault.
-EI_REPLACE_METHOD(0x00519E80, AlignedPtrArray::SetAtGrow);
+EI_REWRITTEN(0x00519E80, AlignedPtrArray::SetAtGrow);
 
-EI_REPLACE_METHOD(0x00519D70, AlignedPtrArray::SetSize);
+EI_REWRITTEN(0x00519D70, AlignedPtrArray::SetSize);
 
 // --- Bounds -----------------------------------------------------------------------------------
 
@@ -173,7 +173,7 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
     if (animation) AnimationSetScale(animation, nullptr, scale.x, scale.y, scale.z);
     return ComputeBounds();
 }
-EI_REPLACE_METHOD(0x00517700, CObject3D::SetFigureScale);
+EI_REWRITTEN(0x00517700, CObject3D::SetFigureScale);
 
 // --- Parts ------------------------------------------------------------------------------------
 

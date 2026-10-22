@@ -103,7 +103,7 @@ void CUnitLayer::Remove(CUnit* unit, int x, int y) {
         }
     }
 }
-EI_REPLACE_METHOD(0x005B3890, CUnitLayer::Remove);
+EI_REWRITTEN(0x005B3890, CUnitLayer::Remove);
 
 namespace {
 // The block's 4x4 cells when the block lies in the map (keys are signed 16-bit halves; the

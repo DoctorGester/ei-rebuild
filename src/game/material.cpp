@@ -83,8 +83,8 @@ int CMaterial::GetClassId() { return 5; }
 
 const char* __fastcall MaterialClassName(CMaterial* self) { return self->CMaterial::GetClassName(); }
 int __fastcall MaterialClassId(CMaterial* self) { return self->CMaterial::GetClassId(); }
-EI_REPLACE(0x0068DD00, MaterialClassName);
-EI_REPLACE(0x0068DD10, MaterialClassId);
+EI_REWRITTEN(0x0068DD00, MaterialClassName);
+EI_REWRITTEN(0x0068DD10, MaterialClassId);
 
 namespace {
 int __fastcall MaterialCreateHook(CMaterial* self) { return self->CMaterial::Create(); }
@@ -194,9 +194,9 @@ const char* CMaterialManager::GetFolderName() { return kManagerFolder; }
 const char* __fastcall MaterialManagerFolder(CMaterialManager* self) { return self->CMaterialManager::GetFolderName(); }
 const char* __fastcall MaterialManagerClassName(CMaterialManager* self) { return self->CMaterialManager::GetClassName(); }
 int __fastcall MaterialManagerClassId(CMaterialManager* self) { return self->CMaterialManager::GetClassId(); }
-EI_REPLACE(0x0068E4F0, MaterialManagerFolder);
-EI_REPLACE(0x0068E500, MaterialManagerClassName);
-EI_REPLACE(0x0068E510, MaterialManagerClassId);
+EI_REWRITTEN(0x0068E4F0, MaterialManagerFolder);
+EI_REWRITTEN(0x0068E500, MaterialManagerClassName);
+EI_REWRITTEN(0x0068E510, MaterialManagerClassId);
 
 namespace {
 int __fastcall MaterialManagerCreateHook(CMaterialManager* self) { return self->CMaterialManager::Create(); }

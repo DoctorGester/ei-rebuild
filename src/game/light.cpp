@@ -60,7 +60,7 @@ void CLight::Destruct() {
     ei::SetVtable(this, CTransformObject::BaseVtable());
     DestructBase();
 }
-EI_REPLACE_METHOD(0x0068CFE0, CLight::Destruct);
+EI_REWRITTEN(0x0068CFE0, CLight::Destruct);
 
 CLight* CLight::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -79,7 +79,7 @@ BOOL CLight::SetPoint(const Vector3* color, const Vector3* position) {
     flags_ |= kFlagChanged;
     return 1;
 }
-EI_REPLACE_METHOD(0x0068D010, CLight::SetPoint);
+EI_REWRITTEN(0x0068D010, CLight::SetPoint);
 
 BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     kind_ = kKindDirectional;
@@ -92,7 +92,7 @@ BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     flags_ |= kFlagChanged;
     return 1;
 }
-EI_REPLACE_METHOD(0x0068D0A0, CLight::SetDirectional);
+EI_REWRITTEN(0x0068D0A0, CLight::SetDirectional);
 
 namespace {
 // A channel with the light's share added, clamped at 1.
@@ -117,7 +117,7 @@ void CLight::AddDirectional(Vector4* out, float scale, const Vector4* base, cons
     out->y = green;
     out->z = blue;
 }
-EI_REPLACE_METHOD(0x0068D310, CLight::AddDirectional);
+EI_REWRITTEN(0x0068D310, CLight::AddDirectional);
 
 void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
                       float distance) const {
@@ -136,7 +136,7 @@ void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vect
     out->y = green;
     out->z = blue;
 }
-EI_REPLACE_METHOD(0x0068D5A0, CLight::AddPoint);
+EI_REWRITTEN(0x0068D5A0, CLight::AddPoint);
 
 int __fastcall LightCreate(CLight*) { return 1; }
 void __fastcall LightDestroy(CLight* light) { light->flags_ &= ~kFlagDestroyed; }
@@ -204,7 +204,7 @@ CEngineObject* CLightFactory::CreateObjectImpl(int type, int id) {
 namespace {
 } // namespace
 EI_REWRITTEN(0x0068DA40, CLightFactory::NewObjectImpl);
-EI_REPLACE_METHOD(0x0068DAD0, CLightFactory::CreateObjectImpl);
+EI_REWRITTEN(0x0068DAD0, CLightFactory::CreateObjectImpl);
 
 CEngineObject* CLightFactory::NewObject(int type) { return NewObjectImpl(type); }
 CEngineObject* CLightFactory::CreateObject(int type, int id) { return CreateObjectImpl(type, id); }
@@ -213,5 +213,5 @@ int CLightFactory::GetClassId() { return 0x29; }
 
 const char* __fastcall LightManagerClassName(CLightFactory* self) { return self->CLightFactory::GetClassName(); }
 int __fastcall LightManagerClassId(CLightFactory* self) { return self->CLightFactory::GetClassId(); }
-EI_REPLACE(0x0068D950, LightManagerClassName);
-EI_REPLACE(0x0068D960, LightManagerClassId);
+EI_REWRITTEN(0x0068D950, LightManagerClassName);
+EI_REWRITTEN(0x0068D960, LightManagerClassId);

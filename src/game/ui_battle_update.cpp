@@ -393,7 +393,7 @@ void CBattleScreen::Update() {
 namespace {
 void __fastcall BattleScreenUpdate(CBattleScreen* self) { self->Update(); }
 } // namespace
-EI_REPLACE(0x00638280, BattleScreenUpdate);
+EI_REWRITTEN(0x00638280, BattleScreenUpdate);
 
 // --- 006381E0: the party ids compared --------------------------------------------------------------
 
@@ -488,7 +488,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         stlp::PushSmallNode(units.head);
     }
 }
-EI_REPLACE_METHOD(0x00638B30, InputForward<&CBattleScreen::OnLButtonUp>::Call);
+EI_REWRITTEN(0x00638B30, InputForward<&CBattleScreen::OnLButtonUp>::Call);
 
 // --- 006369D0: a quest variable's notice -------------------------------------------------------
 
@@ -587,7 +587,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
     if (questSound_ > sound) sound = questSound_;
     questSound_ = sound;
 }
-EI_REPLACE_METHOD(0x006369D0, CBattleScreen::OnQuestVariable);
+EI_REWRITTEN(0x006369D0, CBattleScreen::OnQuestVariable);
 
 // --- 00637DC0: the selection's refresh --------------------------------------------------------
 

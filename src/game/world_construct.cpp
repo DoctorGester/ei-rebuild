@@ -110,7 +110,7 @@ CWorldServer* CWorldServer::Construct() {
     ResetState();
     return this;
 }
-EI_REPLACE_METHOD(0x00589ED0, CWorldServer::Construct);
+EI_REWRITTEN(0x00589ED0, CWorldServer::Construct);
 
 // ---- CWorldClient (005612F0) ------------------------------------------------------------------------
 
@@ -189,7 +189,7 @@ CWorldClient* CWorldClient::Construct() {
     constant6E8_ = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x005612F0, CWorldClient::Construct);
+EI_REWRITTEN(0x005612F0, CWorldClient::Construct);
 
 // ---- The two worlds -------------------------------------------------------------------------------
 

@@ -136,4 +136,4 @@ bool CUnitClientSpecific::Speak(ClientSpeech* said) {
     lastSpeechTime = now;
     return true;
 }
-EI_REPLACE_METHOD(0x005380D0, CUnitClientSpecific::Speak);
+EI_REWRITTEN(0x005380D0, CUnitClientSpecific::Speak);

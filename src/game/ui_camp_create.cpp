@@ -458,4 +458,4 @@ void CCampPages::BuildPages() {
     }
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REPLACE_METHOD(0x0060C870, CCampPages::Create);
+EI_REWRITTEN(0x0060C870, CCampPages::Create);

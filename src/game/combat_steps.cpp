@@ -148,10 +148,10 @@ struct ScratchSteps {
 // --- Durations ---------------------------------------------------------------------------------
 
 int CUnitServer::AnimationDuration(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::frameCount); }
-EI_REPLACE_METHOD(0x00551A40, CUnitServer::AnimationDuration);
+EI_REWRITTEN(0x00551A40, CUnitServer::AnimationDuration);
 
 int CUnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, index, &FigureAnimation::moment); }
-EI_REPLACE_METHOD(0x00551A90, CUnitServer::AnimationMoment);
+EI_REWRITTEN(0x00551A90, CUnitServer::AnimationMoment);
 
 // --- Movement mode transitions -------------------------------------------------------------
 

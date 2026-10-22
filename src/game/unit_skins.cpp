@@ -298,7 +298,7 @@ void CWorldClient::BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp:
     for (DressedUnitRecord* r = dressed->Start(); r != dressed->Finish(); ++r) DressUnit(this, r);
     for (FiguredUnitRecord* r = others->Start(); r != others->Finish(); ++r) FigureUnit(this, r);
 }
-EI_REPLACE_METHOD(0x00568800, CWorldClient::BuildUnitSkins);
+EI_REWRITTEN(0x00568800, CWorldClient::BuildUnitSkins);
 
 // The list is emptied; nothing more for a unit without items. The body list has eight records:
 // [0] the body (0x32, the prototype), [1] empty (0, -1, -1), [2..7] the armour pieces of

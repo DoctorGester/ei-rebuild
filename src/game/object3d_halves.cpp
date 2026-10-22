@@ -52,7 +52,7 @@ std::uint32_t CObject3DClientSpecific::ShadowsShown() {
     if (setting <= 0) return static_cast<std::uint32_t>(setting) & 0xFFFFFF00u;   // XOR AL, AL
     return ShadowSwitchOf(object) != 0 ? 1u : 0u;
 }
-EI_REPLACE_METHOD(0x0051E200, CObject3DClientSpecific::ShadowsShown);
+EI_REWRITTEN(0x0051E200, CObject3DClientSpecific::ShadowsShown);
 
 void CObject3DClientSpecific::ClearShadow() {
     vertices.SetSize(0, -1);
@@ -88,10 +88,10 @@ bool CObject3DClientSpecific::ShadowInView() {
     sphere.center.z = sphere.center.z - back.z;
     return side != kOutsideView;
 }
-EI_REPLACE_METHOD(0x0051E300, CObject3DClientSpecific::ShadowInView);
+EI_REWRITTEN(0x0051E300, CObject3DClientSpecific::ShadowInView);
 
 // 0051C110 (RET 4). The scene pipeline's pop (model.h; Draw and the decal projector call it).
-EI_REPLACE_METHOD(0x0051C110, CTransformPipeline::PopMatrix);
+EI_REWRITTEN(0x0051C110, CTransformPipeline::PopMatrix);
 
 // 0051E1C0 (ECX = matrix). The identity matrix (DrawShadow's pixel matrix starts from it).
 void __fastcall MatrixSetIdentity(Matrix4* matrix) {
@@ -101,7 +101,7 @@ void __fastcall MatrixSetIdentity(Matrix4* matrix) {
     matrix->m[5] = 1.0f;
     matrix->m[0] = 1.0f;
 }
-EI_REPLACE(0x0051E1C0, MatrixSetIdentity);
+EI_REWRITTEN(0x0051E1C0, MatrixSetIdentity);
 
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------
 
@@ -141,7 +141,7 @@ CObject3DSpecific* __fastcall Object3DServerConstruct(CObject3DSpecific* self) {
     ei::SetVtable(self, CObject3DSpecific::ServerVtable());
     return self;
 }
-EI_REPLACE(0x0051F240, Object3DServerConstruct);
+EI_REWRITTEN(0x0051F240, Object3DServerConstruct);
 
 // 0051F300. The destructor body: the base half's vtable, no object, the engine object's.
 void __fastcall Object3DServerDestruct(CObject3DSpecific* self) {
@@ -149,7 +149,7 @@ void __fastcall Object3DServerDestruct(CObject3DSpecific* self) {
     self->object = nullptr;
     self->DestructBase();
 }
-EI_REPLACE(0x0051F300, Object3DServerDestruct);
+EI_REWRITTEN(0x0051F300, Object3DServerDestruct);
 
 // 0051F2E0 (slot 0, RET 4).
 CObject3DSpecific* CObject3DSpecific::DeletingDestruct(unsigned flags) {

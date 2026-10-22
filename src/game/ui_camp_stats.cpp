@@ -186,4 +186,4 @@ EI_REWRITTEN(0x006232D0, CHeroStatsPanel::SetHero);
 PartyUnitRecord* CCampPages::HeroRecord() {
     return &LocalPlayerData()->members_.data[hero_];
 }
-EI_REPLACE_METHOD(0x0060FA80, CCampPages::HeroRecord);
+EI_REWRITTEN(0x0060FA80, CCampPages::HeroRecord);

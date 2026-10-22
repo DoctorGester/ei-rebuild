@@ -175,12 +175,12 @@ W* FromInput(void* input) {
 
 } // namespace
 
-EI_REPLACE_METHOD(0x00654660, InputForward<&CSaveLoadWindow::OnMouseDown>::Call);
-EI_REPLACE_METHOD(0x006547B0, InputForward<&CSaveLoadWindow::OnDoubleClick>::Call);
-EI_REPLACE_METHOD(0x006544A0, CSaveLoadWindow::Draw);
-EI_REPLACE_METHOD(0x006545E0, CSaveLoadWindow::Update);
-EI_REPLACE_METHOD(0x00654430, CSaveLoadWindow::CloseDialog);
-EI_REPLACE_METHOD(0x00654450, CSaveLoadWindow::OnDialogResult);
+EI_REWRITTEN(0x00654660, InputForward<&CSaveLoadWindow::OnMouseDown>::Call);
+EI_REWRITTEN(0x006547B0, InputForward<&CSaveLoadWindow::OnDoubleClick>::Call);
+EI_REWRITTEN(0x006544A0, CSaveLoadWindow::Draw);
+EI_REWRITTEN(0x006545E0, CSaveLoadWindow::Update);
+EI_REWRITTEN(0x00654430, CSaveLoadWindow::CloseDialog);
+EI_REWRITTEN(0x00654450, CSaveLoadWindow::OnDialogResult);
 
 // --- Options window ----------------------------------------------------------------------------
 
@@ -337,13 +337,13 @@ void COptionsWindow::Update() {
     }
 }
 
-EI_REPLACE_METHOD(0x00650C20, InputForward<&COptionsWindow::OnMouseDown>::Call);
-EI_REPLACE_METHOD(0x00650D70, InputForward<&COptionsWindow::OnDoubleClick>::Call);
-EI_REPLACE_METHOD(0x00650920, COptionsWindow::Draw);
-EI_REPLACE_METHOD(0x00650A20, COptionsWindow::Redraw);
-EI_REPLACE_METHOD(0x006508E0, COptionsWindow::OnDialogResult);
-EI_REPLACE_METHOD(0x00650900, COptionsWindow::HelpTopic);
-EI_REPLACE_METHOD(0x00650A30, COptionsWindow::Update);
+EI_REWRITTEN(0x00650C20, InputForward<&COptionsWindow::OnMouseDown>::Call);
+EI_REWRITTEN(0x00650D70, InputForward<&COptionsWindow::OnDoubleClick>::Call);
+EI_REWRITTEN(0x00650920, COptionsWindow::Draw);
+EI_REWRITTEN(0x00650A20, COptionsWindow::Redraw);
+EI_REWRITTEN(0x006508E0, COptionsWindow::OnDialogResult);
+EI_REWRITTEN(0x00650900, COptionsWindow::HelpTopic);
+EI_REWRITTEN(0x00650A30, COptionsWindow::Update);
 
 // --- 0062B180: the destructor body ------------------------------------------------------------------
 

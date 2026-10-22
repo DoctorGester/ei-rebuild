@@ -173,7 +173,7 @@ void CUnitServer::FinishAction(int location, char) {
     action.modifier = 0;
     if (action2.kind == 9) Idle();
 }
-EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
+EI_REWRITTEN(0x00549EC0, CUnitServer::FinishAction);
 
 void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
     CWorldServer* world = ServerWorld();
@@ -200,7 +200,7 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
         AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
     }
 }
-EI_REPLACE_METHOD(0x0054F450, CUnitServer::DeliverAttack);
+EI_REWRITTEN(0x0054F450, CUnitServer::DeliverAttack);
 
 void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     ManagerContext();
@@ -216,7 +216,7 @@ void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     const Vector3* at = target->AimPoint(&point);
     TheServerWorld()->CastSpell(spell, self, &self->localPosition_, target, at, 0);
 }
-EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
+EI_REWRITTEN(0x0054F850, CUnitServer::TriggerWeaponSpell);
 
 void CUnitServer::TriggerItemSpells(char onHit) {
     ManagerContext();
@@ -234,7 +234,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         TheServerWorld()->CastSpell(spell, self, &self->localPosition_, self, &self->localPosition_, 0);
     }
 }
-EI_REPLACE_METHOD(0x0054F8E0, CUnitServer::TriggerItemSpells);
+EI_REWRITTEN(0x0054F8E0, CUnitServer::TriggerItemSpells);
 
 void CUnitServer::UseItemCharge(CItem* item, float cost) {
     if (!item) return;
@@ -250,7 +250,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     std::memcpy(&copy->charge_, &item->charge_, sizeof(float));
     player->ItemUsed(copy);   // 00665BE0
 }
-EI_REPLACE_METHOD(0x00552C60, CUnitServer::UseItemCharge);
+EI_REWRITTEN(0x00552C60, CUnitServer::UseItemCharge);
 
 BOOL CUnitServer::Heal(float amount) {
     if (!stats.Heal(ServerStatsOf(unit), amount)) return 0;
@@ -282,7 +282,7 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     if (AbsBits(sideStored) >= AbsBits(frontStored)) return sideStored > kZero ? 0xC00000 : 0x1000000;
     return frontStored > kZero ? 0x800000 : 0x400000;
 }
-EI_REPLACE_METHOD(0x005518F0, CUnitServer::HitDirection);
+EI_REWRITTEN(0x005518F0, CUnitServer::HitDirection);
 
 void CUnitServer::WitnessMurder(UnitList* witnesses, CUnit* victim, CUnit* murderer) {
     CWorldServer* world = ServerWorld();
@@ -356,7 +356,7 @@ void CUnitServer::PropagateHostility() {
         if (toMe) ClaimHostility(other, toMe);
     }
 }
-EI_REPLACE_METHOD(0x00552E00, CUnitServer::PropagateHostility);
+EI_REWRITTEN(0x00552E00, CUnitServer::PropagateHostility);
 
 void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     CWorldServer* world = ServerWorld();
@@ -527,7 +527,7 @@ void CUnitServer::Idle() {
     if (action2.kind == 7 || action2.kind == 8) return;
     DropQueuedOrder();
 }
-EI_REPLACE_METHOD(0x00555180, CUnitServer::Idle);
+EI_REWRITTEN(0x00555180, CUnitServer::Idle);
 
 void CUnitServer::SetDead(int dead) {
     auto* world = ServerWorld();

@@ -74,7 +74,7 @@ EI_REWRITTEN(0x004449A0, CDebugPanel::Remove);
 // to the pool 004452D0), then the header pushed on the 0x28-byte nodes' free list (0079B234) as
 // the pool's deallocate does.
 void CDebugPanel::Destruct() { entries_.Destroy<Pair>(); }
-EI_REPLACE_METHOD(0x00444690, CDebugPanel::Destruct);
+EI_REWRITTEN(0x00444690, CDebugPanel::Destruct);
 
 // 00444740 (A-E2; thiscall, returns the panel): the constructor. The static initialiser 00444660
 // runs it on the global before WinMain and registers the destructor above with atexit. The base's
@@ -94,7 +94,7 @@ CDebugPanel* CDebugPanel::Construct() {
     vtable_ = DebugPanelClass::Vtable();
     return this;
 }
-EI_REPLACE_METHOD(0x00444740, CDebugPanel::Construct);
+EI_REWRITTEN(0x00444740, CDebugPanel::Construct);
 
 // The panel, zero at the start: built by the static initialiser 00444660 in the list's order and destroyed by the exit
 // function it registers (00444680); both ported on the name and registered at their addresses

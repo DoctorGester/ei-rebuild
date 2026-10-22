@@ -14,4 +14,4 @@ void CMapObject::ClearProtectionBases() {
     // The original reloads the companion pointer for each store (two stores per pair, both +0).
     for (UnitStatPair& pair : ServerCompanion()->vitals.protection) pair.base = 0.0f;
 }
-EI_REPLACE_METHOD(0x0050F080, CMapObject::ClearProtectionBases);
+EI_REWRITTEN(0x0050F080, CMapObject::ClearProtectionBases);

@@ -534,7 +534,7 @@ void CParticleSource::TickGroundPlane(ParticleElement* e) {
     }
     if (++e->ticks > 1) flags_ &= ~1u;
 }
-EI_REPLACE_METHOD(0x004934F0, CParticleSource::TickGroundPlane);
+EI_REWRITTEN(0x004934F0, CParticleSource::TickGroundPlane);
 
 // 00494770. Portal: particles spiral up (their offset rotated by the turn in +0x20/+0x24 each
 // tick) and fade above 8 units; the spare ones (state set) flicker in size while the portal is on.

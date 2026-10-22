@@ -154,7 +154,7 @@ void __fastcall PartyManagerNewGame(PartyManager* manager) {
     PartyRecordsReset(&manager->records);
     manager->templates.Build(0);
 }
-EI_REPLACE(0x004A88A0, PartyManagerNewGame);
+EI_REWRITTEN(0x004A88A0, PartyManagerNewGame);
 
 void __fastcall PartyManagerNewGameFour(PartyManager* manager) {
     PartyRecordsReset(&manager->records);

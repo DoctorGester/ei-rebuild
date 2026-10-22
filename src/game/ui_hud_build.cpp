@@ -158,7 +158,7 @@ CHudWeaponBar* CHudWeaponBar::Construct(CInterface3D* ui, CBattleScreen* owner) 
     AddLabels(&labels_, ids);
     return this;
 }
-EI_REPLACE_METHOD(0x0063BAB0, CHudWeaponBar::Construct);
+EI_REWRITTEN(0x0063BAB0, CHudWeaponBar::Construct);
 
 void CHudWeaponBar::Highlight(int index, int on) {
     widescreen::EnterLeftPanel();   // addon's 100233ED; 10023406 at both returns
@@ -189,7 +189,7 @@ void CHudWeaponBar::Highlight(int index, int on) {
     regions_.data[index]->SetRect(left, 520, right, 600);
     widescreen::LeavePanel();
 }
-EI_REPLACE_METHOD(0x0063C050, CHudWeaponBar::Highlight);
+EI_REWRITTEN(0x0063C050, CHudWeaponBar::Highlight);
 
 void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     // Slots 0 and 1 share the texture's first column, 2 and 3 the second; odd slots the lower
@@ -222,7 +222,7 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     count_ = index + 1;
     Highlight(index, 0);
 }
-EI_REPLACE_METHOD(0x0063BCC0, CHudWeaponBar::AddWeapon);
+EI_REWRITTEN(0x0063BCC0, CHudWeaponBar::AddWeapon);
 
 // --- Quick items -----------------------------------------------------------------------------------------------
 
@@ -253,7 +253,7 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     widescreen::LeavePanel();
     return this;
 }
-EI_REPLACE_METHOD(0x0063C800, CHudQuickItems::Construct);
+EI_REWRITTEN(0x0063C800, CHudQuickItems::Construct);
 
 void CHudQuickItems::AddItem(const char* model, const char* image) {
     if (shownCount_ >= kMaxQuickItems) return;
@@ -272,7 +272,7 @@ void CHudQuickItems::AddItem(const char* model, const char* image) {
     MakePlain(sprite);
     ++shownCount_;
 }
-EI_REPLACE_METHOD(0x0063CAE0, CHudQuickItems::AddItem);
+EI_REWRITTEN(0x0063CAE0, CHudQuickItems::AddItem);
 
 // --- Spell column ----------------------------------------------------------------------------------------------
 
@@ -293,7 +293,7 @@ CHudSpellColumn* CHudSpellColumn::Construct(CInterface3D* ui, CBattleScreen* own
     AddLabels(&labels_, ids);
     return this;
 }
-EI_REPLACE_METHOD(0x0063E2A0, CHudSpellColumn::Construct);
+EI_REWRITTEN(0x0063E2A0, CHudSpellColumn::Construct);
 
 void CHudSpellColumn::AddSpell(const char* model, const char* image) {
     widescreen::EnterRightPanel();   // addon's 1002344D; 10023464 at the end
@@ -323,7 +323,7 @@ void CHudSpellColumn::AddSpell(const char* model, const char* image) {
     selected_ = index;
     widescreen::LeavePanel();
 }
-EI_REPLACE_METHOD(0x0063E4B0, CHudSpellColumn::AddSpell);
+EI_REWRITTEN(0x0063E4B0, CHudSpellColumn::AddSpell);
 
 // --- Action column ---------------------------------------------------------------------------------------------
 
@@ -352,7 +352,7 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     widescreen::LeavePanel();        // addon's 10023430
     return this;
 }
-EI_REPLACE_METHOD(0x0063F300, CHudActionColumn::Construct);
+EI_REWRITTEN(0x0063F300, CHudActionColumn::Construct);
 
 void CHudActionColumn::AddAction(const char* model, const char* image, int action) {
     const IconPlace at = IconAt(count_, 0);
@@ -374,4 +374,4 @@ void CHudActionColumn::AddAction(const char* model, const char* image, int actio
     button->flatSpecular_ = kColourOff;
     selected_ = index;
 }
-EI_REPLACE_METHOD(0x0063F500, CHudActionColumn::AddAction);
+EI_REWRITTEN(0x0063F500, CHudActionColumn::AddAction);

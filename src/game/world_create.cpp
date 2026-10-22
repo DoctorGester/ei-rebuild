@@ -128,7 +128,7 @@ EI_REWRITTEN(0x0055EAB0, CWorld::ConstructBase);
 CUnit* CWorld::FindUnit(int id) {
     return UnitOrNull(ObjectWithId(id));
 }
-EI_REPLACE_METHOD(0x0055FB00, CWorld::FindUnit);
+EI_REWRITTEN(0x0055FB00, CWorld::FindUnit);
 
 CMapObject* CWorld::FindMapObject(int id) {
     return ObjectSlots(MapObjectManager()->FindObject(static_cast<unsigned>(id)));   // the map object manager's objects

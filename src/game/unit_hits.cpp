@@ -293,4 +293,4 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
     EI_NAN_AUDIT(facing);
     return facing < kHalfBack ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x00530A60, CUnit::IsBehind);
+EI_REWRITTEN(0x00530A60, CUnit::IsBehind);

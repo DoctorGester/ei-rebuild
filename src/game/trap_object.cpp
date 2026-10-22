@@ -32,7 +32,7 @@ constexpr int kBlockSize = 10;
 } // namespace
 
 BOOL LockKey::AcceptedByTrap() const { return 1; }
-EI_REPLACE_METHOD(0x00522AD0, LockKey::AcceptedByTrap);
+EI_REWRITTEN(0x00522AD0, LockKey::AcceptedByTrap);
 
 CTrapObject::CTrapObject() {
     CreateMapObject();
@@ -54,7 +54,7 @@ int CTrapObject::CreateTrap() {
     flags_ &= ~kFlag40;
     return result;
 }
-EI_REPLACE_METHOD(0x00529B60, CTrapObject::CreateTrap);
+EI_REWRITTEN(0x00529B60, CTrapObject::CreateTrap);
 
 int CTrapObject::UpdateTrap() {
     Update();
@@ -80,30 +80,30 @@ int CTrapObject::UpdateTrap() {
 EI_REWRITTEN(0x00529B80, CTrapObject::UpdateTrap);
 
 void CTrapObject::Arm() { flags_ |= kArmed | kArmedFresh; }
-EI_REPLACE_METHOD(0x00529D20, CTrapObject::Arm);
+EI_REWRITTEN(0x00529D20, CTrapObject::Arm);
 
 bool CTrapObject::Disarm(const LockKey* key, int) {
     if (!(flags_ & kArmed) || !key->AcceptedByTrap()) return false;
     flags_ &= ~kArmed;
     return true;
 }
-EI_REPLACE_METHOD(0x00529D30, CTrapObject::Disarm);
+EI_REWRITTEN(0x00529D30, CTrapObject::Disarm);
 
 int CTrapObject::KeyFits(const LockKey* key) { return key->AcceptedByTrap(); }
-EI_REPLACE_METHOD(0x00529D60, CTrapObject::KeyFits);
+EI_REWRITTEN(0x00529D60, CTrapObject::KeyFits);
 
 void CTrapObject::LoadTrapObject(CStream* stream) {
     LoadMapObject(stream);
     stream->Read(&savedValue_, 4);
 }
-EI_REPLACE_METHOD(0x00529D70, CTrapObject::LoadTrapObject);
+EI_REWRITTEN(0x00529D70, CTrapObject::LoadTrapObject);
 
 void CTrapObject::SaveTrapObject(CStream* stream) {
     SaveMapObject(stream);
     std::uint32_t value = savedValue_;
     stream->Write(&value, 4);
 }
-EI_REPLACE_METHOD(0x00529DA0, CTrapObject::SaveTrapObject);
+EI_REWRITTEN(0x00529DA0, CTrapObject::SaveTrapObject);
 
 void CTrapObject::Load(CStream* stream) { LoadTrapObject(stream); }
 void CTrapObject::Save(CStream* stream) { SaveTrapObject(stream); }
@@ -115,7 +115,7 @@ bool CTrapObject::Slot29True() { return true; }
 EI_REPLACE_METHOD(0x00529AE0, CTrapObject::Slot29True);
 
 int CTrapObject::Slot38One() { return 1; }
-EI_REPLACE_METHOD(0x00529AF0, CTrapObject::Slot38One);
+EI_REWRITTEN(0x00529AF0, CTrapObject::Slot38One);
 
 const char* CTrapObject::GetClassName() { return kTrapName; }
 int CTrapObject::GetClassId() { return kClassTrap; }
@@ -123,13 +123,13 @@ const char* MagicTrap::GetClassName() { return kMagicTrapName; }
 int MagicTrap::GetClassId() { return kClassMagicTrap; }
 
 const char* __fastcall TrapClassName(CTrapObject* self) { return self->CTrapObject::GetClassName(); }
-EI_REPLACE(0x00529B00, TrapClassName);
+EI_REWRITTEN(0x00529B00, TrapClassName);
 int __fastcall TrapClassId(CTrapObject* self) { return self->CTrapObject::GetClassId(); }
-EI_REPLACE(0x00529B10, TrapClassId);
+EI_REWRITTEN(0x00529B10, TrapClassId);
 const char* __fastcall MagicTrapClassName(MagicTrap* self) { return self->MagicTrap::GetClassName(); }
-EI_REPLACE(0x00529F50, MagicTrapClassName);
+EI_REWRITTEN(0x00529F50, MagicTrapClassName);
 int __fastcall MagicTrapClassId(MagicTrap* self) { return self->MagicTrap::GetClassId(); }
-EI_REPLACE(0x00529F60, MagicTrapClassId);
+EI_REWRITTEN(0x00529F60, MagicTrapClassId);
 
 MagicTrap* MagicTrap::DeletingDestruct(int flags) {
     this->MagicTrap::~MagicTrap();

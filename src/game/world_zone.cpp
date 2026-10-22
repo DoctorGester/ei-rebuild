@@ -252,4 +252,4 @@ EI_REWRITTEN(0x00596030, CWorldServer::LoadMapObjects);
 EI_REWRITTEN(0x00595AB0, CWorldServer::LoadMobFile);
 EI_REWRITTEN(0x00596C60, CWorldServer::ClearMapObjects);
 EI_REWRITTEN(0x00596730, CWorldServer::SaveMapObjects);
-EI_REPLACE(0x00595080, SelectLoadingMovie);
+EI_REWRITTEN(0x00595080, SelectLoadingMovie);

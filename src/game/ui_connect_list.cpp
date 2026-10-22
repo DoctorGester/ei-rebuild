@@ -259,4 +259,4 @@ void CMpConnectScreen::DrawListVanilla() {
     UiSurfaceReleaseDC(surface);
     pen.Destruct();
 }
-EI_REPLACE_METHOD(0x0061D780, CMpConnectScreen::DrawListVanilla);
+EI_REWRITTEN(0x0061D780, CMpConnectScreen::DrawListVanilla);

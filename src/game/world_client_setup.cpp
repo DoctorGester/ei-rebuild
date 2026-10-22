@@ -96,7 +96,7 @@ int CWorldClient::LoadLights(const char* file) {
     values.SetSize(0, -1);
     return 1;
 }
-EI_REPLACE_METHOD(0x00563930, CWorldClient::LoadLights);
+EI_REWRITTEN(0x00563930, CWorldClient::LoadLights);
 
 void CWorldClient::SetUpGraphics(void* device) {
     TextureManager()->SetDevice(static_cast<CTextureDevice*>(device));

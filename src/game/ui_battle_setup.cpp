@@ -335,5 +335,5 @@ BOOL CBattleScreen::Draw(void* target) {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x00635250, CBattleScreen::Create);
-EI_REPLACE_METHOD(0x00636020, CBattleScreen::Draw);
+EI_REWRITTEN(0x00635250, CBattleScreen::Create);
+EI_REWRITTEN(0x00636020, CBattleScreen::Draw);

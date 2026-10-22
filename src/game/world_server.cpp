@@ -284,8 +284,8 @@ EI_REWRITTEN(0x0058A3D0, CWorldServer::ServerGroundHeight);
 double CWorldServer::ServerSurfaceHeight(float x, float y) { return RawSurfaceHeightAt(x, y); }
 EI_REWRITTEN(0x0058A3F0, CWorldServer::ServerSurfaceHeight);
 
-EI_REPLACE_METHOD(0x005935C0, CWorldServer::RemoveObject);
-EI_REPLACE_METHOD(0x00593AA0, CWorldServer::FindObject);
+EI_REWRITTEN(0x005935C0, CWorldServer::RemoveObject);
+EI_REWRITTEN(0x00593AA0, CWorldServer::FindObject);
 EI_REWRITTEN(0x00594180, CWorldServer::GetPlayer);
 EI_REWRITTEN(0x00594220, CWorldServer::GridHeight);
 EI_REWRITTEN(0x00591740, CWorldServer::CountLivingMercs);
@@ -298,7 +298,7 @@ EI_REWRITTEN(0x0058EE00, CWorldServer::SetWeather);
 EI_REWRITTEN(0x005942C0, CWorld::SetServerPaused);
 EI_REWRITTEN(0x00566350, CWorld::SetPaused);
 EI_REWRITTEN(0x0058E4C0, CWorldServer::GetZoneExit);
-EI_REPLACE_METHOD(0x0058E520, CWorldServer::AddTimedObject);
+EI_REWRITTEN(0x0058E520, CWorldServer::AddTimedObject);
 EI_REWRITTEN(0x0058E5D0, CWorldServer::RemoveTimedObject);
 EI_REWRITTEN(0x0058D5D0, CWorldServer::AddToUpdateMap);
 EI_REWRITTEN(0x005999E0, ObjectIdMap::Set);

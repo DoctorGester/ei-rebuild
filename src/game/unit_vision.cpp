@@ -51,7 +51,7 @@ void CUnit::AdvanceTimeImpl(float time) {
     if (moveMode == 0) range = range * kOne;
     TheClientWorld()->MarkFootprintsInSight(&localPosition_.x, range);
 }
-EI_REPLACE_METHOD(0x0052FC40, CUnit::AdvanceTimeImpl);
+EI_REWRITTEN(0x0052FC40, CUnit::AdvanceTimeImpl);
 
 int CMapObject::SetVisibilityLevel(float level) {
     CMapObjectVirtuals* slots = ObjectSlots(this);
@@ -61,4 +61,4 @@ int CMapObject::SetVisibilityLevel(float level) {
     if (level == kOne) return slots->SetVisibilityMode(1);
     return slots->SetVisibilityMode(2);
 }
-EI_REPLACE_METHOD(0x0050F170, CMapObject::SetVisibilityLevel);
+EI_REWRITTEN(0x0050F170, CMapObject::SetVisibilityLevel);

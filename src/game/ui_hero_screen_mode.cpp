@@ -159,4 +159,4 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
     // Rebirth's WideScreen (addon's handler after the original): the curtains shown but on the list.
     widescreen::ShowHeroCurtains(this, mode);
 }
-EI_REPLACE_METHOD(0x00615D30, CMpHeroScreen::SetModeVanilla);
+EI_REWRITTEN(0x00615D30, CMpHeroScreen::SetModeVanilla);

@@ -143,4 +143,4 @@ void CSaveLoadWindow::RefreshListVanilla() {
     surface->DrawTextIn(entry.folder_, &folderRect, kFont, kTextColour, DT_RIGHT, 1);
     UiSurfaceReleaseDC(surface);
 }
-EI_REPLACE_METHOD(0x006567A0, CSaveLoadWindow::RefreshListVanilla);
+EI_REWRITTEN(0x006567A0, CSaveLoadWindow::RefreshListVanilla);

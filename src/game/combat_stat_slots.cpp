@@ -53,7 +53,7 @@ void CUnitServer::UpdateProtection() {
         protection[0] = static_cast<std::int16_t>(static_cast<int>(static_cast<double>(factor) * Combat().defence));
     }
 }
-EI_REPLACE_METHOD(0x00553450, CUnitServer::UpdateProtection);
+EI_REWRITTEN(0x00553450, CUnitServer::UpdateProtection);
 
 void CUnitServer::RepackStats() {
     std::uint8_t speedsBefore[sizeof(unit->params.modeSpeeds)];
@@ -97,10 +97,10 @@ void CUnitServer::ForgetClaims() {
 EI_REWRITTEN(0x00552CD0, CUnitServer::ForgetClaims);
 
 void CUnitServer::CopyStats(UnitStats* out) { std::memcpy(out, &stats, sizeof(UnitStats)); }
-EI_REPLACE_METHOD(0x00553360, CUnitServer::CopyStats);
+EI_REWRITTEN(0x00553360, CUnitServer::CopyStats);
 
 BOOL CUnitServer::AddExperience(float amount) {
     stats.GainExperience(unit, amount);
     return RefreshVitals(0);
 }
-EI_REPLACE_METHOD(0x00553380, CUnitServer::AddExperience);
+EI_REWRITTEN(0x00553380, CUnitServer::AddExperience);

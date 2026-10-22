@@ -135,6 +135,6 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     ini->Destruct();
     list.Destruct();
 }
-EI_REPLACE(0x00458270, PlayMovies);
+EI_REWRITTEN(0x00458270, PlayMovies);
 
 } // namespace app

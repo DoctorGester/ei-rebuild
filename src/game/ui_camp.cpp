@@ -308,7 +308,7 @@ int CCampPages::Price(CItem* item, int kind) {
     return static_cast<int>(gamecrt::Ftol(ItemPrice(item) * multipliers[kind]));
 }
 
-EI_REPLACE_METHOD(0x0060FAB0, CCampPages::Price);
+EI_REWRITTEN(0x0060FAB0, CCampPages::Price);
 
 bool CCampPages::CanEquip(CItem* item, int mode) {
     switch (page_) {
@@ -427,7 +427,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
     }
 }
 
-EI_REPLACE_METHOD(0x006100E0, CCampPages::CanEquip);
+EI_REWRITTEN(0x006100E0, CCampPages::CanEquip);
 
 // --- 00611930: UpdateAction ------------------------------------------------------------------------
 
@@ -653,7 +653,7 @@ BOOL CCampPages::Draw(int pass) {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x0060F050, CCampPages::Draw);
+EI_REWRITTEN(0x0060F050, CCampPages::Draw);
 
 // --- 00612290 / 00612600: what the constructors would make ---------------------------------------
 
@@ -828,7 +828,7 @@ void CCampPages::Close() {
     records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REPLACE_METHOD(0x0060E6B0, CCampPages::Close);
+EI_REWRITTEN(0x0060E6B0, CCampPages::Close);
 
 // --- 0060E3E0: the trade panel's destructor body (vtable 007417A8) --------------------------------
 
@@ -1116,7 +1116,7 @@ void CCampPages::MoveItem(CItem* item, int mode) {
     }
     interface_->PlaySound(game::PutOffSoundText(), 0);
 }
-EI_REPLACE_METHOD(0x00610AD0, CCampPages::MoveItem);
+EI_REWRITTEN(0x00610AD0, CCampPages::MoveItem);
 
 // --- 0060F9E0 / 0060F980: the hero's unit after a change ---------------------------------------
 
@@ -1132,7 +1132,7 @@ void CCampPages::RefreshWeapons() {
     unit->Controller()->RefreshModel();
     VirtualRefreshStats();
 }
-EI_REPLACE_METHOD(0x0060F9E0, CCampPages::RefreshWeapons);
+EI_REWRITTEN(0x0060F9E0, CCampPages::RefreshWeapons);
 
 void CCampPages::RefreshStats() {
     if (heroes_[hero_]) {
@@ -1142,7 +1142,7 @@ void CCampPages::RefreshStats() {
     }
     statsPanel_->DrawStats();
 }
-EI_REPLACE_METHOD(0x0060F980, CCampPages::RefreshStats);
+EI_REWRITTEN(0x0060F980, CCampPages::RefreshStats);
 
 // --- 0060F6B0 / 0060F710 / 0060F7A0 / 0060F830: turning and choosing the hero ------------------
 
@@ -1173,7 +1173,7 @@ void CCampPages::Update() {
         std::memcpy(&heroTurn_, &turned, 4);
     }
 }
-EI_REPLACE_METHOD(0x0060F6B0, CCampPages::Update);
+EI_REWRITTEN(0x0060F6B0, CCampPages::Update);
 
 namespace {
 // The search both directions share: from the current hero, step until a record of the hero
@@ -1212,8 +1212,8 @@ void CCampPages::PreviousHero() {
     ShowHero();
     VirtualRefreshWeapons();
 }
-EI_REPLACE_METHOD(0x0060F710, CCampPages::NextHero);
-EI_REPLACE_METHOD(0x0060F7A0, CCampPages::PreviousHero);
+EI_REWRITTEN(0x0060F710, CCampPages::NextHero);
+EI_REWRITTEN(0x0060F7A0, CCampPages::PreviousHero);
 
 void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];

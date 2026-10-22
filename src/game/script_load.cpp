@@ -633,4 +633,4 @@ void CScript::LoadState(ScriptStream* stream) {
         for (int k = 0; k < area->parts.size; ++k) stream->Read(&area->parts.data[k], sizeof(ScriptAreaPart));
     }
 }
-EI_REPLACE_METHOD(0x004C0D00, CScript::LoadState);
+EI_REWRITTEN(0x004C0D00, CScript::LoadState);

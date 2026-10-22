@@ -488,7 +488,7 @@ void COptionsWindow::Apply() {
     }
     if (shadowsChanged_) TheClientWorld()->DropShadows();
 }
-EI_REPLACE_METHOD(0x006524A0, COptionsWindow::Apply);
+EI_REWRITTEN(0x006524A0, COptionsWindow::Apply);
 
 // --- 0065B8B0: the slider's slot 26 ---------------------------------------------------------------
 
@@ -539,4 +539,4 @@ void CUiSlider::SetRect(const RECT* rect) {
     position_ = position - 1;
     CallSetPosition(position);
 }
-EI_REPLACE_METHOD(0x0065B8B0, CUiSlider::SetRect);
+EI_REWRITTEN(0x0065B8B0, CUiSlider::SetRect);

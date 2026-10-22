@@ -107,4 +107,4 @@ void CFigureAnimationState::SetTime(float frame) {
 EI_REWRITTEN(0x0050D600, CFigureAnimationState::SetTime);
 
 void CFigureAnimationState::Advance(float frames) { SetTime(frames + time); }
-EI_REPLACE_METHOD(0x0050D5E0, CFigureAnimationState::Advance);
+EI_REWRITTEN(0x0050D5E0, CFigureAnimationState::Advance);

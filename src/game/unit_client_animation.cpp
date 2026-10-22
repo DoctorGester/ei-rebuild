@@ -149,4 +149,4 @@ void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     if (play) unit->Object3D()->animation->Play(animation);
     else unit->Object3D()->animation->Queue(animation);
 }
-EI_REPLACE_METHOD(0x00535480, CUnitClientSpecific::StartIdleAnimation);
+EI_REWRITTEN(0x00535480, CUnitClientSpecific::StartIdleAnimation);

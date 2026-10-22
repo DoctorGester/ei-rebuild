@@ -169,7 +169,7 @@ void CSaveLoadWindow::ShowPicture() {
     SceneMesh(3)->visible_ = 1;
     SceneMesh(3)->texture_ = objects_.data[1];
 }
-EI_REPLACE_METHOD(0x00656E10, CSaveLoadWindow::ShowPicture);
+EI_REWRITTEN(0x00656E10, CSaveLoadWindow::ShowPicture);
 
 // --- 00653A50 ------------------------------------------------------------------------------------
 
@@ -283,7 +283,7 @@ void CSaveLoadWindow::SaveGame() {
     TheCursor()->ChangeShape(0);
     interface_->SetPendingValue(kClosed);
 }
-EI_REPLACE_METHOD(0x00655550, CSaveLoadWindow::SaveGame);
+EI_REWRITTEN(0x00655550, CSaveLoadWindow::SaveGame);
 
 // --- 00655D40 ------------------------------------------------------------------------------------
 
@@ -415,7 +415,7 @@ void CSaveLoadWindow::FillEntries() {
     }
     firstVisible_ = 0;
 }
-EI_REPLACE_METHOD(0x00655D40, CSaveLoadWindow::FillEntries);
+EI_REWRITTEN(0x00655D40, CSaveLoadWindow::FillEntries);
 
 // --- 006570E0 / 006575B0: quick and automatic saves ----------------------------------------------
 
@@ -491,7 +491,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     }
     TheCursor()->ChangeShape(0);
 }
-EI_REPLACE(0x006570E0, QuickSave);
+EI_REWRITTEN(0x006570E0, QuickSave);
 
 void __fastcall QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
@@ -503,7 +503,7 @@ void __fastcall QuickLoad(const char* slot) {
     GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
 }
-EI_REPLACE(0x006575B0, QuickLoad);
+EI_REWRITTEN(0x006575B0, QuickLoad);
 
 // --- Entry titles, OK / Delete / load / delete (A-H14) ----------------------------------------------
 
@@ -637,4 +637,4 @@ void CSaveLoadWindow::DeleteSave() {
     RefreshListVanilla();
     ShowPicture();
 }
-EI_REPLACE_METHOD(0x00655B20, CSaveLoadWindow::DeleteSave);
+EI_REWRITTEN(0x00655B20, CSaveLoadWindow::DeleteSave);

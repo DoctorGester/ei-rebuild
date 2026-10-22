@@ -385,7 +385,7 @@ CBinkVideo* CBinkVideo::Construct() {
     bink = nullptr;
     return this;
 }
-EI_REPLACE_METHOD(0x005DB340, CBinkVideo::Construct);
+EI_REWRITTEN(0x005DB340, CBinkVideo::Construct);
 
 void CBinkVideo::Close() {
     if (bink) {
@@ -401,4 +401,4 @@ void CBinkVideo::Close() {
 EI_REWRITTEN(0x005DBF70, CBinkVideo::Close);
 
 void CBinkVideo::Destruct() { Close(); }
-EI_REPLACE_METHOD(0x005DB350, CBinkVideo::Destruct);
+EI_REWRITTEN(0x005DB350, CBinkVideo::Destruct);

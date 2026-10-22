@@ -39,7 +39,7 @@ void CExchangeScreen::Close() {
     descPanel_->Describe(nullptr);
     delete scratch_;   // slot 0 with 1 (the game's deleting destructor)
 }
-EI_REPLACE_METHOD(0x0062C8F0, CExchangeScreen::Close);
+EI_REWRITTEN(0x0062C8F0, CExchangeScreen::Close);
 
 void CExchangeScreen::OnMessageResult(int) {}
 EI_REPLACE_METHOD(0x0062C920, CExchangeScreen::OnMessageResult);
@@ -59,7 +59,7 @@ void CExchangeScreen::Update() {
     ownOffer_->Money() = libcrt::Atoi(moneyField_->text_);
     net::ClientPublishParty(net::GameClient());
 }
-EI_REPLACE_METHOD(0x0062C930, CExchangeScreen::Update);
+EI_REWRITTEN(0x0062C930, CExchangeScreen::Update);
 
 // --- 0062CF70: the left button (input slot 2) --------------------------------------------------------
 
@@ -94,7 +94,7 @@ void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x0062CF70, InputForward<&CExchangeScreen::OnLButtonDown>::Call);
+EI_REWRITTEN(0x0062CF70, InputForward<&CExchangeScreen::OnLButtonDown>::Call);
 
 // --- 0062D210: the exchange went through (slot 37) -------------------------------------------------
 
@@ -107,7 +107,7 @@ void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* par
     LocalPlayerData()->Money() = money;
     GameRejoin();
 }
-EI_REPLACE_METHOD(0x0062D210, CExchangeScreen::OnExchangeDone);
+EI_REWRITTEN(0x0062D210, CExchangeScreen::OnExchangeDone);
 
 // --- 0062C250: Create (slot 25) --------------------------------------------------------------------
 
@@ -234,7 +234,7 @@ void CExchangeScreen::Create() {
     AddSurface(NewSurface(interface_, 0xD2, 0x10E));
     AddSurface(NewSurface(interface_, 0x6E, 0xAA));
 }
-EI_REPLACE_METHOD(0x0062C250, CExchangeScreen::Create);
+EI_REWRITTEN(0x0062C250, CExchangeScreen::Create);
 
 // --- 0062C9C0: Draw (slot 20) ----------------------------------------------------------------------
 
@@ -340,7 +340,7 @@ BOOL CExchangeScreen::Draw(int pass) {
     AsContainer(this)->DrawContainer(pass);
     return 1;
 }
-EI_REPLACE_METHOD(0x0062C9C0, CExchangeScreen::Draw);
+EI_REWRITTEN(0x0062C9C0, CExchangeScreen::Draw);
 
 // --- 0062D100 / 0062D200: an item clicked in the strip or the grid (slots 42 / 43) -------------------
 
@@ -351,7 +351,7 @@ constexpr int kOfferLimit = 8;
 } // namespace
 
 bool CExchangeScreen::CanMove(CItem*, int) { return true; }
-EI_REPLACE_METHOD(0x0062D200, CExchangeScreen::CanMove);
+EI_REWRITTEN(0x0062D200, CExchangeScreen::CanMove);
 
 void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     if (!VirtualCanEquip(item, mode)) {   // slot 43 (CanMove here)
@@ -377,4 +377,4 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         return;
     }
 }
-EI_REPLACE_METHOD(0x0062D100, CExchangeScreen::MoveOffered);
+EI_REWRITTEN(0x0062D100, CExchangeScreen::MoveOffered);

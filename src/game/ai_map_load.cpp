@@ -492,4 +492,4 @@ int CAIMap::Load(const char* path) {
     AttachTerrain();
     return 1;
 }
-EI_REPLACE_METHOD(0x005B43C0, CAIMap::Load);
+EI_REWRITTEN(0x005B43C0, CAIMap::Load);

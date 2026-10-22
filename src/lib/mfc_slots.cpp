@@ -30,7 +30,7 @@ EI_REWRITTEN(0x004529D0, ArrayHeader<NodeItemsCClass>::Destruct);
 EI_REWRITTEN(0x00451830, ArrayHeader<TextureLinkArrayClass>::Destruct);
 EI_REWRITTEN(0x00451EC0, ArrayHeader<MeshCornerArrayClass>::Destruct);
 EI_REWRITTEN(0x0045E020, ArrayHeader<ArrayBaseClass>::Destruct);
-EI_REPLACE(0x00468D80, ArrayHeader<SpriteArrayClass>::Destruct);
+EI_REWRITTEN(0x00468D80, ArrayHeader<SpriteArrayClass>::Destruct);
 EI_REWRITTEN(0x0045D8B0, OwnedPatrols::Destruct<PatrolArrayClass>);
 EI_REWRITTEN(0x0045E090, OwnedPatrols::Destruct<PatrolArrayClass>);
 EI_REWRITTEN(0x0045FBD0, OwnedAllods::Destruct<AllodArrayClass>);
@@ -136,10 +136,10 @@ EI_REWRITTEN(0x004CB630, ScalarDeleting<&ScriptAreas::Destruct<ScriptAreaArrayCl
 // Over the destructors of the arrays, lists and maps whose elements need nothing.
 
 EI_REWRITTEN(0x00405540, ScalarDeleting<&PtrList::Destruct<TempListClass>>::Delete);   // 00405130
-EI_REPLACE_METHOD(0x0040C480, ScalarDeleting<&ExceptionDestruct>::Delete);   // 0040C4A0
+EI_REWRITTEN(0x0040C480, ScalarDeleting<&ExceptionDestruct>::Delete);   // 0040C4A0
 EI_REWRITTEN(0x0040C4B0, ScalarDeleting<&ExceptionDestruct>::Delete);
-EI_REPLACE_METHOD(0x0040C4E0, ScalarDeleting<&ExceptionDestruct>::Delete);   // 0040C500
-EI_REPLACE_METHOD(0x0041F740, ScalarDeleting<&ExceptionDestruct>::Delete);   // 0041F760
+EI_REWRITTEN(0x0040C4E0, ScalarDeleting<&ExceptionDestruct>::Delete);   // 0040C500
+EI_REWRITTEN(0x0041F740, ScalarDeleting<&ExceptionDestruct>::Delete);   // 0041F760
 EI_REWRITTEN(0x00429180, ScalarDeleting<&PtrList::Destruct<ItemListClass>>::Delete);   // 00427830
 EI_REWRITTEN(0x00452850, ScalarDeleting<&ArrayHeader<Vector3ArrayClass>::Destruct>::Delete);   // 00452870
 EI_REWRITTEN(0x00452910, ScalarDeleting<&ArrayHeader<NodeItemsAClass>::Destruct>::Delete);   // 004509E0

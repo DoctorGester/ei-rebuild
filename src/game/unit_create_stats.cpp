@@ -446,7 +446,7 @@ void UnitStats::ResetToBase(float newLoad) {
     rateBase = static_cast<float>(static_cast<double>(stat18) * kPointTwo + kTenF);
     rate = static_cast<float>((LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase);
 }
-EI_REPLACE_METHOD(0x00524CD0, UnitStats::ResetToBase);
+EI_REWRITTEN(0x00524CD0, UnitStats::ResetToBase);
 
 namespace {
 // 005259B0 UnitStats::Reduce and 00525800 UnitStats::HealSlots of unit_stats.cpp / unit_vitals.cpp,
@@ -613,7 +613,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
     object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().begin) : 0xFFFFFFFFu;
     return 1;
 }
-EI_REPLACE_METHOD(0x00513B60, CMapObjectManager::ApplyPrototype);
+EI_REWRITTEN(0x00513B60, CMapObjectManager::ApplyPrototype);
 
 // --- The factory ------------------------------------------------------------------------------
 

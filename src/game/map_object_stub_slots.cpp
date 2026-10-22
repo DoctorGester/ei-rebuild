@@ -84,7 +84,7 @@ int CMapObject::NotifyCompanion() {
     companion->Unused14();
     return 1;
 }
-EI_REPLACE_METHOD(0x0050E930, CMapObject::NotifyCompanion);
+EI_REWRITTEN(0x0050E930, CMapObject::NotifyCompanion);
 
 void CMapObject::TakePrototypeImpl(const char* prototype) {
     // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics
@@ -103,7 +103,7 @@ void CMapObject::WriteFullState() {
     state->Finish();
     flags_ &= ~kStateUnsent;
 }
-EI_REPLACE_METHOD(0x0050EA40, CMapObject::WriteFullState);
+EI_REWRITTEN(0x0050EA40, CMapObject::WriteFullState);
 
 void CMapObject::WriteChangedState() {
     if (changedParts & kVitalParts) ObjectSlots(this)->StatsChanged();
@@ -113,7 +113,7 @@ void CMapObject::WriteChangedState() {
     state->Finish();
     flags_ &= ~kStateUnsent;
 }
-EI_REPLACE_METHOD(0x0050EA70, CMapObject::WriteChangedState);
+EI_REWRITTEN(0x0050EA70, CMapObject::WriteChangedState);
 
 std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
     DeltaState* state = NetState();
@@ -122,7 +122,7 @@ std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
     state->Finish();
     return result;
 }
-EI_REPLACE_METHOD(0x0050EAB0, CMapObject::ReadState);
+EI_REWRITTEN(0x0050EAB0, CMapObject::ReadState);
 
 mfc::CString* CMapObject::SetSecondName(const char* text) {
     name2 = text;

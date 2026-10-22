@@ -60,7 +60,7 @@ GameBuffer* GameBuffer::ConstructGrowing() {
     cur = block;
     return this;
 }
-EI_REPLACE_METHOD(0x004DA7F0, GameBuffer::ConstructGrowing);
+EI_REWRITTEN(0x004DA7F0, GameBuffer::ConstructGrowing);
 
 GameBuffer* GameBuffer::ConstructCopy(const GameBuffer* from) {
     base = 0;
@@ -82,7 +82,7 @@ void GameBuffer::DestructGrowing() {
     gamecrt::operator_delete(begin);
     SetVtable(this, ViewBaseVtable());
 }
-EI_REPLACE_METHOD(0x004DA910, GameBuffer::DestructGrowing);
+EI_REWRITTEN(0x004DA910, GameBuffer::DestructGrowing);
 
 GameBuffer* GameBuffer::DeleteGrowing(unsigned deleteFlags) {
     DestructGrowing();

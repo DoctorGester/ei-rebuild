@@ -262,7 +262,7 @@ void* UnitStats::RefillSlots() {
     UnitStatSlot* end = slots + 6;
     return &end->maximum;   // where the original's loop pointer stops
 }
-EI_REPLACE_METHOD(0x00525AF0, UnitStats::RefillSlots);
+EI_REWRITTEN(0x00525AF0, UnitStats::RefillSlots);
 
 void* UnitStats::RestoreSlots() {
     for (UnitStatSlot& slot : slots) {
@@ -274,7 +274,7 @@ void* UnitStats::RestoreSlots() {
     UnitStatSlot* end = slots + 6;
     return &end->kind;   // where the original's loop pointer stops
 }
-EI_REPLACE_METHOD(0x00523C80, UnitStats::RestoreSlots);
+EI_REWRITTEN(0x00523C80, UnitStats::RestoreSlots);
 
 float UnitStats::LegsFactor(int) { return RatioFactor(LowestSlotRatio(this, kSlotLegs)); }
 EI_REWRITTEN(0x00524060, UnitStats::LegsFactor);

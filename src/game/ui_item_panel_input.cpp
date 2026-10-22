@@ -29,4 +29,4 @@ CUiItemPanel* CUiItemPanel::ConstructBlank(CInterface3D* ui, CItemScreen* owner)
     inputVtable_ = BlankInputVtable();
     return this;
 }
-EI_REPLACE_METHOD(0x0060E210, CUiItemPanel::ConstructBlank);
+EI_REWRITTEN(0x0060E210, CUiItemPanel::ConstructBlank);

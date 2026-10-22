@@ -110,7 +110,7 @@ ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
     vtable_ = static_cast<void**>(Vtable());
     return this;
 }
-EI_REPLACE_METHOD(0x005DC200, ConsoleStreambuf::Construct);
+EI_REWRITTEN(0x005DC200, ConsoleStreambuf::Construct);
 
 // 005DC260
 void ConsoleStreambuf::Destruct() {
@@ -118,7 +118,7 @@ void ConsoleStreambuf::Destruct() {
     line_.~CString();
     Base()->Destruct();   // 006FCB35
 }
-EI_REPLACE_METHOD(0x005DC260, ConsoleStreambuf::Destruct);
+EI_REWRITTEN(0x005DC260, ConsoleStreambuf::Destruct);
 
 // 005DC240
 ConsoleStreambuf* ConsoleStreambuf::DeletingDestruct(unsigned flags) {
@@ -126,7 +126,7 @@ ConsoleStreambuf* ConsoleStreambuf::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x005DC240, ConsoleStreambuf::DeletingDestruct);
+EI_REWRITTEN(0x005DC240, ConsoleStreambuf::DeletingDestruct);
 
 // 005DC150: moves the put area (and `c`, unless EOF) into the line, when this streambuf's
 // category is shown; a hidden category keeps its put area as it is. Always returns 0.
@@ -141,7 +141,7 @@ int ConsoleStreambuf::Overflow(int c) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x005DC150, ConsoleStreambuf::Overflow);
+EI_REWRITTEN(0x005DC150, ConsoleStreambuf::Overflow);
 
 // 005DC1B0: overflow(EOF) through the vtable, the line to the console window, then empty it.
 int ConsoleStreambuf::Sync() {
@@ -152,7 +152,7 @@ int ConsoleStreambuf::Sync() {
     line_ = game::EmptyText();   // ""
     return 0;
 }
-EI_REPLACE_METHOD(0x005DC1B0, ConsoleStreambuf::Sync);
+EI_REWRITTEN(0x005DC1B0, ConsoleStreambuf::Sync);
 
 // ---- Executor -----------------------------------------------------------------------------------
 

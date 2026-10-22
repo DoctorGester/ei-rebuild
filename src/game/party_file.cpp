@@ -101,7 +101,7 @@ SavedParties* SavedParties::Construct() {
     outsideGame_.Construct();
     return this;
 }
-EI_REPLACE_METHOD(0x0065F580, SavedParties::Construct);
+EI_REWRITTEN(0x0065F580, SavedParties::Construct);
 
 void SavedParties::Destruct() {
     outsideGame_.Destruct();
@@ -109,7 +109,7 @@ void SavedParties::Destruct() {
     entries_.FreeStorage();
     folder_.~CString();
 }
-EI_REPLACE_METHOD(0x0065F2D0, SavedParties::Destruct);
+EI_REWRITTEN(0x0065F2D0, SavedParties::Destruct);
 
 // The saved parties, empty at the start: built by the static initialiser 0065F2A0 in the list's order and destroyed by the
 // exit function it registers (0065F2C0); both ported on the name and registered at their addresses

@@ -20,7 +20,7 @@ FootprintCellSet* FootprintCellSet::Construct() {
     hashed = true;
     return this;
 }
-EI_REPLACE_METHOD(0x0067E4E0, FootprintCellSet::Construct);
+EI_REWRITTEN(0x0067E4E0, FootprintCellSet::Construct);
 
 // The spells' footprint set (spell_effect_internal.h), empty at the start: built by the static initialiser 0067E4C0 in the
 // list's order and freed by the exit function it registers (0067E500); both ported on the name and registered at their

@@ -280,7 +280,7 @@ void CChatOverlay::DrawTyped() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REPLACE_METHOD(0x005E3700, CChatOverlay::DrawTyped);
+EI_REWRITTEN(0x005E3700, CChatOverlay::DrawTyped);
 
 // --- 005E3230 / 005E3550: the chat line's keys (input slots 9 and 10) ---------------------------------
 

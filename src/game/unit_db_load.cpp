@@ -123,7 +123,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0053A200, UnitDatabase::Load);
+EI_REWRITTEN(0x0053A200, UnitDatabase::Load);
 
 // --- The skill database ---------------------------------------------------------------------------
 
@@ -168,4 +168,4 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
     ar.DestructLocal();
     return 1;
 }
-EI_REPLACE_METHOD(0x00520220, SkillDatabase::Load);
+EI_REWRITTEN(0x00520220, SkillDatabase::Load);

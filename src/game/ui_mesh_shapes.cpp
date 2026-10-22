@@ -148,7 +148,7 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
     InsetTexels(this);
     RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x005E70E0, CUiMesh::SetRectangleVanilla);
+EI_REWRITTEN(0x005E70E0, CUiMesh::SetRectangleVanilla);
 
 void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1, int columns, int rows) {
@@ -203,7 +203,7 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     InsetTexels(this);
     RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x005E7680, CUiMesh::SetGridVanilla);
+EI_REWRITTEN(0x005E7680, CUiMesh::SetGridVanilla);
 
 void CUiMesh::SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                               int u0, int v0, int u1, int v1) {
@@ -255,7 +255,7 @@ void CUiMesh::SetFrame(float depth, float scale, float left, float top, float ri
     InsetTexels(this);
     RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x005E7D60, CUiMesh::SetFrame);
+EI_REWRITTEN(0x005E7D60, CUiMesh::SetFrame);
 
 void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
                                  float u0, float v0, float u1, float v1, float u2, float v2) {
@@ -296,4 +296,4 @@ void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1
     InsetTexels(this);
     RefreshBuffers();
 }
-EI_REPLACE_METHOD(0x005E99D0, CUiMesh::SetTriangle);
+EI_REWRITTEN(0x005E99D0, CUiMesh::SetTriangle);

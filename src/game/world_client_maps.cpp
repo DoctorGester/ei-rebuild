@@ -1133,7 +1133,7 @@ SectorList* SectorList::VectorDelete(unsigned flags) {
     return this;
 }
 void __fastcall SectorListDestruct(stlp::list<CEngineObject*>* list) { DestroySectorList(list); }
-EI_REPLACE(0x0056DEF0, SectorListDestruct);
+EI_REWRITTEN(0x0056DEF0, SectorListDestruct);
 
 EI_REWRITTEN(0x00572B30, SectorList::VectorDelete);
 EI_REWRITTEN(0x00572C50, SectorList::VectorDelete);
@@ -1652,7 +1652,7 @@ int CWorldClient::LoadZone(CStream* block) {
     CloseLoadingMovie();
     return 1;
 }
-EI_REPLACE_METHOD(0x00567AB0, CWorldClient::LoadZone);
+EI_REWRITTEN(0x00567AB0, CWorldClient::LoadZone);
 
 EI_REWRITTEN(0x00561E50, CWorldClient::Setup);
 EI_REWRITTEN(0x00560650, PlatformSet::AddFace);

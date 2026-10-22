@@ -172,8 +172,8 @@ EI_REWRITTEN(0x0060A100, stlp::TreeAllocProxy::Construct);
 EI_REWRITTEN(0x005F3CD0, stlp::DwordPair::Construct);
 EI_REWRITTEN(0x005F3CF0, stlp::DwordPair::Construct);
 // --- The console's command maps (map<CString, handler>) -------------------------------------------
-EI_REPLACE(0x005E0A90, Commands::Construct);
-EI_REPLACE(0x005DC080, Commands::Destroy);
+EI_REWRITTEN(0x005E0A90, Commands::Construct);
+EI_REWRITTEN(0x005DC080, Commands::Destroy);
 EI_REWRITTEN(0x005F8F30, PersonTexts::Construct);
 EI_REWRITTEN(0x005F5FE0, PersonTexts::Destroy);
 EI_REWRITTEN(0x005F98C0, PersonTexts::FreeHeader);

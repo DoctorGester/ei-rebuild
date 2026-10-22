@@ -260,14 +260,14 @@ void ItemStock::SetLevels(const float* base, const float* scroll) {
     for (int i = 0; i < 8; ++i) baseLevels[i] = base[i];
     for (int i = 0; i < 8; ++i) scrollLevels[i] = scroll[i];
 }
-EI_REPLACE_METHOD(0x00699410, ItemStock::SetLevels);
+EI_REWRITTEN(0x00699410, ItemStock::SetLevels);
 
 void ItemStock::GenerateWeapons(int minCount, int maxCount, StockList* out) { GenerateItems(&weapons, minCount, maxCount, out, 0); }
-EI_REPLACE_METHOD(0x0069B570, ItemStock::GenerateWeapons);
+EI_REWRITTEN(0x0069B570, ItemStock::GenerateWeapons);
 void ItemStock::GenerateArmors(int minCount, int maxCount, StockList* out) { GenerateItems(&armors, minCount, maxCount, out, 1); }
-EI_REPLACE_METHOD(0x0069B550, ItemStock::GenerateArmors);
+EI_REWRITTEN(0x0069B550, ItemStock::GenerateArmors);
 void ItemStock::GenerateQuickItems(int minCount, int maxCount, StockList* out) { GenerateItems(&quickItems, minCount, maxCount, out, 2); }
-EI_REPLACE_METHOD(0x0069B590, ItemStock::GenerateQuickItems);
+EI_REWRITTEN(0x0069B590, ItemStock::GenerateQuickItems);
 
 // ---- 0069A110 -------------------------------------------------------------------------------------
 

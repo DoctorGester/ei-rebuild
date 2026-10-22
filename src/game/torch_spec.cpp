@@ -61,7 +61,7 @@ void CTorchObjectSpec::SaveSpec(CStream* stream) {
     stream->Write(colours_[0], 0xC);
     stream->Write(colours_[1], 0xC);
 }
-EI_REPLACE_METHOD(0x0052C500, CTorchObjectSpec::SaveSpec);
+EI_REWRITTEN(0x0052C500, CTorchObjectSpec::SaveSpec);
 
 void CTorchObjectSpec::Load(CStream* stream) { LoadSpec(stream); }
 void CTorchObjectSpec::Save(CStream* stream) { SaveSpec(stream); }
@@ -71,14 +71,14 @@ void CTorchObjectSpec::SetLight(std::uint32_t kind, const float* colour, float v
     std::memcpy(colours_[0], colour, sizeof(colours_[0]));
     values_[0] = value;
 }
-EI_REPLACE_METHOD(0x0052C590, CTorchObjectSpec::SetLight);
+EI_REWRITTEN(0x0052C590, CTorchObjectSpec::SetLight);
 
 void CTorchObjectSpec::SetFlame(const float* colour, float value, const float* values) {
     std::memcpy(colours_[1], colour, sizeof(colours_[1]));
     values_[1] = value;
     std::memcpy(&values_[2], values, 4 * sizeof(float));
 }
-EI_REPLACE_METHOD(0x0052C5C0, CTorchObjectSpec::SetFlame);
+EI_REWRITTEN(0x0052C5C0, CTorchObjectSpec::SetFlame);
 
 void CTorchObjectSpec::SetName(const char* name) { name_ = name; }
 EI_REWRITTEN(0x0052C600, CTorchObjectSpec::SetName);

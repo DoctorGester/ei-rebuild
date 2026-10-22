@@ -173,7 +173,7 @@ void CSaveLoadWindow::Build() {
     ShowPicture();
     if (!sliding_) interface_->OpenHelp(0);
 }
-EI_REPLACE_METHOD(0x00653DD0, CSaveLoadWindow::Build);
+EI_REWRITTEN(0x00653DD0, CSaveLoadWindow::Build);
 
 // --- Options window (006503C0) ------------------------------------------------------------------
 
@@ -243,7 +243,7 @@ void COptionsWindow::Build() {
     ShowGroup(0);
     if (!sliding_) interface_->OpenHelp(0);
 }
-EI_REPLACE_METHOD(0x006503C0, COptionsWindow::Build);
+EI_REWRITTEN(0x006503C0, COptionsWindow::Build);
 
 // --- Esc menu (0062AB20) ------------------------------------------------------------------------
 
@@ -271,7 +271,7 @@ void CEscMenu::Build() {
     window.models_.data[0]->Play(1);
     window.interface_->PlaySound("buttons\\menu\\shift.wav", 0);
 }
-EI_REPLACE_METHOD(0x0062AB20, CEscMenu::Build);
+EI_REWRITTEN(0x0062AB20, CEscMenu::Build);
 
 // --- Esc menu clicks (0062AE90) -------------------------------------------------------------------
 
@@ -361,7 +361,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
 
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x0062AE90, InputForward<&CEscMenu::OnLButtonDown>::Call);
+EI_REWRITTEN(0x0062AE90, InputForward<&CEscMenu::OnLButtonDown>::Call);
 
 // --- Main menu clicks (00632D70) ------------------------------------------------------------------
 
@@ -475,7 +475,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00632D70, InputForward<&CMainMenu::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00632D70, InputForward<&CMainMenu::OnLButtonDown>::Call);
 
 // --- Message box (00634790) -----------------------------------------------------------------------
 
@@ -550,7 +550,7 @@ void CMessageBox::Build() {
         AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B5, 1, 0);
     }
 }
-EI_REPLACE_METHOD(0x00634790, CMessageBox::Build);
+EI_REWRITTEN(0x00634790, CMessageBox::Build);
 
 // --- Difficulty question (006337B0) ---------------------------------------------------------------
 
@@ -616,7 +616,7 @@ void CDifficultyBox::Build() {
     AddRect(this, boxLeft, row, boxRight, row + 0x15);
     AddRect(this, boxLeft, row + 0x18, boxRight, row + 0x2D);
 }
-EI_REPLACE_METHOD(0x006337B0, CDifficultyBox::Build);
+EI_REWRITTEN(0x006337B0, CDifficultyBox::Build);
 
 // --- Titles (0062B7D0) ----------------------------------------------------------------------------
 
@@ -716,4 +716,4 @@ void CCreditsScreen::Build() {
                                              0);
     finished_ = false;
 }
-EI_REPLACE_METHOD(0x0062B7D0, CCreditsScreen::Build);
+EI_REWRITTEN(0x0062B7D0, CCreditsScreen::Build);

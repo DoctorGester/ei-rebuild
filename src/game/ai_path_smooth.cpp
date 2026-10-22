@@ -282,7 +282,7 @@ SmoothTable* SmoothTable::Construct() {
     chained.Construct(mfc::impl::SmoothStepArrayClass::Vtable());
     return this;
 }
-EI_REPLACE_METHOD(0x005C4210, SmoothTable::Construct);
+EI_REWRITTEN(0x005C4210, SmoothTable::Construct);
 
 void SmoothTable::Destruct() {
     chained.vtable = mfc::impl::SmoothStepArrayClass::Vtable();
@@ -292,7 +292,7 @@ void SmoothTable::Destruct() {
     copies.vtable = mfc::impl::SmoothCopyArrayClass::Vtable();
     copies.FreeData();
 }
-EI_REPLACE_METHOD(0x005C4250, SmoothTable::Destruct);
+EI_REWRITTEN(0x005C4250, SmoothTable::Destruct);
 
 void SmoothTable::Build(const SmoothEdges* from, const SmoothEdges* to) {
     copies.SetSize(0, -1);

@@ -61,7 +61,7 @@ template void AIRefTo<CUnit>::Assign(CUnit*);
 template void AIRefTo<CUnit>::Load(CStream*, CWorld*);
 template void AIRefTo<CUnit>::Save(CStream*);
 
-EI_REPLACE_METHOD(0x0052B030, AIRef::Reset);
+EI_REWRITTEN(0x0052B030, AIRef::Reset);
 EI_REWRITTEN(0x0052B050, AIRef::Reset);
 EI_REWRITTEN(0x00558CE0, AIRef::Reset);
 EI_REWRITTEN(0x0052A8F0, AIRef::Assign);

@@ -224,7 +224,7 @@ using PartNameArray = mfc::CStringArray;
 } // namespace
 
 // 00519A10: Add (SetAtGrow at the size; RET 4).
-EI_REPLACE_METHOD(0x00519A10, AlignedPtrArray::Add);
+EI_REWRITTEN(0x00519A10, AlignedPtrArray::Add);
 
 CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::uint32_t arg) {
     CFigureManager* manager = FigureManagerOf(this);

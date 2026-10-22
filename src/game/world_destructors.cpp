@@ -256,7 +256,7 @@ void CWorldClient::Destruct() {
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
     CWorld::Destruct();
 }
-EI_REPLACE_METHOD(0x00561B00, CWorldClient::Destruct);
+EI_REWRITTEN(0x00561B00, CWorldClient::Destruct);
 
 CWorldClient* CWorldClient::DeletingDestruct(unsigned flags) {
     Destruct();
@@ -290,7 +290,7 @@ void CWorldServer::Destruct() {
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
     CWorld::Destruct();
 }
-EI_REPLACE_METHOD(0x0058AAD0, CWorldServer::Destruct);
+EI_REWRITTEN(0x0058AAD0, CWorldServer::Destruct);
 
 CWorldServer* CWorldServer::DeletingDestruct(unsigned flags) {
     Destruct();

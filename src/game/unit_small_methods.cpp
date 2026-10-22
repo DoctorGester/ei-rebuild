@@ -11,9 +11,9 @@
 
 // 0052E280 / 0052E290 (slots 11 / 12 of the unit's vtable 0073EA8C; unit_update.cpp).
 const char* __fastcall UnitClassName(CUnit* self) { return self->CUnit::GetClassName(); }
-EI_REPLACE(0x0052E280, UnitClassName);
+EI_REWRITTEN(0x0052E280, UnitClassName);
 int __fastcall UnitClassId(CUnit* self) { return self->CUnit::GetClassId(); }
-EI_REPLACE(0x0052E290, UnitClassId);
+EI_REWRITTEN(0x0052E290, UnitClassId);
 
 // 0052E230: the constructor of the motion's segment part (+0x50; nothing to construct). Returns
 // it. Three bytes (too short to hook).
@@ -29,13 +29,13 @@ void CUnit::SetMotionSpeeds(float speed, float turnRate) {
     unitMotion->baseTurnRate = turnRate;
     unitMotion->Build(path);
 }
-EI_REPLACE_METHOD(0x0052EA40, CUnit::SetMotionSpeeds);
+EI_REWRITTEN(0x0052EA40, CUnit::SetMotionSpeeds);
 
 int CUnit::HasPlayer() const { return player != nullptr; }
-EI_REPLACE_METHOD(0x005301A0, CUnit::HasPlayer);
+EI_REWRITTEN(0x005301A0, CUnit::HasPlayer);
 
 double CUnit::DoubleHeight() const { return above.z + above.z; }
-EI_REPLACE_METHOD(0x00530560, CUnit::DoubleHeight);
+EI_REWRITTEN(0x00530560, CUnit::DoubleHeight);
 
 CItemArmor* CUnit::WornItem(int slot) const { return armor[slot]; }
-EI_REPLACE_METHOD(0x00530830, CUnit::WornItem);
+EI_REWRITTEN(0x00530830, CUnit::WornItem);

@@ -127,7 +127,7 @@ LogicSettings* LogicSettings::Construct() {
     loaded = false;
     return this;
 }
-EI_REPLACE_METHOD(0x005CDFC0, LogicSettings::Construct);
+EI_REWRITTEN(0x005CDFC0, LogicSettings::Construct);
 
 // 005CDFB0, a static initialiser (cdecl): the defaults.
 void ConstructLogicSettings() { g_logicSettings.Construct(); }

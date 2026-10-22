@@ -75,7 +75,7 @@ void ServerSession::AnnounceToMaster() {
 
     buffer.DestructGrowing();
 }
-EI_REPLACE_METHOD(0x0041AA10, ServerSession::AnnounceToMaster);
+EI_REWRITTEN(0x0041AA10, ServerSession::AnnounceToMaster);
 
 // 0041ACA0 (slot 10, RET 8). A packet of kind -1: only from the master server's address (all 16
 // bytes compared; from any address with EI_Plugin's NewMaster, which NOPs the JNE at 0041ACB7 so the

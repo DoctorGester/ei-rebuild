@@ -143,7 +143,7 @@ void CHudMap::Layout() {
     widescreen::LeavePanel();        // addon's 1002337E, before the regions
     MoveRegions(this, offset_);
 }
-EI_REPLACE_METHOD(0x00642930, CHudMap::Layout);
+EI_REWRITTEN(0x00642930, CHudMap::Layout);
 
 void CHudMap::UpdateVanilla() {
     // The zoom runs towards the chosen view's end: up to zoomMax_ (view 1) or down to 1 (view 2).
@@ -210,7 +210,7 @@ void CHudUnitPanel::Layout() {
     MoveRegions(this, -offset_);
     widescreen::LeavePanel();        // addon's 100232E9
 }
-EI_REPLACE_METHOD(0x00645F80, CHudUnitPanel::Layout);
+EI_REWRITTEN(0x00645F80, CHudUnitPanel::Layout);
 
 void CHudUnitPanel::UpdateVanilla() {
     if (sliding_) {
@@ -353,7 +353,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     for (int& icon : effectIcons_) icon = -1;
     widescreen::LeavePanel();        // addon's 100230E2
 }
-EI_REPLACE_METHOD(0x006456E0, CHudUnitPanel::SetupVanilla);
+EI_REWRITTEN(0x006456E0, CHudUnitPanel::SetupVanilla);
 
 // --- 00641F20: the map's setup ----------------------------------------------------------------------
 
@@ -518,4 +518,4 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     northTime_ = 0.0f;
     widescreen::LeavePanel();        // addon's 10023359
 }
-EI_REPLACE_METHOD(0x00641F20, CHudMap::SetupVanilla);
+EI_REWRITTEN(0x00641F20, CHudMap::SetupVanilla);

@@ -74,7 +74,7 @@ int CUnit::CreateUnit() {
     MapObject()->NetState()->SetFieldCount(kUnitNetFields);
     return 1;
 }
-EI_REPLACE_METHOD(0x0052E400, CUnit::CreateUnit);
+EI_REWRITTEN(0x0052E400, CUnit::CreateUnit);
 
 int CTorchObject::CreateTorch() {
     CreateMapObject();

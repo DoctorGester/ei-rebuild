@@ -560,7 +560,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
     }
     widescreen::LeavePanel();
 }
-EI_REPLACE_METHOD(0x00649910, CHudMovePanel::ShowModeVanilla);
+EI_REWRITTEN(0x00649910, CHudMovePanel::ShowModeVanilla);
 
 void CHudMovePanel::Update() {
     if (!TheClientWorld()->LocalView()) return;
@@ -921,7 +921,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     }
 }
-EI_REPLACE_METHOD(0x00638EF0, CBattleScreen::SelectUnit);
+EI_REWRITTEN(0x00638EF0, CBattleScreen::SelectUnit);
 
 // --- 0063DB20: the quick item panel's button release -------------------------------------------
 

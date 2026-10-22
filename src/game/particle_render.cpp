@@ -83,20 +83,20 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 } // namespace
 
 // 00497D40: the list's GetNext (the list itself not read).
-EI_REPLACE_METHOD(0x00497D40, mfc::CTypedPtrList<Particle>::GetNext);
+EI_REWRITTEN(0x00497D40, mfc::CTypedPtrList<Particle>::GetNext);
 // Byte-identical copies (other CTypedPtrList iterators in the world range; A-W12).
-EI_REPLACE_METHOD(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
-EI_REPLACE_METHOD(0x0059A670, mfc::CTypedPtrList<Particle>::GetNext);
-EI_REPLACE_METHOD(0x005BD340, mfc::CTypedPtrList<Particle>::GetNext);
+EI_REWRITTEN(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
+EI_REWRITTEN(0x0059A670, mfc::CTypedPtrList<Particle>::GetNext);
+EI_REWRITTEN(0x005BD340, mfc::CTypedPtrList<Particle>::GetNext);
 
 int CSceneRenderer::BindHeldTexture(int stage, HeldTexture* holder) {
     TextureHolderEnsureLoaded(holder);
     return SetTexture(stage, *holder);
 }
-EI_REPLACE_METHOD(0x00497CE0, CSceneRenderer::BindHeldTexture);
+EI_REWRITTEN(0x00497CE0, CSceneRenderer::BindHeldTexture);
 
 // 00497D50. CArray::SetSize for the 8-byte sprites: new elements are zeroed.
-EI_REPLACE_METHOD(0x00497D50, ParticleSpriteArray::SetSize);
+EI_REWRITTEN(0x00497D50, ParticleSpriteArray::SetSize);
 EI_REPLACE(0x00497D30, DestroySprites);
 
 // 004976B0. Off screen (the renderer's clip test on the bounds says 2) only counts the hidden

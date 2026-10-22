@@ -81,7 +81,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
     port = libcrt::imports::Htons(static_cast<std::uint16_t>(number));
     return true;
 }
-EI_REPLACE_METHOD(0x00440440, NetAddress::Parse);
+EI_REWRITTEN(0x00440440, NetAddress::Parse);
 
 // The look-up is given the whole sockaddr, as the original does.
 stlp::string* NetAddress::Format(stlp::string* out, int resolve) const {
@@ -330,7 +330,7 @@ int __fastcall MasterLinkTick(MasterLink* self) {
         return self->state;
     }
 }
-EI_REPLACE(0x00440DE0, MasterLinkTick);
+EI_REWRITTEN(0x00440DE0, MasterLinkTick);
 
 // 0047C330, the exit function of Winsock's static initialiser 0047C300 (WSAStartup 1.1): WSACleanup once the network
 // threads are gone. The original waits while their count (007A9774) is non-zero; only the thread procedure 0047C3A0

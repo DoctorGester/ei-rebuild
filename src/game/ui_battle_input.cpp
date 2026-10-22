@@ -23,7 +23,7 @@ void CBattleScreen::OnDeactivate() {
 namespace {
 void __fastcall BattleScreenDeactivate(void* input) { WindowFromInput<CBattleScreen>(input)->OnDeactivate(); }
 } // namespace
-EI_REPLACE(0x00638A10, BattleScreenDeactivate);
+EI_REWRITTEN(0x00638A10, BattleScreenDeactivate);
 
 // --- 00638AD0: a double click on the battle screen -------------------------------------------
 
@@ -40,7 +40,7 @@ void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00638AD0, InputForward<&CBattleScreen::OnLeftDouble>::Call);
+EI_REWRITTEN(0x00638AD0, InputForward<&CBattleScreen::OnLeftDouble>::Call);
 
 // --- 0063B6D0: a key released on the battle screen -------------------------------------------
 
@@ -52,7 +52,7 @@ void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x0063B6D0, InputForward<&CBattleScreen::OnKeyUp>::Call);
+EI_REWRITTEN(0x0063B6D0, InputForward<&CBattleScreen::OnKeyUp>::Call);
 
 // --- 0063B770: the wheel on the battle screen ------------------------------------------------
 
@@ -71,4 +71,4 @@ BOOL CBattleScreen::OnWheel(int flags, int delta, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x0063B770, InputForward<&CBattleScreen::OnWheel>::Call);
+EI_REWRITTEN(0x0063B770, InputForward<&CBattleScreen::OnWheel>::Call);

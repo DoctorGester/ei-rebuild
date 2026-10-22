@@ -41,9 +41,9 @@ void CountedRef<T>::Assign(T* value) {
 template struct CountedRef<CLinkMesh>;
 template struct CountedRef<WoundsMaterial>;
 template struct CountedRef<CRenderPreset>;
-EI_REPLACE_METHOD(0x00519580, CountedRef<CLinkMesh>::Assign);
-EI_REPLACE_METHOD(0x0051E570, CountedRef<WoundsMaterial>::Assign);   // byte-identical copies (A-U11)
-EI_REPLACE_METHOD(0x0051E4F0, CountedRef<CRenderPreset>::Assign);
+EI_REWRITTEN(0x00519580, CountedRef<CLinkMesh>::Assign);
+EI_REWRITTEN(0x0051E570, CountedRef<WoundsMaterial>::Assign);   // byte-identical copies (A-U11)
+EI_REWRITTEN(0x0051E4F0, CountedRef<CRenderPreset>::Assign);
 
 int CObject3D::Create3D() {
     std::memset(&localPosition_, 0, sizeof(localPosition_));

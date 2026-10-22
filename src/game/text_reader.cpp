@@ -113,7 +113,7 @@ BOOL CTextManager::Open(const char* key) {
     text_ = text;
     return text && length_ != 0;
 }
-EI_REPLACE_METHOD(0x004DEFC0, CTextManager::Open);
+EI_REWRITTEN(0x004DEFC0, CTextManager::Open);
 
 BOOL CTextManager::OpenData(const char* key) {
     if (text_) {
@@ -300,4 +300,4 @@ BOOL CTextManager::FindLine(const char* key) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x004DF030, CTextManager::FindLine);
+EI_REWRITTEN(0x004DF030, CTextManager::FindLine);

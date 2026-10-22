@@ -151,4 +151,4 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
 
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x006034A0, InputForward<&CBriefingScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x006034A0, InputForward<&CBriefingScreen::OnKeyDown>::Call);

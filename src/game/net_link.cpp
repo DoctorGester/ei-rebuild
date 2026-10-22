@@ -101,7 +101,7 @@ FileStream* FileStream::DeletingDestruct(unsigned flags) {   // 00477F90
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00477F90, FileStream::DeletingDestruct);
+EI_REWRITTEN(0x00477F90, FileStream::DeletingDestruct);
 
 std::uint32_t FileStream::ReadImpl(void* buffer, std::uint32_t size) {   // 00477F00
     std::uint32_t read = File()->Read(buffer, size);
@@ -112,7 +112,7 @@ std::uint32_t FileStream::ReadImpl(void* buffer, std::uint32_t size) {   // 0047
 void FileStream::WriteImpl(const void* buffer, std::uint32_t size) { File()->Write(buffer, size); }   // 00477F30
 
 long FileStream::SeekFrom(long position) { return File()->Seek(position, 0u); }   // 00477F50
-EI_REPLACE_METHOD(0x00477F50, FileStream::SeekFrom);
+EI_REWRITTEN(0x00477F50, FileStream::SeekFrom);
 void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(position)); }
 
 std::uint32_t FileStream::Size() { return File()->GetLength(); }       // 00477F70
@@ -122,17 +122,17 @@ long FileStream::Restart() {   // 00477EE0
     ok_ = 1;
     return File()->Seek(0L, 0u);
 }
-EI_REPLACE_METHOD(0x00477EE0, FileStream::Restart);
+EI_REWRITTEN(0x00477EE0, FileStream::Restart);
 void FileStream::Clear() { Restart(); }
 
 namespace {
 std::uint32_t __fastcall FileStreamSizeHook(FileStream* self) { return self->FileStream::Size(); }
 std::uint32_t __fastcall FileStreamPositionHook(FileStream* self) { return self->FileStream::Position(); }
 } // namespace
-EI_REPLACE_METHOD(0x00477F00, FileStream::ReadImpl);
-EI_REPLACE_METHOD(0x00477F30, FileStream::WriteImpl);
-EI_REPLACE(0x00477F70, FileStreamSizeHook);
-EI_REPLACE(0x00477F80, FileStreamPositionHook);
+EI_REWRITTEN(0x00477F00, FileStream::ReadImpl);
+EI_REWRITTEN(0x00477F30, FileStream::WriteImpl);
+EI_REWRITTEN(0x00477F70, FileStreamSizeHook);
+EI_REWRITTEN(0x00477F80, FileStreamPositionHook);
 
 // ================================================================================================
 // NetLink (0073C8A4)
@@ -165,7 +165,7 @@ NetLink* NetLink::DeletingDestruct(unsigned flags) {   // 00478030
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00478030, NetLink::DeletingDestruct);
+EI_REWRITTEN(0x00478030, NetLink::DeletingDestruct);
 
 int NetLink::IncomingCount() { return HasIncoming() ? 1 : 0; }   // 00478000
 bool NetLink::SendImpl(CStream*) { return true; }                    // 00478100
@@ -201,9 +201,9 @@ EI_REWRITTEN(0x004780E0, NetLink::CloseRecording);
 namespace {
 int __fastcall LinkIncomingCountHook(NetLink* self) { return self->NetLink::IncomingCount(); }
 } // namespace
-EI_REPLACE(0x00478000, LinkIncomingCountHook);
-EI_REPLACE_METHOD(0x00478100, NetLink::SendImpl);
-EI_REPLACE_METHOD(0x00478110, NetLink::ReceiveImpl);
+EI_REWRITTEN(0x00478000, LinkIncomingCountHook);
+EI_REWRITTEN(0x00478100, NetLink::SendImpl);
+EI_REWRITTEN(0x00478110, NetLink::ReceiveImpl);
 
 // ================================================================================================
 // LoopbackLink (0073C8F8)
@@ -267,7 +267,7 @@ LoopbackLink* LoopbackLink::DeletingDestruct(unsigned flags) {   // 00478780
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00478780, LoopbackLink::DeletingDestruct);
+EI_REWRITTEN(0x00478780, LoopbackLink::DeletingDestruct);
 
 // Destroyed and built again in place (the reference count and +9 kept): no peer, an empty queue, a
 // closed file, not recording.
@@ -359,15 +359,15 @@ bool __fastcall LoopbackHasIncomingHook(LoopbackLink* self) { return self->Loopb
 int __fastcall LoopbackIncomingCountHook(LoopbackLink* self) { return self->LoopbackLink::IncomingCount(); }
 void __fastcall LoopbackDisconnectHook(LoopbackLink* self) { self->LoopbackLink::Disconnect(); }
 } // namespace
-EI_REPLACE(0x00478610, LoopbackResetHook);
-EI_REPLACE(0x004784D0, LoopbackCloneHook);
-EI_REPLACE(0x00478710, LoopbackConnectedHook);
-EI_REPLACE(0x00478730, LoopbackAliveHook);
-EI_REPLACE(0x00478750, LoopbackHasIncomingHook);
-EI_REPLACE(0x00478760, LoopbackIncomingCountHook);
-EI_REPLACE_METHOD(0x00478220, LoopbackLink::SendImpl);
-EI_REPLACE_METHOD(0x00478270, LoopbackLink::ReceiveImpl);
-EI_REPLACE(0x00478140, LoopbackDisconnectHook);
+EI_REWRITTEN(0x00478610, LoopbackResetHook);
+EI_REWRITTEN(0x004784D0, LoopbackCloneHook);
+EI_REWRITTEN(0x00478710, LoopbackConnectedHook);
+EI_REWRITTEN(0x00478730, LoopbackAliveHook);
+EI_REWRITTEN(0x00478750, LoopbackHasIncomingHook);
+EI_REWRITTEN(0x00478760, LoopbackIncomingCountHook);
+EI_REWRITTEN(0x00478220, LoopbackLink::SendImpl);
+EI_REWRITTEN(0x00478270, LoopbackLink::ReceiveImpl);
+EI_REWRITTEN(0x00478140, LoopbackDisconnectHook);
 
 // ================================================================================================
 // ReplayLink (0073C92C)
@@ -403,7 +403,7 @@ ReplayLink* ReplayLink::DeletingDestruct(unsigned flags) {   // 00478CA0
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00478CA0, ReplayLink::DeletingDestruct);
+EI_REWRITTEN(0x00478CA0, ReplayLink::DeletingDestruct);
 
 // Destroyed and built again in place (the reference count and +9 kept): two closed files, not
 // recording.
@@ -448,12 +448,12 @@ int __fastcall ReplayAliveHook(ReplayLink* self) { return self->ReplayLink::Aliv
 int __fastcall ReplayHasIncomingHook(ReplayLink* self) { return self->ReplayLink::HasIncoming() ? 1 : 0; }
 void __fastcall ReplayDisconnectHook(ReplayLink* self) { self->ReplayLink::Disconnect(); }
 } // namespace
-EI_REPLACE(0x00478B10, ReplayResetHook);
-EI_REPLACE(0x00478A50, ReplayCloneHook);
-EI_REPLACE(0x00478C30, ReplayAliveHook);
-EI_REPLACE(0x00478C50, ReplayHasIncomingHook);
-EI_REPLACE_METHOD(0x00478C70, ReplayLink::ReceiveImpl);
-EI_REPLACE(0x00478C90, ReplayDisconnectHook);
+EI_REWRITTEN(0x00478B10, ReplayResetHook);
+EI_REWRITTEN(0x00478A50, ReplayCloneHook);
+EI_REWRITTEN(0x00478C30, ReplayAliveHook);
+EI_REWRITTEN(0x00478C50, ReplayHasIncomingHook);
+EI_REWRITTEN(0x00478C70, ReplayLink::ReceiveImpl);
+EI_REWRITTEN(0x00478C90, ReplayDisconnectHook);
 
 // ================================================================================================
 // FramedLink (0073C9C8)
@@ -472,7 +472,7 @@ FramedLink* FramedLink::DeletingDestruct(unsigned flags) {   // 00479B70
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00479B70, FramedLink::DeletingDestruct);
+EI_REWRITTEN(0x00479B70, FramedLink::DeletingDestruct);
 
 void FramedLink::Append(const void* data, std::uint32_t size) {   // 0047B980
     CStream* inbox = &inbox_;
@@ -564,10 +564,10 @@ namespace {
 int __fastcall FramedHasIncomingHook(FramedLink* self) { return self->FramedLink::HasIncoming() ? 1 : 0; }
 int __fastcall FramedIncomingCountHook(FramedLink* self) { return self->FramedLink::IncomingCount(); }
 } // namespace
-EI_REPLACE(0x0047B9F0, FramedHasIncomingHook);
-EI_REPLACE(0x0047BA40, FramedIncomingCountHook);
-EI_REPLACE_METHOD(0x0047BAD0, FramedLink::SendImpl);
-EI_REPLACE_METHOD(0x0047BB70, FramedLink::ReceiveImpl);
+EI_REWRITTEN(0x0047B9F0, FramedHasIncomingHook);
+EI_REWRITTEN(0x0047BA40, FramedIncomingCountHook);
+EI_REWRITTEN(0x0047BAD0, FramedLink::SendImpl);
+EI_REWRITTEN(0x0047BB70, FramedLink::ReceiveImpl);
 
 // ================================================================================================
 // DriverLink (0073C990)
@@ -627,7 +627,7 @@ DriverLink* DriverLink::DeletingDestruct(unsigned flags) {   // 00479D20
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x00479D20, DriverLink::DeletingDestruct);
+EI_REWRITTEN(0x00479D20, DriverLink::DeletingDestruct);
 
 // Destroyed (disconnecting) and built again in place with the constructor's code (0047A030): the
 // reference count and +9 kept, no player, an empty inbox, a closed file.

@@ -157,7 +157,7 @@ void __fastcall BehaviourDestruct(Behaviour* self) {
     for (int i = 0, n = self->patrols.size; i < n; ++i) DestroyPatrol(patrols[i]);
     gamecrt::operator_delete(self->patrols.data);
 }
-EI_REPLACE(0x0046C290, BehaviourDestruct);
+EI_REWRITTEN(0x0046C290, BehaviourDestruct);
 
 // 0046E680: the patrol array becomes a copy of `from` (each patrol copied through a temporary
 // returned by value, as the original does).

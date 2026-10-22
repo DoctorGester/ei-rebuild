@@ -559,7 +559,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x006C68B0, Terrain::LoadMap);
+EI_REWRITTEN(0x006C68B0, Terrain::LoadMap);
 
 // ---- The world matrix, the light interval, water levels, tile texture coordinates -------------------
 

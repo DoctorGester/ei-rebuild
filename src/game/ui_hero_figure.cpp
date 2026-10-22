@@ -113,4 +113,4 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     if (mode_ == kModeNewHero) DrawVoices();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REPLACE_METHOD(0x00616AC0, CMpHeroScreen::ChooseFigure);
+EI_REWRITTEN(0x00616AC0, CMpHeroScreen::ChooseFigure);
