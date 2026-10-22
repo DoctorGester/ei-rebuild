@@ -4,6 +4,7 @@
 // the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
 #include "at_exit_functions.h"
+#include "lib/static_object.h"
 #include "texture.h"
 
 #include "core_maths.h"
@@ -45,8 +46,11 @@ struct SpriteElements {
     static void Construct(SpriteRecord* records, int count) { mfc::PlainElements<SpriteRecord>::Construct(records, count); }
     static void Destruct(SpriteRecord*, int) {}
 };
-using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;   // vtable 0073C584, at 0079C1E0
-SpriteArray& Sprites() { return ei::GameData<SpriteArray>(0x0079C1E0); }
+using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;   // vtable 0073C584
+static_assert(sizeof(SpriteArray) == 0x14);
+constinit lib::StaticObject<SpriteArray> g_sprites = /*0079C1E0*/ {};
+SpriteArray& Sprites() { return *g_sprites; }
+void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }   // 00467A10 (00468D80)
 constinit lib::AlignedArray<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
 lib::AlignedArray<LightningPoint>& GlowPoints() { return g_glowPoints; }
 void __cdecl FreeGlowPoints() { g_glowPoints.FreeData(); }   // 004679F0
@@ -69,7 +73,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     if (!(g_glowGuards & 1)) {
         g_glowGuards |= 1;
         SpriteArrayConstruct(&Sprites());
-        GameAtExit(ei::static_init::Exit00467A10);
+        GameAtExit(DestroySprites);
     }
     if (!(g_glowGuards & 2)) {
         g_glowGuards |= 2;
@@ -166,3 +170,4 @@ int CLightning::DrawImpl(void* device) {
 }
 EI_REWRITTEN(0x00467AD0, CLightning::DrawImpl);
 EI_REPLACE(0x004679F0, FreeGlowPoints);
+EI_REPLACE(0x00467A10, DestroySprites);

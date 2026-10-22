@@ -8,8 +8,6 @@
 // that address to jump here.
 
 namespace ei::static_init {
-void __cdecl Exit00467A10();   // the glow's CArray (lightning_draw.cpp)
-void __cdecl Exit00497D30();   // the particle draw's CArray (particle_render.cpp)
 void __cdecl Exit004E1C50();   // the dead fog cells (effects_weather.cpp)
 void __cdecl Exit004E2280();   // the weather draw's records (effects_weather_draw.cpp)
 void __cdecl Exit0057E6A0();   // the game flow's static (world_game.cpp)
