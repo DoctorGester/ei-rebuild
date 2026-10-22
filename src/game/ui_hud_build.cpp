@@ -7,6 +7,7 @@
 // EdgeShift). Rewritten callers keep their forwarders (the battle screen's Create, the panels'
 // SetUnit). See ui.h, docs/notes/ui.md ("Battle screen") and docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
+#include "ui_window_class.h"
 #include "game_strings.h"
 
 #include "item_db_text.h"
@@ -25,7 +26,34 @@
 
 namespace {
 
-void** Vtable(std::uintptr_t address) { return ei::GamePointer<void*>(address); }
+// The panels' compiled tables (C19, ui_window_class.h) in place of game.exe's: the weapon bar's 0074279C / 00742768
+// and the quick items' 0074283C / 00742808 (their draw 20 and update 24), the spell column's 007428E4 / 007428B0 and the
+// action column's 00742980 / 0074294C (their draw); the input sides' left button and mouse moves, the quick items'
+// and the spell column's double click (7).
+struct WeaponBarClass final : UiWindowClass<WeaponBarClass, &CHudWeaponBar::HudWeaponBarDelete> {
+    BOOL Draw(int pass) override { return AsWindow()->Draw(pass); }   // 20: 0063C4F0
+    void Update() override { AsWindow()->Update(); }                  // 24: 0063C600
+};
+struct WeaponBarInputClass final : PanelInputClass<WeaponBarInputClass, &CHudWeaponBar::HudWeaponBarDelete, CHudWeaponBar> {};
+struct QuickItemsClass final : UiWindowClass<QuickItemsClass, &CHudQuickItems::HudQuickItemsDelete> {
+    BOOL Draw(int pass) override { return AsWindow()->Draw(pass); }   // 20: 0063CDC0
+    void Update() override { AsWindow()->Update(); }                  // 24: 0063D9D0
+};
+struct QuickItemsInputClass final : PanelInputClass<QuickItemsInputClass, &CHudQuickItems::HudQuickItemsDelete, CHudQuickItems> {
+    int LeftDouble(int b, int x, int y) override { return AsPanel()->OnDoubleClick(b, x, y), 0; }   // 7: 0063DAE0
+};
+struct SpellColumnClass final : UiWindowClass<SpellColumnClass, &CHudSpellColumn::HudSpellColumnDelete> {
+    BOOL Draw(int pass) override { return AsWindow()->Draw(pass); }   // 20: 0063F190
+};
+struct SpellColumnInputClass final
+    : PanelInputClass<SpellColumnInputClass, &CHudSpellColumn::HudSpellColumnDelete, CHudSpellColumn> {
+    int LeftDouble(int b, int x, int y) override { return AsPanel()->OnDoubleClick(b, x, y), 0; }   // 7: 0063F220
+};
+struct ActionColumnClass final : UiWindowClass<ActionColumnClass, &CHudActionColumn::HudActionColumnDelete> {
+    BOOL Draw(int pass) override { return AsWindow()->Draw(pass); }   // 20: 0063FD50
+};
+struct ActionColumnInputClass final
+    : PanelInputClass<ActionColumnInputClass, &CHudActionColumn::HudActionColumnDelete, CHudActionColumn> {};
 
 float Pi() { return 3.1415927f /*007423F8*/; }
 // A texel as a texture offset: 1 / 256 (0073EEB8).
@@ -101,14 +129,23 @@ Quaternion ProductSecond(const Quaternion& q, const Quaternion& r) {
 
 } // namespace
 
+void** CHudWeaponBar::Vtable() { return static_cast<void**>(WeaponBarClass::Vtable()); }
+void** CHudWeaponBar::InputVtable() { return static_cast<void**>(WeaponBarInputClass::Vtable()); }
+void** CHudQuickItems::Vtable() { return static_cast<void**>(QuickItemsClass::Vtable()); }
+void** CHudQuickItems::InputVtable() { return static_cast<void**>(QuickItemsInputClass::Vtable()); }
+void** CHudSpellColumn::Vtable() { return static_cast<void**>(SpellColumnClass::Vtable()); }
+void** CHudSpellColumn::InputVtable() { return static_cast<void**>(SpellColumnInputClass::Vtable()); }
+void** CHudActionColumn::Vtable() { return static_cast<void**>(ActionColumnClass::Vtable()); }
+void** CHudActionColumn::InputVtable() { return static_cast<void**>(ActionColumnInputClass::Vtable()); }
+
 // --- Weapon bar ------------------------------------------------------------------------------------------------
 
 CHudWeaponBar* CHudWeaponBar::Construct(CInterface3D* ui, CBattleScreen* owner) {
     CUiWindow::Construct(ui);
     owner_ = owner;
     labels_.Construct();
-    vtable_ = Vtable(0x0074279C);
-    inputVtable_ = Vtable(0x00742768);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     // WideScreen: the rectangle and the first region from 80 - shift (0063BAFC, 0063BB2B); the
     // regions still run up to x 240, so the bar has more of them (no tips beyond the fourth).
     const int shift = widescreen::EdgeShift();
@@ -198,8 +235,8 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     auto* entries = reinterpret_cast<mfc::CArray<Entry>*>(&entriesVtable_);
     entries->Construct(mfc::impl::QuickEntryArrayClass::Vtable());
     labels_.Construct();
-    vtable_ = Vtable(0x0074283C);
-    inputVtable_ = Vtable(0x00742808);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     const int shift = widescreen::EdgeShift();
     rect_ = {520 + shift, 500, 720 + shift, 600};   // WideScreen: 0063C880 / 0063C894
     // The bottom row (the unit's items), then the top row (the player's), each from the right.
@@ -246,8 +283,8 @@ CHudSpellColumn* CHudSpellColumn::Construct(CInterface3D* ui, CBattleScreen* own
     CUiWindow::Construct(ui);
     owner_ = owner;
     labels_.Construct();
-    vtable_ = Vtable(0x007428E4);
-    inputVtable_ = Vtable(0x007428B0);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     const int shift = widescreen::EdgeShift();
     rect_ = {760 + shift, 190, 800 + shift, 510};   // WideScreen: 0063E306 / 0063E31A
     ClearSceneObjects();
@@ -298,8 +335,8 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     owner_ = owner;
     actions_.Construct(mfc::impl::IntArrayClass::Vtable());
     labels_.Construct();
-    vtable_ = Vtable(0x00742980);
-    inputVtable_ = Vtable(0x0074294C);
+    vtable_ = Vtable();
+    inputVtable_ = InputVtable();
     // WideScreen (addon's 10023416 at 0063F378, 0063F38E): the panel offset from here on, the
     // rectangle less the shift.
     widescreen::EnterLeftPanel();

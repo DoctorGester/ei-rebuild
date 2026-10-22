@@ -6,6 +6,7 @@
 #include "core_streams.h"
 #include "ui.h"
 #include "ui_input_class.h"
+#include "ui_window_class.h"
 #include "ui_camera_keys.h"
 #include "ui_camp.h"
 #include "game_strings.h"
@@ -48,6 +49,36 @@ struct TopPanelInputClass final : InputSideClass<TopPanelInputClass, &CHudTopPan
     int Wheel(int f, int d, int x, int y) override { return SideWindow()->OnWheel(f, d, x, y); }     // 12
 };
 
+// The other panels' compiled tables (C19, ui_window_class.h) in place of game.exe's: the top panel's 00742498 (its
+// update, 24), the clock's 007425C8 / 00742594 (its update), the movement panel's 00742530 / 007424FC (its setup, 18,
+// and update), the unit panel's 007426F8 / 007426C4 (its draw, 20, and update; the wheel, 12) and the map's 00742660 /
+// 0074262C (its update; the wheel). The input sides: the left button and mouse moves.
+struct TopPanelClass final : UiWindowClass<TopPanelClass, &CHudTopPanel::HudTopPanelDelete> {
+    void Update() override { AsWindow()->Update(); }   // 24: 00649FF0
+};
+struct ClockClass final : PanelClass<ClockClass, &CUiWindow::UiWindowDelete, CHudClock> {
+    void Update() override { AsPanel()->Update(); }   // 24: 006488E0
+};
+struct ClockInputClass final : PanelInputClass<ClockInputClass, &CUiWindow::UiWindowDelete, CHudClock> {};
+struct MovePanelClass final : PanelClass<MovePanelClass, &CUiWindow::UiWindowDelete, CHudMovePanel> {
+    void Build() override { AsPanel()->SetupVanilla(); }   // 18: 00649190 (WideScreen behind its flag, W3)
+    void Update() override { AsPanel()->Update(); }        // 24: 00649550
+};
+struct MovePanelInputClass final : PanelInputClass<MovePanelInputClass, &CUiWindow::UiWindowDelete, CHudMovePanel> {};
+struct UnitPanelClass final : UiWindowClass<UnitPanelClass, &CHudUnitPanel::HudUnitPanelDelete> {
+    BOOL Draw(int pass) override { return AsWindow()->DrawVanilla(pass); }   // 20: 006462A0 (WideScreen, W3)
+    void Update() override { AsWindow()->UpdateVanilla(); }                  // 24: 00647FB0 (WideScreen, W3)
+};
+struct UnitPanelInputClass final : PanelInputClass<UnitPanelInputClass, &CHudUnitPanel::HudUnitPanelDelete, CHudUnitPanel> {
+    int Wheel(int f, int d, int x, int y) override { return AsPanel()->OnWheel(f, d, x, y); }   // 12: 006484F0
+};
+struct MapClass final : UiWindowClass<MapClass, &CHudMap::HudMapDelete> {
+    void Update() override { AsWindow()->UpdateVanilla(); }   // 24: 00642B40 (WideScreen, W3)
+};
+struct MapInputClass final : PanelInputClass<MapInputClass, &CHudMap::HudMapDelete, CHudMap> {
+    int Wheel(int f, int d, int x, int y) override { return AsPanel()->OnWheel(f, d, x, y); }   // 12: 00645640
+};
+
 // --- Not rewritten -------------------------------------------------------------------------------
 
 // The Rebirth-patched panel constructors and builders, called on the panel (all thiscall; kept as
@@ -80,29 +111,32 @@ CUiWindow* NewWindowBase(void* memory, CInterface3D* ui) { return static_cast<CU
 int SaveVersion() { return ei::GameData<const int>(0x007AFE00); }
 bool LoadingGame() { return ei::GameData<const int>(0x007AFE1C) != 0; }
 
-// The vtables (main, input) of the panels Create builds inline.
-constexpr std::uintptr_t kClockVtable = std::uintptr_t(0x007425C8);            // CHudClock
-constexpr std::uintptr_t kClockInputVtable = std::uintptr_t(0x00742594);
-constexpr std::uintptr_t kMovePanelVtable = std::uintptr_t(0x00742530);        // CHudMovePanel
-constexpr std::uintptr_t kMovePanelInputVtable = std::uintptr_t(0x007424FC);
-
 // A panel constructed inline by Create: the window base, the owner (the battle screen, declared
-// apart as CBattleScreen), the two vtables.
+// apart as CBattleScreen), the panel's two tables.
 template <typename Panel>
-Panel* NewPlainPanel(CInterface3D* ui, std::size_t size, CBattleScreen* owner, std::uintptr_t vtable,
-                     std::uintptr_t inputVtable) {
+Panel* NewPlainPanel(CInterface3D* ui, std::size_t size, CBattleScreen* owner) {
     void* memory = gamecrt::operator_new(size);
     if (!memory) return nullptr;
     auto* panel = static_cast<Panel*>(NewWindowBase(memory, ui));
     panel->owner_ = owner;
-    panel->vtable_ = ei::GamePointer<void*>(vtable);
-    panel->inputVtable_ = ei::GamePointer<void*>(inputVtable);
+    panel->vtable_ = Panel::Vtable();
+    panel->inputVtable_ = Panel::InputVtable();
     return panel;
 }
 
 // A CString member made empty, as MFC's inline constructor does (afxEmptyString's data).
 
 } // namespace
+
+void** CHudTopPanel::Vtable() { return static_cast<void**>(TopPanelClass::Vtable()); }
+void** CHudClock::Vtable() { return static_cast<void**>(ClockClass::Vtable()); }
+void** CHudClock::InputVtable() { return static_cast<void**>(ClockInputClass::Vtable()); }
+void** CHudMovePanel::Vtable() { return static_cast<void**>(MovePanelClass::Vtable()); }
+void** CHudMovePanel::InputVtable() { return static_cast<void**>(MovePanelInputClass::Vtable()); }
+void** CHudUnitPanel::Vtable() { return static_cast<void**>(UnitPanelClass::Vtable()); }
+void** CHudUnitPanel::InputVtable() { return static_cast<void**>(UnitPanelInputClass::Vtable()); }
+void** CHudMap::Vtable() { return static_cast<void**>(MapClass::Vtable()); }
+void** CHudMap::InputVtable() { return static_cast<void**>(MapInputClass::Vtable()); }
 
 // --- Create (00635250) ---------------------------------------------------------------------------
 
@@ -199,8 +233,8 @@ void CBattleScreen::Create() {
             ::new (&panel->strings_[1]) mfc::CString;
             panel->texts_.Construct();
             panel->partLabels_.Construct();
-            panel->vtable_ = ei::GamePointer<void*>(0x007426F8);
-            panel->inputVtable_ = ei::GamePointer<void*>(0x007426C4);
+            panel->vtable_ = CHudUnitPanel::Vtable();
+            panel->inputVtable_ = CHudUnitPanel::InputVtable();
         }
         unitPanel_ = panel;
     }
@@ -221,8 +255,8 @@ void CBattleScreen::Create() {
                 points->capacity = 0;
                 points->size = 0;
             }
-            panel->vtable_ = ei::GamePointer<void*>(0x00742660);
-            panel->inputVtable_ = ei::GamePointer<void*>(0x0074262C);
+            panel->vtable_ = CHudMap::Vtable();
+            panel->inputVtable_ = CHudMap::InputVtable();
         }
         map_ = panel;
     }
@@ -230,12 +264,12 @@ void CBattleScreen::Create() {
     map_->AddObject(objects_.data[2]);
     Raw(map_)->BuildMap(mapZoom, interface_->hudPanelsIn_[2]);
 
-    clock_ = NewPlainPanel<CHudClock>(interface_, 0x15C, this, kClockVtable, kClockInputVtable);
+    clock_ = NewPlainPanel<CHudClock>(interface_, 0x15C, this);
     AddChild(clock_);
     clock_->AddObject(objects_.data[2]);
     Raw(clock_)->BuildClock(interface_->fastGame_);
 
-    movePanel_ = NewPlainPanel<CHudMovePanel>(interface_, 0x154, this, kMovePanelVtable, kMovePanelInputVtable);
+    movePanel_ = NewPlainPanel<CHudMovePanel>(interface_, 0x154, this);
     AddChild(movePanel_);
     movePanel_->AddObject(objects_.data[2]);
     using CreateFn = void(__thiscall*)(CUiWindow*);
@@ -254,7 +288,7 @@ void CBattleScreen::Create() {
             panel->owner_ = this;
             ::new (&panel->pageTexts_[0]) mfc::CString;
             ::new (&panel->pageTexts_[1]) mfc::CString;
-            panel->vtable_ = ei::GamePointer<void*>(0x00742498);
+            panel->vtable_ = CHudTopPanel::Vtable();
             panel->inputVtable_ = static_cast<void**>(TopPanelInputClass::Vtable());
         }
         topPanel_ = panel;

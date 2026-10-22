@@ -91,3 +91,23 @@ public:
     int MouseMove(int b, int x, int y) override { return this->SideWindow()->CUiScrollbar::OnMouseMove(b, x, y), 0; }   // 4
     int Wheel(int f, int d, int x, int y) override { return this->SideWindow()->CUiScrollbar::OnWheel(f, d, x, y); }     // 12
 };
+
+// A window class whose slot 0 is a base's deleting destructor (the plain window's, say): the window as
+// `Panel` (AsPanel), for the slots its table has of its own.
+template <typename Self, auto Delete, typename Panel>
+class PanelClass : public UiWindowClass<Self, Delete> {
+protected:
+    Panel* AsPanel() { return static_cast<Panel*>(this->AsWindow()); }
+};
+
+// The HUD panels' input sides (game.exe's 00742594, 007424FC, 0074262C, 007426C4, 00742768, 00742808, 007428B0,
+// 0074294C, 007429E4): `Panel`'s left button down (2) and up (3) and mouse move (4); a panel's tag adds the double
+// click (7) or the wheel (12) where its table has them.
+template <typename Self, auto Delete, typename Panel>
+class PanelInputClass : public InputSideClass<Self, Delete> {
+public:
+    Panel* AsPanel() { return static_cast<Panel*>(this->SideWindow()); }
+    int LeftDown(int b, int x, int y) override { return AsPanel()->OnMouseDown(b, x, y), 0; }    // 2
+    int LeftUp(int b, int x, int y) override { return AsPanel()->OnMouseUp(b, x, y), 0; }        // 3
+    int MouseMove(int b, int x, int y) override { return AsPanel()->OnMouseMove(b, x, y), 0; }   // 4
+};

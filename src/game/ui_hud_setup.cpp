@@ -174,4 +174,4 @@ void CHudMovePanel::SetupVanilla() {
     SceneMesh(5)->textureOffsetU_ = 0.48046875f;
     widescreen::LeavePanel();
 }
-EI_REPLACE_METHOD(0x00649190, CHudMovePanel::SetupVanilla);
+EI_REWRITTEN(0x00649190, CHudMovePanel::SetupVanilla);

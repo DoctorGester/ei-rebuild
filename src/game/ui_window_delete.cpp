@@ -284,8 +284,8 @@ EI_REPLACE_METHOD(0x0060E5B0, CUiWindow::UiWindowDelete);   // the constructors'
 EI_REPLACE_METHOD(0x0060E650, CUiWindow::UiWindowDelete);   // the item maker (007415D4)
 EI_REPLACE_METHOD(0x0060E680, CUiWindow::UiWindowDelete);   // the repair grid (00741538)
 EI_REPLACE_METHOD(0x006157D0, CUiWindow::UiWindowDelete);   // the figure strips (00741BF4)
-EI_REPLACE_METHOD(0x00635D80, CUiWindow::UiWindowDelete);   // the game clock (007425C8)
-EI_REPLACE_METHOD(0x00635DB0, CUiWindow::UiWindowDelete);   // the movement panel (00742530)
+EI_REWRITTEN(0x00635D80, CUiWindow::UiWindowDelete);   // the game clock (007425C8)
+EI_REWRITTEN(0x00635DB0, CUiWindow::UiWindowDelete);   // the movement panel (00742530)
 
 // 00600B80 (the plain container, 00741008) and the containers whose body is the container's.
 CUiContainer* CUiContainer::UiContainerDelete(unsigned flags) {
@@ -465,42 +465,42 @@ CHudMap* CHudMap::HudMapDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x00635C80, CHudMap::HudMapDelete);
+EI_REWRITTEN(0x00635C80, CHudMap::HudMapDelete);
 CHudUnitPanel* CHudUnitPanel::HudUnitPanelDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x00635CE0, CHudUnitPanel::HudUnitPanelDelete);
+EI_REWRITTEN(0x00635CE0, CHudUnitPanel::HudUnitPanelDelete);
 CHudTopPanel* CHudTopPanel::HudTopPanelDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x00635DE0, CHudTopPanel::HudTopPanelDelete);
+EI_REWRITTEN(0x00635DE0, CHudTopPanel::HudTopPanelDelete);
 CHudWeaponBar* CHudWeaponBar::HudWeaponBarDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0063BC50, CHudWeaponBar::HudWeaponBarDelete);
+EI_REWRITTEN(0x0063BC50, CHudWeaponBar::HudWeaponBarDelete);
 CHudQuickItems* CHudQuickItems::HudQuickItemsDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0063CA50, CHudQuickItems::HudQuickItemsDelete);
+EI_REWRITTEN(0x0063CA50, CHudQuickItems::HudQuickItemsDelete);
 CHudSpellColumn* CHudSpellColumn::HudSpellColumnDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0063E440, CHudSpellColumn::HudSpellColumnDelete);
+EI_REWRITTEN(0x0063E440, CHudSpellColumn::HudSpellColumnDelete);
 CHudActionColumn* CHudActionColumn::HudActionColumnDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0063F470, CHudActionColumn::HudActionColumnDelete);
+EI_REWRITTEN(0x0063F470, CHudActionColumn::HudActionColumnDelete);
 CHudPortraits* CHudPortraits::HudPortraitsDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x0063FF50, CHudPortraits::HudPortraitsDelete);
+EI_REWRITTEN(0x0063FF50, CHudPortraits::HudPortraitsDelete);
 
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 
@@ -542,13 +542,13 @@ EI_REPLACE_METHOD(0x0062B770, UiInput::DeleteWindow<&COptionsWindow::OptionsWind
 EI_REPLACE_METHOD(0x006345F0, UiInput::DeleteWindow<&CMpHeroScreen::HeroScreenDelete>);
 EI_REPLACE_METHOD(0x006345E0, UiInput::DeleteWindow<&CMessageBox::MessageBoxDelete>);
 EI_REPLACE_METHOD(0x00634FD0, UiInput::DeleteWindow<&CMessageBox::MessageBoxDelete>);
-EI_REPLACE_METHOD(0x0064BCF0, UiInput::DeleteWindow<&CHudWeaponBar::HudWeaponBarDelete>);
-EI_REPLACE_METHOD(0x0064BD00, UiInput::DeleteWindow<&CHudQuickItems::HudQuickItemsDelete>);
-EI_REPLACE_METHOD(0x0064BD10, UiInput::DeleteWindow<&CHudSpellColumn::HudSpellColumnDelete>);
-EI_REPLACE_METHOD(0x0064BD20, UiInput::DeleteWindow<&CHudActionColumn::HudActionColumnDelete>);
-EI_REPLACE_METHOD(0x0064BD30, UiInput::DeleteWindow<&CHudPortraits::HudPortraitsDelete>);
-EI_REPLACE_METHOD(0x0064BD40, UiInput::DeleteWindow<&CHudUnitPanel::HudUnitPanelDelete>);
-EI_REPLACE_METHOD(0x0064BD50, UiInput::DeleteWindow<&CHudMap::HudMapDelete>);
-EI_REPLACE_METHOD(0x0064BD60, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);   // the game clock
-EI_REPLACE_METHOD(0x0064BD70, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);   // the movement panel
+EI_REWRITTEN(0x0064BCF0, UiInput::DeleteWindow<&CHudWeaponBar::HudWeaponBarDelete>);
+EI_REWRITTEN(0x0064BD00, UiInput::DeleteWindow<&CHudQuickItems::HudQuickItemsDelete>);
+EI_REWRITTEN(0x0064BD10, UiInput::DeleteWindow<&CHudSpellColumn::HudSpellColumnDelete>);
+EI_REWRITTEN(0x0064BD20, UiInput::DeleteWindow<&CHudActionColumn::HudActionColumnDelete>);
+EI_REWRITTEN(0x0064BD30, UiInput::DeleteWindow<&CHudPortraits::HudPortraitsDelete>);
+EI_REWRITTEN(0x0064BD40, UiInput::DeleteWindow<&CHudUnitPanel::HudUnitPanelDelete>);
+EI_REWRITTEN(0x0064BD50, UiInput::DeleteWindow<&CHudMap::HudMapDelete>);
+EI_REWRITTEN(0x0064BD60, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);   // the game clock
+EI_REWRITTEN(0x0064BD70, UiInput::DeleteWindow<&CUiWindow::UiWindowDelete>);   // the movement panel
 EI_REWRITTEN(0x0064BD80, UiInput::DeleteWindow<&CHudTopPanel::HudTopPanelDelete>);

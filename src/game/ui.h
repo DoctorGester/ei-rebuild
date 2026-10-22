@@ -1152,6 +1152,9 @@ constexpr int kRenderStateSpecular = 29;     // D3DRENDERSTATE_SPECULARENABLE
 // (80..240, 520..600).
 class CHudWeaponBar : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 0074279C / 00742768.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 0063C6D0
     void OnMouseUp(int buttons, int x, int y);     // 0063C710: selects a weapon
     void OnMouseMove(int buttons, int x, int y);   // 0063C7D0
@@ -1207,6 +1210,9 @@ static_assert(sizeof(CHudWeaponBar) == 0x16C);   // CBattleScreen's operator new
 // at (520..720, 500..600).
 class CHudQuickItems : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 0074283C / 00742808.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 0063DAA0
     void OnDoubleClick(int buttons, int x, int y); // 0063DAE0
     void OnMouseMove(int buttons, int x, int y);   // 0063E270
@@ -1301,6 +1307,9 @@ static_assert(offsetof(CHudQuickItems, selected_) == 0x150);
 // 760..800 x 190..510).
 class CHudSpellColumn : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 007428E4 / 007428B0.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 0063F1E0
     void OnDoubleClick(int buttons, int x, int y); // 0063F220
     void OnMouseUp(int buttons, int x, int y);     // 0063F260
@@ -1365,6 +1374,9 @@ static_assert(sizeof(CHudSpellColumn) == 0x16C);   // CBattleScreen's operator n
 // buttons at 0..40 x 270..510).
 class CHudActionColumn : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742980 / 0074294C.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 0063FDA0
     void OnMouseUp(int buttons, int x, int y);     // 0063FDE0
     void OnMouseMove(int buttons, int x, int y);   // 0063FE40
@@ -1462,6 +1474,9 @@ static_assert(offsetof(FigurePrototypeRecord, model) == 0xE8);
 // Party portraits (constructor 0063FE70, vtables 00742A18 / 007429E4; 250..550 x 440..600).
 class CHudPortraits : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742A18 / 007429E4.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 00641CE0
     void OnMouseUp(int buttons, int x, int y);     // 00641E20: selects the unit
     void OnMouseMove(int buttons, int x, int y);   // 00641EA0: shows the unit / sets the cursor
@@ -1679,6 +1694,9 @@ void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growB
 // above them, 6 the whole panel.
 class CHudMap : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742660 / 0074262C.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 00645060: the view buttons
     // 00645210 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3: the map's centre at
     // 700 + shift).
@@ -1763,6 +1781,9 @@ static_assert(offsetof(CHudMap, northTime_) == 0x1B0);
 // the sling button, 1-4 the body parts, 5 the whole panel.
 class CHudUnitPanel : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 007426F8 / 007426C4.
+    static void** Vtable();
+    static void** InputVtable();
     // 0x00647040 (ui_hud_unit_info.cpp).
     void DrawUnitInfo(CUnit* unitIn);
     // 006477E0 (RET 4; ui_hud_panels.cpp, called by the panel's draw 006462A0). The health bar
@@ -1853,6 +1874,9 @@ static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
 // Game clock (set up by 00648520, vtables 007425C8 / 00742594; 720..800 x 520..600).
 class CHudClock : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 007425C8 / 00742594.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 00648D30
     // 00648D70 (RET 0xC; ui_hud.cpp, A-H26; Rebirth's MPSpeedControl reproduced behind its flag).
     // The button released over the clock that took it: region 0 toggles the pause (with the
@@ -1891,6 +1915,9 @@ static_assert(offsetof(CHudClock, highlight_) == 0x158);
 // toggles the units' +0x438 flag, regions 1-4 set their movement mode 0-3 (+0x268).
 class CHudMovePanel : public CUiWindow {
 public:
+    // The compiled tables (C19, ui_window_class.h) in place of game.exe's 00742530 / 007424FC.
+    static void** Vtable();
+    static void** InputVtable();
     void OnMouseDown(int buttons, int x, int y);   // 00649630
     void OnMouseUp(int buttons, int x, int y);     // 00649670
     void OnMouseMove(int buttons, int x, int y);   // 00649750
@@ -1927,6 +1954,8 @@ static_assert(offsetof(CHudMovePanel, mode_) == 0x14C && offsetof(CHudMovePanel,
 // the sling button, 1 and 2 the two page buttons, 3 the whole panel.
 class CHudTopPanel : public CUiWindow {
 public:
+    // The compiled table (C19, ui_window_class.h) in place of game.exe's 00742498.
+    static void** Vtable();
     void OnMouseDown(int buttons, int x, int y);   // 0064A1C0
     void OnMouseUp(int buttons, int x, int y);     // 0064A200
     void OnMouseMove(int buttons, int x, int y);   // 0064A2C0

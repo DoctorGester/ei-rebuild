@@ -231,6 +231,16 @@ const std::vector<WindowKind>& WindowKinds() {
         {&ei::OriginalGameData<const std::uint8_t>(0x007400DC), CChatOverlay::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x00741478), CChatWindow::Vtable()},
         {&ei::OriginalGameData<const std::uint8_t>(0x00740444), CItemIconWindow::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742498), CHudTopPanel::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742530), CHudMovePanel::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007425C8), CHudClock::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742660), CHudMap::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007426F8), CHudUnitPanel::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074279C), CHudWeaponBar::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x0074283C), CHudQuickItems::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x007428E4), CHudSpellColumn::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742980), CHudActionColumn::Vtable()},
+        {&ei::OriginalGameData<const std::uint8_t>(0x00742A18), CHudPortraits::Vtable()},
     };
     return kinds;
 }
