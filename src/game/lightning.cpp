@@ -265,7 +265,7 @@ void CLightning::Reset() {
     glowTexture_ = nullptr;
     if (glow) glow->Release();
 }
-EI_REPLACE_METHOD(0x00468790, CLightning::Reset);
+EI_REWRITTEN(0x00468790, CLightning::Reset);
 
 int CLightning::Register() {
     Reset();
@@ -274,7 +274,7 @@ int CLightning::Register() {
     ++refCount_;
     return 1;
 }
-EI_REPLACE_METHOD(0x00466EA0, CLightning::Register);
+EI_REWRITTEN(0x00466EA0, CLightning::Register);
 
 void CLightning::ExpandBounds(const LightningSegment* segment) {
     for (int i = 0; i < segment->points.size; ++i) {

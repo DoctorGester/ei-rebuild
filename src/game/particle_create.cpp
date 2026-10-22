@@ -12,6 +12,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
+#include "engine_object_class.h"
 #include "map_object_figures.h"
 #include "texture.h"
 
@@ -848,7 +849,7 @@ void CParticleSource::Clear() {
         attachedTo->RemoveEffectSource(this);
     Reset();
 }
-EI_REPLACE_METHOD(0x00484710, CParticleSource::Clear);
+EI_REWRITTEN(0x00484710, CParticleSource::Clear);
 
 // 00485540 (vtable slot 2). Sets the source up for its type; 1, or for an unknown type the fatal
 // error report's result.
@@ -876,7 +877,7 @@ int CParticleSource::CreateForType() {
     BuildFrames(this);
     return 1;
 }
-EI_REPLACE_METHOD(0x00485540, CParticleSource::CreateForType);
+EI_REWRITTEN(0x00485540, CParticleSource::CreateForType);
 
 // --- Factory and destructor ----------------------------------------------------------------------
 
@@ -924,7 +925,7 @@ CParticleSource* __stdcall NewParticleSource(int type) {
     s->frameRectCapacity = 0;
     s->frameRectCount = 0;
     s->texture = nullptr;
-    ei::SetVtable(s, CParticleSource::kVtableAddress);
+    ei::SetVtable(s, CParticleSource::Vtable());
     s->Reset();
     s->type_ = type;
     return s;
@@ -939,7 +940,7 @@ CEngineObject* CParticleManager::NewObject(int type) {
 // texture and free the frame rectangles if any are left, empty the particle list and free its
 // blocks, free the element array, then the engine object's base destructor.
 void CParticleSource::Destruct() {
-    ei::SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, Vtable());
     Clear();
     if (texture) texture->Release();
     if (frameBase) gamecrt::operator_delete(reinterpret_cast<void**>(static_cast<std::uintptr_t>(frameBase))[-1]);
@@ -962,13 +963,30 @@ CParticleSource* CParticleSource::DeletingDestruct(int flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x004982F0, CParticleSource::DeletingDestruct);
+EI_REWRITTEN(0x004982F0, CParticleSource::DeletingDestruct);
 
 // 004982D0 / 004982E0 (slots 11 / 12): the exe's "CParticle" (0078B020) and class id 12.
 const char* __fastcall ParticleSourceClassName(CParticleSource*) { return "CParticle"; }
 int __fastcall ParticleSourceClassId(CParticleSource*) { return 12; }
-EI_REPLACE(0x004982D0, ParticleSourceClassName);
-EI_REPLACE(0x004982E0, ParticleSourceClassId);
+EI_REWRITTEN(0x004982D0, ParticleSourceClassName);
+EI_REWRITTEN(0x004982E0, ParticleSourceClassId);
+
+namespace {
+// The compiled table (C19, engine_object_class.h): 2 Create, 3 Clear, 6 the tick, 11 / 12.
+class ParticleSourceClass final : public TransformObjectClass<ParticleSourceClass, CParticleSource> {
+public:
+    int Create() override { return Source()->CreateForType(); }                         // 2: 00485540
+    void Destroy() override { Source()->Clear(); }                                      // 3: 00484710
+    int RunTick() override { return Source()->Tick(); }                                 // 6: 00496EB0
+    const char* ClassName() override { return ParticleSourceClassName(Source()); }      // 11: 004982D0
+    int ClassId() override { return ParticleSourceClassId(Source()); }                  // 12: 004982E0
+
+private:
+    CParticleSource* Source() { return As<CParticleSource>(); }
+};
+} // namespace
+
+void* CParticleSource::Vtable() { return ParticleSourceClass::Vtable(); }
 
 // 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310, 004957D0, 00495A20, 00496260,
 // 004965D0: the element callbacks that do nothing (RET 4 each, no Ghidra functions), one per type that

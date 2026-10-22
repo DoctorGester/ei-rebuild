@@ -1,6 +1,7 @@
 vtable,slots,class,file,note
 0073B8D4,3,TempListClass,src/lib/mfc_slots.h,CList (a pointer list built around each item creation (world quests))
 0073B98C,2,exception subclass,-,stored only by game.exe's 0040C440 and ~exception 0040C500 (ExceptionDestruct stores none)
+0073B9E0,18,CameraClass,src/game/camera_object.cpp,the camera (CCamera)
 0073BB28,6,ServerEntryClass,src/game/net_messages.h,ReplicatedClass (the lobby's server entry)
 0073BB40,6,ServerEntryBaseClass,src/game/net_messages.h,ReplicatedClass (the server entry's base; slots 2-5 _purecall)
 0073BB68,2,CountedRootClass,src/game/core_streams.cpp,the counted root (CRefCounted; every counted class's destructor leaves it)
@@ -71,7 +72,9 @@ vtable,slots,class,file,note
 0073C3E8,3,MapRecordArrayClass,src/game/game_slots.h,CArray<MapRecord> (the map database's maps)
 0073C3F4,3,ExitArrayClass,src/game/game_arrays.h,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores)
 0073C400,3,MapRecordItemsClass,src/game/game_arrays.h,CArray (the array inside a map record; derived from ExitArrayClass)
+0073C434,13,HooverClass,src/game/class_slots.cpp,the loot hoover (CHoover)
 0073C474,22,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
+0073C550,13,LightningClass,src/game/class_slots.cpp,a lightning bolt (CLightning)
 0073C584,3,SpriteArrayClass,src/lib/mfc_slots.h,CArray (the weather and lightning sprites)
 0073C680,3,TrapTargetsArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's targets; derived from 0073C6A4)
 0073C68C,3,TrapAreasArrayClass,src/lib/mfc_slots.h,CArray (a map trap record's areas; derived from 0073C698)
@@ -101,6 +104,7 @@ vtable,slots,class,file,note
 0073CA64,7,BufferViewClass,src/game/net_coder.h,a fixed view over memory owned elsewhere
 0073CAB0,1,GameErrorBaseClass,src/game/dx_errors.h,the thrown error object's base (GameErrorDestruct leaves it)
 0073CAB4,1,GameErrorClass,src/game/dx_errors.h,the thrown error object (GameErrorFormat / GameErrorFormatResult)
+0073CFD0,18,ParticleSourceClass,src/game/particle_create.cpp,a particle source (CParticleSource)
 0073D018,3,ClientListClass,src/lib/mfc_slots.h,CList (the client map's lists (world_client_maps 0056FD40))
 0073D024,3,ParticleDepthArrayClass,src/game/game_arrays.h,CArray (the particles' draw order 007A9C50)
 0073D030,3,CloudNoiseBaseClass,src/game/global_map_clouds.cpp,the cloud noise base (CCloudNoise; slots 0 / 1 _purecall)
@@ -162,6 +166,7 @@ vtable,slots,class,file,note
 0073D558,19,CTorchObjectSpec,src/game/server_specific_manager.h,
 0073D5B8,24,CSkyObject,src/game/sky_object.h,
 0073D624,7,GrowingBufferClass,src/game/net_coder.h,the growing byte buffer
+0073D644,13,SysInfoClass,src/game/sys_info.cpp,the system information (CSysInfo)
 0073D760,1,DeviceObjectClass,src/game/texture.h,the device object (CTextureDevice)
 0073D764,1,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
 0073D768,1,RendererBaseClass,src/game/texture.h,"the renderer's counted base (CDXSurface, the device object, the pipeline)"
@@ -244,6 +249,8 @@ vtable,slots,class,file,note
 0073F38C,7,CPlayerSourceClass,src/game/world_sessions.cpp,the player sources' base
 0073F3A8,7,DriverSessionClass,src/game/net_link.h,the network session (DriverSession)
 0073F41C,43,CWorldClientClass,src/game/world_class.h,the client world
+0073F4C8,8,RainSnowClass,src/game/effects_weather.cpp,the rain and snow layer (CRainSnow)
+0073F4E8,5,RainSnowClass,src/game/effects_weather.cpp,the rain and snow layer's tail (a byte match in 0046F1F0 split it off)
 0073F4FC,13,BridgeManagerClass,src/game/world_construct.cpp,the client world's platform set (CBridgeManager)
 0073F530,3,ClientObjectListClass,src/lib/mfc_slots.h,CList (the client world's and the sectors' object lists)
 0073F53C,3,ClientObjectPtrArrayClass,src/game/game_slots.h,CArray (the client maps' engine object pointers)
@@ -330,6 +337,7 @@ vtable,slots,class,file,note
 00742F20,1,WordTokenClass,src/game/ui.h,a scrolling text's word (UiWordToken)
 00742F24,1,TextTokenClass,src/game/ui.h,a scrolling text's base token (UiTextToken)
 00742F28,1,FormatTokenClass,src/game/ui.h,a scrolling text's format token (UiFormatToken)
+00743104,13,PlayerClass,src/game/player.cpp,a world player (CPlayer)
 00743138,3,PlayerListClass,src/lib/mfc_slots.h,CList (a player's list)
 007432E0,7,CMappedResource,src/game/resource.h,
 007432FC,1,CMappedResource,src/game/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)

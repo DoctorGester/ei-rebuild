@@ -357,11 +357,13 @@ double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
 void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets);
 
 
-// A world player (vtable 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by 0066C110).
+// A world player (vtable Vtable() in place of game.exe's 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by
+// 0066C110).
 // player.cpp: the constructor, destructor, Create / Destroy and the item and unit lists.
 class CPlayer : public CEngineObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743104);
+    // The compiled table (C19, player.cpp's PlayerClass).
+    static void* Vtable();
     // The world objects the player knows, by id, each counted once (player_sync.cpp): the map
     // objects and the timed objects (effects).
     using MapObjectMap = stlp::hash_map<int, CMapObject*, stlp::IntHash>;

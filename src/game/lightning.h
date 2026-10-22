@@ -1,6 +1,6 @@
 #pragma once
 
-// Lightning bolts (00466190-00468A00): CLightning (class id 0x1E, vtable 0073C550, 0x514 bytes) and
+// Lightning bolts (00466190-00468A00): CLightning (class id 0x1E, vtable CLightning::Vtable() in place of game.exe's 0073C550, 0x514 bytes) and
 // the manager that owns and draws them (CLightningManager; a real virtual class: the compiler makes
 // its vtable, C19, game.exe's 0073F5B8 is retired). A bolt is a main
 // segment from one end point to the other plus six branches that start at points along it; every
@@ -82,8 +82,9 @@ static_assert(sizeof(LightningSegment) == 0xA8);
 
 class CLightning : public CEngineObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C550);
-    CLightning* DeleteScalar(unsigned flags);
+    // The compiled table (C19, class_slots.cpp's LightningClass; game.exe's 0073C550).
+    static void* Vtable();
+    CLightning* DeletingDestruct(unsigned flags);
     void DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size);
     // Slot 2 (00466EA0): resets the bolt like slot 3, then adds it to the manager's list of new
     // bolts, which holds a reference until the next DrawAll. Returns 1.

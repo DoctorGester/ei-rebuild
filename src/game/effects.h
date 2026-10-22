@@ -2,7 +2,7 @@
 
 // Weather, visibility fog and particles: the per-frame simulation parts.
 //
-// - CParticleSource (vtable 0073CFD0, class name from 004982D0): one emitter. Its tick (slot 6,
+// - CParticleSource (CParticleSource::Vtable() in place of game.exe's 0073CFD0, class name from 004982D0): one emitter. Its tick (slot 6,
 //   00496EB0, particle_tick.cpp) runs the per-type callbacks the constructor (slot 2, 00485540) stores
 //   at +0x1E0 (emit one particle), +0x1E4 (update one particle; 0 kills it) and +0x1E8 (update one
 //   element of the source's own array at +0x154). The callbacks are __thiscall on the source.
@@ -182,7 +182,8 @@ void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, Partic
 // (+0x34) the identity after Reset.
 class CParticleSource : public CTransformObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073CFD0);
+    // The compiled table (C19, particle_create.cpp's ParticleSourceClass; game.exe's 0073CFD0).
+    static void* Vtable();
     // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer
     // (007AF060, vtable slot 17). 1 when there is nothing to draw or it is off screen.
     int Draw(void* renderer);                       // 004976B0
@@ -464,7 +465,8 @@ class CRainSnow : public CEngineObject {
 public:
     // Body of the slot at 004E5680 (registered by member pointer).
     int DrawImpl(CSceneRenderer* renderer);
-    static constexpr std::uintptr_t kRainSnowVtable = std::uintptr_t(0x0073F4C8);
+    // The compiled table (C19, effects_weather.cpp's RainSnowClass; game.exe's 0073F4C8 with its tail 0073F4E8).
+    static void* Vtable();
 
     // 005616C0. The destructor's body: Clear, the work arrays freed (last member first), the texture
     // released, then the engine object's body.

@@ -168,7 +168,7 @@ CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
     bolt->main_.points.size = 0;
     VectorCtorIterator(bolt->branches_, sizeof(LightningSegment), 6, reinterpret_cast<void*>(SegmentConstruct),
                        reinterpret_cast<void*>(SegmentDestruct));
-    SetVtable(bolt, CLightning::kVtableAddress);
+    ei::SetVtable(bolt, CLightning::Vtable());
     std::uint32_t one = 0x3F800000u, tenth = 0x3DCCCCCDu;
     std::memcpy(&bolt->power_, &one, 4);
     std::memcpy(&bolt->amplitude_, &tenth, 4);
@@ -184,7 +184,7 @@ CEngineObject* CLightningManager::NewObject(int type) { return NewObjectImpl(typ
 // points freed, the texture references released again (both null by then), the engine object's
 // body.
 void __fastcall LightningDestruct(CLightning* self) {
-    SetVtable(self, CLightning::kVtableAddress);
+    ei::SetVtable(self, CLightning::Vtable());
     std::uint32_t one = 0x3F800000u, tenth = 0x3DCCCCCDu;
     std::memcpy(&self->power_, &one, 4);
     std::memcpy(&self->amplitude_, &tenth, 4);
