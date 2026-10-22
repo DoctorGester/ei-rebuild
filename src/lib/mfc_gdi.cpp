@@ -171,7 +171,7 @@ BOOL CGdiObject::DeleteObject() {
 }
 
 void* __stdcall CreateCGdiObject() {
-    auto* object = static_cast<CGdiObject*>(gamecrt::operator_new(sizeof(CGdiObject)));
+    auto* object = gamecrt::operator_new_as<CGdiObject>();
     if (!object) return nullptr;
     object->vtable = CGdiObject::Vtable();
     object->handle = nullptr;
@@ -288,7 +288,7 @@ CDC* __stdcall CDC::FromHandle(HDC dc) {
 }
 
 void* __stdcall CreateCDC() {
-    auto* dc = static_cast<CDC*>(gamecrt::operator_new(sizeof(CDC)));
+    auto* dc = gamecrt::operator_new_as<CDC>();
     return dc ? dc->Construct() : nullptr;
 }
 

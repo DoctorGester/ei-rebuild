@@ -1147,7 +1147,7 @@ EI_REWRITTEN(0x00572C50, SectorList::VectorDelete);
 
 void SectorGrid::Allocate() {
     const int count = unknown08_ * unknown0C_;
-    auto* block = static_cast<int*>(gamecrt::operator_new(static_cast<std::size_t>(count) * sizeof(SectorList) + 4));
+    auto* block = gamecrt::operator_new_bytes_as<int>(static_cast<std::size_t>(count) * sizeof(SectorList) + 4);
     SectorList* cells = nullptr;
     if (block) {
         *block = count;

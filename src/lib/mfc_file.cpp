@@ -507,7 +507,7 @@ unsigned long CFile::GetLength() const {
 // A new CFile on a duplicate of the handle. When the duplicate fails, the new object is deleted and the
 // error thrown.
 CFile* CFile::Duplicate() const {
-    auto* copy = static_cast<CFile*>(gamecrt::operator_new(sizeof(CFile)));
+    auto* copy = gamecrt::operator_new_as<CFile>();
     if (copy) copy->ConstructHandle(kNoFile);
     HANDLE duplicate;
     if (!gameapi::DuplicateHandle(gameapi::GetCurrentProcess(), handle, gameapi::GetCurrentProcess(), &duplicate, 0, FALSE,
@@ -724,7 +724,7 @@ BOOL CFileFind::CloseContext() { return gameapi::FindClose(context); }
 
 BOOL CFileFind::FindFile(const char* pattern, unsigned long) {
     Close();
-    next = static_cast<WIN32_FIND_DATAA*>(gamecrt::operator_new(sizeof(WIN32_FIND_DATAA)));
+    next = gamecrt::operator_new_as<WIN32_FIND_DATAA>();
     gotLast = FALSE;
     if (!pattern) pattern = AllFiles();
     gameapi::lstrcpyA(next->cFileName, pattern);
@@ -758,7 +758,7 @@ BOOL CFileFind::FindFile(const char* pattern, unsigned long) {
 // The next entry: the one read ahead becomes the found one; FALSE once the search has no more.
 BOOL CFileFind::FindNextFile() {
     if (!context) return FALSE;
-    if (!found) found = static_cast<WIN32_FIND_DATAA*>(gamecrt::operator_new(sizeof(WIN32_FIND_DATAA)));
+    if (!found) found = gamecrt::operator_new_as<WIN32_FIND_DATAA>();
     WIN32_FIND_DATAA* swapped = found;
     found = next;
     next = swapped;

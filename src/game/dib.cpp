@@ -121,7 +121,7 @@ void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::u
     headerOwner = kNotOwned;
     Empty();
     maskBytes = HasMasks(bitCount) ? kMaskBytes : 0;
-    header = static_cast<BITMAPINFOHEADER*>(gamecrt::operator_new(maskBytes + sizeof(BITMAPINFOHEADER)));
+    header = gamecrt::operator_new_bytes_as<BITMAPINFOHEADER>(maskBytes + sizeof(BITMAPINFOHEADER));
     headerOwner = kNew;
     header->biSize = sizeof(BITMAPINFOHEADER);
     header->biWidth = width;

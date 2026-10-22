@@ -97,7 +97,7 @@ void CMapPtrToPtr::InitHashTable(std::uint32_t size, BOOL allocNow) {
         table = nullptr;
     }
     if (allocNow) {
-        table = static_cast<Assoc**>(gamecrt::operator_new(size * sizeof(Assoc*)));
+        table = gamecrt::operator_new_array<Assoc*>(size);
         std::memset(table, 0, size * sizeof(Assoc*));
     }
     hashSize = size;

@@ -119,7 +119,7 @@ CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
 // The command zeroes the reference dword (+4) before testing the pointer.
 template <typename Mode>
 Mode* NewMode(std::size_t size) {
-    auto* mode = static_cast<Mode*>(gamecrt::operator_new(size));
+    auto* mode = gamecrt::operator_new_bytes_as<Mode>(size);
     mode->refs = 0;
     mode->refsHigh = 0;
     return mode;

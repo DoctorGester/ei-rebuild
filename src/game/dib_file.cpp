@@ -54,7 +54,7 @@ int CDib::Read(mfc::CFile* source) {
             }
             // Everything between the file header and the bits: the info header, then masks or colours.
             const std::uint32_t headerBytes = fileHeader.bfOffBits - sizeof(fileHeader);
-            header = static_cast<BITMAPINFOHEADER*>(gamecrt::operator_new(headerBytes));
+            header = gamecrt::operator_new_bytes_as<BITMAPINFOHEADER>(headerBytes);
             bitsOwner = kNew;
             headerOwner = kNew;
             input->Read(header, headerBytes);

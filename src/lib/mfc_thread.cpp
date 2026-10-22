@@ -138,7 +138,7 @@ EI_REWRITTEN(0x0070C29D, WinThread::DeletingDestructor);
 
 WinThread* __stdcall AfxBeginThread(ThreadProc procedure, void* parameter, int priority, UINT stackSize,
                                     DWORD flags, LPSECURITY_ATTRIBUTES security) {
-    WinThread* thread = static_cast<WinThread*>(gamecrt::operator_new(sizeof(WinThread)));
+    WinThread* thread = gamecrt::operator_new_as<WinThread>();
     thread->Construct(procedure, parameter);
     if (!CreateThread(thread, flags | CREATE_SUSPENDED, stackSize, security)) {
         thread->Delete();

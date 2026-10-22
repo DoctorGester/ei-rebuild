@@ -298,7 +298,7 @@ int __stdcall OsErrorToException(long osError) {
 }
 
 void __stdcall ThrowFileException(int cause, long osError, const char* fileName) {
-    auto* exception = static_cast<CFileException*>(gamecrt::operator_new(sizeof(CFileException)));
+    auto* exception = gamecrt::operator_new_as<CFileException>();
     if (exception) {
         reinterpret_cast<CException*>(exception)->Construct();
         new (&exception->fileName) CString();
@@ -315,7 +315,7 @@ void __stdcall ThrowOsError(long osError, const char* fileName) {
 }
 
 void __stdcall ThrowArchiveException(int cause, const char* fileName) {
-    auto* exception = static_cast<CArchiveException*>(gamecrt::operator_new(sizeof(CArchiveException)));
+    auto* exception = gamecrt::operator_new_as<CArchiveException>();
     if (exception) {
         reinterpret_cast<CException*>(exception)->Construct();
         new (&exception->fileName) CString();
