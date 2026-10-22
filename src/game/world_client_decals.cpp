@@ -5,6 +5,7 @@
 // through their addresses (the verify wrappers' path until S21d; AddTriangle's rewrite was left out of
 // game.exe by disabled.txt until S21e, the image runs it). See docs/notes/models.md ("Ground prints").
 #include "world.h"
+#include "at_exit_functions.h"
 
 #include "figure_mesh.h"          // VertexPacket, MeshCorner
 #include "ground_decal.h"
@@ -33,8 +34,6 @@ lib::AlignedArray<Vector4>& PartPoints() { return g_partPoints; }
 void __cdecl FreePartPoints() { g_partPoints.FreeData(); }   // 0056CE10
 std::uint8_t g_guards = /*007AF504*/ {};
 std::uint8_t& Guards() { return g_guards; }
-void(__cdecl* const kDestroyBuilder)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE30);
-void(__cdecl* const kFreePartPoints)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE10);
 
 // A scene node's matrix (an object's or a figure part's) from its rotation and position (the
 // bottom row 0, 0, 0, 1).
@@ -113,12 +112,12 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     if (!(Guards() & 1)) {
         Guards() |= 1;
         builder.Construct();
-        GameAtExit(kDestroyBuilder);
+        GameAtExit(ei::short_functions::Ret);   // 0056CE30 (the builder: nothing to destroy)
     }
     if (!(Guards() & 2)) {
         Guards() |= 2;
         PartPoints() = lib::AlignedArray<Vector4>{};
-        GameAtExit(kFreePartPoints);
+        GameAtExit(FreePartPoints);   // 0056CE10
     }
     auto* quad = reinterpret_cast<float* const*>(corners);
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);

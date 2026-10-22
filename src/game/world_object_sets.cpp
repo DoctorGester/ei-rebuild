@@ -88,7 +88,7 @@ void __fastcall ObjectSetSortUnique(ObjectSet* self) {
         if (!(ScratchGuard() & 1)) {
             ScratchGuard() |= 1;
             Scratch().Construct();
-            GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x0047B1D0));
+            GameAtExit(FreeScratch);   // 0047B1D0
         }
         ObjectSet& scratch = Scratch();
         scratch.SetSize(self->size);

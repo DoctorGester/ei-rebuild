@@ -86,7 +86,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
     if (!(Guard() & 1)) {
         Guard() |= 1;
         MovedPositions() = lib::AlignedArray<VertexPacket>{};
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005A7A50));
+        GameAtExit(FreeMovedPositions);   // 005A7A50
     }
     int drawFlags = 0;
     mesh_->flags_ &= ~0x40u;

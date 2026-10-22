@@ -86,10 +86,6 @@ void __cdecl FreeRemoved() { g_removed.FreeData(); }       // 0058C470
 std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
-AtExitFunction CollectedDestructor() { return reinterpret_cast<AtExitFunction>(0x0058C4D0); }
-AtExitFunction AddedDestructor() { return reinterpret_cast<AtExitFunction>(0x0058C4B0); }
-AtExitFunction KeptDestructor() { return reinterpret_cast<AtExitFunction>(0x0058C490); }
-AtExitFunction RemovedDestructor() { return reinterpret_cast<AtExitFunction>(0x0058C470); }
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
@@ -252,10 +248,10 @@ CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, C
 } // namespace
 
 int CWorldServer::SyncPlayer(CPlayer* player) {
-    InitStatic(1, Collected(), CollectedDestructor());
-    InitStatic(2, Added(), AddedDestructor());
-    InitStatic(4, Kept(), KeptDestructor());
-    InitStatic(8, Removed(), RemovedDestructor());
+    InitStatic(1, Collected(), FreeCollected);
+    InitStatic(2, Added(), FreeAdded);
+    InitStatic(4, Kept(), FreeKept);
+    InitStatic(8, Removed(), FreeRemoved);
 
     CPlayerServer* state = player->Server();
     if (state->state_ == kModePlaying && zoneLoaded_ != 0) {

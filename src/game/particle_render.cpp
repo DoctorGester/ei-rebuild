@@ -6,6 +6,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
+#include "at_exit_functions.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -52,7 +53,7 @@ void ConstructArrays() {
     if (!(g_arraysConstructed & 1)) {
         g_arraysConstructed |= 1;
         ConstructSpriteArray(&Sprites());
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x00497D30));
+        GameAtExit(ei::static_init::Exit00497D30);
     }
     if (!(g_arraysConstructed & 2)) {
         Vertices().data = nullptr;
@@ -60,7 +61,7 @@ void ConstructArrays() {
         Vertices().growBy = 0;
         Vertices().capacity = 0;
         Vertices().size = 0;
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x00497D10));
+        GameAtExit(FreeVertices);   // 00497D10
     }
 }
 

@@ -9,6 +9,7 @@
 // can run later. The original is compiled without optimisation (every function keeps a frame and
 // spills ECX). See docs/notes/script.md (A-S11, A-E2).
 #include "sys_info.h"
+#include "at_exit_functions.h"
 
 #include "engine_object_class.h"
 
@@ -264,7 +265,7 @@ EI_REPLACE(0x004DDD0F, SysInfoStaticInversePi);
 // table's entry: both.
 void __cdecl SysInfoStaticConstruct() { TheSysInfo()->Construct(); }
 EI_REWRITTEN(0x004DDD3F, SysInfoStaticConstruct);
-void __cdecl SysInfoStaticRegisterExit() { GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x004DDD60)); }
+void __cdecl SysInfoStaticRegisterExit() { GameAtExit(SysInfoAtExit); }   // 004DDD60
 EI_REWRITTEN(0x004DDD4E, SysInfoStaticRegisterExit);
 void __cdecl SysInfoStaticInit() {
     SysInfoStaticConstruct();
@@ -274,7 +275,7 @@ EI_REPLACE(0x004DDD30, SysInfoStaticInit);
 
 // 004DE87C: an empty destructor (004013D0, a bare RET) registered with atexit. 004DE855: the
 // table's entry: the static's guard bit set when it is clear, then the registration either way.
-void __cdecl SysInfoStaticRegisterEmptyExit() { GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x004013D0)); }
+void __cdecl SysInfoStaticRegisterEmptyExit() { GameAtExit(ei::short_functions::Ret); }   // 004013D0
 EI_REWRITTEN(0x004DE87C, SysInfoStaticRegisterEmptyExit);
 void __cdecl SysInfoStaticGuard() {
     if (!(EmptyStaticGuard() & 1)) EmptyStaticGuard() |= 1;

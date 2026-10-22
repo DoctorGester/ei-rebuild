@@ -1,6 +1,7 @@
 // The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
 #include "camera.h"
+#include "at_exit_functions.h"
 #include "options.h"
 #include "random.h"
 #include "item_db.h"
@@ -1485,7 +1486,7 @@ void GameFlow::UseResources(bool network) {
     if (!(LastResourcesGuard() & 1)) {
         LastResourcesGuard() |= 1;
         new (&LastResources()) mfc::CString(kResourcesSingle);
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x0057E6A0));
+        GameAtExit(ei::static_init::Exit0057E6A0);
     }
     mfc::CString wanted(network ? kResourcesNetwork : kResourcesSingle);
     if (gamecrt::mbscmp(wanted.GetString(),

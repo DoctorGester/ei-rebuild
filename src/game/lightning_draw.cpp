@@ -3,6 +3,7 @@
 // glow of eight sprites (slot 17) at one or both ends, sized by the bolt's length and animated by
 // the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
+#include "at_exit_functions.h"
 #include "texture.h"
 
 #include "core_maths.h"
@@ -67,7 +68,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     if (!(g_glowGuards & 1)) {
         g_glowGuards |= 1;
         SpriteArrayConstruct(&Sprites());
-        GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x00467A10));
+        GameAtExit(ei::static_init::Exit00467A10);
     }
     if (!(g_glowGuards & 2)) {
         g_glowGuards |= 2;
@@ -76,7 +77,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
         p.growBy = 0;
         p.capacity = 0;
         p.size = 0;
-        GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x004679F0));
+        GameAtExit(FreeGlowPoints);   // 004679F0
     }
     TextureHolderEnsureLoaded(&glowTexture_);   // 00500970
     if (!static_cast<CSceneRenderer*>(device)->SetTexture(0, glowTexture_)) return;

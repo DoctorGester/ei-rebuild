@@ -69,7 +69,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         Spiral()->radius = -1.0f;
         SpiralGuard() |= 1;
         Spiral()->length = 0;
-        GameAtExit(reinterpret_cast<void (*)()>(0x005BA3F0));
+        GameAtExit([] {});   // 005BA3F0: nothing to destroy
     }
     int sizeClass = unit->sizeClass;
     path->cells.RemoveAll();   // 00556D40
