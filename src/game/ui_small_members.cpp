@@ -165,10 +165,8 @@ void CUiMesh::DestroySprite() {
 }
 EI_REWRITTEN(0x005E6D70, CUiMesh::DestroySprite);
 
-// The original writes the counted root's vtable first and its own only for a non-null object;
-// the first store is not seen by anything.
-void ItemTurn::ResetVtable() { vtable = ItemTurn::Vtable(); }
-EI_REWRITTEN(0x005ED760, ItemTurn::ResetVtable);
+int ItemTurn::OnShutdown() { return 0; }
+EI_REWRITTEN(0x005ED760, ItemTurn::OnShutdown);
 
 // --- Handlers ----------------------------------------------------------------------------------------------
 

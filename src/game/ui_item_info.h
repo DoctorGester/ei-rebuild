@@ -13,6 +13,7 @@
 // Every description writes into the surface with the same layout: the title wrapped in white at
 // (15, 10)-(185, 25), then lines 15 pixels apart in 0xA7D7E4, the description text wrapped last.
 
+#include "core_refcount.h"
 #include "item.h"
 #include "ui.h"
 
@@ -97,23 +98,25 @@ void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
 // model / texture cache beyond its limit (ui_item_screen.cpp).
 void __fastcall TrimItemCache(ItemObjectCache* cache);
 
-// An item's turning state (0x18 bytes, vtable Vtable() in place of game.exe's 007403F8, a counted object at the
-// item's +0x1C, its count a 16-bit word): made by the item draw (005ECA10) and the moves (005EE1B0).
-struct ItemTurn {
-    // The compiled table (C19, ui_item_screen.cpp): 0 DeletingDestruct, 1 Serialize (empty), 2 ResetVtable, 3 Clone.
-    static void* Vtable();
-    // 005ED710 (slot 3, ui_item_screen.cpp). A new state with the same angle, speed, flag and glow
-    // and no references (null when the allocation fails, after writing the count through it).
-    ItemTurn* Clone() const;
-    // 005ED780 (slot 0, RET 4). The counted object's base vtable (005ED7A0), freed with bit 0 of
-    // `flags`; returns this.
-    ItemTurn* DeletingDestruct(unsigned flags);
-    // 005ED760 (slot 2; ui_small_members.cpp). The object's vtables written again, the counted
-    // root's (CRefCounted::RootVtable()) and then its own (Vtable()): a construction in place.
-    void ResetVtable();
+// An item's turning state (0x18 bytes; game.exe's table 007403F8), a counted object at the item's +0x1C (CItem::link_):
+// made by the item draw (005ECA10) and the moves (005EE1B0).
+class ItemTurn : public CRefObject {
+public:
+    // The count and the flags cleared (the original writes them as one dword); the rest is the maker's.
+    ItemTurn() {
+        refs_ = 0;
+        flags6_ = 0;
+        flags7_ = 0;
+    }
+    // The counted root's body (005ED7A0, core_streams.cpp); deleting 005ED780.
+    ~ItemTurn() override;
+    // 005ED760 (slot 2; ui_small_members.cpp). The original writes the object's tables again (a construction in
+    // place): nothing for a C++ object. 0.
+    int OnShutdown() override;
+    // 005ED710 (slot 3, ui_item_screen.cpp). A new state with the same angle, speed, flag and glow and no
+    // references (null when the allocation fails).
+    ItemTurn* Clone() override;
 
-    void* vtable;
-    int references;          // +0x04
     float angle;             // +0x08 radians, wrapped at 2 pi
     float speed;             // +0x0C
     bool flag;               // +0x10 set by a move into a list shown turning

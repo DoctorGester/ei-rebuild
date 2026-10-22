@@ -225,17 +225,14 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     model->material_ = blackMaterial_;
 
     if (ItemTurnOf(item) == nullptr) {
-        // A new turning state with a random glow phase. The original writes the count before
-        // checking the allocation.
-        auto* turn = gamecrt::operator_new_as<ItemTurn>();
-        reinterpret_cast<volatile int*>(turn)[1] = 0;
-        if (turn) turn->vtable = ItemTurn::Vtable();
+        // A new turning state with a random glow phase.
+        auto* turn = new ItemTurn();
         turn->angle = 0.0f;
         turn->speed = 0.0f;
         turn->flag = false;
         std::uint32_t word = IsaacRandom::Global().Next();
         turn->glow = RandomPhase(word);
-        reinterpret_cast<RefPtr*>(&item->link_)->Assign(reinterpret_cast<CRefObject*>(turn));   // the item's RefPtr slot
+        reinterpret_cast<RefPtr*>(&item->link_)->Assign(turn);   // the item's RefPtr slot
     }
 
     if (cell->mode == 9) {
