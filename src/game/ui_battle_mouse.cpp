@@ -54,9 +54,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     CUnit* unit = TheClientWorld()->UnitAt(&point);
     HoverUnit(unit, point.x, point.y);
 }
-namespace {
-} // namespace
-EI_REWRITTEN(0x00639D60, InputForward<&CBattleScreen::OnMouseMove>::Call);
+EI_REWRITTEN(0x00639D60, CBattleScreen::OnMouseMove);
 
 // --- 00638A40: the left button went down on the battle screen ------------------------------------
 
@@ -74,9 +72,7 @@ void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
     pressY_ = y;
     boxSelecting_ = false;
 }
-namespace {
-} // namespace
-EI_REWRITTEN(0x00638A40, InputForward<&CBattleScreen::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00638A40, CBattleScreen::OnLButtonDown);
 
 // --- 0063B920: a unit's name line --------------------------------------------------------------
 

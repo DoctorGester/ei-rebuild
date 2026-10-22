@@ -9,7 +9,6 @@
 #include "world.h"
 #include "ui_camp.h"
 #include "ui_briefing.h"
-#include "ui_create_screen.h"
 #include "ui_screens.h"
 #include "ui_view_screen.h"
 
@@ -50,77 +49,55 @@ void SetVtables(CUiWindow* w, void** vtable, void** inputVtable) {
 
 } // namespace
 
+// The screens CreateScreen builds inline (screens 1 and 3; 2 and 7 have only the container's).
+CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {
+    mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
+    mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&heroes_);
+    personTexts_.Construct();          // 005F8F30
+    clientParty_.Construct();          // 005F6080
+    itemUseKey_.ConstructItemUseKey();  // 005F5F90
+}
+
+CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {
+    mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
+    movers_ = EmptyList<BriefingMover>();
+    personTexts_.Construct();           // 005F8F30
+    shown_ = EmptyList<BriefingShownItem>();
+    people_.ConstructEmpty();           // 005F8F10
+    speakers_ = nullptr;                // the speakers' vector (005F9540): no storage
+    speakersEnd_ = nullptr;
+    speakersCapacity_ = nullptr;
+}
+
 void CInterface3D::CreateScreen(int id) {
     CUiWindow* screen = nullptr;
     switch (id) {
     case 0:
         return;
-    case 1: {   // the in-game screen (ui_camp.h)
-        auto* battle = gamecrt::operator_new_as<CBattleScreen>();
-        screen = battle;
-        if (!battle) break;
-        battle->CUiContainer::Construct(this);
-        mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&battle->party_);
-        mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&battle->heroes_);
-        battle->personTexts_.Construct();          // 005F8F30
-        battle->clientParty_.Construct();          // 005F6080
-        battle->itemUseKey_.ConstructItemUseKey();  // 005F5F90
-        SetVtables(battle, CBattleScreen::Vtable(), CBattleScreen::InputVtable());
+    case 1:   // the in-game screen (ui_camp.h)
+        screen = new CBattleScreen(this);
         break;
-    }
-    case 2: {   // the main menu
-        auto* menu = gamecrt::operator_new_as<CMainMenu>();
-        screen = menu;
-        if (!menu) break;
-        menu->CUiContainer::Construct(this);
-        SetVtables(menu, CMainMenu::Vtable(), CMainMenu::InputVtable());
+    case 2:   // the main menu
+        screen = new CMainMenu(this);
         break;
-    }
-    case 3: {   // the base / briefing screen
-        auto* briefing = gamecrt::operator_new_as<CBriefingScreen>();
-        screen = briefing;
-        if (!briefing) break;
-        briefing->CUiContainer::Construct(this);
-        briefing->topics_.Construct();
-        new (&briefing->topic_) mfc::CString();
-        mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&briefing->party_);
-        briefing->movers_ = EmptyList<BriefingMover>();
-        new (&briefing->dialogueText_) mfc::CString();
-        briefing->personTexts_.Construct();           // 005F8F30
-        briefing->shown_ = EmptyList<BriefingShownItem>();
-        briefing->people_.ConstructEmpty();           // 005F8F10
-        briefing->speakers_ = nullptr;                // the speakers' vector (005F9540): no storage
-        briefing->speakersEnd_ = nullptr;
-        briefing->speakersCapacity_ = nullptr;
-        SetVtables(briefing, CBriefingScreen::Vtable(), CBriefingScreen::InputVtable());
+    case 3:   // the base / briefing screen
+        screen = new CBriefingScreen(this);
         break;
-    }
-    case 4: {
-        auto* map = gamecrt::operator_new_as<CGlobalMap>();
-        if (map) map->Construct(this);
-        screen = map;
+    case 4:
+        screen = new CGlobalMap(this);
         break;
-    }
     case 5: {
         auto* camp = gamecrt::operator_new_as<CCampPages>();
         if (camp) camp->Construct(this, 0);
         screen = camp;
         break;
     }
-    case 7: {
-        auto* view = gamecrt::operator_new_as<CViewScreen>();
-        screen = view;
-        if (!view) break;
-        view->CUiContainer::Construct(this);
-        SetVtables(view, CViewScreen::Vtable(), CViewScreen::InputVtable());
+    case 7:
+        screen = new CViewScreen(this);
         break;
-    }
-    case 8: {   // the titles (CCreditsScreen, ui_screens.h)
-        auto* credits = gamecrt::operator_new_as<CCreditsScreen>();
-        if (credits) credits->Construct(this, 0, "Crdt");
-        screen = credits;
+    case 8:   // the titles (CCreditsScreen, ui_screens.h)
+        screen = new CCreditsScreen(this, false, "Crdt");
         break;
-    }
     case 9: {
         auto* exchange = gamecrt::operator_new_as<CExchangeScreen>();
         if (exchange) exchange->Construct(this);
@@ -271,22 +248,7 @@ void CInterface3D::ShowMessage(int force) {
     }
     if (messageText_.GetLength() == 0) return;
     if (options::TheOptions()->showTutorial_ == 0 && !forced) return;
-    auto* win = gamecrt::operator_new_as<CHelpWindow>();
-    CUiWindow* window = nullptr;
-    if (win) {
-        int value = messageFlag_;
-        win->CUiContainer::Construct(this);
-        win->message_ = true;
-        new (&win->text_) mfc::CString(messageText_);
-        ::new (&win->title_) mfc::CString;   // afxEmptyString
-        win->lines_.Construct();
-        win->page_ = value;
-        win->pulsing_.Construct();    // the allocator proxy (005FA340), then a sentinel
-        win->pictures_.Construct();
-        SetVtables(win, CHelpWindow::Vtable(), CHelpWindow::InputVtable());
-        window = win;
-    }
-    PushWindow(window, 1, 0);
+    PushWindow(new CHelpWindow(this, true, messageText_, messageFlag_), 1, 0);
 }
 
 EI_REWRITTEN(0x005F8A80, CInterface3D::ShowMessage);
@@ -318,21 +280,7 @@ void CInterface3D::OpenHelp(int flag) {
     } else if (!forced) {
         return;
     }
-    auto* win = gamecrt::operator_new_as<CHelpWindow>();
-    CUiWindow* window = nullptr;
-    if (win) {
-        win->CUiContainer::Construct(this);
-        win->message_ = false;
-        new (&win->text_) mfc::CString(topic);
-        ::new (&win->title_) mfc::CString;   // afxEmptyString
-        win->lines_.Construct();
-        win->page_ = seen;
-        win->pulsing_.Construct();    // 005F9A00
-        win->pictures_.Construct();   // the allocator proxy (005FA340), then a sentinel
-        SetVtables(win, CHelpWindow::Vtable(), CHelpWindow::InputVtable());
-        window = win;
-    }
-    PushWindow(window, 1, 0);
+    PushWindow(new CHelpWindow(this, false, topic, seen), 1, 0);
 }
 
 EI_REWRITTEN(0x005F86F0, CInterface3D::OpenHelp);
@@ -369,42 +317,34 @@ CExchangeScreen* CExchangeScreen::Construct(CInterface3D* ui) {
 }
 EI_REWRITTEN(0x005F6F30, CExchangeScreen::Construct);
 
-// 005F6D50 (RET 0xC). Screen 8's constructor (vtables 00740C3C / 00740C08): the list at +0x1C8
-// gets its header node (its allocator byte, the flag's low byte, is overwritten), +0x1D4 the
-// text, +0x1F4 the flag's low byte as it is.
-CCreditsScreen* CCreditsScreen::Construct(CInterface3D* ui, int flag, const char* text) {
-    CCreditsScreen* self = this;
-    CUiContainer::Construct(ui);
+// 005F6D50. Screen 8's constructor: the list at +0x1C8 gets its header node (its allocator byte,
+// the flag's low byte, is overwritten), +0x1D4 the text, +0x1F4 the flag.
+CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name) : CUiContainer(ui) {
     archive_->Construct();
-    self->lines_.Construct();   // the header from the node pool, linked to itself
-    new (&self->name_) mfc::CString(text);
-    static_cast<CBinkVideo*>(&self->player_)->Construct();
-    const auto low = static_cast<std::uint8_t>(flag);
-    std::memcpy(&self->fromGame_, &low, 1);
-    SetTagTables(Vtable(), InputVtable());
-    return self;
+    lines_.Construct();   // the header from the node pool, linked to itself
+    name_ = name;
+    player_.Construct();
+    fromGame_ = fromGame;
 }
-EI_REWRITTEN(0x005F6D50, CCreditsScreen::Construct);
+EI_REWRITTEN_SPECIAL(0x005F6D50, CCreditsScreen::CCreditsScreen);
 
-// 005F6E40 (thiscall). Screen 8's destructor body: its members, the list (each line's two
-// CStrings, style then text) back to the node allocator, then the container base.
-void __fastcall Screen8Destroy(void* self) {
-    auto* screen = static_cast<CCreditsScreen*>(self);
-    static_cast<CBinkVideo*>(&screen->player_)->Destruct();
-    screen->name_.~CString();
+// 005F6E40. Screen 8's destructor body: its members, the list (each line's two CStrings, style
+// then text) back to the node allocator, then the container base.
+CCreditsScreen::~CCreditsScreen() {
+    player_.Destruct();
     using Node = stlp::list<TitleLine>::Node;
-    stlp::list<TitleLine>& lines = screen->lines_;
-    for (Node* node = lines.head->next; node != lines.head;) {
+    for (Node* node = lines_.head->next; node != lines_.head;) {
         Node* next = node->next;
         node->data.style.~CString();
         node->data.text.~CString();
         stlp::deallocate(node, sizeof(Node));
         node = next;
     }
-    lines.head->next = lines.head;
-    lines.head->prev = lines.head;
-    stlp::deallocate(lines.head, sizeof(Node));
-    screen->archive_.Get()->CMappedResource::Destroy();
-    static_cast<CUiContainer*>(self)->DestroyContainer();
+    lines_.head->next = lines_.head;
+    lines_.head->prev = lines_.head;
+    stlp::deallocate(lines_.head, sizeof(Node));
+    archive_.Get()->CMappedResource::Destroy();
 }
-EI_REWRITTEN(0x005F6E40, Screen8Destroy);
+EI_REWRITTEN_SPECIAL(0x005F6E40, CCreditsScreen::~CCreditsScreen);
+EI_REWRITTEN_SPECIAL(0x005F6E20, CCreditsScreen::~CCreditsScreen);   // deleting
+EI_REWRITTEN_SPECIAL(0x005FC0F0, CCreditsScreen::~CCreditsScreen);   // the input side's

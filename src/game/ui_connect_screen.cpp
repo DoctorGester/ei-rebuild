@@ -98,9 +98,7 @@ void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(fr
 
 // A message box of `ui` on top (allocation failure: null pushed, as the original).
 void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_t result, int flags) {
-    CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-    CMessageBox* box = memory ? memory->Construct(ui, title, text, static_cast<int>(result), flags, kBoxFormat)
-                       : nullptr;
+    CMessageBox* box = new CMessageBox(ui, title, text, result, flags, kBoxFormat);
     ui->PushWindow(box, 1, 1);
 }
 
@@ -274,13 +272,8 @@ void CMpConnectScreen::Update() {
             joining_ = false;
             mfc::CString key;
             key = RefusalKey(client->refusal_);
-            CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-            CMessageBox* box = nullptr;
-            if (memory) {
-                mfc::CString text = key + MessageSuffix();
-                box = memory->Construct(interface_, key, text, kBoxNotice, kBoxFlagsOk, kBoxFormat);
-            }
-            interface_->PushWindow(box, 1, 1);
+            mfc::CString text = key + MessageSuffix();
+            interface_->PushWindow(new CMessageBox(interface_, key, text, kBoxNotice, kBoxFlagsOk, kBoxFormat), 1, 1);
             return;
         }
     }
@@ -448,9 +441,9 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
     handled_ = true;
 }
 
-EI_REWRITTEN(0x0061C700, InputForward<&CMpConnectScreen::OnLButtonDown>::Call);
-EI_REWRITTEN(0x0061CA30, InputForward<&CMpConnectScreen::OnLButtonDouble>::Call);
-EI_REWRITTEN(0x0061CAD0, InputForward<&CMpConnectScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x0061C700, CMpConnectScreen::OnLButtonDown);
+EI_REWRITTEN(0x0061CA30, CMpConnectScreen::OnLButtonDouble);
+EI_REWRITTEN(0x0061CAD0, CMpConnectScreen::OnKeyDown);
 
 // --- 0061CC00: the selection kept in the list and in view -----------------------------------------
 
@@ -530,11 +523,8 @@ void CMpConnectScreen::MasterRequest() {
         master.Parse(MasterHost(), kMasterPort);
     net::ClientSession* client = net::GameClient();
     std::uint32_t extra = client ? client->queries_.extra : 0;
-    CMasterRequestBox* memory = gamecrt::operator_new_as<CMasterRequestBox>();
-    CMasterRequestBox* box =
-        memory ? memory->Construct(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra)
-               : nullptr;
-    interface_->PushWindow(box, 1, 1);
+    interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra), 1,
+                           1);
 }
 EI_REWRITTEN(0x0061D0D0, CMpConnectScreen::MasterRequest);
 
@@ -802,20 +792,16 @@ EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::CreateScreen);
 
 // --- 0061E2F0 / 0061E4E0: the master request box --------------------------------------------------
 
-CMasterRequestBox* CMasterRequestBox::Construct(CInterface3D* ui, const char* titleKey, const char* textKey,
-                                                std::uint32_t result, const net::NetAddress* address,
-                                                std::uint32_t extra) {
-    CMessageBox::Construct(ui, titleKey, textKey, static_cast<int>(result), kBoxFlagsCancel, kBoxFormat);
-    new (&link_) net::MasterLink(address);
-    SetTagTables(Vtable(), InputVtable());
+CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
+                                     const net::NetAddress* address, std::uint32_t extra)
+    : CMessageBox(ui, titleKey, textKey, result, kBoxFlagsCancel, kBoxFormat), link_(address) {
     bar_ = AddSprite(nullptr);
     bar_->texture_ = nullptr;
     bar_->flags_ |= kPlainSprite;
     bar_->flatColour_ = kBarColour;
     BufferPut(&link_.out, &extra, sizeof(extra));
-    return this;
 }
-EI_REWRITTEN(0x0061E2F0, CMasterRequestBox::Construct);
+EI_REWRITTEN_SPECIAL(0x0061E2F0, CMasterRequestBox::CMasterRequestBox);
 
 void CMasterRequestBox::Update() {
     double share = net::GameClient()->BufferRatioImpl(&link_.in);

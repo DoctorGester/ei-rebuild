@@ -1051,8 +1051,8 @@ CItemInfoPanel* PanelOf(void* input) { return reinterpret_cast<CItemInfoPanel*>(
 void __fastcall InfoPanelRefresh(void* input) { PanelOf(input)->DescribeItem(); }
 } // namespace
 EI_REWRITTEN(0x005EE6B0, InfoPanelRefresh);
-EI_REWRITTEN(0x005EE640, InputForward<&CItemInfoPanel::OnKeyDown>::Call);
-EI_REWRITTEN(0x005EE680, InputForward<&CItemInfoPanel::OnKeyUp>::Call);
+EI_REWRITTEN(0x005EE640, CItemInfoPanel::OnKeyDown);
+EI_REWRITTEN(0x005EE680, CItemInfoPanel::OnKeyUp);
 
 // --- 005EE440: Build ------------------------------------------------------------------------------
 

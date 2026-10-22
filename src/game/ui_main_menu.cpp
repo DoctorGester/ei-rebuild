@@ -221,13 +221,11 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
     }
     CUiContainer::MouseMove(buttons, x, y);
 }
-EI_REWRITTEN(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
+EI_REWRITTEN(0x00633400, CMainMenu::OnMouseMove);
 
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (key != VK_ESCAPE) return;
-    CMessageBox* box = gamecrt::operator_new_as<CMessageBox>();
-    if (box) box = box->Construct(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);
-    interface_->PushWindow(box, 1, 1);
+    interface_->PushWindow(new CMessageBox(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1), 1, 1);
 }
-EI_REWRITTEN(0x00633540, InputForward<&CMainMenu::OnKeyDown>::Call);
+EI_REWRITTEN(0x00633540, CMainMenu::OnKeyDown);

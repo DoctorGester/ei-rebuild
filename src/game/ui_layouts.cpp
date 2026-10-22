@@ -248,8 +248,8 @@ EI_REWRITTEN(0x006503C0, COptionsWindow::CreateScreen);
 // The five regions' rectangles (menus.reg) the game keeps at 007C80A8.
 
 void CEscMenu::CreateScreen() {
-    window.rect_ = RECT{0, 0, 800, 600};
-    CUiModel* model = window.AddModel();
+    rect_ = RECT{0, 0, 800, 600};
+    CUiModel* model = AddModel();
     model->Load("unmoco1", "escMenu00", "escMenu00labels");
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     Vector3 axis = {1.0f, 0.0f, 0.0f};
@@ -261,13 +261,13 @@ void CEscMenu::CreateScreen() {
     // original goes through 0062AC90 (SetRect with a RECT by value).
     const RECT* rects = g_menuRects + kMainMenuRects;
     for (const RECT* source = rects; source < rects + 5; ++source) {
-        CUiRegion* region = window.AddRegion();
+        CUiRegion* region = AddRegion();
         RECT rect;
         gameapi::CopyRect(&rect, source);
         region->SetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
-    window.models_.data[0]->Play(1);
-    window.interface_->PlaySound("buttons\\menu\\shift.wav", 0);
+    models_.data[0]->Play(1);
+    interface_->PlaySound("buttons\\menu\\shift.wav", 0);
 }
 EI_REWRITTEN(0x0062AB20, CEscMenu::CreateScreen);
 
@@ -282,39 +282,14 @@ void SetVtables(CUiWindow* window, void** main, void** input) {
     window->SetTagTables(main, input);
 }
 
-// The inlined COptionsWindow constructor.
-COptionsWindow* NewOptionsWindow(CInterface3D* ui) {
-    COptionsWindow* memory = gamecrt::operator_new_as<COptionsWindow>();
-    if (!memory) return nullptr;
-    auto* w = memory;
-    w->CUiContainer::Construct(ui);
-    w->bindings_.ConstructEmpty();   // 0062B570
-    w->settings_.ConstructEmpty();   // 0062B5E0
-    w->sliding_ = false;
-    w->groupNames_.Construct();
-    SetVtables(w, COptionsWindow::Vtable(), COptionsWindow::InputVtable());
-    return w;
-}
 } // namespace
 
-CSaveLoadWindow* CSaveLoadWindow::New(CInterface3D* ui) {
-    CSaveLoadWindow* w = gamecrt::operator_new_as<CSaveLoadWindow>();
-    if (!w) return nullptr;
-    w->CUiContainer::Construct(ui);
-    w->entries_.ConstructEmpty();   // vector<SaveEntry>() (0062B550)
-    w->isSave_ = false;
-    w->sliding_ = false;
-    ::new (&w->name_) mfc::CString();
-    SetVtables(w, Vtable(), InputVtable());
-    return w;
-}
-
 void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
-    CInterface3D* ui = window.interface_;
-    int region = window.RegionAt(x, y);
+    CInterface3D* ui = interface_;
+    int region = RegionAt(x, y);
     if (region >= 0) {
         ui->PlaySound("buttons\\menu\\ok.wav", 0);
-        window.handled_ = true;
+        handled_ = true;
     }
     CUiWindow* opened = nullptr;
     bool open = true;
@@ -325,11 +300,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
             open = false;
             break;
         }
-        CSaveLoadWindow* w = CSaveLoadWindow::New(ui);
-        // (Like the original, these two stores do not check the allocation.)
-        w->isSave_ = region == 0;
-        w->sliding_ = true;
-        opened = w;
+        opened = new CSaveLoadWindow(ui, region == 0, true);
         break;
     }
     case 2:   // resume
@@ -337,15 +308,11 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         open = false;
         break;
     case 3: { // quit: the message box
-        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-        opened = memory ? memory->Construct(ui, "quit", "quit_msg", 0x10000, 3, 1)   // "quit_msg"
-                        : nullptr;
+        opened = new CMessageBox(ui, "quit", "quit_msg", 0x10000, 3, 1);
         break;
     }
     case 4: { // options
-        COptionsWindow* w = NewOptionsWindow(ui);
-        w->sliding_ = true;
-        opened = w;
+        opened = new COptionsWindow(ui, true);
         break;
     }
     default:
@@ -353,12 +320,10 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     }
     if (open) ui->PushWindow(opened, 1, 1);
-    window.CUiContainer::LeftDown(buttons, x, y);
+    CUiContainer::LeftDown(buttons, x, y);
 }
 
-namespace {
-} // namespace
-EI_REWRITTEN(0x0062AE90, InputForward<&CEscMenu::OnLButtonDown>::Call);
+EI_REWRITTEN(0x0062AE90, CEscMenu::OnLButtonDown);
 
 // --- Main menu clicks (00632D70) ------------------------------------------------------------------
 
@@ -384,22 +349,13 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
         ui->PlaySound(okSound, 0);
-        CDifficultyBox* box = gamecrt::operator_new_as<CDifficultyBox>();
-        if (box) {
-            box->Construct(ui, "option_difficulty", game::EmptyText(), 0x20000, 3, 1);   // "option_difficulty", ""
-            SetVtables(box, CDifficultyBox::Vtable(), CDifficultyBox::InputVtable());
-        }
-        ui->PushWindow(box, 1, 1);
+        ui->PushWindow(new CDifficultyBox(ui), 1, 1);
         break;
     }
     case 1: {
         // Load.
         ui->PlaySound(okSound, 0);
-        CSaveLoadWindow* w = CSaveLoadWindow::New(ui);
-        // (Like the original, these two stores do not check the allocation.)
-        w->isSave_ = false;
-        w->sliding_ = false;
-        ui->PushWindow(w, 1, 1);
+        ui->PushWindow(new CSaveLoadWindow(ui, false, false), 1, 1);
         break;
     }
     case 2: {
@@ -414,9 +370,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 3: {
         // Options.
         ui->PlaySound(okSound, 0);
-        COptionsWindow* w = NewOptionsWindow(ui);
-        w->sliding_ = false;   // (unchecked, as the original)
-        ui->PushWindow(w, 1, 1);
+        ui->PushWindow(new COptionsWindow(ui, false), 1, 1);
         break;
     }
     case 4: {
@@ -425,17 +379,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         GameStopAmbience();
         ui->PlaySound(okSound, 0);
         ClearSurfaces();
-        auto* w = gamecrt::operator_new_as<CCreditsScreen>();
-        if (w) {
-            w->CUiContainer::Construct(ui);
-            w->archive_->Construct();
-            w->lines_.Construct();   // 00634300
-            ::new (&w->name_) mfc::CString("Titles");
-            static_cast<CBinkVideo*>(&w->player_)->Construct();
-            w->fromGame_ = true;
-            SetVtables(w, CCreditsScreen::Vtable(), CCreditsScreen::InputVtable());
-        }
-        ui->PushWindow(w, 0, 1);
+        ui->PushWindow(new CCreditsScreen(ui, true, "Titles"), 0, 1);
         break;
     }
     case 5: {
@@ -470,9 +414,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
 }
 
-namespace {
-} // namespace
-EI_REWRITTEN(0x00632D70, InputForward<&CMainMenu::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00632D70, CMainMenu::OnLButtonDown);
 
 // --- Message box (00634790) -----------------------------------------------------------------------
 

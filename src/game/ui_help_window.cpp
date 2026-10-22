@@ -161,7 +161,5 @@ void CHelpWindow::OnKeyDown(int key, int repeat, int flags) {
     handled_ = true;
 }
 
-namespace {
-} // namespace
-EI_REWRITTEN(0x00659190, InputForward<&CHelpWindow::OnLeftDown>::Call);
-EI_REWRITTEN(0x006592C0, InputForward<&CHelpWindow::OnKeyDown>::Call);
+EI_REWRITTEN(0x00659190, CHelpWindow::OnLeftDown);
+EI_REWRITTEN(0x006592C0, CHelpWindow::OnKeyDown);

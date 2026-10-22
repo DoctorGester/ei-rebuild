@@ -378,11 +378,11 @@ void CUiItemStrip::OnLButtonDownForward(int flags, int x, int y) {
 }
 
 // Entry points on the input sub-object.
-EI_REWRITTEN(0x00620E10, InputForward<&CUiItemStrip::OnLButtonDown>::Call);
-EI_REWRITTEN(0x00621010, InputForward<&CUiItemStrip::OnLButtonUp>::Call);
-EI_REWRITTEN(0x00620F10, InputForward<&CUiItemStrip::OnMouseMove>::Call);
-EI_REWRITTEN(0x006210F0, InputForward<&CUiItemStrip::OnWheel>::Call);
-EI_REWRITTEN(0x006212A0, InputForward<&CUiItemStrip::OnLButtonDownForward>::Call);
+EI_REWRITTEN(0x00620E10, CUiItemStrip::OnLButtonDown);
+EI_REWRITTEN(0x00621010, CUiItemStrip::OnLButtonUp);
+EI_REWRITTEN(0x00620F10, CUiItemStrip::OnMouseMove);
+EI_REWRITTEN(0x006210F0, CUiItemStrip::OnWheel);
+EI_REWRITTEN(0x006212A0, CUiItemStrip::OnLButtonDownForward);
 
 // --- Heroes' skills ---------------------------------------------------------------------------
 
@@ -554,33 +554,25 @@ void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
     rotating_ = 0;
 }
 
-EI_REWRITTEN(0x006177D0, InputForward<&CMpHeroScreen::OnLButtonUp>::Call);
+EI_REWRITTEN(0x006177D0, CMpHeroScreen::OnLButtonUp);
 
 // --- CEscMenu ---------------------------------------------------------------------------------
 
-CUiWindow* CEscMenu::New(CInterface3D* ui) {
-    CEscMenu* menu = gamecrt::operator_new_as<CEscMenu>();
-    if (!menu) return nullptr;
-    menu->window.Construct(ui);
-    menu->window.SetTagTables(Vtable(), InputVtable());
-    return &menu->window;
-}
-
 void CEscMenu::OnMouseMove(int flags, int x, int y) {
-    CUiModel* model = window.models_.data[0];
-    int region = window.RegionAt(x, y);
+    CUiModel* model = models_.data[0];
+    int region = RegionAt(x, y);
     // Hovering a stone plays its animation (the first two only in single player).
     switch (region) {
     case 0:
         if (hovered_ != 0 && !IsMultiplayerClient()) {
-            uiorig::PlayUiSound(window.interface_, kSoundMenuStone, 0);
+            uiorig::PlayUiSound(interface_, kSoundMenuStone, 0);
             model->Play(2);
         }
         hovered_ = 0;
         break;
     case 1:
         if (hovered_ != 1 && !IsMultiplayerClient()) {
-            uiorig::PlayUiSound(window.interface_, kSoundMenuStone, 0);
+            uiorig::PlayUiSound(interface_, kSoundMenuStone, 0);
             model->Play(3);
         }
         hovered_ = 1;
@@ -590,7 +582,7 @@ void CEscMenu::OnMouseMove(int flags, int x, int y) {
     case 4: {
         static const int kAnimation[5] = {0, 0, 5, 6, 4};
         if (hovered_ != region) {
-            uiorig::PlayUiSound(window.interface_, kSoundMenuStone, 0);
+            uiorig::PlayUiSound(interface_, kSoundMenuStone, 0);
             model->Play(kAnimation[region]);
         }
         hovered_ = region;
@@ -601,32 +593,32 @@ void CEscMenu::OnMouseMove(int flags, int x, int y) {
         hovered_ = -1;
         break;
     }
-    window.CUiContainer::MouseMove(flags, x, y);
+    CUiContainer::MouseMove(flags, x, y);
 }
 
 void CEscMenu::OnKeyDown(int key, int repeat, int flags) {
-    window.CUiContainer::KeyDown(key, repeat, flags);
+    CUiContainer::KeyDown(key, repeat, flags);
     if (key == VK_ESCAPE) {
-        uiorig::PlayUiSound(window.interface_, kSoundMenuOk, 0);
-        window.interface_->SetPendingValue(0);
-        window.handled_ = true;
+        uiorig::PlayUiSound(interface_, kSoundMenuOk, 0);
+        interface_->SetPendingValue(0);
+        handled_ = true;
     }
 }
 
 void CEscMenu::OnMessageResult(int result) {
     // 0x10001: the quit box's yes; 0x100001/0x100002/0x110001 close the menu.
     if (static_cast<std::uint32_t>(result) > 0x100002) {
-        if (result == 0x110001) window.interface_->SetPendingValue(0);
+        if (result == 0x110001) interface_->SetPendingValue(0);
     } else if (static_cast<std::uint32_t>(result) >= 0x100001) {
-        window.interface_->SetPendingValue(0);
+        interface_->SetPendingValue(0);
     } else if (result == 0x10001) {
         uiorig::LeaveGame();
     }
 }
 EI_REWRITTEN(0x0062ACC0, CEscMenu::OnMessageResult);
 
-EI_REWRITTEN(0x0062AD10, InputForward<&CEscMenu::OnMouseMove>::Call);
-EI_REWRITTEN(0x0062B300, InputForward<&CEscMenu::OnKeyDown>::Call);
+EI_REWRITTEN(0x0062AD10, CEscMenu::OnMouseMove);
+EI_REWRITTEN(0x0062B300, CEscMenu::OnKeyDown);
 
 // --- CCreditsScreen ---------------------------------------------------------------------------
 
@@ -641,8 +633,8 @@ void CCreditsScreen::OnKeyDown(int key, int, int) {
     if (key == VK_RETURN || key == VK_ESCAPE || key == VK_SPACE) Close();
 }
 
-EI_REWRITTEN(0x0062BFE0, InputForward<&CCreditsScreen::OnLButtonDown>::Call);
-EI_REWRITTEN(0x0062C010, InputForward<&CCreditsScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x0062BFE0, CCreditsScreen::OnLButtonDown);
+EI_REWRITTEN(0x0062C010, CCreditsScreen::OnKeyDown);
 
 // --- CExchangeScreen --------------------------------------------------------------------------
 
@@ -665,4 +657,4 @@ void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-EI_REWRITTEN(0x0062D090, InputForward<&CExchangeScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x0062D090, CExchangeScreen::OnKeyDown);

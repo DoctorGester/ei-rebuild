@@ -78,11 +78,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
         GameLeaveThroughExit(exit_);
         break;
     case kGameOverLoad: {
-        CSaveLoadWindow* window = CSaveLoadWindow::New(interface_);
-        // (Like the original, the flags are written again without checking the allocation.)
-        window->isSave_ = false;
-        window->sliding_ = false;
-        interface_->PushWindow(window, 1, 1);
+        interface_->PushWindow(new CSaveLoadWindow(interface_, false, false), 1, 1);
         break;
     }
     case kGameOverQuit:
@@ -174,10 +170,7 @@ EI_REWRITTEN(0x00603010, CBriefingScreen::OnUnitLeft);
 
 void CBriefingScreen::OnGameOver(int) {
     interface_->PlaySound("buttons\\gameover.wav", 0);
-    CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-    CMessageBox* box = memory ? memory->Construct(interface_, "game_over",
-                                                     "game_over_msg", kGameOverResult, 3, 1)
-                       : nullptr;
+    CMessageBox* box = new CMessageBox(interface_, "game_over", "game_over_msg", kGameOverResult, 3, 1);
     interface_->PushWindow(box, 1, 1);
 }
 EI_REWRITTEN(0x00608C70, CBriefingScreen::OnGameOver);

@@ -21,22 +21,13 @@ void* ObjectiveExitsVtable() { return mfc::impl::ObjectiveExitArrayClass::Vtable
 
 constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit field instead of the text
 
-// A CString member constructed empty.
-mfc::CString* EmptyString(mfc::CString* field) { return ::new (field) mfc::CString; }
-
 } // namespace
 
 // --- 00634650: the message box ------------------------------------------------------------------
 
-CMessageBox* CMessageBox::Construct(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
-                                    std::uint32_t flags, std::uint32_t format) {
-    CUiContainer::Construct(ui);
-    EmptyString(&title_);
-    EmptyString(&text_);
-    result_ = result;
-    flags_ = flags;
-    format_ = format;
-    SetTagTables(Vtable(), InputVtable());
+CMessageBox::CMessageBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
+                         std::uint32_t flags, std::uint32_t format)
+    : CUiContainer(ui), result_(result), flags_(flags), format_(format) {
     mfc::CString text;
     CTextManager* texts = TheTextManager();
     texts->GetString(titleKey, &text);
@@ -48,34 +39,22 @@ CMessageBox* CMessageBox::Construct(CInterface3D* ui, const char* titleKey, cons
         texts->GetString(textKey, &text);
         text_ = text;
     }
-    return this;
 }
-EI_REWRITTEN(0x00634650, CMessageBox::Construct);
+EI_REWRITTEN_SPECIAL(0x00634650, CMessageBox::CMessageBox);
 
 // --- 0063B5D0: the objectives window -------------------------------------------------------------
 
-CObjectivesWindow* CObjectivesWindow::Construct(CInterface3D* ui) {
-    CUiContainer::Construct(ui);
-    zones_.Start() = nullptr;
-    zones_.Finish() = nullptr;
-    zones_.EndOfStorage() = nullptr;
-    EmptyString(&zoneName_);
+CObjectivesWindow::CObjectivesWindow(CInterface3D* ui) : CUiContainer(ui) {
     exitDistances_ = nullptr;
-    EmptyString(&shownZone_);
     exits_.vtable = ObjectiveExitsVtable();
     exits_.data = nullptr;
     exits_.growBy = 0;
     exits_.maxSize = 0;
     exits_.size = 0;
     quests_.Construct();
-    questPlaces_.Start() = nullptr;
-    questPlaces_.Finish() = nullptr;
-    questPlaces_.EndOfStorage() = nullptr;
     objectiveTexts_.Construct();
-    SetTagTables(Vtable(), InputVtable());
-    return this;
 }
-EI_REWRITTEN(0x0063B5D0, CObjectivesWindow::Construct);
+EI_REWRITTEN_SPECIAL(0x0063B5D0, CObjectivesWindow::CObjectivesWindow);
 
 // --- 0063FE70: the portraits panel ---------------------------------------------------------------
 

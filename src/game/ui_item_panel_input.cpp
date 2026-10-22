@@ -17,9 +17,7 @@ void CUiItemPanel::OnLeftDown(int, int x, int y) {
     }
     if (topic) OwnerTopicClicked(topic);
 }
-namespace {
-} // namespace
-EI_REWRITTEN(0x005EE310, InputForward<&CUiItemPanel::OnLeftDown>::Call);
+EI_REWRITTEN(0x005EE310, CUiItemPanel::OnLeftDown);
 
 // 0060E210: the blank panel's constructor.
 CUiItemPanel* CUiItemPanel::ConstructBlank(CInterface3D* ui, CItemScreen* owner) {

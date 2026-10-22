@@ -93,9 +93,7 @@ void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
         return;
     }
 }
-namespace {
-} // namespace
-EI_REWRITTEN(0x0062CF70, InputForward<&CExchangeScreen::OnLButtonDown>::Call);
+EI_REWRITTEN(0x0062CF70, CExchangeScreen::OnLButtonDown);
 
 // --- 0062D210: the exchange went through (slot 37) -------------------------------------------------
 

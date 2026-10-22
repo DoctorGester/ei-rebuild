@@ -490,8 +490,7 @@ EI_REWRITTEN(0x00649160, CHudClock::OnMouseMove);
 void CHudClock::OpenObjectives() {
     highlight_ = false;
     interface_->PlaySound(kSoundClick, 0);
-    CObjectivesWindow* memory = gamecrt::operator_new_as<CObjectivesWindow>();
-    CObjectivesWindow* window = memory ? memory->Construct(interface_) : nullptr;
+    auto* window = new CObjectivesWindow(interface_);
     {
         BriefingPlayerName zone;
         window->Setup(zone, nullptr, 0, 0);

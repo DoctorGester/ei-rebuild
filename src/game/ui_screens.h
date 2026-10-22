@@ -609,9 +609,22 @@ inline std::uint32_t g_connectTextColour = /*00793AD8*/ 0xA7D7E4;
 
 class CMpConnectScreen : public CUiContainer {
 public:
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741CD0 / 00741C9C.
-    static void** Vtable();
-    static void** InputVtable();
+    // Built inline by the hero screen's Continue (006183B0): the container, no entries, no
+    // selected address, an empty password, the two text arrays.
+    explicit CMpConnectScreen(CInterface3D* ui) : CUiContainer(ui) {
+        selectedAddress_ = net::NetAddress{};
+        allodNames_.Construct();
+        texts_.Construct();
+    }
+    // 00618570 (ui_window_delete.cpp; deleting 00618550, the input side's 0061B220): the two text
+    // arrays, the password, the entries (texts, storage), then the container's.
+    ~CMpConnectScreen() override;
+    // The slots of its own in game.exe's tables 00741CD0 / 00741C9C.
+    void CloseScreen() override {}                     // 26: 0061C2D0 (empty)
+    void MessageResult(int result) override { OnBoxResult(static_cast<std::uint32_t>(result)); }   // 27
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }               // 2
+    int LeftDouble(int b, int x, int y) override { return OnLButtonDouble(b, x, y), 0; }           // 7
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }                    // 9
 
     // The message box results (slot 27): the kinds the screen opens boxes with, ORed with 1 (OK)
     // or 2 (cancel) when they come back.
@@ -624,12 +637,6 @@ public:
     };
     static constexpr int kRows = 15;
 
-    // 00618570 (ui_window_delete.cpp). The destructor body: the two text arrays, the password,
-    // the entries (texts, storage), then the container's.
-    void DestroyBody();
-    // 00618550 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CMpConnectScreen* ConnectScreenDelete(unsigned flags);
     // 0061B2C0 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
     // only). The screen over 800 x 600: the "saveload" and "scrollbar" textures, the stone menu
     // model ("unmoco2" with "MainMenu00labels", parts "but03" and "button03_multiplayer") at
@@ -653,7 +660,7 @@ public:
     // selected address on each refresh (none for row 0), refreshes, and the list is rebuilt and
     // drawn; then the scroll bar, the player slider (maxPlayers_ = its position + 1) and a changed
     // name redraw the list.
-    void Update();
+    void Update() override;
     // Slot 26 (0061C2D0) does nothing and slot 41 (0061C420) returns 0: too short to hook.
     // 0061C2E0 (slot 27, RET 4). A box answered: an address (0x20001) is parsed (port 8888 unless
     // given) and asked when known, the address book written, the list drawn; the master request
@@ -757,23 +764,18 @@ static_assert(sizeof(CMpConnectScreen) == 0x260);
 // the master server and a progress bar sprite. Its result is kBoxMaster (| 2 when done).
 class CMasterRequestBox : public CMessageBox {
 public:
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741DD8 / 00741DA4.
-    static void** Vtable();
-    static void** InputVtable();
-    // 0061E2F0 (RET 0x18). Constructor: the box (flags 2: one cancel button; format 1), the link
-    // connecting to `address`, vtables, the bar (a plain sprite, colour 0xFFA06800), and `extra`
-    // written to the link's outgoing buffer. Returns this.
-    CMasterRequestBox* Construct(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
-                                 const net::NetAddress* address, std::uint32_t extra);
-    // 0061E460 (ui_window_delete.cpp). The destructor body: the link (00440D40), then the box's.
-    void DestroyBody();
-    // 0061E440 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CMasterRequestBox* MasterRequestBoxDelete(unsigned flags);
-    // 0061E4E0 (slot 24). The bar's right edge at 225 + 355 * the received share (0041D9A0); the
+    // 0061E2F0 (ui_connect_screen.cpp): the box (flags 2: one cancel button; format 1), the link
+    // connecting to `address`, the bar (a plain sprite, colour 0xFFA06800), and `extra` written to
+    // the link's outgoing buffer.
+    CMasterRequestBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
+                      const net::NetAddress* address, std::uint32_t extra);
+    // 0061E460 (ui_window_delete.cpp; deleting 0061E440, the input side's 00620300): the link
+    // (00440D40), then the box's.
+    ~CMasterRequestBox() override;
+    // 0061E4E0 (slot 24, game.exe's table 00741DD8; the other slots are the message box's). The bar's right edge at 225 + 355 * the received share (0041D9A0); the
     // link steps: done (3) hands the reply to the client's server list (0041D600); the box closes
     // (0x40002) when the link is done or, stepping again, closed (up to three steps a frame).
-    void Update();
+    void Update() override;
 
     net::MasterLink link_;           // +0x180
     CUiMesh* bar_;                   // +0x1C0
@@ -791,30 +793,31 @@ inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().entries_
 //
 // Opened by Esc during a game (vtables 00741270/007412A4). Regions, built from the EscMenu layout
 // (0062AB20): 0 save, 1 load, 2 resume, 3 quit (message box), 4 options.
-class CEscMenu {
+class CEscMenu : public CUiContainer {
 public:
+    // Built inline by the screens' Escape keys (the battle screen, the briefing, the global map):
+    // the container base, hovered_ left.
+    explicit CEscMenu(CInterface3D* ui) : CUiContainer(ui) {}
+    // The slots of its own in game.exe's tables 007412A4 / 00741270 (slot 0 the container's).
+    void CloseScreen() override { OnClose(); }                                           // 26
+    void MessageResult(int result) override { OnMessageResult(result); }                // 27
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }    // 4
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }        // 9
     void OnMouseMove(int flags, int x, int y);    // 0062AD10
     void OnKeyDown(int key, int repeat, int flags);   // 0062B300
     // 0062ACC0. Virtual slot 27: a message box this menu opened was closed with `result`.
     void OnMessageResult(int result);
     // 0062AB20 (slot 25, the menu's Create): the stone model and the five regions, whose
     // rectangles come from menus.reg (007C80A8..007C80E8; ui_layouts.cpp).
-    void CreateScreen();
+    void CreateScreen() override;
     // 0062AE90 (input slot 2): opens the save window (region 0), the load window (1; neither in
     // multiplayer), resumes (2), asks to quit (3) or opens the options (4) (ui_layouts.cpp).
     void OnLButtonDown(int buttons, int x, int y);
     // 0062ACB0 (slot 26; ui_small_members.cpp). The menu closes: its stone model (models_[0])
     // plays animation 0.
     void OnClose();
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 007412A4 / 00741270.
-    static void** Vtable();
-    static void** InputVtable();
-    // The menu as the screens' Escape keys make it inline (the battle screen, the briefing, the
-    // global map): the container base and the menu's vtables, hovered_ left; returned as the window
-    // to push (null when the allocation fails; ui_screens.cpp).
-    static CUiWindow* New(CInterface3D* ui);
 
-    CUiContainer window;
     int hovered_;               // +0x164 region under the mouse, -1 for none
 };
 static_assert(sizeof(CEscMenu) == 0x168);
@@ -888,13 +891,18 @@ static_assert(sizeof(CUiScrollingSurface) == 0x58);
 
 class CCreditsScreen : public CUiContainer {
 public:
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740C3C / 00740C08.
-    static void** Vtable();
-    static void** InputVtable();
-    // 005F6D50 (RET 0xC; ui_create_screen.cpp; screen 8 of CInterface3D::CreateScreen). The
-    // container, the archive, the list at +0x1C8 with its header node, +0x1D4 the text, the player
-    // (+0x1D8), the flag's low byte at +0x1F4; vtables 00740C3C / 00740C08. Returns this.
-    CCreditsScreen* Construct(CInterface3D* ui, int flag, const char* text);
+    // 005F6D50 (ui_create_screen.cpp; screen 8 of CInterface3D::CreateScreen, and the menu's
+    // titles). The container, the archive, the list at +0x1C8 with its header node, +0x1D4 the
+    // name, the player (+0x1D8), fromGame_ at +0x1F4.
+    CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name);
+    // 005F6E40 (ui_create_screen.cpp; deleting 005F6E20, the input side's 005FC0F0): the player,
+    // the name, the lines (their strings) and the list's header, the archive, then the container's.
+    ~CCreditsScreen() override;
+    // The slots of its own in game.exe's tables 00740C3C / 00740C08.
+    void CloseScreen() override { OnClose(); }                                         // 26
+    void MessageResult(int result) override { OnMessageResult(result); }              // 27
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }        // 9
     void OnLButtonDown(int flags, int x, int y);   // 0062BFE0
     void OnKeyDown(int key, int repeat, int flags);   // 0062C010
     // Ends the titles: back to where they were opened from.
@@ -913,7 +921,7 @@ public:
     // movie flag 00784752 is 1); when it has ended after the last line: "<name>fout" played, the
     // screen flag cleared and the titles closed as Close() does (returns 1); otherwise the
     // container's draw.
-    BOOL Draw(int pass);
+    BOOL Draw(int pass) override;
     // 0062BD00 (slot 26; ui_credits.cpp). The lines freed, font smoothing set back to
     // fontSmoothing_ (never read: kept), the display's +0x14 restored, the screen flag set and the
     // cursor shown.
@@ -952,9 +960,15 @@ static_assert(sizeof(CCreditsScreen) == 0x1FC);
 // with rain at night.
 class CMainMenu : public CUiContainer {
 public:
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740688 / 00740654.
-    static void** Vtable();
-    static void** InputVtable();
+    // Built inline by CInterface3D::CreateScreen (005F5BA0, screen 2): only the container.
+    explicit CMainMenu(CInterface3D* ui) : CUiContainer(ui) {}
+    // The slots of its own in game.exe's tables 00740688 / 00740654.
+    BOOL Draw(int pass) override { return DrawImpl(pass); }                              // 20
+    void CloseScreen() override { Close(); }                                             // 26
+    void MessageResult(int result) override { OnMessageResult(result); }                 // 27
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }     // input 2
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }      // input 4
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }          // input 9
     // Body of the slot at 00632A90 (registered by member pointer).
     int DrawImpl(int pass);
     // 00632D70 (input slot 2; ui_layouts.cpp). By region: 0 the difficulty question (a message
@@ -975,7 +989,7 @@ public:
     // o'clock and off at 7 (the truncated hour changing); at night before 6 with rain and the
     // option 007AF064 bit 0, every 100 ms a 1 in 41 chance of a lightning bolt at random; the hour
     // kept in +0x170.
-    void Update();
+    void Update() override;
     // 00632910 (slot 26). The map edge fade put back (+0x178), then 00578920(1) and 00578940.
     void Close();
     // 00632940 (slot 27, RET 4). A message box's answer (the flow's party step 0 and the server

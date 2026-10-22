@@ -43,6 +43,8 @@ struct UnitPickInput final : UiInputSide {
 // inline). Its slots but 20, 25 and 26 are the container's.
 class CViewScreen : public CUiContainer {
 public:
+    // Built inline by CInterface3D::CreateScreen (005F5BA0, screen 7): only the container.
+    explicit CViewScreen(CInterface3D* ui) : CUiContainer(ui) {}
     // 0062A830 (slot 25, the screen's Create). Three extra inputs: an inert one (vtable 00741154),
     // UnitPickInput, the battle camera's keys (005EACB0); the camera no longer free, its focus at
     // (30, 30) and its rotation turned by 225 degrees about x (premultiplied).
@@ -51,9 +53,9 @@ public:
     BOOL DrawView(int pass);
     // 0062AA40 (slot 26). The camera free again.
     void OnClose();
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740840 / 0074080C.
-    static void** Vtable();
-    static void** InputVtable();
+    // The slots of its own in game.exe's tables 00740840 / 0074080C (its input side is the container's).
+    BOOL Draw(int pass) override { return DrawView(pass); }   // 20
+    void CloseScreen() override { OnClose(); }                // 26
 
     std::uint8_t unused_164[4];
 };

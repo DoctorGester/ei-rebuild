@@ -143,8 +143,8 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-EI_REWRITTEN(0x0064E330, InputForward<&CObjectivesWindow::OnLButtonDown>::Call);
-EI_REWRITTEN(0x0064E5A0, InputForward<&CObjectivesWindow::OnKeyDown>::Call);
+EI_REWRITTEN(0x0064E330, CObjectivesWindow::OnLButtonDown);
+EI_REWRITTEN(0x0064E5A0, CObjectivesWindow::OnKeyDown);
 
 void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     stlp::vector<UiPointF>& places = questPlaces_;

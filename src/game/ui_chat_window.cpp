@@ -301,7 +301,5 @@ void CChatWindow::OnMouseMove(int, int x, int y) {
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players_.size()) TheCursor()->SetShape(0);
 }
 
-namespace {
-} // namespace
 EI_REWRITTEN(0x006097E0, CChatWindow::OnLButtonDown);
 EI_REWRITTEN(0x00609900, CChatWindow::OnMouseMove);

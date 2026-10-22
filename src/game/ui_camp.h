@@ -139,14 +139,27 @@ struct GlobalMapStep {
 
 class CGlobalMap : public CUiContainer {
 public:
-    // 005F6900 (slot 0, the deleting destructor; ui_window_delete.cpp). GlobalMapDestroy, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CGlobalMap* GlobalMapDelete(unsigned flags);
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740B3C / 00740B08.
-    static void** Vtable();
-    static void** InputVtable();
+    // 005F67A0 (called by CreateScreen 4; ui_global_map.cpp): the container base, empty strings and
+    // arrays (vtables 00740BFC / 00740BF0 / 00740BE4), the two STLport containers at +0x1D0 and
+    // +0x1E0, the identity turn.
+    explicit CGlobalMap(CInterface3D* ui);
+    // 005F6920 (ui_global_map.cpp; deleting 005F6900, the input side's 005FC130): its strings, the
+    // tree at +0x1E0, the vector at +0x1C8, the three arrays (entries destroyed), then the
+    // container's.
+    ~CGlobalMap() override;
+    // The slots of its own in game.exe's tables 00740B3C / 00740B08.
+    BOOL Draw(int pass) override { return DrawBlendedImpl(pass); }                           // 20: 0062EFC0
+    void CloseScreen() override { Close(); }                                                 // 26
+    void MessageResult(int result) override { OnMessageResult(result); }                    // 27
+    void Deactivate() override { OnDeactivate(); }                                           // 1
+    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }            // 2
+    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y); }                // 3
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }          // 4
+    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }          // 5
+    int RightUp(int b, int x, int y) override { return OnRightUp(b, x, y), 0; }              // 6
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }              // 9
     // 0062D330 (slot 40; ui_global_map_input.cpp). The screen's part of a save game: one zero dword.
-    void SaveState();
+    void SaveState() override;
     // 0062D350 (slot 25). Builds the map of the local player's allod: the island model, the
     // zones, the quests the player holds ("q.<zone>.<quest>" = 1) and the links to zones the
     // player may enter ("z.<zone>" = 2), the clock text, the camp and turn buttons, the weather.
@@ -154,11 +167,7 @@ public:
     // 0062F050 (slot 24, every frame). While turning, turns the model and moves the markers and
     // their regions with it; bobs the current zone's arrow, animates the layers, refreshes the
     // zone selection when asked, draws the weather into texture 4, sets the cursor.
-    void Update();
-    // 005F67A0 (RET 4). Constructor (inlined into nothing; called by CreateScreen 4): the
-    // container base, empty strings and arrays (vtables 00740BFC / 00740BF0 / 00740BE4), the two
-    // STLport containers at +0x1D0 and +0x1E0, the identity turn; returns this.
-    CGlobalMap* Construct(CInterface3D* ui);
+    void Update() override;
 
     // 00631110 / 00631030 / 00630F50 (RET 8; `this` is not read). The text "allod <name>",
     // "zone <name>" or "quest <name>" (empty when there is none) constructed into `out`; returns
@@ -239,7 +248,7 @@ public:
     void OnMessageResult(int result);
     // 0062EE70 (slot 41; ui_small_members.cpp). The help topic: "global_map_nocamp" when noCamp_
     // is 1, else "global_map".
-    const char* HelpTopic();
+    const char* HelpTopic() override;
     // 0062FEF0 (input slot 3, RET 0xC; EAX 0; `this` the window). The left button released: a turn
     // by a turn button ends (turning_ 0) and the zone selection is refreshed on the next update.
     int OnLButtonUp(int buttons, int x, int y);
@@ -319,11 +328,6 @@ static_assert(offsetof(CGlobalMap, dragStart_) == 0x268);
 static_assert(offsetof(CGlobalMap, dragAngle_) == 0x270);
 static_assert(offsetof(CGlobalMap, autosave_) == 0x28C);
 static_assert(sizeof(CGlobalMap) == 0x294);
-
-// 005F6920 (__fastcall on the map). The destructor body: its strings, the tree at +0x1E0, the
-// vector at +0x1C8, the three arrays (entries destroyed), then the container base
-// (ui_global_map.cpp).
-void __fastcall GlobalMapDestroy(CGlobalMap* self);
 
 // --- Camp trade panel (the level-up page) ------------------------------------------------------
 //

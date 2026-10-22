@@ -239,9 +239,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         while (other != bindings_.end() && other->action_->id_ != code) ++other;
         if (other != bindings_.end() && other != nullptr && other != binding) {
             // Already bound to another action: ask (the box's result goes to OnDialogResult).
-            CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-            CMessageBox* box = memory ? memory->Construct(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1)
-                                    : nullptr;
+            CMessageBox* box = new CMessageBox(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
             mfc::CString format;
             mfc::CString message;
             TheTextManager()->GetString(game::menukeytexts::KeyMappedText(), &format);
@@ -323,8 +321,8 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
 
 // --- Entry points --------------------------------------------------------------------------------
 
-EI_REWRITTEN(0x006548A0, InputForward<&CSaveLoadWindow::OnKeyDown>::Call);
-EI_REWRITTEN(0x00650E40, InputForward<&COptionsWindow::OnKeyDown>::Call);
-EI_REWRITTEN(0x00655050, InputForward<&CSaveLoadWindow::OnChar>::Call);
+EI_REWRITTEN(0x006548A0, CSaveLoadWindow::OnKeyDown);
+EI_REWRITTEN(0x00650E40, COptionsWindow::OnKeyDown);
+EI_REWRITTEN(0x00655050, CSaveLoadWindow::OnChar);
 EI_REWRITTEN(0x00655430, CSaveLoadWindow::ShowSelection);
 EI_REWRITTEN(0x00657820, CSaveLoadWindow::IsReservedSave);

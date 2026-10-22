@@ -57,8 +57,7 @@ void OpenObjectives(CInterface3D* ui) {
         MapRecord* questZone = TheMapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;
-        CObjectivesWindow* memory = gamecrt::operator_new_as<CObjectivesWindow>();
-        CObjectivesWindow* window = memory ? memory->Construct(ui) : nullptr;
+        auto* window = new CObjectivesWindow(ui);
         {
             BriefingPlayerName player;
             window->Setup(player, nullptr, 0, 1);
@@ -100,7 +99,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     case VK_ESCAPE:
         if (state_ == 0) {
-            interface_->PushWindow(CEscMenu::New(interface_), 1, 1);
+            interface_->PushWindow(new CEscMenu(interface_), 1, 1);
         } else if (state_ == 3) {
             interface_->PlaySound(ClickSound(), 0);
             while (state_ == 3) NextPhrase(1);
@@ -149,6 +148,4 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-namespace {
-} // namespace
-EI_REWRITTEN(0x006034A0, InputForward<&CBriefingScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x006034A0, CBriefingScreen::OnKeyDown);

@@ -154,6 +154,25 @@ static_assert(sizeof(CChatWindow) == 0x170);
 
 class CBriefingScreen : public CUiContainer {
 public:
+    // Built inline by CInterface3D::CreateScreen (005F5BA0, screen 3; ui_create_screen.cpp): the
+    // container, the topics, the party array, the movers' and shown items' lists, the "pers" texts,
+    // the people and no speakers.
+    explicit CBriefingScreen(CInterface3D* ui);
+    // The slots of its own in game.exe's tables 007405AC / 00740578.
+    BOOL Draw(int pass) override { return DrawImpl(pass); }                                       // 20
+    void CloseScreen() override { Close(); }                                                      // 26
+    void MessageResult(int result) override { OnMessageResult(static_cast<std::uint32_t>(result)); }   // 27
+    void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }                                 // 29
+    void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }                                     // 30
+    void GameOver(int won) override { OnGameOver(won); }                                          // 31
+    void ShowBriefing(const char* name) override { OnBriefing(name); }                            // 34
+    bool ReadyToStopPolling() override { return true; }                                           // 35: 00608D10 (AL 1)
+    void PlayersChanged(int show) override { ShowChat(static_cast<char>(show)); }                 // 36
+    void PlayerList(int mode) override { SetChatActive(mode); }                                   // 38
+    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }                 // input 2
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }               // input 4
+    int LeftDouble(int b, int x, int y) override { return OnLeftDouble(b, x, y), 0; }             // input 7
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }                   // input 9
     // Body of the slot at 00602BF0 (registered by member pointer).
     int DrawImpl(int pass);
     // Main vtable slots (ui_briefing.cpp).
@@ -184,7 +203,7 @@ public:
     // 00603090 (slot 36, RET 4). A network client shows its chat window (006091C0) when `show`.
     void ShowChat(char show);
     // 00602490 (slot 40). The screen's part of a save game: one zero dword.
-    void SaveState();
+    void SaveState() override;
     // 006024B0 (slot 25; ui_briefing_create.cpp). Builds the screen: the four backdrop sprites,
     // surfaces 0 (topics) and 1 (a person's label), topicBar_ and text_ as children, the people
     // of the base (people_), the zone's music and camera limits, the screen's own inputs (InertInputVtable()
@@ -197,7 +216,7 @@ public:
     // the others 2) and the leader's pending exit is left once it can be (00578A20); 1 the topic
     // list shown; 2 the phrases start once no waited mover walks; 3 the next phrase when the
     // voice ends or phraseTime_ runs out; 4 the speaker stops blinking then.
-    void Update();
+    void Update() override;
     // Update's part for states 0 and 1: every person of people_ that has a client unit is marked
     // (dialogue event 1) when a "b.<person>.<topic>" variable is 1 for a topic that is not
     // "constr...", else unmarked (event 2).
@@ -329,17 +348,12 @@ public:
     // Removes the shown items' meshes (and the item texture) from the scene and empties shown_
     // (inlined in 00608450 and 00604C50).
     void ClearShownItems();
-    // 005F6BA0 (ui_window_delete.cpp). The destructor body: the speakers (names, storage), the
-    // people ids' storage, the shown items (names, nodes, sentinel), the "pers" texts (erased,
-    // header), the dialogue text, the movers (nodes, sentinel), the party array (vtable 007402AC,
-    // storage), the topic and the topics, then the container's.
-    void DestroyBody();
-    // 005F6B80 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CBriefingScreen* BriefingDelete(unsigned flags);
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 007405AC / 00740578.
-    static void** Vtable();
-    static void** InputVtable();
+    // 005F6BA0 (ui_window_delete.cpp; deleting 005F6B80, the input side's 005FC0B0): the speakers
+    // (names, storage), the people ids' storage, the shown items (names, nodes, sentinel), the
+    // "pers" texts (erased, header), the movers (nodes, sentinel), the party array (vtable
+    // 007402AC, storage) and the topics; the dialogue text and the topic (the original frees
+    // them among those), then the container's.
+    ~CBriefingScreen() override;
     // 005F6B70 (slot 38, RET 4; ui_small_members.cpp). chatActive_ = `mode`.
     void SetChatActive(int mode);
 

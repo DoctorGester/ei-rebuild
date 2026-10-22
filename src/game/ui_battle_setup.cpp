@@ -208,10 +208,10 @@ constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
 
 } // namespace
 
-BOOL CBattleScreen::Draw(void* target) {
+BOOL CBattleScreen::Draw(int pass) {
     GameRender();
     if (boxSelecting_) {   // the selection box, a dark rectangle with an outline (renderer slot 19)
-        static_cast<CSceneRenderer*>(target)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
+        reinterpret_cast<CSceneRenderer*>(pass)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
     }
     Input()->MouseMove(0, MouseScreenX(), MouseScreenY());
@@ -227,7 +227,7 @@ BOOL CBattleScreen::Draw(void* target) {
     // Rebirth's AddNewConsoleCommands (call redirected at 006360DF): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
-    DrawContainerImpl(reinterpret_cast<int>(target));   // 00600EF0: CUiContainer::DrawContainer
+    DrawContainerImpl(pass);   // 00600EF0: CUiContainer::DrawContainer
     return 1;
 }
 

@@ -130,6 +130,4 @@ void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
         owner_->VirtualNextHero();
     }
 }
-namespace {
-} // namespace
-EI_REWRITTEN(0x00624790, InputForward<&CHeroStatsPanel::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00624790, CHeroStatsPanel::OnLButtonDown);

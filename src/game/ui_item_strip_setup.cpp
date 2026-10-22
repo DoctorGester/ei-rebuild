@@ -126,6 +126,4 @@ void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
     uiorig::PlayUiSound(interface_, OnOffSound(), 0);
     owner_->VirtualChooseFigure(figures_->begin()[index]);   // the hero screen: the new hero's figure
 }
-namespace {
-} // namespace
-EI_REWRITTEN(0x00629DB0, InputForward<&CUiItemStrip::OnFigureClick>::Call);
+EI_REWRITTEN(0x00629DB0, CUiItemStrip::OnFigureClick);

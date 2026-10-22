@@ -323,9 +323,7 @@ void CBattleScreen::Update() {
         for (int i = 0; i < data->members_.size; ++i)
             records.SetAtGrow(records.size, &data->members_.data[i]);   // 0059D2E0
         if (GamePartyInExit(&records, pendingExit_, &second)) {
-            CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-            CMessageBox* box = memory ? memory->Construct(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1)
-                               : nullptr;
+            CMessageBox* box = new CMessageBox(interface_, "leave_zone", "leave_zone_msg", 0x10000, 3, 1);
             interface_->PushWindow(box, 1, 1);
             exitPending_ = 0;
         }
@@ -487,7 +485,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         stlp::PushSmallNode(units.head);
     }
 }
-EI_REWRITTEN(0x00638B30, InputForward<&CBattleScreen::OnLButtonUp>::Call);
+EI_REWRITTEN(0x00638B30, CBattleScreen::OnLButtonUp);
 
 // --- 006369D0: a quest variable's notice -------------------------------------------------------
 

@@ -648,16 +648,10 @@ void EmptyArray(Array* array, void* vtable) {
 }
 } // namespace
 
-CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
-    CUiContainer::Construct(ui);
-    ::new (&allodTitle_) mfc::CString;
+CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
     EmptyArray(&zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
     EmptyArray(&links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
     EmptyArray(&quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
-    path_.Start() = nullptr;
-    path_.Finish() = nullptr;
-    path_.EndOfStorage() = nullptr;   // the allocator proxy (005FA0C0)
-    ::new (&target_) mfc::CString;
     // The tree (005FA100: the header from the pool; 005FA0E0 empties it) keeps the first byte of
     // the original's compare object, the argument slot holding `ui`.
     arrivals_.Header() = static_cast<stlp::map<int, float>::Node*>(stlp::allocate(sizeof(stlp::map<int, float>::Node)));
@@ -668,11 +662,8 @@ CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     turn_.x = 0.0f;
     turn_.y = 0.0f;
     turn_.z = 0.0f;
-    ::new (&shownName_) mfc::CString;
-    SetTagTables(Vtable(), InputVtable());
-    return this;
 }
-EI_REWRITTEN(0x005F67A0, CGlobalMap::Construct);
+EI_REWRITTEN_SPECIAL(0x005F67A0, CGlobalMap::CGlobalMap);
 
 // --- 005F6920: the destructor body ---------------------------------------------------------------
 
@@ -692,20 +683,17 @@ void DestroyArray(Array* array, void* vtable) {
 }
 } // namespace
 
-// 00600BA0: the container base's destructor body.
-void __fastcall GlobalMapDestroy(CGlobalMap* self) {
-    self->shownName_.~CString();
-    self->arrivals_.Destroy();   // 005FB7D0 on the root, 005F9980
-    self->target_.~CString();
-    stlp::deallocate(self->path_.Start(), static_cast<std::size_t>(self->path_.EndOfStorage() - self->path_.Start()) *
-                                              sizeof(GlobalMapStep));   // 005FA7E0
-    DestroyArray(&self->quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
-    DestroyArray(&self->links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
-    DestroyArray(&self->zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
-    self->allodTitle_.~CString();
-    static_cast<CUiContainer*>(self)->DestroyContainer();
+CGlobalMap::~CGlobalMap() {
+    arrivals_.Destroy();   // 005FB7D0 on the root, 005F9980
+    stlp::deallocate(path_.Start(), static_cast<std::size_t>(path_.EndOfStorage() - path_.Start()) *
+                                        sizeof(GlobalMapStep));   // 005FA7E0
+    DestroyArray(&quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
+    DestroyArray(&links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
+    DestroyArray(&zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
 }
-EI_REWRITTEN(0x005F6920, GlobalMapDestroy);
+EI_REWRITTEN_SPECIAL(0x005F6920, CGlobalMap::~CGlobalMap);
+EI_REWRITTEN_SPECIAL(0x005F6900, CGlobalMap::~CGlobalMap);   // deleting
+EI_REWRITTEN_SPECIAL(0x005FC130, CGlobalMap::~CGlobalMap);   // the input side's
 
 // --- 00631CC0: the zone array's SetAtGrow --------------------------------------------------------
 

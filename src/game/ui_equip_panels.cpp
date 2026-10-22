@@ -73,7 +73,7 @@ void CHeroEquipPanel::OnRightDown(int, int x, int y) {
     }
     RefreshWeapons(owner_);
 }
-EI_REWRITTEN(0x00622960, InputForward<&CHeroEquipPanel::OnRightDown>::Call);
+EI_REWRITTEN(0x00622960, CHeroEquipPanel::OnRightDown);
 
 // --- 00622860 / 00622D40: the item under a point ---------------------------------------------------
 

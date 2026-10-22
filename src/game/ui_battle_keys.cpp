@@ -145,7 +145,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             hud->actionColumn_->ClearHighlights();
             return;
         }
-        interface_->PushWindow(CEscMenu::New(interface_), 1, 1);
+        interface_->PushWindow(new CEscMenu(interface_), 1, 1);
         handled_ = true;
         return;
     }
@@ -178,8 +178,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         auto* clock = clock_;
         clock->highlight_ = false;
         clock->interface_->PlaySound(ClickSound(), 0);
-        CObjectivesWindow* memory = gamecrt::operator_new_as<CObjectivesWindow>();
-        CObjectivesWindow* window = memory ? memory->Construct(clock->interface_) : nullptr;
+        auto* window = new CObjectivesWindow(clock->interface_);
         {
             mfc::CString zone(mfc::CString::kUnset);
             LocalPlayerName(&zone);
@@ -342,4 +341,4 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-EI_REWRITTEN(0x0063A560, InputForward<&CBattleScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x0063A560, CBattleScreen::OnKeyDown);

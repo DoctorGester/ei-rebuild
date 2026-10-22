@@ -87,8 +87,6 @@ void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
     if (TakeDword(cursor) != masterKey_) return;
     masterToken_ = TakeDword(cursor);
 }
-namespace {
-} // namespace
 EI_REWRITTEN(0x0041ACA0, ServerSession::OnMaster);
 
 // 0041B1C0 (the server in ECX, the message in EDX). A chat line from the connection being read

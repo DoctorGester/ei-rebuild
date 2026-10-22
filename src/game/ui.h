@@ -2042,10 +2042,11 @@ public:
     // 00635250 (slot 25). Reads the screen's saved state when a game is being loaded, else
     // remembers the local player's first hero; creates the panels and the "pers" texts table.
     void CreateScreen() override;
-    // 00636020 (slot 20). Draws the screen: the menu object's frame call, the viewport (with
-    // +0x1C1), a mouse move at the current position, clears the depth (and stencil) buffer, then
-    // the panels (00600EF0). Rebirth's AddNewConsoleCommands applies "nogui" first. Returns 1.
-    BOOL Draw(void* target);
+    // 00636020 (slot 20; `pass` the scene renderer). Draws the screen: the menu object's frame call,
+    // the viewport (with +0x1C1), a mouse move at the current position, clears the depth (and
+    // stencil) buffer, then the panels (00600EF0). Rebirth's AddNewConsoleCommands applies "nogui"
+    // first. Returns 1.
+    BOOL Draw(int pass) override;
     // 00638280 (slot 24, every frame; ui_battle_update.cpp). When the one selected party unit is
     // dead (its slot 55, IsDead), empties the weapon, quick item, spell and action panels and shows the
     // unit in the unit panel; a multiplayer client rebuilds the party from the session's players
@@ -2053,7 +2054,7 @@ public:
     // the "leave_zone" box when a saved zone exit is pending (+0x18C); with a selection box
     // (+0x1C1) the party units inside +0x1CC are marked (flag 0x100) and the others unmarked; the
     // quest sound asked for in +0x1FC.
-    void Update();
+    void Update() override;
     // 00638B30 (input side slot 3, RET 0xC; ui_battle_update.cpp; `this` the window). The left
     // button released: nothing while a portrait click picks a player (+0x22C); without a press on
     // the view (+0x1C0) the container's handler (006011F0); a press without a drag (+0x1C1), or on
@@ -2200,7 +2201,7 @@ public:
     // the count and ids of the selected party units (flag 0x10), the map's zoom, the interface's
     // server flag (+0x60, a byte), the local player's +0x50, the top panel's page-0 text with its
     // zero, exitPending_ (a byte) and pendingExit_.
-    void SaveState();
+    void SaveState() override;
     // 006361B0 (slot 29, RET 4). `unit` joined the party (a network client instead empties the top
     // panel's page-0 text as OnUnitLeft does). Its place: when the local player has a record for it
     // (LocalPlayerData +0x30 / +0x34, 0x784 bytes, unit id +0x1C) it goes after the party units
@@ -2227,16 +2228,34 @@ public:
     // 005F5FB0 (slot 38, RET 4; ui_small_members.cpp). portraitMode_ = `mode` (a portrait click
     // picks a player while it is not 0).
     void SetPortraitMode(int mode);
-    // 005F6130 (ui_window_delete.cpp). The destructor body: the two party id vectors' storage,
-    // the "pers" texts (every node erased, 005FAFA0, then the header), the hero ids and the party
-    // array (their vtables, storage freed), then the container's.
-    void DestroyBody();
-    // 005F5FC0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CBattleScreen* BattleScreenDelete(unsigned flags);
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740764 / 00740730.
-    static void** Vtable();
-    static void** InputVtable();
+    // Built inline by CInterface3D::CreateScreen (005F5BA0, screen 1; ui_create_screen.cpp): the
+    // container, the party and hero arrays, the "pers" texts, the client party's ids, the item key.
+    explicit CBattleScreen(CInterface3D* ui);
+    // 005F6130 (ui_window_delete.cpp; deleting 005F5FC0, the input side's 005FC0E0): the two party
+    // id vectors' storage, the "pers" texts (every node erased, 005FAFA0, then the header), the hero
+    // ids and the party array (their vtables, storage freed), then the container's.
+    ~CBattleScreen() override;
+    // The slots of its own in game.exe's tables 00740764 / 00740730.
+    void CloseScreen() override { Close(); }                                                         // 26
+    void MessageResult(int result) override { OnMessageResult(result); }                             // 27
+    void ItemsPicked(void* items, int money, int crippled) override {                                // 28
+        OnItemsPicked(static_cast<mfc::CTypedPtrList<CItem>*>(items), money, crippled);
+    }
+    void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }                                    // 29
+    void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }                                        // 30
+    void GameOver(int won) override { OnGameOver(static_cast<char>(won)); }                          // 31
+    void Speech(int id, unsigned event, char* extra) override { OnUnitSpeech(id, event, extra); }    // 32
+    void QuestVariable(const char* name, float value) override { OnQuestVariable(name, value); }     // 33
+    bool ReadyToStopPolling() override { return PollShown(); }                                       // 35
+    void PlayerList(int mode) override { SetPortraitMode(mode); }                                    // 38
+    void Deactivate() override { OnDeactivate(); }                                                   // input 1
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }                 // input 2
+    int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y), 0; }                     // input 3
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }                  // input 4
+    int LeftDouble(int b, int x, int y) override { return OnLeftDouble(b, x, y), 0; }                // input 7
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }                      // input 9
+    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }                          // input 11
+    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }                   // input 12
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
     // player's id, the ids of the others. Compared and copied as a whole (006381E0, 0064AF30).
@@ -2639,25 +2658,27 @@ void __fastcall QuickLoad(const char* slot);
 // Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible list rows.
 class CSaveLoadWindow : public CUiContainer {
 public:
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741388 / 00741354.
-    static void** Vtable();
-    static void** InputVtable();
+    // Built inline by the battle and briefing screens' game-over load and the menus: the container,
+    // no entries (vector<SaveEntry>(), 0062B550), an empty name, a save (`isSave`) or load window,
+    // sliding in or not.
+    CSaveLoadWindow(CInterface3D* ui, bool isSave, bool sliding)
+        : CUiContainer(ui), isSave_(isSave), sliding_(sliding) {}
+    // 006070C0 (ui_window_delete.cpp; deleting 006070A0, the input side's 0060C7B0): the name,
+    // each entry's strings and string arrays, the entries' storage, then the container's.
+    ~CSaveLoadWindow() override;
+    // The slots of its own in game.exe's tables 00741388 / 00741354.
+    BOOL Draw(int pass) override;                      // 006544A0 (slot 20): slides in
+    void Update() override;                            // 006545E0 (slot 24)
+    void CloseScreen() override { CloseDialog(); }                                          // 26
+    void MessageResult(int result) override { OnDialogResult(result); }                    // 27
+    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }         // 2
+    int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }     // 7
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }            // 9
+    int Char(int k, int r, int f) override { return OnChar(k, r, f), 0; }                  // 10
     void OnMouseDown(int buttons, int x, int y);       // 00654660
     void OnDoubleClick(int buttons, int x, int y);     // 006547B0
-    BOOL Draw(int pass);                               // 006544A0 (slot 20): slides in
-    void Update();                                     // 006545E0 (slot 24)
     void CloseDialog();                                // 00654430 (slot 26)
     void OnDialogResult(int result);                   // 00654450 (slot 27)
-    // 006070C0 (ui_window_delete.cpp). The destructor body: the name, each entry's strings and
-    // string arrays, the entries' storage, then the container's.
-    void DestroyBody();
-    // 006070A0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CSaveLoadWindow* SaveLoadDelete(unsigned flags);
-    // The original's inlined constructor (the battle and briefing screens' game-over load, the Esc
-    // menu's windows; ui_layouts.cpp): the container, no entries (vector<SaveEntry>(), 0062B550), a
-    // load window not sliding, an empty name, the compiled tables. Null when the allocation fails.
-    static CSaveLoadWindow* New(CInterface3D* ui);
 
     // A-H14 (ui_saveload.cpp).
     // 00655290. OK: nothing without a selection; a save window plays "ok" and saves into the new
@@ -2852,20 +2873,18 @@ static_assert(sizeof(ObjectiveExit) == 0x1C);
 // zone picture with its exits; the arrows switch between zones when it lists several.
 class CObjectivesWindow : public CUiContainer {
 public:
-    // 0063B5D0 (RET 4; ui_screen_constructors.cpp). Constructor: the container, the empty zone
-    // list, strings, exit array (vtable 00741264), quest arrays and places; vtables 007411BC /
-    // 00741188 (the rest is set by Build). Returns this.
-    CObjectivesWindow* Construct(CInterface3D* ui);
-    // 00603B90 (ui_window_delete.cpp). The destructor body: the objective texts, the quest places'
-    // storage, the quests, the exits (vtable 00741264, storage freed), the two zone names, the
-    // zone list, then the container's. The exit distances (+0x178) are not freed here.
-    void DestroyBody();
-    // 00603B70 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CObjectivesWindow* ObjectivesDelete(unsigned flags);
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 007411BC / 00741188.
-    static void** Vtable();
-    static void** InputVtable();
+    // 0063B5D0 (ui_screen_constructors.cpp): the container, the empty zone list, strings, exit
+    // array (vtable 00741264), quest arrays and places (the rest is set by Build).
+    explicit CObjectivesWindow(CInterface3D* ui);
+    // 00603B90 (ui_window_delete.cpp; deleting 00603B70, the input side's 0060C7C0): the objective
+    // texts, the quest places' storage, the quests, the exits (vtable 00741264, storage freed), the
+    // two zone names, the zone list, then the container's. The exit distances (+0x178) are not
+    // freed here.
+    ~CObjectivesWindow() override;
+    // The slots of its own in game.exe's tables 007411BC / 00741188.
+    void CloseScreen() override { RestoreAlphaRef(); }                                   // 26
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }        // 9
     // 0064D970 (slot 26; ui_container_draws.cpp). The device's alpha reference back to the saved one
     // (savedAlphaRef_); SetRenderState's result (not stored in the device object).
     long RestoreAlphaRef();
@@ -2915,13 +2934,13 @@ public:
     // and (cos(5 t) x 0.4 + 0.6) x 255 (_ftol): the quest place markers (sprites after the exits')
     // are red with the second, the nearest exit's marker white with the second, the other exits'
     // grey (C8C8C8) with the first; all drawn in their plain colour (flag 0x100).
-    void Update();
+    void Update() override;
     // A-H25 (ui_objectives.cpp). 0064BE40 (RET 0x10): what the window is opened for, before it
     // opens: the zone, the exits' distances (or null), the two buttons and the zone list.
     // 0064D990 (slot 41): the help topic, "quest_global_map" with two buttons, else
     // "quest_mission".
     void Setup(const char* zone, void* exitDistances, int twoButtons, int listZones);
-    const char* HelpTopic() const;
+    const char* HelpTopic() override;
 
     stlp::vector<mfc::CString> zones_;   // +0x164 the zones listed
     mfc::CString zoneName_;          // +0x170 the zone it was opened for
@@ -2985,18 +3004,29 @@ struct OptionRow {
 // the option groups (100..250 x 156..420), 13.. the rows of the shown group.
 class COptionsWindow : public CUiContainer {
 public:
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00741FAC / 00741F78.
-    static void** Vtable();
-    static void** InputVtable();
+    // Built inline by the Esc menu and the main menu: the container, no binding rows or settings,
+    // the group titles' array, sliding in or not.
+    COptionsWindow(CInterface3D* ui, bool sliding) : CUiContainer(ui), sliding_(sliding) {
+        groupNames_.Construct();
+    }
+    // 0062B180 (ui_menus.cpp; deleting 0062B160, the input side's 0062B770): the group titles, the
+    // settings' and the bindings' strings and storage, then the container's (00600BA0).
+    ~COptionsWindow() override;
+    // The slots of its own in game.exe's tables 00741FAC / 00741F78.
+    BOOL Draw(int pass) override;                      // 00650920 (slot 20): slides in
+    void Redraw() override;                            // 00650A20 (slot 22): not while sliding
+    void CloseScreen() override {}                     // 26: 006508D0 (empty)
+    void MessageResult(int result) override { OnDialogResult(result); }                    // 27
+    const char* HelpTopic() override;                  // 00650900 (slot 41)
+    int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }         // 2
+    int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }     // 7
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }            // 9
     void OnMouseDown(int buttons, int x, int y);       // 00650C20
     void OnDoubleClick(int buttons, int x, int y);     // 00650D70
-    BOOL Draw(int pass);                               // 00650920 (slot 20): slides in
-    void Redraw();                                     // 00650A20 (slot 22): not while sliding
     void OnDialogResult(int result);                   // 006508E0 (slot 27)
-    const char* HelpTopic();                           // 00650900 (slot 41)
     // 00650A30 (slot 24): updates the children, the slide-in, and applies the settings whose
     // scroll bar or spin control changed (volumes, the display's gamma at once).
-    void Update();
+    void Update() override;
 
     // ui_options.cpp (DR-H16).
     // 00651350. Draws surface 0: the group titles (the shown one white-tinted, its button sprite
@@ -3034,12 +3064,6 @@ public:
     static void RestoreSettings();
     // 006503C0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
     void CreateScreen() override;
-    // 0062B180 (the destructor body; slot 0 0062B160 deletes; ui_menus.cpp): the group titles, the
-    // settings' and the bindings' strings and storage, then the container's (00600BA0).
-    void DestroyOptions();
-    // 0062B160 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyOptions, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    COptionsWindow* OptionsWindowDelete(unsigned flags);
 
     // 00650E40 (input side, RET 0xC; ui_menu_keys.cpp). Keys: Esc cancels, Enter starts a key
     // binding or steps a spin row, Up / Down select rows, PgUp / PgDn switch groups, Left /
@@ -3137,12 +3161,20 @@ static_assert(sizeof(CUiEditField) == 0x17C);
 // cancel button), 4 an edit field instead of the text (its initial text is the text key itself).
 class CMessageBox : public CUiContainer {
 public:
-    // 00634650 (RET 0x18; ui_screen_constructors.cpp). Constructor: the container, the title
-    // (the text of `titleKey`) and, without flag 4, the text of `textKey` (else editText_ =
-    // `textKey`, the edit field's first text); `result`, `flags`, `format` kept; vtables 00742348 /
-    // 00742314. A missing text gives its key (GetString). Returns this.
-    CMessageBox* Construct(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
-                           std::uint32_t flags, std::uint32_t format);
+    // 00634650 (ui_screen_constructors.cpp): the container, the title (the text of `titleKey`) and,
+    // without flag 4, the text of `textKey` (else editText_ = `textKey`, the edit field's first
+    // text); `result`, `flags`, `format` kept. A missing text gives its key (GetString).
+    CMessageBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result, std::uint32_t flags,
+                std::uint32_t format);
+    // 0061E3E0 (and the difficulty question's 00633750, the same code; ui_window_delete.cpp;
+    // deleting 00633730 and 00634770, the input sides' 006345E0 and 00634FD0): the text and title
+    // strings, then the container's.
+    ~CMessageBox() override;
+    // The slots of its own in game.exe's tables 00742348 / 00742314 (the master request box's
+    // 00741DD8 / 00741DA4 too).
+    void CloseScreen() override { OnClose(); }                                           // 26
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }        // 9
     // 00634790 (slot 25, ui_layouts.cpp). Builds the box: the "saveload" textures, a surface over
     // 200..600 x 50..500 with the title and the text (or the edit field) centred vertically as a
     // block, the dark shade and frame behind it and the buttons below (regions with tips
@@ -3163,15 +3195,6 @@ public:
     // question 0074225C; ui_small_members.cpp). The box closes: its scene objects and surfaces
     // released (005FF7D0, 005FFC50).
     void OnClose();
-    // 0061E3E0 (and the difficulty question's 00633750, the same code; ui_window_delete.cpp). The
-    // destructor body: the text and title strings, then the container's.
-    void DestroyBody();
-    // 00633730 and 1 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody,
-    // then the memory freed when bit 0 of `flags` is set; returns this.
-    CMessageBox* MessageBoxDelete(unsigned flags);
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00742348 / 00742314.
-    static void** Vtable();
-    static void** InputVtable();
 
     mfc::CString title_;             // +0x164 the text of the title key
     mfc::CString text_;              // +0x168 the text of the text key
@@ -3193,15 +3216,23 @@ static_assert(sizeof(CMessageBox) == 0x180);
 // "tutor <key>" each key's text. Names provisional.
 class CHelpWindow : public CUiContainer {
 public:
-    // 005F8970 (ui_window_delete.cpp). The destructor body: the two lists (nodes, then the
-    // sentinel), the text array, the two strings, then the container's.
-    void DestroyBody();
-    // 005F8950 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
-    // memory freed when bit 0 of `flags` is set; returns this.
-    CHelpWindow* HelpWindowDelete(unsigned flags);
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 00740E28 / 00740DF4.
-    static void** Vtable();
-    static void** InputVtable();
+    // Built inline by CInterface3D::ShowMessage (005F8A80; `message` set, the message's saved
+    // page) and OpenHelp (005F86F0; the topic's): the container, the text, an empty title, the
+    // pages' array, the page, the two lists with their sentinels.
+    CHelpWindow(CInterface3D* ui, bool message, const mfc::CString& text, int page)
+        : CUiContainer(ui), message_(message), text_(text), page_(page) {
+        lines_.Construct();
+        pulsing_.Construct();    // the allocator proxy (005FA340), then a sentinel
+        pictures_.Construct();
+    }
+    // 005F8970 (ui_window_delete.cpp; deleting 005F8950, the input side's 005FC0D0): the two lists
+    // (nodes, then the sentinel), the text array, the two strings, then the container's.
+    ~CHelpWindow() override;
+    // The slots of its own in game.exe's tables 00740E28 / 00740DF4.
+    BOOL Draw(int pass) override { return DrawAlphaRefImpl(pass); }                  // 20: 0065A6D0
+    void CloseScreen() override { Close(); }                                         // 26
+    int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }    // 2
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }      // 9
     // 00658E10 (slot 25; ui_help_window.cpp). Loads "saveload", makes a 256x256 texture, reads the
     // title and the pages (above; the keys replaced by their "tutor" texts, trailing CR / LF
     // trimmed); without the text or without pages the interface's pending value is set to 0 and
@@ -3213,7 +3244,7 @@ public:
     // 0065A5E0 (slot 24). The children's update, then the pulse: its time advanced by the frame
     // time and the pulsing sprites' plain colour set from it (alpha 255 * v, red and green / blue
     // from 80 * (1 - v), v = (cos(5 t) + 1) / 2).
-    void Update();
+    void Update() override;
     // 00659190 (input slot 2, RET 0xC). The container's button handler, then region 0 the
     // previous page, 1 OK (Finish), 2 the next page.
     void OnLeftDown(int buttons, int x, int y);
@@ -3335,6 +3366,12 @@ static_assert(offsetof(CChatOverlay, typed_) == 0x150);
 // handler sets easy_ from the boxes (regions 2 / 3) and copies it to GameDifficulty() on OK.
 class CDifficultyBox : public CMessageBox {
 public:
+    // Built inline by the main menu's click (00632D70): the message box ("option_difficulty", no
+    // text, result 0x20000, OK and cancel, format 1), easy_ left.
+    explicit CDifficultyBox(CInterface3D* ui) : CMessageBox(ui, "option_difficulty", game::EmptyText(), 0x20000, 3, 1) {}
+    // The slots of its own in game.exe's tables 0074225C / 00742228 (slot 0 the message box's).
+    int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }   // 2
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }        // 9
     // 00633DD0 (input side slot 2, RET 0xC; ui_message_box.cpp; no container handler). Region 0
     // OK: easy_ to GameDifficulty(), the OK sound, result_ | 1 pending; 1 cancel: the cancel
     // sound, result_ | 2; 2 / 3 check easy / hard (the checked box's sprite shows the texture
@@ -3355,9 +3392,6 @@ public:
     // the shade, frame and OK / cancel buttons as the message box's; regions OK (tip 0xC3B4),
     // cancel (0xC3B5), easy, hard.
     void CreateScreen() override;
-    // The compiled tables (C19, ui_screen_tables.cpp) in place of game.exe's 0074225C / 00742228.
-    static void** Vtable();
-    static void** InputVtable();
 
     int easy_;                       // +0x180 1 easy, 0 hard (the default)
 };

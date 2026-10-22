@@ -740,5 +740,5 @@ void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButt
 }
 EI_REWRITTEN(0x0064BE40, CObjectivesWindow::Setup);
 
-const char* CObjectivesWindow::HelpTopic() const { return twoButtons_ ? kGlobalMapTopic : kMissionTopic; }
+const char* CObjectivesWindow::HelpTopic() { return twoButtons_ ? kGlobalMapTopic : kMissionTopic; }
 EI_REWRITTEN(0x0064D990, CObjectivesWindow::HelpTopic);

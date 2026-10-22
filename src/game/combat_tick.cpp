@@ -105,8 +105,6 @@ CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 } // namespace
 
-namespace {
-} // namespace
 
 namespace {
 void TellParty(CUnit* unit, int message) {

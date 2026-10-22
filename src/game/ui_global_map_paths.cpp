@@ -169,8 +169,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
             // A zone: its objectives and the ways there, to choose from (found or not).
             SearchWays(this, zone.name);
             if (!MayTravelTo(this)) return;
-            CObjectivesWindow* memory = gamecrt::operator_new_as<CObjectivesWindow>();
-            CObjectivesWindow* window = memory ? memory->Construct(interface_) : nullptr;
+            auto* window = new CObjectivesWindow(interface_);
             window->Setup(target_, &arrivals_, 1, 0);
             interface_->PushWindow(window, 1, 1);
             return;
@@ -183,6 +182,4 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
     ::RequestZone(links_.data[link].name, 0);
 }
 
-namespace {
-} // namespace
-EI_REWRITTEN(0x0062F950, InputForward<&CGlobalMap::OnLeftDown>::Call);
+EI_REWRITTEN(0x0062F950, CGlobalMap::OnLeftDown);

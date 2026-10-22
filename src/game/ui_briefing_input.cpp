@@ -269,10 +269,8 @@ void CBriefingScreen::DrawTopics() {
     UiSurfaceReleaseDC(surface);
 }
 
-namespace {
-} // namespace
-EI_REWRITTEN(0x006030F0, InputForward<&CBriefingScreen::OnLeftDown>::Call);
-EI_REWRITTEN(0x00603360, InputForward<&CBriefingScreen::OnLeftDouble>::Call);
-EI_REWRITTEN(0x00603D00, InputForward<&CBriefingScreen::OnMouseMove>::Call);
+EI_REWRITTEN(0x006030F0, CBriefingScreen::OnLeftDown);
+EI_REWRITTEN(0x00603360, CBriefingScreen::OnLeftDouble);
+EI_REWRITTEN(0x00603D00, CBriefingScreen::OnMouseMove);
 EI_REWRITTEN(0x00608B60, CBriefingScreen::OpenTopics);
 EI_REWRITTEN(0x006071E0, CBriefingScreen::DrawTopics);

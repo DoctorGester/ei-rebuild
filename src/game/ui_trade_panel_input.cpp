@@ -108,7 +108,7 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
         UiCapture(interface_) = Input();
     }
 }
-EI_REWRITTEN(0x00626920, InputForward<&CTradePanel::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00626920, CTradePanel::OnLButtonDown);
 
 // --- 00626C30: the left button released (input slot 3) ---------------------------------------------
 

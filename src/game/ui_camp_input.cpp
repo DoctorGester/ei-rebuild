@@ -107,8 +107,6 @@ EI_REWRITTEN(0x0060E900, CCampPages::OnMessageResult);
 const char* CCampPages::HelpTopic() { return PageHelpTopic(page_); }
 EI_REWRITTEN(0x0060E980, CCampPages::HelpTopic);
 
-namespace {
-} // namespace
-EI_REWRITTEN(0x0060F470, InputForward<&CCampPages::OnLButtonDown>::Call);
-EI_REWRITTEN(0x0060F5B0, InputForward<&CCampPages::OnLButtonUp>::Call);
-EI_REWRITTEN(0x0060F600, InputForward<&CCampPages::OnKeyDown>::Call);
+EI_REWRITTEN(0x0060F470, CCampPages::OnLButtonDown);
+EI_REWRITTEN(0x0060F5B0, CCampPages::OnLButtonUp);
+EI_REWRITTEN(0x0060F600, CCampPages::OnKeyDown);

@@ -175,8 +175,8 @@ W* FromInput(void* input) {
 
 } // namespace
 
-EI_REWRITTEN(0x00654660, InputForward<&CSaveLoadWindow::OnMouseDown>::Call);
-EI_REWRITTEN(0x006547B0, InputForward<&CSaveLoadWindow::OnDoubleClick>::Call);
+EI_REWRITTEN(0x00654660, CSaveLoadWindow::OnMouseDown);
+EI_REWRITTEN(0x006547B0, CSaveLoadWindow::OnDoubleClick);
 EI_REWRITTEN(0x006544A0, CSaveLoadWindow::Draw);
 EI_REWRITTEN(0x006545E0, CSaveLoadWindow::Update);
 EI_REWRITTEN(0x00654430, CSaveLoadWindow::CloseDialog);
@@ -337,8 +337,8 @@ void COptionsWindow::Update() {
     }
 }
 
-EI_REWRITTEN(0x00650C20, InputForward<&COptionsWindow::OnMouseDown>::Call);
-EI_REWRITTEN(0x00650D70, InputForward<&COptionsWindow::OnDoubleClick>::Call);
+EI_REWRITTEN(0x00650C20, COptionsWindow::OnMouseDown);
+EI_REWRITTEN(0x00650D70, COptionsWindow::OnDoubleClick);
 EI_REWRITTEN(0x00650920, COptionsWindow::Draw);
 EI_REWRITTEN(0x00650A20, COptionsWindow::Redraw);
 EI_REWRITTEN(0x006508E0, COptionsWindow::OnDialogResult);
@@ -347,15 +347,16 @@ EI_REWRITTEN(0x00650A30, COptionsWindow::Update);
 
 // --- 0062B180: the destructor body ------------------------------------------------------------------
 
-void COptionsWindow::DestroyOptions() {
+COptionsWindow::~COptionsWindow() {
     groupNames_.Destruct();
     for (OptionSetting& setting : settings_) setting.text_.~CString();
     settings_.FreeStorage();
     for (OptionBinding& binding : bindings_) binding.Destroy();
     bindings_.FreeStorage();
-    DestroyContainer();   // 00600BA0 by address: its wrapper runs
 }
-EI_REWRITTEN(0x0062B180, COptionsWindow::DestroyOptions);
+EI_REWRITTEN_SPECIAL(0x0062B180, COptionsWindow::~COptionsWindow);
+EI_REWRITTEN_SPECIAL(0x0062B160, COptionsWindow::~COptionsWindow);   // deleting
+EI_REWRITTEN_SPECIAL(0x0062B770, COptionsWindow::~COptionsWindow);   // the input side's
 
 // --- Scroll bar --------------------------------------------------------------------------------
 
@@ -424,8 +425,8 @@ void CUiScrollbar::OnMouseUp(int, int, int) {
 
 EI_REWRITTEN(0x0065B090, CUiScrollbar::TakePosition);
 EI_REWRITTEN(0x0065B360, CUiScrollbar::Update);
-EI_REWRITTEN(0x0065B240, InputForward<&CUiScrollbar::OnMouseDown>::Call);
-EI_REWRITTEN(0x0065B340, InputForward<&CUiScrollbar::OnMouseUp>::Call);
+EI_REWRITTEN(0x0065B240, CUiScrollbar::OnMouseDown);
+EI_REWRITTEN(0x0065B340, CUiScrollbar::OnMouseUp);
 
 // --- Tooltip -----------------------------------------------------------------------------------
 

@@ -343,8 +343,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // Delete: asks first ("lmp_deletepers").
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
-        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-        CUiWindow* box = memory ? memory->Construct(ui, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1) : nullptr;
+        CUiWindow* box = new CMessageBox(ui, "lmp_deletepers", "lmp_deletepers_msg", 0x10000, 3, 1);
         ui->PushWindow(box, 1, 1);
         return;
     }
@@ -366,9 +365,9 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     CallShowHero(index);
 }
 
-EI_REWRITTEN(0x00617050, InputForward<&CMpHeroScreen::OnLButtonDown>::Call);
+EI_REWRITTEN(0x00617050, CMpHeroScreen::OnLButtonDown);
 
-EI_REWRITTEN(0x00618A10, InputForward<&CMpHeroScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x00618A10, CMpHeroScreen::OnKeyDown);
 
 // --- 00618060: rename ---------------------------------------------------------------------------
 
@@ -459,20 +458,6 @@ namespace {
 const char* SoundOk() { return "buttons\\messbox\\ok.wav"; }
 SavedParties* MpHeroesObject() { return &TheSavedParties(); }
 
-CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
-    auto* screen = gamecrt::operator_new_as<CMpConnectScreen>();
-    if (!screen) return nullptr;
-    screen->CUiContainer::Construct(ui);
-    screen->entries_.Start() = nullptr;
-    screen->entries_.Finish() = nullptr;
-    screen->entries_.EndOfStorage() = nullptr;
-    screen->selectedAddress_ = net::NetAddress{};
-    new (&screen->hostPassword_) mfc::CString();
-    screen->allodNames_.Construct();
-    screen->texts_.Construct();
-    screen->SetTagTables(CMpConnectScreen::Vtable(), CMpConnectScreen::InputVtable());
-    return screen;
-}
 } // namespace
 
 void CMpHeroScreen::Continue() {
@@ -480,11 +465,10 @@ void CMpHeroScreen::Continue() {
     ui->PlaySound(SoundOk(), 0);
     if (heroIndex_ >= 0 && static_cast<unsigned>(heroIndex_) < static_cast<unsigned>(HeroCount())) {
         MpHeroesObject()->SaveAll();
-        ui->PushWindow(BuildConnectScreen(ui), 1, 1);
+        ui->PushWindow(new CMpConnectScreen(ui), 1, 1);
         return;
     }
-    CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-    CUiWindow* box = memory ? memory->Construct(ui, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1) : nullptr;
+    CUiWindow* box = new CMessageBox(ui, "lmp_no_pers", "lmp_no_pers_msg", 0x20000, 1, 1);
     ui->PushWindow(box, 1, 1);
 }
 namespace {

@@ -194,7 +194,7 @@ void CInterface3D::ChatKeyBackspace() {
 EI_REWRITTEN(0x005F7C80, CInterface3D::ChatKeyBackspace);
 
 void CCampPages::OnKeyUp(int key, int repeat, int flags) { CUiContainer::KeyUp(key, repeat, flags); }
-EI_REWRITTEN(0x0060F690, InputForward<&CCampPages::OnKeyUp>::Call);
+EI_REWRITTEN(0x0060F690, CCampPages::OnKeyUp);
 
 int CHeroStatsPanel::OnLButtonUp(int, int, int) {
     interface_->mouseCapture_ = nullptr;
@@ -202,16 +202,16 @@ int CHeroStatsPanel::OnLButtonUp(int, int, int) {
     holdTime_ = 0.0f;
     return 0;
 }
-EI_REWRITTEN(0x00624A40, InputForward<&CHeroStatsPanel::OnLButtonUp>::Call);
+EI_REWRITTEN(0x00624A40, CHeroStatsPanel::OnLButtonUp);
 
 int CGlobalMap::OnLButtonUp(int, int, int) {
     if (turning_ != 0) selectPending_ = 1;
     turning_ = 0;
     return 0;
 }
-EI_REWRITTEN(0x0062FEF0, InputForward<&CGlobalMap::OnLButtonUp>::Call);
+EI_REWRITTEN(0x0062FEF0, CGlobalMap::OnLButtonUp);
 
-void CEscMenu::OnClose() { window.models_.data[0]->Play(0); }
+void CEscMenu::OnClose() { models_.data[0]->Play(0); }
 EI_REWRITTEN(0x0062ACB0, CEscMenu::OnClose);
 
 void CMessageBox::OnClose() {

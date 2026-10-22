@@ -89,10 +89,8 @@ void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
     handled_ = true;
 }
 
-namespace {
-} // namespace
-EI_REWRITTEN(0x00634D20, InputForward<&CMessageBox::OnLButtonDown>::Call);
-EI_REWRITTEN(0x00634E60, InputForward<&CMessageBox::OnKeyDown>::Call);
+EI_REWRITTEN(0x00634D20, CMessageBox::OnLButtonDown);
+EI_REWRITTEN(0x00634E60, CMessageBox::OnKeyDown);
 
 // --- CDifficultyBox ------------------------------------------------------------------------------
 
@@ -138,7 +136,5 @@ void CDifficultyBox::OnKeyDown(int key, int repeat, int flags) {
     handled_ = true;
 }
 
-namespace {
-} // namespace
-EI_REWRITTEN(0x00633DD0, InputForward<&CDifficultyBox::OnLButtonDown>::Call);
-EI_REWRITTEN(0x00633EC0, InputForward<&CDifficultyBox::OnKeyDown>::Call);
+EI_REWRITTEN(0x00633DD0, CDifficultyBox::OnLButtonDown);
+EI_REWRITTEN(0x00633EC0, CDifficultyBox::OnKeyDown);

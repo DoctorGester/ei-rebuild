@@ -218,9 +218,7 @@ void CSaveLoadWindow::SaveGame() {
     if (space != 0.0) {
         int needed = CurrentSaveSize();   // 0057BC30
         if (static_cast<double>(needed) > space) {
-            CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-            CUiWindow* box = memory ? memory->Construct(interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1)
-                                    : nullptr;
+            CUiWindow* box = new CMessageBox(interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1);
             interface_->PushWindow(box, 1, 1);
             return;
         }
@@ -524,8 +522,7 @@ constexpr const char* kEveryFile = "\\*.*";                             // 0078B
 // A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
 // original does).
 void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
-    CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-    CUiWindow* box = memory != nullptr ? memory->Construct(ui, name, text, result, 3, 1) : nullptr;
+    CUiWindow* box = new CMessageBox(ui, name, text, result, 3, 1);
     ui->PushWindow(box, 1, 1);
 }
 } // namespace

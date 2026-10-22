@@ -177,7 +177,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
 void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (key == VK_ESCAPE) {
-        interface_->PushWindow(CEscMenu::New(interface_), 1, 1);
+        interface_->PushWindow(new CEscMenu(interface_), 1, 1);
         handled_ = true;
     }
     if (handled_) return;
@@ -211,10 +211,7 @@ void CGlobalMap::Close() {
 EI_REWRITTEN(0x0062EDD0, CGlobalMap::Close);
 EI_REWRITTEN(0x0062EE30, CGlobalMap::OnMessageResult);
 
-namespace {
-void __fastcall GlobalMapDeactivate(void* input) { WindowFromInput<CGlobalMap>(input)->OnDeactivate(); }
-} // namespace
-EI_REWRITTEN(0x0062FF10, GlobalMapDeactivate);
+EI_REWRITTEN(0x0062FF10, CGlobalMap::OnDeactivate);
 
 // 0062D330 (slot 40): the briefing screen's SaveState (00602490), byte for byte.
 void CGlobalMap::SaveState() {
@@ -222,7 +219,7 @@ void CGlobalMap::SaveState() {
     GameSaveStream()->Write(&zero, 4);
 }
 EI_REWRITTEN(0x0062D330, CGlobalMap::SaveState);
-EI_REWRITTEN(0x0062FF60, InputForward<&CGlobalMap::OnRightDown>::Call);
-EI_REWRITTEN(0x0062FFC0, InputForward<&CGlobalMap::OnRightUp>::Call);
-EI_REWRITTEN(0x00630010, InputForward<&CGlobalMap::OnMouseMove>::Call);
-EI_REWRITTEN(0x00630580, InputForward<&CGlobalMap::OnKeyDown>::Call);
+EI_REWRITTEN(0x0062FF60, CGlobalMap::OnRightDown);
+EI_REWRITTEN(0x0062FFC0, CGlobalMap::OnRightUp);
+EI_REWRITTEN(0x00630010, CGlobalMap::OnMouseMove);
+EI_REWRITTEN(0x00630580, CGlobalMap::OnKeyDown);

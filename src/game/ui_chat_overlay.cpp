@@ -319,8 +319,6 @@ void CChatOverlay::OnChar(int key, int, int) {
     }
     DrawTyped();
 }
-namespace {
-} // namespace
 EI_REWRITTEN(0x005E3230, CChatOverlay::OnKeyDown);
 EI_REWRITTEN(0x005E3550, CChatOverlay::OnChar);
 

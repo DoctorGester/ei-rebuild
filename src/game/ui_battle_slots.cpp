@@ -215,11 +215,7 @@ void CBattleScreen::OnMessageResult(int result) {
         GameLeaveThroughExit(pendingExit_);
         break;
     case kGameOverLoad: {
-        CSaveLoadWindow* window = CSaveLoadWindow::New(interface_);
-        // (Like the original, the flags are written again without checking the allocation.)
-        window->isSave_ = false;
-        window->sliding_ = false;
-        interface_->PushWindow(window, 1, 1);
+        interface_->PushWindow(new CSaveLoadWindow(interface_, false, false), 1, 1);
         break;
     }
     case kGameOverQuit:
@@ -243,15 +239,9 @@ void CBattleScreen::OnGameOver(char won) {
     CMessageBox* box;
     if (!won) {
         interface_->PlaySound("buttons\\gameover.wav", 0);
-        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-        box = memory ? memory->Construct(interface_, "game_over",
-                                                   "game_over_msg", 0x20000, 3, 1)
-                     : nullptr;
+        box = new CMessageBox(interface_, "game_over", "game_over_msg", 0x20000, 3, 1);
     } else {
-        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-        box = memory ? memory->Construct(interface_, "end_of_game",
-                                                   "end_of_game_msg", 0xFFFF0000u, 3, 1)
-                     : nullptr;
+        box = new CMessageBox(interface_, "end_of_game", "end_of_game_msg", 0xFFFF0000u, 3, 1);
     }
     interface_->PushWindow(box, 1, 1);
 }

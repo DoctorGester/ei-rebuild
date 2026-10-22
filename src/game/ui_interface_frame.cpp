@@ -112,9 +112,7 @@ void CInterface3D::Update() {
         disconnected_ = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's (N0c)
                 static_cast<unsigned>(net::GameClient()->joinState_));
-        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-        CMessageBox* box = memory ? memory->Construct(this, "disconnect", "disconnect_msg", 0x990000, 1, 1)
-                           : nullptr;
+        CMessageBox* box = new CMessageBox(this, "disconnect", "disconnect_msg", 0x990000, 1, 1);
         PushWindow(box, 1, 1);
     } else if (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->Update();
@@ -155,8 +153,7 @@ void CInterface3D::OnStringEvent(const char* event) {
         PlaySound("buttons\\gameover.wav", 0);
         const char* title = words.size > 1 ? words.data[1].GetString() : "game_over";
         const char* message = words.size > 2 ? words.data[2].GetString() : "game_over_msg";
-        CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
-        CMessageBox* window = memory ? memory->Construct(this, title, message, 0x20000, 3, 1) : nullptr;
+        CMessageBox* window = new CMessageBox(this, title, message, 0x20000, 3, 1);
         PushWindow(window, 1, 1);
         return;
     }

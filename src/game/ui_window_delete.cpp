@@ -11,7 +11,6 @@
 #include "ui_input_class.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
-#include "ui_create_screen.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
@@ -118,19 +117,19 @@ void CHeroStatsPanel::DestroyBody() {
 }
 EI_REWRITTEN(0x0060E360, CHeroStatsPanel::DestroyBody);
 
-void CMessageBox::DestroyBody() {
-    text_.~CString();
-    title_.~CString();
-    DestroyContainer();
-}
-EI_REWRITTEN(0x0061E3E0, CMessageBox::DestroyBody);
-EI_REWRITTEN(0x00633750, CMessageBox::DestroyBody);
+CMessageBox::~CMessageBox() = default;
+EI_REWRITTEN_SPECIAL(0x0061E3E0, CMessageBox::~CMessageBox);
+EI_REWRITTEN_SPECIAL(0x00633750, CMessageBox::~CMessageBox);   // the difficulty question's copy
+EI_REWRITTEN_SPECIAL(0x00633730, CMessageBox::~CMessageBox);   // deleting
+EI_REWRITTEN_SPECIAL(0x00634770, CMessageBox::~CMessageBox);   // deleting
+EI_REWRITTEN_SPECIAL(0x006345E0, CMessageBox::~CMessageBox);   // the input side's
+EI_REWRITTEN_SPECIAL(0x00634FD0, CMessageBox::~CMessageBox);   // the input side's
 
-void CMasterRequestBox::DestroyBody() {
-    link_.~MasterLink();   // 00440D40
-    CMessageBox::DestroyBody();
-}
-EI_REWRITTEN(0x0061E460, CMasterRequestBox::DestroyBody);
+// The link (00440D40), then the box's.
+CMasterRequestBox::~CMasterRequestBox() = default;
+EI_REWRITTEN_SPECIAL(0x0061E460, CMasterRequestBox::~CMasterRequestBox);
+EI_REWRITTEN_SPECIAL(0x0061E440, CMasterRequestBox::~CMasterRequestBox);   // deleting
+EI_REWRITTEN_SPECIAL(0x00620300, CMasterRequestBox::~CMasterRequestBox);   // the input side's
 
 void ChatLine::Destroy() {
     if (CUiSurface* shown = surface) {
@@ -148,7 +147,7 @@ EI_REWRITTEN_SPECIAL(0x005E28E0, CChatOverlay::~CChatOverlay);
 EI_REWRITTEN_SPECIAL(0x005E28C0, CChatOverlay::~CChatOverlay);   // deleting
 EI_REWRITTEN_SPECIAL(0x005E3C80, CChatOverlay::~CChatOverlay);   // the input side's
 
-void CBattleScreen::DestroyBody() {
+CBattleScreen::~CBattleScreen() {
     FreeVectorStorage(clientParty_.without.begin(), clientParty_.without.EndOfStorage());
     FreeVectorStorage(clientParty_.withUnit.begin(), clientParty_.withUnit.EndOfStorage());
     DestroyPersonTexts(personTexts_);
@@ -156,13 +155,14 @@ void CBattleScreen::DestroyBody() {
     heroes_.FreeData();
     party_.vtable = PartyArrayVtable();
     party_.FreeData();
-    DestroyContainer();
 }
-EI_REWRITTEN(0x005F6130, CBattleScreen::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x005F6130, CBattleScreen::~CBattleScreen);
+EI_REWRITTEN_SPECIAL(0x005F5FC0, CBattleScreen::~CBattleScreen);   // deleting
+EI_REWRITTEN_SPECIAL(0x005FC0E0, CBattleScreen::~CBattleScreen);   // the input side's
 
 static_assert(sizeof(BriefingMover) == 0x30);
 
-void CBriefingScreen::DestroyBody() {
+CBriefingScreen::~CBriefingScreen() {
     for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) speaker->name.~CString();
     FreeVectorStorage(speakers_, speakersCapacity_);
     people_.FreeStorage();
@@ -177,7 +177,6 @@ void CBriefingScreen::DestroyBody() {
     shown_->prev = shown_;
     stlp::deallocate(shown_, sizeof(BriefingShownItem));
     DestroyPersonTexts(personTexts_);
-    dialogueText_.~CString();
     for (BriefingMover* node = movers_->next; node != movers_;) {
         BriefingMover* next = node->next;
         stlp::deallocate(node, sizeof(BriefingMover));
@@ -188,51 +187,47 @@ void CBriefingScreen::DestroyBody() {
     stlp::deallocate(movers_, sizeof(BriefingMover));
     party_.vtable = PartyArrayVtable();
     party_.FreeData();
-    topic_.~CString();
-    topics_.Destruct();
-    DestroyContainer();
 }
-EI_REWRITTEN(0x005F6BA0, CBriefingScreen::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x005F6BA0, CBriefingScreen::~CBriefingScreen);
+EI_REWRITTEN_SPECIAL(0x005F6B80, CBriefingScreen::~CBriefingScreen);   // deleting
+EI_REWRITTEN_SPECIAL(0x005FC0B0, CBriefingScreen::~CBriefingScreen);   // the input side's
 
-void CMpConnectScreen::DestroyBody() {
+CMpConnectScreen::~CMpConnectScreen() {
     texts_.Destruct();
     allodNames_.Destruct();
-    hostPassword_.~CString();
     for (MpAddressEntry& entry : entries_) {
         entry.description.~CString();
         entry.name.~CString();
     }
     entries_.FreeStorage();
-    DestroyContainer();
 }
-EI_REWRITTEN(0x00618570, CMpConnectScreen::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x00618570, CMpConnectScreen::~CMpConnectScreen);
+EI_REWRITTEN_SPECIAL(0x00618550, CMpConnectScreen::~CMpConnectScreen);   // deleting
+EI_REWRITTEN_SPECIAL(0x0061B220, CMpConnectScreen::~CMpConnectScreen);   // the input side's
 
-void CHelpWindow::DestroyBody() {
+CHelpWindow::~CHelpWindow() {
     DestroyList(pictures_, [](CUiMesh**) {});
     DestroyList(pulsing_, [](CUiMesh**) {});
     lines_.Destruct();
-    title_.~CString();
-    text_.~CString();
-    DestroyContainer();
 }
-EI_REWRITTEN(0x005F8970, CHelpWindow::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x005F8970, CHelpWindow::~CHelpWindow);
+EI_REWRITTEN_SPECIAL(0x005F8950, CHelpWindow::~CHelpWindow);   // deleting
+EI_REWRITTEN_SPECIAL(0x005FC0D0, CHelpWindow::~CHelpWindow);   // the input side's
 
-void CObjectivesWindow::DestroyBody() {
+CObjectivesWindow::~CObjectivesWindow() {
     objectiveTexts_.Destruct();
     FreeVectorStorage(questPlaces_.begin(), questPlaces_.EndOfStorage());
     quests_.Destruct();
     exits_.vtable = ObjectiveExitsVtable();
     if (exits_.data) gamecrt::operator_delete(exits_.data);
-    shownZone_.~CString();
-    zoneName_.~CString();
     for (mfc::CString* zone = zones_.begin(); zone != zones_.end(); ++zone) zone->~CString();
     FreeVectorStorage(zones_.begin(), zones_.EndOfStorage());
-    DestroyContainer();
 }
-EI_REWRITTEN(0x00603B90, CObjectivesWindow::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x00603B90, CObjectivesWindow::~CObjectivesWindow);
+EI_REWRITTEN_SPECIAL(0x00603B70, CObjectivesWindow::~CObjectivesWindow);   // deleting
+EI_REWRITTEN_SPECIAL(0x0060C7C0, CObjectivesWindow::~CObjectivesWindow);   // the input side's
 
-void CSaveLoadWindow::DestroyBody() {
-    name_.~CString();
+CSaveLoadWindow::~CSaveLoadWindow() {
     for (SaveEntry* entry = entries_.begin(); entry != entries_.end(); ++entry) {
         entry->stringArrays_[1].Destruct();
         entry->stringArrays_[0].Destruct();
@@ -242,9 +237,10 @@ void CSaveLoadWindow::DestroyBody() {
         entry->title_.~CString();
     }
     FreeVectorStorage(entries_.begin(), entries_.EndOfStorage());
-    DestroyContainer();
 }
-EI_REWRITTEN(0x006070C0, CSaveLoadWindow::DestroyBody);
+EI_REWRITTEN_SPECIAL(0x006070C0, CSaveLoadWindow::~CSaveLoadWindow);
+EI_REWRITTEN_SPECIAL(0x006070A0, CSaveLoadWindow::~CSaveLoadWindow);   // deleting
+EI_REWRITTEN_SPECIAL(0x0060C7B0, CSaveLoadWindow::~CSaveLoadWindow);   // the input side's
 
 EI_REWRITTEN_SPECIAL(0x005F5F50, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x005F5F80, CUiContainer::~CUiContainer);
@@ -298,13 +294,6 @@ CItemInfoPanel* CItemInfoPanel::ItemInfoPanelDelete(unsigned flags) {
 }
 EI_REWRITTEN(0x005EE420, CItemInfoPanel::ItemInfoPanelDelete);
 
-// 005F5FC0: the in-game screen (00740764).
-CBattleScreen* CBattleScreen::BattleScreenDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005F5FC0, CBattleScreen::BattleScreenDelete);
-
 // 005F6450 / 005F6600 / 005F6FF0: the item screen (00740A2C), the camp (0074091C), screen 9
 // (00740D18).
 CItemScreen* CItemScreen::ItemScreenDelete(unsigned flags) {
@@ -322,48 +311,6 @@ CItemScreen* CItemScreen::Screen9Delete(unsigned flags) {
     return FreeIfAsked(this, flags);
 }
 EI_REWRITTEN(0x005F6FF0, CItemScreen::Screen9Delete);
-
-// 005F6900: the global map (00740B3C).
-CGlobalMap* CGlobalMap::GlobalMapDelete(unsigned flags) {
-    GlobalMapDestroy(this);
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005F6900, CGlobalMap::GlobalMapDelete);
-
-// 005F6B80: the briefing / base screen (007405AC).
-CBriefingScreen* CBriefingScreen::BriefingDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005F6B80, CBriefingScreen::BriefingDelete);
-
-// 005F6E20: screen 8, the titles (00740C3C).
-CTitlesScreen* CTitlesScreen::TitlesDelete(unsigned flags) {
-    Screen8Destroy(this);
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005F6E20, CTitlesScreen::TitlesDelete);
-
-// 005F8950: the help window (00740E28).
-CHelpWindow* CHelpWindow::HelpWindowDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x005F8950, CHelpWindow::HelpWindowDelete);
-
-// 00603B70: the objectives window (007411BC).
-CObjectivesWindow* CObjectivesWindow::ObjectivesDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x00603B70, CObjectivesWindow::ObjectivesDelete);
-
-// 006070A0: the save / load window (00741388).
-CSaveLoadWindow* CSaveLoadWindow::SaveLoadDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x006070A0, CSaveLoadWindow::SaveLoadDelete);
 
 // 0060E290: the forwarding item strip (0074197C).
 CUiItemStrip* CUiItemStrip::ForwardingStripDelete(unsigned flags) {
@@ -393,41 +340,12 @@ CSpellMakerPage* CSpellMakerPage::SpellMakerDelete(unsigned flags) {
 }
 EI_REWRITTEN(0x0060E5E0, CSpellMakerPage::SpellMakerDelete);
 
-// 00618550: the multiplayer connection screen (00741CD0).
-CMpConnectScreen* CMpConnectScreen::ConnectScreenDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x00618550, CMpConnectScreen::ConnectScreenDelete);
-
-// 0061E440: the master request box (00741DD8).
-CMasterRequestBox* CMasterRequestBox::MasterRequestBoxDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0061E440, CMasterRequestBox::MasterRequestBoxDelete);
-
-// 0062B160: the options window (00741FAC).
-COptionsWindow* COptionsWindow::OptionsWindowDelete(unsigned flags) {
-    DestroyOptions();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x0062B160, COptionsWindow::OptionsWindowDelete);
-
 // 00633240: the multiplayer hero screen (0074214C).
 CMpHeroScreen* CMpHeroScreen::HeroScreenDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
 EI_REWRITTEN(0x00633240, CMpHeroScreen::HeroScreenDelete);
-
-// 00633730 / 00634770: the difficulty question (0074225C), the message box (00742348).
-CMessageBox* CMessageBox::MessageBoxDelete(unsigned flags) {
-    DestroyBody();
-    return FreeIfAsked(this, flags);
-}
-EI_REWRITTEN(0x00633730, CMessageBox::MessageBoxDelete);
-EI_REWRITTEN(0x00634770, CMessageBox::MessageBoxDelete);
 
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 
@@ -448,24 +366,12 @@ EI_REWRITTEN_SPECIAL(0x005FC140, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x005FC120, CUiContainer::~CUiContainer);
 EI_REWRITTEN_SPECIAL(0x0060C7E0, CUiContainer::~CUiContainer);
 EI_REWRITTEN(0x005F4600, UiInput::DeleteWindow<&CItemInfoPanel::ItemInfoPanelDelete>);
-EI_REWRITTEN(0x005FC0E0, UiInput::DeleteWindow<&CBattleScreen::BattleScreenDelete>);
 EI_REWRITTEN(0x005FC0C0, UiInput::DeleteWindow<&CItemScreen::ItemScreenDelete>);
 EI_REWRITTEN(0x005FC100, UiInput::DeleteWindow<&CItemScreen::CampScreenDelete>);
 EI_REWRITTEN(0x005FC110, UiInput::DeleteWindow<&CItemScreen::Screen9Delete>);
-EI_REWRITTEN(0x005FC130, UiInput::DeleteWindow<&CGlobalMap::GlobalMapDelete>);
-EI_REWRITTEN(0x005FC0B0, UiInput::DeleteWindow<&CBriefingScreen::BriefingDelete>);
-EI_REWRITTEN(0x005FC0F0, UiInput::DeleteWindow<&CTitlesScreen::TitlesDelete>);
-EI_REWRITTEN(0x005FC0D0, UiInput::DeleteWindow<&CHelpWindow::HelpWindowDelete>);
-EI_REWRITTEN(0x0060C7C0, UiInput::DeleteWindow<&CObjectivesWindow::ObjectivesDelete>);
-EI_REWRITTEN(0x0060C7B0, UiInput::DeleteWindow<&CSaveLoadWindow::SaveLoadDelete>);
 EI_REWRITTEN(0x00613DC0, UiInput::DeleteWindow<&CUiItemStrip::ForwardingStripDelete>);
 EI_REWRITTEN(0x00613DB0, UiInput::DeleteWindow<&CTradePanel::TradePanelDelete>);
 EI_REWRITTEN(0x00613DF0, UiInput::DeleteWindow<&CSpellMakerPage::SpellMakerDelete>);
-EI_REWRITTEN(0x0061B220, UiInput::DeleteWindow<&CMpConnectScreen::ConnectScreenDelete>);
-EI_REWRITTEN(0x00620300, UiInput::DeleteWindow<&CMasterRequestBox::MasterRequestBoxDelete>);
-EI_REWRITTEN(0x0062B770, UiInput::DeleteWindow<&COptionsWindow::OptionsWindowDelete>);
 EI_REWRITTEN(0x006345F0, UiInput::DeleteWindow<&CMpHeroScreen::HeroScreenDelete>);
-EI_REWRITTEN(0x006345E0, UiInput::DeleteWindow<&CMessageBox::MessageBoxDelete>);
-EI_REWRITTEN(0x00634FD0, UiInput::DeleteWindow<&CMessageBox::MessageBoxDelete>);
 EI_REWRITTEN_SPECIAL(0x0064BD60, CUiWindow::~CUiWindow);   // the game clock
 EI_REWRITTEN_SPECIAL(0x0064BD70, CUiWindow::~CUiWindow);   // the movement panel
