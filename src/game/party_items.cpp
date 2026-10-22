@@ -109,13 +109,13 @@ BOOL CItemArmor::CopyToImpl(CItem* target, CSpellManager* spells) {
 
 BOOL CItemQuick::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CItem::CopyToImpl(target, spells)) return 0;
-    static_cast<CItemQuick*>(target)->actionValue_ = actionValue_;
+    AsQuick(target)->actionValue_ = actionValue_;
     return 1;
 }
 
 BOOL CItemQuest::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CItem::CopyToImpl(target, spells)) return 0;
-    static_cast<CItemQuest*>(target)->questItemId_ = questItemId_;
+    AsQuest(target)->questItemId_ = questItemId_;
     return 1;
 }
 

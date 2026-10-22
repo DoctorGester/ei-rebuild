@@ -58,12 +58,12 @@ BOOL CItemArmor::IsSameAsImpl(CItem* item) {
 
 BOOL CItemQuick::IsSameAsImpl(CItem* other) {
     if (!CItem::IsSameAsImpl(other)) return 0;
-    return static_cast<CItemQuick*>(other)->actionValue_ == actionValue_ ? 1 : 0;
+    return AsQuick(other)->actionValue_ == actionValue_ ? 1 : 0;
 }
 
 BOOL CItemQuest::IsSameAsImpl(CItem* other) {
     if (!CItem::IsSameAsImpl(other)) return 0;
-    return static_cast<CItemQuest*>(other)->questItemId_ == questItemId_ ? 1 : 0;
+    return AsQuest(other)->questItemId_ == questItemId_ ? 1 : 0;
 }
 
 BOOL CItemLoot::IsSameAsImpl(CItem* item) {
