@@ -81,7 +81,7 @@ void BufferPut(GameBuffer* b, const void* from, unsigned size) {
 // FileStream (0073C8D8)
 
 FileStream* FileStream::Construct() {   // 00478470
-    ei::SetVtable(this, kStreamVtable);
+    ei::SetVtable(this, CStream::StreamVtable());
     version_ = kStreamLimit;
     ok_ = 1;
     new (file_.Get()) mfc::CFile();
@@ -96,7 +96,7 @@ EI_REWRITTEN(0x00479B10, FileStream::CopyConstruct);
 void FileStream::Destruct() {   // 00477FB0
     ei::SetVtable(this, Vtable());
     file_->~CFile();
-    ei::SetVtable(this, kStreamVtable);
+    ei::SetVtable(this, CStream::StreamVtable());
 }
 EI_REWRITTEN(0x00477FB0, FileStream::Destruct);
 
@@ -463,9 +463,9 @@ EI_REPLACE(0x00478C90, ReplayDisconnectHook);
 // FramedLink (0073C9C8)
 
 void FramedLink::Destruct() {   // 00479B90
-    ei::SetVtable(&inbox_, kMemoryStreamVtable);
+    ei::SetVtable(&inbox_, CMemoryStream::MemoryStreamVtable());
     if (inbox_.data_) gamecrt::operator_delete(inbox_.data_);
-    ei::SetVtable(&inbox_, kStreamVtable);
+    ei::SetVtable(&inbox_, CStream::StreamVtable());
     record_.Destruct();
     ei::SetVtable(this, CRefCounted::RootVtable());
 }
@@ -580,7 +580,7 @@ EI_REPLACE_METHOD(0x0047BB70, FramedLink::ReceiveImpl);
 DriverLink* DriverLink::Construct() {   // 0047A030
     NetLink::Construct();
     inbox_.version_ = kStreamLimit;
-    ei::SetVtable(&inbox_, kMemoryStreamVtable);
+    ei::SetVtable(&inbox_, CMemoryStream::MemoryStreamVtable());
     inbox_.data_ = nullptr;
     inbox_.capacity_ = 0;
     inbox_.position_ = 0;
@@ -600,7 +600,7 @@ void DriverLink::Disconnect() {   // 00479810
     CMemoryStream pending;   // the original's stack stream: +4, +6, +7 and +0xC never written
     pending.version_ = kStreamLimit;
     pending.ok_ = 1;
-    ei::SetVtable(&pending, kMemoryStreamVtable);
+    ei::SetVtable(&pending, CMemoryStream::MemoryStreamVtable());
     pending.data_ = nullptr;
     pending.Reset();
     TakeAll(&pending);
@@ -615,7 +615,7 @@ void DriverLink::Disconnect() {   // 00479810
     net::Connection* player = player_.Get();
     player_.ptr = nullptr;
     ReleaseCounted(player);
-    ei::SetVtable(&pending, kMemoryStreamVtable);
+    ei::SetVtable(&pending, CMemoryStream::MemoryStreamVtable());
     if (pending.data_) gamecrt::operator_delete(pending.data_);
 }
 
@@ -653,7 +653,7 @@ DriverLink* DriverLink::Clone() {   // 00479A30
     CMemoryStream* inbox = &copy->inbox_;
     inbox->version_ = kStreamLimit;
     inbox->ok_ = 1;
-    ei::SetVtable(inbox, kMemoryStreamVtable);
+    ei::SetVtable(inbox, CMemoryStream::MemoryStreamVtable());
     inbox->data_ = nullptr;
     inbox->Reset();
     inbox->SetSize(inbox_.size_);

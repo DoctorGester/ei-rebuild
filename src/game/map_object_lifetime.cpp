@@ -85,9 +85,9 @@ void DestroyString(void* string) { static_cast<mfc::CString*>(string)->~CString(
 
 // A memory stream member (the memory stream table while it frees its buffer, then its base's).
 void DestroyStream(CMemoryStream* stream) {
-    SetVtable(stream, kMemoryStreamVtable);
+    SetVtable(stream, CMemoryStream::MemoryStreamVtable());
     if (stream->data_) gamecrt::operator_delete(stream->data_);
-    SetVtable(stream, kStreamVtable);
+    SetVtable(stream, CStream::StreamVtable());
 }
 
 // A plain CArray member: its vtable, then its data freed.
@@ -216,13 +216,13 @@ void CMapObject::SetUpMapObject() {
     CMemoryStream* stream = &records->header_[0];
     stream->version_ = kStreamLimit;
     stream->ok_ = 1;
-    SetVtable(stream, kMemoryStreamVtable);
+    SetVtable(stream, CMemoryStream::MemoryStreamVtable());
     stream->data_ = nullptr;
     stream->Reset();
     SetVtable(stream, CMemoryStream::QueueStreamVtable());
     stream = &records->header_[1];
     stream->ConstructBase();
-    SetVtable(stream, kMemoryStreamVtable);
+    SetVtable(stream, CMemoryStream::MemoryStreamVtable());
     stream->data_ = nullptr;
     stream->Reset();
     SetVtable(stream, CMemoryStream::QueueStreamVtable());
