@@ -11,6 +11,7 @@
 #include "item_db.h"
 #include "maths.h"
 #include "game_data.h"
+#include "lib/static_object.h"
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -253,7 +254,7 @@ struct __declspec(novtable) CSpellEffect {
     int state;                  // +0x30 0 casting, 1 missile, 2 lasting, else ends
     // +0x34 the CSpell (Spell()), constructed and destroyed by Construct / Destruct (an abstract
     // class: its vtable is the compiled CSpellClass's, spell_class.h, so not a member).
-    std::uint8_t spell_[0x5C];
+    lib::AbstractInPlace<CSpell> spell_;
     CEffect* visual;            // +0x90 particle source, wall, lightning or missile (counted; Visual<T>)
     CEffect* sound;             // +0x94 a sound or a sound sequence (counted)
     CEffectPointLight* light;   // +0x98 (counted)
@@ -267,8 +268,8 @@ struct __declspec(novtable) CSpellEffect {
     // CEffectLightning, CEffectMissile).
     template <class T> T* Visual() const { return static_cast<T*>(visual); }
 
-    CSpell* Spell() { return reinterpret_cast<CSpell*>(spell_); }
-    const CSpell* Spell() const { return reinterpret_cast<const CSpell*>(spell_); }
+    CSpell* Spell() { return spell_.Get(); }
+    const CSpell* Spell() const { return spell_.Get(); }
 };
 static_assert(offsetof(CSpellEffect, referenceCount) == 0x04);
 static_assert(offsetof(CSpellEffect, world) == 0x08);
@@ -318,7 +319,7 @@ public:
     // level. The area becomes a radius (sqrt(area / pi)); the modifier list is sorted. Returns 1.
     BOOL Build();
 
-    CSpell* Spell() { return reinterpret_cast<CSpell*>(spell_); }
+    CSpell* Spell() { return spell_.Get(); }
 
     // spell_manager.cpp. 0068BA80: the base fields, an empty modifier list (its sentinel
     // allocated), an empty code string with room for 8 bytes, the spell (CSpell::Construct inlined),
@@ -335,7 +336,7 @@ public:
     char* codes_;                   // +0x24 STLport string: modifier index + 1 per modifier
     char* codesEnd_;                // +0x28
     char* codesCapacity_;           // +0x2C
-    std::uint8_t spell_[0x5C];      // +0x30 the CSpell
+    lib::AbstractInPlace<CSpell> spell_;   // +0x30 the CSpell (Spell())
     mfc::CString name_;             // +0x8C (always empty)
 };
 static_assert(offsetof(CSpellContainer, modifiers_) == 0x20);
