@@ -691,7 +691,7 @@ struct UiInputSide {
 };
 static_assert(offsetof(UiInputSide, handled_) == 0x08);
 
-// Base of the interface windows (constructor 005FE700, vtables 00740F60 and 00740F2C at +0x94).
+// Base of the interface windows (constructor 005FE700; compiled tables for game.exe's 00740F60 / 00740F2C).
 // It derives from the engine's transform object, which is kept opaque here.
 class CUiWindow {
 public:
