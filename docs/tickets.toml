@@ -645,6 +645,15 @@ model = "opus"
 depends = ["R20"]
 note = "User 2026-10-22: later, not critical. R20's outside casters copy every part's world-space corners each frame (about +0.4 ms CPU in town, +1.2 ms with big buildings just off screen at 4K; 83k corners in the gate case). Static parts (trees, buildings) have the same world-space vertices every frame whatever the sun does: keep them in a GPU buffer per part, change only the sun's matrix per frame; the selection test stays per frame; animated parts and units keep the copy. Measure with the R21 overlay."
 
+[[ticket]]
+id = "R25"
+title = "Shadow map: shimmering inside shadows at some camera distances"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R22"]
+note = "User 2026-10-22, playing play.cmd (Rebirth data): at certain camera distances and light conditions shadows look corrupted, shimmering inside a shadow triangle in the screen centre whose end touches a character. The user's save 'ShadowCorrupt' (Rebirth install SAVES/save3) copied to build/R25/save_shadow_corrupt. Suspects: the map's texel snapping when the fitted box changes with the camera distance (R16j fits every second terrain vertex in view; R20 changed the depth range to the nearest caster), PCSS's blocker search noise (Vogel disc without temporal stability), or depth precision after R20's near-plane clamp. Reproduce from the save over a few frames of slow camera zoom, find the cause, make it stable."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
