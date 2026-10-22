@@ -104,12 +104,13 @@ int ObjectId(const CEngineObject* object) { return object ? object->id_ : -1; }
 
 void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
 
-// The effect object saved under `id` (-1: none), with a reference taken.
-CEngineObject* ReadObject(ScriptStream* stream) {
+// The effect object saved under `id` (-1: none), with a reference taken (the slot's effect class).
+template <class T>
+T* ReadObject(ScriptStream* stream) {
     int id;
     stream->Read(&id, 4);
     if (id == -1) return nullptr;
-    CEngineObject* object = EffectManager()->FindObject(id);
+    auto* object = static_cast<T*>(EffectManager()->FindObject(id));
     if (object) ++object->refCount_;
     return object;
 }
@@ -117,8 +118,9 @@ CEngineObject* ReadObject(ScriptStream* stream) {
 std::size_t Length(const char* s) { return std::strlen(s); }
 
 // Takes the effect object out of the world's timed objects and drops the reference to it.
-void DropEffect(CEngineObject** slot) {
-    if (CEngineObject* object = *slot) {
+template <class T>
+void DropEffect(T** slot) {
+    if (T* object = *slot) {
         TheServerWorld()->RemoveTimedObject(object->id_);
         (*slot)->Release();
     }
@@ -319,7 +321,7 @@ void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
     source->moving = 1;
     source->deleteAfterMove = x87::RoundToInt(f[5]);
     source->steps = x87::RoundToInt(f[4]);
-    const Vector3& at = static_cast<CEffectParticle*>(source->object)->localPosition_;
+    const Vector3& at = source->object->localPosition_;
     float inverse = 1.0f / static_cast<float>(source->steps);
     source->step.x = (f[1] - at.x) * inverse;
     source->step.y = (f[2] - at.y) * inverse;
@@ -375,7 +377,7 @@ void ScriptLightning::ScriptLightningSave(ScriptStream* stream) const {
 
 // 004B18B0
 void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
-    object = ReadObject(stream);
+    object = ReadObject<CEffectPointLight>(stream);
     stream->Read(&id, 4);
     stream->Read(&removeWhenDone, 4);
     stream->Read(&moving, 4);
@@ -385,7 +387,7 @@ void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
 
 // 004B1B40
 void ScriptFxSource::ScriptFxSourceLoad(ScriptStream* stream) {
-    object = ReadObject(stream);
+    object = ReadObject<CEffectSound>(stream);
     stream->Read(&id, 4);
     {
         mfc::CString read(mfc::CString::kUnset);

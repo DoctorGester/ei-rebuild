@@ -24,6 +24,10 @@
 using BOOL = int;
 
 class CUnit;   // unit.h
+class CEffectPointLight;   // world_effect.h
+class CEffectParticle;     // world_effect.h
+class CEffectSound;        // world_effect.h
+class CEffectLightning;    // world_effect.h
 
 enum ScriptType : int {
     kScriptFloat = 1,
@@ -383,7 +387,7 @@ struct ScriptPointLight {
     void ScriptPointLightSave(ScriptStream* stream) const;
     void ScriptPointLightLoad(ScriptStream* stream);
 
-    CEngineObject* object;  // +0x00 the light (CEffectPointLight), null when the slot is free
+    CEffectPointLight* object;   // +0x00 the light, null when the slot is free
     int id;                 // +0x04
     int removeWhenDone;     // +0x08 MovePointLight: remove the light when the move ends
     int moving;             // +0x0C
@@ -407,7 +411,7 @@ struct ScriptParticleSource {
     // 004B1A80 (RET 4; script_effects.cpp). Saved as the savegame holds it (as the point light's).
     void ScriptParticleSourceSave(ScriptStream* stream) const;
 
-    CEngineObject* object;  // +0x00 the source (CEffectParticle)
+    CEffectParticle* object;     // +0x00 the source
     int id;                 // +0x04
     int deleteAfterMove;    // +0x08
     int moving;             // +0x0C
@@ -436,7 +440,7 @@ struct ScriptFxSource {
     // 004CB220 (RET 4; script_copy.cpp). Assignment: the words copied, the name assigned. Returns this.
     ScriptFxSource* ScriptFxSourceAssign(const ScriptFxSource* other);
 
-    CEngineObject* object;  // +0x00 the current sound (CEffectSound)
+    CEffectSound* object;   // +0x00 the current sound
     int id;                 // +0x04
     mfc::CString name;      // +0x08 the sound's name
     Vector3 position;       // +0x0C
@@ -458,7 +462,7 @@ struct ScriptLightning {
     // 004B1DB0 (RET 4; script_effects.cpp). Saved as the savegame holds it (as the point light's).
     void ScriptLightningSave(ScriptStream* stream) const;
 
-    CEngineObject* object;  // +0x00 the bolt (CEffectLightning)
+    CEffectLightning* object;    // +0x00 the bolt
     int id;                 // +0x04
 };
 static_assert(sizeof(ScriptLightning) == 8);
