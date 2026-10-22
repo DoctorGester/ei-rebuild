@@ -163,9 +163,9 @@ each step green on the goldens and removing a measured tie:
   image_data.cpp copies them into the storage, the rest is zero. **Every 1.06 game.exe has the same .rdata,
   .data and .rsrc** (checked 2026-10-21 on run\vanilla, run\rebirth and the five copies under F:\games: vanilla's
   and Rebirth's differ in one .text byte only, S18e3).
-  **The cells**: 1523 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
+  **The cells**: 1243 (src/standalone/image_cells.inc, written by `tools/gen_image_cells.py`, which build.cmd
   runs with `--check`): the aligned dwords of .rdata (past the import table) and .data whose value lies in the
-  range, less text and the cells inside named ranges (C18, below); 864 point into .data, 659 into .rdata. Text that reads as an address is of two kinds:
+  range, less text and the cells inside named ranges (C18, below); 610 point into .data, 633 into .rdata. Text that reads as an address is of two kinds:
   string tails (the dword's bytes printable up to a zero and the four bytes before printable too) and short words
   ("Any", "May", "sky", "say", "day": `xxy\0` reads 0079xxxx) whose target would be mid-text (the byte before it
   printable ASCII; a string pointer points at a start). Into .rdata the filters are not enough (`?t\0` reads
@@ -177,13 +177,11 @@ each step green on the goldens and removing a measured tie:
   types 41; RTTI, a vtable's slot -1 -> complete object locator 53, locator -> class hierarchy 53, hierarchy ->
   base class array 53, array -> base class descriptors 128) or in a REVIEWED_RDATA group: CCmdTarget's maps and CWnd's / CWinApp's message
   maps (11), the type descriptors' vtable (type_info's, 74, in .data), and the CRT's string tables in .data (the
-  locale category names, __lc_time_c, the math functions' names, "(null)", setlocale's language / country tables
+  locale category names, __lc_time_c, "(null)", setlocale's language / country tables
   (142), the run-time error messages). Cells into .data are in REVIEWED_DATA groups (cell range, count, what it
-  is; a new cell or a changed count fails): in .rdata the per-file `const char* const` copies of ".SEC" (73) and a few other
-  string constants, MFC's CCmdTarget maps (3), the message map entry 00746C80, RTTI locators and base class
+  is; a new cell or a changed count fails): in .rdata MFC's CCmdTarget maps (3), the message map entry 00746C80, RTTI locators and base class
   descriptors (117) and EH catchable types (12) to their type descriptors (in .data); in .data the
-  string-pointer tables (the key bindings' command table, the action definitions, the script's particle types
-  and keyword table (442), skills, log channels, ambient sounds, ...) and the CRT / MFC cells (the lock table,
+  string-pointer tables (the script's keyword table (442) and comment tokens) and the CRT / MFC cells (the lock table,
   `_iob`, `_pctype`, the small-block heap's self-linked region list, `_tzname`, `__lconv_c`, CString's empty
   string and `_afxDataNil`). Every cell lies inside the range and is fixed up in its new place. game.exe's own
   code points at .rdata too (FuncInfo addresses in its EH prologues, string immediates), but none of it runs in
@@ -317,7 +315,8 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
 after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
-after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state). C18 turns them into named C++
+after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
+which took the pointer cells from 1,522 to 1,243). C18 turns them into named C++
 globals, one kind and one owner area per batch; C19 does the
 vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
@@ -389,6 +388,23 @@ kinds given.
 - **The bytes**: gen_image_cells.py --bytes writes the csv's ranges zero (CMake's custom command depends on the
   csv), so the image's copy of the sections no longer carries them; what the check proves unreachable is also
   unread at run time.
+- **The scripted part (C18o)**: `python tools/named_data.py --emit ADDRESS TYPE COUNT NAME` prints the tagged
+  definition from game.exe's bytes (as its static initialisers leave them) by TYPES' packing in reverse: strings and
+  `char[N]` fields (TYPES code `'Ns'`, e.g. `UiKeyName` `('i', 'P', '64s')`) as literals, pointers to a named range's
+  start by name, to code by our registration's function, zero as nullptr; COUNT `4x10` gives rows. What it cannot
+  name prints as `/*?ADDRESS*/ nullptr` with a line on stderr (a pointer into another record, a number that is no
+  pointer: the range starts or ends elsewhere), and it packs its own text back as --check does. Paste, adjust the
+  declaration (drop `constexpr` for a table the code writes; `extern` in the header when several files read it), run
+  `--update`, then `--rewrite NAME [--apply]`: the `GamePointer<T>(0x...)` / `GameData<T>(0x...)` reads of an
+  element's start with T the element type become `NAME` / `(NAME + k)` / `NAME[k]`; DataId constants, other types and
+  field addresses are listed for a person. Then drop the emptied REVIEWED_DATA / REVIEWED_RDATA groups of
+  gen_image_cells.py (their counts fail otherwise) and regenerate image_cells.inc. **Unread copies**: a table only
+  dead code read (src/game/dead_code_tables.cpp: the units' model folders 0078F7EC, read by the uncalled 00532650,
+  and 007932F4) and the per-file copies of a header constant nothing of ours reads (src/game/header_constant_copies.cpp:
+  72 copies of ".SEC"; a port names the copy it reads in its own file, ai_map_load.cpp's 0073FD1C / 0073FD20) are
+  `[[maybe_unused]]` definitions, so their bytes come from the source too; the CRT's math function names 00797CC0
+  (crt_x87.cpp) likewise, its readers have no registration. Left: the script keyword table 0078BCA0 (Rebirth swaps
+  it), the CRT / MFC tables a static initialiser or the CRT's start-up fills.
 - **A batch** (the method; batch 1 did the interface's .rdata tables, 13 addresses: ui_hero_preview's four clear
   rectangle tables, ui_item_view's school glow colours and its pi / 5.0 floats, ui_briefing_people's speaker places,
   ui_hud_slide's part positions, the camp body slots of ui_container_draws / ui_hero_panels):
