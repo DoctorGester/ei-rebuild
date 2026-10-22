@@ -671,6 +671,13 @@ depends = ["R16i"]
 files = ["src/render/render_shadows.cpp src/render/shaders/"]
 note = "R16i lights the ground and figures per pixel by the sun and the point lights, but only the sun casts (one shadow map). In towns at night the fires now light the inside of object shadows (render_shadows_outside's gate: lighter where the fires reach; its floor lowered to 0.3%). Cube or dual-paraboloid shadow maps for the few strongest point lights in view (the campfire, torches carried by units), sampled in scene_lighting.hlsli's point loop and mesh.hlsl's figure_light. Measure the cost with render_stats (town at night); show the user before/after frames of bz1g at night (render_lighting's light_town_night). docs/notes/renderer.md section 13 item 9."
 
+[[ticket]]
+id = "R16i2"
+title = "Smooth shadow falloff on characters (no faceted self-shadow)"
+group = "renderer"
+model = "opus"
+note = "User 2026-10-22 16:42 (screenshot: a pig in town with hard, faceted dark triangles across its back). Cause: meshes take the sun map's shadow only on faces turned to the sun by their face normal from screen derivatives (shadow_receiver.hlsli shadow_facing, saturate(-n.z*6)), and since R16i's review fix every mesh uses it, so a low-poly figure flips triangle by triangle between shadowed and lit, and it shadows itself in the sun map (R22's caster ids, which kept a unit out of its own shadow, went with R16i). Make the falloff smooth on figures: shade the sun side by the interpolated vertex normal (N.L, as R16i's lighting already does) and use the map for shadows cast by other objects; keep the face-normal rule for static meshes whose smoothed normals lean off their faces (bz1g's shop, R16i review). Check the pig in town by day, units in bz1g noon/night (R16i's crops), the shop at night."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
