@@ -476,15 +476,15 @@ DWORD CreateRenderer() {
     DDSCAPS2 caps = {};
     DWORD total = 0, free = 0;
     caps.dwCaps = DDSCAPS_VIDEOMEMORY;
-    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(TheRenderDevice()->ddraw_), &caps, &total, &free);
+    device::GetAvailableVidMem(TheRenderDevice()->ddraw_, &caps, &total, &free);
     DWORD other = free;
     caps.dwCaps = DDSCAPS_TEXTURE;
-    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(TheRenderDevice()->ddraw_), &caps, &total, &free);
+    device::GetAvailableVidMem(TheRenderDevice()->ddraw_, &caps, &total, &free);
     LittleTextureMemory() = free <= kLittleMemory;
     if (free < other) other -= free;
     LittleOtherMemory() = other <= kLittleMemory;
     caps.dwCaps = DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM;
-    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(TheRenderDevice()->ddraw_), &caps, &total, &free);
+    device::GetAvailableVidMem(TheRenderDevice()->ddraw_, &caps, &total, &free);
     g_littleNonLocalMemory = free <= kLittleMemory;
     DeviceNamed() = options->driverIndex_ != 0;
     TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);
@@ -591,7 +591,7 @@ void TakeActivationChange() {
         if (TheSceneRenderer()->flags_ & 2) {
             CTextureDevice* device = TheRenderDevice();
             gameapi::EnterCriticalSection(TheDeviceLock());
-            device->lastLoadResult_ = device::RestoreAllSurfaces(static_cast<IDirectDraw7*>(device->ddraw_));
+            device->lastLoadResult_ = device::RestoreAllSurfaces(device->ddraw_);
             gameapi::LeaveCriticalSection(TheDeviceLock());
         }
         SceneRenderer()->flags_ |= 1;

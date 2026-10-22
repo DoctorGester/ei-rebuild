@@ -436,16 +436,16 @@ InterfaceToken g_directDraw{kDirectDrawTraps.data()};
 
 namespace device {
 
-void* StartWithoutDirectDraw(int width, int height, int bitsPerPixel) {
+IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel) {
     g_switchOver.SetMode(width, height, bitsPerPixel);
     ei::Log("device: built without DirectDraw or Direct3D (%dx%d, %d bits); the new renderer presents", width, height,
             bitsPerPixel);
-    return &g_directDraw;
+    return reinterpret_cast<IDirectDraw7*>(&g_directDraw);   // the token stands for the interface
 }
 
-void* Direct3DDeviceToken() {
+IDirect3DDevice7* Direct3DDeviceToken() {
     g_switchOver.Reset();
-    return &g_device;
+    return reinterpret_cast<IDirect3DDevice7*>(&g_device);   // the token stands for the interface
 }
 
 void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format) {

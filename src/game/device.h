@@ -35,9 +35,9 @@ inline const GUID& IidTnLHalDevice() { return ei::GameData<const GUID>(0x00745A1
 inline int& HolderCount() { return ei::GameData<int>(0x007AEE94); }
 // The texture manager (007AF744).
 
-inline IDirect3DDevice7* D3D(const CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
-inline IDirectDraw7* DDraw(const CTextureDevice* device) { return static_cast<IDirectDraw7*>(device->ddraw_); }
-inline IDirect3D7* Direct3D(const CTextureDevice* device) { return static_cast<IDirect3D7*>(device->d3d_); }
+inline IDirect3DDevice7* D3D(const CTextureDevice* device) { return device->d3dDevice_; }
+inline IDirectDraw7* DDraw(const CTextureDevice* device) { return device->ddraw_; }
+inline IDirect3D7* Direct3D(const CTextureDevice* device) { return device->d3d_; }
 
 // A counted holder pointer's assignment: the new holder counted, the old one released.
 inline void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
@@ -67,10 +67,10 @@ inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) { return a == 
 // The device object is being built without DirectDraw for a `width` x `height` screen of
 // `bitsPerPixel` (16 or 32): from now on the calls below answer for the tokens. Returns the
 // IDirectDraw7 token (the device object's +0x0C).
-void* StartWithoutDirectDraw(int width, int height, int bitsPerPixel);
+IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel);
 // The IDirect3DDevice7 token (the device object's +0x54), the switch-over device's states back at a
 // new device's.
-void* Direct3DDeviceToken();
+IDirect3DDevice7* Direct3DDeviceToken();
 // The screen's pixel format for a colour depth: 16 bits 5:6:5, otherwise X8R8G8B8.
 void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format);
 // The texture formats of the switch-over device (in place of IDirect3DDevice7::EnumTextureFormats):

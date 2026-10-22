@@ -67,7 +67,7 @@ constexpr DWORD kClearedRects = 3;
 
 CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 IDirect3DDevice7* D3DDevice(UiRenderer* renderer) { return reinterpret_cast<IDirect3DDevice7*>(renderer->device_); }
-IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
+IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_; }
 
 // The quaternion product a * b as the original inlines it twice: w = a.w b.w - a.b (the dot's sum
 // (y + x) + z), the vector part (a x b + b.w a) + a.w b; the first product adds z's last two terms

@@ -12,6 +12,10 @@
 
 #include <windows.h>
 
+struct IDirect3D7;         // d3d.h
+struct IDirect3DDevice7;   // d3d.h
+struct IDirectDraw7;       // ddraw.h
+
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // Pixel format of a texture surface (32 bytes), as filled in by the texture device.
@@ -141,7 +145,7 @@ public:
     void* vtable_;
     int refs_;                  // +0x04
     int lastLoadResult_;        // +0x08 result of the last IDirect3DDevice7::Load (and other calls)
-    void* ddraw_;               // +0x0C IDirectDraw7*
+    IDirectDraw7* ddraw_;       // +0x0C
     GUID* driver_;              // +0x10 the driver the DirectDraw object was made for
     CDXSurface* primary_;       // +0x14 the primary surface's holder
     CDXSurface* renderTarget_;  // +0x18 the render target's holder
@@ -156,8 +160,8 @@ public:
     std::uint8_t unused_45[3];
     HMODULE converterLibrary_;  // +0x48 2DintMMX.dll
     void* converter_;           // +0x4C 2DintMMX's graphics processor (pixel conversions)
-    void* d3d_;                 // +0x50 IDirect3D7*
-    void* d3dDevice_;           // +0x54 IDirect3DDevice7*
+    IDirect3D7* d3d_;           // +0x50
+    IDirect3DDevice7* d3dDevice_;   // +0x54
     CDXSurface* depth_;         // +0x58 the depth surface's holder (restored with the primary, 00504780)
     CDXSurface* depth2_;        // +0x5C a second depth surface like it (not attached)
     std::uint32_t zEnable_;     // +0x60 the z-buffer setting render state 7 goes back to (00569E40)

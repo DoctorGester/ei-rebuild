@@ -475,11 +475,11 @@ void CCampPages::BuildPages() {
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).
     CTextureDevice* display = TheRenderDevice();
     D3DDEVICEDESC7 description = {};
-    long result = device::GetCaps(static_cast<IDirect3DDevice7*>(display->d3dDevice_), &description);
+    long result = device::GetCaps(display->d3dDevice_, &description);
     display->lastLoadResult_ = result;
     if (result != 0) app::FatalErrorCode(result, "Can't get device description.\n");   // "Can't get device description."
     if (description.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT) {
-        device::SetRenderState(static_cast<IDirect3DDevice7*>(TheRenderDevice()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
+        device::SetRenderState(TheRenderDevice()->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
         render::state::Render(D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
     }
     if (records.data) gamecrt::operator_delete(records.data);

@@ -315,7 +315,7 @@ int __fastcall ShowMessageBox(const char* text, int flags) {
     HCURSOR cursor = gameapi::GetCursor();
     CTextureDevice* device = TheRenderDevice();
     if (device && (device->flags_ & 1)) {
-        long result = device::FlipToGDISurface(static_cast<IDirectDraw7*>(device->ddraw_));
+        long result = device::FlipToGDISurface(device->ddraw_);
         device->lastLoadResult_ = result;
         if (result != 0) FatalErrorCode(result, FlipFailedText());
     }

@@ -32,7 +32,7 @@ constexpr float kTextureDepth = 0.9f;             // 0x3F666666
 constexpr std::uint32_t kWhite = 0xFFFFFFFF;
 constexpr std::uint32_t kNoSpecular = 0xFF000000;
 
-IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
+IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_; }
 
 // The device calls run under the game's device lock; the result goes to the device's +8.
 template <typename Call>

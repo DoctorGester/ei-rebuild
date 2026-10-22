@@ -4066,7 +4066,7 @@ void RestoreAfterMinimise() {
         auto* lock = TheDeviceLock();   // the render device's lock
         EnterCriticalSection(lock);
         // game.exe's own DirectDraw object; the image's device object holds a token (nothing to restore).
-        HRESULT result = ei::Standalone() ? DD_OK : static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
+        HRESULT result = ei::Standalone() ? DD_OK : device->ddraw_->RestoreAllSurfaces();
         device->lastLoadResult_ = result;
         LeaveCriticalSection(lock);
         if (result == DDERR_NOEXCLUSIVEMODE) {

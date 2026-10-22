@@ -97,7 +97,7 @@ const VertexPacket* MovedPositions(const VertexPacket* source, int packets, cons
 
 // IDirect3DDevice7::SetRenderState(D3DRENDERSTATE_SPECULARENABLE); the result is not kept.
 void SetSpecular(CTextureDevice* device, bool on) {
-    device::SetRenderState(static_cast<IDirect3DDevice7*>(device->d3dDevice_), D3DRENDERSTATE_SPECULARENABLE, on ? 1 : 0);
+    device::SetRenderState(device->d3dDevice_, D3DRENDERSTATE_SPECULARENABLE, on ? 1 : 0);
     render::state::Render(D3DRENDERSTATE_SPECULARENABLE, on ? 1 : 0);
 }
 

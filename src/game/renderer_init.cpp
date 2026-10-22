@@ -53,7 +53,7 @@ static_assert(sizeof(DDCAPS) == 0x17C && offsetof(DDCAPS, ddsCaps) == 0x16C);
 // --- Direct3D device (IDirect3DDevice7) ----------------------------------------------------------
 
 IDirect3DDevice7* D3DDevice(CSceneRenderer* renderer) {
-    return static_cast<IDirect3DDevice7*>(renderer->device_->d3dDevice_);
+    return renderer->device_->d3dDevice_;
 }
 
 void SetRenderState(CSceneRenderer* renderer, D3DRENDERSTATETYPE state, std::uint32_t value) {
@@ -63,7 +63,7 @@ void SetRenderState(CSceneRenderer* renderer, D3DRENDERSTATETYPE state, std::uin
 // SetTextureStageState; the result goes to the device object's +8, as every call there does.
 void SetStageState(CSceneRenderer* renderer, int stage, D3DTEXTURESTAGESTATETYPE type, int value) {
     CTextureDevice* device = renderer->device_;
-    device->lastLoadResult_ = device::SetTextureStageState(static_cast<IDirect3DDevice7*>(device->d3dDevice_), stage, type, value);
+    device->lastLoadResult_ = device::SetTextureStageState(device->d3dDevice_, stage, type, value);
     render::state::Stage(static_cast<std::uint32_t>(stage), static_cast<std::uint32_t>(type), static_cast<std::uint32_t>(value));
 }
 
@@ -248,14 +248,14 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
     // The device's capabilities, then DirectDraw's (driver and emulation, 0x17C bytes each).
     D3DDEVICEDESC7 deviceDesc;   // not cleared, as in the original
     CTextureDevice* holder = device_;
-    long result = device::GetCaps(static_cast<IDirect3DDevice7*>(holder->d3dDevice_), &deviceDesc);
+    long result = device::GetCaps(holder->d3dDevice_, &deviceDesc);
     holder->lastLoadResult_ = result;
     if (result != 0) app::FatalErrorCode(result, "Can't get device description.\n");   // "Can't get device description"
     DDCAPS driverCaps = {};
     DDCAPS emulationCaps = {};
     driverCaps.dwSize = sizeof(DDCAPS);
     emulationCaps.dwSize = sizeof(DDCAPS);
-    device::GetCaps(static_cast<IDirectDraw7*>(device_->ddraw_), &driverCaps, &emulationCaps);
+    device::GetCaps(device_->ddraw_, &driverCaps, &emulationCaps);
     if (!(driverCaps.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) settings->mipmapping_ = 0;
 
     SetTextureStages(this, settings, deviceDesc);
