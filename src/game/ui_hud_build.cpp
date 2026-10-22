@@ -4,8 +4,7 @@
 // patches all nine for its WideScreen layout, reproduced behind the flag (W3, ui_widescreen.h):
 // the weapon bar and the action column at the screen's left edge, the quick items and the spell
 // column at its right (the panel offset while some of them run, layout constants moved by
-// EdgeShift). Rewritten callers keep their forwarders (the battle screen's Create, the panels'
-// SetUnit). See ui.h, docs/notes/ui.md ("Battle screen") and docs/notes/rebirth.md ("WideScreen").
+// EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
 #include "ui_window_class.h"
 #include "game_strings.h"
@@ -17,7 +16,6 @@
 #include "ei/rebirth.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "originals_library.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_slots.h"
@@ -150,7 +148,7 @@ CHudWeaponBar* CHudWeaponBar::Construct(CInterface3D* ui, CBattleScreen* owner) 
     // regions still run up to x 240, so the bar has more of them (no tips beyond the fourth).
     const int shift = widescreen::EdgeShift();
     rect_ = {80 - shift, 520, 240 - shift, 600};
-    for (int x = 80 - shift; x < 240; x += kStep) AddRegion()->CallSetRect(x, 520, x + kStep, 600);
+    for (int x = 80 - shift; x < 240; x += kStep) AddRegion()->SetRect(x, 520, x + kStep, 600);
     ClearSceneObjects();
     selected_ = -1;
     count_ = 0;
@@ -160,9 +158,9 @@ CHudWeaponBar* CHudWeaponBar::Construct(CInterface3D* ui, CBattleScreen* owner) 
     AddLabels(&labels_, ids);
     return this;
 }
-EI_REPLACE_METHOD(0x0063BAB0, CHudWeaponBar::Construct);
+EI_REWRITTEN(0x0063BAB0, CHudWeaponBar::Construct);
 
-void CHudWeaponBar::HighlightVanilla(int index, int on) {
+void CHudWeaponBar::Highlight(int index, int on) {
     widescreen::EnterLeftPanel();   // addon's 100233ED; 10023406 at both returns
     if (index < 0 || index >= count_) {
         widescreen::LeavePanel();
@@ -176,7 +174,7 @@ void CHudWeaponBar::HighlightVanilla(int index, int on) {
         sprite->Place(x, 540.0f, 12.0f);
         sprite->SetScale(0.65f);
         sprite->flatSpecular_ = kColourOn;
-        regions_.data[index]->CallSetRect(left, 495, right, 600);
+        regions_.data[index]->SetRect(left, 495, right, 600);
         widescreen::LeavePanel();
         return;
     }
@@ -188,10 +186,10 @@ void CHudWeaponBar::HighlightVanilla(int index, int on) {
     sprite->Place(x, 560.0f, depth);
     sprite->SetScale(scale);
     sprite->flatSpecular_ = kColourOff;
-    regions_.data[index]->CallSetRect(left, 520, right, 600);
+    regions_.data[index]->SetRect(left, 520, right, 600);
     widescreen::LeavePanel();
 }
-EI_REPLACE_METHOD(0x0063C050, CHudWeaponBar::HighlightVanilla);
+EI_REWRITTEN(0x0063C050, CHudWeaponBar::Highlight);
 
 void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     // Slots 0 and 1 share the texture's first column, 2 and 3 the second; odd slots the lower
@@ -224,7 +222,7 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     count_ = index + 1;
     Highlight(index, 0);
 }
-EI_REPLACE_METHOD(0x0063BCC0, CHudWeaponBar::AddWeapon);
+EI_REWRITTEN(0x0063BCC0, CHudWeaponBar::AddWeapon);
 
 // --- Quick items -----------------------------------------------------------------------------------------------
 
@@ -239,8 +237,8 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     const int shift = widescreen::EdgeShift();
     rect_ = {520 + shift, 500, 720 + shift, 600};   // WideScreen: 0063C880 / 0063C894
     // The bottom row (the unit's items), then the top row (the player's), each from the right.
-    for (int x = 670; x > 470; x -= 50) AddRegion()->CallSetRect(x, 550, x + 50, 600);
-    for (int x = 670; x > 470; x -= 50) AddRegion()->CallSetRect(x, 500, x + 50, 550);
+    for (int x = 670; x > 470; x -= 50) AddRegion()->SetRect(x, 550, x + 50, 600);
+    for (int x = 670; x > 470; x -= 50) AddRegion()->SetRect(x, 500, x + 50, 550);
     ClearSceneObjects();
     shownCount_ = 0;
     selected_ = -1;
@@ -255,7 +253,7 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     widescreen::LeavePanel();
     return this;
 }
-EI_REPLACE_METHOD(0x0063C800, CHudQuickItems::Construct);
+EI_REWRITTEN(0x0063C800, CHudQuickItems::Construct);
 
 void CHudQuickItems::AddItem(const char* model, const char* image) {
     if (shownCount_ >= kMaxQuickItems) return;
@@ -274,7 +272,7 @@ void CHudQuickItems::AddItem(const char* model, const char* image) {
     MakePlain(sprite);
     ++shownCount_;
 }
-EI_REPLACE_METHOD(0x0063CAE0, CHudQuickItems::AddItem);
+EI_REWRITTEN(0x0063CAE0, CHudQuickItems::AddItem);
 
 // --- Spell column ----------------------------------------------------------------------------------------------
 
@@ -295,16 +293,16 @@ CHudSpellColumn* CHudSpellColumn::Construct(CInterface3D* ui, CBattleScreen* own
     AddLabels(&labels_, ids);
     return this;
 }
-EI_REPLACE_METHOD(0x0063E2A0, CHudSpellColumn::Construct);
+EI_REWRITTEN(0x0063E2A0, CHudSpellColumn::Construct);
 
 void CHudSpellColumn::AddSpell(const char* model, const char* image) {
     widescreen::EnterRightPanel();   // addon's 1002344D; 10023464 at the end
     // What is there moves up a step; the new button takes the bottom place.
     for (int i = 0; i < regions_.size; ++i) {
         int top = (i - count_) * kStep;
-        regions_.data[i]->CallSetRect(760, top + 470, 800, top + 510);
+        regions_.data[i]->SetRect(760, top + 470, 800, top + 510);
     }
-    AddRegion()->CallSetRect(760, 470, 800, 510);
+    AddRegion()->SetRect(760, 470, 800, 510);
     for (int i = 0; i < sceneObjects_.size; ++i) {
         float y = ColumnBottom() - static_cast<float>((count_ - i) * kStep);
         Sprite(this, i)->Place(780.0f, y, 40.0f);
@@ -325,7 +323,7 @@ void CHudSpellColumn::AddSpell(const char* model, const char* image) {
     selected_ = index;
     widescreen::LeavePanel();
 }
-EI_REPLACE_METHOD(0x0063E4B0, CHudSpellColumn::AddSpell);
+EI_REWRITTEN(0x0063E4B0, CHudSpellColumn::AddSpell);
 
 // --- Action column ---------------------------------------------------------------------------------------------
 
@@ -341,7 +339,7 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     widescreen::EnterLeftPanel();
     const int shift = widescreen::EdgeShift();
     rect_ = {-shift, 250, 40 - shift, 510};
-    for (int y = 470; y > 230; y -= kStep) AddRegion()->CallSetRect(0, y, 40, y + kStep);
+    for (int y = 470; y > 230; y -= kStep) AddRegion()->SetRect(0, y, 40, y + kStep);
     ClearSceneObjects();
     actions_.SetSize(0, -1);
     count_ = 0;
@@ -354,7 +352,7 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     widescreen::LeavePanel();        // addon's 10023430
     return this;
 }
-EI_REPLACE_METHOD(0x0063F300, CHudActionColumn::Construct);
+EI_REWRITTEN(0x0063F300, CHudActionColumn::Construct);
 
 void CHudActionColumn::AddAction(const char* model, const char* image, int action) {
     const IconPlace at = IconAt(count_, 0);
@@ -376,4 +374,4 @@ void CHudActionColumn::AddAction(const char* model, const char* image, int actio
     button->flatSpecular_ = kColourOff;
     selected_ = index;
 }
-EI_REPLACE_METHOD(0x0063F500, CHudActionColumn::AddAction);
+EI_REWRITTEN(0x0063F500, CHudActionColumn::AddAction);

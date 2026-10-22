@@ -6,6 +6,7 @@
 #include "ai_map.h"
 #include "map_object.h"
 #include "map_object_figures.h"
+#include "sector_map.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -19,10 +20,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_units.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 namespace {
@@ -66,13 +63,13 @@ void Lever::SetState(int wanted, float duration) {
     sectors->FindUnitsInRadius(&localPosition_, &around, reach);
     for (auto* node = around.head; node;) {
         auto* next = node->next;
-        SectorMapRemove(sectors, nullptr, node->data);
+        sectors->Remove(node->data);
         node = next;
     }
     CAIMap* map = world->AIMap();
     std::memcpy(&map->refreshUnits, &keepsMapFlag, 1);   // the byte as it is
     map->BeginRefresh();
-    SectorMapRemove(sectors, nullptr, this);
+    sectors->Remove(this);
 
     states = stateCount;
     float travel = states > 1 ? static_cast<float>(static_cast<double>(state) / (states - 1)) : 0.0f;
@@ -91,7 +88,7 @@ void Lever::SetState(int wanted, float duration) {
     scale.y = travel;   // the shown position
     SetUpAnimatedFigure(name);
     MarkChanged(5);
-    SectorMapAdd(sectors, nullptr, this);
+    sectors->Add(this);
     map->EndRefresh();
     map->refreshUnits = true;
 
@@ -105,7 +102,7 @@ void Lever::SetState(int wanted, float duration) {
             std::memcpy(at, &free, sizeof(free));
             unit->ServerController()->ResyncWithUnit();
         }
-        SectorMapAdd(sectors, nullptr, unit);
+        sectors->Add(unit);
         node = next;
     }
     around.RemoveAll();

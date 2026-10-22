@@ -65,7 +65,7 @@ void PathOrder::WriteState(DeltaField* field) {
         if (yCode == kStepWritten) field->WriteBoth(&cell.y, 2);
     }
 }
-EI_REPLACE_METHOD(0x005C7DB0, PathOrder::WriteState);
+EI_REWRITTEN(0x005C7DB0, PathOrder::WriteState);
 
 void PathOrder::ReadState(DeltaField* field) {
     MotionOrder* order = OrderOf(this);

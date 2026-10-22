@@ -8,8 +8,9 @@
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "combat.h"
+#include "core_maths.h"
+#include "engine_object.h"
 #include "map_object.h"
-#include "originals_combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
 
@@ -18,6 +19,7 @@
 #include "player_messages.h"
 #include "random.h"
 #include "script.h"
+#include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -26,19 +28,11 @@
 #include "lib/mfc_list.h"
 
 #include "ei/hook.h"
-#include "originals_ai.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_gameplay.h"
-#include "originals_script.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
+#include "lib/vecmath.h"
 #include "logic_settings.h"
 
 #include <bit>
@@ -67,7 +61,7 @@ constexpr int kMessageModeBlocked = 0x0D;
 constexpr int kMessageCannotDo = 0x0E;
 constexpr int kMessagePartial = 0x01;
 
-// --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
+// --- Helpers --------------------------------------------------------------------------------------
 
 // CUnit: 0050E9F0 MarkChanged, 0052EA90 the animation bytes, 00530570 the size class, 005301B0
 // the animation entry for a key (combat_steps.cpp), 0052E9D0 the path speeds.
@@ -94,7 +88,7 @@ constexpr int kMessagePartial = 0x01;
 // blank step; 00544FD0 OrderPlan's reset.
 // MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
-inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
+inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
 // The world server (007AFF60), its AI map (+0x170 = 007B00D0) and sector map (+0x294 = 007B01F4).
 CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
@@ -146,9 +140,9 @@ void FaceAndStop(CUnitServer* self) {
     Motion(self)->Clear();
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
-    QuaternionAxisY(&self->unit->localRotation_, nullptr, &axis);
+    self->unit->localRotation_.AxisY(&axis);
     Vector3 back;
-    const Vector3* direction = Negate(&back, &axis);
+    const Vector3* direction = NegateVector(&back, axis);
     if (Motion(self)->Start(&self->unit->localPosition_, direction, now)) self->unit->RefreshMotion();
     self->SetStanding(0);
     self->SetState(kStateChasing);
@@ -231,7 +225,7 @@ bool CUnitServer::CanReactFor(int ticks) {
         return false;
     return true;
 }
-EI_REPLACE_METHOD(0x00549D00, CUnitServer::CanReactFor);
+EI_REWRITTEN(0x00549D00, CUnitServer::CanReactFor);
 
 // --- Playing an animation ----------------------------------------------------------------------
 
@@ -252,16 +246,16 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     Motion(self)->Clear();
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
-    QuaternionAxisY(&self->unit->localRotation_, nullptr, &axis);
+    self->unit->localRotation_.AxisY(&axis);
     Vector3 back = -axis;
     if (Motion(self)->Start(&self->unit->localPosition_, &back, now)) self->unit->RefreshMotion();
     // Standing 0 (005467B0 inlined; CUnit +0x278).
     CWorldServer* world = ContextOf(self);
     if (self->unit->obstacle != 0) {
         CSectorMap* sectors = world->Sectors();
-        SectorMapRemove(sectors, nullptr, self->unit);
+        sectors->Remove(self->unit);
         self->unit->obstacle = 0;
-        SectorMapAdd(sectors, nullptr, self->unit);
+        sectors->Add(self->unit);
         self->unit->MarkChanged(7);
     }
     // The list was taken by value: it is destroyed here.
@@ -445,9 +439,9 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     CWorldServer* world = ContextOf(this);
     if (unit->obstacle == 0) return;
     CSectorMap* sectors = world->Sectors();
-    SectorMapRemove(sectors, nullptr, unit);
+    sectors->Remove(unit);
     unit->obstacle = 0;
-    SectorMapAdd(sectors, nullptr, unit);
+    sectors->Add(unit);
     unit->MarkChanged(7);
 }
 EI_REWRITTEN(0x005494D0, CUnitServer::StartAction);
@@ -510,7 +504,7 @@ bool CUnitServer::ChangeMoveMode() {
     if (moveMode.mode == moveMode2.mode && moveMode.flag4 == moveMode2.flag4) return false;
     bool modeChanged = moveMode.mode != moveMode2.mode;
     MoveModeState saved = moveMode;
-    SectorMapRemove(ServerSectors(), nullptr, unit);
+    ServerSectors()->Remove(unit);
     bool passableBefore = ServerAIMap()->IsUnitCellPassable(unit);
     bool sameMode = moveMode.mode == moveMode2.mode;
     moveMode = moveMode2;
@@ -521,7 +515,7 @@ bool CUnitServer::ChangeMoveMode() {
         !(passableBefore ? ServerAIMap()->IsUnitCellPassable(unit) : ServerAIMap()->CanLeaveCell(unit)))
         placed = false;
     else
-        placed = SectorMapAdd(ServerSectors(), nullptr, unit);
+        placed = ServerSectors()->Add(unit);
     unit->MarkChanged(6);
     if (!placed) {
         // The new mode does not fit here: back to the old one, and the party is told.
@@ -531,7 +525,7 @@ bool CUnitServer::ChangeMoveMode() {
         if (moveMode.mode != 2) moveMode2.wasMode3 = 0;
         unit->moveMode2 = UnitModeOf(moveMode2);
         unit->UpdateSizeClass();
-        SectorMapAdd(ServerSectors(), nullptr, unit);
+        ServerSectors()->Add(unit);
         CUnit* self = unit;
         if (self->player) PlayerMessage(self->player->connection_, self, kMessageModeBlocked);
         return false;
@@ -572,7 +566,7 @@ EI_REWRITTEN(0x0054A150, CUnitServer::ChangeMoveMode);
 // --- Paths --------------------------------------------------------------------------------------
 
 bool CUnitServer::PathTo(const Vector3* point, float range) {
-    ManagerContextOf(this);
+    ManagerContext();
     UpdateSneak();
     motionChanged = 0;
     stoodBlocked = 0;
@@ -582,7 +576,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     Motion(this)->flag6E = unit->player ? 0 : 1;   // +0xAA
     std::uint32_t before = unit->altPassCosts;
     unit->altPassCosts = keep;
-    bool found = MapFindPath(world->AIMap(), nullptr, unit, point, Motion(this), range, 0.0f);
+    bool found = world->AIMap()->FindPath(unit, point, Motion(this), range, 0.0f);
     unit->altPassCosts = before;
     if (!found) {
         // +0xA9, read as a byte: the original compares it with 1.
@@ -655,7 +649,7 @@ void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) 
             node = node->next;
             CUnit* other = current->data;
             if (group->Contains(other) == 0) {
-                SectorMapRemove(sectors, nullptr, other);
+                sectors->Remove(other);
                 continue;
             }
             if (current == list->head) list->head = current->next;
@@ -680,7 +674,7 @@ void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) 
         if (list->tail) list->tail->next = added;
         else list->head = added;
         list->tail = added;
-        SectorMapRemove(ServerSectors(), nullptr, member);
+        ServerSectors()->Remove(member);
     }
 }
 EI_REWRITTEN(0x005468D0, CUnitServer::LiftNearby);
@@ -758,9 +752,9 @@ void CUnitServer::ResyncWithUnit() {
     Motion(this)->Clear();
     int now = TickOf(ObjectWorld(this));
     Vector3 axis;
-    QuaternionAxisY(&unit->localRotation_, nullptr, &axis);
+    unit->localRotation_.AxisY(&axis);
     Vector3 back;
-    const Vector3* direction = Negate(&back, &axis);
+    const Vector3* direction = NegateVector(&back, axis);
     if (Motion(this)->Start(&unit->localPosition_, direction, now)) unit->RefreshMotion();
     SetStanding(0);
     SetState(kStateChasing);

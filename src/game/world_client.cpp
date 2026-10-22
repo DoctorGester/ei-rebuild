@@ -28,13 +28,6 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_gameplay.h"
-#include "originals_ui.h"
-#include "originals_effects.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -140,7 +133,7 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
     float best = 1e38f;
     CUnit* nearest = nullptr;
     for (int i = 0; i < view->partyUnitIds_.size; ++i) {
-        CUnit* found = WorldFindUnit(this, nullptr, view->partyUnitIds_[i]);
+        CUnit* found = static_cast<CWorld*>(this)->FindUnit(view->partyUnitIds_[i]);
         if (!found || found->GetClassId() != world::kClassUnit) continue;
         if (ObjectSlots(found)->IsDead() != 0) continue;
         std::uint32_t side = 1u << (unit->side & 31);
@@ -187,7 +180,7 @@ bool CWorldClient::IsLocalPlayerIdle() {
 BOOL CWorldClient::FindExitAt(const float* point, int* index) {
     for (int i = 0; i < exits_.size; ++i) {
         if (!exits_[i].Contains(point[0], point[1])) continue;
-        if (GameMbscmp(exits_[i].target, "none") == 0) continue;
+        if (gamecrt::mbscmp(exits_[i].target, "none") == 0) continue;
         if (index) *index = i;
         return 1;
     }
@@ -248,7 +241,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
     for (int i = 0; i < records->size; ++i) {
         PartyUnitRecord* record = (*records)[i];
         CUnit* found =
-            WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
+            static_cast<CWorld*>(this)->FindUnit(static_cast<int>(record->unitId));
         if (!found || ObjectSlots(found)->IsDead() != 0) continue;
         ++living;
         int index = 0;
@@ -280,7 +273,7 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
     name = name.Right(length - second - 1);
     for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
         CMapObject* object = node->data;
-        if (GameMbscmp(name, object->name2) == 0) object->SetVisibilityLevel(value);
+        if (gamecrt::mbscmp(name, object->name2) == 0) object->SetVisibilityLevel(value);
     }
     // FCOMP + TEST AH,0x40.
     EI_NAN_AUDIT(value);
@@ -326,9 +319,9 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     case 3: flags = 1; break;
     }
     static_assert(sizeof(rainSnow_) == sizeof(CRainSnow) && offsetof(CWorldClient, rainSnow_) + offsetof(CRainSnow, mode) == 0x7A8);
-    if (GameMbscmp(zoneName_, "gipat") == 0) flags |= 0x10;
-    else if (GameMbscmp(zoneName_, "ingos") == 0) flags |= 0x20;
-    else if (GameMbscmp(zoneName_, "suslanger") == 0) flags |= 0x40;
+    if (gamecrt::mbscmp(zoneName_, "gipat") == 0) flags |= 0x10;
+    else if (gamecrt::mbscmp(zoneName_, "ingos") == 0) flags |= 0x20;
+    else if (gamecrt::mbscmp(zoneName_, "suslanger") == 0) flags |= 0x40;
     flags |= IsNight() ? 0x100 : 0x80;
     flags |= cave_ == 1 ? 0x400 : 0x200;
     const int weather = RainSnow()->mode;
@@ -341,10 +334,8 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
 
 namespace {
 
-// Callees, through their addresses (thiscall as fastcall).
-// 005F8070: InterfaceStringEventOriginal (originals_ui.h).
 // 00665A10 CPlayer::Disconnect on the local session.
-void __fastcall SessionDisconnect(CPlayer* session) { PlayerDisconnectOriginal(session); }
+void __fastcall SessionDisconnect(CPlayer* session) { static_cast<CPlayer*>(session)->Disconnect(); }
 
 // FCOMP a, b; C0 (a < b, or unordered) selects `ifLess`, else `otherwise` (the original's bit trick).
 float SelectLess(float a, float b, float ifLess, float otherwise) {
@@ -407,7 +398,7 @@ int CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, nullptr};   // [ebp-0x58]
     int frames = ++ticksRun_;
     if (frames == 10) {
-        InterfaceStringEventOriginal(TheInterface(), nullptr, worlddata::AutosaveEventText());
+        static_cast<CInterface3D*>(TheInterface())->OnStringEvent(worlddata::AutosaveEventText());
         sounds_->SetEffectsVolume(worlddata::VolumeSettingA());
         sounds_->SetSpeechVolume(worlddata::VolumeSettingB());
         sounds_->SetMusicVolume(worlddata::MovieVolumeSetting());
@@ -425,7 +416,7 @@ int CWorldClient::Segment() {
     if (netlink::DriverSession* session = netSession_.Get()) session->PumpDrivers(net::GameClient());
     if (CPlayer* session = Session()) {
         CPlayerConnection* view = session->connection_;
-        if (!paused_) PlayerTickOriginal(session);
+        if (!paused_) static_cast<CPlayer*>(session)->Tick();
         if (view->Receive() == 0) {
             // The connection is gone. Rebirth's DisableExitOnCrashReport (5 NOPs at 00564330)
             // keeps the session: only the error is reported.
@@ -518,16 +509,16 @@ EI_REWRITTEN(0x00563F70, CWorldClient::ClampedGroundHeight);
 EI_REPLACE_METHOD(0x00560F00, PlatformSet::SurfaceHeight);
 EI_REWRITTEN(0x00561050, PlatformSet::Contains);
 EI_REWRITTEN(0x00561150, PlatformSet::SurfacePlane);
-EI_REPLACE_METHOD(0x00560E10, MatrixRows::Transform);
+EI_REWRITTEN(0x00560E10, MatrixRows::Transform);
 EI_REWRITTEN(0x005640A0, CWorldClient::NearestVisibleUnit);
-EI_REPLACE_METHOD(0x00564AF0, CObject3D::PartBox);
+EI_REWRITTEN(0x00564AF0, CObject3D::PartBox);
 EI_REWRITTEN(0x005699F0, CWorldClient::LocalView);
 EI_REWRITTEN(0x00566EC0, CWorldClient::IsLocalViewMode2);
 EI_REWRITTEN(0x00566EF0, CWorldClient::IsLocalPlayerIdle);
 EI_REWRITTEN(0x00567440, CWorldClient::FindExitAt);
 EI_REWRITTEN(0x005674C0, CWorldClient::ExitCentre);
 EI_REWRITTEN(0x0056D9F0, CWorldClient::EnvironmentFlags);
-EI_REPLACE_METHOD(0x00567500, CWorldClient::CreateExitMarkers);
+EI_REWRITTEN(0x00567500, CWorldClient::CreateExitMarkers);
 EI_REWRITTEN(0x005677F0, CWorldClient::PartyInExit);
 EI_REWRITTEN(0x00566C20, CWorldClient::SummonBird);
 EI_REWRITTEN(0x00565380, CWorldClient::OnQuestVariable);

@@ -9,8 +9,6 @@
 #include "lib/static_object.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
-#include "originals_library.h"
 #include "game_data.h"
 #include "lib/gameapi.h"
 

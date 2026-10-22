@@ -9,11 +9,9 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
 
 #include <cstring>
 #include <new>
-#include "originals_engine.h"
 
 namespace {
 using ei::SetVtable;
@@ -198,4 +196,4 @@ CoderState* CoderState::Construct() {
     window[0x7FF] = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x0042FCA0, CoderState::Construct);
+EI_REWRITTEN(0x0042FCA0, CoderState::Construct);

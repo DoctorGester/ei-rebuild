@@ -9,7 +9,6 @@
 #include "chunk_archive.h"
 #include "core_streams.h"
 #include "lib/crt.h"
-#include "originals_engine.h"   // MappedResourceOpenOriginal / DestroyOriginal
 #include "resource.h"
 #include "lib/static_object.h"
 
@@ -23,9 +22,9 @@ namespace dbfile {
 // destructor body through their addresses (00671730 / 006714A0, which Rebirth patches).
 struct LocalResource {
     LocalResource() { Get()->Construct(); }
-    ~LocalResource() { MappedResourceDestroyOriginal(Get()); }
+    ~LocalResource() { Get()->CMappedResource::Destroy(); }
     CMappedResource* Get() { return storage.Get(); }
-    int Open(const char* path) { return MappedResourceOpenOriginal(Get(), nullptr, path, 0); }
+    int Open(const char* path) { return Get()->CMappedResource::OpenResourceImpl(path, 0); }
     lib::InPlace<CMappedResource> storage;
 };
 

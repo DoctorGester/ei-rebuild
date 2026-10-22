@@ -8,7 +8,6 @@
 
 #include "database_file.h"
 #include "lib/crt.h"
-#include "originals_engine.h"   // game::FatalError
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -91,7 +90,7 @@ int PrintsDatabase::Load(const char* folder) {
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
-EI_REPLACE_METHOD(0x006D0630, PrintsDatabase::Load);
+EI_REWRITTEN(0x006D0630, PrintsDatabase::Load);
 
 // --- acks.db --------------------------------------------------------------------------------------
 
@@ -137,6 +136,6 @@ int AckDatabase::Load(const char* folder) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x006D7620, AckDatabase::Load);
+EI_REWRITTEN(0x006D7620, AckDatabase::Load);
 
 } // namespace acks

@@ -40,15 +40,18 @@ using Word = std::uint32_t;
 class Code {
 public:
     static std::uint32_t At(std::uintptr_t address) { return static_cast<std::uint32_t>(GameAddress(address)); }
-    // The once-only guard of a global (a bit in a flag byte): false when the bit is already set.
-    static bool Once(std::uintptr_t flag, std::uint8_t bit) {
-        std::uint8_t& flags = GameData<std::uint8_t>(flag);
+    // The once-only guard of a global (a bit in a flag byte, ours or game.exe's): false when the bit is already set.
+    static bool Once(std::uint8_t& flags, std::uint8_t bit) {
         if (flags & bit) return false;
         flags = static_cast<std::uint8_t>(flags | bit);
         return true;
     }
+    static bool Once(std::uintptr_t flag, std::uint8_t bit) { return Once(GameData<std::uint8_t>(flag), bit); }
     static void Store(std::uintptr_t address, std::uint32_t value) { GameData<std::uint32_t>(address) = value; }
     static void Store(std::uintptr_t address, Result result) { Store(address, result.value); }
+    // A call's result into a named global of ours (tools/gen_static_init.py's GENERATED_NAMES).
+    template <class T>
+    static void Store(T& to, Result result) { to = static_cast<T>(result.value); }
     template <class T>
     static void StoreFloat(std::uintptr_t address, T value) { GameData<float>(address) = static_cast<float>(value); }
     static void Fill(std::uintptr_t address, std::uint32_t value, std::uint32_t count) {
@@ -83,9 +86,12 @@ public:
         return {::ei::Code<std::uint32_t(__stdcall*)(Word<A>...)>(fn)(static_cast<std::uint32_t>(args)...)};
     }
     template <class... A>
+    static Result Thiscall(std::uintptr_t fn, void* object, A... args) {
+        return {::ei::Code<std::uint32_t(__thiscall*)(void*, Word<A>...)>(fn)(object, static_cast<std::uint32_t>(args)...)};
+    }
+    template <class... A>
     static Result Thiscall(std::uintptr_t fn, std::uintptr_t object, A... args) {
-        return {::ei::Code<std::uint32_t(__thiscall*)(void*, Word<A>...)>(fn)(GamePointer<void>(object),
-                                                                                      static_cast<std::uint32_t>(args)...)};
+        return Thiscall(fn, GamePointer<void>(object), args...);
     }
     // CALL [slot]: a Win32 function through the import table (lib/import_table.h), by its member.
     template <class F, class... A>
@@ -125,8 +131,11 @@ public:
         guards.push_back({flag, bit, initialiser_});
         return true;
     }
+    bool Once(std::uint8_t& flags, std::uint8_t bit) { return Once(reinterpret_cast<std::uintptr_t>(&flags), bit); }
     void Store(std::uintptr_t address, std::uint32_t value) { values[address] = {value, false, true, initialiser_}; }
     void Store(std::uintptr_t address, Result) { values[address] = {0, false, false, initialiser_}; }
+    template <class T>
+    void Store(T&, Result) {}
     template <class T>
     void StoreFloat(std::uintptr_t address, T value) {
         const float f = static_cast<float>(value);
@@ -150,6 +159,8 @@ public:
     Result Stdcall(std::uintptr_t, A...) { return {0}; }
     template <class... A>
     Result Thiscall(std::uintptr_t, std::uintptr_t, A...) { return {0}; }
+    template <class... A>
+    Result Thiscall(std::uintptr_t, void*, A...) { return {0}; }
     template <class F, class... A>
     Result Import(F ImportTable::*, A...) { return {0}; }
     void AtExit(std::uintptr_t) {}
@@ -165,8 +176,11 @@ class Targets {
 public:
     void Begin(std::uintptr_t) {}
     bool Once(std::uintptr_t, std::uint8_t) { return true; }
+    bool Once(std::uint8_t&, std::uint8_t) { return true; }
     void Store(std::uintptr_t, std::uint32_t) {}
     void Store(std::uintptr_t, Result) {}
+    template <class T>
+    void Store(T&, Result) {}
     template <class T>
     void StoreFloat(std::uintptr_t, T) {}
     void Fill(std::uintptr_t, std::uint32_t, std::uint32_t) {}
@@ -184,6 +198,8 @@ public:
     Result Stdcall(std::uintptr_t fn, A...) { return Call(fn); }
     template <class... A>
     Result Thiscall(std::uintptr_t fn, std::uintptr_t, A...) { return Call(fn); }
+    template <class... A>
+    Result Thiscall(std::uintptr_t fn, void*, A...) { return Call(fn); }
     template <class F, class... A>
     Result Import(F ImportTable::* slot, A...) {
         imports.push_back(&(Imports().*slot));

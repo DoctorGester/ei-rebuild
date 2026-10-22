@@ -11,8 +11,6 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -71,45 +69,45 @@ void* CUiWindow::NoItemAt(int, int, int* topic) {
     *topic = 0;
     return nullptr;
 }
-EI_REPLACE_METHOD(0x005EE400, CUiWindow::NoItemAt);
+EI_REWRITTEN(0x005EE400, CUiWindow::NoItemAt);
 
 bool CItemScreen::CanEquipDefault(CItem*, int) { return false; }
-EI_REPLACE_METHOD(0x005F6380, CItemScreen::CanEquipDefault);
+EI_REWRITTEN(0x005F6380, CItemScreen::CanEquipDefault);
 
 void CItemScreen::BestPartySkillDefault(int, int* skill, int* mana) {
     *skill = 0;
     *mana = 0;
 }
-EI_REPLACE_METHOD(0x005F63A0, CItemScreen::BestPartySkillDefault);
+EI_REWRITTEN(0x005F63A0, CItemScreen::BestPartySkillDefault);
 
 CUnit* CItemScreen::HeroUnitDefault(int) { return nullptr; }
-EI_REPLACE_METHOD(0x005F6400, CItemScreen::HeroUnitDefault);
+EI_REWRITTEN(0x005F6400, CItemScreen::HeroUnitDefault);
 
 float CItemScreen::WeightDefault() { return 0.0f /*0073B858*/; }
-EI_REPLACE_METHOD(0x005F6430, CItemScreen::WeightDefault);
+EI_REWRITTEN(0x005F6430, CItemScreen::WeightDefault);
 
 int CItemScreen::PriceDefault(CItem*, int) { return 0; }
-EI_REPLACE_METHOD(0x005F6440, CItemScreen::PriceDefault);
+EI_REWRITTEN(0x005F6440, CItemScreen::PriceDefault);
 
 void* CUiItemStrip::FigureItemAt(int, int, int*) { return nullptr; }
-EI_REPLACE_METHOD(0x006157C0, CUiItemStrip::FigureItemAt);
+EI_REWRITTEN(0x006157C0, CUiItemStrip::FigureItemAt);
 
 bool CGlobalMap::MayTravel(int) { return true; }
 EI_REWRITTEN(0x006316A0, CGlobalMap::MayTravel);
 
 const char* CGlobalMap::HelpTopic() { return noCamp_ == 1 ? "global_map_nocamp" : "global_map"; }
-EI_REPLACE_METHOD(0x0062EE70, CGlobalMap::HelpTopic);
+EI_REWRITTEN(0x0062EE70, CGlobalMap::HelpTopic);
 
 // --- One-line setters and readers ------------------------------------------------------------------------
 
 void CBattleScreen::SetPortraitMode(int mode) { portraitMode_ = mode; }
-EI_REPLACE_METHOD(0x005F5FB0, CBattleScreen::SetPortraitMode);
+EI_REWRITTEN(0x005F5FB0, CBattleScreen::SetPortraitMode);
 
 void CBriefingScreen::SetChatActive(int mode) { chatActive_ = mode; }
-EI_REPLACE_METHOD(0x005F6B70, CBriefingScreen::SetChatActive);
+EI_REWRITTEN(0x005F6B70, CBriefingScreen::SetChatActive);
 
 CUnit* CCampPages::HeroAt(int index) { return heroes_[index]; }
-EI_REPLACE_METHOD(0x005F65F0, CCampPages::HeroAt);
+EI_REWRITTEN(0x005F65F0, CCampPages::HeroAt);
 
 void CUiItemStrip::SetSlots(int slots) { slots_ = slots; }
 EI_REWRITTEN(0x00621F20, CUiItemStrip::SetSlots);
@@ -146,7 +144,7 @@ CInterface3D* CInterface3D::Construct() {
     new (&savedText_) mfc::CString();
     return this;
 }
-EI_REPLACE_METHOD(0x005F46A0, CInterface3D::Construct);
+EI_REWRITTEN(0x005F46A0, CInterface3D::Construct);
 
 // The interface manager, zero at the start: built by the static initialiser 005F4680 in the list's order and destroyed by
 // the exit function it registers (005F4780); both ported on the name and registered at their addresses
@@ -157,7 +155,7 @@ CInterface3D* TheInterface() { return &*g_interface; }
 namespace {
 void __cdecl ConstructInterface() {   // 005F4680
     g_interface->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x005F4780));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005F4780));
 }
 void __cdecl DestroyInterface() { g_interface->DestroyBody(); }   // 005F4780
 } // namespace
@@ -196,7 +194,7 @@ void CInterface3D::ChatKeyBackspace() {
 EI_REWRITTEN(0x005F7C80, CInterface3D::ChatKeyBackspace);
 
 void CCampPages::OnKeyUp(int key, int repeat, int flags) { InputOf(this)->OnKeyUp(key, repeat, flags); }
-EI_REPLACE_METHOD(0x0060F690, InputForward<&CCampPages::OnKeyUp>::Call);
+EI_REWRITTEN(0x0060F690, InputForward<&CCampPages::OnKeyUp>::Call);
 
 int CHeroStatsPanel::OnLButtonUp(int, int, int) {
     interface_->mouseCapture_ = nullptr;
@@ -211,13 +209,13 @@ int CGlobalMap::OnLButtonUp(int, int, int) {
     turning_ = 0;
     return 0;
 }
-EI_REPLACE_METHOD(0x0062FEF0, InputForward<&CGlobalMap::OnLButtonUp>::Call);
+EI_REWRITTEN(0x0062FEF0, InputForward<&CGlobalMap::OnLButtonUp>::Call);
 
 void CEscMenu::OnClose() { window.models_.data[0]->Play(0); }
-EI_REPLACE_METHOD(0x0062ACB0, CEscMenu::OnClose);
+EI_REWRITTEN(0x0062ACB0, CEscMenu::OnClose);
 
 void CMessageBox::OnClose() {
     ClearSceneObjects();
     ClearSurfaces();
 }
-EI_REPLACE_METHOD(0x00634D00, CMessageBox::OnClose);
+EI_REWRITTEN(0x00634D00, CMessageBox::OnClose);

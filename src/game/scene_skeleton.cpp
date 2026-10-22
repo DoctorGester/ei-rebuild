@@ -12,8 +12,6 @@
 #include "../lib/crt.h"
 #include "lib/mfc_array.h"
 #include "ei/hook.h"
-#include "originals_render.h"
-#include "originals_engine.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>

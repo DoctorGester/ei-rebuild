@@ -19,6 +19,7 @@
 // docs/notes/app.md ("WinMain").
 #include "bink_video.h"
 #include "device.h"   // the old device's calls
+#include "engine_object.h"
 #include "game_strings.h"
 #include "app.h"
 #include "acks_db.h"
@@ -50,12 +51,6 @@
 #include "lib/mfc.h"
 #include "lib/static_object.h"
 #include "lib/vecmath.h"
-#include "originals_core.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "render/render.h"
 #include "world_glue.h"
 #include "../hook/log.h"
@@ -70,8 +65,6 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 using options::GameOptions;
 
@@ -105,23 +98,23 @@ using AtExitFunction = void(__cdecl*)();
 // The initialisers: each CString empty (".\capture\" for the movie folder), its exit function registered.
 void __cdecl ConstructCameraFile() {   // 00455CE0
     g_cameraFile.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x00455D00));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D00));
 }
 void __cdecl ConstructCommandLineScript() {   // 00455D10
     g_commandLineScript.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x00455D30));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D30));
 }
 void __cdecl ConstructCommandLineMob() {   // 00455D40
     g_commandLineMob.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x00455D60));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D60));
 }
 void __cdecl ConstructCommandLineMap() {   // 00455D70
     g_commandLineMap.Construct();
-    GameAtExit(ei::Code<AtExitFunction>(0x00455D90));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D90));
 }
 void __cdecl ConstructMovieFolder() {   // 00455DA0
     g_movieFolder.Construct(".\\capture\\");
-    GameAtExit(ei::Code<AtExitFunction>(0x00455DC0));
+    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455DC0));
 }
 
 // The exit functions.
@@ -228,26 +221,14 @@ console::GameOStream& SpeedLog() { return console::g_netLogOut; }
 using ClassFactory = void* (__cdecl*)();
 ClassFactory ClassTemplateFactory() { return ei::Code<ClassFactory>(0x00457850); }
 ClassFactory PartyRecordFactory() { return ei::Code<ClassFactory>(0x00457740); }
-// 0045B210 / 0045C560 (RET 4): the options read from and written to the registry key.
-__declspec(naked) void __fastcall OptionsLoadAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045B210)
-__declspec(naked) void __fastcall OptionsSaveAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045C560)
 // The camera: 0040D0A0 (RET 0x10) Init, 0040EB60 / 0040EFB0 (RET 4) a frame written to / read from the
 // camera file at a time in ticks. 0040FB30 (RET 4, CCamera::Update) the frame's update.
 // The renderer (007AF060): 00500B70 its creation (slot 2 of its vtable, RET 8), 00504A60 (RET 0xC)
 // the display's brightness, contrast and gamma.
 // The sound manager: 006B6A30 (RET 0x14) opened, 006BAE20 (RET 8) the music folder and its
 // registry file, 006B7060 / 006B7AB0 (RET 4) the wave archives, the three volumes (RET 4).
-__declspec(naked) int __fastcall SoundSetPathAt(CSoundManager*, void*, const char* /*folder*/, const char* /*registry*/) EI_ORIGINAL(0x006BAE20)
-// The databases read from the resources folder (RET 4; the others are in originals_world.h).
-// 00463390 is patched by Rebirth.
-__declspec(naked) int __fastcall QuestDatabaseLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x006AE3A0)
-__declspec(naked) int __fastcall LeverTableLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x00463390)
-__declspec(naked) int __fastcall AckDatabaseLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x006D7620)
-__declspec(naked) int __fastcall PrintsDatabaseLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x006D0630)
 // The interface (007C7D50): 005F4990 (RET 4) created on the device, 005F57C0 its update, 005F4F90
 // shut down.
-__declspec(naked) void __fastcall InterfaceCreateAt(CInterface3D*, void*, CTextureDevice*) EI_ORIGINAL(0x005F4990)
-__declspec(naked) void __fastcall InterfaceShutdownAt(CInterface3D*) EI_ORIGINAL(0x005F4F90)
 // The game flow (007AFE20): 00581660 both sessions closed.
 
 // ---- Start-up --------------------------------------------------------------------------------------
@@ -421,12 +402,12 @@ bool CheckDrives(const console::CStringArray& messages) {
     if (FreeDiskSpace(dataFolder, &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], "Warning", kWarningBox) == IDCANCEL) return false;
     }
-    if (GameMbscmp(dataFolder, discFolder) != 0) {
+    if (gamecrt::mbscmp(dataFolder, discFolder) != 0) {
         char volume[0x400] = {};
         PathParts parts;
         DriveRoot(discFolder, parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (GameMbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
+        while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc], "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }
@@ -451,7 +432,7 @@ void CreateMouse() {
     CDirectInputMouse* old = Mouse();
     Mouse() = mouse;
     if (mouse) ++mouse->references_;
-    if (old) ReleaseCountedOriginal(old);
+    if (old) reinterpret_cast<CEngineObject*>(old)->ReleaseAndDelete();
 }
 
 // The folders the game writes to.
@@ -503,7 +484,7 @@ std::uintptr_t OpenSound() {
     {
         mfc::CString registry = textFolder + "streamsn.reg";
         mfc::CString folder = dataFolder + "stream\\";
-        SoundSetPathAt(TheSoundManager(), nullptr, folder, registry);
+        TheSoundManager()->SetPath(folder, registry);
     }
     {
         mfc::CString effects = textFolder + "sfx.res";
@@ -526,14 +507,14 @@ std::uintptr_t OpenSound() {
 void LoadDatabases() {
     const char* archive = "database.res";
     GameOptions* options = options::TheOptions();
-    SkillDatabaseLoadOriginal(SkillDatabaseObject(), nullptr, options->resourcesPath_, archive);
-    QuestDatabaseLoadAt(QuestDatabaseObject(), nullptr, options->resourcesPath_);
-    UnitDatabaseLoadOriginal(UnitDatabaseObject(), nullptr, options->resourcesPath_, archive);
-    SpellTablesLoadOriginal(SpellTablesObject(), nullptr, options->resourcesPath_, archive);
-    ItemDatabaseLoadOriginal(ItemDatabaseObject(), nullptr, options->resourcesPath_, archive);
-    LeverTableLoadAt(LeverTableObject(), nullptr, options->resourcesPath_);
-    AckDatabaseLoadAt(AckDatabaseObject(), nullptr, options->resourcesPath_);
-    PrintsDatabaseLoadAt(PrintsDatabaseObject(), nullptr, options->resourcesPath_);
+    SkillDatabaseObject()->Load(options->resourcesPath_, archive);
+    static_cast<QuestDatabase*>(QuestDatabaseObject())->Load(options->resourcesPath_);
+    UnitDatabaseObject()->Load(options->resourcesPath_, archive);
+    static_cast<itemdb::SpellDatabase*>(SpellTablesObject())->Load(options->resourcesPath_, archive);
+    static_cast<itemdb::ItemDatabase*>(ItemDatabaseObject())->Load(options->resourcesPath_, archive);
+    static_cast<LeverRecordTable*>(LeverTableObject())->Load(options->resourcesPath_);
+    static_cast<acks::AckDatabase*>(AckDatabaseObject())->Load(options->resourcesPath_);
+    static_cast<PrintsDatabase*>(PrintsDatabaseObject())->Load(options->resourcesPath_);
 }
 
 // ---- The main loop ---------------------------------------------------------------------------------
@@ -561,13 +542,15 @@ void FrameCameraUpdate(CCamera* camera, float seconds) {
     else camera->Update(seconds);
 }
 using WorldUpdate = ei::mainloop::HarnessHooks::WorldUpdate;
+int __fastcall UpdateServer(void* server, void*) { return static_cast<CWorldServer*>(server)->Update(); }   // 0058DFF0
+int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->Segment(); }   // 005641F0
 WorldUpdate ServerUpdate() {
     if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook;
-    return reinterpret_cast<WorldUpdate>(&ServerUpdateOriginal);
+    return &UpdateServer;
 }
 WorldUpdate ClientSegment() {
     if (auto hook = ei::mainloop::g_harnessHooks.clientSegment) return hook;
-    return reinterpret_cast<WorldUpdate>(&ClientSegmentOriginal);
+    return &RunClientSegment;
 }
 
 // The smooth camera's clock (R18, render::SmoothCamera; docs/notes/renderer.md section 14): the
@@ -706,7 +689,7 @@ bool RunPass() {
     if (g_clientBacklog > kBacklogLimit) g_clientBacklog = 0;
 
     if (RunWorlds()) {
-        FlowProcessRequestOriginal(TheGameFlow());
+        TheGameFlow()->ProcessRequest();
         const float fraction = static_cast<float>(x87::FromUnsigned(g_clientBacklog) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
         if (!client->paused_) client->tickFraction_ = fraction;
         const double balance = Step(static_cast<double>(client->PumpIncomingCount()) - fraction);
@@ -768,14 +751,14 @@ int RunMainLoop(bool interfaceInput) {
 
 void ShutDown(gamecrt::NewHandler previousHandler) {
     DeleteComposedTextures();
-    InterfaceShutdownAt(TheInterface());
+    TheInterface()->Shutdown();
     TheCursor()->Shutdown();
     CDirectInputMouse* mouse = Mouse();
     Mouse() = nullptr;
     if (mouse) ReleaseMouse(mouse);
     TheSceneRenderer()->SetGamma(0.0f, 0.0f, 0.0f);
     SceneRenderer()->DestroyRenderer();
-    OptionsSaveAt(options::TheOptions(), nullptr, RegistryRoot());
+    options::TheOptions()->SaveToRegistry(RegistryRoot());
     TheClientWorld()->SetCamera(nullptr);
     TheServerWorld()->Teardown();
     TheClientWorld()->Teardown();
@@ -806,7 +789,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
         mfc::CString settings = StartFolder() + "config\\ai.reg";
         g_logicSettings.Load(settings);
     }
-    OptionsLoadAt(options, nullptr, RegistryRoot());
+    options->LoadFromRegistry(RegistryRoot());
     const gamecrt::NewHandler previousHandler =
         libcrt::SetNewHandler(ei::Code<gamecrt::NewHandler>(0x00455A30));
     TheClientWorld()->Setup();
@@ -836,7 +819,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     std::uintptr_t reusedSlot = CreateRenderer();
     if (options->audio_) reusedSlot = OpenSound();
 
-    PlayMoviesOriginal("Start", 1, 1, 1, 1);
+    PlayMovies("Start", true, true, 1, 1);
     g_loadingMovieName = "Progres.bik";
     ShowLoadingMovie(0);
     CloseLoadingMovie();
@@ -847,7 +830,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     // original; only the low byte is a value (the shapes' flag: no device named).
     SetUpCursors(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
                  g_deviceNamed == 0);
-    InterfaceCreateAt(TheInterface(), nullptr, TheRenderDevice());
+    TheInterface()->Create(TheRenderDevice());
     TheMapDatabase()->LoadAll();
     StartFirstMap();
     TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);

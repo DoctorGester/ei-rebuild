@@ -6,7 +6,6 @@
 
 #include "combat.h"
 #include "core_streams.h"
-#include "originals_engine.h"
 #include "resource.h"
 #include "world_data.h"
 
@@ -17,7 +16,6 @@
 #include "lib/mfc_slots.h"
 #include "lib/static_object.h"
 #include "game_data.h"
-#include "originals_library.h"
 
 #include <cstring>
 
@@ -47,14 +45,14 @@ void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
     pool->vtable = mfc::impl::StaticListClass::Vtable();
     pool->RemoveAll();
 }
-EI_REPLACE(0x005CDBA0, AIEventPoolDestruct);
+EI_REWRITTEN(0x005CDBA0, AIEventPoolDestruct);
 
 namespace {
 // The pool's static initialiser (0x400 nodes a block, 005CDAD0) and the exit function it registers.
 void __cdecl DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }   // 005C8FB0
 void __cdecl ConstructEventPool() {   // 005C8F90
     mfc::impl::ConstructListHeader<mfc::impl::StaticListClass>(&*g_eventPool, 0x400);
-    GameAtExit(DestroyEventPool);
+    libcrt::AtExit(DestroyEventPool);
 }
 } // namespace
 EI_REPLACE(0x005C8F90, ConstructEventPool);
@@ -90,7 +88,7 @@ void AIEventTable::Advance(int now) {
         slots[tick & kWheelMask][side] = nullptr;
     }
 }
-EI_REPLACE_METHOD(0x005C9530, AIEventTable::Advance);
+EI_REWRITTEN(0x005C9530, AIEventTable::Advance);
 
 void AIEventTable::ForgetUnit(CUnitServer* controller) {
     CUnit* unit = controller->unit;
@@ -145,7 +143,7 @@ void AIEventTable::Load(CStream* stream) {
         slot = event;
     }
 }
-EI_REPLACE_METHOD(0x005CAE30, AIEventTable::Load);
+EI_REWRITTEN(0x005CAE30, AIEventTable::Load);
 
 void AIEventTable::Save(CStream* stream) {
     for (int y = 0; y < height; ++y) {
@@ -170,7 +168,7 @@ void AIEventTable::Save(CStream* stream) {
     const char end = 0;
     stream->Write(&end, 1);
 }
-EI_REPLACE_METHOD(0x005CAFA0, AIEventTable::Save);
+EI_REWRITTEN(0x005CAFA0, AIEventTable::Save);
 
 // ---- Setup for a map (005C9310, A-W14) --------------------------------------------------------------
 
@@ -212,7 +210,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     {
         mfc::CString folder(TheTextFolder());
         mfc::CString path = folder + kAiInfoArchive;
-        failed = MappedResourceOpenOriginal(archive, nullptr, path, 0) == 0;
+        failed = archive->CMappedResource::OpenResourceImpl(path, 0) == 0;
     }
     void* data = nullptr;
     const char* error = kCantReadAiInfo;
@@ -222,12 +220,12 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     }
     if (!data) {
         const int result = game::FatalError(error);
-        MappedResourceDestroyOriginal(archive);
+        archive->CMappedResource::Destroy();
         return result;
     }
     std::memcpy(g_normalTable, data, kNormalTableSize);
     archive->CMappedResource::CloseFileImpl(data);
-    MappedResourceDestroyOriginal(archive);
+    archive->CMappedResource::Destroy();
     return 1;
 }
-EI_REPLACE_METHOD(0x005C9310, AIEventTable::Setup);
+EI_REWRITTEN(0x005C9310, AIEventTable::Setup);

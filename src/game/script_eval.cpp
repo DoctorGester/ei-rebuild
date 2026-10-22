@@ -31,11 +31,6 @@
 #include "lib/nan_audit.h"
 #include "lib/stlp.h"
 #include "random.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_engine.h"
-#include "originals_units.h"
-#include "originals_script.h"
 #include "game_lists.h"
 #include "game_singletons.h"
 
@@ -113,7 +108,6 @@ net::ServerSession* ActiveServer() {
     return nullptr;
 }
 
-
 WorldAlarm& Alarm(int index) { return TheServerWorld()->alarms_[index]; }
 
 int WorldTick() { return TheServerWorld()->tick_; }
@@ -133,9 +127,6 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
 }
 
 } // namespace
-
-// ---- CScript forwarders -------------------------------------------------------------------------
-
 
 // ---- SSCCmd -------------------------------------------------------------------------------------
 
@@ -172,7 +163,7 @@ void SSCCmd::CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCa
         game::FatalError("SSCCmd::CalcParameters, unknown function parameter type");
     }
 }
-EI_REPLACE_METHOD(0x004B4030, SSCCmd::CalcParameters);
+EI_REWRITTEN(0x004B4030, SSCCmd::CalcParameters);
 
 void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     PrepareArguments(script, vars);
@@ -194,7 +185,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = FromBool(f[0] > f[1]);
         return;
     case 0x48:   // IsEqualString
-        *result = FromBool(GameMbscmp(stringArgs.data[0], stringArgs.data[1]) == 0);
+        *result = FromBool(gamecrt::mbscmp(stringArgs.data[0], stringArgs.data[1]) == 0);
         return;
     case 0x49:   // Add
         *result = f[1] + f[0];
@@ -554,7 +545,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
 }
-EI_REPLACE_METHOD(0x004B41E0, SSCCmd::CalcFloat);
+EI_REWRITTEN(0x004B41E0, SSCCmd::CalcFloat);
 
 void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** result) {
     PrepareArguments(script, vars);
@@ -580,7 +571,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
             const PartyMemberArray& members = player->Party()->members_;
             int index = x87::fistp(floatArgs.data[1]);
             if (index >= 0 && index < members.size)
-                o = WorldFindUnit(TheServerWorld(), nullptr, static_cast<int>(members.data[index].unitId));
+                o = static_cast<CWorld*>(TheServerWorld())->FindUnit(static_cast<int>(members.data[index].unitId));
         }
         Store(*result, o);
         return;
@@ -629,8 +620,7 @@ using TempGroupList = mfc::CList<ScriptGroup>;
 
 // The script's temporary groups: AddTail (004C8D80) copies the group into a new node and returns
 // the node. 004C2290: group destructor. 004C1290: group assignment.
-inline void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupDestructOriginal((void*)a0); }
-
+inline void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 // What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's
 // visible list).

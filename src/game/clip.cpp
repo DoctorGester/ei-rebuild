@@ -7,7 +7,6 @@
 #include "ei/x87.h"
 
 #include <cstring>
-#include "originals_library.h"
 #include "game_data.h"
 #include "game_arrays.h"
 #include "lib/mfc_coll.h"
@@ -49,7 +48,7 @@ mfc::CArray<std::uint16_t>& WorkWords() { return *g_workWords; }
 void __cdecl DestroyWorkWords() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_workWords); }   // 0042D900
 void __cdecl ConstructWorkWords() {                                                                        // 0042D8E0
     mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_workWords);
-    GameAtExit(DestroyWorkWords);
+    libcrt::AtExit(DestroyWorkWords);
 }
 
 void Emit(std::uint16_t index) { clip::Buffer()[clip::g_bufferCount++] = index; }

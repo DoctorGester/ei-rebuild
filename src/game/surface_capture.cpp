@@ -20,8 +20,6 @@
 #include <cstring>
 #include <vector>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // The pixel sizes the capture copies; a surface of any other depth gives a bitmap with its bits

@@ -7,7 +7,6 @@
 
 #include "database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
 #include "lib/crt.h"
-#include "originals_engine.h"    // game::FatalError
 #include "record_vectors.h"      // recordvec::SkillLevelVector
 
 #include "ei/hook.h"
@@ -121,7 +120,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x0053A200, UnitDatabase::Load);
+EI_REWRITTEN(0x0053A200, UnitDatabase::Load);
 
 // --- The skill database ---------------------------------------------------------------------------
 
@@ -164,4 +163,4 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00520220, SkillDatabase::Load);
+EI_REWRITTEN(0x00520220, SkillDatabase::Load);

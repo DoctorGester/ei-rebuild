@@ -15,7 +15,6 @@
 #include "lib/crt.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -139,7 +138,7 @@ void IndexFaceCorners(SceneMesh* mesh) {
             const MeshFace& face = FaceAt(mesh, f);
             int index = FindCorner(mesh, face.vertex[k], face.position[k], face.vertex2[k]);
             WordArray& out = mesh->cornerIndices;
-            WordsSetAtGrow(&out, nullptr, out.size, index);
+            out.SetAtGrow(out.size, static_cast<unsigned short>(index));
         }
     }
 }

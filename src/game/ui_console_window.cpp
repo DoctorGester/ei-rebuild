@@ -12,13 +12,9 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 
 #include <cstring>
 #include <string>
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace console {
 
@@ -274,7 +270,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         anchor_ = 0;
         DrawInput();
         AddText((mfc::CString(game::consoletexts::Prompt()) + commands_.data[0]) + game::NewLineText());
-        ExecuteAt(commands_.data[0]);
+        Execute(commands_.data[0]);
         return;
     }
     case 27:   // Escape
@@ -325,7 +321,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
     anchor_ = caret_;
     DrawInput();
 }
-EI_REPLACE_METHOD(0x005E44A0, ConsoleWindow::OnChar);
+EI_REWRITTEN(0x005E44A0, ConsoleWindow::OnChar);
 
 // 005E4800: keeps the scroll position within the lines, then (with a surface and a font) fills
 // the area above the input strip and draws the visible lines bottom up, 15 pixels apart, with a

@@ -4,7 +4,6 @@
 
 #include "../../src/game/class_templates.h"
 #include "../../src/game/map_object_figures.h"
-#include "../../src/game/originals_units.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_ai.h"
 #include "../../src/hook/log.h"

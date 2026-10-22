@@ -76,7 +76,7 @@ static_assert(sizeof(CString) == 4);
 class CFileVirtuals;
 
 // CFile (0x10 bytes): vtable, OS handle, close-on-delete flag, file name. The game calls these
-// methods non-virtually, so the forwarders are plain members.
+// methods non-virtually, so they are plain members.
 class CFile {
 public:
     enum OpenFlags { modeRead = 0 };
@@ -97,7 +97,7 @@ private:
     void* vtable_;
     void* handle_;
     BOOL closeOnDelete_;
-    char* fileName_;    // CString; raw here so the naked forwarders have no members to construct
+    char* fileName_;    // CString; raw here
 };
 static_assert(sizeof(CFile) == 0x10);
 

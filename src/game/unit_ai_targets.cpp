@@ -1,6 +1,7 @@
 // The unit AI's target choice: scoring an attack option against a unit (005CF9A0), whether an
 // option may be used (005CF7F0), choosing the best target (005D0030), and the orders it checks
 // (00545F40, 005CF720, 005CF780), and whether the unit can get at a target (005CF3C0).
+#include "sector_map.h"
 #include "unit_ai.h"
 #include "combat.h"
 
@@ -8,7 +9,6 @@
 #include "ai_scoped_path.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
-#include "originals_ai.h"
 #include "spell.h"
 #include "unit_db.h"
 #include "world.h"
@@ -54,7 +54,8 @@ float PrototypeSize(CUnit* unit) {
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
 std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
-    return ExcessDamageOriginal(option->damage, nullptr, target->ServerController()->protection);
+    return reinterpret_cast<const DamageWords*>(option->damage)
+        ->ExcessOver(reinterpret_cast<const DamageWords*>(target->ServerController()->protection));
 }
 
 // Cases 2 and 3: the damage summed over the group members within the option's radius of the
@@ -142,7 +143,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         float minDistance = static_cast<float>(static_cast<double>(self->Radius()) + targetRadius);
         CWorldServer* server = TheServerWorld();
         // The target is lifted off the sector map so it does not block its own cell.
-        SectorMapRemove(server->Sectors(), nullptr, target);
+        server->Sectors()->Remove(target);
         if (server->AIMap()->FindPath(self, PositionOf(target), &local.path, range, minDistance)) {
             float scale = static_cast<float>(kOne * kHalf);
             point.x = static_cast<float>(scale * local.path.targetX);
@@ -151,7 +152,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         } else {
             point = *PositionOf(self);
         }
-        SectorMapAdd(server->Sectors(), nullptr, target);
+        server->Sectors()->Add(target);
     }
 
     AIOrder order;

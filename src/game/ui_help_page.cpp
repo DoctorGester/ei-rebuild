@@ -2,8 +2,7 @@
 // window shows is rebuilt from the texts for page page_ (see ui.h).
 // Rebirth's WideScreen patches it (a context hook at +574: the pulsing frames of some tutorial
 // messages follow the battle screen's panels to the screen's edges), which this reproduces, so it
-// installs in both launches; our callers keep the forwarder in ui_help_window.cpp (rule 9). Patched callees through their
-// addresses: the surface's text 005FDE20, the sprites' Place 005E6FA0, SetRectangle 005E70E0 and
+// installs in both launches. Rebirth-patched callees: the surface's text 005FDE20, the sprites' Place 005E6FA0, SetRectangle 005E70E0 and
 // SetFrame 005E7D60, the regions' SetRect 005FC9E0. See docs/notes/items_spells.md ("A-H26").
 #include "ui.h"
 #include "game_strings.h"
@@ -20,8 +19,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -87,7 +84,7 @@ void SetRectangle(CUiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int
                          static_cast<float>(rect.right), static_cast<float>(rect.bottom), u0, v0, u1, v1);
 }
 
-void SetRegion(CUiRegion* region, const RECT& rect) { region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom); }
+void SetRegion(CUiRegion* region, const RECT& rect) { region->SetRect(rect.left, rect.top, rect.right, rect.bottom); }
 
 // Rebirth's WideScreen (addon's handler 10023702, a context hook over the first AddSprite of a
 // "#rectangle" line at 00659994): on a message window (message_), the page "<text_>:<page_>" of the
@@ -114,7 +111,7 @@ int TutorialFrameShift(const CHelpWindow* window) {
 
 } // namespace
 
-void CHelpWindow::ShowPageVanilla() {
+void CHelpWindow::ShowPage() {
     pulsing_.ClearWith([](CUiMesh**) {});
     pictures_.ClearWith([](CUiMesh**) {});
     ClearSurfaces();
@@ -186,10 +183,10 @@ void CHelpWindow::ShowPageVanilla() {
     UiSurfaceGetDC(header);
     header->Clear();
     RECT line{0, 8, width, 30};
-    SurfaceDrawText(header, nullptr, lines_.data[page_], &line, 2, kTitleColour, DT_CENTER, 1);
+    header->DrawTextIn(lines_.data[page_], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
     text.Format(kTitleFormat, title_.GetString(), page_ + 1, lines_.size);
-    SurfaceDrawText(header, nullptr, text, &line, 1, kTitleColour, DT_CENTER, 1);
+    header->DrawTextIn(text, &line, 1, kTitleColour, DT_CENTER, 1);
     UiSurfaceReleaseDC(header);
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
@@ -253,7 +250,7 @@ void CHelpWindow::ShowPageVanilla() {
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
                     picture->textureOffsetU_ = static_cast<float>(cellX) * Texel();
                     picture->textureOffsetV_ = static_cast<float>(cellY + kPictureSize) * Texel();
-                    SpritePlaceOriginal(picture, nullptr, static_cast<float>(page.left + 47),
+                    static_cast<CUiMesh*>(picture)->PlaceBody(static_cast<float>(page.left + 47),
                                         static_cast<float>(y + page.top + 95), 3.0f);
                     picture->texture_ = objects_.data[1];
                     pictures_.PushBack(picture);
@@ -313,7 +310,7 @@ void CHelpWindow::ShowPageVanilla() {
     footer->Clear();
     if (page_ > 0) {
         RECT label{0, 5, width / 3, 25};
-        SurfaceDrawText(footer, nullptr, lines_.data[page_ - 1], &label, 0, kTitleColour, DT_CENTER, 1);
+        footer->DrawTextIn(lines_.data[page_ - 1], &label, 0, kTitleColour, DT_CENTER, 1);
         regions_.data[0]->SetTip(0x7595, 1, 0);
     }
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
@@ -322,11 +319,11 @@ void CHelpWindow::ShowPageVanilla() {
         hint += kSpace;
         hint += key;
         RECT label{width / 3, 5, 2 * width / 3, 25};
-        SurfaceDrawText(footer, nullptr, hint, &label, 0, kTitleColour, DT_CENTER, 1);
+        footer->DrawTextIn(hint, &label, 0, kTitleColour, DT_CENTER, 1);
     }
     if (page_ < lines_.size - 1) {
         RECT label{2 * width / 3, 5, width, 25};
-        SurfaceDrawText(footer, nullptr, lines_.data[page_ + 1], &label, 0, kTitleColour, DT_CENTER, 1);
+        footer->DrawTextIn(lines_.data[page_ + 1], &label, 0, kTitleColour, DT_CENTER, 1);
         regions_.data[2]->SetTip(0x7596, 1, 0);
     }
     UiSurfaceReleaseDC(footer);
@@ -334,4 +331,4 @@ void CHelpWindow::ShowPageVanilla() {
     entries.ClearWith([](PageEntry* entry) { entry->~PageEntry(); });
     stlp::deallocate(entries.head, sizeof(stlp::list<PageEntry>::Node));
 }
-EI_REPLACE_METHOD(0x00659420, CHelpWindow::ShowPageVanilla);
+EI_REWRITTEN(0x00659420, CHelpWindow::ShowPage);

@@ -12,7 +12,6 @@
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
 #include "game_data.h"
 
 #include <cstring>

@@ -15,7 +15,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
 
 #include <new>
 
@@ -104,7 +103,7 @@ CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
         slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(half, kNoId));
     return object;
 }
-EI_REPLACE_METHOD(0x00512A30, CMapObjectManager::CreateMapObject);
+EI_REWRITTEN(0x00512A30, CMapObjectManager::CreateMapObject);
 
 FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, std::uint32_t key) {
     auto* database = static_cast<AnimationDatabase*>(GetFile(*figure + ".adb", nullptr));
@@ -144,7 +143,7 @@ int CMapObjectManager::GiveDefaults(CMapObject* object) {
     object->prototypeId_ = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x00513630, CMapObjectManager::GiveDefaults);
+EI_REWRITTEN(0x00513630, CMapObjectManager::GiveDefaults);
 
 int CMapObjectManager::PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
                                           mfc::CString* secondWeapon, mfc::CStringArray* spells) {

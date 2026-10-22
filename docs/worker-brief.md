@@ -34,12 +34,13 @@ Rules:
   for one scenario (the board shows it); don't call tools/run_all.py directly, it skips the queue.
   The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`);
   `--no-hooks` runs game.exe, always the original game (golden recording; with `EI_VECTORS=1`, vector recording:
-  docs/notes/standalone-verification.md). Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
+  docs/notes/standalone-verification.md). Run the `--no-hooks` suite only when the harness changes (tests/verify,
+  src/hook, or code the harness calls in game.exe runs); never with `--fresh` unless the ticket says so. Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
   E:\workspace\ei\run`, and `cmd //c rmdir run` before you finish (never delete through the junction).
 - Plain C++ float maths (rule 7).
 - Say how each rewrite is checked (rewrite guide, "Verification"): which scenario with a golden
   reaches it, or which function vectors replay it.
-- No new `EI_ORIGINAL` forwarders: call functions by name (rewrite guide rule 5).
+- No `EI_ORIGINAL` forwarders: call functions by name (rewrite guide rule 5).
 - Write clean code (rewrite guide, "Clean code"): members not offsets, real virtual functions (no
   hand-built tables), named globals; build.cmd's check_cleanup fails when a file's counts go up.
 - Shared headers: small additive changes only (adding members a port needs is fine).

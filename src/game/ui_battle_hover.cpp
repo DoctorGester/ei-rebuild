@@ -14,13 +14,9 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
-#include "originals_ui.h"
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"

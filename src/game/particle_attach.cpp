@@ -59,7 +59,7 @@ Vector3* CParticleSource::PartPoint(Vector3* out, CObject3D* object, const char*
     out->z = object->localPosition_.z + object->above.z;
     return out;
 }
-EI_REPLACE_METHOD(0x00484B40, CParticleSource::PartPoint);
+EI_REWRITTEN(0x00484B40, CParticleSource::PartPoint);
 
 Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
     if (!object) {
@@ -147,7 +147,7 @@ void CParticleSource::Attach(CObject3D* object) {
     AttachmentPoint(&point, attachedTo);
     origin = point;
 }
-EI_REPLACE_METHOD(0x004849F0, CParticleSource::Attach);
+EI_REWRITTEN(0x004849F0, CParticleSource::Attach);
 
 void CParticleSource::StopAndClear() {
     ReleaseAllParticles();

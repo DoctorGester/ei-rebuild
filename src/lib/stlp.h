@@ -23,15 +23,11 @@
 namespace stlp {
 
 // allocate / deallocate: stlp_alloc.h.
-// 0079B228: the node allocator's free list of 12-byte nodes (list nodes), which some code pushes
-// to inline.
-inline void*& SmallNodeFreeList() { return ei::GameData<void*>(0x0079B228); }
-// deallocate(node, 12) as inlined: the node pushed on that free list, its first word (`next`) the
-// link.
+// deallocate(node, 12) as the original inlines it: the node back on the node allocator's free list of 12-byte nodes
+// (list nodes).
 template <class Node>
 void PushSmallNode(Node* node) {
-    node->next = static_cast<Node*>(SmallNodeFreeList());
-    SmallNodeFreeList() = node;
+    deallocate(node, 12);
 }
 
 // basic_string<char>: three pointers, no small-string buffer. 12 bytes.

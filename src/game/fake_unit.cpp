@@ -10,8 +10,6 @@
 #include "lib/mfc.h"
 #include "figure_mesh.h"
 #include "link_figure.h"   // FigureMeshDrawer
-#include "originals_engine.h"
-#include "originals_units.h"
 #include "record_arrays.h"
 #include "scene_loader.h"
 #include "world.h"
@@ -116,13 +114,13 @@ namespace fakeunit {
 
 // 004466D0: the constructor, in place.
 void* __fastcall FakeUnitConstruct(FakeUnitScene* self) { return new (self) FakeUnitScene(); }
-EI_REPLACE(0x004466D0, FakeUnitConstruct);
+EI_REWRITTEN(0x004466D0, FakeUnitConstruct);
 
 // 00446910: the destructor.
 void __fastcall FakeUnitDestruct(FakeUnitScene* self) { self->FakeUnitScene::~FakeUnitScene(); }
-EI_REPLACE(0x00446910, FakeUnitDestruct);
+EI_REWRITTEN(0x00446910, FakeUnitDestruct);
 
-EI_REPLACE_METHOD(0x004468F0, FakeUnitScene::DeleteScalar);
+EI_REWRITTEN(0x004468F0, FakeUnitScene::DeleteScalar);
 
 // The slots of game.exe's 0073BFE8 (retired) are the compiled table's; nothing reaches their
 // addresses (tools/registration_readers.py).

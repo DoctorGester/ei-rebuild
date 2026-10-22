@@ -6,29 +6,22 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
-#include "originals_ai.h"
-#include "originals_units.h"
-#include "originals_core.h"
 #include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 #include "game_singletons.h"
+#include "sector_map.h"
 
 #include <cstring>
 
-// --- Forwarders to original code not rewritten yet -----------------------------------------------
-
+// --- Helpers -------------------------------------------------------------------------------------
 
 namespace {
-// MFC ConstructElements<PathCell> (zero-fills `count` elements).
-// The direction a quaternion faces (the orientation at CEngineObject + 0x34).
 
 // Local searches at CAIMap + 0x2594 / + 0x2614 (forward and backward), the path builder and the
 // long-range planner.
 bool BeginLocalSearch(LocalSearch* search, CUnit* unit, int x0, int y0, int x1, int y1) {
     return search->Begin(unit, x0, y0, x1, y1);
 }
-// 005C46C0 on CAIMap + 0x22CC: smooths the start of the path; the result goes to AIPath::smoothing.
-__declspec(naked) int __fastcall SmoothPath(PathSmoother*, void*, CUnit*, CAIMap*, PathCellList*, int, std::uint32_t)
-    EI_ORIGINAL(0x005C46C0)
 
 // The sector map through its original addresses (rewritten in sector_map.cpp), so the verify
 // build's wrappers see these calls.
@@ -157,7 +150,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
     int count = CurrentWorldTick();
     Vector3 facing;
-    QuaternionAxisY(&unit->localRotation_, nullptr, &facing);
+    unit->localRotation_.AxisY(&facing);
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
     path->Start(&PositionOf(unit), &backwards, count - 1);
 
@@ -206,9 +199,9 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     std::memcpy(&path->goal, target, sizeof(goal));
     if (LengthSquared2DUnrounded(target->x, target->y) > 100000000.0) return false;   // NaN goes on
 
-    SectorMapRemove(SectorMap(), nullptr, unit);
+    SectorMap()->Remove(unit);
     if (!SnapTarget(unit, &goal, false, minDistance)) {
-        SectorMapAdd(SectorMap(), nullptr, unit);
+        SectorMap()->Add(unit);
         return false;
     }
     std::memcpy(&path->targetY, &goal.y, 4);
@@ -220,7 +213,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     float ddx = fx - goal.x, ddy = fy - goal.y;
     EI_NAN_AUDIT(ddy, ddx);
     if (LengthSquared2DUnrounded(ddy, ddx) < 0.001f) {
-        SectorMapAdd(SectorMap(), nullptr, unit);
+        SectorMap()->Add(unit);
         return false;
     }
     int tx = x87::fistp(goal.x - 0.5f);
@@ -272,7 +265,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
             // Far, or the local search failed: snap to a cell in the unit's region and plan.
             std::memcpy(&goal, target, sizeof(goal));
             if (!SnapTarget(unit, &goal, true, minDistance)) {
-                SectorMapAdd(SectorMap(), nullptr, unit);
+                SectorMap()->Add(unit);
                 return false;
             }
             int gx = x87::fistp(goal.x - 0.5f);
@@ -292,14 +285,14 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
             } else {
                 int flag = path->flag6E || path->flag6F ? 1 : 0;
                 int rangeCells = WorldToCell(range);
-                found = PlanPath(this, nullptr, unit, ux, uy, gx, gy, path, flag, rangeCells);
+                found = PlanLongPath(unit, ux, uy, gx, gy, path, flag, rangeCells);
                 if (!found) goto done;
             }
         }
 
         // Smooth the start of the path, entering from the side the unit faces.
         Vector3 facing;
-        QuaternionAxisY(&unit->localRotation_, nullptr, &facing);
+        unit->localRotation_.AxisY(&facing);
         float bx = -facing.x, by = -facing.y;
         float px;
         std::memcpy(&px, &path->targetX, 4);
@@ -308,20 +301,17 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         float b = Abs(px - static_cast<float>(x87::fistp(px)));
         float b2 = b + b, a2 = a + a;
         float fraction = b2 < a2 ? b2 : a2;   // a and b are the same value (see above)
-        std::uint32_t fractionBits;
-        std::memcpy(&fractionBits, &fraction, 4);
         int octant = x87::fistp(static_cast<float>(x87::fpatan(by, bx) * 1.273239605931458));
         int direction = 6 - octant;
         if (direction < 0) direction += static_cast<int>((static_cast<unsigned>(7 - direction) >> 3) * 8);
         if (direction > 7) direction -= static_cast<int>((static_cast<unsigned>(direction) >> 3) * 8);
-        path->smoothing = SmoothPath(&smoother, nullptr, unit, this, &pathCells,
-                                     direction + 1, fractionBits);
+        path->smoothing = smoother.Smooth(unit, this, &pathCells, direction + 1, fraction);   // 005C46C0
         if (!found) goto done;
         AdvancePath(unit, path);
     }
 
 done:
-    SectorMapAdd(SectorMap(), nullptr, unit);
+    SectorMap()->Add(unit);
     if (!found) path->failed = true;
     path->flag6F = false;
     return found;

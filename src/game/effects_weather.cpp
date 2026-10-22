@@ -12,11 +12,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/stlp_hash.h"
-#include "originals_effects.h"
-#include "originals_engine.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "lib/mfc_coll.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -268,7 +264,7 @@ int CVisibilityFog::UpdateCells() {
     if (!(g_deadCellsGuard & 1)) {
         g_deadCellsGuard |= 1;
         dead.ConstructEmpty();   // 004E2BA0
-        GameAtExit(DestroyDeadCells);
+        libcrt::AtExit(DestroyDeadCells);
     }
     dead.Finish() = dead.Start();
     World();   // called and ignored, as in the original
@@ -296,7 +292,7 @@ int CVisibilityFog::UpdateCells() {
     }
     return (refCount_ > 1 || cells.Size() != 0) ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x004E1AB0, CVisibilityFog::UpdateCells);
+EI_REWRITTEN(0x004E1AB0, CVisibilityFog::UpdateCells);
 
 // Marks the cells of the visible squares (adding new ones, transparent, at a jittered point on
 // the ground) and clears the mark on all others.

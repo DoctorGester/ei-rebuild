@@ -102,9 +102,9 @@ EI_REWRITTEN(0x005A7050, FigureClientSpecificClassId);
 int __fastcall UiObjectCreate(CEngineObject*) { return 1; }
 const char* __fastcall UiObjectClassName(CEngineObject*) { return kUiObjectName; }
 int __fastcall UiObjectClassId(CEngineObject*) { return kUiObjectId; }
-EI_REPLACE(0x00579560, UiObjectCreate);
-EI_REPLACE(0x00579580, UiObjectClassName);
-EI_REPLACE(0x00579590, UiObjectClassId);
+EI_REWRITTEN(0x00579560, UiObjectCreate);
+EI_REWRITTEN(0x00579580, UiObjectClassName);
+EI_REWRITTEN(0x00579590, UiObjectClassId);
 
 EI_REWRITTEN(0x0055F3B0, CItemManager::GetFolderName);
 

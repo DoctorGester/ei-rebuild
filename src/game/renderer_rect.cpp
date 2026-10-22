@@ -11,7 +11,6 @@
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "render/render_state.h"
-#include "originals_render.h"
 #include "game_singletons.h"
 
 #include <cstdint>

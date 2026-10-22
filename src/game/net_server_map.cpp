@@ -8,10 +8,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "ui.h"
 #include "world.h"
 #include "world_data.h"
@@ -71,7 +67,7 @@ void ServerSession::SetMap(const stlp::string* name) {
 
     GameFlow* world = TheGameFlow();
     world->RegisterQuests(name->data());
-    WorldPrepareMap(world, nullptr, name->data());
+    static_cast<GameFlow*>(world)->SetNetworkZone(name->data());
     {
         mfc::CString title(mfc::CString::kUnset), text(mfc::CString::kUnset);   // constructed by the calls
         const char* mapTitle = *SessionMapNameInto(&title);
@@ -138,7 +134,7 @@ void ServerSession::QueueMapList() {
             queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));   // 00427D50
             RefPtrClear(&ref);   // 00421360
         }
-        FlowLoadQuestsOriginal(zone->data());
+        LoadZoneQuests(zone->data());
     }
     for (stlp::string* zone = zones.begin(); zone != zones.end(); ++zone) zone->~string();
     NamesFree(zones.begin(), static_cast<std::size_t>(zones.EndOfStorage() - zones.begin()));

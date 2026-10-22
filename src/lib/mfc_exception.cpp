@@ -8,21 +8,26 @@
 #include "mfc_resource.h"
 #include "mfc_runtime_class.h"
 #include "mfc_window.h"
+#include "static_object.h"
 #include "game/game_data.h"
 
 #include <new>
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace mfc::impl {
 
 namespace {
 
-// _simpleNotSupportedException (a static CNotSupportedException).
-void* SimpleNotSupportedException() { return ei::GamePointer<void>(0x007C8D50); }
-// _simpleMemoryException and _simpleResourceException (static, not auto-deleted).
-void* SimpleMemoryException() { return ei::GamePointer<void>(0x007C8DE8); }
-void* SimpleResourceException() { return ei::GamePointer<void>(0x007C8C58); }
+// The static exceptions MFC throws by pointer, never deleted (_simpleResourceException, _simpleNotSupportedException,
+// _simpleMemoryException; CUserException's is mfc_static_objects.h's): zero at the start, each built by its static
+// initialiser in the list's order and destroyed by the exit function it registers (both ported on the name below and
+// registered at their addresses; docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<CSimpleException> g_simpleResourceException = /*007C8C58*/ {};
+constinit lib::StaticObject<CSimpleException> g_simpleNotSupportedException = /*007C8D50*/ {};
+constinit lib::StaticObject<CSimpleException> g_simpleMemoryException = /*007C8DE8*/ {};
+
+CException* AsException(lib::StaticObject<CSimpleException>& object) {
+    return reinterpret_cast<CException*>(&object.Get());
+}
 
 mfc::CObjectVirtuals* Virtuals(CException* exception) { return reinterpret_cast<mfc::CObjectVirtuals*>(exception); }
 CExceptionVirtuals* Slots(CException* exception) { return reinterpret_cast<CExceptionVirtuals*>(exception); }
@@ -327,15 +332,15 @@ void __stdcall ThrowArchiveException(int cause, const char* fileName) {
 }
 
 void __stdcall ThrowNotSupported() {
-    throw static_cast<::CNotSupportedException*>(SimpleNotSupportedException());
+    throw reinterpret_cast<::CNotSupportedException*>(&g_simpleNotSupportedException.Get());
 }
 
 void __stdcall ThrowMemoryException() {
-    throw static_cast<::CMemoryException*>(SimpleMemoryException());
+    throw reinterpret_cast<::CMemoryException*>(&g_simpleMemoryException.Get());
 }
 
 void __stdcall ThrowResourceException() {
-    throw static_cast<::CResourceException*>(SimpleResourceException());
+    throw reinterpret_cast<::CResourceException*>(&g_simpleResourceException.Get());
 }
 
 const void* __fastcall FileExceptionRuntimeClass(const void*) { return &kClassCFileException; }
@@ -348,15 +353,15 @@ EI_REPLACE_METHOD(0x006E6916, CSimpleException::ConstructUser);
 EI_REPLACE_METHOD(0x006E6AEA, CSimpleException::ConstructMemory);
 EI_REPLACE_METHOD(0x006E6B37, CSimpleException::ConstructNotSupported);
 EI_REWRITTEN(0x00702069, DeleteException);
-EI_REPLACE_METHOD(0x0070209C, CException::ReportError);
+EI_REWRITTEN(0x0070209C, CException::ReportError);
 EI_REWRITTEN(0x006FE31D, CSimpleException::InitString);
-EI_REPLACE_METHOD(0x006FE346, CSimpleException::GetErrorMessage);
-EI_REPLACE_METHOD(0x00703135, CFileException::GetErrorMessage);
-EI_REPLACE_METHOD(0x0070A795, CArchiveException::GetErrorMessage);
+EI_REWRITTEN(0x006FE346, CSimpleException::GetErrorMessage);
+EI_REWRITTEN(0x00703135, CFileException::GetErrorMessage);
+EI_REWRITTEN(0x0070A795, CArchiveException::GetErrorMessage);
 EI_REWRITTEN(0x006E6335, CFileException::Destruct);
-EI_REPLACE_METHOD(0x006E6319, CFileException::DeletingDestructor);
+EI_REWRITTEN(0x006E6319, CFileException::DeletingDestructor);
 EI_REWRITTEN(0x006E6BA1, CArchiveException::Destruct);
-EI_REPLACE_METHOD(0x006E6B85, CArchiveException::DeletingDestructor);
+EI_REWRITTEN(0x006E6B85, CArchiveException::DeletingDestructor);
 EI_REPLACE(0x006E690F, ResourceExceptionDestruct);
 EI_REPLACE(0x006E695C, UserExceptionDestruct);
 EI_REPLACE(0x006E6B30, MemoryExceptionDestruct);
@@ -368,8 +373,35 @@ EI_REWRITTEN(0x0070A835, ThrowArchiveException);
 EI_REWRITTEN(0x006FE3A2, ThrowNotSupported);
 EI_REWRITTEN(0x006FE389, ThrowMemoryException);
 EI_REWRITTEN(0x0070A29E, ThrowResourceException);
-EI_REPLACE(0x0070CF4C, FileExceptionRuntimeClass);
-EI_REPLACE(0x0070CF46, ArchiveExceptionRuntimeClass);
+EI_REWRITTEN(0x0070CF4C, FileExceptionRuntimeClass);
+EI_REWRITTEN(0x0070CF46, ArchiveExceptionRuntimeClass);
+
+namespace {
+void __cdecl DestroySimpleResourceException() { ResourceExceptionDestruct(AsException(g_simpleResourceException)); }   // 0070BF22
+void __cdecl DestroySimpleMemoryException() { MemoryExceptionDestruct(AsException(g_simpleMemoryException)); }         // 0070C1DD
+void __cdecl DestroySimpleNotSupportedException() {                                                                   // 0070C215
+    NotSupportedExceptionDestruct(AsException(g_simpleNotSupportedException));
+}
+void __cdecl ConstructSimpleResourceException() {   // 0070BEFA
+    g_simpleResourceException->ConstructResource(FALSE, kIdsResourceException);
+    libcrt::AtExit(DestroySimpleResourceException);
+}
+void __cdecl ConstructSimpleMemoryException() {     // 0070C1B5
+    g_simpleMemoryException->ConstructMemory(FALSE, kIdsMemoryException);
+    libcrt::AtExit(DestroySimpleMemoryException);
+}
+void __cdecl ConstructSimpleNotSupportedException() {   // 0070C1ED
+    g_simpleNotSupportedException->ConstructNotSupported(FALSE, kIdsNotSupportedException);
+    libcrt::AtExit(DestroySimpleNotSupportedException);
+}
+} // namespace
+
+EI_REPLACE(0x0070BEFA, ConstructSimpleResourceException);
+EI_REPLACE(0x0070C1B5, ConstructSimpleMemoryException);
+EI_REPLACE(0x0070C1ED, ConstructSimpleNotSupportedException);
+EI_REPLACE(0x0070BF22, DestroySimpleResourceException);
+EI_REPLACE(0x0070C1DD, DestroySimpleMemoryException);
+EI_REPLACE(0x0070C215, DestroySimpleNotSupportedException);
 
 } // namespace mfc::impl
 

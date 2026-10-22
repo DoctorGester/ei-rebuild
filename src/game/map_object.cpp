@@ -7,9 +7,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "originals_engine.h"
-#include "originals_units.h"
-#include "originals_library.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
 
@@ -52,7 +49,7 @@ std::uintptr_t CMapObject::MarkChanged(int part) {
     if (world) changeStamp = UpdateCount(world);
     return reinterpret_cast<std::uintptr_t>(world);
 }
-EI_REPLACE_METHOD(0x0050E9F0, CMapObject::MarkChanged);
+EI_REWRITTEN(0x0050E9F0, CMapObject::MarkChanged);
 
 int CMapObject::HasEffect(std::uint32_t type) {
     for (int i = 0; i < effectCount; ++i) {
@@ -61,7 +58,7 @@ int CMapObject::HasEffect(std::uint32_t type) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x0050F630, CMapObject::HasEffect);
+EI_REWRITTEN(0x0050F630, CMapObject::HasEffect);
 
 // --- Per-tick update -------------------------------------------------------------------------
 
@@ -165,7 +162,7 @@ float CMapObject::EffectValue(std::uint32_t type) {
     }
     return std::bit_cast<float>(best);
 }
-EI_REPLACE_METHOD(0x0050F690, CMapObject::EffectValue);
+EI_REWRITTEN(0x0050F690, CMapObject::EffectValue);
 
 // --- Scale -----------------------------------------------------------------------------------
 
@@ -261,7 +258,7 @@ void CMapObject::AttachCompanion(CEngineObject* object) {
         ++companion->refCount_;
     }
 }
-EI_REPLACE_METHOD(0x0050E8F0, CMapObject::AttachCompanion);
+EI_REWRITTEN(0x0050E8F0, CMapObject::AttachCompanion);
 
 namespace {
 constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions slot 19 accepts
@@ -296,7 +293,7 @@ std::uint32_t CMapObject::IsInvisible() { return (flags_ >> 16) & 1; }
 EI_REWRITTEN(0x0050FA10, CMapObject::IsInvisible);
 
 std::uint32_t CMapObject::IsStunned() { return (flags_ >> 18) & 1; }
-EI_REPLACE_METHOD(0x0050FA20, CMapObject::IsStunned);
+EI_REWRITTEN(0x0050FA20, CMapObject::IsStunned);
 
 std::uint32_t CMapObject::Flag20000() { return (flags_ >> 17) & 1; }
 EI_REWRITTEN(0x0050E430, CMapObject::Flag20000);

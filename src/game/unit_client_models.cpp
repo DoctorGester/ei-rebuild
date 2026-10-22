@@ -19,9 +19,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -63,8 +60,6 @@ bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
-
-// Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
 // 00516A80. 3D object: its figure part named `name`, or null.
 // 00539580. SkinLayerArray::SetSize (the 12-byte path records' instantiation).
@@ -285,7 +280,7 @@ void CUnitClientSpecific::UpdateArrow() {
         arrowHidden = 1;
     }
 }
-EI_REPLACE_METHOD(0x00538C20, CUnitClientSpecific::UpdateArrow);
+EI_REWRITTEN(0x00538C20, CUnitClientSpecific::UpdateArrow);
 
 void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,

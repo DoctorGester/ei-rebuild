@@ -35,10 +35,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "record_lifetime.h"
 #include "game_flow_data.h"
 #include "world_glue.h"
@@ -55,10 +51,7 @@
 
 namespace {
 
-
 // The game's folder (the CString 007AF460 that 00578DB0 returns).
-
-
 
 constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
 constexpr unsigned kInfoMagic = 0x111;
@@ -67,20 +60,7 @@ constexpr unsigned kOpenWrite = 0x1001;              // CFile::modeCreate | mode
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
 constexpr int kVisibleRows = 16;
 
-
 // --- Callees not rewritten (thiscall declared __fastcall with the unused EDX) --------------------
-
-// 004800E0 (cdecl): DirectX error report; nonzero to go on.
-// 0057BC30 (thiscall on the game flow): the space a save needs.
-__declspec(naked) int __fastcall SaveSpaceNeeded(void* /*flow*/) EI_ORIGINAL(0x0057BC30)
-// 005E5200 (CCursor::ChangeShape): the cursor's shape (3 busy, 0 normal).
-// 0045E850 (RET 4): CMapDatabase::FindMap, the zone record (+4 its map) named `name`, or null.
-// 006E80D8: atoi.
-// 006FE925: CStringArray's constructor.
-
-// The stream's header (004A5340, RET 8: magic, version) and reads (004A52D0, RET 0xC: true when
-// the magic and version fit, the version kept in +8; 00461190 / 004E5840, RET 4: a string up to
-// a zero into a new CString at `out` / into the CString `out`).
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
 // _Construct(p, x) (00657C60).
@@ -147,14 +127,6 @@ const void* SavePicture(CInterface3D* ui) { return ui->block5C_; }
 
 } // namespace
 
-// --- Forwarders through the original addresses ---------------------------------------------------
-
-__declspec(naked) void CSaveLoadWindow::CallSaveGame() EI_ORIGINAL(0x00655550)
-__declspec(naked) void CSaveLoadWindow::CallShowPicture() EI_ORIGINAL(0x00656E10)
-__declspec(naked) void CSaveLoadWindow::CallFillEntries() EI_ORIGINAL(0x00655D40)
-__declspec(naked) void CSaveLoadWindow::CallDeleteSave() EI_ORIGINAL(0x00655B20)
-
-
 // --- 00656E10 ------------------------------------------------------------------------------------
 
 void CSaveLoadWindow::ShowPicture() {
@@ -194,7 +166,7 @@ void CSaveLoadWindow::ShowPicture() {
     SceneMesh(3)->visible_ = 1;
     SceneMesh(3)->texture_ = objects_.data[1];
 }
-EI_REPLACE_METHOD(0x00656E10, CSaveLoadWindow::ShowPicture);
+EI_REWRITTEN(0x00656E10, CSaveLoadWindow::ShowPicture);
 
 // --- 00653A50 ------------------------------------------------------------------------------------
 
@@ -206,7 +178,6 @@ constexpr const char* kQuickTitle = "save_quick";
 constexpr const char* kAutoEnterTitle = "save_auto_enter";
 constexpr const char* kAutoExitTitle = "save_auto_exit";
 constexpr const char* kPlainFormat = "%s";
-
 
 bool SameFolder(const char* folder, const char* name) {
     return gamecrt::mbsicmp(folder, name) == 0;
@@ -245,7 +216,7 @@ void CSaveLoadWindow::SaveGame() {
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
     if (space != 0.0) {
-        int needed = SaveSpaceNeeded(TheGameFlow());
+        int needed = CurrentSaveSize();   // 0057BC30
         if (static_cast<double>(needed) > space) {
             CMessageBox* memory = gamecrt::operator_new_as<CMessageBox>();
             CUiWindow* box = memory ? memory->Construct(interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(), 0x30000, 1, 1)
@@ -309,7 +280,7 @@ void CSaveLoadWindow::SaveGame() {
     TheCursor()->ChangeShape(0);
     interface_->SetPendingValue(kClosed);
 }
-EI_REPLACE_METHOD(0x00655550, CSaveLoadWindow::SaveGame);
+EI_REWRITTEN(0x00655550, CSaveLoadWindow::SaveGame);
 
 // --- 00655D40 ------------------------------------------------------------------------------------
 
@@ -441,7 +412,7 @@ void CSaveLoadWindow::FillEntries() {
     }
     firstVisible_ = 0;
 }
-EI_REPLACE_METHOD(0x00655D40, CSaveLoadWindow::FillEntries);
+EI_REWRITTEN(0x00655D40, CSaveLoadWindow::FillEntries);
 
 // --- 006570E0 / 006575B0: quick and automatic saves ----------------------------------------------
 
@@ -466,7 +437,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     double space = app::DiskFreeSpace(DataFolderText());
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
-    if (space != 0.0 && static_cast<double>(SaveSpaceNeeded(TheGameFlow())) > space) return;
+    if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
     if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
@@ -517,7 +488,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     }
     TheCursor()->ChangeShape(0);
 }
-EI_REPLACE(0x006570E0, QuickSave);
+EI_REWRITTEN(0x006570E0, QuickSave);
 
 void __fastcall QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
@@ -529,7 +500,7 @@ void __fastcall QuickLoad(const char* slot) {
     GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
 }
-EI_REPLACE(0x006575B0, QuickLoad);
+EI_REWRITTEN(0x006575B0, QuickLoad);
 
 // --- Entry titles, OK / Delete / load / delete (A-H14) ----------------------------------------------
 
@@ -616,7 +587,7 @@ void CSaveLoadWindow::Confirm() {
     }
     interface_->PlaySound(kSoundOk, 0);
     if (selected_ == 0) {
-        CallSaveGame();
+        SaveGame();
         return;
     }
     Ask(interface_, "overwrite", "overwrite_msg", kAskOverwrite);
@@ -656,11 +627,11 @@ void CSaveLoadWindow::DeleteSave() {
     }
     find.Close();
     gameapi::RemoveDirectoryA(folder);
-    CallFillEntries();
+    FillEntries();
     int count = EntryCount();
     if (static_cast<unsigned>(selected_) >= static_cast<unsigned>(count)) selected_ = count - 1;
     TakeSelectedTitle();
-    RefreshList();
-    CallShowPicture();
+    RefreshListVanilla();
+    ShowPicture();
 }
-EI_REPLACE_METHOD(0x00655B20, CSaveLoadWindow::DeleteSave);
+EI_REWRITTEN(0x00655B20, CSaveLoadWindow::DeleteSave);

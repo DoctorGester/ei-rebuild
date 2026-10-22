@@ -189,13 +189,13 @@ void CParty::RemoveQuestItems() {
         if (item->GetClassId() == kQuestItemClassId) RemoveItem(item, 1);
     }
 }
-EI_REPLACE_METHOD(0x00661FB0, CParty::RemoveQuestItems);
+EI_REWRITTEN(0x00661FB0, CParty::RemoveQuestItems);
 
 void CParty::ReleaseAllItems() {
     for (int i = 0; i < items_.size; ++i) items_.data[i]->Release();
     items_.SetSize(0, -1);
 }
-EI_REPLACE_METHOD(0x00661FE0, CParty::ReleaseAllItems);
+EI_REWRITTEN(0x00661FE0, CParty::ReleaseAllItems);
 
 // --- The party unit records' item lists ---------------------------------------------------------
 

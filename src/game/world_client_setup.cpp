@@ -6,9 +6,7 @@
 
 #include "model.h"
 #include "game_strings.h"
-#include "originals_render.h"
 #include "sky_object.h"
-#include "originals_ui.h"
 #include "texture.h"
 #include "ui_flying_hit_points.h"
 #include "unit_db.h"
@@ -16,7 +14,6 @@
 #include "console.h"
 #include "core_maths.h"
 #include "ini_file.h"
-#include "originals_library.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -46,9 +43,6 @@ UnitDatabase* Units() { return &unitdb::Database(); }
 // Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the
 // figure loader's constructor (004F68C0, RET 8, returns this; Rebirth-patched, its vanilla body is
 // in link_loader_create.cpp).
-__declspec(naked) CLinkFigureLoader* __fastcall ConstructFigureLoader(CLinkFigureLoader*, void*, void* /*renderer*/,
-                                                                      const stlp::string* /*resource*/)
-    EI_ORIGINAL(0x004F68C0)
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The
@@ -103,7 +97,7 @@ int CWorldClient::LoadLights(const char* file) {
     values.SetSize(0, -1);
     return 1;
 }
-EI_REPLACE_METHOD(0x00563930, CWorldClient::LoadLights);
+EI_REWRITTEN(0x00563930, CWorldClient::LoadLights);
 
 void CWorldClient::SetUpGraphics(void* device) {
     TextureManager()->SetDevice(static_cast<CTextureDevice*>(device));
@@ -121,7 +115,7 @@ void CWorldClient::SetUpGraphics(void* device) {
     auto* loader = gamecrt::operator_new_as<CLinkFigureLoader>();
     if (loader) {
         stlp::string resource(FiguresResource());
-        loader = ConstructFigureLoader(loader, nullptr, TheRenderDevice(), &resource);
+        loader = loader->Construct(TheRenderDevice(), &resource);
     }
     CLinkFigureLoader* old = figureLoader_;
     figureLoader_ = loader;

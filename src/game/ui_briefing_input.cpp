@@ -19,8 +19,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -68,7 +66,7 @@ const char* NoZone() { return "none"; }
 const char* ZoneVariablePrefix() { return "z."; }
 
 // The server's unit with the id of a client object, or null.
-CUnit* ServerUnit(int id) { return WorldFindUnit(TheServerWorld(), nullptr, id); }
+CUnit* ServerUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
@@ -178,12 +176,12 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (node == personTexts_.end()) return;
         CUiSurface* label = surfaces_.data[1];
         UiSurfaceGetDC(label);
-        SurfaceClearOriginal(label);
+        static_cast<CUiSurface*>(label)->Clear();
         RECT rect{0, 0, 0, 0};
-        SurfaceDrawText(label, nullptr, node->second, &rect, kTextFormat, kLabelColour, 1, 1);
+        label->DrawTextIn(node->second, &rect, kTextFormat, kLabelColour, 1, 1);
         UiSurfaceReleaseDC(label);
         POINT at{x, y};
-        interface_->CallScalePointFromScreen(&at);
+        interface_->ScalePointFromScreenEntry(&at);
         label->MoveTo(at.x - kLabelOffsetX, at.y - kLabelOffsetY);
         label->Freeze(1, 0);
         return;
@@ -238,7 +236,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
         if (unit && !(unit->flags_ & kUnitBlocked)) unit->ServerController()->Brain()->StopAction();
     }
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
-        AddRegion()->CallSetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
+        AddRegion()->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
     topics_.SetAtGrow(topics_.size, GoodbyeTopic());
     topicBar_->SetMaximum(topics_.size > kTopicRows ? topics_.size - kTopicRows : 0);
     topicBar_->CallSetPosition(0);
@@ -255,7 +253,7 @@ void CBriefingScreen::DrawTopics() {
     TheTextManager()->GetString(TopicPrefixKey(), &prefix);
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    SurfaceClearOriginal(surface);
+    static_cast<CUiSurface*>(surface)->Clear();
     int row = topicTop_;
     for (int bottom = kRowTextFirstBottom; bottom < kRowTextEnd; bottom += kRowHeight, ++row) {
         if (row >= topics_.size) break;
@@ -266,15 +264,15 @@ void CBriefingScreen::DrawTopics() {
         mfc::CString text = prefix;
         text += TopicSeparator();
         text += title;
-        SurfaceDrawText(surface, nullptr, text, &rect, kTextFormat, colour, 0, 1);
+        surface->DrawTextIn(text, &rect, kTextFormat, colour, 0, 1);
     }
     UiSurfaceReleaseDC(surface);
 }
 
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x006030F0, InputForward<&CBriefingScreen::OnLeftDown>::Call);
-EI_REPLACE_METHOD(0x00603360, InputForward<&CBriefingScreen::OnLeftDouble>::Call);
-EI_REPLACE_METHOD(0x00603D00, InputForward<&CBriefingScreen::OnMouseMove>::Call);
+EI_REWRITTEN(0x006030F0, InputForward<&CBriefingScreen::OnLeftDown>::Call);
+EI_REWRITTEN(0x00603360, InputForward<&CBriefingScreen::OnLeftDouble>::Call);
+EI_REWRITTEN(0x00603D00, InputForward<&CBriefingScreen::OnMouseMove>::Call);
 EI_REWRITTEN(0x00608B60, CBriefingScreen::OpenTopics);
 EI_REWRITTEN(0x006071E0, CBriefingScreen::DrawTopics);

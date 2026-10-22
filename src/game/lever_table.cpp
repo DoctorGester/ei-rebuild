@@ -10,7 +10,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -73,11 +72,9 @@ void __fastcall LeverTableDestruct(Table* self) {
         gamecrt::operator_delete(storage);
         return;
     }
-    void** freeList = ei::GamePointer<void*>(0x0079B224) + ((bytes - 1) >> 3);
-    *reinterpret_cast<void**>(storage) = *freeList;
-    *freeList = storage;
+    libcrt::NodeDeallocate(storage, bytes);
 }
-EI_REPLACE(0x00463120, LeverTableDestruct);
+EI_REWRITTEN(0x00463120, LeverTableDestruct);
 
 } // namespace levertable
 
@@ -89,7 +86,7 @@ constinit lib::StaticObject<LeverRecordTable> g_leverTable = /*0079C1A0*/ {};
 namespace {
 void __cdecl ConstructLeverTable() {   // 004630F0
     g_leverTable->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x00463110));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x00463110));
 }
 void __cdecl DestroyLeverTable() {   // 00463110
     levertable::LeverTableDestruct(reinterpret_cast<levertable::Table*>(&g_leverTable.Get()));

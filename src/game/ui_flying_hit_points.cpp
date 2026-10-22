@@ -18,8 +18,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
 
 namespace {
 using Node = stlp::list<FlyingHitPoint>::Node;

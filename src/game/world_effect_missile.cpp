@@ -12,9 +12,6 @@
 #include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "originals_engine.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "unit.h"
 #include "world.h"
 
@@ -184,7 +181,7 @@ int CEffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster_, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster_ != 0) {
-        auto* caster = WorldFindUnit(ObjectWorld(this), nullptr, casterId_);
+        auto* caster = static_cast<CWorld*>(ObjectWorld(this))->FindUnit(casterId_);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);
@@ -289,7 +286,7 @@ int CEffectArrowFigure::RunTick() {
     if (arrived_ != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
         CMapObject* target = world->ObjectWithId(targetId_);
-        CEngineObject* caster = WorldFindUnit(world, nullptr, casterId_);
+        CEngineObject* caster = static_cast<CWorld*>(world)->FindUnit(casterId_);
         if (target != nullptr) target->ReceiveHit(&hit_, caster, caster);
     }
     return arrived_ == 0 ? 1 : 0;
@@ -339,7 +336,7 @@ int CEffectArrowFigure::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster_, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster_ != 0) {
-        auto* caster = WorldFindUnit(ObjectWorld(this), nullptr, casterId_);
+        auto* caster = static_cast<CWorld*>(ObjectWorld(this))->FindUnit(casterId_);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);

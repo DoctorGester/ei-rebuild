@@ -8,8 +8,6 @@
 
 #include "console.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
 #include "library_trees.h"
 #include "game_singletons.h"
 
@@ -32,7 +30,7 @@ void LoadPersonTexts(PersonTextMap* map) {
     mfc::CString line;
     texts->ListKeys(&keys, PersonPattern());
     for (int i = 0; i < keys.size; ++i) {
-        if (!TextsOpenSection(texts, nullptr, keys[i])) continue;
+        if (!texts->CTextManager::Open(keys[i])) continue;
         texts->ReadLine(&line, 1);
         int key;
         {

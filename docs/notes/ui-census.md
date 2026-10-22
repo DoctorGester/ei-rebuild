@@ -51,7 +51,7 @@ Counts are vanilla / Rebirth.
 | CMpConnectScreen (00741CD0) #0, the connect list | 576 / 480 + 32 addon | 18 / 16 | LineTo 18 / 16 | no | 0061D780 DrawListVanilla (Rebirth's patched body, and addon+134D2 through DrawTextIn); #1: 0061B2C0 Create, 4 texts |
 | CChatOverlay (007400DC) #0, the typed line | 30 | 15 | LineTo 15 (the caret) | no | 005E3700 DrawTyped; measured with TextWidth on `GetDC(game window)` |
 | chat line surface ("unowned", 494x61) | 6 | 1 | | no | 005E2A30 CChatOverlay::AddLine (DrawPiece); never added to a window |
-| help (00740E28) #0 / #1 / #2 | 24, 346, 26 | 6, 10, 6 | | no | 00659420 ShowPageVanilla (DrawLine, DrawWrappedText; 2,002 TextExtent calls); Rebirth patches it, so its body runs |
+| help (00740E28) #0 / #1 / #2 | 24, 346, 26 | 6, 10, 6 | | no | 00659420 ShowPage (DrawLine, DrawWrappedText; 2,002 TextExtent calls); Rebirth patches it, so its body runs |
 | fps (336x64, Rebirth 252x64) | 24 | 6 | | no (every 400 ms) | 005F5320 DrawOverlays |
 
 **GDI calls never made:** FillRect, InvertRect, DrawFocusRect, DrawEdge, DrawIconEx, TextOut, ExtTextOut with text, TabbedTextOut, Polyline, Rectangle, Ellipse, GetPixel, BitBlt, StretchBlt, PatBlt, StretchDIBits and SetDIBitsToDevice. The primitive set is therefore: opaque fill (MFC FillSolidRect = ExtTextOutA with ETO_OPAQUE and no text; Clear and Fill both end there), FrameRect (tooltip only), 1- and 2-pixel solid lines (MoveTo / LineTo), SetPixel (minimap marker only), DrawTextA, RichEdit EM_FORMATRANGE.

@@ -14,7 +14,6 @@
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
 #include "lib/static_object.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -61,12 +60,12 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     if (!(g_workArrayGuards & kSpritesConstructed)) {
         g_workArrayGuards |= kSpritesConstructed;
         Sprites().Construct(mfc::impl::SpriteArrayClass::Vtable());
-        GameAtExit(DestroySprites);
+        libcrt::AtExit(DestroySprites);
     }
     if (!(g_workArrayGuards & kPointsConstructed)) {
         g_workArrayGuards |= kPointsConstructed;
         Points().Construct();
-        GameAtExit(FreePoints);   // 004E2260
+        libcrt::AtExit(FreePoints);   // 004E2260
     }
     Sprites().SetSize(kWorkRecords);
     Points().SetSize(kWorkRecords);

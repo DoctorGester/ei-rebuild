@@ -6082,11 +6082,11 @@
 005E70B0 CUiMesh::GetScaleX 800001b234802000000091fc00000
 005E70E0 CUiMesh::SetRectangleVanilla 7f8fffffffffffffdfdfffffffdff7fd
 005E7680 CUiMesh::SetGridVanilla 7f8ffffffbbfffffdfddffffffdff7fd
-005E7D60 CUiMesh::SetFrameVanilla 7f8fffffffffffffdfdfffffffdff7fd
+005E7D60 CUiMesh::SetFrame 7f8fffffffffffffdfdfffffffdff7fd
 005E8450 CUiMeshBuilder::Framed 40006b8819e6e120000e14b1fc00180
 005E8C60 CUiMeshBuilder::Disc 7f8ff87ffaa3ffffdfddffffed1ff7fd
 005E91F0 CUiMeshBuilder::Ring 7f8ff87ffaa3ffffdfddffffed1ff7fd
-005E99D0 CUiMesh::SetTriangleVanilla 7f8ffffffaa3ffffdfddffffed1ff7fd
+005E99D0 CUiMesh::SetTriangle 7f8ffffffaa3ffffdfddffffed1ff7fd
 005E9F30 MeshResetColours 7f8ff87ffaa3ffffdfddffffed1ff7fd
 005EA150 CFigureMesh::RefreshBuffers 7f8fffffffffffffdfdfffffffdff7fd
 005EA210 CUiMesh::SetQuadCount 7f8ffffffabfffffdfddffffed1ff7fd
@@ -6993,7 +6993,7 @@
 0063BC50 CHudWeaponBar::HudWeaponBarDelete 7f8ffffffaa3ffffdfddffffed1ff7fd
 0063BC70 CHudWeaponBar::DestroyBody 7f8ffffffaa3ffffdfddffffed1ff7fd
 0063BCC0 CHudWeaponBar::AddWeapon 7f8ffffffaa3ffffdfddffffed1ff7fd
-0063C050 CHudWeaponBar::HighlightVanilla 7f8ffffffaa3ffffdfddffffed1ff7fd
+0063C050 CHudWeaponBar::Highlight 7f8ffffffaa3ffffdfddffffed1ff7fd
 0063C180 CHudWeaponBar::SetUnit 7f8ffffffaa3ffffdfddffffed1ff7fd
 0063C4F0 CHudWeaponBar::Draw 7f8ffffffaa3ffffdfddffffed1ff7fd
 0063C600 CHudWeaponBar::Update 7f8ffffffaa3ffffdfddffffed1ff7fd
@@ -7052,7 +7052,7 @@
 00641E20 PortraitsMouseUpVerify 80a001820000000200008080
 00641EA0 PortraitsMouseMoveVerify 80a001820000000200008080
 00641F20 CHudMap::SetupVanilla 7f8ffffffaa3ffffdfddffffed1ff7fd
-00642930 CHudMap::LayoutVanilla 7f8ffffffaa3ffffdfddffffed1ff7fd
+00642930 CHudMap::Layout 7f8ffffffaa3ffffdfddffffed1ff7fd
 00642B40 CHudMap::UpdateVanilla 7f8ffffffaa3ffffdfddffffed1ff7fd
 00642E80 CHudMap::UpdateView 7f8ffffffaa3ffffdfddffffed1ff7fd
 00643DC0 CHudMap::BuildMarkers 7f8ffffffaa3ffffdfddffffed1ff7fd
@@ -7061,7 +7061,7 @@
 00645610 CHudMap_OnMouseMoveVerify 100002000000000000004000000
 00645640 HudMapWheel 2000000010000004000000
 006456E0 CHudUnitPanel::SetupVanilla 7f8ffffffaa3ffffdfddffffed1ff7fd
-00645F80 CHudUnitPanel::LayoutVanilla 7f8ffffffaa3ffffdfddffffed1ff7fd
+00645F80 CHudUnitPanel::Layout 7f8ffffffaa3ffffdfddffffed1ff7fd
 006462A0 CHudUnitPanel::DrawVanilla 7f8ffffffaa3ffffdfddffffed1ff7fd
 00646B90 CHudUnitPanel::ShowEffects 2000000000000000000000
 00647040 CHudUnitPanel::DrawUnitInfo 100002000000000000000000000
@@ -7193,7 +7193,7 @@
 006590F0 CHelpWindow::Close 400000300000000000000000000
 00659190 InputForward<&CHelpWindow::OnLeftDown>::Call 400000300000000000000000000
 006592C0 InputForward<&CHelpWindow::OnKeyDown>::Call 300000000000000000000
-00659420 CHelpWindow::ShowPageVanilla 400000300000000000000000000
+00659420 CHelpWindow::ShowPage 400000300000000000000000000
 0065A5E0 CHelpWindow::Update 400000300000000000000000000
 0065A6D0 WindowDrawAlphaRef 400000300000000000000000000
 0065A770 HelpTopics::Subscript 0
@@ -7266,7 +7266,7 @@
 0065E4D0 CUiTooltip::TooltipDelete 7f8fffffffffffffdfdfffffffdff7fd
 0065E4F0 CUiTooltip::DestroyBody 7f8fffffffffffffdfdfffffffdff7fd
 0065E540 CUiTooltip::SetText 800000000000000000000000
-0065E580 CUiTooltip::OnMouseMoveVanilla 7f8fffffffffffffdfdfffffffdff7fd
+0065E580 CUiTooltip::OnMouseMove 7f8fffffffffffffdfdfffffffdff7fd
 0065E880 CUiTooltip::DrawLines 20098e259820002100208808000
 0065EA50 CUiTooltip::Draw 0
 0065EA80 CUiTooltip::Redraw 7f8fffffffffffffdfdfffffffdff7fd

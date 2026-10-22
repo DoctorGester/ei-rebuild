@@ -544,9 +544,59 @@ def decode_all(img):
 # these stores leave, stored_values). A store into an object nothing reads (unread_objects, config/unread_data.csv) is
 # left out too. A call, an atexit or an exit function that names such an object is not left out: named_data.py's
 # check refuses its address literal, so the initialiser (or exit function) is ported by hand on the name and runs
-# in list order through its registration.
+# in list order through its registration, or the generated code names the object (GENERATED_NAMES, below).
 
 NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
+
+# The named globals this script writes by name (C18u): address -> (C++ name, the header that declares it). Each is
+# the start of a range of config/named_data.csv that only the generated code reaches. The name takes the address's
+# place where the original's code has it: a guard's flag byte (`d.Once(name, bit)`), the object a call takes as
+# `this` (`d.Thiscall(fn, &name, ...)`) and where a call's result goes (`d.Store(name, d.Stdcall(...))`, kept in list
+# order: named_data.py compares that definition at its zero start). The generated files include the headers.
+GENERATED_NAMES = {
+    0x007CAEE4: ('lib::g_emptyStaticGuard', 'lib/static_object.h'),
+    0x007C8BB8: ('mfc::impl::g_gdiAllocExitGuards', 'lib/mfc_static_objects.h'),
+    0x007C8BC0: ('mfc::impl::g_simpleUserException', 'lib/mfc_static_objects.h'),
+    0x007C90BC: ('mfc::impl::g_baseModuleStateLocal', 'lib/mfc_static_objects.h'),
+    0x007C90C0: ('mfc::impl::g_threadStateLocal', 'lib/mfc_static_objects.h'),
+    0x007C9138: ('mfc::impl::g_tempWndAllocExitGuard', 'lib/mfc_static_objects.h'),
+    0x007CAA24: ('mfc::impl::g_staticWindowsExitGuards', 'lib/mfc_static_objects.h'),
+    0x007CAA84: ('mfc::impl::g_ctl3dThreadLocal', 'lib/mfc_static_objects.h'),
+    0x007CAA88: ('mfc::impl::g_ctl3dStateLocal', 'lib/mfc_static_objects.h'),
+    0x007CAA8C: ('mfc::impl::g_winStateLocal', 'lib/mfc_static_objects.h'),
+    0x007CAA98: ('mfc::impl::g_afxDbcs', 'lib/mfc_static_objects.h'),
+    0x007CAAA0: ('mfc::impl::g_tempMenuAllocExitGuard', 'lib/mfc_static_objects.h'),
+    # C18r: MFC's fixed allocators and static windows, which hand code reads too (mfc_gdi.cpp, mfc_window.cpp).
+    0x007C8CF0: ('mfc::impl::g_tempGdiObjectAlloc', 'lib/mfc_gdi.h'),
+    0x007C8D18: ('mfc::impl::g_tempDCAlloc', 'lib/mfc_gdi.h'),
+    0x007CA940: ('mfc::impl::g_tempWndAlloc', 'lib/mfc_window.h'),
+    0x007CAAA8: ('mfc::impl::g_tempMenuAlloc', 'lib/mfc_window.h'),
+    0x007CA968: ('mfc::impl::g_wndNoTopMost', 'lib/mfc_window.h'),
+    0x007CA9A8: ('mfc::impl::g_wndTopMost', 'lib/mfc_window.h'),
+    0x007CA9E8: ('mfc::impl::g_wndBottom', 'lib/mfc_window.h'),
+    0x007CAA28: ('mfc::impl::g_wndTop', 'lib/mfc_window.h'),
+}
+NAMED_ONCE = re.compile(r'\bd\.Once\((0x[0-9A-F]{8}),')
+NAMED_THIS = re.compile(r'(\bd\.Thiscall\(0x[0-9A-F]{8}, )(0x[0-9A-F]{8})\b')
+NAMED_RESULT = re.compile(r'\bd\.Store\((0x[0-9A-F]{8})(?=, d\.(?:Cdecl|Stdcall|Thiscall|Import)\()')
+
+
+def name_operands(text, headers):
+    """`text` with GENERATED_NAMES' addresses written as their names; adds the headers it needs to `headers`."""
+    def named(m, group, form):
+        entry = GENERATED_NAMES.get(int(m.group(group), 16))
+        if entry is None:
+            return m.group(0)
+        headers.add(entry[1])
+        start, end = m.span(group)
+        return m.group(0)[:start - m.start()] + form.format(entry[0]) + m.group(0)[end - m.start():]
+    text = NAMED_ONCE.sub(lambda m: named(m, 1, '{}'), text)
+    text = NAMED_THIS.sub(lambda m: named(m, 2, '&{}'), text)
+    return NAMED_RESULT.sub(lambda m: named(m, 1, '{}'), text)
+
+
+def includes(headers):
+    return ''.join(f'#include "{h}"\n' for h in sorted(headers))
 UNREAD_DATA = os.path.join(ROOT, 'config', 'unread_data.csv')
 UNREAD_HEADER = 'address,size,initialiser,dwords'
 STORE_LINE = re.compile(r'^\s*d\.(Store|StoreFloat)\((0x[0-9A-F]{8}), (.*)\);$')
@@ -891,6 +941,9 @@ def leave_out(decoded, ranges, exits=None):
                 kept.append(line)
                 continue
             m = STORE_LINE.match(line)
+            if m and CALL.match(m.group(3)) and inside[0] in GENERATED_NAMES:
+                kept.append(line)   # stored into the name in list order (name_operands)
+                continue
             if len(inside) != len(written):
                 problems.append(f'{a:08X}: {line.strip()} writes across the end of a named or unread range')
             elif m and CALL.match(m.group(3)):
@@ -914,6 +967,9 @@ def generate(img):
     exits = [e for e in exits if e[0] not in dropped]
     ranges = [(b, e) for b, e, _ in named_ranges()] + [(lo, lo + n) for lo, n, _ in unread]
     kept, problems = leave_out(decoded, ranges, dict(UNREAD_EXITS))
+    starts = {b for b, _, _ in named_ranges()}
+    problems += [f'GENERATED_NAMES: {a:08X} ({name}) starts no range of config/named_data.csv'
+                 for a, (name, _) in GENERATED_NAMES.items() if a not in starts]
     return kept, exits, unread_csv(img, decoded, unread), problems + STALE_REVIEWED
 
 
@@ -1078,7 +1134,10 @@ def render_exits(exits):
             wrappers.append(f'void __cdecl Exit{fn:08X}() {{ RunExitFunction({hexa(fn)}); }}')
             regs.append(f'EI_REPLACE({hexa(fn)}, ei::static_init::Exit{fn:08X});')
     summary = ', '.join(f'{n} {k}' for k, n in kinds.most_common())
-    return (EXIT_HEADER.replace('@COUNT@', str(len(exits))).replace('@SUMMARY@', summary) + '\n'.join(cases) +
+    headers = set()
+    cases = [name_operands(c, headers) for c in cases]
+    return (EXIT_HEADER.replace('@COUNT@', str(len(exits))).replace('@SUMMARY@', summary)
+            .replace('@INCLUDES@', includes(headers)) + '\n'.join(cases) +
             EXIT_MIDDLE + '\n'.join(wrappers) + '\n\n} // namespace ei::static_init\n\nusing ei::short_functions::Ret;\n\n' +
             '\n'.join(regs) + '\n')
 
@@ -1116,7 +1175,10 @@ def render(decoded):
         body.append(f'    d.Begin({hexa(a)});')
         body.extend('    ' + line for line in lines)
     summary = ', '.join(f'{n} {k}' for k, n in kinds.most_common())
-    return HEADER.replace('@SUMMARY@', summary).replace('@COUNT@', str(len(decoded))) + '\n'.join(body) + FOOTER
+    headers = set()
+    body = [name_operands(line, headers) for line in body]
+    return (HEADER.replace('@SUMMARY@', summary).replace('@COUNT@', str(len(decoded)))
+            .replace('@INCLUDES@', includes(headers)) + '\n'.join(body) + FOOTER)
 
 
 def main():
@@ -1155,6 +1217,7 @@ HEADER = '''\
 // tools/check_static_init.py (build.cmd) checks this file against game.exe.
 #include "static_init.h"
 
+@INCLUDES@
 namespace ei::static_init {
 
 template <class Do>
@@ -1185,7 +1248,7 @@ EXIT_HEADER = '''\
 #include "static_init.h"
 
 #include "ei/hook.h"
-
+@INCLUDES@
 namespace ei::short_functions {
 void Ret();   // src/game/short_functions.cpp
 } // namespace ei::short_functions

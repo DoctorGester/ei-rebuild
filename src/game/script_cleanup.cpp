@@ -8,8 +8,6 @@
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "game_lists.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "world.h"
 #include "game_singletons.h"
 #include "game_arrays.h"

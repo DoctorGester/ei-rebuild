@@ -11,8 +11,6 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_ai.h"
-#include "originals_library.h"
 #include "game/game_slots.h"
 
 void ScriptGroup::DestructBody() {
@@ -62,7 +60,7 @@ bool CAIMap::RemoveFromSectors(CMapObject* object) { return Sectors(this)->Remov
 EI_REWRITTEN(0x004BA0C0, CAIMap::RemoveFromSectors);
 
 bool CAIMap::MoveInSectors(CMapObject* object, const Vector3* position) {
-    return SectorMapMove(Sectors(this), nullptr, object, position);
+    return Sectors(this)->Move(object, position);
 }
 EI_REWRITTEN(0x004BA0E0, CAIMap::MoveInSectors);
 

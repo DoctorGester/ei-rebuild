@@ -20,8 +20,6 @@
 #include "ei/hook.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -199,9 +197,9 @@ bool MobFile::Load(void*, int keepIds) {
             for (int c = 0; c < 32; ++c)
                 record->trap.sides |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
-        WorldMakeObjectOriginal(TheServerWorld(), nullptr, spec);
+        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(spec);
         auto* object = spec->As<ObjectSpec>();
-        bool skip = spec->id == 2 && GameMbscmp(object->texture, "unmoco2") == 0;
+        bool skip = spec->id == 2 && gamecrt::mbscmp(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {
             auto* controller = object->Unit()->ServerController();
             controller->brain.SetAlarmRecords(spec->As<UnitSpec>()->behaviour, kBehaviourCount);

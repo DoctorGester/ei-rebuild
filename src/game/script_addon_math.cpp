@@ -10,12 +10,10 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "random.h"
-#include "originals_engine.h"
 #include "game_data.h"
 
 #include <cmath>
 
-#pragma warning(disable : 4740) // inline assembly
 #pragma function(sin, cos, pow, floor, ceil)
 
 namespace scriptaddon {
@@ -175,7 +173,7 @@ bool Random(Call* call) {
     Store(&low, Floats(call)[0]);
     Store(&high, Floats(call)[1]);
     if (high > low) {
-        *call->FloatResult() = static_cast<float>(RandomRange(&IsaacRandom::Global(), nullptr, low, high));
+        *call->FloatResult() = static_cast<float>(IsaacRandom::Global().Range(low, high));
     } else {
         Store(call->FloatResult(), low);
     }

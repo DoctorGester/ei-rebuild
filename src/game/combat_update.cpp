@@ -20,6 +20,7 @@
 #include "map_object.h"
 #include "player_messages.h"
 #include "random.h"
+#include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
@@ -29,17 +30,10 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "originals_effects.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_core.h"
-#include "originals_gameplay.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 
 #include <bit>
 #include <cstdint>
@@ -75,32 +69,7 @@ constexpr int kBoredTicks = 500;                      // updates before a bored 
 constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
 constexpr int kRemarkBored = 0x29;
 
-// --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
-
-// 00455940 the owning manager's context (the world server); 00455950 the object's world.
-// CUnit (unit.cpp and the unit range): 0050E9F0 MarkChanged, 0052EA90 the animation bytes
-// (+0x254..+0x256, time +0x258), 0052EAD0 / 0052EAF0 the dwords +0x25C / +0x260, 00530570 the
-// size class, 00530970 the prototype's model record, 005300D0 SetPlayer, 0052E9D0 the path
-// speeds, 00401F00 CTransformObject::TurnUpTowards. (005301A0 "has a player" is inlined.)
-// 0040F560 Quaternion::AxisY (core_maths.cpp).
-// UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
-// The AI: 005C9770 AIViewer::StepNoise (world + 0x2838; the step noise, returns 0; unit_ai_hearing),
-// 005CB850 the perception memory's update (controller + 0xA50), 005AEA80 the alarm step
-// (ai_alarm.cpp, controller + 0xB10), 005AEA40 the alarm's reset, 005D53B0 AIBrain::Think and
-// 005D4E80 its reset on death (unit_ai.cpp, controller + 0x980).
-// The world server: 00593AF0 a unit's death is final, 0058E520 / 0058E5D0 add / remove a timed
-// object (world_server.cpp); 00665440 does the player still have the unit.
-// The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add.
-// The motion (+0x3C, an AIPath; ai_motion.cpp): 005C7CB0 ShiftTime, 005B23A0 Clear, 005C7B00
-// Start, and 005C7430 UnitMotion::Sample on CUnit + 0x27C.
-// The controller's functions rewritten elsewhere, through their game addresses: 0054B390
-// UpdateOrders (combat_tick.cpp), 00547890 the movement tick (unit_motion_tick.cpp), 00552E00
-// PropagateHostility, 00549EC0 FinishAction, 00552C60 UseItemCharge (combat_actions.cpp),
-// 00550A80 BuildDeathAnimation (combat_steps.cpp), 0054B880 SpellOfSource (combat.cpp), and the
-// ones not rewritten: 00548700 plan a path to a point.
-// Animation lists (MFC CArray<AnimationStep> instantiations): 00556950 / 005483C0 Copy (the same
-// code twice), 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80
-// SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
+// --- Helpers --------------------------------------------------------------------------------------
 
 // 0073C548: how much faster a dead body sinks every update.
 float SinkAcceleration() { return 0.01f /*0073C548*/; }
@@ -141,9 +110,9 @@ void SetStandingFlag(CUnitServer* self, int standing) {
     CUnit* unit = self->unit;
     if (static_cast<int>(unit->obstacle) == standing) return;
     CSectorMap* sectors = world->Sectors();
-    SectorMapRemove(sectors, nullptr, unit);
+    sectors->Remove(unit);
     self->unit->obstacle = static_cast<std::uint32_t>(standing);
-    SectorMapAdd(sectors, nullptr, self->unit);
+    sectors->Add(self->unit);
     self->unit->MarkChanged(7);
 }
 
@@ -402,7 +371,7 @@ void CUnitServer::AdvanceAnimation() {
     }
     unit->SetMotionMode(kind);
 }
-EI_REPLACE_METHOD(0x00546F30, CUnitServer::AdvanceAnimation);
+EI_REWRITTEN(0x00546F30, CUnitServer::AdvanceAnimation);
 
 bool CUnitServer::PopFinishedSteps() {
     bool popped = false;
@@ -441,7 +410,7 @@ void CUnitServer::ShowCurrentStep() {
     if (head.animation != 0xFF || head.variant != 0xFF)
         unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
-EI_REPLACE_METHOD(0x00546C10, CUnitServer::ShowCurrentStep);
+EI_REWRITTEN(0x00546C10, CUnitServer::ShowCurrentStep);
 
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     // The steps are copied in twice (each time resized first), as the original does.
@@ -575,7 +544,7 @@ void CUnitServer::TickAction() {
             particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
             particle->size_ = 1.0f;
             static_cast<CEffectParticle*>(effect)->SetAttachedTo(unit->id_);
-            WorldAddTimed(world, nullptr, effect);
+            static_cast<CWorldServer*>(world)->AddTimedObject(effect);
             CEngineObject* old = effectObject;
             effectObject = effect;
             if (effect) ++effect->refCount_;
@@ -617,7 +586,7 @@ void CUnitServer::TickAction() {
     motion.Clear();
     int time = TickOf(ObjectWorld(this));
     Vector3 axis;
-    QuaternionAxisY(&unit->localRotation_, nullptr, &axis);
+    unit->localRotation_.AxisY(&axis);
     Vector3 backwards = -axis;
     if (MotionPath()->Start(&unit->localPosition_, &backwards, time)) unit->RefreshMotion();
     SetStanding(0);
@@ -652,7 +621,7 @@ bool CUnitServer::ActionInReach() {
     EI_NAN_AUDIT(distanceSq, Plan(this).rangeSq);
     return distanceSq < Plan(this).rangeSq;   // closer
 }
-EI_REPLACE_METHOD(0x00549D40, CUnitServer::ActionInReach);
+EI_REWRITTEN(0x00549D40, CUnitServer::ActionInReach);
 
 // --- Item spells --------------------------------------------------------------------------------
 

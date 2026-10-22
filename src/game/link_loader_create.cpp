@@ -15,8 +15,6 @@
 
 #include <cstddef>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 const char* FiguresArchive() { return "figures.res"; }
@@ -97,4 +95,4 @@ CLinkFigureLoader* CLinkFigureLoader::Construct(CTextureDevice* renderer, const 
     }
     return this;
 }
-EI_REPLACE_METHOD(0x004F68C0, CLinkFigureLoader::Construct);
+EI_REWRITTEN(0x004F68C0, CLinkFigureLoader::Construct);

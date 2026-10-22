@@ -8,8 +8,6 @@
 #include "console.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
-#include "originals_ai.h"
-#include "originals_library.h"
 #include "sector_map.h"
 #include "world.h"
 #include "game_singletons.h"

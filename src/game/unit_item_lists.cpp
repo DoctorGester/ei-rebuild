@@ -37,4 +37,4 @@ void CUnit::CollectItems(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CS
     for (int i = 0; i < carriedCount; ++i) AddItem(items, itemSpells, carried[i]);
 }
 
-EI_REPLACE_METHOD(0x005316F0, CUnit::CollectItems);
+EI_REWRITTEN(0x005316F0, CUnit::CollectItems);

@@ -3,7 +3,6 @@
 // what is left when an order ends. See combat.h, combat_plan.h and docs/notes/combat.md ("Order lifecycle").
 #include "ai_map.h"
 #include "combat.h"
-#include "originals_combat.h"
 #include "combat_plan.h"
 
 #include "item.h"
@@ -12,6 +11,7 @@
 #include "maths.h"
 #include "player_messages.h"
 #include "random.h"
+#include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
@@ -22,12 +22,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
@@ -112,30 +106,11 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeap
 } // namespace
 
 namespace {
-// Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
-// 00455950 the object's world; 0066D6E0 party messages; 00552780 the unit shouts.
-// CUnitServer helpers: 0054A150 follow the path (true while moving), 00550F30 the idle animation
-// (+0x960), 00546C40 play it, 00547280 / 00547090 / 005474B0 / 0054EB30 / 005467B0 movement and
-// motion updates, 00548700 plan a path to a point, 005468D0 take nearby units off the sector map
-// into a list, 005494D0 start the planned action, 00548DE0 / 00548FA0 play an animation list
-// (taken by value), 00549690 the end of an order.
-// Containers: 00544E70 the animation queue (+0x24) holds a list; 00544D50 an emote's steps;
-// 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
-// destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
-// Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
-// CUnit: 0052E9D0 path speeds, 00530570 size class, 00530A60 IsBehind (unit_hits.cpp),
-// 0052FBC0 ScaledValue (unit.cpp; ST0).
-// The AI map's cell flag 0x80 under a point (005BBC70), the sector map (CSectorMap::Remove /
-// Add, sector_map.cpp), the world's timed objects (0058E5D0, world_server.cpp), the brain's
-// leader (005D5E90, unit_ai.cpp), the memory's "is an enemy" (005CB7F0), the party's sight of a
-// unit (0066E110).
 } // namespace
-
-__declspec(naked) void CUnitServer::CallExecuteOrder() EI_ORIGINAL(0x0054D960)
 
 namespace {
 void TellParty(CUnit* unit, int message) {
-    if (unit->player) PlayerSendObject0BOriginal(PlayerMessages(unit->player), nullptr, unit, message);
+    if (unit->player) PlayerMessages(unit->player)->SendObject0B(unit, message);
 }
 
 // 00545F40 (UnitAction::Clear) followed by the +0x1C / +0x20 reset, as callers inline it.
@@ -184,7 +159,7 @@ void CUnitServer::SetUnitMoveMode2(int mode) {
     unit->moveMode2 = mode;
     unit->MarkChanged(kPartMoveModes);
 }
-EI_REPLACE_METHOD(0x00546830, CUnitServer::SetUnitMoveMode2);
+EI_REWRITTEN(0x00546830, CUnitServer::SetUnitMoveMode2);
 
 void CUnitServer::SyncMoveModes() {
     if (action.kind == kOrderAttack) moveMode2.flag4 = 1;
@@ -204,7 +179,7 @@ void CUnitServer::SyncMoveModes() {
     if (action.modifier && moveMode.mode == kModeRun) moveMode2.wasMode3 |= 2;
     if (!unit->player && moveMode2.flag4) moveMode2.wasMode3 |= 1;
 }
-EI_REPLACE_METHOD(0x0054A620, CUnitServer::SyncMoveModes);
+EI_REWRITTEN(0x0054A620, CUnitServer::SyncMoveModes);
 
 namespace {
 // The melee reach test of 0054C8B0 as 0054A6E0 inlines it: false when the target (a living unit
@@ -337,7 +312,7 @@ bool CUnitServer::StartMove() {
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
-        SectorMapAdd(world->Sectors(), nullptr, current->data);
+        world->Sectors()->Add(current->data);
     }
     bool arrived = false;
     if (action.param) {
@@ -402,7 +377,7 @@ bool CUnitServer::StartQueuedOrder() {
         TakeOver(this);
         LeaveMoveMode(this);
         stoodBlocked = 0;
-        CallExecuteOrder();
+        ExecuteOrder();
         return true;
 
     case kOrderAnimation: {
@@ -538,7 +513,7 @@ void CUnitServer::ContinueAction() {
         if (stoodBlocked) {
             failed = true;
         } else if (seen) {
-            CallExecuteOrder();
+            ExecuteOrder();
             return;
         }
     } else if (stoodBlocked) {
@@ -706,7 +681,7 @@ void CUnitServer::ExecuteOrder() {
     ClearAction(&action);
     if (action2.kind == kOrderEmpty) Idle();
 }
-EI_REPLACE_METHOD(0x0054D960, CUnitServer::ExecuteOrder);
+EI_REWRITTEN(0x0054D960, CUnitServer::ExecuteOrder);
 
 // --- Closing in --------------------------------------------------------------------------------
 
@@ -864,7 +839,7 @@ void CUnitServer::ApproachTarget() {
     EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal));
     if (DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
 
-    SectorMapRemove(TheServerWorld()->Sectors(), nullptr, chased);
+    TheServerWorld()->Sectors()->Remove(static_cast<CMapObject*>(chased));
     float farOffset = static_cast<float>(static_cast<double>(goal.y) * kShort);
     double nearX = static_cast<double>(goal.x) * kShort;
     float unitY = static_cast<float>(static_cast<double>(unit->localPosition_.y) * kLong);
@@ -874,7 +849,7 @@ void CUnitServer::ApproachTarget() {
     point.z = goal.z;
     if (!PathTo(&point, static_cast<float>(patience)))
         stoodBlocked = 1;
-    SectorMapAdd(TheServerWorld()->Sectors(), nullptr, chased);
+    TheServerWorld()->Sectors()->Add(static_cast<CMapObject*>(chased));
 
     double h = HalfScale();
     float headX = static_cast<float>(h * motion.targetX);

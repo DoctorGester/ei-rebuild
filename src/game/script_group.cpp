@@ -3,12 +3,11 @@
 #include "game_arrays.h"
 #include "unit.h"
 #include "combat.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -18,7 +17,7 @@
 namespace {
 
 // The server world's object by id (00593AA0).
-CEngineObject* FindObject(int id) { return WorldFindObjectOriginal(TheServerWorld(), nullptr, static_cast<unsigned>(id)); }
+CEngineObject* FindObject(int id) { return TheServerWorld()->FindObject(static_cast<unsigned>(id)); }
 
 // The game's CRT.
 void __cdecl GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }

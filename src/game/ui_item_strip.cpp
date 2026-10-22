@@ -1,7 +1,9 @@
 // The item strip's layout (00620380): the camp's and the hero screen's strips of items along the
 // top or bottom edge, and the forwarding strip's draw (00621B50). See ui_screens.h
 // (CUiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
+#include "ui.h"
 #include "ui_item_info.h"
+#include "ui_mesh_build.h"
 #include "ui_screens.h"
 
 #include "ei/hook.h"
@@ -10,7 +12,6 @@
 #include <cstdint>
 #include <cmath>
 #include <cstring>
-#include "originals_ui.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
@@ -25,7 +26,7 @@ namespace {
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
-    region->CallSetRect(left, top, right, bottom);
+    region->SetRect(left, top, right, bottom);
     return region;
 }
 
@@ -67,9 +68,9 @@ void CUiItemStrip::Build(char top) {
     const float hundred = 100.0f /*0073BAB0*/;   // 100.0
     // The ends' faces.
     float depth = scale_ * 0.8f /*0073CCA8*/;  // 0.8
-    UiMeshRectangleOriginal(AddSprite(0), nullptr, depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
+    AddSprite(0)->SetRectangleVanilla(depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
     depth = scale_ * 0.8f /*0073CCA8*/;
-    UiMeshRectangleOriginal(AddSprite(0), nullptr, depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
+    AddSprite(0)->SetRectangleVanilla(depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
     // The tab buttons (y + 5, 35, 65, 95; depth scale * 0.6).
     const float y5 = 5.0f /*0073BF34*/, y35 = 35.0f /*007403E0*/, y65 = 65.0f /*00741350*/,
                 y95 = 95.0f /*00741F08*/;
@@ -84,23 +85,23 @@ void CUiItemStrip::Build(char top) {
         static constexpr int kV[3][2] = {{0x82, 0xAA}, {0xAC, 0xD4}, {0xD6, 0xFE}};
         for (int i = 0; i < 3; ++i) {
             depth = scale_ * 0.6f /*0073CDE0*/;   // 0.6
-            UiMeshRectangleOriginal(AddSprite(0), nullptr, depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i], tab.u0, kV[i][0], tab.u1, kV[i][1]);
+            AddSprite(0)->SetRectangleVanilla(depth, 80.0f, tab.left, y + tops[i], tab.right, y + bottoms[i], tab.u0, kV[i][0], tab.u1, kV[i][1]);
         }
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
     CUiMesh* frame = AddSprite(0);
-    UiMeshFramedOriginal((void*)frame, nullptr, scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    static_cast<CUiMeshBuilder*>((void*)frame)->Framed(scale_ * 0.9f /*0073CD70*/, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flags_ |= 0x100;
     frame->flatColour_ = 0xFF8B8B37;
     frame->texture_ = nullptr;
     frame->visible_ = 0;
     // The background: eight cells between the ends (depth scale * 2), then a frame per 100 pixels.
-    UiMeshCellsOriginal(AddSprite(0), nullptr, scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
+    AddSprite(0)->SetGridVanilla(scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
     const float fifty = 50.0f /*0074023C*/, hundredFifty = 150.0f /*0073D618*/;
     for (int x = 0; x < 800; x += 100) {
         CUiMesh* cell = AddSprite(0);
         const float fx = static_cast<float>(x);
-        UiMeshFramedOriginal((void*)cell, nullptr, scale_, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72, 0x72);
+        static_cast<CUiMeshBuilder*>((void*)cell)->Framed(scale_, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72, 0x72);
     }
     tab_ = 5;
     SetTab(5);
@@ -159,7 +160,7 @@ BOOL CUiItemStrip::Draw(int pass) {
     mfc::CString text;
     CUiSurface* counts = surfaces_.data[0];
     counts->GetDC();
-    SurfaceClearOriginal(counts);
+    static_cast<CUiSurface*>(counts)->Clear();
     for (int i = 0; i < 8; ++i) {
         if (!shown[i]) continue;
         int count = static_cast<int>(shown[i]->count_);
@@ -171,7 +172,7 @@ BOOL CUiItemStrip::Draw(int pass) {
     counts->ReleaseDC();
     CUiSurface* numbers = surfaces_.data[1];
     numbers->GetDC();
-    SurfaceClearOriginal(numbers);
+    static_cast<CUiSurface*>(numbers)->Clear();
     for (int i = 0; i < 8; ++i) {
         CItem* item = shown[i];
         if (!item || slots_ == 9) continue;
@@ -183,14 +184,14 @@ BOOL CUiItemStrip::Draw(int pass) {
     numbers->ReleaseDC();
     return 1;
 }
-EI_REPLACE_METHOD(0x00621B50, CUiItemStrip::Draw);
+EI_REWRITTEN(0x00621B50, CUiItemStrip::Draw);
 
 // --- 00620A50: the strip's per-frame scroll ---------------------------------------------------
 
 namespace {
 
 // 00600270: the time since the last frame in seconds (ticks * 0.001f, unrounded in ST0).
-inline double __fastcall StripFrameTime(void* w) { return WindowFrameTimeOriginal(w); }
+inline double __fastcall StripFrameTime(void* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 } // namespace
 
@@ -297,4 +298,4 @@ void CUiItemStrip::Update() {
 namespace {
 void __fastcall ItemStripUpdate(CUiItemStrip* self) { self->Update(); }
 } // namespace
-EI_REPLACE(0x00620A50, ItemStripUpdate);
+EI_REWRITTEN(0x00620A50, ItemStripUpdate);

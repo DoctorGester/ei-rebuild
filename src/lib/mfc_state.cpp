@@ -2,12 +2,11 @@
 // (mfc_state.h).
 #include "mfc_state.h"
 
+#include "crt.h"
 #include "ei/hook.h"
-#include "game/originals_library.h"   // GameAtExit
 #include "gameapi.h"
+#include "static_object.h"
 #include "game/game_data.h"
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace mfc::impl {
 
@@ -28,8 +27,15 @@ ExitFunction WingdixTermAt() { return reinterpret_cast<ExitFunction>(0x0070B5F0)
 
 } // namespace
 
-CThreadSlotData*& AfxThreadData() { return ei::GameData<CThreadSlotData*>(0x007C9084); }
-AuxData& AfxData() { return ei::GameData<AuxData>(0x007C90C8); }
+namespace {
+// _afxThreadData: made on first use of a thread local, which the image never makes (null).
+constinit CThreadSlotData* g_afxThreadData = /*007C9084*/ {nullptr};
+// afxData, zero at the start: built by its static initialiser in the list's order and its menu-dot bitmap deleted by
+// the exit function it registers (both ported on the name below and registered at their addresses).
+constinit lib::StaticObject<AuxData> g_afxData = /*007C90C8*/ {};
+} // namespace
+
+AuxData& AfxData() { return *g_afxData; }
 
 // ---- Thread and process locals -------------------------------------------------------------------
 
@@ -46,7 +52,7 @@ void CThreadSlotData::FreeSlot(int slot) {
 }
 
 void CThreadLocalObject::Destruct() {
-    if (slot != 0 && AfxThreadData()) AfxThreadData()->FreeSlot(slot);
+    if (slot != 0 && g_afxThreadData) g_afxThreadData->FreeSlot(slot);
     slot = 0;
 }
 
@@ -142,6 +148,17 @@ EI_REWRITTEN(0x00703E56, AuxData::UpdateSysMetrics);
 EI_REWRITTEN(0x0070D158, UpdateAfxScrollMetricsMarked4);
 EI_REWRITTEN(0x0070D188, UpdateAfxScrollMetrics);
 
+namespace {
+void __cdecl DestroyAfxData() { g_afxData->Destruct(); }   // 0070D14E
+void __cdecl ConstructAfxData() {                          // 0070D12E
+    g_afxData->Construct();
+    libcrt::AtExit(DestroyAfxData);
+}
+} // namespace
+
+EI_REPLACE(0x0070D12E, ConstructAfxData);
+EI_REPLACE(0x0070D14E, DestroyAfxData);
+
 } // namespace mfc::impl
 
 namespace mfc::impl {
@@ -160,43 +177,48 @@ ModuleState* __cdecl ImageModuleState() {
     return &state;
 }
 
-BOOL& AfxCriticalInitDone() { return ei::GameData<BOOL>(0x007C907C); }
-BOOL& AfxCriticalWin32s() { return ei::GameData<BOOL>(0x007C9078); }
-int* AfxLockInit() { return ei::GamePointer<int>(0x007C8E80); }
-CRITICAL_SECTION* AfxResourceLocks() { return ei::GamePointer<CRITICAL_SECTION>(0x007C8EE0); }
-CRITICAL_SECTION* AfxLockInitLock() { return ei::GamePointer<CRITICAL_SECTION>(0x007C8EC8); }
+namespace {
+// The globals behind MFC's locks: per lock type whether its critical section is made, the lock that guards making
+// them, the sections, the Win32s flag (no locks there) and whether that was set up (_afxLockInit, _afxLockInitLock,
+// _afxResourceLock, _afxCriticalWin32s, _afxCriticalInit).
+constinit int g_afxLockInit[17] = /*007C8E80*/ {};   // kLockTypes
+constinit CRITICAL_SECTION g_afxLockInitLock = /*007C8EC8*/ {};
+constinit CRITICAL_SECTION g_afxResourceLocks[17] = /*007C8EE0*/ {};
+constinit BOOL g_afxCriticalWin32s = /*007C9078*/ {};
+constinit BOOL g_afxCriticalInit = /*007C907C*/ {};
+} // namespace
 
 BOOL __cdecl AfxCriticalInit() {
-    if (!AfxCriticalInitDone()) {
-        AfxCriticalInitDone() = TRUE;
+    if (!g_afxCriticalInit) {
+        g_afxCriticalInit = TRUE;
         const DWORD versionWord = Version();
         if ((versionWord & 0xFF) < 4 && (versionWord & 0x80000000u)) {
-            AfxCriticalWin32s() = TRUE;
+            g_afxCriticalWin32s = TRUE;
         } else {
-            AfxCriticalWin32s() = FALSE;
-            gameapi::InitializeCriticalSection(AfxLockInitLock());
+            g_afxCriticalWin32s = FALSE;
+            gameapi::InitializeCriticalSection(&g_afxLockInitLock);
         }
     }
-    return AfxCriticalInitDone();
+    return g_afxCriticalInit;
 }
 
 void __stdcall AfxLockGlobals(int lockType) {
-    if (!AfxCriticalInitDone()) AfxCriticalInit();
-    if (AfxCriticalWin32s()) return;
-    if (!AfxLockInit()[lockType]) {
-        gameapi::EnterCriticalSection(AfxLockInitLock());
-        if (!AfxLockInit()[lockType]) {
-            gameapi::InitializeCriticalSection(&AfxResourceLocks()[lockType]);
-            ++AfxLockInit()[lockType];
+    if (!g_afxCriticalInit) AfxCriticalInit();
+    if (g_afxCriticalWin32s) return;
+    if (!g_afxLockInit[lockType]) {
+        gameapi::EnterCriticalSection(&g_afxLockInitLock);
+        if (!g_afxLockInit[lockType]) {
+            gameapi::InitializeCriticalSection(&g_afxResourceLocks[lockType]);
+            ++g_afxLockInit[lockType];
         }
-        gameapi::LeaveCriticalSection(AfxLockInitLock());
+        gameapi::LeaveCriticalSection(&g_afxLockInitLock);
     }
-    gameapi::EnterCriticalSection(&AfxResourceLocks()[lockType]);
+    gameapi::EnterCriticalSection(&g_afxResourceLocks[lockType]);
 }
 
 void __stdcall AfxUnlockGlobals(int lockType) {
-    if (AfxCriticalWin32s()) return;
-    gameapi::LeaveCriticalSection(&AfxResourceLocks()[lockType]);
+    if (g_afxCriticalWin32s) return;
+    gameapi::LeaveCriticalSection(&g_afxResourceLocks[lockType]);
 }
 
 void __stdcall AfxClassInit(CRuntimeClass* newClass) {
@@ -212,19 +234,22 @@ BOOL __cdecl AfxInitDbcs() {
     return info.MaxCharSize > 1 ? TRUE : FALSE;
 }
 
-HGDIOBJ& AfxHalftoneBrush() { return ei::GameData<HGDIOBJ>(0x007C8D40); }
-char& AfxWingdixTermResult() { return ei::GameData<char>(0x007C8D44); }
+namespace {
+// _afxHalftoneBrush: made on first use by code the game never reaches (null).
+constinit HGDIOBJ g_afxHalftoneBrush = /*007C8D40*/ {nullptr};
+} // namespace
 
-void __cdecl AfxWingdixTerm() { AfxDeleteObject(&AfxHalftoneBrush()); }
+void __cdecl AfxWingdixTerm() { AfxDeleteObject(&g_afxHalftoneBrush); }
 
-void __cdecl AfxWingdixTermInit() { AfxWingdixTermResult() = static_cast<char>(GameAtExit(WingdixTermAt())); }
+// The original keeps atexit's answer in _afxWingdixTerm (007C8D44), which nothing reads.
+void __cdecl AfxWingdixTermInit() { libcrt::AtExit(WingdixTermAt()); }
 
 EI_REWRITTEN(0x0070C4E9, CSimpleList::AddHead);
 EI_REWRITTEN(0x0070CE8C, ImageModuleState);
 EI_REWRITTEN(0x0070C3C5, AfxCriticalInit);
 EI_REWRITTEN(0x0070C458, AfxLockGlobals);
 EI_REWRITTEN(0x0070C4C8, AfxUnlockGlobals);
-EI_REPLACE(0x00700674, AfxClassInit);
+EI_REWRITTEN(0x00700674, AfxClassInit);
 EI_REPLACE(0x0070DC4D, AfxInitDbcs);
 EI_REPLACE(0x0070B5F0, AfxWingdixTerm);
 EI_REPLACE(0x0070B600, AfxWingdixTermInit);

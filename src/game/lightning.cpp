@@ -18,8 +18,7 @@
 #include <cstring>
 #include <initializer_list>
 
-// --- Forwarders (not rewritten) ----------------------------------------------------------------
-
+// --- Helpers -----------------------------------------------------------------------------------
 
 namespace {
 
@@ -28,7 +27,6 @@ double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
 }
-
 
 // The noise table: 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the key drawn
 // for each sample), read from gfx.res\lightning.dat by LoadLightningNoise (00468A00).
@@ -107,7 +105,6 @@ float NoiseAmplitude(float power) {
     if (power > 0.0f) return 1.5f;
     return power < 0.0f ? 1.0f : 2.0f;
 }
-
 
 } // namespace
 
@@ -193,7 +190,7 @@ void LightningSegment::Animate(float time, float amplitude) {
         upAt = upAt + upSlope;
     }
 }
-EI_REPLACE_METHOD(0x00466CE0, LightningSegment::Animate);
+EI_REWRITTEN(0x00466CE0, LightningSegment::Animate);
 
 void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     std::memcpy(&start, from, sizeof(start));
@@ -285,7 +282,7 @@ void CLightning::ExpandBounds(const LightningSegment* segment) {
         bounds_.boxMax.z = bounds_.boxMax.z >= p.z ? bounds_.boxMax.z : p.z;
     }
 }
-EI_REPLACE_METHOD(0x00466FD0, CLightning::ExpandBounds);
+EI_REWRITTEN(0x00466FD0, CLightning::ExpandBounds);
 
 void CLightning::UpdateBounds() {
     const float largest = FromBits(0x7149F2CA);      // 1e30
@@ -446,4 +443,4 @@ int CLightningManager::DrawAll(void* device) {
     newBolts_.RemoveAll();
     return 1;
 }
-EI_REPLACE_METHOD(0x00468940, CLightningManager::DrawAll);
+EI_REWRITTEN(0x00468940, CLightningManager::DrawAll);

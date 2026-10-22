@@ -18,7 +18,6 @@
 #include <concepts>
 #include <cstdint>
 #include <cstring>
-#include "originals_ui.h"
 #include "lib/crt.h"
 #include "world.h"
 #include "game_data.h"
@@ -66,7 +65,7 @@ float TimeOfDay() {
 }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
-inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
+inline double __fastcall WindowFrameTime(CUiWindow* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
@@ -93,7 +92,7 @@ std::uint32_t Bits(float f) {
 
 } // namespace
 
-void CUiMesh::Place(float a0, float a1, float a2) { SpritePlaceOriginal((void*)this, nullptr, a0, a1, a2); }
+void CUiMesh::Place(float a0, float a1, float a2) { static_cast<CUiMesh*>((void*)this)->PlaceBody(a0, a1, a2); }
 
 void CHudClock::Update() {
     interface_->fastGame_ = fast_;

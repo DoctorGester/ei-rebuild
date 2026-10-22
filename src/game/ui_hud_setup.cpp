@@ -17,8 +17,6 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "originals_ui.h"       // SpritePlaceOriginal
-#include "originals_world.h"
 #include "game_data.h"
 #include "world_data.h"
 
@@ -91,7 +89,7 @@ void CHudClock::SetupVanilla(int fast) {
         CUiMesh* arrow = AddSprite(ArrowSprite());
         arrow->textureOffsetU_ = 0.22265625f;
         arrow->textureOffsetV_ = 0.140625f;
-        SpritePlaceOriginal(arrow, nullptr, 1000.0f, 1000.0f, kArrowDepth);
+        arrow->PlaceBody(1000.0f, 1000.0f, kArrowDepth);
         arrow->SetScale(0.4f);
     }
     Builder(AddSprite(nullptr))->Disc(8.0f, 80.0f, 800.0f, 600.0f, 32.0f, kDiscPoints, 0xAE, 0x51, 0x20);
@@ -102,7 +100,7 @@ void CHudClock::SetupVanilla(int fast) {
         CUiRegion* sector = AddRegion();
         const ArcPoint corners[4] = {OnArc(i + 1, Sixth(), InnerRadius()), OnArc(i, Sixth(), InnerRadius()),
                                      OnArc(i, Sixth(), OuterRadius()), OnArc(i + 1, Sixth(), OuterRadius())};
-        for (const ArcPoint& corner : corners) sector->CallAddPoint(kLayoutRight - corner.across, kLayoutBottom - corner.up);
+        for (const ArcPoint& corner : corners) sector->AddPoint(kLayoutRight - corner.across, kLayoutBottom - corner.up);
     }
     regions_.data[0]->SetTip(0x28A0, 1, 1);
     if (!IsMultiplayerClient()) {
@@ -111,10 +109,10 @@ void CHudClock::SetupVanilla(int fast) {
     }
     // The objectives button: the quarter disc in the corner.
     CUiRegion* middle = AddRegion();
-    middle->CallAddPoint(kLayoutRight, kLayoutBottom);
+    middle->AddPoint(kLayoutRight, kLayoutBottom);
     for (int turn = 0; turn <= 3; ++turn) {
         const ArcPoint point = OnArc(turn, Sixth(), MiddleRadius());
-        middle->CallAddPoint(kLayoutRight - point.across, kLayoutBottom - point.up);
+        middle->AddPoint(kLayoutRight - point.across, kLayoutBottom - point.up);
     }
     middle->SetTip(0x28A1, 1, 4);
 
@@ -126,7 +124,7 @@ void CHudClock::SetupVanilla(int fast) {
     dial_ = 0.0f;
     widescreen::LeavePanel();
 }
-EI_REPLACE_METHOD(0x00648520, CHudClock::SetupVanilla);
+EI_REWRITTEN(0x00648520, CHudClock::SetupVanilla);
 
 // --- 00649190: the movement panel --------------------------------------------------------------------
 
@@ -136,10 +134,10 @@ void CHudMovePanel::SetupVanilla() {
     rect_ = RECT{-shift, 520, 80 - shift, kLayoutBottom};   // WideScreen: 0064919F / 006491B3
     // The flag button: the quarter disc in the corner.
     CUiRegion* middle = AddRegion();
-    middle->CallAddPoint(0, kLayoutBottom);
+    middle->AddPoint(0, kLayoutBottom);
     for (int turn = 4; turn >= 0; --turn) {
         const ArcPoint point = OnArc(turn, Eighth(), MiddleRadius());
-        middle->CallAddPoint(point.across, kLayoutBottom - point.up);
+        middle->AddPoint(point.across, kLayoutBottom - point.up);
     }
     middle->SetTip(0x2904, 1, 0x1B);
     // The four movement modes' sectors.
@@ -147,7 +145,7 @@ void CHudMovePanel::SetupVanilla() {
         CUiRegion* sector = AddRegion();
         const ArcPoint corners[4] = {OnArc(mode, Eighth(), InnerRadius()), OnArc(mode + 1, Eighth(), InnerRadius()),
                                      OnArc(mode + 1, Eighth(), OuterRadius()), OnArc(mode, Eighth(), OuterRadius())};
-        for (const ArcPoint& corner : corners) sector->CallAddPoint(corner.across, kLayoutBottom - corner.up);
+        for (const ArcPoint& corner : corners) sector->AddPoint(corner.across, kLayoutBottom - corner.up);
         sector->SetTip(0x2905 + mode, 1, 0x17 + mode);
     }
 
@@ -170,7 +168,7 @@ void CHudMovePanel::SetupVanilla() {
         sector->tint_[2] = kSectorTint;
     }
     Builder(AddSprite(nullptr))->Disc(8.0f, 80.0f, 0.0f, 600.0f, 32.0f, kDiscPoints, 2, 0xFE, 0x20);
-    ShowMode(-1);
+    ShowModeVanilla(-1);
     flag_ = -1;
     SceneMesh(5)->textureOffsetU_ = 0.48046875f;
     widescreen::LeavePanel();

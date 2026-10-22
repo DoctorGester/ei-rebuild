@@ -16,8 +16,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_effects.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"

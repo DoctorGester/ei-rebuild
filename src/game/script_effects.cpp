@@ -4,7 +4,6 @@
 #include "script.h"
 
 #include "base_manager.h"
-#include "originals_library.h"
 #include "world.h"
 #include "world_effect.h"
 #include "game_singletons.h"

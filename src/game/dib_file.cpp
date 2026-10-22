@@ -8,7 +8,6 @@
 #include "lib/crt.h"
 #include "lib/mfc_try.h"
 #include "lib/mfc_window.h"
-#include "originals_library.h"
 
 #include <cstdint>
 

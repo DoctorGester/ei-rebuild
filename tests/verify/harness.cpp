@@ -346,15 +346,12 @@
 //                             again as new images with their levels made on the CPU (remake: as before
 //                             R16b); every one is read again at its next use. Ignored in a run of the
 //                             original code
-//   codebinding on|off        the EI_ORIGINAL forwarders jump to their code once it is fixed (ei::SetCodeBinding,
-//                             S18i1; the default) or ask ei::CodeAddress at every call (off, as before S18i1)
 //   renderstats <label>|-     log (and add to the report) what the image's renderer did per frame since
 //                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
 //                             draws and state changes, images made, CPU time, morphed meshes; R16e: the
 //                             ground decals' projections, flat draws and object shadow builds) and the
 //                             main thread's CPU and wall time per frame, ei::CodeAddress's lookups per
-//                             frame (all / by forwarders, S18i1); "-" only starts a new
-//                             count. Skipped in a run of the original code
+//                             frame; "-" only starts a new count. Skipped in a run of the original code
 //   checkplayers              require the base screen on top, of a network client with a live binding, to
 //                             list every player the client holds (its chat window's faces; UB1: the order
 //                             of the players and the binding in an update follows the server's heap, run
@@ -453,12 +450,12 @@
 #include "../../src/game/item.h"
 #include "../../src/game/options.h"
 #include "../../src/game/party_manager.h"
+#include "../../src/game/random.h"
+#include "../../src/lib/crt.h"
 #include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_client_models.h"
-#include "../../src/game/originals_engine.h"
-#include "../../src/game/originals_ui.h"
-#include "../../src/game/originals_world.h"
+#include "harness_original.h"
 #include "../../src/render/render.h"
 #include "game/object_tables.h"
 #include "game/player_messages.h"
@@ -494,8 +491,9 @@ using SyncFn = int(__thiscall*)(void*);
 using OverflowFn = int(__thiscall*)(void*, int);
 SyncFn g_sync;
 
-// 005DC620: the console's command executor; the command text is passed in ECX.
-__declspec(naked) void __fastcall ConsoleExecute(const char*) EI_ORIGINAL(0x005DC620)
+// 005DC620: the console's command executor (console::Execute; the command text in ECX).
+__declspec(naked) void __fastcall OriginalConsoleExecute(const char*) EI_ORIGINAL(0x005DC620)
+void ConsoleExecute(const char* text) { ei::Standalone() ? console::Execute(text) : OriginalConsoleExecute(text); }
 
 // 00578B00 (GameSendLeave04): the client asks the server for interface screen `id` (the server answers
 // with message 7, 00669D50 -> CInterface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
@@ -509,8 +507,9 @@ void SetCurrentConstructor(float constructor) {
     auto value = std::bit_cast<std::uint32_t>(constructor);
     ei::Standalone() ? GameSetConstructionVariable(value) : OriginalSetConstructionVariable(value);
 }
-// 004A74F0 (__thiscall on the class template vector 007AA5D8): the template of a class, null if none.
-__declspec(naked) void* __fastcall FindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
+// 004A74F0 (TemplateTable::Find, __thiscall on the class template vector 007AA5D8): the template of a class, null
+// if none.
+__declspec(naked) void* __fastcall OriginalFindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
 
 // 0066F310 (RET 8): CPlayerServer::LeaveToZone(zone, exit), what a zone exit (00670C20) and the
 // LeaveToZone script command (0x8A) do. Only in state 1 (+0x20: in the world); in campaign mode 1 or 3
@@ -1467,24 +1466,26 @@ bool RedirectCall(std::uintptr_t site, std::uintptr_t expected, const void* to) 
 
 // 0049F660 seeds the ISAAC generator: srand(timeGetTime()), then 0x400 bytes from a randomly
 // chosen file under C:\ (!). In deterministic mode the results are a fixed sequence instead, and
-// rand() gets a fixed seed; 0049F150 then mixes them exactly as before.
-using SrandFn = void(__cdecl*)(unsigned);
-void __fastcall FixedIsaacSeed(void* isaac) {
-    ei::Code<SrandFn>(0x006E77EA)(12345);
-    auto* results = reinterpret_cast<std::uint32_t*>(static_cast<char*>(isaac) + 8);
+// rand() gets a fixed seed; 0049F150 then mixes them exactly as before. The image takes it through
+// IsaacRandom's seed hook (FixedSeed), game.exe through a JMP at 0049F660 (FixedIsaacSeed).
+void FillFixedSeed(std::uint32_t* results) {
     std::uint32_t x = 0x2001C0DE;
     for (int i = 0; i < 256; ++i) results[i] = x = x * 1664525u + 1013904223u;
 }
+void FixedSeed(IsaacRandom& random) {
+    gamecrt::srand(12345);
+    FillFixedSeed(random.results_);
+}
+using SrandFn = void(__cdecl*)(unsigned);
+void __fastcall FixedIsaacSeed(void* isaac) {
+    reinterpret_cast<SrandFn>(0x006E77EA)(12345);
+    FillFixedSeed(reinterpret_cast<std::uint32_t*>(static_cast<char*>(isaac) + 8));
+}
 
-// game.exe's function at `from` replaced by `to`: a JMP written there, in the image (no code there, the code section
-// guarded) the code for the address (ei::RedirectCode).
+// game.exe's function at `from` replaced by `to`: a JMP written there (game.exe's runs only).
 void JumpTo(std::uintptr_t from, const void* to) {
     auto* p = reinterpret_cast<unsigned char*>(from);
     ei::NoteHarnessPatch(from, 5, "the harness's replacement");
-    if (ei::Standalone()) {
-        ei::RedirectCode(from, to);
-        return;
-    }
     DWORD old;
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
     p[0] = 0xE9;
@@ -1839,7 +1840,7 @@ void PostRegionMouse(const std::string& verb, int index) {
                 (region->bounds_.top + region->bounds_.bottom) / 2 + region->offsetY_};
     Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window,
         region->bounds_.left, region->bounds_.top, region->bounds_.right, region->bounds_.bottom, region->enabled_);
-    ui->CallScalePointToScreen(&point);
+    ui->ScalePointToScreenEntry(&point);
     RECT client = GameClient();
     if (ui->width_ > 0 && ui->height_ > 0) {
         point.x = point.x * (client.right - client.left) / ui->width_;
@@ -1977,18 +1978,31 @@ std::string PostUnitMouse(const std::string& argument) {
 // 10-pixel grid, then pixel by pixel around the best; fails when no point comes within 1.5 units (the
 // point is off screen or hidden). The pick only reads the view and the terrain (its pick stack entry
 // is popped again), so the step is the plain mouse step at the point found.
-__declspec(naked) float* __fastcall HarnessPickSurface(void* /*client world*/, void*, float* /*out*/, int /*x*/, int /*y*/)
+__declspec(naked) float* __fastcall OriginalPickSurface(void* /*client world*/, void*, float* /*out*/, int /*x*/, int /*y*/)
     EI_ORIGINAL(0x0056C350)
+void HarnessPickSurface(void* world, float* out, int x, int y) {
+    if (ei::Standalone()) static_cast<CWorldClient*>(world)->PickSurface(reinterpret_cast<Vector3*>(out), x, y);
+    else OriginalPickSurface(world, nullptr, out, x, y);
+}
 
 // --- blink faces|open|close (R11d) ------------------------------------------------------------------
 // faces: the client world loads its units' face textures (0056DE80, thiscall; the game does it when
 // a zone is entered between zones, not for a new game). open / close: every unit of the client
 // world with a face texture shows its face's open or closed state: the game's own blink (00539010 /
-// 00538ED0, thiscall RET 4, forced), as the briefing's speakers do. Through the original addresses,
-// so a run of the original code takes its own. Fails when no unit has a face.
-__declspec(naked) void __fastcall HarnessLoadUnitFaces(void* /*client world*/) EI_ORIGINAL(0x0056DE80)
-__declspec(naked) void __fastcall HarnessBlinkOpen(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00539010)
-__declspec(naked) void __fastcall HarnessBlinkClose(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00538ED0)
+// 00538ED0, thiscall RET 4, forced), as the briefing's speakers do. A run of the original code takes its
+// own (the original addresses). Fails when no unit has a face.
+__declspec(naked) void __fastcall OriginalLoadUnitFaces(void* /*client world*/) EI_ORIGINAL(0x0056DE80)
+__declspec(naked) void __fastcall OriginalBlinkOpen(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00539010)
+__declspec(naked) void __fastcall OriginalBlinkClose(void* /*unit's client half*/, void*, int /*force*/) EI_ORIGINAL(0x00538ED0)
+void HarnessLoadUnitFaces(void* world) {
+    ei::Standalone() ? static_cast<CWorldClient*>(world)->LoadUnitFaces() : OriginalLoadUnitFaces(world);
+}
+void HarnessBlinkOpen(void* half) {
+    ei::Standalone() ? static_cast<CUnitClientSpecific*>(half)->BlinkOpen(true) : OriginalBlinkOpen(half, nullptr, 1);
+}
+void HarnessBlinkClose(void* half) {
+    ei::Standalone() ? static_cast<CUnitClientSpecific*>(half)->BlinkClose(true) : OriginalBlinkClose(half, nullptr, 1);
+}
 
 std::string BlinkStep(const std::string& argument) {
     if (argument != "faces" && argument != "open" && argument != "close") return "blink needs faces, open or close";
@@ -2002,8 +2016,8 @@ std::string BlinkStep(const std::string& argument) {
         if (!object || object->GetClassId() != kClassUnit) continue;
         auto* half = reinterpret_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
         if (!half || !half->faceTexture) continue;
-        if (argument == "open") HarnessBlinkOpen(half, nullptr, 1);
-        else if (argument == "close") HarnessBlinkClose(half, nullptr, 1);
+        if (argument == "open") HarnessBlinkOpen(half);
+        else if (argument == "close") HarnessBlinkClose(half);
         ++faces;
     }
     Log("harness: blink %s: %d units with a face", argument.c_str(), faces);
@@ -2022,7 +2036,7 @@ std::string PostGroundMouse(const std::string& argument) {
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     auto distance = [&](int lx, int ly) {
         float out[3] = {};
-        HarnessPickSurface(HarnessClientWorld(), nullptr, out, lx * cw / 800, ly * ch / 600);
+        HarnessPickSurface(HarnessClientWorld(), out, lx * cw / 800, ly * ch / 600);
         const double dx = double(out[0]) - wx, dy = double(out[1]) - wy;
         return dx * dx + dy * dy;
     };
@@ -2056,7 +2070,7 @@ void LogGroundView() {
     char text[400] = "groundview:";
     for (const auto& at : {std::pair{400, 300}, std::pair{0, 0}, std::pair{799, 0}, std::pair{0, 599}, std::pair{799, 599}}) {
         float out[3] = {};
-        HarnessPickSurface(HarnessClientWorld(), nullptr, out, at.first * cw / 800, at.second * ch / 600);
+        HarnessPickSurface(HarnessClientWorld(), out, at.first * cw / 800, at.second * ch / 600);
         const std::size_t used = std::strlen(text);
         std::snprintf(text + used, sizeof(text) - used, " (%d,%d) %.1f %.1f;", at.first, at.second, out[0], out[1]);
     }
@@ -2079,7 +2093,7 @@ std::string LookAt(const std::string& argument) {
     const RECT client = GameClient();
     const int cw = client.right - client.left, ch = client.bottom - client.top;
     float out[3] = {};
-    HarnessPickSurface(HarnessClientWorld(), nullptr, out, 400 * cw / 800, 300 * ch / 600);
+    HarnessPickSurface(HarnessClientWorld(), out, 400 * cw / 800, 300 * ch / 600);
     const float dx = (wx - out[0]) / g_minimap.sx, dy = -(wy - out[1]) / g_minimap.sy;
     if (std::fabs(wx - out[0]) < 3.0f && std::fabs(wy - out[1]) < 3.0f) {
         Log("harness: lookat %.1f %.1f: the camera looks at %.1f %.1f", wx, wy, out[0], out[1]);
@@ -3144,9 +3158,9 @@ void RunSteps() {
             int id = 0, constr = 0;
             sscanf_s(s.argument.c_str(), "%d %d", &id, &constr);
             if (id == 5 && constr > 0 &&
-                !FindClassTemplate(ei::Standalone() ? &ThePartyManager()->templates   // game.exe's own in --no-hooks runs
-                                                         : &ei::OriginalGameData<PartyManager>(0x007AA5A0).templates,
-                                   nullptr, constr)) {
+                !(ei::Standalone() ? static_cast<void*>(ThePartyManager()->templates.Find(constr))
+                                   : OriginalFindClassTemplate(&ei::OriginalGameData<PartyManager>(0x007AA5A0).templates,
+                                                               nullptr, constr))) {   // game.exe's own in --no-hooks runs
                 std::string error = "screen: no class template " + std::to_string(constr);
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
@@ -3606,9 +3620,6 @@ void RunSteps() {
             } else {
                 g_failures.push_back("meshcache needs on, off or check");
             }
-        } else if (s.verb == "codebinding") {
-            if (s.argument == "on" || s.argument == "off") ei::SetCodeBinding(s.argument == "on");
-            else g_failures.push_back("codebinding needs on or off");
         } else if (s.verb == "meshcorners") {
             if (!render::Active()) {
                 Log("harness: meshcorners %s: not the new renderer (the original code): ignored", s.argument.c_str());
@@ -3661,10 +3672,9 @@ void RunSteps() {
             // computes at the game's 24-bit precision.
             static unsigned long long lastCycles = 0;
             static long long lastTicks = 0;
-            static ei::CodeLookupCounts lastLookups{};
-            const ei::CodeLookupCounts lookups = ei::CodeLookups();
-            const double codeLookups = static_cast<double>(lookups.all - lastLookups.all);
-            const double forwarderLookups = static_cast<double>(lookups.forwarders - lastLookups.forwarders);
+            static std::uint64_t lastLookups = 0;
+            const std::uint64_t lookups = ei::CodeLookups();
+            const double codeLookups = static_cast<double>(lookups - lastLookups);
             lastLookups = lookups;
             unsigned long long cycles = 0;
             double msPerCycle = 0.0, msPerTick = 0.0;
@@ -3706,7 +3716,7 @@ void RunSteps() {
                 "decals projected: %.1f shadows %.3f ms, %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f shadows %.3f ms, "
                 "%.1f others %.3f ms (%.0f vertices); shadow builds %.1f (textures %.1f, %.1f only for the texture), %.3f ms; "
                 "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f; morphed meshes %.1f "
-                "(%.0f corners); main thread ms CPU %.2f / wall %.2f; code lookups %.1f (forwarders %.1f)",
+                "(%.0f corners); main thread ms CPU %.2f / wall %.2f; code lookups %.1f",
                 s.argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
                 per(t.meshPasses), per(t.flatMeshes), kb(t.flatVertexBytes),
                 per(t.transformedDraws), per(t.blits), per(t.depthClears), per(t.stateReads), per(t.matrices),
@@ -3728,7 +3738,7 @@ void RunSteps() {
                 t.shadowBuildMs / n,
                 per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
                 t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0, per(t.morphMeshes), per(t.morphCorners), frameCpuMs / n,
-                frameWallMs / n, codeLookups / n, forwarderLookups / n);
+                frameWallMs / n, codeLookups / n);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
         } else if (s.verb == "checkplayers") {
@@ -4484,7 +4494,8 @@ struct Harness {
             render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
-            JumpTo(0x0049F660, reinterpret_cast<const void*>(&FixedIsaacSeed));
+            if (ei::Standalone()) IsaacRandom::SetSeedHook(&FixedSeed);
+            else JumpTo(0x0049F660, reinterpret_cast<const void*>(&FixedIsaacSeed));
             Log("harness: deterministic mode (virtual clock)");
         } else if (g_freezeUsed) {
             clock::InstallHeld();

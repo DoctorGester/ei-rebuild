@@ -2,7 +2,6 @@
 // addresses (ticket S7; the plain ones are in lib/mfc_list.cpp).
 #include "game/game_lists.h"
 #include "game/game_slots.h"
-#include "game/originals_script.h"
 #include "game/record_arrays.h"
 
 #include "ei/hook.h"

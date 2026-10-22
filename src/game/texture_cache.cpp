@@ -6,7 +6,6 @@
 // (ticket R8), so that is left out. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
-#include "originals_library.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"

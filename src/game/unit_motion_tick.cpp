@@ -8,9 +8,11 @@
 #include "ai_motion.h"
 #include "combat.h"
 #include "combat_plan.h"
+#include "core_maths.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "player_messages.h"
+#include "sector_map.h"
 #include "unit_ai.h"
 #include "world_data.h"
 #include "unit.h"
@@ -19,11 +21,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_ai.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"
@@ -33,29 +30,6 @@
 #include <cstring>
 
 namespace {
-
-// --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
-
-// 00455940 the owning manager's context (the world server); 00455950 the object's world.
-// 005C7430 UnitMotion::Sample (ai_motion.cpp) on CUnit + 0x27C.
-// The controller's animation helpers (not rewritten): 00551400 the next animation of the order,
-// 00546B40 / 00546C10 restart the animation queue, 00549D00 whether an animation of `ticks` can be
-// played now, 00546C40 play steps, 005511A0 the current animation as steps, 00550F30 the idle
-// animation, 00547280 / 00547090 / 005467B0 motion updates, 00548520 the end of the tick.
-// 00550A80 CUnitServer::BuildDeathAnimation (combat_steps.cpp).
-// Animation lists: 00556850 constructor, 00557E70 destructor, 005483C0 assign (the queue +0x24 and
-// the copy +0x148), 00556950 append, 00544E40 total duration (-1 if a step is open-ended), 00558920
-// GetAt into `out`, 00544D50 add an emote, 00544CE0 add a step, 00558950 SetAtGrow.
-// CUnit: 00530240 its animation entry for a key (combat_steps.cpp), 0050E9F0 MarkChanged
-// (unit.cpp), 0052E9D0 the path speeds, 00402220 face a direction.
-// The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add, 005C11D0 Move (patched by Rebirth).
-// The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005B81B0
-// CanStandAtFromHere, 005B7BB0 BlockingUnitAt, 005BBDB0 HasKind3OccluderAt, 005BB350 FindPath,
-// 005BB900 ContinuePath, 005B7EF0 lifts (1) / restores (0) the units around a point (not
-// rewritten).
-// The motion order (+0x3C, an AIPath): 005B23A0 Clear, 005C7B00 Start (ai_motion.cpp).
-// 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
-// 005D5E90 the AI brain's leader (unit_ai.cpp); 0066D6E0 a party message.
 
 // --- Float helpers -------------------------------------------------------------------------------
 
@@ -146,9 +120,9 @@ void SetObstacle(CUnitServer* c, int obstacle) {
     CWorldServer* world = ServerOf(c);
     CUnit* unit = UnitOf(c);
     if (static_cast<int>(unit->obstacle) == obstacle) return;
-    SectorMapRemove(world->Sectors(), nullptr, unit);
+    world->Sectors()->Remove(unit);
     UnitOf(c)->obstacle = static_cast<std::uint32_t>(obstacle);
-    SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
+    world->Sectors()->Add(UnitOf(c));
     UnitOf(c)->MarkChanged(7);
 }
 
@@ -279,8 +253,8 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         MotionPathOf(c)->Clear();
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
-        QuaternionAxisY(&UnitOf(c)->localRotation_, nullptr, &axis);
-        Vector3* facing = Negate(&back, &axis);
+        UnitOf(c)->localRotation_.AxisY(&axis);
+        Vector3* facing = NegateVector(&back, axis);
         if (MotionPathOf(c)->Start(&UnitOf(c)->localPosition_, facing, time)) UnitOf(c)->RefreshMotion();
         c->SetStanding(0);
         c->SetState(6);
@@ -291,8 +265,8 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         MotionPathOf(c)->Clear();
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
-        QuaternionAxisY(&UnitOf(c)->localRotation_, nullptr, &axis);
-        Vector3* facing = Negate(&back, &axis);
+        UnitOf(c)->localRotation_.AxisY(&axis);
+        Vector3* facing = NegateVector(&back, axis);
         if (MotionPathOf(c)->Start(&UnitOf(c)->localPosition_, facing, time)) UnitOf(c)->RefreshMotion();
         c->SetStanding(0);
         c->SetState(6);
@@ -309,9 +283,9 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
 // the units around the blocked step lifted when `liftBlocker`.
 void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3* position) {
     if (liftBlocker) {
-        SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
+        world->Sectors()->Remove(UnitOf(c));
         world->AIMap()->StampWaterPatch(position, 1);
-        SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
+        world->Sectors()->Add(UnitOf(c));
     }
     // The path's remaining cells (AIPath::cells, +0x78) emptied, as RemoveAll inlined.
     MotionPathOf(c)->cells.RemoveAll();
@@ -322,12 +296,12 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
     MotionPathOf(c)->flag6E = UnitOf(c)->player ? 0 : 1;
     std::uint32_t current = UnitOf(c)->altPassCosts;
     UnitOf(c)->altPassCosts = saved;
-    bool found = MapFindPath(context->AIMap(), nullptr, UnitOf(c), &MotionPathOf(c)->goal, MotionPathOf(c), range, 0.0f);
+    bool found = context->AIMap()->FindPath(UnitOf(c), &MotionPathOf(c)->goal, MotionPathOf(c), range, 0.0f);
     UnitOf(c)->altPassCosts = current;
     if (liftBlocker) {
-        SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
+        world->Sectors()->Remove(UnitOf(c));
         world->AIMap()->StampWaterPatch(position, 0);
-        SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
+        world->Sectors()->Add(UnitOf(c));
     }
     if (found) {
         UnitOf(c)->RefreshMotion();
@@ -367,7 +341,7 @@ void Exhaustion(CUnitServer* c) {
         } else {
             if (Drain(stamina, rate)) {
                 if (UnitOf(c)->player)
-                    PlayerSendObject0BOriginal(UnitOf(c)->player->connection_, nullptr, UnitOf(c), 0x1D);
+                    UnitOf(c)->player->Server()->SendObject0B(UnitOf(c), 0x1D);
                 std::memset(stamina, 0, 4);
                 c->moveMode2.wasMode3 = 0;
                 int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
@@ -423,7 +397,7 @@ void UpdateMotion(CUnitServer* c) {
         canStand = true;
     } else {
         CSectorMap* sectors = world->Sectors();
-        SectorMapRemove(sectors, nullptr, UnitOf(c));
+        sectors->Remove(UnitOf(c));
         canStand = world->AIMap()->CanStandAtFromHere(UnitOf(c), cellX, cellY, &blocked);
         if (!canStand) {
             CUnit* blocker = world->AIMap()->BlockingUnitAt(UnitOf(c), &position);
@@ -434,7 +408,7 @@ void UpdateMotion(CUnitServer* c) {
                 if (outcome != -1) blocked = outcome;
             }
         }
-        SectorMapAdd(sectors, nullptr, UnitOf(c));
+        sectors->Add(UnitOf(c));
     }
 
     // An idle unit standing in a kind-3 occluder (while its motion order started (+0x4C) before
@@ -445,7 +419,7 @@ void UpdateMotion(CUnitServer* c) {
         blocked = kBlockedReplan;
         replan = true;
     }
-    if (!replan && canStand && SectorMapMove(world->Sectors(), nullptr, UnitOf(c), &position)) {
+    if (!replan && canStand && world->Sectors()->Move(UnitOf(c), &position)) {
         SetObstacle(c, c->state == kStateIdle ? 1 : 0);
         UnitOf(c)->SetHeading(&direction.x);
         if (motionOver) MotionOver(c, world);

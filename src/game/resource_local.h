@@ -5,7 +5,6 @@
 // own copies). A-E1.
 
 #include "core_streams.h"
-#include "originals_engine.h"   // MappedResourceDestroyOriginal
 #include "resource.h"
 #include "lib/static_object.h"
 
@@ -15,7 +14,7 @@
 // its address (006714A0, which Rebirth patches).
 struct LocalResource {
     LocalResource() { Get()->Construct(); }
-    ~LocalResource() { MappedResourceDestroyOriginal(Get()); }
+    ~LocalResource() { Get()->CMappedResource::Destroy(); }
     LocalResource(const LocalResource&) = delete;
     LocalResource& operator=(const LocalResource&) = delete;
     CMappedResource* Get() { return storage.Get(); }

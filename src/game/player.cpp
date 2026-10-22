@@ -5,8 +5,6 @@
 
 #include "item.h"
 #include "net_link.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 #include "party.h"
 #include "unit.h"
 
@@ -16,6 +14,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "game_data.h"
+#include "world.h"
 #include "lib/mfc_slots.h"
 
 namespace {
@@ -101,7 +100,7 @@ int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, st
     text.Format(format, previous & 0xFF, type & 0xFF);
     return game::FatalError(text);
 }
-EI_REPLACE(0x00664B70, PlayerMessageError);
+EI_REWRITTEN(0x00664B70, PlayerMessageError);
 
 // 00664DE0 / 00664DF0: slots 11 and 12.
 const char* __fastcall PlayerClassName(CPlayer*) { return "CPlayer"; }
@@ -159,8 +158,8 @@ void CPlayer::Clear() {
         item->Release();
     }
     items_.RemoveAll();
-    ObjectMapClearOriginal(&knownTimed_);
-    ObjectMapClearOriginal(&knownObjects_);
+    reinterpret_cast<ObjectIdMap*>(&knownTimed_)->ReleaseAll();
+    reinterpret_cast<ObjectIdMap*>(&knownObjects_)->ReleaseAll();
     // Each unit leaves (its SetPlayer erases it here) until the map is empty or its first entry
     // holds no unit.
     for (UnitMap::Node* first = units_.First(); first != nullptr && first->value != nullptr; first = units_.First())
@@ -170,7 +169,7 @@ void CPlayer::Clear() {
     recharging_.RemoveAll();
     if (connection_ != nullptr) connection_->ForgetSentObjects();
 }
-EI_REPLACE_METHOD(0x00665200, CPlayer::Clear);
+EI_REWRITTEN(0x00665200, CPlayer::Clear);
 
 void CPlayer::SetConnection(CPlayerConnection* connection) {
     if (connection_ != nullptr) {
@@ -219,11 +218,11 @@ void CPlayer::Disconnect() {
     if (link_ != nullptr) link_->Disconnect();
     DropLink(link_);
 }
-EI_REPLACE_METHOD(0x00665A10, CPlayer::Disconnect);
+EI_REWRITTEN(0x00665A10, CPlayer::Disconnect);
 
 void CPlayer::ForgetKnownObjects() {
-    ObjectMapClearOriginal(&knownTimed_);
-    ObjectMapClearOriginal(&knownObjects_);
+    reinterpret_cast<ObjectIdMap*>(&knownTimed_)->ReleaseAll();
+    reinterpret_cast<ObjectIdMap*>(&knownObjects_)->ReleaseAll();
     if (connection_ != nullptr) connection_->ForgetSentObjects();
     dirty_ = 0xFFFFFFFFu;
 }
@@ -289,7 +288,7 @@ BOOL CPlayer::TakeLoot(int kind) {
         return item->type_ == kItemQuest && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
     });
 }
-EI_REPLACE_METHOD(0x00665780, CPlayer::TakeLoot);
+EI_REWRITTEN(0x00665780, CPlayer::TakeLoot);
 
 BOOL CPlayer::TakeItem(int id) {
     return TakeFirst(this, [id](CItem* item) { return item->id_ == id; });

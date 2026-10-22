@@ -10,7 +10,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_world.h"
 #include "world.h"
 
 namespace {
@@ -30,7 +29,7 @@ void CMapObjectCompanion::DestructCompanion() {
     owner = nullptr;
     DestructBase();
 }
-EI_REPLACE_METHOD(0x00510730, CMapObjectCompanion::DestructCompanion);
+EI_REWRITTEN(0x00510730, CMapObjectCompanion::DestructCompanion);
 
 CMapObjectCompanion* CMapObjectCompanion::DeletingDestruct(unsigned flags) {
     DestructCompanion();
@@ -116,12 +115,12 @@ EffectParticle* EffectParticle::Assign(const EffectParticle* other) {
     present = other->present;
     return this;
 }
-EI_REPLACE_METHOD(0x00512490, EffectParticle::Assign);
+EI_REWRITTEN(0x00512490, EffectParticle::Assign);
 
 void EffectParticle::ReleaseSource() {
     if (source) source->Release();
 }
-EI_REPLACE_METHOD(0x00511290, EffectParticle::ReleaseSource);
+EI_REWRITTEN(0x00511290, EffectParticle::ReleaseSource);
 
 // --- The compiled tables (C19) -------------------------------------------------------------------------
 // Compiled tags (engine_object_class.h) in place of game.exe's 0073DC54 (the base companion), 0073DBEC

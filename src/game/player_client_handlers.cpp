@@ -10,9 +10,6 @@
 #include "map_object_figures.h"
 #include "net_classes.h"
 #include "net_messages.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "party.h"
 #include "player_manager.h"
 #include "ui.h"
@@ -46,7 +43,7 @@ const char* FixedViewZone() { return "gz20g"; }
 constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};   // the identity (a static initialiser)
 // pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
 
-CUnit* FindClientUnit(int id) { return WorldFindUnit(TheClientWorld(), nullptr, id); }
+CUnit* FindClientUnit(int id) { return static_cast<CWorld*>(TheClientWorld())->FindUnit(id); }
 
 
 } // namespace
@@ -106,7 +103,7 @@ int CPlayerClient::OnGameState() {
     if (state == kGameStateBetweenZones) TheClientWorld()->LoadUnitFaces();
     for (CPlayer::UnitMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node))
         UnitChanged(node->value);
-    if (IsMultiplayerClient()) FlowUpdateFromServerOriginal(TheGameFlow());
+    if (IsMultiplayerClient()) TheGameFlow()->UpdateFromServer();
     return 1;
 }
 

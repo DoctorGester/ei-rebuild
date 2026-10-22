@@ -3,12 +3,14 @@
 // brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
 #include "bink_video.h"
 #include "combat.h"
+#include "core_refcount.h"
 #include "game_arrays.h"
 #include "game_lists.h"
 #include "map_object_figures.h"
 #include "object_diplomacy.h"
 #include "player_messages.h"
 #include "party.h"
+#include "sector_map.h"
 #include "world.h"
 
 #include "ai_map.h"
@@ -36,16 +38,6 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
-#include "originals_ai.h"
-#include "originals_core.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_effects.h"
-#include "originals_engine.h"
-#include "originals_script.h"
-#include "originals_ui.h"
 
 #include <cstring>
 
@@ -104,40 +96,11 @@ void WriteCopy(WorldStream* stream, const T& value) {
     stream->Write(&copy, sizeof(T));
 }
 
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
+// ---- Helpers ----------------------------------------------------------------------------------
 
 // 00461190 (RET 4). Reads a zero-terminated string; constructs the CString at `out` and returns it.
-// 00595080 (RET 4). Picks the loading movie for the zone. Patched by Rebirth: original address.
-__declspec(naked) void __fastcall PickLoadingMovie(CWorldServer*, void*, const char* /*zone*/) EI_ORIGINAL(0x00595080)
 // 005DA400. Shows the loading screen at `stage` (ECX).
 void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
-// 005B8B30 / 005B8B80 / 005BA830 / 005BA9D0. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp) / CanLeaveCell /
-// FindFreeCellNear (ai_map.cpp).
-// 00596140 (RET 0xC). Loads the zone's AI graph state into `out` (map, .mob); non-zero when found.
-// 00596730. SaveMapObjects (world_zone.cpp), through its address.
-// 00403F40 (RET 4). CBaseManager::FindObject (base_manager.cpp).
-// 00675CA0. Marks an object new (flags_ |= 2, stamp).
-// 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save: CSpellEffect's.
-// 0059C7A0 (RET 8). New node of the missile list (its counted pointer constructed empty).
-// 00419CD0 (RET 4). RefPtr::Assign (core_refcount.cpp).
-// 0040A3A0. CRefObject::Release.
-// 00429EA0 (RET 8) / 00429B50 (RET 4). New node of the counted list (+0x12E44) and the counted
-// pointer's assignment (reference added, old one released through slot 4).
-// Load / Save of the time wheel (+0x2838), the first command queue (+0x12874), the diplomacy
-// tables (+0x12C64) and the countdowns (+0x70).
-__declspec(naked) void __fastcall TimeWheelLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x005CAE30)
-__declspec(naked) void __fastcall TimeWheelSave(void*, void*, WorldStream*) EI_ORIGINAL(0x005CAFA0)
-__declspec(naked) void __fastcall CommandQueueLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x004C0D00)
-__declspec(naked) void __fastcall CommandQueueSave(void*, void*, WorldStream*) EI_ORIGINAL(0x004C0F90)
-// 006618C0 / 00661C10 (RET 8). A player's party records, read / written.
-__declspec(naked) void __fastcall PlayerRecordsLoad(void*, void*, WorldStream*, int) EI_ORIGINAL(0x006618C0)
-__declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, int) EI_ORIGINAL(0x00661C10)
-// 0055FB00 (RET 4). CWorld::FindUnit.
-// 0055FBD0 (RET 8). The time of day and the time speed (as LoadSave hands them to slots 31 / 32).
-// 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
-// 00554450. The unit controller's reposition after a move.
-// 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
-// Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
 
 } // namespace
 
@@ -150,7 +113,6 @@ SharedObjectNode* SharedObjectsNewNode(SharedObjectList* list, SharedObjectNode*
 } // namespace
 
 namespace {
-
 
 // Reads a string and assigns it to `target` (the temporary is destroyed at once).
 void ReadStringInto(WorldStream* stream, mfc::CString& target) {
@@ -208,7 +170,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         object->MarkChanged(-1);
         if (object->type_ != 0x3B) {
             object->SetUpAnimatedFigure(object->name);
-            SectorMapAdd(Sectors(), nullptr, object);
+            Sectors()->Add(object);
         }
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -261,9 +223,9 @@ void RelocateStrandedUnits(CWorldServer* world) {
         stranded.data[index] = id;
     }
     for (int i = 0; i < stranded.size; ++i) {
-        CUnit* unit = WorldFindUnit(world, nullptr, stranded.data[i]);
+        CUnit* unit = static_cast<CWorld*>(world)->FindUnit(stranded.data[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
-            SectorMapRemove(world->Sectors(), nullptr, unit);
+            world->Sectors()->Remove(unit);
             float* position = &unit->localPosition_.x;   // x, y, z
             Vector3 from;
             Vector3 to;
@@ -271,10 +233,10 @@ void RelocateStrandedUnits(CWorldServer* world) {
             std::memcpy(&to, position, sizeof(Vector3));
             world->AIMap()->FindFreeCellNear(unit, &from, &to);
             std::memcpy(position, &to, sizeof(Vector3));
-            SectorMapAdd(world->Sectors(), nullptr, unit);
+            world->Sectors()->Add(unit);
             unit->ServerController()->ResyncWithUnit();
         } else {
-            WorldRemoveObject(world, nullptr, stranded.data[i]);
+            static_cast<CWorldServer*>(world)->RemoveObject(stranded.data[i]);
         }
     }
     stranded.vtable = mfc::impl::IntArrayClass::Vtable();
@@ -289,7 +251,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
     for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
         CPlayerServer* state = player->Server();
         stream->Read(&player->partyId_, 4);
-        PlayerRecordsLoad(player->Party(), nullptr, stream, 1);
+        static_cast<CParty*>(player->Party())->LoadParty(stream, 1);
         player->lastTick_ = world->tick_;
         stream->Read(&player->sessionKind100_, 4);
         CBaseManager* items = world->ItemFactory();
@@ -318,7 +280,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&group);
             group.vtable = mfc::impl::ScriptGroupClass::Vtable();
             group.Load(stream);
-            ScriptGroupDestructOriginal((void*)&group);
+            static_cast<ScriptGroup*>((void*)&group)->DestructBody();
         }
         state->SendParty();
         state->SetFlag70(1);
@@ -348,7 +310,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
         for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
             gameResult_ = 1;
             scriptsActive_ = 1;
-            PlayerClearOriginal((void*)player);
+            static_cast<CPlayer*>((void*)player)->Clear();
         }
     }
     AIMap()->BeginRefresh();
@@ -360,7 +322,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     ReadStringInto(stream, zoneName);
     if (map) mapName = map;
     zoneName_ = zoneName;
-    PickLoadingMovie(this, nullptr, zoneName);
+    SelectLoadingMovie(zoneName);   // 00595080
     ShowLoadProgress(kProgressStart);
     {
         PlayerIterator it;
@@ -435,14 +397,14 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 missile->Load(stream);
                 auto& list = projectiles_;
                 ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);
-                RefPtrAssign(&node->data, nullptr, missile);
+                reinterpret_cast<RefPtr*>(&node->data)->Assign(reinterpret_cast<CRefObject*>(missile));
                 if (list.tail) list.tail->next = node;
                 else list.head = node;
                 list.tail = node;
             }
 
-            TimeWheelLoad(AIEvents(), nullptr, stream);
-            CommandQueueLoad(MainScript(), nullptr, stream);
+            static_cast<AIEventTable*>(AIEvents())->Load(stream);
+            static_cast<CScript*>(MainScript())->LoadState(stream);
             diplomacy_.ReadFrom(stream);
             stream->Read(&climate_, 4);
             stream->Read(&cave_, 4);
@@ -479,7 +441,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     CItemLink* old = object->ServerLink();
                     object->link_ = record;
                     if (record) ++record->refs_;
-                    if (old) RefObjectRelease(old);
+                    if (old) old->Release();
                 }
             }
 
@@ -551,7 +513,7 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
     if (it) it->manager = nullptr;
     for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
         stream->Write(&player->partyId_, 4);
-        PlayerRecordsSave(player->Party(), nullptr, stream, 1);
+        player->Party()->SaveParty(stream, 1);
         stream->Write(&player->sessionKind100_, 4);
         for (auto* node = player->items_.head; node;) {
             auto* next = node->next;
@@ -645,8 +607,8 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     }
     WriteCopy(stream, static_cast<std::uint8_t>(0));
 
-    TimeWheelSave(AIEvents(), nullptr, stream);
-    CommandQueueSave(MainScript(), nullptr, stream);
+    static_cast<AIEventTable*>(AIEvents())->Save(stream);
+    static_cast<CScript*>(MainScript())->SaveState(stream);
     diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);
     stream->Write(&cave_, 4);
@@ -794,7 +756,7 @@ void CWorldServer::PrepareSave() {
         CUnit* unit = UnitOrNull(node->value);
         if (!unit || ObjectSlots(unit)->IsDead()) continue;   // slot 55
         CUnitController* controller = unit->Controller();
-        UnitStatsRefillSlotsOriginal(&unit->ServerController()->stats);
+        unit->ServerController()->stats.RefillSlots();
         controller->RefreshVitals(0);   // slot 19 (+0x4C)
     }
 }
@@ -812,7 +774,7 @@ bool MapFileMissing(const char* name, modfolders::MapsSite site) {
     if (libcrt::Access(name, 0) != -1) return false;
     mfc::CString folder;
     modfolders::SelectMaps(name, site);
-    MapsFolderAt(&folder);
+    MapsFolder(&folder);
     mfc::CString path = folder + name;
     return libcrt::Access(path, 0) == -1;
 }
@@ -821,7 +783,7 @@ bool MapFileMissing(const char* name, modfolders::MapsSite site) {
 
 int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     cave_ = 0;
-    PickLoadingMovie(this, nullptr, zone);
+    SelectLoadingMovie(zone);   // 00595080
     ShowLoadProgress(kProgressStart);
     if (map && MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
     if (mob && MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
@@ -844,7 +806,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     scriptsActive_ = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x00595480, CWorldServer::NewZone);
+EI_REWRITTEN(0x00595480, CWorldServer::NewZone);
 
 EI_REWRITTEN(0x005956E0, CWorldServer::PrepareSave);
 EI_REWRITTEN(0x00589CA0, SharedObject::Load);

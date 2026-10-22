@@ -21,19 +21,19 @@ EI_REWRITTEN(0x00453700, BlocksAt4::DestructElements);
 // 007C2FD8; the exit function 005BF860) and offsets (007C2FF8; 005BF830), the path smoother's node
 // pool (007C3038; 005C4480), the particles' draw order (007A9C50; 00498930). The script quest's
 // objectives (007AA608; 004B17E0): each objective's text.
-EI_REPLACE(0x005BF870, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Destruct);
-EI_REPLACE(0x005C18E0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct);
-EI_REPLACE(0x005C4490, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);
-EI_REPLACE(0x00498E80, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct);
-EI_REPLACE(0x004C9DB0, Objectives::Destruct<ObjectiveArrayClass>);
+EI_REWRITTEN(0x005BF870, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Destruct);
+EI_REWRITTEN(0x005C18E0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct);
+EI_REWRITTEN(0x005C4490, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);
+EI_REWRITTEN(0x00498E80, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct);
+EI_REWRITTEN(0x004C9DB0, Objectives::Destruct<ObjectiveArrayClass>);
 EI_REWRITTEN(0x005C5850, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);   // byte-identical to 005C4490
 // Their constructors, which the static initialisers call (00498910, 004B17C0, 005BF810, 005BF840, 005C4460): the
 // compiled table stored, the rest zero.
-EI_REPLACE(0x00498E60, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Construct);
-EI_REPLACE(0x004C9D90, mfc::impl::ArrayHeader<ObjectiveArrayClass>::Construct);
-EI_REPLACE(0x005C18C0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Construct);
-EI_REPLACE(0x005BF890, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Construct);
-EI_REPLACE(0x005C44B0, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Construct);
+EI_REWRITTEN(0x00498E60, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Construct);
+EI_REWRITTEN(0x004C9D90, mfc::impl::ArrayHeader<ObjectiveArrayClass>::Construct);
+EI_REWRITTEN(0x005C18C0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Construct);
+EI_REWRITTEN(0x005BF890, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Construct);
+EI_REWRITTEN(0x005C44B0, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Construct);
 // Their tables' scalar deleting destructors.
 EI_REWRITTEN(0x00499040, mfc::impl::ScalarDeleting<&mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct>::Delete);   // 00498E80
 EI_REWRITTEN(0x004CB790, mfc::impl::ScalarDeleting<&Objectives::Destruct<ObjectiveArrayClass>>::Delete);   // 004C9DB0
@@ -50,7 +50,7 @@ EI_REWRITTEN(0x004C2050, ObjectRefs::SetSize);
 EI_REWRITTEN(0x004C2200, ObjectRefs::RemoveAt);
 EI_REWRITTEN(0x004CC7D0, ObjectRefs::DestructElements);
 EI_REWRITTEN(0x0052CEC0, ObjectRefs::DestructElements);
-EI_REPLACE_METHOD(0x004C2290, ScriptGroup::DestructBody);   // byte-identical to 004B5EF0
+EI_REWRITTEN(0x004C2290, ScriptGroup::DestructBody);   // byte-identical to 004B5EF0
 EI_REWRITTEN(0x004CB150, PointLights::Destruct<PointLightArrayClass>);
 EI_REWRITTEN(0x004CB650, Areas::Destruct<mfc::impl::ScriptAreaArrayClass>);
 EI_REWRITTEN(0x004CB310, Definitions::Destruct<recordarrays::DefinitionArrayClass>);

@@ -24,20 +24,13 @@
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/stlp_string.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
 #include "unit_looks.h"
-#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
 #include <new>
-#include "originals_render.h"
-#include "originals_world.h"
-
 
 namespace {
-
 
 // --- Tables --------------------------------------------------------------------------------------
 
@@ -64,7 +57,7 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
     return static_cast<std::uintptr_t>(list.Finish() - list.Start()) * sizeof(T);
 }
 
-// --- Forwarders ----------------------------------------------------------------------------------
+// --- Helpers -------------------------------------------------------------------------------------
 
 // An item's texture name [006A3480: out, material index; armour index] and a weapon's [006A0BF0:
 // out, weapon record; material record]; the weapon and material records are the tables' At
@@ -81,7 +74,6 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // [004F5DF0: ECX place, EDX string] and overflow [004DCE90: position, string, count], range insert
 // [00575E50: position, first, last, tag]; the node allocator [00405950: ECX bytes].
 void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
-
 
 // --- The dressed units ---------------------------------------------------------------------------
 
@@ -306,7 +298,7 @@ void CWorldClient::BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp:
     for (DressedUnitRecord* r = dressed->Start(); r != dressed->Finish(); ++r) DressUnit(this, r);
     for (FiguredUnitRecord* r = others->Start(); r != others->Finish(); ++r) FigureUnit(this, r);
 }
-EI_REPLACE_METHOD(0x00568800, CWorldClient::BuildUnitSkins);
+EI_REWRITTEN(0x00568800, CWorldClient::BuildUnitSkins);
 
 // The list is emptied; nothing more for a unit without items. The body list has eight records:
 // [0] the body (0x32, the prototype), [1] empty (0, -1, -1), [2..7] the armour pieces of

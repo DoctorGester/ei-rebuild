@@ -22,10 +22,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "bink_video.h"
 #include "game_data.h"
@@ -92,7 +88,7 @@ EI_REWRITTEN(0x005F51F0, CInterface3D::ResetSavedState);
 
 // --- 0062AC90: a region's SetRect from a RECT ---------------------------------------------------
 
-void CUiRegion::SetRectFrom(RECT rect) { CallSetRect(rect.left, rect.top, rect.right, rect.bottom); }
+void CUiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
 EI_REWRITTEN(0x0062AC90, CUiRegion::SetRectFrom);
 
 // --- 006335E0: the version line --------------------------------------------------------------
@@ -102,11 +98,11 @@ void CMainMenu::AddVersionLine() {
     if (CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>())
         surface = memory->Construct(interface_, 100, 480, 780, 600, 5, 1);
     UiSurfaceGetDC(surface);
-    SurfaceClearOriginal(surface);
+    static_cast<CUiSurface*>(surface)->Clear();
     mfc::CString text;
-    TextsGetString(TheTextManager(), nullptr, kVersionKey, &text);
+    TheTextManager()->CTextManager::GetString(kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
-    SurfaceDrawText(surface, nullptr, text, &rect, 2, 0xA7D7E4, 2, 1);
+    surface->DrawTextIn(text, &rect, 2, 0xA7D7E4, 2, 1);
     UiSurfaceReleaseDC(surface);
     AddSurface(surface);
 }
@@ -146,12 +142,12 @@ void CMainMenu::Create() {
     hour_ = 0.0f;
     TheMusicSystem()->PlayMainMenu();
 }
-EI_REPLACE_METHOD(0x006326B0, CMainMenu::Create);
+EI_REWRITTEN(0x006326B0, CMainMenu::Create);
 
 // --- 00632B10: Update (slot 24, every frame) ---------------------------------------------------
 
 void CMainMenu::Update() {
-    UiUpdateChildrenOriginal(this);
+    static_cast<CUiContainer*>(this)->UpdateBase();
     int hour = static_cast<int>(GameServerTimeOfDay());
     if (hour != static_cast<int>(hour_) && rain_) {
         if (hour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);
@@ -174,7 +170,7 @@ void CMainMenu::Update() {
     }
     hour_ = static_cast<float>(GameServerTimeOfDay());
 }
-EI_REPLACE_METHOD(0x00632B10, CMainMenu::Update);
+EI_REWRITTEN(0x00632B10, CMainMenu::Update);
 
 // --- 00632910: Close (slot 26) -----------------------------------------------------------------
 
@@ -183,7 +179,7 @@ void CMainMenu::Close() {
     GameStopSounds(1);
     GameStopAmbience();
 }
-EI_REPLACE_METHOD(0x00632910, CMainMenu::Close);
+EI_REWRITTEN(0x00632910, CMainMenu::Close);
 
 // --- 00632940: a message box's answer (slot 27) -----------------------------------------------
 
@@ -208,7 +204,7 @@ void CMainMenu::OnMessageResult(int result) {
         AddVersionLine();
     }
 }
-EI_REPLACE_METHOD(0x00632940, CMainMenu::OnMessageResult);
+EI_REWRITTEN(0x00632940, CMainMenu::OnMessageResult);
 
 // --- 00633400 / 00633540: the mouse move and the keys -------------------------------------------
 
@@ -229,7 +225,7 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
     }
     InputOf(this)->OnMouseMove(buttons, x, y);
 }
-EI_REPLACE_METHOD(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
+EI_REWRITTEN(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
 
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->OnKeyDown(key, repeat, flags);
@@ -238,4 +234,4 @@ void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     if (box) box = box->Construct(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);
     interface_->PushWindow(box, 1, 1);
 }
-EI_REPLACE_METHOD(0x00633540, InputForward<&CMainMenu::OnKeyDown>::Call);
+EI_REWRITTEN(0x00633540, InputForward<&CMainMenu::OnKeyDown>::Call);

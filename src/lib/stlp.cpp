@@ -2,7 +2,6 @@
 
 #include "crt.h"
 #include "ei/hook.h"
-#include "game/originals_library.h"
 
 #include <algorithm>
 #include <cstdint>

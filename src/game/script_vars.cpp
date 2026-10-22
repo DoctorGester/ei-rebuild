@@ -5,8 +5,6 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "game_arrays.h"
 #include "ei/x87.h"
 
@@ -19,7 +17,7 @@ namespace {
 
 int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
     for (int i = 0; i < names.size; ++i)
-        if (GameMbscmp(names.data[i], name) == 0) return i;
+        if (gamecrt::mbscmp(names.data[i], name) == 0) return i;
     return -1;
 }
 
@@ -88,7 +86,7 @@ EI_REWRITTEN(0x004B3940, ScriptVars::RemoveDeletedObjects);
 
 namespace {
 // 00700B9F operator+(const CString&, const CString&): constructs the result in `out`.
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
+mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return ::new (a0) mfc::CString(*a1 + *a2); }
 
 // The type letters (0078BBD8 "f", 0078BBD4 "s", 0078BBD0 "o", 0078BBCC "g").
 } // namespace

@@ -4,10 +4,10 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 #include <bit>
+#include <intrin.h>
 #include <cstring>
 
 // The game's generator: unseeded (the static initialiser 0049EE60 zeroes seeded_; Init seeds it on first use).
@@ -15,12 +15,22 @@ IsaacRandom g_random = /*007A9D40*/ {};
 
 IsaacRandom& IsaacRandom::Global() { return g_random; }
 
+namespace {
+IsaacRandom::SeedHook g_seedHook;
+IsaacRandom::DrawObserver g_drawObserver;
+} // namespace
+
+void IsaacRandom::SetSeedHook(SeedHook hook) { g_seedHook = hook; }
+void IsaacRandom::SetDrawObserver(DrawObserver observer) { g_drawObserver = observer; }
+
 std::uint32_t IsaacRandom::Next() {
     if (count_-- == 0) {
         Refill();
         count_ = 255;
     }
-    return results_[count_];
+    const std::uint32_t value = results_[count_];
+    if (g_drawObserver) g_drawObserver(*this, value, _ReturnAddress());
+    return value;
 }
 EI_REPLACE_METHOD(0x004667F0, IsaacRandom::Next);
 
@@ -103,11 +113,6 @@ BOOL Matches(const mfc::CFileFind& finder, unsigned long mask) {
     return reinterpret_cast<const mfc::CFileFindVirtuals*>(&finder)->MatchesMask(mask);
 }
 
-
-// 0049F660 through its address: the harness's deterministic runs replace its entry with a fixed seed
-// (tests/verify/harness.cpp, FixedIsaacSeed).
-__declspec(naked) void __fastcall SeedAt(IsaacRandom*) EI_ORIGINAL(0x0049F660)
-
 } // namespace
 
 int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* counter) {
@@ -122,8 +127,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
             {
                 // MFC's result-slot calls (GetFilePath, operator+) construct these.
                 mfc::CString path(finder.GetFilePath());
-                mfc::CString sub(mfc::CString::kUnset);
-                CStringConcatTextOriginal(&sub, &path, SubdirectoryPattern());
+                mfc::CString sub(path + SubdirectoryPattern());
                 found = FindSeedFile(out, sub, target, counter);
             }
             if (found == 1) return 1;
@@ -149,6 +153,10 @@ EI_REWRITTEN(0x0049F4B0, IsaacRandom::FindSeedFile);
 // the handle directly (as CFile::Seek / Read do), so nothing throws. Kept: when the first search
 // counts exactly one file, rand() % 0 faults as in the original.
 void IsaacRandom::Seed() {
+    if (g_seedHook) {
+        g_seedHook(*this);
+        return;
+    }
     char path[kPathBuffer];
     gamecrt::srand(gameapi::timeGetTime());
     int ok = 0;
@@ -221,7 +229,7 @@ struct InitMix {
 
 void IsaacRandom::Init() {
     if (seeded_ != 0) return;
-    SeedAt(this);
+    Seed();
     c_ = 0;
     b_ = 0;
     a_ = 0;

@@ -16,12 +16,8 @@
 
 #include <cstdint>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 

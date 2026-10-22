@@ -14,7 +14,6 @@
 #include "camera.h"
 #include "game_arrays.h"
 #include "lib/static_object.h"
-#include "originals_library.h"
 
 #include <cstring>
 
@@ -32,7 +31,7 @@ void __cdecl DestroyDrawOrder() {   // 00498930
 }
 void __cdecl ConstructDrawOrder() {   // 00498910
     mfc::impl::ConstructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
-    GameAtExit(DestroyDrawOrder);
+    libcrt::AtExit(DestroyDrawOrder);
 }
 
 // The camera's orientation (0079B2DC).
@@ -142,7 +141,7 @@ void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*
         if (parent == 0) return;
     }
 }
-EI_REPLACE(0x00499CD0, MakeHeapByDepth);
+EI_REWRITTEN(0x00499CD0, MakeHeapByDepth);
 
 // 00499C20 (STLport __pop_heap): the top goes to `result`, `value` (the old *result) is re-sifted
 // into [first, last).
@@ -151,7 +150,7 @@ void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, Partic
     *result = *first;
     AdjustHeap(first, 0, static_cast<int>(last - first), value);
 }
-EI_REPLACE(0x00499C20, PopHeapByDepth);
+EI_REWRITTEN(0x00499C20, PopHeapByDepth);
 
 // 00499380 (STLport __introsort_loop): partitions until the range is at most 16 entries; past the
 // depth limit the rest is heap sorted (make_heap, then pop_heap to the end).
@@ -172,7 +171,7 @@ void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void
         last = cut;
     }
 }
-EI_REPLACE(0x00499380, IntroSortByDepth);
+EI_REWRITTEN(0x00499380, IntroSortByDepth);
 
 // 004994E0 (STLport __final_insertion_sort).
 void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int) {
@@ -183,10 +182,10 @@ void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int)
         InsertionSort(first, last);
     }
 }
-EI_REPLACE(0x004994E0, FinalSortByDepth);
+EI_REWRITTEN(0x004994E0, FinalSortByDepth);
 
 // 00499200. MFC CArray::SetAtGrow: grows the array (new entries zeroed) to hold `index`.
-EI_REPLACE_METHOD(0x00499200, ParticleDepthArray::SetAtGrow);
+EI_REWRITTEN(0x00499200, ParticleDepthArray::SetAtGrow);
 
 // 00484AE0. The attachment point plus the local position, or the local position alone.
 Vector3* CParticleSource::WorldPosition(Vector3* out) {
@@ -204,7 +203,7 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
     std::memcpy(out, &localPosition_, sizeof(Vector3));
     return out;
 }
-EI_REPLACE_METHOD(0x00484AE0, CParticleSource::WorldPosition);
+EI_REWRITTEN(0x00484AE0, CParticleSource::WorldPosition);
 
 // 00498940. Rebuilds the draw order (depth = position . camera view axis, iterating the manager's
 // sources until the first empty entry), sorts it far to near and draws each source that is not

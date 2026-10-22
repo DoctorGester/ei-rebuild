@@ -20,14 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
-#include "originals_effects.h"
-#include "originals_ai.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "lib/mfc.h"
-#include "originals_units.h"
 #include "lib/mfc_slots.h"
 #include "game_slots.h"
 #include "game_lists.h"
@@ -367,7 +360,7 @@ void MagicTrap::SaveTrap(CStream* stream) {
         stream->Write(&value, 4);
     }
 }
-EI_REPLACE_METHOD(0x0052B070, MagicTrap::SaveTrap);
+EI_REWRITTEN(0x0052B070, MagicTrap::SaveTrap);
 
 void MagicTrap::LoadTrap(CStream* stream) {
     LoadMapObject(stream);

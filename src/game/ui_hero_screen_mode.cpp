@@ -1,8 +1,7 @@
 // The multiplayer hero screen's mode (CMpHeroScreen::SetModeVanilla 00615D30): the hero list (9), the new
 // hero (10) and its statistics page (11) laid out. Rebirth's WideScreen replaces it with the
 // original followed by the curtains' visibility (widescreen::ShowHeroCurtains), which this
-// reproduces, so it is hooked in both launches; the screen's other members call it through their
-// forwarder. See ui_screens.h and docs/notes/ui.md, section 5.
+// reproduces, so it is hooked in both launches. See ui_screens.h and docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
@@ -13,7 +12,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "originals_ui.h"
 
 #include <cstdint>
 
@@ -63,7 +61,7 @@ void AddRows(CMpHeroScreen* screen, int left, int right, int top, int height) {
     int y = top;
     do {
         const int next = y + height;
-        screen->AddRegion()->CallSetRect(left, y, right, next);
+        screen->AddRegion()->SetRect(left, y, right, next);
         y = next;
     } while (y < kRowsBottom);
 }
@@ -98,10 +96,10 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         SetQuarter(this, 1, 555.0f, 100.0f, 700.0f, 300.0f, 0x1C, 0xAD);
         SetQuarter(this, 2, 410.0f, 300.0f, 555.0f, 500.0f, 0x53, 0xE4);
         SetQuarter(this, 3, 555.0f, 300.0f, 700.0f, 500.0f, 0x1C, 0xAD);
-        regions[0]->CallSetRect(563, 526, 637, 574);
-        regions[1]->CallSetRect(163, 526, 237, 574);
-        regions[2]->CallSetRect(455, 470, 485, 500);
-        regions[3]->CallSetRect(625, 470, 655, 500);
+        regions[0]->SetRect(563, 526, 637, 574);
+        regions[1]->SetRect(163, 526, 237, 574);
+        regions[2]->SetRect(455, 470, 485, 500);
+        regions[3]->SetRect(625, 470, 655, 500);
         regions[0]->SetTip(0x9CA5, 1, 0);
         regions[1]->SetTip(0x9CA4, 1, 0);
         for (int i = 5; i < kFixedRegions; ++i) regions_.data[i]->SetTip(i + 0x9D03, 1, 0);
@@ -124,10 +122,10 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         Enable(statsPanel_, 1);
         Enable(figureStrips_[0], 1);
         Enable(figureStrips_[1], 1);
-        regions[0]->CallSetRect(620, 430, 660, 470);
-        regions[1]->CallSetRect(740, 430, 780, 470);
-        regions[2]->CallSetRect(300, 470, 330, 500);
-        regions[3]->CallSetRect(470, 470, 500, 500);
+        regions[0]->SetRect(620, 430, 660, 470);
+        regions[1]->SetRect(740, 430, 780, 470);
+        regions[2]->SetRect(300, 470, 330, 500);
+        regions[3]->SetRect(470, 470, 500, 500);
         regions[0]->SetTip(0x9D6D, 1, 0);
         regions[1]->SetTip(0x9D6C, 1, 0);
         regions[4]->SetTip(0x9D6E, 1, 0);
@@ -145,8 +143,8 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         Enable(spellPanel_, 1);
         Enable(tradePanel_, 1);
         Enable(statsPanel_, 1);
-        regions[0]->CallSetRect(620, 430, 660, 470);
-        regions[1]->CallSetRect(740, 430, 780, 470);
+        regions[0]->SetRect(620, 430, 660, 470);
+        regions[1]->SetRect(740, 430, 780, 470);
         regions[0]->SetTip(0x9E35, 1, 0);
         regions[1]->SetTip(0x9E34, 1, 0);
         regions[4]->SetTip(0x9E36, 1, 0);
@@ -161,4 +159,4 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
     // Rebirth's WideScreen (addon's handler after the original): the curtains shown but on the list.
     widescreen::ShowHeroCurtains(this, mode);
 }
-EI_REPLACE_METHOD(0x00615D30, CMpHeroScreen::SetModeVanilla);
+EI_REWRITTEN(0x00615D30, CMpHeroScreen::SetModeVanilla);

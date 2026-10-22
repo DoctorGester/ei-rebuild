@@ -9,10 +9,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_units.h"
+#include "lib/vecmath.h"
 
 #include <cstring>
 
@@ -23,7 +20,7 @@ FootprintCellSet* FootprintCellSet::Construct() {
     hashed = true;
     return this;
 }
-EI_REPLACE_METHOD(0x0067E4E0, FootprintCellSet::Construct);
+EI_REWRITTEN(0x0067E4E0, FootprintCellSet::Construct);
 
 // The spells' footprint set (spell_effect_internal.h), empty at the start: built by the static initialiser 0067E4C0 in the
 // list's order and freed by the exit function it registers (0067E500); both ported on the name and registered at their
@@ -36,7 +33,7 @@ using spellfx::g_spellFootprint;
 namespace {
 void __cdecl ConstructSpellFootprint() {   // 0067E4C0
     g_spellFootprint->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x0067E500));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0067E500));
 }
 void __cdecl FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }   // 0067E500
 } // namespace
@@ -106,11 +103,8 @@ EI_REWRITTEN(0x005B2F40, FootprintCellSet::GetBounds);
 
 // --- Footprints ----------------------------------------------------------------------------------
 
-
 namespace {
 // Object model helpers not rewritten yet.
-__declspec(naked) Vector3* __fastcall TransformVector(const void*, void*, Vector3*, const Vector3*)
-    EI_ORIGINAL(0x00560E10)
 // CStringArray element by value (004698A0, PartNames::CopyAt: a CString copy-constructed into `out`).
 mfc::CString* StringArrayGetAt(const mfc::CStringArray* names, mfc::CString* out, int index) {
     new (out) mfc::CString(names->data[index]);
@@ -132,7 +126,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     // The object's transform: rotation from its orientation, translation from its position.
     CMapObject* mapObject = ObjectSlots(object);
     float* matrix = mapObject->worldMatrix.m;
-    QuaternionToMatrixOriginal(&mapObject->localRotation_, nullptr, (float*)matrix);
+    static_cast<const Quaternion*>(&mapObject->localRotation_)->ToMatrix((float*)matrix);
     std::memcpy(&matrix[11], &mapObject->localPosition_.z, 4);
     std::memcpy(&matrix[3], &mapObject->localPosition_.x, 4);
     std::memcpy(&matrix[7], &mapObject->localPosition_.y, 4);
@@ -202,7 +196,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
             p.y = y + placed->offset.y;
             p.z = z + placed->offset.z;
             Vector3 world;
-            TransformVector(matrix, nullptr, &world, &p);
+            reinterpret_cast<const MatrixRows*>(matrix)->Transform(&world, &p);
             std::memcpy(&p, &world, sizeof(p));
             p.x = position.x + p.x;
             p.y = position.y + p.y;
@@ -210,7 +204,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
         }
         for (Vector3& v : normal) {
             Vector3 world;
-            TransformVector(matrix, nullptr, &world, &v);
+            reinterpret_cast<const MatrixRows*>(matrix)->Transform(&world, &v);
             std::memcpy(&v, &world, sizeof(v));
         }
 

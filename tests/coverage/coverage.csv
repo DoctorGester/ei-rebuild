@@ -6082,11 +6082,11 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 005E70B0,CUiMesh::GetScaleX,src/game/ui_small_members.cpp,7,golden,0,20,net_pair_join net_pair_kick net_pair_leave net_pair_master +14,,net_second_master rebirth_flags
 005E70E0,CUiMesh::SetRectangleVanilla,src/game/ui_mesh_shapes.cpp,1431,golden,0,119,app_record camera combat combat_more +106,,net_second_master rebirth_flags render_movie +6
 005E7680,CUiMesh::SetGridVanilla,src/game/ui_mesh_shapes.cpp,1758,golden,0,116,app_record camera combat combat_more +103,,net_second_master rebirth_flags render_movie +6
-005E7D60,CUiMesh::SetFrameVanilla,src/game/ui_mesh_shapes.cpp,1772,golden,0,119,app_record camera combat combat_more +106,,net_second_master rebirth_flags render_movie +6
+005E7D60,CUiMesh::SetFrame,src/game/ui_mesh_shapes.cpp,1772,golden,0,119,app_record camera combat combat_more +106,,net_second_master rebirth_flags render_movie +6
 005E8450,CUiMeshBuilder::Framed,src/game/ui_mesh_build.cpp,2050,golden,0,38,effects_bow frames_basic net_pair_join net_pair_kick +29,,net_second_master rebirth_flags ui_widescreen +2
 005E8C60,CUiMeshBuilder::Disc,src/game/ui_mesh_build.cpp,1412,golden,0,104,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +1
 005E91F0,CUiMeshBuilder::Ring,src/game/ui_mesh_build.cpp,2009,golden,0,104,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +1
-005E99D0,CUiMesh::SetTriangleVanilla,src/game/ui_mesh_shapes.cpp,1368,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
+005E99D0,CUiMesh::SetTriangle,src/game/ui_mesh_shapes.cpp,1368,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 005E9F30,MeshResetColours,src/game/ui_mesh_build.cpp,538,golden,0,104,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +1
 005EA150,CFigureMesh::RefreshBuffers,src/game/figure_mesh.cpp,186,golden,0,119,app_record camera combat combat_more +106,,net_second_master rebirth_flags render_movie +6
 005EA210,CUiMesh::SetQuadCount,src/game/ui_mesh_draw.cpp,363,golden,0,111,app_record camera combat combat_more +99,,rebirth_flags render_movie render_terrain +5
@@ -6993,7 +6993,7 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 0063BC50,CHudWeaponBar::HudWeaponBarDelete,src/game/ui_window_delete.cpp,30,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 0063BC70,CHudWeaponBar::DestroyBody,src/game/ui_hud_destroy.cpp,79,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 0063BCC0,CHudWeaponBar::AddWeapon,src/game/ui_hud_build.cpp,828,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
-0063C050,CHudWeaponBar::HighlightVanilla,src/game/ui_hud_build.cpp,290,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
+0063C050,CHudWeaponBar::Highlight,src/game/ui_hud_build.cpp,290,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 0063C180,CHudWeaponBar::SetUnit,src/game/ui_hud_tips.cpp,866,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 0063C4F0,CHudWeaponBar::Draw,src/game/ui_hud.cpp,266,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 0063C600,CHudWeaponBar::Update,src/game/ui_hud.cpp,69,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
@@ -7052,7 +7052,7 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 00641E20,PortraitsMouseUpVerify,,118,golden,0,9,effects_bow levers_key rebirth_fixes_ui spells_hero +5,,
 00641EA0,PortraitsMouseMoveVerify,,122,golden,0,9,effects_bow levers_key rebirth_fixes_ui spells_hero +5,,
 00641F20,CHudMap::SetupVanilla,src/game/ui_hud_slide.cpp,2562,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
-00642930,CHudMap::LayoutVanilla,src/game/ui_hud_slide.cpp,526,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
+00642930,CHudMap::Layout,src/game/ui_hud_slide.cpp,526,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 00642B40,CHudMap::UpdateVanilla,src/game/ui_hud_slide.cpp,826,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 00642E80,CHudMap::UpdateView,src/game/ui_hud_map.cpp,3897,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 00643DC0,CHudMap::BuildMarkers,src/game/ui_hud_map.cpp,4142,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
@@ -7061,7 +7061,7 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 00645610,CHudMap_OnMouseMoveVerify,,36,golden,0,3,net_pair_quest ui_hud,,ui_widescreen_hud
 00645640,HudMapWheel,src/game/ui_hud_map.cpp,159,golden,0,3,net_pair_quest ui_hud,,render_terrain_seams
 006456E0,CHudUnitPanel::SetupVanilla,src/game/ui_hud_slide.cpp,2201,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
-00645F80,CHudUnitPanel::LayoutVanilla,src/game/ui_hud_slide.cpp,794,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
+00645F80,CHudUnitPanel::Layout,src/game/ui_hud_slide.cpp,794,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 006462A0,CHudUnitPanel::DrawVanilla,src/game/ui_hud_unit_draw.cpp,2205,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 00646B90,CHudUnitPanel::ShowEffects,src/game/ui_hud_panels.cpp,1167,golden,0,1,ui_hud,,
 00647040,CHudUnitPanel::DrawUnitInfo,src/game/ui_hud_unit_info.cpp,1949,golden,0,2,ui_hud,,ui_widescreen_hud
@@ -7193,7 +7193,7 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 006590F0,CHelpWindow::Close,src/game/ui_help_window.cpp,148,golden,0,3,ui_help ui_help_page,,ui_widescreen_screens
 00659190,InputForward<&CHelpWindow::OnLeftDown>::Call,src/game/ui_help_window.cpp,293,golden,0,3,ui_help ui_help_page,,ui_widescreen_screens
 006592C0,InputForward<&CHelpWindow::OnKeyDown>::Call,src/game/ui_help_window.cpp,346,golden,0,2,ui_help ui_help_page,,
-00659420,CHelpWindow::ShowPageVanilla,src/game/ui_help_page.cpp,4310,golden,0,3,ui_help ui_help_page,,ui_widescreen_screens
+00659420,CHelpWindow::ShowPage,src/game/ui_help_page.cpp,4310,golden,0,3,ui_help ui_help_page,,ui_widescreen_screens
 0065A5E0,CHelpWindow::Update,src/game/ui_help_window.cpp,232,golden,0,3,ui_help ui_help_page,,ui_widescreen_screens
 0065A6D0,WindowDrawAlphaRef,src/game/ui_alpha_draws.cpp,146,golden,0,3,ui_help ui_help_page,,ui_widescreen_screens
 0065A770,HelpTopics::Subscript,src/game/library_trees.cpp,201,unreached,804,0,,,
@@ -7266,7 +7266,7 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 0065E4D0,CUiTooltip::TooltipDelete,src/game/ui_control_delete.cpp,30,golden,0,119,app_record camera combat combat_more +106,,net_second_master rebirth_flags render_movie +6
 0065E4F0,CUiTooltip::DestroyBody,src/game/ui_tooltip.cpp,79,golden,0,119,app_record camera combat combat_more +106,,net_second_master rebirth_flags render_movie +6
 0065E540,CUiTooltip::SetText,src/game/ui_tooltip.cpp,59,golden,0,1,ui_quick_items,,
-0065E580,CUiTooltip::OnMouseMoveVanilla,src/game/ui_tooltip.cpp,759,golden,0,119,app_record camera combat combat_more +106,,net_second_master rebirth_flags render_movie +6
+0065E580,CUiTooltip::OnMouseMove,src/game/ui_tooltip.cpp,759,golden,0,119,app_record camera combat combat_more +106,,net_second_master rebirth_flags render_movie +6
 0065E880,CUiTooltip::DrawLines,src/game/ui_tooltip.cpp,460,golden,0,20,levers_key net_pair_kick net_pair_zone rebirth_fixes_ui +15,,ui_widescreen_more
 0065EA50,CUiTooltip::Draw,src/game/ui_menus.cpp,36,unreached,144,0,,,
 0065EA80,CUiTooltip::Redraw,src/game/ui_menus.cpp,21,golden,0,119,app_record camera combat combat_more +106,,net_second_master rebirth_flags render_movie +6

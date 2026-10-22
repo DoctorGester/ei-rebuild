@@ -23,8 +23,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "world_data.h"
@@ -228,7 +226,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
                 CUnit* unit = panel->owner_->party_[i];
                 if (unit->flags_ & kUnitSelected) LocalView()->SetMoveMode(unit, mode);
             }
-            panel->ShowMode(mode);
+            panel->ShowModeVanilla(mode);
         }
         inputHandled_ = true;
         return;
@@ -309,10 +307,10 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     case kActionQuickSave:
-        AutoSaveOriginal(QuickSaveName(), 0);
+        ::QuickSave(QuickSaveName(), static_cast<char>(0));
         return;
     case kActionQuickLoad:
-        LoadSavedGameOriginal(QuickSaveName());
+        QuickLoad(QuickSaveName());
         return;
     case kActionMember:
     case kActionMember + 1:
@@ -344,4 +342,4 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-EI_REPLACE_METHOD(0x0063A560, InputForward<&CBattleScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x0063A560, InputForward<&CBattleScreen::OnKeyDown>::Call);

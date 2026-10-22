@@ -5,7 +5,6 @@
 #include "player_messages.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -25,7 +24,7 @@ CParty* __fastcall PartyForScript(void* playerArg, mfc::CString* name) {
         owner = console::Ops(*name).Mid(0, split);
         *name = console::Ops(*name).Mid(split + 2, name->GetLength() - split - 2);
     }
-    if (GameMbscmp(owner, RecordList()->text10) == 0) return player->Party();
+    if (gamecrt::mbscmp(owner, RecordList()->text10) == 0) return player->Party();
     return (RecordList())->Find(owner);
 }
 EI_REWRITTEN(0x004BAEC0, PartyForScript);

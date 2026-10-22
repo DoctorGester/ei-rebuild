@@ -2,6 +2,7 @@
 // that writes an object's dirty fields into its DeltaState (+0x1C4) for the clients. See
 // docs/notes/units.md ("Network state"). The slots are virtual; their bodies are the *Impl members,
 // registered by member pointer (rewrite-guide rule 4).
+#include "map_object_figures.h"
 #include "net_delta.h"
 
 #include "ai_map.h"
@@ -14,12 +15,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_world.h"
-#include "originals_gameplay.h"
 
 #include <cstdint>
 #include <cstring>
@@ -31,7 +26,6 @@ CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
 // The unit's equipment ids (11 words: 4, the weapon, 6) [0052EC10 (out)]; the path's writer
 // [005C7DB0 on the controller's path (field)].
-// (005C7DB0: PathWriteOriginal, originals_ai.h.)
 
 constexpr int kClassServerController = 0x3E;
 
@@ -118,7 +112,7 @@ void CUnit::WriteNetStateImpl() {
     }
     if (DeltaField* field = state->BeginField(10)) {
         PathOrder* path = unit->Controller()->Path();
-        PathWriteOriginal(path, nullptr, field);
+        path->WriteState(field);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(11)) {
@@ -169,7 +163,7 @@ std::uint32_t CMapObject::ReadNetStateImpl(int first) {
     if (DeltaField* field = state->BeginField(1)) {
         Vector3 figureScale;   // the figure scale (00517700)
         field->ReadDelta(&figureScale, 0xC);
-        ObjectSetFigureScaleOriginal(this, nullptr, &figureScale.x);
+        SetFigureScale(&figureScale.x);
         complete &= SnapshotConsumed();
         field->EndField();
     }
@@ -400,7 +394,7 @@ std::uint32_t CUnit::ReadNetStateImpl(int first) {
     return complete;
 }
 
-EI_REPLACE_METHOD(0x0052EF90, CUnit::ReadNetStateImpl);
+EI_REWRITTEN(0x0052EF90, CUnit::ReadNetStateImpl);
 EI_REWRITTEN(0x0050EC30, CMapObject::ReadNetStateImpl);
 EI_REWRITTEN(0x0050EAF0, CMapObject::WriteNetStateImpl);
-EI_REPLACE_METHOD(0x0052EC70, CUnit::WriteNetStateImpl);
+EI_REWRITTEN(0x0052EC70, CUnit::WriteNetStateImpl);

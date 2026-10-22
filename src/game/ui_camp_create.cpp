@@ -29,12 +29,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "render/render_state.h"
 #include "game_data.h"
@@ -180,7 +174,7 @@ void CCampPages::BuildPages() {
     // page the camp does not offer has no tip).
     auto region = [this](int left, int top, int right, int bottom, int tip) {
         CUiRegion* added = AddRegion();
-        added->CallSetRect(left, top, right, bottom);
+        added->SetRect(left, top, right, bottom);
         if (tip) added->SetTip(tip, 1, 0);
     };
     region(12, 450, 52, 490, 0x4EE8);
@@ -463,4 +457,4 @@ void CCampPages::BuildPages() {
     }
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REPLACE_METHOD(0x0060C870, CCampPages::Create);
+EI_REWRITTEN(0x0060C870, CCampPages::Create);

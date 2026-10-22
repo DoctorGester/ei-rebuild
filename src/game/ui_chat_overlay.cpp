@@ -17,8 +17,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -49,16 +47,10 @@ constexpr int kTypedFont = 1;
 // A chat message stays on the client's timers list for 60 s (the float's bits).
 constexpr std::uint32_t kSayLifetime = 0x42700000;
 
-// The width of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
-// takes the CString by value and releases it, so a copy's data is handed over).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
-    mfc::CString copy(text);
-    char* data;
-    std::memcpy(&data, &copy, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&copy, &empty, sizeof(data));
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size.cx;
 }
 
@@ -111,7 +103,7 @@ COLORREF MarkColour(char digit) {
 
 void DrawPiece(CUiSurface* surface, const char* text, int x, COLORREF colour) {
     RECT rect = {x, 0, kLineDrawRight, kLineSurfaceHeight};
-    SurfaceDrawText(surface, nullptr, text, &rect, kLineFont, colour, kLineDrawFormat, 1);
+    surface->DrawTextIn(text, &rect, kLineFont, colour, kLineDrawFormat, 1);
 }
 } // namespace
 
@@ -126,7 +118,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     bool mark = false;
     // With EI_UTF8 a character is its whole UTF-8 sequence (U5), so a word wider than a line is broken
     // between characters and measured as text.
-    for (const char* p = source; CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : MbsInc(p)) {
+    for (const char* p = source; CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : gamecrt::mbsinc(p)) {
         console::Ops(ch).AssignChar(p[0]);
         if constexpr (text::kUtf8) {
             for (int k = 1; k < text::CharacterLength(p); ++k) console::Ops(ch).AppendChar(p[k]);
@@ -210,7 +202,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
                          kLineSurfaceHeight, kLineSurfaceFormat, 1)
                    : nullptr;
         UiSurfaceGetDC(surface);
-        SurfaceClearOriginal(surface);
+        static_cast<CUiSurface*>(surface)->Clear();
         const mfc::CString& codes = formatted[i];
         mfc::CString drawn;
         mfc::CString piece;
@@ -241,7 +233,7 @@ void CChatOverlay::SetOpen(bool open) {
         typed_.Empty();
         caret_ = 0;
     }
-    ChatOverlayDrawTypedOriginal(this);
+    DrawTyped();
 }
 EI_REWRITTEN(0x005E36C0, CChatOverlay::SetOpen);
 
@@ -270,7 +262,7 @@ void CChatOverlay::DrawTyped() {
     ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
-    SurfaceDrawText(surface, nullptr, typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
+    surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
     int width = TextWidth(interface_, typed_.Left(caret_), kTypedFont);
     if (width < kMaxTypedWidth) {
         ui_gdi::GamePen pen;
@@ -288,7 +280,7 @@ void CChatOverlay::DrawTyped() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REPLACE_METHOD(0x005E3700, CChatOverlay::DrawTyped);
+EI_REWRITTEN(0x005E3700, CChatOverlay::DrawTyped);
 
 // --- 005E3230 / 005E3550: the chat line's keys (input slots 9 and 10) ---------------------------------
 
@@ -329,7 +321,7 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
     default:
         return;
     }
-    ChatOverlayDrawTypedOriginal(this);
+    DrawTyped();
 }
 
 void CChatOverlay::OnChar(int key, int, int) {
@@ -344,7 +336,7 @@ void CChatOverlay::OnChar(int key, int, int) {
         typed_ = line;
         caret_ += text::TypedLength(key);
     }
-    ChatOverlayDrawTypedOriginal(this);
+    DrawTyped();
 }
 namespace {
 } // namespace
@@ -371,7 +363,7 @@ CChatOverlay* CChatOverlay::Construct(CInterface3D* ui) {
                       : nullptr);
     chatOpen_ = false;
     caret_ = 0;
-    ChatOverlayDrawTypedOriginal(this);
+    DrawTyped();
     return this;
 }
 EI_REWRITTEN(0x005E26F0, CChatOverlay::Construct);

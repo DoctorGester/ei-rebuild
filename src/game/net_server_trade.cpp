@@ -8,9 +8,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "ui.h"
 #include "world_data.h"
 #include "game_singletons.h"
@@ -48,7 +45,7 @@ void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     std::uint32_t line = 0;   // CString
     mfc::CString* formatted = TheInterface()->MessageText(&line, text, name);
     self->Announce(formatted->GetString(), partner);
-    CStringDestroy(&line);
+    reinterpret_cast<mfc::CString*>(&line)->~CString();
 }
 
 } // namespace

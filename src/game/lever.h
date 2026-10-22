@@ -67,7 +67,7 @@ struct LeverRecordTable {
     NameIndex byName;               // +0x0C
 };
 static_assert(offsetof(LeverRecordTable, byName) == 0x0C && sizeof(LeverRecordTable) == 0x20);
-// The lever table (0079C1A0; lever_table.cpp); 0052CA40 finds a record (originals_units.h).
+// The lever table (0079C1A0; lever_table.cpp); 0052CA40 finds a record.
 extern lib::StaticObject<LeverRecordTable> g_leverTable;
 inline LeverRecordTable& TheLeverTable() { return *g_leverTable; }
 

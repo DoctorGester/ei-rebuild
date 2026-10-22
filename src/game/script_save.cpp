@@ -11,8 +11,6 @@
 
 #include <cstdint>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 
@@ -183,4 +181,4 @@ void CScript::SaveState(ScriptStream* stream) {
     g_streamedScript = nullptr;
     ScriptAreasSave(&areas_, stream);
 }
-EI_REPLACE_METHOD(0x004C0F90, CScript::SaveState);
+EI_REWRITTEN(0x004C0F90, CScript::SaveState);

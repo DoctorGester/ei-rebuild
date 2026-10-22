@@ -30,9 +30,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/static_object.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_engine.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -63,7 +60,6 @@ float AbsBits(float f) {
     return f;
 }
 
-
 // --- Game data ----------------------------------------------------------------------------------
 
 // A zone of the map database: its picture (picture2, the texture shown here), its size in map
@@ -83,7 +79,7 @@ mfc::CString& LastQuest() { return *g_lastQuest; }
 
 void __cdecl ConstructLastQuest() {   // 0064BE00
     g_lastQuest.Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x0064BE20));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0064BE20));
 }
 void __cdecl DestroyLastQuest() {   // 0064BE20
     if (g_lastQuestDestroyed & 1) return;
@@ -141,7 +137,7 @@ using DistanceNode = DistanceMap::Node;
 
 // A surface's text (005FDE20, Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
-    return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
+    return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
 // Sprite fields the builder sets directly.
@@ -157,7 +153,7 @@ void Turn(CUiMesh* sprite, float angle) {
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
-    region->CallSetRect(left, top, right, bottom);
+    region->SetRect(left, top, right, bottom);
     return region;
 }
 
@@ -311,7 +307,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             Turn(marker, kExitTurn);
             gameapi::OffsetRect(&rect, -10, 0);
         }
-        region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);
+        region->SetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
     SelectExit(nearestExit_);
     if (twoButtons_ != 0 && !anyKnown) {
@@ -374,7 +370,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 TheTextManager()->ReadToHash(&text, 1);
                 CUiSurface* surface = surfaces_.data[1];
                 UiSurfaceGetDC(surface);
-                SurfaceClearOriginal(surface);
+                static_cast<CUiSurface*>(surface)->Clear();
                 RECT titleRect = {0, 5, 340, 25};
                 SurfaceText(surface, title, &titleRect, 1, 0x31B3FF, 1, 1);
                 RECT textRect = {10, 25, 330, 140};
@@ -464,7 +460,7 @@ void CObjectivesWindow::ShowQuest() {
             text += part;
         }
     }
-    while (TextFindLineOriginal(texts, nullptr, nullptr)) {
+    while (texts->FindLine(nullptr)) {
         texts->Split(&fields, 1);
         if (fields.GetSize() < 2) continue;
         if (SameText(fields[0], "#quest")) break;
@@ -519,7 +515,7 @@ void CObjectivesWindow::ShowQuest() {
         int rightPixel = static_cast<int>(gamecrt::Ftol(D(right)));
         int topPixel = static_cast<int>(gamecrt::Ftol(D(top)));
         int leftPixel = static_cast<int>(gamecrt::Ftol(D(left)));
-        region->CallSetRect(leftPixel, topPixel, rightPixel, bottomPixel);
+        region->SetRect(leftPixel, topPixel, rightPixel, bottomPixel);
         region->SetTip(0x138F0, 1, 0);
     }
 }
@@ -695,7 +691,7 @@ void CObjectivesWindow::DrawQuestList() {
     mesh(2)->visible_ = 0;
     auto* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    SurfaceClearOriginal(surface);
+    static_cast<CUiSurface*>(surface)->Clear();
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
     mfc::CStringArray* quests = &quests_;
     int row = firstRow_;
@@ -717,18 +713,18 @@ void CObjectivesWindow::DrawQuestList() {
         else if (state == 3) mark->textureOffsetU_ = 0.0f;
         else mark->visible_ = 0;
         if (row == selectedQuest_) {
-            SpritePlaceOriginal(mesh(2), nullptr, 215.0f, static_cast<float>(y + 29), 3.0f);
+            mesh(2)->PlaceBody(215.0f, static_cast<float>(y + 29), 3.0f);
             mesh(2)->visible_ = 1;
         }
         RECT rect{36, y, 320, y + 21};
-        SurfaceDrawText(surface, nullptr, title, &rect, 1, 0xA7D7E4, 0, 1);
+        surface->DrawTextIn(title, &rect, 1, 0xA7D7E4, 0, 1);
     }
     UiSurfaceReleaseDC(surface);
 }
 
 EI_REPLACE(0x0064BE00, ConstructLastQuest);
 EI_REPLACE(0x0064BE20, DestroyLastQuest);
-EI_REPLACE_METHOD(0x0064BE80, CObjectivesWindow::Build);
+EI_REWRITTEN(0x0064BE80, CObjectivesWindow::Build);
 EI_REWRITTEN(0x0064D9B0, CObjectivesWindow::DrawQuestList);
 EI_REWRITTEN(0x0064CC10, CObjectivesWindow::ShowZone);
 EI_REWRITTEN(0x0064DC60, CObjectivesWindow::ShowQuest);
@@ -749,4 +745,4 @@ void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButt
 EI_REWRITTEN(0x0064BE40, CObjectivesWindow::Setup);
 
 const char* CObjectivesWindow::HelpTopic() const { return twoButtons_ ? kGlobalMapTopic : kMissionTopic; }
-EI_REPLACE_METHOD(0x0064D990, CObjectivesWindow::HelpTopic);
+EI_REWRITTEN(0x0064D990, CObjectivesWindow::HelpTopic);

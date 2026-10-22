@@ -17,8 +17,8 @@ holds the address itself. The readers, each a set of addresses:
     named data       a function named in a named range's initialiser (config/named_data.csv, C18): named_data.py
                      --check compares its registration's address with game.exe's pointer
   the harness (verify build) and the vectors:
-    harness          the address written in tests/verify (RedirectCode, Code<F> of harness hooks, address tables)
-    vectors          the address written in tests/vectors (EI_RECORD recorders, ReplayStandIn)
+    harness          the address written in tests/verify (game.exe forwarders, Code<F> of harness hooks, address tables)
+    vectors          the address written in tests/vectors (EI_RECORD recorders)
     scenario / golden  a code address in a scenario's steps (comments left out) or a golden file
   the generators and checks that need a registration's address:
     short generator  a short game function (under five bytes) a rewrite registers: gen_short_functions.py would
@@ -27,7 +27,7 @@ holds the address itself. The readers, each a set of addresses:
                      gen_static_init.py writes the ones no rewrite registers into static_exit.cpp
   tools that read every registration but need none of them: check_thunks, check_registrations (they check the
   registration itself), standalone_gaps.py. The tools that need a function's original address (check_fp_fold,
-  check_signatures, coverage.py, direct_calls.py, save_trace.py, ui_census_report.py, progress.py's rewritten
+  check_signatures, coverage.py, save_trace.py, ui_census_report.py, progress.py's rewritten
   count) read the function-to-original map: the registrations and the EI_REWRITTEN lines (C20d, include/ei/hook.h).
 
 A registration none of these read is "unread": nothing reaches its address; our code calls the function by name,

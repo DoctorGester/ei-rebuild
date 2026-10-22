@@ -21,8 +21,6 @@
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "texture.h"   // g_stageBlocks
-#include "originals_ui.h"
-#include "originals_gameplay.h"
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -30,7 +28,6 @@
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "render/render_state.h"
-#include "originals_world.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -81,15 +78,15 @@ int CUiContainer::DrawContainerImpl(int pass) {
     }
     return 1;
 }
-EI_REPLACE_METHOD(0x00600EF0, CUiContainer::DrawContainerImpl);
+EI_REWRITTEN(0x00600EF0, CUiContainer::DrawContainerImpl);
 
 // 00602BF0 (screen 3, the base / briefing screen). Returns 00600EF0's result.
 int CBriefingScreen::DrawImpl(int pass) { return ScreenDraw(this, pass, true); }
-EI_REPLACE_METHOD(0x00602BF0, CBriefingScreen::DrawImpl);
+EI_REWRITTEN(0x00602BF0, CBriefingScreen::DrawImpl);
 
 // 00632A90 (screen 2). Returns 00600EF0's result.
 int CMainMenu::DrawImpl(int pass) { return ScreenDraw(this, pass, false); }
-EI_REPLACE_METHOD(0x00632A90, CMainMenu::DrawImpl);
+EI_REWRITTEN(0x00632A90, CMainMenu::DrawImpl);
 
 // 00622420. The owner (+0x14C) slot 51 gives the hero's data: +0x730 / +0x734 the quick items
 // (the strip's left part), +0x740 / +0x744 the other list (from the right), +0x750 / +0x754 the
@@ -133,7 +130,7 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     RECT slots[7];
     for (int i = 0; i < 7; ++i) {
         RECT r{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35};
-        interface_->CallScaleRectToScreen(&r);
+        interface_->ScaleRectToScreenEntry(&r);
         slots[i] = r;
     }
     ClearDepth(DeviceOf(this), 0, nullptr, 0.0f);
@@ -156,4 +153,4 @@ long CObjectivesWindow::RestoreAlphaRef() {
     render::state::Render(kAlphaRef, value);
     return hr;
 }
-EI_REPLACE_METHOD(0x0064D970, CObjectivesWindow::RestoreAlphaRef);
+EI_REWRITTEN(0x0064D970, CObjectivesWindow::RestoreAlphaRef);

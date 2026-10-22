@@ -15,9 +15,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -86,16 +83,16 @@ void CViewScreen::Build() {
     turn.SetAngleAxis(TurnAngle(), axis);
     camera->localRotation_.PreMultiply(turn);
 }
-EI_REPLACE_METHOD(0x0062A830, CViewScreen::Build);
+EI_REWRITTEN(0x0062A830, CViewScreen::Build);
 
 BOOL CViewScreen::DrawView(int) {
     GameRender();
     return TRUE;
 }
-EI_REPLACE_METHOD(0x0062AA50, CViewScreen::DrawView);
+EI_REWRITTEN(0x0062AA50, CViewScreen::DrawView);
 
 void CViewScreen::OnClose() { TheCamera()->flags_ |= CCamera::kFree; }
-EI_REPLACE_METHOD(0x0062AA40, CViewScreen::OnClose);
+EI_REWRITTEN(0x0062AA40, CViewScreen::OnClose);
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 

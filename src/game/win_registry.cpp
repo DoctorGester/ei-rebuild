@@ -10,8 +10,6 @@
 #include <cstring>
 #include <new>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 constexpr REGSAM kAllAccess = 0xF003F;   // KEY_ALL_ACCESS

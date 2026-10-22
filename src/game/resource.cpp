@@ -3,7 +3,6 @@
 #include "resource.h"
 #include "resource_stream.h"
 #include "mod_folders.h"
-#include "originals_engine.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"

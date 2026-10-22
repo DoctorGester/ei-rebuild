@@ -10,13 +10,10 @@
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "originals_render.h"
 
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_core.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"

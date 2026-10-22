@@ -15,7 +15,7 @@ void ReleaseObject(CRefObject* object) {
 } // namespace
 
 void CRefObject::Release() { ReleaseObject(this); }
-EI_REPLACE_METHOD(0x0040A3A0, CRefObject::Release);
+EI_REWRITTEN(0x0040A3A0, CRefObject::Release);
 
 int CRefObject::Shutdown() {
     ++refs_;
@@ -31,7 +31,7 @@ void RefPtr::Assign(CRefObject* object) {
     if (object) ++object->refs_;
     if (old) ReleaseObject(old);
 }
-EI_REPLACE_METHOD(0x00419CD0, RefPtr::Assign);
+EI_REWRITTEN(0x00419CD0, RefPtr::Assign);
 
 void RefPtr::Share(CRefObject* object) {
     if (!object || (object->flags7_ & CRefObject::kDetached)) {

@@ -3,23 +3,20 @@
 // their STLport destructors and the counted pointers' releases, then the session base. See
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
+#include "net_coder.h"
 #include "net_messages.h"
 #include "core_refcount.h"
+#include "party.h"
 #include "record_lists.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
-#include "originals_library.h"
-#include "originals_gameplay.h"
 #include "record_vectors.h"
 
 namespace net {
 
 namespace {
-
-// The two parties (00661050 class, outside this range).
-void __fastcall PartyDestruct(void* a0) { PartyRecordsDestructOriginal(a0); }
 
 // The release a counted pointer's destructor inlines: one reference less, deleted at zero.
 void ReleaseInline(void* slot) {
@@ -34,8 +31,8 @@ void ReleaseInline(void* slot) {
 // 0041CA10: the destructor body. The client's own vtable is not restored first (the original does
 // not either).
 void ClientSession::Destruct() {
-    PartyDestruct(&parties_[1]);
-    PartyDestruct(&parties_[0]);
+    parties_[1].Get()->CParty::~CParty();
+    parties_[0].Get()->CParty::~CParty();
     if (trade_) trade_->Release();
     tradeRecords_.Release<recordlist::TradeElement>();
     offers_.Release();
@@ -62,7 +59,7 @@ void ClientSession::Destruct() {
     waiting_.Release();
     recordvec::QueryVector::Destruct(&queries_.list);   // 0041F7F0
     servers_.Release();
-    GrowingBufferDestruct(&joinData_);
+    static_cast<GameBuffer*>(&joinData_)->DestructGrowing();
     SessionBase::Destruct();
 }
 EI_REWRITTEN(0x0041CA10, ClientSession::Destruct);
@@ -76,7 +73,7 @@ void ClientBase::DestructBase() {
     waiting_.Release();
     recordvec::QueryVector::Destruct(&queries_.list);   // 0041F7F0
     servers_.Release();
-    GrowingBufferDestruct(&joinData_);
+    static_cast<GameBuffer*>(&joinData_)->DestructGrowing();
     SessionBase::Destruct();
 }
 EI_REWRITTEN(0x0041C530, ClientBase::DestructBase);

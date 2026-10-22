@@ -15,12 +15,8 @@
 #include "lib/mfc_array.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "ei/x87.h"
 #include "game_data.h"
-
-#pragma warning(disable : 4740) // naked forwarders
 
 using namespace scriptarray;
 

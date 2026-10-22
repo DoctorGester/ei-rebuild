@@ -20,11 +20,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
 #include "game_hashes.h"
 #include "game_data.h"
 
@@ -87,7 +82,7 @@ std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
 
-// ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
+// ---- Helpers ----------------------------------------------------------------------------------
 
 // The game's atexit (006E727B).
 // 0055FBD0 (RET 8). The time of day and the time speed.
@@ -110,7 +105,7 @@ void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destruct
     array.growBy = 0;
     array.capacity = 0;
     array.size = 0;
-    GameAtExit(destructor);
+    libcrt::AtExit(destructor);
 }
 
 const float* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->localPosition_.x; }
@@ -333,7 +328,7 @@ int CWorldServer::SendZone(CPlayer* player) {
     return result;
 }
 
-EI_REPLACE_METHOD(0x0058B750, CWorldServer::SyncPlayer);
+EI_REWRITTEN(0x0058B750, CWorldServer::SyncPlayer);
 EI_REWRITTEN(0x0058C890, CWorldServer::SendZone);
 EI_REPLACE(0x0058C4D0, FreeCollected);
 EI_REPLACE(0x0058C4B0, FreeAdded);

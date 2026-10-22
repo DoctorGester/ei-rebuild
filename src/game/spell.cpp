@@ -121,7 +121,7 @@ bool CSpell::IsOffensive() {
         return false;
     }
 }
-EI_REPLACE_METHOD(0x0068B770, CSpell::IsOffensive);
+EI_REWRITTEN(0x0068B770, CSpell::IsOffensive);
 // Site #0 of FixSpellSelfCasting; site #1 is in CBattleScreen::SelectUnit (00638EF0, original).
 
 bool CSpell::CanAffect(const CEngineObject* caster, CEngineObject* target) const {

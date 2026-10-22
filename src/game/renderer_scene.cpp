@@ -10,8 +10,6 @@
 #include "clip.h"      // TLVertex
 #include "core_maths.h"
 #include "ui.h"        // GameDeviceLock, DebugInfoPanel
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 
 #include "ei/hook.h"

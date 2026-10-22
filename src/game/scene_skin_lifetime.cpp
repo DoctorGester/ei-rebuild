@@ -46,7 +46,7 @@ SceneSkin::SceneSkin() {
 }
 
 SceneSkin* SceneSkin::Construct() { return new (this) SceneSkin(); }
-EI_REPLACE_METHOD(0x00508700, SceneSkin::Construct);
+EI_REWRITTEN(0x00508700, SceneSkin::Construct);
 
 SceneSkin::~SceneSkin() {
     if (DropRoot(this)) bones.SetSize(0, -1);
@@ -58,7 +58,7 @@ SceneSkin::~SceneSkin() {
 }
 
 void SceneSkin::Destruct() { this->~SceneSkin(); }
-EI_REPLACE_METHOD(0x005087B0, SceneSkin::Destruct);
+EI_REWRITTEN(0x005087B0, SceneSkin::Destruct);
 
 int SceneSkin::Create() {
     if (DropRoot(this)) {

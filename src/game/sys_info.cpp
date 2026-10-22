@@ -18,7 +18,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 #include <cstdlib>
@@ -48,9 +47,6 @@ constexpr unsigned kFirstWindows98Build = 1998;
 
 // The translation unit's constants and what they are made of (the exe's pi, 2, 4 and 1).
 float Pi() { return 3.1415927f /*0073D640*/; }
-
-// The guard of a function-local static with an empty destructor (bit 0 of 007CAEE4).
-std::uint8_t& EmptyStaticGuard() { return ei::GameData<std::uint8_t>(0x007CAEE4); }
 
 } // namespace
 
@@ -278,7 +274,7 @@ EI_REPLACE(0x004DDD0F, SysInfoStaticInversePi);
 // table's entry: both.
 void __cdecl SysInfoStaticConstruct() { TheSysInfo()->Construct(); }
 EI_REWRITTEN(0x004DDD3F, SysInfoStaticConstruct);
-void __cdecl SysInfoStaticRegisterExit() { GameAtExit(SysInfoAtExit); }   // 004DDD60
+void __cdecl SysInfoStaticRegisterExit() { libcrt::AtExit(SysInfoAtExit); }   // 004DDD60
 EI_REWRITTEN(0x004DDD4E, SysInfoStaticRegisterExit);
 void __cdecl SysInfoStaticInit() {
     SysInfoStaticConstruct();
@@ -288,10 +284,10 @@ EI_REPLACE(0x004DDD30, SysInfoStaticInit);
 
 // 004DE87C: an empty destructor (004013D0, a bare RET) registered with atexit. 004DE855: the
 // table's entry: the static's guard bit set when it is clear, then the registration either way.
-void __cdecl SysInfoStaticRegisterEmptyExit() { GameAtExit(ei::short_functions::Ret); }   // 004013D0
+void __cdecl SysInfoStaticRegisterEmptyExit() { libcrt::AtExit(ei::short_functions::Ret); }   // 004013D0
 EI_REWRITTEN(0x004DE87C, SysInfoStaticRegisterEmptyExit);
 void __cdecl SysInfoStaticGuard() {
-    if (!(EmptyStaticGuard() & 1)) EmptyStaticGuard() |= 1;
+    if (!(lib::g_emptyStaticGuard & 1)) lib::g_emptyStaticGuard |= 1;
     SysInfoStaticRegisterEmptyExit();
 }
 EI_REPLACE(0x004DE855, SysInfoStaticGuard);

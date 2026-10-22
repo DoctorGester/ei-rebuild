@@ -10,7 +10,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "originals_library.h"
 #include "../hook/log.h"
 #include "game_data.h"
 
@@ -83,7 +82,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
     port = libcrt::imports::Htons(static_cast<std::uint16_t>(number));
     return true;
 }
-EI_REPLACE_METHOD(0x00440440, NetAddress::Parse);
+EI_REWRITTEN(0x00440440, NetAddress::Parse);
 
 // The look-up is given the whole sockaddr, as the original does.
 stlp::string* NetAddress::Format(stlp::string* out, int resolve) const {
@@ -254,8 +253,8 @@ EI_REWRITTEN(0x00440C60, MasterLink::Construct);
 // 00440D40: closes the socket (left as it is) and destroys the buffers.
 void __fastcall MasterLinkDestruct(MasterLink* self) {
     if (self->socket != kNoSocket) libcrt::imports::CloseSocket(self->socket);
-    GrowingBufferDestruct(&self->in);
-    GrowingBufferDestruct(&self->out);
+    static_cast<GameBuffer*>(&self->in)->DestructGrowing();
+    static_cast<GameBuffer*>(&self->out)->DestructGrowing();
 }
 EI_REWRITTEN(0x00440D40, MasterLinkDestruct);
 
@@ -332,7 +331,7 @@ int __fastcall MasterLinkTick(MasterLink* self) {
         return self->state;
     }
 }
-EI_REPLACE(0x00440DE0, MasterLinkTick);
+EI_REWRITTEN(0x00440DE0, MasterLinkTick);
 
 // 0047C330, the exit function of Winsock's static initialiser 0047C300 (WSAStartup 1.1): WSACleanup once the network
 // threads are gone. The original waits while their count (007A9774) is non-zero; only the thread procedure 0047C3A0

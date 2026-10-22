@@ -12,13 +12,11 @@
 #include "texture.h"
 
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "lib/gameapi.h"
 #include "render/render_state.h"
 #include "render/render.h"
-#include "originals_core.h"
-#include "originals_library.h"
 #include "device_buffers.h"
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -64,7 +62,7 @@ void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, void(__cdecl* o
     if (g_guards & bit) return;
     array = lib::AlignedArray<T>{};
     g_guards |= bit;
-    GameAtExit(onExit);
+    libcrt::AtExit(onExit);
 }
 
 void EnsureStatics() {
@@ -119,8 +117,8 @@ void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** ar
 // The two triangles of the last two cross sections (count - 4 .. count - 1).
 void AddQuad(int count, bool firstBySetAtGrow) {
     if (firstBySetAtGrow) {
-        WordsSetAtGrow(&Indices(), nullptr, Indices().size, count - 4);
-        WordsSetAtGrow(&Indices(), nullptr, Indices().size, count - 3);
+        Indices().SetAtGrow(Indices().size, static_cast<unsigned short>(count - 4));
+        Indices().SetAtGrow(Indices().size, static_cast<unsigned short>(count - 3));
     } else {
         Indices().Add(static_cast<unsigned short>(count - 4));
         Indices().Add(static_cast<unsigned short>(count - 3));

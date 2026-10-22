@@ -14,9 +14,6 @@
 namespace mfc::impl {
 
 namespace {
-// _afxNewHandler: the handler MFC's operator new calls when an allocation fails.
-gamecrt::NewHandler& AfxNewHandler() { return ei::GameData<gamecrt::NewHandler>(0x00796E14); }
-
 std::uint32_t HashKey(const void* key) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(key)) >> 4; }
 } // namespace
 
@@ -33,9 +30,11 @@ void* CRuntimeClass::CreateObject() const {
     return object;
 }
 
+constinit gamecrt::NewHandler g_afxNewHandler = /*00796E14*/ {DefaultNewHandler};
+
 gamecrt::NewHandler __stdcall SetAfxNewHandler(gamecrt::NewHandler handler) {
-    const gamecrt::NewHandler old = AfxNewHandler();
-    AfxNewHandler() = handler;
+    const gamecrt::NewHandler old = g_afxNewHandler;
+    g_afxNewHandler = handler;
     return old;
 }
 
@@ -50,7 +49,7 @@ int __cdecl DefaultNewHandler(std::size_t) {
 EI_REWRITTEN(0x0070061B, CRuntimeClass::CreateObject);
 EI_REWRITTEN(0x0070059D, SetAfxNewHandler);
 EI_REPLACE_STANDALONE(0x0070AB1A, CriticalNewHandler);
-EI_REPLACE_STANDALONE(0x0070058F, DefaultNewHandler);   // what libcrt::OperatorNew calls through 00796E14
+EI_REPLACE_STANDALONE(0x0070058F, DefaultNewHandler);
 
 // ---- CMapPtrToPtr ---------------------------------------------------------------------------------
 
@@ -203,7 +202,7 @@ void CMapPtrToPtr::GetNextAssoc(Assoc*& position, void*& key, void*& value) cons
 
 EI_REWRITTEN(0x007002C2, CMapPtrToPtr::Construct);
 EI_REWRITTEN(0x00700375, CMapPtrToPtr::Destruct);
-EI_REPLACE_METHOD(0x007002E9, CMapPtrToPtr::DeletingDestructor);
+EI_REWRITTEN(0x007002E9, CMapPtrToPtr::DeletingDestructor);
 EI_REWRITTEN(0x00700305, CMapPtrToPtr::InitHashTable);
 EI_REWRITTEN(0x0070034A, CMapPtrToPtr::RemoveAll);
 EI_REWRITTEN(0x0070039E, CMapPtrToPtr::NewAssoc);

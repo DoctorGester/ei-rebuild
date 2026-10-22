@@ -467,7 +467,7 @@ public:
     // saved (00662AC0); the list's scroll range, the list drawn, mode 9.
     void AddNewHero();
     // 00615D30 (RET 4; Rebirth-patched; ui_hero_screen_mode.cpp, reproducing WideScreen, so hooked
-    // in both launches; rewritten callers go through their forwarder). The screen
+    // in both launches). The screen
     // laid out for `mode`. First everything off: the menu model's parts, the nine child windows,
     // every sprite and surface, the regions after the ninth removed and the others' tips emptied.
     // 9, the hero list: the model's "but03" and "button03_multiplayer", the list's scroll bar, all

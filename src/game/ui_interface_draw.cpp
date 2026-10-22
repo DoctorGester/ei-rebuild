@@ -19,9 +19,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_render.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "render/render_state.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -181,9 +178,9 @@ void CInterface3D::DrawOverlays() {
             UiSurfaceGetDC(fpsSurface_);
             fpsSurface_->Clear();
             RECT rect{0, 0, 60, 18};
-            SurfaceDrawText(fpsSurface_, nullptr, "FPS:", &rect, kFpsFont, kWhite, 0, 1);
+            fpsSurface_->DrawTextIn("FPS:", &rect, kFpsFont, kWhite, 0, 1);
             rect = RECT{0, 0, 60, 18};
-            SurfaceDrawText(fpsSurface_, nullptr, rate, &rect, kFpsFont, kWhite, 2, 1);
+            fpsSurface_->DrawTextIn(rate, &rect, kFpsFont, kWhite, 2, 1);
             UiSurfaceReleaseDC(fpsSurface_);
         }
         fpsTime_ = now;
@@ -192,4 +189,4 @@ void CInterface3D::DrawOverlays() {
     if (fpsSurface_) fpsSurface_->Blit();
     if (console_ && console_->shown_) console_->Blit();
 }
-EI_REPLACE_METHOD(0x005F5320, CInterface3D::DrawOverlays);
+EI_REWRITTEN(0x005F5320, CInterface3D::DrawOverlays);

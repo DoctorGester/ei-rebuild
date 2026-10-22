@@ -1,5 +1,5 @@
 // The game's STLport vector<T> instantiations over game records (record_vectors.h), registered at
-// their own addresses; the forwarders in the area files keep calling these addresses. The element
+// their own addresses. The element
 // size of each was read from its size arithmetic. Checked in game by verify_record_vectors.cpp until S21d.
 #include "record_vectors.h"
 
@@ -58,5 +58,5 @@ EI_REWRITTEN(0x006A83F0, QuickItemVector::ResizeDefault);
 EI_REWRITTEN(0x006A85A0, QuestItemVector::ResizeDefault);
 EI_REWRITTEN(0x006A8790, LootVector::ResizeDefault);
 // The game flow's zone table: _M_insert_overflow (RET 0xC).
-EI_REPLACE(0x00583920, ZoneTableVector::Destruct);   // S3c: the zone table 007AFDE0 at exit (0057F4A0)
+EI_REWRITTEN(0x00583920, ZoneTableVector::Destruct);   // S3c: the zone table 007AFDE0 at exit (0057F4A0)
 EI_REWRITTEN(0x00587480, ZoneTableVector::InsertOverflow);

@@ -14,9 +14,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "ui.h"
 #include "ui_cursor.h"
 #include "ini_file.h"
@@ -34,7 +31,6 @@ namespace {
 
 bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 
-__declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5320)
 // The software cursor's lock (005E65F0), unless the harness hooks the call (ei/main_loop.h): its frame
 // capture reads the finished frame before the cursor is blitted and the frame flipped
 // (tests/verify/harness_capture.cpp; in game.exe's own runs it patches the original CALL at 004580D7).
@@ -46,11 +42,8 @@ CursorLock CursorLockAtCallSite() {
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the
 // video player.
-__declspec(naked) void __fastcall IniConstruct(CIniFile*) EI_ORIGINAL(0x00695B80)
-__declspec(naked) int __fastcall IniSetPath(CIniFile*, void*, const char*) EI_ORIGINAL(0x00695BF0)
-__declspec(naked) void __fastcall IniDestruct(CIniFile*) EI_ORIGINAL(0x00695BE0)
-mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
+mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return ::new (a0) mfc::CString(*a1 + a2); }
+mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return ::new (a0) mfc::CString(*a1 + *a2); }
 
 // The original fills the device object's screen rectangle of the primary surface with black (a
 // colour-fill Blt under the render lock, taken twice) and keeps the result in the device's
@@ -78,7 +71,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     if (!TheSceneRenderer()->BeginScene()) return;
     TheInterface()->Draw();
     TheSceneRenderer()->EndScene();
-    if (cursor) InterfaceDrawCursor(TheInterface());
+    if (cursor) TheInterface()->DrawOverlays();
     if (!draw || !Running()) return;
     CursorLockAtCallSite()(TheCursor());
     CursorDrawFrame(TheCursor());   // 005E54A0
@@ -123,10 +116,10 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     list.Construct();
     lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the original's calls
     CIniFile* ini = iniStorage.Get();
-    IniConstruct(ini);
+    ini->Construct();
     {
         mfc::CString path(mfc::CString::kUnset);
-        IniSetPath(ini, nullptr, *ConcatText(&path, &TheDataFolder(), "config\\movie.ini"));
+        ini->SetPath(*ConcatText(&path, &TheDataFolder(), "config\\movie.ini"));
     }
     ini->GetList(section, "movies", &list, ',');
     if (clearFirst) ClearScreen();
@@ -139,9 +132,9 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
         }
         if (clearAfter) ClearScreen();
     }
-    IniDestruct(ini);
+    ini->Destruct();
     list.Destruct();
 }
-EI_REPLACE(0x00458270, PlayMovies);
+EI_REWRITTEN(0x00458270, PlayMovies);
 
 } // namespace app

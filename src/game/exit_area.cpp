@@ -86,7 +86,7 @@ void ZoneExit::Read(CStream* stream) {
         stream->Read(&angle, 4);
     }
 }
-EI_REPLACE_METHOD(0x004E5750, ZoneExit::Read);
+EI_REWRITTEN(0x004E5750, ZoneExit::Read);
 
 // Each field goes through a copy on the stack, as in the original.
 void ZoneExit::Write(CStream* stream) const {

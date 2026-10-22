@@ -11,10 +11,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "ui.h"
 #include "world.h"
 #include "world_data.h"
@@ -204,7 +200,7 @@ void ServerSession::LeaveZone() {
     variables_.Clear();
     files_.Clear();
     QueueMapList();
-    WorldPrepareMap(TheGameFlow(), nullptr, nullptr);
+    TheGameFlow()->SetNetworkZone(nullptr);
 }
 
 EI_REWRITTEN(0x00419D90, ServerSession::QueueAward);

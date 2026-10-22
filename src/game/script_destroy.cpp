@@ -12,11 +12,8 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "engine_object.h"
-#include "originals_world.h"
-#include "originals_script.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "record_arrays.h"
@@ -25,8 +22,6 @@
 #include "game_singletons.h"
 
 #include <cstdint>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 
@@ -40,7 +35,7 @@ void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(re
 // Out-of-line CArray destructors (__thiscall): CString arrays (004C26A0), object references
 // (004C2290), the ScriptVars floats (004C29C0).
 void __fastcall NamesDestruct(void* a0) { ScriptNamesDestruct(static_cast<mfc::CArray<mfc::CString>*>(a0)); }   // 004C26A0 is 004BC810's body
-inline void __fastcall RefArrayDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
+inline void __fastcall RefArrayDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 template <typename T>
 void SetBaseVtable(mfc::CArray<T>* a, void* vtable) {

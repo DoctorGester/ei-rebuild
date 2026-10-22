@@ -18,17 +18,12 @@
 #include "sound.h"
 #include "terrain.h"
 #include "unit.h"
-#include "originals_ai.h"
-#include "originals_engine.h"
-#include "originals_world.h"
 
 #include <cmath>
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -57,7 +52,7 @@ CScript* CommandScript() { return TheServerWorld()->SecondScript(); }
 
 int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error) {
     CScript* script = CommandScript();
-    int loaded = ScriptLoadLine(script, nullptr, text, 1);
+    int loaded = script->Load(text, 1);
     if (loaded && run) ScriptTick(script);
     if (error) {
         // (00456360, inlined here: a copy of the script's error record.)
@@ -148,7 +143,7 @@ void __stdcall GameSetUnitHeight(int id, float z) {
     EI_NAN_AUDIT(unit->localPosition_.z, z);
     if (unit->localPosition_.z == z) return;
     Vector3 target = {unit->localPosition_.x, unit->localPosition_.y, z};
-    SectorMapMove(world->Sectors(), nullptr, unit, &target);   // 005C11D0: Rebirth patches it (rule 9)
+    world->Sectors()->Move(unit, &target);   // 005C11D0
     unit->MarkChanged(2);
 }
 EI_REWRITTEN(0x00578760, GameSetUnitHeight);
@@ -175,7 +170,7 @@ EI_REWRITTEN(0x005787F0, GameStartCameraRecording);
 
 int __stdcall GamePlayCameraPath(const char* name, int flag) {
     CWorldClient* world = TheClientWorld();
-    if (!CameraLoadPathOriginal(world->camera_, nullptr, name, flag)) return 0;
+    if (!world->camera_->LoadPath(name, flag)) return 0;
     CCamera* camera = world->camera_;
     camera->flags_ |= CCamera::kPlaying;
     camera->keyIndex_ = 0;
@@ -186,7 +181,7 @@ EI_REWRITTEN(0x00578820, GamePlayCameraPath);
 
 int __stdcall GameShowCameraPath(const char* name) {
     CWorldClient* world = TheClientWorld();
-    int loaded = CameraLoadPathOriginal(world->camera_, nullptr, name, 0);
+    int loaded = world->camera_->LoadPath(name, 0);
     if (!loaded) return loaded;
     return world->camera_->PlaybackStart();
 }
@@ -196,7 +191,7 @@ std::uint32_t GameCameraPathPlaying() { return TheClientWorld()->camera_->flags_
 EI_REWRITTEN(0x005788B0, GameCameraPathPlaying);
 
 // 00569E40 through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
-int GameRender() { return ClientRenderOriginal(TheClientWorld()); }
+int GameRender() { return static_cast<CWorldClient*>(TheClientWorld())->Render(); }
 EI_REWRITTEN(0x00578910, GameRender);
 
 void __stdcall GameStopSounds(int stopStream) { TheClientWorld()->sounds_->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }

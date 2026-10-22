@@ -3,6 +3,7 @@
 // frame (005F2A90, its slot 18). See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "app.h"
 #include "model.h"
+#include "ui.h"
 #include "ui_item_info.h"
 #include "ui_camp.h"
 #include "ui_screens.h"
@@ -14,10 +15,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc_slots.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_render.h"
-#include "originals_gameplay.h"
 #include "item.h"
 #include "party.h"
 #include "game_data.h"
@@ -38,8 +35,8 @@ struct SpriteBuild {
     void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
                int v1, int count, int flag);   // 005E7680
 };
-void SpriteBuild::Rectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
-void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { UiMeshCellsOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
+void SpriteBuild::Rectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { static_cast<CUiMesh*>((void*)this)->SetRectangleVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
+void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { static_cast<CUiMesh*>((void*)this)->SetGridVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
 
 // 00500960: the display object; +0x14 a flag, +8 -> +0xC an object whose slot 5 takes two floats.
 std::uint8_t* __cdecl Display() { return (std::uint8_t*)SceneRenderer(); }
@@ -74,7 +71,7 @@ void __fastcall TrimItemCache(ItemObjectCache* cache) {
     }
 }
 EI_REWRITTEN(0x005F2F20, TrimItemCache);
-EI_REPLACE(0x005F2F90, TrimItemCache);
+EI_REWRITTEN(0x005F2F90, TrimItemCache);
 
 // --- 005F2A90: the icon window's frame -------------------------------------------------------------
 
@@ -190,7 +187,7 @@ void DestroyCache(ItemObjectCache& cache) {
 void __fastcall ItemScreenDestroy(CItemScreen* self) {
     DestroyCache(self->textures_);
     DestroyCache(self->models_);
-    DestroyContainerBody(self);
+    static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F6470, ItemScreenDestroy);
 
@@ -202,7 +199,7 @@ void __fastcall CampScreenDestroy(CItemScreen* self) {
     if (camp->heroes_.data) gamecrt::operator_delete(camp->heroes_.data);
     DestroyCache(self->textures_);
     DestroyCache(self->models_);
-    DestroyContainerBody(self);
+    static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F6620, CampScreenDestroy);
 
@@ -212,11 +209,11 @@ void __fastcall Screen9Destroy(CItemScreen* self) {
     // The exchange window's figure names (vector<CString> at +0x1AC): the strings, then the
     // storage through STLport's node allocator (00404D70, inlined by the original).
     MpStringVector& names = static_cast<CExchangeScreen*>(self)->names_;
-    for (mfc::CString* at = names.begin(); at != names.end(); ++at) CStringDestroy(at);
+    for (mfc::CString* at = names.begin(); at != names.end(); ++at) at->~CString();
     stlp::deallocate(names.begin(), static_cast<std::size_t>(names.EndOfStorage() - names.begin()) * sizeof(mfc::CString));
     DestroyCache(self->textures_);
     DestroyCache(self->models_);
-    DestroyContainerBody(self);
+    static_cast<CUiContainer*>(self)->DestroyContainer();
 }
 EI_REWRITTEN(0x005F7010, Screen9Destroy);
 
@@ -306,4 +303,4 @@ CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
     }
     return moved;
 }
-EI_REPLACE_METHOD(0x005EE2C0, CItemScreen::ReturnAll);
+EI_REWRITTEN(0x005EE2C0, CItemScreen::ReturnAll);

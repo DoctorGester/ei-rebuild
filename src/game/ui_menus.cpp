@@ -10,11 +10,8 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_render.h"
-#include "originals_effects.h"
 
 #include <cstdint>
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -59,10 +56,9 @@ struct UiDisplaySettings {
 UiDisplaySettings* DisplaySettings() { return (UiDisplaySettings*)SceneRenderer(); }
 } // namespace
 
-// --- Forwarders --------------------------------------------------------------------------------
+// --- Helpers -----------------------------------------------------------------------------------
 
 BOOL CUiContainer::DrawContainer(int pass) { return DrawContainerImpl(pass); }
-__declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
 
 // --- Save/load window --------------------------------------------------------------------------
 
@@ -98,8 +94,8 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
                     selected_ = static_cast<int>(index);
                     TakeSelectedTitle();
                 }
-                RefreshList();
-                CallShowPicture();
+                RefreshListVanilla();
+                ShowPicture();
             }
         }
         break;
@@ -153,7 +149,7 @@ void CSaveLoadWindow::Update() {
     int position;
     if (scrollbar_->TakePosition(&position)) {
         firstVisible_ = position;
-        RefreshList();
+        RefreshListVanilla();
     }
 }
 
@@ -164,9 +160,9 @@ void CSaveLoadWindow::CloseDialog() {
 
 void CSaveLoadWindow::OnDialogResult(int result) {
     if (result == kResultDelete)
-        CallDeleteSave();
+        DeleteSave();
     else if (result == kResultOverwrite)
-        CallSaveGame();
+        SaveGame();
     else if (result == kResultLoad)
         interface_->SetPendingValue(kCloseSaveLoadLoad);
 }
@@ -179,12 +175,12 @@ W* FromInput(void* input) {
 
 } // namespace
 
-EI_REPLACE_METHOD(0x00654660, InputForward<&CSaveLoadWindow::OnMouseDown>::Call);
-EI_REPLACE_METHOD(0x006547B0, InputForward<&CSaveLoadWindow::OnDoubleClick>::Call);
-EI_REPLACE_METHOD(0x006544A0, CSaveLoadWindow::Draw);
-EI_REPLACE_METHOD(0x006545E0, CSaveLoadWindow::Update);
-EI_REPLACE_METHOD(0x00654430, CSaveLoadWindow::CloseDialog);
-EI_REPLACE_METHOD(0x00654450, CSaveLoadWindow::OnDialogResult);
+EI_REWRITTEN(0x00654660, InputForward<&CSaveLoadWindow::OnMouseDown>::Call);
+EI_REWRITTEN(0x006547B0, InputForward<&CSaveLoadWindow::OnDoubleClick>::Call);
+EI_REWRITTEN(0x006544A0, CSaveLoadWindow::Draw);
+EI_REWRITTEN(0x006545E0, CSaveLoadWindow::Update);
+EI_REWRITTEN(0x00654430, CSaveLoadWindow::CloseDialog);
+EI_REWRITTEN(0x00654450, CSaveLoadWindow::OnDialogResult);
 
 // --- Options window ----------------------------------------------------------------------------
 
@@ -206,7 +202,7 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
     if (region == 0 || region == 1) {
         const char* sound;
         if (region == 0) {
-            CallApply();
+            Apply();
             sound = kSoundOk;
         } else {
             RestoreSettings();
@@ -341,13 +337,13 @@ void COptionsWindow::Update() {
     }
 }
 
-EI_REPLACE_METHOD(0x00650C20, InputForward<&COptionsWindow::OnMouseDown>::Call);
-EI_REPLACE_METHOD(0x00650D70, InputForward<&COptionsWindow::OnDoubleClick>::Call);
-EI_REPLACE_METHOD(0x00650920, COptionsWindow::Draw);
-EI_REPLACE_METHOD(0x00650A20, COptionsWindow::Redraw);
-EI_REPLACE_METHOD(0x006508E0, COptionsWindow::OnDialogResult);
-EI_REPLACE_METHOD(0x00650900, COptionsWindow::HelpTopic);
-EI_REPLACE_METHOD(0x00650A30, COptionsWindow::Update);
+EI_REWRITTEN(0x00650C20, InputForward<&COptionsWindow::OnMouseDown>::Call);
+EI_REWRITTEN(0x00650D70, InputForward<&COptionsWindow::OnDoubleClick>::Call);
+EI_REWRITTEN(0x00650920, COptionsWindow::Draw);
+EI_REWRITTEN(0x00650A20, COptionsWindow::Redraw);
+EI_REWRITTEN(0x006508E0, COptionsWindow::OnDialogResult);
+EI_REWRITTEN(0x00650900, COptionsWindow::HelpTopic);
+EI_REWRITTEN(0x00650A30, COptionsWindow::Update);
 
 // --- 0062B180: the destructor body ------------------------------------------------------------------
 
@@ -357,7 +353,7 @@ void COptionsWindow::DestroyOptions() {
     settings_.FreeStorage();
     for (OptionBinding& binding : bindings_) binding.Destroy();
     bindings_.FreeStorage();
-    DestroyContainerBody(this);   // 00600BA0 by address: its wrapper runs
+    DestroyContainer();   // 00600BA0 by address: its wrapper runs
 }
 EI_REWRITTEN(0x0062B180, COptionsWindow::DestroyOptions);
 
@@ -407,7 +403,7 @@ void CUiScrollbar::Update() {
 
 void CUiScrollbar::OnMouseDown(int, int x, int y) {
     POINT point{x, y};
-    interface_->CallScalePointFromScreen(&point);
+    interface_->ScalePointFromScreenEntry(&point);
     if (gameapi::PtInRect(&thumb_, point)) {
         CaptureMouse();
         state_ = 1;

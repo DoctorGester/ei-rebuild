@@ -12,8 +12,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 
 namespace {
@@ -93,7 +91,7 @@ void CInterface3D::Shutdown() {
     // The fade's destructor body (005E69A0) is empty; the pointer is not cleared.
     if (fade_) gamecrt::operator_delete(fade_);
 }
-EI_REPLACE_METHOD(0x005F4F90, CInterface3D::Shutdown);
+EI_REWRITTEN(0x005F4F90, CInterface3D::Shutdown);
 
 void CInterface3D::DestroyBody() {
     savedText_.~CString();
@@ -105,7 +103,7 @@ void CInterface3D::DestroyBody() {
         stlp::deallocate(stackBegin_, static_cast<std::size_t>(stackCapacity_ - stackBegin_) * sizeof(CUiWindow*));
     }
 }
-EI_REPLACE_METHOD(0x005F4790, CInterface3D::DestroyBody);
+EI_REWRITTEN(0x005F4790, CInterface3D::DestroyBody);
 
 void console::ConsoleWindow::DestroyBody() {
     DeleteSurface(surface_);

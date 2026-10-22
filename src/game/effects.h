@@ -774,7 +774,6 @@ public:
     // (its result); 1 without cells or when the bounds are out of view.
     int Draw(class CSceneRenderer* renderer);
 
-    // Not rewritten (forwarders).
     CWorld* World();                                // 00455950 (CEngineObject)
 
     ClipBounds bounds;              // +0x1C flags 3 once computed; the box relative to the centre

@@ -18,8 +18,6 @@
 #include <cstdint>
 #include <cstring>
 #include "model.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -54,7 +52,7 @@ void ConstructArrays() {
     if (!(g_arraysConstructed & 1)) {
         g_arraysConstructed |= 1;
         ConstructSpriteArray(&Sprites());
-        GameAtExit(DestroySprites);
+        libcrt::AtExit(DestroySprites);
     }
     if (!(g_arraysConstructed & 2)) {
         Vertices().data = nullptr;
@@ -62,7 +60,7 @@ void ConstructArrays() {
         Vertices().growBy = 0;
         Vertices().capacity = 0;
         Vertices().size = 0;
-        GameAtExit(FreeVertices);   // 00497D10
+        libcrt::AtExit(FreeVertices);   // 00497D10
     }
 }
 
@@ -85,20 +83,20 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 } // namespace
 
 // 00497D40: the list's GetNext (the list itself not read).
-EI_REPLACE_METHOD(0x00497D40, mfc::CTypedPtrList<Particle>::GetNext);
+EI_REWRITTEN(0x00497D40, mfc::CTypedPtrList<Particle>::GetNext);
 // Byte-identical copies (other CTypedPtrList iterators in the world range; A-W12).
-EI_REPLACE_METHOD(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
-EI_REPLACE_METHOD(0x0059A670, mfc::CTypedPtrList<Particle>::GetNext);
-EI_REPLACE_METHOD(0x005BD340, mfc::CTypedPtrList<Particle>::GetNext);
+EI_REWRITTEN(0x0059A040, mfc::CTypedPtrList<Particle>::GetNext);
+EI_REWRITTEN(0x0059A670, mfc::CTypedPtrList<Particle>::GetNext);
+EI_REWRITTEN(0x005BD340, mfc::CTypedPtrList<Particle>::GetNext);
 
 int CSceneRenderer::BindHeldTexture(int stage, HeldTexture* holder) {
     TextureHolderEnsureLoaded(holder);
     return SetTexture(stage, *holder);
 }
-EI_REPLACE_METHOD(0x00497CE0, CSceneRenderer::BindHeldTexture);
+EI_REWRITTEN(0x00497CE0, CSceneRenderer::BindHeldTexture);
 
 // 00497D50. CArray::SetSize for the 8-byte sprites: new elements are zeroed.
-EI_REPLACE_METHOD(0x00497D50, ParticleSpriteArray::SetSize);
+EI_REWRITTEN(0x00497D50, ParticleSpriteArray::SetSize);
 EI_REPLACE(0x00497D30, DestroySprites);
 
 // 004976B0. Off screen (the renderer's clip test on the bounds says 2) only counts the hidden

@@ -126,8 +126,7 @@ struct LinkPartRanges {
 };
 static_assert(sizeof(LinkPartRanges) == 0x30);
 
-// The mesh's part maps (STLport map<string, T>; their insert / erase are library instantiations
-// reached through their addresses, originals_script.h).
+// The mesh's part maps (STLport map<string, T>; their insert / erase are library instantiations).
 using LinkHeaderMap = stlp::map<stlp::string, LinkPartHeader>;   // nodes 0x6C bytes
 using LinkRangeMap = stlp::map<stlp::string, LinkPartRanges>;    // nodes 0x4C bytes
 static_assert(sizeof(LinkHeaderMap) == 0x0C && sizeof(LinkHeaderMap::Node) == 0x6C && sizeof(LinkRangeMap::Node) == 0x4C);

@@ -2,11 +2,10 @@
 #include "ui.h"
 
 #include "core_streams.h"
+#include "item_db_text.h"
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
-#include "originals_library.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -82,7 +81,7 @@ mfc::CString* CInterface3D::MessageText(void* out, int id, const char* value) {
     mfc::CString key, text;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
     CTextManager* table = TheTextManager();
-    TextsGetString(table, nullptr, key, &key);
+    table->CTextManager::GetString(key, &key);
     if (value)
         text.Format(key, value);
     else

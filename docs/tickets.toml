@@ -410,7 +410,7 @@ size = 1
 model = "opus"
 depends = ["R16"]
 files = ["src/render/", "src/game/terrain_lighting.cpp"]
-note = "User 2026-10-22: with per-pixel sun lighting, R22's object-id shadow test (away-facing faces skip only their own object's shadow) can go back to plain N.L darkening plus normal-offset bias; remove the id target then."
+note = "User 2026-10-22: no CPU lighting at all (asked if it is needed anywhere; digests carry no lighting value, lighting draws no rand). Light objects stay as GPU inputs."
 
 [[ticket]]
 id = "R16j"
@@ -2351,7 +2351,7 @@ id = "C14"
 title = "Standard types instead of MFC / STLport containers and strings"
 group = "cleanup"
 size = 5
-note = "Split 2026-10-22 (user): C14a strings, C14b arrays/lists, C14c maps, C14d archives; scripted rewrites, queued after C27."
+note = "User 2026-10-22: R16i goes first; C14a-d wait."
 
 [[ticket]]
 id = "C15"
@@ -2869,7 +2869,7 @@ id = "C18r"
 title = "Named data: the MFC and CRT objects, the locale categories"
 group = "cleanup"
 model = "opus"
-note = "After C26: picks up the CRT families C26 found differ on the host CRT (user 2026-10-22)."
+note = "After C26: picks up the CRT families C26 found differ on the host CRT (user 2026-10-22). C18r result: game data addresses in src/ 43 -> 6 after C18u (41 -> 6 over C18r): 0 left in src/lib (MFC 25 -> 0, CRT 8 -> 0). CRT: node allocator state 0079B224-0079B26C, _pnhHeap 007CAAD8, _afxNewHandler 00796E14 ({DefaultNewHandler}); printf's power tables tagged 0079AE60 / 0079AFC0. MFC: string allocators, three static exceptions and afxData with hand-ported initialisers / exits (8 size rows); locks, _afxThreadData, halftone brush plain globals; temp allocators and static windows via GENERATED_NAMES; g_dragListMessage 007CAA64 (named_data UNREACHABLE_CELLS for CWnd's message map cell 00746C80). Harness builds our string allocators in game.exe runs. Suites after the last merge: image 121 same / 23 without a golden, original 114 / 12. Left: game_data.h's section bounds / import slot / 0073B820, image_data's 00783000, EmptyText 0079B298."
 
 [[ticket]]
 id = "C26"
@@ -2911,7 +2911,7 @@ id = "C29"
 title = "Forwarders to direct calls: EI_ORIGINAL callers call our functions by name"
 group = "cleanup"
 model = "opus"
-note = "User 2026-10-22: don't tie the standalone to game.exe addresses for the harness either. The harness's standalone hooks (FixedIsaacSeed at 0049F660, the traced rand at 006E77F7, via RedirectCode) become named seams in our code that the harness sets (e.g. a deterministic-seed switch in our Isaac seeding, a draw callback in our rand). Then every EI_ORIGINAL forwarder goes, RedirectCode and CodeLink binding go, and the address registry stays only where something still needs an address (the game.exe side of the harness patches game.exe by address, which is fine). Model opus, not sonnet."
+note = "User 2026-10-22: don't tie the standalone to game.exe addresses for the harness either. The harness's standalone hooks (FixedIsaacSeed at 0049F660, the traced rand at 006E77F7, via RedirectCode) become named seams in our code that the harness sets (e.g. a deterministic-seed switch in our Isaac seeding, a draw callback in our rand). Then every EI_ORIGINAL forwarder goes, RedirectCode and CodeLink binding go, and the address registry stays only where something still needs an address (the game.exe side of the harness patches game.exe by address, which is fine). Model opus, not sonnet. Done 2026-10-22: src has 0 EI_ORIGINAL (check_cleanup keeps it at 0); 16 left in tests, all game.exe-only (tests/verify/harness_original.h: harness.cpp 10, harness_starter.cpp 3, each behind ei::Standalone() with our function on the other side; tests/vectors/record_crt.cpp 3). Harness seams: IsaacRandom::SetSeedHook / SetDrawObserver, gamecrt::SetRandObserver (no RedirectCode). Removed: RedirectCode, CodeLink / BindCode / ei_code_bind, SetCodeBinding and the codebinding step, ei_vectors' replay dispatch and stand-ins, originals_*.h. Dropped tools: check_forwarders.py, gen_originals.py, direct_calls.py, test_direct_calls.py, config/direct_calls_skip.csv, config/forwarder_duplicates.txt, docs/originals-report.md. 1,203 unread registrations to EI_REWRITTEN; the 23 unread left are in src/lib/crt*.cpp (C26's area: Malloc / Free / OperatorDelete / AtExit EI_REPLACE_STANDALONE, the iostream / exception slots, WsaCleanup, eh vector iterators) plus 210 generated EI_REPLACE_SHORT. For C26: crt.h's gamecrt::GameThreadData (006F00D1) serves RandSeed / SetIllegalSequence on game.exe paths, and crt.cpp's gamecrt heap calls game.exe's 007005AF / 007005D8 / 006EABD1 / 006EA8AD outside the image (host heap there crashed the original's runs). Suites: image 121 same / 23 without; original 114 / 12."
 
 [[ticket]]
 id = "C14a"
@@ -3086,7 +3086,7 @@ id = "C18u"
 title = "Named data: name the function-local statics' guard 007CAEE4 in gen_static_init, then the 11 static-init-only objects"
 group = "cleanup"
 model = "opus"
-note = "After C18t/C25c: 56 game data addresses left; 11 are reached only from generated static init / exit, and 175 generated d.Once tests use the guard 007CAEE4. Name the guard in gen_static_init's output, then the objects as lib::StaticObject or plain globals. Also: drop the stale 'vtable 007472B0' line in config/standalone_unreachable.csv and the outdated ostream vbtable sentence in docs/notes/standalone.md (both from C25c's report)."
+note = "Done: gen_static_init.py's GENERATED_NAMES writes names for addresses only generated code reaches (d.Once(name, bit), d.Thiscall(fn, &name), d.Store(name, call)); lib::g_emptyStaticGuard 007CAEE4 (175 d.Once + sys_info) and 11 MFC globals in lib/mfc_static_objects.{h,cpp} (exit guards 007C8BB8/007C9138/007CAA24/007CAAA0, StaticObject<CSimpleException> 007C8BC0, thread/process locals 007C90BC/C0, 007CAA84/88/8C, _afxDBCS 007CAA98). Game data addresses 53 -> 41 before merging C26, 39 after. Stale 007472B0 row and ostream vbtable sentence dropped. After the last merge: image suite 144 ALL PASS, goldens 121 same / 23 without; original 126 ALL PASS; check_against_exe 0."
 
 [[ticket]]
 id = "C25d"
@@ -3095,6 +3095,20 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C28"]
 note = "User 2026-10-22: keep tools/check_against_exe.cmd until the naming tickets (C18u, C18r, C26's CRT objects) and C28 finish, then delete it and the game.exe-comparing modes only it uses (check_fp_fold, rdata_literals, named_data --check, check_short_functions, check_static_init, gen_image_cells --check/scan, gen_iat --check) where nothing else needs them; drop exe_path.py if only they read it. The harness keeps its game.exe paths."
+
+[[ticket]]
+id = "H30"
+title = "Harness: game.exe runs use none of our game code, so the reference cache key is the harness alone"
+group = "cleanup"
+model = "opus"
+note = "User 2026-10-22: the original (--no-hooks) suite is only needed when the harness changes. Today the harness's game.exe side still calls some of our code (CString / string allocators, Harness* accessors, PickAt2 / UnitAt and others C18t met; 33 scenarios crashed when that code changed), so --fresh was used defensively. Make the game.exe side call game.exe's own functions and read its objects (OriginalGameData) only, list what it still links from src/, and put exactly that in run_all's reference key (with tests/verify and src/hook). Then the suite reuses cached references unless the harness changed."
+
+[[ticket]]
+id = "C29a"
+title = "C29 leftovers: crt* unread registrations, always-zero forwarder counts in tools"
+group = "cleanup"
+model = "sonnet"
+note = "From C29's report: drop the 23 unread registrations in src/lib/crt*.cpp now C26 is merged (registration_readers.py --drop without the crt exclusion); teach registration_readers that tests' forwarders run only in game.exe and drop the 12 registrations only they read; remove the forwarder counts from progress.py, dashboard_data.py, standalone_gaps.py and check_cleanup's EI_ORIGINAL column."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

@@ -2,6 +2,7 @@
 // have, counted once the sound system is up (client world creation 00563710, 0057CB50, and the
 // database rebuild 0057DEE0). The client picks a random file of the counted ones (ActionSound,
 // unit_client_sounds.cpp). See unit_db.h.
+#include "sound.h"
 #include "unit_db.h"
 
 #include "world.h"
@@ -9,8 +10,6 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
-#include "originals_units.h"
 
 #include <cstring>
 
@@ -58,7 +57,7 @@ bool StartsWith(const char* file, const char* name) {
 void UnitDatabase::CountSoundFiles(void* sounds) {
     mfc::CStringArray files;
     files.Construct();
-    SoundSystemListFilesOriginal(sounds, nullptr, &files, kSoundPattern);
+    static_cast<CSoundManager*>(sounds)->ListWaveFiles(&files, kSoundPattern);
     for (int i = 0; i < files.size; ++i) files.data[i].MakeLower();
 
     int modelCount = static_cast<int>(models.end - models.begin);

@@ -12,10 +12,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
-#include "originals_library.h"
-#include "originals_core.h"
 #include "lib/mfc_list.h"
 #include "game_slots.h"
 #include "world.h"
@@ -85,7 +81,7 @@ void ClientSession::ApplyAwards() {
         case 2: {
             GivenItems items;
             InitList(items, gameslots::ItemObjectListClass::Vtable());
-            CItem* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
+            CItem* item = player->Party()->ItemManager()->CreateItem(name);
             GivenItems::Node* added = items.NewNode(items.tail, nullptr);
             HeldObject<CItem>::Of(&added->data)->Assign(item);
             if (items.tail) items.tail->next = added;
@@ -97,7 +93,7 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 3: {
-            auto* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
+            auto* item = player->Party()->ItemManager()->CreateItem(name);
             if (item) ++item->refCount_;
             for (GivenItems::Node* position = player->items_.head; position;) {
                 GivenItems::Node* current = position;
@@ -113,7 +109,7 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 4:
-            PartyResetItems(player->Party());
+            player->Party()->RemoveQuestItems();
             for (GivenItems::Node* position = player->items_.head; position;) {
                 GivenItems::Node* current = position;
                 position = position->next;

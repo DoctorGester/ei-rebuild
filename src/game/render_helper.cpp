@@ -20,7 +20,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
-#include "originals_engine.h"
 #include "game_data.h"
 
 #include <d3d.h>
@@ -29,8 +28,6 @@
 #include <cstdint>
 #include <cstring>
 #include <optional>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 

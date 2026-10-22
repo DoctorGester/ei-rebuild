@@ -1,6 +1,7 @@
 // Drawing slots (20) of the camp's and the hero screen's panels: the quick strip 00622C10, the
 // repair grid 00627C90, the constructors' spell maker 006284A0 and item maker 00628F80. See docs/notes/ui.md, section 5. The trade grid's (00627390) is in
 // ui_trade_grid_draw.cpp.
+#include "ui.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "item.h"
@@ -11,7 +12,6 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_ui.h"
 #include "render/render.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -78,7 +78,7 @@ EI_REWRITTEN(0x00622C10, CHeroQuickStrip::Draw);
 BOOL CRepairGrid::Draw(int pass) {
     CInterface3D* ui = interface_;
     RECT grid{200, 100, 600, 500};
-    ui->CallScaleRectToScreen(&grid);
+    ui->ScaleRectToScreenEntry(&grid);
     RECT screen{0, 0, ui->width_, ui->height_};
     ClearDepth(ui->renderer_, &screen, 0.0f);
     RECT inside = grid;
@@ -137,7 +137,7 @@ struct Pulse {
     int high;
 };
 Pulse Advance(CConstructorPage* page) {
-    double t = WindowFrameTimeOriginal(page) + page->pulse_;
+    double t = CUiContainer::FrameTime() + page->pulse_;
     page->pulse_ = static_cast<float>(t);
     float p = static_cast<float>((x87::fcos(t * 5.0) + 1.0) * 0.5);
     double a = 1.0 - p;
@@ -249,7 +249,7 @@ namespace {
 // model, then the screen to 1 again.
 void DrawInSlot(CConstructorPage* page, int pass, ItemCell* cell, RECT slot) {
     CInterface3D* ui = page->interface_;
-    ui->CallScaleRectToScreen(&slot);
+    ui->ScaleRectToScreenEntry(&slot);
     RECT inside = slot;
     ClearDepth(ui->renderer_, nullptr, 0.0f);
     ClearDepth(ui->renderer_, &inside, 1.0f);

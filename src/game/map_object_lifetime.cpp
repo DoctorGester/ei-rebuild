@@ -4,9 +4,11 @@
 #include "ai_map.h"        // AIPath
 #include "ai_motion.h"     // UnitMotion
 #include "combat.h"
+#include "core_refcount.h"
 #include "core_streams.h"
 #include "core_transform.h"
 #include "effects.h"       // CParticleSource
+#include "engine_object.h"
 #include "game_lists.h"
 #include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
@@ -27,15 +29,10 @@
 #include "lib/stlp_list.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
-#include "originals_effects.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_core.h"
-#include "originals_ai.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
 #include "game/game_slots.h"
+#include "lib/vecmath.h"
 #include "game_singletons.h"
 
 #include <cstring>
@@ -53,17 +50,14 @@ constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
 
-// Not rewritten, forwarders:
-// 0040CB00. Quaternion::SetIdentity.
-__declspec(naked) void* __fastcall SetIdentity(Quaternion*) EI_ORIGINAL(0x0040CB00)
 // 006FE925 / 006FE958 / 006FE9B8. CStringArray constructor, destructor, SetSize.
 // 004CD080 / 0052E230. The unit motion's step speed array constructor and the constructor of its
 // segment part (+0x50, empty); the motion's constructor then clears it (005C6270 UnitMotion::Clear).
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
 // The server unit controller's members (00546230).
-void __fastcall BrainObject8CDestroy(void* a0) { RefObjectRelease(a0); }
-void __fastcall BrainArrayDestroy(void* a0) { CountedRefResetOriginal(a0); }
+void __fastcall BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
+void __fastcall BrainArrayDestroy(void* a0) { static_cast<AIRef*>(a0)->Reset(); }
 void __fastcall Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }
 
 // The engine object fields every constructor here sets (the base constructor inlined).
@@ -114,8 +108,8 @@ CObject3D::CObject3D() { SetUpObject3D(); }
 
 void CObject3D::SetUpObject3D() {
     InitEngineObject(this);
-    SetIdentity(&localRotation_);
-    SetIdentity(&worldRotation_);
+    localRotation_.SetIdentity();
+    worldRotation_.SetIdentity();
     // The part list (an MFC CPtrList: head, tail, count, free list, blocks, block size 10).
     effectSources.vtable = mfc::impl::Object3DListClass::Vtable();
     effectSources.count = 0;
@@ -245,8 +239,8 @@ void CMapObject::TearDownMapObject() {
 EI_REWRITTEN(0x0050E660, CMapObject::DestructBody);
 // The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
-EI_REPLACE_METHOD(0x00529B20, CMapObject::DestructBody);
-EI_REPLACE_METHOD(0x00529B50, CMapObject::DestructBody);
+EI_REWRITTEN(0x00529B20, CMapObject::DestructBody);
+EI_REWRITTEN(0x00529B50, CMapObject::DestructBody);
 
 // --- CUnit ------------------------------------------------------------------------------------
 
@@ -283,7 +277,7 @@ CUnit::CUnit() {
 }
 
 CUnit* CUnit::Construct() { return new (this) CUnit(); }
-EI_REPLACE_METHOD(0x0052E110, CUnit::Construct);
+EI_REWRITTEN(0x0052E110, CUnit::Construct);
 
 void CUnit::Reset() {
     scriptName.Empty();
@@ -328,7 +322,7 @@ void CUnit::Reset() {
     MapObject()->NetState()->Reset();
     fightAtWill = 1;
 }
-EI_REPLACE_METHOD(0x0052E5B0, CUnit::Reset);
+EI_REWRITTEN(0x0052E5B0, CUnit::Reset);
 
 CUnit::~CUnit() {
     // The vtable's slot 5 (0052E740, the release from the player), called directly as the original
@@ -345,14 +339,14 @@ CUnit::~CUnit() {
 }
 
 void CUnit::DestructBody() { this->CUnit::~CUnit(); }
-EI_REPLACE_METHOD(0x0052E310, CUnit::DestructBody);
+EI_REWRITTEN(0x0052E310, CUnit::DestructBody);
 
 CUnit* CUnit::DeletingDestructor(std::uint32_t flags) {
     this->CUnit::~CUnit();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REPLACE_METHOD(0x0052E2A0, CUnit::DeletingDestructor);
+EI_REWRITTEN(0x0052E2A0, CUnit::DeletingDestructor);
 
 // --- Companions -------------------------------------------------------------------------------
 
@@ -368,7 +362,7 @@ CMapObjectServer* CMapObjectServer::Construct() {
     vitals.Reset();
     return this;
 }
-EI_REPLACE_METHOD(0x00515610, CMapObjectServer::Construct);
+EI_REWRITTEN(0x00515610, CMapObjectServer::Construct);
 
 void CMapObjectServer::DestructBody() {
     SetVtable(this, CMapObjectServer::Vtable());
@@ -404,7 +398,7 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     lightStateB = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x00510450, CMapObjectClientSpecific::Construct);
+EI_REWRITTEN(0x00510450, CMapObjectClientSpecific::Construct);
 
 void CMapObjectClientSpecific::DestructBody() {
     SetVtable(this, CMapObjectClientSpecific::Vtable());

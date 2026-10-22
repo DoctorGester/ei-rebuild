@@ -7,8 +7,6 @@
 #include "chunk_archive.h"
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
 #include "party.h"
 #include "resource_local.h"   // FillStream
 
@@ -17,7 +15,6 @@
 #include "game_hashes.h"
 #include "lib/stlp_vector_refs.h"
 
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 
@@ -298,7 +295,7 @@ void PartyManager::Load(CMemoryStream* from) {
     ArchiveManager(this, &archive);
     archive.Close(&local);
 }
-EI_REPLACE_METHOD(0x004A8310, PartyManager::Load);
+EI_REWRITTEN(0x004A8310, PartyManager::Load);
 
 void PartyManager::Save(CMemoryStream* to) {
     CMemoryStream local;
@@ -308,4 +305,4 @@ void PartyManager::Save(CMemoryStream* to) {
     archive.Close(&local);
     to->WriteSized(&local);
 }
-EI_REPLACE_METHOD(0x004A8560, PartyManager::Save);
+EI_REWRITTEN(0x004A8560, PartyManager::Save);

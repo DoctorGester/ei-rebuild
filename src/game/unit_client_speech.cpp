@@ -10,9 +10,6 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
-#include "originals_effects.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "game_singletons.h"
 
 namespace {
@@ -57,7 +54,7 @@ bool SoundBusy(int handle) {
 }
 
 void SetTalking(int unitId, bool talking) {
-    CEngineObject* serverUnit = WorldFindUnit(TheServerWorld(), nullptr, unitId);
+    CEngineObject* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unitId);
     if (!serverUnit) return;
     if (talking) serverUnit->flags_ |= kFlagTalking;
     else serverUnit->flags_ &= ~kFlagTalking;
@@ -139,4 +136,4 @@ bool CUnitClientSpecific::Speak(ClientSpeech* said) {
     lastSpeechTime = now;
     return true;
 }
-EI_REPLACE_METHOD(0x005380D0, CUnitClientSpecific::Speak);
+EI_REWRITTEN(0x005380D0, CUnitClientSpecific::Speak);

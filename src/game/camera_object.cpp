@@ -11,7 +11,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
 #include "world.h"
 
 #include <cstdint>
@@ -122,7 +121,7 @@ namespace {
 void __cdecl DestroyCamera() { g_camera.Destroy(); }     // 0040C8A0
 void __cdecl ConstructCamera() {                          // 0040C880
     g_camera.Construct();
-    GameAtExit(DestroyCamera);
+    libcrt::AtExit(DestroyCamera);
 }
 } // namespace
 

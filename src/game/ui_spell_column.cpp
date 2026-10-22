@@ -8,10 +8,6 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
-#include "originals_effects.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "unit.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -32,8 +28,6 @@ template <typename T> T Get(const void* base, int offset) {
 // 005319A0 (thiscall on a unit, RET 4): the unit's spell `index` (0..7) or null.
 // 0063E4B0 (thiscall, RET 8; Rebirth-patched): the next spell's sprite (model `model`, picture
 // `image`), counted in +0x14C.
-__declspec(naked) void __fastcall AddSpellSprite(CHudSpellColumn*, void*, const char* /*model*/, const char* /*image*/)
-    EI_ORIGINAL(0x0063E4B0)
 // 004E0150 (thiscall on the text manager, RET 0x10): an item's texts; 004E0020 (RET 8) the text of
 // a key.
 // 0068BA20 (__fastcall): a spell's prototype record (+0x10 school, +0x7B shows a number).
@@ -71,7 +65,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             SpellName(spell, 19, &image);
             ReturnedString model;
             SpellName(spell, 20, &model);
-            AddSpellSprite(this, nullptr, model.data, image.data);
+            AddSpell(model.data, image.data);
         }
         TheTextManager()->GetItemTexts(spell, &tip, &description, &description);
 
@@ -85,7 +79,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             tip += line;
             line = "Unknown";
             description.Format("school_%d", SpellPrototypeOf(data)->castType);
-            TextsGetString(TheTextManager(), nullptr, description, &line);
+            TheTextManager()->CTextManager::GetString(description, &line);
             line = mfc::operator+(mfc::operator+(mfc::operator+(labels[1],
                                                                 " "),
                                                  line),

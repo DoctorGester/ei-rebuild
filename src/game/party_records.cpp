@@ -15,20 +15,15 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_gameplay.h"
-#include "originals_engine.h"
-#include "originals_library.h"
 #include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 
 #include <bit>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace {
 
 // 006E848B _mbscmp.
-int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
+int __cdecl MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
 // Counted pointer helpers: 004AB910 copy(first, last, result) (__fastcall, returns the result's
 // end), 004AB960 destructor (__thiscall (flags)), 004A5D70 release, 004A5D50 copy constructor,
 // 004AB320 vector _M_insert_overflow(pos, x, n) (stlp::CountedRefVector's).
@@ -159,7 +154,7 @@ void __fastcall PartyManagerNewGame(PartyManager* manager) {
     PartyRecordsReset(&manager->records);
     manager->templates.Build(0);
 }
-EI_REPLACE(0x004A88A0, PartyManagerNewGame);
+EI_REWRITTEN(0x004A88A0, PartyManagerNewGame);
 
 void __fastcall PartyManagerNewGameFour(PartyManager* manager) {
     PartyRecordsReset(&manager->records);
@@ -183,7 +178,7 @@ EI_REWRITTEN(0x004A8910, PartyNextId);
 
 bool PartyManager::LoadParty(const char*, const char*, const int* key, CParty* target) const {
     if (*key == 0) {
-        PartyResetOriginal((void*)target, nullptr, 1, 0);
+        static_cast<CParty*>((void*)target)->Clear(1, 0);
         return true;
     }
     CParty* stored = FindParty(parties, *key);

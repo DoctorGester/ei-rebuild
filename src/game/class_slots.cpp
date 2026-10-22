@@ -6,7 +6,6 @@
 #include "lightning.h"
 #include "map_object.h"
 #include "object.h"
-#include "originals_engine.h"
 #include "scene_loader.h"
 #include "spell.h"
 #include "unit.h"
@@ -35,7 +34,7 @@ int g_lightningNoiseLoaded = /*007A9694*/ {};
 int CLightningManager::Create() {
     if (!g_lightningNoiseLoaded) {
         g_lightningNoiseLoaded = 1;
-        LoadLightningNoiseOriginal();
+        LoadLightningNoise();
     }
     return CBaseManager::Create();
 }
@@ -50,12 +49,12 @@ int scene::FakeUnitScene::Create() {
     return CreateUnit();
 }
 int __fastcall FakeUnitCreate(scene::FakeUnitScene* self) { return self->scene::FakeUnitScene::Create(); }
-EI_REPLACE(0x00446AF0, FakeUnitCreate);
+EI_REWRITTEN(0x00446AF0, FakeUnitCreate);
 
 // 004468D0, slot 11.
 const char* scene::FakeUnitScene::GetClassName() { return kFakeUnitName; }
 const char* __fastcall FakeUnitGetClassName(scene::FakeUnitScene* self) { return self->scene::FakeUnitScene::GetClassName(); }
-EI_REPLACE(0x004468D0, FakeUnitGetClassName);
+EI_REWRITTEN(0x004468D0, FakeUnitGetClassName);
 
 // ---- CUnit slots shared with the fake unit (vtables 0073EA8C and 0073BFE8) ------------------------
 
@@ -63,13 +62,13 @@ EI_REPLACE(0x004468D0, FakeUnitGetClassName);
 int CUnit::TakeHitImpl(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source) {
     return ServerSlots(controller)->TakeHitSlot(hit, attacker, source);
 }
-EI_REPLACE_METHOD(0x004467F0, CUnit::TakeHitImpl);
+EI_REWRITTEN(0x004467F0, CUnit::TakeHitImpl);
 
 // 00446850, slot 56 (RET 4): the controller's slot 42 (ObjectDeleted).
 void CUnit::ObjectDeletedImpl(CEngineObject* object) {
     Controller()->ObjectDeleted(object);
 }
-EI_REPLACE_METHOD(0x00446850, CUnit::ObjectDeletedImpl);
+EI_REWRITTEN(0x00446850, CUnit::ObjectDeletedImpl);
 
 // 004468B0, slot 59: the forward one of the unit's movement speeds (GetMoveSpeeds).
 float __fastcall UnitForwardSpeed(CUnit* unit) {
@@ -78,7 +77,7 @@ float __fastcall UnitForwardSpeed(CUnit* unit) {
     unit->GetMoveSpeeds(&forward, &backward);
     return forward;
 }
-EI_REPLACE(0x004468B0, UnitForwardSpeed);
+EI_REWRITTEN(0x004468B0, UnitForwardSpeed);
 
 // 00446830, slot 61 (RET 4): the script name (the CString at +0x238) becomes `name`. Returns the
 // string, as the assignment does.
@@ -86,17 +85,17 @@ const mfc::CString* CUnit::SetScriptNameImpl(const char* newName) {
     mfc::CString* text = &scriptName;
     return &(*text = newName);
 }
-EI_REPLACE_METHOD(0x00446830, CUnit::SetScriptNameImpl);
+EI_REWRITTEN(0x00446830, CUnit::SetScriptNameImpl);
 
 // 00446810, slot 58: a tail jump to the controller's slot 31 (RefreshWounds: 1 from the client's,
 // 0 from the base's).
 int __fastcall UnitRefreshWounds(CUnit* unit) { return unit->Controller()->RefreshWounds(); }
-EI_REPLACE(0x00446810, UnitRefreshWounds);
+EI_REWRITTEN(0x00446810, UnitRefreshWounds);
 
 // 00446870, slot 57: a tail jump to the controller's slot 53 (the server's recomputes the move
 // factors); what that leaves in EAX is passed on.
 std::uintptr_t __fastcall UnitMoveFactorsChanged(CUnit* unit) { return unit->Controller()->MoveFactorsChanged(); }
-EI_REPLACE(0x00446870, UnitMoveFactorsChanged);
+EI_REWRITTEN(0x00446870, UnitMoveFactorsChanged);
 
 // 004467C0, slot 47 (RET 4) of the unit, the fake unit and nine other map object classes (eleven
 // vtables): the visibility mode is handed to the companion's slot 19 (the client's shows or hides

@@ -14,6 +14,8 @@
 
 #include <windows.h>
 #include "compiled_vtable.h"
+#include "mfc_string.h"
+#include "static_object.h"
 #include "game/game_data.h"
 
 namespace mfc::impl {
@@ -137,5 +139,17 @@ int __stdcall MessageBoxText(const char* text, unsigned type, unsigned helpId); 
 // AfxMessageBox(UINT id, UINT type, UINT helpId): the box with string `id` of game.exe's table (empty
 // when it is missing; the original only traces that). A help id of -1 means `id`.
 int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId);    // 0070ACCC
+
+// The fixed allocators of the temporary windows (CTempWnd, 0x3C-byte blocks) and menus (CTempMenu, 8), 64 to a block,
+// and MFC's four static windows wndTop, wndBottom, wndTopMost and wndNoTopMost (placement constants: their handles
+// HWND_TOP 0, HWND_BOTTOM 1, HWND_TOPMOST -1, HWND_NOTOPMOST -2; mfc_window.cpp). Built and destroyed by game.exe's
+// static initialisers and their guarded exit functions, which the generated static_init.cpp / static_exit.cpp run on
+// these names (tools/gen_static_init.py's GENERATED_NAMES).
+extern lib::StaticObject<CFixedAlloc> g_tempWndAlloc;
+extern lib::StaticObject<CFixedAlloc> g_tempMenuAlloc;
+extern lib::StaticObject<CWnd> g_wndTop;
+extern lib::StaticObject<CWnd> g_wndBottom;
+extern lib::StaticObject<CWnd> g_wndTopMost;
+extern lib::StaticObject<CWnd> g_wndNoTopMost;
 
 } // namespace mfc::impl

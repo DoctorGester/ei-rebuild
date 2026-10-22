@@ -14,8 +14,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp_tree_abi.h"
-#include "originals_script.h"
-#include "originals_library.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -47,8 +45,8 @@ void FreeReceived(Connection* c) { c->received_.FreeStorage(); }
 
 // Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
 void DestroyForReset(Connection* c) {
-    GrowingBufferDestruct(&c->reliableIn_);
-    GrowingBufferDestruct(&c->reliableOut_);
+    static_cast<GameBuffer*>(&c->reliableIn_)->DestructGrowing();
+    static_cast<GameBuffer*>(&c->reliableOut_)->DestructGrowing();
     c->incoming_.Release<ChunkElement>();   // 00439D40
     c->headers_.Release<ChunkElement>();
     trees::Attached::Destroy(&c->attached_);
@@ -149,8 +147,8 @@ EI_REWRITTEN(0x00433320, ResetHook);
 // 004334E0: the destructor body.
 void Connection::Destruct() {
     ei::SetVtable(this, Vtable());
-    GrowingBufferDestruct(&reliableIn_);
-    GrowingBufferDestruct(&reliableOut_);
+    static_cast<GameBuffer*>(&reliableIn_)->DestructGrowing();
+    static_cast<GameBuffer*>(&reliableOut_)->DestructGrowing();
     incoming_.Clear<ChunkElement>();   // 0043D420
     stlp::deallocate(incoming_.End(), sizeof(HeaderNode));   // 00439D80
     headers_.Clear<ChunkElement>();

@@ -16,8 +16,6 @@
 #include "ei/hook.h"
 
 #include <cstdint>
-#include "originals_engine.h"
-#include "originals_library.h"
 #include "lib/crt_iostream.h"
 #include "game_data.h"
 

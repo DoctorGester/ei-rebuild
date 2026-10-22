@@ -8,13 +8,11 @@
 #include "ai_map.h"
 #include "core_maths.h"
 #include "map_object.h"
-#include "originals_ai.h"
 #include "lib/vecmath.h"
 
 #include "ei/hook.h"
 
 #include <cstdint>
-#include "originals_library.h"
 #include "game_data.h"
 
 namespace {

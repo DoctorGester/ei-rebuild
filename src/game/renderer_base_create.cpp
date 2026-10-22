@@ -11,8 +11,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
-#include "originals_library.h"
 
 namespace {
 

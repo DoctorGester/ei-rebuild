@@ -10,7 +10,6 @@
 
 #include "lib/crt.h"
 #include "ei/hook.h"
-#include "originals_library.h"
 
 #include <cstring>
 

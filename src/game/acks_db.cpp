@@ -6,7 +6,6 @@
 #include "chunk_archive.h"
 #include "map_object_figures.h"
 #include "object_tables.h"
-#include "originals_engine.h"
 #include "sound.h"
 #include "unit.h"
 #include "unit_db.h"

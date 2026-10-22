@@ -4,7 +4,6 @@
 #include "link_figure.h"
 
 #include "model.h"
-#include "originals_world.h"
 #include "resource.h"          // CMappedResource
 #include "texture.h"           // CTextureDevice
 

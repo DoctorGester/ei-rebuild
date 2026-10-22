@@ -5,7 +5,6 @@
 // section 2). Same layout as the copy linked into game.exe; the tables are compiled (C19, mfc_file.cpp's
 // FileTable, StdioFileTable and FileFindTable) in place of game.exe's 00745DF4, 007464F0 and 00745EE8, with the
 // slots in game.exe's order. Every body is registered at its library address (mfc_file.cpp).
-// The callers keep going through the forwarders (mfc.h, src/game) until C13.
 //
 // CFile works on Win32 handles through the game's import table. CStdioFile's stream is the game
 // CRT's FILE in the hook build (shared with the exe's remaining CRT code) and, in the standalone

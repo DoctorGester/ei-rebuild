@@ -15,8 +15,6 @@
 #include "ai_grids.h"
 #include "ai_map.h"
 #include "console.h"
-#include "originals_engine.h"    // game::FatalError, MappedResourceOpenOriginal, MappedResourceDestroyOriginal
-#include "originals_library.h"   // CStringFindCharOriginal
 #include "registry.h"
 #include "resource.h"
 #include "sector_map.h"
@@ -41,8 +39,6 @@
 namespace {
 
 // AIEventTable::Setup at its address (RET 0xC): Rebirth patches it.
-__declspec(naked) int __fastcall AIEventsSetupAt(AIEventTable*, void*, CAIMap*, float /*sizeX*/, float /*sizeY*/)
-    EI_ORIGINAL(0x005C9310)
 
 // ---- The files -------------------------------------------------------------------------------------
 
@@ -124,10 +120,10 @@ struct MapDescription {
 // body's address.
 struct Archive {
     Archive() { Get()->Construct(); }
-    ~Archive() { MappedResourceDestroyOriginal(Get()); }
+    ~Archive() { Get()->CMappedResource::Destroy(); }
     Archive(const Archive&) = delete;
     CMappedResource* Get() { return storage.Get(); }
-    bool Open(const char* path) { return MappedResourceOpenOriginal(Get(), nullptr, path, 0) != 0; }
+    bool Open(const char* path) { return Get()->CMappedResource::OpenResourceImpl(path, 0) != 0; }
     void* File(const char* name, std::uint32_t* size) { return Get()->CMappedResource::GetFileImpl(name, size); }
     void Close(void* file) { Get()->CMappedResource::CloseFileImpl(file); }
 
@@ -487,7 +483,7 @@ void CAIMap::AttachTerrain() {
     forwardSearch.Attach(this, false);
     backwardSearch.Attach(this, true);
     regionMap.Attach(this);
-    AIEventsSetupAt(Events(), nullptr, this, static_cast<float>(cells.width) * kCellSize, static_cast<float>(cells.height) * kCellSize);
+    Events()->Setup(this, static_cast<float>(cells.width) * kCellSize, static_cast<float>(cells.height) * kCellSize);
     SectorMap()->Init(cells.width, cells.height, this);
     QueueRefresh(0, cells.width - 1, 0, cells.height - 1);
 }
@@ -497,4 +493,4 @@ int CAIMap::Load(const char* path) {
     AttachTerrain();
     return 1;
 }
-EI_REPLACE_METHOD(0x005B43C0, CAIMap::Load);
+EI_REWRITTEN(0x005B43C0, CAIMap::Load);

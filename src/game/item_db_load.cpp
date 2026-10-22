@@ -268,4 +268,4 @@ void itemdb::ItemDatabase::DestructBody() {
     DestroyTable(weapons, &ItemRecordHead::DestructHead);
     DestroyTable(materials, &MaterialRecordHead::Destruct);
 }
-EI_REPLACE_METHOD(0x006A6570, itemdb::ItemDatabase::DestructBody);
+EI_REWRITTEN(0x006A6570, itemdb::ItemDatabase::DestructBody);

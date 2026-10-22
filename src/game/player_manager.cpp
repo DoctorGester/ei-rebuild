@@ -1,7 +1,6 @@
 // The world's player manager (player_manager.h; A-H15).
 #include "player_manager.h"
 
-#include "originals_gameplay.h"
 #include "player_messages.h"
 #include "world.h"
 #include "game_singletons.h"
@@ -91,8 +90,8 @@ void CPlayerManager::SendTextToAll(int unused, const char* text) {
 
 EI_REWRITTEN(0x0066C0F0, CPlayerManager::CreatePlayers);
 EI_REWRITTEN(0x0066C110, CPlayerManager::NewPlayer);
-EI_REPLACE_METHOD(0x0066C180, CPlayerManager::CreateSessionPlayer);
-EI_REPLACE_METHOD(0x0066C1D0, CPlayerManager::ReleasePlayer);
+EI_REWRITTEN(0x0066C180, CPlayerManager::CreateSessionPlayer);
+EI_REWRITTEN(0x0066C1D0, CPlayerManager::ReleasePlayer);
 EI_REWRITTEN(0x0066C1E0, CPlayerManager::ChangeId);
-EI_REPLACE_METHOD(0x0066C340, CPlayerManager::SendValueToAll);
-EI_REPLACE_METHOD(0x0066C3C0, CPlayerManager::SendTextToAll);
+EI_REWRITTEN(0x0066C340, CPlayerManager::SendValueToAll);
+EI_REWRITTEN(0x0066C3C0, CPlayerManager::SendTextToAll);

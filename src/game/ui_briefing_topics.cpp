@@ -9,9 +9,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "game_singletons.h"
 
 #include <cstring>
@@ -99,13 +96,13 @@ mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) 
     bool isConstructor;
     {
         mfc::CString start = key.Left(kConstructorPrefixLength);
-        isConstructor = GameMbscmp(start, ConstructorTopic()) == 0;
+        isConstructor = gamecrt::mbscmp(start, ConstructorTopic()) == 0;
     }
     if (isConstructor) key = ConstructorTopic();
     CTextManager* texts = TheTextManager();
     mfc::CString section(BriefingSection());
     section += key;
-    if (TextsOpenSection(texts, nullptr, section)) texts->ReadLine(&title, 1);
+    if (texts->CTextManager::Open(section)) texts->ReadLine(&title, 1);
     return new (out) mfc::CString(title);
 }
 EI_REWRITTEN(0x006078C0, CBriefingScreen::TopicTitle);

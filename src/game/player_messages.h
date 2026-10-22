@@ -490,3 +490,7 @@ static_assert(offsetof(CPlayer, lastScreen_) == 0x104);
 static_assert(offsetof(CPlayer, lastTick_) == 0x110);
 static_assert(offsetof(CPlayer, dirty_) == 0x130);
 static_assert(sizeof(CPlayer) == 0x134);
+
+// 00664B70 (player.cpp). The message dispatchers' fatal error: `format` with the previous and the current
+// message type (their low bytes); the FatalError result.
+int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type);

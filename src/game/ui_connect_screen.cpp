@@ -22,6 +22,7 @@
 #include "random.h"
 #include "unit.h"
 #include "world.h"
+#include "item_db_text.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -30,10 +31,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_world.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -42,6 +39,9 @@
 #include <cstring>
 #include <new>
 
+namespace net {
+int __fastcall MasterLinkTick(net::MasterLink*);
+}
 namespace {
 
 constexpr float kMenuTilt = /*007C7F40*/ 1.5707964f;   // a static initialiser: pi * 0.5
@@ -92,11 +92,6 @@ constexpr int kStateAsked = 1;   // net::ServerEntryBase::kAsked
 constexpr int kBoxFlagsOk = 1, kBoxFlagsEdit = 7, kBoxFlagsCancel = 2, kBoxFormat = 1;
 constexpr std::uint32_t kBarColour = 0xFFA06800;
 constexpr std::uint32_t kPlainSprite = 0x100;
-
-// The connection screen's helpers through their addresses (rewritten here; the wrappers run).
-__declspec(naked) void __fastcall DrawListAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D780)   // Rebirth-patched
-__declspec(naked) void __fastcall MasterRequestAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D0D0)
-__declspec(naked) int __fastcall MasterLinkTickAt(net::MasterLink*) EI_ORIGINAL(0x00440DE0)
 
 // The original's inlined strcpy into a box's text buffer.
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
@@ -290,9 +285,9 @@ void CMpConnectScreen::Update() {
         }
     }
     joining_ = asking;
-    UiUpdateChildrenOriginal(this);
+    static_cast<CUiContainer*>(this)->UpdateBase();
 
-    double elapsed = WindowFrameTimeOriginal(this) + refreshTimer_;
+    double elapsed = static_cast<CUiContainer*>(this)->FrameTime() + refreshTimer_;
     refreshTimer_ = static_cast<float>(elapsed);
     float period = RefreshPeriod();
     if (elapsed > period) {
@@ -307,34 +302,34 @@ void CMpConnectScreen::Update() {
         net::GameClient()->SetAlwaysAsk(ask);
         net::GameClient()->Refresh();
         RebuildList();
-        DrawListAt(this);
+        DrawListVanilla();
     }
 
     int position;
     if (scroll_->TakePosition(&position)) {
         scrollTop_ = position;
-        DrawListAt(this);
+        DrawListVanilla();
     }
     if (playersSlider_->TakePosition(&position)) {
         maxPlayers_ = position + 1;
-        DrawListAt(this);
+        DrawListVanilla();
     }
     bool renamed = nameEdit_->changed_;
     nameEdit_->changed_ = false;
-    if (renamed) DrawListAt(this);
+    if (renamed) DrawListVanilla();
 }
-EI_REPLACE_METHOD(0x0061C430, CMpConnectScreen::Update);
+EI_REWRITTEN(0x0061C430, CMpConnectScreen::Update);
 
 // --- 0061C2E0: a box answered (slot 27) -----------------------------------------------------------
 
 void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
     if (result == (kBoxMaster | kAnswerCancel)) {
-        DrawListAt(this);
+        DrawListVanilla();
     } else if (result == (kBoxAddress | kAnswerOk)) {
         net::NetAddress address{};
         if (address.Parse(boxText_, net::g_gamePort)) net::GameClient()->Ask(&address);
         SaveAddressBook();
-        DrawListAt(this);
+        DrawListVanilla();
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
         hostPassword_ = boxText_;
         auto* sprite = SceneMesh(kSpritePassword);
@@ -344,7 +339,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
         net::GameClient()->gameType_ = entries_[selected_].gameType;
     }
 }
-EI_REPLACE_METHOD(0x0061C2E0, CMpConnectScreen::OnBoxResult);
+EI_REWRITTEN(0x0061C2E0, CMpConnectScreen::OnBoxResult);
 
 // --- 0061C700 / 0061CA30 / 0061CAD0: input --------------------------------------------------------
 
@@ -361,7 +356,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         interface_->SetPendingValue(kLeaveScreen);
         break;
     case kRegionMaster:
-        MasterRequestAt(this);
+        MasterRequest();
         break;
     case kRegionAddress:
         EditAddress();
@@ -389,7 +384,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         int ascending = 2 * (region - kRegionSortFirst) + 1;
         sortKey_ = sortKey_ == ascending ? ascending + 1 : ascending;
         RebuildList();
-        DrawListAt(this);
+        DrawListVanilla();
         break;
     }
     default:
@@ -406,7 +401,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
                 interface_->PlaySound(SelectSound(), 0);
                 selected_ = static_cast<int>(row);
                 selectedAddress_ = entries_[row].address;
-                DrawListAt(this);
+                DrawListVanilla();
             }
         }
         break;
@@ -453,9 +448,9 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
     inputHandled_ = true;
 }
 
-EI_REPLACE_METHOD(0x0061C700, InputForward<&CMpConnectScreen::OnLButtonDown>::Call);
-EI_REPLACE_METHOD(0x0061CA30, InputForward<&CMpConnectScreen::OnLButtonDouble>::Call);
-EI_REPLACE_METHOD(0x0061CAD0, InputForward<&CMpConnectScreen::OnKeyDown>::Call);
+EI_REWRITTEN(0x0061C700, InputForward<&CMpConnectScreen::OnLButtonDown>::Call);
+EI_REWRITTEN(0x0061CA30, InputForward<&CMpConnectScreen::OnLButtonDouble>::Call);
+EI_REWRITTEN(0x0061CAD0, InputForward<&CMpConnectScreen::OnKeyDown>::Call);
 
 // --- 0061CC00: the selection kept in the list and in view -----------------------------------------
 
@@ -468,7 +463,7 @@ void CMpConnectScreen::SelectAndScroll() {
     if (scrollTop_ > row) scrollTop_ = row;
     scroll_->CallSetPosition(scrollTop_);
     scroll_->TakePosition(&scrollTop_);
-    DrawListAt(this);
+    DrawListVanilla();
 }
 EI_REWRITTEN(0x0061CC00, CMpConnectScreen::SelectAndScroll);
 
@@ -541,7 +536,7 @@ void CMpConnectScreen::MasterRequest() {
                : nullptr;
     interface_->PushWindow(box, 1, 1);
 }
-EI_REPLACE_METHOD(0x0061D0D0, CMpConnectScreen::MasterRequest);
+EI_REWRITTEN(0x0061D0D0, CMpConnectScreen::MasterRequest);
 
 // --- 0061D1C0: config\addrbook.ini ----------------------------------------------------------------
 
@@ -650,7 +645,7 @@ void CMpConnectScreen::Create() {
 
     auto region = [this](int left, int top, int right, int bottom, int tip) {
         CUiRegion* added = AddRegion();
-        added->CallSetRect(left, top, right, bottom);
+        added->SetRect(left, top, right, bottom);
         if (tip) added->SetTip(tip, 1, 0);
     };
     region(163, 526, 237, 574, 0x9E98);   // connect
@@ -694,7 +689,7 @@ void CMpConnectScreen::Create() {
     mfc::CString text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text.Format(AllodNameFormat(), i);
-        TextsGetString(texts, nullptr, text, &text);
+        texts->CTextManager::GetString(text, &text);
         allodNames_.SetAtGrow(allodNames_.GetSize(), text);
         const int bottom = top + 21;
         sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
@@ -767,7 +762,7 @@ void CMpConnectScreen::Create() {
     }
     for (int i = 0; i < kTextCount; ++i) {
         text.Format(ConnectionTextFormat(), i);
-        TextsGetString(texts, nullptr, text, &text);
+        texts->CTextManager::GetString(text, &text);
         texts_.SetAtGrow(texts_.GetSize(), text);
     }
 
@@ -798,18 +793,18 @@ void CMpConnectScreen::Create() {
     newGameTips_ = false;
     selectedAddress_ = net::NetAddress{};
     RebuildList();
-    DrawListAt(this);
+    DrawListVanilla();
     interface_->OpenHelp(0);
     refreshTimer_ = 0.0f;
     // Surface 1: "connecting".
     CUiSurface* note = AddSurface(NewSurface(interface_, 0, 0, 300, 20));
     UiSurfaceGetDC(note);
-    SurfaceClearOriginal(note);
+    static_cast<CUiSurface*>(note)->Clear();
     RECT rect{0, 0, 300, 20};
-    SurfaceDrawText(note, nullptr, texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
+    note->DrawTextIn(texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
     UiSurfaceReleaseDC(note);
 }
-EI_REPLACE_METHOD(0x0061B2C0, CMpConnectScreen::Create);
+EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::Create);
 // Rebirth's patches in Create: addon's ExtendedServerName sites (0061B5CE, 0061BB51, 0061BC09, 0061BC0B,
 // 0061BC0E) and EI_Plugin's NPlayers (0061BAF7, 0061BB82).
 
@@ -835,8 +830,8 @@ void CMasterRequestBox::Update() {
     double share = net::GameClient()->BufferRatioImpl(&link_.in);
     float right = static_cast<float>(share * BarWidth() + BarLeft());
     bar_->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
-    if (MasterLinkTickAt(&link_) == net::MasterLink::kDone) net::GameClient()->ReadServerListImpl(&link_.in);
-    if (MasterLinkTickAt(&link_) == net::MasterLink::kDone || MasterLinkTickAt(&link_) == net::MasterLink::kClosed)
+    if (net::MasterLinkTick(&link_) == net::MasterLink::kDone) net::GameClient()->ReadServerListImpl(&link_.in);
+    if (net::MasterLinkTick(&link_) == net::MasterLink::kDone || net::MasterLinkTick(&link_) == net::MasterLink::kClosed)
         interface_->SetPendingValue(CMpConnectScreen::kBoxMaster | kAnswerCancel);
 }
-EI_REPLACE_METHOD(0x0061E4E0, CMasterRequestBox::Update);
+EI_REWRITTEN(0x0061E4E0, CMasterRequestBox::Update);

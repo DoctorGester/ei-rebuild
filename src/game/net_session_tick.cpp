@@ -13,8 +13,6 @@
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 #include "lib/stlp_list_refs.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -261,7 +259,7 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
         buffer->WriteMore(&id, 4u);
     }
     socket_.SendTo(address, buffer);
-    GrowingBufferDestruct(buffer);
+    static_cast<GameBuffer*>(buffer)->DestructGrowing();
 }
 EI_REWRITTEN(0x00436FA0, SessionBase::SendLeave);
 
@@ -295,7 +293,7 @@ void SessionBase::Destruct() {
             buffer->WriteMore(&id, 4u);
         }
         socket_.SendTo(&connection->address_, buffer);
-        GrowingBufferDestruct(buffer);
+        static_cast<GameBuffer*>(buffer)->DestructGrowing();
     }
     libcrt::DestroyElements(handlers_[2], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);
     libcrt::DestroyElements(handlers_[1], sizeof(HandlerVector), kMessageTypes, HandlerVectorDestructor);

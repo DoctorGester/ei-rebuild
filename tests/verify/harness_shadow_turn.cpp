@@ -1,7 +1,6 @@
 // The shadow's turn undone exactly in the original (harness_shadow_turn.h; ticket SV7b4a).
 #include "harness_shadow_turn.h"
 
-#include "../../src/game/originals_core.h"
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "lib/vecmath.h"
@@ -26,14 +25,14 @@ Quaternion g_kept{};
 void __fastcall KeepAndTurn(Quaternion* q, void*, const Quaternion* r) {
     g_turned = q;
     g_kept = *q;
-    PreMultiplyAt(q, nullptr, r);
+    q->PreMultiply(*r);
 }
 
 void __fastcall PutBack(Quaternion* q, void*, const Quaternion* r) {
     if (q == g_turned) {
         *q = g_kept;
     } else {
-        PreMultiplyAt(q, nullptr, r);   // not the turned object: the original's turn back
+        q->PreMultiply(*r);   // not the turned object: the original's turn back
     }
     g_turned = nullptr;
 }

@@ -7,17 +7,15 @@
 #include "game_strings.h"
 #include "object_tables.h"
 #include "ui.h"
+#include "ui_item_info.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "item_db_text.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
-#include "originals_units.h"
-#include "originals_world.h"
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -54,7 +52,6 @@ double __fastcall WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
 // the description texts [005270E0: unit +0x17C, out, name is a text key].
 // 004613A0: whether an id is a text key [__fastcall].
 // 005F13A0 [__fastcall, Rebirth-patched]: the description as lines [description, out, 1].
-__declspec(naked) void __fastcall DescriptionLines(void*, console::CStringArray*, int) EI_ORIGINAL(0x005F13A0)
 // The session (007AFE20): a multiplayer client [0057F440, AL].
 
 
@@ -74,7 +71,7 @@ struct Panel {
     // Draws `text` and moves down a line.
     void DrawLine() { DrawLine(text); }
     void DrawLine(const char* line) {
-        SurfaceDrawText(surface, nullptr, line, &rect, 0, kTextColour, 0, 1);
+        static_cast<CUiSurface*>(surface)->DrawTextIn(line, &rect, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&rect, 0, kLineHeight);
     }
     // "<label> <line>" when the line is not empty.
@@ -120,7 +117,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     std::uint8_t moveBonus = params->movementKind;
     if (moveBonus > 1) {
         panel.text.Format(kMoveKey, moveBonus - 1);
-        TextsGetString(texts, nullptr, panel.text, &suffix);
+        texts->CTextManager::GetString(panel.text, &suffix);
     } else {
         suffix.Empty();
     }
@@ -143,7 +140,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.DrawLine();
     if (static_cast<std::uint32_t>(combat.damageType) < 7) {
         panel.text.Format(kDamageKey, combat.damageType);
-        TextsGetString(texts, nullptr, panel.text, &suffix);   // else the move text stays
+        texts->CTextManager::GetString(panel.text, &suffix);   // else the move text stays
     }
     int damageMax = static_cast<int>(combat.damageMax);
     int damageMin = static_cast<int>(combat.damageMin);
@@ -153,10 +150,10 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.text.Format(kValue, panel.labels[15].GetString(), static_cast<int>(params->rate));
     panel.DrawLine();
 
-    std::uint8_t description[0x1C];
-    UnitParameterBlock(params, nullptr, &unitIn->packedVitals, description, IsTextKey(unitIn->id_));
+    float description[7];
+    params->ProtectionBlock(&unitIn->packedVitals, description, static_cast<unsigned char>(IsTextKey(unitIn->id_)));
     console::CStringArray lines;
-    DescriptionLines(description, &lines, 1);
+    ItemDamageLists(description, &lines, static_cast<char>(1));
     panel.DrawLabelled(10, lines[0]);
     if (outside) {
         if (lines[1].GetLength() != 0) panel.DrawLabelled(11, lines[1]);
@@ -175,7 +172,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
             } else {
                 suffix.Format(kWeaker, -difference);
             }
-            TextsGetString(texts, nullptr, suffix, &suffix);
+            texts->CTextManager::GetString(suffix, &suffix);
             panel.text.Format(kTwoTexts, panel.labels[16].GetString(), suffix.GetString());
             panel.DrawLine();
         }
@@ -184,7 +181,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     }
 
     if (IsMultiplayerClient() && !outside) {
-        TextsGetString(texts, nullptr, kCampExp, &suffix);
+        texts->CTextManager::GetString(kCampExp, &suffix);
         panel.text.Format(kValue, suffix.GetString(), params->unspentExperience);
         panel.DrawLine();
     }

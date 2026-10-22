@@ -11,8 +11,6 @@
 #include "game_data.h"
 #include "ground_print.h"
 #include "object_diplomacy.h"
-#include "originals_world.h"
-#include "originals_library.h"   // GameAtExit
 #include "registry.h"
 #include "world_class.h"
 #include "world_class_slots.h"
@@ -112,7 +110,7 @@ CWorldServer* CWorldServer::Construct() {
     ResetState();
     return this;
 }
-EI_REPLACE_METHOD(0x00589ED0, CWorldServer::Construct);
+EI_REWRITTEN(0x00589ED0, CWorldServer::Construct);
 
 // ---- CWorldClient (005612F0) ------------------------------------------------------------------------
 
@@ -179,7 +177,7 @@ CWorldClient* CWorldClient::Construct() {
     constant6E8_ = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x005612F0, CWorldClient::Construct);
+EI_REWRITTEN(0x005612F0, CWorldClient::Construct);
 
 // ---- The two worlds -------------------------------------------------------------------------------
 
@@ -195,12 +193,12 @@ namespace {
 void __cdecl DestroyServerWorld() { g_serverWorld->Destruct(); }   // 00589C00
 void __cdecl ConstructServerWorld() {                              // 00589BE0
     g_serverWorld->Construct();
-    GameAtExit(DestroyServerWorld);
+    libcrt::AtExit(DestroyServerWorld);
 }
 void __cdecl DestroyClientWorld() { g_clientWorld->Destruct(); }   // 00560640
 void __cdecl ConstructClientWorld() {                              // 00560620
     g_clientWorld->Construct();
-    GameAtExit(DestroyClientWorld);
+    libcrt::AtExit(DestroyClientWorld);
 }
 } // namespace
 

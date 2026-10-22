@@ -131,9 +131,3 @@ inline const void* MaterialFileColors(const void* data) {
     return static_cast<const char*>(data) + nameLength + 2;
 }
 
-// 0068E4F0 "materials", 0068E500 "CMaterialManager", 0068E510 0x27 (slots 25, 11, 12).
-const char* __fastcall MaterialManagerFolder(CMaterialManager* self);
-const char* __fastcall MaterialManagerClassName(CMaterialManager* self);
-int __fastcall MaterialManagerClassId(CMaterialManager* self);
-const char* __fastcall MaterialClassName(CMaterial* self);
-int __fastcall MaterialClassId(CMaterial* self);

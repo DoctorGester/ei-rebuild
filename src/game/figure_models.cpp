@@ -13,9 +13,6 @@
 
 #include <cstdint>
 #include <cstring>
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "game_data.h"
 
 namespace {

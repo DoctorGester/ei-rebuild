@@ -9,7 +9,6 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
 #include "record_lists.h"
 
 #include <cstring>

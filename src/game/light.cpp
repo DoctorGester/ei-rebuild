@@ -65,7 +65,7 @@ BOOL CLight::SetPoint(const Vector3* color, const Vector3* position) {
     flags_ |= kFlagChanged;
     return 1;
 }
-EI_REPLACE_METHOD(0x0068D010, CLight::SetPoint);
+EI_REWRITTEN(0x0068D010, CLight::SetPoint);
 
 BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     kind_ = kKindDirectional;
@@ -78,7 +78,7 @@ BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
     flags_ |= kFlagChanged;
     return 1;
 }
-EI_REPLACE_METHOD(0x0068D0A0, CLight::SetDirectional);
+EI_REWRITTEN(0x0068D0A0, CLight::SetDirectional);
 
 namespace {
 // A channel with the light's share added, clamped at 1.
@@ -103,7 +103,7 @@ void CLight::AddDirectional(Vector4* out, float scale, const Vector4* base, cons
     out->y = green;
     out->z = blue;
 }
-EI_REPLACE_METHOD(0x0068D310, CLight::AddDirectional);
+EI_REWRITTEN(0x0068D310, CLight::AddDirectional);
 
 void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
                       float distance) const {
@@ -122,7 +122,7 @@ void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vect
     out->y = green;
     out->z = blue;
 }
-EI_REPLACE_METHOD(0x0068D5A0, CLight::AddPoint);
+EI_REWRITTEN(0x0068D5A0, CLight::AddPoint);
 
 int CLight::Create() { return 1; }
 void CLight::Destroy() { flags_ &= ~kFlagDestroyed; }

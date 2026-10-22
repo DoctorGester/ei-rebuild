@@ -13,9 +13,6 @@
 #include "link_figure.h"   // ITransformPipeline, FigureMeshDrawer
 #include "spell.h"         // CLight
 #include "ui.h"            // GameDeviceLock, UiTextureManager
-#include "originals_engine.h"   // game::FatalError
-#include "originals_render.h"
-#include "originals_library.h"   // GameAtExit
 #include "game_singletons.h"
 
 #include "ei/hook.h"
@@ -131,7 +128,7 @@ CSceneRenderer::CSceneRenderer() {
 }
 
 CSceneRenderer* CSceneRenderer::ConstructRenderer() { return new (this) CSceneRenderer(); }
-EI_REPLACE_METHOD(0x00500A70, CSceneRenderer::ConstructRenderer);
+EI_REWRITTEN(0x00500A70, CSceneRenderer::ConstructRenderer);
 
 CSceneRenderer::~CSceneRenderer() {
     CTextureDevice* device = device_;
@@ -142,7 +139,7 @@ CSceneRenderer::~CSceneRenderer() {
 }
 
 void CSceneRenderer::DestructRenderer() { this->CSceneRenderer::~CSceneRenderer(); }
-EI_REPLACE_METHOD(0x00500AC0, CSceneRenderer::DestructRenderer);
+EI_REWRITTEN(0x00500AC0, CSceneRenderer::DestructRenderer);
 
 // The scene renderer and the device's lock, zero at the start: built by their static initialisers (00500930, 004F0B10)
 // in the list's order and destroyed by the exit functions those register (00500950, 004F0B30); all ported on the
@@ -157,12 +154,12 @@ namespace {
 void __cdecl DestroySceneRenderer() { g_sceneRenderer->DestructRenderer(); }   // 00500950
 void __cdecl ConstructSceneRenderer() {                                        // 00500930
     g_sceneRenderer->ConstructRenderer();
-    GameAtExit(DestroySceneRenderer);
+    libcrt::AtExit(DestroySceneRenderer);
 }
 void __cdecl DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }   // 004F0B30
 void __cdecl ConstructDeviceLock() {                                                  // 004F0B10
     gameapi::InitializeCriticalSection(&g_deviceLock);
-    GameAtExit(DestroyDeviceLock);
+    libcrt::AtExit(DestroyDeviceLock);
 }
 } // namespace
 

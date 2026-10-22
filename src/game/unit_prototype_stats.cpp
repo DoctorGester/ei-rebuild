@@ -18,4 +18,4 @@ void CUnit::TakePrototypeImpl(const char* prototype) {
     vitals.Pack(&packedVitals);
     stats.Pack(nullptr, Params());
 }
-EI_REPLACE_METHOD(0x0052EB70, CUnit::TakePrototypeImpl);
+EI_REWRITTEN(0x0052EB70, CUnit::TakePrototypeImpl);

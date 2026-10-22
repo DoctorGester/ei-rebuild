@@ -12,6 +12,8 @@
 // (MapHDC / MapHGDIOBJ, registered image-only at those addresses).
 
 #include "mfc_handle_map.h"
+#include "mfc_string.h"
+#include "static_object.h"
 #include "game/game_data.h"
 
 #include <windows.h>
@@ -120,5 +122,11 @@ static_assert(sizeof(CDC) == 0x10);
 // CTempDC's create function (its CRuntimeClass at 00745FB0): a CDC from its fixed allocator
 // (007C8D18) with CTempDC's table. Null when out of memory.
 void* __stdcall CreateTempDC();                 // 0070BFD7
+
+// The fixed allocators of the temporary DCs (0x10-byte blocks) and GDI objects (8), 64 to a block (mfc_gdi.cpp): built
+// and destroyed by game.exe's static initialisers and their guarded exit functions, which the generated
+// static_init.cpp / static_exit.cpp run on these names (tools/gen_static_init.py's GENERATED_NAMES).
+extern lib::StaticObject<CFixedAlloc> g_tempDCAlloc;
+extern lib::StaticObject<CFixedAlloc> g_tempGdiObjectAlloc;
 
 } // namespace mfc::impl

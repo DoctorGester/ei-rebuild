@@ -1,7 +1,6 @@
 // The network pump. See net_session.h.
 #include "ei/x87.h"
 #include "net_session.h"
-#include "originals_world.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -9,7 +8,6 @@
 #include "game_data.h"
 #include "game_lists.h"
 #include "game_singletons.h"
-#include "originals_library.h"
 
 namespace {
 
@@ -25,11 +23,11 @@ void __cdecl ReleaseGameClient() { RefPtrRelease(reinterpret_cast<RefPtr*>(&net:
 // (0041FF50 / 0041FF60) clears it, then the exit function is registered.
 void __cdecl InitGameServerPointer() {
     net::g_gameServer = nullptr;
-    GameAtExit(ReleaseGameServer);
+    libcrt::AtExit(ReleaseGameServer);
 }
 void __cdecl InitGameClientPointer() {
     net::g_gameClient = nullptr;
-    GameAtExit(ReleaseGameClient);
+    libcrt::AtExit(ReleaseGameClient);
 }
 
 // The two growing buffers' exit functions (00432CC0 / 00432D00): each destroys its buffer once (bit 0 / bit 1 of
@@ -50,11 +48,11 @@ void __cdecl DestroyReceiveBuffer() {
 // Their static initialisers (00432CA0 / 00432CE0, in the list's order).
 void __cdecl ConstructSendBuffer() {
     net::g_sendBuffer->ConstructGrowing();
-    GameAtExit(DestroySendBuffer);
+    libcrt::AtExit(DestroySendBuffer);
 }
 void __cdecl ConstructReceiveBuffer() {
     net::g_receiveBuffer->ConstructGrowing();
-    GameAtExit(DestroyReceiveBuffer);
+    libcrt::AtExit(DestroyReceiveBuffer);
 }
 
 // 0073BB24: milliseconds to the sessions' time unit (1/1024).

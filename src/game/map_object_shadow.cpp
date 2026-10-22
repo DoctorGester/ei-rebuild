@@ -27,16 +27,13 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/vecmath.h"
 #include "render/render.h"
-#include "originals_core.h"
-#include "originals_effects.h"
-#include "originals_world.h"
 
 #include <bit>
 #include <cstring>
 #include <unordered_map>
 #include <vector>
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -120,8 +117,7 @@ volatile double g_minimumTilt = 20.0;
 // 00501AF0 (CSceneRenderer::SetTextureImpl). Texture stages: binds a texture.
 // 006CB020. Light manager: is the point lit, AL.
 // 004EA4A0 (CTextureDevice::DrawFlatBlocks). Device: draws the shadow geometry.
-// 004018A0 (PreMultiplyAt, originals_core.h). Rewritten elsewhere, through its game address: 005A0CD0
-// CFigureMesh::DrawOffset.
+// 004018A0 Quaternion::PreMultiply; 005A0CD0 CFigureMesh::DrawOffset.
 
 // 004EBE60: *slot = value with counted references; the old value is released (its slot 4).
 void AssignTexture(CTexture** slot, CTexture* value) {
@@ -336,7 +332,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     // timing. Ours keeps the orientation and puts it back (a determinism fix kept in the standalone; the
     // harness does the same in the original, harness_shadow_turn.h, SV7b4a).
     const Quaternion kept = object->localRotation_;
-    PreMultiplyAt(&object->localRotation_, nullptr, &turn);
+    object->localRotation_.PreMultiply(turn);
     ObjectWorldMatrix(&object->localRotation_, &object->localPosition_, &object->worldMatrix);
     turn.x = -turn.x;   // the turn back, still used for the projector below
     turn.y = -turn.y;

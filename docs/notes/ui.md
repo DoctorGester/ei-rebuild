@@ -182,7 +182,7 @@ and `DrawOverlays`, the battle camera / global map mouse moves (005EB210 S, 0063
 
 CSV: library.csv 12 rows (the chat line list, help topic / cache map nodes, `CFont` / `CRect` inlines, EH-only
 destructors), dead_code.csv 0063C010, 0063F6E0. Forwarded on purpose: the Rebirth-patched callees (`CUiMesh::SetRectangle` /
-`SetFrame`, `CUiRegion::CallSetRect`, `SurfaceDrawText`, `CHudWeaponBar::Highlight` 0063C050, `CHudMovePanel::ShowMode`
+`SetFrame`, `CUiRegion::SetRect`, `SurfaceDrawText`, `CHudWeaponBar::Highlight` 0063C050, `CHudMovePanel::ShowMode`
 00649910, the list draw 0061D780, `HeroScreenSetModeOriginal` 00615D30, the saved heroes' reload 00662FB0), the library's
 sort pieces (0061A240 / 0061A300 over `vector<CString>`, 0061EF60 / 0061F6F0 / 0061FB00 over the address list), 00578D30 /
 00578D50 (pause), 006481D0 (unit panel part). Shared: `gamecrt::fmod` (006E95A0), `gamecrt::sscanf` (006EAEEC), originals_ui.h
@@ -641,7 +641,7 @@ Scenario lessons:
 ## 11. Rules and lessons for interface work
 
 The rewrite guide's rules 2, 5, 7 and 9 apply throughout (Rebirth-patched callees such as `CInterface3D::CallScale*`,
-`CUiRegion::CallSetRect`, `CUiMesh::SetRectangle / SetFrame / Place`, 005FDE20, 005F8340 and the panel builders by address;
+`CUiRegion::SetRect`, `CUiMesh::SetRectangle / SetFrame / Place`, 005FDE20, 005F8340 and the panel builders by address;
 nested wrappers through `Call*` / `...At`; 00742B08 read from memory). Interface-specific:
 - Float-heavy per-frame code (clock, top panel, strip scroll, minimap) keeps the original's order: FPU values `double`, float
   stores through `StoreFloat`, `_ftol` truncations, unrounded sums stay unrounded (`ItemAt`, `SetTab`).

@@ -9,7 +9,6 @@
 #include "map_object.h"    // CMapObject::position
 #include "sound.h"         // CSoundManager
 #include "spell.h"         // CLight, CLightFactory
-#include "originals_effects.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"      // SetVtable
@@ -52,7 +51,7 @@ CTorchObjectClientSpec::CTorchObjectClientSpec() {
 }
 
 CTorchObjectClientSpec* CTorchObjectClientSpec::Construct() { return new (this) CTorchObjectClientSpec(); }
-EI_REPLACE_METHOD(0x0052D0D0, CTorchObjectClientSpec::Construct);
+EI_REWRITTEN(0x0052D0D0, CTorchObjectClientSpec::Construct);
 
 CTorchObjectClientSpec::~CTorchObjectClientSpec() {
     HideEffects();
@@ -92,7 +91,7 @@ int CTorchObjectClientSpec::CreateClient() {
     sound_ = 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x0052D2A0, CTorchObjectClientSpec::CreateClient);
+EI_REWRITTEN(0x0052D2A0, CTorchObjectClientSpec::CreateClient);
 
 void CTorchObjectClientSpec::DestroyClient() {
     HideEffectsSlot();
@@ -107,7 +106,7 @@ void CTorchObjectClientSpec::DestroyClient() {
     }
     DestroySpec();
 }
-EI_REPLACE_METHOD(0x0052D2E0, CTorchObjectClientSpec::DestroyClient);
+EI_REWRITTEN(0x0052D2E0, CTorchObjectClientSpec::DestroyClient);
 
 void CTorchObjectClientSpec::ShowEffects() {
     if (particles_) particles_->StartEmitting();
@@ -132,13 +131,13 @@ void CTorchObjectClientSpec::HideEffects() {
         sound_ = 0;
     }
 }
-EI_REPLACE_METHOD(0x0052D610, CTorchObjectClientSpec::HideEffects);
+EI_REWRITTEN(0x0052D610, CTorchObjectClientSpec::HideEffects);
 
 void CTorchObjectClientSpec::WarmUpParticles() {
     if (!particles_) return;
     for (int i = 0; i < kWarmUpTicks; ++i) particles_->RunTick();
 }
-EI_REPLACE_METHOD(0x0052D3F0, CTorchObjectClientSpec::WarmUpParticles);
+EI_REWRITTEN(0x0052D3F0, CTorchObjectClientSpec::WarmUpParticles);
 
 void CTorchObjectClientSpec::SetParticles(std::uint32_t type, const float* offset, float scale) {
     SetLight(type, offset, scale);
@@ -158,7 +157,7 @@ void CTorchObjectClientSpec::SetParticles(std::uint32_t type, const float* offse
     particles_->ScaleSize(scale);
     particles_->Attach(nullptr);
 }
-EI_REPLACE_METHOD(0x0052D330, CTorchObjectClientSpec::SetParticles);
+EI_REWRITTEN(0x0052D330, CTorchObjectClientSpec::SetParticles);
 
 void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const float* colour) {
     SetFlame(offset, radius, colour);
@@ -183,7 +182,7 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     light_->inverseRangeSquared_ = 1.0f / squared;
     TheTerrain()->AddLight(light_);
 }
-EI_REPLACE_METHOD(0x0052D410, CTorchObjectClientSpec::SetLightAt);
+EI_REWRITTEN(0x0052D410, CTorchObjectClientSpec::SetLightAt);
 
 void CTorchObjectClientSpec::SetSound(const char* name) {
     SetName(name);
@@ -205,6 +204,6 @@ int __fastcall TorchClientClassId(CTorchObjectClientSpec* self) { return self->C
 int CTorchObjectClientSpec::RunTick() { return 1; }
 const char* CTorchObjectClientSpec::GetClassName() { return ClassNameText(); }
 int CTorchObjectClientSpec::GetClassId() { return kTorchClassId; }
-EI_REPLACE(0x0052D180, TorchClientUpdate);
-EI_REPLACE(0x0052D190, TorchClientClassName);
-EI_REPLACE(0x0052D1A0, TorchClientClassId);
+EI_REWRITTEN(0x0052D180, TorchClientUpdate);
+EI_REWRITTEN(0x0052D190, TorchClientClassName);
+EI_REWRITTEN(0x0052D1A0, TorchClientClassId);

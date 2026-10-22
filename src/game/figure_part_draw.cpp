@@ -22,9 +22,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "originals_ai.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "world.h"
 #include "library_trees.h"
 #include "game_data.h"
@@ -49,7 +46,7 @@ std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
 std::uint32_t AmbientBits() { return std::bit_cast<std::uint32_t>(options::TheOptions()->objectsLightingCoeff_); }
 int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
 
-// --- Forwarders ----------------------------------------------------------------------------------
+// --- Helpers -------------------------------------------------------------------------------------
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 // 005A7160: the drawer's animation at a time (float bits). 005A7290: after the draw (the renderer).
@@ -194,10 +191,8 @@ struct Part {
     bool Textured() const { return textureA && textureB; }
 };
 
-// A pointer passed to the device's draws as a dword.
 // A texture offset as the draws take it (its bits).
 std::uint32_t OffsetBits(float offset) { return std::bit_cast<std::uint32_t>(offset); }
-std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
 // Flat meshes (flag 0x100): the figure fills the colours (its FlatColours), else every colour is
 // the mesh's flat colour and every specular its flat specular (both arrays sized 4 * normals first).
@@ -292,16 +287,16 @@ void DrawThroughDevice(Part& part) {
     render::SetMeshSource(&source);
     int result;
     if (part.Textured()) {
-        result = DrawMesh2(part.device, nullptr, part.textureA->surface_, part.textureB->surface_, positions, blocks,
-                           Word(b.normals), b.normalCount, Word(mesh->colorsA_.data), Word(mesh->colorsB_.data),
-                           Word(b.texCoords), b.texCoordCount, Word(b.corners), b.cornerCount, Word(b.words),
-                           b.wordCount, Word(b.indices), b.indexCount, OffsetBits(mesh->textureOffsetU_), OffsetBits(mesh->textureOffsetV_), part.alpha,
-                           part.drawFlags);
+        result = part.device->DrawMeshBlocks2(part.textureA->surface_, part.textureB->surface_, positions, blocks,
+                                              b.normals, b.normalCount, mesh->colorsA_.data, mesh->colorsB_.data,
+                                              b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words,
+                                              b.wordCount, static_cast<std::uint16_t*>(b.indices), b.indexCount,
+                                              mesh->textureOffsetU_, mesh->textureOffsetV_, part.alpha, part.drawFlags);
     } else {
-        result = DrawMesh(reinterpret_cast<char*>(part.device), nullptr, positions, blocks, Word(b.normals),
-                          b.normalCount, Word(mesh->colorsA_.data), Word(mesh->colorsB_.data), Word(b.texCoords),
-                          b.texCoordCount, Word(b.corners), b.cornerCount, Word(b.words), b.wordCount, Word(b.indices),
-                          b.indexCount, OffsetBits(mesh->textureOffsetU_), OffsetBits(mesh->textureOffsetV_), part.alpha, part.drawFlags);
+        result = part.device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, mesh->colorsA_.data,
+                                             mesh->colorsB_.data, b.texCoords, b.texCoordCount, b.corners, b.cornerCount,
+                                             b.words, b.wordCount, static_cast<std::uint16_t*>(b.indices), b.indexCount,
+                                             mesh->textureOffsetU_, mesh->textureOffsetV_, part.alpha, part.drawFlags);
     }
     render::SetMeshSource(nullptr);
     if (!part.rect) return;
@@ -373,7 +368,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
         MovedPositions() = lib::AlignedArray<VertexPacket>{};
-        GameAtExit(FreeMovedPositions);   // 005A8AE0
+        libcrt::AtExit(FreeMovedPositions);   // 005A8AE0
     }
 
     int visibility = device->pipeline_->ClipTest(&part.Mesh()->bounds_);

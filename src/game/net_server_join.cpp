@@ -8,9 +8,6 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "ui.h"
 #include "world_data.h"
 #include "game_data.h"
@@ -104,7 +101,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     std::uint32_t announcement = 0;   // CString
     mfc::CString* formatted = TheInterface()->MessageText(&announcement, 0, name->data());
     self->Announce(formatted->GetString(), nullptr);
-    CStringDestroy(&announcement);
+    reinterpret_cast<mfc::CString*>(&announcement)->~CString();
 }
 EI_REPLACE(0x0041ADB0, ServerOnJoin);
 

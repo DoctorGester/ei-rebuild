@@ -63,9 +63,8 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    name. Write `EI_REWRITTEN(addr, Function)` next to it: it registers nothing and keeps the function
    in the tools' function-to-original map (check_fp_fold, check_signatures, coverage, progress; C20d).
    Register it at its address (`EI_REPLACE` / `EI_REPLACE_METHOD`) only while something still reaches
-   that address: a code cell of game.exe's data image (a static initialiser, a CRT / MFC table), a code
-   literal or an `EI_ORIGINAL` forwarder (`python tools/registration_readers.py` names the readers; C20
-   retires them). Such a function keeps the original's calling convention and declares every stack
+   that address: a code cell of game.exe's data image (a static initialiser, a CRT / MFC table) or a code
+   literal (`python tools/registration_readers.py` names the readers; C20 retires them). Such a function keeps the original's calling convention and declares every stack
    argument the original's `RET n` pops, read or not (five loaders declared with one argument too few
    left 4 bytes on the caller's stack and crashed the game at startup). `build.cmd` runs
    `tools/check_registrations.py` (one registration per address).
@@ -78,14 +77,12 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    `(addr, X::~X)` (docs/notes/standalone.md, "Real classes"). Do not give a non-virtual method the same name and signature as a base-class virtual
    (`CEngineObject::Create`, `Destroy`, `Release`, `Load`, `Save`, `GetName`, ...): it silently
    becomes an override.
-5. **No new forwarders.** Every function of game.exe is ported: call it by name (include its header, or
-   declare it there). The `EI_ORIGINAL(0xADDR)` forwarders left (`src/game/originals_<area>.h`;
-   `python tools/progress.py` counts them) jump to the function registered at their address; C29 turns
-   each into a direct call, and the harness's two redirections in the image (the fixed ISAAC seed
-   0049F660, the traced rand 006E77F7) into named seams in our code. `build.cmd` runs
-   `tools/check_forwarders.py` (no function forwarded from more than one file), and `check_cleanup`
-   ratchets the `EI_ORIGINAL` count per file. Forwarders that stay for a narrower reason: the vector
-   recorders' and tests/verify's (they call game.exe's own code in its runs).
+5. **No forwarders.** Every function of game.exe is ported: call it by name (include its header, or
+   declare it there). src has no `EI_ORIGINAL` (C29; `check_cleanup` keeps it at 0). Where the harness
+   needs to change what our code does, it sets a named seam our code exposes (the fixed ISAAC seed:
+   `IsaacRandom::SetSeedHook`; the traced draws: `IsaacRandom::SetDrawObserver`,
+   `gamecrt::SetRandObserver`), never an address. Only tests/verify's game.exe side and the vector
+   recorders call game.exe's code by address (`tests/verify/harness_original.h`).
 6. **Memory and CRT:** allocate and free game objects with `gamecrt::operator_new` / `operator_delete`
    (src/lib/crt.h; other code frees them there), containers through `stlp::` / `mfc::` until C14 moves
    them to standard types. Call the CRT functions whose game behaviour differs from the host's through

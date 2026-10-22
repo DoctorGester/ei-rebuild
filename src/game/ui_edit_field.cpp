@@ -6,8 +6,6 @@
 #include "ui_screens.h"
 
 #include "asset_text.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "ui_gdi.h"
 
 #include "ei/hook.h"
@@ -29,9 +27,6 @@ constexpr int kKeyLeft = 0x25;
 constexpr int kKeyRight = 0x27;
 constexpr int kKeyDelete = 0x2E;
 } // namespace
-
-// 0065C2E0 (Rebirth-patched): through its address; its vanilla body is DrawContentsVanilla below.
-__declspec(naked) void CUiEditField::DrawContents() EI_ORIGINAL(0x0065C2E0)
 
 // --- 0065C610 ------------------------------------------------------------------------------------
 
@@ -86,7 +81,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
     default:
         return;
     }
-    DrawContents();
+    DrawContentsVanilla();
     inputHandled_ = true;
 }
 
@@ -111,16 +106,10 @@ constexpr std::uint32_t kClassLetter = 2;      // letters and the space
 constexpr std::uint32_t kClassOther = 4;
 constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
 
-// The width of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
-// takes the CString by value and releases it, so a copy's data is handed over).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
-    mfc::CString copy(text);
-    char* data;
-    std::memcpy(&data, &copy, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&copy, &empty, sizeof(data));
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size.cx;
 }
 
@@ -156,7 +145,7 @@ CUiEditField* CUiEditField::Construct(CInterface3D* ui, RECT rect) {
     area_ = rect;
     CUiSurface* memory = gamecrt::operator_new_as<CUiSurface>();
     AddSurface(memory ? memory->ConstructOnRect(interface_, &area_, kSurfaceFormat) : nullptr);
-    DrawContents();
+    DrawContentsVanilla();
     focused_ = true;
     return this;
 }
@@ -183,7 +172,7 @@ void CUiEditField::OnChar(int key, int, int) {
         changed_ = true;
         caret_ += text::TypedLength(key);
     }
-    DrawContents();
+    DrawContentsVanilla();
     inputHandled_ = true;
 }
 
@@ -199,7 +188,7 @@ void CUiEditField::SetLook(std::uint32_t charClasses, char mode, int font, int m
     maxLength_ = maxLength;
     colour_ = colour;
     caretColour_ = caretColour;
-    DrawContents();
+    DrawContentsVanilla();
 }
 EI_REWRITTEN(0x0065C1A0, CUiEditField::SetLook);
 
@@ -208,7 +197,7 @@ void CUiEditField::SetText(const char* text) {
     Text() = text;
     changed_ = true;
     caret_ = Text().GetLength();
-    DrawContents();
+    DrawContentsVanilla();
 }
 EI_REWRITTEN(0x0065C290, CUiEditField::SetText);
 
@@ -228,7 +217,7 @@ void CUiEditField::DrawContentsVanilla() {
     const int width = area_.right - area_.left;
     const int height = area_.bottom - area_.top;
     RECT box{0, 0, width, height};
-    SurfaceDrawText(surface, nullptr, text, &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
+    surface->DrawTextIn(text, &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
     // The caret stands after the first caret_ characters; a centred text starts half its width left
     // of the middle.
     int caretX = TextWidth(interface_, text.Left(caret_), font_);
@@ -249,4 +238,4 @@ void CUiEditField::DrawContentsVanilla() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REPLACE_METHOD(0x0065C2E0, CUiEditField::DrawContentsVanilla);
+EI_REWRITTEN(0x0065C2E0, CUiEditField::DrawContentsVanilla);

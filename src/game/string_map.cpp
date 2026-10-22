@@ -23,8 +23,6 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
-#include "originals_library.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 namespace strmap {
@@ -76,7 +74,7 @@ EI_REWRITTEN(0x004449A0, CDebugPanel::Remove);
 // to the pool 004452D0), then the header pushed on the 0x28-byte nodes' free list (0079B234) as
 // the pool's deallocate does.
 void CDebugPanel::Destruct() { entries_.Destroy<Pair>(); }
-EI_REPLACE_METHOD(0x00444690, CDebugPanel::Destruct);
+EI_REWRITTEN(0x00444690, CDebugPanel::Destruct);
 
 // 00444740 (A-E2; thiscall, returns the panel): the constructor. The static initialiser 00444660
 // runs it on the global before WinMain and registers the destructor above with atexit. The base's
@@ -96,7 +94,7 @@ CDebugPanel* CDebugPanel::Construct() {
     vtable_ = DebugPanelClass::Vtable();
     return this;
 }
-EI_REPLACE_METHOD(0x00444740, CDebugPanel::Construct);
+EI_REWRITTEN(0x00444740, CDebugPanel::Construct);
 
 // The panel, zero at the start: built by the static initialiser 00444660 in the list's order and destroyed by the exit
 // function it registers (00444680); both ported on the name and registered at their addresses
@@ -108,7 +106,7 @@ namespace {
 void __cdecl DestroyDebugPanel() { g_debugPanel->Destruct(); }   // 00444680
 void __cdecl ConstructDebugPanel() {                             // 00444660
     g_debugPanel->Construct();
-    GameAtExit(DestroyDebugPanel);
+    libcrt::AtExit(DestroyDebugPanel);
 }
 } // namespace
 
@@ -171,7 +169,7 @@ void CDebugPanel::SetRect(const RECT* rect) {
     int height = ui->height_;
     RECT& asked = asked_;
     asked = *rect;
-    ui->CallScaleRectToScreen(&asked);
+    ui->ScaleRectToScreenEntry(&asked);
     int dx = asked.right - asked.left;
     int dy = asked.bottom - asked.top;
     if (dx < 100) dx = 100;
@@ -182,7 +180,7 @@ void CDebugPanel::SetRect(const RECT* rect) {
     asked.bottom = asked.top + dy;
     RECT& shown = shown_;
     shown = asked;
-    InterfaceScaleRectFromScreenOriginal(ui_, nullptr, &shown);
+    ui_->ScaleRectFromScreenEntry(&shown);
     if (visible_) {
         Show(0);
         Show(1);

@@ -17,10 +17,6 @@
 
 #include <cstring>
 #include <new>
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_world.h"
-#include "originals_effects.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -53,7 +49,7 @@ void Notify(const char* kind, const char* family) { EffectNotify(mfc::CString(ki
 
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
-    WorldMakeObjectOriginal(TheServerWorld(), nullptr, &self->base);
+    static_cast<CWorldServer*>(TheServerWorld())->CreateObject(&self->base);
     self->effect = Effects()->FindObject(self->base.id);
 }
 

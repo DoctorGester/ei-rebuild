@@ -17,9 +17,6 @@
 
 #include <bit>
 #include <cstring>
-#include "originals_library.h"
-#include "originals_ai.h"
-#include "originals_units.h"
 #include "game_singletons.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
@@ -29,8 +26,6 @@
 #include "logic_settings.h"
 #include "game_arrays.h"
 #include "lib/static_object.h"
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 constexpr int kPriority = 50;
@@ -506,7 +501,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     if (!(guard & 1)) {
         guard |= 1;
         mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&Candidates(), 10);
-        GameAtExit(DestroyCandidates);
+        libcrt::AtExit(DestroyCandidates);
     }
     CUnit* self = brain->owner->unit;
     brain->memory.FindEnemies(self, &Candidates());
@@ -659,13 +654,13 @@ void PlayerMode::Execute(AIBrain* brain) {
         }
         int action = brain->action;
         if (action == AIBrain::kActionAttack && !target) {
-            PlayerUpdateCombatOriginal(this, nullptr, brain);
+            UpdateCombat(brain);
             return;
         }
         if (action != AIBrain::kActionNone && (!leader || action != AIBrain::kActionFollow)) return;
         CMapObject* who = leader;
         if (!who) {
-            PlayerUpdateCombatOriginal(this, nullptr, brain);
+            UpdateCombat(brain);
             return;
         }
         if (!direct) {
@@ -677,14 +672,14 @@ void PlayerMode::Execute(AIBrain* brain) {
             }
         }
         if (!leader) {
-            PlayerUpdateCombatOriginal(this, nullptr, brain);
+            UpdateCombat(brain);
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
         // (The original inlines the walk, its GetNext 005D9830.)
         PlayerMode* leaderMode = leader->ServerController()->Brain()->FindPlayerMode();
         if (leaderMode && leaderMode->state == kStateCommand) return;
-        PlayerUpdateCombatOriginal(this, nullptr, brain);
+        UpdateCombat(brain);
         return;
     }
     case kStateCommand:
@@ -714,7 +709,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->OrderMove(&to, 0, 0, kMoveTime);
         }
-        if (state == kStateMoveTo) PlayerUpdateCombatOriginal(this, nullptr, brain);
+        if (state == kStateMoveTo) UpdateCombat(brain);
         return;
     }
     default:

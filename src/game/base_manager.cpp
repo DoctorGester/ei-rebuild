@@ -8,8 +8,6 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"   // ei::SetVtable
 #include "lib/crt.h"
-#include "originals_core.h"
-#include "originals_library.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 
@@ -318,7 +316,7 @@ CEngineObject* CBaseManager::FindObject(unsigned id) const {
     auto* node = objects_.Find(id);
     return node ? node->value : nullptr;
 }
-EI_REPLACE_METHOD(0x00403F40, CBaseManager::FindObject);
+EI_REWRITTEN(0x00403F40, CBaseManager::FindObject);
 
 void CBaseManager::SetContext(CManagerContext* context) { context_ = context; }
 EI_REWRITTEN(0x00403720, CBaseManager::SetContext);

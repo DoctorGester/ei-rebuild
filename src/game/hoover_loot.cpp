@@ -16,13 +16,9 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
-#include "originals_library.h"
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -87,7 +83,7 @@ int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* i
         auto count = [&] { return static_cast<std::uint32_t>(bytes() >> 2); };
         if (bytes() & ~std::intptr_t{3}) {
             for (std::uint32_t i = 0; i < count(); ++i) {
-                CItem* item = ItemManagerCreateItemOriginal(manager, nullptr, names()[i]);
+                CItem* item = manager->CreateItem(names()[i]);
                 if (!item) continue;
                 Append(drops, item);
                 AppendShared(items, item);

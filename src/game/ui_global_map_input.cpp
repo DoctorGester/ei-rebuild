@@ -1,5 +1,6 @@
 // The global map's input side (right-button drag, keys), its close and message-result slots
 // (CGlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
+#include "game_strings.h"
 #include "ui.h"
 #include "ui_camp.h"
 
@@ -16,7 +17,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "originals_ui.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -81,7 +81,7 @@ void CGlobalMap::OnRightDown(int, int x, int y) {
     dragStart_ = POINT{x, y};
     dragging_ = true;
     turning_ = 0;
-    interface_->CallScalePointFromScreen(&dragStart_);
+    interface_->ScalePointFromScreenEntry(&dragStart_);
     dragAngle_ = angle_;
     MouseDragY() = 0;
     MouseDragX() = 0;
@@ -150,7 +150,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     UiSurfaceGetDC(surfaces_.data[0]);
     surfaces_.data[0]->Clear();
     RECT titleRect{10, 10, 300, 50};
-    SurfaceDrawText(surfaces_.data[0], nullptr, text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
+    surfaces_.data[0]->DrawTextIn(text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
     // A zone's tip lists the quests in it.
     int lines = 0;
     if (!isLink) {
@@ -159,7 +159,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
             GlobalMapPlace& quest = quests_.data[i];
             if (quest.zone != index) continue;
             RECT rect{20, bottom - kTipLine, 350, bottom};
-            SurfaceDrawText(surfaces_.data[0], nullptr, quest.title, &rect, kTipFont, kTipColour, kTipFormat, 1);
+            surfaces_.data[0]->DrawTextIn(quest.title, &rect, kTipFont, kTipColour, kTipFormat, 1);
             ++lines;
             bottom += kTipLine;
         }
@@ -183,9 +183,9 @@ void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
     if (inputHandled_) return;
     int action = KeyActions()[flags & kScanCodeMask];
     if (action == kActionQuickSave)
-        AutoSaveOriginal(QuickSaveName(), 0);
+        ::QuickSave(QuickSaveName(), static_cast<char>(0));
     else if (action == kActionQuickLoad)
-        LoadSavedGameOriginal(QuickSaveName());
+        QuickLoad(QuickSaveName());
 }
 
 void CGlobalMap::OnMessageResult(int) {
@@ -208,21 +208,21 @@ void CGlobalMap::Close() {
     backdrop_ = nullptr;
     interface_->StopSound(windSound_);
 }
-EI_REPLACE_METHOD(0x0062EDD0, CGlobalMap::Close);
-EI_REPLACE_METHOD(0x0062EE30, CGlobalMap::OnMessageResult);
+EI_REWRITTEN(0x0062EDD0, CGlobalMap::Close);
+EI_REWRITTEN(0x0062EE30, CGlobalMap::OnMessageResult);
 
 namespace {
 void __fastcall GlobalMapDeactivate(void* input) { WindowFromInput<CGlobalMap>(input)->OnDeactivate(); }
 } // namespace
-EI_REPLACE(0x0062FF10, GlobalMapDeactivate);
+EI_REWRITTEN(0x0062FF10, GlobalMapDeactivate);
 
 // 0062D330 (slot 40): the briefing screen's SaveState (00602490), byte for byte.
 void CGlobalMap::SaveState() {
     int zero = 0;
     GameSaveStream()->Write(&zero, 4);
 }
-EI_REPLACE_METHOD(0x0062D330, CGlobalMap::SaveState);
-EI_REPLACE_METHOD(0x0062FF60, InputForward<&CGlobalMap::OnRightDown>::Call);
-EI_REPLACE_METHOD(0x0062FFC0, InputForward<&CGlobalMap::OnRightUp>::Call);
-EI_REPLACE_METHOD(0x00630010, InputForward<&CGlobalMap::OnMouseMove>::Call);
-EI_REPLACE_METHOD(0x00630580, InputForward<&CGlobalMap::OnKeyDown>::Call);
+EI_REWRITTEN(0x0062D330, CGlobalMap::SaveState);
+EI_REWRITTEN(0x0062FF60, InputForward<&CGlobalMap::OnRightDown>::Call);
+EI_REWRITTEN(0x0062FFC0, InputForward<&CGlobalMap::OnRightUp>::Call);
+EI_REWRITTEN(0x00630010, InputForward<&CGlobalMap::OnMouseMove>::Call);
+EI_REWRITTEN(0x00630580, InputForward<&CGlobalMap::OnKeyDown>::Call);

@@ -8,7 +8,6 @@
 
 #include "ei/hook.h"
 #include "game/game_data.h"
-#include "game/originals_library.h"
 #include "gameapi.h"
 
 #include <climits>
@@ -33,7 +32,7 @@ constexpr unsigned short kLeadByte = 0x8000;
 // callers never read it.
 void SetIllegalSequence() {
     static const bool standalone = ei::Standalone();
-    if (!standalone) static_cast<int*>(CrtThreadDataOriginal())[2] = 42;
+    if (!standalone) static_cast<int*>(gamecrt::GameThreadData())[2] = 42;
 }
 
 // ---- The 12-byte long double (_LDBL12): a 96-bit number as six 16-bit words, lowest first ----
@@ -166,9 +165,9 @@ void Multiply(Ld12& x, const Ld12& y) {
     x.w[5] = static_cast<std::uint16_t>(sum | sign);
 }
 
-// _pow10pos / _pow10neg (0079AE60 / 0079AFC0): 10^1..10^7, 10^8..10^56 by 8, 10^64..10^448 by 64,
+// _pow10pos / _pow10neg: 10^1..10^7, 10^8..10^56 by 8, 10^64..10^448 by 64,
 // 10^512..10^3584 by 512, 10^4096 (and their reciprocals).
-constexpr Ld12 kPow10Positive[29] = {
+constexpr Ld12 kPow10Positive[29] = /*0079AE60*/ {
     {{0x0000, 0x0000, 0x0000, 0x0000, 0xA000, 0x4002}}, {{0x0000, 0x0000, 0x0000, 0x0000, 0xC800, 0x4005}},
     {{0x0000, 0x0000, 0x0000, 0x0000, 0xFA00, 0x4008}}, {{0x0000, 0x0000, 0x0000, 0x0000, 0x9C40, 0x400C}},
     {{0x0000, 0x0000, 0x0000, 0x0000, 0xC350, 0x400F}}, {{0x0000, 0x0000, 0x0000, 0x0000, 0xF424, 0x4012}},
@@ -185,7 +184,7 @@ constexpr Ld12 kPow10Positive[29] = {
     {{0xFDD1, 0x5A8B, 0xD88B, 0x5D25, 0xF989, 0x67DB}}, {{0x95AA, 0xF3F8, 0xBF27, 0xC8A2, 0xDD5D, 0x6E80}},
     {{0xC94C, 0x979B, 0x8A20, 0x5202, 0xC460, 0x7525}},
 };
-constexpr Ld12 kPow10Negative[29] = {
+constexpr Ld12 kPow10Negative[29] = /*0079AFC0*/ {
     {{0xCCCD, 0xCCCD, 0xCCCC, 0xCCCC, 0xCCCC, 0x3FFB}}, {{0x3D71, 0xD70A, 0x70A3, 0x0A3D, 0xA3D7, 0x3FF8}},
     {{0x645A, 0xDF3B, 0x8D4F, 0x6E97, 0x8312, 0x3FF5}}, {{0xD3C3, 0x652C, 0xE219, 0x1758, 0xD1B7, 0x3FF1}},
     {{0x0FD0, 0x8423, 0x1B47, 0xAC47, 0xA7C5, 0x3FEE}}, {{0xA640, 0x69B6, 0xAF6C, 0xBD05, 0x8637, 0x3FEB}},

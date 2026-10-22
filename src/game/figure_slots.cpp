@@ -5,7 +5,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
-#include "originals_core.h"
 #include "scene_loader.h"   // TextureNameRecord
 
 #include <cstdint>

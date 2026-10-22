@@ -5,7 +5,6 @@
 #include "game_strings.h"
 
 #include "ground_print.h"       // NamedTexture
-#include "originals_engine.h"
 #include "game_singletons.h"
 
 #include "ei/hook.h"

@@ -16,8 +16,6 @@
 
 #include <bit>
 #include <cstring>
-#include "originals_gameplay.h"
-#include "originals_units.h"
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 
@@ -65,7 +63,7 @@ std::uintptr_t CUnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&stats, source, sizeof(UnitStats));
     unit->MarkChanged(kPartStats);
     ServerSlots(this)->RefreshVitals(0);
-    UnitStatsRefillSlotsOriginal(&stats);
+    stats.RefillSlots();
     ServerSlots(this)->RefreshVitals(0);
     // The companion's vitals: hit points and mana at their maxima (the companion read again).
     auto* companion = unit->ServerCompanion();
@@ -80,7 +78,7 @@ void CUnitServer::Shout(std::uint32_t code) {
     if (code > kLastPlainRemark && code != kExtraRemark) return;
     if (code == 0xFFFFFFFFu) return;   // already excluded above; the original tests it anyway
     if (!unit->player) return;
-    PlayerSendObject0BOriginal(PlayerMessages(unit->player), nullptr, unit, code);
+    PlayerMessages(unit->player)->SendObject0B(unit, code);
 }
 EI_REWRITTEN(0x00552780, CUnitServer::Shout);
 
@@ -137,4 +135,4 @@ void CUnit::DropBrokenEquipment() {
     }
     broken.RemoveAll();
 }
-EI_REPLACE_METHOD(0x00532AC0, CUnit::DropBrokenEquipment);
+EI_REWRITTEN(0x00532AC0, CUnit::DropBrokenEquipment);

@@ -16,9 +16,6 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_vector_refs.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_gameplay.h"
 #include "record_vectors.h"
 
 #include <cstring>
@@ -174,7 +171,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     }
 
     CParty* party = self->parties_[1].Get();
-    PartyResetOriginal((void*)party, nullptr, 1, 0);
+    party->Clear(1, 0);
     party->Money() = static_cast<int>(remote->money_);
     stlp::vector<CEngineObject*> items;
     items.ConstructEmpty();   // 00424B40

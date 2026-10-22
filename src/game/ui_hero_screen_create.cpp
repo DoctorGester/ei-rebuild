@@ -25,10 +25,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
-#include "originals_gameplay.h"
-#include "originals_library.h"
-#include "originals_ui.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -73,9 +69,7 @@ constexpr int kSurfaceCommands = 1, kSurfaceRename = 3;
 // The menu model's turn about x: pi / 2 times 1.2.
 float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
 
-// The saved heroes' reload (00662FB0, plain RET): Rebirth-patched, so through its address (as the
-// screen's mode, 00615D30, originals_ui.h).
-__declspec(naked) void __fastcall ReloadHeroesAt(SavedParties*) EI_ORIGINAL(0x00662FB0)
+// The saved heroes' reload (00662FB0, plain RET; Rebirth-patched).
 SavedParties* Heroes() { return &TheSavedParties(); }
 
 // The screen's vectors as the library's: the figures' prototype names, and the voices.
@@ -151,7 +145,7 @@ void CMpHeroScreen::Create() {
 
     // The nine regions every mode keeps (00615D30 places the first four and gives the tips).
     auto region = [this](int left, int top, int right, int bottom) {
-        AddRegion()->CallSetRect(left, top, right, bottom);
+        AddRegion()->SetRect(left, top, right, bottom);
     };
     region(600, 400, 680, 500);
     region(720, 400, 800, 500);
@@ -398,7 +392,7 @@ void CMpHeroScreen::Create() {
     mfc::CString text;
     CUiSurface* commands = surfaces_.data[kSurfaceCommands];
     UiSurfaceGetDC(commands);
-    SurfaceClearOriginal(commands);
+    static_cast<CUiSurface*>(commands)->Clear();
     const char* const commandKeys[] = {
         "lmp_pers_new",
         "lmp_pers_rename",
@@ -409,7 +403,7 @@ void CMpHeroScreen::Create() {
     for (const char* key : commandKeys) {
         texts->GetString(key, &text);
         RECT rect{0, top, 290, top + 20};
-        SurfaceDrawText(commands, nullptr, text, &rect, 1, kWhite, kTextFormat, 1);
+        commands->DrawTextIn(text, &rect, 1, kWhite, kTextFormat, 1);
         top += 24;
     }
     UiSurfaceReleaseDC(commands);
@@ -417,14 +411,14 @@ void CMpHeroScreen::Create() {
     // The saved heroes, from the "mp" folder of the game's data.
     SavedParties* heroes = Heroes();
     heroes->folder_ = TheDataFolder() + "mp\\";
-    ReloadHeroesAt(heroes);
+    heroes->Reload();
     RefreshHeroScroll();
     DrawHeroList();
     heroIndex_ = heroes->entries_.size() == 0 ? -1 : 0;
-    HeroScreenSetModeOriginal(this, nullptr, kModeHeroList);
+    SetModeVanilla(kModeHeroList);
     // Rebirth's WideScreen (addon's handler after the original): the curtains, hidden (sprites 19, 20).
     widescreen::AddCurtains(this, 0);
 }
-EI_REPLACE_METHOD(0x00613EA0, CMpHeroScreen::Create);
+EI_REWRITTEN(0x00613EA0, CMpHeroScreen::Create);
 // In a Rebirth launch EI_Plugin.asi also patches the function (EiPluginFixes at +D15 / +E7B, the
 // figures' sex test above).

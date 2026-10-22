@@ -35,11 +35,6 @@
 #include <concepts>
 #include <cstdint>
 #include <cstring>
-#include "originals_effects.h"
-#include "originals_ui.h"
-#include "originals_engine.h"
-#include "originals_gameplay.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -102,10 +97,10 @@ struct Texts : CTextManager {
     BOOL GetString(const char* name, mfc::CString* out); // 004E0020
     BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
 };
-BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
+BOOL Texts::Open(const char* key) { return CTextManager::Open(key); }
 BOOL Texts::NextLine() { return TextNextLine(this); }
 BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return CTextManager::ReadLine(a0, a1); }
-BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
+BOOL Texts::GetString(const char* key, mfc::CString* out) { return CTextManager::GetString(key, out); }
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
     return GetItemTexts(item, name, description, kind);
 }
@@ -159,7 +154,7 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
     out->SetAtGrow(out->GetSize(), above);
     out->SetAtGrow(out->GetSize(), below);
 }
-EI_REPLACE(0x005F13A0, ItemDamageLists);
+EI_REWRITTEN(0x005F13A0, ItemDamageLists);
 
 namespace {
 void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }
@@ -877,7 +872,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
 } // namespace
 
 void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
-    PartyResetOriginal(itemList_, nullptr, 1, 0);
+    reinterpret_cast<CParty*>(itemList_)->Clear(1, 0);
     DescribeItem();
     if (info->kind < 0) return;
     Texts* texts = TextManager();
@@ -1004,7 +999,7 @@ EI_REWRITTEN(0x005F1590, CItemInfoPanel::DescribeStats);
 // --- 005F2910: a camp help topic ----------------------------------------------------------------------
 
 void CItemInfoPanel::ShowHelp(int topic) {
-    PartyResetOriginal(itemList_, nullptr, 1, 0);
+    reinterpret_cast<CParty*>(itemList_)->Clear(1, 0);
     DescribeItem();
     Texts* texts = TextManager();
     Writer w(this);
@@ -1032,7 +1027,7 @@ void CItemInfoPanel::Describe(CItem* item) {
         CItem* shown = items_[0];
         if (ei::ObjectSlot<SameFn>(shown, 14)(shown, item)) return;
     }
-    PartyResetOriginal(itemList_, nullptr, 1, 0);
+    reinterpret_cast<CParty*>(itemList_)->Clear(1, 0);
     if (item) ItemParty()->AddItem(item, 0, 1);
     DescribeItem();
 }

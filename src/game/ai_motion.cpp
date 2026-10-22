@@ -225,7 +225,8 @@ EI_REWRITTEN(0x005B23A0, AIPath::Clear);
 
 // --- The trajectory --------------------------------------------------------------------------------
 
-__declspec(naked) double MotionCubic::Value(float) EI_ORIGINAL(0x004E5660)
+// 004E5660 (a byte-for-byte copy of CubicSegment::Evaluate, 0040E440): Horner's scheme, unrounded.
+double MotionCubic::Value(float u) { return ((u * c3 + c2) * u + c1) * u + c0; }
 
 void MotionCubic::Fit(float p0, float d0, float p1, float d1, float length) {
     double inverse = 1.0f / length;

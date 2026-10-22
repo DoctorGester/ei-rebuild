@@ -12,8 +12,6 @@
 #include "lib/mfc.h"
 #include "lib/mfc_thread.h"
 #include "game_singletons.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "game_data.h"
 
 namespace {
@@ -117,7 +115,7 @@ CCursor* CCursor::Construct() {
     enabled_ = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x005E51C0, CCursor::Construct);
+EI_REWRITTEN(0x005E51C0, CCursor::Construct);
 
 void CCursor::DestroyBody() {
     gameapi::DeleteCriticalSection(&lock_);
@@ -126,7 +124,7 @@ void CCursor::DestroyBody() {
     if (under_) under_->Release();
     if (device_) device_->Release();
 }
-EI_REPLACE_METHOD(0x005E4E00, CCursor::DestroyBody);
+EI_REWRITTEN(0x005E4E00, CCursor::DestroyBody);
 
 // The cursor, zero at the start: built by the static initialiser 005E4DD0 in the list's order and destroyed by the exit
 // function it registers (005E4DF0); both ported on the name and registered at their addresses (docs/notes/standalone.md,
@@ -141,7 +139,7 @@ long& MouseDragY() { return g_cursor->motion_.y; }
 namespace {
 void __cdecl ConstructGameCursor() {   // 005E4DD0
     g_cursor->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x005E4DF0));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005E4DF0));
 }
 void __cdecl DestroyGameCursor() { g_cursor->DestroyBody(); }   // 005E4DF0
 } // namespace
@@ -178,7 +176,7 @@ void CCursor::ShowImage(int shown) {
     imageShown_ = shown;
     gameapi::LeaveCriticalSection(&lock_);
 }
-EI_REPLACE_METHOD(0x005E5270, CCursor::ShowImage);
+EI_REWRITTEN(0x005E5270, CCursor::ShowImage);
 
 void CCursor::SetHeld(char held) {
     if (!enabled_) return;

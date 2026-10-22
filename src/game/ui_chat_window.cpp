@@ -19,9 +19,6 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
-#include "originals_library.h"
-#include "originals_render.h"
-#include "originals_ui.h"
 #include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -123,7 +120,7 @@ CChatWindow* CChatWindow::Construct(CInterface3D* ui) {
     }
     return this;
 }
-EI_REPLACE_METHOD(0x00608D20, CChatWindow::Construct);
+EI_REWRITTEN(0x00608D20, CChatWindow::Construct);
 // EI_Plugin.asi patches the constructor and Update (NPlayers: the window's left edge and the first status
 // column) and ShowPlayers (Fixes: the faces' sex and the prototype fallback) in a Rebirth launch.
 
@@ -161,7 +158,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
     sprite->textureOffsetV_ = static_cast<float>(v + 0x80) * 0.00390625f /*0073EEB8*/;
     sprite->texture_ = objects_.data[objects_.size - 1];
     ++portraits_;
-    AddRegion()->CallSetRect(left, 0, right, 0x50);
+    AddRegion()->SetRect(left, 0, right, 0x50);
 }
 EI_REWRITTEN(0x00608F90, CChatWindow::AddPortrait);
 
@@ -239,7 +236,7 @@ void CChatWindow::ShowPlayers() {
         regions_.data[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
     }
 }
-EI_REPLACE_METHOD(0x006091C0, CChatWindow::ShowPlayers);
+EI_REWRITTEN(0x006091C0, CChatWindow::ShowPlayers);
 
 // --- 006095A0: slot 24 --------------------------------------------------------------------------
 
@@ -277,11 +274,11 @@ void CChatWindow::Update() {
         }
         if (status.GetLength() != 0) {
             RECT line{left, 0, left + kFaceWidth, 0xF};
-            SurfaceDrawText(surface, nullptr, status, &line, 0, kWhite, 1, 1);
+            surface->DrawTextIn(status, &line, 0, kWhite, 1, 1);
         }
         if (offer.GetLength() != 0) {
             RECT line{left, 0xF, left + kFaceWidth, 0x1E};
-            SurfaceDrawText(surface, nullptr, offer, &line, 0, kWhite, 1, 1);
+            surface->DrawTextIn(offer, &line, 0, kWhite, 1, 1);
         }
     }
     UiSurfaceReleaseDC(surface);

@@ -10,7 +10,6 @@
 #include "lib/stlp.h"
 
 #include <cstring>
-#include "originals_library.h"
 #include "game_data.h"
 
 int WorldToCell(float world) {
@@ -406,7 +405,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
         guard |= 1;
         cache->radius = -1.0f;
         cache->length = 0;
-        GameAtExit([] {});   // 005BAC00: nothing to destroy
+        libcrt::AtExit([] {});   // 005BAC00: nothing to destroy
     }
 
     int sizeClass = unit->sizeClass;

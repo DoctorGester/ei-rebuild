@@ -21,10 +21,6 @@
 #include "../lib/mfc_coll.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
-#include "originals_core.h"
-#include "originals_engine.h"
-#include "originals_library.h"
-#include "originals_render.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
@@ -36,8 +32,6 @@
 
 #include <cstring>
 #include <new>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace scene {
 namespace {

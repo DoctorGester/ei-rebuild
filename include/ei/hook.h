@@ -3,8 +3,7 @@
 // The standalone image (ei_standalone.exe, docs/notes/standalone.md section 2) runs without game.exe: it
 // loads ei_hook.dll, which keeps game.exe's data in its own storage and whose InstallHooks takes the
 // registrations as the code for their addresses (CodeAddress; nothing of game.exe is at its addresses). In game.exe, which runs only as the original game (the original's harness), nothing of ours
-// is installed but the vector recorders (EI_RECORD, with EI_VECTORS=1). EI_ORIGINAL forwarders name
-// original addresses.
+// is installed but the vector recorders (EI_RECORD, with EI_VECTORS=1).
 #pragma once
 
 #include <cstdint>
@@ -47,50 +46,30 @@ void* MemberAddress(T member) {
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
 int InstallHooks();
 
-// game.exe's code section (.text, 00401000 up to 0073A670): the addresses registrations, forwarders and code
-// cells name (the image guards it, image_code.cpp; standalone.cpp reports a stray access there).
+// game.exe's code section (.text, 00401000 up to 0073A670): the addresses registrations and code cells name (the image guards it, image_code.cpp; standalone.cpp reports a stray access there).
 constexpr std::uintptr_t kGameTextBegin = 0x00401000;
 constexpr std::uintptr_t kGameTextEnd = 0x0073A670;
 constexpr bool InGameText(std::uintptr_t address) { return address - kGameTextBegin < kGameTextEnd - kGameTextBegin; }
 // game.exe's WinMain (app_main.cpp's GameMain): the harness installs the hooks when it starts (hook.cpp), the
 // image calls it (standalone.cpp).
 constexpr std::uintptr_t kGameWinMain = 0x00456440;
-// game.exe's CRT atexit (originals_library.h's GameAtExit): the static initialisers register their exit functions
-// through it, so the image needs code there (src/standalone/static_init.h's Targets).
+// game.exe's CRT atexit (libcrt::AtExit): the static initialisers register their exit functions through it, so the
+// image needs code there (src/standalone/static_init.h's Targets).
 constexpr std::uintptr_t kGameAtExit = 0x006E727B;
 
 // What runs for game.exe's function at `address` (S18i, src/standalone/image_code.cpp): in game.exe the
 // address itself (the original); in the standalone image, whose code section is guarded, the replacement
-// registered for it (from InstallHooks on), the harness's (RedirectCode), else a stub that reports there is
-// no code at the address. An address outside game.exe's code section is its own code.
+// registered for it (from InstallHooks on), else a stub that reports there is no code at the address. An address
+// outside game.exe's code section is its own code.
 std::uintptr_t CodeAddress(std::uintptr_t address);
 template <typename F>
 F Code(std::uintptr_t address) {
     return reinterpret_cast<F>(CodeAddress(address));
 }
-// An EI_ORIGINAL forwarder's binding (S18i1): `code` is CodeAddress(address) once that is fixed (the registration in
-// the image, the address itself in game.exe), and the forwarder jumps there directly; null before that and for the
-// harness's redirections and the stubs, which ask CodeAddress at each call (BindCode, through ei_code_bind).
-struct CodeLink {
-    const void* volatile code;   // first: the forwarder compares and jumps through [link]
-    std::uintptr_t address;
-    CodeLink* next;              // the bound links (RedirectCode unbinds them)
-};
-// CodeAddress(link->address), and binds the link when that is fixed.
-std::uintptr_t BindCode(CodeLink* link);
-// The harness: how often CodeAddress was asked (all; by unbound forwarders), and whether forwarders bind (on by
-// default; off unbinds them all and every call asks CodeAddress, as before S18i1: an A/B measurement).
-struct CodeLookupCounts {
-    std::uint64_t all;
-    std::uint64_t forwarders;
-};
-CodeLookupCounts CodeLookups();
-void SetCodeBinding(bool on);
+// The harness: how often CodeAddress was asked.
+std::uint64_t CodeLookups();
 // Whether CodeAddress has code for `address` other than the stub (always in game.exe).
 bool HasCode(std::uintptr_t address);
-// The image: the harness's replacement for game.exe's function at `address` (what a JMP written there is in
-// game.exe): CodeAddress and the code cells of game.exe's data that hold the address lead to `to`.
-void RedirectCode(std::uintptr_t address, const void* to);
 // The image: a code pointer the harness took out of game.exe's data before the code cells were pointed at our
 // code (a vtable slot it replaces at start-up) is resolved with them (at once when they are already).
 void FixUpCodePointer(std::uintptr_t* pointer);
@@ -180,29 +159,6 @@ struct RegRecord {
     EI_REG_RECORD(ei_reg_short_, addr, ::ei::kRegShort); \
     static ::ei::HookRegistrar EI_CAT(ei_short_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
 
-// Define a function body that forwards to original code not rewritten yet. Works for any calling
-// convention (including __thiscall methods) because it is a bare jump with the stack untouched: to
-// CodeAddress(addr), the address itself in game.exe. Once that is fixed the forwarder jumps there through its
-// CodeLink; until then (and for a redirection or a stub) it pushes the link and jumps to ei_code_bind
-// (src/standalone/image_code.cpp), which asks CodeAddress with the caller's registers kept.
-// ei_vectors.exe has no game.exe: there the jump goes to the replacement registered for `addr`, as in
-// the standalone image, or to a replay stand-in (tests/vectors/hook_stub.cpp; an address with neither
-// raises an exception a guarded check reports, or ends the run).
-#ifdef EI_VECTORS_REPLAY
-extern "C" void ei_replay_dispatch();
-#define EI_ORIGINAL(addr) \
-    { __asm { push addr } __asm { jmp ei_replay_dispatch } }
-#else
-extern "C" void ei_code_bind();
-#define EI_ORIGINAL(addr) \
-    { \
-        static ::ei::CodeLink ei_link = {nullptr, addr, nullptr}; \
-        __asm { cmp dword ptr [ei_link], 0 } __asm { je ei_unbound } __asm { jmp dword ptr [ei_link] } \
-    ei_unbound: \
-        __asm { push offset ei_link } __asm { jmp ei_code_bind } \
-    }
-#endif
-
 // Verify build only (tests/vectors/record_*.cpp): in game.exe with EI_VECTORS=1 (the original game, the
 // recorders its only hooks) route `addr` to `recorder`, and store in `orig` a trampoline running the
 // original (its first `stolen` bytes, then a jump back), which the recorder calls and samples.
@@ -217,7 +173,7 @@ extern "C" void ei_code_bind();
 // the record keeps the function's own copy in the image (as a registration did), and check_registrations reads it
 // (one original per address, none also registered). The tools' function-to-original map is the registrations and
 // these lines together (check_signatures.registrations(): check_fp_fold and check_signatures; coverage.py,
-// direct_calls.py, save_trace.py, ui_census_report.py, progress.py's rewritten count). tools/registration_readers.py
+// save_trace.py, ui_census_report.py, progress.py's rewritten count). tools/registration_readers.py
 // --drop writes one in place of each registration it drops.
 #pragma section(".eiorg", read, write)
 namespace ei {

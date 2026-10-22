@@ -30,17 +30,11 @@
 #include "lib/mfc_slots.h"
 #include "unit.h"
 #include "world.h"
-#include "originals_library.h"
-#include "originals_units.h"
-#include "originals_gameplay.h"
-#include "originals_world.h"
 
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include "originals_ui.h"
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "world_data.h"
@@ -94,11 +88,6 @@ constexpr int kMapCentreY = 80;
 constexpr std::uint32_t kCameraFollows = 8;
 
 } // namespace
-
-// --- Forwarders --------------------------------------------------------------------------------
-
-__declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
-__declspec(naked) void CHudMovePanel::ShowMode(int) EI_ORIGINAL(0x00649910)
 
 // --- Weapon bar --------------------------------------------------------------------------------
 
@@ -316,7 +305,7 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     inputHandled_ = true;
     CBattleScreen* owner = owner_;
     // 00638EF0 through its address: Rebirth patches it (FixSpellSelfCasting; rule 9).
-    if (region < owner->party_.size) SelectUnitAt(owner, nullptr, owner->party_[region], 0, 0);
+    if (region < owner->party_.size) static_cast<CBattleScreen*>(owner)->SelectUnit(owner->party_[region], 0, 0);
 }
 EI_REWRITTEN(0x00641E20, InputForward<&CHudPortraits::OnMouseUp>::Call);
 
@@ -371,7 +360,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         // The world point under the click; ScalePointFromScreen (005F7E00) is Rebirth-patched:
         // through its address.
         POINT point = {x, y};
-        interface_->CallScalePointFromScreen(&point);
+        interface_->ScalePointFromScreenEntry(&point);
         // WideScreen (006452ED / 00645432): the centre moved right by the shift.
         float right = static_cast<float>(point.x - (kMapCentreX + widescreen::EdgeShift())) / halfSide_;
         float down = static_cast<float>(point.y - kMapCentreY) / halfSide_;
@@ -538,7 +527,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
             if (unit->flags_ & 0x10) LocalView()->SetMoveMode(unit, mode);
         }
     }
-    ShowMode(mode);
+    ShowModeVanilla(mode);
 }
 EI_REWRITTEN(0x00649670, InputForward<&CHudMovePanel::OnMouseUp>::Call);
 
@@ -566,12 +555,12 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
         marker->localRotation_ = *turn.SetAxisAngle(axis, angle);
         const float y = static_cast<float>(MarkerCentreY() - x87::fsin(angle) * MarkerRadius());
         const float x = static_cast<float>(x87::fcos(angle) * MarkerRadius());
-        SpritePlaceOriginal(sceneObjects_.data[0], nullptr, x, y, kMarkerDepth);
+        static_cast<CUiMesh*>(sceneObjects_.data[0])->PlaceBody(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }
     widescreen::LeavePanel();
 }
-EI_REPLACE_METHOD(0x00649910, CHudMovePanel::ShowModeVanilla);
+EI_REWRITTEN(0x00649910, CHudMovePanel::ShowModeVanilla);
 
 void CHudMovePanel::Update() {
     if (!TheClientWorld()->LocalView()) return;
@@ -592,7 +581,7 @@ void CHudMovePanel::Update() {
         else if (flag != unit->fightAtWill)
             flag = -2;
     }
-    ShowMode(mode);
+    ShowModeVanilla(mode);
     flag_ = flag;
     // Scene object 5 shows the flag through its texture offset (textureOffsetU_, +0xCC).
     std::uint32_t bits = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
@@ -664,7 +653,6 @@ Vector3 PositionOf(const CUnit* unit) {
 }
 
 // The battle screen's own commands (thiscall; the flag argument is the interface's +0x7F byte).
-__declspec(naked) void __fastcall ScreenOrderUnit(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x00637190)
 void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
     screen->UseOnUnit(target, quick, ctrl);
 }
@@ -781,7 +769,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     for (int i = 0; i < 6 && !anyFlag; ++i) anyFlag = orderKeys_[i] != 0;
     if (anyFlag) {
         if (unit && !unitDead(unit)) {
-            ScreenOrderUnit(this, nullptr, unit, ctrl());
+            AttackUnit(unit, ctrl());
             return;
         }
         orderAt(pick(), 1, ctrl());
@@ -789,7 +777,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     }
     if (interface_->ctrlDown_) {
         if (unit && !unitDead(unit)) {
-            ScreenOrderUnit(this, nullptr, unit, ctrl());
+            AttackUnit(unit, ctrl());
             return;
         }
         orderAt(pick(), 1, ctrl());
@@ -815,7 +803,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 return;
             }
             if (members != 0 && party_[0] && party_[0]->IsHostileTo(unit)) {
-                ScreenOrderUnit(this, nullptr, unit, ctrl());
+                AttackUnit(unit, ctrl());
                 return;
             }
             orderAt(unitPosition(unit), 0, ctrl());
@@ -933,7 +921,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     }
 }
-EI_REPLACE_METHOD(0x00638EF0, CBattleScreen::SelectUnit);
+EI_REWRITTEN(0x00638EF0, CBattleScreen::SelectUnit);
 
 // --- 0063DB20: the quick item panel's button release -------------------------------------------
 

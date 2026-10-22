@@ -9,7 +9,6 @@
 #define DIRECTINPUT_VERSION 0x0700
 #include "class_templates.h"
 #include "core_refcount.h"
-#include "originals_script.h"
 #include "party.h"
 #include "party_manager.h"
 #include "party_records.h"
@@ -20,7 +19,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "originals_library.h"
 #include "game_hashes.h"
 #include "game_data.h"
 
@@ -136,7 +134,7 @@ void PartyManager::Destruct() {
     entries.FreeStorage();
     parties.Destroy();   // every node deleted (004ABA70), then the buckets freed
 }
-EI_REPLACE_METHOD(0x004A5700, PartyManager::Destruct);
+EI_REWRITTEN(0x004A5700, PartyManager::Destruct);
 
 PartyManager* PartyManager::Construct() {
     parties.InitZeroedBuckets(100);
@@ -147,7 +145,7 @@ PartyManager* PartyManager::Construct() {
     new (&templates) stlp::vector<ClassTemplate*>();
     return this;
 }
-EI_REPLACE_METHOD(0x004A5870, PartyManager::Construct);
+EI_REWRITTEN(0x004A5870, PartyManager::Construct);
 
 // The manager, empty at the start: built by the static initialiser 004A56D0 in the list's order and destroyed by the exit
 // function it registers (004A56F0); both ported on the name and registered at their addresses (docs/notes/standalone.md,
@@ -158,7 +156,7 @@ PartyManager* ThePartyManager() { return &*g_partyManager; }
 namespace {
 void __cdecl ConstructPartyManager() {   // 004A56D0
     g_partyManager->Construct();
-    GameAtExit(ei::Code<void(__cdecl*)()>(0x004A56F0));
+    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004A56F0));
 }
 void __cdecl DestroyPartyManager() { g_partyManager->Destruct(); }   // 004A56F0
 } // namespace

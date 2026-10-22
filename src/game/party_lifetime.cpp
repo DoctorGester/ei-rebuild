@@ -215,10 +215,7 @@ CParty::~CParty() {
     }
 }
 EI_REWRITTEN_SPECIAL(0x00661190, CParty::~CParty);
-
-// 006611D0, the destructor called in place (its address is still called: originals_gameplay.h).
-void __fastcall DestroyPartyInPlace(CParty* party) { party->CParty::~CParty(); }
-EI_REPLACE(0x006611D0, DestroyPartyInPlace);
+EI_REWRITTEN_SPECIAL(0x006611D0, CParty::~CParty);   // the destructor called in place
 
 const char* CParty::GetClassName() { return "CParty"; }
 int CParty::GetClassId() { return 9; }
@@ -277,4 +274,4 @@ void CParty::Clear(int clearVariables, int keepSpells) {
     entrance_ = 0;
     money_ = 0;
 }
-EI_REPLACE_METHOD(0x00661700, CParty::Clear);
+EI_REWRITTEN(0x00661700, CParty::Clear);

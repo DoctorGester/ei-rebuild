@@ -2,7 +2,7 @@
 // byte, and the per-call answers for negative chars.
 #include "crt_vectors.h"
 
-#include "ei/hook.h"
+#include "../verify/harness_original.h"
 
 #include <cstring>
 

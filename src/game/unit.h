@@ -243,7 +243,6 @@ public:
     int TakeHitImpl(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source);
     CItem* CarriedItem(int index) const;
 
-
     // The overrides of CMapObject's slots are registered through __fastcall ...Hook shims (rewrite
     // guide rule 4); calls that meant this body and not the slot are qualified (CUnit::...).
     // Every slot game.exe's 0073EA8C changes is declared (C19); the slots whose bodies are
@@ -679,7 +678,6 @@ inline CUnit* UnitOrNull(CEngineObject* object) {
 inline CUnit* UnitWithId(const CBaseManager* objects, unsigned id) { return objects->FindObjectAs<CUnit>(id); }
 
 constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
-
 
 // Unit prototypes (global vectors; see item_db.h for the lookup rule).
 namespace unitdb {

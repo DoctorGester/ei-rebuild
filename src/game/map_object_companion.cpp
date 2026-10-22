@@ -13,8 +13,6 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_effects.h"
-#include "originals_units.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -81,7 +79,7 @@ std::uintptr_t CMapObjectServer::SetData(const void* data) {
     std::memcpy(&vitals, data, sizeof(vitals));
     return owner->MarkChanged(0);
 }
-EI_REPLACE_METHOD(0x00515950, CMapObjectServer::SetData);
+EI_REWRITTEN(0x00515950, CMapObjectServer::SetData);
 
 BOOL CMapObjectServer::TakeHit(const void* hit) {
     if (!vitals.TakeHit(static_cast<const DamageInfo*>(hit))) return 0;

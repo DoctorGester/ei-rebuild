@@ -8,7 +8,6 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "originals_units.h"
 #include "unit_create.h"
 #include "unit_db.h"
 
@@ -47,7 +46,7 @@ CItemArmor* CUnit::EquipArmour(CItem* item) {
     MarkChanged(kPartEquipment);
     return previous;
 }
-EI_REPLACE_METHOD(0x00530730, CUnit::EquipArmour);
+EI_REWRITTEN(0x00530730, CUnit::EquipArmour);
 
 CItemArmor* CUnit::UnequipArmour(int slot) {
     CItemArmor* item = armor[slot];
@@ -60,7 +59,7 @@ CItemArmor* CUnit::UnequipArmour(int slot) {
     MarkChanged(kPartStats);
     return item;
 }
-EI_REPLACE_METHOD(0x00530840, CUnit::UnequipArmour);
+EI_REWRITTEN(0x00530840, CUnit::UnequipArmour);
 
 void CUnit::ReleaseAllItems() {
     ReleaseSlots(this, weapons, 4);
@@ -85,7 +84,7 @@ void CUnit::ReleaseAllItems() {
     carriedCapacity = 0;
     carriedCount = 0;
 }
-EI_REPLACE_METHOD(0x005315B0, CUnit::ReleaseAllItems);
+EI_REWRITTEN(0x005315B0, CUnit::ReleaseAllItems);
 
 void CUnit::AddCarried(CItem* item) {
     ++item->refCount_;
@@ -130,7 +129,7 @@ void CUnit::AddCarried(CItem* item) {
     carried[count] = item;
     MarkChanged(kPartEquipment);
 }
-EI_REPLACE_METHOD(0x00531220, CUnit::AddCarried);
+EI_REWRITTEN(0x00531220, CUnit::AddCarried);
 
 int CUnit::RemoveCarried(int index) {
     carried[index]->Release();
@@ -138,7 +137,7 @@ int CUnit::RemoveCarried(int index) {
     if (after != 0) std::memmove(&carried[index], &carried[index + 1], static_cast<std::size_t>(after) * 4);
     return --carriedCount;
 }
-EI_REPLACE_METHOD(0x005313B0, CUnit::RemoveCarried);
+EI_REWRITTEN(0x005313B0, CUnit::RemoveCarried);
 
 std::uintptr_t CUnit::SendEquipment() {
     std::uint32_t ids[11];   // 4 weapons, then 7 armour pieces (-1 for none)
@@ -146,7 +145,7 @@ std::uintptr_t CUnit::SendEquipment() {
     Controller()->SetArmourModels(&ids[4], 7);
     return Controller()->SetWeaponModels(&ids[0], 4);
 }
-EI_REPLACE_METHOD(0x00531110, CUnit::SendEquipment);
+EI_REWRITTEN(0x00531110, CUnit::SendEquipment);
 
 std::uint32_t CUnit::SetPrototype23CByName(const char* prototypeName) {
     UnitPrototypeRecord* record = unitdb::PrototypeTable().FindByName(prototypeName);
@@ -159,10 +158,10 @@ std::uint32_t CUnit::SetPrototype23CByName(const char* prototypeName) {
     // EAX keeps the low half of the original's IMUL by the reciprocal of 0x120.
     return static_cast<std::uint32_t>(static_cast<std::int64_t>(offset) * 0x38E38E39);
 }
-EI_REPLACE_METHOD(0x005308D0, CUnit::SetPrototype23CByName);
+EI_REWRITTEN(0x005308D0, CUnit::SetPrototype23CByName);
 
 int CUnit::SetPrototype23CIndex(int index) {
     prototype23C = index;
     return index;
 }
-EI_REPLACE_METHOD(0x00530920, CUnit::SetPrototype23CIndex);
+EI_REWRITTEN(0x00530920, CUnit::SetPrototype23CIndex);

@@ -91,5 +91,5 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
 EI_REWRITTEN(0x00519380, CObject3D::RandomAnimationOfKind);
 
 // The candidate lists' helpers are the same code as AlignedPtrArray's.
-EI_REPLACE_METHOD(0x0051A010, AlignedPtrArray::SetAtGrow);
-EI_REPLACE_METHOD(0x0051A190, AlignedPtrArray::SetSize);
+EI_REWRITTEN(0x0051A010, AlignedPtrArray::SetAtGrow);
+EI_REWRITTEN(0x0051A190, AlignedPtrArray::SetSize);

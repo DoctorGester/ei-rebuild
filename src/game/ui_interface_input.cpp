@@ -11,8 +11,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
 #include "game_singletons.h"
 
 UiInputSide* CInterface3D::MouseTarget() const {
@@ -83,7 +81,7 @@ constexpr int kCursorWait = 3;
 void CInterface3D::OnChar(int key, int repeat, int flags) {
     if ((flags & kScanMask) == kScanConsoleKey) return;
     if (console_->shown_) {
-        ConsoleOnCharOriginal(console_, nullptr, key, repeat, flags);
+        static_cast<console::ConsoleWindow*>(console_)->OnChar(key, repeat, flags);
         return;
     }
     if ((IsMultiplayerClient() & 0xFF) && root_->chatOpen_) {   // TEST AL,AL

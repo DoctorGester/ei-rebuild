@@ -17,7 +17,6 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
-#include "originals_library.h"
 #include "game_data.h"
 
 // {data, size, capacity, growBy} of world objects; the game compares and sorts them by address.
@@ -90,7 +89,7 @@ void __fastcall ObjectSetSortUnique(ObjectSet* self) {
         if (!(ScratchGuard() & 1)) {
             ScratchGuard() |= 1;
             Scratch().Construct();
-            GameAtExit(FreeScratch);   // 0047B1D0
+            libcrt::AtExit(FreeScratch);   // 0047B1D0
         }
         ObjectSet& scratch = Scratch();
         scratch.SetSize(self->size);

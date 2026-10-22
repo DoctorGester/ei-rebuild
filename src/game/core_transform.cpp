@@ -90,11 +90,11 @@ void CTransformObject::LoadTransformImpl(mfc::CFileVirtuals* file) {
     file->Read(&localRotation_, 16u);
 }
 
-EI_REPLACE_METHOD(0x00401490, CTransformObject::CopyTransformImpl);
-EI_REPLACE_METHOD(0x0040CB80, CTransformObject::CombineRotationImpl);
-EI_REPLACE_METHOD(0x0040CC30, CTransformObject::UpdateWorldImpl);
-EI_REPLACE_METHOD(0x00401510, CTransformObject::SaveTransformImpl);
-EI_REPLACE_METHOD(0x00401540, CTransformObject::LoadTransformImpl);
+EI_REWRITTEN(0x00401490, CTransformObject::CopyTransformImpl);
+EI_REWRITTEN(0x0040CB80, CTransformObject::CombineRotationImpl);
+EI_REWRITTEN(0x0040CC30, CTransformObject::UpdateWorldImpl);
+EI_REWRITTEN(0x00401510, CTransformObject::SaveTransformImpl);
+EI_REWRITTEN(0x00401540, CTransformObject::LoadTransformImpl);
 
 // The virtual slots 13-17 for a class whose vtable is the compiler's (C19: CSkyObject): the bodies above.
 CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other) { return CopyTransformImpl(other); }

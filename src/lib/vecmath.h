@@ -3,8 +3,8 @@
 // Vector, quaternion and matrix types and their inline maths (tickets V1 / V2; the catalog, the
 // orders the original uses and the migration plan are in docs/notes/vector-math.md).
 //
-// Types: the game's own layouts, aggregates without constructors (naked forwarders and `{x, y, z}`
-// initialisation keep working). The out-of-line originals that are members (Vector3::Length,
+// Types: the game's own layouts, aggregates without constructors (`{x, y, z}`
+// initialisation keeps working). The out-of-line originals that are members (Vector3::Length,
 // Quaternion::PreMultiply, ...) are declared here and defined, hooked, in src/game; the free ones
 // (Dot 00401E00, CrossProduct 004489D0, ...) stay declared in maths.h / object_maths.h /
 // core_maths.h. Inline helpers never reuse those names.

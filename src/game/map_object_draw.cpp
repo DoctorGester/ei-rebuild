@@ -1,5 +1,6 @@
 // Drawing a 3D object on the client (CObject3DClientSpecific::Draw). See map_object_shadow.h and
 // docs/notes/map_objects.md ("Drawing").
+#include "engine_object.h"
 #include "game_arrays.h"          // aligned::AllocateDwords
 #include "map_object.h"           // ObjectSlots
 #include "map_object_figures.h"
@@ -15,13 +16,10 @@
 #include "lib/gameapi.h"
 
 #include "ei/hook.h"
-#include "originals_core.h"
-#include "originals_effects.h"
+#include "lib/vecmath.h"
 
 #include <bit>
 #include <cstring>
-#include "originals_render.h"
-#include "originals_units.h"
 #include "game_singletons.h"
 
 // The light range test keeps its sums on the FPU stack like the original.
@@ -45,11 +43,10 @@ constexpr int kStackWorld = 1;                      // the pipeline's matrix sta
 constexpr int kStackView = 2;
 constexpr int kStackObject = 3;
 
-// Not rewritten, forwarders:
 // 006CB020. Light manager: is the point lit, AL.
 // 004EB170. Device: sets the texture of stage 0.
 // 00457720. A temporary texture reference: released.
-void __fastcall ReleaseTemporary(void* object) { ReleaseCountedOriginal(object); }
+void __fastcall ReleaseTemporary(void* object) { static_cast<CEngineObject*>(object)->ReleaseAndDelete(); }
 
 // The light list being collected: aligned storage of light pointers.
 using LightList = lib::AlignedArray<CEngineObject*>;
@@ -80,7 +77,7 @@ void Finish(ObjectListIterator& lights, LightList& list) {
 } // namespace
 
 void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, Matrix4* out) {
-    QuaternionToMatrixOriginal(orientation, nullptr, out->m);
+    static_cast<const Quaternion*>(orientation)->ToMatrix(out->m);
     std::memcpy(&out->m[11], &position->z, 4);
     std::memcpy(&out->m[3], &position->x, 4);
     std::memcpy(&out->m[7], &position->y, 4);

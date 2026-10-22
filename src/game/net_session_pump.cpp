@@ -17,7 +17,6 @@
 #include "lib/crt.h"
 
 #include <cstdint>
-#include "originals_library.h"
 
 namespace netlink {
 

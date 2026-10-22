@@ -19,9 +19,6 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "lib/crt.h"
-#include "originals_library.h"
-#include "originals_engine.h"
-#include "originals_ui.h"
 #include "text_reader.h"
 #include "game_arrays.h"
 #include "game_slots.h"
@@ -34,8 +31,6 @@
 #include <cstring>
 #include <type_traits>
 
-#pragma warning(disable : 4740) // naked forwarders
-
 namespace mapdb {
 namespace {
 
@@ -46,8 +41,8 @@ struct TextReader : CTextManager {
     int Split(console::CStringArray* words, int flag);         // 004DFCB0: the current line's words
     mfc::BOOL Close();                                         // 004DF020
 };
-mfc::BOOL TextReader::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-mfc::BOOL TextReader::NextHeader() { return ::TextFindLineOriginal(this, nullptr, nullptr); }
+mfc::BOOL TextReader::Open(const char* key) { return CTextManager::Open(key); }
+mfc::BOOL TextReader::NextHeader() { return FindLine(nullptr); }
 int TextReader::Split(console::CStringArray* words, int flag) {
     return CTextManager::Split(words, flag);
 }
@@ -74,7 +69,6 @@ void StoreRadians(float* out, const char* text) {
 bool Is(const char* word, const char* text) {
     return gamecrt::mbscmp(word, text) == 0;
 }
-
 
 // CArray::SetSize(size, -1) as the original inlines it, with the instantiation's element
 // constructor and destructor.
@@ -316,7 +310,7 @@ CMapDatabase* CMapDatabase::Construct() {
     maps.Construct(gameslots::MapRecordArrayClass::Vtable());
     return this;
 }
-EI_REPLACE_METHOD(0x0045E820, CMapDatabase::Construct);
+EI_REWRITTEN(0x0045E820, CMapDatabase::Construct);
 
 // The map database, zero at the start: built by the static initialiser 0045E6C0 in the list's order and destroyed by
 // the exit function it registers (0045E6E0); both ported on the name and registered at their addresses
@@ -328,7 +322,7 @@ namespace {
 void __cdecl DestroyMapDatabase() { g_mapDatabase->Destruct(); }   // 0045E6E0
 void __cdecl ConstructMapDatabase() {                              // 0045E6C0
     g_mapDatabase->Construct();
-    GameAtExit(DestroyMapDatabase);
+    libcrt::AtExit(DestroyMapDatabase);
 }
 } // namespace
 

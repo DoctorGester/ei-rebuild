@@ -99,6 +99,6 @@ EI_REWRITTEN(0x00404F20, hash400::Table::ObjectsRemoveKey);
 EI_REWRITTEN(0x00404F80, hash400::Table::ObjectsLookup);
 EI_REWRITTEN(0x00405350, hash400::Table::PositionsRemoveKey);
 EI_REWRITTEN(0x00406950, hash400::Table::ObjectsFind);
-EI_REPLACE(0x00408EA0, hash400::ClassRegistryConstruct);
+EI_REWRITTEN(0x00408EA0, hash400::ClassRegistryConstruct);
 EI_REWRITTEN(0x00408D60, hash400::ClassRegistryDestruct);
 EI_REWRITTEN(0x004368F0, hash400::TypeRegistryDestruct);

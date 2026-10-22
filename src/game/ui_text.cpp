@@ -8,28 +8,17 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
-#include "originals_ui.h"
 
 #include <cstring>
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace {
 
 // The game's multibyte CRT.
 
-// 005F8340 (Rebirth-patched, called through its address): the extent of `text` in interface
-// font `font`. It takes a CString by value and releases it; a naked forwarder cannot declare a
-// by-value CString, so the string's data pointer is handed over (TextExtent).
-// Passes `text` by value: its data goes to the callee, which releases it.
+// The extent of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
 SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
-    char* data;
-    std::memcpy(&data, &text, sizeof(data));
-    mfc::CString empty;
-    std::memcpy(&text, &empty, sizeof(data));   // `text` now owns nothing
     SIZE size;
-    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    ui->TextExtent(&size, text, font);
     return size;
 }
 
@@ -58,7 +47,7 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
     console::CStringArray lines;
     // Words collect characters up to a space or newline; a word that would make the line wider
     // than the rectangle starts a new line (a newline then also ends the word's line).
-    for (const char* p = source; CharAt(p) != 0; p = MbsInc(p)) {
+    for (const char* p = source; CharAt(p) != 0; p = gamecrt::mbsinc(p)) {
         if (libcrt::Isleadbyte(static_cast<signed char>(*p))) {
             console::Ops(ch).AssignChar(p[0]);
             console::Ops(ch).AppendChar(p[1]);

@@ -1,8 +1,7 @@
 // Text on the interface's surfaces: CUiSurface's DrawText (005FDE20) and the interface's text
 // extent (005F8340). Rebirth's WideScreen patches both (the rectangle scaled without the margin; the
-// extent scaled by the 4:3 part), which these reproduce behind the flag (ticket W2, ui_widescreen.h);
-// rewritten callers reach them through their forwarders (SurfaceDrawText,
-// InterfaceTextExtentOriginal). See docs/notes/ui.md, section 3.
+// extent scaled by the 4:3 part), which these reproduce behind the flag (ticket W2, ui_widescreen.h).
+// See docs/notes/ui.md, section 3.
 #include "ui.h"
 #include "ui_gdi.h"
 #include "ui_native.h"
@@ -14,7 +13,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/mfc_gdi.h"
-#include "originals_ui.h"
 #include "game_data.h"
 
 namespace {
@@ -26,7 +24,7 @@ constexpr unsigned kLayoutWidth = 800, kLayoutHeight = 600;
 // --- 005FDE20 ----------------------------------------------------------------------------------------------
 
 int CUiSurface::DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow) {
-    return SurfaceDrawText(this, nullptr, text, rect, font, colour, format, shadow);
+    return DrawTextIn(text, rect, font, colour, format, shadow);
 }
 
 int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow) {
@@ -62,10 +60,10 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
     dc->SelectFont(oldFont);
     // A native surface's canvas gets the text from the memory (text recorded on the canvas: P2).
     if (!(format & DT_CALCRECT)) ui_native::TextDrawn(this, inked, !(format & DT_NOCLIP));
-    InterfacePointFromScreenCopyOriginal(interface_, nullptr, &extent);
+    interface_->ScalePointFromScreenCopyEntry(&extent);
     return extent.y;
 }
-EI_REPLACE_METHOD(0x005FDE20, CUiSurface::DrawTextIn);
+EI_REWRITTEN(0x005FDE20, CUiSurface::DrawTextIn);
 
 // --- 005F8340 ----------------------------------------------------------------------------------------------
 
@@ -86,4 +84,4 @@ SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
     out->cy = static_cast<int>(static_cast<unsigned>(size.cy) * kLayoutHeight) / height_;
     return out;
 }
-EI_REPLACE_METHOD(0x005F8340, CInterface3D::TextExtent);
+EI_REWRITTEN(0x005F8340, CInterface3D::TextExtent);

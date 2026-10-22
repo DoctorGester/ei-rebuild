@@ -15,7 +15,6 @@
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
-#include "originals_render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -101,7 +100,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     if (static_cast<std::uint8_t>(wide) != 0) {
         for (int i = 0; i < 6; ++i) {
             RECT r{kWideClearLeft[i], kWideClearTop[i], kWideClearRight[i], kWideClearBottom[i]};
-            interface_->CallScaleRectToScreen(&r);
+            interface_->ScaleRectToScreenEntry(&r);
             rects[i] = r;
         }
         ClearDepth(deviceOf(), 6, rects, 1.0f);
@@ -111,7 +110,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
             r = {410, 100, 700, 500};
         else
             r = {200, 100, 600, 500};
-        interface_->CallScaleRectToScreen(&r);
+        interface_->ScaleRectToScreenEntry(&r);
         rects[0] = r;
         ClearDepth(deviceOf(), 1, rects, 1.0f);
     }

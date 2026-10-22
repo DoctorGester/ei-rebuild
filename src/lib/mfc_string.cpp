@@ -5,7 +5,6 @@
 #include "ei/hook.h"
 #include "gameapi.h"
 #include "mfc_resource.h"
-#include "game/originals_library.h"   // MbsInc
 #include "game/game_data.h"
 
 #include <cstdlib>
@@ -14,8 +13,6 @@
 #include <mbstring.h>
 #include <new>
 #include <vector>
-
-#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace mfc::impl {
 
@@ -38,14 +35,10 @@ namespace {
 
 using uchar = unsigned char;
 
-// The game CRT's vsprintf. The multibyte-aware string functions (_mbschr and the others, the host CRT's,
-// C26) follow the host CRT's code page.
-__declspec(naked) int __cdecl VSPrintF(char*, const char*, va_list) EI_ORIGINAL(0x006ECC47)   // vsprintf
-
 // The string helpers take the CRT's char arguments the way the library passes them.
 const uchar* U(const char* p) { return reinterpret_cast<const uchar*>(p); }
 uchar* U(char* p) { return reinterpret_cast<uchar*>(p); }
-char* Inc(const char* p) { return const_cast<char*>(::MbsInc(p)); }
+char* Inc(const char* p) { return const_cast<char*>(gamecrt::mbsinc(p)); }
 // _tcschr with a char the library sign-extends (movsx) before the call.
 bool Contains(const char* set, char c) { return _mbschr(U(set), static_cast<unsigned>(static_cast<int>(c))) != nullptr; }
 // _istspace / _istdigit (_ismbcspace / _ismbcdigit, the host CRT's) of the sign-extended char.
@@ -118,6 +111,50 @@ void CFixedAlloc::Free(void* block) {
     gameapi::LeaveCriticalSection(&lock_);
 }
 
+#ifndef EI_VECTORS_REPLAY
+// The string allocators, zero at the start: each built by its static initialiser in the list's order (a block's size is
+// the string's room, the header and the terminator, rounded up to 16 bytes) and destroyed by the exit function it
+// registers; both ported on the name and registered at their addresses (docs/notes/standalone.md, "The static
+// initialisers' objects").
+constinit lib::StaticObject<CFixedAlloc> g_stringAlloc512 = /*007C8B08*/ {};
+constinit lib::StaticObject<CFixedAlloc> g_stringAlloc256 = /*007C8B30*/ {};
+constinit lib::StaticObject<CFixedAlloc> g_stringAlloc128 = /*007C8B58*/ {};
+constinit lib::StaticObject<CFixedAlloc> g_stringAlloc64 = /*007C8B80*/ {};
+
+namespace {
+constexpr unsigned kStringAllocBlock = 64;
+void __cdecl DestroyStringAlloc64() { g_stringAlloc64->Destruct(); }     // 0070073D
+void __cdecl DestroyStringAlloc128() { g_stringAlloc128->Destruct(); }   // 0070076F
+void __cdecl DestroyStringAlloc256() { g_stringAlloc256->Destruct(); }   // 007007A1
+void __cdecl DestroyStringAlloc512() { g_stringAlloc512->Destruct(); }   // 007007D3
+void __cdecl ConstructStringAlloc64() {                                  // 00700718
+    g_stringAlloc64->Construct(0x50, kStringAllocBlock);
+    libcrt::AtExit(DestroyStringAlloc64);
+}
+void __cdecl ConstructStringAlloc128() {                                 // 00700747
+    g_stringAlloc128->Construct(0x90, kStringAllocBlock);
+    libcrt::AtExit(DestroyStringAlloc128);
+}
+void __cdecl ConstructStringAlloc256() {                                 // 00700779
+    g_stringAlloc256->Construct(0x110, kStringAllocBlock);
+    libcrt::AtExit(DestroyStringAlloc256);
+}
+void __cdecl ConstructStringAlloc512() {                                 // 007007AB
+    g_stringAlloc512->Construct(0x210, kStringAllocBlock);
+    libcrt::AtExit(DestroyStringAlloc512);
+}
+} // namespace
+
+EI_REPLACE(0x00700718, ConstructStringAlloc64);
+EI_REPLACE(0x00700747, ConstructStringAlloc128);
+EI_REPLACE(0x00700779, ConstructStringAlloc256);
+EI_REPLACE(0x007007AB, ConstructStringAlloc512);
+EI_REPLACE(0x0070073D, DestroyStringAlloc64);
+EI_REPLACE(0x0070076F, DestroyStringAlloc128);
+EI_REPLACE(0x007007A1, DestroyStringAlloc256);
+EI_REPLACE(0x007007D3, DestroyStringAlloc512);
+#endif
+
 // ---- CString: construction and buffers ----------------------------------------------------------
 
 CString::CString(const CString& source) {
@@ -170,16 +207,16 @@ void CString::AllocBuffer(int length) {
     data->allocLength = length;
 #else
     if (length <= 64) {
-        data = static_cast<CStringData*>(StringAlloc64().Alloc());
+        data = static_cast<CStringData*>(g_stringAlloc64->Alloc());
         data->allocLength = 64;
     } else if (length <= 128) {
-        data = static_cast<CStringData*>(StringAlloc128().Alloc());
+        data = static_cast<CStringData*>(g_stringAlloc128->Alloc());
         data->allocLength = 128;
     } else if (length <= 256) {
-        data = static_cast<CStringData*>(StringAlloc256().Alloc());
+        data = static_cast<CStringData*>(g_stringAlloc256->Alloc());
         data->allocLength = 256;
     } else if (length <= 512) {
-        data = static_cast<CStringData*>(StringAlloc512().Alloc());
+        data = static_cast<CStringData*>(g_stringAlloc512->Alloc());
         data->allocLength = 512;
     } else {
         data = gamecrt::operator_new_bytes_as<CStringData>(sizeof(CStringData) + static_cast<std::size_t>(length) + 1);
@@ -197,10 +234,10 @@ void __fastcall CString::FreeData(CStringData* data) {
     gamecrt::operator_delete(data);   // AllocBuffer's
 #else
     switch (data->allocLength) {
-    case 64: StringAlloc64().Free(data); break;
-    case 128: StringAlloc128().Free(data); break;
-    case 256: StringAlloc256().Free(data); break;
-    case 512: StringAlloc512().Free(data); break;
+    case 64: g_stringAlloc64->Free(data); break;
+    case 128: g_stringAlloc128->Free(data); break;
+    case 256: g_stringAlloc256->Free(data); break;
+    case 512: g_stringAlloc512->Free(data); break;
     default: gamecrt::operator_delete(data); break;
     }
 #endif
@@ -696,7 +733,7 @@ void CString::FormatV(const char* format, va_list arguments) {
         maxLength += itemLength;
     }
     GetBuffer(maxLength);
-    VSPrintF(data_, format, saved);
+    libcrt::Vsprintf(data_, format, saved);
     ReleaseBuffer(-1);
 }
 
@@ -734,7 +771,7 @@ EI_REWRITTEN(0x006E6C31, CFixedAlloc::Alloc);
 EI_REWRITTEN(0x006E6CC0, CFixedAlloc::Free);
 
 EI_REWRITTEN(0x007009DE, CString::ConstructText);
-EI_REPLACE(0x00700970, shim::Destruct);
+EI_REWRITTEN(0x00700970, shim::Destruct);
 EI_REWRITTEN(0x007007DD, CString::AllocBuffer);
 EI_REWRITTEN(0x0070085F, CString::FreeData);
 EI_REWRITTEN(0x00700919, CString::CopyBeforeWrite);

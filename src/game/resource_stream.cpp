@@ -5,13 +5,12 @@
 #include "resource.h"
 #include "resource_stream.h"
 #include "mod_folders.h"
+#include "lib/mfc.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "originals_engine.h"
-#include "originals_library.h"
 
 #include <cstdlib>
 #include <cstring>

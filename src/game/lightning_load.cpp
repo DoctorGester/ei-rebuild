@@ -5,7 +5,6 @@
 #include "lightning.h"
 
 #include "lib/crt.h"
-#include "originals_engine.h"   // game::FatalError
 #include "resource_local.h"
 #include "world_data.h"
 
@@ -42,4 +41,4 @@ int __cdecl LoadLightningNoise() {
     resource.Get()->CMappedResource::CloseFileImpl(data);
     return 1;
 }
-EI_REPLACE(0x00468A00, LoadLightningNoise);
+EI_REWRITTEN(0x00468A00, LoadLightningNoise);

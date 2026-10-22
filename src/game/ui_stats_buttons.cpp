@@ -1,11 +1,11 @@
 // The statistics panel's -/+ buttons on the new hero's page (00624790, 00624A60) and its hero
 // arrows. See docs/notes/ui.md, section 5.
+#include "ui.h"
 #include "ui_camp.h"
 
 #include "unit.h"
 
 #include "ei/hook.h"
-#include "originals_ui.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -92,7 +92,7 @@ bool CHeroStatsPanel::StepPoint(int region) {
 
 void CHeroStatsPanel::Update() {
     if (page_ != kNewHeroPage || heldRegion_ < 0) return;
-    double held = WindowFrameTimeOriginal(this) + holdTime_;
+    double held = CUiContainer::FrameTime() + holdTime_;
     holdTime_ = static_cast<float>(held);
     if (held < kRepeatDelay) return;   // TEST AH,1: less (a NaN goes on)
     bool stepped = StepPoint(heldRegion_);

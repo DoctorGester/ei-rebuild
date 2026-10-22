@@ -5,15 +5,12 @@
 #include "spell.h"
 
 #include "lib/crt.h"
-#include "originals_engine.h"
 #include "text_split.h"
 #include "game_data.h"
 
 #include <cstdint>
 
 using namespace itemdb;
-
-#pragma warning(disable : 4740) // naked forwarders
 
 
 namespace {
@@ -68,7 +65,7 @@ BOOL CTextManager::IsPastEnd(const char* p) {
     int offset = static_cast<int>(p - text_);
     return offset >= static_cast<int>(length_);
 }
-EI_REPLACE_METHOD(0x004E0000, CTextManager::IsPastEnd);
+EI_REWRITTEN(0x004E0000, CTextManager::IsPastEnd);
 
 BOOL CTextManager::GetString(const char* name, mfc::CString* out) {
     if (cursor_) {
@@ -93,7 +90,7 @@ BOOL CTextManager::GetString(const char* name, mfc::CString* out) {
     cursor_ = nullptr;
     return 1;
 }
-EI_REPLACE_METHOD(0x004E0020, CTextManager::GetString);
+EI_REWRITTEN(0x004E0020, CTextManager::GetString);
 
 BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
     std::uint32_t materialIndex = MaterialIndex(item->prototypeId_);
@@ -232,12 +229,12 @@ BOOL CTextManager::FormatItemName(CItem* item, mfc::CString* out) {
 EI_REWRITTEN(0x004E13E0, CTextManager::FormatItemName);
 
 void TextSources::Begin(Node** out) { *out = head->next; }
-EI_REPLACE_METHOD(0x004E1530, TextSources::Begin);
+EI_REWRITTEN(0x004E1530, TextSources::Begin);
 // Byte-identical copies (other lists' begin in the world range; A-W12).
-EI_REPLACE_METHOD(0x00560030, TextSources::Begin);
-EI_REPLACE_METHOD(0x00560040, TextSources::Begin);
-EI_REPLACE_METHOD(0x0056DF90, TextSources::Begin);
-EI_REPLACE_METHOD(0x0056DFE0, TextSources::Begin);
+EI_REWRITTEN(0x00560030, TextSources::Begin);
+EI_REWRITTEN(0x00560040, TextSources::Begin);
+EI_REWRITTEN(0x0056DF90, TextSources::Begin);
+EI_REWRITTEN(0x0056DFE0, TextSources::Begin);
 
 TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     Node* next = pos->next;
@@ -245,12 +242,7 @@ TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     prev->next = next;
     next->prev = prev;
     pos->data.name.~string();   // 004DEAB0: the storage freed
-    if (pos) {   // the original checks only here, after using the node (always true)
-        // The inlined STLport node deallocation: push on the 0x18-byte free list.
-        auto*& freeList = ei::GameData<Node*>(0x0079B22C);
-        pos->next = freeList;
-        freeList = pos;
-    }
+    if (pos) libcrt::NodeDeallocate(pos, 0x18);   // the original checks only here, after using the node (always true)
     *out = next;
     return out;
 }
@@ -276,15 +268,15 @@ CTextManager::SourceNode** TextSourceIterator::CopyTo(CTextManager::SourceNode**
     *out = node;
     return out;
 }
-EI_REPLACE_METHOD(0x004E1540, TextSourceIterator::CopyTo);
+EI_REWRITTEN(0x004E1540, TextSourceIterator::CopyTo);
 // Byte-identical copies (other list iterators' copy in the interface; A-I15).
-EI_REPLACE_METHOD(0x005E2470, TextSourceIterator::CopyTo);
-EI_REPLACE_METHOD(0x005F97D0, TextSourceIterator::CopyTo);
-EI_REPLACE_METHOD(0x00609A30, TextSourceIterator::CopyTo);
-EI_REPLACE_METHOD(0x00609A70, TextSourceIterator::CopyTo);
-EI_REPLACE_METHOD(0x0062C080, TextSourceIterator::CopyTo);
-EI_REPLACE_METHOD(0x00539210, TextSourceIterator::CopyTo);   // A-U11
-EI_REPLACE_METHOD(0x00560050, TextSourceIterator::CopyTo);   // A-W12
-EI_REPLACE_METHOD(0x0056DEC0, TextSourceIterator::CopyTo);
-EI_REPLACE_METHOD(0x0056DFA0, TextSourceIterator::CopyTo);
-EI_REPLACE_METHOD(0x0056DFF0, TextSourceIterator::CopyTo);
+EI_REWRITTEN(0x005E2470, TextSourceIterator::CopyTo);
+EI_REWRITTEN(0x005F97D0, TextSourceIterator::CopyTo);
+EI_REWRITTEN(0x00609A30, TextSourceIterator::CopyTo);
+EI_REWRITTEN(0x00609A70, TextSourceIterator::CopyTo);
+EI_REWRITTEN(0x0062C080, TextSourceIterator::CopyTo);
+EI_REWRITTEN(0x00539210, TextSourceIterator::CopyTo);   // A-U11
+EI_REWRITTEN(0x00560050, TextSourceIterator::CopyTo);   // A-W12
+EI_REWRITTEN(0x0056DEC0, TextSourceIterator::CopyTo);
+EI_REWRITTEN(0x0056DFA0, TextSourceIterator::CopyTo);
+EI_REWRITTEN(0x0056DFF0, TextSourceIterator::CopyTo);

@@ -17,9 +17,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
-#include "originals_core.h"
-#include "originals_library.h"
-#include "originals_world.h"
 #include "game_singletons.h"
 #include "lib/crt.h"
 #include "render/render.h"
@@ -402,7 +399,7 @@ void CCamera::Update(float dt) {
     Vector3 accel;
     ScaleVector(&accel, change, panResponse_);
     bool snap = true;
-    if (LengthRaw(&accel) >= 0.001) {
+    if (accel.Length() >= 0.001) {
         float before = static_cast<float>(Dot(velocity, velocity));
         Vector3 step;
         ScaleVector(&step, accel, dt);
@@ -527,7 +524,7 @@ void CCamera::Update(float dt) {
 EI_REPLACE_METHOD(0x0040FB30, CCamera::Update);
 
 void CCamera::ZoomBy(float steps) {
-    double d = CIpow(CAM_ZOOM_STEP, steps) * distance_;
+    double d = libcrt::CiPow(CAM_ZOOM_STEP, steps) * distance_;
     distance_ = static_cast<float>(d);
     if (!settings_) return;
     const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;

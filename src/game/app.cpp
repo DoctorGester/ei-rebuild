@@ -21,11 +21,7 @@
 #include "lib/crt_iostream.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "originals_library.h"
-#include "originals_script.h"
 #include "options.h"
-#include "originals_world.h"
-#include "originals_ui.h"
 #include "script.h"
 #include "texture.h"            // the renderer's device object
 #include "ui.h"
@@ -37,8 +33,6 @@
 
 #include <cstdarg>
 #include <cstdint>
-
-#pragma warning(disable : 4740) // naked forwarders
 
 namespace app {
 namespace {
@@ -152,7 +146,7 @@ int TypedCharacter(WPARAM unit) {
 }
 
 
-void __fastcall MenuOpen(void* flow) { FlowProcessRequestOriginal(flow); }
+void __fastcall MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 
 
 } // namespace
@@ -276,7 +270,7 @@ int __cdecl StartFirstMap() {
         return 1;
     }
     CWorldServer* world = TheServerWorld();
-    if (!WorldNewZoneOriginal(world, nullptr, map, cmdMode, (const char*)0))
+    if (!static_cast<CWorldServer*>(world)->NewZone(map, cmdMode, (const char*)0))
         return game::FatalError("Can't load map \"%s\".\n", map.GetString());
     world->SetGameResult(1);
     CWorldClient* client = TheClientWorld();
@@ -334,19 +328,23 @@ int g_fatalErrorCount = /*007A9B9C*/ {};
 // exits the game (exit(-1); the error counter at 007A9B9C reaches 1). Rebirth's
 // DisableExitOnCrashReport replaces the message box with a line in addon.log (not reproduced) and
 // removes the exit, so the game carries on. Returns 0.
-int __cdecl FatalError(const char* format, ...) {
+} // namespace app
+
+int __cdecl game::FatalError(const char* format, ...) {
     char text[0x400];
     va_list args;
     va_start(args, format);
     gameapi::wvsprintfA(text, format, args);
     va_end(args);
     bool carryOn = ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport);
-    if (!carryOn) ShowMessageBox(text, kErrorBoxFlags);
-    if (auto hook = reinterpret_cast<ErrorHook>(g_fatalErrorHook)) hook(text);
-    if (++g_fatalErrorCount >= 1 && !carryOn) libcrt::Exit(-1);
+    if (!carryOn) app::ShowMessageBox(text, app::kErrorBoxFlags);
+    if (auto hook = reinterpret_cast<app::ErrorHook>(app::g_fatalErrorHook)) hook(text);
+    if (++app::g_fatalErrorCount >= 1 && !carryOn) libcrt::Exit(-1);
     return 0;
 }
-EI_REPLACE(0x00480080, FatalError);
+EI_REWRITTEN(0x00480080, game::FatalError);
+
+namespace app {
 
 // ---- FatalErrorCode (004800E0) -----------------------------------------------------------------
 
