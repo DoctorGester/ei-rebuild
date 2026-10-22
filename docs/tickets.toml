@@ -2869,7 +2869,7 @@ id = "C18r"
 title = "Named data: the MFC and CRT objects, the locale categories"
 group = "cleanup"
 model = "opus"
-note = "After C26: picks up the CRT families C26 found differ on the host CRT (user 2026-10-22)."
+note = "After C26: picks up the CRT families C26 found differ on the host CRT (user 2026-10-22). C18r result: game data addresses in src/ 43 -> 6 after C18u (41 -> 6 over C18r): 0 left in src/lib (MFC 25 -> 0, CRT 8 -> 0). CRT: node allocator state 0079B224-0079B26C, _pnhHeap 007CAAD8, _afxNewHandler 00796E14 ({DefaultNewHandler}); printf's power tables tagged 0079AE60 / 0079AFC0. MFC: string allocators, three static exceptions and afxData with hand-ported initialisers / exits (8 size rows); locks, _afxThreadData, halftone brush plain globals; temp allocators and static windows via GENERATED_NAMES; g_dragListMessage 007CAA64 (named_data UNREACHABLE_CELLS for CWnd's message map cell 00746C80). Harness builds our string allocators in game.exe runs. Suites after the last merge: image 121 same / 23 without a golden, original 114 / 12. Left: game_data.h's section bounds / import slot / 0073B820, image_data's 00783000, EmptyText 0079B298."
 
 [[ticket]]
 id = "C26"
