@@ -3149,6 +3149,13 @@ group = "cleanup"
 model = "opus"
 note = "User 2026-10-22 16:26: we are no longer layout matched, so the harness can't depend on our classes. Today it does: harness_digest runs the same code in game.exe, reading members at our offsets (w->objects_, CUnit::scriptName) and calling virtuals at our slot numbers (o->GetClassId()). Vanilla passes only because C28 keeps member and virtual order. Do this first when work resumes, before any cleanup that could reorder members."
 
+[[ticket]]
+id = "C30"
+title = "Drawing-only code free of the original's floating point (SSE2, no fp/signature pairing)"
+group = "cleanup"
+model = "opus"
+note = "Two steps (2026-10-22): first only the compiler flags for the drawing/UI file list, code untouched (the casts are valid C++ and round the same under SSE2). Then a scripted rewrite on those files only, like C14: static_cast<float> of an int or float dropped where plain; static_cast<float>(static_cast<double>(a) / b * k) as float math; x87::fsin / fcos / fpatan -> std::sin / cos / atan2; x87::fistp -> std::lround (nearest, not truncation). Counts in src/: static_cast<float> 4,150 (about 2,500 in drawing/UI files), static_cast<double> 1,051, x87:: helpers about 550. Anything off-pattern left for hand review."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
