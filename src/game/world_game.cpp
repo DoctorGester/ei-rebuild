@@ -1818,13 +1818,14 @@ unsigned& AppliedStamp() { return g_appliedStamp; }  // the stamp applied up to
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
-// 00580840 (GameFlow::OnVariableChanged) for a node of the changed-variables vector.
-void VariableChanged(const void* node) { GameFlow::OnVariableChanged(static_cast<const net::RefNode*>(node)); }
+// The client's STLport lists of counted messages (ClientSession::zones_, variables_).
+using VariableNode = net::RefNode;
+using ZoneNode = net::RefNode;
 // The vector of changed variables (STLport vector<node*>): its allocator tag constructor
 // (00584720), insert overflow (00587700: position, value, count) and storage release (00584A90:
 // ECX storage, EDX capacity); the stamp sort (00589160 introsort with ECX first, EDX last, then a
 // dummy, the depth limit and the comparator; 00589240 the final insertion sort; world_stamp_sort.cpp).
-using NodeVector = stlp::vector<void*>;
+using NodeVector = stlp::vector<VariableNode*>;
 
 // A local NamedFloatTable (00581790 an empty one of 100 buckets, 00580900 a copy), released the way
 // the original's inlined destructor does.
@@ -1833,9 +1834,6 @@ struct LocalVariables {
     ~LocalVariables() { table.Destroy(); }
 };
 
-// The client's STLport lists of counted messages (ClientSession::zones_, variables_).
-using VariableNode = net::RefNode;
-using ZoneNode = net::RefNode;
 // The server's variables (name_, value_ and the stamp serial_).
 VariableNode* VariableList() { return net::GameClient()->variables_.End(); }
 net::VariableMessage* NodeRecord(VariableNode* node) { return net::GameClient()->variables_.At(node); }
@@ -1931,8 +1929,8 @@ void GameFlow::UpdateFromServer() {
                 if (changed.Finish()) *changed.Finish() = node;
                 ++changed.Finish();
             } else {
-                void* value = node;
-                changed.InsertOverflow<stlp::PlainElement<void*>>(changed.Finish(), value, 1);
+                VariableNode* value = node;
+                changed.InsertOverflow<stlp::PlainElement<VariableNode*>>(changed.Finish(), value, 1);
             }
         }
         if (changed.begin() != changed.end()) {
@@ -1941,14 +1939,14 @@ void GameFlow::UpdateFromServer() {
             StampIntroSort(changed.begin(), changed.end(), 0, depth * 2, variables);
             StampInsertionSort(changed.begin(), changed.end(), variables);
         }
-        for (void** it = changed.begin(); it != changed.end(); ++it) VariableChanged(*it);
+        for (VariableNode** it = changed.begin(); it != changed.end(); ++it) GameFlow::OnVariableChanged(*it);
         bool settled;
         do {
             settled = true;
             for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
                 if (NodeStamp(node) > AppliedStamp()) continue;
                 if (NodeStamp(node) == AppliedStamp()) {
-                    VariableChanged(node);
+                    GameFlow::OnVariableChanged(node);   // 00580840
                     ++AppliedStamp();
                     settled = false;
                 }

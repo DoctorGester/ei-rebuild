@@ -9,22 +9,22 @@
 #include <cstdint>
 
 namespace {
+using Node = stlp::list<RefPtr>::Node;
 struct ByStamp {
-    bool operator()(void* a, void* b) const {
+    bool operator()(Node* a, Node* b) const {
         EntryIdLess less;
-        using Node = stlp::list<RefPtr>::Node;
-        return less.Less(static_cast<const Node*>(a), static_cast<const Node*>(b)) != 0;
+        return less.Less(a, b) != 0;
     }
 };
-using StampSort = stlp::Sort<void*, ByStamp>;
+using StampSort = stlp::Sort<Node*, ByStamp>;
 } // namespace
 
-void __fastcall StampIntroSort(void** first, void** last, int, int depthLimit, const void*) {
+void __fastcall StampIntroSort(Node** first, Node** last, int, int depthLimit, const void*) {
     StampSort::IntroLoop(first, last, depthLimit, ByStamp());
 }
 EI_REWRITTEN(0x00589160, StampIntroSort);
 
-void __fastcall StampInsertionSort(void** first, void** last, const void*) {
+void __fastcall StampInsertionSort(Node** first, Node** last, const void*) {
     StampSort::FinalInsertionSort(first, last, ByStamp());
 }
 EI_REWRITTEN(0x00589240, StampInsertionSort);
