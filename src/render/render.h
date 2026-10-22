@@ -107,6 +107,53 @@ void BeginCaster(const void* object);
 void EndCaster();
 void CastsShadow(const void* object, float strength);
 void ClassicShadowDecal();
+// R20: casters outside the view. The meshes the game draws cast (above); an object it does not draw
+// this frame (outside the view), or a part of a drawn one it left out (its own view test), whose
+// shadow can reach the visible ground casts through ShadowCasterMesh: the world's draw
+// (CWorldClient::Render, after its object draws) reads them from the objects' parts and hands them
+// over, changing nothing of the game's. ShadowCasterArea: whether this frame gets a shadow map and,
+// when it does, the rectangle of the ground (x, y in the landscape's space, the objects' world
+// space) a caster's centre must stand in: the visible ground's box swept back towards the sun as far
+// as a caster no higher than `highestTop` (z) can stand from the ground it shadows, widened by
+// `widest` (the largest radius). It fits the map now, from the ground drawn so far (the frame's map
+// keeps that fit). ShadowCasterReaches: whether a caster inside the sphere (centre, radius) can
+// shadow the visible ground: its box seen from the sun meets the map's area and is in front of the
+// ground's far side (exact up to the bounds; the map's depth then starts at the nearest such caster).
+// CasterPartDrawn: whether the figure mesh `part` (MeshSource::owner) was drawn this frame as a
+// caster's mesh. CasterStrength: the strength CastsShadow gave `object` this frame, -1 when it was
+// not called. SetOffscreenCasters (the harness build's "shadowcasters view|all|walked"): all (the
+// default) as above; view: only what the game draws casts (as before R20); walked: every caster comes
+// from the walk, none from the game's draws (a check of the walk's meshes against the game's).
+struct ShadowCasterRect {
+    float x0, y0, x1, y1;
+};
+bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area);
+struct ShadowCasterSphere {
+    double x, y, z, radius;            // the centre in the landscape's space
+};
+bool ShadowCasterReaches(const ShadowCasterSphere& sphere);
+bool CasterPartDrawn(const void* part);
+float CasterStrength(const void* object);
+struct ShadowMesh {
+    const float* positions;            // blocks of four vertices, as MeshDraw's
+    int positionCount;
+    const float* uvs;                  // (u, v) pairs
+    int uvCount;
+    const std::uint16_t* corners;      // (position, colour, texture) index triples
+    int cornerCount;
+    const std::uint16_t* indices;      // a triangle list over the corners
+    int indexCount;
+    float uOffset, vOffset;            // added to the texture coordinates
+    double model[16];                  // model space to the landscape's, row-major: out = M * (x, y, z, 1)
+    const void* texture;               // stage 0's surface holder, or null
+};
+void ShadowCasterMesh(const void* object, const ShadowMesh& mesh);
+// The walk's time, from BeginShadowWalk to EndShadowWalk, counts as the shadow map's CPU time
+// (FrameStats::shadowMs; harness build).
+void BeginShadowWalk();
+void EndShadowWalk();
+enum class OffscreenCasters { View, All, Walked };
+void SetOffscreenCasters(OffscreenCasters mode);
 // R16e1: with the shadow map nothing reads an object shadow's classic texture (0051CE60's 64 x 64
 // raster, its blur and the copy into the shadow texture) or its decal's flat draw (dropped by
 // BeginMesh); the game reads only the parts' points, the bounds, the quad and the decal's projection
@@ -122,8 +169,10 @@ void RebuildShadowTextures();
 // The last presented frame's shadow map: made or not (classic option, no sun or terrain, no
 // caster), its size, the world extent it covers (the larger side), the casters' objects and draws,
 // the meshes and terrain batches that sampled it. Of the objects whose shadow the game draws
-// (CastsShadow, strong enough): `offScreen` handed over no mesh (the game did not draw them), `lost`
-// handed over meshes of which none went into the map (none should).
+// (CastsShadow, strong enough): `offScreen` cast nothing and handed over no mesh (the game did not
+// draw them, and none came through ShadowCasterMesh), `lost` handed over meshes of which none went
+// into the map (none should). R20: `outsideCasters` objects cast through ShadowCasterMesh in
+// `outsideDraws` draws of `outsideCorners` corners.
 struct ShadowInfo {
     bool classic = false;
     bool made = false;
@@ -131,6 +180,7 @@ struct ShadowInfo {
     float extent = 0.0f;
     int casters = 0, casterDraws = 0, receivingMeshes = 0, receivingTerrain = 0;
     int offScreen = 0, lost = 0;
+    int outsideCasters = 0, outsideDraws = 0, outsideCorners = 0;
 };
 ShadowInfo ShadowState();
 

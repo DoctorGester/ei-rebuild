@@ -1,0 +1,93 @@
+# Shadows of objects outside the view (R20; docs/notes/renderer.md section 13 item 10): the world's draw
+# hands the shadow map the objects the game does not draw whose bounds, seen from the sun, are in the
+# map's area and in front of the visible ground's far side (src/game/world_client_shadow_casters.cpp).
+# At frozen moments the frame with them ("shadowcasters all", the default) is captured, and:
+# - with every caster taken from that walk and none from the game's draws ("walked"): the frame
+#   matches, so the walk places, cuts out and selects the meshes as the game's draws do;
+# - without them ("view": only what the game draws casts, as before R20): at zone1's start and in the
+#   town bz1g nothing outside the view reaches the visible ground (the sun is behind the scene, the
+#   shadows fall towards the camera); with the town's camera moved towards the viewer until the gate
+#   leaves the top of the screen, its long shadow stays on the road with them and is gone without them
+#   (the shadow that popped in at the screen's edge, the user's report).
+# shadowcheck requires casters outside the view and every object the game shadows in the map.
+# no original: vanilla rebirth (the shadow map is our renderer's)
+render new,present,checkall
+timeout 120
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+waitpresent 10
+move 400 20
+frames 5
+freeze
+capture start_all
+shadowcheck 1 1
+renderstats -
+shadowcasters view
+capture start_view
+renderstats start_view
+shadowcasters all
+capture start_all2
+renderstats start_all
+shadowcasters walked
+capture start_walked
+shadowcasters all
+unfreeze
+samecapture start_all start_all2
+samecapture start_all start_walked 8 0.01
+samecapture start_all start_view 8 0.01
+
+# A town: the Gipat base bz1g.
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+wait 1500
+move 400 300
+frames 5
+freeze
+capture town_all
+shadowcheck 4 1
+renderstats -
+shadowcasters view
+capture town_view
+renderstats town_view
+shadowcasters all
+capture town_all2
+renderstats town_all
+shadowcasters walked
+capture town_walked
+shadowcasters all
+unfreeze
+samecapture town_all town_all2
+samecapture town_all town_walked 8 0.01
+
+# The camera moved towards the viewer (Down held, 90 frames of 8 ms) until the gate is above the screen.
+frametime 8
+keydown down
+frames 90
+keyup down
+frames 60
+freeze
+capture gate_all
+shadowcheck 4 10
+renderstats -
+shadowcasters view
+capture gate_view
+renderstats gate_view
+shadowcasters all
+capture gate_all2
+renderstats gate_all
+shadowcasters walked
+capture gate_walked
+shadowcasters all
+unfreeze
+samecapture gate_all gate_all2
+samecapture gate_all gate_walked 8 0.01
+diffcapture gate_all gate_view 0.005 0.05
+report
+quit

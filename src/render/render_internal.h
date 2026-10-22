@@ -461,6 +461,8 @@ void UploadCachedMeshes(const Frame& frame);
 bool BindCachedMesh(const CachedMesh& mesh, sg_bindings& b, int* firstIndex);
 void MeshCacheFrameDone();
 void DropMeshCache();
+// The figure mesh of the draw being handed over (render::SetMeshSource's owner), or null.
+const void* MeshSourceOwner();
 
 // Object shadows (R16j, render_shadows.cpp; docs/notes/renderer.md section 13). PrepareShadows, once a
 // frame before its first pass on the world: unless the classic option is on, fits the shadow map
@@ -482,6 +484,8 @@ void DestroyShadows();
 // EndMesh). ShadowFrameEnd: the frame's passes are recorded (the harness build's GPU time);
 // ShadowFrameDone: the frame is presented (ShadowState reports it).
 const void* CurrentCaster();
+// A caster's mesh drawn this frame was the figure mesh `part` (render::CasterPartDrawn, R20).
+void NoteCasterPart(const void* part);
 bool DropClassicDecal();
 // Whether ClassicShadowDecal announced the flat mesh being drawn (either shadow look).
 bool ClassicDecalPending();

@@ -49,6 +49,7 @@
 #include "ui.h"
 #include "world_deleting_destructors.h"
 #include "world_effect.h"
+#include "world_client_shadow_casters.h"
 #include "lib/stlp_list_refs.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -315,6 +316,8 @@ int CWorldClient::Render() {
         ApplyStateBlock(renderer, StateBlockScene());
         terrain_->DrawWater(TheSceneRenderer());
     }
+    // The shadow map's casters the game did not draw (R20; the map is fitted to the ground drawn above).
+    HandOverOutsideCasters(this);
     net::Pump();
     if (flags_ & 0x400) {
         ApplyStateBlock(renderer, StateBlockAlpha());
