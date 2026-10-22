@@ -13,8 +13,8 @@ one (--check), and a run of the image suite on the trial proves the list is enou
 
 usage: python tools/image_trace.py [RUN_FOLDER ...] [--build build/verify] [--check] [--csv OUT] [--dwords]
   (no folder)  every run folder under <build>/runs that has an image_trace.txt
-  --check      exit 1 when a read that is no cell lies outside config/image_kept.csv's ranges, or a kept range
-               holds no read (a range the trace never saw read)
+  --check      exit 1 when a read that is no cell lies outside config/image_kept.csv's ranges; a kept range that
+               holds no read is a note (a whole object is kept, also the parts these runs never reach)
   --csv OUT    the reads grouped into ranges, as rows for config/image_kept.csv (owner and what from the readers)
   --dwords     every read dword with its readers, not the ranges
 """
@@ -178,8 +178,7 @@ def main():
                 problems += 1
         for k, n, _, _, what in kept:
             if not any(k <= d < k + n for d in plain):
-                print(f'image_trace: config/image_kept.csv {k:08X}+{n} ({what[:60]}) holds no read of these runs')
-                problems += 1
+                print(f'image_trace: note: config/image_kept.csv {k:08X}+{n} ({what[:60]}) holds no read of these runs')
         print(f'image_trace: {problems} problem(s)')
     if a.csv:
         with open(a.csv, 'w', newline='') as f:

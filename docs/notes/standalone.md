@@ -312,6 +312,34 @@ each step green on the goldens and removing a measured tie:
 Not on this path: named, typed globals in place of a section's bytes (C18, below) and vtables as real virtual
 classes (C19), plain new / delete and standard containers (C14), Win32 calls linked directly.
 
+### The build without game.exe (C25)
+
+What the image still takes of game.exe's .rdata / .data bytes, measured two ways:
+
+- **The trace** (`EI_IMAGE_TRACE=1`, verify build, the image's runs; tests/verify/harness_image_trace.h): every page of
+  the storage's file bytes that holds a nonzero dword is made inaccessible at the harness's start; the first access
+  to each such dword is a line of the run folder's image_trace.txt, then the instruction is single-stepped with the
+  page open. `python tools/image_trace.py [--check] [--csv OUT]` names the readers (the map) and groups the reads; a
+  read of a cell (image_cells.inc, image_code_cells.inc) does not count, the cells come from the committed tables.
+  On the suite (144 runs, 2026-10-22): 2549 dwords read, 1383 of them cells, 1166 from game.exe's bytes. Pages that
+  trap more than 100,000 times are left open (the script keyword table 0078B000-0078DFFF, MFC's 00796000, the
+  CRT's 00797000, 0079B000's hot globals): the trace cannot see the rest of them, the trial covers that.
+- **The trial** (`build.cmd verify trial`, CMake `EI_IMAGE_ZERO_TRIAL`, `gen_image_cells.py --bytes OUT --zero`):
+  the image's bytes are zero but the cells and `config/image_kept.csv`'s ranges. Never the product: a zero where a
+  table or string is read changes behaviour silently (a failed lookup, a zero constant), so the proof is the image
+  suite with goldens the same, not a boot. With an empty list the trial does not read game.exe at all.
+
+`config/image_kept.csv` is that list (address, size, owner file, kind, what): whole objects, also the parts no run
+reaches (the locale abbreviation tables, "reserved_02"); `gen_image_cells.py --check` refuses a range that overlaps a
+named range (C18) or another, `image_trace.py --check` a traced read outside the list. Each row is a candidate for
+C18 (a named, typed definition in our code) or a literal; when the list is empty the build no longer needs game.exe's
+section bytes, only its resources (C23).
+
+Without a game.exe (tools/exe_path.py finds none in run\vanilla / run\rebirth / EI_EXE, or `EI_NO_GAME_EXE=1`)
+build.cmd skips the checks that compare with it (check_fp_fold, rdata_literals, named_data, check_short_functions,
+check_static_init, `gen_image_cells --check`, `gen_iat --check`) with one line; CMake still needs it for the section
+bytes and the resources.
+
 ### Named data (C18)
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
@@ -1653,6 +1681,9 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
   now zeroes it. Any comparator over a never-set float needs the same care.
 - A stolen-byte count must cover whole instructions (`MOV [ESP+0],0` is eight bytes); check_stolen.py checks the
   recorders' counts.
+- A system call does not trap on an inaccessible page, it fails: the image trace's first suite saw WriteFile fail
+  (error 1784) on a save's one-byte .data constant. Page protection tricks must open a buffer's pages around the
+  Win32 calls that take it (harness_image_trace.cpp's ReadFile / WriteFile).
 - Leftover memory is not preserved (user 2026-10-15): where the original reads never-set bytes, ours writes a
   canonical value (zero) and the harness patches the original the same way (standalone-verification.md section 5).
 
