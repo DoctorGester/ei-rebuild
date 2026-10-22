@@ -68,6 +68,11 @@ void SetPanelOffset(int offset);
 // constants (its operands at the W3 sites).
 int EdgeShift();
 
+// The layout widths addon writes over game.exe's .rdata floats 00742B08 and 007428AC (ticket W1): the layout's right
+// edge (800, the clock's centre) and the bottom panels' right column (695), each + extra while Active().
+float LayoutWidth();
+float PanelRight();
+
 // addon's handlers at a panel builder's entry: the panel offset -EdgeShift() for a panel at the
 // screen's left edge, +EdgeShift() at its right; and at its exit (every return), 0 again, also
 // when the builder ran inside another one (the outer one then goes on with 0, as with addon).

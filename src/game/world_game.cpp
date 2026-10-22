@@ -195,8 +195,22 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
 
 } // namespace
 
-// The game's save stream (declared in core_streams.h).
-CMemoryStream* GameSaveStream() { return ei::GamePointer<CMemoryStream>(0x007AFDF8); }
+// The game's save stream (declared in core_streams.h), zero at the start: built by the static initialiser 00578530 in
+// the list's order and destroyed by the exit function it registers (00578550); both ported on the name and registered
+// at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<CMemoryStream> g_saveStream = /*007AFDF8*/ {};
+CMemoryStream* GameSaveStream() { return &*g_saveStream; }
+
+namespace {
+void __cdecl DestroySaveStream() { g_saveStream->Destruct(); }   // 00578550
+void __cdecl ConstructSaveStream() {                             // 00578530
+    g_saveStream->Construct();
+    GameAtExit(DestroySaveStream);
+}
+} // namespace
+
+EI_REPLACE(0x00578530, ConstructSaveStream);
+EI_REPLACE(0x00578550, DestroySaveStream);
 
 int GameFlow::SaveGame(const char* slot) {
     LocalFileStream file;
@@ -1889,7 +1903,7 @@ void GameFlow::UpdateFromServer() {
         // FCOMP 1.0 with the value, C0 selecting it: the larger (a NaN kept).
         std::uint32_t bits;
         std::memcpy(&bits, &value, 4);
-        bool keep = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0 ? true : 1.0f < value;
+        bool keep = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x7FFFFFu) != 0 ? true : 1.0f < value;
         VariableSet(variables, *name, keep ? value : 1.0f);
     }
 

@@ -6,7 +6,6 @@ src/game/ai_motion.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ai_path.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/app_frame.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/app_main.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
-src/game/atexit_400.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/combat_steps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1

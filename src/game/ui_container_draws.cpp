@@ -20,6 +20,7 @@
 #include "ui_briefing.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
+#include "texture.h"   // g_stageBlocks
 #include "originals_ui.h"
 #include "originals_gameplay.h"
 #include "unit.h"
@@ -36,13 +37,7 @@
 
 namespace {
 
-template <typename T>
-T GameValue(std::uintptr_t address) {
-    return ei::GameData<const T>(address);
-}
-
 constexpr std::uint32_t kAlphaRef = 0x18;
-std::uint32_t StateBlockAlpha() { return GameValue<std::uint32_t>(0x007AEDD8); }   // texture x diffuse, colour and alpha
 
 // The interface's device object (CInterface3D +8; its +0x54 is the IDirect3DDevice7).
 UiRenderer* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
@@ -75,7 +70,7 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
 int CUiContainer::DrawContainerImpl(int pass) {
     if (!interface_->drawing_) return 1;
     UiRenderer* device = DeviceOf(this);
-    std::uint32_t handle = StateBlockAlpha();
+    std::uint32_t handle = g_stageBlocks[kAlphaPassBlock];
     device->result_ = device->device_->ApplyStateBlock(handle);
     render::state::Block(handle);
     DrawBase(pass);

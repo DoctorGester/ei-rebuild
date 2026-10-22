@@ -207,7 +207,7 @@ private:
 template <class Do>
 void StaticInitialisers(Do& d);
 // The body of the generated exit function at `fn` (static_exit.cpp); false when it is not one of them
-// (ported by hand, src/game/atexit_400.cpp).
+// (ported by hand next to its object).
 template <class Do>
 bool ExitFunction(Do& d, std::uintptr_t fn);
 

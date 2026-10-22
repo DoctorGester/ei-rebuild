@@ -657,7 +657,7 @@ kinds given.
       - The exit function: ported on the name and registered at its address (EI_REPLACE; function_sizes.inc already
         has it, gen_static_init wrote it there); the initialiser's `d.AtExit(address)` stays at its place in the list
         and gen_static_init leaves the registered function out of static_exit.cpp. It goes next to the definition
-        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles); atexit_400.cpp has older ones.
+        (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles, camera_object.cpp's DestroyCamera).
       - A constructor whose result is no constant (CString's empty string: a copy of 00796E48, a run-time pointer;
         `CString(const char*)` allocates) runs in list order: the initialiser is ported on the name and registered at
         its address (a row in config/extra_function_sizes.csv and function_sizes.inc: Ghidra has no function there),

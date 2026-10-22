@@ -15,6 +15,7 @@
 #include "ui.h"            // GameDeviceLock, UiTextureManager
 #include "originals_engine.h"   // game::FatalError
 #include "originals_render.h"
+#include "originals_library.h"   // GameAtExit
 #include "game_singletons.h"
 
 #include "ei/hook.h"
@@ -142,6 +143,33 @@ CSceneRenderer::~CSceneRenderer() {
 
 void CSceneRenderer::DestructRenderer() { this->CSceneRenderer::~CSceneRenderer(); }
 EI_REPLACE_METHOD(0x00500AC0, CSceneRenderer::DestructRenderer);
+
+// The scene renderer and the device's lock, zero at the start: built by their static initialisers (00500930, 004F0B10)
+// in the list's order and destroyed by the exit functions those register (00500950, 004F0B30); all ported on the
+// names and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+constinit lib::StaticObject<CSceneRenderer> g_sceneRenderer = /*007AF060*/ {};
+static_assert(sizeof(CSceneRenderer) == 0x5C);
+CSceneRenderer* TheSceneRenderer() { return &*g_sceneRenderer; }
+constinit CRITICAL_SECTION g_deviceLock = /*007AEE78*/ {};
+_RTL_CRITICAL_SECTION* TheDeviceLock() { return &g_deviceLock; }
+
+namespace {
+void __cdecl DestroySceneRenderer() { g_sceneRenderer->DestructRenderer(); }   // 00500950
+void __cdecl ConstructSceneRenderer() {                                        // 00500930
+    g_sceneRenderer->ConstructRenderer();
+    GameAtExit(DestroySceneRenderer);
+}
+void __cdecl DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }   // 004F0B30
+void __cdecl ConstructDeviceLock() {                                                  // 004F0B10
+    gameapi::InitializeCriticalSection(&g_deviceLock);
+    GameAtExit(DestroyDeviceLock);
+}
+} // namespace
+
+EI_REPLACE(0x00500930, ConstructSceneRenderer);
+EI_REPLACE(0x00500950, DestroySceneRenderer);
+EI_REPLACE(0x004F0B10, ConstructDeviceLock);
+EI_REPLACE(0x004F0B30, DestroyDeviceLock);
 
 void* CSceneRenderer::DeleteRendererImpl(unsigned flags) {
     this->CSceneRenderer::~CSceneRenderer();

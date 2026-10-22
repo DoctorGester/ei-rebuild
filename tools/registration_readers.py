@@ -23,7 +23,7 @@ holds the address itself. The readers, each a set of addresses:
   the generators and checks that need a registration's address:
     short generator  a short game function (under five bytes) a rewrite registers: gen_short_functions.py would
                      write an EI_REPLACE_SHORT for it
-    exit generator   an exit function game.exe registers with atexit that a rewrite registers (atexit_400.cpp, ...):
+    exit generator   an exit function game.exe registers with atexit that a rewrite registers (camera_object.cpp, ...):
                      gen_static_init.py writes the ones no rewrite registers into static_exit.cpp
   tools that read every registration but need none of them: check_thunks, check_registrations (they check the
   registration itself), standalone_gaps.py. The tools that need a function's original address (check_fp_fold,

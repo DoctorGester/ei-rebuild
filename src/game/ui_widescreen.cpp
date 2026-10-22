@@ -20,9 +20,9 @@
 namespace widescreen {
 namespace {
 
-// The layout widths addon rewrites (rewrite-guide rule 9: every reader reads them from memory).
-constexpr std::uintptr_t kLayoutWidthAddress = std::uintptr_t(0x00742B08);   // 800.0: the layout's right edge
-constexpr std::uintptr_t kPanelRightAddress = std::uintptr_t(0x007428AC);    // 695.0: the bottom panels' right column
+// The layout widths addon rewrites in game.exe's .rdata (its floats 800.0 and 695.0): ours, written by Startup.
+float g_layoutWidth = 800.0f;
+float g_panelRight = 695.0f;
 
 constexpr int kLayoutWidth = 800;
 constexpr int kLayoutHeight = 600;
@@ -84,16 +84,6 @@ bool g_computed;
 
 int g_panelOffset;                 // ours (addon's 100BD0A0)
 
-float ReadFloat(std::uintptr_t address) { return *ei::GamePointer<const volatile float>(address); }
-
-void WriteFloat(std::uintptr_t address, float value) {
-    auto* p = ei::GamePointer<float>(address);
-    DWORD old;
-    VirtualProtect(p, sizeof(float), PAGE_READWRITE, &old);
-    *p = value;
-    VirtualProtect(p, sizeof(float), old, &old);
-}
-
 // Before the jumps are written (a startup action of the image): the layout, and the two widths written
 // as addon writes them.
 void Startup() {
@@ -101,11 +91,11 @@ void Startup() {
     g_computed = true;
     if (!g_layout.active) return;
     // addon: FILD extra; FADD 800.0 / 695.0 (doubles); FSTP dword.
-    WriteFloat(kLayoutWidthAddress, static_cast<float>(g_layout.extra + 800.0));
-    WriteFloat(kPanelRightAddress, static_cast<float>(g_layout.extra + 695.0));
+    g_layoutWidth = static_cast<float>(g_layout.extra + 800.0);
+    g_panelRight = static_cast<float>(g_layout.extra + 695.0);
     ei::Log("WideScreen: %dx%d, 4:3 part %d, margin %d pixels = %d layout units; layout width %g, panel right %g",
             g_layout.width, g_layout.height, g_layout.width43, g_layout.margin, g_layout.extra,
-            ReadFloat(kLayoutWidthAddress), ReadFloat(kPanelRightAddress));
+            g_layoutWidth, g_panelRight);
 }
 EI_STARTUP_ACTION(Startup);
 
@@ -228,6 +218,8 @@ void ShowHeroCurtains(CUiWindow* window, int mode) {
 
 // addon's apply function: 0x320 + extra written at 0065E7C3, -0x320 - extra at 0065E7CA.
 int LayoutRight() { return kLayoutWidth + Get().extra; }
+float LayoutWidth() { return g_layoutWidth; }
+float PanelRight() { return g_panelRight; }
 
 
 } // namespace widescreen

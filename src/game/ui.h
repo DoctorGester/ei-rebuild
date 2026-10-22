@@ -1094,7 +1094,7 @@ static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
 // Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
-inline strmap::CDebugPanel* DebugInfoPanel() { return ei::GamePointer<strmap::CDebugPanel>(0x0079B930); }
+strmap::CDebugPanel* DebugInfoPanel();   // strmap::g_debugPanel 0079B930 (string_map.cpp)
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
 

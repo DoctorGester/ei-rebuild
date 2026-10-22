@@ -32,6 +32,7 @@
 #include "lib/crt_iostream.h"
 #include "lib/stlp.h"
 #include "lib/stlp_list_refs.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -136,9 +137,11 @@ inline LogStream* g_netLog = /*0079B91C*/ {nullptr};
 inline SessionBase* g_currentSession = /*0079B920*/ {nullptr};
 // The connection being updated or read (null outside the session code).
 inline Connection* g_currentConnection = /*0079B924*/ {nullptr};
-// 0079B900: the buffer every update packet is built in; 0079B8E0: the one datagrams are received into.
-inline GameBuffer* SendBuffer() { return ei::GamePointer<GameBuffer>(0x0079B900); }
-inline GameBuffer* ReceiveBuffer() { return ei::GamePointer<GameBuffer>(0x0079B8E0); }
+// The buffer every update packet is built in and the one datagrams are received into (net_session.cpp).
+extern lib::StaticObject<GameBuffer> g_sendBuffer;
+extern lib::StaticObject<GameBuffer> g_receiveBuffer;
+inline GameBuffer* SendBuffer() { return &*g_sendBuffer; }
+inline GameBuffer* ReceiveBuffer() { return &*g_receiveBuffer; }
 // The game client and the game server (null when there is none): counted pointers, cleared by their static
 // initialisers and released at exit (net_session.cpp).
 inline ClientSession* g_gameClient = /*0079B5D8*/ {nullptr};
