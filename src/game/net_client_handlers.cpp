@@ -165,7 +165,7 @@ void ClearTradeRecords(ClientSession* self) { self->tradeRecords_.Clear<recordli
 // revision (and changes), and unless a record of the two revisions exists one is added with copies
 // of the two parties (+0x2620, +0x2690) and `party`.
 void ClientSession::RecordTrade(const void* party) {
-    auto* remote = static_cast<PartyMessage*>(ClientFindParty(this));
+    PartyMessage* remote = ClientFindParty(this);
     if (!remote) return;
     if (!party_.ptr) return;
     auto* ours = party_.Get();
