@@ -32,16 +32,12 @@ using NameElement = stlp::ObjectElement<mfc::CString>;
 constexpr std::uint32_t kNoItem = 0xFFFFFFFFu;
 constexpr float kScaleSteps = 127.0f;   // 0073D06C
 
-static_assert(sizeof(FiguredGroupsTable) == sizeof(UnitSet::figured));
-static_assert(sizeof(DressedTable) == sizeof(UnitSet::dressed));
 // A figured record starts with a dressed record's fields (the dressed copy reads that head).
 static_assert(offsetof(FiguredUnitRecord, armourIds) == offsetof(DressedUnitRecord, items));
 static_assert(offsetof(FiguredUnitRecord, weaponIds) == offsetof(DressedUnitRecord, extraWeapons));
 static_assert(offsetof(FiguredUnitRecord, extraWeapon) == offsetof(DressedUnitRecord, extraWeapon));
 static_assert(offsetof(FiguredUnitRecord, modelNumber) == offsetof(DressedUnitRecord, modelNumber));
 
-FiguredGroupsTable& GroupsOf(UnitSet& set) { return reinterpret_cast<FiguredGroupsTable&>(set.figured); }
-DressedTable& DressedOf(UnitSet& set) { return reinterpret_cast<DressedTable&>(set.dressed); }
 const DressedUnitRecord& HeadOf(const FiguredUnitRecord& record) { return reinterpret_cast<const DressedUnitRecord&>(record); }
 
 // The figure's scale as a key: each component times 127, truncated (_ftol), 10 bits each, x highest.
@@ -110,7 +106,7 @@ void UnitSet::Add(CUnit* unit) {
 
     // The figured records: one of the same scale key and ids in the prototype's group is marked
     // (modelNumber -1); else the record goes into the group.
-    FiguredTable* group = GroupFor(GroupsOf(*this), prototype);
+    FiguredTable* group = GroupFor(figured, prototype);
     FiguredTable::Node* first;
     FiguredTable::Node* last;
     group->EqualRange(scaleKey, first, last);
@@ -136,7 +132,7 @@ void UnitSet::Add(CUnit* unit) {
         FiguredTable::Value entry;
         entry.key = scaleKey;
         FiguredUnitElement::Construct(&entry.mapped, record);    // 0055A860
-        group = GroupFor(GroupsOf(*this), prototype);
+        group = GroupFor(figured, prototype);
         group->Resize(group->Count() + 1);                       // 0055B670
         group->InsertEqualNoresize(entry);                       // 0055B540
         FiguredUnitElement::Destroy(&entry.mapped);              // 0053F020, 00559DE0
@@ -144,7 +140,7 @@ void UnitSet::Add(CUnit* unit) {
 
     // The dressed records: one of the same prototype and ids is marked, else a copy of the
     // record's head is added.
-    DressedTable& dressedRecords = DressedOf(*this);
+    DressedTable& dressedRecords = dressed;
     DressedTable::Node* from;
     DressedTable::Node* to;
     dressedRecords.EqualRange(prototype, from, to);

@@ -230,7 +230,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     mfc::CArray<ObjectiveExit>* exitArray = &exits_;
     exitArray->SetSize(0, -1);
     for (int i = 0; i < map->exits.size; ++i) {
-        const MapExit& source = map->exits.data[i];
+        const ZoneExit& source = map->exits.data[i];
         if (gamecrt::mbsicmp(source.target,
                             "none") == 0)
             continue;

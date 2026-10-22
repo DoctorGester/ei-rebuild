@@ -15,8 +15,9 @@
 
 namespace {
 
-using FiguredGroups = stlp::hash_map<unsigned, FiguredUnitMap, stlp::IntHash>;
-using DressedMap = stlp::hash_map<unsigned, DressedUnitRecord, stlp::IntHash>;
+using FiguredGroups = UnitSet::FiguredGroups;
+using FiguredTable = UnitSet::FiguredTable;
+using DressedTable = UnitSet::DressedTable;
 
 // The maps are walked as their iterators do: begin() (0055AB50 the groups, 0055ADF0 a group's
 // figured map, 0055AE50 the dressed map), then ++ (the chain's next node, else the next bucket's
@@ -46,16 +47,16 @@ EI_REPLACE_METHOD(0x00558FA0, DressedUnitRecord::Write);
 void UnitSet::Write(CStream* stream) {
     // The number of figured records over every group.
     std::uint32_t count = 0;
-    for (FiguredGroups::Node* group = figured.First(); group; group = figured.After(group)) {
-        FiguredUnitMap& units = group->value;
-        for (FiguredUnitMap::Node* unit = units.First(); unit; unit = units.After(unit)) ++count;
+    for (FiguredGroups::Node* group = figured.First(); group; group = figured.Next(group)) {
+        FiguredTable& units = group->value.mapped;
+        for (FiguredTable::Node* unit = units.First(); unit; unit = units.Next(unit)) ++count;
     }
     PutWord(stream, count);
 
-    for (FiguredGroups::Node* group = figured.First(); group; group = figured.After(group)) {
-        FiguredUnitMap& units = group->value;
-        for (FiguredUnitMap::Node* unit = units.First(); unit; unit = units.After(unit)) {
-            FiguredUnitRecord& record = unit->value;
+    for (FiguredGroups::Node* group = figured.First(); group; group = figured.Next(group)) {
+        FiguredTable& units = group->value.mapped;
+        for (FiguredTable::Node* unit = units.First(); unit; unit = units.Next(unit)) {
+            FiguredUnitRecord& record = unit->value.mapped;
             WriteRecordHead(&record, nullptr, stream);
             PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphS));
             PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphT));
@@ -69,10 +70,10 @@ void UnitSet::Write(CStream* stream) {
             }
         }
     }
-    PutWord(stream, static_cast<std::uint32_t>(dressed.Size()));
+    PutWord(stream, static_cast<std::uint32_t>(dressed.Count()));
 
-    for (DressedMap::Node* node = dressed.First(); node; node = dressed.After(node)) {
-        DressedUnitRecord* record = &node->value;
+    for (DressedTable::Node* node = dressed.First(); node; node = dressed.Next(node)) {
+        DressedUnitRecord* record = &node->value.mapped;
         std::uint32_t key = record->prototype;   // two bytes written
         Put(stream, &key, 2);
         auto counted = [stream](const UnitIdList& list) {

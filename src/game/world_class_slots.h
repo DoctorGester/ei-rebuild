@@ -20,7 +20,7 @@ class CWorldClient;
 class CWorldServer;
 class Terrain;
 struct ClientArrayManager;
-struct ClientTexts;
+class CTextManager;
 struct PlatformSet;
 
 // Slot 11 / 12 of the vtable named in the comment.
@@ -32,8 +32,8 @@ const char* __fastcall BridgeManagerClassName(PlatformSet*);         // 00561870
 int __fastcall BridgeManagerClassId(PlatformSet*);                   // 00561880: 0x34
 const char* __fastcall ParticleManagerClassName(CParticleManager*);  // 00562780 (0073F644) "CParticleManager"
 int __fastcall ParticleManagerClassId(CParticleManager*);            // 00562790: 0x2C
-const char* __fastcall TextManagerClassName(ClientTexts*);           // 00562970 (0073F6F0) "CTextManager"
-int __fastcall TextManagerClassId(ClientTexts*);                     // 00562980: 0x2A
+const char* __fastcall TextManagerClassName(CTextManager*);           // 00562970 (0073F6F0) "CTextManager"
+int __fastcall TextManagerClassId(CTextManager*);                     // 00562980: 0x2A
 const char* __fastcall TerrainClassName(Terrain*);                   // 00562B40 (0073F6A8) "CTerrain"
 int __fastcall TerrainClassId(Terrain*);                             // 00562B50: 0xB
 const char* __fastcall LightningManagerClassName(CLightningManager*);   // 00562D80 "CLightningManager"

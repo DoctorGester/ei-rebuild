@@ -31,6 +31,7 @@
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 #include "lib/mfc_window.h"
+#include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -351,12 +352,13 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     FaceBuffer& meshFaces = mesh->faces;
     meshFaces.SetSize(r.faces.size);
     for (int f = 0; f < r.faces.size; ++f) {
-        const std::uint32_t* from = reinterpret_cast<const std::uint32_t*>(r.Face(f));
-        std::uint32_t* to = reinterpret_cast<std::uint32_t*>(&meshFaces.data[f]);
-        for (int d = 0; d < 6; ++d) to[d] = from[d];
-        to[6] = from[0];
-        to[7] = from[1];
-        to[8] = from[2];
+        const FileFace* from = r.Face(f);
+        MeshFace& to = meshFaces.data[f];
+        for (int d = 0; d < 3; ++d) {
+            to.vertex[d] = from->position[d];
+            to.vertex2[d] = from->texture[d];
+            to.position[d] = from->position[d];
+        }
     }
 
     VertexMerge m;
@@ -387,7 +389,7 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     m.positions.SetSize(0);
     m.texCoords.SetSize(0);
     // The mesh's groups sized as their instantiation (00474DB0: FaceGroup's constructor and destructor).
-    auto* groups = reinterpret_cast<recordarrays::FaceGroups::Array*>(&mesh->groups);
+    FaceGroupArray* groups = &mesh->groups;
     groups->SetSize(r.groups.size, -1);
     for (int g = 0; g < r.groups.size; ++g) {
         groups->data[g].Assign(r.Group(g));
@@ -461,7 +463,7 @@ void Loader::LoadRecord(int i, VtArray* meshes, VtArray* nodes) {
     DestructArrayOf<mfc::impl::MorphHeadArrayClass>(r.morphHeads);
     DestructArrayOf<mfc::impl::PosKeyArrayClass>(r.posKeys);
     DestructArrayOf<mfc::impl::RotKeyArrayClass>(r.rotKeys);
-    FaceGroupArrayDestruct(reinterpret_cast<mfc::CArray<FaceGroup>*>(&r.groups));   // D, 00454CE0
+    FaceGroupArrayDestruct(&r.groups);   // D, 00454CE0
     DestructArrayOf<mfc::impl::FileFaceArrayClass>(r.faces);
     DestructArrayOf<mfc::impl::FileUvArrayClass>(r.texCoords);
     DestructArrayOf<mfc::impl::FilePointArrayClass>(r.points);
@@ -612,7 +614,7 @@ void FaceGroup::Destruct() {
     name.~CString();
 }
 
-void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups) {
+void __fastcall FaceGroupArrayDestruct(FaceGroupArray* groups) {
     groups->vtable = recordarrays::FaceGroupArrayClass::Vtable();
     if (!groups->data) return;
     for (int i = 0; i < groups->size; ++i) groups->data[i].Destruct();
@@ -724,9 +726,9 @@ struct SceneNodes : VtArray {
     }
 };
 struct Registry {
-    std::uint8_t bytes[0x18];   // CFileRegistry, never used
-    Registry() { reinterpret_cast<CFileRegistry*>(bytes)->Construct(); }
-    ~Registry() { reinterpret_cast<CFileRegistry*>(bytes)->Destroy(); }
+    lib::InPlace<CFileRegistry> registry;   // never used
+    Registry() { registry->Construct(); }
+    ~Registry() { registry->Destroy(); }
 };
 struct TextureLinks : VtArray {
     TextureLinks() : VtArray{mfc::impl::TextureLinkArrayClass::Vtable(), nullptr, 0, 0, 0} {}

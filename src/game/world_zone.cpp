@@ -82,11 +82,11 @@ struct UnitRecordBuilder {
 
 // ---- Zone exits -------------------------------------------------------------------------------
 
-void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
-    auto* exits = reinterpret_cast<ZoneExitArray*>(&exitsVtable_);
+void CWorldServer::SetZoneExits(const ZoneExits* source) {
+    ZoneExits* exits = &exits_;
     if (exits->data) {
         ZoneExit* exit = exits->data;
-        for (int n = exits->size; n != 0; --n, ++exit) zone::ExitDestruct(reinterpret_cast<MapExit*>(exit));   // 004608B0
+        for (int n = exits->size; n != 0; --n, ++exit) zone::ExitDestruct(exit);   // 004608B0
         gamecrt::operator_delete(exits->data);
         exits->data = nullptr;
     }
@@ -101,15 +101,9 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
                                                   kNoExit) != 0)
             game::FatalError(game::zonetexts::WrongEntrance());
         int index = exits->size;
-        gamearrays::ExitsSetSize(exits, index + 1);
+        exits->SetSize(index + 1);
         ZoneExit* to = &exits->data[index];
-        auto* src = reinterpret_cast<const std::uint8_t*>(from);
-        auto* dst = reinterpret_cast<std::uint8_t*>(to);
-        std::memcpy(dst, src, 0x28);   // ten dwords, copied as integers
-        to->target = from->target;
-        std::memcpy(dst + 0x2C, src + 0x2C, 8);   // entrance, +0x30
-        dst[0x34] = src[0x34];
-        std::memcpy(dst + 0x38, src + 0x38, 4);
+        to->Assign(from);   // (inlined: ten dwords as integers, the target, then the rest)
     }
 }
 

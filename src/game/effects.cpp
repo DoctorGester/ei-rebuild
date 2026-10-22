@@ -264,9 +264,9 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     p->frame = (p->frame + 1) % frameCount;
     const ParticleElement* e = elements;
     float scale;
-    std::memcpy(&scale, &e[0].value[3], sizeof(scale));
-    float c = e[1].value[3];
-    float s = e[1].value[4];
+    std::memcpy(&scale, &e[0].sphere.radius, sizeof(scale));
+    float c = e[1].sphereTilt.tiltCos;
+    float s = e[1].sphereTilt.tiltSin;
     float x = p->velocity.x;
     float y = p->velocity.y;
     // Both are computed before either store; the plane test below reloads the stored floats.
@@ -274,7 +274,7 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     p->velocity.x = static_cast<float>(c * x - s * y);
     p->velocity.y = static_cast<float>(ny);
     Vector3 offset;
-    float d = elements[0].value[5];
+    float d = elements[0].sphere.speed;
     if (d > kOrbitMinRadius) {
         const Vector3& n = elements[1].pos;
         float t = static_cast<float>(-(DotZYX(p->velocity, n) / d));

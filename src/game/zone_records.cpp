@@ -1,5 +1,5 @@
-// Zone exits (object_tables.h MapExit, 0x3C bytes) and the map database's zone records that hold
-// them (MapRecord: eight CStrings, then a CArray<MapExit> at +0x48): their destructors. See
+// Zone exits (object_tables.h ZoneExit, 0x3C bytes) and the map database's zone records that hold
+// them (MapRecord: eight CStrings, then a CArray<ZoneExit> at +0x48): their destructors. See
 // docs/notes/app.md.
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -19,7 +19,7 @@ void DestroyString(mfc::CString& text) { text.~CString(); }
 } // namespace
 
 // 00460460: a zone exit's destructor (its CString at +0x28).
-void __fastcall ExitDestruct(MapExit* self) { DestroyString(self->target); }
+void __fastcall ExitDestruct(ZoneExit* self) { DestroyString(self->target); }
 EI_REWRITTEN(0x00460460, ExitDestruct);
 
 // 004608B0: the zone exit's scalar deleting destructor.
@@ -28,9 +28,9 @@ EI_REWRITTEN(0x004608B0, mfc::impl::ScalarDeleting<&ExitDestruct>::Delete);
 // 00460970: a zone record's destructor: the exits' array (base vtable 0073C3F4; each exit's string
 // destroyed, the block freed, the fields left as they are), then the strings from +0x1C down to +0.
 void __fastcall ZoneRecordDestruct(MapRecord* self) {
-    mfc::CArray<MapExit>& exits = self->exits;
+    ZoneExits& exits = self->exits;
     exits.vtable = mfc::impl::ExitArrayClass::Vtable();
-    if (MapExit* data = exits.data) {
+    if (ZoneExit* data = exits.data) {
         for (int i = 0, n = exits.size; i < n; ++i) DestroyString(data[i].target);
         gamecrt::operator_delete(exits.data);
     }

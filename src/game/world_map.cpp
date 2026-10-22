@@ -148,7 +148,7 @@ void CWorldServer::ResetZone() {
     shared.RemoveAll();
     mobFiles_.SetSize(0, -1);
     countdowns_.RemoveAll();
-    gamearrays::ExitsSetSize(&exitsVtable_, 0);
+    exits_.SetSize(0);
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     ClearMissilePointers(this);

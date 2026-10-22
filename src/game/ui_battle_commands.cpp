@@ -283,7 +283,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         mfc::CString line;
         UnitName(unit, &line);
         line += ":\n";
-        CTextManager* texts = (CTextManager*)GameClientTexts();
+        CTextManager* texts = GameClientTexts();
         const char* name = phrase->name.data();
         BOOL found;
         {

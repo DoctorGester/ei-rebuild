@@ -137,8 +137,8 @@ void CTradePanel::BuildLists() {
     UnitStats* stats = &ei::VirtualSlot<HeroFn>(owner_->vtable_, 51)(owner_)->stats;
     UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
     ei::VirtualSlot<RefreshFn>(owner_->vtable_, 47)(owner_);
-    void* table = GameClientTexts();
-    CTextManager* texts = static_cast<CTextManager*>(table);
+    CTextManager* table = GameClientTexts();
+    CTextManager* texts = table;
     Clear(&perks_);
     Clear(&learnable_);
     Clear(&schools_);
@@ -392,7 +392,7 @@ void CTradePanel::Build() {
     AddSprite(0)->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
 
     // The titles.
-    void* table = GameClientTexts();
+    CTextManager* table = GameClientTexts();
     {
         mfc::CString text;
         TextsGetString(table, nullptr, "skills", &text);

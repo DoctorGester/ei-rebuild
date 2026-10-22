@@ -254,7 +254,7 @@ void CWorldClient::Destruct() {
         for (int i = 0; i < countedA0_.size; ++i) ReleaseHeld(&countedA0_.data[i]);
         gamecrt::operator_delete(countedA0_.data);
     }
-    gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(reinterpret_cast<gamearrays::Exits::Array*>(&exitsVtable_));
+    gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
     CWorld::Destruct();
 }
 EI_REPLACE_METHOD(0x00561B00, CWorldClient::Destruct);
@@ -288,7 +288,7 @@ void CWorldServer::Destruct() {
     mobFiles_.Destruct();
     zoneName_.~CString();
     updateMap_.map.Destroy();
-    gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(reinterpret_cast<gamearrays::Exits::Array*>(&exitsVtable_));
+    gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
     CWorld::Destruct();
 }
 EI_REPLACE_METHOD(0x0058AAD0, CWorldServer::Destruct);

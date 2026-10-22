@@ -7,7 +7,7 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
 
 - **The unit set** (`world.h`): `UnitSet` holds two typed identity-hashed maps: `figured` (unit id to a `FiguredUnitMap` of `FiguredUnitRecord`)
   and `dressed` (unit id to `DressedUnitRecord`). `UnitSetEntryHead` is merged into `DressedUnitRecord`, whose `Write` (00558FA0) is a member.
-  `ReadUnitLooks` takes typed vectors. `world_sync.cpp` uses `UnitSet` through forwarders that construct and destruct each map.
+  `ReadUnitLooks` takes typed vectors. `world_sync.cpp` builds a `UnitSet` and constructs / destroys its two `stlp::hashtable` members directly (005985E0 ... 005986B0).
 - **CWorldServer**: `diplomacy_` is a `CDiplomacy` embedded at +0x12C64 (users pass `&diplomacy_` or read `allied_`). `timeWheel_` stays a byte
   array behind `AIEvents()` (including `unit_ai.h` in `world.h` clashes with the local `kClassUnit` of six files).
 - **Virtual slots used instead of VCall.** CWorld: `TimedObjectManager` 14, `PlayerList` 20, `RawSurfaceHeightAt` 28, `SurfaceHeightAt` 30.
@@ -30,8 +30,8 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
   "moving". The multi-target spells search units within CSpell `range_` (+0x34), up to `targetCount_`. `CMapObject::updateCountdown` (+0x174) is the
   unit's update slot. The controller is reached through `reinterpret_cast` to `UnitController` / `CUnitServer`; these two declarations overlap and
   should become one. `FiguredUnitRecord` does not derive from `DressedUnitRecord` (its head shares the layout, and Write is called on it through a
-  cast); `RecordPtrArray` is still a `uint8_t*` array. `ZoneExit` has `MapExit`'s layout (passTimeDeploy, view, deploy angle); they could become one
-  declaration.
+  cast); `RecordPtrArray` is still a `uint8_t*` array. `ZoneExit` (object_tables.h) is the one exit record: the map database's zone records,
+  the world server and the client world all hold `ZoneExits` (CArray<ZoneExit, ZoneExitElements>, SetSize 00573080).
 
 ## Meanings of formerly unknown fields (ticket F1)
 

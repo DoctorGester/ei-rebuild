@@ -153,7 +153,7 @@ void CWorld::SetServerPaused(std::uint8_t value) {
 }
 
 BOOL CWorldServer::GetZoneExit(int index, mfc::CString* target, int* entrance) {
-    if (index < 0 || index >= exitCount_) return 0;
+    if (index < 0 || index >= exits_.size) return 0;
     *target = exits_[index].target;
     *entrance = exits_[index].entrance;
     return 1;
