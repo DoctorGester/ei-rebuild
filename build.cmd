@@ -11,7 +11,8 @@ rem   utf8     with EI_UTF8 (every string inside the game in UTF-8, src/game/ass
 rem            build\<cfg>-utf8 (run_all / work.py test with EI_BUILD_DIR=build\verify-utf8)
 rem Neither the build nor its checks read game.exe (C25c); the checks against it are tools\check_against_exe.cmd.
 setlocal
-set VSROOT=E:\bin\vs\buildtools
+rem EI_VSROOT: the Build Tools' folder when it is not the default below.
+if defined EI_VSROOT (set "VSROOT=%EI_VSROOT%") else (set "VSROOT=E:\bin\vs\buildtools")
 set CFG=%~1
 if "%CFG%"=="" set CFG=release
 

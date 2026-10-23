@@ -20,6 +20,7 @@ history is in git. Each fact lives in one file; others link to it by file name a
 - `rebirth.md`: what the Rebirth edition patches and the patch flags of the rebuild.
 - `platform-layer.md`: effort estimate for a cross-platform build (not an area note).
 - `standalone.md`: how the standalone image runs, where the MFC / STLport / CRT ports live and what they must keep, the UTF-8 plan, the hook retirement's outcome (not an area note).
+- `harness.md`: running scenarios, the scenario steps, what a harness run does and leaves alone.
 - `standalone-verification.md`: how changes are checked (goldens, function vectors, WideScreen references), what makes runs repeat, the harness's isolation and diagnostic tools.
 - `inventory.md` (library / dead code classification), `cleanup-tooling.md` (checks, progress counts, shared forwarder
   headers), `cleanup-engine-base.md` / `cleanup-network.md` / `cleanup-map-objects.md` / `cleanup-units.md` / `cleanup-items.md` / `cleanup-effects.md` / `cleanup-ui.md` /
