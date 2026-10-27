@@ -264,9 +264,9 @@ static void LoadRebirthSettings() {
 
 int InstallHooks() {
     // The standalone image: every plain replacement goes in (there is no original code to run). game.exe runs
-    // only as the original game (the original's harness: ei_launch sets EI_NO_HOOKS=1 for it), so nothing of ours
-    // is installed there, except with EI_VECTORS=1 the vector recorders (tests/vectors): each runs the original
-    // through its trampoline and samples its calls. No mode runs our rewrites inside game.exe.
+    // only as the original game (ei_launch sets EI_NO_HOOKS=1 for it), so nothing of ours is installed there,
+    // except with EI_VECTORS=1 the vector recorders (tests/vectors): each runs the original through its
+    // trampoline and samples its calls.
     const bool standalone = Standalone();
     if (!standalone) {
         char noHooksValue[4], vectorsValue[4];

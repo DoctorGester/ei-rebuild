@@ -1,11 +1,10 @@
-// The interface windows' surfaces in the new renderer. The game composes most of its interface on
-// the CPU: every window (CUiSurface) owns an off-screen surface holder whose pixels (memory the new
-// renderer owns) it fills with GDI text, fills and pixel code, and the blit puts it onto the frame
-// (plainly or with a source colour key) in the windows' draw order, between the sprites and 3D
-// previews of the same windows. The new renderer reads such a surface when its contents changed
-// (render_textures.cpp) and draws it as
-// a screen rectangle that copies texels one to one (a stretch when the sizes differ), keyed texels
-// left out. Also here: the depth clear the old path does in the middle of the frame.
+// The interface windows' surfaces in the new renderer. The game composes most of its interface on the CPU:
+// every window (CUiSurface) owns an off-screen surface holder whose pixels (memory the new renderer owns) it
+// fills with GDI text, fills and pixel code, and the blit puts it onto the frame (plainly or with a source
+// colour key) in the windows' draw order, between the sprites and 3D previews of the same windows. The new
+// renderer reads such a surface when its contents changed (render_textures.cpp) and draws it as a screen
+// rectangle that copies texels one to one (a stretch when the sizes differ), keyed texels left out. Also
+// here: the depth clear the old path does in the middle of the frame.
 #include "render.h"
 #include "render_internal.h"
 
@@ -16,7 +15,7 @@
 #include <windows.h>
 #include <d3d11.h>
 
-#include "../game/texture.h"   // CDXSurface
+#include "../game/texture.h"
 
 #include <cstring>
 #include <unordered_map>

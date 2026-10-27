@@ -5,9 +5,9 @@
 // section 2). A handle map finds the C++ object of a Windows handle: the permanent map holds the objects that
 // attached their handle (a CPen, a CFont), the temporary map the objects FromHandle made for the others (a
 // CTempDC for a surface's DC, a CTempGdiObject for a stock pen). The game has no CWinApp, so nothing ever
-// empties the temporary maps (no OnIdle). Every body is registered at its library address in both builds
-// (mfc_handle_map.cpp); the maps themselves live in MFC's module thread state, which the hook build keeps
-// (game.exe's afxMapHDC / afxMapHGDIOBJ) and the image replaces with its own (mfc_gdi.cpp).
+// empties the temporary maps (no OnIdle). Every body is registered at its library address
+// (mfc_handle_map.cpp); the maps live in MFC's module thread state, which the image replaces with its own
+// (mfc_gdi.cpp).
 
 #include "crt.h"
 #include "mfc.h"
@@ -25,10 +25,10 @@ namespace mfc::impl {
 struct CRuntimeClass {
     const char* className;
     int objectSize;
-    unsigned schema;                // m_wSchema (0xFFFF: not serializable)
-    void*(__stdcall* create)();     // m_pfnCreateObject (null: not creatable)
+    unsigned schema;                // 0xFFFF: not serializable
+    void*(__stdcall* create)();     // null: not creatable
     const CRuntimeClass* baseClass;
-    CRuntimeClass* nextClass;       // m_pNextClass (the module state's class list; AfxClassInit links it)
+    CRuntimeClass* nextClass;       // the module state's class list; AfxClassInit links it
 
     // A new object through `create`, or null (no create function, or a CException thrown
     // on the way, which is deleted).
@@ -36,7 +36,7 @@ struct CRuntimeClass {
 };
 
 // The new handler operator new calls when an allocation fails (_afxNewHandler).
-gamecrt::NewHandler __stdcall SetAfxNewHandler(gamecrt::NewHandler handler);   // AfxSetNewHandler
+gamecrt::NewHandler __stdcall SetAfxNewHandler(gamecrt::NewHandler handler);
 // AfxCriticalNewHandler: what a handle map's allocations run under. Image only: with no
 // CWinThread there is no safety pool to release, so it throws a CMemoryException.
 int __cdecl CriticalNewHandler(std::size_t size);
@@ -59,7 +59,6 @@ public:
 
     // Empty, 17 buckets (no table yet), associations in blocks of `blockSize`.
     explicit CMapPtrToPtr(int blockSize);
-    // RemoveAll.
     ~CMapPtrToPtr() override;
     const CRuntimeClass* GetRuntimeClass() const override;
 
@@ -75,11 +74,10 @@ public:
     // last). The map must not be empty.
     void GetNextAssoc(Assoc*& position, void*& key, void*& value) const;
 
-    // BEFORE_START_POSITION.
     static Assoc* StartPosition() { return reinterpret_cast<Assoc*>(-1); }
 
     Assoc** table = nullptr;
-    std::uint32_t hashSize = 17;    // m_nHashTableSize (17 until InitHashTable)
+    std::uint32_t hashSize = 17;    // 17 until InitHashTable
     int count = 0;
     Assoc* freeList = nullptr;
     CPlex* blocks = nullptr;
