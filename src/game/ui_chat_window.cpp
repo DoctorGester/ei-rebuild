@@ -75,12 +75,7 @@ CBriefingScreen* ActiveBriefing(CInterface3D* ui) { return ui->ActiveWindowAs<CB
 bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 
 // The inlined strcmp(a, b) == 0.
-bool SameText(const char* a, const char* b) {
-    for (;; ++a, ++b) {
-        if (*a != *b) return false;
-        if (*a == 0) return true;
-    }
-}
+bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 } // namespace
 
@@ -204,9 +199,9 @@ void CChatWindow::ShowPlayers() {
             figure = unitdb::ModelNamed(key);
         }
         const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
-        if (fixes ? !pluginfixes::ModelIsFemale(figure->figureName.c_str()) : SameText(figure->figureName.c_str(), "unhuma"))
+        if (fixes ? !pluginfixes::ModelIsFemale(figure->figureName.c_str()) : SameText(figure->figureName, "unhuma"))
             sex = "m";
-        else if (fixes || SameText(figure->figureName.c_str(), "unhufe"))
+        else if (fixes || SameText(figure->figureName, "unhufe"))
             sex = "f";
         build = "me";
         model = str::Format("infa%s%s%dface", figure->figureName.c_str(), build.c_str(), prototype->hair + 1);

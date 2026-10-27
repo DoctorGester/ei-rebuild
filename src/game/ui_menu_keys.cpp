@@ -108,7 +108,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
             cursor_ = 0;
         }
         if (cursor_ > 0) {   // by character, as Delete and the cursor's steps
-            const int previous = text::PreviousCharacter(name.c_str(), cursor_);
+            const int previous = text::PreviousCharacter(name, cursor_);
             name = str::Left(name, previous) + str::Mid(name, cursor_);
             cursor_ = previous;
         }
@@ -120,7 +120,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
             cursor_ = 0;
         }
         if (cursor_ < static_cast<int>(name.size()))
-            name = str::Left(name, cursor_) + str::Mid(name, text::NextCharacter(name.c_str(), cursor_));
+            name = str::Left(name, cursor_) + str::Mid(name, text::NextCharacter(name, cursor_));
         break;
     case kKeyEnd:
     case kKeyHome:
@@ -136,9 +136,9 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         else if (key == kKeyHome)
             cursor_ = 0;
         else if (key == kKeyLeft)
-            cursor_ = text::PreviousCharacter(name.c_str(), cursor_);
+            cursor_ = text::PreviousCharacter(name, cursor_);
         else
-            cursor_ = text::NextCharacter(name.c_str(), cursor_);
+            cursor_ = text::NextCharacter(name, cursor_);
         break;
     default:
         return;

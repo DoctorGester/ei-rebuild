@@ -524,12 +524,12 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
     if (stat10 < record->RequiredStat(0)) return 0;
     if (stat18 < record->RequiredStat(1)) return 0;
     if (stat20 < record->RequiredStat(2)) return 0;
-    if (NamesRequirement(record->requiredSkillName.c_str())) {
+    if (NamesRequirement(record->requiredSkillName)) {
         int skill = record->RequiredSkill();
         if (skill == 0x7FFFFFFF) return 0;
         if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return 0;   // unchecked
     }
-    if (NamesRequirement(record->requiredLevelName.c_str())) {
+    if (NamesRequirement(record->requiredLevelName)) {
         int required = database->IndexOf(record->requiredLevelName.c_str());
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }

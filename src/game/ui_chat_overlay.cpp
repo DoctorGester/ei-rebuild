@@ -43,10 +43,10 @@ int TextWidth(CInterface3D* ui, const std::string& text, int font) {
 
 
 // A chat line for the server (SayMessage) carrying `text`, kept 60 s on the client's timers.
-void SendSay(const char* text) {
+void SendSay(const std::string& text) {
     auto* say = net::NewCounted<net::SayMessage>();
     // A failed allocation is not checked from here on.
-    say->text_.Assign(text);   // overwrite, then cut or append
+    say->text_.Assign(text.c_str());   // overwrite, then cut or append
     net::GameClient()->AddTimed(say, kSayLifetime);
 }
 } // namespace
@@ -82,7 +82,7 @@ COLORREF MarkColour(char digit) {
     return ((bits & 1) ? 0xFF0000u : 0u) | ((bits & 2) ? 0xFF00u : 0u) | ((bits & 4) ? 0xFFu : 0u);
 }
 
-void DrawPiece(CUiSurface* surface, const char* text, int x, COLORREF colour) {
+void DrawPiece(CUiSurface* surface, std::string_view text, int x, COLORREF colour) {
     RECT rect = {x, 0, kLineDrawRight, kLineSurfaceHeight};
     surface->DrawTextIn(text, &rect, kLineFont, colour, kLineDrawFormat, 1);
 }
@@ -188,14 +188,14 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
         for (int at = console::Ops(codes).Find(kColourMark, 0); at != -1;
              at = console::Ops(codes).Find(kColourMark, start)) {
             piece = console::Ops(codes).Mid(start, at - start);
-            DrawPiece(surface, piece.c_str(), x, colour);
+            DrawPiece(surface, piece, x, colour);
             drawn += piece;
             x = TextWidth(interface_, drawn, kLineFont);
             colour = MarkColour(codes.GetString()[at + 1]);
             start = at + 2;
         }
         piece = console::Ops(codes).Mid(start);
-        if (piece.size() != 0) DrawPiece(surface, piece.c_str(), x, colour);
+        if (piece.size() != 0) DrawPiece(surface, piece, x, colour);
         UiSurfaceReleaseDC(surface);
         node->data.surface = surface;
     }
@@ -265,13 +265,13 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
     switch (key) {
     case VK_BACK: {   // by character, as Delete and the caret's steps
         if (caret_ <= 0) break;
-        const int previous = text::PreviousCharacter(typed_.c_str(), caret_);
+        const int previous = text::PreviousCharacter(typed_, caret_);
         typed_ = str::Left(typed_, previous) + str::Mid(typed_, caret_);
         caret_ = previous;
         break;
     }
     case VK_RETURN:
-        if (typed_.size() != 0 && (IsMultiplayerClient() & 0xFF)) SendSay(typed_.c_str());
+        if (typed_.size() != 0 && (IsMultiplayerClient() & 0xFF)) SendSay(typed_);
         chatOpen_ = false;
         break;
     case VK_ESCAPE:
@@ -284,14 +284,14 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
         caret_ = 0;
         break;
     case VK_LEFT:
-        caret_ = text::PreviousCharacter(typed_.c_str(), caret_);
+        caret_ = text::PreviousCharacter(typed_, caret_);
         break;
     case VK_RIGHT:
-        caret_ = text::NextCharacter(typed_.c_str(), caret_);
+        caret_ = text::NextCharacter(typed_, caret_);
         break;
     case VK_DELETE:
         if (caret_ >= static_cast<int>(typed_.size())) break;
-        typed_ = str::Left(typed_, caret_) + str::Mid(typed_, text::NextCharacter(typed_.c_str(), caret_));
+        typed_ = str::Left(typed_, caret_) + str::Mid(typed_, text::NextCharacter(typed_, caret_));
         break;
     default:
         return;

@@ -66,6 +66,7 @@ float AbsBits(float f) {
 // cells and its exits (the deploy rectangle x1, y1, x2, y2 and the target zone, "none" when it
 // leads nowhere).
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
+MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
 
 int FindText(const char* key) { return TheTextManager()->Open(key); }
 
@@ -126,7 +127,7 @@ void SortStrings(mfc::CString* first, mfc::CString* last) {
 using DistanceMap = stlp::map<int, float>;
 using DistanceNode = DistanceMap::Node;
 
-int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
+int SurfaceText(CUiSurface* surface, std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
@@ -181,7 +182,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     while (sceneObjects_.size > 0x15) RemoveSceneObjectAt(0x15);
     while (regions_.size > 9) RemoveRegionAt(9);
 
-    MapRecord* map = FindZone(shownZone_.c_str());
+    MapRecord* map = FindZone(shownZone_);
     if (!map) {
         interface_->SetPendingValue(0);
         return;
@@ -352,9 +353,9 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 UiSurfaceGetDC(surface);
                 surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
-                SurfaceText(surface, title.c_str(), &titleRect, 1, 0x31B3FF, 1, 1);
+                SurfaceText(surface, title, &titleRect, 1, 0x31B3FF, 1, 1);
                 RECT textRect = {10, 25, 330, 140};
-                SurfaceText(surface, text.c_str(), &textRect, 1, 0xA7D7E4, 0x11, 1);
+                SurfaceText(surface, text, &textRect, 1, 0xA7D7E4, 0x11, 1);
                 UiSurfaceReleaseDC(surface);
             }
         }
@@ -376,7 +377,7 @@ QuestRecord* FindQuestRecord(const char* name) {
     return QuestIndex().Subscript(key);
 }
 
-bool SameText(const char* a, const char* b) {
+bool SameText(std::string_view a, std::string_view b) {
     return gamecrt::mbsicmp(a, b) == 0;
 }
 
@@ -462,7 +463,7 @@ void CObjectivesWindow::ShowQuest() {
     TextClose(texts);
     static_cast<CUiScrollText*>(children_.data[0])->SetText(text.c_str());
 
-    MapRecord* map = FindZone(shownZone_.c_str());
+    MapRecord* map = FindZone(shownZone_);
     if (!map) return;
     LoadQuestPlaces((*quests)[selectedQuest_]);
     while (sceneObjects_.size > exits_.size + 0x15) RemoveSceneObjectAt(exits_.size + 0x15);
@@ -584,7 +585,7 @@ void CObjectivesWindow::CreateScreen() {
     if (listZones_ == 0) {
         ShowZone(zoneName_.c_str());
     } else {
-        MapRecord* allodZone = FindZone(zoneName_.c_str());
+        MapRecord* allodZone = FindZone(zoneName_);
         if (!allodZone) {
             interface_->SetPendingValue(0);
             return;

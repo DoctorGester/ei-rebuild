@@ -61,7 +61,7 @@ struct PageEntry {
     stlp::string picture;
 };
 
-bool Same(const char* word, const char* text) {
+bool Same(std::string_view word, std::string_view text) {
     return gamecrt::mbsicmp(word,
                            text) == 0;
 }

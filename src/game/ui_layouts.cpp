@@ -363,7 +363,7 @@ EI_REWRITTEN(0x00632D70, CMainMenu::OnLButtonDown);
 // --- Message box -----------------------------------------------------------------------
 
 namespace {
-int BoxText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format, int flag) {
+int BoxText(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
@@ -382,9 +382,9 @@ void CMessageBox::CreateScreen() {
     int font = result_ != 0xFFFF0000u ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
     RECT rect = {15, 0, 385, 200};
-    int titleHeight = BoxText(surface, title_.c_str(), &rect, 2, 0, 0x411, 1);
+    int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
     rect = RECT{15, 0, 385, 400};
-    int textHeight = BoxText(surface, text_.c_str(), &rect, font, 0, 0x411, 1);
+    int textHeight = BoxText(surface, text_, &rect, font, 0, 0x411, 1);
     // An edit field takes one line of the font (the extent of "A").
     if (flags_ & 4)
         textHeight =
@@ -392,7 +392,7 @@ void CMessageBox::CreateScreen() {
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 35, 385, 450};
-    BoxText(surface, title_.c_str(), &rect, 2, 0x31B3FF, 0x11, 1);
+    BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
     if (flags_ & 4) {
         edit_ = new CUiEditField(interface_, RECT{215, top + titleHeight + 30, 585, height + top + 30});
         edit_->SetLook(15, 0, font, 0x32, 0xA7D7E4, 0x31B3FF);
@@ -400,7 +400,7 @@ void CMessageBox::CreateScreen() {
         AddChild(edit_);
     } else {
         rect = RECT{15, top + titleHeight - 20, 385, 450};
-        BoxText(surface, text_.c_str(), &rect, font, 0xA7D7E4, static_cast<int>(format_ | 0x10), 1);
+        BoxText(surface, text_, &rect, font, 0xA7D7E4, static_cast<int>(format_ | 0x10), 1);
     }
     UiSurfaceReleaseDC(surface);
 
@@ -437,21 +437,21 @@ void CDifficultyBox::CreateScreen() {
     UiSurfaceGetDC(surface);
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     RECT rect = {15, 0, 385, 200};
-    int titleHeight = BoxText(surface, title_.c_str(), &rect, 2, 0, 0x411, 1);
+    int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
     std::string explanation;
     int textHeight = 0;
     if (TheTextManager()->Open("tip option_difficulty") != 0) {
         TheTextManager()->ReadToHash(&explanation, 1);
         str::TrimRight(explanation, "\r\n");
         rect = RECT{15, 0, 385, 300};
-        textHeight = BoxText(surface, explanation.c_str(), &rect, 1, 0, 0x410, 1);
+        textHeight = BoxText(surface, explanation, &rect, 1, 0, 0x410, 1);
     }
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 0x55, 385, 450};
-    BoxText(surface, title_.c_str(), &rect, 2, 0x31B3FF, 0x11, 1);
+    BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
     rect = RECT{15, titleHeight + top - 7, 385, 450};
-    BoxText(surface, explanation.c_str(), &rect, 1, 0xA7D7E4, 0x10, 1);
+    BoxText(surface, explanation, &rect, 1, 0xA7D7E4, 0x10, 1);
 
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     std::string easy;
@@ -463,9 +463,9 @@ void CDifficultyBox::CreateScreen() {
     int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
     rect = RECT{0xE6 - half, row - 100, 385, 450};
-    BoxText(surface, easy.c_str(), &rect, 2, 0xA7D7E4, 0, 1);
+    BoxText(surface, easy, &rect, 2, 0xA7D7E4, 0, 1);
     rect = RECT{0xE6 - half, row - 0x4C, 385, 450};
-    BoxText(surface, hard.c_str(), &rect, 2, 0xA7D7E4, 0, 1);
+    BoxText(surface, hard, &rect, 2, 0xA7D7E4, 0, 1);
     UiSurfaceReleaseDC(surface);
     easy_ = 0;
 

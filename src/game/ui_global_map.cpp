@@ -74,6 +74,7 @@ constexpr int kAllodIsland = 3;        // the island model
 // A zone of the map database: its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
+MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
 MapRecord* ZoneAt(int index) { return TheMapDatabase()->maps.data + index; }
 
 bool NonEmpty(const std::string& text) { return text.size() != 0; }
@@ -81,7 +82,7 @@ bool NonEmpty(const std::string& text) { return text.size() != 0; }
 // The links' and the quests' SetSize and their elements' assignment (GlobalMapPlace::Assign / AssignCopy).
 void SetPlaceCount(GlobalMapPlaces& places, int size) { places.SetSize(size); }
 
-int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
+int SurfaceText(CUiSurface* surface, std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
@@ -107,7 +108,7 @@ void SetPosition(CUiMesh* sprite, const Vector3& p) { std::memcpy(&sprite->local
 void SetWhite(CUiMesh* sprite) {
     for (float& tint : sprite->tint_) SetBits(tint, 0x3F800000);
 }
-CUiMesh* AddFigure(CUiWindow* window, const char* name) { return window->AddSprite(name); }
+CUiMesh* AddFigure(CUiWindow* window, const std::string& name) { return window->AddSprite(name.c_str()); }
 
 } // namespace
 
@@ -139,7 +140,7 @@ public:
     void Turn(CUiMesh* sprite) const { std::memcpy(&sprite->localRotation_, &map_->turn_, 16); }
     CTexture* Texture(int index) const { return map_->objects_.data[index]; }
 
-    CUiMesh* Marker(const char* figure, const Vector3& local, float scale) const {
+    CUiMesh* Marker(const std::string& figure, const Vector3& local, float scale) const {
         CUiMesh* sprite = AddFigure(map_, figure);
         SetPosition(sprite, ModelPoint(local));
         SetTexture(sprite, Texture(1));
@@ -198,7 +199,7 @@ void CGlobalMap::CreateScreen() {
     turning_ = 0;
     bobTime_ = 0.0f;
 
-    MapRecord* current = FindZone(LocalPlayerZone().c_str());
+    MapRecord* current = FindZone(LocalPlayerZone());
     AllodRecord* allod = TheMapDatabase()->FindAllod(current->allod.c_str());
     {
         mfc::CString title(mfc::CString::kUnset);
@@ -227,10 +228,10 @@ void CGlobalMap::CreateScreen() {
     // The current zone: its arrow above it, its base on it, the island.
     {
         Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + D(2.0f /*0073CDB8*/))};
-        builder.Marker(allod->otherNames[kAllodArrow].c_str(), above, 1.0f);
+        builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
         Vector3 at = {position_.x, position_.y, position_.z};
-        builder.Marker(allod->otherNames[kAllodBall].c_str(), at, Bits(0x3F4CCCCD));   // 0.8
-        CUiMesh* island = AddFigure(this, allod->otherNames[kAllodIsland].c_str());
+        builder.Marker(allod->otherNames[kAllodBall], at, Bits(0x3F4CCCCD));   // 0.8
+        CUiMesh* island = AddFigure(this, allod->otherNames[kAllodIsland]);
         SetTexture(island, builder.Texture(2));
         island->Place(centreX_, centreY_, depth_);
         builder.Turn(island);
@@ -266,7 +267,7 @@ void CGlobalMap::CreateScreen() {
             mfc::CString title(mfc::CString::kUnset);
             zones_.data[zoneCount_].title = *ZoneTitle(&title, zone->name.c_str());
         }
-        CUiMesh* sprite = AddFigure(this, zone->figure.c_str());
+        CUiMesh* sprite = AddFigure(this, zone->figure);
         sprite->Place(centreX_, centreY_, depth_);
         builder.Turn(sprite);
         ++zoneCount_;
@@ -298,7 +299,7 @@ void CGlobalMap::CreateScreen() {
                         QuestPosition(&position, parts[2]);
                         std::memcpy(&quests_.data[n].position, &position, 12);
                     }
-                    CUiMesh* sprite = AddFigure(this, allod->otherNames[kAllodQuestMarker].c_str());
+                    CUiMesh* sprite = AddFigure(this, allod->otherNames[kAllodQuestMarker]);
                     Vector3 local = quests_.data[n].position;
                     SetPosition(sprite, builder.ModelPoint(local));
                     SetTexture(sprite, builder.Texture(1));
@@ -315,9 +316,9 @@ void CGlobalMap::CreateScreen() {
 
     // The ways out of each zone the player may take ("z.<way>" = 2), with a region each.
     for (int i = 0; i < zoneCount_; ++i) {
-        MapRecord* zone = FindZone(zones_.data[i].name.c_str());
+        MapRecord* zone = FindZone(zones_.data[i].name);
         for (int e = 0; e < zone->exits.size; ++e) {
-            MapRecord* way = FindZone(zone->exits.data[e].target.c_str());
+            MapRecord* way = FindZone(zone->exits.data[e].target);
             if (!way) continue;
             variable = str::Format("z.%s", way->name.c_str());
             if (way->kind != 2) continue;
@@ -341,7 +342,7 @@ void CGlobalMap::CreateScreen() {
                 ZonePosition(&position, way->name.c_str());
                 std::memcpy(&links_.data[n].position, &position, 12);
             }
-            CUiMesh* sprite = AddFigure(this, way->figure.c_str());
+            CUiMesh* sprite = AddFigure(this, way->figure);
             Vector3 local = links_.data[n].position;
             SetPosition(sprite, builder.ModelPoint(local));
             SetTexture(sprite, builder.Texture(1));
@@ -416,9 +417,9 @@ void CGlobalMap::CreateScreen() {
         AddSurface(text);
         UiSurfaceGetDC(text);
         RECT line1 = {0, 5, 150, 25};
-        SurfaceText(text, allodTitle_.c_str(), &line1, 2, 0xA7D7E4, 0x25, 1);
+        SurfaceText(text, allodTitle_, &line1, 2, 0xA7D7E4, 0x25, 1);
         RECT line2 = {0, 25, 150, 45};
-        SurfaceText(text, clock.c_str(), &line2, 2, 0xA7D7E4, 0x25, 1);
+        SurfaceText(text, clock, &line2, 2, 0xA7D7E4, 0x25, 1);
         UiSurfaceReleaseDC(text);
     }
 

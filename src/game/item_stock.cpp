@@ -51,10 +51,10 @@ using stock::TakenPrototypes;
 CParty* PartyOf(const ItemStock* stock) { return stock->context; }
 CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)->ItemConstructor(); }
 
-int Compare(const char* a, const char* b) {
+int Compare(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b);
 }
-int CompareNoCase(const char* a, const char* b) {
+int CompareNoCase(std::string_view a, std::string_view b) {
     return gamecrt::mbsicmp(a, b);
 }
 
@@ -191,7 +191,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
         candidates.Finish() = candidates.begin();   // erase(begin, end)
         if (CompareNoCase(MaterialClass(prototype), game::NoneText()) != 0) {
             for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
-                if (Compare(MaterialClass(prototype), e->record->soundName.c_str()) != 0) continue;
+                if (Compare(MaterialClass(prototype), e->record->soundName) != 0) continue;
                 if (MaterialUnits(prototype) > e->left) continue;
                 candidates.PushBack<CandidateElement>(e);
             }

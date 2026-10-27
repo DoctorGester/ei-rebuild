@@ -13,7 +13,7 @@
 namespace settings_file {
 namespace {
 
-bool Same(const std::string& a, const char* b) { return _stricmp(a.c_str(), b) == 0; }
+bool Same(const std::string& a, const std::string& b) { return _stricmp(a.c_str(), b.c_str()) == 0; }
 
 // ---- The text ----
 
@@ -162,7 +162,7 @@ constexpr const char* kHeader =
 
 Key* Document::FindKey(const std::string& path) {
     for (Key& key : keys)
-        if (Same(key.path, path.c_str())) return &key;
+        if (Same(key.path, path)) return &key;
     return nullptr;
 }
 
@@ -172,13 +172,13 @@ Key& Document::AddKey(const std::string& path) {
     return keys.back();
 }
 
-Value* Document::FindValue(Key& key, const char* name) {
+Value* Document::FindValue(Key& key, const std::string& name) {
     for (Value& value : key.values)
         if (Same(value.name, name)) return &value;
     return nullptr;
 }
 
-void Document::Set(const std::string& path, const char* name, unsigned long type, std::string data) {
+void Document::Set(const std::string& path, const std::string& name, unsigned long type, std::string data) {
     Key& key = AddKey(path);
     if (Value* value = FindValue(key, name)) {
         value->type = type;
@@ -237,7 +237,7 @@ void Document::Parse(const std::string& text, std::vector<std::string>* problems
             ok = ok && *p++ == '=';
             while (ok && (*p == ' ' || *p == '\t')) ++p;
             ok = ok && ParseValue(p, &value);
-            if (ok) Set(key->path, value.name.c_str(), value.type, std::move(value.data));
+            if (ok) Set(key->path, value.name, value.type, std::move(value.data));
         } else {
             ok = false;
         }
@@ -268,14 +268,14 @@ bool DocumentSource::ReadKey(const std::string& path, std::vector<Value>* values
     const std::string below = path + "\\";
     bool exists = false;
     for (const Key& key : document_.keys) {
-        if (Same(key.path, path.c_str())) {
+        if (Same(key.path, path)) {
             exists = true;
             values->insert(values->end(), key.values.begin(), key.values.end());
         } else if (_strnicmp(key.path.c_str(), below.c_str(), below.size()) == 0) {
             exists = true;   // a key exists when one below it does
             const std::string name = key.path.substr(below.size(), key.path.find('\\', below.size()) - below.size());
             bool listed = false;
-            for (const std::string& known : *subkeys) listed = listed || Same(known, name.c_str());
+            for (const std::string& known : *subkeys) listed = listed || Same(known, name);
             if (!listed) subkeys->push_back(name);
         }
     }
@@ -290,7 +290,7 @@ int ImportTree(Document& document, RegistrySource& source, const std::string& pa
     if (!source.ReadKey(path, &values, &subkeys)) return 0;
     document.AddKey(path);
     int count = static_cast<int>(values.size());
-    for (Value& value : values) document.Set(path, value.name.c_str(), value.type, std::move(value.data));
+    for (Value& value : values) document.Set(path, value.name, value.type, std::move(value.data));
     for (const std::string& sub : subkeys) count += ImportTree(document, source, path + "\\" + sub);
     return count;
 }
