@@ -14,7 +14,7 @@ usage: python tools/exe_strings.py <source file> [--apply] [--lines 10-20,31]
   --wrap X      only `X(0x...)`; the call is replaced by the literal
   --before RE   only addresses that RE matches right before (e.g. "LogLine\\(")
   --lines       only these lines
-  --skip A,B    leave these addresses alone (e.g. the empty string 0079B298, whose pointer is compared)
+  --skip A,B    leave these addresses alone (e.g. the window title 0079BB24, which the game writes into)
   --exe PATH    the exes to read (repeatable; default run\\vanilla and run\\rebirth's game.exe, tools/exe_path.py)
 """
 import os

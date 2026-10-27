@@ -7,7 +7,6 @@
 #include "ai_map.h"
 #include "core_streams.h"
 #include "effects.h"
-#include "game_data.h"
 #include "ground_print.h"
 #include "object_diplomacy.h"
 #include "registry.h"
@@ -45,8 +44,6 @@ void ConstructList(mfc::CList<T>& list, void* vtable) {
     list.blocks = nullptr;
     list.blockSize = kListBlockSize;
 }
-template <typename T>
-void ConstructList(mfc::CList<T>& list, std::uintptr_t vtableAddress) { ConstructList(list, ei::GamePointer<void>(vtableAddress)); }
 
 // The ground print lists' sentinels come from operator new (their nodes are larger than the node
 // allocator's 128 bytes): 0xA4, 0x9C and 0x94 bytes.

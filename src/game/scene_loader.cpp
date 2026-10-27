@@ -27,7 +27,6 @@
 #include "lib/mfc_slots.h"
 #include "lib/mfc_window.h"
 #include "lib/static_object.h"
-#include "game_data.h"
 
 #include <cstring>
 #include <new>
@@ -571,11 +570,6 @@ namespace {
 template <typename A>
 void FreeArray(A& array, void* vtable) {
     array.vtable = vtable;
-    array.FreeData();
-}
-template <typename A>
-void FreeArray(A& array, std::uintptr_t vtableAddress) {
-    array.vtable = ei::GamePointer<void>(vtableAddress);
     array.FreeData();
 }
 

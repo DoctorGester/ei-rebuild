@@ -605,11 +605,11 @@ SectorData* SectorData::Construct() {
     for (SectorBox& quarter : quarters) quarter = SectorBox{};
     waterMaterials.Construct(mfc::impl::ByteArrayClass::Vtable());
     vertices.Construct(mfc::impl::Vector3ArrayClass::Vtable());
-    records.Construct(reinterpret_cast<std::uintptr_t>(recordarrays::SectorVertexArrayClass::Vtable()));
+    records.Construct(recordarrays::SectorVertexArrayClass::Vtable());
     tileTextures.Construct();
     waterTiles.Construct();
     for (auto& flags : tileFlags) flags.Construct(mfc::impl::TerrainByteArraysClass::Vtable());
-    for (auto& lists : tiles) lists.Construct(reinterpret_cast<std::uintptr_t>(recordarrays::TerrainAlignedArrayClass::Vtable()));
+    for (auto& lists : tiles) lists.Construct(recordarrays::TerrainAlignedArrayClass::Vtable());
     animated.Construct();
     classCounts.Construct();
     detail = 0;

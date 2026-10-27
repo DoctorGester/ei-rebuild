@@ -26,8 +26,8 @@ names, the camp and item-info texts and a few logs; batch 16 the `reinterpret_ca
 their tables (game flow's zone names, the hero part names, the attribute and skill names, the option groups, the mercenary
 zones), options_defaults' value names and the lexer's comment tokens. The strings were read from both exes by script
 (`tools/exe_strings.py`; `--wrap X` takes `X(0x...)` and `X(std::uintptr_t(0x...))`, `--before RE` a parameter position,
-`--skip` leaves addresses), not typed. Keep a string by address only where code compares the pointer itself
-(`game::EmptyText()`, 0079B298), where the game writes into the string
+`--skip` leaves addresses), not typed. The empty string 0079B298 is the named `game::kEmptyText` (C18; its readers
+copy or compare the text, none compares the pointer). Keep a string by address only where the game writes into the string
 (the window title 0079BB24, the digit at 007930F6, the pointer cells LoadingMovieName 00791EE0), and in the CRT
 (`_iob` is not a string). A pointer-sized cell read as
 `const char* const*` holds the address of the text, not the text: read the cell's pointer first.
@@ -793,9 +793,16 @@ kinds given.
       007CAA64 is pointed at by CWnd's message map entry 00746C80, which nothing in the image reads
       (config/standalone_unreachable.csv): named_data.py's UNREACHABLE_CELLS lets that one cell point into a range.
       printf's power tables and the x87 functions' constants were already ours (crt_format.cpp, crt_x87.cpp).
-    - **Left**: EmptyText 0079B298 (15 pointer
-      cells of game.exe's data point at it and code compares its address), and the section bounds in game_data.h (0073B000,
-      0073B820, 00783000, 007CD000, 007D7000: the image's layout, not data).
+    - **The empty string (C18, 6 -> 5)**: 0079B298 is game_strings.h's `kEmptyText` (`char[1]`, `game::EmptyText()`
+      returns it). Its readers copy it (CString / STLport assignments) or compare its text (mbscmp, memcmp); none compares
+      the pointer. The only data cells that point at it are the units' model folders 0078F7EC / 0078F824, a table only
+      the dead 00532650 reads (gen_image_cells' UNREAD: zero in the image), so named_data.py --check lets an UNREAD cell
+      point into a named range. The seams that took an address and had no address caller left went with it:
+      `game::Text`, the camera's and the transform maths' `GameFloat(std::uintptr_t)`, the `FreeArray` / `ConstructList`
+      overloads by vtable address and `CArray::Construct(std::uintptr_t)` (a vtable is passed as the class's `Vtable()`).
+    - **Left**: the section bounds in game_data.h and image_data.cpp (0073B000, 0073B820, 00783000, 007CD000, 007D7000):
+      the address image's layout, not data. They go when the image no longer keeps game.exe's sections at their
+      addresses (the generated static initialisers, image cells and import slots still reach the range by address).
   - Import slots (gameapi.h 406, sound* 36, crt* 20, bink 10): not data to name; they go with direct Win32 calls.
 
 ### Compiler-made vtables (C19)

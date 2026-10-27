@@ -81,7 +81,7 @@ struct HelperElements {
 // growBy zero.
 template <typename Class>
 void ConstructHeader(void* at) {
-    static_cast<CArray<Bytes<1>>*>(at)->Construct(reinterpret_cast<std::uintptr_t>(Class::Vtable()));
+    static_cast<CArray<Bytes<1>>*>(at)->Construct(Class::Vtable());
 }
 
 // ---- The instantiations' calling conventions ----------------------------------------------------
@@ -118,7 +118,7 @@ template <typename Class>
 struct ArrayHeader {
     using Array = CArray<Bytes<1>>;
     static Array* __fastcall Construct(Array* self) {
-        return self->Construct(reinterpret_cast<std::uintptr_t>(Class::Vtable()));
+        return self->Construct(Class::Vtable());
     }
     // The destructor of an instantiation whose elements need nothing: the storage freed.
     static void __fastcall Destruct(Array* self) { ArrayAbi<Bytes<1>>::Destruct<Class>(self); }

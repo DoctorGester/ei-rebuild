@@ -11,7 +11,6 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -21,7 +20,6 @@ namespace {
 inline double D(float f) { return f; }
 
 // Constants the original reads from memory at run time.
-float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 #define EI_ONE 1.0f /*0073B84C*/          // 1.0f
 #define EI_MINUS_ONE (-1.0f /*0073B854*/)    // -1.0f
 #define EI_ZERO 0.0f /*0073B858*/         // 0.0f

@@ -182,6 +182,7 @@ address,size,name,file
 0079B268,4,g_chunkStart,src/lib/crt.cpp
 0079B26C,4,g_chunkEnd,src/lib/crt.cpp
 0079B270,40,g_classRegistry,src/game/chunk_archive.cpp
+0079B298,1,kEmptyText,src/game/game_strings.h
 0079B2A4,4,kHalfPi,src/game/camera.h
 0079B2A8,776,g_camera,src/game/camera_object.cpp
 0079B5B8,16,kIdentityRotation,src/game/camera.h

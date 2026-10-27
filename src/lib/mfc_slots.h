@@ -336,7 +336,7 @@ struct DwordMapClass final
 
 // The animation list's copy constructor of the steps' array alone (00556870): the copy tag's table written first.
 inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(const Array* source) {
-    Array::Construct(reinterpret_cast<std::uintptr_t>(AnimationStepsCopyClass::Vtable()));
+    Array::Construct(AnimationStepsCopyClass::Vtable());
     Array::Copy(*source);
     return this;
 }

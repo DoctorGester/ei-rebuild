@@ -212,7 +212,7 @@ void ScriptSubCalls::CopyFrom(const ScriptSubCalls& source) {
 EI_REWRITTEN(0x004C6D10, ScriptSubCalls::CopyFrom);
 
 ScriptBindings* ScriptBindings::CopyConstruct(const ScriptBindings& source) {
-    Construct(reinterpret_cast<std::uintptr_t>(recordarrays::BindingArrayClass::Vtable()));
+    Construct(recordarrays::BindingArrayClass::Vtable());
     recordarrays::AllocateExact<recordarrays::Bindings>(&mfc::impl::ArrayAs<recordarrays::Bindings>(*this), source.size);
     for (int i = 0; i < source.size; ++i) data[i] = source.data[i];
     return this;
@@ -220,7 +220,7 @@ ScriptBindings* ScriptBindings::CopyConstruct(const ScriptBindings& source) {
 EI_REWRITTEN(0x004CCCB0, ScriptBindings::CopyConstruct);
 
 ScriptSubCalls* ScriptSubCalls::CopyConstruct(const ScriptSubCalls& source) {
-    Construct(reinterpret_cast<std::uintptr_t>(recordarrays::SubCallArrayClass::Vtable()));
+    Construct(recordarrays::SubCallArrayClass::Vtable());
     recordarrays::AllocateExact<recordarrays::SubCalls>(&mfc::impl::ArrayAs<recordarrays::SubCalls>(*this), source.size);
     recordarrays::AssignSubCalls(this, &source);
     return this;
@@ -232,7 +232,7 @@ mapspec::Patrol* mapspec::Patrols::CopyAt(Patrol* result, int index) const {
     const mapspec::Patrol& from = data[index];
     std::memcpy(&result->position, &from.position, sizeof(from.position));
     mfc::CArray<mapspec::Waypoint>& to = result->waypoints;
-    to.Construct(reinterpret_cast<std::uintptr_t>(mfc::impl::WaypointArrayClass::Vtable()));
+    to.Construct(mfc::impl::WaypointArrayClass::Vtable());
     int n = from.waypoints.size;
     if (n) {
         to.data = gamecrt::operator_new_array<mapspec::Waypoint>(static_cast<std::size_t>(n));

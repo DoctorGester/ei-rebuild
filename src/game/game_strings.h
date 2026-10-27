@@ -2,20 +2,15 @@
 
 // Strings of the exe's data that the rewritten code uses by address.
 
-#include "game_data.h"
 
 #include <cstdint>
 
 namespace game {
 
-// A string constant of game.exe, passed by its original address. In ei_vectors the string is in the
-// stand-in for the game's data (game_data.h), put there by a fixture. New code writes the literal instead:
-// vanilla's and Rebirth's exe hold the same data (docs/notes/standalone.md, section 1).
-inline const char* Text(std::uintptr_t address) { return &ei::GameData<const char>(address); }
-
-// 0079B298: the exe's empty string (""). The game's text readers and CString constructors fall back
-// to it, and some loops compare against this address (not only against the contents).
-inline const char* EmptyText() { return &ei::GameData<const char>(0x0079B298); }
+// The exe's empty string (""): the game's text readers, CString assignments and string compares fall back to
+// it (they copy or compare its text).
+inline constexpr char kEmptyText[1] = /*0079B298*/ "";
+inline const char* EmptyText() { return kEmptyText; }
 
 // The texture manager's FatalError (00691D80).
 inline const char* CantFindTextureFormatText() { return "Can't find texture format %d.\n"; }

@@ -754,8 +754,13 @@ def check(img, update, img_path):
     # named range is one of its pointer elements (compared by pack_pointers; the image's cell lists leave it out), and
     # no cell outside the named ranges points into one.
     kinds = gen_image_cells.structures(img)
-    data_cells = [(c, v) for c, v in gen_image_cells.scan(img, keep_named=True)
-                  if (gen_image_cells.group_of(c, v, kinds) or ('',))[0] != 'text']
+    data_cells, unread_cells = [], set()
+    for c, v in gen_image_cells.scan(img, keep_named=True):
+        group = (gen_image_cells.group_of(c, v, kinds) or ('',))[0]
+        if group != 'text':
+            data_cells.append((c, v))
+        if group == 'unread':
+            unread_cells.add(c)
     code_cells = [(c, v) for c, v, _ in gen_image_cells.code_check(img, [], keep_named=True)[0]]
     for cells, what in ((data_cells, 'pointer cell'), (code_cells, 'code cell')):
         for cell, value in cells:
@@ -763,7 +768,10 @@ def check(img, update, img_path):
             if d is not None and cell - d.address not in getattr(d, 'pointers', ()):
                 problems.append(f'{d.where()}: {d.name} holds game.exe\'s {what} at {cell:08X} (-> {value:08X}) where '
                                 'it has no pointer element: game.exe\'s data reaches it; it is not ours alone')
-            t = inside(value) if what == 'pointer cell' and d is None and cell not in UNREACHABLE_CELLS else None
+            # A cell of gen_image_cells' UNREAD tables (only game.exe's dead code reads them) is zero in the image, so it
+            # may point into a named range (the units' model folders 0078F7EC hold the empty string kEmptyText).
+            pointing = what == 'pointer cell' and d is None and cell not in UNREACHABLE_CELLS and cell not in unread_cells
+            t = inside(value) if pointing else None
             if t is not None and not (isinstance(t, Retired) and value in RETIRED_POINTED):
                 problems.append(f'{t.where()}: {t.name} is pointed at by game.exe\'s cell at {cell:08X}: game.exe\'s '
                                 'data reaches it; it is not ours alone')

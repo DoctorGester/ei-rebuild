@@ -4,7 +4,6 @@
 // implementations (config/library.csv). Layouts match MFC so objects can be shared with original code.
 
 #include "crt.h"
-#include "game/game_data.h"
 
 #include <cstdarg>
 #include <cstddef>
@@ -291,17 +290,16 @@ struct CArray {
     const T& operator[](int index) const { return data[index]; }
     int GetSize() const { return size; }
 
-    // The constructor body: the instantiation's vtable, empty (e.g. CByteArray's 006FF5EA).
-    CArray* Construct(std::uintptr_t vtableAddress) {
-        vtable = ei::GamePointer<void>(vtableAddress);
+    // The constructor body: the instantiation's vtable (named by its class's accessor, `Class::Vtable()`), empty (e.g.
+    // CByteArray's 006FF5EA).
+    CArray* Construct(const void* vtablePointer) {
+        vtable = const_cast<void*>(vtablePointer);
         data = nullptr;
         growBy = 0;
         maxSize = 0;
         size = 0;
         return this;
     }
-    // The same, from a vtable named by its class's accessor (`Class::Vtable()`).
-    CArray* Construct(const void* vtablePointer) { return Construct(reinterpret_cast<std::uintptr_t>(vtablePointer)); }
 
     // SetSize(newSize, growBy): 0 frees the storage; growing past maxSize reallocates to
     // max(newSize, maxSize + step), copying the old elements with memcpy and constructing only the

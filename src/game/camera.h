@@ -15,7 +15,6 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
 
@@ -295,8 +294,6 @@ const Vector3* __fastcall CameraAnchor(const CCamera* self);
 namespace camera {
 
 inline double D(float f) { return f; }
-
-inline float GameFloat(std::uintptr_t address) { return ei::GameData<const volatile float>(address); }
 
 inline float CellSize() { return options::TheOptions()->cameraTerrainArea_; }
 // What static initialisers leave (0040C840, 0040C7E0, 0040C800): pi * 0.5 (the shake's wave runs at this rate), the

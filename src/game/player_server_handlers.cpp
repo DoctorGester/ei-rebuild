@@ -343,11 +343,6 @@ void FreeArray(mfc::CArray<T>* array, void* vtable) {
     array->vtable = vtable;
     if (array->data) gamecrt::operator_delete(array->data);
 }
-template <typename T>
-void FreeArray(mfc::CArray<T>* array, std::uintptr_t vtableAddress) {
-    array->vtable = ei::GamePointer<void>(vtableAddress);
-    if (array->data) gamecrt::operator_delete(array->data);
-}
 
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
 int MoveUnits(MoveCommand command) {
