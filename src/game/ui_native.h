@@ -4,7 +4,7 @@
 // family EI_RENDER's "uiboth" / "uinative" lists (render::ui::Listed: backdrop, fps, status so far) gets a
 // canvas for its holder when it is made (Adopt), and the surface functions record their drawing on it
 // beside GDI and the CPU code, which keep drawing the holder's memory: the memory stays the source of
-// truth (a lost device brings canvases back black). The blit 005FDA80 draws the canvas when
+// truth (a lost device brings canvases back black). The blit draws the canvas when
 // render::ui::DrawsCanvas says so.
 // Under "uinative" the screen copy (CaptureScreen) goes to the canvas only (no read-back of the frame), and
 // greying a surface whose memory is behind its canvas too; that memory is "behind" until Sync reads the

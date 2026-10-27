@@ -163,7 +163,7 @@ void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
 }
 } // namespace
 
-// --- 00651350 ------------------------------------------------------------------------------------
+// --- COptionsWindow::RefreshRows ---------------------------------------------------------
 
 void COptionsWindow::RefreshRows() {
     CUiSurface* surface = surfaces_.data[0];
@@ -208,7 +208,7 @@ void COptionsWindow::RefreshRows() {
 }
 EI_REWRITTEN(0x00651350, COptionsWindow::RefreshRows);
 
-// --- 00651D70 ------------------------------------------------------------------------------------
+// --- COptionsWindow::ShowGroup -----------------------------------------------------------
 
 void COptionsWindow::ShowGroup(int group) {
     mfc::CString tip;
@@ -266,7 +266,7 @@ void COptionsWindow::ShowGroup(int group) {
 }
 EI_REWRITTEN(0x00651D70, COptionsWindow::ShowGroup);
 
-// --- 00651940 ------------------------------------------------------------------------------------
+// --- COptionsWindow::BuildSettings -------------------------------------------------------
 
 void COptionsWindow::BuildSettings() {
     settings_.clear();   // 00652F80 copy and the 00653800 destructors, inlined by the original
@@ -306,7 +306,7 @@ void COptionsWindow::BuildSettings() {
 }
 EI_REWRITTEN(0x00651940, COptionsWindow::BuildSettings);
 
-// --- 00651600 ------------------------------------------------------------------------------------
+// --- COptionsWindow::BuildBindings -------------------------------------------------------
 
 void COptionsWindow::BuildBindings() {
     // clear(): 00652E30 copy and the 006537E0 destructors, inlined by the original.
@@ -339,7 +339,7 @@ void COptionsWindow::BuildBindings() {
 }
 EI_REWRITTEN(0x00651600, COptionsWindow::BuildBindings);
 
-// --- 00652000 ------------------------------------------------------------------------------------
+// --- RebuildKeysText ---------------------------------------------------------------------
 
 namespace {
 // The keys' names, each followed by "  |  ", the last separator trimmed (as BuildBindings).
@@ -387,7 +387,7 @@ void COptionsWindow::CommitBinding() {
 }
 EI_REWRITTEN(0x00652000, COptionsWindow::CommitBinding);
 
-// --- 00652200 ------------------------------------------------------------------------------------
+// --- COptionsWindow::LoadSettings --------------------------------------------------------
 
 void COptionsWindow::LoadSettings() {
     std::memcpy(keyOfScan_, KeyActions(), sizeof(keyOfScan_));
@@ -435,7 +435,7 @@ void COptionsWindow::LoadSettings() {
 }
 EI_REWRITTEN(0x00652200, COptionsWindow::LoadSettings);
 
-// --- 006524A0 ------------------------------------------------------------------------------------
+// --- COptionsWindow::Apply ---------------------------------------------------------------
 
 void COptionsWindow::Apply() {
     std::memcpy(KeyActionTable(), keyOfScan_, sizeof(keyOfScan_));
@@ -484,7 +484,7 @@ void COptionsWindow::Apply() {
 }
 EI_REWRITTEN(0x006524A0, COptionsWindow::Apply);
 
-// --- 0065B8B0: the slider's slot 26 ---------------------------------------------------------------
+// --- The slider's slot 26 ---------------------------------------------------------------
 
 namespace {
 // The slider's sprites lie along x: a quarter turn about z (pi / 2).

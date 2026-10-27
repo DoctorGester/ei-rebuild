@@ -1,5 +1,5 @@
-// An interface sprite (CUiMesh, ui.h): its Create (005E6C60, vtable slot 2), its draw (005E6D90,
-// called by the window base's draw 005FEB90 and the panels that draw single sprites), its
+// An interface sprite (CUiMesh, ui.h): its Create, its draw
+// (called by the window base's draw and the panels that draw single sprites), its
 // constructor, destructor and virtual slots.
 // docs/notes/ui.md, section 9.
 #include "ui.h"
@@ -27,7 +27,7 @@ constexpr std::uint32_t kOne = 0x3F800000;
 constexpr int kStackWorld = 1;           // the transform pipeline's stacks the sprite is pushed on
 constexpr int kStackView = 2;
 
-// The identity orientation (w 1, x y z 0; set by 005E6C30 at start): a sprite's first orientation,
+// The identity orientation (w 1, x y z 0: a sprite's first orientation,
 // and what the draw hands DrawFigure as its second argument (not read on that path).
 constexpr Quaternion kIdentityOrientation = /*007C7CD8*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 constexpr float kSpriteDepth = 10.0f;
@@ -43,7 +43,7 @@ void Pop(MatrixStack& stack) {
     if (stack.count != 0) --stack.count;
 }
 
-// Place's layout scale (00740158, 0.48157), the half width / height (00740160, 400; 0073FA98, 300)
+// Place's layout scale (0.48157), the half width / height (00740160, 400; 0073FA98, 300)
 // and 1, read from the exe.
 
 } // namespace

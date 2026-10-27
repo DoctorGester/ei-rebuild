@@ -44,7 +44,7 @@ const UiKeyName* KeyNamesEnd() { return KeyNamesBegin() + kUiKeyNameCount; }
 
 // --- Save/load window ----------------------------------------------------------------------------
 
-// --- 00657820 ------------------------------------------------------------------------------------
+// --- CSaveLoadWindow::IsReservedSave -----------------------------------------------------
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
     const char* folder = entries_.begin()[index].folder_;
@@ -53,7 +53,7 @@ bool CSaveLoadWindow::IsReservedSave(int index) {
     return gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveB()) == 0;
 }
 
-// --- 00655430 ------------------------------------------------------------------------------------
+// --- CSaveLoadWindow::ShowSelection ------------------------------------------------------
 
 void CSaveLoadWindow::ShowSelection() {
     if (selected_ < 0) selected_ = 0;
@@ -69,7 +69,7 @@ void CSaveLoadWindow::ShowSelection() {
     ShowPicture();
 }
 
-// --- 006548A0 ------------------------------------------------------------------------------------
+// --- CSaveLoadWindow::OnKeyDown ----------------------------------------------------------
 
 void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     if (sliding_) return;
@@ -152,10 +152,10 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     handled_ = true;
 }
 
-// --- 00655050 ------------------------------------------------------------------------------------
+// --- TextWidth ---------------------------------------------------------------------------
 
 namespace {
-// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -199,7 +199,7 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
     CUiContainer::Char(key, repeat, flags);
 }
 
-// --- 00650E40 ------------------------------------------------------------------------------------
+// --- COptionsWindow::OnKeyDown -----------------------------------------------------------
 
 void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
     if (sliding_) return;

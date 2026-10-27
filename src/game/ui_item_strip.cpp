@@ -17,9 +17,9 @@
 
 namespace {
 
-// Sprite builders through their original addresses (005E70E0 and 005E7680 are Rebirth-patched):
-// 005E70E0 a textured rectangle (RET 0x28), 005E8450 a framed rectangle (RET 0x2C), 005E7680 a
-// rectangle of `count` repeated cells (RET 0x30).
+// Sprite builders through their original addresses (Rebirth-patched):
+// a textured rectangle, a framed rectangle, a
+// rectangle of `count` repeated cells.
 
 
 
@@ -186,7 +186,7 @@ BOOL CForwardingStrip::Draw(int pass) {
 }
 EI_REWRITTEN(0x00621B50, CForwardingStrip::Draw);
 
-// --- 00620A50: the strip's per-frame scroll ---------------------------------------------------
+// --- The strip's per-frame scroll ---------------------------------------------------
 
 namespace {
 

@@ -27,7 +27,7 @@ constexpr std::uint32_t kCloseSaveLoad = 0x100001;
 constexpr std::uint32_t kCloseSaveLoadLoad = 0x100002;
 constexpr std::uint32_t kCloseOptions = 0x110001;
 
-// Results of the save/load window's message boxes (slot 27).
+// Results of the save/load window's message boxes.
 constexpr int kResultDelete = 0x10001;
 constexpr int kResultOverwrite = 0x20001;
 constexpr int kResultLoad = 0x30001;
@@ -177,11 +177,11 @@ EI_REWRITTEN(0x00654450, CSaveLoadWindow::OnDialogResult);
 // --- Options window ----------------------------------------------------------------------------
 
 void COptionsWindow::RestoreSettings() {
-    // The values the window saved when it opened (0079BCC4..0079BD04).
+    // The values the window saved when it opened.
     TheSoundManager()->SetEffectsVolume(options::TheOptions()->audioSfx_);
     TheSoundManager()->SetMusicVolume(options::TheOptions()->audioStreaming_);
     TheSoundManager()->SetSpeechVolume(options::TheOptions()->audioSpeech_);
-    // The scene renderer's gamma (007AF060, slot 22).
+    // The scene renderer's gamma.
     SceneRenderer()->SetGamma(options::TheOptions()->brightness_, options::TheOptions()->contrast_,
                               options::TheOptions()->gamma_);
 }
@@ -333,7 +333,7 @@ EI_REWRITTEN(0x006508E0, COptionsWindow::OnDialogResult);
 EI_REWRITTEN(0x00650900, COptionsWindow::HelpTopic);
 EI_REWRITTEN(0x00650A30, COptionsWindow::Update);
 
-// --- 0062B180: the destructor body ------------------------------------------------------------------
+// --- The destructor body ------------------------------------------------------------------
 
 COptionsWindow::~COptionsWindow() {
     groupNames_.Destruct();

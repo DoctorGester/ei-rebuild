@@ -19,11 +19,11 @@
 
 namespace {
 
-// 005187B0 (thiscall on the object, RET 8): plays `animation` (with `restart` 1 from here).
+// Plays `animation` (with `restart` 1 from here).
 void PlayAnimation(CObject3D* object, void*, FigureAnimation* animation, int restart) {
     object->PlayAnimation(animation, restart);
 }
-// 00512B20 (thiscall on the object manager 007AF5F8, RET 8): the object of `kind` named `name`.
+// The object of `kind` named `name`.
 FigureAnimation* FindNamed(void* manager, void*, const mfc::CString* name, std::uint32_t kind) {
     return static_cast<CMapObjectManager*>(manager)->FindAnimation(name, kind);
 }
@@ -54,7 +54,7 @@ constexpr std::uint32_t kPreviewDraw = 0x800;
 
 } // namespace
 
-// The object released (slot 4) and forgotten.
+// The object released and forgotten.
 void CUiModel::ReleaseObject() {
     if (object_) object_->Release();
     object_ = nullptr;

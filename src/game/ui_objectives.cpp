@@ -184,7 +184,7 @@ constexpr float kExitTurnDown = 3.1415927f;
 
 } // namespace
 
-// --- 0064CC10: the zone page ----------------------------------------------------------------------
+// --- The zone page ----------------------------------------------------------------------
 
 void CObjectivesWindow::ShowZone(const char* zone) {
     shownZone_ = zone;
@@ -382,7 +382,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     }
 }
 
-// --- 0064DC60: the selected quest ------------------------------------------------------------------
+// --- The selected quest ------------------------------------------------------------------
 
 namespace {
 
@@ -517,7 +517,7 @@ void CObjectivesWindow::ShowQuest() {
     }
 }
 
-// --- 0064BE80: Create ------------------------------------------------------------------------------
+// --- Create ------------------------------------------------------------------------------
 
 void CObjectivesWindow::CreateScreen() {
     UiD3DDevice* device = interface_->renderer_->device_;

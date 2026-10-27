@@ -35,8 +35,7 @@ namespace {
 
 // The game flow.
 
-// The width of the fade at the map's edges (read by 006CB020 / 006CB118; 00578D60 / 00578D70 get
-// and set it). The menu shows its world with 6.
+// The width of the fade at the map's edges. The menu shows its world with 6.
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 // The main menu's six rectangles of menus.reg (loaded by 005ACE80).
 const RECT* MenuRects() { return g_menuRects; }
@@ -73,7 +72,7 @@ double RandomScaled(double scale) { return x87::FromUnsigned(IsaacRandom::Global
 
 } // namespace
 
-// --- 005F51F0: the interface's saved state cleared ----------------------------------------------
+// --- The interface's saved state cleared ----------------------------------------------
 
 void CInterface3D::ResetSavedState() {
     hudPanelsIn_[0] = 0;
@@ -85,12 +84,12 @@ void CInterface3D::ResetSavedState() {
 }
 EI_REWRITTEN(0x005F51F0, CInterface3D::ResetSavedState);
 
-// --- 0062AC90: a region's SetRect from a RECT ---------------------------------------------------
+// --- A region's SetRect from a RECT ---------------------------------------------------
 
 void CUiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
 EI_REWRITTEN(0x0062AC90, CUiRegion::SetRectFrom);
 
-// --- 006335E0: the version line --------------------------------------------------------------
+// --- The version line --------------------------------------------------------------
 
 void CMainMenu::AddVersionLine() {
     CUiSurface* surface = new CUiSurface(interface_, 100, 480, 780, 600, 5, 1);
@@ -105,7 +104,7 @@ void CMainMenu::AddVersionLine() {
 }
 EI_REWRITTEN(0x006335E0, CMainMenu::AddVersionLine);
 
-// --- 006326B0: Create (slot 25) --------------------------------------------------------------
+// --- Create ----------------------------------------------------------------
 
 void CMainMenu::CreateScreen() {
     interface_->ResetSavedState();
@@ -137,7 +136,7 @@ void CMainMenu::CreateScreen() {
 }
 EI_REWRITTEN(0x006326B0, CMainMenu::CreateScreen);
 
-// --- 00632B10: Update (slot 24, every frame) ---------------------------------------------------
+// --- Update (every frame) ---------------------------------------------------
 
 void CMainMenu::Update() {
     static_cast<CUiContainer*>(this)->UpdateBase();
@@ -165,7 +164,7 @@ void CMainMenu::Update() {
 }
 EI_REWRITTEN(0x00632B10, CMainMenu::Update);
 
-// --- 00632910: Close (slot 26) -----------------------------------------------------------------
+// --- Close -----------------------------------------------------------------
 
 void CMainMenu::Close() {
     MapEdgeFade() = savedEdgeFade_;
@@ -174,7 +173,7 @@ void CMainMenu::Close() {
 }
 EI_REWRITTEN(0x00632910, CMainMenu::Close);
 
-// --- 00632940: a message box's answer (slot 27) -----------------------------------------------
+// --- A message box's answer -----------------------------------------------
 
 void CMainMenu::OnMessageResult(int result) {
     TheGameFlow()->UseResources(false);
@@ -199,7 +198,7 @@ void CMainMenu::OnMessageResult(int result) {
 }
 EI_REWRITTEN(0x00632940, CMainMenu::OnMessageResult);
 
-// --- 00633400 / 00633540: the mouse move and the keys -------------------------------------------
+// --- The mouse move and the keys -------------------------------------------
 
 void CMainMenu::OnMouseMove(int buttons, int x, int y) {
     if (auto* stones = TheObjectManager()->FindObjectAs<CObject3D>(kStonesObject)) {

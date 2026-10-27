@@ -52,7 +52,7 @@ void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
 
 } // namespace
 
-// --- 00622C10: the quick strip ------------------------------------------------------------------
+// --- The quick strip ------------------------------------------------------------------
 
 BOOL CHeroQuickStrip::Draw(int pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
@@ -73,7 +73,7 @@ BOOL CHeroQuickStrip::Draw(int pass) {
 }
 EI_REWRITTEN(0x00622C10, CHeroQuickStrip::Draw);
 
-// --- 00627C90: the repair grid ------------------------------------------------------------------
+// --- The repair grid ------------------------------------------------------------------
 
 BOOL CRepairGrid::Draw(int pass) {
     CInterface3D* ui = interface_;
@@ -118,7 +118,7 @@ BOOL CRepairGrid::Draw(int pass) {
 }
 EI_REWRITTEN(0x00627C90, CRepairGrid::Draw);
 
-// --- 006284A0 / 00628F80: the constructors' second pages ----------------------------------------
+// --- The constructors' second pages ----------------------------------------
 
 namespace {
 
