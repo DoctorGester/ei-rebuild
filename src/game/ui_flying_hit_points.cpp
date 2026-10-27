@@ -33,13 +33,13 @@ CFlyingHitPoints* CFlyingHitPoints::Construct() {
     points_.head = sentinel;
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
-    object_ = nullptr;
+    texture_ = nullptr;
     return this;
 }
 EI_REWRITTEN(0x005E1710, CFlyingHitPoints::Construct);
 
 void CFlyingHitPoints::Destruct() {
-    if (object_) object_->Release();
+    if (texture_) texture_->Release();
     points_.ClearWith([](FlyingHitPoint*) {});
     stlp::deallocate(points_.head, sizeof(Node));
 }
@@ -149,8 +149,8 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
         targetWidth = static_cast<std::uint32_t>(renderer->device_->renderTarget_->width);
         targetHeight = static_cast<std::uint32_t>(renderer->device_->renderTarget_->height);
     }
-    if (!object_) return 0;
-    if (!renderer->SetTexture(0, object_)) return game::FatalError(game::FlyingHitPointsTextureText());
+    if (!texture_) return 0;
+    if (!renderer->SetTexture(0, texture_)) return game::FatalError(game::FlyingHitPointsTextureText());
 
     Node* head = points_.head;
     for (Node* node = head->next; node != head;) {

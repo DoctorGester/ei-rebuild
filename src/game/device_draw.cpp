@@ -143,7 +143,7 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset, const DrawArgs& a
     unsigned triangles = args.indexCount / 3;
     Draw(device, args, triangles);
     // Tests the byte size rounded down to dwords: more than one block.
-    if (((reinterpret_cast<char*>(preset->blocks_.end()) - reinterpret_cast<char*>(preset->blocks_.begin())) & ~3) > 4) {
+    if (((preset->blocks_.size() * sizeof(std::uint32_t)) & ~std::size_t{3}) > 4) {
         int pass = 1;
         do {
             device::ApplyStateBlock(device::D3D(device), preset->blocks_[pass]);

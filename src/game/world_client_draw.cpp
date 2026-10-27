@@ -12,6 +12,7 @@
 #include "ui_flying_hit_points.h"
 #include "view_matrices.h"
 #include "world.h"
+#include "figure_manager.h"
 #include "world_data.h"
 
 #include "camera.h"
@@ -223,11 +224,11 @@ const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCam
 
 int __fastcall QueueScreenEntry(CMapObject* object, stlp::list<ScreenEntry>* queued) {
     if (!(object->flags_ & 0x20) || (object->flags_ & 0x40)) return 0;
-    const CObject3D* figure = static_cast<const CObject3D*>(object);
+    const CObject3D* figure = object;
     ScreenEntry entry;
     entry.classId = object->GetClassId();
     entry.objectId = static_cast<unsigned>(object->id_);
-    for (int i = 0; i < 4; ++i) entry.rect[i] = figure->dirtyRect[i];
+    entry.rect = figure->dirtyRect;
     stlp::list<ScreenEntry>::Insert(queued->head, entry);
     return 1;
 }

@@ -6,6 +6,7 @@
 #include "ui.h"
 #include "ui_screens.h"
 #include "sound.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"

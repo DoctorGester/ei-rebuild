@@ -270,8 +270,8 @@ void BuildCellGrid(CUiWindow* window) {
         float pictureDepth = static_cast<float>(D(depth) + D(depth));
         int bottom = top + 100;
         for (int left = 200; left < 600; left += 100) {
-            CEngineObject** textures = window->objects_.data;
-            CEngineObject* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
+            CTexture** textures = window->objects_.data;
+            CTexture* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
                                                 : (left <= 300 ? textures[2] : textures[3]);
             int right = left + 100;
             CUiMesh* picture = window->AddSprite(0);

@@ -5,6 +5,7 @@
 
 #include "world.h"
 #include "figure_manager.h"
+#include "spell.h"   // CLightFactory
 #include "effects.h"
 #include "item.h"
 #include "item_db_text.h"
@@ -117,6 +118,7 @@ const char* CWorldClient::TexturePath() { return texturePath_.c_str(); }
 CMaterialManager* CWorldClient::MaterialManager() { return manager188_; }
 CTextureManager* CWorldClient::TextureManager() { return textureManager_; }
 CBaseManager* CWorldClient::ClientLightManager() { return manager190_; }
+CBaseManager* CWorld::FigureManager() { return manager3C_; }
 CParticleManager* CWorldClient::ClientParticleManager() { return particleManager_; }
 CEngineObject* CWorldClient::ClientManager194() { return manager194_; }
 CEngineObject* CWorldClient::ClientManager198() { return manager198_; }

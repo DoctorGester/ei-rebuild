@@ -364,7 +364,7 @@ void CItemInfoPanel::DescribeItem() {
     }
     if (kind == kArmor) {
         float values[7];
-        std::memcpy(values, static_cast<const CItemArmor*>(item)->absorb_[0], sizeof(values));
+        std::memcpy(values, AsArmor(item)->absorb_[0], sizeof(values));
         w.DamageLines(values, 25);
     }
 

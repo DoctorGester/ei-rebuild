@@ -133,9 +133,9 @@ int CTransformPipeline::ProjectTerrain(const void* vertices, void* projected, vo
 EI_REWRITTEN(0x004F29F0, CTransformPipeline::ProjectTerrain);
 
 
-Matrix4* __stdcall ViewportMatrix(Matrix4* out, const int* rect) {
-    float halfWidth = static_cast<float>((rect[2] - rect[0]) >> 1);
-    float halfHeight = static_cast<float>((rect[3] - rect[1]) >> 1);
+Matrix4* __stdcall ViewportMatrix(Matrix4* out, const tagRECT* rect) {
+    float halfWidth = static_cast<float>((rect->right - rect->left) >> 1);
+    float halfHeight = static_cast<float>((rect->bottom - rect->top) >> 1);
     std::memset(out, 0, sizeof(Matrix4));
     out->m[15] = 1.0f;
     out->m[10] = 1.0f;

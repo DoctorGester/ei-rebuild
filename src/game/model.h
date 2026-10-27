@@ -308,7 +308,7 @@ public:
     virtual int ClearFrame() = 0;
     virtual std::uint32_t ZEnable() = 0;
     virtual int SetBlend(std::uint32_t source, std::uint32_t dest) = 0;
-    virtual int SetTexture(int stage, void* texture) = 0;
+    virtual int SetTexture(int stage, CTexture* texture) = 0;
     virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices,
                               unsigned indexCount) = 0;
     virtual int DrawFigureLit(CFigureMesh* figure, const FigureLights* lights, CMaterial* material, int alpha, tagRECT* screen,
@@ -423,7 +423,7 @@ public:
     // Sets SRCBLEND, then DESTBLEND.
     int SetBlend(std::uint32_t source, std::uint32_t dest) override;
     // Binds `texture` (a texture object, or null) to stage `stage`.
-    int SetTexture(int stage, void* texture) override;
+    int SetTexture(int stage, CTexture* texture) override;
     // Draws pre-transformed vertices (D3DTLVERTEX) as an indexed triangle list with the current state.
     int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount) override;
     // Draws `figure` (a CFigureMesh) through its drawer's lit draw with `lights`, the drawing context
@@ -500,7 +500,7 @@ CSceneRenderer* __cdecl SceneRenderer();
 
 // Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by the half extents,
 // y flipped.
-Matrix4* __stdcall ViewportMatrix(Matrix4* out, const int* rect);
+Matrix4* __stdcall ViewportMatrix(Matrix4* out, const tagRECT* rect);
 // Perspective projection; `fov` in radians (full angle).
 Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
 

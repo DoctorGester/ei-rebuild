@@ -154,7 +154,7 @@ public:
 
     CWorld* ThisWorld() override { return this; }
     CBaseManager* TimedObjectManager() override { return manager48_; }
-    CBaseManager* FigureManager() override { return manager3C_; }
+    CBaseManager* FigureManager() override;   // manager3C_ (world_class_slots.cpp: CFigureManager is complete there)
     CItemConstructor* ItemConstructor() override { return manager58_; }
     CSpellConstructor* SpellConstructor() override { return manager50_; }
     CItemManager* ItemFactory() override { return itemManager_; }
@@ -214,7 +214,7 @@ public:
     std::uint32_t windStrength_;          // float bits, 0..1; saved and loaded
     CLinkFigureLoader* figureLoader_;     // counted (the client's from SetUpGraphics; FigureLoader returns it)
     CPlayerManager* players_;
-    CBaseManager* manager3C_;            // FigureManager
+    CFigureManager* manager3C_;          // FigureManager
     CMapObjectManager* manager40_;       // map objects by id (its NewObject creates one)
     CBaseManager* manager44_;            // SpecificManager
     CBaseManager* manager48_;            // the timed objects (spells, effects; TimedObjectManager)
@@ -805,7 +805,7 @@ public:
 struct ScreenEntry {
     int classId;
     unsigned objectId;                    // the object, in the map object manager
-    std::int32_t rect[4];                 // RECT on the screen
+    tagRECT rect;                         // on the screen
 };
 static_assert(sizeof(ScreenEntry) == 0x18);
 using ScreenEntryNode = stlp::list<ScreenEntry>::Node;
@@ -1040,7 +1040,7 @@ public:
     CUnit* UnitAt2(const struct tagPOINT* point);
     // Every object of the frame's window list that still exists and whose side half has a drawn part
     // meeting the screen rectangle `rect` is appended to `out`.
-    void UnitsInBox(const long* rect, stlp::list<CMapObject*>* out);
+    void UnitsInBox(const tagRECT* rect, stlp::list<CMapObject*>* out);
     // Marks the footprints within their scale times `range` of the point (x, y).
     void MarkFootprintsInSight(const float* point, float range);
     // The wind: stored, given to the terrain's waves and to the rain and snow layer.
@@ -1130,7 +1130,7 @@ public:
     std::string zoneName_;
     CMaterialManager* manager188_;        // counted
     CTextureManager* textureManager_;     // counted
-    CBaseManager* manager190_;            // counted
+    CLightFactory* manager190_;           // counted
     CEngineObject* manager194_;           // (ClientManager194 returns it; not identified)
     CEngineObject* manager198_;           // (ClientManager198 returns it; not identified)
     CParticleManager* particleManager_;        // counted
@@ -1507,7 +1507,7 @@ inline stlp::list<CMapObject*>* FrameDeferredUnits() { return &*g_deferredUnits;
 // use counts it down.
 inline int& NextClientObjectId() { return TheClientWorld()->nextClientObjectId_; }
 inline CItemManager* WorldItemManager() { return TheServerWorld()->itemManager_; }
-inline CBaseManager* WorldObjectManager() { return TheServerWorld()->manager40_; }
+inline CMapObjectManager* WorldObjectManager() { return TheServerWorld()->manager40_; }
 
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a

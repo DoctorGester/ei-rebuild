@@ -110,7 +110,7 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
     Matrix4 m;
     ProjectionMatrix(&m, fov, std::bit_cast<float>(0x3FAAAAABu), zNear, zFar);   // aspect 4/3
     StackPush(stacks[kProjection], &m);
-    ViewportMatrix(&m, reinterpret_cast<const int*>(&renderer->device_->screen_));
+    ViewportMatrix(&m, &renderer->device_->screen_);
     StackPush(stacks[kViewport], &m);
     AxisSwapMatrix(&m);
     StackPush(stacks[kAxisSwap], &m);
@@ -285,7 +285,7 @@ void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     Matrix4 m;
     ProjectionMatrix(&m, fov, static_cast<float>(width) / static_cast<float>(height), zNear, zFar);
     StackPush(stacks[kProjection], &m);
-    ViewportMatrix(&m, reinterpret_cast<const int*>(screen));
+    ViewportMatrix(&m, screen);
     StackPush(stacks[kViewport], &m);
     AxisSwapMatrix(&m);
     StackPush(stacks[kAxisSwap], &m);

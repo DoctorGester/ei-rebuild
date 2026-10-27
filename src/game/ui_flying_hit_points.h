@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class CEngineObject;
+class CTexture;
 class CSceneRenderer;
 
 struct FlyingHitPoint {
@@ -38,7 +38,7 @@ public:
     // target. Then entries with flag 31 are erased. Returns 1.
     int Draw(CSceneRenderer* renderer);
 
-    CEngineObject* object_;
+    CTexture* texture_;   // the digits texture (counted)
     stlp::list<FlyingHitPoint> points_;
 };
 static_assert(offsetof(CFlyingHitPoints, points_) == 4);

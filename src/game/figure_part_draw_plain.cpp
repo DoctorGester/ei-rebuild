@@ -39,7 +39,7 @@ void Fill(ColourArray& a, std::uint32_t value) {
     for (int i = 0; i < a.size; ++i) a.data[i] = value;
 }
 
-const void* MovedPositionsOf(CFigureMesh* mesh) {
+const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
     lib::AlignedArray<VertexPacket>& moved = MovedPositions();
     int blocks = mesh->buffers_.vertexCount;
     moved.SetSize(blocks);
@@ -88,7 +88,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
     if (visibility == 1) drawFlags |= 2;
     if (rect) drawFlags |= 1;
 
-    const void* positions = mesh_->buffers_.vertices;
+    const VertexPacket* positions = mesh_->buffers_.vertices;
     int blocks = mesh_->buffers_.vertexCount;
     if (mesh_->offsets_.size != 0) positions = MovedPositionsOf(mesh_);
     CFigureMesh* m = mesh_;
@@ -98,7 +98,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
     render::SetMeshSource(&source);
     int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA_.data, m->colorsB_.data,
                                         b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words, b.wordCount,
-                                        static_cast<std::uint16_t*>(b.indices), b.indexCount, m->textureOffsetU_,
+                                        b.indices, b.indexCount, m->textureOffsetU_,
                                         m->textureOffsetV_, alpha, drawFlags);
     render::SetMeshSource(nullptr);
     if (rect) {

@@ -94,7 +94,7 @@ struct LocalEntry {
     LocalEntry& operator=(const LocalEntry&) = delete;
 };
 
-CDXSurface* HolderOf(CEngineObject* texture) { return static_cast<CTexture*>(texture)->surface_; }
+CDXSurface* HolderOf(CTexture* texture) { return texture->surface_; }
 
 // The pixels of a picture texture for one fill or read: the holder's memory (the original: a Lock
 // with flags 0 and the Unlock after).
@@ -367,7 +367,7 @@ void CSaveLoadWindow::FillEntries() {
         if (dialog_) dialog_->Release();
         dialog_ = nullptr;
         if (SavePicture(interface_)) {
-            CEngineObject* shot = CreateTexture(0x100, 0x100, 0x1E);
+            CTexture* shot = CreateTexture(0x100, 0x100, 0x1E);
             dialog_ = shot;
             ++shot->refCount_;
             RemoveObjectAt(objects_.size - 1);

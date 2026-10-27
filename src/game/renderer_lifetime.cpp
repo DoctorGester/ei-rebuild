@@ -192,10 +192,10 @@ std::uint32_t CSceneRenderer::ZEnable() { return device_->zEnable_; }
 EI_REWRITTEN(0x00501AA0, CSceneRenderer::ZEnable);
 
 // The holder is stored (the new renderer draws with it); no device lock.
-int CSceneRenderer::SetTexture(int stage, void* texture) {
+int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
     CTextureDevice* device = device_;
     CDXSurface*& bound = device->stageSurfaces_[stage];
-    CDXSurface* surface = texture ? static_cast<CTexture*>(texture)->surface_ : nullptr;
+    CDXSurface* surface = texture ? texture->surface_ : nullptr;
     if (bound == surface) return 1;
     bound = surface;
     device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), nullptr);

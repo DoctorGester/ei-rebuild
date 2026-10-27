@@ -32,11 +32,6 @@ using Arrivals = stlp::map<int, float>;
 
 constexpr const char* kZoneVariable = "z.%s";
 
-// value_type of the arrivals map.
-struct ArrivalPair {
-    int exit;
-    float time;
-};
 
 // Insert(hint, value) of the arrivals map (lib_trees::Arrivals').
 
@@ -45,8 +40,8 @@ struct ArrivalPair {
 float& Arrival(Arrivals& arrivals, int exit) {
     Arrivals::Node* at = arrivals.lower_bound(exit);
     if (at == arrivals.end() || exit < at->first) {
-        ArrivalPair value = {exit, 0.0f};
-        static_cast<lib_trees::Arrivals*>(&arrivals)->InsertHint(&at, at, *reinterpret_cast<const Arrivals::Value*>(&value));
+        const Arrivals::Value value = {exit, 0.0f};
+        static_cast<lib_trees::Arrivals*>(&arrivals)->InsertHint(&at, at, value);
     }
     return at->second;
 }

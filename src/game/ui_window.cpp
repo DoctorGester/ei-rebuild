@@ -192,17 +192,17 @@ void CUiWindow::SetEnabled(int enabled, int notify) {
 }
 EI_REWRITTEN(0x006002A0, CUiWindow::SetEnabled);
 
-void CUiWindow::AddObject(CEngineObject* object) {
-    if (!object) return;
-    objects_.Add(object);
-    ++object->refCount_;
+void CUiWindow::AddObject(CTexture* texture) {
+    if (!texture) return;
+    objects_.Add(texture);
+    ++texture->refCount_;
 }
 EI_REWRITTEN(0x005FEDD0, CUiWindow::AddObject);
 
-void CUiWindow::RemoveObject(CEngineObject* object) {
-    if (!object) return;
+void CUiWindow::RemoveObject(CTexture* texture) {
+    if (!texture) return;
     for (int i = 0; i < objects_.size; ++i) {
-        if (objects_.data[i] == object) {
+        if (objects_.data[i] == texture) {
             objects_.data[i]->Release();
             objects_.RemoveAt(i);
             return;
@@ -280,7 +280,7 @@ void CUiWindow::ClearSurfaces() {
 }
 EI_REWRITTEN(0x005FFC50, CUiWindow::ClearSurfaces);
 
-CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* directory) {
+CTexture* CUiWindow::LoadTexture(const char* name, int kind, const char* directory) {
     CTextureManager* manager = TheTextureManager();
     CTexture* texture = manager->FindOrCreate(kind, name);
     if (!texture) return nullptr;
@@ -292,8 +292,8 @@ CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* di
 }
 EI_REWRITTEN(0x005FEF20, CUiWindow::LoadTexture);
 
-CEngineObject* CUiWindow::CreateTexture(int width, int height, int kind) {
-    CEngineObject* texture = TheTextureManager()->NewTexture(width, height, kind);
+CTexture* CUiWindow::CreateTexture(int width, int height, int kind) {
+    CTexture* texture = TheTextureManager()->NewTexture(width, height, kind);
     if (!texture) return nullptr;
     int index = objects_.size;
     objects_.SetSize(index + 1, -1);

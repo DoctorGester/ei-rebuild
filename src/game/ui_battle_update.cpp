@@ -321,7 +321,7 @@ void CBattleScreen::Update() {
     if (boxSelecting_) {
         UnitList units;
         units.Construct();
-        TheClientWorld()->UnitsInBox(&selectionBox_.left, &units);
+        TheClientWorld()->UnitsInBox(&selectionBox_, &units);
         List inside;
         inside.Construct();
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
@@ -412,7 +412,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     int first = -1;
     UnitList units;
     units.Construct();
-    world->UnitsInBox(&selectionBox_.left, &units);
+    world->UnitsInBox(&selectionBox_, &units);
     List inside;
     inside.Construct();
     if (units.head->next != units.head) {

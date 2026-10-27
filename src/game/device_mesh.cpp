@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "device_buffers.h"
+#include "figure_mesh.h"
 #include "model.h"
 #include "render/render.h"
 #include "texture.h"
@@ -15,29 +16,21 @@
 
 namespace {
 
-struct DeviceCorner {
-    std::uint16_t position;   // into the projected vertices
-    std::uint16_t colour;     // into the colour and specular arrays
-    std::uint16_t uv;         // into the texture coordinates
-};
-static_assert(sizeof(DeviceCorner) == 6);
-struct TexCoord {
-    float u, v;
-};
-
+// A corner's position indexes the projected vertices, its normal the colour and specular arrays (one
+// colour per normal) and its texCoord the texture coordinates.
 // The arguments both draws share (the two-texture draw has the two textures before them).
 struct MeshArgs {
-    const void* positions;        // 64 bytes per block of four vertices
+    const VertexPacket* positions;   // a block of four vertices each
     int blocks;
-    const void* normals;          // the normals' address (blocks of four as the positions)
+    const NormalPacket* normals;     // blocks of four as the positions
     int colourCount;              // the colour arrays hold four times this (and so many normal blocks)
     std::uint32_t* colours;
     std::uint32_t* speculars;
     const TexCoord* uvs;
     int unused10;
-    const DeviceCorner* corners;
+    const MeshCorner* corners;
     int cornerCount;
-    const void* words;            // the words' address: (position, normal) index pairs, by colour index
+    const std::uint32_t* words;   // the words' address: (position, normal) index pairs, by colour index
     int wordCount;
     std::uint16_t* indices;       // into the corners
     int indexCount;
@@ -48,8 +41,8 @@ struct MeshArgs {
 };
 
 struct Textures {
-    void* first;
-    void* second;
+    CDXSurface* first;
+    CDXSurface* second;
 };
 
 // --- The buffers ---------------------------------------------------------------------------------
@@ -88,15 +81,15 @@ void FillCorners(const MeshArgs& a) {
     EI_NAN_AUDIT(*a.uOffset, *a.vOffset);
     bool moved = *a.uOffset != 0.0f || *a.vOffset != 0.0f;
     for (int i = 0; i < a.cornerCount; ++i, ++v) {
-        const DeviceCorner& c = a.corners[i];
+        const MeshCorner& c = a.corners[i];
         std::memcpy(&v->x, &projected[c.position], 16);
-        v->color = a.colours[c.colour];
-        v->specular = a.speculars[c.colour];
+        v->color = a.colours[c.normal];
+        v->specular = a.speculars[c.normal];
         if (moved) {
-            AddOffset(a.uOffset, &a.uvs[c.uv].u, &v->u);
-            AddOffset(a.vOffset, &a.uvs[c.uv].v, &v->v);
+            AddOffset(a.uOffset, &a.uvs[c.texCoord].u, &v->u);
+            AddOffset(a.vOffset, &a.uvs[c.texCoord].v, &v->v);
         } else {
-            std::memcpy(&v->u, &a.uvs[c.uv], 8);
+            std::memcpy(&v->u, &a.uvs[c.texCoord], 8);
         }
     }
 }
@@ -105,8 +98,7 @@ void FillCorners(const MeshArgs& a) {
 void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* indices, int indexCount) {
     int count = Vertices().size;
     if (textures) {
-        device->DrawTwoTextures(static_cast<CDXSurface*>(textures->first), static_cast<CDXSurface*>(textures->second), 4, 0x1C4, Vertices().data, count, indices,
-                       indexCount, 0);
+        device->DrawTwoTextures(textures->first, textures->second, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
     } else {
         device->DrawIndexed(4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
     }
@@ -151,7 +143,7 @@ void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const Me
 
 void HandOver(CTextureDevice* device, const MeshArgs& a) {
     render::MeshDraw m{};
-    m.positions = static_cast<const float*>(a.positions);
+    m.positions = &a.positions->block[0][0];
     m.positionCount = a.blocks * 4;
     m.colours = a.colours;
     m.speculars = a.speculars;
@@ -174,9 +166,9 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
     m.zScale = 1.0f;
     m.coloursWritten = (a.flags & 4) != 0;   // OverrideColours
     // A figure part lit on the GPU needs its normals.
-    m.normals = static_cast<const float*>(a.normals);
+    m.normals = &a.normals->block[0][0];
     m.normalCount = a.colourCount * 4;
-    m.words = static_cast<const std::uint16_t*>(a.words);
+    m.words = reinterpret_cast<const std::uint16_t*>(a.words);   // (position, normal) index pairs
     m.wordCount = a.wordCount;
     render::BeginMesh(device, m);
 }
@@ -219,26 +211,25 @@ int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures
 
 } // namespace
 
-int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, const void* normals, int colourCount,
-                              std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
-                              const void* corners, int cornerCount, const void* words, int wordCount,
-                              std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha,
-                              int flags) {
-    MeshArgs a{positions, blocks, normals, colourCount, colours, speculars, static_cast<const TexCoord*>(uvs),
-               unused10, static_cast<const DeviceCorner*>(corners), cornerCount, words, wordCount, indices,
-               indexCount, &uOffset, &vOffset, alpha, flags};
+int CTextureDevice::DrawMeshBlocks(const VertexPacket* positions, int blocks, const NormalPacket* normals,
+                              int colourCount, std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs,
+                              int unused10, const MeshCorner* corners, int cornerCount, const std::uint32_t* words,
+                              int wordCount, std::uint16_t* indices, int indexCount, float uOffset, float vOffset,
+                              int alpha, int flags) {
+    MeshArgs a{positions, blocks, normals, colourCount, colours, speculars, uvs, unused10, corners, cornerCount,
+               words, wordCount, indices, indexCount, &uOffset, &vOffset, alpha, flags};
     return DrawMesh(this, a, nullptr);
 }
 EI_REWRITTEN(0x004E9010, CTextureDevice::DrawMeshBlocks);
 
-int CTextureDevice::DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions,
-                               int blocks, const void* normals, int colourCount, std::uint32_t* colours,
-                               std::uint32_t* speculars, const void* uvs, int unused10, const void* corners,
-                               int cornerCount, const void* words, int wordCount, std::uint16_t* indices, int indexCount,
-                               float uOffset, float vOffset, int alpha, int flags) {
-    MeshArgs a{positions, blocks, normals, colourCount, colours, speculars, static_cast<const TexCoord*>(uvs),
-               unused10, static_cast<const DeviceCorner*>(corners), cornerCount, words, wordCount, indices,
-               indexCount, &uOffset, &vOffset, alpha, flags};
+int CTextureDevice::DrawMeshBlocks2(CDXSurface* firstTexture, CDXSurface* secondTexture,
+                               const VertexPacket* positions, int blocks, const NormalPacket* normals, int colourCount,
+                               std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs, int unused10,
+                               const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
+                               std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha,
+                               int flags) {
+    MeshArgs a{positions, blocks, normals, colourCount, colours, speculars, uvs, unused10, corners, cornerCount,
+               words, wordCount, indices, indexCount, &uOffset, &vOffset, alpha, flags};
     Textures textures{firstTexture, secondTexture};
     return DrawMesh(this, a, &textures);
 }

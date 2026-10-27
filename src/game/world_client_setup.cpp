@@ -106,7 +106,7 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     if (texture) {
         ++texture->refCount_;
         TextureManager()->LoadTexture(texture);
-        numbers_->object_ = texture;
+        numbers_->texture_ = texture;
         texture->flags_ |= kTextureKeep;
     }
     CLinkFigureLoader* loader;

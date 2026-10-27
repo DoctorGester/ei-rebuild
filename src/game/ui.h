@@ -43,6 +43,7 @@ class CChatOverlay;
 struct UiInputSide;
 class CUiMesh;
 struct CDXSurface;
+class CTexture;
 class CTextureDevice;
 class CPixelConverter;
 class CUiSurface;
@@ -282,6 +283,7 @@ public:
     void ResetSavedState();
 };
 static_assert(offsetof(CInterface3D, mouseCapture_) == 0x0C);
+static_assert(offsetof(CInterface3D, ctrlDown_) == 0x7C && offsetof(CInterface3D, altDown_) == 0x7E);
 static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
 static_assert(offsetof(CInterface3D, hudPanelsIn_) == 0x89 && offsetof(CInterface3D, hudTopPage_) == 0x90);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94 && offsetof(CInterface3D, messages_) == 0x84);
@@ -563,8 +565,8 @@ public:
     void SetEnabled(int enabled, int notify);
 
     // Takes a reference (null is ignored).
-    void AddObject(CEngineObject* object);
-    void RemoveObject(CEngineObject* object);
+    void AddObject(CTexture* texture);
+    void RemoveObject(CTexture* texture);
     void RemoveObjectAt(int index);
     void ClearObjects();
 
@@ -604,14 +606,14 @@ public:
     // Copies the top-left width x height of image "<name>.mmp" (decoded as imageWidth x imageHeight) into
     // `texture`'s 256-wide 1:5:5:5 surface at (x, y), or white without such an image. Returns whether the
     // image exists (0 also when the lock fails).
-    int CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width, int height,
+    int CopyImage(CTexture* texture, const char* name, int imageWidth, int imageHeight, int width, int height,
                   int x, int y, int unused1, int unused2);
     // The texture manager's texture `name` of `kind` (found or made), loaded (or from `directory`) and
     // appended to the referenced objects with one more reference; null when either step fails (a texture
     // made but not loaded is kept by the manager).
-    CEngineObject* LoadTexture(const char* name, int kind, const char* directory);
+    CTexture* LoadTexture(const char* name, int kind, const char* directory);
     // A new CPU-filled texture (flag 0x40000) kept with the referenced objects; null when none is made.
-    CEngineObject* CreateTexture(int width, int height, int kind);
+    CTexture* CreateTexture(int width, int height, int kind);
     // `show` 0: every surface keeps its contents in memory and lets its DirectDraw surface go; otherwise the
     // shown surfaces get theirs back.
     void ShowSurfaces(int show);
@@ -628,7 +630,7 @@ public:
     CEngineObject* blackMaterial_;            // given to every sprite (AddSprite)
     CEngineObject* whiteMaterial_;
     CEngineObject* heldObject_;               // released by the destructor (writer not identified)
-    UiPtrArray<CEngineObject> objects_;       // referenced objects
+    UiPtrArray<CTexture> objects_;            // the referenced textures
     UiPtrArray<CEngineObject> sceneObjects_;
     UiPtrArray<CUiSurface> surfaces_;
     UiPtrArray<CUiRegion> regions_;
@@ -1077,7 +1079,7 @@ public:
     float& ScaleY() { return scaleMatrix_.m[5]; }
     float& ScaleZ() { return scaleMatrix_.m[10]; }
     CEngineObject* material_;        // the window's black material
-    CEngineObject* texture_;         // one of the window's referenced objects
+    CTexture* texture_;              // one of the window's referenced textures
 };
 static_assert(offsetof(CUiMesh, flatSpecular_) == 0xD8 && offsetof(CUiMesh, textureOffsetU_) == 0xCC);
 
@@ -1868,7 +1870,7 @@ public:
     std::uint8_t unused_17A[2];
     float slide_;                    // 0..1
     CUiScrollbar* scrollbar_;
-    CEngineObject* dialog_;          // the save window's picture of the game for the new save
+    CTexture* dialog_;               // the save window's picture of the game for the new save
     std::string name_;              // the save name being edited
     bool nameTyped_;
     std::uint8_t unused_18D[3];

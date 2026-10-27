@@ -300,8 +300,7 @@ void CUnitServer::UpdateState() {
             state = kStateChasing;
             unit->UpdateSizeClass();
             DropEffectObject(this);
-            using Callback = void(__fastcall*)(CUnit*);
-            if (auto callback = reinterpret_cast<Callback>(actionDone)) {
+            if (auto callback = actionDone) {
                 callback(unit);
                 UpdateOrders();
             }

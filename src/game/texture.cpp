@@ -57,17 +57,16 @@ int CTextureManager::LoadTexture(CTexture* texture) {
     }
 
     path = mfc::CString(texture->GetName()) + ".mmp";
-    if (void* data = GetFile(path.c_str(), nullptr)) {
-        auto* header = static_cast<const MmpHeader*>(data);
-        if (!device_->ParseMmpHeader(data, &format) &&
+    if (auto* header = static_cast<MmpHeader*>(GetFile(path.c_str(), nullptr))) {
+        if (!device_->ParseMmpHeader(header, &format) &&
             !(header->format == 0x8888 && device_->FindFormat(0x4444, &format)))
             return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                     texture->GetName());
         texture->format_ = format;
         unsigned mip = mipLevel_;
         if (mip >= header->mipCount) mip = header->mipCount - 1;
-        result = texture->CreateFromMmp(device_, data, mip);
-        CloseFile(data);
+        result = texture->CreateFromMmp(device_, header, mip);
+        CloseFile(header);
         return result;
     }
 
@@ -78,7 +77,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't find texture \"%s\"\n", texture->GetName());
         return 1;
     }
-    void* buffer = gamecrt::operator_new(file.GetLength());
+    auto* buffer = gamecrt::operator_new_bytes_as<MmpHeader>(file.GetLength());
     file.Read(buffer, file.GetLength());
     file.Close();
     if (!device_->ParseMmpHeader(buffer, &format))   // the original leaks `buffer` here
@@ -108,7 +107,7 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
                        texture->GetName(), directory);
         return 1;
     }
-    void* buffer = gamecrt::operator_new(file.GetLength());
+    auto* buffer = gamecrt::operator_new_bytes_as<MmpHeader>(file.GetLength());
     file.Read(buffer, file.GetLength());
     file.Close();
     PixelFormat format;
