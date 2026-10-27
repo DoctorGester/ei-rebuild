@@ -8,7 +8,7 @@
 // The standalone image runs them before WinMain (Run in static_init.h); the verify build compares the
 // stores and float folds with what the original's initialisers left in memory (Check). Calls go to the
 // callee's address in the image: our rewrite through its jump, or a library port.
-// tools/check_static_init.py (build.cmd) checks this file against game.exe.
+// tools/gen_static_init.py writes this file from game.exe's initialisers.
 #include "static_init.h"
 
 #include "lib/mfc_gdi.h"

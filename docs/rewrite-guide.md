@@ -61,7 +61,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    only AL return `bool`. A float left unrounded in ST0 is rule 7's.
 3. **Registrations and calling conventions.** A rewrite is an ordinary function or member, called by
    name. Write `EI_REWRITTEN(addr, Function)` next to it: it registers nothing and keeps the function
-   in the tools' function-to-original map (check_fp_fold, check_signatures, coverage, progress; C20d).
+   in the tools' function-to-original map (check_signatures, coverage, progress; C20d).
    Register it at its address (`EI_REPLACE` / `EI_REPLACE_METHOD`) only while something still reaches
    that address: a code cell of game.exe's data image (a static initialiser, a CRT / MFC table) or a code
    literal (`python tools/registration_readers.py` names the readers; C20 retires them). Such a function keeps the original's calling convention and declares every stack
@@ -100,8 +100,9 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
      fpatan` (`vecmath::Atan2`) `/ fexp / flog / flog10`, the instructions the original's VC6 code inlines. `std::sqrt` is FSQRT at the
      precision control on this target (C16, docs/notes/cleanup-tooling.md "SSE2 build"); give it a double: `std::sqrt(static_cast<double>(x))` for a float expression, as `std::sqrt(float)` is `sqrtf`. A product of two constants that the
      original computes at run time (FLD; FMUL / FDIV) is rounded to 24 bits there, while the compiler folds it at double precision: write it as the
-     float (`static_cast<float>(kPi * kPerDegree)`, checking the rounding) or keep the operation; `tools/check_fp_fold.py` (build.cmd) finds such
-     double constants (a helper the compiler did not inline is compared with the originals of the registered functions that call it, C17). The build inlines at /Ob2 (R16c5), so a constant behind a helper function (`Pi() * FaceStep()`) folds too.
+     float (`static_cast<float>(kPi * kPerDegree)`, checking the rounding) or keep the operation; no check finds such
+     double constants any more (check_fp_fold compared the compiled DLL with game.exe's x87 constants and went with the
+     build's reads of game.exe, C25d): the goldens and vectors catch the drift. The build inlines at /Ob2 (R16c5), so a constant behind a helper function (`Pi() * FaceStep()`) folds too.
    - Rounding mode matters: FISTP rounds to nearest (use `x87::RoundToInt`, float or double, or `x87::fistp`, float), a C++ cast
      truncates, `_ftol` truncates. Not `std::lrint`: the UCRT's reads the FP environment on every call, follows MXCSR's rounding
      rather than the x87 one, and gives 0 with errno EDOM where FISTP gives 0x80000000 (SV10j).

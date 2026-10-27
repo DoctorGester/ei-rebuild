@@ -16,7 +16,6 @@ one call to its own address. Anything the interpreter does not know stops the sc
 
 The result is one template, StaticInitialisers(Do&), that the standalone runs (Run) and the verify
 build's start-up check evaluates against what the original's initialisers left in memory (Check).
-tools/check_static_init.py (build.cmd) re-decodes game.exe and compares.
 
 usage: python tools/gen_static_init.py [--exe game.exe]
 """
@@ -82,7 +81,7 @@ class Image:
 class RdataView:
     """The image as tools/rdata_literals.py reads it (S18e1): a float fold's operand in constant .rdata is
     its tagged literal; one in .data (an earlier fold's result) stays a read. The folds are exact at
-    the original's 53 bits and in float alike (check_static_init), so the compiler may fold them."""
+    the original's 53 bits and in float alike, so the compiler may fold them."""
 
     def __init__(self, img):
         self.bytes, self.written = img.read, [(a, a + n) for a, n in rdata.addon_sites()]
@@ -710,7 +709,7 @@ def named_ranges():
 def stored_values(img, decoded):
     """{address: dword or None} of what the initialisers' stores, float folds and fills leave in game.exe's data, in
     list order (calls are not run: a call's stored result, a fold of ln or of an unknown value is None). A float fold
-    is computed as the original does: x87 order at 53 bits (check_static_init), rounded to a float."""
+    is computed as the original does: x87 order at 53 bits, rounded to a float."""
     values = {}
 
     def dword(a):
@@ -1216,7 +1215,7 @@ HEADER = '''\
 // The standalone image runs them before WinMain (Run in static_init.h); the verify build compares the
 // stores and float folds with what the original's initialisers left in memory (Check). Calls go to the
 // callee's address in the image: our rewrite through its jump, or a library port.
-// tools/check_static_init.py (build.cmd) checks this file against game.exe.
+// tools/gen_static_init.py writes this file from game.exe's initialisers.
 #include "static_init.h"
 
 @INCLUDES@
@@ -1246,7 +1245,7 @@ EXIT_HEADER = '''\
 // static_init.h's operations. The replacements, registered with EI_REPLACE, run it through Code at exit.
 // A library type's destructor is called at its address in the image (a library
 // port, S4-S12; the standalone check logs the callees with no code yet).
-// tools/check_static_init.py (build.cmd) checks this file and the functions' sizes against game.exe.
+// tools/gen_static_init.py writes this file from game.exe's exit functions.
 #include "static_init.h"
 
 #include "ei/hook.h"
