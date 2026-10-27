@@ -22,7 +22,7 @@ const char* TextTokenizer::Next() {
     }
     position = next;
     if (next == -1) return nullptr;
-    return word;
+    return word.c_str();
 }
 EI_REWRITTEN(0x00445D30, TextTokenizer::Next);
 

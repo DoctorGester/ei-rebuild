@@ -487,7 +487,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         if (!texture) return game::FatalError("Can't create texture for shadow rendering!\n");
         char name[0x100];
         gamecrt::sprintf(name, "SR%d", object->id_);
-        *texture->Name() = name;
+        texture->name_ = name;
         flags_ |= kFlagRefresh;
     }
     // With the new renderer the texture and the decal's draw are left out (the shadow map draws the shadow;

@@ -191,7 +191,7 @@ void CHudPortraits::Rebuild(int wide) {
     for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];
         const int skin = unit->GetPrototype()->skin;
-        SexOf(unit->name, sex);
+        SexOf(unit->name.c_str(), sex);
         const float figureBuild = unit->scale.y;
         build = "me";
         EI_NAN_AUDIT(figureBuild);
@@ -199,7 +199,7 @@ void CHudPortraits::Rebuild(int wide) {
             build = "th";
         else if (figureBuild > Fat())
             build = "fa";
-        const char* figure = unit->name;
+        const char* figure = unit->name.c_str();
         model = str::Format("infa%s%s%dface", figure, build.c_str(),
                      unit->GetPrototype()->hair + 1);
         picture = str::Format("face%s%02d", sex.GetString(), skin);
@@ -214,7 +214,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
         slots_[i].faceName_ = picture;
         slots_[i].faceState_ = 0;
-        slots_[i].modelPrefix_ = str::Format("infa%s", unit->name.GetString());
+        slots_[i].modelPrefix_ = str::Format("infa%s", unit->name.c_str());
         const int hair = unit->GetPrototype()->hair;
         slots_[i].modelSuffix_ = str::Format("%dface", hair + 1);
         slots_[i].build_ = figureBuild;

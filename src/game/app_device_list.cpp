@@ -1,4 +1,4 @@
-// The lever table's records (LeverRecord, lever.h: Levers.ldb, 0x2C bytes; Rebirth patches the start-up code
+// The lever table's records (LeverRecord, lever.h: Levers.ldb; Rebirth patches the start-up code
 // that loads them from a chunk archive): the record's fields, its compiler-made members and the list's
 // archiving. The list is an STLport vector (its algorithms are library code). See docs/notes/app.md.
 #include "chunk_archive.h"

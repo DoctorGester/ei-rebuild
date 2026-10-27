@@ -60,7 +60,7 @@ void CMapObject::SaveMapObject(CStream* stream) {
     stream->Write(&speed, sizeof(speed));
     stream->Write(&localPosition_.x, 3 * sizeof(float));
     stream->Write(&localRotation_, sizeof(localRotation_));
-    WriteText(stream, name);
+    WriteText(stream, name.c_str());
     stream->Write(&scale, sizeof(scale));
     int count = effects.size;
     stream->Write(&count, sizeof(count));

@@ -500,7 +500,7 @@ CSceneRenderer* __cdecl TitlesDisplay() { return SceneRenderer(); }
 
 struct TitlesTokenizer : TextTokenizer {
     // The current word, or "" past the last one (the original assigned null to a CString, which keeps "").
-    const char* WordOrEmpty() const { return position != -1 ? word.GetString() : ""; }
+    const char* WordOrEmpty() const { return position != -1 ? word.c_str() : ""; }
 };
 
 } // namespace
@@ -535,8 +535,8 @@ void CCreditsScreen::CreateScreen() {
         RemoveCarriageReturns(&script);
         TitlesTokenizer lines{{0, &script, "\n"}};
         lines.Start();
-        while (lines.position != -1 && lines.word.GetString() != nullptr) {
-            mfc::CString line(lines.word.GetString());
+        while (lines.position != -1) {
+            mfc::CString line(lines.word.c_str());
             TitlesTokenizer words{{0, &line, " "}};
             words.Start();
             TitleLine record{};
@@ -547,7 +547,7 @@ void CCreditsScreen::CreateScreen() {
                                 0;
             }
             words.Next();
-            record.speed = static_cast<float>(std::atof(words.word));
+            record.speed = static_cast<float>(std::atof(words.word.c_str()));
             words.Next();
             record.style = words.WordOrEmpty();
             words.Next();

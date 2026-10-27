@@ -141,7 +141,7 @@ EI_REWRITTEN(0x0054C760, CUnitServer::TargetBusy);
 void CUnitServer::PlayAnimation(const char* name) {
     const FigureAnimation* entry;
     {
-        std::string figure = unit->name.GetString();
+        std::string figure = unit->name;
         auto* world = WorldContext();
         entry = (world->MapObjectManager())->FindFigureAnimation(figure, name);
     }

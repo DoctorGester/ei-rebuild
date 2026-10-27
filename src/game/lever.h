@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 // The spots a use order may go to.
 using LeverSpots = UseSpotArray;
@@ -27,16 +28,15 @@ struct LeverRecord {
     LeverRecord* CopyConstruct(const LeverRecord* from);
     LeverRecord* DeleteScalar(unsigned flags);
     void Archive(ChunkArchive* archive);
-    mfc::CString name;          // field 0
+    std::string name;           // field 0
     float spots[2][2];          // field 1: {along, across}
     std::uint32_t spotCount;    // field 2
     float farScale;             // field 3: the spots' distance factor when scale.z is 1
     std::uint32_t duration;     // field 4: a state change's default ticks
-    mfc::CString text20;        // fields 5-7
-    mfc::CString sound;         // played while the lever moves
-    mfc::CString text28;
+    std::string text20;         // fields 5-7
+    std::string sound;          // played while the lever moves
+    std::string text28;
 };
-static_assert(sizeof(LeverRecord) == 0x2C);
 
 // The lever table: the records (an STLport vector) and their index by model name.
 

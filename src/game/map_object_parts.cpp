@@ -113,7 +113,7 @@ EI_REPLACE_METHOD(0x005188B0, CObject3D::PartWorldPosition);
 
 AnimationDatabase* CObject3D::Animations() {
     if (!animations && owner_) {
-        std::string file = name.GetString();
+        std::string file = name;
         file += ".adb";
         animations = static_cast<AnimationDatabase*>(owner_->GetFile(file.c_str(), nullptr));
     }

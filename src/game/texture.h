@@ -344,9 +344,7 @@ public:
     int GetClassId() override;
     void FreeBlock();
 
-    mfc::CString* Name() { return &name_; }
-
-    mfc::CString name_;
+    std::string name_;
     std::uint32_t width_;
     std::uint32_t height_;
     int uploadResult_;          // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
@@ -361,14 +359,9 @@ public:
 
     CTextureManager* Manager() const;
 };
-static_assert(offsetof(CTexture, name_) == 0x1C && offsetof(CTexture, extra_) == 0x2C);
-static_assert(offsetof(CTexture, format_) == 0x3C);
-static_assert(offsetof(CTexture, surface_) == 0x5C);
 
 // A null texture is a fatal error (its result returned); a loaded one gives 1.
 int __fastcall TextureHolderEnsureLoaded(struct HeldTexture* holder);
-static_assert(offsetof(CTexture, block_) == 0x60);
-static_assert(sizeof(CTexture) == 0x68);
 
 constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 

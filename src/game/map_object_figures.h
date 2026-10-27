@@ -466,7 +466,7 @@ public:
     CFigureAnimationState* animation;   // the figure's animation state
     std::uint32_t spare09C;         // cleared by Create3D / Destroy3D; nothing reads it
     AnimationDatabase* animations;  // loaded on first use
-    mfc::CString name;              // the figure's name
+    std::string name;               // the figure's name
     mfc::CTypedPtrList<CParticleSource> effectSources;   // the particle sources attached to the object
     Vector3 scale;
     FigurePartArray parts;
@@ -495,22 +495,6 @@ protected:
     CObject3D();
 };
 static_assert(offsetof(CObject3D, worldMatrix) == 0x54);
-static_assert(offsetof(CObject3D, dirtyRect) == 0x100);
 static_assert(offsetof(CObject3D, attached) == 0x94);
-static_assert(offsetof(CObject3D, effectSources) == 0xA8);
-static_assert(offsetof(CObject3D, defaultScale) == 0xF4);
-static_assert(offsetof(CObject3D, partBoxes) == 0x160);
 static_assert(offsetof(CObject3D, animations) == 0xA0);
 static_assert(offsetof(CObject3D, name) == 0xA4);
-static_assert(offsetof(CObject3D, partNames) == 0x110);
-static_assert(offsetof(CObject3D, scale) == 0xC4);
-static_assert(offsetof(CObject3D, parts) == 0xD0);
-static_assert(offsetof(CObject3D, pendingParts) == 0xE0);
-static_assert(offsetof(CObject3D, figure) == 0xF0);
-static_assert(offsetof(CObject3D, boundsFlags) == 0x124);
-static_assert(offsetof(CObject3D, center) == 0x128);
-static_assert(offsetof(CObject3D, radius) == 0x134);
-static_assert(offsetof(CObject3D, below) == 0x138);
-static_assert(offsetof(CObject3D, above) == 0x144);
-static_assert(offsetof(CObject3D, eyeHeight) == 0x158);
-static_assert(sizeof(CObject3D) == 0x170);

@@ -29,12 +29,6 @@ void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value);
 
 void __fastcall DestroyCString(mfc::CString* self);
 
-// A record with a CString at +0x0C (the text tokenizer's word): its destructor.
-struct TokenWord {
-    std::uint8_t unused_00[0x0C];
-    mfc::CString text;
-};
-
 // A local of the .mob loader whose third dword an unwind funclet clears.
 struct LoaderLocal {
     std::uint8_t unused_00[8];

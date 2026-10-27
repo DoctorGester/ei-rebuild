@@ -277,7 +277,7 @@ EI_REWRITTEN(0x0050D5A0, CFigureAnimationState::Stop);
 void CFigureAnimationState::Rescale(float s, float t, float u) {
     FigureModel* model;
     {
-        const char* name = owner->name;
+        const char* name = owner->name.c_str();
         stlp::string key(name, name + std::strlen(name));
         model = FigureManagerOf(this)->FindModel(&key);
     }

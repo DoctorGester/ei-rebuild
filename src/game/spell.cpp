@@ -138,7 +138,7 @@ bool CSpell::CanAffect(const CEngineObject* caster, CEngineObject* target) const
         if ((flags & 2) && !hostile) return false;    // enemies only
     }
 
-    const char* name = unit->name.GetString();   // the prototype name, e.g. "unhuma"
+    const char* name = unit->name.c_str();   // the prototype name, e.g. "unhuma"
     if ((flags & 4) && (std::strcmp(name, kHumanMale) == 0 || std::strcmp(name, kHumanFemale) == 0)) return false;
     if ((flags & 8) && std::strcmp(name, kGoblin) == 0) return false;
     if ((flags & 0x10) && (std::strcmp(name, kOrcMale) == 0 || std::strcmp(name, kOrcFemale) == 0)) return false;
