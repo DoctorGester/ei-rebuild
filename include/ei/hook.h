@@ -51,7 +51,7 @@ void* MemberAddress(T member) {
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
 int InstallHooks();
 
-// game.exe's code section (.text, 00401000 up to 0073A670): the addresses registrations and code cells name (the image guards it, image_code.cpp; standalone.cpp reports a stray access there).
+// game.exe's code section (.text, 00401000 up to 0073A670): the addresses registrations name (the image guards it, image_code.cpp; standalone.cpp reports a stray access there).
 constexpr std::uintptr_t kGameTextBegin = 0x00401000;
 constexpr std::uintptr_t kGameTextEnd = 0x0073A670;
 constexpr bool InGameText(std::uintptr_t address) { return address - kGameTextBegin < kGameTextEnd - kGameTextBegin; }
@@ -75,9 +75,6 @@ F Code(std::uintptr_t address) {
 std::uint64_t CodeLookups();
 // Whether CodeAddress has code for `address` other than the stub.
 bool HasCode(std::uintptr_t address);
-// The image: a code pointer the harness took out of game.exe's data before the code cells were pointed at our
-// code (a vtable slot it replaces at start-up) is resolved with them (at once when they are already).
-void FixUpCodePointer(std::uintptr_t* pointer);
 
 // The harness (verify build) patches `size` bytes of game code at `address` (`what`, a string
 // literal). Called before InstallHooks, it marks the functions holding the bytes as the harness's:

@@ -834,8 +834,8 @@ int __stdcall MutedWaveOutOpen(void** driver, void* waveOut, int deviceId, void*
     return result;
 }
 
-// A vtable slot of game.exe, through the data seam (an import slot: PatchImport, harness_imports.h): game data the
-// harness changes (harness_addon.h checks them).
+// A vtable slot of game.exe (its runs only: the image's vtables are the compiler's), through the data seam (an import
+// slot: PatchImport, harness_imports.h): game data the harness changes (harness_addon.h checks them).
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     T* slot = ei::GamePointer<T>(address);
@@ -845,8 +845,6 @@ void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     original = *slot;
     *slot = replacement;
     VirtualProtect(slot, sizeof(*slot), old, &old);
-    // Its original is game.exe's code address: in the image it goes with the code cells (S18i).
-    if (ei::Standalone()) ei::FixUpCodePointer(reinterpret_cast<std::uintptr_t*>(&original));
 }
 
 // Saves. The game keeps them under <game root>saves\ and rewrites saves\current\ whenever it

@@ -298,8 +298,8 @@ def measure(tree):
 
 
 def generated_tables(tree):
-    """The image's tables of game.exe's data (S18b / S18i, C18, C19): code cells by group, pointer cells, named
-    ranges and retired vtables; a commit without a table leaves its keys out."""
+    """The image's tables of game.exe's data (S18b / S18i, C18, C19): code cells by group (none since C20), pointer
+    cells, named ranges and retired vtables; a commit without a table leaves its keys out."""
     out = {}
     code_cells = tree.read('src/standalone/image_code_cells.inc')
     if code_cells:
@@ -315,6 +315,7 @@ def generated_tables(tree):
     pointer_cells = tree.read('src/standalone/image_cells.inc')
     if pointer_cells:
         out['pointer_cells'] = len(CELL.findall(pointer_cells))
+        out.setdefault('code_cells', 0)   # retired in C20: game.exe's data keeps no code pointer in the image
     for key, path in (('named_ranges', 'config/named_data.csv'), ('retired_vtables', 'config/retired_vtables.csv')):
         text = tree.read(path)
         if text is not None:

@@ -81,12 +81,11 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   (S16c), so a startup action's hit is reported too; a hit during ei_hook.dll's static constructors prints
   `ei_standalone: no code at ... before ei_hook.dll's missing-code report` and exits 3.
   ei_launch reports a game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
-- **What the image could still reach without code**: `python tools/standalone_gaps.py` lists forwarder targets, code
-  addresses written in src/ and function starts the exe's data points at, each without a registration. The rule
-  (S16d): the image runs none of game.exe's code, so a table entry or vtable slot is reached only when our code calls
-  through it. `config/standalone_unreachable.csv` holds each decision with its reason (CObject::GetRuntimeClass
-  slots, `_purecall`, MFC classes never made or never called virtually, CRT tables); `--listed` prints them, `--check`
-  exits 1 on an open entry or a config line that covers nothing. 0 open since S16d.
+- **What the image could still reach without code**: `python tools/standalone_gaps.py` lists the code
+  addresses written in src/ without a registration (game.exe's data holds no code pointer in the image since C20).
+  `config/standalone_unreachable.csv` holds each decision with its reason (MFC's unported slots of classes never
+  made or never called virtually); `--listed` prints them, `--check` exits 1 on an open entry or a config line that
+  covers nothing. 0 open since S16d.
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (the vanilla data) and
   `standalone-rebirth` (the Rebirth data, the flags of `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth
   launch with addon turns on; refresh it when addon.dll or EI_Plugin.ini change). Always our renderer (no display
@@ -186,18 +185,16 @@ each step green on the goldens and removing a measured tie:
   `gamecrt::SetRandObserver`). Who asks: the static initialisers' calls (static_init.h), the code literals of src/ (handler tables, stats, callbacks, factories,
   the WndProc and new handlers) and the CRT's takers of function pointers (atexit, at the registration; qsort, the eh vector
   iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
-  is not in yet (the stub would stick). **Code cells**: `tools/gen_image_cells.py` also writes
-  image_code_cells.inc (7,928 cells of .rdata and .data holding a function start: vtable slots, ThrowInfo
-  destructors / copy constructors, MFC CreateObject, the static initialiser list, and reviewed tables); `FixCodeCells`
-  points each at CodeAddress of its value after InstallHooks (`... code cell(s) of game.exe's data point at our
-  code, ... at stubs`); a slot the harness took before that (the console streambuf's sync) is fixed with it
-  (`FixUpCodePointer`). Left as game.exe's bytes, no code cells: the CRT's SEH scope tables and the C++ EH
-  FuncInfos' unwind actions and catch handlers (13,511 funclet cells, C20a; `LEFT_KINDS`; the tables' pointer cells likewise, C20b, "The cells" above): only a frame handler
-  on game.exe's own frames reads them (its FuncInfo comes from the function's prologue, and our code's are the
-  compiler's); none had a registration, so all sat at stubs that end the run, and no golden reached one. A stray
-  call through one lands in the guarded code section (`no code at`). The ThrowInfo cells stay: our frame handler
-  reads game.exe's throw information when our code throws with it (`CxxThrowException`). The
-  launch-free check: every registration is its address's code (`CheckCode`); `CheckGuard` logs what of game.exe's
+  is not in yet (the stub would stick). **No code cells** (C20 batch 1): game.exe's data keeps no code pointer
+  in the image; every dword of .rdata / .data that pointed into its code section is zero there. Until then
+  `image_code_cells.inc` listed the ones the image fixed up to CodeAddress of their value after InstallHooks
+  (21,636 at S18i; 825 at the end: the static initialiser list 748, MFC's message maps 35, the CRT's function
+  pointers 35, ThrowInfo's destructors / copy constructors 7), and C20 batch 1 measured that nothing of ours read
+  any of them: the static initialisers are generated code (static_init.cpp calls each one's body or its
+  registration, never through the list), CWnd::GetMessageMap is an unported slot, the CRT tables' readers are
+  game.exe's own CRT (the host CRT's in the image, C26), and no code throws with game.exe's ThrowInfo
+  (libcrt::CxxThrowException has no caller; our throws use the compiler's). The vtable slots went with C19, the EH
+  funclets with C20a. A stray call through one would be a call of null. The launch-free check: every registration is its address's code (`CheckCode`); `CheckGuard` logs what of game.exe's
   range is open. Stack scans of the harness and the profiler skip the game's code range in the image.
 - **Own import table** (S18f, src/standalone/image_imports.cpp): the import address table (game_data.h's
   `kImportsBegin`-`kImportsEnd`, 0073B000-0073B820, .rdata's first 0x820 bytes) moves with .data at the same shift:
@@ -310,12 +307,13 @@ classes (C19), plain new / delete and standard containers (C14), Win32 calls lin
 ### The build without game.exe (C25)
 
 The build reads no game.exe (C25c). The image's .rdata / .data bytes (`gen_image_cells.py --bytes`, CMake) are zero
-but the committed pointer and code cells (image_cells.inc, image_code_cells.inc); everything else our code reads
+but the committed pointer cells (image_cells.inc); everything else our code reads
 there is a named global of ours (C18) or a literal. The resources are the host's own (C23). How it got there: C25a's
 trace of the reads and zero-filled trial, its kept list (`config/image_kept.csv`) and its static proof that every
 address src/ names held only zeros and cells; C25c named the last rows (out_of_range is a class of ours the compiler
 throws, stlp_string.cpp; `__lc_category` and its static "C" are crt_locale.cpp's) and dropped that machinery
 (EI_IMAGE_BYTES_FROM_EXE, the trial, EI_IMAGE_TRACE / image_trace.py, the kept list, the proof, EI_NO_GAME_EXE).
+The code cells went in C20 batch 1 ("How it runs", Code): the bytes are zero but the pointer cells.
 
 C25d deleted tools\check_against_exe.cmd and the modes only it ran (check_fp_fold, rdata_literals --check, named_data's
 comparison with game.exe's bytes and cells, check_short_functions, check_static_init, gen_image_cells --check's scan,
@@ -325,7 +323,7 @@ made, and the generators still read game.exe when rerun. What needs no game.exe 
 a hand edit or a new harness route fails), `named_data.py --check` (definitions well formed, csv current, no address
 literal inside a named, retired or unread range, global_objects.csv) and `gen_image_cells.py --check` (retired vtables
 against vtables.csv and the sources, the committed cells' targets). The generated static_init.cpp / static_exit.cpp,
-image_cells.inc / image_code_cells.inc and short_functions.cpp are only as fresh as their generator's last run: rerun
+image_cells.inc and short_functions.cpp are only as fresh as their generator's last run: rerun
 it (reads game.exe) after a change that registers or ports what it decodes.
 The harness still runs the original game.exe for goldens and vectors.
 
@@ -415,10 +413,10 @@ kinds given.
   Each pointer element names what game.exe's pointer in its place points at, and the check compares that: a string
   literal (adjacent ones joined, escapes decoded) the zero-terminated text at the target (game.exe's string literals,
   in .data); the name of another named range its address; the name of a function of ours (`&` optional) the
-  address of its registration (`EI_REPLACE*`: the code game.exe's pointer called, which the image's code cell pointed
-  at); nullptr (or 0) a zero. The packed dword is then game.exe's pointer, so the byte comparison holds, and its
+  address in the function-to-original map (`EI_REPLACE*` or `EI_REWRITTEN`: the code game.exe's pointer called);
+  nullptr (or 0) a zero. The packed dword is then game.exe's pointer, so the byte comparison holds, and its
   offset is a pointer element: the only place a cell may sit inside the range. gen_image_cells leaves the cells inside
-  named ranges out of image_cells.inc / image_code_cells.inc (the bytes are zero, nothing fixes them up) and its
+  named ranges out of image_cells.inc (the bytes are zero, nothing fixes them up) and its
   reviewed groups' counts drop with them; the strings they pointed at stay in the image for their other readers.
   A pointer to game.exe's data that is not ours (another record, a type descriptor) has no form: the target is
   only known at run time (GamePointer), so a table that holds one stays data until its targets are named too.
@@ -1656,7 +1654,7 @@ the `--no-hooks` suite) keeps the registry.
   "image only" while game.exe ran our code). `tools/check_registrations.py` (build.cmd) fails on two registrations
   of one address; it reads the built DLL's `.eireg` section (every macro leaves a `RegRecord`).
 - A registration stays only while something reaches its address (C20c): `tools/registration_readers.py` prints the
-  split by reader (code cells by kind, code literals, static init, named data, harness, vectors, scenarios / goldens,
+  split by reader (code literals, static init, named data, harness, vectors, scenarios / goldens,
   the short-function and exit-function generators; not an EI_ORIGINAL forwarder: those are tests/' only since C29 and
   run only in game.exe, on the original's code, C29a), `--unread` / `--files` what nothing reads,
   `--drop` writes `EI_REWRITTEN` in their place (with `--exclude` / `--exclude-name` for files another worker holds,
@@ -2162,9 +2160,7 @@ exe: it neither reads game.exe nor lays out anything at game.exe's addresses. Th
 whose one resource is its version information (host.rc; the game's strings are literals in our code, no icon yet);
 ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from the build
 (src/standalone/image_data.cpp), resolves game.exe's imports into a table of its own as it initialises
-(image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp), points the code
-cells of game.exe's data at them and runs WinMain. Function pointers in the data and vtable slots reach our code
-that way. The guard: first thing, the host reserves what of game.exe's range (0x400000 up to its SizeOfImage) is
+(image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp) and runs WinMain. The guard: first thing, the host reserves what of game.exe's range (0x400000 up to its SizeOfImage) is
 free, with no access, so nothing is allocated there later and a stray game address (a jump into game.exe's code
 that went around CodeAddress, a read of its data that missed the seam) faults and is named instead of reaching
 other memory. What the loader had already put there (this exe, a heap) stays as it is; ei_hook.dll logs how much is
@@ -2176,10 +2172,8 @@ game.exe's code in the standalone image (docs/notes/standalone.md, "Own data"). 
 its addresses (the host keeps what of game.exe's range is free reserved with no access): nothing runs there and
 nothing jumps through it. What runs for an address of game.exe's code is CodeAddress's: the replacement registered
 for it (InstallHooks hands the table over: SetCodeTable), else a stub that reports there is no code at the address.
-The code cells of game.exe's data (vtable slots, callback tables, the static initialiser list:
-image_code_cells.inc, tools/gen_image_cells.py) are pointed at it once the table is in (FixCodeCells), and the
-static initialisers, the code literals and the harness ask CodeAddress. In game.exe (the original's runs) every
-address is its own code.
+The static initialisers, the code literals and the harness ask CodeAddress; game.exe's data holds no code pointer
+in the image (C20). In game.exe (the original's runs) every address is its own code.
 
 ### image_data.cpp
 

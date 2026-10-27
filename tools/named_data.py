@@ -727,7 +727,7 @@ def check(update):
         return None
 
     for rel, full in other_files():
-        if rel.endswith(('image_cells.inc', 'image_code_cells.inc')):
+        if rel.endswith('image_cells.inc'):
             continue
         with open(full, encoding='utf-8', errors='replace') as f:
             raw = f.read()
@@ -1011,7 +1011,7 @@ def rewrite(name, apply_):
     element = plain_type(d.type)
     changed, left = 0, []
     for rel, full in other_files():
-        if rel.endswith(('image_cells.inc', 'image_code_cells.inc')):
+        if rel.endswith('image_cells.inc'):
             continue
         with open(full, encoding='utf-8', errors='replace', newline='') as f:   # line ends kept
             raw = f.read()

@@ -63,7 +63,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    name. Write `EI_REWRITTEN(addr, Function)` next to it: it registers nothing and keeps the function
    in the tools' function-to-original map (check_signatures, coverage, progress; C20d).
    Register it at its address (`EI_REPLACE` / `EI_REPLACE_METHOD`) only while something still reaches
-   that address: a code cell of game.exe's data image (a static initialiser, a CRT / MFC table) or a code
+   that address: a call of the generated static initialisers or a code
    literal (`python tools/registration_readers.py` names the readers; C20 retires them). Such a function keeps the original's calling convention and declares every stack
    argument the original's `RET n` pops, read or not (five loaders declared with one argument too few
    left 4 bytes on the caller's stack and crashed the game at startup). `build.cmd` runs

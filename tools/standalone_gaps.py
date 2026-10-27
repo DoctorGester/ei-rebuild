@@ -2,33 +2,25 @@
 
 In the image every address of game.exe's code section without a registration (EI_REPLACE*, the UI input
 handlers) has no code: what reaches it lands on CodeAddress's stub, which reports it (S18i). Two ways our
-code can get there (src/ has no EI_ORIGINAL forwarders since C29):
-  literals     code addresses written in src/ (callbacks, function pointers handed to the game's tables:
-               particle callbacks, qsort comparators, network handlers, actionDone, ...); the five
-               code-byte reads of S14 (CALL targets, the keyword table's immediate) are among them and
-               are read only by game.exe's own code (not in the image)
-  data         function starts (config/functions.csv) that game.exe's data sections point at: vtable slots
-               and pointer tables the image keeps (library code mostly: MFC's vtables, the CRT's tables).
-               The compiler's exception funclets (kind "eh") and config/dead_code.csv are left out: the
-               image runs none of game.exe's own exception tables; so are the retired vtables' slots
-               (config/retired_vtables.csv, C19) and the named globals' ranges (C18), whose bytes the image holds zero.
-A listed address is not necessarily reachable: a literal may be behind a branch the image never takes, a
-vtable may belong to a class the game never makes. config/standalone_unreachable.csv
-names what the image can never run, with the reason (S16d): a whole vtable, data words or ranges, or an
-address wherever it is listed. Each kind's line counts those as "listed unreachable" and prints the rest
-(open). library.csv rows named "not a function" (strings Ghidra read as code pointers) are no function
+code can get there: code addresses written in src/ (callbacks, function pointers handed to the game's tables:
+particle callbacks, qsort comparators, network handlers, actionDone, ...; src/ has no EI_ORIGINAL forwarders since
+C29). game.exe's data is no way there since C20: the image keeps none of its code pointers (tools/gen_image_cells.py),
+its vtables are the compiler's and its static initialisers generated code. The compiler's exception funclets (kind
+"eh") and config/dead_code.csv are left out.
+A listed address is not necessarily reachable: a literal may be behind a branch the image never takes.
+config/standalone_unreachable.csv names what the image can never run, with the reason (S16d). The line counts
+those as "listed unreachable" and prints the rest (open). library.csv rows named "not a function" (strings Ghidra read as code pointers) are no function
 starts. The suite under --standalone says which open ones are reached; this lists what to look at.
 
-usage: python tools/standalone_gaps.py [--exe game.exe] [--listed] [--check] [literals|data ...]
+usage: python tools/standalone_gaps.py [--listed] [--check]
   --listed  print the listed unreachable entries too, with their reason
   --check   exit 1 when an entry is open or a line of the config covers nothing
 """
-import argparse, csv, os, re, struct, sys
+import argparse, csv, os, re, sys
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import exe_path  # noqa: E402
 import dashboard_data as dd  # noqa: E402
 
 REGISTERED = re.compile(r'\b(?:EI_REPLACE\w*|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)')
@@ -56,57 +48,25 @@ def scan_sources():
     return registered, literals
 
 
-def data_references(exe_path, functions):
-    import gen_image_cells
-    # The named globals' ranges and the retired vtables: zero in the image (C18, C19).
-    zero = gen_image_cells.named_ranges()
-    data = open(exe_path, 'rb').read()
-    pe = struct.unpack_from('<I', data, 0x3c)[0]
-    nsec, opt = struct.unpack_from('<H', data, pe + 6)[0], struct.unpack_from('<H', data, pe + 20)[0]
-    refs = defaultdict(list)
-    for i in range(nsec):
-        o = pe + 24 + opt + 40 * i
-        va, rawsz, rawptr = struct.unpack_from('<III', data, o + 12)
-        if struct.unpack_from('<I', data, o + 36)[0] & 0x20:   # the code section
-            continue
-        for off in range(0, rawsz - 3, 4):
-            v = struct.unpack_from('<I', data, rawptr + off)[0]
-            at = 0x400000 + va + off
-            if v in functions and not any(b <= at < b + n for b, n in zero):
-                refs[v].append(at)
-    return refs
-
-
-def read_unreachable(path, vtables):
-    """config/standalone_unreachable.csv: ({address: reason}, [(start, end, reason)] data ranges, lines)."""
-    addresses, ranges, lines = {}, [], []
+def read_unreachable(path):
+    """config/standalone_unreachable.csv: ({address: line}, lines)."""
+    addresses, lines = {}, []
     text = [l for l in open(path, encoding='utf-8') if l.strip() and not l.lstrip().startswith('#')]
     for r in csv.DictReader(text):
         what, reason, where = r['what'].strip(), r['reason'], r['address'].split()
         line = {'address': r['address'], 'what': what, 'reason': reason, 'covers': set()}
         lines.append(line)
+        if what != 'address':
+            sys.exit(f'standalone_unreachable.csv: unknown kind {what!r} ({r["address"]})')
         for w in where:
-            if what == 'address':
-                addresses[int(w, 16)] = line
-            elif what == 'vtable':
-                start = int(w, 16)
-                if start not in vtables:
-                    sys.exit(f'standalone_unreachable.csv: {w} is not in config/vtables.csv')
-                ranges.append((start, start + 4 * vtables[start], line))
-            elif what == 'data':
-                lo, _, hi = w.partition('-')
-                ranges.append((int(lo, 16), int(hi, 16) if hi else int(lo, 16) + 4, line))
-            else:
-                sys.exit(f'standalone_unreachable.csv: unknown kind {what!r} ({r["address"]})')
-    return addresses, ranges, lines
+            addresses[int(w, 16)] = line
+    return addresses, lines
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--exe')   # default: tools/exe_path.py
     ap.add_argument('--listed', action='store_true')
     ap.add_argument('--check', action='store_true')
-    ap.add_argument('kinds', nargs='*', default=['literals', 'data'])
     args = ap.parse_args()
     functions = {}
     with open(os.path.join(ROOT, 'config', 'functions.csv')) as f:
@@ -117,9 +77,7 @@ def main():
         for r in csv.DictReader(f):
             if r['name'].startswith('not a function'):
                 functions.pop(int(r['address'], 16), None)
-    with open(os.path.join(ROOT, 'config', 'vtables.csv')) as f:
-        vtables = {int(r['vtable'], 16): int(r['slots']) for r in csv.DictReader(f)}
-    listed, ranges, lines = read_unreachable(os.path.join(ROOT, 'config', 'standalone_unreachable.csv'), vtables)
+    listed, lines = read_unreachable(os.path.join(ROOT, 'config', 'standalone_unreachable.csv'))
     dead = dd.addresses(open(os.path.join(ROOT, 'config', 'dead_code.csv')).read())
     registered, literals = scan_sources()
 
@@ -127,28 +85,16 @@ def main():
         r = functions.get(a)
         return 'library' if a in library else r['kind'] if r else 'no-function'
 
-    def covering(a, ref):
-        """The config line that excuses `a` (at data word `ref`, for a data reference), or None."""
-        if a in listed:
-            return listed[a]
-        if ref is not None:
-            for lo, hi, line in ranges:
-                if lo <= ref < hi:
-                    return line
-        return None
-
     open_total = 0
 
-    def show(title, where, refs=None):
+    def show(title, where):
         nonlocal open_total
         left = sorted(a for a in where if a not in registered and a not in dead and kind(a) != 'eh')
         still, excused = [], []
         for a in left:
-            found = [covering(a, ref) for ref in (refs[a] if refs else [None])]
-            if all(found):
-                excused.append((a, found[0]))
-                for line in found:
-                    line['covers'].add(a)
+            if a in listed:
+                excused.append((a, listed[a]))
+                listed[a]['covers'].add(a)
             else:
                 still.append(a)
         counts = defaultdict(int)
@@ -163,16 +109,10 @@ def main():
             for a, line in excused:
                 print(f'  listed {a:08X} ({line["what"]} {line["address"]}): {line["reason"][:90]}')
 
-    if 'literals' in args.kinds:
-        # (The code-byte reads of S14 have no function.)
-        show('code literals', literals)
-    if 'data' in args.kinds:
-        refs = data_references(exe_path.resolve(args.exe), functions)
-        show('data references', {a: [f'{x:08X}' for x in v] for a, v in refs.items()}, refs)
+    show('code literals', literals)
     stale = [line for line in lines if not line['covers']]
-    if set(args.kinds) >= {'literals', 'data'}:
-        for line in stale:
-            print(f'warning: standalone_unreachable.csv line {line["what"]} {line["address"]} covers nothing')
+    for line in stale:
+        print(f'warning: standalone_unreachable.csv line {line["what"]} {line["address"]} covers nothing')
     for a in sorted(set(listed) & registered):
         print(f'warning: standalone_unreachable.csv lists {a:08X}, which is registered')
     if args.check and (open_total or stale):

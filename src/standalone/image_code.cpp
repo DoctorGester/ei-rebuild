@@ -1,8 +1,6 @@
 // What runs for an address of game.exe's code (CodeAddress). See docs/notes/standalone.md, "The image's
 // source files".
 #include "ei/hook.h"
-#include "game/game_data.h"
-#include "hook/log.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -11,7 +9,6 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
-#include <iterator>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -19,15 +16,6 @@
 namespace ei {
 
 namespace {
-
-
-struct CodeCell {
-    std::uintptr_t cell;     // a dword of game.exe's .rdata or .data
-    std::uintptr_t target;   // the address of game.exe's code it holds
-};
-constexpr CodeCell kCodeCells[] = {
-#include "image_code_cells.inc"
-};
 
 // The registrations InstallHooks took, by address (SetCodeTable), and whether it has.
 std::vector<std::pair<std::uintptr_t, void*>> g_table;
@@ -82,9 +70,6 @@ void* Stub(std::uintptr_t address) {
 // How often CodeAddress was asked (the harness's renderstats; counted without locking).
 std::uint64_t g_lookups;
 
-std::atomic<bool> g_cellsFixed{false};
-std::vector<std::uintptr_t*> g_notedPointers;   // FixUpCodePointer's before the cells are fixed (start-up only)
-
 } // namespace
 
 std::uintptr_t CodeAddress(std::uintptr_t address) {
@@ -98,11 +83,6 @@ std::uint64_t CodeLookups() { return g_lookups; }
 
 bool HasCode(std::uintptr_t address) { return !InGameText(address) || Registered(address); }
 
-void FixUpCodePointer(std::uintptr_t* pointer) {
-    if (g_cellsFixed.load(std::memory_order_acquire)) *pointer = CodeAddress(*pointer);
-    else g_notedPointers.push_back(pointer);
-}
-
 // InstallHooks: the registrations it took (address, replacement), the last one per address winning.
 void SetCodeTable(const std::vector<std::pair<std::uintptr_t, void*>>& installed) {
     std::vector<std::pair<std::uintptr_t, void*>> table;
@@ -113,31 +93,6 @@ void SetCodeTable(const std::vector<std::pair<std::uintptr_t, void*>>& installed
                 table.end());
     g_table = std::move(table);
     g_tableReady.store(true, std::memory_order_release);
-}
-
-// Points every code cell of game.exe's data at CodeAddress of what it holds (after SetCodeTable, before anything of
-// the game runs), then the pointers the harness noted. A cell that no longer holds game.exe's value (the harness
-// took it) is left. Returns the number of cells without code (at a stub).
-int FixCodeCells() {
-    int registered = 0, stubs = 0, left = 0;
-    for (const CodeCell& c : kCodeCells) {
-        auto& value = GameData<std::uintptr_t>(c.cell);
-        if (value != c.target) {
-            Log("standalone: the code cell %08X holds %08X, not game.exe's %08X: left", static_cast<unsigned>(c.cell),
-                static_cast<unsigned>(value), static_cast<unsigned>(c.target));
-            ++left;
-            continue;
-        }
-        (HasCode(c.target) ? registered : stubs) += 1;
-        value = CodeAddress(c.target);
-    }
-    g_cellsFixed.store(true, std::memory_order_release);
-    for (std::uintptr_t* pointer : g_notedPointers) *pointer = CodeAddress(*pointer);
-    Log("standalone: %d code cell(s) of game.exe's data point at our code, %d at stubs (no code), %d left; %zu "
-        "pointer(s) the harness took resolved",
-        registered, stubs, left, g_notedPointers.size());
-    g_notedPointers.clear();
-    return stubs;
 }
 
 } // namespace ei

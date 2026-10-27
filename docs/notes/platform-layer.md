@@ -20,7 +20,7 @@ The counts below come from game.exe's import table and from grepping `src/` at m
 
 ## The real blockers (in order of cost)
 
-1. **Addresses.** Every function is ported and runs in the standalone image, but the image still lays out game.exe's address space: registrations, code cells and forwarders by address, and the part of game.exe's data not yet named (docs/standalone-cleanup.md; C18, C20, C29). A cross-platform build needs every function called by name and every global a real variable.
+1. **Addresses.** Every function is ported and runs in the standalone image, but the image still lays out game.exe's address space: registrations by address, and the part of game.exe's data not yet named (docs/standalone-cleanup.md; C18, C20, C29). A cross-platform build needs every function called by name and every global a real variable.
 2. **32-bit layouts.** Offset / size asserts and raw struct reads and writes on streams. No original code shares our memory, so the asserts go except where bytes leave the process (C28). A 64-bit build (macOS has no 32-bit) needs save files, resource files and network messages read field by field.
 3. **x87 floating point.** 222 `__asm` blocks and code that relies on 24-bit x87 precision. On other CPUs (ARM, or SSE on x86-64) results stop being bit-exact. That is acceptable for single player (the tests use tolerances). Multiplayer with original clients would desync.
 4. **MSVC specifics.** About 10,800 `__fastcall` / `__thiscall` / `__stdcall` / naked annotations. They match the original's calling conventions where an address is still reached (registrations, forwarders) and become plain functions as those go. Mechanical work, but large.

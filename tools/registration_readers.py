@@ -6,9 +6,8 @@ the function (image_code.cpp), in ei_vectors.exe too (hook_stub.cpp). Our code t
 name needs none of that; the registration matters only where something holds the address itself. The
 readers, each a set of addresses:
 
-  run time (the image; ei_vectors for code literals):
-    cell:<group>     a code cell of game.exe's data holding it (src/standalone/image_code_cells.inc: vtable
-                     slots, ThrowInfo, MFC CreateObject / message maps, the static initialiser list, CRT tables)
+  run time (the image; ei_vectors for code literals; game.exe's data holds no code pointer the image reads since
+  C20, tools/gen_image_cells.py):
     static init      a call or store of the generated static initialisers / exit functions
                      (src/standalone/static_init.cpp, static_exit.cpp)
     code literal     the address written in src/ outside a registration (ei::Code<F>(0x...), handler tables,
@@ -40,7 +39,7 @@ usage: python tools/registration_readers.py [--list READER] [--unread] [--files]
                                                    [--only FILE]]
   (no option)  the split: per reader the registrations it reads (a registration can have several), and per
                first reader in the order above (each counted once)
-  --list R     the registrations whose first reader is R (a prefix: "cell", "cell:vtable", "harness", ...)
+  --list R     the registrations whose first reader is R ("static init", "harness", ...)
   --unread     the unread registrations, file:line kind address name
   --files      the unread registrations per file
   --drop       writes EI_REWRITTEN in place of the unread registrations (files matching an --exclude regex and names
@@ -63,17 +62,13 @@ ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
 REWRITTEN = re.compile(r'\bEI_REWRITTEN(?:_SPECIAL)?\s*\([^;]*\)\s*;')
 LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX](?:00)?([4-7][0-9A-Fa-f]{5})(?![0-9A-Fa-f])')
 WORD = re.compile(r'(?<![0-9A-Za-z_])00([4-7][0-9A-Fa-f]{5})(?![0-9A-Za-z_])')
-CODE_CELLS = os.path.join(ROOT, 'src', 'standalone', 'image_code_cells.inc')
 STATIC = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
 # Generated tables of addresses that are no readers: every function's size, the image's data cells and import
 # slots (data), the sites addon.dll patches in game.exe (the original's runs only).
-NOT_READERS = ('src/hook/function_sizes.inc', 'src/standalone/image_code_cells.inc', 'src/standalone/image_cells.inc',
-               'src/standalone/image_imports.inc', 'tests/verify/addon_sites.inc')
-ORDER = ['cell', 'static init', 'code literal', 'named data', 'harness', 'vectors', 'scenario',
+NOT_READERS = ('src/hook/function_sizes.inc', 'src/standalone/image_cells.inc', 'src/standalone/image_imports.inc',
+               'tests/verify/addon_sites.inc')
+ORDER = ['static init', 'code literal', 'named data', 'harness', 'vectors', 'scenario',
          'golden', 'short generator', 'exit generator']
-# The code cells' groups (image_code_cells.inc's comment lines) by a short name.
-CELL_GROUPS = [('vtable', ('vtable',)), ('throwinfo', ('ThrowInfo',)), ('mfc', ('MFC',)),
-               ('static init list', ('initialiser list',)), ('crt', ('CRT',))]
 
 
 def rel(path):
@@ -119,20 +114,6 @@ def registrations():
         if total != found:
             raise SystemExit(f'{rel(path)}: {total} registration(s), {found} on a line of their own (the tool reads '
                              'only `MACRO(0x..., name);` statements)')
-    return out
-
-
-def code_cells():
-    """address -> {cell:<group>}"""
-    out = collections.defaultdict(set)
-    group = 'other'
-    for line in open(CODE_CELLS, encoding='utf-8'):
-        if line.startswith('// ') and not line.startswith('// Generated') and ':' not in line[:3]:
-            text = line[3:]
-            group = next((g for g, words in CELL_GROUPS if any(w in text for w in words)), 'other')
-        m = re.match(r'\{DataId\(0x([0-9A-Fa-f]+)\), 0x([0-9A-Fa-f]+)\}', line)
-        if m:
-            out[int(m.group(2), 16)].add('cell:' + group)
     return out
 
 
@@ -223,7 +204,7 @@ def exit_generator_readers():
 
 def measure():
     regs = registrations()
-    readers = [code_cells(), literal_readers(regs), named_data_readers(regs), text_readers(),
+    readers = [literal_readers(regs), named_data_readers(regs), text_readers(),
                short_generator_readers(regs), exit_generator_readers()]
     for r in regs:
         for table in readers:
