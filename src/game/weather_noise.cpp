@@ -1,8 +1,8 @@
-// The weather's noise curves (004E3980 and the static initialisers 004E3AD0 / 004E3B20; A-E2). See
-// weather_noise.h. The curves are named globals: their zeros take the place of 004E3AD0's fills
-// of the segments, and 004E3B20, ported on the names, builds them at its place in the initialiser list.
-// The arithmetic is the original's x87 sequence: sums and products stay at the FPU's precision (53
-// bits at start-up) and are rounded to a float only where the original stores one.
+// The weather's noise curves (and the static initialisers that clear and build them). See
+// weather_noise.h. The curves are named globals: their zeros take the place of the initialiser's fills
+// of the segments, and the second initialiser builds them at its place in the initialiser list.
+// The arithmetic is the game's x87 sequence: sums and products stay at the FPU's precision (53
+// bits at start-up) and are rounded to a float only where the game stores one.
 #include "weather_noise.h"
 
 #include "ei/hook.h"
@@ -68,7 +68,7 @@ void WeatherNoiseCurve::Build(float amplitude) {
 }
 EI_REWRITTEN(0x004E3980, WeatherNoiseCurve::Build);
 
-// 004E3B20, a static initialiser (cdecl): the five curves built one after another with the amplitude 0.5.
+// A static initialiser (cdecl): the five curves built one after another with the amplitude 0.5.
 void BuildWeatherNoise() {
     constexpr float kAmplitude = 0.5f /*0073D728*/;
     g_swayXByHeight.Build(kAmplitude);

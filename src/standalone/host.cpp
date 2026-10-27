@@ -1,6 +1,6 @@
 // ei_standalone: runs the rebuilt game without game.exe (docs/notes/standalone.md section 2).
 // The host is an ordinary exe: it neither reads game.exe nor lays out anything at game.exe's addresses.
-// The game's hInstance is this module, whose one resource is its version information (host.rc; C23: the game's
+// The game's hInstance is this module, whose one resource is its version information (host.rc; the game's
 // strings are literals in our code, no icon yet); ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from
 // the build (src/standalone/image_data.cpp), resolves game.exe's imports into a table of its own as it initialises
 // (image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp), points the code

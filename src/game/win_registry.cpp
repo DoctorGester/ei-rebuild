@@ -1,4 +1,4 @@
-// CWinRegistry (006972A0-006988A0). See win_registry.h.
+// CWinRegistry. See win_registry.h.
 #include "win_registry.h"
 
 #include "settings_file.h"
@@ -25,10 +25,10 @@ bool QueryValue(void* root, const char* subkey, const char* name, DWORD* type, v
     return settings_file::Query(root, subkey, name, type, data, &size) == 0;
 }
 
-// The REG_DWORD readers (00698570 / 00698610 are the same code).
+// The REG_DWORD readers (two copies of the same code).
 std::uint32_t GetDWordValue(void* root, const char* subkey, const char* name, std::uint32_t defaultValue) {
     DWORD type;
-    std::uint32_t value;   // left as it was when the value is shorter (not reproduced: the original's is uninitialised)
+    std::uint32_t value;   // left as it was when the value is shorter (not reproduced: the game's is uninitialised)
     if (!QueryValue(root, subkey, name, &type, &value)) return defaultValue;
     if (type != REG_DWORD) {
         game::DebugLog("CWinRegistry::GetDWordInt().\nRegistry data type is not DWORD.\n");
@@ -37,7 +37,7 @@ std::uint32_t GetDWordValue(void* root, const char* subkey, const char* name, st
     return value;
 }
 
-// The REG_DWORD writers (00697CA0 / 00697D40 are the same code).
+// The REG_DWORD writers (two copies of the same code).
 BOOL SetDWordValue(void* root, const char* subkey, const char* name, std::uint32_t value) {
     return SetValue(root, subkey, name, REG_DWORD, &value, 4);
 }

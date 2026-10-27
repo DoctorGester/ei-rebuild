@@ -14,7 +14,7 @@
 // the Standard mod (no folders, no [Res]) everything passes through, except two things addon changes
 // for every archive: a failed GetFile of "t\<name>" / "s\<name>" is tried again as "<name>", and
 // ListFiles appends to the caller's array instead of refilling it. docs/notes/rebirth.md, "Resources
-// and paths"; addon's code: build\S19b (scratch disassembly).
+// and paths"; addon's code: its scratch disassembly under build.
 
 #include "ei/rebirth.h"
 

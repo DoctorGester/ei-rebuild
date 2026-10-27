@@ -1,6 +1,6 @@
 #pragma once
 
-// The world's water level changes (CWorld +0x70; model_db.cpp, 006D4400).
+// The world's water level changes (CWorld +0x70; model_db.cpp).
 
 #include "lib/mfc.h"
 
@@ -17,22 +17,22 @@ struct TweenEntry {
 };
 static_assert(sizeof(TweenEntry) == 16);
 
-// CArray<TweenEntry> of the world: new entries zero-filled, never constructed. RemoveAll 006D43E0
-// and SetSize 006D4840 are registered on the template (model_db.cpp); the rest are members.
+// CArray<TweenEntry> of the world: new entries zero-filled, never constructed. RemoveAll
+// and SetSize are registered on the template (model_db.cpp); the rest are members.
 struct WaterTweens : mfc::CArray<TweenEntry> {
-    // 006D4410 (via 00593FA0). The entry for `key` (made when there is none) moves to `target` over
+    // The entry for `key` (made when there is none) moves to `target` over
     // `steps` updates (at least one).
     void SetTarget(int key, float target, int steps);
     // One update of every entry; the ones finished and back at zero are removed. True
     // while any entry moves.
     bool Tick();
-    // 006D4570 (006D47E0 identical): the count, then the entries.
+    // The count, then the entries (identical copies).
     void Save(CStream* stream) const;
     // Reads the array and applies each entry's value to `terrain`.
     void Load(CStream* stream, Terrain* terrain);
     // Reads the array only (the inlined SetSize of another CArray instantiation).
     void LoadEntries(CStream* stream);
-    // The read part of both loads: the count (the original reads it into a slot that still holds
+    // The read part of both loads: the count (the game reads it into a slot that still holds
     // `unread` if the stream writes nothing), SetSize, then the entries.
     void ReadEntries(CStream* stream, int unread);
 };

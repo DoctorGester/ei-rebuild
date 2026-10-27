@@ -1,4 +1,4 @@
-// Asset text to UTF-8 and, until U3, back at the ANSI calls; typed text by character. See asset_text.h.
+// Asset text to UTF-8 and back at the ANSI calls; typed text by character. See asset_text.h.
 #include "asset_text.h"
 
 #include <algorithm>

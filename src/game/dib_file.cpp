@@ -1,4 +1,4 @@
-// CDib's file reader and writer (dib.h; A-E2): a .bmp file read from and written to an MFC file.
+// CDib's file reader and writer (dib.h): a .bmp file read from and written to an MFC file.
 // Both run the file's calls inside MFC's TRY / CATCH(CException) (lib/mfc_try.h): what the file
 // throws ends in a message box and a result of 0.
 #include "dib.h"

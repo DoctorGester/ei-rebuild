@@ -32,7 +32,7 @@ int ReportMissingTargets() {
     };
     const int calls = missing(targets.calls, "call target");
     const int exits = missing(targets.exits, "exit function");
-    // What the generated exit functions call (library destructors, S4-S12).
+    // What the generated exit functions call (library destructors).
     Targets callees;
     for (std::uintptr_t fn : targets.exits) ExitFunction(callees, fn);
     const int exitCalls = missing(callees.calls, "exit function's callee");

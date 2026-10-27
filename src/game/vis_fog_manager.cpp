@@ -1,10 +1,10 @@
 // The visibility fog's manager (CVisFogManager: ClientArrayManager in world.h, the client world's
-// +0x1A4; 004E2290-004E2A15, A-S11). It owns the "VisionFog" texture and a list
-// of the fog objects (CVisibilityFog, effects.h; one a player whose sight is drawn). Rewritten: its
+// +0x1A4). It owns the "VisionFog" texture and a list
+// of the fog objects (CVisibilityFog, effects.h; one a player whose sight is drawn). Its
 // factory (slot 14), Create / Destroy (slots 2 / 3), the tick (slot 6), the new fog and
-// the draw, which binds the texture and has every fog draw itself (004E1EB0, the fog's
+// the draw, which binds the texture and has every fog draw itself (the fog's
 // own draw through the scene renderer: effects_weather_draw.cpp). Main thread. See
-// docs/notes/script.md (A-S11).
+// docs/notes/script.md.
 #include "effects.h"
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // TextureHolderEnsureLoaded, HeldTexture
@@ -41,7 +41,7 @@ HeldTexture* TextureHolder(ClientArrayManager* self) { return reinterpret_cast<H
 CEngineObject* ClientArrayManager::NewObject(int) { return new CVisibilityFog(); }
 EI_REWRITTEN(0x004E2290, ClientArrayManager::NewObject);
 
-// 004E2990 (slot 2, Create): the texture, the tile table, then the manager's own Create (its
+// Slot 2 (Create): the texture, the tile table, then the manager's own Create (its
 // result).
 int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
     TextureHolder(self)->Load(kFogTextureKind, FogTextureName());
@@ -57,7 +57,7 @@ int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
 }
 EI_REWRITTEN(0x004E2990, VisFogManagerCreate);
 
-// 004E2850 (slot 3, Destroy; the destructor 00562DF0 calls it too): the texture dropped (null,
+// Slot 3 (Destroy; the destructor calls it too): the texture dropped (null,
 // then released), every fog released, the list emptied.
 void __fastcall VisFogManagerDestroy(ClientArrayManager* self) {
     CEngineObject* texture = self->current;
@@ -72,7 +72,7 @@ void __fastcall VisFogManagerDestroy(ClientArrayManager* self) {
 }
 EI_REWRITTEN(0x004E2850, VisFogManagerDestroy);
 
-// 004E2760 (slot 6, the tick): every fog's tick; one that returns 0 (no cells left) leaves the list
+// Slot 6 (the tick): every fog's tick; one that returns 0 (no cells left) leaves the list
 // and is released. Returns 0.
 int __fastcall VisFogManagerTick(ClientArrayManager* self) {
     for (FogNode* node = self->list.head; node;) {
@@ -100,7 +100,7 @@ CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* self) {
 }
 EI_REWRITTEN(0x004E28D0, VisFogManagerAdd);
 
-// 004E2700 (RET 4; the world's draw 00569E40). Nothing listed: 1. Otherwise the texture is made
+// Draw (called by the world's draw). Nothing listed: 1. Otherwise the texture is made
 // sure of and bound to stage 0 (a failed bind: 0), then every fog draws; 1.
 int ClientArrayManager::Draw(CSceneRenderer* renderer) {
     if (list.count == 0) return 1;
@@ -109,7 +109,7 @@ int ClientArrayManager::Draw(CSceneRenderer* renderer) {
     for (FogNode* node = list.head; node;) {
         CEngineObject* fog = node->data;
         node = node->next;
-        static_cast<CVisibilityFog*>(fog)->Draw(renderer);   // 004E1EB0 (its result not read)
+        static_cast<CVisibilityFog*>(fog)->Draw(renderer);   // its result not read
     }
     return 1;
 }

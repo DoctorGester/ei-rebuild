@@ -1,5 +1,5 @@
 // game.exe's .rdata and .data in ei_hook.dll's own storage (docs/notes/standalone.md, "Own data").
-// In the standalone image both sections (kMovedBegin-kMovedEnd, 0073B000-007CD000: .rdata with the import address
+// In the standalone image both sections (kMovedBegin-kMovedEnd: .rdata with the import address
 // table at its start, .data with its zero-filled tail, the .bss) are kept in g_dataStorage instead of at their
 // addresses: the data seam (game_data.h) adds g_dataShift to each of their addresses, the pointer cells of
 // game.exe's .rdata and .data that point into the range (image_cells.inc, tools/gen_image_cells.py: vtables'

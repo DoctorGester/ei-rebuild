@@ -1,8 +1,8 @@
 #pragma once
 
-// The weather's noise curves (A-E2): five tables of 0xA00 bytes that the snow's draw reads.
+// The weather's noise curves: five tables of 0xA00 bytes that the snow's draw reads.
 // Each is a smooth random curve of 128 samples with the cubic segments between neighbouring samples. A
-// static initialiser builds them before WinMain from the C runtime's rand (004E3B20, after 004E3AD0 has
+// static initialiser builds them before WinMain from the C runtime's rand (after an earlier one has
 // cleared the segments), so their contents depend only on how many random numbers were drawn before.
 
 #include <cstddef>
@@ -19,7 +19,7 @@ struct WeatherNoiseSegment {
 struct WeatherNoiseCurve {
     static constexpr int kSamples = 128;
 
-    // 004E3980 (thiscall, RET 4): fills the curve. 128 values of rand() - 0x3FFF, smoothed forwards
+    // Fills the curve (thiscall). 128 values of rand() - 0x3FFF, smoothed forwards
     // and then backwards with the weight 0.3 for the new value (the backward pass starts by reading
     // the float after the samples: the first segment's value, zero at start-up), the samples moved
     // down by 20, the whole scaled so that its root mean square is `amplitude`, then the 127
