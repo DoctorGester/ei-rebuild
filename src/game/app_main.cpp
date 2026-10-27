@@ -179,7 +179,7 @@ float g_clientSpeed = /*00784758*/ 1.0f;
 std::uint8_t g_littleNonLocalMemory = /*00784755*/ 1;
 constexpr DWORD kLittleMemory = 0x800000;
 
-void* ClassRegistry() { return &ChunkArchive::Registry(); }
+ChunkArchive::ClassRegistry* ClassRegistry() { return &ChunkArchive::Registry(); }
 QuestDatabase* QuestDatabaseObject() { return &TheQuestDatabase(); }
 itemdb::SpellDatabase* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
 itemdb::ItemDatabase* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
@@ -195,7 +195,7 @@ console::GameOStream& SpeedLog() { return console::g_netLogOut; }
 
 // app::TypeRegistryRegister: a class the chunk archives can hold, by id and factory. The two factories: class 1
 // and class 2 (the party record).
-using ClassFactory = void* (__cdecl*)();
+using ClassFactory = ChunkArchive::Factory;
 ClassFactory ClassTemplateFactory() { return ei::Code<ClassFactory>(0x00457850); }
 ClassFactory PartyRecordFactory() { return ei::Code<ClassFactory>(0x00457740); }
 

@@ -3,6 +3,7 @@
 // Small application helpers (app_helpers.cpp) and the globals they use.
 
 #include "app.h"
+#include "chunk_archive.h"
 #include "lib/stlp.h"
 #include "lib/static_object.h"
 #include "game_data.h"
@@ -29,5 +30,6 @@ void __cdecl DelayedProtectionCheck();
 void __stdcall ConstructProtectionChecks();
 
 // (app_registry.cpp): a class the chunk archives can hold, by id and factory.
-void __fastcall TypeRegistryRegister(void* self, void*, std::uint32_t id, void* (__cdecl* factory)());
+void __fastcall TypeRegistryRegister(ChunkArchive::ClassRegistry* registry, void*, std::uint32_t id,
+                                     ChunkArchive::Factory factory);
 } // namespace app

@@ -173,7 +173,7 @@ void CUnitServer::Load(CStream* stream) {
     LoadStepList(&queue, stream);
     stream->Read(&queue.extra, 4);
     motion.LoadPath(stream);
-    reinterpret_cast<AnimationSteps*>(&currentPlan)->Load(stream);
+    currentPlan.animation.Load(stream);
     LoadPlanFields(stream, &currentPlan);
     stream->Read(&keepHitDirection, 1);
     stream->Read(&stoodBlocked, 1);
@@ -235,7 +235,7 @@ void CUnitServer::Save(CStream* stream) {
     SaveStepList(&queue, stream);
     WriteCopy(stream, queue.extra);
     motion.SavePath(stream);
-    reinterpret_cast<AnimationSteps*>(&currentPlan)->Save(stream);
+    currentPlan.animation.Save(stream);
     SavePlanFields(stream, &currentPlan);
     WriteCopy(stream, keepHitDirection);
     WriteCopy(stream, stoodBlocked);

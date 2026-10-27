@@ -671,6 +671,15 @@ struct BridgeHeights : stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHas
 using BridgeMap = BridgeHeights;
 static_assert(sizeof(BridgeMap) == 0x14);
 
+// CAIMap's dirty rectangle: the area refreshed when a batch of refreshes ends.
+struct AIDirtyRect {
+    // Empty: the minimums 10000, the maximums 0.
+    void Reset();
+
+    int minX, maxX;
+    int minY, maxY;
+};
+
 // The navigation grid of the current map (Rebirth patches Load).
 class CAIMap {
 public:
@@ -845,8 +854,7 @@ public:
     bool batching;                      // refreshes collect into the dirty rectangle
     std::uint8_t refreshUnits;          // non-zero: a refresh also re-registers the units around it
     std::uint8_t unused_003;
-    int dirtyMinX, dirtyMaxX;
-    int dirtyMinY, dirtyMaxY;
+    AIDirtyRect dirty;                  // the area to refresh when batching ends
     int passCosts[16];                  // cost per passability nibble (1/1024)
     int passCostsAlt[16];               // the same for units with CUnit::altPassCosts set
     int stepCosts[16];                  // step speeds per nibble (SetStepSpeeds)
@@ -876,8 +884,7 @@ public:
     SearchGrid<std::int8_t> marks;      // per-cell marks: path directions (BuildCellsTo), reach answers
 };
 static_assert(offsetof(CAIMap, batching) == 0x01 && offsetof(CAIMap, refreshUnits) == 0x02);
-static_assert(offsetof(CAIMap, dirtyMinX) == 0x04 && offsetof(CAIMap, dirtyMaxX) == 0x08);
-static_assert(offsetof(CAIMap, dirtyMinY) == 0x0C && offsetof(CAIMap, dirtyMaxY) == 0x10);
+static_assert(offsetof(CAIMap, dirty) == 0x04 && sizeof(AIDirtyRect) == 0x10);
 static_assert(offsetof(CAIMap, passCosts) == 0x14);
 static_assert(offsetof(CAIMap, sectorMap) == 0x124);
 static_assert(offsetof(CAIMap, areaLists) == 0x204);

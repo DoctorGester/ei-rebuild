@@ -247,12 +247,12 @@ void CAIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
         RefreshArea(minX, maxX, minY, maxY);
         return;
     }
-    if (dirtyMinX < minX) minX = dirtyMinX;
-    dirtyMinX = minX;
-    if (dirtyMaxX > maxX) maxX = dirtyMaxX;
-    dirtyMaxX = maxX;
-    if (!(dirtyMinY < minY)) dirtyMinY = minY;
-    if (!(dirtyMaxY > maxY)) dirtyMaxY = maxY;
+    if (dirty.minX < minX) minX = dirty.minX;
+    dirty.minX = minX;
+    if (dirty.maxX > maxX) maxX = dirty.maxX;
+    dirty.maxX = maxX;
+    if (!(dirty.minY < minY)) dirty.minY = minY;
+    if (!(dirty.maxY > maxY)) dirty.maxY = maxY;
 }
 
 bool CAIMap::MarkFootprint(CMapObject* object, bool remove) {
@@ -332,19 +332,16 @@ EI_REWRITTEN(0x005B78F0, CAIMap::ClearFootprint);
 
 void CAIMap::BeginRefresh() {
     if (batching) {
-        RefreshArea(dirtyMinX, dirtyMaxX, dirtyMinY, dirtyMaxY);
+        RefreshArea(dirty.minX, dirty.maxX, dirty.minY, dirty.maxY);
         batching = false;
     }
-    dirtyMaxX = 0;
-    dirtyMinX = 10000;
-    dirtyMinY = 10000;
-    dirtyMaxY = 0;
+    dirty.Reset();
     batching = true;
 }
 EI_REWRITTEN(0x005B8B30, CAIMap::BeginRefresh);
 
 void CAIMap::EndRefresh() {
-    RefreshArea(dirtyMinX, dirtyMaxX, dirtyMinY, dirtyMaxY);
+    RefreshArea(dirty.minX, dirty.maxX, dirty.minY, dirty.maxY);
     batching = false;
 }
 EI_REWRITTEN(0x005B8B80, CAIMap::EndRefresh);

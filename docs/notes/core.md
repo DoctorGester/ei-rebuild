@@ -113,7 +113,7 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   loader uses vtable 0073FAD4) owns the file: Open 0042D160, constructor 0042D1C0, Destruct 0042D270.
   `ChunkArchive` is a different format over two memory streams (below).
 - `ChunkArchive` (0x74, constructor 0053A7B0): +0 index stream, +0x28 data stream, +0x54 version (1),
-  +0x5C hash_map of loaded objects, +0x70 list of objects to save; class tables 0079B284 (class id ->
+  +0x5C hash_map of loaded objects (ours: `loaded_`, key -> object, plus `numbers_`, object -> its number by first save, while saving; the original shared one map), +0x70 list of objects to save; class tables 0079B284 (class id ->
   factory) and 0079B270 (vtable -> class id). A saved archive has three top-level chunks: 1 (scratch
   data, read back on load), 0 (index: class id and key per object), 2 (data: one child 1 per object with
   child 0 = key, child 1 = the object's fields). A loaded archive's Close gives every loaded object one
@@ -138,7 +138,7 @@ SaveObjectRef 0040A440, ObjectRef 0040A5A0).
 - Kept: `ReadQuad` returns the file's values in the order 2, 0, 3, 1; `ReadVector3` copies x and z
   through the FPU (a signalling NaN becomes quiet; `FpuCopyBits`), y as an integer; `ForEachChild` reads
   the parent without a null check; `CMemoryStream`'s destructor leaves the freed pointer;
-  `SaveObjectRef` registers the object while loading and then searches the field without using it;
+  `SaveObjectRef` registers the object (list and number) while loading too and then searches the field without using it (nothing calls it loading);
   `ObjectRef` writes key 0 when saving; `LeaveChunk` (writing) takes the child's content pointer before
   `AppendChild` resizes the stream; a failed `EnterChunk` while loading leaves the chunk pushed.
 - Not rewritten: 0042D260 (RootChunk::File). The memory stream's own slots, Resize / SetSize, the bit
