@@ -265,8 +265,8 @@ constinit CRuntimeClass g_classCWordArray = /*00796F20*/ {"CWordArray", 0x14, 0,
 constinit CRuntimeClass g_classCDWordArray = /*00797140*/ {"CDWordArray", 0x14, 0, &CreateCDWordArray, &kClassCObject, nullptr};
 constinit CRuntimeClass g_classCByteArray = /*00797198*/ {"CByteArray", 0x14, 0, &CreateCByteArray, &kClassCObject, nullptr};
 
-// The arrays' compiled tables in place (CStringArray), (CWordArray),
-// (CDWordArray), (CByteArray)(CUIntArray): 0 GetRuntimeClass (the class's record), 1 the
+// The arrays' compiled tables in place (CStringArray, CWordArray,
+// CDWordArray, CByteArray and CUIntArray): 0 GetRuntimeClass (the class's record), 1 the
 // deleting destructor, 2 Serialize (CUIntArray's is CObject's, empty).
 template <typename Self, typename Array, const CRuntimeClass* kClass, bool kSerializes = true>
 struct ArrayTable : ei::CompiledTag<Self> {

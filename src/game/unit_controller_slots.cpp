@@ -49,7 +49,7 @@ EI_REWRITTEN(0x00533DE0, CUnitController::Destroy);
 int CUnitController::FiguresLoaded() { return 1; }
 EI_REWRITTEN(0x00533B90, CUnitController::FiguresLoaded);
 
-// Plain RET, nothing: slots 15, 22, 23, 28, 38, 41, 43, 44, 45, 48, 49, 52 and 53 (the server keeps
+// Do-nothing virtuals: 15, 22, 23, 28, 38, 41, 43, 44, 45, 48, 49, 52 and 53 (the server keeps
 // 15, 41, 43, 48 and 52; the client 22, 23, 28, 38, 44, 45, 49 and 53), and the client's own 17
 // and 15.
 void __fastcall ControllerNothing(CUnitController*) {}
@@ -69,7 +69,7 @@ EI_REPLACE(0x00533D80, ControllerNothing);
 EI_REPLACE(0x00534130, ControllerNothing);
 EI_REPLACE(0x00535580, ControllerNothing);
 
-// RET 4, nothing: slots 14 (RestartAnimation), 18 (PlayerChanged), 40 (AdvanceTime), 42
+// Do-nothing virtuals with one argument: 14 (RestartAnimation), 18 (PlayerChanged), 40 (AdvanceTime), 42
 // (ObjectDeleted; the client's too) and 47 (Wound).
 void CUnitController::IgnoreArgument(int) {}
 EI_REPLACE_METHOD(0x00533BA0, CUnitController::IgnoreArgument);
@@ -78,7 +78,7 @@ EI_REPLACE_METHOD(0x00533CC0, CUnitController::IgnoreArgument);
 EI_REPLACE_METHOD(0x00533CE0, CUnitController::IgnoreArgument);
 EI_REPLACE_METHOD(0x00533D30, CUnitController::IgnoreArgument);
 
-// RET 8, nothing: slots 32 (SetArmourModels), 33 (SetWeaponModels) and 51 (Say).
+// Do-nothing virtuals with two arguments: 32 (SetArmourModels), 33 (SetWeaponModels) and 51 (Say).
 void CUnitController::IgnoreTwoArguments(int, int) {}
 EI_REPLACE_METHOD(0x00533C60, CUnitController::IgnoreTwoArguments);
 EI_REPLACE_METHOD(0x00533C70, CUnitController::IgnoreTwoArguments);

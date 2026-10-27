@@ -23,9 +23,9 @@ constexpr int kWeaponCrossbow = 6;
 constexpr int kDamageTypes = 7;
 constexpr float kZero = 0.0f;
 
-// Called through their game addresses (rewritten elsewhere) so their verify wrappers see the
-// calls: UnitParams::WeaponSkillBonus (unit_params_skill.cpp, ST0), the damage
-// scale (this file, which it does not read: RET 8, ST0).
+// Called through their game addresses (rewritten elsewhere) so the harness sees the
+// calls: UnitParams::WeaponSkillBonus (unit_params_skill.cpp), the damage
+// scale (this file).
 // Scales attack and defence by the difficulty unless `keyed`. Not rewritten.
 
 UnitParams* ParamsOf(CUnit* unit) { return unit->Params(); }

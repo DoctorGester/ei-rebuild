@@ -195,7 +195,7 @@ public:
     // the unit) and look around there.
     void Execute(AIBrain* brain) override;
     int GetType() override { return kModeGuard; }
-    // (slots 11 / 12).
+    // Load and Save:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -259,7 +259,7 @@ public:
     int GetType() override;   // 8: 1
     // The last point, or null.
     PatrolPoint* LastPoint();
-    // (slots 11 / 12). The point count (the points' SetSize), per point
+    // Load and Save: the point count (the points' SetSize), per point
     // its position, look count (the looks' SetSize) and per look angle, time, wait and
     // (from version 0x44 when loading) the stop flag byte; then `current`.
     void Load(CStream* stream) override;
@@ -399,8 +399,8 @@ public:
 };
 static_assert(sizeof(AggressionMode) == 0x18);
 
-// CorpseWatcher (game.exe's, 8 bytes): reports corpses the brain has seen (slots 11 / 12 the
-// base's empty ones).
+// CorpseWatcher (game.exe's, 8 bytes): reports corpses the brain has seen (its
+// Load and Save are the base's empty ones).
 class CorpseWatcherMode : public AIActionMode {
 public:
     CorpseWatcherMode();

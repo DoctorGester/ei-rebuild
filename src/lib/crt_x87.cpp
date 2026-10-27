@@ -4,8 +4,7 @@
 // naked entry that moves its arguments to the stack and calls a plain C++ body; this file is the one in
 // src/lib that tools/check_cleanup.py lets hold __asm, for these entries only.
 // Registered for the standalone image only (EI_REPLACE_STANDALONE): the hook build keeps the exe's own, so
-// its x87 results (and the goldens recorded with them) stay the original's. verify_crt_x87.cpp
-// compared every entry with the original at start-up (until).
+// its x87 results (and the goldens recorded with them) stay the original's.
 #include "crt.h"
 
 #include "ei/hook.h"

@@ -45,8 +45,8 @@ public:
     // and panning, the motion cleared, the cursor let go and put back at the mouse position; used.
     void OnRightUp(int buttons, int x, int y);
     // (Rebirth-patched; ui_camera_input.cpp, reproducing WideScreen, so
-    // hooked in both launches: the drag scaled without the margin). The mouse moved. While turning: the drag motion (
-    // in layout units) turns the camera * * * (dx / 400) * 10 and
+    // hooked in both launches: the drag scaled without the margin). The mouse moved. While turning: the drag motion
+    // (in layout units) turns the camera * * * (dx / 400) * 10 and
     // tilts it * * * (dy / 300) * 500 (not tilting when it is at rest
     // and |dy| <= |dx|), or with Ctrl / Alt pans it along (dx / 400, dy / 300) *
     // The motion is cleared, the cursor takes shape 0x16, the event is used and the
