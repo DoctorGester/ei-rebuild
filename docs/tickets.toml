@@ -3227,6 +3227,14 @@ depends = ["C22b"]
 note = "After C22b (addresses and ticket ids at 0). Left: ~60 'slot N' comments (world.h, lightning, UI, effects: name the virtual or drop), +0xNN offsets on named members (drop unless save/packet layout), 207 'the original / game.exe' mentions, 27 history words, fragments such as world.h ~223 and '// In the constructor).'. Files: --batch C22b. Read each file whole; no regex rewrites."
 
 [[ticket]]
+id = "C22g"
+title = "Comments: re-examine after the prose passes and plan removal passes"
+group = "cleanup"
+model = "opus"
+depends = ["C22a2", "C22b2"]
+note = "User 2026-10-27: after the prose changes, re-examine the comments and schedule passes that actually remove unnecessary ones. Sample each area: comments that restate the code, member-offset trailers (// +0xNN) not tied to a save or packet layout, section rulers, long why-blocks that belong in docs/notes. Write the rules into docs/comment-guide.md, add a comments.py count for each kind, and file removal batches (Sonnet, medium) sized like C22a-f."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
