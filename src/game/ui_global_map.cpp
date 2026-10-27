@@ -625,7 +625,7 @@ void CGlobalMap::Update() {
 
 EI_REWRITTEN(0x0062F050, CGlobalMap::Update);
 
-// ---: the constructor --------------------------------------------------------------------
+// --- the constructor -----------------------------------------------------------------------------
 
 namespace {
 
@@ -658,7 +658,7 @@ CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
 }
 EI_REWRITTEN_SPECIAL(0x005F67A0, CGlobalMap::CGlobalMap);
 
-// ---: the destructor body ---------------------------------------------------------------
+// --- the destructor body -------------------------------------------------------------------------
 
 namespace {
 // A CArray's destructor: its vtable back, each entry's strings destroyed (title, then name:
@@ -688,7 +688,7 @@ EI_REWRITTEN_SPECIAL(0x005F6920, CGlobalMap::~CGlobalMap);
 EI_REWRITTEN_SPECIAL(0x005F6900, CGlobalMap::~CGlobalMap);   // deleting
 EI_REWRITTEN_SPECIAL(0x005FC130, CGlobalMap::~CGlobalMap);   // the input side's
 
-// ---: the zone array's SetAtGrow --------------------------------------------------------
+// --- the zone array's SetAtGrow ------------------------------------------------------------------
 
 void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
     std::memset(static_cast<void*>(zones), 0, static_cast<std::size_t>(count) * sizeof(GlobalMapZone));

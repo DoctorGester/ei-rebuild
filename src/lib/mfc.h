@@ -46,9 +46,9 @@ public:
     const CString& operator+=(char c);
     const CString& operator+=(const CString& s);
     const CString& operator+=(const char* s);
-    CString Left(int count) const;                // (RET 8: result slot, count)
-    CString Right(int count) const;               // Right(nCount) (RET 8: result slot, count; Mid(nFirst) is)
-    CString Mid(int first) const;                 // Mid(nFirst) (RET 8: result slot, first)
+    CString Left(int count) const;
+    CString Right(int count) const;               // Right(nCount)
+    CString Mid(int first) const;                 // Mid(nFirst)
     CString Mid(int first, int count) const;      // Mid(nFirst, nCount)
     int Remove(char ch);                          // Remove(chRemove) (the count removed)
     int FindOneOf(const char* set) const;
@@ -148,10 +148,10 @@ public:
     ~CFileFind();
     BOOL FindFile(const char* pattern, unsigned long flags);
     unsigned long GetLength() const;                                // (the found file's size, low dword)
-    CString GetFilePath() const;                                    // (RET 4: the result slot)
-    CString GetFileName() const;                                    // (RET 4: the result slot)
+    CString GetFilePath() const;
+    CString GetFileName() const;
     // FindNextFile / GetFileTitle (Windows' headers define both names as macros).
-    CString GetTitle() const;                                       // (RET 4: the result slot)
+    CString GetTitle() const;
     BOOL FindNext();
     BOOL IsDots() const;
     void Close();
@@ -364,7 +364,7 @@ struct CArray {
     // ElementAt: the element's address.
     T& ElementAt(int index) { return data[index]; }
 
-    // GetAt(nIndex) returning the element by value (RET 8: the hidden result pointer first; returns it).
+    // GetAt(nIndex) returning the element by value (the result pointer first; returns it).
     T* GetAt(T* result, int index) const {
         *result = data[index];
         return result;
@@ -624,7 +624,7 @@ struct CMap {
         return nullptr;
     }
 
-    // NewAssoc (plain RET): an association from the free list (a new block of `blockSize` when it is
+    // NewAssoc: an association from the free list (a new block of `blockSize` when it is
     // empty, its first association used first), the count raised, key and value zeroed. `next` and
     // `hash` are the caller's.
     Assoc* NewAssoc() {

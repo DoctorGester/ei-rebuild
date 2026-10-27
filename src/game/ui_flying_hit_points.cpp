@@ -56,7 +56,7 @@ void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
 }
 EI_REWRITTEN(0x005E1870, CFlyingHitPoints::Add);
 
-// ---: drawing ------------------------------------------------------------------------------
+// --- drawing -------------------------------------------------------------------------------------
 
 namespace {
 

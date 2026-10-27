@@ -137,8 +137,8 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
 }
 
 // The pipeline's viewport size (floats) and depth range (the options' fog start and far clip
-// distances, moved as dwords; the first version passed only one argument, and the callee's RET 8
-// then unbalanced the stack).
+// distances, moved as dwords; both arguments must be passed, or the callee's stack cleanup
+// unbalances the stack).
 void SetViewport(CSceneRenderer* renderer, const GameOptions* settings) {
     const RECT& screen = renderer->device_->screen_;
     float width = static_cast<float>(screen.right - screen.left);
@@ -202,8 +202,8 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     renderer->SetSun(light);
 }
 
-// The counted helper object (+0x24). The original pushes the flag as EDX with only DL set (the rest
-// of EDX is what operator new left there); the constructor reads only the low byte.
+// The counted helper object (+0x24). The flag is a byte argument: only its low byte is read (the original
+// pushes it with the rest of the register left over from operator new).
 void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
     const std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;
     CRenderHelper* helper = new CRenderHelper(D3DDevice(renderer), flag);

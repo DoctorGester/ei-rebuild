@@ -16,8 +16,8 @@
 //   MFC objects, thrown through a cast pointer);
 // - the unwind runs the frames between the throw and the handler through their frame handlers
 //   (RtlUnwind), then ours.
-// verify_mfc_try.cpp proved it at every start until(a missing file: the game's CStdioFile
-// constructor throws, the handler in script_text_file.cpp catches).
+// It happens in the game when a missing file makes CStdioFile's constructor throw and the handler in
+// script_text_file.cpp catches.
 
 // The thrown and handler types (the names and bases are the game's: see above).
 class CObject {};

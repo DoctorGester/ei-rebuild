@@ -1,10 +1,10 @@
 #pragma once
 
-// The MFC collection functions only the exe's vtables point at (ticket, docs/notes/standalone.md
+// The MFC collection functions only the exe's vtables point at (docs/notes/standalone.md
 // section 2): each CArray / CList / CMap instantiation's scalar deleting destructor (vtable slot 1)
 // and the destructors they call. The bodies are mfc_array.h's and mfc_list.h's templates;
 // mfc_slots.cpp registers the instantiations whose elements need nothing of the game,
-// src/game/game_slots.cpp the others. Checked in game by verify_mfc_slots.cpp until.
+// src/game/game_slots.cpp the others.
 
 #include "compiled_vtable.h"
 #include "mfc_archive.h"
@@ -34,7 +34,7 @@ struct ScalarDeleting {
     }
 };
 
-// std::exception's destructor, which the exception classes' own destructors jump to (
+// std::exception's destructor, which the exception classes' own destructors jump to
 void __fastcall ExceptionDestruct(libcrt::Exception* self);
 
 // ---- Serialize (vtable slot 2) --------------------------------------------------------------

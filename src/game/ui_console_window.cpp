@@ -1,4 +1,4 @@
-// The console window's surface, drawing and key input (game.exe 0x005E3FD0-0x005E4D25). The text
+// The console window's surface, drawing and key input. The text
 // side (lines, history depth, placement) is in console_window.cpp. See docs/notes/ui.md
 // ("Console window").
 #include "console.h"

@@ -143,7 +143,7 @@ void CMpConnectScreen::DrawListVanilla() {
     mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
     POINT from{8, row.bottom - 2};
     POINT to{layout.lineRight, row.bottom - 2};
-    // WideScreen (XOR ECX,ECX): without the margin.
+    // WideScreen: without the margin.
     interface_->CallScalePointToScreenNoMargin(&from);
     interface_->CallScalePointToScreenNoMargin(&to);
     dc->MoveTo(from.x, from.y);

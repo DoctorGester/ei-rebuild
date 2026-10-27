@@ -141,7 +141,7 @@ public:
     // UnitParams::WeaponSkillBonus (truncated); otherwise they come from the packed parameters
     // (CUnit + 0x330), with the weapon's type and damage type, or type 8 and the model's first
     // weighted damage type. Bows and crossbows have no defence; the damage is scaled by the unit's
-    // effects (max first), the attack spread is the parameters' byte,scales
+    // effects (max first), the attack spread is the parameters' byte; scales
     // attack and defence by the difficulty for units without a text key.
     void GetAttackParams(AttackParams* out) override;
 

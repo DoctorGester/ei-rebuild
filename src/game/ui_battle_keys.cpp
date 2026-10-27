@@ -1,12 +1,11 @@
-// The battle screen's key-down handler (input side slot 9): the chat line's keys on a
+// The battle screen's key-down handler (input side): the chat line's keys on a
 // network client, the panels' own keys, Esc (the pending action dropped, else the escape menu) and
 // the key actions of the key table (KeyActions): pause and game speed, the objectives window, the
 // camera, the order keys, movement modes, the action, spell, weapon and quick item buttons, the
 // unit panel's body parts, the top panel's pages, the map's slide, quick save / load, the party
 // members and the message window. Rebirth's MPSpeedControl (the two JNEs
 // aimed at the next instruction) lets the speed keys work on a network client too. See ui_camp.h
-// (CBattleScreen) and
-// docs/notes/ui.md, section 6.
+// (CBattleScreen) and docs/notes/ui.md, section 6.
 #include "ui.h"
 #include "world_glue.h"
 #include "ui_camp.h"

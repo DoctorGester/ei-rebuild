@@ -75,7 +75,7 @@ inline bool SameIgnoringCase(const int* fold, const char* a, const char* b, int 
 }
 
 // acos: the C entry of the body behind _CIacos (same code from the FLD of the argument on;
-// the result is left unrounded in ST0).
+// the result is left unrounded).
 double __cdecl acos(double c);
 // The game's _ftol for a value computed in C++: the low 32 bits of the 64-bit
 // truncation (NaN and values out of the 64-bit range give 0), unlike a C++ cast to int.
@@ -159,7 +159,7 @@ unsigned char* __cdecl Mbslwr(unsigned char* text);
 // a thread_local starting at 1.
 int __cdecl Rand();
 void __cdecl Srand(unsigned seed);
-// The calling thread's seed itself (the harness's digest and random trace read it;: the image has no
+// The calling thread's seed itself (the harness's digest and random trace read it; the image has no
 // _getptd).
 unsigned& RandState();
 
@@ -238,7 +238,7 @@ std::int64_t __cdecl FtolExtended(const unsigned char* value);
 double __cdecl CiAcos(double x);
 double __cdecl CiAsin(double x);
 double __cdecl CiPow(double x, double y);
-// _hypot (standalone image only;: the camera, the strips, the client maps): the larger size
+// _hypot (standalone image only: the camera, the strips, the client maps): the larger size
 // m of |x| and |y| times the root of (x / m)^2 + (y / m)^2, each step at 64 bits then stored to a double,
 // as _hypothlp computes it under its control word 133F (to nearest) whatever the caller's; an
 // overflow as the caller's rounding direction has it, a NaN argument as x87 addition propagates it, an

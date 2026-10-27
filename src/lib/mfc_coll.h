@@ -1,9 +1,9 @@
 #pragma once
 
 // MFC 4.2's non-template arrays (afxcoll: array_s.cpp, array_w.cpp, array_d.cpp, array_b.cpp,
-// array_u.cpp), written out for the standalone exe (ticket, docs/notes/standalone.md section 2).
+// array_u.cpp), written out for the standalone exe (docs/notes/standalone.md section 2).
 // Same layout and allocator as the copies linked into game.exe; every body is registered at its
-// library address (mfc_coll.cpp) and checked in game by verify_mfc_coll.cpp until.
+// library address (mfc_coll.cpp).
 
 #include "mfc_string.h"
 #include "game/game_data.h"

@@ -1,5 +1,5 @@
 // The renderer's helper object (CRenderHelper, model.h: the Direct3D state blocks behind the material presets).
-// Rewritten here: the helper (its constructor with the nine built-in presets' state lists, the destructor,
+// The helper (its constructor with the nine built-in presets' state lists, the destructor,
 // the state blocks' recording and release, and the slots that read its tables), its preset's constructor and
 // destructor, the Direct3D driver list's lookup by index, and the transform pipeline's constructor and destructor
 // with its matrix stacks'. See docs/notes/renderer.md (section 12).
@@ -87,7 +87,7 @@ void DestroyRecord(RenderPresetRecord* record) {
     record->states.FreeStorage();
 }
 
-// What a failed Direct3D call leaves as slot 1's result: the fatal error's (0 when it comes back).
+// What a failed Direct3D call leaves as its result: the fatal error's (0 when it comes back).
 CRenderPreset* Failed(int errorResult) { return reinterpret_cast<CRenderPreset*>(static_cast<std::uintptr_t>(errorResult)); }
 
 // vector<State>::operator= as STLport writes it (inlines it; the states are plain
@@ -201,7 +201,7 @@ EI_REWRITTEN(0x004FCE90, CRenderHelper::RenderHelperBuiltInStateList);
 // The first block sets the texture stages of the first `stages` states
 // (as many as the device has, or one) and switches the next stage off; each state from there on gets
 // a block of its own with its blend factors (an empty block without them). The check of a stage's
-// operations ands the operation's number with the device's capability bits, as the original does;
+// operations ands the operation's number with the device's capability bits, as the original does.
 // a stage that fails it ends the first block there. Returns the new preset.
 CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool singleStage) {
     const int count = static_cast<int>(states->size());
@@ -393,7 +393,7 @@ CRenderPreset* CRenderHelper::Preset(unsigned index) {
 }
 EI_REWRITTEN(0x004FDBA0, CRenderHelper::Preset);
 
-// Only AL is the result.
+// The result is a byte (a bool).
 bool CRenderHelper::PresetStates(CRenderPreset* preset, StateVector* out) {
     auto* node = records_.Find(preset);
     if (!node) return false;
@@ -402,7 +402,7 @@ bool CRenderHelper::PresetStates(CRenderPreset* preset, StateVector* out) {
 }
 EI_REWRITTEN(0x004FDBC0, CRenderHelper::PresetStates);
 
-// Only AL is the result.
+// The result is a byte (a bool).
 bool CRenderHelper::BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out) {
     if (index >= CRenderHelper::kPresetCount || !presets_[index]) return false;
     return PresetStates(presets_[index], out);

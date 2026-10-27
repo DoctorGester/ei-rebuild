@@ -36,8 +36,8 @@ float PortraitDelay(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * (-6.984919588798148e-11 /*00742760*/));
 }
 
-// The orders' unit list: an MFC CArray<CUnit*> on the stack (SetSize,
-// RET 8); its data is freed with operator delete.
+// The orders' unit list: an MFC CArray<CUnit*> on the stack (SetSize);
+// its data is freed with operator delete.
 using OrderUnits = mfc::CArray<CUnit*>;
 // The toggle's CArray<DWORD> (vtable SetAtGrow).
 
@@ -98,7 +98,7 @@ void NodPortrait(CBattleScreen* self, int i) {
 
 } // namespace
 
-// ---: a party member toggled ----------------------------------------------------------
+// --- a party member toggled ----------------------------------------------------------------------
 
 void CBattleScreen::ToggleMember(int index) {
     auto* party = &party_;
@@ -158,7 +158,7 @@ void CBattleScreen::ToggleMember(int index) {
 }
 EI_REWRITTEN(0x006379E0, CBattleScreen::ToggleMember);
 
-// ---: the selected members ordered at a unit -------------------------------
+// --- the selected members ordered at a unit ------------------------------------------------------
 
 void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
     auto* party = &party_;
@@ -205,7 +205,7 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
 }
 EI_REWRITTEN(0x006373A0, CBattleScreen::OrderDeadUnit);
 
-// ---: the pending spell or quick item used ---------------------------------
+// --- the pending spell or quick item used --------------------------------------------------------
 
 void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
     auto* party = &party_;
@@ -261,7 +261,7 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
 }
 EI_REWRITTEN(0x00637750, CBattleScreen::UseAtPoint);
 
-// ---: a unit's speech event -------------------------------------------------
+// --- a unit's speech event -----------------------------------------------------------------------
 
 void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
     CUnit* unit = UnitWithId(TheObjectManager(), id);

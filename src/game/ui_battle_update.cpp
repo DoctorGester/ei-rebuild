@@ -38,7 +38,7 @@
 #include "game_singletons.h"
 #include "lib/mfc_slots.h"
 
-// ---: the quick item panel's unit ----------------------------------------------------
+// --- the quick item panel's unit -----------------------------------------------------------------
 
 namespace {
 
@@ -89,8 +89,8 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CItem* item = unit_->GetQuickItem(slot);
         if (!item) continue;
         {
-            mfc::CString image = item->FigureName();   // slot 19
-            mfc::CString model = item->PictureName();  // slot 20
+            mfc::CString image = item->FigureName();
+            mfc::CString model = item->PictureName();
             AddItem(model, image);
         }
         finish(item, true);
@@ -114,8 +114,8 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         if (!item || item->type_ != kItemQuest)
             continue;
         {
-            mfc::CString image = item->FigureName();   // slot 19
-            mfc::CString model = item->PictureName();  // slot 20
+            mfc::CString image = item->FigureName();
+            mfc::CString model = item->PictureName();
             AddItem(model, image);
         }
         finish(item, false);
@@ -128,7 +128,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
 }
 EI_REWRITTEN(0x0063D2B0, CHudQuickItems::SetUnit);
 
-// ---: the battle screen's update ------------------------------------------------------
+// --- the battle screen's update ------------------------------------------------------------------
 
 namespace {
 
@@ -144,7 +144,7 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
-// Whether this is a network client (AL).
+// Whether this is a network client.
 // The world: the unit with an id, makes
 // `unit` the controlled one, the units inside a selection box into a list.
 static CUnit* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(world)->FindUnit(id); }
@@ -166,7 +166,7 @@ using PartyIds = CBattleScreen::PartyIds;
 void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
 // STLport list<CUnit*> (constructor) and list<int> (constructor,
-// end, insert, RET 4 / 4 / 0xC); frees a node.
+// end, insert); frees a node.
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
 using UnitList = stlp::list<CEngineObject*>;
@@ -282,7 +282,7 @@ void FreeListNodes(L* list) {
 } // namespace
 
 void CBattleScreen::Update() {
-    // The one selected party unit is dead (its slot 55, IsDead): the panels lose their unit and the
+    // The one selected party unit is dead (IsDead): the panels lose their unit and the
     // unit panel shows it.
     auto* party = &party_;
     CUnit* first = nullptr;
@@ -389,7 +389,7 @@ void __fastcall BattleScreenUpdate(CBattleScreen* self) { self->Update(); }
 } // namespace
 EI_REWRITTEN(0x00638280, BattleScreenUpdate);
 
-// ---: the party ids compared --------------------------------------------------------------
+// --- the party ids compared ----------------------------------------------------------------------
 
 namespace {
 bool SameIds(const IdVector& a, const IdVector& b) {
@@ -405,7 +405,7 @@ bool CBattleScreen::PartyIds::Equals(const PartyIds& other) const {
 }
 EI_REWRITTEN(0x006381E0, CBattleScreen::PartyIds::Equals);
 
-// ---: the battle screen's left button release -----------------------------------------
+// --- the battle screen's left button release -----------------------------------------------------
 
 void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
@@ -467,7 +467,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 world->Select(unitAt(static_cast<int>(node->data)));
             }
             int id = unitAt(first)->id_;
-            Speech(id, 0, nullptr);   // slot 32 (+0x80)
+            Speech(id, 0, nullptr);
         }
     }
     RefreshSelection();
@@ -481,7 +481,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
 }
 EI_REWRITTEN(0x00638B30, CBattleScreen::OnLButtonUp);
 
-// ---: a quest variable's notice -------------------------------------------------------
+// --- a quest variable's notice -------------------------------------------------------------------
 
 namespace {
 
@@ -580,7 +580,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
 }
 EI_REWRITTEN(0x006369D0, CBattleScreen::OnQuestVariable);
 
-// ---: the selection's refresh --------------------------------------------------------
+// --- the selection's refresh ---------------------------------------------------------------------
 
 namespace {
 

@@ -199,7 +199,7 @@ void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream) {
 EI_REWRITTEN(0x005D9B80, LoadAttackOptions);
 
 namespace {
-// (ST0).
+//.
 double __fastcall OptionWeight(const AIAttackOption* option) { return option->Weight(); }
 } // namespace
 

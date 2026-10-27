@@ -18,7 +18,7 @@ static_assert(sizeof(ArchiveEntry) == 16);
 
 // Base of the managers that load their data from archives (CTextureManager, CFigureManager, ...):
 // CBaseManager's archive slots (16-22) over a list of open archives, and a 26th slot, the folder
-// name. Name provisional; is retired. resource_manager.cpp.
+// name. Name provisional. resource_manager.cpp.
 class CResourceManager : public CBaseManager {
 public:
     // Slot 0 is the scalar deleting destructor.

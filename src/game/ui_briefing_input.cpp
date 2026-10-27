@@ -94,7 +94,7 @@ static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
     unit->ServerController()->Brain()->Walk(&point, run, 0);
 }
 
-// ---: input slot 2 ---------------------------------------------------------------------
+// --- OnLeftDown ----------------------------------------------------------------------------------
 
 void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     if (chatActive_) {
@@ -139,7 +139,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     }
 }
 
-// ---: input slot 4 ---------------------------------------------------------------------
+// --- OnMouseMove ---------------------------------------------------------------------------------
 
 void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (chatActive_) {
@@ -202,7 +202,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (visited != 1.0f) TheCursor()->SetShape(kCursorExit);
 }
 
-// ---: input slot 7 ---------------------------------------------------------------------
+// --- OnLeftDouble --------------------------------------------------------------------------------
 
 void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
     if (chatActive_) return;

@@ -26,20 +26,20 @@ constexpr std::uint32_t kHeaderColour = 0xFEFEFE;
 constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 
 // The movie flag (1: movies shown at their own size). __cdecl, AL.
-// CBinkVideo's frame step (RET 4: AL whether the movie still plays; rewritten in
-// bink_video.cpp) and close (plain RET).
+// CBinkVideo's frame step (whether the movie still plays; rewritten in
+// bink_video.cpp) and close.
 
 
 } // namespace
 
-// ---: a window above the titles closed ---------------------------------------------
+// --- a window above the titles closed ------------------------------------------------------------
 
 void CCreditsScreen::OnMessageResult(int) { player_.Close(); }
 EI_REWRITTEN(0x0062BFD0, CCreditsScreen::OnMessageResult);
 
-// ---: the scrolling surface's load (ui_scrolling_surface.cpp), through its address -------
+// --- the scrolling surface's load (ui_scrolling_surface.cpp), through its address ----------------
 
-// ---: a script line's destructor ---------------------------------------------------------
+// --- a script line's destructor ------------------------------------------------------------------
 
 void TitleLine::Destroy() {
     style.~CString();
@@ -47,7 +47,7 @@ void TitleLine::Destroy() {
 }
 EI_REWRITTEN(0x0062BCB0, TitleLine::Destroy);
 
-// ---: the frame -------------------------------------------------------------------------
+// --- the frame -----------------------------------------------------------------------------------
 
 BOOL CCreditsScreen::Draw(int pass) {
     EI_NAN_AUDIT(textSurface_->speed_);
@@ -87,7 +87,7 @@ BOOL CCreditsScreen::Draw(int pass) {
 }
 EI_REWRITTEN(0x0062BD80, CCreditsScreen::Draw);
 
-// ---: the close ---------------------------------------------------------------------------
+// --- the close -----------------------------------------------------------------------------------
 
 void CCreditsScreen::OnClose() {
     lines_.ClearWith([](TitleLine* line) { line->Destroy(); });

@@ -450,7 +450,7 @@ EI_REWRITTEN(0x00524CD0, UnitStats::ResetToBase);
 
 namespace {
 // UnitStats::ReduceUnitStats::HealSlots of unit_stats.cpp / unit_vitals.cpp,
-// through their game addresses. Reduce leaves its result unrounded in ST0.
+// through their game addresses. Reduce leaves its result unrounded.
 // Skill database: the index of `record` in its level records, or -1. Not rewritten.
 
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).

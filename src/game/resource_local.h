@@ -2,7 +2,7 @@
 
 // An archive file and a memory stream built on a loader's stack, as the start-up loaders inline
 // them (the lightning noise, the lever; unit_db_load.cpp keeps its
-// own copies). A-E1.
+// own copies).
 
 #include "core_streams.h"
 #include "resource.h"

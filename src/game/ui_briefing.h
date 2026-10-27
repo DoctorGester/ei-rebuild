@@ -157,7 +157,7 @@ public:
     // container, the topics, the party array, the movers' and shown items' lists, the "pers" texts,
     // the people and no speakers.
     explicit CBriefingScreen(CInterface3D* ui);
-    // The slots of its own in game.exe's tables.
+    // Virtuals of its own.
     BOOL Draw(int pass) override;   // 20: (ui_container_draws.cpp)
     void CloseScreen() override { Close(); }                                                      // 26
     void MessageResult(int result) override { OnMessageResult(static_cast<std::uint32_t>(result)); }   // 27
@@ -165,14 +165,14 @@ public:
     void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }                                     // 30
     void GameOver(int won) override { OnGameOver(won); }                                          // 31
     void ShowBriefing(const char* name) override { OnBriefing(name); }                            // 34
-    bool ReadyToStopPolling() override { return true; }                                           // 35: (AL 1)
+    bool ReadyToStopPolling() override { return true; }
     void PlayersChanged(int show) override { ShowChat(static_cast<char>(show)); }                 // 36
     void PlayerList(int mode) override { SetChatActive(mode); }                                   // 38
     int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }                 // input 2
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }               // input 4
     int LeftDouble(int b, int x, int y) override { return OnLeftDouble(b, x, y), 0; }             // input 7
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }                   // input 9
-    // Main vtable slots (ui_briefing.cpp).
+    // Main virtuals (ui_briefing.cpp).
     // The screen closes: the map edge fade back to the value
     // Create saved, the client glue's (1) /, the camera free again (flag 0x40,
     // flags 0x100 / 0x200 cleared).
@@ -300,8 +300,8 @@ public:
     void ViewPreset(int preset);
     // "#hide <name>": a dialogue person `name` leaves the dialogue (the server
     // hears event 2; its blink stops; its server unit gets flag 0x40000000 back, height 0, its
-    // action dropped) and the speakers' list; the third speaker walks to thirdPlace_ (
-    // with `immediate` and `time`) and is forgotten. A name that is no unit removes the shown item
+    // action dropped) and the speakers' list; the third speaker walks to thirdPlace_
+    // (with `immediate` and `time`) and is forgotten. A name that is no unit removes the shown item
     // of that name (its meshes and texture).
     void HideSpeaker(const char* name, int immediate, int time);
 

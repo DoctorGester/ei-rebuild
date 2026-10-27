@@ -59,7 +59,7 @@ void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
 
 } // namespace
 
-// ---: titles ----------------------------------------------------
+// --- titles --------------------------------------------------------------------------------------
 
 mfc::CString* CGlobalMap::AllodTitle(mfc::CString* out, const char* allod) { return PlaceTitle(out, kAllodPrefix, allod); }
 EI_REWRITTEN(0x00631110, CGlobalMap::AllodTitle);
@@ -70,7 +70,7 @@ EI_REWRITTEN(0x00631030, CGlobalMap::ZoneTitle);
 mfc::CString* CGlobalMap::QuestTitle(mfc::CString* out, const char* quest) { return PlaceTitle(out, kQuestPrefix, quest); }
 EI_REWRITTEN(0x00630F50, CGlobalMap::QuestTitle);
 
-// ---: positions -------------------------------------------------------------
+// --- positions -----------------------------------------------------------------------------------
 
 bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* name, bool positionLine) {
     CTextManager* texts = TheTextManager();
@@ -105,7 +105,7 @@ Vector3* CGlobalMap::QuestPosition(Vector3* out, const char* quest) {
 }
 EI_REWRITTEN(0x00630CC0, CGlobalMap::QuestPosition);
 
-// ---: the selected zone -----------------------------------------------------------------
+// --- the selected zone ---------------------------------------------------------------------------
 
 void CGlobalMap::SelectZone(int index, bool isLink) {
     int zone = -1;
@@ -138,7 +138,7 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
 }
 EI_REWRITTEN(0x00630860, CGlobalMap::SelectZone);
 
-// ---: the pick picture ------------------------------------------------------------------
+// --- the pick picture ----------------------------------------------------------------------------
 
 // Scene objects 0..2 (arrow, base, island) and everything after the zone markers (quests, links,
 // layers and the rest) shown or hidden.
@@ -176,7 +176,7 @@ void CGlobalMap::RefreshSelection() {
 }
 EI_REWRITTEN(0x00630670, CGlobalMap::RefreshSelection);
 
-// ---: the weather -----------------------------------------------------------------------
+// --- the weather ---------------------------------------------------------------------------------
 
 void CGlobalMap::SetWeather() {
     int index = weatherIndex_;

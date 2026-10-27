@@ -77,7 +77,7 @@ void CUiContainer::UpdateBase() {
     for (int i = 0; i < children_.size; ++i) children_.data[i]->Update();
 }
 EI_REWRITTEN(0x006010E0, CUiContainer::UpdateBase);
-// The compiler's jump thunks to it (functions.csv "thunk" rows;: the standalone image has no
+// The compiler's jump thunks to it (functions.csv "thunk" rows): the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
 EI_REWRITTEN(0x0062AD00, CUiContainer::UpdateBase);
 

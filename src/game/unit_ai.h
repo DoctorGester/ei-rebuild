@@ -101,7 +101,7 @@ using AILookArray = AILooks;
 void __fastcall LooksDestroyAt(AILookArray* looks);                                  // (base vtable, frees the data)
 // Base vtable, no data, growth step 0. Returns `looks`.
 AILookArray* __fastcall LooksInit(AILookArray* looks);
-// (plain RET; unit_ai_save.cpp). The looks from / to a save: the
+// (unit_ai_save.cpp). The looks from / to a save: the
 // count, then angle, time and wait of each and (files from version 0x44) the stop flag.
 void __fastcall LoadLooks(AILookArray* looks, CStream* stream);
 void __fastcall SaveLooks(const AILookArray* looks, CStream* stream);
@@ -185,7 +185,7 @@ public:
     // Set.
     GuardMode(const Vector3* point, float radius, float wander);
     ~GuardMode() override;   // (deleting)
-    // No failures (EAX not set: 0).
+    // No failures.
     int OnShutdown() override;
     // A new mode with the fields copied (floats as dwords); null when the allocation fails.
     GuardMode* Clone() override;
@@ -246,7 +246,7 @@ public:
     PatrolMode();
     // Frees every point's looks and the points.
     ~PatrolMode() override;
-    // The points freed and the mode as new (the count kept; EAX not set: 0).
+    // The points freed and the mode as new (the count kept).
     int OnShutdown() override;
     // A new mode (0x20 bytes) with copies of the points and `current`; null when the
     // allocation fails.
@@ -282,7 +282,7 @@ public:
     // Set.
     explicit SentryMode(const Vector3* point);
     ~SentryMode() override;   // (deleting)
-    int OnShutdown() override;        // 2: nothing (EAX not set: 0)
+    int OnShutdown() override;        // 2: nothing
     SentryMode* Clone() override;     // 3: as GuardMode's
     // Sets the point.
     void Set(const Vector3* point);
@@ -303,7 +303,7 @@ public:
     // The leader referenced (none: a mode AIBrain::Load fills).
     explicit FollowMode(CMapObject* leader = nullptr);
     ~FollowMode() override;   // The leader released and dropped
-    int OnShutdown() override;        // 2: the leader released and dropped (EAX not set: 0)
+    int OnShutdown() override;        // 2: the leader released and dropped
     FollowMode* Clone() override;     // 3: the leader referenced
     // When idle: action 6 (follow) with the leader as target.
     void Execute(AIBrain* brain) override;
@@ -327,7 +327,7 @@ public:
     // The constructor in place.
     SuspectionMode* Construct();
     ~SuspectionMode() override;   // (deleting)
-    int OnShutdown() override;            // 2: nothing (EAX not set: 0)
+    int OnShutdown() override;            // 2: nothing
     SuspectionMode* Clone() override;     // 3: as GuardMode's
     // Remembers a non-allied seen object, then takes over the brain's noticed
     // point and level (the level only grows down to the noticed one while the point is the same).
@@ -371,7 +371,7 @@ public:
     AggressionMode();
     explicit AggressionMode(std::uint8_t fixed);
     ~AggressionMode() override;   // The enemy released
-    // The enemy released, then the mode as new (EAX not set: 0).
+    // The enemy released, then the mode as new.
     int OnShutdown() override;
     // References the enemy and copies `chosen` without a reference.
     AggressionMode* Clone() override;
@@ -405,7 +405,7 @@ class CorpseWatcherMode : public AIActionMode {
 public:
     CorpseWatcherMode();
     ~CorpseWatcherMode() override;       // (deleting)
-    int OnShutdown() override;           // 2: nothing (EAX not set: 0)
+    int OnShutdown() override;           // 2: nothing
     CorpseWatcherMode* Clone() override;
     // Takes one seen corpse off the brain's list and notes it as noticed
     // (level 800, kind -3). Never takes charge (-1000).
@@ -426,7 +426,7 @@ public:
     void ClearFields() { std::memset(&distance, 0, sizeof(FearMode) - offsetof(FearMode, distance)); }
     ~FearMode() override;   // (deleting: unit_ai_mode_lifetime.cpp)
     // The constructor's stores without the flag (the count and
-    // +0x14 .. +0x20 stay). EAX is 0 on return.
+    // +0x14 .. +0x20 stay).
     int OnShutdown() override;
     // A new mode with this one's fields; null when the
     // allocation fails.
@@ -484,7 +484,7 @@ public:
     PlayerMode();
     // Releases the leader, then the target.
     ~PlayerMode() override;
-    // The references released, then the mode as new; EAX the mode.
+    // The references released, then the mode as new.
     int OnShutdown() override;
     // A new mode holding the same target and leader (one more reference each) with the
     // same point, state and run; null when the allocation fails.
@@ -662,7 +662,7 @@ struct AIReportElements {
 struct AIReports : mfc::CArray<AIReport, AIReportElements> {
     // Keeps the larger `what` of a listed object, else appends it (with a reference).
     void Report(CMapObject* object, int what);
-    // Whether `object` is listed (only AL is set).
+    // Whether `object` is listed.
     bool Contains(CEngineObject* object) const;
 };
 
@@ -711,7 +711,7 @@ struct AIAttention {
     // How good `option` is against `candidate` (`group` the
     // others it would hit or help): by kind, minus 25 per unit of distance beyond the range (x10
     // outside kinds 0..4) when it reached `threshold`, minus twice the hits needed for attacks.
-    // -1e30 when it cannot apply. Returned unrounded (ST0).
+    // -1e30 when it cannot apply. Returned unrounded.
     double Score(const Vector3* from, CUnit* self, AIObjectList* group, CEngineObject* current, CUnit* candidate,
                  float threshold, const AIAttackOption* option);
     // Whether the unit may attack / cast at the target: false for a
@@ -882,7 +882,7 @@ static_assert(offsetof(AIEventTable, slots) == 0x2C);
 static_assert(offsetof(AIEventTable, rows) == 0x10030);
 static_assert(sizeof(AIEventTable) == 0x1003C);
 
-// The squared 2D distance, unrounded (ST0).
+// The squared 2D distance, unrounded.
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
 
 // The brain's perception memory (brain + 0xD0, 0xC0 bytes): what the unit sees, has seen and heard

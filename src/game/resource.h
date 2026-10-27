@@ -47,8 +47,8 @@ constexpr std::uint32_t kResMagic = 0x019CE23C;
 class CMappedFile {
 public:
     CMappedFile();
-    CMappedFile* Construct();                         // (the constructor)
-    void Close();                                     // (is an identical copy)
+    CMappedFile* Construct();                         // the constructor body
+    void Close();                                     // an identical copy of Close's body
     BOOL Open(const char* path, BOOL writable);
     void Flush();                                     // write back, stamp modification time
 
@@ -72,7 +72,7 @@ static_assert(sizeof(LoadedFile) == 0x1C);
 // The base of the archive readers (ResourceBaseClass in the game's messages; slot 0 is the scalar
 // deleting destructor): the archive header and tables, and an index table (accelerator) from
 // numbers to entries built by CreateAccelTable (only called by the unused).
-// A real virtual class: the compiler makes its vtable (game.exe's is retired).
+// A real virtual class: the compiler makes its vtable (not game.exe's vtable).
 class CResourceBase {
 public:
     CResourceBase();                                // fields cleared
@@ -95,7 +95,7 @@ public:
 static_assert(sizeof(CResourceBase) == 0x24);
 
 // Reads an archive with low-level file I/O, loading individual files into memory on request.
-// A real virtual class: the compiler makes its vtable (game.exe's is retired).
+// A real virtual class: the compiler makes its vtable (not game.exe's vtable).
 class CMappedResource : public CResourceBase {
 public:
     // An empty, closed archive: CResourceBase's fields cleared, the loaded-file maps with
@@ -136,7 +136,7 @@ public:
 static_assert(sizeof(CMappedResource) == 0x58);
 
 // Maps the whole archive into memory; GetFile returns pointers into the mapping. A real virtual
-// class: the compiler makes its vtable (game.exe's is retired).
+// class: the compiler makes its vtable (not game.exe's vtable).
 class CMMIOResource : public CMappedResource {
 public:
     // CMappedResource's, a closed mapped file, no image.

@@ -1,15 +1,14 @@
 #pragma once
 
-// MFC 4.2's AfxMessageBox as the game reaches it (ticket, docs/notes/standalone.md section 2).
+// MFC 4.2's AfxMessageBox as the game reaches it (docs/notes/standalone.md section 2).
 // The game constructs no CWinApp (CWinApp's constructor has no caller) and has no MFC
 // window, so the module state's application is always null: AfxMessageBox runs
 // CWinApp::DoMessageBox with no object, EnableModeless and CWnd::GetSafeOwner_ find no window, and
 // the box has no owner, no help context and the module's file name as its title. That is the body
-// here (registered in mfc_window.cpp; verify_mfc_window.cpp checked the assumption
-// against the original's state whenever a box was shown, until).
+// here (registered in mfc_window.cpp).
 // CWnd's constructor and destructor: the exit functions run it on MFC's four static windows (wndTop,
 // wndBottom, wndTopMost, wndNoTopMost: placement constants, never destroyed as windows); MFC's other
-// classes reach it from their own destructors. Checked in game by verify_mfc_state.cpp until.
+// classes reach it from their own destructors.
 
 #include <windows.h>
 #include "compiled_vtable.h"   // ei::UnportedSlot

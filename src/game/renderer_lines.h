@@ -1,7 +1,7 @@
 #pragma once
 
-// The old renderer's line-strip draws (renderer_lines.cpp): (renderer slot 20) and
-// (the renderer's line lists).
+// The old renderer's line-strip draws (renderer_lines.cpp): the strip through integer points and
+// the strip of the renderer's line lists.
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -55,7 +55,7 @@ struct LinePacket {
 };
 static_assert(sizeof(LinePacket) == 0x40);
 
-// A line list (0x20 bytes; line_batch.cpp, A-E1): the figure parts' debug bounds and the
+// A line list (0x20 bytes; line_batch.cpp): the figure parts' debug bounds and the
 // world client's lists. The points sit four to a packet; the unused points of the last
 // packet repeat the last point.
 struct LineBatch {

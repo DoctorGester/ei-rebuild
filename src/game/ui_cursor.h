@@ -100,7 +100,6 @@ static_assert(sizeof(CursorImage) == 0x20);
 
 class CCursor {
 public:
-    // 0x005E6630 (ui_cursor_frame.cpp).
     void SaveBackground(char fromPrimary);
     // Selects cursor shape `shape`; returns the
     // previous one (-1 when the cursor is not set up).

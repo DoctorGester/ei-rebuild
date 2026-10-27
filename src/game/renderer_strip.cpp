@@ -1,7 +1,7 @@
-// The renderer's ribbon draw vtable
-// with its helpers (indexed draw of TL vertices), (one ribbon cross
-// section)(the direction at a point). A polyline of world points is projected (slot 13
-// of the pipeline's transform object, or slot 8 with clipping flags), and every point becomes a
+// The renderer's ribbon draw
+// with its helpers (indexed draw of TL vertices, one ribbon cross
+// section, the direction at a point). A polyline of world points is projected (by the transform
+// object's point projection, with clipping flags when asked), and every point becomes a
 // pair of screen vertices offset across the line's screen direction by width * rhw * 15, with the
 // texture's u running along the ribbon and v across it; consecutive pairs make two triangles. The
 // ends are transparent (colour 0x00FFFFFF). Used for lightning bolts and similar strips. Buffers are
@@ -137,7 +137,7 @@ TLVertex** RibbonData() { return &Ribbon().data; }
 // The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) /
 // hypot(dx, dy) unrounded; vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved
 // by (-k*dy, k*dx) with v at the bottom, both with the current u. Appends both to `*array` at
-// `*count`. __fastcall: src in ECX, direction in EDX.
+// `*count`.
 void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
     TLVertex* top = *array + (*count)++;
     const float scale = static_cast<float>(static_cast<double>(width) * src->rhw * kWidthScale);
@@ -157,7 +157,7 @@ void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVerte
 
 // The screen direction at point `index` of `points` (TL vertices): mode 1 the segment from
 // the previous point, mode 2 from the previous to the next point (the last point: the segment from
-// the previous one), else (1, 0). __fastcall: out in ECX, index in EDX. Returns out.
+// the previous one), else (1, 0). Returns out.
 float* __fastcall StripDirection(float* out, int index, int mode, const void* array) {
     const auto* points = static_cast<const lib::AlignedArray<TLVertex>*>(array);
     const TLVertex* v = points->data;

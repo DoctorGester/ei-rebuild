@@ -53,7 +53,7 @@ UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
 
 } // namespace
 
-// ---: the trade panel ----------------------------------------------------------------
+// --- the trade panel -----------------------------------------------------------------------------
 
 void CTradePanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
     info->kind = kNone;
@@ -95,7 +95,7 @@ void CTradePanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
 }
 EI_REWRITTEN(0x00625690, CTradePanel::HoverInfo);
 
-// ---: the statistics column -----------------------------------------------------------
+// --- the statistics column -----------------------------------------------------------------------
 
 void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
     PartyUnitRecord* hero = owner_->HeroRecord();
@@ -166,7 +166,7 @@ void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
 }
 EI_REWRITTEN(0x00624CB0, CHeroStatsPanel::HoverInfo);
 
-// ---: the column's hero -----------------------------------------------------------------
+// --- the column's hero ---------------------------------------------------------------------------
 
 void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     bool party = LocalPlayerData()->members_.size > 1;
@@ -181,7 +181,7 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
 }
 EI_REWRITTEN(0x006232D0, CHeroStatsPanel::SetHero);
 
-// ---: the camp's hero record ----------------------------------------------------
+// --- the camp's hero record ----------------------------------------------------------------------
 
 PartyUnitRecord* CCampPages::HeroRecord() {
     return &LocalPlayerData()->members_.data[hero_];

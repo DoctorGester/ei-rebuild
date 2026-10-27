@@ -217,11 +217,11 @@ void CCampPages::ShowPage(int page) {
 }
 EI_REWRITTEN(0x0060E9E0, CCampPages::ShowPage);
 
-// ---: CanEquip ----------------------------------------------------------------------------
+// --- CanEquip ------------------------------------------------------------------------------------
 
 namespace {
 
-// The camp's item predicates (.., which they do not read; AL).
+// The camp's item predicates (none reads `this`).
 bool IsSpellContainer(const CItem* item) {
     return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0;
 }
@@ -260,7 +260,7 @@ namespace {
 constexpr float kPriceZero = 0.0f;
 constexpr float kPriceOne = 1.0f;
 
-// Slot 16 of an item: its base price, left unrounded in ST0.
+// Slot 16 of an item: its base price, left unrounded.
 double ItemPrice(const CItem* item) {
     using PriceFn = double(__thiscall*)(const CItem*);
     void** vtable;
@@ -430,7 +430,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
 
 EI_REWRITTEN(0x006100E0, CCampPages::CanEquip);
 
-// ---: UpdateAction ------------------------------------------------------------------------
+// --- UpdateAction --------------------------------------------------------------------------------
 
 namespace {
 // The stack count of an item (+0x48).
@@ -588,7 +588,7 @@ void CCampPages::UpdateAction() {
 }
 EI_REWRITTEN(0x00611930, CCampPages::UpdateAction);
 
-// ---: Draw ------------------------------------------------------------------------------
+// --- Draw ----------------------------------------------------------------------------------------
 
 BOOL CCampPages::Draw(int pass) {
     int x = MouseScreenX();   // the mouse in screen pixels
@@ -656,7 +656,7 @@ BOOL CCampPages::Draw(int pass) {
 
 EI_REWRITTEN(0x0060F050, CCampPages::Draw);
 
-// ---: what the constructors would make ---------------------------------------
+// --- what the constructors would make ------------------------------------------------------------
 
 namespace {
 
@@ -781,7 +781,7 @@ bool CCampPages::CanMakeItem() {
 }
 EI_REWRITTEN(0x00612600, CCampPages::CanMakeItem);
 
-// ---: leaving the camp ---------------------------------------------------------------
+// --- leaving the camp ----------------------------------------------------------------------------
 
 namespace {
 constexpr std::uint32_t kRecordBias = 100000000;
@@ -831,7 +831,7 @@ void CCampPages::Close() {
 }
 EI_REWRITTEN(0x0060E6B0, CCampPages::Close);
 
-// ---: the trade panel's destructor body --------------------------------
+// --- the trade panel's destructor body -----------------------------------------------------------
 
 namespace {
 
@@ -858,7 +858,7 @@ EI_REWRITTEN_SPECIAL(0x0060E3E0, CTradePanel::~CTradePanel);
 EI_REWRITTEN_SPECIAL(0x0060E3C0, CTradePanel::~CTradePanel);   // deleting
 EI_REWRITTEN_SPECIAL(0x00613DB0, CTradePanel::~CTradePanel);   // the input side's
 
-// ---: taking an item off the hero ---------------------------------------------------
+// --- taking an item off the hero -----------------------------------------------------------------
 
 namespace {
 
@@ -923,7 +923,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
 }
 EI_REWRITTEN(0x0060FE40, CCampPages::TakeOff);
 
-// ---: putting an item on the hero ----------------------------------------------------
+// --- putting an item on the hero -----------------------------------------------------------------
 
 void CCampPages::PutOn(CItem* item) {
     interface_->PlaySound(game::PutOnSoundText(), 0);
@@ -966,7 +966,7 @@ void CCampPages::PutOn(CItem* item) {
 }
 EI_REWRITTEN(0x0060FCA0, CCampPages::PutOn);
 
-// ---: moving an item between the camp's lists ------------------------------
+// --- moving an item between the camp's lists -----------------------------------------------------
 
 namespace {
 // The interface's Shift flag (set by its key handler).
@@ -1120,7 +1120,7 @@ void CCampPages::MoveItem(CItem* item, int mode) {
 }
 EI_REWRITTEN(0x00610AD0, CCampPages::MoveItem);
 
-// ---: the hero's unit after a change ---------------------------------------
+// --- the hero's unit after a change --------------------------------------------------------------
 
 void CCampPages::RefreshWeapons() {
     PartyUnitRecord* hero = HeroRecord();
@@ -1146,7 +1146,7 @@ void CCampPages::RefreshStats() {
 }
 EI_REWRITTEN(0x0060F980, CCampPages::RefreshStats);
 
-// ---: turning and choosing the hero ------------------
+// --- turning and choosing the hero ---------------------------------------------------------------
 
 namespace {
 // fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, as the original
@@ -1180,7 +1180,7 @@ EI_REWRITTEN(0x0060F6B0, CCampPages::Update);
 namespace {
 // The search both directions share: from the current hero, step until a record of the hero
 // class (fatal after more steps than there are records). on the map objects manager
-//: a prototype's object class.
+// A prototype's object class.
 template <typename Step>
 int FindHero(int start, Step step) {
     CParty* party = PlayerParty();
@@ -1242,7 +1242,7 @@ void CCampPages::ShowHero() {
 }
 EI_REWRITTEN(0x0060F830, CCampPages::ShowHero);
 
-// ---: the constructor ----------------------------------------------------------------
+// --- the constructor -----------------------------------------------------------------------------
 
 CCampPages::CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui) {
     // The caches' (empty) compare objects keep the flag's byte.

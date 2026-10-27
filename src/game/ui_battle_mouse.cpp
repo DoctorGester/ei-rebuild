@@ -24,7 +24,7 @@ constexpr const char* kUnitTextPrefix = "unit ";
 int Distance(int a, int b) { return a < b ? b - a : a - b; }
 } // namespace
 
-// ---: the mouse moved over the battle screen ------------------------------------------
+// --- the mouse moved over the battle screen ------------------------------------------------------
 
 void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
@@ -56,7 +56,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
 }
 EI_REWRITTEN(0x00639D60, CBattleScreen::OnMouseMove);
 
-// ---: the left button went down on the battle screen ------------------------------------
+// --- the left button went down on the battle screen ----------------------------------------------
 
 void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
@@ -74,7 +74,7 @@ void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
 }
 EI_REWRITTEN(0x00638A40, CBattleScreen::OnLButtonDown);
 
-// ---: a unit's name line --------------------------------------------------------------
+// --- a unit's name line --------------------------------------------------------------------------
 
 void CBattleScreen::UnitName(CUnit* unit, mfc::CString* out) {
     CTextManager* texts = TheTextManager();

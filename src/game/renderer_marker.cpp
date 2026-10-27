@@ -14,7 +14,7 @@
 
 namespace {
 
-// The arrow's proportions the original's constants,
+// The arrow's proportions (the original's constants):
 // the unit length is a third of the size.
 const float kThird = std::bit_cast<float>(0x3EAAAAABu);   // 1/3
 constexpr float kWing = 3.0f;          // half the width of the arrow's back

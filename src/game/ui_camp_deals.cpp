@@ -93,7 +93,7 @@ void ReturnResults(CCampPages* camp, CParty* results, CParty* constructorList, C
 
 } // namespace
 
-// ---: a spell container taken apart ---------------------------------------------------------
+// --- a spell container taken apart ---------------------------------------------------------------
 
 namespace {
 // A new item named `name` from the results' item manager, counted.
@@ -128,7 +128,7 @@ bool CCampPages::DeconstructSpell() {
     spellMade_ = nullptr;
     return true;
 }
-// ---: an item taken apart -------------------------------------------------------------------
+// --- an item taken apart -------------------------------------------------------------------------
 
 namespace {
 // The instruction (blueprint) items by the item's class: weapon, armour, quick item.
@@ -194,7 +194,7 @@ bool CCampPages::DeconstructItem() {
 EI_REWRITTEN(0x00612500, CCampPages::DeconstructSpell);
 EI_REWRITTEN(0x006129C0, CCampPages::DeconstructItem);
 
-// ---: the first action button ---------------------------------------------------------
+// --- the first action button ---------------------------------------------------------------------
 
 namespace {
 
@@ -305,7 +305,7 @@ void CCampPages::DoAction() {
 }
 EI_REWRITTEN(0x00611220, CCampPages::DoAction);
 
-// ---: the second action button --------------------------------------------------------
+// --- the second action button --------------------------------------------------------------------
 
 void CCampPages::UndoAction() {
     interface_->PlaySound(kCancelSound, 0);

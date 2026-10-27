@@ -258,7 +258,7 @@ MpAddressEntry* MpAddressList::Erase(MpAddressEntry* first, MpAddressEntry* last
 }
 EI_REWRITTEN(0x0061EA90, MpAddressList::Erase);
 
-// ---: Update -------------------------------------------------------------------
+// --- Update --------------------------------------------------------------------------------------
 
 void CMpConnectScreen::Update() {
     net::ClientSession* client = net::GameClient();
@@ -312,7 +312,7 @@ void CMpConnectScreen::Update() {
 }
 EI_REWRITTEN(0x0061C430, CMpConnectScreen::Update);
 
-// ---: a box answered -----------------------------------------------------------
+// --- a box answered ------------------------------------------------------------------------------
 
 void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
     if (result == (kBoxMaster | kAnswerCancel)) {
@@ -333,7 +333,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
 }
 EI_REWRITTEN(0x0061C2E0, CMpConnectScreen::OnBoxResult);
 
-// ---: input --------------------------------------------------------
+// --- input ---------------------------------------------------------------------------------------
 
 void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
     int region = RegionAt(x, y);
@@ -444,7 +444,7 @@ EI_REWRITTEN(0x0061C700, CMpConnectScreen::OnLButtonDown);
 EI_REWRITTEN(0x0061CA30, CMpConnectScreen::OnLButtonDouble);
 EI_REWRITTEN(0x0061CAD0, CMpConnectScreen::OnKeyDown);
 
-// ---: the selection kept in the list and in view -----------------------------------------
+// --- the selection kept in the list and in view --------------------------------------------------
 
 void CMpConnectScreen::SelectAndScroll() {
     if (selected_ < 0) selected_ = 0;
@@ -459,7 +459,7 @@ void CMpConnectScreen::SelectAndScroll() {
 }
 EI_REWRITTEN(0x0061CC00, CMpConnectScreen::SelectAndScroll);
 
-// ---: connect or host --------------------------------------------------------------------
+// --- connect or host -----------------------------------------------------------------------------
 
 void CMpConnectScreen::Connect() {
     interface_->PlaySound(OkSound(), 0);
@@ -490,7 +490,7 @@ void CMpConnectScreen::Connect() {
 }
 EI_REWRITTEN(0x0061CCE0, CMpConnectScreen::Connect);
 
-// ---: add or forget an address -----------------------------------------------------------
+// --- add or forget an address --------------------------------------------------------------------
 
 void CMpConnectScreen::EditAddress() {
     int row = selected_;
@@ -510,7 +510,7 @@ void CMpConnectScreen::EditAddress() {
 }
 EI_REWRITTEN(0x0061CF50, CMpConnectScreen::EditAddress);
 
-// ---: ask the master server --------------------------------------------------------------
+// --- ask the master server -----------------------------------------------------------------------
 
 void CMpConnectScreen::MasterRequest() {
     CopyText(boxText_, EmptyText());
@@ -527,7 +527,7 @@ void CMpConnectScreen::MasterRequest() {
 }
 EI_REWRITTEN(0x0061D0D0, CMpConnectScreen::MasterRequest);
 
-// ---: config\addrbook.ini ----------------------------------------------------------------
+// --- config\addrbook.ini -------------------------------------------------------------------------
 
 void CMpConnectScreen::SaveAddressBook() {
     ChunkArchive archive;
@@ -544,7 +544,7 @@ void CMpConnectScreen::SaveAddressBook() {
 }
 EI_REWRITTEN(0x0061D1C0, CMpConnectScreen::SaveAddressBook);
 
-// ---: the list from the client's servers -------------------------------------------------
+// --- the list from the client's servers ----------------------------------------------------------
 
 void CMpConnectScreen::RebuildList() {
     entries_.Erase(entries_.begin(), entries_.end());
@@ -614,7 +614,7 @@ void CMpConnectScreen::RebuildList() {
 }
 EI_REWRITTEN(0x0061D470, CMpConnectScreen::RebuildList);
 
-// ---: Create (the vanilla body) ----------------------------------------------------------
+// --- Create (the vanilla body) -------------------------------------------------------------------
 
 void CMpConnectScreen::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
@@ -789,7 +789,7 @@ EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::CreateScreen);
 // Rebirth's patches in Create: addon's ExtendedServerName sites
 // and EI_Plugin's NPlayers.
 
-// ---: the master request box --------------------------------------------------
+// --- the master request box ----------------------------------------------------------------------
 
 CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
                                      const net::NetAddress* address, std::uint32_t extra)

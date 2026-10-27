@@ -44,7 +44,7 @@ void SetCursor(int shape) { TheCursor()->SetShape(shape); }
 // The client world: the object under a screen point (x, y pair), the ground point under
 // a screen point (PickSurface), the zone exit at a point (FindExitAt).
 // The local player glue: an exit's zone name, the local
-// player's variable `name` (ST0).
+// player's variable `name`.
 // Units: the prototype record, IsHostileTo,
 // CanCastSpell(index, point)CanUseQuickItem(index, point) (0 = can),
 // the quick item; an item's category.

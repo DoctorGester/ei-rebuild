@@ -1,4 +1,4 @@
-// The briefing / base screen's main-vtable slots (CBriefingScreen, ui_briefing.h): close, message
+// The briefing / base screen's main virtuals (CBriefingScreen, ui_briefing.h): close, message
 // box answers, a unit leaving the party, game over, the "briefing" command, the chat window and the
 // saved state. See docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
@@ -59,7 +59,7 @@ NamedFloatTable::Node* BriefingVariables::First() const { return table_.First();
 
 NamedFloatTable::Node* BriefingVariables::Next(NamedFloatTable::Node* node) const { return table_.Next(node); }
 
-// ---: slot 26 --------------------------------------------------------------------------
+// --- Close ---------------------------------------------------------------------------------------
 
 void CBriefingScreen::Close() {
     MapEdgeFade() = savedEdgeFade_;
@@ -70,7 +70,7 @@ void CBriefingScreen::Close() {
 }
 EI_REWRITTEN(0x00602BB0, CBriefingScreen::Close);
 
-// ---: slot 27 --------------------------------------------------------------------------
+// --- OnMessageResult -----------------------------------------------------------------------------
 
 void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     switch (result) {
@@ -94,7 +94,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     if (IsMultiplayerClient()) PlayersChanged(1);
 }
 
-// ---: slot 29 --------------------------------------------------------------------------
+// --- OnUnitJoined --------------------------------------------------------------------------------
 
 void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     CParty* player = LocalPlayerData();
@@ -152,7 +152,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
 }
 EI_REWRITTEN(0x00602C90, CBriefingScreen::OnUnitJoined);
 
-// ---: slot 30 --------------------------------------------------------------------------
+// --- OnUnitLeft ----------------------------------------------------------------------------------
 
 void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     if (unit == leader_) leader_ = nullptr;
@@ -166,7 +166,7 @@ void CBriefingScreen::OnUnitLeft(CUnit* unit) {
 }
 EI_REWRITTEN(0x00603010, CBriefingScreen::OnUnitLeft);
 
-// ---: slot 31 --------------------------------------------------------------------------
+// --- OnGameOver ----------------------------------------------------------------------------------
 
 void CBriefingScreen::OnGameOver(int) {
     interface_->PlaySound("buttons\\gameover.wav", 0);
@@ -175,7 +175,7 @@ void CBriefingScreen::OnGameOver(int) {
 }
 EI_REWRITTEN(0x00608C70, CBriefingScreen::OnGameOver);
 
-// ---: slot 34 --------------------------------------------------------------------------
+// --- OnBriefing ----------------------------------------------------------------------------------
 
 void CBriefingScreen::OnBriefing(const char* name) {
     topic_ = name;
@@ -183,14 +183,14 @@ void CBriefingScreen::OnBriefing(const char* name) {
 }
 EI_REWRITTEN(0x006030C0, CBriefingScreen::OnBriefing);
 
-// ---: slot 36 --------------------------------------------------------------------------
+// --- ShowChat ------------------------------------------------------------------------------------
 
 void CBriefingScreen::ShowChat(char show) {
     if (IsMultiplayerClient() && show && chat_) chat_->ShowPlayers();
 }
 EI_REWRITTEN(0x00603090, CBriefingScreen::ShowChat);
 
-// ---: slot 40 --------------------------------------------------------------------------
+// --- SaveState -----------------------------------------------------------------------------------
 
 void CBriefingScreen::SaveState() {
     int zero = 0;

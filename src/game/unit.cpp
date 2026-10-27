@@ -276,7 +276,7 @@ double CUnit::TotalItemWeight() {
     for (CItem* item : armor) {
         if (item) total += ItemWeight(item);
     }
-    return total;   // unrounded (ST0)
+    return total;   // unrounded
 }
 EI_REWRITTEN(0x005307B0, CUnit::TotalItemWeight);
 
@@ -437,7 +437,7 @@ double CUnit::AnimationRatio() {
 }
 EI_REWRITTEN(0x00532E00, CUnit::AnimationRatio);
 
-double UnitParams::Period() { return 25.0f / static_cast<float>(attackRate); }   // unrounded (ST0)
+double UnitParams::Period() { return 25.0f / static_cast<float>(attackRate); }   // unrounded
 EI_REWRITTEN(0x005271C0, UnitParams::Period);
 
 // --- Map object state ------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 #pragma once
 
 // MFC 4.2's exception classes as the game's copy throws them (except.cpp, filex.cpp, arcex.cpp), and
-// AFX_EXCEPTION_LINK's chain (ticket, docs/notes/standalone.md section 2). The classes keep the exe's layout and
+// AFX_EXCEPTION_LINK's chain (docs/notes/standalone.md section 2). The classes keep the exe's layout and
 // slots (real C++ classes since), and a throw is this compiler's `throw` of a pointer to mfc_try.h's class of
 // the game's name, so a handler of ours catches it by that name.
 

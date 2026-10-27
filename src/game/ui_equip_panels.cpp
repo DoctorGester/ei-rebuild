@@ -34,7 +34,7 @@ void RefreshWeapons(CUiWindow* owner) { static_cast<CItemScreen*>(owner)->Refres
 
 } // namespace
 
-// ---: the shown entries ---------------------------------------------
+// --- the shown entries ---------------------------------------------------------------------------
 
 void CHeroEquipPanel::ShowWeapon(CItem* weapon) {
     PartyUnitRecord* hero = owner_->HeroRecord();
@@ -60,7 +60,7 @@ void CHeroQuickStrip::ShowEntry(CItem* item) {
 }
 EI_REWRITTEN(0x00622BC0, CHeroQuickStrip::ShowEntry);
 
-// ---: the equipment panel's right button --------------------------------------------------
+// --- the equipment panel's right button ----------------------------------------------------------
 
 void CHeroEquipPanel::OnRightDown(int, int x, int y) {
     if (!body_ || !enabled_) return;
@@ -75,7 +75,7 @@ void CHeroEquipPanel::OnRightDown(int, int x, int y) {
 }
 EI_REWRITTEN(0x00622960, CHeroEquipPanel::OnRightDown);
 
-// ---: the item under a point ---------------------------------------------------
+// --- the item under a point ----------------------------------------------------------------------
 
 CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
     *topic = 0;

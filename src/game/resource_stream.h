@@ -1,6 +1,6 @@
 #pragma once
 
-// The rest of the resource code: the sound system's file reader vtable
+// The rest of the resource code: the sound system's file reader,
 // the name listing of an archive and the constructors and destructors of
 // CMMIOResource (the readers' base CResourceBase is in resource.h). Names provisional.
 
@@ -11,7 +11,7 @@
 // Opens files for the sound system (a member of CSoundManager): a loose file through mmioOpen, or an
 // entry of an archive opened with mmio (the archive part is never opened: its Open, has no
 // callers). ResourceStreamClass (slot 0 the deleting destructor). 0x34 bytes. A real virtual class:
-// the compiler makes its vtable (game.exe's is retired).
+// the compiler makes its vtable (not game.exe's vtable).
 struct CResourceStream : CResourceBase {
     CResourceStream();                              // no file, no archive
     ~CResourceStream() override;                    // Close, then CResourceBase's
@@ -32,5 +32,5 @@ static_assert(sizeof(CResourceStream) == 0x34);
 
 // Matches `name` against `pattern` (* ends the match successfully, ? matches any
 // character, other characters compare through toupper). An empty pattern matches an empty name,
-// and a non-empty name gives `emptyPatternResult`. __fastcall (name in ECX, pattern in EDX).
+// and a non-empty name gives `emptyPatternResult`.
 int __fastcall WildcardMatch(const char* name, const char* pattern, int emptyPatternResult);

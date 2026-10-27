@@ -64,13 +64,13 @@ static_assert(sizeof(UnitParamsSlot) == 0x1C);
 struct UnitParams {
     // 25 / attackRate.
     double Period();
-    // Zeroes the block; the slot types become 4 and +0x20 7. Returns 0 (EAX).
+    // Zeroes the block; the slot types become 4 and +0x20 7.
     int Reset();
     // (unit_params_skill.cpp; the client's GetAttackParams uses it for party
     // units). UnitStats::WeaponSkillBonus on the packed bytes, with the weapon's prototype record
     // `weapon` (or null) given: types 0-4 skill 0 + the weapon's +0x7B, 5-6 skill 1 + +0x7C, each
     // plus (the stat named by the skill's first letter - 25) and the level value of skill `type`;
-    // type 8 skill 0 + +0x7B (+ the stat - 25); other types 0. Returned in ST0 unrounded.
+    // type 8 skill 0 + +0x7B (+ the stat - 25); other types 0. Returned unrounded.
     double WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon);
 
     std::uint8_t unused_00[4];
@@ -102,7 +102,7 @@ struct UnitParams {
     std::uint8_t flags;             // +0x107 (UnitStats::flags, low byte)
 
     // unit_vision.cpp: the sight range at `daylight` (0 night .. 1 day):
-    // valuesB0[0] x ((1 - daylight) + valuesB0[1] x daylight x 0.01). ST0, unrounded.
+    // valuesB0[0] x ((1 - daylight) + valuesB0[1] x daylight x 0.01). Unrounded.
     double VisionRange(float daylight);
 
     // unit_params_protection.cpp: the seven protection values the unit
@@ -131,7 +131,7 @@ class CUnitClientSpecific;   // unit_client_models.h
 // The unit's controller (CUnit + 0x240): CUnitServer (class id 0x3E, combat.h) on the
 // server, CUnitClientSpecific (0x3D, unit_client_models.h) for party units on the client; this
 // abstract base had (unit_controller_slots.cpp). Names and evidence of the slots:
-// docs/notes/map_objects.md ("Virtual slot names"). Slots whose original is a plain RET leave EAX as the
+// docs/notes/map_objects.md ("Virtual slot names"). Slots whose original does nothing leave the result register as the
 // caller had it; CUnit passes the EAX of 23, 44, 49 and 53 on, which nothing reads, so they are void.
 class CUnitController : public CEngineObject {
 public:
@@ -200,8 +200,8 @@ public:
     virtual void Resettle() {}                   // 44: server (combat.h)
     virtual void UpdateMoveFactors() {}          // 45: server (combat.h)
     // 46: a body part's condition changed by `change` (a fraction of its maximum) for stat `stat`
-    // (0..5); `flags` is the unit's Params->flags byte (bit 3 skips it). Client (
-    // text and a particle effect), base empty.
+    // (0..5); `flags` is the unit's Params->flags byte (bit 3 skips it). Client
+    // (text and a particle effect), base empty.
     virtual void StatChanged(int, float, std::uint32_t) {}
     // 47: the hit took `lost` (a fraction of the hit points) with the wound flag; client
     // (the argument is not read), base empty
@@ -261,7 +261,7 @@ public:
     std::uint32_t ReadNetState(int first) override;        // 49: (net_state.cpp)
     void WriteNetState() override;                         // 50: (net_state.cpp)
     // (The two above: the map object's fields, then the unit's own.)
-    // 52: / 53: (RET 8 / RET 4; unit_points.cpp): the position predicted along the path at
+    // 52 / 53 (unit_points.cpp): the position predicted along the path at
     // world time `time`, the point the animation acts on.
     Vector3* PositionAt(Vector3* out, int time) override;
     Vector3* AimPoint(Vector3* out) override;
@@ -277,7 +277,7 @@ public:
 
     // unit_vision.cpp: the world time moved on to `time`. The
     // controller's slot 40 runs; a text-key (party) unit then marks its sight on the client world
-    //: its VisionRange at the world's daylight, around its position.
+    // (its VisionRange at the world's daylight, around its position).
     void AdvanceTime(float time) override;
 
     // Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows.
@@ -348,7 +348,7 @@ public:
     // Returns what the original leaves in EAX (1 when `record` lies before the table).
     std::uint32_t SetPrototype23C(const UnitPrototypeRecord* record);
 
-    // Is the active weapon (+0x26C) of type 5 or 6 (ranged)? Returns AL only.
+    // Is the active weapon (+0x26C) of type 5 or 6 (ranged)?
     bool HasRangedWeapon();
 
     // Put an item into the first free weapon (4), quick item (4)
@@ -425,7 +425,7 @@ public:
 
     // For units with a player and no bow or crossbow in hand: is this unit behind
     // `target` (the direction to it against the target's facing from its orientation quaternion
-    // at +0x34, below -0.5)? 0/1 in EAX.
+    // at +0x34, below -0.5)? 0/1.
     BOOL IsBehind(const CEngineObject* target);
 
     // Puts armour piece `item` (condition +0x20 rounding above 0) into the armour slot
@@ -442,7 +442,7 @@ public:
     // CArray::SetSize).
     void AddCarried(CItem* item);
     // Releases carried item `index` and closes the gap.
-    // Returns the new count (EAX).
+    // Returns the new count.
     int RemoveCarried(int index);
     // unit_item_lists.cpp. Empties both lists, then adds every item the
     // unit holds to `items` (weapons, armour, quick items, spells, the carried ones; empty slots
@@ -458,7 +458,7 @@ public:
     // Unknown_23C = the index of the unit prototype named `name`, or -1.
     // Returns what the original leaves in EAX (-1, or the low half of its division product).
     std::uint32_t SetPrototype23CByName(const char* prototypeName);
-    // Unknown_23C = `index`. Returns `index` (EAX).
+    // Unknown_23C = `index`. Returns `index`.
     int SetPrototype23CIndex(int index);
 
     // Back to a blank unit: no name, prototypes, controller (released), relations,
@@ -512,11 +512,11 @@ public:
     FigureAnimation* AnimationEntry(std::uint32_t key);
     // The horizontal extent of the body: the box maximum's (x, y) length of the figure
     // part "bd" (else "chest"), doubled for the mosquito (type_ 0x33, prototype "unmosp"); 0 when
-    // the figure has neither part. Returned in ST0 unrounded.
+    // the figure has neither part. Returned unrounded.
     double BodyExtent();
     // The height of the ground at (x, y) (the world's slot 29); for units moving on the
     // water surface (movementKind 2) the surface height plus the unit's z (server units,
-    // controller class 0x3E) or its heightOffset. Returned in ST0 unrounded.
+    // controller class 0x3E) or its heightOffset. Returned unrounded.
     double GroundHeight(float x, float y);
     // Where effects (lightning, particles) start from the unit: on a client, a hero's
     // right hand (part "rh3"), another unit's weapon point (the controller's) turned by
@@ -538,9 +538,9 @@ public:
     // As RefreshMotion with the speeds given
     // (the motion's speed scale and base turn rate) and no part marked.
     void SetMotionSpeeds(float speed, float turnRate);
-    // Whether a player owns the unit (0 / 1 in EAX).
+    // Whether a player owns the unit.
     int HasPlayer() const;
-    // Twice above.z (+0x14C), unrounded in ST0.
+    // Twice above.z (+0x14C), unrounded.
     double DoubleHeight() const;
     // The armour piece worn in `slot` (armor[slot], unchecked).
     CItemArmor* WornItem(int slot) const;
@@ -667,7 +667,7 @@ inline constexpr float kSlotWeights[kSlotTypes] = /*0073E0FC*/ {10.0f, 30.0f, 15
 // One of the three protection layers of a body slot (0x48 bytes): what each of the seven damage
 // types loses to it.
 struct UnitStatLayer {
-    // Zeroes it but spareAbsorb. Returns 0 (EAX).
+    // Zeroes it but spareAbsorb.
     int Reset();
 
     int layerMask;                      // +0x00 the layer mask bits of the pieces added (AddArmourLayer)
@@ -683,7 +683,7 @@ static_assert(sizeof(UnitStatLayer) == 0x48);
 // the hit locations). Names provisional.
 struct UnitStatSlot {
     // Type 4, the rest 0 but the layers' spareAbsorb, share and factor. Returns 0
-    // (EAX).
+    //.
     int Reset();
 
     int type;                       // +0x00 2 arms, 3 legs; reset to 4
@@ -711,7 +711,7 @@ struct UnitStats;
 // 0x20, 0x58 bytes; party records keep one at +0x20 of theirs too). Names provisional.
 struct UnitVitals {
     // Called every world update for living units: every 15th call
-    // mana (unless `inCombat`) and hit points (through the slots) regenerate. Returns AL: 1 when
+    // mana (unless `inCombat`) and hit points (through the slots) regenerate. Returns 1 when
     // something may have changed.
     bool Regenerate(UnitStats* stats, CUnit* unit, char inCombat);
     // A hit on a map object that is not a creature: each damage type
@@ -721,7 +721,7 @@ struct UnitVitals {
     // (the end of the block).
     void* Reset();
     // The rounded (FISTP) values into `out`. Returns the end of `out`'s protection
-    // (EAX).
+    //.
     void* Pack(UnitVitalsPacked* out);
 
     int builtFlags;                     // +0x00 bit 0 set when built from the prototype
@@ -741,7 +741,7 @@ static_assert(sizeof(UnitVitals) == 0x58);
 // A creature's computed statistics (0x704 bytes; built from the unit's parameters, often
 // as a stack copy). Only the fields read here; names provisional.
 struct UnitStats {
-    // The float results below are returned unrounded in ST0 like the original (declared double:
+    // The float results below are returned unrounded like the original (declared double:
     // the FPU runs above 24-bit precision under Rebirth, see CItemWeapon::RollDamage).
     // 25 / unknown_20.
     double Period20();
@@ -765,7 +765,7 @@ struct UnitStats {
     double SkillWithBonus(std::uint32_t index);
     // The weapon skill for weapon type `type`.
     float WeaponSkill(int type);
-    // +0x34 of the level record of skill `index` (0 without one), exact in ST0.
+    // +0x34 of the level record of skill `index` (0 without one), exact.
     double SkillLevelValue(int index);
     // The level record of skill `index` (level byte at +0x6D3), or null.
     ::SkillLevelRecord* SkillLevelRecord(int index);
@@ -793,7 +793,7 @@ struct UnitStats {
     void RecomputeHitPoints(UnitVitals* vitals, CUnit* unit);
     // Heals the working-or-disabled slots below their maximum by `amount`, spread by
     // their factors over `scale` (the unit's maximum); a slot back above 0.001 works again.
-    // Returns AL = 1.
+    // Returns 1.
     bool HealSlots(float scale, float amount);
     // HealSlots(vitals' maximum, amount), then the hit points. Returns 1.
     BOOL Heal(UnitVitals* vitals, float amount);
@@ -818,10 +818,10 @@ struct UnitStats {
     // of its maximum, else 0.
     int MovementState(char checkLoad);
     // The hit point / mana maximum from the experience curve (..
-    // /..), strength / dexterity and skill levels 16 / 17. Unrounded (ST0).
+    // /..), strength / dexterity and skill levels 16 / 17. Unrounded.
     double HitPointCurve();
     double ManaCurve();
-    // (dexterity * 0.2 + 10) scaled by the arms and skill level 20. Unrounded (ST0).
+    // (dexterity * 0.2 + 10) scaled by the arms and skill level 20. Unrounded.
     double RateValue();
     // Adds `amount` to the pending experience; a positive total moves into the
     // experience.
@@ -846,7 +846,7 @@ struct UnitStats {
     bool RaiseStrength(int amount, CUnit* unit);
     bool RaiseDexterity(int amount, CUnit* unit);
     bool RaiseIntelligence(int amount, CUnit* unit);
-    // A copy of SkillLevelValue (exact, ST0).
+    // A copy of SkillLevelValue (exact).
     double SkillLevelValueCopy(int skill);
 
     // Applies `hit` (from `weapon`'s attack, may be null): flags 2 (head) / 4, the
@@ -873,13 +873,13 @@ struct UnitStats {
     // unit_create_stats.cpp.. The attack skill for weapon type `type` (0-4 use skill 0,
     // 5 and 6 skill 1, 8 the bonused skill 0; others 0): for text-key units the skill byte, the
     // weapon prototype's bonus (+0x7B / +0x7C) and the stat the skill's name starts with minus 25,
-    // plus the level value of skill `type`. Unrounded (ST0).
+    // plus the level value of skill `type`. Unrounded.
     double WeaponSkillBonus(int type, CUnit* unit);
     // unit_create_stats.cpp.. Can the unit learn skill level `record` of the
     // skill database: learnable (+0x40), the three stats at least the record's, the required
     // attribute (+0x14 name, +0x18 index, +0x20 value) and skill level (+0x0C name) present unless
     // named "none" or empty, no known level of the same skill id (+0x10) in another skill, and the
-    // record's own level (by its name, +0x04) above the one known. 0/1 in EAX.
+    // record's own level (by its name, +0x04) above the one known. 0/1.
     BOOL CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record);
     // unit_skill_price.cpp.. The experience learning skill level `record` (of the level
     // records) costs: what its +0x30 is worth over the level below's (1.61 ^ value /
@@ -896,9 +896,9 @@ struct UnitStats {
 
     // The rounded values into `params`. The first argument is not used.
     void Pack(CUnit* unused, UnitParams* params);
-    // Resets the values that the builders fill. Returns 0 (EAX).
+    // Resets the values that the builders fill.
     int Reset();
-    // Clears layers 1 and 2 of every slot. Returns 0 (EAX).
+    // Clears layers 1 and 2 of every slot.
     int ClearOuterLayers();
 
     // unit_armour_layers.cpp (U9).
@@ -916,11 +916,11 @@ struct UnitStats {
     void PackBodyProtection(CUnit* unit, const UnitVitals* vitals, std::int16_t* out);
     // Attribute `index` for skill checks: the attribute byte for units without a text
     // key; otherwise the attribute with its stat bonus (stat - 25; 0 for other indices) plus the
-    // largest bonus (prototype +0x80 + index) of the unit's quick items. Unrounded (ST0).
+    // largest bonus (prototype +0x80 + index) of the unit's quick items. Unrounded.
     double AttributeWithItems(int index, CUnit* unit);
     // The skill for spell school `school` (4 counts as 3, 6 and 7 as 5): skill byte 3
     // (schools 0-2), 4 (3-4) or 5 (5-7), plus the level value of skill school + 7, plus
-    // intelligence - 25. Unrounded (ST0).
+    // intelligence - 25. Unrounded.
     double SpellSchoolSkill(int school);
 
     std::uint32_t builtFlags;           // +0x000 bit 0 set when built from the prototype
@@ -1086,7 +1086,7 @@ void __fastcall GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<
 // `location` at layer `layer` (1 or 2) wear by `amount`.
 void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount);
 // unit_vision.cpp. (__stdcall; ECX is not read). The skill bonus byte of the weapon
-// prototype `itemId >> 16`, as a float in ST0.
+// prototype `itemId >> 16`, as a float.
 double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId);
 
 // unit_vitals.cpp. Scales by the unit's strengthen / weaken effects (types 0x1D / 0x1E):
@@ -1094,7 +1094,7 @@ double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId);
 // the stats, which is not read).
 // `value` scaled with k = 0.003, at least 1.
 float __stdcall ScaleDamageByEffects(CUnit* unit, float value);
-// The scale itself with k = 0.005, unrounded (ST0).
+// The scale itself with k = 0.005, unrounded.
 double __stdcall HitPointEffectScale(CUnit* unit);
 // `value` scaled with k = 0.005, at least 1.
 float __stdcall ScaleHitPointsByEffects(CUnit* unit, float value);

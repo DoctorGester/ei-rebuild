@@ -98,7 +98,7 @@ void CInterface3D::CreateScreen(int id) {
     Activate(screen);
 }
 
-// ---: PushWindow --------------------------------------------------------------------------
+// --- PushWindow ----------------------------------------------------------------------------------
 
 namespace {
 
@@ -171,7 +171,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
     OpenOnTop(this, window);
 }
 
-// ---: Activate ----------------------------------------------------------------------------
+// --- Activate ------------------------------------------------------------------------------------
 
 namespace {
 void DeleteBackdrop(CUiSurface* surface) {
@@ -218,7 +218,7 @@ EI_REWRITTEN(0x005F7350, CInterface3D::PushWindow);
 
 EI_REWRITTEN(0x005F5BA0, CInterface3D::CreateScreen);
 
-// ---: the message window ------------------------------------------------------------------
+// --- the message window --------------------------------------------------------------------------
 
 void CInterface3D::ShowMessage(int force) {
     bool forced = static_cast<std::uint8_t>(force) != 0;
@@ -239,7 +239,7 @@ void CInterface3D::ShowMessage(int force) {
 
 EI_REWRITTEN(0x005F8A80, CInterface3D::ShowMessage);
 
-// ---: the help window -----------------------------------------------------------------------
+// --- the help window -----------------------------------------------------------------------------
 
 void CInterface3D::OpenHelp(int flag) {
     if (stackBegin_ == stackEnd_) return;

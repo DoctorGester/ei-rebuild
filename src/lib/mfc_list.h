@@ -1,14 +1,14 @@
 #pragma once
 
 // MFC 4.2's CList<TYPE, ARG_TYPE>, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE> (afxtempl.h) and CPlex
-// (afxplex_.h) as game.exe instantiates them, for the standalone exe (ticket,
-// docs/notes/standalone.md section 2). The list bodies are mfc::CList's (mfc.h), the map bodies are
+// (afxplex_.h) as game.exe instantiates them, for the standalone exe
+// (docs/notes/standalone.md section 2). The list bodies are mfc::CList's (mfc.h), the map bodies are
 // written here over mfc::CMap's layout; what differs between the instantiations is the element: its
 // size (read from each NewNode's CPlex::Create) and the element policy (mfc_array.h: how
 // ConstructElements builds a new one, how DestructElements destroys it). ListAbi / MapAbi turn the
 // members into the instantiations' calling conventions (__thiscall as __fastcall with EDX unused);
 // mfc_list.cpp registers the library-only instantiations, src/game/game_lists.cpp the ones whose
-// elements are game types. Checked in game by verify_mfc_list.cpp until.
+// elements are game types.
 
 #include "mfc_array.h"
 #include "game/game_data.h"
@@ -44,13 +44,13 @@ struct ListAbi : CList<T, E> {
     template <typename Through>
     void SerializeThrough(CArchive* ar);
 
-    // The instantiations' NewNode(pPrev, pNext) (RET 8: the node, its element constructed), FreeNode(pNode)
-    // (RET 4: the element destroyed, the node onto the free list; the last one frees every block),
-    // RemoveAt(position) (RET 4: unlinked, then FreeNode) and RemoveAll (plain RET: the elements
+    // The instantiations' NewNode(pPrev, pNext) (the node, its element constructed), FreeNode(pNode)
+    // (the element destroyed, the node onto the free list; the last one frees every block),
+    // RemoveAt(position) (unlinked, then FreeNode) and RemoveAll (the elements
     // destroyed, every block freed) are CList's own members (mfc.h), registered through this type.
     // AddTail / AddHead with ARG_TYPE by value: the new node (POSITION).
     Node* AddTailByValue(T value) { return List::AddTail(value); }
-    // RemoveHead (plain RET): the head's element (EAX).
+    // RemoveHead: the head's element.
     static T __fastcall RemoveHeadByValue(List* self) { return self->RemoveHead(); }
 
     // The destructor (the vtable of `Class` written first): RemoveAll.
@@ -62,7 +62,7 @@ struct ListAbi : CList<T, E> {
 };
 
 // The constructor of every instantiation: the vtable of `Class`, empty, the block size given
-// or fixed (plain RET). Returns this.
+// or fixed. Returns this.
 template <typename Class>
 struct ListHeader : CList<void*> {
     using List = CList<void*>;

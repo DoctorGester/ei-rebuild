@@ -1,4 +1,4 @@
-// The in-game chat overlay: its constructor, per-frame slots (vtable: 24 update, 22
+// The in-game chat overlay: its constructor, per-frame update and
 // redraw), the chat line's opening and its keys. Its destructor is in ui_window_delete.cpp.
 // docs/notes/ui.md, section 3.
 #include "asset_text.h"
@@ -50,7 +50,7 @@ void SendSay(const char* text) {
 }
 } // namespace
 
-// ---: a chat line added --------------------------------------------------------------------
+// --- a chat line added ---------------------------------------------------------------------------
 
 namespace {
 constexpr int kMaxLines = 12;
@@ -201,7 +201,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
 }
 EI_REWRITTEN(0x005E2A30, CChatOverlay::AddLine);
 
-// ---: opening the chat line, clearing the lines ----------------------------------
+// --- opening the chat line, clearing the lines ---------------------------------------------------
 
 void CChatOverlay::SetOpen(bool open) {
     chatOpen_ = open;
@@ -218,7 +218,7 @@ void CChatOverlay::ClearLines() {
 }
 EI_REWRITTEN(0x005E3930, CChatOverlay::ClearLines);
 
-// ---: the typed line drawn (Rebirth-patched: WideScreen reproduced) ------------------------------
+// --- the typed line drawn (Rebirth-patched: WideScreen reproduced) -------------------------------
 
 namespace {
 constexpr int kTypedTextRight = 0x30F, kTypedTextBottom = 0x11;
@@ -245,7 +245,7 @@ void CChatOverlay::DrawTyped() {
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
         POINT top{width, 0};
         POINT bottom{width, kCaretBottom};
-        // WideScreen (XOR ECX,ECX): without the margin.
+        // WideScreen: without the margin.
         interface_->CallScalePointToScreenNoMargin(&top);
         interface_->CallScalePointToScreenNoMargin(&bottom);
         dc->MoveTo(top.x, top.y);
@@ -256,7 +256,7 @@ void CChatOverlay::DrawTyped() {
 }
 EI_REWRITTEN(0x005E3700, CChatOverlay::DrawTyped);
 
-// ---: the chat line's keys (input slots 9 and 10) ---------------------------------
+// --- the chat line's keys (input slots 9 and 10) -------------------------------------------------
 
 void CChatOverlay::OnKeyDown(int key, int, int) {
     if (!chatOpen_) return;
@@ -315,7 +315,7 @@ void CChatOverlay::OnChar(int key, int, int) {
 EI_REWRITTEN(0x005E3230, CChatOverlay::OnKeyDown);
 EI_REWRITTEN(0x005E3550, CChatOverlay::OnChar);
 
-// ---: the constructor ---------------------------------------------------------------------
+// --- the constructor -----------------------------------------------------------------------------
 
 // game.exe's tables: its own redraw (22) and update (24); the input side's keys (9) and
 // characters (10).

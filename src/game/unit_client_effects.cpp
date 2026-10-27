@@ -65,7 +65,7 @@ constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, 
 // The particle type of each blood kind (1..8).
 constexpr int kBloodParticles[8] = {0x200F, 0x2031, 0x2032, 0x2033, 0x200F, 0x2031, 0x2032, 0x2033};
 
-// The party light (r, g, b;: radius).
+// The party light (r, g, b; radius).
 const float* PartyLightColour() { return &options::TheOptions()->heroLight_.red; }
 float PartyLightRadius() { return options::TheOptions()->heroLight_.radius; }
 

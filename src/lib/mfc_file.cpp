@@ -262,7 +262,7 @@ struct StdioFileTable final : FileTable<StdioFileTable, CStdioFile, &kClassCStdi
     virtual char* ReadString(char* buffer, unsigned size) { return This()->ReadString(buffer, size); }   // 23
 };
 
-// CFileFind's 19 slots (game.exe's; 0: 1: 3-18: ...).
+// CFileFind's 19 slots (game.exe's table).
 struct FileFindTable final : ei::CompiledTag<FileFindTable> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return &kClassCFileFind; }             // 0
     virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }     // 1

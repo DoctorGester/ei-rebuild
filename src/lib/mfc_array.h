@@ -1,13 +1,13 @@
 #pragma once
 
 // MFC 4.2's CArray<TYPE, ARG_TYPE> (afxtempl.h) as game.exe instantiates it, for the standalone exe
-// (ticket, docs/notes/standalone.md section 2). The bodies are mfc::CArray's (mfc.h); what differs
+// (docs/notes/standalone.md section 2). The bodies are mfc::CArray's (mfc.h); what differs
 // between the instantiations is the element: its size, how ConstructElements builds new ones (MFC's
 // memset, then the element's constructor if it has one: inlined, or an out-of-line helper) and how
 // DestructElements destroys them. Those are the element policies below. ArrayAbi turns the members
 // into the instantiations' calling conventions (__thiscall as __fastcall with EDX unused; the element
 // helpers __stdcall), and mfc_array.cpp registers each instantiation our code forwards to at its
-// library address. Checked in game by verify_mfc_array.cpp until.
+// library address.
 
 #include "containers.h"
 #include "mfc.h"
@@ -226,7 +226,7 @@ void InitWithString(WithString<Size, StringAt>* p) {
 }
 
 // Records that hold strings and an array: `Strings` CStrings from +0, an array header of `Class` at
-// `ArrayAt` (0x2C bytes, six strings, the array at +0x18;: 0x5C bytes, eight
+// `ArrayAt` (0x2C bytes, six strings, the array at +0x18; 0x5C bytes, eight
 // strings, the array at +0x48).
 template <std::size_t Size, int Strings, std::size_t ArrayAt, typename Class>
 struct StringsAndArray {
@@ -239,7 +239,7 @@ void InitStringsAndArray(StringsAndArray<Size, Strings, ArrayAt, Class>* p) {
 }
 
 // Elements that hold an array header of `Class` at `ArrayAt` (the 20-byte element is the
-// array;: 32-byte patrols with the array at +0xC).
+// array; 32-byte patrols with the array at +0xC).
 template <std::size_t Size, std::size_t ArrayAt, typename Class>
 struct WithArray {
     std::uint8_t bytes[Size];

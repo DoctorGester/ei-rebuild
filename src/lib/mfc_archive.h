@@ -2,9 +2,9 @@
 
 // MFC 4.2's CArchive buffer (arccore.cpp, afx.inl) as the game's copy has it: Read, Write, Flush,
 // FillBuffer, the count and string-length encodings, the BYTE / WORD / DWORD operators and the
-// CString operators, with CString's assignment from a wide string the loader uses (ticket,
-// docs/notes/standalone.md section 2). Same layout as the exe's; every body is registered at its
-// library address (mfc_archive.cpp) and checked in game by verify_mfc_archive.cpp until.
+// CString operators, with CString's assignment from a wide string the loader uses
+// (docs/notes/standalone.md section 2). Same layout as the exe's; every body is registered at its
+// library address (mfc_archive.cpp).
 
 #include "mfc_exception.h"
 #include "mfc_file.h"

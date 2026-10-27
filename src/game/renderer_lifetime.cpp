@@ -3,7 +3,7 @@
 // draw colour and sun, the frame clear, texture binding, the figure draws (slots
 // 13 / 14), the line list draw (15), the gamma getter (23), the surfaces' restore after a switch back
 // (24), and the device object's counted holder. The old Direct3D 7 path, kept as it is
-// (docs/notes/renderer.md). A-U11.
+// (docs/notes/renderer.md).
 #include "model.h"         // CSceneRenderer, CTransformPipeline
 #include "renderer_lines.h"
 #include "texture.h"       // CTextureDevice, CTexture, CDXSurface
@@ -43,7 +43,7 @@ IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_;
 
 } // namespace
 
-// --- Base class (CVisualizator;: compiled in place) ----------------------
+// --- Base class (CVisualizator) ----------------------
 
 CVisualizator* CVisualizator::SetUpBase() {
     pipeline_ = nullptr;
@@ -115,7 +115,7 @@ void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
 }
 EI_REWRITTEN(0x00500800, CVisualizator::SetSunAndAmbient);
 
-// --- The renderer (compiled in place) -----------------------------------
+// --- The renderer -----------------------------------
 
 // The renderer.
 CSceneRenderer* __cdecl SceneRenderer() { return TheSceneRenderer(); }
@@ -137,7 +137,7 @@ CSceneRenderer::~CSceneRenderer() {
 EI_REWRITTEN_SPECIAL(0x00500AC0, CSceneRenderer::~CSceneRenderer);
 
 // The scene renderer and the device's lock, zero at the start: built by their static initialisers
-// in the list's order and destroyed by the exit functions those register; all ported on the
+// in the list's order and destroyed by the exit functions those register;
 // names and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CSceneRenderer> g_sceneRenderer = /*007AF060*/ {};
 static_assert(sizeof(CSceneRenderer) == 0x5C);

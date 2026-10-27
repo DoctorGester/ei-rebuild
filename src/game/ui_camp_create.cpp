@@ -1,4 +1,4 @@
-// The camp's Create (CCampPages slot 25). Rebirth's WideScreen replaces the function with
+// The camp's Create (CCampPages). Rebirth's WideScreen replaces the function with
 // the original followed by two curtain sprites over the screen's margins (widescreen::AddCurtains),
 // which this reproduces, so it is hooked in both launches; nothing in the rewritten code calls it
 // but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
@@ -74,14 +74,14 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
     return new CUiSurface(ui, left, top, right, bottom, kSurfaceFormat, 1);
 }
 
-// An item list of the constructors: made through its slot 2 (not checked, as in the original).
+// An item list of the constructors: made through its factory (not checked, as in the original).
 CParty* NewItemList() {
     CParty* list = new CParty();
     list->Create();
     return list;
 }
 
-// Slot 18 of a panel: its Build.
+// A panel's Build.
 void BuildPanel(CUiWindow* panel) {
     panel->Build();
 }

@@ -47,7 +47,7 @@ struct Vector3 {
     float Length() const;                           // (maths.cpp), XYZ, FSQRT
     const Vector3* AddInPlace(const Vector3& v);    // Returns &v
     void DivideInPlace(float d);                    // (object_maths.cpp)
-    double LengthSquared() const;                   // (ground_decal.cpp), unrounded in ST0
+    double LengthSquared() const;                   // (ground_decal.cpp), unrounded
 };
 static_assert(sizeof(Vector3) == 12);
 

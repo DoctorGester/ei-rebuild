@@ -1,11 +1,11 @@
 // Interface draws that still talked to the old Direct3D device without handing anything to the new
 // renderer (ticket R5, docs/notes/renderer.md sections 5 and 8):
-// - the container windows' base draw (CUiContainer slot 20): stage-0 state block
+// - the container windows' base draw (CUiContainer): stage-0 state block
 //   applied, then the window's own sprites and models and its enabled children;
-// - the slot-20 draws of interface screens 3 the base / briefing screen,
+// - the draws of interface screens 3 the base / briefing screen,
 // and 2: the menu frame step, (screen 3) a mouse move to the input
-//   side, a depth clear, then;
-// - the hero equipment panel's draw (CHeroEquipPanel slot 20): the two
+//   side, a depth clear, then the children;
+// - the hero equipment panel's draw (CHeroEquipPanel): the two
 //   highlight frames placed, the quick slots' item models, and with the body (the camp) the seven
 //   equipment slots' models inside depth clears (all to 0, the slots' rectangles to 1, all to 1
 //   afterwards), as the hero preview and the trade grid do;

@@ -86,7 +86,6 @@ void CUiEditField::OnKeyDown(int key, int, int) {
 
 EI_REWRITTEN(0x0065C610, CUiEditField::OnKeyDown);
 
-// --- A-H19: --------------------------------------------------------------------
 
 namespace {
 constexpr int kSurfaceFormat = 5;
@@ -162,7 +161,7 @@ void CUiEditField::OnChar(int key, int, int) {
 
 EI_REWRITTEN(0x0065C930, CUiEditField::OnChar);
 
-// ---: the look, the text and the focus -----------------------
+// --- the look, the text and the focus ------------------------------------------------------------
 
 void CUiEditField::SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, COLORREF colour,
                            COLORREF caretColour) {
@@ -188,7 +187,7 @@ EI_REWRITTEN(0x0065C290, CUiEditField::SetText);
 void CUiEditField::SetFocused(bool focused) { focused_ = focused; }
 EI_REWRITTEN(0x0065C2D0, CUiEditField::SetFocused);
 
-// ---: the text and the caret drawn ---------------------------------------------------
+// --- the text and the caret drawn ----------------------------------------------------------------
 
 void CUiEditField::DrawContentsVanilla() {
     mfc::CString& text = Text();
@@ -211,7 +210,7 @@ void CUiEditField::DrawContentsVanilla() {
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
         POINT top{caretX, 0};
         POINT bottom{caretX, height};
-        // WideScreen (XOR ECX,ECX): without the margin.
+        // WideScreen: without the margin.
         interface_->CallScalePointToScreenNoMargin(&top);
         interface_->CallScalePointToScreenNoMargin(&bottom);
         dc->MoveTo(top.x, top.y);

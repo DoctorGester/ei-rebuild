@@ -1,10 +1,9 @@
 #pragma once
 
 // MFC 4.2's CString (strcore.cpp, strex.cpp) and the fixed-size block allocator its buffers come
-// from, written out for the standalone exe (ticket, docs/notes/standalone.md section 2). Same
+// from, written out for the standalone exe (docs/notes/standalone.md section 2). Same
 // layout and allocator as the copy linked into game.exe: every body is registered at its library
-// address (mfc_string.cpp), and verify_mfc_string.cpp checked it against the original in the hook
-// build until.
+// address (mfc_string.cpp).
 // The library's helpers (AllocBuffer, ConcatCopy, ...) are public here so they can be registered.
 
 #include "mfc.h"

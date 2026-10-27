@@ -1,5 +1,5 @@
-// The battle screen's slot 1, double click, key release and wheel: its
-// input side slots 1, 7, 11 and 12. See ui.h (CBattleScreen) and docs/notes/ui.md, section 6.
+// The battle screen's close, double click, key release and wheel: its
+// input side. See ui.h (CBattleScreen) and docs/notes/ui.md, section 6.
 #include "ui.h"
 #include "ui_camp.h"
 
@@ -12,7 +12,7 @@ constexpr int kFirstOrderKeyAction = 0x11;
 constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 } // namespace
 
-// ---: the battle screen loses the top -----------------------------------------------
+// --- the battle screen loses the top -------------------------------------------------------------
 
 void CBattleScreen::OnDeactivate() {
     for (std::uint8_t& key : orderKeys_) key = 0;
@@ -22,7 +22,7 @@ void CBattleScreen::OnDeactivate() {
 }
 EI_REWRITTEN(0x00638A10, CBattleScreen::OnDeactivate);
 
-// ---: a double click on the battle screen -------------------------------------------
+// --- a double click on the battle screen ---------------------------------------------------------
 
 void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
@@ -37,7 +37,7 @@ void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
 }
 EI_REWRITTEN(0x00638AD0, CBattleScreen::OnLeftDouble);
 
-// ---: a key released on the battle screen -------------------------------------------
+// --- a key released on the battle screen ---------------------------------------------------------
 
 void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
     if (portraitMode_ != 0) return;
@@ -47,7 +47,7 @@ void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
 }
 EI_REWRITTEN(0x0063B6D0, CBattleScreen::OnKeyUp);
 
-// ---: the wheel on the battle screen ------------------------------------------------
+// --- the wheel on the battle screen --------------------------------------------------------------
 
 BOOL CBattleScreen::OnWheel(int flags, int delta, int x, int y) {
     if (portraitMode_ != 0) return 1;

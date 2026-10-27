@@ -125,7 +125,7 @@ public:
     // tree at +0x1E0, the vector at +0x1C8, the three arrays (entries destroyed), then the
     // container's.
     ~CGlobalMap() override;
-    // The slots of its own in game.exe's tables.
+    // Virtuals of its own.
     BOOL Draw(int pass) override;   // The container's, blended
     void CloseScreen() override { Close(); }                                                 // 26
     void MessageResult(int result) override { OnMessageResult(result); }                    // 27
@@ -187,7 +187,7 @@ public:
     // Input side (ui_global_map_input.cpp; `this` the window). The right button turns the map by
     // dragging: starts the drag (dragging_, turning_ 0, the point
     // in layout coordinates and the angle kept, the mouse motion cleared, the cursor held
-    // in place);(plain RET) end it (dragging_
+    // in place); end it (dragging_
     // cleared, the zone selection refreshed, the motion cleared, the cursor let go and put back at
     // the mouse position (SetCursorPos)).
     void OnRightDown(int buttons, int x, int y);
@@ -231,7 +231,7 @@ public:
     // by a turn button ends (turning_ 0) and the zone selection is refreshed on the next update.
     int OnLButtonUp(int buttons, int x, int y);
     // Always true
-    // (AL 1); neither the map nor the argument (the clicked region's +0x144) is read.
+    // neither the map nor the argument (the clicked region's +0x144) is read.
     bool MayTravel(int unused);
     // The map closes: the weather deleted (its slot 2 with 1), the backdrop
     // surface released and deleted, the wind sound stopped.
@@ -475,7 +475,7 @@ public:
     // The page titles,
     // the heroes array, then the item screen's.
     ~CCampPages() override;
-    // The slots of its own in game.exe's tables.
+    // Virtuals of its own.
     void CloseScreen() override { Close(); }                                               // 26
     void MessageResult(int result) override { OnMessageResult(result); }                  // 27
     void TakeItem(CItem* item, int mode) override { MoveItem(item, mode); }               // 42
@@ -520,7 +520,7 @@ public:
     // Whether `item` may go where the strip with action `mode` puts
     // it on the current page: weapons and armour on the equipment page, spells the party can cast,
     // the parts and spells each constructor accepts (skill and mana of the best hero, at most
-    // eight modifiers, matching blueprints). Returns AL.
+    // eight modifiers, matching blueprints). Returns 0 or 1.
     bool CanEquip(CItem* item, int mode) override;
     // Works out the page's
     // action (repair all, level up, trade, construct, take apart, repair), its cost against the
@@ -529,7 +529,7 @@ public:
     void UpdateAction();
     // Runs the spell (item) constructor over the page's slots and keeps
     // what it makes in spellMade_ (itemMade_, with a reference); true when it can be made (the
-    // party's skill and mana suffice for the spell). Return AL.
+    // party's skill and mana suffice for the spell). Returns 0 or 1.
     bool CanMakeSpell();
     bool CanMakeItem();
     // The price of `item` for deal `kind` (8: repair): the item's base

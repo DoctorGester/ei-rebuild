@@ -82,7 +82,7 @@ bool SameText(const char* a, const char* b) {
 
 } // namespace
 
-// ---: the constructor ------------------------------------------------------------------
+// --- the constructor -----------------------------------------------------------------------------
 
 // game.exe's tables: its own update (24); the input side's click (2) and mouse move (4).
 CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
@@ -102,7 +102,7 @@ EI_REWRITTEN_SPECIAL(0x00608D20, CChatWindow::CChatWindow);
 // EI_Plugin.asi patches the constructor and Update (NPlayers: the window's left edge and the first status
 // column) and ShowPlayers (Fixes: the faces' sex and the prototype fallback) in a Rebirth launch.
 
-// ---: a face ---------------------------------------------------------------------------
+// --- a face --------------------------------------------------------------------------------------
 
 void CChatWindow::AddPortrait(const char* model, const char* texture) {
     // Four faces share a 256 x 256 texture, one quarter each.
@@ -140,7 +140,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
 }
 EI_REWRITTEN(0x00608F90, CChatWindow::AddPortrait);
 
-// ---: the players' faces ---------------------------------------------------------------
+// --- the players' faces --------------------------------------------------------------------------
 
 void CChatWindow::ShowPlayers() {
     ClearSceneObjects();
@@ -216,7 +216,7 @@ void CChatWindow::ShowPlayers() {
 }
 EI_REWRITTEN(0x006091C0, CChatWindow::ShowPlayers);
 
-// ---: slot 24 --------------------------------------------------------------------------
+// --- Update --------------------------------------------------------------------------------------
 
 void CChatWindow::Update() {
     net::ClientSession* client = net::GameClient();
@@ -263,7 +263,7 @@ void CChatWindow::Update() {
 }
 EI_REWRITTEN(0x006095A0, CChatWindow::Update);
 
-// ---: the input side's left button and mouse move ---------------------------
+// --- the input side's left button and mouse move -------------------------------------------------
 
 void CChatWindow::OnLButtonDown(int, int x, int y) {
     int index = RegionAt(x, y);

@@ -10,7 +10,7 @@
 
 #include <cstdint>
 
-// --- The controls' destructors (with their deleting destructors and the input sides' copies: SUB ECX,0x94; JMP) --
+// --- The controls' destructors (with their deleting destructors and the input sides' copies) --
 
 CUiScrollbar::~CUiScrollbar() {}
 EI_REWRITTEN_SPECIAL(0x0065AFC0, CUiScrollbar::~CUiScrollbar);

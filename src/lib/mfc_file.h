@@ -1,7 +1,7 @@
 #pragma once
 
 // MFC 4.2's CFile, CStdioFile and CFileFind (filecore.cpp, filetxt.cpp, filefind.cpp) and the path
-// helpers they use, written out for the standalone exe (ticket, docs/notes/standalone.md
+// helpers they use, written out for the standalone exe (docs/notes/standalone.md
 // section 2). Same layout as the copy linked into game.exe; the tables are compiled (mfc_file.cpp's
 // FileTable, StdioFileTable and FileFindTable) in place, with the
 // slots in game.exe's order. Every body is registered at its library address (mfc_file.cpp).

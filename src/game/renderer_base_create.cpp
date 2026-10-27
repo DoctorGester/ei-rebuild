@@ -1,5 +1,5 @@
 // The renderer base part's creation (CVisualizator::Create in the original's messages;
-// base, called once by the renderer's creation; A-U12): makes
+// called once by the renderer's creation): makes
 // the transform pipeline, checks the processor for MMX and loads the 2D graphics library.
 #include "model.h"
 #include "game_strings.h"

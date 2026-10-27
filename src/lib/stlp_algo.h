@@ -41,7 +41,7 @@ private:
     alignas(T) unsigned char storage_[sizeof(T)];
 };
 
-// copy_backward(first, last, result) (e.g.): [first, last) assigned to the elements before
+// copy_backward(first, last, result): [first, last) assigned to the elements before
 // `result`, from the last; returns the first one written.
 template <typename T, typename Ops = ValueOps<T>>
 T* CopyBackward(T* first, T* last, T* result) {

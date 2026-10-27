@@ -36,7 +36,7 @@ constinit unsigned g_dragListMessage = /*007CAA64*/ {};
 // a static initialiser (cdecl; the list holds a jump to its body).
 void __cdecl RegisterDragListMessage() { g_dragListMessage = gameapi::RegisterWindowMessageA("commctrl_DragListMsg"); }
 
-// CTempWnd (game.exe's; 0: deleting destructor): ~CWnd, the memory back to the fixed
+// CTempWnd (game.exe's): ~CWnd, the memory back to the fixed
 // allocator.
 class CTempWnd final : public CWnd {
 public:

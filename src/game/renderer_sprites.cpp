@@ -1,5 +1,5 @@
-// The renderer's sprite draw vtable
-// with its helpers (indexed draw), (a radix sort pass)(a
+// The renderer's sprite draw
+// with its helpers (indexed draw, a radix sort pass, a
 // merge sort pass). Every point (x, y, z and a size) becomes a screen-facing quad: the sprite's
 // colour and texture rectangle go to four TL vertices, and the pipeline's transform object
 // (ProjectSprites) places the corners and sets their outcodes. Batches of up to 511 sprites are sorted back to front
@@ -71,7 +71,7 @@ constinit lib::AlignedArray<TLVertex> g_corners = /*007AEF90*/ {};
 lib::AlignedArray<TLVertex>& Corners() { return g_corners; }     // 4 per sprite
 void __cdecl FreeCorners() { g_corners.FreeData(); }
 // A CByteArray of a byte per corner and a CWordArray of indices: constructed on the first draw, destroyed by the exit
-// functions it registers (ported here on the names; docs/notes/standalone.md, "The static initialisers' objects").
+// functions it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_outcodes = /*007AEF78*/ {};
 constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_indices = /*007AEF60*/ {};
 mfc::CArray<std::uint8_t>& Outcodes() { return *g_outcodes; }
@@ -318,8 +318,7 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
 
 // One radix sort pass: the records of `src` go to 256 buckets by the key's byte at
 // `shift` (each bucket a list through the records' link, the last one first), then the buckets go
-// to `dst` in ascending order (`ascending` set) or descending. __fastcall: shift in ECX, src in EDX;
-// RET 0xC.
+// to `dst` in ascending order (`ascending` set) or descending.
 void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
                                 int ascending) {
     SpriteSortRecord* buckets[256] = {};
@@ -338,8 +337,7 @@ EI_REWRITTEN(0x00503710, SpriteRadixPass);
 // One merge sort pass over `count` record pointers: for each column j below `width`, the
 // sorted runs src[j], src[j + 2w], ... and src[j + w], src[j + 3w], ... merge, larger key first
 // (the first run's on ties), into dst[j], dst[j + w], ...; when 2w > count the last `width`
-// pointers are first copied as they are (the columns without a second run). __fastcall: width in
-// ECX, src in EDX.
+// pointers are first copied as they are (the columns without a second run).
 void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count) {
     int step = width * 2;
     if (step > count) {

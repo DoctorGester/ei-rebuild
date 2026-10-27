@@ -1,5 +1,4 @@
-// STLport basic_string<char> members (stlp_string.h) registered at the library addresses. Checked
-// in game by verify_stlp_string.cpp until.
+// STLport basic_string<char> members (stlp_string.h) registered at the library addresses.
 #include "stlp_string.h"
 
 #include "ei/hook.h"

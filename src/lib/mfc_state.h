@@ -1,8 +1,8 @@
 #pragma once
 
 // MFC 4.2's thread and process locals (afxtls.cpp) and its system metrics record AUX_DATA (afxData,
-// auxdata.cpp), as far as the exe's static initialisers and exit functions reach them (ticket,
-// docs/notes/standalone.md). The thread and process locals are globals MFC fills on first use
+// auxdata.cpp), as far as the exe's static initialisers and exit functions reach them
+// (docs/notes/standalone.md). The thread and process locals are globals MFC fills on first use
 // (_afxThreadState, _afxBaseModuleState and the others: their CThreadLocal / CProcessLocal holds a
 // TLS slot or an object); the exit functions free them through the destructors here. afxData is
 // built by a static initialiser and its menu-dot bitmap deleted at exit.
@@ -12,8 +12,7 @@
 // at its address); the image has a stand-in with the members used so far (ImageModuleState).
 // Every body is registered at its library address in both builds (mfc_state.cpp). The hook build
 // runs them over the original's state; in the image nothing fills the locals (the handle maps are
-// thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object. Checked in game by
-// verify_mfc_state.cpp until.
+// thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object.
 
 #include <cstddef>
 #include <cstdint>

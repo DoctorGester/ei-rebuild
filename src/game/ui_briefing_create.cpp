@@ -176,7 +176,7 @@ bool VoiceEnded(int handle) {
 
 } // namespace
 
-// ---: slot 25 --------------------------------------------------------------------------
+// --- CreateScreen --------------------------------------------------------------------------------
 
 void CBriefingScreen::CreateScreen() {
     chatActive_ = 0;
@@ -272,7 +272,7 @@ void CBriefingScreen::CreateScreen() {
 
 EI_REWRITTEN(0x006024B0, CBriefingScreen::CreateScreen);
 
-// ---: slot 24 --------------------------------------------------------------------------
+// --- Update --------------------------------------------------------------------------------------
 
 void CBriefingScreen::Update() {
     markPhase_ = static_cast<float>(static_cast<CUiContainer*>(this)->FrameTime() + markPhase_);

@@ -1,5 +1,5 @@
-// The renderer's rectangle (
-// RET 0x18): a black rectangle with the given alpha, filled as two pre-transformed triangles over
+// The renderer's rectangle draw: a black rectangle with the given alpha, filled as two
+// pre-transformed triangles over
 // the current blend state, and with `outline` a white one-pixel frame drawn as a line strip around
 // it (the fill then stays a pixel inside). Used for the rubber-band selection and the
 // interface's fades. The new renderer (src/render) takes both draws; with "nointerface"
