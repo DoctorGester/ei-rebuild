@@ -27,11 +27,11 @@ ADDR_RX = re.compile(r'\b' + ADDR + r'\b')
 
 
 def ticket_ids():
-    """Ticket ids from docs/tickets.toml, longest first. Two-character ids with a prefix that is also a
-    common name in comments (P1 a point, T2 a time, F3 a field, I1 an index, N2 a normal) are left out."""
+    """Ticket ids from docs/tickets.toml, longest first. Two-character ids are left out: they are also
+    common names in comments (P1 a point, T2 a time, C0 / C2 byte values, R8 a register)."""
     with open(os.path.join(ROOT, 'docs', 'tickets.toml'), 'rb') as f:
         ids = {t['id'] for t in tomllib.load(f).get('ticket', []) if 'id' in t}
-    ids = {i for i in ids if not (len(i) == 2 and i[0] in 'PTFIN')}
+    ids = {i for i in ids if len(i) > 2}
     return sorted(ids, key=len, reverse=True)
 
 

@@ -105,6 +105,9 @@ A batch is a set of files (listed per ticket in config/comment_batches.txt; `--b
    words count is near zero for the batch. `tickets.py set <ID> review`, report the before/after
    `stats` lines.
 
-Don'ts: don't rename, move or reformat code; don't add new comments to code that has none unless the
+Don'ts: no regex rewrites of your own across files beyond `comments.py apply` (scripts only to find
+candidates): the C22a attempt cut "e.g. 00xxxxxx" to "(e.g.)", left "---: title ---", ";:", lone
+trailing "// (file.cpp)" and "RET 4" / "ECX p" fragments. Read each file and rewrite its comments. Don't
+rename, move or reformat code; don't add new comments to code that has none unless the
 code is unreadable without one (then one line); don't delete a comment that holds a real why only
 because it mentions the original: rewrite it.
