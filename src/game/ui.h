@@ -1477,6 +1477,7 @@ public:
     int visible_;                    // +0x220
     float tint_[3];                  // +0x224 colour factors (the HUD: 1 selected, 0.5 not)
     float tintSpare_[3];             // +0x230 0 from CreateSprite; Draw reads only tint_ (nothing reads it)
+    // A row-major 4x4 matrix applied after the placement (Draw); its diagonal elements 0, 5 and 10
     // are the scale set by SetScale (the same value in all three).
     Matrix4 scaleMatrix_;            // +0x23C
     float& ScaleX() { return scaleMatrix_.m[0]; }
