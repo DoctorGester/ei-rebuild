@@ -3366,6 +3366,14 @@ group = "cleanup"
 note = "C31 part 2 removed the registration-only ListAbi aliases of record_lists, library_net_lists and library_containers (and the HeroRecord / Speaker VectorAbi downcasts). Left: ~96 ArrayAbi uses (mfc_array.h, mfc_list.h, mfc_slots.h, game_arrays.h, game_slots.h, record_arrays.h), 52 ListAbi (game_lists.h, game_slots.h), 21 ListTemporary (the SerializeThrough loaders, which game_slots.h's CompiledCollection vtable slots call), 56 stlp::VectorAbi (record_vectors.h's per-record InsertOverflow registrations, static_lists / unit_db_destroy / world_briefing Destruct). Their aliases are used once, only for an EI_REWRITTEN line; the Serialize / Destruct members are reached through the C28o CArray/CList vtable tags, so do them with C28o / C14b."
 
 [[ticket]]
+id = "C14f"
+title = "C14 string consumers: take std::string_view / const std::string& instead of const char* so callers drop .c_str()"
+group = "cleanup"
+model = "sonnet"
+depends = ["C14a"]
+note = "User 2026-10-27: 1,130 .c_str() calls in src. Most go to our own functions: Open (51), mbscmp (47) / mbsicmp (25), Format (30), WriteText (23), FatalError (20), DrawTextIn / DrawLine / DrawLabel, Load, Set, GetString, FindFile, Find, Compare. Give those std::string_view (or const std::string& where a NUL-terminated string is needed further down) and drop the .c_str() at the callers; the comparisons get string_view helpers that keep the MBCS rules. .c_str() stays where it goes to Win32, the CRT, D3D or game.exe's side of the harness. Can start on files C14a has finished; report counts before -> after."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
