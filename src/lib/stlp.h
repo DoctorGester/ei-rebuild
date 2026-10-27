@@ -1,10 +1,9 @@
 #pragma once
 
-// A layout- and allocation-compatible subset of the STLport containers compiled into game.exe.
-// The game's code and ours share these objects (for example the loaded-file maps inside
-// CMappedResource), so they must have STLport's exact layout, allocate from the game's own pooled
-// node allocator, and hash and order elements the way STLport does. Only what our code needs
-// is implemented; each member names the STLport routine it mirrors.
+// A layout- and allocation-compatible subset of the STLport containers compiled into game.exe. The game's code
+// and ours share these objects (for example the loaded-file maps inside CMappedResource), so they must have
+// STLport's exact layout, allocate from the game's own pooled node allocator, and hash and order elements the
+// way STLport does. Only what our code needs is implemented; each member names the STLport routine it mirrors.
 
 #include <cstddef>
 #include <cstdint>
@@ -45,11 +44,8 @@ public:
     // Appends [first, last), growing to size + max(size, n) + 1 when full.
     void Append(const char* first, const char* last);
 
-    // operator=: STLport assigns through assign(first, last).
     void AssignFrom(const string& s) { Assign(s.start_, s.finish_); }
-    // operator=(const char*): assign(text, text + strlen(text)).
     void Assign(const char* text) { Assign(text, text + std::strlen(text)); }
-    // substr(pos, n): out_of_range past the end; the rest of the string at most n long.
     string substr(std::size_t pos, std::size_t n) const;
 
     const char* data() const { return start_; }
@@ -62,14 +58,12 @@ public:
     bool operator==(const string& o) const {
         return size() == o.size() && std::memcmp(start_, o.start_, size()) == 0;
     }
-    // operator<: the common length's bytes, unsigned, then the shorter one first.
     bool operator<(const string& o) const {
         std::size_t n = size() < o.size() ? size() : o.size();
         int c = std::memcmp(start_, o.start_, n);
         return c != 0 ? c < 0 : size() < o.size();
     }
 
-    // __stl_hash_string over the characters, which are signed in this build.
     std::uint32_t Hash() const {
         std::uint32_t h = 0;
         for (const char* p = start_; p != finish_; ++p) h = h * 5 + static_cast<std::uint32_t>(static_cast<int>(*p));
@@ -108,9 +102,6 @@ struct StringElement {
         string::Reserve(*p, 8);
     }
 };
-
-// vector<T>: stlp_vector.h, list<T>: stlp_list.h, deque<T>: stlp_deque.h, map<K, V>: stlp_tree.h
-// (included at the top).
 
 // Hash for pointer keys: the pointer value itself.
 struct PointerHash {
@@ -160,9 +151,7 @@ public:
 
     hash_map() = default;
 
-    // hashtable(n, hf, eql, a): the functor bytes, an empty bucket vector, no
-    // elements, then _M_initialize_buckets(n). hash_map is Construct(100) with
-    // the functor bytes an uninitialised stack byte (0 here).
+    // hashtable(n, hf, eql, a): hash_map is Construct(100) with the functor bytes an uninitialised stack byte (0 here).
     void Construct(std::size_t n, std::uint8_t hasher = 0, std::uint8_t equal = 0, std::uint8_t extract = 0) {
         functors_[0] = hasher;
         functors_[1] = equal;
@@ -172,8 +161,6 @@ public:
         InitializeBuckets(n);
     }
 
-    // _M_initialize_buckets(n): reserve(NextPrime(n)), that many nulls appended at
-    // the end, no elements.
     void InitializeBuckets(std::size_t n) {
         std::size_t buckets = NextPrime(n);
         buckets_.template Reserve<BucketElement>(buckets);
@@ -190,15 +177,12 @@ public:
     std::size_t Size() const { return count_; }
     std::size_t BucketOf(const Key& key) const { return Hash()(key) % BucketCount(); }
 
-    // find(key): the node holding `key`, or null.
     Node* Find(const Key& key) const {
         for (Node* n = buckets_[BucketOf(key)]; n; n = n->next)
             if (n->key == key) return n;
         return nullptr;
     }
 
-    // find_or_insert(obj): resize(count + 1), then the node with obj's key in its
-    // bucket, else a copy of obj in a new node at the head of the bucket.
     Node* FindOrInsert(const Pair& obj) {
         Resize(count_ + 1);
         std::size_t b = BucketOf(obj.key);
@@ -212,7 +196,6 @@ public:
         return node;
     }
 
-    // operator[]: find_or_insert of {key, Value}.
     Value& operator[](const Key& key) {
         Resize(count_ + 1);
         std::size_t b = BucketOf(key);
@@ -242,46 +225,32 @@ public:
             for (Node* n = buckets_[i]; n; n = n->next) f(n);
     }
 
-    // begin: the head of the first non-empty bucket, or null.
     Node* First() const {
         for (std::size_t b = 0; b < BucketCount(); ++b)
             if (buckets_[b]) return buckets_[b];
         return nullptr;
     }
 
-    // _Ht_iterator::_M_skip_to_next: the head of the first non-empty bucket after
-    // the one `node`'s key hashes to now, or null.
     Node* SkipToNext(const Node* node) const {
         std::size_t b = BucketOf(node->key);
         Node* next = nullptr;
         while (!next && ++b < BucketCount()) next = buckets_[b];
         return next;
     }
-    // iterator::operator++: the next node of the chain, else SkipToNext (so a
-    // rehash while iterating moves the walk the way STLport does).
     Node* After(const Node* node) const { return node->next ? node->next : SkipToNext(node); }
 
-    // erase(iterator): unlink and delete one node (nothing for null or a node that
-    // is not in its bucket's chain).
     void Erase(Node* node);
-    // erase(key): the nodes after the bucket's head that hold `key` deleted, then
-    // the head when it does; the number deleted.
     std::size_t EraseKey(const Key& key);
 
-    // clear: free every node, keep the buckets.
     void Clear();
 
-    // ~hashtable: clear, then the bucket storage freed.
     void Destroy() {
         Clear();
         buckets_.FreeStorage();
     }
 
-    // resize(hint): grow to the next prime and rehash, moving nodes to the head of
-    // new buckets.
     void Resize(std::size_t hint);
 
-    // _M_new_node(obj): a node from the pool, no next, a copy of obj.
     static Node* NewNode(const Pair& obj) {
         Node* n = allocate_as<Node>();
         n->next = nullptr;
@@ -289,7 +258,6 @@ public:
         new (&n->value) Value(obj.value);
         return n;
     }
-    // _M_delete_node(n): the key destroyed, the node back to the pool.
     static void DeleteNode(Node* n) {
         n->key.~Key();
         deallocate(n, sizeof(Node));

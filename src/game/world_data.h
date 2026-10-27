@@ -1,7 +1,7 @@
 #pragma once
 
-// Constants the world server's code reads from memory (strings, float constants as the original does,
-// rewrite guide rule 9, vtables and globals). world_units.cpp; names are provisional.
+// Constants the world server's code reads from memory (strings, float constants as the original does, rewrite
+// guide rule 9, vtables and globals).
 
 #include <cstdint>
 #include "options.h"
@@ -18,8 +18,6 @@ class CLight;
 struct QuestBriefingRecord;
 
 namespace worlddata {
-
-// ---- CreateUnits --------------------------------------------------------------------
 
 inline const char* StartZoneText() { return "zone1"; }
 inline const char* ScriptBeginText() { return "WorldScript("; }
@@ -39,7 +37,6 @@ inline const char* HeroPartText(int index) {
     return kParts[index];
 }
 
-// Floats.
 inline float HeroStartX() { return 54.0f /*0073FA9C*/; }        // the hero's start on zone1
 inline float HeroStartY() { return 138.0f /*0073FAA0*/; }
 inline float HeroStartRadius2() { return 300.0f /*0073FA98*/; }
@@ -50,19 +47,13 @@ inline float Half() { return 0.5f /*0073B86C*/; }
 inline float LineAngleOffset() { return 3.1415927f /*0073F8EC*/; }
 inline float LineSpacing() { return 1.2f /*0073CDF4*/; }
 
-// ---- UseQuickItem -------------------------------------------------------------------
-
 inline const char* QuickEffectPrototype() { return "st.tr.130"; }
 inline const char* QuickEffectModel() { return "unhuma"; }
-
-// ---- CreateObject -------------------------------------------------------------------
 
 inline const char* CampfireText() { return "campfire"; }
 inline const char* NoWaveNameText() { return "Adding sound without wave name"; }
 inline float CampfireHeight() { return 0.7f /*0073C538*/; }
 inline float TorchLightScale() { return 10.0f /*0073BAAC*/; }  // the flame's radius factor (10)
-
-// ---- The client world's Setup --------------------------------------------------------
 
 // The textures' folder under the text folder (TheTextFolder) and the lights table.
 inline const char* TexturesFolderText() { return "textures\\"; }
@@ -74,8 +65,6 @@ inline const char* CursorFileText() { return "wincurs\\Df0000.cur"; }
 // The shadow setting (0 off, 2 blurred; map_object_shadow.cpp's ShadowMode): above 0 the client
 // sets its flag 0x200.
 inline int ShadowSetting() { return static_cast<const volatile int&>(options::TheOptions()->shadowQuality_); }
-
-// ---- The client world's zone load ----------------------------------------------------
 
 inline const char* DefaultAllodText() { return "gipat"; }
 // "Can't load terrain or map file "%s"." and a line end
@@ -98,16 +87,11 @@ inline float DefaultWindForceOption() { return static_cast<const volatile float&
 // The hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the next UpdateLighting set it.
 inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
-// ---- CWorld::Create -----------------------------------------------------------------
-
-// The configured paths the game's folders (TheDataFolder, TheTextFolder, TheDiscFolder the base
-// folder; game_singletons.h) are set from (their text
-// pointers).
+// The configured paths the game's folders (TheDataFolder, TheTextFolder, TheDiscFolder the base folder;
+// game_singletons.h) are set from (their text pointers).
 inline const char* ConfiguredDataPath() { return options::TheOptions()->workPath_.GetString(); }
 inline const char* ConfiguredTextPath() { return options::TheOptions()->resourcesPath_.GetString(); }
 inline const char* ConfiguredBasePath() { return options::TheOptions()->cdRomPath_.GetString(); }
-
-// ---- The client's Segment ------------------------------------------------------------
 
 inline const char* AutosaveEventText() { return "autosave"; }
 // "CWorldClient::Segment(): ..." (the lost connection's FatalError).
@@ -159,7 +143,6 @@ inline const char* HumanHeroText() { return "Human Hero"; }
 // The quest database's briefings by name (QuestBriefingTable::Index, quest_records.h; operator[]
 // Stlp::NamedSlot).
 stlp::hash_map<stlp::string, QuestBriefingRecord*, stlp::StringHash>& QuestBriefings();
-// ---- Update (world_update.cpp) --------------------------------------------------------------
 inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }
 inline const char* HeroesGroupText() { return "Heroes"; }
 inline float HearingScale() { return 2.0f /*0073F910*/; }   // the units' perception scale (SyncPlayer too)
