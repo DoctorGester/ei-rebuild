@@ -781,7 +781,7 @@ public:
     // Base drawing: the scene objects through the sprite draw
     // then the models; returns 1.
     BOOL DrawBase(int pass);
-    // 005EC300 (RET 0x14; the camp and the multiplayer hero screen). Draws `model` (a hero) as a
+    // Used by the camp and the multiplayer hero screen. Draws `model` (a hero) as a
     // preview: clears the depth buffer (all of it, then the preview's screen rectangles), turns it
     // by `turn` radians about y and places it by `depth` (`wide`'s low byte: six rectangles of the
     // camp layout, else one), draws it lit through `pass` and puts its transform back
@@ -794,31 +794,31 @@ public:
     int CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width, int height,
                   int x, int y, int unused1, int unused2);
     // The texture manager's texture `name` of `kind` (found or
-    // made, 00691D00), loaded (006922A0, or from `directory` with 006926F0) and appended to the
+    // made), loaded (or from `directory`) and appended to the
     // referenced objects with one more reference; null when either step fails (a texture made but
     // not loaded is kept by the manager, as in the original).
     CEngineObject* LoadTexture(const char* name, int kind, const char* directory);
     // A new CPU-filled texture appended to the
     // referenced objects with one more reference and flag 0x40000; null when none is made.
     CEngineObject* CreateTexture(int width, int height, int kind);
-    // 006002C0 (RET 4; slot 19 of the plain windows, ui_window.cpp). `show` 0: every surface keeps its
-    // contents in memory and lets its DirectDraw surface go (005FD7A0 with 0); otherwise the shown
-    // surfaces (flag 4) get theirs back (005FD7A0 with `show`).
+    // A virtual of the plain windows (ui_window.cpp). `show` 0: every surface keeps its
+    // contents in memory and lets its DirectDraw surface go; otherwise the shown
+    // surfaces (flag 4) get theirs back.
     void ShowSurfaces(int show);
-    // 005FF3C0 (RET 4; ui_window.cpp). Object `name` of the model manager (007AF5F4; null: a new
+    // Object `name` of the model manager (null: a new
     // interface sprite, CUiMesh) added to the scene objects (once: one reference taken and the
     // object attached to the window), given the black material and the first referenced object
     // (or null) as its texture; returns it, or null when the manager makes none.
     CUiMesh* AddSprite(const char* name);
-    // Base slot 22 (redraw): every shown surface blits itself.
+    // Base redraw: every shown surface blits itself.
     void RedrawBase();
-    // Base slot 23: each region's tooltip follows the mouse (as
-    // UpdateRegionTips) and redraws itself (its slot 22), region by region.
+    // Base update: each region's tooltip follows the mouse (as
+    // UpdateRegionTips) and redraws itself, region by region.
     void RedrawRegionTips();
     // Scene object `index` as the interface sprite it is.
     CUiMesh* SceneMesh(int index) const;   // defined after CUiMesh
 
-    std::uint8_t spareA0_[0xD8 - 0xA0];       // +0xA0 zeroed by the constructor; no rewritten code reads it
+    std::uint8_t spareA0_[0xD8 - 0xA0];       // +0xA0 zeroed by the constructor; nothing reads it
     RECT rect_;                               // +0xD8 layout coordinates
     int enabled_;                             // +0xE8
     CEngineObject* blackMaterial_;            // +0xEC given to every sprite (AddSprite)
@@ -844,13 +844,13 @@ static_assert(sizeof(CUiWindowBase) == 0x94);
 static_assert(offsetof(CUiWindow, surfaces_) == 0x118 && offsetof(CUiWindow, regions_) == 0x128);
 static_assert(sizeof(CUiWindow) == 0x148);
 
-// The tooltip attached to a region (0x184 bytes, vtables 00742F64 / 00742F30, constructor
-// Ui_tooltip.cpp, A-H20). Its surface is made while it is shown.
+// The tooltip attached to a region (0x184 bytes, constructor
+// in ui_tooltip.cpp). Its surface is made while it is shown.
 struct CUiTooltip : CUiWindow {
     // The window, no lines, idle, of `region`; a non-empty
     // `text` is split at newlines into the lines and measured.
     CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra);
-    // 0065E4F0 (ui_tooltip.cpp; deleting 0065E4D0, the input side's 0065EAC0): the lines.
+    // The lines (ui_tooltip.cpp).
     ~CUiTooltip() override;
     // A non-empty `text` replaces the lines and they are drawn
     // (the size is not measured again); null or empty: nothing.
@@ -860,7 +860,7 @@ struct CUiTooltip : CUiWindow {
     // first flag_ lines in 0x31B3FF and the others in 0xA7D7E4; the first line followed by
     // "  ( <key> )" when keyName_ is set.
     void DrawLines();
-    // 0065E580 (RET 8; ui_tooltip.cpp; Rebirth-patched, WideScreen reproduced behind its flag). One step of the showing, with the mouse at (x, y)
+    // Rebirth-patched, WideScreen reproduced behind its flag (ui_tooltip.cpp). One step of the showing, with the mouse at (x, y)
     // in layout coordinates; the region has set the state to 1 (mouse inside) or 3 (left) before.
     // State 1: no lines or a zero delay (setting 20) gives 0; the timer runs up to the delay, then
     // the key of command extra_ is looked up and measured, the state becomes 2 and the surface is
@@ -868,9 +868,9 @@ struct CUiTooltip : CUiWindow {
     // 4 (the appearing time is 0). State 3 draws while the timer is positive, then drops the
     // sprites and the surface and becomes 0. States 0 and 4: nothing.
     void OnMouseMove(int x, int y);
-    // 0065EA50 (window slot 20; ui_menus.cpp). Draws only while shown; returns 1 otherwise.
+    // The window's draw (ui_menus.cpp). Draws only while shown; returns 1 otherwise.
     BOOL Draw(int pass) override;
-    // Redraws (005FECC0, the window's base slot 22) only while shown.
+    // Redraws (the window's base redraw) only while shown.
     void Redraw() override;
     bool Shown() const { return state_ != 1 && state_ != 0; }
 
@@ -896,8 +896,8 @@ static_assert(sizeof(CUiTooltip) == 0x184);
 
 // The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel,
 // hero equipment, quick strip, trade and repair grids, constructor pages and the item strips, built on
-// the blank panel (game.exe's tables 00741B58 / 00741B24, constructor 0060E210). Their input sides
-// share the left-button handler 005EE310; slot 25 (ItemAt) gives the item or help topic under the mouse.
+// the blank panel. Their input sides
+// share the left-button handler; ItemAt gives the item or help topic under the mouse.
 class CUiItemPanel : public CUiWindow {
 public:
     // The blank panel's constructor: the window base,
@@ -909,15 +909,15 @@ public:
     virtual CItem* ItemAt(int x, int y, int* topic);
     int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }   // input 2
 
-    // 005EE310 (input slot 2, RET 0xC; ui_item_panel_input.cpp). The item under (x, y) goes to the
-    // owner's slot 42 with mode_ (the camp's MoveItem); without one, a help topic the panel named
-    // goes to the owner's slot 44 (the camp: the strip tabs for it). The event is not marked used.
+    // The left-button handler (ui_item_panel_input.cpp). The item under (x, y) goes to the
+    // owner's MoveItem-like handler with mode_ (the camp's MoveItem); without one, a help topic the panel named
+    // goes to the owner's help handler (the camp: the strip tabs for it). The event is not marked used.
     void OnLeftDown(int buttons, int x, int y);
 
-    // The owner's slots the panels call (the camp 0074091C, the hero screen 0074214C; ui_item_info.h).
-    // Slot 42 (+0xA8): take `item` with the panel's action mode.
+    // The owner's handlers the panels call (the camp, the hero screen; ui_item_info.h).
+    // Take `item` with the panel's action mode.
     void OwnerTakeItem(CItem* item);
-    // Slot 44 (+0xB0): help topic `topic` clicked.
+    // Help topic `topic` clicked.
     void OwnerTopicClicked(int topic);
 
     int mode_;                       // +0x148 the action mode handed to the owner (ItemCell::mode)
@@ -931,7 +931,7 @@ static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
 // Option 17 of the options window: the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
-strmap::CDebugPanel* DebugInfoPanel();   // strmap::g_debugPanel 0079B930 (string_map.cpp)
+strmap::CDebugPanel* DebugInfoPanel();
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
 
@@ -944,11 +944,11 @@ constexpr int kKeyActionCount = 0x200;
 // spell book reads them: itemdb::SpellTable::At / SpellModifierTable::At (item_db.h).
 
 // --- Battle screen and its HUD panels -----------------------
-// The battle screen (set up by 00635250) owns a row of panel windows, each a CUiWindow with its
+// The battle screen owns a row of panel windows, each a CUiWindow with its
 // own vtables; the screen forwards mouse events to the panel whose rectangle holds the point.
 // Panel handlers receive the panel's input side (window + 0x94) as `this`; the rewrites are
 // members of the panel classes, registered through small shims that convert the pointer.
-// Coordinates below are the 800x600 layout of the original (Rebirth moves some panels).
+// Coordinates below are the 800x600 layout (Rebirth moves some panels).
 
 class CItem;
 class CHudQuickItems;
@@ -960,7 +960,7 @@ class CHudUnitPanel;
 class CBattleScreen;   // below CUiContainer
 class CUiScrollText;  // below CBattleScreen
 
-// An MFC CDWordArray (SetSize 0059C660; `growBy` -1 keeps the step).
+// An MFC CDWordArray (`growBy` -1 keeps the step).
 using UiDwordArray = mfc::CArray<std::uint32_t>;
 
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
@@ -981,7 +981,7 @@ struct UiRenderer {
     std::uint8_t unused_00[0x08];
     long result_;                    // +0x08 the last device call's result
     std::uint8_t unused_0C[0x4C - 0x0C];
-    CPixelConverter* decoder_;       // +0x4C the pixel decoder (slot 5 decodes an .mmp image's pixels)
+    CPixelConverter* decoder_;       // +0x4C the pixel decoder (decodes an .mmp image's pixels)
     std::uint8_t unused_50[0x54 - 0x50];
     UiD3DDevice* device_;            // +0x54
     std::uint8_t unused_58[0x90 - 0x58];
@@ -998,7 +998,7 @@ constexpr int kRenderStateAlphaTest = 15;    // D3DRENDERSTATE_ALPHATESTENABLE
 constexpr int kRenderStateAlphaRef = 24;     // D3DRENDERSTATE_ALPHAREF
 constexpr int kRenderStateSpecular = 29;     // D3DRENDERSTATE_SPECULARENABLE
 
-// Weapon bar (constructor 0063BAB0, vtables 0074279C / 00742768): four 40x80 slots at
+// Weapon bar (four 40x80 slots at
 // (80..240, 520..600).
 class CHudWeaponBar : public CUiWindow {
 public:
@@ -1009,7 +1009,7 @@ public:
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }      // 2
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
-    // 0063C600 (slot 24, every frame). Follows the unit's weapon (+0x270) with the highlight.
+    // Every frame. Follows the unit's weapon (+0x270) with the highlight.
     void Update() override;
     // Draws with alpha test and specular on.
     BOOL Draw(int pass) override;
@@ -1031,13 +1031,13 @@ public:
     // shown not highlighted (Highlight).
     void AddWeapon(const char* model, const char* image);
     // Shows `unit`'s weapons: sprites dropped, the four
-    // regions' tips cleared; per weapon a sprite (0063BCC0, Rebirth-patched) and the tip of its
+    // regions' tips cleared; per weapon a sprite (Rebirth-patched) and the tip of its
     // region (id 0x26 + slot): the name, damage range and type, the prototype's +0x6C and the
     // weapon's +0x58 and, for a weapon with a spell, the spell's name; then the unit's +0x270
     // highlighted.
     void SetUnit(CUnit* unit);
 
-    // 0063BC70 (ui_hud_destroy.cpp; deleting 0063BC50, the input side's 0064BCF0): the labels, then
+    // The labels, then
     // the window's.
     ~CHudWeaponBar() override;
 
@@ -1051,7 +1051,7 @@ static_assert(offsetof(CHudWeaponBar, unit_) == 0x154);
 static_assert(offsetof(CHudWeaponBar, labels_) == 0x158);
 static_assert(sizeof(CHudWeaponBar) == 0x16C);   // CBattleScreen's operator new
 
-// Quick items (constructor 0063C800, vtables 0074283C / 00742808): 2 rows of four 50x50 slots
+// Quick items (2 rows of four 50x50 slots
 // at (520..720, 500..600).
 class CHudQuickItems : public CUiWindow {
 public:
@@ -1068,7 +1068,7 @@ public:
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
     int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }  // 7
     BOOL Draw(int pass) override;
-    // 0063D9D0 (slot 24, every frame). Fills the tooltip of each quick item slot that shows one.
+    // Every frame. Fills the tooltip of each quick item slot that shows one.
     void Update() override;
     // The tooltip text of quick item `index` into `text` (a
     // CString): the item's name and, for a wand (category 5) or a scroll (8) with a spell, its
@@ -1090,17 +1090,17 @@ public:
     // it shows one (bottom row, slots 0-3: scale 0.65 / 0.55; top row 1.0 / 0.85; colour
     // 0xFF404040 / 0xFF000000; with `on` also selected_ = slot).
     void Highlight(int slot, int on);
-    // The same through the original's address (so the verify wrapper sees the call).
+    // The same through the game's code (so the verify wrapper sees the call).
     void HighlightAt(int slot, int on);
-    // Item of the region at `index` (-1: empty). The original indexes this with the result of
-    // RegionAt unchecked, so index -1 reads the dword before the array (+0x168).
+    // Item of the region at `index` (-1: empty). The region lookup is not checked,
+    // so index -1 reads the dword before the array (+0x168).
     int RegionItem(int index) const {
         const int* items = regionItem_;   // declared below
         return items[index];
     }
 
-    // The bodies of the panel's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the
-    // panel at the screen's right edge). 0063C800 (RET 8): the constructor: the window, the
+    // The bodies of the panel's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag: the
+    // panel at the screen's right edge). The constructor: the window, the
     // entries array, the labels, the rectangle (520, 500, 720, 600), four 50 x 50 regions along the
     // bottom row from the right (x 670 .. 520) and four along the top row, with empty tips and no
     // items, nothing selected, no unit, and the labels "infoitem_7" .. "_13", "_21", "_22", "_26"
@@ -1111,8 +1111,7 @@ public:
     // or a plain rectangle without one; its texture offsets, plain white; counted.
     void AddItem(const char* model, const char* image);
     // Shows `unit`'s quick items: the sprites, tooltips and
-    // entries are dropped; for each of the unit's four quick items a sprite (0063CAE0,
-    // Rebirth-patched) in the bottom row, an entry and its tooltip; then, when the unit
+    // entries are dropped; for each of the unit's four quick items a sprite (Rebirth-patched) in the bottom row, an entry and its tooltip; then, when the unit
     // is the local player's, up to four of the player's 0x3009 items in the top row.
     void SetUnit(CUnit* unit);
 
@@ -1124,15 +1123,15 @@ public:
         CItem* item;                 // +8
     };
 
-    // 0063CA70 (ui_hud_destroy.cpp; deleting 0063CA50, the input side's 0064BD00): the labels, the
-    // entries array (its vtable 007428A0 written, the storage deleted), then the window's.
+    // The labels, the
+    // entries array (its vtable written, the storage deleted), then the window's.
     ~CHudQuickItems() override;
 
     CBattleScreen* owner_;           // +0x148
     int shownCount_;                 // +0x14C sprites added (the shown entries)
     int selected_;                   // +0x150
     CUnit* unit_;                    // +0x154
-    mfc::CArray<Entry> entries_;     // +0x158 (QuickEntryArrayClass; SetSize 0064B060, inlined)
+    mfc::CArray<Entry> entries_;     // +0x158 (QuickEntryArrayClass)
     int regionItem_[8];              // +0x16C
     mfc::CStringArray labels_;       // +0x18C the tooltip's labels
 };
@@ -1142,8 +1141,7 @@ static_assert(sizeof(CHudQuickItems) == 0x1A0);   // CBattleScreen's operator ne
 static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);
 static_assert(offsetof(CHudQuickItems, selected_) == 0x150);
 
-// Spell column on the right (constructor 0063E2A0, vtables 007428E4 / 007428B0;
-// 760..800 x 190..510).
+// Spell column on the right (760..800 x 190..510).
 class CHudSpellColumn : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);
@@ -1172,11 +1170,11 @@ public:
     // Button `index` highlighted (scale 1.15, colour
     // 0xFF404040) or not (1.0, 0xFF000000); selected_ = index either way.
     void Highlight(int index, int on);
-    void HighlightAt(int index, int on);   // through the original's address
+    void HighlightAt(int index, int on);
     // Every button unhighlighted, then selected_ = -1.
     void ClearHighlights();
-    // The bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the
-    // column at the screen's right edge). 0063E2A0 (RET 8): the constructor: the window, the labels,
+    // The bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag: the
+    // column at the screen's right edge). The constructor: the window, the labels,
     // the rectangle (760, 190, 800, 510), no sprites or regions, nothing selected, no unit, and
     // the labels "infoitem_7", "_18", "_8" .. "_13", "_21", "_22", "_26" .. "_28".
     CHudSpellColumn(CInterface3D* ui, CBattleScreen* owner);
@@ -1186,13 +1184,13 @@ public:
     // plain white, scale 1, colour 0xFF000000; counted, selected_ = its index.
     void AddSpell(const char* model, const char* image);
     // Shows `unit`'s spells: sprites and regions dropped;
-    // for each of the unit's eight spell slots that holds one, a sprite (0063E4B0, Rebirth-patched)
+    // for each of the unit's eight spell slots that holds one, a sprite (Rebirth-patched)
     // and the tooltip of region `index` (tip id 0x1E + index): the spell's name and, when it has
     // its data (+0x44), seven lines of numbers each after a label of labels_ (some numbers
     // replaced by labels when absent: an area for flag 0x10000000, a time under 2 ticks).
     void SetUnit(CUnit* unit);
 
-    // 0063E460 (ui_hud_destroy.cpp; deleting 0063E440, the input side's 0064BD10): the labels, then
+    // The labels, then
     // the window's.
     ~CHudSpellColumn() override;
 
@@ -1207,7 +1205,7 @@ static_assert(offsetof(CHudSpellColumn, selected_) == 0x150);
 static_assert(offsetof(CHudSpellColumn, labels_) == 0x158);
 static_assert(sizeof(CHudSpellColumn) == 0x16C);   // CBattleScreen's operator new
 
-// Action column on the left (constructor 0063F300, vtables 00742980 / 0074294C; six 40x40
+// Action column on the left (six 40x40
 // buttons at 0..40 x 270..510).
 class CHudActionColumn : public CUiWindow {
 public:
@@ -1227,11 +1225,11 @@ public:
     void Select(int index);
     // As CHudSpellColumn::Highlight.
     void Highlight(int index, int on);
-    void HighlightAt(int index, int on);   // through the original's address
+    void HighlightAt(int index, int on);
     // As CHudSpellColumn::ClearHighlights.
     void ClearHighlights();
-    // The bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the
-    // column at the screen's left edge). 0063F300 (RET 8): the constructor: the window, the actions
+    // The bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag: the
+    // column at the screen's left edge). The constructor: the window, the actions
     // array, the labels, the rectangle (0, 250, 40, 510), six 40 x 40 regions from the bottom
     // (y 470) up with empty tips, no sprites or actions, nothing selected, no unit, and the label
     // "infoitem_16".
@@ -1247,15 +1245,15 @@ public:
     // the "perk Science" text, the unit's science level (+0x408) and the "tip 10511" text.
     void SetUnit(CUnit* unit, int extra);
 
-    // 0063F490 (ui_hud_destroy.cpp; deleting 0063F470, the input side's 0064BD20): the labels, the
-    // actions array (its vtable 0073C3D0 written, the storage deleted), then the window's.
+    // The labels, the
+    // actions array (its vtable written, the storage deleted), then the window's.
     ~CHudActionColumn() override;
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C buttons added
     int selected_;                   // +0x150
     CUnit* unit_;                    // +0x154
-    UiDwordArray actions_;           // +0x158 the buttons' actions (0063F500 adds; 0 science, -1 follow)
+    UiDwordArray actions_;           // +0x158 the buttons' actions (0 science, -1 follow)
     mfc::CStringArray labels_;       // +0x16C the tooltip's labels
 };
 static_assert(offsetof(CHudActionColumn, count_) == 0x14C);
@@ -1298,14 +1296,14 @@ static_assert(offsetof(HudPortraitSlot, faceName_) == 0x40 && offsetof(HudPortra
               offsetof(HudPortraitSlot, modelSuffix_) == 0x54);
 static_assert(offsetof(HudPortraitSlot, wobbleTarget_) == 0x5C);
 
-// A figure prototype (the records of the map at 007AF3A4); only the model name the faces use.
+// A figure prototype (the records of the map); only the model name the faces use.
 struct FigurePrototypeRecord {
     std::uint8_t unused_000[0xE8];
     mfc::CString model;              // +0xE8 e.g. "unhuma", "unhufe"
 };
 static_assert(offsetof(FigurePrototypeRecord, model) == 0xE8);
 
-// Party portraits (constructor 0063FE70, vtables 00742A18 / 007429E4; 250..550 x 440..600).
+// Party portraits (250..550 x 440..600).
 class CHudPortraits : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);
@@ -1315,7 +1313,7 @@ public:
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }      // 2
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
-    // 00641080 (slot 24, every frame): health and mana bars, the hit flash, the face picture and
+    // Every frame: health and mana bars, the hit flash, the face picture and
     // model, the face's wobble and the selection marker (ui_hud_portraits.cpp).
     void Update() override;
     // Copies face picture `state` of portrait `index`
@@ -1335,25 +1333,25 @@ public:
     void AddPortrait(const char* model, const char* picture, int wide, int hasPlayer);
 
     // Constructor: the window over 250..550 x
-    // 440..600 (game.exe's tables 00742A18 / 007429E4), no portraits, and the selection marker
+    // 440..600, no portraits, and the selection marker
     // sprite (a 20x20 rectangle at depth 10, scale 80, texels 0x22, 0x96 - 0x36, 0xAA).
     CHudPortraits(CInterface3D* ui, CBattleScreen* owner);
-    // 0063FF70 (ui_screen_constructors.cpp; deleting 0063FF50, the input side's 0064BD30): each
-    // slot's three strings (suffix, prefix, face name), the slots' storage back to the node
+    // Each
+    // The destructor: each
     // allocator, then the window's.
     ~CHudPortraits() override;
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C
     std::uint8_t unused_150[0x158 - 0x150];
-    // +0x158 one per portrait (0064AB20 appends a default slot, 0064AD40 erases a range: with
+    // +0x158 one per portrait (slots are appended and ranges erased: with
     // recordvec::HudPortraitSlotElement).
     stlp::vector<HudPortraitSlot> slots_;
 };
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 static_assert(sizeof(CHudPortraits) == 0x164);
 
-// A 2D mesh of the interface (the sprite objects 005E70E0 and its siblings set up): a figure
+// A 2D mesh of the interface (the sprite objects and its siblings set up): a figure
 // mesh (CFigureMesh, figure_mesh.h) whose arrays it fills with these views of their elements.
 // Positions are kept per quad as four x then four y floats (VertexPacket); each vertex has a
 // 6-byte record (MeshCorner: the position it uses and a frame of the texture); indices are 16 bits.
@@ -1375,24 +1373,24 @@ struct UiMeshVertex {
 };
 static_assert(sizeof(UiMeshVertex) == 6);
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
-// The figure factory's class 0x43 ("CI3DFigure", 0x284 bytes; game.exe's vtable 0073FC48, retired):
+// The figure factory's class 0x43 ("CI3DFigure", 0x284 bytes, retired as a table):
 // a class 0x42 mesh (CPlainFigureMesh) with the sprite's fields. A real virtual class.
 class CUiMesh : public CPlainFigureMesh {
 public:
-    // The factory's class 0x43 (005AA8E0 inlines it): CPlainFigureMesh's constructor; the sprite's
+    // The factory's class 0x43: CPlainFigureMesh's constructor; the sprite's
     // fields are set by Create (CreateSprite).
     CUiMesh();
-    // 005AAD00's work: CPlainFigureMesh's destructor (nothing of the sprite's to free).
+    // CPlainFigureMesh's destructor (nothing of the sprite's to free).
     ~CUiMesh() override;
-    // The vtable: CPlainFigureMesh's but for 0, 2, 3, 11 and 12.
-    int Create() override;                 // 2: 005E6C60 CreateSprite
-    void Destroy() override;               // 3: 005E6D70 DestroySprite
-    const char* GetClassName() override;   // 11: 005AACC0 "CI3DFigure"
-    int GetClassId() override;             // 12: 005AACD0 (0x46)
+    // The virtuals: CPlainFigureMesh's but for Create, Destroy, GetClassName and GetClassId.
+    int Create() override;
+    void Destroy() override;
+    const char* GetClassName() override;
+    int GetClassId() override;
 
     // The array sizes: each is the aligned array's SetSize(count); the
     // quads then get z 0 and w 1 in every block, the vertices +2 zero in
-    // every entry; the indices and texture coordinates (005EA380, 8 bytes each) nothing.
+    // every entry; the indices and texture coordinates (8 bytes each) nothing.
     void SetQuadCount(int count);
     void SetVertexCount(int count);
     void SetIndexCount(int count);
@@ -1406,19 +1404,19 @@ public:
     const lib::AlignedArray<UiQuadBlock>& Quads() const { return const_cast<CUiMesh*>(this)->Quads(); }
     const lib::AlignedArray<UiMeshVertex>& Vertices() const { return const_cast<CUiMesh*>(this)->Vertices(); }
     const lib::AlignedArray<UiTexel>& Texels() const { return const_cast<CUiMesh*>(this)->Texels(); }
-    // (The arrays go to the renderer fields, +0x9C..+0xC8, by CPlainFigureMesh::RefreshBuffers, 005EA150.)
+    // (The arrays go to the renderer fields, +0x9C..+0xC8, by CPlainFigureMesh::RefreshBuffers.)
     // Where Place put the sprite: the layout point
     // ((x / z / 0.4816 + 1) * 400, y / z / 0.4816 * 400 + 300; each stored as float) and the depth
     // (z, copied).
     void GetPlacement(float* x, float* y, float* depth) const;
-    // 005E6FA0 through its address (PlaceBody is the rewrite; Rebirth patches it). Puts the sprite at layout point (x, y) at
+    // Through its address (PlaceBody is the rewrite; Rebirth patches it). Puts the sprite at layout point (x, y) at
     // `depth` in front of the interface camera (sets the local position +0x1C).
     void Place(float x, float y, float depth);
-    // 005E70E0 (Rebirth-patched). Makes the sprite a textured rectangle (layout left, top, right,
+    // Rebirth-patched. Makes the sprite a textured rectangle (layout left, top, right,
     // bottom at `depth`; texels u0, v0 .. u1, v1): SetRectangleVanilla.
     void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                       int u1, int v1);
-    // 005E70E0 (RET 0x28; Rebirth-patched; ui_mesh_shapes.cpp, hooked in the vanilla launch and,
+    // Rebirth-patched (ui_mesh_shapes.cpp, hooked in the vanilla launch and,
     // reproducing WideScreen, in a Rebirth launch; rewritten callers go through SetRectangle). A rectangle of two
     // triangles: one packet of normals (0, 0, 1), four corners, the texels (u0, v0)-(u1, v1) as
     // texture coordinates (v upwards; both u one less when u0 > u1; half a texel inwards), the
@@ -1445,7 +1443,7 @@ public:
                             float v0, float u1, float v1, float u2, float v2);
     // Place: position_ =
     // ((x * 0.0025 - 1) * 0.4816 * depth, (y * 0.0025 - 0.75) * 0.4816 * depth, depth), the
-    // constants read from 0074015C, 0073B84C, 0073C524 and 00740158; `depth` copied as bits. With
+    // constants read from the game's data; `depth` copied as bits. With
     // Rebirth's WideScreen x is moved by the panel offset first (ui_widescreen.h); callers still
     // call it through its address (SpritePlaceOriginal) while addon's other code calls it too.
     void PlaceBody(float x, float y, float depth);
@@ -1453,7 +1451,7 @@ public:
     // EAX is left holding them, callers do not read it).
     void SetScale(float scale);
     // The material and the texture forgotten (not
-    // released), then the figure's own slot 3, whose EAX is returned.
+    // released), then the figure's own Destroy, whose EAX is returned.
     void DestroySprite();
     // The y scale alone (scaleMatrix_[5]) = `bits` (copied as bits); the quick
     // items' bar calls it.
@@ -1463,7 +1461,7 @@ public:
     // Draws the sprite in `renderer`'s pass when visible;
     // returns 1.
     int Draw(CSceneRenderer* renderer);
-    // 005E6C60 (vtable slot 2, Create; ui_mesh_draw.cpp). The figure's Create, then no
+    // The figure's Create (ui_mesh_draw.cpp), then no
     // material or texture, the scale matrix the identity, tint 1, +0x230 zero, the identity
     // orientation (the identity), position (0, 0, 10), both colours 0xFF000000, visible. Returns 1.
     int CreateSprite();
@@ -1479,7 +1477,7 @@ public:
     int visible_;                    // +0x220
     float tint_[3];                  // +0x224 colour factors (the HUD: 1 selected, 0.5 not)
     float tintSpare_[3];             // +0x230 0 from CreateSprite; Draw reads only tint_ (nothing reads it)
-    // A row-major 4x4 matrix applied after the placement (Draw); its diagonal elements 0, 5 and 10
+    // are the scale set by SetScale (the same value in all three).
     // are the scale 005E7060 sets (the same value in all three).
     Matrix4 scaleMatrix_;            // +0x23C
     float& ScaleX() { return scaleMatrix_.m[0]; }
@@ -1506,11 +1504,11 @@ struct UiPointF {
     float y;
 };
 using UiPointArray = lib::AlignedArray<UiPointF>;
-// 00453100 (the 8-byte aligned arrays' SetSize; aligned_arrays.cpp), through its address
+// The 8-byte aligned arrays' SetSize (aligned_arrays.cpp), through its address
 // (ui_hud_map.cpp). `growBy` -1 keeps the growth step.
 void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growBy);
 
-// Map (set up by 00641F20, vtables 00742660 / 0074262C; 615..800 x 0..165). Regions: 0 the
+// Map (615..800 x 0..165). Regions: 0 the
 // sling button, 1 the round map, 2 the map area, 3 and 4 the two view buttons, 5 a button
 // above them, 6 the whole panel.
 class CHudMap : public CUiWindow {
@@ -1519,8 +1517,8 @@ public:
     // owner, both point arrays empty.
     CHudMap(CInterface3D* ui, CBattleScreen* owner);
     void OnMouseDown(int buttons, int x, int y);   // the view buttons
-    // 00645210 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3: the map's centre at
-    // 700 + shift).
+    // Rebirth-patched, WideScreen reproduced behind its flag: the map's centre at
+    // 700 + shift.
     // The button released over the map that took it. A held view button is let go (view_ 0, both
     // buttons dim; nothing else). Otherwise by region: 0 the sling (direction turned, the slide
     // starts), 1 / 2 a point of the map (the layout point's offset from (700, 80) over halfSide_,
@@ -1536,32 +1534,32 @@ public:
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }     // 12
-    // 00643DC0 (every frame, from 00642B40). Rebuilds the marker mesh (scene object 2): the
+    // Every frame, from the slide update. Rebuilds the marker mesh (scene object 2): the
     // party and other units, the marked objects, the zone exits and the other players
     // (ui_hud_map.cpp).
     void BuildMarkers();
-    // 00642E80 (every frame, before BuildMarkers). Follows the camera (centre and facing, the
+    // Every frame, before BuildMarkers. Follows the camera (centre and facing, the
     // compass needle scene object 10), clips the view polygon to the world rectangle and builds
     // the visible-area mesh (scene object 1) and the world-bounds quad (scene object 0).
     void UpdateView();
-    // 00635CA0 (ui_hud_destroy.cpp; deleting 00635C80, the input side's 0064BD50): the visible
+    // The visible
     // area's and the view polygon's aligned storage freed, then the window's.
     ~CHudMap() override;
-    // 00642930 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag).
+    // Rebirth-patched, WideScreen reproduced behind its flag.
     // Places the panel's
     // parts (scene objects 0-4 and 6-11), its text surface and the regions after the first at the
     // current slide offset.
     void Layout();
     void Update() override { UpdateVanilla(); }
-    // 00642B40 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag).
+    // Every frame; Rebirth-patched, WideScreen reproduced behind its flag.
     // The zoom grows (view 1, up to zoomMax_) or shrinks (view 2, down to 1) by 2.5 times a
     // second; UpdateView and BuildMarkers; a running slide advances (0.3 s for the whole way,
     // eased), the panel is laid out and the sling button (scene object 5) turned and placed for
     // the direction; the interface's "map shown" flag (+0x8B) follows the direction; the "camera
     // north" time (northTime_) counts down, scene object 11 tinted 1 while it runs and 0.5 after.
     void UpdateVanilla();
-    // 00641F20 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3: the panel at the
-    // screen's right edge; the battle screen's build calls it through the address). Sets the new
+    // Rebirth-patched, WideScreen reproduced behind its flag: the panel at the
+    // screen's right edge; the battle screen's build calls it through its address. Sets the new
     // panel up: the world's extent and the map's picture from the local player's zone record (32
     // by 32 and "battle00" without one), the zoom (`zoom` up to zoomMax_), the slide at its far
     // end when `slid`, the seven regions, the twelve sprites, the one-pixel surface at the centre
@@ -1571,7 +1569,7 @@ public:
     CBattleScreen* owner_;           // +0x148
     float centreX_;                  // +0x14C world point at the map's centre (the camera's)
     float centreY_;                  // +0x150
-    float facingX_;                  // +0x154 view direction (normalised by 00642E80)
+    float facingX_;                  // +0x154 view direction (normalised by the camera follow)
     float facingY_;                  // +0x158
     float worldWidth_;               // +0x15C the zone's extent (clipping rectangle 0..width)
     float worldHeight_;              // +0x160
@@ -1601,7 +1599,7 @@ static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
 static_assert(offsetof(CHudMap, northTime_) == 0x1B0);
 static_assert(sizeof(CHudMap) == 0x1B4);   // CBattleScreen's operator new
 
-// Unit panel (set up by 006456E0, vtables 007426F8 / 007426C4; 0..185 x 0..225). Regions: 0
+// Unit panel (0..185 x 0..225). Regions: 0
 // the sling button, 1-4 the body parts, 5 the whole panel.
 class CHudUnitPanel : public CUiWindow {
 public:
@@ -1610,7 +1608,7 @@ public:
     CHudUnitPanel(CInterface3D* ui, CBattleScreen* owner);
     // 0x00647040 (ui_hud_unit_info.cpp).
     void DrawUnitInfo(CUnit* unitIn);
-    // 006477E0 (RET 4; ui_hud_panels.cpp, called by the panel's draw 006462A0). The health bar
+    // The health bar
     // and number of `unit` (scene objects 10 / 11), and its mana bar and number (12 / 13) when it
     // is one of the party.
     void ShowHealth(CUnit* unit);
@@ -1626,46 +1624,46 @@ public:
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }     // 12
-    // 006481D0 (ui_hud_panels.cpp, A-H25; the battle screen's keys 0063A560 call it after setting
+    // The battle screen's keys call it after setting
     // bodyPart_). The body part buttons (scene objects 3-6): tint 1 for the selected one, 0.5 for
     // the others.
     void ShowBodyPart();
-    // 00646B90 (RET 4; ui_hud_panels.cpp, A-H25; called by the panel's draw 006462A0). The first
+    // The first
     // six effects on `unit`: each one's spell text and time left as two lines of the panel's
     // text, and its spell's picture (scene objects 26 + i, cut from the panel's icon texture,
     // where up to six pictures are kept: effectIcons_). Scene object 9 shows when there are more.
     void ShowEffects(CUnit* unit);
-    // 00635D00 (ui_hud_destroy.cpp; deleting 00635CE0, the input side's 0064BD40): the part labels,
+    // The part labels,
     // texts_, the two strings (+0x168 first), then the window's.
     ~CHudUnitPanel() override;
-    // 00645F80 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag).
+    // Rebirth-patched, WideScreen reproduced behind its flag.
     // Places the panel's
     // parts (scene objects 0, 1, 3-7, 9-13, the six body parts' pairs 14-25 at the places of the
-    // tables 00742434 / 0074244C, the six effect pictures 26-31), its text surface and the
+    // tables, the six effect pictures 26-31), its text surface and the
     // regions after the first at the current slide offset.
     void Layout();
     void Update() override { UpdateVanilla(); }
-    // 00647FB0 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag).
+    // Every frame; Rebirth-patched, WideScreen reproduced behind its flag.
     // A running slide advances (as the map's), the panel is laid out and the sling button (scene
     // object 2) turned and placed for the direction; a dead hover unit is forgotten; the
     // interface's "unit panel shown" flag (+0x89) follows the direction and its +0x8C is the
     // selected body part.
     void UpdateVanilla();
-    // 006456E0 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched: WideScreen reproduced behind its flag, W3, the panel at the
-    // screen's left edge; the battle screen calls it through its address). `slid` (the
+    // Rebirth-patched: WideScreen reproduced behind its flag, the panel at the
+    // screen's left edge; the battle screen calls it through its address. `slid` (the
     // interface's +0x89) starts the panel at the far end of its slide: offset 180, slide 1,
     // direction +1 (else 0, 0, -1). Rectangle (0, 0)-(185, 225) and sliding_ 1 (WideScreen:
     // (-133, 0)-(52, 225) and 0, addon's constants); regions: 0 the sling button, 1-4 the body part buttons
     // (tips 0x2774..0x2778), 5 the whole panel; scene objects 0 / 1 plain backgrounds, 2 the sling
     // button, 3-6 the part buttons (the selected one tinted 1, the others 0.5), 7 the frame, 8 a
     // strip of cells and 9 the "more effects" mark (both hidden), 10-13 the health and mana bars,
-    // 14-25 the body parts' bars (tables 00742434 / 0074244C), 26-31 the effects' pictures (the
+    // 14-25 the body parts' bars (tables), 26-31 the effects' pictures (the
     // window's second texture); the text surface (20, 0)-(180, 220); Layout; no hover unit; the
     // texts "infounit_0".."infounit_17" and the labels "hl_skull", "hl_torso", "hl_leg", "hl_arm"
     // appended to the two string arrays; no effect pictures (-1).
     void SetupVanilla(int bodyPart, std::uint8_t slid);
-    // 006462A0 (slot 20, RET 4; ui_hud_unit_draw.cpp, A-E2; Rebirth-patched, WideScreen reproduced behind its flag, W3: the
-    // panel offset until the base draw, the model's x and the depth rectangles moved).
+    // Rebirth-patched, WideScreen reproduced behind its flag: the
+    // panel offset until the base draw, the model's x and the depth rectangles moved.
     // The panel's draw: the background (scene object 0), then for the hover unit, else the selected
     // one, while the panel is not slid away: its model in the panel (not on the info page 2), the
     // device's depth buffer set to 0 around the panel's area for the draw and back to 1 after it,
@@ -1699,13 +1697,13 @@ static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHud
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
 static_assert(sizeof(CHudUnitPanel) == 0x1C4);   // CBattleScreen's operator new
 
-// Game clock (set up by 00648520, vtables 007425C8 / 00742594; 720..800 x 520..600).
+// Game clock (720..800 x 520..600).
 class CHudClock : public CUiWindow {
 public:
     // Built inline by the battle screen's Create: the window and the owner.
     CHudClock(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
     void OnMouseDown(int buttons, int x, int y);
-    // 00648D70 (RET 0xC; ui_hud.cpp, A-H26; Rebirth's MPSpeedControl reproduced behind its flag).
+    // Rebirth's MPSpeedControl reproduced behind its flag.
     // The button released over the clock that took it: region 0 toggles the pause (with the
     // clock's sound); regions 1 and 2 set the normal / fast speed (not on a network client: the
     // pause lifted, fast_ 0 / 1, the world's update period 55 / 27 ms, the interface's fastGame_,
@@ -1716,15 +1714,15 @@ public:
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }      // 2
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
-    // 006488E0 (slot 24, every frame): turns the face with the time of day, the hand and the
+    // Every frame: turns the face with the time of day, the hand and the
     // speed dial (scene objects 1-5), blinks while the game is paused (ui_hud_frame.cpp).
     void Update() override;
-    // 00648F10 (ui_hud.cpp, A-H25; from the clock's click 00648D70). The pause button stops
+    // From the clock's click. The pause button stops
     // pulsing, the click sound, and a new objectives window of the current zone (one button, no
     // exits, no zone list) opened on top.
     void OpenObjectives();
-    // 00648520 (RET 4; ui_hud_setup.cpp, A-H26; Rebirth-patched: WideScreen reproduced behind its flag, W3, the clock at the
-    // screen's right edge; the battle screen calls it through its address). The clock's rectangle
+    // Rebirth-patched: WideScreen reproduced behind its flag, the clock at the
+    // screen's right edge; the battle screen calls it through its address. The clock's rectangle
     // (720, 520)-(800, 600); scene objects: 0 the face (a disc of radius 65 about the layout's
     // corner (800, 600)), 1 the hand (a triangle), 2-5 four "in25arrow" sprites (placed by
     // Update), 6 and 7 two more discs (radius 32 and 80); regions 0-2: the three sectors of pi / 6
@@ -1743,7 +1741,7 @@ static_assert(offsetof(CHudClock, blink_) == 0x14C);
 static_assert(offsetof(CHudClock, highlight_) == 0x158);
 static_assert(sizeof(CHudClock) == 0x15C);   // CBattleScreen's operator new
 
-// Movement panel (set up by 00649190, vtables 00742530 / 007424FC; 0..80 x 520..600). Region 0
+// Movement panel (0..80 x 520..600). Region 0
 // toggles the units' +0x438 flag, regions 1-4 set their movement mode 0-3 (+0x268).
 class CHudMovePanel : public CUiWindow {
 public:
@@ -1756,20 +1754,20 @@ public:
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }      // 2
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }          // 3
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }     // 4
-    // 00649550 (slot 24, every frame). Shows the selected units' common mode and flag.
+    // Every frame. Shows the selected units' common mode and flag.
     void Update() override;
     // Region 0 (and its key): plays the click, sets +0x438 of the
     // selected party units to 0 when all of them have 1, else to 1 (through the local view), and
     // shows the button's state (scene object 5).
     void ToggleFlag();
-    // 00649910 (RET 4; ui_hud.cpp, A-H26; WideScreen reproduced behind its flag, W3: with the left panels' offset).
+    // WideScreen reproduced behind its flag: with the left panels' offset.
     // mode_ = `mode`; the marker (scene object 0) shows for a mode of 0 or more; the four mode
     // buttons (scene objects 1-4) are tinted 1 for the mode and 0.7 for the others, and the marker
     // is turned about -z by (2 mode + 1) pi / 16 and placed on the circle of radius 73 about
     // (0, 600) at depth 8.
     void ShowModeVanilla(int mode);
-    // 00649190 (slot 18, the panel's Create; ui_hud_setup.cpp, A-H26; Rebirth-patched: WideScreen reproduced behind its flag, W3,
-    // the panel at the screen's left edge). The rectangle (0, 520)-(80, 600); region 0 the
+    // The panel's Create; Rebirth-patched: WideScreen reproduced behind its flag,
+    // the panel at the screen's left edge. The rectangle (0, 520)-(80, 600); region 0 the
     // quarter disc of radius 34 about the layout's corner (0, 600), regions 1-4 the four sectors
     // of pi / 8 between radius 35 and 80 (tips 0x2904..0x2908); scene objects: 0 the marker (a
     // triangle), 1-4 the four sectors as triangles from the corner (tint 0.7), 5 the middle disc
@@ -1784,7 +1782,7 @@ public:
 static_assert(offsetof(CHudMovePanel, mode_) == 0x14C && offsetof(CHudMovePanel, flag_) == 0x150);
 static_assert(sizeof(CHudMovePanel) == 0x154);   // CBattleScreen's operator new
 
-// Top panel (set up by 00649AF0, game.exe's tables 00742498 / 00742464; 180..620 x 0..100). Regions: 0 the sling
+// Top panel (180..620 x 0..100). Regions: 0 the sling
 // button, 1 and 2 the two page buttons, 3 the whole panel.
 class CHudTopPanel : public CUiWindow {
 public:
@@ -1802,7 +1800,7 @@ public:
     // Shows page `page_`: highlights its button (scene objects 3 /
     // 4) and puts its text into the battle screen's message log (page 0 scrolled to the end).
     void ShowPage();
-    // 00649FF0 (slot 24, every frame): slides the panel in or out (ui_hud_frame.cpp).
+    // Every frame: slides the panel in or out (ui_hud_frame.cpp).
     void Update() override;
     // Places the panel's parts, the message log and the regions at
     // the current slide offset.
@@ -1812,7 +1810,7 @@ public:
     // kind (slot 14; counts added) into the world's copies, one item name per line;
     // shown in the message log when page 1 is up.
     void ShowItems();
-    // 00635E00 (ui_hud_destroy.cpp; deleting 00635DE0, the input side's 0064BD80): the two page
+    // The two page
     // texts (page 1 first), then the window's.
     ~CHudTopPanel() override;
     // Sets the panel up over 180..620 x 0..100, slid in
@@ -1845,8 +1843,8 @@ static_assert(sizeof(CHudTopPanel) == 0x16C);   // CBattleScreen's operator new
 
 // --- Screens with child windows: the save/load and options windows (ui_menus.cpp) -----------
 
-// Base of the screens that hold child windows and extra input handlers (constructor 00600B20; game.exe's
-// tables 00741008 / 00740FD4): the Esc menu, the save/load and options windows, the battle screen. Its input
+// Base of the screens that hold child windows and extra input handlers:
+// the Esc menu, the save/load and options windows, the battle screen. Its input
 // handlers pass an event on to the extra input sides (+0x158) in order, then to the enabled children (for the
 // mouse events only those whose rectangle holds the point, CUiWindow::ContainsPoint), each with its handled flag
 // cleared first, until one sets it; that sets the container's own flag. Most screens keep some of these handlers
@@ -1856,21 +1854,21 @@ public:
     // The window base, no children or extra input sides.
     explicit CUiContainer(CInterface3D* ui);
     // The extra input sides and the children deleted, both lists freed, then the
-    // window base's. The deleting destructor 00600B80 and its copies (ui_window_delete.cpp).
+    // window base's. The deleting destructor and its copies (ui_window_delete.cpp).
     ~CUiContainer() override;
 
     void Show(int show) override { ShowChildren(show); }              // 19
-    // 20: 00600EF0 (ui_container_draws.cpp). Nothing when the interface's +0x30 is clear; else the pass state
-    // block, the window's own draw, then every enabled child's slot 20. Returns 1.
+    // (ui_container_draws.cpp). Nothing when the interface's +0x30 is clear; else the pass state
+    // block, the window's own draw, then every enabled child's draw. Returns 1.
     BOOL Draw(int pass) override;
-    // 21: 00600F70 (ui_alpha_draws.cpp). Alpha reference 1 around the region tips and every enabled child's
-    // slot 21, while the interface draws.
+    // (ui_alpha_draws.cpp). Alpha reference 1 around the region tips and every enabled child's
+    // draw, while the interface draws.
     void DrawChild(int pass) override;
     void Redraw() override { RedrawContainer(); }                     // 22
     void RedrawTips() override { RedrawChildTips(); }                 // 23
     void Update() override { UpdateBase(); }                          // 24
-    // The screens' slots the interface calls (CInterface3D): 25 the screen's Create and 26 taken off the screen
-    // (pure in game.exe's table: _purecall), then 27-41 game.exe's shared RET stubs 005795A0-00579680.
+    // The screens' virtuals the interface calls (CInterface3D): the screen's Create and one taken off the screen
+    // (pure here: _purecall), then game.exe's shared empty stubs.
     virtual void CreateScreen();                                       // 25
     virtual void CloseScreen();                                        // 26
     virtual void MessageResult(int) {}                                 // 27: the value a window above left pending when it closed
