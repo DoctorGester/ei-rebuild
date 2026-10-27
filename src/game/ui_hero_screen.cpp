@@ -89,7 +89,7 @@ void CMpHeroScreen::DrawExperience() {
     mfc::CString text;
     std::string line;
     UiSurfaceGetDC(surface);
-    static_cast<CUiSurface*>(surface)->Clear();
+    surface->Clear();
     TheTextManager()->CTextManager::GetString(kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
     surface->DrawTextIn(text, &title, kTextFormat, kWhite, 1, 1);
@@ -145,9 +145,9 @@ EI_REWRITTEN(0x006159E0, CMpHeroScreen::Draw);
 // --- Update ----------------------------------------------------------------------------
 
 void CMpHeroScreen::Update() {
-    static_cast<CUiContainer*>(this)->UpdateBase();
+    UpdateBase();
     if (rotating_ == 1 || rotating_ == 2) {
-        double step = static_cast<CUiContainer*>(this)->FrameTime();
+        double step = FrameTime();
         step += step;
         double angle = rotating_ == 1 ? step + turn_ : turn_ - step;
         turn_ = static_cast<float>(std::fmod(angle, static_cast<double>(kFullTurn)));
@@ -274,7 +274,7 @@ std::uint32_t MpHeroCount() {
 void CMpHeroScreen::DrawHeroList() {
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    static_cast<CUiSurface*>(surface)->Clear();
+    surface->Clear();
     SelectionFrame(*this)->visible_ = 0;
     RECT rect = {12, 13, 265, 33};
     std::uint32_t index = static_cast<std::uint32_t>(heroTop_);
@@ -298,7 +298,7 @@ EI_REWRITTEN(0x006167C0, HeroScreenDrawHeroList);
 void CMpHeroScreen::DrawVoices() {
     CUiSurface* surface = surfaces_.data[2];
     UiSurfaceGetDC(surface);
-    static_cast<CUiSurface*>(surface)->Clear();
+    surface->Clear();
     SelectionFrame(*this)->visible_ = 0;
     mfc::CString title;
     RECT rect = {10, 5, 190, 20};

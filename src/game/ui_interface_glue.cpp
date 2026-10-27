@@ -138,7 +138,7 @@ void CInterface3D::ShowStatusText(const char* text) {
     if (!statusSurface_) return;
     ui_native::Adopt(statusSurface_, "status");
     UiSurfaceGetDC(statusSurface_);
-    static_cast<CUiSurface*>(statusSurface_)->Clear();
+    statusSurface_->Clear();
     RECT rect = {0, 0, kLayoutWidth, kStatusTextHeight};
     statusSurface_->DrawTextIn(text, &rect, kStatusTextFormat, kStatusColour, 1, 1);   // Rebirth-patched
     UiSurfaceReleaseDC(statusSurface_);

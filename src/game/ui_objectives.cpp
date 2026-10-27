@@ -350,7 +350,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 TheTextManager()->ReadToHash(&text, 1);
                 CUiSurface* surface = surfaces_.data[1];
                 UiSurfaceGetDC(surface);
-                static_cast<CUiSurface*>(surface)->Clear();
+                surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
                 SurfaceText(surface, title, &titleRect, 1, 0x31B3FF, 1, 1);
                 RECT textRect = {10, 25, 330, 140};
@@ -656,7 +656,7 @@ void CObjectivesWindow::DrawQuestList() {
     mesh(2)->visible_ = 0;
     auto* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    static_cast<CUiSurface*>(surface)->Clear();
+    surface->Clear();
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
     mfc::CStringArray* quests = &quests_;
     int row = firstRow_;

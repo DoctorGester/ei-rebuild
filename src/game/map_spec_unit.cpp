@@ -338,7 +338,7 @@ void UnitSpec::Apply() {
     TheSectorMap()->Move(unit, &position);
     TheServerWorld()->AIMap()->TurnObject(unit, &rotation);
     std::memcpy(&unit->localRotation_, &rotation, 16);
-    static_cast<CObject3D*>(object)->SetFigureScale(&scale.x);
+    unit->SetFigureScale(&scale.x);
     std::memcpy(&unit->baseScale, &scale, 12);
     unit->ApplyBaseScale();
     std::uint32_t& flags = unit->flags_;

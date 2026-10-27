@@ -48,7 +48,7 @@ EI_REPLACE_METHOD(0x0062C920, CExchangeScreen::OnMessageResult);
 // --- the update ----------------------------------------------------------------------------------
 
 void CExchangeScreen::Update() {
-    static_cast<CUiContainer*>(this)->UpdateBase();
+    UpdateBase();
     if (!LiveOffer()) {
         ReturnAll(LocalParty(), ownOffer_);
         GameRejoin();

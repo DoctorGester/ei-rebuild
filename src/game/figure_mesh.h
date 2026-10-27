@@ -68,12 +68,6 @@ class CMaterial;
 
 class CLight;
 
-// The lights a figure part is lit with ({data, count}; the draw's third argument).
-struct FigureLights {
-    CLight** data;
-    int count;
-};
-
 // The figure meshes' base ("CFigure"): the parts of an object's figure (CObject3D::parts). Derived: 0x41
 // CSharedFigureMesh, 0x42 CPlainFigureMesh, 0x43 CUiMesh (ui.h), 0x44 CSkyObject (sky_object.h).
 class CFigureMesh : public CTransformObject {

@@ -55,7 +55,7 @@ double ShownSpeed(CUnit* unit, int outsideGroup) {
 }
 
 struct Panel {
-    void* surface;
+    CUiSurface* surface;
     const mfc::CString* labels;
     RECT rect;
     mfc::CString text;
@@ -63,7 +63,7 @@ struct Panel {
     // Draws `text` and moves down a line.
     void DrawLine() { DrawLine(text); }
     void DrawLine(const char* line) {
-        static_cast<CUiSurface*>(surface)->DrawTextIn(line, &rect, 0, kTextColour, 0, 1);
+        surface->DrawTextIn(line, &rect, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&rect, 0, kLineHeight);
     }
     // "<label> <line>" when the line is not empty.

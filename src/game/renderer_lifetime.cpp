@@ -210,22 +210,20 @@ void CSceneRenderer::SetColour(std::uint32_t colour) {
 }
 EI_REWRITTEN(0x00501CC0, CSceneRenderer::SetColour);
 
-void CSceneRenderer::DrawLineList(void* lines) { static_cast<LineBatch*>(lines)->Draw(pipeline_, device_); }
+void CSceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline_, device_); }
 EI_REWRITTEN(0x00501CE0, CSceneRenderer::DrawLineList);
 
-int CSceneRenderer::DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
+int CSceneRenderer::DrawFigure(CFigureMesh* mesh, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
                                tagRECT* screen) {
-    auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
     return mesh->drawer_->DrawPlain(device_, reinterpret_cast<int>(unknownA), reinterpret_cast<int>(unknownB), reinterpret_cast<int>(material), alpha, screen);
 }
 EI_REWRITTEN(0x00501D00, CSceneRenderer::DrawFigure);
 
-int CSceneRenderer::DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
+int CSceneRenderer::DrawFigureLit(CFigureMesh* mesh, const FigureLights* lights, CMaterial* material, int alpha, tagRECT* screen,
                                   CTexture* textureA, CTexture* textureB) {
-    auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
-    return mesh->drawer_->DrawLit(device_, static_cast<const FigureLights*>(lights), static_cast<CMaterial*>(material), alpha, screen, textureA, textureB);
+    return mesh->drawer_->DrawLit(device_, lights, material, alpha, screen, textureA, textureB);
 }
 EI_REWRITTEN(0x00501D40, CSceneRenderer::DrawFigureLit);
 
