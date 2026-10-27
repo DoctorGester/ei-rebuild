@@ -949,8 +949,8 @@ void CItemInfoPanel::ShowHelp(int topic) {
 EI_REWRITTEN(0x005F2910, CItemInfoPanel::ShowHelp);
 
 void CItemInfoPanel::Describe(CItem* item) {
-    if (itemCount_ && items_[0] && item) {
-        if (items_[0]->IsSameAs(item)) return;
+    if (Item() && item) {
+        if (Item()->IsSameAs(item)) return;
     }
     ItemParty()->Clear(1, 0);
     if (item) ItemParty()->AddItem(item, 0, 1);

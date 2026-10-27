@@ -9,6 +9,7 @@
 
 #include "core_refcount.h"
 #include "item.h"
+#include "party_storage.h"
 #include "ui.h"
 
 #include "lib/mfc.h"
@@ -232,14 +233,11 @@ public:
     // item list.
     void Build(int x, int y);
 
-    CItem* FirstItem() const;
-    CItem* Item() const { return itemCount_ ? items_[0] : nullptr; }
-    CParty* ItemParty() { return reinterpret_cast<CParty*>(itemList_); }
+    CItem* FirstItem();
+    CItem* Item() { return FirstItem(); }
+    CParty* ItemParty() { return itemParty_.Get(); }
 
-    std::uint8_t itemList_[0x40];    // an item list (CParty's layout)
-    CItem** items_;                  // its entries
-    int itemCount_;
-    std::uint8_t unused_198[0x1C0 - 0x198];
+    PartyStorage itemParty_;         // the described item's list: an embedded CParty, built and destroyed by this panel
     int x_;                          // layout position of the surface
     int y_;
     mfc::CStringArray itemTexts_;    // "infoitem_0" .. "infoitem_44"
@@ -247,7 +245,7 @@ public:
 };
 static_assert(sizeof(CItemInfoPanel) == 0x1F0);
 static_assert(offsetof(CItemInfoPanel, owner_) == 0x14C);
-static_assert(offsetof(CItemInfoPanel, items_) == 0x190);
+static_assert(offsetof(CItemInfoPanel, itemParty_) == 0x150);
 static_assert(offsetof(CItemInfoPanel, x_) == 0x1C0);
 static_assert(offsetof(CItemInfoPanel, itemTexts_) == 0x1C8);
 static_assert(offsetof(CItemInfoPanel, skillTexts_) == 0x1DC);

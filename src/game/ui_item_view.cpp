@@ -331,9 +331,9 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
 EI_REWRITTEN(0x005ECA10, CItemScreen::DrawItem);
 
 BOOL CItemInfoPanel::Draw(CSceneRenderer* pass) {
-    if (itemCount_ && items_[0]) {
+    if (CItem* item = FirstItem()) {
         ItemCell cell;
-        cell.item = items_[0];
+        cell.item = item;
         cell.x = static_cast<float>(static_cast<double>(x_) + D(100.0f /*0073BAB0*/));
         cell.depth = 3.0f;
         cell.size = 120.0f;
