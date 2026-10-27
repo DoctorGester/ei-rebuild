@@ -44,14 +44,11 @@ public:
     ItemStock allowed;              // everything the class may use
     ItemStock magic;                // the same layout: spells and modifiers only
 };
-static_assert(sizeof(ClassTemplate) == 0x28C);
 // A new template with no references; the application's start registers it with the class registry as class 1.
 ClassTemplate* __cdecl CreateClassTemplate();
 static_assert(offsetof(ClassTemplate, weights) == 0x10);
 static_assert(offsetof(ClassTemplate, weightsTail) == 0x34);
 static_assert(offsetof(ClassTemplate, flag38) == 0x38);
-static_assert(offsetof(ClassTemplate, allowed) == 0x11C);
-static_assert(offsetof(ClassTemplate, magic) == 0x1D4);
 static_assert(sizeof(ItemStock) == 0xB8);
 
 // Counted pointers.

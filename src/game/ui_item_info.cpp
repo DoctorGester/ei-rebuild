@@ -707,7 +707,7 @@ void AttributeLines(Writer& w, UnitStats* stats, int index) {
 
 void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
     CTextManager* texts = TextManager();
-    std::string name = info->text.GetString();
+    std::string name = info->text;
     str::TrimRight(name, "0");
     name += "1";
     int group = SkillDb()->IndexOf(name.c_str()) / 3;
@@ -767,7 +767,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     CItemWeapon* weapon = info->weapon;
     UnitStats* stats = info->stats;
     int type = weapon->GetType();
-    if (MbsCmp(info->text, "defense") == 0 && (type == 5 || type == 6)) {
+    if (MbsCmp(info->text.c_str(), "defense") == 0 && (type == 5 || type == 6)) {
         w.Wrapped(w.T(34), 2);
         w.Down();
         return;
@@ -793,7 +793,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     w.line.Format("     %s", w.T(32).GetString());
     w.Text(w.line);
     int own = Ftol(WeaponPrototypeSkillBonus(PackedIdOf(weapon)));
-    if (MbsCmp(info->text, "defense") == 0)
+    if (MbsCmp(info->text.c_str(), "defense") == 0)
         own += Ftol(WeaponStat88(PackedIdOf(weapon)));
     else
         own += Ftol(WeaponStat84(PackedIdOf(weapon)));
@@ -823,8 +823,8 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
             texts->ReadLine(&description, 1);
         }
     } else if (info->kind <= 7) {
-        texts->GetString(info->text, &title);
-        std::string key = info->text.GetString();
+        texts->GetString(info->text.c_str(), &title);
+        std::string key = info->text;
         key += "_desc";
         texts->GetString(key.c_str(), &description);
     }

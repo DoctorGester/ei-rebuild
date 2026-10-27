@@ -401,7 +401,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
         if (call.hostileMask != 0) {
             console::GameOStream* log = &(*AiLog() << "Unit ");
             log->PutInt(unit->id_);
-            console::EndLine(*log << " hear delayed sound: " << call.text);
+            console::EndLine(*log << " hear delayed sound: " << call.text.c_str());
             unit->ServerController()->AddHostileMask(static_cast<std::uint32_t>(call.hostileMask));
         } else if (memory->noticedLevel < 900) {
             // The inlined Notice of level 900: logged when the level rises by more than 100 or the point is
@@ -419,7 +419,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
             memory->noticedLevel = 900;
             memory->noticedY = point[1];
             memory->noticedKind = -3;
-            if (changed) console::EndLine(*AiLog() << "Delayed sound: " << call.text);
+            if (changed) console::EndLine(*AiLog() << "Delayed sound: " << call.text.c_str());
         }
         call.Destruct();
         int after = size - i - 1;

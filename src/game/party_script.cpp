@@ -26,7 +26,7 @@ CParty* __fastcall PartyForScript(void* playerArg, mfc::CString* name) {
         owner = console::Ops(*name).Mid(0, split);
         *name = console::Ops(*name).Mid(split + 2, name->GetLength() - split - 2);
     }
-    if (gamecrt::mbscmp(owner.c_str(), RecordList()->text10) == 0) return player->Party();
+    if (gamecrt::mbscmp(owner.c_str(), RecordList()->text10.c_str()) == 0) return player->Party();
     return (RecordList())->Find(owner.c_str());
 }
 EI_REWRITTEN(0x004BAEC0, PartyForScript);

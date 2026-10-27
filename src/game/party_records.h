@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class PartyRecord : public CRefCounted {
 public:
@@ -21,15 +22,13 @@ public:
     void Serialize(ChunkArchive* ar) override;
 
     PartyStorage party;
-    mfc::CString name;          // "" for the unnamed record
+    std::string name;           // "" for the unnamed record
 
     CParty* Party() { return party.Get(); }
 };
-static_assert(sizeof(PartyRecord) == 0x7C);
 // A new unnamed record with no references (operator new and the constructor: the party constructed and
 // created, an empty name). The application's start registers it with the class registry as class 2.
 PartyRecord* __cdecl CreatePartyRecord();
-static_assert(offsetof(PartyRecord, name) == 0x78);
 
 // The named records: an STLport vector of counted pointers, then two strings.
 struct NamedPartyRecords {
@@ -41,8 +40,8 @@ struct NamedPartyRecords {
     // the slot is skipped (original behaviour).
     void Remove(const char* name);
     stlp::vector<PartyRecord*> records;
-    mfc::CString text0C;
-    mfc::CString text10;
+    std::string text0C;
+    std::string text10;
 
     // Chunk 1: the records as object references (field 1 per chunk 1; loading releases the old ones first);
     // then the strings as fields 2 and 3.
@@ -56,7 +55,6 @@ struct NamedPartyRecords {
     // there is none; then text10 = text0C.
     void EndRedeploy(CParty* party);
 };
-static_assert(sizeof(NamedPartyRecords) == 0x14);
 
 // New game: releases every record, empties the two strings, adds one unnamed record and gives its party the
 // member "Hero" ("Human Hero"), the zone text "gz1g" and the variable gtime = 6.

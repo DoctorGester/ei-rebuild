@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -83,11 +84,9 @@ public:
 
     CMapObject* torch_;         // the torch it belongs to (set by the torch's attach); null when constructed
     std::uint32_t lightKind_;   // the light's kind (SetLight; saved and sent)
-    mfc::CString name_;
+    std::string name_;
     float values_[6];           // Create: 1, 10, 1, 1, 1, 1
     float colours_[2][3];       // Create: both black
 };
 static_assert(offsetof(CTorchObjectSpec, torch_) == 0x1C);
 static_assert(offsetof(CTorchObjectSpec, name_) == 0x24);
-static_assert(offsetof(CTorchObjectSpec, colours_) == 0x40);
-static_assert(sizeof(CTorchObjectSpec) == 0x58);

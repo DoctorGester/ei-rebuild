@@ -170,8 +170,8 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
         WriteText(&out_, object->name2.c_str());
         WriteText(&out_, object->name);
         auto* server = object->ServerCompanion();
-        WriteText(&out_, server->name78);
-        WriteText(&out_, server->name7C);
+        WriteText(&out_, server->name78.c_str());
+        WriteText(&out_, server->name7C.c_str());
         std::uint32_t count = static_cast<std::uint32_t>(server->strings.size);
         out_.Write(&count, 2);
         for (int s = 0; s < server->strings.size; ++s) WriteText(&out_, server->strings[s]);

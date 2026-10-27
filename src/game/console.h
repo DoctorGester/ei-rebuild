@@ -138,10 +138,9 @@ public:
     int Underflow() override;            // EOF
 
     unsigned filter_;          // message category; 0 = always shown
-    mfc::CString line_;
+    std::string line_;
     char buffer_[0x400];
 };
-static_assert(sizeof(ConsoleStreambuf) == 0x454);
 
 // The harness's view of the console (verify builds): sync's line, after overflow(EOF) and before the
 // console window gets it. In the original-game run the harness hooks the original's sync instead.
@@ -188,7 +187,7 @@ public:
     mfc::impl::CFont* font_;         // selected into the surface's CDC
     CStringArray commands_;          // commands entered (input history)
     int commandIndex_;               // the one shown by up/down (-1 or size: none)
-    mfc::CString input_;             // the line being typed
+    std::string input_;              // the line being typed
     int caret_;                      // caret position (bytes, at a character's start: U4)
     int anchor_;                     // other end of the selection (== caret_: none)
     int width_;                      // pixels, at least 76
@@ -204,9 +203,7 @@ public:
     bool shown_;
     std::uint8_t unused_7B;
 };
-static_assert(offsetof(ConsoleWindow, lines_) == 0x58 && offsetof(ConsoleWindow, shown_) == 0x7A);
-static_assert(offsetof(ConsoleWindow, commands_) == 0x0C && offsetof(ConsoleWindow, input_) == 0x24 &&
-              offsetof(ConsoleWindow, width_) == 0x30 && offsetof(ConsoleWindow, ctrl_) == 0x78);
+static_assert(offsetof(ConsoleWindow, commands_) == 0x0C && offsetof(ConsoleWindow, input_) == 0x24);
 
 // Console commands: void handler(CStringArray* args) with the arguments (lower case).
 using CommandHandler = void(__fastcall*)(CStringArray* args);

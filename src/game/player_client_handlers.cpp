@@ -70,7 +70,7 @@ int CPlayerClient::OnCameraPlacement() {
     const int result = static_cast<int>(in_.Read(&mode, 4));
     TheClientWorld()->CentreOn(&point);
     CCamera* camera = TheCamera();
-    const char* zone = Owner()->Party()->zone_;
+    const char* zone = Owner()->Party()->zone_.c_str();
     if (gamecrt::mbscmp(zone,
                         FixedViewZone()) == 0) {
         CameraView view;

@@ -140,7 +140,7 @@ EI_REWRITTEN(0x00695BE0, CIniFile::Destruct);
 BOOL CIniFile::GetKeyNames(const char* section, console::CStringArray* out) {
     mfc::CString item;
     char buffer[0x5000];
-    gameapi::GetPrivateProfileSectionA(section, buffer, sizeof(buffer), path_);
+    gameapi::GetPrivateProfileSectionA(section, buffer, sizeof(buffer), path_.c_str());
     out->SetSize(0, -1);
     if (buffer[0] == '\0') return 0;
     const char* start = buffer;
@@ -163,12 +163,12 @@ BOOL CIniFile::GetKeyNames(const char* section, console::CStringArray* out) {
 EI_REWRITTEN(0x00695D10, CIniFile::GetKeyNames);
 
 unsigned CIniFile::GetInt(const char* section, const char* key, int defaultValue) {
-    return gameapi::GetPrivateProfileIntA(section, key, defaultValue, path_);
+    return gameapi::GetPrivateProfileIntA(section, key, defaultValue, path_.c_str());
 }
 EI_REWRITTEN(0x00695F00, CIniFile::GetInt);
 
 unsigned CIniFile::GetInt2(const char* section, const char* key, int defaultValue) {
-    return gameapi::GetPrivateProfileIntA(section, key, defaultValue, path_);
+    return gameapi::GetPrivateProfileIntA(section, key, defaultValue, path_.c_str());
 }
 EI_REWRITTEN(0x00695F20, CIniFile::GetInt2);
 
@@ -189,7 +189,7 @@ EI_REWRITTEN(0x00695F80, CIniFile::GetDouble);
 mfc::CString CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
     char buffer[0x400];
     std::memset(buffer, 0, 4);
-    gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path_);
+    gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path_.c_str());
     return mfc::CString(buffer);
 }
 EI_REWRITTEN(0x00696030, CIniFile::GetString);
@@ -264,7 +264,7 @@ EI_REWRITTEN(0x00696D80, CIniFile::GetMfcDWordArray);
 // --- Writers ---------------------------------------------------------------------------------------
 
 BOOL CIniFile::WriteString(const char* section, const char* key, mfc::CString value) {
-    return gameapi::WritePrivateProfileStringA(section, key, value, path_);
+    return gameapi::WritePrivateProfileStringA(section, key, value, path_.c_str());
 }
 EI_REWRITTEN(0x00696E60, CIniFile::WriteString);
 

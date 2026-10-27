@@ -131,7 +131,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
             --speakersEnd_;
             std::destroy_at(&speakersEnd_->name);
         }
-        BriefingSpeaker added{unit, mfc::CString(), false};
+        BriefingSpeaker added{unit, std::string(), false};
         if (speakersEnd_ != speakersCapacity_) {
             libcontainers::ConstructSpeaker(speakersEnd_, &added);
             ++speakersEnd_;
@@ -153,7 +153,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
 
     // An item: one shown under this name goes first.
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-        if (Compare(node->name, name) != 0) continue;
+        if (Compare(node->name.c_str(), name) != 0) continue;
         HideSpeaker(name, 0, 0);
         break;
     }

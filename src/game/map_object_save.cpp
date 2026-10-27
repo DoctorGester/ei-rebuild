@@ -94,8 +94,8 @@ EI_REWRITTEN(0x005159D0, CMapObjectServer::Load);
 
 void CMapObjectServer::Save(CStream* stream) {
     stream->Write(&vitals, sizeof(vitals));
-    WriteText(stream, name78);
-    WriteText(stream, name7C);
+    WriteText(stream, name78.c_str());
+    WriteText(stream, name7C.c_str());
     int count = strings.size;
     stream->Write(&count, sizeof(count));
     for (int i = 0; i < strings.size; ++i) WriteText(stream, strings[i]);

@@ -111,7 +111,7 @@ void CSpellContainer::Destroy() {
 }
 EI_REWRITTEN(0x0068BDD0, CSpellContainer::Destroy);
 
-const char* CSpellContainer::GetName() { return name_; }
+const char* CSpellContainer::GetName() { return name_.c_str(); }
 EI_REWRITTEN(0x0068BC00, CSpellContainer::GetName);
 
 BOOL CSpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {

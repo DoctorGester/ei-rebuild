@@ -78,7 +78,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
             if (old) DeleteSector(old);
         }
     }
-    if (sector->Load(&archive, sx, sy, pages, perPage, textF8, this)) {
+    if (sector->Load(&archive, sx, sy, pages, perPage, textF8.c_str(), this)) {
         sector->lastUsed = frame;
         sectorCache.AddHead(sector);
         sectorGrid[sx][sy] = sectorCache.head;
@@ -382,9 +382,9 @@ int Terrain::SetupPages(int count) {
     for (int i = 0; i < count + kExtraPages; ++i) {
         std::string name;
         if (i < count) {
-            name = str::Format("%s%3.3i", textF8.GetString(), i);
+            name = str::Format("%s%3.3i", textF8.c_str(), i);
         } else {
-            name = str::Format("%sL%2.2i", textF8.GetString(), i - count);
+            name = str::Format("%sL%2.2i", textF8.c_str(), i - count);
             if (!TheTextureManager()->HasFile((name + ".mmp").c_str())) return 1;
             ++extraPages;
             pageTextures.SetAtGrow(pageTextures.size, nullptr);
@@ -493,7 +493,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
 
     // The messages are passed to FatalError as its format string.
     std::uint32_t size = 0;
-    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile(textF8 + kMapDataExtension, &size));
+    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile((textF8 + kMapDataExtension).c_str(), &size));
     if (!file) {
         ClearMap();
         return game::FatalError(("Unable to open file \"" + name + "\"").c_str());
@@ -595,7 +595,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     else if (libcrt::Stricmp(zone, "Ingos") == 0) set = "Ingos";
     else if (libcrt::Stricmp(zone, "Suslanger") == 0) set = "Suslanger";
     textAE0 = set;
-    terrain::CountAmbientVariants(textAE0);
+    terrain::CountAmbientVariants(textAE0.c_str());
 
     const int sectors = sectorsY * sectorsX;
     landscapeFlags |= kLowFlags;

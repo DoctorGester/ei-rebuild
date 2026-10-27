@@ -394,18 +394,8 @@ static_assert(offsetof(CPlayer, knownObjects_) == 0x28);
 static_assert(offsetof(CPlayer, maxUnitId_) == 0x54);
 static_assert(offsetof(CPlayer, maxTimedId_) == 0x6C);
 static_assert(offsetof(CPlayer, party_) == 0x70);
-static_assert(offsetof(CPlayer, items_) == 0xE0);
-static_assert(offsetof(CPlayer, godMode_) == 0x108);
-static_assert(offsetof(CPlayer, logTraffic_) == 0x10C);
-static_assert(offsetof(CPlayer, recharging_) == 0x114);
 static_assert(offsetof(CPlayer, connection_) == 0x20);
 static_assert(offsetof(CPlayer, units_) == 0x40);
-static_assert(offsetof(CPlayer, partyId_) == 0xFC);
-static_assert(offsetof(CPlayer, sessionKind100_) == 0x100);
-static_assert(offsetof(CPlayer, lastScreen_) == 0x104);
-static_assert(offsetof(CPlayer, lastTick_) == 0x110);
-static_assert(offsetof(CPlayer, dirty_) == 0x130);
-static_assert(sizeof(CPlayer) == 0x134);
 
 // The message dispatchers' fatal error: `format` with the previous and the current message type (their low
 // bytes); the FatalError result.

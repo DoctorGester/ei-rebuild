@@ -330,8 +330,8 @@ EI_REWRITTEN(0x0051B630, CObject3DClientSpecific::ReplaceTexture);
 
 int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
     CTextureManager* manager = WorldContext()->TextureManager();
-    skinName = first;
-    secondSkinName = second;
+    skinName = first ? first : "";   // (a null name was the empty text)
+    secondSkinName = second ? second : "";
     const char* names[2] = {first, second};
     for (int k = 0; k < 2; ++k) {
         const char* name = names[k];
@@ -373,10 +373,10 @@ void CObject3DClientSpecific::ApplyMaterials() {
             material = materials[materialCursor];
         }
     }
-    if (gamecrt::mbscmp(secondSkinName, kNoneText) == 0)
-        SetSkins(skinName, nullptr);
+    if (gamecrt::mbscmp(secondSkinName.c_str(), kNoneText) == 0)
+        SetSkins(skinName.c_str(), nullptr);
     else
-        SetSkins(skinName, secondSkinName);
+        SetSkins(skinName.c_str(), secondSkinName.c_str());
 }
 EI_REWRITTEN(0x0051CB30, CObject3DClientSpecific::ApplyMaterials);
 

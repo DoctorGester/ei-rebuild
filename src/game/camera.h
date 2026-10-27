@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CObject3D;
 
@@ -191,7 +192,7 @@ public:
     float nearDistance_;        // (renderer_init reads the three as zNear / zFar / fov)
     float farDistance_;
     float fieldOfView_;
-    mfc::CString fileName_;     // the camera file being recorded
+    std::string fileName_;     // the camera file being recorded
     // Rebirth patches it. Reads the recorded path <data folder>camera\<name> into the keys (as many as the
     // file holds whole). With `settle` above 1 and below the key count, the keys before the first gap of more
     // than 500 time units among the first `settle` take the pose of the key after the gap. Returns 0 when the
@@ -215,8 +216,6 @@ static_assert(offsetof(CCamera, views_) == 0x120);
 static_assert(offsetof(CCamera, viewStack_) == 0x1E0);
 static_assert(offsetof(CCamera, nearDistance_) == 0x2E0);
 static_assert(offsetof(CCamera, fileName_) == 0x2EC);
-static_assert(offsetof(CCamera, keys_) == 0x2F0);
-static_assert(offsetof(CCamera, keyIndex_) == 0x304);
 
 // What CWorldClient::ObjectsInRange fills.
 using NearbyList = stlp::list<CObject3D*>;

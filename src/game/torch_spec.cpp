@@ -21,7 +21,7 @@ constexpr float kDefaultColour[3] = /*007AF2D0*/ {};
 int CTorchObjectSpec::CreateSpec() {
     torch_ = nullptr;
     lightKind_ = 0;
-    name_.Empty();
+    name_.clear();
     values_[1] = kDefaultValue2C;
     values_[0] = kDefaultValue;
     for (int i = 2; i < 6; ++i) values_[i] = kDefaultValue;
@@ -33,7 +33,7 @@ EI_REWRITTEN(0x0052C610, CTorchObjectSpec::CreateSpec);
 
 void CTorchObjectSpec::DestroySpec() {
     torch_ = nullptr;
-    name_.Empty();
+    name_.clear();
 }
 EI_REWRITTEN(0x0052C680, CTorchObjectSpec::DestroySpec);
 
@@ -50,7 +50,7 @@ EI_REWRITTEN(0x0052C490, CTorchObjectSpec::LoadSpec);
 
 void CTorchObjectSpec::SaveSpec(CStream* stream) {
     stream->Write(&lightKind_, 4);
-    const char* name = name_;
+    const char* name = name_.c_str();
     stream->Write(name, static_cast<std::uint32_t>(std::strlen(name) + 1));
     std::uint32_t value;
     std::memcpy(&value, &values_[0], 4);   // through a stack copy, as in the game
@@ -98,7 +98,7 @@ void CTorchObjectSpec::ReadNetState(DeltaField* field) {
     }
     SetLightSlot(lightKind_, colours_[0], values_[0]);
     SetFlameSlot(colours_[1], values_[1], &values_[2]);
-    SetNameSlot(name_);
+    SetNameSlot(name_.c_str());
     ShowEffectsSlot();
     WarmUpParticlesSlot();
 }

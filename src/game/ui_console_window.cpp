@@ -91,7 +91,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         break;
     case VK_END:
         if (!ctrl_) {
-            caret_ = input_.GetLength();
+            caret_ = input_.size();
             if (!shift_) anchor_ = caret_;
             DrawInput();
             return;
@@ -112,7 +112,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         break;
     case VK_LEFT:
     case VK_RIGHT:   // by character
-        caret_ = key == VK_LEFT ? ::text::PreviousCharacter(input_.GetString(), caret_) : ::text::NextCharacter(input_.GetString(), caret_);
+        caret_ = key == VK_LEFT ? ::text::PreviousCharacter(input_.c_str(), caret_) : ::text::NextCharacter(input_.c_str(), caret_);
         if (!shift_) anchor_ = caret_;
         DrawInput();
         return;
@@ -126,23 +126,23 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         if (commandIndex_ >= 0 && commandIndex_ < commands_.GetSize())
             input_ = commands_[commandIndex_];
         else
-            input_.Empty();
-        caret_ = input_.GetLength();
+            input_.clear();
+        caret_ = input_.size();
         anchor_ = caret_;
         DrawInput();
         return;
     case VK_DELETE:
         if (anchor_ == caret_) {
-            if (caret_ < input_.GetLength()) {
-                std::string rest = Ops(input_).Mid(::text::NextCharacter(input_.GetString(), caret_)).GetString();
-                input_ = Left(input_.GetString(), caret_) + rest;
+            if (caret_ < static_cast<int>(input_.size())) {
+                std::string rest = str::Mid(input_, ::text::NextCharacter(input_.c_str(), caret_));
+                input_ = Left(input_.c_str(), caret_) + rest;
                 DrawInput();
             }
         } else {
             int low = anchor_ < caret_ ? anchor_ : caret_;
             int high = anchor_ > caret_ ? anchor_ : caret_;
-            std::string rest = Ops(input_).Mid(high).GetString();
-            input_ = Left(input_.GetString(), low) + rest;
+            std::string rest = str::Mid(input_, high);
+            input_ = Left(input_.c_str(), low) + rest;
             caret_ = low;
             anchor_ = low;
             DrawInput();
@@ -235,15 +235,15 @@ void ConsoleWindow::OnChar(int key, int, int) {
         if (anchor_ != caret_) {
             int first = anchor_ < caret_ ? anchor_ : caret_;
             int last = anchor_ > caret_ ? anchor_ : caret_;
-            std::string rest = MidOf(input_.GetString(), last).GetString();
-            input_ = Left(input_.GetString(), first) + rest;
+            std::string rest = MidOf(input_.c_str(), last).GetString();
+            input_ = Left(input_.c_str(), first) + rest;
             caret_ = first;
             anchor_ = first;
         } else {
             if (caret_ == 0) return;
-            const int previous = ::text::PreviousCharacter(input_.GetString(), caret_);
-            std::string rest = MidOf(input_.GetString(), caret_).GetString();
-            input_ = Left(input_.GetString(), previous) + rest;
+            const int previous = ::text::PreviousCharacter(input_.c_str(), caret_);
+            std::string rest = MidOf(input_.c_str(), caret_).GetString();
+            input_ = Left(input_.c_str(), previous) + rest;
             caret_ = previous;
             anchor_ = caret_;
         }
@@ -254,13 +254,13 @@ void ConsoleWindow::OnChar(int key, int, int) {
         return;
     case 13: {   // Enter
         bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && commands_.size != 0 &&
-                        std::strcmp(input_, commands_.data[0]) == 0;
+                        std::strcmp(input_.c_str(), commands_.data[0]) == 0;
         if (!repeated) {
             commands_.InsertAt(0, input_, 1);
             if (commands_.size > kHistoryDepth) commands_.RemoveAt(commands_.size - 1, 1);
         }
         commandIndex_ = -1;
-        input_.Empty();
+        input_.clear();
         caret_ = 0;
         anchor_ = 0;
         DrawInput();
@@ -269,7 +269,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         return;
     }
     case 27:   // Escape
-        input_.Empty();
+        input_.clear();
         caret_ = 0;
         anchor_ = 0;
         DrawInput();
@@ -281,14 +281,14 @@ void ConsoleWindow::OnChar(int key, int, int) {
         char letter = static_cast<char>(static_cast<std::uint8_t>(key) + 0x60);
         if (letter == 'a') {
             anchor_ = 0;
-            caret_ = input_.GetLength();
+            caret_ = input_.size();
             DrawInput();
         } else if ((letter == 'c' || letter == 'x') && low != high) {
-            const char* text = input_;
+            const char* text = input_.c_str();
             CopyToClipboard(text + low, text + high);
             if (letter == 'x') {
-                std::string rest = MidOf(input_.GetString(), high).GetString();
-                std::string head = Left(input_.GetString(), low).GetString();
+                std::string rest = MidOf(input_.c_str(), high).GetString();
+                std::string head = Left(input_.c_str(), low).GetString();
                 input_ = head + rest;
                 caret_ = low;
                 anchor_ = low;
@@ -298,19 +298,19 @@ void ConsoleWindow::OnChar(int key, int, int) {
             std::string clip = ClipboardText().c_str();
             int cut = str::FindOneOf(clip, "\r\n");
             if (cut >= 0) clip = Left(clip, cut);
-            std::string rest = MidOf(input_.GetString(), high).GetString();
-            std::string head = Left(input_.GetString(), low).GetString();
+            std::string rest = MidOf(input_.c_str(), high).GetString();
+            std::string head = Left(input_.c_str(), low).GetString();
             input_ = (head + clip) + rest;
             int position = static_cast<int>(clip.size()) - (anchor_ != caret_ ? 1 : 0) + high;
-            position = ::text::CharacterStart(input_.GetString(), position);   // EI_UTF8: never inside a character
+            position = ::text::CharacterStart(input_.c_str(), position);   // EI_UTF8: never inside a character
             caret_ = position;
             anchor_ = position;
             DrawInput();
         }
     }
     if (ctrl_) return;
-    std::string rest = MidOf(input_.GetString(), high).GetString();
-    std::string head = Left(input_.GetString(), low).GetString();
+    std::string rest = MidOf(input_.c_str(), high).GetString();
+    std::string head = Left(input_.c_str(), low).GetString();
     input_ = ::text::Typed(head, key) + rest;
     caret_ = low + ::text::TypedLength(key);
     anchor_ = caret_;
@@ -356,16 +356,16 @@ EI_REWRITTEN(0x005E4800, ConsoleWindow::DrawLines);
 // the input strip, shades the selection (clipped 16 pixels before the right edge), draws "> " and
 // the input, and a 2-pixel caret line when it lies left of that limit.
 void ConsoleWindow::DrawInput() {
-    caret_ = Clamp(caret_, input_.GetLength());
-    anchor_ = Clamp(anchor_, input_.GetLength());
+    caret_ = Clamp(caret_, input_.size());
+    anchor_ = Clamp(anchor_, input_.size());
     if (!surface_ || !font_) return;
     CUiSurface* surface = surface_;
     CDC* dc = surface->GetDC();
     mfc::impl::CGdiObject* oldFont = dc->SelectFont(font_);
     dc->FillSolidArea(0, height_ - kInputHeight, width_, kInputHeight, kBackground);
-    int caretX = PromptWidth(dc, input_.GetString(), caret_);
+    int caretX = PromptWidth(dc, input_.c_str(), caret_);
     if (anchor_ != caret_) {
-        int anchorX = PromptWidth(dc, input_.GetString(), anchor_);
+        int anchorX = PromptWidth(dc, input_.c_str(), anchor_);
         int low = caretX < anchorX ? caretX : anchorX;
         int high = caretX > anchorX ? caretX : anchorX;
         if (high > width_ - 0x10) high = width_ - 0x10;

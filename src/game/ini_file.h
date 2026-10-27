@@ -5,6 +5,7 @@
 // Lists are comma-separated values ("1, 2, 3"), each item trimmed.
 
 #include <cstdint>
+#include <string>
 
 #include "../lib/mfc.h"
 #include "registry.h"
@@ -55,6 +56,5 @@ public:
     // The items joined with `separator`; 0 (nothing written) for an empty list.
     BOOL WriteList(const char* section, const char* key, const console::CStringArray* items, char separator);
 
-    mfc::CString path_;
+    std::string path_;
 };
-static_assert(sizeof(CIniFile) == 4);

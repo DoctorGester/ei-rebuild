@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 using BOOL = int;
 
@@ -157,6 +158,6 @@ public:
     PartyItemArray items_;
     int money_;                 // the party's money (Money(); cleared by Clear, saved masked)
     NamedFloatTable variables_;   // named variables (the script's "gtime" and the like)
-    mfc::CString zone_;           // the zone name ("gz1g" after a new game)
+    std::string zone_;           // the zone name ("gz1g" after a new game)
     std::uint32_t entrance_;      // the zone exit the party arrives by (cleared by Clear)
 };

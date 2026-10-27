@@ -352,9 +352,14 @@ bool CheckIndexOfLevel(const IndexOfLevelCall& v, char* d, std::size_t n) {
         return false;
     }
     SkillLevelRecord* levels = Levels(v.count);
-    // Only compared, never read: a record outside the table stays outside.
+    // The offset is in game.exe's records (0x44 bytes; ours hold std::string names, larger): a record boundary
+    // there is the same record here, any other offset stays off every boundary. Only compared, never read: a
+    // record outside the table stays outside.
+    constexpr std::int32_t kOriginalRecordBytes = 0x44;
+    constexpr std::int32_t kRecordBytes = sizeof(SkillLevelRecord);
+    const std::int32_t offset = v.offset / kOriginalRecordBytes * kRecordBytes + v.offset % kOriginalRecordBytes;
     auto* record = reinterpret_cast<const SkillLevelRecord*>(reinterpret_cast<std::uintptr_t>(levels) +
-                                                             static_cast<std::uintptr_t>(v.offset));
+                                                             static_cast<std::uintptr_t>(offset));
     int result = SkillDb()->IndexOfLevel(record);
     if (result == v.result) return true;
     std::snprintf(d, n, "%u records, offset %d: ours %d, original %d", v.count, v.offset, result, v.result);

@@ -36,8 +36,6 @@ using Prototype = UnitPrototypeRecord;
 using Model = UnitModelRecord;
 using Npc = UnitNpcRecord;
 
-constexpr int kSkillLevelRecordSize = 0x44;
-
 constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);
 constexpr float kHalf = 0.5f;
 constexpr std::uint32_t kStat25 = 0x41C80000;                    // 25.0
@@ -526,13 +524,13 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
     if (stat10 < record->RequiredStat(0)) return 0;
     if (stat18 < record->RequiredStat(1)) return 0;
     if (stat20 < record->RequiredStat(2)) return 0;
-    if (NamesRequirement(record->requiredSkillName.GetString())) {
+    if (NamesRequirement(record->requiredSkillName.c_str())) {
         int skill = record->RequiredSkill();
         if (skill == 0x7FFFFFFF) return 0;
         if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return 0;   // unchecked
     }
-    if (NamesRequirement(record->requiredLevelName.GetString())) {
-        int required = database->IndexOf(record->requiredLevelName);
+    if (NamesRequirement(record->requiredLevelName.c_str())) {
+        int required = database->IndexOf(record->requiredLevelName.c_str());
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }
     int group = const_cast<SkillDatabase*>(database)->IndexOfLevel(record) / 3;
@@ -543,7 +541,7 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
         if (!known || known->exclusionGroup != record->exclusionGroup) continue;
         if (const_cast<SkillDatabase*>(database)->IndexOfLevel(known) / 3 != group) return 0;
     }
-    int own = database->IndexOf(record->name);
+    int own = database->IndexOf(record->name.c_str());
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
 }
 EI_REWRITTEN(0x005260A0, UnitStats::CanLearn);

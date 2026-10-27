@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 
 namespace {
 
@@ -88,7 +89,7 @@ void CTradePanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
             info->index = row->level;
         }
         info->text = row->key;
-        info->text.TrimRight(kPerkLevelDigits);
+        str::TrimRight(info->text, kPerkLevelDigits);
         info->text += kPerkFirstLevel;
     }
     info->stats = HeroStats(owner_);

@@ -14,6 +14,8 @@
 #include "lib/static_object.h"
 #include "game_singletons.h"
 
+#include <string>
+
 #undef GetClassName
 
 class CStream;
@@ -252,7 +254,7 @@ public:
     char* codesEnd_;
     char* codesCapacity_;
     CSpell spell_;
-    mfc::CString name_;             // always empty
+    std::string name_;             // always empty
 };
 
 // The spell manager's "sequences" (keyed by the high half of a packed spell id): containers keyed by the low

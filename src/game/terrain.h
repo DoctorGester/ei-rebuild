@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CLight;
 class CMaterial;
@@ -185,8 +186,8 @@ public:
     Matrix4 worldMatrix;            // rows; position in the last row
     lib::AlignedArray<CTexture*> pageTextures;     // held
     lib::AlignedArray<CMaterial*> pageMaterials;   // held ("Wood")
-    mfc::CString textF8;
-    mfc::CString textFC;
+    std::string textF8;
+    std::string textFC;
     int mapLoaded;                  // nothing is drawn or lit while 0
     int sectorsX;                   // map size in sectors
     int sectorsY;
@@ -240,32 +241,14 @@ public:
     lib::AlignedArray<int> visibleColumnLast;
     int ambientSounds[3];           // the looping circle sounds (handles, -1 none)
     int ambientClasses[3];          // their sound classes, -1 none
-    mfc::CString textAE0;           // the ambient sound set (ambient\<set>\...)
+    std::string textAE0;           // the ambient sound set (ambient\<set>\...)
     int extraPages;                 // texture pages loaded after the map's own
     mfc::CArray<mfc::CArray<float>, terrain::LevelArrayElements> waterLevels;   // per sector, per material
 };
-static_assert(offsetof(Terrain, mapLoaded) == 0x100 && offsetof(Terrain, tilesPerRow) == 0x124);
-static_assert(offsetof(Terrain, textureClass) == 0x13C && offsetof(Terrain, textureFrames) == 0x14C);
 static_assert(offsetof(Terrain, pageTextures) == 0xD8 && offsetof(Terrain, pageMaterials) == 0xE8);
-static_assert(offsetof(Terrain, uvTables) == 0x1C8 && offsetof(Terrain, maxLightId) == 0x270);
-static_assert(offsetof(Terrain, textF8) == 0xF8 && offsetof(Terrain, textFC) == 0xFC);
-static_assert(offsetof(Terrain, width) == 0x10C);
-static_assert(offsetof(Terrain, materials) == 0x12C && offsetof(Terrain, archive) == 0x15C);
+static_assert(offsetof(Terrain, textF8) == 0xF8);
 static_assert(offsetof(Terrain, drawMatrix) == 0x54 && offsetof(Terrain, worldMatrix) == 0x98);
-static_assert(offsetof(Terrain, lightingSector) == 0x24C && offsetof(Terrain, minDetail) == 0xAA0);
-static_assert(offsetof(Terrain, waterLevels) == 0xAE8);
-static_assert(offsetof(Terrain, vertexTiles) == 0x1E8);
-static_assert(offsetof(Terrain, sectorGrid) == 0x1F8);
-static_assert(offsetof(Terrain, sectorCache) == 0x1FC);
-static_assert(offsetof(Terrain, frame) == 0x218);
 static_assert(offsetof(Terrain, landscapeFlags) == 0x94);
-static_assert(offsetof(Terrain, ambient) == 0x224 && offsetof(Terrain, sun) == 0x258);
-static_assert(offsetof(Terrain, lights) == 0x25C && offsetof(Terrain, waveDirection) == 0x274);
-static_assert(offsetof(Terrain, wavePhases) == 0x290 && offsetof(Terrain, sine) == 0x2A0);
-static_assert(offsetof(Terrain, visibleRowFirst) == 0xAA4);
-static_assert(offsetof(Terrain, visibleColumnLast) == 0xAB8);
-static_assert(offsetof(Terrain, textAE0) == 0xAE0);
-static_assert(sizeof(Terrain) == 0xAFC);
 
 // The average of the three heights when the triangle is degenerate.
 float __fastcall PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2);

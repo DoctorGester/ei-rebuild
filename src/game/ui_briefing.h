@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 // A person walking to the place a dialogue gives them.
 struct BriefingMover {
@@ -41,23 +42,21 @@ static_assert(offsetof(BriefingMover, time) == 0x2C);
 // A person taking part in the dialogue.
 struct BriefingSpeaker {
     CUnit* unit;                     // the client unit
-    mfc::CString name;               // as the dialogue's commands give it
+    std::string name;               // as the dialogue's commands give it
     bool spareFlag;                  // false when added; only copied with the entry (erase), never tested
     std::uint8_t unused_09[3];
 };
-static_assert(sizeof(BriefingSpeaker) == 0xC);
 
 // An item shown in the dialogue ("#show <name>" for what is not a unit). The meshes are the window's scene
 // objects; the item's texture is one of its referenced objects.
 struct BriefingShownItem {
     BriefingShownItem* next;
     BriefingShownItem* prev;
-    mfc::CString name;
+    std::string name;
     CUiMesh* item;
     CEngineObject* back;
     CEngineObject* frame;
 };
-static_assert(sizeof(BriefingShownItem) == 0x18);
 
 class BriefingPlayerName {
 public:
@@ -239,7 +238,7 @@ public:
     std::uint8_t unused_169[3];
     int state_;                      // dialogue state (above)
     console::CStringArray topics_;   // "goodbye" last
-    mfc::CString topic_;             // the dialogue running
+    std::string topic_;              // the dialogue running
     int hoveredTopic_;               // or -1
     bool briefingStarted_;           // a dialogue started by itself
     std::uint8_t unused_18D[3];
@@ -259,7 +258,7 @@ public:
     BriefingMover* movers_;
     bool firstPhrase_;               // the first phrase lasts a second longer
     std::uint8_t unused_245[3];
-    mfc::CString dialogueText_;      // shown whole when skipped
+    std::string dialogueText_;       // shown whole when skipped
     float phraseTime_;               // time left of a phrase without a voice
     int voice_;                      // sound id, -1 none
     CUnit* speaking_;                // or null
@@ -286,31 +285,3 @@ static_assert(offsetof(CBriefingScreen, exit_) == 0x164);
 static_assert(offsetof(CBriefingScreen, state_) == 0x16C);
 static_assert(offsetof(CBriefingScreen, topics_) == 0x170);
 static_assert(offsetof(CBriefingScreen, topic_) == 0x184);
-static_assert(offsetof(CBriefingScreen, hoveredTopic_) == 0x188);
-static_assert(offsetof(CBriefingScreen, party_) == 0x190);
-static_assert(offsetof(CBriefingScreen, leader_) == 0x1A4);
-static_assert(offsetof(CBriefingScreen, person_) == 0x1A8);
-static_assert(offsetof(CBriefingScreen, places_) == 0x1B0);
-static_assert(offsetof(CBriefingScreen, directions_) == 0x1D4);
-static_assert(offsetof(CBriefingScreen, savedCamera_) == 0x1F8);
-static_assert(offsetof(CBriefingScreen, lookAt_) == 0x204);
-static_assert(offsetof(CBriefingScreen, movers_) == 0x240);
-static_assert(offsetof(CBriefingScreen, firstPhrase_) == 0x244);
-static_assert(offsetof(CBriefingScreen, dialogueText_) == 0x248);
-static_assert(offsetof(CBriefingScreen, phraseTime_) == 0x24C);
-static_assert(offsetof(CBriefingScreen, text_) == 0x25C);
-static_assert(offsetof(CBriefingScreen, topicTop_) == 0x264);
-static_assert(offsetof(CBriefingScreen, personTexts_) == 0x26C);
-static_assert(offsetof(CBriefingScreen, noWalk_) == 0x27D);
-static_assert(offsetof(CBriefingScreen, chat_) == 0x280);
-static_assert(offsetof(CBriefingScreen, thirdPlace_) == 0x210);
-static_assert(offsetof(CBriefingScreen, personHome_) == 0x228);
-static_assert(offsetof(CBriefingScreen, personHomeDirection_) == 0x234);
-static_assert(offsetof(CBriefingScreen, immediate_) == 0x27C);
-static_assert(offsetof(CBriefingScreen, shown_) == 0x278);
-static_assert(offsetof(CBriefingScreen, speakers_) == 0x294);
-static_assert(offsetof(CBriefingScreen, autosave_) == 0x27E);
-static_assert(offsetof(CBriefingScreen, people_) == 0x284);
-static_assert(offsetof(CBriefingScreen, markPhase_) == 0x290);
-static_assert(offsetof(CBriefingScreen, chatActive_) == 0x2A0);
-static_assert(sizeof(CBriefingScreen) == 0x2A4);

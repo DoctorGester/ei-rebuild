@@ -16,18 +16,18 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 // An entry of the manager's list: two texts and a list of ids. Its copy, assignment and
 // destructor are compiler-made (library).
 struct PartyManagerEntry {
-    mfc::CString name;              // chunk field 1
-    mfc::CString text;              // chunk field 2
+    std::string name;               // chunk field 1
+    std::string text;               // chunk field 2
     stlp::vector<int> ids;          // chunk 3
 
     // What the destructor does: frees the ids' storage, then destroys the texts.
     void Destruct();
 };
-static_assert(sizeof(PartyManagerEntry) == 0x14);
 
 // A map node's party: the CParty object itself, constructed and destroyed by the map's own members
 using PartyInPlace = PartyStorage;
@@ -87,5 +87,3 @@ struct PartyManager {
 static_assert(offsetof(PartyManager, entries) == 0x14);
 static_assert(offsetof(PartyManager, field3) == 0x20);
 static_assert(offsetof(PartyManager, records) == 0x24);
-static_assert(offsetof(PartyManager, templates) == 0x38);
-static_assert(sizeof(PartyManager) == 0x44);

@@ -257,9 +257,8 @@ namespace {
 constexpr int kSkillLevelValues = 10;
 constexpr int kFirstValueField = 12;
 
-bool SameName(const mfc::CString& name, const char* other) {
-    return gamecrt::mbsicmp(name.GetString(),
-                           other) == 0;
+bool SameName(const std::string& name, const char* other) {
+    return gamecrt::mbsicmp(name.c_str(), other) == 0;
 }
 } // namespace
 

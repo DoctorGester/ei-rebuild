@@ -213,16 +213,44 @@ std::uint16_t __fastcall MaxRecord(const std::uint16_t* damage) {
 
 // ---- SV4d: what the formulas read of the game's settings and the skill database ----
 
+// game.exe's skill records: their names are CStrings (a char pointer each) where ours are std::strings (larger), so
+// the recorders read them through game.exe's layout, not unit_db.h's.
+struct OriginalSkillRecord {
+    mfc::CString name;
+    mfc::CString field1;
+    std::uint32_t field2;
+    CStringVector statNames;
+};
+static_assert(offsetof(OriginalSkillRecord, statNames) == 0x0C && sizeof(OriginalSkillRecord) == 0x18);
+struct OriginalSkillLevelRecord {
+    mfc::CString field0;
+    mfc::CString name;
+    std::uint32_t field2;
+    mfc::CString requiredLevelName;
+    std::uint32_t exclusionGroup;
+    mfc::CString requiredSkillName;
+    std::uint32_t values[10];
+    std::uint8_t learnable;
+    std::uint8_t padding[3];
+
+    int WorthExponent() const { return static_cast<int>(values[6]); }
+};
+static_assert(offsetof(OriginalSkillLevelRecord, values) == 0x18 && sizeof(OriginalSkillLevelRecord) == 0x44);
+struct OriginalSkillDatabase {
+    stlp::vector<OriginalSkillRecord> skills;
+    stlp::vector<OriginalSkillLevelRecord> levels;
+};
+
 // game.exe's skill database (007AF268): the recording runs the original, which fills its own (H30).
-SkillDatabase* GameSkillDb() { return &ei::OriginalGameData<SkillDatabase>(0x007AF268); }
+OriginalSkillDatabase* GameSkillDb() { return &ei::OriginalGameData<OriginalSkillDatabase>(0x007AF268); }
 
 // Its level record and skill record `index`, or null past the end (as unitdb::SkillLevelAt / SkillAt).
-const SkillLevelRecord* GameSkillLevelAt(std::uint32_t index) {
-    const stlp::vector<SkillLevelRecord>& levels = GameSkillDb()->levels;
+const OriginalSkillLevelRecord* GameSkillLevelAt(std::uint32_t index) {
+    const stlp::vector<OriginalSkillLevelRecord>& levels = GameSkillDb()->levels;
     return index < static_cast<std::uint32_t>(levels.end() - levels.begin()) ? levels.begin() + index : nullptr;
 }
-const SkillRecord* GameSkillAt(std::uint32_t index) {
-    const stlp::vector<SkillRecord>& skills = GameSkillDb()->skills;
+const OriginalSkillRecord* GameSkillAt(std::uint32_t index) {
+    const stlp::vector<OriginalSkillRecord>& skills = GameSkillDb()->skills;
     return index < static_cast<std::uint32_t>(skills.end() - skills.begin()) ? skills.begin() + index : nullptr;
 }
 
@@ -230,7 +258,7 @@ const SkillRecord* GameSkillAt(std::uint32_t index) {
 LevelView LevelOf(std::uint32_t index) {
     LevelView v{};
     v.index = index;
-    const SkillLevelRecord* record = GameSkillLevelAt(index);
+    const OriginalSkillLevelRecord* record = GameSkillLevelAt(index);
     if (record) {
         v.exists = 1;
         v.value = record->values[7];
@@ -242,7 +270,7 @@ LevelView LevelOf(std::uint32_t index) {
 // The first letter of skill `index`'s first stat name, or -1 without the record or a name (the
 // original then faults or reads past the names: such calls are not recorded).
 int LetterOf(std::uint32_t index) {
-    const SkillRecord* record = GameSkillAt(index);
+    const OriginalSkillRecord* record = GameSkillAt(index);
     if (!record || record->statNames.size() == 0) return -1;
     const char* name = record->statNames.begin()[0];
     return name ? static_cast<unsigned char>(name[0]) : -1;
@@ -374,10 +402,10 @@ Recorded<SkillPriceCall> g_skillPrice("UnitStats::SkillPrice");
 int(__fastcall* s_skillPrice)(UnitStats*, void*, const char*);
 int __fastcall SkillPriceRecord(UnitStats* self, void*, const char* record) {
     auto v = Zeroed<SkillPriceCall>();
-    const SkillDatabase* db = GameSkillDb();
-    auto* level = reinterpret_cast<const SkillLevelRecord*>(record);
+    const OriginalSkillDatabase* db = GameSkillDb();
+    auto* level = reinterpret_cast<const OriginalSkillLevelRecord*>(record);
     const std::ptrdiff_t offset = record - reinterpret_cast<const char*>(db->levels.begin());
-    const std::ptrdiff_t stride = sizeof(SkillLevelRecord);
+    const std::ptrdiff_t stride = sizeof(OriginalSkillLevelRecord);
     const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(db->levels.size()) * stride;
     v.index = offset >= 0 && offset < size && offset % stride == 0 ? static_cast<std::int32_t>(offset / stride) : -1;
     v.exponent = level->WorthExponent();
@@ -395,8 +423,8 @@ int __fastcall SkillPriceRecord(UnitStats* self, void*, const char* record) {
 
 // 0051FF00
 Recorded<IndexOfLevelCall> g_indexOfLevel("SkillDatabase::IndexOfLevel");
-int(__fastcall* s_indexOfLevel)(SkillDatabase*, void*, const SkillLevelRecord*);
-int __fastcall IndexOfLevelRecord(SkillDatabase* self, void*, const SkillLevelRecord* record) {
+int(__fastcall* s_indexOfLevel)(OriginalSkillDatabase*, void*, const OriginalSkillLevelRecord*);
+int __fastcall IndexOfLevelRecord(OriginalSkillDatabase* self, void*, const OriginalSkillLevelRecord* record) {
     auto v = Zeroed<IndexOfLevelCall>();
     v.count = static_cast<std::uint32_t>(self->levels.size());
     v.offset = static_cast<std::int32_t>(reinterpret_cast<const char*>(record) -

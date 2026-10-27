@@ -167,7 +167,7 @@ EI_REWRITTEN(0x006618C0, CParty::LoadParty);
 
 void CParty::SaveParty(CStream* stream, int saveVariables) {
     if (itemManager_ == nullptr) Create();
-    WriteText(stream, zone_);
+    WriteText(stream, zone_.c_str());
     WriteValue(stream, entrance_);
     itemManager_->Save(stream);
     spellManager_->Save(stream);

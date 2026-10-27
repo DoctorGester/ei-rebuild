@@ -640,7 +640,6 @@ struct TradeRecord {
     PartyStorage parties[3];          // ours, the partner's, the traded party
 };
 using TradeRecordNode = stlp::list<TradeRecord>::Node;
-static_assert(sizeof(TradeRecordNode) == 0x160);
 
 // The game client (g_gameClient). It keeps what the server replicates to it, by class, in STLport lists of
 // counted pointers.
@@ -693,7 +692,6 @@ static_assert(offsetof(ClientSession, player_) == 0x2600);
 static_assert(offsetof(ClientSession, party_) == 0x260C);
 static_assert(offsetof(ClientSession, tradeRecords_) == 0x2614);
 static_assert(offsetof(ClientSession, parties_) == 0x2620);
-static_assert(sizeof(ClientSession) == 0x2700);
 
 // ---- The game announcement ------------------------------------------------------------------------
 

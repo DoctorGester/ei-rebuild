@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 
@@ -120,7 +121,7 @@ int CSysInfo::Collect() {
     switch (version_.dwPlatformId) {
     case VER_PLATFORM_WIN32s:
         systemName_ = "Windows 3.11/Win32s";
-        systemVersion_.Format("%d.%d.%d", version_.dwMajorVersion, version_.dwMinorVersion, version_.dwBuildNumber & 0xFFFF);
+        systemVersion_ = str::Format("%d.%d.%d", version_.dwMajorVersion, version_.dwMinorVersion, version_.dwBuildNumber & 0xFFFF);
         flags_ |= kWin32s;
         break;
     case VER_PLATFORM_WIN32_WINDOWS:
@@ -134,7 +135,7 @@ int CSysInfo::Collect() {
         break;
     case VER_PLATFORM_WIN32_NT:
         systemName_ = "Windows NT";
-        systemVersion_.Format("%d.%d.%d", version_.dwMajorVersion, version_.dwMinorVersion, version_.dwBuildNumber);
+        systemVersion_ = str::Format("%d.%d.%d", version_.dwMajorVersion, version_.dwMinorVersion, version_.dwBuildNumber);
         flags_ |= kWindowsNt;
         break;
     default:
