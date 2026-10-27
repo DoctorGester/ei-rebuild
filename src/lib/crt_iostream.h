@@ -26,8 +26,8 @@ public:
     virtual long Seekpos(long position, int mode);                     // seekoff from the start
     virtual int Xsputn(const char* text, int count);
     virtual int Xsgetn(char* text, int count);
-    virtual int Overflow(int c) = 0;                                   // 7
-    virtual int Underflow() = 0;                                       // 8
+    virtual int Overflow(int c) = 0;
+    virtual int Underflow() = 0;
     virtual int Pbackfail(int c);
     virtual int Doallocate();                                          // 0x200 bytes
 
@@ -92,8 +92,8 @@ struct Ios {
     void Lock();     // when lockFlag is negative: the critical section
     void Unlock();
 
-    // ios(): no streambuf (badbit), precision 6, fill ' ', locked; the first ios alive also
-    // initialises the shared lock (the count of live ios beside it). Returns this.
+    // ios(): no streambuf (badbit), precision 6, fill ' ', locked; the first ios alive also initialises the
+    // shared lock (the count of live ios beside it).
     Ios* Construct();
     // ~ios: the vtable back to ios's, the locks deleted (the shared one with the last ios), the
     // streambuf deleted when the ios owns it (deleteBuffer), then no streambuf and badbit.

@@ -359,7 +359,7 @@ struct VectorAbi : vector<T> {
     using Element = E;
 
     static void __fastcall DestroyBase(Vector* self) { self->FreeStorage(); }
-    // The scalar deleting destructor of a _Vector_base: returns this.
+    // The scalar deleting destructor of a _Vector_base.
     Vector* DeleteBase(unsigned flags) {
         this->FreeStorage();
         if (flags & 1) gamecrt::operator_delete(this);
@@ -383,12 +383,10 @@ struct VectorAbi : vector<T> {
     void RangeInsert(T* pos, const T* first, const T* last, const void*) {
         Vector::template RangeInsert<E>(pos, first, last);
     }
-    // erase(first, last): returns first.
     T* EraseRange(T* first, T* last) {
         return Vector::template EraseRange<E>(first, last);
     }
     static void __fastcall Clear(Vector* self) { self->template EraseRange<E>(self->begin(), self->end()); }
-    // resize(n, x).
     void Resize(std::size_t n, const T& x) { Vector::template Resize<E>(n, x); }
     void ResizeDefault(std::size_t n) { Vector::template ResizeDefault<E>(n); }
     // ~vector: the elements destroyed in order, then the storage freed.
@@ -400,7 +398,6 @@ struct VectorAbi : vector<T> {
     void PushBack(const T& x) { Vector::template PushBack<E>(x); }
     // push_back of a default-constructed element, out of line.
     static void __fastcall PushDefault(Vector* self) { self->template PushDefault<E>(); }
-    // operator=(x): returns this.
     Vector* Assign(const Vector& x) {
         Vector::template AssignVector<E>(x);
         return this;

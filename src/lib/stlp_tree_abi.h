@@ -71,14 +71,11 @@ struct TreeAbi : Map {
         this->Header() = allocate_as<Node>();
         return this;
     }
-    // The copy constructor.
     Map* CopyConstruct(const Map* from) {
         Map::template CopyFrom<E>(*from);
         return this;
     }
-    // _M_empty_initialize.
     static void __fastcall EmptyInitialize(Map* self) { self->EmptyInitialize(); }
-    // clear.
     static void __fastcall Clear(Map* self) { self->template Clear<E>(); }
     // ~_Rb_tree: clear, then the header back to the pool.
     static void __fastcall Destroy(Map* self) { self->template Destroy<E>(); }
@@ -114,13 +111,11 @@ struct TreeAbi : Map {
         *out = this->find(key);
         return out;
     }
-    // begin.
     Node** Begin(Node** out) const {
         *out = this->begin();
         return out;
     }
 
-    // _M_create_node.
     Node* CreateNode(const Value& v) { return Map::template CreateNode<E>(v); }
     // _M_copy(x, p).
     Node* CopySubtree(const Node* x, Node* p) { return Map::template CopySubtree<E>(x, p); }
@@ -143,9 +138,7 @@ struct TreeAbi : Map {
         *out = Map::template InsertUnique<E>(hint, v);
         return out;
     }
-    // erase(position).
     void EraseAt(Node* position) { Map::template Erase<E>(position); }
-    // erase(first, last).
     void EraseRange(Node* first, Node* last) { Map::template Erase<E>(first, last); }
     // erase(key): the number erased.
     std::size_t EraseKey(const K& key) { return Map::template EraseKey<E>(key); }
@@ -186,7 +179,6 @@ struct TreeAbi : Map {
 
 // Members that only move node pointers, one body for every instantiation. An iterator.
 struct TreeIterator {
-    // The copy constructor.
     TreeIterator* CopyConstruct(const TreeIterator& from) {
         node = from.node;
         return this;
