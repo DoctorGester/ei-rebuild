@@ -206,10 +206,10 @@ constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
 
 } // namespace
 
-BOOL CBattleScreen::Draw(int pass) {
+BOOL CBattleScreen::Draw(CSceneRenderer* pass) {
     GameRender();
     if (boxSelecting_) {   // the selection box, a dark rectangle with an outline
-        reinterpret_cast<CSceneRenderer*>(pass)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
+        pass->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
     }
     Input()->MouseMove(0, MouseScreenX(), MouseScreenY());

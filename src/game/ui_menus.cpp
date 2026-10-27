@@ -112,7 +112,7 @@ void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
     CUiContainer::LeftDouble(buttons, x, y);
 }
 
-BOOL CSaveLoadWindow::Draw(int pass) {
+BOOL CSaveLoadWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
         surfaces_.data[0]->Freeze(1, 0);
         models_.data[0]->SetScreenPosition(400.0f, isSave_ ? 620.0f : 550.0f, 4.8f);
@@ -125,7 +125,7 @@ BOOL CSaveLoadWindow::Draw(int pass) {
     if (!model) return 1;
     double y = isSave_ ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
-    model->Draw(reinterpret_cast<CSceneRenderer*>(pass));
+    model->Draw(pass);
     return 1;
 }
 
@@ -241,7 +241,7 @@ void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
     CUiContainer::LeftDouble(buttons, x, y);
 }
 
-BOOL COptionsWindow::Draw(int pass) {
+BOOL COptionsWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
         surfaces_.data[0]->Freeze(1, 0);
         models_.data[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
@@ -254,7 +254,7 @@ BOOL COptionsWindow::Draw(int pass) {
     if (!model) return 1;
     double y = (480.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
-    model->Draw(reinterpret_cast<CSceneRenderer*>(pass));
+    model->Draw(pass);
     return 1;
 }
 
@@ -419,7 +419,7 @@ EI_REWRITTEN(0x0065B340, CUiScrollbar::OnMouseUp);
 
 // --- Tooltip -----------------------------------------------------------------------------------
 
-BOOL CUiTooltip::Draw(int pass) {
+BOOL CUiTooltip::Draw(CSceneRenderer* pass) {
     if (!Shown()) return 1;
     return DrawBase(pass);
 }

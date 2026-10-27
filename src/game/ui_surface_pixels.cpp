@@ -216,7 +216,7 @@ void CUiSurface::SwapContents(int restore) {
     if (restore) {
         if (!holder_) {
             // A new surface of the surface's size.
-            SurfaceHolder* made = new CDXSurface(reinterpret_cast<CTextureDevice*>(interface_->renderer_), width_, height_);
+            SurfaceHolder* made = new CDXSurface(interface_->renderer_, width_, height_);
             SurfaceHolder* previous = holder_;
             holder_ = made;
             if (made) ++made->refs_;

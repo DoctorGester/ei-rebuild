@@ -36,19 +36,25 @@ struct SharedRefElement {
     static void Default(RefPtr* p) { p->ptr = nullptr; }
 };
 
+// The same policy for a vector<T*> of counted objects (CRefCounted's count and flags) that is not shared
+// with the RefPtr instantiation: the pointer typed, nothing reinterpreted.
+template <typename T>
+struct CountedPtrElement {
+    static void Construct(T** to, T* const& from) {
+        *to = from;
+        if (from) ++from->refs_;
+    }
+    static void Assign(T*& to, T* const& from) {
+        T* old = to;
+        to = from;
+        if (from) ++from->refs_;
+        ReleaseCounted(old);
+    }
+    static void Destroy(T** p) { ReleaseCounted(*p); }
+    static void Default(T** p) { *p = nullptr; }
+};
+
 using CountedRefVector = VectorAbi<RefPtr, CountedRefElement>;
 using SharedRefVector = VectorAbi<RefPtr, SharedRefElement>;
-
-// A vector of counted pointers (counted_ptr<T>: the object's pointer alone) as the vector<RefPtr>
-// the game's instantiations share, and its elements likewise.
-template <typename T>
-vector<RefPtr>& AsRefPtrs(vector<T*>& v) {
-    static_assert(sizeof(T*) == sizeof(RefPtr));
-    return reinterpret_cast<vector<RefPtr>&>(v);
-}
-template <typename T>
-RefPtr* AsRefPtr(T** p) { return reinterpret_cast<RefPtr*>(p); }
-template <typename T>
-const RefPtr& AsRefPtr(T* const& p) { return reinterpret_cast<const RefPtr&>(p); }
 
 } // namespace stlp

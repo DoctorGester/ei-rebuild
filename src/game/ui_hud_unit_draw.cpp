@@ -83,7 +83,7 @@ void ClearDepthRects(CTextureDevice* renderer, RECT* rects, float z) {
 
 } // namespace
 
-BOOL CHudUnitPanel::DrawVanilla(int pass) {
+BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
     widescreen::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};
@@ -91,7 +91,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
     Sprite(this, kMoreMark)->visible_ = 0;
     // The background alone, before anything else.
     Sprite(this, kBackground)->visible_ = 1;
-    Sprite(this, kBackground)->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
+    Sprite(this, kBackground)->Draw(pass);
     Sprite(this, kBackground)->visible_ = 0;
 
     // The unit shown while the panel is not slid away: the hover unit, else the selected one.
@@ -164,7 +164,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             device->lastLoadResult_ = device::GetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, &mipFilter);
             device->lastLoadResult_ = device::SetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, D3DTFP_NONE);
             render::state::Stage(0, D3DTSS_MIPFILTER, D3DTFP_NONE);
-            ObjectSlots(unit)->DrawFigure(reinterpret_cast<void*>(static_cast<std::intptr_t>(pass)));
+            ObjectSlots(unit)->DrawFigure(pass);
             device->lastLoadResult_ = device::SetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, mipFilter);
             render::state::Stage(0, D3DTSS_MIPFILTER, mipFilter);
 

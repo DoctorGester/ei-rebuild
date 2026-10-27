@@ -40,6 +40,8 @@ PartyRecord* NewRecord() {
     return record;
 }
 
+using Elements = stlp::CountedPtrElement<PartyRecord>;
+
 void Release(PartyRecord* record) {
     if (record && --record->refs_ == 0) delete record;
 }
@@ -50,9 +52,8 @@ const char* NameOf(const PartyRecord* record) { return record->name.GetString();
 
 void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     PartyRecord** end = list->records.Finish();
-    auto* newEnd = reinterpret_cast<PartyRecord**>(stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(
-        stlp::AsRefPtr(end), stlp::AsRefPtr(end), stlp::AsRefPtr(list->records.Start())));
-    for (PartyRecord** p = newEnd; p != end; ++p) reinterpret_cast<RefPtr*>(p)->DeleteScalar(0);
+    PartyRecord** newEnd = stlp::CopyAssigned<PartyRecord*, Elements>(end, end, list->records.Start());
+    for (PartyRecord** p = newEnd; p != end; ++p) Release(*p);
     list->records.Finish() = newEnd;
     list->text0C = game::EmptyText();
     list->text10 = game::EmptyText();
@@ -60,9 +61,9 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     PartyRecord* temp = NewRecord();
     if (temp) ++temp->refs_;
     if (list->records.Finish() == list->records.EndOfStorage()) {
-        stlp::AsRefPtrs(list->records).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(list->records.Finish()), stlp::AsRefPtr(temp), 1);
+        list->records.InsertOverflow<Elements>(list->records.Finish(), temp, 1);
     } else {
-        if (list->records.Finish()) reinterpret_cast<RefPtr*>(list->records.Finish())->CopyCounted(reinterpret_cast<const RefPtr*>(&temp));
+        if (list->records.Finish()) Elements::Construct(list->records.Finish(), temp);
         ++list->records.Finish();
     }
     Release(temp);
@@ -91,7 +92,7 @@ void NamedPartyRecords::Add(const char* name) {
     PartyRecord* temp = record;
     if (temp) ++temp->refs_;
     if (records.Finish() == records.EndOfStorage()) {
-        stlp::AsRefPtrs(records).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(records.Finish()), stlp::AsRefPtr(temp), 1);
+        records.InsertOverflow<Elements>(records.Finish(), temp, 1);
     } else {
         if (records.Finish()) {
             *records.Finish() = temp;
@@ -119,7 +120,7 @@ void NamedPartyRecords::Remove(const char* name) {
             }
         }
         --records.Finish();
-        RefPtrRelease(reinterpret_cast<RefPtr*>(records.Finish()));
+        Release(*records.Finish());
     }
 }
 EI_REWRITTEN(0x004A5FA0, NamedPartyRecords::Remove);

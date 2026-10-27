@@ -119,7 +119,7 @@ int CInterface3D::ScalePointFromScreenEntry(POINT* point) const {
 EI_REWRITTEN(0x005F7E00, CInterface3D::ScalePointFromScreenEntry);
 
 CUiWindow* CInterface3D::GetActiveWindow() const {
-    return stackBegin_ != stackEnd_ ? stackEnd_[-1] : nullptr;
+    return stack_.begin() != stack_.end() ? stack_.end()[-1] : nullptr;
 }
 EI_REWRITTEN(0x005F7590, CInterface3D::GetActiveWindow);
 

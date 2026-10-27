@@ -147,7 +147,7 @@ BOOL CUiWindow::ContainsPoint(int x, int y) const {
 }
 EI_REWRITTEN(0x005FFD30, CUiWindow::ContainsPoint);
 
-void CUiWindow::UpdateRegionTips(int) {
+void CUiWindow::UpdateRegionTips(CSceneRenderer*) {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
     interface_->ScalePointFromScreenEntry(&mouse);
     // Inlines CUiRegion::OnMouseMove for every region with a tooltip.
@@ -170,10 +170,10 @@ void CUiWindow::RedrawRegionTips() {
 }
 EI_REWRITTEN(0x005FED00, CUiWindow::RedrawRegionTips);
 
-BOOL CUiWindow::DrawBase(int pass) {
+BOOL CUiWindow::DrawBase(CSceneRenderer* pass) {
     for (int i = 0; i < sceneObjects_.size; ++i)
-        SceneMesh(i)->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
-    for (int i = 0; i < models_.size; ++i) models_.data[i]->Draw(reinterpret_cast<CSceneRenderer*>(pass));
+        SceneMesh(i)->Draw(pass);
+    for (int i = 0; i < models_.size; ++i) models_.data[i]->Draw(pass);
     return 1;
 }
 EI_REWRITTEN(0x005FEB90, CUiWindow::DrawBase);

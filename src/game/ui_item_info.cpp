@@ -822,7 +822,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
 } // namespace
 
 void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
-    reinterpret_cast<CParty*>(itemList_)->Clear(1, 0);
+    ItemParty()->Clear(1, 0);
     DescribeItem();
     if (info->kind < 0) return;
     Texts* texts = TextManager();
@@ -943,7 +943,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
 EI_REWRITTEN(0x005F1590, CItemInfoPanel::DescribeStats);
 
 void CItemInfoPanel::ShowHelp(int topic) {
-    reinterpret_cast<CParty*>(itemList_)->Clear(1, 0);
+    ItemParty()->Clear(1, 0);
     DescribeItem();
     Texts* texts = TextManager();
     Writer w(this);
@@ -966,7 +966,7 @@ void CItemInfoPanel::Describe(CItem* item) {
     if (itemCount_ && items_[0] && item) {
         if (items_[0]->IsSameAs(item)) return;
     }
-    reinterpret_cast<CParty*>(itemList_)->Clear(1, 0);
+    ItemParty()->Clear(1, 0);
     if (item) ItemParty()->AddItem(item, 0, 1);
     DescribeItem();
 }

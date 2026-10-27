@@ -120,7 +120,7 @@ EI_REWRITTEN(0x005E6B90, CScreenFade::Start);
 int CInterface3D::Draw() {
     CloseAllPending();
     if ((backdropMode_ == 2 || backdropMode_ == 4 || backdropMode_ == 3) && backdrop_) backdrop_->Blit();
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Draw(reinterpret_cast<int>(SceneRenderer()));
+    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Draw(SceneRenderer());
     fade_->Draw(SceneRenderer());
     return 1;
 }
@@ -133,9 +133,9 @@ void CInterface3D::DrawOverlays() {
     panel->Set("surface stored", text.c_str());
     text = str::Format("%d", SurfaceBytesAllocated());
     panel->Set("surface alloc", text.c_str());
-    if (stackBegin_ != stackEnd_) {
-        stackEnd_[-1]->Redraw();       // its surfaces blit themselves
-        stackEnd_[-1]->RedrawTips();   // its tooltips follow the mouse and redraw
+    if (stack_.Start() != stack_.Finish()) {
+        stack_.Finish()[-1]->Redraw();       // its surfaces blit themselves
+        stack_.Finish()[-1]->RedrawTips();   // its tooltips follow the mouse and redraw
     }
     // (The original calls an empty function on the fade here; nothing to do.)
     if (statusSurface_) statusSurface_->Blit();
@@ -156,7 +156,7 @@ void CInterface3D::DrawOverlays() {
         backdrop_->CaptureScreen();
         backdropMode_ = 4;
     }
-    if (IsMultiplayerClient() && stackEnd_ - stackBegin_ == 1) root_->Redraw();
+    if (IsMultiplayerClient() && stack_.Finish() - stack_.Start() == 1) root_->Redraw();
     panel->Tick();
 
     ++fpsFrames_;

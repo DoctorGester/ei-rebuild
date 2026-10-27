@@ -115,12 +115,11 @@ void SetRenderState(CTextureDevice* device, unsigned long state, unsigned long v
 // The end both PushWindow and Activate share: the window pushed on the stack, the render states
 // the interface draws with, the window created, the messages pumped, the mouse released.
 void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
-    if (ui->stackEnd_ != ui->stackCapacity_) {
-        if (ui->stackEnd_) *ui->stackEnd_ = window;
-        ++ui->stackEnd_;
+    if (ui->stack_.Finish() != ui->stack_.EndOfStorage()) {
+        if (ui->stack_.Finish()) *ui->stack_.Finish() = window;
+        ++ui->stack_.Finish();
     } else {
-        reinterpret_cast<stlp::vector<CUiWindow*>*>(&ui->stackBegin_)
-            ->InsertOverflow<stlp::PlainElement<CUiWindow*>>(ui->stackEnd_, window, 1);
+        ui->stack_.InsertOverflow<stlp::PlainElement<CUiWindow*>>(ui->stack_.Finish(), window, 1);
     }
     static const unsigned long kStates[5][2] = {{0x1B, 1}, {0x0F, 1}, {0x13, 5}, {0x14, 6}, {0x18, 0x80}};
     for (const auto& state : kStates) {
@@ -143,10 +142,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
         backdropMode_ = 3;
         app::FrameStep(false, true);
     }
-    // One window open (the byte difference with its low two bits cleared is 4).
-    std::uint32_t bytes = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stackEnd_) -
-                                                     reinterpret_cast<std::uintptr_t>(stackBegin_));
-    if ((bytes & ~3u) == 4) {
+    if (stack_.size() == 1) {   // one window open
         serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
         if (!IsMultiplayerClient()) GameSetServerPaused(1);
         if (first && second) {
@@ -159,9 +155,9 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
     shiftDown_ = 0;
     rightDown_ = false;
     doubleClick_ = false;
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Deactivate();
-    if (stackBegin_ != stackEnd_) {
-        stackEnd_[-1]->Show(0);
+    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Deactivate();
+    if (stack_.Start() != stack_.Finish()) {
+        stack_.Finish()[-1]->Show(0);
     }
     if (!window) game::FatalError("Cannot activate NULL interface screen\n");
     OpenOnTop(this, window);
@@ -192,11 +188,11 @@ void CInterface3D::Activate(CUiWindow* window) {
     serverFlag_ = 0;
     GameSetServerPaused(0);
     Cursor()->SetShape(3);
-    while (stackBegin_ != stackEnd_) {
-        stackEnd_[-1]->Input()->Deactivate();
-        ScreenOf(stackEnd_[-1])->CloseScreen();
-        delete stackEnd_[-1];
-        --stackEnd_;
+    while (stack_.Start() != stack_.Finish()) {
+        stack_.Finish()[-1]->Input()->Deactivate();
+        ScreenOf(stack_.Finish()[-1])->CloseScreen();
+        delete stack_.Finish()[-1];
+        --stack_.Finish();
     }
     ResetInput();
     app::PumpMessages();
@@ -238,8 +234,8 @@ EI_REWRITTEN(0x005F8A80, CInterface3D::ShowMessage);
 // --- the help window -----------------------------------------------------------------------------
 
 void CInterface3D::OpenHelp(int flag) {
-    if (stackBegin_ == stackEnd_) return;
-    CUiWindow* active = stackEnd_[-1];
+    if (stack_.Start() == stack_.Finish()) return;
+    CUiWindow* active = stack_.Finish()[-1];
     const char* topic = ScreenOf(active)->HelpTopic();
     if (!topic) return;
     int seen = -1;

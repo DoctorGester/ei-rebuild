@@ -71,7 +71,7 @@ void CInterface3D::ShowFps(int on) {
 EI_REWRITTEN(0x005F5700, CInterface3D::ShowFps);
 
 void CInterface3D::OnQuestVariable(const char* name, float value) {
-    if (stackBegin_ != stackEnd_) ScreenOf(stackEnd_[-1])->QuestVariable(name, value);
+    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->QuestVariable(name, value);
     console::CStringArray parts;
     EI_NAN_AUDIT(value);
     if (value != 1.0f) return;
@@ -88,32 +88,32 @@ constexpr char* kNoExtra = nullptr;
 } // namespace
 
 void CInterface3D::OnItemsPicked(void* items, int money, int crippled) {
-    if (stackBegin_ != stackEnd_) ScreenOf(stackEnd_[-1])->ItemsPicked(items, money, crippled);
+    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->ItemsPicked(items, money, crippled);
 }
 EI_REWRITTEN(0x005F7F30, CInterface3D::OnItemsPicked);
 
 void CInterface3D::OnUnitJoined(CUnit* unit) {
-    if (stackBegin_ != stackEnd_) ScreenOf(stackEnd_[-1])->UnitJoined(unit);
+    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->UnitJoined(unit);
 }
 EI_REWRITTEN(0x005F7F60, CInterface3D::OnUnitJoined);
 
 void CInterface3D::OnUnitLeft(CUnit* unit) {
-    if (stackBegin_ != stackEnd_) ScreenOf(stackEnd_[-1])->UnitLeft(unit);
+    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->UnitLeft(unit);
 }
 EI_REWRITTEN(0x005F7F80, CInterface3D::OnUnitLeft);
 
 void CInterface3D::OnGameLost() {
-    if (stackBegin_ != stackEnd_) ScreenOf(stackEnd_[-1])->GameOver(0);
+    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->GameOver(0);
 }
 EI_REWRITTEN(0x005F7FA0, CInterface3D::OnGameLost);
 
 void CInterface3D::OnUnitSpeech(int id, unsigned event) {
-    if (stackBegin_ != stackEnd_) ScreenOf(stackEnd_[-1])->Speech(id, event, kNoExtra);
+    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->Speech(id, event, kNoExtra);
 }
 EI_REWRITTEN(0x005F82A0, CInterface3D::OnUnitSpeech);
 
 void CInterface3D::OnPlayersChanged(int added) {
-    if (stackBegin_ != stackEnd_) ScreenOf(stackEnd_[-1])->PlayersChanged(added);
+    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->PlayersChanged(added);
 }
 EI_REWRITTEN(0x005F82D0, CInterface3D::OnPlayersChanged);
 
@@ -123,13 +123,13 @@ void CInterface3D::OnChatLine(const char* text, std::uint32_t number) {
 EI_REWRITTEN(0x005F82F0, CInterface3D::OnChatLine);
 
 void CInterface3D::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
-    if (stackBegin_ != stackEnd_) ScreenOf(stackEnd_[-1])->ExchangeDone(partyB, partyA, partyC);
+    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->ExchangeDone(partyB, partyA, partyC);
 }
 EI_REWRITTEN(0x005F8310, CInterface3D::OnExchangeDone);
 
 // The bottom window, not the top one (a save is made from the battle screen under the save window).
 void CInterface3D::SaveWindowState() {
-    if (stackBegin_ != stackEnd_) ScreenOf(stackBegin_[0])->SaveState();
+    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Start()[0])->SaveState();
 }
 EI_REWRITTEN(0x005F86D0, CInterface3D::SaveWindowState);
 

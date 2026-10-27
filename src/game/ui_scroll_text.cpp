@@ -314,7 +314,7 @@ void CUiScrollText::SetRect(const RECT* rect) {
 }
 EI_REWRITTEN(0x0065D0A0, CUiScrollText::SetRect);
 
-BOOL CUiScrollText::Draw(int pass) {
+BOOL CUiScrollText::Draw(CSceneRenderer* pass) {
     int position;
     if (TakePosition(&position)) DrawLines(position);
     return DrawBase(pass);

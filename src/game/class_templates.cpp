@@ -119,9 +119,9 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     ClassTemplate* temp = t;
     if (temp) ++temp->refs_;
     if (v->Finish() == v->EndOfStorage()) {
-        stlp::AsRefPtrs(*v).InsertOverflow<stlp::CountedRefElement>(stlp::AsRefPtr(v->Finish()), stlp::AsRefPtr(temp), 1);
+        v->InsertOverflow<stlp::CountedPtrElement<ClassTemplate>>(v->Finish(), temp, 1);
     } else {
-        if (v->Finish()) reinterpret_cast<RefPtr*>(v->Finish())->CopyCounted(reinterpret_cast<const RefPtr*>(&temp));
+        if (v->Finish()) stlp::CountedPtrElement<ClassTemplate>::Construct(v->Finish(), temp);
         ++v->Finish();
     }
     if (temp && --temp->refs_ == 0) delete temp;
@@ -131,7 +131,7 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
 
 void TemplateTable::Build(unsigned fourClasses) {
     TemplateTable* v = this;
-    stlp::CountedRefVector::Clear(&stlp::AsRefPtrs(*v));
+    v->EraseRange<stlp::CountedPtrElement<ClassTemplate>>(v->begin(), v->end());
     if (static_cast<std::uint8_t>(fourClasses)) {
         AddTemplate(v, 1, 1, 1, kDefaultWeights);
         AddTemplate(v, 3, 1, 1, kDefaultWeights);

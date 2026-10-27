@@ -74,6 +74,14 @@ namespace world {
 constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
 }
 
+// A hash map of counted objects emptied as ObjectIdMap::ReleaseAll does: every object up to the first empty entry
+// released, the nodes freed (the buckets stay). The caller clears its highest id.
+template <typename Map>
+void ReleaseEach(Map& map) {
+    for (auto* node = map.First(); node && node->value; node = map.After(node)) node->value->Release();
+    map.Clear();
+}
+
 // hash_map<unsigned, CEngineObject*> plus the highest key ever inserted.
 struct ObjectIdMap {
     stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash> map;

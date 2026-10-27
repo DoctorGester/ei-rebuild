@@ -78,7 +78,7 @@ void CViewScreen::CreateScreen() {
 }
 EI_REWRITTEN(0x0062A830, CViewScreen::CreateScreen);
 
-BOOL CViewScreen::DrawView(int) {
+BOOL CViewScreen::DrawView(CSceneRenderer*) {
     GameRender();
     return TRUE;
 }

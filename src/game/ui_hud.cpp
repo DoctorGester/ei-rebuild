@@ -128,7 +128,7 @@ void CHudWeaponBar::Update() {
 }
 EI_REWRITTEN(0x0063C600, CHudWeaponBar::Update);
 
-BOOL CHudWeaponBar::Draw(int pass) {
+BOOL CHudWeaponBar::Draw(CSceneRenderer* pass) {
     std::uint32_t alphaRef, alphaTest;
     GetRenderState(interface_->renderer_, kRenderStateAlphaRef, &alphaRef);
     SetRenderState(interface_->renderer_, kRenderStateAlphaRef, 1);
@@ -145,7 +145,7 @@ EI_REWRITTEN(0x0063C4F0, CHudWeaponBar::Draw);
 
 // The three other panels draw the same way, with specular on (the draw virtual).
 namespace {
-BOOL DrawWithSpecular(CUiWindow* window, int pass) {
+BOOL DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
     SetRenderState(window->interface_->renderer_, kRenderStateSpecular, 1);
     window->DrawBase(pass);
     SetRenderState(window->interface_->renderer_, kRenderStateSpecular, 0);
@@ -153,9 +153,9 @@ BOOL DrawWithSpecular(CUiWindow* window, int pass) {
 }
 } // namespace
 
-BOOL CHudQuickItems::Draw(int pass) { return DrawWithSpecular(this, pass); }
-BOOL CHudSpellColumn::Draw(int pass) { return DrawWithSpecular(this, pass); }
-BOOL CHudActionColumn::Draw(int pass) { return DrawWithSpecular(this, pass); }
+BOOL CHudQuickItems::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
+BOOL CHudSpellColumn::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
+BOOL CHudActionColumn::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
 EI_REWRITTEN(0x0063CDC0, CHudQuickItems::Draw);
 EI_REWRITTEN(0x0063F190, CHudSpellColumn::Draw);
 EI_REWRITTEN(0x0063FD50, CHudActionColumn::Draw);

@@ -45,7 +45,7 @@ void EndTimedObjects(CWorldServer* world) {
 void ClearMissiles(CWorldServer* world) {
     auto& list = world->projectiles_;
     for (auto* node = list.head; node; node = node->next)
-        if (node->data) reinterpret_cast<CRefObject*>(node->data)->Release();
+        ReleaseCounted(node->data);
     list.RemoveAll();
 }
 
@@ -128,7 +128,7 @@ void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::D
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
-    for (auto* node = list.head; node; node = node->next) RefPtrRelease(reinterpret_cast<RefPtr*>(&node->data));
+    for (auto* node = list.head; node; node = node->next) ReleaseCounted(node->data);
     list.RemoveAll();   // the elements were destroyed above; this frees the blocks
 }
 
@@ -163,7 +163,8 @@ void CWorldServer::ResetZone() {
 
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
         node->value->ClearState();
-    reinterpret_cast<ObjectIdMap*>(&objects_)->ReleaseAll();
+    ReleaseEach(objects_.map);
+    objects_.maxId = 0;
     MapObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (MapObjectIdMap* map : maps) {
         map->map.Clear();

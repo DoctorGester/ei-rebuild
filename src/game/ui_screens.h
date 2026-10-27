@@ -147,7 +147,7 @@ public:
     // The end faces dimmed (sprite alpha 0.195) where it can scroll on, the background cells shifted by the current tab's
     // fractional position, the window's sprites, eight item cells through the owner, the stack counts (not 1) on surface 0
     // and, unless a member is 9, the owner's number of each item its accept virtual takes on surface 1. Returns 1.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // The item under the screen point, or null; sets the cursor for the strip's action mode.
     CItem* ItemAt(int x, int y, int* cursor) override;
     // Rebuilds the visible list from the source list for the current filter and tab (tab 5 of filter 0 shows everything).
@@ -163,7 +163,7 @@ public:
     using CUiItemStrip::CUiItemStrip;
     // The end faces dimmed where it can scroll on, the background and cells placed by the current tab's fraction, the frame
     // (scene object 8) on selected_ when in view, the window's sprites, then each visible name's hero face through the owner.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // No item: null, `topic` not written.
     CItem* ItemAt(int x, int y, int* topic) override;
     // Count_ = the number of names.
@@ -257,7 +257,7 @@ public:
 
     // On the statistics page the experience lines on surface 2; then what is under the mouse for the description panel, the
     // children drawn and the hero previewed (list at depth 553, new hero at 400). Returns 1.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // The children's update; a held rotate arrow turns the preview by twice the frame time; the scroll bars' moves redraw the
     // list and voices; on the new hero page the create button is bright only when the three attributes add up to the
     // attribute points and the name is not empty.
@@ -637,7 +637,7 @@ public:
     // stays for its speed in seconds), or past the last line finished_. The movie steps (stretched unless the
     // movie flag is 1); when it has ended after the last line: "<name>fout" played, the screen flag cleared
     // and the titles closed as Close() does; otherwise the container's draw.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // The lines freed, font smoothing set back to fontSmoothing_ (never read: kept), the display's flag
     // restored, the screen flag set and the cursor shown.
     void OnClose();
@@ -671,7 +671,7 @@ static_assert(sizeof(CCreditsScreen) == 0x1FC);
 class CMainMenu : public CUiContainer {
 public:
     explicit CMainMenu(CInterface3D* ui) : CUiContainer(ui) {}
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     void CloseScreen() override { Close(); }
     void MessageResult(int result) override { OnMessageResult(result); }
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
@@ -741,7 +741,7 @@ public:
     // "xch_money_offer", and while the partner's offer pairs with ours "xch_money_remote" with its money and
     // "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are shaded by our
     // offer's acceptance and the third button by the partner's; then the children.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     void OnKeyDown(int key, int repeat, int flags);
     // The exchange went through: the local party's items are released, every item of `partyC`, then of
     // `partyB`, returned into it (ReturnAll), its money set to partyB's - partyA's + partyC's, and the client

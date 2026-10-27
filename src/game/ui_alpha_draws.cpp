@@ -33,7 +33,7 @@ std::uint32_t GetState(CUiWindow* w, std::uint32_t state) {
 } // namespace
 
 // A container's. The children, each drawn when enabled.
-void CUiContainer::DrawChild(int pass) {
+void CUiContainer::DrawChild(CSceneRenderer* pass) {
     if (!interface_->drawing_) return;
     std::uint32_t savedRef = GetState(this, kAlphaRef);
     SetState(this, kAlphaRef, 1);
@@ -48,7 +48,7 @@ void CUiContainer::DrawChild(int pass) {
 }
 EI_REWRITTEN(0x00600F70, CUiContainer::DrawChild);
 
-BOOL CGlobalMap::Draw(int pass) {
+BOOL CGlobalMap::Draw(CSceneRenderer* pass) {
     SetState(this, kAlphaBlend, 1);
     SetState(this, kAlphaTest, 0);
     SetState(this, kSourceBlend, 5);
@@ -59,7 +59,7 @@ BOOL CGlobalMap::Draw(int pass) {
 }
 EI_REWRITTEN(0x0062EFC0, CGlobalMap::Draw);
 
-BOOL CHelpWindow::Draw(int pass) {
+BOOL CHelpWindow::Draw(CSceneRenderer* pass) {
     std::uint32_t savedRef = GetState(this, kAlphaRef);
     SetState(this, kAlphaRef, 1);
     CUiContainer::Draw(pass);

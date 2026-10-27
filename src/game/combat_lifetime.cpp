@@ -199,7 +199,7 @@ void AIBrain::Destruct() {
     }
     if (current) current->Release();
     modes.vtable = gameslots::OwnedRefListClass::Vtable();   // the destructor writes the same vtable
-    for (auto* node = modes.head; node; node = node->next) reinterpret_cast<RefPtr*>(&node->data)->Destroy();
+    for (auto* node = modes.head; node; node = node->next) DestroyOwned(node->data);
     modes.RemoveAll();
     if (seen) seen->Release();
     seen = nullptr;

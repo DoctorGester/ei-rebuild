@@ -579,7 +579,7 @@ void CCampPages::UpdateAction() {
 EI_REWRITTEN(0x00611930, CCampPages::UpdateAction);
 
 
-BOOL CCampPages::Draw(int pass) {
+BOOL CCampPages::Draw(CSceneRenderer* pass) {
     int x = MouseScreenX();   // the mouse in screen pixels
     int y = MouseScreenY();
     hoveredItem_ = nullptr;
@@ -637,7 +637,7 @@ BOOL CCampPages::Draw(int pass) {
     if (page_ == 0) {
         float turn;
         std::memcpy(&turn, &heroTurn_, sizeof turn);
-        DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), heroes_[hero_], turn, 400.0f, 1);
+        DrawHeroPreview(pass, heroes_[hero_], turn, 400.0f, 1);
     }
     return 1;
 }
