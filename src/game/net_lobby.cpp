@@ -72,7 +72,7 @@ Query* FindQuery(ClientQueries& v, const NetAddress* address) {
 }
 
 // A write the way these functions inline it: in place (marking the buffer written) when it fits
-// before `end`, otherwise through slot 4.
+// before `end`, otherwise through WriteMore.
 void Put(GameBuffer* b, const void* from, unsigned size) {
     if (b->cur + size > b->end) {
         b->WriteMore(from, size);

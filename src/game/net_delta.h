@@ -1,12 +1,10 @@
 #pragma once
 
-// Delta replication of object state. Every replicated object (units at
-// +0x1C4,...) owns a DeltaState: up to 16 numbered fields, each a DeltaField holding, for two
-// channels, the bytes last sent (the snapshot) and the bits and bytes to send now (the output).
-// The object's serialiser (a virtual) calls BeginField(i) for each
-// dirty field and writes its values with WriteDelta: a bit per 4-byte word says "unchanged", and
-// only the changed words follow. Reading (the client) mirrors it through two globals set by
-// BeginField in the read modes. Names provisional; see docs/notes/network.md.
+// Delta replication of object state. Every replicated object owns a DeltaState: up to 16 numbered fields, each
+// a DeltaField holding, for two channels, the bytes last sent (the snapshot) and the bits and bytes to send now
+// (the output). The object's serialiser calls BeginField(i) for each dirty field and writes its values with
+// WriteDelta: a bit per 4-byte word says "unchanged", and only the changed words follow. Reading (the client)
+// mirrors it through two globals set by BeginField in the read modes. See docs/notes/network.md.
 
 #include "core_streams.h"
 #include "maths.h"
@@ -30,8 +28,7 @@ inline int g_keepSnapshot0 = /*007A9784*/ {};
 inline BitStream* g_readSnapshot = /*007A9794*/ {nullptr};
 inline BitStream* g_received = /*007A9798*/ {nullptr};
 
-// Writers of one channel (__fastcall, the first two arguments in ECX / EDX).
-// WriteDelta for a single channel. Returns nothing.
+// WriteDelta for a single channel.
 void __fastcall WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
                                   BitStream* out);
 // Bits and changed words of `data` against `old` (no snapshot stream).
@@ -39,10 +36,10 @@ void __fastcall WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std
 // All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
 void __fastcall WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out);
 
-// BitStream::GetBit as a function: 0 or 1 in EAX.
+// BitStream::GetBit as a function: 0 or 1.
 int __fastcall GetBit(BitStream* reader);
 // Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
-// otherwise the changed words from `reader` (returns true; the result is in AL only).
+// otherwise the changed words from `reader` (returns true).
 bool __fastcall ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader);
 
 } // namespace delta
@@ -55,8 +52,8 @@ std::uint32_t UnpackFloat16(std::uint16_t packed);
 
 // One numbered field of a DeltaState.
 struct DeltaField {
-    BitStream snapshot[2];   // +0x28: per channel, the bytes last sent
-    BitStream out[2];        // +0x78: per channel, what is sent now
+    BitStream snapshot[2];   // per channel, the bytes last sent
+    BitStream out[2];        // per channel, what is sent now
 
     DeltaField() = default;
     ~DeltaField() = default;
@@ -69,7 +66,6 @@ struct DeltaField {
     int BeginWriteA(int channel1Only);
     DeltaField* BeginWriteB(int channel1Only);
     // Rewinds the snapshots and reads `reader` against snapshot 0 or 1.
-    //
     std::uintptr_t BeginReadA(int second, BitStream* reader);
     DeltaField* BeginReadB(int second, BitStream* reader);
     // Ends the field: when reading, finishes the reader's bits; when writing,
@@ -136,7 +132,7 @@ struct DeltaState {
     std::uint16_t unused_1A;
     BitStream* reader_;
     int mode_;               // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
-    BitStream header_[2];    // +0x4C
+    BitStream header_[2];
 
     enum Mode { kWriteFull = 0, kWriteDelta = 1, kRead0 = 2, kRead1 = 3, kIdle = 4 };
 

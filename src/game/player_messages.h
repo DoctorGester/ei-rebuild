@@ -47,10 +47,10 @@ static_assert(sizeof(HandlerEntry) == 8 && offsetof(HandlerEntry, address) == 4)
 // them, CreateUnits restores them).
 struct UnitPlacement {
     int id;
-    std::uint32_t position[3];      // +0x04 (float bits)
-    std::uint32_t rotation[4];      // +0x10
-    std::uint32_t value20;          // +0x20
-    std::uint32_t value24;          // +0x24
+    std::uint32_t position[3];      // float bits
+    std::uint32_t rotation[4];
+    std::uint32_t value20;
+    std::uint32_t value24;
 };
 static_assert(sizeof(UnitPlacement) == 0x28);
 
