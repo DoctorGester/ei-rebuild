@@ -727,3 +727,17 @@ or for an index past the party. The selection is the members' flag 0x10 (as 0x10
 portrait's marker gets the chosen value and its face's rest orientation the turn about -x by kHudQuarterTurn /
 7 (or the identity); each chosen member is controlled and the clicked one gets a speech event (id, 0, 0). In
 single player the local player's unit records follow flag 0x10; then
+
+### CHelpWindow::ShowPage
+
+Body of the Rebirth-patched page setup (ui_help_page.cpp; reproducing Rebirth's WideScreen, so hooked in both
+launches). Empties the two lists, the surfaces, regions and scene objects, opens "tutorial <text_>" (without
+it the pending value is set to 0) and goes to the page's "#screen" line. The page's rectangle is (200,
+50)-(600, 560), or "#position left top right [rows]" (at least 300 wide, rows x 16 + 110 high, at most 600).
+Scene objects 0 the plain background, 1 the frame, 2 / 3 / 4 the previous, OK and next buttons; then one
+pulsing frame per "#rectangle left top right bottom" line (with Rebirth's WideScreen some zone tutorial pages'
+frames move by the layout's extra units, as the battle screen's panels) and one entry per "#text [picture]"
+line (the next line's first word is the text's key). Surfaces: 0 the page's title and "title (page/pages)", 1
+the entries' wrapped "tutor <key>" texts (laid out twice when no rows are given: the first pass makes the
+pictures, "tutorial_<picture>" copied into referenced object 1's 64-pixel cells, and gives the height), 2 the
+buttons' texts with the help key's name. Regions 0-2 the buttons.
