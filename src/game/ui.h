@@ -1743,7 +1743,7 @@ public:
     void Update() override;
     // The left button released (input side `this` is the window; ui_battle_update.cpp): a click on the unit
     // under the point through SelectUnit, or a drag selecting the party units inside the box; then
-    // RefreshSelection. Details: docs/notes/ui.md, "Behaviour moved out of ui.h comments".
+    // RefreshSelection. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void OnLButtonUp(int buttons, int x, int y);
     // The mouse moved (also every frame from Draw; input side `this` is the window; ui_battle_mouse.cpp):
     // the portrait pick cursor, the selection box start past BoxSelectThreshold, else the container's
@@ -1793,12 +1793,12 @@ public:
     // client's party change): with exactly one living party unit selected the weapon bar, quick items,
     // spell and action columns show it, otherwise they are emptied; the unit panel shows the first selected
     // unit; the pending action and every panel highlight are cleared. Details: docs/notes/ui.md,
-    // "Behaviour moved out of ui.h comments".
+    // "Behaviour moved out of header comments".
     void RefreshSelection();
     // Party member `index` clicked (portrait, body, SelectUnit, the member keys): nothing on a network
     // client or past the party. With the modifier key the member flips, else it alone is chosen; the
     // world's selection, the portraits' markers and faces, control and the speech event follow. Details:
-    // docs/notes/ui.md, "Behaviour moved out of ui.h comments".
+    // docs/notes/ui.md, "Behaviour moved out of header comments".
     void ToggleMember(int index);
     // The selected members attack `target`: the order kind is the first of the
     // six modifier flags +0x18D.. that is set (6 for none); each selected member's portrait nods
@@ -2759,7 +2759,7 @@ public:
     // empties the lists, surfaces, regions and scene objects, opens "tutorial <text_>" (without it the
     // pending value is set to 0) and builds the page from its "#screen" line: the rectangle (200, 50)-(600,
     // 560) or "#position", the buttons, one pulsing frame per "#rectangle" line, one entry per "#text" line.
-    // Layout details: docs/notes/ui.md, "Behaviour moved out of ui.h comments".
+    // Layout details: docs/notes/ui.md, "Behaviour moved out of header comments".
     void ShowPage();
 
     bool message_;                       // a message window (ShowMessage), not help

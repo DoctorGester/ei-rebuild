@@ -659,9 +659,9 @@ nested wrappers through `Call*` / `...At`; 00742B08 read from memory). Interface
   entries (+0x158) are typed containers (`stlp::vector<SaveEntry>`, `stlp::vector<HudPortraitSlot>`,
   `mfc::CArray<Entry>`), called with their element policies.
 
-## 12. Behaviour moved out of ui.h comments
+## 12. Behaviour moved out of header comments
 
-The long header comments of the battle screen handlers, moved here by the comment cleanup (C22j). The header keeps the gist.
+Long header comments of ui.h, ui_camp.h and the other UI headers, moved here by the comment cleanup. The header keeps the gist.
 
 ### OnLButtonUp
 
@@ -741,3 +741,40 @@ line (the next line's first word is the text's key). Surfaces: 0 the page's titl
 the entries' wrapped "tutor <key>" texts (laid out twice when no rows are given: the first pass makes the
 pictures, "tutorial_<picture>" copied into referenced object 1's 64-pixel cells, and gives the height), 2 the
 buttons' texts with the help key's name. Regions 0-2 the buttons.
+
+### CGlobalMap::OnMouseMove
+
+(input slot 4; Rebirth-patched; reproducing WideScreen, so hooked in both launches: the drag scaled without
+the margin, the pick picture's x without it). The mouse moved. While dragging: the drag motion (printed to the
+stream) turns the map: angle_ += dx / 300 (layout units), taken mod kGlobalMapFullTurn, and turn_ = the tilt
+(pi * 0.8 about x) times the spin about z; the motion is cleared. Otherwise the zone or link under the mouse
+is selected (a link's region 3..; or, off every region, the zone read from the backdrop's pixel at half the
+point, on gipat its link when it has one; nothing while a turn button is held) and its tip shown: the first
+surface with the title and the titles of the zone's quests, the last two sprites behind it; a zone in state 0
+or nothing hides the tip. A new name plays "buttons\globalmap\zone.wav". Regions past the links do nothing.
+
+### CGlobalMap::OnLeftDown
+
+(Input slot 2. Rebirth's WideScreen patches it and this reproduces the patch: the pick picture's x is read
+without the margin; ui_global_map_paths.cpp.) The left button pressed (nothing while dragging). Regions 0 / 1,
+the turn buttons: turning_ -1 / +1 and "buttons\globalmap\move.wav". Region 2, the camp (unless noCamp_ is 1):
+"buttons\globalmap\transit.wav", the constructor 0 and screen 5 asked for. A link (regions 3..), or on gipat a
+zone that has one: "buttons\globalmap\ok.wav", the ways to the link's zone searched from the local player's
+zone and, when there is one, the time of arrival exit 0 passed and the zone asked for at entrance 0. Any other
+zone under the mouse (read from the backdrop's pixel at half the point; its state not 0): the sound, the
+search, and the objectives window (built inline) opened over the map with the zone, the arrival times, two
+buttons and no zone list.
+
+### CCampPages::BuildPages
+
+Create's body. Builds the camp: the server flag set; the constructor's class template from the player's
+"constr.current" (none found: back to the world, nothing built) with its flags, price weights and part lists;
+the player's "i.noconstr" / "i.off..." / "i.on..." switches; texture "campinfo", twelve regions (the two
+action buttons, the two hero turn areas, the eight page buttons) and ten button sprites; the item screen's
+base; two surfaces; seven item lists; the panels (description, statistics, help, the item strip, equipment,
+quick items, trade, and each offered constructor's strip and pages); the party's heroes handed to the client
+world as units (records of class 0x32, ids raised by 100000000 meanwhile), each idling, armed from its record
+and wearing its armour; the first hero shown the page titles; the first page (4 item constructor, 2 spell
+constructor, else 0); a constructor's stock made on its first visit (flag38) from the party's lowest and
+highest skill per spell school; the allod's constructor music; antialiasing (render state 2 = 2) when the
+device sorts independently.
