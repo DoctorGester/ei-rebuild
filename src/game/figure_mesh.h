@@ -1,7 +1,7 @@
 #pragma once
 
-// Figure meshes: the game-side figure part objects created by the figure factory (class ids 0x41-0x44) and
-// their loaders. Names provisional; see the "Figure meshes" section of docs/notes/world.md.
+// Figure meshes: the figure part objects created by the figure factory (class ids 0x41-0x44) and their
+// loaders. See docs/notes/world.md, "Figure meshes".
 
 #include "core_transform.h"
 #include "maths.h"
@@ -17,9 +17,9 @@
 
 #undef GetClassName   // CEngineObject::GetClassName
 
-// Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the loaders set w
-// to 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2. 0x40 bytes. Also the moved positions the
-// part drawers build. `block` is four rows of lanes, not a matrix (check_cleanup skips the name).
+// Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the loaders set w to
+// 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2. Also the moved positions the part drawers
+// build. `block` is four rows of lanes, not a matrix (check_cleanup skips the name).
 struct VertexPacket {
     float block[4][4];
 };
@@ -35,20 +35,20 @@ struct TexCoord {
 };
 static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6);
 
-// What the renderer draws from (+0x9C): pointers and counts of the mesh's arrays (class 0x41 points
-// the last four into the loaded file data instead).
+// What the renderer draws from (CFigureMesh::buffers_): pointers and counts of the mesh's arrays (class 0x41
+// points the last four into the loaded file data instead).
 struct MeshBuffers {
-    void* vertices;     // (+0x9C) VertexPacket
+    void* vertices;     // VertexPacket
     int vertexCount;    // packets
-    void* normals;      // (+0xA4) NormalPacket
+    void* normals;      // NormalPacket
     int normalCount;
-    void* texCoords;    // (+0xAC) TexCoord
+    void* texCoords;    // TexCoord
     int texCoordCount;
-    void* corners;      // (+0xB4) MeshCorner
+    void* corners;      // MeshCorner
     int cornerCount;
-    void* words;        // (+0xBC) 4-byte elements, unknown
+    void* words;        // 4-byte elements, unknown
     int wordCount;
-    void* indices;      // (+0xC4) uint16 corner indices, 3 per triangle
+    void* indices;      // uint16 corner indices, 3 per triangle
     int indexCount;
 };
 static_assert(sizeof(MeshBuffers) == 0x30);
@@ -75,18 +75,13 @@ struct FigureLights {
     int count;
 };
 
-// The figure meshes' base ("CFigure"): the layout the classes below share (0x1E0 bytes, class 0x41's object;
-// class 0x42 adds four arrays, CPlainFigureMesh). A CTransformObject (core_transform.h: the engine object's
-// fields, the local and world position and rotation). The parts of an object's figure (CObject3D::parts) are
-// these. A real virtual class: the classes 0x41 (CSharedFigureMesh), 0x42 (CPlainFigureMesh), 0x43 (CUiMesh,
-// ui.h) and 0x44 (CSkyObject, sky_object.h) have C++ constructors and the compiler's vtables. Abstract: two
-// virtuals are the derived classes'.
+// The figure meshes' base ("CFigure"): the parts of an object's figure (CObject3D::parts). Derived: 0x41
+// CSharedFigureMesh, 0x42 CPlainFigureMesh, 0x43 CUiMesh (ui.h), 0x44 CSkyObject (sky_object.h).
 class CFigureMesh : public CTransformObject {
 public:
-    // The overridden virtuals; the others are CTransformObject's.
     int Create() override;                 // CreateMesh (the derived classes' Create jumps to it)
     void Destroy() override;               // Clear
-    const char* GetName() override;        // name_
+    const char* GetName() override;
     const char* GetClassName() override;
     int GetClassId() override;             // 0x44
     // Sets the rotation, rotates the position by it (plus `offset`, copied to a member) and
@@ -96,12 +91,11 @@ public:
     // (buffers_) as a count and its elements, a 0, then centre, box, radius and two trailing dwords.
     // CPlainFigureMesh::LoadTransform reads it back.
     void SaveTransform(mfc::CFileVirtuals* file) override;
-    // Copies another mesh's transform, name, the shared buffer
-    // descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
+    // Copies another mesh's transform, name, the shared buffer descriptors (texture coordinates, corners,
+    // words, indices), spareDC_ and the bounds.
     virtual void CopyFigure(const CFigureMesh* other);
-    // LoadFromMemory (classes 0x42-0x44 / 0x41, byte-identical; figure_manager.cpp). Loads the mesh from memory at
-    // *cursor once (flags_ 0x20 set afterwards): data whose first dword starts with "FIG" through the FIG
-    // loader, other data through the older-format one. (The abstract base's own is LoadNothing below.)
+    // Loads the mesh from memory at *cursor once (flags_ 0x20 set afterwards): data whose first dword starts
+    // with "FIG" through LoadFig, other data through LoadOld.
     virtual void LoadFromMemory(char** cursor, float s, float t, float u);
     virtual void LoadFig(char** cursor, float s, float t, float u) = 0;   // "FIG" data
     virtual void LoadOld(char** cursor, float s, float t, float u) = 0;   // the older format
@@ -114,8 +108,7 @@ public:
 
     // The abstract base has no mesh to read: only marks itself loaded (flags_ 0x20).
     void LoadNothing(char** cursor, float s, float t, float u);
-    // figure_mesh.cpp (the interface's item models). Fits bounds_ around the vertices (the transform pipeline's
-    // fit); nothing without vertices.
+    // Fits bounds_ around the vertices; nothing without vertices.
     void FitVertexBounds();
 
     // Called for every part of a CObject3D: grows the world-space box [min, max] by the 8 corners of this part's
@@ -134,34 +127,26 @@ public:
     // bounds grown) with the vertices moved by offsets_ when there are any (into a shared buffer). Returns the
     // vertex count (4 per packet).
     int DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds);
-    // figure_rasterise.cpp (the shadow pass): the projected `points` rasterised into `target` through
-    // `rasteriser`, each triangle with its texture coordinates scaled to 0..255 (keyed when the target has key
-    // texels); returns the number of points used (4 per vertex).
+    // The shadow pass: the projected `points` rasterised into `target` through `rasteriser`, each triangle with
+    // its texture coordinates scaled to 0..255 (keyed when the target has key texels); returns the number of
+    // points used (4 per vertex).
     int Rasterise(CPixelConverter* rasteriser, const RasterTriangle::Point* points, RasterTarget* target);
 
-    // Lifetime. CreateMesh, the create virtual of every figure class: no drawer, flags,
-    // buffers or bounds; white flat colours. Returns 1.
+    // The create virtual of every figure class: no drawer, flags, buffers or bounds; white flat colours.
+    // Returns 1.
     int CreateMesh();
-    // Clear: names and colour arrays emptied, the buffer descriptor cleared, the drawer let go (released), no
-    // flags.
+    // Names and colour arrays emptied, the buffer descriptor cleared, the drawer released, no flags.
     void Clear();
     // Lets the old drawer go (released) and takes `drawer` (one more reference, its mesh_ set).
     void SetDrawer(FigureMeshDrawer* drawer);
     void SetObject(CObject3D* object);
 
 protected:
-    // The constructor the classes 0x41-0x43 share (the names are members): the transform object's fields, no
-    // owner, empty arrays, no bounds (SetUpFigure), then CreateMesh.
     CFigureMesh();
-    // The deleting destructor: TearDownFigure (Clear, the colour and offset arrays), then the names and the
-    // engine object's destructor.
     ~CFigureMesh() override;
 
 private:
-    // The constructor's work: the engine object's fields, identity rotations, no object, empty offset and
-    // colour arrays, no bounds (the names are constructed before it).
     void SetUpFigure();
-    // The destructors' shared work: Clear, then the colour and offset arrays freed.
     void TearDownFigure();
 
 public:
@@ -173,28 +158,26 @@ public:
     // ObjectWorldMatrix in map_object_shadow.h).
     Matrix4 worldMatrix_;
     FigureMeshDrawer* drawer_;
-    CObject3D* object_;                 // the object whose figure (+0xF0) may draw the mesh
+    CObject3D* object_;                 // the object whose figure may draw the mesh
     MeshBuffers buffers_;
-    // / +0x0D0 passed to the draws after the buffers (as their bits): the texture offset
-    // (u, v) an animated mesh's drawer sets per frame (FigureMeshDrawer::Animate); an interface
-    // sprite's frame of its sprite sheet (CUiMesh, ui.h).
+    // passed to the draws after the buffers (as their bits): the texture offset (u, v) an animated mesh's
+    // drawer sets per frame (FigureMeshDrawer::Animate); an interface sprite's frame of its sprite sheet.
     float textureOffsetU_;
     float textureOffsetV_;
-    // / +0x0D8 every colour / specular of a flat mesh (flags_ 0x100); set for every part of
-    // an object by CObject3D::SetPartsFlatColour / SetPartsFlatSpecular (the interface's model view).
+    // every colour / specular of a flat mesh (flags_ 0x100); set for every part of an object by
+    // CObject3D::SetPartsFlatColour / SetPartsFlatSpecular (the interface's model view).
     std::uint32_t flatColour_;
     std::uint32_t flatSpecular_;
     std::uint32_t spareDC_;             // cleared by Create, copied by CopyFrom; nothing reads it
-    // the pose matrix (row-major): UpdateWorld's rotation, its translation row (+0x110) the moved position.
+    // the pose matrix (row-major): UpdateWorld's rotation, its translation row the moved position.
     Matrix4 poseMatrix_;
     mfc::CString name_;                 // (the scene loader names it after its mesh)
     mfc::CString directory_;            // where its .fig file is (NewFigure empties it)
     lib::AlignedArray<Vector3> offsets_;     // per-vertex offsets added when drawing
     lib::AlignedArray<std::uint32_t> colorsA_;   // one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // one per normal
-    // from the file header (before meshType_): the material value of the scene's mesh
-    // (SceneMesh::materialValue, the number in its material group's name; scene_registry.cpp). An
-    // object's part takes both from its piece's LinkPartHeader (CObject3D::LoadPart).
+    // from the file header (before meshType_): the material value of the scene's mesh (the number in its
+    // material group's name). An object's part takes both from its piece's LinkPartHeader (CObject3D::LoadPart).
     std::uint32_t materialValue_;
     std::uint32_t meshType_;            // from the file header; 13..16: animated
     Vector3 center_;
@@ -223,17 +206,14 @@ static_assert(offsetof(CFigureMesh, bounds_) == 0x188);
 static_assert(offsetof(CFigureMesh, vertices_) == 0x1C0);
 static_assert(sizeof(CFigureMesh) == 0x1E0);
 
-// Class 0x41 (22 virtuals; 0x1E0 bytes): a part whose last four buffers point into the loaded file data (the
-// figure manager's parts that are not attached).
+// Class 0x41: a part whose last four buffers point into the loaded file data (the figure manager's parts that
+// are not attached).
 class CSharedFigureMesh : public CFigureMesh {
 public:
-    // The figure factory's class 0x41 (inlined there): CFigureMesh's constructor, then the vertices and normals
-    // empty.
     CSharedFigureMesh();
     ~CSharedFigureMesh() override;
 
-    // The virtuals: CFigureMesh's but for the deleting destructor, Clear and the FIG loader (Create jumps to
-    // CreateMesh). Clear: the vertices and normals emptied, then CFigureMesh's Clear.
+    // Clear: the vertices and normals emptied, then CFigureMesh's Clear.
     void Destroy() override;
     // The FIG loader. CPlainFigureMesh's, but only the vertices and records are copied; the other
     // buffers point into the file data.
@@ -242,18 +222,14 @@ public:
     void LoadOld(char** cursor, float s, float t, float u) override;
 };
 
-// Class 0x42 (24 virtuals; 0x220 bytes): a mesh that owns all its arrays (the figure manager's attached parts,
-// the scene's figure records). CUiMesh (class 0x43, ui.h) and CSkyObject (0x44, sky_object.h) derive from it.
+// Class 0x42: a mesh that owns all its arrays (the figure manager's attached parts, the scene's figure
+// records). CUiMesh (class 0x43, ui.h) and CSkyObject (0x44, sky_object.h) derive from it.
 class CPlainFigureMesh : public CFigureMesh {
 public:
-    // The figure factory's class 0x42 and the scene's records inline it:
-    // CFigureMesh's constructor, then the six arrays empty.
     CPlainFigureMesh();
     ~CPlainFigureMesh() override;
 
-    // The virtuals: CFigureMesh's but for the deleting destructor, Clear, the file reader and the four loaders
-    // and mirrors (Create jumps to CreateMesh). Clear: the mesh's own arrays emptied, then
-    // CFigureMesh's Clear.
+    // Clear: the mesh's own arrays emptied, then CFigureMesh's Clear.
     void Destroy() override;
     void LoadTransform(mfc::CFileVirtuals* file) override;
     // Loads a "FIG" mesh from memory at *cursor (advanced past it), morphing FIG8 vertices; once only (flag

@@ -36,7 +36,6 @@ struct Str : mfc::CString {
 inline Str& Ops(mfc::CString& s) { return static_cast<Str&>(s); }
 inline const Str& Ops(const mfc::CString& s) { return static_cast<const Str&>(s); }
 
-// MFC CStringArray as a local or member: mfc::CStringArray constructed and destroyed with the object.
 class CStringArray : public mfc::CStringArray {
 public:
     CStringArray() { Construct(); }
@@ -53,7 +52,7 @@ public:
     virtual void WriteString(const char* text);
 };
 
-// MFC CStdioFile (0x14 bytes: CFile and the FILE*). Locals only.
+// MFC CStdioFile. Locals only.
 class CStdioFile {
 public:
     enum { modeRead = 0, modeWrite = 1, modeCreate = 0x1000, typeText = 0x4000 };
@@ -99,10 +98,8 @@ public:
 };
 static_assert(sizeof(GameOStream) == 8);
 
-// One of the console's eight static ostreams (0x58 bytes): the ostream part and its ios, the virtual
-// base, right after it. Zero until its static initialiser constructs it on its streambuf
-// (ostream(streambuf*, 1)); the exit function that initialiser registers destroys it
-//.
+// One of the console's eight static ostreams: the ostream part and its ios (the virtual base) right after it.
+// Zero until its static initialiser constructs it on its streambuf; the initialiser's exit function destroys it.
 struct OStreamObject : GameOStream {
     libcrt::Ios ios;
 };
@@ -151,7 +148,7 @@ static_assert(sizeof(ConsoleStreambuf) == 0x454);
 // console window gets it. In the original-game run the harness hooks the original's sync instead.
 extern void (*g_consoleLineObserver)(const char* line);
 
-// The streambufs, one per message filter (console_streams.cpp; zero until their static initialisers construct them).
+// The streambufs, one per message filter (zero until their static initialisers construct them).
 extern lib::StaticObject<ConsoleStreambuf> g_consoleBuf;       // filter 0
 extern lib::StaticObject<ConsoleStreambuf> g_allLogBuf;        // -1
 extern lib::StaticObject<ConsoleStreambuf> g_netLogBuf;        // 0x20
@@ -184,13 +181,12 @@ public:
     void DrawInput();                          // the input line, selection and caret
     // Called by the interface's 2D redraw while the console is shown. The surface's blit when there is one.
     void Blit();
-    // Called by the interface's shutdown, which deletes the window. Frees the surface and the font, then
-    // the members (lines, input text, command history).
+    // Called by the interface's shutdown, which deletes the window.
     void DestroyBody();
 
     CInterface3D* screen_;           // the 3D interface (its width_ and height_ in pixels)
     CUiSurface* surface_;            // while shown
-    mfc::impl::CFont* font_;         // CFont (selected into the surface's CDC)
+    mfc::impl::CFont* font_;         // selected into the surface's CDC
     CStringArray commands_;          // commands entered (input history)
     int commandIndex_;               // the one shown by up/down (-1 or size: none)
     mfc::CString input_;             // the line being typed
@@ -216,18 +212,16 @@ static_assert(offsetof(ConsoleWindow, commands_) == 0x0C && offsetof(ConsoleWind
 // Console commands: void handler(CStringArray* args) with the arguments (lower case).
 using CommandHandler = void(__fastcall*)(CStringArray* args);
 
-// STLport map<CString, CommandHandler> (red-black tree, keys by _mbscmp). The header node's parent
-// is the root. Its members are registered by library_trees.cpp.
+// Keys compared by _mbscmp.
 using CommandMap = stlp::map<mfc::CString, CommandHandler, stlp::CStringLess>;
 using CommandNode = CommandMap::Node;
 static_assert(sizeof(CommandNode) == 0x18);
 
-// Operator[] (lib_trees::Commands'): the handler slot for `key`, inserted with a null handler if missing.
+// The handler slot for `key`, inserted with a null handler if missing.
 CommandHandler& Command(CommandMap* map, const std::string& key);
 
 static_assert(sizeof(CommandMap) == 0xC);
-// The commands always available and those after the cheat word (console_streams.cpp; built empty by their static
-// initialisers, destroyed at exit).
+// The commands always available and those after the cheat word.
 extern lib::StaticObject<CommandMap> g_publicCommands;
 extern lib::StaticObject<CommandMap> g_cheatCommands;
 inline CommandMap* PublicCommands() { return &g_publicCommands.Get(); }
@@ -260,34 +254,33 @@ void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args
                               const char* suffix);
 
 namespace commands {
-void __fastcall Help(CStringArray* args);          // help
-void __fastcall DebugInfo(CStringArray* args);     // debuginfo
+void __fastcall Help(CStringArray* args);
+void __fastcall DebugInfo(CStringArray* args);
 void __fastcall ConsolePos(CStringArray* args);    // console
-void __fastcall History(CStringArray* args);       // history
-void __fastcall Filter(CStringArray* args);        // filter
-void __fastcall Show(CStringArray* args);          // show
-void __fastcall ListVar(CStringArray* args);       // listvar
-void __fastcall LoadVar(CStringArray* args);       // loadvar
-void __fastcall LastFps(CStringArray* args);       // lastfps
+void __fastcall History(CStringArray* args);
+void __fastcall Filter(CStringArray* args);
+void __fastcall Show(CStringArray* args);
+void __fastcall ListVar(CStringArray* args);
+void __fastcall LoadVar(CStringArray* args);
+void __fastcall LastFps(CStringArray* args);
 void __fastcall Exec(CStringArray* args);          // exec, execute
-void __fastcall Give(CStringArray* args);          // give
-void __fastcall LootAll(CStringArray* args);       // lootall
-void __fastcall Join(CStringArray* args);          // join
+void __fastcall Give(CStringArray* args);
+void __fastcall LootAll(CStringArray* args);
+void __fastcall Join(CStringArray* args);
 void __fastcall HostServer(CStringArray* args);    // server
-void __fastcall MemUsage(CStringArray* args);      // memusage
-void __fastcall Disconnect(CStringArray* args);    // disconnect
-void __fastcall FadeOut(CStringArray* args);       // fadeout
-void __fastcall Net(CStringArray* args);           // net
-void __fastcall GenerateAcks(CStringArray* args);  // generateacks
-void __fastcall Days(CStringArray* args);          // days
-void __fastcall PartyResend(CStringArray* args);   // partyresend
-void __fastcall Kick(CStringArray* args);          // kick
-void __fastcall Ban(CStringArray* args);           // ban
-void __fastcall Fps(CStringArray* args);           // fps
-void __fastcall Rate(CStringArray* args);          // rate
-void __fastcall LocalRate(CStringArray* args);     // localrate
-// generateacks' (a null list writes nothing):
-// lines for a speech list / an environment speech list. See console_commands.cpp.
+void __fastcall MemUsage(CStringArray* args);
+void __fastcall Disconnect(CStringArray* args);
+void __fastcall FadeOut(CStringArray* args);
+void __fastcall Net(CStringArray* args);
+void __fastcall GenerateAcks(CStringArray* args);
+void __fastcall Days(CStringArray* args);
+void __fastcall PartyResend(CStringArray* args);
+void __fastcall Kick(CStringArray* args);
+void __fastcall Ban(CStringArray* args);
+void __fastcall Fps(CStringArray* args);
+void __fastcall Rate(CStringArray* args);
+void __fastcall LocalRate(CStringArray* args);
+// generateacks' lines for a speech list / an environment speech list (a null list writes nothing).
 void __fastcall WriteSpeechLines(CStdioFileVirtuals* file, const acks::Speeches* list);
 void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file, const acks::EnvironmentSpeeches* list);
 } // namespace commands

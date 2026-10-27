@@ -1,13 +1,11 @@
 #pragma once
 
-// Item names and descriptions from the game's text resources. The game keeps its localized texts in
-// resource archives (CMappedResource, resource.h). A text manager (a global pointer; class name unknown,
-// provisional CTextManager) holds a list of those archives and a read cursor into the last text it found. A
-// text is looked up by key ("string format_item1", "weapon SWORD IRON", ...): the first archive whose
-// GetFile knows the key wins, and the cursor is set to the start of the file's data. Then one line is read
-// from the cursor (the name) or up to a '#' (the description). Keys of items are built from the database
-// records: the record's name CString, spaces replaced by '_' and upper-cased, after a prefix
-// that depends on the item kind.
+// Item names and descriptions from the game's text resources. A text manager holds a list of resource
+// archives (CMappedResource) and a read cursor into the last text it found. A text is looked up by key
+// ("string format_item1", "weapon SWORD IRON", ...): the first archive that knows the key wins, and the cursor
+// is set to the start of the file's data. Then one line is read from the cursor (the name) or up to a '#' (the
+// description). Item keys are the record's name, spaces replaced by '_' and upper-cased, after a prefix that
+// depends on the item kind.
 
 #include "item.h"
 
@@ -18,23 +16,21 @@
 class CMappedResource;
 namespace console { class CStringArray; }
 
-// An archive the texts are looked up in: the pair<string, CMappedResource*> of the archive list.
+// An archive the texts are looked up in.
 struct TextSource {
     stlp::string name;
     CMappedResource* source;
 };
 static_assert(sizeof(TextSource) == 0x10);
 
-// The archive list (STLport list<pair<string, CMappedResource*>>, CTextManager +0x1C). Nodes come
-// from the STLport node allocator's 0x18-byte free list.
+// The archive list (CTextManager::sources_).
 struct TextSources : stlp::list<TextSource> {
-    // The list's begin (also its byte-identical copies in other lists): *out = the first node.
+    // *out = the first node.
     void Begin(Node** out);
-    // Erase(pos): unlinks the node, frees its name and returns the node to the free list;
     // *out = the next node. Returns out.
     Node** Erase(Node** out, Node* pos);
     Node* CreateNode(const TextSource* value);
-    // Insert(pos, value): a new node linked before `pos`; *out = the new node. Returns out.
+    // A new node linked before `pos`; *out = the new node. Returns out.
     Node** Insert(Node** out, Node* pos, const TextSource* value);
     // Add: unless an archive of that exact name is listed (then 1), appends a new
     // CMappedResource under `path` and returns its OpenResource(path, writable); a failed open stays in the
@@ -46,11 +42,9 @@ struct TextSources : stlp::list<TextSource> {
     void DestructList();
     // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which
     // must not be null), or null: the file's bytes as they are. FindText (ours): the same, as text: with
-    // EI_UTF8 its UTF-8 copy, the size that copy's. CTextManager::Open reads through
-    // FindText, OpenData through Find (the archives also hold binary files: the quest registries). Lists
-    // the files: `out` emptied, then the names matching `pattern` of every archive appended in list order
-    // (ListFiles; a name in two archives is listed twice). Rebirth patches ListFiles (ResOverride redirects
-    // the call): this is the vanilla function and installs in the vanilla launch only.
+    // EI_UTF8 its UTF-8 copy, the size that copy's. ListKeys: `out` emptied, then the names matching `pattern`
+    // of every archive appended in list order (a name in two archives is listed twice); Rebirth patches it
+    // (ResOverride redirects the call).
     void* Find(const char* key, std::uint32_t* size);
     void* FindText(const char* key, std::uint32_t* size);
     void ListKeys(mfc::CStringArray* out, const char* pattern);
@@ -60,14 +54,12 @@ static_assert(sizeof(TextSources) == 4);
 
 class CTextManager : public CEngineObject {
 public:
-    // The constructor as the client world's Setup inlines it: the engine
-    // object's fields, the archive list, then Create.
     CTextManager();
-    // Deleting destructor. ClearSources, then the archive list's own clear and
-    // destruction (the sentinel back to the node pool).
     ~CTextManager() override;
 
-    int Create() override;                  // below
+    // setlocale(LC_CTYPE, the "Font CharSet" option, "english" by default), then the C runtime's multibyte
+    // code page set to the locale's; returns 1. The constructor calls it too.
+    int Create() override;
     void Destroy() override { ClearSources(); }
     const char* GetClassName() override;
     int GetClassId() override;              // class id 0x2A
@@ -89,8 +81,8 @@ public:
     // in the texts; parts that are not found stay empty. Always returns 1.
     BOOL GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);
 
-    // The item's display name: "format_item1" (or "format_item2" with the stack count
-    // when the item's +0x48 is above 1) applied to the kind and the name.
+    // The item's display name: "format_item1" (or "format_item2" with the stack count when count_ is above
+    // 1) applied to the kind and the name.
     BOOL FormatItemName(CItem* item, mfc::CString* out);
 
     // The line reader.
@@ -114,13 +106,10 @@ public:
     // compare the line's words, lower-cased, with them. 1 when found, else 0 (cursor at the end).
     BOOL FindLine(const char* key);
 
-    // The archive list: sources_.Add(path, 0), sources_.Remove(path), sources_.Clear().
     BOOL AddSource(const char* path);
     void RemoveSource(const char* path);
     void ClearSources();
-    // Text_sources.cpp. The names matching `pattern` ("pers *") of every archive into `out` (ListFiles on
-    // sources_). Create (the constructor also calls it): setlocale(LC_CTYPE, the "Font CharSet" option,
-    // "english" by default), then the C runtime's multibyte code page set to the locale's; returns 1.
+    // The names matching `pattern` ("pers *") of every archive into `out`.
     void ListKeys(mfc::CStringArray* out, const char* pattern);
 
     TextSources sources_;
@@ -132,14 +121,11 @@ static_assert(offsetof(CTextManager, sources_) == 0x1C);
 static_assert(offsetof(CTextManager, length_) == 0x28);
 static_assert(offsetof(CTextManager::SourceNode, data.source) == 0x14);
 
-// The game's text manager.
-
 using TextSourceNode = TextSources::Node;
 
 struct TextSourceIterator {
     CTextManager::SourceNode* node;
-    // *out = node; returns `out` in EAX, which some callers use (the sector lists' End); also its
-    // byte-identical copies.
+    // *out = node; returns `out`, which some callers use (the sector lists' End).
     CTextManager::SourceNode** CopyTo(CTextManager::SourceNode** out);
 };
 
