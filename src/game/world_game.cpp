@@ -894,11 +894,11 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
     {
         net::ServerSession* server = net::NewCounted<net::ServerSession>(gameType);
-        reinterpret_cast<RefPtr*>(&net::GameServer())->Assign(reinterpret_cast<CRefObject*>(server));
+        AssignCounted(net::GameServer(), server);
     }
     {
         net::ClientSession* client = net::NewCounted<net::ClientSession>();
-        reinterpret_cast<RefPtr*>(&net::GameClient())->Assign(reinterpret_cast<CRefObject*>(client));
+        AssignCounted(net::GameClient(), client);
     }
     // The local client connects to the local server with the password as its hello.
     net::NetAddress address = {};
@@ -923,9 +923,9 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 
 void GameFlow::StartClient() {
     net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
-    reinterpret_cast<RefPtr*>(&net::GameServer())->Assign(nullptr);
+    AssignCounted(net::GameServer(), static_cast<net::ServerSession*>(nullptr));
     net::ClientSession* client = net::NewCounted<net::ClientSession>();
-    reinterpret_cast<RefPtr*>(&net::GameClient())->Assign(reinterpret_cast<CRefObject*>(client));
+    AssignCounted(net::GameClient(), client);
     AfterServerStart();
 }
 EI_REWRITTEN(0x0057EA50, GameFlow::StartClient);

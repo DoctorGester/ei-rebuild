@@ -103,7 +103,7 @@ public:
     float glow;              // phase of the spell glow
 };
 static_assert(sizeof(ItemTurn) == 0x18);
-inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(item->link_); }
+inline ItemTurn* ItemTurnOf(CItem* item) { return static_cast<ItemTurn*>(item->link_); }
 
 class CParty;
 class CItemScreen;

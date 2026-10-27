@@ -477,7 +477,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
         CItemLink* ref = new CItemLink();
         ref->value = static_cast<std::uint32_t>(entry->id_);
-        reinterpret_cast<RefPtr*>(&item->link_)->Assign(reinterpret_cast<CRefObject*>(ref));
+        AssignCounted(item->link_, ref);
     }
     for (int slot = 0; slot < kWornSlots; ++slot) {
         CItem* item = unit->WornItem(slot);
@@ -485,7 +485,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
         CItemLink* ref = new CItemLink();
         ref->value = static_cast<std::uint32_t>(entry->id_);
-        reinterpret_cast<RefPtr*>(&item->link_)->Assign(reinterpret_cast<CRefObject*>(ref));
+        AssignCounted(item->link_, ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
         auto* item = unit->GetQuickItem(slot);

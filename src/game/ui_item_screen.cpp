@@ -219,15 +219,14 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, i
     CItem* moved = AddItemAt(to, item, whole, merge);
     RemoveItemAt(from, item, whole);
     if (static_cast<std::uint8_t>(turning)) {
-        ItemTurn*& slot = ItemTurnOf(moved);   // a null result faults here, like the original
-        if (!slot) {
+        if (!ItemTurnOf(moved)) {   // a null item faults here, like the original
             auto* turn = new ItemTurn();
             turn->angle = 0.0f;
             turn->speed = 0.0f;
-            slot = turn;
+            moved->link_ = turn;
             ++turn->refs_;
         }
-        slot->flag = true;
+        ItemTurnOf(moved)->flag = true;
     }
     return moved;
 }

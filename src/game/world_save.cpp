@@ -383,7 +383,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 missile->Load(stream);
                 auto& list = projectiles_;
                 ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);
-                reinterpret_cast<RefPtr*>(&node->data)->Assign(reinterpret_cast<CRefObject*>(missile));
+                AssignCounted(node->data, missile);
                 if (list.tail) list.tail->next = node;
                 else list.head = node;
                 list.tail = node;
