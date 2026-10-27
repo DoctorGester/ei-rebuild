@@ -3306,6 +3306,14 @@ depends = ["C22i"]
 note = "C22i cut its batch 16% (8,632 to 7,244), half the target, mostly by mechanical rules. Left: hand passes on particle_callbacks.cpp (752 comment lines; element offsets now named unions), net_messages.h, player_client.h, map_object_shadow.h, net_connection.h, net_link.h, net_coder.h, net_lobby.cpp, particle_emitters.cpp; .cpp comments repeating the header's on the same method; ~145 inlined/register notes and ~127 slot mentions in prose. docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
 
 [[ticket]]
+id = "C22h2"
+title = "Comment removal C22h, second pass: offsets in prose, step-by-step declaration comments"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22h"]
+note = "C22h cut its batch 16% (8,643 to 7,262), half the target. Left: ~280 +0xNN mentions inside prose (item_stock.h/.cpp, combat.cpp, combat_*.cpp, class_templates.h: name the member or drop), multi-line declaration comments that walk the body (combat.h, ai_map.h), 1,752 trailing comments only touched for offsets, 179 long-block lines (move file-header research to docs/notes), ~80 slot and ~107 register mentions. docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
