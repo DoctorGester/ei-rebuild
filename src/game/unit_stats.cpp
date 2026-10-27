@@ -26,7 +26,7 @@ constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0.2
 constexpr int kDamageWords = 7;   // words 1..7 of a damage / protection block
 constexpr float kPointEight = std::bit_cast<float>(0x3F4CCCCDu);    // 0.8
 
-// Skill levels 21 and 22 (+0x6E8, +0x6E9) index the level table from these bases.
+// Skill levels 21 and 22 index the level table from these bases.
 constexpr int kLevelBase6E8 = 0x3E;
 constexpr int kLevelBase6E9 = 0x41;
 
@@ -143,7 +143,7 @@ double UnitStats::Reduce(float value) {
             taken = value * slot.factor + taken;   // also NaN
         }
     }
-    return value - taken;   // unrounded (ST0)
+    return value - taken;   // unrounded
 }
 EI_REPLACE_METHOD(0x005259B0, UnitStats::Reduce);
 
@@ -152,7 +152,7 @@ double UnitStats::ReduceKind1(float value) {
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind == 1) taken = value * slot.factor + taken;
     }
-    return value - taken;   // unrounded (ST0)
+    return value - taken;   // unrounded
 }
 EI_REPLACE_METHOD(0x00524020, UnitStats::ReduceKind1);
 
@@ -170,8 +170,8 @@ BOOL LockKey::Opens(const LockKey* lock) const {
     if ((common & 8) == 8 && id == lock->id) return 1;
     if ((common & 7) == 0) return 0;
     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixLeversActivate)) {
-        // Rebirth: levels compared signed; a lock of level 0 gives the key's level + 1 (its INC EAX),
-        // so a key of level -1 (0xFFFFFFFF) no longer opens it.
+        // Rebirth: levels compared signed; a lock of level 0 gives the key's level + 1, so a key of level -1
+        // (0xFFFFFFFF) no longer opens it.
         if (lock->level == 0) return static_cast<BOOL>(level + 1);
         return static_cast<std::int32_t>(level) < static_cast<std::int32_t>(lock->level) ? 0 : 1;
     }
@@ -212,7 +212,7 @@ std::uint32_t DamageWords::ExcessOver(const DamageWords* protection) const {
 }
 EI_REPLACE_METHOD(0x00522AE0, DamageWords::ExcessOver);
 
-// On the damage words (thiscall): the largest of words 1..7 (unsigned), in AX.
+// The largest of the damage words 1..7 (unsigned).
 std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage) {
     std::uint16_t largest = 0;
     for (int i = 1; i <= kDamageWords; ++i)

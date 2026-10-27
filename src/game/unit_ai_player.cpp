@@ -26,9 +26,9 @@ constexpr int kDirectControl = 2;                               // CPlayerServer
 constexpr std::uint32_t kChoosingFlag = 0x4000000;              // CEngineObject::flags_ while choosing
 constexpr float kReachScale = std::bit_cast<float>(0x3F8CCCCDu);    // (1.1)
 constexpr float kOne = 1.0f;
-constexpr float kMovingSlack = 2.0f;                            // 0x40000000
+constexpr float kMovingSlack = 2.0f;
 constexpr float kStandingSlack = std::bit_cast<float>(0x3FB33333u); // 1.4
-constexpr float kNoRadius = -1.0f;                              // 0xBF800000
+constexpr float kNoRadius = -1.0f;
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 

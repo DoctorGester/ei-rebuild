@@ -66,7 +66,7 @@ const char* const kIntroMovie = "Movies\\Intro.bik";
 // The stone animation each region plays while hovered.
 constexpr int kStoneAnimation[6] = {1, 3, 5, 7, 11, 9};
 
-// A random word scaled to [0, scale), loaded as FILD qword of the unsigned word.
+// A random word scaled to [0, scale) (the word read unsigned, as a 64-bit integer).
 double RandomScaled(double scale) { return x87::FromUnsigned(IsaacRandom::Global().Next()) * scale; }
 
 } // namespace
@@ -108,7 +108,7 @@ EI_REWRITTEN(0x006335E0, CMainMenu::AddVersionLine);
 void CMainMenu::CreateScreen() {
     interface_->ResetSavedState();
     TheGameFlow()->UseResources(false);
-    UiInputSide* inert = new UiInertInput(interface_);   // 0xC bytes
+    UiInputSide* inert = new UiInertInput(interface_);
     AddInput(inert);
     hovered_ = -1;
     rect_ = RECT{0, 0, 800, 600};

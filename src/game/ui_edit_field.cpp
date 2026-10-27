@@ -28,8 +28,6 @@ constexpr int kKeyRight = 0x27;
 constexpr int kKeyDelete = 0x2E;
 } // namespace
 
-// --- ------------------------------------------------------------------------------------
-
 void CUiEditField::OnKeyDown(int key, int, int) {
     if (!focused_) return;
     mfc::CString& text = Text();
@@ -98,7 +96,6 @@ constexpr std::uint32_t kClassLetter = 2;      // letters and the space
 constexpr std::uint32_t kClassOther = 4;
 constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
 
-// The width of `text` in interface font `font` (CInterface3D::TextExtent).
 int TextWidth(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -119,7 +116,7 @@ std::uint32_t CharClass(int key) {
 }
 } // namespace
 
-// The window's slots; the input side's keys (9) and characters (10).
+// The window's slots; the input side's keys and characters.
 CUiEditField::CUiEditField(CInterface3D* ui, RECT rect) : CUiWindow(ui) {
     charClasses_ = kClassDigit | kClassLetter | kClassOther | kClassSeparator;
     centred_ = 0;
