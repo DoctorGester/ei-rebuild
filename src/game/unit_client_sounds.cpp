@@ -75,7 +75,7 @@ int CUnitClientSpecific::FootstepSound(int terrain, mfc::CString* out) {
     float y = unit->localPosition_.y;
     float ground = world->ClampedGroundHeight(x, y);   // stored as a float
     Vector3 at{x, y, 0.0f};
-    float surface = world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(x, y));   // its slot 27
+    float surface = world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(x, y));
     float gap = ground - surface;
     if (std::fabs(static_cast<float>(gap)) > kPlatformGap) terrain = kTerrainPlatform;
     if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1) {
@@ -109,7 +109,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     while (count < 4 && animation->sounds[count] != 0) ++count;
     if (count == 0) return 0;
     std::uint32_t sound = animation->sounds[RandomBelow(count)];
-    std::string folder = model->soundFolder;   // a missing model's +0x124 is read (sic)
+    std::string folder = model->soundFolder;   // a missing model's soundFolder is read (sic)
     if (prototype->soundFolder.size() != 0) folder = prototype->soundFolder;
     const char* format = nullptr;
     switch (animation->key & kKeyKind) {
@@ -285,8 +285,8 @@ void CUnitClientSpecific::PlayStepSounds() {
         float sizeY = foot->bounds_.boxMax.y;
         float sizeX = foot->bounds_.boxMax.x;
         int shown = AllFootprintsShown() || (unit->flags_ & kFlagPrintsShown) ? 1 : 0;
-        // The prototype's +0xB0 (valuesE0[0]) is the footprint scale (read unchecked: a unit without a
-        // prototype faults here).
+        // The prototype's valuesE0[0] is the footprint scale (read unchecked: a unit without a prototype
+        // faults here).
         float scale = prototype->valuesE0[0];
         if (unit->moveMode == 0) scale *= kCrawlPrintScale;
         else if (unit->moveMode == 1) scale *= kWalkPrintScale;
