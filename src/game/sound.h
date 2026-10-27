@@ -13,6 +13,7 @@
 #include "registry.h"
 #include "resource_stream.h"
 #include "game_data.h"
+#include "../lib/import_prototypes.h"
 
 
 #include <cstddef>
@@ -43,7 +44,7 @@ static_assert(sizeof(SoundFader) == 0x1C);
 // One of the 15 Miles sample voices.
 struct SoundSlot {
     stlp::string name;          // the wave name
-    void* sample;               // HSAMPLE
+    miles::Sample* sample;
     std::int32_t volume;        // Miles volume 0..127
     std::int32_t baseVolume;    // 2D sounds: volume 0..100
     std::int32_t pan;           // -100..100
@@ -172,6 +173,13 @@ struct AsiStage {
     void* outputChannels;
 };
 
+// Miles' sample (HSAMPLE), as far as the stream reads it: its codec stage.
+struct miles::Sample {
+    std::uint8_t unused_000[0x144];
+    AsiStage codec;
+};
+static_assert(offsetof(miles::Sample, codec) == 0x144);
+
 struct CSoundManager : CEngineObject {
     // Also runs AIL_startup, then Reset.
     CSoundManager();
@@ -182,8 +190,8 @@ struct CSoundManager : CEngineObject {
     const char* GetClassName() override;
     int GetClassId() override;
 
-    void* waveDriver;                   // HDIGDRIVER
-    void* midiDriver;                   // HMDIDRIVER (closed by Close; not opened here)
+    miles::DigitalDriver* waveDriver;
+    miles::MidiDriver* midiDriver;      // closed by Close; not opened here
     CResourceStream streamReader;       // reads the music stream's files
     std::string soundPath;             // ending in a backslash
     CFileRegistry soundRegistry;
@@ -192,7 +200,7 @@ struct CSoundManager : CEngineObject {
     mfc::CTypedPtrList<CMappedResource> waveSources;   // the archives LoadSample looks in
     // The MP3 music stream, filled on the stream thread.
     volatile std::int32_t streamState;  // 0 idle, 1 playing, 2 switching to nextName
-    void* streamSample;                 // HSAMPLE
+    miles::Sample* streamSample;
     void* streamFile;                   // ASI stream
     AsiStage* streamCodec;              // the decoder sample's codec stage
     void* streamBuffers[3];             // Miles memory, streamBufferSize bytes each
@@ -221,14 +229,14 @@ struct CSoundManager : CEngineObject {
     std::int32_t switchMode;            // RequestStream's mode
     std::uint32_t streamFileSize;
     std::int32_t streamReadPosition;
-    void* streamDecoder;                // HSAMPLE whose processor is the MP3 codec (streamCodec is in it)
+    miles::Sample* streamDecoder;       // its processor is the MP3 codec (streamCodec is in it)
     CRITICAL_SECTION streamLock;        // guarding the stream and musicFader
     mfc::impl::WinThread* streamThread; // when the MP3 stream opened
     // The MIDI sequence.
     std::int32_t midiState;
     void* midiData1D0;                  // Miles memory (AIL_mem_alloc_lock)
     void* midiData1D4;                  // Miles memory
-    void* midiSequence;                 // HSEQUENCE
+    miles::Sequence* midiSequence;
     std::string midiName;
     std::string midiNextName;
     lib::AlignedArray<std::int32_t> midiArray1E4;
@@ -317,7 +325,7 @@ struct CSoundManager : CEngineObject {
     // Switch mode 4, the music fader at volume 100 with no fade.
     void ResetStream();
     // 16-bit stereo at 44100 Hz. 0 when the codec or a sample cannot be had.
-    int OpenStream(void* driver);
+    int OpenStream(miles::DigitalDriver* driver);
     // OpenStream's failure. Returns 0.
     int CloseStream();
     // Every 100 ms until Close sets threadsQuit: a fader step, and every half Miles has played out gets the

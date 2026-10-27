@@ -1,5 +1,6 @@
 // The game's heap in harness runs on the virtual clock (harness_heap.h).
 #include "harness_heap.h"
+#include "harness_imports.h"
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
@@ -17,14 +18,6 @@
 namespace ei::verify::heap {
 
 namespace {
-
-// game.exe's import table.
-constexpr std::uintptr_t kHeapCreateSlot = 0x0073B3C0;
-constexpr std::uintptr_t kHeapDestroySlot = 0x0073B3BC;
-constexpr std::uintptr_t kHeapAllocSlot = 0x0073B360;
-constexpr std::uintptr_t kHeapFreeSlot = 0x0073B35C;
-constexpr std::uintptr_t kHeapReAllocSlot = 0x0073B374;
-constexpr std::uintptr_t kHeapSizeSlot = 0x0073B37C;
 
 // The CRT's heap handle (_crtheap), set by _heap_init (006F54E6).
 HANDLE& CrtHeap() { return ei::GameData<HANDLE>(0x007CAF08); }
@@ -45,17 +38,6 @@ CRITICAL_SECTION g_lock;
 bool InReservation(const void* p) {
     const auto a = reinterpret_cast<std::uintptr_t>(p);
     return a >= g_begin && a < g_end;
-}
-
-// A slot of game.exe's import table (the image's: ei_hook.dll's table, S18f).
-template <class T>
-void PatchSlot(std::uintptr_t address, T replacement, T& original) {
-    T* slot = ei::GamePointer<T>(address);
-    DWORD old;
-    VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
-    original = *slot;
-    *slot = replacement;
-    VirtualProtect(slot, sizeof(*slot), old, &old);
 }
 
 // The trace ("heaptrace"): one line per call on g_heap until world update g_traceUntil.
@@ -589,12 +571,12 @@ void Install() {
         g_selfBase = reinterpret_cast<std::uintptr_t>(self);
         g_selfEnd = g_selfBase + nt->OptionalHeader.SizeOfImage;
     }
-    PatchSlot(kHeapCreateSlot, &RepeatableHeapCreate, g_heapCreate);
-    PatchSlot(kHeapDestroySlot, &RepeatableHeapDestroy, g_heapDestroy);
-    PatchSlot(kHeapAllocSlot, &RepeatableHeapAlloc, g_heapAlloc);
-    PatchSlot(kHeapFreeSlot, &RepeatableHeapFree, g_heapFree);
-    PatchSlot(kHeapReAllocSlot, &RepeatableHeapReAlloc, g_heapReAlloc);
-    PatchSlot(kHeapSizeSlot, &RepeatableHeapSize, g_heapSize);
+    PatchImport(&ImportTable::HeapCreate, &RepeatableHeapCreate, g_heapCreate);
+    PatchImport(&ImportTable::HeapDestroy, &RepeatableHeapDestroy, g_heapDestroy);
+    PatchImport(&ImportTable::HeapAlloc, &RepeatableHeapAlloc, g_heapAlloc);
+    PatchImport(&ImportTable::HeapFree, &RepeatableHeapFree, g_heapFree);
+    PatchImport(&ImportTable::HeapReAlloc, &RepeatableHeapReAlloc, g_heapReAlloc);
+    PatchImport(&ImportTable::HeapSize, &RepeatableHeapSize, g_heapSize);
 }
 
 } // namespace ei::verify::heap

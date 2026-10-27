@@ -388,6 +388,7 @@
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
 #include "ei/hook.h"
+#include "harness_imports.h"
 #include "exe_objects.h"
 #include "harness_addon.h"
 #include "harness_camera.h"
@@ -446,7 +447,6 @@
 namespace ei::verify {
 
 namespace {
-constexpr std::uintptr_t kPeekMessageASlot = 0x0073B458;   // game.exe import table
 
 // The console's streambuf (game.exe's table 00740034, instance 007C5868): overflow() collects the
 // text in a CString at +0x50; sync() (slot 1, 005DC1B0) hands the finished line to the console
@@ -729,7 +729,6 @@ LONG CALLBACK CrashLogger(EXCEPTION_POINTERS* e) {
 // its own output folder, so in harness runs no other window counts. The other way (ST1b): a game
 // the user starts without the harness runs the real check, so a harness game's window has a title
 // of its own (CreateWithoutActivating) and a play launch never finds it. Nothing reads the title.
-constexpr std::uintptr_t kFindWindowASlot = 0x0073B448;
 decltype(&::FindWindowA) g_findWindow;
 HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) {
     ei::verify::startup::AtWindowClass();   // before the registry is read (harness_startup.h)
@@ -739,16 +738,6 @@ HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) {
 // Harness runs stay out of the user's way: the game window never takes focus or comes to the front,
 // it opens at a small size (VideoResolution), and the sound is muted. The game's own code still
 // runs (sound included), so scenarios test the same paths.
-constexpr std::uintptr_t kSetForegroundWindowSlot = 0x0073B438;
-constexpr std::uintptr_t kBringWindowToTopSlot = 0x0073B430;
-constexpr std::uintptr_t kSetFocusSlot = 0x0073B584;
-constexpr std::uintptr_t kSetActiveWindowSlot = 0x0073B640;
-constexpr std::uintptr_t kShowWindowSlot = 0x0073B554;
-constexpr std::uintptr_t kCreateWindowExASlot = 0x0073B558;
-constexpr std::uintptr_t kSetCursorPosSlot = 0x0073B4A0;
-constexpr std::uintptr_t kGetCursorPosSlot = 0x0073B49C;
-constexpr std::uintptr_t kRegQueryValueExASlot = 0x0073B028;
-constexpr std::uintptr_t kAilWaveOutOpenSlot = 0x0073B7A4;
 constexpr const char* kHarnessResolution = "1280x720";   // 16:9 like the usual desktop (Rebirth widescreen)
 
 decltype(&::SetForegroundWindow) g_setForegroundWindow;
@@ -845,37 +834,24 @@ int __stdcall MutedWaveOutOpen(void** driver, void* waveOut, int deviceId, void*
     return result;
 }
 
-// A slot of game.exe (an import slot or a vtable's), through the data seam: in the image its import slots are
-// ei_hook.dll's table (S18f).
+// A vtable slot of game.exe, through the data seam (an import slot: PatchImport, harness_imports.h): game data the
+// harness changes (harness_addon.h checks them).
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     T* slot = ei::GamePointer<T>(address);
-    // A slot outside the import table (a vtable's) is game data the harness changes (harness_addon.h checks them).
-    const auto at = reinterpret_cast<std::uintptr_t>(slot);
-    const bool importSlot = at - ei::GameAddress(ei::kImportsBegin) < ei::kImportsEnd - ei::kImportsBegin;
-    if (!importSlot) ei::NoteHarnessPatch(at, sizeof(T), "a slot the harness takes");
+    ei::NoteHarnessPatch(reinterpret_cast<std::uintptr_t>(slot), sizeof(T), "a slot the harness takes");
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
     original = *slot;
     *slot = replacement;
     VirtualProtect(slot, sizeof(*slot), old, &old);
-    // A vtable slot's original is game.exe's code address: in the image it goes with the code cells (S18i).
-    if (!importSlot && ei::Standalone()) ei::FixUpCodePointer(reinterpret_cast<std::uintptr_t*>(&original));
+    // Its original is game.exe's code address: in the image it goes with the code cells (S18i).
+    if (ei::Standalone()) ei::FixUpCodePointer(reinterpret_cast<std::uintptr_t*>(&original));
 }
 
 // Saves. The game keeps them under <game root>saves\ and rewrites saves\current\ whenever it
 // starts or loads a game, so a harness run would overwrite the player's own progress. In harness
 // runs every path whose directory is "saves" goes to harness_saves\ next to the DLL instead.
-constexpr std::uintptr_t kCreateDirectoryASlot = 0x0073B1B8;   // game.exe import table
-constexpr std::uintptr_t kCopyFileASlot = 0x0073B1D8;
-constexpr std::uintptr_t kRemoveDirectoryASlot = 0x0073B1F0;
-constexpr std::uintptr_t kDeleteFileASlot = 0x0073B20C;
-constexpr std::uintptr_t kFindFirstFileASlot = 0x0073B210;
-constexpr std::uintptr_t kCreateFileASlot = 0x0073B218;
-constexpr std::uintptr_t kGetFileAttributesASlot = 0x0073B2F8;
-constexpr std::uintptr_t kSetFileAttributesASlot = 0x0073B304;
-constexpr std::uintptr_t kMoveFileASlot = 0x0073B40C;
-constexpr std::uintptr_t kWriteFileSlot = 0x0073B270;   // failed writes are reported (harness_crash.h)
 
 char g_savesDir[MAX_PATH];
 decltype(&::CreateFileA) g_createFile;
@@ -1133,7 +1109,6 @@ HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSEC
 
 // Registry: harness runs never write the game's settings (it saves its options on exit). Its reads, and
 // everything else on its keys, are answered from the committed snapshot (harness_settings.h).
-constexpr std::uintptr_t kRegSetValueExASlot = 0x0073B018;   // game.exe import table
 decltype(&::RegSetValueExA) g_regSetValue;
 
 LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWORD) {
@@ -1149,8 +1124,6 @@ LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWO
 // widescreen comparison of two runs). Harness runs leave the setting alone, and the game's fonts are
 // created without smoothing (NONANTIALIASED_QUALITY), as they look once the titles have switched it
 // off, whatever the desktop's setting and other programs do to it during the run.
-constexpr std::uintptr_t kSystemParametersInfoASlot = 0x0073B4C0;   // game.exe import table
-constexpr std::uintptr_t kCreateFontIndirectASlot = 0x0073B068;     // game.exe import table
 constexpr UINT kSetFontSmoothing = 0x4B;                             // SPI_SETFONTSMOOTHING
 decltype(&::SystemParametersInfoA) g_systemParametersInfo;
 decltype(&::CreateFontIndirectA) g_createFontIndirect;
@@ -1233,7 +1206,6 @@ int __fastcall HeldClientSegment(void* client, void*) {
 
 // Startup movies: config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik), read with
 // GetPrivateProfileStringA. Harness runs read the "movies" keys as empty, so nothing plays.
-constexpr std::uintptr_t kGetPrivateProfileStringASlot = 0x0073B23C;   // game.exe import table
 decltype(&::GetPrivateProfileStringA) g_getProfileString;
 
 DWORD WINAPI HarnessGetProfileString(LPCSTR app, LPCSTR key, LPCSTR fallback, LPSTR out, DWORD size, LPCSTR file) {
@@ -1247,10 +1219,6 @@ DWORD WINAPI HarnessGetProfileString(LPCSTR app, LPCSTR key, LPCSTR fallback, LP
 }
 
 // The other profile calls read the overlay copy too; writes go to it.
-constexpr std::uintptr_t kGetPrivateProfileSectionASlot = 0x0073B234;
-constexpr std::uintptr_t kGetPrivateProfileIntASlot = 0x0073B238;
-constexpr std::uintptr_t kWritePrivateProfileStringASlot = 0x0073B240;
-constexpr std::uintptr_t kGetPrivateProfileSectionNamesASlot = 0x0073B268;
 decltype(&::GetPrivateProfileSectionA) g_getProfileSection;
 decltype(&::GetPrivateProfileIntA) g_getProfileInt;
 decltype(&::WritePrivateProfileStringA) g_writeProfileString;
@@ -1367,8 +1335,6 @@ bool g_randomTrace = false;
 bool g_keepHeap = false;
 // "heaptrace": log the CRT heap's calls into heaptrace.txt (harness_heap.h).
 bool g_heapTrace = false;
-constexpr std::uintptr_t kGetLocalTimeSlot = 0x0073B1DC;   // game.exe import table
-constexpr std::uintptr_t kGetSystemTimeSlot = 0x0073B228;
 decltype(&::GetLocalTime) g_getLocalTime;
 decltype(&::GetSystemTime) g_getSystemTime;
 // GetLocalTime/GetSystemTime (the main menu's time of day, save dates) return a fixed date.
@@ -1543,7 +1509,6 @@ struct HeldModifiers {
 // "ppeEeErR" (Shift held) or "peerr" (a layout without Latin letters) as well as "ppeeeerr" (SV5d2). Harness runs
 // translate as the US layout with no key held: letters and digits make no WM_CHAR here (the "key" step posts
 // theirs, so a name comes out as typed), the other keys their fixed character (Enter 0x0D, Esc 0x1B, ...).
-constexpr std::uintptr_t kTranslateMessageSlot = 0x0073B450;   // game.exe import table
 decltype(&::TranslateMessage) g_translateMessage;
 
 char FixedKeyChar(WPARAM vk) {
@@ -3697,7 +3662,6 @@ void TraceFpu(const char* where) {
 }
 using AilStartupFn = int(WINAPI*)();
 AilStartupFn g_ailStartup;
-constexpr std::uintptr_t kAilStartupSlot = 0x0073B7D4;   // mss32.dll!_AIL_startup@0 (loads the *.asi)
 int WINAPI TracedAilStartup() {
     TraceFpu("before AIL_startup");
     int result = g_ailStartup();
@@ -4076,15 +4040,15 @@ struct Harness {
         if (!GetCurrentDirectoryA(MAX_PATH, g_rootDirs[0])) g_rootDirs[0][0] = '\0';
         if (addon::Active()) FindAddonInstall();
 
-        PatchSlot(kFindWindowASlot, &NoOtherGameWindow, g_findWindow);
-        PatchSlot(kSetForegroundWindowSlot, &NoForeground, g_setForegroundWindow);
-        PatchSlot(kBringWindowToTopSlot, &NoBringToTop, g_bringWindowToTop);
-        PatchSlot(kSetFocusSlot, &NoFocus, g_setFocus);
-        PatchSlot(kSetActiveWindowSlot, &NoActivate, g_setActiveWindow);
-        PatchSlot(kShowWindowSlot, &ShowWithoutActivating, g_showWindow);
-        PatchSlot(kCreateWindowExASlot, &CreateWithoutActivating, g_createWindowEx);
-        PatchSlot(kSetCursorPosSlot, &NoCursorMove, g_setCursorPos);
-        PatchSlot(kGetCursorPosSlot, &HarnessCursorPos, g_getCursorPos);
+        PatchImport(&ImportTable::FindWindowA, &NoOtherGameWindow, g_findWindow);
+        PatchImport(&ImportTable::SetForegroundWindow, &NoForeground, g_setForegroundWindow);
+        PatchImport(&ImportTable::BringWindowToTop, &NoBringToTop, g_bringWindowToTop);
+        PatchImport(&ImportTable::SetFocus, &NoFocus, g_setFocus);
+        PatchImport(&ImportTable::SetActiveWindow, &NoActivate, g_setActiveWindow);
+        PatchImport(&ImportTable::ShowWindow, &ShowWithoutActivating, g_showWindow);
+        PatchImport(&ImportTable::CreateWindowExA, &CreateWithoutActivating, g_createWindowEx);
+        PatchImport(&ImportTable::SetCursorPos, &NoCursorMove, g_setCursorPos);
+        PatchImport(&ImportTable::GetCursorPos, &HarnessCursorPos, g_getCursorPos);
         // VideoResolution / FullScreen overrides (SmallVideoResolution) are off: a 1280x720 full screen
         // switched the display mode, and the game's window mode never got past the menu. See open-questions.
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
@@ -4100,32 +4064,32 @@ struct Harness {
         path_cells::Install();   // the original's path cells get plain speed words too (harness_path_cells.h, SV7d2)
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         uicompare::Install();   // after the census: it chains the surface owner observer (harness_ui.h)
-        PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
-        PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
-        PatchSlot(kTranslateMessageSlot, &HarnessTranslateMessage, g_translateMessage);
-        PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
+        PatchImport(&ImportTable::AIL_waveOutOpen, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
+        PatchImport(&ImportTable::PeekMessageA, &PeekMessageHook, g_peekMessage);
+        PatchImport(&ImportTable::TranslateMessage, &HarnessTranslateMessage, g_translateMessage);
+        PatchImport(&ImportTable::AIL_startup, &TracedAilStartup, g_ailStartup);
         if (ei::Standalone()) image::ObserveConsoleLines(&OnConsoleLine);
         else
             PatchSlot(reinterpret_cast<std::uintptr_t>(&ei::OriginalGameData<const SyncFn>(0x00740034) + kConsoleStreambufSyncSlot),
                       reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
-        PatchSlot(kCreateFileASlot, &RedirectedCreateFile, g_createFile);
-        crash::WatchWrites(kWriteFileSlot);
-        PatchSlot(kDeleteFileASlot, &RedirectedDeleteFile, g_deleteFile);
-        PatchSlot(kCopyFileASlot, &RedirectedCopyFile, g_copyFile);
-        PatchSlot(kMoveFileASlot, &RedirectedMoveFile, g_moveFile);
-        PatchSlot(kFindFirstFileASlot, &RedirectedFindFirstFile, g_findFirstFile);
-        PatchSlot(kCreateDirectoryASlot, &RedirectedCreateDirectory, g_createDirectory);
-        PatchSlot(kRemoveDirectoryASlot, &RedirectedRemoveDirectory, g_removeDirectory);
-        PatchSlot(kGetFileAttributesASlot, &RedirectedGetFileAttributes, g_getFileAttributes);
-        PatchSlot(kSetFileAttributesASlot, &RedirectedSetFileAttributes, g_setFileAttributes);
-        PatchSlot(kRegSetValueExASlot, &SkippedRegSetValue, g_regSetValue);
-        PatchSlot(kSystemParametersInfoASlot, &HarnessSystemParametersInfo, g_systemParametersInfo);
-        PatchSlot(kCreateFontIndirectASlot, &HarnessCreateFontIndirect, g_createFontIndirect);
-        PatchSlot(kGetPrivateProfileStringASlot, &HarnessGetProfileString, g_getProfileString);
-        PatchSlot(kGetPrivateProfileSectionASlot, &RedirectedGetProfileSection, g_getProfileSection);
-        PatchSlot(kGetPrivateProfileIntASlot, &RedirectedGetProfileInt, g_getProfileInt);
-        PatchSlot(kWritePrivateProfileStringASlot, &RedirectedWriteProfileString, g_writeProfileString);
-        PatchSlot(kGetPrivateProfileSectionNamesASlot, &RedirectedGetProfileSectionNames, g_getProfileSectionNames);
+        PatchImport(&ImportTable::CreateFileA, &RedirectedCreateFile, g_createFile);
+        crash::WatchWrites();
+        PatchImport(&ImportTable::DeleteFileA, &RedirectedDeleteFile, g_deleteFile);
+        PatchImport(&ImportTable::CopyFileA, &RedirectedCopyFile, g_copyFile);
+        PatchImport(&ImportTable::MoveFileA, &RedirectedMoveFile, g_moveFile);
+        PatchImport(&ImportTable::FindFirstFileA, &RedirectedFindFirstFile, g_findFirstFile);
+        PatchImport(&ImportTable::CreateDirectoryA, &RedirectedCreateDirectory, g_createDirectory);
+        PatchImport(&ImportTable::RemoveDirectoryA, &RedirectedRemoveDirectory, g_removeDirectory);
+        PatchImport(&ImportTable::GetFileAttributesA, &RedirectedGetFileAttributes, g_getFileAttributes);
+        PatchImport(&ImportTable::SetFileAttributesA, &RedirectedSetFileAttributes, g_setFileAttributes);
+        PatchImport(&ImportTable::RegSetValueExA, &SkippedRegSetValue, g_regSetValue);
+        PatchImport(&ImportTable::SystemParametersInfoA, &HarnessSystemParametersInfo, g_systemParametersInfo);
+        PatchImport(&ImportTable::CreateFontIndirectA, &HarnessCreateFontIndirect, g_createFontIndirect);
+        PatchImport(&ImportTable::GetPrivateProfileStringA, &HarnessGetProfileString, g_getProfileString);
+        PatchImport(&ImportTable::GetPrivateProfileSectionA, &RedirectedGetProfileSection, g_getProfileSection);
+        PatchImport(&ImportTable::GetPrivateProfileIntA, &RedirectedGetProfileInt, g_getProfileInt);
+        PatchImport(&ImportTable::WritePrivateProfileStringA, &RedirectedWriteProfileString, g_writeProfileString);
+        PatchImport(&ImportTable::GetPrivateProfileSectionNamesA, &RedirectedGetProfileSectionNames, g_getProfileSectionNames);
         // Every other module's writes into the install go to the overlay too, and what still reaches an install
         // is refused and fails the run (harness_install.h).
         install::Install({&WritePath, &ReadPath, &InInstall});
@@ -4140,15 +4104,15 @@ struct Harness {
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
             if (ei::Standalone()) image::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
-            PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
-            PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
+            PatchImport(&ImportTable::GetLocalTime, &FixedTime, g_getLocalTime);
+            PatchImport(&ImportTable::GetSystemTime, &FixedTime, g_getSystemTime);
             if (ei::Standalone()) image::SetFixedSeed(&FillFixedSeed);
             else JumpTo(0x0049F660, reinterpret_cast<const void*>(&FixedIsaacSeed));
             Log("harness: deterministic mode (virtual clock)");
         } else if (g_freezeUsed) {
             clock::InstallHeld();
-            PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
-            PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
+            PatchImport(&ImportTable::GetLocalTime, &FixedTime, g_getLocalTime);
+            PatchImport(&ImportTable::GetSystemTime, &FixedTime, g_getSystemTime);
             Log("harness: the game's clocks can be frozen (fixed date)");
         }
         if (g_clockTrace) clock::InstallTrace();

@@ -1,5 +1,6 @@
 // WinMain's start-up branches a normal run does not take. See harness_startup.h.
 #include "harness_startup.h"
+#include "harness_imports.h"
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
@@ -18,8 +19,6 @@ namespace {
 
 using ei::Log;
 
-constexpr std::uintptr_t kRegQueryValueExASlot = 0x0073B028;        // game.exe's import table
-constexpr std::uintptr_t kGetVolumeInformationASlot = 0x0073B1B0;
 constexpr const char* kNoDiscLabel = "A-I23 NO DISC";
 constexpr const char* kDiscLabel = "EICD2";   // config\harness\registry.reg's "CD2 Label"
 
@@ -29,16 +28,6 @@ bool g_wrongLabelAnswered = false;   // the last GetVolumeInformationA answered 
 
 decltype(&::RegQueryValueExA) g_query;
 decltype(&::GetVolumeInformationA) g_volumeInformation;
-
-template <class T>
-void TakeSlot(std::uintptr_t address, T replacement, T& original) {
-    T* slot = ei::GamePointer<T>(address);
-    DWORD old;
-    VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
-    original = *slot;
-    *slot = replacement;
-    VirtualProtect(slot, sizeof(*slot), old, &old);
-}
 
 // "CD-ROM Path" as "<the run's game folder>.\": a disc folder whose text differs from the data folder's.
 LSTATUS WINAPI DiscPathQuery(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size) {
@@ -93,9 +82,9 @@ void AtWindowClass() {
     if (ei::Standalone()) {
         image::AddSettingsReadFilter(&DiscPathRead);
     } else {
-        TakeSlot(kRegQueryValueExASlot, &DiscPathQuery, g_query);
+        PatchImport(&ImportTable::RegQueryValueExA, &DiscPathQuery, g_query);
     }
-    TakeSlot(kGetVolumeInformationASlot, &DiscVolumeInformation, g_volumeInformation);
+    PatchImport(&ImportTable::GetVolumeInformationA, &DiscVolumeInformation, g_volumeInformation);
     Log("harness: discprompt: %d box(es) of the second disc to answer", g_discPrompts);
 }
 

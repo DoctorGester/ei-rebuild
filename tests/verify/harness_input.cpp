@@ -1,6 +1,7 @@
 // The harness's mouse is the game's only mouse (harness_input.h).
 #define DIRECTINPUT_VERSION 0x0700
 #include "harness_input.h"
+#include "harness_imports.h"
 
 #include <dinput.h>
 #include <windowsx.h>
@@ -16,7 +17,6 @@ namespace ei::verify::input {
 
 namespace {
 
-constexpr std::uintptr_t kDirectInputCreateExSlot = 0x0073B044;   // DINPUT.dll, the thunk 006E61F0
 constexpr int kCreateDeviceExSlot = 9;    // IDirectInput7A
 constexpr int kGetDeviceStateSlot = 9;    // IDirectInputDevice7A
 
@@ -95,7 +95,7 @@ void Install() {
     static bool installed = false;
     if (installed) return;
     installed = true;
-    PatchSlot(ei::GamePointer<void>(kDirectInputCreateExSlot), &RoutedCreate, g_create);
+    PatchImport(&ImportTable::DirectInputCreateEx, &RoutedCreate, g_create);
 }
 
 bool RealMouse(HWND, UINT message, WPARAM, LPARAM lParam, LRESULT* result) {

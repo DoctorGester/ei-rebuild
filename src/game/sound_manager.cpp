@@ -61,24 +61,8 @@ std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
 // StopStream's fade-out step, loaded and tested as a float.
 float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 
-// Miles Sound System (all __stdcall).
-using SampleIntFn = void(__stdcall*)(void*, int);
-using SampleFn = void(__stdcall*)(void*);
-SampleIntFn AilSetSampleVolume() { return ei::ImportAs<SampleIntFn>(ei::Imports().AIL_set_sample_volume); }
-SampleIntFn AilSetSamplePan() { return ei::ImportAs<SampleIntFn>(ei::Imports().AIL_set_sample_pan); }
-SampleFn AilEndSample() { return ei::ImportAs<SampleFn>(ei::Imports().AIL_end_sample); }
-SampleFn AilStopSample() { return ei::ImportAs<SampleFn>(ei::Imports().AIL_stop_sample); }
-SampleFn AilResumeSample() { return ei::ImportAs<SampleFn>(ei::Imports().AIL_resume_sample); }
-SampleFn AilInitSample() { return ei::ImportAs<SampleFn>(ei::Imports().AIL_init_sample); }
-SampleFn AilStartSample() { return ei::ImportAs<SampleFn>(ei::Imports().AIL_start_sample); }
-SampleIntFn AilSetSampleLoopCount() { return ei::ImportAs<SampleIntFn>(ei::Imports().AIL_set_sample_loop_count); }
-SampleIntFn AilSetSamplePosition() { return ei::ImportAs<SampleIntFn>(ei::Imports().AIL_set_sample_position); }
-using EosFn = void(__stdcall*)(void*, void*);
-EosFn AilRegisterEosCallback() { return ei::ImportAs<EosFn>(ei::Imports().AIL_register_EOS_callback); }
-using ReverbFn = void(__stdcall*)(void*, float, float, float);
-ReverbFn AilSetSampleReverb() { return ei::ImportAs<ReverbFn>(ei::Imports().AIL_set_sample_reverb); }
 // The end-of-sample callback every started voice gets (sets the slot's finished flag).
-void* EndOfSampleCallback() { return ei::Code<void*>(0x006B75E0); }
+miles::SampleCallback EndOfSampleCallback() { return ei::Code<miles::SampleCallback>(0x006B75E0); }
 
 // The slot of the wave's cache list node (its record's uses counts the voices playing it).
 WaveNode*& CacheEntry(stlp::NameMap& cache, const SoundSlot* slot) { return stlp::NamedSlot<WaveNode>(cache, slot->name); }
@@ -119,16 +103,16 @@ int CSoundManager::FlatVolume(int level, int fade, int isSpeech) const {
 // Hands the slot's volume and pan to Miles; the pan is mirrored unless panDirect.
 void CSoundManager::ApplyVolumePan(SoundSlot* slot) const {
     int direct = panDirect;
-    AilSetSampleVolume()(slot->sample, slot->volume);
+    gameapi::AIL_set_sample_volume(slot->sample, slot->volume);
     int p = slot->pan;
     if (direct == 0) p = -p;
-    AilSetSamplePan()(slot->sample, (p + 100) * 0x7F / 200);
+    gameapi::AIL_set_sample_pan(slot->sample, (p + 100) * 0x7F / 200);
 }
 
 // Ends a voice: releases its cached wave, stops the sample and frees the slot.
 void CSoundManager::EndSlot(SoundSlot* slot) {
     --CacheEntry(cache, slot)->data.uses;
-    AilEndSample()(slot->sample);
+    gameapi::AIL_end_sample(slot->sample);
     slot->playing = 0;
     slot->finished = 0;
     slot->handle = -1;
@@ -259,7 +243,7 @@ void CSoundManager::SetMusicVolume(int volume) {
     musicFader.level = level;
     level = level > 0x7F ? 0x7F : (level < 0 ? 0 : level);
     musicFader.level = level;
-    AilSetSampleVolume()(streamSample, level);
+    gameapi::AIL_set_sample_volume(streamSample, level);
     if (v == 0) StopStream(4);
 }
 EI_REWRITTEN(0x006B7A00, CSoundManager::SetMusicVolume);
@@ -276,16 +260,16 @@ EI_REWRITTEN(0x006B69E0, CSoundManager::SetReverb);
 void CSoundManager::PauseAll() {
     if (slots != nullptr)
         for (int i = 0; i < 15; ++i)
-            if (slots[i].playing != 0) AilStopSample()(slots[i].sample);
-    if (enabled != 0 && streamSample != nullptr) AilStopSample()(streamSample);
+            if (slots[i].playing != 0) gameapi::AIL_stop_sample(slots[i].sample);
+    if (enabled != 0 && streamSample != nullptr) gameapi::AIL_stop_sample(streamSample);
 }
 EI_REWRITTEN(0x006B7320, CSoundManager::PauseAll);
 
 void CSoundManager::ResumeAll() {
     if (slots != nullptr)
         for (int i = 0; i < 15; ++i)
-            if (slots[i].playing != 0) AilResumeSample()(slots[i].sample);
-    if (enabled != 0 && streamSample != nullptr) AilResumeSample()(streamSample);
+            if (slots[i].playing != 0) gameapi::AIL_resume_sample(slots[i].sample);
+    if (enabled != 0 && streamSample != nullptr) gameapi::AIL_resume_sample(streamSample);
 }
 EI_REWRITTEN(0x006B7380, CSoundManager::ResumeAll);
 
@@ -614,7 +598,7 @@ void CSoundManager::Tick() {
         SoundSlot* slot = &slots[i];
         if (slot->finished == 0 || slot->playing == 0) continue;
         --CacheEntry(cache, slot)->data.uses;
-        AilEndSample()(slot->sample);
+        gameapi::AIL_end_sample(slot->sample);
         slot->handle = -1;
         slot->playing = 0;
         slot->finished = 0;
@@ -649,18 +633,18 @@ void CSoundManager::Tick() {
         std::memcpy(&slot->position, &rec->position, sizeof(slot->position));
         std::memcpy(&slot->nearDistance, &rec->nearDistance, 4);
         std::memcpy(&slot->farDistance, &rec->farDistance, 4);
-        AilInitSample()(slot->sample);
+        gameapi::AIL_init_sample(slot->sample);
         // A flat sound's level is recomputed from its saved Miles level as if that were 0..100.
         if (slot->flat != 0) slot->volume = FlatVolume(slot->volume, slot->heightFade, slot->speech);
         else UpdatePositional(slot);
         if (LoadSample(slot, i, rec->name.data(), 0) != 0) {
             slot->handle = rec->handle;
-            AilSetSampleLoopCount()(slot->sample, 0);
+            gameapi::AIL_set_sample_loop_count(slot->sample, 0);
             ApplyVolumePan(slot);
-            AilRegisterEosCallback()(slot->sample, EndOfSampleCallback());
-            if (reverbOn != 0) AilSetSampleReverb()(slot->sample, reverb[0], reverb[1], reverb[2]);
-            AilSetSamplePosition()(slot->sample, rec->samplePosition);
-            AilStartSample()(slot->sample);
+            gameapi::AIL_register_EOS_callback(slot->sample, EndOfSampleCallback());
+            if (reverbOn != 0) gameapi::AIL_set_sample_reverb(slot->sample, reverb[0], reverb[1], reverb[2]);
+            gameapi::AIL_set_sample_position(slot->sample, rec->samplePosition);
+            gameapi::AIL_start_sample(slot->sample);
         }
         if (rec != nullptr) FreeDeferred(rec);
     }
@@ -906,9 +890,8 @@ void CSoundManager::DeleteDeferred() {
     deferred.Clear();
 }
 
-namespace {
 // AILSOUNDINFO, filled by AIL_WAV_info.
-struct WavInfo {
+struct miles::SoundInfo {
     std::int32_t format;        // 0x11: IMA ADPCM
     const void* data;
     std::uint32_t dataLength;
@@ -919,15 +902,15 @@ struct WavInfo {
     std::uint32_t blockSize;
     const void* initial;
 };
-static_assert(sizeof(WavInfo) == 0x24);
-using WavInfoFn = void(__stdcall*)(const void*, WavInfo*);
-WavInfoFn AilWavInfo() { return ei::ImportAs<WavInfoFn>(ei::Imports().AIL_WAV_info); }
+static_assert(sizeof(miles::SoundInfo) == 0x24);
+
+namespace {
 constexpr std::int32_t kImaAdpcm = 0x11;
 } // namespace
 
 double CSoundManager::WaveLength(const void* data, int /*size*/) {
-    WavInfo info;
-    AilWavInfo()(data, &info);
+    miles::SoundInfo info;
+    gameapi::AIL_WAV_info(data, &info);
     std::uint32_t samples;
     if (info.format == kImaAdpcm) {
         samples = info.samples;
@@ -1007,8 +990,6 @@ EI_REWRITTEN(0x006B5EE0, SoundFader::Update);
 // --- A voice for a new sound -----------------------------------------------------
 
 namespace {
-using SamplePositionFn = std::int32_t(__stdcall*)(void*);
-SamplePositionFn AilSamplePosition() { return ei::ImportAs<SamplePositionFn>(ei::Imports().AIL_sample_position); }
 constexpr int kVoiceCount = 15;
 constexpr int kNoVoice = -1;
 } // namespace
@@ -1042,7 +1023,7 @@ int CSoundManager::AllocateVoice(int priority) {
         std::memcpy(&rec->nearDistance, &slot->nearDistance, 4);
         std::memcpy(&rec->farDistance, &slot->farDistance, 4);
         rec->handle = slot->handle;
-        rec->samplePosition = AilSamplePosition()(slot->sample);
+        rec->samplePosition = gameapi::AIL_sample_position(slot->sample);
         SetDeferred(deferred, rec->handle, rec);
     }
     if (slot->playing != 0) EndSlot(slot);
@@ -1053,8 +1034,6 @@ EI_REWRITTEN(0x006B7D10, CSoundManager::AllocateVoice);
 // --- Play2D, Play3D ---------------------------------------------------------
 
 namespace {
-using SampleUintFn = void(__stdcall*)(void*, std::uint32_t);
-SampleUintFn AilSetSampleMsPosition() { return ei::ImportAs<SampleUintFn>(ei::Imports().AIL_set_sample_ms_position); }
 
 // The level of a new 2D voice: as FlatVolume, except that a NaN camera height keeps the full level (the
 // test is "below 70 or unordered" first, then "above 30").
@@ -1092,15 +1071,15 @@ int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, i
 
 // The common end of Play2D and Play3D once the wave is in the voice. Returns the voice's handle.
 int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
-    if (loop != 0) AilSetSampleLoopCount()(slot->sample, 0);
+    if (loop != 0) gameapi::AIL_set_sample_loop_count(slot->sample, 0);
     m->ApplyVolumePan(slot);
-    AilRegisterEosCallback()(slot->sample, EndOfSampleCallback());
-    if (m->reverbOn != 0) AilSetSampleReverb()(slot->sample, m->reverb[0], m->reverb[1], m->reverb[2]);
+    gameapi::AIL_register_EOS_callback(slot->sample, EndOfSampleCallback());
+    if (m->reverbOn != 0) gameapi::AIL_set_sample_reverb(slot->sample, m->reverb[0], m->reverb[1], m->reverb[2]);
     if (m->randomStart != 0) {
         std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
-        AilSetSampleMsPosition()(slot->sample, IsaacRandom::Global().Next() % range);
+        gameapi::AIL_set_sample_ms_position(slot->sample, IsaacRandom::Global().Next() % range);
     }
-    AilStartSample()(slot->sample);
+    gameapi::AIL_start_sample(slot->sample);
     return slot->handle;
 }
 } // namespace
@@ -1118,7 +1097,7 @@ int CSoundManager::Play2D(const char* name, int priority, int volume, int pan, i
         return DeferLooping(this, name, priority, volume, pan, heightFade, speech);
     }
     SoundSlot* slot = &slots[index];
-    AilInitSample()(slot->sample);
+    gameapi::AIL_init_sample(slot->sample);
     slot->looping = loop;
     slot->baseVolume = volume;
     slot->pan = pan;
@@ -1159,7 +1138,7 @@ int CSoundManager::Play3D(const char* name, int priority, const float* position,
         return rec->handle;
     }
     SoundSlot* slot = &slots[index];
-    AilInitSample()(slot->sample);
+    gameapi::AIL_init_sample(slot->sample);
     slot->looping = loop;
     std::memcpy(&slot->position, position, sizeof(slot->position));
     std::memcpy(&slot->nearDistance, &nearDist, 4);
@@ -1177,17 +1156,6 @@ EI_REWRITTEN(0x006B8600, CSoundManager::Play3D);
 
 
 namespace {
-// Miles.
-using NamedFileFn = int(__stdcall*)(void*, const char*, const void*, int, int);
-using SampleFileFn = int(__stdcall*)(void*, const void*, int);
-using MemAllocFn = void*(__stdcall*)(int);
-using MemFreeFn = void(__stdcall*)(void*);
-using DecompressFn = int(__stdcall*)(const void*, int, const char*, void**, int*, void*);
-NamedFileFn AilSetNamedSampleFile() { return ei::ImportAs<NamedFileFn>(ei::Imports().AIL_set_named_sample_file); }
-SampleFileFn AilSetSampleFile() { return ei::ImportAs<SampleFileFn>(ei::Imports().AIL_set_sample_file); }
-MemAllocFn AilMemAllocLock() { return ei::ImportAs<MemAllocFn>(ei::Imports().AIL_mem_alloc_lock); }
-MemFreeFn AilMemFreeLock() { return ei::ImportAs<MemFreeFn>(ei::Imports().AIL_mem_free_lock); }
-DecompressFn AilDecompressAsi() { return ei::ImportAs<DecompressFn>(ei::Imports().AIL_decompress_ASI); }
 void* DecompressCallback() { return ei::Code<void*>(0x006B89B0); }   // SoundDecompressCallback
 const char* Mp3Suffix() { return ".mp3"; }
 constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use
@@ -1234,7 +1202,7 @@ void UseCached(CSoundManager* m, SoundSlot* slot, const stlp::string* key, const
     PushFront(m->cacheList, &record);
     CacheSet(m, key, m->cacheList.head);
     slot->length = static_cast<float>(m->WaveLength(record.data, record.size));
-    AilSetNamedSampleFile()(slot->sample, name, record.data, record.size, 0);
+    gameapi::AIL_set_named_sample_file(slot->sample, name, record.data, record.size, 0);
     record.Name().~string();
 }
 
@@ -1250,7 +1218,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
             return;
         }
         if (record.uses <= 0) {
-            AilMemFreeLock()(record.data);
+            gameapi::AIL_mem_free_lock(record.data);
             m->cacheBytes -= record.size;
             m->cache.EraseKey(record.Name());
             Unlink(m->cacheList, node);
@@ -1289,7 +1257,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
         if (compressed != 0) {
             void* decoded = nullptr;
             int decodedSize = 0;
-            int ok = AilDecompressAsi()(data, size, Mp3Suffix(), &decoded, &decodedSize, DecompressCallback());
+            int ok = gameapi::AIL_decompress_ASI(data, size, Mp3Suffix(), &decoded, &decodedSize, DecompressCallback());
             source->CloseFile(data);
             if (ok == 0) return 0;
             size = decodedSize;
@@ -1305,18 +1273,18 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
         record.uses = 1;
         cacheBytes += size;
         if (compressed == 0) {
-            void* memory = AilMemAllocLock()(size);
+            void* memory = gameapi::AIL_mem_alloc_lock(size);
             record.data = memory;
             std::memcpy(memory, data, static_cast<std::size_t>(size));
             source->CloseFile(data);
             PushFront(cacheList, &record);
             CacheSet(this, &key, cacheList.head);
-            AilSetNamedSampleFile()(slot->sample, name, memory, size, 0);
+            gameapi::AIL_set_named_sample_file(slot->sample, name, memory, size, 0);
         } else {
             record.data = data;
             PushBack(cacheList, &record);
             CacheSet(this, &key, cacheList.tail);
-            AilSetSampleFile()(slot->sample, data, size);
+            gameapi::AIL_set_sample_file(slot->sample, data, size);
         }
         slot->length = static_cast<float>(WaveLength(record.data, record.size));
         record.Name().~string();

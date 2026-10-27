@@ -212,16 +212,23 @@ each step green on the goldens and removing a measured tie:
   dinput always the system's; game.exe's folder came first until S18k) and fills our slots;
   GetCommandLineA gets its wrapper there (`ImageRoute`, hook/standalone_main.cpp; the resource, module and DirectInput
   wrappers went with S18j). Our code names no slot by address (C18): it calls through `ei::Imports().X` (gameapi.h's
-  routed imports, Miles, Bink, Winsock, DirectInput, the static initialisers' `Import(&ei::ImportTable::Sleep, ...)`)
-  or the Windows function itself (below); the harness's `PatchSlot` / `WatchWrites` still take slots by address
-  through the seam (tests/, in game.exe the slot itself). `iat` is sealed in config/data_seam.csv (76 raw uses -> 0;
+  routed imports and every import of src/lib/import_prototypes.h, the static initialisers'
+  `Import(&ei::ImportTable::Sleep, ...)`) or the Windows function itself (below). Every member is typed (C18p): the
+  SDK's `decltype(&::X)`, or for what the SDK lacks the `ei::import_fn::X` of import_prototypes.h (Miles with typed
+  handles `miles::Sample*` / `Sequence*` / `DigitalDriver*` / `MidiDriver*`, Bink, Winsock 1.1 with SOCKET as
+  `std::uint32_t`, DirectInput, DirectDraw, DirectSound's enumerator, the common controls, comdlg32, the print
+  spooler, GetVersion, the Interlocked pair); gen_iat.py fails on an import with neither. The harness names its
+  slots by member too: tests/verify/harness_imports.h's `PatchImport(&ImportTable::X, hook, original)` (clock,
+  heap, Winsock, Miles, window, files, profile, registry), `TraceSlot<T>(&ImportTable::X)`, `crash::WatchWrites()`;
+  only addon_sites.inc's MoviesPatch site (BinkOpen's slot, a Rebirth patch site) is an address. `iat` is sealed in config/data_seam.csv (76 raw uses -> 0;
   data_seam.py's helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
   **Which calls read the slot** (C18, gen_iat.py's `routed()`): in the image a slot holds the export unless the image
   routes it (ImageRoute: GetCommandLineA; with EI_UTF8 the `EI_UTF8_ROUTE` list of game/system_text.cpp), the
-  harness takes it (any import slot address tests/ names: window focus, cursor, files and saves, profile, registry,
+  harness takes it (any `ImportTable::X` tests/ names: window focus, cursor, files and saves, profile, registry,
   clocks, heap, Winsock, Miles) or our code takes it by address (`&gameapi::X`: hook/paths.cpp's RegQueryValueExA in
-  game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (67, with gen_iat's KEEP:
-  GetVersionExA, deprecated in the SDK: a direct call warns); the other 344 are `using ::X;`, the Windows function through ei_hook.dll's own imports
+  game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (68, with gen_iat's KEEP:
+  GetVersionExA, deprecated in the SDK: a direct call warns), and so are the 91 of import_prototypes.h (no import
+  library; not the Interlocked pair, which our code takes as the compiler's intrinsics); the other 343 are `using ::X;`, the Windows function through ei_hook.dll's own imports
   (`#pragma comment(lib)` for the seven DLLs). A harness route on a new slot makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
   gen_iat.py is rerun (that one needs game.exe), which moves that function back to the slot. In game.exe our code does not run (S21), except
   hook/paths.cpp and the harness, which keep the slots they patch. Rebirth's only import slot patch (MoviesPatch,
@@ -236,7 +243,7 @@ each step green on the goldens and removing a measured tie:
   S18k; S18f-S18h checked it held only INT3 and our jumps), so no `CALL [slot]` / `JMP [slot]` of the
   original exists. No pointer
   cell of .rdata or .data holds a slot's address (a scan of game.exe's aligned dwords), and our code reaches slots
-  only through `ei::Imports()` and the harness through literal addresses, which the sealed check covers. Not routed to our table: ui_census's game.exe
+  only through `ei::Imports()`, and the harness too (harness_imports.h), which the sealed check covers. Not routed to our table: ui_census's game.exe
   import hooks (`PatchModule(GetModuleHandleA(nullptr))` is the host in the image, as before S18f).
 
 - **.rdata constants as literals** (S18e, `tools/rdata_literals.py`): a float, double or integer cell that no code writes is

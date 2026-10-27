@@ -21,6 +21,7 @@ ALLOWED = {
     'src/game/game_data.h',              # GameData / GameAddress (the shift is 0 in game.exe)
     'src/lib/gameapi.h',                 # game.exe's import slots (hook/paths.cpp)
     'src/lib/import_table.h',            # ... their table (gameapi.h)
+    'src/lib/import_prototypes.h',       # ... its members' types where the SDK has none (import_table.h)
     'src/lib/rebirth.cpp',               # the Rebirth flags (HARNESS_SHARED)
     'src/lib/stlp_algo.h',               # STLport's sort, as game.exe's (harness_address_order.cpp)
     'src/standalone/image_data.cpp',     # GameData's shift (HARNESS_SHARED)
