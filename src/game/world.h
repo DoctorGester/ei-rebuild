@@ -97,10 +97,10 @@ struct ObjectIdMap {
     stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash> map;   // +0x00
     int maxId;                                                      // +0x14
 
-    // 005999E0 and 00599BD0 (identical code, different template instantiations): map[key] = value
+    // And 00599BD0 (identical code, different template instantiations): map[key] = value
     // and raise maxId.
     void Set(const unsigned& key, CEngineObject* const& value);
-    // 0047B670 (A-E1; object_id_map.cpp). Releases every object up to the first empty entry, frees
+    // Releases every object up to the first empty entry, frees
     // the nodes (the buckets stay) and clears maxId. The player's maps of sent objects use it too.
     void ReleaseAll();
     // The constructor as the worlds inline it (world_construct.cpp): 100 buckets (193), maxId 0.
@@ -169,20 +169,20 @@ static_assert(sizeof(LightColour) == 0x10);
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CManagerContext {
 public:
-    // 0055EAB0 (world_create.cpp). The engine object's fields, no figure loader, helper, session or
+    // The engine object's fields, no figure loader, helper, session or
     // managers, the clock at 0 and the empty countdown array.
     CWorld();
-    // 0055EC80 (deleting: 0055EC60; world_destructors.cpp). Destroy (the managers), then the
+    // Destroy (the managers), then the
     // members last to first (the countdown array's storage, the session and +0x5C as
     // RefPtr::Destroy, the figure loader's reference).
     ~CWorld() override;
 
-    // 0055EE40 (world_create.cpp; slot 2, called by both worlds' Create). The world's folders from
+    // The world's folders from
     // the configured paths, the clock and wind cleared, the managers made, counted and attached
     // (slot 13 with the world, or slot 2), the counted helper at +0x5C, the ISAAC generator seeded
     // and the countdowns (+0x70) set up. Returns 1.
     int Create() override;
-    // 0055F8E0 (world_managers.cpp, A-U7; slot 3, also called by both worlds' Destroy): every
+    // Every
     // object of the spell manager (slot 22) gets its slot 5 (ClearState), then the managers are
     // deleted whatever their counts (+0x38, +0x40, +0x3C, +0x44, +0x58, +0x54, +0x50, +0x4C,
     // +0x48; +0x34 only at its last reference) and the shared pointers +0x5C / +0x60 dropped.
@@ -212,7 +212,7 @@ public:
     // 28: the server's AI map height, client 00564070; in ST0 (RET 8).
     virtual double RawSurfaceHeightAt(float x, float y) = 0;
     // 29 / 30: the ground height and the height of the water surface at (x, y), in ST0 (server
-    // 0058A3D0 / 0058A3F0 call slots 27 / 28; client 005618E0 / 00561930 also clamp, 00560F00).
+    // Call slots 27 / 28; client 005618E0 / 00561930 also clamp, 00560F00).
     virtual double GroundHeightAt(float x, float y) = 0;
     virtual double SurfaceHeightAt(float x, float y) = 0;
     // 31 (world_time.cpp). 0055FB30: the time of day becomes `hours` (the base +0x1C is moved so
@@ -238,29 +238,29 @@ public:
     // 41: `object` moves to `position` (the client's sector map; 0055EC50 does nothing).
     virtual void MoveObject(CEngineObject*, const float*) {}
 
-    // 0055FC10 (world_time.cpp). Whether the hour of the day is before 6 or from 22 on (a NaN
+    // Whether the hour of the day is before 6 or from 22 on (a NaN
     // counts as night).
     BOOL IsNight();
-    // 0055FBD0 (RET 8; world_time.cpp; the world's save and the players' time message). The time
+    // The time
     // of day in hours and the time speed (1 / (seconds per tick * 15)), both stored as floats.
     void GetTime(float* hours, float* speed);
-    // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
+    // Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);
-    // 0055FB00 (RET 4; world_create.cpp). The world object with this id (slot 40) when it is a
+    // The world object with this id (slot 40) when it is a
     // unit (class 0x50), else null.
     CUnit* FindUnit(int id);
-    // 0055FC50 (world_time.cpp; the units' sight, the weather, the HUD's unit panel). How dark the
+    // How dark the
     // time of day is, in ST0: 1 before 8 o'clock (and for a NaN), 0 until 20, then rising to 1 by
     // midnight ((hours - 20) / 4).
     double NightLevel();
-    // 0055F410 (world_sessions.cpp; the server's SetGameResult 2 / 3, the client's 00566D80). A new
+    // A new
     // empty network session (netlink::DriverSession) shared into +0x60, the previous one
     // destroyed (RefPtr::ShareAssign, inlined).
     void OpenSession();
-    // 0055F890 (world_sessions.cpp; the server's TeardownZone, the client's SetPlayer). The session
+    // The session
     // +0x60 destroyed (RefPtr::Destroy, inlined) and the pointer cleared.
     void CloseSession();
-    // 005942C0 (the server's, from the pause request 0x10) / 00566350 (the client's copy, from
+    // (the server's, from the pause request 0x10) / 00566350 (the client's copy, from
     // message 0x60), byte-identical (world_server.cpp): stores paused_ (+0x6C). SetServerPaused is
     // 005942C0's entry: EI_Plugin's Pause in mode 3 makes it a plain RET 4.
     void SetPaused(std::uint8_t value);
@@ -330,7 +330,7 @@ struct CountedPtrs : mfc::CArray<T*> {
     // SetSize to the source's size, then each pointer replaced by the source's (a
     // counted temporary from CopyAt; the new one referenced before the old one is released).
     void CopyFrom(const CountedPtrs& source);
-    // 0059E300 / 0059CA40 (RET 8). By-value GetAt: element `index` into `out` with one more
+    // By-value GetAt: element `index` into `out` with one more
     // reference. Returns out.
     T** CopyAt(T** out, int index) const;
 };
@@ -347,14 +347,14 @@ struct SharedObject {
     std::uint32_t money;                    // +0x08 gold the loot adds to the finder's party
     CountedPtrs<CItem> objects;    // +0x0C
 
-    // 0059B510 (RET 4; S13, world_save.cpp; the compiler's copy constructor): the three dwords, then
+    // The three dwords, then
     // the array by its Copy (0059B8F0, the objects counted). Returns this.
     SharedObject* CopyFrom(const SharedObject* from);
-    // 0059DDE0 (RET 4; S13, world_save.cpp; the compiler's deleting destructor): the body 00594950
+    // The body 00594950
     // (an MFC row: the array's destructor 0059A100 at +0x0C, every object released), then operator
     // delete when bit 0 of the flags is set. Returns this.
     SharedObject* DeletingDestruct(unsigned flags);
-    // 00589CA0 (RET 4; world_save.cpp). Reads the entry: id, player, value, then object ids resolved
+    // Reads the entry: id, player, value, then object ids resolved
     // by the item manager; each found object is appended with a reference.
     void Load(WorldStream* stream);
 };
@@ -382,18 +382,18 @@ public:
     ~CWorldServer() override;
 
     // world_server_life.cpp
-    // 0058AE10 (slot 2; called by WinMain). Destroy (slot 3) first, then the managers
+    // Destroy (slot 3) first, then the managers
     // (CWorld::Create), the messages registry (text folder + "SMessBase.reg"), the side-specific
     // manager (+0x44, a CServerSpecificManager given this world as context), the CHoover (+0x140),
     // the wind (1, 0, 0; strength 0.4) and the zone state cleared. Returns 1, or FatalError's result
     // when the managers or the registry fail.
     int Create() override;
-    // 0058B020 (slot 3; also WinMain at exit and the destructor). Every player disconnected and
+    // Every player disconnected and
     // released, the CHoover deleted, both script queues reset, ResetState, the messages registry
     // closed, the zone exits freed, then the base's Destroy.
     void Destroy() override;
     // world_update.cpp
-    // 0058DFF0 (slot 6, RunTick). One world update: drops disconnected players and lets the others'
+    // One world update: drops disconnected players and lets the others'
     // units wake what they hear, accepts new players, runs the players and the world tick (unless
     // +0x6C), rebuilds the local players' "Heroes" group, synchronises every player (SyncPlayer;
     // 0 drops it) and counts the update (+0x68). Returns 1. A plain member as well: the main loop
@@ -417,7 +417,7 @@ public:
 
     // World object with this id, or null.
     CMapObject* FindObject(unsigned id);
-    // 005927C0 (RET 4; world_units.cpp). Creates the object a .mob record (base.kind its kind)
+    // Creates the object a .mob record (base.kind its kind)
     // describes: map objects and units (1, 5, 8, 9; 6 with a figure and maybe a campfire; 7) go
     // into the object maps, the update map and the sector map; sounds (3), lights (2) and kind 4
     // become timed objects. Returns the new id, -1 when refused, the message's address for an
@@ -437,15 +437,15 @@ public:
     // Whether object `objectId` is on the shared-object list for player `playerId` (or
     // for everyone). In multiplayer the player is looked up on the game server.
     bool IsObjectShared(int objectId, int playerId);
-    // 00594A30 (RET 8: the player first). Fills `group` with the objects on that list for player
+    // Fills `group` with the objects on that list for player
     // `playerId`.
     void CollectSharedObjects(int playerId, ScriptGroup* group);
     // ORs `mask` into every player's dirty flags.
     void MarkPlayersDirty(std::uint32_t mask);
-    // 0058EE20 (world_time.cpp; script and .mob weather). SetWind with the strength clamped to
+    // SetWind with the strength clamped to
     // 0..1 (NaN: 0), then the players marked dirty (8).
     void ChangeWind(const Vector3* direction, float strength);
-    // 0058CC70 / 0058CC80 / 0058EE00. Setters of cave_, climate_ (any weather stops first) and
+    // Setters of cave_, climate_ (any weather stops first) and
     // weather_ / weatherStrength_ (the players marked dirty).
     void SetCave(int value);
     void SetClimate(int value);
@@ -491,23 +491,23 @@ public:
     // Records how the game ended (+0x138, only the first time); results 2 and 3 also
     // replace +0x60 and call its slot 4.
     void SetGameResult(int result);
-    // 0058D340 (RET 8; the alarm's remarks). Every player with `unit` among its party units
+    // Every player with `unit` among its party units
     // (CPlayerServer::IsPartyUnit) is sent the unit's message 0x0B with `value` (SendObject0B).
     void TellParties(CEngineObject* unit, std::uint32_t value);
-    // 00593AF0 (RET 4; a unit's death becoming final). Every player with `unit` among its party
+    // Every player with `unit` among its party
     // units is sent the unit's message 0x43 (SendObject43).
     void TellPartiesGone(CEngineObject* unit);
-    // 00590160 (RET 8; CollectParty). The items the player holds (CPlayer::items_) put into
+    // The items the player holds (CPlayer::items_) put into
     // `party` (CParty::AddItem(item, 1, 1)) and released, the list emptied. Nothing without a player.
     void StorePlayerItems(CPlayer* player, class CParty* party);
-    // 00591070 (RET 4; world_quests.cpp; `this` is not read). After a player's party was sent again
-    // (the multiplayer zone switch 0057EE10, ResendParty): every item of the player's
+    // After a player's party was sent again
+    // Every item of the player's
     // party (+0x70) taken out (CParty::RemoveItem(first, 1)) until none is left.
     void ClearPlayerItems(CPlayer* player);
-    // 00593FA0 (RET 0xC; world_small_calls.cpp; the script's SetWaterLevel). The water level `key`
+    // The water level `key`
     // moves to `target` over `steps` ticks (TweenSetTarget on +0x70).
     void SetWaterLevel(int key, float target, int steps);
-    // 005939E0 (no caller in the exe; Rebirth's binaries refer to it). Every unit (class 0x50) of
+    // (no caller in the exe; Rebirth's binaries refer to it). Every unit (class 0x50) of
     // the object map removed (RemoveObject by id; the walk steps on before each removal).
     void RemoveAllUnits();
 
@@ -555,15 +555,15 @@ public:
     // empty entry) refills its controller's slots (00525AF0 on +0x1E0) and runs the controller's
     // slot 19 with 0.
     void PrepareSave();
-    // 00596140 (RET 0xC; world_game.cpp). Reads the zone's AI graph into the memory stream `out`:
+    // Reads the zone's AI graph into the memory stream `out`:
     // the 0x31415926 chunk of the .mob file when there is one, else the whole <map>.grp file.
     // 1 when found.
     int ReadAIGraph(const char* map, const char* mob, CStream* out);
-    // 00596350 (RET 4; world_game.cpp). The zone's scripts from the .mob file's 0xA000 chunk (its
+    // The zone's scripts from the .mob file's 0xA000 chunk (its
     // 0xACCEECCB text packed and XORed, decoded by 004D8E10, or the plain 0xACCEECCA text) become
     // the only line of the first command queue.
     void LoadZoneScripts(const char* mob);
-    // 0058DAF0 (RET 4; world_game.cpp). While a game runs (+0x138), every new connection the
+    // While a game runs (+0x138), every new connection the
     // lobby hands over (its slot 6) becomes a player of this game's kind,
     // fully dirty, starting at startPosition_; "Accepted player <id>" goes to the network log.
     void AcceptNewPlayers(CPlayerSource* lobby);
@@ -592,7 +592,7 @@ public:
     // files, script queues, diplomacy, map objects, missiles and timed objects go, then the
     // base class's teardown; the game result and kind are cleared.
     void TeardownZone();
-    // 00595480 (RET 0xC; world_save.cpp; patched by Rebirth, so vanilla only; A-W14). A new zone
+    // A new zone
     // from the map `map` and the object file `mob`: the loading movie picked for `zone` and its
     // first frame shown; 0 when a file is neither where its name says nor in the maps folder
     // (null names are not looked for). The AI graph is read (ReadAIGraph; without it a fatal
@@ -600,10 +600,10 @@ public:
     // loaded between the AI map's BeginRefresh and EndRefresh (LoadMap; a failure is a fatal
     // error too). The zone name is kept when given, +0x160 cleared. Returns 1.
     int NewZone(const char* map, const char* mob, const char* zone);
-    // 00595B50 (RET 8; world_map.cpp; the client's state block 00567AB0 through the glue 00578730).
+    // (RET 8; world_map.cpp; the client's state block 00567AB0 through the glue 00578730).
     // Unless the zone's map and .mob are these already: NewZone(map, mob, null), then TeardownZone.
     void EnsureZone(const char* map, const char* mob);
-    // 00595020 (RET 8; world_party.cpp; `this` is not read). `unit` used one of `item` (a scroll):
+    // `unit` used one of `item` (a scroll):
     // the item's count drops, and so does the count of the party's item it was made from (the
     // link at +0x1C) when the unit's player has a record for the unit.
     void UseItemUp(class CUnit* unit, class CItem* item);
@@ -626,7 +626,7 @@ public:
                        int extra);
 
     // world_loot.cpp
-    // 005942D0 (RET 8, AL). `player` takes what `object` holds: a shared loot record
+    // `player` takes what `object` holds: a shared loot record
     // (flags_ 0x20000000, removed afterwards) or what 00461CB0 collects (in a multiplayer client
     // game quest items go to player 0); the gold is added to the player. False for no player, a
     // living owned unit, or nothing to take.
@@ -691,7 +691,7 @@ public:
     // the map centre or along the exit's heading, the player state gets the start; `runScripts`
     // runs the script command queue five times.
     void Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placements, char runScripts);
-    // 00594CE0 (slot 24, RET 4; DuplicateItem). A new item like `item`: made by the item factory (slot 18) from
+    // A new item like `item`: made by the item factory (slot 18) from
     // its type (+0x10) and record (+0x18), filled by the item's slot 15 (with slot 22), with its
     // count (+0x28); one below its maximum (+0x2C) goes on counted_ once.
     CItem* CopyItem(CItem* item);
@@ -794,7 +794,7 @@ public:
     MapObjectIdMap namedObjects_;         // +0x12DD0 objects with a second name (+0x1A8)
     ObjectIdMap timedObjects_;            // +0x12DE8
     // +0x12E00 the zone header SendFreshObjects sends to a temporary player (constructed by
-    // 0041DD70 in the constructor 00589ED0).
+    // In the constructor 00589ED0).
     CMemoryStream zoneHeader_;
     ProjectileList projectiles_;          // +0x12E28
     mfc::CTypedPtrList<CEngineObject> counted_; // +0x12E44 counted references (released on clear)
@@ -851,7 +851,7 @@ static_assert(sizeof(Platform) == 0x4C);
 
 using PlatformList = mfc::CList<Platform>;
 using PlatformNode = PlatformList::Node;
-static_assert(sizeof(PlatformNode) == 0x54);   // 00573000 carves nodes of 0x54 bytes
+static_assert(sizeof(PlatformNode) == 0x54);   // carves nodes of 0x54 bytes
 
 // The client world's platform set (CWorldClient + 0x1D4, 0x38 bytes): the engine's CBridgeManager
 // (class 0x34; the client's Create calls its Create, Destroy its Destroy)
@@ -862,12 +862,12 @@ public:
     // world_construct.cpp (inlined in the client's constructor): the engine object's fields and the
     // empty face list.
     PlatformSet();
-    // 00561A60 (deleting: 00561AE0; world_client_maps.cpp): the face list emptied (its vtable 0073F548
+    // The face list emptied (its vtable 0073F548
     // back).
     ~PlatformSet() override;
-    // 00561800 (slot 2; the client's Create). The face list emptied (its blocks freed); returns 1.
+    // The face list emptied (its blocks freed); returns 1.
     int Create() override;
-    // 00561840 (slot 3; the client's Destroy): the face list emptied.
+    // The face list emptied.
     void Destroy() override;
     const char* GetClassName() override;
     int GetClassId() override;
@@ -877,16 +877,16 @@ public:
     float SurfaceHeight(const Vector3* point, float height);
     // Whether (x, y) lies on some platform (with a 0.1 margin).
     bool Contains(float x, float y);
-    // 00561150 (RET 0x10; the particles' ground plane, CParticleSource::TickGroundPlane, through
+    // (RET 0x10; the particles' ground plane, CParticleSource::TickGroundPlane, through
     // 007AF78C). The highest platform surface above 0 at (x, y) (with a 0.5 margin): *height its
     // z and *normal its normal; 0 and (0, 0, 1) when there is none.
     void SurfacePlane(float x, float y, Vector3* normal, float* height);
-    // 00560650 (RET 0x14; world_client_maps.cpp). Adds the face with corner `a`, edges to `b` and
+    // Adds the face with corner `a`, edges to `b` and
     // `c` and `normal` when normal.z >= 0.8: origin a, unit axes (b - a) / |b - a| and (c - a) /
     // |c - a|, the two lengths, the normal; *out = the new record (its id, centre and radius are the
     // caller's), null when the face is too steep. Returns 1 when added.
     int AddFace(const Vector3* a, const Vector3* b, const Vector3* c, const Vector3* normal, Platform** out);
-    // 00560820 (RET 0x10; called by CWorldClient::AddObject). The platform item `item` (+4
+    // The platform item `item` (+4
     // offset, +0x10 radius, +0x14 / +0x20 the box's corners, +0x2C pivot) of object `id` placed at
     // `position` with the rotation quaternion `rotation` (w, x, y, z): the box's corners and the six
     // face normals rotated, and every face that points up added with the id, the centre
@@ -902,7 +902,7 @@ static_assert(sizeof(PlatformSet) == 0x38);
 // 005986B0, 005593D0 adds a unit) and the client reads back as its unit looks (unit_looks.h): the
 // figured records grouped by prototype (each group an STLport hash_map keyed by three packed
 // 10-bit values), and the dressed records by prototype. All three maps hash a key to itself
-// (0055C5C0 and the iterators' 0055B9D0 / 0055B500). The writer is world_unit_set.cpp, Add
+// The writer is world_unit_set.cpp, Add
 // world_unit_set_add.cpp. The maps are game_hashes.h's tables (gamehash::FiguredGroupsTable,
 // gamehash::DressedTable); their element policies are record_vectors.h's and game_hashes.h's.
 namespace recordvec { struct FiguredUnitElement; struct DressedUnitElement; }
@@ -934,7 +934,7 @@ static_assert(sizeof(UnitSet) == 0x28);
 
 // The record helpers 005593D0 was compiled with (world_unit_set_add.cpp).
 namespace unitset {
-// 00559DB0 (plain RET): a record head's two id lists empty. Returns this.
+// A record head's two id lists empty. Returns this.
 DressedUnitRecord* __fastcall ConstructHead(DressedUnitRecord* self);
 // A record head's destructor: the extra weapons' storage, then the items'.
 void __fastcall DestroyHead(DressedUnitRecord* self);
@@ -945,7 +945,7 @@ bool __fastcall EqualIds(const std::uint32_t* first, const std::uint32_t* last, 
 void __fastcall DestructName(mfc::CString* name);
 } // namespace unitset
 
-// 0055A190 (ECX stream, EDX first list, RET 4; called by the client's zone load 00567AB0). Reads
+// Reads
 // the zone's two unit look lists from `stream` (slot 1 reads bytes): a count, then per figured
 // record a 16-bit prototype, two counted dword arrays, a byte, a dword, the three morph
 // coefficients and a counted list of names; then a count and per dressed record the prototype,
@@ -956,7 +956,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
 // The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
 // world_client_maps.cpp): an STLport list of counted pointers per 16x16 cell.
 struct SectorCellObjects : stlp::list<CEngineObject*> {
-    // 00572B30 / 00572C50 (RET 4; S13, world_client_maps.cpp): the cells' vector deleting
+    // The cells' vector deleting
     // destructor, on the first list of `this` array. Bit 1 of `flags`: it is a new[] block (its count
     // in the dword before it), every list destroyed from the last; else the one list. Bit 0: the
     // memory freed. Returns the block.
@@ -971,8 +971,8 @@ using MapObjectList = stlp::list<CMapObject*>;
 // / 00572E90, inlined by the client's destructor for its heroes): each object released (slot 4)
 // and its node returned to the pool, the sentinel last.
 void DestroySectorList(stlp::list<CEngineObject*>* list);
-// 0056DEF0 (world_client_maps.cpp): the same at its address, which only the exit function
-// 0056A4C0 calls (on the deferred unit list 007AF5B4).
+// The same at its address, which only the exit function
+// Calls (on the deferred unit list 007AF5B4).
 void __fastcall SectorListDestruct(stlp::list<CEngineObject*>* list);
 struct SectorGrid {
     SectorList* cells_;                   // +0x00 the lists
@@ -980,18 +980,18 @@ struct SectorGrid {
     int unknown08_, unknown0C_;           // +0x08 (00572450 resizes when they change)
     std::uint32_t width_;                 // +0x10 cells along x
     std::uint32_t height_;                // +0x14 cells along y
-    // 00572820 / 005728D0 (the two list instantiations; world_client_maps.cpp). The storage for
+    // The storage for
     // unknown08_ x unknown0C_ cells: a new[] block of empty lists (the count before them), then the
     // row pointers.
     void Allocate();
-    // 00572450 / 005724F0 (RET 8). When the storage has another size: the lists destroyed and the
+    // When the storage has another size: the lists destroyed and the
     // storage freed (SectorList::VectorDelete, flags 3), the size taken, then Allocate.
     void Resize(int width, int height);
-    // 00570860 (RET 8; CWorldClient slot 41 on +0x120, also 0067BEF0 / 0067CEF0). Moves `object`
+    // Moves `object`
     // to `position` (stored at object +0x1C): when the cell (FISTP of x and y, >> 4) changes, out
     // of the old cell's list and to the end of the new one's (cells outside the grid are skipped).
     void Move(CEngineObject* object, const float* position);
-    // 00570BB0 (RET 8; slot 42 on +0x150). The same for the second grid's list instantiation.
+    // The same for the second grid's list instantiation.
     void Move2(CEngineObject* object, const float* position);
 };
 static_assert(offsetof(SectorGrid, width_) == 0x10);
@@ -1032,7 +1032,7 @@ struct OpaqueRecord {
 class CWorldHandle final : public CPlayerSource {
 public:
     CWorldHandle() : pendingLink_(nullptr) {}
-    ~CWorldHandle() override;           // 0055F280 (deleting: 0055F260): the link released
+    ~CWorldHandle() override;           // the link released
 
     int OnShutdown() override;
     CWorldHandle* Clone() override;
@@ -1063,7 +1063,7 @@ struct ScreenEntry {
 };
 static_assert(sizeof(ScreenEntry) == 0x18);
 using ScreenEntryNode = stlp::list<ScreenEntry>::Node;
-// 0056A370 (no Ghidra function; called through a mem_fun1 by the frame's draw pass, EAX 1 when
+// (no Ghidra function; called through a mem_fun1 by the frame's draw pass, EAX 1 when
 // queued). An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40)
 // puts its class id, id and that rectangle (CObject3D::dirtyRect) at the end of `queued`.
 int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* queued);
@@ -1122,7 +1122,7 @@ struct ClientArrayManager : CBaseManager {
     // 13: 00562DA0, CBaseManager's Init (the same code at its own address).
     CEngineObject* NewObject(int type) override;
 
-    // 004E2700 (vis_fog_manager.cpp). Every fog drawn.
+    // Every fog drawn.
     int Draw(CSceneRenderer* renderer);
 
     CEngineObject* current;               // +0xB0 counted
@@ -1130,7 +1130,7 @@ struct ClientArrayManager : CBaseManager {
 };
 static_assert(sizeof(ClientArrayManager) == 0xD0);
 // vis_fog_manager.cpp: 004E2850 the manager's Clear (its object and every listed one released, the list emptied);
-// 004E28D0 a new fog object, counted, at the list end.
+// A new fog object, counted, at the list end.
 void __fastcall VisFogManagerDestroy(ClientArrayManager* manager);
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* manager);
 // +0x19C: the particle manager, CParticleManager (effects.h).
@@ -1149,21 +1149,21 @@ public:
     // array, the exits).
     ~CWorldClient() override;
 
-    // 00561E50 (slot 2; also 00456440; world_client_maps.cpp). Sets the client world up: the
+    // Sets the client world up: the
     // managers (CWorld::Create), the texture path, the lights table (LightsGipat.ini, 00563930),
     // the owned objects +0x1CC, +0x1D0, the terrain (+0x180), +0x44, +0x18C, +0x188, +0x190,
     // +0x19C, the session (+0x20C), the counted +0x1C8, the text resources, +0x1A0, +0x1A4, +0x1A8,
     // +0x6F4 and the platforms, flag 0x200, the cursor (+0x7D0), a reference on every player, room
     // for 400 screen entries (+0xF4), and both sector grids at 4 x 4. Returns 1.
     int Create() override;
-    // 00563290 (slot 3; also 00456440 and the destructor; world_client_maps.cpp). Tears the client
+    // Tears the client
     // world down: the camera's target, the objects at +0x1B4 / +0x1AC / +0x1B0, 00563190, +0xA0,
     // the lists +0x1B8, +0x1BC, +0x1C0, +0x6F4 and the platforms (slot 3), +0x1F0, the sector
     // grid's cells, the lists +0x7BC, +0xB4 and +0xB8 (released), the session (+0x20C), the
     // counted +0x1C8, CWorld::Destroy, then the owned objects +0x1A0 .. +0x1D0 (counted ones
     // dropped first) deleted and cleared.
     void Destroy() override;
-    // 005641F0 (slot 6, RunTick; world_client.cpp). The client's tick ("Segment"): autosave event
+    // The client's tick ("Segment"): autosave event
     // and sound volumes on frame 10, the terrain, sound and session updates, the objects and units,
     // effect lists, the lights' grey levels, the map state every 32 ticks. Returns 1; 0 when the
     // session's view has lost its connection (the session is disconnected, FatalError; Rebirth's
@@ -1179,7 +1179,7 @@ public:
     const char* TexturePath() override;
     // ClampedGroundHeight.
     double GridHeightAt(float x, float y) override { return ClampedGroundHeight(x, y); }
-    // 00564070 (slot 28; RET 8; terrain.cpp). The height of whatever surface is on top at (x, y):
+    // The height of whatever surface is on top at (x, y):
     // the ground, or the water when the point is submerged (ST0; the sum rounded to float).
     double RawSurfaceHeightAt(float x, float y) override;
     // The client's height slots 29 / 30 (005618E0 / 00561930; ST0, RET 8; world_client_maps.cpp):
@@ -1197,11 +1197,11 @@ public:
     virtual void MoveObject2(CEngineObject* object, const float* position);   // 42
 
     void BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed);
-    // 00569E40 (world_client_draw.cpp). Draws the world view: view matrix, sky, terrain passes
+    // Draws the world view: view matrix, sky, terrain passes
     // around DrawPass, effects and particles, flying hit points. Returns 1. Rebirth's
     // LandscapeDrawRadius sets the terrain's draw distance (100 in the game).
     int Render();
-    // 0056AFE0 (world_client_draw.cpp). The object passes: collects the visible objects of the
+    // The object passes: collects the visible objects of the
     // sectors around the camera (ObjectsDrawRadius widens the 100.0 margin), sorts and draws them,
     // the light effects, shadows and selection markers, then empties the frame's lists. Returns 0
     // without terrain, else 1.
@@ -1232,7 +1232,7 @@ public:
     void ProjectDecal(const Vector3* direction, const Vector3* point, float depth, VertexPacket* const* corners,
                       lib::AlignedArray<VertexPacket>* points, lib::AlignedArray<DecalTexCoord>* texCoords,
                       lib::AlignedArray<std::uint16_t>* indices, std::uint8_t skipOnPlatform, std::uint8_t objects);
-    // 006CBC00 (RET 4; terrain_ambience.cpp). The ambient sounds' time of day into `out`: "day"
+    // The ambient sounds' time of day into `out`: "day"
     // from 6 to 18 o'clock, "morning" before 6 and "evening" after 18 within 2..22, else "night".
     // Returns out.
     mfc::CString* AmbienceTimeOfDay(mfc::CString* out);
@@ -1244,12 +1244,12 @@ public:
     // Whether the local view is in mode 2 (+0x20).
     bool IsLocalViewMode2();
     // world_small_calls.cpp (A-W14).
-    // 005655D0 / 005655F0 (RET 4; the scene loader, 0051B2F0 / 0051B470). A new texture / material
+    // A new texture / material
     // of class `type` from the world's managers (+0x18C NewTextureOfType, +0x188 NewMaterial);
     // null without the manager.
     CTexture* NewTexture(int type);
     CMaterial* NewMaterial(int type);
-    // 00565670 (RET 4; the game start, 00456440). Takes `camera` as the view camera: the old one
+    // Takes `camera` as the view camera: the old one
     // loses a reference (it is not released at zero), the new one gains one; either may be null.
     void SetCamera(CCamera* camera);
     // The dword of message 0x12 (CPlayerClient::OnWorldValue) stored at +0x7C0.
@@ -1263,27 +1263,27 @@ public:
     BOOL FindExitAt(const float* point, int* index);
     // Centre of exit `index`'s rectangle.
     float* ExitCentre(float* out, int index);   // returns out
-    // 00567500 (the client world load 00567AB0). One ZoneExit particle source (0x2038) per exit
+    // One ZoneExit particle source (0x2038) per exit
     // that leads somewhere, in +0xA0 at the exit's index (others null; the old markers released):
     // at the rectangle's centre, half extents and the angle's cos / sin at +0x118..+0x124, ticked
     // 20 times; then UpdateExitMarkers.
     void CreateExitMarkers();
-    // 005677F0 (RET 0xC; the client glue 00578A20). Whether the party can leave through `exit`:
+    // Whether the party can leave through `exit`:
     // every living unit of `records` (unit id at +0x1C) stands in an exit (FindExitAt) and that
     // exit is `exit`. Those that do are listed in `inExit` (emptied first). 0 when no unit lives.
     BOOL PartyInExit(const RecordPtrArray* records, int exit, RecordPtrArray* inExit);
     // Makes the bird (+0x1B0, a CEffectMoshka) when there is none, resets it (slot 18)
     // and has it follow the unit of the local party's first record.
     void SummonBird();
-    // 00565380 (RET 8; the server's quest variable message through 00580840). A quest variable
+    // A quest variable
     // "q.<quest>.<name>" changed to `value`: every filed object whose name (+0x1A8) is <name> (the
     // text after the second dot) gets the visibility level `value`; a value of 2 (or
     // NaN) with a <name> without a dot summons the bird (as SummonBird).
     void OnQuestVariable(const char* name, float value);
-    // 005654F0 (RET 8; `this` not read). The party variable of an object's name (CMapObject +0x1A8):
+    // The party variable of an object's name (CMapObject +0x1A8):
     // "q.<local player's name>.<name>", constructed in `out`; returns `out`.
     mfc::CString* ObjectVariableName(mfc::CString* out, const char* name);
-    // 005652E0 (the client's party variables arrived). Every filed object with a name gets the
+    // (the client's party variables arrived). Every filed object with a name gets the
     // visibility level of its variable (ObjectVariableName) in the local session's variables.
     void ApplyObjectVariables();
     // Flags describing the current environment for `unit`: unit state (+0x268), island
@@ -1292,7 +1292,7 @@ public:
 
     // world_client_view.cpp
     // Walks one object list (a map sector's, the deferred unit list at
-    // 007AF5B4 or +0xB4), tests each object with a model against the view frustum and files it in
+    // Or +0xB4), tests each object with a model against the view frustum and files it in
     // the frame's draw lists (world_client_view.cpp). `view` is the camera matrix (M * v),
     // `animTime` the game time handed to units' slot 25, `now` the timeGetTime() of the frame.
     // With `animateUnits` 0 units are only queued on the deferred list; otherwise they are animated
@@ -1315,7 +1315,7 @@ public:
     // reference), the sector grid +0x120 (removed first, then appended) and, for heroes with a
     // text-key id, the list +0xB4. Returns 1.
     int AddObject(CMapObject* object);
-    // 005651A0 (RET 4; a platform object moved: 0052B490, the client's 00668840). When an object
+    // When an object
     // with `object`'s id is filed (+0xB8): its platform faces are removed and, for classes 0x54 /
     // 0x5D, its platform items added again where it now stands (as AddObject). EAX is not read.
     void RefreshPlatforms(CMapObject* object);
@@ -1323,32 +1323,32 @@ public:
     // AddObject does) unless its id is there already. AL: 1 when added (the upper bytes of EAX
     // are not a result; the callers do not read it).
     bool QueueSynchronised(CEngineObject* object);
-    // 0056D7A0 (the options' OK after a shadow switch changed). Every filed object whose kind has
+    // (the options' OK after a shadow switch changed). Every filed object whose kind has
     // no shadows (0051E200 false) drops its shadow.
     void DropShadows();
-    // 00566100 (RET 4; the battle screen and the interface's selection). Takes `object` out of the
+    // Takes `object` out of the
     // selection list +0x7BC, its highlight off (flags 0x110 cleared, side half slots 25 / 26 with
     // 0) when it was on; with null every listed object's highlight goes off and the list empties.
     void Deselect(CEngineObject* object);
-    // 00566030 (RET 4; A-W13). Adds `object` (not null) to the selection list: its part bounds
+    // Adds `object` (not null) to the selection list: its part bounds
     // refreshed (CObject3D::UpdatePartBounds), the highlight on (flag 0x10; side half slot 26 with 1
     // unless flag 0x100 is set, then slot 25 with 1) when it was off, and its id appended unless
     // it is listed already.
     void Select(CEngineObject* object);
-    // 00569D60 (Render calls it last; A-W13). Draws every line list of lineLists_ (0049B780 with the
+    // Draws every line list of lineLists_ (0049B780 with the
     // scene pipeline and the renderer). Returns 1.
     int DrawLineLists();
     // One more reference on every item (slot 18's manager) and, when the item
     // factory exists (tested again, not the spell manager), on every spell (slot 22's).
     void ReferenceItemsAndSpells();
-    // 00563190 (Teardown). The reverse: every item (slot 18's manager) and then every spell (slot
+    // (Teardown). The reverse: every item (slot 18's manager) and then every spell (slot
     // 22's) released (slot 4), each manager then emptied (its slot 15, DestroyAll).
     void ReleaseItemsAndSpells();
-    // 00567A60 (RET 4; a zone state's block 3, player_client.cpp; A-W13). The items and spells
+    // The items and spells
     // replaced: all released, then (a block with data) the spell and item managers loaded (slot 9,
     // then their objects, 004047E0) and referenced again. Returns 1.
     int LoadItemsAndSpells(CStream* block);
-    // 00567950 (RET 4; block 5). The block read from its start: the spells and then the items it
+    // The block read from its start: the spells and then the items it
     // lists (LoadManagerObjects). 0 when the block fails.
     int LoadNewItemsAndSpells(CStream* block);
     // Takes the object `id` out of the maps: the MFC list +0x1F0 entries for it,
@@ -1360,11 +1360,11 @@ public:
     // map +0xD8, the lists +0x7BC and +0xB4, the +0xB8 entries with a positive id (released), the
     // session's player data, +0x34's slot 5 and the managers +0x3C/+0x40/+0x44's records.
     void ClearMaps();
-    // 00565090 (A-W12). The zone's leftovers dropped: the counted array +0xA0 emptied (its own
+    // The zone's leftovers dropped: the counted array +0xA0 emptied (its own
     // SetSize releases them), the second grid's cells cleared (counted elements released), every
     // timed object (slot 14's manager) released, the bird (+0x1B0) reset (slot 18).
     void ResetZoneObjects();
-    // 00567AB0 (RET 4; world_client_maps.cpp, A-W15; patched by Rebirth, so hooked in the vanilla
+    // (RET 4; world_client_maps.cpp, A-W15; patched by Rebirth, so hooked in the vanilla
     // launch only: the player's client reaches it through its address). The zone's state block:
     // the flow acknowledges the server, sounds stop, then from `block` the tick, the map and .mob
     // names, the exits, the cave flag and the unit looks; the local server makes sure it has the
@@ -1376,7 +1376,7 @@ public:
     // built and the view resumes. Loading movie steps 8-11, then closed. Returns 1, or the
     // result of the fatal error when the map does not load.
     int LoadZone(CStream* block);
-    // 00566CE0 / 00566D30 / 00566D80 (RET 4; world_client_session.cpp). The local session takes a
+    // The local session takes a
     // new link: the single-player loopback pair for `player` (CWorld's teardown 0055F890 first), a
     // replay of the recording `path`, or a driver for the game client's first connection (false
     // without an active client or connection; the argument is unused). Each empties the maps
@@ -1384,59 +1384,59 @@ public:
     void SetPlayer(CWorldHandle* player);
     void PlayRecording(const char* path);
     bool JoinGameClient(const char* unused);
-    // 00566E20 / 00566E70 (world_client_session.cpp). The player sources (+0x5C, +0x1C8) and the
+    // The player sources (+0x5C, +0x1C8) and the
     // network session (+0x60) pumped, then the local player's link (when it is active) asked
     // HasIncoming (slot 6, AL) / IncomingCount (slot 7); false / 0 without one.
     bool PumpHasIncoming();
     int PumpIncomingCount();
-    // 00566E00 (world_client_session.cpp; the console's disconnect through GameFlow).
+    // (world_client_session.cpp; the console's disconnect through GameFlow).
     // The local view's owner (session +0x20, the connection's player +0x1C) disconnects
     // (CPlayer::Disconnect). The original reads through null without a session, as this does.
     void DisconnectLocalPlayer();
-    // 00565790 / 005659D0 (RET 4). The object at screen point `point` (x, y): the screen entries of
+    // The object at screen point `point` (x, y): the screen entries of
     // the list +0xF0 that contain it and whose object's +0x94 answers slot 22 or 24
     // go to the vector +0xF4, which is sorted front to back (DepthLess with the view
     // matrix); the first entry whose object still exists wins (+0x100 is left on it). Null if none.
     CEngineObject* PickAt(const struct tagPOINT* point);
     CEngineObject* PickAt2(const struct tagPOINT* point);
-    // 00565E40 (RET 4; the battle screen's clicks and hover). The unit at screen point `point`:
+    // The unit at screen point `point`:
     // from PickAt2's object on, the first unit among the sorted hits (the cursor +0x100 moves past
     // the others and those whose object is gone); failing that the same from PickAt's. Null if
     // none.
     CUnit* UnitAt(const struct tagPOINT* point);
     // The same from PickAt2's object only (no second pick).
     CUnit* UnitAt2(const struct tagPOINT* point);
-    // 005656A0 (RET 8; the battle screen's selection box). Every object of the frame's window list
+    // Every object of the frame's window list
     // (+0xF0) that still exists and whose side half has a drawn part meeting the screen rectangle
     // `rect` (slot 23) is appended to `out`.
     void UnitsInBox(const long* rect, stlp::list<CEngineObject*>* out);
-    // 0056D740 (RET 8; a party unit's time step, unit_vision.cpp). Marks the footprints (+0x1BC)
+    // Marks the footprints (+0x1BC)
     // within their scale times `range` of the point (x, y): MarkWithinRadius over the list.
     void MarkFootprintsInSight(const float* point, float range);
-    // 00564190 (RET 8; the server's message 0x72). The wind: stored (CWorld::SetWind), given to the
+    // The wind: stored (CWorld::SetWind), given to the
     // terrain's waves (a copy of the direction) and to the rain and snow (+0x6F4).
     void ApplyWind(const Vector3* direction, float strength);
-    // 0056CE40 (RET 0xC; the server's number messages, a living object's hit). A number over the
+    // A number over the
     // unit with id `id` (the flying hit points, +0x1B4); nothing for another object or without them.
     void ShowNumber(int id, int value, std::uint32_t kind);
-    // 0056DE80 (the client's game state 3). Every unit among the objects (+0xB8) has its
+    // (the client's game state 3). Every unit among the objects (+0xB8) has its
     // controller load the face texture.
     void LoadUnitFaces();
-    // 00578A60 (RET 4; the glue 00578A40). The target zone of exit `index` (the original copies
+    // The target zone of exit `index` (the original copies
     // the exit out of the array and returns the copy's text, which shares the element's buffer).
     const char* ExitTarget(int index);
-    // 00567400 (RET 4; the glue 005789E0). Removes the units of a record array (each record's unit
+    // Removes the units of a record array (each record's unit
     // id, +0x1C) from the world.
     void RemoveUnitsOf(const RecordPtrArray* records);
-    // 00566330 (RET 4; the glue 00578D30). The local client sends its message 0x10 with `value`.
+    // The local client sends its message 0x10 with `value`.
     int SendFlag10(int value);
-    // 005662B0 (RET 4; the server's camera placement message). The camera looks at the point (x, y)
+    // The camera looks at the point (x, y)
     // at its own focus height, with its view applied and kept above the objects. Returns 1.
     int CentreOn(const Vector3* point);
 
     // The debug display's switches (the console's debug commands; bits 0-3 of +0x88): the frame
     // rate 00569A10 / 00569A20, the render counters 00569A40 / 00569A50, the managers' lines
-    // 00569A90 / 00569AA0 and the world's 00569B10 / 00569B20. Switching one off also takes its
+    // And the world's 00569B10 / 00569B20. Switching one off also takes its
     // lines out of the debug info panel.
     void ShowFps();
     void HideFps();
@@ -1453,19 +1453,19 @@ public:
     // (+0); each unit is filed with AddObject. Armour of type 0 is put on only with `allArmour`.
     // Stops at the first unit that cannot be created or given a figure.
     void CreatePartyUnits(const RecordPtrArray* party, char allArmour);
-    // 0056DAF0 (RET 0xC; the camera's 0040E4C0). Appends to the plain pointer list `out` every
+    // Appends to the plain pointer list `out` every
     // object of the sector grid's cells around `point` whose (x, y) (+0x1C plus +0x128) lies within
     // radius + hypot(+0x144, +0x148) of the point. The cell range (+0x138..+0x144, truncated and
     // clamped to the terrain) and the walk's cursor (+0x148 / +0x14C) are left in the client.
     // The original's z difference is the point's z minus itself (0, kept).
     void ObjectsInRange(const Vector3* point, float radius, stlp::list<CObject3D*>* out);
-    // 00563930 (RET 4; world_client_setup.cpp). Reads the light colours from config\<file> (an
+    // Reads the light colours from config\<file> (an
     // .ini, LightsGipat.ini): each key of [sunlight], [ambient] and [sky] names its hour in
     // characters 4..5 ("hour07") and holds "r, g, b" (0..255, scaled by 1/255, alpha 1); the hours
     // between two keys in file order are filled by linear steps from the earlier key (the first
     // from hour 0). Hours are not range-checked. Returns 1.
     int LoadLights(const char* file);
-    // 00566360 (world_client_lights.cpp; Render, the zone load and message 0x71 call it). The
+    // The
     // frame's light from the time of day (00567680 first): fog start, sun direction (the hour
     // turns it once around +z, its elevation peaks at noon), sunlight, ambient and sky colours
     // interpolated between the hour's table entries; the renderer's sun, ambient and fog colour,
@@ -1473,17 +1473,17 @@ public:
     // colours and a fixed sun. Returns 1 when a new hour began (or the renderer's +4 bit 0 is
     // clear: nothing done), else 0; no caller reads it.
     int UpdateLighting();
-    // 00567680 (world_client_lights.cpp). With one marker per exit (+0xA0, ZoneExit particle
+    // With one marker per exit (+0xA0, ZoneExit particle
     // sources made by 00567500): a marker whose target zone's party variable "z.<zone>" is 1 (or
     // NaN) gets extent (1, 0, 0) (its particles turn red), the others (0, 0, 0).
     void UpdateExitMarkers();
-    // 00563710 (RET 4; world_client_setup.cpp; once at startup, 00456440, with the renderer).
+    // (RET 4; world_client_setup.cpp; once at startup, 00456440, with the renderer).
     // The texture manager gets `device`; the platforms and sky; the digit
     // sprites (+0x1B4) with the "numbers" texture (kind 6; flag 0x40000); a new figure loader for
     // the figures resource (the CString) in +0x34 (counted, the old one released); then
     // the unit database counts the sound files of +0x1CC.
     void SetUpGraphics(void* device);
-    // 00562F70 (world_client_setup.cpp; SetUpGraphics). Once (+0x1AC null): a new CSky; the figure
+    // Once (+0x1AC null): a new CSky; the figure
     // manager makes a CSkyObject (class 0x44, id -666) named "nask0" that loads "nask0sky.fig"
     // from the figure resources and becomes the sky's object (flag 0x10), with a material of type
     // 0x12. Without the file the object is referenced and released again.
@@ -1538,7 +1538,7 @@ public:
     stlp::list<BloodPrint> bloodPrints_;
     stlp::list<Footprint> footprints_;
     stlp::list<GroundPrint> scorchMarks_;
-    // 00572550 / 00572580 / 005725B0 (RET 8; S16a, world_client.cpp): erase(pos) of the three lists:
+    // Erase(pos) of the three lists:
     // the node unlinked, its print destroyed (GroundPrint::Destruct), the node deleted (operator delete:
     // the nodes are over 128 bytes); *out the node that followed it. Return out.
     static void** __fastcall EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos);
@@ -1687,14 +1687,14 @@ struct GameFlow {
     // (the world, SaveWorld). Without scenario.sav the game goes back to the main menu. Returns 1
     // when saved.
     int SaveGame(const char* slot);
-    // 0057F560 (StartServer, before the sessions; patched by Rebirth, so vanilla only; A-W14).
+    // (StartServer, before the sessions; patched by Rebirth, so vanilla only; A-W14).
     // Fills the zone table once, while it is empty: for every "*.mq" file of the maps
     // folder, its title in lower case is registered as a quest folder (RegisterQuests) and the
     // quest texts loaded so far are unloaded again; a zone the map database knows gets an entry
     // {the title, the record's map name, the allod}: 0 / 1 / 2 by the three map name lists
     // (00790270 zone2..zone9, 00790298 zone12 / zone13, 007902C0 zone17 / zone18), else 3.
     void BuildZoneTable();
-    // 0057F190 (each network step). The local player's "z.MPGame1" variable, set to 1 or
+    // (each network step). The local player's "z.MPGame1" variable, set to 1 or
     // removed: on a client, set unless the client session's +0x25EC is active; on the host, set
     // when more than one player is in (with +0x80) or unless the client's +0x25F4 is active.
     // Nothing without an active client session.
@@ -1707,7 +1707,7 @@ struct GameFlow {
     // zone with "z.MPGame1" = 1 and redeployed; the flow loads that zone (state 4) and the
     // client's game state request becomes kind 1.
     void BeginMultiplayerGame();
-    // 0057FF40 (RET 4; world_briefing.cpp). The local player has seen `briefing`: for a name
+    // The local player has seen `briefing`: for a name
     // ending in "_N" the zone's quests are loaded first (005809D0 with the name without "_N"),
     // then BriefingVariableInto's variable is set to 1.
     void MarkBriefing(const char* briefing);
@@ -1721,7 +1721,7 @@ struct GameFlow {
     // A multiplayer client asks the server to complete `briefing` (session
     // command 1).
     void RequestBriefing(const char* briefing);
-    // 00580040 (RET 4; world_briefing.cpp). Removes the local player's variable of `briefing`.
+    // Removes the local player's variable of `briefing`.
     void ForgetBriefing(const char* briefing);
     // Replaces the game client session with a new one, releasing
     // the old one.
@@ -1729,37 +1729,37 @@ struct GameFlow {
     // SaveGame through its address (a thunk the menus call).
     int SaveGameThunk(const char* slot);
     // Releases both network sessions (server 0079B5DC, then client 0079B5D8), clears
-    // 007C7DD8 and sets the state to 1.
+    // And sets the state to 1.
     void CloseSessions();
-    // 0057ECA0 (the menus and the interface on leaving a network game). As CloseSessions without
+    // (the menus and the interface on leaving a network game). As CloseSessions without
     // the state: 007C7DD8 cleared, the server and the client session released.
     void DropSessions();
-    // 0057ED00 (the hero screens). DropSessions, then the resources go back to the local database
+    // (the hero screens). DropSessions, then the resources go back to the local database
     // (UseResources(false)).
     void EndSession();
-    // 00580840 (RET 4; world_briefing.cpp). The client's variable at `node` (an element of
+    // The client's variable at `node` (an element of
     // ClientSession::variables_) changed: "q." variables go to the quest log and the
     // client world. The original's ECX is the node as well; only the argument is read.
     static void __stdcall OnVariableChanged(const stlp::list<RefPtr>::Node* node);
-    // 005810A0 (RET 4; world_briefing.cpp). Registers a quest folder once: the flow loads its
+    // Registers a quest folder once: the flow loads its
     // quests, then with "<folder>\quest.reg" in the texts the quest table reads it,
     // the map database loads "<folder>\map.txt" and the folder joins the list at 007AFDC0.
     void RegisterQuests(const char* folder);
-    // 0057EE10 (world_game.cpp). The multiplayer zone switch, in two calls: the first (+0x80
+    // The multiplayer zone switch, in two calls: the first (+0x80
     // clear) resets the host's connections, takes the party (player 0's records when its state
     // has +0x70, else the outside party) for the zone at +0x7C, asks for game state 3 and
     // requests state 6 (host) or 5 (client, to its peer's zone); the second (+0x80 set) asks for
     // state 1 and the start zone again, and the host drops its client.
     void SwitchMultiplayerZone();
-    // 0057E740 (RET 0x18; world_game.cpp). Hosts a multiplayer game: new server (game type) and
+    // Hosts a multiplayer game: new server (game type) and
     // client sessions, the client connects to 127.0.0.1 with the password (20 bytes) as hello,
     // then the server's name ("Server" when empty), +0x25E0, password, listing (not `unlisted`)
     // and +0x25FC are set; between 0057F560 and 0057EB10 (both patched by Rebirth).
     void StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted, int value25FC);
-    // 0057EA50 (A-W13). Joins as a client only: the server session dropped, a new client session,
+    // Joins as a client only: the server session dropped, a new client session,
     // then 0057EB10.
     void StartClient();
-    // 0057E970 (RET 8; `this` is not used). The client session joins the server at `address` with
+    // The client session joins the server at `address` with
     // the password (20 bytes, zero-padded) as its hello.
     void JoinServer(const net::NetAddress* address, const char* password);
     // The flow's requests (world_game.cpp): the state (+0) the flow's update acts on next, the
@@ -1769,7 +1769,7 @@ struct GameFlow {
     void RequestZoneChange(const char* zone, int entrance);          // 4, +0x78 = entrance
     void RequestPartyZone5(const char* zone, CParty* party);
     void RequestPartyZone6(const char* zone, CParty* party);
-    // 00581620 (world_game.cpp; the console's disconnect, S16c; `this` is not used). The client world's
+    // The client world's
     // local player disconnects (CWorldClient::DisconnectLocalPlayer).
     void DisconnectClient();
     // Starts `zone`: the current zone is torn down; mode 0 takes the mode from
@@ -1789,7 +1789,7 @@ struct GameFlow {
     // ticks first; autoplay with +0x78), 3 new game (StartNewGame), 4 zone +4, 5 / 6 multiplayer
     // zone changes with the party copy at +8. Ends with the network pump.
     void ProcessRequest();
-    // 0057DEE0 (RET 4; `this` is not used). The resource database follows `network`:
+    // The resource database follows `network`:
     // "databaseLMP.res" in a network game, else "database.res". When the name differs from the
     // last one (007AFDEC, "database.res" at first) the databases are switched (0057CB50, inlined in
     // the original) and the difficulty is saved to 0079BEC4 and cleared (network) or
@@ -1817,12 +1817,12 @@ struct GameFlow {
     // The party of a request (party_storage.h; RequestPartyZone5 / 6 copy one in).
     class CParty* RequestParty() { return requestParty_.Get(); }
 
-    // 00578460 / 005784D0 (A-W13; the static initialiser of the flow 007AFE20 and its atexit
+    // (A-W13; the static initialiser of the flow 007AFE20 and its atexit
     // function call them). The constructor body: empty names, the party constructed, no
     // request; returns this. The destructor body: the names and the party.
     GameFlow* Construct();
     void Destruct();
-    // 0057ED60 (RET 4; the session messages 004186F0 / 00418CC0). saves\current emptied, the
+    // Saves\current emptied, the
     // multiplayer zone (+0x7C) named; a host without an active client session starts it
     // when there is a name.
     void SetNetworkZone(const char* zone);
@@ -1847,26 +1847,26 @@ constexpr int kMpHeroSize = 0x74;
 // A multiplayer hero record (the saved parties' entries below, the hero screens' records): its party
 // (CParty, 0x70 bytes) and file name.
 struct MpHeroRecord {
-    // 0061A350 (RET 4; ui_hero_screen_click.cpp). Assignment: the party, the file
+    // Assignment: the party, the file
     // name. Returns this.
     MpHeroRecord* Assign(const MpHeroRecord* other);
     // Constructor: the party, an empty file name. Returns this.
     MpHeroRecord* Construct();
     // Destructor: the file name, then the party.
     void Destruct();
-    // 00664AE0 (ui_hero_screen_click.cpp). Scalar deleting destructor (the vector's element
+    // Scalar deleting destructor (the vector's element
     // destructor with flag 0). Returns this.
     MpHeroRecord* DeletingDestruct(unsigned flags);
-    // 00664410 (ui_hero_screen_click.cpp; fastcall, the destination on the stack, RET 4). copy():
+    // Copy():
     // [first, last) assigned (Assign) to dest onwards; returns the end of the destination.
     static MpHeroRecord* __fastcall CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
-    // 00662AC0 (RET 4; party_file.cpp). Writes the party to `folder` + file: a file name with no
+    // Writes the party to `folder` + file: a file name with no
     // '.' or with anything but digits before the last one is deleted instead. Otherwise the old
     // file is moved to `folder` + "temp.mp", the party saved (with its variables) into a memory
     // stream and that written as a save file (magic 0x114, the save version), then the temporary
     // file deleted.
     void WriteFile(const char* folder);
-    // 00662DD0 (RET 4, AL; party_file.cpp). Reads the party from `folder` + file (magic 0x114,
+    // Reads the party from `folder` + file (magic 0x114,
     // the versions kSaveOldestVersion..kSaveVersion): false when the file does not read, else the party loaded
     // (with its variables) and the memory stream's ok flag.
     bool ReadFile(const char* folder);
@@ -1879,22 +1879,22 @@ static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
 
 // The saved multiplayer parties: the folder and an STLport vector of 0x74-byte entries.
 struct SavedParties {
-    // 00662FB0 (world_game.cpp). Rebuilds the list from the folder's "*.mp" files: each is read
+    // Rebuilds the list from the folder's "*.mp" files: each is read
     // into party records; a loaded one has its variables emptied and, with records +0x34
     // == 1, is appended. Rebirth's PersistentGlobalVars keeps the "gvar." variables.
     void Reload();
-    // 006632B0 (party_file.cpp). With a folder name: the folder created and emptied,
+    // With a folder name: the folder created and emptied,
     // then every entry written into it (MpHeroRecord::WriteFile).
     void SaveAll();
-    // 0065F2D0 (party_file.cpp, A-H17; the static destructor 0065F2C0 at exit). The party outside a
+    // The party outside a
     // game (+0x10) as an MpHeroRecord (file name, then the party), every entry, the vector's
     // storage back to the node allocator, the folder name.
     void Destruct();
-    // 0065F580 (party_file.cpp; the static initialiser 0065F2A0). An empty folder name and vector,
+    // An empty folder name and vector,
     // the party outside a game as an MpHeroRecord (the party 00661050, an empty file name). Returns
     // this.
     SavedParties* Construct();
-    // 00662F80 (RET 4; ui_hero_screen_click.cpp, A-H25). `hero` becomes the party outside a game
+    // `hero` becomes the party outside a game
     // (MpHeroRecord's assignment, inlined in the original).
     void Select(const MpHeroRecord* hero);
 
@@ -1911,17 +1911,17 @@ static_assert(sizeof(SavedParties) == 0x84);
 extern lib::StaticObject<SavedParties> g_savedParties;
 inline SavedParties& TheSavedParties() { return *g_savedParties; }
 
-// 00581630 (RET 8; world_game.cpp). Sets and has the local view ask to go to `zone`
+// Sets and has the local view ask to go to `zone`
 // returns what that returns.
 int __stdcall RequestZone(const char* zone, int entrance);
 
-// 00580F10 (world_briefing.cpp). With the briefing texts loaded: every quest text file
+// With the briefing texts loaded: every quest text file
 // loaded so far (g_questFiles) is unloaded and the list emptied.
 void UnloadQuestTexts();
 // The quest text files loaded so far (world_briefing.cpp; the files' paths).
 extern stlp::vector<stlp::string> g_questFiles;
 
-// 005809D0 (RET 4, AL; ECX, the flow, is not read; world_briefing.cpp, A-W15). Loads the quest
+// Loads the quest
 // texts of `zone`: false without the briefing texts or when the maps folder has no
 // "<zone>.mq" (CFileFind). A running game server first lists the file's bytes under
 // "<zone>.mq" for its clients (ShareFile); then a path not yet among the quest files
@@ -1929,21 +1929,21 @@ extern stlp::vector<stlp::string> g_questFiles;
 // launch only.
 bool __stdcall LoadZoneQuests(const char* zone);
 
-// 0057F820 (ECX = list, EDX = name; world_game.cpp). Whether `name` is in `list` (an array of
+// Whether `name` is in `list` (an array of
 // names ended by an empty one), compared case-insensitively.
 bool __fastcall NameInList(const char* const* list, const char* name);
 
-// 0057AAB0 (ECX = path ending in '\'; world_game.cpp). Creates the folder and deletes every file
+// Creates the folder and deletes every file
 // in it (CFileFind "*.*"; CreateDirectoryA / DeleteFileA through game.exe's imports).
 void __fastcall ClearSaveFolder(const char* path);
 
-// 0057F850 (RET 0xC; world_game.cpp). For the zone table entries with `id`, grouped by
+// For the zone table entries with `id`, grouped by
 // their second name in order of first appearance: one random entry per group (never the one
 // whose first name is `exclude` when there is a choice; one IsaacRandom draw per group) has its
 // first name appended to `out` (an STLport vector of strings).
 void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* exclude);
 
-// 00579E60 (RET 4; world_game.cpp). Reads mission.sav from a file stream (magic 0x102) and
+// Reads mission.sav from a file stream (magic 0x102) and
 // restores the world (LoadSave); old versions also carry the globals (< 0x52) and the input
 // state (< 0x47). 0 when the file does not read.
 int __stdcall LoadMission(CStream* file);
@@ -2003,7 +2003,7 @@ extern FrameQueue g_visible5D;
 extern FrameQueue g_visibleOther;
 extern FrameQueue g_visible54;
 enum class FrameList {
-    TouchedModels,   // 007AF508 models to keep loaded (by last use)
+    TouchedModels,   // models to keep loaded (by last use)
     Shadow52,
     ShadowUnits,
     Shadow5D,
@@ -2032,7 +2032,7 @@ inline CItemManager* WorldItemManager() { return TheServerWorld()->itemManager_;
 inline CBaseManager* WorldObjectManager() { return TheServerWorld()->manager40_; }
 
 
-// 00578E30 (thiscall on the client glue 007AFEA4, unused; RET 0x18; world_weather.cpp). A
+// A
 // lightning strike from `from` to `to`, as a script line on the queue at 007C29CC: one time in
 // four only a thunder sound, otherwise a point light at the middle, a sound and two bolts.
 void __stdcall ShowBolt(Vector3 from, Vector3 to);
@@ -2046,7 +2046,7 @@ void __stdcall GuardPlayerData(char plain);
 void __fastcall GuardPlayers(CPlayerManager* players, char units, std::uint32_t key);
 
 // ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------
-// 0056AFE0 (the client's draw pass, patched by Rebirth) fills per-frame vectors of object pointers
+// (the client's draw pass, patched by Rebirth) fills per-frame vectors of object pointers
 // with CWorldClient::CollectVisible and sorts some of them with STLport's sort, instantiated for
 // two orderings. The entry points keep STLport's internal calling convention: first in ECX, last
 // in EDX, then a dummy value-type pointer, the depth limit and the (empty) comparator on the stack.
@@ -2067,20 +2067,20 @@ struct ModelUseLess {
     BOOL Less(CEngineObject* a, CEngineObject* b);
 };
 
-// 005679A0 (ECX manager, EDX stream; world_client_maps.cpp, A-W13). Reads objects up to a zero
+// Reads objects up to a zero
 // byte: after each mark an id, a class and the object's +0x18; an object registered under the id
 // is released first (its count raised to 1 when 0), then a new one is created (slot 23), loaded
 // (slot 9) and referenced. 1 at the end mark, 0 when a mark is read from a failed stream.
 int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream);
-// 0055E8A0 (ECX list, EDX stream; world_client_maps.cpp). Writes what LoadManagerObjects reads:
+// Writes what LoadManagerObjects reads:
 // per listed object a 1, its id, type and +0x18, then its own Save (slot 10); a 0 at the end.
 void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream);
 
-// 0057BC30 (world_game.cpp, A-W13; the save screens). 1000000 plus the sizes (low dwords) of the
+// (world_game.cpp, A-W13; the save screens). 1000000 plus the sizes (low dwords) of the
 // files in saves\current.
 int CurrentSaveSize();
 
-// 0057CB50 (ECX: the database's file name; world_game.cpp, A-W13). Every resource database destroyed
+// Every resource database destroyed
 // and constructed again in place (the compiler-generated resets 0057CBE0, 0057CD60, 0057CE80,
 // 0057D340) and loaded from "<resources><name>": the units (0053A200, then their sound
 // file counts, 0053A8E0), the skills, the spell tables, the items.

@@ -1,5 +1,5 @@
 // Meshes in the new renderer: everything the old path draws through the device's mesh draws
-// (src/game/device_mesh.cpp): figures and map objects, the sky, and the
+// Figures and map objects, the sky, and the
 // interface's sprites (CUiMesh) and 3D previews. The game hands the mesh over in model space with the
 // matrix it projects it with (BeginMesh); each pass the old path then draws (
 // src/game/device_draw.cpp) becomes a batch with the old device's state of that moment (MeshPass):
