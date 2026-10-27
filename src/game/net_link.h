@@ -242,7 +242,7 @@ struct DriverNode {
 };
 
 // The network session (0x10 bytes; CWorld + 0x60, made by CWorld::OpenSession 0055F410; a real
-// class since C28g, game.exe's 0073F3A8 retired): a player source (player_source.h) with two lists
+// class): a player source (player_source.h) with two lists
 // of drivers. Its lifetime is in world_sessions.cpp.
 class DriverSession final : public CPlayerSource {
 public:
@@ -254,7 +254,7 @@ public:
     int OnShutdown() override;          // 2: 0055F6B0 (both lists emptied, new sentinels)
     DriverSession* Clone() override;    // 3: 0055F550 (drivers shared, holders counted)
     bool Query() override { return true; }
-    void TakeNew(JoinedLinks* joined) override;   // 6: 0047A230 (the live holders' links appended; player_sources.cpp)
+    void TakeNew(JoinedLinks* joined) override;   // The live holders' links appended (player_sources.cpp)
 
     DriverNode* drivers_;        // +0x08 list<RefPtr> (owning)
     DriverNode* holders_;        // +0x0C list of plain holders (released, not detached)

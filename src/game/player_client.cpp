@@ -82,7 +82,7 @@ struct TextBuffer {
 
 const char* QuestPrefix() { return "q."; }
 
-// The client world's readers of the zone (00567AB0, Rebirth-patched) and two other state blocks
+// The client world's readers of the zone (Rebirth-patched) and two other state blocks
 // all RET 4 with the block.
 // The quest log passes (list, a, b) to its top screen's slot 28.
 void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
@@ -102,7 +102,7 @@ void RefreshQuestLog() {
 // The client world shows a number over a unit (id, value, kind).
 constexpr int kNumberExperience = 8;
 
-// The experience shown for `amount`: amount * 0073E128 ^ (+0x33E - 0073E124), stored to a float,
+// The experience shown for `amount`: amount * a constant ^ (+0x33E - a second constant), stored to a float,
 // then rounded to the nearest integer (FISTP).
 int ScaledExperience(const CUnit* unit, float amount) {
     double base = 1.04 /*0073E128*/;
@@ -333,11 +333,11 @@ constexpr int kClassScratchUnit = 0x32;            // the object manager's class
 constexpr int kKindNoPath = 3;               // OnPathMarker: no path to read
 constexpr int kPathParticles = 0x2039;
 constexpr int kMarkerParticles = 0x203A;     // 0x203B with the flag
-constexpr std::uint32_t kMarkerSpeedA = 0x3F000000u;   // 0074317C (0.5)
+constexpr std::uint32_t kMarkerSpeedA = 0x3F000000u;   // 0.5
 constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
 
-// Path markers are shown (written by 006524A0).
+// Path markers are shown.
 bool MarkersShown() { return options::TheOptions()->drawPath_ != 0; }
 const char* TextPartyReceived() { return "party received on client"; }
 
@@ -430,7 +430,7 @@ int CPlayerClient::OnPathMarker() {
     if (kind != kKindNoPath) {
         auto* walker = TheObjectManager()->CreateObjectAs<CUnit>(kClassScratchUnit, -1);
         ++walker->refCount_;
-        // The controller's slot 16 (00533DF0 for the client's): its path.
+        // The controller's virtual that gives its path.
         PathOrder* path = walker->ClientController()->MotionPath();
         DeltaField* writing = field.BeginWriteB(0);
         path->WriteState(writing);
@@ -545,7 +545,7 @@ void RemovePartNamed(CObject3D* object, const char* name) {
 } // namespace
 
 int CPlayerClient::OnNewObject() {
-    app::DelayedProtectionCheck();   // 00455B50 (thiscall on the client, not read)
+    app::DelayedProtectionCheck();
     console::CStringArray parts;
     std::string scriptName;
     std::string secondName;
@@ -636,7 +636,7 @@ int CPlayerClient::OnNewObject() {
     }
     CObject3DClientSpecific* attached = figure->ClientSpecific();
     attached->RegisterPartMaterials();
-    // (The client world's 00566310 and 00566320 around the texture swap are empty.)
+    // (The client world's two functions around the texture swap are empty.)
     figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     figure->RestartPose();
     const char* to = textureTo;
@@ -685,7 +685,7 @@ namespace {
 
 constexpr int kClientHandlerCount = 0x100;
 
-// The client's message handlers (thiscall, RET 0) by type, as 00667230 stores them.
+// The client's message handlers by type.
 constexpr HandlerEntry kClientHandlers[] = {
     {0x00, std::uintptr_t(0x00667DA0)}, {0x01, std::uintptr_t(0x00667DE0)}, {0x02, std::uintptr_t(0x00669010)},
     {0x03, std::uintptr_t(0x006690F0)}, {0x04, std::uintptr_t(0x00667C20)}, {0x05, std::uintptr_t(0x006691C0)},
@@ -740,7 +740,6 @@ CPlayerConnection::CPlayerConnection() {
     player_ = nullptr;
 }
 
-// 00666EC0 (deleting: 00666F70).
 CPlayerConnection::~CPlayerConnection() { player_ = nullptr; }
 EI_REWRITTEN_SPECIAL(0x00666EC0, CPlayerConnection::~CPlayerConnection);
 EI_REWRITTEN_SPECIAL(0x00666F70, CPlayerConnection::~CPlayerConnection);
@@ -784,8 +783,8 @@ namespace {
 constexpr std::uint32_t kUnitInClientParty = 0x400000;
 constexpr int kSessionKindSingle = 1;
 
-// The client's party unit ids (hash_set<int>, 007C8370): insert_unique 0066B400, find 0066B490,
-// clear 0066BA70.
+// The client's party unit ids (hash_set<int>): insert_unique, find,
+// clear.
 using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 // The set, empty at the start: built by the static initialiser 00668B40 in the list's order and destroyed by the exit
 // function it registers; both ported on the name and registered at their addresses
@@ -845,7 +844,7 @@ int CPlayerClient::OnPartyState() {
 }
 EI_REPLACE_METHOD(0x00668C50, CPlayerClient::OnPartyState);
 
-// --- 00667B40 (A-H25): messages appended to the received stream ---------------------------------------
+// --- Messages appended to the received stream -----------------------------------------------
 
 void CPlayerClient::AppendReceived(BitStream* source) {
     const std::uint32_t position = in_.Position();

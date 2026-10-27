@@ -1,4 +1,4 @@
-// The local view's orders (CPlayerClient, 0066A720-0066B07B; A-H14): the HUD and the battle
+// The local view's orders (CPlayerClient): the HUD and the battle
 // screen queue them as messages for the server (CPlayerServer's handlers, player_server_handlers.cpp).
 // Each is a type byte and a payload written to the request stream; blocks the original writes in one
 // piece are written in one piece here too.

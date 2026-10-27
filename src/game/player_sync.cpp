@@ -264,7 +264,7 @@ int CPlayerServer::SendTimedRemoved(const PlayerObjectArray* objects) {
     return 1;
 }
 
-// The original calls slot 22 of this object (00743280: SendObject14, rewritten) for each item.
+// The original calls SendObject14 of this object for each item.
 void CPlayerServer::SendItems() {
     auto* node = Owner()->recharging_.head;
     while (node != nullptr) {

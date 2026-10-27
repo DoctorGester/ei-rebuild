@@ -255,7 +255,7 @@ PartyUnitRecord* CParty::Find(int unitId) const {
 // --- CPlayer ------------------------------------------------------------------------------------
 
 namespace {
-// 00403F40 (base_manager.cpp), through its game address.
+// Looks an object up by id (base_manager.cpp), through its game address.
 } // namespace
 
 void CPlayer::Tick() {
@@ -270,13 +270,13 @@ void CPlayer::Tick() {
     connection_->TickDone();
 }
 
-// --- 0066C9A0: the server's Create ---------------------------------------------------------------
+// --- The server's Create ---------------------------------------------------------------
 
 namespace {
 
 constexpr int kServerHandlerCount = 0x100;
 
-// The server's message handlers (thiscall, RET 0) by type, as 0066C9A0 stores them.
+// The server's message handlers by type.
 constexpr HandlerEntry kServerHandlers[] = {
     {0x00, std::uintptr_t(0x0066F890)}, {0x01, std::uintptr_t(0x0066FA90)}, {0x02, std::uintptr_t(0x0066FAA0)},
     {0x03, std::uintptr_t(0x00670C20)}, {0x04, std::uintptr_t(0x00670CE0)}, {0x05, std::uintptr_t(0x00670DA0)},
@@ -289,7 +289,7 @@ constexpr HandlerEntry kServerHandlers[] = {
     {0x50, std::uintptr_t(0x00670B60)},
 };
 
-// The sent-object arrays emptied as 0047B620 does: every object released (slot 4), the block freed.
+// The sent-object arrays emptied: every object released, the block freed.
 void ReleaseAll(PlayerObjectArray& objects) {
     // The data pointer is read once, the size after every release.
     CEngineObject** element = objects.data;

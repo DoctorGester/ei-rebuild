@@ -38,7 +38,7 @@ CEngineObject* CPlayerManager::NewPlayer(int type) {
 }
 
 namespace {
-// Rebirth's PlayerNumbers (addon's 10021B4A in place of the call of CPlayer::SetPlayerId at 0066C1C2):
+// Rebirth's PlayerNumbers (addon's 10021B4A in place of the call of CPlayer::SetPlayerId):
 // the player gets the highest number of the server world's other players + 1 (signed), or `id` when
 // there is no player list, no other player or none numbered 0 or more. Written straight into +0x24.
 int NextPlayerNumber(CPlayer* self, int id) {
