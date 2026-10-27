@@ -3227,6 +3227,24 @@ depends = ["C22b"]
 note = "After C22b (addresses and ticket ids at 0). Left: ~60 'slot N' comments (world.h, lightning, UI, effects: name the virtual or drop), +0xNN offsets on named members (drop unless save/packet layout), 207 'the original / game.exe' mentions, 27 history words, fragments such as world.h ~223 and '// In the constructor).'. Files: --batch C22b. Read each file whole; no regex rewrites."
 
 [[ticket]]
+id = "H30c"
+title = "Harness: the image's side of the shared steps through tests/verify/image, no raw offsets in both runs"
+group = "cleanup"
+size = 0.5
+model = "opus"
+files = ["tests/verify/harness.cpp", "tests/verify/image"]
+note = "From H30b. Some shared harness steps still read objects by raw byte offset and virtual slot in both runs (harness.cpp FindUnitPoint: the client world's pick list kClientPickList and node +0xC/+0x10, the hit's id +0xC; CampPutOn: camp +0x190/+0x1E0, strip +0x1AC, item +0x10, slot 42 MoveItem). Those are game.exe's offsets: right in game.exe's runs, but in the image they read our classes, so a cleanup that moves those members (C14a and later) breaks the image's runs there. Give each an exe-view side (exe_objects.h) and an image side (image_side.h) as H30b did; grep tests/verify/*.cpp for reinterpret_cast<std::uint8_t*> + 0x to find the rest."
+
+[[ticket]]
+id = "H30d"
+title = "Vector recorders: read game.exe through views, not our classes"
+group = "cleanup"
+size = 1
+model = "opus"
+files = ["tests/vectors/record_*.cpp"]
+note = "From H30b. tests/vectors/record_*.cpp record our functions' inputs from game.exe's EI_VECTORS=1 runs by reading game.exe's objects as our classes (OriginalGameData<CWorldServer>, <IsaacRandom>, members at our offsets). Once a cleanup moves members (C14a and later), recording vectors again reads wrong fields. Only matters when vectors are recorded again; run_all keys them only in EI_VECTORS=1 runs (HARNESS_VECTORS). Read game.exe through tests/verify/exe_objects.h and build our inputs from the views."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
