@@ -12,7 +12,6 @@ using namespace itemdb;
 
 namespace {
 
-// A value the item keeps as raw dword bits.
 float FloatOf(std::uint32_t bits) {
     float f;
     std::memcpy(&f, &bits, 4);

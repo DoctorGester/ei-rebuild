@@ -67,7 +67,6 @@ public:
     // Destroy), a copy of the attached spell (CSpell::Clone with `spells`; or none) and a count (+0x48) of
     // 1. Returns 0 for another kind, else 1.
     virtual BOOL CopyTo(CItem* target, CSpellManager* spells);
-    // The base price (CItemLoot's depends on what it stands for).
     virtual float GetPrice() { return price_; }
     // The model, first list, figure and picture names; "" for a plain item. Each is built
     // in the caller's result.
@@ -78,7 +77,6 @@ public:
     // The key the item works as on a lock (map object slot 42 AcceptsKey, a lever's or a trap's
     // ApplyScience): zeros; the quest item's has its id.
     virtual LockKey GetUse();
-    // The first name of the model-name virtual, still used by ui_screens.cpp.
     BOOL IsSameAsSlot(CItem* other) { return IsSameAs(other); }
 
     // A new item of the same kind from the owning manager, given this one's values through the copy
@@ -99,9 +97,7 @@ public:
 
     // Attaches `spell` (counted; the previous one released); the price is left alone.
     void SetSpell(CSpell* spell);
-    // The condition back to its maximum (the camp's repairs).
     void Repair() { condition_ = conditionMax_; }
-    // The item's weight (PartyUnitRecord::CarriedWeight adds them up).
     float Weight() const {
         float weight;
         std::memcpy(&weight, &weight_, sizeof(weight));
@@ -147,7 +143,6 @@ public:
 };
 inline CItemLink* CItem::ServerLink() const { return static_cast<CItemLink*>(link_); }
 
-// A weapon.
 class CItemWeapon : public CItem {
 public:
     CItemWeapon();
@@ -188,10 +183,8 @@ public:
     float reach_;           // prototype reach: the wielder's reach
 };
 
-// Armour.
 class CItemArmor : public CItem {
 public:
-    // CItem's, then absorb_ and layerMask_ 0.
     CItemArmor();
     const char* GetClassName() override;
     int GetClassId() override;             // 0x12
@@ -209,11 +202,8 @@ public:
     mfc::CString FigureName() override;
     mfc::CString PictureName() override;
 
-    // CItem::CopyTo, then absorb_ and layerMask_.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
-    // CItem::InitFromRecord, then the two absorption rows.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
-    // CItem::IsSameAs, then absorb_ and layerMask_ equal as dwords.
     BOOL IsSameAs(CItem* other) override;
     // CItem's, then the two absorption rows (0x1C bytes each; layerMask_ is not saved).
     void Load(CStream* stream) override;
@@ -225,7 +215,6 @@ public:
     std::uint32_t layerMask_[2];
 };
 
-// A quick item: potions, wands.
 class CItemQuick : public CItem {
 public:
     CItemQuick();
@@ -235,7 +224,6 @@ public:
     // "qitem<number>.<material name>" when the prototype's +0x10 name is not
     // "none" ("uq" for a material out of range), else "qitem<number>" (-1 without a prototype).
     mfc::CString FigureName() override;
-    // "initqi<number>item".
     mfc::CString PictureName() override;
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     // Also the scrolls'. The base's, then +0x4C (prototype +0x70).
@@ -248,7 +236,6 @@ public:
     std::uint32_t actionValue_;         // the record's value70 (CUnitServer::ScaledItemValue)
 };
 
-// A quest item.
 class CItemQuest : public CItem {
 public:
     CItemQuest();
@@ -258,7 +245,6 @@ public:
     mfc::CString FigureName() override;    // "quitem<number>"
     mfc::CString PictureName() override;   // "initqu<number>item"
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
-    // The base's, then +0x4C (prototype +0x6C, the category).
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
     BOOL IsSameAs(CItem* other) override;
     void Load(CStream* stream) override;
@@ -286,10 +272,8 @@ public:
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
 };
 
-// Loot: runes, materials, instructions.
 class CItemLoot : public CItem {
 public:
-    // CItem's (kind, record type and index are left as they are).
     CItemLoot();
     const char* GetClassName() override;
     int GetClassId() override;             // 0x15
@@ -359,7 +343,6 @@ class CItemConstructor : public CEngineObject {
 public:
     // CEngineObject's fields, no manager, records, item or spell (count_ is left as it is).
     CItemConstructor();
-    // Destroy's work (the scalar deleting destructor's).
     ~CItemConstructor() override;
     const char* GetClassName() override;
     int GetClassId() override;             // 0x1C
@@ -368,7 +351,6 @@ public:
     // spell. Returns 1.
     int Create() override;
 
-    // The same, no result.
     void Destroy() override;
 
     // Counts a reference to `manager` (+4), dropping the previous one's (no release).
@@ -441,14 +423,12 @@ struct CItemManager : CResourceManager {
     // CResourceManager's constructor, then this class's vtable (inlined where a manager is made: the world's,
     // a party's Create; world_managers.cpp).
     CItemManager();
-    // CResourceManager's destructor.
     ~CItemManager() override;
     const char* GetClassName() override;
     int GetClassId() override;               // class id 0x2F
     const char* GetFolderName() override;    // "items"
     // The deleting destructor.
 
-    // CBaseManager::Create's result as 0 / 1.
     int Create() override;
     // The item factory: a new constructed item for kind 0x3004 weapon, 0x3005 armour, 0x3006 quick, 0x3007
     // loot, 0x3008 scroll, 0x3009 quest, its type_ set to the kind; null for another kind or without

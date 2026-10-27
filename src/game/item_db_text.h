@@ -33,7 +33,6 @@ struct TextSources : stlp::list<TextSource> {
     // Erase(pos): unlinks the node, frees its name and returns the node to the free list;
     // *out = the next node. Returns out.
     Node** Erase(Node** out, Node* pos);
-    // _M_create_node(value): a node from the pool, the pair copied into it.
     Node* CreateNode(const TextSource* value);
     // Insert(pos, value): a new node linked before `pos`; *out = the new node. Returns out.
     Node** Insert(Node** out, Node* pos, const TextSource* value);
@@ -44,7 +43,6 @@ struct TextSources : stlp::list<TextSource> {
     BOOL Add(const char* path, BOOL writable);
     void Remove(const char* path);
     void Clear();
-    // Clear, then the list's own destructor.
     void DestructList();
     // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which
     // must not be null), or null: the file's bytes as they are. FindText (ours): the same, as text: with
@@ -138,7 +136,6 @@ static_assert(offsetof(CTextManager::SourceNode, data.source) == 0x14);
 
 using TextSourceNode = TextSources::Node;
 
-// Copies an iterator (thiscall: *out = *this).
 struct TextSourceIterator {
     CTextManager::SourceNode* node;
     // *out = node; returns `out` in EAX, which some callers use (the sector lists' End); also its

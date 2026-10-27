@@ -31,7 +31,6 @@ void CEngineObject::Release() {
     if (--refCount_ == 0) owner_->ReleaseObject(this);
 }
 
-// The exe's "noname" and "nodesc" (callers get these pointers).
 const char* CEngineObject::GetName() { return "noname"; }
 const char* CEngineObject::GetDescription() { return "nodesc"; }
 

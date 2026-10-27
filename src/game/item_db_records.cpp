@@ -25,7 +25,6 @@ void CopyBytes(R* target, const R* source, std::size_t from, std::size_t to) {
 
 } // namespace
 
-// The records' first virtual: the item kind each record makes.
 int WeaponRecord::Kind() { return 0x3004; }
 int ArmorRecord::Kind() { return 0x3005; }
 int QuickItemRecord::Kind() { return 0x3006; }

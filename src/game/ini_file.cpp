@@ -57,7 +57,6 @@ BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const mfc::C
     return ini->WriteString(section, key, *reinterpret_cast<char**>(copy));
 }
 
-// The value of `key` as a CString.
 mfc::CString ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
     return const_cast<CIniFile*>(ini)->GetString(section, key, defaultValue);
 }

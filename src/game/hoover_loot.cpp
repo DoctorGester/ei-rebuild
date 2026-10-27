@@ -25,7 +25,6 @@
 
 namespace {
 
-// The MFC CPtrLists of items the loot goes on.
 using PtrList = mfc::CTypedPtrList<CItem>;
 using PtrListNode = PtrList::Node;
 
@@ -33,7 +32,6 @@ using PtrListNode = PtrList::Node;
 // (with the same effects).
 
 
-// An object referenced once more and appended to `list`.
 void Append(PtrList* list, CItem* object) {
     ++object->refCount_;
     PtrListNode* node = list->NewNode(list->tail, nullptr);

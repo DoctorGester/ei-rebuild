@@ -41,7 +41,6 @@ constexpr const char* kCantWrite = "Can`t write to %s";
 
 // ---- The multiplayer flag and game --------------------------------------------------------------
 constexpr const char* kMultiplayerVariable = "z.MPGame1";
-// By the client session's game type.
 constexpr const char* kMultiplayerZones[] = {"bz1mpg", "bz2mpg", "bz3mpg", "bz4mpg"};
 
 // ---- ReadAIGraph -------------------------------------------------------------------------------
@@ -78,7 +77,6 @@ constexpr const char* kBriefingSuffixQuest = "q";
 constexpr const char* kBriefingSuffixK = "k";
 constexpr const char* kQuestVariablePrefix = "q.";
 constexpr const char* kDot = ".";
-// By construction type.
 constexpr const char* kTypeVariables[4] = {"b.smith.constr_1", "b.Shopper.constr_3", "b.kuzn.constr_4",
                                            "b.golem.constr_5"};
 constexpr const char* kTypeBriefings[4] = {"intro_1", "intro_2", "intro_3", "intro_4"};

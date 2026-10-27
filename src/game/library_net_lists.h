@@ -19,7 +19,6 @@ namespace netlists {
 
 // ---- list<SentItem> (a packet's items, 20-byte nodes from the pool) --------------------------------
 
-// What the packet carried for one entry, the entry counted.
 using SentRecord = net::SentItem;
 using SentItems = stlp::list<SentRecord>;
 

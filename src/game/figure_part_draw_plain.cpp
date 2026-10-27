@@ -23,10 +23,8 @@
 
 namespace {
 
-// The figure mesh's colour arrays (+0x138 / +0x148).
 using ColourArray = lib::AlignedArray<std::uint32_t>;
 
-// The moved positions (lib::AlignedArray).
 constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E60*/ {};
 lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
@@ -36,7 +34,6 @@ std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
 // The node's animation at a time (float bits), and the call after the draw (the renderer).
 // The device's mesh draw.
 
-// *target = *offset + *target (FLD offset, FADD, FSTP).
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
 // The world time: whole ticks (FILD) plus the fraction of the current one, rounded to a float.
@@ -49,7 +46,6 @@ void Fill(ColourArray& a, std::uint32_t value) {
     for (int i = 0; i < a.size; ++i) a.data[i] = value;
 }
 
-// The positions with the per-vertex offsets added.
 const void* MovedPositionsOf(CFigureMesh* mesh) {
     lib::AlignedArray<VertexPacket>& moved = MovedPositions();
     int blocks = mesh->buffers_.vertexCount;

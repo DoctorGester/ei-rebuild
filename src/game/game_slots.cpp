@@ -29,7 +29,6 @@ EI_REWRITTEN(0x00571F10, gamelists::EngineObjects::Destruct<ClientObjectList2Cla
 EI_REWRITTEN(0x0052C6B0, gamelists::ObjectRefs::Destruct<VictimListClass>);
 // ---- Scalar deleting destructors -------------------------------------------------------------------
 
-// Over the destructors above.
 EI_REWRITTEN(0x00429160, ScalarDeleting<&gamelists::EngineObjects::Destruct<ItemObjectListClass>>::Delete);
 EI_REWRITTEN(0x00571EF0, ScalarDeleting<&gamelists::EngineObjects::Destruct<ClientObjectList2Class>>::Delete);
 EI_REWRITTEN(0x004CB6D0, ScalarDeleting<&gamelists::ObjectRefs::Destruct<ObjectRefListClass>>::Delete);
@@ -59,7 +58,6 @@ EI_REWRITTEN(0x004CB0F0, ScalarDeleting<&Commands::Destruct<CommandArrayClass>>:
 
 // Over destructors registered elsewhere.
 
-// The script's variables, groups, tokens and defines.
 EI_REWRITTEN(0x004C1840, ScalarDeleting<&ScriptRefArrayDestruct>::Delete);
 EI_REWRITTEN(0x004C1860, ScalarDeleting<&ScriptNamesDestruct>::Delete);
 EI_REWRITTEN(0x004C18A0, ScalarDeleting<&ScriptGroupArrayDestruct>::Delete);
@@ -87,7 +85,6 @@ EI_REWRITTEN(0x00511C30, gamearrays::Particles::Serialize);    // a map object c
 EI_REWRITTEN(0x00556E10, ObjectValues::Serialize);             // a unit memory's object records
 EI_REWRITTEN(0x004C55C0, BuiltCommands::Serialize);            // a command block
 
-// Lists whose loader builds, assigns and releases a temporary.
 EI_REWRITTEN(0x00427690, EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>);    // ItemObjectListClass
 EI_REWRITTEN(0x00571420, EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>);    // ClientObjectList2Class
 EI_REWRITTEN(0x004C9350, ObjectRefsThrough::Abi::SerializeThrough<ObjectRefsThrough>);       // ObjectRefListClass

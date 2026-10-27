@@ -88,7 +88,6 @@ void ZoneExit::Read(CStream* stream) {
 }
 EI_REWRITTEN(0x004E5750, ZoneExit::Read);
 
-// Each field goes through a copy on the stack.
 void ZoneExit::Write(CStream* stream) const {
     auto put = [stream](const void* field, std::uint32_t size) {
         std::uint32_t copy = 0;

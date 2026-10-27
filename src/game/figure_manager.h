@@ -21,7 +21,6 @@ struct FigureAnimation;
 struct FigureBone;
 
 
-// The figure object factory, also the figure manager's creator virtual.
 void* __stdcall CreateFigureObject(int classId);
 
 // FigureModel, the cached model, is in model.h.

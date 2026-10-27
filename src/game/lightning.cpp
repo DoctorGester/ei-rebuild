@@ -21,7 +21,6 @@
 
 namespace {
 
-// A zero-extended dword loaded with FILD qword (exact).
 double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
@@ -36,7 +35,6 @@ constexpr int kNoiseRowLength = 400;
 float g_noiseSide[400] = /*0079C1F8*/ {};
 float g_noiseUp[400] = /*0079C838*/ {};
 
-// Branch sway frequencies: six pairs (side, up).
 constexpr float kBranchFrequencies[12] = /*00787C8C*/ {2.0f, 3.0f, 2.5f, 1.8f, 0.3f, 0.8f, 1.2f, 1.3f, 3.0f, 5.1f, 2.1f, 1.76f};
 
 constexpr double kNoiseScale = 0x1.0000000100000p-31;   // about 2 / 2^32

@@ -169,7 +169,6 @@ void DecalBuilder::Begin(lib::AlignedArray<VertexPacket>* points, lib::AlignedAr
     uAxis_ = {uAxis_.x - part.x, uAxis_.y - part.y, uAxis_.z - part.z};
     uAxis_.DivideInPlace(static_cast<float>(uAxis_.LengthSquared()));
 
-    // The same for v.
     vAxis_ = {vCorner.x - origin.x, vCorner.y - origin.y, vCorner.z - origin.z};
     float vAlong = Dot(vAxis_, dir);
     part = {dir.x * vAlong, dir.y * vAlong, dir.z * vAlong};

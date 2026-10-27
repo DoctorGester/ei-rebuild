@@ -35,7 +35,6 @@ namespace {
 // level (prototype +0x44 + material +0x1C, as a float) and the power limit (prototype +0x40 +
 // material +0x18).
 
-// The vectors' element policies: plain pointers and material entries.
 using CandidateElement = stlp::PlainElement<StockMaterial*>;
 using MaterialElement = stlp::PlainElement<StockMaterial>;
 
@@ -97,7 +96,6 @@ void AssignMaterials(StockMaterialVector& to, const StockMaterialVector& from) {
 // Appends an item to the output list (list<CItem*>::insert; counted by the caller).
 void Output(StockList* out, CItem* item) { StockList::Insert(out->End(), item); }
 
-// The item's reference count.
 void AddReference(CItem* item) { ++item->refCount_; }
 
 // A prototype record: text08 its name, materialClass its material class, price, materialUnits the material
@@ -152,7 +150,6 @@ void ClearSpellList(StockSpellList& list) {
 // Frees the spell list as clear and the destructor do: the clear, then the sentinel.
 void DestroySpellList(StockSpellList& list) {
     ClearSpellList(list);
-    // (The destructor's own clear finds the list empty.)
     stlp::deallocate(list.head, sizeof(StockSpellListNode));
 }
 
@@ -506,7 +503,6 @@ namespace {
 // previous value.
 void ReadInt(CStream* stream, void* value) { stream->Read(value, 4u); }
 
-// The next string of the stream into `name` (through a temporary).
 void ReadName(CStream* stream, mfc::CString& name) {
     alignas(mfc::CString) unsigned char temporary[sizeof(mfc::CString)];
     mfc::CString* read = stream->ReadString(temporary);
@@ -587,7 +583,6 @@ EI_REWRITTEN(0x0069B5B0, ItemStock::LoadLists);
 namespace {
 
 void WriteInt(CStream* stream, std::uint32_t value) { stream->Write(&value, 4u); }
-// A text with its terminating zero.
 void WriteText(CStream* stream, const char* text) {
     stream->Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
 }

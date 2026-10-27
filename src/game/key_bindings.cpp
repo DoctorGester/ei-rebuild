@@ -52,7 +52,6 @@ constexpr int kActionCount = 60;
 signed char* ActionOfScan() { return g_keyActions; }
 
 
-// Operator+(CString, LPCTSTR).
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return ::new (a0) mfc::CString(*a1 + a2); }
 
 // Opens the bindings file with `flags`; the path is a temporary CString.

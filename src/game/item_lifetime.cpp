@@ -22,10 +22,8 @@ void SetMinusOne(T& field) {
     std::memcpy(&field, &kMinusOne, 4);
 }
 
-// The item's link (+0x1C): a CRefCounted with a 16-bit count.
 CRefCounted* Link(void* value) { return static_cast<CRefCounted*>(value); }
 
-// The spell let go (a virtual Release) after the pointer is cleared.
 void DropSpell(CSpell*& spell) {
     CSpell* old = spell;
     spell = nullptr;
@@ -117,7 +115,6 @@ EI_REWRITTEN_SPECIAL(0x006A49A0, CItemLoot::CItemLoot);
 CItemSpell::CItemSpell() = default;
 EI_REWRITTEN_SPECIAL(0x006A56E0, CItemSpell::CItemSpell);
 
-// The exe's class names and ids.
 const char* CItemWeapon::GetClassName() { return "CItemWeapon"; }
 int CItemWeapon::GetClassId() { return 0x11; }
 const char* CItemArmor::GetClassName() { return "CItemArmor"; }

@@ -33,16 +33,13 @@ inline void DestroyBlockAt4(Bytes<20>* p) { aligned::ArrayAt4Free(p); }
 
 inline void DestroyZoneRecord(MapRecord* p) { zone::ZoneRecordDestruct(p); }
 
-// Script groups: the group's vtable, empty; the destructor body.
 inline void InitGroup(ScriptGroup* p);   // defined below the tags
 inline void __fastcall DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }
 inline void DestroyGroup(ScriptGroup* p) { p->DestructBody(); }
 
-// Quest objectives: the text empty; the destructor.
 inline void InitObjective(ScriptQuestObjective* p) { ::new (&p->text) mfc::CString; }
 inline void DestroyObjective(ScriptQuestObjective* p) { ScriptQuestObjectiveDestruct(p); }
 
-// Effect particles: the source released.
 inline void InitParticle(EffectParticle* p) {
     p->source = nullptr;
     p->type = 0;
@@ -66,7 +63,6 @@ inline void DestroyPointLight(ScriptPointLight* p) { p->ScriptPointLightDestruct
 
 using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
 using BlocksAt4 = ArrayAbi<Bytes<20>, EachElements<Bytes<20>, nullptr, DestroyBlockAt4>>;
-// Zone exits (object_tables.h ZoneExits; its SetSize).
 using Exits = ArrayAbi<ZoneExit, ZoneExitElements>;
 using ZoneRecords = ArrayAbi<MapRecord, EachElements<MapRecord, nullptr, DestroyZoneRecord>>;
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;
@@ -91,7 +87,6 @@ using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nu
 struct PointLightArrayClass final
     : mfc::impl::CompiledCollection<PointLightArrayClass, &PointLights::Destruct<PointLightArrayClass>, &PointLights::Serialize> {};
 
-// The vtable it restores (an array of object pointers).
 struct ObjectPtrArrayBaseClass
     : mfc::impl::CompiledCollection<ObjectPtrArrayBaseClass, &ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>, &ObjectPtrs::Serialize> {};
 
@@ -100,17 +95,14 @@ struct ObjectPtrArrayBaseClass
 // The particles' draw order (CArray<ParticleDepth>, effects.h).
 struct ParticleDepthArrayClass final
     : mfc::impl::CompiledCollection<ParticleDepthArrayClass, &mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct, &mfc::impl::Plain8::Serialize> {};
-// The sector spiral's offsets (CArray<SpiralOffset>, sector_map.h).
 struct SpiralOffsetArrayClass final
     : mfc::impl::CompiledCollection<SpiralOffsetArrayClass, &mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct, &mfc::impl::Plain4::Serialize> {};
-// The script quest's objectives (CArray<ScriptQuestObjective>, script.h).
 struct ObjectiveArrayClass final
     : mfc::impl::CompiledCollection<ObjectiveArrayClass, &Objectives::Destruct<ObjectiveArrayClass>, &Objectives::Serialize> {};
 // The AI path smoother's node pool (CArray<SmoothNode>, ai_map.h SmoothPool).
 struct SmoothNodeArrayClass final
     : mfc::impl::CompiledCollection<SmoothNodeArrayClass, &mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct, &mfc::impl::Plain8::Serialize> {};
 
-// The vtable it restores (CArray<ScriptGroup>).
 struct GroupArrayClass final
     : mfc::impl::CompiledCollection<GroupArrayClass, &Groups::Destruct<GroupArrayClass>, &Groups::Serialize> {};
 

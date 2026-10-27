@@ -42,7 +42,6 @@ inline void ReleaseRef(RefPtr* p) { RefPtrRelease(p); }
 inline void DestroyRef(RefPtr* p) { p->Destroy(); }
 // The armour spells' records: their engine object released (a virtual release).
 inline void ReleaseHolder(ArmourSpellRecord* p) { ObjectHolderRelease(&p->object); }
-// The world's shared objects: the object array at +0x0C destroyed.
 inline void DestroySharedObject(SharedObject* p) {
     gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>(
         reinterpret_cast<gamearrays::ObjectPtrs::Array*>(&p->objects));

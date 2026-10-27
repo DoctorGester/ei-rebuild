@@ -24,10 +24,8 @@ public:
     // first). Returns 0 for an empty or unreadable section.
     BOOL GetKeyNames(const char* section, console::CStringArray* out);
 
-    // Identical copies. GetPrivateProfileInt.
     unsigned GetInt(const char* section, const char* key, int defaultValue);
     unsigned GetInt2(const char* section, const char* key, int defaultValue);
-    // GetDouble with a float default.
     double GetFloat(const char* section, const char* key, float defaultValue);
     // Atof of the value, the default written with "%g"; rounded to double.
     double GetDouble(const char* section, const char* key, double defaultValue);
@@ -48,7 +46,6 @@ public:
     BOOL GetMfcUIntArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out);
     BOOL GetMfcDWordArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out);
 
-    // Writers (WritePrivateProfileString); each returns its result.
     BOOL WriteString(const char* section, const char* key, mfc::CString value);
     BOOL WriteIntForward(const char* section, const char* key, int value);             // -> WriteInt
     BOOL WriteInt(const char* section, const char* key, int value);                    // "%d"

@@ -34,7 +34,6 @@ struct NormalPacket {
 struct TexCoord {
     std::uint32_t w[2];
 };
-// MeshCorner (a triangle corner): model.h.
 static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6);
 
 // What the renderer draws from (+0x9C): pointers and counts of the mesh's arrays (class 0x41 points
@@ -127,7 +126,6 @@ public:
     // The mesh's buffers or vertices changed in place: the new renderer builds its copy kept on the GPU
     // again (render::MeshChanged).
     void BuffersChanged();
-    // Copies `offsets` (any {Vector3* data; int count} pair) into offsets_.
     struct OffsetSpan {
         const Vector3* data;
         int count;
@@ -151,7 +149,6 @@ public:
     // Lets the old drawer go (released) and takes `drawer` (one more reference,
     // its mesh_ set).
     void SetDrawer(FigureMeshDrawer* drawer);
-    // The object whose part the mesh is (object_).
     void SetObject(CObject3D* object);
 
 protected:
@@ -238,7 +235,6 @@ public:
     // The figure factory's class 0x41 (inlined there): CFigureMesh's constructor, then the vertices and normals
     // empty.
     CSharedFigureMesh();
-    // The normals and vertices freed, then CFigureMesh's destructor.
     ~CSharedFigureMesh() override;
 
     // The virtuals: CFigureMesh's but for the deleting destructor, Clear and the FIG loader (Create jumps to
@@ -258,14 +254,12 @@ public:
     // The figure factory's class 0x42 and the scene's records inline it:
     // CFigureMesh's constructor, then the six arrays empty.
     CPlainFigureMesh();
-    // The six arrays freed (last first), then CFigureMesh's destructor.
     ~CPlainFigureMesh() override;
 
     // The virtuals: CFigureMesh's but for the deleting destructor, Clear, the file reader and the four loaders
     // and mirrors (Create jumps to CreateMesh). Clear: the mesh's own arrays emptied, then
     // CFigureMesh's Clear.
     void Destroy() override;
-    // Reads the mesh SaveTransform wrote.
     void LoadTransform(mfc::CFileVirtuals* file) override;
     // Loads a "FIG" mesh from memory at *cursor (advanced past it), morphing FIG8 vertices; once only (flag
     // 0x20).

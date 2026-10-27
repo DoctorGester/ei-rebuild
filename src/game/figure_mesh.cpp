@@ -332,7 +332,6 @@ void LoadVertices(lib::AlignedArray<VertexPacket>& vertices, char** cursor, std:
     }
 }
 
-// Sizes `array` to `count` and copies `count` elements from the cursor.
 template <typename T>
 void LoadArray(lib::AlignedArray<T>& array, char** cursor, int count) {
     array.SetSize(count);
@@ -351,7 +350,6 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     *cursor += sizeof(header);
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
-    // Through its address (the verify build checks it there).
     ei::Code<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
         this, nullptr, cursor, s, t, u, header.magic);
 
@@ -440,7 +438,6 @@ EI_REWRITTEN(0x005A5C70, CSharedFigureMesh::LoadFig);
 
 namespace {
 
-// Reads the count in front of a block.
 int ReadCount(char** cursor) {
     int n;
     std::memcpy(&n, *cursor, 4);
@@ -649,7 +646,6 @@ void CPlainFigureMesh::RefreshBuffers() {
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
     buffers_.normalCount = normals_.size;
-    // Through its address (the verify build checks it there).
     using ResizeFn = void(__fastcall*)(lib::AlignedArray<std::uint32_t>*, void*, int, int);
     ei::Code<ResizeFn>(0x005A6E70)(&colorsA_, nullptr, normals_.size * 4, -1);
     ei::Code<ResizeFn>(0x005A6E70)(&colorsB_, nullptr, normals_.size * 4, -1);
@@ -717,7 +713,6 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, V
                 to[4] = d.y + from[4];
                 to[8] = d.z + from[8];
             } else {
-                // Copied as dwords.
                 std::memcpy(&to[0], &from[0], 4);
                 std::memcpy(&to[4], &from[4], 4);
                 std::memcpy(&to[8], &from[8], 4);

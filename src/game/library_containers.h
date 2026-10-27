@@ -76,7 +76,6 @@ void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value);
 
 // ---- CString's destructor and the unwind helpers ---------------------------------------------------
 
-// CString's destructor (two copies, each a jump to the library's).
 void __fastcall DestroyCString(mfc::CString* self);
 
 // A record with a CString at +0x0C (the text tokenizer's word): its destructor.

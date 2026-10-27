@@ -37,7 +37,6 @@ public:
     virtual const char* GetClassName() = 0;            // e.g. "CTexture"
     virtual int GetClassId() = 0;                      // e.g. 6 for CTexture
 
-    // The owning manager's context_ (the world, for the world's managers).
     CManagerContext* ManagerContext() const;
     // The manager context as the world, for the world's objects (units, map objects, effects, items
     // on the ground: their managers' context_ is the world itself; a party's items have the party).
@@ -49,9 +48,7 @@ public:
     // The world the object belongs to: the manager context's slot 13
     // (the world returns itself, a party null), or null without a context.
     CWorld* World() const;
-    // Drops one reference; at zero the object is deleted (slot 0 with 1).
     void ReleaseAndDelete();
-    // Sets the owner; returns the previous one.
     CBaseManager* SetOwner(CBaseManager* owner);
     // The fields the (mostly inlined) constructor sets, in its order: no
     // references, id -1, no flags, kind 0, no owner.
@@ -121,14 +118,11 @@ static_assert(sizeof(HeldEngineObject) == 4);
 // counted_ref.cpp's, instantiated there for each T; AIRef's are the registered ones.
 template <typename T>
 struct AIRefTo {
-    // Release and clear.
     void Reset();
-    // Hold `object` (released first unless it is already held).
     void Assign(T* newObject);
     // Read / write the object id (-1: none); Load looks it up in `world`.
     void Load(CStream* stream, CWorld* world);
     void Save(CStream* stream);
-    // AIRef only.
     AIRefTo* DeleteScalar(unsigned flags);
     // A counted object pointer kept in a container of plain pointers (a unit list's element) seen
     // as the reference it is.

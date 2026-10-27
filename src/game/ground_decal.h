@@ -20,7 +20,6 @@ struct DecalVertex {
 };
 static_assert(sizeof(DecalVertex) == 0x14 && offsetof(DecalVertex, u) == 0x0C);
 
-// The texture coordinate array's element.
 struct DecalTexCoord {
     float u, v;
 };
@@ -29,7 +28,6 @@ static_assert(sizeof(DecalTexCoord) == 8);
 // 0x7C bytes, on the projector's stack.
 class DecalBuilder {
 public:
-    // Nulls the three array pointers; returns this.
     DecalBuilder* Construct();
     // Starts a decal: empties the arrays (keeping their buffers) and sets the
     // projection up from the quad's corners (`corners` points at a pointer to a row-major 4x4
@@ -58,7 +56,6 @@ public:
     void ClipPlane(DecalVertex* tri);
     void ClipFromV(DecalVertex* tri);
     void ClipFromUMax(DecalVertex* tri);
-    // Appends the three corners and their indices.
     void Emit(const DecalVertex* tri);
     // Appends one vertex; returns its index (AX only).
     std::uint16_t AddVertex(const DecalVertex* v);

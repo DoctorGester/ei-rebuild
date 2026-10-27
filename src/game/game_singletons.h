@@ -34,7 +34,6 @@ class CCamera;
 struct PartyManager;
 struct _RTL_CRITICAL_SECTION;   // CRITICAL_SECTION: the render device's lock
 
-// The game flow object (its state machine, sessions and requests).
 GameFlow* TheGameFlow();   // g_gameFlow
 
 // The interface manager (windows, the quest log, status text, the console window).
@@ -46,10 +45,8 @@ int CurrentWorldTick();
 int CurrentClientTick();
 float ClientTickFraction();
 
-// The client world (the local player's view of the map and its objects).
 CWorldClient* TheClientWorld();   // g_clientWorld
 
-// The server world (the simulation: objects, players, timed objects).
 CWorldServer* TheServerWorld();   // g_serverWorld
 
 // The client world's managers: the text manager (the game's string tables), the object

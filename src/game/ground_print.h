@@ -104,7 +104,6 @@ static_assert(offsetof(GroundPrint, lit_) == 0x48 && offsetof(GroundPrint, colou
 static_assert(offsetof(GroundPrint, positions_) == 0x5C && offsetof(GroundPrint, indices_) == 0x7C);
 static_assert(sizeof(GroundPrint) == 0x8C);
 
-// A footprint (slot 0 is GroundPrint's). 0x94 bytes.
 class Footprint : public GroundPrint {
 public:
     // A footprint at (x, y): `tile` picks the texture's eighth (low 3 bits
@@ -112,7 +111,6 @@ public:
     // "footprints<kind + 1>" (a blood print's kind).
     Footprint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
               int lifetime, std::uint32_t tile, float scale, int visible, int kind);
-    // The list nodes' copy (GroundPrint's, then its own members).
     Footprint(const Footprint& other);
 
     void Load(CStream* stream) override;   // GroundPrint's, then scale_, kind_
@@ -133,7 +131,6 @@ public:
     // angle (rand() twice).
     BloodPrint(float x, float y, float halfSize, float fullSize, float alphaScale, int life, int lifetime,
                std::uint32_t tile, std::uint32_t colour, std::uint8_t fresh);
-    // The list nodes' copy (GroundPrint's, then its own members).
     BloodPrint(const BloodPrint& other);
 
     // While spreading (spreadTicks_ counts down) the geometry is made again every

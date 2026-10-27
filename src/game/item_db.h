@@ -44,7 +44,6 @@ struct SpellRecord {
     // The copy constructor (the spell vector's copies): the strings, +0x0C..+0x47, the id lists
     // copy-constructed, +0x60..+0x7C and +0x80 (+0x7D..+0x7F are not copied).
     void CopyConstruct(const SpellRecord* source);
-    // operator=: the same fields assigned.
     void AssignSpell(const SpellRecord* source);
     // The spell vector's resize(n) temporary: empty strings and lists, the rest left as it is.
     void ConstructDefault();
@@ -105,7 +104,6 @@ struct SpellListRecord {
     // The copy constructor (the list vector's copies): each member copied in order (the lists
     // copy-constructed).
     void CopyConstruct(const SpellListRecord* source);
-    // operator=: each member assigned in order.
     void AssignList(const SpellListRecord* source);
     // The list vector's resize(n) temporary: empty strings with room for 8 bytes, empty lists.
     void ConstructDefault();
@@ -127,7 +125,6 @@ struct SpellModifierRecord {
     void Serialize(ChunkArchive* ar);
     void Destruct();
     void CopyConstruct(const SpellModifierRecord* source);
-    // operator=: the same fields assigned.
     void AssignModifier(const SpellModifierRecord* source);
     // The modifier vector's resize(n) temporary: empty strings, the rest left as it is.
     void ConstructDefault();
@@ -335,7 +332,6 @@ static_assert(sizeof(QuickItemRecord) == kQuickItemSize);
 struct QuestItemRecord : ItemRecordHead {
     QuestItemRecord() { zones.ConstructEmpty(); }
     QuestItemRecord(const QuestItemRecord& from);
-    // The zone names and their storage, then the head's members.
     ~QuestItemRecord();
     int Kind() override;                        // 0x3009
     // only: the zone list is constructed empty, not copied.
@@ -422,7 +418,6 @@ struct NamedRecordTable {
     // through an archive built on the stack (Open for loading, the vector's chunk serialiser, Close), then
     // every record filed in the index under its name.
     void Load(CStream* source, int field);
-    // The constructor: no records, an empty index of 100 buckets (193).
     void Construct();
 
     // The name index (hash_map<string, record*>; the materials are filed under their key).
@@ -462,7 +457,6 @@ struct CodeIndexedTable {
     // The record filed under `code`: the index's operator[] with a copy of the key, so an unknown code is
     // filed with null.
     Record* FindByCode(const char* code);
-    // The constructor: no records, an empty index of 100 buckets (193).
     void Construct();
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
@@ -474,7 +468,6 @@ struct CodeIndexedTable {
     // stlp::RecordsByName::Named: a null record is filed under a new code).
     Record* Named(const char* code) { return stlp::NamedSlot<Record>(byCode, stlp::string(code)); }
 
-    // The index by code (hash_map<string, record*>; stlp::NamedSlot).
     using CodeIndex = stlp::hash_map<stlp::string, Record*, stlp::StringHash>;
     stlp::vector<Record> records;   // begin, end, end of storage
     CodeIndex byCode;
@@ -508,7 +501,6 @@ struct SpellDatabase {
 static_assert(offsetof(SpellDatabase, lists) == 0x40);
 static_assert(sizeof(SpellDatabase) == 0x64);
 
-// The item database.
 struct ItemDatabase {
     // Rebirth-patched. "items.idb" of the archive `folder` + `archive`:
     // the materials (chunk 1, filed under their key), the weapons (2) and the armour (3), each through an

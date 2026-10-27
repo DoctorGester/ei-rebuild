@@ -25,7 +25,6 @@ using namespace itemdb;
 namespace {
 
 
-// Item class ids (GetClassId).
 constexpr int kClassWeapon = 0x11;
 constexpr int kClassArmor = 0x12;
 constexpr int kClassQuick = 0x13;
@@ -358,7 +357,6 @@ const char* const kMaterialType = "material";
 const char* const kNoPrototype = "Can't find prototype for item \"%s\".\n";
 const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and material names\n";
 
-// CString members used here (MFC).
 struct ItemText : mfc::CString {
     int Find(char c) const;
     void TrimSpaceLeft() { mfc::CString::TrimLeft(); }     // TrimLeft() (moves the text, memmove)

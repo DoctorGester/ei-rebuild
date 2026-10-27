@@ -15,22 +15,17 @@
 
 class CCloudNoise {
 public:
-    // The buffers for `size`.
     explicit CCloudNoise(int size);
     CCloudNoise(const CCloudNoise&) = delete;
     CCloudNoise& operator=(const CCloudNoise&) = delete;
 
-    // On the game's heap: null without memory, and then no constructor runs.
     static void* operator new(std::size_t size) noexcept;
     static void operator delete(void* block);
 
-    // 0 / 1 (pure in the base).
     virtual void MakeLayer(std::uint8_t* out) = 0;
     virtual void Generate(std::uint8_t* out, int step) = 0;
-    // 2: the deleting destructor. The six buffers freed.
     virtual ~CCloudNoise();
 
-    // Builds the first two frames (all 16 steps each).
     void Start();
     // Advances the fade by seconds * speed (each whole unit one build step) and
     // writes the blended frame into `pixels` (ARGB4444, size * size).
@@ -55,7 +50,6 @@ public:
 class CGlobalMapClouds final : public CCloudNoise {
 public:
     CGlobalMapClouds() : CCloudNoise(0x100) {}
-    // the base's deleting destructor.
     ~CGlobalMapClouds() override;
 
     // A 32 x 32 layer of smoothed value noise into `out` (1 KB), seeded by

@@ -50,7 +50,6 @@ using StockRecipeList = stlp::list<void*>;
 // The spell recipes' records (0x34 bytes, inline in a SpellRecipeVector).
 constexpr int kSpellRecipeSize = 0x34;
 
-// STLport vector<string>.
 using StockStringVector = stlp::vector<stlp::string>;
 
 // A spell recipe (kSpellRecipeSize bytes, inline in a SpellRecipeVector): the spell database's
@@ -70,7 +69,6 @@ static_assert(sizeof(StockRecipeMap::Value) == 0x10);
 // for a new name.
 using RecordNameMap = stlp::NameMap;
 
-// The globals of the stock generation (the exe's data).
 namespace stock {
 // Scratch vectors: the prototypes taken, the candidate materials of one prototype (pointers into
 // the stock's material entries), the material entries taken, the spells and modifiers taken.

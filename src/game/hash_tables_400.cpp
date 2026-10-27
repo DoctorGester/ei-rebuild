@@ -38,13 +38,10 @@ std::uint32_t RemoveKey(Table* t, const std::uint32_t* key) {
 
 // --- CBaseManager's id tables --------------------------------------------------------------------
 
-// The objects table's SetAt (key -> object).
 void Table::ObjectsSetAt(const std::int32_t* key, const std::uint32_t* value) {
     FindOrInsert(this, key)->value = *value;
 }
-// The objects table's RemoveKey (returns the object or null).
 std::uint32_t Table::ObjectsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key); }
-// The objects table's Lookup: 1 with *value set, or 0.
 int Table::ObjectsLookup(const std::uint32_t* key, std::uint32_t* value) {
     Node* node = map.Find(*key);
     if (!node) return 0;
@@ -53,12 +50,10 @@ int Table::ObjectsLookup(const std::uint32_t* key, std::uint32_t* value) {
 }
 // RemoveKey of the id -> list position table (+0x50; also the client world's pending table).
 std::uint32_t Table::PositionsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key); }
-// The objects table's find: the value's address, or null.
 std::uint32_t* Table::ObjectsFind(const std::uint32_t* key) {
     Node* node = map.Find(*key);
     return node ? &node->value : nullptr;
 }
-// operator[] of the position table and of the spare counts.
 std::uint32_t* Table::PositionAt(const std::int32_t* key) {
     return &FindOrInsert(this, key)->value;
 }

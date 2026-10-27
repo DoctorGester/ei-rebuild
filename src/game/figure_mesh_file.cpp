@@ -15,7 +15,6 @@
 
 namespace {
 
-// The file's write and read virtuals.
 void Write(mfc::CFileVirtuals* file, const void* data, int size) { file->Write(data, static_cast<unsigned>(size)); }
 void Read(mfc::CFileVirtuals* file, void* data, int size) { file->Read(data, static_cast<unsigned>(size)); }
 

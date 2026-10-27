@@ -80,7 +80,6 @@ BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
 EI_REWRITTEN(0x0068D0A0, CLight::SetDirectional);
 
 namespace {
-// A channel with the light's share added, clamped at 1.
 float Lit(float base, float amount, float color) {
     const float sum = amount * color + base;
     return sum > 1.0f ? 1.0f : sum;
