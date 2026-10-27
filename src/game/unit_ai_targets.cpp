@@ -28,7 +28,7 @@ namespace {
 constexpr float kCurrentBonus = 10.0f;
 constexpr float kGroupBase = 3.0f;
 constexpr float kDamageWeight = 1.0f;
-constexpr float kGroupDamageWeight = 1.3f;      // 0073FF10 (0x3FA66666)
+constexpr float kGroupDamageWeight = 1.3f;      // (0x3FA66666)
 constexpr float kHealFactor = 3.0f;
 constexpr float kDistanceWeight = 25.0f;
 constexpr float kHitWeight = 2.0f;
@@ -42,7 +42,7 @@ constexpr int kNoHitsKnown = 20;
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;   // CSpell::targetFlags_: aimed at no object
 constexpr int kRejectedReport = 0x14;
 const float kNoScore = std::bit_cast<float>(0xF149F2CAu);    // -1e30
-const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // 0073FF30 and the starting best: -1e20
+const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // and the starting best: -1e20
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 

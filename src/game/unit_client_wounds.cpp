@@ -1,6 +1,6 @@
 // A party unit's wounds, face texture and weapon point on the client (CUnitClientSpecific): the wound level of each body part
-// and the composed wounds texture the figure shows (005370F0, called by RefreshWounds
-// 00537360). See unit_client_models.h.
+// and the composed wounds texture the figure shows called by RefreshWounds
+// See unit_client_models.h.
 #include "unit_client_models.h"
 
 #include "core_maths.h"
@@ -156,7 +156,7 @@ void AssignTexture(CTexture** slot, CTexture* value) {
 }
 } // namespace
 
-// 0051C3D0 inlines it: no references, then its own fields; the stages vector is constructed empty.
+// inlines it: no references, then its own fields; the stages vector is constructed empty.
 WoundsMaterial::WoundsMaterial() {
     blend = 1;
     sourceBlend = kSourceAlpha;

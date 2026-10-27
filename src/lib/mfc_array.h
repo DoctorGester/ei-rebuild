@@ -1,13 +1,13 @@
 #pragma once
 
 // MFC 4.2's CArray<TYPE, ARG_TYPE> (afxtempl.h) as game.exe instantiates it, for the standalone exe
-// (ticket S6, docs/notes/standalone.md section 2). The bodies are mfc::CArray's (mfc.h); what differs
+// (ticket, docs/notes/standalone.md section 2). The bodies are mfc::CArray's (mfc.h); what differs
 // between the instantiations is the element: its size, how ConstructElements builds new ones (MFC's
 // memset, then the element's constructor if it has one: inlined, or an out-of-line helper) and how
 // DestructElements destroys them. Those are the element policies below. ArrayAbi turns the members
 // into the instantiations' calling conventions (__thiscall as __fastcall with EDX unused; the element
 // helpers __stdcall), and mfc_array.cpp registers each instantiation our code forwards to at its
-// library address. Checked in game by verify_mfc_array.cpp until S21d.
+// library address. Checked in game by verify_mfc_array.cpp until.
 
 #include "containers.h"
 #include "mfc.h"
@@ -90,17 +90,17 @@ struct ArrayAbi : CArray<T, E> {
     using Element = T;
     using Array = CArray<T, E>;
 
-    // Serialize (vtable slot 2, RET 4; defined in mfc_slots.h): the count (loading: ReadCount, then
+    // Serialize (vtable slot 2; defined in mfc_slots.h): the count (loading: ReadCount, then
     // SetSize(count, -1)), then the elements in one block.
     void Serialize(CArchive* ar);
 
-    // The instantiations' SetSize(nNewSize, nGrowBy) (RET 8), SetAtGrow(nIndex, ARG_TYPE) and Add(ARG_TYPE)
-    // (ARG_TYPE a reference: the element's address), Copy(const CArray&) (RET 4), RemoveAt(nIndex, nCount)
-    // (RET 8), ElementAt(nIndex) (RET 4) and the by-value GetAt(nIndex) (RET 8) are CArray's own members
+    // The instantiations' SetSize(nNewSize, nGrowBy), SetAtGrow(nIndex, ARG_TYPE) and Add(ARG_TYPE)
+    // (ARG_TYPE a reference: the element's address), Copy(const CArray&), RemoveAt(nIndex, nCount)
+    // ElementAt(nIndex) and the by-value GetAt(nIndex) are CArray's own members
     // (mfc.h), registered through this type (Abi::SetSize ...).
     // SetAtGrow for the dword instantiations: ARG_TYPE the value.
     void SetAtGrowByValue(int index, T value) { Array::SetAtGrow(index, value); }
-    // ConstructElements / DestructElements (__stdcall, RET 8).
+    // ConstructElements / DestructElements (__stdcall).
     static void __stdcall ConstructElements(T* elements, int count) { E::Construct(elements, count); }
     static void __stdcall DestructElements(T* elements, int count) { E::Destruct(elements, count); }
 
@@ -131,7 +131,7 @@ typename Abi::Array& ArrayAs(CArray<T, E>& a) {
     return reinterpret_cast<typename Abi::Array&>(a);
 }
 
-// An instantiation's ConstructElements / DestructElements (__stdcall, RET 8) over elements declared
+// An instantiation's ConstructElements / DestructElements (__stdcall) over elements declared
 // as another type of the same size, or untyped.
 template <typename Abi>
 void __stdcall ConstructElementsAt(void* elements, int count) {
@@ -166,7 +166,7 @@ void DestructArrayOf(CArray<T, E>& a) {
 
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 // One type per vtable, for the templates: Vtable() is the address of the instantiation's vtable. The forward-declared
-// ones are compiler-made vtables (C19: classes of mfc_slots.h and the game headers deriving from CompiledCollection);
+// ones are compiler-made vtables (classes of mfc_slots.h and the game headers deriving from CompiledCollection);
 // the element policies and aliases below only name them.
 
 struct IntArrayClass;   // CArray<int> / CDWordArray-like: the zone and quest id lists, the climb tables
@@ -226,7 +226,7 @@ void InitWithString(WithString<Size, StringAt>* p) {
 }
 
 // Records that hold strings and an array: `Strings` CStrings from +0, an array header of `Class` at
-// `ArrayAt` (00460720: 0x2C bytes, six strings, the array at +0x18; 004607E0: 0x5C bytes, eight
+// `ArrayAt` (0x2C bytes, six strings, the array at +0x18;: 0x5C bytes, eight
 // strings, the array at +0x48).
 template <std::size_t Size, int Strings, std::size_t ArrayAt, typename Class>
 struct StringsAndArray {
@@ -238,8 +238,8 @@ void InitStringsAndArray(StringsAndArray<Size, Strings, ArrayAt, Class>* p) {
     ConstructHeader<Class>(p->bytes + ArrayAt);
 }
 
-// Elements that hold an array header of `Class` at `ArrayAt` (004534F0: the 20-byte element is the
-// array; 0045E180: 32-byte patrols with the array at +0xC).
+// Elements that hold an array header of `Class` at `ArrayAt` (the 20-byte element is the
+// array;: 32-byte patrols with the array at +0xC).
 template <std::size_t Size, std::size_t ArrayAt, typename Class>
 struct WithArray {
     std::uint8_t bytes[Size];
@@ -294,7 +294,7 @@ inline void InitSoundRecord20(SoundRecord20* p) {
 }
 
 // A unit's animation step (12 bytes; game/combat.h's AnimationStep): the blank step after the zero
-// fill (00558AB0, 00550A60's values): animation and variant 0xFF, flags 0, duration -1, kind 0.
+// fill ('s values): animation and variant 0xFF, flags 0, duration -1, kind 0.
 struct AnimationStep12 {
     std::uint8_t animation;
     std::uint8_t variant;
@@ -374,7 +374,7 @@ using PathRecords = ArrayAbi<PathRecord12, InitElements<PathRecord12, InitPathRe
 using SoundRecords = ArrayAbi<SoundRecord20, InitElements<SoundRecord20, InitSoundRecord20>>;
 using AnimationSteps = ArrayAbi<AnimationStep12, InitElements<AnimationStep12, InitAnimationStep12>>;
 
-// A unit's animation list (game/combat.h's AnimationSteps): the steps' array (vtable 0073F01C) and a
+// A unit's animation list (game/combat.h's AnimationSteps): the steps' array and a
 // dword copied along with them.
 struct AnimationStepList : AnimationSteps::Array {
     int extra;   // +0x14
@@ -383,7 +383,7 @@ static_assert(sizeof(AnimationStepList) == 0x18);
 
 struct AnimationStepListAbi : AnimationStepList {
     using Array = AnimationSteps::Array;
-    // The copy constructor (RET 4): the steps (SetSize to the source's count, then each
+    // The copy constructor: the steps (SetSize to the source's count, then each
     // step), then extra. Returns this.
     AnimationStepList* CopyConstruct(const AnimationStepList* source) {
         CopyConstructSteps(source);
@@ -392,7 +392,7 @@ struct AnimationStepListAbi : AnimationStepList {
     }
     // The same without extra (the steps' array alone). Defined in mfc_slots.h, after AnimationStepsCopyClass.
     Array* CopyConstructSteps(const Array* source);
-    // Operator= (RET 4): Copy, then extra. Returns this.
+    // Operator=: Copy, then extra. Returns this.
     AnimationStepList* Assign(const AnimationStepList* source) {
         this->Copy(*source);
         this->extra = source->extra;
@@ -412,7 +412,7 @@ using OwnedAllods = ArrayAbi<AllodElement, EachElements<AllodElement, InitString
                                                        DestroyStringsAndArray<AllodElement, 6, 0x18, IntArrayClass>>>;
 
 // Script areas: 24-byte elements that are an array of ScriptAreaPartsClass, destroyed by
-// the base's destructor (004BCF10: ScriptAreaClass's vtable, the storage freed).
+// the base's destructor (ScriptAreaClass's vtable, the storage freed).
 using ScriptAreaElement = WithArray<0x18, 0, ScriptAreaPartsClass>;
 using ScriptAreas = ArrayAbi<ScriptAreaElement, EachElements<ScriptAreaElement, InitWithArray<0x18, 0, ScriptAreaPartsClass>,
                                                             DestroyArrayAt<ScriptAreaElement, 0, ScriptAreaClass>>>;
@@ -429,8 +429,8 @@ void DeleteThroughObject(E* p) { reinterpret_cast<CObjectVirtuals*>(p)->Deleting
 template <typename E>
 void DeleteThroughFirst(E* p) { reinterpret_cast<DeletingFirst*>(p)->DeletingDestructor(0); }
 
-// The figure's bone link arrays (20-byte elements that are arrays, 004534F0) and the terrain's byte
-// arrays (006C4F90: CByteArray's constructor on each).
+// The figure's bone link arrays (20-byte elements that are arrays) and the terrain's byte
+// arrays (CByteArray's constructor on each).
 using BoneLinkElement = WithArray<0x14, 0, BoneLinkArrayClass>;
 using OwnedBoneLinkArrays = ArrayAbi<BoneLinkElement, EachElements<BoneLinkElement, InitWithArray<0x14, 0, BoneLinkArrayClass>,
                                                                   DeleteThroughObject<BoneLinkElement>>>;
@@ -450,6 +450,6 @@ inline void FreeAlignedData(Bytes<16>* p) {
 using AlignedArrays = ArrayAbi<Bytes<16>, EachElements<Bytes<16>, nullptr, FreeAlignedData>>;
 
 // CArray<CString>: built and destroyed by MFC's ConstructElements / DestructElements<CString>
-// (006FE268 / 006FE296, mfc_string.cpp).
+// (mfc_string.cpp).
 using Strings = ArrayAbi<CString, HelperElements<CString, ConstructStrings, DestructStrings>>;
 } // namespace mfc::impl

@@ -1,9 +1,9 @@
 #pragma once
 
 // MFC 4.2's non-template arrays (afxcoll: array_s.cpp, array_w.cpp, array_d.cpp, array_b.cpp,
-// array_u.cpp), written out for the standalone exe (ticket S5, docs/notes/standalone.md section 2).
+// array_u.cpp), written out for the standalone exe (ticket, docs/notes/standalone.md section 2).
 // Same layout and allocator as the copies linked into game.exe; every body is registered at its
-// library address (mfc_coll.cpp) and checked in game by verify_mfc_coll.cpp until S21d.
+// library address (mfc_coll.cpp) and checked in game by verify_mfc_coll.cpp until.
 
 #include "mfc_string.h"
 #include "game/game_data.h"
@@ -32,7 +32,7 @@ struct PlainArray {
     void Serialize(CArchive* ar);                   // vtable slot 2 (not CUIntArray's)
 };
 
-// The instantiations' tables: compiled (mfc_coll.cpp) in place of game.exe's 00745F78, 007464B8, 00746560 and
+// The instantiations' tables: compiled (mfc_coll.cpp) in place
 struct WordArrayClass {
     static void* Vtable();
 };
@@ -60,20 +60,20 @@ struct CStringArray {
     int maxSize;    // +0x0C
     int growBy;     // +0x10
 
-    static void* Vtable();   // compiled (mfc_coll.cpp) in place of game.exe's 00745F5C
+    static void* Vtable();   // compiled (mfc_coll.cpp) in place
 
     CStringArray* Construct();
     void Destruct();
-    CStringArray* DeletingDestructor(unsigned flags);   // 006FE93C (vtable slot 1)
+    CStringArray* DeletingDestructor(unsigned flags);   // (vtable slot 1)
     void SetSize(int newSize, int newGrowBy);
-    int Append(const CStringArray& source);             // 006FEB01 (returns the old size)
+    int Append(const CStringArray& source);             // (returns the old size)
     void Copy(const CStringArray& source);
     void SetAtGrow(int index, const char* text);
     void SetAtGrow(int index, const CString& value);
     void InsertEmpty(int index, int count);
     void InsertAt(int index, const CString& value, int count);
     void RemoveAt(int index, int count);
-    void Serialize(CArchive* ar);                       // 006FEE31 (vtable slot 2)
+    void Serialize(CArchive* ar);                       // (vtable slot 2)
 
     // array_s.cpp's element helpers (cdecl).
     static void __cdecl ConstructElements(CString* elements, int count);

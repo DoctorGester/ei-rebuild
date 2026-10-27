@@ -25,21 +25,21 @@ constexpr const char* kOutroSuffix = "fout";
 constexpr std::uint32_t kHeaderColour = 0xFEFEFE;
 constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 
-// The movie flag (00784752; 1: movies shown at their own size). __cdecl, AL.
-// CBinkVideo's frame step (005DBD80, RET 4: AL whether the movie still plays; rewritten in
-// bink_video.cpp) and close (005DBF70, plain RET).
+// The movie flag (1: movies shown at their own size). __cdecl, AL.
+// CBinkVideo's frame step (RET 4: AL whether the movie still plays; rewritten in
+// bink_video.cpp) and close (plain RET).
 
 
 } // namespace
 
-// --- 0062BFD0: a window above the titles closed (slot 27) ---------------------------------------------
+// ---: a window above the titles closed ---------------------------------------------
 
 void CCreditsScreen::OnMessageResult(int) { player_.Close(); }
 EI_REWRITTEN(0x0062BFD0, CCreditsScreen::OnMessageResult);
 
-// --- 0065EF30: the scrolling surface's load (ui_scrolling_surface.cpp), through its address -------
+// ---: the scrolling surface's load (ui_scrolling_surface.cpp), through its address -------
 
-// --- 0062BCB0: a script line's destructor ---------------------------------------------------------
+// ---: a script line's destructor ---------------------------------------------------------
 
 void TitleLine::Destroy() {
     style.~CString();
@@ -47,7 +47,7 @@ void TitleLine::Destroy() {
 }
 EI_REWRITTEN(0x0062BCB0, TitleLine::Destroy);
 
-// --- 0062BD80: the frame -------------------------------------------------------------------------
+// ---: the frame -------------------------------------------------------------------------
 
 BOOL CCreditsScreen::Draw(int pass) {
     EI_NAN_AUDIT(textSurface_->speed_);
@@ -87,7 +87,7 @@ BOOL CCreditsScreen::Draw(int pass) {
 }
 EI_REWRITTEN(0x0062BD80, CCreditsScreen::Draw);
 
-// --- 0062BD00: the close ---------------------------------------------------------------------------
+// ---: the close ---------------------------------------------------------------------------
 
 void CCreditsScreen::OnClose() {
     lines_.ClearWith([](TitleLine* line) { line->Destroy(); });

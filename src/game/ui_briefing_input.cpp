@@ -94,7 +94,7 @@ static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
     unit->ServerController()->Brain()->Walk(&point, run, 0);
 }
 
-// --- 006030F0: input slot 2 ---------------------------------------------------------------------
+// ---: input slot 2 ---------------------------------------------------------------------
 
 void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     if (chatActive_) {
@@ -139,7 +139,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     }
 }
 
-// --- 00603D00: input slot 4 ---------------------------------------------------------------------
+// ---: input slot 4 ---------------------------------------------------------------------
 
 void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (chatActive_) {
@@ -202,7 +202,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (visited != 1.0f) TheCursor()->SetShape(kCursorExit);
 }
 
-// --- 00603360: input slot 7 ---------------------------------------------------------------------
+// ---: input slot 7 ---------------------------------------------------------------------
 
 void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
     if (chatActive_) return;
@@ -223,7 +223,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
     if (!noWalk_) WalkLeaderTo(this, x, y, 1);
 }
 
-// --- 00608B60 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::OpenTopics(CEngineObject* person) {
     FindTopics(person->id_);
@@ -246,7 +246,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
     state_ = 1;
 }
 
-// --- 006071E0 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::DrawTopics() {
     mfc::CString prefix;

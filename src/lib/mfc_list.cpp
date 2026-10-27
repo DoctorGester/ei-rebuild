@@ -33,7 +33,7 @@ EI_REWRITTEN(0x006FE90F, FreePlexChain);
 
 // ---- Pointer lists (CPtrList / CTypedPtrList: 4-byte elements, zeroed, nothing destroyed) ---------
 
-// The constructor (block size given; 00545750 blocks of 0x80).
+// The constructor (block size given; blocks of 0x80).
 EI_REWRITTEN(0x004C96A0, ListHeader<PtrListClass>::Construct);
 EI_REWRITTEN(0x004C98C0, ListHeader<ItemListClass>::Construct);
 EI_REWRITTEN(0x00556D10, ListHeader<CellListClass>::Construct);

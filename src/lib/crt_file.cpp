@@ -126,7 +126,7 @@ int Sopen(const char* path, int flags, int share, int permissions) {
     return fd;
 }
 
-// FILETIME to a local time_t (__timet_from_ft 006EB9E7): -1 for a zero time or one out of range.
+// FILETIME to a local time_t (__timet_from_ft): -1 for a zero time or one out of range.
 std::int32_t LocalTime(const FILETIME& time) {
     if (time.dwLowDateTime == 0 && time.dwHighDateTime == 0) return -1;
     FILETIME local;

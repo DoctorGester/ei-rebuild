@@ -1,6 +1,6 @@
 // The global map's way search: from the current zone through the zones the player may
 // pass to the zone clicked (CGlobalMap::target_), recording per arrival exit of the target the
-// shortest summed "#passtime". The click (0062F950, Rebirth-patched) empties the results, sets
+// shortest summed "#passtime". The click (Rebirth-patched) empties the results, sets
 // the target and calls it with the local player's zone. See docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui_camp.h"
@@ -158,7 +158,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         link = region - kFirstLinkRegion;
     } else {
         // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
-        // WideScreen takes the margin off its x (0062FB20: addon's code at 005FD237).
+        // WideScreen takes the margin off its x (addon's code).
         const std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= zoneCount_ || zones_.data[index].state == 0) return;

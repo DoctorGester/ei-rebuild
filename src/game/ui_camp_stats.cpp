@@ -1,5 +1,5 @@
 // The camp's statistics column (CHeroStatsPanel) and trade panel (CTradePanel): what the
-// statistics under the mouse are, for the description panel (005F1590; the camp's Draw 0060F050
+// statistics under the mouse are, for the description panel (the camp's Draw
 // and the hero screen's draw ask every frame), and the column's hero. See ui_camp.h and
 // docs/notes/ui.md ("Camp, global map, hero screens").
 #include "ui_camp.h"
@@ -53,7 +53,7 @@ UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
 
 } // namespace
 
-// --- 00625690: the trade panel ----------------------------------------------------------------
+// ---: the trade panel ----------------------------------------------------------------
 
 void CTradePanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
     info->kind = kNone;
@@ -95,7 +95,7 @@ void CTradePanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
 }
 EI_REWRITTEN(0x00625690, CTradePanel::HoverInfo);
 
-// --- 00624CB0: the statistics column -----------------------------------------------------------
+// ---: the statistics column -----------------------------------------------------------
 
 void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
     PartyUnitRecord* hero = owner_->HeroRecord();
@@ -166,7 +166,7 @@ void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
 }
 EI_REWRITTEN(0x00624CB0, CHeroStatsPanel::HoverInfo);
 
-// --- 006232D0: the column's hero -----------------------------------------------------------------
+// ---: the column's hero -----------------------------------------------------------------
 
 void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     bool party = LocalPlayerData()->members_.size > 1;
@@ -181,7 +181,7 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
 }
 EI_REWRITTEN(0x006232D0, CHeroStatsPanel::SetHero);
 
-// --- 0060FA80: the camp's hero record (slot 64) ----------------------------------------------------
+// ---: the camp's hero record ----------------------------------------------------
 
 PartyUnitRecord* CCampPages::HeroRecord() {
     return &LocalPlayerData()->members_.data[hero_];

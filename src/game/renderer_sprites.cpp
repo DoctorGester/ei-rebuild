@@ -1,12 +1,12 @@
-// The renderer's sprite draw (00502CA0, virtual slot 17 of the renderer at 007AF060, vtable
-// 0073D93C) with its helpers 00503680 (indexed draw), 00503710 (a radix sort pass) and 005037D0 (a
+// The renderer's sprite draw vtable
+// with its helpers (indexed draw), (a radix sort pass)(a
 // merge sort pass). Every point (x, y, z and a size) becomes a screen-facing quad: the sprite's
 // colour and texture rectangle go to four TL vertices, and the pipeline's transform object
 // (ProjectSprites) places the corners and sets their outcodes. Batches of up to 511 sprites are sorted back to front
 // by the first corner's z (sprites with a negative z are dropped) and drawn as two triangles each;
 // when the transform reports that some corners are off screen, every triangle goes through the
 // screen clipper first. Particles draw through it, with additive blending when
-// their source asks for it. Buffers are function-local statics (007AEF60..007AEFF8). See
+// their source asks for it. Buffers are function-local statics. See
 // docs/notes/models.md ("Renderer").
 #include "clip.h"
 #include "device.h"
@@ -32,11 +32,11 @@
 #include <cstring>
 #include <utility>
 
-// One record of the back-to-front sort (16 bytes, 007AEFD8).
+// One record of the back-to-front sort (16 bytes).
 struct SpriteSortRecord {
     std::int32_t key;             // the first corner's z, as bits (never negative here)
     SpriteSortRecord* next;       // the radix pass's bucket list
-    TLVertex* corners;            // the sprite's four corners (in the copy at 007AEFE8)
+    TLVertex* corners;            // the sprite's four corners (in the copy)
     std::uint32_t outcodes;       // their four outcode bytes
 };
 static_assert(sizeof(SpriteSortRecord) == 16);
@@ -76,8 +76,8 @@ constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_outcodes = /*007AEF78*/
 constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_indices = /*007AEF60*/ {};
 mfc::CArray<std::uint8_t>& Outcodes() { return *g_outcodes; }
 mfc::CArray<std::uint16_t>& Indices() { return *g_indices; }
-void __cdecl DestroyOutcodes() { mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes); }   // 005039F0
-void __cdecl DestroyIndices() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_indices); }     // 005039E0
+void __cdecl DestroyOutcodes() { mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes); }
+void __cdecl DestroyIndices() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_indices); }
 std::uint8_t g_guards = /*007AEFB0*/ {};   // the draw's statics constructed (bits 1, 2, 4, 8)
 constinit lib::AlignedArray<TLVertex> g_cornersCopy = /*007AEFE8*/ {};
 lib::AlignedArray<TLVertex>& CornersCopy() { return g_cornersCopy; } // the records point here
@@ -314,7 +314,7 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
 
 } // namespace
 
-// --- 00503710 / 005037D0 / 00503680 --------------------------------------------------------------
+// --- --------------------------------------------------------------
 
 // One radix sort pass: the records of `src` go to 256 buckets by the key's byte at
 // `shift` (each bucket a list through the records' link, the last one first), then the buckets go
@@ -339,7 +339,7 @@ EI_REWRITTEN(0x00503710, SpriteRadixPass);
 // sorted runs src[j], src[j + 2w], ... and src[j + w], src[j + 3w], ... merge, larger key first
 // (the first run's on ties), into dst[j], dst[j + w], ...; when 2w > count the last `width`
 // pointers are first copied as they are (the columns without a second run). __fastcall: width in
-// ECX, src in EDX; RET 8.
+// ECX, src in EDX.
 void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count) {
     int step = width * 2;
     if (step > count) {
@@ -373,7 +373,7 @@ void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteS
 }
 EI_REWRITTEN(0x005037D0, SpriteMergePass);
 
-// 00503680 (thiscall on the device holder, RET 0x1C). DrawIndexedPrimitive under the device's
+// DrawIndexedPrimitive under the device's
 // critical section; the result goes to lastLoadResult_; counts vertices, triangles
 // (indices / 3) and calls. Returns 1.
 int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount,
@@ -393,9 +393,9 @@ int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, in
 }
 EI_REWRITTEN(0x00503680, CTextureDevice::DrawIndexedDirect);
 
-// --- 00502CA0 ------------------------------------------------------------------------------------
+// --- ------------------------------------------------------------------------------------
 
-// 00502CA0 (thiscall on the renderer, RET 0xC). Draws a sprite per point: `points` an aligned array
+// Draws a sprite per point: `points` an aligned array
 // of SpritePoint, `sprites` an MFC-style array of Sprite (same count). With `additive` (only its low
 // byte counts) the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and
 // restored). The view matrix is the top of the pipeline's clip stack, transposed. Returns 1, or

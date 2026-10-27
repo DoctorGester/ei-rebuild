@@ -1,5 +1,5 @@
-// The unit AI modes' lifetime and constant slots: the Player and Patrol constructors (005D3760,
-// 005D0F60), the Patrol and Fear destructors, their
+// The unit AI modes' lifetime and constant slots: the Player and Patrol constructors
+// the Patrol and Fear destructors, their
 // GetType slots, the abstract base's Execute, the abstract bases'
 // constructors and the patrol point array's destructors.
 #include "unit_ai.h"
@@ -19,9 +19,9 @@ constexpr int kRemarkIdle = 1;
 constexpr int kTypePatrol = 1;
 constexpr int kTypeFear = 7;
 
-// The patrol points' tables as compiled collections (mfc_slots.h) in place of game.exe's 0073FF74 (the
-// constructors store it) and 0073FF80 (the destructors': the base's), which have the same slots: 1 the destructor
-// (PatrolPointArray::DeletingDestruct, 005D8CD0 / its copy 005D9D00), 2 the 0x20-byte records' Serialize.
+// The patrol points' tables as compiled collections (mfc_slots.h) in place (the
+// constructors store it)(the destructors': the base's), which have the same slots: 1 the destructor
+// (PatrolPointArray::DeletingDestruct, / its copy), 2 the 0x20-byte records' Serialize.
 void __fastcall DestructPatrolPoints(PatrolPointArray* points) { points->Destruct(); }
 struct PatrolPointsBaseClass : mfc::impl::CompiledCollection<PatrolPointsBaseClass, &DestructPatrolPoints,
                                                              &mfc::impl::AiLookRecords::Serialize> {};
@@ -92,7 +92,7 @@ int PatrolMode::OnShutdown() {
 }
 EI_REWRITTEN(0x005D1140, PatrolMode::OnShutdown);
 
-// 005D9E40 (and its thunk 005D9590; RET 8): point `index` copied into `out`: the position, then a
+// Point `index` copied into `out`: the position, then a
 // new look array sized to the source's (new looks zeroed) with each look copied.
 PatrolPoint* PatrolPointArray::CopyAt(PatrolPoint* out, int index) const {
     const PatrolPoint& source = data[index];
@@ -170,5 +170,5 @@ PatrolPointArray* PatrolPointArray::DeletingDestruct(int flags) {
     return this;
 }
 EI_REWRITTEN(0x005D8CD0, PatrolPointArray::DeletingDestruct);
-EI_REWRITTEN(0x005D9D00, PatrolPointArray::DeletingDestruct);   // byte-identical copy (A-W12)
+EI_REWRITTEN(0x005D9D00, PatrolPointArray::DeletingDestruct);   // byte-identical copy
 

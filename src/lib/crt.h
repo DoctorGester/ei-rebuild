@@ -15,7 +15,7 @@ namespace gamecrt {
 
 void* __cdecl operator_new(std::size_t size);
 // operator_new with the block zeroed, for the objects whose constructors leave fields unset (server
-// and map objects, AI modes): a determinism fix the standalone keeps, SV7b2; the harness zeroes the
+// and map objects, AI modes): a determinism fix the standalone keeps, the harness zeroes the
 // original's at the same calls (tests/verify/harness_leftovers.h).
 inline void* operator_new_zeroed(std::size_t size) {
     void* block = operator_new(size);
@@ -50,7 +50,7 @@ int __cdecl strncmp(const char* a, const char* b, std::size_t n);
 int __cdecl isdigit(int c);
 int __cdecl isspace(int c);
 int __cdecl sprintf(char* buffer, const char* format, ...);
-int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B _mbscmp
+int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // _mbscmp
 // The same on char strings (the single-byte code page makes them the same bytes).
 inline int __cdecl mbscmp(const char* a, const char* b) {
     return mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
@@ -60,7 +60,7 @@ inline int __cdecl mbscmp(const char* a, const char* b) {
 // locale (rebuilt when its locale handle or code page changes; in ei_vectors, from the recorded
 // character classes, tests/vectors/replay_crt.cpp). strnicmp sends every upper-case
 // byte through LCMapStringW under the game's locale; callers that compare many names use this
-// instead (docs/notes/script.md, PF1; docs/notes/units.md).
+// instead (docs/notes/script.md, docs/notes/units.md).
 const int* CaseFoldTable();
 // strnicmp(a, b, n) == 0 with the table above, without a CRT call per byte: a zero byte in either
 // string ends the compare (equal only when both are), otherwise the bytes' folds must match.
@@ -74,7 +74,7 @@ inline bool SameIgnoringCase(const int* fold, const char* a, const char* b, int 
     return true;
 }
 
-// acos: the C entry of the body behind _CIacos 006E7320 (same code from the FLD of the argument on;
+// acos: the C entry of the body behind _CIacos (same code from the FLD of the argument on;
 // the result is left unrounded in ST0).
 double __cdecl acos(double c);
 // The game's _ftol for a value computed in C++: the low 32 bits of the 64-bit
@@ -103,7 +103,7 @@ struct FindData {
 static_assert(sizeof(FindData) == 0x118);
 
 // The handler operator new calls when the heap is exhausted (it returns nonzero to have the
-// allocation tried again; _set_new_handler 006E8D35 sets it).
+// allocation tried again; _set_new_handler sets it).
 using NewHandler = int(__cdecl*)(std::size_t);
 
 #ifdef EI_VECTORS_REPLAY
@@ -159,25 +159,25 @@ unsigned char* __cdecl Mbslwr(unsigned char* text);
 // a thread_local starting at 1.
 int __cdecl Rand();
 void __cdecl Srand(unsigned seed);
-// The calling thread's seed itself (the harness's digest and random trace read it; S16a: the image has no
+// The calling thread's seed itself (the harness's digest and random trace read it;: the image has no
 // _getptd).
 unsigned& RandState();
 
-// Maths: floor 006E7F7E, ceil 006E8B1F, modf 006EAD0B and fmod 006E95A0 / _CIfmod 006E95AA are the host CRT's
-// (std::floor, std::ceil, std::modf, std::fmod). acos 006E7334 and asin 006E83D4 are CiAcos and CiAsin below,
+// Maths: floor, ceil, modf fmod / _CIfmod are the host CRT's
+// (std::floor, std::ceil, std::modf, std::fmod). acos asin are CiAcos and CiAsin below,
 // in the standalone image.
 // _controlfp on the x87 control word only (the SSE one is not the game's): returns the new word.
 unsigned __cdecl Controlfp(unsigned value, unsigned mask);
 
 // The compiler's array helpers, `eh vector constructor / destructor iterator`: the element's
-// constructor or destructor (thiscall, called as fastcall) on each of `count` elements of `size`
+// constructor or destructor (called as fastcall) on each of `count` elements of `size`
 // bytes, construction from the first, destruction from the last; when one throws, the elements done
 // so far (construction) or still left (destruction) are destroyed and the exception goes on.
 using ElementFunction = void(__fastcall*)(void* element, void* unused);
 void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
                                  ElementFunction destroy);
 void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy);
-// A constructor or destructor of T (fastcall, the element in ECX) as an ElementFunction:
+// A constructor or destructor of T (the element in ECX) as an ElementFunction:
 // libcrt::Element<&Destruct>.
 template <typename F>
 struct ElementOf;
@@ -194,17 +194,17 @@ void __fastcall Element(void* element, void*) {
 // both builds.
 void* __fastcall NodeAllocate(std::size_t bytes);
 void __fastcall NodeDeallocate(void* p, std::size_t bytes);
-// Copies that skip a null block: fastcall and stdcall (00426450, RET 8).
+// Copies that skip a null block: fastcall and stdcall.
 void __fastcall NodeDeallocateChecked(void* p, std::size_t bytes);
 void __stdcall NodeDeallocateCheckedStd(void* p, std::size_t bytes);
-void* __fastcall NodeRefill(std::size_t bytes);                                 // 004060E0 (_S_refill)
-char* __fastcall NodeChunkAlloc(std::size_t size, int* count);                  // 00406B70 (_S_chunk_alloc)
+void* __fastcall NodeRefill(std::size_t bytes);                                 // (_S_refill)
+char* __fastcall NodeChunkAlloc(std::size_t size, int* count);                  // (_S_chunk_alloc)
 
 gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler);
 
 // Formatted text (src/lib/crt_format.cpp): MSVC 6's _output and its float conversion (17 digits from
 // a 12-byte long double, then rounded half up on the digit string; three-digit exponents; "1#INF" and
-// friends). Byte-exact with the originals (the host's printf differs: C26). atof and sscanf are the host CRT's.
+// friends). Byte-exact with the originals (the host's printf differs). atof and sscanf are the host CRT's.
 int __cdecl Sprintf(char* buffer, const char* format, ...);
 int __cdecl Vsprintf(char* buffer, const char* format, va_list args);
 int __cdecl Fprintf(gamecrt::CrtFile* file, const char* format, ...);
@@ -222,23 +222,23 @@ int FormatInto(char* buffer, std::size_t room, const char* format, va_list args)
 
 // The x87 entry points with register arguments (src/lib/crt_x87.cpp; standalone image only, the hook
 // build keeps the exe's x87 results). Each entry is called from assembly only (FtolEntry: ST0 in, EDX:EAX
-// out; CiAcosEntry / CiAsinEntry: ST0 in and out; CiPowEntry: x in ST1, y in ST0, the result
+// out; CiAcosEntry / CiAsinEntry: ST0 in and out; CiPowEntry: x in, y in ST0, the result
 // in ST0) and calls the plain body beside it.
-std::int64_t __cdecl FtolEntry();                                                       // 006E853C _ftol
-double __cdecl CiAcosEntry();                                                     // 006E7320 _CIacos
-double __cdecl CiAsinEntry();                                                     // 006E83C0 _CIasin
-double __cdecl CiPowEntry();                                                      // 006E81A0 _CIpow
+std::int64_t __cdecl FtolEntry();                                                       // _ftol
+double __cdecl CiAcosEntry();                                                     // _CIacos
+double __cdecl CiAsinEntry();                                                     // _CIasin
+double __cdecl CiPowEntry();                                                      // _CIpow
 // _ftol of an 80-bit value (10 bytes): the 64-bit truncation; NaN, infinity and |value| >= 2^63 give the
 // integer indefinite (0x8000000000000000), as FISTP with the invalid exception masked.
 std::int64_t __cdecl FtolExtended(const unsigned char* value);
 // The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
 // acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE. Out of
-// the domain: the x87 indefinite. CiAcos and CiAsin are also acos 006E7334 and asin 006E83D4
+// the domain: the x87 indefinite. CiAcos and CiAsin are also acos asin
 // themselves (the stack-argument entries; standalone image only).
 double __cdecl CiAcos(double x);
 double __cdecl CiAsin(double x);
 double __cdecl CiPow(double x, double y);
-// _hypot 006FD026 (standalone image only; S16a: the camera, the strips, the client maps): the larger size
+// _hypot (standalone image only;: the camera, the strips, the client maps): the larger size
 // m of |x| and |y| times the root of (x / m)^2 + (y / m)^2, each step at 64 bits then stored to a double,
 // as _hypothlp computes it under its control word 133F (to nearest) whatever the caller's; an
 // overflow as the caller's rounding direction has it, a NaN argument as x87 addition propagates it, an
@@ -252,11 +252,11 @@ void __stdcall CxxThrowException(void* object, const void* throwInfo);
 // MSVC 6's std::exception: the exe's vtable, the text, and whether the object owns (and frees)
 // it. The const char* constructor has no callers.
 struct Exception {
-    Exception* Construct();                                   // 006E7CD5 exception(): no text
+    Exception* Construct();                                   // exception: no text
     Exception* CopyConstruct(const Exception& source);
-    Exception* Assign(const Exception& source);               // 006E7D89 operator= (RET 4)
-    void Destruct();                                          // 006E7DA8 ~exception
-    Exception* DeletingDestruct(unsigned flags);              // 006E7CE6 (vtable slot 0, RET 4)
+    Exception* Assign(const Exception& source);               // operator=
+    void Destruct();                                          // ~exception
+    Exception* DeletingDestruct(unsigned flags);              // (vtable slot 0)
     const char* What() const;                                 // "Unknown exception" without text
 
     const void* vtable;

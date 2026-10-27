@@ -1,7 +1,7 @@
 // The game CRT's formatted text: MSVC 6's _output behind sprintf / vsprintf / fprintf / printf, with the
 // CRT's own number conversion: $I10_OUTPUT's 17 digits from a 12-byte long double (96-bit mantissa products, the
 // exe's power-of-ten tables) and _fptostr's rounding of that digit string. All integer arithmetic, so the results
-// are the same bytes as the original's in either build. docs/notes/standalone.md, S4a. atof and sscanf are the
+// are the same bytes as the original's in either build. docs/notes/standalone.md,. atof and sscanf are the
 // host CRT's; the host's printf differs (two-digit exponents, "inf"), so _output stays.
 #include "crt.h"
 #include "crt_locale_data.h"

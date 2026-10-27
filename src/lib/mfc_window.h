@@ -1,15 +1,15 @@
 #pragma once
 
-// MFC 4.2's AfxMessageBox as the game reaches it (ticket S8, docs/notes/standalone.md section 2).
-// The game constructs no CWinApp (CWinApp's constructor 0070D654 has no caller) and has no MFC
+// MFC 4.2's AfxMessageBox as the game reaches it (ticket, docs/notes/standalone.md section 2).
+// The game constructs no CWinApp (CWinApp's constructor has no caller) and has no MFC
 // window, so the module state's application is always null: AfxMessageBox runs
 // CWinApp::DoMessageBox with no object, EnableModeless and CWnd::GetSafeOwner_ find no window, and
 // the box has no owner, no help context and the module's file name as its title. That is the body
 // here (registered in mfc_window.cpp; verify_mfc_window.cpp checked the assumption
-// against the original's state whenever a box was shown, until S21d).
+// against the original's state whenever a box was shown, until).
 // CWnd's constructor and destructor: the exit functions run it on MFC's four static windows (wndTop,
 // wndBottom, wndTopMost, wndNoTopMost: placement constants, never destroyed as windows); MFC's other
-// classes reach it from their own destructors. Checked in game by verify_mfc_state.cpp until S21d.
+// classes reach it from their own destructors. Checked in game by verify_mfc_state.cpp until.
 
 #include <windows.h>
 #include "compiled_vtable.h"   // ei::UnportedSlot
@@ -42,7 +42,7 @@ class CCmdTarget : public CObject {
 public:
     // One reference, no outer unknown or dispatch, a result expected.
     CCmdTarget();
-    // An enabled dispatch disconnected (COleDispatchImpl::Disconnect, slot 7).
+    // An enabled dispatch disconnected (COleDispatchImpl::Disconnect).
     ~CCmdTarget() override;
 
     virtual BOOL OnCmdMsg(UINT, int, void*, void*) { ei::UnportedSlot(0x00703FFA); }       // 3
@@ -80,19 +80,19 @@ public:
     CWnd* windowControl;        // +0x24 m_pWndCtrl
 };
 
-// CWnd (0x3C bytes). Game.exe's tables: CWnd 00746DA8, CTempWnd 00746EC4 (mfc_window.cpp): 46 slots (MFC 4.2's CWnd
+// CWnd (0x3C bytes). Game.exe's tables: CWnd, CTempWnd (mfc_window.cpp): 46 slots (MFC 4.2's CWnd
 // virtuals in declaration order), all unported but the destructor (the image makes MFC's four static windows only,
 // never called through their table).
 class CWnd : public CCmdTarget {
 public:
     // CWnd(HWND) with no window.
     CWnd() : CWnd(nullptr) {}
-    // 00704546 CWnd(HWND): CCmdTarget's constructor, CWnd's members cleared and the handle kept.
+    // CWnd(HWND): CCmdTarget's constructor, CWnd's members cleared and the handle kept.
     explicit CWnd(HWND handle);
-    // The constructor on `this` as the static initialisers reach it at its address (thiscall, RET 4), building
+    // The constructor on `this` as the static initialisers reach it at its address, building
     // MFC's four static windows (wndTop 0, wndBottom 1, wndTopMost -1, wndNoTopMost -2). Returns this.
     CWnd* Construct(HWND handle) { return new (this) CWnd(handle); }
-    // 00704FE3 (deleting 0070452A): a window still attached destroyed (CWnd::DestroyWindow, unported), except for the
+    // A window still attached destroyed (CWnd::DestroyWindow, unported), except for the
     // four static windows; the control container deleted; the control site let go of this window; then CCmdTarget's
     // destructor. The original's unwind frame (CCmdTarget destroyed when DestroyWindow throws) is not kept: no game
     // window is a CWnd.
@@ -141,16 +141,16 @@ public:
 };
 static_assert(sizeof(CWnd) == 0x3C);
 
-// ~CWnd as the generated exit functions reach it at its address (00704FE3, thiscall) on MFC's four static windows.
+// ~CWnd as the generated exit functions reach it at its address on MFC's four static windows.
 void __fastcall DestroyStaticWindow(CWnd* window);
 
-// CMenu (8 bytes): CObject's slots, 3 DrawItem and 4 MeasureItem (empty: 00707D0C / 00707D0F); m_hMenu. Game.exe's
-// tables: CMenu 007471FC, CTempMenu 00747214 (mfc_window.cpp). Their create functions are the only makers, and nothing
+// CMenu (8 bytes): CObject's slots, 3 DrawItem and 4 MeasureItem (empty); m_hMenu. Game.exe's
+// tables: CMenu, CTempMenu (mfc_window.cpp). Their create functions are the only makers, and nothing
 // calls those.
 class CMenu : public CObject {
 public:
     CMenu() = default;
-    // 006E7150 (deleting): the menu destroyed through MFC's menu handle map, which the image does not have; unported.
+    // The menu destroyed through MFC's menu handle map, which the image does not have; unported.
     ~CMenu() override;
     const CRuntimeClass* GetRuntimeClass() const override;
     virtual void DrawItem(DRAWITEMSTRUCT*) {}                // 3

@@ -35,7 +35,7 @@ const char* AutoSaveName() { return "savea"; }
 constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
 
 
-// The portraits' selected-face turn: pi / 2 times 0073CDCC (1/7).
+// The portraits' selected-face turn: pi / 2 times (1/7).
 float SelectedFaceAngle() {
     return kHudQuarterTurn * 0.14285715f /*0073CDCC*/;
 }
@@ -54,7 +54,7 @@ CHudMap* Map(CUiWindow* map) { return static_cast<CHudMap*>(map); }
 
 } // namespace
 
-// --- 00635E60: slot 26 --------------------------------------------------------------------------
+// ---: slot 26 --------------------------------------------------------------------------
 
 void CBattleScreen::Close() {
     TheCamera()->flags_ |= CCamera::kFree;
@@ -66,7 +66,7 @@ void CBattleScreen::Close() {
 }
 EI_REWRITTEN(0x00635E60, CBattleScreen::Close);
 
-// --- 006360F0: slot 35 --------------------------------------------------------------------------
+// ---: slot 35 --------------------------------------------------------------------------
 
 bool CBattleScreen::PollShown() {
     if (hasHero_) {
@@ -80,7 +80,7 @@ bool CBattleScreen::PollShown() {
 }
 EI_REWRITTEN(0x006360F0, CBattleScreen::PollShown);
 
-// --- 00636150: slot 28 --------------------------------------------------------------------------
+// ---: slot 28 --------------------------------------------------------------------------
 
 void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled) {
     for (auto* node = items->head; node != nullptr;) {
@@ -94,7 +94,7 @@ void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, i
 }
 EI_REWRITTEN(0x00636150, CBattleScreen::OnItemsPicked);
 
-// --- 006364E0: slot 30 --------------------------------------------------------------------------
+// ---: slot 30 --------------------------------------------------------------------------
 
 void CBattleScreen::OnUnitLeft(CUnit* unit) {
     if (IsMultiplayerClient()) {
@@ -116,7 +116,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
 }
 EI_REWRITTEN(0x006364E0, CBattleScreen::OnUnitLeft);
 
-// --- 00635080: slot 40 --------------------------------------------------------------------------
+// ---: slot 40 --------------------------------------------------------------------------
 
 void CBattleScreen::SaveState() {
     CStream* stream = GameSaveStream();
@@ -140,7 +140,7 @@ void CBattleScreen::SaveState() {
 }
 EI_REWRITTEN(0x00635080, CBattleScreen::SaveState);
 
-// --- 006361B0: slot 29 --------------------------------------------------------------------------
+// ---: slot 29 --------------------------------------------------------------------------
 
 void CBattleScreen::MarkPortrait(int index) {
     auto* portraits = portraits_;
@@ -207,7 +207,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
 }
 EI_REWRITTEN(0x006361B0, CBattleScreen::OnUnitJoined);
 
-// --- 00635EB0: slot 27 --------------------------------------------------------------------------
+// ---: slot 27 --------------------------------------------------------------------------
 
 void CBattleScreen::OnMessageResult(int result) {
     switch (static_cast<std::uint32_t>(result)) {
@@ -231,7 +231,7 @@ void CBattleScreen::OnMessageResult(int result) {
 }
 EI_REWRITTEN(0x00635EB0, CBattleScreen::OnMessageResult);
 
-// --- 006365E0: slot 31 --------------------------------------------------------------------------
+// ---: slot 31 --------------------------------------------------------------------------
 
 void CBattleScreen::OnGameOver(char won) {
     GameStopSounds(1);

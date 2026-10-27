@@ -2,9 +2,9 @@
 
 #include <cstddef>
 
-// The renderer's counted base (game.exe's vtable 0073D768: one slot, the deleting destructor 004E7800, which no object
+// The renderer's counted base (game.exe's: one slot, the deleting destructor, which no object
 // reaches; device_helpers.cpp): CDXSurface, the device object and the transform pipeline derive from it. Holders
-// count references; the last one deletes the object (004E6BA0 for a surface holder).
+// count references; the last one deletes the object (for a surface holder).
 class CRendererBase {
 public:
     virtual ~CRendererBase();

@@ -26,7 +26,7 @@
 
 namespace stlp {
 
-std::size_t NextPrime(std::size_t n);   // stlp.cpp
+std::size_t NextPrime(std::size_t n);
 
 // A value whose first dword is the key, hashed as itself (hash<int>, hash<unsigned>, hash of a
 // pointer). Bytes is the whole value's size: 4 for a hash_set of dwords, 8 for a map of dword to
@@ -188,7 +188,7 @@ public:
     std::size_t BucketOf(const Key& key, std::size_t n) const { return Traits::Hash(key) % n; }
     std::size_t BucketOf(const Key& key) const { return BucketOf(key, BucketCount()); }
 
-    // hashtable(n, hf, eql, a) (e.g. 00405820): the functor bytes, an empty bucket vector, no
+    // hashtable(n, hf, eql, a) (e.g.): the functor bytes, an empty bucket vector, no
     // elements, then _M_initialize_buckets(n).
     void Construct(std::size_t n, std::uint8_t hasher, std::uint8_t equal, std::uint8_t extract) {
         functors_[0] = hasher;
@@ -200,14 +200,14 @@ public:
     }
 
     // The constructor as an owner inlines it with the functor bytes left as they are (the item
-    // stock's maps, 004A66C0): an empty bucket vector, no elements, then _M_initialize_buckets(n).
+    // stock's maps): an empty bucket vector, no elements, then _M_initialize_buckets(n).
     void ConstructBuckets(std::size_t n) {
         buckets_.ConstructEmpty();
         count_ = 0;
         InitializeBuckets(n);
     }
 
-    // _M_initialize_buckets(n) (e.g. 0040AA80): reserve(NextPrime(n)), insert that many nulls at
+    // _M_initialize_buckets(n) (e.g.): reserve(NextPrime(n)), insert that many nulls at
     // the end, no elements.
     void InitializeBuckets(std::size_t n) {
         std::size_t buckets = NextPrime(n);
@@ -227,7 +227,7 @@ public:
         count_ = 0;
     }
 
-    // resize(hint) (e.g. 00406640): when the hint exceeds the bucket count and the next prime does
+    // resize(hint) (e.g.): when the hint exceeds the bucket count and the next prime does
     // too, a zeroed bucket vector of that many, each old chain moved head first to the head of its
     // new bucket, the vectors swapped and the old storage freed.
     void Resize(std::size_t hint) {
@@ -261,14 +261,14 @@ public:
         fresh.FreeStorage();
     }
 
-    // find(key) (e.g. 00405560): the node holding `key`, or null.
+    // find(key) (e.g.): the node holding `key`, or null.
     Node* Find(const Key& key) const {
         Node* n = buckets_[BucketOf(key)];
         while (n && !Traits::Equal(Traits::KeyOf(n->value), key)) n = n->next;
         return n;
     }
 
-    // find_or_insert(obj) (e.g. 004065D0): resize(count + 1), then the value with obj's key in its
+    // find_or_insert(obj) (e.g.): resize(count + 1), then the value with obj's key in its
     // bucket, else a copy of obj in a new node at the head of the bucket.
     Value& FindOrInsert(const Value& obj) {
         Resize(count_ + 1);
@@ -303,7 +303,7 @@ public:
         return node;
     }
 
-    // equal_range(key) (e.g. 0055B5C0): the first node holding `key` and the first node after it
+    // equal_range(key) (e.g.): the first node holding `key` and the first node after it
     // that does not (its chain's next one, else the head of the next non-empty bucket, else null);
     // both null when no node holds the key.
     void EqualRange(const Key& key, Node*& first, Node*& last) const {
@@ -325,7 +325,7 @@ public:
         last = nullptr;
     }
 
-    // insert_equal_noresize(obj) (e.g. 0055B540): a copy of obj in a new node right after the
+    // insert_equal_noresize(obj) (e.g.): a copy of obj in a new node right after the
     // first node with obj's key, else at the head of its bucket; the new node.
     Node* InsertEqualNoresize(const Value& obj) {
         std::size_t b = BucketOf(Traits::KeyOf(obj));
@@ -346,14 +346,14 @@ public:
         return node;
     }
 
-    // begin() (e.g. 00404C30): the head of the first non-empty bucket, or null.
+    // begin (e.g.): the head of the first non-empty bucket, or null.
     Node* First() const {
         for (std::size_t b = 0; b < BucketCount(); ++b)
             if (buckets_[b]) return buckets_[b];
         return nullptr;
     }
 
-    // _Ht_iterator::_M_skip_to_next() (e.g. 004073C0): the head of the first non-empty bucket after
+    // _Ht_iterator::_M_skip_to_next (e.g.): the head of the first non-empty bucket after
     // the one `cur`'s key hashes to, or null.
     Node* SkipToNext(const Node* cur) const {
         std::size_t b = BucketOf(Traits::KeyOf(cur->value));
@@ -361,10 +361,10 @@ public:
         while (!next && ++b < BucketCount()) next = buckets_[b];
         return next;
     }
-    // iterator::operator++ (e.g. 00404980): the next node of the chain, else SkipToNext.
+    // iterator::operator++ (e.g.): the next node of the chain, else SkipToNext.
     Node* Next(const Node* cur) const { return cur->next ? cur->next : SkipToNext(cur); }
 
-    // erase(const_iterator) (e.g. 00405620): `p` unlinked from its bucket's chain and deleted when
+    // erase(const_iterator) (e.g.): `p` unlinked from its bucket's chain and deleted when
     // it is there; nothing for null.
     void EraseNode(const Node* p) {
         if (!p) return;
@@ -386,7 +386,7 @@ public:
         }
     }
 
-    // clear() (e.g. 004067B0): every chain deleted from its head, each bucket emptied, no elements.
+    // clear (e.g.): every chain deleted from its head, each bucket emptied, no elements.
     void Clear() {
         for (std::size_t i = 0; i < BucketCount(); ++i) {
             Node* cur = buckets_[i];
@@ -400,7 +400,7 @@ public:
         count_ = 0;
     }
 
-    // erase(key) (e.g. 006BCCD0): the nodes after the bucket's head that hold `key` deleted, then
+    // erase(key) (e.g.): the nodes after the bucket's head that hold `key` deleted, then
     // the head when it does; the number deleted.
     std::size_t EraseKey(const Key& key) {
         std::size_t b = BucketOf(key);
@@ -430,13 +430,13 @@ public:
         return erased;
     }
 
-    // ~hashtable() (e.g. 004A8B70): clear(), then the bucket storage freed.
+    // ~hashtable (e.g.): clear, then the bucket storage freed.
     void Destroy() {
         Clear();
         buckets_.FreeStorage();
     }
 
-    // _M_copy_from(ht) (e.g. 004AA950): the bucket vector emptied, reserve(ht's bucket count), that
+    // _M_copy_from(ht) (e.g.): the bucket vector emptied, reserve(ht's bucket count), that
     // many nulls appended; each of ht's chains copied from its head, a node at a time
     // (_M_new_node), each linked after the one before; then ht's count. The table holds no nodes.
     void CopyFrom(const hashtable& ht) {
@@ -458,7 +458,7 @@ public:
         }
         count_ = ht.count_;
     }
-    // hashtable(const hashtable& ht) (e.g. 004A8A50): ht's functor bytes, an empty bucket vector,
+    // hashtable(const hashtable& ht) (e.g.): ht's functor bytes, an empty bucket vector,
     // no elements, then _M_copy_from(ht).
     void CopyConstruct(const hashtable& ht) {
         functors_[0] = ht.functors_[0];
@@ -468,7 +468,7 @@ public:
         count_ = 0;
         CopyFrom(ht);
     }
-    // operator=(ht) (e.g. 004A8AD0): nothing for the table itself; else clear(), ht's functor
+    // operator=(ht) (e.g.): nothing for the table itself; else clear, ht's functor
     // bytes, _M_copy_from(ht).
     void Assign(const hashtable& ht) {
         if (&ht == this) return;
@@ -479,14 +479,14 @@ public:
         CopyFrom(ht);
     }
 
-    // _M_new_node(obj) (e.g. 00407420): a node from the pool, no next, a copy of obj.
+    // _M_new_node(obj) (e.g.): a node from the pool, no next, a copy of obj.
     static Node* NewNode(const Value& obj) {
         Node* n = allocate_as<Node>();
         n->next = nullptr;
         Traits::Construct(&n->value, obj);
         return n;
     }
-    // _M_delete_node(n) (e.g. 004074B0): the value destroyed, the node back to the pool.
+    // _M_delete_node(n) (e.g.): the value destroyed, the node back to the pool.
     static void DeleteNode(Node* n) {
         Traits::Destroy(&n->value);
         deallocate(n, sizeof(Node));
@@ -508,58 +508,58 @@ struct HashtableAbi : hashtable<Traits> {
     using Key = typename Traits::Key;
     using Iterator = typename Table::iterator;
 
-    // hashtable(n, hf, eql, a) (e.g. 00405820; RET 0x10): returns this. The key extractor's byte
+    // hashtable(n, hf, eql, a) (e.g.): returns this. The key extractor's byte
     // is whatever the stack slot of the hasher argument holds: the low byte of that pointer.
     Table* Construct(std::size_t n, const std::uint8_t* hasher, const std::uint8_t* equal, const void*) {
         Table::Construct(n, *hasher, *equal, static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(hasher)));
         return this;
     }
-    // hash_map() / hash_set() (e.g. 004639D0): hashtable(100, ...) inlined; the functor bytes are
+    // hash_map / hash_set (e.g.): hashtable(100, ...) inlined; the functor bytes are
     // an uninitialised stack byte in the original (0 here). Returns this.
     static Table* __fastcall ConstructDefault(Table* self) {
         self->Construct(100, 0, 0, 0);
         return self;
     }
-    // _M_initialize_buckets(n) (e.g. 0040AA80; RET 4), resize(hint) (e.g. 00406640; RET 4), erase(key)
-    // (e.g. 006BCCD0; RET 4: the number erased) and _M_copy_from(ht) (e.g. 004AA950; RET 4) are
+    // _M_initialize_buckets(n) (e.g.), resize(hint) (e.g.), erase(key)
+    // (e.g: the number erased) and _M_copy_from(ht) (e.g.) are
     // hashtable's own members, registered through this type.
-    // find(key) (e.g. 00405560; RET 8): the iterator into *out; returns out.
+    // find(key) (e.g.): the iterator into *out; returns out.
     Iterator* Find(Iterator* out, const Key& key) {
         out->cur = Table::Find(key);
         out->table = this;
         return out;
     }
-    // begin() (e.g. 00404C30; RET 4).
+    // begin (e.g.).
     Iterator* Begin(Iterator* out) {
         out->cur = Table::First();
         out->table = this;
         return out;
     }
-    // _M_next_size(n) (__stl_next_prime inlined, e.g. 0040AE00; RET 4): ECX is not read.
+    // _M_next_size(n) (__stl_next_prime inlined, e.g.): ECX is not read.
     std::size_t NextSize(std::size_t n) const { return NextPrime(n); }
-    // _M_bkt_num_key(key) (0055C5C0; RET 4).
+    // _M_bkt_num_key(key).
     std::size_t BucketOfKey(const Key& key) const { return Table::BucketOf(key); }
-    // find_or_insert(obj) (e.g. 004065D0; RET 4): the stored value.
+    // find_or_insert(obj) (e.g.): the stored value.
     Value* FindOrInsert(const Value& obj) { return &Table::FindOrInsert(obj); }
-    // hash_map::operator[](key) (e.g. 004055A0; RET 4): find_or_insert of {key, zeroes}; the
+    // hash_map::operator[](key) (e.g.): find_or_insert of {key, zeroes}; the
     // address of the mapped part (after the key dword).
     void* Subscript(const Key& key) {
         Value obj{};
         obj.key = key;
         return reinterpret_cast<unsigned char*>(&Table::FindOrInsert(obj)) + sizeof(Key);
     }
-    // hash_map::operator[](key) with a string key (e.g. 004297A0; RET 4): find_or_insert of a
+    // hash_map::operator[](key) with a string key (e.g.): find_or_insert of a
     // temporary {copy of key, zeroes}, which is destroyed after; the address of the mapped part.
     void* SubscriptKey(const Key& key) {
         Value obj(key);
         return &Table::FindOrInsert(obj).mapped;
     }
-    // hashtable(const hashtable&) (e.g. 004A8A50; RET 4): returns this.
+    // hashtable(const hashtable&) (e.g.): returns this.
     Table* CopyConstruct(const Table& source) {
         Table::CopyConstruct(source);
         return this;
     }
-    // operator= (e.g. 004A8AD0; RET 4): returns this.
+    // operator= (e.g.): returns this.
     Table* Assign(const Table& source) {
         Table::Assign(source);
         return this;
@@ -569,7 +569,7 @@ struct HashtableAbi : hashtable<Traits> {
         Iterator it;
         bool inserted;
     };
-    // insert_unique(obj) (0066B400; RET 8): the result into *out; returns out.
+    // insert_unique(obj): the result into *out; returns out.
     InsertResult* InsertUnique(InsertResult* out, const Value& obj) {
         bool inserted = false;
         out->it.cur = Table::InsertUnique(obj, inserted);
@@ -582,7 +582,7 @@ struct HashtableAbi : hashtable<Traits> {
         Iterator first;
         Iterator last;
     };
-    // equal_range(key) (0055B5C0; RET 8): the range into *out (EAX is not read).
+    // equal_range(key): the range into *out (EAX is not read).
     void EqualRange(Range* out, const Key& key) {
         Node* first;
         Node* last;
@@ -592,26 +592,26 @@ struct HashtableAbi : hashtable<Traits> {
         out->last.cur = last;
         out->last.table = this;
     }
-    // insert_equal_noresize(obj) (0055B540; RET 8): the new node's iterator into *out; returns out.
+    // insert_equal_noresize(obj): the new node's iterator into *out; returns out.
     Iterator* InsertEqualNoresize(Iterator* out, const Value& obj) {
         Node* node = Table::InsertEqualNoresize(obj);
         out->table = this;
         out->cur = node;
         return out;
     }
-    // erase(const_iterator) (e.g. 00405620; RET 8: the iterator by value).
+    // erase(const_iterator) (e.g: the iterator by value).
     void EraseIterator(const Node* cur, const Table*) { Table::EraseNode(cur); }
-    // clear() (e.g. 004067B0).
+    // clear (e.g.).
     static void __fastcall Clear(Table* self) { self->Clear(); }
-    // ~hashtable() (e.g. 004A8B70).
+    // ~hashtable (e.g.).
     static void __fastcall Destroy(Table* self) { self->Destroy(); }
-    // _M_new_node(obj) (e.g. 00407420; RET 4): the node.
+    // _M_new_node(obj) (e.g.): the node.
     Node* NewNode(const Value& obj) { return Table::NewNode(obj); }
-    // _M_delete_node(n) (e.g. 004074B0; RET 4): nothing for null.
+    // _M_delete_node(n) (e.g.): nothing for null.
     void DeleteNode(Node* n) {
         if (n) Table::DeleteNode(n);
     }
-    // _Ht_iterator::_M_skip_to_next() (e.g. 004073C0): the node.
+    // _Ht_iterator::_M_skip_to_next (e.g.): the node.
     static Node* __fastcall SkipToNext(const Iterator* self) { return self->table->SkipToNext(self->cur); }
     // _Ht_iterator::operator++(): returns this.
     static Iterator* __fastcall Increment(Iterator* self) {
@@ -620,14 +620,14 @@ struct HashtableAbi : hashtable<Traits> {
     }
     // The iterator's members at the instantiation's addresses.
     struct IteratorAbi : Iterator {
-        // _Ht_iterator::operator++(int) (0040A700; RET 8): the old iterator into *out; returns out.
+        // _Ht_iterator::operator++(int): the old iterator into *out; returns out.
         Iterator* PostIncrement(Iterator* out, int) {
             Iterator old = *this;
             this->cur = this->table->Next(this->cur);
             *out = old;
             return out;
         }
-        // _Ht_iterator(node, table) (e.g. 0040AD20; RET 8; also end() of some instantiations): returns this.
+        // _Ht_iterator(node, table) (e.g.; also end of some instantiations): returns this.
         Iterator* ConstructIterator(Node* node, Table* owner) {
             this->cur = node;
             this->table = owner;
@@ -636,12 +636,12 @@ struct HashtableAbi : hashtable<Traits> {
     };
 };
 
-// __stl_hash_string of a string (004298D0; ECX the string).
+// __stl_hash_string of a string (ECX the string).
 std::uint32_t __fastcall HashString(const string* s);
 
 // hash_map<string, T*>: the record tables' maps by name, the spells and modifiers by name.
 using NameMap = hashtable<StringKeyTraits<4>>;
-// operator[](name) (e.g. 004ABD00) and find_or_insert({name, null}) (e.g. 004ACC10): the slot of
+// operator[](name) (e.g.) and find_or_insert({name, null}) (e.g.): the slot of
 // `name`'s record, a null one inserted for a new name (from a copy of the name, freed after).
 template <typename T>
 T*& NamedSlot(NameMap& map, const string& name) {
@@ -661,13 +661,13 @@ struct RecordsByName {
     void* records[3];
     hashtable<StringKeyTraits<4>> byName;
 
-    // hash_map<string, T*>::operator[](const char*) on the map (e.g. 004AB720; RET 4): a string of the
+    // hash_map<string, T*>::operator[](const char*) on the map (e.g.): a string of the
     // name, a {copy of it, null} value for find_or_insert, both freed after (the copy first); the
     // mapped record, null when the name was not there (it is inserted).
     void* Named(const char* name);
 };
 
-// A hash_map<int, T> with a dword after the table (the terrain's light table, 00571050):
+// A hash_map<int, T> with a dword after the table (the terrain's light table):
 // hashtable(100) and the dword zeroed. Returns this.
 struct TableWithDword {
     hashtable<DwordKeyTraits<8>> table;

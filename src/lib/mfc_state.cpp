@@ -17,7 +17,7 @@ namespace {
 using GetVersionFn = DWORD(WINAPI*)();
 DWORD Version() { return ei::ImportAs<GetVersionFn>(ei::Imports().GetVersion)(); }
 
-// 0070D158 / 0070D188 as the original calls them: on afxData, no arguments.
+// as the original calls them: on afxData, no arguments.
 void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }
 void __cdecl UpdateAfxScrollMetrics() { AfxData().UpdateScrollMetrics(); }
 

@@ -1,7 +1,7 @@
 #pragma once
 
-// The old renderer's line-strip draws (renderer_lines.cpp): 005045D0 (renderer slot 20) and
-// 0049B4B0 (the renderer's line lists).
+// The old renderer's line-strip draws (renderer_lines.cpp): (renderer slot 20) and
+// (the renderer's line lists).
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -22,20 +22,20 @@ struct LineVertex {
 };
 static_assert(sizeof(LineVertex) == 0x18);
 
-// The integer screen points of 005045D0: x, y pairs.
+// The integer screen points: x, y pairs.
 struct ScreenPoints {
     const std::int32_t* xy;
     int count;
 };
 
-// The projected points of 0049B4B0: x, y, z, rhw each (the transform pipeline's output).
+// The projected points: x, y, z, rhw each (the transform pipeline's output).
 struct ProjectedPoints {
     const float (*xyzw)[4];
     int count;
 };
 
-// The vertex buffer of 0049B4B0 in the exe's data (007A9CE0; zeroed by 0049B460, freed at exit
-// by 0049B490). Grows like an MFC array, without keeping its old contents.
+// The vertex buffer in the exe's data zeroed, freed at exit
+// Grows like an MFC array, without keeping its old contents.
 struct LineBuffer {
     LineVertex* data;
     int size;
@@ -43,7 +43,7 @@ struct LineBuffer {
     int growBy;
 };
 static_assert(sizeof(LineBuffer) == 0x10);
-extern LineBuffer g_lineVertices;   // renderer_lines.cpp
+extern LineBuffer g_lineVertices;
 inline LineBuffer& LineVertices() { return g_lineVertices; }
 
 // Four points of a line list as the transform object takes them (0x40 bytes).
@@ -59,7 +59,7 @@ static_assert(sizeof(LinePacket) == 0x40);
 // world client's lists. The points sit four to a packet; the unused points of the last
 // packet repeat the last point.
 struct LineBatch {
-    int spare00;                             // +0x00 -1 (the destructor, 005A75D0); nothing reads it
+    int spare00;                             // +0x00 -1 (the destructor); nothing reads it
     lib::AlignedArray<LinePacket> packets;   // +0x04
     int count;                               // +0x14 points
     std::uint32_t colour;                    // +0x18
@@ -80,10 +80,10 @@ static_assert(offsetof(LineBatch, count) == 0x14 && sizeof(LineBatch) == 0x20);
 struct ProjectedPoint {
     float x, y, z, rhw;
 };
-extern lib::AlignedArray<ProjectedPoint> g_lineProjected;   // renderer_lines.cpp
+extern lib::AlignedArray<ProjectedPoint> g_lineProjected;
 inline lib::AlignedArray<ProjectedPoint>& LineProjected() { return g_lineProjected; }
-extern lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes;   // renderer_lines.cpp
+extern lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes;
 inline mfc::CArray<std::uint8_t>& LineOutcodes() { return *g_lineOutcodes; }
 
-// 0049B4B0 (fastcall: the device object, the points; the colour on the stack, RET 4).
+// (fastcall: the device object, the points; the colour on the stack).
 long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);

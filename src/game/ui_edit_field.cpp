@@ -1,6 +1,6 @@
 // The message box's edit field: its key handler, constructor and character
-// handler, and its drawing (0065C2E0, A-H26; Rebirth's WideScreen behind its flag). See ui.h (CUiEditField) and
-// docs/notes/items_spells.md (A-H19).
+// handler, and its drawing (Rebirth's WideScreen behind its flag). See ui.h (CUiEditField) and
+// docs/notes/items_spells.md
 #include "ui.h"
 #include "ui_screens.h"
 
@@ -27,7 +27,7 @@ constexpr int kKeyRight = 0x27;
 constexpr int kKeyDelete = 0x2E;
 } // namespace
 
-// --- 0065C610 ------------------------------------------------------------------------------------
+// --- ------------------------------------------------------------------------------------
 
 void CUiEditField::OnKeyDown(int key, int, int) {
     if (!focused_) return;
@@ -42,7 +42,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
             caret_ = 0;
             changed_ = true;
         }
-        // By character (U4: a UTF-8 character's bytes with EI_UTF8, else one byte).
+        // By character (a UTF-8 character's bytes with EI_UTF8, else one byte).
         if (key == kKeyBackspace) {
             if (caret_ > 0) {
                 const int previous = text::PreviousCharacter(text, caret_);
@@ -86,7 +86,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
 
 EI_REWRITTEN(0x0065C610, CUiEditField::OnKeyDown);
 
-// --- A-H19: 0065C010 and 0065C930 --------------------------------------------------------------------
+// --- A-H19: --------------------------------------------------------------------
 
 namespace {
 constexpr int kSurfaceFormat = 5;
@@ -98,7 +98,7 @@ constexpr std::uint32_t kClassLetter = 2;      // letters and the space
 constexpr std::uint32_t kClassOther = 4;
 constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
 
-// The width of `text` in interface font `font` (CInterface3D::TextExtent, 005F8340).
+// The width of `text` in interface font `font` (CInterface3D::TextExtent).
 int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -162,7 +162,7 @@ void CUiEditField::OnChar(int key, int, int) {
 
 EI_REWRITTEN(0x0065C930, CUiEditField::OnChar);
 
-// --- 0065C1A0 / 0065C290 / 0065C2D0 (A-H25): the look, the text and the focus -----------------------
+// ---: the look, the text and the focus -----------------------
 
 void CUiEditField::SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, COLORREF colour,
                            COLORREF caretColour) {
@@ -188,7 +188,7 @@ EI_REWRITTEN(0x0065C290, CUiEditField::SetText);
 void CUiEditField::SetFocused(bool focused) { focused_ = focused; }
 EI_REWRITTEN(0x0065C2D0, CUiEditField::SetFocused);
 
-// --- 0065C2E0 (A-H26): the text and the caret drawn ---------------------------------------------------
+// ---: the text and the caret drawn ---------------------------------------------------
 
 void CUiEditField::DrawContentsVanilla() {
     mfc::CString& text = Text();
@@ -211,7 +211,7 @@ void CUiEditField::DrawContentsVanilla() {
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
         POINT top{caretX, 0};
         POINT bottom{caretX, height};
-        // WideScreen (0065C51F / 0065C544: XOR ECX,ECX): without the margin.
+        // WideScreen (XOR ECX,ECX): without the margin.
         interface_->CallScalePointToScreenNoMargin(&top);
         interface_->CallScalePointToScreenNoMargin(&bottom);
         dc->MoveTo(top.x, top.y);

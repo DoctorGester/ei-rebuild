@@ -59,7 +59,7 @@ NamedFloatTable::Node* BriefingVariables::First() const { return table_.First();
 
 NamedFloatTable::Node* BriefingVariables::Next(NamedFloatTable::Node* node) const { return table_.Next(node); }
 
-// --- 00602BB0: slot 26 --------------------------------------------------------------------------
+// ---: slot 26 --------------------------------------------------------------------------
 
 void CBriefingScreen::Close() {
     MapEdgeFade() = savedEdgeFade_;
@@ -70,7 +70,7 @@ void CBriefingScreen::Close() {
 }
 EI_REWRITTEN(0x00602BB0, CBriefingScreen::Close);
 
-// --- 00606F40: slot 27 --------------------------------------------------------------------------
+// ---: slot 27 --------------------------------------------------------------------------
 
 void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     switch (result) {
@@ -94,7 +94,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     if (IsMultiplayerClient()) PlayersChanged(1);
 }
 
-// --- 00602C90: slot 29 --------------------------------------------------------------------------
+// ---: slot 29 --------------------------------------------------------------------------
 
 void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     CParty* player = LocalPlayerData();
@@ -108,7 +108,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         if (place < party_.size && party_.data[place]->id_ == id) ++place;
     }
     if (record < count) {
-        // CArray::InsertAt(place, unit) inlined (the slot is zeroed, 0060AEC0, then written); the
+        // CArray::InsertAt(place, unit) inlined (the slot is zeroed, then written); the
         // original then looks the unit up in the server world without using the result.
         int size = party_.size;
         if (place >= size) {
@@ -152,7 +152,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
 }
 EI_REWRITTEN(0x00602C90, CBriefingScreen::OnUnitJoined);
 
-// --- 00603010: slot 30 --------------------------------------------------------------------------
+// ---: slot 30 --------------------------------------------------------------------------
 
 void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     if (unit == leader_) leader_ = nullptr;
@@ -166,7 +166,7 @@ void CBriefingScreen::OnUnitLeft(CUnit* unit) {
 }
 EI_REWRITTEN(0x00603010, CBriefingScreen::OnUnitLeft);
 
-// --- 00608C70: slot 31 --------------------------------------------------------------------------
+// ---: slot 31 --------------------------------------------------------------------------
 
 void CBriefingScreen::OnGameOver(int) {
     interface_->PlaySound("buttons\\gameover.wav", 0);
@@ -175,7 +175,7 @@ void CBriefingScreen::OnGameOver(int) {
 }
 EI_REWRITTEN(0x00608C70, CBriefingScreen::OnGameOver);
 
-// --- 006030C0: slot 34 --------------------------------------------------------------------------
+// ---: slot 34 --------------------------------------------------------------------------
 
 void CBriefingScreen::OnBriefing(const char* name) {
     topic_ = name;
@@ -183,14 +183,14 @@ void CBriefingScreen::OnBriefing(const char* name) {
 }
 EI_REWRITTEN(0x006030C0, CBriefingScreen::OnBriefing);
 
-// --- 00603090: slot 36 --------------------------------------------------------------------------
+// ---: slot 36 --------------------------------------------------------------------------
 
 void CBriefingScreen::ShowChat(char show) {
     if (IsMultiplayerClient() && show && chat_) chat_->ShowPlayers();
 }
 EI_REWRITTEN(0x00603090, CBriefingScreen::ShowChat);
 
-// --- 00602490: slot 40 --------------------------------------------------------------------------
+// ---: slot 40 --------------------------------------------------------------------------
 
 void CBriefingScreen::SaveState() {
     int zero = 0;
@@ -199,7 +199,7 @@ void CBriefingScreen::SaveState() {
 EI_REWRITTEN(0x00602490, CBriefingScreen::SaveState);
 EI_REWRITTEN(0x00606F40, CBriefingScreen::OnMessageResult);
 
-// --- 00607720 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::LoadPersonTexts() { ::LoadPersonTexts(&personTexts_); }
 EI_REWRITTEN(0x00607720, CBriefingScreen::LoadPersonTexts);

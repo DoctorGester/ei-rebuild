@@ -1,4 +1,4 @@
-// The camp's Create (0060C870, CCampPages slot 25). Rebirth's WideScreen replaces the function with
+// The camp's Create (CCampPages slot 25). Rebirth's WideScreen replaces the function with
 // the original followed by two curtain sprites over the screen's margins (widescreen::AddCurtains),
 // which this reproduces, so it is hooked in both launches; nothing in the rewritten code calls it
 // but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.

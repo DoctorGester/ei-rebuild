@@ -17,12 +17,12 @@ namespace mfc::impl {
 
 // The create functions of the records here (the temporary DC and GDI object ones are mfc_gdi.h's): a new object
 // of the class from operator new (or its fixed allocator), constructed; null when out of memory.
-void* __stdcall CreateCGdiObject();     // 0070BF93 CGdiObject: vtable 007463D4, no handle (mfc_gdi.cpp)
-void* __stdcall CreateCDC();            // 0070BF64 CDC (mfc_gdi.cpp)
-void* __stdcall CreateCMenu();          // 0070DC80 CMenu: vtable 007471FC, no handle (mfc_window.cpp)
-void* __stdcall CreateCTempMenu();      // 0070DCA0 CTempMenu: from its fixed allocator, vtable 00747214
-void* __stdcall CreateCWnd();           // 0070D32B CWnd: operator new, the default constructor
-void* __stdcall CreateCTempWnd();       // 0070D363 CTempWnd: its fixed allocator, CWnd's constructor, vtable 00746EC4
+void* __stdcall CreateCGdiObject();     // CGdiObject: no handle (mfc_gdi.cpp)
+void* __stdcall CreateCDC();            // CDC (mfc_gdi.cpp)
+void* __stdcall CreateCMenu();          // CMenu: no handle (mfc_window.cpp)
+void* __stdcall CreateCTempMenu();      // CTempMenu: from its fixed allocator,
+void* __stdcall CreateCWnd();           // CWnd: operator new, the default constructor
+void* __stdcall CreateCTempWnd();       // CTempWnd: its fixed allocator, CWnd's constructor,
 
 inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {"CObject", 0x4, 0xFFFF, nullptr, nullptr, nullptr};
 inline constexpr CRuntimeClass kClassCException = /*007465D0*/ {"CException", 0x8, 0xFFFF, nullptr, &kClassCObject, nullptr};

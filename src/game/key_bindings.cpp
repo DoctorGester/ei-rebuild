@@ -1,4 +1,4 @@
-// The key bindings file (the base path 007AF460 + the name at 00787C04): loaded at start
+// The key bindings file (the base path + the name): loaded at start
 // and saved on the interface's shutdown. Each line is "<key> <action>". The
 // tables are the ones FindCommandByKey (object_tables.cpp) and the options window (ui_options.cpp)
 // use: the action of each scan code (0x200 signed bytes, g_keyActions), the keys (0x48-byte entries at
@@ -22,7 +22,7 @@
 
 // The keys (object_tables.h's UiKeyName): scan code, the bindings file's name and Windows' text (LoadKeyBindings
 // fills it).
-// The actions' table (kActionDefinitions, 00787070) follows it in the original.
+// The actions' table (kActionDefinitions) follows it in the original.
 UiKeyName g_keyNames[88] = /*007857B0*/ {
     {2, "1", ""}, {3, "2", ""}, {4, "3", ""}, {5, "4", ""}, {6, "5", ""}, {7, "6", ""}, {8, "7", ""}, {9, "8", ""},
     {10, "9", ""}, {11, "0", ""}, {12, "-", ""}, {13, "+", ""}, {15, "TAB", ""}, {16, "Q", ""}, {17, "W", ""},
@@ -96,7 +96,7 @@ void __cdecl LoadKeyBindings() {
 EI_REWRITTEN(0x00462C10, LoadKeyBindings);
 
 // One line per scan code with an action, when both the key and the action are known
-// (format 00787C18: key name, action name).
+// (format: key name, action name).
 void __cdecl SaveKeyBindings() {
     mfc::CString line;
     console::CStdioFile file;

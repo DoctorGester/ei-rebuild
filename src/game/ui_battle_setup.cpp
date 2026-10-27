@@ -1,4 +1,4 @@
-// The battle screen's Create (slot 25 of 00740764, 00635250): the HUD panels as children, the
+// The battle screen's Create: the HUD panels as children, the
 // screen's saved state, the "pers" text table. See docs/notes/ui.md ("Battle screen").
 // Several panel builders are Rebirth-patched (widescreen); every panel constructor and builder is
 // called through its original address.
@@ -196,11 +196,11 @@ void CBattleScreen::CreateScreen() {
     clientParty_.camera = -1;
 }
 
-// --- Drawing (slot 20, 00636020) ---------------------------------------------------------------
+// --- Drawing ---------------------------------------------------------------
 
 namespace {
 
-// 00578910 on 007AFEA5 (the menu object), every frame before the battle screen draws.
+// (the menu object), every frame before the battle screen draws.
 
 constexpr DWORD kClearTarget = 2;         // D3DCLEAR_ZBUFFER
 constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
@@ -223,7 +223,7 @@ BOOL CBattleScreen::Draw(int pass) {
     renderer->result_ = renderer->device_->Clear(0, nullptr, flags, 0, 1.0f, 0);
     gameapi::LeaveCriticalSection(lock);
     render::ClearDepth(1.0f, nullptr, 0);
-    // Rebirth's AddNewConsoleCommands (call redirected at 006360DF): "nogui" shows or hides the
+    // Rebirth's AddNewConsoleCommands (call redirected): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
     CUiContainer::Draw(pass);

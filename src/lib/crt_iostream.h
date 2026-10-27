@@ -14,16 +14,16 @@
 
 namespace libcrt {
 
-// streambuf (game.exe's table 007482AC). The slots in the exe's order; overflow and underflow are pure, the rest the
-// base class's bodies, which a derived streambuf (the console's, game.exe's 00740034) inherits.
+// streambuf. The slots in the exe's order; overflow and underflow are pure, the rest the
+// base class's bodies, which a derived streambuf (the console's) inherits.
 class Streambuf {
 public:
-    // 006FCB35 (0; deleting 006FCAB6): the lock deleted, the base class's sync (non-virtual), the reserve area freed
+    // The lock deleted, the base class's sync (non-virtual), the reserve area freed
     // when the streambuf allocated it.
     virtual ~Streambuf();
     virtual int Sync();                                                // EOF if anything is pending
     virtual Streambuf* Setbuf(char* buffer, int length);
-    virtual long Seekoff(long offset, int direction, int mode);        // EOF (RET 0xC)
+    virtual long Seekoff(long offset, int direction, int mode);        // EOF
     virtual long Seekpos(long position, int mode);                     // seekoff from the start
     virtual int Xsputn(const char* text, int count);
     virtual int Xsgetn(char* text, int count);
@@ -32,7 +32,7 @@ public:
     virtual int Pbackfail(int c);
     virtual int Doallocate();                                          // 0x200 bytes
 
-    // sputc (006FC12C, the header's inline): into the put area, else overflow; the byte, or EOF.
+    // sputc (the header's inline): into the put area, else overflow; the byte, or EOF.
     int Sputc(int c);
     void Lock();     // when lockFlag is negative: the critical section
     void Unlock();
@@ -58,7 +58,7 @@ public:
     CRITICAL_SECTION lock;       // +0x34
 
 protected:
-    // streambuf(char*, int) (006FCAD2, RET 8): the reserve area `buffer` of `length` bytes (none, and unbuffered,
+    // streambuf(char*, int): the reserve area `buffer` of `length` bytes (none, and unbuffered,
     // when either is zero), every get / put pointer null, locked (lockFlag -1).
     Streambuf(char* buffer, int length);
 
@@ -100,10 +100,10 @@ struct Ios {
     // streambuf deleted when the ios owns it (deleteBuffer), then no streambuf and badbit.
     void Destruct();
     Ios* DeletingDestruct(unsigned deleteFlags);
-    // ios::init (006FCF26, RET 4): an owned streambuf deleted, `buffer` attached; badbit while it is null.
+    // ios::init: an owned streambuf deleted, `buffer` attached; badbit while it is null.
     void Init(Streambuf* buffer);
     // ostream's destructor and deleting destructor, entered with the ios (the virtual base) as `this`:
-    // 006FC502 puts back ostream's vtable for the ios; 006FC404 (slot 0 of 00748280, RET 4) runs it and
+    // puts back ostream's vtable for the ios; runs it and
     // ~ios, then frees the ostream (8 bytes before the ios) under bit 0; it returns the ostream.
     void DestructOstream();
     Ostream* DeleteOstream(unsigned deleteFlags);
@@ -133,16 +133,16 @@ static_assert(sizeof(Ios) == 0x50);
 using Manipulator = Ostream*(__cdecl*)(Ostream*);
 
 struct Ostream {
-    // ostream(streambuf*) (006FC42F, RET 8): with `mostDerived`, the virtual base table {0, 8} and the
+    // ostream(streambuf*): with `mostDerived`, the virtual base table {0, 8} and the
     // ios constructed first; then ostream's vtable on the ios, ios::init(buffer), floatUsed 0. Returns this.
     Ostream* Construct(Streambuf* buffer, int mostDerived);
-    Ostream* Apply(Ostream*(__cdecl* manipulator)(Ostream*));   // 00434FE0 operator<<(manipulator) (RET 4)
+    Ostream* Apply(Ostream*(__cdecl* manipulator)(Ostream*));   // operator<<(manipulator)
     Ostream* PutChar(char c);
-    Ostream* PutUnsigned(unsigned value);                        // 006FC14E "%u" (RET 4)
+    Ostream* PutUnsigned(unsigned value);                        // "%u"
     Ostream* PutText(const char* text);
     Ostream* PutDouble(double value);
-    Ostream* PutLong(long value);                                // 006FC91C "%ld" (RET 4)
-    Ostream* PutInt(int value);                                  // 006FC9C6 "%d" (RET 4)
+    Ostream* PutLong(long value);                                // "%ld"
+    Ostream* PutInt(int value);                                  // "%d"
     Ostream* Flush();                                            // the streambuf's sync
 
     Ios& Base() { return *reinterpret_cast<Ios*>(reinterpret_cast<char*>(this) + vbtable[1]); }
@@ -154,7 +154,7 @@ static_assert(sizeof(Ostream) == 8);   // the ios follows (Ios::DestructOstream)
 
 // The flush manipulator: stream->Flush().
 Ostream* __cdecl FlushManipulator(Ostream* stream);
-// The game's endl (004BA9F0, no Ghidra function; the console's lines): '\n', then Flush.
+// The game's endl (no Ghidra function; the console's lines): '\n', then Flush.
 Ostream* __cdecl EndlManipulator(Ostream* stream);
 
 } // namespace libcrt

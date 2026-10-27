@@ -1,8 +1,8 @@
 #pragma once
 
 // MFC 4.2's resource strings and their formatting (strcore.cpp, winstr.cpp, appui1.cpp) as the
-// game's copy has them (ticket S8b, docs/notes/standalone.md section 2). The strings are a table in code
-// (mfc_resource.cpp) holding the texts of MFC's 0xF0xx / 0xF1xx ids our code can reach (C23: the host has no
+// game's copy has them (ticket, docs/notes/standalone.md section 2). The strings are a table in code
+// (mfc_resource.cpp) holding the texts of MFC's 0xF0xx / 0xF1xx ids our code can reach (the host has no
 // string table). Registered at the library addresses (mfc_resource.cpp).
 
 #include "mfc_string.h"

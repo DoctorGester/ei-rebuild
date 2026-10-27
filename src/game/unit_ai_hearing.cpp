@@ -1,5 +1,5 @@
-// What the AI hears: the heard calls' Hear / AddClaim / RemoveClaims (005CCD40, 005CCEA0,
-// 005CCBF0), the perception memory's HearCall / AddClaim and the AI events'
+// What the AI hears: the heard calls' Hear / AddClaim / RemoveClaims
+// the perception memory's HearCall / AddClaim and the AI events'
 // Noise. See unit_ai.h and docs/notes/unit_ai.md.
 #include "unit_ai.h"
 #include "combat.h"
@@ -23,7 +23,7 @@
 #include <cstring>
 
 namespace {
-// The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
+// The CPtrList the sector map fills (blocks of 10).
 constexpr float kNoiseRadius = 50.0f;   // the units asked for around a noise
 constexpr int kAlertedLevel = 900;      // a unit noticing something at this level or above hears nothing
 const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";

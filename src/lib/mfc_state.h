@@ -1,19 +1,19 @@
 #pragma once
 
 // MFC 4.2's thread and process locals (afxtls.cpp) and its system metrics record AUX_DATA (afxData,
-// auxdata.cpp), as far as the exe's static initialisers and exit functions reach them (ticket S3d,
+// auxdata.cpp), as far as the exe's static initialisers and exit functions reach them (ticket,
 // docs/notes/standalone.md). The thread and process locals are globals MFC fills on first use
 // (_afxThreadState, _afxBaseModuleState and the others: their CThreadLocal / CProcessLocal holds a
 // TLS slot or an object); the exit functions free them through the destructors here. afxData is
 // built by a static initialiser and its menu-dot bitmap deleted at exit.
-// S3f added what the other static initialisers call: AfxClassInit (the runtime class list of the
+//added what the other static initialisers call: AfxClassInit (the runtime class list of the
 // module state) with MFC's global locks, _afxDBCS's initialiser and wingdix.cpp's halftone brush
 // (an atexit that deletes it). The module state is the original's in the hook build (AfxGetModuleState
 // at its address); the image has a stand-in with the members used so far (ImageModuleState).
 // Every body is registered at its library address in both builds (mfc_state.cpp). The hook build
-// runs them over the original's state; in the image nothing fills the locals (S8a's handle maps are
+// runs them over the original's state; in the image nothing fills the locals (the handle maps are
 // thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object. Checked in game by
-// verify_mfc_state.cpp until S21d.
+// verify_mfc_state.cpp until.
 
 #include <cstddef>
 #include <cstdint>
@@ -22,7 +22,7 @@
 
 namespace mfc::impl {
 
-// CNoTrackObject: what the locals hold; deleted through its virtual destructor (slot 0, with 1),
+// CNoTrackObject: what the locals hold; deleted through its virtual destructor (with 1),
 // which frees it with LocalFree. Declared only.
 class __declspec(novtable) CNoTrackObject {
 public:
@@ -66,7 +66,7 @@ static_assert(offsetof(CThreadSlotData, section) == 0x1C);
 struct CThreadLocalObject {
     int slot;                   // +0x00 m_nSlot
 
-    // 0070CA59 (and the CThreadLocal<T> destructors 0070CC2D, 0070D5F9 that jump to it): the slot freed
+    // The slot freed
     // when there is one and _afxThreadData exists, then the slot cleared.
     void Destruct();
 };
@@ -75,12 +75,12 @@ struct CThreadLocalObject {
 struct CProcessLocalObject {
     CNoTrackObject* object;     // +0x00 m_pObject
 
-    // 0070CAD2 (and the CProcessLocal<T> destructors 0070CE77, 0070D61F, 0070DC48 that jump to it): the
+    // The
     // object deleted; the pointer stays.
     void Destruct();
 };
 
-// AfxDeleteObject (0070AA54, stdcall): the GDI object `*object` deleted and the handle cleared, when
+// AfxDeleteObject: the GDI object `*object` deleted and the handle cleared, when
 // there is one.
 void __stdcall AfxDeleteObject(HGDIOBJ* object);
 
@@ -122,7 +122,7 @@ struct AuxData {
     void UpdateSysColors();
     // The icon size, the scroll metrics (by marked4), the screen's pixels per inch.
     void UpdateSysMetrics();
-    // 0070D158 / 0070D188 (cdecl, on afxData in the original): the scroll bar sizes. Marked 4.0: only on
+    // (cdecl, on afxData in the original): the scroll bar sizes. Marked 4.0: only on
     // Windows 4, one pixel larger, marked4 set; otherwise as the system has them, marked4 cleared.
     void UpdateScrollMetricsMarked4();
     void UpdateScrollMetrics();
@@ -179,20 +179,20 @@ constexpr int kRuntimeClassListLock = 0;
 // Once, the Win32s flag from GetVersion and the lock that guards the locks' set-up; returns
 // _afxCriticalInit.
 BOOL __cdecl AfxCriticalInit();
-// 0070C458 / 0070C4C8: lock type `lockType` entered (its critical section made on first use) / left.
+// lock type `lockType` entered (its critical section made on first use) / left.
 void __stdcall AfxLockGlobals(int lockType);
 void __stdcall AfxUnlockGlobals(int lockType);
 
-// AfxClassInit (00700674, stdcall): `newClass` put at the head of the module state's class list, under
+// AfxClassInit: `newClass` put at the head of the module state's class list, under
 // CRIT_RUNTIMECLASSLIST. The static initialisers register five classes with it.
 void __stdcall AfxClassInit(CRuntimeClass* newClass);
 
 // _AfxInitDBCS: whether the OEM code page has double-byte characters (its MaxCharSize above
-// 1); the static initialiser stores it in _afxDBCS (007CAA98, a BOOL).
+// 1); the static initialiser stores it in _afxDBCS (a BOOL).
 BOOL __cdecl AfxInitDbcs();
 
 // wingdix.cpp: the halftone brush (_afxHalftoneBrush, made on first use by code the game never reaches) deleted at
-// exit by AfxWingdixTerm, which the static initialiser 0070B600 registers with atexit.
+// exit by AfxWingdixTerm, which the static initialiser registers with atexit.
 void __cdecl AfxWingdixTerm();
 void __cdecl AfxWingdixTermInit();
 

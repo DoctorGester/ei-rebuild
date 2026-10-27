@@ -1,7 +1,7 @@
 #pragma once
 
 // MFC 4.2's handle maps (winhand.cpp) and what they are built from: CMapPtrToPtr (map_pp.cpp),
-// CRuntimeClass::CreateObject and the new handler MFC swaps around its allocations (ticket S8a,
+// CRuntimeClass::CreateObject and the new handler MFC swaps around its allocations (ticket,
 // docs/notes/standalone.md section 2). A handle map finds the C++ object of a Windows handle: the
 // permanent map holds the objects that attached their handle (a CPen, a CFont), the temporary map
 // the objects FromHandle made for the others (a CTempDC for a surface's DC, a CTempGdiObject for a
@@ -9,7 +9,7 @@
 // Every body is registered at its library address in both builds (mfc_handle_map.cpp); the maps
 // themselves live in MFC's module thread state, which the hook build keeps (the original's
 // afxMapHDC / afxMapHGDIOBJ) and the image replaces with its own (mfc_gdi.cpp). Checked in game by
-// verify_mfc_handle_map.cpp until S21d.
+// verify_mfc_handle_map.cpp until.
 
 #include "crt.h"
 #include "mfc.h"
@@ -38,7 +38,7 @@ struct CRuntimeClass {
 };
 
 // The new handler operator new calls when an allocation fails (_afxNewHandler).
-gamecrt::NewHandler __stdcall SetAfxNewHandler(gamecrt::NewHandler handler);   // 0070059D AfxSetNewHandler
+gamecrt::NewHandler __stdcall SetAfxNewHandler(gamecrt::NewHandler handler);   // AfxSetNewHandler
 // AfxCriticalNewHandler: what a handle map's allocations run under. Image only: with no
 // CWinThread there is no safety pool to release, so it throws a CMemoryException.
 int __cdecl CriticalNewHandler(std::size_t size);
@@ -50,7 +50,7 @@ extern gamecrt::NewHandler g_afxNewHandler;
 // The handler's address as the exe has it (our CriticalNewHandler in the image).
 inline gamecrt::NewHandler CriticalNewHandlerAt() { return ei::Code<gamecrt::NewHandler>(0x0070AB1A); }
 
-// CMapPtrToPtr (0x1C bytes, game.exe's table 0074689C): void* to void*, hashed by `key >> 4`.
+// CMapPtrToPtr (0x1C bytes): void* to void*, hashed by `key >> 4`.
 class CMapPtrToPtr final : public CObject {
 public:
     struct Assoc {
@@ -61,18 +61,18 @@ public:
 
     // Empty, 17 buckets (no table yet), associations in blocks of `blockSize`.
     explicit CMapPtrToPtr(int blockSize);
-    // 00700375 (1; deleting 007002E9): RemoveAll.
+    // RemoveAll.
     ~CMapPtrToPtr() override;
-    // 0070D128 (0).
+    // (0).
     const CRuntimeClass* GetRuntimeClass() const override;
 
     void InitHashTable(std::uint32_t size, BOOL allocNow);
     void RemoveAll();
     Assoc* NewAssoc();
     void FreeAssoc(Assoc* assoc);
-    Assoc* GetAssocAt(void* key, std::uint32_t* hash) const;            // 00700404 (hash: the key's bucket)
-    void* GetValueAt(void* key) const;                                  // 00700436 (null when missing)
-    void** At(void* key);                                               // 0070048B operator[]
+    Assoc* GetAssocAt(void* key, std::uint32_t* hash) const;            // (hash: the key's bucket)
+    void* GetValueAt(void* key) const;                                  // (null when missing)
+    void** At(void* key);                                               // operator[]
     BOOL RemoveKey(void* key);
     // The entry at `position` (StartPosition(): the first one) and the position after it (null after the
     // last). The map must not be empty.
@@ -91,12 +91,12 @@ public:
 static_assert(sizeof(CMapPtrToPtr) == 0x1C);
 static_assert(sizeof(CMapPtrToPtr::Assoc) == 12);
 
-// CHandleMap (0x48 bytes; game.exe's table 0074685C, one slot: the deleting destructor).
+// CHandleMap (0x48 bytes; one slot: the deleting destructor).
 class CHandleMap {
 public:
     // The two maps (the temporary one 7 buckets), the objects' class and where they keep their handles.
     CHandleMap(const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount);
-    // 006E6D08 (0; deleting 006E6CEC): DeleteTemp, then the two maps destroyed (members). The image's maps are never
+    // DeleteTemp, then the two maps destroyed (members). The image's maps are never
     // destroyed (mfc_gdi.cpp MapHDC / MapHGDIOBJ live until the process ends).
     virtual ~CHandleMap();
 

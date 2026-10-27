@@ -43,7 +43,7 @@ const CString& CString::operator=(const char* s) { *Impl(this) = s; return *this
 const CString& CString::operator=(const CString& s) { *Impl(this) = *Impl(&s); return *this; }
 #endif
 
-// 006FDF5F (the implementation's Format is FormatV over its arguments).
+// (the implementation's Format is FormatV over its arguments).
 void __cdecl CString::Format(const char* format, ...) {
     va_list arguments;
     va_start(arguments, format);

@@ -1,9 +1,9 @@
 #pragma once
 
 // MFC 4.2's CFile, CStdioFile and CFileFind (filecore.cpp, filetxt.cpp, filefind.cpp) and the path
-// helpers they use, written out for the standalone exe (ticket S8, docs/notes/standalone.md
+// helpers they use, written out for the standalone exe (ticket, docs/notes/standalone.md
 // section 2). Same layout as the copy linked into game.exe; the tables are compiled (mfc_file.cpp's
-// FileTable, StdioFileTable and FileFindTable) in place of game.exe's 00745DF4, 007464F0 and 00745EE8, with the
+// FileTable, StdioFileTable and FileFindTable) in place, with the
 // slots in game.exe's order. Every body is registered at its library address (mfc_file.cpp).
 // CFile works on Win32 handles through the game's import table. CStdioFile's stream is the game
 // CRT's FILE in the hook build (shared with the exe's remaining CRT code) and, in the standalone
@@ -46,8 +46,8 @@ struct CFile {
     static void* Vtable();
 
     CFile* Construct();
-    CFile* ConstructHandle(HANDLE file);                        // 0070106C CFile(int hFile)
-    CFile* ConstructOpen(const char* path, unsigned flags);     // 0070108B (throws a CFileException*)
+    CFile* ConstructHandle(HANDLE file);                        // CFile(int hFile)
+    CFile* ConstructOpen(const char* path, unsigned flags);     // (throws a CFileException*)
     void Destruct();
     CFile* DeletingDestructor(unsigned flags);
 
@@ -57,7 +57,7 @@ struct CFile {
     CString GetFileName() const;
     CString GetFileTitle() const;
     CString GetFilePath() const;
-    // 00702D64 (not virtual): the cleared status with the file's name; with an open file also its times
+    // The cleared status with the file's name; with an open file also its times
     // (a missing creation or access time is the modification time), size and attributes. FALSE when
     // the handle's times or size cannot be read.
     BOOL GetStatus(CFileStatus& status) const;
@@ -74,7 +74,7 @@ struct CFile {
     void Abort();
     void Flush();
     void Close();
-    unsigned GetBufferPtr(unsigned command, unsigned count, void** start, void** end);   // 0070150F (slot 20: 0)
+    unsigned GetBufferPtr(unsigned command, unsigned count, void** start, void** end);   // (slot 20: 0)
 };
 static_assert(sizeof(CFile) == 0x10);
 
@@ -85,22 +85,22 @@ struct CStdioFile : CFile {
     static void* Vtable();
 
     CStdioFile* Construct();
-    CStdioFile* ConstructOpen(const char* path, unsigned flags);    // 00701BD4 (throws a CFileException*)
+    CStdioFile* ConstructOpen(const char* path, unsigned flags);    // (throws a CFileException*)
     void Destruct();
     CStdioFile* DeletingDestructor(unsigned flags);
 
     unsigned long GetPosition() const;
     BOOL Open(const char* path, unsigned flags, CFileException* error);
-    CFile* Duplicate() const;                                   // 0070203B (slot 9: not supported)
+    CFile* Duplicate() const;                                   // (slot 9: not supported)
     long Seek(long offset, unsigned from);
     unsigned Read(void* buffer, unsigned count);
     void Write(const void* buffer, unsigned count);
-    void LockRange(unsigned long position, unsigned long count);    // 00702043 (slots 15 / 16: not supported)
+    void LockRange(unsigned long position, unsigned long count);    // (slots 15 / 16: not supported)
     void Abort();
     void Flush();
     void Close();
     void WriteString(const char* text);
-    BOOL ReadLine(CString& text);                               // 00701E93 (slot 22: ReadString(CString&))
+    BOOL ReadLine(CString& text);                               // (slot 22: ReadString(CString&))
     char* ReadString(char* buffer, unsigned size);
 };
 static_assert(sizeof(CStdioFile) == 0x14);
@@ -138,8 +138,8 @@ struct CFileFind {
     BOOL IsDots() const;
     BOOL FindFile(const char* pattern, unsigned long flags);
     BOOL FindNextFile();
-    BOOL CloseContext();                                        // 006E6429 (slot 18: FindClose's result)
-    unsigned long GetLength() const;                            // 006E68AA (the low dword of the size)
+    BOOL CloseContext();                                        // (slot 18: FindClose's result)
+    unsigned long GetLength() const;                            // (the low dword of the size)
 };
 static_assert(sizeof(CFileFind) == 0x1C);
 
@@ -157,7 +157,7 @@ unsigned __stdcall AfxGetFileName(const char* path, char* name, unsigned max);
 // that fails; with a null `title` the size it needs, else 0.
 unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max);
 
-// The classes' CRuntimeClass records (GetRuntimeClass, slot 0).
+// The classes' CRuntimeClass records (GetRuntimeClass).
 const void* __fastcall FileRuntimeClass(const void* self);
 const void* __fastcall StdioFileRuntimeClass(const void* self);
 const void* __fastcall FileFindRuntimeClass(const void* self);

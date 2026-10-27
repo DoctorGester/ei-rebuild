@@ -70,7 +70,7 @@ Vector3 Normalised(float x, float y, float z) {
 
 } // namespace
 
-// --- 006089D0 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited,
                                  bool immediate, int run) {
@@ -111,7 +111,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
 
 EI_REWRITTEN(0x006089D0, CBriefingScreen::MovePerson);
 
-// --- 00605DE0 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     (void)unused;
@@ -121,7 +121,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         BriefingSpeaker* entry = speakers_;
         while (entry != speakersEnd_ && entry->unit != unit) ++entry;
         if (entry != speakersEnd_) {
-            // vector::erase (0060B490, then the last entry's destructor 0060AC00).
+            // vector::erase (then the last entry's destructor).
             for (BriefingSpeaker* p = entry; p + 1 != speakersEnd_; ++p) {
                 p->unit = p[1].unit;
                 p->name = p[1].name;
@@ -160,8 +160,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     text::ReplaceChar(&key, '_', ' ');
     key.MakeLower();
     const itemdb::ItemRecordHead* record;
-    // The quest item table's (007C8758; this window calls it the loot table) name index's
-    // operator[] (0060AC20; an unknown name gets a null entry).
+    // The quest item table's (this window calls it the loot table) name index's
+    // operator[] (an unknown name gets a null entry).
     record = itemdb::TheItemDatabase().questItems.Named(key);
     if (!record) return;
 

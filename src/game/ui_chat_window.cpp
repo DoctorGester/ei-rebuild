@@ -1,4 +1,4 @@
-// A network client's player list on the base screen (CChatWindow, 00608D20-00609900). See
+// A network client's player list on the base screen (CChatWindow). See
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
 #include "ui_briefing.h"
 #include "world_glue.h"
@@ -82,9 +82,9 @@ bool SameText(const char* a, const char* b) {
 
 } // namespace
 
-// --- 00608D20: the constructor ------------------------------------------------------------------
+// ---: the constructor ------------------------------------------------------------------
 
-// game.exe's tables 00741478 / 00741444: its own update (24); the input side's click (2) and mouse move (4).
+// game.exe's tables: its own update (24); the input side's click (2) and mouse move (4).
 CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     texts_.Construct();
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
@@ -102,7 +102,7 @@ EI_REWRITTEN_SPECIAL(0x00608D20, CChatWindow::CChatWindow);
 // EI_Plugin.asi patches the constructor and Update (NPlayers: the window's left edge and the first status
 // column) and ShowPlayers (Fixes: the faces' sex and the prototype fallback) in a Rebirth launch.
 
-// --- 00608F90: a face ---------------------------------------------------------------------------
+// ---: a face ---------------------------------------------------------------------------
 
 void CChatWindow::AddPortrait(const char* model, const char* texture) {
     // Four faces share a 256 x 256 texture, one quarter each.
@@ -140,7 +140,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
 }
 EI_REWRITTEN(0x00608F90, CChatWindow::AddPortrait);
 
-// --- 006091C0: the players' faces ---------------------------------------------------------------
+// ---: the players' faces ---------------------------------------------------------------
 
 void CChatWindow::ShowPlayers() {
     ClearSceneObjects();
@@ -216,7 +216,7 @@ void CChatWindow::ShowPlayers() {
 }
 EI_REWRITTEN(0x006091C0, CChatWindow::ShowPlayers);
 
-// --- 006095A0: slot 24 --------------------------------------------------------------------------
+// ---: slot 24 --------------------------------------------------------------------------
 
 void CChatWindow::Update() {
     net::ClientSession* client = net::GameClient();
@@ -263,7 +263,7 @@ void CChatWindow::Update() {
 }
 EI_REWRITTEN(0x006095A0, CChatWindow::Update);
 
-// --- 006097E0 / 00609900: the input side's left button and mouse move ---------------------------
+// ---: the input side's left button and mouse move ---------------------------
 
 void CChatWindow::OnLButtonDown(int, int x, int y) {
     int index = RegionAt(x, y);

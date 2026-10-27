@@ -43,7 +43,7 @@ namespace {
 
 // --- Helpers ---------------------------------------------------------------------------------
 
-// The local player's items (the party the client glue's 00578BA0 returns).
+// The local player's items (the party the client glue's returns).
 CParty* PlayerParty() { return LocalPlayerData(); }
 
 // Item `i` of a party's item list, and the list's count.
@@ -57,12 +57,12 @@ bool IsMade(CItem* item) {
     return turn && turn->flag;
 }
 
-// 005EE1B0 (CItemScreen::MoveItem, through its address): moves `item` from `from` to `to`; returns
+// Moves `item` from `from` to `to`; returns
 // the item now held.
 CItem* MoveBetween(CCampPages* camp, CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
     return camp->CItemScreen::MoveItem(item, to, from, limit, merge, turning);
 }
-// 00621570 (CUiItemStrip::ScrollToItem, through its address).
+// (CUiItemStrip::ScrollToItem, through its address).
 void ScrollTo(CUiItemStrip* strip, CItem* item) { strip->ScrollToItem(item); }
 
 // Takes the made items out of `results` (re-read every time, as the original does): a made item
@@ -86,14 +86,14 @@ void SetShade(CUiMesh* mesh, float shade) {
     mesh->tint_[2] = shade;
 }
 
-// A white centred line on a surface between GetDC and ReleaseDC (005FDE20 is Rebirth-patched).
+// A white centred line on a surface between GetDC and ReleaseDC (is Rebirth-patched).
 void DrawLine(CUiSurface* surface, const char* text, RECT* rect) {
     surface->DrawTextIn(text, rect, 1, 0xFFFFFF, 1, 1);
 }
 
 } // namespace
 
-// --- 0060E9E0 ----------------------------------------------------------------------------------
+// --- ----------------------------------------------------------------------------------
 
 void CCampPages::ShowPage(int page) {
     equipment_->SetEnabled(0, 1);
@@ -217,11 +217,11 @@ void CCampPages::ShowPage(int page) {
 }
 EI_REWRITTEN(0x0060E9E0, CCampPages::ShowPage);
 
-// --- 006100E0: CanEquip ----------------------------------------------------------------------------
+// ---: CanEquip ----------------------------------------------------------------------------
 
 namespace {
 
-// The camp's item predicates (005EE050.., thiscall on the camp, which they do not read; AL).
+// The camp's item predicates (.., which they do not read; AL).
 bool IsSpellContainer(const CItem* item) {
     return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0;
 }
@@ -254,7 +254,7 @@ int ItemType(const CItem* item) { return item->type_; }
 double D(float f) { return f; }
 } // namespace
 
-// Prices (slot 54); CanEquip follows.
+// Prices; CanEquip follows.
 
 namespace {
 constexpr float kPriceZero = 0.0f;
@@ -299,7 +299,7 @@ int CCampPages::Price(CItem* item, int kind) {
         }
     }
     if (type == 0x3004 || type == 0x3005) {
-        // Rebirth's FixRepairPrice also JMPs over this FMUL (0060FB87, written without an addon.log
+        // Rebirth's FixRepairPrice also JMPs over this FMUL (written without an addon.log
         // line): for kind 7 (taking an item apart in the item constructor) the repair cost of the
         // wear is added instead of subtracted.
         if (kind == 7 && ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
@@ -430,7 +430,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
 
 EI_REWRITTEN(0x006100E0, CCampPages::CanEquip);
 
-// --- 00611930: UpdateAction ------------------------------------------------------------------------
+// ---: UpdateAction ------------------------------------------------------------------------
 
 namespace {
 // The stack count of an item (+0x48).
@@ -444,7 +444,7 @@ void CCampPages::UpdateAction() {
     cost_ = 0;
     actionEnabled_ = false;
     actionShown_ = false;
-    // Slot 54 (Rebirth-patched 0060FAB0): the price of `item` for deal `kind`.
+    // Slot 54 (Rebirth-patched): the price of `item` for deal `kind`.
     auto price = [this](CItem* item, int kind) { return Price(item, kind); };
 
     // A trade page: what the camp buys (`buy`) minus what it sells (`sell`).
@@ -588,7 +588,7 @@ void CCampPages::UpdateAction() {
 }
 EI_REWRITTEN(0x00611930, CCampPages::UpdateAction);
 
-// --- 0060F050: Draw ------------------------------------------------------------------------------
+// ---: Draw ------------------------------------------------------------------------------
 
 BOOL CCampPages::Draw(int pass) {
     int x = MouseScreenX();   // the mouse in screen pixels
@@ -656,7 +656,7 @@ BOOL CCampPages::Draw(int pass) {
 
 EI_REWRITTEN(0x0060F050, CCampPages::Draw);
 
-// --- 00612290 / 00612600: what the constructors would make ---------------------------------------
+// ---: what the constructors would make ---------------------------------------
 
 namespace {
 
@@ -781,18 +781,18 @@ bool CCampPages::CanMakeItem() {
 }
 EI_REWRITTEN(0x00612600, CCampPages::CanMakeItem);
 
-// --- 0060E6B0: leaving the camp ---------------------------------------------------------------
+// ---: leaving the camp ---------------------------------------------------------------
 
 namespace {
 constexpr std::uint32_t kRecordBias = 100000000;
 } // namespace
 
 void CCampPages::Close() {
-    GameSetServerPaused(0);   // 00578D10 (on the game glue 007AFEA4)
+    GameSetServerPaused(0);   // (on the game glue)
     device::SetRenderState(TheRenderDevice()->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, 0);
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
-    // The local player's unit records, as the record array the client glue takes (005789E0; a
-    // CArray of record pointers, vtable 0073FAA4, SetSize 005719B0), their keys raised meanwhile.
+    // The local player's unit records, as the record array the client glue takes (a
+    // CArray of record pointers, SetSize), their keys raised meanwhile.
     RecordPtrArray records = {mfc::impl::PartyUnitArrayClass::Vtable(), nullptr, 0, 0, 0};
     auto* player = LocalPlayerData();
     for (int i = 0; i < player->members_.size; ++i) {
@@ -818,7 +818,7 @@ void CCampPages::Close() {
     itemMade_ = nullptr;
     helpPanel_->Describe(nullptr);
     descPanel_->Describe(nullptr);
-    // The part lists emptied (slot 3) and deleted (slot 0, the deleting destructor); the first of
+    // The part lists emptied and deleted (the deleting destructor); the first of
     // each constructor's lists (the class template's) is not touched here.
     for (CParty** list : {&spellParts_[1], &spellParts_[2], &spellResults_, &itemParts_[1], &itemParts_[2],
                           &itemResults_, &itemExtra_}) {
@@ -831,12 +831,12 @@ void CCampPages::Close() {
 }
 EI_REWRITTEN(0x0060E6B0, CCampPages::Close);
 
-// --- 0060E3E0: the trade panel's destructor body (vtable 007417A8) --------------------------------
+// ---: the trade panel's destructor body --------------------------------
 
 namespace {
 
-// 00613630 (__fastcall: block, count): frees a vector's block of 0x3C-byte entries (STLport node
-// allocator for small blocks). 006135F0 (stdcall, RET 8): the same for 0x18-byte entries.
+// Frees a vector's block of 0x3C-byte entries (STLport node
+// allocator for small blocks): the same for 0x18-byte entries.
 
 // The rows' destructors, then the block (its capacity in rows).
 void DestroyRows(TradeRows& rows) {
@@ -858,7 +858,7 @@ EI_REWRITTEN_SPECIAL(0x0060E3E0, CTradePanel::~CTradePanel);
 EI_REWRITTEN_SPECIAL(0x0060E3C0, CTradePanel::~CTradePanel);   // deleting
 EI_REWRITTEN_SPECIAL(0x00613DB0, CTradePanel::~CTradePanel);   // the input side's
 
-// --- 0060FE40: taking an item off the hero ---------------------------------------------------
+// ---: taking an item off the hero ---------------------------------------------------
 
 namespace {
 
@@ -923,7 +923,7 @@ CItem* CCampPages::TakeOff(CItem* item) {
 }
 EI_REWRITTEN(0x0060FE40, CCampPages::TakeOff);
 
-// --- 0060FCA0: putting an item on the hero ----------------------------------------------------
+// ---: putting an item on the hero ----------------------------------------------------
 
 void CCampPages::PutOn(CItem* item) {
     interface_->PlaySound(game::PutOnSoundText(), 0);
@@ -966,10 +966,10 @@ void CCampPages::PutOn(CItem* item) {
 }
 EI_REWRITTEN(0x0060FCA0, CCampPages::PutOn);
 
-// --- 00610920 / 00610AD0: moving an item between the camp's lists ------------------------------
+// ---: moving an item between the camp's lists ------------------------------
 
 namespace {
-// The interface's Shift flag (set by its key handler 005F78C0).
+// The interface's Shift flag (set by its key handler).
 bool ShiftHeld(CInterface3D* ui) { return ui->shiftDown_ != 0; }
 
 // Whether `list` holds `item`.
@@ -1120,7 +1120,7 @@ void CCampPages::MoveItem(CItem* item, int mode) {
 }
 EI_REWRITTEN(0x00610AD0, CCampPages::MoveItem);
 
-// --- 0060F9E0 / 0060F980: the hero's unit after a change ---------------------------------------
+// ---: the hero's unit after a change ---------------------------------------
 
 void CCampPages::RefreshWeapons() {
     PartyUnitRecord* hero = HeroRecord();
@@ -1146,7 +1146,7 @@ void CCampPages::RefreshStats() {
 }
 EI_REWRITTEN(0x0060F980, CCampPages::RefreshStats);
 
-// --- 0060F6B0 / 0060F710 / 0060F7A0 / 0060F830: turning and choosing the hero ------------------
+// ---: turning and choosing the hero ------------------
 
 namespace {
 // fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, as the original
@@ -1179,7 +1179,7 @@ EI_REWRITTEN(0x0060F6B0, CCampPages::Update);
 
 namespace {
 // The search both directions share: from the current hero, step until a record of the hero
-// class (fatal after more steps than there are records). 00513240 on the map objects manager
+// class (fatal after more steps than there are records). on the map objects manager
 //: a prototype's object class.
 template <typename Step>
 int FindHero(int start, Step step) {
@@ -1219,8 +1219,8 @@ EI_REWRITTEN(0x0060F7A0, CCampPages::PreviousHero);
 
 void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];
-    // The text table (00578E20 returns [007AF788]): 004DEFC0 whether it has a key (RET 4), 004DF8D0
-    // its text into a CString (RET 8).
+    // The text table (returns []): whether it has a key,
+    // its text into a CString.
     CTextManager* table = GameClientTexts();
     mfc::CString name;
     mfc::CString own(unit->GetName());
@@ -1242,7 +1242,7 @@ void CCampPages::ShowHero() {
 }
 EI_REWRITTEN(0x0060F830, CCampPages::ShowHero);
 
-// --- 005F6240: the constructor ----------------------------------------------------------------
+// ---: the constructor ----------------------------------------------------------------
 
 CCampPages::CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui) {
     // The caches' (empty) compare objects keep the flag's byte.

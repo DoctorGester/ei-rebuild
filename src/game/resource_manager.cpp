@@ -1,4 +1,4 @@
-// CResourceManager (00674D90-00675530, 005AA360). See resource_manager.h.
+// CResourceManager. See resource_manager.h.
 #include "resource_manager.h"
 
 #include "ei/hook.h"

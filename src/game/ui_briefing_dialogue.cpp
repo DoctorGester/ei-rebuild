@@ -45,7 +45,7 @@ CPlayer* LocalServerPlayer() { return TheServerWorld()->GetPlayer(0); }
 constexpr int kEventPhrases = 3;
 constexpr int kStatePhrases = 3;
 
-// The skill animation numbers (00607A60; the tables at 007410FC / 0074110C).
+// The skill animation numbers (the tables).
 constexpr int kTalkThird = 3;
 constexpr int kTalk = 1;
 constexpr int kListen = 2;
@@ -58,7 +58,7 @@ constexpr int kThirdPlace = 2;
 
 } // namespace
 
-// --- 00608210 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::StartPhrases() {
     if (voice_ != -1) TheSoundManager()->StopSound(voice_);
@@ -96,7 +96,7 @@ void CBriefingScreen::StartPhrases() {
 }
 EI_REWRITTEN(0x00608210, CBriefingScreen::StartPhrases);
 
-// --- 00607A60 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The original compares a CString copy of the name.)
@@ -120,9 +120,9 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
 }
 EI_REWRITTEN(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 
-// --- 006023F0 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
-// 006023F0 (no Ghidra function): SpeakerActionDone, the speakers' controllers' actionDone. When
+// SpeakerActionDone, the speakers' controllers' actionDone. When
 // a server unit's dialogue animation has ended, its client unit, when it is one of the briefing's
 // speakers, plays a listening animation again (once per entry). The active window is taken to be the
 // briefing screen unchecked, as the original does; the count is read again after each call.
@@ -136,7 +136,7 @@ void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
 }
 EI_REPLACE(0x006023F0, SpeakerAnimationDone);
 
-// --- 00607BB0 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
     float cosAngle = static_cast<float>(x87::fcos(angle));
@@ -199,14 +199,14 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
 }
 EI_REWRITTEN(0x00607BB0, CBriefingScreen::ViewSpeaker);
 
-// --- 00607EC0 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 namespace {
 
 constexpr float kPi = 3.14159274f;
-constexpr float kSixth = 0.166666672f;      // 0073CE40 (and -: 00741440)
-constexpr float kTwelfth = 0.0833333358f;   // 00741438 (and -: 00741430)
-constexpr float kQuarter = 0.25f;           // 0073C3B0 (and -: 0073CDA8)
+constexpr float kSixth = 0.166666672f;
+constexpr float kTwelfth = 0.0833333358f;
+constexpr float kQuarter = 0.25f;
 constexpr float kSunk = -100.0f;
 
 // A speaker who is not in the picture is moved below the ground.
@@ -272,13 +272,13 @@ void CBriefingScreen::ViewPreset(int preset) {
 }
 EI_REWRITTEN(0x00607EC0, CBriefingScreen::ViewPreset);
 
-// --- 006062C0 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 namespace {
 
 constexpr int kEventLeaves = 2;
 
-// 00609A80 inlined: the node unlinked, its name destroyed, the node back to the pool.
+// inlined: the node unlinked, its name destroyed, the node back to the pool.
 void EraseShown(BriefingShownItem* node) {
     node->prev->next = node->next;
     node->next->prev = node->prev;
@@ -323,7 +323,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
             // (The original then looks for the person among the party's first members; the result
             // is not used.)
         }
-        // vector::erase (0060B490, then the last entry's destructor 0060AC00).
+        // vector::erase (then the last entry's destructor).
         for (BriefingSpeaker* p = entry; p + 1 != speakersEnd_; ++p) {
             p->unit = p[1].unit;
             p->name = p[1].name;

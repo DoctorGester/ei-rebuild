@@ -69,7 +69,7 @@ void OpenObjectives(CInterface3D* ui) {
 
 } // namespace
 
-// --- 006034A0: input slot 9 ---------------------------------------------------------------------
+// ---: input slot 9 ---------------------------------------------------------------------
 
 void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
     if (chatActive_) {

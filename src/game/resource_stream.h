@@ -1,7 +1,7 @@
 #pragma once
 
-// The rest of the resource code (00672190-00675050): the sound system's file reader (vtable
-// 00743320), the name listing of an archive and the constructors and destructors of
+// The rest of the resource code: the sound system's file reader vtable
+// the name listing of an archive and the constructors and destructors of
 // CMMIOResource (the readers' base CResourceBase is in resource.h). Names provisional.
 
 #include "resource.h"
@@ -9,16 +9,16 @@
 #include <cstdint>
 
 // Opens files for the sound system (a member of CSoundManager): a loose file through mmioOpen, or an
-// entry of an archive opened with mmio (the archive part is never opened: its Open, 00674310, has no
+// entry of an archive opened with mmio (the archive part is never opened: its Open, has no
 // callers). ResourceStreamClass (slot 0 the deleting destructor). 0x34 bytes. A real virtual class:
-// the compiler makes its vtable (game.exe's 00743320 is retired).
+// the compiler makes its vtable (game.exe's is retired).
 struct CResourceStream : CResourceBase {
     CResourceStream();                              // no file, no archive
-    ~CResourceStream() override;                    // 006742C0 (006742A0 slot 0): Close, then CResourceBase's
+    ~CResourceStream() override;                    // Close, then CResourceBase's
 
     void* archive_;             // +0x24 HMMIO of the archive
     std::int32_t offset_;       // +0x28 start of the open entry in the archive; 1 for a loose file; 0: none
-    std::int32_t size_;         // +0x2C size of the open entry (only the unused 006745C0 sets it)
+    std::int32_t size_;         // +0x2C size of the open entry (only the unused sets it)
     void* file_;                // +0x30 HMMIO of a loose file
 
     void Close();                                   // closes the file and the archive

@@ -27,7 +27,7 @@ constexpr std::uint32_t kFlagSelected = 0x10;
 constexpr std::uint32_t kFlagShowInPanel = 0x400000;
 constexpr int kCategoryWand = 8;
 
-// Cursor shapes (005E5200's index).
+// Cursor shapes ('s index).
 constexpr int kCursorAttack = 1;
 constexpr int kCursorCast = 2;
 constexpr int kCursorUse = 4;
@@ -37,23 +37,23 @@ constexpr int kCursorFlagBase = 0x10;   // + the first set flag of +0x18D..+0x19
 constexpr int kCursorCantCast = 0x17;
 constexpr int kCursorOrder = 0x18;
 
-// The mouse cursor; 005E5200 selects shape `shape`.
+// The mouse cursor; selects shape `shape`.
 void SetCursor(int shape) { TheCursor()->SetShape(shape); }
 
 
 // The client world: the object under a screen point (x, y pair), the ground point under
-// a screen point (PickSurface), the zone exit at a point (FindExitAt, RET 8).
-// The local player glue: 00578A40 an exit's zone name (RET 4), 00578B50 the local
-// player's variable `name` (RET 4, ST0).
-// Units: 00530930 the prototype record (__fastcall), 00530150 IsHostileTo (RET 4), 0052F820
-// CanCastSpell(index, point) and 0052F8B0 CanUseQuickItem(index, point) (RET 8; 0 = can),
-// 00531920 the quick item (RET 4); 006A4230 an item's category.
+// a screen point (PickSurface), the zone exit at a point (FindExitAt).
+// The local player glue: an exit's zone name, the local
+// player's variable `name` (ST0).
+// Units: the prototype record, IsHostileTo,
+// CanCastSpell(index, point)CanUseQuickItem(index, point) (0 = can),
+// the quick item; an item's category.
 static const UnitPrototypeRecord* HoverPrototype(CUnit* unit) {
     return unit->GetPrototype();
 }
-// 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel block `block`.
+// Shows `unit` in the unit panel block `block`.
 
-// fcomp with 0.0 and C3: true for zero (either sign).
+// fcomp with 0.0 and: true for zero (either sign).
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;

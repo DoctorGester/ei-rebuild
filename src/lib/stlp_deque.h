@@ -183,14 +183,14 @@ struct DequeAbi : deque<T> {
     using Deque = deque<T>;
     using Iterator = typename Deque::Iterator;
 
-    // deque(const allocator_type&, n) (RET 8): returns this.
+    // deque(const allocator_type&, n): returns this.
     Deque* Construct(const void* /*allocator*/, std::size_t n) {
         Deque::Construct(n);
         return this;
     }
-    // _M_initialize_map(n) (RET 4), _M_push_back_aux(x) (RET 4) and _M_reallocate_map(add, atFront)
-    // (RET 8; the flag is the low byte of its slot) are deque's own members, registered through this type.
-    // _M_create_nodes(nstart, nfinish) (RET 8): the deque itself is not read.
+    // _M_initialize_map(n), _M_push_back_aux(x) and _M_reallocate_map(add, atFront)
+    // (the flag is the low byte of its slot) are deque's own members, registered through this type.
+    // _M_create_nodes(nstart, nfinish): the deque itself is not read.
     void CreateNodes(T** nstart, T** nfinish) { Deque::CreateNodes(nstart, nfinish); }
     // ~deque().
     static void __fastcall Destruct(Deque* self) { self->Destroy(); }

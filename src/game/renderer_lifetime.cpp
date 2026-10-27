@@ -1,6 +1,6 @@
-// The scene renderer's lifetime and small slots (the renderer at 007AF060, vtable 0073D93C; its base
-// class, vtable 0073D8A0, owns +0x04 .. +0x1C): constructors and destructors, Destroy (slot 3), the
-// draw colour and sun, the frame clear (slot 8), texture binding (slot 11), the figure draws (slots
+// The scene renderer's lifetime and small slots (the renderer; its base
+// class, owns +0x04 .. +0x1C): constructors and destructors, Destroy, the
+// draw colour and sun, the frame clear, texture binding, the figure draws (slots
 // 13 / 14), the line list draw (15), the gamma getter (23), the surfaces' restore after a switch back
 // (24), and the device object's counted holder. The old Direct3D 7 path, kept as it is
 // (docs/notes/renderer.md). A-U11.
@@ -30,7 +30,7 @@
 namespace {
 
 constexpr float kColourScale = 255.0f;
-constexpr float kInverseColourScale = std::bit_cast<float>(0x3B808081u);   // 0073D904, 1 / 255
+constexpr float kInverseColourScale = std::bit_cast<float>(0x3B808081u);   // 1 / 255
 constexpr std::uint32_t kFigureHidden = 0x80;   // CFigureMesh::flags_
 // TransformAmbientColour: what SetBaseColour gave the transform object last.
 float g_transformAmbientColour[3] = {};
@@ -43,7 +43,7 @@ IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_;
 
 } // namespace
 
-// --- Base class (CVisualizator; C19: compiled in place of game.exe's 0073D8A0) ----------------------
+// --- Base class (CVisualizator;: compiled in place) ----------------------
 
 CVisualizator* CVisualizator::SetUpBase() {
     pipeline_ = nullptr;
@@ -115,9 +115,9 @@ void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
 }
 EI_REWRITTEN(0x00500800, CVisualizator::SetSunAndAmbient);
 
-// --- The renderer (C19: compiled in place of game.exe's 0073D93C) -----------------------------------
+// --- The renderer (compiled in place) -----------------------------------
 
-// 00500960 (cdecl, no arguments). The renderer.
+// The renderer.
 CSceneRenderer* __cdecl SceneRenderer() { return TheSceneRenderer(); }
 EI_REWRITTEN(0x00500960, SceneRenderer);
 
@@ -240,7 +240,7 @@ EI_REWRITTEN(0x00504A40, CSceneRenderer::GetGamma);
 
 // The original sets the cooperative level and the display mode again in full screen, restores every
 // DirectDraw surface and reloads the textures. The switch-over (device.h) has no DirectDraw surfaces
-// to lose, nor a display mode to set again (a lost Direct3D 11 device is ticket R9c's): true.
+// to lose, nor a display mode to set again (a lost Direct3D 11 device is): true.
 bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
 EI_REWRITTEN(0x00504780, CSceneRenderer::RestoreSurfaces);
 

@@ -15,8 +15,7 @@ namespace lib {
 
 // A block for `bytes` bytes of elements: (bytes + 0x24) from operator new, the data at the next
 // 32-byte boundary after the stored block pointer. The game has one copy per element size
-// (00406B30 / 00406B50, 00452C20, 00452D80, 00452DA0, 00452E70, 00476EF0, 00477250, 00600A80,
-// 004F65B0, ...); they differ only in the multiplication.
+// ...); they differ only in the multiplication.
 inline void* AllocAligned32(std::size_t bytes) {
     auto* block = gamecrt::operator_new_bytes_as<char>(bytes + 0x24);
     auto* data = reinterpret_cast<char*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
@@ -29,8 +28,8 @@ inline void FreeAligned32(void* data) { gamecrt::operator_delete(static_cast<voi
 // The engine's aligned array (0x10 bytes): data, size, capacity, growth step. CArray's growth
 // rules without the vtable, the element construction or the destruction: new slots keep whatever
 // the block held. Instantiated per element type all over the engine (the animation and figure
-// loaders 0044F1B0-00454A30 and 005A6E70, the interface's pointer arrays 006003D0-00600950,
-// the renderer's work buffers 007AEDE0-007AF040, ...).
+// loaders, the interface's pointer arrays,
+// the renderer's work buffers, ...).
 template <typename T>
 struct AlignedArray {
     T* data;        // +0x00
@@ -40,7 +39,7 @@ struct AlignedArray {
 
     T& operator[](int index) { return data[index]; }
     const T& operator[](int index) const { return data[index]; }
-    // The out-of-line element access (005BDD50, RET 4): element `index`, unchecked.
+    // The out-of-line element access: element `index`, unchecked.
     T& ElementAt(int index) { return data[index]; }
 
     static T* Allocate(int count) {
@@ -57,7 +56,7 @@ struct AlignedArray {
 
     // SetSize(count, growBy): 0 frees the block; the first allocation is exact; growing past the
     // capacity reallocates to max(count, capacity + step) and copies the old elements with memcpy.
-    // growBy -1 keeps the step. The out-of-line copies (RET 8) are registered on this member.
+    // growBy -1 keeps the step. The out-of-line copies are registered on this member.
     void SetSize(int count, int newGrowBy = -1) {
         if (newGrowBy != -1) growBy = newGrowBy;
         if (count == 0) {
@@ -111,20 +110,20 @@ struct AlignedArray {
         capacity = newCapacity;
     }
 
-    // The discarding SetSize's out-of-line copies (00505080, 0050DD40: RET 8) take a growth step
+    // The discarding SetSize's out-of-line copies take a growth step
     // too (-1 keeps it).
     void SetSizeDiscardStep(int count, int newGrowBy) {
         if (newGrowBy != -1) growBy = newGrowBy;
         SetSizeDiscard(count);
     }
 
-    // SetAtGrow / Add take the element by value, as the out-of-line copies do (006005F0: RET 8),
+    // SetAtGrow / Add take the element by value, as the out-of-line copies do,
     // so they can be registered on these members.
     void SetAtGrow(int index, T value) {
         if (index >= size) SetSize(index + 1);
         data[index] = value;
     }
-    // The copies that take the element by reference (00452C40, RET 8).
+    // The copies that take the element by reference.
     void SetAtGrowRef(int index, const T* value) { SetAtGrow(index, *value); }
 
     // Add (inlined at its call sites): SetSize(size + 1), then the new element; its index.
@@ -135,14 +134,14 @@ struct AlignedArray {
         return index;
     }
 
-    // RemoveAt (inlined): moves the following elements down one by one (REP MOVSD); the storage stays.
+    // RemoveAt: moves the following elements down one by one (REP MOVSD); the storage stays.
     void RemoveAt(int index) {
         int count = size - index - 1;
         for (int i = 0; i < count; ++i) data[index + i] = data[index + i + 1];
         --size;
     }
 
-    // RemoveAt(index, count) as the out-of-line copies write it (00663F60: RET 8): the elements
+    // RemoveAt(index, count) as the out-of-line copies write it: the elements
     // after the range moved down (REP MOVSD), then the size lowered; the storage stays.
     void RemoveRange(int index, int count) {
         int after = size - index - count;
@@ -167,7 +166,7 @@ struct AlignedArray {
         std::memcpy(static_cast<void*>(data), source.data, static_cast<std::size_t>(source.size) * sizeof(T));
     }
 
-    // The constructors (004D9E80, 004D9E90, 004D9EA0, ...): every field zero; returns this.
+    // The constructors (...): every field zero; returns this.
     AlignedArray* Construct() {
         data = nullptr;
         growBy = 0;
@@ -176,7 +175,7 @@ struct AlignedArray {
         return this;
     }
 
-    // The destructors (0044F1B0, 004D9EB0, ...): the block freed, the fields left as they were.
+    // The destructors (...): the block freed, the fields left as they were.
     void FreeData() {
         if (data) Free(data);
     }

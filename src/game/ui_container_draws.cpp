@@ -1,19 +1,19 @@
 // Interface draws that still talked to the old Direct3D device without handing anything to the new
 // renderer (ticket R5, docs/notes/renderer.md sections 5 and 8):
-// - 00600EF0, the container windows' base draw (CUiContainer slot 20): stage-0 state block
-//   007AEDD8 applied, then the window's own sprites and models and its enabled children;
-// - 00602BF0 and 00632A90, the slot-20 draws of interface screens 3 (the base / briefing screen,
-//   vtable 007405AC) and 2: the menu frame step, (screen 3) a mouse move to the input
-//   side, a depth clear, then 00600EF0;
-// - 00622420, the hero equipment panel's draw (CHeroEquipPanel slot 20, vtable 007418E0): the two
+// - the container windows' base draw (CUiContainer slot 20): stage-0 state block
+//   applied, then the window's own sprites and models and its enabled children;
+// - the slot-20 draws of interface screens 3 the base / briefing screen,
+// and 2: the menu frame step, (screen 3) a mouse move to the input
+//   side, a depth clear, then;
+// - the hero equipment panel's draw (CHeroEquipPanel slot 20): the two
 //   highlight frames placed, the quick slots' item models, and with the body (the camp) the seven
 //   equipment slots' models inside depth clears (all to 0, the slots' rectangles to 1, all to 1
 //   afterwards), as the hero preview and the trade grid do;
-// - 0064D970 (slot 26 of vtable 007411BC): the alpha reference set to the window's +0x1EC.
+// - the alpha reference set to the window's +0x1EC.
 // Every state set goes to render::state too; every depth clear to render::ClearDepth. In the
 // switch-over (`present`) the old device's clears are left out: nothing the old path still draws
 // there reads its depth buffer (its interface and world meshes are off). The item models go through
-// 005ECA10 and the mesh draws, which hand over already.
+// and the mesh draws, which hand over already.
 #include "item.h"
 #include "world_glue.h"
 #include "ui.h"
@@ -51,9 +51,9 @@ void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
 }
 
 // Through their original addresses, as the original calls them.
-// 006A39E0 (thiscall on an armour item): its body part type (rewritten, item.cpp).
+// Its body part type (rewritten, item.cpp).
 
-// 00602BF0 / 00632A90 share this: the depth buffer cleared to 1, then the container draw.
+// share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
     GameRender();
     if (mouseMove) self->Input()->MouseMove(0, MouseScreenX(), MouseScreenY());
@@ -80,11 +80,11 @@ BOOL CUiContainer::Draw(int pass) {
 }
 EI_REWRITTEN(0x00600EF0, CUiContainer::Draw);
 
-// 00602BF0 (screen 3, the base / briefing screen). Returns 00600EF0's result.
+// Returns 's result.
 int CBriefingScreen::Draw(int pass) { return ScreenDraw(this, pass, true); }
 EI_REWRITTEN(0x00602BF0, CBriefingScreen::Draw);
 
-// 00632A90 (screen 2). Returns 00600EF0's result.
+// Returns 's result.
 int CMainMenu::Draw(int pass) { return ScreenDraw(this, pass, false); }
 EI_REWRITTEN(0x00632A90, CMainMenu::Draw);
 

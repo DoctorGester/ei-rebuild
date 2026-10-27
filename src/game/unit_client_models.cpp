@@ -31,7 +31,7 @@ namespace {
 // The item prototypes' head (type: an armour's slot, 0 helmet, 1 body, 2 trousers, ..., or a
 // weapon's type; number: the number in "armor<nn>") and the unit prototypes (hair, -1 none; skin).
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
-constexpr std::uint32_t kFiguresDetached = 0x80;   // the unit's flags_, passed on to 00517240
+constexpr std::uint32_t kFiguresDetached = 0x80;   // the unit's flags_, passed
 
 constexpr int kLayerSkin = 0x32;
 constexpr int kLayerArmour = 0x3005;
@@ -122,7 +122,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
 EI_REWRITTEN(0x005381B0, CUnitClientSpecific::ArmourPutOn);
 
 namespace {
-// The figure parts 00516B50 collects: an array in 32-byte aligned storage (the block kept at
+// The figure parts collects: an array in 32-byte aligned storage (the block kept at
 // data[-1]), as SkinRequest's layers.
 using PartArray = FigurePartArray;
 
@@ -221,7 +221,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
 }
 EI_REWRITTEN(0x00535590, CUnitClientSpecific::ShowWeapon);
 
-// --- The weapon in hand and the bow's arrow during animations (A-U) ------------------------------
+// --- The weapon in hand and the bow's arrow during animations ------------------------------
 
 void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     if (weaponHidden == static_cast<std::uint8_t>(hidden)) return;

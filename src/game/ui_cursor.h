@@ -1,6 +1,6 @@
 #pragma once
 
-// The software mouse cursor (the object at 007C7BD8; 005E4E00-005E6990, see docs/notes/ui.md,
+// The software mouse cursor (the object, see docs/notes/ui.md,
 // "Cursor"). Only the members the rewritten draws use; the object is created by original code.
 
 #include <cstddef>
@@ -24,17 +24,17 @@ namespace mfc::impl { struct WinThread; }
 struct IDirectInput7A;
 struct IDirectInputDevice7A;
 
-// 005E52A0 (cdecl; ui_cursor_frame.cpp): the drawing thread's procedure (the cursor; runs 005E5690),
+// The drawing thread's procedure (the cursor; runs),
 // started by AfxBeginThread.
 unsigned __cdecl CursorThreadEntry(void* cursor);
 
-// The DirectInput mouse (*0079BA08, vtable 0073C350; made by the application's start 00456440,
-// which also sets it up). 0x20 bytes. input_mouse.cpp (A-H25).
+// The DirectInput mouse (*; made by the application's start,
+// which also sets it up). 0x20 bytes. input_mouse.cpp
 class CDirectInputMouse final {
 public:
-    // WinMain's (00456440, inlined): no references, no DirectInput or device.
+    // WinMain's: no references, no DirectInput or device.
     CDirectInputMouse() {}
-    // 004578D0 (deleting: 004578B0; A-E1, app_lifetime.cpp): Shutdown, then the two counted pointers' releases
+    // Shutdown, then the two counted pointers' releases
     // (both already null).
     virtual ~CDirectInputMouse();
 
@@ -52,7 +52,7 @@ public:
     int Setup(HWND window, HINSTANCE instance);
     // The device unacquired and released, DirectInput released.
     void Shutdown();
-    // 0065EC70 (RET 4; sets only AL unless Acquire fails). Acquires or unacquires the device with
+    // Acquires or unacquires the device with
     // the window's activation; 0 without a device, the report's result as 0 / 1 when Acquire fails.
     int SetActive(char active);
     // Reads the device state (DIMOUSESTATE: lX, lY, lZ, buttons; zeroed when the
@@ -60,33 +60,33 @@ public:
     // through the address so the wrapper runs.
     const LONG* Poll(int unused);
     const LONG* PollThroughHook(int unused) { return Poll(unused); }
-    // The mouse data format Setup gives the device (dinput.lib's c_dfDIMouse, 00745D00, as a
+    // The mouse data format Setup gives the device (dinput.lib's c_dfDIMouse, as a
     // DIDATAFORMAT): ours, since game.exe keeps its object table in its code section,
     // which the standalone image does not have. The objects name the game's GUID_XAxis / YAxis / ZAxis.
     static const void* MouseDataFormat();
 
-    std::uint32_t references_ = 0;           // +0x04 the count of holders (WinMain keeps one in 0079BA08)
+    std::uint32_t references_ = 0;           // +0x04 the count of holders (WinMain keeps one)
     IDirectInput7A* input_ = nullptr;        // +0x08 counted
     IDirectInputDevice7A* device_ = nullptr; // +0x0C counted
     LONG state_[4];                          // +0x10 DIMOUSESTATE
 };
 
-// The cursor's image (what +0x10 points at; made by 005E4EB0 for every cursor shape, from 005E63F0):
+// The cursor's image (what +0x10 points at; made for every cursor shape):
 // its surface holder (the picture: `frames` square frames side by side), a frame's size, the frame
 // shown, the hot spot and the mask.
 struct CursorImage {
     // The image of the picture "<name>" (the file's name with ".mmp", from the
-    // texture manager; loaded into a holder by 004EFC60 with `flag`), the hot spot given in the
+    // texture manager; loaded into a holder with `flag`), the hot spot given in the
     // 32-pixel layout. Returns this.
     CursorImage* Construct(const char* name, int hotSpotX, int hotSpotY, int flag);
-    // 005E5160 (ui_cursor_setup.cpp). Destructor body: the mask freed, the holder released.
+    // Destructor body: the mask freed, the holder released.
     void Destroy();
 
     CDXSurface* holder;              // +0x00 surface holder
     LONG width;                      // +0x04 a frame's width
     LONG height;                     // +0x08
     int frames;                      // +0x0C frames side by side (the picture's width / height)
-    int frame;                       // +0x10 the frame shown (005E52E0 steps it every 125 ms)
+    int frame;                       // +0x10 the frame shown (steps it every 125 ms)
     int hotX;                        // +0x14 the hot spot, scaled to the cursor's size
     int hotY;                        // +0x18
     std::uint8_t* saved;             // +0x1C the mask over the whole picture (its pixel size): all
@@ -102,11 +102,10 @@ class CCursor {
 public:
     // 0x005E6630 (ui_cursor_frame.cpp).
     void SaveBackground(char fromPrimary);
-    // 005E5200 (ChangeShape). Selects cursor shape `shape`; returns the
+    // Selects cursor shape `shape`; returns the
     // previous one (-1 when the cursor is not set up).
     int SetShape(int shape) { return ChangeShape(shape); }
 
-    // ui_cursor_setup.cpp:
     // Constructor body: no device, surfaces or shapes, the lock initialised, not
     // enabled. Returns this.
     CCursor* Construct();
@@ -121,30 +120,30 @@ public:
     void ShowImage(int shown);
     // Under the lock, the held byte (when enabled).
     void SetHeld(char held);
-    // 005E65F0 / 005E6610. The lock taken / released, only when enabled in mode 2.
+    // The lock taken / released, only when enabled in mode 2.
     void TakeLock();
     void ReleaseLock();
     // Shape 0 (its image and frame) under the lock; unless in mode 1 the drawing thread
-    // started (AfxBeginThread of 005E52A0 at priority 2).
+    // started (AfxBeginThread at priority 2).
     void Start();
     // Ends the drawing thread (stop_, then waits for `stopped_`), closes the event,
     // releases and frees every shape and empties the list, releases the surfaces and the device
     // and resets the fields (not enabled, shape -1, mode 0).
     void Shutdown();
-    // 005E52E0 (plain RET, AL). Steps the image's frame every 125 ms, adds the DirectInput motion
+    // Steps the image's frame every 125 ms, adds the DirectInput motion
     // to motion_, takes the mouse position (or heldPosition_ while held) clamped into the bounds,
     // places rect_ at the previous position less the hot spot (the frame's size, clipped to the
     // bounds, `from_` clipped the same way) and keeps the new position. Returns whether the frame
     // stepped or the position changed.
     char UpdatePosition();
 
-    // 005E60B0 (RET 0x10; ui_cursor_setup.cpp). Sets the cursor up on `device` (a reference
+    // Sets the cursor up on `device` (a reference
     // taken, the old one's dropped) in `mode` with `mouse`; `smallCursors` (low byte) picks 16-pixel
     // cursors instead of 32 (g_cursorWidth / g_cursorHeight). Makes the end event, the
     // bounds (the render target's size when there is a primary surface) and the background and
-    // composition surfaces (cursor size and twice that, through 004EF7B0).
+    // composition surfaces (cursor size and twice that).
     void Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, int smallCursors);
-    // 005E63F0 (RET 0x10; ui_cursor_setup.cpp). Adds the shape made from the picture "<name>.mmp"
+    // Adds the shape made from the picture "<name>.mmp"
     // with the hot spot (hotX, hotY) and `flag` (CursorImage::Construct; null when the allocation
     // fails) to the shape list.
     void AddShape(const char* name, int hotX, int hotY, int flag);
@@ -166,8 +165,8 @@ public:
     lib::AlignedArray<CursorImage*> images_;   // +0x68 the shapes (AddShape)
     POINT position_;                 // +0x78 the position drawn last
     POINT heldPosition_;             // +0x80 the position kept while held
-    POINT motion_;                   // +0x88 the mouse motion summed by 005E52E0
-    std::uint8_t held_;              // +0x90 the cursor stays at +0x80 (005E67B0 sets it)
+    POINT motion_;                   // +0x88 the mouse motion summed
+    std::uint8_t held_;              // +0x90 the cursor stays at +0x80 (sets it)
     std::uint8_t enabled_;           // +0x91 the cursor exists (created)
     std::uint8_t unused_92[2];
     DWORD frameTime_;                // +0x94 when the image's frame last stepped
@@ -175,7 +174,7 @@ public:
     int stop_;                       // +0x9C asks the cursor thread to end
     CRITICAL_SECTION lock_;          // +0xA0
 };
-// 005E54A0 (ui_cursor_frame.cpp): the software cursor drawn into the render target before the present.
+// The software cursor drawn into the render target before the present.
 void __fastcall CursorDrawFrame(CCursor* self);
 static_assert(offsetof(CCursor, imageShown_) == 0x0C);
 static_assert(offsetof(CCursor, shape_) == 0x18);
@@ -190,11 +189,11 @@ static_assert(offsetof(CCursor, lock_) == 0xA0);
 
 static_assert(sizeof(CCursor) == 0xB8);
 
-// The game's cursor (the object at 007C7BD8; ui_cursor_setup.cpp): built by the static initialiser 005E4DD0 in the
+// The game's cursor (the object; ui_cursor_setup.cpp): built by the static initialiser in the
 // list's order, destroyed by the exit function it registers.
 extern lib::StaticObject<CCursor> g_cursor;
 
-// 005DAEA0 (fastcall, RET 8; cursor_setup.cpp): the cursor initialised and given its shapes.
+// The cursor initialised and given its shapes.
 void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int flags);
-// 005DAE70 (fastcall, RET 8; cursor_setup.cpp): the cursor shut down and set up again.
+// The cursor shut down and set up again.
 void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags);

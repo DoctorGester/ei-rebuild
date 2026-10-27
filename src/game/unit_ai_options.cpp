@@ -1,6 +1,6 @@
 // The unit AI's attack options (AIAttention, unit_ai.h): listing them from the unit's weapon and
 // spells, the option helpers and the
-// options array's SetSize (005D9250, registered on mfc::CArray).
+// options array's SetSize (registered on mfc::CArray).
 #include "unit_ai.h"
 
 #include "combat.h"
@@ -20,7 +20,7 @@ constexpr float kAttackSpellWeight = 1.3f;
 constexpr float kHelpWeight = 1.0f;
 constexpr float kHealWeight = 10.0f;
 
-// The option kind per spell type (005CEDC0's byte table 005CEE4C through its jump table).
+// The option kind per spell type ('s byte through its jump table).
 constexpr int kSpellKinds[42] = {1, 1, 1, 2, 2, 2, 3, 3, 3, 5, 5, 5, 6, 6, 6, 6, 6, 6, 8, 8, 8,
                                  8, 8, 8, 7, 4, 5, 8, 8, 5, 4, 6, 4, 6, 8, 8, 8, 8, 8, 8, 1, 1};
 
@@ -188,8 +188,8 @@ void AIAttention::Build(CUnit* unit) {
     }
 }
 
-// 005D9B80 (fastcall, plain RET): the count, the array sized to it (SetSize inlined), then each
-// option (005CE860, through its address).
+// The count, the array sized to it (SetSize inlined), then each
+// option (through its address).
 void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream) {
     int count;
     stream->Read(&count, 4);
@@ -199,7 +199,7 @@ void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream) {
 EI_REWRITTEN(0x005D9B80, LoadAttackOptions);
 
 namespace {
-// 005CE9B0 (thiscall on the option, ST0).
+// (ST0).
 double __fastcall OptionWeight(const AIAttackOption* option) { return option->Weight(); }
 } // namespace
 

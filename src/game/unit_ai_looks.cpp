@@ -1,5 +1,5 @@
-// The unit AI's look arrays (CArray<AILook> template code: 005573F0, 005D8EE0, 005D8B60,
-// 005D9DE0), clearing a prepared move and adding a patrol point.
+// The unit AI's look arrays CArray<AILook> template code:
+// clearing a prepared move and adding a patrol point.
 #include "unit_ai.h"
 
 #include "core_maths.h"

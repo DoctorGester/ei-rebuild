@@ -1,7 +1,7 @@
 #pragma once
 
 // An archive file and a memory stream built on a loader's stack, as the start-up loaders inline
-// them (the lightning noise table 00468A00, the lever table 00463390; unit_db_load.cpp keeps its
+// them (the lightning noise, the lever; unit_db_load.cpp keeps its
 // own copies). A-E1.
 
 #include "core_streams.h"
@@ -11,7 +11,7 @@
 #include <cstdint>
 
 // The archive, built in place: its constructor directly, its destructor body through
-// its address (006714A0, which Rebirth patches).
+// its address (which Rebirth patches).
 struct LocalResource {
     LocalResource() { new (Get()) CMappedResource(); }
     ~LocalResource() { Get()->CMappedResource::Destroy(); }

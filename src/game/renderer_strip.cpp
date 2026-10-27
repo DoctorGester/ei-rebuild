@@ -1,11 +1,11 @@
-// The renderer's ribbon draw (00501D90, virtual slot 16 of the renderer at 007AF060, vtable
-// 0073D93C) with its helpers 00502A20 (indexed draw of TL vertices), 00502AC0 (one ribbon cross
-// section) and 00502B90 (the direction at a point). A polyline of world points is projected (slot 13
+// The renderer's ribbon draw vtable
+// with its helpers (indexed draw of TL vertices), (one ribbon cross
+// section)(the direction at a point). A polyline of world points is projected (slot 13
 // of the pipeline's transform object, or slot 8 with clipping flags), and every point becomes a
 // pair of screen vertices offset across the line's screen direction by width * rhw * 15, with the
 // texture's u running along the ribbon and v across it; consecutive pairs make two triangles. The
 // ends are transparent (colour 0x00FFFFFF). Used for lightning bolts and similar strips. Buffers are
-// function-local statics (007AF000..007AF05C). See docs/notes/models.md ("Renderer").
+// function-local statics. See docs/notes/models.md ("Renderer").
 #include "clip.h"
 #include "device.h"
 #include "model.h"
@@ -31,8 +31,8 @@ namespace {
 
 using devicebuffers::ProjectedVertex;
 
-// The engine's aligned arrays (lib::AlignedArray; the original's inlined SetSize calls 004ECB70,
-// 00468F70, 004ECB50 and 00406B30 for the element sizes, which AlignedArray::Allocate matches).
+// The engine's aligned arrays (lib::AlignedArray; the original's inlined SetSize calls,
+// for the element sizes, which AlignedArray::Allocate matches).
 constinit lib::AlignedArray<TLVertex> g_strip = /*007AF000*/ {};
 lib::AlignedArray<TLVertex>& Strip() { return g_strip; }      // TL vertices of the points
 void __cdecl FreeStrip() { g_strip.FreeData(); }
@@ -153,7 +153,7 @@ void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVerte
     SetUv(bottom, g_bottomV);
 }
 
-// --- 00502B90 / 00502AC0 / 00502A20 ---------------------------------------------------------------
+// --- ---------------------------------------------------------------
 
 // The screen direction at point `index` of `points` (TL vertices): mode 1 the segment from
 // the previous point, mode 2 from the previous to the next point (the last point: the segment from
@@ -176,7 +176,7 @@ float* __fastcall StripDirection(float* out, int index, int mode, const void* ar
 EI_REWRITTEN(0x00502B90, StripDirection);
 EI_REWRITTEN(0x00502AC0, EmitSection);
 
-// 00502A20 (thiscall on the device holder, the renderer's device_). Draws an indexed triangle list
+// Draws an indexed triangle list
 // of TL vertices under the device's critical section; with distanceFog_ set the
 // transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
 int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
@@ -198,7 +198,7 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
 }
 EI_REWRITTEN(0x00502A20, CTextureDevice::DrawTlTriangles);
 
-// 00501D90 (thiscall, RET 0x18). `points` is an array {data, count} of world points (16 bytes each:
+// `points` is an array {data, count} of world points (16 bytes each:
 // x, y, z and one more); `width` scales the ribbon's screen width; `mode` 0 projects, 1 projects and
 // clips (points flagged by the transform object are skipped), 2 only sizes the buffers; u runs over
 // `uLength` along the ribbon (0.875 at the start when it is 0), v from `vStart` over `vSize`.

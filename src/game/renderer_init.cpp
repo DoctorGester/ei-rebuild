@@ -1,4 +1,4 @@
-// The renderer's creation (00500B70, virtual slot 2 of the renderer at 007AF060, vtable 0073D93C):
+// The renderer's creation:
 // picks the Direct3D driver from the settings, creates the device object, fills the transform
 // pipeline's matrix stacks (projection, viewport, the fixed axis swap and their products), sets the
 // pipeline's viewport and depth range, the render and texture stage states, a default light and the
@@ -41,8 +41,8 @@ void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline
     if (pipeline) ++pipeline->refs_;
     if (previous) previous->Release();
 }
-// Matrices (model.cpp, called through their addresses): 004F1370 viewport,
-// 004F1330 the axis swap (x, -y, z; patched by Rebirth); 004D9880 the product (Matrix4::Multiply).
+// Matrices (model.cpp, called through their addresses): viewport,
+// the axis swap (x, -y, z; patched by Rebirth); the product (Matrix4::Multiply).
 // The capability records as the original reads them.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
 static_assert(sizeof(DDCAPS) == 0x17C && offsetof(DDCAPS, ddsCaps) == 0x16C);
@@ -67,7 +67,7 @@ void SetStageState(CSceneRenderer* renderer, int stage, D3DTEXTURESTAGESTATETYPE
 // --- Matrix stacks -------------------------------------------------------------------------------
 
 // A push onto one of the pipeline's matrix stacks, as the original inlines it: the first entry is
-// `m` itself, later ones are the previous top times `m` (004D9880 with the new top as out).
+// `m` itself, later ones are the previous top times `m` (with the new top as out).
 void StackPush(MatrixStack& stack, const Matrix4* m) {
     if (stack.count == 0) {
         stack.count = 1;
@@ -105,7 +105,7 @@ void Transpose(float* m) {
 void FillMatrixStacks(CSceneRenderer* renderer) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     MatrixStack* stacks = pipeline->stacks_;
-    // 0040D380 (CameraGetRange): the camera's near and far distances and field of view, as dwords.
+    // The camera's near and far distances and field of view, as dwords.
     const CCamera* cam = TheCamera();
     float zNear, zFar, fov;
     std::memcpy(&zNear, &cam->nearDistance_, 4);
@@ -215,7 +215,6 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 
 } // namespace
 
-// 00500B70 (thiscall, RET 8).
 void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::state::Reset();   // a new device: nothing it has is known yet
     CreateBase(window, settings);
@@ -262,7 +261,7 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     windowFrames_ = 0;
     AddDefaultLight(this);
 
-    // The ambient colour (slot 7): grey 50 from three FISTPs of 50.0.
+    // The ambient colour: grey 50 from three FISTPs of 50.0.
     std::uint32_t r = static_cast<std::uint32_t>(x87::fistp(50.0f));
     std::uint32_t g = static_cast<std::uint32_t>(x87::fistp(50.0f));
     std::uint32_t b = static_cast<std::uint32_t>(x87::fistp(50.0f));

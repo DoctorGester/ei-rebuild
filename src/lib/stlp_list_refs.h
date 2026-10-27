@@ -12,7 +12,7 @@
 
 #include <cstdint>
 
-void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
+void __fastcall RefPtrRelease(RefPtr* self);
 
 namespace stlp {
 
@@ -23,22 +23,22 @@ struct RefEntry {
 };
 static_assert(sizeof(RefEntry) == 8);
 
-// RefPtr copied with Share (e.g. 00425250: null for a null or detached object, a clone for a
-// copy-on-share one) and destroyed with the owner's release (RefPtr::Destroy, e.g. 00421640).
+// RefPtr copied with Share (e.g: null for a null or detached object, a clone for a
+// copy-on-share one) and destroyed with the owner's release (RefPtr::Destroy, e.g.).
 struct SharedRef {
     static void Copy(RefPtr* to, const RefPtr& from) { to->Share(from.ptr); }
     static void Destroy(RefPtr* p) { p->Destroy(); }
 };
 
-// RefPtr copied with one more reference (e.g. 00425710) and destroyed with a plain release
-// (RefPtrRelease, e.g. 00427240).
+// RefPtr copied with one more reference (e.g.) and destroyed with a plain release
+// (RefPtrRelease, e.g.).
 struct CountedRef {
     static void Copy(RefPtr* to, const RefPtr& from) { to->FromRawCounted(from.ptr); }
     static void Destroy(RefPtr* p) { RefPtrRelease(p); }
 };
 
 // A key and a reference (RefEntry, or another pair of a dword and a RefPtr with the same member
-// names): the key, then the reference as SharedRef (e.g. 00426680; destroyed as 00421560).
+// names): the key, then the reference as SharedRef (e.g.; destroyed as).
 struct SharedEntry {
     template <typename Entry>
     static void Copy(Entry* to, const Entry& from) {
@@ -49,7 +49,7 @@ struct SharedEntry {
     static void Destroy(Entry* p) { SharedRef::Destroy(&p->ref); }
 };
 
-// The same with the reference as CountedRef (e.g. 004265F0; destroyed as 004215A0).
+// The same with the reference as CountedRef (e.g.; destroyed as).
 struct CountedEntry {
     template <typename Entry>
     static void Copy(Entry* to, const Entry& from) {
@@ -60,8 +60,8 @@ struct CountedEntry {
     static void Destroy(Entry* p) { CountedRef::Destroy(&p->ref); }
 };
 
-// A held engine object copied with one more reference (its dword count; e.g. 0056F680) and
-// destroyed with its Release (slot 4) when there is one (clear 00573660).
+// A held engine object copied with one more reference (its dword count; e.g.) and
+// destroyed with its Release when there is one (clear).
 struct HeldObject {
     static void Copy(CEngineObject** to, CEngineObject* const& from) {
         *to = from;
@@ -80,15 +80,15 @@ struct PolicyList : list<T> {
     using Base = list<T>;
     using Node = typename Base::Node;
 
-    // insert(pos, x) (e.g. 004229B0): a copy of x linked in before pos.
+    // insert(pos, x) (e.g.): a copy of x linked in before pos.
     Node* Insert(Node* pos, const T& x) { return Base::template Insert<E>(pos, x); }
-    // push_back(x) (e.g. 004207C0).
+    // push_back(x) (e.g.).
     void PushBack(const T& x) { Base::template Insert<E>(this->head, x); }
-    // erase(pos) (e.g. 00420290): the node after pos.
+    // erase(pos) (e.g.): the node after pos.
     Node* Erase(Node* pos) { return Base::template Erase<E>(pos); }
-    // clear() (e.g. 00427100).
+    // clear (e.g.).
     void Clear() { Base::template Clear<E>(); }
-    // ~list() (e.g. 00423370): clear(), then the sentinel back to the pool.
+    // ~list (e.g.): clear, then the sentinel back to the pool.
     void Release() { Base::template Release<E>(); }
     template <typename Same> void Remove(const T& x, Same same) { Base::template Remove<E>(x, same); }
 };
@@ -125,12 +125,12 @@ struct SameObject {
     bool operator()(const RefPtr& a, const RefPtr& b) const { return a.ptr == b.ptr; }
 };
 
-// remove(value) (00570400; RET 4) of a HeldObject list (the client sector grid's cells): every
-// element that is the same object, erased through 00572270.
+// remove(value) of a HeldObject list (the client sector grid's cells): every
+// element that is the same object, erased.
 void ListRemoveHeld(list<CEngineObject*>* self, CEngineObject* const& value);
 
-// for_each(first, last, f) (00571780; RET 0xC) over a list of counted objects with a functor that
-// releases each object (slot 4, when there is one); the nodes stay. Returns the functor (one byte).
+// for_each(first, last, f) over a list of counted objects with a functor that
+// releases each object (when there is one); the nodes stay. Returns the functor (one byte).
 template <typename T>
 char ListForEachRelease(typename list<T*>::Node* first, typename list<T*>::Node* last, char f) {
     for (; first != last; first = first->next)

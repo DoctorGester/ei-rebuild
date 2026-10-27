@@ -1,5 +1,5 @@
-// The battle screen's every-frame update (00638280, slot 24), its left button release,
-// its quest variable notice (006369D0, slot 33), the selection's refresh and the quick
+// The battle screen's every-frame update, its left button release,
+// its quest variable notice, the selection's refresh and the quick
 // item panel's unit. See docs/notes/ui.md ("Battle screen").
 #include "camera.h"
 #include "item.h"
@@ -38,7 +38,7 @@
 #include "game_singletons.h"
 #include "lib/mfc_slots.h"
 
-// --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
+// ---: the quick item panel's unit ----------------------------------------------------
 
 namespace {
 
@@ -55,7 +55,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         regions_.data[i]->SetTip(0, 1, 0);
         regionItem_[i] = -1;
     }
-    entries_.SetSize(0, -1);   // 0064B060 (zeroed new entries)
+    entries_.SetSize(0, -1);   // (zeroed new entries)
     if (!unit_) return;
 
     // The entry of the sprite just added.
@@ -128,13 +128,13 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
 }
 EI_REWRITTEN(0x0063D2B0, CHudQuickItems::SetUnit);
 
-// --- 00638280: the battle screen's update ------------------------------------------------------
+// ---: the battle screen's update ------------------------------------------------------
 
 namespace {
 
-// The panels' units (thiscall): weapon bar 0063C180, quick items 0063D2B0 (through its address),
-// spells 0063E820 (RET 4), actions 0063F800 (RET 8).
-// 00530930 (__fastcall on a unit): its prototype record.
+// The panels' units: weapon bar, quick items (through its address),
+// spells, actions.
+// Its prototype record.
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
     return unit->GetPrototype();
 }
@@ -144,29 +144,29 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
-// 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
-// The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
-// `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
+// Whether this is a network client (AL).
+// The world: the unit with an id, makes
+// `unit` the controlled one, the units inside a selection box into a list.
 static CUnit* FindUnit(void* world, void*, int id) { return static_cast<CWorld*>(world)->FindUnit(id); }
 
-// vector<int> pieces (library): 005F8F10 constructs from an allocator (RET 4), 0064B620
-// (__fastcall) constructs an element, 004E2FA0 the reallocating insert (RET 0xC), 0060B1E0 /
-// 0064B750 (__fastcall) sort's introsort loop (RET 8) and final insertion sort, 0064AF30 assigns
-// (RET 4), 004E2A20 / 005F9880 the destructors of the two instantiations.
+// vector<int> pieces (library): constructs from an allocator,
+// constructs an element, the reallocating insert, /
+// sort's introsort loop and final insertion sort, assigns
+// the destructors of the two instantiations.
 using IdVector = CBattleScreen::IdVector;
 using PartyIds = CBattleScreen::PartyIds;
 
-// The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
-// 0060AEC0 (stdcall) ConstructElements; 006E79A0 the game's memmove.
-// 006407E0 (thiscall on the portraits, RET 4): rebuilds them (`cameraFirst`: the first is the
+// The party CArray<CUnit*> (+0x168): SetSize, SetAtGrow,
+// ConstructElements; the game's memmove.
+// Rebuilds them (`cameraFirst`: the first is the
 // camera's player; the original pushes a dword whose low byte only is set).
-// 006010E0 (thiscall): the children's update. 005F8A80 (thiscall on the interface, RET 4): the
-// next queued message. 005F7350 (RET 0xC): opens a window on top. 00634650 (RET 0x18): the
+// The children's update: the
+// next queued message: opens a window on top: the
 // message box's constructor.
 void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
-// STLport list<CUnit*> (00411850 constructor, RET 4) and list<int> (00404A70 constructor,
-// 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
+// STLport list<CUnit*> (constructor) and list<int> (constructor,
+// end, insert, RET 4 / 4 / 0xC); frees a node.
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
 using UnitList = stlp::list<CEngineObject*>;
@@ -344,7 +344,7 @@ void CBattleScreen::Update() {
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
-                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
+                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // end, insert
             }
         }
         auto mark = [](CUnit* unit, int on) { unit->Object3D()->attached->SetLit(on); };
@@ -389,7 +389,7 @@ void __fastcall BattleScreenUpdate(CBattleScreen* self) { self->Update(); }
 } // namespace
 EI_REWRITTEN(0x00638280, BattleScreenUpdate);
 
-// --- 006381E0: the party ids compared --------------------------------------------------------------
+// ---: the party ids compared --------------------------------------------------------------
 
 namespace {
 bool SameIds(const IdVector& a, const IdVector& b) {
@@ -405,7 +405,7 @@ bool CBattleScreen::PartyIds::Equals(const PartyIds& other) const {
 }
 EI_REWRITTEN(0x006381E0, CBattleScreen::PartyIds::Equals);
 
-// --- 00638B30: the battle screen's left button release -----------------------------------------
+// ---: the battle screen's left button release -----------------------------------------
 
 void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
@@ -436,7 +436,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
-                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
+                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // end, insert
                 if (first < 0) first = i;
             }
         }
@@ -481,13 +481,13 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
 }
 EI_REWRITTEN(0x00638B30, CBattleScreen::OnLButtonUp);
 
-// --- 006369D0: a quest variable's notice -------------------------------------------------------
+// ---: a quest variable's notice -------------------------------------------------------
 
 namespace {
 
-// 004E0020 (thiscall on the text manager, RET 8): the text of a key. 004DBE40 (__fastcall, RET 4): splits a text
+// The text of a key: splits a text
 // at a separator.
-// 0065CF30 (thiscall on the message log, RET 4): adds a line.
+// Adds a line.
 
 // FCOMP; TEST AH,0x40: equal.
 bool Equal(float a, float b) {
@@ -580,12 +580,12 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
 }
 EI_REWRITTEN(0x006369D0, CBattleScreen::OnQuestVariable);
 
-// --- 00637DC0: the selection's refresh --------------------------------------------------------
+// ---: the selection's refresh --------------------------------------------------------
 
 namespace {
 
-// The panels' highlights (thiscall, RET 8; each called with (index, 0)): quick item slot
-// 0063CD20, spell 0063E750, action 0063F730.
+// The panels' highlights (each called with (index, 0)): quick item slot
+// spell, action.
 
 } // namespace
 

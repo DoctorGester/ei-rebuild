@@ -1,9 +1,9 @@
-// The cursor images' constructor (005E4EB0; the cursor object at 007C7BD8, see docs/notes/ui.md,
+// The cursor images' constructor (the cursor object, see docs/notes/ui.md,
 // "Cursor"), which builds each image's mask from its picture: the picture's holder has no DirectDraw
 // surface (ticket R7), and the mask is built from the new renderer's memory (DirectPixels). (The
-// software cursor's blit 005E5C40, which combined image, mask and background through Locks of the
-// holders' surfaces, has no caller of ours since R11a: the new renderer draws the cursor,
-// ui_cursor_frame.cpp; R11b removed it.)
+// software cursor's blit, which combined image, mask and background through Locks of the
+// holders' surfaces, has no caller of ours since: the new renderer draws the cursor,
+// ui_cursor_frame.cpp;removed it.)
 #include "app.h"
 #include "ui_cursor.h"
 #include "game_strings.h"
@@ -19,7 +19,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
-// --- 005E4EB0: a cursor image ------------------------------------------------------------------------
+// ---: a cursor image ------------------------------------------------------------------------
 
 namespace {
 
@@ -44,7 +44,7 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     frame = 0;
     CTextureManager* manager = TheTextureManager();
     void* picture = manager->GetFile(name, nullptr);
-    // (The original frees the holder's memory when 004EFC60 throws and passes the exception on; that
+    // (The original frees the holder's memory when throws and passes the exception on; that
     // ends the game.)
     holder = new CDXSurface(TheRenderDevice(), picture, flag);
     if (holder) ++holder->refs_;
@@ -52,7 +52,7 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     manager->CloseFile(picture);
 
     // The picture's size and pixels: the new renderer's memory (the original: GetSurfaceDesc, then a
-    // Lock). 004EFC60 gave the holder that memory or threw.
+    // Lock). gave the holder that memory or threw.
     SurfacePixels image;
     DirectPixels(holder, &image);
     std::uint32_t pictureWidth = static_cast<std::uint32_t>(image.width), pictureHeight = static_cast<std::uint32_t>(image.height);

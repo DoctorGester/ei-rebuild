@@ -5,16 +5,16 @@
 // Types: the game's own layouts, aggregates without constructors (`{x, y, z}`
 // initialisation keeps working). The out-of-line originals that are members (Vector3::Length,
 // Quaternion::PreMultiply, ...) are declared here and defined, hooked, in src/game; the free ones
-// (Dot 00401E00, CrossProduct 004489D0, ...) stay declared in maths.h / object_maths.h /
+// (Dot, CrossProduct, ...) stay declared in maths.h / object_maths.h /
 // core_maths.h. Inline helpers never reuse those names.
 // Grouping. `+` and `*` commute exactly, so only the grouping of a sum decides its rounding. A
 // 3-term sum has three groupings, named by the pair added first: XYZ = (x + y) + z, ZYX =
 // (z + y) + x, ZXY = (z + x) + y (YXZ, YZX and XZY are the same three). Every 3-term helper names
 // its grouping, as a suffix (DotZYX) or a `Sum3` template argument (TransformRow<Sum3::ZYX>); there
 // is no default. A 4-term transform adds the translation last.
-// Evaluation. The build is /fp:precise (since SV7d1a; /fp:fast regrouped an inlined sum with the
+// Evaluation. The build is /fp:precise (since; /fp:fast regrouped an inlined sum with the
 // caller's expression: `DotZYX(a, b) * 2.0f` became `2x + (z + y)` + ..., verify_vecmath.cpp caught
-// it), so the grouping written here is kept (C12 removed the precise-on pragma: no codegen change). Each
+// it), so the grouping written here is kept (no codegen change). Each
 // helper's float results are rounded to float when returned (as an FSTP to a float would round
 // them). On the game's main thread (x87 at 24-bit precision) every operation already rounds to a
 // float significand, so this gives the original's bits; on 53-bit threads it is plain float maths,
@@ -37,17 +37,17 @@ static_assert(sizeof(Vector2) == 8);
 struct Vector3 {
     float x, y, z;
 
-    // 00471A90 (RET 0xC; game/small_accessors.cpp). A second copy of Construct (scene loader); returns this.
+    // A second copy of Construct (scene loader); returns this.
     Vector3* ConstructScene(float x_, float y_, float z_);
-    // 00503F20 (RET 4; game/small_slots_500.cpp). The three parts copied from `other`.
+    // The three parts copied from `other`.
     void Assign(const Vector3* other);
 
     // The constructor Vector3(x, y, z) in the original: callers use the returned `this`.
     Vector3* Construct(float x_, float y_, float z_);
-    float Length() const;                           // 00401E20 (maths.cpp), XYZ, FSQRT
-    const Vector3* AddInPlace(const Vector3& v);    // 00410750 (core_maths.cpp); returns &v
-    void DivideInPlace(float d);                    // 004679B0 (object_maths.cpp)
-    double LengthSquared() const;                   // 004D8470 (ground_decal.cpp), unrounded in ST0
+    float Length() const;                           // (maths.cpp), XYZ, FSQRT
+    const Vector3* AddInPlace(const Vector3& v);    // Returns &v
+    void DivideInPlace(float d);                    // (object_maths.cpp)
+    double LengthSquared() const;                   // (ground_decal.cpp), unrounded in ST0
 };
 static_assert(sizeof(Vector3) == 12);
 
@@ -55,7 +55,7 @@ static_assert(sizeof(Vector3) == 12);
 struct Vector4 {
     float x, y, z, w;
 
-    // 004679D0 (object_maths.cpp). (p, 1); returns this.
+    // (p, 1); returns this.
     Vector4* FromPoint(const Vector3& p);
 };
 static_assert(sizeof(Vector4) == 16);
@@ -64,27 +64,25 @@ static_assert(sizeof(Vector4) == 16);
 struct Quaternion {
     float w, x, y, z;
 
-    // 0049ECC0 (maths.cpp). Rotation of `angle` radians about `axis` (need not be normalised).
+    // Rotation of `angle` radians about `axis` (need not be normalised).
     void FromAxisAngle(const Vector3& axis, float angle);
 
-    // core_maths.cpp
     Quaternion* SetIdentity();
     void PreMultiply(const Quaternion& r);          // *this = r * *this
     Vector3* AxisX(Vector3* out) const;             // rotated X axis
     Vector3* AxisY(Vector3* out) const;             // rotated Y axis
     Vector3* AxisZ(Vector3* out) const;             // rotated Z axis
 
-    // quaternion.cpp (0049E790-0049EE50)
     Quaternion* SetAngleAxis(float angle, const Vector3& axis);     // returns this
     Quaternion* SetAxisAngle(const Vector3& axis, float angle);     // returns this
     void PreMultiplyConjugate(const Quaternion& r); // *this = conj(r) * *this
     void Slerp(float t, const Quaternion& a, const Quaternion& b);  // shortest arc
 
-    // 004D9AA0 (matrix_math.cpp, RET 4). The rotation part of the row-major 4x4 matrix `out`
+    // The rotation part of the row-major 4x4 matrix `out`
     // (elements 0-2, 4-6, 8-10; the others are left as they are).
     void ToMatrix(float* out) const;
 
-    // 0046A4B0 (map_spec.cpp, RET 8). `out` = `v` rotated by the quaternion; returns `out`.
+    // `out` = `v` rotated by the quaternion; returns `out`.
     Vector3* Rotate(Vector3* out, const Vector3* v) const;
 };
 static_assert(sizeof(Quaternion) == 16);
@@ -96,7 +94,7 @@ static_assert(sizeof(Quaternion) == 16);
 struct Matrix4 {
     float m[16];
 
-    // 004D9880 (matrix_math.cpp; ECX = this, RET 8). this = a * b (row-major: rows of `a` times columns of `b`). The
+    // This = a * b (row-major: rows of `a` times columns of `b`). The
     // elements are written one after the other, each from the inputs as they are then, so `this` may be one of the
     // inputs as in the original. Not the plain sum: each element adds its four terms in the original's order.
     void Multiply(const float* a, const float* b);
@@ -107,7 +105,7 @@ static_assert(sizeof(Matrix4) == 64);
 struct MatrixRows {
     float m[12];
 
-    // 00560E10 (world_client.cpp). out = rows * v, (m2 * z + m1 * y) + x * m0 per row (no
+    // Out = rows * v, (m2 * z + m1 * y) + x * m0 per row (no
     // translation). Returns out.
     Vector3* Transform(Vector3* out, const Vector3* v) const;
 };
@@ -120,7 +118,7 @@ enum class Sum3 { XYZ, ZYX, ZXY };
 
 // atan2(y, x) by FPATAN, unrounded (64-bit significand whatever the precision control).
 __forceinline double Atan2(double y, double x) { return x87::fpatan(y, x); }
-// The game's CRT acos / asin (006E7334 / 006E83D4, the bodies of _CIacos / _CIasin), unrounded.
+// The game's CRT acos / asin (the bodies of _CIacos / _CIasin), unrounded.
 __forceinline double Acos(double c) { return gamecrt::acos(c); }
 __forceinline double Asin(double s) { return libcrt::CiAsin(s); }
 
@@ -175,7 +173,7 @@ __forceinline Vector3 Lerp(const Vector3& a, const Vector3& b, float t) { return
 __forceinline float LerpWeighted(float a, float b, float t) { return (1.0f - t) * a + t * b; }
 
 // A product of float operands left to right, ((a * b) * c) * ..., as the original's chain of FMULs:
-// /fp:fast regroups a product with a repeated factor (R10a: `a * b * d * d` became
+// /fp:fast regroups a product with a repeated factor (`a * b * d * d` became
 // `(a * b) * (d * d)`, one step off under chop rounding). Callers pass loaded floats. Returned
 // unrounded (ST0 after the last FMUL, as `double`): round it with static_cast<float> where the original
 // stores it; an intermediate store would also lose an underflowing product (a denormal factor).
@@ -185,7 +183,7 @@ __forceinline double Product(float first, Rest... rest) {
 }
 
 // The 3-term forms. Generic templates live in namespace vecmath (vecmath::Dot<Sum3::ZYX>; a global
-// template named Dot would make `&Dot`, the hooked 00401E00, ambiguous); the named variants and the
+// template named Dot would make `&Dot`, the hooked, ambiguous); the named variants and the
 // templates whose names are free are global.
 namespace vecmath {
 
@@ -296,11 +294,11 @@ __forceinline float DistanceZXY(const Vector3& a, const Vector3& b) { return Dis
 // Quaternions: the products stay written out at each site (their term orders vary, V1 notes).
 __forceinline Quaternion Conjugate(const Quaternion& q) { return {q.w, -q.x, -q.y, -q.z}; }
 
-// The rotated Y axis of q as Quaternion::AxisY 0040F560 and the game's inlined copies of it compute
+// The rotated Y axis of q as Quaternion::AxisY the game's inlined copies of it compute
 // it: (2(yx - wz), (w^2 - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each
 // doubling an addition (FADD ST0, ST0), each component rounded to float (they store it before
 // negating), nothing stored before that. Precise: /fp:fast had turned these ports' written-out
-// 2(yz + wx) into (2wx + yz) + yz (a second rounding) and 005CA410's -2(yx - wz) into
+// 2(yz + wx) into (2wx + yz) + yz (a second rounding)'s -2(yx - wz) into
 // (wz - yx) + (wz - yx) (+0 where the original's FCHS gives -0; V3c). No float locals: a precise
 // body rounds them through memory, which the originals do not (V3e).
 __forceinline Vector3 RotatedAxisY(const Quaternion& q) {
@@ -308,7 +306,7 @@ __forceinline Vector3 RotatedAxisY(const Quaternion& q) {
             (q.y * q.z + q.w * q.x) * 2.0f};
 }
 
-// The X and Z axes in the orders of Quaternion::AxisX 0040D940 / AxisZ 0040D6B0, each component
+// The X and Z axes in the orders of Quaternion::AxisX / AxisZ, each component
 // rounded to float as those store it (V3e). Precise for the same reason: inlined into /fp:fast code,
 // `(z * x + y * w) * 2` was regrouped into (2zx + yw) + yw. By reference: a precise inlined body
 // spills scalar arguments to memory.
@@ -339,7 +337,7 @@ template <typename T>
 __forceinline T LengthSquared2DUnrounded(T x, T y) { return x * x + y * y; }
 
 // dx * dx + dy * dy of dx = a.x - b.x, dy = a.y - b.y, the differences computed in T, dy first (the
-// order VC6 loads them in AIDistance2 005CFE20 and its inlined copies).
+// order VC6 loads them in AIDistance2 its inlined copies).
 template <typename T>
 __forceinline T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
     T dy = static_cast<T>(a.y) - b.y;
@@ -352,7 +350,7 @@ template <typename T>
 __forceinline T Dot2DUnrounded(T x, T y, T x2, T y2) { return x * x2 + y * y2; }
 
 // d + x * x2 + y * y2 with the offset added first, (d + x * x2) + y * y2: a plane's value at a point
-// (PlaneHeight 006BE3A0, d + nx * x + ny * y; V3f). Not the same as d + Dot2DUnrounded(...).
+// (PlaneHeight, d + nx * x + ny * y; V3f). Not the same as d + Dot2DUnrounded(...).
 template <typename T>
 __forceinline T OffsetDot2DUnrounded(T d, T x, T y, T x2, T y2) { return (d + x * x2) + y * y2; }
 
@@ -377,7 +375,7 @@ __forceinline T DotUnrounded(const Vector3& a, const Vector3& b) { return DotUnr
 template <Sum3 O, typename T = float>
 __forceinline T LengthSquaredUnrounded(const Vector3& v) { return DotUnrounded<O, T>(v.x, v.y, v.z, v.x, v.y, v.z); }
 
-// The 4-term quaternion dot ((w * w' + z * z') + y * y') + x * x' in T (Slerp 0049ED20's order; V3e).
+// The 4-term quaternion dot ((w * w' + z * z') + y * y') + x * x' in T (Slerp 's order; V3e).
 template <typename T>
 __forceinline T DotWZYXUnrounded(const Quaternion& a, const Quaternion& b) {
     return ((static_cast<T>(a.w) * b.w + static_cast<T>(a.z) * b.z) + static_cast<T>(a.y) * b.y) +
@@ -385,7 +383,7 @@ __forceinline T DotWZYXUnrounded(const Quaternion& a, const Quaternion& b) {
 }
 
 // A rotated axis of a quaternion with its components unrounded in T (AxisXUnrounded: the inlined
-// copies of Quaternion::AxisX 0040D940 that keep them on the FPU).
+// copies of Quaternion::AxisX that keep them on the FPU).
 template <typename T>
 struct AxisUnrounded {
     T x, y, z;

@@ -1,10 +1,10 @@
 #pragma once
 
 // MFC 4.2's CString (strcore.cpp, strex.cpp) and the fixed-size block allocator its buffers come
-// from, written out for the standalone exe (ticket S5, docs/notes/standalone.md section 2). Same
+// from, written out for the standalone exe (ticket, docs/notes/standalone.md section 2). Same
 // layout and allocator as the copy linked into game.exe: every body is registered at its library
 // address (mfc_string.cpp), and verify_mfc_string.cpp checked it against the original in the hook
-// build until S21d.
+// build until.
 // The library's helpers (AllocBuffer, ConcatCopy, ...) are public here so they can be registered.
 
 #include "mfc.h"
@@ -23,8 +23,8 @@ namespace mfc::impl {
 // to 64, 128, 256 and 512 characters come from four of them.
 class CFixedAlloc {
 public:
-    CFixedAlloc* Construct(unsigned allocSize, unsigned blockSize);   // 006E6BCD (the constructor; returns this)
-    void Destruct();                                                // 006E6BF5 (the destructor)
+    CFixedAlloc* Construct(unsigned allocSize, unsigned blockSize);   // (the constructor; returns this)
+    void Destruct();                                                // (the destructor)
     void FreeAll();
     void* Alloc();
     void Free(void* block);
@@ -46,7 +46,7 @@ static_assert(sizeof(CFixedAlloc) == 0x28);
 
 #ifndef EI_VECTORS_REPLAY
 // The four string allocators (_afxAlloc64 ... _afxAlloc512, blocks of 64 entries): each built by its static
-// initialiser (00700718 ... 007007AB) and destroyed by the exit function that registers (mfc_string.cpp). In game.exe's
+// initialiser (...) and destroyed by the exit function that registers (mfc_string.cpp). In game.exe's
 // runs the harness builds them itself (tests/verify/harness_startup.cpp): our CString code there (the harness's, the
 // vector recorders') takes its buffers from them, and game.exe's code frees such a buffer into its own allocator of
 // the same size.
@@ -84,7 +84,7 @@ class CString {
 public:
     CString() : data_(PchNil()) {}                  // inline in MFC (Init)
     CString(const CString& source);
-    CString(const char* text);                      // 007009DE (a MAKEINTRESOURCE id loads the string)
+    CString(const char* text);                      // (a MAKEINTRESOURCE id loads the string)
     CString(const char* text, int length);
     ~CString();
 
@@ -104,7 +104,7 @@ public:
     BOOL LoadResourceString(unsigned id);
 
     char* GetBuffer(int minLength);
-    void ReleaseBuffer(int newLength);              // 00700DEF (-1: up to the terminator)
+    void ReleaseBuffer(int newLength);              // (-1: up to the terminator)
     char* GetBufferSetLength(int length);
     char* LockBuffer();
     void UnlockBuffer();
@@ -129,7 +129,7 @@ public:
     void TrimLeft();
     void TrimLeft(char target);
 
-    void __cdecl Format(const char* format, ...);   // 006FDF5F (`this` is the first stack argument)
+    void __cdecl Format(const char* format, ...);   // (`this` is the first stack argument)
     void FormatV(const char* format, va_list arguments);
 
     // The library's helpers.
@@ -142,7 +142,7 @@ public:
     void ConcatInPlace(int length, const char* text);
     void CopyBeforeWrite();
     void AllocBeforeWrite(int length);
-    // The constructor from text in place and operator=(LPCWSTR) (00700B20, thiscall, RET 4) as
+    // The constructor from text in place and operator=(LPCWSTR) as
     // members, so they register by name; both return this.
     CString* ConstructText(const char* text);
     CString* AssignWide(const wchar_t* text);

@@ -1,5 +1,5 @@
 // STLport's _Rb_global<bool> (stlp_tree.h): the node-only algorithms every tree instantiation of
-// the exe shares, registered at their addresses. Checked in game by verify_stlp_tree.cpp until S21d.
+// the exe shares, registered at their addresses. Checked in game by verify_stlp_tree.cpp until.
 #include "stlp_tree.h"
 #include "stlp_tree_cstring.h"
 

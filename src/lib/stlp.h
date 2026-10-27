@@ -99,7 +99,7 @@ string Plus(const string& a, const string& b);
 
 // The vector element policy (stlp_vector.h) of strings: copied with the copy constructor
 // assigned through assign(first, last), destroyed with the buffer freed. A
-// default-constructed one (resize(n), e.g. 004DC900) is empty with room for 8 bytes.
+// default-constructed one (resize(n), e.g.) is empty with room for 8 bytes.
 struct StringElement {
     static void Construct(string* to, const string& from) { new (to) string(from); }
     static void Assign(string& to, const string& from) { to.AssignFrom(from); }
@@ -125,7 +125,7 @@ struct StringHash {
     std::uint32_t operator()(const string& s) const { return s.Hash(); }
 };
 
-// Next STLport bucket count >= n (__stl_prime_list, 0073B914).
+// Next STLport bucket count >= n (__stl_prime_list).
 std::size_t NextPrime(std::size_t n);
 // Lower_bound over [first, last) of dwords (stlp.cpp).
 const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, const std::uint32_t* last,
@@ -161,8 +161,8 @@ public:
 
     hash_map() = default;
 
-    // hashtable(n, hf, eql, a) (e.g. 00405820): the functor bytes, an empty bucket vector, no
-    // elements, then _M_initialize_buckets(n). hash_map() (e.g. 004639D0) is Construct(100) with
+    // hashtable(n, hf, eql, a) (e.g.): the functor bytes, an empty bucket vector, no
+    // elements, then _M_initialize_buckets(n). hash_map (e.g.) is Construct(100) with
     // the functor bytes an uninitialised stack byte (0 here).
     void Construct(std::size_t n, std::uint8_t hasher = 0, std::uint8_t equal = 0, std::uint8_t extract = 0) {
         functors_[0] = hasher;
@@ -173,7 +173,7 @@ public:
         InitializeBuckets(n);
     }
 
-    // _M_initialize_buckets(n) (e.g. 0040AA80): reserve(NextPrime(n)), that many nulls appended at
+    // _M_initialize_buckets(n) (e.g.): reserve(NextPrime(n)), that many nulls appended at
     // the end, no elements.
     void InitializeBuckets(std::size_t n) {
         std::size_t buckets = NextPrime(n);
@@ -183,7 +183,7 @@ public:
         count_ = 0;
     }
 
-    // 006729E0 (_M_initialize_buckets on a table the owner zeroed): an empty table with
+    // An empty table with
     // NextPrime(n) buckets in a fresh block.
     void InitBuckets(std::size_t n);
 
@@ -191,14 +191,14 @@ public:
     std::size_t Size() const { return count_; }
     std::size_t BucketOf(const Key& key) const { return Hash()(key) % BucketCount(); }
 
-    // find(key) (e.g. 00405560): the node holding `key`, or null.
+    // find(key) (e.g.): the node holding `key`, or null.
     Node* Find(const Key& key) const {
         for (Node* n = buckets_[BucketOf(key)]; n; n = n->next)
             if (n->key == key) return n;
         return nullptr;
     }
 
-    // find_or_insert(obj) (e.g. 004065D0): resize(count + 1), then the node with obj's key in its
+    // find_or_insert(obj) (e.g.): resize(count + 1), then the node with obj's key in its
     // bucket, else a copy of obj in a new node at the head of the bucket.
     Node* FindOrInsert(const Pair& obj) {
         Resize(count_ + 1);
@@ -213,7 +213,7 @@ public:
         return node;
     }
 
-    // operator[] (e.g. 004055A0): find_or_insert of {key, Value()}.
+    // operator[] (e.g.): find_or_insert of {key, Value}.
     Value& operator[](const Key& key) {
         Resize(count_ + 1);
         std::size_t b = BucketOf(key);
@@ -229,7 +229,7 @@ public:
         return n->value;
     }
 
-    // operator[] as STLport writes it for a key with a copy constructor (e.g. 004297A0): a
+    // operator[] as STLport writes it for a key with a copy constructor (e.g.): a
     // temporary {key, Value()} for find_or_insert (copied into a new node when the key is
     // missing), destroyed after.
     Value& Subscript(const Key& key) {
@@ -243,14 +243,14 @@ public:
             for (Node* n = buckets_[i]; n; n = n->next) f(n);
     }
 
-    // begin() (e.g. 0059C020): the head of the first non-empty bucket, or null.
+    // begin (e.g.): the head of the first non-empty bucket, or null.
     Node* First() const {
         for (std::size_t b = 0; b < BucketCount(); ++b)
             if (buckets_[b]) return buckets_[b];
         return nullptr;
     }
 
-    // _Ht_iterator::_M_skip_to_next() (e.g. 004073C0): the head of the first non-empty bucket after
+    // _Ht_iterator::_M_skip_to_next (e.g.): the head of the first non-empty bucket after
     // the one `node`'s key hashes to now, or null.
     Node* SkipToNext(const Node* node) const {
         std::size_t b = BucketOf(node->key);
@@ -258,31 +258,31 @@ public:
         while (!next && ++b < BucketCount()) next = buckets_[b];
         return next;
     }
-    // iterator::operator++ (e.g. 0059B8A0): the next node of the chain, else SkipToNext (so a
+    // iterator::operator++ (e.g.): the next node of the chain, else SkipToNext (so a
     // rehash while iterating moves the walk the way the original's does).
     Node* After(const Node* node) const { return node->next ? node->next : SkipToNext(node); }
 
-    // erase(iterator) (e.g. 00405620): unlink and delete one node (nothing for null or a node that
+    // erase(iterator) (e.g.): unlink and delete one node (nothing for null or a node that
     // is not in its bucket's chain).
     void Erase(Node* node);
-    // erase(key) (e.g. 006BCCD0): the nodes after the bucket's head that hold `key` deleted, then
+    // erase(key) (e.g.): the nodes after the bucket's head that hold `key` deleted, then
     // the head when it does; the number deleted.
     std::size_t EraseKey(const Key& key);
 
-    // clear() (e.g. 004067B0): free every node, keep the buckets.
+    // clear (e.g.): free every node, keep the buckets.
     void Clear();
 
-    // ~hashtable (e.g. 004A8B70): clear(), then the bucket storage freed.
+    // ~hashtable (e.g.): clear, then the bucket storage freed.
     void Destroy() {
         Clear();
         buckets_.FreeStorage();
     }
 
-    // resize(hint) (e.g. 00406640): grow to the next prime and rehash, moving nodes to the head of
+    // resize(hint) (e.g.): grow to the next prime and rehash, moving nodes to the head of
     // new buckets.
     void Resize(std::size_t hint);
 
-    // _M_new_node(obj) (e.g. 00407420): a node from the pool, no next, a copy of obj.
+    // _M_new_node(obj) (e.g.): a node from the pool, no next, a copy of obj.
     static Node* NewNode(const Pair& obj) {
         Node* n = allocate_as<Node>();
         n->next = nullptr;
@@ -290,7 +290,7 @@ public:
         new (&n->value) Value(obj.value);
         return n;
     }
-    // _M_delete_node(n) (e.g. 004074B0): the key destroyed, the node back to the pool.
+    // _M_delete_node(n) (e.g.): the key destroyed, the node back to the pool.
     static void DeleteNode(Node* n) {
         n->key.~Key();
         deallocate(n, sizeof(Node));

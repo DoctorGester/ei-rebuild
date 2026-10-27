@@ -48,7 +48,7 @@ private:
 
 } // namespace
 
-// --- 00607360 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::FindTopics(int personId) {
     BriefingVariables variables(TopicPrefix());
@@ -87,7 +87,7 @@ void CBriefingScreen::FindTopics(int personId) {
 }
 EI_REWRITTEN(0x00607360, CBriefingScreen::FindTopics);
 
-// --- 006078C0 -----------------------------------------------------------------------------------
+// --- -----------------------------------------------------------------------------------
 
 mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) {
     mfc::CString title;

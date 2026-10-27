@@ -161,7 +161,7 @@ namespace {
 constexpr int kHistoryDepth = 30;
 
 mfc::CString MidOf(const mfc::CString& s, int first) { return s.Mid(first); }
-// 006FD56E (stdcall). operator+(const CString&, TCHAR).
+// Operator+(const CString&, TCHAR).
 // CStringArray::InsertAt(index, const CString&, count).
 // Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code
 // page, as addon's helpers do (EI_UTF8: from UTF-8, system_text.h).
@@ -222,7 +222,7 @@ std::string ClipboardText() {
 
 } // namespace
 
-// Typed characters (U4: with EI_UTF8 code points, stored as UTF-8; the caret is a byte offset at a
+// Typed characters (with EI_UTF8 code points, stored as UTF-8; the caret is a byte offset at a
 // character's start and moves by character). Backspace deletes the selection or the character before the caret,
 // Enter enters the line (into the history, at most 30, echoed with "> ", then executed), Escape
 // clears the line, Tab does nothing; other characters replace the selection, except while Ctrl is

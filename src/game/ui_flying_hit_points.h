@@ -1,7 +1,7 @@
 #pragma once
 
-// The numbers that fly up from units hit (the world client's; constructed by 00563710, destroyed by
-// 00563290, drawn by 005E18E0). Names provisional.
+// The numbers that fly up from units hit (the world client's; constructed, destroyed by
+// drawn). Names provisional.
 
 #include "lib/stlp.h"
 

@@ -39,13 +39,13 @@ constexpr double kUnitScale = std::bit_cast<double>(0x3DF0000000100000ull);
 constexpr const char kHumanPrefix[] = "unhu";
 
 constexpr float kMaxSlope = 0.3f;
-constexpr float kAllySpace = 2.5f;                  // 0073CE18 x the standing height
+constexpr float kAllySpace = 2.5f;                  // x the standing height
 constexpr float kRangePerDistance = 3.0f;
 constexpr float kRangeBase = 10.0f;
 constexpr float kOne = 1.0f;
 constexpr float kHalf = 0.5f;                       // half-cells to world units
 constexpr float kDetourFactor = 5000.0f;
-constexpr float kCooldownPerDistance = std::bit_cast<float>(0x3EAAAAABu);   // 0073D9A4 (1 / 3)
+constexpr float kCooldownPerDistance = std::bit_cast<float>(0x3EAAAAABu);   // (1 / 3)
 constexpr int kMaxCooldown = 10;
 
 constexpr int kFollowWait = 8;
@@ -55,7 +55,7 @@ constexpr int kLeaderFirstStep = 6;
 constexpr int kLeaderLastStep = 100;
 constexpr int kLeaderSide = 40;
 constexpr float kOnTheWaySq = 1.3f;
-constexpr float kSideOffset = std::bit_cast<float>(0x3FAEB851u);    // 0073FFD8 (1.365)
+constexpr float kSideOffset = std::bit_cast<float>(0x3FAEB851u);    // (1.365)
 constexpr float kReachedSq = 0.1f;
 constexpr float kPassRange = 10.0f;
 constexpr float kPassTime = 20.0f;
@@ -63,7 +63,7 @@ constexpr int kOrderMove = 1;
 
 constexpr float kSamePointSq = 0.01f;
 
-// 007C5404 / 007C5408: how close a follower stays and how far its goal may drift before it walks
+// how close a follower stays and how far its goal may drift before it walks
 // again (set at startup).
 float FollowNear() { return GameLogicSettings().followMinDist; }
 float FollowFar() { return GameLogicSettings().followMaxDist; }
@@ -71,7 +71,7 @@ float FollowFar() { return GameLogicSettings().followMaxDist; }
 CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
-// The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
+// The CPtrList the sector map fills (blocks of 10).
 void InitUnitList(mfc::CTypedPtrList<CUnit>& list) {
     list = {};
     list.vtable = mfc::impl::PtrListClass::Vtable();

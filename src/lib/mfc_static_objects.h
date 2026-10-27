@@ -36,7 +36,7 @@ extern CThreadLocalObject g_ctl3dThreadLocal;
 extern CProcessLocalObject g_ctl3dStateLocal;
 extern CProcessLocalObject g_winStateLocal;
 
-// _afxDBCS: AfxInitDbcs's result, stored by its initialiser (read in game.exe only by _AfxCbtFilterHook, 00704BE6:
+// _afxDBCS: AfxInitDbcs's result, stored by its initialiser (read in game.exe only by _AfxCbtFilterHook,:
 // no game window is a CWnd).
 extern BOOL g_afxDbcs;
 

@@ -3,11 +3,11 @@
 // (render::TlDraw; with the old path's meshes off the old draw is skipped). Both draw untextured
 // one-colour strips: stage 0's colour and alpha operations off around the draw, back to MODULATE
 // after it. See docs/notes/renderer.md ("Pass state").
-// - 005045D0 (virtual slot 20 of the renderer 007AF060, vtable 0073D93C): a strip through integer
+// - a strip through integer
 //   screen points. No caller found in the exe (not reached by the scenarios).
-// - 0049B4B0 (the device object): a strip through points the transform pipeline projected; the
-//   draw of the renderer's line lists (0049B780, slot 15 00501CE0: the figure parts' debug bounds
-//   boxes of 005A7290, the world client's line lists in 00569D60). Debug drawing; not reached by
+// - (the device object): a strip through points the transform pipeline projected; the
+//   draw of the renderer's line lists (the figure parts' debug bounds
+//   boxes, the world client's line lists). Debug drawing; not reached by
 //   the scenarios. Its vertices go to a growing buffer in the exe's data.
 #include "renderer_lines.h"
 
@@ -38,7 +38,7 @@ constexpr D3DTEXTURESTAGESTATETYPE kColourOp = D3DTSS_COLOROP, kAlphaOp = D3DTSS
 constexpr DWORD kOpDisable = D3DTOP_DISABLE, kOpModulate = D3DTOP_MODULATE;
 constexpr DWORD kFvf = 0xC4;   // XYZRHW | DIFFUSE | SPECULAR
 
-// 0049BB10 inlined: `count` vertices from the game's heap, 32-byte aligned, the block's own
+// inlined: `count` vertices from the game's heap, 32-byte aligned, the block's own
 // address in the dword before them (freed through it).
 LineVertex* NewVertices(int count) {
     return lib::AlignedArray<LineVertex>::Allocate(count);
@@ -67,7 +67,7 @@ void SetStageOps(CTextureDevice* device, DWORD op) {
 
 } // namespace
 
-// 005045D0 (thiscall on the renderer, RET 8). Fewer than two points: 0. Else the strip in
+// Fewer than two points: 0. Else the strip in
 // `colour` (opaque), the vertices in a temporary array; returns 1.
 int CSceneRenderer::Polyline(const ScreenPoints* points, std::uint32_t colour) {
     int count = points->count;
@@ -91,7 +91,7 @@ int CSceneRenderer::Polyline(const ScreenPoints* points, std::uint32_t colour) {
 }
 EI_REWRITTEN(0x005045D0, CSceneRenderer::Polyline);
 
-// 0049B4B0 (fastcall: the device object, the points; `colour` on the stack, RET 4). Flat shaded
+// Flat shaded
 // (Gouraud again after); returns the last SetRenderState's result.
 long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour) {
     LineBuffer& buffer = LineVertices();
@@ -135,9 +135,9 @@ long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoint
 }
 EI_REWRITTEN(0x0049B4B0, DeviceDrawLineStrip);
 
-// The line lists' work arrays (renderer_lines.h): zero at the start, as the static initialisers 0049B460 and
-// 0049B6E0 leave them; the exit functions they register free the blocks (docs/notes/standalone.md, "The static
-// initialisers' objects"). 0049B730's array is never used: config/unread_data.csv.
+// The line lists' work arrays (renderer_lines.h): zero at the start, as the static initialisers
+// leave them; the exit functions they register free the blocks (docs/notes/standalone.md, "The static
+// initialisers' objects"). 's array is never used: config/unread_data.csv.
 constinit LineBuffer g_lineVertices = /*007A9CE0*/ {};
 constinit lib::AlignedArray<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
 constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes = /*007A9CC8*/ {};
@@ -147,10 +147,10 @@ void __cdecl FreeLineVertices() {
     if (g_lineVertices.data) lib::FreeAligned32(g_lineVertices.data);
 }
 void __cdecl FreeLineProjected() { g_lineProjected.FreeData(); }
-void __cdecl DestroyLineOutcodes() {   // 0049B6D0 (CByteArray's destructor 006FF61D)
+void __cdecl DestroyLineOutcodes() {   // (CByteArray's destructor)
     mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
 }
-void __cdecl ConstructLineOutcodes() {   // 0049B6B0 (CByteArray's constructor 006FF5EA)
+void __cdecl ConstructLineOutcodes() {   // (CByteArray's constructor)
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
     libcrt::AtExit(DestroyLineOutcodes);
 }

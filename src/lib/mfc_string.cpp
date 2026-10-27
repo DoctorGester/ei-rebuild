@@ -19,7 +19,7 @@ namespace mfc::impl {
 #ifndef EI_VECTORS_REPLAY
 namespace {
 
-// The shared empty string: _afxInitData {-1, 0, 0} (game.exe's 00796E50) and its characters right after it.
+// The shared empty string: _afxInitData {-1, 0, 0} and its characters right after it.
 struct NilString {
     CStringData data;
     char chars[4];

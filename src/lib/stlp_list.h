@@ -39,9 +39,9 @@ struct list {
     Node* End() const { return head; }
     bool Empty() const { return head->next == head; }
 
-    // For a local list the original builds and drops in one function (e.g. the id lists of
-    // 00498480): the constructor (00404A70: a sentinel from the pool, linked to itself),
-    // push_back (insert(end(), value), 00404A40: one node from the pool) and the destructor
+    // For a local list the original builds and drops in one function e.g. the id lists of
+    // the constructor (a sentinel from the pool, linked to itself),
+    // push_back (insert(end, value),: one node from the pool) and the destructor
     // (clear, then the sentinel back to the pool), allocating in the original's order.
     void Construct() {
         head = allocate_as<Node>();
@@ -76,14 +76,14 @@ struct list {
         head->prev = head;
     }
 
-    // _M_create_node(x) (e.g. 00425710): a node from the pool, then the element copied into it.
+    // _M_create_node(x) (e.g.): a node from the pool, then the element copied into it.
     template <typename E = Element<T>>
     static Node* CreateNode(const T& x) {
         Node* node = allocate_as<Node>();
         E::Copy(&node->data, x);
         return node;
     }
-    // insert(pos, x) (e.g. 00404A40): _M_create_node(x), linked in before `pos`. The list itself
+    // insert(pos, x) (e.g.): _M_create_node(x), linked in before `pos`. The list itself
     // is not read.
     template <typename E = Element<T>>
     static Node* Insert(Node* pos, const T& x) {
@@ -94,7 +94,7 @@ struct list {
         pos->prev = node;
         return node;
     }
-    // insert(pos) (e.g. 0040A8D0): insert(pos, T()). The default element is made on the stack
+    // insert(pos) (e.g.): insert(pos, T). The default element is made on the stack
     // (E::Default), copied into the new node as insert(pos, x) copies, then destroyed (E::Destroy).
     template <typename E = Element<T>>
     static Node* InsertDefault(Node* pos) {
@@ -105,13 +105,13 @@ struct list {
         E::Destroy(value);
         return node;
     }
-    // insert(pos, first, last) (e.g. 004795B0): a copy of each element of [first, last) inserted
+    // insert(pos, first, last) (e.g.): a copy of each element of [first, last) inserted
     // before `pos`, in order.
     template <typename E = Element<T>>
     static void InsertRange(Node* pos, const Node* first, const Node* last) {
         for (; first != last; first = first->next) Insert<E>(pos, first->data);
     }
-    // erase(pos) (e.g. 00420290): unlinked first, then the element destroyed and the node returned
+    // erase(pos) (e.g.): unlinked first, then the element destroyed and the node returned
     // to the pool; returns the node that followed it.
     template <typename E = Element<T>>
     static Node* Erase(Node* pos) {
@@ -123,24 +123,24 @@ struct list {
         deallocate(pos, sizeof(Node));
         return next;
     }
-    // list(const list&) (e.g. 00437930): a sentinel, then a copy of each element of `from`.
+    // list(const list&) (e.g.): a sentinel, then a copy of each element of `from`.
     template <typename E = Element<T>>
     void CopyConstruct(const list& from) {
         Construct();
         InsertRange<E>(head, from.First(), from.End());
     }
-    // clear() (e.g. 00427100).
+    // clear (e.g.).
     template <typename E = Element<T>>
     void Clear() {
         ClearWith([](T* p) { E::Destroy(p); });
     }
-    // ~list() (e.g. 00423370): clear(), then the sentinel back to the pool.
+    // ~list (e.g.): clear, then the sentinel back to the pool.
     template <typename E = Element<T>>
     void Release() {
         Clear<E>();
         deallocate(head, sizeof(Node));
     }
-    // remove(value) (e.g. 00427320): erases every element `same` as `value`; `value` is read again
+    // remove(value) (e.g.): erases every element `same` as `value`; `value` is read again
     // for each node (it may be one of the elements).
     template <typename E = Element<T>, typename Same>
     void Remove(const T& value, Same same) {
@@ -151,7 +151,7 @@ struct list {
             first = next;
         }
     }
-    // distance(first, last, n) (e.g. 00429040): adds the number of nodes from first to last to n.
+    // distance(first, last, n) (e.g.): adds the number of nodes from first to last to n.
     static void Distance(const Node* first, const Node* last, int& n) {
         for (; first != last; first = first->next) ++n;
     }
@@ -167,14 +167,14 @@ struct list {
         last->prev = first->prev;
         first->prev = tmp;
     }
-    // splice(pos, x, i) (e.g. 004380C0): the node `i` moved before `pos` (nothing when pos is i or
+    // splice(pos, x, i) (e.g.): the node `i` moved before `pos` (nothing when pos is i or
     // the node after it).
     static void SpliceOne(Node* pos, Node* i) {
         Node* j = i->next;
         if (pos == i || pos == j) return;
         Transfer(pos, i, j);
     }
-    // splice(pos, x, first, last) (e.g. 00438770).
+    // splice(pos, x, first, last) (e.g.).
     static void SpliceRange(Node* pos, Node* first, Node* last) {
         if (first != last) Transfer(pos, first, last);
     }
@@ -195,7 +195,7 @@ struct ListAbi : list<T> {
     using List = list<T>;
     using Node = typename List::Node;
 
-    // list(const allocator_type&) (e.g. 00404A70; RET 4): returns this.
+    // list(const allocator_type&) (e.g.): returns this.
     List* Construct(const void* /*allocator*/) {
         List::Construct();
         return this;
@@ -205,42 +205,42 @@ struct ListAbi : list<T> {
         self->Construct();
         return self;
     }
-    // ~list() (e.g. 00423370).
+    // ~list (e.g.).
     static void __fastcall Destruct(List* self) { self->template Release<E>(); }
-    // clear() (e.g. 00427100).
+    // clear (e.g.).
     static void __fastcall Clear(List* self) { self->template Clear<E>(); }
-    // _M_create_node(x) (e.g. 00482C30; RET 4): the list is not read; the node's links are left as
+    // _M_create_node(x) (e.g.): the list is not read; the node's links are left as
     // the pool had them.
     Node* CreateNode(const T& x) { return List::template CreateNode<E>(x); }
-    // insert(pos, x) (e.g. 00404A40; RET 0xC). The list is not read (0062C090 is called with any
+    // insert(pos, x) (e.g.). The list is not read (is called with any
     // ECX).
     Node** Insert(Node** out, Node* pos, const T& x) {
         *out = List::template Insert<E>(pos, x);
         return out;
     }
-    // insert(pos) (e.g. 0040A8D0; RET 8): insert(pos, T()).
+    // insert(pos) (e.g.): insert(pos, T).
     Node** InsertDefault(Node** out, Node* pos) {
         *out = List::template InsertDefault<E>(pos);
         return out;
     }
-    // list(const list& x) (e.g. 00437930; RET 4): a sentinel, then insert(end(), x.begin(), x.end());
+    // list(const list& x) (e.g.): a sentinel, then insert(end, x.begin, x.end);
     // returns this.
     List* CopyConstruct(const List* from) {
         List::Construct();
         List::template InsertRange<E>(this->head, from->First(), from->End());
         return this;
     }
-    // insert(pos, first, last) (e.g. 004795B0; RET 0xC).
+    // insert(pos, first, last) (e.g.).
     void InsertRange(Node* pos, const Node* first, const Node* last) {
         List::template InsertRange<E>(pos, first, last);
     }
-    // push_back(x) (e.g. 004207C0; RET 4): insert(end(), x).
+    // push_back(x) (e.g.): insert(end, x).
     void PushBack(const T& x) { List::template Insert<E>(this->head, x); }
     // push_back(): insert(end()).
     static void __fastcall PushBackDefault(List* self) { List::template InsertDefault<E>(self->head); }
     // pop_back(): erase(--end()).
     static void __fastcall PopBack(List* self) { List::template Erase<E>(self->head->prev); }
-    // erase(pos) (e.g. 00420290; RET 8): the list itself is not read.
+    // erase(pos) (e.g.): the list itself is not read.
     Node** Erase(Node** out, Node* pos) {
         *out = List::template Erase<E>(pos);
         return out;
@@ -258,8 +258,8 @@ typename list<T>::Node* AsNode(Node* node) {
     return reinterpret_cast<typename list<T>::Node*>(node);
 }
 
-// remove(value) of a list<int> (00511FB0; RET 4; S16a: the light factory's lit ids): every element equal
-// to *value (read again for each node) erased, through 00512030.
+// remove(value) of a list<int> (: the light factory's lit ids): every element equal
+// to *value (read again for each node) erased,.
 void ListRemoveInt(list<int>* self, const int& value);
 
 } // namespace stlp

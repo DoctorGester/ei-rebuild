@@ -1,6 +1,6 @@
-// The software cursor (CCursor, ui_cursor.h): its set-up Init 005E60B0 and AddShape 005E63F0 (called
-// by the cursor set-up 005DAEA0, cursor_setup.cpp, at start and after a display reset), its life
-// cycle, shape and lock (005E4E00-005E67B0) and the position update the drawing thread runs
+// The software cursor (CCursor, ui_cursor.h): its set-up Init AddShape (called
+// by the cursor set-up, cursor_setup.cpp, at start and after a display reset), its life
+// cycle, shape and lock and the position update the drawing thread runs
 //. docs/notes/ui.md, section 3.
 #include "ui_cursor.h"
 
@@ -27,7 +27,7 @@ void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
     if (old) old->Release();
 }
 
-// A new off-screen surface of the screen's format (004EF7B0 through its address); null when the
+// A new off-screen surface of the screen's format (through its address); null when the
 // allocation fails.
 CDXSurface* NewSurface(CTextureDevice* device, LONG width, LONG height) {
     return new CDXSurface(device, width, height);
@@ -77,7 +77,7 @@ void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
 }
 EI_REWRITTEN(0x005E63F0, CCursor::AddShape);
 
-// --- The cursor's life cycle and state (005E4E00-005E67B0) ---------------------------------------
+// --- The cursor's life cycle and state ---------------------------------------
 
 namespace {
 
@@ -124,7 +124,7 @@ void CCursor::DestroyBody() {
 }
 EI_REWRITTEN(0x005E4E00, CCursor::DestroyBody);
 
-// The cursor, zero at the start: built by the static initialiser 005E4DD0 in the list's order and destroyed by the exit
+// The cursor, zero at the start: built by the static initialiser in the list's order and destroyed by the exit
 // function it registers; both ported on the name and registered at their addresses (docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit lib::StaticObject<CCursor> g_cursor = /*007C7BD8*/ {};

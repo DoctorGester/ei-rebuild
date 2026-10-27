@@ -216,7 +216,7 @@ const void* __fastcall FileFindRuntimeClass(const void*) { return &kClassCFileFi
 namespace {
 
 // CFile's 21 slots (MFC 4.2's CFile virtuals), each the body of `File` that game.exe's table points at: CFile's
-// for game.exe's 00745DF4, CStdioFile's own (or the CFile one it inherits) for 007464F0.
+// for, CStdioFile's own (or the CFile one it inherits) for.
 template <typename Self, typename File, const CRuntimeClass* kClass>
 struct FileTable : ei::CompiledTag<Self> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return kClass; }                       // 0
@@ -250,11 +250,11 @@ protected:
     const File* This() const { return this->template ObjectAs<File>(); }
 };
 
-// game.exe's 00745DF4 (0: 0070BE58, 1: 00701050, 3-20: 007013B9 ... 0070150F).
+// (0: 1: 3-20: ...).
 struct PlainFileTable final : FileTable<PlainFileTable, CFile, &kClassCFile> {};
 
-// game.exe's 007464F0 (0: 0070C15B, 1: 00701B8F): CStdioFile's slots 3, 8-10, 13-19, the CFile ones at 4-7 / 11 /
-// 12 / 20, and 21-23 its own. UnlockRange (16, 0070204B) is LockRange's body (not supported).
+// CStdioFile's slots 3, 8-10, 13-19, the CFile ones at 4-7 / 11 /
+// 12 / 20, and 21-23 its own. UnlockRange is LockRange's body (not supported).
 struct StdioFileTable final : FileTable<StdioFileTable, CStdioFile, &kClassCStdioFile> {
     void UnlockRange(unsigned long position, unsigned long count) override { This()->LockRange(position, count); }
     virtual void WriteString(const char* text) { This()->WriteString(text); }                     // 21
@@ -262,7 +262,7 @@ struct StdioFileTable final : FileTable<StdioFileTable, CStdioFile, &kClassCStdi
     virtual char* ReadString(char* buffer, unsigned size) { return This()->ReadString(buffer, size); }   // 23
 };
 
-// CFileFind's 19 slots (game.exe's 00745EE8; 0: 0070BE5E, 1: 006E6391, 3-18: 006E684B ... 006E6429).
+// CFileFind's 19 slots (game.exe's; 0: 1: 3-18: ...).
 struct FileFindTable final : ei::CompiledTag<FileFindTable> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return &kClassCFileFind; }             // 0
     virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }     // 1

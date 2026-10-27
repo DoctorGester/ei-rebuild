@@ -1,6 +1,6 @@
 // The interface code's view of the IDirect3DDevice7 (UiD3DDevice, ui.h): each method goes through
 // device.h's call of the same name, which uses the interface, or without DirectDraw the switch-over
-// device's state (ticket R9b, docs/notes/renderer.md section 9).
+// device's state (ticket, docs/notes/renderer.md section 9).
 #include "ui.h"
 
 #include "device.h"

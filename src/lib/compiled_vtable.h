@@ -47,7 +47,7 @@ struct DeleteTarget<R (C::*)(Flags)> {
     using Type = C;
 };
 
-// A one-slot table whose slot 0 is the class's scalar deleting destructor (thiscall, the flags, RET 4: the
+// A one-slot table whose slot 0 is the class's scalar deleting destructor (the flags: the
 // destructor's body, the memory freed when bit 0 is set; returns the object): `Delete` is that member.
 template <typename Self, auto Delete>
 class CompiledDeleter : public CompiledTag<Self> {

@@ -73,9 +73,9 @@ CUnitClientSpecific::~CUnitClientSpecific() {
         source->Release();
         source = nullptr;
     }
-    ReleaseFace(this);   // 004EBE60 with null; the original's release test after it finds null
+    ReleaseFace(this);   // with null; the original's release test after it finds null
     blinks = 0;
-    // The speech queue: every node, then the header, freed (005393B0; no destructors).
+    // The speech queue: every node, then the header, freed (no destructors).
     for (ClientSpeechNode* node = speech->next; node != speech;) {
         ClientSpeechNode* next = node->next;
         stlp::deallocate(node, sizeof(ClientSpeechNode));

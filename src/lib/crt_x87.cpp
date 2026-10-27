@@ -1,11 +1,11 @@
 // The game CRT's x87 entry points with register arguments (docs/notes/standalone.md): _ftol (ST0 in, its
-// 64-bit truncation in EDX:EAX, ST0 popped) and the _CI maths (_CIacos, _CIasin: ST0 in and out; _CIpow: ST1
+// 64-bit truncation in EDX:EAX, ST0 popped) and the _CI maths (_CIacos, _CIasin: ST0 in and out; _CIpow:
 // and ST0 in, the result in ST0; fmod and _CIfmod are the host CRT's std::fmod). A C++ function cannot be declared with that ABI, so each is a
 // naked entry that moves its arguments to the stack and calls a plain C++ body; this file is the one in
 // src/lib that tools/check_cleanup.py lets hold __asm, for these entries only.
 // Registered for the standalone image only (EI_REPLACE_STANDALONE): the hook build keeps the exe's own, so
 // its x87 results (and the goldens recorded with them) stay the original's. verify_crt_x87.cpp
-// compared every entry with the original at start-up (until S21d).
+// compared every entry with the original at start-up (until).
 #include "crt.h"
 
 #include "ei/hook.h"
@@ -23,14 +23,14 @@ namespace {
 constexpr std::uint64_t kMantissa = 0x000FFFFFFFFFFFFFull;
 constexpr std::uint64_t kQuiet = 0x0008000000000000ull;
 constexpr std::uint64_t kSign = 0x8000000000000000ull;
-// The x87 real indefinite as a double: the CRT's error result (the long double at 00797B30).
+// The x87 real indefinite as a double: the CRT's error result (the long double).
 constexpr std::uint64_t kIndefinite = 0xFFF8000000000000ull;
 constexpr std::uint64_t kInfinity = 0x7FF0000000000000ull;
-// pi and pi / 2 (FLDPI, and the long double at 00797B3A) as the callers store them.
+// pi and pi / 2 (FLDPI, and the long double) as the callers store them.
 constexpr double kPi = 3.141592653589793;
 constexpr double kHalfPi = 1.5707963267948966;
 
-// The game CRT's math function names by their code (read by 006F06AC and 006F0FBF, its math error reporting, which
+// The game CRT's math function names by their code (read, its math error reporting, which
 // has no registration: nothing of the image reads the table). Named so that its bytes come from here.
 struct MathFunctionName {
     int code;
@@ -64,7 +64,7 @@ bool IsInfinite(std::uint64_t bits) { return Exponent(bits) == 0x7FF && (bits & 
 // precision (24 bits on the game's main thread). The bodies compute at 53 bits and round with Round where
 // the original's instructions round. (FYL2X, F2XM1, FPATAN and FPREM ignore the precision.)
 // (_hypot computes at 64 bits: `precision`.) The word is loaded only when it differs from the caller's,
-// and put back only then (SV10i: FNSTCW / FLDCW, not __control87_2's conversions; the same words).
+// and put back only then (FNSTCW / FLDCW, not __control87_2's conversions; the same words).
 class MathControlWord {
 public:
     explicit MathControlWord(std::uint32_t precision = x87::kPrecision53) : saved_(x87::ControlWord()) {
@@ -105,7 +105,7 @@ private:
 };
 
 // frexp and ldexp by the bits for normal doubles (both exact, so the same results as std::frexp /
-// std::ldexp, which save, set and restore the control word around every call: SV10i); zeros,
+// std::ldexp, which save, set and restore the control word around every call); zeros,
 // subnormals, infinities and NaNs, and results outside the normal range, go to them.
 constexpr std::uint64_t kExponentBits = 0x7FF0000000000000ull;
 
@@ -361,7 +361,7 @@ EI_REWRITTEN(0x006E83D4, libcrt::CiAsin);
 EI_REWRITTEN(0x006FD026, libcrt::Hypot);
 EI_REWRITTEN(0x006E83C0, libcrt::CiAsinEntry);
 
-// ST1 = x, ST0 = y.
+//= x, ST0 = y.
 __declspec(naked) double __cdecl CiPowEntry() {
     __asm {
         push ecx

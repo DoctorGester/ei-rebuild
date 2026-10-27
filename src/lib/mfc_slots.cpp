@@ -1,8 +1,8 @@
 // The scalar deleting destructors the exe's vtables point at and the destructors they call, for the
-// instantiations whose elements need nothing of the game (mfc_slots.h, ticket S6a); the game-element
+// instantiations whose elements need nothing of the game (mfc_slots.h); the game-element
 // ones are in src/game/game_slots.cpp. Each deleting destructor calls its class's destructor directly
-// (the original calls it by address), the destructors are the S6 / S7 templates. Checked in game by
-// verify_mfc_slots.cpp until S21d.
+// (the original calls it by address), the destructors are thetemplates. Checked in game by
+// verify_mfc_slots.cpp until.
 #include "mfc_slots.h"
 
 #include "crt.h"
@@ -320,7 +320,7 @@ EI_REWRITTEN(0x00452650, Map32::Serialize);   // CornerMapCClass
 EI_REWRITTEN(0x004761C0, Map32::Serialize);   // DwordMapClass
 
 // Arrays whose elements SetSize builds (zeroed, then their fields) and nothing destroys.
-EI_REWRITTEN(0x00451060, KeyFrames::Serialize);   // vtable 0073C12C
+EI_REWRITTEN(0x00451060, KeyFrames::Serialize);
 EI_REWRITTEN(0x004C9510, Placements::Serialize);   // PartySlotArrayClass
 EI_REWRITTEN(0x00511E20, SoundRecords::Serialize);   // EffectSoundArrayClass
 EI_REWRITTEN(0x005396E0, PathRecords::Serialize);   // SkinLayerArrayClass
@@ -335,12 +335,12 @@ EI_REWRITTEN(0x0045DC60, OwnedPatrols::Serialize);   // PatrolArrayClass
 EI_REWRITTEN(0x0045FCB0, OwnedAllods::Serialize);   // AllodArrayClass
 EI_REWRITTEN(0x004C88E0, ScriptAreas::Serialize);   // ScriptAreaArrayClass
 EI_REWRITTEN(0x006C4A40, ByteArrays::Serialize);   // TerrainByteArraysClass
-EI_REWRITTEN(0x005D9610, AiLookRecords::Serialize);   // vtable 0073FF74
+EI_REWRITTEN(0x005D9610, AiLookRecords::Serialize);
 EI_REWRITTEN(0x00450D40, AlignedAt4Records::Serialize);   // AlignedAt4ArrayClass
 EI_REWRITTEN(0x0050A210, AlignedAt8Records::Serialize);   // AlignedAt8ArrayClass
 EI_REWRITTEN(0x00450570, OwnedBoneLinkArrays::Serialize);   // FakeUnitBoneArraysClass
 EI_REWRITTEN(0x00476430, OwnedDwordMaps::Serialize);   // SceneObjectArrayClass
-EI_REWRITTEN(0x006C4C90, AlignedArrays::Serialize);   // vtable 007441B4
+EI_REWRITTEN(0x006C4C90, AlignedArrays::Serialize);
 EI_REWRITTEN(0x00451A70, NamedStrings::Serialize);   // TextureNameArrayClass
 
 // Records with CStrings.
@@ -357,7 +357,7 @@ EI_REWRITTEN(0x005B1A00, List8::Serialize);           // AiMapListClass
 EI_REWRITTEN(0x005CDC00, List30::Serialize);          // StaticListClass
 EI_REWRITTEN(0x005D9A40, AttentionList::Serialize);   // AttentionListClass
 
-// CArray<CString> (vtables 0073D2D4 / 0073D2F8) and its SerializeElements.
+// CArray<CString> and its SerializeElements.
 EI_REWRITTEN(0x004C2700, Strings::Serialize);
 EI_REWRITTEN(0x007085AF, SerializeStrings);
 

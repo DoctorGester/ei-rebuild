@@ -1,4 +1,4 @@
-// The renderer's rectangle (005041F0, virtual slot 19 of the renderer at 007AF060, vtable 0073D93C,
+// The renderer's rectangle (
 // RET 0x18): a black rectangle with the given alpha, filled as two pre-transformed triangles over
 // the current blend state, and with `outline` a white one-pixel frame drawn as a line strip around
 // it (the fill then stays a pixel inside). Used for the rubber-band selection and the

@@ -90,7 +90,7 @@ void AIAlarmRecordElements::Destruct(AIAlarmRecord* records, int count) {
 
 EI_REWRITTEN(0x005D9840, AIAlarmRecordArray::SetSize);
 void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
-    // 005D97E0 and RefPtr::Assign(0) on the mode in charge, the near point and the decay: ClearModes.
+    // and RefPtr::Assign(0) on the mode in charge, the near point and the decay: ClearModes.
     ClearModes();
     float radius = std::bit_cast<float>(record->callRadius);
     callRadius = radius;

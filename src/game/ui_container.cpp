@@ -46,7 +46,7 @@ void CUiContainer::CreateScreen() { _purecall(); }
 void CUiContainer::CloseScreen() { _purecall(); }
 
 // STLport's push_back: when full, a block of size + max(size, 1) pointers from the node pool
-// (00601B70, _M_insert_overflow), the old block back to the pool.
+// (_M_insert_overflow), the old block back to the pool.
 void CUiContainer::AddInput(UiInputSide* input) {
     if (!input) return;
     if (inputsEnd_ != inputsCapacity_) {
@@ -77,7 +77,7 @@ void CUiContainer::UpdateBase() {
     for (int i = 0; i < children_.size; ++i) children_.data[i]->Update();
 }
 EI_REWRITTEN(0x006010E0, CUiContainer::UpdateBase);
-// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// The compiler's jump thunks to it (functions.csv "thunk" rows;: the standalone image has no
 // code at them): the same replacement, so their calls skip its check.
 EI_REWRITTEN(0x0062AD00, CUiContainer::UpdateBase);
 
@@ -206,7 +206,7 @@ int CUiContainer::KeyUp(int key, int repeat, int flags) {
 EI_REWRITTEN(0x006019A0, CUiContainer::KeyUp);
 
 // The wheel's four arguments go on unchanged; the children are tested at (x, y). Returns 1 (the
-// interface's wheel dispatch 005F7880 passes it on).
+// interface's wheel dispatch passes it on).
 int CUiContainer::Wheel(int flags, int delta, int x, int y) {
     CUiContainer* self = this;
     handled_ = false;

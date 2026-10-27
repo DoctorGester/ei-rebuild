@@ -1,4 +1,4 @@
-// The selection marker (00503A40, thiscall on the renderer at 007AF060, RET 0x10): a flat arrow
+// The selection marker: a flat arrow
 // under each selected unit, drawn by the world's draw pass in single-player mode. Its six
 // corners lie 0.3 above the given point, in the plane of the unit's x and y axes; the device's
 // flat geometry draw projects them with the scene's matrices. See docs/notes/renderer.md.
@@ -14,8 +14,8 @@
 
 namespace {
 
-// The arrow's proportions (the original's constants 0073D9A4, 0073BAA4, 0073CDF8, 0073BAA0,
-// 0073BF34 and 0073C54C): the unit length is a third of the size.
+// The arrow's proportions the original's constants,
+// the unit length is a third of the size.
 const float kThird = std::bit_cast<float>(0x3EAAAAABu);   // 1/3
 constexpr float kWing = 3.0f;          // half the width of the arrow's back
 constexpr float kShoulder = 1.4f;      // the shoulders, along y

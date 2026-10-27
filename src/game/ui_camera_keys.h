@@ -11,15 +11,15 @@
 
 class CInterface3D;
 
-// The battle camera's input side (game.exe's table 00740208, 0x2C bytes; one of the battle screen's extra input
+// The battle camera's input side (game.exe's, 0x2C bytes; one of the battle screen's extra input
 // sides). Keys move the camera along x_ / y_ / z_ (set by the key-down, cleared by the key-up); the right button
 // turns the view while held.
 class CCameraInput final : public UiInputSide {
 public:
-    // 005EACB0 (RET 4; ui_camera_input.cpp). The interface, not turning, the axes 0 (handled_ and the press points
+    // The interface, not turning, the axes 0 (handled_ and the press points
     // left).
     explicit CCameraInput(CInterface3D* ui);
-    // 005EACF0, deleting 005EACD0 (ui_camera_input.cpp): the base side's table back.
+    // deleting (ui_camera_input.cpp): the base side's table back.
     ~CCameraInput() override;
     void Deactivate() override { OnDeactivate(); }                                         // 1
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }       // 4
@@ -29,26 +29,26 @@ public:
     int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }               // 11
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }        // 12
 
-    // 005EADD0 (slot 9, RET 0xC; ui_camera_keys.cpp).
+    // (ui_camera_keys.cpp).
     void OnKeyDown(int key, int repeat, int flags);
-    // 005EB090 (slot 11, RET 0xC; ui_camera_input.cpp). A direction key released (actions 5-10 of
+    // A direction key released (actions 5-10 of
     // KeyActions) clears its axis and marks the key used; then, when used, the camera's motion is
     // set again from the axes: without Ctrl / Alt it pans along (y_, -x_) at the pan speed
-    // (0079BDC0 * 0079BDB8, stored as float), turns and tilts not, and climbs at 0079BDE4 * 0079BDDC
-    // * z_; with one it does not pan, turns at 0079BDCC * 0079BDC4 * y_, climbs, and tilts at
-    // 0079BDD8 * 0079BDD0 * x_.
+    // (*, stored as float), turns and tilts not, and climbs *
+    // * z_; with one it does not pan, turns * * y_, climbs, and tilts at
+    // * * x_.
     void OnKeyUp(int key, int repeat, int flags);
-    // The right button went down: the point kept (screen and layout
-    //), turning_, the mouse-drag motion cleared, the cursor held; the button used.
+    // The right button went down: the point kept screen and layout
+    // turning_, the mouse-drag motion cleared, the cursor held; the button used.
     void OnRightDown(int buttons, int x, int y);
     // Released: turning_ cleared, the camera stops turning, tilting
     // and panning, the motion cleared, the cursor let go and put back at the mouse position; used.
     void OnRightUp(int buttons, int x, int y);
-    // 005EB210 (slot 4, RET 0xC; Rebirth-patched; ui_camera_input.cpp, reproducing WideScreen, so
-    // hooked in both launches: the drag scaled without the margin). The mouse moved. While turning: the drag motion (007C7C60,
-    // in layout units) turns the camera at 0079BDC8 * 0079BDC4 * 0079BD64 * (dx / 400) * 10 and
-    // tilts it at 0079BDD4 * 0079BDD0 * 0079BD68 * (dy / 300) * 500 (not tilting when it is at rest
-    // and |dy| <= |dx|), or with Ctrl / Alt pans it along (dx / 400, dy / 300) at 0079BDBC *
+    // (Rebirth-patched; ui_camera_input.cpp, reproducing WideScreen, so
+    // hooked in both launches: the drag scaled without the margin). The mouse moved. While turning: the drag motion (
+    // in layout units) turns the camera * * * (dx / 400) * 10 and
+    // tilts it * * * (dy / 300) * 500 (not tilting when it is at rest
+    // and |dy| <= |dx|), or with Ctrl / Alt pans it along (dx / 400, dy / 300) *
     // The motion is cleared, the cursor takes shape 0x16, the event is used and the
     // layout point kept. Otherwise, when the edge margin is positive: the cursor within
     // the margin of a screen edge pans that way (with the keys' pan added unless Ctrl / Alt is
@@ -57,8 +57,8 @@ public:
     // The input loses the screen: no turning, the axes cleared, the cursor let go,
     // the motion cleared and the camera stopped.
     void OnDeactivate();
-    // 005EB540 (slot 12, RET 0x10, returns 1). The wheel zooms the camera by 0079BDE0 * 0079BDDC *
-    // (the delta's low word) * 00740240 steps.
+    // The wheel zooms the camera * *
+    // (the delta's low word) * steps.
     BOOL OnWheel(int keys, int delta, int x, int y);
 
     POINT pressScreen_;              // +0x0C where the right button went down (screen)
@@ -70,5 +70,4 @@ public:
     float z_;                        // +0x28 up / down
 };
 
-// 005EADD0 (thiscall on the input object, RET 0xC; slot 9 of CCameraInput's vtable): see
-// ui_camera_keys.cpp.
+// See

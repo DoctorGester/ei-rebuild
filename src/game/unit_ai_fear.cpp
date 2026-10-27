@@ -1,5 +1,5 @@
-// The unit AI's Fear mode (vtable 0073FF8C): how afraid the unit is (Evaluate, 005D2960) and running
-// away or taking shelter (Execute, 005D30A0); and the brain taking up a chosen attack.
+// The unit AI's Fear mode: how afraid the unit is (Evaluate) and running
+// away or taking shelter (Execute); and the brain taking up a chosen attack.
 #include "unit_ai.h"
 
 #include "ai_map.h"
@@ -41,13 +41,13 @@ constexpr float kOne = 1.0f;
 constexpr float kThree = 3.0f;
 constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);
 constexpr float kSeenScale = 1.5f;
-constexpr float kMaxLoadFactor = std::bit_cast<float>(0x3F19999Au); // 0073CDE0 (0.6)
+constexpr float kMaxLoadFactor = std::bit_cast<float>(0x3F19999Au); // (0.6)
 constexpr float kFlightStep = 5.0f;
 constexpr float kRangeBase = 10.0f;
 constexpr float kSmoothingScale = 5000.0f;
-constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);           // 0073E73C (1e30)
+constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);           // (1e30)
 constexpr float kDistanceWeight = 30.0f;
-constexpr float kDistanceDivisor = std::bit_cast<float>(0x3D042108u); // 0073FFC0 (1 / 31)
+constexpr float kDistanceDivisor = std::bit_cast<float>(0x3D042108u); // (1 / 31)
 constexpr float kSpreadScale = 2.5f;
 constexpr float kMinDistance = 3.0f;                                // pushed as 0x40400000
 constexpr float kNoWander = -1.0f;                                  // pushed as 0xBF800000
@@ -131,7 +131,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
 int FearMode::Evaluate(AIBrain* brain) {
     CUnitServer* owner = brain->owner;
     CUnit* self = owner->unit;
-    // The sum rounded first, as the main thread's 24-bit FPU does (SV7d1: under /fp:fast MSVC
+    // The sum rounded first, as the main thread's 24-bit FPU does (under /fp:fast MSVC
     // otherwise distributes the product, spread * 2/3 + 1, and the result drifts by an ulp).
     float grown = static_cast<float>(static_cast<double>(spread) + spread + kThree);
     spread = static_cast<float>(static_cast<double>(grown) * kThird);

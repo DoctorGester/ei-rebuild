@@ -50,7 +50,7 @@ constexpr float kSparkAlpha = 10.0f;
 constexpr int kSparkAttach = 7;
 constexpr int kMinFlashTicks = 4;
 
-// The armour slots covering each hit location (0073EC78: four ints per location; columns 2, 0,
+// The armour slots covering each hit location (four ints per location; columns 2, 0,
 // 1 are tried in that order, 7 none). Indexed as the original does, without a range check.
 constexpr std::int32_t kHitArmourRows[6][4] = /*0073EC78*/ {{7, 7, 0, 7}, {3, 7, 1, 7}, {3, 6, 1, 7}, {3, 6, 1, 7}, {4, 5, 2, 7}, {4, 5, 2, 7}};
 constexpr int kArmourColumns[3] = {2, 0, 1};
@@ -65,7 +65,7 @@ constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, 
 // The particle type of each blood kind (1..8).
 constexpr int kBloodParticles[8] = {0x200F, 0x2031, 0x2032, 0x2033, 0x200F, 0x2031, 0x2032, 0x2033};
 
-// The party light (0079BEA0: r, g, b; 0079BEAC: radius).
+// The party light (r, g, b;: radius).
 const float* PartyLightColour() { return &options::TheOptions()->heroLight_.red; }
 float PartyLightRadius() { return options::TheOptions()->heroLight_.radius; }
 

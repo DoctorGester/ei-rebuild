@@ -1,4 +1,4 @@
-// MFC 4.2's worker threads (mfc_thread.h, ticket S16).
+// MFC 4.2's worker threads (mfc_thread.h).
 #include "mfc_thread.h"
 
 #include "crt.h"

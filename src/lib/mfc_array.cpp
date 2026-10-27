@@ -10,8 +10,8 @@
 
 namespace mfc::impl {
 
-// 004C2700 CArray<CString>::Serialize: the count (loading: SetSize(count, -1)), then the strings (SerializeStrings'
-// loop, 007085AF; here so the vectors build, which links no registration file, has it for StringArrayClass).
+// CArray<CString>::Serialize: the count (loading: SetSize(count, -1)), then the strings (SerializeStrings'
+// loop, here so the vectors build, which links no registration file, has it for StringArrayClass).
 template <>
 void Strings::Serialize(CArchive* ar) {
     if (!ar->IsLoading()) {

@@ -1,13 +1,13 @@
 #pragma once
 
 // MFC 4.2's CDC and GDI objects as the game's copy has them (wingdi.cpp, wingdix.cpp, winhand.cpp,
-// afxwin1.inl): tickets S8 (the members that reach GDI without a handle map) and S8a (FromHandle,
+// afxwin1.inl): tickets(the members that reach GDI without a handle map) and(FromHandle,
 // SelectObject, CGdiObject's Attach / Detach / DeleteObject, CPen's constructor, CFont's point
 // fonts, the CDC slots the interface calls, docs/notes/standalone.md section 2). Registered at their
-// library addresses (mfc_gdi.cpp); real C++ classes over CObject since C28n. The interface (ui_gdi.h) draws with
+// library addresses (mfc_gdi.cpp); real C++ classes over CObject since. The interface (ui_gdi.h) draws with
 // them directly.
 // The handle maps are MFC's module thread state: the hook build uses the original's (afxMapHDC
-// 00708D07, afxMapHGDIOBJ 00709FEE, through their addresses), the image has its own per thread
+// afxMapHGDIOBJ, through their addresses), the image has its own per thread
 // (MapHDC / MapHGDIOBJ, registered image-only at those addresses).
 
 #include "compiled_vtable.h"   // ei::UnportedSlot
@@ -23,17 +23,17 @@ namespace mfc::impl {
 
 // The maps of DCs (CTempDC objects for unknown handles, both handles set) and of GDI objects
 // (CTempGdiObject), made on first use when `create`; null otherwise. Image only.
-CHandleMap* __stdcall MapHDC(BOOL create);         // 00708D07 afxMapHDC
-CHandleMap* __stdcall MapHGDIOBJ(BOOL create);     // 00709FEE afxMapHGDIOBJ
+CHandleMap* __stdcall MapHDC(BOOL create);         // afxMapHDC
+CHandleMap* __stdcall MapHGDIOBJ(BOOL create);     // afxMapHGDIOBJ
 
-// CGdiObject (8 bytes): CObject's slots, m_hObject. Game.exe's tables: CGdiObject 007463D4, CBrush 007463C4, CPen
-// 007463B4, CTempGdiObject 0074645C, CFont 0073BFB4 (0 GetRuntimeClass, 1 the deleting destructor, 2 Serialize).
+// CGdiObject (8 bytes): CObject's slots, m_hObject. Game.exe's tables: CGdiObject, CBrush, CPen
+// CTempGdiObject, CFont (0 GetRuntimeClass, 1 the deleting destructor, 2 Serialize).
 class CGdiObject : public CObject {
 public:
     // CreateCGdiObject's: no handle.
     CGdiObject() = default;
-    // ~CGdiObject as the game's code inlines it (S6c: 00444B30, 00444B90, 005FDDE0, the fonts' destructors; deleting
-    // 00444B10, 00444B70, 005FDDC0): DeleteObject. The classes add no destructor of their own.
+    // ~CGdiObject as the game's code inlines it the fonts' destructors; deleting
+    // DeleteObject. The classes add no destructor of their own.
     ~CGdiObject() override;
     const CRuntimeClass* GetRuntimeClass() const override;
 
@@ -47,7 +47,7 @@ public:
 };
 static_assert(sizeof(CGdiObject) == 8);
 
-// CTempGdiObject's create function (its CRuntimeClass at 00745F88): one from its fixed allocator
+// CTempGdiObject's create function (its CRuntimeClass): one from its fixed allocator
 // no handle. Null when out of memory.
 void* __stdcall CreateTempGdiObject();
 
@@ -60,7 +60,7 @@ public:
 // CPen.
 class CPen final : public CGdiObject {
 public:
-    // 0070A0E2 CPen(style, width, colour): CreatePen attached; a CResourceException when it fails.
+    // CPen(style, width, colour): CreatePen attached; a CResourceException when it fails.
     CPen(int style, int width, COLORREF colour);
     const CRuntimeClass* GetRuntimeClass() const override;
 };
@@ -79,15 +79,15 @@ public:
     BOOL CreatePointFontIndirect(const LOGFONTA* font, CDC* dc);
 };
 
-// CDC (0x10 bytes): the output DC and the attribute DC (the same one for a plain DC). Game.exe's tables: CDC 007461B0,
-// CTempDC 007463E4, 29 slots (MFC 4.2's CDC virtuals in declaration order). The ones the image reaches have bodies:
+// CDC (0x10 bytes): the output DC and the attribute DC (the same one for a plain DC). Game.exe's tables: CDC,
+// CTempDC, 29 slots (MFC 4.2's CDC virtuals in declaration order). The ones the image reaches have bodies:
 // the interface calls 10 / 12 / 26 of its surfaces' CTempDCs, a handle map deletes them through 1, Detach calls 5;
 // 0, 2-4 and 6 are as short. The rest are unported (config/standalone_unreachable.csv).
 class CDC : public CObject {
 public:
     // No DCs.
     CDC() = default;
-    // 00708E0C (deleting 00708CEB): a DC still attached detached and deleted.
+    // A DC still attached detached and deleted.
     ~CDC() override;
     const CRuntimeClass* GetRuntimeClass() const override;
     virtual void SetAttribDC(HDC dc);
@@ -122,7 +122,7 @@ public:
     virtual BOOL GrayString(CBrush*, GRAYSTRINGPROC, LPARAM, int, int, int, int, int) { ei::UnportedSlot(0x006E6A38); }   // 27
     virtual int Escape(int, int, const char*, void*) { ei::UnportedSlot(0x006E6A68); }              // 28
 
-    // The output DC taken out of the permanent map and cleared, the attribute DC released (slot 5);
+    // The output DC taken out of the permanent map and cleared, the attribute DC released;
     // returns the old output DC.
     HDC Detach();
     // The DC object of `dc` (a CTempDC when it has no permanent one), null for null.
@@ -135,7 +135,7 @@ public:
     POINT MoveTo(int x, int y);
     BOOL LineTo(int x, int y);
     void FillSolidRect(const RECT* rect, COLORREF colour);
-    void FillSolidArea(int x, int y, int cx, int cy, COLORREF colour);  // 0070BB04 FillSolidRect(x, y, cx, cy, colour)
+    void FillSolidArea(int x, int y, int cx, int cy, COLORREF colour);  // FillSolidRect(x, y, cx, cy, colour)
 
     HDC hdc = nullptr;          // +0x04 m_hDC
     HDC attribDC = nullptr;     // +0x08 m_hAttribDC
@@ -143,7 +143,7 @@ public:
 };
 static_assert(sizeof(CDC) == 0x10);
 
-// CTempDC's create function (its CRuntimeClass at 00745FB0): a CTempDC from its fixed allocator. Null
+// CTempDC's create function (its CRuntimeClass): a CTempDC from its fixed allocator. Null
 // when out of memory.
 void* __stdcall CreateTempDC();
 

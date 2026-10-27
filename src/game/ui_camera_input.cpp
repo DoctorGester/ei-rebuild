@@ -1,6 +1,6 @@
 // The battle camera's input side: key release, right-button turning, deactivation and the wheel
 // (CCameraInput, ui_camera_keys.h; the key press is in ui_camera_keys.cpp). See docs/notes/ui.md,
-// section 2 ("005EADD0").
+// section 2 ("").
 #include "ui_camera_keys.h"
 #include "options.h"
 
@@ -41,8 +41,8 @@ std::uint32_t Bits(float value) {
 
 bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_; }
 
-// The mouse options: the drag's pan speed, its turn and tilt speeds (with the mouse factors
-// 0079BD64 / 0079BD68) and the width of the screen edges that pan (0 = off).
+// The mouse options: the drag's pan speed, its turn and tilt speeds with the mouse factors
+// and the width of the screen edges that pan (0 = off).
 float DragPanSpeed() { return Option(Settings().cameraScroll_.powerMouse) * Option(Settings().cameraScroll_.speed); }
 float DragTurnSpeed() {
     return Option(Settings().cameraRotate_.powerMouse) * Option(Settings().cameraRotate_.speed) * Option(Settings().cameraFlipX_);
@@ -51,8 +51,7 @@ float DragTiltSpeed() {
     return Option(Settings().cameraPitch_.powerMouse) * Option(Settings().cameraPitch_.speed) * Option(Settings().cameraFlipY_);
 }
 int EdgeMargin() { return static_cast<const volatile int&>(Settings().cameraBorderScrollArea_); }
-// Layout units to a part of the screen (0074015C 1 / 400, 00740204 1 / 300) and the rates' scales
-// (0073BAAC 10, 0073BAB4 500).
+// Layout units to a part of the screen and the rates' scales
 float PerWidth() { return 0.0025f /*0074015C*/; }
 float PerHeight() { return 0.0033333334f /*00740204*/; }
 
@@ -172,7 +171,7 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
         POINT point{x, y};
         POINT drag{MouseDragX(), MouseDragY()};
         interface_->ScalePointFromScreenEntry(&point);
-        // Rebirth's WideScreen scales the drag without the margin (005EB249: addon's entry 005F7DFE).
+        // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         interface_->CallScalePointFromScreenNoMargin(&drag);
         float across = static_cast<float>(drag.x) * PerWidth();
         float along = static_cast<float>(static_cast<float>(drag.y) * PerHeight());

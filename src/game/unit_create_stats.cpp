@@ -236,7 +236,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     if (!vitals || !stats) return 0;
     // Both blocks start zeroed: the fields the resets and this builder leave (the layers' spare
     // absorb values, the high bits of builtFlags, ...) are 0, not what the caller's stack held
-    // (a determinism fix, SV7b3; the harness zeroes them in the original too, harness_leftovers.h).
+    // (a determinism fix, the harness zeroes them in the original too, harness_leftovers.h).
     std::memset(vitals, 0, sizeof(UnitVitals));
     std::memset(stats, 0, sizeof(UnitStats));
     vitals->Reset();
@@ -370,7 +370,7 @@ EI_REWRITTEN(0x00513240, PrototypeObjectClass);
 namespace {
 constexpr float kZero = 0.0f;
 constexpr float kOneF = 1.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // 0073C548 / 0073D09C (0.01)
+constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // (0.01)
 constexpr float kTwelve = 12.0f;
 constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);
 constexpr float kTenF = 10.0f;
@@ -383,7 +383,7 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// 007C5460 ^ (ln(experience / 007C545C) / ln): FYL2X with FLDLN2 and the CRT's
+// ^ (ln(experience /) / ln): FYL2X with FLDLN2 and the CRT's
 // _CIpow, as the original computes it. Unrounded.
 double HitPointExperienceCurve(const float* experience) {
     return libcrt::CiPow(GameLogicSettings().hpVal[3], x87::flog(static_cast<double>(*experience) / GameLogicSettings().hpVal[2]) / x87::flog(GameLogicSettings().hpVal[4]));
@@ -449,7 +449,7 @@ void UnitStats::ResetToBase(float newLoad) {
 EI_REWRITTEN(0x00524CD0, UnitStats::ResetToBase);
 
 namespace {
-// 005259B0 UnitStats::Reduce and 00525800 UnitStats::HealSlots of unit_stats.cpp / unit_vitals.cpp,
+// UnitStats::ReduceUnitStats::HealSlots of unit_stats.cpp / unit_vitals.cpp,
 // through their game addresses. Reduce leaves its result unrounded in ST0.
 // Skill database: the index of `record` in its level records, or -1. Not rewritten.
 

@@ -34,7 +34,7 @@ net::PartyMessage* LiveOffer() {
 CParty* LocalParty() { return LocalPlayerData(); }
 } // namespace
 
-// --- 0062C8F0 / 0062C920: closing, message box answers -----------------------------------------------
+// ---: closing, message box answers -----------------------------------------------
 
 void CExchangeScreen::Close() {
     descPanel_->Describe(nullptr);
@@ -45,7 +45,7 @@ EI_REWRITTEN(0x0062C8F0, CExchangeScreen::Close);
 void CExchangeScreen::OnMessageResult(int) {}
 EI_REPLACE_METHOD(0x0062C920, CExchangeScreen::OnMessageResult);
 
-// --- 0062C930: the update (slot 24) ----------------------------------------------------------------
+// ---: the update ----------------------------------------------------------------
 
 void CExchangeScreen::Update() {
     static_cast<CUiContainer*>(this)->UpdateBase();
@@ -62,7 +62,7 @@ void CExchangeScreen::Update() {
 }
 EI_REWRITTEN(0x0062C930, CExchangeScreen::Update);
 
-// --- 0062CF70: the left button (input slot 2) --------------------------------------------------------
+// ---: the left button (input slot 2) --------------------------------------------------------
 
 void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
@@ -95,7 +95,7 @@ void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
 }
 EI_REWRITTEN(0x0062CF70, CExchangeScreen::OnLButtonDown);
 
-// --- 0062D210: the exchange went through (slot 37) -------------------------------------------------
+// ---: the exchange went through -------------------------------------------------
 
 void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
     static_cast<CParty*>(LocalPlayerData())->ReleaseAllItems();
@@ -108,7 +108,7 @@ void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* par
 }
 EI_REWRITTEN(0x0062D210, CExchangeScreen::OnExchangeDone);
 
-// --- 0062C250: Create (slot 25) --------------------------------------------------------------------
+// ---: Create --------------------------------------------------------------------
 
 namespace {
 
@@ -195,7 +195,7 @@ void CExchangeScreen::CreateScreen() {
 }
 EI_REWRITTEN(0x0062C250, CExchangeScreen::CreateScreen);
 
-// --- 0062C9C0: Draw (slot 20) ----------------------------------------------------------------------
+// ---: Draw ----------------------------------------------------------------------
 
 namespace {
 constexpr std::uint32_t kWhite = 0xFFFFFF;
@@ -301,7 +301,7 @@ BOOL CExchangeScreen::Draw(int pass) {
 }
 EI_REWRITTEN(0x0062C9C0, CExchangeScreen::Draw);
 
-// --- 0062D100 / 0062D200: an item clicked in the strip or the grid (slots 42 / 43) -------------------
+// ---: an item clicked in the strip or the grid (slots 42 / 43) -------------------
 
 namespace {
 const char* const kPutOnSound = "buttons\\camp\\put_on.wav";

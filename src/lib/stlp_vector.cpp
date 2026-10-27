@@ -22,17 +22,17 @@ using Vector16 = stlp::VectorAbi<stlp::Opaque<16>>;
 } // namespace
 
 // ~_Vector_base(): 32 instantiations, by element size (1 bytes: 7, 4 bytes: 21, 12 bytes: 1, 96 bytes: 1, 288 bytes: 1, 360 bytes: 1),
-// and six ~vector() with it inlined that only exit functions call: of pointers 0056E800 (the
-// frame lists 007AF508..007AF5A8, world.h), 0069BE20, 004A8C60, 004A8D00, 004A8D50 (the item
-// stock's scratch vectors 007C8650, 007C8680, 007C8670, 007C8660) and of 16-byte entries 004A8CB0
-// (its taken materials 007C8640).
+// and six ~vector with it inlined that only exit functions call: of pointers (the
+// frame lists, world.h), (the item
+// stock's scratch vectors) and of 16-byte entries
+// (its taken materials).
 EI_REWRITTEN(0x0040C720, Vector1::DestroyBase);
 EI_REWRITTEN(0x0040C770, Vector1::DestroyBase);
 EI_REWRITTEN(0x00425040, Vector1::DestroyBase);
 EI_REWRITTEN(0x0042D2C0, Vector1::DestroyBase);
 EI_REWRITTEN(0x004DEAB0, Vector1::DestroyBase);
 EI_REWRITTEN(0x00598D80, Vector1::DestroyBase);
-EI_REWRITTEN(0x006B6D30, Vector1::DestroyBase);   // S16a: the sound voices' string (no Ghidra function)
+EI_REWRITTEN(0x006B6D30, Vector1::DestroyBase);   //the sound voices' string (no Ghidra function)
 EI_REWRITTEN(0x006B72E0, Vector1::DestroyBase);
 EI_REWRITTEN(0x00405BF0, Vector4::DestroyBase);
 EI_REWRITTEN(0x00405DB0, Vector4::DestroyBase);
@@ -135,7 +135,7 @@ EI_REWRITTEN(0x004DCE90, StringVector::InsertOverflow);
 EI_REWRITTEN(0x00575E50, StringVector::RangeInsert);
 EI_REWRITTEN(0x00581860, StringVector::Clear);
 EI_REWRITTEN(0x00583CB0, StringVector::EraseRange);
-EI_REWRITTEN(0x00421260, StringVector::Destruct);   // S3c: the quest files and folders 007AFDD0 / 007AFDC0 at exit
+EI_REWRITTEN(0x00421260, StringVector::Destruct);   //the quest files and folders at exit
 EI_REWRITTEN(0x0043D7E0, stlp::ConstructAt<std::uint16_t>);
 EI_REWRITTEN(0x0043D7F0, stlp::ConstructAt<std::uint32_t>);
 EI_REWRITTEN(0x0064B620, stlp::ConstructAt<std::uint32_t>);

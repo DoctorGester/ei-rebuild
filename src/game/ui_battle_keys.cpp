@@ -1,9 +1,9 @@
-// The battle screen's key-down handler (0063A560, input side slot 9): the chat line's keys on a
+// The battle screen's key-down handler (input side slot 9): the chat line's keys on a
 // network client, the panels' own keys, Esc (the pending action dropped, else the escape menu) and
 // the key actions of the key table (KeyActions): pause and game speed, the objectives window, the
 // camera, the order keys, movement modes, the action, spell, weapon and quick item buttons, the
 // unit panel's body parts, the top panel's pages, the map's slide, quick save / load, the party
-// members and the message window. Rebirth's MPSpeedControl (the two JNEs at 0063A6D4 / 0063A73A
+// members and the message window. Rebirth's MPSpeedControl (the two JNEs
 // aimed at the next instruction) lets the speed keys work on a network client too. See ui_camp.h
 // (CBattleScreen) and
 // docs/notes/ui.md, section 6.
@@ -50,7 +50,7 @@ constexpr int kKeyRepeated = 0x4000;            // the key was already down
 constexpr int kScanCodeMask = 0x1FF;
 constexpr int kQuickSlots = 8;
 
-// The key actions (the key table's values; the original's jump table at 0063B4DC).
+// The key actions (the key table's values).
 enum KeyAction {
     kActionPause = 1,
     kActionNormalSpeed = 2,
@@ -75,7 +75,7 @@ enum KeyAction {
     kActionSelectAll = 0x3A,
     kActionMessage = 0x3B,
 };
-// Which orderKeys_ entry each order key action holds (as the key-up handler 0063B6D0 releases).
+// Which orderKeys_ entry each order key action holds (as the key-up handler releases).
 constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 
 // The screen as the panels know it (the same object; ui.h).

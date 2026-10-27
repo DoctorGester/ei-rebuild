@@ -1,4 +1,4 @@
-// The unit AI brain's mode list and state resets (005CB0F0, 005D4DF0-005D6140), and its save-game
+// The unit AI brain's mode list and state resets, and its save-game
 // Load / Save.
 #include "map_spec.h"
 #include "unit_ai.h"
@@ -32,7 +32,7 @@ constexpr float kNearPointCleared = 100000.0f;
 float InitialCallRadius() { return 10.0f /*0073FED8*/; }
 // A new fear mode's distance (copied as a dword).
 std::uint32_t FearDistanceBits() { return 0x41200000u /*0073FF00*/; }
-// The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
+// The CPtrList the sector map fills (blocks of 10).
 
 } // namespace
 
@@ -63,7 +63,7 @@ void RemoveModeNode(mfc::CTypedPtrList<AIMode>& modes, mfc::CTypedPtrList<AIMode
     modes.FreeNode(node);
 }
 
-// The inlined release of a counted object pointer (slot 4) of the memory lists, then RemoveAll.
+// The inlined release of a counted object pointer of the memory lists, then RemoveAll.
 void ReleaseAllObjects(mfc::CTypedPtrList<CUnit>& list) {
     for (auto* node = list.head; node; node = node->next) {
         if (node->data) node->data->Release();
@@ -219,7 +219,7 @@ void FearMode::Init(std::uint8_t newFlag) {
 }
 
 FearMode::FearMode(std::uint8_t newFlag) {
-    ClearFields();   // SV7b2: not left as memory held them
+    ClearFields();   //not left as memory held them
     Init(newFlag);
 }
 
@@ -372,7 +372,7 @@ void AICallElements::Destruct(AICallRecord* calls, int count) {
     for (int i = 0; i < count; ++i) calls[i].Destruct();
 }
 
-// SetSize. 005CD880 (RET 4): Add, returning the new index.
+// SetSize: Add, returning the new index.
 EI_REWRITTEN(0x005CDD60, AIHeardCalls::SetSize);
 EI_REWRITTEN(0x005CD880, AIHeardCalls::Add);
 EI_REWRITTEN(0x00558D00, AICallRecord::Destruct);

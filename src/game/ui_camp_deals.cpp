@@ -26,7 +26,7 @@ const char* const kBuySound = "buttons\\camp\\buy.wav";
 const char* const kCancelSound = "buttons\\messbox\\cancel.wav";
 const char* const kPrototypeItem = "Prototype";
 const char* const kRuneItem = "Rune";
-// The spell prototypes by name: SpellTable::Named (00613920, a thiscall on the table).
+// The spell prototypes by name: SpellTable::Named.
 
 // Pages of the action buttons.
 enum CampPage {
@@ -93,7 +93,7 @@ void ReturnResults(CCampPages* camp, CParty* results, CParty* constructorList, C
 
 } // namespace
 
-// --- 00612500: a spell container taken apart ---------------------------------------------------------
+// ---: a spell container taken apart ---------------------------------------------------------
 
 namespace {
 // A new item named `name` from the results' item manager, counted.
@@ -128,7 +128,7 @@ bool CCampPages::DeconstructSpell() {
     spellMade_ = nullptr;
     return true;
 }
-// --- 006129C0: an item taken apart -------------------------------------------------------------------
+// ---: an item taken apart -------------------------------------------------------------------
 
 namespace {
 // The instruction (blueprint) items by the item's class: weapon, armour, quick item.
@@ -142,7 +142,7 @@ const char* InstructionName(int itemClass) {
 }
 const char* MaterialText() { return "material"; }
 const char* SpellContainerText() { return "spell container"; }
-// The quick item prototypes by name: QuickItemTable::Named (00613820 inserts a missing name).
+// The quick item prototypes by name: QuickItemTable::Named (inserts a missing name).
 constexpr int kSpellContainerClass = 0x3008;
 
 // A new item named `name` from the results' item manager added to them (when one is made).
@@ -194,7 +194,7 @@ bool CCampPages::DeconstructItem() {
 EI_REWRITTEN(0x00612500, CCampPages::DeconstructSpell);
 EI_REWRITTEN(0x006129C0, CCampPages::DeconstructItem);
 
-// --- 00611220: the first action button ---------------------------------------------------------
+// ---: the first action button ---------------------------------------------------------
 
 namespace {
 
@@ -305,7 +305,7 @@ void CCampPages::DoAction() {
 }
 EI_REWRITTEN(0x00611220, CCampPages::DoAction);
 
-// --- 00611760: the second action button --------------------------------------------------------
+// ---: the second action button --------------------------------------------------------
 
 void CCampPages::UndoAction() {
     interface_->PlaySound(kCancelSound, 0);

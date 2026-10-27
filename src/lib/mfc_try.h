@@ -1,6 +1,6 @@
 #pragma once
 
-// MFC's TRY / CATCH, for the rewrites of the game functions that use it (A-E2).
+// MFC's TRY / CATCH, for the rewrites of the game functions that use it
 // The game's MFC 4.2 is built with C++ exceptions: THROW is `throw` of a CException*, and
 //     TRY { ... } CATCH(CFileException, e) { ... } END_CATCH
 // is `{ AFX_EXCEPTION_LINK link; try { ... } catch (CFileException* e) { link.m_pException = e;
@@ -16,7 +16,7 @@
 //   MFC objects, thrown through a cast pointer);
 // - the unwind runs the frames between the throw and the handler through their frame handlers
 //   (RtlUnwind), then ours.
-// verify_mfc_try.cpp proved it at every start until S21d (a missing file: the game's CStdioFile
+// verify_mfc_try.cpp proved it at every start until(a missing file: the game's CStdioFile
 // constructor throws, the handler in script_text_file.cpp catches).
 
 // The thrown and handler types (the names and bases are the game's: see above).
