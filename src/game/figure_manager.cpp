@@ -89,13 +89,13 @@ int CFigureManager::LoadPart(CFigureMesh* part, FigureModel* model, float s, flo
         CMappedResource* mesh = model->mesh;
         data = mesh->GetFile(part->GetName(), nullptr);
     } else {
-        const char* directory = part->directory_;
+        const char* directory = part->directory_.c_str();
         std::string path;
         path = str::Format(game::FigPathFormat(), directory, part->GetName());
         data = GetFile(path.c_str(), nullptr);
     }
     if (!data) {
-        const char* directory = part->directory_;
+        const char* directory = part->directory_.c_str();
         return game::FatalError(game::CantOpenFigText(), directory, part->GetName());
     }
     char* cursor = static_cast<char*>(data);

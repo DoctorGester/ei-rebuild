@@ -79,11 +79,11 @@ int __fastcall FindRootNode(NodeArray* nodeArray) {
     NodeArray& nodes = *nodeArray;
     int root = -1;
     for (int i = 0; i < nodes.size; ++i) {
-        if (nodes.data[i].parent.GetLength() == 0) root = i;
+        if (nodes.data[i].parent.size() == 0) root = i;
         for (int j = 0; j < nodes.size; ++j) {
             SceneNode* child = &nodes.data[j];
-            if (gamecrt::mbscmp(child->parent.GetString(),
-                                nodes.data[i].name.GetString()) != 0)
+            if (gamecrt::mbscmp(child->parent.c_str(),
+                                nodes.data[i].name.c_str()) != 0)
                 continue;
             ChildArray& children = Children(&nodes.data[i]);
             int n = children.size;
@@ -102,7 +102,7 @@ int __fastcall FindRootNode(NodeArray* nodeArray) {
 }
 EI_REWRITTEN(0x00449030, FindRootNode);
 
-// Takes the unit's meshes (CArray, 0x18C each; a mesh's virtual 7 is its name) and the nodes; `frames` (its
+// Takes the unit's meshes (a CArray; a mesh's virtual 7 is its name) and the nodes; `frames` (its
 // low word counts), `skin`. 1, or 0 without a root node; a first rotation key not at frame 0 is a fatal
 // error (game::FatalError's result is returned if it comes back).
 int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneSkin* skin) {
@@ -135,7 +135,7 @@ int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int fra
         for (int j = 0; j < nodes.size; ++j) {
             SceneNode* candidate = &nodes.data[j];
             const char* meshName = mesh->GetName();
-            if (gamecrt::mbscmp(candidate->name.GetString(),
+            if (gamecrt::mbscmp(candidate->name.c_str(),
                                 meshName) == 0) {
                 node = candidate;
                 break;

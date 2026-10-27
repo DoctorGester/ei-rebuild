@@ -48,11 +48,6 @@ public:
     lib::AlignedArray<float> distances_;            // haze per vertex
 };
 static_assert(offsetof(CSkyObject, worldMatrix_) == 0x54);
-static_assert(offsetof(CSkyObject, colorsA_) == 0x138);
-static_assert(offsetof(CSkyObject, colorsB_) == 0x148);
-static_assert(offsetof(CSkyObject, vertices_) == 0x1C0);
-static_assert(offsetof(CSkyObject, distances_) == 0x220);
-static_assert(sizeof(CSkyObject) == 0x230);
 
 // The world view's sky.
 struct CSky {

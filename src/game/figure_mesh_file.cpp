@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "object_maths.h"
 
@@ -28,9 +29,9 @@ int ReadCount(mfc::CFileVirtuals* file) {
 } // namespace
 
 void CFigureMesh::SaveTransform(mfc::CFileVirtuals* file) {
-    int length = name_.GetLength();
+    int length = static_cast<int>(name_.size());
     WriteCount(file, length);
-    Write(file, name_.GetString(), length);
+    Write(file, name_.c_str(), length);
     WriteCount(file, buffers_.vertexCount);
     Write(file, buffers_.vertices, buffers_.vertexCount * 0x40);
     WriteCount(file, buffers_.normalCount);
@@ -55,7 +56,7 @@ void CFigureMesh::SaveTransform(mfc::CFileVirtuals* file) {
 void CPlainFigureMesh::LoadTransform(mfc::CFileVirtuals* file) {
     BuffersChanged();
     int length = ReadCount(file);
-    Read(file, name_.GetBufferSetLength(length), length);
+    Read(file, str::SetLength(name_, length), length);
     // The arrays the file fills (the renderer's descriptor is not updated here).
     int count = ReadCount(file);
     vertices_.SetSize(count);

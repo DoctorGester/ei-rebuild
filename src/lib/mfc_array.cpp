@@ -69,8 +69,6 @@ EI_REWRITTEN(0x00450370, OwnedBoneLinkArrays::SetSize);
 EI_REWRITTEN(0x004534C0, OwnedBoneLinkArrays::DestructElements);
 EI_REWRITTEN(0x006C4F90, ByteArrays::ConstructElements);
 EI_REWRITTEN(0x006C4F60, ByteArrays::DestructElements);
-EI_REWRITTEN(0x00453210, FigureParts::DestructElements);
-EI_REWRITTEN(0x00476F50, SceneRecords::DestructElements);
 EI_REWRITTEN(0x004CDB30, ScriptAreas::SetSize);
 EI_REWRITTEN(0x004CEDC0, ScriptAreas::ConstructElements);
 EI_REWRITTEN(0x004CD4F0, ArrayAbi<Bytes<32>>::ConstructElements);

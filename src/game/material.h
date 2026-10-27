@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -32,7 +33,7 @@ struct MaterialEntry {
 };
 static_assert(sizeof(MaterialEntry) == 0x10);
 
-// A material (class id 5, "CMaterial", 0x9C bytes; material.cpp), made by the material manager (the world's
+// A material (class id 5, "CMaterial"; material.cpp), made by the material manager (the world's
 // pointer, CMaterialManager::NewMaterial) and by the scene loader for its helpers (it constructs the array of
 // them, FakeUnitScene::helpers in scene_loader.h; the file's vectors are the ambient, diffuse and specular
 // colours, the power and the diffuse alpha). It is also the material a figure part is drawn with. Names
@@ -58,17 +59,14 @@ public:
     const char* GetClassName() override;   // 11: "CMaterial"
     int GetClassId() override;
 
-    mfc::CString name;
+    std::string name;
     MaterialColors colors;
     stlp::deque<MaterialEntry> entries;
-    mfc::CString name2;                     // (the scene file's second name)
+    std::string name2;                      // (the scene file's second name)
     int spare90;                            // 0 after Create; nothing reads it
-    mfc::CString name3;                     // (the scene file's third name)
+    std::string name3;                      // (the scene file's third name)
     int spare98;                            // 0 after Create; nothing reads it
 };
-static_assert(offsetof(CMaterial, name) == 0x1C && offsetof(CMaterial, colors) == 0x20 &&
-              offsetof(CMaterial, entries) == 0x64 && offsetof(CMaterial, name2) == 0x8C &&
-              offsetof(CMaterial, name3) == 0x94 && sizeof(CMaterial) == 0x9C);
 
 // The material manager (class id 0x27, "CMaterialManager", 0xD0 bytes; the world's pointer;
 // material.cpp): a resource manager of CMaterial objects with a table of colours by key (filled by

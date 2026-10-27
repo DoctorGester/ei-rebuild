@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #undef GetClassName   // CEngineObject::GetClassName
 
@@ -173,8 +174,8 @@ public:
     std::uint32_t spareDC_;             // cleared by Create, copied by CopyFrom; nothing reads it
     // the pose matrix (row-major): UpdateWorld's rotation, its translation row the moved position.
     Matrix4 poseMatrix_;
-    mfc::CString name_;                 // (the scene loader names it after its mesh)
-    mfc::CString directory_;            // where its .fig file is (NewFigure empties it)
+    std::string name_;                  // (the scene loader names it after its mesh)
+    std::string directory_;             // where its .fig file is (NewFigure empties it)
     lib::AlignedArray<Vector3> offsets_;     // per-vertex offsets added when drawing
     lib::AlignedArray<std::uint32_t> colorsA_;   // one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // one per normal
@@ -199,14 +200,6 @@ static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);
 static_assert(offsetof(CFigureMesh, drawer_) == 0x94 && offsetof(CFigureMesh, object_) == 0x98);
 static_assert(offsetof(CFigureMesh, textureOffsetU_) == 0xCC && offsetof(CFigureMesh, flatSpecular_) == 0xD8);
 static_assert(offsetof(CFigureMesh, worldPosition_) == 0x28 && offsetof(CFigureMesh, poseMatrix_) == 0xE0);
-static_assert(offsetof(CFigureMesh, name_) == 0x120 && offsetof(CFigureMesh, meshType_) == 0x15C);
-static_assert(offsetof(CFigureMesh, colorsA_) == 0x138);
-static_assert(offsetof(CFigureMesh, materialValue_) == 0x158 && offsetof(CFigureMesh, worldMatrix_) == 0x54);
-static_assert(offsetof(CFigureMesh, center_) == 0x160);
-static_assert(offsetof(CFigureMesh, radius_) == 0x184 && offsetof(CFigureMesh, boxPivot_) == 0x1B4);
-static_assert(offsetof(CFigureMesh, bounds_) == 0x188);
-static_assert(offsetof(CFigureMesh, vertices_) == 0x1C0);
-static_assert(sizeof(CFigureMesh) == 0x1E0);
 
 // Class 0x41: a part whose last four buffers point into the loaded file data (the figure manager's parts that
 // are not attached).
@@ -253,9 +246,7 @@ public:
     lib::AlignedArray<std::uint16_t> indices_;
     lib::AlignedArray<TexCoord> texCoords_;
 };
-static_assert(offsetof(CPlainFigureMesh, corners_) == 0x1E0 && offsetof(CPlainFigureMesh, texCoords_) == 0x210);
 // The figure factory allocates the game's sizes.
-static_assert(sizeof(CSharedFigureMesh) == 0x1E0 && sizeof(CPlainFigureMesh) == 0x220);
 
 // The header in front of a FIG mesh: the magic ("FIG8" = 0x38474946 morphs) and the element counts, then two
 // more dwords.

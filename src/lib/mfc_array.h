@@ -401,9 +401,6 @@ using OwnedBoneLinkArrays = ArrayAbi<BoneLinkElement, EachElements<BoneLinkEleme
 using ByteArrayElement = WithArray<0x14, 0, ByteArrayClass>;
 using ByteArrays = ArrayAbi<ByteArrayElement, EachElements<ByteArrayElement, InitWithArray<0x14, 0, ByteArrayClass>,
                                                           DeleteThroughObject<ByteArrayElement>>>;
-// The figure's 0x220-byte parts and the scene's 0x18C-byte records: destroyed through slot 0.
-using FigureParts = ArrayAbi<Bytes<0x220>, EachElements<Bytes<0x220>, nullptr, DeleteThroughFirst<Bytes<0x220>>>>;
-using SceneRecords = ArrayAbi<Bytes<0x18C>, EachElements<Bytes<0x18C>, nullptr, DeleteThroughFirst<Bytes<0x18C>>>>;
 
 // Elements that are the engine's aligned arrays (lib/containers.h AlignedArray, 16 bytes; the terrain
 // sectors' lists): zero filled; destroyed by freeing the block, the fields left.

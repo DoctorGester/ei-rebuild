@@ -75,8 +75,8 @@ EI_REWRITTEN(0x005A6E00, CreateMeshJump);
 // --- Clearing -----------------------------------------------------------------------------------
 
 void CFigureMesh::Clear() {
-    name_.Empty();
-    directory_.Empty();
+    name_.clear();
+    directory_.clear();
     BuffersChanged();
     offsets_.SetSize(0);
     colorsA_.SetSize(0);
@@ -168,7 +168,7 @@ void scene::InitFigurePart(CPlainFigureMesh* p) { new (p) CPlainFigureMesh(); }
 
 int CFigureMesh::Create() { return CreateMesh(); }
 void CFigureMesh::Destroy() { Clear(); }
-const char* CFigureMesh::GetName() { return name_; }
+const char* CFigureMesh::GetName() { return name_.c_str(); }
 const char* CFigureMesh::GetClassName() { return "CFigure"; }
 int CFigureMesh::GetClassId() { return 0x44; }
 

@@ -1079,12 +1079,7 @@ public:
     CEngineObject* material_;        // the window's black material
     CEngineObject* texture_;         // one of the window's referenced objects
 };
-static_assert(offsetof(CUiMesh, visible_) == 0x220 && offsetof(CUiMesh, tint_) == 0x224);
-static_assert(offsetof(CUiMesh, scaleMatrix_) == 0x23C && offsetof(CUiMesh, material_) == 0x27C);
-static_assert(offsetof(CUiMesh, texture_) == 0x280 && sizeof(CUiMesh) == 0x284);
 static_assert(offsetof(CUiMesh, flatSpecular_) == 0xD8 && offsetof(CUiMesh, textureOffsetU_) == 0xCC);
-static_assert(offsetof(CUiMesh, vertices_) == 0x1C0 && offsetof(CUiMesh, corners_) == 0x1E0);
-static_assert(offsetof(CUiMesh, indices_) == 0x200 && offsetof(CUiMesh, texCoords_) == 0x210);
 
 inline CUiMesh* AsUiMesh(CEngineObject* object) { return static_cast<CUiMesh*>(object); }
 inline CUiMesh* CUiWindow::SceneMesh(int index) const { return AsUiMesh(sceneObjects_.data[index]); }

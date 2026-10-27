@@ -30,8 +30,8 @@ using mfc::impl::EachElements;
 
 // ---- Scene records -------------------------------------------------------------------------------
 
-// The fake unit's arrays (scene_loader.h has their element types): the figure's 0x220-byte parts
-// the scene's 0x9C-byte materials, meshes and nodes.
+// The fake unit's arrays (scene_loader.h has their element types): the figure's parts, the scene's
+// materials, meshes and nodes.
 using FigureParts = ArrayAbi<CPlainFigureMesh, scene::FigurePartElements>;
 using Materials = ArrayAbi<CMaterial, scene::HelperElements>;
 using SceneMeshes = ArrayAbi<scene::SceneMesh, scene::MeshElements>;
@@ -73,14 +73,14 @@ using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour,
 struct BehaviourArrayClass final
     : mfc::impl::CompiledCollection<BehaviourArrayClass, &Behaviours::Destruct<BehaviourArrayClass>, &Behaviours::Serialize> {};
 
-// A fake unit's 0x220-byte figure parts, 0x18C-byte scene records and 0x9C-byte records (FakeUnitScene's constructor).
+// A fake unit's figure parts, meshes and materials (FakeUnitScene's constructor).
 struct FakeUnitPartArrayClass final
-    : mfc::impl::CompiledCollection<FakeUnitPartArrayClass, &mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>, &FigureParts::Serialize> {};
+    : mfc::impl::CompiledCollection<FakeUnitPartArrayClass, &FigureParts::Destruct<FakeUnitPartArrayClass>, &FigureParts::Serialize> {};
 struct FakeUnitSceneRecordArrayClass final
-    : mfc::impl::CompiledCollection<FakeUnitSceneRecordArrayClass, &mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>,
+    : mfc::impl::CompiledCollection<FakeUnitSceneRecordArrayClass, &SceneMeshes::Destruct<FakeUnitSceneRecordArrayClass>,
                                     &SceneMeshes::Serialize> {};
 struct FakeUnitRecord9CArrayClass final
-    : mfc::impl::CompiledCollection<FakeUnitRecord9CArrayClass, &mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>,
+    : mfc::impl::CompiledCollection<FakeUnitRecord9CArrayClass, &Materials::Destruct<FakeUnitRecord9CArrayClass>,
                                     &Materials::Serialize> {};
 
 // CStringArray over the part names of a map object (the server companion's, the object's own). GetAt by value

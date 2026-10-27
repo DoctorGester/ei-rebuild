@@ -34,7 +34,7 @@ SceneSkin::SceneSkin() {
     owner = 0;
     root = nullptr;
     clock[1] = kClockUnsetHigh;
-    name.Empty();
+    name.clear();
     names.SetSize(0, -1);
     spare38 = 0;
     if (spareArray.data) {
