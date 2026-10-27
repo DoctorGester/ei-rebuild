@@ -79,6 +79,10 @@ CEngineObject* CachedObject(ItemObjectCache* cache, const char* name, bool textu
     TrimItemCache(cache);
     return object;
 }
+// A cached item texture: `cache` is the screen's texture cache, which holds only ItemFigureTexture's textures.
+CTexture* CachedTexture(ItemObjectCache* cache, const char* name) {
+    return static_cast<CTexture*>(CachedObject(cache, name, true));
+}
 
 // A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 in that order, stored as
 // float.
@@ -188,10 +192,10 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         std::string name = item->PictureName().GetString();
         model = AsUiMesh(CachedObject(&models_, name.c_str(), false));
     }
-    CEngineObject* texture;
+    CTexture* texture;
     {
         std::string name = item->FigureName().GetString();
-        texture = CachedObject(&textures_, name.c_str(), true);
+        texture = CachedTexture(&textures_, name.c_str());
     }
     if (!model || !texture) return;
 
@@ -387,7 +391,7 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
     mfc::CString modelName, textureName;
     FaceNames(cell->prototype, &modelName, &textureName);
     CUiMesh* model = AsUiMesh(CachedObject(&models_, modelName, false));
-    CEngineObject* texture = CachedObject(&textures_, textureName, true);
+    CTexture* texture = CachedTexture(&textures_, textureName);
     if (!model || !texture) return;
 
     model->texture_ = texture;
@@ -492,9 +496,9 @@ EI_REWRITTEN(0x005EC020, ItemFigureTexture);
 
 // --- An image into part of a texture -------------------------------------------------------
 
-int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width,
+int CUiWindow::CopyImage(CTexture* texture, const char* name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y, int, int) {
-    CDXSurface* holder = static_cast<CTexture*>(texture)->surface_;
+    CDXSurface* holder = texture->surface_;
     const MmpHeader* image;
     {
         std::string base = name;

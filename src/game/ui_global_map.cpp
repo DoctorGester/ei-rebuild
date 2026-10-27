@@ -101,7 +101,7 @@ private:
 
 // Float fields are written with their bits (immediate stores).
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
-void SetTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
+void SetTexture(CUiMesh* sprite, CTexture* texture) { sprite->texture_ = texture; }
 void SetPlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 void SetPosition(CUiMesh* sprite, const Vector3& p) { std::memcpy(&sprite->localPosition_, &p, 12); }
 void SetWhite(CUiMesh* sprite) {
@@ -137,7 +137,7 @@ public:
         return out;
     }
     void Turn(CUiMesh* sprite) const { std::memcpy(&sprite->localRotation_, &map_->turn_, 16); }
-    CEngineObject* Texture(int index) const { return map_->objects_.data[index]; }
+    CTexture* Texture(int index) const { return map_->objects_.data[index]; }
 
     CUiMesh* Marker(const char* figure, const Vector3& local, float scale) const {
         CUiMesh* sprite = AddFigure(map_, figure);
@@ -590,7 +590,7 @@ void CGlobalMap::Update() {
     // The weather is drawn straight into texture 4's pixels: only the new renderer's memory
     // drawn into directly (DirectDraw: between a Lock and an Unlock).
     if (objects_.size > 4) {
-        CDXSurface* holder = static_cast<CTexture*>(objects_.data[4])->surface_;
+        CDXSurface* holder = objects_.data[4]->surface_;
         auto* lock = TheDeviceLock();
         gameapi::EnterCriticalSection(lock);
         SurfacePixels pixels;

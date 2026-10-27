@@ -130,7 +130,7 @@ int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
-void SetSpriteTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
+void SetSpriteTexture(CUiMesh* sprite, CTexture* texture) { sprite->texture_ = texture; }
 void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->flatColour_ = argb; }
 void SetSpritePlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 void Turn(CUiMesh* sprite, float angle) {
