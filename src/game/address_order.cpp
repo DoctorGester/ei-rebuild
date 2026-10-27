@@ -1,6 +1,6 @@
-// The draw lists' order without addresses (address_order.h, DrawBefore). Shared with the harness's
-// game.exe side (tests/verify/harness_address_order.cpp sorts the original's draw lists with it), so
-// run_all's reference key lists this file (tools/run_all.py, reference_key): it uses only headers.
+// The draw lists' order without addresses (address_order.h, DrawBefore). The harness sorts game.exe's draw
+// lists the same way over its own views of game.exe's objects (tests/verify/harness_address_order.cpp): a
+// change of the order here changes it there too.
 #include "address_order.h"
 
 #include "engine_object.h"

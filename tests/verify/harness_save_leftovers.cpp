@@ -1,7 +1,7 @@
 // Save-only leftovers made canonical in the original (harness_save_leftovers.h; ticket SV7b2a).
 #include "harness_save_leftovers.h"
 
-#include "../../src/game/chunk_archive.h"
+#include "exe_objects.h"
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "harness_original.h"
@@ -119,20 +119,22 @@ std::size_t PatchInline(const InlineSite& site, std::uint8_t* stub) {
 
 constexpr std::uintptr_t kAppendChild = 0x00409110;
 constexpr std::uintptr_t kWriteStreamChunk = 0x0040A3C0;
-using AppendChildFn = bool(__fastcall*)(ChunkArchive*, void*, ChunkArchive::Ref*, int, const void*, std::uint32_t);
+// ChunkArchive::AppendChild (archive, a chunk reference, id, data, size) and WriteStreamChunk (out, id, from).
+using AppendChildFn = bool(__fastcall*)(void* archive, void*, void* chunk, int, const void*, std::uint32_t);
+using WriteStreamChunkFn = bool(__fastcall*)(void* out, int, void* from);
 
 // Per archive being saved, its objects in order of first save (number = index + 1).
 constexpr int kArchives = 4;
 constexpr int kObjects = 4096;
 struct Numbering {
-    const ChunkArchive* archive;
+    const void* archive;   // a ChunkArchive
     int count;
     std::uint32_t objects[kObjects];
 };
 Numbering g_numberings[kArchives];
 bool g_full = false;
 
-std::uint32_t Number(const ChunkArchive* archive, std::uint32_t object) {
+std::uint32_t Number(const void* archive, std::uint32_t object) {
     Numbering* numbering = nullptr;
     for (Numbering& n : g_numberings)
         if (n.archive == archive) numbering = &n;
@@ -156,7 +158,7 @@ std::uint32_t Number(const ChunkArchive* archive, std::uint32_t object) {
 }
 
 // SaveObjectRef's field and Close's record key (0040A589, 0040A205): the object's number.
-bool __fastcall NumberedAppendChild(ChunkArchive* archive, void*, ChunkArchive::Ref* chunk, int id, const void* data,
+bool __fastcall NumberedAppendChild(void* archive, void*, void* chunk, int id, const void* data,
                                     std::uint32_t size) {
     std::uint32_t object;
     std::memcpy(&object, data, 4);
@@ -166,8 +168,8 @@ bool __fastcall NumberedAppendChild(ChunkArchive* archive, void*, ChunkArchive::
 
 // Close's index (0040A2D3): per object its class id and its address, the address now its number; the
 // archive's numbering ends with it. The index stream is the archive's first member.
-bool __fastcall NumberedIndexWrite(CStream* out, int id, CMemoryStream* index) {
-    const auto* archive = reinterpret_cast<const ChunkArchive*>(index);
+bool __fastcall NumberedIndexWrite(void* out, int id, ei::verify::exe::CMemoryStream* index) {
+    const void* archive = index;
     for (std::uint32_t at = 4; at + 4 <= index->size_; at += 8) {
         std::uint32_t object;
         std::memcpy(&object, index->data_ + at, 4);
@@ -176,7 +178,7 @@ bool __fastcall NumberedIndexWrite(CStream* out, int id, CMemoryStream* index) {
     }
     for (Numbering& n : g_numberings)
         if (n.archive == archive) n.archive = nullptr;
-    return reinterpret_cast<decltype(&WriteStreamChunk)>(kWriteStreamChunk)(out, id, index);
+    return reinterpret_cast<WriteStreamChunkFn>(kWriteStreamChunk)(out, id, index);
 }
 
 struct CallSite {

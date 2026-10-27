@@ -41,6 +41,9 @@ python "%~dp0tools\comments.py" check || exit /b 1
 rem Game data by address only through the data seam (src/game/game_data.h, S18): sealed sections none raw,
 rem the rest per file no more than config/data_seam.csv allows.
 python "%~dp0tools\data_seam.py" --check || exit /b 1
+rem game.exe's side of the harness reads game.exe's objects through its own views, ours only through
+rem tests/verify/image: no class of ours in the reference cache's key (tools/run_all.py, harness_files; H30b).
+python "%~dp0tools\check_harness_key.py" || exit /b 1
 rem Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
 "%OUT%\ei_vectors.exe" || exit /b 1
 rem The interface canvases (src/render/render_ui) on a WARP device against CPU rules and GDI (tools/ui_check).

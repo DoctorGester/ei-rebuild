@@ -210,7 +210,7 @@ each step green on the goldens and removing a measured tie:
   Right after the move (same init_seg(compiler) object, before the harness's static
   constructor takes its slots) `ResolveImageImports` loads each DLL (the working directory, else System32;
   dinput always the system's; game.exe's folder came first until S18k) and fills our slots;
-  GetCommandLineA gets its wrapper there (`ImageRoute`, hook/standalone.cpp; the resource, module and DirectInput
+  GetCommandLineA gets its wrapper there (`ImageRoute`, hook/standalone_main.cpp; the resource, module and DirectInput
   wrappers went with S18j). Our code names no slot by address (C18): it calls through `ei::Imports().X` (gameapi.h's
   routed imports, Miles, Bink, Winsock, DirectInput, the static initialisers' `Import(&ei::ImportTable::Sleep, ...)`)
   or the Windows function itself (below); the harness's `PatchSlot` / `WatchWrites` still take slots by address
@@ -1968,7 +1968,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
 - **Where**: src/game/system_text.h. With EI_UTF8 the image's import slot of each ANSI call that takes or gives
   text holds its UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by
-  `ImageRoute` in hook/standalone.cpp when image_imports.cpp resolves the slots). So every call through
+  `ImageRoute` in hook/standalone_main.cpp when image_imports.cpp resolves the slots). So every call through
   `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`, `CStdioFile` and the CRT's `fopen` /
   `_findfirst` / `_access` (they call through the slots). The harness takes the same slots afterwards and wraps
   the UTF-8 versions, so its saves redirect, overlay and registry snapshot work unchanged (they work on the

@@ -2300,7 +2300,7 @@ LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
-// The standalone image reached game code with no rewrite (src/hook/standalone.cpp, which ends the process
+// The standalone image reached game code with no rewrite (src/hook/standalone_main.cpp, which ends the process
 // after this): the run fails naming the address.
 void EndRunOnMissingCode(const char* what) {
     g_failures.push_back(std::string("standalone: ") + what + " (ei_hook.log)");

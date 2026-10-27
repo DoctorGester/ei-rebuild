@@ -126,7 +126,7 @@ def sources(folder, extensions):
 def routed(table):
     """The imports whose slot can hold something other than the export in the image (docs/notes/standalone.md,
     "Own import table"): the harness's slot routes (any import slot address tests/ names), the image's routes
-    (ImageRoute's table in hook/standalone.cpp, the UTF-8 routes of game/system_text.cpp), a slot our code takes
+    (ImageRoute's table in hook/standalone_main.cpp, the UTF-8 routes of game/system_text.cpp), a slot our code takes
     (`&gameapi::X`), and KEEP."""
     names = {slot: fn for slot, dll, fn, _ in table}
     out = set(KEEP)
@@ -138,7 +138,7 @@ def routed(table):
                 out.add(fn)
     out.update(re.findall(r'EI_UTF8_ROUTE\((\w+)\)', read(os.path.join(ROOT, 'src', 'game', 'system_text.cpp'))))
     out.update(re.findall(r'\{"\w+\.dll", "(\w+)", reinterpret_cast',
-                          read(os.path.join(ROOT, 'src', 'hook', 'standalone.cpp'))))
+                          read(os.path.join(ROOT, 'src', 'hook', 'standalone_main.cpp'))))
     for path in sources('src', ('.cpp', '.h')):
         out.update(re.findall(r'&gameapi::(\w+)', read(path)))
     return out

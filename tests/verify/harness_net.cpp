@@ -10,8 +10,9 @@
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
-#include "game/game_data.h"
-#include "game/net_classes.h"
+#include "image/image_side.h"
+
+#include "../../src/game/game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -269,7 +270,7 @@ void InstallPort() {
         return;
     }
     // Ours in the image; game.exe's own in --no-hooks runs (the original code reads its copy).
-    int* target = ei::Standalone() ? &net::g_gamePort : &ei::OriginalGameData<int>(0x00783E30);
+    int* target = ei::Standalone() ? &image::GamePort() : &ei::OriginalGameData<int>(0x00783E30);
     int before = *target;
     DWORD old;
     if (!VirtualProtect(target, sizeof(int), PAGE_READWRITE, &old)) return;

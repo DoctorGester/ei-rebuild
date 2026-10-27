@@ -5,15 +5,19 @@
 #include "../../../src/hook/log.h"
 
 #include "game/app.h"
+#include "game/camera.h"
 #include "game/console.h"
+#include "game/core_streams.h"
 #include "game/game_singletons.h"
 #include "game/item.h"
+#include "game/net_classes.h"
 #include "game/model.h"
 #include "game/object_tables.h"
 #include "game/options.h"
 #include "game/party_manager.h"
 #include "game/player_messages.h"
 #include "game/random.h"
+#include "game/resource.h"
 #include "game/spell.h"
 #include "game/texture.h"
 #include "game/ui.h"
@@ -29,6 +33,8 @@
 #include <ddraw.h>
 
 #include <cstdlib>
+#include <cstring>
+#include <new>
 #include <string>
 
 namespace ei::verify::image {
@@ -176,6 +182,48 @@ bool RestoreSurfaces(long* result) {
     device->lastLoadResult_ = DD_OK;
     LeaveCriticalSection(TheDeviceLock());
     return true;
+}
+
+int& GamePort() { return net::g_gamePort; }
+
+const char* TextFolder() { return TheTextFolder(); }
+
+long ModFile(const char* path, const char* name) {
+    void* memory = ::operator new(sizeof(CMappedResource));
+    std::memset(memory, 0, sizeof(CMappedResource));
+    auto* res = new (memory) CMappedResource();
+    long got = -2;   // the archive did not open
+    if (res->CMappedResource::OpenResource(path, 0)) {
+        std::uint32_t size = 0;
+        void* data = res->GetFile(name, &size);   // slot 5 (00671B40, Rebirth's ResOverride)
+        got = data ? static_cast<long>(size) : 0;
+        if (data) res->CloseFile(data);
+    }
+    res->CMappedResource::Destroy();
+    ::operator delete(memory);
+    return got;
+}
+
+namespace {
+void (*g_streamWrites)(void* stream, std::uint32_t size, void* const* frame) = nullptr;
+void ObservedStreamWrite(CMemoryStream* stream, std::uint32_t size, void* const* frame) { g_streamWrites(stream, size, frame); }
+} // namespace
+
+void ObserveStreamWrites(void (*observer)(void* stream, std::uint32_t size, void* const* frame)) {
+    g_streamWrites = observer;
+    g_memoryStreamWriteObserver = &ObservedStreamWrite;
+}
+
+CameraState Camera(const void* camera) {
+    const auto* c = static_cast<const CCamera*>(camera);
+    CameraState state;
+    state.focusX = c->focus_.x;
+    state.focusY = c->focus_.y;
+    state.turnZ = c->viewRotation_.z;
+    state.turnW = c->viewRotation_.w;
+    state.distance = c->distance_;
+    state.flags = c->flags_;
+    return state;
 }
 
 std::string HudState(void* screen, const std::string& argument) { return HudStateOf(screen, argument); }

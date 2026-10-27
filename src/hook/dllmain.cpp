@@ -84,7 +84,7 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         DisableThreadLibraryCalls(module);
         ei::Log("ei_hook loaded into pid %lu", GetCurrentProcessId());
         ei::RedirectGamePaths();
-        // In ei_standalone.exe the host calls EiStandaloneMain (standalone.cpp) instead.
+        // In ei_standalone.exe the host calls EiStandaloneMain (standalone_main.cpp) instead.
         if (!ei::Standalone()) ei::InstallHooksAtWinMain();
     }
     return TRUE;

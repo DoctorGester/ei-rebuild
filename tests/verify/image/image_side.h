@@ -173,6 +173,52 @@ bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr);
 bool RenderStep(const std::string& verb, const std::string& argument, std::vector<std::string>* failures,
                 std::vector<std::string>* frames);
 
+// ---- the "modfile" step (harness_starter.cpp; image/harness_objects_image.cpp)
+
+const char* TextFolder();   // the text resources' folder
+// The bytes of `name` in the archive at `path` through a CMappedResource: -2 when the archive does not open, 0
+// without the file.
+long ModFile(const char* path, const char* name);
+
+// ---- the save trace (harness_savetrace.cpp; image/harness_objects_image.cpp)
+
+// g_memoryStreamWriteObserver: each memory stream write, before its bytes.
+void ObserveStreamWrites(void (*observer)(void* stream, std::uint32_t size, void* const* frame));
+
+// ---- the run's settings file (harness_settings.cpp, harness_startup.cpp; image/harness_settings_image.cpp)
+
+// One entry of a settings document, in order: a key (AddKey: `value` false), or a value of a key (Set).
+struct SettingsValue {
+    std::string key;
+    bool value = false;
+    std::string name;
+    unsigned long type = 0;
+    std::string data;
+};
+using SettingsMissing = void (*)(const char* path, const char* name);
+using SettingsReadFilter = void (*)(const char* name, unsigned long type, std::string& data);
+const char* SettingsFileName();                                        // settings_file::kFileName
+std::string SettingsText(const std::vector<SettingsValue>& document);  // the document's file text
+// The file pinned (settings_file::Pin); and pinned writable with `document` as the registry the first use imports.
+void PinSettings(const char* file, SettingsMissing missing, bool readOnly);
+void ImportSettings(const std::vector<SettingsValue>& document, const char* file, SettingsMissing missing);
+void AddSettingsReadFilter(SettingsReadFilter filter);
+
+// ---- the game's UDP port (harness_net.cpp; image/harness_objects_image.cpp)
+
+int& GamePort();   // net::g_gamePort
+
+// ---- the camera trace (harness_camera.cpp; image/harness_objects_image.cpp)
+
+// What the trace samples of a CCamera: its focus, its view rotation's z and w, its distance and its flags.
+struct CameraState {
+    float focusX = 0, focusY = 0;
+    float turnZ = 0, turnW = 1;
+    float distance = 0;
+    unsigned flags = 0;
+};
+CameraState Camera(const void* camera);
+
 // ---- the interface drawing census (ui_census.cpp; image/harness_census_image.cpp)
 
 void* ClientBitmap(const void* holder);          // a holder's DIB section (an HBITMAP)

@@ -572,7 +572,7 @@ src/game/zone_records.cpp,1,0
 src/hook/cover.cpp,0,1
 src/hook/hook.cpp,4,3
 src/hook/rebirth_hook.h,0,1
-src/hook/standalone.cpp,1,1
+src/hook/standalone_main.cpp,1,1
 src/standalone/host.cpp,0,1
 src/standalone/image_code.cpp,0,1
 src/standalone/image_data.cpp,2,0

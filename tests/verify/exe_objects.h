@@ -1069,6 +1069,15 @@ struct CScreenFade {
 };
 static_assert(sizeof(CScreenFade) == 0x14);
 
+// A memory stream (core_streams.h).
+struct CMemoryStream {
+    std::uint8_t unknown0[0x18];
+    std::uint8_t* data_;                    // +0x18
+    std::uint8_t unknown1C[0x8];
+    std::uint32_t size_;                    // +0x24
+};
+static_assert(sizeof(CMemoryStream) == 0x28);
+
 // A surface holder (texture.h).
 struct CDXSurface {
     std::uint8_t unknown0[0x10];

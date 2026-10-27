@@ -6,8 +6,9 @@
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
-#include "game/game_data.h"
-#include "game/settings_file.h"
+#include "image/image_side.h"
+
+#include "../../src/game/game_data.h"
 
 #include <windows.h>
 
@@ -539,59 +540,58 @@ Mode g_mode = Mode::ReadOnly;
 // Values of every kind in a key of the game's tree (so the game keeps them as it keeps what it does not know), for
 // the save and the import to carry as they are; with `outside`, also a key outside both trees that an import must
 // leave out.
-void AddProbeKey(settings_file::Document& document, bool outside) {
+void AddProbeKey(std::vector<image::SettingsValue>& document, bool outside) {
     const char* key = "Software\\Nival Interactive\\EvilIslands\\ProbeSettings";
     auto dword = [](std::uint32_t value) { return std::string(reinterpret_cast<const char*>(&value), 4); };
-    document.Set(key, "dword", REG_DWORD, dword(0xFEDCBA98u));
-    document.Set(key, "string", REG_SZ, std::string("C:\\Probe Dir\\\"quoted\"\\end\\") + std::string(1, '\0'));
-    document.Set(key, "minus zero", REG_BINARY, dword(0x80000000u));
-    document.Set(key, "denormal", REG_BINARY, dword(0x00000001u));
-    document.Set(key, "nan", REG_BINARY, dword(0x7FC00001u));
-    document.Set(key, "bytes", REG_BINARY, std::string("\x00\x01\xFE\xFF\x7F", 5));
-    document.Set(key, "multi", REG_MULTI_SZ, std::string("one\0two\0\0", 9));
-    document.Set(key, "expand", REG_EXPAND_SZ, std::string("%TEMP%\\x\0", 9));
-    document.Set(key, "control", REG_SZ, std::string("tab\there\0", 9));
-    document.Set(key, "", REG_SZ, std::string("default\0", 8));
-    if (outside) document.Set("Software\\Probe Outside", "value", REG_DWORD, dword(1));
+    auto set = [&](const char* path, const char* name, unsigned long type, std::string data) {
+        document.push_back({path, true, name, type, std::move(data)});
+    };
+    set(key, "dword", REG_DWORD, dword(0xFEDCBA98u));
+    set(key, "string", REG_SZ, std::string("C:\\Probe Dir\\\"quoted\"\\end\\") + std::string(1, '\0'));
+    set(key, "minus zero", REG_BINARY, dword(0x80000000u));
+    set(key, "denormal", REG_BINARY, dword(0x00000001u));
+    set(key, "nan", REG_BINARY, dword(0x7FC00001u));
+    set(key, "bytes", REG_BINARY, std::string("\x00\x01\xFE\xFF\x7F", 5));
+    set(key, "multi", REG_MULTI_SZ, std::string("one\0two\0\0", 9));
+    set(key, "expand", REG_EXPAND_SZ, std::string("%TEMP%\\x\0", 9));
+    set(key, "control", REG_SZ, std::string("tab\there\0", 9));
+    set(key, "", REG_SZ, std::string("default\0", 8));
+    if (outside) set("Software\\Probe Outside", "value", REG_DWORD, dword(1));
 }
 
 // The run's settings file: the snapshot's HKEY_CURRENT_USER keys, each value the scenario's starter lines
 // answer (any key) in place of the snapshot's, written to the run's folder and pinned (read only).
 void PinSettingsFile() {
-    settings_file::Document document;
+    std::vector<image::SettingsValue> document;   // in order: each key (AddKey), then its values (Set)
     const std::string root = std::string(kCurrentUser) + "\\";
     for (const auto& [lower, key] : S().keys) {
         if (key.absent || lower.compare(0, root.size(), root) != 0) continue;
         const std::string path = key.path.substr(root.size());
-        document.AddKey(path);
+        document.push_back({path, false, "", 0, {}});
         for (const auto& [lowerName, value] : key.values) {
             unsigned long type, size, dword;
             const unsigned char* data;
             if (starter::Answer(value.name.c_str(), &type, &data, &size, &dword)) {
-                document.Set(path, value.name.c_str(), type, std::string(reinterpret_cast<const char*>(data), size));
+                document.push_back({path, true, value.name, type, std::string(reinterpret_cast<const char*>(data), size)});
             } else if (!value.absent) {
-                document.Set(path, value.name.c_str(), value.type, std::string(value.data.begin(), value.data.end()));
+                document.push_back({path, true, value.name, value.type, std::string(value.data.begin(), value.data.end())});
             }
         }
     }
     if (g_mode != Mode::ReadOnly) AddProbeKey(document, g_mode == Mode::Import);
     char file[MAX_PATH];
-    ei::OutputPath(settings_file::kFileName, file);
+    ei::OutputPath(image::SettingsFileName(), file);
     char temporary[MAX_PATH];
     std::snprintf(temporary, sizeof(temporary), "%s.tmp", file);
     DeleteFileA(temporary);
     if (g_mode == Mode::Import) {
         // No file: the first use imports the snapshot (as the stand-in for the registry) and writes it.
-        static settings_file::Document registry;
-        static settings_file::DocumentSource source(registry);
-        registry = document;
         DeleteFileA(file);
-        settings_file::SetImportSource(&source);
-        settings_file::Pin(file, &PinnedMissing, false);
+        image::ImportSettings(document, file, &PinnedMissing);
         Log("harness: settings imported from the registry snapshot into %s on first use (the user's registry is not read)", file);
         return;
     }
-    const std::string text = document.Text();
+    const std::string text = image::SettingsText(document);
     FILE* f = nullptr;
     if (fopen_s(&f, file, "wb") != 0 || !f || std::fwrite(text.data(), 1, text.size(), f) != text.size()) {
         if (f) std::fclose(f);
@@ -599,7 +599,7 @@ void PinSettingsFile() {
         return;
     }
     std::fclose(f);
-    settings_file::Pin(file, &PinnedMissing, g_mode == Mode::ReadOnly);
+    image::PinSettings(file, &PinnedMissing, g_mode == Mode::ReadOnly);
     Log("harness: settings pinned in %s (the registry snapshot and the starter lines; %s)", file,
         g_mode == Mode::ReadOnly ? "read only" : "writable: the exit save rewrites it");
 }
