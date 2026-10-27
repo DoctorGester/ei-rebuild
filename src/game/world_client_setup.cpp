@@ -41,10 +41,6 @@ const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return options::TheOptions()->resourcesPath_.GetString(); } // a CString
 UnitDatabase* Units() { return &unitdb::Database(); }
 
-// Through their addresses: the texture manager's device (not rewritten) and the
-// figure loader's constructor (returns this; Rebirth-patched, its vanilla body is
-// in link_loader_create.cpp).
-
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The
 // accumulated colour stays unrounded between the steps (FPU stack), each stored as a float.

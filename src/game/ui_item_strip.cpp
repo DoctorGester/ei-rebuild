@@ -19,10 +19,6 @@
 
 namespace {
 
-// Sprite builders through their original addresses (Rebirth-patched):
-// a textured rectangle, a framed rectangle, a
-// rectangle of `count` repeated cells.
-
 
 
 

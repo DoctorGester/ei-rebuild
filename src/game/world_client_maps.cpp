@@ -256,14 +256,8 @@ struct CellOps {
 using DynamicList = mfc::CList<CEngineObject*>;
 using DynamicNode = DynamicList::Node;
 
-// The id map dynamicNodes_ (hash_map<unsigned, DynamicNode*>, then the highest key): operator[],
-// erase(iterator), clear.
-
 // ClearMaps: the session's player data.
 void __fastcall SessionPlayerClear(CPlayer* session) { static_cast<CPlayer*>(session)->Clear(); }
-
-// The STLport sort over the screen entries with DepthLess {plane, manager}: stl_sorts.h's stl_sorts::
-// ScreenIntroSort, ScreenInsertionSort, ScreenUnguardedInsertionSort.
 
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
@@ -650,14 +644,6 @@ void CWorldClient::UnitsInBox(const long* rect, stlp::list<CEngineObject*>* out)
 
 namespace {
 
-// The prototypes' name map (hash_map<string, record*>): find or insert a {name, 0} pair
-// the prototype table's lookup by name.
-// CUnit: the second prototype by name, the figure made from a model and its part names,
-// RestartPose after it, WriteFullState, the position,
-// the items (release all, weapon, armour, quick item).
-// The figure's RegisterPartMaterials and its texture swap (from, to (null:
-// none)); an armour's type (on the item).
-
 bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     for (;; ++a, ++b) {
         if (*a != *b) return false;
@@ -877,10 +863,6 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
 // ---- Teardown -------------------------------------------------------------------------
 
 namespace {
-
-// The lists' element destructors (node + 8, flags) and
-// node releases (node, count).
-// The platform list's RemoveAll; the base world's teardown.
 
 // The list's nodes walked from the head's next, each given to `free` after the next is read; the
 // list is left empty.

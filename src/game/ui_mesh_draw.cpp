@@ -43,9 +43,6 @@ void Pop(MatrixStack& stack) {
     if (stack.count != 0) --stack.count;
 }
 
-// Place's layout scale (0.48157), the half width / height (400, 300)
-// and 1, read from the exe.
-
 } // namespace
 
 void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {

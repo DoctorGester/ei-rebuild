@@ -24,7 +24,6 @@ class CLight;        // spell.h
 // The figure mesh drawer's base (an engine object with the mesh it draws).
 // No object of the base alone exists.
 struct FigureDrawerBase : CEngineObject {
-    // The deleting destructors free into the game's heap.
 
     CFigureMesh* mesh_;         // the mesh it draws
 
@@ -79,8 +78,6 @@ static_assert(offsetof(FigureMeshDrawer, spare30_) == 0x30 && sizeof(FigureMeshD
 
 class CTextureDevice;   // texture.h
 class CTexture;         // texture.h
-// The drawer's draws (called by the renderer): lit, with two textures
-// (figure_part_draw.cpp), and plain (figure_part_draw_plain.cpp). Both return 1.
 
 struct CDXSurface;   // texture.h
 
@@ -269,10 +266,6 @@ static_assert(sizeof(*CLinkMesh::words_.data) == 4 && sizeof(*CLinkMesh::indices
 static_assert(offsetof(CLinkMesh, ranges_) == 0x9C);
 static_assert(offsetof(CLinkMesh, pipeline_) == 0xAC);
 static_assert(sizeof(CLinkMesh) == 0xB0);
-
-// The record of a part in a resource archive (as the loaders read it; `cursor` moves past it):
-// The FIG / FIG8 record and the older one without a header.
-// Both are members of CLinkFigureLoader (model.h): LoadFigPart, LoadOldPart.
 
 // link_loader.cpp. A length-prefixed string of a
 // .lnk file (a four-byte length, then the characters) at *cursor; `out` gets the characters up to

@@ -94,8 +94,6 @@ void PopMatrix(MatrixStack& stack) {
     if (depth) --depth;
 }
 
-// Render's callees.
-
 // A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as
 // addon turns it into the float it patches in: (float)(unsigned)value, read once (addon reads its
 // settings when it loads).

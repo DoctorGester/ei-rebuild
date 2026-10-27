@@ -24,8 +24,6 @@
 
 namespace {
 
-// The instantiations' vtables the constructors write.
-
 // The MFC lists' block size (CList(nBlockSize = 10)).
 constexpr int kListBlockSize = 10;
 // The client's flags after construction.

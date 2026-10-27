@@ -30,8 +30,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// Unit statistics (UnitStats) values left in ST0 (not rewritten here).
-
 void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
 
 CUiRegion* AddRect(CUiWindow* window, const RECT& r) {

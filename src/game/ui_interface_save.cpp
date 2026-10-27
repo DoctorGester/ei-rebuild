@@ -58,7 +58,6 @@ void CInterface3D::LoadState(CStream* stream) {
 char g_pauseMessageKey[12] = /*007930EC*/ {"reserved_02"};
 
 namespace {
-// The text table: a key's text into `out`.
 
 const char* const kMessageKeys[13] = {
     "lmp_player_connected",

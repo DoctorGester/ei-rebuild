@@ -372,5 +372,3 @@ void CMpHeroScreen::CreateScreen() {
     widescreen::AddCurtains(this, 0);
 }
 EI_REWRITTEN(0x00613EA0, CMpHeroScreen::CreateScreen);
-// In a Rebirth launch EI_Plugin.asi also patches the function (the
-// figures' sex test above).

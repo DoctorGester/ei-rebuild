@@ -88,8 +88,6 @@ void __cdecl DestroyLastQuest() {
     g_lastQuest.Destroy();
 }
 
-// Not rewritten: splits `text` at `separator` into `out`.
-
 // A local hash_map<CString, float> filled with the player's variables starting with `prefix`.
 class VariableTable {
 public:
@@ -129,8 +127,6 @@ void SortStrings(mfc::CString* first, mfc::CString* last) {
         stl_sorts::QuestInsertionSort(first, last, 0);
     }
 }
-
-// The window's exit list: CArray<ObjectiveExit>.
 
 // The global map's exit distances (STLport map<int, float>).
 using DistanceMap = stlp::map<int, float>;

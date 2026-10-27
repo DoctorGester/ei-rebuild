@@ -243,8 +243,6 @@ EI_REWRITTEN(0x006503C0, COptionsWindow::CreateScreen);
 
 // --- Esc menu ------------------------------------------------------------------------
 
-// The five regions' rectangles (menus.reg) the game keeps.
-
 void CEscMenu::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
     CUiModel* model = AddModel();
@@ -314,16 +312,6 @@ EI_REWRITTEN(0x0062AE90, CEscMenu::OnLButtonDown);
 // --- Main menu clicks ------------------------------------------------------------
 
 namespace {
-
-// The game glue (world_glue.h) gives the game's folder, the text table (a key's text),
-// the server flag and, before the titles, stops the sounds and the ambience. It also shows
-// a status text on the interface manager, plays a movie (path, five flags) and quits.
-
-// The titles window's members (a mapped resource, a vector, the music player) and the hero screen's
-// (the item screen base's caches, two lists and two vectors) are called through their addresses.
-
-// The vtables (main, input) of the windows the clicks build inline: the new game's difficulty question
-// (a message box), the titles, the item screens' base and the multiplayer hero screen.
 
 } // namespace
 

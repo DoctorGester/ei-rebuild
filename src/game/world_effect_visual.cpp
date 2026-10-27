@@ -27,9 +27,6 @@ using namespace effect;
 namespace {
 
 
-// The world client's: a scorch mark on the ground. All arguments are float bits.
-// camera.cpp: a camera shake from an event at `at`.
-
 
 void ClearBase(CEffect* e) {
     e->localPosition_ = Vector3{0.0f, 0.0f, 0.0f};

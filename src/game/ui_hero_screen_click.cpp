@@ -36,8 +36,6 @@
 
 namespace {
 
-// An empty CString object of the game (the new hero's name).
-
 // The hero screen's own methods (on the window): the mode (Rebirth-patched), create the hero, the
 // statistics page's next, continue to the connection screen, rename, the voice's sound.
 void SetMode(CMpHeroScreen* screen, void*, int mode) { screen->SetModeVanilla(mode); }
@@ -46,16 +44,6 @@ void __fastcall MpHeroAddNew(CMpHeroScreen*);
 void __fastcall MpHeroContinue(CMpHeroScreen*);
 void __fastcall MpHeroRename(CMpHeroScreen*);
 void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
-// The hero list drawn again.
-// The hero list drawn again.
-
-// Back to the main menu: the text "reserved_04" to the interface manager, and the session ends.
-
-// Windows: the message box, and one opened on top.
-
-// The camp screen as the hero screen builds it inline (the same fields as its constructor,
-// with the texture cache's header node made by the tree's own allocator): container
-// base, the caches (ItemObjectCache::Construct), CStringArray.
 
 
 int HeroCount() {

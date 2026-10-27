@@ -56,8 +56,6 @@ std::uint32_t PackColour(const float* rgb) {
 // The draw pass is the scene renderer.
 CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)); }
 
-// An item's model (counted) and its figure texture, or null.
-
 // The cached object for `name` (its use time refreshed), or a new one put in the cache (find
 // the cache's find / operator[]), which then drops its least recently used
 // entries beyond its limit. Null when it cannot be made. `textures` picks the texture maker.

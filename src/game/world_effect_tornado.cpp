@@ -135,7 +135,7 @@ int CEffectTornado::Unpack(int update, DeltaField* field) {
     moving_ = effect::IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
-    Start(update);// through the virtual
+    Start(update);   // through the virtual
     return 1;
 }
 

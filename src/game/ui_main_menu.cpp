@@ -34,8 +34,6 @@
 
 namespace {
 
-// The game flow.
-
 // The width of the fade at the map's edges. The menu shows its world with 6.
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 // The main menu's six rectangles of menus.reg.

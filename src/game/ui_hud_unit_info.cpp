@@ -121,7 +121,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.text.Format(kValueUnit, panel.labels[6].GetString(), vision, panel.labels[13].GetString());
     panel.DrawLine();
 
-    // The controller's attack parameters (slot 50): attack, defence, the damage type (below 7
+    // The controller's attack parameters : attack, defence, the damage type (below 7
     // unsigned: "dmg_<n>" names it) and range.
     AttackParams combat;
     unitIn->Controller()->GetAttackParams(&combat);

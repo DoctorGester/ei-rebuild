@@ -1,5 +1,5 @@
 // Drawing a lightning bolt (CLightning's renderer virtual; called by DrawAll) and its
-// glow: the segments as textured strips through the render device (slot 16), then a
+// glow: the segments as textured strips through the render device, then a
 // glow: the segments as textured strips through the render device, then a
 // the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "lightning.h"

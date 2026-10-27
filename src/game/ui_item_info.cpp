@@ -120,8 +120,6 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
     return spell->GetPrototype();
 }
 
-// The panel's item list is a party object: emptied by PartyResetOriginal, filled by CParty::AddItem.
-
 } // namespace
 
 // --- ItemDamageLists --------------------------------------------------------------------------
@@ -159,9 +157,6 @@ EI_REWRITTEN(0x005F13A0, ItemDamageLists);
 
 namespace {
 void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }
-
-// The spell and modifier records the spell book reads (itemdb::SpellAt / SpellModifierAt) and the
-// item records (item_db.h).
 
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kText = 0xA7D7E4;

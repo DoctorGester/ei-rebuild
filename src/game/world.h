@@ -1064,7 +1064,6 @@ static_assert(sizeof(ClientArrayManager) == 0xD0);
 // emptied); a new fog object, counted, at the list end.
 void __fastcall VisFogManagerDestroy(ClientArrayManager* manager);
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* manager);
-// The client's particle manager, CParticleManager (effects.h).
 
 // The drawing side.
 class CWorldClient : public CWorld {
@@ -1530,8 +1529,6 @@ static_assert(offsetof(CWorldClient, sky_) == 0x52C);
 static_assert(offsetof(CWorldClient, constant228_) == 0x228 && offsetof(CWorldClient, constant6E8_) == 0x6E8);
 static_assert(offsetof(CWorldClient, lastLineListKey_) == 0x11C && offsetof(CWorldClient, constants7C4_) == 0x7C4);
 static_assert(offsetof(CWorldClient, appName_) == 0x7D4 && sizeof(CWorldClient) == 0x7E4);
-
-// MatrixRows (the first three rows of a 4x4 matrix; Transform) is in src/lib/vecmath.h.
 
 // Sorting predicates passed to STLport sort (operator() of empty or small functors).
 // Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and

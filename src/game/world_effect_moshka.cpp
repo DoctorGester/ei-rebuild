@@ -148,7 +148,7 @@ void CEffectMoshka::Update(float now) {
     EI_NAN_AUDIT(timer_);
     bool timeUp = timer_ < 0.0f;
 
-    Vector3 target{};// unset in the original for other states (Follow sets 0, so none occur)
+    Vector3 target{};   // unset in the original for other states (Follow sets 0, so none occur)
     if (state_ == kFlyingOff) {
         if (timeUp || (Same(localPosition_.x, birdAt.x) && Same(localPosition_.y, birdAt.y) &&
                        Same(localPosition_.z, birdAt.z))) {
@@ -251,7 +251,7 @@ void CEffectMoshka::Follow(int objectId) {
     console::CStringArray parts;
     bird->MakeFigure(model.c_str(), &parts, 1);
     attached->RegisterPartMaterials();
-    bird->PlayAnimationSecond(0, nullptr);// (the model name is passed as the unused argument)
+    bird->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
     bird->RestartPose();
     attached->SetSkins(texture.c_str(), game::EmptyText());
     TheClientWorld()->AddObject(bird_);

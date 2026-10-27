@@ -36,8 +36,6 @@ constexpr float kSoundRadius = 30.0f;
 constexpr std::uint32_t kLightFlags = 0x840;
 constexpr int kClassArrowFigure = 0x5B;
 
-// The missile base's vtable, stored while the base part is built.
-
 CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
 std::uint32_t Bits(const float& f) {
@@ -155,7 +153,7 @@ void CEffectArrow::Start(int update) {
     light_.SetVelocity(&drift);
     light_.lightFlags_ = kLightFlags;
     const char* name = soundName_;
-    std::memcpy(sound_.name_, name, std::strlen(name) + 1);// unbounded, like the original
+    std::memcpy(sound_.name_, name, std::strlen(name) + 1);   // unbounded, like the original
     sound_.radius_ = kSoundRadius;
     sound_.looping_ = 1;
     particle_.Start(update);
@@ -319,7 +317,7 @@ void CEffectArrowFigure::Start(int update) {
     console::CStringArray parts;
     figure->MakeFigure(model.c_str(), &parts, 1);
     attached->RegisterPartMaterials();
-    figure->PlayAnimationSecond(0, nullptr);// (the model name is passed as the unused argument)
+    figure->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
     figure->RestartPose();
     attached->SetSkins(texture.c_str(), game::EmptyText());
     TheClientWorld()->AddObject(figure_);

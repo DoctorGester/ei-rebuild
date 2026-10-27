@@ -24,9 +24,6 @@ namespace {
 // The key bindings' action of a scan code (ui.h KeyActions), as a byte.
 std::uint8_t KeyCharacter(int scan) { return static_cast<std::uint8_t>(KeyActions()[scan]); }
 
-// The screen capture (CallCaptureSurface); the picture (dib.h) is written with
-// CDib::Write and deleted.
-
 std::uint32_t g_shotCounter = /*007C7E24*/ {};
 
 constexpr int kRepeat = 0x4000;

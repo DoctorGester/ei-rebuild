@@ -29,8 +29,6 @@
 
 namespace {
 
-// The world's countdowns_ is set up.
-
 // A new object (its class's operator new and constructor), counted once: the reference is counted
 // without testing the pointer, like the original.
 template <class T>

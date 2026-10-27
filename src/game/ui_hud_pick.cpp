@@ -20,7 +20,7 @@ constexpr int kQuickSlots = 8;
 // Item categories (CItem::GetCategory) that carry a spell to aim: wands and scrolls.
 constexpr int kCategoryWand = 5;
 constexpr int kCategoryScroll = 8;
-// Spell data flag (CSpell +0x3C): the spell is aimed at a unit (kind 'u' in spells.sdb).
+// Spell data flag (CSpell flags): the spell is aimed at a unit (kind 'u' in spells.sdb).
 constexpr std::uint32_t kSpellOnUnit = 0x10000000;
 
 // The pending actions these buttons start (CBattleScreen::pendingAction_).
@@ -34,7 +34,7 @@ enum PendingAction : int {
     kPendingOrder = 8,
 };
 
-// The spell (+0x44) an item carries, or null.
+// The spell an item carries, or null.
 CSpell* SpellOf(CItem* item) { return item->spell_; }
 
 // The shared tail of the quick item and the spell use: `spell` (an item's spell) used at once by `unit`'s

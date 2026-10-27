@@ -47,8 +47,6 @@ constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
 CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
 
-// The multiplayer session's player records (STLport list of PlayerMessage pointers).
-
 // IDirect3DDevice7::SetRenderState / GetRenderState.
 long SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
     render::state::Render(static_cast<std::uint32_t>(state), value);
@@ -659,13 +657,6 @@ void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int c
 void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int quick) {
     screen->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
 }
-// The HUD panels: quick items (slot, 0), spells (index, 0), actions
-// (index, 0) and (all: CHudActionColumn::ClearHighlights).
-// The client world (TheClientWorld()): the object under a screen point (x, y pair), the
-// ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
-// The local view's orders: (unit, target, a, b, flag), (unit, target;
-// CPlayerClient::SendFollow, through its address).
-// The sprite's SetScale with the scale's bits (CUiMesh::SetScale).
 
 constexpr int kCategoryWand = 8;
 // The factor turning a random dword into the portraits' negative start delay.
