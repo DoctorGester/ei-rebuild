@@ -640,7 +640,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
             const char* name = worlddata::HeroPartText(n);
             if (SameText(name, worlddata::HairPartText())) {
-                UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(stlp::string(record->texts[5].GetString()));
+                UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(stlp::string(record->texts[5].c_str()));
                 int number = prototype->hair;
                 if (number != -1) {
                     hair = str::Format(worlddata::HairFormat(), number);
@@ -653,16 +653,16 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         auto* manager = MapObjectManager();
         auto* unit = manager->CreateObjectAs<CUnit>(kTypeHero, static_cast<int>(record->unitId));
         if (!unit) return;   // (leaving the loop is the same as returning here)
-        UnitPrototypeRecord* prototype = unitdb::PrototypeTable().FindByName(record->texts[5]);
+        UnitPrototypeRecord* prototype = unitdb::PrototypeTable().FindByName(record->texts[5].c_str());
         unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - unitdb::PrototypeTable().begin : -1);
-        unit->SetPrototype23CByName(record->texts[6]);
+        unit->SetPrototype23CByName(record->texts[6].c_str());
         unit->flags_ |= 0x4000000;
-        if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
+        if (!unit->MakeFigure(record->texts[2].c_str(), &parts, 1)) return;
         CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
         figure->RegisterPartMaterials();
         unit->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
         unit->RestartPose();
-        const char* skin = record->texts[4];
+        const char* skin = record->texts[4].c_str();
         figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
         unit->WriteFullState();
         CMapObjectVirtuals* slots = ObjectSlots(unit);
@@ -683,7 +683,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
             unit->AddQuickItem(record->quickItems[j]);
         unit->Controller()->RefreshEquipment();
         unit->Controller()->RefreshModel();
-        slots->SetScriptName(record->texts[0]);
+        slots->SetScriptName(record->texts[0].c_str());
         AddObject(unit);
     }
 }

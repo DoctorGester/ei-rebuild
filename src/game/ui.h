@@ -1126,13 +1126,6 @@ static_assert(offsetof(HudPortraitSlot, faceName_) == 0x40 && offsetof(HudPortra
               offsetof(HudPortraitSlot, modelSuffix_) == 0x54);
 static_assert(offsetof(HudPortraitSlot, wobbleTarget_) == 0x5C);
 
-// A figure prototype (the records of the map); only the model name the faces use.
-struct FigurePrototypeRecord {
-    std::uint8_t unused_000[0xE8];
-    mfc::CString model;              // e.g. "unhuma", "unhufe"
-};
-static_assert(offsetof(FigurePrototypeRecord, model) == 0xE8);
-
 // Party portraits (250..550 x 440..600).
 class CHudPortraits : public CUiWindow {
 public:

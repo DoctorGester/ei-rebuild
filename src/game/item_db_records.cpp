@@ -56,7 +56,7 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
 EI_REWRITTEN(0x006A8F20, ItemRecordHead::Assign);
 
 void WeaponRecord::CopyOwn(const WeaponRecord* source) {
-    CopyBytes(this, source, offsetof(WeaponRecord, category), 0x83);
+    CopyBytes(this, source, offsetof(WeaponRecord, category), offsetof(WeaponRecord, attackBonus) - 1);
     CopyBytes(this, source, offsetof(WeaponRecord, reach), sizeof(WeaponRecord));
 }
 
@@ -68,7 +68,7 @@ WeaponRecord* WeaponRecord::AssignWeapon(const WeaponRecord* source) {
 EI_REWRITTEN(0x006A8FB0, WeaponRecord::AssignWeapon);
 
 void ArmorRecord::CopyOwn(const ArmorRecord* source) {
-    CopyBytes(this, source, offsetof(ArmorRecord, category), 0xB4);
+    CopyBytes(this, source, offsetof(ArmorRecord, category), offsetof(ArmorRecord, showsWounds));
 }
 
 // The other kinds' operator=, as the weapon's.
@@ -246,8 +246,8 @@ void SpellListRecord::ConstructDefault() {
     stlp::StringElement::Default(&repeated);
 }
 
-// The material and weapon tables' At, as the unit skins and the client's maps read them (0x50- / 0xB4-byte
-// records).
+// The material and weapon tables' At, as the unit skins and the client's maps read them (records of
+// sizeof(MaterialRecordHead) / sizeof(WeaponRecord) bytes).
 EI_REWRITTEN(0x0056E400, itemdb::MaterialTable::At);
 EI_REWRITTEN(0x0056E440, itemdb::WeaponTable::At);
 EI_REWRITTEN(0x006A5950, itemdb::ArmorTable::At);
@@ -257,7 +257,7 @@ EI_REWRITTEN(0x006A5A10, itemdb::LootItemTable::At);
 
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
     value70 = source->value70;
-    CopyBytes(this, source, offsetof(QuickItemRecord, attributeBonus), 0x8B);
+    CopyBytes(this, source, offsetof(QuickItemRecord, attributeBonus), offsetof(QuickItemRecord, unused_8B));
 }
 
 void QuestItemRecord::CopyOwn(const QuestItemRecord* source) {
@@ -269,8 +269,8 @@ void LootItemRecord::CopyOwn(const LootItemRecord* source) {
 }
 
 // The kinds' default and copy constructors (the extra members constructed between the head and the Assign).
-WeaponRecord::WeaponRecord() { std::memset(field1B, 0, 0x83 - offsetof(WeaponRecord, field1B)); }
-QuickItemRecord::QuickItemRecord() { std::memset(attributeBonus, 0, 0x8B - offsetof(QuickItemRecord, attributeBonus)); }
+WeaponRecord::WeaponRecord() { std::memset(field1B, 0, offsetof(WeaponRecord, attackBonus) - 1 - offsetof(WeaponRecord, field1B)); }
+QuickItemRecord::QuickItemRecord() { std::memset(attributeBonus, 0, offsetof(QuickItemRecord, unused_8B) - offsetof(QuickItemRecord, attributeBonus)); }
 
 WeaponRecord::WeaponRecord(const WeaponRecord& from) {
     Assign(&from);

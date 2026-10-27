@@ -16,6 +16,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class ChunkArchive;
 
@@ -48,8 +49,8 @@ struct UnitPrototypeRecord {
     UnitPrototypeRecord* DeleteScalar(unsigned flags);
     void Serialize(ChunkArchive* ar);
 
-    mfc::CString name;              // field 0
-    mfc::CString modelName;         // 1
+    std::string name;              // field 0
+    std::string modelName;         // 1
     int modelIndex;                 // 2 (replaced by the model's index at load)
     int skin;                       // 3
     int hair;                       // 4 (-1: none)
@@ -59,7 +60,7 @@ struct UnitPrototypeRecord {
     float viewDistance;             // 0x25 how far before the unit a dialogue's camera may stand
     float viewHeight;               // 0x26 the height of its eyes for a dialogue's camera
     float shake;                    // 0x28 the camera shake of its steps and attacks
-    mfc::CString soundFolder;       // 8 (when set, the action sounds come from here, not the model's)
+    std::string soundFolder;       // 8 (when set, the action sounds come from here, not the model's)
     std::uint8_t unused_38[0x10];  // not serialised
     float hitPoints;                // 9
     float mana;                     // 10
@@ -87,26 +88,16 @@ struct UnitPrototypeRecord {
     // weapons (item names, may be empty) for units of type 0x32.
     CStringVector spellNames;       // 0x1F
     CStringVector armourNames;      // 0x20
-    mfc::CString weaponName;        // 0x21 (its slot becomes the unit's +0x270)
-    mfc::CString secondWeaponName;  // 0x2A
+    std::string weaponName;        // 0x21 (its slot becomes the unit's +0x270)
+    std::string secondWeaponName;  // 0x2A
 };
-static_assert(offsetof(UnitPrototypeRecord, soundFolder) == 0x34);
-static_assert(offsetof(UnitPrototypeRecord, hitPoints) == 0x48);
-static_assert(offsetof(UnitPrototypeRecord, naturalWeapon) == 0x78);
-static_assert(offsetof(UnitPrototypeRecord, valuesB0) == 0x98);
-static_assert(offsetof(UnitPrototypeRecord, gold) == 0xC8);
-static_assert(offsetof(UnitPrototypeRecord, lootItems) == 0xE8);
-static_assert(offsetof(UnitPrototypeRecord, spellNames) == 0x100);
-static_assert(offsetof(UnitPrototypeRecord, armourNames) == 0x10C);
-static_assert(offsetof(UnitPrototypeRecord, weaponName) == 0x118);
-static_assert(sizeof(UnitPrototypeRecord) == 0x120);
 
 // A named creature's statistics (0x60 bytes, found by the prototype name). unit_create_stats.cpp reads the
 // experience, stats, attribute and skill bytes and the skill names.
 struct UnitNpcRecord {
     void Serialize(ChunkArchive* ar);
 
-    mfc::CString name;              // field 0 (the prototype's name)
+    std::string name;              // field 0 (the prototype's name)
     std::uint32_t field1;               // 1 (nothing reads it)
     float experience;               // 2
     float stats[3];                 // 3, 4, 5 (strength, dexterity, intelligence)
@@ -122,12 +113,6 @@ struct UnitNpcRecord {
     std::uint8_t voiced;                // 14 (one byte): the multiplayer hero screen offers it as a voice
     std::uint8_t unused_5D[3];
 };
-static_assert(offsetof(UnitNpcRecord, attributes) == 0x18);
-static_assert(offsetof(UnitNpcRecord, skills) == 0x1B);
-static_assert(offsetof(UnitNpcRecord, skillNames) == 0x24);
-static_assert(offsetof(UnitNpcRecord, experienceFloor) == 0x54);
-static_assert(offsetof(UnitNpcRecord, voiced) == 0x5C);
-static_assert(sizeof(UnitNpcRecord) == 0x60);
 
 // One of a model's six body slots (serialised as fields 0..3 of chunk 0x0C + slot): the skill
 // level record's name, its index (resolved at load), the slot's share and factor.
@@ -135,18 +120,17 @@ struct UnitModelSlot {
     // The level name as field 0, then levelIndex, share and factor as 1..3.
     void Serialize(ChunkArchive* ar);
 
-    mfc::CString levelName;
+    std::string levelName;
     int levelIndex;
     float share;
     float factor;
 };
-static_assert(sizeof(UnitModelSlot) == 0x10);
 
 // A unit model.
 struct UnitModelRecord {
     void Serialize(ChunkArchive* ar);
 
-    mfc::CString name;              // field 0
+    std::string name;              // field 0
     int objectClass;                // 1
     float hitPointRegen;            // 2
     float manaRegen;                // 3
@@ -161,7 +145,7 @@ struct UnitModelRecord {
     std::uint32_t damageWeights[7]; // 11
     float protection[7];            // 0x27
     UnitModelSlot slots[6];         // chunks 0x0C..0x11
-    mfc::CString figureName;            // 0x1E the figure and skin file prefix ("%sskin_%.2d.mmp")
+    std::string figureName;            // 0x1E the figure and skin file prefix ("%sskin_%.2d.mmp")
     CStringVector field1F;              // 0x1F (nothing reads it)
     CStringVector field20;              // 0x20 (nothing reads it)
     float height;                   // 0x21 (the object stands this much lower)
@@ -169,11 +153,11 @@ struct UnitModelRecord {
     int footprintKind;              // 0x2A the footprint texture (-1: none)
     std::uint32_t footPart;         // 0x2B the foot parts "ll<n>" / "rl<n>" (1..8)
     std::uint32_t castEffect;           // 0x29 nonzero: its casts show an effect (combat_update.cpp)
-    mfc::CString hitMaterial;       // 0x2C the material its hit sounds use ("stone", "leather", ...)
+    std::string hitMaterial;       // 0x2C the material its hit sounds use ("stone", "leather", ...)
     std::uint8_t swapFeet;          // 0x2D (one byte) the first step is the right foot
     std::uint8_t unused_11D[3];
     std::uint32_t sizeScale;            // 0x2E (float bits) multiplies the unit's size for its size classes
-    mfc::CString soundFolder;       // 0x22 (the step / attack / idle sounds: "<folder>\idle\<n>.wav" ...)
+    std::string soundFolder;       // 0x22 (the step / attack / idle sounds: "<folder>\idle\<n>.wav" ...)
     std::uint8_t unused_128[0x10]; // not serialised
     CStringVector soundNames;       // 0x23 (the .wav files of each are counted)
     // +0x144 the number of sound files of each soundNames entry (an STLport vector<int>; counted at
@@ -190,15 +174,6 @@ struct UnitModelRecord {
     std::uint32_t eyeWidth;         // 0x31
     std::uint32_t eyeHeight;        // 0x32
 };
-static_assert(offsetof(UnitModelRecord, damageWeights) == 0x50);
-static_assert(offsetof(UnitModelRecord, slots) == 0x88);
-static_assert(offsetof(UnitModelRecord, figureName) == 0xE8);
-static_assert(offsetof(UnitModelRecord, height) == 0x104);
-static_assert(offsetof(UnitModelRecord, soundFolder) == 0x124);
-static_assert(offsetof(UnitModelRecord, idleSoundChance) == 0x150);
-static_assert(offsetof(UnitModelRecord, soundNames) == 0x138);
-static_assert(sizeof(UnitModelRecord) == 0x168);
-static_assert(offsetof(UnitModelRecord, soundCounts) == 0x144);
 
 // A unit database level record (the fourth table).
 struct UnitLevelRecord {
@@ -206,13 +181,12 @@ struct UnitLevelRecord {
     // The name as field 0, the seven dwords at +0x08 / +0x24 as fields 1 / 2, +0x40 as 3 and +0x04 as 4.
     void Serialize(ChunkArchive* ar);
 
-    mfc::CString name;              // field 0
+    std::string name;              // field 0
     int slotType;                   // 4 the type a model's body slot of this level gets (UnitStatSlot::type)
     std::uint32_t valuesA[7];       // 1
     std::uint32_t valuesB[7];       // 2
     std::uint32_t vitalMask;        // 3 the slot's vital mask (UnitStatSlot::vitalMask)
 };
-static_assert(offsetof(UnitLevelRecord, valuesB) == 0x24 && sizeof(UnitLevelRecord) == 0x44);
 
 namespace unitdb {
 void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record);

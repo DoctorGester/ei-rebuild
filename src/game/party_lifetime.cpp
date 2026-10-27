@@ -20,6 +20,7 @@
 #include <initializer_list>
 #include <memory>
 #include <new>
+#include <utility>
 
 namespace {
 
@@ -45,7 +46,7 @@ void SetDefaults(PartyUnitRecord& record) {
 
 
 PartyUnitRecord* PartyUnitRecord::Construct() {
-    for (mfc::CString& text : texts) std::construct_at(&text);
+    for (std::string& text : texts) std::construct_at(&text);
     for (CItem*** data : {&weapons, &quickItems, &armor, &spells}) {
         PartyItemArray& list = ItemList(*data);
         list.data = nullptr;
@@ -107,6 +108,18 @@ void __stdcall DestructPartyUnitRecords(PartyUnitRecord* records, int count) {
 EI_REWRITTEN(0x00664850, DestructPartyUnitRecords);
 
 void PartyUnitRecordElements::Destruct(PartyUnitRecord* records, int count) { DestructPartyUnitRecords(records, count); }
+
+void PartyUnitRecordElements::Relocate(PartyUnitRecord* to, PartyUnitRecord* from, int count) {
+    auto move = [](PartyUnitRecord* target, PartyUnitRecord* source) {
+        std::construct_at(target, std::move(*source));
+        std::destroy_at(source);
+    };
+    if (to < from) {
+        for (int i = 0; i < count; ++i) move(to + i, from + i);
+    } else {
+        for (int i = count; i-- > 0;) move(to + i, from + i);
+    }
+}
 
 PartyUnitRecord* PartyUnitRecord::DeletingDestruct(unsigned flags) {
     Destruct();

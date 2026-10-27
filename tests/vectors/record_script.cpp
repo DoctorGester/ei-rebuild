@@ -2,6 +2,7 @@
 // Every scenario loads scripts (the zone's and the interface's), so every one reaches the lexer.
 #include "crt_vectors.h"
 #include "../verify/harness_original.h"
+#include "script_original.h"
 #include "script_vectors.h"
 #include "vectors.h"
 
@@ -130,9 +131,10 @@ BOOL __fastcall TokenizeRecord(CScript* self, void*, const mfc::CString* source,
     w.Put<std::int32_t>(tokens->blockSize);
     w.Put<std::int32_t>(result);
     if (!result) {
-        w.Put<std::int32_t>(self->ErrorCode());
-        w.Put<std::int32_t>(self->ErrorLine());
-        PutCString(w, self->ErrorText());
+        const OriginalScriptError& error = OriginalError(self);
+        w.Put<std::int32_t>(error.code);
+        w.Put<std::int32_t>(error.line);
+        PutCString(w, error.text);
     }
     w.Put(static_cast<std::uint32_t>(tokens->count));
     std::uint64_t all = 0xCBF29CE484222325ull;

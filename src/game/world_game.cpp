@@ -1551,9 +1551,9 @@ void GameFlow::AfterServerStart() {
     GlobalParty()->RemoveQuestItems();
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (GlobalParty()->members_.size == 1) {
-        const mfc::CString* names = GlobalParty()->members_.data->texts;
-        LocalLogin()->text_.Assign(names[5]);
-        LocalLogin()->name_.Assign(names[0]);
+        const std::string* names = GlobalParty()->members_.data->texts;
+        LocalLogin()->text_.Assign(names[5].c_str());
+        LocalLogin()->name_.Assign(names[0].c_str());
     } else {
         LocalLogin()->text_.Assign(kDefaultHeroName);
         LocalLogin()->name_.Assign(kDefaultPartyName);

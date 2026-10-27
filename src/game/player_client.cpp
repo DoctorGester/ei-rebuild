@@ -653,7 +653,7 @@ int CPlayerClient::OnNewObject() {
     player->knownObjects_[header.id] = object;
     ++created->refCount_;
     if (CUnit* unit = UnitOrNull(created))
-        object->TakePrototype(unit->GetPrototype()->name);
+        object->TakePrototype(unit->GetPrototype()->name.c_str());
     else
         object->TakePrototype(model);
     object->WriteFullState();
@@ -661,7 +661,7 @@ int CPlayerClient::OnNewObject() {
     TheClientWorld()->AddObject(object);
     if (object->name2[0] != 0) {
         TextBuffer variable;
-        TheClientWorld()->ObjectVariableName(variable.Get(), object->name2);
+        TheClientWorld()->ObjectVariableName(variable.Get(), object->name2.c_str());
         object->SetVisibilityLevel(player->Party()->variables_.Get(*variable.Get()));
     }
     if (player->sessionKind100_ == kSessionClient) {

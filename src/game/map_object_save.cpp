@@ -67,7 +67,7 @@ void CMapObject::SaveMapObject(CStream* stream) {
     for (int i = 0; i < effectCount; ++i) effects[i].Save(stream);
     std::uint32_t flags = flags_;
     stream->Write(&flags, sizeof(flags));
-    WriteText(stream, name2);
+    WriteText(stream, name2.c_str());
     stream->Write(&baseScale, sizeof(baseScale));
 }
 EI_REWRITTEN(0x0050F900, CMapObject::SaveMapObject);

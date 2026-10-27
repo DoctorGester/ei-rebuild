@@ -51,6 +51,8 @@ void __stdcall DestructPartyUnitRecords(PartyUnitRecord* records, int count);
 struct PartyUnitRecordElements {
     static void Construct(PartyUnitRecord* records, int count) { ConstructPartyUnitRecords(records, count); }
     static void Destruct(PartyUnitRecord* records, int count);   // party_lifetime.cpp
+    // Moves records within or between storages (a record's texts are std::strings: moved, not copied as bytes).
+    static void Relocate(PartyUnitRecord* to, PartyUnitRecord* from, int count);   // party_lifetime.cpp
 };
 // A party's unit records: an MFC CArray<PartyUnitRecord> (CObject vtable Vtable()). Its SetSize is
 // registered on the template (party_lifetime.cpp).

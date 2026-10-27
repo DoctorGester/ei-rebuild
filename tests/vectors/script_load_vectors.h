@@ -28,6 +28,7 @@
 //   blocks and the new WorldScript blocks, and which block RunWorldScript was given (u8 flag, id).
 
 #include "crt_vectors.h"
+#include "script_original.h"
 #include "vectors.h"
 
 #include "../../src/game/script.h"
@@ -156,10 +157,12 @@ inline void PutState(Writer& w, CScript* s, bool definitions) {
     PutVars(w, *s->Globals());
 }
 
+// (record mode: `s` is game.exe's script)
 inline void PutError(Writer& w, CScript* s) {
-    w.Put<std::int32_t>(s->ErrorCode());
-    w.Put<std::int32_t>(s->ErrorLine());
-    PutText(w, s->ErrorText());
+    const OriginalScriptError& error = OriginalError(s);
+    w.Put<std::int32_t>(error.code);
+    w.Put<std::int32_t>(error.line);
+    PutText(w, error.text);
 }
 
 template <typename Fn>

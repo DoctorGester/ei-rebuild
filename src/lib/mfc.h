@@ -291,8 +291,19 @@ struct CArray {
     }
 
     // SetSize(newSize, growBy): 0 frees the storage; growing past maxSize reallocates to
-    // max(newSize, maxSize + step), copying the old elements with memcpy and constructing only the
+    // max(newSize, maxSize + step), moving the old elements (Relocate) and constructing only the
     // new ones; the old storage is freed without destroying anything. growBy -1 keeps the step.
+    // Moves `count` elements from `from` to `to` (they may overlap; the slots at `to` hold no live elements): their
+    // bytes, or the element policy's Relocate where an element is not relocatable as bytes (a std::string, whose
+    // debug build tracks its own address).
+    static void Relocate(T* to, T* from, int count) {
+        if constexpr (requires { Elements::Relocate(to, from, count); }) {
+            Elements::Relocate(to, from, count);
+        } else {
+            std::memmove(static_cast<void*>(to), from, static_cast<std::size_t>(count) * sizeof(T));
+        }
+    }
+
     void SetSize(int newSize, int newGrowBy = -1) {
         if (newGrowBy != -1) growBy = newGrowBy;
         if (newSize == 0) {
@@ -318,7 +329,7 @@ struct CArray {
             }
             int newMax = newSize < maxSize + step ? maxSize + step : newSize;
             T* fresh = gamecrt::operator_new_array<T>(static_cast<std::size_t>(newMax));
-            std::memcpy(static_cast<void*>(fresh), data, static_cast<std::size_t>(size) * sizeof(T));
+            Relocate(fresh, data, size);
             Elements::Construct(fresh + size, newSize - size);
             gamecrt::operator_delete(data);
             data = fresh;
@@ -358,7 +369,7 @@ struct CArray {
         return result;
     }
 
-    // InsertAt: grows by `count`, moves the tail up with memmove (the slots it vacates are
+    // InsertAt: grows by `count`, moves the tail up (Relocate; the slots it vacates are
     // destroyed and constructed again), then assigns `value` to each new slot.
     void InsertAt(int index, const T& value, int count = 1) {
         if (index >= size) {
@@ -367,20 +378,17 @@ struct CArray {
             int oldSize = size;
             SetSize(size + count, -1);
             Elements::Destruct(data + oldSize, count);
-            std::memmove(static_cast<void*>(data + index + count), data + index,
-                         static_cast<std::size_t>(oldSize - index) * sizeof(T));
+            Relocate(data + index + count, data + index, oldSize - index);
             Elements::Construct(data + index, count);
         }
         while (count--) data[index++] = value;
     }
 
-    // RemoveAt: destroys `count` elements and moves the tail down with memmove; the storage stays.
+    // RemoveAt: destroys `count` elements and moves the tail down (Relocate); the storage stays.
     void RemoveAt(int index, int count = 1) {
         int moveCount = size - (index + count);
         Elements::Destruct(data + index, count);
-        if (moveCount)
-            std::memmove(static_cast<void*>(data + index), data + index + count,
-                         static_cast<std::size_t>(moveCount) * sizeof(T));
+        if (moveCount) Relocate(data + index, data + index + count, moveCount);
         size -= count;
     }
 

@@ -276,9 +276,9 @@ int __cdecl StartFirstMap() {
         loaded = script->LoadFile(path.c_str());
     }
     if (loaded) return 1;
-    ScriptErrorInfo error;   // GetError constructs the text over the empty one
+    ScriptErrorInfo error;
     script->GetError(&error);
-    return game::FatalError("%s, line %i", error.text.GetString(), error.line);
+    return game::FatalError("%s, line %i", error.text.c_str(), error.line);
 }
 EI_REWRITTEN(0x00456140, StartFirstMap);
 

@@ -38,7 +38,7 @@ using SerializeTable = void (ChunkArchive::*)(int, stlp::vector<Record>*, void*)
 template <typename Record, typename Index>
 void IndexNames(Record* begin, Record* const& end, Index* index) {
     for (Record* record = begin; record != end; ++record) {
-        stlp::string key(record->name.GetString());
+        stlp::string key(record->name.c_str());
         auto& slot = index->Subscript(key);
         slot = reinterpret_cast<std::remove_reference_t<decltype(slot)>>(record);
     }
@@ -105,7 +105,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
 
     // Every prototype's model by its name (the record's place in the model table, or -1).
     for (int i = 0; i < static_cast<int>(prototypes.end - prototypes.begin); ++i) {
-        UnitModelRecord* model = models.FindByName(prototypes.begin[i].modelName);
+        UnitModelRecord* model = models.FindByName(prototypes.begin[i].modelName.c_str());
         const int index = model ? static_cast<int>(model - models.begin) : -1;
         (&prototypes)->At(static_cast<std::uint32_t>(i))->modelIndex = index;
     }
@@ -113,7 +113,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     for (int i = 0; i < static_cast<int>(models.end - models.begin); ++i) {
         for (int slot = 0; slot < kModelSlots; ++slot) {
             const auto at = static_cast<std::uint32_t>(i);
-            UnitLevelRecord* level = levels.FindByName(models.At(at)->slots[slot].levelName);
+            UnitLevelRecord* level = levels.FindByName(models.At(at)->slots[slot].levelName.c_str());
             const int index = level ? static_cast<int>(level - levels.begin) : -1;
             models.At(at)->slots[slot].levelIndex = index;
         }

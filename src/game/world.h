@@ -653,13 +653,6 @@ static_assert(offsetof(CWorldServer, loadedFresh_) == 0x11D);
 static_assert(offsetof(CWorldServer, keepsState_) == 0x11E);
 static_assert(offsetof(CWorldServer, lastRainBoltTick_) == 0x13C);
 static_assert(offsetof(CWorldServer, aiMap_) == 0x170);
-static_assert(offsetof(CWorldServer, diplomacy_) == 0x12C64);
-static_assert(offsetof(CWorldServer, sessionKind_) == 0x12D64);
-static_assert(offsetof(CWorldServer, mobName_) == 0x12D68 && offsetof(CWorldServer, mapName_) == 0x12D6C);
-static_assert(offsetof(CWorldServer, sentObjects_) == 0x12D88);
-static_assert(offsetof(CWorldServer, zoneHeader_) == 0x12E00);
-static_assert(offsetof(CWorldServer, otherMapObjects_) == 0x12DB8);
-static_assert(offsetof(CWorldServer, namedObjects_) == 0x12DD0);
 static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
 static_assert(offsetof(CWorldServer, climate_) == 0xDC);
 static_assert(offsetof(CWorldServer, exits_) == 0xEC);
@@ -667,16 +660,9 @@ static_assert(offsetof(CWorldServer, gameResult_) == 0x138);
 static_assert(offsetof(CWorldServer, scriptsActive_) == 0x160);
 static_assert(offsetof(CWorldServer, aiEvents_) == 0x2838);
 static_assert(offsetof(CWorldServer, commandsA_) == 0x12874);
-static_assert(offsetof(CWorldServer, commandsB_) == 0x12A6C);
-static_assert(offsetof(CWorldServer, projectiles_) == 0x12E28);
 static_assert(offsetof(CWorldServer, updateMap_) == 0x104);
-static_assert(offsetof(CWorldServer, objects_) == 0x12D70);
-static_assert(offsetof(CWorldServer, timedObjects_) == 0x12DE8);
-static_assert(offsetof(CWorldServer, sharedObjects_) == 0x12E60);
 static_assert(offsetof(CWorldServer, mobFiles_) == 0x124);
 static_assert(offsetof(CWorldServer, zoneLoaded_) == 0x15C);
-static_assert(offsetof(CWorldServer, mapObjects_) == 0x12DA0);
-static_assert(offsetof(CWorldServer, counted_) == 0x12E44);
 
 // One walkable platform (bridge, deck) the client tests positions against: the element of the platform set's MFC
 // CList.

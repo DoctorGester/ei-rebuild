@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -29,7 +30,8 @@ void WriteValue(CStream* stream, T value) {
     stream->Write(&value, sizeof(value));
 }
 
-void ReadText(CStream* stream, mfc::CString& text) {
+template <typename Text>
+void ReadText(CStream* stream, Text& text) {
     stream->ReadInto(&text);
 }
 
@@ -112,11 +114,11 @@ void PartyUnitRecord::Load(CStream* stream) {
 EI_REWRITTEN(0x0065F9B0, PartyUnitRecord::Load);
 
 void PartyUnitRecord::Save(CStream* stream) {
-    WriteText(stream, texts[0]);
-    WriteText(stream, texts[2]);
-    WriteText(stream, texts[3]);
-    WriteText(stream, texts[4]);
-    WriteText(stream, texts[5]);
+    WriteText(stream, texts[0].c_str());
+    WriteText(stream, texts[2].c_str());
+    WriteText(stream, texts[3].c_str());
+    WriteText(stream, texts[4].c_str());
+    WriteText(stream, texts[5].c_str());
     WriteValue(stream, unitId);
     stats.SaveTo(stream);
     stream->Write(&scaleX, 0xC);
@@ -124,13 +126,13 @@ void PartyUnitRecord::Save(CStream* stream) {
     WriteItemIds(stream, ItemList(quickItems));
     WriteItemIds(stream, ItemList(armor));
     WriteItemIds(stream, ItemList(spells));
-    WriteText(stream, texts[1]);
+    WriteText(stream, texts[1].c_str());
     stream->Write(&moveMode2, 4);
     WriteValue(stream, weaponIndex);
     WriteValue(stream, selected);
     WriteValue(stream, leaderId);
     stream->Write(&fightAtWill, 4);
-    WriteText(stream, texts[6]);
+    WriteText(stream, texts[6].c_str());
 }
 EI_REWRITTEN(0x0065FDE0, PartyUnitRecord::Save);
 

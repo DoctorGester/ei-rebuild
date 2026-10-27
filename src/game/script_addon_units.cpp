@@ -250,7 +250,7 @@ bool GetPrototype(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetPrototype");
     const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
-    *call->StringResult() = prototype->name.GetString();
+    *call->StringResult() = prototype->name.c_str();
     return true;
 }
 
@@ -258,7 +258,7 @@ bool GetRace(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
     if (!data) return InvalidArguments("GetRace");
     const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
-    *call->StringResult() = prototype->modelName.GetString();
+    *call->StringResult() = prototype->modelName.c_str();
     return true;
 }
 
