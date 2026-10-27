@@ -197,7 +197,7 @@ int CTextManager::Create() {
     // EI_UTF8 the text is UTF-8 and the CRT's case and classes do not depend on a locale (lib/text_case.h):
     // the option is not used and LC_CTYPE stays "C".
     if constexpr (!text::kUtf8) {
-        std::setlocale(LC_CTYPE, options::TheOptions()->fontCharSet_);
+        std::setlocale(LC_CTYPE, options::TheOptions()->fontCharSet_.c_str());
         _setmbcp(_MB_CP_LOCALE);
     }
     return 1;

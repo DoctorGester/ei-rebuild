@@ -3,8 +3,6 @@
 // vector replay links it without the constructor.
 #include "options.h"
 
-static_assert(sizeof(options::GameOptions) == 0x26C);
-
 namespace options {
 constinit lib::StaticObject<options::GameOptions> g_options = /*0079BC70*/ {};
 } // namespace options

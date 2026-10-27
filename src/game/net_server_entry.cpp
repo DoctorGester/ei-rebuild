@@ -49,7 +49,7 @@ void ServerSession::Describe(RefPtr* out) {
 // When announced, the master's address is set from the host name and port 28004.
 void ServerSession::SetPublic(bool announce) {
     public_ = announce;
-    if (announce) masterAddress_.Parse(options::TheOptions()->masterServerName_.GetString(), 0x6D64);
+    if (announce) masterAddress_.Parse(options::TheOptions()->masterServerName_.c_str(), 0x6D64);
 }
 
 EI_REWRITTEN(0x0041A7E0, ServerSession::Describe);

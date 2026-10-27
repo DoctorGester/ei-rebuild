@@ -65,7 +65,7 @@ const char* RefusalKey(int refusal) {
     default: return "lmp_cannot_connect";
     }
 }
-const char* MasterHost() { return options::TheOptions()->masterServerName_.GetString(); }
+const char* MasterHost() { return options::TheOptions()->masterServerName_.c_str(); }
 constexpr int kMasterPort = 28004;
 
 // The switches' sprite frames: off (0.0), on (-0.08984375); the selected game

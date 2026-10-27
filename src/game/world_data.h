@@ -89,9 +89,9 @@ inline float g_lastLitHour = /*0078FF38*/ -1.0f;
 
 // The configured paths the game's folders (TheDataFolder, TheTextFolder, TheDiscFolder the base folder;
 // game_singletons.h) are set from (their text pointers).
-inline const char* ConfiguredDataPath() { return options::TheOptions()->workPath_.GetString(); }
-inline const char* ConfiguredTextPath() { return options::TheOptions()->resourcesPath_.GetString(); }
-inline const char* ConfiguredBasePath() { return options::TheOptions()->cdRomPath_.GetString(); }
+inline const char* ConfiguredDataPath() { return options::TheOptions()->workPath_.c_str(); }
+inline const char* ConfiguredTextPath() { return options::TheOptions()->resourcesPath_.c_str(); }
+inline const char* ConfiguredBasePath() { return options::TheOptions()->cdRomPath_.c_str(); }
 
 inline const char* AutosaveEventText() { return "autosave"; }
 // "CWorldClient::Segment(): ..." (the lost connection's FatalError).

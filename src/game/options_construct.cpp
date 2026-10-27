@@ -4,6 +4,7 @@
 #include "game_strings.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 
 #include <cstdint>
 #include <new>

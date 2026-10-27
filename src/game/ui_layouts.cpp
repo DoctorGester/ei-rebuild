@@ -521,7 +521,7 @@ void CCreditsScreen::CreateScreen() {
     gameapi::SystemParametersInfoA(0x4B, 0, nullptr, 0);   // SPI_SETFONTSMOOTHING
 
     CMappedResource* archive = archive_.Get();
-    archive->OpenResource(mfc::operator+(options::TheOptions()->resourcesPath_, "outro.res"),
+    archive->OpenResource((options::TheOptions()->resourcesPath_ + "outro.res").c_str(),
                           0);   // "outro.res"
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);

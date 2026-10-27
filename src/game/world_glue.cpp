@@ -101,7 +101,7 @@ const char kConstructionVariable[] = "constr.current";
 // by the next pass (CloseAllPending, Activate, Draw).
 bool& CloseAllRequested() { return TheInterface()->closeAll_; }
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
-const char* DefaultMusic() { return options::TheOptions()->defaultStreamingSound_.GetString(); }
+const char* DefaultMusic() { return options::TheOptions()->defaultStreamingSound_.c_str(); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
 CPlayerClient* LocalClient() { return TheClientWorld()->LocalView(); }

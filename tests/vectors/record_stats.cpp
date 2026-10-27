@@ -24,6 +24,7 @@ using namespace ei::vectors::stats;
 
 constexpr std::uint32_t kCap = 256;
 constexpr std::size_t kOriginalWeaponSkillBonus = 0x7B;   // game.exe's WeaponRecord::skillBonus
+constexpr std::uint32_t kOriginalDifficulty = 0x250;       // game.exe's GameOptions::difficulty_ (ours has std::string members)
 
 // The recorders run in game.exe: its logic settings, not our g_logicSettings.
 const LogicSettings& OriginalLogicSettings() { return ei::OriginalGameData<const LogicSettings>(0x007C53F8); }
@@ -428,7 +429,7 @@ void __fastcall ProtectionBlockRecord(UnitParams* self, void*, const UnitVitalsP
     std::memcpy(v.vitals, vitals->protection, sizeof(v.vitals));
     v.keyed = keyed;
     if (!keyed) {
-        v.difficulty = ei::OriginalGameData<options::GameOptions>(0x0079BC70).difficulty_;   // game.exe's own: the recording runs the original
+        v.difficulty = ei::OriginalGameData<const int>(0x0079BC70 + kOriginalDifficulty);   // game.exe's own: the recording runs the original
         if (v.difficulty < 0 || v.difficulty >= 3) recordable = false;
         else v.factor = OriginalLogicSettings().absorption[v.difficulty];
     }

@@ -30,41 +30,6 @@ struct CameraLimits {
     float hardMin;
     float hardMax;
 };
-static_assert(sizeof(CameraLimits) == 0x10);
-
-// One of the four saved views as the settings record keeps it: rotation as axis and angle.
-struct CameraViewRecord {
-    float distance;
-    Vector3 axis;
-    float angle;
-    float pitch;
-};
-static_assert(sizeof(CameraViewRecord) == 0x18);
-
-// The camera settings object. Only the fields the camera code reads.
-struct CameraSettings {
-    std::uint8_t unused_000[0xFC];
-    float clearance;            // height kept above objects under the camera
-    float maxRaise;
-    float startFocusZ;          // the focus' start height (Init)
-    float startFocusX;
-    float startFocusY;
-    CameraLimits normal;
-    float startDistance;        // (Init: also saved views 6 and 7)
-    CameraLimits alternate;     // (camera flag 0x200)
-    float altPitchMin;          // degrees
-    float altPitchMax;
-    std::uint8_t unused_13C[0x178 - 0x13C];
-    CameraViewRecord views[4];
-    float pitchMin;             // degrees
-    float pitchMax;
-};
-static_assert(offsetof(CameraSettings, startFocusZ) == 0x104);
-static_assert(offsetof(CameraSettings, normal) == 0x110);
-static_assert(offsetof(CameraSettings, startDistance) == 0x120);
-static_assert(offsetof(CameraSettings, alternate) == 0x124);
-static_assert(offsetof(CameraSettings, views) == 0x178);
-static_assert(offsetof(CameraSettings, pitchMax) == 0x1DC);
 
 struct CameraView {
     float distance;
@@ -155,8 +120,12 @@ public:
     bool SaveView(unsigned slot);
     bool RestoreView(unsigned slot);
     void SetDistancePitch(const CameraView* view);
-    void ViewsToSettings(CameraSettings* settings);
-    void ViewsFromSettings(const CameraSettings* settings);
+    // The four saved views to / from the options' camera shortcuts (rotation as axis and angle).
+    void ViewsToSettings(options::GameOptions* settings);
+    void ViewsFromSettings(const options::GameOptions* settings);
+    // The distance limits of the current mode: the options' briefing limits in the alternate mode (flag
+    // 0x200), else the camera's.
+    CameraLimits Limits() const;
     // View rotation = `angle` radians about Z, then ApplyView.
     void SetHeading(float angle);
     void SetFree(bool on);
@@ -171,7 +140,7 @@ public:
 
     // Views and start placement from the settings; the near / far distances and the field of view (floats
     // passed as their dword bit patterns) kept in nearDistance_..fieldOfView_.
-    int Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits);
+    int Init(options::GameOptions* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits);
 
     // Lifts the camera over the terrain and the objects within 16 of it.
     void ClampAboveObjects();
@@ -195,7 +164,7 @@ public:
     void SetTargetId(int id);
 
     std::uint8_t unused_54[0x94 - 0x54];
-    CameraSettings* settings_;
+    options::GameOptions* settings_;   // the game options: heights, start placement, limits, saved views
     Vector3 offset98_;          // pan velocity
     Vector3 offsetA4_;          // pan velocity target
     float panResponse_;

@@ -117,21 +117,21 @@ EI_REWRITTEN(0x0040D1D0, CCamera::Destroy);
 // Init(settings, near, far, fov). Takes the views and the start distance and focus from the settings, keeps the
 // three distances / angle as float bit patterns, switches to free placement, and resets views 6 and 7 to the
 // start distance at 45 degrees (the pitch too). Returns 1.
-int CCamera::Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits) {
+int CCamera::Init(options::GameOptions* settings, std::uint32_t nearBits, std::uint32_t farBits, std::uint32_t fovBits) {
     ViewsFromSettings(settings);
     settings_ = settings;
-    distance_ = settings->startDistance;
-    focus_.x = settings->startFocusX;
-    focus_.y = settings->startFocusY;
-    focus_.z = settings->startFocusZ;
+    distance_ = settings->cameraDefaultDistance_;
+    focus_.x = settings->cameraDefaultXDeploy_;
+    focus_.y = settings->cameraDefaultYDeploy_;
+    focus_.z = settings->cameraDefaultHeight_;
     std::memcpy(&nearDistance_, &nearBits, 4);
     std::memcpy(&farDistance_, &farBits, 4);
     std::memcpy(&fieldOfView_, &fovBits, 4);
     flags_ |= kFree;
-    std::memcpy(&views_[7].distance, &settings->startDistance, 4);
+    std::memcpy(&views_[7].distance, &settings->cameraDefaultDistance_, 4);
     pitch_ = DefaultPitch();
     views_[7].pitch = pitch_;
-    std::memcpy(&views_[6].distance, &settings->startDistance, 4);
+    std::memcpy(&views_[6].distance, &settings->cameraDefaultDistance_, 4);
     pitch_ = DefaultPitch();
     views_[6].pitch = pitch_;
     return 1;

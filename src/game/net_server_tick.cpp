@@ -19,7 +19,7 @@ namespace net {
 
 namespace {
 
-const char* MasterHost() { return options::TheOptions()->masterServerName_.GetString(); }   // the master server's host name
+const char* MasterHost() { return options::TheOptions()->masterServerName_.c_str(); }   // the master server's host name
 
 // Timed entries {next, prev, seconds left (float), ...}: each loses `dt`; those below zero are
 // erased. The end is read again after every entry.

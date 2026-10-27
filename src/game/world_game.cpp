@@ -1247,7 +1247,7 @@ std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
 int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
 int& Spectator0() { return options::TheOptions()->difficulty_; }
 std::uint8_t& AutoplayOn() { return TheServerWorld()->sendsStartPosition_; }
-const char* ResourcesPath() { return options::TheOptions()->resourcesPath_.GetString(); }
+const char* ResourcesPath() { return options::TheOptions()->resourcesPath_.c_str(); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 itemdb::SpellDatabase* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
 itemdb::ItemDatabase* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }

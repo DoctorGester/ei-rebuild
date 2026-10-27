@@ -12,6 +12,8 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
+#include <string>
+
 namespace {
 
 constexpr const char* kNoMmxText = "MMX required in this version !!!.\n";
@@ -24,9 +26,9 @@ constexpr const char* kNoFunctionText = "CVisualizator::Create.\n Loaded 2D grap
 } // namespace
 
 void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings) {
-    const mfc::CString& workPath = settings->workPath_;
+    const std::string& workPath = settings->workPath_;
 
-    CTransformPipeline* pipeline = new CTransformPipeline(workPath);   // 0x94 bytes
+    CTransformPipeline* pipeline = new CTransformPipeline(workPath.c_str());   // 0x94 bytes
     CTransformPipeline* old = pipeline_;
     pipeline_ = pipeline;
     if (pipeline) ++pipeline->refs_;
@@ -38,7 +40,7 @@ void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings
         libcrt::Exit(-1);
     }
 
-    graphicsLibrary_ = gameapi::LoadLibraryA(workPath + "2DintMMX.dll");
+    graphicsLibrary_ = gameapi::LoadLibraryA((workPath + "2DintMMX.dll").c_str());
     game::DebugLog(kLibraryLoadedText);
     if (!graphicsLibrary_) {
         game::FatalError(kNoLibraryText);

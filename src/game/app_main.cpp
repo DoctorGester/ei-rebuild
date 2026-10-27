@@ -370,7 +370,7 @@ bool CheckDrives(const console::CStringArray& messages) {
         PathParts parts;
         DriveRoot(discFolder.c_str(), parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
+        while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1].c_str(), volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc], "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }
@@ -461,14 +461,14 @@ std::uintptr_t OpenSound() {
 void LoadDatabases() {
     const char* archive = "database.res";
     GameOptions* options = options::TheOptions();
-    SkillDatabaseObject()->Load(options->resourcesPath_, archive);
-    static_cast<QuestDatabase*>(QuestDatabaseObject())->Load(options->resourcesPath_);
-    UnitDatabaseObject()->Load(options->resourcesPath_, archive);
-    static_cast<itemdb::SpellDatabase*>(SpellTablesObject())->Load(options->resourcesPath_, archive);
-    static_cast<itemdb::ItemDatabase*>(ItemDatabaseObject())->Load(options->resourcesPath_, archive);
-    static_cast<LeverRecordTable*>(LeverTableObject())->Load(options->resourcesPath_);
-    static_cast<acks::AckDatabase*>(AckDatabaseObject())->Load(options->resourcesPath_);
-    static_cast<PrintsDatabase*>(PrintsDatabaseObject())->Load(options->resourcesPath_);
+    SkillDatabaseObject()->Load(options->resourcesPath_.c_str(), archive);
+    static_cast<QuestDatabase*>(QuestDatabaseObject())->Load(options->resourcesPath_.c_str());
+    UnitDatabaseObject()->Load(options->resourcesPath_.c_str(), archive);
+    static_cast<itemdb::SpellDatabase*>(SpellTablesObject())->Load(options->resourcesPath_.c_str(), archive);
+    static_cast<itemdb::ItemDatabase*>(ItemDatabaseObject())->Load(options->resourcesPath_.c_str(), archive);
+    static_cast<LeverRecordTable*>(LeverTableObject())->Load(options->resourcesPath_.c_str());
+    static_cast<acks::AckDatabase*>(AckDatabaseObject())->Load(options->resourcesPath_.c_str());
+    static_cast<PrintsDatabase*>(PrintsDatabaseObject())->Load(options->resourcesPath_.c_str());
 }
 
 // ---- The main loop ---------------------------------------------------------------------------------
@@ -745,7 +745,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     TheClientWorld()->Create();
     TheServerWorld()->Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
-    TheCamera()->Init(reinterpret_cast<CameraSettings*>(options), std::bit_cast<std::uint32_t>(options->nearClipDistance_),
+    TheCamera()->Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance_),
                    std::bit_cast<std::uint32_t>(options->farClipDistance_),
                    std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 /*0073C308*/ * 0.2857142857142857 /*0073B9D8*/)));
     TheClientWorld()->SetCamera(TheCamera());

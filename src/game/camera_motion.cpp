@@ -128,7 +128,7 @@ void CCamera::AlignToTarget() {
 // Keeps the camera above the terrain and the objects within 16 of it: an object (all
 // extents up to 100) counts with its top height, fully when the camera is inside its footprint
 // radius and fading out over the next 10; the camera height becomes at least the highest of these
-// (raised over the highest terrain by at most settings->maxRaise) plus settings->clearance.
+// (raised over the highest terrain by at most settings->cameraMaxHeight_) plus settings->cameraMinHeight_.
 void CCamera::ClampAboveObjects() {
     Vector3* p = &localPosition_;
     float average, lowest, highest;
@@ -159,18 +159,18 @@ void CCamera::ClampAboveObjects() {
         float height = static_cast<float>(((D(object->localPosition_.z) + object->above.z) + object->center.z) * factor);
         best = best >= height ? best : height;
     }
-    CameraSettings* s = settings_;
+    const options::GameOptions* s = settings_;
     float raised;
     if (best > highest) {
         float over = static_cast<float>(D(best) - D(highest));
-        float limit = s->maxRaise;
+        float limit = s->cameraMaxHeight_;
         float used = over >= limit ? limit : over;
-        float wanted = static_cast<float>((D(used) + highest) + D(s->clearance));
+        float wanted = static_cast<float>((D(used) + highest) + D(s->cameraMinHeight_));
         float z = p->z;
         raised = z >= wanted ? z : wanted;
     } else {
         float top = best >= highest ? best : highest;
-        float wanted = static_cast<float>(D(top) + D(s->clearance));
+        float wanted = static_cast<float>(D(top) + D(s->cameraMinHeight_));
         float z = p->z;
         raised = z >= wanted ? z : wanted;
     }

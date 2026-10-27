@@ -409,7 +409,7 @@ void CCamera::Update(float dt) {
     if (snap) std::memcpy(&velocity, &wanted, sizeof(Vector3));
 
     if (LengthSquaredUnrounded<Sum3::XYZ, double>(velocity) > 0.0) {
-        const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
+        const CameraLimits limits = Limits();
         double scale = (D(distance_) - limits.min) / ((D(limits.max) - limits.min) * kPanZoomSpan) + kTrackGain;
         double moveX = D(dt) * velocity.x;
         float moveY = static_cast<float>(D(dt) * velocity.y);
@@ -455,9 +455,9 @@ void CCamera::Update(float dt) {
         double pitch = D(dt) * tiltRate_ + pitch_;
         pitch_ = static_cast<float>(pitch);
         bool alternate = (flags_ & kAlternate) != 0;
-        float most = static_cast<float>(D(alternate ? settings_->altPitchMax : settings_->pitchMax) * CAM_DEGREE);
+        float most = static_cast<float>(D(alternate ? settings_->briefingMaxPitch_ : settings_->cameraDefaultMaxPitch_) * CAM_DEGREE);
         if (pitch > most) pitch_ = most;
-        double least = D(alternate ? settings_->altPitchMin : settings_->pitchMin) * CAM_DEGREE;
+        double least = D(alternate ? settings_->briefingMinPitch_ : settings_->cameraDefaultMinPitch_) * CAM_DEGREE;
         if (least > pitch_) pitch_ = static_cast<float>(least);
     }
 
@@ -484,7 +484,7 @@ void CCamera::Update(float dt) {
     EI_NAN_AUDIT(zoomRate_);
     if (zoomRate_ != 0.0f) distance_ = static_cast<float>(D(dt) * zoomRate_ + distance_);
 
-    const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
+    const CameraLimits limits = Limits();
     EI_NAN_AUDIT(distance_, limits.hardMin, limits.min);
     if (distance_ < limits.hardMin) {
         CopyFloat(&distance_, &limits.hardMin);
@@ -521,7 +521,7 @@ void CCamera::ZoomBy(float steps) {
     double d = libcrt::CiPow(CAM_ZOOM_STEP, steps) * distance_;
     distance_ = static_cast<float>(d);
     if (!settings_) return;
-    const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
+    const CameraLimits limits = Limits();
     EI_NAN_AUDIT(d, limits.min);
     if (d < limits.min) {
         CopyFloat(&distance_, &limits.min);
@@ -558,10 +558,17 @@ void CCamera::SetDistancePitch(const CameraView* view) {
 }
 EI_REWRITTEN(0x00411470, CCamera::SetDistancePitch);
 
-void CCamera::ViewsToSettings(CameraSettings* settings) {
+CameraLimits CCamera::Limits() const {
+    const options::GameOptions* s = settings_;
+    if (flags_ & kAlternate)
+        return {s->briefingMinDistance_, s->briefingMaxDistance_, s->briefingMinLimitDistance_, s->briefingMaxLimitDistance_};
+    return {s->cameraMinDistance_, s->cameraMaxDistance_, s->cameraMinLimitDistance_, s->cameraMaxLimitDistance_};
+}
+
+void CCamera::ViewsToSettings(options::GameOptions* settings) {
     for (int i = 0; i < 4; ++i) {
         const CameraView& v = views_[i];
-        CameraViewRecord& r = settings->views[i];
+        options::CameraShortcutOptions& r = settings->cameraShortcuts_[i];
         CopyFloat(&r.distance, &v.distance);
         CopyFloat(&r.pitch, &v.pitch);
         const Quaternion& q = v.rotation;
@@ -572,27 +579,27 @@ void CCamera::ViewsToSettings(CameraSettings* settings) {
             angle = angle + angle;
             double inv = 1.0 / std::sqrt(sumF);
             float invF = static_cast<float>(inv);
-            r.axis.x = static_cast<float>(inv * q.x);
-            r.axis.y = static_cast<float>(D(invF) * q.y);
-            r.axis.z = static_cast<float>(D(invF) * q.z);
+            r.axisX = static_cast<float>(inv * q.x);
+            r.axisY = static_cast<float>(D(invF) * q.y);
+            r.axisZ = static_cast<float>(D(invF) * q.z);
             r.angle = static_cast<float>(angle);
         } else {
-            r.axis.x = 1.0f;
-            r.axis.y = 0.0f;
-            r.axis.z = 0.0f;
+            r.axisX = 1.0f;
+            r.axisY = 0.0f;
+            r.axisZ = 0.0f;
             r.angle = 0.0f;
         }
     }
 }
 EI_REWRITTEN(0x00410D70, CCamera::ViewsToSettings);
 
-void CCamera::ViewsFromSettings(const CameraSettings* settings) {
+void CCamera::ViewsFromSettings(const options::GameOptions* settings) {
     for (int i = 0; i < 4; ++i) {
         CameraView& v = views_[i];
-        const CameraViewRecord& r = settings->views[i];
+        const options::CameraShortcutOptions& r = settings->cameraShortcuts_[i];
         CopyFloat(&v.distance, &r.distance);
         CopyFloat(&v.pitch, &r.pitch);
-        Vector3 axis = r.axis;
+        Vector3 axis = {r.axisX, r.axisY, r.axisZ};
         v.rotation.FromAxisAngle(axis, r.angle);
     }
 }

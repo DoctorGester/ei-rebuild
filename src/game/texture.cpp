@@ -19,7 +19,7 @@
 
 namespace {
 // Game-wide paths set at startup. Names provisional.
-const mfc::CString& GameRoot() { return options::TheOptions()->workPath_; }
+const std::string& GameRoot() { return options::TheOptions()->workPath_; }
 
 // Format id for a .bmp texture, by texture kind.
 int BmpFormatFor(int type) {
@@ -42,7 +42,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
     }
 
     mfc::CFileFind finder;
-    std::string path = (GameRoot() + "textures\\" + texture->GetName() + ".bmp").GetString();
+    std::string path = GameRoot() + "textures\\" + texture->GetName() + ".bmp";
     PixelFormat format;
     int result;
 
