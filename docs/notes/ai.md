@@ -22,6 +22,16 @@ rebuilds the trajectory with `UnitMotion::Build` (005C67D0). 00548520 at the end
 `StandsOnCheapCell` (005BA5A0). Long paths: `PlanLongPath` (005B9C90, region chain, then local
 searches per leg) -> `BuildCellsTo` (005B9A20).
 
+## The map archive (CAIMap::Load)
+
+`ai_map_load.cpp`. A map archive holds one .mp file (MapHeader, the materials, a type word per tile texture, the
+animated tiles) and a .sec file per sector of 32 x 32 terrain squares (SectorHeader, 33 x 33 vertices, the same again
+for the water when the sector has any, then 16 x 16 tile words, the water's tile words and the water's material
+indices). The AI map has 2 x 2 cells per terrain square and 4 x 4 per tile: 64 x 64 cells per sector. The original is
+one function; ours splits it into LoadTerrain (everything read from the files) and AttachTerrain (the rest), and its
+locals (archives, registry, strings) are destroyed at the end of the step that uses them instead of at the very end
+(nothing reads them in between). Rebirth patches the function.
+
 ## Facts
 
 - The map's grids are `SearchGrid` members (search_grid.h; `grid[y][x]` reads a row): `waterDepth` (+0x1F4),

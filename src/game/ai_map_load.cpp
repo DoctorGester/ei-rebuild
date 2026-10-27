@@ -1,13 +1,5 @@
-// CAIMap::Load: the navigation grid of a map from its archive. Rebirth patches the function, so this is the
-// vanilla body and it is installed in the vanilla launch only; the Rebirth-patched callees (the archive's open
-// and destructor, FatalError, the AI events' Setup) are called through their addresses. A map archive holds one
-// .mp file (MapHeader, the materials, a type word per tile texture, the animated tiles) and a .sec file per
-// sector of 32 x 32 terrain squares (SectorHeader, 33 x 33 vertices, the same again for the water when the
-// sector has any, then 16 x 16 tile words, the water's tile words and the water's material indices). The AI
-// map has 2 x 2 cells per terrain square and 4 x 4 per tile: 64 x 64 cells per sector. The original is one
-// function; it is split here into LoadTerrain (everything read from the files) and AttachTerrain (the rest),
-// and its locals (archives, registry, strings) are destroyed at the end of the step that uses them instead of
-// at the very end. Nothing reads them in between.
+// CAIMap::Load (Rebirth patches it): the navigation grid of a map from its archive. See docs/notes/ai.md, "The
+// map archive".
 #include "ai_grids.h"
 #include "ai_map.h"
 #include "console.h"
@@ -35,8 +27,6 @@
 #include <string>
 
 namespace {
-
-// AIEventTable::Setup at its address: Rebirth patches it.
 
 // ---- The files -------------------------------------------------------------------------------------
 
@@ -82,8 +72,8 @@ constexpr int kVertexRow = kSquares + 1;            // vertices along it
 constexpr int kTiles = 16;                          // tiles along it
 constexpr int kSectorCells = 64;                    // AI cells along it
 constexpr int kCellsPerTile = 4;
-constexpr std::size_t kVertexBytes = kVertexRow * kVertexRow * sizeof(SectorFileVertex);        // 0x2208
-constexpr std::size_t kTileBytes = kTiles * kTiles * sizeof(std::uint16_t);                     // 0x200
+constexpr std::size_t kVertexBytes = kVertexRow * kVertexRow * sizeof(SectorFileVertex);
+constexpr std::size_t kTileBytes = kTiles * kTiles * sizeof(std::uint16_t);
 constexpr std::uint16_t kNoTile = 0xFFFF;
 constexpr std::uint16_t kTileIndexMask = 0x3FFF;    // the rest of a tile word turns the texture
 constexpr int kTilesPerTexture = 64;
@@ -113,7 +103,7 @@ struct MapDescription {
     lib::AlignedArray<std::uint32_t> tileTypes;
 };
 
-// A resource archive as a local: constructed in place, destroyed through the destructor body's address.
+// A resource archive as a local, constructed in place.
 struct Archive {
     Archive() { new (Get()) CMappedResource(); }
     ~Archive() { Get()->CMappedResource::Destroy(); }
