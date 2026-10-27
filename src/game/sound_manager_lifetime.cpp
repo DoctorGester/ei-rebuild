@@ -354,7 +354,7 @@ SampleProcessorFn AilSetSampleProcessor() { return ei::ImportAs<SampleProcessorF
 // Miles' sample (HSAMPLE), as far as the stream reads it: its codec stage.
 struct MilesSample {
     std::uint8_t unused_000[0x144];
-    AsiStage codec;   // +0x144
+    AsiStage codec;
 };
 static_assert(offsetof(MilesSample, codec) == 0x144);
 

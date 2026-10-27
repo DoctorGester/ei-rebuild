@@ -32,15 +32,15 @@ constexpr const char* kSectorExtension = /*00744164*/ ".SEC";
 
 // The constants of this code (all floats in .rdata).
 double One() { return 1.0 /*00744160 f*/; }          // 1: vertex spacing
-double SectorCells() { return 32.0 /*0073CA90 f*/; }  // 32
-double Half() { return 0.5 /*0073B86C f*/; }         // 0.5
-double MinusHalf() { return (-0.5 /*0073CDC8 f*/); }    // -0.5
+double SectorCells() { return 32.0 /*0073CA90 f*/; }
+double Half() { return 0.5 /*0073B86C f*/; }
+double MinusHalf() { return (-0.5 /*0073CDC8 f*/); }
 double OffsetScale() { return 0.007936508394777775 /*00744190 f*/; }  // 1/126: vertex displacement per unit
 double HeightUnit() { return 0.000015259254723787308 /*0073FD84 f*/; }   // 1/65534 (37800100)
 double NormalScale() { return 0.0010000000474974513 /*0074040C f*/; }  // 0.001
-double NormalBias() { return 1000.0 /*0073C34C f*/; }   // 1000
+double NormalBias() { return 1000.0 /*0073C34C f*/; }
 double VOne() { return 1.0 /*0073B84C f*/; }         // 1: v = 1 - v
-double Zero() { return 0.0 /*0073B858 f*/; }         // 0
+double Zero() { return 0.0 /*0073B858 f*/; }
 
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer

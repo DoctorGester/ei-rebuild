@@ -144,7 +144,7 @@ CSpellContainer::CSpellContainer() {
     codes_ = codesEnd_ = stlp::allocate_as<char>(8);
     codesCapacity_ = codes_ + 8;
     *codesEnd_ = '\0';
-    CSpellContainer::Create();   // inlined
+    CSpellContainer::Create();
 }
 EI_REWRITTEN_SPECIAL(0x0068BA80, CSpellContainer::CSpellContainer);
 

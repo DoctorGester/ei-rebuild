@@ -27,10 +27,10 @@
 #include <cstddef>
 #include <cstdint>
 
-class CAnimationNode;   // figure.h
-class CFigureMesh;      // figure_mesh.h
-class CPlainFigureMesh; // figure_mesh.h
-class CObject3D;        // map_object_figures.h
+class CAnimationNode;
+class CFigureMesh;
+class CPlainFigureMesh;
+class CObject3D;
 
 namespace scene {
 struct TextureNameRecord;
@@ -78,7 +78,7 @@ static_assert(sizeof(PointBits) == 12 && sizeof(UvBits) == 8 && sizeof(Block64) 
 using BlockBuffer = lib::AlignedArray<Block64>;
 using DwordBuffer = lib::AlignedArray<std::uint32_t>;
 
-// MFC CMap<DWORD, DWORD, DWORD, DWORD> (0x1C bytes) and its association (0x10 bytes).
+// MFC CMap<DWORD, DWORD, DWORD, DWORD> and its association.
 using DwordMap = mfc::CMap<std::uint32_t, std::uint32_t>;   // hashSize 17, blockSize 10
 using MapAssoc = DwordMap::Assoc;
 static_assert(sizeof(DwordMap) == 0x1C && sizeof(MapAssoc) == 0x10);
@@ -135,17 +135,17 @@ using FaceGroupArray = mfc::CArray<FaceGroup, FaceGroupElements>;
 // destroyed, the storage freed.
 void __fastcall FaceGroupArrayDestruct(FaceGroupArray* groups);
 
-// Mesh (element of the caller's +0x544 array, 0x18C bytes).
+// Mesh (element of the caller's +0x544 array).
 namespace mesh {
 constexpr std::size_t kSize = 0x18C;
 constexpr std::size_t kName = 0x94;        // CString
 constexpr std::size_t kPositions = 0xD8;   // aligned array of 12-byte points
 constexpr std::size_t kTexCoords = 0xE8;   // aligned array of 8-byte (u, v)
 constexpr std::size_t kFaces = 0x138;      // aligned array of MeshFace
-constexpr std::size_t kGroups = 0x148;     // CArray of FaceGroup (vtable at +0x148)
+constexpr std::size_t kGroups = 0x148;     // CArray of FaceGroup
 } // namespace mesh
 
-// Node (element of the caller's local array, 0x120 bytes).
+// Node (element of the caller's local array).
 namespace node {
 constexpr std::size_t kSize = 0x120;
 constexpr std::size_t kName = 0x04;        // CString
@@ -162,21 +162,21 @@ struct NodeRotationKey {        // 0x14: the frame, (+4 kept), a vector
     std::int16_t frame;
     std::uint16_t unused_02;
     std::uint32_t unused_04;
-    Vector3 value;              // +0x08 (a pivot: the skeleton's translation keys)
+    Vector3 value;              // (a pivot: the skeleton's translation keys)
 };
 static_assert(sizeof(NodeRotationKey) == 0x14);
 struct NodePositionKey {        // 0x18: the frame, an angle and an axis (a rotation)
     std::int16_t frame;
     std::uint16_t unused_02;
     std::uint32_t unused_04;
-    float angle;                // +0x08
-    Vector3 axis;               // +0x0C
+    float angle;
+    Vector3 axis;
 };
 static_assert(sizeof(NodePositionKey) == 0x18);
 struct NodeMorphKey {           // 0x14: the frame and the mesh's points at it
     std::int16_t frame;
     std::uint16_t unused_02;
-    lib::AlignedArray<Vector3> points;   // +0x04
+    lib::AlignedArray<Vector3> points;
 };
 static_assert(sizeof(NodeMorphKey) == 0x14);
 // The node's morph key array constructs and destroys its keys out of line
@@ -189,8 +189,8 @@ struct NodeMorphKeyElements {
 // A node's frame record (40 bytes; BuildSkeleton puts the pivot and rotation in the first).
 struct NodeFrame {
     std::uint32_t unused_00[3];
-    Vector3 pivot;                      // +0x0C
-    Quaternion rotation;                // +0x18
+    Vector3 pivot;
+    Quaternion rotation;
 };
 static_assert(sizeof(NodeFrame) == 40);
 // The records zero filled, each rotation the identity. The node's frame array (never destroyed element by
@@ -209,30 +209,30 @@ struct SceneNode {
     void Construct();
 
     std::uint32_t unused_000;
-    mfc::CString name;                  // +0x004
-    mfc::CString parent;                // +0x008
+    mfc::CString name;
+    mfc::CString parent;
     std::uint32_t unused_00C;
-    std::uint32_t spare010;             // +0x010 cleared by BuildSkeleton; nothing reads it
-    std::uint32_t spare014;             // +0x014 cleared by BuildSkeleton; nothing reads it
+    std::uint32_t spare010;             // cleared by BuildSkeleton; nothing reads it
+    std::uint32_t spare014;             // cleared by BuildSkeleton; nothing reads it
     std::uint8_t unused_018[0x30 - 0x18];
-    Quaternion spareRotation030;        // +0x030 identity from the constructor; nothing reads it
-    Quaternion spareRotation040;        // +0x040 identity from the constructor; nothing reads it
+    Quaternion spareRotation030;        // identity from the constructor; nothing reads it
+    Quaternion spareRotation040;        // identity from the constructor; nothing reads it
     std::uint32_t unused_050;
-    Vector3 offset;                     // +0x054 the pivot (must be 0, 0, 0: BuildBone)
-    Vector3 axis;                       // +0x060 the first position key's axis
-    float angle;                        // +0x06C its angle
-    Vector3 pivot;                      // +0x070 the first rotation key's vector
-    Quaternion rotation;                // +0x07C
-    Vector3 restPivot;                  // +0x08C
-    Quaternion restRotation;            // +0x098
-    mfc::CArray<NodeRotationKey> rotationKeys;                  // +0x0A8
-    mfc::CArray<NodePositionKey> positionKeys;                  // +0x0BC
-    mfc::CArray<NodeMorphKey, NodeMorphKeyElements> morphKeys;  // +0x0D0
-    mfc::CArray<Vector3> normals;                               // +0x0E4 (version 0x1468FCCA only)
+    Vector3 offset;                     // the pivot (must be 0, 0, 0: BuildBone)
+    Vector3 axis;                       // the first position key's axis
+    float angle;                        // its angle
+    Vector3 pivot;                      // the first rotation key's vector
+    Quaternion rotation;
+    Vector3 restPivot;
+    Quaternion restRotation;
+    mfc::CArray<NodeRotationKey> rotationKeys;
+    mfc::CArray<NodePositionKey> positionKeys;
+    mfc::CArray<NodeMorphKey, NodeMorphKeyElements> morphKeys;
+    mfc::CArray<Vector3> normals;                               // (version 0x1468FCCA only)
     // +0x0F8 (elements constructed by KeyFrames' ConstructElements); the loader copies them to the figures'
     // bone links.
     NodeFrameArray frames;
-    mfc::CArray<SceneNode*> children;                 // +0x10C
+    mfc::CArray<SceneNode*> children;
 };
 static_assert(offsetof(SceneNode, name) == node::kName);
 static_assert(offsetof(SceneNode, spareRotation030) == 0x30 && offsetof(SceneNode, spareRotation040) == 0x40);
@@ -258,11 +258,7 @@ static_assert(sizeof(MeshCornerKey) == 6);
 // virtual gives its name). A real virtual class: the compiler makes its vtable. Only the members the scene
 // code uses are declared.
 struct SceneMesh : CTransformObject {
-    // The constructor ConstructElements inlines after its zero fill (scene_loader.cpp): the transform
-    // object's fields, the name empty, the groups' array empty.
     SceneMesh();
-    // The destructor's work: the face groups, the eleven aligned blocks from the last, then the name (a
-    // member) and the engine object's destructor.
     ~SceneMesh() override;
     // The deleting destructor frees into the game's heap.
 
@@ -270,13 +266,13 @@ struct SceneMesh : CTransformObject {
     int Create() override;                 // returns 1
     void Destroy() override;               // nothing
     const char* GetName() override;        // returns the name
-    const char* GetClassName() override;   // "CFakeFigure"
+    const char* GetClassName() override;
     int GetClassId() override;             // class id 0x47
     void SaveTransform(mfc::CFileVirtuals* file) override;   // nothing
     void LoadTransform(mfc::CFileVirtuals* file) override;   // nothing
 
     std::uint8_t unused_054[0x94 - 0x54];
-    mfc::CString name;                  // +0x094
+    mfc::CString name;
     // +0x098 / +0x0C8 aligned blocks no loader code we know fills; the destructor frees them.
     lib::AlignedArray<std::uint8_t> spareBlocks098;
     // +0x0A8 / +0x0B8 the positions and the normals packed four to a 64-byte block (x[4], y[4], z[4],
@@ -284,23 +280,23 @@ struct SceneMesh : CTransformObject {
     BlockBuffer positionBlocks;
     BlockBuffer normalBlocks;
     lib::AlignedArray<std::uint8_t> spareBlocks0C8;
-    PointBuffer positions;              // +0x0D8 the file's bits
-    UvBuffer texCoords;                 // +0x0E8
-    PointBuffer normals;                // +0x0F8 one per position
+    PointBuffer positions;              // the file's bits
+    UvBuffer texCoords;
+    PointBuffer normals;                // one per position
     // +0x108 / +0x118 / +0x128: the distinct corners (sorted), the distinct (vertex,
     // position) word pairs (sorted, padded to a multiple of four) and each face corner's index in
     // the corner table (three words per face).
     lib::AlignedArray<MeshCornerKey> corners;
     DwordBuffer pairs;
     lib::AlignedArray<std::uint16_t> cornerIndices;
-    FaceBuffer faces;                   // +0x138
-    FaceGroupArray groups;              // +0x148
+    FaceBuffer faces;
+    FaceGroupArray groups;
     // +0x15C the bounds (the figure copies them to its +0x160): the centre, the box corners relative to it
     // and the radius.
     Vector3 center;
-    Vector3 boxMin;                     // +0x168
-    Vector3 boxMax;                     // +0x174
-    float radius;                       // +0x180
+    Vector3 boxMin;
+    Vector3 boxMax;
+    float radius;
     // +0x184 / +0x188 the material of the mesh's last group (from its name); the figure copies them to its
     // +0x158 / +0x15C.
     int materialValue;
@@ -338,10 +334,7 @@ struct SceneSkin {
     void Rewind();
     // The root (when there is one) binds the parts (CAnimationNode::AttachMeshes).
     int BindMeshes(const lib::AlignedArray<CFigureMesh*>* parts);
-    // scene_skin_lifetime.cpp. The constructor: empty arrays and names, no root, the clock -1.
     SceneSkin();
-    // The destructor: the root bone destroyed and deleted (the bone list emptied), the
-    // names emptied and destroyed, the arrays' blocks freed (the name, a member, after them).
     ~SceneSkin();
     // The root bone destroyed and deleted (the bone list's block freed), the clock 0, the
     // name "none", no names, +0x4C 0. Returns 1.
@@ -354,15 +347,15 @@ struct SceneSkin {
     // +0x00 the fake unit the skin belongs to (CFakeUnit's Create; 0 when the unit lets its parts go,
     // fake_unit.cpp); 0 after Destruct / Clear. Nothing here reads it.
     std::uint32_t owner;
-    lib::AlignedArray<CAnimationNode*> bones;   // +0x04 every bone, in build order
-    CAnimationNode* root;                       // +0x14
+    lib::AlignedArray<CAnimationNode*> bones;   // every bone, in build order
+    CAnimationNode* root;
     // +0x18 the clock (an unused setter stores its float argument here as a double, then zeroes it).
     std::uint32_t clock[2];
-    mfc::CString name;                          // +0x20 "none" after Create
-    mfc::CStringArray names;                    // +0x24
-    std::uint32_t spare38;                      // +0x38 0 after the constructor; nothing reads it
-    lib::AlignedArray<void*> spareArray;        // +0x3C only emptied and freed here
-    std::uint32_t spare4C;                      // +0x4C 0 after Create; nothing reads it
+    mfc::CString name;                          // "none" after Create
+    mfc::CStringArray names;
+    std::uint32_t spare38;                      // 0 after the constructor; nothing reads it
+    lib::AlignedArray<void*> spareArray;        // only emptied and freed here
+    std::uint32_t spare4C;                      // 0 after Create; nothing reads it
 };
 static_assert(offsetof(SceneSkin, bones) == 0x04);
 static_assert(offsetof(SceneSkin, root) == 0x14);
@@ -384,13 +377,13 @@ inline constexpr Vector3 kZeroVector = /*0079B9B0*/ {0.0f, 0.0f, 0.0f};
 // "node %s have NONULL pivot (x=%g, y=%g, z=%g)" (BuildBone's fatal error).
 inline const char* NonNullPivotText() { return "node %s have NONULL pivot\nx = %g\ty = %g\tz = %g\n"; }
 
-// The helpers (+0x56C) are materials (material.h): built by CMaterial's constructor (InitHelper,
+// The helpers are materials (material.h): built by CMaterial's constructor (InitHelper,
 // material.cpp), destroyed through its virtual destructor.
 void InitHelper(CMaterial* p);
 using HelperElements = mfc::impl::EachElements<CMaterial, InitHelper, mfc::impl::DeleteThroughFirst<CMaterial>>;
 using HelperArray = mfc::CArray<CMaterial, HelperElements>;
 
-// The figures (+0x530): 0x220-byte class 0x42 figure meshes as the figure factory builds one
+// The figures: 0x220-byte class 0x42 figure meshes as the figure factory builds one
 // (InitFigurePart, figure_mesh_life.cpp: CPlainFigureMesh's constructor), destroyed through its virtual
 // destructor.
 void InitFigurePart(CPlainFigureMesh* p);
@@ -398,7 +391,7 @@ using FigurePartElements =
     mfc::impl::EachElements<CPlainFigureMesh, InitFigurePart, mfc::impl::DeleteThroughFirst<CPlainFigureMesh>>;
 using FigurePartArray = mfc::CArray<CPlainFigureMesh, FigurePartElements>;
 
-// The bone links (+0x558): per figure, a copy of its node's frame records (sized as key frames), the arrays
+// The bone links: per figure, a copy of its node's frame records (sized as key frames), the arrays
 // built empty and destroyed through their virtual destructor.
 using BoneLinkRecords = mfc::impl::KeyFrames::Array;
 inline void InitBoneLinks(BoneLinkRecords* p) { mfc::impl::ConstructArrayOf<mfc::impl::BoneLinkArrayClass>(*p); }
@@ -411,29 +404,25 @@ using BoneLinkArray = mfc::CArray<BoneLinkRecords, BoneLinkElements>;
 // vtable. No scenario makes one (class 0x39 in the map object factory): only the builds check it.
 class FakeUnitScene : public CUnit {
 public:
-    // The constructor's work: the unit, the skin (a member), four empty arrays.
     FakeUnitScene();
-    // The destructor's work: the parts let go (the skin cleared, the unit's Destroy), the figures emptied,
-    // the four arrays destroyed (each element through their virtual destructors); then the skin (a member)
-    // and the unit's destructor.
     ~FakeUnitScene() override;
     // The deleting destructor frees into the game's heap.
 
     // The virtuals that differ from CUnit's (fake_unit.cpp).
     int Create() override;                  // the skin created and owned, then CreateUnit
     void Destroy() override;                // the parts let go, the figures destroyed
-    const char* GetClassName() override;    // "CFakeUnit"
+    const char* GetClassName() override;
     int GetClassId() override;              // class id 0x50
     // Loads the scene (LoadFakeUnitScene); on success each figure gets a new object of class 0x45 from the
     // world's side-specific manager. Returns the loader's 0, or 1.
     virtual int LoadScene(const char* file, const char* regFile);
 
-    std::uint8_t unused_4DC[4];         // +0x4DC the skin's alignment (its clock is a double)
-    SceneSkin skin;                     // +0x4E0 (0x50 bytes)
-    FigurePartArray figures;            // +0x530
-    MeshArray meshes;                   // +0x544
-    BoneLinkArray boneLinks;            // +0x558 per figure a CArray of NodeFrame records (0x14 each)
-    HelperArray helpers;                // +0x56C
+    std::uint8_t unused_4DC[4];         // the skin's alignment (its clock is a double)
+    SceneSkin skin;
+    FigurePartArray figures;
+    MeshArray meshes;
+    BoneLinkArray boneLinks;            // per figure a CArray of NodeFrame records (0x14 each)
+    HelperArray helpers;
 
 private:
     // The parts let go (the start of both the destructor and Destroy): the skin emptied and

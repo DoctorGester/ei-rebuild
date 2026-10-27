@@ -59,7 +59,7 @@ void __fastcall ServerInsertionSort(MpAddressEntry* first, MpAddressEntry* last,
 void __fastcall ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry* tag, int key);
 
 // The objectives window's quests (ui_objectives.cpp, the names of the shown zone's "q.<zone>.<quest>"
-// variables) by their quest record's order (+0x1C), the highest first and a name without a record
+// variables) by their quest record's order, the highest first and a name without a record
 // before all (also before itself: the game's scans run off the range then). Every comparison
 // looks both names up in the quest table (QuestDatabase::FindQuest, which adds a null entry for a
 // new name), the first argument's first: the game inlines that lookup in each helper (a string

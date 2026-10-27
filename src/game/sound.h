@@ -23,19 +23,19 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-// A volume envelope (0x1C bytes): the music stream's (CSoundManager + 0x144) and the MIDI
-// sequence's (+0x20C). `level` is the Miles volume 0..127 derived from `volume` (0..100) and the
+// A volume envelope: the music stream's (CSoundManager + 0x144) and the MIDI
+// sequence's. `level` is the Miles volume 0..127 derived from `volume` (0..100) and the
 // fade `factor`.
 namespace mfc::impl { struct WinThread; }
 
 struct SoundFader {
-    std::int32_t volume;        // +0x00 0..100
-    std::int32_t level;         // +0x04 0..127, round(volume * factor * 127 * 0.01)
-    float factor;               // +0x08 fade factor 0..1
-    float step;                 // +0x0C added / subtracted per update (100 ms on the stream thread)
-    std::int32_t mode;          // +0x10 0 none, 1 fade in, 2 fade out
-    std::int32_t finished;      // +0x14 set when a fade out reached 0
-    std::uint32_t holdUntil;    // +0x18 timeGetTime() at which the fade is cancelled (0: none)
+    std::int32_t volume;        // 0..100
+    std::int32_t level;         // 0..127, round(volume * factor * 127 * 0.01)
+    float factor;               // fade factor 0..1
+    float step;                 // added / subtracted per update (100 ms on the stream thread)
+    std::int32_t mode;          // 0 none, 1 fade in, 2 fade out
+    std::int32_t finished;      // set when a fade out reached 0
+    std::uint32_t holdUntil;    // timeGetTime() at which the fade is cancelled (0: none)
 
     void SetHold(std::uint32_t until);
     void Update();                      // stream thread
@@ -45,23 +45,23 @@ static_assert(sizeof(SoundFader) == 0x1C);
 
 // One of the 15 Miles sample voices (array at CSoundManager + 0x24C, 0x54 bytes each).
 struct SoundSlot {
-    stlp::string name;          // +0x00 the wave name
-    void* sample;               // +0x0C HSAMPLE
-    std::int32_t volume;        // +0x10 Miles volume 0..127
-    std::int32_t baseVolume;    // +0x14 2D sounds: volume 0..100
-    std::int32_t pan;           // +0x18 -100..100
-    std::int32_t priority;      // +0x1C
-    std::int32_t playing;       // +0x20
-    std::int32_t looping;       // +0x24 keep as a deferred record when the voice is stolen
-    std::int32_t speech;        // +0x28 scaled by the speech volume (+0x8B8) instead of effects (+0x8B4)
-    float length;               // +0x2C seconds
-    std::int32_t finished;      // +0x30 set by the end-of-sample callback (Miles thread)
-    std::int32_t flat;          // +0x34 2D: volume from baseVolume, not from the listener distance
-    std::int32_t heightFade;    // +0x38 2D sounds fading out as the camera rises (30..70)
-    Vector3 position;           // +0x3C 3D position
-    float nearDistance;         // +0x48 full volume inside
-    float farDistance;          // +0x4C silent outside
-    std::int32_t handle;        // +0x50 sound handle (-1: free)
+    stlp::string name;          // the wave name
+    void* sample;               // HSAMPLE
+    std::int32_t volume;        // Miles volume 0..127
+    std::int32_t baseVolume;    // 2D sounds: volume 0..100
+    std::int32_t pan;           // -100..100
+    std::int32_t priority;
+    std::int32_t playing;
+    std::int32_t looping;       // keep as a deferred record when the voice is stolen
+    std::int32_t speech;        // scaled by the speech volume instead of effects
+    float length;               // seconds
+    std::int32_t finished;      // set by the end-of-sample callback (Miles thread)
+    std::int32_t flat;          // 2D: volume from baseVolume, not from the listener distance
+    std::int32_t heightFade;    // 2D sounds fading out as the camera rises (30..70)
+    Vector3 position;           // 3D position
+    float nearDistance;         // full volume inside
+    float farDistance;          // silent outside
+    std::int32_t handle;        // sound handle (-1: free)
 
     void End(struct CSoundManager* manager);
 };
@@ -71,41 +71,41 @@ static_assert(offsetof(SoundSlot, finished) == 0x30 && offsetof(SoundSlot, handl
 // A sound that lost its voice to a higher priority one and waits to be restarted (0x48 bytes,
 // allocated with operator new and kept in the hash map at CSoundManager + 0x884, keyed by handle).
 struct DeferredSound {
-    stlp::string name;          // +0x00
-    std::int32_t volume;        // +0x0C
-    std::int32_t baseVolume;    // +0x10
-    std::int32_t pan;           // +0x14
-    std::int32_t priority;      // +0x18
-    std::int32_t speech;        // +0x1C
-    float length;               // +0x20
-    std::int32_t flat;          // +0x24
-    std::int32_t heightFade;    // +0x28
-    Vector3 position;           // +0x2C
-    float nearDistance;         // +0x38
-    float farDistance;          // +0x3C
-    std::int32_t handle;        // +0x40 (the map key)
-    std::int32_t samplePosition;// +0x44
+    stlp::string name;
+    std::int32_t volume;
+    std::int32_t baseVolume;
+    std::int32_t pan;
+    std::int32_t priority;
+    std::int32_t speech;
+    float length;
+    std::int32_t flat;
+    std::int32_t heightFade;
+    Vector3 position;
+    float nearDistance;
+    float farDistance;
+    std::int32_t handle;        // (the map key)
+    std::int32_t samplePosition;
 };
 static_assert(sizeof(DeferredSound) == 0x48);
 
-// MFC CStringArray (0x14 bytes), as embedded in the sound records.
+// MFC CStringArray, as embedded in the sound records.
 using SoundNameArray = mfc::CStringArray;
 
-// An ambient emitter (16 at CSoundManager + 0x26C, 0x38 bytes): plays one of its names at random
+// An ambient emitter (16 at CSoundManager + 0x26C): plays one of its names at random
 // intervals while the listener is within `outerRadius`.
 struct SoundEmitter {
-    std::int32_t active;        // +0x00
-    SoundNameArray names;       // +0x04
-    Vector3 position;           // +0x18
-    float innerRadius;          // +0x24
-    float outerRadius;          // +0x28
-    std::int32_t minInterval;   // +0x2C ms
-    std::int32_t maxInterval;   // +0x30 ms
-    std::uint32_t lastPlayed;   // +0x34 GetTickCount()
+    std::int32_t active;
+    SoundNameArray names;
+    Vector3 position;
+    float innerRadius;
+    float outerRadius;
+    std::int32_t minInterval;   // ms
+    std::int32_t maxInterval;   // ms
+    std::uint32_t lastPlayed;   // GetTickCount()
 };
 static_assert(sizeof(SoundEmitter) == 0x38);
 
-// A 3D sound sequence (8 at CSoundManager + 0x5F0, 0x4C bytes): plays its names one after the
+// A 3D sound sequence (8 at CSoundManager + 0x5F0): plays its names one after the
 // other (or at random, or as a callback chooses) at one position.
 struct SoundSequence;
 // The stream thread's procedure, CSoundManager::StreamThread.
@@ -117,21 +117,21 @@ SoundSequence* __fastcall ConstructSequence(SoundSequence* sequence);
 void __fastcall DestructSequence(SoundSequence* sequence);
 
 struct SoundSequence {
-    std::int32_t active;        // +0x00
-    SoundNameArray names;       // +0x04
-    std::int32_t handle;        // +0x18 current sound
-    Vector3 position;           // +0x1C
-    float nearDistance;         // +0x28
-    float farDistance;          // +0x2C
-    std::int32_t remaining;     // +0x30 sounds left to play (callback: sounds played)
-    std::int32_t index;         // +0x34 next name
-    std::int32_t priority;      // +0x38
-    std::int32_t random;        // +0x3C pick names at random
+    std::int32_t active;
+    SoundNameArray names;
+    std::int32_t handle;        // current sound
+    Vector3 position;
+    float nearDistance;
+    float farDistance;
+    std::int32_t remaining;     // sounds left to play (callback: sounds played)
+    std::int32_t index;         // next name
+    std::int32_t priority;
+    std::int32_t random;        // pick names at random
     // +0x40 returns the next index (bit 30: loop it), < 0 ends; called with the previous index and the
     // number of sounds started before.
     int(__fastcall* chooser)(int previous, int played);
-    std::int32_t generation;    // +0x44
-    std::int32_t id;            // +0x48 generation << 8 | slot (-1: free)
+    std::int32_t generation;
+    std::int32_t id;            // generation << 8 | slot (-1: free)
 
     int PlayNext(struct CSoundManager* manager);
 };
@@ -149,21 +149,21 @@ static_assert(sizeof(DeferredMap) == 0x14);
 // The name stays raw words: the record is copied bitwise by the cache list (CList with raw
 // elements, RemoveHead by value) and its name built and freed by hand; Name() is the string.
 struct WaveRecord {
-    void* data;                 // +0x00 Miles memory (AIL_mem_alloc_lock), or the decompressed MP3
-    std::uint32_t name[3];      // +0x04 STLport string (Name())
-    std::uint32_t lastUsed;     // +0x10 GetTickCount()
-    std::int32_t size;          // +0x14 bytes
-    std::int32_t uses;          // +0x18 voices playing it (CacheEntry's +0x20 is this field of the node)
+    void* data;                 // Miles memory (AIL_mem_alloc_lock), or the decompressed MP3
+    std::uint32_t name[3];      // STLport string (Name())
+    std::uint32_t lastUsed;     // GetTickCount()
+    std::int32_t size;          // bytes
+    std::int32_t uses;          // voices playing it (CacheEntry's +0x20 is this field of the node)
 
     // operator= (sound_manager.cpp): the data pointer, the name by STLport's assign (unless it is the same
-    // string), the three counters. Returns this.
+    // string), the three counters.
     WaveRecord* Assign(const WaveRecord* from);
 
     stlp::string& Name() { return *reinterpret_cast<stlp::string*>(name); }
     const stlp::string& Name() const { return *reinterpret_cast<const stlp::string*>(name); }
 };
 static_assert(sizeof(WaveRecord) == 0x1C);
-// CList<WaveRecord> (0x1C bytes). Its NewNode / FreeNode stay the instantiation's (sound_manager.cpp),
+// CList<WaveRecord>. Its NewNode / FreeNode stay the instantiation's (sound_manager.cpp),
 // which copy and destroy the record themselves.
 using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
 using WaveNode = WaveList::Node;
@@ -195,40 +195,37 @@ struct CSoundManager : CEngineObject {
     // sequences (their element constructors through the CRT's eh vector iterator), the wave cache list,
     // both hash maps (100 buckets), AIL_startup, then Reset.
     CSoundManager();
-    // Close, AIL_shutdown, the hash maps, the cache list (each record's DestructElements), the sequences
-    // and emitters, the MIDI and stream parts, the wave source list, the registries, the stream reader; the
-    // members' destructors (the strings, the archive) after it, then CEngineObject's.
     ~CSoundManager() override;
     // The deleting destructor frees into the game's heap.
 
     int Create() override { return CreateBody(); }
     void Destroy() override { Close(); }
-    const char* GetClassName() override;              // "CSoundManager"
+    const char* GetClassName() override;
     int GetClassId() override;                        // class id 0xE
 
-    void* waveDriver;                   // +0x01C HDIGDRIVER (Open)
-    void* midiDriver;                   // +0x020 HMDIDRIVER (closed by Close; not opened here)
-    CResourceStream streamReader;       // +0x024 reads the music stream's files (StreamRead)
-    mfc::CString soundPath;             // +0x058 the sound folder, ending in a backslash (SetPath)
-    CFileRegistry soundRegistry;        // +0x05C opened by SetPath
-    CMappedResource archive074;         // +0x074
-    CFileRegistry registry0CC;          // +0x0CC
+    void* waveDriver;                   // HDIGDRIVER (Open)
+    void* midiDriver;                   // HMDIDRIVER (closed by Close; not opened here)
+    CResourceStream streamReader;       // reads the music stream's files (StreamRead)
+    mfc::CString soundPath;             // the sound folder, ending in a backslash (SetPath)
+    CFileRegistry soundRegistry;        // opened by SetPath
+    CMappedResource archive074;
+    CFileRegistry registry0CC;
     // +0x0E4 the archives LoadSample looks in (CTypedPtrList), filled by AddWaveSource.
     mfc::CTypedPtrList<CMappedResource> waveSources;
     // The MP3 music stream (+0x100, filled on the stream thread).
-    volatile std::int32_t streamState;  // +0x100 0 idle, 1 playing, 2 switching to nextName
-    void* streamSample;                 // +0x104 HSAMPLE
-    void* streamFile;                   // +0x108 ASI stream
-    AsiStage* streamCodec;              // +0x10C the decoder sample's codec stage
-    void* streamBuffers[3];             // +0x110 Miles memory, streamBufferSize bytes each (OpenStream)
-    std::int32_t streamBufferSize;      // +0x11C twice Miles' minimum buffer; -1 after ResetStream
-    std::int32_t streamBufferFrames;    // +0x120 frames in one buffer: streamBufferSize / streamFrameBytes
+    volatile std::int32_t streamState;  // 0 idle, 1 playing, 2 switching to nextName
+    void* streamSample;                 // HSAMPLE
+    void* streamFile;                   // ASI stream
+    AsiStage* streamCodec;              // the decoder sample's codec stage
+    void* streamBuffers[3];             // Miles memory, streamBufferSize bytes each (OpenStream)
+    std::int32_t streamBufferSize;      // twice Miles' minimum buffer; -1 after ResetStream
+    std::int32_t streamBufferFrames;    // frames in one buffer: streamBufferSize / streamFrameBytes
     // +0x124 which buffer each half of Miles' double buffer plays, +0x12C the third one (taken next, and
     // what the stream reader fills): -1 after ResetStream; 0, 1 and 2 after OpenStream.
     std::int32_t streamHalfBuffer[2];
     std::int32_t streamSpareBuffer;
-    std::int32_t streamPosition;        // +0x130 frames of the playing file queued so far
-    std::int32_t streamSwitchAt;        // +0x134 position at which nextName starts
+    std::int32_t streamPosition;        // frames of the playing file queued so far
+    std::int32_t streamSwitchAt;        // position at which nextName starts
     // +0x138 the position at which the playing file starts again from its beginning (the first
     // "Markers2" value of its section in the sound registry; 0x7FFFFFFF without one), +0x13C the
     // bytes in a frame (bits * channels / 8): both -1 after ResetStream. +0x140 the byte that is
@@ -237,52 +234,52 @@ struct CSoundManager : CEngineObject {
     std::int32_t streamFrameBytes;
     std::uint8_t streamSilence;
     std::uint8_t unused_141[3];
-    SoundFader musicFader;              // +0x144 music volume (options) and fades
-    mfc::CString streamName;            // +0x160 playing
-    mfc::CString nextName;              // +0x164 requested
-    lib::AlignedArray<std::int32_t> markers;    // +0x168 switch points ("Markers1/2" in the file)
-    lib::AlignedArray<std::int32_t> markers2;   // +0x178
-    CRITICAL_SECTION nameLock;          // +0x188 guarding streamName
-    std::int32_t switchMode;            // +0x1A0 how nextName was requested (RequestStream mode)
-    std::uint32_t streamFileSize;       // +0x1A4 bytes of the open stream file (StreamRead)
-    std::int32_t streamReadPosition;    // +0x1A8
-    void* streamDecoder;                // +0x1AC HSAMPLE whose processor is the MP3 codec (streamCodec is in it)
-    CRITICAL_SECTION streamLock;        // +0x1B0 guarding the stream and musicFader
-    mfc::impl::WinThread* streamThread; // +0x1C8 the stream thread (Open), when the MP3 stream opened
-    // The MIDI sequence (+0x1CC).
-    std::int32_t midiState;             // +0x1CC
-    void* midiData1D0;                  // +0x1D0 Miles memory (AIL_mem_alloc_lock)
-    void* midiData1D4;                  // +0x1D4 Miles memory
-    void* midiSequence;                 // +0x1D8 HSEQUENCE
-    mfc::CString midiName;              // +0x1DC
-    mfc::CString midiNextName;          // +0x1E0
-    lib::AlignedArray<std::int32_t> midiArray1E4;   // +0x1E4
-    lib::AlignedArray<std::int32_t> midiArray1F4;   // +0x1F4
+    SoundFader musicFader;              // music volume (options) and fades
+    mfc::CString streamName;            // playing
+    mfc::CString nextName;              // requested
+    lib::AlignedArray<std::int32_t> markers;    // switch points ("Markers1/2" in the file)
+    lib::AlignedArray<std::int32_t> markers2;
+    CRITICAL_SECTION nameLock;          // guarding streamName
+    std::int32_t switchMode;            // how nextName was requested (RequestStream mode)
+    std::uint32_t streamFileSize;       // bytes of the open stream file (StreamRead)
+    std::int32_t streamReadPosition;
+    void* streamDecoder;                // HSAMPLE whose processor is the MP3 codec (streamCodec is in it)
+    CRITICAL_SECTION streamLock;        // guarding the stream and musicFader
+    mfc::impl::WinThread* streamThread; // the stream thread (Open), when the MP3 stream opened
+    // The MIDI sequence.
+    std::int32_t midiState;
+    void* midiData1D0;                  // Miles memory (AIL_mem_alloc_lock)
+    void* midiData1D4;                  // Miles memory
+    void* midiSequence;                 // HSEQUENCE
+    mfc::CString midiName;
+    mfc::CString midiNextName;
+    lib::AlignedArray<std::int32_t> midiArray1E4;
+    lib::AlignedArray<std::int32_t> midiArray1F4;
     std::uint8_t unused_204[8];
-    SoundFader midiFader;               // +0x20C
+    SoundFader midiFader;
     std::uint8_t unused_228[4];
-    CRITICAL_SECTION midiLock;          // +0x22C
-    mfc::impl::WinThread* midiThread;   // +0x244 the MIDI thread
-    volatile std::int32_t threadsQuit;  // +0x248 set by Close; both threads end on it
-    SoundSlot* slots;                   // +0x24C 15 voices (an operator new[] block: the count before them)
-    Vector3 listener;                   // +0x250 listener position (z: camera height)
-    Vector3 listenerAxis;               // +0x25C listener direction, unit length in x/y
-    std::int32_t nextHandle;            // +0x268
-    SoundEmitter emitters[16];          // +0x26C
-    std::uint32_t emitterTick;          // +0x5EC
-    SoundSequence sequences[8];         // +0x5F0
-    std::int32_t cacheBytes;            // +0x850 bytes held by the wave cache
-    WaveList cacheList;                 // +0x854 the cached waves, most recently used first
-    stlp::NameMap cache;                // +0x870 wave name -> its cache list node (WaveNode*)
-    DeferredMap deferred;               // +0x884
-    std::int32_t enabled;               // +0x898
-    std::int32_t spare;                 // +0x89C 0 after Reset; nothing reads it
-    std::int32_t reverbOn;              // +0x8A0
-    std::int32_t panDirect;             // +0x8A4 0: pans are mirrored
-    float reverb[3];                    // +0x8A8 room type / level / reflect time
-    std::int32_t effectsVolume;         // +0x8B4 0..100
-    std::int32_t speechVolume;          // +0x8B8 0..100
-    std::int32_t randomStart;           // +0x8BC ms
+    CRITICAL_SECTION midiLock;
+    mfc::impl::WinThread* midiThread;   // the MIDI thread
+    volatile std::int32_t threadsQuit;  // set by Close; both threads end on it
+    SoundSlot* slots;                   // 15 voices (an operator new[] block: the count before them)
+    Vector3 listener;                   // listener position (z: camera height)
+    Vector3 listenerAxis;               // listener direction, unit length in x/y
+    std::int32_t nextHandle;
+    SoundEmitter emitters[16];
+    std::uint32_t emitterTick;
+    SoundSequence sequences[8];
+    std::int32_t cacheBytes;            // bytes held by the wave cache
+    WaveList cacheList;                 // the cached waves, most recently used first
+    stlp::NameMap cache;                // wave name -> its cache list node (WaveNode*)
+    DeferredMap deferred;
+    std::int32_t enabled;
+    std::int32_t spare;                 // 0 after Reset; nothing reads it
+    std::int32_t reverbOn;
+    std::int32_t panDirect;             // 0: pans are mirrored
+    float reverb[3];                    // room type / level / reflect time
+    std::int32_t effectsVolume;         // 0..100
+    std::int32_t speechVolume;          // 0..100
+    std::int32_t randomStart;           // ms
 
     // Defined in sound_manager.cpp.
     void SetReverb(float room, float level, float time);
@@ -433,18 +430,18 @@ static_assert(offsetof(CSoundManager, enabled) == 0x898);
 static_assert(offsetof(CSoundManager, randomStart) == 0x8BC);
 static_assert(sizeof(CSoundManager) == 0x8C0);
 
-// A music theme (0x38 bytes) from music.reg: one per allod, open land or dungeon.
+// A music theme from music.reg: one per allod, open land or dungeon.
 struct MusicTheme {
     // operator= (sound_music.cpp; the theme array's element assignment): the members in order, the arrays
     // by CStringArray::Copy.
     void Assign(const MusicTheme* from);
 
-    mfc::CString name;          // +0x00 allod
-    std::int32_t dungeon;       // +0x04 0 open land, 1 dungeon
-    mfc::CString briefing;      // +0x08
-    mfc::CString constructor;   // +0x0C
-    SoundNameArray calm;        // +0x10 CalmOpen / CalmDungeon
-    SoundNameArray combat;      // +0x24 Combat
+    mfc::CString name;          // allod
+    std::int32_t dungeon;       // 0 open land, 1 dungeon
+    mfc::CString briefing;
+    mfc::CString constructor;
+    SoundNameArray calm;        // CalmOpen / CalmDungeon
+    SoundNameArray combat;      // Combat
 };
 static_assert(sizeof(MusicTheme) == 0x38);
 
@@ -454,31 +451,30 @@ struct CMusicSystem : CEngineObject {
     // CEngineObject's fields, an empty theme array, the strings empty, then ResetThemes
     // (theme, +0x3C, is left as it is).
     CMusicSystem();
-    // ResetThemes, the theme array's destructor, the strings, CEngineObject's.
     ~CMusicSystem() override;
     // The deleting destructor frees into the game's heap.
 
     int Create() override { return LoadThemes(); }
     void Destroy() override { ResetThemes(); }
     int RunTick() override { return UpdateMusic(); }
-    const char* GetClassName() override;                 // "CMusicSystem"
+    const char* GetClassName() override;
     int GetClassId() override;                           // class id 0xE
 
-    void* themesVtable;                 // +0x1C CArray<MusicTheme>
-    MusicTheme* themes;                 // +0x20
-    std::int32_t themeCount;            // +0x24
-    std::int32_t themeMax;              // +0x28
-    std::int32_t themeGrow;             // +0x2C
-    mfc::CString credits;               // +0x30 Common\Credits
-    mfc::CString mainMenu;              // +0x34 Common\MainMenu
-    std::int32_t state;                 // +0x38 0 off, 1 zone, 2 briefing, 3 constructor, 4 main menu, 5 credits
-    std::int32_t theme;                 // +0x3C
-    std::int32_t inCombat;              // +0x40
-    std::int32_t holding;               // +0x44 set by SetZoneMode, cleared by the world frame
-    mfc::CString combatTrack;           // +0x48
-    mfc::CString jingle;                // +0x4C
-    std::int32_t jinglePlaying;         // +0x50
-    std::uint32_t calmDue;              // +0x54 timeGetTime() for the next calm track (0: not chosen)
+    void* themesVtable;                 // CArray<MusicTheme>
+    MusicTheme* themes;
+    std::int32_t themeCount;
+    std::int32_t themeMax;
+    std::int32_t themeGrow;
+    mfc::CString credits;               // Common\Credits
+    mfc::CString mainMenu;              // Common\MainMenu
+    std::int32_t state;                 // 0 off, 1 zone, 2 briefing, 3 constructor, 4 main menu, 5 credits
+    std::int32_t theme;
+    std::int32_t inCombat;
+    std::int32_t holding;               // set by SetZoneMode, cleared by the world frame
+    mfc::CString combatTrack;
+    mfc::CString jingle;
+    std::int32_t jinglePlaying;
+    std::uint32_t calmDue;              // timeGetTime() for the next calm track (0: not chosen)
 
     // The engine object's Create: reads music.reg from the text path: Common\Credits and Common\MainMenu,
     // then for every other section an open land theme (CalmOpen) and a dungeon theme (CalmDungeon), both

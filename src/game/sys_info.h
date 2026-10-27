@@ -49,15 +49,13 @@ public:
     static constexpr std::uint32_t kWindows98 = 0x80;
     static constexpr std::uint32_t kWindowsNt = 0x100;
 
-    // The engine object's fields, the five empty texts, then Create (called directly).
     CSysInfo();
-    // The destructor (deleting too): the five texts from the last to the first.
     ~CSysInfo() override;
 
-    int Create() override;                  // 2: everything collected; 1
-    void Destroy() override {}              // 3: empty
-    const char* GetClassName() override;    // 11: "CSysInfo"
-    int GetClassId() override;              // 12: 0xD
+    int Create() override;                  // everything collected; 1
+    void Destroy() override {}              // empty
+    const char* GetClassName() override;    // "CSysInfo"
+    int GetClassId() override;              // 0xD
 
     // Everything below filled from the system; returns 1.
     int Collect();
@@ -71,14 +69,14 @@ public:
     // The processor's CPUID report into the globals; kMmx and kSse set or cleared from it.
     void QueryProcessor();
 
-    mfc::CString computerName_;    // +0x1C GetComputerNameA
-    mfc::CString userName_;        // +0x20 GetUserNameA
-    mfc::CString systemName_;      // +0x24 "Windows NT", "Windows 98", ...
-    mfc::CString systemVersion_;   // +0x28 "<major>.<minor>.<build>" (empty on Windows 95 / 98)
-    mfc::CString servicePack_;     // +0x2C szCSDVersion
-    MEMORYSTATUS memory_;          // +0x30
-    SYSTEM_INFO system_;           // +0x50
-    OSVERSIONINFOA version_;       // +0x74
+    mfc::CString computerName_;    // GetComputerNameA
+    mfc::CString userName_;        // GetUserNameA
+    mfc::CString systemName_;      // "Windows NT", "Windows 98", ...
+    mfc::CString systemVersion_;   // "<major>.<minor>.<build>" (empty on Windows 95 / 98)
+    mfc::CString servicePack_;     // szCSDVersion
+    MEMORYSTATUS memory_;
+    SYSTEM_INFO system_;
+    OSVERSIONINFOA version_;
 };
 static_assert(offsetof(CSysInfo, computerName_) == 0x1C && offsetof(CSysInfo, servicePack_) == 0x2C &&
               offsetof(CSysInfo, memory_) == 0x30 && offsetof(CSysInfo, system_) == 0x50 &&

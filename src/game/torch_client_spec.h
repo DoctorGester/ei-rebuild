@@ -8,9 +8,9 @@
 // spec's setters (slots 16-18) are overridden to rebuild them; slots 13 / 14 show and hide them.
 // torch_client_spec.cpp.
 // The spec's fields, as the client reads them: unknown_20 the particle type, colours_[0] its offset
-// and values_[0] its size scale (slot 16); colours_[1] the light's offset, values_[1] its radius
-// (also the sound's far distance divided by 5 / 3) and values_[2..5] its colour (slot 17); name_ the
-// sound (slot 18).
+// and values_[0] its size scale; colours_[1] the light's offset, values_[1] its radius
+// (also the sound's far distance divided by 5 / 3) and values_[2..5] its colour; name_ the
+// sound.
 
 #include "server_specific_manager.h"   // CTorchObjectSpec
 
@@ -19,29 +19,26 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-class CLight;            // spell.h
-class CParticleSource;   // effects.h
+class CLight;
+class CParticleSource;
 
 class CTorchObjectClientSpec : public CTorchObjectSpec {
 public:
-    // The spec's constructor (CreateSpec), no light or particles. sound_ stays unwritten.
     CTorchObjectClientSpec();
-    // The client's Destroy inlined (HideEffects, the light dropped, the particles stopped
-    // and dropped, DestroySpec), then the spec's destructor.
     ~CTorchObjectClientSpec() override;
-    // The deleting destructor (slot 0) frees into the game's heap.
+    // The deleting destructor frees into the game's heap.
 
     int Create() override { return CreateClient(); }
     void Destroy() override { DestroyClient(); }
-    int RunTick() override;                             // 6: returns 1
-    const char* GetClassName() override;                // 11: "CTorchObjectClientSpecific"
-    int GetClassId() override;                          // 12: 0x41
-    void ShowEffectsSlot() override { ShowEffects(); }             // 13
-    void HideEffectsSlot() override { HideEffects(); }             // 14
-    void WarmUpParticlesSlot() override { WarmUpParticles(); }     // 15
-    void SetLightSlot(std::uint32_t kind, const float* colour, float value) override { SetParticles(kind, colour, value); }   // 16
-    void SetFlameSlot(const float* colour, float value, const float* values) override { SetLightAt(colour, value, values); }   // 17
-    void SetNameSlot(const char* name) override { SetSound(name); }   // 18
+    int RunTick() override;                             // returns 1
+    const char* GetClassName() override;                // "CTorchObjectClientSpecific"
+    int GetClassId() override;                          // 0x41
+    void ShowEffectsSlot() override { ShowEffects(); }
+    void HideEffectsSlot() override { HideEffects(); }
+    void WarmUpParticlesSlot() override { WarmUpParticles(); }
+    void SetLightSlot(std::uint32_t kind, const float* colour, float value) override { SetParticles(kind, colour, value); }
+    void SetFlameSlot(const float* colour, float value, const float* values) override { SetLightAt(colour, value, values); }
+    void SetNameSlot(const char* name) override { SetSound(name); }
 
     // CreateSpec, the light and particles dropped (released), sound_ 0. Returns 1.
     int CreateClient();
@@ -70,9 +67,9 @@ public:
     // it, with far distance values_[1] * 5.
     void SetSound(const char* name);
 
-    CLight* light_;                 // +0x58 counted
-    CParticleSource* particles_;    // +0x5C counted
-    int sound_;                     // +0x60 the looping sound's handle, 0 when none
+    CLight* light_;                 // counted
+    CParticleSource* particles_;    // counted
+    int sound_;                     // the looping sound's handle, 0 when none
 };
 static_assert(offsetof(CTorchObjectClientSpec, light_) == 0x58 && offsetof(CTorchObjectClientSpec, sound_) == 0x60);
 static_assert(sizeof(CTorchObjectClientSpec) == 0x64);

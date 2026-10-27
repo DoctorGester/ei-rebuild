@@ -74,7 +74,6 @@ Sector::Sector() {
     Clear();
 }
 
-// CArray<Sector>'s ConstructElements with the constructor inlined.
 void __stdcall ConstructSectors(Sector* sectors, int count) {
     std::memset(static_cast<void*>(sectors), 0, sizeof(Sector) * static_cast<unsigned>(count));
     for (; count != 0; --count, ++sectors) new (sectors) Sector();

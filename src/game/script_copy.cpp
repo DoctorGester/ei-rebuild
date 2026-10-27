@@ -86,7 +86,7 @@ ScriptDecl* ScriptDecl::ScriptDeclAssign(const ScriptDecl* other) {
 }
 EI_REWRITTEN(0x004CB2D0, ScriptDecl::ScriptDeclAssign);
 
-// The FX source element (0x34 bytes): the first two words, the name assigned, the rest copied as words.
+// The FX source element: the first two words, the name assigned, the rest copied as words.
 ScriptFxSource* ScriptFxSource::ScriptFxSourceAssign(const ScriptFxSource* other) {
     object = other->object;
     id = other->id;

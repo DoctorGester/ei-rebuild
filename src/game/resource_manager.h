@@ -32,25 +32,23 @@ public:
     BOOL HasFile(const char* name) override;
     void FreeAllFiles() override;
 
-    // 25: the manager's folder name ("textures", "spells", ...; the item,
+    // The manager's folder name ("textures", "spells", ...; the item,
     // figure and material managers' too).
     virtual const char* GetFolderName() = 0;
 
     // CFigureManager's slot 16, AddArchive with memory-mapped archives.
     BOOL AddMmioArchive(const char* path);
 
-    // Every archive closed and deleted, CBaseManager::Destroy, the list freed, then CBaseManager's.
     ~CResourceManager() override;
 
 protected:
-    // No archives.
     CResourceManager();
 
 private:
     BOOL AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*));
 
 public:
-    stlp::vector<ArchiveEntry> archives_;   // +0xB0
+    stlp::vector<ArchiveEntry> archives_;
 };
 static_assert(offsetof(CResourceManager, archives_) == 0xB0);
 static_assert(sizeof(CResourceManager) == 0xBC);

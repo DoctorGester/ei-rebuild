@@ -130,7 +130,7 @@ void CBattleScreen::ToggleMember(int index) {
     }
 
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
-    // members' selection (+0x778), record i against member i.
+    // members' selection, record i against member i.
     if (TheServerWorld()->gameResult_ == 1) {
         if (auto* player = TheServerWorld()->GetPlayer(0)) {
             for (int i = 0; i < player->Party()->members_.size; ++i) {
@@ -230,7 +230,7 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
         if (member == unit) {
             Vector3 axis;
             unit->localRotation_.AxisY(&axis);
-            const float k = 0.1f /*0073B850*/;   // 0.1
+            const float k = 0.1f /*0073B850*/;
             point.x = point.x + -axis.x * k;
             point.y = point.y + -axis.y * k;
             point.z = point.z + -axis.z * k;

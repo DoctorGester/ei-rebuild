@@ -142,7 +142,7 @@ bool StopCameraSave(Call*) {
 }
 
 // ResetTarget(unit) (replaces the game's): the brain's alarm record at the brain's alarm slot
-// byte (+0x36) is applied again, after the perception memory is emptied.
+// byte is applied again, after the perception memory is emptied.
 bool ResetTarget(Call* call) {
     CUnit* unit = UnitOrNull(ObjectArg(call, 0));   // IsUnit's test
     if (!unit) return InvalidArguments("ResetTarget");

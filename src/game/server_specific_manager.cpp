@@ -43,7 +43,7 @@ EI_REWRITTEN_SPECIAL(0x004D6940, CServerSpecificManager::~CServerSpecificManager
 const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
 int CServerSpecificManager::GetClassId() { return kManagerClassId; }
 
-// Every object starts zeroed (operator_new_zeroed): CUnitServer's constructor leaves waitFrame (+0x93C),
+// Every object starts zeroed (operator_new_zeroed): CUnitServer's constructor leaves waitFrame,
 // which ResolveBlocker reads, and others the saves write.
 CEngineObject* CServerSpecificManager::NewObject(int type) {
     switch (type) {

@@ -25,12 +25,12 @@ namespace {
 
 // A sound class (16 entries, writable data; indexed by the sectors' texture classes).
 struct AmbientSoundClass {
-    const char* name;       // +0x00 the folder ("Grass", "water", ...)
-    int variants;           // +0x04 one-shots to pick from (0: none)
-    float weight;           // +0x08 per texture of the class in a sector
-    int countsAs;           // +0x0C the class whose vote it adds to, -1 its own
-    float panLimit;         // +0x10
-    int chance;             // +0x14 percent per frame for a one-shot
+    const char* name;       // the folder ("Grass", "water", ...)
+    int variants;           // one-shots to pick from (0: none)
+    float weight;           // per texture of the class in a sector
+    int countsAs;           // the class whose vote it adds to, -1 its own
+    float panLimit;
+    int chance;             // percent per frame for a one-shot
 };
 static_assert(sizeof(AmbientSoundClass) == 0x18);
 AmbientSoundClass g_soundClasses[16] = /*007969D0*/ {

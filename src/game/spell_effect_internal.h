@@ -65,7 +65,7 @@ constexpr float kHalfBits = 0.5f;                       // immediate pushed to t
 // The missile's target object id.
 // CEffectShowVisibility's two object ids (+0x14C, +0x150).
 // CPtrList constructor (block size) and destructor.
-// The unit controller (+0x240): says remark `what`; tries to be tamed by `tamer` with skill `skill` (0 when it
+// The unit controller: says remark `what`; tries to be tamed by `tamer` with skill `skill` (0 when it
 // failed).
 // Footprints of the walls and clouds in the global cell set (thiscall on the set): along a direction or a
 // disc; then
@@ -91,7 +91,7 @@ inline double ClampPow(float ratio) {
 }
 
 // The spell's power factor(repeated inline about twenty times in the game): 1 when the prototype's effect
-// (+0x2C) compares equal to 0, else ClampPow of damage / effect rounded to float.
+// compares equal to 0, else ClampPow of damage / effect rounded to float.
 inline double PowerFactor(const float* damage, const float* effect) {
     EI_NAN_AUDIT(*effect);
     if (*effect == 0.0f /*0073B858*/) return 1.0f /*0073B84C*/;
@@ -251,12 +251,12 @@ inline void SetPosition(CTransformObject* object, const Vector3* position) {
 inline const itemdb::SpellRecord* Prototype(CSpellEffect* e) { return e->Spell()->GetPrototype(); }
 inline Vector3 PrototypeColor(CSpellEffect* e) {
     Vector3 color;
-    std::memcpy(&color, &Prototype(e)->extraValues[0], 12);   // +0x64
+    std::memcpy(&color, &Prototype(e)->extraValues[0], 12);
     return color;
 }
 inline float PrototypeRange(CSpellEffect* e) {
     float range;
-    std::memcpy(&range, &Prototype(e)->extraValues[3], 4);   // +0x70
+    std::memcpy(&range, &Prototype(e)->extraValues[3], 4);
     return range;
 }
 
@@ -274,7 +274,7 @@ inline float PowerScaled(CSpellEffect* e, const float& scale) {
 // The lights' rise speed: range / max(prototype +0x74, 1) (the larger picked on C0: 1 < v or NaN).
 inline float LightRise(CSpellEffect* e) {
     float value;
-    std::memcpy(&value, &Prototype(e)->extraValues[4], 4);   // +0x74
+    std::memcpy(&value, &Prototype(e)->extraValues[4], 4);
     float range = PrototypeRange(e);
     float divisor = value <= 1.0f ? 1.0f : value;
     return range / divisor;
@@ -283,7 +283,7 @@ inline float LightRise(CSpellEffect* e) {
 // The same quotient left unrounded and multiplied by the constant at `scale`, then rounded.
 inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
     float value;
-    std::memcpy(&value, &Prototype(e)->extraValues[4], 4);   // +0x74
+    std::memcpy(&value, &Prototype(e)->extraValues[4], 4);
     float range = PrototypeRange(e);
     float divisor = value <= 1.0f ? 1.0f : value;
     float out;

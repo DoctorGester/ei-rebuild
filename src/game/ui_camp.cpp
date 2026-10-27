@@ -233,15 +233,15 @@ bool IsPart(const CItem* item) { return UiItemKinds::IsPart(item); }
 bool IsKindOne(const CItem* item) { return UiItemKinds::IsKindOne(item); }
 bool IsBlueprint(const CItem* item) { return UiItemKinds::IsBuildable(item); }
 
-// The database records of the camp's loot items (the record index at +0x54): spells, spell
+// The database records of the camp's loot items (the record index): spells, spell
 // modifiers and materials (null past the end, which is then read through).
 std::uint32_t Index(const CItem* item) { return AsLoot(item)->index_; }
-// The loot's record type (+0x50): the record table it indexes.
+// The loot's record type: the record table it indexes.
 std::uint32_t RecordType(const CItem* item) { return AsLoot(item)->recordType_; }
 itemdb::SpellRecord* SpellRecordOf(const CItem* item) { return itemdb::SpellAt(Index(item)); }
 itemdb::SpellModifierRecord* ModifierRecordOf(const CItem* item) { return itemdb::SpellModifierAt(Index(item)); }
 itemdb::MaterialRecordHead* BlueprintRecord(const CItem* item) { return itemdb::MaterialAt(Index(item)); }
-// A part's prototype record by the loot's record type (+0x50): weapon, armour, quick item.
+// A part's prototype record by the loot's record type: weapon, armour, quick item.
 itemdb::ItemRecordHead* PartRecord(const CItem* item, int recordType) {
     switch (recordType) {
     case 0: return itemdb::WeaponAt(Index(item));
@@ -268,7 +268,7 @@ double ItemPrice(const CItem* item) {
     return ei::VirtualSlot<PriceFn>(vtable, 16)(item);
 }
 
-// How worn the item is: 1 - durability (+0x20) / maximum (+0x24). Rebirth's FixRepairPrice treats a
+// How worn the item is: 1 - durability / maximum. Rebirth's FixRepairPrice treats a
 // negative (or NaN) durability or maximum as 0 and clamps the result to [0, 1] (NaN stays).
 float WornFraction(const CItem* item) {
     float durability = item->condition_, maximum = item->conditionMax_;
@@ -433,7 +433,7 @@ EI_REWRITTEN(0x006100E0, CCampPages::CanEquip);
 // --- UpdateAction --------------------------------------------------------------------------------
 
 namespace {
-// The stack count of an item (+0x48).
+// The stack count of an item.
 int Count(const CItem* item) { return static_cast<int>(item->count_); }
 } // namespace
 
@@ -994,7 +994,7 @@ void CCampPages::PutOnFromStrip(CItem* item) {
         break;
     case 5:
         if (IsKindOne(item) && ShiftHeld(interface_)) {
-            // With Shift the whole stack (+0x48), one at a time while the slots accept it.
+            // With Shift the whole stack, one at a time while the slots accept it.
             for (int n = Count(item); n > 0; --n) {
                 if (!CanEquip(item, 1)) break;
                 MoveBetween(this, item, itemResults_, LocalPlayerData(), 0, 0, 0);

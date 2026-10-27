@@ -16,10 +16,10 @@ struct CResourceStream : CResourceBase {
     CResourceStream();                              // no file, no archive
     ~CResourceStream() override;                    // Close, then CResourceBase's
 
-    void* archive_;             // +0x24 HMMIO of the archive
-    std::int32_t offset_;       // +0x28 start of the open entry in the archive; 1 for a loose file; 0: none
-    std::int32_t size_;         // +0x2C size of the open entry (only the unused sets it)
-    void* file_;                // +0x30 HMMIO of a loose file
+    void* archive_;             // HMMIO of the archive
+    std::int32_t offset_;       // start of the open entry in the archive; 1 for a loose file; 0: none
+    std::int32_t size_;         // size of the open entry (only the unused sets it)
+    void* file_;                // HMMIO of a loose file
 
     void Close();                                   // closes the file and the archive
     // Opens `name`: a loose file when one is readable, else the archive entry. Stores

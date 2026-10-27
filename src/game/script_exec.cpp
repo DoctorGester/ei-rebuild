@@ -98,7 +98,7 @@ void* __cdecl Renderer() { return SceneRenderer(); }
 // The world server.
 CWorldServer* TheWorld() { return TheServerWorld(); }
 
-// The world's AI map (CWorldServer +0x170); its sector map is at +0x124.
+// The world's AI map; its sector map is.
 CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
 
 // The named party records (party_records.h): find (a party), add, remove.
@@ -415,7 +415,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xDE:     // SleepUntil(condition)
             if (IsZero(f[0])) cont = 0;
             break;
-        case 0xB9: {   // SleepUntilIdle(unit): while the brain has an action (+0x984)
+        case 0xB9: {   // SleepUntilIdle(unit): while the brain has an action
             CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (unit && UnitState(unit)->Brain()->action != 0) cont = 0;
             break;
@@ -712,7 +712,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             unit->SetSide(Ftol(f[0]));
             break;
         }
-        case 0x38: {   // SetEnemy(unit, player): adds the player to the hostile mask (+0x244)
+        case 0x38: {   // SetEnemy(unit, player): adds the player to the hostile mask
             CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
             int player = Ftol(f[0]);
@@ -1139,7 +1139,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (player) player->TakeLoot(Ftol(f[1]));
             break;
         }
-        case 0xDF: {   // FixItems: every object of the world's list (+0x54) copies +0x24 to +0x20
+        case 0xDF: {   // FixItems: every object of the world's list copies +0x24 to +0x20
             auto* list = TheServerWorld()->itemManager_;
             ObjectListIteratorOf<CItem> it;
             it.manager = nullptr;

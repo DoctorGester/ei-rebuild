@@ -11,7 +11,7 @@
 
 class CInterface3D;
 
-// The battle camera's input side (0x2C bytes; one of the battle screen's extra input
+// The battle camera's input side (one of the battle screen's extra input
 // sides). Keys move the camera along x_ / y_ / z_ (set by the key-down, cleared by the key-up); the right button
 // turns the view while held.
 class CCameraInput final : public UiInputSide {
@@ -19,15 +19,14 @@ public:
     // The interface, not turning, the axes 0 (handled_ and the press points
     // left).
     explicit CCameraInput(CInterface3D* ui);
-    // The deleting destructor: the base side's table back.
     ~CCameraInput() override;
-    void Deactivate() override { OnDeactivate(); }                                         // 1
-    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }       // 4
-    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }       // 5
-    int RightUp(int b, int x, int y) override { return OnRightUp(b, x, y), 0; }           // 6
-    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }           // 9
-    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }               // 11
-    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }        // 12
+    void Deactivate() override { OnDeactivate(); }
+    int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
+    int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }
+    int RightUp(int b, int x, int y) override { return OnRightUp(b, x, y), 0; }
+    int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
+    int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }
+    int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }
 
     void OnKeyDown(int key, int repeat, int flags);
     // A direction key released (actions 5-10 of
@@ -60,13 +59,13 @@ public:
     // (the delta's low word) * the step count.
     BOOL OnWheel(int keys, int delta, int x, int y);
 
-    POINT pressScreen_;              // +0x0C where the right button went down (screen)
-    POINT pressLayout_;              // +0x14 the same in layout coordinates
-    bool turning_;                   // +0x1C the right button is held
+    POINT pressScreen_;              // where the right button went down (screen)
+    POINT pressLayout_;              // the same in layout coordinates
+    bool turning_;                   // the right button is held
     std::uint8_t unused_1D[3];
-    float x_;                        // +0x20 right (+1) / left (-1)
-    float y_;                        // +0x24 forward / back
-    float z_;                        // +0x28 up / down
+    float x_;                        // right (+1) / left (-1)
+    float y_;                        // forward / back
+    float z_;                        // up / down
 };
 
 // The key press handler is in ui_camera_keys.cpp.

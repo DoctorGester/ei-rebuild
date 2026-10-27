@@ -115,7 +115,7 @@ void ScriptAreaParts::AddRound(float x, float y, float radius) {
 EI_REWRITTEN(0x004B2070, ScriptAreaParts::AddRound);
 
 void CScript::DeleteArea(int id) {
-    // CArray of areas at +0x194 (data +0x198, size +0x19C): {parts (CArray), id}, 0x18 each.
+    // CArray of areas (data +0x198, size +0x19C): {parts (CArray), id}, 0x18 each.
     constexpr int kAreaSize = sizeof(ScriptArea);
     for (int i = 0; i < areas_.size; ++i) {
         ScriptArea* areas = areas_.data;

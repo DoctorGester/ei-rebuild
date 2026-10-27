@@ -52,20 +52,20 @@ public:
     BOOL Open(const char* path, BOOL writable);
     void Flush();                                     // write back, stamp modification time
 
-    void* file_;         // +0x00 HANDLE, INVALID_HANDLE_VALUE when closed
-    void* mapping_;      // +0x04 HANDLE
-    void* view_;         // +0x08 mapped base address
-    std::uint32_t size_; // +0x0C
+    void* file_;         // HANDLE, INVALID_HANDLE_VALUE when closed
+    void* mapping_;      // HANDLE
+    void* view_;         // mapped base address
+    std::uint32_t size_;
 };
 static_assert(sizeof(CMappedFile) == 16);
 
 // A file loaded from an archive by CMappedResource::GetFile. 0x1C bytes, allocated with operator new.
 struct LoadedFile {
-    stlp::string name;      // +0x00 name as requested
-    void* data;             // +0x0C contents (operator new)
-    std::uint32_t size;     // +0x10
-    int refCount;           // +0x14 GetFile calls not yet matched by CloseFile
-    std::uint32_t offset;   // +0x18 offset in the archive, used to write the file back
+    stlp::string name;      // name as requested
+    void* data;             // contents (operator new)
+    std::uint32_t size;
+    int refCount;           // GetFile calls not yet matched by CloseFile
+    std::uint32_t offset;   // offset in the archive, used to write the file back
 };
 static_assert(sizeof(LoadedFile) == 0x1C);
 
@@ -76,7 +76,6 @@ static_assert(sizeof(LoadedFile) == 0x1C);
 class CResourceBase {
 public:
     CResourceBase();                                // fields cleared
-    // Fields cleared, accelerator freed.
     virtual ~CResourceBase();
     // The deleting destructors free into the game's heap (resource_stream.cpp).
     static void operator delete(void* block);
@@ -86,11 +85,11 @@ public:
     // Index of the entry named `name` (case-insensitive), or -1.
     int FindEntry(const char* name) const;
 
-    ResHeader header_;          // +0x04
-    ResEntry* entries_;         // +0x14
-    char* names_;               // +0x18
-    int* accelTable_;           // +0x1C
-    std::uint32_t accelCount_;  // +0x20
+    ResHeader header_;
+    ResEntry* entries_;
+    char* names_;
+    int* accelTable_;
+    std::uint32_t accelCount_;
 };
 static_assert(sizeof(CResourceBase) == 0x24);
 
@@ -98,8 +97,6 @@ static_assert(sizeof(CResourceBase) == 0x24);
 // A real virtual class.
 class CMappedResource : public CResourceBase {
 public:
-    // An empty, closed archive: CResourceBase's fields cleared, the loaded-file maps with
-    // 193 buckets each, no image, no file.
     CMappedResource();
     // Virtual methods, in vtable order.
     // The loaded files freed, the archive
@@ -108,7 +105,7 @@ public:
     virtual BOOL OpenResource(const char* path, BOOL writable);
     virtual BOOL OpenFromMemory(const void* image);
     virtual void CloseResource();
-    virtual void Flush();                                             // 4: (empty)
+    virtual void Flush();                                             // (empty)
     virtual void* GetFile(const char* name, std::uint32_t* size);
     // GetFile without Rebirth's ResOverride (in the standalone image GetFile goes through
     // mod_folders.h, which calls this one on the game's and the mod's archives).
@@ -127,32 +124,29 @@ public:
     // ListFiles without Rebirth's ResOverride (see GetFilePlain).
     void ListFilesPlain(mfc::CStringArray* stringArray, const char* pattern) const;
 
-    int fd_;                    // +0x24 CRT file descriptor, -1 when closed
-    char* image_;                // +0x28 archive image when opened with OpenFromMemory
-    std::uint32_t writable_;     // +0x2C
-    stlp::hash_map<void*, LoadedFile*, stlp::PointerHash> filesByData_;         // +0x30
-    stlp::hash_map<stlp::string, LoadedFile*, stlp::StringHash> filesByName_;  // +0x44
+    int fd_;                    // CRT file descriptor, -1 when closed
+    char* image_;                // archive image when opened with OpenFromMemory
+    std::uint32_t writable_;
+    stlp::hash_map<void*, LoadedFile*, stlp::PointerHash> filesByData_;
+    stlp::hash_map<stlp::string, LoadedFile*, stlp::StringHash> filesByName_;
 };
 static_assert(sizeof(CMappedResource) == 0x58);
 
 // Maps the whole archive into memory; GetFile returns pointers into the mapping. A real virtual class.
 class CMMIOResource : public CMappedResource {
 public:
-    // CMappedResource's, a closed mapped file, no image.
     CMMIOResource();
-    // The mapping closed (CloseResource inlined, then the CMappedFile destructor's),
-    // then CMappedResource's.
     ~CMMIOResource() override;
 
     BOOL OpenResource(const char* path, BOOL writable) override;
     BOOL OpenFromMemory(const void* image) override;
     void CloseResource() override;
-    void Flush() override;                                            // 4: (flushes file_)
+    void Flush() override;                                            // (flushes file_)
     void* GetFile(const char* name, std::uint32_t* size) override;
-    bool CloseFile(void* data) override;                              // 6: (nothing to free)
-    void FreeAllFiles() override;                                     // 7: (empty)
+    bool CloseFile(void* data) override;                              // (nothing to free)
+    void FreeAllFiles() override;                                     // (empty)
 
-    CMappedFile file_;           // +0x58
-    char* mappedImage_;          // +0x68 base of the mapped archive
+    CMappedFile file_;
+    char* mappedImage_;          // base of the mapped archive
 };
 static_assert(sizeof(CMMIOResource) == 0x6C);

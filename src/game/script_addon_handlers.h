@@ -6,7 +6,7 @@
 
 #include "script_addon.h"
 
-class CUnitServer;   // combat.h
+class CUnitServer;
 
 namespace scriptaddon {
 
@@ -29,7 +29,7 @@ float Distance(float x0, float y0, float x1, float y1);
 int Stricmp(const char* a, const char* b);
 // The object's class (virtual 12) is a unit's (0x50).
 bool IsUnit(CEngineObject* object);
-// 10010E2D: a unit's data object (+0x240), null for a missing reference, object or non-unit.
+// 10010E2D: a unit's data object, null for a missing reference, object or non-unit.
 CUnitServer* UnitData(const ScriptObjectRef* ref);
 // 10010D12: addon reports a handler's problem as a "Scripts" error ("<function>: <message>") in
 // its console log only when the mod setting EnableShowingScriptErrors is on, which no Rebirth mod

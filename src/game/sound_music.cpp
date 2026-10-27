@@ -64,7 +64,7 @@ void WaitAndEndAfter(CSoundManager* snd) {
 // The themes' registry (registry.cpp).
 using Registry = CFileRegistry;
 
-// The theme array (CArray<MusicTheme> at +0x1C): SetSize [size, grow by (-1 keeps it)] and the element
+// The theme array (CArray<MusicTheme>): SetSize [size, grow by (-1 keeps it)] and the element
 // assignment (MFC template instantiations; the second SetSize and the first assignment are inlined
 // identically).
 void ThemesSetSize(void* themes, int size) {
