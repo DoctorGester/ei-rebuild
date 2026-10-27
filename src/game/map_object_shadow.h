@@ -32,7 +32,7 @@ struct DecalTexCoord;
 // of `orientation`, `position` as column 3, the last row (0, 0, 0, 1).
 void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, Matrix4* out);
 
-// The parts of a figure drawn with one material (0x14 bytes; a part set's group).
+// The parts of a figure drawn with one material (a part set's group).
 struct PartGroup {
     // Every part released, the array's block freed. Returns 1.
     int ReleaseParts();

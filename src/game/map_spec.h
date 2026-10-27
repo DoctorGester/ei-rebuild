@@ -2,9 +2,7 @@
 
 // The zone file's object records (the .mob objects): chunk readers / writers (Chunk, chunk_stream.h) that are
 // also the map editor's live objects: Spec and the classes on it, each with the game's 12 virtuals (OnChunk,
-// File, then Spec's virtuals; the last is ObjectSpec's WriteFields or EffectSpec's SetVisible). The record
-// classes: the base (0); objects (1); flames (6); magic traps (7); levers (8); units (5);
-// lights (2), sounds (3) and particle sources (4) on the effect records' base. Names are provisional; see
+// File, then Spec's virtuals; the last is ObjectSpec's WriteFields or EffectSpec's SetVisible). See
 // docs/notes/objects.md ("Rewritten").
 #include "chunk_stream.h"
 #include "lock_key.h"
@@ -97,7 +95,7 @@ struct Patrol {
 };
 static_assert(sizeof(Patrol) == 0x20);
 
-// CArray<Patrol> (a behaviour's patrols); map_spec_unit.cpp and record_arrays.cpp.
+// CArray<Patrol> (a behaviour's patrols).
 struct Patrols : mfc::CArray<Patrol> {
     // The patrols become a copy of `from` (each patrol copied through a temporary returned by
     // value, as the original does).
@@ -129,12 +127,10 @@ struct Behaviour {
 };
 static_assert(offsetof(Behaviour, guard) == 0x18);
 static_assert(sizeof(Behaviour) == 0x4C);
-// The constructor (no patrols, type 3, loop, radius 10, delay 75; returns this) and the
-// destructor body.
 Behaviour* __fastcall BehaviourConstruct(Behaviour* self);
 void __fastcall BehaviourDestruct(Behaviour* self);
 
-// The base record (0x4C bytes; map_spec.cpp). The records are read and written chunk by chunk (no record is a
+// The base record. The records are read and written chunk by chunk (no record is a
 // block of file bytes). They live on the game's heap.
 class Spec : public Chunk {
 public:
@@ -158,7 +154,6 @@ public:
     virtual void Save() {}
     virtual ~Spec();
 
-    // On the game's heap (map_spec.cpp): null without memory, and then no constructor runs.
     static void* operator new(std::size_t size) noexcept;
     static void* operator new(std::size_t, void* place) noexcept { return place; }
     static void operator delete(void* block);
@@ -175,7 +170,7 @@ public:
                                  // 4 a particle source, 5 a unit, 6 a flame, 7 a magic trap, 8 a lever
 };
 
-// An object record (0x8C bytes; chunk B001).
+// An object record (chunk B001).
 class ObjectSpec : public Spec {
 public:
     ObjectSpec();
@@ -214,12 +209,11 @@ public:
     mfc::CStringArray parts;
 };
 
-// A flame (0xA0 bytes; chunk BBBF0000).
+// A flame (chunk BBBF0000).
 class FlameSpec : public ObjectSpec {
 public:
-    // Kind 6, volume 0.7, the sound "nature\fire\small.wav".
     FlameSpec();
-    ~FlameSpec() override;          // (and the deleting destructor)
+    ~FlameSpec() override;
 
     void OnChunk() override;
     void Apply() override;          // the world object is always made again
@@ -230,7 +224,7 @@ public:
     mfc::CString sound;          // ("nature\fire\small.wav")
 };
 
-// A magic trap (0xD0 bytes; chunk BBAB0000).
+// A magic trap (chunk BBAB0000).
 class TrapSpec : public ObjectSpec {
 public:
     TrapSpec();
@@ -245,12 +239,11 @@ public:
     MagicTrapRecord trap;
 };
 
-// A lever (0xA4 bytes; chunk BBAC0000).
+// A lever (chunk BBAC0000).
 class LeverSpec : public ObjectSpec {
 public:
-    // Kind 8, the key {1, 0, 0}, two states.
     LeverSpec();
-    ~LeverSpec() override;          // (and the deleting destructor)
+    ~LeverSpec() override;
 
     void OnChunk() override;
     void Save() override;           // chunk BBAC0000
@@ -258,7 +251,7 @@ public:
     LeverSetup lever;
 };
 
-// The zone's player table (0x1014 bytes; DiplomacyConstruct): the relation of every pair of the 32 players (1
+// The zone's player table (DiplomacyConstruct): the relation of every pair of the 32 players (1
 // by default, 0 with itself, 2 hostile) and their names.
 struct ZoneDiplomacy {
     std::int32_t relations[32][32];
@@ -267,10 +260,10 @@ struct ZoneDiplomacy {
 static_assert(offsetof(ZoneDiplomacy, names) == 0x1000);
 static_assert(sizeof(ZoneDiplomacy) == 0x1014);
 
-// The effect records' base (0x54 bytes; code in map_spec_effect.cpp).
+// The effect records' base (code in map_spec_effect.cpp).
 class EffectSpec : public Spec {
 public:
-    ~EffectSpec() override;         // (and the deleting destructor)
+    ~EffectSpec() override;
 
     // Effects are managed under -3001 - id.
     void* WorldObject() override;
@@ -294,7 +287,7 @@ protected:
 class ParticleSpec : public EffectSpec {
 public:
     ParticleSpec();                 // Kind 4, no type, scale 1.
-    ~ParticleSpec() override;       // (and the deleting destructor)
+    ~ParticleSpec() override;
 
     void OnChunk() override;
     mfc::CString* TypeName(mfc::CString* out) override;      // "Particle source"
@@ -309,7 +302,7 @@ public:
 class LightSpec : public EffectSpec {
 public:
     LightSpec();                    // Kind 2, white, shadows, radius 10.
-    ~LightSpec() override;          // (and the deleting destructor)
+    ~LightSpec() override;
 
     void OnChunk() override;
     mfc::CString* TypeName(mfc::CString* out) override;      // "Light"
@@ -326,7 +319,7 @@ public:
 class SoundSpec : public EffectSpec {
 public:
     SoundSpec();                    // Kind 3, no sounds, volume 10, radius 15, pauses 1500-3000.
-    ~SoundSpec() override;          // (and the deleting destructor)
+    ~SoundSpec() override;
 
     void OnChunk() override;
     mfc::CString* TypeName(mfc::CString* out) override;      // "Sound"
@@ -348,12 +341,12 @@ public:
     std::uint8_t unused_86[2];
 };
 
-// A unit record (0x324 bytes; chunk BBBB0000; code in map_spec_unit.cpp). The world server's CreateUnits
+// A unit record (chunk BBBB0000). The world server's CreateUnits
 // fills one on the stack for each unit it creates.
 class UnitSpec : public ObjectSpec {
 public:
     UnitSpec();
-    ~UnitSpec() override;           // (and the deleting destructor)
+    ~UnitSpec() override;
 
     void OnChunk() override;        // the chunk just read, by its id
     void Apply() override;          // makes the unit, or moves, turns and rescales it
@@ -365,7 +358,6 @@ public:
     unitrecord::UnitRecord record;   // the statistics and item lists (applied to the unit by the world server)
 };
 
-// Record constructors (each returns this), by.mob chunk id.
 ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self);
 // The records of a .mob file by id (a local of the zone loader): an STLport hash_map<int, record*> (100
 // buckets to start) and the largest id read.

@@ -65,7 +65,7 @@ void SetW(VertexPacket& packet) {
     for (int k = 3; k >= 0; --k) std::memcpy(&packet.block[3][k], &kOne, 4);
 }
 
-// One vertex packet from its FIG8 record at *cursor (3 blocks of 8 versions, 0x180 bytes; moved
+// One vertex packet from its FIG8 record at *cursor (3 blocks of 8 versions; moved
 // past it), morphed by s, t, u; w = 1.
 void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t, float u) {
     for (int b = 0; b < 3; ++b) {
@@ -76,7 +76,7 @@ void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t
     SetW(packet);
 }
 
-// The same for the older records (3 blocks of 6 versions, 0x120 bytes).
+// The same for the older records (3 blocks of 6 versions).
 void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t, float u) {
     for (int b = 0; b < 3; ++b) {
         const float* versions = FileArray<float>(*cursor);

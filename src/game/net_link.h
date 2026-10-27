@@ -162,7 +162,7 @@ public:
     FileStream replay_;          // the recording played back (reading)
 };
 
-// The framed link (abstract, 0x50 bytes).
+// The framed link (abstract).
 class FramedLink : public NetLink {
 public:
     ~FramedLink() override;
@@ -217,7 +217,7 @@ struct DriverNode {
     DriverLink* Driver() const { return static_cast<DriverLink*>(value.ptr); }
 };
 
-// The network session (0x10 bytes; CWorld + 0x60, made by CWorld::OpenSession; a real
+// The network session (CWorld + 0x60, made by CWorld::OpenSession; a real
 // class): a player source (player_source.h) with two lists
 // of drivers. Its lifetime is in world_sessions.cpp.
 class DriverSession final : public CPlayerSource {

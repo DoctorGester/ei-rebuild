@@ -161,7 +161,6 @@ public:
                             Vector2* points, float* bounds) = 0;
     virtual int RasterisePart(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target) = 0;
 
-    // The deleting destructors free into the game's heap.
     static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int refCount_;

@@ -1,7 +1,7 @@
 #pragma once
 
 // The quest database's records (quest_database.cpp fills them from the quests' .reg files): the
-// quests (0x38 bytes) and the briefings (0x6C). The database's archive load (Rebirth-
+// quests and the briefings (0x6C). The database's archive load (Rebirth-
 // patched) writes and reads its two vectors of them through ChunkArchive::SerializeQuests /
 // SerializeBriefings (chunk_archive.h), one chunk 1 per record. quest_records.cpp.
 

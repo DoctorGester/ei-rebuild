@@ -260,7 +260,7 @@ static_assert(offsetof(RenderPresetRecord::State, blend) == 0x1C);
 
 struct IDirect3DDevice7;
 
-// The renderer's counted helper object (0x118 bytes; over an abstract base with
+// The renderer's counted helper object (over an abstract base with
 // seven pure virtuals and the plain counted root, neither with fields). render_helper.cpp has all of it.
 class CRenderHelper final {
 public:

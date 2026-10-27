@@ -50,7 +50,7 @@ constexpr int kStateConnecting = 0;
 constexpr int kStateLoggedIn = 1;
 constexpr int kStateSendingCamera = 2;
 
-// The login request (message 0, 0x88 bytes). The original copies the two texts into stack buffers
+// The login request (message 0). The original copies the two texts into stack buffers
 // and sends the bytes after them uninitialised; here they are zero.
 struct LoginRequest {
     int version;

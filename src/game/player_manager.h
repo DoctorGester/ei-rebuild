@@ -17,7 +17,6 @@ class CPlayerManager : public CBaseManager {
 public:
     CPlayerManager();
     ~CPlayerManager() override;
-    // The deleting destructor.
     int Create() override;
     const char* GetClassName() override;
     int GetClassId() override;

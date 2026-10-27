@@ -26,7 +26,7 @@ struct DeltaState;
 class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
 class Terrain;
 
-// An active effect (0x14 bytes; CArray).
+// An active effect (CArray).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
 // 0x13 stench, 0x19 stun, 0x1A antimagic, 0x1C, 0x1D strengthen, 0x1E weaken, 0x1F regeneration,
 // 0x20 feeble mind, 0x21 speed, 0x22 slow, 0x25 enlarge, 0x26 shrink.

@@ -1,6 +1,6 @@
 #pragma once
 
-// Magic traps (map objects of class id 0x3B, 0x290 bytes; the zone file's
+// Magic traps (map objects of class id 0x3B; the zone file's
 // "MagicTrap" records; a real virtual class: the compiler makes its vtable).
 // Names provisional. flags_ bit 0x80000 is
 // "armed" (the script's ActivateTrap); the position is the map object's. The trap's own members
@@ -28,7 +28,6 @@ public:
     // -1), the list emptied, countdown 0, +0x28C 0, period 10.
     MagicTrap();
     ~MagicTrap() override;
-    // The deleting destructor frees into the game's heap.
 
     int Create() override { return CreateTrap(); }
     void Destroy() override { DestroyTrap(); }

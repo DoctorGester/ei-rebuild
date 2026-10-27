@@ -21,7 +21,7 @@ int __fastcall TextKeyFromName(const char* name);
 // Text keys are 1000000000..1999999999. __fastcall (id in ECX).
 BOOL __fastcall IsTextKey(int id);
 
-// One "#allod" entry of map.txt (0x2C bytes).
+// One "#allod" entry of map.txt.
 struct AllodRecord {
     mfc::CString name;           // the "#allod" line's second word
     mfc::CString otherNames[5];  // one word on each of the next five lines
@@ -29,7 +29,7 @@ struct AllodRecord {
 };
 static_assert(offsetof(AllodRecord, otherNames) == 0x04 && offsetof(AllodRecord, maps) == 0x18 && sizeof(AllodRecord) == 0x2C);
 
-// One "#exit" of a map entry (0x3C bytes; map_database.cpp loads it): the map database's
+// One "#exit" of a map entry (map_database.cpp loads it): the map database's
 // record, which the world server copies (SetZoneExits) and sends to the client world.
 struct ZoneExit {
     float passTime;                 // "#passtime": the time the way takes
@@ -84,7 +84,7 @@ struct ZoneExits : mfc::CArray<ZoneExit, ZoneExitElements> {
 };
 static_assert(sizeof(ZoneExits) == 0x14);
 
-// One map/zone entry (0x5C bytes): +0 name, +4 allod name, +8 and +0xC other names.
+// One map/zone entry: +0 name, +4 allod name, +8 and +0xC other names.
 struct MapRecord {
     mfc::CString name;
     mfc::CString allod;     // (SaveGame keeps the visited zones of the current one's)

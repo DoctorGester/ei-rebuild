@@ -55,7 +55,7 @@ struct LinePacket {
 };
 static_assert(sizeof(LinePacket) == 0x40);
 
-// A line list (0x20 bytes; line_batch.cpp): the figure parts' debug bounds and the
+// A line list (line_batch.cpp): the figure parts' debug bounds and the
 // world client's lists. The points sit four to a packet; the unused points of the last
 // packet repeat the last point.
 struct LineBatch {

@@ -36,7 +36,7 @@ class LoginMessage final : public Message {
 public:
     LoginMessage();
     LoginMessage(const LoginMessage& other);     // Clone's copy
-    ~LoginMessage() override;                    // The deleting destructor
+    ~LoginMessage() override;
 
     int OnShutdown() override;
     LoginMessage* Clone() override;
@@ -74,7 +74,7 @@ class SayMessage final : public TextMessage {
 public:
     SayMessage();
     SayMessage(const SayMessage& other) : TextMessage(other) {}       // Clone's copy
-    ~SayMessage() override {}                                          // The deleting destructor
+    ~SayMessage() override {}
 
     int OnShutdown() override;
     SayMessage* Clone() override;
@@ -89,7 +89,7 @@ class CommandMessage final : public Message {
 public:
     CommandMessage();                                // kind_ is not set
     CommandMessage(const CommandMessage& other);     // Clone's copy
-    ~CommandMessage() override {}                    // The deleting destructor
+    ~CommandMessage() override {}
 
     int OnShutdown() override;
     CommandMessage* Clone() override;
@@ -123,7 +123,7 @@ class FileRequestMessage final : public PairMessage {
 public:
     FileRequestMessage();
     FileRequestMessage(const FileRequestMessage& other) : PairMessage(other) {}   // Clone's copy
-    ~FileRequestMessage() override {}                                              // The deleting destructor
+    ~FileRequestMessage() override {}
 
     int OnShutdown() override;
     FileRequestMessage* Clone() override;
@@ -142,7 +142,7 @@ class PartyMessage final : public Message {
 public:
     PartyMessage();
     PartyMessage(const PartyMessage& other);     // Clone's copy
-    ~PartyMessage() override;                    // The deleting destructor
+    ~PartyMessage() override;
 
     int OnShutdown() override;
     PartyMessage* Clone() override;
@@ -168,7 +168,7 @@ class PartyMemberMessage final : public Message {
 public:
     PartyMemberMessage() {}
     PartyMemberMessage(const PartyMemberMessage& other);   // Clone's copy
-    ~PartyMemberMessage() override {}                      // The deleting destructor
+    ~PartyMemberMessage() override {}
 
     int OnShutdown() override;
     PartyMemberMessage* Clone() override;
@@ -187,7 +187,7 @@ class PlayerMessage final : public Message {
 public:
     PlayerMessage();
     PlayerMessage(const PlayerMessage& other);     // Clone's copy
-    ~PlayerMessage() override {}                   // The deleting destructor
+    ~PlayerMessage() override {}
 
     int OnShutdown() override;
     PlayerMessage* Clone() override;
@@ -212,7 +212,7 @@ class LineMessage final : public Message {
 public:
     LineMessage();                               // number_ is not set
     LineMessage(const LineMessage& other);       // Clone's copy
-    ~LineMessage() override;                     // The deleting destructor
+    ~LineMessage() override;
 
     int OnShutdown() override;
     LineMessage* Clone() override;
@@ -232,7 +232,7 @@ class HostMessage final : public Message {
 public:
     HostMessage();
     HostMessage(const HostMessage& other);       // Clone's copy
-    ~HostMessage() override {}                   // The deleting destructor
+    ~HostMessage() override {}
 
     int OnShutdown() override;
     HostMessage* Clone() override;
@@ -251,7 +251,7 @@ class BindingMessage final : public PairMessage {
 public:
     BindingMessage();
     BindingMessage(const BindingMessage& other) : PairMessage(other) {}   // Clone's copy
-    ~BindingMessage() override {}                                          // The deleting destructor
+    ~BindingMessage() override {}
 
     int OnShutdown() override;
     BindingMessage* Clone() override;
@@ -271,7 +271,7 @@ class ZoneMessage final : public TextMessage {
 public:
     ZoneMessage();
     ZoneMessage(const ZoneMessage& other) : TextMessage(other) {}       // Clone's copy
-    ~ZoneMessage() override {}                                           // The deleting destructor
+    ~ZoneMessage() override {}
 
     int OnShutdown() override;
     ZoneMessage* Clone() override;
@@ -286,7 +286,7 @@ class MapMessage final : public TextMessage {
 public:
     MapMessage() {}
     MapMessage(const MapMessage& other) : TextMessage(other) {}   // Clone's copy
-    ~MapMessage() override {}                                      // The deleting destructor
+    ~MapMessage() override {}
 
     int OnShutdown() override;
     MapMessage* Clone() override;
@@ -301,7 +301,7 @@ class VariableMessage final : public Message {
 public:
     VariableMessage();                                 // value_ and serial_ are not set
     VariableMessage(const VariableMessage& other);     // Clone's copy
-    ~VariableMessage() override {}                     // The deleting destructor
+    ~VariableMessage() override {}
 
     int OnShutdown() override;
     VariableMessage* Clone() override;
@@ -320,7 +320,7 @@ class FileMessage final : public Message {
 public:
     FileMessage();
     FileMessage(const FileMessage& other);       // Clone's copy
-    ~FileMessage() override;                     // The deleting destructor
+    ~FileMessage() override;
 
     int OnShutdown() override;
     FileMessage* Clone() override;
@@ -343,7 +343,7 @@ public:
 
     FileChunkMessage() {}
     FileChunkMessage(const FileChunkMessage& other);   // Clone's copy
-    ~FileChunkMessage() override;                      // The deleting destructor
+    ~FileChunkMessage() override;
 
     int OnShutdown() override;
     FileChunkMessage* Clone() override;
@@ -364,7 +364,7 @@ class AwardMessage final : public Message {
 public:
     AwardMessage();
     AwardMessage(const AwardMessage& other);     // Clone's copy
-    ~AwardMessage() override;                    // The deleting destructor
+    ~AwardMessage() override;
 
     int OnShutdown() override;
     AwardMessage* Clone() override;
@@ -385,7 +385,7 @@ class TradeMessage final : public Message {
 public:
     TradeMessage() {}
     TradeMessage(const TradeMessage& other);     // Clone's copy
-    ~TradeMessage() override;                    // The deleting destructor
+    ~TradeMessage() override;
 
     int OnShutdown() override;
     TradeMessage* Clone() override;

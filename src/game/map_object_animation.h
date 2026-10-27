@@ -32,7 +32,6 @@ struct AnimationTrack : CEngineObject {
 
     AnimationTrack();
     ~AnimationTrack() override;
-    // The deleting destructor frees into the game's heap.
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
     int Create() override;

@@ -17,7 +17,6 @@ class PlainMapObject : public CMapObject {
 public:
     PlainMapObject();
     ~PlainMapObject() override;
-    // The deleting destructor frees into the game's heap.
     const char* GetClassName() override;   // 11: the class name
     int GetClassId() override;
 };

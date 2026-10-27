@@ -134,7 +134,6 @@ int Connection::OnShutdown() {
 }
 EI_REWRITTEN(0x00433320, Connection::OnShutdown);
 
-// The deleting destructor.
 // The reliable streams are members, destroyed after the body (the original frees them first).
 Connection::~Connection() {
     incoming_.Clear<ChunkElement>();

@@ -1,6 +1,6 @@
 #pragma once
 
-// A connection of a network session to one peer (0x1168 bytes; constructor created by SessionBase::AddClient)
+// A connection of a network session to one peer (constructor created by SessionBase::AddClient)
 // and the object replication it runs.
 // More: docs/notes/comments-c22i.md, "net_connection.h".
 #include "core_refcount.h"
