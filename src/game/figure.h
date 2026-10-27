@@ -56,16 +56,13 @@ struct AnimationMorphFrameElements {
     static void Destruct(AnimationMorphFrame* frames, int count);
 };
 
-// An animated node of a figure (one bone; 0x128 bytes, constructor 00506710, destructor body
-// 005068C0). The fake units' skeletons build them from scene nodes (BuildBone 004492F0,
-// scene_bones.cpp). Names and layout provisional.
+// An animated node of a figure (one bone; 0x128 bytes). The fake units' skeletons build them from scene nodes
+// (BuildBone, scene_bones.cpp). Names and layout provisional.
 class CAnimationNode {
 public:
-    // animation_node_lifetime.cpp (A-U10).
-    // The constructor: empty names and arrays (CArray vtables 0073C120 / 0073D9BC), the
-    // four key cursors -1, identity pose and rest rotations, +0x9C / +0xAC and position_ from the
-    // defaults (the identity and the origin). The pose / rest positions and the morph stay unwritten.
-    // Returns this.
+    // animation_node_lifetime.cpp. The constructor: empty names and arrays, the four key cursors -1, identity pose
+    // and rest rotations, two quaternion members and position_ from the defaults (the identity and the origin).
+    // The pose / rest positions and the morph stay unwritten. Returns this.
     CAnimationNode* Construct();
     // The destructor body: the mesh loses a reference (not released) and is forgotten,
     // each child is destroyed (recursively) and deleted, the child array emptied, +0x00 cleared,
@@ -84,10 +81,9 @@ public:
     // Rewinds this node and its children: the clock (+0x38 / +0x3C) to 0, ResetPose, and
     // the mesh (when there is one) placed at the pose with the morph points as its offsets.
     void Rewind();
-    // 00507C50 (RET 4, EAX 1; skin_rewind.cpp, A-U11). Binds the figure's parts (CFigureMesh*) to this
-    // node and its children: the first part whose name (engine object slot 7) equals the node's
-    // becomes its mesh (one more reference; a mesh held before is overwritten without a release) and
-    // is placed at the pose with the morph points as its offsets.
+    // skin_rewind.cpp. Binds the figure's parts (CFigureMesh*) to this node and its children: the first part
+    // whose name equals the node's becomes its mesh (one more reference; a mesh held before is overwritten
+    // without a release) and is placed at the pose with the morph points as its offsets. Returns 1.
     int AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts);
 
     // +0x000, +0x008..+0x018, +0x034: cleared (the names constructed and destroyed) by the
@@ -107,9 +103,9 @@ public:
     int rotationCursor_;                                 // +0x054 -1 after construction, 0 after ResetPose
     lib::AlignedArray<AnimationTranslationKey> translationKeys_;   // +0x058
     int translationCursor_;                              // +0x068 the same
-    mfc::CArray<Vector3> normals_;                       // +0x06C (vtable 0073C120; zeroed when added)
+    mfc::CArray<Vector3> normals_;                       // zeroed when added
     int normalCursor_;                                   // +0x080 the same
-    mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements> morphFrames_;   // +0x084 (vtable 0073D9BC)
+    mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements> morphFrames_;
     int morphCursor_;                                    // +0x098 the same
     Quaternion defaultRotation_;                         // +0x09C the identity (constructor); nothing reads it
     Vector3 defaultPosition_;                            // +0x0AC the origin (constructor); nothing reads it

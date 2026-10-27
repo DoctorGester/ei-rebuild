@@ -1,9 +1,8 @@
-// 005AC010 (thiscall on the figure manager, RET 0x1C): a figure part's bounding volume. The part
-// data comes from the cached model's mesh archive (GetFile with `name`, freed by CloseFile) or from
-// the file "<directory><name>.fig" (the manager's GetFile / CloseFile); missing data returns 0. A
-// "FIG" header (the low three bytes of the first dword) sends the data past the 0x28-byte header
-// to 005AAE60 with the full magic, any other to 005AB9A0 past 8 bytes, both with the morph
-// weights. Returns 1. See figure_mesh.h and docs/notes/models.md.
+// A figure part's bounding volume. The part data comes from the cached model's mesh archive (GetFile with
+// `name`, freed by CloseFile) or from the file "<directory><name>.fig" (the manager's GetFile / CloseFile);
+// missing data returns 0. A "FIG" header (the low three bytes of the first dword) sends the data past the
+// 0x28-byte header to the FIG bounds morph with the full magic, any other past 8 bytes to the older-format
+// one, both with the morph weights. Returns 1. See figure_mesh.h and docs/notes/models.md.
 #include "figure_manager.h"   // CFigureManager, FigureModel
 
 #include "ei/hook.h"
@@ -24,7 +23,7 @@ int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, const 
     if (model) {
         data = static_cast<std::uint8_t*>(model->mesh->GetFile(name, nullptr));
     } else {
-        // The inlined strcpy / strcat into a 0x200-byte buffer (no bounds check, as the original).
+        // The inlined strcpy / strcat into a 0x200-byte buffer (no bounds check, like the original).
         char path[0x200];
         std::size_t length = std::strlen(directory);
         std::memcpy(path, directory, length);
@@ -36,7 +35,7 @@ int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, const 
     if (!data) return 0;
     std::uint32_t magic;
     std::memcpy(&magic, data, 4);
-    // The bounds morphs (figure_mesh.cpp; 005AAE60 / 005AB9A0, thiscall on the manager, not read).
+    // The bounds morphs (figure_mesh.cpp; thiscall on the manager, not read).
     if ((magic & 0xFFFFFF) == kFigMagic)
         MorphFigureBounds(out, reinterpret_cast<const float*>(data + 0x28), std::bit_cast<float>(s), std::bit_cast<float>(t),
                           std::bit_cast<float>(u), magic);

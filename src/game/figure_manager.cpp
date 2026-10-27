@@ -1,5 +1,4 @@
-// The figure manager's loaders (A-W12): 005AC1A0 NewFigure, 005AC2F0 LoadPart, 005ACA60
-// LoadBoneAnimation. See figure_manager.h.
+// The figure manager's loaders: NewFigure, LoadPart, LoadBoneAnimation. See figure_manager.h.
 #include "figure_manager.h"
 
 #include "figure_mesh.h"
@@ -106,7 +105,7 @@ int CFigureManager::LoadPart(CFigureMesh* part, FigureModel* model, float s, flo
 
 int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
     if (!animation) return 0;
-    // The inlined strcpy / strcat chain (no bounds check, as the original).
+    // The inlined strcpy / strcat chain (no bounds check, like the original).
     char path[0x200];
     char* end = Append(path, bone->name3);
     end = Append(end, bone->GetName());
@@ -129,7 +128,7 @@ void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) {
 }
 
 EI_REWRITTEN(0x005A2490, CFigureMesh::LoadFromMemory);
-EI_REWRITTEN(0x005A4CF0, CFigureMesh::LoadFromMemory);   // byte-identical (class 0x41's slot 19)
+EI_REWRITTEN(0x005A4CF0, CFigureMesh::LoadFromMemory);   // byte-identical (class 0x41's LoadFromMemory)
 EI_REWRITTEN(0x005AC1A0, CFigureManager::NewFigure);
 EI_REWRITTEN(0x005AC2B0, CFigureManager::NewPart);
 EI_REWRITTEN(0x005A9EB0, FigureModel::Open);

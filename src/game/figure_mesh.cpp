@@ -1,6 +1,5 @@
-// Figure mesh loaders (005A0000-005B0000): the bounding volume and the FIG mesh data of a figure
-// part, morphed by the figure's three morph coefficients. See docs/notes/world.md ("Figure
-// meshes").
+// Figure mesh loaders: the bounding volume and the FIG mesh data of a figure part, morphed by the figure's
+// three morph coefficients. See docs/notes/world.md ("Figure meshes").
 #include "core_transform.h"
 #include "figure_mesh.h"
 
@@ -17,8 +16,7 @@
 
 namespace {
 
-// Slot 7 of the scene renderer's (00500960, the global at 007AF060) transform object (in
-// 3DfpFPU.dll): fits `bounds` to the vertices.
+// The scene renderer's transform object (in 3DfpFPU.dll, a global): fits `bounds` to the vertices.
 void FitBounds(ClipBounds* bounds, VertexPacket* vertices, int count) {
     auto* renderer = SceneRenderer();
     renderer->pipeline_->transform_->FitBounds(bounds, vertices, count);
@@ -136,8 +134,8 @@ float MorphScalar6(const float* r, float s, float t, float u) {
     return static_cast<float>((upper - lower) * u + lower);
 }
 
-// A scalar morphed from 8 versions. The inner blends stay on the FPU; 005A18E0 stores the lower
-// half (rounded) before the final blend, 005AAE60 keeps it.
+// A scalar morphed from 8 versions. The inner blends stay on the FPU; one caller stores the lower half
+// (rounded) before the final blend, the other keeps it.
 float MorphScalar(const float* r, float s, float t, float u, bool storeLower) {
     double a = (static_cast<double>(r[1]) - r[0]) * s + r[0];
     double b = (static_cast<double>(r[3]) - r[2]) * s + r[2];
@@ -353,7 +351,7 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     *cursor += sizeof(header);
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
-    // 005A18E0 through its address (the verify build checks it there).
+    // Through its address (the verify build checks it there).
     ei::Code<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
         this, nullptr, cursor, s, t, u, header.magic);
 
@@ -378,7 +376,7 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
     buffers_.normalCount = normals_.size;
-    colorsA_.SetSize(normals_.size * 4);   // 005A6E70 with growBy -1
+    colorsA_.SetSize(normals_.size * 4);   // growBy -1
     colorsB_.SetSize(normals_.size * 4);
     buffers_.texCoords = texCoords_.data;
     buffers_.texCoordCount = texCoords_.size;
@@ -500,7 +498,7 @@ void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     SkipRecords34(cursor);
     LoadArray(corners_, cursor, ReadCount(cursor));
     LoadArray(words_, cursor, ReadCount(cursor));
-    LoadArray(indices_, cursor, ReadCount(cursor));   // 0044FA90 with growBy -1
+    LoadArray(indices_, cursor, ReadCount(cursor));   // growBy -1
 
     BuffersChanged();
     buffers_.vertices = vertices_.data;
@@ -554,7 +552,7 @@ EI_REWRITTEN(0x005A4D60, CSharedFigureMesh::LoadOld);
 
 namespace {
 
-// The limit on the squared distance of the position from the origin (the float 1e8 at 0073FAFC).
+// The limit on the squared distance of the position from the origin (the float 1e8).
 inline float FarLimit() { return 100000000.0f /*0073FAFC*/; }
 } // namespace
 
@@ -651,7 +649,7 @@ void CPlainFigureMesh::RefreshBuffers() {
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
     buffers_.normalCount = normals_.size;
-    // 005A6E70 through its address (the verify build checks it there).
+    // Through its address (the verify build checks it there).
     using ResizeFn = void(__fastcall*)(lib::AlignedArray<std::uint32_t>*, void*, int, int);
     ei::Code<ResizeFn>(0x005A6E70)(&colorsA_, nullptr, normals_.size * 4, -1);
     ei::Code<ResizeFn>(0x005A6E70)(&colorsB_, nullptr, normals_.size * 4, -1);
