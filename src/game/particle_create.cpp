@@ -46,9 +46,6 @@ double Unsigned(std::uint32_t value) {
 // IsaacRandom::Range leaves its result unrounded in ST0.
 double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
-// Releases the texture in `holder`, then finds (or creates) the texture resource `name`
-// of `kind` in the resource manager and keeps a reference in `holder`.
-
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
 const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
 

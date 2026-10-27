@@ -22,8 +22,6 @@ namespace net {
 
 namespace {
 
-// The world (0x7AFE20), the text table (0x7C7D50), the map registry (0x7C87D4).
-
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
 // RefPtr::Destroy as the callers inline it: the release is not null-checked after the shutdown.

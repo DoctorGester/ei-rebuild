@@ -14,7 +14,6 @@
 namespace net {
 
 namespace {
-// The client base's server entries: base constructor, adding one to the list.
 
 // A read the way the buffer helpers inline it: past the end through the overflow handler, beyond `end`
 // through slot 3, else from memory.

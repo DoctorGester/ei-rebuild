@@ -27,10 +27,6 @@ namespace {
 
 using GivenItems = mfc::CTypedPtrList<CItem>;
 
-// The world (0x7AFF60) and its players (outside this range).
-// MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
-// RemoveAll of both list kinds.
-
 constexpr int kClassQuestItem = 0x14;
 
 CWorldServer* World() { return TheServerWorld(); }

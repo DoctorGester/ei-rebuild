@@ -16,9 +16,8 @@ namespace net {
 
 namespace {
 
-// The growing byte buffer's constructor (net_coder.h, GameBuffer). The embedded party's constructor.
+// The embedded party's constructor.
 void PartyConstruct(PartyStorage* party) { new (party->Get()) CParty(); }
-// An empty STLport string (library).
 
 void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 

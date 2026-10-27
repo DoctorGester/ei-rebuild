@@ -22,10 +22,6 @@ namespace net {
 
 namespace {
 
-// STLport vector<RefPtr> plumbing (library instantiations) and the message stream constructor.
-
-// vector<CEngineObject*> with counted elements (library), the party's reset and add.
-
 // The received offers: an STLport list of counted PartyMessages.
 using OfferNode = stlp::list<RefPtr>::Node;
 

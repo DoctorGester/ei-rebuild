@@ -26,8 +26,6 @@ LogStream* LogStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::
 
 namespace {
 
-// Reading past the buffer's end (zeroes the target, sets error bit 3).
-
 
 // "<text><address>\n" and a flush to the network log.
 void LogAddress(const char* text, const char* address) { g_netLog->Put(text)->Put(address)->PutChar('\n')->Flush(); }
@@ -109,10 +107,6 @@ EI_REWRITTEN(0x00437370, SessionBase::Tick);
 namespace net {
 
 namespace {
-
-// The clients list (STLport list<RefPtr<Connection>>, +0x28):
-// erase (list<RefPtr>'s with SharedRef); the find by peer address (an instantiation of find_if over the nodes) is
-// ClientsIterator::FindByAddress (library_net_lists.h, over its ClientsNode of the same layout).
 
 
 // "<text>\n" and a flush, when there is a network log.

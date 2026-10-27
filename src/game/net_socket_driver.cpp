@@ -25,7 +25,6 @@ constexpr std::uint32_t kNoSocket = 0xFFFFFFFFu;
 constexpr long kNonBlocking = static_cast<long>(0x8004667E);   // FIONBIO
 // The timeval the socket steps' select waits at most: 0 s, 0 µs (a poll).
 constexpr std::int32_t kSelectTimeout[2] = /*0079B928*/ {};
-// STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n) (plain elements).
 
 // A hostent's first address (h_addr_list[0]).
 std::uint32_t FirstAddress(const void* host) {

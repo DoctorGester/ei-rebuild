@@ -21,10 +21,6 @@
 
 namespace {
 
-// STLport members (library): the party map's clear() (gamehash::PartyAbi's), resize(n) of the entry, record and
-// template vectors (null pointers / empty entries appended), resize(n, x) of an entry's ids. (The record and
-// template vectors' resize: stlp::CountedRefVector's.)
-
 // The records and templates are reference-counted objects held by counted pointers, whose release is inlined: one
 // reference less, the object deleted at zero.
 void Release(CRefCounted* counted) {

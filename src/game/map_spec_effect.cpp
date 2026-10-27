@@ -20,8 +20,6 @@
 
 namespace mapspec {
 
-// EffectSpec, ParticleSpec, LightSpec and SoundSpec: map_spec.h.
-
 void __stdcall EffectNotify(mfc::CString kind, mfc::CString family);
 namespace {
 

@@ -14,9 +14,6 @@ constexpr std::uint32_t kKeyLowBits = 0x7FFF;          // variant bits a key may
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 constexpr int kRandMax = 0x7FFF;
 
-// The two growing helpers of the game's local candidate list: SetAtGrow and SetSize, copies of
-// AlignedPtrArray's (registered with the same members below); through their addresses so their wrappers run.
-
 bool Accepts(CObject3D* object, const FigureAnimation* animation) {
     return ObjectSlots(object)->AcceptsAnimation(animation);
 }

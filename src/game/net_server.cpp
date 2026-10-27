@@ -15,8 +15,6 @@ namespace net {
 
 namespace {
 
-// STLport string constructor with room for n bytes, library.
-
 void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 
 

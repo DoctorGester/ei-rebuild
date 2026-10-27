@@ -45,7 +45,6 @@ constexpr int kBehaviourCount = 5;
 
 // The limit the .mob wind strength is clamped to (never written: 0).
 float MobWindLimit() { return options::TheOptions()->defaultWindForce_; }
-// The mission script (a CScript global).
 
 // A new record for the given chunk id, or null for other ids (or without memory).
 Spec* NewRecord(std::uint32_t id) {

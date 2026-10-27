@@ -35,8 +35,6 @@ using ListElement = stlp::ObjectElement<mfc::CString>;
 // The quest and briefing vectors' push_back.
 using QuestElement = recordvec::QuestVector::Element;
 using BriefingElement = recordvec::BriefingVector::Element;
-// The quest index: find by the record's name, clear, operator[]. The briefing index: find, clear, operator[];
-// the add-unless-present used for the later briefings.
 
 CStringVector* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 

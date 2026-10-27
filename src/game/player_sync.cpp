@@ -65,7 +65,6 @@ float LowLevel() { return 2.0f /*0073CDB8*/; }
 libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 const char* TextServerToClient() { return "server to client, size = "; }
 const char* TextSqueezedTo() { return " squeezed to "; }
-// The empty string the original sends in place of a non-unit's name.
 
 void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 void WriteDword(BitStream* out, std::uint32_t value) { out->Write(&value, 4); }

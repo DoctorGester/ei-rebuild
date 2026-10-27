@@ -11,10 +11,6 @@ namespace net {
 
 namespace {
 
-// The growing buffer's out-of-line string and overflow handling (outside the range):
-// Reads a length-prefixed string (at most `maxLength` bytes),
-// Reads past the end (zeroes the target, sets error bit 3, takes what is left).
-
 // A value written the way the record writer inlines it: in place (marking the buffer written)
 // when it fits before `end`, otherwise through slot 4.
 void Put(GameBuffer* buffer, const void* value, unsigned size) {

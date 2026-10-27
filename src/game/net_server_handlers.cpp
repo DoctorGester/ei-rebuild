@@ -37,8 +37,6 @@ std::uint32_t TakeDword(BufferCursor* cursor) {
     return value;
 }
 
-// The record's strings as the STLport strings they are.
-
 
 } // namespace
 

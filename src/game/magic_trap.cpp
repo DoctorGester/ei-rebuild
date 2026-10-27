@@ -49,9 +49,6 @@ PtrList NewPtrList() { return PtrList{mfc::impl::PtrListClass::Vtable(), nullptr
 // (MagicTrap::CastAtUnits below). The sector map's units within `radius` of `point` into `list` (emptied
 // first; sector_map.cpp).
 constexpr int kPtrListBlockSize = 10;
-// The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
-// reference) and FreeNode (releases it); a counted reference's assignment;
-// the pointer list's NewNode(prev, next) and RemoveAll.
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).
@@ -242,12 +239,6 @@ EI_REWRITTEN(0x0052A2C0, MagicTrap::SetUp);
 // --- Construction, destruction, Save / Load ------------------------------------------
 
 namespace {
-// The map object's constructor and destructor body (map_object_lifetime.cpp), its
-// Create and Destroy (slots 2 and 3), the map object part of Load / Save.
-// A counted reference's Save (its object's id, -1 for none); the units inside
-// read back and appended, each resolved in `context` (fastcall: ECX the list, EDX the
-// stream; MFC template code with the reference's Load); CBaseManager::FindObject
-// (base_manager.cpp).
 
 constexpr std::uint32_t kTrapFlags = 0x80040;
 constexpr std::uint32_t kDefaultPeriod = 10;

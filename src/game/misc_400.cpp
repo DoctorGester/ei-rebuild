@@ -29,8 +29,6 @@ void __fastcall ManagerDestruct(CBaseManager* self) {
     manager->CClientSpecificManager::~CClientSpecificManager();
 }
 
-// Slots 11 and 12.
-
 } // namespace misc400
 
 CClientSpecificManager::CClientSpecificManager() {}

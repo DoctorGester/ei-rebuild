@@ -49,8 +49,6 @@ float g_bottomV = /*007AF054*/ {};
 float g_topV = /*007AF058*/ {};
 float g_currentU = /*007AF05C*/ {};
 
-// The index array's SetAtGrow and Add.
-
 // One function-local static array: constructed empty once (its guard bit), destroyed at exit.
 template <typename T>
 void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, void(__cdecl* onExit)()) {
