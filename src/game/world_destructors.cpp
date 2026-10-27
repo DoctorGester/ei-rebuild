@@ -11,6 +11,7 @@
 #include "registry.h"
 #include "script.h"
 #include "sector_map.h"
+#include "spell.h"
 #include "terrain.h"
 #include "world.h"
 #include "world_data.h"
@@ -72,7 +73,7 @@ struct ReleasedElements {
 struct ProjectileElements {
     static void Construct(CSpellEffect**, int) {}
     static void Destruct(CSpellEffect** slot, int count) {
-        for (; count > 0; --count, ++slot) RefPtrRelease(reinterpret_cast<RefPtr*>(slot));
+        for (; count > 0; --count, ++slot) ReleaseCounted(*slot);
     }
 };
 // A list emptied as its instantiation's destructor does: the vtable back, then RemoveAll with the

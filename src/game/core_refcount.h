@@ -91,6 +91,52 @@ void AssignCounted(T*& slot, std::type_identity_t<T>* object) {
     if (old && --old->refs_ == 0) delete old;
 }
 
+// A typed counted pointer's plain release (RefPtrRelease on the slot's content): one reference dropped, the
+// object deleted with the last. The pointer itself is left as it was.
+template <typename T>
+void ReleaseCounted(T* object) {
+    if (object && --object->refs_ == 0) delete object;
+}
+
+// The owner's release of a typed slot (RefPtr::Destroy): a still-shared object is detached and shut down first,
+// then the slot's content (reloaded: the shutdown may have changed it) is released.
+template <typename T>
+void DestroyOwned(T*& slot) {
+    static_assert(std::is_base_of_v<CRefObject, T>);
+    T* object = slot;
+    if (!object) return;
+    if (object->refs_ != 1) {
+        object->flags7_ |= CRefCounted::kDetached;
+        ++object->refs_;
+        object->OnShutdown();
+        --object->refs_;
+    }
+    ReleaseCounted(slot);
+}
+
+// The owner's share into a typed slot (RefPtr::Share): null for a null or detached object, a clone for a
+// copy-on-share one; the result is marked copy-on-share.
+template <typename T>
+void ShareOwned(T*& slot, T* object) {
+    static_assert(std::is_base_of_v<CRefObject, T>);
+    if (!object || (object->flags7_ & CRefCounted::kDetached)) {
+        slot = nullptr;
+        return;
+    }
+    if (object->flags6_ & CRefCounted::kCopyOnShare) object = static_cast<T*>(object->Clone());
+    slot = object;
+    ++object->refs_;
+    object->flags6_ |= CRefCounted::kCopyOnShare;
+}
+
+// RefPtr::ShareAssign on a typed slot: unless it already holds `object`, DestroyOwned, then ShareOwned.
+template <typename T>
+void ShareAssignOwned(T*& slot, T* object) {
+    if (object == slot) return;
+    DestroyOwned(slot);
+    ShareOwned(slot, object);
+}
+
 // A RefPtr field whose object is always a T (a network message of one class): RefPtr's layout
 // and operations, the object read typed.
 template <typename T>
