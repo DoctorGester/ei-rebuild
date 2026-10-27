@@ -29,7 +29,7 @@ constexpr float kDefaultHeight = 0.7f;
 constexpr int kVoiceRows = 11;
 
 // The index of `name` in a vector of CStrings (case-insensitive), or -1.
-int IndexOf(const mfc::CString* begin, const mfc::CString* end, const char* name) {
+int IndexOf(const mfc::CString* begin, const mfc::CString* end, std::string_view name) {
     int index = 0;
     for (const mfc::CString* entry = begin; entry != end; ++entry, ++index) {
         if (gamecrt::mbsicmp(*entry, name) == 0)

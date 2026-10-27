@@ -26,7 +26,7 @@ namespace {
 constexpr int kListBlockSize = 10;
 constexpr int kBoneClass = 0x300C;   // FigureBone's class id
 
-int CompareNames(const char* a, const char* b) {
+int CompareNames(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b);
 }
 
@@ -137,7 +137,7 @@ EI_REWRITTEN(0x0050C9E0, CFigureAnimationState::Reset);
 
 FigureBone* CFigureAnimationState::FindBone(const char* boneName) {
     for (auto* node = bones.head; node; node = node->next)
-        if (CompareNames(node->data->name.c_str(), boneName) == 0) return node->data;
+        if (CompareNames(node->data->name, boneName) == 0) return node->data;
     return nullptr;
 }
 EI_REWRITTEN(0x0050CC20, CFigureAnimationState::FindBone);
@@ -155,7 +155,7 @@ int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     const char* parentName = bone->name2.c_str();
     FigureBone* parent = nullptr;
     for (auto* node = bones.head; node; node = node->next) {
-        if (CompareNames(node->data->name.c_str(), parentName) == 0) {
+        if (CompareNames(node->data->name, parentName) == 0) {
             parent = node->data;
             break;
         }
@@ -163,7 +163,7 @@ int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     if (parent) {
         bool known = false;
         for (auto* node = parent->children.head; node && !known; node = node->next)
-            known = CompareNames(node->data->name.c_str(), bone->name.c_str()) == 0;
+            known = CompareNames(node->data->name, bone->name) == 0;
         if (!known) {
             parent->children.AddTail(bone);
             bone->parent = parent;
@@ -185,7 +185,7 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
     changed = 1;
     FigureBone* bone = nullptr;
     for (auto* node = bones.head; node; node = node->next) {
-        if (CompareNames(node->data->name.c_str(), part->GetName()) == 0) {
+        if (CompareNames(node->data->name, part->GetName()) == 0) {
             bone = node->data;
             break;
         }

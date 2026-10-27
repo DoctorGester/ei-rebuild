@@ -44,7 +44,7 @@ constexpr int kTipFrame = 7;
 constexpr int kTipLine = 20;
 const char* ZoneSound() { return "buttons\\globalmap\\zone.wav"; }
 
-bool SameText(const char* a, const char* b) {
+bool SameText(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
 
@@ -144,7 +144,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     }
     std::string text;
     text = isLink ? links_.data[index].name : zones_.data[index].name;
-    if (!SameText(shownName_.c_str(), text.c_str())) interface_->PlaySound(ZoneSound(), 0);
+    if (!SameText(shownName_, text)) interface_->PlaySound(ZoneSound(), 0);
     shownName_ = text;
     text = isLink ? links_.data[index].title : zones_.data[index].title;
     surfaces_.data[0]->Freeze(1, 0);

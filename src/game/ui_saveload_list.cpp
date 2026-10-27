@@ -51,7 +51,7 @@ int TextWidth(CInterface3D* ui, const std::string& text, int font) {
     return size.cx;
 }
 
-bool SameFolder(const char* folder, const char* name) {
+bool SameFolder(std::string_view folder, std::string_view name) {
     return gamecrt::mbsicmp(folder,
                            name) == 0;
 }
@@ -79,8 +79,8 @@ void CSaveLoadWindow::RefreshListVanilla() {
             const char* title = (isSave_ && nameTyped_ ? name_ : entry.title_).c_str();
             surface->DrawTextIn(title, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
             // The caret, unless the save keeps its name (the quick and the automatic saves).
-            if (isSave_ && !SameFolder(entry.folder_.c_str(), kQuickFolder) && !SameFolder(entry.folder_.c_str(), kAutoFolderA) &&
-                !SameFolder(entry.folder_.c_str(), kAutoFolderB)) {
+            if (isSave_ && !SameFolder(entry.folder_, kQuickFolder) && !SameFolder(entry.folder_, kAutoFolderA) &&
+                !SameFolder(entry.folder_, kAutoFolderB)) {
                 const int width = TextWidth(interface_, str::Left(name, cursor_).c_str(), kFont);
                 if (width < titleRect.right - titleRect.left) {
                     mfc::impl::CPen pen(PS_SOLID, 1, kCaretColour);

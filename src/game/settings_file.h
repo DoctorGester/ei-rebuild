@@ -46,8 +46,8 @@ class Document {
 public:
     Key* FindKey(const std::string& path);
     Key& AddKey(const std::string& path);   // the key, made when missing
-    static Value* FindValue(Key& key, const char* name);
-    void Set(const std::string& path, const char* name, unsigned long type, std::string data);
+    static Value* FindValue(Key& key, const std::string& name);
+    void Set(const std::string& path, const std::string& name, unsigned long type, std::string data);
 
     std::string Text() const;
     // Reads `text` into the document; each line not understood is skipped and described in `problems`.

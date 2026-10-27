@@ -54,7 +54,7 @@ constexpr std::uint32_t kTintedItem = 0x82FFFFFF;
 constexpr int kTintFrom = 8;             // items from index 8 on are tinted
 constexpr std::uint32_t kUnitBlocked = 0x800000;
 
-int Compare(const char* a, const char* b) {
+int Compare(std::string_view a, std::string_view b) {
     return gamecrt::mbsicmp(a, b);
 }
 
@@ -153,7 +153,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
 
     // An item: one shown under this name goes first.
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-        if (Compare(node->name.c_str(), name) != 0) continue;
+        if (Compare(node->name, name) != 0) continue;
         HideSpeaker(name, 0, 0);
         break;
     }

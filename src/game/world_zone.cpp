@@ -208,7 +208,7 @@ void CWorldServer::SaveMapObjects(CStream* out) {
 // ---- Loading movie -------------------------------------------------------------------
 
 namespace {
-bool SameName(const char* a, const char* b) {
+bool SameName(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
 // "progres5.bik" is not among the game's strings; addon.dll points the name at its own copy.
@@ -221,18 +221,18 @@ void __stdcall SelectLoadingMovie(const char* zone) {
         MapRecord* map = TheMapDatabase()->FindMap(zone);
         if (map) allod = map->allod;
     }
-    if (SameName(allod.c_str(), "gipat")) {
+    if (SameName(allod, "gipat")) {
         app::g_loadingMovieName = "progres2.bik";
-    } else if (SameName(allod.c_str(), "ingos")) {
+    } else if (SameName(allod, "ingos")) {
         app::g_loadingMovieName = "progres3.bik";
     } else {
-        bool suslanger = SameName(allod.c_str(), "suslanger");
+        bool suslanger = SameName(allod, "suslanger");
         app::g_loadingMovieName = "progres4.bik";
         if (!suslanger) {
             app::g_loadingMovieName = "progres.bik";
             if (ei::rebirth::Enabled(ei::rebirth::Patch::FixProgressNames)) {
-                if (SameName(allod.c_str(), "gipat2")) app::g_loadingMovieName = "progres2.bik";
-                else if (SameName(allod.c_str(), "jigran")) app::g_loadingMovieName = kProgres5;
+                if (SameName(allod, "gipat2")) app::g_loadingMovieName = "progres2.bik";
+                else if (SameName(allod, "jigran")) app::g_loadingMovieName = kProgres5;
             }
         }
     }

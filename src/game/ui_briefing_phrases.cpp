@@ -88,7 +88,7 @@ constexpr int kViewLeader = 2;
 constexpr int kViewPerson = 3;
 constexpr int kViewThird = 4;
 
-int Compare(const char* a, const char* b) {
+int Compare(std::string_view a, std::string_view b) {
     return gamecrt::mbsicmp(a, b);
 }
 
@@ -243,7 +243,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             addItems(record->lists[QuestBriefingRecord::kGiveItems]);
             texts->GetString(LostItemLabel(), &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
-            if (IsMultiplayerClient() && !topic_.empty() && Compare(str::Left(topic_, 1).c_str(), ZonePrefix()) == 0) {
+            if (IsMultiplayerClient() && !topic_.empty() && Compare(str::Left(topic_, 1), ZonePrefix()) == 0) {
                 if (auto* player = TheServerWorld()->GetPlayer(0)) {
                     for (auto* node = player->items_.head; node; node = node->next) {
                         CItem* item = node->data;
@@ -275,7 +275,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);
         if (person_) GameSetUnitHeight(person_->id_, 0.0f);
         for (std::size_t i = 0; i < static_cast<std::size_t>(speakersEnd_ - speakers_); ++i) {
-            if (Compare(speakers_[i].name.c_str(), named()) != 0) continue;
+            if (Compare(speakers_[i].name, named()) != 0) continue;
             if (view) {
                 CUnit* target;
                 switch (preset) {
@@ -309,7 +309,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (!skip && spoke) {
         for (std::size_t i = 0; i < static_cast<std::size_t>(speakersEnd_ - speakers_); ++i) {
             CUnit* unit = speakers_[i].unit;
-            if (Compare(speakers_[i].name.c_str(), named()) != 0) {
+            if (Compare(speakers_[i].name, named()) != 0) {
                 PlaySpeakerAnimation(unit, 0, 0);
                 SetBlink(unit, 0);
                 continue;

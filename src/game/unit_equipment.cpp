@@ -60,13 +60,13 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
             if (armour) unit->EquipArmour(armour);
             else game::FatalError(game::equipmenttexts::NoArmour(), prototype->armourNames.begin()[i].GetString(), name);
         }
-        if (Named(prototype->weaponName.c_str())) {
+        if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
-            int slot = unit->AddWeapon(MakeWeapon(items, prototype->weaponName.c_str(), name));
+            int slot = unit->AddWeapon(MakeWeapon(items, prototype->weaponName, name));
             if (slot != -1) unit->pendingWeapon = slot;
         }
-        if (Named(prototype->secondWeaponName.c_str()))
-            unit->AddWeapon(MakeWeapon(items, prototype->secondWeaponName.c_str(), name));
+        if (Named(prototype->secondWeaponName))
+            unit->AddWeapon(MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         CItem* spell = items->CreateSpellItem(prototype->spellNames.begin()[i], spellOwner);

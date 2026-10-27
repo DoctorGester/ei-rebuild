@@ -145,33 +145,35 @@ public:
     const mfc::CString& Skill(int index) const { return panel_->skillTexts_[index]; }
 
     void Down() { gameapi::OffsetRect(&rect_, 0, 15); }
-    void Text(const char* text) { draw_->DrawLine(text, &rect_, 0, kText, 0, 1); }
-    void Value(const char* text) {
+    void Text(std::string_view text) { draw_->DrawLine(text, &rect_, 0, kText, 0, 1); }
+    void Value(std::string_view text) {
         RECT shifted = rect_;
         gameapi::OffsetRect(&shifted, -10, 0);
         draw_->DrawLine(text, &shifted, 0, kText, 2, 1);
     }
-    void Title(const char* text) { draw_->DrawWrappedText(text, &rect_, 2, 0, kWhite, 0x11, 1); }
-    void Wrapped(const char* text, int maxLines) { draw_->DrawWrappedText(text, &rect_, maxLines, 0, kText, 0x11, 1); }
+    void Title(std::string_view text) { draw_->DrawWrappedText(std::string(text).c_str(), &rect_, 2, 0, kWhite, 0x11, 1); }
+    void Wrapped(std::string_view text, int maxLines) {
+        draw_->DrawWrappedText(std::string(text).c_str(), &rect_, maxLines, 0, kText, 0x11, 1);
+    }
 
-    void Head(const char* name, const char* kind) {
+    void Head(const std::string& name, const std::string& kind) {
         Title(name);
         Down();
         Down();
-        line = str::Format("%s %s", T(37).GetString(), kind);
-        Text(line.c_str());
+        line = str::Format("%s %s", T(37).GetString(), kind.c_str());
+        Text(line);
         Down();
     }
     void Number(int label, int value) {
         line = str::Format("%s %d", T(label).GetString(), value);
-        Text(line.c_str());
+        Text(line);
         Down();
     }
-    void Joined(int label, const char* text) {
+    void Joined(int label, std::string_view text) {
         line = T(label).GetString();
         line += " ";
         line += text;
-        Text(line.c_str());
+        Text(line);
         Down();
     }
     // The lists of 7 damage values: "<label> <threshold>" and, when some kinds lie below it,
@@ -187,7 +189,7 @@ public:
         key = str::Format("school_%d", school);
         TextManager()->GetString(key.c_str(), &line);
         std::string text = line;
-        Joined(18, text.c_str());
+        Joined(18, text);
     }
 
     std::string line;
@@ -226,7 +228,7 @@ void SpellLevelLine(Writer& w, bool known, int level) {
         w.line = str::Format("%s %s", w.T(8).GetString(), w.T(28).GetString());
     else
         w.line = str::Format("%s %d", w.T(8).GetString(), level);
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     w.Down();
 }
 // The duration: "<infoitem_12> <infoitem_21>" under 2, else in seconds (the unsigned value times 0.0666667f)
@@ -237,7 +239,7 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
     else
         w.line = str::Format("%s %.1f%s", w.T(12).GetString(),
                       x87::FromUnsigned(ticks) * D(0.06666667f /*00740544*/), w.T(27).GetString());
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     w.Down();
 }
 
@@ -293,7 +295,7 @@ void CItemInfoPanel::DescribeItem() {
     Writer w(this);
     w.Draw()->GetDC();
     std::string text;
-    w.Head(name.c_str(), kindText.c_str());
+    w.Head(name, kindText);
 
     // The material and count, unless a quick item whose prototype's field is "none"; then the price.
     bool materialLine;
@@ -310,7 +312,7 @@ void CItemInfoPanel::DescribeItem() {
         if (texts->Open(key.c_str())) texts->ReadLine(&text, 1);
         w.line = str::Format("%s %s x %d", w.T(1).GetString(), text.c_str(),
                       static_cast<int>(PrototypeOf(item)->materialUnits));
-        w.Text(w.line.c_str());
+        w.Text(w.line);
         w.Down();
     }
     if (kind != kLoot) w.Number(0, FtolOf(item->Weight()));
@@ -320,7 +322,7 @@ void CItemInfoPanel::DescribeItem() {
         int spellValue = spell ? static_cast<int>(spell->skillNeeded_) : 0;
         w.Number(2, FtolOf(item->chargeMax_));
         w.line = str::Format("%s %d/%d", w.T(14).GetString(), spellValue, static_cast<int>(item->magicLevel_));
-        w.Text(w.line.c_str());
+        w.Text(w.line);
         w.Down();
     } else if (kind == kQuick) {
         goto tail;
@@ -332,7 +334,7 @@ void CItemInfoPanel::DescribeItem() {
         int condition = current > 0.0f ? FtolOf(current) : 0;
         int maximum = FtolOf(item->conditionMax_);
         w.line = str::Format("%s %d/%d", w.T(3).GetString(), condition, maximum);
-        w.Text(w.line.c_str());
+        w.Text(w.line);
         w.Down();
         if (kind == kWeapon) {
             CItemWeapon* weapon = AsWeapon(item);
@@ -351,7 +353,7 @@ void CItemInfoPanel::DescribeItem() {
             int lowValue = FtolOf(low);
             w.line = str::Format("%s %d-%d %s", w.T(15).GetString(), lowValue, high,
                           text.c_str());
-            w.Text(w.line.c_str());
+            w.Text(w.line);
             w.Down();
             w.Number(20, static_cast<int>(PrototypeOf(item)->category));
             w.Number(38, Ftol(WeaponStat84(PackedIdOf(item))));
@@ -373,9 +375,9 @@ tail:
     if (kind == kQuest) {
         texts->GetString("loot_item", &text);
         description += text;
-        w.Wrapped(description.c_str(), 7);
+        w.Wrapped(description, 7);
     } else {
-        w.Wrapped(description.c_str(), 4);
+        w.Wrapped(description, 4);
         w.Down();
         w.Down();
         w.Down();
@@ -389,7 +391,7 @@ tail:
             key += SpellPrototypeOf(spell)->code;
             if (texts->Open(key.c_str())) texts->ReadLine(&text, 1);
             w.line = str::Format("%s %s", w.T(5).GetString(), text.c_str());
-            w.Text(w.line.c_str());
+            w.Text(w.line);
             w.Down();
             w.Text(w.T(6));
         }
@@ -407,7 +409,7 @@ void CItemInfoPanel::DescribeMaterial() {
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
     w.Draw()->GetDC();
-    w.Head(name.c_str(), kindText.c_str());
+    w.Head(name, kindText);
     std::string text = material->soundName;
     str::MakeLower(text);
     {
@@ -418,20 +420,20 @@ void CItemInfoPanel::DescribeMaterial() {
     texts->GetString(text.c_str(), &w.line);
     {
         std::string type = w.line;
-        w.Joined(17, type.c_str());
+        w.Joined(17, type);
     }
     w.Number(0, FtolOf(material->factor38));
     w.Number(2, FtolOf(material->magicPower));
     w.Number(14, static_cast<int>(material->magicLevel));
     w.Number(3, FtolOf(material->conditionFactor));
     w.line = str::Format("%s %.1f", w.T(15).GetString(), D(material->damageFactor));
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     w.Down();
     float values[7];
     std::memcpy(values, material->absorbFactors, sizeof(values));
     w.DamageLines(values, 4);
     w.Down();
-    w.Wrapped(description.c_str(), 4);
+    w.Wrapped(description, 4);
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005EFD90, CItemInfoPanel::DescribeMaterial);
@@ -455,7 +457,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
     w.Draw()->GetDC();
-    w.Head(name.c_str(), kindText.c_str());
+    w.Head(name, kindText);
     // The material type ("mattype_<NAME>" of the record) and the count. (The weapon and armour views
     // are read only for their own sort.)
     const auto* weapon = itemdb::RecordAs<itemdb::WeaponRecord>(head);
@@ -471,7 +473,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     text = w.line;
     w.line = str::Format("%s %s x %d", w.T(1).GetString(), text.c_str(),
                   static_cast<int>(head->materialUnits));
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     w.Down();
     w.Number(0, FtolOf(head->value38));
     if (sort <= 2) {
@@ -489,7 +491,7 @@ void CItemInfoPanel::DescribeBlueprint() {
         int low = ScaledFtol(weapon->damage, 10.0f /*0073BAAC*/);
         w.line = str::Format("%s %d-%d %s", w.T(15).GetString(), low, high,
                       text.c_str());
-        w.Text(w.line.c_str());
+        w.Text(w.line);
         w.Down();
         w.Number(20, static_cast<int>(head->category));
         w.Number(38, FtolOf(weapon->attackBonus));
@@ -504,7 +506,7 @@ void CItemInfoPanel::DescribeBlueprint() {
         w.DamageLines(values, 4);
     }
     w.Down();
-    w.Wrapped(description.c_str(), 4);
+    w.Wrapped(description, 4);
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F0370, CItemInfoPanel::DescribeBlueprint);
@@ -517,7 +519,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
     w.Draw()->GetDC();
-    w.Head(name.c_str(), kindText.c_str());
+    w.Head(name, kindText);
     w.Number(7, FtolOf(record->mana));
     w.Number(14, record->skill);
     w.School(record->castType);
@@ -529,11 +531,11 @@ void CItemInfoPanel::DescribeSpellRecord() {
         w.line = str::Format("%s %s", w.T(9).GetString(), w.T(21).GetString());
     else
         w.line = str::Format("%s %d", w.T(9).GetString(), FtolOf(power));
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     w.Down();
     w.line = str::Format("%s %d%s", w.T(10).GetString(), FtolOf(record->range),
                   w.T(26).GetString());
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     w.Down();
     float radius = record->area;
     EI_NAN_AUDIT(radius);
@@ -542,12 +544,12 @@ void CItemInfoPanel::DescribeSpellRecord() {
     else
         w.line = str::Format("%s %.1f%s", w.T(11).GetString(), D(radius),
                       w.T(26).GetString());
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     w.Down();
     DurationLine(w, record->duration);
     w.Number(13, static_cast<int>(record->targetCount));
     w.Down();
-    w.Wrapped(description.c_str(), 4);
+    w.Wrapped(description, 4);
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F0B90, CItemInfoPanel::DescribeSpellRecord);
@@ -560,11 +562,11 @@ void CItemInfoPanel::DescribeModifierRecord() {
     const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(LootOf(item)->index_);
     Writer w(this);
     w.Draw()->GetDC();
-    w.Head(name.c_str(), kindText.c_str());
+    w.Head(name, kindText);
     w.Number(7, FtolOf(record->mana));
     w.Number(14, record->skill);
     w.Down();
-    w.Wrapped(description.c_str(), 8);
+    w.Wrapped(description, 8);
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F1130, CItemInfoPanel::DescribeModifierRecord);
@@ -576,14 +578,14 @@ void CItemInfoPanel::DescribeQuickItem() {
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
     w.Draw()->GetDC();
-    w.Head(name.c_str(), kindText.c_str());
+    w.Head(name, kindText);
     if (CSpell* spell = SpellOf(item)) {
         bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
         SpellLevelLine(w, known, known ? FtolOf(spell->damage_) : 0);
         DurationLine(w, spell->duration_);
         w.Down();
     }
-    w.Wrapped(description.c_str(), 8);
+    w.Wrapped(description, 8);
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005EF300, CItemInfoPanel::DescribeQuickItem);
@@ -609,7 +611,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     Writer w(this);
     w.Draw()->GetDC();
     std::string text;
-    w.Head(title.c_str(), kindText.c_str());
+    w.Head(title, kindText);
     w.Number(7, FtolOf(spell->manaCost_));
     w.Number(14, static_cast<int>(spell->skillNeeded_));
     w.School(SpellPrototypeOf(spell)->castType);
@@ -621,11 +623,11 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         w.line = str::Format("%s %s", w.T(9).GetString(), w.T(21).GetString());
     else
         w.line = str::Format("%s %d", w.T(9).GetString(), FtolOf(power));
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     w.Down();
     w.line = str::Format("%s %d%s", w.T(10).GetString(), FtolOf(spell->range_),
                   w.T(26).GetString());
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     w.Down();
     if (spell->targetFlags_ & 0x10000000) {
         w.line = str::Format("%s %s", w.T(11).GetString(), w.T(22).GetString());
@@ -635,12 +637,12 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         double area = D(3.1415927f /*007402C0*/) * radius * radius;
         w.line = str::Format("%s %.1f%s", w.T(11).GetString(), area, w.T(26).GetString());
     }
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     w.Down();
     DurationLine(w, spell->duration_);
     w.Number(13, static_cast<int>(spell->targetCount_));
     w.Down();
-    w.Wrapped(description.c_str(), 4);
+    w.Wrapped(description, 4);
     w.Down();
     w.Down();
     w.Down();
@@ -680,7 +682,7 @@ namespace {
 void AttributeLines(Writer& w, UnitStats* stats, int index) {
     auto line = [&](const char* format, int label, int value) {
         w.line = str::Format(format, w.Skill(label).GetString(), value);
-        w.Text(w.line.c_str());
+        w.Text(w.line);
         w.Down();
     };
     switch (index) {
@@ -717,7 +719,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
         std::string key("perk ");
         key += level->name;
         if (texts->Open(key.c_str())) texts->ReadLine(&title, 1);
-        w.Text(title.c_str());
+        w.Text(title);
         if (info->index > i) w.Draw()->DrawLine(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
         w.Down();
         int value = static_cast<int>(level->values[7]);
@@ -748,14 +750,14 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
             drawn = false;
             break;
         }
-        if (drawn) w.Text(w.line.c_str());
+        if (drawn) w.Text(w.line);
         w.Down();
         // The cost (negative: 0x7FFFFFFF), on a line 15 pixels wider.
         w.Rect()->right += 15;
         int cost = info->stats->SkillPrice(level);
         if (cost < 0) cost = 0x7FFFFFFF;
         w.line = str::Format(plain, w.Skill(18).GetString(), cost);
-        w.Text(w.line.c_str());
+        w.Text(w.line);
         w.Rect()->right -= 15;
         w.Down();
     }
@@ -774,9 +776,9 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     }
     auto part = [&](int label, int value) {
         w.line = str::Format("     %s", w.T(label).GetString());
-        w.Text(w.line.c_str());
+        w.Text(w.line);
         w.line = str::Format("%d", value);
-        w.Value(w.line.c_str());
+        w.Value(w.line);
     };
     int base = DifferenceFtol(stats->stat18, kStatBase);   // dexterity - 25
     part(29, base);
@@ -791,14 +793,14 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     sum += level;
     w.Down();
     w.line = str::Format("     %s", w.T(32).GetString());
-    w.Text(w.line.c_str());
+    w.Text(w.line);
     int own = Ftol(WeaponPrototypeSkillBonus(PackedIdOf(weapon)));
     if (MbsCmp(info->text, "defense") == 0)
         own += Ftol(WeaponStat88(PackedIdOf(weapon)));
     else
         own += Ftol(WeaponStat84(PackedIdOf(weapon)));
     w.line = str::Format("%d", own);
-    w.Value(w.line.c_str());
+    w.Value(w.line);
     sum += own;
     w.Down();
     w.Down();
@@ -828,19 +830,19 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         key += "_desc";
         texts->GetString(key.c_str(), &description);
     }
-    w.Title(title.c_str());
+    w.Title(title);
     w.Down();
     w.Down();
     UnitStats* stats = info->stats;
     switch (info->kind) {
     case 0:
         AttributeLines(w, stats, info->index);
-        w.Wrapped(description.c_str(), 13);
+        w.Wrapped(description, 13);
         break;
     case 1: {
         int index = info->index;
         w.line = str::Format("%s %d", w.Skill(5).GetString(), Ftol(stats->SkillBase(index)));
-        w.Text(w.line.c_str());
+        w.Text(w.line);
         w.Down();
         if (index >= 0) {
             bool drawn = true;
@@ -853,31 +855,31 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
             else
                 drawn = false;
             if (drawn) {
-                w.Text(w.line.c_str());
+                w.Text(w.line);
                 w.Down();
             }
         }
         w.Down();
-        w.Wrapped(description.c_str(), 13);
+        w.Wrapped(description, 13);
         break;
     }
     case 2:
         w.line = str::Format("%s %d", w.Skill(5).GetString(),
                       Ftol(stats->AttributeBase(info->index)));
-        w.Text(w.line.c_str());
+        w.Text(w.line);
         w.Down();
         if (info->index == 0) {
             w.line = str::Format("%s %d", w.Skill(9).GetString(), Ftol(stats->AttributeWithBonus(0)));
-            w.Text(w.line.c_str());
+            w.Text(w.line);
             w.Down();
         }
         w.Down();
-        w.Wrapped(description.c_str(), 13);
+        w.Wrapped(description, 13);
         break;
     case 3:
         PerkLines(w, info, title);
         w.Down();
-        w.Wrapped(description.c_str(), 6);
+        w.Wrapped(description, 6);
         break;
     case 4: {
         w.Text(w.T(25));
@@ -889,37 +891,37 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
             w.line = str::Format("damage_%d", i);
             texts->GetString(w.line.c_str(), &text);
             w.line = str::Format("     %s:", text.c_str());
-            w.Text(w.line.c_str());
+            w.Text(w.line);
             w.line = str::Format("%.1f", D(sums[i]));
-            w.Value(w.line.c_str());
+            w.Value(w.line);
             w.Down();
         }
         w.Down();
-        w.Wrapped(description.c_str(), 8);
+        w.Wrapped(description, 8);
         break;
     }
     case 5:
         WeaponLines(w, info);
         w.Down();
         w.Down();
-        w.Wrapped(description.c_str(), 9);
+        w.Wrapped(description, 9);
         break;
     case 6: {
         int label = 40;
         for (int school = 0; school < 8; ++school) {
             if (school == 4 || school == 6 || school == 7) continue;
             w.line = str::Format("     %s", w.T(label++).GetString());
-            w.Text(w.line.c_str());
+            w.Text(w.line);
             w.line = str::Format("%d", Ftol(stats->SpellSchoolSkill(school)));
-            w.Value(w.line.c_str());
+            w.Value(w.line);
             w.Down();
         }
         w.Down();
-        w.Wrapped(description.c_str(), 9);
+        w.Wrapped(description, 9);
         break;
     }
     case 7:
-        w.Wrapped(description.c_str(), 16);
+        w.Wrapped(description, 16);
         break;
     default:
         break;
@@ -940,10 +942,10 @@ void CItemInfoPanel::ShowHelp(int topic) {
         texts->ReadLine(&title, 1);
         texts->ReadLine(&description, 1);
     }
-    w.Title(title.c_str());
+    w.Title(title);
     w.Down();
     w.Down();
-    w.Wrapped(description.c_str(), 16);
+    w.Wrapped(description, 16);
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F2910, CItemInfoPanel::ShowHelp);
