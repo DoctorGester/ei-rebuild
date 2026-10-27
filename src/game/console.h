@@ -227,7 +227,7 @@ static_assert(offsetof(ConsoleWindow, lines_) == 0x58 && offsetof(ConsoleWindow,
 static_assert(offsetof(ConsoleWindow, commands_) == 0x0C && offsetof(ConsoleWindow, input_) == 0x24 &&
               offsetof(ConsoleWindow, width_) == 0x30 && offsetof(ConsoleWindow, ctrl_) == 0x78);
 
-// Console commands: void handler(CStringArray* args) with the arguments (lower case) in ECX.
+// Console commands: void handler(CStringArray* args) with the arguments (lower case).
 using CommandHandler = void(__fastcall*)(CStringArray* args);
 
 // STLport map<CString, CommandHandler> (red-black tree, keys by _mbscmp). The header node's parent
@@ -256,7 +256,7 @@ struct CommandRegistration {
 };
 extern const CommandRegistration kCommandRegistrations[27];
 
-// Runs one console line (command text in ECX).
+// Runs one console line.
 void __fastcall Execute(const char* text);
 // Rebirth's console additions (console_addon.cpp). AddNewConsoleCommands: the executor registers
 // addon's commands on every call; the battle screen's drawing applies "nogui" to its panels.
@@ -303,7 +303,7 @@ void __fastcall Ban(CStringArray* args);           // ban
 void __fastcall Fps(CStringArray* args);           // fps
 void __fastcall Rate(CStringArray* args);          // rate
 void __fastcall LocalRate(CStringArray* args);     // localrate
-// generateacks' (ECX the file, EDX the list; a null list writes nothing):
+// generateacks' (a null list writes nothing):
 // lines for a speech list / an environment speech list. See console_commands.cpp.
 void __fastcall WriteSpeechLines(CStdioFileVirtuals* file, const acks::Speeches* list);
 void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file, const acks::EnvironmentSpeeches* list);

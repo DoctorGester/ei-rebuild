@@ -1,4 +1,4 @@
-// Console command handlers. Each gets the command's arguments, already lower-cased, in ECX.
+// Console command handlers. Each gets the command's arguments, already lower-cased.
 // See docs/notes/console.md.
 #include "app.h"
 #include "ei/x87.h"

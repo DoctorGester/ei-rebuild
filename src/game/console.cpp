@@ -65,7 +65,7 @@ int Mbscmp(const char* a, const char* b) {
 // A network game is running (the server object is present and active).
 bool NetworkGame() { return IsMultiplayerClient(); }
 
-// Posts WM_QUIT (when the game window exists); the exit code is passed in ECX.
+// Posts WM_QUIT (when the game window exists).
 
 } // namespace
 

@@ -651,7 +651,7 @@ Vector3 PositionOf(const CUnit* unit) {
     return v;
 }
 
-// The battle screen's own commands (thiscall; the flag argument is the interface's +0x7F byte).
+// The battle screen's own commands (the flag argument is the interface's +0x7F byte).
 void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
     screen->UseOnUnit(target, quick, ctrl);
 }
@@ -977,7 +977,7 @@ namespace {
 
 // The CArray<CUnit*> the order takes (vtable UnitPtrArrayClass).
 using OrderUnits = mfc::CArray<CUnit*>;
-// The local view's orders (thiscall; units, point, the Ctrl flag): move there
+// The local view's orders (units, point, the Ctrl flag): move there
 // (CPlayerClient::SendWalk), the other order (mode non-zero: the modifier flags or Shift;
 // CPlayerClient::SendGoTo, through its address).
 // The constant 1.0f the zone variable is compared with.

@@ -18,7 +18,7 @@ int Mul(int a, int b) {
     return static_cast<int>(static_cast<std::uint32_t>(a) * static_cast<std::uint32_t>(b));
 }
 
-// The compiler's division by 600 (MOV EAX,0x1B4E81B5; IMUL r32) leaves the
+// The compiler's division by 600 (a multiply by a magic constant) leaves the
 // low dword of the product in a register.
 int DivideBy600Residue(int dividend) { return Mul(0x1B4E81B5, dividend); }
 } // namespace

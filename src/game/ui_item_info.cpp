@@ -106,7 +106,7 @@ BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description
 }
 Texts* TextManager() { return static_cast<Texts*>(TheTextManager()); }
 
-// Items and spells through their addresses (thiscall): the prototype record, the
+// Items and spells through their addresses: the prototype record, the
 // category, a weapon's type (CItemWeapon::GetType) and damage weights
 // (CItemWeapon::GetDamageTypes); a spell's prototype and modifier
 // count (CSpell::GetModifierCount).

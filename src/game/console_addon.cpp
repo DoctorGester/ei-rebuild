@@ -85,7 +85,7 @@ std::string GroupText(const ScriptGroup& group) {
     return text;
 }
 
-// ---- The commands (ECX: the arguments, lower case) ----------------------------------------------
+// ---- The commands (the arguments, lower case) ----------------------------------------------
 
 void __fastcall Help(CStringArray* args) {
     g_gameHelp(args);

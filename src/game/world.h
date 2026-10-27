@@ -262,7 +262,7 @@ public:
     void CloseSession();
     // (the server's, from the pause request 0x10; the client's copy, from
     // message 0x60), byte-identical (world_server.cpp): stores paused_ (+0x6C). SetServerPaused is
-    // The server's entry: EI_Plugin's Pause in mode 3 makes it a plain RET 4.
+    // The server's entry: EI_Plugin's Pause in mode 3 makes it a plain return.
     void SetPaused(std::uint8_t value);
     void SetServerPaused(std::uint8_t value);
 
@@ -1061,7 +1061,7 @@ struct ScreenEntry {
 };
 static_assert(sizeof(ScreenEntry) == 0x18);
 using ScreenEntryNode = stlp::list<ScreenEntry>::Node;
-// (no Ghidra function; called through a mem_fun1 by the frame's draw pass, EAX 1 when
+// (called through a mem_fun1 by the frame's draw pass, EAX 1 when
 // queued). An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40)
 // puts its class id, id and that rectangle (CObject3D::dirtyRect) at the end of `queued`.
 int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* queued);
@@ -1314,7 +1314,7 @@ public:
     int AddObject(CMapObject* object);
     // When an object
     // with `object`'s id is filed (+0xB8): its platform faces are removed and, for classes 0x54 /
-    // 0x5D, its platform items added again where it now stands (as AddObject). EAX is not read.
+    // 0x5D, its platform items added again where it now stands (as AddObject).
     void RefreshPlatforms(CMapObject* object);
     // Files `object` in the synchronised list +0xBC and the id map +0xD8 (as
     // AddObject does) unless its id is there already. AL: 1 when added (the upper bytes of EAX
@@ -1654,7 +1654,7 @@ struct EntryIdLess {
 };
 // world_stamp_sort.cpp. STLport's sort of the changed variables' nodes with EntryIdLess (the flow's
 // update): __introsort_loop, __final_insertion_sort;
-// first in ECX, last in EDX, then a dummy value-type pointer, the depth limit and the comparator.
+// first, last, then a dummy value-type pointer, the depth limit and the comparator.
 void __fastcall StampIntroSort(stlp::list<RefPtr>::Node** first, stlp::list<RefPtr>::Node** last, int valueType, int depthLimit,
                                const void* comp);
 void __fastcall StampInsertionSort(stlp::list<RefPtr>::Node** first, stlp::list<RefPtr>::Node** last, const void* comp);
@@ -1733,7 +1733,7 @@ struct GameFlow {
     void EndSession();
     // The client's variable at `node` (an element of
     // ClientSession::variables_) changed: "q." variables go to the quest log and the
-    // client world. The original's ECX is the node as well; only the argument is read.
+    // client world. Only the argument is read.
     static void __stdcall OnVariableChanged(const stlp::list<RefPtr>::Node* node);
     // Registers a quest folder once: the flow loads its
     // quests, then with "<folder>\quest.reg" in the texts the quest table reads it,
@@ -2041,8 +2041,8 @@ void __fastcall GuardPlayers(CPlayerManager* players, char units, std::uint32_t 
 // ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------
 // (the client's draw pass, patched by Rebirth) fills per-frame vectors of object pointers
 // with CWorldClient::CollectVisible and sorts some of them with STLport's sort, instantiated for
-// two orderings. The entry points keep STLport's internal calling convention: first in ECX, last
-// in EDX, then a dummy value-type pointer, the depth limit and the (empty) comparator on the stack.
+// two orderings. The entry points keep STLport's internal calling convention: first, last
+// then a dummy value-type pointer, the depth limit and the (empty) comparator on the stack.
 
 // STLport __introsort_loop with UnitOrderLess (model rank, +0xF0, view depth).
 void __fastcall IntroSortByModel(CEngineObject** first, CEngineObject** last, void* valueType, int depthLimit,
@@ -2055,7 +2055,7 @@ void __fastcall IntroSortByModelUse(CEngineObject** first, CEngineObject** last,
                                     int comp);
 // __final_insertion_sort with the same ordering.
 void __fastcall FinalSortByModelUse(CEngineObject** first, CEngineObject** last, int comp);
-// The comparator of that ordering: b's model used before a's (0/1 in EAX).
+// The comparator of that ordering: b's model used before a's.
 struct ModelUseLess {
     BOOL Less(CEngineObject* a, CEngineObject* b);
 };
