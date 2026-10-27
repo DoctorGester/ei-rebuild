@@ -51,7 +51,7 @@ using worlddata::g_lastLitHour;
 // Terrain::SetSun takes the ambient colour as a Vector4 (and copies it).
 Vector4 Ambient(const LightColour& c) { return {c.r, c.g, c.b, c.a}; }
 
-// The FCOMP / TEST AH,0x40 test: equal.
+// The original's test counts a NaN as zero; the audit checks that none arrives.
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;
@@ -76,7 +76,6 @@ float Scaled(float value, float scale) {
     return result;
 }
 
-// The fog start for `hour`.
 float FogStart(float hour) {
     const float day = FogStartDay(), night = FogStartNight();
     double fog;
@@ -89,7 +88,7 @@ float FogStart(float hour) {
     return stored;
 }
 
-// The sun's elevation in degrees for `hour`.
+// In degrees.
 double SunElevation(float hour) {
     double night;
     EI_NAN_AUDIT(hour);

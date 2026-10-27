@@ -28,8 +28,6 @@
 namespace {
 
 
-// The full path of a map file (CString constructed into `out`). Patched by Rebirth.
-// CRefObject::Release (the missiles).
 
 // The timed objects are ended (ClearState) and released, then the map is emptied (the walk stops at the
 // first empty entry).
@@ -125,7 +123,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 
 namespace {
 
-// A missile's counted pointer released in place (RefPtrRelease). Releases a range of counted object pointers.
+// Releases a range of counted object pointers.
 void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
 
 void ClearMissilePointers(CWorldServer* world) {
@@ -229,7 +227,6 @@ void CWorldServer::TeardownZone() {
 
 namespace {
 
-// The player state: objects added / the zone header stream.
 
 } // namespace
 
@@ -314,7 +311,7 @@ EI_REWRITTEN(0x005957E0, CWorldServer::TeardownZone);
 
 void CWorldServer::EnsureZone(const char* map, const char* mob) {
     if (gamecrt::mbscmp(mapName_, map) == 0 && gamecrt::mbscmp(mobName_, mob) == 0) return;
-    NewZone(map, mob, nullptr);   // patched by Rebirth: called through its address
+    NewZone(map, mob, nullptr);
     TeardownZone();
 }
 EI_REWRITTEN(0x00595B50, CWorldServer::EnsureZone);

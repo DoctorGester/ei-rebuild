@@ -238,7 +238,7 @@ void CWorldServer::RemoveAllUnits() {
         bool isUnit = object->GetClassId() == world::kClassUnit;
         node = objects_.map.After(node);
         object = node ? node->value : nullptr;
-        if (isUnit) RemoveObject(static_cast<int>(id));   // Rebirth patches it (rule 9)
+        if (isUnit) RemoveObject(static_cast<int>(id));
     } while (node);
 }
 EI_REWRITTEN(0x005939E0, CWorldServer::RemoveAllUnits);

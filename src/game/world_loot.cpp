@@ -27,8 +27,6 @@ using GivenItems = mfc::CTypedPtrList<CItem>;
 
 // A byte-identical copy of the particle list's GetNext: the item at `position`, which moves on.
 CItem* NextItem(GivenItems* list, GivenItems::Node** position) { return list->GetNext(*position); }
-// The objects (items, loot, gold) `object` holds for the taker (the world's hoover); 0 when there is
-// nothing to take.
 
 template <typename T>
 void InitList(mfc::CTypedPtrList<T>& list, void* vtable) {
@@ -44,9 +42,9 @@ void InitList(mfc::CTypedPtrList<T>& list, void* vtable) {
 } // namespace
 
 bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
-    GivenItems items;    // [0x18]
-    GivenItems second;   // [0x5C]
-    ObjectList third;    // [0x40]
+    GivenItems items;
+    GivenItems second;
+    ObjectList third;
     InitList(items, mfc::impl::ItemListClass::Vtable());
     InitList(second, mfc::impl::ItemListClass::Vtable());
     InitList(third, mfc::impl::LootListClass::Vtable());

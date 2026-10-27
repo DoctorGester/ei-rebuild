@@ -275,7 +275,7 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
         CMapObject* object = node->data;
         if (gamecrt::mbscmp(name.c_str(), object->name2.c_str()) == 0) object->SetVisibilityLevel(value);
     }
-    // FCOMP + TEST AH,0x40.
+    // The original's test counts a NaN as equal; the audit checks that none arrives.
     EI_NAN_AUDIT(value);
     if (value == 2.0f && str::Find(name, dot) < 0) SummonBird();
 }
@@ -334,10 +334,9 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
 
 namespace {
 
-// CPlayer::Disconnect on the local session.
 void __fastcall SessionDisconnect(CPlayer* session) { static_cast<CPlayer*>(session)->Disconnect(); }
 
-// FCOMP a, b; C0 (a < b, or unordered) selects `ifLess`, else `otherwise` (a bit trick).
+// `ifLess` when a < b or unordered, else `otherwise`.
 float SelectLess(float a, float b, float ifLess, float otherwise) {
     return a >= b ? otherwise : ifLess;
 }
@@ -394,7 +393,7 @@ EI_REWRITTEN(0x00572580, CWorldClient::EraseFootprint);
 EI_REWRITTEN(0x005725B0, CWorldClient::EraseScorchMark);
 
 int CWorldClient::Segment() {
-    ObjectListIterator objectsIt{nullptr, nullptr};   // [ebp-0x58]
+    ObjectListIterator objectsIt{nullptr, nullptr};
     int frames = ++ticksRun_;
     if (frames == 10) {
         static_cast<CInterface3D*>(TheInterface())->OnStringEvent(worlddata::AutosaveEventText());
@@ -473,7 +472,7 @@ int CWorldClient::Segment() {
                 for (auto* node = bloodPrints_.head->next; node != bloodPrints_.head; node = node->next) {
                     BloodPrint& effect = node->data;
                     float level = sun->GetIntensityAt(&worlddata::kOrigin);
-                    ObjectListIteratorOf<CLight> lights{};   // [ebp-0x60]
+                    ObjectListIteratorOf<CLight> lights{};
                     for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {
                         if (light == sun || (light->flags_ & 0x80)) continue;
                         float nodeX = effect.position_.x, nodeY = effect.position_.y;
