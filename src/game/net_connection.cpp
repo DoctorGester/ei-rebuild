@@ -35,9 +35,7 @@ using netlists::SentRecordElement;
 using Chunks = stlp::list<ReliableChunk>;
 using Packets = stlp::list<SentPacket>;
 using Items = stlp::list<SentItem>;
-// The static vector: constructor, erase of a range, introsort loop and final insertion sort by object,
-// atexit. CollectChanges's static vector of {object, priority} and its guard; its exit function frees the
-// storage.
+// CollectChanges's static vector of {object, priority}; its exit function frees the storage.
 constinit stlp::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
 void __cdecl FreeReplicated() { g_replicated.FreeStorage(); }
@@ -111,9 +109,8 @@ std::uint16_t IdPool::Allocate() {
 }
 EI_REWRITTEN(0x00435F10, IdPool::Allocate);
 
-// (No Ghidra function; the client base jumps to it with its first
-// connection). Plain float maths (rewrite-guide rule 7): a silence within rounding of the limit
-// may be judged one call apart from the original.
+// Plain float maths (rewrite-guide rule 7): a silence within rounding of the limit may be judged one call
+// apart from the original.
 int Connection::Silent() const {
     const float factor = 3.0f /*0073BAA4*/;
     float limit = roundTrip_ * factor;

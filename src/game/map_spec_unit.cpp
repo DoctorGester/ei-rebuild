@@ -31,8 +31,6 @@ template <typename T>
 using Array = mfc::CArray<T>;
 
 
-// UnitSpec: map_spec.h.
-
 // The small chunk classes: a Chunk and the value it reads or writes (the target is set after the
 // constructor). OnChunk is the first virtual; the behaviour record's writer is called directly.
 template <typename T>
@@ -66,8 +64,6 @@ template <typename Constructor, typename Destructor>
 void VectorConstruct(void* a0, unsigned a1, int a2, Constructor a3, Destructor a4) { libcrt::ConstructElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3), reinterpret_cast<libcrt::ElementFunction>(a4)); }
 template <typename Destructor>
 void VectorDestruct(void* a0, unsigned a1, int a2, Destructor a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
-// MFC (library): CStringArray, the CArray instantiations of patrols and waypoints (SetSize,
-// ConstructElements, DestructElements).
 void PatrolsSetSize(Array<Patrol>* patrols, int size) { mfc::impl::ArrayAs<mfc::impl::OwnedPatrols>(*patrols).SetSize(size, -1); }
 constexpr auto ConstructPatrols = mfc::impl::ConstructElementsAt<mfc::impl::Patrols>;
 constexpr auto DestructPatrols = mfc::impl::DestructElementsAt<mfc::impl::OwnedPatrols>;
@@ -77,8 +73,6 @@ void DestroyPatrol(Patrol& p) {
     ei::SetVtable(&p.waypoints, mfc::impl::ArrayBaseClass::Vtable());
     if (p.waypoints.data) gamecrt::operator_delete(p.waypoints.data);
 }
-// The world server's sector map and the selection move and turn an object; the world object's updates.
-
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -404,7 +398,6 @@ void UnitSpec::OnChunk() {
 EI_REWRITTEN(0x0046D080, UnitSpec::OnChunk);
 
 // ---- Behaviour records in a stream (saved games) -----------------------------------------------
-// The stream (CStream, core_streams.h) reads and writes through its read and write virtuals.
 
 namespace {
 void StreamRead(CStream* stream, void* data, unsigned size) { stream->Read(data, size); }
@@ -459,7 +452,7 @@ void __fastcall WaypointsWrite(const Array<Waypoint>* a, CStream* stream) {
 EI_REWRITTEN(0x0045DFB0, WaypointsWrite);
 
 // The record from a stream. Files before version 0x53 have no alarm level: it follows
-// from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). +0x30 is not stored.
+// from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). field0A is not stored.
 void Behaviour::Read(CStream* stream) {
     StreamRead(stream, &type, 4);
     int n;

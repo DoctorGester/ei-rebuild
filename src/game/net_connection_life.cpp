@@ -1,6 +1,5 @@
-// A connection's construction, reset, clone and destruction 
-// the id pools' copy and the replica entries' slots. The containers are STLport instantiations (library),
-// called through their original addresses. See net_connection.h and docs/notes/network.md.
+// A connection's construction, reset, clone and destruction, the id pools' copy and the replica entries'
+// slots. See net_connection.h and docs/notes/network.md.
 #include "net_coder.h"
 #include "net_connection.h"
 #include "net_connection_trees.h"
@@ -70,7 +69,7 @@ void DestroyForReset(Connection* c) {
 // The reliable streams are members, built before the body (the original builds them last).
 Connection::Connection(std::uint32_t id) {
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
-    received_.ConstructEmpty();   // vector<int>()
+    received_.ConstructEmpty();
     address_ = NetAddress{};
     libcrt::ConstructElements(idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolConstruct>, Element<IdPoolDestruct>);
     freedIds_.Construct();
@@ -168,7 +167,6 @@ namespace net {
 Connection* Connection::Clone() { return NewCounted<Connection>(*this); }
 EI_REWRITTEN(0x00433060, Connection::Clone);
 
-// The copy, field by field.
 // The reliable streams are members, copied before the body (the original copies them last).
 Connection::Connection(const Connection& other)
     : CRefObject(), reliableOut_(other.reliableOut_), reliableIn_(other.reliableIn_) {
@@ -247,7 +245,7 @@ ReplicaEntry* ReplicaEntry::Clone() { return NewCounted<ReplicaEntry>(*this); }
 EI_REWRITTEN(0x004343C0, ReplicaEntry::Clone);
 
 // Entry reset: releases the object, then built again in place as the constructor would (object, version and
-// id cleared; type and flags kept). Returns what EAX held (nothing in particular).
+// id cleared; type and flags kept). The result means nothing.
 int ReplicaEntry::OnShutdown() {
     ReleaseEntryObject(this);
     object_.ptr = nullptr;
@@ -257,13 +255,12 @@ int ReplicaEntry::OnShutdown() {
 }
 EI_REWRITTEN(0x00434430, ReplicaEntry::OnShutdown);
 
-// The entry's deleting destructor.
 ReplicaEntry::~ReplicaEntry() { ReleaseEntryObject(this); }
 EI_REWRITTEN_SPECIAL(0x004344C0, ReplicaEntry::~ReplicaEntry);
 EI_REWRITTEN_SPECIAL(0x004344A0, ReplicaEntry::~ReplicaEntry);
 
-// (no Ghidra function; the element constructor the connection's constructor passes to the
-// vector constructor iterator): an empty id pool (no free ids, next 0).
+// An empty id pool (no free ids, next 0); the connection's constructor passes it to the vector constructor
+// iterator.
 IdPool* __fastcall IdPoolConstruct(IdPool* self) {
     self->free.ConstructEmpty();
     self->next = 0;
