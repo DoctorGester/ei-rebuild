@@ -1,5 +1,5 @@
-// Drawing slots (20) of the camp's and the hero screen's panels: the quick strip, the
-// repair grid, the constructors' spell maker and item maker. See docs/notes/ui.md, section 5. The trade grid's is in
+// Draw virtuals of the camp's and the hero screen's panels: the quick strip, the repair grid, the
+// constructors' spell maker and item maker. See docs/notes/ui.md, section 5. The trade grid's is in
 // ui_trade_grid_draw.cpp.
 #include "ui.h"
 #include "ui_camp.h"
@@ -36,8 +36,8 @@ const char* CostFormat() { return "%s %d (%d)"; }
 void DrawItem(CItemScreen* owner, int pass, ItemCell* cell) { owner->DrawItem(pass, cell); }
 
 
-// The depth buffer (and the stencil when the device has one) cleared over `rect` (null: all of
-// it) to `z` under the device lock, as the original inlines it; the new renderer gets the clear too.
+// The depth buffer (and the stencil when the device has one) cleared over `rect` (null: all of it) to
+// `z` under the device lock; the new renderer gets the clear too.
 void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
     std::uint32_t flags = (renderer->caps_ & kCapsStencil) && renderer->stencil_ ? kClearZBuffer | kClearStencil
                                                                                     : kClearZBuffer;
@@ -177,7 +177,7 @@ BOOL CSpellMakerPage::DrawSpellMaker(int pass) {
             DrawItem(owner_, pass, &cell);
             hasContainer = true;
         } else if (UiItemKinds::IsSpell(item)) {
-            // A record out of range is read through null, as in the original.
+            // A record out of range is read through null, like the original.
             const itemdb::SpellRecord* spell = itemdb::SpellAt(static_cast<const CItemLoot*>(item)->index_);
             needed += spell->skill;
             manaSum = static_cast<float>(static_cast<double>(manaSum) + spell->mana);
@@ -321,7 +321,7 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
             DrawSprite(highlight, pass, 250.0f, 300.0f);
             DrawSprite(highlight, pass, 350.0f, 250.0f);
         } else if (part) {
-            // The grid cells the part has room for (+0x4C) beyond the materials in it.
+            // The grid cells the part has room for beyond the materials in it.
             int room = static_cast<int>(part->materialUnits);
             int cellIndex = 0;
             bool none = true;

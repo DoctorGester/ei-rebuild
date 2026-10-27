@@ -245,7 +245,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             std::string message;
             TheTextManager()->GetString(game::menukeytexts::KeyMappedText(), &format);
             message = str::Format(format, pressed->name_, other->name_.GetString());
-            // The box's text (a null box is written through, as in the original).
+            // The box's text (a null box is written through, like the original).
             box->text_ = message.c_str();
             interface_->PushWindow(box, 1, 1);
             return;

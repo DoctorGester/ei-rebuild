@@ -12,11 +12,11 @@
 namespace {
 
 // DDPIXELFORMAT, the fields read here (as dwords: PixelFormat::words).
-constexpr int kFormatFlags = 1;          // +0x04 dwFlags
-constexpr int kFormatRed = 4;            // +0x10 dwRBitMask
-constexpr int kFormatGreen = 5;          // +0x14
-constexpr int kFormatBlue = 6;           // +0x18
-constexpr int kFormatAlpha = 7;          // +0x1C
+constexpr int kFormatFlags = 1;          // dwFlags
+constexpr int kFormatRed = 4;            // dwRBitMask
+constexpr int kFormatGreen = 5;          // dwGBitMask
+constexpr int kFormatBlue = 6;           // dwBBitMask
+constexpr int kFormatAlpha = 7;          // dwRGBAlphaBitMask
 constexpr std::uint32_t kFormatRgb = 0x40;          // DDPF_RGB
 
 constexpr std::uint32_t kMmpDxtMask = 0x00FFFFFF;

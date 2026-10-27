@@ -37,10 +37,6 @@ namespace {
 
 
 
-// The briefing texts: opening a section by name (0 when
-// there is none), finding the next line with a tag and splitting the
-// current line into words.
-
 bool IsEmpty(const mfc::CString& s) {
     return gamecrt::mbscmp(s.GetString(),
                            game::EmptyText()) == 0;
@@ -108,9 +104,6 @@ void GameFlow::MarkBriefing(const char* briefing) {
 
 namespace {
 
-// The briefing texts forget a loaded file.
-// STLport string destructor.
-
 using LoadedFiles = stlp::vector<stlp::string>;
 LoadedFiles& QuestFiles() { return g_questFiles; }
 
@@ -143,7 +136,7 @@ void UnloadQuestTexts() {
     if (!texts) return;
     LoadedFiles& files = QuestFiles();
     for (stlp::string* file = files.begin(); file != files.end(); ++file) texts->RemoveSource(file->data());
-    // The original's inlined erase(begin(), end()) moves nothing and destroys them all.
+    // erase(begin(), end()) moves nothing and destroys them all.
     files.clear();
 }
 

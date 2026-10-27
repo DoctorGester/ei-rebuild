@@ -175,5 +175,3 @@ void CUiModel::SetScreenPosition(float x, float y, float depth) {
 EI_REWRITTEN(0x005FC450, CUiModel::SetScreenPosition);
 
 // --- Record lookups --------------------------------------------------------------------------
-
-// The spell and modifier tables' At (spell_db_lookup.cpp).

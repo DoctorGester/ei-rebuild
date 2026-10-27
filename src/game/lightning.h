@@ -48,15 +48,15 @@ static_assert(sizeof(NoiseKey) == 16);
 // One segment of a bolt (0xA8 bytes): a straight line from `start` in `points.size` steps of
 // `step`, displaced along `side` and `up` by two noise curves.
 struct LightningSegment {
-    Vector3 start;              // +0x00
-    Vector3 side;               // +0x0C displacement axes, both of the bolt's "thickness" length
-    Vector3 up;                 // +0x18
-    Vector3 step;               // +0x24 (end - start) / point count
-    NoiseKey sideKeys[3];       // +0x30 newest first (the noise along `side`)
-    NoiseKey upKeys[3];         // +0x60 (the noise along `up`)
-    float noiseTime;            // +0x90 time of the newest keys
-    LightningPointArray points; // +0x94
-    float width;                // +0xA4 passed to the renderer
+    Vector3 start;
+    Vector3 side;               // displacement axes, both of the bolt's "thickness" length
+    Vector3 up;
+    Vector3 step;               // (end - start) / point count
+    NoiseKey sideKeys[3];       // newest first (the noise along `side`)
+    NoiseKey upKeys[3];         // (the noise along `up`)
+    float noiseTime;            // time of the newest keys
+    LightningPointArray points;
+    float width;                // passed to the renderer
 
     // Straight segment between two points: start, step and point count (48 below 10
     // units, 72 above 15, 5 per unit in between, a multiple of 4), the displacement axes scaled to
@@ -78,16 +78,16 @@ struct LightningSegment {
 
 class CLightning final : public CEngineObject {
 public:
-    // The construction (lightning_start.cpp): the engine object's fields cleared, no
-    // textures, the bounds cleared, the segments empty, then reset like slot 3.
+    // The construction (lightning_start.cpp): the engine object's fields cleared, no textures, the
+    // bounds cleared, the segments empty, then reset like Destroy.
     CLightning();
-    // Reset like slot 3, then the segments (lightning_start.cpp).
+    // Reset like Destroy, then the segments (lightning_start.cpp).
     ~CLightning() override;
 
-    // Slot 2: resets the bolt like slot 3, then adds it to the manager's list of new
-    // bolts, which holds a reference until the next DrawAll. Returns 1.
+    // Resets the bolt like Destroy, then adds it to the manager's list of new bolts, which holds a
+    // reference until the next DrawAll. Returns 1.
     int Create() override;
-    // Slot 3: power 1, amplitude 0.1, releases both textures.
+    // Power 1, amplitude 0.1, releases both textures.
     void Destroy() override;
     const char* GetClassName() override;    // "CLightning"
     int GetClassId() override;              // 0x1E
@@ -101,24 +101,24 @@ public:
     void UpdateBounds();
     // Moves the branches with the bolt (unless power is 0) and animates all segments.
     void Animate();
-    // New end points: main segment, then the branches (spread along the main segment,
-    // or random parallel bolts when power is 0); animates when power is negative.
+    // New end points: main segment, then the branches (spread along the main segment, or random
+    // parallel bolts when power is 0); animates when power is negative.
     void SetEndpoints(const Vector3* from, const Vector3* to);
-    // A new bolt (lightning_start.cpp): power, sway, the main segment and six branches
-    // (or six parallel bolts for power 0) with fresh noise, animated once, its bounds, and the
-    // textures ("Lightning" / "SmtgLight", or the "Demon" pair).
+    // A new bolt (lightning_start.cpp): power, sway, the main segment and six branches (or six parallel
+    // bolts for power 0) with fresh noise, animated once, its bounds, and the textures ("Lightning" /
+    // "SmtgLight", or the "Demon" pair).
     void Start(const Vector3* from, const Vector3* to, float power, bool demon);
 
-    HeldTexture texture_;               // +0x1C
-    HeldTexture glowTexture_;           // +0x20
-    // +0x24 the bounds the renderer clips by: flags 3 once set, the box relative to the centre.
+    HeldTexture texture_;
+    HeldTexture glowTexture_;
+    // The bounds the renderer clips by: flags 3 once set, the box relative to the centre.
     ClipBounds bounds_;
-    Vector3 boundsSpare_;               // +0x50 cleared with the bounds, never read
-    LightningSegment main_;             // +0x5C
-    LightningSegment branches_[6];      // +0x104
-    float branchPos_[6];                // +0x4F4 where each branch leaves the main segment (0..1)
-    float power_;                       // +0x50C sign selects the look (0: parallel bolts)
-    float amplitude_;                   // +0x510 noise amplitude of the branch sway
+    Vector3 boundsSpare_;               // cleared with the bounds, never read
+    LightningSegment main_;
+    LightningSegment branches_[6];
+    float branchPos_[6];                // where each branch leaves the main segment (0..1)
+    float power_;                       // sign selects the look (0: parallel bolts)
+    float amplitude_;                   // noise amplitude of the branch sway
 };
 
 // The noise table, 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the
@@ -141,15 +141,14 @@ public:
     ~CLightningManager() override;
     const char* GetClassName() override;           // "CLightningManager"
     int GetClassId() override;                     // 0x35
-    // CBaseManager's Init.
     // A new bolt.
     CEngineObject* NewObject(int type) override;
-    // Draws every bolt it owns (its object list, CBaseManager +0x34), then drops the
-    // references of the new-bolt list and empties it. Returns 1.
+    // Draws every bolt it owns (its object list), then drops the references of the new-bolt list and
+    // empties it. Returns 1.
     int DrawAll(void* device);
-    // Slot 2 (class_slots.cpp). Loads the noise table on the first call, then the base manager's Create.
+    // Create (class_slots.cpp): loads the noise table on the first call, then the base manager's Create.
     int Create() override;
 
-    mfc::CTypedPtrList<CLightning> newBolts_;   // +0xB0 (each entry holds a reference)
+    mfc::CTypedPtrList<CLightning> newBolts_;   // (each entry holds a reference)
 };
 static_assert(offsetof(CLightningManager, newBolts_) == 0xB0 && sizeof(CLightningManager) == 0xCC);

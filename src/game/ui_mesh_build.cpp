@@ -1,11 +1,10 @@
 // The interface sprites' shape builders (framed rectangle, disc, ring).
 // See ui_mesh_build.h and docs/notes/ui.md ("Sprite shapes").
 // Floating point: the rectangle's values are sums and products of floats and small integers kept in
-// the original's order (precise floating point; values the original stores as float are rounded
-// with static_cast<float>). The circle points use FCOS/FSIN of an angle the original computes on
-// the FPU stack and never stores; they are computed by the same instruction sequence in inline
-// assembly, so they round the same way whatever the FPU's precision. Constants are read from the
-// exe's memory.
+// the original's order (precise floating point; values the original stores as float are rounded with
+// static_cast<float>). The circle points use FCOS/FSIN of an angle the original computes on the FPU
+// stack and never stores; they are computed by the same instruction sequence in inline assembly, so
+// they round the same way whatever the FPU's precision. Constants are read from the exe's memory.
 #include "ui_mesh_build.h"
 
 #include "lib/containers.h"
@@ -21,9 +20,9 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// The aligned arrays inside the sprite: the 0x40-byte normal packets (normals_),
-// the two colour arrays (colorsA_, colorsB_) and the 16-bit indices (+0x200). All are
-// lib::AlignedArray instantiations (aligned_arrays.cpp).
+// The aligned arrays inside the sprite: the 0x40-byte normal packets (normals_), the two colour arrays
+// (colorsA_, colorsB_) and the 16-bit indices. All are lib::AlignedArray instantiations
+// (aligned_arrays.cpp).
 using IndexArray = lib::AlignedArray<std::uint16_t>;
 
 // The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
@@ -84,7 +83,7 @@ void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
     std::memcpy(&mesh->localPosition_.z, &depth, 4);
 }
 
-// --- Points on a circle, as the original computes them on the FPU ------------------------------------
+// --- Points on a circle, computed on the FPU ---------------------------------------------------------
 // The angle of point j of n is (j * pi + j * pi) / n (FILD, FMUL float pi, FADD ST0,ST0, FDIV of
 // the FILD'd n), never stored. The FCOS / FSIN result is used unrounded in the same expression.
 
@@ -257,7 +256,7 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
         SetVertex(this, 4 * i + 2, 2 * i + 2, 2);
         SetVertex(this, 4 * i + 3, 2 * i + 3, 3);
     }
-    // (Written even without segments, before the array, as the original.)
+    // (Written even without segments, before the array, like the original.)
     Vertices()[count * 4 - 2].position = 0;
     Vertices()[count * 4 - 1].position = 1;
 

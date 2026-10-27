@@ -47,8 +47,6 @@ constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
 CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
 
-// The multiplayer session's player records (STLport list of PlayerMessage pointers).
-
 // IDirect3DDevice7::SetRenderState / GetRenderState.
 long SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
     render::state::Render(static_cast<std::uint32_t>(state), value);
@@ -76,7 +74,7 @@ int& UpdatePeriod() { return worlddata::g_updatePeriod; }
 constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
-// The constants the movement panel's marker is placed with, read where the original reads them.
+// The constants the movement panel's marker is placed with, read where the game reads them.
 float Pi() { return 3.1415927f /*007423F8*/; }
 float Sixteenth() { return 0.0625f /*0073D040*/; }      // 0.0625
 float MarkerRadius() { return 73.0f /*00742B10*/; }   // 73
@@ -111,7 +109,7 @@ void CHudWeaponBar::OnMouseUp(int, int x, int y) {
     Highlight(region, 1);
     selected_ = region;
     interface_->PlaySound(kSoundWeapon, 0);
-    // The original does not check for a missing local view here.
+    // No check for a missing local view here (like the original).
     if (CUnit* unit = unit_) LocalView()->SetWeapon(unit, region);
 }
 EI_REWRITTEN(0x0063C710, CHudWeaponBar::OnMouseUp);
@@ -146,7 +144,7 @@ BOOL CHudWeaponBar::Draw(int pass) {
 }
 EI_REWRITTEN(0x0063C4F0, CHudWeaponBar::Draw);
 
-// The three other panels draw the same way, with specular on (slot 20).
+// The three other panels draw the same way, with specular on (the draw virtual).
 namespace {
 BOOL DrawWithSpecular(CUiWindow* window, int pass) {
     SetRenderState(window->interface_->renderer_->device_, kRenderStateSpecular, 1);
@@ -277,7 +275,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
         playerId = slots_[region].playerId_;
     } else {
         int unitId = owner_->party_[region]->id_;
-        // The session's player records: id_ (+0x2C) the player's unit, serial_ (+0x30) its id.
+        // The session's player records: id_ the player's unit, serial_ its id.
         net::RefNode* end = net::GameClient()->players_.End();
         for (net::RefNode* node = end->next; node != end; node = node->next) {
             auto* player = net::GameClient()->players_.At(node);
@@ -583,7 +581,7 @@ void CHudMovePanel::Update() {
     }
     ShowModeVanilla(mode);
     flag_ = flag;
-    // Scene object 5 shows the flag through its texture offset (textureOffsetU_, +0xCC).
+    // Scene object 5 shows the flag through its texture offset (textureOffsetU_).
     std::uint32_t bits = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
     std::memcpy(&SceneMesh(5)->textureOffsetU_, &bits, 4);
 }
@@ -645,32 +643,25 @@ constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0
 constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
 
-// A unit's position (CUnit position), copied as the original copies it (three dwords).
+// A unit's position (CUnit position), copied as three dwords.
 Vector3 PositionOf(const CUnit* unit) {
     Vector3 v;
     std::memcpy(&v, &unit->localPosition_.x, sizeof(v));
     return v;
 }
 
-// The battle screen's own commands (the flag argument is the interface's +0x7F byte).
+// The battle screen's own commands (the flag argument is a byte of the interface).
 void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
     screen->UseOnUnit(target, quick, ctrl);
 }
 void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int quick) {
     screen->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
 }
-// The HUD panels: quick items (slot, 0), spells (index, 0), actions
-// (index, 0) and (all: CHudActionColumn::ClearHighlights).
-// The client world (TheClientWorld()): the object under a screen point (x, y pair), the
-// ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
-// The local view's orders: (unit, target, a, b, flag), (unit, target;
-// CPlayerClient::SendFollow, through its address).
-// The sprite's SetScale with the scale's bits (CUiMesh::SetScale).
 
 constexpr int kCategoryWand = 8;
 // The factor turning a random dword into the portraits' negative start delay.
 double PortraitDelayScale() { return (-6.984919588798148e-11 /*00742760*/); }
-// A random value times ~-2^-34 * 0.3, as the original stores it.
+// A random value times ~-2^-34 * 0.3, stored the way the original does.
 float PortraitDelay(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * PortraitDelayScale());
 }
@@ -692,7 +683,7 @@ bool IsZero(float value) {
 void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto ctrl = [this] { return static_cast<char>(interface_->doubleClick_); };
     auto orderAt = [this](const Vector3& at, int mode, char flag) { OrderAt(at.x, at.y, at.z, mode, flag); };
-    // Slot 55 (+0xDC, IsDead): non-zero for a dead unit.
+    // IsDead: non-zero for a dead unit.
     auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
@@ -828,8 +819,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     case 1:   // a spell on a unit
         if (!unit || unitDead(unit) || !first) return;
-        // Rebirth's FixSpellSelfCasting #1 (MOV CL,0): the cast no longer passes the
-        // Ctrl flag.
+        // Rebirth's FixSpellSelfCasting #1 (MOV CL,0): the cast no longer passes the Ctrl flag.
         ScreenCastOn(this, nullptr, unit,
                      ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellSelfCasting) ? '\0' : ctrl(), 0);
         return;
@@ -928,7 +918,7 @@ EI_REWRITTEN(0x00638EF0, CBattleScreen::SelectUnit);
 void CHudQuickItems::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(x, y);
-    // Unchecked, as in the original (region -1 reads +0x168).
+    // Unchecked, like the original (region -1 reads a neighbouring field).
     int entry = RegionItem(region);
     if (entry < 0) return;
     handled_ = true;
@@ -952,8 +942,8 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
         actions->selected_ = value;
     };
     if (selected_ != region) {
-        // One of the player's items (top row): "use on an object" (mode 6) with the item's
-        // key (slot 21) in the screen's itemUseKey_ and its id in pendingItem_.
+        // One of the player's items (top row): "use on an object" (mode 6) with the item's key in the
+        // screen's itemUseKey_ and its id in pendingItem_.
         interface_->PlaySound(kSoundClick, 0);
         screen->itemUseKey_ = entries_[entry].item->GetUse();
         screen->pendingItem_ = entries_[entry].id;
@@ -987,7 +977,7 @@ float GameOne() { return 1.0f /*0073B84C*/; }
 } // namespace
 
 void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
-    // The original passes the address of its own argument slots as the point.
+    // The point is the address of the argument slots, as in the original.
     Vector3 point = {x, y, z};
     int selected = 0;
     for (int i = 0; i < party_.size; ++i) {
@@ -995,8 +985,8 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
         if (member && (member->flags_ & kFlagSelected)) ++selected;
     }
 
-    // A point on a zone exit that is open ("z.<zone>" not 1; "none" is no zone): remembered for
-    // the update to ask about leaving (+0x18C, +0x188 the exit).
+    // A point on a zone exit that is open ("z.<zone>" not 1; "none" is no zone): remembered for the
+    // update to ask about leaving (exitPending_ and the exit).
     exitPending_ = 0;
     int exit;
     if (GameFindExitAt(&point.x, &exit) && selected > 0) {

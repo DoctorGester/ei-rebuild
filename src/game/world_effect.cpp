@@ -14,16 +14,8 @@ using namespace effect;
 
 namespace {
 
-// The sound system (thiscall; Play3D plays a sound: CSoundManager::Play3D). The
-// mover takes the volume and radius as the floats' bits.
-// Moves a playing sound.
-// Stops a sound.
-// Moves / stops a sound sequence.
-// Starts / moves an ambient sound (a list of names); another stops it and
-// returns the handle to keep (-1).
-
-// What every Reset (slot 18) does to the base part first: position, field streams, start tick,
-// velocity, moving flag and stamp.
+// What every Reset does to the base part first: position, field streams, start tick, velocity, moving
+// flag and stamp.
 void ClearBase(CEffect* e) {
     e->localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
     EmptyField(&e->state_);

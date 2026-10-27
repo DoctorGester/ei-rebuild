@@ -1,5 +1,5 @@
 // The save/load and options windows opened from the Esc menu: their mouse handlers, the slide-in
-// drawing and update, and the small slots. See ui.h and docs/notes/ui.md.
+// drawing and update, and the small virtuals. See ui.h and docs/notes/ui.md.
 #include "model.h"
 #include "options.h"
 #include <bit>
@@ -357,7 +357,7 @@ BOOL CUiScrollbar::TakePosition(int* position) {
 
 void CUiScrollbar::Update() {
     if (state_ == 2 || state_ == 3) {
-        // The container's FrameTime does not use the window; the original calls it the same way.
+        // The container's FrameTime does not use the window.
         double step = reinterpret_cast<CUiContainer*>(this)->FrameTime() * speed_ * 16.0f;
         if (state_ == 2) step = -step;
         accumulated_ = static_cast<float>(step + accumulated_);

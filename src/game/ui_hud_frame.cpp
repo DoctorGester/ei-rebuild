@@ -35,7 +35,7 @@ float FloatFromBits(std::uint32_t bits) {
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
 float Pi() { return 3.1415927f /*007423F8*/; }
-// The original reads its constants from memory at run time; Rebirth rewrites one of them (the clock's x,
+// The constants are read from memory at run time; Rebirth rewrites one of them (the clock's x,
 // widescreen::g_layoutWidth, for its widescreen layout).
 float PausedHand() { return 0.9166667f /*00742B18*/; }   // hand angle while paused, in pi
 float FastHand() { return 0.5833333f /*00742B14*/; }   // at fast speed

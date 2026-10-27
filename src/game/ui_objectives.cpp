@@ -88,8 +88,6 @@ void __cdecl DestroyLastQuest() {
     g_lastQuest.Destroy();
 }
 
-// Not rewritten: splits `text` at `separator` into `out`.
-
 // A local hash_map<CString, float> filled with the player's variables starting with `prefix`.
 class VariableTable {
 public:
@@ -106,7 +104,7 @@ private:
 
 using ZoneNames = stlp::vector<mfc::CString>;
 int SizeOf(const ZoneNames& v) { return static_cast<int>(v.end() - v.begin()); }
-// push_back as the original inlines it (the instantiation's own overflow).
+// push_back (the instantiation's own overflow).
 void PushBack(ZoneNames* v, const mfc::CString& x) {
     if (v->Finish() != v->EndOfStorage()) {
         new (v->Finish()) mfc::CString(x);
@@ -116,7 +114,7 @@ void PushBack(ZoneNames* v, const mfc::CString& x) {
     }
 }
 
-// std::sort as the original inlines it (the comparator is an empty object).
+// std::sort (the comparator is an empty object).
 void SortStrings(mfc::CString* first, mfc::CString* last) {
     if (first == last) return;
     int depth = 0;
@@ -129,8 +127,6 @@ void SortStrings(mfc::CString* first, mfc::CString* last) {
         stl_sorts::QuestInsertionSort(first, last, 0);
     }
 }
-
-// The window's exit list: CArray<ObjectiveExit> at +0x188.
 
 // The global map's exit distances (STLport map<int, float>).
 using DistanceMap = stlp::map<int, float>;
@@ -356,7 +352,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
 
         // The zone's title and description ("zone <name>") on surface 1.
         {
-            mfc::CString text;    // (declared first: the original releases the title first)
+            mfc::CString text; // (declared first: the title is released first)
             mfc::CString title;
             int foundText;
             {
@@ -620,7 +616,7 @@ void CObjectivesWindow::CreateScreen() {
             return;
         }
         // The zones of this allod in which the player holds quests ("q.<zone>.<quest>" = 1), and
-        // the zone the interface's current quest (+0xAC) belongs to.
+        // the zone the interface's current quest belongs to.
         std::string current;
         CStringArray parts;
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];

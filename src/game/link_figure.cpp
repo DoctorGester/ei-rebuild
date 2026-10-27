@@ -95,7 +95,7 @@ CLinkMeshBase::CLinkMeshBase(const stlp::string* name) : refCount_(0), name_(*na
 
 // The name goes after the body (a member).
 CLinkMeshBase::~CLinkMeshBase() { headers_.Destroy(); }
-EI_REWRITTEN_SPECIAL(0x004F2D40, CLinkMeshBase::~CLinkMeshBase);   // reached only from EH unwinding in the original
+EI_REWRITTEN_SPECIAL(0x004F2D40, CLinkMeshBase::~CLinkMeshBase);   // reached only from EH unwinding
 EI_REWRITTEN_SPECIAL(0x004F2E00, CLinkMeshBase::~CLinkMeshBase);   // deleting
 
 CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u)
@@ -146,7 +146,7 @@ bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, 
     std::memcpy(corners_.data + start, corners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
     ranges.corners = {start, cornerCount};
 
-    // The original's out-of-line SetSize(n, -1) for these two.
+    // The out-of-line SetSize(n, -1) for these two.
     ranges.words = {Append(words_, words, wordCount), wordCount};
     ranges.indices = {Append(indices_, indices, indexCount), indexCount};
 

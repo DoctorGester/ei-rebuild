@@ -149,7 +149,7 @@ EI_REWRITTEN(0x0063C050, CHudWeaponBar::Highlight);
 
 void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     // Slots 0 and 1 share the texture's first column, 2 and 3 the second; odd slots the lower
-    // half. (Left unset, as in the original, for a count over 3, which SetUnit never reaches.)
+    // half. (Left unset for a count over 3, which SetUnit never reaches.)
     const int x = count_ >= 2 ? kWeaponWidth : 0;
     const int y = (count_ & 1) ? kWeaponHeight : 0;
     CopyImage(objects_.data[0], image, 0x80, 0x80, kWeaponWidth, kWeaponHeight, x, y, 0, 0);

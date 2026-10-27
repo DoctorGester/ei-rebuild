@@ -53,7 +53,7 @@ float FromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FromBits(T) = delete;
 
-// Randomize a key as the original game does inline. The up-noise keys of SampleNoise multiply the
+// Randomize a key. The up-noise keys of SampleNoise multiply the
 // normaliser by the amplitude before the weight; everything else multiplies the weight first.
 void RandomizeKey(NoiseKey& key, float amplitude, bool amplitudeFirst) {
     float sum = 0.0f;

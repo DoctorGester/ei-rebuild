@@ -16,7 +16,7 @@ namespace {
 
 constexpr const char* kTipText = "tip %d";
 
-// A new tooltip of `region` (null when the allocation fails, as in the original).
+// A new tooltip of `region` (null when the allocation fails).
 CUiTooltip* NewTooltip(CUiRegion* region, const char* text, int flag, int extra) {
     return new CUiTooltip(region->interface_, region, text, flag, extra);
 }

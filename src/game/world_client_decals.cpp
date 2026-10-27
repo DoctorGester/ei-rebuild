@@ -1,7 +1,8 @@
 // The client world's decal projector (object shadows, ground prints).
-// The decal builder (ground_decal.h) is a function-local static of the original game, as is the work array of transformed part points; both are
-// made on first use and freed at exit by the original's handlers. The builder's members are called
-// through their addresses. See docs/notes/models.md ("Ground prints").
+// The decal builder (ground_decal.h) is a function-local static of the original game, as is the work
+// array of transformed part points; both are made on first use and freed at exit by the original's
+// handlers. The builder's members are called through their addresses. See docs/notes/models.md
+// ("Ground prints").
 #include "world.h"
 #include "at_exit_functions.h"
 
@@ -46,8 +47,8 @@ void BuildNodeMatrix(const Quaternion& rotation, const Vector3& position, Matrix
     m[15] = 1.0f;
 }
 
-// Pushes `m` onto the pipeline's decal stack as the original inlines it: the product
-// goes through a library call whose terms sum in another order than PushMatrix's.
+// Pushes `m` onto the pipeline's decal stack: the product goes through a library call whose terms sum
+// in another order than PushMatrix's.
 void PushDecalMatrix(CTransformPipeline* pipeline, const float* m) {
     MatrixStack& stack = pipeline->stacks_[CTransformPipeline::kDecalStack];
     if (stack.count == 0) {
@@ -67,8 +68,8 @@ Matrix4 Transposed(const Matrix4& m) {
 }
 
 // The part's triangles (its figure's part of the same name), transformed by the pipeline's
-// stack-14 top, added to the decal. As in the original, GetPartData's result is not checked: a
-// missing part leaves the previous part's data in use (ours starts from none).
+// stack-14 top, added to the decal. As in the original, GetPartData's result is not checked: a missing
+// part leaves the previous part's data in use (ours starts from none).
 struct PartData {
     VertexPacket* vertices = nullptr;
     MeshCorner* corners = nullptr;

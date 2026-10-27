@@ -1,7 +1,8 @@
 // The two worlds (g_serverWorld, g_clientWorld) and their constructors: CWorldServer
 // and CWorldClient. Only their static initialisers (defined here on the names) call them.
-// The members with C++ constructors (the strings, the zone header) are the compiler's; the others' constructors are
-// written out in the original's order (the inlined ones) or called (the out-of-line ones).
+// The members with C++ constructors (the strings, the zone header) are the compiler's; the others'
+// constructors are written out in the original's order (the inlined ones) or called (the out-of-line
+// ones).
 #include "world.h"
 
 #include "ai_map.h"
@@ -22,8 +23,6 @@
 #include <new>
 
 namespace {
-
-// The instantiations' vtables the constructors write.
 
 // The MFC lists' block size (CList(nBlockSize = 10)).
 constexpr int kListBlockSize = 10;

@@ -43,9 +43,6 @@ void Pop(MatrixStack& stack) {
     if (stack.count != 0) --stack.count;
 }
 
-// Place's layout scale (0.48157), the half width / height (400, 300)
-// and 1, read from the exe.
-
 } // namespace
 
 void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
@@ -71,7 +68,7 @@ EI_REWRITTEN(0x005E6FA0, CUiMesh::PlaceBody);
 // Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds
 // the placement from the orientation and position, pushes it on the view and world stacks, then
 // the scale matrix on both (the view stack's push inlined), draws the sprite as a figure in its
-// tint (slot 7; the renderer's colour put back after) with its material, and drops both pushes
+// tint (the renderer's colour put back after) with its material, and drops both pushes
 // from both stacks. Returns 1 (or the fatal error's result).
 int CUiMesh::Draw(CSceneRenderer* renderer) {
     if (!visible_) return 1;

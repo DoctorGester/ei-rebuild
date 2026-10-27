@@ -55,8 +55,8 @@ void FillBar(CUiMesh* bar, float ratio, float width, float top, float bottom) {
     bar->Texels()[3].v = bottom;
 }
 
-// `value` / `maximum` clamped to 1, or 0 when the bar is not filled (the original also leaves
-// it alone then).
+// `value` / `maximum` clamped to 1, or 0 when the bar is not filled (`ratio` is left
+// alone then, like the original).
 bool BarRatio(int value, int maximum, float* ratio) {
     *ratio = static_cast<float>(value) / static_cast<float>(maximum);
     if (*ratio > 1.0f) {
@@ -67,7 +67,7 @@ bool BarRatio(int value, int maximum, float* ratio) {
 }
 
 
-// The local view, whose SetUnitFlag438 sets a unit's +0x438 flag and sends it to the server.
+// The local view, whose SetUnitFlag438 sets a unit's flag and sends it to the server.
 CPlayerClient* Orders() { return TheClientWorld()->LocalView(); }
 
 } // namespace

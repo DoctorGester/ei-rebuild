@@ -1,10 +1,9 @@
-// The client world's object maps (helpers and the CWorldClient methods that keep
-// the maps). See docs/notes/world.md ("Client maps").
-// The client files every object in a sector grid (+0x120: STLport lists of counted pointers, one
-// per 16x16 cell) and the second grid at +0x150; most of the helpers there are the STLport and MFC
-// instantiations behind those maps (config/library.csv). Rewritten here: the grids' Move (two
-// instantiations), the window hit collectors, the radius marker, the pending-map lookup and the
-// bounds-checked record accessors.
+// The client world's object maps (helpers and the CWorldClient methods that keep the maps). See
+// docs/notes/world.md ("Client maps").
+// The client files every object in a sector grid (STLport lists of counted pointers, one per 16x16
+// cell) and a second grid; most of the helpers there are the STLport and MFC instantiations behind
+// those maps (config/library.csv). Rewritten here: the grids' Move (two instantiations), the window
+// hit collectors, the radius marker, the pending-map lookup and the bounds-checked record accessors.
 #include "ground_print.h"
 #include "item_db_text.h"
 #include "hash_tables_400.h"
@@ -91,7 +90,7 @@ struct GridOpsA {
 };
 using GridOpsB = GridOpsA;
 
-// The counted pointer's copy and destruction, as the original inlines them.
+// The counted pointer's copy and destruction.
 void HoldRef(CEngineObject* object) {
     if (object) ++object->refCount_;
 }
@@ -179,7 +178,7 @@ void ScreenHits::InsertOverflow(ScreenEntry* position, const ScreenEntry* value,
 
 namespace {
 
-// The hit test of the object's side half (CObject3D + 0x94) for the point: slot 22 or 24.
+// The hit test of the object's side half for the point: CollectBounds or CollectParts.
 using HitTest = int (CObject3DSpecific::*)(const long* point);
 
 // The entries of the screen list's nodes [first, last) whose rectangle holds (x, y) and whose
@@ -230,9 +229,8 @@ EI_REWRITTEN(0x0056FC60, PendingIndex::Lookup);
 
 namespace {
 
-// The plain STLport lists of pointers (+0xB4 counted, +0xB8 referenced by hand, +0x7BC, +0xF0):
-// end, insert, begin, erase (thiscall on the list;
-// plain values).
+// The plain STLport lists of pointers (heroes_, objects_, list7BC_, screenEntries_): end, insert, begin,
+// erase (thiscall on the list; plain values).
 using PlainList = SectorList;
 using FiledNode = MapObjectList::Node;
 struct PlainOps {
@@ -253,19 +251,13 @@ struct CellOps {
     static constexpr auto Clear2 = HeldOps::Clear;
 };
 
-// The client's MFC CList<CEngineObject*> (+0xBC): NewNode, FreeNode; the
-// platform list's RemoveAt (on the platform set's list, +0x1F0).
+// The client's MFC CList<CEngineObject*> (dynamicObjects_): NewNode, FreeNode; the platform list's
+// RemoveAt (on the platform set's list).
 using DynamicList = mfc::CList<CEngineObject*>;
 using DynamicNode = DynamicList::Node;
 
-// The id map +0xD8 (hash_map<unsigned, DynamicNode*>, then the highest key): operator[]
-// erase(iterator), clear.
-
 // ClearMaps: the session's player data.
 void __fastcall SessionPlayerClear(CPlayer* session) { static_cast<CPlayer*>(session)->Clear(); }
-
-// The STLport sort over the screen entries with DepthLess {plane, manager}: stl_sorts.h's stl_sorts::
-// ScreenIntroSort, ScreenInsertionSort, ScreenUnguardedInsertionSort.
 
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
@@ -354,7 +346,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
     PlatformList& platforms = platforms_.list;
     for (PlatformNode* node = platforms.head; node;) {
         PlatformNode* next = node->next;
-        if (node->data.id == id) platforms.RemoveAt(node);   // the original's inlined RemoveAt
+        if (node->data.id == id) platforms.RemoveAt(node);   // inlined RemoveAt
         node = next;
     }
     if (object->GetClassId() != kClassPlatform54 && object->GetClassId() != kClassPlatform5D) return;
@@ -424,7 +416,7 @@ void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
 
 void CWorldClient::LoadUnitFaces() {
     for (FiledNode* node = objects_.head->next; node != objects_.head; node = node->next) {
-        // The original tests the pointer after the class call (the list holds no null).
+        // The pointer is tested after the class call (the list holds no null).
         if (CUnit* unit = UnitOrNull(node->data)) unit->ClientController()->LoadFaceTexture();
     }
 }
@@ -444,7 +436,7 @@ void CWorldClient::DropShadows() {
     MapObjectList& objects = objects_;
     for (FiledNode* node = objects.head->next; node != objects.head; node = node->next) {
         CObject3DClientSpecific* half = node->data->ClientSpecific();
-        // The original tests AL only (ShadowsShown's "off" leaves the setting's upper bytes).
+        // Only the low byte is tested (ShadowsShown's "off" leaves the setting's upper bytes).
         if (!static_cast<std::uint8_t>(half->ShadowsShown())) half->ClearShadow();
     }
 }
@@ -583,7 +575,7 @@ CEngineObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     if (hits.begin() == hits.end()) return nullptr;
 
     // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level
-    // inlined in the original (the same steps as the out-of-line loop).
+    // inlined (the same steps as the out-of-line loop).
     const float* plane = ScenePipeline()->Top(CTransformPipeline::kViewStack)->m;
     CBaseManager* objects = client->MapObjectManager();
     ScreenEntry* first = hits.begin();
@@ -652,14 +644,6 @@ void CWorldClient::UnitsInBox(const long* rect, stlp::list<CEngineObject*>* out)
 
 namespace {
 
-// The prototypes' name map (hash_map<string, record*>): find or insert a {name, 0} pair
-// the prototype table's lookup by name.
-// CUnit: the second prototype by name, the figure made from a model and its part names,
-// RestartPose after it, WriteFullState, the position,
-// the items (release all, weapon, armour, quick item).
-// The figure's RegisterPartMaterials and its texture swap (from, to (null:
-// none)); an armour's type (on the item).
-
 bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     for (;; ++a, ++b) {
         if (*a != *b) return false;
@@ -691,7 +675,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         }
         auto* manager = MapObjectManager();
         auto* unit = manager->CreateObjectAs<CUnit>(kTypeHero, static_cast<int>(record->unitId));
-        if (!unit) return;   // (the original leaves the loop: the same as returning here)
+        if (!unit) return;   // (leaving the loop is the same as returning here)
         UnitPrototypeRecord* prototype = unitdb::PrototypeTable().FindByName(record->texts[5]);
         unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - unitdb::PrototypeTable().begin : -1);
         unit->SetPrototype23CByName(record->texts[6]);
@@ -699,7 +683,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
         CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
         figure->RegisterPartMaterials();
-        unit->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
+        unit->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
         unit->RestartPose();
         const char* skin = record->texts[4];
         figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
@@ -731,7 +715,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
 
 namespace {
 
-// The original's branch-free selects after FCOMP + FNSTSW (C0 shifted into a mask): `a < b`
+// Branch-free selects after FCOMP + FNSTSW (C0 shifted into a mask): `a < b`
 // picks one side.
 float MaxZero(float b) {
     EI_NAN_AUDIT(b);
@@ -805,8 +789,7 @@ int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, c
     // AddHead with the instantiation's NewNode.
     PlatformNode* last = list.head;
     PlatformNode* node = list.NewNode(nullptr, last);
-    // (The original first copies 0x4C bytes of uninitialised stack over the record; every field is
-    // written below or by the caller.)
+    // (Every field is written below or by the caller; the record's old bytes are not read.)
     if (last)
         last->prev = node;
     else
@@ -837,7 +820,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
     const Vector3& high = item->boxMax;
     const Vector3& pivot = item->pivot;
 
-    // The rotation matrix of the quaternion (w, x, y, z), as the original builds it.
+    // The rotation matrix of the quaternion (w, x, y, z).
     float q0 = rotation->w, q1 = rotation->x, q2 = rotation->y, q3 = rotation->z;
     float t1 = q1 + q1, t2 = q2 + q2, t3 = q3 + q3;
     float t1q0 = t1 * q0, t2q0 = t2 * q0, t3q0 = t3 * q0;
@@ -881,10 +864,6 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
 
 namespace {
 
-// The lists' element destructors (node + 8, flags) and
-// node releases (node, count).
-// The platform list's RemoveAll; the base world's teardown.
-
 // The list's nodes walked from the head's next, each given to `free` after the next is read; the
 // list is left empty.
 template <typename T, typename F>
@@ -916,7 +895,7 @@ void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& fee
     });
 }
 
-// An owned engine object deleted (its slot 0, the scalar deleting destructor, with 1) and cleared.
+// An owned engine object deleted (the scalar deleting destructor, with 1) and cleared.
 template <typename T>
 void DeleteOwned(T*& slot) {
     if (CEngineObject* object = slot) {
@@ -1016,8 +995,8 @@ void CWorldClient::ResetZoneObjects() {
 // ---- The selection --------------------------------------------------------------------
 
 namespace {
-// The selection highlight off: flags 0x10 and 0x100 cleared, the side half's slots 25 (empty) and
-// 26 with 0 (its light goes off).
+// The selection highlight off: flags 0x10 and 0x100 cleared, the side half's empty virtual and SetLit
+// with 0 (its light goes off).
 void Unhighlight(CEngineObject* object) {
     object->flags_ &= ~0x110u;
     CObject3DSpecific* half = ObjectSlots(object)->attached;
@@ -1075,7 +1054,7 @@ namespace {
 std::uint8_t* New(std::size_t size) { return gamecrt::operator_new_array<std::uint8_t>(size); }
 
 // A heap object (operator new[]'s memory) made by its constructor (null without memory), stored and
-// referenced (the original does not test the pointer before counting).
+// referenced (the pointer is not tested before counting).
 template <typename T>
 T* MakeCounted() {
     std::uint8_t* memory = New(sizeof(T));
@@ -1084,7 +1063,7 @@ T* MakeCounted() {
     return object;
 }
 
-// A new object (its class's operator new and constructor), stored and referenced (the original does not
+// A new object (its class's operator new and constructor), stored and referenced (the pointer is not
 // test the pointer before counting).
 template <typename T>
 T* NewCounted() {
@@ -1102,7 +1081,7 @@ void GridToFour(SectorGrid& grid) {
     grid.Resize(4, 4);
 }
 
-// A reference on every object of `manager` (the original keeps the walk's iterator on the heap).
+// A reference on every object of `manager`.
 void ReferenceEveryObject(CBaseManager* manager) {
     auto* walk = gamecrt::operator_new_as<ObjectListIterator>();
     if (walk) walk->manager = nullptr;
@@ -1252,7 +1231,7 @@ int CWorldClient::Create() {
         cursor_ = text::sys::LoadCursorFromFileA(path.c_str());
     }
 
-    // A reference on every object of the manager of slot 22 (the original's iterator is on the heap).
+    // A reference on every object of the spell manager.
     if (SpellManager()) ReferenceEveryObject(SpellManager());
 
     // Room for 400 screen entries (reserve).
@@ -1286,12 +1265,12 @@ int CWorldClient::Create() {
 
 void CWorldClient::ReferenceItemsAndSpells() {
     if (ItemFactory()) ReferenceEveryObject(ItemFactory());
-    // The original tests the item factory again before walking the spells.
+    // The item factory is tested again before walking the spells.
     if (ItemFactory()) ReferenceEveryObject(SpellManager());
 }
 
 namespace {
-// Every object of `manager` released (a heap iterator, as the original).
+// Every object of `manager` released (a heap iterator).
 void ReleaseEveryObject(CBaseManager* manager) {
     auto* walk = gamecrt::operator_new_as<ObjectListIterator>();
     if (walk) walk->manager = nullptr;
@@ -1380,9 +1359,8 @@ PlatformSet::~PlatformSet() {
 EI_REWRITTEN_SPECIAL(0x00561A60, PlatformSet::~PlatformSet);
 EI_REWRITTEN_SPECIAL(0x00561AE0, PlatformSet::~PlatformSet);
 
-// The items a player is given, CPlayerServer::SendItemsGiven).
-// What LoadManagerObjects reads back: per object a 1, its id, type and +0x18, then its own Save;
-// a 0 ends the list.
+// What LoadManagerObjects reads back: per object a 1, its id, type and a field, then its own Save; a 0
+// ends the list.
 void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream) {
     for (auto* node = list->head; node;) {
         CEngineObject* object = node->data;
@@ -1525,7 +1503,7 @@ int CWorldClient::LoadZone(CStream* block) {
         map = folder + map;
     }
     terrain->ClearMap();
-    // The original fetches the texture manager (slot 34) for both calls; the first does not use it.
+    // The texture manager is fetched for both calls; the first does not use it.
     DeleteComposedTextures();
     TextureManager()->FreeCache();
     ShowLoadingMovie(kProgressMapFreed);

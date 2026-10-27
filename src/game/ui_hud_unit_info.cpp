@@ -42,17 +42,8 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr int kLineHeight = 15;
 constexpr int kLevelDifferenceLimit = 25;
 
-// The panel surface's text draw (Rebirth-patched; text, rectangle, 0, colour, 0, 1).
-// The text manager: the text of a key (key, out).
-// CUnit: the move speed of a mode or the current one (in ST0),
-// the prototype, the level.
 // The world: the time of day (in ST0).
 double __fastcall WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
-// The unit's parameters (+0x330): the vision range at a time of day (in ST0);
-// the description texts (unit +0x17C, out, name is a text key).
-// Whether an id is a text key.
-// Rebirth-patched: the description as lines [description, out, 1].
-// The session: a multiplayer client.
 
 
 // The speed shown: (a constant * speed) * a constant unrounded, the speed of the mode (mode 3) for a
@@ -130,7 +121,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.text.Format(kValueUnit, panel.labels[6].GetString(), vision, panel.labels[13].GetString());
     panel.DrawLine();
 
-    // The controller's attack parameters (slot 50): attack, defence, the damage type (below 7
+    // The controller's attack parameters : attack, defence, the damage type (below 7
     // unsigned: "dmg_<n>" names it) and range.
     AttackParams combat;
     unitIn->Controller()->GetAttackParams(&combat);

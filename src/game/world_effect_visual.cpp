@@ -27,9 +27,6 @@ using namespace effect;
 namespace {
 
 
-// The world client's: a scorch mark on the ground. All arguments are float bits.
-// camera.cpp: a camera shake from an event at `at`.
-
 
 void ClearBase(CEffect* e) {
     e->localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
@@ -40,8 +37,8 @@ void ClearBase(CEffect* e) {
     e->changeStamp_ = -1;
 }
 
-// The light's range fields: +0xE0 = range, +0x100 = range^2, +0x104 = 1 / range^2 with the square
-// left unrounded for the division (FMUL, FST, FDIV ST,ST(1)).
+// The light's range fields: range, range^2 and 1 / range^2 with the square left unrounded for the
+// division (FMUL, FST, FDIV ST,ST(1)).
 void SetLightRange(CLight* light, std::uint32_t rangeBits) {
     light->range_ = std::bit_cast<float>(rangeBits);
     const double square = static_cast<double>(light->range_) * light->range_;
@@ -52,7 +49,7 @@ void SetLightRange(CLight* light, std::uint32_t rangeBits) {
 std::uint32_t& LightFlags(CLight* light) { return light->flags_; }
 Vector3& LightPosition(CLight* light) { return light->localPosition_; }
 
-// The particle tick's step towards the target, in the original's x87 order: speed = |velocity|
+// The particle tick's step towards the target, in x87 order: speed = |velocity|
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
 // otherwise t = speed / (dist < speed (or NaN) ? speed : dist), rounded to float.
 int StepFraction(const Vector3* velocity, const Vector3* dxdy, float* t) {
@@ -99,7 +96,7 @@ std::uint32_t InlineRandom() {
 }
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
-// sqrt(x*x + y*y) + half + 0.3, both rounded to float only when stored, in the original's x87 order.
+// sqrt(x*x + y*y) + half + 0.3, both rounded to float only when stored, in x87 order.
 void WallScorchShape(const Vector3* direction, const float* half, float* angleAndOuter) {
     angleAndOuter[0] = static_cast<float>(x87::fpatan(direction->y, direction->x));
     const double outer = std::sqrt(LengthSquared2DUnrounded<double>(direction->x, direction->y));
@@ -400,7 +397,7 @@ void CEffectParticle::SetTarget(const Vector3* target) {
 
 void CEffectParticle::Attach() {
     // Nothing to do when the source already follows that object, or follows none and none is set.
-    // Without a source the original goes on and reads through the null pointer.
+    // Without a source this goes on and reads through the null pointer, like the original.
     if (source_ != nullptr) {
         CEngineObject* followed = source_->attachedTo;
         if (followed != nullptr) {

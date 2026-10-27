@@ -4,10 +4,9 @@
 // Rebirth patches all of them for its WideScreen layout, reproduced behind the flag (
 // ui_widescreen.h): the map at the screen's right edge, the unit panel at its left (the panel
 // offset while the setups and layouts run, their layout constants moved by EdgeShift). The callees
-// Rebirth patches too (the sprites' Place and shapes, the
-// regions' SetRect and AddPoint) are called through their addresses. See ui.h
-// ("Battle screen and its HUD panels"), docs/notes/items_spells.md ("A-H26") and
-// docs/notes/rebirth.md ("WideScreen").
+// Rebirth patches too (the sprites' Place and shapes, the regions' SetRect and AddPoint) are called
+// through their addresses. See ui.h ("Battle screen and its HUD panels"), docs/notes/items_spells.md
+// and docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
 #include "game_strings.h"
 

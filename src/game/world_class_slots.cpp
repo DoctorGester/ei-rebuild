@@ -1,4 +1,4 @@
-// The constant slots and plain getters of the world classes (A-W14). See world_class_slots.h and
+// The constant virtuals and plain getters of the world classes. See world_class_slots.h and
 // docs/notes/world.md.
 #include "world_class_slots.h"
 #include "game_strings.h"

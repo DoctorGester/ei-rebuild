@@ -20,8 +20,6 @@
 
 namespace {
 
-// Releases the texture in `holder` and loads `name` (kind 6).
-
 float Absolute(float f) {
     std::uint32_t bits;
     std::memcpy(&bits, &f, 4);

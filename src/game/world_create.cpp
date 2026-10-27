@@ -1,9 +1,8 @@
-// The world's managers created (the server's and the client's world both call it, and
-// it is a virtual slot of their base). See docs/notes/combat.md ("Rewritten"),
-// the managers.
-// The world's paths are taken from the command line globals; every manager is made, referenced
-// and attached to the world (its slot 13 with the world, or slot 2); a 0x0C-byte helper goes into
-// a counted pointer at +0x5C; then the ISAAC generator is seeded and +0x70 set up.
+// The world's managers created (the server's and the client's world both call it, and it is a virtual
+// of their base). See docs/notes/combat.md ("Rewritten"), the managers.
+// The world's paths are taken from the command line globals; every manager is made, referenced and
+// attached to the world (ThisWorld with the world, or the base); a 0x0C-byte helper goes into a
+// counted pointer (shared5C_); then the ISAAC generator is seeded and countdowns_ set up.
 #include "world.h"
 #include "model.h"   // TweenArray (countdowns_)
 #include "world_data.h"
@@ -30,10 +29,8 @@
 
 namespace {
 
-// The world's +0x70 is set up.
-
-// A new object (its class's operator new and constructor), counted once: the original counts the reference
-// without testing the pointer.
+// A new object (its class's operator new and constructor), counted once: the reference is counted
+// without testing the pointer, like the original.
 template <class T>
 T* MakeNew() {
     T* object = new T();
@@ -75,7 +72,7 @@ int CWorld::Create() {
     itemManager_ = MakeNew<CItemManager>();
     Attach(itemManager_, this);
 
-    // The helper goes into the counted pointer at +0x5C (RefPtr::ShareAssign, inlined).
+    // The helper goes into the counted pointer shared5C_ (RefPtr::ShareAssign, inlined).
     shared5C_.ShareAssign(new CWorldHandle());
     IsaacRandom::Global().Init();
     countdowns_.RemoveAll();
