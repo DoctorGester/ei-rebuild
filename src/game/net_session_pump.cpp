@@ -1,7 +1,5 @@
-// The connection pump of a network session and its start: a driver link
-// (net_link.h) per remote player. The session keeps two STLport lists of the drivers (+8 owning,
-// +0xC plain holders); the lists' members are library code, called at their original addresses.
-// See docs/notes/network.md.
+// The connection pump of a network session and its start: a driver link (net_link.h) per remote player. The
+// session keeps two lists of the drivers (owning, and holders_). See docs/notes/network.md.
 #include "net_classes.h"
 #include "net_link.h"
 
@@ -21,8 +19,6 @@ namespace netlink {
 
 namespace {
 
-// list<RefPtr>::insert of the drivers (shared) and the holders (counted), the drivers' erase; the nodes'
-// deallocation (12 bytes back to the pool) and the pool's free.
 using RefList = stlp::list<RefPtr>;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 

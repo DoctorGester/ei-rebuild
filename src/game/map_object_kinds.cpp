@@ -1,5 +1,4 @@
-// The member-less map object classes (map_object_kinds.h, A-U6): CTree, CBuilding, CStone and
-// CStuffObject.
+// The member-less map object classes (map_object_kinds.h, A-U6): CTree, CBuilding, CStone and CStuffObject.
 #include "map_object_kinds.h"
 
 #include "ei/hook.h"

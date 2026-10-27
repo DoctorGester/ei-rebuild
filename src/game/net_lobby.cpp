@@ -1,8 +1,7 @@
-// The client base's lobby: finding servers and joining one, and the server base's half
-// that answers. See net_classes.h (ClientBase, ServerBase) for the fields.
-// The packets (first byte): 3 ping (the session time), 4 join (magic, id, rate, extra data),
-// 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7 refused (id, reason).
-// Plain float maths (rule 7). See docs/notes/network.md.
+// The client base's lobby: finding servers and joining one, and the server base's half that answers. See
+// net_classes.h (ClientBase, ServerBase) for the fields. The packets (first byte): 3 ping (the session time),
+// 4 join (magic, id, rate, extra data), 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7
+// refused (id, reason). Plain float maths (rule 7). See docs/notes/network.md.
 #include "chunk_archive.h"
 #include "game_strings.h"
 #include "core_refcount.h"
@@ -38,11 +37,6 @@ ServerEntry* EntryOf(ServerNode* node) { return stlp::SharedRefListOf<ServerEntr
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
 
-// Growing buffers.
-
-// STLport containers (library): the query vector (construct, insert overflow, copy, assign, erase, resize;
-// recordvec::QueryElement). The game's stlp::vector<Query> instantiation: _M_insert_overflow(pos, x, n),
-// operator=, erase(first, last), resize(n).
 using QueryList = stlp::vector<Query>;
 
 
@@ -77,7 +71,7 @@ Query* FindQuery(ClientQueries& v, const NetAddress* address) {
 }
 
 // A write the way these functions inline it: in place (marking the buffer written) when it fits
-// before `end`, otherwise through slot 4.
+// before `end`, otherwise through WriteMore.
 void Put(GameBuffer* b, const void* from, unsigned size) {
     if (b->cur + size > b->end) {
         b->WriteMore(from, size);
@@ -105,7 +99,7 @@ void EndCursor(BufferCursor& c) {
 void AppendServer(ClientBase* self, RefPtr& entry) {
     CRefObject* raw = entry.ptr;
     --raw->refs_;
-    raw->flags6_ &= static_cast<std::uint8_t>(~CRefCounted::kCopyOnShare);   // the original ANDs the word +6 with 0xFFFE
+    raw->flags6_ &= static_cast<std::uint8_t>(~CRefCounted::kCopyOnShare);
     entry.ptr = nullptr;
     RefPtr holder;
     HolderInit(&holder, raw);
@@ -127,7 +121,6 @@ ServerEntryBase::ServerEntryBase() {
 }
 EI_REWRITTEN_SPECIAL(0x004413E0, ServerEntryBase::ServerEntryBase);
 
-// The query with `address`, or the end.
 Query* ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
 EI_REWRITTEN(0x00441410, ClientQueries::QueriesFind);
 
@@ -139,8 +132,6 @@ std::int32_t __fastcall BufferLength(GameBuffer* b) {
 EI_REWRITTEN(0x00442570, BufferCursor::FlushBits);
 EI_REWRITTEN(0x00441640, BufferLength);
 
-// The query's constructor (a zero address and an empty
-// growing buffer), destructor, deleting destructor and copy constructor.
 Query::Query() { std::memset(&address, 0, sizeof(address)); }
 EI_REWRITTEN_SPECIAL(0x00443770, Query::Query);
 Query::~Query() {}
@@ -184,7 +175,7 @@ void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
 }
 EI_REWRITTEN(0x00441740, ClientBase::SendJoin);
 
-// ---- Client: packets (slots 3, 7, 8, 9) and the connection's loss ---------------------
+// ---- Client: packets and the connection's loss ---------------------------------------
 
 // Updates count only once joined.
 bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
@@ -195,7 +186,6 @@ bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     return SessionBase::OnUpdate(from, cursor);
 }
 
-// The host accepted the join.
 void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
     std::memcpy(&id, cursor->p, 4);
@@ -219,7 +209,7 @@ void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
     }
 }
 
-// The host refused the join (a reason byte follows the id).
+// A reason byte follows the join id.
 void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
     std::uint8_t* p = cursor->p;
     std::uint32_t id;
@@ -243,11 +233,10 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
     }
 }
 
-// Packet 5: a server's description. Its magic must match in all but the low
-// byte. A new entry reads itself from the packet and gets the sender's address, the
-// ping (now - the echoed time) and when to look again: local servers and those asked directly
-// soon, others from the list never; unknown servers neither local nor asked are ignored. A known
-// server's entry is replaced (and its reply kept in its query, if asked); a new one is appended.
+// Its magic must match in all but the low byte. A new entry reads itself from the packet and gets the sender's
+// address, the ping (now - the echoed time) and when to look again: local servers and those asked directly soon,
+// others from the list never; unknown servers neither local nor asked are ignored. A known server's entry is
+// replaced (and its reply kept in its query, if asked); a new one is appended.
 void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     RefPtr entry{nullptr};
     std::uint32_t echo, magic;
@@ -544,10 +533,9 @@ EI_REWRITTEN(0x00442AD0, ClientBase::Tick);
 
 // ---- Server base ------------------------------------------------------------------------------------
 
-// The magic and the entry go through a cursor.
 void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
     GrowingBuffer b;
-    GameBuffer* buffer = &b;   // slot 4 through the vtable
+    GameBuffer* buffer = &b;   // writes go through the vtable
     RefPtr entry{nullptr};
     Describe(&entry);
     if (entry.ptr) {
@@ -580,7 +568,6 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
 }
 EI_REWRITTEN(0x00442C60, ServerBase::SendInfo);
 
-// Packet 3: a ping; the time it carries is echoed.
 void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t echo;
     std::memcpy(&echo, cursor->p, 4);
@@ -588,7 +575,6 @@ void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
     SendInfo(from, echo);
 }
 
-// Admits everybody.
 bool ServerBase::Admit(const NetAddress*, std::uint8_t**, std::uint8_t*) { return true; }
 
 // An update from a peer that is not connected yet but was told to join
@@ -703,8 +689,6 @@ EI_REWRITTEN(0x00443590, ServerBase::Tick);
 
 // ---- Saving the queries -----------------------------------------------------------------------
 
-// The queries in a chunk archive (chunk 1 of chunks 1: field 1 the address, 2 the
-// reply's length, 3 the reply), then field 2 the extra dword.
 void ClientQueries::Serialize(ChunkArchive* archive) {
     if (archive->EnterChunk(1)) {
         bool loading = archive->loading_ != 0;

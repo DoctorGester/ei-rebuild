@@ -49,12 +49,6 @@ constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
 
-// CStringArray constructor, destructor, SetSize.
-// The unit motion's step speed array constructor and the constructor of its segment part (empty); the
-// motion's constructor then clears it (UnitMotion::Clear).
-// Light manager: removes a light.
-// The light list (CLightFactory::litIds_): erases the entries with id *id.
-// The server unit controller's members.
 void __fastcall BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
 void __fastcall BrainArrayDestroy(void* a0) { static_cast<AIRef*>(a0)->Reset(); }
 void __fastcall Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }

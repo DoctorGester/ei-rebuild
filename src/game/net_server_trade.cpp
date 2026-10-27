@@ -1,7 +1,6 @@
-// The game server's trades between players: offers arrive as replicated objects (created, updated,
-// removed), two matching offers make a trade (a TradeMessage,
-// finds it), and a removed file request is dropped a removed file request. The offers are PartyMessages
-// (net_messages.h). See docs/notes/network.md.
+// The game server's trades between players: offers arrive as replicated objects (created, updated, removed),
+// two matching offers make a trade (a TradeMessage, finds it), and a removed file request is dropped a
+// removed file request. The offers are PartyMessages (net_messages.h). See docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 
@@ -141,7 +140,7 @@ void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) 
 }
 
 // Offer removed: drops the offer; an unpaired offer's partner is told it was withdrawn.
-// Its trade, when live, is dropped, a done one first kept on +0x25C0 for 60 seconds.
+// Its trade, when live, is dropped, a done one first kept on finishedTrades_ for 60 seconds.
 void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);

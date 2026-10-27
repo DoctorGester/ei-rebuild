@@ -13,5 +13,3 @@ Vector3* __fastcall CrossProduct(Vector3* out, const Vector3& a, const Vector3& 
 
 // `out` = a - b; same convention.
 Vector3* __fastcall SubtractVectors(Vector3* out, const Vector3& a, const Vector3& b);
-
-// A byte-identical copy of ScaleVector (core_maths.h); registered there too.

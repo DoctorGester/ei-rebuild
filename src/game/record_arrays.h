@@ -143,9 +143,8 @@ using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;
 struct SectorVertexArrayClass final
     : mfc::impl::CompiledCollection<SectorVertexArrayClass, &SectorVertices::Destruct<SectorVertexArrayClass>, &SectorVertices::Serialize> {};
 
-// The client world's water levels, CArray<CArray<float>> (mfc::impl::
-// ClientMapArrayClass): each element an empty CArray<float>,
-// destroyed by the base's destructor (CArray<float>'s vtable, the storage freed).
+// The client world's water levels, CArray<CArray<float>> (mfc::impl:: ClientMapArrayClass): each element an
+// empty CArray<float>, destroyed by the base's destructor (CArray<float>'s vtable, the storage freed).
 using WaterLevelElement = mfc::impl::WithArray<0x14, 0, mfc::impl::FloatArrayClass>;
 using WaterLevels =
     ArrayAbi<WaterLevelElement, EachElements<WaterLevelElement, mfc::impl::InitWithArray<0x14, 0, mfc::impl::FloatArrayClass>,

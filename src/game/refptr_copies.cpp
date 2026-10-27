@@ -172,9 +172,7 @@ RefPtr* RefPtr::CopyCounted(const RefPtr* from) { return FromRawCounted(from->pt
 EI_REWRITTEN(0x004A5D50, RefPtr::CopyCounted);
 EI_REWRITTEN(0x004ABE30, RefPtr::CopyCounted);
 
-// The owning pointer's constructor from a raw pointer (RefPtr::Share, which returns
-// nothing) as the instantiations emit it out of line: the same body, returning the holder.
-// 9 copies.
+// Share as the instantiations emit it out of line (9 copies), returning the holder.
 RefPtr* RefPtr::ShareReturn(CRefObject* object) {
     Share(object);
     return this;
@@ -222,9 +220,8 @@ EI_REWRITTEN(0x00598980, ObjectHolderRelease);
 EI_REWRITTEN(0x00598990, ObjectHolderRelease);
 EI_REWRITTEN(0x00421350, ObjectHolderRelease);
 
-// Assignment, with byte-identical copies (a particle source's among them):
-// the new object gains a reference, then the old one is released (HeldObject::Assign,
-// engine_object.h).
+// Assignment, with byte-identical copies (a particle source's among them): the new object gains a reference,
+// then the old one is released (HeldObject::Assign, engine_object.h).
 EI_REWRITTEN(0x004EBE60, HeldEngineObject::Assign);
 EI_REWRITTEN(0x0056F1A0, HeldEngineObject::Assign);
 EI_REWRITTEN(0x00511B90, HeldEngineObject::Assign);

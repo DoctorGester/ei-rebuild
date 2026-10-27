@@ -70,12 +70,12 @@ struct NetAddress {
     std::uint32_t ip;
     std::uint8_t zero[8];
 
-    // This address from "host[:port]" (an IPv4 number or a host
-    // name looked up); `defaultPort` unless the text names one. False when the host is unknown.
+    // This address from "host[:port]" (an IPv4 number or a host name looked up); `defaultPort` unless the
+    // text names one. False when the host is unknown.
     bool Parse(const char* text, int defaultPort);
-    // "a.b.c.d:port" (or, with `resolve`, "hostname:port" when the look-up succeeds) in `out`; returns `out`.
+    // "a.b.c.d:port" (or, with `resolve`, "hostname:port" when the look-up succeeds) in `out`.
     stlp::string* Format(stlp::string* out, int resolve) const;
-    // Format without the look-up; returns `out`.
+    // Format without the look-up.
     stlp::string* ToString(stlp::string* out) const;
 };
 static_assert(sizeof(NetAddress) == 0x10);
@@ -92,9 +92,9 @@ public:
     enum State : std::int32_t { kClosed = 0, kConnecting = 1, kReceiving = 2, kDone = 3, kSending = 4 };
 
     GrowingBuffer out;           // what is sent once connected
-    GrowingBuffer in;            // what was received
+    GrowingBuffer in;
     std::uint32_t socket;        // (-1: none)
-    std::int32_t state;          // State
+    std::int32_t state;
 };
 
 // The network log (g_netLog; null when logging is off).
@@ -104,7 +104,6 @@ public:
     LogStream* PutChar(char c);
     LogStream* PutInt(int value);
     LogStream* Apply(libcrt::Manipulator manipulator);
-    // The flush manipulator the session code ends its lines with.
     LogStream* Flush() { return Apply(libcrt::FlushManipulator); }
 };
 
@@ -158,7 +157,6 @@ public:
 
 protected:
     Message();
-    // A clone's: the source's version.
     Message(const Message& other) : CRefObject(), version_(other.version_) {}
 
 };
@@ -170,7 +168,6 @@ void* __fastcall NewRefObject(std::size_t size);
 
 // ---- The server entries of the lobby ------------------------------------------------------------
 
-// A server entry's base.
 class ServerEntryBase : public CRefObject {
 public:
     ~ServerEntryBase() override;
@@ -188,11 +185,10 @@ public:
     float ping_;             // seconds; a constant when unknown
     std::uint8_t foreign_;   // the reply's echoed word differs from the magic
     std::uint8_t unused_21[3];
-    std::uint32_t state_;    // State
+    std::uint32_t state_;
 
 protected:
     ServerEntryBase();
-    // A clone's: the address, the timeout and ping (as dwords), the flag and the state.
     ServerEntryBase(const ServerEntryBase& other);
 };
 static_assert(offsetof(ServerEntryBase, address_) == 0x08);
@@ -246,7 +242,6 @@ struct ClientQueries {
     Query* QueriesFind(const NetAddress* address);
 };
 static_assert(sizeof(ClientQueries) == 0x10 && offsetof(ClientQueries, extra) == 0x0C);
-// The queries' constructor: an empty vector and a zero dword. Returns self.
 ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self);
 
 // ---- The session base ---------------------------------------------------------------------------
@@ -259,7 +254,7 @@ constexpr int kMessageTypes = 0x100;
 using HandlerVector = stlp::vector<void*>;
 static_assert(sizeof(HandlerVector) == 12);
 
-// The message type registry (+0x2C of a session): two STLport hash_maps.
+// The message type registry of a session.
 struct TypeRegistry {
     using ByVtable = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
     using ByType = stlp::hash_map<std::uint32_t, MessageFactory, stlp::IntHash>;
@@ -267,10 +262,10 @@ struct TypeRegistry {
     ByVtable byVtable;     // message vtable -> type id (100 buckets)
     ByType byType;         // type id -> factory (100 buckets)
 
-    // The key of a message's class: its vtable (the object's first dword), as the original keys the registry.
+    // The key of a message's class: its vtable (the object's first dword).
     static std::uint32_t KeyOf(const CRefObject* message) {
         std::uint32_t key;
-        std::memcpy(&key, message, sizeof(key));   // read before any null check, as the original
+        std::memcpy(&key, message, sizeof(key));   // read before any null check
         return key;
     }
     // The type id of the message class whose key is *key, or -1.
@@ -284,10 +279,10 @@ struct TypeRegistry {
 };
 static_assert(sizeof(TypeRegistry) == 0x28);
 
-// The UDP socket of a session and the broadcast addresses of the host (net_socket_driver.cpp).
+// The UDP socket of a session and the broadcast addresses of the host.
 struct SocketDriver {
     std::uint32_t socket;        // SOCKET (-1: none)
-    stlp::vector<NetAddress> addresses;   // broadcast addresses
+    stlp::vector<NetAddress> addresses;
 
     // Starts Winsock and notes the broadcast address of the host's first address.
     SocketDriver* Construct();
@@ -306,7 +301,7 @@ struct SocketDriver {
 };
 static_assert(sizeof(SocketDriver) == 0x10);
 
-// The sessions' lists of counted messages (STLport list<RefPtr>: the value at +8).
+// The sessions' lists of counted messages.
 using RefNode = stlp::list<RefPtr>::Node;
 
 // The value of the timed lists (the client's timers, the server's awards and finished trades): the
@@ -346,9 +341,8 @@ static_assert(sizeof(ReplicatedVector) == 12);
 void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority);
 void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority);
 
-// Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login,
-// 5 info, 6 accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after
-// that byte.
+// Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login, 5 info, 6
+// accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after that byte.
 class SessionBase : public CRefCounted {
 public:
     void RegisterTradeHandler(int channel, void* handler);
@@ -386,21 +380,19 @@ public:
     void AddHandler(int channel, std::uint32_t type, void* handler);
     // Clears the reliable flags of message types 1..17 and registers their factories.
     void RegisterMessageTypes();
-    // A handler registration as the session constructors do it: a prototype message T (net_messages.h), held
-    // through a counted reference while its type id is looked up by its class, then AddHandler.
+    // A handler registration as the session constructors do it: a prototype message T, held through a
+    // counted reference while its type id is looked up by its class, then AddHandler.
     template <typename T>
     void AddHandlerFor(int channel, void* handler) {
         AddHandlerForPrototype(NewCounted<T>(), channel, handler);
     }
     void AddHandlerForPrototype(Message* prototype, int channel, void* handler);
 
-    // The clients list node of the connection to `address` (the sentinel when none) into
-    // `*out`; returns `out`.
+    // The clients list node of the connection to `address` (the sentinel when none) into `*out`.
     ClientNode** FindClient(ClientNode** out, const NetAddress* address);
     // Logs it, removes a connection to the same address, appends a new connection with `id` and `address`;
     // its send interval follows from `rate`.
     void AddClient(const NetAddress* address, std::uint32_t id, int rate);
-    // Sends the buffer's contents to `address` through the socket.
     bool Send(const NetAddress* address, GameBuffer* buffer);
     // The send rate for a peer: g_localRate on the local network, else g_remoteRate.
     std::uint32_t RateFor(const NetAddress* address);
@@ -411,9 +403,8 @@ public:
 
     std::uint32_t magic_;               // 0; the game server and client set kSessionMagic
     std::int32_t timeout_;              // 60: seconds of silence before a peer is dropped
-    std::int32_t maxRoundTrip_;         // 5: a new connection's round trip estimate, the
-                                        //       longest loss timeout and how long lost packets
-                                        //       stay remembered (seconds)
+    std::int32_t maxRoundTrip_;         // 5: a new connection's round trip estimate, the longest loss
+                                        // timeout and how long lost packets stay remembered (seconds)
     std::int32_t idReuseTime_;          // 75: seconds before a freed message id is reused
     std::uint32_t frame_;               // 1; Tick counts its calls
     std::uint32_t unused_1C;           // not set by the constructors
@@ -422,7 +413,7 @@ public:
     TypeRegistry types_;
     SocketDriver socket_;
     std::uint8_t reliable_[kMessageTypes];   // per message type: its objects are sent reliably
-    HandlerVector handlers_[kChannels][kMessageTypes];   // / +0xD64 / +0x1964
+    HandlerVector handlers_[kChannels][kMessageTypes];
     std::uint32_t padding_2564;
 };
 static_assert(offsetof(SessionBase, magic_) == 0x08);
@@ -435,11 +426,11 @@ static_assert(offsetof(SessionBase, reliable_) == 0x64);
 static_assert(offsetof(SessionBase, handlers_) == 0x164);
 static_assert(sizeof(SessionBase) == 0x2568);
 
-constexpr std::uint32_t kSessionMagic = 0xDEC0AD07;   // +8 of the game server and client
+constexpr std::uint32_t kSessionMagic = 0xDEC0AD07;
 
 // ---- The server base and the game server ----------------------------------------------------------
 
-// A peer told to join that has not sent an update yet (the server base's +0x2568 list).
+// A peer told to join that has not sent an update yet (ServerBase::joins_).
 struct PendingJoin {
     NetAddress address;
     std::uint32_t id;
@@ -476,8 +467,6 @@ static_assert(sizeof(ServerBase) == 0x2570);
 // The game server (g_gameServer). Its lists are STLport lists of counted pointers.
 class ServerSession final : public ServerBase {
 public:
-
-    // The game kind `kind`, the handlers, the zones the host may pick.
     explicit ServerSession(std::uint32_t kind);
     ~ServerSession() override;
     void OnMaster(const NetAddress* from, BufferCursor* cursor) override;
@@ -532,7 +521,7 @@ public:
     void AnnounceToGuests(int kind, const char* text);
     void Kick(Connection* connection);
     void Ban(Connection* connection);
-    void ReportDeparture(Connection* connection, int text);   // OnClientLost (text 4) and OnClientLeft (text 1)
+    void ReportDeparture(Connection* connection, int text);
     bool IsHostConnection(const Connection* connection);
     // Whether the player bound to `connection` is in state 3.
     bool PlayerStateIs3(const Connection* connection);
@@ -544,23 +533,23 @@ public:
                                         // with the next announcement (GameInfoRecord::masterToken)
     NetAddress masterAddress_;          // the master server (port 28004)
     std::uint32_t nextLine_;            // the number of the next chat line
-    stlp::SharedRefListOf<PlayerMessage> players_; // player records
+    stlp::SharedRefListOf<PlayerMessage> players_;
     stlp::SharedRefListOf<LineMessage> lines_; // chat and system lines, at most 50
-    stlp::SharedRefListOf<FileMessage> files_; // shared files
+    stlp::SharedRefListOf<FileMessage> files_;
     stlp::CountedRefListOf<FileRequestMessage> fileRequests_; // the clients' requests (file requests, connections)
     // where the game is hosted (a HostMessage; world_game.cpp's AnnounceHost), replicated to everyone when set
     RefPtrTo<HostMessage> hostInfo_;
     stlp::SharedRefListOf<BindingMessage> bindings_; // player <-> connection
     RefPtrTo<MapMessage> map_;          // the map message while a map is played
     stlp::SharedRefListOf<ZoneMessage> queuedMaps_; // map messages the host may pick next
-    stlp::SharedRefListOf<VariableMessage> variables_; // script variables
+    stlp::SharedRefListOf<VariableMessage> variables_;
     SharedTimedList awards_;            // {delay, award}
-    stlp::CountedRefListOf<PartyMessage> offers_; // the players' trade offers (party messages)
-    stlp::CountedRefListOf<TradeMessage> trades_; // trades
+    stlp::CountedRefListOf<PartyMessage> offers_; // the players' trade offers
+    stlp::CountedRefListOf<TradeMessage> trades_;
     CountedTimedList finishedTrades_;   // {delay, trade}: done trades, kept 60 s
-    stlp::list<NetAddress> banned_;     // banned IPv4 addresses
-    stlp::string name_;                    // the game's name
-    stlp::string mapName_;                 // the current map
+    stlp::list<NetAddress> banned_;
+    stlp::string name_;
+    stlp::string mapName_;
     std::uint32_t maxPlayers_;          // 8; set by the creator
     std::uint32_t kind_;                // the constructor's argument: the game kind
     char password_[0x14];               // the join password (empty: none)
@@ -622,12 +611,12 @@ public:
     NetAddress host_;                   // the host joined or being asked
     GrowingBuffer joinData_;            // sent with every join request
     std::uint32_t joinId_;              // rand() << 16 | tick count
-    std::uint32_t joinState_;           // JoinState
+    std::uint32_t joinState_;
     std::uint8_t refusal_;              // the reason the host gave
     std::uint8_t unused_259D[3];
     float retryTimer_;                  // seconds to the next join request
     float retryInterval_;               // doubles with every request (0.1 first)
-    stlp::SharedRefListOf<ServerEntry> servers_; // the servers found (ServerEntry)
+    stlp::SharedRefListOf<ServerEntry> servers_;
     ClientQueries queries_;             // servers asked directly
     stlp::list<NetAddress> waiting_;    // addresses waiting to be asked
     NetAddress alwaysAsk_;              // asked on every refresh (ip 0: none)
@@ -643,7 +632,7 @@ static_assert(offsetof(ClientBase, alwaysAsk_) == 0x25C0);
 static_assert(offsetof(ClientBase, nextQuery_) == 0x25D0);
 static_assert(sizeof(ClientBase) == 0x25D8);
 
-// An embedded CParty (party_storage.h). The client keeps two, a trade record three.
+// An embedded CParty. The client keeps two, a trade record three.
 using ::PartyStorage;
 
 // A finished trade of the client's (ClientSession::tradeRecords_): the revisions of the trade and copies of
@@ -664,12 +653,9 @@ public:
     double BufferRatio(GameBuffer* buffer);
     // Reads a server list reply.
     void ReadServerList(GameBuffer* in);
-    // 0x0041E270 (net_client_handlers.cpp).
     void StartParty(CRefObject* partner);
-    // 0x0041E0A0 (net_client_handlers.cpp).
     void RecordTrade(const void* party);
 
-    // The local player's login, the handlers.
     ClientSession();
     ~ClientSession() override;
     void CollectReplicated(ReplicatedVector** out) override;
@@ -684,25 +670,25 @@ public:
     // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, const char* text);
 
-    stlp::CountedRefListOf<PlayerMessage> players_; // player records
-    stlp::CountedRefListOf<LineMessage> lines_; // chat lines
-    stlp::CountedRefListOf<FileMessage> files_; // shared files
-    stlp::CountedRefListOf<FileChunkMessage> chunks_; // file chunks
+    stlp::CountedRefListOf<PlayerMessage> players_;
+    stlp::CountedRefListOf<LineMessage> lines_;
+    stlp::CountedRefListOf<FileMessage> files_;
+    stlp::CountedRefListOf<FileChunkMessage> chunks_;
     stlp::SharedRefListOf<FileRequestMessage> fileRequests_; // file requests for the server
     HostMessage* info_;                 // the game's description, counted
     BindingMessage* binding_;           // our binding, counted
     MapMessage* map_;                   // the map message, counted
     stlp::CountedRefListOf<ZoneMessage> zones_; // map messages the host may pick
-    stlp::CountedRefListOf<VariableMessage> variables_; // script variables
+    stlp::CountedRefListOf<VariableMessage> variables_;
     RefPtrTo<LoginMessage> player_;     // the local player's login record
     SharedTimedList timers_;            // {seconds left, object}: objects kept for a while
     stlp::CountedRefListOf<AwardMessage> awards_; // awards received, applied by ApplyAwards
     RefPtrTo<PartyMessage> party_;      // our trade offer (party description)
     stlp::CountedRefListOf<PartyMessage> offers_; // the other players' trade offers
-    stlp::list<TradeRecord> tradeRecords_;   // the trades done
+    stlp::list<TradeRecord> tradeRecords_;
     TradeMessage* trade_;               // the current trade, counted
     std::uint32_t gameType_;            // the multiplayer game type 0..3 (StartServer): start zone, type variable
-    PartyStorage parties_[2];           // ours, +0x2690 the partner's
+    PartyStorage parties_[2];           // ours, the partner's
 };
 static_assert(offsetof(ClientSession, players_) == 0x25D8);
 static_assert(offsetof(ClientSession, info_) == 0x25EC);
@@ -714,17 +700,16 @@ static_assert(sizeof(ClientSession) == 0x2700);
 
 // ---- The game announcement ------------------------------------------------------------------------
 
-// The game announcement the server builds and the client reads in its entry. Field meanings: player count,
-// maximum players, the session magic. Names provisional.
+// The game announcement the server builds and the client reads in its entry.
 struct GameInfoRecord {
     stlp::string name;
     stlp::string description;
-    std::uint8_t players;        // number of players
-    std::uint8_t maxPlayers;     // the server's maxPlayers_
+    std::uint8_t players;
+    std::uint8_t maxPlayers;
     std::uint8_t kind;           // the server's kind_ (ServerEntry::kind_)
     std::uint8_t hasPassword;    // joining needs a password (ServerEntry::password_)
-    std::uint32_t masterKey;     // the server's masterKey_
-    std::uint32_t masterToken;   // the server's masterToken_
+    std::uint32_t masterKey;
+    std::uint32_t masterToken;
     std::uint32_t magic;         // kSessionMagic
 
     void Write(GameBuffer* buffer) const;
@@ -732,7 +717,7 @@ struct GameInfoRecord {
 };
 static_assert(sizeof(GameInfoRecord) == 0x28);
 
-// The byte buffer's read helpers (net_game_info.cpp).
+// The byte buffer's read helpers.
 GameBuffer* __fastcall BufferCopyOut(GameBuffer* buffer, void* edx, void* to, unsigned size);
 unsigned __fastcall BufferRead(GameBuffer* buffer, void* edx, void* to, unsigned size);
 void __fastcall BufferUpdateHigh(GameBuffer* buffer);

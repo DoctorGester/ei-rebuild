@@ -16,9 +16,8 @@ namespace net {
 
 namespace {
 
-// The growing byte buffer's constructor (net_coder.h, GameBuffer). The embedded party's constructor.
+// The embedded party's constructor.
 void PartyConstruct(PartyStorage* party) { new (party->Get()) CParty(); }
-// An empty STLport string (library).
 
 void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 
@@ -118,8 +117,8 @@ ClientSession::ClientSession() {
 }
 EI_REWRITTEN_SPECIAL(0x0041BC40, ClientSession::ClientSession);
 
-// What the server receives from this client: the local player's login The timed objects (+0x2604, value) and
-// the file requests, and our trade offer with its members. All priority 1.
+// What the server receives from this client: the local player's login, the timed objects and the file
+// requests, and our trade offer with its members. All priority 1.
 void ClientSession::CollectReplicated(ReplicatedVector** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);

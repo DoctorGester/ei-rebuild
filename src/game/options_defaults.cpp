@@ -1,7 +1,6 @@
-// The options' defaults (called before the registry is read): the subkey
-// names, the video mode (640 x 480, 16 bits), the camera, shadows and lights, the paths ("." and
-// ".\res\"), the map and stream names and the master server ("a3master.nival.com"). See
-// docs/notes/objects.md ("Rewritten").
+// The options' defaults (called before the registry is read): the subkey names, the video mode (640 x 480, 16
+// bits), the camera, shadows and lights, the paths ("." and ".\res\"), the map and stream names and the
+// master server ("a3master.nival.com"). See docs/notes/objects.md ("Rewritten").
 #include "options.h"
 
 #include "ei/hook.h"

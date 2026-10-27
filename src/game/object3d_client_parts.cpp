@@ -300,7 +300,7 @@ int CObject3DClientSpecific::OnPartRemoved(CFigureMesh* part) { return RemoveFro
 EI_REWRITTEN(0x0051B160, CObject3DClientSpecific::OnPartRemoved);
 
 CFigureMesh* CObject3DClientSpecific::RemoveFromPartSets(const char* name) {
-    CFigureMesh* part = FindPart(name);   // slot 16
+    CFigureMesh* part = FindPart(name);
     if (!part) return nullptr;
     return RemoveFromGroups(this, part) ? part : nullptr;
 }

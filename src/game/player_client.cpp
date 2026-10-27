@@ -81,8 +81,6 @@ struct TextBuffer {
 
 const char* QuestPrefix() { return "q."; }
 
-// The client world's readers of the zone (Rebirth-patched) and two other state blocks all RET 4 with the
-// block. The quest log passes (list, a, b) to its top screen's slot 28.
 void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
 constexpr int kListBlockSize = 10;
 
@@ -100,8 +98,7 @@ void RefreshQuestLog() {
 // The client world shows a number over a unit (id, value, kind).
 constexpr int kNumberExperience = 8;
 
-// The experience shown for `amount`: amount * a constant ^ (+0x33E - a second constant), stored to a float,
-// then rounded to the nearest integer (FISTP).
+// The experience shown for `amount`, rounded to the nearest integer through a float.
 int ScaledExperience(const CUnit* unit, float amount) {
     double base = 1.04 /*0073E128*/;
     float offset = 25.0f /*0073E124*/;
@@ -428,7 +425,6 @@ int CPlayerClient::OnPathMarker() {
     if (kind != kKindNoPath) {
         auto* walker = TheObjectManager()->CreateObjectAs<CUnit>(kClassScratchUnit, -1);
         ++walker->refCount_;
-        // The controller's virtual that gives its path.
         PathOrder* path = walker->ClientController()->MotionPath();
         DeltaField* writing = field.BeginWriteB(0);
         path->WriteState(writing);
@@ -445,7 +441,7 @@ int CPlayerClient::OnPathMarker() {
             if (kind == 0) source->alpha = 1.0f;
             else if (kind == 1) source->alpha = 0.0f;
             else if (kind == 2) source->alpha = 2.0f;
-            pathSource->RunTick();   // one tick
+            pathSource->RunTick();
             source->Attach(nullptr);
         }
         walker->Release();
@@ -579,7 +575,6 @@ int CPlayerClient::OnNewObject() {
     int prototypeValue;
     in_.Read(&prototypeValue, 4);
 
-    // The world's slot 19 is its object manager.
     auto* world = Owner()->WorldContext();
     CEngineObject* created = world->manager40_->CreateObject(header.type, header.id);
     if (created == nullptr) return 0;
@@ -783,9 +778,7 @@ constexpr int kSessionKindSingle = 1;
 
 // The client's party unit ids (hash_set<int>): insert_unique, find, clear.
 using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
-// The set, empty at the start: built by the static initialiser in the list's order and destroyed by the exit
-// function it registers
-// (docs/notes/standalone.md, "The static initialisers' objects").
+// Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
 constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }
 void __cdecl ConstructPartyIdSet() {
@@ -817,7 +810,7 @@ int CPlayerClient::OnPartyState() {
     std::uint8_t paused;
     in_.Read(&paused, 1);
     player->ClientWorld()->paused_ = paused != 0 ? 1 : 0;
-    ReadDword(&in_);   // the server's +0x24, not used
+    ReadDword(&in_);   // the server's possessedId_, not used
 
     int count = ReadDword(&in_);
     partyUnitIds_.SetSizeDiscard(count);

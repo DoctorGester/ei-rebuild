@@ -39,8 +39,6 @@ constexpr MenuRect kRects[] = {
     {"EscMenu", "ExitMM", "Can't get rect for EM ExitMM\n", 9},
 };
 
-// Game::FatalError(message); returns what the original returns to the caller.
-
 } // namespace
 
 int CFigureManager::LoadMenuRects(RECT* rects) {

@@ -49,8 +49,6 @@ float g_bottomV = /*007AF054*/ {};
 float g_topV = /*007AF058*/ {};
 float g_currentU = /*007AF05C*/ {};
 
-// The index array's SetAtGrow and Add.
-
 // One function-local static array: constructed empty once (its guard bit), destroyed at exit.
 template <typename T>
 void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, void(__cdecl* onExit)()) {
@@ -85,10 +83,9 @@ void SetUv(TLVertex* vertex, const float& v) {
     std::memcpy(&vertex->v, &v, sizeof(float));
 }
 
-// The first cross section of a ribbon, at the line's first point: the
-// direction (dx, dy) to the next point rounded to floats, k = (width * rhw * 15, rounded) /
-// hypot(dx, dy) unrounded; vertex 1 moved by (k*dy, -k*dx) as in EmitSection, vertex 2 by
-// (-(float)(k*dy), k*dx) (its x offset rounded first).
+// The first cross section of a ribbon, at the line's first point: the direction (dx, dy) to the next point
+// rounded to floats, k = (width * rhw * 15, rounded) / hypot(dx, dy) unrounded; vertex 1 moved by (k*dy,
+// -k*dx) as in EmitSection, vertex 2 by (-(float)(k*dy), k*dx) (its x offset rounded first).
 void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** array, int* count, std::uint32_t widthBits) {
     const float dx = static_cast<float>(static_cast<double>(next->x) - first->x);
     const float dy = static_cast<float>(static_cast<double>(next->y) - first->y);
@@ -190,11 +187,10 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
 }
 EI_REWRITTEN(0x00502A20, CTextureDevice::DrawTlTriangles);
 
-// `points` is an array {data, count} of world points (16 bytes each:
-// x, y, z and one more); `width` scales the ribbon's screen width; `mode` 0 projects, 1 projects and
-// clips (points flagged by the transform object are skipped), 2 only sizes the buffers; u runs over
-// `uLength` along the ribbon (0.875 at the start when it is 0), v from `vStart` over `vSize`.
-// Returns the draw's result (1 when nothing is drawn).
+// `points` is an array {data, count} of world points (16 bytes each: x, y, z and one more); `width` scales
+// the ribbon's screen width; `mode` 0 projects, 1 projects and clips (points flagged by the transform object
+// are skipped), 2 only sizes the buffers; u runs over `uLength` along the ribbon (0.875 at the start when it
+// is 0), v from `vStart` over `vSize`. Returns the draw's result (1 when nothing is drawn).
 int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLength, float vStart, float vSize) {
     const int* points = static_cast<const int*>(pointArray);
     CTransformPipeline* pipeline = pipeline_;

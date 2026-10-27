@@ -25,7 +25,6 @@ constexpr std::uint32_t kNoSocket = 0xFFFFFFFFu;
 constexpr long kNonBlocking = static_cast<long>(0x8004667E);   // FIONBIO
 // The timeval the socket steps' select waits at most: 0 s, 0 µs (a poll).
 constexpr std::int32_t kSelectTimeout[2] = /*0079B928*/ {};
-// STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n) (plain elements).
 
 // A hostent's first address (h_addr_list[0]).
 std::uint32_t FirstAddress(const void* host) {
@@ -83,7 +82,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
 }
 EI_REWRITTEN(0x00440440, NetAddress::Parse);
 
-// The look-up is given the whole sockaddr, as the original does.
+// The look-up is given the whole sockaddr.
 stlp::string* NetAddress::Format(stlp::string* out, int resolve) const {
     char text[0x400];
     bool named = false;
@@ -223,7 +222,6 @@ EI_REWRITTEN(0x00440BE0, SocketDriver::Receive);
 
 // ---- The master server link ----------------------------------------------------------------------
 
-// A non-blocking TCP socket connecting to `address` (state 1), or state 0.
 MasterLink::MasterLink(const void* address) {
     socket = libcrt::imports::Socket(2, 1, 6);
     if (socket == kNoSocket) {
@@ -251,10 +249,9 @@ MasterLink::~MasterLink() {
 }
 EI_REWRITTEN_SPECIAL(0x00440D40, MasterLink::~MasterLink);
 
-// One step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing
-// buffer at once, blocking (then 2); receiving (2) into the incoming buffer until the peer closes
-// (3). An error closes the socket (0). Each step waits at most kSelectTimeout (a poll). Returns the
-// state.
+// One step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing buffer at once,
+// blocking (then 2); receiving (2) into the incoming buffer until the peer closes (3). An error closes the
+// socket (0). Each step waits at most kSelectTimeout (a poll). Returns the state.
 int __fastcall MasterLinkTick(MasterLink* self) {
     struct {
         std::uint32_t count;

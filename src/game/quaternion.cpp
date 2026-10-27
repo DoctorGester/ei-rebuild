@@ -1,7 +1,6 @@
-// Quaternion helpers: rotation from an angle and an axis (two argument
-// orders), products with a conjugate, and spherical interpolation. Names are provisional.
-// Floating point follows the game's x87 code: `double` for values the game keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// Quaternion helpers: rotation from an angle and an axis (two argument orders), products with a conjugate,
+// and spherical interpolation. Names are provisional. Floating point follows the game's x87 code: `double`
+// for values the game keeps on the FPU stack, static_cast<float> where it stores to a float.
 #include "maths.h"
 
 #include "ei/hook.h"
@@ -59,9 +58,8 @@ Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
 }
 EI_REWRITTEN(0x0049E800, Quaternion::SetAxisAngle);
 
-// *this = conj(r) * *this; r is copied first (its x negated on the FPU, y and z through
-// float temporaries: the same values, negation is exact), and every component of *this is read
-// before the first store.
+// *this = conj(r) * *this; r is copied first (its x negated on the FPU, y and z through float temporaries:
+// the same values, negation is exact), and every component of *this is read before the first store.
 void Quaternion::PreMultiplyConjugate(const Quaternion& r) {
     Quaternion c = Conjugate(r);
     double cw = c.w, cx = c.x, cy = c.y, cz = c.z;

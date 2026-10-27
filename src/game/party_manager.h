@@ -37,9 +37,8 @@ using PartyInPlace = PartyStorage;
 
 namespace gamehash {
 
-// hash_map<int, CParty> (the party manager's parties): 0x78-byte nodes. A node's party is copied by
-// CParty's copy constructor (it reads its source non-const) and destroyed by its destructor body
-// (game_hashes.cpp).
+// hash_map<int, CParty> (the party manager's parties): 0x78-byte nodes. A node's party is copied by CParty's
+// copy constructor (it reads its source non-const) and destroyed by its destructor body (game_hashes.cpp).
 struct PartyElement {
     static void Construct(PartyInPlace* to, const PartyInPlace& from);
     static void Destroy(PartyInPlace* p);

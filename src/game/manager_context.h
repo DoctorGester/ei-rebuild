@@ -1,10 +1,9 @@
 #pragma once
 
-// The context a manager belongs to (CBaseManager::context_, set by Init / SetContext): the world
-// (CWorld) or a party (CParty), the two classes deriving from it. Its getters return null (the
-// party's base table); the world answers them all (world.h), a party only the
-// item and spell ones. Names and evidence: docs/notes/map_objects.md ("Virtual slot names"). No data
-// of its own.
+// The context a manager belongs to (CBaseManager::context_, set by Init / SetContext): the world (CWorld) or
+// a party (CParty), the two classes deriving from it. Its getters return null (the party's base table); the
+// world answers them all (world.h), a party only the item and spell ones. Names and evidence:
+// docs/notes/map_objects.md ("Virtual slot names"). No data of its own.
 
 #include "engine_object.h"
 
@@ -28,7 +27,7 @@ public:
     virtual CBaseManager* FigureManager() { return nullptr; }            // the world's manager3C_
     virtual CItemConstructor* ItemConstructor() { return nullptr; }
     virtual CSpellConstructor* SpellConstructor() { return nullptr; }
-    virtual CItemManager* ItemFactory() { return nullptr; }              // the item manager
+    virtual CItemManager* ItemFactory() { return nullptr; }
     virtual CMapObjectManager* MapObjectManager() { return nullptr; }
     virtual CPlayerManager* PlayerList() { return nullptr; }
     // The side-specific halves' manager (the client's is a CClientSpecificManager; it makes

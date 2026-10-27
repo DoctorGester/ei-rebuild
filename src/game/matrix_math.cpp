@@ -9,10 +9,9 @@
 
 namespace {
 
-// The order in which each product element sums its four terms a[r][k] * b[k][c], per column, for
-// row 0 and for rows 1-3 (the game's instruction order). The partial sums are rounded to float;
-// on the game's main thread (24-bit x87 precision) they equal the ones the game keeps on the
-// FPU stack.
+// The order in which each product element sums its four terms a[r][k] * b[k][c], per column, for row 0 and
+// for rows 1-3 (the game's instruction order). The partial sums are rounded to float; on the game's main
+// thread (24-bit x87 precision) they equal the ones the game keeps on the FPU stack.
 using SumOrder = std::uint8_t[2][4][4];
 constexpr SumOrder kProductOrder = {
     {{0, 2, 1, 3}, {2, 0, 1, 3}, {0, 2, 1, 3}, {3, 1, 0, 2}},

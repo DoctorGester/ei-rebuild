@@ -1,5 +1,4 @@
-// Databases read at startup from database.res (prints.db, acks.db) and the
-// world's water level changes.
+// Databases read at startup from database.res (prints.db, acks.db) and the world's water level changes.
 #include "acks_db.h"
 #include "model.h"
 #include "record_vectors.h"

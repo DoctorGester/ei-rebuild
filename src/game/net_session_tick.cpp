@@ -26,8 +26,6 @@ LogStream* LogStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::
 
 namespace {
 
-// Reading past the buffer's end (zeroes the target, sets error bit 3).
-
 
 // "<text><address>\n" and a flush to the network log.
 void LogAddress(const char* text, const char* address) { g_netLog->Put(text)->Put(address)->PutChar('\n')->Flush(); }
@@ -46,10 +44,7 @@ stlp::string* NetAddress::ToString(stlp::string* out) const {
 }
 EI_REWRITTEN(0x00435010, NetAddress::ToString);
 
-// Advances the session clock by `dt`, then hands every datagram waiting on the socket to the handler slot of
-// its kind (its first byte) with the sender's address and a cursor after that byte (an empty datagram is only
-// logged). Then ticks every connection; one that timed out is reported and removed. Counts the call in
-// `frame_`. The current session is this one meanwhile.
+// An empty datagram is only logged; the current session is this one meanwhile.
 void SessionBase::Tick(double dt) {
     g_currentSession = this;
     time_ = dt + time_;
@@ -112,10 +107,6 @@ EI_REWRITTEN(0x00437370, SessionBase::Tick);
 namespace net {
 
 namespace {
-
-// The clients list (STLport list<RefPtr<Connection>>, +0x28):
-// erase (list<RefPtr>'s with SharedRef); the find by peer address (an instantiation of find_if over the nodes) is
-// ClientsIterator::FindByAddress (library_net_lists.h, over its ClientsNode of the same layout).
 
 
 // "<text>\n" and a flush, when there is a network log.
@@ -192,18 +183,17 @@ void SessionBase::OnMaster(const NetAddress*, BufferCursor*) { LogText(game::net
 EI_REWRITTEN(0x00436CF0, SessionBase::RemoveClient);
 EI_REWRITTEN(0x00437080, SessionBase::OnUpdate);
 EI_REWRITTEN(0x00437240, SessionBase::OnLeave);
-EI_REWRITTEN(0x004371E0, SessionBase::OnGetInfo);    // slot 4, kind 3
-EI_REWRITTEN(0x00437210, SessionBase::OnLogin);      // slot 5, kind 4
-EI_REWRITTEN(0x004372B0, SessionBase::OnInfo);       // slot 7, kind 5
-EI_REWRITTEN(0x004372E0, SessionBase::OnAccepted);   // slot 8, kind 6
-EI_REWRITTEN(0x00437310, SessionBase::OnRejected);   // slot 9, kind 7
-EI_REWRITTEN(0x00437340, SessionBase::OnMaster);     // slot 10, kind -1
+EI_REWRITTEN(0x004371E0, SessionBase::OnGetInfo);
+EI_REWRITTEN(0x00437210, SessionBase::OnLogin);
+EI_REWRITTEN(0x004372B0, SessionBase::OnInfo);
+EI_REWRITTEN(0x004372E0, SessionBase::OnAccepted);
+EI_REWRITTEN(0x00437310, SessionBase::OnRejected);
+EI_REWRITTEN(0x00437340, SessionBase::OnMaster);
 
 } // namespace net
 
 // ---- Byte buffer writes and small socket helpers ---------------------------------------------------
 
-// Copies `size` bytes to the write position and moves it on (no room check); returns the buffer.
 GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
     std::memcpy(cur, from, size);
     cur += size;
@@ -211,8 +201,6 @@ GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
 }
 EI_REWRITTEN(0x00436C30, GameBuffer::BufferWriteRaw);
 
-// Writes `size` bytes: in place (marking the buffer written) when they fit before `end`,
-// otherwise through slot 4. Returns `size` or what slot 4 left.
 unsigned GameBuffer::BufferWrite(const void* from, unsigned size) {
     if (cur + size > end) return static_cast<unsigned>(WriteMore(from, size));
     flags |= 1;
@@ -295,7 +283,7 @@ SessionBase::~SessionBase() {
     ClientNode* sentinel = clients_;
     for (ClientNode* node = sentinel->next; node != clients_;) {
         ClientNode* next = node->next;
-        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();   // With 0: RefPtr::Destroy
+        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();
         stlp::deallocate(node, sizeof(ClientNode));
         node = next;
         if (node == clients_) break;
@@ -314,8 +302,7 @@ EI_REWRITTEN_SPECIAL(0x004368D0, SessionBase::~SessionBase);
 namespace net {
 
 namespace {
-// The clients list's insert(pos, value) (list<RefPtr>'s with SharedRef):
-// another STLport string destructor.
+// The clients list's insert(pos, value) (list<RefPtr>'s with SharedRef): another STLport string destructor.
 } // namespace
 
 // The send interval is the constant over the rate clamped to [500, 50000].

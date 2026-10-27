@@ -1,6 +1,5 @@
-// CPlayerServer: the last client messages: leave, the game state request, pause, casts,
-// weapon and movement style, follow and two small ones. See player_messages.h and
-// docs/notes/objects.md ("Players").
+// CPlayerServer: the last client messages: leave, the game state request, pause, casts, weapon and movement
+// style, follow and two small ones. See player_messages.h and docs/notes/objects.md ("Players").
 #include "player_messages.h"
 
 #include "combat.h"
@@ -69,7 +68,7 @@ static_assert(sizeof(CastAtObject) == 0xD && sizeof(CastAtPoint) == 0x15 && size
 } // namespace
 
 int CPlayerServer::OnLeave() {
-    Leave();   // slot 16 (LeaveAndFlush)
+    Leave();
     return 1;
 }
 
@@ -192,7 +191,7 @@ int CPlayerServer::OnUnitFlag438() {
 }
 
 int CPlayerServer::OnLastPosition() {
-    std::uint32_t xy[2];   // copied as dwords, as the original does
+    std::uint32_t xy[2];   // copied as dwords
     ReceivedMessages().Read(xy, 8);
     std::memcpy(&lastPosition_.x, &xy[0], 4);
     std::memcpy(&lastPosition_.y, &xy[1], 4);

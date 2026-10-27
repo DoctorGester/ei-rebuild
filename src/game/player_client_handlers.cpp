@@ -41,7 +41,6 @@ constexpr float kSpecialZoneDistance = 23.0f;
 const char* FixedViewZone() { return "gz20g"; }
 // An identity rotation.
 constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};   // the identity (a static initialiser)
-// pi, 1/180 and 30: the fixed view's pitch, read from the exe.
 
 CUnit* FindClientUnit(int id) { return static_cast<CWorld*>(TheClientWorld())->FindUnit(id); }
 

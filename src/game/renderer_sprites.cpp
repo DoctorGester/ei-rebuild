@@ -382,11 +382,9 @@ int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, in
 EI_REWRITTEN(0x00503680, CTextureDevice::DrawIndexedDirect);
 
 
-// Draws a sprite per point: `points` an aligned array
-// of SpritePoint, `sprites` an MFC-style array of Sprite (same count). With `additive` (only its low
-// byte counts) the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and
-// restored). The view matrix is the top of the pipeline's clip stack, transposed. Returns 1, or
-// 0 when a draw fails (the blend is then left as it is).
+// With `additive` the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and restored).
+// The view matrix is the top of the clip stack, transposed. Returns 1, or 0 when a draw fails (the blend is
+// then left as it is).
 int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* spriteArray) {
     const char additive = static_cast<char>(additiveArgument);   // only its low byte counts
     const auto* points = static_cast<const PointArray*>(pointArray);

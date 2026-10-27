@@ -80,9 +80,8 @@ public:
     // Reads every option from the registry under HKEY_CURRENT_USER\<path>\<subkey>; a
     // missing value keeps the current one (the defaults set before).
     void LoadFromRegistry(const char* path);
-    // Writes the same values back (WinMain calls it once, on exit). The camera flips
-    // are written as booleans, the light colours as 0..255, "Joystick" always as 0, and
-    // "Difficulty Level" from +0x254.
+    // Writes the same values back (WinMain calls it once, on exit). The camera flips are written as booleans,
+    // the light colours as 0..255, "Joystick" always as 0, and "Difficulty Level" from +0x254.
     void SaveToRegistry(const char* path);
 
     // The registry subkeys.

@@ -1,7 +1,5 @@
-// Message links over streams (net_link.h): the file stream, the link base
-// the loopback link, the replay link, the framed link and
-// the per-player driver. The queue's STLport list members are library code, called
-// at their original addresses. See docs/notes/network.md and docs/notes/cleanup-network.md.
+// Message links over streams (net_link.h): the file stream, the link base, the loopback link, the replay link,
+// the framed link and the per-player driver. See docs/notes/network.md and docs/notes/cleanup-network.md.
 #include "net_link.h"
 
 #include "core_streams.h"
@@ -21,15 +19,8 @@ namespace netlink {
 
 namespace {
 
-// --- Library (STLport list<CMemoryStream> of the queue) and other callees -----------------------
-// The queue's members with recordlist::StreamQueue's element (record_lists.h): its constructors
-// insert of a default element, erase, clear
-// and range insert; the node pool and the header's deallocation
-//.
 using QueueElement = recordlist::QueueStreamElement;
 void __fastcall NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
-// The game's memmove.
-
 // The counted pointer release the classes inline: the count dropped, the object deleted at zero.
 void ReleaseCounted(CRefObject* object) {
     if (!object) return;
@@ -56,7 +47,7 @@ unsigned BufferFill(GameBuffer* b) {
 }
 
 // A write the way these functions inline it: in place (marking the buffer written) when it fits
-// before `end`, otherwise through slot 4.
+// before `end`, otherwise through WriteMore.
 void BufferPut(GameBuffer* b, const void* from, unsigned size) {
     if (b->cur + size > b->end) {
         b->WriteMore(from, size);
@@ -404,9 +395,8 @@ int FramedLink::IncomingCount() {
 }
 EI_REWRITTEN(0x0047BA40, FramedLink::IncomingCount);
 
-// The message framed (its length, then its bytes, read from the start) in a stack buffer and
-// handed to slot 13; when that fails the link disconnects. False for a message over
-// 0x7FFC bytes or a failed send.
+// The message framed (its length, then its bytes, read from the start) in a stack buffer and handed to slot
+// 13; when that fails the link disconnects. False for a message over 0x7FFC bytes or a failed send.
 bool FramedLink::Send(CStream* stream) {
     std::uint8_t buffer[kMaxMessage + 4];
     if (stream->Size() > kMaxMessage) return false;
@@ -491,8 +481,7 @@ EI_REWRITTEN(0x00479A30, DriverLink::Clone);
 bool DriverLink::Connected() { return IsLive(player_.Get()); }
 EI_REWRITTEN(0x00479780, DriverLink::Connected);
 
-// The player's incoming reliable bytes appended to the inbox, and that stream emptied
-// (flags 6).
+// The player's incoming reliable bytes appended to the inbox, and that stream emptied (flags 6).
 void DriverLink::Pump() {
     net::Connection* player = player_.Get();
     if (!IsLive(player)) return;

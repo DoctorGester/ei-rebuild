@@ -1,7 +1,6 @@
-// The renderer's scene bracket and texture draw: BeginScene
-// with the frame statistics, EndScene with the debug panel's
-// FPS and counts, DrawTexture. The main loop brackets each frame's
-// drawing with the first two. The old Direct3D 7 path, kept as it is (docs/notes/renderer.md).
+// The renderer's scene bracket and texture draw: BeginScene with the frame statistics, EndScene with the
+// debug panel's FPS and counts, DrawTexture. The main loop brackets each frame's drawing with the first two.
+// The old Direct3D 7 path, kept as it is (docs/notes/renderer.md).
 #include "device.h"   // the old device's calls
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // CTextureDevice, CTexture
