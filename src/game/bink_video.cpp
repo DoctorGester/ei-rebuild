@@ -29,28 +29,11 @@ std::uint8_t g_loadingMovieOff = /*007C554C*/ {};
 
 namespace {
 
-using BinkFn = int(__stdcall*)(BinkHeader*);
-using BinkCopyFn = int(__stdcall*)(BinkHeader*, void*, int, int, int, int, unsigned);
-using BinkOpenFn = BinkHeader*(__stdcall*)(const char*, unsigned);
-using BinkCloseFn = void(__stdcall*)(BinkHeader*);
-using BinkVolumeFn = void(__stdcall*)(BinkHeader*, int);
-using BinkSoundSystemFn = void(__stdcall*)(void*, void*);   // (open function, Miles driver)
-using BinkGotoFn = void(__stdcall*)(BinkHeader*, unsigned, int);
-BinkFn BinkWait() { return ei::ImportAs<BinkFn>(ei::Imports().BinkWait); }
-BinkFn BinkDoFrame() { return ei::ImportAs<BinkFn>(ei::Imports().BinkDoFrame); }
-BinkFn BinkNextFrame() { return ei::ImportAs<BinkFn>(ei::Imports().BinkNextFrame); }
-BinkCopyFn BinkCopyToBuffer() { return ei::ImportAs<BinkCopyFn>(ei::Imports().BinkCopyToBuffer); }
-BinkOpenFn BinkOpen() { return ei::ImportAs<BinkOpenFn>(ei::Imports().BinkOpen); }
-BinkCloseFn BinkClose() { return ei::ImportAs<BinkCloseFn>(ei::Imports().BinkClose); }
-BinkVolumeFn BinkSetVolume() { return ei::ImportAs<BinkVolumeFn>(ei::Imports().BinkSetVolume); }
-BinkSoundSystemFn BinkSetSoundSystem() { return ei::ImportAs<BinkSoundSystemFn>(ei::Imports().BinkSetSoundSystem); }
-void* BinkOpenMiles() { return ei::ImportAs<void*>(ei::Imports().BinkOpenMiles); }
-BinkGotoFn BinkGoto() { return ei::ImportAs<BinkGotoFn>(ei::Imports().BinkGoto); }
 // BinkOpen, as the import slot reaches it: with Rebirth's MoviesPatch (addon's slot) the mod's
 // Movies\ copy when there is one.
 BinkHeader* OpenBink(const char* name, unsigned flags) {
-    if (modfolders::Active(ei::rebirth::Patch::MoviesPatch)) return BinkOpen()(modfolders::MovieFile(name).c_str(), flags);
-    return BinkOpen()(name, flags);
+    if (modfolders::Active(ei::rebirth::Patch::MoviesPatch)) return gameapi::BinkOpen(modfolders::MovieFile(name).c_str(), flags);
+    return gameapi::BinkOpen(name, flags);
 }
 
 constexpr unsigned kBinkSurface32R = 4;                      // BinkCopyToBuffer: R, G, B, X bytes (checked offline)
@@ -82,7 +65,7 @@ void SetQuitAllowed(std::uint8_t value) { app::g_quitAllowed = value; }
 void CopyFrame(BinkHeader* bink, std::vector<std::uint8_t>* frame) {
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     frame->resize(static_cast<std::size_t>(width) * height * 4);
-    BinkCopyToBuffer()(bink, frame->data(), width * 4, height, 0, 0, kBinkSurface32R);
+    gameapi::BinkCopyToBuffer(bink, frame->data(), width * 4, height, 0, 0, kBinkSurface32R);
 }
 
 render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
@@ -97,13 +80,13 @@ unsigned CBinkVideo::Frame(char toPrimary) {
     if (!MoviesMode()) return 0;   // movies off
     BinkHeader* binkHandle = this->bink;
     if (!binkHandle) return 0;
-    if (BinkWait()(binkHandle) == 0) {
-        BinkDoFrame()(binkHandle);
+    if (gameapi::BinkWait(binkHandle) == 0) {
+        gameapi::BinkDoFrame(binkHandle);
         // The new renderer gets the frame from a CPU buffer (BinkCopyToBuffer's 32-bit R, G, B, X type).
         static std::vector<std::uint8_t> frame;
         CopyFrame(binkHandle, &frame);
         render::MovieFrame(this, frame.data(), static_cast<int>(binkHandle->width), static_cast<int>(binkHandle->height));
-        BinkNextFrame()(binkHandle);
+        gameapi::BinkNextFrame(binkHandle);
     }
     CDXSurface* surfaceHolder = this->holder;
     CDXSurface* target = toPrimary ? surfaceHolder->device->primary_ : surfaceHolder->device->renderTarget_;
@@ -142,13 +125,13 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     if (!MoviesMode()) return 1;
     const char* file = name ? name : "";   // copies it into a CString
     if (loadingStep) TheSoundManager()->StopAll(1);
-    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), TheSoundManager()->waveDriver);
+    if (MovieSound()) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, TheSoundManager()->waveDriver);
     BinkHeader* bink = OpenBink(file, 0);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", file);
         return 1;
     }
-    BinkSetVolume()(bink, MovieVolume() * 0x7FF6 / 100);
+    gameapi::BinkSetVolume(bink, MovieVolume() * 0x7FF6 / 100);
     TheCursor()->ShowImage(0);
     // (The game fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
@@ -200,11 +183,11 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
             continue;
         }
         if (frameTime == 0) {
-            if (BinkWait()(bink) != 0) continue;
+            if (gameapi::BinkWait(bink) != 0) continue;
         } else if (now - start < frameTime) {
             continue;
         }
-        BinkDoFrame()(bink);
+        gameapi::BinkDoFrame(bink);
         CopyFrame(bink, &frame);
         render::MovieFrame(&g_movieKey, frame.data(), width, height);
         CDXSurface* primary = holder->device->primary_;
@@ -213,10 +196,10 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
             render::MovieBlit(&g_movieKey, ToRender(to));
             PresentMovieFrame();
         }
-        if (bink->lastFrame != bink->frames) BinkNextFrame()(bink);
+        if (bink->lastFrame != bink->frames) gameapi::BinkNextFrame(bink);
         start = now;
     }
-    BinkClose()(bink);
+    gameapi::BinkClose(bink);
     if (holder) holder->Release();
     SetQuitAllowed(1);
     TheCursor()->SaveBackground(1);
@@ -236,7 +219,7 @@ void __fastcall ShowLoadingMovie(int progress) {
         path += "Movies\\";
         path += app::g_loadingMovieName;  // progres.bik, or the zone's
         if (g_loadingBink) {
-            BinkClose()(g_loadingBink);
+            gameapi::BinkClose(g_loadingBink);
             g_loadingBink = nullptr;
         }
         g_loadingBink = OpenBink(path.c_str(), 0);
@@ -264,11 +247,11 @@ void __fastcall ShowLoadingMovie(int progress) {
     for (;;) {
         unsigned current = bink->frameNum;
         if (current >= target && current != 1) break;
-        BinkDoFrame()(bink);
+        gameapi::BinkDoFrame(bink);
         CopyFrame(bink, &frame);
         decoded = true;
         bink = g_loadingBink;
-        BinkGoto()(bink, bink->frameNum + 1, 0);
+        gameapi::BinkGoto(bink, bink->frameNum + 1, 0);
         bink = g_loadingBink;
         if (bink->frames == bink->lastFrame) break;
     }
@@ -295,10 +278,10 @@ EI_REWRITTEN(0x005DA400, ShowLoadingMovie);
 // screen rectangle: movies mode 1 centred at the movie's size, otherwise stretched to the screen's width with
 // the height trunc(height / width * screen width), centred vertically (divisions by 2 round towards zero).
 char CBinkVideo::Open(const char* name, char loadingStep) {
-    if (bink) BinkClose()(bink);
+    if (bink) gameapi::BinkClose(bink);
     if (!MoviesMode()) return 0;
     if (loadingStep) TheSoundManager()->StopAll(1);
-    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), TheSoundManager()->waveDriver);
+    if (MovieSound()) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, TheSoundManager()->waveDriver);
     bink = OpenBink(name, 0);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);
@@ -332,7 +315,7 @@ EI_REWRITTEN(0x005DBA50, CBinkVideo::Open);
 // --- Closing --------------------------------------------------------------------------------
 
 void CloseLoadingMovie() {
-    BinkClose()(g_loadingBink);
+    gameapi::BinkClose(g_loadingBink);
     CDXSurface* holder = g_loadingHolder;
     g_loadingBink = nullptr;
     g_loadingHolder = nullptr;
@@ -351,7 +334,7 @@ EI_REWRITTEN(0x005DB340, CBinkVideo::Construct);
 
 void CBinkVideo::Close() {
     if (bink) {
-        BinkClose()(bink);
+        gameapi::BinkClose(bink);
         bink = nullptr;
     }
     CDXSurface* old = holder;

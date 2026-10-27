@@ -11,11 +11,6 @@ namespace mfc::impl {
 
 namespace {
 
-// GetVersion through the import table (gameapi.h leaves it out: its SDK prototype differs, and a direct call of
-// the deprecated function warns).
-using GetVersionFn = DWORD(WINAPI*)();
-DWORD Version() { return ei::ImportAs<GetVersionFn>(ei::Imports().GetVersion)(); }
-
 // on afxData, no arguments.
 void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }
 void __cdecl UpdateAfxScrollMetrics() { AfxData().UpdateScrollMetrics(); }
@@ -77,7 +72,7 @@ void __stdcall AfxDeleteObject(HGDIOBJ* object) {
 }
 
 AuxData* AuxData::Construct() {
-    const DWORD versionWord = Version();
+    const DWORD versionWord = gameapi::GetVersion();
     const unsigned major = versionWord & 0xFF;
     const unsigned minor = (versionWord >> 8) & 0xFF;
     version = (major << 8) + minor;
@@ -190,7 +185,7 @@ constinit BOOL g_afxCriticalInit = /*007C907C*/ {};
 BOOL __cdecl AfxCriticalInit() {
     if (!g_afxCriticalInit) {
         g_afxCriticalInit = TRUE;
-        const DWORD versionWord = Version();
+        const DWORD versionWord = gameapi::GetVersion();
         if ((versionWord & 0xFF) < 4 && (versionWord & 0x80000000u)) {
             g_afxCriticalWin32s = TRUE;
         } else {

@@ -626,44 +626,39 @@ EI_REWRITTEN(0x006E8DA7, libcrt::Exit);
 // same import slot, so a mod's hook in the import table still applies.
 namespace libcrt::imports {
 
-namespace {
-template <typename F>
-F Slot(F, FARPROC import) { return ei::ImportAs<F>(import); }
-} // namespace
-
-std::uint16_t __stdcall Htons(std::uint16_t v) { return Slot(&Htons, ei::Imports().htons)(v); }                 // ord 9
-void* __stdcall GetHostByName(const char* name) { return Slot(&GetHostByName, ei::Imports().gethostbyname)(name); }       // ord 52
-std::uint32_t __stdcall InetAddr(const char* text) { return Slot(&InetAddr, ei::Imports().inet_addr)(text); }       // ord 10
-std::uint16_t __stdcall Ntohs(std::uint16_t v) { return Slot(&Ntohs, ei::Imports().ntohs)(v); }                   // ord 15
+std::uint16_t __stdcall Htons(std::uint16_t v) { return gameapi::htons(v); }                 // ord 9
+void* __stdcall GetHostByName(const char* name) { return gameapi::gethostbyname(name); }       // ord 52
+std::uint32_t __stdcall InetAddr(const char* text) { return gameapi::inet_addr(text); }       // ord 10
+std::uint16_t __stdcall Ntohs(std::uint16_t v) { return gameapi::ntohs(v); }                   // ord 15
 void* __stdcall GetHostByAddr(const void* address, int length, int type) {                             // ord 51
-    return Slot(&GetHostByAddr, ei::Imports().gethostbyaddr)(address, length, type);
+    return gameapi::gethostbyaddr(address, length, type);
 }
-int __stdcall GetHostName(char* name, int length) { return Slot(&GetHostName, ei::Imports().gethostname)(name, length); } // ord 57
-int __stdcall WsaStartup(std::uint16_t version, void* data) { return Slot(&WsaStartup, ei::Imports().WSAStartup)(version, data); } // ord 115
-int __stdcall WsaCleanup() { return Slot(&WsaCleanup, ei::Imports().WSACleanup)(); }                                  // ord 116
-int __stdcall CloseSocket(std::uint32_t s) { return Slot(&CloseSocket, ei::Imports().closesocket)(s); }                 // ord 3
+int __stdcall GetHostName(char* name, int length) { return gameapi::gethostname(name, length); } // ord 57
+int __stdcall WsaStartup(std::uint16_t version, void* data) { return gameapi::WSAStartup(version, data); } // ord 115
+int __stdcall WsaCleanup() { return gameapi::WSACleanup(); }                                  // ord 116
+int __stdcall CloseSocket(std::uint32_t s) { return gameapi::closesocket(s); }                 // ord 3
 int __stdcall SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length) {     // ord 21
-    return Slot(&SetSockOpt, ei::Imports().setsockopt)(s, level, option, value, length);
+    return gameapi::setsockopt(s, level, option, value, length);
 }
 int __stdcall IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument) {                    // ord 12
-    return Slot(&IoctlSocket, ei::Imports().ioctlsocket)(s, command, argument);
+    return gameapi::ioctlsocket(s, command, argument);
 }
-int __stdcall Bind(std::uint32_t s, const void* address, int length) { return Slot(&Bind, ei::Imports().bind)(s, address, length); } // ord 2
-std::uint32_t __stdcall Socket(int family, int type, int protocol) { return Slot(&Socket, ei::Imports().socket)(family, type, protocol); } // ord 23
+int __stdcall Bind(std::uint32_t s, const void* address, int length) { return gameapi::bind(s, address, length); } // ord 2
+std::uint32_t __stdcall Socket(int family, int type, int protocol) { return gameapi::socket(family, type, protocol); } // ord 23
 int __stdcall SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength) { // ord 20
-    return Slot(&SendTo, ei::Imports().sendto)(s, data, length, flags, to, toLength);
+    return gameapi::sendto(s, data, length, flags, to, toLength);
 }
 int __stdcall RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength) { // ord 17
-    return Slot(&RecvFrom, ei::Imports().recvfrom)(s, data, length, flags, from, fromLength);
+    return gameapi::recvfrom(s, data, length, flags, from, fromLength);
 }
-int __stdcall Connect(std::uint32_t s, const void* address, int length) { return Slot(&Connect, ei::Imports().connect)(s, address, length); } // ord 4
-int __stdcall Recv(std::uint32_t s, void* data, int length, int flags) { return Slot(&Recv, ei::Imports().recv)(s, data, length, flags); } // ord 16
-int __stdcall Send(std::uint32_t s, const void* data, int length, int flags) { return Slot(&Send, ei::Imports().send)(s, data, length, flags); } // ord 19
+int __stdcall Connect(std::uint32_t s, const void* address, int length) { return gameapi::connect(s, address, length); } // ord 4
+int __stdcall Recv(std::uint32_t s, void* data, int length, int flags) { return gameapi::recv(s, data, length, flags); } // ord 16
+int __stdcall Send(std::uint32_t s, const void* data, int length, int flags) { return gameapi::send(s, data, length, flags); } // ord 19
 int __stdcall Select(int count, void* read, void* write, void* except, const void* timeout) {         // ord 18
-    return Slot(&Select, ei::Imports().select)(count, read, write, except, timeout);
+    return gameapi::select(count, read, write, except, timeout);
 }
 long __stdcall DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer) {
-    return Slot(&DirectInputCreateEx, ei::Imports().DirectInputCreateEx)(instance, version, iid, out, outer);
+    return gameapi::DirectInputCreateEx(instance, version, iid, out, outer);
 }
 
 EI_REWRITTEN(0x006E60E2, Htons);

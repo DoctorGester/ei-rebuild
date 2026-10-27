@@ -5,8 +5,8 @@
 // slots, then its zero terminator). Imports() is the table through the data seam (game/game_data.h):
 // in game.exe its own table, in the image ei_hook.dll's (src/standalone/image_imports.cpp, S18f).
 // A slot holds the export, a route of the image (ImageRoute) or the harness's wrapper of either.
-// An import the Windows SDK headers do not declare is a FARPROC: its caller casts it to its type
-// (ImportAs).
+// A member's type is its function's: the Windows SDK's, or lib/import_prototypes.h's for an import
+// the SDK does not declare.
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -16,6 +16,7 @@
 #include <cstdint>
 
 #include "game/game_data.h"
+#include "lib/import_prototypes.h"
 
 #undef GetObject
 
@@ -34,14 +35,14 @@ struct ImportTable {
     decltype(&::RegEnumKeyExA) RegEnumKeyExA;   // ADVAPI32.dll!RegEnumKeyExA
     decltype(&::RegQueryValueExA) RegQueryValueExA;   // ADVAPI32.dll!RegQueryValueExA
     std::uint32_t ADVAPI32_end;   // zero: the end of ADVAPI32.dll's slots
-    FARPROC InitCommonControls;   // COMCTL32.dll!#17
+    import_fn::InitCommonControls InitCommonControls;   // COMCTL32.dll!#17
     std::uint32_t COMCTL32_end;   // zero: the end of COMCTL32.dll's slots
-    FARPROC DirectDrawEnumerateExA;   // DDRAW.dll!DirectDrawEnumerateExA
-    FARPROC DirectDrawCreateEx;   // DDRAW.dll!DirectDrawCreateEx
+    import_fn::DirectDrawEnumerateExA DirectDrawEnumerateExA;   // DDRAW.dll!DirectDrawEnumerateExA
+    import_fn::DirectDrawCreateEx DirectDrawCreateEx;   // DDRAW.dll!DirectDrawCreateEx
     std::uint32_t DDRAW_end;   // zero: the end of DDRAW.dll's slots
-    FARPROC DirectInputCreateEx;   // DINPUT.dll!DirectInputCreateEx
+    import_fn::DirectInputCreateEx DirectInputCreateEx;   // DINPUT.dll!DirectInputCreateEx
     std::uint32_t DINPUT_end;   // zero: the end of DINPUT.dll's slots
-    FARPROC DirectSoundEnumerateA;   // DSOUND.dll!#2
+    import_fn::DirectSoundEnumerateA DirectSoundEnumerateA;   // DSOUND.dll!#2
     std::uint32_t DSOUND_end;   // zero: the end of DSOUND.dll's slots
     decltype(&::CreateRectRgnIndirect) CreateRectRgnIndirect;   // GDI32.dll!CreateRectRgnIndirect
     decltype(&::CombineRgn) CombineRgn;   // GDI32.dll!CombineRgn
@@ -171,8 +172,8 @@ struct ImportTable {
     decltype(&::GlobalUnlock) GlobalUnlock;   // KERNEL32.dll!GlobalUnlock
     decltype(&::lstrcmpA) lstrcmpA;   // KERNEL32.dll!lstrcmpA
     decltype(&::lstrlenA) lstrlenA;   // KERNEL32.dll!lstrlenA
-    FARPROC InterlockedIncrement;   // KERNEL32.dll!InterlockedIncrement
-    FARPROC InterlockedDecrement;   // KERNEL32.dll!InterlockedDecrement
+    import_fn::InterlockedIncrement InterlockedIncrement;   // KERNEL32.dll!InterlockedIncrement
+    import_fn::InterlockedDecrement InterlockedDecrement;   // KERNEL32.dll!InterlockedDecrement
     decltype(&::WideCharToMultiByte) WideCharToMultiByte;   // KERNEL32.dll!WideCharToMultiByte
     decltype(&::MultiByteToWideChar) MultiByteToWideChar;   // KERNEL32.dll!MultiByteToWideChar
     decltype(&::DuplicateHandle) DuplicateHandle;   // KERNEL32.dll!DuplicateHandle
@@ -202,7 +203,7 @@ struct ImportTable {
     decltype(&::SuspendThread) SuspendThread;   // KERNEL32.dll!SuspendThread
     decltype(&::FlushViewOfFile) FlushViewOfFile;   // KERNEL32.dll!FlushViewOfFile
     decltype(&::GetCurrentProcess) GetCurrentProcess;   // KERNEL32.dll!GetCurrentProcess
-    FARPROC GetVersion;   // KERNEL32.dll!GetVersion
+    import_fn::GetVersion GetVersion;   // KERNEL32.dll!GetVersion
     decltype(&::LocalAlloc) LocalAlloc;   // KERNEL32.dll!LocalAlloc
     decltype(&::TlsAlloc) TlsAlloc;   // KERNEL32.dll!TlsAlloc
     decltype(&::GlobalHandle) GlobalHandle;   // KERNEL32.dll!GlobalHandle
@@ -448,95 +449,95 @@ struct ImportTable {
     decltype(&::mmioSeek) mmioSeek;   // WINMM.dll!mmioSeek
     decltype(&::timeGetTime) timeGetTime;   // WINMM.dll!timeGetTime
     std::uint32_t WINMM_end;   // zero: the end of WINMM.dll's slots
-    FARPROC ClosePrinter;   // WINSPOOL.DRV!ClosePrinter
-    FARPROC DocumentPropertiesA;   // WINSPOOL.DRV!DocumentPropertiesA
-    FARPROC OpenPrinterA;   // WINSPOOL.DRV!OpenPrinterA
+    import_fn::ClosePrinter ClosePrinter;   // WINSPOOL.DRV!ClosePrinter
+    import_fn::DocumentPropertiesA DocumentPropertiesA;   // WINSPOOL.DRV!DocumentPropertiesA
+    import_fn::OpenPrinterA OpenPrinterA;   // WINSPOOL.DRV!OpenPrinterA
     std::uint32_t WINSPOOL_end;   // zero: the end of WINSPOOL.DRV's slots
-    FARPROC listen;   // WSOCK32.dll!#13
-    FARPROC accept;   // WSOCK32.dll!#1
-    FARPROC WSAFDIsSet;   // WSOCK32.dll!#151
-    FARPROC select;   // WSOCK32.dll!#18
-    FARPROC connect;   // WSOCK32.dll!#4
-    FARPROC recvfrom;   // WSOCK32.dll!#17
-    FARPROC send;   // WSOCK32.dll!#19
-    FARPROC socket;   // WSOCK32.dll!#23
-    FARPROC recv;   // WSOCK32.dll!#16
-    FARPROC bind;   // WSOCK32.dll!#2
-    FARPROC setsockopt;   // WSOCK32.dll!#21
-    FARPROC closesocket;   // WSOCK32.dll!#3
-    FARPROC WSACleanup;   // WSOCK32.dll!#116
-    FARPROC WSAStartup;   // WSOCK32.dll!#115
-    FARPROC gethostname;   // WSOCK32.dll!#57
-    FARPROC gethostbyaddr;   // WSOCK32.dll!#51
-    FARPROC ntohs;   // WSOCK32.dll!#15
-    FARPROC inet_addr;   // WSOCK32.dll!#10
-    FARPROC gethostbyname;   // WSOCK32.dll!#52
-    FARPROC htons;   // WSOCK32.dll!#9
-    FARPROC ioctlsocket;   // WSOCK32.dll!#12
-    FARPROC sendto;   // WSOCK32.dll!#20
+    import_fn::listen listen;   // WSOCK32.dll!#13
+    import_fn::accept accept;   // WSOCK32.dll!#1
+    import_fn::WSAFDIsSet WSAFDIsSet;   // WSOCK32.dll!#151
+    import_fn::select select;   // WSOCK32.dll!#18
+    import_fn::connect connect;   // WSOCK32.dll!#4
+    import_fn::recvfrom recvfrom;   // WSOCK32.dll!#17
+    import_fn::send send;   // WSOCK32.dll!#19
+    import_fn::socket socket;   // WSOCK32.dll!#23
+    import_fn::recv recv;   // WSOCK32.dll!#16
+    import_fn::bind bind;   // WSOCK32.dll!#2
+    import_fn::setsockopt setsockopt;   // WSOCK32.dll!#21
+    import_fn::closesocket closesocket;   // WSOCK32.dll!#3
+    import_fn::WSACleanup WSACleanup;   // WSOCK32.dll!#116
+    import_fn::WSAStartup WSAStartup;   // WSOCK32.dll!#115
+    import_fn::gethostname gethostname;   // WSOCK32.dll!#57
+    import_fn::gethostbyaddr gethostbyaddr;   // WSOCK32.dll!#51
+    import_fn::ntohs ntohs;   // WSOCK32.dll!#15
+    import_fn::inet_addr inet_addr;   // WSOCK32.dll!#10
+    import_fn::gethostbyname gethostbyname;   // WSOCK32.dll!#52
+    import_fn::htons htons;   // WSOCK32.dll!#9
+    import_fn::ioctlsocket ioctlsocket;   // WSOCK32.dll!#12
+    import_fn::sendto sendto;   // WSOCK32.dll!#20
     std::uint32_t WSOCK32_end;   // zero: the end of WSOCK32.dll's slots
-    FARPROC BinkGoto;   // binkw32.dll!_BinkGoto@12
-    FARPROC BinkDoFrame;   // binkw32.dll!_BinkDoFrame@4
-    FARPROC BinkDDSurfaceType;   // binkw32.dll!_BinkDDSurfaceType@4
-    FARPROC BinkOpen;   // binkw32.dll!_BinkOpen@8
-    FARPROC BinkNextFrame;   // binkw32.dll!_BinkNextFrame@4
-    FARPROC BinkWait;   // binkw32.dll!_BinkWait@4
-    FARPROC BinkSetFrameRate;   // binkw32.dll!_BinkSetFrameRate@8
-    FARPROC BinkSetVolume;   // binkw32.dll!_BinkSetVolume@8
-    FARPROC BinkSetSoundSystem;   // binkw32.dll!_BinkSetSoundSystem@8
-    FARPROC BinkOpenMiles;   // binkw32.dll!_BinkOpenMiles@4
-    FARPROC BinkClose;   // binkw32.dll!_BinkClose@4
-    FARPROC BinkCopyToBuffer;   // binkw32.dll!_BinkCopyToBuffer@28
+    import_fn::BinkGoto BinkGoto;   // binkw32.dll!_BinkGoto@12
+    import_fn::BinkDoFrame BinkDoFrame;   // binkw32.dll!_BinkDoFrame@4
+    import_fn::BinkDDSurfaceType BinkDDSurfaceType;   // binkw32.dll!_BinkDDSurfaceType@4
+    import_fn::BinkOpen BinkOpen;   // binkw32.dll!_BinkOpen@8
+    import_fn::BinkNextFrame BinkNextFrame;   // binkw32.dll!_BinkNextFrame@4
+    import_fn::BinkWait BinkWait;   // binkw32.dll!_BinkWait@4
+    import_fn::BinkSetFrameRate BinkSetFrameRate;   // binkw32.dll!_BinkSetFrameRate@8
+    import_fn::BinkSetVolume BinkSetVolume;   // binkw32.dll!_BinkSetVolume@8
+    import_fn::BinkSetSoundSystem BinkSetSoundSystem;   // binkw32.dll!_BinkSetSoundSystem@8
+    import_fn::BinkOpenMiles BinkOpenMiles;   // binkw32.dll!_BinkOpenMiles@4
+    import_fn::BinkClose BinkClose;   // binkw32.dll!_BinkClose@4
+    import_fn::BinkCopyToBuffer BinkCopyToBuffer;   // binkw32.dll!_BinkCopyToBuffer@28
     std::uint32_t binkw32_end;   // zero: the end of binkw32.dll's slots
-    FARPROC GetFileTitleA;   // comdlg32.dll!GetFileTitleA
+    import_fn::GetFileTitleA GetFileTitleA;   // comdlg32.dll!GetFileTitleA
     std::uint32_t comdlg32_end;   // zero: the end of comdlg32.dll's slots
-    FARPROC AIL_set_sample_file;   // mss32.dll!_AIL_set_sample_file@12
-    FARPROC AIL_WAV_info;   // mss32.dll!_AIL_WAV_info@8
-    FARPROC AIL_mem_alloc_lock;   // mss32.dll!_AIL_mem_alloc_lock@4
-    FARPROC AIL_register_EOS_callback;   // mss32.dll!_AIL_register_EOS_callback@8
-    FARPROC AIL_set_named_sample_file;   // mss32.dll!_AIL_set_named_sample_file@20
-    FARPROC AIL_set_sample_reverb;   // mss32.dll!_AIL_set_sample_reverb@16
-    FARPROC AIL_set_sample_ms_position;   // mss32.dll!_AIL_set_sample_ms_position@8
-    FARPROC AIL_start_sample;   // mss32.dll!_AIL_start_sample@4
-    FARPROC AIL_sample_position;   // mss32.dll!_AIL_sample_position@4
-    FARPROC AIL_set_sample_volume;   // mss32.dll!_AIL_set_sample_volume@8
-    FARPROC AIL_set_sample_loop_count;   // mss32.dll!_AIL_set_sample_loop_count@8
-    FARPROC AIL_set_sample_pan;   // mss32.dll!_AIL_set_sample_pan@8
-    FARPROC AIL_resume_sample;   // mss32.dll!_AIL_resume_sample@4
-    FARPROC AIL_stop_sample;   // mss32.dll!_AIL_stop_sample@4
-    FARPROC AIL_release_sample_handle;   // mss32.dll!_AIL_release_sample_handle@4
-    FARPROC AIL_set_sample_processor;   // mss32.dll!_AIL_set_sample_processor@12
-    FARPROC AIL_set_sample_position;   // mss32.dll!_AIL_set_sample_position@8
-    FARPROC AIL_release_sequence_handle;   // mss32.dll!_AIL_release_sequence_handle@4
-    FARPROC AIL_waveOutClose;   // mss32.dll!_AIL_waveOutClose@4
-    FARPROC AIL_midiOutClose;   // mss32.dll!_AIL_midiOutClose@4
-    FARPROC AIL_set_preference;   // mss32.dll!_AIL_set_preference@8
-    FARPROC AIL_waveOutOpen;   // mss32.dll!_AIL_waveOutOpen@16
-    FARPROC AIL_last_error;   // mss32.dll!_AIL_last_error@0
-    FARPROC AIL_set_DirectSound_HWND;   // mss32.dll!_AIL_set_DirectSound_HWND@8
-    FARPROC AIL_allocate_sample_handle;   // mss32.dll!_AIL_allocate_sample_handle@4
-    FARPROC AIL_sample_user_data;   // mss32.dll!_AIL_sample_user_data@8
-    FARPROC AIL_set_sample_playback_rate;   // mss32.dll!_AIL_set_sample_playback_rate@8
-    FARPROC AIL_register_sequence_callback;   // mss32.dll!_AIL_register_sequence_callback@8
-    FARPROC AIL_set_sequence_user_data;   // mss32.dll!_AIL_set_sequence_user_data@12
-    FARPROC AIL_init_sequence;   // mss32.dll!_AIL_init_sequence@12
-    FARPROC AIL_set_sample_user_data;   // mss32.dll!_AIL_set_sample_user_data@12
-    FARPROC AIL_get_DirectSound_info;   // mss32.dll!_AIL_get_DirectSound_info@12
-    FARPROC AIL_shutdown;   // mss32.dll!_AIL_shutdown@0
-    FARPROC AIL_startup;   // mss32.dll!_AIL_startup@0
-    FARPROC AIL_end_sample;   // mss32.dll!_AIL_end_sample@4
-    FARPROC AIL_set_sample_type;   // mss32.dll!_AIL_set_sample_type@12
-    FARPROC AIL_minimum_sample_buffer_size;   // mss32.dll!_AIL_minimum_sample_buffer_size@12
-    FARPROC RIB_find_file_provider;   // mss32.dll!RIB_find_file_provider
-    FARPROC AIL_sample_buffer_ready;   // mss32.dll!_AIL_sample_buffer_ready@4
-    FARPROC AIL_load_sample_buffer;   // mss32.dll!_AIL_load_sample_buffer@16
-    FARPROC AIL_start_sequence;   // mss32.dll!_AIL_start_sequence@4
-    FARPROC AIL_sequence_user_data;   // mss32.dll!_AIL_sequence_user_data@8
-    FARPROC AIL_sequence_ms_position;   // mss32.dll!_AIL_sequence_ms_position@12
-    FARPROC AIL_mem_free_lock;   // mss32.dll!_AIL_mem_free_lock@4
-    FARPROC AIL_end_sequence;   // mss32.dll!_AIL_end_sequence@4
-    FARPROC AIL_decompress_ASI;   // mss32.dll!_AIL_decompress_ASI@24
-    FARPROC AIL_init_sample;   // mss32.dll!_AIL_init_sample@4
+    import_fn::AIL_set_sample_file AIL_set_sample_file;   // mss32.dll!_AIL_set_sample_file@12
+    import_fn::AIL_WAV_info AIL_WAV_info;   // mss32.dll!_AIL_WAV_info@8
+    import_fn::AIL_mem_alloc_lock AIL_mem_alloc_lock;   // mss32.dll!_AIL_mem_alloc_lock@4
+    import_fn::AIL_register_EOS_callback AIL_register_EOS_callback;   // mss32.dll!_AIL_register_EOS_callback@8
+    import_fn::AIL_set_named_sample_file AIL_set_named_sample_file;   // mss32.dll!_AIL_set_named_sample_file@20
+    import_fn::AIL_set_sample_reverb AIL_set_sample_reverb;   // mss32.dll!_AIL_set_sample_reverb@16
+    import_fn::AIL_set_sample_ms_position AIL_set_sample_ms_position;   // mss32.dll!_AIL_set_sample_ms_position@8
+    import_fn::AIL_start_sample AIL_start_sample;   // mss32.dll!_AIL_start_sample@4
+    import_fn::AIL_sample_position AIL_sample_position;   // mss32.dll!_AIL_sample_position@4
+    import_fn::AIL_set_sample_volume AIL_set_sample_volume;   // mss32.dll!_AIL_set_sample_volume@8
+    import_fn::AIL_set_sample_loop_count AIL_set_sample_loop_count;   // mss32.dll!_AIL_set_sample_loop_count@8
+    import_fn::AIL_set_sample_pan AIL_set_sample_pan;   // mss32.dll!_AIL_set_sample_pan@8
+    import_fn::AIL_resume_sample AIL_resume_sample;   // mss32.dll!_AIL_resume_sample@4
+    import_fn::AIL_stop_sample AIL_stop_sample;   // mss32.dll!_AIL_stop_sample@4
+    import_fn::AIL_release_sample_handle AIL_release_sample_handle;   // mss32.dll!_AIL_release_sample_handle@4
+    import_fn::AIL_set_sample_processor AIL_set_sample_processor;   // mss32.dll!_AIL_set_sample_processor@12
+    import_fn::AIL_set_sample_position AIL_set_sample_position;   // mss32.dll!_AIL_set_sample_position@8
+    import_fn::AIL_release_sequence_handle AIL_release_sequence_handle;   // mss32.dll!_AIL_release_sequence_handle@4
+    import_fn::AIL_waveOutClose AIL_waveOutClose;   // mss32.dll!_AIL_waveOutClose@4
+    import_fn::AIL_midiOutClose AIL_midiOutClose;   // mss32.dll!_AIL_midiOutClose@4
+    import_fn::AIL_set_preference AIL_set_preference;   // mss32.dll!_AIL_set_preference@8
+    import_fn::AIL_waveOutOpen AIL_waveOutOpen;   // mss32.dll!_AIL_waveOutOpen@16
+    import_fn::AIL_last_error AIL_last_error;   // mss32.dll!_AIL_last_error@0
+    import_fn::AIL_set_DirectSound_HWND AIL_set_DirectSound_HWND;   // mss32.dll!_AIL_set_DirectSound_HWND@8
+    import_fn::AIL_allocate_sample_handle AIL_allocate_sample_handle;   // mss32.dll!_AIL_allocate_sample_handle@4
+    import_fn::AIL_sample_user_data AIL_sample_user_data;   // mss32.dll!_AIL_sample_user_data@8
+    import_fn::AIL_set_sample_playback_rate AIL_set_sample_playback_rate;   // mss32.dll!_AIL_set_sample_playback_rate@8
+    import_fn::AIL_register_sequence_callback AIL_register_sequence_callback;   // mss32.dll!_AIL_register_sequence_callback@8
+    import_fn::AIL_set_sequence_user_data AIL_set_sequence_user_data;   // mss32.dll!_AIL_set_sequence_user_data@12
+    import_fn::AIL_init_sequence AIL_init_sequence;   // mss32.dll!_AIL_init_sequence@12
+    import_fn::AIL_set_sample_user_data AIL_set_sample_user_data;   // mss32.dll!_AIL_set_sample_user_data@12
+    import_fn::AIL_get_DirectSound_info AIL_get_DirectSound_info;   // mss32.dll!_AIL_get_DirectSound_info@12
+    import_fn::AIL_shutdown AIL_shutdown;   // mss32.dll!_AIL_shutdown@0
+    import_fn::AIL_startup AIL_startup;   // mss32.dll!_AIL_startup@0
+    import_fn::AIL_end_sample AIL_end_sample;   // mss32.dll!_AIL_end_sample@4
+    import_fn::AIL_set_sample_type AIL_set_sample_type;   // mss32.dll!_AIL_set_sample_type@12
+    import_fn::AIL_minimum_sample_buffer_size AIL_minimum_sample_buffer_size;   // mss32.dll!_AIL_minimum_sample_buffer_size@12
+    import_fn::RIB_find_file_provider RIB_find_file_provider;   // mss32.dll!RIB_find_file_provider
+    import_fn::AIL_sample_buffer_ready AIL_sample_buffer_ready;   // mss32.dll!_AIL_sample_buffer_ready@4
+    import_fn::AIL_load_sample_buffer AIL_load_sample_buffer;   // mss32.dll!_AIL_load_sample_buffer@16
+    import_fn::AIL_start_sequence AIL_start_sequence;   // mss32.dll!_AIL_start_sequence@4
+    import_fn::AIL_sequence_user_data AIL_sequence_user_data;   // mss32.dll!_AIL_sequence_user_data@8
+    import_fn::AIL_sequence_ms_position AIL_sequence_ms_position;   // mss32.dll!_AIL_sequence_ms_position@12
+    import_fn::AIL_mem_free_lock AIL_mem_free_lock;   // mss32.dll!_AIL_mem_free_lock@4
+    import_fn::AIL_end_sequence AIL_end_sequence;   // mss32.dll!_AIL_end_sequence@4
+    import_fn::AIL_decompress_ASI AIL_decompress_ASI;   // mss32.dll!_AIL_decompress_ASI@24
+    import_fn::AIL_init_sample AIL_init_sample;   // mss32.dll!_AIL_init_sample@4
     std::uint32_t mss32_end;   // zero: the end of mss32.dll's slots
     decltype(&::CoCreateInstance) CoCreateInstance;   // ole32.dll!CoCreateInstance
     decltype(&::CoInitialize) CoInitialize;   // ole32.dll!CoInitialize
@@ -546,11 +547,5 @@ struct ImportTable {
 static_assert(sizeof(ImportTable) == kImportsEnd - kImportsBegin);
 
 inline ImportTable& Imports() { return GameData<ImportTable>(kImportsBegin); }
-
-// An import the table holds as a FARPROC, as its function type.
-template <typename F>
-F ImportAs(FARPROC import) {
-    return reinterpret_cast<F>(import);
-}
 
 } // namespace ei
