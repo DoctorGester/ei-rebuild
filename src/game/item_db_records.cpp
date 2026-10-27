@@ -297,9 +297,8 @@ LootItemRecord::LootItemRecord(const LootItemRecord& from) {
 namespace itemdb {
 
 
-// uninitialized_copy(first, last, dest) and uninitialized_fill_n(dest, n, x) (__fastcall: the second stack argument
-// is STLport's unused type tag). Null destinations are skipped, as placement new does. Both return the end of the
-// destination.
+// uninitialized_copy(first, last, dest) and uninitialized_fill_n(dest, n, x) (the last argument is STLport's
+// unused type tag). Null destinations are skipped, as placement new does. Both return the end of the destination.
 template <typename R>
 R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int /*tag*/) {
     for (; first != last; ++first, ++dest) {
