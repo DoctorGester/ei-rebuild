@@ -1,5 +1,5 @@
 // The Direct3D device's screen bounds of a mesh draw (mesh draw flag 1): the smallest and largest
-// x and y of its clipped TL vertices (004E86B0) or of its projected positions (004E8900), rounded
+// x and y of its clipped TL vertices or of its projected positions, rounded
 // into the device's drawn rectangle (+0x15C), which the figures' and the 3D library's draws read
 // back. A-S12; see docs/notes/renderer.md (section 12).
 #include "clip.h"            // TLVertex

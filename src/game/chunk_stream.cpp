@@ -1,5 +1,4 @@
 // Chunked files. See chunk_stream.h.
-//
 // Every file operation asks for the file again through slot 1 (File), as the original does.
 #include "chunk_stream.h"
 
@@ -268,7 +267,7 @@ EI_REWRITTEN(0x0042C580, Chunk::ReadString);
 mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
     std::uint32_t length = static_cast<std::uint32_t>(size_ - kHeader);
     TextDecoder decoder;
-    decoder.text.ConstructEmpty();   // 0042D310
+    decoder.text.ConstructEmpty();
     decoder.input.ConstructEmpty();
     std::uint8_t zero = 0;
     std::uint32_t had = static_cast<std::uint32_t>(decoder.input.size());

@@ -1,6 +1,5 @@
 // The .mob zone file reader (A-S4): 00481F00 reads the top-level chunks, 00481660 turns the
 // records into world objects. Names are provisional; the record classes are map_spec.h.
-//
 // 00481660 has a branch under the global 0079BCF4 (a colour quantisation of the objects' tints,
 // 0049BEA0, through STLport map / list / introsort instantiations). Nothing in game.exe,
 // addon.dll or EI_Plugin.asi writes that global (it sits in zero-initialised data; a byte search

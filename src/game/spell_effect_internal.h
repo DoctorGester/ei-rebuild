@@ -64,12 +64,12 @@ constexpr float kHalfBits = 0.5f;                       // immediate pushed to t
 
 // Effect setters (world_effect*.cpp).
 // 0067AC70 (not rewritten): the missile's target object id.
-// 0067C640: CEffectShowVisibility's two object ids (+0x14C, +0x150).
+// CEffectShowVisibility's two object ids (+0x14C, +0x150).
 // CPtrList constructor (block size) and destructor.
 // The unit controller (+0x240): 00552780 says remark `what`; 00551AE0 tries to be tamed by `tamer`
 // with skill `skill` (0 when it failed).
 // Footprints of the walls and clouds in the global cell set 007C8478 (thiscall on the set): along a
-// direction (005B2A00) or a disc (005B2760); then stamped into / cleared from the AI map (ai_footprint.cpp).
+// direction or a disc; then stamped into / cleared from the AI map (ai_footprint.cpp).
 extern lib::StaticObject<FootprintCellSet> g_spellFootprint;   // ai_footprint.cpp
 inline FootprintCellSet* SpellFootprint() { return &*g_spellFootprint; }
 
@@ -90,8 +90,8 @@ inline double ClampPow(float ratio) {
     return x87::fexp(x87::flog(clamped) * 0.33000001311302185 /*007439A8*/) - 0.20000000298023224 /*0073CCD0*/;
 }
 
-// The spell's power factor, repeated inline about twenty times in the original: 1 (0073B84C) when
-// the prototype's effect (+0x2C) compares equal to 0 (0073B858), else ClampPow of damage / effect
+// The spell's power factor, repeated inline about twenty times in the original: 1 when
+// the prototype's effect (+0x2C) compares equal to 0, else ClampPow of damage / effect
 // rounded to float.
 inline double PowerFactor(const float* damage, const float* effect) {
     EI_NAN_AUDIT(*effect);
@@ -122,7 +122,7 @@ inline void MultiplyAdd(const float* a, const float* b, const float* c, float* o
     *out = static_cast<float>(static_cast<double>(*a) * *b + *c);
 }
 
-// The game's _ftol (006E853C) of a float constant in memory.
+// The game's _ftol of a float constant in memory.
 inline int FtolOf(const float* value) { return static_cast<int>(gamecrt::Ftol(*value)); }
 
 // The factor rounded to float.
@@ -199,7 +199,7 @@ inline void WallSpan(const Vector3* direction, const float* radius, Vector3* out
 }
 
 // The light wall's half extent from its lightning's ends: x keeps the difference unrounded before
-// halving (0073B86C), y and z are rounded first.
+// halving, y and z are rounded first.
 inline void HalfSpan(const CEffectLightning* bolt, Vector3* out) {
     const double half = 0.5f /*0073B86C*/;
     const double dx = static_cast<double>(bolt->to_.x) - bolt->from_.x;

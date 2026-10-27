@@ -7,8 +7,7 @@
 // the box has no owner, no help context and the module's file name as its title. That is the body
 // here (registered in mfc_window.cpp; verify_mfc_window.cpp checked the assumption
 // against the original's state whenever a box was shown, until S21d).
-//
-// CWnd's constructor (S3f) and destructor (S3d): the exit functions run it on MFC's four static windows (wndTop,
+// CWnd's constructor and destructor: the exit functions run it on MFC's four static windows (wndTop,
 // wndBottom, wndTopMost, wndNoTopMost: placement constants, never destroyed as windows); MFC's other
 // classes reach it from their own destructors. Checked in game by verify_mfc_state.cpp until S21d.
 
@@ -41,9 +40,9 @@ class CWnd;
 // has; config/standalone_unreachable.csv). 4 and 10 are each class's own. CWnd and CWinThread derive from it.
 class CCmdTarget : public CObject {
 public:
-    // 00703EAE: one reference, no outer unknown or dispatch, a result expected.
+    // One reference, no outer unknown or dispatch, a result expected.
     CCmdTarget();
-    // 00703EC8: an enabled dispatch disconnected (COleDispatchImpl::Disconnect, slot 7).
+    // An enabled dispatch disconnected (COleDispatchImpl::Disconnect, slot 7).
     ~CCmdTarget() override;
 
     virtual BOOL OnCmdMsg(UINT, int, void*, void*) { ei::UnportedSlot(0x00703FFA); }       // 3
@@ -86,7 +85,7 @@ public:
 // never called through their table).
 class CWnd : public CCmdTarget {
 public:
-    // 007068AA: CWnd(HWND) with no window.
+    // CWnd(HWND) with no window.
     CWnd() : CWnd(nullptr) {}
     // 00704546 CWnd(HWND): CCmdTarget's constructor, CWnd's members cleared and the handle kept.
     explicit CWnd(HWND handle);
@@ -99,7 +98,7 @@ public:
     // window is a CWnd.
     ~CWnd() override;
 
-    const CRuntimeClass* GetRuntimeClass() const override;                                           // 0: 0070D35D
+    const CRuntimeClass* GetRuntimeClass() const override;
     void OnFinalRelease() override { ei::UnportedSlot(0x00705190); }                                 // 4
     const void* GetMessageMap() const override { ei::UnportedSlot(0x0070588F); }                     // 10
     virtual void PreSubclassWindow() { ei::UnportedSlot(0x007049D5); }                               // 20
@@ -153,7 +152,7 @@ public:
     CMenu() = default;
     // 006E7150 (deleting): the menu destroyed through MFC's menu handle map, which the image does not have; unported.
     ~CMenu() override;
-    const CRuntimeClass* GetRuntimeClass() const override;   // 0: 0070DC9A
+    const CRuntimeClass* GetRuntimeClass() const override;
     virtual void DrawItem(DRAWITEMSTRUCT*) {}                // 3
     virtual void MeasureItem(MEASUREITEMSTRUCT*) {}          // 4
 
@@ -163,10 +162,10 @@ static_assert(sizeof(CMenu) == 8);
 
 // AfxMessageBox(LPCTSTR, UINT type, UINT helpId): MessageBoxA's answer. MB_ICONEXCLAMATION is added
 // to an OK, OK / Cancel, Yes / No / Cancel or Yes / No box that names no icon.
-int __stdcall MessageBoxText(const char* text, unsigned type, unsigned helpId);   // 0070AC94
+int __stdcall MessageBoxText(const char* text, unsigned type, unsigned helpId);
 // AfxMessageBox(UINT id, UINT type, UINT helpId): the box with string `id` of game.exe's table (empty
 // when it is missing; the original only traces that). A help id of -1 means `id`.
-int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId);    // 0070ACCC
+int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId);
 
 // The fixed allocators of the temporary windows (CTempWnd, 0x3C-byte blocks) and menus (CTempMenu, 8), 64 to a block,
 // and MFC's four static windows wndTop, wndBottom, wndTopMost and wndNoTopMost (placement constants: their handles

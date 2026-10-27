@@ -15,7 +15,7 @@
 class CRenderPreset;   // model.h
 
 // A texture stage of a material (0x14 bytes): copied by 0051E970 / 0051E430 (the texture gains a
-// reference), destroyed by releasing the texture (0051E3D0) and freeing the name.
+// reference), destroyed by releasing the texture and freeing the name.
 struct MaterialStage {
     explicit MaterialStage(CTexture* stageTexture) : name("", ""), texture(stageTexture) {
         if (texture) ++texture->refCount_;

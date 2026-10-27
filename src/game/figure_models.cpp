@@ -20,7 +20,7 @@ namespace {
 using ModelMap = stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash>;
 using AnimationMap = FigureModel::AnimationMap;
 
-// The model map's and the model's animation map's find (004FB0F0 / 005AD520) and find_or_insert
+// The model map's and the model's animation map's find and find_or_insert
 // (004FBBD0 / 005ADC10, through operator[]). The animations are CMMIOResources (0x6C bytes,
 // CMMIOResource::Construct).
 
@@ -97,7 +97,7 @@ constexpr std::uint32_t kPrimes[kPrimeCount] = /*0073B914*/ {
 // STLport's hashtable constructor inlines it: empty functors (the original copies an
 // uninitialised stack byte into them; ours 0), no elements, buckets for the first prime of the
 // list (kPrimes) not below 100, all null. Then the three archives are new 0x6C-byte
-// objects (006721D0), null when the allocation fails.
+// objects, null when the allocation fails.
 FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     AnimationMap& table = model->animationCache;
     std::uint8_t* functors = table.Functors();
@@ -108,7 +108,7 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     auto* count = static_cast<std::uint32_t*>(table.CountProxy());
     buckets->Start() = nullptr;
     buckets->Finish() = nullptr;
-    buckets->EndOfStorage() = nullptr;   // the allocator proxy (005AD640)
+    buckets->EndOfStorage() = nullptr;   // the allocator proxy
     *count = 0;
     const std::uint32_t* first = kPrimes;
     const std::uint32_t* last = kPrimes + kPrimeCount;
@@ -116,7 +116,7 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     const std::uint32_t* prime = stlp::LowerBoundDwords(first, last, &hint, 0);
     std::uint32_t n = prime == last ? kPrimes[kPrimeCount - 1] : *prime;
     buckets->Reserve<stlp::PlainElement<AnimationMap::Node*>>(n);
-    buckets->FillInsert<stlp::PlainElement<AnimationMap::Node*>>(buckets->Finish(), n, nullptr);   // 005ADAD0
+    buckets->FillInsert<stlp::PlainElement<AnimationMap::Node*>>(buckets->Finish(), n, nullptr);
     *count = 0;
     static constexpr CMappedResource* FigureModel::*kArchives[3] = {&FigureModel::mesh, &FigureModel::bones,
                                                                     &FigureModel::animations};

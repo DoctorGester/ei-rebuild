@@ -1,6 +1,6 @@
 #pragma once
 
-// Library code over game types in S12a's ranges (S12c, docs/notes/standalone.md): STLport members of
+// Library code over game types in S12a's ranges (docs/notes/standalone.md): STLport members of
 // lists, vectors and algorithms whose elements are the game's (streams, CStrings, counted pointers,
 // the briefing's records), the CString destructor's out-of-line copies and the compiler's unwind
 // helpers. Registered in library_containers.cpp; checked in game by verify_library_containers.cpp until S21d.
@@ -85,7 +85,7 @@ struct TokenWord {
     mfc::CString text;   // +0x0C
 };
 
-// A local of the .mob loader whose third dword an unwind funclet clears (00482E90).
+// A local of the .mob loader whose third dword an unwind funclet clears.
 struct LoaderLocal {
     std::uint8_t unused_00[8];
     std::uint32_t cleared;   // +0x08
@@ -104,7 +104,7 @@ struct PointerVectorsPair {
 // less a span of seconds into `out` (thiscall, RET 8; called from 005E0400 after a CTime
 // constructor); returns out.
 
-// ---- The party file entries' vector (S12f) ------------------------------------------------------
+// ---- The party file entries' vector ------------------------------------------------------
 
 // vector<MpHeroRecord> (0x74 bytes: a CParty and its file name; the multiplayer heroes 007C82A4 and
 // the world's saved parties, world_game.cpp): an element is copied as the party's copy constructor

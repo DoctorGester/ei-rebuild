@@ -327,7 +327,7 @@ void CEffectParticle::Spawn() {
         return;
     }
 
-    source_.Assign(TheParticleManager()->CreateSource(type_));   // 0056F1A0
+    source_.Assign(TheParticleManager()->CreateSource(type_));
     std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);

@@ -17,17 +17,17 @@ class CPlayerManager : public CBaseManager {
 public:
     // CBaseManager's constructor (inlined in CWorld::Create 0055EE40).
     CPlayerManager();
-    // 0055F350. CBaseManager's destructor.
+    // CBaseManager's destructor.
     ~CPlayerManager() override;
-    // 0055F330: the deleting destructor (slot 0).
+    // The deleting destructor (slot 0).
     int Create() override;                         // 2: CreatePlayers
     const char* GetClassName() override;           // 11: 0055F310 "CPlayerManager"
     int GetClassId() override;                     // 12: 0055F320 (0x2E)
     CEngineObject* NewObject(int type) override;   // 14: NewPlayer
 
-    // 0066C0F0 (slot 2). CBaseManager's Create, its result made 0 / 1.
+    // CBaseManager's Create, its result made 0 / 1.
     BOOL CreatePlayers();
-    // 0066C110 (slot 14, RET 4). A new CPlayer (0x134 bytes, CPlayer::Construct) whose type_ is
+    // A new CPlayer (0x134 bytes, CPlayer::Construct) whose type_ is
     // `type`; null when the allocation fails.
     CEngineObject* NewPlayer(int type);
     // 0066C180 (A-H26). A new player (type 0x300A, a free id) with a new connection from the
@@ -35,7 +35,7 @@ public:
     // taken, player number 0 (Rebirth's PlayerNumbers: the server world's highest other + 1). Null
     // when the player cannot be made (the connection is not checked).
     CEngineObject* CreateSessionPlayer();
-    // 0066C1D0 (RET 4). `player`'s Release (slot 4); `this` is not used.
+    // `player`'s Release (slot 4); `this` is not used.
     void ReleasePlayer(CEngineObject* player);
     // 0066C1E0 (RET 8; the client's message 0x00, the server's player id). `object` is filed
     // under `id`: its old id's entry erased, its id_ set, maxId_ raised, the table entry set

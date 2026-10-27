@@ -1,5 +1,5 @@
 // The battle HUD's unit panel: its draw (006462A0, slot 20 of CHudUnitPanel). A-E2.
-// Rebirth patches it for its WideScreen layout, reproduced behind the flag (W3, ui_widescreen.h):
+// Rebirth patches it for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
 // the panel offset while it draws (until the window's base draw), the model's x moved left by
 // EdgeShift, the depth buffer's rectangles scaled without the margin. The callees Rebirth patches
 // too (the sprites' Place 005E6FA0, the layout scaling 005F7CA0) are called through their
@@ -143,7 +143,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
-            // WideScreen: 100 - shift (00646608).
+            // WideScreen: 100 - shift.
             const float x = static_cast<float>((static_cast<float>(100 - widescreen::EdgeShift() - offset_) * LayoutUnit() - One()) *
                                          DepthUnit() * ModelDepth());
             const float y = static_cast<float>(height / size - static_cast<float>(DepthUnit() * ModelDepth()) * ModelDrop());

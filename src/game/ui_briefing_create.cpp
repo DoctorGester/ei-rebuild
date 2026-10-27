@@ -72,7 +72,7 @@ constexpr int kStarting = 2;
 constexpr int kPhrases = 3;
 constexpr int kRewards = 4;
 
-constexpr float kMoverTimeout = 30.0f;      // 0073BAF0
+constexpr float kMoverTimeout = 30.0f;
 constexpr double kCloseEnough = 0.01;       // 0073CE20, squared distance
 constexpr int kEventOpenTopics = 1;
 constexpr int kEventNoTopics = 2;
@@ -330,7 +330,7 @@ void CBriefingScreen::Update() {
         if (state_ == kPhrases) StartPhrases();
         break;
     case kPhrases:
-        // The text's meshes; the topics' backdrop and frame stay hidden (W5).
+        // The text's meshes; the topics' backdrop and frame stay hidden.
         SetMeshesVisible(this, 1, kTextBackdropMesh);
         text_->SetEnabled(1, 1);
         if (voice_ != -1) {
@@ -342,7 +342,7 @@ void CBriefingScreen::Update() {
         }
         break;
     case kRewards:
-        // The text's meshes; the topics' backdrop and frame stay hidden (W5).
+        // The text's meshes; the topics' backdrop and frame stay hidden.
         SetMeshesVisible(this, 1, kTextBackdropMesh);
         text_->SetEnabled(1, 1);
         if (voice_ != -1) {

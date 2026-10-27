@@ -59,9 +59,9 @@ bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
-// 005AA5F0. Figure manager: the model named `name`.
-// 00516A80. 3D object: its figure part named `name`, or null.
-// 00539580. SkinLayerArray::SetSize (the 12-byte path records' instantiation).
+// Figure manager: the model named `name`.
+// 3D object: its figure part named `name`, or null.
+// SkinLayerArray::SetSize (the 12-byte path records' instantiation).
 void SetLayerCount(SkinLayerArray* layers, int size) { mfc::impl::ArrayAs<mfc::impl::PathRecords>(*layers).SetSize(size, -1); }
 
 std::uint32_t FiguresFlag(const CUnit* unit) { return unit->flags_ & kFiguresDetached; }
@@ -157,7 +157,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             part.Format("hr.%.2d", hair);
         }
         PartArray parts{nullptr, 0, 0, 0};
-        unit->CollectPartsByPrefix(part, &parts);   // 00516B50
+        unit->CollectPartsByPrefix(part, &parts);
         if (parts.size == 1) {
             // One part of that name: replaced only when it is not the plain part already.
             if (CompareNames(part, parts.data[0]->GetName()) != 0) {

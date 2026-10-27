@@ -66,7 +66,7 @@ const char* ZonePrefix() { return "z"; }
 const char* QuestSection() { return "quest "; }
 QuestBriefingTable::Index& BriefingRecords() { return worlddata::QuestBriefings(); }
 
-// 006023F0: what a speaker's controller calls when its dialogue animation has finished.
+// What a speaker's controller calls when its dialogue animation has finished.
 using ActionDone = void(__fastcall*)(CUnit*);
 ActionDone SpeakerActionDone() { return ei::Code<ActionDone>(0x006023F0); }
 
@@ -75,9 +75,9 @@ constexpr int kQuestNameParts = 3;
 constexpr int kClassQuestItem = 0x14;
 constexpr int kSoundPriority = 0x100;
 constexpr int kSoundVolume = 100;
-constexpr float kSecondsPerCharacter = 0.05f;   // 0074134C
-constexpr double kPi = 3.141592653589793;       // 007410C8
-constexpr double kDegree = 1.0 / 180.0;         // 0073BA30
+constexpr float kSecondsPerCharacter = 0.05f;
+constexpr double kPi = 3.141592653589793;
+constexpr double kDegree = 1.0 / 180.0;
 // pi * (1 / 180) as the original's FLD / FMUL leaves it at 24-bit precision (SV7d1a: the folded
 // double constant has 29 more bits).
 constexpr float kRadiansPerDegree = static_cast<float>(kPi * kDegree);

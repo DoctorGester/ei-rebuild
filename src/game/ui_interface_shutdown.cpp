@@ -1,7 +1,7 @@
-// The interface manager's end (CInterface3D): the input reset after the windows close (005F8C50),
+// The interface manager's end (CInterface3D): the input reset after the windows close,
 // the shutdown from the main loop's exit (005F4F90; it writes config\tutorial.ini), the destructor
-// body of the global interface run at exit (005F4790) and the console window's destructor body
-// (005E3DF0). See ui.h and docs/notes/ui.md, section 3.
+// body of the global interface run at exit and the console window's destructor body
+//. See ui.h and docs/notes/ui.md, section 3.
 #include "app.h"
 #include "ui.h"
 
@@ -87,7 +87,7 @@ void CInterface3D::Shutdown() {
         delete font;
         font = nullptr;
     }
-    // The fade's destructor body (005E69A0) is empty; the pointer is not cleared.
+    // The fade's destructor body is empty; the pointer is not cleared.
     if (fade_) gamecrt::operator_delete(fade_);
 }
 EI_REWRITTEN(0x005F4F90, CInterface3D::Shutdown);

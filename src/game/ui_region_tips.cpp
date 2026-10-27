@@ -1,6 +1,6 @@
 // A region's tooltip (CUiRegion, ui.h): made from a text id ("tip <id>" in the texts, 005FC730)
-// or a string (005FC6B0), its text changed (005FC690), and the region's contents released
-// (005FC600). Every screen and HUD panel builder gives its regions tooltips. See
+// or a string, its text changed, and the region's contents released
+//. Every screen and HUD panel builder gives its regions tooltips. See
 // docs/notes/ui.md ("Interface manager and window base").
 #include "ui.h"
 
@@ -14,7 +14,7 @@
 
 namespace {
 
-constexpr const char* kTipText = "tip %d";   // 0079321C
+constexpr const char* kTipText = "tip %d";
 
 // A new tooltip of `region` (null when the allocation fails, as in the original).
 CUiTooltip* NewTooltip(CUiRegion* region, const char* text, int flag, int extra) {

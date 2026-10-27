@@ -39,16 +39,16 @@ namespace {
 // guard 007C2E58 bit 1, freed at exit by 005A8AE0).
 constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E48*/ {};
 lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
-void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }   // 005A8AE0
+void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
-// The scale the lights' colours are set with (0079BE9C) and the "crown" option (0079BD28).
+// The scale the lights' colours are set with and the "crown" option.
 float LightingCoefficient() { return options::TheOptions()->objectsLightingCoeff_; }
 int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
 
 // --- Helpers -------------------------------------------------------------------------------------
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
-// 005A7160: the drawer's animation at a time (float bits). 005A7290: after the draw (the renderer).
+// The drawer's animation at a time (float bits). 005A7290: after the draw (the renderer).
 
 // The mesh's name: its slot 7, CEngineObject::GetName.
 const char* MeshName(CFigureMesh* mesh) { return mesh->GetName(); }
@@ -89,10 +89,10 @@ struct Part {
     CLinkMesh* figure;        // the mesh owner's figure (CObject3D::figure), or null
     int drawFlags;            // 1 rectangle wanted, 2 crossing the view, 8 material flag 0x10
     bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
-    const render::MeshLighting* lighting = nullptr;   // lit on the GPU (R16i; not a flat mesh)
+    const render::MeshLighting* lighting = nullptr;   // lit on the GPU (not a flat mesh)
 
     CFigureMesh* Mesh() const { return node->mesh_; }
-    // The new renderer keeps the mesh on the GPU (R16d): what the device's draw below draws.
+    // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
     render::MeshSource Source(bool throughFigure) const {
         return render::MeshSource{Mesh(), throughFigure ? figure : nullptr, Mesh()->offsets_.size != 0, coloursWritten,
                                   lighting};
@@ -122,7 +122,7 @@ void FlatColours(Part& part) {
     Fill(part.Speculars(), part.Mesh()->flatSpecular_);
 }
 
-// The part's light for the GPU (R16i, render::MeshLighting), every draw of a mesh that is not flat: the
+// The part's light for the GPU (render::MeshLighting), every draw of a mesh that is not flat: the
 // model matrix (below), the scene's sun (SceneSun), the ambient colour the transform object was given
 // (TransformAmbientColour), the material's diffuse and emissive colours, the options' coefficient, the
 // crown, and the lights within the object's reach (its draw's list; their positions in the landscape's
@@ -298,7 +298,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
         MovedPositions() = lib::AlignedArray<VertexPacket>{};
-        libcrt::AtExit(FreeMovedPositions);   // 005A8AE0
+        libcrt::AtExit(FreeMovedPositions);
     }
 
     int visibility = device->pipeline_->ClipTest(&part.Mesh()->bounds_);

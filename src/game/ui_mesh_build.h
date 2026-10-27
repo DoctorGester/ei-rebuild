@@ -12,21 +12,21 @@
 
 class CUiMeshBuilder : public CUiMesh {
 public:
-    // 005E8450 (RET 0x2C). A framed rectangle: an outer quad (left, top)-(right, bottom) and an inner
+    // A framed rectangle: an outer quad (left, top)-(right, bottom) and an inner
     // one `border` pixels in, 8 vertices and 24 indices forming the frame between them; texels
     // (u0, v0)-(u1, v1) for the outer edge, moved in proportionally for the inner one.
     void Framed(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
                 int v0, int u1, int v1);
-    // 005E8C60 (RET 0x24). A disc of `count` points around the layout point (x, y) (Place,
+    // A disc of `count` points around the layout point (x, y) (Place,
     // 005E6FA0), radius `radius`; texels on the circle of radius `uvRadius` around (u, v); a fan of
     // count - 2 triangles.
     void Disc(float depth, float scale, float x, float y, float radius, int count, int u, int v, int uvRadius);
-    // 005E91F0 (RET 0x2C). A ring of `count` segments around (x, y) between `radius - width` and
+    // A ring of `count` segments around (x, y) between `radius - width` and
     // `radius`: 4 vertices and 6 indices per segment (the last segment closes on vertices 0 and 1),
     // count / 2 quads; texels (u0, v0)-(u1, v1) for every segment.
     void Ring(float depth, float scale, float x, float y, float radius, int count, float width, int u0, int v0, int u1,
               int v1);
-    // 005E9F30. Only the per-vertex arrays: +0x1D0 one block (four 0s, four 0s, four 1s, four 1s),
+    // Only the per-vertex arrays: +0x1D0 one block (four 0s, four 0s, four 1s, four 1s),
     // +0x138 and +0x148 four entries (the builders' common start; the original inlines the sizing).
     void ResetColours();
 };

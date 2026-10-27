@@ -1,6 +1,6 @@
 // Two CUnit virtual slots giving points of the unit (vtable 0073EA8C, shared by CFakeUnit
-// 0073BFE8): 52 the position predicted along its path (0052FCC0) and 53 the point its current
-// animation acts on (0052FDF0). See
+// 0073BFE8): 52 the position predicted along its path and 53 the point its current
+// animation acts on. See
 // docs/notes/units.md ("Unit points").
 #include "ai_map.h"
 #include "ai_motion.h"
@@ -23,8 +23,8 @@ namespace {
 // animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
 // map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
 constexpr int kOrderPath = 2;
-constexpr float kCellScale = 1.0f;            // 0073E9B8 / 0073EBF0
-constexpr float kHalf = 0.5f;                 // 0073B86C
+constexpr float kCellScale = 1.0f;
+constexpr float kHalf = 0.5f;
 const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
 // The unit's virtual slot 55 (IsDead: +0x274).
@@ -33,7 +33,7 @@ void CopyPosition(Vector3* out, const CUnit* unit) { std::memcpy(out, &unit->loc
 
 } // namespace
 
-// 0052FCC0 (slot 52, RET 8). A dead unit (slot 55) gives its action point (slot 53); otherwise a
+// A dead unit (slot 55) gives its action point (slot 53); otherwise a
 // unit following a path order (kind 2) without flag 0x8000000 gives its motion's position at
 // `time`, and any other its position.
 static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {

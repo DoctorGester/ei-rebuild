@@ -22,14 +22,14 @@
 
 namespace {
 
-constexpr const char* kAllodPrefix = "allod ";     // 00794200
-constexpr const char* kZonePrefix = "zone ";       // 007941F8
-constexpr const char* kQuestPrefix = "quest ";     // 00790790
-constexpr const char* kMapText = "map.txt";        // 007856A0
-constexpr const char* kZoneEntry = "#zone %s";     // 007941EC
-constexpr const char* kPositionLine = "#position"; // 007941E0
-constexpr const char* kQuestEntry = "#quest %s";   // 007941D4
-constexpr const char* kMissingNumber = "0";        // 007856B8
+constexpr const char* kAllodPrefix = "allod ";
+constexpr const char* kZonePrefix = "zone ";
+constexpr const char* kQuestPrefix = "quest ";
+constexpr const char* kMapText = "map.txt";
+constexpr const char* kZoneEntry = "#zone %s";
+constexpr const char* kPositionLine = "#position";
+constexpr const char* kQuestEntry = "#quest %s";
+constexpr const char* kMissingNumber = "0";
 
 // The text `prefix` + `name` (empty when there is none), constructed into `out`.
 mfc::CString* PlaceTitle(mfc::CString* out, const char* prefix, const char* name) {

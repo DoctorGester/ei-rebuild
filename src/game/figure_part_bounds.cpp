@@ -1,5 +1,5 @@
 // 005A7290 (thiscall on a figure part's scene node, RET 4): the finishing call of the part draws
-// (005A7640, 005A7A70). With the debug flag 0x4000 of the owning manager's context (+8) set, the
+//. With the debug flag 0x4000 of the owning manager's context (+8) set, the
 // mesh's clip box is drawn as lines through the renderer (slot 15): the corners are the bounds'
 // centre plus, per axis, either the box minimum or the maximum; eight edges, two points each, in
 // the original's order. See docs/notes/models.md ("Figure parts").

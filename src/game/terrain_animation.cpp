@@ -1,7 +1,6 @@
 // The landscape's per-frame work (006C3C80-006C4290, 006C8E90-006C926A, 006CB1E0): the update
 // (Terrain::RunTick), the sun and its staggered relighting (SetSun), the sectors' relight
 // countdowns, animated tiles and water waves (SectorData::Animate), and the sector reset helpers.
-//
 // Waves: every water vertex has a phase offset (owner wavePhases, 006C57E0); the phase along the
 // wave direction runs from the sector's first water vertex (mod 2 pi) and steps by the direction
 // per vertex. The 512-entry sine table at that phase lifts the vertex (by waveHeight times the
@@ -38,15 +37,15 @@ constexpr float kPi = 3.14159274f;                         // 00744158 (float)
 // Table entries per radian: 256 / pi (00744198 / 00744150, doubles) as the original's FDIV leaves it
 // at 24-bit precision (SV7d1a: not the folded double).
 constexpr float kSineIndex = static_cast<float>(256.0 / 3.141592653589793);
-constexpr float kQuarterTurn = 0.785398126f;               // 00744194
+constexpr float kQuarterTurn = 0.785398126f;
 constexpr float kTimeScale = 0.05f;                        // the circling waves' speed per world tick
-constexpr float kGlowScale = 50.0f;                        // 00744180
-constexpr float kRiseScale = 0.25f;                        // 0073C3B0
-constexpr float kCircleScale = 3.0f;                       // 0073BAA4
-constexpr float kMinComponent = 0.01f;                     // 0073C548
+constexpr float kGlowScale = 50.0f;
+constexpr float kRiseScale = 0.25f;
+constexpr float kCircleScale = 3.0f;
+constexpr float kMinComponent = 0.01f;
 
 // The world clock: whole ticks (FILD) and the fraction of the current one.
-// The sun's ray step scale (007C8964 = 1 * 95, a static initialiser), and the cell size (007441D0).
+// The sun's ray step scale (007C8964 = 1 * 95, a static initialiser), and the cell size.
 constexpr float kSunStepScale = /*007C8964*/ 95.0f;
 float CellSize() { return 1.0f /*007441D0*/; }
 
@@ -64,7 +63,7 @@ inline float Sine(const Terrain* owner, double phase) {
 inline std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v))) & 0xFF; }
 
 // The circling waves' sine per column (and per row: the same values) at the world time. The original
-// reads the time and looks both up per vertex; the same expressions once per call (R16c3).
+// reads the time and looks both up per vertex; the same expressions once per call.
 void CircleSines(const Terrain* owner, float* sines) {
     float time = static_cast<float>((CurrentClientTick() + ClientTickFraction()) * kTimeScale);
     for (int i = 0; i < kRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
@@ -128,7 +127,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
                 tile.vertices[k].v = 1.0f - uv[k + 9];
             }
         }
-        if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the pages kept on the GPU (R16c)
+        if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the pages kept on the GPU
     }
     if (!hasWater || (landscape->landscapeFlags & 1) == 0) return;
 
@@ -136,7 +135,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
     SectorVertex* water = &records[kVertices];
     const float* phaseOffset = landscape->wavePhases.data;
     Vector2 direction = {landscape->waveDirection.x, landscape->waveDirection.y};
-    float stepX = static_cast<float>(1.0f * direction.x);   // 00744160: the vertex spacing
+    float stepX = static_cast<float>(1.0f * direction.x);   // the vertex spacing
     float stepY = static_cast<float>(1.0f * direction.y);
     float height = landscape->waveHeight;
     float phase = landscape->wavePhase;
@@ -206,7 +205,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
 
 namespace {
 
-// The relight order, (sy, sx) of the sectors. The original's comparator (006C8E90) meant this, but qsort
+// The relight order, (sy, sx) of the sectors. The original's comparator meant this, but qsort
 // hands it the addresses of the array slots: it reads +0xC / +0x8 of those, the pointers three and two
 // slots further on (past the end for the last ones), so its order follows the heap. Ours compares the
 // sectors themselves (address_order.h).
@@ -222,7 +221,7 @@ int __cdecl CompareSectors(const void* a, const void* b) {
 // SetSun's function-local static (007C8938, guard bit 1 of 007C8948, freed at exit by 006C9270).
 constinit lib::AlignedArray<SectorData*> g_sortedSectors = /*007C8938*/ {};
 lib::AlignedArray<SectorData*>& SortedSectors() { return g_sortedSectors; }
-void __cdecl FreeSortedSectors() { g_sortedSectors.FreeData(); }   // 006C9270
+void __cdecl FreeSortedSectors() { g_sortedSectors.FreeData(); }
 std::uint8_t g_sortedSectorsGuard = /*007C8948*/ {};
 
 // A sun direction component the ray steps divide by: below 0.01 in size (or NaN) it becomes 0.01

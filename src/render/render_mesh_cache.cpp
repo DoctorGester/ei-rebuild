@@ -1,4 +1,4 @@
-// Meshes kept on the GPU (R16d; docs/notes/renderer.md section 13, item 4). The figure part draws
+// Meshes kept on the GPU (docs/notes/renderer.md section 13, item 4). The figure part draws
 // (005A7A70, 005A7640, src/game/figure_part_draw*.cpp) name the figure mesh a mesh draw draws
 // (render::SetMeshSource); the mesh's corners are kept for that figure mesh: their positions and texture
 // coordinates in model space, their colours and the triangles, in a pool on the GPU (GpuPool: the
@@ -37,7 +37,7 @@ using namespace detail;
 struct MeshVertex {
     Vector3 position;
     float u, v;
-    Vector3 normal;   // CornerNormal (R16i)
+    Vector3 normal;   // CornerNormal
 };
 static_assert(sizeof(MeshVertex) == kCachedVertexBytes);
 

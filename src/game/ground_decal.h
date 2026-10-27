@@ -29,9 +29,9 @@ static_assert(sizeof(DecalTexCoord) == 8);
 // 0x7C bytes, on the projector's stack.
 class DecalBuilder {
 public:
-    // 004D7F50. Nulls the three array pointers; returns this.
+    // Nulls the three array pointers; returns this.
     DecalBuilder* Construct();
-    // 004D8000 (RET 0x1C). Starts a decal: empties the arrays (keeping their buffers) and sets the
+    // Starts a decal: empties the arrays (keeping their buffers) and sets the
     // projection up from the quad's corners (`corners` points at a pointer to a row-major 4x4
     // matrix whose columns 3, 2 and 0 are the origin, the u and the v corner), the projection
     // direction (normalised in place in the copy) and the point the cut-off plane is placed from,
@@ -39,28 +39,28 @@ public:
     void Begin(lib::AlignedArray<VertexPacket>* points, lib::AlignedArray<DecalTexCoord>* texCoords,
                lib::AlignedArray<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
                const Vector3* point, float depth);
-    // 004D7F60 (RET 8). Whether a sphere around `center` can touch the decal: its u and v ranges
+    // Whether a sphere around `center` can touch the decal: its u and v ranges
     // widened by radius * the axis lengths overlap [0, 1]. The result is in AL only.
     bool Touches(const Vector3* center, float radius) const;
-    // 004D8780 (RET 4). Makes room for `triangles` more triangles (three vertices and indices each;
+    // Makes room for `triangles` more triangles (three vertices and indices each;
     // the point array is grown by triangles * 3 / 4 + 1 + the vertex count packets).
     void Reserve(int triangles);
     // 004D85F0 / 004D8490 (RET 0xC, the same code with their own static triangle). Clips the
     // triangle (a, b, c) and appends what is left.
     void AddTriangle(const Vector3* a, const Vector3* b, const Vector3* c);
     void AddTerrainTriangle(const Vector3* a, const Vector3* b, const Vector3* c);
-    // 004D89A0. Sets the arrays' sizes (the last packet padded with copies of vertex 0) and drops
+    // Sets the arrays' sizes (the last packet padded with copies of vertex 0) and drops
     // the array pointers.
     void Finish();
 
     // The clipping stages; `tri` is clipped in place (and may be one of the stage buffers).
-    // 004D7BD0: from the plane on. 004D74B0: from v >= 0 on. 004D71D0: from u <= 1 on.
+    // From the plane on. 004D74B0: from v >= 0 on. 004D71D0: from u <= 1 on.
     void ClipPlane(DecalVertex* tri);
     void ClipFromV(DecalVertex* tri);
     void ClipFromUMax(DecalVertex* tri);
-    // 004D6CF0: appends the three corners and their indices.
+    // Appends the three corners and their indices.
     void Emit(const DecalVertex* tri);
-    // 004D6C50: appends one vertex; returns its index (AX only).
+    // Appends one vertex; returns its index (AX only).
     std::uint16_t AddVertex(const DecalVertex* v);
 
     lib::AlignedArray<VertexPacket>* points_;       // +0x00 x[4], y[4], z[4] per packet (w untouched)
@@ -93,10 +93,10 @@ static_assert(offsetof(DecalBuilder, vertexCount_) == 0x74 && offsetof(DecalBuil
 
 namespace decal {
 
-// 004D7140 (__fastcall, RET 0xC). The point where the edge p -> q crosses distance 0, given the
+// The point where the edge p -> q crosses distance 0, given the
 // distances dp and dq of its ends: (dq * p - dp * q) / (dq - dp), all five components.
 void __fastcall Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, float dp, float dq);
-// 004D6E90 (__fastcall, RET 0xC). Clips the triangle `tri` (corner distances a, b, c; a corner is
+// Clips the triangle `tri` (corner distances a, b, c; a corner is
 // inside when its distance's sign bit is clear) and returns how many triangles are left: 0, 1
 // (in `tri`) or 2 (`tri` and `out`).
 int __fastcall ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c);

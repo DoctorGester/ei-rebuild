@@ -1,6 +1,6 @@
 #pragma once
 
-// The weather's noise curves (A-E2): five tables of 0xA00 bytes that the snow's draw (004E4C80) reads.
+// The weather's noise curves (A-E2): five tables of 0xA00 bytes that the snow's draw reads.
 // Each is a smooth random curve of 128 samples with the cubic segments between neighbouring samples. A
 // static initialiser builds them before WinMain from the C runtime's rand (004E3B20, after 004E3AD0 has
 // cleared the segments), so their contents depend only on how many random numbers were drawn before.

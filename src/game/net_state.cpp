@@ -1,4 +1,4 @@
-// The network state writers of map objects (0050EAF0) and units (0052EC70): the virtual slot
+// The network state writers of map objects and units: the virtual slot
 // that writes an object's dirty fields into its DeltaState (+0x1C4) for the clients. See
 // docs/notes/units.md ("Network state").
 #include "map_object_figures.h"
@@ -36,7 +36,7 @@ void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value,
 void CMapObject::WriteNetState() {
     DeltaState* state = NetState();   // +0x1C4
     if (DeltaField* field = state->BeginField(0)) {
-        field->WriteDelta(&packedVitals, 0x18);   // 00523700
+        field->WriteDelta(&packedVitals, 0x18);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(1)) {
@@ -67,7 +67,7 @@ void CUnit::WriteNetState() {
     CUnit* unit = this;
     DeltaState* state = NetState();
     if (DeltaField* field = state->BeginField(4)) {
-        field->WriteDelta(unit->Params(), 0x108);   // 00523720
+        field->WriteDelta(unit->Params(), 0x108);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(5)) {
@@ -154,13 +154,13 @@ std::uint32_t CMapObject::ReadNetState(int first) {
     std::uint32_t complete = 1;
     if (DeltaField* field = state->BeginField(0)) {
         short before = PackedVitals()->hitPoints;   // +0x17E
-        field->ReadDelta(&packedVitals, 0x18);   // 00523710
+        field->ReadDelta(&packedVitals, 0x18);
         complete = SnapshotConsumed();
         field->EndField();
         if (before != PackedVitals()->hitPoints || first == 1) RefreshWounds();
     }
     if (DeltaField* field = state->BeginField(1)) {
-        Vector3 figureScale;   // the figure scale (00517700)
+        Vector3 figureScale;   // the figure scale
         field->ReadDelta(&figureScale, 0xC);
         SetFigureScale(&figureScale.x);
         complete &= SnapshotConsumed();
@@ -211,7 +211,7 @@ namespace {
 // (unit)]; the object's manager context [00455940] and the client's local view [005699F0]; the
 // field reader's CString [0047E310 (out)], CString operator= [00700AA9] and destructor [00700970].
 
-constexpr float kStatEpsilon = 1e-4f;            // 0073CD44
+constexpr float kStatEpsilon = 1e-4f;
 
 // A body part's condition as current / maximum (signed 16-bit over unsigned 16-bit), as a float.
 float StatFraction(CUnit* unit, int k) {
@@ -239,7 +239,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
     if (DeltaField* field = state->BeginField(4)) {
         float before[6];
         for (int k = 0; k < 6; ++k) before[k] = StatFraction(unit, k);
-        field->ReadDelta(unit->Params(), 0x108);   // 00523730
+        field->ReadDelta(unit->Params(), 0x108);
         // Slot 55 (IsDead): a dead unit skips the stat reactions.
         if (!unit->IsDead() && first == 1) {
             bool any = false;

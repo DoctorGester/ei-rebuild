@@ -50,7 +50,7 @@ struct ElementKind {
     RangeFn destroyTail;   // shrinking (null: nothing)
 };
 
-// float (004CC870 zeroes), CString (006FE268 / 006FE296), ScriptObjectRef (004CC800 /
+// float (004CC870 zeroes), CString, ScriptObjectRef (004CC800 /
 // 004CE1E0 each / 004CC7D0), ScriptGroup (004CC9B0 / 004CE210 each / 004CC980), SSCCmd (004CE920
 // / 004BF620 each), ScriptIfThen (004CD4A0, nothing to destroy), pointers (004CCA10 zeroes,
 // nothing to destroy).

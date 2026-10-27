@@ -1,5 +1,4 @@
-// CInterface3D::CreateScreen (005F5BA0): the screens by id. See ui.h and docs/notes/ui.md.
-//
+// CInterface3D::CreateScreen: the screens by id. See ui.h and docs/notes/ui.md.
 // The original inlines the constructors of screens 1, 2, 3 and 7 (the container base 00600B20,
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
 // through the original addresses.
@@ -47,18 +46,18 @@ Node* EmptyList() {
 CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {
     mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
     mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&heroes_);
-    personTexts_.Construct();          // 005F8F30
-    clientParty_.Construct();          // 005F6080
-    itemUseKey_.ConstructItemUseKey();  // 005F5F90
+    personTexts_.Construct();
+    clientParty_.Construct();
+    itemUseKey_.ConstructItemUseKey();
 }
 
 CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {
     mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
     movers_ = EmptyList<BriefingMover>();
-    personTexts_.Construct();           // 005F8F30
+    personTexts_.Construct();
     shown_ = EmptyList<BriefingShownItem>();
-    people_.ConstructEmpty();           // 005F8F10
-    speakers_ = nullptr;                // the speakers' vector (005F9540): no storage
+    people_.ConstructEmpty();
+    speakers_ = nullptr;                // the speakers' vector: no storage
     speakersEnd_ = nullptr;
     speakersCapacity_ = nullptr;
 }
@@ -105,11 +104,11 @@ namespace {
 
 CCursor* Cursor() { return TheCursor(); }   // 005E5200 SetShape (RET 4)
 
-// 00458220: the message pump.
+// The message pump.
 // 0057F440 (on 007AFE20): a multiplayer client session; returns AL.
 // The game state's server flag (007AFEA4; 00578D00 reads it, 00578D10 sets it; neither reads ECX).
 
-// 005FA9A0: the window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
+// The window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
 
 // IDirect3DDevice7::SetRenderState (COM, slot 20).
 void SetRenderState(UiD3DDevice* device, unsigned long state, unsigned long value) {
@@ -229,7 +228,7 @@ void CInterface3D::ShowMessage(int force) {
         Node* node = header->next;
         if (node == header) return;
         mfc::CString text(node->data);
-        messages_.Erase(node);   // 005F8E50
+        messages_.Erase(node);
         messageText_ = text;
         messageFlag_ = 0;
     }
@@ -277,12 +276,12 @@ EI_REWRITTEN(0x005F86F0, CInterface3D::OpenHelp);
 namespace {
 
 // Members (thiscall): screen 9's two maps are item caches (lib_trees::ItemCache: 005F9F80 with two
-// allocators, 005F98F0); screen 8's player at +0x1D8 (005DB340 / 005DB350).
+// allocators, 005F98F0); screen 8's player at +0x1D8.
 using ItemCache = lib_trees::ItemCache;
 
 } // namespace
 
-// 005F6F30. Screen 9's constructor.
+// Screen 9's constructor.
 CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
     // The original passes a stack byte and its argument slot as the allocators.
     std::uint8_t junk = 0;
@@ -294,7 +293,7 @@ CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
 }
 EI_REWRITTEN_SPECIAL(0x005F6F30, CExchangeScreen::CExchangeScreen);
 
-// 005F6D50. Screen 8's constructor: the list at +0x1C8 gets its header node (its allocator byte,
+// Screen 8's constructor: the list at +0x1C8 gets its header node (its allocator byte,
 // the flag's low byte, is overwritten), +0x1D4 the text, +0x1F4 the flag.
 CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name) : CUiContainer(ui) {
     new (archive_.Get()) CMappedResource();
@@ -305,7 +304,7 @@ CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name
 }
 EI_REWRITTEN_SPECIAL(0x005F6D50, CCreditsScreen::CCreditsScreen);
 
-// 005F6E40. Screen 8's destructor body: its members, the list (each line's two CStrings, style
+// Screen 8's destructor body: its members, the list (each line's two CStrings, style
 // then text) back to the node allocator, then the container base.
 CCreditsScreen::~CCreditsScreen() {
     player_.Destruct();

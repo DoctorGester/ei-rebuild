@@ -8,7 +8,7 @@
 
 namespace flowdata {
 
-// ---- SaveGame (0057B3B0) -----------------------------------------------------------------------
+// ---- SaveGame -----------------------------------------------------------------------
 constexpr const char* kSlotFolder = "%ssaves\\%s\\";
 constexpr const char* kCurrentFolder = "%ssaves\\current\\";
 constexpr const char* kCurrentFiles = "%ssaves\\current\\*.*";

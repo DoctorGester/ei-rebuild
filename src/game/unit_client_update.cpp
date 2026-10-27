@@ -120,7 +120,7 @@ int CUnitClientSpecific::RunTick() {
             }
         } else if (delay < 0 && !SoundBusy(first->sound)) {
             if (speech->next->value.talking) SetTalking(unit, false);
-            stlp::list<ClientSpeech>::Erase(stlp::AsNode<ClientSpeech>(speech->next));   // 005392F0
+            stlp::list<ClientSpeech>::Erase(stlp::AsNode<ClientSpeech>(speech->next));
         }
     }
     if (unit->secondEntry == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)

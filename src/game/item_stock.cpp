@@ -1,4 +1,4 @@
-// The trader stock generation (0069AE20, 0069A110, 00699810 / 006995E0 / 00699A40): see item_stock.h and docs/notes/items_spells.md
+// The trader stock generation: see item_stock.h and docs/notes/items_spells.md
 // ("Trader stock"). The STLport containers are the original's: their allocating members are called
 // through the game, the pointer copies they inline are written out here.
 #include "item_stock.h"
@@ -29,7 +29,7 @@ namespace {
 
 // ---- Original code --------------------------------------------------------------------------------
 
-// The item constructor (CItemConstructor, item_constructor.cpp); MagicCapacity (006A6480): whether
+// The item constructor (CItemConstructor, item_constructor.cpp); MagicCapacity: whether
 // the prototype and material allow a spell (not for kinds 0x11 / 0x12 without a material), with the
 // level (prototype +0x44 + material +0x1C, as a float) and the power limit (prototype +0x40 +
 // material +0x18).
@@ -240,7 +240,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
         }
 
         StockSpellList spellList;
-        spellList.Construct();   // 0069C440
+        spellList.Construct();
         if (kind == 1 || kind == 3 || kind == 0) ::AddSpell(this, ctor, spellList);
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
@@ -279,7 +279,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     taken.Finish() = taken.begin();   // erase(begin, end)
     if (materials.size() > static_cast<std::size_t>(count)) {
         Shuffle(materials.begin(), materials.end());
-        taken.RangeInsert<MaterialElement>(taken.begin(), materials.begin(), materials.begin() + count);   // 0069ECD0
+        taken.RangeInsert<MaterialElement>(taken.begin(), materials.begin(), materials.begin() + count);
     } else if (&materials != &taken) {
         AssignMaterials(taken, materials);
     }
@@ -509,11 +509,11 @@ EI_REWRITTEN(0x0069A780, ItemStock::GenerateSpells);
 
 namespace {
 
-// CStream::ReadString (00461190): a CString constructed at `out` from the bytes up to a zero; the
+// CStream::ReadString: a CString constructed at `out` from the bytes up to a zero; the
 // stream's Read is virtual slot 1.
 // The record lookups by name (thiscall on the tables; null when missing): armors 004AB820 on
 // 007C8718, weapons 004AB720 on 007C86F8, quick items 00613820 on 007C8738, materials 0069D290 on
-// 007C86D8; the spell and modifier maps' operator[] (004ABD00 on 007C851C, 00684B20 on 007C853C;
+// The spell and modifier maps' operator[] (004ABD00 on 007C851C, 00684B20 on 007C853C;
 // they insert a null for a new name).
 // (NamedRecordTable::Named.)
 // push_back of the pointer vectors: 0069BD30 (the three item lists), 0069BDC0 (spells), 0069BDF0
@@ -757,7 +757,7 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
 }
 EI_REWRITTEN(0x0069AC20, ItemStock::GenerateScrolls);
 
-// --- A-H25: the stock's lists filled by the class template (004A7080) ------------------------------
+// --- A-H25: the stock's lists filled by the class template ------------------------------
 
 namespace {
 
@@ -809,11 +809,11 @@ constinit stlp::vector<itemdb::SpellModifierRecord*> g_takenModifiers = /*007C86
 } // namespace stock
 
 namespace {
-void __cdecl FreeTakenPrototypes() { stock::g_takenPrototypes.FreeStorage(); }   // 00698E90
-void __cdecl FreeTakenSpells() { stock::g_takenSpells.FreeStorage(); }           // 00698EE0
-void __cdecl FreeTakenModifiers() { stock::g_takenModifiers.FreeStorage(); }     // 00698F30
-void __cdecl FreeCandidates() { stock::g_candidates.FreeStorage(); }             // 00698F80
-void __cdecl FreeTakenMaterials() { stock::g_takenMaterials.FreeStorage(); }     // 00698FD0
+void __cdecl FreeTakenPrototypes() { stock::g_takenPrototypes.FreeStorage(); }
+void __cdecl FreeTakenSpells() { stock::g_takenSpells.FreeStorage(); }
+void __cdecl FreeTakenModifiers() { stock::g_takenModifiers.FreeStorage(); }
+void __cdecl FreeCandidates() { stock::g_candidates.FreeStorage(); }
+void __cdecl FreeTakenMaterials() { stock::g_takenMaterials.FreeStorage(); }
 } // namespace
 
 EI_REPLACE(0x00698E90, FreeTakenPrototypes);

@@ -31,7 +31,7 @@ Quaternion AxisAngle(const Vector3& axis, float angle) {
 }
 
 // The axis and angle of a unit rotation: the angle 2 acos(w), the axis the vector part over its
-// length; (1, 0, 0) and 0 when the squared length is at most 1e-8 (0073BAE0).
+// length; (1, 0, 0) and 0 when the squared length is at most 1e-8.
 float ToAxisAngle(const Quaternion& q, Vector3* axis) {
     float squared = LengthSquaredUnrounded<Sum3::ZYX>(q.x, q.y, q.z);
     EI_NAN_AUDIT(squared);

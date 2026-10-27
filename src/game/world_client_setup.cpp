@@ -1,4 +1,4 @@
-// The client world's set-up at startup: SetUpGraphics (00563710) and the light colours by hour
+// The client world's set-up at startup: SetUpGraphics and the light colours by hour
 // from the lights table (LoadLights, 00563930; config\LightsGipat.ini). See world.h.
 #include "material.h"
 #include "options.h"
@@ -25,7 +25,7 @@
 #include <cstdlib>
 
 namespace {
-const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 0073C36C: 1 / 255
+const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 1 / 255
 
 // The game's data folder (a CString global) and the strings the original passes by address.
 const char* ConfigFolder() { return "config\\"; }
@@ -85,7 +85,7 @@ int CWorldClient::LoadLights(const char* file) {
     console::CStringArray keys;
     mfc::CString hour;
     DwordArray values{};
-    CIniFile ini;   // the empty path (00695B80), freed at the end (00695BE0)
+    CIniFile ini;   // the empty path, freed at the end
     {
         mfc::CString folder = TheDataFolder() + ConfigFolder();
         mfc::CString path = folder + file;
@@ -125,7 +125,7 @@ void CWorldClient::SetUpGraphics(void* device) {
 }
 EI_REWRITTEN(0x00563710, CWorldClient::SetUpGraphics);
 
-// ---- The sky (00562F70) --------------------------------------------------------------------------
+// ---- The sky --------------------------------------------------------------------------
 
 namespace {
 constexpr int kSkyFigureClass = 0x44;

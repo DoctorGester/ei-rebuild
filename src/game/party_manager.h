@@ -2,7 +2,7 @@
 
 // The party manager (the object at 007AA5A0): the parties stored by key (the players' parties
 // between zones), a list of entries, the named party records and the class templates, saved with
-// the game through a chunk archive (004A8560) and loaded back (004A8310). Names provisional; see
+// the game through a chunk archive and loaded back. Names provisional; see
 // docs/notes/script.md ("Leftovers") and docs/notes/world.md ("Party records and class templates").
 
 #include "class_templates.h"
@@ -33,14 +33,13 @@ struct PartyManagerEntry {
 static_assert(sizeof(PartyManagerEntry) == 0x14);
 
 // A map node's party: the CParty object itself, constructed and destroyed by the map's own members
-// (004AB980).
 using PartyInPlace = PartyStorage;
 
 namespace gamehash {
 
 // hash_map<int, CParty> (the party manager's parties): 0x78-byte nodes. A node's party is copied by
 // CParty's copy constructor (006613C0; it reads its source non-const) and destroyed by its
-// destructor body (006611D0) (game_hashes.cpp).
+// destructor body (game_hashes.cpp).
 struct PartyElement {
     static void Construct(PartyInPlace* to, const PartyInPlace& from);
     static void Destroy(PartyInPlace* p);
@@ -65,10 +64,10 @@ struct PartyManager {
     NamedPartyRecords records;                  // +0x24
     ClassTemplateVector templates;              // +0x38
 
-    // 004A8310 (RET 4). Reads the block `from` holds (CStream::ReadSized) as an archive: chunk 1
+    // Reads the block `from` holds (CStream::ReadSized) as an archive: chunk 1
     // the parties, 2 the entries, field 3, chunk 4 the class templates, chunk 5 the records.
     void Load(CMemoryStream* from);
-    // 004A8560 (RET 4). Writes the same archive into a memory stream (version `to`'s) and appends
+    // Writes the same archive into a memory stream (version `to`'s) and appends
     // it to `to` as a sized block (CStream::WriteSized).
     void Save(CMemoryStream* to);
     // 004A5700 (A-E1; app_lifetime.cpp). The destructor the C runtime runs at exit: the templates
@@ -80,15 +79,15 @@ struct PartyManager {
     // left as it is. It runs from the static initialiser 004A56D0 on the manager at 007AA5A0,
     // before the hooks are installed, so the hook on it never fires. Returns this.
     PartyManager* Construct();
-    // 004A8890 / 004A8880 (party_records.cpp, RET 4): the records' BeginRedeploy (004A6050) / EndRedeploy
-    // (004A6360), the script's redeploy.
+    // 004A8890 / 004A8880 (party_records.cpp, RET 4): the records' BeginRedeploy / EndRedeploy
+    // the script's redeploy.
     void BeginRedeploy(CParty* party);
     void EndRedeploy(CParty* party);
     // 004A8790 (RET 0x10, four stack arguments; the login's name and password are not read): key 0
     // resets `target` (00661700(1, 0)); else the party stored under the key is copied into it
-    // (00661300). False when the key is not stored. Sets AL only.
+    //. False when the key is not stored. Sets AL only.
     bool LoadParty(const char* name, const char* password, const int* key, CParty* target) const;
-    // 004A8800 (RET 8). Copies `source` into the party stored under the key (operator[] 004A91B0 creates
+    // Copies `source` into the party stored under the key (operator[] 004A91B0 creates
     // it when missing; the copy reads `source` non-const). True.
     bool StoreParty(const int* key, CParty* source);
 };

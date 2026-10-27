@@ -2,7 +2,6 @@
 
 // STLport's vector<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md,
 // section 2).
-//
 // Three pointers: start, finish, end of storage (the allocator proxy's empty byte shares the last
 // word). The block comes from the node allocator: its byte size, a multiple of sizeof(T), picks the
 // free list, so every member that frees it computes the size from the element size exactly as the
@@ -398,7 +397,7 @@ struct VectorAbi : vector<T> {
         Vector::template FillInsert<E>(pos, n, x);
     }
     // _M_range_insert(pos, first, last, tag) and insert(pos, first, last) (e.g. 0069ECD0,
-    // 0069E3F0; RET 0x10: the last argument is not read).
+    // RET 0x10: the last argument is not read).
     void RangeInsert(T* pos, const T* first, const T* last, const void*) {
         Vector::template RangeInsert<E>(pos, first, last);
     }

@@ -80,7 +80,7 @@ int __fastcall ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b
     DecalVertex* v0 = &tri[0];
     DecalVertex* v1 = &tri[1];
     DecalVertex* v2 = &tri[2];
-    DecalVertex first, second;   // 007AA868 / 007AA850
+    DecalVertex first, second;
     switch (Inside(a) + Inside(b) * 2 + Inside(c) * 4) {
     case 1:   // only v0 inside
         Interpolate(v0, v1, &first, a, b);
@@ -268,13 +268,13 @@ void DecalBuilder::AddCorners(DecalVertex* tri, const Vector3* a, const Vector3*
 }
 
 void DecalBuilder::AddTriangle(const Vector3* a, const Vector3* b, const Vector3* c) {
-    DecalVertex tri[3];   // 007AA690
+    DecalVertex tri[3];
     AddCorners(tri, a, b, c);
     ClipPlane(tri);
 }
 
 void DecalBuilder::AddTerrainTriangle(const Vector3* a, const Vector3* b, const Vector3* c) {
-    DecalVertex tri[3];   // 007AA6D0
+    DecalVertex tri[3];
     AddCorners(tri, a, b, c);
     ClipPlane(tri);
 }

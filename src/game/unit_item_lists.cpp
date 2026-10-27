@@ -1,4 +1,4 @@
-// CUnit::CollectItems (005316F0): every item a unit holds and their spells as two lists, for the
+// CUnit::CollectItems: every item a unit holds and their spells as two lists, for the
 // server controller's armour spell refresh (00552B90's list, CUnitServer 005528F0). See unit.h.
 #include "unit.h"
 

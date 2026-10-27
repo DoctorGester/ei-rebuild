@@ -29,19 +29,19 @@ constexpr std::uint32_t kBoundsValid = 1 | 2;
 
 constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;      // FLT_MAX / -FLT_MAX: the empty box
 constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
-constexpr float kNearSquared = 1e9f;                 // 0073DE58: parts farther away are skipped
-constexpr float kHalf = 0.5f;                        // 0073B86C
+constexpr float kNearSquared = 1e9f;                 // parts farther away are skipped
+constexpr float kHalf = 0.5f;
 
 std::uint32_t Bits(float v) { return std::bit_cast<std::uint32_t>(v); }
 float Float(std::uint32_t bits) { return std::bit_cast<float>(bits); }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float Float(T) = delete;
 
-// 005AA5F0. Figure manager: the model named `name`.
-// 0059F3D0. Part: remembers its owner.
-// 0050D0E0. Animation state: a part was added.
+// Figure manager: the model named `name`.
+// Part: remembers its owner.
+// Animation state: a part was added.
 void AnimationAddPart(void* state, void*, CFigureMesh* part) { static_cast<CFigureAnimationState*>(state)->AttachMesh(part); }
-// 0050D7C0. Animation state: rescale to x, y, z.
+// Animation state: rescale to x, y, z.
 void AnimationSetScale(void* state, void*, float x, float y, float z) {
     static_cast<CFigureAnimationState*>(state)->Rescale(x, y, z);
 }
@@ -153,14 +153,14 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
     if (CLinkMesh* current = figure) {
         CLinkFigureLoader* loader = WorldContext()->FigureLoader();
         CLinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
-        figure.Assign(rebuilt);   // 00519580
+        figure.Assign(rebuilt);
         for (int i = 0; i < parts.size; ++i) {
             auto* part = parts.data[i];
             const char* pieceName = part->GetName();
             const LinkHeaderMap::Node* piece;
             {
                 stlp::string key(pieceName);
-                piece = lib_trees::FindLinkHeader(&figure->headers_, &key);   // 005197B0
+                piece = lib_trees::FindLinkHeader(&figure->headers_, &key);
             }
             part = parts.data[i];
             const ClipBounds& bounds = piece->second.bounds;
@@ -200,7 +200,7 @@ std::uintptr_t CObject3D::LoadFigures() {
         model = manager->FindModel(&key);
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        manager->LoadPart(pendingParts.data[i], model, scale.x, scale.y, scale.z);   // 005AC2F0
+        manager->LoadPart(pendingParts.data[i], model, scale.x, scale.y, scale.z);
         --pendingParts.data[i]->refCount_;   // no release at 0
         auto* part = pendingParts.data[i];
         bool known = false;

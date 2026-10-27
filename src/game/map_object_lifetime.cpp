@@ -53,9 +53,9 @@ void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); 
 // 006FE925 / 006FE958 / 006FE9B8. CStringArray constructor, destructor, SetSize.
 // 004CD080 / 0052E230. The unit motion's step speed array constructor and the constructor of its
 // segment part (+0x50, empty); the motion's constructor then clears it (005C6270 UnitMotion::Clear).
-// 006CA720. Light manager: removes a light.
-// 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
-// The server unit controller's members (00546230).
+// Light manager: removes a light.
+// The light list (CLightFactory::litIds_): erases the entries with id *id.
+// The server unit controller's members.
 void __fastcall BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
 void __fastcall BrainArrayDestroy(void* a0) { static_cast<AIRef*>(a0)->Reset(); }
 void __fastcall Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }
@@ -377,14 +377,14 @@ CUnitServer::~CUnitServer() {
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);
     mfc::impl::DestructArrayOf<recordarrays::BehaviourArrayClass>(mfc::impl::ArrayAs<recordarrays::Behaviours>(b->alarmRecords));
     if (AIMode* current = b->current) BrainObject8CDestroy(current);
-    gamelists::OwnedRefs::Destruct<gameslots::OwnedRefListClass>(mfc::impl::ListAs<gamelists::OwnedRefs>(&b->modes));   // 005575F0
+    gamelists::OwnedRefs::Destruct<gameslots::OwnedRefListClass>(mfc::impl::ListAs<gamelists::OwnedRefs>(&b->modes));
     BrainArrayDestroy(&b->seen);
     BrainArrayDestroy(&b->target);
     Brain14Destroy(&b->move.looks);
     idleAnimation.DestructSteps();
     moveAnimation.DestructSteps();
     SetVtable(&armourSpells, gameslots::ArmourSpellListClass::Vtable());
-    mfc::impl::ListAs<gamelists::Holders>(&armourSpells)->RemoveAll();   // 00558020
+    mfc::impl::ListAs<gamelists::Holders>(&armourSpells)->RemoveAll();
     if (CEngineObject* leader = followedLeader) leader->Release();
     if (CMapObject* target = action2.target) target->Release();
     action2.target = nullptr;

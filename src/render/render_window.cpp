@@ -36,7 +36,7 @@ ID3D11RenderTargetView* g_view = nullptr;
 int g_chainWidth = 0, g_chainHeight = 0;
 bool g_failed = false;        // no swap chain could be made, or the device is gone: nothing is shown
 int g_presentFailures = 0;
-// Present waits for the vertical blank (sync interval 1) unless the settings file's "VSync" is 0 (R23; render::
+// Present waits for the vertical blank (sync interval 1) unless the settings file's "VSync" is 0 (render::
 // SetWaitForVsync, set before the first present) or the harness's virtual clock runs the game, where a frame's length
 // no longer depends on the display.
 bool g_waitForVsync = true;

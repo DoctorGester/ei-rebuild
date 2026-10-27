@@ -27,7 +27,7 @@ CFixedAlloc& TempGdiObjectAlloc() { return *g_tempGdiObjectAlloc; }
 // CTempGdiObject (game.exe's 0074645C: 0, 0070C08D; 1, 0070C044): its memory goes back to the fixed allocator.
 class CTempGdiObject final : public CGdiObject {
 public:
-    // 0070C064: ~CGdiObject.
+    // ~CGdiObject.
     const CRuntimeClass* GetRuntimeClass() const override { return &kClassCTempGdiObject; }
     static void* operator new(std::size_t) noexcept { return TempGdiObjectAlloc().Alloc(); }
     static void operator delete(void* block) { TempGdiObjectAlloc().Free(block); }

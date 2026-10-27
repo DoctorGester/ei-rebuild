@@ -1,6 +1,5 @@
 // The interface sprites' shape builders (005E8450 framed rectangle, 005E8C60 disc, 005E91F0 ring).
 // See ui_mesh_build.h and docs/notes/ui.md ("Sprite shapes").
-//
 // Floating point: the rectangle's values are sums and products of floats and small integers kept in
 // the original's order (precise floating point; values the original stores as float are rounded
 // with static_cast<float>). The circle points use FCOS/FSIN of an angle the original computes on

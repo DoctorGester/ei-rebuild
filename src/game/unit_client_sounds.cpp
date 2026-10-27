@@ -27,7 +27,7 @@ namespace {
 constexpr int kTerrainPlatform = 2;          // the kind used on a platform above the ground
 constexpr int kTerrainNoCrawl1 = 6;          // kinds crawling does not change
 constexpr int kTerrainNoCrawl2 = 0xE;
-constexpr float kPlatformGap = 0.01f;        // 0073C548
+constexpr float kPlatformGap = 0.01f;
 constexpr int kCrawlSounds = 6;
 constexpr std::uint32_t kKeyKind = 0x3C0000;    // FigureAnimation::key
 constexpr std::uint32_t kKindIdle = 0x180000;
@@ -145,24 +145,24 @@ namespace {
 constexpr std::uint32_t kKindWalk = 0x100000;
 constexpr std::uint32_t kKindRun = 0x140000;
 constexpr int kPriorityAction = 1000;
-constexpr float kSoundNear = 8.0f;           // 0073EC1C
-constexpr float kSoundFar = 40.0f;           // 0073EC20
+constexpr float kSoundNear = 8.0f;
+constexpr float kSoundFar = 40.0f;
 constexpr float kShakeDuration = 5.0f;
 constexpr float kShakeDecay = 0.25f;
 constexpr std::uint32_t kEffectSilence = 0x10;
 constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind100_
-constexpr double kMinAxisLength = 0.0001;    // 0073EE98
-constexpr float kPi = 3.14159274f;           // 0073EBE8
-constexpr float kHalf = 0.5f;                // 0073B86C
-constexpr float kCrawlPrintScale = 0.5f;     // 0073EBFC
-constexpr float kWalkPrintScale = 0.75f;     // 0073EC00
+constexpr double kMinAxisLength = 0.0001;
+constexpr float kPi = 3.14159274f;
+constexpr float kHalf = 0.5f;
+constexpr float kCrawlPrintScale = 0.5f;
+constexpr float kWalkPrintScale = 0.75f;
 constexpr std::uint32_t kFlagPrintsShown = 0x400000;   // the unit's flags_
 constexpr int kStepFrames = 4;
 constexpr int kMaxFootPart = 9;
 
 // The client world's local view (CWorldClient::LocalView) and its player; only the field read here.
 
-// 0079BE6C: footprints show for every unit (else only for units with flags_ 0x400000).
+// Footprints show for every unit (else only for units with flags_ 0x400000).
 bool AllFootprintsShown() { return options::TheOptions()->drawVisibleOnly_ == 0; }
 
 // The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; the

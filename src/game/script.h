@@ -4,7 +4,6 @@
 // (*.scr text) is parsed by CScript into scripts whose conditions and commands are trees of SSCCmd
 // nodes; each node is one built-in function or command (ScriptKeyword table below) whose arguments
 // are constants, variables (bound through ScriptBinding) or nested calls (ScriptSubCall).
-//
 // Values have four types, numbered as in the game:
 //   1 float, 2 string (CString), 3 object (a counted reference to a world object), 4 group (a set of
 //   object references kept sorted by address).
@@ -41,7 +40,7 @@ enum ScriptType : int {
 // slot 1 reads, slot 2 writes).
 using ScriptStream = CStream;
 
-// The CScript members' CArray instantiations have compiled tables (C19): gamearrays::PointLightArrayClass,
+// The CScript members' CArray instantiations have compiled tables: gamearrays::PointLightArrayClass,
 // recordarrays::DefinitionArrayClass, mfc::impl::ScriptAreaArrayClass (game.exe's 0073D394 / 0073D358 / 0073D334, which
 // the constructor 004BDE40 installed, are retired: their slots did what 0073D3A0 / 0073D3B8 / 0073D3C4's do), and the
 // variables' mfc::impl::ScriptFloatValuesClass, gamearrays::ScriptStringValuesClass / ScriptGroupValuesClass,
@@ -59,20 +58,20 @@ static_assert(sizeof(TempString) == 4);
 struct ScriptObjectRef {
     // 004B24B0 (004B5AE0 is an identical copy). Releases the object.
     void Reset();
-    // 004B24D0. Releases the current object and references `object` (may be null).
+    // Releases the current object and references `object` (may be null).
     void Assign(CEngineObject* object);
-    // 004B2500. Copy constructor; returns the object pointer (left in EAX).
+    // Copy constructor; returns the object pointer (left in EAX).
     CEngineObject* Construct(const ScriptObjectRef& other);
-    // 004B2530. The object if it is a unit (class id 0x50), otherwise null.
+    // The object if it is a unit (class id 0x50), otherwise null.
     CUnit* AsUnit() const;
-    // 004B2550. The unit's server controller (+0x240, the script code's perception object: lists
+    // The unit's server controller (+0x240, the script code's perception object: lists
     // what the unit sees), null for non-units.
     CUnitServer* GetUnitPerception() const;
-    // 004B2570. Drops the reference if the object was deleted from the world.
+    // Drops the reference if the object was deleted from the world.
     void ReleaseIfDeleted();
-    // 004B2590. Reads an object id (-1 = none) and looks the object up in the world.
+    // Reads an object id (-1 = none) and looks the object up in the world.
     void Load(ScriptStream* stream);
-    // 004B25F0. Writes the object id, -1 when empty.
+    // Writes the object id, -1 when empty.
     void Save(ScriptStream* stream) const;
     // 004CE1E0 (0052D030 is a byte-identical copy; RET 4; script_destroy.cpp). The element destructor:
     // the object released, the slot cleared; freed when bit 0 of `flags` is set. Returns this.
@@ -85,7 +84,7 @@ static_assert(sizeof(ScriptObjectRef) == 4);
 // CArray<ScriptObjectRef>: the object variables and, as ScriptGroup, a group's members. Registered
 // at the instantiation's addresses (game_arrays.cpp).
 struct ScriptObjectRefs : mfc::CArray<ScriptObjectRef> {
-    // 004C1290 (RET 4). SetSize to the source's size, then each reference replaced by a referenced
+    // SetSize to the source's size, then each reference replaced by a referenced
     // copy of the source's (a temporary from CopyAt, released after).
     void CopyFrom(const ScriptObjectRefs& source);
     // 004CC7A0 / 004C21E0 (RET 8). By-value GetAt: element `index` copied into `out` with one more
@@ -108,7 +107,7 @@ struct ScriptStrings : mfc::CArray<mfc::CString> {
     // the string assigned.
     void SetAtGrow(int index, const mfc::CString& text);
     // 004C2F80 (RET 8; SSCCmd::SetParameters). `out` = a by-value GetAt copy of element `index`
-    // (004C2680), the copy destroyed.
+    // the copy destroyed.
     void CopyTo(int index, mfc::CString* out) const;
     // 004CBA00 (RET 4; script_copy.cpp). Copy constructor: storage for exactly the source's size
     // (the inlined SetSize from empty), then each name assigned from a GetAt copy. Returns this.
@@ -123,7 +122,7 @@ struct ScriptStrings : mfc::CArray<mfc::CString> {
 
 // CArray<ScriptBinding>.
 struct ScriptBindings : mfc::CArray<ScriptBinding> {
-    // 004D5B50 (RET 4). SetSize(size + 1) inlined, then the binding copied as words; returns the index.
+    // SetSize(size + 1) inlined, then the binding copied as words; returns the index.
     int Add(const ScriptBinding& binding);
     // 004CCCB0 (RET 4; record_arrays.cpp). Copy constructor: the array's vtable, storage for exactly the
     // source's size (zero filled), then each binding copied. Returns this.
@@ -132,7 +131,7 @@ struct ScriptBindings : mfc::CArray<ScriptBinding> {
 
 // CArray<ScriptSubCall>.
 struct ScriptSubCalls : mfc::CArray<ScriptSubCall> {
-    // 004D5CB0 (RET 4). SetSize(size + 1) inlined, then the call's type and argument index and its
+    // SetSize(size + 1) inlined, then the call's type and argument index and its
     // command deep-copied into the element's own (SSCCmd::operator=); returns the index.
     int Add(const ScriptSubCall& call);
     // 004CCAA0 / 004C7510 (RET 8; script_copy.cpp). The by-value GetAt: `out` is a copy of element
@@ -149,9 +148,9 @@ struct ScriptSubCalls : mfc::CArray<ScriptSubCall> {
 
 // CArray<SSCCmd>: the commands of a block, the loader's local arrays.
 struct ScriptCommands : mfc::CArray<SSCCmd> {
-    // 004D5ED0 (RET 4). SetSize(size + 1) inlined, then the command assigned; returns the index.
+    // SetSize(size + 1) inlined, then the command assigned; returns the index.
     int Add(const SSCCmd& cmd);
-    // 004D65E0 (RET 8). Grown to index + 1 when needed, then the command assigned.
+    // Grown to index + 1 when needed, then the command assigned.
     void SetAtGrow(int index, const SSCCmd& cmd);
     // 004CE750 / 004CD450 (RET 8; script_copy.cpp). The by-value GetAt: `out` is copy-constructed from
     // element `index`. Returns out.
@@ -166,15 +165,15 @@ struct ScriptCommands : mfc::CArray<SSCCmd> {
 
 // CArray<ScriptDefinition>: CScript +0x8C.
 struct ScriptDefinitions : mfc::CArray<ScriptDefinition> {
-    // 004D6100 (RET 4). SetSize(size + 1) inlined, then the definition assigned member by member
+    // SetSize(size + 1) inlined, then the definition assigned member by member
     // (inlined); returns the index.
     int Add(const ScriptDefinition& definition);
 };
 
 // Script group: CArray<ScriptObjectRef, ScriptObjectRef&> (vtable 0073D110) kept sorted, without
 // duplicates. The set operations build the result in `this`. The game sorts by object address
-// (unsigned), so which unit a script's "n-th of group" gets follows the heap layout (SV7a); ours sorts
-// by object id instead (SV7b1), and the harness patches the original to do the same
+// (unsigned), so which unit a script's "n-th of group" gets follows the heap layout; ours sorts
+// by object id instead, and the harness patches the original to do the same
 // (tests/verify/harness_script_order.cpp).
 struct ScriptGroup : ScriptObjectRefs {
     // Whether `x` sorts after `y` (two different objects) in the id order: null before every object,
@@ -185,37 +184,37 @@ struct ScriptGroup : ScriptObjectRefs {
     // 004CE210 (RET 4; script_destroy.cpp). The element destructor: the body (DestructBody), then freed
     // when bit 0 of `flags` is set. Returns this.
     void* DestroyElement(int flags);
-    // 004B2620. this = a + b (GroupAdd).
+    // This = a + b (GroupAdd).
     void Union(const ScriptGroup& a, const ScriptGroup& b);
-    // 004B2920. this = a - b (GroupSub).
+    // This = a - b (GroupSub).
     void Difference(const ScriptGroup& a, const ScriptGroup& b);
-    // 004B2B60. this = a & b (GroupCross).
+    // This = a & b (GroupCross).
     void Intersection(const ScriptGroup& a, const ScriptGroup& b);
-    // 004B2D60. Sorts with the comparator at 004B2D80 (by address; ours: After).
+    // Sorts with the comparator at 004B2D80 (by address; ours: After).
     void Sort();
-    // 004B2DA0. Index of `ref`'s object, -1 if absent (linear search).
+    // Index of `ref`'s object, -1 if absent (linear search).
     int IndexOf(const ScriptObjectRef& ref) const;
-    // 004B2E60. Removes `object` if present.
+    // Removes `object` if present.
     void Remove(CEngineObject* object);
-    // 004B2EF0. Inserts `object` at its sorted position unless null or already present.
+    // Inserts `object` at its sorted position unless null or already present.
     void Insert(CEngineObject* object);
-    // 004B3110. Removes deleted objects and empty slots.
+    // Removes deleted objects and empty slots.
     void RemoveDeleted();
-    // 004B31D0. Inserts every object of a pointer list.
+    // Inserts every object of a pointer list.
     void InsertAll(const mfc::CTypedPtrList<CUnit>* list);
     // 004B3200 (RET 4; A-E1). The group's objects replace the contents of a pointer list of counted
     // references: every element released and the list emptied, then one counted element per object.
     void CopyToList(mfc::CTypedPtrList<CUnit>* list) const;
-    // 004B3330. Whether `object` is in the group (linear search).
+    // Whether `object` is in the group (linear search).
     BOOL Contains(CEngineObject* object) const;
-    // 004B3360. Reads a count and that many object ids, then sorts.
+    // Reads a count and that many object ids, then sorts.
     void Load(ScriptStream* stream);
 
     // CArray::SetSize(n, -1) as the game inlines it into the functions above (004C2050 is the
     // out-of-line copy, called through its original address where the game calls it).
     void Resize(int newSize);
-    void SetSize(int newSize, int growBy);   // 004C2050
-    // 004B5EF0 (script_runtime_helpers.cpp). The destructor body: the base vtable (0073D11C), every
+    void SetSize(int newSize, int growBy);
+    // 004B5EF0 (script_runtime_helpers.cpp). The destructor body: the base vtable, every
     // reference released (slot 4) and cleared, the storage freed (size and pointer left).
     void DestructBody();
 };
@@ -223,7 +222,7 @@ static_assert(sizeof(ScriptGroup) == 0x14);
 
 // CArray<ScriptGroup>: the group variables (ScriptVars::groups).
 struct ScriptGroups : mfc::CArray<ScriptGroup> {
-    // 004C1BE0 (RET 4). SetSize to the source's size, then each group assigned from a copy (CopyAt),
+    // SetSize to the source's size, then each group assigned from a copy (CopyAt),
     // the copy destroyed after.
     void CopyFrom(const ScriptGroups& source);
     // 004CC890 / 004C3B00 (RET 8). By-value GetAt: an empty group (ScriptGroup's vtable) copied from
@@ -242,21 +241,21 @@ struct ScriptRun;
 
 // CList<ScriptDecl>: the command blocks (CScript +0x70) and the WorldScript blocks (+0x178).
 struct ScriptDecls : mfc::CList<ScriptDecl> {
-    // 004C69B0. The commands through CopyAt copies assigned into a new array, the id.
+    // The commands through CopyAt copies assigned into a new array, the id.
     ScriptDecl* PopHead(ScriptDecl* out);
 };
 
 // CList<ScriptDefinition>: the running script instances (CScript +0x140).
 struct ScriptInstances : mfc::CList<ScriptDefinition> {
-    // 004C7A10. The index, name, parameters, the if-then pairs, the variables' copy constructor.
+    // The index, name, parameters, the if-then pairs, the variables' copy constructor.
     ScriptDefinition* PopHead(ScriptDefinition* out);
-    // 004C7C90. A new instance at the head (ScriptDefinition::operator=).
+    // A new instance at the head (ScriptDefinition::operator=).
     Node* PushHead(const ScriptDefinition* value);
 };
 
 // CList<ScriptRun>: the waiting runs (CScript +0x15C).
 struct ScriptRuns : mfc::CList<ScriptRun> {
-    // 004C82B0. The first five fields, the variables a value-and-names pair at a time.
+    // The first five fields, the variables a value-and-names pair at a time.
     ScriptRun* PopHead(ScriptRun* out);
 };
 
@@ -265,15 +264,15 @@ struct ScriptTempGroups : mfc::CList<ScriptGroup> {
     // 004C8CE0 / 004C8D80. A temporary group at the head / tail (an empty group, then CopyFrom).
     Node* PushHead(const ScriptGroup* value);
     Node* PushTail(const ScriptGroup* value);
-    // 004C8AF0. The last temporary group (copied as ScriptGroups::CopyAt copies one).
+    // The last temporary group (copied as ScriptGroups::CopyAt copies one).
     ScriptGroup* PopTail(ScriptGroup* out);
 };
 
 // CList<ScriptObjectRef>: the evaluator's temporary references (CScript +0x1CC).
 struct ScriptTempObjects : mfc::CList<ScriptObjectRef> {
-    // 004C9210. A temporary reference at the head (the new slot released, then shares the object).
+    // A temporary reference at the head (the new slot released, then shares the object).
     Node* PushHead(const ScriptObjectRef* value);
-    // 004C9100. The last temporary reference (the object keeps one reference for `out`).
+    // The last temporary reference (the object keeps one reference for `out`).
     ScriptObjectRef* PopTail(ScriptObjectRef* out);
 };
 
@@ -285,19 +284,19 @@ struct ScriptVars {
     void Load(ScriptStream* stream);
     // 004B3900 (ScriptVars::AppendFrom, __thiscall; script_vars_append.cpp): the four appends.
     void AppendFrom(const ScriptVars* other);
-    // 004B35E0. Zeroes floats, empties strings, releases objects and frees every group.
+    // Zeroes floats, empties strings, releases objects and frees every group.
     void ResetValues();
-    // 004B36D0. Whether a variable of any type has this name (case-sensitive, _mbscmp).
+    // Whether a variable of any type has this name (case-sensitive, _mbscmp).
     BOOL HasVariable(const char* name) const;
-    // 004B37D0. Finds a variable by name: sets *type (1..4) and *index (-1 when not found).
+    // Finds a variable by name: sets *type (1..4) and *index (-1 when not found).
     BOOL FindVariable(const char* name, int* index, int* type) const;
-    // 004B3940. Drops references to deleted objects from object variables and groups.
+    // Drops references to deleted objects from object variables and groups.
     void RemoveDeletedObjects();
     // 004CBAE0 (__thiscall (const ScriptVars&), returns this; script_copy.cpp). Assignment: every array
     // through its instantiation's SetSize / Copy, floats through the FPU.
     ScriptVars* ScriptVarsAssign(const ScriptVars* other);
     // 004CB7E0 (RET 4; script_copy.cpp). Copy constructor: names through 004CBA00, string values through
-    // 004C2510 / GetAt, objects through the reference helpers, groups assigned (004C1290) from GetAt
+    // 004C2510 / GetAt, objects through the reference helpers, groups assigned from GetAt
     // copies. Returns this.
     ScriptVars* ScriptVarsCopyConstruct(const ScriptVars* other);
     // 004C00D0 (script_copy.cpp). Default constructor: the eight arrays empty with their vtables
@@ -329,11 +328,11 @@ class SSCCmd;
 
 // One token: its text and the line it starts on (8 bytes; CList element).
 struct ScriptToken {
-    // 004CFB70. Constructs the token the game uses as "no token": text "None", line -1.
+    // Constructs the token the game uses as "no token": text "None", line -1.
     ScriptToken* Construct();
-    // 004D0BD0. Assignment; returns this.
+    // Assignment; returns this.
     ScriptToken* Assign(const ScriptToken& other);
-    // 004D1D30. Copy constructor; returns this.
+    // Copy constructor; returns this.
     ScriptToken* CopyConstruct(const ScriptToken& other);
 
     mfc::CString text;
@@ -497,7 +496,7 @@ public:
     // the runs, the loaded flag and file counter, the areas. Sets 007AA620 to the script while saving
     // (the run saver looks its instances up there).
     void SaveState(ScriptStream* stream);
-    // 004BCF30. Removes every area with the id (CScript +0x194).
+    // Removes every area with the id (CScript +0x194).
     void DeleteArea(int id);
     // 004BD6A0 / 004BD820 / 004BD920. Point lights (CScript +0x04, 256 slots of 0x20): create
     // (id, x, y, z, radius, r, g, b), move (id, x, y, z, steps, remove when done), delete (id).
@@ -505,12 +504,12 @@ public:
     void MovePointLight(const SSCCmd* cmd);
     void DeletePointLight(const SSCCmd* cmd);
     // CScript members of the runtime, reached through these free functions (__thiscall on the script).
-    // 004BC420. Runs `block` once in a new ScriptRun (with a copy of the instance's variables, the
+    // Runs `block` once in a new ScriptRun (with a copy of the instance's variables, the
     // instance's kill flag); when it is not finished, adds the run at the head of the run list.
     void RunCommands(ScriptDecl* block, ScriptDefinition* instance);
-    // 004B59F0. Appends an empty object reference to the temporaries list (+0x1D0) and returns it.
+    // Appends an empty object reference to the temporaries list (+0x1D0) and returns it.
     ScriptObjectRef* NewTempObject();
-    // 004BCE10. The parts of area `id`, creating an empty area when it does not exist.
+    // The parts of area `id`, creating an empty area when it does not exist.
     ScriptAreaParts* FindArea(int id);
 
     ScriptVars* Globals() { return &globals_; }
@@ -519,15 +518,15 @@ public:
     // one null temporary reference, an empty error text, then the reset (ScriptReset). Returns this.
     // Only the world's constructor calls it, from a static initialiser (before the hooks).
     CScript* Construct();
-    // 0058A140 (S13b, world_destructors.cpp). The destructor (the server inlines it for its second
+    // 0058A140 (world_destructors.cpp). The destructor (the server inlines it for its second
     // script): the reset (ScriptReset), the error text, then the containers last to first through
     // their instantiations' destructors (game_lists.h / game_arrays.h).
     void Destruct();
-    // 00456360 (RET 4). The error text (copy-constructed at `out`), code and line; returns out.
+    // The error text (copy-constructed at `out`), code and line; returns out.
     ScriptErrorInfo* GetError(ScriptErrorInfo* out);
 
     // ---- Effect commands (script_effects.cpp), called by Execute with the command (RET 4) ----------
-    // 004BD260. CreateFX(x, y, z, volume, radius, name): a new sound object (class 0x48, not looping)
+    // CreateFX(x, y, z, volume, radius, name): a new sound object (class 0x48, not looping)
     // added to the world's timed objects; the script keeps nothing.
     void ScriptCreateFx(const SSCCmd* cmd);
     // 004BD310 (A-E1). CreateFXSource(id, x, y, z, volume, radius, name) and CreateRandomizedFXSource
@@ -538,17 +537,17 @@ public:
     // For a new id CreateFXSource leaves spread, the delays and the countdown as stack residue in the
     // original; here they are 0, 0, 0 and INT_MAX (docs/notes/script.md).
     void ScriptCreateFxSource(const SSCCmd* cmd);
-    // 004BCFF0. CreateLightning(id, from xyz, to xyz, width): a new bolt (class 0x4D) appended to
+    // CreateLightning(id, from xyz, to xyz, width): a new bolt (class 0x4D) appended to
     // lightning_ (a negative or NaN id takes nextParticleId_, others are truncated; existing ids are
     // not looked up).
     void ScriptCreateLightning(const SSCCmd* cmd);
-    // 004BD9A0. CreateParticleSource(id, x, y, z, size, type name): the type looked up by name
+    // CreateParticleSource(id, x, y, z, size, type name): the type looked up by name
     // (case-insensitive) in ScriptParticleTypes(), nothing for an unknown one; the id (FISTP; negative:
     // nextParticleId_) finds an existing source, whose effect is dropped, or a new one at the tail; a new
     // CEffectParticle (class 0x4A) with the type, position and size; the source not moving, the type's
     // lifetime.
     void ScriptCreateParticleSource(const SSCCmd* cmd);
-    // 004BDBB0. MoveParticleSource(id, x, y, z, steps, delete when done): the source with the id (FISTP)
+    // MoveParticleSource(id, x, y, z, steps, delete when done): the source with the id (FISTP)
     // starts moving; step = (point - position) / steps.
     void ScriptMoveParticleSource(const SSCCmd* cmd);
 
@@ -559,28 +558,28 @@ public:
     // 004CF470 (Rebirth patches it). Formats the message into the error text (+0x1EC)
     // and sets the error code (+0x1F0) and line (+0x1F4). Returns 0. __cdecl with `this` first.
     static int __cdecl Error(CScript* script, int line, int code, const char* format, ...);
-    // 004CF7A0. Splits the script text into tokens (see script.md, "Lexer").
+    // Splits the script text into tokens (see script.md, "Lexer").
     BOOL Tokenize(const mfc::CString& text, ScriptTokenList* tokens);
-    // 004CF4D0. Consumes one token and requires its keyword id to be `id`.
+    // Consumes one token and requires its keyword id to be `id`.
     BOOL ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id);
-    // 004D37F0. `name`, or "!<file>!<name>" when this is not the first file loaded (+0x1AC > 0).
+    // `name`, or "!<file>!<name>" when this is not the first file loaded (+0x1AC > 0).
     mfc::CString* QualifyName(mfc::CString* out, const mfc::CString& name);
-    // 004D3780. Index of the script definition named `name`, retrying without each "!<n>!" prefix.
+    // Index of the script definition named `name`, retrying without each "!<n>!" prefix.
     int FindScript(const char* name);
     // 004CFBC0 (Rebirth patches it). Parses one call: `id` with parameter types `signature`
     // (lower-case letters) into `cmd`. extraFloats: 2 = assignment (LoadAssignOperator; one
     // parameter, no parentheses), scriptCall: one extra float and string slot (script calls).
     BOOL LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, int id,
                       ScriptVars* locals, const char* signature, BOOL assignment, BOOL scriptCall);
-    // 004D0BF0. Parses float functions up to ')' into `conditions`.
+    // Parses float functions up to ')' into `conditions`.
     BOOL LoadConditions(ScriptCommands* conditions, ScriptPos* pos,
                         const ScriptTokenList* tokens, ScriptVars* locals);
-    // 004D1030. Parses `if(...)then(...)` pairs up to ')' into the definition.
+    // Parses `if(...)then(...)` pairs up to ')' into the definition.
     BOOL LoadScriptBody(struct ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens);
-    // 004D1D50. Parses `= value` assigned to global variable `name` into `cmd` (command 0x78).
+    // Parses `= value` assigned to global variable `name` into `cmd` (command 0x78).
     BOOL LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens,
                             ScriptVars* locals, const mfc::CString* name);
-    // 004D1FE0. Parses `name : type, ...)` declarations into the definition (parameters or
+    // Parses `name : type, ...)` declarations into the definition (parameters or
     // GlobalVars). Returns 0 without an error when the tokens run out.
     BOOL LoadVariableDeclarations(struct ScriptDefinition* script, ScriptPos* pos,
                                   const ScriptTokenList* tokens, BOOL qualify);
@@ -589,17 +588,17 @@ public:
     // gets the enclosing `locals`).
     BOOL LoadCommands(ScriptCommands* commands, ScriptPos* pos, const ScriptTokenList* tokens,
                       ScriptVars* locals);
-    // 004D23A0. Loads a script text (the text is replaced by its #define-expanded form);
+    // Loads a script text (the text is replaced by its #define-expanded form);
     // `runWorldScript` starts the WorldScript block when one was loaded.
     BOOL Load(mfc::CString* text, BOOL runWorldScript);
-    // 004D36F0. Reads a script file and loads it with the WorldScript started; error 0x11 when
+    // Reads a script file and loads it with the WorldScript started; error 0x11 when
     // the file cannot be read.
     BOOL LoadFile(const char* path);
 
-    struct ScriptDecl* NewCommandList();          // 004BF540: a command block owned by the script
-    // 004BF900. The same in the WorldScript list (+0x178), id = count (+0x184) | 0x80000000.
+    struct ScriptDecl* NewCommandList();          // a command block owned by the script
+    // The same in the WorldScript list (+0x178), id = count (+0x184) | 0x80000000.
     struct ScriptDecl* NewWorldScript();
-    // 004BCC60 (RET 4). Adds a run of `block` (empty variables, no kill flag) at the head of the run
+    // Adds a run of `block` (empty variables, no kill flag) at the head of the run
     // list; it first executes on the next tick.
     void RunWorldScript(struct ScriptDecl* block);
 
@@ -675,34 +674,34 @@ public:
     // arrays, the nested calls (004B6330 each) and the called block's id (resolved like FindBlock).
     void Load(ScriptStream* stream);
     void* DestroyElement(int flags);
-    // 004B3F60. Copies bound variables into the arguments: floats and strings by value, objects
+    // Copies bound variables into the arguments: floats and strings by value, objects
     // and groups by address.
     void SetParameters(const ScriptBindings* bindings, ScriptVars* vars);
-    // 004B6360. Writes the call tree (constants, bindings, nested calls) to a save game.
+    // Writes the call tree (constants, bindings, nested calls) to a save game.
     void Save(ScriptStream* stream) const;
 
     // Evaluation. Each first binds the variables (local, then global) and evaluates the nested
     // calls into the arguments, then computes the function `id` into *result.
-    // 004B4030. Evaluates nested call `call` into the matching argument of this command.
+    // Evaluates nested call `call` into the matching argument of this command.
     void CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCall* call);
-    // 004B41E0. Functions returning a float (conditions are floats: 0 false, else true).
+    // Functions returning a float (conditions are floats: 0 false, else true).
     void CalcFloat(CScript* script, ScriptVars* vars, float* result);
-    // 004B56C0. Functions returning an object; *result is a new temporary of `script`.
+    // Functions returning an object; *result is a new temporary of `script`.
     void CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** result);
-    // 004B5B00. Functions returning a group; *result is a new temporary group of `script`.
+    // Functions returning a group; *result is a new temporary group of `script`.
     void CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result);
 
     // The common start of the Calc functions (inlined in each): bind variables, evaluate nested calls.
     void PrepareArguments(CScript* script, ScriptVars* vars);
 
-    // 004D0A50. Constructor: array vtables set, everything empty; returns this.
+    // Constructor: array vtables set, everything empty; returns this.
     SSCCmd* Construct();
     // 004B5F70 (ScriptCmdClear). Empties every array (nested calls are deleted); id and +0x90 become 0.
     void Clear();
     // 004BF640 (ScriptCmdDestruct). Destructor body (frees the arrays and the nested calls).
     void Destruct();
     // 004C6BC0 (RET 4; script_copy.cpp). Assignment, returns this: the arrays through the instantiations'
-    // SetSize / Copy, floats through the FPU, the nested calls deep-copied (004C6D10).
+    // SetSize / Copy, floats through the FPU, the nested calls deep-copied.
     SSCCmd* ScriptCmdAssign(const SSCCmd* other);
 
     int id;                                     // +0x00 ScriptKeyword::id
@@ -742,9 +741,9 @@ enum ScriptLexeme : int {
     kLexClose = 0x6E,         // )
     kLexIf = 0x6F,
     kLexThen = 0x70,
-    kLexComma = 0x71,         // ,
+    kLexComma = 0x71,
     kLexAssign = 0x72,        // =
-    kLexColon = 0x73,         // :
+    kLexColon = 0x73,
     kLexWorldScript = 0x74,
     kLexScript = 0x75,
     kLexDeclareScript = 0x76,
@@ -757,7 +756,7 @@ constexpr int kCmdCallScript = 0x08;   // command id of a call to a declared scr
 constexpr int kCmdFor = 0x6B;
 constexpr int kCmdForIf = 0x6C;
 
-// 004CF380. ConstructElements<ScriptToken>: zero, then each token "None" / -1.
+// ConstructElements<ScriptToken>: zero, then each token "None" / -1.
 void __stdcall ConstructTokens(ScriptToken* tokens, int count);
 
 // A #define: name and replacement text (CList element, 8 bytes).
@@ -785,13 +784,13 @@ struct ScriptDefineElements {
 // CList<ScriptDefine, ScriptDefine&> (vtable 0073D4C0, 0x1C bytes).
 using ScriptDefineList = mfc::CList<ScriptDefine, ScriptDefineElements>;
 static_assert(sizeof(ScriptDefineList::Node) == 0x10);
-// 004D6340 (script_runtime_helpers.cpp). The list's destructor: the vtable (0073D4C0), every
+// 004D6340 (script_runtime_helpers.cpp). The list's destructor: the vtable, every
 // define's value and name destroyed, the list emptied and its blocks freed.
 void __fastcall ScriptDefinesDestruct(ScriptDefineList* defines);
-// 004D34F0. Inserts a define before the first one with a shorter name (else before the last one;
+// Inserts a define before the first one with a shorter name (else before the last one;
 // at the end only when the list is empty).
 void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define);
-// 004D33E0. Replaces every occurrence of each define's name in `line`, in list order.
+// Replaces every occurrence of each define's name in `line`, in list order.
 void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines);
 
 // 004CF600 (Rebirth patches it). Classifies a token: *id = number (7A), string (7B, closed quote)
@@ -810,7 +809,7 @@ const ScriptKeyword* KeywordTable();
 // The command block the loader creates for a then-section or a For body (CList node data in
 // CScript +0x70): the commands and the block's id (+0x14, saved with SSCCmd::calledScript).
 struct ScriptDecl {
-    // 004C1230. A command block: its id, the command count, each command (SSCCmd::Save).
+    // A command block: its id, the command count, each command (SSCCmd::Save).
     void Save(ScriptStream* stream) const;
     // 004CB2D0 (RET 4; script_copy.cpp). Assignment: the commands array copied (ScriptCommands::CopyFrom 004CC0C0), the id; returns this.
     ScriptDecl* ScriptDeclAssign(const ScriptDecl* other);
@@ -823,15 +822,15 @@ struct ScriptDecl {
 };
 static_assert(sizeof(ScriptDecl) == 0x18);
 // 004BF7E0 (__fastcall; script_runtime_helpers.cpp). A command block's destructor body: the
-// commands array's vtable (0073D3D0), each command destroyed (SSCCmd's destructor inlined), the
+// commands array's vtable, each command destroyed (SSCCmd's destructor inlined), the
 // storage freed.
 void __fastcall ScriptDeclDestruct(ScriptDecl* block);
 
 // One `if(...)then(...)` pair of a script definition.
 struct ScriptIfThen {
-    // 004BB590 (__thiscall). One if-then pair of an instance: two block ids resolved as FindBlock does.
+    // One if-then pair of an instance: two block ids resolved as FindBlock does.
     void Load(ScriptStream* stream);
-    // 004BB520. Evaluates the conditions in the instance's variables (temporaries freed after each);
+    // Evaluates the conditions in the instance's variables (temporaries freed after each);
     // when all are nonzero, runs the commands block (CScript::RunCommands). __thiscall on the pair.
     void Run(CScript* script, ScriptDefinition* instance) const;
     ScriptDecl* conditions;      // blocks from CScript::NewCommandList
@@ -848,13 +847,13 @@ struct ScriptIfThens : mfc::CArray<ScriptIfThen> {
 // A Script / DeclareScript definition (0xC0 bytes; CScript +0x8C holds CArray of them).
 // Constructed and destroyed by original code; the loader keeps one on its stack.
 struct ScriptDefinition {
-    // 004BBFE0 (__thiscall). A definition or instance: +0, name and parameter string (terminators
+    // A definition or instance: +0, name and parameter string (terminators
     // included), the if-then pairs (block ids), then its variables.
     void Save(ScriptStream* stream) const;
     // Script instances (CScript +0x140, CList nodes of 0xC8 bytes) are copies of their definition;
     // the copy's `index` (+0) is the instance's "killed" flag (KillScript sets it) and `vars` hold the
     // call's arguments.
-    // 004BB6A0. Copies a script call's arguments (all but the first float and string, which name the
+    // Copies a script call's arguments (all but the first float and string, which name the
     // script) into the instance's variables; FatalError when a type's count does not match.
     void BindCall(const SSCCmd* call);
     // 004BB800 (RET 8; script_vars.cpp). Adds the parameter `name` of `type` to the variables' names; FALSE
@@ -878,8 +877,8 @@ static_assert(sizeof(ScriptDefinition) == 0xC0);
 // its body in the same ScriptRun, saving and restoring the first four fields). Runs that are not
 // finished after one Execute are kept in the CScript's run list (+0x15C) and continue each tick.
 struct ScriptRun {
-    // 004BB320 (__thiscall). A run: block id, index, ticks, sleep start, the index of its instance in
-    // the saving script's (007AA620) instance list (-1 when absent), then its variables.
+    // A run: block id, index, ticks, sleep start, the index of its instance in
+    // the saving script's instance list (-1 when absent), then its variables.
     void Save(ScriptStream* stream) const;
     // 004B6760 (Rebirth patches it: vanilla only). Runs commands from `index` until one waits
     // (Sleep, WaitSegment, SleepUntil, SleepUntilIdle) or the block ends. Counts the call in
@@ -897,10 +896,10 @@ struct ScriptRun {
 };
 static_assert(sizeof(ScriptRun) == 0xB4);
 
-// 004BEC80. Outside For loops (+0x1E8 == 0): frees the evaluation temporaries, keeping one empty
+// Outside For loops (+0x1E8 == 0): frees the evaluation temporaries, keeping one empty
 // group (+0x1B0 list) and one released object reference (+0x1CC list).
 void __fastcall ScriptFreeTemporaries(CScript* script);
-// 004BF000. One script tick when a script is loaded (+0x1A8): continues every waiting run, runs
+// One script tick when a script is loaded (+0x1A8): continues every waiting run, runs
 // every instance's if-then pairs (dropping killed instances), drops deleted objects from the
 // globals, then the timed effects: FX sources (respawn), point lights (move, expire) and particle
 // sources (move, expire); finally frees the temporaries.
@@ -977,14 +976,14 @@ struct ScriptArea {
 static_assert(offsetof(ScriptArea, id) == 0x14);
 static_assert(sizeof(ScriptArea) == 0x18);
 
-// 004CAEC0 (__fastcall). The areas: count, then per area its id, part count and parts (0x14 bytes).
+// The areas: count, then per area its id, part count and parts (0x14 bytes).
 void __fastcall ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStream* stream);
 
 // ---- Loading (script_load.cpp) ------------------------------------------------------------------
 
-// 004C57C0 (__fastcall). A command block's commands (count, SSCCmd::Load each); the caller reads the id.
+// A command block's commands (count, SSCCmd::Load each); the caller reads the id.
 void __fastcall ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream);
-// 004CA000 (__fastcall). A definition's if-then pairs: per pair two block ids, resolved in the
+// A definition's if-then pairs: per pair two block ids, resolved in the
 // block lists of the saved script 007C27D4 (negative: WorldScript blocks).
 void __fastcall ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream* stream);
 // List loaders (__fastcall on the CList): the count, that many default nodes appended, then every
@@ -1007,7 +1006,7 @@ void __fastcall ScriptCmdClear(SSCCmd* cmd);
 // 004D3320 (ScriptDefinition reset, __thiscall; script_reset.cpp): if-then pairs freed, every
 // variable array SetSize(0), index 0, parameters and name empty.
 void __fastcall ScriptDefinitionReset(ScriptDefinition* definition);
-// 004B3D10 (__fastcall; script_load.cpp): reads a string (00461190) into a temporary and assigns it.
+// 004B3D10 (__fastcall; script_load.cpp): reads a string into a temporary and assigns it.
 void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream);
 
 // ---- Destructors and AppendFrom (ticket S6) ------------------------------------------------------
@@ -1040,7 +1039,7 @@ void __fastcall ScriptVarsClear(ScriptVars* vars);
 // ---- Assignment operators (script_copy.cpp) -----------------------------------------------------
 
 // __thiscall (const T& other), returning this. Arrays through the instantiations' SetSize / Copy;
-// floats copied through the FPU; SSCCmd's nested calls deep-copied (004C6D10).
+// floats copied through the FPU; SSCCmd's nested calls deep-copied.
 // The copy constructors (ScriptStrings::CopyConstruct, ...) and the by-value GetAt bodies
 // (ScriptCommands::CopyAt, ScriptSubCalls::CopyAt) are members of the arrays above (script_copy.cpp).
 
@@ -1066,7 +1065,7 @@ void __fastcall ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars);
 void __fastcall ScriptNamesDestruct(mfc::CArray<mfc::CString>* names);
 void __fastcall ScriptRefArrayDestruct(mfc::CArray<ScriptObjectRef>* refs);
 void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups);
-// 004BCAE0. ScriptRun destructor: its variables as ScriptVarsDestruct frees them (the float names
+// ScriptRun destructor: its variables as ScriptVarsDestruct frees them (the float names
 // through the out-of-line CString array destructor 004C26A0).
 void __fastcall ScriptRunDestruct(ScriptRun* run);
 
@@ -1074,13 +1073,13 @@ void __fastcall ScriptRunDestruct(ScriptRun* run);
 // __thiscall on the script; callers keep going through the original addresses.
 // 004BED90 (after every removal of a world object). The runs', instances' and global variables
 // drop deleted objects (ScriptVars::RemoveDeletedObjects, inlined by the original for all but the
-// runs), then the temporaries are freed (004BEC80).
+// runs), then the temporaries are freed.
 void __fastcall ScriptPurgeDeletedObjects(CScript* script);
-// 004BE490. Every instance (RemoveHead 004C7A10) and run (004C82B0) removed and destroyed.
+// Every instance (RemoveHead 004C7A10) and run removed and destroyed.
 void __fastcall ScriptDropInstancesAndRuns(CScript* script);
 // 004BEB00 (EnterZone 0057A060). Instances and runs dropped, For depth 0, temporaries freed, the
 // point lights' objects dropped and their slots zeroed, the FX / particle / lightning lists emptied
-// (their effects dropped), global values reset (004B35E0), each WorldScript block run again (004BCC60).
+// (their effects dropped), global values reset, each WorldScript block run again.
 void __fastcall ScriptResetZone(CScript* script);
 
 // ---- Quest construction (script_quest.cpp) --------------------------------------------------------
@@ -1102,7 +1101,7 @@ extern lib::StaticObject<mfc::CString> g_scriptQuestName;
 // The script being loaded or saved (LoadState / SaveState): the run loader and saver find a run's instance through it.
 inline CScript* g_streamedScript = /*007AA620*/ {nullptr};
 inline mfc::CString& ScriptQuestName() { return *g_scriptQuestName; }
-// 004BAEB0 (__thiscall). An objective's destructor.
+// An objective's destructor.
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
 // 004BAA40 (QStart; __fastcall). The objectives destroyed and freed (size and capacity 0), the quest
 // named `name`.
@@ -1119,7 +1118,7 @@ struct QuestRecord;   // quest_records.h
 // the pointer stays.
 void __fastcall ScriptSubCallDestruct(ScriptSubCall* call);
 
-// 004C81B0 (__thiscall). Group values' destructor: the names, then each group's references (element
+// Group values' destructor: the names, then each group's references (element
 // destructor 004CE1E0) and storage, then the array's; only base vtables are written.
 void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars);
 // 004CD690 (DestructElements<ScriptLightning>, __stdcall (first, count); the reset's lightning list):

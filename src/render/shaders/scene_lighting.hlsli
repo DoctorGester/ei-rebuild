@@ -1,4 +1,4 @@
-// The GPU lighting (R16i; render_lighting.cpp, LightParams): the scene's sun, ambient colour and point
+// The GPU lighting (render_lighting.cpp, LightParams): the scene's sun, ambient colour and point
 // lights as render::SceneLighting kept them, and the game's lighting rules evaluated per pixel.
 cbuffer light_params : register(b1) {
     float4 sun_dir;        // xyz: the direction the sun's light travels

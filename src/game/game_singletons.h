@@ -1,9 +1,9 @@
 #pragma once
 
-// The game's global objects and tick counters, named once (they were per-file copies): the game flow (007AFE20),
-// the interface manager (007C7D50), the client and server worlds and what they hold (the ticks, the managers, the
+// The game's global objects and tick counters, named once (they were per-file copies): the game flow,
+// the interface manager, the client and server worlds and what they hold (the ticks, the managers, the
 // mission script, the sector map), the scene renderer, its render device and lock, the cursor, the map database,
-// the camera, the party manager and the folders. The shared empty string (00796E48) is mfc::impl::PchNil() (lib/mfc_string.h).
+// the camera, the party manager and the folders. The shared empty string is mfc::impl::PchNil() (lib/mfc_string.h).
 // The global random generator is IsaacRandom::Global() (random.h).
 
 #include "game_data.h"
@@ -34,10 +34,10 @@ class CCamera;   // camera.h
 struct PartyManager;   // party_manager.h
 struct _RTL_CRITICAL_SECTION;   // CRITICAL_SECTION: the render device's lock
 
-// 007AFE20: the game flow object (its state machine, sessions and requests).
+// The game flow object (its state machine, sessions and requests).
 GameFlow* TheGameFlow();   // g_gameFlow (world_game.cpp)
 
-// 007C7D50: the interface manager (windows, the quest log, status text, the console window).
+// The interface manager (windows, the quest log, status text, the console window).
 CInterface3D* TheInterface();   // g_interface (ui_small_members.cpp)
 
 // The world tick (the server world's), advanced once per simulation step, and the client's tick counter and the
@@ -46,10 +46,10 @@ int CurrentWorldTick();
 int CurrentClientTick();
 float ClientTickFraction();
 
-// 007AF5B8: the client world (the local player's view of the map and its objects).
+// The client world (the local player's view of the map and its objects).
 CWorldClient* TheClientWorld();   // g_clientWorld (world_construct.cpp)
 
-// 007AFF60: the server world (the simulation: objects, players, timed objects).
+// The server world (the simulation: objects, players, timed objects).
 CWorldServer* TheServerWorld();   // g_serverWorld (world_construct.cpp)
 
 // The client world's managers (world_singletons.cpp): the text manager (the game's string tables), the object
@@ -66,13 +66,13 @@ CParticleManager* TheParticleManager();
 CLightFactory* TheLightFactory();
 Terrain* TheTerrain();
 
-// 007AF060: the scene renderer; its device object (world_singletons.cpp); 007AEE78: the critical section held
+// The scene renderer; its device object (world_singletons.cpp); 007AEE78: the critical section held
 // around the device's DirectDraw / Direct3D calls.
 CSceneRenderer* TheSceneRenderer();   // g_sceneRenderer (renderer_lifetime.cpp)
 CTextureDevice* TheRenderDevice();
 _RTL_CRITICAL_SECTION* TheDeviceLock();   // g_deviceLock (renderer_lifetime.cpp)
 
-// 007C7BD8: the cursor. 0079BF00: the map database. The server world's mission script and sector map
+// The cursor. 0079BF00: the map database. The server world's mission script and sector map
 // (world_singletons.cpp). 0079B2A8: the camera.
 CCursor* TheCursor();   // g_cursor (ui_cursor_setup.cpp)
 CMapDatabase* TheMapDatabase();   // g_mapDatabase (map_database.cpp)
@@ -80,7 +80,7 @@ CScript* TheMissionScript();
 CSectorMap* TheSectorMap();
 CCamera* TheCamera();   // g_camera (camera_object.cpp)
 
-// 007AA5A0: the party manager (the parties by key, the named records and the class templates).
+// The party manager (the parties by key, the named records and the class templates).
 PartyManager* ThePartyManager();   // g_partyManager (app_lifetime.cpp)
 
 // The registry key of the options and the game's folders (CStrings; game_folders.cpp): where the game was started,

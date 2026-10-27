@@ -35,26 +35,26 @@ using devicebuffers::ProjectedVertex;
 // 00468F70, 004ECB50 and 00406B30 for the element sizes, which AlignedArray::Allocate matches).
 constinit lib::AlignedArray<TLVertex> g_strip = /*007AF000*/ {};
 lib::AlignedArray<TLVertex>& Strip() { return g_strip; }      // TL vertices of the points
-void __cdecl FreeStrip() { g_strip.FreeData(); }   // 00502C00
+void __cdecl FreeStrip() { g_strip.FreeData(); }
 constinit lib::AlignedArray<TLVertex> g_ribbon = /*007AF010*/ {};
 lib::AlignedArray<TLVertex>& Ribbon() { return g_ribbon; }     // TL vertices, two per point
-void __cdecl FreeRibbon() { g_ribbon.FreeData(); }   // 00502C20
+void __cdecl FreeRibbon() { g_ribbon.FreeData(); }
 constinit lib::AlignedArray<ProjectedVertex> g_projected = /*007AF020*/ {};
 lib::AlignedArray<ProjectedVertex>& Projected() { return g_projected; }
-void __cdecl FreeProjected() { g_projected.FreeData(); }   // 00502C40
+void __cdecl FreeProjected() { g_projected.FreeData(); }
 constinit lib::AlignedArray<std::uint16_t> g_indices = /*007AF030*/ {};
 lib::AlignedArray<std::uint16_t>& Indices() { return g_indices; }
-void __cdecl FreeIndices() { g_indices.FreeData(); }   // 00502C60
+void __cdecl FreeIndices() { g_indices.FreeData(); }
 constinit lib::AlignedArray<std::uint8_t> g_clipped = /*007AF040*/ {};
 lib::AlignedArray<std::uint8_t>& Clipped() { return g_clipped; }    // a flag byte per point
-void __cdecl FreeClipped() { g_clipped.FreeData(); }   // 00502C80
+void __cdecl FreeClipped() { g_clipped.FreeData(); }
 std::uint8_t g_guards = /*007AF050*/ {};   // the function-local arrays constructed
 // The texture coordinates of the next cross section: u and the two v values.
 float g_bottomV = /*007AF054*/ {};
 float g_topV = /*007AF058*/ {};
 float g_currentU = /*007AF05C*/ {};
 
-// The index array's SetAtGrow (00452FC0) and Add (00504E50).
+// The index array's SetAtGrow and Add.
 
 // One function-local static array: constructed empty once (its guard bit), destroyed at exit.
 template <typename T>
@@ -66,11 +66,11 @@ void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, void(__cdecl* o
 }
 
 void EnsureStatics() {
-    EnsureStatic(1, Clipped(), FreeClipped);     // 00502C80
-    EnsureStatic(2, Indices(), FreeIndices);     // 00502C60
-    EnsureStatic(4, Projected(), FreeProjected); // 00502C40
-    EnsureStatic(8, Ribbon(), FreeRibbon);       // 00502C20
-    EnsureStatic(0x10, Strip(), FreeStrip);      // 00502C00
+    EnsureStatic(1, Clipped(), FreeClipped);
+    EnsureStatic(2, Indices(), FreeIndices);
+    EnsureStatic(4, Projected(), FreeProjected);
+    EnsureStatic(8, Ribbon(), FreeRibbon);
+    EnsureStatic(0x10, Strip(), FreeStrip);
 }
 
 // --- Device calls --------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ constexpr int kFvfTlVertex = 0x1C4;   // D3DFVF_TLVERTEX
 
 // --- Cross sections ------------------------------------------------------------------------------
 
-// The screen width of a ribbon per unit of width * rhw (0073C518).
+// The screen width of a ribbon per unit of width * rhw.
 constexpr float kWidthScale = 15.0f;
 
 // The texture coordinates of a new cross-section vertex: the current u and `v` (copied as bits).
@@ -134,7 +134,7 @@ TLVertex** RibbonData() { return &Ribbon().data; }
 
 } // namespace
 
-// 00502AC0. The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) /
+// The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) /
 // hypot(dx, dy) unrounded; vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved
 // by (-k*dy, k*dx) with v at the bottom, both with the current u. Appends both to `*array` at
 // `*count`. __fastcall: src in ECX, direction in EDX.
@@ -155,7 +155,7 @@ void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVerte
 
 // --- 00502B90 / 00502AC0 / 00502A20 ---------------------------------------------------------------
 
-// 00502B90. The screen direction at point `index` of `points` (TL vertices): mode 1 the segment from
+// The screen direction at point `index` of `points` (TL vertices): mode 1 the segment from
 // the previous point, mode 2 from the previous to the next point (the last point: the segment from
 // the previous one), else (1, 0). __fastcall: out in ECX, index in EDX. Returns out.
 float* __fastcall StripDirection(float* out, int index, int mode, const void* array) {
@@ -177,7 +177,7 @@ EI_REWRITTEN(0x00502B90, StripDirection);
 EI_REWRITTEN(0x00502AC0, EmitSection);
 
 // 00502A20 (thiscall on the device holder, the renderer's device_). Draws an indexed triangle list
-// of TL vertices under the device's critical section (007AEE78); with distanceFog_ set the
+// of TL vertices under the device's critical section; with distanceFog_ set the
 // transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
 int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
                                std::uint16_t* indices, int indexCount) {

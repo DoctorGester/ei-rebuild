@@ -1,5 +1,5 @@
-// The unit set's writer (00559E60), used by the server's SendZone (world_sync.cpp), and the
-// client's reader of the unit looks (0055A190). See docs/notes/world.md ("Client maps", the unit
+// The unit set's writer, used by the server's SendZone (world_sync.cpp), and the
+// client's reader of the unit looks. See docs/notes/world.md ("Client maps", the unit
 // set). The set's three STLport hash_maps are walked with the original's iterator helpers, so the
 // order matches theirs.
 #include "core_streams.h"
@@ -87,7 +87,7 @@ void UnitSet::Write(CStream* stream) {
     }
 }
 
-// ---- The unit look lists' reader (0055A190) ------------------------------------------------------
+// ---- The unit look lists' reader ------------------------------------------------------
 
 namespace {
 
@@ -123,7 +123,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
         Get(stream, &record->morphU, 4);
         std::uint32_t names;
         Get(stream, &names, 4);
-        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(&record->names)->ResizeDefault(names);   // 0051F5B0
+        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(&record->names)->ResizeDefault(names);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
             stream->ReadInto(&record->names[i]);
     }

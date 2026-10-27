@@ -28,7 +28,7 @@ struct WinThread : CCmdTarget {
     // CCmdTarget's destructor.
     ~WinThread() override;
 
-    const CRuntimeClass* GetRuntimeClass() const override;                                       // 0: 0070C328
+    const CRuntimeClass* GetRuntimeClass() const override;
     void OnFinalRelease() override { ei::UnportedSlot(0x00704179); }                             // 4
     const void* GetMessageMap() const override { ei::UnportedSlot(0x00704161); }                 // 10
     virtual BOOL InitInstance() { ei::UnportedSlot(0x007025A8); }                                // 20

@@ -1,5 +1,5 @@
 // The briefing / base screen's dialogue people and items (CBriefingScreen, ui_briefing.h): a
-// person walking to a place (006089D0) and a dialogue's "#show" line (00605DE0). See
+// person walking to a place and a dialogue's "#show" line. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "library_containers.h"
 #include "world_glue.h"
@@ -42,8 +42,8 @@ ActionDoneFn SpeakerActionDone() { return ei::Code<ActionDoneFn>(0x006023F0); }
 
 constexpr int kEventJoins = 1;
 constexpr int kSlots = 7;
-constexpr float kSlotBack = 60.0f;       // 0073F090
-constexpr float kSlotFrame = 65.0f;      // 00741350
+constexpr float kSlotBack = 60.0f;
+constexpr float kSlotFrame = 65.0f;
 constexpr float kItemDepth = 12.0f;
 constexpr std::uint32_t kPlainFlag = 0x100;
 constexpr std::uint32_t kSlotBackdrop = 0xA0000000;

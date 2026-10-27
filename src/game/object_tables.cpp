@@ -41,7 +41,7 @@ AllodRecord* CMapDatabase::FindAllod(const char* name) {
 EI_REWRITTEN(0x0045E910, CMapDatabase::FindAllod);
 
 float NamedFloatTable::Get(const char* name) {
-    constexpr float kZero = 0.0f;   // 0073B858
+    constexpr float kZero = 0.0f;
     const Node* node;
     {
         mfc::CString key(name);
@@ -78,7 +78,7 @@ void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
 EI_REWRITTEN(0x00460EE0, NamedFloatTable::CopyPrefixed);
 
 void NamedFloatTable::Load(CStream* stream) {
-    Clear();   // inlined in the original: each chain's nodes freed in order (004616A0), the count zeroed
+    Clear();   // inlined in the original: each chain's nodes freed in order, the count zeroed
     for (;;) {
         mfc::CString key;
         {

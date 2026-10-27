@@ -2,14 +2,12 @@
 
 // The item description panel of the camp, the multiplayer hero screen and the exchange window
 // (005EC000-005F3000; see docs/notes/ui.md, "Item descriptions"). Names provisional.
-//
 // The panel (vtables 007404DC / 007404A8, destructor body 005EE380, built by 005EE440) is a
 // CUiWindow with one surface (200 x 300 at the layout point +0x1C0, +0x1C4) on which it writes
 // what the mouse is over: an item (005EE6C0 puts it in the panel's item list and 005EE760
 // describes it, dispatching on the item's kind), a statistic of the hero or the level-up page
-// (005F1590) or a camp help topic (005F2910). Its slot 20 (005EE5C0) draws the described item's
+// or a camp help topic. Its slot 20 draws the described item's
 // model through the owner screen (005ECA10, ui_item_view.cpp).
-//
 // Every description writes into the surface with the same layout: the title wrapped in white at
 // (15, 10)-(185, 25), then lines 15 pixels apart in 0xA7D7E4, the description text wrapped last.
 
@@ -31,14 +29,14 @@ namespace console {
 class CStringArray;
 }
 
-// 005F13A0 (__fastcall, RET 4). The seven damage values against the last one: into `out` (emptied)
+// The seven damage values against the last one: into `out` (emptied)
 // the threshold ("%d" when `integer`, else "%.1f"), the damage kinds ("dmg_<n>" texts, ", "
 // separated) of the first six above it and those below it (or unordered).
 void __fastcall ItemDamageLists(const float* values, console::CStringArray* out, char integer);
 
 // --- The item screens' model view (005ECA10; ui_item_view.cpp) ------------------------------------
 
-// 005EC020 (__fastcall). A new 256 x 256 texture (texture manager 007AF744, format 0x20, counted)
+// A new 256 x 256 texture (texture manager 007AF744, format 0x20, counted)
 // holding image "<name>.mmp" decoded and packed to 1:5:5:5 at the bottom left (rows of 512 bytes),
 // or white when there is no such image; null when it cannot be made or locked.
 CTexture* __fastcall ItemFigureTexture(const char* name);
@@ -82,7 +80,7 @@ struct ItemObjectCache {
     using Node = Map::Node;
 
     // The camp screen's constructor (005F6240, and the hero screen's copy of it): the map's header
-    // from the pool (005FA420 / 005FA630, or 00619750 and 00619770), emptied (005FA400 / 005FA610)
+    // from the pool (005FA420 / 005FA630, or 00619750 and 00619770), emptied
     // with `compare` as its compare byte; the limit 50 (ui_item_screen.cpp).
     void Construct(std::uint8_t compare);
 
@@ -99,7 +97,7 @@ void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
 void __fastcall TrimItemCache(ItemObjectCache* cache);
 
 // An item's turning state (0x18 bytes; game.exe's table 007403F8), a counted object at the item's +0x1C (CItem::link_):
-// made by the item draw (005ECA10) and the moves (005EE1B0).
+// made by the item draw and the moves.
 class ItemTurn : public CRefObject {
 public:
     // The count and the flags cleared (the original writes them as one dword); the rest is the maker's.
@@ -131,11 +129,11 @@ class CParty;
 class CItemScreen;
 struct PartyUnitRecord;
 // The item screens' icon window (0x148 bytes, game.exe's tables 00740444 / 00740410; made by 005EDD80). Its
-// destructors are the window's (005EE020).
+// destructors are the window's.
 class CItemIconWindow final : public CUiWindow {
 public:
     explicit CItemIconWindow(CInterface3D* ui) : CUiWindow(ui) {}
-    // 005F2A90 (slot 18). The frame sprites: a strip of 8 cells over the layout's middle, the
+    // The frame sprites: a strip of 8 cells over the layout's middle, the
     // column edges and corners of four 200-wide columns, and six bars.
     void Build() override;
     // 005F2E00 (RET 4; the exchange window with 300). Places the two bars (sprites 25, 26) across
@@ -156,37 +154,37 @@ public:
     // whose 25 / 26 are pure; the camp, the exchange and the hero screen override them): what the
     // item strips and panels call on their owner. The plain item screen's answers (ui_small_members.cpp)
     // and empty stubs.
-    virtual void TakeItem(CItem*, int) {}                                   // 42: 005F6370 (RET 8)
-    // 005F6380 (slot 43, RET 8): no item may be moved (AL 0).
+    virtual void TakeItem(CItem*, int) {}
+    // No item may be moved (AL 0).
     virtual bool CanEquip(CItem* item, int mode);
-    virtual void TopicClicked(int, int) {}                                  // 44: 005F6390 (RET 8)
-    // 005F63A0 (slot 45, RET 0xC): no skill and no mana.
+    virtual void TopicClicked(int, int) {}
+    // No skill and no mana.
     virtual void BestPartySkill(int school, int* skill, int* mana);
-    virtual void RefreshWeapons() {}                                        // 46: 005F63C0
-    virtual void RefreshStats() {}                                          // 47: 005F63D0
-    virtual void NextHero() {}                                              // 48: 005F63E0
-    virtual void PreviousHero() {}                                          // 49: 005F63F0
-    // 005F6400 (slot 50, RET 4): no hero unit.
+    virtual void RefreshWeapons() {}
+    virtual void RefreshStats() {}
+    virtual void NextHero() {}
+    virtual void PreviousHero() {}
+    // No hero unit.
     virtual CUnit* HeroUnit(int index);
     virtual PartyUnitRecord* HeroRecord() { return nullptr; }               // 51: 005F6410 (the shown hero)
-    virtual void ChooseFigure(const char*) {}                               // 52: 005F6420 (RET 4)
-    // 005F6430 (slot 53): no weight (0.0 from 0073B858, in ST0).
+    virtual void ChooseFigure(const char*) {}
+    // No weight (0.0 from 0073B858, in ST0).
     virtual double Weight();
-    // 005F6440 (slot 54, RET 8): no price.
+    // No price.
     virtual int Price(CItem* item, int kind);
-    // 005ECA10 (RET 8). Draws `cell`'s item: its model (cached, created by 005EBFB0) with its
+    // Draws `cell`'s item: its model (cached, created by 005EBFB0) with its
     // texture (cached, 005EC020) turning while the mouse is on it, a glow in the colour of the
     // carried spell's school, a frame behind it, the modifier marks of a spell container, and a
     // shade over items the strip's mode cannot take (virtual slot 43, CanEquip).
     void DrawItem(int pass, ItemCell* cell);
-    // 005ED7B0 (RET 8). Draws the face of `cell`'s prototype: model "infa<model>me<n + 1>face" (the
+    // Draws the face of `cell`'s prototype: model "infa<model>me<n + 1>face" (the
     // figure prototype's +0xE8 model name, the prototype's +0x10) with texture "face<m|f><+0xC,
     // two digits>" ("m" for model "unhuma", "f" for "unhufe", else nothing), both cached as the
     // items are, tilted back by (y - 300) / 1000 radians, over the cell frame.
     void DrawHeroFace(int pass, HeroFaceCell* cell);
     // The face's model and texture names (the lookups insert unknown names as DrawHeroFace's do).
     static void FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture);
-    // 005EDD80. The screens' common Create: the icon window (+0x16C, CItemIconWindow, a child
+    // The screens' common Create: the icon window (+0x16C, CItemIconWindow, a child
     // with the screen's texture 0, built), textures "modifiers2" and "campslots", the display's
     // settings, and the caches' limits (30, or 20 with 00784754 set) applied (ui_item_screen.cpp).
     void CreateBase();
@@ -202,7 +200,7 @@ public:
     CItem* ReturnAll(CParty* to, CParty* from);
     CItemInfoPanel* descPanel_;      // +0x164
     CItem* hoveredItem_;             // +0x168 the item under the mouse (turns)
-    CItemIconWindow* iconWindow_;    // +0x16C (005EDD80)
+    CItemIconWindow* iconWindow_;    // +0x16C
     ItemObjectCache models_;         // +0x170
     ItemObjectCache textures_;       // +0x180
 
@@ -245,24 +243,24 @@ public:
     void Deactivate() override { DescribeItem(); }                                    // input 1: 005EE6B0
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }       // input 9: 005EE640
     int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }           // input 11: 005EE680
-    // 005EE760. Clears the surface and describes the item in the list (nothing without one):
-    // its own description for blueprints (005F0370), materials (005EFD90), spells (005F0B90),
-    // modifiers (005F1130), quick items of category 8 (005EF300) and spells carried by an item
-    // while the modifier key +0x7C is held or spell containers (005EF5D0); else the common
+    // Clears the surface and describes the item in the list (nothing without one):
+    // its own description for blueprints, materials, spells,
+    // modifiers, quick items of category 8 and spells carried by an item
+    // while the modifier key +0x7C is held or spell containers; else the common
     // description (name, kind, material, price, condition, damage, armour, carried spell).
     void DescribeItem();
-    void DescribeMaterial();        // 005EFD90
-    void DescribeBlueprint();       // 005F0370
-    void DescribeSpellRecord();     // 005F0B90
-    void DescribeModifierRecord();  // 005F1130
-    void DescribeQuickItem();       // 005EF300
-    void DescribeCarriedSpell();    // 005EF5D0
-    // 005F1590. Empties the list, clears the surface (DescribeItem) and, for a kind 0-7, writes the
+    void DescribeMaterial();
+    void DescribeBlueprint();
+    void DescribeSpellRecord();
+    void DescribeModifierRecord();
+    void DescribeQuickItem();
+    void DescribeCarriedSpell();
+    // Empties the list, clears the surface (DescribeItem) and, for a kind 0-7, writes the
     // statistic's title, values and description.
     void DescribeStats(ItemHoverInfo* info);
-    // 005F2910. Empties the list, clears the surface and writes help topic "camphelp <topic>".
+    // Empties the list, clears the surface and writes help topic "camphelp <topic>".
     void ShowHelp(int topic);
-    // 005EE6C0. Describes `item` (null: nothing) unless it is already the described one (the
+    // Describes `item` (null: nothing) unless it is already the described one (the
     // described item's slot 14).
     void Describe(CItem* item);
     // Input slots 9 / 11 (005EE640 / 005EE680, on the input side at +0x94): Ctrl (VK_CONTROL)
@@ -270,10 +268,10 @@ public:
     // shown while it is held.
     void OnKeyDown(int key, int repeat, int flags);
     void OnKeyUp(int key, int repeat, int flags);
-    // 005EE5C0 (slot 20). Draws the described item's model at (x + 100, y + 200), size 120,
+    // Draws the described item's model at (x + 100, y + 200), size 120,
     // greyed (mode 9) through the owner's DrawItem; returns 1 (ui_item_view.cpp).
     BOOL Draw(int pass) override;
-    // 005EE440 (RET 8). Builds the panel at layout point (x, y): its 200 x 300 surface (format 5),
+    // Builds the panel at layout point (x, y): its 200 x 300 surface (format 5),
     // the item texts "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text
     // table, and an empty item list (its slot 2).
     void Build(int x, int y);

@@ -1,6 +1,5 @@
 // The hero panels shared by the camp and the multiplayer hero screen: the statistics column
-// (006233C0, 00623880). See docs/notes/ui.md ("Camp, global map, hero screens").
-//
+//. See docs/notes/ui.md ("Camp, global map, hero screens").
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float. Constants are read from memory.
 #include "ui.h"
@@ -265,9 +264,9 @@ namespace {
 // `count` framed cells (Rebirth-patched; called through its address).
 struct SpriteBuild {
     void Framed(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
-                int v0, int u1, int v1);   // 005E8450
+                int v0, int u1, int v1);
     void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
-               int v1, int count, int flag);   // 005E7680
+               int v1, int count, int flag);
 };
 void SpriteBuild::Framed(float a0, float a1, float a2, float a3, float a4, float a5, float a6, int a7, int a8, int a9, int a10) { reinterpret_cast<CUiMeshBuilder*>(this)->Framed(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10); }
 void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { static_cast<CUiMesh*>((void*)this)->SetGridVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }

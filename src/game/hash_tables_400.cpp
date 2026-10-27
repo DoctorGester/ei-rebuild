@@ -38,22 +38,22 @@ std::uint32_t RemoveKey(Table* t, const std::uint32_t* key) {
 
 // --- CBaseManager's id tables --------------------------------------------------------------------
 
-// 00404E80: the objects table's SetAt (key -> object).
+// The objects table's SetAt (key -> object).
 void Table::ObjectsSetAt(const std::int32_t* key, const std::uint32_t* value) {
     FindOrInsert(this, key)->value = *value;
 }
-// 00404F20: the objects table's RemoveKey (returns the object or null).
+// The objects table's RemoveKey (returns the object or null).
 std::uint32_t Table::ObjectsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key); }
-// 00404F80: the objects table's Lookup: 1 with *value set, or 0.
+// The objects table's Lookup: 1 with *value set, or 0.
 int Table::ObjectsLookup(const std::uint32_t* key, std::uint32_t* value) {
     Node* node = map.Find(*key);
     if (!node) return 0;
     *value = node->value;
     return 1;
 }
-// 00405350: RemoveKey of the id -> list position table (+0x50; also the client world's pending table).
+// RemoveKey of the id -> list position table (+0x50; also the client world's pending table).
 std::uint32_t Table::PositionsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key); }
-// 00406950: the objects table's find: the value's address, or null.
+// The objects table's find: the value's address, or null.
 std::uint32_t* Table::ObjectsFind(const std::uint32_t* key) {
     Node* node = map.Find(*key);
     return node ? &node->value : nullptr;
@@ -68,7 +68,7 @@ std::uint32_t* Table::SpareCountAt(const std::int32_t* key) {
 
 // --- The registries ------------------------------------------------------------------------------
 
-// 00408EA0: the chunk archive's class registry (0079B270: vtable -> class id, then at +0x14 class
+// The chunk archive's class registry (0079B270: vtable -> class id, then at +0x14 class
 // id -> factory), built by the static initialiser 00408D30 before the hooks are installed. The
 // empty functors are copied from an uninitialised stack byte in the original (0 here).
 void* __fastcall ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry) {
@@ -76,12 +76,12 @@ void* __fastcall ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry) {
     registry->factories.Construct(100);
     return registry;
 }
-// 00408D60: its destructor (registered with atexit by 00408D30): the factories, then the class ids.
+// Its destructor (registered with atexit by 00408D30): the factories, then the class ids.
 void __fastcall ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry) {
     registry->factories.Destroy();
     registry->classIds.Destroy();
 }
-// 004368F0: the session type registry's destructor (reached from the session constructor's unwind
+// The session type registry's destructor (reached from the session constructor's unwind
 // funclets): byType (+0x14), then byVtable.
 void __fastcall TypeRegistryDestruct(net::TypeRegistry* registry) {
     registry->byType.Destroy();

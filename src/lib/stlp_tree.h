@@ -4,7 +4,6 @@
 // includes it; docs/notes/standalone.md, section 2). The STLport of the exe is SGI's 3.x tree:
 // _M_insert(x, y, v) without the later hint argument, the hint insert falling back to
 // insert_unique(v), erase(key) through equal_range.
-//
 // A tree is 0xC bytes: the header node (from the node pool; its parent is the root, its left /
 // right the leftmost / rightmost node, red), the element count and the empty compare object (one
 // byte). Nodes are color (a bool: red 0, black 1, in a dword whose other bytes are left as the
@@ -49,12 +48,11 @@ namespace rb {
 // node pointer) in ECX.
 void __fastcall Increment(RbNodeBase** it);
 void __fastcall Decrement(RbNodeBase** it);
-// 0043E300 / 0043E350.
 void __fastcall RotateLeft(RbNodeBase* x, RbNodeBase*& root);
 void __fastcall RotateRight(RbNodeBase* x, RbNodeBase*& root);
-// 0043FE90: x (just linked in) red, then recoloured and rotated up to the root, which ends black.
+// X (just linked in) red, then recoloured and rotated up to the root, which ends black.
 void __fastcall Rebalance(RbNodeBase* x, RbNodeBase*& root);
-// 0043D830 (RET 8): z unlinked (its successor takes its place and colour when it has two
+// Z unlinked (its successor takes its place and colour when it has two
 // children), leftmost / rightmost kept, the tree recoloured and rotated; returns the node to free.
 RbNodeBase* __fastcall RebalanceForErase(RbNodeBase* z, RbNodeBase*& root, RbNodeBase*& leftmost,
                                          RbNodeBase*& rightmost);
@@ -396,7 +394,7 @@ public:
     std::size_t& Count() { return count_; }
     std::uint8_t& Compare() { return compare_; }
     Node*& Header() { return header_; }
-    // The first node in key order (end() when empty) and the in-order successor (0043DBE0).
+    // The first node in key order (end() when empty) and the in-order successor.
     Node* begin() const { return header_->left; }
     static Node* Next(Node* n) { return Node::From(rb::Next(n->Base())); }
 

@@ -49,7 +49,7 @@ constexpr int kTopicNameParts = 3;
 // --- The variable copies ------------------------------------------------------------------------
 
 BriefingVariables::BriefingVariables(const char* prefix) {
-    table_.ConstructDefault();   // 00581790
+    table_.ConstructDefault();
     PlayerZeroVariables(prefix, &table_);
 }
 
@@ -119,7 +119,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         }
         party_.data[place] = unit;
     } else {
-        // 0060AD50: SetAtGrow(size, unit).
+        // SetAtGrow(size, unit).
         int size = party_.size;
         party_.SetSize(size + 1, -1);
         party_.data[size] = unit;

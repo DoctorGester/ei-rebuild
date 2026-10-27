@@ -4,7 +4,6 @@
 // globals as STLport vectors (only begin/end are read here). Records are looked up by index;
 // every lookup in the original does the same bounds check against (end - begin) / stride, a
 // signed division compared unsigned.
-//
 // Many callers then read a field of the record without checking for null, so an index out of
 // range reads near address 0 and crashes. Field() keeps that behaviour (a real read through the
 // null record) rather than inventing a default.
@@ -43,15 +42,15 @@ struct SpellRecord {
     // +0x14), 16 / 17 the id lists, 18 +0x60, 19 the school, 20 the five bytes +0x78, 21 the skill,
     // 22 +0x80, 23-27 +0x64..+0x74.
     void Serialize(ChunkArchive* ar);
-    // 00685AA0 (S13; item_db_records.cpp). The destructor: the id lists +0x54, +0x48 (storage
+    // 00685AA0 (item_db_records.cpp). The destructor: the id lists +0x54, +0x48 (storage
     // only), then the strings +0x08, +0x04, +0x00.
     void Destruct();
-    // The copy constructor (the spell vector's copies, e.g. 00685BE0; S10a): the strings, +0x0C..+0x47,
+    // The copy constructor (the spell vector's copies, e.g. 00685BE0): the strings, +0x0C..+0x47,
     // the id lists copy-constructed, +0x60..+0x7C and +0x80 (+0x7D..+0x7F are not copied).
     void CopyConstruct(const SpellRecord* source);
-    // operator= (006875D0, inlined in 00687170; S10a): the same fields assigned.
+    // operator= (006875D0, inlined in 00687170): the same fields assigned.
     void AssignSpell(const SpellRecord* source);
-    // The spell vector's resize(n) temporary (S10a): empty strings and lists, the rest left as it is.
+    // The spell vector's resize(n) temporary: empty strings and lists, the rest left as it is.
     void ConstructDefault();
 
     mfc::CString name;                  // +0x00
@@ -60,7 +59,7 @@ struct SpellRecord {
     mfc::CString code;
     mfc::CString text08;                // +0x08
     float price;                        // +0x0C a loot item's price when it stands for the spell (CItemLoot::GetPrice)
-    int castType;                       // +0x10 1: cast without noise (0054EE10) and without slowing the caster (005536B0); 0: planned as kind 2; the item info shows it
+    int castType;                       // +0x10 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
     int school;                         // +0x14
     float mana;                         // +0x18
     // +0x1C..+0x3C fields 6-14: what CSpell::InitFromPrototype / CSpellContainer::Build copy into the
@@ -74,7 +73,7 @@ struct SpellRecord {
     std::uint32_t targetCount;          // +0x34
     std::uint32_t duration;             // +0x38 ticks
     std::uint32_t value3C;              // +0x3C copied, loaded and saved, not read
-    int needsSight;                    // +0x40 needs a line of sight to its target (0054BBC0)
+    int needsSight;                    // +0x40 needs a line of sight to its target
     int skill;                          // +0x44 the school skill it needs
     stlp::vector<int> list48;           // +0x48 (chunk 16)
     stlp::vector<int> list54;           // +0x54 (chunk 17)
@@ -106,18 +105,18 @@ static_assert(sizeof(SpellRecord) == 0x84);
 // (item_stock.h's SpellRecipe; ItemStock::FillSpellMaps reads them).
 struct SpellListRecord {
     // 00683D40 (RET 4; item_db_load.cpp, A-H21). String 1, the lists as chunks 2 / 3 (one string
-    // field 1 per entry; loading erases the list (00583CB0) and resizes it (004DC900) first),
+    // field 1 per entry; loading erases the list and resizes it first),
     // string 4, field 5.
     void Serialize(ChunkArchive* ar);
-    // 00589860 (S13; item_db_records.cpp). The destructor: text24, the lists +0x18 and +0x0C
+    // 00589860 (item_db_records.cpp). The destructor: text24, the lists +0x18 and +0x0C
     // (each string, then the storage), the name.
     void Destruct();
-    // The copy constructor (the list vector's copies, e.g. 006850D0; S10a): each member copied in
+    // The copy constructor (the list vector's copies, e.g. 006850D0): each member copied in
     // order (the lists copy-constructed).
     void CopyConstruct(const SpellListRecord* source);
-    // operator= (006866B0, inlined in 006853D0; S10a): each member assigned in order.
+    // operator= (006866B0, inlined in 006853D0): each member assigned in order.
     void AssignList(const SpellListRecord* source);
-    // The list vector's resize(n) temporary (S10a): empty strings with room for 8 bytes, empty lists.
+    // The list vector's resize(n) temporary: empty strings with room for 8 bytes, empty lists.
     void ConstructDefault();
 
     stlp::string spell;                     // +0x00 the spell's name
@@ -136,13 +135,13 @@ struct SpellModifierRecord {
     // 00683AF0 (RET 4; item_db_load.cpp, A-H21). String 0, fields 1-6 the dwords +0x04..+0x18,
     // string 7, field 8.
     void Serialize(ChunkArchive* ar);
-    // 00685B70 (S13; item_db_records.cpp). The destructor: the strings +0x1C, +0x00.
+    // 00685B70 (item_db_records.cpp). The destructor: the strings +0x1C, +0x00.
     void Destruct();
-    // The copy constructor (00686620; S10a): the strings copied, +0x04..+0x1B and +0x20 copied.
+    // The copy constructor: the strings copied, +0x04..+0x1B and +0x20 copied.
     void CopyConstruct(const SpellModifierRecord* source);
-    // operator= (inlined in 00687370; S10a): the same fields assigned.
+    // operator= (inlined in 00687370): the same fields assigned.
     void AssignModifier(const SpellModifierRecord* source);
-    // The modifier vector's resize(n) temporary (S10a): empty strings, the rest left as it is.
+    // The modifier vector's resize(n) temporary: empty strings, the rest left as it is.
     void ConstructDefault();
 
     mfc::CString name;                  // +0x00
@@ -173,7 +172,7 @@ public:
     // 0: the item kind the record makes (CItemConstructor::BeginCreateItem's kind; item_stock.cpp).
     virtual int Kind() = 0;
 
-    // 006A8950 / 006A89D0 / 006A8BD0 (S13; item_db_records.cpp): the weapon, armour and loot
+    // 006A8950 / 006A89D0 / 006A8BD0 (item_db_records.cpp): the weapon, armour and loot
     // records' destructors (the compiler's): the string arrays +0x50, +0x20, then the strings +0x10,
     // +0x08, +0x04. Not virtual: the records' tables have only Kind.
     ~ItemRecordHead();
@@ -204,7 +203,7 @@ public:
     console::CStringArray list20;       // +0x20 slot 18's first name (FirstListName)
     float price;                        // +0x34 item +0x38 (plus materialUnits times the material's unitPrice)
     // +0x38 item +0x34 (CItem::Weight), times the material's factor38; also what WeaponAttack
-    // (006A2BD0) returns, which the unit's attack info shows as the weapon's speed.
+    // returns, which the unit's attack info shows as the weapon's speed.
     float value38;
     std::uint32_t value3C;              // +0x3C item +0x3C
     float charge;                       // +0x40 item charge and maximum
@@ -255,13 +254,13 @@ const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const 
 // 1), the kind's own members, the head's Assign, then the kind's own fields. Bytes the original does
 // not copy are left as constructed (or as they were, for bytes no constructor sets). The default
 // constructors make the record the vectors' resize(n) appends copies of and the item constructor's
-// temporary (S10a).
+// temporary.
 
 // A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
 struct WeaponRecord : ItemRecordHead {
     WeaponRecord();                             // +0x78..+0x82 zero
     WeaponRecord(const WeaponRecord& from);
-    int Kind() override;                        // 006A6430: 0x3004
+    int Kind() override;                        // 0x3004
     // Its own fields copied: +0x6C..+0x83 and +0x8C..+0xB4 (+0x84..+0x8B are not).
     void CopyOwn(const WeaponRecord* source);
     // 006A8FB0 (RET 4; item_db_records.cpp): the weapon record's operator= (STLport's vector
@@ -293,13 +292,13 @@ static_assert(sizeof(WeaponRecord) == kWeaponSize);
 struct ArmorRecord : ItemRecordHead {
     ArmorRecord() {}                            // (user-provided: new ArmorRecord() leaves the bytes as they are)
     ArmorRecord(const ArmorRecord& from);
-    int Kind() override;                        // 006A6440: 0x3005
+    int Kind() override;                        // 0x3005
     // +0x6C..+0xB4 (+0xB4..+0xC7 are not copied).
     void CopyOwn(const ArmorRecord* source);
     // 006A9370 (RET 4; A-H25): operator= (the vector's inserts): the head's copy, then CopyOwn's
     // bytes. Returns this. The other kinds': 006A9770, 006AAE40, 006A9DA0.
     ArmorRecord* AssignArmor(const ArmorRecord* source);
-    // 0069F8C0 (RET 4). The head, then the two 9-dword rows +0x6C / +0x90 and +0xB4..+0xC6.
+    // The head, then the two 9-dword rows +0x6C / +0x90 and +0xB4..+0xC6.
     void Serialize(ChunkArchive* ar);
     // The first row's factor: the head's category read as a float.
     float FirstFactor() const { return std::bit_cast<float>(category); }
@@ -312,7 +311,7 @@ struct ArmorRecord : ItemRecordHead {
     float othersFactor;                 // +0x90
     float absorbOthers[7];              // +0x94 item absorb_[1]
     std::uint32_t othersFlags;          // +0xB0
-    std::uint8_t showsWounds;           // +0xB4 0: the piece hides the wounds of the parts it covers (00536EA0)
+    std::uint8_t showsWounds;           // +0xB4 0: the piece hides the wounds of the parts it covers
     std::uint8_t unused_B5[3];
     std::uint32_t layer;                // +0xB8 the lower one's texture goes first (00568800, ArmorFieldB8)
     std::uint8_t field19[3];            // +0xBC archive field 0x19 (nothing reads it)
@@ -329,14 +328,14 @@ static_assert(sizeof(ArmorRecord) == kArmorSize);
 struct QuickItemRecord : ItemRecordHead {
     QuickItemRecord();                          // +0x80..+0x8A zero
     QuickItemRecord(const QuickItemRecord& from);
-    // 006A8A50 (S13): the string +0x7C, then the head's members.
+    // The string +0x7C, then the head's members.
     ~QuickItemRecord();
-    int Kind() override;                        // 006A6450: 0x3006
+    int Kind() override;                        // 0x3006
     // +0x70 and +0x80..+0x8A; the category (+0x6C), +0x74..+0x7B and the string +0x7C are not
     // copied (the string is constructed empty).
     void CopyOwn(const QuickItemRecord* source);
-    QuickItemRecord* AssignQuick(const QuickItemRecord* source);   // 006A9770
-    // 0069F940 (RET 4). The head, then +0x6C..+0x7B, the string +0x7C and +0x80..+0x8A.
+    QuickItemRecord* AssignQuick(const QuickItemRecord* source);
+    // The head, then +0x6C..+0x7B, the string +0x7C and +0x80..+0x8A.
     void Serialize(ChunkArchive* ar);
 
     std::uint32_t value70;              // +0x70 item +0x4C
@@ -356,13 +355,13 @@ static_assert(sizeof(QuickItemRecord) == kQuickItemSize);
 struct QuestItemRecord : ItemRecordHead {
     QuestItemRecord() { zones.ConstructEmpty(); }
     QuestItemRecord(const QuestItemRecord& from);
-    // 006A8AE0 (S13): the zone names and their storage, then the head's members.
+    // The zone names and their storage, then the head's members.
     ~QuestItemRecord();
-    int Kind() override;                        // 006A6460: 0x3009
+    int Kind() override;                        // 0x3009
     // +0x6C only: the zone list is constructed empty, not copied.
     void CopyOwn(const QuestItemRecord* source);
     QuestItemRecord* AssignQuest(const QuestItemRecord* source);   // 006AAE40 (the zone list is kept)
-    // 0069F9C0 (RET 4). The head, the category, then the zone list as chunk 0x16 (InlineStrings).
+    // The head, the category, then the zone list as chunk 0x16 (InlineStrings).
     void Serialize(ChunkArchive* ar);
 
     stlp::vector<mfc::CString> zones;   // +0x70 the zone names
@@ -374,11 +373,11 @@ static_assert(sizeof(QuestItemRecord) == kQuestItemSize);
 struct LootItemRecord : ItemRecordHead {
     LootItemRecord() {}
     LootItemRecord(const LootItemRecord& from);
-    int Kind() override;                        // 006A6470: 0x3007
+    int Kind() override;                        // 0x3007
     // +0x6C..+0x77.
     void CopyOwn(const LootItemRecord* source);
-    LootItemRecord* AssignLoot(const LootItemRecord* source);      // 006A9DA0
-    // 0069FA90 (RET 4). The head, then +0x6C, +0x70, +0x74.
+    LootItemRecord* AssignLoot(const LootItemRecord* source);
+    // The head, then +0x6C, +0x70, +0x74.
     void Serialize(ChunkArchive* ar);
 
     std::uint32_t recordType;           // +0x70
@@ -420,12 +419,12 @@ struct MaterialRecordHead {
     // 006A9E40 (RET 4; item_db_records.cpp, A-H25). The copy constructor (the material vector's
     // resize and growth): the three strings copy-constructed, +0x0C..+0x4F copied. Returns this.
     MaterialRecordHead* CopyConstruct(const MaterialRecordHead* source);
-    // operator= (as the material vector's copies inline it, e.g. 006AB170; S10a): the three
+    // operator= (as the material vector's copies inline it, e.g. 006AB170): the three
     // strings assigned, +0x0C..+0x4F copied.
     void AssignMaterial(const MaterialRecordHead* source);
-    // The material vector's resize(n) temporary (S10a): three empty strings, the rest left as it is.
+    // The material vector's resize(n) temporary: three empty strings, the rest left as it is.
     void ConstructDefault();
-    // 006A88F0 (S13; item_db_records.cpp). The destructor: the strings +0x08, +0x04, +0x00.
+    // 006A88F0 (item_db_records.cpp). The destructor: the strings +0x08, +0x04, +0x00.
     void Destruct();
 };
 static_assert(sizeof(MaterialRecordHead) == kMaterialSize);
@@ -530,7 +529,7 @@ struct SpellDatabase {
     // 0057CB50 and reload 0057DEE0). Both tables (CodeIndexedTable::Construct), the three lists
     // empty. Returns this.
     SpellDatabase* Construct();
-    // 0057CE80 (S13a, database_reset.cpp; the compiler's destruction and construction in place,
+    // 0057CE80 (database_reset.cpp; the compiler's destruction and construction in place,
     // which the resource switch 0057CB50 runs). The three lists from the last (records in order,
     // then the storage), the modifiers and the spells (the index's nodes and buckets, then the
     // records and their storage); then Construct.
@@ -560,7 +559,7 @@ struct ItemDatabase {
     // 0057E3D0 (database_construct.cpp; the static initialiser 006A6540, the resource switch and
     // reload). The six tables from the first (NamedRecordTable::Construct). Returns this.
     ItemDatabase* Construct();
-    // 0057D340 (S13a, database_reset.cpp; the compiler's destruction and construction in place,
+    // 0057D340 (database_reset.cpp; the compiler's destruction and construction in place,
     // which the resource switch 0057CB50 runs). The tables from the last to the first as
     // DestructBody destroys them, but through the library's containers; then Construct.
     void Reset();
@@ -577,8 +576,8 @@ static_assert(sizeof(ItemDatabase) == 0xC0);
 // The databases (database_globals.cpp): built empty by their static initialisers, destroyed by the exit functions those
 // register (docs/notes/standalone.md, "The static initialisers' objects").
 } // namespace itemdb
-extern lib::StaticObject<itemdb::SpellDatabase> g_spellDatabase;   // 007C8510
-extern lib::StaticObject<itemdb::ItemDatabase> g_itemDatabase;     // 007C86D8
+extern lib::StaticObject<itemdb::SpellDatabase> g_spellDatabase;
+extern lib::StaticObject<itemdb::ItemDatabase> g_itemDatabase;
 namespace itemdb {
 inline SpellDatabase& TheSpellDatabase() { return *g_spellDatabase; }
 inline ItemDatabase& TheItemDatabase() { return *g_itemDatabase; }

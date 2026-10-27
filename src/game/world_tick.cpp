@@ -47,7 +47,7 @@ mfc::CTypedPtrList<CUnit>* SectorUnits(CSectorMap* map, int x, int y) {
 int SectorOf(float world) { return x87::fistp(static_cast<float>(2.0f * world - 0.5f)) / 32; }
 
 // STLport list<unsigned> on the game's node pool, as Tick builds it on the stack: 12-byte nodes
-// {next, prev, value}; the constructor (00404A70) allocates the head node.
+// {next, prev, value}; the constructor allocates the head node.
 class IdList {
 public:
     struct Node {
@@ -60,7 +60,7 @@ public:
         head_ = stlp::allocate_as<Node>();
         head_->next = head_->prev = head_;
     }
-    // 0056F150: frees any nodes left, then the head.
+    // Frees any nodes left, then the head.
     ~IdList() {
         Clear();
         stlp::deallocate(head_, sizeof(Node));
@@ -77,7 +77,7 @@ public:
         head_->prev->next = node;
         head_->prev = node;
     }
-    // clear(): frees the nodes in order (00404D10) and empties the ring.
+    // clear(): frees the nodes in order and empties the ring.
     void Clear() {
         for (Node* node = head_->next; node != head_;) {
             Node* next = node->next;
@@ -122,7 +122,7 @@ void CWorldServer::Tick(char force) {
     finished.Clear();
 
     static_cast<AIEventTable*>(AIEvents())->Advance(tick_);
-    // 006D44E0: every countdown (+0x70) counted down; true while one still runs.
+    // Every countdown (+0x70) counted down; true while one still runs.
     if (countdowns_.Tick()) MarkPlayersDirty(0x20);
 
     // Missiles: those whose Update returns 0 are unlinked and freed.
@@ -139,7 +139,7 @@ void CWorldServer::Tick(char force) {
             missiles.tail = current->prev;
         else
             current->next->prev = current->prev;
-        mfc::impl::FreeNodeAs<gamelists::Refs>(&projectiles_, current);   // 0059C810: the missile released
+        mfc::impl::FreeNodeAs<gamelists::Refs>(&projectiles_, current);   // the missile released
     }
 
     if (scriptsActive_ != 0 || force) ScriptTick(MainScript());
@@ -188,7 +188,7 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
         if (CUnit* unit = UnitOrNull(object)) {
             if (!unit->player) {
                 AIBrain* brain = unit->ServerController()->Brain();
-                brain->HearAlarm(index);   // 005D5940
+                brain->HearAlarm(index);
                 if (brain->alwaysUpdated) AddToUpdateMap(object);   // reacting to the alarm
             }
         }
@@ -206,21 +206,21 @@ void CWorldServer::SetGameResult(int result) {
     }
 }
 
-// ---- The units (0058D670) -----------------------------------------------------------------------
+// ---- The units -----------------------------------------------------------------------
 
 namespace {
 // UpdateUnits' two function-local id lists (00453A50-style arrays: data, size, max, grow; the data
 // block starts one dword after its allocation), with their guard bits in g_updateListGuards.
 using IdArray = lib::AlignedArray<unsigned>;
-// 004538D0: the instantiation's SetAtGrow(index, value) (RET 8).
+// The instantiation's SetAtGrow(index, value) (RET 8).
 
 constinit lib::AlignedArray<unsigned> g_removedIds = /*007AFEF0*/ {};    // flagged for removal
 constinit lib::AlignedArray<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the update map
 IdArray& RemovedIds() { return g_removedIds; }
 IdArray& SleepingIds() { return g_sleepingIds; }
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeRemovedIds() { g_removedIds.FreeData(); }     // 0058DA20
-void __cdecl FreeSleepingIds() { g_sleepingIds.FreeData(); }   // 0058DA00
+void __cdecl FreeRemovedIds() { g_removedIds.FreeData(); }
+void __cdecl FreeSleepingIds() { g_sleepingIds.FreeData(); }
 std::uint8_t g_updateListGuards = /*007AFF00*/ {};
 std::uint8_t& UpdateListGuards() { return g_updateListGuards; }
 } // namespace
@@ -273,7 +273,7 @@ void CWorldServer::UpdateUnits() {
     for (auto* position = counted_.head; position;) {
         auto* current = position;
         position = position->next;
-        if (current->data->RunTick() == 0) mfc::impl::RemoveAtAs<gamelists::EngineObjects>(&counted_, current);   // 0059A050: the object released
+        if (current->data->RunTick() == 0) mfc::impl::RemoveAtAs<gamelists::EngineObjects>(&counted_, current);   // the object released
     }
     for (int i = 0; i < SleepingIds().size; ++i) {
         if (auto* found = updateMap_.map.Find(SleepingIds().data[i])) updateMap_.map.Erase(found);

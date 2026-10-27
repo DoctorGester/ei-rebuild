@@ -1,7 +1,6 @@
 // The camera (CCamera, camera.h): the per-frame update and view placement, focus and
 // terrain sampling, panning / zoom / saved views, shakes and recorded camera paths
 // (0040D9B0-004114F0). Names are provisional.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "camera.h"
@@ -27,15 +26,15 @@ namespace {
 
 using camera::D;
 
-constexpr float kTrackGain = 0.2f;        // 0073BAD4
-constexpr float kPanZoomSpan = 1.125f;    // 0073BAD0
-constexpr float kHeightLag = 0.1f;        // 0073B850
-constexpr float kEase = 1.1f;             // 0073BAC4
-constexpr float kShakeFrequency = 0.26666668f;  // 0073BAC0
-constexpr float kShakeRange = 20.0f;      // 0073B9D4
-constexpr float kShakeFull = 8.0f;        // 0073B9D0
-constexpr float kShakeTicks = 30.0f;      // 0073BAF0
-constexpr float kAxisTiny = 1e-8f;        // 0073BAE0
+constexpr float kTrackGain = 0.2f;
+constexpr float kPanZoomSpan = 1.125f;
+constexpr float kHeightLag = 0.1f;
+constexpr float kEase = 1.1f;
+constexpr float kShakeFrequency = 0.26666668f;
+constexpr float kShakeRange = 20.0f;
+constexpr float kShakeFull = 8.0f;
+constexpr float kShakeTicks = 30.0f;
+constexpr float kAxisTiny = 1e-8f;
 
 float AbsBits(float f) {
     std::uint32_t bits;
@@ -74,7 +73,7 @@ void Approach(float* rate, const float* target, float response, float dt) {
         CopyFloat(rate, target);
 }
 
-// ---- The smooth camera (R18, render::SmoothCamera; docs/notes/renderer.md section 14) ----------------
+// ---- The smooth camera (render::SmoothCamera; docs/notes/renderer.md section 14) ----------------
 
 // The camera's time per call that the per-call gains (kTrackGain, kHeightLag) were tuned for, in
 // camera time (1: a world tick, 55 ms): what one call took in the original at 60 frames a second,
@@ -346,7 +345,7 @@ void CCamera::Update(float dt) {
     if (flags_ & kPlaced) return;
 
     CObject3D* target = TheObjectManager()->FindObjectAs<CObject3D>(static_cast<unsigned>(targetId_));
-    // The smooth camera (R18): the gains below by time, the target between its last two ticks.
+    // The smooth camera: the gains below by time, the target between its last two ticks.
     const bool smooth = render::SmoothCamera();
     Vector3 targetAt = {0.0f, 0.0f, 0.0f};
     float targetGround = 0.0f;

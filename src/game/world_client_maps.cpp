@@ -1,6 +1,5 @@
 // The client world's object maps (0056E000-00574000 helpers and the CWorldClient methods that keep
 // the maps). See docs/notes/world.md ("Client maps").
-//
 // The client files every object in a sector grid (+0x120: STLport lists of counted pointers, one
 // per 16x16 cell) and the second grid at +0x150; most of 0056E000-00574000 are the STLport and MFC
 // instantiations behind those maps (config/library.csv). Rewritten here: the grids' Move (two
@@ -171,7 +170,7 @@ RadiusFunctor* RadiusFunctor::Mark(stlp::list<Footprint>::Node* first, stlp::lis
 EI_REWRITTEN(0x00571D50, RadiusFunctor::Mark);
 
 
-// 00573350: vector<ScreenEntry>::_M_insert_overflow (plain elements).
+// Vector<ScreenEntry>::_M_insert_overflow (plain elements).
 void ScreenHits::InsertOverflow(ScreenEntry* position, const ScreenEntry* value, int count) {
     stlp::vector<ScreenEntry>::InsertOverflow<stlp::PlainElement<ScreenEntry>>(position, *value,
                                                                               static_cast<std::size_t>(count));
@@ -265,7 +264,7 @@ using DynamicNode = DynamicList::Node;
 void __fastcall SessionPlayerClear(CPlayer* session) { static_cast<CPlayer*>(session)->Clear(); }
 
 // The STLport sort over the screen entries with DepthLess {plane, manager}: stl_sorts.h's stl_sorts::
-// ScreenIntroSort (00573740), ScreenInsertionSort (00575BC0), ScreenUnguardedInsertionSort (00576D40).
+// ScreenIntroSort, ScreenInsertionSort, ScreenUnguardedInsertionSort.
 
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
@@ -544,14 +543,14 @@ void CWorldClient::ClearMaps() {
     for (SectorListNode* node = heroes.head->next; node != heroes.head;) {
         SectorListNode* next = node->next;
         ObjectHolderRelease(&node->data);
-        stlp::deallocate(node, 12);   // 0056FB40
+        stlp::deallocate(node, 12);
         node = next;
     }
     heroes.head->next = heroes.head;
     heroes.head->prev = heroes.head;
 
     MapObjectList& objects = objects_;
-    FiledNode* node = objects.head->next;   // begin() (0056DF90)
+    FiledNode* node = objects.head->next;   // begin()
     FiledNode* end = objects.head;
     ReleaseIdentified functor{};
     while (node != end) {
@@ -648,7 +647,7 @@ void CWorldClient::UnitsInBox(const long* rect, stlp::list<CEngineObject*>* out)
     }
 }
 
-// ---- The party's units (00566F70) ----------------------------------------------------------------
+// ---- The party's units ----------------------------------------------------------------
 
 namespace {
 
@@ -727,7 +726,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
     }
 }
 
-// ---- Objects in range (0056DAF0) -----------------------------------------------------------------
+// ---- Objects in range -----------------------------------------------------------------
 
 namespace {
 
@@ -791,10 +790,10 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, stlp::list
     }
 }
 
-// ---- Platforms (00560650, 00560820) --------------------------------------------------------------
+// ---- Platforms --------------------------------------------------------------
 
 namespace {
-constexpr float kSteepest = 0.8f;   // 0073CCA8: the smallest normal z of a face added
+constexpr float kSteepest = 0.8f;   // the smallest normal z of a face added
 } // namespace
 
 int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, const Vector3* normal, Platform** out) {
@@ -877,7 +876,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
     }
 }
 
-// ---- Teardown (00563290) -------------------------------------------------------------------------
+// ---- Teardown -------------------------------------------------------------------------
 
 namespace {
 
@@ -904,7 +903,7 @@ void EmptyList(stlp::list<T>& list, F free) {
 void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& feet, stlp::list<GroundPrint>& scorch) {
     EmptyList(blood, [](stlp::list<BloodPrint>::Node* node) {
         node->data.Destruct();
-        stlp::deallocate(node, 164);   // 0056FB80
+        stlp::deallocate(node, 164);
     });
     EmptyList(feet, [](stlp::list<Footprint>::Node* node) {
         node->data.DeletingDestruct(0);
@@ -952,7 +951,7 @@ void CWorldClient::Destroy() {
     }
     DeleteOwned(bird_);
     ReleaseItemsAndSpells();
-    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);   // 00570000: the dropped ones released
+    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);   // the dropped ones released
     ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
     RainSnow()->Destroy();
     platforms_.Destroy();
@@ -964,7 +963,7 @@ void CWorldClient::Destroy() {
     EmptyList(list7BC_, [](stlp::list<int>::Node* node) { stlp::deallocate(node, 12); });
     EmptyList(heroes_, [](SectorListNode* node) {
         ObjectHolderRelease(&node->data);
-        stlp::deallocate(node, 12);   // 0056FB40
+        stlp::deallocate(node, 12);
     });
     MapObjectList& objects = objects_;
     stlp::ListForEachRelease<CMapObject>(objects.head->next, objects.head, 0);
@@ -994,11 +993,11 @@ void CWorldClient::Destroy() {
     DropAndDelete(texts_);
 }
 
-// ---- Zone reset (00565090) -----------------------------------------------------------------------
+// ---- Zone reset -----------------------------------------------------------------------
 
 void CWorldClient::ResetZoneObjects() {
-    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);   // 00570000: the dropped ones released
-    // The second grid's cells: each element released (005768A0, flags 0), its node freed (00572FC0),
+    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);   // the dropped ones released
+    // The second grid's cells: each element released (005768A0, flags 0), its node freed,
     // the cell linked to itself.
     SectorGrid& second = secondGrid_;
     for (int x = 0; x < static_cast<int>(second.width_); ++x)
@@ -1013,7 +1012,7 @@ void CWorldClient::ResetZoneObjects() {
     if (it.manager) --it.manager->refCount_;
 }
 
-// ---- The selection (00566100) --------------------------------------------------------------------
+// ---- The selection --------------------------------------------------------------------
 
 namespace {
 // The selection highlight off: flags 0x10 and 0x100 cleared, the side half's slots 25 (empty) and
@@ -1043,7 +1042,7 @@ void CWorldClient::Deselect(CEngineObject* object) {
     Node* node = selected.head->next;
     while (node != selected.head && node->data != id) node = node->next;   // 00571960 find
     if (node == selected.head) return;
-    stlp::list<int>::Erase(node);   // 00512030
+    stlp::list<int>::Erase(node);
     if (object->flags_ & 0x10) Unhighlight(object);
 }
 
@@ -1063,11 +1062,11 @@ void CWorldClient::Select(CEngineObject* object) {
     Node* node = selected.head->next;
     while (node != selected.head && node->data != id) node = node->next;   // 00571960 find
     if (node != selected.head) return;
-    stlp::list<int>::Insert(selected.head, id);   // 00404A40
+    stlp::list<int>::Insert(selected.head, id);
 }
 EI_REWRITTEN(0x00566030, CWorldClient::Select);
 
-// ---- Set up (00561E50) ---------------------------------------------------------------------------
+// ---- Set up ---------------------------------------------------------------------------
 
 namespace {
 
@@ -1173,12 +1172,12 @@ EI_REWRITTEN(0x005724F0, SectorGrid::Resize);
 int CWorldClient::Create() {
     CWorld::Create();
     {
-        mfc::CString path = TheDataFolder() + worlddata::TexturesFolderText();   // operator+ (00700C05)
+        mfc::CString path = TheDataFolder() + worlddata::TexturesFolderText();   // operator+
         texturePath_ = path;
     }
     LoadLights(worlddata::LightsTableText());
     lightingMark_ = 0;
-    sounds_ = MakeCounted<CSoundManager>();   // 006B6040
+    sounds_ = MakeCounted<CSoundManager>();
 
     texts_ = new CTextManager();
     ++texts_->refCount_;
@@ -1218,11 +1217,11 @@ int CWorldClient::Create() {
     sounds_->Create();
     texts_->Create();
     {
-        mfc::CString path = TheTextFolder() + worlddata::TextsFileText();   // operator+ (00700C05)
+        mfc::CString path = TheTextFolder() + worlddata::TextsFileText();   // operator+
         texts_->AddSource(path);
     }
     {
-        mfc::CString path = TheTextFolder() + worlddata::TextsLmpFileText();   // operator+ (00700C05)
+        mfc::CString path = TheTextFolder() + worlddata::TextsLmpFileText();   // operator+
         texts_->AddSource(path);
     }
 
@@ -1248,7 +1247,7 @@ int CWorldClient::Create() {
     else
         flags_ &= ~0x200u;
     {
-        mfc::CString path = TheDataFolder() + worlddata::CursorFileText();   // operator+ (00700C05)
+        mfc::CString path = TheDataFolder() + worlddata::CursorFileText();   // operator+
         cursor_ = text::sys::LoadCursorFromFileA(path);
     }
 
@@ -1261,7 +1260,7 @@ int CWorldClient::Create() {
         int count = static_cast<int>(entries.size());
         ScreenEntry* block;
         if (entries.begin()) {
-            block = stlp::vector<ScreenEntry>::AllocateAndCopy<stlp::PlainElement<ScreenEntry>>(   // 00573520
+            block = stlp::vector<ScreenEntry>::AllocateAndCopy<stlp::PlainElement<ScreenEntry>>(
                 400, entries.begin(), entries.end());
             if (ScreenEntry* old = entries.begin())
                 stlp::deallocate(old, static_cast<std::size_t>(entries.EndOfStorage() - old) * sizeof(ScreenEntry));
@@ -1282,7 +1281,7 @@ int CWorldClient::Create() {
     return 1;
 }
 
-// ---- References for a zone load (005630B0) -------------------------------------------------------
+// ---- References for a zone load -------------------------------------------------------
 
 void CWorldClient::ReferenceItemsAndSpells() {
     if (ItemFactory()) ReferenceEveryObject(ItemFactory());

@@ -1,5 +1,5 @@
-// The camp's trade panel (the level-up page, vtable 007417A8): its layout (00624F10), its lists of
-// schools and perks (00625880) and their drawing (006261A0). See docs/notes/ui.md ("Camp, global map,
+// The camp's trade panel (the level-up page, vtable 007417A8): its layout, its lists of
+// schools and perks and their drawing. See docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "item_db_text.h"
 #include "world.h"
@@ -207,8 +207,8 @@ void CTradePanel::BuildLists() {
     experience_ = static_cast<int>(static_cast<double>(stats->pendingExperience) + stats->experience -
                                    stats->spentExperience);
 
-    ClampScroll();   // 00626D70
-    DrawLists();     // 006261A0
+    ClampScroll();
+    DrawLists();
 }
 namespace {
 void __fastcall TradeBuildLists(CTradePanel* self) { self->BuildLists(); }
@@ -316,8 +316,8 @@ EI_REWRITTEN(0x006261A0, TradeDrawLists);
 // --- 00624F10 -----------------------------------------------------------------------------------
 
 namespace {
-// 0062A0B0: vector<TradeRecord>'s insert that reallocates (recordvec::TradeRecordVector's); 00626F10
-// (__fastcall): fills record +0x150 from the local player's unit records; LocalPlayerData (00578BA0):
+// Vector<TradeRecord>'s insert that reallocates (recordvec::TradeRecordVector's); 00626F10
+// (__fastcall): fills record +0x150 from the local player's unit records; LocalPlayerData:
 // the local player's data (+0x34 the number of unit records).
 void __fastcall TradeSnapshotRecord(CTradePanel*);
 
@@ -506,9 +506,9 @@ EI_REWRITTEN(0x00625860, CTradePanel::SelectHero);
 // --- 00626090: a price as text -------------------------------------------------------------------
 
 void CTradePanel::FormatPrice(int price, mfc::CString* out) {
-    constexpr float kThousandth = 0.001f;        // 0074040C
-    constexpr float kMillionth = 1e-6f;          // 00741F10
-    constexpr float kBillionth = 1e-9f;          // 00741F14
+    constexpr float kThousandth = 0.001f;
+    constexpr float kMillionth = 1e-6f;
+    constexpr float kBillionth = 1e-9f;
     if (price < 0) {
         price = 0x7FFFFFFF;
     } else if (price < 1000) {

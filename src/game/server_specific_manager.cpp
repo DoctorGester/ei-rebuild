@@ -44,7 +44,7 @@ const char* CServerSpecificManager::GetClassName() { return kManagerClassName; }
 int CServerSpecificManager::GetClassId() { return kManagerClassId; }
 
 // Every object starts zeroed (operator_new_zeroed): CUnitServer's constructor leaves waitFrame (+0x93C),
-// which ResolveBlocker reads, and others the saves write (SV7d3, SV7b2).
+// which ResolveBlocker reads, and others the saves write.
 CEngineObject* CServerSpecificManager::NewObject(int type) {
     switch (type) {
     case kObject3DServer:

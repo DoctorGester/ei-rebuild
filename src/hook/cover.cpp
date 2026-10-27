@@ -2,7 +2,6 @@
 // them a run executes. Off unless the environment names a file of addresses (first hex word of each
 // line, '#' comments; for picking the scenarios that need a Rebirth run, tools/rebirth_coverage.py).
 // Until S21e `hooks` watched every address the hooks were installed at (tools/coverage.py's reach.txt).
-//
 // Each address gets a one-shot INT3 at WinMain; the first time it runs, a vectored handler puts the
 // byte back, logs "cover <address>" and resumes at the address.
 #include "log.h"

@@ -1,10 +1,10 @@
 // The object sets a player is sent (the server's SyncPlayer, world_sync.cpp): the set collected
 // this frame is sorted (duplicates dropped) and compared with the set sent
-// before (0047B1F0), giving the objects new to the player (referenced once more), the objects gone
+// before, giving the objects new to the player (referenced once more), the objects gone
 // (released through slot 4) and the objects still there; the sent set then becomes the new one.
 // The arrays are the original's aligned pointer arrays ({data, size, capacity, growBy}, blocks
 // from 0047B940) and their two SetSize variants. See docs/notes/world.md. The game orders the sets
-// by address; ours by object id (address_order.h, T2f).
+// by address; ours by object id (address_order.h).
 #include "address_order.h"
 #include "core_streams.h"
 #include "engine_object.h"
@@ -31,11 +31,11 @@ bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b)
 }
 
 EI_REWRITTEN(0x0047B770, ObjectSet::SetSize);
-// 0047B880 (RET 8): the sort's SetSize(n, growBy): no special case for 0 (an empty block is
+// The sort's SetSize(n, growBy): no special case for 0 (an empty block is
 // allocated), and growing does not keep the elements.
 EI_REPLACE_METHOD(0x0047B880, ObjectSet::SetSizeDiscardStep);
 
-// 0047ADF0: sorts the set and drops the duplicates. The original sorts by address (four byte passes of
+// Sorts the set and drops the duplicates. The original sorts by address (four byte passes of
 // a radix sort, 0047B120, through a scratch array freed at exit by 0047B1D0); ours by id
 // (address_order::ObjectBefore), a comparison sort without the scratch array.
 void __fastcall ObjectSetSortUnique(ObjectSet* self) {

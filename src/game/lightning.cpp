@@ -1,5 +1,4 @@
 // Lightning bolts (lightning.h). Names are provisional.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "lightning.h"
@@ -29,7 +28,7 @@ double Unsigned(std::uint32_t value) {
 }
 
 // The noise table: 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the key drawn
-// for each sample), read from gfx.res\lightning.dat by LoadLightningNoise (00468A00).
+// for each sample), read from gfx.res\lightning.dat by LoadLightningNoise.
 const float* NoiseTable() { return LightningNoiseTable(); }
 constexpr int kNoiseRowLength = 400;
 
@@ -40,11 +39,11 @@ float g_noiseUp[400] = /*0079C838*/ {};
 // Branch sway frequencies: six pairs (side, up) at 00787C8C.
 constexpr float kBranchFrequencies[12] = /*00787C8C*/ {2.0f, 3.0f, 2.5f, 1.8f, 0.3f, 0.8f, 1.2f, 1.3f, 3.0f, 5.1f, 2.1f, 1.76f};
 
-constexpr double kNoiseScale = 0x1.0000000100000p-31;   // 0073C508: about 2 / 2^32
-constexpr double kRandomScale = 0x1.0000000100000p-32;  // 0073C468: about 1 / 2^32
-constexpr float kSideA = -0.0666f;                       // 0073C514
-constexpr float kSideB = 0.013f;                         // 0073C510
-constexpr float kOffsetFactor = 0.05f;                   // 0073C52C
+constexpr double kNoiseScale = 0x1.0000000100000p-31;   // about 2 / 2^32
+constexpr double kRandomScale = 0x1.0000000100000p-32;  // about 1 / 2^32
+constexpr float kSideA = -0.0666f;
+constexpr float kSideB = 0.013f;
+constexpr float kOffsetFactor = 0.05f;
 
 float FromBits(std::uint32_t bits) {
     float f;
@@ -243,7 +242,7 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     step.x = static_cast<float>(step.x / n);
     step.y = static_cast<float>(step.y / n);
     step.z = static_cast<float>(step.z / n);
-    points.SetSize(count, -1);   // 00468C50
+    points.SetSize(count, -1);
 }
 EI_REWRITTEN(0x00466820, LightningSegment::Init);
 

@@ -35,7 +35,7 @@ struct Vertex {
     std::uint32_t colour;     // D3DCOLOR (bytes B, G, R, A)
     std::uint32_t specular;   // D3DCOLOR; its alpha is the fog factor (255 no fog)
     float u, v;
-    Vector3 normal;           // model space (a figure mesh lit on the GPU, R16i), else zero
+    Vector3 normal;           // model space (a figure mesh lit on the GPU), else zero
 };
 static_assert(sizeof(Vertex) == 40);
 
@@ -153,9 +153,9 @@ struct MeshBatch {
     bool figure = false;
     float box[6] = {};
     float front = 2.0f;
-    CachedMesh* cached = nullptr;   // the mesh kept on the GPU it draws (R16d), else the frame's stream
+    CachedMesh* cached = nullptr;   // the mesh kept on the GPU it draws, else the frame's stream
     float uOffset = 0.0f, vOffset = 0.0f;   // added to a cached mesh's texture coordinates (MeshDraw::moveUv)
-    int lighting = -1;        // index into Frame::meshLights: lit on the GPU (R16i), else the vertex colours
+    int lighting = -1;        // index into Frame::meshLights: lit on the GPU, else the vertex colours
 };
 
 // A window surface's blit: the image read at the blit, the screen and source rectangles.
@@ -199,7 +199,7 @@ struct ShadowParams {
 };
 static_assert(sizeof(ShadowParams) == 64);
 
-// The scene's light for the GPU lighting (R16i, render_lighting.cpp; shaders/scene_lighting.hlsli): the
+// The scene's light for the GPU lighting (render_lighting.cpp; shaders/scene_lighting.hlsli): the
 // sun, the ambient colour and the point lights render::SceneLighting kept, as a fragment uniform block.
 struct LightParams {
     float sun[4];          // xyz: the direction the sun's light travels (unit)
@@ -220,7 +220,7 @@ bool MapLightDirection(const Vector3& sun, Vector3* travel);
 // `placed` (camera x model, row-major) without the camera: the model matrix (render_shadows.cpp). False
 // when the camera has no inverse.
 bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model);
-// A figure part lit on the GPU (R16i, render::MeshLighting; shaders/mesh.hlsl), as part of the mesh
+// A figure part lit on the GPU (render::MeshLighting; shaders/mesh.hlsl), as part of the mesh
 // shader's fragment uniforms: the sun and the lights in the part's model space, their colours times the
 // material's diffuse colour and the coefficient. MeshLightUniforms makes them (render_lighting.cpp); the
 // lights nearest the part's origin are kept, at most kMostMeshLights.
@@ -236,7 +236,7 @@ struct MeshLightParams {
 static_assert(sizeof(MeshLightParams) == 80 + kMostMeshLights * 32);
 void MeshLightUniforms(const MeshLighting& lighting, MeshLightParams* params);
 
-// A frame's object shadows (R16j, render_shadows.cpp): the sun handed over, the objects casting, and
+// A frame's object shadows (render_shadows.cpp): the sun handed over, the objects casting, and
 // what PrepareShadows made of them: the matrices from each receiving mesh's model space (and the
 // terrain's space) to the shadow map's clip space, and the receivers' shader parameters.
 struct ShadowFrame {
@@ -256,7 +256,7 @@ struct Frame {
     std::vector<Vertex> meshVertices;
     std::vector<std::uint32_t> meshIndices;
     std::vector<MeshBatch> meshBatches;
-    std::vector<MeshLightParams> meshLights;   // MeshBatch::lighting (R16i)
+    std::vector<MeshLightParams> meshLights;   // MeshBatch::lighting
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
     std::vector<CanvasBatch> canvasBatches;
@@ -302,7 +302,7 @@ void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* value
 void RenderValues(const std::uint32_t* states, std::uint32_t* values, int count);
 void StageValues(int stage, const std::uint32_t* states, std::uint32_t* values, int count);
 void PassDone();
-// The device object (007AF080) and its render target's size.
+// The device object and its render target's size.
 CTextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);
 // sokol is set up (creates the device on first use); false when the sidecar is off or failed.
@@ -339,7 +339,7 @@ struct WindowParts {
     std::uint32_t presentFlags;
 };
 bool CurrentWindowParts(WindowParts* parts);
-// The vertical blank switch's rules (render_window.cpp, R23): whether the factory's system allows tearing
+// The vertical blank switch's rules (render_window.cpp): whether the factory's system allows tearing
 // presents, the flags of a swap chain made when tearing is wanted (SetVsync(false)), Present's sync interval and flags for it on a chain
 // made with `chainFlags` (tools/perf_check checks them).
 bool TearingSupported(IDXGIFactory2* factory);
@@ -465,7 +465,7 @@ private:
 
 // The terrain shader and draws, inside EndFrame's off-screen pass (render_terrain.cpp; the pipelines
 // are made per pass state as they are needed).
-// UploadTerrain puts the pages handed over with changes into the pool (R16c); TerrainPositions gives
+// UploadTerrain puts the pages handed over with changes into the pool; TerrainPositions gives
 // every `step`th position of the frame's terrain vertices in draw order (the shadow map's fit);
 // TerrainFrameDone, after a present, drops pages not drawn for a long time. DestroyTerrain keeps the
 // pages (placed again in a new pool at their next draw).
@@ -475,7 +475,7 @@ void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
 void TerrainPositions(const Frame& frame, std::size_t step, std::vector<Vector3>* out);
 void TerrainFrameDone();
 void DestroyTerrain();
-// The ground's casters into the shadow map (R16i; render::ShadowTerrainSector): the sectors handed over
+// The ground's casters into the shadow map (render::ShadowTerrainSector): the sectors handed over
 // this frame. UploadTerrainCasters writes the new ones into their pool (before the map's pass);
 // DrawTerrainCasters draws them inside it with `pipeline` (vertex buffer 0: TerrainCasterVertex, 32-bit
 // indices) whose uniforms the caller applied. TerrainCastersDone: after a present.
@@ -504,7 +504,7 @@ void DestroyMeshes();
 bool BindMeshBatch(const MeshBatch& batch, sg_bindings& b, int* firstIndex);
 void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly);
 
-// Meshes kept on the GPU (R16d, render_mesh_cache.cpp; docs/notes/renderer.md section 13). KeepMesh:
+// Meshes kept on the GPU (render_mesh_cache.cpp; docs/notes/renderer.md section 13). KeepMesh:
 // the mesh being handed over (MeshPass's first) brought up to date as kept for the figure mesh of
 // render::SetMeshSource, or null: it is built into the frame's stream (no source, no corners, the cache
 // off in the harness build, or the mesh already drawn this frame with other data). UploadCachedMeshes
@@ -522,13 +522,13 @@ void MeshCacheFrameDone();
 void DropMeshCache();
 // The figure mesh of the draw being handed over (render::SetMeshSource's owner), or null.
 const void* MeshSourceOwner();
-// The lighting of the draw being handed over (render::SetMeshSource's), or null (R16i).
+// The lighting of the draw being handed over (render::SetMeshSource's), or null.
 const MeshLighting* MeshSourceLighting();
-// The model-space normal of the corners with colour index `index` (its word's normal; R16i), zero
+// The model-space normal of the corners with colour index `index` (its word's normal), zero
 // without normals or words.
 Vector3 CornerNormal(const MeshDraw& mesh, int index);
 
-// Object shadows (R16j, render_shadows.cpp; docs/notes/renderer.md section 13). PrepareShadows, once a
+// Object shadows (render_shadows.cpp; docs/notes/renderer.md section 13). PrepareShadows, once a
 // frame before its first pass on the world: fits the shadow map
 // around the visible ground seen from the sun and gives every receiving batch its light matrix;
 // DrawShadowMap then draws the casters into the map (a pass of its own) and its depth range per cell
@@ -547,9 +547,9 @@ void DestroyShadows();
 // ShadowFrameEnd: the frame's passes are recorded (the harness build's GPU time); ShadowFrameDone: the
 // frame is presented (ShadowState reports it).
 const void* CurrentCaster();
-// The object of CurrentCaster is a unit (render::BeginCaster's `figure`, R16i2).
+// The object of CurrentCaster is a unit (render::BeginCaster's `figure`).
 bool CurrentCasterFigure();
-// A caster's mesh drawn this frame was the figure mesh `part` (render::CasterPartDrawn, R20).
+// A caster's mesh drawn this frame was the figure mesh `part` (render::CasterPartDrawn).
 void NoteCasterPart(const void* part);
 void ShadowFrameEnd();
 void ShadowFrameDone();
@@ -662,8 +662,8 @@ void EndWindowPresent(bool presented);
 void DropCursorPresents();
 sg_sampler StageSampler(const StageState& stage);
 // The sampler for `stage` with linear filters asked for: anisotropic (kAnisotropy) with linear mips;
-// point filters as the stage says. Always for the terrain pages (stage 0 of the page's pass, R12),
-// with the smooth option for the world's models too (R12a).
+// point filters as the stage says. Always for the terrain pages (stage 0 of the page's pass),
+// with the smooth option for the world's models too.
 constexpr std::uint32_t kAnisotropy = 16;
 sg_sampler AnisotropicSampler(const StageState& stage);
 // After a frame is presented: images replaced during the frame are destroyed, entries unused for a

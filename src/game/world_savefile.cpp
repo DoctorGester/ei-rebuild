@@ -19,7 +19,7 @@ constexpr int kVersionFlag = 0x71;        // above: a byte saying whether the da
 // The stream's format version, compared signed as the original does.
 int VersionOf(const CStream* stream) { return static_cast<int>(stream->version_); }
 
-// The growing buffer's Seek when it has to grow (004DA5C0).
+// The growing buffer's Seek when it has to grow.
 inline void BufferSeek(GameBuffer* buffer, int at) { buffer->Grow(static_cast<std::uint32_t>(at)); }
 
 // The buffer's high-water mark brought up to its cursor (inlined everywhere).
@@ -48,7 +48,7 @@ std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {
     return h;
 }
 
-// A coder on the stack (0042FCA0) whose cursor is ended on the way out (0041D930, inlined).
+// A coder on the stack whose cursor is ended on the way out (0041D930, inlined).
 struct LocalCoder {
     CoderState state;
     LocalCoder() { state.Construct(); }

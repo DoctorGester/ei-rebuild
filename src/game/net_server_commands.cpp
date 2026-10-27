@@ -1,5 +1,5 @@
 // The game server's command messages (0041B2A0, CommandMessage) and the file requests a client
-// hands in (0041B690), with the host check they use (00419F90). See net_messages.h and
+// hands in, with the host check they use. See net_messages.h and
 // docs/notes/network.md.
 #include "net_messages.h"
 #include "net_connection.h"
@@ -39,7 +39,7 @@ bool Is(const stlp::string& s, const char* t) {
 
 } // namespace
 
-// 00419F90: whether `connection` is the host's (a binding of it with a live host player).
+// Whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(const Connection* connection) {
     for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
         auto* binding = bindings_.At(node);

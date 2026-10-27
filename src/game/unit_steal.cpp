@@ -1,4 +1,4 @@
-// Stealing an item from a unit (00531400). See unit.h (CUnit::TakeRandomItem) and
+// Stealing an item from a unit. See unit.h (CUnit::TakeRandomItem) and
 // docs/notes/units.md ("Creation, databases, save").
 #include "random.h"
 #include "unit.h"

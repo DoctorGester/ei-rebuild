@@ -57,7 +57,7 @@ void __fastcall ScriptPurgeDeletedObjects(CScript* script) {
     ScriptFreeTemporaries(script);
 }
 
-// 004BE490: every instance and every run removed from the head of its list and destroyed.
+// Every instance and every run removed from the head of its list and destroyed.
 void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
     while (script->instances_.count != 0) {
         lib::InPlace<ScriptDefinition> element;

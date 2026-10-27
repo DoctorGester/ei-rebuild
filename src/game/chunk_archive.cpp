@@ -55,14 +55,14 @@ void ChunkArchive::Ref::Reset() {
 EI_REWRITTEN(0x00409E80, ChunkArchive::Ref::Reset);
 
 // The class registry, zero at the start: built by the static initialiser 00408D30 in the list's order and destroyed by
-// the exit function it registers (00408D50); both ported on the name and registered at their addresses
+// the exit function it registers; both ported on the name and registered at their addresses
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<ChunkArchive::ClassRegistry> g_classRegistry = /*0079B270*/ {};
 ChunkArchive::ClassRegistry& ChunkArchive::Registry() { return *g_classRegistry; }
 
 namespace {
-void __cdecl DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry); }   // 00408D50
-void __cdecl ConstructClassRegistry() {                                                     // 00408D30
+void __cdecl DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry); }
+void __cdecl ConstructClassRegistry() {
     hash400::ClassRegistryConstruct(&*g_classRegistry);
     libcrt::AtExit(DestroyClassRegistry);
 }
@@ -239,7 +239,7 @@ EI_REWRITTEN(0x00409640, ChunkArchive::StreamField);
 
 // The number a save gives an object: its place in the saved list (1, 2, ...), kept as the map's
 // value. The original wrote the object's address as its key (the loader maps any key to the object
-// it creates); numbers by first save keep the saves free of heap layout (SV7b2a; the harness makes
+// it creates); numbers by first save keep the saves free of heap layout (the harness makes
 // the original number them too, harness_save_leftovers.cpp).
 std::uint32_t SavedNumber(const ChunkArchive* a, const CRefObject* object) {
     const ObjectMap::Node* node = a->objects_.Find(reinterpret_cast<std::uint32_t>(object));

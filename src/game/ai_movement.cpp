@@ -28,7 +28,7 @@ namespace {
 // standing height rounded to 0.1. 16x16 signed levels start at shape + 8.
 using ShapeHandle = ShapeCacheHandle;
 
-// 005B8BA0: the passability of cell (x, y) for a size class standing at `level` (a cell with
+// The passability of cell (x, y) for a size class standing at `level` (a cell with
 // occluders); the cost is at out[3].
 
 // LineOfSight through its original address (rewritten in ai_map.cpp), its ST0 taken unrounded.
@@ -37,7 +37,7 @@ using ShapeHandle = ShapeCacheHandle;
 // rounded to float, then FISTP.
 int CellOf(float world) { return x87::fistp(static_cast<float>(2.0 * world - 0.5f)); }
 
-constexpr float kShapeMinHeight = 0.2f;     // 0073BAD4
+constexpr float kShapeMinHeight = 0.2f;
 constexpr int kExpensive = 12000;           // cost above which a step is flagged 2
 } // namespace
 
@@ -110,7 +110,7 @@ const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
 EI_REWRITTEN(0x005B9510, CAIMap::CostContext);
 
 void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
-    // The original also asks the unit for its movement speeds twice (0052F920) and divides by one
+    // The original also asks the unit for its movement speeds twice and divides by one
     // of them, but never uses the results; the getter has no side effects.
     int shift = unit->sizeClass * 4;
     const ClimbTable& climbTable = shift == 0 ? climbSmall : climbLarge;
@@ -145,7 +145,7 @@ EI_REWRITTEN(0x005BA400, CAIMap::SetStepSpeeds);
 bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     PassCostContext context;
     CostContext(unit->sizeClass, &context);
-    // The original also asks the unit for its movement speeds (0052F920) and ignores them.
+    // The original also asks the unit for its movement speeds and ignores them.
     int x = CellOf(unit->localPosition_.x);
     int y = CellOf(unit->localPosition_.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
@@ -163,7 +163,7 @@ EI_REWRITTEN(0x005BA5A0, CAIMap::StandsOnCheapCell);
 
 
 namespace {
-// 005B14C0: the byte grid's block and row table for its width and height.
+// The byte grid's block and row table for its width and height.
 void AllocateGrid(SearchGrid<std::uint8_t>* grid) {
     grid->data = static_cast<std::uint8_t*>(gamecrt::operator_new(grid->width * grid->height));
     grid->rows = static_cast<std::uint8_t**>(gamecrt::operator_new(grid->height * sizeof(std::uint8_t*)));
@@ -199,7 +199,7 @@ void FogGrid::Grow(int x, int y, int n) {
     if (bottom <= y0 + height - 1) bottom = y0 + height - 1;
     if (!grow) return;
     int size = (bottom - top > right - left ? bottom - top : right - left) + 1;
-    // 005CD410: a copy of the old marks (block and row table), moved into the cleared grid.
+    // A copy of the old marks (block and row table), moved into the cleared grid.
     SearchGrid<std::uint8_t> old = cells;
     AllocateGrid(&old);
     std::memcpy(old.data, cells.data, static_cast<std::size_t>(old.width * old.height));
@@ -222,7 +222,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
     grid->Grow(eyeX, eyeY, reach);
     EI_NAN_AUDIT(cosLimit, targetHeight);
     bool anyDirection = cosLimit <= -1.0f;
-    bool noLineOfSight = targetHeight < -100.0f;    // 0073FDC4
+    bool noLineOfSight = targetHeight < -100.0f;
 
     const double half = 1.0f * 0.5f;    // cell size * 0.5
     for (int y = eyeY - reach; y < eyeY + reach; ++y) {

@@ -35,10 +35,10 @@ using netlists::SentRecordElement;
 using Chunks = stlp::list<ReliableChunk>;
 using Packets = stlp::list<SentPacket>;
 using Items = stlp::list<SentItem>;
-// The static vector of 004346D0: constructor, erase of a range (00439DD0), introsort loop and final
+// The static vector of 004346D0: constructor, erase of a range, introsort loop and final
 // insertion sort by object, atexit.
-// CollectChanges's static vector of {object, priority} and its guard; its exit function (00434980) frees the
-// storage (004387D0).
+// CollectChanges's static vector of {object, priority} and its guard; its exit function frees the
+// storage.
 constinit stlp::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
 void __cdecl FreeReplicated() { g_replicated.FreeStorage(); }
@@ -151,7 +151,7 @@ EI_REWRITTEN(0x00434C20, Connection::WriteAcks);
 void Connection::QueueHeader(int budget) {
     if (headers_.Empty()) {
         int size = budget < 0xFF ? budget : 0xFF;
-        Chunks::InsertDefault<ChunkElement>(headers_.End());   // 00439C80
+        Chunks::InsertDefault<ChunkElement>(headers_.End());
         std::uint8_t* chunk = headers_.End()->prev->data.bytes;
         int available = BufferedSize(&reliableOut_);
         if (size >= available) size = available;
@@ -178,7 +178,7 @@ void Connection::QueueHeader(int budget) {
         }
     }
     if (head->next == best) return;
-    Chunks::SpliceRange(headers_.First(), best, best->next);   // 00438770
+    Chunks::SpliceRange(headers_.First(), best, best->next);
 }
 EI_REWRITTEN(0x00434990, Connection::QueueHeader);
 
@@ -194,7 +194,7 @@ void Connection::RollBack(SentPacket* packet) {
             item->entry->version_ = 0;
         }
     }
-    if (packet->header.Size() != 0) Chunks::Insert<ChunkElement>(headers_.End(), packet->header);   // 00439C50
+    if (packet->header.Size() != 0) Chunks::Insert<ChunkElement>(headers_.End(), packet->header);
     packet->rolledBack = 1;
 }
 EI_REWRITTEN(0x00433F20, Connection::RollBack);
@@ -207,7 +207,7 @@ void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32
         AttachedMap::Value pair{object, {static_cast<std::uint16_t>(type), static_cast<std::uint8_t>(type >> 16),
                                          static_cast<std::uint8_t>(type >> 24)}};
         AttachedMap::Node* inserted;
-        attached_.InsertHint(&inserted, lb, pair);   // 00439B80
+        attached_.InsertHint(&inserted, lb, pair);
         lb = inserted;
     }
     lb->second.id = static_cast<std::uint16_t>(key);
@@ -239,12 +239,12 @@ bool Connection::SendUpdate(int budget) {
     std::size_t chunkSize = static_cast<std::size_t>(chunk.Size()) + 3;
     std::memcpy(c.p, chunk.bytes, chunkSize);
     c.p += chunkSize;
-    Packets::InsertDefault<PacketRecordElement>(history_.End());   // 004397E0
+    Packets::InsertDefault<PacketRecordElement>(history_.End());
     HistoryNode* sent = history_.End()->prev;
     std::memcpy(&sent->data.time, &clock_, sizeof(sent->data.time));
     sent->data.sequence = sequence;
     sent->data.header = chunk;
-    Chunks::Erase<ChunkElement>(headers_.First());   // 00438660
+    Chunks::Erase<ChunkElement>(headers_.First());
 
     std::uint8_t* count = c.p++;
     *count = 0;
@@ -264,7 +264,7 @@ bool Connection::SendUpdate(int budget) {
                 if (entry->id_ == 0) {
                     entry->id_ = idPools_[entry->type_].Allocate();
                     std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                    bySentId_.Subscript(key)->Assign(entry);   // 00437B90
+                    bySentId_.Subscript(key)->Assign(entry);
                 }
                 c.PutBits(1, 1);
                 std::uint32_t id = entry->id_;
@@ -301,7 +301,7 @@ bool Connection::SendUpdate(int budget) {
                 break;
             }
             ++*count;
-            Items::InsertDefault<SentRecordElement>(sent->data.items.End());   // 00438F60
+            Items::InsertDefault<SentRecordElement>(sent->data.items.End());
             SentItem* item = &sent->data.items.End()->prev->data;
             ReplicaEntry* old = item->entry;
             item->entry = entry;
@@ -330,7 +330,7 @@ bool Connection::SendUpdate(int budget) {
     if (g_currentSession->socket_.SendTo(&address_, out)) return complete;
     // Not sent: undo what the history entry recorded and drop it.
     RollBack(&history_.End()->prev->data);
-    Packets::Erase<PacketRecordElement>(history_.End()->prev);   // 00437F30
+    Packets::Erase<PacketRecordElement>(history_.End()->prev);
     return false;
 }
 EI_REWRITTEN(0x00435A00, Connection::SendUpdate);
@@ -421,7 +421,7 @@ EI_REWRITTEN(0x00435F30, Connection::ReadRecord);
 void Connection::Track(Replicated* item) {
     Message* object = item->object;
     if (!object || (object->flags7_ & CRefObject::kDetached)) return;
-    TypeRegistry::ByVtable::Node* found = g_currentSession->types_.byVtable.Find(TypeRegistry::KeyOf(object));   // 0042A810
+    TypeRegistry::ByVtable::Node* found = g_currentSession->types_.byVtable.Find(TypeRegistry::KeyOf(object));
     std::int32_t type = found ? static_cast<std::int32_t>(found->value) : -1;
 
     // A new entry (vtable 0073BF4C) with no version and no id yet.
@@ -429,14 +429,14 @@ void Connection::Track(Replicated* item) {
 
     CRefObject* key = item->object;
     ObjectMap::Node* lb;
-    byObject_.LowerBound(&lb, key);   // 0043C4B0
+    byObject_.LowerBound(&lb, key);
     if (lb == byObject_.end() || item->object < lb->first) {
         RefPtrTo<ReplicaEntry> none;
         ::RefPtrNull(&none);
         ObjectMap::ValueAbi pair;
-        pair.MakeValue(key, none);   // 0043A050
+        pair.MakeValue(key, none);
         ObjectMap::Node* inserted;
-        byObject_.InsertHint(&inserted, lb, pair);   // 00439540
+        byObject_.InsertHint(&inserted, lb, pair);
         lb = inserted;
         if (pair.second.ptr) pair.second.ptr->Release();
         if (none.ptr) none.ptr->Release();
@@ -454,9 +454,9 @@ void Connection::Track(Replicated* item) {
         RefPtrTo<ReplicaEntry> none;
         ::RefPtrNull(&none);
         EntryMap::ValueAbi pair;
-        pair.MakeValue(entry, none);   // 0043A070
+        pair.MakeValue(entry, none);
         EntryMap::Node* inserted;
-        map.InsertHint(&inserted, lb2, pair);   // 00439730
+        map.InsertHint(&inserted, lb2, pair);
         lb2 = inserted;
         if (pair.second.ptr) pair.second.ptr->Release();
         if (none.ptr) none.ptr->Release();
@@ -477,7 +477,7 @@ void Connection::CollectChanges() {
     ReplicatedVector& items = g_replicated;
     if (!(g_replicatedGuard & 1)) {
         g_replicatedGuard |= 1;
-        items.ConstructEmpty();   // 00439E10
+        items.ConstructEmpty();
         libcrt::AtExit(FreeReplicated);
     }
     items.EraseRange<stlp::PlainElement<Replicated>>(items.begin(), items.end());
@@ -627,7 +627,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     if ((id & 0xFFFF) == 0) return nullptr;
     if (sent) {
         SentIdMap::Node* node;
-        bySentId_.Find(&node, key);   // 0043BF00
+        bySentId_.Find(&node, key);
         if (node == bySentId_.end()) return nullptr;
         return node->second.Get()->object_.ptr;
     }
@@ -647,7 +647,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     }
     if (IsLive(found->second.object.ptr)) return found->second.object.ptr;
     std::uint32_t typeKey = type & 0xFF;
-    MessageFactory factory = g_currentSession->types_.byType[typeKey];   // 00439EA0
+    MessageFactory factory = g_currentSession->types_.byType[typeKey];
     CRefObject* object = factory ? factory() : nullptr;
     if (!object) return nullptr;
     RefPtr* slot = &found->second.object;
@@ -737,7 +737,7 @@ bool Connection::Accept(std::uint32_t sequence) {
     }
     auto value = static_cast<std::int32_t>(sequence);
     if (received_.end() == received_.EndOfStorage()) {
-        received_.InsertOverflow<stlp::PlainElement<std::int32_t>>(received_.end(), value, 1);   // 0043B850
+        received_.InsertOverflow<stlp::PlainElement<std::int32_t>>(received_.end(), value, 1);
     } else {
         if (received_.end()) *received_.end() = value;
         ++received_.Finish();

@@ -17,7 +17,7 @@
 
 namespace {
 
-// The fog manager (*007AF75C); VisFogManagerAdd (004E28D0) makes a fog object, already counted once
+// The fog manager (*007AF75C); VisFogManagerAdd makes a fog object, already counted once
 // by the manager's list.
 ClientArrayManager* FogManager() { return TheClientWorld()->arrayManager_; }
 
@@ -95,7 +95,7 @@ int CEffectShowVisibility::RunTick() {
     CUnit* observer = static_cast<CWorld*>(ObjectWorld(this))->FindUnit(observerId_);
     if (seer == nullptr || observer == nullptr) return 0;
     std::memcpy(&localPosition_, &seer->localPosition_.x, sizeof(Vector3));
-    // 005CD210: the squares `seer` sees, with `observer`'s skills.
+    // The squares `seer` sees, with `observer`'s skills.
     MarkSightCells(seer, observer, &grid_);
     MarkChanged();
     return 1;

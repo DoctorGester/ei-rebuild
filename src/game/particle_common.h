@@ -2,7 +2,6 @@
 
 // Helpers shared by the particle callback files (particle_callbacks*.cpp): x87 rounding, the game's
 // constants and random generator, and the helpers they call. Include after effects.h.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float; constants the original reads from memory
 // are read from the exe at run time.
@@ -57,7 +56,7 @@ inline double GroundHeight(float x, float y) { return TheClientWorld()->RawSurfa
 // x87 "FCOMP; FNSTSW; SHL 0x17; SAR 0x1F" selects: C0 (a < b or unordered) picks `a`.
 inline float PickIfLess(float a, float b) { return a >= b ? b : a; }
 
-// 0044C470: the game's debug message (cdecl, one argument; compiled out, other mods may hook it).
+// The game's debug message (cdecl, one argument; compiled out, other mods may hook it).
 inline void __cdecl DebugMessage(const char* a0) { game::DebugLog(a0); }
 
 // The element array's inlined SetSize(n) (MFC CArray: data +0x154, size +0x158, max +0x15C,

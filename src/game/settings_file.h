@@ -1,13 +1,12 @@
 #pragma once
 
-// The standalone's settings file (ST1; docs/notes/standalone.md, "Settings file"). game.exe keeps its settings
+// The standalone's settings file (docs/notes/standalone.md, "Settings file"). game.exe keeps its settings
 // under HKEY_CURRENT_USER: Software\Nival Interactive\EvilIslands (the options, options.cpp) and Rebirth's
 // Software\Gipat.Ru\EI_Starter (its game settings and the starter's switches). ei_standalone.exe keeps the same
 // keys and values in ei_settings.ini next to the exe instead: CWinRegistry (win_registry.cpp) and the direct
 // readers (ReadValue) use it there, and never write the registry. When the file is missing, the first use reads
 // both trees from the registry once (read only) and writes the file. game.exe (the original game) keeps the
 // registry.
-//
 // The file: a section per key (its path below HKEY_CURRENT_USER), a line per value, as reg export writes them:
 //   [Software\Nival Interactive\EvilIslands\General Settings]
 //   "FullScreen"=dword:00000001          REG_DWORD
@@ -17,7 +16,6 @@
 //   "Lines"=hex(7):61,00,00              any other type, or a string the quoted form cannot hold
 // "@" names a key's default value; lines starting with ';' are comments. Every value round-trips bit for bit:
 // the bytes are what the game's ANSI registry call gave (UTF-8 with EI_UTF8).
-//
 // Harness runs (verify build, tests/verify/harness_settings.h) pin a file of their own (Pin): written from the
 // committed registry snapshot, read only (or writable, to check the options save), every read of a value it lacks
 // reported. The one-time import reads a RegistrySource, the registry's or a test's stand-in (SetImportSource).

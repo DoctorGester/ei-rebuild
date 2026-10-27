@@ -3,7 +3,6 @@
 // A connection of a network session to one peer (vtable 0073BF38, 0x1168 bytes; constructor
 // 00432DA0, created by SessionBase::AddClient 00436DD0) and the object replication it runs.
 // Names are provisional; see docs/notes/network.md.
-//
 // Replication: every replicated object (a Message, whose version changes with it) is tracked by a
 // ReplicaEntry in one of 11 priority maps. Each update packet carries, highest priority first, the
 // entries whose object version differs from the version last sent (a 1 bit, type, id, then the
@@ -30,7 +29,7 @@ struct IdPool {
     std::uint16_t next;        // +0x0C the last id handed out new
     std::uint16_t unused_0E;
 
-    // 00435F10. A returned id (the last one) if any, else ++next.
+    // A returned id (the last one) if any, else ++next.
     std::uint16_t Allocate();
     // 00433A30 (net_connection_life.cpp). Copy constructor; returns this.
     IdPool* CopyFrom(const IdPool& other);
@@ -40,7 +39,7 @@ static_assert(sizeof(IdPool) == 0x10);
 // The tracking record of one replicated object (game.exe's vtable 0073BF4C, 0x14 bytes).
 class ReplicaEntry final : public CRefObject {
 public:
-    // As Track (00434110) inlines it: no object, no version and no id yet (the type and the flags are the
+    // As Track inlines it: no object, no version and no id yet (the type and the flags are the
     // caller's).
     ReplicaEntry();
     // Clone's copy: the same object, one more reference.
@@ -169,7 +168,7 @@ public:
 
     // 00432DA0 (net_connection_life.cpp): every container empty, the clocks started.
     explicit Connection(std::uint32_t id);
-    // Clone's copy (00433060): every container copied.
+    // Clone's copy: every container copied.
     Connection(const Connection& other);
     // 004334E0 (deleting: 004334C0; net_connection_life.cpp).
     ~Connection() override;
@@ -180,37 +179,37 @@ public:
     // 3: 00433060 (net_connection_life.cpp). A copy of the connection.
     Connection* Clone() override;
 
-    // 00435A00. Builds and sends one update packet of at most `budget` entry bytes. False when
+    // Builds and sends one update packet of at most `budget` entry bytes. False when
     // entries had to be left out (or the send failed).
     bool SendUpdate(int budget);
-    // 00435F30. Reads one entry of an update (created / changed or removed) into `records_` and
+    // Reads one entry of an update (created / changed or removed) into `records_` and
     // calls the session's handlers (channel 0 created, 1 changed, 2 removed). False when the
     // object could not be created.
     bool ReadRecord(BufferCursor* cursor, std::uint32_t version);
-    // 004352F0. Remembers which (type, id) the received object has (attached_).
+    // Remembers which (type, id) the received object has (attached_).
     void AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key);
-    // 004355B0. Writes a reference to `object`: a 0 bit, type and id for an object this side
+    // Writes a reference to `object`: a 0 bit, type and id for an object this side
     // replicates (an id is assigned on first use), a 1 bit, type and id for one received from the
     // peer, or a 0 bit and zeros for none.
     void WriteObjectRef(BufferCursor* cursor, CRefObject* object);
-    // 00435820. Reads such a reference: the peer's replicated object (created from the type's
+    // Reads such a reference: the peer's replicated object (created from the type's
     // factory when missing or detached) or one this side sent; null for none.
     CRefObject* ReadObjectRef(BufferCursor* cursor);
-    // 00434C20. Writes the acknowledgements: the last sequence received and a mask of the 32
+    // Writes the acknowledgements: the last sequence received and a mask of the 32
     // before it; forgets sequences more than 32 old.
     void WriteAcks(std::uint8_t** p);
-    // 00434990. Makes sure a reliable chunk is queued: a new one of up to min(budget, 255) bytes
+    // Makes sure a reliable chunk is queued: a new one of up to min(budget, 255) bytes
     // from the reliable stream when none is waiting, else the oldest waiting one moves to the front.
     void QueueHeader(int budget);
-    // 00433F20. A packet was lost: entries it sent unreliably are marked unsent again and its
+    // A packet was lost: entries it sent unreliably are marked unsent again and its
     // reliable chunk goes back to the front of the queue (once). `packet` is a history node's data
     // (the node + 8, as the list iterators hand it over).
     void RollBack(SentPacket* packet);
-    // 004346D0. Brings the tracked entries up to date: the session's slot 13 lists what this
+    // Brings the tracked entries up to date: the session's slot 13 lists what this
     // connection should have (sorted by object); new objects get an entry (Track), entries whose
     // object is no longer listed are dropped (never sent) or marked gone (sent).
     void CollectChanges();
-    // 00434110. Starts tracking `item` (an {object, priority} pair): a new entry for the object,
+    // Starts tracking `item` (an {object, priority} pair): a new entry for the object,
     // kept in byObject_ and its priority map.
     void Track(Replicated* item);
     // 00433BD0 (net_connection_tick.cpp). Clocks, lost packets, sending, delayed id reuse; false
@@ -220,25 +219,25 @@ public:
     // reliable changes it carried count as delivered, removals it carried end their entries (the
     // id goes to the newest freed-id batch).
     void Delivered(SentPacket* packet);
-    // 00433B10. 1 when the peer has been silent for longer than three average round trips (or a
+    // 1 when the peer has been silent for longer than three average round trips (or a
     // value is NaN), else 0.
     int Silent() const;
-    // 00434CE0. The packet with sequence `sequence` (in the history or the acknowledged list) was
+    // The packet with sequence `sequence` (in the history or the acknowledged list) was
     // acknowledged: Delivered, and it leaves its list.
     void Acknowledge(std::uint16_t sequence);
-    // 00434D70. Reads the peer's acknowledgements (last sequence, mask of the 32 before it) and
+    // Reads the peer's acknowledgements (last sequence, mask of the 32 before it) and
     // acknowledges what is new.
     void ReadAcks(BufferCursor* cursor);
-    // 00434E50. Whether an update with sequence `sequence` is new (not 32 older than the newest,
+    // Whether an update with sequence `sequence` is new (not 32 older than the newest,
     // not seen before); remembers it.
     bool Accept(std::uint32_t sequence);
-    // 00434AE0. Appends the queued incoming reliable chunks that are next in sequence to the
+    // Appends the queued incoming reliable chunks that are next in sequence to the
     // incoming reliable stream.
     void ProcessHeaders();
-    // 00436470. Reads an update packet: sequence, acknowledgements, a reliable chunk and the
+    // Reads an update packet: sequence, acknowledgements, a reliable chunk and the
     // entries. False when an entry could not be read; true otherwise (also for a stale packet).
     bool ReadUpdate(BufferCursor* cursor);
-    // 00436620. The peer goes away: every object received from it is reported to the session's
+    // The peer goes away: every object received from it is reported to the session's
     // removal handlers (channel 2) and released.
     void Close();
 

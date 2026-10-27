@@ -39,8 +39,8 @@ inline const Str& Ops(const mfc::CString& s) { return static_cast<const Str&>(s)
 // MFC CStringArray as a local or member: mfc::CStringArray constructed and destroyed with the object.
 class CStringArray : public mfc::CStringArray {
 public:
-    CStringArray() { Construct(); }     // 006FE925
-    ~CStringArray() { Destruct(); }     // 006FE958
+    CStringArray() { Construct(); }
+    ~CStringArray() { Destruct(); }
     CStringArray(const CStringArray&) = delete;
     CStringArray& operator=(const CStringArray&) = delete;
 };
@@ -50,24 +50,24 @@ static_assert(sizeof(CStringArray) == 0x14);
 // vtable (generateacks' line writers). Declared only.
 class __declspec(novtable) CStdioFileVirtuals : public mfc::CFileVirtuals {
 public:
-    virtual void WriteString(const char* text);     // 21: 00701E23
+    virtual void WriteString(const char* text);
 };
 
 // MFC CStdioFile (0x14 bytes: CFile and the FILE*). Locals only.
 class CStdioFile {
 public:
     enum { modeRead = 0, modeWrite = 1, modeCreate = 0x1000, typeText = 0x4000 };
-    CStdioFile();                                                   // 00701B79
-    // 00701BD4: opened at once; a failure throws a CFileException* (lib/mfc_try.h).
+    CStdioFile();
+    // Opened at once; a failure throws a CFileException* (lib/mfc_try.h).
     CStdioFile(const char* name, unsigned flags);
-    ~CStdioFile();                                                  // 00701C6D
-    mfc::BOOL Open(const char* name, unsigned flags, void* error);  // 00701CB0
-    mfc::BOOL ReadString(mfc::CString& line);                       // 00701E93
-    // 00701E4E: a line with its line end into `buffer` (at most size - 1 characters); null at the end
+    ~CStdioFile();
+    mfc::BOOL Open(const char* name, unsigned flags, void* error);
+    mfc::BOOL ReadString(mfc::CString& line);
+    // A line with its line end into `buffer` (at most size - 1 characters); null at the end
     // of the file. A read error throws a CFileException*.
     char* ReadString(char* buffer, unsigned size);
-    void WriteString(const char* text);                             // 00701E23
-    void Close();                                                   // 00701FE0
+    void WriteString(const char* text);
+    void Close();
     // The file as code that calls through its vtable sees it.
     CStdioFileVirtuals* Virtuals() { return reinterpret_cast<CStdioFileVirtuals*>(this); }
 
@@ -85,11 +85,11 @@ static_assert(sizeof(CStdioFile) == 0x14);
 // The game's (pre-standard) ostream. Only the inline float output touches a member: x_floatused.
 class GameOStream : public libcrt::Ostream {
 public:
-    GameOStream& operator<<(const char* text);   // 006FC31D
-    GameOStream& operator<<(char c);             // 006FC0B0
-    GameOStream& operator<<(int n);              // 006FC91C
-    GameOStream& operator<<(double d);           // 006FC7FA
-    // 00434FE0: operator<<(ostream& (*)(ostream&)), here only with flush (00435000).
+    GameOStream& operator<<(const char* text);
+    GameOStream& operator<<(char c);
+    GameOStream& operator<<(int n);
+    GameOStream& operator<<(double d);
+    // Operator<<(ostream& (*)(ostream&)), here only with flush.
     GameOStream& Apply(libcrt::Manipulator manipulator);
     // Apply(flush): the manipulator ostream& flush(ostream&) at 00435000.
     GameOStream& Flush() { return Apply(libcrt::FlushManipulator); }
@@ -99,7 +99,7 @@ public:
         floatUsed = 1;
         return *this << d;
     }
-    // 004BA9D0: the same, out of line, for a float argument (script_runtime_helpers.cpp).
+    // The same, out of line, for a float argument (script_runtime_helpers.cpp).
     GameOStream& PutFloatArgument(float f);
 };
 static_assert(sizeof(GameOStream) == 8);
@@ -115,14 +115,14 @@ static_assert(sizeof(OStreamObject) == 0x58);
 // The ostreams, one per message filter (their streambufs below): the console itself, then all, unitacks (the AI
 // alarm's log), net (the network log), rpg (the hit log), graphics (the battle screen's "Terrain Coords" of a click
 // on the ground, 00638EF0), event, ai (combat's and the AI's logs).
-extern OStreamObject g_consoleOut;      // 007C55A8
-extern OStreamObject g_allLogOut;       // 007C5600
-extern OStreamObject g_unitAcksLogOut;  // 007C5658
-extern OStreamObject g_netLogOut;       // 007C56B0
-extern OStreamObject g_rpgLogOut;       // 007C5708
-extern OStreamObject g_graphicsLogOut;  // 007C5760
-extern OStreamObject g_eventLogOut;     // 007C57B8
-extern OStreamObject g_aiLogOut;        // 007C5810
+extern OStreamObject g_consoleOut;
+extern OStreamObject g_allLogOut;
+extern OStreamObject g_unitAcksLogOut;
+extern OStreamObject g_netLogOut;
+extern OStreamObject g_rpgLogOut;
+extern OStreamObject g_graphicsLogOut;
+extern OStreamObject g_eventLogOut;
+extern OStreamObject g_aiLogOut;
 // The console's ostream.
 inline GameOStream& Out() { return g_consoleOut; }
 // A log stream seen through one of the game's per-file ostream views (inserters only, no data of their own).
@@ -142,13 +142,13 @@ void PrintLine(const char* text);
 // console window.
 class ConsoleStreambuf final : public libcrt::Streambuf {
 public:
-    // 005DC200: the base on buffer_, the filter, the empty line.
+    // The base on buffer_, the filter, the empty line.
     explicit ConsoleStreambuf(unsigned filter);
     // 005DC260 (deleting 005DC240): the line released (a member), then the base's.
     ~ConsoleStreambuf() override;
-    int Sync() override;                 // 005DC1B0 (slot 1)
-    int Overflow(int c) override;        // 005DC150 (slot 7)
-    int Underflow() override;            // 005DC230 (slot 8): EOF
+    int Sync() override;
+    int Overflow(int c) override;
+    int Underflow() override;            // EOF
 
     unsigned filter_;          // +0x4C message category; 0 = always shown
     mfc::CString line_;        // +0x50
@@ -186,7 +186,7 @@ public:
     // Returns this.
     ConsoleWindow* Construct(CInterface3D* screen);
     void SetRect(const RECT* rect);   // 005E3E90 (800x600 coordinates)
-    void SetHistory(int lines);      // 005E3F90
+    void SetHistory(int lines);
     void AddText(const char* text);  // 005E4090 (continues the last line; '\n' starts a new one)
     // Drawing and input (ui_console_window.cpp):
     void Show(bool shown);                     // 005E3FD0 creates or releases the surface
@@ -236,15 +236,15 @@ using CommandMap = stlp::map<mfc::CString, CommandHandler, stlp::CStringLess>;
 using CommandNode = CommandMap::Node;
 static_assert(sizeof(CommandNode) == 0x18);
 
-// 005E0B20: operator[] (lib_trees::Commands'): the handler slot for `key`, inserted with a null handler
+// Operator[] (lib_trees::Commands'): the handler slot for `key`, inserted with a null handler
 // if missing.
 CommandHandler& Command(CommandMap* map, const mfc::CString& key);
 
 static_assert(sizeof(CommandMap) == 0xC);
 // The commands always available and those after the cheat word (console_streams.cpp; built empty by their static
 // initialisers, destroyed at exit).
-extern lib::StaticObject<CommandMap> g_publicCommands;   // 007C7B28
-extern lib::StaticObject<CommandMap> g_cheatCommands;    // 007C7B38
+extern lib::StaticObject<CommandMap> g_publicCommands;
+extern lib::StaticObject<CommandMap> g_cheatCommands;
 inline CommandMap* PublicCommands() { return &g_publicCommands.Get(); }
 inline CommandMap* CheatCommands() { return &g_cheatCommands.Get(); }
 
@@ -256,7 +256,7 @@ struct CommandRegistration {
 };
 extern const CommandRegistration kCommandRegistrations[27];
 
-// 005DC620: runs one console line (command text in ECX).
+// Runs one console line (command text in ECX).
 void __fastcall Execute(const char* text);
 // Rebirth's console additions (console_addon.cpp). AddNewConsoleCommands: the executor registers
 // addon's commands on every call; the battle screen's drawing applies "nogui" to its panels.
@@ -267,10 +267,10 @@ void RegisterAddonCommands();
 extern const CommandRegistration kAddonCommandRegistrations[6];
 void ApplyAddonGuiVisibility(CUiContainer* screen);
 void RunAddonAutoExec();
-// 004DC200: splits a console line at spaces into `out` (a token in double quotes keeps its spaces
+// Splits a console line at spaces into `out` (a token in double quotes keeps its spaces
 // and quotes); returns 1.
 int __fastcall Tokenize(const char* text, CStringArray* out);
-// 005DD800: loads prefix + text + " arg"... + suffix into the mission script and runs it; prints
+// Loads prefix + text + " arg"... + suffix into the mission script and runs it; prints
 // "Script error: ..." when it does not load.
 void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
                               const char* suffix);
@@ -289,10 +289,10 @@ void __fastcall LastFps(CStringArray* args);       // 005DEEE0 lastfps
 void __fastcall Exec(CStringArray* args);          // 005DEF50 exec, execute
 void __fastcall Give(CStringArray* args);          // 005DF0F0 give
 void __fastcall LootAll(CStringArray* args);       // 005DF5B0 lootall
-void __fastcall Join(CStringArray* args);          // 005DF3A0 join (S16b)
-void __fastcall HostServer(CStringArray* args);    // 005DF490 server (S16b)
-void __fastcall MemUsage(CStringArray* args);      // 005DF5A0 memusage (S16b)
-void __fastcall Disconnect(CStringArray* args);    // 005DFC10 disconnect (S16c)
+void __fastcall Join(CStringArray* args);          // 005DF3A0 join
+void __fastcall HostServer(CStringArray* args);    // 005DF490 server
+void __fastcall MemUsage(CStringArray* args);      // 005DF5A0 memusage
+void __fastcall Disconnect(CStringArray* args);    // 005DFC10 disconnect
 void __fastcall FadeOut(CStringArray* args);       // 005DF8E0 fadeout
 void __fastcall Net(CStringArray* args);           // 005DF9B0 net
 void __fastcall GenerateAcks(CStringArray* args);  // 005DFDA0 generateacks

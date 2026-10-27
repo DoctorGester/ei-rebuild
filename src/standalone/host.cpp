@@ -1,18 +1,15 @@
 // ei_standalone: runs the rebuilt game without game.exe (docs/notes/standalone.md section 2).
-//
-// The host is an ordinary exe (S18k): it neither reads game.exe nor lays out anything at game.exe's addresses.
-// The game's hInstance is this module (S18j), whose one resource is its version information (host.rc; C23: the game's
+// The host is an ordinary exe: it neither reads game.exe nor lays out anything at game.exe's addresses.
+// The game's hInstance is this module, whose one resource is its version information (host.rc; C23: the game's
 // strings are literals in our code, no icon yet); ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from
 // the build (src/standalone/image_data.cpp), resolves game.exe's imports into a table of its own as it initialises
 // (image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp), points the code
 // cells of game.exe's data at them and runs WinMain. Function pointers in the data and vtable slots reach
 // our code that way.
-//
 // The guard: first thing, the host reserves what of game.exe's range (0x400000 up to its SizeOfImage) is free, with
 // no access, so nothing is allocated there later and a stray game address (a jump into game.exe's code that went
 // around CodeAddress, a read of its data that missed the seam) faults and is named instead of reaching other memory.
 // What the loader had already put there (this exe, a heap) stays as it is; ei_hook.dll logs how much is guarded.
-//
 // usage: ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game arguments>]
 //   Run from the game folder (the working directory the game expects). Without --run the host builds
 //   the image, takes the registrations, checks them and exits: no window, nothing of the game runs. What
@@ -62,7 +59,7 @@ std::uint32_t ReserveGameRange() {
 
 // An access to game.exe's range before ei_hook.dll's own reports are in place (its static constructors run at
 // LoadLibrary), or to a part they leave to the host (the headers, .rsrc): named on stderr (ei_launch's run notes)
-// and the process ends, never silently (S16c). ei_hook.dll's handlers, added later at the front, report the code
+// and the process ends, never silently. ei_hook.dll's handlers, added later at the front, report the code
 // section and the data themselves.
 LONG CALLBACK OnGameRange(EXCEPTION_POINTERS* e) {
     const EXCEPTION_RECORD* r = e->ExceptionRecord;

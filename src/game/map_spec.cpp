@@ -1,5 +1,5 @@
 // The zone file's object records: the base record, objects, flames, magic traps and levers
-// (map_spec.h), and the quaternion rotation the editor uses (0046A4B0). Plain float maths
+// (map_spec.h), and the quaternion rotation the editor uses. Plain float maths
 // (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "ai_map.h"
 #include "base_manager.h"
@@ -25,9 +25,9 @@ namespace mapspec {
 namespace {
 
 
-// The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
-// by id, an object made from a record; the editor's selection (007B00D0) and object lists
-// (007B01F4); the world object's own updates.
+// The objects manager (0x7AF5F8) look-up by id; the world server: an object removed
+// by id, an object made from a record; the editor's selection and object lists
+// the world object's own updates.
 CAIMap* Selection() { return TheServerWorld()->AIMap(); }
 
 std::uint32_t Bits(float f) {
@@ -51,7 +51,7 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 
 } // namespace
 
-// ---- The base record (0073C5C4) ---------------------------------------------------------------
+// ---- The base record ---------------------------------------------------------------
 
 void* Spec::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void Spec::operator delete(void* block) { gamecrt::operator_delete(block); }
@@ -96,7 +96,7 @@ void Spec::Move(float dx, float dy, float dz) {
 }
 EI_REWRITTEN(0x00469F40, Spec::Move);
 
-// ---- Objects (0073C5F0) ------------------------------------------------------------------------
+// ---- Objects ------------------------------------------------------------------------
 
 ObjectSpec::ObjectSpec() {
     parts.Construct();
@@ -268,7 +268,7 @@ mfc::CString* ObjectSpec::TypeName(mfc::CString* out) {
 }
 EI_REWRITTEN(0x0046B090, ObjectSpec::TypeName);
 
-// ---- Flames (0073C620) ------------------------------------------------------------------------
+// ---- Flames ------------------------------------------------------------------------
 
 FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
@@ -317,7 +317,7 @@ void FlameSpec::OnChunk() {
 }
 EI_REWRITTEN(0x0046B3C0, FlameSpec::OnChunk);
 
-// ---- Magic traps (0073C650) --------------------------------------------------------------------
+// ---- Magic traps --------------------------------------------------------------------
 
 TrapSpec::TrapSpec() {
     trap.sides = ~0u;
@@ -401,7 +401,7 @@ void TrapSpec::OnChunk() {
 }
 EI_REWRITTEN(0x0046B7D0, TrapSpec::OnChunk);
 
-// ---- Levers (0073C6B0) -------------------------------------------------------------------------
+// ---- Levers -------------------------------------------------------------------------
 
 LeverSpec::LeverSpec() {
     lever.lock.mask = 1;

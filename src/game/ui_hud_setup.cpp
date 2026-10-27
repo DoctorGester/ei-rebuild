@@ -1,7 +1,7 @@
 // The battle HUD's two corner panels, the game clock (CHudClock) and the movement panel
-// (CHudMovePanel): their setups (00648520, 00649190), which make the panels' sprites and their
+// (CHudMovePanel): their setups, which make the panels' sprites and their
 // regions about the layout's bottom corners. A-H26.
-// Rebirth patches both for its WideScreen layout, reproduced behind the flag (W3, ui_widescreen.h):
+// Rebirth patches both for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
 // the clock at the screen's right edge, the movement panel at its left (the panel offset while
 // they run, their rectangles moved by EdgeShift). The callees Rebirth patches too (the sprites'
 // Place 005E6FA0 and SetTriangle 005E99D0, the regions' AddPoint 005FCA70, the panel's ShowMode

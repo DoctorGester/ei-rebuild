@@ -7,7 +7,7 @@
 #include <cstring>
 
 namespace {
-constexpr double kHoursPerDay = 24.0;           // 0073D108
+constexpr double kHoursPerDay = 24.0;
 constexpr double kHoursPerSecond = 1.0 / 15.0;  // 0073F3C8 (as the game counts its speed)
 
 // Game kinds whose players keep their own time (UpdatePlayerTimes before a change).

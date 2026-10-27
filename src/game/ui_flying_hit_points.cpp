@@ -61,7 +61,7 @@ EI_REWRITTEN(0x005E1870, CFlyingHitPoints::Add);
 namespace {
 
 constexpr int kLifetime = 3000;                        // ms
-constexpr float kPerMillisecond = 0x1.5d867cp-12f;     // 1/3000 (0073D61C)
+constexpr float kPerMillisecond = 0x1.5d867cp-12f;     // 1/3000
 constexpr std::uint32_t kLabelA = 1, kLabelB = 2, kLabelC = kDelayed, kMarker = 0x80000000u;
 // The unit is drawn this frame (its screen rectangle is valid), not hidden, and can be picked.
 constexpr std::uint32_t kUnitDrawn = 0x20, kUnitHidden = 0x40, kUnitPickable = 0x400000;
@@ -115,7 +115,7 @@ struct QuadBuffer {
     }
 };
 
-// list::erase (005E25B0): the node unlinked and back to the pool. Returns the next one.
+// list::erase: the node unlinked and back to the pool. Returns the next one.
 Node* Erase(Node* node) {
     Node* next = node->next;
     node->prev->next = next;

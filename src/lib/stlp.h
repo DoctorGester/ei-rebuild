@@ -1,7 +1,6 @@
 #pragma once
 
 // A layout- and allocation-compatible subset of the STLport containers compiled into game.exe.
-//
 // Original code and rewritten code share these objects (for example the loaded-file maps inside
 // CMappedResource), so they must have STLport's exact layout, allocate from the game's own pooled
 // node allocator, and hash and order elements the way STLport does. Only what rewritten code needs
@@ -34,24 +33,24 @@ void PushSmallNode(Node* node) {
 class string {
 public:
     string() = default;
-    string(const char* first, const char* last) { InitRange(first, last); }   // 0042A3D0
+    string(const char* first, const char* last) { InitRange(first, last); }
     explicit string(const char* s) : string(s, s + std::strlen(s)) {}
-    string(const string& s) : string(s.start_, s.finish_) {}                   // 004A8930
+    string(const string& s) : string(s.start_, s.finish_) {}
     string& operator=(const string&) = delete;
-    ~string() { Release(); }                                                   // 006727B0
+    ~string() { Release(); }
 
-    // 00421800: empty string with room for `capacity` bytes (including the terminator).
+    // Empty string with room for `capacity` bytes (including the terminator).
     static void Reserve(string& s, std::size_t capacity);
-    // 0042A4F0: replaces the contents with [first, last), reusing the buffer when possible.
+    // Replaces the contents with [first, last), reusing the buffer when possible.
     void Assign(const char* first, const char* last);
-    // 0042B700: appends [first, last), growing to size + max(size, n) + 1 when full.
+    // Appends [first, last), growing to size + max(size, n) + 1 when full.
     void Append(const char* first, const char* last);
 
     // operator=: STLport assigns through assign(first, last).
     void AssignFrom(const string& s) { Assign(s.start_, s.finish_); }
-    // operator=(const char*) (0041F550): assign(text, text + strlen(text)).
+    // operator=(const char*): assign(text, text + strlen(text)).
     void Assign(const char* text) { Assign(text, text + std::strlen(text)); }
-    // substr(pos, n) (0041F5F0): out_of_range past the end; the rest of the string at most n long.
+    // substr(pos, n): out_of_range past the end; the rest of the string at most n long.
     string substr(std::size_t pos, std::size_t n) const;
 
     const char* data() const { return start_; }
@@ -64,7 +63,7 @@ public:
     bool operator==(const string& o) const {
         return size() == o.size() && std::memcmp(start_, o.start_, size()) == 0;
     }
-    // operator< (00445780): the common length's bytes, unsigned, then the shorter one first.
+    // operator<: the common length's bytes, unsigned, then the shorter one first.
     bool operator<(const string& o) const {
         std::size_t n = size() < o.size() ? size() : o.size();
         int c = std::memcmp(start_, o.start_, n);
@@ -92,14 +91,14 @@ private:
 };
 static_assert(sizeof(string) == 12);
 
-// operator+(const string&, const char*) (00427D60): joined in a temporary with exactly the room,
+// operator+(const string&, const char*): joined in a temporary with exactly the room,
 // which the result is a copy of (two blocks; the temporary's is freed once the result has its own).
-// operator+(const string&, const string&) (00427E80) the same.
+// operator+(const string&, const string&) the same.
 string Plus(const string& a, const char* text);
 string Plus(const string& a, const string& b);
 
 // The vector element policy (stlp_vector.h) of strings: copied with the copy constructor
-// (00428DF0), assigned through assign(first, last), destroyed with the buffer freed. A
+// assigned through assign(first, last), destroyed with the buffer freed. A
 // default-constructed one (resize(n), e.g. 004DC900) is empty with room for 8 bytes.
 struct StringElement {
     static void Construct(string* to, const string& from) { new (to) string(from); }
@@ -128,7 +127,7 @@ struct StringHash {
 
 // Next STLport bucket count >= n (__stl_prime_list, 0073B914).
 std::size_t NextPrime(std::size_t n);
-// 00408A50: lower_bound over [first, last) of dwords (stlp.cpp).
+// Lower_bound over [first, last) of dwords (stlp.cpp).
 const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, const std::uint32_t* last,
                                                  const std::uint32_t* value, int tag);
 

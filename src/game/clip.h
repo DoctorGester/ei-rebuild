@@ -22,13 +22,13 @@ static_assert(offsetof(TLVertex, color) == 0x10);
 
 namespace clip {
 
-// The work buffer: an MFC CWordArray (g_workWords, clip.cpp), the number of indices in it (0079B68C) and the last
-// intersection parameter (0079B664).
+// The work buffer: an MFC CWordArray (g_workWords, clip.cpp), the number of indices in it and the last
+// intersection parameter.
 std::uint16_t* Buffer();
 inline int g_bufferCount = /*0079B68C*/ {};
 inline float g_lastRatio = /*0079B664*/ {};
 
-// 0042E4D0. `out` = a + (b - a) * t for position, rhw and texture coordinates; colour and specular
+// `out` = a + (b - a) * t for position, rhw and texture coordinates; colour and specular
 // per byte, each step rounded through a float and FISTP. __fastcall: a in ECX, b in EDX.
 void __fastcall LerpVertex(const TLVertex* a, const TLVertex* b, float t, TLVertex* out);
 
@@ -45,7 +45,7 @@ int __fastcall ClipYAbove(int, TLVertex* vertices, int* vertexCount, std::uint16
 int __fastcall ClipZBelow(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
 int __fastcall ClipZAbove(int, TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int* count, float limit);
 
-// 0042D910. Clips the triangle `tri[0..2]` to 0 <= x <= xMax, 0 <= y <= yMax, 0 <= z <= 1.
+// Clips the triangle `tri[0..2]` to 0 <= x <= xMax, 0 <= y <= yMax, 0 <= z <= 1.
 // `outcodes[i]` holds vertex i's six outside bits. Returns -1 (all three outside one plane:
 // *indexCount = 0), 0 (all inside: *indexCount = 3) or 1 (clipped: `tri` holds *indexCount
 // indices, a fan of triangles). __fastcall: vertices in ECX, outcodes in EDX.

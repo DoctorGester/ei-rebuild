@@ -1,5 +1,4 @@
 // The interface's 2D canvases (render_ui.h; ticket N1, docs/notes/ui-native.md section 3).
-//
 // A canvas is an RGBA8 render target holding a surface's pixels widened to 8 bits a channel. Its
 // commands queue in call order (g_queue) and RunCanvasCommands draws them, outside any pass: render.cpp
 // calls it at the start of DrawPending, so a canvas's drawing lands before the frame's next pass, and
@@ -8,7 +7,6 @@
 // held there, the composition of the two into the canvas); greying works on a copy of the canvas; the
 // screen copy samples the frame target. Every pixel the shaders write is quantised to the surface
 // format, so a canvas never holds a colour its surface could not.
-//
 // render.cpp's part: Command::Canvas (DrawCanvasBatch inside the frame's passes), SplitFrame (the frame
 // so far drawn before a canvas already blitted in it changes, or before a screen copy) and
 // RunCanvasesNow. The offline check tools/ui_check plays that part itself.
@@ -257,7 +255,7 @@ sg_shader MakeShader(const ShaderBytecode& code, int textures, bool glyphVertex,
     return sg_make_shader(&s);
 }
 
-// A pipeline drawing into a canvas (RGBA8) or the coverage scratch (R8, MAX blending), no depth.
+// A pipeline drawing into a canvas (RGBA8) or the coverage scratch (MAX blending), no depth.
 sg_pipeline MakeCanvasPipeline(sg_shader shader, bool coverage, const char* label) {
     sg_pipeline_desc p{};
     p.shader = shader;

@@ -1,5 +1,5 @@
-// The statistics panel's row painters: a labelled value (006242E0) and a body part's armour
-// (00624590). See docs/notes/ui.md, section 5.
+// The statistics panel's row painters: a labelled value and a body part's armour
+//. See docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "ui_camp.h"
 

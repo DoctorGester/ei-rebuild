@@ -1,6 +1,6 @@
-// The script runtime around command execution: starting script instances (004BB6A0), running an
-// instance's if-then pairs (004BB520), running a command block (004BC420), freeing evaluation
-// temporaries (004BEC80) and the per-tick driver (004BF000). See script.h and docs/notes/script.md.
+// The script runtime around command execution: starting script instances, running an
+// instance's if-then pairs, running a command block, freeing evaluation
+// temporaries and the per-tick driver. See script.h and docs/notes/script.md.
 #include "script.h"
 #include "game_lists.h"
 
@@ -39,7 +39,7 @@ const char* const kWrongGroupCount = "Wrong number of script %s group parameters
 // Class id of the sound object an FX source places (CBaseManager::CreateObject).
 constexpr int kClassSound = 0x48;   // CEffectSound
 
-// FCOMP against 0.0 (0073B858).
+// FCOMP against 0.0.
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;
@@ -50,7 +50,7 @@ bool IsZero(float value) {
 // CArray<ScriptObjectRef> DestructElements (releases each reference).
 void __stdcall DestructRefs(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
 // ScriptVars constructor / destructor and the value arrays' Copy.
-// The run list's NewNode(prev, next) (004CDA30): a node from the free list, its ScriptRun
+// The run list's NewNode(prev, next): a node from the free list, its ScriptRun
 // constructed (ConstructElements 004CECB0).
 RunList::Node* RunListNewNode(RunList* list, RunList::Node* prev, RunList::Node* next) {
     return mfc::impl::NewNodeAs<gamelists::Runs>(list, prev, next);
@@ -60,10 +60,10 @@ RunList::Node* RunListNewNode(RunList* list, RunList::Node* prev, RunList::Node*
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
 CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
 
-// 00675CA0: an effect object took a new position.
+// An effect object took a new position.
 void EffectMoved(CEngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }
 
-// 0073C468: 1 / (2^32 - 1).
+// 1 / (2^32 - 1).
 constexpr std::uint64_t kRandomScaleBits = 0x3DF0000000100000ull;
 
 // FX source position: (r - (-r)) * random * (1 / (2^32 - 1)) + (-r), with the random value loaded
@@ -79,7 +79,7 @@ float FxOffsetPlus(float radius, std::uint32_t random, float origin) {
 }
 
 // The particle source list as the tick's inlined RemoveAt sees it: destroying an element drops its
-// effect object (004B1850). Same layout as CScript::particles_.
+// effect object. Same layout as CScript::particles_.
 struct ParticleSourceElements {
     static void Construct(ScriptParticleSource*, int) {}
     static void Destruct(ScriptParticleSource* sources, int count) {
@@ -248,7 +248,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     run->block = block;
     if (instance) {
         ScriptVars& from = instance->vars;
-        run->vars.floats.Copy(from.floats);   // 004C1A80
+        run->vars.floats.Copy(from.floats);
         run->vars.strings.CopyFrom(from.strings);
         run->vars.objects.CopyFrom(from.objects);
         run->vars.groups.CopyFrom(from.groups);
@@ -360,7 +360,7 @@ void __fastcall ScriptTick(CScript* script) {
         }
         if (instance->index == 0) continue;
         Unlink(instances, node);
-        mfc::impl::FreeNodeAs<gamelists::Definitions>(&instances, node);   // 004CD9B0
+        mfc::impl::FreeNodeAs<gamelists::Definitions>(&instances, node);
     }
 
     // Global variables: drop deleted objects.

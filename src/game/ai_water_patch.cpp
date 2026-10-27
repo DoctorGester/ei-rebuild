@@ -24,7 +24,7 @@ namespace {
 // exit by 005B80C0 (005B80D0, a counted pointer's release).
 CUnitShape* g_patch = /*007C2F64*/ {nullptr};
 CUnitShape*& Patch() { return g_patch; }
-void __cdecl ReleasePatch() {   // 005B80C0
+void __cdecl ReleasePatch() {
     if (g_patch) g_patch->Release();
 }
 std::uint8_t g_guard = /*007C2F68*/ {};

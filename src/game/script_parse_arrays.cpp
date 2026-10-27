@@ -19,8 +19,8 @@ namespace {
 
 using namespace scriptarray;
 
-// The instantiations' ConstructElements: bindings zeroed (004CCA50); each nested call zeroed with a
-// new SSCCmd (004CD130); each definition with its arrays' vtables (004CEB80); looks zeroed (004CDE10).
+// The instantiations' ConstructElements: bindings zeroed; each nested call zeroed with a
+// new SSCCmd; each definition with its arrays' vtables; looks zeroed.
 using DefinitionArray = mfc::impl::ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>;
 
 // The element destructors the inlined SetSize runs when the array empties or shrinks (neither
@@ -134,7 +134,7 @@ void ScriptStrings::SetAtGrow(int index, const mfc::CString& text) {
 EI_REWRITTEN(0x004CE5F0, ScriptStrings::SetAtGrow);
 
 void ScriptStrings::CopyTo(int index, mfc::CString* out) const {
-    mfc::CString copy(data[index]);   // the by-value GetAt (004C2680)
+    mfc::CString copy(data[index]);   // the by-value GetAt
     *out = copy;
 }
 EI_REWRITTEN(0x004C2F80, ScriptStrings::CopyTo);

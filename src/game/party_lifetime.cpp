@@ -1,7 +1,7 @@
 // Parties and their unit records: the records' constructor and destructor bodies and item clear,
 // the record array (MFC CArray::SetSize and ConstructElements), the party's constructor,
 // destructor, Create / Destroy / Clear, and the constructors of the managers a party makes. The
-// record's item lists are aligned pointer arrays; four more copies of their SetSize (00519D70) are
+// record's item lists are aligned pointer arrays; four more copies of their SetSize are
 // registered here. See party.h and docs/notes/items_spells.md ("Party").
 #include "party.h"
 
@@ -122,7 +122,7 @@ struct PartyMembersStore : PartyMembers {
     void Store(mfc::impl::CArchive* ar) { Serialize(reinterpret_cast<mfc::CArchive*>(ar)); }
 };
 
-// CArray<PartyUnitRecord>'s compiled table (C19; game.exe's 00742FF4): CObject's GetRuntimeClass, the destructor
+// CArray<PartyUnitRecord>'s compiled table (game.exe's 00742FF4): CObject's GetRuntimeClass, the destructor
 // 00664160 (the compiler's deleting destructor in place of 00664470), Serialize 006641D0.
 struct PartyMemberArrayClass final
     : mfc::impl::CompiledCollection<PartyMemberArrayClass, &DestroyPartyMembers, &PartyMembersStore::Store> {};

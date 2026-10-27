@@ -1,5 +1,5 @@
-// The camp's two action buttons (00611220 / 00611760) and taking a spell container apart
-// (00612500). See docs/notes/ui.md, section 5.
+// The camp's two action buttons and taking a spell container apart
+//. See docs/notes/ui.md, section 5.
 #include "item_stock.h"
 #include "ui_camp.h"
 #include "game_strings.h"

@@ -26,34 +26,34 @@ void RegisterHandler(SessionBase* self, int channel, void* handler, Message* (__
 
 } // namespace
 
-// Server: the requests (0073BC58), the party descriptions (0073BDD0), the party members (0073BD78).
-void SessionBase::RegisterRequestHandler(int channel, void* handler) {   // 004279B0
+// Server: the requests, the party descriptions, the party members.
+void SessionBase::RegisterRequestHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, FileRequestMessage::Create);
 }
-void SessionBase::RegisterPartyHandler(int channel, void* handler) {   // 00427AC0, 00428690
+void SessionBase::RegisterPartyHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, PartyMessage::Create);
 }
-void SessionBase::RegisterMemberHandler(int channel, void* handler) {   // 00427C40, 004287D0
+void SessionBase::RegisterMemberHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, PartyMemberMessage::Create);
 }
-// Client: the map (0073BD00), the variables (0073BCE8), the files (0073BD18), the file chunks
-// (0073BD30), the awards (0073BD48), the trade (0073BD60).
-void SessionBase::RegisterMapHandler(int channel, void* handler) {   // 00428090
+// Client: the map, the variables, the files, the file chunks
+// the awards, the trade.
+void SessionBase::RegisterMapHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, MapMessage::Create);
 }
-void SessionBase::RegisterVariableHandler(int channel, void* handler) {   // 004281C0
+void SessionBase::RegisterVariableHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, VariableMessage::Create);
 }
-void SessionBase::RegisterFileHandler(int channel, void* handler) {   // 004282F0
+void SessionBase::RegisterFileHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, FileMessage::Create);
 }
-void SessionBase::RegisterChunkHandler(int channel, void* handler) {   // 00428440
+void SessionBase::RegisterChunkHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, FileChunkMessage::Create);
 }
-void SessionBase::RegisterAwardHandler(int channel, void* handler) {   // 00428550
+void SessionBase::RegisterAwardHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, AwardMessage::Create);
 }
-void SessionBase::RegisterTradeHandler(int channel, void* handler) {   // 004288E0
+void SessionBase::RegisterTradeHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, TradeMessage::Create);
 }
 

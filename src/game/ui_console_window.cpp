@@ -51,7 +51,7 @@ int PromptWidth(CDC* dc, const mfc::CString& input, int count) {
 
 } // namespace
 
-// 005E3FD0: a shown window gets a surface over its rectangle (format 4) if it has none and is
+// A shown window gets a surface over its rectangle (format 4) if it has none and is
 // drawn; hiding releases the surface.
 void ConsoleWindow::Show(bool shown) {
     shown_ = shown;
@@ -70,7 +70,7 @@ void ConsoleWindow::Show(bool shown) {
 }
 EI_REWRITTEN(0x005E3FD0, ConsoleWindow::Show);
 
-// 005E4180: keys while the window is shown. Shift (0x10) and Ctrl (0x11) are remembered; with
+// Keys while the window is shown. Shift (0x10) and Ctrl (0x11) are remembered; with
 // Ctrl, PgUp/PgDn scroll by a page and Home/End go to the first/last page, otherwise PgUp/PgDn
 // scroll by a line and Home/End/Left/Right move the caret (Shift keeps the selection's anchor);
 // Up/Down step through the entered commands; Delete removes the selection or the next character.
@@ -110,7 +110,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         }
         break;
     case VK_LEFT:
-    case VK_RIGHT:   // by character (U4)
+    case VK_RIGHT:   // by character
         caret_ = key == VK_LEFT ? ::text::PreviousCharacter(input_, caret_) : ::text::NextCharacter(input_, caret_);
         if (!shift_) anchor_ = caret_;
         DrawInput();
@@ -154,7 +154,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
 }
 EI_REWRITTEN(0x005E4180, ConsoleWindow::OnKeyDown);
 
-// ---- Character input (005E44A0) ------------------------------------------------------------------
+// ---- Character input ------------------------------------------------------------------
 
 namespace {
 
@@ -162,7 +162,7 @@ constexpr int kHistoryDepth = 30;
 
 mfc::CString MidOf(const mfc::CString& s, int first) { return s.Mid(first); }
 // 006FD56E (stdcall). operator+(const CString&, TCHAR).
-// 006FED03. CStringArray::InsertAt(index, const CString&, count).
+// CStringArray::InsertAt(index, const CString&, count).
 // Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code
 // page, as addon's helpers do (EI_UTF8: from UTF-8, system_text.h).
 void CopyToClipboard(const char* first, const char* last) {
@@ -222,7 +222,7 @@ std::string ClipboardText() {
 
 } // namespace
 
-// 005E44A0: typed characters (U4: with EI_UTF8 code points, stored as UTF-8; the caret is a byte offset at a
+// Typed characters (U4: with EI_UTF8 code points, stored as UTF-8; the caret is a byte offset at a
 // character's start and moves by character). Backspace deletes the selection or the character before the caret,
 // Enter enters the line (into the history, at most 30, echoed with "> ", then executed), Escape
 // clears the line, Tab does nothing; other characters replace the selection, except while Ctrl is
@@ -257,7 +257,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && commands_.size != 0 &&
                         std::strcmp(input_, commands_.data[0]) == 0;
         if (!repeated) {
-            commands_.InsertAt(0, input_, 1);   // 006FED03
+            commands_.InsertAt(0, input_, 1);
             if (commands_.size > kHistoryDepth) commands_.RemoveAt(commands_.size - 1, 1);
         }
         commandIndex_ = -1;
@@ -319,7 +319,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
 }
 EI_REWRITTEN(0x005E44A0, ConsoleWindow::OnChar);
 
-// 005E4800: keeps the scroll position within the lines, then (with a surface and a font) fills
+// Keeps the scroll position within the lines, then (with a surface and a font) fills
 // the area above the input strip and draws the visible lines bottom up, 15 pixels apart, with a
 // "+" at the top right when there is more above and at the bottom right when scrolled back.
 void ConsoleWindow::DrawLines() {
@@ -353,7 +353,7 @@ void ConsoleWindow::DrawLines() {
 }
 EI_REWRITTEN(0x005E4800, ConsoleWindow::DrawLines);
 
-// 005E4A10: keeps the caret and anchor within the input, then (with a surface and a font) fills
+// Keeps the caret and anchor within the input, then (with a surface and a font) fills
 // the input strip, shades the selection (clipped 16 pixels before the right edge), draws "> " and
 // the input, and a 2-pixel caret line when it lies left of that limit.
 void ConsoleWindow::DrawInput() {

@@ -1,5 +1,5 @@
-// The item strip's layout (00620380): the camp's and the hero screen's strips of items along the
-// top or bottom edge, and the forwarding strip's draw (00621B50). See ui_screens.h
+// The item strip's layout: the camp's and the hero screen's strips of items along the
+// top or bottom edge, and the forwarding strip's draw. See ui_screens.h
 // (CUiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
 #include "ui.h"
 #include "ui_item_info.h"
@@ -109,7 +109,7 @@ void CUiItemStrip::Build(char top) {
 }
 EI_REWRITTEN(0x00620380, CUiItemStrip::Build);
 
-// 00621B50 (RET 4). `first` is the current tab's position truncated, `frac` what is left of it
+// `first` is the current tab's position truncated, `frac` what is left of it
 // (kept as a float); the cells sit 100 pixels apart from x 100 - frac * 100.
 BOOL CForwardingStrip::Draw(int pass) {
     const float position = position_[tab_];
@@ -190,7 +190,7 @@ EI_REWRITTEN(0x00621B50, CForwardingStrip::Draw);
 
 namespace {
 
-// 00600270: the time since the last frame in seconds (ticks * 0.001f, unrounded in ST0).
+// The time since the last frame in seconds (ticks * 0.001f, unrounded in ST0).
 inline double __fastcall StripFrameTime(void* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 } // namespace

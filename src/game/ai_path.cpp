@@ -40,10 +40,10 @@ float Abs(float f) {
     return f;
 }
 
-// 007AFFC4: the world tick, the start time of the order AdvancePath gives.
+// The world tick, the start time of the order AdvancePath gives.
 
-constexpr float kDiagonal = 0.707f;     // 0073FDAC
-constexpr float kInset = 0.49f;         // 0073FDA8
+constexpr float kDiagonal = 0.707f;
+constexpr float kInset = 0.49f;
 } // namespace
 
 EI_REWRITTEN(0x005B1B70, PathCellList::NewNode);
@@ -305,7 +305,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         int direction = 6 - octant;
         if (direction < 0) direction += static_cast<int>((static_cast<unsigned>(7 - direction) >> 3) * 8);
         if (direction > 7) direction -= static_cast<int>((static_cast<unsigned>(direction) >> 3) * 8);
-        path->smoothing = smoother.Smooth(unit, this, &pathCells, direction + 1, fraction);   // 005C46C0
+        path->smoothing = smoother.Smooth(unit, this, &pathCells, direction + 1, fraction);
         if (!found) goto done;
         AdvancePath(unit, path);
     }

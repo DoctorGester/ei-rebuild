@@ -1,6 +1,6 @@
 #pragma once
 
-// Helpers for the destructors and copies the compiler wrote for game records (S13): STLport
+// Helpers for the destructors and copies the compiler wrote for game records: STLport
 // vectors destroyed member by member, and the figure maps' pairs.
 
 #include "lib/crt.h"

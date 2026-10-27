@@ -27,8 +27,8 @@ namespace {
 constexpr std::uint32_t kLeaveGame = 0x990001;
 
 // Not rewritten: the mouse cursor's SetShape (005E5200 on 007C7BD8), the game session's
-// (007AFE20) Disconnect (0057ECA0) and LeaveGame (00581660), the client's server flag (00578D10),
-// a surface's contents saved (005FD7A0) and the message box constructor (00634650: interface,
+// Disconnect and LeaveGame, the client's server flag,
+// a surface's contents saved and the message box constructor (00634650: interface,
 // caption and text keys, the value it leaves pending, two flags).
 void SetCursorShape(int shape) { TheCursor()->ChangeShape(shape); }
 
@@ -109,7 +109,7 @@ void CInterface3D::Update() {
     mouseY_ = MouseScreenY();
     if (disconnected_ && IsMultiplayerClient() && net::GameClient()->joinState_ != 2) {
         disconnected_ = false;
-        ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's (N0c)
+        ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
                 static_cast<unsigned>(net::GameClient()->joinState_));
         CMessageBox* box = new CMessageBox(this, "disconnect", "disconnect_msg", 0x990000, 1, 1);
         PushWindow(box, 1, 1);
@@ -118,13 +118,13 @@ void CInterface3D::Update() {
     }
     root_->Update();
 }
-// ---- String events (005F8070) ------------------------------------------------------------------
+// ---- String events ------------------------------------------------------------------
 
 namespace {
 
 // 00461360 (ECX text). A number from the text (its characters' upper-case codes mixed).
-// The tutorial queue (+0x84, an STLport list of CStrings): end() (005F97D0) and insert(position,
-// value) (005F97E0).
+// The tutorial queue (+0x84, an STLport list of CStrings): end() and insert(position,
+// value).
 // Rebirth's game over message: the menu object at 007AFEA5 (00578920 with 1, then 00578940), the
 // message window (0x180 bytes, constructor 00634650: interface, title, text, 0x20000, 3, 1) and
 // the interface's ShowWindow (005F7350: window, 1, 1).

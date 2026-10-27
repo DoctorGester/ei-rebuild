@@ -1,4 +1,4 @@
-// The player data guard (005790E0, 005791C0): while the game window is not active the players'
+// The player data guard: while the game window is not active the players'
 // gold, party records and unit statistics are XORed with a random key, and XORed back when it is.
 // See world.h and docs/notes/world.md.
 #include "world.h"

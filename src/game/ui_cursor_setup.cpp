@@ -1,7 +1,7 @@
 // The software cursor (CCursor, ui_cursor.h): its set-up Init 005E60B0 and AddShape 005E63F0 (called
 // by the cursor set-up 005DAEA0, cursor_setup.cpp, at start and after a display reset), its life
 // cycle, shape and lock (005E4E00-005E67B0) and the position update the drawing thread runs
-// (005E52E0). docs/notes/ui.md, section 3.
+//. docs/notes/ui.md, section 3.
 #include "ui_cursor.h"
 
 #include "texture.h"
@@ -125,7 +125,7 @@ void CCursor::DestroyBody() {
 EI_REWRITTEN(0x005E4E00, CCursor::DestroyBody);
 
 // The cursor, zero at the start: built by the static initialiser 005E4DD0 in the list's order and destroyed by the exit
-// function it registers (005E4DF0); both ported on the name and registered at their addresses (docs/notes/standalone.md,
+// function it registers; both ported on the name and registered at their addresses (docs/notes/standalone.md,
 // "The static initialisers' objects").
 constinit lib::StaticObject<CCursor> g_cursor = /*007C7BD8*/ {};
 CCursor* TheCursor() { return &*g_cursor; }
@@ -135,11 +135,11 @@ long& MouseDragX() { return g_cursor->motion_.x; }
 long& MouseDragY() { return g_cursor->motion_.y; }
 
 namespace {
-void __cdecl ConstructGameCursor() {   // 005E4DD0
+void __cdecl ConstructGameCursor() {
     g_cursor->Construct();
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005E4DF0));
 }
-void __cdecl DestroyGameCursor() { g_cursor->DestroyBody(); }   // 005E4DF0
+void __cdecl DestroyGameCursor() { g_cursor->DestroyBody(); }
 } // namespace
 
 EI_REPLACE(0x005E4DD0, ConstructGameCursor);

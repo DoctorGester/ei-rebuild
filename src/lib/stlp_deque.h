@@ -2,7 +2,6 @@
 
 // STLport's deque<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md,
 // section 2).
-//
 // 0x28 bytes: the start and finish iterators (cur, first, last, node), the map of node pointers and
 // its size; the allocator proxies are empty bytes inside the map words (the constructor writes them
 // and then zeroes the words). Nodes hold 512 / sizeof(T) elements (one for larger T). Only trivially
@@ -49,7 +48,7 @@ public:
     T** Map() const { return map_; }
     std::size_t MapSize() const { return mapSize_; }
 
-    // deque(const allocator_type&, n) (00411AB0 / 0068E0B0): every word zeroed, then
+    // deque(const allocator_type&, n): every word zeroed, then
     // _M_initialize_map(n).
     void Construct(std::size_t n = 0) {
         start_ = Iterator{};
@@ -59,7 +58,7 @@ public:
         InitializeMap(n);
     }
 
-    // _M_initialize_map(n) (00411C00 / 0068E1C0): a map of max(8, nodes + 2) slots from the pool,
+    // _M_initialize_map(n): a map of max(8, nodes + 2) slots from the pool,
     // the nodes for `n` elements in its middle (_M_create_nodes), the start at the first node's
     // beginning, the finish n % kPerNode into the last.
     void InitializeMap(std::size_t n) {
@@ -75,7 +74,7 @@ public:
         finish_.cur = finish_.first + n % kPerNode;
     }
 
-    // _M_create_nodes(nstart, nfinish) (00411EE0 / 0068E320): a node for each map slot, in order
+    // _M_create_nodes(nstart, nfinish): a node for each map slot, in order
     // (the nodes are above 128 bytes: operator new).
     static void CreateNodes(T** nstart, T** nfinish) {
         for (T** p = nstart; p < nfinish; ++p) *p = static_cast<T*>(allocate(kNodeBytes));
@@ -121,7 +120,7 @@ public:
         PushBackAux(x);
     }
 
-    // _M_push_back_aux(x) (00411D60 / 0051E840): x copied first; the map makes room for one more
+    // _M_push_back_aux(x): x copied first; the map makes room for one more
     // node pointer (_M_reallocate_map(1, false)) when fewer than two slots follow the finish's node,
     // a new node follows, x goes into the last slot of the finish's node and the finish opens the
     // new one.
@@ -134,7 +133,7 @@ public:
         finish_.cur = finish_.first;
     }
 
-    // _M_reallocate_map(add, atFront) (00411F70 / 004A39C0): room for `add` more node pointers at
+    // _M_reallocate_map(add, atFront): room for `add` more node pointers at
     // the back (or the front): the used pointers are recentred in a map more than twice as large as
     // needed, else moved to a new map of size + max(size, add) + 2 slots (the old one freed).
     void ReallocateMap(std::size_t add, bool atFront) {
@@ -162,7 +161,7 @@ public:
         while (!empty()) pop_back();
     }
 
-    // ~deque (0040CFB0 / 0068DD40): the elements' destructors (nothing, _Destroy), then every node
+    // ~deque: the elements' destructors (nothing, _Destroy), then every node
     // from start to finish and the map back to the pool.
     void Destroy() {
         if (!map_) return;

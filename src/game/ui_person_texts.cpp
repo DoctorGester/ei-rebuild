@@ -1,6 +1,6 @@
 // The "pers <name>" texts of the battle and briefing screens (PersonTextMap, ui_camp.h): one line
 // per person, by the text key of the person's name. Read by the battle screen's setup (inline
-// there) and the briefing screen (00607720).
+// there) and the briefing screen.
 #include "ui_camp.h"
 
 #include "item_db_text.h"
@@ -41,7 +41,7 @@ void LoadPersonTexts(PersonTextMap* map) {
         if (node == map->end() || key < node->first) {
             mfc::CString empty;
             PersonTextPair pair{key, empty};
-            static_cast<lib_trees::PersonTexts*>(map)->InsertHint(&node, node, *(// 00609E70
+            static_cast<lib_trees::PersonTexts*>(map)->InsertHint(&node, node, *(
                                                reinterpret_cast<const lib_trees::PersonTexts::Value*>(&pair)));
         }
         node->second = line;

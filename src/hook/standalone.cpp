@@ -1,6 +1,6 @@
 // ei_hook.dll inside ei_standalone.exe (src/standalone/host.cpp; docs/notes/standalone.md section 2).
 // The host is an ordinary exe that reads no game.exe and keeps what of game.exe's range is free reserved with no
-// access (S18k); the DLL's static
+// access; the DLL's static
 // initialisation has put .rdata, .data and the import slots in its own storage (image_data.cpp,
 // image_imports.cpp); here the registrations become game.exe's code (image_code.cpp), the code cells of
 // its data are pointed at them, and WinMain runs.
@@ -124,7 +124,7 @@ int CheckCode() {
     return bad;
 }
 
-// The image has nothing of game.exe at its addresses (S18k): no instruction of the original runs, none that calls
+// The image has nothing of game.exe at its addresses: no instruction of the original runs, none that calls
 // through game.exe's import slots (CALL [slot], JMP [slot]) either. The host reserved what of game.exe's range was
 // free with no access, so a stray game address faults and is named (OnOldCode, image_data.cpp's OnOldData, the
 // host's OnGameRange). Logs what of the range an access would not fault on (memory the loader had put there before
@@ -150,7 +150,7 @@ std::size_t CheckGuard() {
 }
 
 // ---- game.exe's module, as the image's code sees it ------------------------------------------------
-// The game's module is the host's (S18j): WinMain's hInstance and GetModuleHandleA(NULL) are ei_standalone.exe,
+// The game's module is the host's: WinMain's hInstance and GetModuleHandleA(NULL) are ei_standalone.exe,
 // which has none of game.exe's resources (C23: the strings are literals in our code), so DirectInput and the window
 // class take the handle as it is, and GetModuleFileNameA(NULL) names the host. Only the command line
 // is routed: the game's arguments after game.exe's path, as the original's.
@@ -276,7 +276,7 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     g_argumentsAt = std::strlen(program) + 2 + (hasArguments ? 1 : 0);
     SetProcessDPIAware();
     // The missing-code report first: InstallHooks runs the startup actions (WideScreen's parses its
-    // resolution there, S16b), so a jump into game.exe's code before WinMain is named too, not a silent end (S16c).
+    // resolution there), so a jump into game.exe's code before WinMain is named too, not a silent end.
     AddVectoredExceptionHandler(1, OnOldCode);
     SetUnhandledExceptionFilter(OnUnhandled);
     const int installed = InstallHooks();
@@ -304,7 +304,7 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     }
     // As the CRT's start-up: the static initialisers, WinMain, then exit with its result (the CRT's exit runs
     // the functions the initialisers registered with atexit). The multibyte code page (__initmbctable, the C
-    // initialiser 00783BC0) is the host CRT's, set at its own start-up (C26); with EI_UTF8 a single-byte one,
+    // initialiser 00783BC0) is the host CRT's, set at its own start-up; with EI_UTF8 a single-byte one,
     // so the host's multibyte string functions (_splitpath, _mbschr ...) see no lead bytes whatever the system's
     // ANSI code page.
     if constexpr (EI_UTF8 != 0) _setmbcp(_MB_CP_SBCS);

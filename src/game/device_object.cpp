@@ -1,10 +1,9 @@
-// The device object itself (CTextureDevice, texture.h; vtable 0073D760): its constructor (004E5E50),
-// its destructor body (004E68A0) and the texture format table (004E6EE0). A-S13: IDirect3DDevice7 is
+// The device object itself (CTextureDevice, texture.h; vtable 0073D760): its constructor,
+// its destructor body and the texture format table. A-S13: IDirect3DDevice7 is
 // called as the original calls it, through device.h (the switch-over device answers). The Direct3D device
-// enumeration callback (004ED820) and the depth buffer (004E6C30) had no caller of ours left and
+// enumeration callback and the depth buffer had no caller of ours left and
 // went in R11b (config/dead_code.csv). The base class is in directdraw_holder.cpp. See
 // docs/notes/renderer.md (sections 9, 12).
-//
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such throw ends
 // the game in WinMain.
 #include "app.h"
@@ -197,7 +196,7 @@ EI_REWRITTEN_SPECIAL(0x004E68A0, CTextureDevice::~CTextureDevice);
 EI_REWRITTEN_SPECIAL(0x004E6880, CTextureDevice::~CTextureDevice);
 
 // The base's constructor and the format table first. The original then makes the Direct3D object,
-// takes the HAL device (the T&L HAL is skipped by its id), the depth buffer (004E6C30) and the render
+// takes the HAL device (the T&L HAL is skipped by its id), the depth buffer and the render
 // target; none of that exists in the switch-over.
 CTextureDevice::CTextureDevice(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
                                int refreshRate, unsigned backBuffers, int /*depthBits*/, int /*stencilBits*/)

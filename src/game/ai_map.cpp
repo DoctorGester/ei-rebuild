@@ -356,7 +356,7 @@ EI_REWRITTEN(0x005BC3E0, CAIMap::LineOfSight);
 // --- Free cell search ----------------------------------------------------------------------------
 
 namespace {
-// The game's atexit (006E727B), for the function-local static in FindFreeCellNear.
+// The game's atexit, for the function-local static in FindFreeCellNear.
 
 // The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius
 // (compared as raw float bits) to the number of offsets within it.
@@ -404,7 +404,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
         guard |= 1;
         cache->radius = -1.0f;
         cache->length = 0;
-        libcrt::AtExit([] {});   // 005BAC00: nothing to destroy
+        libcrt::AtExit([] {});   // nothing to destroy
     }
 
     int sizeClass = unit->sizeClass;

@@ -2,7 +2,7 @@
 
 // The surface holders' pixels in the new renderer's memory (dx_surface.cpp; render::SurfaceMemory).
 // No holder has a DirectDraw surface (CDXSurface::surface null): the holders of 004EF7B0 / 004F0060
-// and the texture manager's CPU-written textures (00691D80) have only that memory, the .mmp
+// and the texture manager's CPU-written textures have only that memory, the .mmp
 // textures' holders not even that (the new renderer decodes the file).
 
 #include <windows.h>
@@ -56,7 +56,7 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
 // locks such a texture. Null only when its allocation fails.
 CDXSurface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat);
 
-// What the original does when DirectDraw cannot make a surface (004EFA60 / 004EF7B0): the device's
+// What the original does when DirectDraw cannot make a surface: the device's
 // result set to DDERR_UNSUPPORTED (as the refused CreateSurface answered) and the game's error
 // "Can't create DDSurface %d %d ..." thrown with `width` and `height`; that ends the game.
 [[noreturn]] void ThrowSurfaceNotMade(CTextureDevice* device, int width, int height);

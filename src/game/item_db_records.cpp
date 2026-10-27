@@ -1,4 +1,4 @@
-// The item databases' records as values: the head's assignment (006A8F20) and each record kind's
+// The item databases' records as values: the head's assignment and each record kind's
 // copy constructor as STLport's uninitialized_copy / uninitialized_fill_n inline it (the vectors'
 // growth while the databases load). See item_db.h and docs/notes/items_spells.md ("Databases").
 #include "item_db.h"

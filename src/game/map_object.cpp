@@ -152,7 +152,7 @@ std::uintptr_t CMapObject::ClearEffects() {
 EI_REWRITTEN(0x0050F5B0, CMapObject::ClearEffects);
 
 float CMapObject::EffectValue(std::uint32_t type) {
-    std::uint32_t best = 0;   // 0.0f (0073B858)
+    std::uint32_t best = 0;   // 0.0f
     for (int i = 0; i < effectCount; ++i) {
         MapEffect effect = effects[i];   // the original copies the record (twice)
         if (effect.type != type) continue;   // the record's first dword & 0xFF

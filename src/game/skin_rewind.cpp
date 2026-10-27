@@ -1,4 +1,4 @@
-// Rewinding a fake unit's skeleton (00507E80, 005081C0, 00508990): each bone (CAnimationNode,
+// Rewinding a fake unit's skeleton: each bone (CAnimationNode,
 // figure.h) goes back to the pose of its animation's first key and places its mesh there. The scene
 // loader (LoadFakeUnitScene 00446C10) rewinds the skin once its bones are bound. See
 // docs/notes/objects.md ("Facts").

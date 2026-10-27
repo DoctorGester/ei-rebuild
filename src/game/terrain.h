@@ -43,12 +43,12 @@ struct LevelArrayElements {
 // The ambient sound classes' one-shot counts for the sound set `set` (the map loader 006C68B0;
 // terrain_ambience.cpp): for every class with its own vote, how many of ambient\<set>\<class>\
 // day\1.wav, 2.wav, ... the wave sources have, counted until the first one missing. The table is
-// the game's (007969D0). AmbientVariants reads a class's count.
+// the game's. AmbientVariants reads a class's count.
 void CountAmbientVariants(const char* set);
 int AmbientVariants(int soundClass);
 }
 
-// The area a point light reaches (006CAA70): the sectors it covers, and the first / last vertex
+// The area a point light reaches: the sectors it covers, and the first / last vertex
 // column and row inside the first / last sector.
 struct LightArea {
     int firstSectorX, firstSectorY, lastSectorX, lastSectorY;
@@ -59,12 +59,12 @@ struct LightArea {
 // first vertex truncated, the last rounded (_ftol of value / cell + 0.5), then SetLightArea.
 void __fastcall LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
                                     LightArea* area);
-// 006BF4A0 (RET 0x14). The area from vertex (x0, y0) (clamped to the map) to (x1, y1): sector and
+// The area from vertex (x0, y0) (clamped to the map) to (x1, y1): sector and
 // vertex within it (x / 32, x % 32); a first vertex on a sector edge counts as vertex 32 of the
 // sector before.
 void __fastcall SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area);
 
-// A point light registered with the landscape (006CA5D0): the light (held) and its area.
+// A point light registered with the landscape: the light (held) and its area.
 struct LandscapeLight {
     CLight* light;
     LightArea area;
@@ -78,30 +78,30 @@ static_assert(sizeof(LandscapeLight) == 0x24);
 class Terrain final : public CTransformObject {
 public:
     // The constructor as the client world's Setup inlines it (terrain_landscape.cpp): the
-    // transform's fields and identity rotations, the members, then Reset (006C5620).
+    // transform's fields and identity rotations, the members, then Reset.
     Terrain();
     // 00562B80 (deleting: 00562B60; terrain_landscape.cpp). Destroy, then the members last to first.
     ~Terrain() override;
 
-    // 006C5430 (slot 2; terrain_landscape.cpp). Reset, the vertex tile table (006C7A80), the wave
+    // 006C5430 (slot 2; terrain_landscape.cpp). Reset, the vertex tile table, the wave
     // phases, the sine table sin(i * pi / 256); position zero, rotation identity. Returns 1.
     int Create() override;
-    // 006C54D0 (slot 3). Frees the map (006C7750), releases the registered lights and empties
+    // Frees the map, releases the registered lights and empties
     // their table, empties the sector cache list, then Reset.
     void Destroy() override;
     const char* GetClassName() override;    // 11: 00562B40 "CTerrain" (world_class_slots.cpp)
     int GetClassId() override;              // 12: 00562B50 (0xB)
-    // 006C5620. The constructor's body: no map, no textures (the arrays freed), texts "none",
+    // The constructor's body: no map, no textures (the arrays freed), texts "none",
     // frame 1, no sun, waves upwards at strength 0, phase 2 pi, no ambient loops.
     void Reset();
-    // 006C57E0. The water vertices' wave phases (33 x 33): 40 ripples at random centres (rand(),
+    // The water vertices' wave phases (33 x 33): 40 ripples at random centres (rand(),
     // radius 1..5) add (1 - d^2 / r^2) * pi / 2 inside them; each edge is then averaged with the
     // opposite one, so neighbouring sectors join.
     void BuildWavePhases();
-    // 006C7D70 (RET 4). Wave strength clamped to 0..1: glow, height and speed scale with it; the
+    // Wave strength clamped to 0..1: glow, height and speed scale with it; the
     // direction is normalised, its x and y scaled by the step asin(1 - s) + pi * 0.50025.
     void SetWaveStrength(float strength);
-    // 006C7EB0 (RET 8). The direction, then the strength as SetWaveStrength.
+    // The direction, then the strength as SetWaveStrength.
     void SetWaves(const Vector3* direction, float strength);
     // 006C5AA0 (RET 4, from the map loader 006C68B0). The texture pages: `count` pages
     // (<map>NNN, "%s%3.3i" of textF8), then up to two extra pages <map>L00 / L01 while their .mmp
@@ -132,23 +132,23 @@ public:
 
     // Point lights (terrain_lights.cpp; the light manager *007AF738 is the landscape). Nothing
     // happens before a map is loaded (mapLoaded 0).
-    // 006CA5D0 (RET 4). Holds the light, registers it by id with its area, adds it to the vertices
+    // Holds the light, registers it by id with its area, adds it to the vertices
     // in range of the area's built sectors and relights the area.
     void AddLight(CLight* light);
-    // 006CA720 (RET 4). Drops the registration, takes the light off the vertices of its area,
+    // Drops the registration, takes the light off the vertices of its area,
     // relights the area and releases the light.
     void RemoveLight(CLight* light);
-    // 006CA830 (RET 8). Before the light moves by `delta`: its area grows by the move, the vertices
+    // Before the light moves by `delta`: its area grows by the move, the vertices
     // in range of the new position get it, the area is relit with the light moved, then the area
     // becomes the one at the new position (the light itself is left where it was).
     void MoveLight(CLight* light, const Vector3* delta);
     // 006CA9C0 (RET 4, when a sector is built). Every registered light whose area covers the
     // sector is added to its vertices in range.
     void LightSector(terrain::SectorData* sector);
-    // 006CAA70 (RET 0xC). The area of the light's square (position +- range), widened by `delta`
+    // The area of the light's square (position +- range), widened by `delta`
     // on the side it points to.
     void LightAreaOf(CLight* light, const Vector3* delta, LightArea* area);
-    // 006CAB50 (RET 4). Relights the area's lit sectors (their point lights only).
+    // Relights the area's lit sectors (their point lights only).
     void RelightArea(const LightArea* area);
 
     // 006C6070 (slot 14, RET 4; terrain_landscape.cpp). The base's world rotation, then worldMatrix
@@ -173,7 +173,7 @@ public:
     // 255 * depth / fade for a point `depth` inside the fade band (MapEdgeFade, 0079BD34, plus one
     // cell) of the map's borders, corners by the distance.
     std::uint8_t EdgeFade(const Vector3* point);
-    // 006C92C0 (RET 4). Whether the sun reaches the vertex lightingX / lightingY of lightingSector
+    // Whether the sun reaches the vertex lightingX / lightingY of lightingSector
     // from height `position`->z: the ray is walked over the vertex grid towards the sun (sunStepX /
     // sunStepY: a line of max(|x|, |y|) steps, the height rising by sunSlopeX / sunSlopeY per
     // column / row), loading the sectors it crosses; 0 when a vertex is above the ray, 1 at the
@@ -181,33 +181,33 @@ public:
     int SunReaches(const terrain::SectorPosition* position);
 
     // terrain_sector.cpp:
-    // 006C53C0. The 18 floats (9 u, then 9 v) of texture `index` of `page` under `rotation`.
+    // The 18 floats (9 u, then 9 v) of texture `index` of `page` under `rotation`.
     const float* TileUv(int rotation, int index, int page);
-    // 006C8D40. Texture class (sound / prints material) at (x, y): the water tile's when the
+    // Texture class (sound / prints material) at (x, y): the water tile's when the
     // point is under water, 8 outside the map.
     int SurfaceClass(float x, float y);
 
     // The draw passes (terrain_passes.cpp), from the client's draw 00569E40.
-    // 006C6230 (RET 4). The ground: drawMatrix from the local rotation and position pushed on the
+    // The ground: drawMatrix from the local rotation and position pushed on the
     // renderer's pipeline stacks 2 and 1, the pages 0 .. pages + 1 drawn, the stacks popped.
     void DrawGround(CSceneRenderer* renderer);
-    // 006C6330 (RET 4). The same for the water pages pages + 2 .. 2 * pages + 3.
+    // The same for the water pages pages + 2 .. 2 * pages + 3.
     void DrawWater(CSceneRenderer* renderer);
-    // 006C6460 (RET 0xC). 0 without a map. For the visible sectors (lit, loaded when needed): the
+    // 0 without a map. For the visible sectors (lit, loaded when needed): the
     // level of detail and the clip test; for those not culled the seams against coarser neighbours
     // and the projection; then per page firstPage .. lastPage every such sector with tiles on it
     // is drawn (DrawSectorPage), the page's texture (page % (pages + 2)) bound to stage 0 before
     // the first. 0 when a draw fails, else 1.
     int DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage);
-    // 006C66E0 (RET 4). The sector's level of detail from the squared distance of its centre
+    // The sector's level of detail from the squared distance of its centre
     // (mid height) to the camera: 0 within DetailNear, 1 within DetailFar, else 2; never below
     // minDetail.
     void ChooseDetail(terrain::SectorData* sector);
 
-    // 006C8680. Height of `layer` (0 = ground, 1 = water surface) at (x, y).
+    // Height of `layer` (0 = ground, 1 = water surface) at (x, y).
     float HeightAt(float x, float y, int layer);
 
-    // 006C85A0. Vertex (x, y, z) at grid position (ix, iy) of `layer`, or null outside the map or
+    // Vertex (x, y, z) at grid position (ix, iy) of `layer`, or null outside the map or
     // where the sector has no such layer.
     const Vector3* VertexAt(int ix, int iy, int layer);
 
@@ -218,7 +218,7 @@ public:
     // stages are built.
     terrain::SectorData* SectorAt(int sx, int sy, std::uint32_t wanted, int create);
 
-    // 006C8930. Ground height at (x, y), and water depth above it (0 when dry).
+    // Ground height at (x, y), and water depth above it (0 when dry).
     void GroundAndWaterDepth(float x, float y, float* ground, float* depth);
 
     // 006CA260 (RET 0xC, from the draw pass 00569E40). The sectors within `radius` of (x, y): the
@@ -279,15 +279,15 @@ public:
     // sixteen entries of class 15 after the map's own; its frame count when animated, else 0.
     lib::AlignedArray<int> textureClass;
     lib::AlignedArray<int> textureFrames;
-    CMMIOResource archive;          // +0x15C the map's sector archive (006721D0)
+    CMMIOResource archive;          // +0x15C the map's sector archive
     float* uvTables[4];             // +0x1C8 per rotation, 0x48 bytes per texture of a page
     float* uvTablesLast[4];         // +0x1D8 the same for the last two pages
-    lib::AlignedArray<terrain::VertexTiles> vertexTiles;   // +0x1E8 (00570E70) BuildVertexTiles
+    lib::AlignedArray<terrain::VertexTiles> vertexTiles;   // +0x1E8 BuildVertexTiles
     using SectorCache = mfc::CList<terrain::SectorData*>;
     SectorCache::Node*** sectorGrid;   // +0x1F8 [sx][sy]: the sector's cache node, or null
     SectorCache sectorCache;        // +0x1FC 00570EA0 (block size 10), most recently used first
     int frame;                      // +0x218 counted by the per-frame update
-    int lightInterval;              // +0x21C frames between sun updates (006C8ED0)
+    int lightInterval;              // +0x21C frames between sun updates
     int lightCountdown;             // +0x220
     Vector4 ambient;                // +0x224 the ambient light colour (r, g, b, a)
     float sunSlopeX;                // +0x234 z / x of the unit direction towards the sun
@@ -303,12 +303,12 @@ public:
     using LightTable = stlp::hash_map<int, LandscapeLight, stlp::IntHash>;
     LightTable lights;              // +0x25C 00571050: the registered point lights by id
     int maxLightId;                 // +0x270 the highest id registered
-    Vector3 waveDirection;          // +0x274 unit vector (006C7D70); x, y: the waves' travel
+    Vector3 waveDirection;          // +0x274 unit vector; x, y: the waves' travel
     float waveHeight;               // +0x280
     float waveGlow;                 // +0x284 scales the crests' specular colour
     float wavePhase;                // +0x288 advanced by waveSpeed every frame
     float waveSpeed;                // +0x28C
-    lib::AlignedArray<float> wavePhases;   // +0x290 00570DE0: per water vertex (33 x 33) phase offsets (006C57E0)
+    lib::AlignedArray<float> wavePhases;   // +0x290 00570DE0: per water vertex (33 x 33) phase offsets
     float sine[512];                // +0x2A0 sin(i * pi / 256)
     int minDetail;                  // +0xAA0 the finest level of detail ChooseDetail gives; 0 after Reset
     int visibleRowFirst;            // +0xAA4 SetVisibleSectors
@@ -317,8 +317,8 @@ public:
     int ambientSounds[3];           // +0xAC8 the looping circle sounds (handles, -1 none)
     int ambientClasses[3];          // +0xAD4 their sound classes, -1 none
     mfc::CString textAE0;           // +0xAE0 the ambient sound set (ambient\<set>\...)
-    int extraPages;                 // +0xAE4 texture pages loaded after the map's own (006C5AA0)
-    // +0xAE8 (005711C0) per sector: a level per water material.
+    int extraPages;                 // +0xAE4 texture pages loaded after the map's own
+    // +0xAE8 per sector: a level per water material.
     mfc::CArray<mfc::CArray<float>, terrain::LevelArrayElements> waterLevels;
 };
 static_assert(offsetof(Terrain, mapLoaded) == 0x100 && offsetof(Terrain, tilesPerRow) == 0x124);
@@ -344,7 +344,7 @@ static_assert(offsetof(Terrain, visibleColumnLast) == 0xAB8);
 static_assert(offsetof(Terrain, textAE0) == 0xAE0);
 static_assert(sizeof(Terrain) == 0xAFC);
 
-// 006BE3A0. Height at (x, y) of the plane through triangle v0 v1 v2 ((x, y, z) each); the average
+// Height at (x, y) of the plane through triangle v0 v1 v2 ((x, y, z) each); the average
 // of the three heights when the triangle is degenerate. A free __fastcall function.
 float __fastcall PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2);
 

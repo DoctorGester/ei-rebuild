@@ -1,10 +1,9 @@
 #pragma once
 
 // The tagged-chunk serialisation archive (00409070-0040A5A0) the databases of database.res are stored
-// in. Constructed by 0053A7B0, opened by Open (00409AE0). Reading and writing go through the same
+// in. Constructed by 0053A7B0, opened by Open. Reading and writing go through the same
 // Serialize functions; loading_ selects the direction. Names provisional; see
 // docs/notes/core.md.
-//
 // A chunk's content is a run of children, each an id byte, a length byte (len << 1) or, when bit 0
 // is set, a dword (len << 1 | 1), and len bytes. A stream holding an archive has three top-level
 // chunks of the same form: 0 the index (per object: its class id and the key its record is stored
@@ -56,7 +55,7 @@ public:
         std::int32_t size;
         std::int32_t occurrence;
 
-        // 00409E80. {0xFF, 0, 0, occurrence 1}.
+        // {0xFF, 0, 0, occurrence 1}.
         void Reset();
     };
     static_assert(sizeof(Ref) == 0x10);
@@ -76,11 +75,11 @@ public:
 
     // Key -> object: while loading, the objects the index names (by the key their records are
     // stored under); while saving, the objects already listed (value: the object's number by first
-    // save, which ours writes as its key where the original wrote its address; SV7b2a).
+    // save, which ours writes as its key where the original wrote its address).
     using ObjectMap = stlp::hash_map<std::uint32_t, CRefObject*, stlp::IntHash>;
 
     // The classes an archive can hold (a global, 0079B270; built by the static initialiser
-    // 00408D30 (00408EA0), destroyed at exit by 00408D60): Close writes an object's class id
+    // 00408D30, destroyed at exit by 00408D60): Close writes an object's class id
     // (found by its vtable) to the index, Open creates the object with the class's factory.
     using Factory = CRefObject*(__cdecl*)();
     struct ClassRegistry {
@@ -101,29 +100,29 @@ public:
     void PopChunk();
 
     // Chunk primitives.
-    bool NextChild(const Ref* parent, std::int32_t* cursor, Ref* out);           // 00409070
-    bool AppendChild(Ref* chunk, int id, const void* data, std::uint32_t size);  // 00409110
-    // 004091C0. The `occurrence`-th child `id` of `parent` into `out`.
+    bool NextChild(const Ref* parent, std::int32_t* cursor, Ref* out);
+    bool AppendChild(Ref* chunk, int id, const void* data, std::uint32_t size);
+    // The `occurrence`-th child `id` of `parent` into `out`.
     bool FindChild(const Ref* parent, int id, Ref* out, int occurrence);
-    int CountChildrenOf(const Ref* parent, int id);                              // 00409230
-    void ResizeToCurrent();                                                      // 00409A40
+    int CountChildrenOf(const Ref* parent, int id);
+    void ResizeToCurrent();
 
     // Chunks and fields of the current chunk. Writing appends; reading takes the current chunk's
     // occurrence of the child (missing: zero bytes, empty text, zero key).
-    bool EnterChunk(int id);                          // 004098D0
-    void LeaveChunk();                                // 00409980
-    int CountChunks(int id);                          // 00409A60
-    void Field(int id, void* data, unsigned size);    // 004092B0
+    bool EnterChunk(int id);
+    void LeaveChunk();
+    int CountChunks(int id);
+    void Field(int id, void* data, unsigned size);
     void CStringField(int id, mfc::CString* s);       // 004093A0 (written with its terminator)
-    void StringField(int id, stlp::string* s);        // 00409470
-    void StreamField(int id, CMemoryStream* s);       // 00409640: chunk `id` {1: size, 2: bytes}
-    void SaveObjectRef(int id, CRefObject* object);   // 0040A440: object's number, object kept for Close
-    CRefObject* ObjectRef(int id);                    // 0040A5A0: the object a saved key stands for
+    void StringField(int id, stlp::string* s);
+    void StreamField(int id, CMemoryStream* s);       // chunk `id` {1: size, 2: bytes}
+    void SaveObjectRef(int id, CRefObject* object);   // object's number, object kept for Close
+    CRefObject* ObjectRef(int id);                    // the object a saved key stands for
 
-    // 00409AE0. Starts a load (`loading`, a byte: reads the index chunk 0, data chunk 2 and the
+    // Starts a load (`loading`, a byte: reads the index chunk 0, data chunk 2 and the
     // object records from `stream`) or a save (`version` kept for Close).
     void Open(CStream* stream, int loading, int version);
-    // 0040A000. Ends a save: writes the saved objects' records, the version (field 2) and the index
+    // Ends a save: writes the saved objects' records, the version (field 2) and the index
     // and data chunks to `stream`; or, after a load, drops the loaded objects. Clears everything.
     void Close(CStream* stream);
 
@@ -133,21 +132,21 @@ public:
     // popped: RET 0xC.
     void SerializePrints(int id, stlp::vector<PrintRecord>* records, void* unused);      // 006D23A0 vector<PrintRecord>
     void SerializePrints2(int id, stlp::vector<PrintRecord2>* records, void* unused);     // 006D25F0 vector<PrintRecord2>
-    void SerializeAcks(int id, stlp::vector<acks::UnitAcks>* records, void* unused);     // 006DB430
-    void SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records, void* unused);   // 006DB680
-    void SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void* unused);   // 006DB8D0
+    void SerializeAcks(int id, stlp::vector<acks::UnitAcks>* records, void* unused);
+    void SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records, void* unused);
+    void SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void* unused);
 
     // The party manager's chunks (party_manager.cpp, A-S9). The third argument is unused but
     // popped (RET 0xC). Loading empties the container first and takes one record per chunk 1.
-    // 004ACEC0. hash_map<int, CParty>: per party a chunk 1 (field 1: the key) and a chunk 2
+    // Hash_map<int, CParty>: per party a chunk 1 (field 1: the key) and a chunk 2
     // (CParty::ArchiveParty); loading inserts each key (operator[]).
     void SerializeParties(int id, gamehash::PartyTable* parties, void* unused);
-    // 004AD0C0. vector<PartyManagerEntry>: per entry a chunk 1 with string fields 1 and 2 and a
+    // Vector<PartyManagerEntry>: per entry a chunk 1 with string fields 1 and 2 and a
     // chunk 3 holding one chunk 1 (field 1) per id.
     void SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>* entries, void* unused);
-    // 004ACDC0. The class templates (counted pointers) as object references (field 1 per chunk 1).
+    // The class templates (counted pointers) as object references (field 1 per chunk 1).
     void SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>* templates, void* unused);
-    // 004AD2C0 (RET 8). Field(id, value, 4).
+    // Field(id, value, 4).
     void IntField(int id, int* value);
 
     // The ack records' helpers (acks_db.cpp). 006E4F40 (RET 8): an acks::SpeechRecord as chunk `id`.
@@ -189,16 +188,16 @@ public:
     void SerializeBriefings(int id, stlp::vector<QuestBriefingRecord>* briefings, void* unused);
 
     // The skill database's vectors (unit_db.cpp, A-U10; RET 0xC, the third argument unused): one
-    // chunk 1 per record (its Serialize); loading destroys the records (00520D20 / 00520DE0) and
-    // resizes the vector to the record chunks (005209D0 / 00520B20) first. 005207D0 the skills,
+    // chunk 1 per record (its Serialize); loading destroys the records and
+    // resizes the vector to the record chunks first. 005207D0 the skills,
     // 005208C0 the skill levels.
     void SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void* unused);
     void SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* levels, void* unused);
-    // 00521480 (RET 8). Chunk `id` holding `record` (its Serialize).
+    // Chunk `id` holding `record` (its Serialize).
     void SkillLevelChunk(int id, SkillLevelRecord* record);
     // The unit database's vectors (unit_db.cpp, A-U11; the same shape, called by the Rebirth-patched
     // loader 0053A200): 0053DC10 the prototypes (destroyed by 0053EBC0, resized by 0053E2A0), 0053DD00
-    // the NPCs (0053ED30 / 0053E520), 0053DF50 the models (0053EE70 / 0053E730), 0053E1B0 the level
+    // the NPCs, 0053DF50 the models, 0053E1B0 the level
     // records (their name destroyed / 0053E9B0).
     void SerializePrototypes(int id, stlp::vector<UnitPrototypeRecord>* records, void* unused);
     void SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, void* unused);
@@ -208,7 +207,7 @@ public:
     void SerializeCStrings(int id, stlp::vector<mfc::CString>* strings, void* unused);
 
     // 0053A7B0 (A-U8; also inlined by 004A8310 / 004A8560): two empty memory streams, the
-    // containers (004A94A0, 004639D0, 00463AA0), version 1.
+    // containers, version 1.
     ChunkArchive();
     // 004645A0 (A-E1; also inlined): the containers, then the streams.
     ~ChunkArchive();

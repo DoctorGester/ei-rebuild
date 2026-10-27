@@ -3,7 +3,6 @@
 // model (by the unit's build), the face model's easing towards its rest orientation with an
 // occasional random nod, shake or turn, and the marker under the selected unit's portrait.
 // See docs/notes/ui.md.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "ui.h"
@@ -38,39 +37,39 @@ float FloatFromBits(std::uint32_t bits) {
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
 float Pi() { return 3.1415927f /*007423F8*/; }
-bool GamePaused() { return TheClientWorld()->paused_ != 0; }   // 00578D50
+bool GamePaused() { return TheClientWorld()->paused_ != 0; }
 int SelectedUnitId() { return TheCamera()->targetId_; }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
-constexpr float kBarTexels = 64.0f;           // 0073D734
-constexpr float kBarStart = 9.0f;             // 0073CF10
-constexpr float kTexel = 0.00390625f;         // 0073EEB8
-constexpr float kHalfTexel = 0.001953125f;    // 0073CC90
-constexpr float kHalf = 0.5f;                 // 0073B86C
+constexpr float kBarTexels = 64.0f;
+constexpr float kBarStart = 9.0f;
+constexpr float kTexel = 0.00390625f;
+constexpr float kHalfTexel = 0.001953125f;
+constexpr float kHalf = 0.5f;
 constexpr std::uint32_t kHealthV0 = 0x3F768000;   // the bars' v coordinates
 constexpr std::uint32_t kHealthV1 = 0x3F698000;
 constexpr std::uint32_t kManaV0 = 0x3F5C8000;
 constexpr std::uint32_t kManaV1 = 0x3F4F8000;
-constexpr float kFlashAlpha = 200.0f;         // 0073CF58
+constexpr float kFlashAlpha = 200.0f;
 constexpr float kHitPictureTime = 2.0f;       // 0073CDB8 face mode 2
 constexpr float kMode1PictureTime = 4.0f;     // 0073BAA0 face mode 1
-constexpr float kLowMana = 0.25f;             // 0073C3B0
-constexpr float kThin = 0.2f;                 // 0073BAD4
-constexpr float kFat = 0.8f;                  // 0073CCA8
+constexpr float kLowMana = 0.25f;
+constexpr float kThin = 0.2f;
+constexpr float kFat = 0.8f;
 // Doubles the original multiplies random numbers with (about 2^-32, -0.3 * 2^-32 and 2^-31; not
 // exact powers of two), read from the exe.
 double RandomScale32() { return 2.3283064370807974e-10 /*0073C468*/; }
 double RandomDelayScale() { return (-6.984919588798148e-11 /*00742760*/); }
 double RandomScale31() { return 4.656612874161595e-10 /*0073C508*/; }
 constexpr float kWobbleRate = 0.33333334f;    // 0073D9A4 wobbles per second
-constexpr float kTwelfth = 0.083333336f;      // 00741438
-constexpr float kWobbleSpan = 0.2f;           // 0073CCA0
-constexpr float kWobbleFrequency = 5.0f;      // 0073BF34
-constexpr float kWobbleAmplitude = 0.1f;      // 0073BA80
-constexpr float kMarkerRise = 60.0f;          // 0073F090
+constexpr float kTwelfth = 0.083333336f;
+constexpr float kWobbleSpan = 0.2f;
+constexpr float kWobbleFrequency = 5.0f;
+constexpr float kWobbleAmplitude = 0.1f;
+constexpr float kMarkerRise = 60.0f;
 constexpr std::uint32_t kMarkerDepth = 0x41200000;   // 10.0f
 
 // The interface sprite helpers on scene objects (CUiMesh, ui.h).
@@ -223,7 +222,7 @@ void CHudPortraits::Update() {
                 mfc::CString full = withPrefix + suffix;
                 name = full;
             }
-            ReplaceSceneObject(object(1), name);   // CUiWindow's (005FF460)
+            ReplaceSceneObject(object(1), name);   // CUiWindow's
         }
 
         // Now and then (a third of the time per second) a wobble starts after a random delay:

@@ -1,4 +1,4 @@
-// game.exe's code in the standalone image (S18i; docs/notes/standalone.md, "Own data"). Nothing of game.exe's code is
+// game.exe's code in the standalone image (docs/notes/standalone.md, "Own data"). Nothing of game.exe's code is
 // at its addresses (S18k: the host keeps what of game.exe's range is free reserved with no access): nothing runs there
 // and nothing jumps through it. What runs for an
 // address of game.exe's code is CodeAddress's: the replacement registered for it (InstallHooks hands the table over:

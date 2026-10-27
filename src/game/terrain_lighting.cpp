@@ -1,9 +1,8 @@
 // Terrain vertex lighting (006C31C0-006C3C7F): SectorData::Light runs over a rectangle of a sector's
 // vertices with the FPU switched to chop rounding (_controlfp(0x300, 0x300)), so every operation
 // below, including the FISTPs of the colour channels, rounds towards zero there.
-//
 // Per vertex: ShadeSun sets the lit colour (+0x37) from the ambient light and the sun, and
-// LightVertex adds the point lights registered with the vertex (006CAC10), packing the colour and
+// LightVertex adds the point lights registered with the vertex, packing the colour and
 // specular words the terrain draw sends to the device. On the ground layer both dim light under
 // water by 1 - absorption * depth^2 * falloff (times the light's vertical component squared).
 #include "terrain.h"

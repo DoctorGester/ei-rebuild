@@ -1,7 +1,6 @@
-// Particle sources that follow an object (A-S4): Attach (004849F0), the attachment point
-// (00484C00) and its part lookup (00484B40), the attachment offset (00485280) and StopAndClear
-// (00485380). Names are provisional.
-//
+// Particle sources that follow an object (A-S4): Attach, the attachment point
+// and its part lookup, the attachment offset and StopAndClear
+//. Names are provisional.
 // The object a source follows is a CObject3D (attachedTo, +0x94). With flag 0x10 a source on a
 // unit sits on the part attachPoint (+0x13C) names; otherwise on top of the object's bounds.
 #include "effects.h"

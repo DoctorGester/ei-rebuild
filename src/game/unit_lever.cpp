@@ -1,4 +1,4 @@
-// A lever's state change (0052B7A0) and the spots it is used from (0052BBE0). See
+// A lever's state change and the spots it is used from. See
 // docs/notes/units.md ("Levers").
 #include "lever.h"
 #include "combat.h"

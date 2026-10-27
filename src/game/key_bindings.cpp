@@ -1,9 +1,9 @@
 // The key bindings file (the base path 007AF460 + the name at 00787C04): loaded at start
-// (00462C10) and saved (00462DF0) on the interface's shutdown. Each line is "<key> <action>". The
+// and saved on the interface's shutdown. Each line is "<key> <action>". The
 // tables are the ones FindCommandByKey (object_tables.cpp) and the options window (ui_options.cpp)
 // use: the action of each scan code (0x200 signed bytes, g_keyActions), the keys (0x48-byte entries at
-// 007857B0: scan code, the file's name, Windows' display text) and the actions (0x10-byte entries at
-// 00787070: id, name, options group and row; the first is a blank id 0). See docs/notes/ui.md
+// Scan code, the file's name, Windows' display text) and the actions (0x10-byte entries at
+// Id, name, options group and row; the first is a blank id 0). See docs/notes/ui.md
 // section 8.
 #include "console.h"
 #include "game_strings.h"
@@ -50,7 +50,7 @@ constexpr int kActionCount = 60;
 signed char* ActionOfScan() { return g_keyActions; }
 
 
-// 00700C05: operator+(CString, LPCTSTR).
+// Operator+(CString, LPCTSTR).
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return ::new (a0) mfc::CString(*a1 + a2); }
 
 // Opens the bindings file with `flags`; the path is a temporary CString, as in the original.
@@ -61,7 +61,7 @@ bool OpenFile(console::CStdioFile& file, unsigned flags) {
 
 } // namespace
 
-// 00462C10: each key's text from its scan code (empty when Windows has no name), the table
+// Each key's text from its scan code (empty when Windows has no name), the table
 // cleared, then "key action" lines read: both names looked up case-insensitively, the action's id
 // stored for the key's scan code (a line whose key is unknown is skipped after the action lookup).
 void __cdecl LoadKeyBindings() {
@@ -95,7 +95,7 @@ void __cdecl LoadKeyBindings() {
 }
 EI_REWRITTEN(0x00462C10, LoadKeyBindings);
 
-// 00462DF0: one line per scan code with an action, when both the key and the action are known
+// One line per scan code with an action, when both the key and the action are known
 // (format 00787C18: key name, action name).
 void __cdecl SaveKeyBindings() {
     mfc::CString line;

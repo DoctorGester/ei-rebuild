@@ -42,22 +42,22 @@ public:
     explicit TargetChunk(Chunk* parent) : Chunk(parent) {}
     T* target;                   // +0x18
 };
-// A waypoint (game.exe's vtable 0073C710), a patrol (0073C718) and a behaviour record (0073C720).
+// A waypoint (game.exe's vtable 0073C710), a patrol and a behaviour record.
 class WaypointChunk : public TargetChunk<Waypoint> {
 public:
     using TargetChunk::TargetChunk;
-    void OnChunk() override;   // 0046C610
+    void OnChunk() override;
 };
 class PatrolChunk : public TargetChunk<Patrol> {
 public:
     using TargetChunk::TargetChunk;
-    void OnChunk() override;   // 0046C7F0
+    void OnChunk() override;
 };
 class BehaviourChunk : public TargetChunk<Behaviour> {
 public:
     using TargetChunk::TargetChunk;
-    void OnChunk() override;   // 0046CBC0
-    void Write();              // 0046C900
+    void OnChunk() override;
+    void Write();
 };
 
 namespace {
@@ -78,7 +78,7 @@ void DestroyPatrol(Patrol& p) {
     ei::SetVtable(&p.waypoints, mfc::impl::ArrayBaseClass::Vtable());
     if (p.waypoints.data) gamecrt::operator_delete(p.waypoints.data);
 }
-// The world server's sector map (007B01F4, world + 0x170 + 0x124) and the selection (007B00D0) move and turn an
+// The world server's sector map (007B01F4, world + 0x170 + 0x124) and the selection move and turn an
 // object; the world object's updates.
 
 std::uint32_t Bits(float f) {
@@ -101,7 +101,7 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 
 // ---- Behaviour records -------------------------------------------------------------------------
 
-// 0045D5B0. Returns this.
+// Returns this.
 Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->patrols.data = nullptr;
     self->patrols.growBy = 0;
@@ -123,7 +123,7 @@ Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
 }
 EI_REWRITTEN(0x0045D5B0, BehaviourConstruct);
 
-// 0046C290: the destructor body (the patrol array's destructor inlined: each patrol's waypoint
+// The destructor body (the patrol array's destructor inlined: each patrol's waypoint
 // block freed, then the patrols' block).
 void __fastcall BehaviourDestruct(Behaviour* self) {
     Patrol* patrols = self->patrols.data;
@@ -134,7 +134,7 @@ void __fastcall BehaviourDestruct(Behaviour* self) {
 }
 EI_REWRITTEN(0x0046C290, BehaviourDestruct);
 
-// 0046E680: the patrol array becomes a copy of `from` (each patrol copied through a temporary
+// The patrol array becomes a copy of `from` (each patrol copied through a temporary
 // returned by value, as the original does).
 void Patrols::CopyFrom(const Patrols& from) {
     int n = from.size;
@@ -179,7 +179,7 @@ void Patrols::CopyFrom(const Patrols& from) {
         to.position = copy->position;
         to.waypoints.SetSize(copy->waypoints.size, -1);
         for (int j = 0; j < copy->waypoints.size; ++j) {
-            Waypoint w = copy->waypoints.data[j];   // GetAt by value (0046EFA0)
+            Waypoint w = copy->waypoints.data[j];   // GetAt by value
             data[i].waypoints.data[j] = w;
         }
         ei::SetVtable(&copy->waypoints, mfc::impl::ArrayBaseClass::Vtable());
@@ -269,7 +269,7 @@ void BehaviourChunk::OnChunk() {
 }
 EI_REWRITTEN(0x0046CBC0, BehaviourChunk::OnChunk);
 
-// 0046C900: writes the behaviour record (chunk BBBC0000), each patrol a BBBD0000 chunk with its
+// Writes the behaviour record (chunk BBBC0000), each patrol a BBBD0000 chunk with its
 // waypoints as BBBE0000 chunks.
 void BehaviourChunk::Write() {
     Chunk& c = *this;
@@ -309,7 +309,7 @@ void BehaviourChunk::Write() {
 }
 EI_REWRITTEN(0x0046C900, BehaviourChunk::Write);
 
-// ---- Units (0073C6E0) ------------------------------------------------------------------------------
+// ---- Units ------------------------------------------------------------------------------
 
 UnitSpec::UnitSpec() {
     VectorConstruct(behaviour, sizeof(Behaviour), 5, BehaviourConstruct, BehaviourDestruct);
@@ -332,7 +332,7 @@ UnitSpec::~UnitSpec() {
 EI_REWRITTEN_SPECIAL(0x0046C140, UnitSpec::~UnitSpec);
 EI_REWRITTEN_SPECIAL(0x0046C120, UnitSpec::~UnitSpec);
 
-// 0046C2F0: the destructor of the block at +0x210 (the five string lists; reached only when an
+// The destructor of the block at +0x210 (the five string lists; reached only when an
 // exception unwinds the constructor).
 void __fastcall UnitRecordDestruct(unitrecord::UnitRecord* self) {
     for (int i = 4; i >= 0; --i) self->lists[i].Destruct();
@@ -466,7 +466,7 @@ void __fastcall WaypointsWrite(const Array<Waypoint>* a, CStream* stream) {
 }
 EI_REWRITTEN(0x0045DFB0, WaypointsWrite);
 
-// 0045D610: the record from a stream. Files before version 0x53 have no alarm level: it follows
+// The record from a stream. Files before version 0x53 have no alarm level: it follows
 // from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). +0x30 is not stored.
 void Behaviour::Read(CStream* stream) {
     StreamRead(stream, &type, 4);
@@ -500,7 +500,7 @@ void Behaviour::Read(CStream* stream) {
 }
 EI_REWRITTEN(0x0045D610, Behaviour::Read);
 
-// 0045D760: the record to a stream (the same fields).
+// The record to a stream (the same fields).
 void Behaviour::Write(CStream* stream) const {
     StreamWrite(stream, &type, 4);
     int n = patrols.size;

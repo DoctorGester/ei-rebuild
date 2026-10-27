@@ -1,6 +1,5 @@
 // Particle emit callbacks (+0x1E0 of a CParticleSource) in 0x00490000-0x00497000 and the element
 // array allocator. Names are provisional.
-//
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
@@ -227,7 +226,7 @@ int EmitSpark(CParticleSource* s, Particle* p) {
 constexpr std::int32_t kFadeAlpha[35] = /*0078A774*/ {0, 32, 64, 128, 255, 207, 159, 111, 63, 15};
 const char* NoCarrierMessage() { return "Particle effect Modifier without carrier\n"; }
 
-// 0044C470: the game's debug message (cdecl, one argument).
+// The game's debug message (cdecl, one argument).
 void __cdecl DebugMessage(const char* a0) { game::DebugLog(a0); }
 
 float AbsBits(float f) {
@@ -325,14 +324,14 @@ void PlaceModifierPoints(CParticleSource* s) {
 
 } // namespace
 
-// 00497EB0. Room for `count` 0x38-byte elements, 32-byte aligned; the block's own address is kept
+// Room for `count` 0x38-byte elements, 32-byte aligned; the block's own address is kept
 // just below the returned pointer (for operator_delete). __fastcall.
 ParticleElement* __fastcall AllocateElements(int count) {
     return lib::AlignedArray<ParticleElement>::Allocate(count);
 }
 EI_REWRITTEN(0x00497EB0, AllocateElements);
 
-// 004923B0. LightningBlast: on the first emission the bolt's ten points are placed; then the
+// LightningBlast: on the first emission the bolt's ten points are placed; then the
 // particles run along the bolt (two per point), then bursts at the impact point (up to five, while
 // the source has fewer than 200 particles), then sparks between the points.
 int CParticleSource::EmitLightning(Particle* p, int) {
@@ -350,7 +349,7 @@ int CParticleSource::EmitLightning(Particle* p, int) {
 }
 EI_REWRITTEN(0x004923B0, CParticleSource::EmitLightning);
 
-// 00490130. Modifier1-12 (needs a carrier): on the first emission |size| * 10 points (at least
+// Modifier1-12 (needs a carrier): on the first emission |size| * 10 points (at least
 // one) are scattered on a ring around the carrier. Then one particle per point while the fade has
 // not started (frame = the modifier's number), then drifting sparks between a random point and
 // its starting place.
@@ -459,7 +458,7 @@ double Signed(std::uint32_t roll) { return Unsigned(roll) * EI_SCALE_2 - D(EI_ON
 
 } // namespace
 
-// 00492D30. ZoneExit: the density follows alpha * +0x11C (at most 40 a tick); particles start at a
+// ZoneExit: the density follows alpha * +0x11C (at most 40 a tick); particles start at a
 // random point of an ellipse around the source (axes +0x118 * +0x120 and +0x124 * +0x11C) on the
 // ground, red-tinted when +0x130 is set, rising by an amount that is larger near the centre.
 int CParticleSource::EmitZoneExit(Particle* p, int) {
@@ -488,7 +487,7 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
 }
 EI_REWRITTEN(0x00492D30, CParticleSource::EmitZoneExit);
 
-// 00493280. 0x2039: on its first update (life -10) the particle's lifetime is set from its
+// 0x2039: on its first update (life -10) the particle's lifetime is set from its
 // position in the emission (frameTimer * 8 / particle count + 7); the alpha follows kGlowAlpha.
 int CParticleSource::UpdateGlow(Particle* p) {
     if (p->life == -10) p->life = p->frameTimer * 8 / particles.count + 7;
@@ -499,7 +498,7 @@ int CParticleSource::UpdateGlow(Particle* p) {
 }
 EI_REWRITTEN(0x00493280, CParticleSource::UpdateGlow);
 
-// 004933F0. 0x203A/0x203B: dust moving along the ground, never below the plane the source
+// 0x203A/0x203B: dust moving along the ground, never below the plane the source
 // measured (element 0: distance +0x0C, normal +0x18), growing and slowing down.
 int CParticleSource::UpdateGroundDust(Particle* p) {
     if (--p->life < 0) return 0;
@@ -523,7 +522,7 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
 }
 EI_REWRITTEN(0x004933F0, CParticleSource::UpdateGroundDust);
 
-// 004934F0. 0x203A/0x203B: on the element's first tick, the ground plane under the source (the
+// 0x203A/0x203B: on the element's first tick, the ground plane under the source (the
 // normal's z replaced by its reciprocal when non-zero); after the second the source stops
 // emitting.
 void CParticleSource::TickGroundPlane(ParticleElement* e) {
@@ -536,7 +535,7 @@ void CParticleSource::TickGroundPlane(ParticleElement* e) {
 }
 EI_REWRITTEN(0x004934F0, CParticleSource::TickGroundPlane);
 
-// 00494770. Portal: particles spiral up (their offset rotated by the turn in +0x20/+0x24 each
+// Portal: particles spiral up (their offset rotated by the turn in +0x20/+0x24 each
 // tick) and fade above 8 units; the spare ones (state set) flicker in size while the portal is on.
 int CParticleSource::UpdatePortal(Particle* p) {
     if (p->state != 0) {
@@ -584,11 +583,11 @@ int CParticleSource::UpdatePortal(Particle* p) {
 }
 EI_REWRITTEN(0x00494770, CParticleSource::UpdatePortal);
 
-// 00494930. Portal: |size| * 10 tries per tick (truncated by the game's _ftol).
+// Portal: |size| * 10 tries per tick (truncated by the game's _ftol).
 void CParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>(gamecrt::Ftol(D(size) * D(EI_TEN))); }
 EI_REWRITTEN(0x00494930, CParticleSource::TickPortal);
 
-// 00494CD0. Sparks: the spare ones (state set) get a random size once and are dropped after; the
+// Sparks: the spare ones (state set) get a random size once and are dropped after; the
 // rest fly along their drift, shrinking and slowing, with the alpha from kSparkAlpha.
 int CParticleSource::UpdateSparks(Particle* p) {
     if (p->state != 0) {
@@ -615,7 +614,7 @@ int CParticleSource::UpdateSparks(Particle* p) {
 }
 EI_REWRITTEN(0x00494CD0, CParticleSource::UpdateSparks);
 
-// 004957E0. FeebleMind: size * 2 tries per tick; each particle starts one step out from the
+// FeebleMind: size * 2 tries per tick; each particle starts one step out from the
 // source in a random horizontal direction.
 int CParticleSource::EmitFeebleMind(Particle* p, int) {
     emitCount = x87::fistp(static_cast<float>(D(size) + D(size)));
@@ -640,7 +639,7 @@ int CParticleSource::EmitFeebleMind(Particle* p, int) {
 }
 EI_REWRITTEN(0x004957E0, CParticleSource::EmitFeebleMind);
 
-// 00495A30. FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's
+// FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's
 // position once it is tracked, else the source), drifting in a random direction inside the unit
 // disc, rising.
 int CParticleSource::EmitFeetCloud(Particle* p, int) {
@@ -683,7 +682,7 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
 }
 EI_REWRITTEN(0x00495A30, CParticleSource::EmitFeetCloud);
 
-// 00496990. StartTrans: once the element's countdown runs out the source stops (flags 1 and 4
+// StartTrans: once the element's countdown runs out the source stops (flags 1 and 4
 // off) and detaches; the ring widens, and element 0's +0x1C grows by 0.4 a tick and sets the tries
 // per tick (at most 8).
 void CParticleSource::TickStartTrans(ParticleElement* e) {

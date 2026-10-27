@@ -2,14 +2,12 @@
 
 // The base class of every map object (units, trees, buildings, stones, levers, traps, torches ...):
 // vtable 0073DAA0 (abstract: slots 11 / 12 are _purecall), constructor 0050E2D0, destructor body
-// 0050E660. It derives from the 3D object base (vtable 0073DDD4, constructor 00515BD0, 0x170
+// It derives from the 3D object base (vtable 0073DDD4, constructor 00515BD0, 0x170
 // bytes: position, orientation, figure parts, scale), which derives from CTransformObject
-// (0073BA38) and CEngineObject. CUnit's own fields start at +0x238.
-//
+// and CEngineObject. CUnit's own fields start at +0x238.
 // Each map object has a companion at +0x170 holding its side-specific state: a CMapObjectServer
 // (class id 0x39, vtable 0073DD6C) on the server, a CMapObjectClientSpecific (0x3A, 0073DBEC) on the
 // client; both point back at the object through their +0x1C (unit.h declares the two classes).
-//
 // CMapObject derives from CObject3D (map_object_figures.h), which holds the first 0x170 bytes; the
 // virtual slots past CEngineObject's are declared here (CObject3D declares none of its own).
 
@@ -61,7 +59,7 @@ static_assert(sizeof(MapEffect) == 0x14);
 // The hit points, mana and protection rounded (CMapObject + 0x17C, 0x18 bytes; 00522C50 writes it from
 // the server companion's UnitVitals, unit.h).
 struct UnitVitalsPacked {
-    // 005233B0. Zeroes it. Returns 0 (EAX).
+    // Zeroes it. Returns 0 (EAX).
     int Reset();
 
     std::uint8_t spare00;           // +0x00 0 after Reset; nothing reads it
@@ -109,12 +107,12 @@ public:
     void SetScriptPosition(const Vector3* point);
 
     // 0050E660 (deleting: 0050E560; map_object_lifetime.cpp): the streams' buffers, the network records
-    // (00510340), the second name and the effects freed, then the 3D object's destructor.
+    // the second name and the effects freed, then the 3D object's destructor.
     ~CMapObject() override;
-    int Create() override { return CreateMapObject(); }   // 2: 0050E770
-    void Destroy() override { DestroyMapObject(); }        // 3: 0050E840
+    int Create() override { return CreateMapObject(); }
+    void Destroy() override { DestroyMapObject(); }
     void ClearState() override {}                          // 5: 0050E760 (empty)
-    int RunTick() override { return Update(); }            // 6: 0050F1C0
+    int RunTick() override { return Update(); }
     void Load(CStream* stream) override;                      // 9: 0050F7A0 LoadMapObject
     void Save(CStream* stream) override;                      // 10: 0050F900 SaveMapObject
     // 19: units 0052E870 AttachCompanion. 0050E890 (map_object.cpp): an object of type 0x47
@@ -130,10 +128,10 @@ public:
     virtual std::uintptr_t RecomputeScale();
     // 28: 0050E420 empty (units 00532AB0). Callers use EAX (0 here).
     virtual std::uintptr_t EffectsChanged();
-    // 29 (AL): flags_ 0x20000 (0050E430, bit 17 as 0 / 1); units (004467E0), levers, traps,
+    // 29 (AL): flags_ 0x20000 (0050E430, bit 17 as 0 / 1); units, levers, traps,
     // torches 1. False ones leave the server's map-object maps after the zone loads
     // (SendFreshObjects). The world server creates such objects only with its +0x11D set, the
-    // others with +0x11E (005927C0).
+    // others with +0x11E.
     virtual bool IsSynchronised();
     // 30 (0x78): the scale becomes the base scale (+0x1AC; 0050E440, units 00532AA0). Returns the z
     // component's bits.
@@ -157,16 +155,16 @@ public:
     virtual std::uintptr_t SetServerData(const void* data);
     // 37 (0x94): 0050E490 empty; units 00530A50, the controller's slot 23 (CUnitServer 00552FB0).
     virtual std::uintptr_t UpdateSizeClasses();
-    virtual int IsUsable();            // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
-    virtual int IsDirectUseBlocked();  // 39: 0 (0050F0D0); levers +0x260 (0052B2D0). Best guess
-    virtual std::uint32_t KeyId();     // 40: the key it asks for: -123 (0050F0E0); levers 0052BBC0
+    virtual int IsUsable();            // 38: 0; traps 1, levers NeedsKey 0052BB00
+    virtual int IsDirectUseBlocked();  // 39: 0; levers +0x260. Best guess
+    virtual std::uint32_t KeyId();     // 40: the key it asks for: -123; levers 0052BBC0
     // 41 (a skill used on the object; traps Disarm, levers ApplyKey). 0050F0F0 (object_small_slots.cpp):
-    // logs "Science is applied on wrong object" (0044C470) and returns false (AL). Both arguments unread.
+    // logs "Science is applied on wrong object" and returns false (AL). Both arguments unread.
     virtual bool ApplyScience(int first, int second);
     // 42 (0xA8): whether `key` fits: 0 (0050F110, RET 4); levers KeyOpens, traps KeyFits.
     virtual int AcceptsKey(const LockKey* key);
-    // 43 (0xAC): AL 1 (004467B0); levers +0x261 (0052B2C0). Best guess. The AI map's MarkFootprint
-    // (005B6A80) refreshes units' passage around the object only when it is true.
+    // 43 (0xAC): AL 1; levers +0x261. Best guess. The AI map's MarkFootprint
+    // refreshes units' passage around the object only when it is true.
     virtual bool KeepsMapFlag();
     // 44 (0xB0, RET 8): the spots a user of radius `userRadius` may use the object from, into the
     // CArray<Vector3> `out`: 0050F120 FreeArray (none); levers 0052BBE0 Lever::CollectUseSpots.
@@ -180,7 +178,7 @@ public:
     // is dropped) and, for an effect lasting more than one tick, removes older ones of the same type,
     // end flag and +0x0C (within 0.001) that last no longer and are no stronger.
     virtual std::uintptr_t AddEffect(const MapEffect* effect);
-    // 0050FE70: the effect array's SetSize(count, -1) (CArray<MapEffect>, mfc::impl::Plain20's).
+    // The effect array's SetSize(count, -1) (CArray<MapEffect>, mfc::impl::Plain20's).
     void SetEffectCount(int count);
     virtual std::uint32_t SetStunned(int on);   // 46 (RET 4): 0050E4A0 ignores it (0); units 0052F7F0 (the new flags_)
     virtual int SetVisibilityMode(int mode);    // 47 (0xBC): 004467C0 hands it to the companion (class_slots.cpp)
@@ -195,26 +193,26 @@ public:
     // ignore the time, GetPosition). Returns `out`.
     virtual Vector3* PositionAt(Vector3* out, int time);
     virtual Vector3* AimPoint(Vector3* out);        // 53 (0xD4): 0050E4D0 GetPosition2
-    virtual int IsLargeUnit();                      // 54 (0xD8): 0; units +0x278 (00446890)
-    virtual int IsDead();                           // 55 (0xDC): non-zero when dead or gone (0050E500)
+    virtual int IsLargeUnit();                      // 54 (0xD8): 0; units +0x278
+    virtual int IsDead();                           // 55 (0xDC): non-zero when dead or gone
     // 56 (RET 4; the world server's RemoveObject tells every object): `object` is going away.
     // Empty (0050E510; 0); units: the controller's slot 42; magic traps 0052AC90.
     virtual int ForgetObject(CEngineObject* object);
-    virtual void UpdateMoveFactors();  // 57: empty (0050E520); units: the controller's slot 53
-    virtual void RefreshWounds();      // 58: empty (0050E530); units: the controller's slot 31
-    // 59 (0xEC): the speed the object moves at, in ST0 unrounded: 0 (0050E540); units their forward
-    // speed (004468B0).
+    virtual void UpdateMoveFactors();  // 57: empty; units: the controller's slot 53
+    virtual void RefreshWounds();      // 58: empty; units: the controller's slot 31
+    // 59 (0xEC): the speed the object moves at, in ST0 unrounded: 0; units their forward
+    // speed.
     virtual double MoveSpeed();
-    virtual float Radius();                         // 60 (0xF0): 0.75 (0050E550); units' +0x328 (004468A0), ST0
-    // 61 (0xF4): units only (00446830) keep `name` in their CString +0x238 (the script name); a
+    virtual float Radius();                         // 60 (0xF0): 0.75; units' +0x328, ST0
+    // 61 (0xF4): units only keep `name` in their CString +0x238 (the script name); a
     // map object's table ends at 60 (empty here).
     virtual void SetScriptName(const char* name);
 
-    // 0050E9F0. Records that part `part` (0..15; negative: none) of the object changed, marks it
+    // Records that part `part` (0..15; negative: none) of the object changed, marks it
     // dirty (flags_ bit 1) and stamps it with the world's change counter. Returns what the original
     // leaves in EAX (0, or the world when the object is referenced). It touches nothing beyond +0x1DE.
     std::uintptr_t MarkChanged(int part);
-    // 0050F630. Has the object an active effect of type `type` (compared with MapEffect::type)?
+    // Has the object an active effect of type `type` (compared with MapEffect::type)?
     int HasEffect(std::uint32_t type);
 
     // map_object_lifetime.cpp. The fields the constructor sets past the 3D object's and the second
@@ -224,19 +222,19 @@ public:
 
     // --- Rewritten (map_object.cpp) ---
 
-    // 0050F1C0. Virtual slot 6, the per-tick update: lets the companion (+0x170) update (its slot
-    // 6). Returns 1. CUnit's slot 6 (0052F7D0) calls it after its controller's update.
+    // Virtual slot 6, the per-tick update: lets the companion (+0x170) update (its slot
+    // 6). Returns 1. CUnit's slot 6 calls it after its controller's update.
     int Update();
 
-    // 0050F5B0. Removes every effect (frees the array), marks part 3 changed and calls slots 33
+    // Removes every effect (frees the array), marks part 3 changed and calls slots 33
     // (1), 46 (0) and 27. Returns what slot 27 leaves in EAX.
     std::uintptr_t ClearEffects();
 
-    // 0050F690. The largest MapEffect::value (as a float, at least 0) of the effects of type
+    // The largest MapEffect::value (as a float, at least 0) of the effects of type
     // `type` (compared with the whole low byte); 0 without one. NaN values win the comparison.
     float EffectValue(std::uint32_t type);
 
-    // 0050E440. Virtual slot 30: scale = base scale (+0x1AC). Returns the z component's bits (EAX).
+    // Virtual slot 30: scale = base scale (+0x1AC). Returns the z component's bits (EAX).
     std::uint32_t ResetScale();
 
     // 0050E4B0 / 0050E4D0. Virtual slots 52 / 53: copy the position to `out`; return `out`. Slot
@@ -244,16 +242,16 @@ public:
     float* GetPosition(float* out, int unused);
     float* GetPosition2(float* out);
 
-    // 0050F730. Virtual slot 48: the point at the object's offset (+0x128), moved to the ground
+    // Virtual slot 48: the point at the object's offset (+0x128), moved to the ground
     // height there plus the offset's z. Returns `out`.
     float* GroundPoint(float* out);
 
-    // 0050E8F0. Replaces the companion (+0x170): the old one is detached (its +0x1C cleared) and
+    // Replaces the companion (+0x170): the old one is detached (its +0x1C cleared) and
     // released, the new one points back here and gains a reference.
     void AttachCompanion(CEngineObject* companion);
 
-    // 0050E970. Virtual slot 32 (statistics changed): a CMapObjectServer companion packs its
-    // vitals (00522C50) into +0x17C. Returns 1, or 0 for another companion.
+    // Virtual slot 32 (statistics changed): a CMapObjectServer companion packs its
+    // vitals into +0x17C. Returns 1, or 0 for another companion.
     int PackVitals();
     // map_object_vitals.cpp (A-U5). 0050F080 (the server's unit setup, 0058EF20): a CMapObjectServer
     // companion (class 0x39) gets the base of each protection (vitals +0x20, 7 pairs) zeroed.
@@ -266,28 +264,28 @@ public:
     std::uint32_t Flag20000();
 
     // map_object_create.cpp (A-U).
-    // 0050E770. Virtual slot 2 (Create; another name so it is no override): the 3D object's
-    // Create (00515F70), the companion detached and released, the packed vitals reset (animationSpeed 1
-    // between two resets), 4 network fields (SetSize 0050FA30) reset (0047FB70), changeStamp -1,
+    // Virtual slot 2 (Create; another name so it is no override): the 3D object's
+    // Create, the companion detached and released, the packed vitals reset (animationSpeed 1
+    // between two resets), 4 network fields (SetSize 0050FA30) reset, changeStamp -1,
     // the effects freed, +0x174 = 5, the second name emptied, the base scale 0. Returns 1.
     int CreateMapObject();
-    // 0050E840. Virtual slot 3 (Destroy): the effects emptied (SetSize 0050FE70 to 0), the
-    // companion detached and released, then the 3D object's Destroy (00516080).
+    // Virtual slot 3 (Destroy): the effects emptied (SetSize 0050FE70 to 0), the
+    // companion detached and released, then the 3D object's Destroy.
     void DestroyMapObject();
 
     // map_object_save.cpp (A-U2).
-    // 0050F7A0. Virtual slot 9 (Load): the companion's Load, then animationSpeed, the position, the
+    // Virtual slot 9 (Load): the companion's Load, then animationSpeed, the position, the
     // orientation, the name, the scale, the effects (count, then MapEffect::Load 00688550 each),
     // flags_, the second name and, from version 0x4F, the base scale.
     void LoadMapObject(CStream* stream);
-    // 0050F900. Virtual slot 10 (Save): the same fields (names with their terminators; the base
+    // Virtual slot 10 (Save): the same fields (names with their terminators; the base
     // scale always).
     void SaveMapObject(CStream* stream);
 
     // object_small_slots.cpp (A-U2). 0050E460, virtual slot 31: the companion's slot 15 with the
     // first two arguments (the third is not read). Both companions return 0.
     int CompanionQuery(int first, int second, int unused);
-    // 0050F120. Virtual slot 44: frees the data of the MFC array `array` (operator delete) and
+    // Virtual slot 44: frees the data of the MFC array `array` (operator delete) and
     // empties it (data, size, capacity). The second argument is unread.
     void FreeArray(UseSpotArray* array, int unused);
 
@@ -297,19 +295,19 @@ public:
 
     // map_object_stub_slots.cpp (A-U12). The slots a plain map object leaves empty are free
     // functions there; these read the object.
-    // 0050E500 (slot 55). Whether the object is dead: the companion's slot 17 (a tail call).
+    // Whether the object is dead: the companion's slot 17 (a tail call).
     int CompanionIsDead();
     // 0050E930 (the sector map's Remove). The companion's slot 14 (empty in both); returns 1.
     int NotifyCompanion();
     // 0050EA40 / 0050EA70. The network state written in full / only its changed parts (the
     // statistics, slot 32, repacked first when part 0 or 4 changed): the write mode, slot 50, the
-    // state finished (0047FE90); flags_ bit 1 cleared.
+    // state finished; flags_ bit 1 cleared.
     void WriteFullState();
     void WriteChangedState();
-    // 0050EAB0 (RET 8). The network state read from `reader`: BeginRead, slot 49 with `first`, the
+    // The network state read from `reader`: BeginRead, slot 49 with `first`, the
     // state finished. Returns slot 49's EAX.
     std::uint32_t ReadState(int first, CMemoryStream* reader);
-    // 0050F150 (RET 4). The second name (+0x1A8) becomes `text`. Returns the string.
+    // The second name (+0x1A8) becomes `text`. Returns the string.
     mfc::CString* SetSecondName(const char* text);
 
     // The object as its CObject3D base (map_object_figures.h).
@@ -321,7 +319,7 @@ public:
 
     // --- Helpers ----------------------
 
-    // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
+    // The world the object lives in (owner_ + 0xAC, its slot 13), or null.
     CWorld* World();
 
     // +0x000-0x16C: CObject3D (position +0x1C, orientation +0x34, the side half `attached` +0x94,
@@ -410,7 +408,7 @@ public:
     virtual int IsDead() = 0;
     virtual int IsOverkilled() = 0;  // 18: server 005156C0, client 005104F0 (unit.h)
     // 19 (0x4C, RET 4): client 00511A00, server 00510700 (empty). Neither sets a result; the objects'
-    // slot 47 (004467C0) passes EAX on, which nothing reads, so it is void.
+    // slot 47 passes EAX on, which nothing reads, so it is void.
     virtual void SetLightMode(int) {}
 
     CMapObject* owner;              // +0x1C the map object (CMapObject::AttachCompanion sets it)

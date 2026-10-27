@@ -1,4 +1,4 @@
-// 00458570: registers an object type with a factory in a two-way type registry (called twice by
+// Registers an object type with a factory in a two-way type registry (called twice by
 // WinMain): a prototype made by the factory gives the vtable; vtable -> id in the STLport
 // hash_map at +0, id -> factory in the one at +0x14 (the same scheme as the network's
 // TypeRegistry::Register, 0042A890). See docs/notes/app.md.

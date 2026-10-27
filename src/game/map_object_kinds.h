@@ -2,7 +2,7 @@
 
 // The map object classes without members of their own (A-U6, map_object_kinds.cpp): CTree (class
 // id 0x52), CStone (0x53), CBuilding (0x54) and CStuffObject (0x56), all 0x238 bytes and made by the
-// factory 00512730. Real virtual classes: the compiler makes their vtables (C19; game.exe's
+// factory 00512730. Real virtual classes: the compiler makes their vtables (game.exe's
 // 0073E178, 0073E360, 0073E26C and 0073E454 are retired). Each overrides only slots 0, 11 and 12.
 
 #include "map_object.h"
@@ -16,9 +16,9 @@
 template <int ClassId>
 class PlainMapObject : public CMapObject {
 public:
-    // The map object's constructor, then its Create (0050E770) called directly.
+    // The map object's constructor, then its Create called directly.
     PlainMapObject();
-    // The map object's Destroy (0050E840), then its destructor.
+    // The map object's Destroy, then its destructor.
     ~PlainMapObject() override;
     // The deleting destructor (slot 0) frees into the game's heap.
     const char* GetClassName() override;   // 11: the class name
@@ -27,9 +27,9 @@ public:
 
 // Constructor, destructor, deleting destructor; slots 11 / 12.
 using CTree = PlainMapObject<0x52>;          // 005296E0, 00529770, 00529750; 11 / 12: 00529730 / 00529740
-using CStone = PlainMapObject<0x53>;         // 005298A0, 00529930, 00529910; 005298F0 / 00529900
-using CBuilding = PlainMapObject<0x54>;      // 005297C0, 00529850, 00529830; 00529810 / 00529820
-using CStuffObject = PlainMapObject<0x56>;   // 00529980, 00529A10, 005299F0; 005299D0 / 005299E0
+using CStone = PlainMapObject<0x53>;
+using CBuilding = PlainMapObject<0x54>;
+using CStuffObject = PlainMapObject<0x56>;
 
 // Slots 11 / 12's registrations: "CTree" 0x52, "CBuilding" 0x54, "CStone" 0x53, "CStuffObject" 0x56.
 const char* __fastcall TreeClassName(CTree* self);

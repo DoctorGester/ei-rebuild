@@ -36,7 +36,7 @@ namespace {
 const char* BriefingSection() { return "briefing "; }
 const char* HumanPrototype() { return "unhuma"; }
 
-// 006023F0: what a speaker's controller calls when its dialogue animation has finished.
+// What a speaker's controller calls when its dialogue animation has finished.
 using ActionDone = void(__fastcall*)(CUnit*);
 ActionDone SpeakerActionDone() { return ei::Code<ActionDone>(0x006023F0); }
 
@@ -122,7 +122,7 @@ EI_REWRITTEN(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 
 // --- 006023F0 -----------------------------------------------------------------------------------
 
-// 006023F0 (no Ghidra function; S16c): SpeakerActionDone, the speakers' controllers' actionDone. When
+// 006023F0 (no Ghidra function): SpeakerActionDone, the speakers' controllers' actionDone. When
 // a server unit's dialogue animation has ended, its client unit, when it is one of the briefing's
 // speakers, plays a listening animation again (once per entry). The active window is taken to be the
 // briefing screen unchecked, as the original does; the count is read again after each call.
@@ -203,7 +203,7 @@ EI_REWRITTEN(0x00607BB0, CBriefingScreen::ViewSpeaker);
 
 namespace {
 
-constexpr float kPi = 3.14159274f;          // 007410D0
+constexpr float kPi = 3.14159274f;
 constexpr float kSixth = 0.166666672f;      // 0073CE40 (and -: 00741440)
 constexpr float kTwelfth = 0.0833333358f;   // 00741438 (and -: 00741430)
 constexpr float kQuarter = 0.25f;           // 0073C3B0 (and -: 0073CDA8)

@@ -1,10 +1,9 @@
 // The item description panel (005EE6C0-005F2A80): what the camp, the multiplayer hero screen and
 // the exchange window write about the item or statistic under the mouse. See ui_item_info.h and
 // docs/notes/ui.md ("Item descriptions").
-//
-// Each function draws text lines into the panel's surface 0 between Begin (005FDC00) and End
-// (005FDC60): Text (005FDE20, Rebirth-patched, called through its address) for single lines and
-// DrawWrappedText (005FDFA0) for the wrapped title and description. Values the original truncates
+// Each function draws text lines into the panel's surface 0 between Begin and End
+//: Text (005FDE20, Rebirth-patched, called through its address) for single lines and
+// DrawWrappedText for the wrapped title and description. Values the original truncates
 // with the game's _ftol are converted the same way; values of the statistics functions (UnitStats,
 // WeaponStat84 / 88, WeaponPrototypeSkillBonus) are truncated as they come back in ST0: the ones the
 // original leaves unrounded are declared double there, so no rounding happens in between. Compiled
@@ -66,9 +65,9 @@ int MbsCmp(const char* a, const char* b) {
 // _ftol of a value as it is in ST0 (a statistic's result, kept unrounded).
 int Ftol(double value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
-constexpr float kPercentScale = 100.0f;   // 0073BAB0
+constexpr float kPercentScale = 100.0f;
 constexpr float kStatBase = 25.0f;        // 0073E124 (an attribute's neutral value)
-constexpr double kIntelligenceGrowth = 1.04;   // 0073E128
+constexpr double kIntelligenceGrowth = 1.04;
 
 // _ftol(_CIpow(base, exponent - subtrahend) * scale): the exponent a float minus `subtrahend`
 // (FSUB), the product with `scale`, all unrounded.
@@ -92,11 +91,11 @@ float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x1
 
 // The text manager (007AF788; thiscall).
 struct Texts : CTextManager {
-    BOOL Open(const char* key);                          // 004DEFC0
-    BOOL NextLine();                                     // 004DF510
-    BOOL ReadLine(mfc::CString* out, BOOL advance);      // 004DF8D0
-    BOOL GetString(const char* name, mfc::CString* out); // 004E0020
-    BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
+    BOOL Open(const char* key);
+    BOOL NextLine();
+    BOOL ReadLine(mfc::CString* out, BOOL advance);
+    BOOL GetString(const char* name, mfc::CString* out);
+    BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);
 };
 BOOL Texts::Open(const char* key) { return CTextManager::Open(key); }
 BOOL Texts::NextLine() { return TextNextLine(this); }
@@ -107,9 +106,9 @@ BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description
 }
 Texts* TextManager() { return static_cast<Texts*>(TheTextManager()); }
 
-// Items and spells through their addresses (thiscall): the prototype record (006A0110), the
-// category (006A4230), a weapon's type (006A07F0, CItemWeapon::GetType) and damage weights
-// (006A0770, CItemWeapon::GetDamageTypes, RET 4); a spell's prototype (0068BA20) and modifier
+// Items and spells through their addresses (thiscall): the prototype record, the
+// category, a weapon's type (006A07F0, CItemWeapon::GetType) and damage weights
+// (006A0770, CItemWeapon::GetDamageTypes, RET 4); a spell's prototype and modifier
 // count (0068BA60, CSpell::GetModifierCount).
 const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
     return item->GetPrototype();
@@ -131,7 +130,7 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
     out->SetSize(0, -1);
     mfc::CString value, above, below, key, text;
     float threshold = values[6];
-    // EI_Plugin's Fixes (005F1401): the jump over the integer format is always taken.
+    // EI_Plugin's Fixes: the jump over the integer format is always taken.
     if (integer && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes))
         value.Format("%d", FtolOf(threshold));
     else

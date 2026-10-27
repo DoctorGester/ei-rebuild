@@ -1,4 +1,4 @@
-// The connection pump of a network session (00479E30) and its start (0047A080): a driver link
+// The connection pump of a network session and its start: a driver link
 // (net_link.h) per remote player. The session keeps two STLport lists of the drivers (+8 owning,
 // +0xC plain holders); the lists' members are library code, called at their original addresses.
 // See docs/notes/network.md.
@@ -22,8 +22,8 @@ namespace netlink {
 namespace {
 
 // list<RefPtr>::insert of the drivers (0047A450, shared) and the holders (0047A480, counted), the
-// drivers' erase (0047A380); the nodes' deallocation (0047A650, 12 bytes back to the pool) and the
-// pool's free (00404D70).
+// drivers' erase; the nodes' deallocation (0047A650, 12 bytes back to the pool) and the
+// pool's free.
 using RefList = stlp::list<RefPtr>;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 
@@ -41,9 +41,9 @@ DriverLink* NewDriver(DriverSession* self, CRefObject* player) {
 } // namespace
 
 // A driver for every connection of `session` this one has none for, when the connection has
-// something queued and the game server (0079B5DC) knows it; then each driver pumped (slot 10), and
+// something queued and the game server knows it; then each driver pumped (slot 10), and
 // those whose player is gone or detached erased.
-void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
+void DriverSession::PumpDrivers(net::SessionBase* session) {
     if (!IsLive(session)) return;
     for (net::ClientNode* node = session->clients_->next; node != session->clients_; node = node->next) {
         CRefObject* player = node->connection;
@@ -80,11 +80,11 @@ EI_REWRITTEN(0x00479E30, DriverSession::PumpDrivers);
 
 // Both lists emptied, then one driver for `player`: started (slot 10), and its pending output
 // drained into throwaway memory streams (slot 9) while slot 6 answers true. Returns the driver.
-DriverLink* DriverSession::Start(net::Connection* player) {   // 0047A080
+DriverLink* DriverSession::Start(net::Connection* player) {
     for (DriverNode* node = drivers_->next; node != drivers_;) {
         DriverNode* next = node->next;
         node->value.Destroy();
-        stlp::deallocate(node, 12);   // 0047A650
+        stlp::deallocate(node, 12);
         node = next;
     }
     drivers_->next = drivers_;

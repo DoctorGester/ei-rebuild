@@ -1,7 +1,7 @@
 // The battle HUD's two sliding side panels, the map (CHudMap) and the unit panel (CHudUnitPanel):
-// their layouts at the current slide offset (00642930, 00645F80), their per-frame updates
-// (00642B40, 00647FB0, slot 24) and their setups (00641F20, 006456E0). A-H26.
-// Rebirth patches all of them for its WideScreen layout, reproduced behind the flag (W3,
+// their layouts at the current slide offset, their per-frame updates
+// (00642B40, 00647FB0, slot 24) and their setups. A-H26.
+// Rebirth patches all of them for its WideScreen layout, reproduced behind the flag (
 // ui_widescreen.h): the map at the screen's right edge, the unit panel at its left (the panel
 // offset while the setups and layouts run, their layout constants moved by EdgeShift). The callees
 // Rebirth patches too (the sprites' Place 005E6FA0 and shapes 005E70E0 / 005E7680 / 005E7D60, the

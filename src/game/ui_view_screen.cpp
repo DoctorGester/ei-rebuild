@@ -24,7 +24,7 @@ namespace {
 
 // The orders' unit list (CArray<CUnit*>, vtable 007402AC; SetSize 005EBDB0).
 void* OrderUnitsVtable() { return mfc::impl::UnitPtrArrayClass::Vtable(); }
-// CDWordArray's vtable (0073C3D0).
+// CDWordArray's vtable.
 void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }
 
 constexpr int kVkControl = 0x11;

@@ -45,13 +45,13 @@ using namespace detail;
 bool g_configured = false;
 bool g_failed = false;   // device or pipelines could not be created, or sokol panicked: nothing more is drawn
 bool g_presentsItself = false;   // StartPresenting succeeded: the game has no DirectDraw device
-// The smooth option (R12a, off by default): EI_RENDER's "smooth" (ParseSpec), render::SetSmooth.
+// The smooth option (off by default): EI_RENDER's "smooth" (ParseSpec), render::SetSmooth.
 bool g_smooth = false;
-// The smooth camera (R18, off by default): EI_RENDER's "smoothcamera", render::SetSmoothCamera.
+// The smooth camera (off by default): EI_RENDER's "smoothcamera", render::SetSmoothCamera.
 bool g_smoothCamera = false;
 #if defined(EI_RENDER_VALIDATION)
-bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12 (R9c5)
-bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs (SV10e); else the first few of each kind, then every 16th
+bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12
+bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
 #endif
 
 // The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
@@ -134,7 +134,7 @@ void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const ch
 }
 
 #if defined(EI_RENDER_VALIDATION)
-// --- A device the harness can remove (R9c5) --------------------------------------------------------------
+// --- A device the harness can remove --------------------------------------------------------------
 // With "removable" in EI_RENDER (harness build only) the Direct3D 11 device is made through
 // D3D11On12CreateDevice on a Direct3D 12 device of the default adapter, so that
 // ID3D12Device5::RemoveDevice (render::RemoveDevice) can remove it for real: the swap chain's
@@ -567,7 +567,7 @@ void RemoveIfAsked() {
     // The GPU finishes what it was given first. Removed with work in flight, the old device's
     // teardown (RecreateDevice) crashed in a thread of D3D11On12 / DXGI / the driver (a null fence in
     // d3d11on12.dll, an access violation in the driver's user-mode part), also in a small program that
-    // presented on its own window; with the GPU idle it never did (renderer.md, R9c5).
+    // presented on its own window; with the GPU idle it never did (renderer.md).
     int waited = 0;
     D3D11_QUERY_DESC desc{D3D11_QUERY_EVENT, 0};
     ID3D11Query* idle = nullptr;
@@ -619,7 +619,7 @@ namespace detail {
 // The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU
 // precision"); drivers are not expected to change it, but the control word is put back after every
 // call into them anyway. The FPU's word as it holds it (every bit __control87_2 kept), loaded only when
-// it changed (SV10i).
+// it changed.
 FpuGuard::FpuGuard() : saved_(x87::ControlWord()) {}
 FpuGuard::~FpuGuard() {
     if (x87::ControlWord() != saved_) x87::SetControlWord(saved_);
@@ -716,7 +716,7 @@ void PrepareDevice() {
 bool Active() { return !g_failed; }
 
 namespace {
-bool g_meshCornersFull = false;   // the harness's "meshcorners full" (R16k)
+bool g_meshCornersFull = false;   // the harness's "meshcorners full"
 #if defined(EI_RENDER_VALIDATION)
 // The timer of the device mesh draw running (at most one: they do not nest), made in place so that
 // no static destructor or heap block comes with it.
@@ -878,7 +878,7 @@ void ClearDepth(float z, const Rect* rects, int count) {
     }
 }
 
-// --- Frame statistics (R16) ----------------------------------------------------------------------------
+// --- Frame statistics ----------------------------------------------------------------------------
 
 namespace {
 FrameStats g_stats;         // the frame being built
@@ -1065,7 +1065,7 @@ Holder g_holder = Holder::None;
 SmoothInfo g_counts, g_lastCounts;
 
 #if defined(EI_RENDER_VALIDATION)
-SmoothOrder g_smoothOrder = SmoothOrder::Game;   // render::SetSmoothOrder (harness build only, R12a1)
+SmoothOrder g_smoothOrder = SmoothOrder::Game;   // render::SetSmoothOrder (harness build only)
 #endif
 
 // Command `k` belongs to the world view (render::BeginWorld .. EndWorld).
@@ -1184,7 +1184,7 @@ bool DrawPending() {
     if (g_passes > 0 && g_drawnCommands == g_frame.commands.size()) return true;
     UploadTerrain(g_frame);
     UploadMeshes(g_frame);
-    // The sun's shadow map, once a frame before its first pass (R16j; the classic option: none).
+    // The sun's shadow map, once a frame before its first pass (the classic option: none).
     if (!g_frame.shadow.prepared) {
         perf::CpuTimer shadowTime(perf::Cpu::Shadow);
         perf::Stamp(perf::Mark::ShadowBegin);
@@ -1302,7 +1302,7 @@ struct ChannelPack {
 };
 
 // Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key, 006570E0
-// with DL 0, R13): the target still holds the last frame, as the original's render target did. A
+// with DL 0): the target still holds the last frame, as the original's render target did. A
 // pass now would clear it to the clear colour first.
 bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.empty(); }
 
@@ -1328,7 +1328,7 @@ void RunCanvasesNow() {
 
 bool CopyFrameTo(const void* holder, const Rect& source) {
     if (!holder || !Active() || !EnsureStarted()) return false;
-    // The holders the screen copies write (005FD3D0) have only memory of the renderer's.
+    // The holders the screen copies write have only memory of the renderer's.
     const SurfaceMemory* memory = SurfaceMemoryOf(holder);
     if (!memory || (memory->bitsPerPixel != 16 && memory->bitsPerPixel != 32)) return false;
     FpuGuard fpu;

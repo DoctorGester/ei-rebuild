@@ -36,7 +36,7 @@ const char* EmptyLineSample() { return "w"; }
 const char* KeyOpen() { return "  ( "; }
 const char* KeyClose() { return " )"; }
 
-// Showing (0065E580).
+// Showing.
 constexpr int kIdle = 0;
 constexpr int kHovered = 1;
 constexpr int kAppearing = 2;

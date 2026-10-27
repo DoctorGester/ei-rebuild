@@ -230,7 +230,7 @@ const MapsListing& Maps() {
     return list;
 }
 
-bool g_mapsInMod = false;   // 100BB9D0: the game's folder (007AF460) until a site finds a mod file
+bool g_mapsInMod = false;   // 100BB9D0: the game's folder until a site finds a mod file
 
 } // namespace
 
@@ -249,7 +249,7 @@ void LoadModArchives() {
     ResTables& tables = Tables();
     if (tables.loaded) return;
     tables.loaded = true;
-    // 1001FD2E: each mod archive is a new CMappedResource (00671280) opened read-only through
+    // 1001FD2E: each mod archive is a new CMappedResource opened read-only through
     // OpenResource's address (00671730, whose entry records it like any other).
     for (const auto& [key, paths] : Config().overrides) {
         for (const std::string& path : paths) {

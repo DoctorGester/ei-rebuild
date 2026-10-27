@@ -33,7 +33,7 @@ namespace {
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// 004EBE80: the device's pipeline holder (+0xAC) takes the pipeline: counted first, then the old
+// The device's pipeline holder (+0xAC) takes the pipeline: counted first, then the old
 // one released.
 void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline) {
     CTransformPipeline* previous = *holder;
@@ -194,7 +194,7 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     CLight* light = TheLightFactory()->CreateLight(0x2E);
     Vector3 colour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
-    light->SetDirectional(&colour, &position);   // 0068D0A0
+    light->SetDirectional(&colour, &position);
     const std::uint32_t range = 0x49742400, rangeSquared = 0x5368D4A5, inverseRangeSquared = 0x2B8CBCCC;
     std::memcpy(&light->range_, &range, 4);
     std::memcpy(&light->rangeSquared_, &rangeSquared, 4);
@@ -296,7 +296,7 @@ void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     AxisSwapMatrix(&m);
     StackPush(stacks[kAxisSwap], &m);
     // Unlike the creation, only the viewport and axis swap products are inlined; the rest go
-    // through the pipeline's own push (004D9B80).
+    // through the pipeline's own push.
     StackPush(stacks[kStackA], StackTop(stacks[kViewport]));
     StackPush(stacks[kStackA], StackTop(stacks[kAxisSwap]));
     StackPush(stacks[kStackA], StackTop(stacks[kProjection]));

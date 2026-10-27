@@ -12,21 +12,21 @@ using namespace itemdb;
 
 namespace {
 constexpr int kPointLight = 0x31;
-constexpr float kZero = 0.0f;              // 0073B858
-constexpr float kOne = 1.0f;               // 0073B84C
-constexpr float kLumaRed = 0.3f;           // 0073C54C
-constexpr float kLumaGreen = 0.6f;         // 0073CDE0
-constexpr float kLumaBlue = 0.1f;          // 0073B850
-constexpr float kSplitDamage = 4.0f;       // 0073BAA0
+constexpr float kZero = 0.0f;
+constexpr float kOne = 1.0f;
+constexpr float kLumaRed = 0.3f;
+constexpr float kLumaGreen = 0.6f;
+constexpr float kLumaBlue = 0.1f;
+constexpr float kSplitDamage = 4.0f;
 constexpr std::uint32_t kFltMaxBits = 0x7F7FFFFF;
 
 // Prototype names of the races the target flags exclude (bits 2..5 of CSpell::targetFlags_).
-constexpr const char* kHumanMale = "unhuma";      // 007908C8
-constexpr const char* kHumanFemale = "unhufe";    // 00792EA4
+constexpr const char* kHumanMale = "unhuma";
+constexpr const char* kHumanFemale = "unhufe";
 constexpr const char* kGoblin = "unmogo";         // 00794DF0 (provisional reading of the names)
-constexpr const char* kOrcMale = "unorma";        // 007959D8
-constexpr const char* kOrcFemale = "unorfe";      // 007959D0
-constexpr const char* kMoli = "unmoli";           // 007959C8
+constexpr const char* kOrcMale = "unorma";
+constexpr const char* kOrcFemale = "unorfe";
+constexpr const char* kMoli = "unmoli";
 
 // `a` regards `b`'s side as hostile. The shift count is taken mod 32, like SHL.
 bool Regards(const CUnit* a, const CUnit* b) {

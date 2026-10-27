@@ -15,16 +15,16 @@ public:
     // Who frees `header` / `bits`.
     enum Owner : int { kNotOwned = 0, kNew = 1, kGlobal = 2 };
 
-    // 006D4AA0: an empty bitmap.
+    // An empty bitmap.
     CDib();
-    // 006D4B30 (RET 0x18): Create's bitmap (the fields are left to Create).
+    // Create's bitmap (the fields are left to Create).
     CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
 
-    // 0: 006D4A60. The class's CRuntimeClass.
+    // The class's CRuntimeClass.
     virtual const void* GetRuntimeClass() const;
     // 1: 006D4CD0 (deleting: 006D4B10). Empty.
     virtual ~CDib();
-    // 2: 006D5BB0 (RET 4). The archive is flushed, then the bitmap written to or read from its file.
+    // The archive is flushed, then the bitmap written to or read from its file.
     virtual void Serialize(mfc::CArchive* archive);
 
     // On the game's heap (dib.cpp): null without memory, and then no constructor runs.
@@ -33,17 +33,17 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    // 006D4BA0 (RET 0x18). A new header for `width` x `height` pixels of `bitCount` bits, without a
+    // A new header for `width` x `height` pixels of `bitCount` bits, without a
     // colour table and without bits (AllocateBits). 16 and 32 bits: BI_BITFIELDS with the three
     // channel masks after the header.
     void Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
-    // 006D69B0. Frees whatever the bitmap owns and zeroes it.
+    // Frees whatever the bitmap owns and zeroes it.
     void Empty();
-    // 006D4D10 (RET 4): the header's width and height, 0 x 0 without a header. Returns `out`.
+    // The header's width and height, 0 x 0 without a header. Returns `out`.
     SIZE* Size(SIZE* out) const;
-    // 006D54D0: a GDI palette from the colour table; 0 without colours.
+    // A GDI palette from the colour table; 0 without colours.
     int MakePalette();
-    // 006D6AB0: memory for the pixels, width * height * planes * (bits / 8) bytes: rows without
+    // Memory for the pixels, width * height * planes * (bits / 8) bytes: rows without
     // padding, while `imageSize` (what Write writes) counts rows padded to four bytes. Returns
     // `bits` (unchanged without a header).
     std::uint8_t* AllocateBits();

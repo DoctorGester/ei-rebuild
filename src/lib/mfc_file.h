@@ -2,10 +2,9 @@
 
 // MFC 4.2's CFile, CStdioFile and CFileFind (filecore.cpp, filetxt.cpp, filefind.cpp) and the path
 // helpers they use, written out for the standalone exe (ticket S8, docs/notes/standalone.md
-// section 2). Same layout as the copy linked into game.exe; the tables are compiled (C19, mfc_file.cpp's
+// section 2). Same layout as the copy linked into game.exe; the tables are compiled (mfc_file.cpp's
 // FileTable, StdioFileTable and FileFindTable) in place of game.exe's 00745DF4, 007464F0 and 00745EE8, with the
 // slots in game.exe's order. Every body is registered at its library address (mfc_file.cpp).
-//
 // CFile works on Win32 handles through the game's import table. CStdioFile's stream is the game
 // CRT's FILE in the hook build (shared with the exe's remaining CRT code) and, in the standalone
 // image, the host CRT's (crt.h: there the game's FILE* is the host's).
@@ -46,35 +45,35 @@ struct CFile {
 
     static void* Vtable();
 
-    CFile* Construct();                                         // 00701036
+    CFile* Construct();
     CFile* ConstructHandle(HANDLE file);                        // 0070106C CFile(int hFile)
     CFile* ConstructOpen(const char* path, unsigned flags);     // 0070108B (throws a CFileException*)
-    void Destruct();                                            // 0070112B
-    CFile* DeletingDestructor(unsigned flags);                  // 00701050 (slot 1)
+    void Destruct();
+    CFile* DeletingDestructor(unsigned flags);
 
-    unsigned long GetPosition() const;                          // 007013B9 (slot 3)
+    unsigned long GetPosition() const;
     // Slots 4-6: the name part of GetStatus's path (AfxGetFileName), its title (AfxGetFileTitle) and the
     // whole path.
-    CString GetFileName() const;                                // 00702C31 (slot 4)
-    CString GetFileTitle() const;                               // 00702CB3 (slot 5)
-    CString GetFilePath() const;                                // 00702D35 (slot 6)
+    CString GetFileName() const;
+    CString GetFileTitle() const;
+    CString GetFilePath() const;
     // 00702D64 (not virtual): the cleared status with the file's name; with an open file also its times
     // (a missing creation or access time is the modification time), size and attributes. FALSE when
     // the handle's times or size cannot be read.
     BOOL GetStatus(CFileStatus& status) const;
-    void SetFilePath(const char* path);                         // 006E6361 (slot 7)
-    BOOL Open(const char* path, unsigned flags, CFileException* error);   // 007011E8 (slot 8)
-    CFile* Duplicate() const;                                   // 00701173 (slot 9)
-    long Seek(long offset, unsigned from);                      // 0070138A (slot 10)
-    void SetLength(unsigned long length);                       // 007014B6 (slot 11)
-    unsigned long GetLength() const;                            // 007014E2 (slot 12)
-    unsigned Read(void* buffer, unsigned count);                // 00701305 (slot 13)
-    void Write(const void* buffer, unsigned count);             // 0070133F (slot 14)
-    void LockRange(unsigned long position, unsigned long count);    // 00701464 (slot 15)
-    void UnlockRange(unsigned long position, unsigned long count);  // 0070148D (slot 16)
-    void Abort();                                               // 00701444 (slot 17)
-    void Flush();                                               // 007013E2 (slot 18)
-    void Close();                                               // 00701403 (slot 19)
+    void SetFilePath(const char* path);
+    BOOL Open(const char* path, unsigned flags, CFileException* error);
+    CFile* Duplicate() const;
+    long Seek(long offset, unsigned from);
+    void SetLength(unsigned long length);
+    unsigned long GetLength() const;
+    unsigned Read(void* buffer, unsigned count);
+    void Write(const void* buffer, unsigned count);
+    void LockRange(unsigned long position, unsigned long count);
+    void UnlockRange(unsigned long position, unsigned long count);
+    void Abort();
+    void Flush();
+    void Close();
     unsigned GetBufferPtr(unsigned command, unsigned count, void** start, void** end);   // 0070150F (slot 20: 0)
 };
 static_assert(sizeof(CFile) == 0x10);
@@ -85,24 +84,24 @@ struct CStdioFile : CFile {
 
     static void* Vtable();
 
-    CStdioFile* Construct();                                    // 00701B79
+    CStdioFile* Construct();
     CStdioFile* ConstructOpen(const char* path, unsigned flags);    // 00701BD4 (throws a CFileException*)
-    void Destruct();                                            // 00701C6D
-    CStdioFile* DeletingDestructor(unsigned flags);             // 00701B8F (slot 1)
+    void Destruct();
+    CStdioFile* DeletingDestructor(unsigned flags);
 
-    unsigned long GetPosition() const;                          // 00701F8E (slot 3)
-    BOOL Open(const char* path, unsigned flags, CFileException* error);   // 00701CB0 (slot 8)
+    unsigned long GetPosition() const;
+    BOOL Open(const char* path, unsigned flags, CFileException* error);
     CFile* Duplicate() const;                                   // 0070203B (slot 9: not supported)
-    long Seek(long offset, unsigned from);                      // 00701F56 (slot 10)
-    unsigned Read(void* buffer, unsigned count);                // 00701D84 (slot 13)
-    void Write(const void* buffer, unsigned count);             // 00701DF0 (slot 14)
+    long Seek(long offset, unsigned from);
+    unsigned Read(void* buffer, unsigned count);
+    void Write(const void* buffer, unsigned count);
     void LockRange(unsigned long position, unsigned long count);    // 00702043 (slots 15 / 16: not supported)
-    void Abort();                                               // 00702016 (slot 17)
-    void Flush();                                               // 00701FB8 (slot 18)
-    void Close();                                               // 00701FE0 (slot 19)
-    void WriteString(const char* text);                         // 00701E23 (slot 21)
+    void Abort();
+    void Flush();
+    void Close();
+    void WriteString(const char* text);
     BOOL ReadLine(CString& text);                               // 00701E93 (slot 22: ReadString(CString&))
-    char* ReadString(char* buffer, unsigned size);              // 00701E4E (slot 23)
+    char* ReadString(char* buffer, unsigned size);
 };
 static_assert(sizeof(CStdioFile) == 0x14);
 
@@ -119,26 +118,26 @@ struct CFileFind {
 
     static void* Vtable();
 
-    CFileFind* Construct();                                     // 006E6370
-    void Destruct();                                            // 006E63AD
-    CFileFind* DeletingDestructor(unsigned flags);              // 006E6391 (slot 1)
-    void Close();                                               // 006E63E9
+    CFileFind* Construct();
+    void Destruct();
+    CFileFind* DeletingDestructor(unsigned flags);
+    void Close();
 
-    CString GetFileName() const;                                // 006E684B (slot 3)
-    CString GetFilePath() const;                                // 006E6722 (slot 4)
-    CString GetFileTitle() const;                               // 006E67BA (slot 5)
-    CString GetFileURL() const;                                 // 006E668E (slot 6)
-    CString GetRoot() const;                                    // 006E6707 (slot 7)
-    BOOL GetLastWriteTime(CTime* time) const;                   // 006E65C4 (slot 8)
-    BOOL GetLastWriteFileTime(FILETIME* time) const;            // 006E6551 (slot 9)
-    BOOL GetLastAccessTime(CTime* time) const;                  // 006E6599 (slot 10)
-    BOOL GetLastAccessFileTime(FILETIME* time) const;           // 006E652D (slot 11)
-    BOOL GetCreationTime(CTime* time) const;                    // 006E65EF (slot 12)
-    BOOL GetCreationFileTime(FILETIME* time) const;             // 006E6575 (slot 13)
-    BOOL MatchesMask(unsigned long mask) const;                 // 006E6513 (slot 14)
-    BOOL IsDots() const;                                        // 006E661A (slot 15)
-    BOOL FindFile(const char* pattern, unsigned long flags);    // 006E6433 (slot 16)
-    BOOL FindNextFile();                                        // 006E6653 (slot 17)
+    CString GetFileName() const;
+    CString GetFilePath() const;
+    CString GetFileTitle() const;
+    CString GetFileURL() const;
+    CString GetRoot() const;
+    BOOL GetLastWriteTime(CTime* time) const;
+    BOOL GetLastWriteFileTime(FILETIME* time) const;
+    BOOL GetLastAccessTime(CTime* time) const;
+    BOOL GetLastAccessFileTime(FILETIME* time) const;
+    BOOL GetCreationTime(CTime* time) const;
+    BOOL GetCreationFileTime(FILETIME* time) const;
+    BOOL MatchesMask(unsigned long mask) const;
+    BOOL IsDots() const;
+    BOOL FindFile(const char* pattern, unsigned long flags);
+    BOOL FindNextFile();
     BOOL CloseContext();                                        // 006E6429 (slot 18: FindClose's result)
     unsigned long GetLength() const;                            // 006E68AA (the low dword of the size)
 };
@@ -147,20 +146,20 @@ static_assert(sizeof(CFileFind) == 0x1C);
 // AfxFullPath: `path` made absolute into `out` (_MAX_PATH bytes); the case of the last part as on
 // disk on a file system that does not store Unicode, upper case where case is not preserved.
 // FALSE when the path cannot be resolved (then copied as given) or the volume cannot be queried.
-BOOL __stdcall FullPath(char* out, const char* path);          // 00701870
+BOOL __stdcall FullPath(char* out, const char* path);
 // AfxGetRoot: the root of `path` ("x:\" or "\\server\share\") into `root`.
-void __stdcall GetRoot(const char* path, CString& root);        // 00701940
+void __stdcall GetRoot(const char* path, CString& root);
 
 // AfxGetFileName: the part of `path` after its last backslash, '/' or ':' into `name` (at most `max` bytes,
 // lstrcpyn); with a null `name` the size it needs (with the terminator), else 0.
-unsigned __stdcall AfxGetFileName(const char* path, char* name, unsigned max);      // 0070D0D2
+unsigned __stdcall AfxGetFileName(const char* path, char* name, unsigned max);
 // AfxGetFileTitle: comdlg32's GetFileTitle (through the exe's import slot), AfxGetFileName's answer when
 // that fails; with a null `title` the size it needs, else 0.
-unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max);    // 00701AC9
+unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max);
 
 // The classes' CRuntimeClass records (GetRuntimeClass, slot 0).
-const void* __fastcall FileRuntimeClass(const void* self);      // 0070BE58
-const void* __fastcall StdioFileRuntimeClass(const void* self); // 0070C15B
-const void* __fastcall FileFindRuntimeClass(const void* self);  // 0070BE5E
+const void* __fastcall FileRuntimeClass(const void* self);
+const void* __fastcall StdioFileRuntimeClass(const void* self);
+const void* __fastcall FileFindRuntimeClass(const void* self);
 
 } // namespace mfc::impl

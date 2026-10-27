@@ -1,6 +1,6 @@
 #pragma once
 
-// EI_Plugin.asi's Fixes feature in the player faces (docs/notes/rebirth.md, W4b). With Patch::EiPluginFixes
+// EI_Plugin.asi's Fixes feature in the player faces (docs/notes/rebirth.md). With Patch::EiPluginFixes
 // the sex of a face is decided by one character of the figure's model name, and a player whose unit
 // prototype is unknown gets the first prototype that is not a creature of the game's own races.
 #include "unit_create.h"
@@ -33,7 +33,7 @@ inline bool Contains(const char* name, const char* needle) {
 }
 } // namespace detail
 
-// The plugin's 10003110, called where a player's unit prototype was not found (006093B7, 00640C97):
+// The plugin's 10003110, called where a player's unit prototype was not found:
 // the head of the first bucket of the prototype table's name index (in bucket order, chains not
 // walked) whose name has none of "NPC", "Human", "Orc", "Undead", "Male", "Female" in it. Null when
 // there is none (the plugin would run on past the buckets).

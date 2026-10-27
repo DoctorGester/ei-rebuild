@@ -23,9 +23,9 @@ stlp::vector<typename Map::Node*>& Buckets(Map& table) {
     return *static_cast<stlp::vector<typename Map::Node*>*>(table.BucketVector());
 }
 
-// 00404D70: STLport deallocate(p, bytes). 005AE150 (RET 8): the node allocator's deallocate(p, n).
+// STLport deallocate(p, bytes). 005AE150 (RET 8): the node allocator's deallocate(p, n).
 void __fastcall Deallocate(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
-// 00406590: deallocates `count` pointers (the buckets).
+// Deallocates `count` pointers (the buckets).
 void __fastcall DeallocatePointers(void* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(void*)); }
 
 // The figure manager's helpers: the model destructor (through its original address), 005AE5D0 (RET 4)
@@ -33,7 +33,7 @@ void __fastcall DeallocatePointers(void* a0, int a1) { stlp::deallocate(a0, stat
 // base destructor.
 
 // Visits every node as the game's iterator walks them: the chain, then the head of the next
-// non-empty bucket after the one the node's key hashes to (004298D0).
+// non-empty bucket after the one the node's key hashes to.
 template <typename Map, typename F>
 void ForEachNode(Map& table, F visit) {
     typename Map::Node* node = table.First();
@@ -74,7 +74,7 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
     // The hash_map's destructor.
     table.ClearWith([&table](Node* n) {
         n->key.~string();
-        stlp::deallocate(n, 20);   // 005AE150
+        stlp::deallocate(n, 20);
     });
     stlp::vector<Node*>& buckets = Buckets(table);
     DeallocatePointers(buckets.Start(), static_cast<int>(buckets.EndOfStorage() - buckets.Start()));
@@ -84,8 +84,8 @@ EI_REWRITTEN(0x005A9C90, DestroyFigureModel);
 EI_REWRITTEN(0x005AE5B0, mfc::impl::ScalarDeleting<&records::DestructLeadingString>::Delete);
 EI_REWRITTEN(0x005AE5D0, mfc::impl::ScalarDeleting<&records::DestructLeadingString>::Delete);
 // 005AA1C0 (thiscall): the figure manager's destructor: every cached model destroyed and freed,
-// the base's clean-up (00674F40), the model map cleared and its buckets freed (the map's inline
-// destructor), then the base destructor (00674DF0).
+// the base's clean-up, the model map cleared and its buckets freed (the map's inline
+// destructor), then the base destructor.
 CFigureManager::~CFigureManager() {
     using Node = stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash>::Node;
     CFigureManager* manager = this;
@@ -99,7 +99,7 @@ CFigureManager::~CFigureManager() {
     manager->CResourceManager::Destroy();   // 00674F40, the base's clean-up
     table.ClearWith([](Node* n) {
         n->key.~string();
-        stlp::deallocate(n, 20);   // 004FC080
+        stlp::deallocate(n, 20);
     });
     stlp::vector<Node*>& buckets = Buckets(table);
     if (buckets.Start())

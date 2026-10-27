@@ -1,4 +1,4 @@
-// The unit occupancy layers of the AI map (005B36B0, 005B3890): stamped and lifted every time a
+// The unit occupancy layers of the AI map: stamped and lifted every time a
 // unit moves (CAIMap::MarkFootprint through CSectorMap::Move).
 #include "ai_unit_layer.h"
 

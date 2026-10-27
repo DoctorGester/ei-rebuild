@@ -10,7 +10,7 @@
 class CStream;   // core_streams.h
 
 struct LockKey {
-    // 00522A80. Do the masks overlap, and either (bit 3 in common) the ids match, or (bits 0-2 in
+    // Do the masks overlap, and either (bit 3 in common) the ids match, or (bits 0-2 in
     // common) this level is at least the lock's (unsigned)? Rebirth's FixLeversActivate compares
     // signed, and for a lock of level 0 returns this level + 1.
     mfc::BOOL Opens(const LockKey* lock) const;

@@ -19,7 +19,7 @@ struct RasterTriangle {
         Point texture;
     };
     Corner corners[3];
-    // +0x30 a keyed texture's texels (CTexture::block_), or null. Set: the figure meshes (005A0E80)
+    // +0x30 a keyed texture's texels (CTexture::block_), or null. Set: the figure meshes
     // rasterise through slot 9, which samples them as 16-bit 1:5:5:5 texels at the corners' texture
     // points (wrapping at the row pitch, RasterTarget +0x38) and shadows only where the top bit is set.
     const std::uint8_t* keyTexels;

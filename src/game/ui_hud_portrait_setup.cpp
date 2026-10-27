@@ -1,6 +1,6 @@
-// The battle HUD's party portraits, built when the party changes: CHudPortraits::Rebuild (006407E0)
+// The battle HUD's party portraits, built when the party changes: CHudPortraits::Rebuild
 // drops the old sprites and regions and adds one portrait per party unit (and, in a multiplayer
-// client, per player without a live unit) through AddPortrait (00640060); ShowFace (00640670) copies
+// client, per player without a live unit) through AddPortrait; ShowFace copies
 // a face picture into the portrait's quarter of a face texture. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 #include "game_strings.h"
@@ -42,7 +42,7 @@ bool SameText(const char* a, const char* b) {
 }
 
 // The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.
-// EI_Plugin's Fixes (006408E6, 00640D2F): "f" when the fifth character of the name is 'f', else "m".
+// EI_Plugin's Fixes: "f" when the fifth character of the name is 'f', else "m".
 void SexOf(const char* figure, mfc::CString& sex) {
     const bool fixes = pluginfixes::Enabled();
     if (fixes ? !pluginfixes::ModelIsFemale(figure) : SameText(figure, "unhuma"))
@@ -83,7 +83,7 @@ void CHudPortraits::ShowFace(int index, int state) {
 
 void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide, int hasPlayer) {
     const bool player = static_cast<char>(hasPlayer) != 0;
-    // EI_Plugin's NPlayers (00640069): max(players, 7) portraits to a row instead of 6.
+    // EI_Plugin's NPlayers: max(players, 7) portraits to a row instead of 6.
     const int perRow = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers)
                            ? (ei::rebirth::PluginNPlayers() < 7 ? 7 : ei::rebirth::PluginNPlayers())
                            : 6;
@@ -98,7 +98,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     default: break;   // a negative count (not reached; the original leaves u, v uninitialised)
     }
     CopyImage(objects_.data[objects_.size - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
-    slots_.PushDefault<recordvec::HudPortraitSlotElement>();   // 0064AB20: identity orientations, empty strings
+    slots_.PushDefault<recordvec::HudPortraitSlotElement>();   // identity orientations, empty strings
     slots_[count_].hasPlayer_ = player;
     CUiMesh* face = AddSprite(model);
 
@@ -184,7 +184,7 @@ void CHudPortraits::Rebuild(int wide) {
     mfc::CString picture;
     mfc::CString model;
     mfc::CString tip;
-    slots_.EraseRange<recordvec::HudPortraitSlotElement>(slots_.begin(), slots_.end());   // 0064AD40
+    slots_.EraseRange<recordvec::HudPortraitSlotElement>(slots_.begin(), slots_.end());
 
     for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];
@@ -232,7 +232,7 @@ void CHudPortraits::Rebuild(int wide) {
         UnitPrototypeRecord* prototype;
         {
             prototype = unitdb::PrototypeNamed(stlp::string(player->text_));
-            // EI_Plugin's Fixes (00640C97): an unknown prototype becomes the first one that is no creature.
+            // EI_Plugin's Fixes: an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
                 prototype = pluginfixes::FallbackPrototype();
         }

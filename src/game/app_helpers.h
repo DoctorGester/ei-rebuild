@@ -15,18 +15,18 @@ namespace app {
 
 extern std::uint8_t g_movieMode;   // app_helpers.cpp
 
-// 0079BC2C: the copy protection's check list (an STLport list of bytes, 1 passed / 0 failed; built
+// The copy protection's check list (an STLport list of bytes, 1 passed / 0 failed; built
 // empty by the static initialiser 00455E30, freed at exit by 00455F00; static_lists.cpp). Nothing adds to it.
 using ProtectionCheckList = stlp::list<std::uint8_t>;
 inline ProtectionCheckList& ProtectionChecks() { return *g_protectionChecks; }
 
-double __fastcall DiskFreeSpace(const char* path);          // 00455A90
-void __fastcall SetQuitAllowed(std::uint8_t allowed);       // 00455F10
-bool __fastcall QuitGame(int exitCode);                     // 00455F20
-std::uint8_t __cdecl MovieMode();                           // 00455E20
-void __cdecl ScrambleObjects();                             // 00455BA0
-void __cdecl DelayedProtectionCheck();                      // 00455B50
-void __stdcall ConstructProtectionChecks();                 // 00455E50
+double __fastcall DiskFreeSpace(const char* path);
+void __fastcall SetQuitAllowed(std::uint8_t allowed);
+bool __fastcall QuitGame(int exitCode);
+std::uint8_t __cdecl MovieMode();
+void __cdecl ScrambleObjects();
+void __cdecl DelayedProtectionCheck();
+void __stdcall ConstructProtectionChecks();
 
 // 00458570 (RET 8; app_registry.cpp): a class the chunk archives can hold, by id and factory.
 void __fastcall TypeRegistryRegister(void* self, void*, std::uint32_t id, void* (__cdecl* factory)());

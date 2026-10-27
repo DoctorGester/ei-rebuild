@@ -16,10 +16,10 @@ namespace net {
 
 namespace {
 
-// 004DA7F0: the growing byte buffer's constructor (net_coder.h, GameBuffer).
-// 00661050: the embedded party's constructor.
+// The growing byte buffer's constructor (net_coder.h, GameBuffer).
+// The embedded party's constructor.
 void PartyConstruct(PartyStorage* party) { new (party->Get()) CParty(); }
-// 0041F460: an empty STLport string (library).
+// An empty STLport string (library).
 
 void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 
@@ -30,7 +30,7 @@ void RegisterInline(ClientSession* client, int channel, std::uintptr_t handler) 
 
 } // namespace
 
-// 0041C420: the queries' constructor (an empty vector and a zero dword). Returns this.
+// The queries' constructor (an empty vector and a zero dword). Returns this.
 ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self) {
     new (&self->list) stlp::vector<Query>();
     self->extra = 0;
@@ -119,7 +119,7 @@ ClientSession::ClientSession() {
 }
 EI_REWRITTEN_SPECIAL(0x0041BC40, ClientSession::ClientSession);
 
-// 0041D050 (slot 13). What the server receives from this client: the local player's login
+// What the server receives from this client: the local player's login
 // (+0x2600), the timed objects (+0x2604, value at +0xC) and the file requests (+0x25E8), and our
 // trade offer (+0x260C) with its members. All priority 1.
 void ClientSession::CollectReplicated(ReplicatedVector** out) {

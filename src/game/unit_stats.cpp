@@ -14,12 +14,12 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;                                       // 0073B858
-constexpr float kOne = 1.0f;                                        // 0073B84C
-constexpr float kStatBase = 25.0f;                                  // 0073E124
-constexpr float kTwelve = 12.0f;                                    // 0073E138
+constexpr float kZero = 0.0f;
+constexpr float kOne = 1.0f;
+constexpr float kStatBase = 25.0f;
+constexpr float kTwelve = 12.0f;
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
-constexpr float kFactorBase = 15.0f;                                // 0073E10C
+constexpr float kFactorBase = 15.0f;
 constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0073C54C (0.3)
 constexpr float kPointSeven = std::bit_cast<float>(0x3F333333u);    // 0073C538 (0.7)
 constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0073BAD4 (0.2)

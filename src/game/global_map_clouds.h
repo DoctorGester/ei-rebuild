@@ -15,7 +15,7 @@
 
 class CCloudNoise {
 public:
-    // 00499DC0 (RET 4). The buffers for `size`.
+    // The buffers for `size`.
     explicit CCloudNoise(int size);
     CCloudNoise(const CCloudNoise&) = delete;
     CCloudNoise& operator=(const CCloudNoise&) = delete;
@@ -30,12 +30,12 @@ public:
     // 2: 00499E90 (deleting: 00499E30). The six buffers freed.
     virtual ~CCloudNoise();
 
-    // 00499EE0. Builds the first two frames (all 16 steps each).
+    // Builds the first two frames (all 16 steps each).
     void Start();
-    // 00499F10 (RET 8). Advances the fade by seconds * speed (each whole unit one build step) and
+    // Advances the fade by seconds * speed (each whole unit one build step) and
     // writes the blended frame into `pixels` (ARGB4444, size * size).
     void Draw(std::uint16_t* pixels, float seconds);
-    // 0049A010 (RET 0xC). The alpha ramp: entry i has alpha (255 - (width / 255)^max(0, i - start)
+    // The alpha ramp: entry i has alpha (255 - (width / 255)^max(0, i - start)
     // * 255) >> 4; `speed` is kept for Draw.
     void SetRamp(int start, int width, float speed);
 
@@ -58,10 +58,10 @@ public:
     // 0062EDC0 (deleting: 0062EDA0): the base's.
     ~CGlobalMapClouds() override;
 
-    // 0: 0049A090 (RET 4). A 32 x 32 layer of smoothed value noise into `out` (1 KB), seeded by
+    // A 32 x 32 layer of smoothed value noise into `out` (1 KB), seeded by
     // three ISAAC words; the raw values go through `noise_`.
     void MakeLayer(std::uint8_t* out) override;
-    // 1: 0049A220 (RET 8). Step `step` of building a frame into `out`: steps 1-4 make the layers
+    // Step `step` of building a frame into `out`: steps 1-4 make the layers
     // (slot 0), steps 7-14 each fill 32 rows from them; the others do nothing.
     void Generate(std::uint8_t* out, int step) override;
 };

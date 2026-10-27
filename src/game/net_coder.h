@@ -1,7 +1,7 @@
 #pragma once
 
 // The byte buffers, the bit cursors over them and the LZ coder used to compress save games
-// (00579B80 / 00579830), multiplayer map transfers (00662AC0) and network messages (0047D7F0 /
+// multiplayer map transfers and network messages (0047D7F0 /
 // 0047D970, 0041D600). See docs/notes/network.md, "Compression". Names provisional.
 
 
@@ -13,7 +13,7 @@
 //   GrowingBuffer (game.exe's 0073D624): slots 0 / 1 make room for n more bytes to read / write (a new block of
 //             (base - begin + cur + n) * 2 + 0x40 bytes), slot 4 writes past the end, growing, slot 6 Seek (grows when
 //             needed).
-//   BufferView (0073CA64): a fixed view over memory owned elsewhere (on the stack): slots 0 / 1 empty, 3 / 4 (0).
+//   BufferView: a fixed view over memory owned elsewhere (on the stack): slots 0 / 1 empty, 3 / 4 (0).
 //   BufferedStream (buffered_file.h): a window onto a file.
 namespace stlp {
 class string;
@@ -32,10 +32,8 @@ public:
     virtual ~GameBuffer() {}                                        // 5: 0047D910 (deleting; net_coder.cpp)
     virtual std::uint8_t* Seek(std::int32_t position) = 0;          // 6: the cursor to `position` bytes from the start
 
-    // 00401340
     unsigned ReadBytes(void* to, unsigned size);
     // The byte buffer's read helpers (net_game_info.cpp).
-    // 00401310
     GameBuffer* CopyOut(void* to, unsigned size);
     // 004DA5C0 (RET 4; game_buffer.cpp). Moves the contents to a new block of size * 2 + 0x40 bytes.
     void Grow(std::uint32_t size);
@@ -45,10 +43,10 @@ public:
     // when it is longer than `maxLength` (> 0). The bytes are read in place (slot 0 first when they
     // run past `end`), then slot 2.
     bool ReadString(stlp::string* s, int maxLength);
-    // 004DA380 (RET 4). Writes `s`: in place when it fits before `end` (flags bit 0), else
+    // Writes `s`: in place when it fits before `end` (flags bit 0), else
     // through slot 4.
     void WriteString(const stlp::string* s);
-    // 004DA170 (RET 8). A read of `size` bytes past `high`: error bit 3 set, `to` zeroed, then what
+    // A read of `size` bytes past `high`: error bit 3 set, `to` zeroed, then what
     // is left before `high` (through slot 3 when that crosses `end`); the cursor ends at `high`.
     // Returns the bytes read.
     std::uint32_t ReadPastEnd(void* to, std::uint32_t size);
@@ -87,12 +85,12 @@ static_assert(sizeof(GameBuffer) == 0x1C);
 // The growing buffer (game.exe's 0073D624; game_buffer.cpp).
 class GrowingBuffer final : public GameBuffer {
 public:
-    // 004DA7F0: base 0, flags 6, a 0x20-byte block (cursor and high at its start).
+    // Base 0, flags 6, a 0x20-byte block (cursor and high at its start).
     GrowingBuffer();
-    // 004DA9E0 (RET 4): base 0, a block of `from`'s capacity with all of its bytes, the same cursor / high offsets and
+    // Base 0, a block of `from`'s capacity with all of its bytes, the same cursor / high offsets and
     // flags.
     GrowingBuffer(const GrowingBuffer& from);
-    // 004DAA80 (RET 4): the block freed, then copied as the copy constructor (base kept).
+    // The block freed, then copied as the copy constructor (base kept).
     GrowingBuffer& operator=(const GrowingBuffer& from);
     // 004DA910 (deleting: 004DA8F0): the block freed.
     ~GrowingBuffer() override;
@@ -101,10 +99,10 @@ public:
     // (base - begin + cur + size) * 2 + 0x40 bytes (callers test the room first).
     void ReserveRead(std::int32_t size) override;
     void ReserveWrite(std::int32_t size) override;
-    int ReadMore(void*, std::uint32_t) override;   // 3: 004DA730 (RET 8): 0
-    // 4: 004DA740 (RET 8): grows as ReserveWrite, then copies `size` bytes to the cursor; returns `size`.
+    int ReadMore(void*, std::uint32_t) override;   // 0
+    // Grows as ReserveWrite, then copies `size` bytes to the cursor; returns `size`.
     int WriteMore(const void* from, std::uint32_t size) override;
-    // 6: 004DA860 (RET 4): `high` raised to the cursor, the cursor moved to begin + position; past `end` the contents
+    // `high` raised to the cursor, the cursor moved to begin + position; past `end` the contents
     // move to a block of position * 2 + 0x40 bytes. Returns the cursor, or the new capacity when it grew (EAX as the
     // original leaves it).
     std::uint8_t* Seek(std::int32_t position) override;
@@ -125,10 +123,10 @@ public:
     ~BufferView() override;
 
     void ReserveRead(std::int32_t) override;    // 0: 004DA580 (RET 4; nothing to reserve)
-    void ReserveWrite(std::int32_t) override;   // 1: 004DA590
-    int ReadMore(void*, std::uint32_t) override;          // 3: 004DA5A0 (RET 8): 0
-    int WriteMore(const void*, std::uint32_t) override;   // 4: 004DA5B0
-    // 6: 0047D930 (RET 4): the cursor moved to `position` bytes from the start; returns it.
+    void ReserveWrite(std::int32_t) override;
+    int ReadMore(void*, std::uint32_t) override;          // 0
+    int WriteMore(const void*, std::uint32_t) override;
+    // The cursor moved to `position` bytes from the start; returns it.
     std::uint8_t* Seek(std::int32_t position) override;
 };
 
@@ -148,23 +146,23 @@ struct BufferCursor {
     GameBuffer* sink;          // +0x10 the buffer `p` is committed to at the end (or null)
     std::uint8_t* start;       // +0x14 `p` when the cursor began
 
-    // 004301E0. Appends the low `count` bits of `value` (writing).
+    // Appends the low `count` bits of `value` (writing).
     void PutBits(std::uint32_t value, std::uint8_t count);
     // 004357C0 (net_connection.cpp). Appends one bit (`bit` is added unmasked, as the original).
     void PutBit(std::uint32_t bit);
-    // 00431040. Next bit (reading).
+    // Next bit (reading).
     std::uint32_t GetBit();
-    // 00430FE0. Next `count` bits (reading, 1..32), masked with kCoderBitMasks.
+    // Next `count` bits (reading, 1..32), masked with kCoderBitMasks.
     std::uint32_t GetBits(std::uint32_t count);
-    // 00430930. Copies `size` bytes to `p`.
+    // Copies `size` bytes to `p`.
     void WriteBytes(const void* from, std::uint32_t size);
-    // 00430F60. Copies `size` bytes from `p`.
+    // Copies `size` bytes from `p`.
     void ReadBytes(void* to, std::uint32_t size);
-    // 00430FC0. Starts reading at `at` (the other two arguments are not used).
+    // Starts reading at `at` (the other two arguments are not used).
     void Reset(std::uint8_t* at, std::uint32_t unused1, std::uint32_t unused2);
-    // 00442570. Stores the pending bits in the reserved byte.
+    // Stores the pending bits in the reserved byte.
     void FlushBits();
-    // 00430F90. FlushBits, then commits `p` to the sink (which must exist) and drops it. Returns
+    // FlushBits, then commits `p` to the sink (which must exist) and drops it. Returns
     // what the sink's commit left in EAX.
     std::uint32_t EndWrite();
     // 0041D930 (also inlined in many places). FlushBits, then commits `p` to the sink if any.
@@ -181,7 +179,7 @@ static_assert(sizeof(BufferCursor) == 0x18);
 static_assert(offsetof(BufferCursor, bits) == 0x0C);
 static_assert(offsetof(BufferCursor, sink) == 0x10);
 
-// 0041D960: the same as BufferCursor::End for the cursor at +0x2800 of a CoderState (returns the
+// The same as BufferCursor::End for the cursor at +0x2800 of a CoderState (returns the
 // coder without a sink).
 struct CoderState;
 
@@ -201,11 +199,11 @@ struct CoderState {
 
     // 0042FCA0 (core_streams.cpp). Returns this.
     CoderState* Construct();
-    // 00430450. Compresses everything in `in` (from its start) to `out` at its cursor.
+    // Compresses everything in `in` (from its start) to `out` at its cursor.
     void Compress(GameBuffer* in, GameBuffer* out);
-    // 00430960. Decompresses `in` from its cursor to `out` at its cursor.
+    // Decompresses `in` from its cursor to `out` at its cursor.
     void Decompress(GameBuffer* in, GameBuffer* out);
-    // 0042FD10. Writes the match in progress (length and offset codes); ends it.
+    // Writes the match in progress (length and offset codes); ends it.
     void EncodeMatch(std::int32_t at);
     // 006671A0 (player_client.cpp, A-H10). Ends the output (out.End: pending bits stored, the sink
     // committed), then Construct.
@@ -219,7 +217,7 @@ static_assert(offsetof(CoderState, prev) == 0x2824);
 static_assert(sizeof(CoderState) == 0x2828);
 
 // The code tables of the coder's lengths and distances (net_coder.cpp), filled at start-up by InitCodeTables
-// (0042FAE0): the code and its bit count of each match length 1..0x22 (at length - 1) and of each distance
+//: the code and its bit count of each match length 1..0x22 (at length - 1) and of each distance
 // bucket 0..0x21.
 extern std::uint32_t g_offsetBits[34];
 extern std::uint32_t g_offsetCodes[34];

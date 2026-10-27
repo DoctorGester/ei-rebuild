@@ -2,7 +2,6 @@
 // constructor, copy (Clone's), slots 2-5 (reset, clone, write, read) and destructor; the same for the lobby's
 // server entry (0073BB28, net_classes.h; no factory). See docs/notes/network.md and
 // docs/notes/cleanup-network.md.
-//
 // The original inlines several STLport copies of the same string and vector code (copy
 // construction from [first, last) into a fresh block of length + 1 bytes, the 8-byte empty string,
 // assignment from a C string); they are reproduced here through one helper each, with the same
@@ -24,7 +23,7 @@ namespace net {
 
 namespace {
 
-// 00783D6C: the empty text the server entry's reset assigns.
+// The empty text the server entry's reset assigns.
 const char* EmptyText() { return "?"; }
 
 // Counted pointers as the classes inline them.
@@ -90,7 +89,7 @@ void TakeObject(BufferCursor* cursor, RefPtr& ref) { AssignCounted(ref, g_curren
 // ================================================================================================
 // The message base.
 
-void* __fastcall NewRefObject(std::size_t size) {   // 00413250
+void* __fastcall NewRefObject(std::size_t size) {
     void* object = gamecrt::operator_new(size);
     static_cast<std::uint32_t*>(object)[1] = 0;
     return object;
@@ -121,20 +120,20 @@ LoginMessage::~LoginMessage() { ReleaseCounted(binding_); }
 EI_REWRITTEN_SPECIAL(0x00413800, LoginMessage::~LoginMessage);
 EI_REWRITTEN_SPECIAL(0x004137E0, LoginMessage::~LoginMessage);
 
-Message* __fastcall LoginMessage::Create() { return NewCounted<LoginMessage>(); }   // 004170A0
-LoginMessage* LoginMessage::Clone() { return NewCounted<LoginMessage>(*this); }    // 00413440
-int LoginMessage::OnShutdown() {   // 00413570
+Message* __fastcall LoginMessage::Create() { return NewCounted<LoginMessage>(); }
+LoginMessage* LoginMessage::Clone() { return NewCounted<LoginMessage>(*this); }
+int LoginMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void LoginMessage::Write(BufferCursor* cursor) {   // 004136B0
+void LoginMessage::Write(BufferCursor* cursor) {
     PutString(cursor, name_);
     PutString(cursor, text_);
     Put(cursor, state_);
     Put(cursor, host_);
     Put(cursor, id_);
 }
-void LoginMessage::Read(BufferCursor* cursor) {   // 00413750
+void LoginMessage::Read(BufferCursor* cursor) {
     TakeString(cursor, name_);
     TakeString(cursor, text_);
     Take(cursor, state_);
@@ -155,38 +154,38 @@ SayMessage::SayMessage() {}
 EI_REWRITTEN_SPECIAL(0x004138A0, SayMessage::SayMessage);
 EI_REWRITTEN_SPECIAL(0x00413C40, SayMessage::~SayMessage);
 EI_REWRITTEN_SPECIAL(0x00413C20, SayMessage::~SayMessage);
-Message* __fastcall SayMessage::Create() { return NewCounted<SayMessage>(); }   // 004171A0
-SayMessage* SayMessage::Clone() { return NewCounted<SayMessage>(*this); }      // 00413930
-int SayMessage::OnShutdown() {   // 00413A50
+Message* __fastcall SayMessage::Create() { return NewCounted<SayMessage>(); }
+SayMessage* SayMessage::Clone() { return NewCounted<SayMessage>(*this); }
+int SayMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void SayMessage::Write(BufferCursor* cursor) { WriteText(cursor); }   // 00413B10
-void SayMessage::Read(BufferCursor* cursor) { ReadText(cursor); }     // 00413B50
+void SayMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
+void SayMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 ZoneMessage::ZoneMessage() {}
 EI_REWRITTEN_SPECIAL(0x00418C30, ZoneMessage::ZoneMessage);
 EI_REWRITTEN_SPECIAL(0x00415930, ZoneMessage::~ZoneMessage);
 EI_REWRITTEN_SPECIAL(0x00415910, ZoneMessage::~ZoneMessage);
-Message* __fastcall ZoneMessage::Create() { return NewCounted<ZoneMessage>(); }   // 00415570
-ZoneMessage* ZoneMessage::Clone() { return NewCounted<ZoneMessage>(*this); }     // 00415620
-int ZoneMessage::OnShutdown() {   // 00415740
+Message* __fastcall ZoneMessage::Create() { return NewCounted<ZoneMessage>(); }
+ZoneMessage* ZoneMessage::Clone() { return NewCounted<ZoneMessage>(*this); }
+int ZoneMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void ZoneMessage::Write(BufferCursor* cursor) { WriteText(cursor); }   // 00415800
-void ZoneMessage::Read(BufferCursor* cursor) { ReadText(cursor); }     // 00415840
+void ZoneMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
+void ZoneMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 EI_REWRITTEN_SPECIAL(0x00416110, MapMessage::~MapMessage);
 EI_REWRITTEN_SPECIAL(0x004160F0, MapMessage::~MapMessage);
-Message* __fastcall MapMessage::Create() { return NewCounted<MapMessage>(); }   // 00415D50
-MapMessage* MapMessage::Clone() { return NewCounted<MapMessage>(*this); }      // 00415E00
-int MapMessage::OnShutdown() {   // 00415F20
+Message* __fastcall MapMessage::Create() { return NewCounted<MapMessage>(); }
+MapMessage* MapMessage::Clone() { return NewCounted<MapMessage>(*this); }
+int MapMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void MapMessage::Write(BufferCursor* cursor) { WriteText(cursor); }   // 00415FE0
-void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }     // 00416020
+void MapMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
+void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 // ================================================================================================
 // 0073BC40 CommandMessage.
@@ -197,17 +196,17 @@ CommandMessage::CommandMessage(const CommandMessage& other) : Message(other), ki
 EI_REWRITTEN_SPECIAL(0x00414060, CommandMessage::~CommandMessage);
 EI_REWRITTEN_SPECIAL(0x00414040, CommandMessage::~CommandMessage);
 
-Message* __fastcall CommandMessage::Create() { return NewCounted<CommandMessage>(); }   // 00417250
-CommandMessage* CommandMessage::Clone() { return NewCounted<CommandMessage>(*this); }  // 00413D20
-int CommandMessage::OnShutdown() {   // 00413E40
+Message* __fastcall CommandMessage::Create() { return NewCounted<CommandMessage>(); }
+CommandMessage* CommandMessage::Clone() { return NewCounted<CommandMessage>(*this); }
+int CommandMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void CommandMessage::Write(BufferCursor* cursor) {   // 00413F00
+void CommandMessage::Write(BufferCursor* cursor) {
     Put(cursor, kind_);
     PutString(cursor, text_);
 }
-void CommandMessage::Read(BufferCursor* cursor) {   // 00413F50
+void CommandMessage::Read(BufferCursor* cursor) {
     Take(cursor, kind_);
     TakeString(cursor, text_);
 }
@@ -230,27 +229,27 @@ BindingMessage::BindingMessage() {}
 EI_REWRITTEN_SPECIAL(0x0041C870, BindingMessage::BindingMessage);
 EI_REWRITTEN_SPECIAL(0x004154D0, BindingMessage::~BindingMessage);
 EI_REWRITTEN_SPECIAL(0x004154B0, BindingMessage::~BindingMessage);
-Message* __fastcall BindingMessage::Create() { return NewCounted<BindingMessage>(); }   // 00415320
-BindingMessage* BindingMessage::Clone() { return NewCounted<BindingMessage>(*this); }  // 00415350
-int BindingMessage::OnShutdown() {   // 004153B0
+Message* __fastcall BindingMessage::Create() { return NewCounted<BindingMessage>(); }
+BindingMessage* BindingMessage::Clone() { return NewCounted<BindingMessage>(*this); }
+int BindingMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void BindingMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }   // 00415450
-void BindingMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }     // 00415470
+void BindingMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
+void BindingMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 
 FileRequestMessage::FileRequestMessage() {}
 EI_REWRITTEN_SPECIAL(0x004140B0, FileRequestMessage::FileRequestMessage);
 EI_REWRITTEN_SPECIAL(0x00414270, FileRequestMessage::~FileRequestMessage);
 EI_REWRITTEN_SPECIAL(0x00414250, FileRequestMessage::~FileRequestMessage);
-Message* __fastcall FileRequestMessage::Create() { return NewCounted<FileRequestMessage>(); }   // 004179E0
-FileRequestMessage* FileRequestMessage::Clone() { return NewCounted<FileRequestMessage>(*this); }  // 004140D0
-int FileRequestMessage::OnShutdown() {   // 00414130
+Message* __fastcall FileRequestMessage::Create() { return NewCounted<FileRequestMessage>(); }
+FileRequestMessage* FileRequestMessage::Clone() { return NewCounted<FileRequestMessage>(*this); }
+int FileRequestMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void FileRequestMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }   // 004141F0
-void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }     // 00414210
+void FileRequestMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
+void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 
 // ================================================================================================
 // 0073BC70 PlayerMessage.
@@ -266,13 +265,13 @@ PlayerMessage::PlayerMessage(const PlayerMessage& other)
 EI_REWRITTEN_SPECIAL(0x004148E0, PlayerMessage::~PlayerMessage);
 EI_REWRITTEN_SPECIAL(0x004148C0, PlayerMessage::~PlayerMessage);
 
-Message* __fastcall PlayerMessage::Create() { return NewCounted<PlayerMessage>(); }   // 00414420
-PlayerMessage* PlayerMessage::Clone() { return NewCounted<PlayerMessage>(*this); }   // 00414500
-int PlayerMessage::OnShutdown() {   // 00414650
+Message* __fastcall PlayerMessage::Create() { return NewCounted<PlayerMessage>(); }
+PlayerMessage* PlayerMessage::Clone() { return NewCounted<PlayerMessage>(*this); }
+int PlayerMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void PlayerMessage::Write(BufferCursor* cursor) {   // 00414770
+void PlayerMessage::Write(BufferCursor* cursor) {
     PutString(cursor, name_);
     PutString(cursor, text_);
     Put(cursor, state_);
@@ -280,7 +279,7 @@ void PlayerMessage::Write(BufferCursor* cursor) {   // 00414770
     Put(cursor, id_);
     Put(cursor, serial_);
 }
-void PlayerMessage::Read(BufferCursor* cursor) {   // 00414820
+void PlayerMessage::Read(BufferCursor* cursor) {
     TakeString(cursor, name_);
     TakeString(cursor, text_);
     Take(cursor, state_);
@@ -301,17 +300,17 @@ LineMessage::~LineMessage() { ReleaseCounted(connection_); }
 EI_REWRITTEN_SPECIAL(0x00414D10, LineMessage::~LineMessage);
 EI_REWRITTEN_SPECIAL(0x00414CF0, LineMessage::~LineMessage);
 
-Message* __fastcall LineMessage::Create() { return NewCounted<LineMessage>(); }   // 00414960
-LineMessage* LineMessage::Clone() { return NewCounted<LineMessage>(*this); }     // 00414A00
-int LineMessage::OnShutdown() {   // 00414AC0
+Message* __fastcall LineMessage::Create() { return NewCounted<LineMessage>(); }
+LineMessage* LineMessage::Clone() { return NewCounted<LineMessage>(*this); }
+int LineMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void LineMessage::Write(BufferCursor* cursor) {   // 00414BB0
+void LineMessage::Write(BufferCursor* cursor) {
     Put(cursor, number_);
     PutString(cursor, text_);
 }
-void LineMessage::Read(BufferCursor* cursor) {   // 00414C00
+void LineMessage::Read(BufferCursor* cursor) {
     Take(cursor, number_);
     TakeString(cursor, text_);
 }
@@ -328,17 +327,17 @@ HostMessage::HostMessage(const HostMessage& other) : Message(other), address_(ot
 EI_REWRITTEN_SPECIAL(0x004152A0, HostMessage::~HostMessage);
 EI_REWRITTEN_SPECIAL(0x00415280, HostMessage::~HostMessage);
 
-Message* __fastcall HostMessage::Create() { return NewCounted<HostMessage>(); }   // 00414DB0
-HostMessage* HostMessage::Clone() { return NewCounted<HostMessage>(*this); }     // 00414E80
-int HostMessage::OnShutdown() {   // 00414FA0
+Message* __fastcall HostMessage::Create() { return NewCounted<HostMessage>(); }
+HostMessage* HostMessage::Clone() { return NewCounted<HostMessage>(*this); }
+int HostMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void HostMessage::Write(BufferCursor* cursor) {   // 004150B0
+void HostMessage::Write(BufferCursor* cursor) {
     PutString(cursor, address_);
     PutString(cursor, zone_);
 }
-void HostMessage::Read(BufferCursor* cursor) {   // 00415120
+void HostMessage::Read(BufferCursor* cursor) {
     TakeString(cursor, address_);
     TakeString(cursor, zone_);
 }
@@ -354,18 +353,18 @@ VariableMessage::VariableMessage(const VariableMessage& other) : Message(other),
 EI_REWRITTEN_SPECIAL(0x00415D00, VariableMessage::~VariableMessage);
 EI_REWRITTEN_SPECIAL(0x00415CE0, VariableMessage::~VariableMessage);
 
-Message* __fastcall VariableMessage::Create() { return NewCounted<VariableMessage>(); }   // 00415980
-VariableMessage* VariableMessage::Clone() { return NewCounted<VariableMessage>(*this); }  // 00415A30
-int VariableMessage::OnShutdown() {   // 00415B60
+Message* __fastcall VariableMessage::Create() { return NewCounted<VariableMessage>(); }
+VariableMessage* VariableMessage::Clone() { return NewCounted<VariableMessage>(*this); }
+int VariableMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void VariableMessage::Write(BufferCursor* cursor) {   // 00415C20
+void VariableMessage::Write(BufferCursor* cursor) {
     PutString(cursor, name_);
     PutBytes(cursor, &value_, 4);
     Put(cursor, serial_);
 }
-void VariableMessage::Read(BufferCursor* cursor) {   // 00415C80
+void VariableMessage::Read(BufferCursor* cursor) {
     TakeString(cursor, name_);
     TakeBytes(cursor, &value_, 4);
     Take(cursor, serial_);
@@ -387,7 +386,7 @@ FileMessage::FileMessage(const FileMessage& other)
     chunks_.Start() = block;
     chunks_.Finish() = block;
     chunks_.EndOfStorage() = block + n;
-    chunks_.Finish() = stlp::SharedRefVector::UninitializedCopy(from.begin(), from.end(), block, nullptr);   // 0042AE90
+    chunks_.Finish() = stlp::SharedRefVector::UninitializedCopy(from.begin(), from.end(), block, nullptr);
 }
 FileMessage::~FileMessage() {
     for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();   // 0042B880 (flags 0)
@@ -396,18 +395,18 @@ FileMessage::~FileMessage() {
 EI_REWRITTEN_SPECIAL(0x00416640, FileMessage::~FileMessage);
 EI_REWRITTEN_SPECIAL(0x00416620, FileMessage::~FileMessage);
 
-Message* __fastcall FileMessage::Create() { return NewCounted<FileMessage>(); }   // 00416160
-FileMessage* FileMessage::Clone() { return NewCounted<FileMessage>(*this); }     // 00416220
-int FileMessage::OnShutdown() {   // 00416390
+Message* __fastcall FileMessage::Create() { return NewCounted<FileMessage>(); }
+FileMessage* FileMessage::Clone() { return NewCounted<FileMessage>(*this); }
+int FileMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void FileMessage::Write(BufferCursor* cursor) {   // 004164D0
+void FileMessage::Write(BufferCursor* cursor) {
     Put(cursor, chunkCount_);
     Put(cursor, size_);
     PutString(cursor, name_);
 }
-void FileMessage::Read(BufferCursor* cursor) {   // 00416530
+void FileMessage::Read(BufferCursor* cursor) {
     Take(cursor, chunkCount_);
     Take(cursor, size_);
     TakeString(cursor, name_);
@@ -425,18 +424,18 @@ FileChunkMessage::~FileChunkMessage() { ReleaseCounted(file_); }
 EI_REWRITTEN_SPECIAL(0x004168E0, FileChunkMessage::~FileChunkMessage);
 EI_REWRITTEN_SPECIAL(0x004168C0, FileChunkMessage::~FileChunkMessage);
 
-Message* __fastcall FileChunkMessage::Create() { return NewCounted<FileChunkMessage>(); }   // 004166F0
-FileChunkMessage* FileChunkMessage::Clone() { return NewCounted<FileChunkMessage>(*this); }  // 00416720
-int FileChunkMessage::OnShutdown() {   // 00416780
+Message* __fastcall FileChunkMessage::Create() { return NewCounted<FileChunkMessage>(); }
+FileChunkMessage* FileChunkMessage::Clone() { return NewCounted<FileChunkMessage>(*this); }
+int FileChunkMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void FileChunkMessage::Write(BufferCursor* cursor) {   // 00416800
+void FileChunkMessage::Write(BufferCursor* cursor) {
     PutObject(cursor, file_);
     Put(cursor, index_);
     PutBytes(cursor, data_, kDataSize);
 }
-void FileChunkMessage::Read(BufferCursor* cursor) {   // 00416850
+void FileChunkMessage::Read(BufferCursor* cursor) {
     TakeObject(cursor, file_);
     Take(cursor, index_);
     TakeBytes(cursor, data_, kDataSize);
@@ -455,18 +454,18 @@ AwardMessage::~AwardMessage() { ReleaseCounted(connection_); }
 EI_REWRITTEN_SPECIAL(0x00416D70, AwardMessage::~AwardMessage);
 EI_REWRITTEN_SPECIAL(0x00416D50, AwardMessage::~AwardMessage);
 
-Message* __fastcall AwardMessage::Create() { return NewCounted<AwardMessage>(); }   // 00416940
-AwardMessage* AwardMessage::Clone() { return NewCounted<AwardMessage>(*this); }    // 00416A10
-int AwardMessage::OnShutdown() {   // 00416B30
+Message* __fastcall AwardMessage::Create() { return NewCounted<AwardMessage>(); }
+AwardMessage* AwardMessage::Clone() { return NewCounted<AwardMessage>(*this); }
+int AwardMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void AwardMessage::Write(BufferCursor* cursor) {   // 00416C00
+void AwardMessage::Write(BufferCursor* cursor) {
     Put(cursor, kind_);
     PutBytes(cursor, &value_, 4);
     PutString(cursor, text_);
 }
-void AwardMessage::Read(BufferCursor* cursor) {   // 00416C60
+void AwardMessage::Read(BufferCursor* cursor) {
     Take(cursor, kind_);
     TakeBytes(cursor, &value_, 4);
     TakeString(cursor, text_);
@@ -491,20 +490,20 @@ TradeMessage::~TradeMessage() {
 EI_REWRITTEN_SPECIAL(0x00416FC0, TradeMessage::~TradeMessage);
 EI_REWRITTEN_SPECIAL(0x00416FA0, TradeMessage::~TradeMessage);
 
-Message* __fastcall TradeMessage::Create() { return NewCounted<TradeMessage>(); }   // 00416DF0
-TradeMessage* TradeMessage::Clone() { return NewCounted<TradeMessage>(*this); }    // 00416E30
-int TradeMessage::OnShutdown() {   // 00416EB0
+Message* __fastcall TradeMessage::Create() { return NewCounted<TradeMessage>(); }
+TradeMessage* TradeMessage::Clone() { return NewCounted<TradeMessage>(*this); }
+int TradeMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void TradeMessage::Write(BufferCursor* cursor) {   // 00412C80
+void TradeMessage::Write(BufferCursor* cursor) {
     PutObject(cursor, offer_);
     PutObject(cursor, partnerOffer_);
     Put(cursor, done_);
     Put(cursor, revision_);
     Put(cursor, partnerRevision_);
 }
-void TradeMessage::Read(BufferCursor* cursor) {   // 00412CE0
+void TradeMessage::Read(BufferCursor* cursor) {
     TakeObject(cursor, offer_);
     TakeObject(cursor, partnerOffer_);
     Take(cursor, done_);
@@ -525,21 +524,21 @@ PartyMemberMessage::PartyMemberMessage(const PartyMemberMessage& other) : Messag
 EI_REWRITTEN_SPECIAL(0x00417620, PartyMemberMessage::~PartyMemberMessage);
 EI_REWRITTEN_SPECIAL(0x00417600, PartyMemberMessage::~PartyMemberMessage);
 
-Message* __fastcall PartyMemberMessage::Create() { return NewCounted<PartyMemberMessage>(); }   // 00417300
-PartyMemberMessage* PartyMemberMessage::Clone() {   // 00417420
+Message* __fastcall PartyMemberMessage::Create() { return NewCounted<PartyMemberMessage>(); }
+PartyMemberMessage* PartyMemberMessage::Clone() {
     return NewCounted<PartyMemberMessage>(*this);
 }
-int PartyMemberMessage::OnShutdown() {   // 004174F0
+int PartyMemberMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void PartyMemberMessage::Write(BufferCursor* cursor) {   // 00417560
+void PartyMemberMessage::Write(BufferCursor* cursor) {
     CStream* stream = &stream_;
     std::uint32_t size = stream->Size();
     Put(cursor, static_cast<std::uint16_t>(size));
     PutBytes(cursor, stream_.data_, size & 0xFFFF);
 }
-void PartyMemberMessage::Read(BufferCursor* cursor) {   // 004175B0
+void PartyMemberMessage::Read(BufferCursor* cursor) {
     std::uint16_t n;
     Take(cursor, n);
     stream_.Resize(n);
@@ -567,13 +566,13 @@ PartyMessage::~PartyMessage() {
 EI_REWRITTEN_SPECIAL(0x004178F0, PartyMessage::~PartyMessage);
 EI_REWRITTEN_SPECIAL(0x004178D0, PartyMessage::~PartyMessage);
 
-Message* __fastcall PartyMessage::Create() { return NewCounted<PartyMessage>(); }   // 00417650
-PartyMessage* PartyMessage::Clone() { return NewCounted<PartyMessage>(*this); }    // 004176A0
-int PartyMessage::OnShutdown() {   // 004177A0
+Message* __fastcall PartyMessage::Create() { return NewCounted<PartyMessage>(); }
+PartyMessage* PartyMessage::Clone() { return NewCounted<PartyMessage>(*this); }
+int PartyMessage::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void PartyMessage::Write(BufferCursor* cursor) {   // 00412AC0
+void PartyMessage::Write(BufferCursor* cursor) {
     std::int32_t count = static_cast<std::int32_t>(members_.size());
     Put(cursor, count);
     for (std::int32_t i = 0; i < count; ++i) PutObject(cursor, members_.begin()[i]);
@@ -584,7 +583,7 @@ void PartyMessage::Write(BufferCursor* cursor) {   // 00412AC0
     PutObject(cursor, player_);
     PutObject(cursor, partner_);
 }
-void PartyMessage::Read(BufferCursor* cursor) {   // 00412B70
+void PartyMessage::Read(BufferCursor* cursor) {
     std::int32_t count;
     Take(cursor, count);
     static_cast<stlp::VectorAbi<RefPtr, stlp::CountedRefElement>*>(&members_)->ResizeDefault(static_cast<std::size_t>(count));
@@ -630,12 +629,12 @@ ServerEntry::ServerEntry(const ServerEntry& other)
 EI_REWRITTEN_SPECIAL(0x004128E0, ServerEntry::~ServerEntry);
 EI_REWRITTEN_SPECIAL(0x004128C0, ServerEntry::~ServerEntry);
 
-ServerEntry* ServerEntry::Clone() { return NewCounted<ServerEntry>(*this); }   // 00412590
-int ServerEntry::OnShutdown() {   // 00412750
+ServerEntry* ServerEntry::Clone() { return NewCounted<ServerEntry>(*this); }
+int ServerEntry::OnShutdown() {
     Rebuild(this);
     return 0;
 }
-void ServerEntry::Write(BufferCursor* cursor) {   // 00412990
+void ServerEntry::Write(BufferCursor* cursor) {
     PutString(cursor, name_);
     Put(cursor, kind_);
     PutString(cursor, description_);
@@ -643,7 +642,7 @@ void ServerEntry::Write(BufferCursor* cursor) {   // 00412990
     Put(cursor, maxPlayers_);
     Put(cursor, password_);
 }
-void ServerEntry::Read(BufferCursor* cursor) {   // 00412A30
+void ServerEntry::Read(BufferCursor* cursor) {
     TakeString(cursor, name_);
     Take(cursor, kind_);
     TakeString(cursor, description_);

@@ -1,5 +1,5 @@
 // The unit shapes (CUnitShape, ai_unit_layer.h): the 16 x 16 cell levels a unit of a radius stamps
-// on the AI map's unit layers. Shared through the shape cache (007C2F70), whose slot 0 creates
+// on the AI map's unit layers. Shared through the shape cache, whose slot 0 creates
 // them. See docs/notes/ai.md.
 #include "ai_unit_layer.h"
 

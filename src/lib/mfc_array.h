@@ -32,7 +32,6 @@ struct Bytes {
 };
 
 // ---- Element policies ---------------------------------------------------------------------------
-//
 // Each has Construct(T*, int) and Destruct(T*, int). Plain data is mfc::PlainElements<T> (zero fill,
 // nothing destroyed).
 
@@ -166,7 +165,6 @@ void DestructArrayOf(CArray<T, E>& a) {
 }
 
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
-//
 // One type per vtable, for the templates: Vtable() is the address of the instantiation's vtable. The forward-declared
 // ones are compiler-made vtables (C19: classes of mfc_slots.h and the game headers deriving from CompiledCollection);
 // the element policies and aliases below only name them.
@@ -203,7 +201,7 @@ struct AiLookRecordArrayClass;   // the array inside the AI's 32-byte look recor
 
 // ---- Elements ------------------------------------------------------------------------------------
 
-// 40-byte key frames: a quaternion at +0x18, identity (w first) after the zero fill (00453730).
+// 40-byte key frames: a quaternion at +0x18, identity (w first) after the zero fill.
 struct KeyFrame40 {
     std::uint8_t head[0x18];
     float w, x, y, z;
@@ -216,7 +214,7 @@ inline void InitKeyFrame40(KeyFrame40* p) {
     p->z = 0.0f;
 }
 
-// {dword, CString} (004553F0) and 0x3C-byte records with a CString at +0x28 (004606A0): the string
+// {dword, CString} and 0x3C-byte records with a CString at +0x28: the string
 // set to the shared empty one.
 template <std::size_t Size, std::size_t StringAt>
 struct WithString {
@@ -251,7 +249,7 @@ void InitWithArray(WithArray<Size, ArrayAt, Class>* p) {
     ConstructHeader<Class>(p->bytes + ArrayAt);
 }
 
-// 40-byte placements: a quaternion at +0x10, identity (w first) after the zero fill (004CEE20).
+// 40-byte placements: a quaternion at +0x10, identity (w first) after the zero fill.
 struct Placement40 {
     std::uint8_t head[0x10];
     float w, x, y, z;
@@ -265,7 +263,7 @@ inline void InitPlacement40(Placement40* p) {
     p->z = 0.0f;
 }
 
-// 12-byte path records: 0, then two indices -1 (00539910).
+// 12-byte path records: 0, then two indices -1.
 struct PathRecord12 {
     int value;
     int first;
@@ -277,7 +275,7 @@ inline void InitPathRecord12(PathRecord12* p) {
     p->second = -1;
 }
 
-// 20-byte effect sound records: 0, two handles -1, 0, a flag byte 0 (00512520).
+// 20-byte effect sound records: 0, two handles -1, 0, a flag byte 0.
 struct SoundRecord20 {
     int value;
     int first;
@@ -315,7 +313,6 @@ inline void InitAnimationStep12(AnimationStep12* p) {
 }
 
 // 16-byte effect particles (game/unit.h EffectParticle): type 0, power 0x10, no source, not present
-// (005124D0).
 struct Particle16 {
     int type;
     int power;
@@ -331,8 +328,8 @@ inline void InitParticle16(Particle16* p) {
     p->present = 0;
 }
 
-// The destructors of elements that hold an array header at `ArrayAt` (0045E1E0, 004C9AF0): the
-// vtable of `BaseClass`, the storage freed, the fields left. With `Strings` CStrings from +0 (004608D0):
+// The destructors of elements that hold an array header at `ArrayAt`: the
+// vtable of `BaseClass`, the storage freed, the fields left. With `Strings` CStrings from +0:
 // those destroyed afterwards, the last first.
 template <typename E, std::size_t ArrayAt, typename BaseClass>
 void __fastcall DestroyArrayAt(E* p) {
@@ -386,16 +383,16 @@ static_assert(sizeof(AnimationStepList) == 0x18);
 
 struct AnimationStepListAbi : AnimationStepList {
     using Array = AnimationSteps::Array;
-    // 0054B260: the copy constructor (RET 4): the steps (SetSize to the source's count, then each
+    // The copy constructor (RET 4): the steps (SetSize to the source's count, then each
     // step), then extra. Returns this.
     AnimationStepList* CopyConstruct(const AnimationStepList* source) {
         CopyConstructSteps(source);
         this->extra = source->extra;
         return this;
     }
-    // 00556870: the same without extra (the steps' array alone). Defined in mfc_slots.h, after AnimationStepsCopyClass.
+    // The same without extra (the steps' array alone). Defined in mfc_slots.h, after AnimationStepsCopyClass.
     Array* CopyConstructSteps(const Array* source);
-    // 005483C0: operator= (RET 4): Copy, then extra. Returns this.
+    // Operator= (RET 4): Copy, then extra. Returns this.
     AnimationStepList* Assign(const AnimationStepList* source) {
         this->Copy(*source);
         this->extra = source->extra;
@@ -414,7 +411,7 @@ using AllodElement = StringsAndArray<0x2C, 6, 0x18, IntArrayClass>;
 using OwnedAllods = ArrayAbi<AllodElement, EachElements<AllodElement, InitStringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
                                                        DestroyStringsAndArray<AllodElement, 6, 0x18, IntArrayClass>>>;
 
-// Script areas: 24-byte elements that are an array of ScriptAreaPartsClass (004CEDC0), destroyed by
+// Script areas: 24-byte elements that are an array of ScriptAreaPartsClass, destroyed by
 // the base's destructor (004BCF10: ScriptAreaClass's vtable, the storage freed).
 using ScriptAreaElement = WithArray<0x18, 0, ScriptAreaPartsClass>;
 using ScriptAreas = ArrayAbi<ScriptAreaElement, EachElements<ScriptAreaElement, InitWithArray<0x18, 0, ScriptAreaPartsClass>,
@@ -445,7 +442,7 @@ using FigureParts = ArrayAbi<Bytes<0x220>, EachElements<Bytes<0x220>, nullptr, D
 using SceneRecords = ArrayAbi<Bytes<0x18C>, EachElements<Bytes<0x18C>, nullptr, DeleteThroughFirst<Bytes<0x18C>>>>;
 
 // Elements that are the engine's aligned arrays (lib/containers.h AlignedArray, 16 bytes; the terrain
-// sectors' lists): zero filled (006C5050); destroyed by freeing the block (006C5010), the fields left.
+// sectors' lists): zero filled; destroyed by freeing the block, the fields left.
 inline void FreeAlignedData(Bytes<16>* p) {
     void* data = *reinterpret_cast<void**>(p->bytes);
     if (data) lib::FreeAligned32(data);

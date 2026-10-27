@@ -152,12 +152,12 @@ EI_REWRITTEN_SPECIAL(0x0055F790, DriverSession::~DriverSession);
 
 } // namespace netlink
 
-// ---- CWorld::OpenSession (0055F410) ---------------------------------------------------------------
+// ---- CWorld::OpenSession ---------------------------------------------------------------
 
 void CWorld::OpenSession() { netSession_.ShareAssign(new DriverSession()); }
 EI_REWRITTEN(0x0055F410, CWorld::OpenSession);
 
-// ---- CWorld::CloseSession (0055F890) --------------------------------------------------------------
+// ---- CWorld::CloseSession --------------------------------------------------------------
 
 void CWorld::CloseSession() {
     RefPtr& session = netSession_;

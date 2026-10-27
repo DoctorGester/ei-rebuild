@@ -1,4 +1,4 @@
-// The sort of the changed variables by their stamp (00589160, 00589240): STLport's introsort
+// The sort of the changed variables by their stamp: STLport's introsort
 // instantiated for node pointers with EntryIdLess.
 #include "world.h"
 

@@ -18,7 +18,7 @@
 
 namespace dbfile {
 
-// The archive file, built in place: its constructor (00671280) directly, its open and its
+// The archive file, built in place: its constructor directly, its open and its
 // destructor body through their addresses (00671730 / 006714A0, which Rebirth patches).
 struct LocalResource {
     LocalResource() { new (Get()) CMappedResource(); }
@@ -49,7 +49,7 @@ inline int ReportNoDatabase(const mfc::CString& folder) {
 // One table's pass over the stream: an archive of its own (the out-of-line constructor 0053A7B0)
 // opened for loading, the table's records read as chunk `id` by the archive's vector serialiser
 // `serialize` (the chunk id, the vector, an unused argument), the archive closed; `index` then
-// files the records, and the archive is destroyed (004645A0).
+// files the records, and the archive is destroyed.
 template <typename Records, typename Table, typename Index>
 void LoadTable(CMemoryStream* stream, int id, void (ChunkArchive::*serialize)(int, Records*, void*), Table* table,
                void* unused, Index index) {

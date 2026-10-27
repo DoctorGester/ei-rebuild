@@ -141,7 +141,7 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
 // (0x120 bytes), the low word of `frames` the animation's frame count.
 void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames) {
     CAnimationNode* added = bone;
-    skin->bones.SetAtGrowRef(skin->bones.size, &added);   // 00452C40
+    skin->bones.SetAtGrowRef(skin->bones.size, &added);
     bone = added;
     bone->name_ = node->name;
     bone->frameCount_ = static_cast<short>(frames);
@@ -165,7 +165,7 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
     CopyRotationKeys(bone, node);
     CopyTranslationKeys(bone, node);
     if (node->morphKeys.size == 0) {
-        mfc::impl::ArrayAs<gamearrays::BlocksAt8>(bone->morphFrames_).SetSize(0, -1);   // 0044F7E0
+        mfc::impl::ArrayAs<gamearrays::BlocksAt8>(bone->morphFrames_).SetSize(0, -1);
     } else {
         bone->morphFrames_.SetSize(node->positionKeys.size);
         if (bone->morphFrames_.size > 0) BuildMorphFrames(bone, node);

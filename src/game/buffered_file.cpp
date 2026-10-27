@@ -1,7 +1,7 @@
 // The buffered file streams (004DA580-004DB9C0); see buffered_file.h.
 #include "buffered_file.h"
 
-#include "net_classes.h"   // BufferRead (00401340)
+#include "net_classes.h"   // BufferRead
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -225,16 +225,16 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
 EI_REWRITTEN(0x004DB700, BufferedFile::Open);
 
 // A hash_set<int> that nothing of ours reads (game.exe's code near 004DC400 does): empty at the start, built by the
-// static initialiser 004DB870 in the list's order and destroyed by the exit function it registers (004DB890); both
+// static initialiser 004DB870 in the list's order and destroyed by the exit function it registers; both
 // ported on the name and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
 using UnreadSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 constinit lib::StaticObject<UnreadSet> g_unreadSet = /*007AB8D8*/ {};
 namespace {
-void __cdecl ConstructUnreadSet() {   // 004DB870
+void __cdecl ConstructUnreadSet() {
     g_unreadSet->Construct(100, 0, 0, 0);
     libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004DB890));
 }
-void __cdecl DestroyUnreadSet() { g_unreadSet->Destroy(); }   // 004DB890
+void __cdecl DestroyUnreadSet() { g_unreadSet->Destroy(); }
 } // namespace
 EI_REPLACE(0x004DB870, ConstructUnreadSet);
 EI_REPLACE(0x004DB890, DestroyUnreadSet);

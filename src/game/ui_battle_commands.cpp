@@ -1,6 +1,6 @@
-// The battle screen's party commands: the member toggle (006379E0), the attack on a unit
-// (00637190), the order on a dead unit (006373A0), a unit's speech event (006366F0, slot 32) and
-// the pending spell or quick item used on a unit or a point (00637500, 00637750).
+// The battle screen's party commands: the member toggle, the attack on a unit
+// the order on a dead unit, a unit's speech event (006366F0, slot 32) and
+// the pending spell or quick item used on a unit or a point.
 // See docs/notes/ui.md ("Battle screen").
 #include "acks_db.h"
 #include "base_manager.h"
@@ -31,7 +31,7 @@ namespace {
 
 constexpr std::uint32_t kFlagSelected = 0x10;
 
-// A random value times ~-2^-34 * 0.3 (00742760): the portrait's wobble delay, stored as a float.
+// A random value times ~-2^-34 * 0.3: the portrait's wobble delay, stored as a float.
 float PortraitDelay(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * (-6.984919588798148e-11 /*00742760*/));
 }
@@ -52,7 +52,7 @@ inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView
 // The local view's spell and quick item orders (thiscall, RET 0x10): on a unit 0066AC70 (spell) /
 // 0066AD40 (quick item) with (slot, member, target, ctrl), at a point 0066ACD0 / 0066ADD0 with
 // (slot, member, &point, 0).
-// CUnit::CanCastSpell (0052F820) / CanUseQuickItem (0052F8B0) (thiscall, RET 8; rewritten),
+// CUnit::CanCastSpell / CanUseQuickItem (thiscall, RET 8; rewritten),
 // CHudQuickItems::SetUnit (0063D2B0, RET 4; rewritten), through their addresses.
 // The HUD panels (thiscall, RET 8): quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0),
 // actions 0063F730 (index, 0); 005E7060 (RET 4) a sprite's scale.

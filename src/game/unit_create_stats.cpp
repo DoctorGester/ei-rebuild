@@ -31,16 +31,16 @@
 // Values the original keeps on the FPU stack are double locals; values it stores are floats.
 
 namespace {
-// The records (unit_db.h): prototypes (007AF358), models (007AF398), NPCs (007AF378) and the
-// models' level records (007AF3B8).
+// The records (unit_db.h): prototypes, models, NPCs and the
+// models' level records.
 using Prototype = UnitPrototypeRecord;
 using Model = UnitModelRecord;
 using Npc = UnitNpcRecord;
 
-constexpr int kSkillLevelRecordSize = 0x44;   // 007AF3B8
+constexpr int kSkillLevelRecordSize = 0x44;
 
-constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);     // 0073BAA8
-constexpr float kHalf = 0.5f;                                    // 0073B86C
+constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);
+constexpr float kHalf = 0.5f;
 constexpr std::uint32_t kStat25 = 0x41C80000;                    // 25.0
 constexpr std::uint32_t kRate15 = 0x41700000;                    // 15.0
 constexpr std::uint32_t kDefaultStat = 0x42480000;               // 50.0
@@ -52,7 +52,7 @@ constexpr std::uint32_t kThousand = 0x447A0000;
 constexpr std::uint32_t kTen = 0x41200000;
 constexpr int kSlotWorking = 3;
 
-// pi and 1/180 (0073DCA8 / 0073BA30) and 90 (0073BAB8): volatile so the products are computed
+// pi and 1/180 and 90: volatile so the products are computed
 // at run time with the FPU's precision, as the original does.
 volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
@@ -116,7 +116,7 @@ void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const 
 }
 
 // The body slots from the model: a slot with a share is working, with its type and vital mask
-// from its level record (007AF3B8) and no layers; the others unused.
+// from its level record and no layers; the others unused.
 void SetSlots(UnitStats* stats, const Model* model) {
     for (int i = 0; i < 6; ++i) {
         const UnitModelSlot& entry = model->slots[i];
@@ -156,8 +156,8 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
     if (!npc) return;
     stats->AddScaledExperience(npc->experience);
     for (const mfc::CString* name = npc->skillNames.begin(); name != npc->skillNames.end(); ++name) {
-        ::SkillLevelRecord* skill = SkillDb()->FindLevel(name->GetString());   // 0051FE00
-        if (skill) stats->LearnSkill(SkillDb(), skill);                        // 00526450
+        ::SkillLevelRecord* skill = SkillDb()->FindLevel(name->GetString());
+        if (skill) stats->LearnSkill(SkillDb(), skill);
     }
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
 }
@@ -368,12 +368,12 @@ EI_REWRITTEN(0x00513240, PrototypeObjectClass);
 // --- Statistics from their bases -----------------------------------------------------------------
 
 namespace {
-constexpr float kZero = 0.0f;                                     // 0073B858
-constexpr float kOneF = 1.0f;                                     // 0073B84C
+constexpr float kZero = 0.0f;
+constexpr float kOneF = 1.0f;
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // 0073C548 / 0073D09C (0.01)
-constexpr float kTwelve = 12.0f;                                  // 0073E138
-constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);    // 0073BAD4
-constexpr float kTenF = 10.0f;                                    // 0073BAAC
+constexpr float kTwelve = 12.0f;
+constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);
+constexpr float kTenF = 10.0f;
 constexpr std::uint32_t kMinusTwo = 0xC0000000u;
 constexpr int kSkillBodyB0 = 15;
 constexpr int kSkillHitPoints = 16;
@@ -383,8 +383,8 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// 007C5460 ^ (ln(experience / 007C545C) / ln(007C5464)): FYL2X with FLDLN2 and the CRT's
-// _CIpow (006E81A0), as the original computes it. Unrounded.
+// 007C5460 ^ (ln(experience / 007C545C) / ln): FYL2X with FLDLN2 and the CRT's
+// _CIpow, as the original computes it. Unrounded.
 double HitPointExperienceCurve(const float* experience) {
     return libcrt::CiPow(GameLogicSettings().hpVal[3], x87::flog(static_cast<double>(*experience) / GameLogicSettings().hpVal[2]) / x87::flog(GameLogicSettings().hpVal[4]));
 }
@@ -451,7 +451,7 @@ EI_REWRITTEN(0x00524CD0, UnitStats::ResetToBase);
 namespace {
 // 005259B0 UnitStats::Reduce and 00525800 UnitStats::HealSlots of unit_stats.cpp / unit_vitals.cpp,
 // through their game addresses. Reduce leaves its result unrounded in ST0.
-// 0051FF00. Skill database: the index of `record` in its level records, or -1. Not rewritten.
+// Skill database: the index of `record` in its level records, or -1. Not rewritten.
 
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).
 float CurveHitPoints(UnitStats* stats) {
@@ -481,7 +481,7 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
 EI_REWRITTEN(0x00526450, UnitStats::LearnSkill);
 
 namespace {
-constexpr float kStatBase = 25.0f;   // 0073E124
+constexpr float kStatBase = 25.0f;
 constexpr int kSkillRecordSize = 0x18;
 
 // The level value of skill `index` stored to a float (FILD qword, FSTP float); 0 without one.
@@ -570,7 +570,7 @@ EI_REWRITTEN(0x005260A0, UnitStats::CanLearn);
 // --- Applying a prototype ---------------------------------------------------------------------
 
 int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
-    UnitVitals vitals{};   // zeroed (the original's start as the stack held them; SV7b3)
+    UnitVitals vitals{};   // zeroed (the original's start as the stack held them)
     UnitStats stats{};
     const Prototype* prototype = FindPrototype(name);
     if (!prototype) {
@@ -628,24 +628,24 @@ struct FactoryEntry {
     Constructor constructor;
 };
 constexpr FactoryEntry kFactory[] = {
-    {0x32, 0x4DC, ConstructAt<CUnit>},                    // 0052E110
+    {0x32, 0x4DC, ConstructAt<CUnit>},
     {0x33, 0x4DC, ConstructAt<CUnit>},
     {0x34, 0x4DC, ConstructAt<CUnit>},
-    {0x35, 0x238, ConstructAt<CTree>},                    // 005296E0
-    {0x36, 0x238, ConstructAt<CBuilding>},                // 005297C0
-    {0x37, 0x238, ConstructAt<CStone>},                   // 005298A0
-    {0x38, 0x238, ConstructAt<CStuffObject>},             // 00529980
-    {0x39, 0x580, ConstructAt<scene::FakeUnitScene>},     // 004466D0
-    {0x3A, 0x23C, ConstructAt<CTorchObject>},             // 0052BEE0
-    {0x3B, 0x290, ConstructAt<MagicTrap>},                // 00529DD0
-    {0x3C, 0x264, ConstructAt<Lever>},                    // 0052B1F0
-    {0x300D, 0x78, ConstructAt<CFigureAnimationState>},   // 0050C5F0
-    {0x3010, 0x23C, ConstructAt<CTrapObject>},            // 00529A80
+    {0x35, 0x238, ConstructAt<CTree>},
+    {0x36, 0x238, ConstructAt<CBuilding>},
+    {0x37, 0x238, ConstructAt<CStone>},
+    {0x38, 0x238, ConstructAt<CStuffObject>},
+    {0x39, 0x580, ConstructAt<scene::FakeUnitScene>},
+    {0x3A, 0x23C, ConstructAt<CTorchObject>},
+    {0x3B, 0x290, ConstructAt<MagicTrap>},
+    {0x3C, 0x264, ConstructAt<Lever>},
+    {0x300D, 0x78, ConstructAt<CFigureAnimationState>},
+    {0x3010, 0x23C, ConstructAt<CTrapObject>},
 };
 } // namespace
 
 // Every object starts zeroed (operator_new_zeroed): the units' constructors leave levels4C8 and the
-// motion's turn fields, which the saves write (SV7b2).
+// motion's turn fields, which the saves write.
 CEngineObject* CMapObjectManager::NewObject(int classId) {
     for (const FactoryEntry& entry : kFactory) {
         if (entry.classId != classId) continue;

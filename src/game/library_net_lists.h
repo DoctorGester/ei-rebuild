@@ -1,6 +1,6 @@
 #pragma once
 
-// The connection's STLport lists whose elements own something (S12e, docs/notes/standalone.md):
+// The connection's STLport lists whose elements own something (docs/notes/standalone.md):
 // the send history (list<SentPacket>, each packet owning a list<SentItem> of counted entries), the
 // freed-id batches (list<vector<FreedId>>) and the reliable chunk lists (list<ReliableChunk>, plain
 // bytes), with the element policies (stlp_list.h) their copy constructors, default inserts, erase,
@@ -23,8 +23,8 @@ namespace netlists {
 using SentRecord = net::SentItem;
 using SentItems = stlp::list<SentRecord>;
 
-// _M_create_node's copy (0043ABB0): the action and version, the entry with one more reference (its
-// 16-bit count; a null entry stays null). Destroyed with the entry's release (0043A120). insert(pos)
+// _M_create_node's copy: the action and version, the entry with one more reference (its
+// 16-bit count; a null entry stays null). Destroyed with the entry's release. insert(pos)
 // copies a default item: the original leaves action and version as its stack had them (every caller
 // overwrites them); ours are zero.
 struct SentRecordElement {
@@ -50,11 +50,11 @@ struct SentRecordElement {
 using PacketRecord = net::SentPacket;
 using SentPackets = stlp::list<PacketRecord>;
 
-// _M_create_node's copy (0043ADE0): the time, the sequence (not the word after it), the items by
+// _M_create_node's copy: the time, the sequence (not the word after it), the items by
 // the list's copy constructor (a sentinel, then a copy of each item), the header's 0x104 bytes and
 // the rolled-back byte (not the three after it). Destroyed as 0043A1D0: the items cleared (each
 // entry released, the node back to the pool), then the items' sentinel. insert(pos) copies a
-// default packet (004397E0): an empty item list and rolledBack 0; the time, sequence and header
+// default packet: an empty item list and rolledBack 0; the time, sequence and header
 // were the original's stack bytes (the caller overwrites them), ours are zero.
 struct PacketRecordElement {
     static void Copy(PacketRecord* to, const PacketRecord& from);
@@ -67,7 +67,7 @@ struct PacketRecordElement {
 using FreedIds = net::FreedIds;
 using FreedBatches = stlp::list<FreedIds>;
 
-// _M_create_node's copy (0043AC40): vector's copy constructor (room for exactly size() ids, none
+// _M_create_node's copy: vector's copy constructor (room for exactly size() ids, none
 // when empty). Destroyed as 0043A150 (the storage back to the pool, by its capacity). insert(pos)
 // copies an empty vector.
 struct FreedIdsElement {
@@ -82,7 +82,7 @@ struct FreedIdsElement {
 
 using Chunks = stlp::list<net::ReliableChunk>;
 
-// The chunk's bytes copied. insert(pos) (00439C80) copies a default chunk: the original's stack
+// The chunk's bytes copied. insert(pos) copies a default chunk: the original's stack
 // bytes (the caller writes the sequence, size and data); ours are zero.
 struct ChunkElement {
     static void Copy(net::ReliableChunk* to, const net::ReliableChunk& from) { *to = from; }

@@ -1,9 +1,9 @@
 // The unit set's builder (005593D0, UnitSet::Add; world.h), called for each unit by the server's
-// SendZone (world_sync.cpp), and the STLport helpers it was compiled with (S16a). The set's maps are
+// SendZone (world_sync.cpp), and the STLport helpers it was compiled with. The set's maps are
 // game_hashes.h's tables: the figured groups (hash_map<prototype, FiguredTable>), each group a
 // hash_multimap of figured records by their scale key, and the dressed records, a hash_multimap by
 // prototype. The temporaries are made, copied and destroyed in the original's order: the game reads
-// the heap's address order (docs/notes/standalone-verification.md, SV2f).
+// the heap's address order (docs/notes/standalone-verification.md).
 #include "world.h"
 
 #include "game_hashes.h"
@@ -30,7 +30,7 @@ using IdElement = stlp::PlainElement<std::uint32_t>;
 using NameElement = stlp::ObjectElement<mfc::CString>;
 
 constexpr std::uint32_t kNoItem = 0xFFFFFFFFu;
-constexpr float kScaleSteps = 127.0f;   // 0073D06C
+constexpr float kScaleSteps = 127.0f;
 
 // The figure's scale as a key: each component times 127, truncated (_ftol), 10 bits each, x highest.
 std::uint32_t ScaleKey(const Vector3& scale) {
@@ -59,9 +59,9 @@ bool SameIds(const UnitIdList& a, const UnitIdList& b) {
 }
 
 // The group of `prototype` (made when missing) as the original reaches it: an empty table
-// (hash_map(), 0055AC40), a pair of the key and a copy of it (0055ABB0 / 0055AEB0), find_or_insert
+// (hash_map(), 0055AC40), a pair of the key and a copy of it, find_or_insert
 // of the pair (0055BA10: a new node copies the pair again), then the pair's table and the empty one
-// destroyed (0055AD10).
+// destroyed.
 FiguredTable* GroupFor(FiguredGroupsTable& groups, std::uint32_t prototype) {
     FiguredTable empty;
     empty.Construct(100, 0, 0, 0);
@@ -77,7 +77,7 @@ FiguredTable* GroupFor(FiguredGroupsTable& groups, std::uint32_t prototype) {
 } // namespace
 
 void UnitSet::Add(CUnit* unit) {
-    FiguredUnitRecord record;   // its vectors empty (00559DB0, 0055A3E0)
+    FiguredUnitRecord record;   // its vectors empty
     std::uint32_t prototype = unit->prototypeId_ & 0xFFFF;
     const Vector3 scale = unit->scale;
     record.prototype = static_cast<std::uint16_t>(unit->prototypeId_);
@@ -123,11 +123,11 @@ void UnitSet::Add(CUnit* unit) {
         record.modelNumber = static_cast<int>(unit->id_);
         FiguredTable::Value entry;
         entry.key = scaleKey;
-        FiguredUnitElement::Construct(&entry.mapped, record);    // 0055A860
+        FiguredUnitElement::Construct(&entry.mapped, record);
         group = GroupFor(figured, prototype);
-        group->Resize(group->Count() + 1);                       // 0055B670
-        group->InsertEqualNoresize(entry);                       // 0055B540
-        FiguredUnitElement::Destroy(&entry.mapped);              // 0053F020, 00559DE0
+        group->Resize(group->Count() + 1);
+        group->InsertEqualNoresize(entry);
+        FiguredUnitElement::Destroy(&entry.mapped);
     }
 
     // The dressed records: one of the same prototype and ids is marked, else a copy of the
@@ -147,9 +147,9 @@ void UnitSet::Add(CUnit* unit) {
     record.modelNumber = static_cast<std::uint32_t>(unit->id_);
     DressedTable::Value entry;
     entry.key = prototype;
-    DressedUnitElement::Construct(&entry.mapped, record);   // 0055A9F0
-    dressedRecords.Resize(dressedRecords.Count() + 1);                             // 0055BBF0
-    dressedRecords.InsertEqualNoresize(entry);                              // 0055BAC0
+    DressedUnitElement::Construct(&entry.mapped, record);
+    dressedRecords.Resize(dressedRecords.Count() + 1);
+    dressedRecords.InsertEqualNoresize(entry);
     DressedUnitElement::Destroy(&entry.mapped);                      // 004FE420 twice
     FiguredUnitElement::Destroy(&record);
 }

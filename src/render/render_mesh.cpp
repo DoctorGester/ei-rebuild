@@ -6,9 +6,9 @@
 // blend, alpha test, depth, culling, fog, the two texture stages' operations, filters and textures.
 // The material's state blocks are opaque to us, so the state is read back from the old device
 // rather than decoded; later the materials will be read from the game's data. A figure mesh drawn
-// through the figure part draws is kept on the GPU (render_mesh_cache.cpp, R16d) and its batches draw
+// through the figure part draws is kept on the GPU (render_mesh_cache.cpp) and its batches draw
 // from that pool; every other mesh is built into the frame's stream. A figure part the game hands over
-// with its lighting (MeshSource::lighting, R16i) is lit in the shader from its normals.
+// with its lighting (MeshSource::lighting) is lit in the shader from its normals.
 #include "render.h"
 #include "render_internal.h"
 
@@ -37,10 +37,10 @@ struct Pending {
     float fogNear = 0.0f;
     float fogScale = 0.0f;
     const void* caster = nullptr;   // render::BeginCaster's object
-    bool figure = false;            // ... a unit's (R16i2), with its corners' box in model space
+    bool figure = false;            // ... a unit's, with its corners' box in model space
     float box[6] = {};
-    CachedMesh* cached = nullptr;   // kept on the GPU (R16d), else built into the frame's stream
-    int lighting = -1;              // Frame::meshLights (R16i)
+    CachedMesh* cached = nullptr;   // kept on the GPU, else built into the frame's stream
+    int lighting = -1;              // Frame::meshLights
 };
 Pending g_pending;
 int g_dropped = 0;
@@ -130,7 +130,7 @@ struct VsParams {
     float shift[4];
     Matrix4 light;
     float uvOffset[4];
-    float normalOffset[4];   // x: world units (R16i)
+    float normalOffset[4];   // x: world units
 };
 static_assert(sizeof(VsParams) == 192);
 struct FsParams {
@@ -145,8 +145,8 @@ struct FsParams {
     float patchMap[4];
     float patchInside[4];
     ShadowParams shadow;
-    float shadowFigure[4];      // x: a unit's mesh (R16i2), y: its object's nearest map depth (MeshBatch::front)
-    MeshLightParams lighting;   // R16i
+    float shadowFigure[4];      // x: a unit's mesh, y: its object's nearest map depth (MeshBatch::front)
+    MeshLightParams lighting;
 };
 static_assert(sizeof(FsParams) == 240 + sizeof(MeshLightParams));
 // How far along its normal a receiver's point is moved before it is looked up in the shadow map, in the
@@ -451,7 +451,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     if (fs.shadow.on[0] > 0.5f && fs.shadow.soft[3] > 0.0f)   // the map's texel in world units
         vs.normalOffset[0] = fs.shadow.scale[0] * 2.0f / fs.shadow.soft[3] * kNormalOffset;
     if (batch.lighting >= 0) fs.lighting = f.meshLights[static_cast<std::size_t>(batch.lighting)];
-    if (batch.figure && batch.front <= 1.0f) {   // a unit's (R16i2): no shadow of its own to keep off
+    if (batch.figure && batch.front <= 1.0f) {   // a unit's: no shadow of its own to keep off
         fs.shadowFigure[0] = 1.0f;
         fs.shadowFigure[1] = batch.front;
         vs.normalOffset[0] = 0.0f;
@@ -531,7 +531,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending.matrix = AddMatrix(clip);
     g_pending.caster = CurrentCaster();
     g_pending.figure = CurrentCasterFigure() && PositionBox(mesh, g_pending.box);
-    // A figure part lit on the GPU (R16i), unless the draw set its colours to the device's. Only its
+    // A figure part lit on the GPU, unless the draw set its colours to the device's. Only its
     // normals are read (the other mesh draws' callers may pass anything there).
     if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
         MeshLightParams params;
@@ -563,7 +563,7 @@ bool MeshPass(void* device) {
         g_pending.built = true;
         ++Stats().meshes;
         if (g_pending.caster) NoteCasterPart(MeshSourceOwner());
-        // A figure mesh kept on the GPU (R16d), else its vertices into the frame's stream.
+        // A figure mesh kept on the GPU, else its vertices into the frame's stream.
         g_pending.cached = KeepMesh(g_pending.mesh);
         if (g_pending.cached) {
             g_pending.firstIndex = 0;

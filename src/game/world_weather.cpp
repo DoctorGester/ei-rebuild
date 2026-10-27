@@ -48,7 +48,7 @@ constexpr std::uint32_t kRainHeavy = 0x42200000;   // 40.0f
 constexpr std::uint32_t kDayFactorRain = 0x3F666666;   // 0.9f
 constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
 
-// 00578E30 (RET 0x18). Shows a lightning bolt from `from` to `to` (the client glue at 007AFEA4).
+// Shows a lightning bolt from `from` to `to` (the client glue at 007AFEA4).
 
 float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * scale); }
 
@@ -159,7 +159,7 @@ float Half() { return 0.5f /*0073B86C*/; }   // 0.5
 
 } // namespace
 
-// The client glue's (007AFEA4) thiscall member in the original; ECX is not read.
+// The client glue's thiscall member in the original; ECX is not read.
 void __stdcall ShowBolt(Vector3 from, Vector3 to) {
     mfc::CString prefix;   // stays empty
     mfc::CString text;

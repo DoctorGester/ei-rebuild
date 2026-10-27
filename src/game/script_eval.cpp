@@ -1,6 +1,5 @@
 // Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. See
 // script.h. Rebirth's AddNewScriptCommands dispatches to addon's functions first (script_addon.h).
-//
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
 // original's FCOM counted it as equal and less: the NaN audit, lib/nan_audit.h); the multi-step
 // computations keep their intermediates unrounded (double locals) as the original keeps them in registers.
@@ -58,7 +57,7 @@ double SquaredDistance(float x, float y, float centreX, float centreY) {
     return LengthSquared2DUnrounded(dy, dx);
 }
 
-// 0073C468: 1 / (2^32 - 1).
+// 1 / (2^32 - 1).
 const std::uint64_t kRandomScaleBits = 0x3DF0000000100000ull;
 
 // value * range / (2^32 - 1): the 32-bit value loaded as a 64-bit integer, two multiplications.
@@ -71,7 +70,7 @@ int RoundTimeOffset(int time, float extra) {
     return x87::fistp(static_cast<float>(static_cast<double>(time) + extra));
 }
 
-// The game's _ftol (006E853C): truncating conversion; out-of-range values keep the low 32 bits
+// The game's _ftol: truncating conversion; out-of-range values keep the low 32 bits
 // of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
@@ -97,7 +96,7 @@ CMapObjectServer* ServerHalf(CEngineObject* object) {
     return ObjectSlots(object)->ServerCompanion();
 }
 
-// 00530280: the ground (or water surface) height under (x, y) for the unit; ST0 stays unrounded,
+// The ground (or water surface) height under (x, y) for the unit; ST0 stays unrounded,
 // as the original left it.
 double UnitGroundHeight(CUnit* unit, float x, float y) { return unit->GroundHeight(x, y); }
 
@@ -112,7 +111,7 @@ WorldAlarm& Alarm(int index) { return TheServerWorld()->alarms_[index]; }
 
 int WorldTick() { return TheServerWorld()->tick_; }
 
-// _CIfmod (006E95AA): ST1 mod ST0. GetWorldTime: (time * scale + offset) mod 24.
+// _CIfmod: ST1 mod ST0. GetWorldTime: (time * scale + offset) mod 24.
 float WorldTimeOfDay() {
     const CWorldServer* world = TheServerWorld();
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
@@ -142,7 +141,7 @@ void SSCCmd::CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCa
         call->cmd->CalcFloat(script, vars, &floatArgs.data[call->argIndex]);
         return;
     case kScriptString: {
-        // Rebirth's AddNewScriptCommands (004B4066) calls SSCCmd::CalcString (004B5650), which
+        // Rebirth's AddNewScriptCommands calls SSCCmd::CalcString, which
         // runs addon's string functions.
         if (scriptaddon::Enabled()) {
             scriptaddon::CalcString(call->cmd, script, vars, &stringArgs.data[call->argIndex]);
@@ -618,7 +617,7 @@ namespace {
 
 using TempGroupList = mfc::CList<ScriptGroup>;
 
-// The script's temporary groups: AddTail (004C8D80) copies the group into a new node and returns
+// The script's temporary groups: AddTail copies the group into a new node and returns
 // the node. 004C2290: group destructor. 004C1290: group assignment.
 inline void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
@@ -640,7 +639,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     objects.manager = nullptr;
     PrepareArguments(script, vars);
     {
-        ScriptGroup empty;   // 004B5ED0
+        ScriptGroup empty;
         empty.vtable = mfc::impl::ScriptGroupClass::Vtable();
         empty.data = nullptr;
         empty.size = 0;

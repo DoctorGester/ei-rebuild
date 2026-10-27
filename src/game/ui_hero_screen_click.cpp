@@ -45,11 +45,11 @@ void __fastcall MpHeroAddNew(CMpHeroScreen*);
 void __fastcall MpHeroContinue(CMpHeroScreen*);
 void __fastcall MpHeroRename(CMpHeroScreen*);
 void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
-// 006167C0: the hero list drawn again (plain RET).
+// The hero list drawn again (plain RET).
 // The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
 // container (RET 4).
 
-// Back to the main menu: the text "reserved_04" (00578E20 / 004E0020) to 005F75B0 (thiscall on
+// Back to the main menu: the text "reserved_04" to 005F75B0 (thiscall on
 // 007C7D50, RET 4), 0057ED00 (thiscall on the session 007AFE20) ends it.
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
@@ -131,7 +131,7 @@ void CMpHeroScreen::FinishRename() {
     base.TrimRight();
     typed = base + typed;
     name = typed;
-    SavedHero(heroIndex_)->WriteFile(HeroesFolder());   // 00662AC0
+    SavedHero(heroIndex_)->WriteFile(HeroesFolder());
     CloseRenameEdit();
     CallShowHero(heroIndex_);
 }
@@ -407,7 +407,7 @@ void CMpHeroScreen::PlayVoice() {
     UnitSoundBank* set;
     {
         stlp::string key(prototype->name.GetString());
-        // The sound sets (the units' acks) by name: operator[] (00619FB0) inserts a null entry for an unknown name.
+        // The sound sets (the units' acks) by name: operator[] inserts a null entry for an unknown name.
         set = reinterpret_cast<UnitSoundBank*>(acks::Database().units.byName.Subscript(key));
     }
     if (!set) return;
@@ -667,7 +667,7 @@ void CMpHeroScreen::AddNewHero() {
         BlankHeroRecord blank;
         blank.record.Construct();
         static_cast<libcontainers::HeroRecordAbi*>(&TheSavedParties().entries_)
-            ->InsertOverflow(MpHeroesEnd(), blank.record, 1);   // 00619920
+            ->InsertOverflow(MpHeroesEnd(), blank.record, 1);
         blank.record.Destruct();
     } else {
         if (MpHeroesEnd()) MpHeroesEnd()->Construct();

@@ -1,6 +1,6 @@
 // What the AI hears: the heard calls' Hear / AddClaim / RemoveClaims (005CCD40, 005CCEA0,
-// 005CCBF0), the perception memory's HearCall / AddClaim (005CBBA0, 005CBBC0) and the AI events'
-// Noise (005C98C0). See unit_ai.h and docs/notes/unit_ai.md.
+// 005CCBF0), the perception memory's HearCall / AddClaim and the AI events'
+// Noise. See unit_ai.h and docs/notes/unit_ai.md.
 #include "unit_ai.h"
 #include "combat.h"
 
@@ -26,7 +26,7 @@ namespace {
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
 constexpr float kNoiseRadius = 50.0f;   // the units asked for around a noise
 constexpr int kAlertedLevel = 900;      // a unit noticing something at this level or above hears nothing
-const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";   // 007919FC
+const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";
 
 // The inlined RemoveAt(index, 1): the record's text freed, the tail moved down.
 void RemoveCall(AIHeardCalls* calls, int index) {
@@ -65,7 +65,7 @@ void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
     mfc::CString copy;
     copy = text;
     // The original leaves the point as its stack held it (saved as memory.callN.point); 0,0,0 is the
-    // canonical value, which the harness gives the original too (harness_save_leftovers.cpp, S20d).
+    // canonical value, which the harness gives the original too (harness_save_leftovers.cpp).
     AppendCall(this, Vector3{0.0f, 0.0f, 0.0f}, kind, mask, copy);
 }
 EI_REWRITTEN(0x005CCEA0, AIHeardCalls::AddClaim);

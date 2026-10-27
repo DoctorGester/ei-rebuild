@@ -38,10 +38,10 @@ public:
     // * z_; with one it does not pan, turns at 0079BDCC * 0079BDC4 * y_, climbs, and tilts at
     // 0079BDD8 * 0079BDD0 * x_.
     void OnKeyUp(int key, int repeat, int flags);
-    // 005EAD00 (slot 5, RET 0xC). The right button went down: the point kept (screen and layout
-    // (005F7E00)), turning_, the mouse-drag motion cleared, the cursor held; the button used.
+    // The right button went down: the point kept (screen and layout
+    //), turning_, the mouse-drag motion cleared, the cursor held; the button used.
     void OnRightDown(int buttons, int x, int y);
-    // 005EAD50 (slot 6, RET 0xC). Released: turning_ cleared, the camera stops turning, tilting
+    // Released: turning_ cleared, the camera stops turning, tilting
     // and panning, the motion cleared, the cursor let go and put back at the mouse position; used.
     void OnRightUp(int buttons, int x, int y);
     // 005EB210 (slot 4, RET 0xC; Rebirth-patched; ui_camera_input.cpp, reproducing WideScreen, so
@@ -49,13 +49,13 @@ public:
     // in layout units) turns the camera at 0079BDC8 * 0079BDC4 * 0079BD64 * (dx / 400) * 10 and
     // tilts it at 0079BDD4 * 0079BDD0 * 0079BD68 * (dy / 300) * 500 (not tilting when it is at rest
     // and |dy| <= |dx|), or with Ctrl / Alt pans it along (dx / 400, dy / 300) at 0079BDBC *
-    // 0079BDB8; the motion is cleared, the cursor takes shape 0x16, the event is used and the
-    // layout point kept. Otherwise, when the edge margin (0079BDAC) is positive: the cursor within
+    // The motion is cleared, the cursor takes shape 0x16, the event is used and the
+    // layout point kept. Otherwise, when the edge margin is positive: the cursor within
     // the margin of a screen edge pans that way (with the keys' pan added unless Ctrl / Alt is
     // held) under the edge's arrow cursor, the event used when at an edge; the point is kept.
     void OnMouseMove(int buttons, int x, int y);
-    // 005EB580 (slot 1). The input loses the screen: no turning, the axes cleared, the cursor let go,
-    // the motion cleared and the camera stopped (0040F430).
+    // The input loses the screen: no turning, the axes cleared, the cursor let go,
+    // the motion cleared and the camera stopped.
     void OnDeactivate();
     // 005EB540 (slot 12, RET 0x10, returns 1). The wheel zooms the camera by 0079BDE0 * 0079BDDC *
     // (the delta's low word) * 00740240 steps.

@@ -1,6 +1,6 @@
 // The skeleton bone's lifetime (class 0x300C, 0xA0 bytes; FigureBone in
 // map_object_figures.h): constructor, reset (slot 2), Destroy (slot 3), destructor and deleting
-// destructor. The figure factory (005AAB57) makes bones; the animation state links them (0050CC60).
+// destructor. The figure factory makes bones; the animation state links them.
 // See docs/notes/map_objects.md.
 #include "map_object_figures.h"   // FigureBone
 
@@ -43,7 +43,7 @@ FigureBone::FigureBone() {
 EI_REWRITTEN_SPECIAL(0x0050AF40, FigureBone::FigureBone);
 
 int FigureBone::CreateBone() {
-    // The original assigns "none" (007846F0) to all three names, not an empty string.
+    // The original assigns "none" to all three names, not an empty string.
     name = "none";
     name2 = "none";
     name3 = "none";

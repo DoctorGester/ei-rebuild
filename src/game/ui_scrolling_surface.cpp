@@ -68,7 +68,7 @@ CUiScrollingSurface::CUiScrollingSurface(CInterface3D* ui, const RECT* rect) : C
 }
 EI_REWRITTEN_SPECIAL(0x0065ED30, CUiScrollingSurface::CUiScrollingSurface);
 
-// Then the surface's (005FD120).
+// Then the surface's.
 CUiScrollingSurface::~CUiScrollingSurface() {
     gameapi::DestroyWindow(richEdit_);
     if (richEditLibrary_) {

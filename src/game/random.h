@@ -12,7 +12,7 @@ public:
     // The game's generator (random.cpp).
     static IsaacRandom& Global();
 
-    // 004667F0. Next 32-bit random value.
+    // Next 32-bit random value.
     std::uint32_t Next();
 
     // The harness's seams (tests/verify): a seed that replaces Seed's (its deterministic runs), and an observer of
@@ -22,17 +22,17 @@ public:
     static void SetSeedHook(SeedHook hook);
     static void SetDrawObserver(DrawObserver observer);
 
-    // 0049EE70. Generates the next 256 results (reference isaac()).
+    // Generates the next 256 results (reference isaac()).
     void Refill();
 
     // 00488970 (random.cpp). Next() * (max - min) * ~2^-32 + min, left unrounded in ST0.
     float Range(float min, float max);
 
-    // 0049F150. Once (while seeded_ is 0): seeds results_ (0049F660: 1 KB of a random file on C:\,
+    // Once (while seeded_ is 0): seeds results_ (0049F660: 1 KB of a random file on C:\,
     // mixed with rand()), then the reference randinit(ctx, TRUE) and the first Refill.
     void Init();
 
-    // 0049F660. Fills results_ with seed material: 1 KB read at a random offset (0x201..0x400) of a
+    // Fills results_ with seed material: 1 KB read at a random offset (0x201..0x400) of a
     // file of at least 2 KB picked at random on C:\ (FindSeedFile), each word then xored with
     // rand(); retried until a read gave 1 KB that is not all zero. The harness's seed hook instead, when set.
     void Seed();

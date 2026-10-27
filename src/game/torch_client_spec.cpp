@@ -26,11 +26,11 @@ namespace {
 constexpr std::uint32_t kLightHidden = 0x80;   // CEngineObject::flags_ of a light
 constexpr int kPointLightClass = 0x31;         // the light factory's point lights
 constexpr int kWarmUpTicks = 0x3C;
-constexpr float kShowFarFactor = 3.0f;         // 0073BAA4
-constexpr float kSetFarFactor = 5.0f;          // 0073BF34
+constexpr float kShowFarFactor = 3.0f;
+constexpr float kSetFarFactor = 5.0f;
 constexpr float kSoundNear = 1.0f;
 constexpr int kTorchClassId = 0x41;
-// 0078F7BC: "CTorchObjectClientSpecific".
+// "CTorchObjectClientSpecific".
 const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
 
@@ -182,7 +182,7 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
 }
 EI_REWRITTEN(0x0052D520, CTorchObjectClientSpec::SetSound);
 
-// Slots 6, 11 and 12 (0052D180 / 0052D190 / 0052D1A0): the update returns 1, the class name and id.
+// Slots 6, 11 and 12: the update returns 1, the class name and id.
 namespace {
 int __fastcall TorchClientUpdate(CTorchObjectClientSpec* self) { return self->CTorchObjectClientSpec::RunTick(); }
 const char* __fastcall TorchClientClassName(CTorchObjectClientSpec* self) {
