@@ -1,17 +1,15 @@
 #pragma once
 
 // MFC 4.2's thread and process locals (afxtls.cpp) and its system metrics record AUX_DATA (afxData,
-// auxdata.cpp), as far as the exe's static initialisers and exit functions reach them
-// (docs/notes/standalone.md). The thread and process locals are globals MFC fills on first use
-// (_afxThreadState, _afxBaseModuleState and the others: their CThreadLocal / CProcessLocal holds a TLS slot
-// or an object); the exit functions free them through the destructors here. afxData is built by a static
-// initialiser and its menu-dot bitmap deleted at exit. The header also holds what the other static initialisers call:
-// AfxClassInit (the runtime class list of the module state) with MFC's global locks, _afxDBCS's initialiser
-// and wingdix.cpp's halftone brush (an atexit that deletes it). The module state is game.exe's in the hook
-// build (AfxGetModuleState at its address); the image has a stand-in with the members used so far
-// (ImageModuleState). Every body is registered at its library address in both builds (mfc_state.cpp). The
-// hook build runs them over game.exe's state; in the image nothing fills the locals (the handle maps are
-// thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object.
+// auxdata.cpp), as far as the exe's static initialisers and exit functions reach them (docs/notes/standalone.md).
+// The thread and process locals are globals MFC fills on first use (_afxThreadState, _afxBaseModuleState and
+// the others); the exit functions free them through the destructors here. afxData is built by a static
+// initialiser and its menu-dot bitmap deleted at exit. The header also holds what the other static initialisers
+// call: AfxClassInit (the runtime class list of the module state), MFC's global locks, _afxDBCS's initialiser
+// and wingdix.cpp's halftone brush (an atexit that deletes it). The image has a stand-in module state with the
+// members used so far (ImageModuleState). Every body is registered at its library address (mfc_state.cpp); in
+// the image nothing fills the locals (the handle maps are thread_local, mfc_gdi.cpp), so their destructors find
+// an empty slot or object.
 
 #include <cstddef>
 #include <cstdint>
@@ -24,35 +22,35 @@ namespace mfc::impl {
 // which frees it with LocalFree. Declared only.
 class __declspec(novtable) CNoTrackObject {
 public:
-    virtual void* DeletingDestructor(unsigned flags);   // 0
+    virtual void* DeletingDestructor(unsigned flags);
 };
 
 // CThreadData (a CNoTrackObject): one thread's slot values.
 struct CThreadData {
     void* vtable;
-    CThreadData* next;          // pNext (CThreadSlotData's list)
-    int count;                  // nCount (values allocated for slots below it)
-    CNoTrackObject** values;    // pData (index: the slot)
+    CThreadData* next;
+    int count;
+    CNoTrackObject** values;
 };
 
 // CSlotData: a slot's flags (bit 0: in use) and the module that allocated it.
 struct CSlotData {
-    DWORD flags;                // dwFlags
-    HINSTANCE instance;         // hInst
+    DWORD flags;
+    HINSTANCE instance;
 };
 
 // CThreadSlotData (_afxThreadData, made on first use): the TLS slots of every thread.
 struct CThreadSlotData {
     enum : DWORD { kSlotUsed = 1 };
 
-    DWORD tlsIndex;             // m_tlsIndex
-    int allocated;              // m_nAlloc
-    int rover;                  // m_nRover
-    int max;                    // m_nMax
-    CSlotData* slots;           // m_pSlotData
-    CThreadData* threads;       // m_list.m_pHead
-    std::size_t nextOffset;     // m_list.m_nNextOffset
-    CRITICAL_SECTION section;   // m_sect
+    DWORD tlsIndex;
+    int allocated;
+    int rover;
+    int max;
+    CSlotData* slots;
+    CThreadData* threads;
+    std::size_t nextOffset;
+    CRITICAL_SECTION section;
 
     // Every thread's value of `slot` deleted and cleared, then the slot no longer in
     // use; under the critical section.
@@ -62,7 +60,7 @@ static_assert(offsetof(CThreadSlotData, section) == 0x1C);
 
 // CThreadLocalObject (CThreadLocal<T> adds no members): its TLS slot, 0 when none was allocated.
 struct CThreadLocalObject {
-    int slot;                   // m_nSlot
+    int slot;
 
     // The slot freed
     // when there is one and _afxThreadData exists, then the slot cleared.
@@ -71,7 +69,7 @@ struct CThreadLocalObject {
 
 // CProcessLocalObject (CProcessLocal<T> adds no members): the object, made on first use.
 struct CProcessLocalObject {
-    CNoTrackObject* object;     // m_pObject
+    CNoTrackObject* object;
 
     // The object is deleted; the pointer stays.
     void Destruct();
@@ -83,33 +81,33 @@ void __stdcall AfxDeleteObject(HGDIOBJ* object);
 
 // AUX_DATA (0x6C bytes): afxData (mfc_state.cpp).
 struct AuxData {
-    int vScrollWidth;           // cxVScroll
-    int hScrollHeight;          // cyHScroll
-    int iconWidth;              // cxIcon
-    int iconHeight;             // cyIcon
-    int borderWidth2;           // cxBorder2
-    int borderHeight2;          // cyBorder2
-    int pixelsPerInchX;         // cxPixelsPerInch
-    int pixelsPerInchY;         // cyPixelsPerInch
-    HBRUSH windowFrameBrush;    // hbrWindowFrame
-    HBRUSH buttonFaceBrush;     // hbrBtnFace
-    COLORREF buttonFace;        // clrBtnFace
-    COLORREF buttonShadow;      // clrBtnShadow
-    COLORREF buttonHighlight;   // clrBtnHilite
-    COLORREF buttonText;        // clrBtnText
-    COLORREF windowFrame;       // clrWindowFrame
-    HCURSOR waitCursor;         // hcurWait
-    HCURSOR arrowCursor;        // hcurArrow
-    HCURSOR helpCursor;         // hcurHelp
-    HFONT statusFont;           // hStatusFont (never written here)
-    HFONT toolTipsFont;         // hToolTipsFont (never written here)
-    HBITMAP menuDot;            // hbmMenuDot
-    unsigned version;           // nWinVer (major << 8 | minor)
-    BOOL win95;                 // bWin95 (GetVersion's high bit)
-    BOOL win4;                  // bWin4 (major version 4 or later)
-    BOOL notWin4;               // bNotWin4
-    BOOL smallCaption;          // bSmCaption (= win4)
-    BOOL marked4;               // bMarked4 (the process is marked 4.0; picks the scroll metrics)
+    int vScrollWidth;
+    int hScrollHeight;
+    int iconWidth;
+    int iconHeight;
+    int borderWidth2;
+    int borderHeight2;
+    int pixelsPerInchX;
+    int pixelsPerInchY;
+    HBRUSH windowFrameBrush;
+    HBRUSH buttonFaceBrush;
+    COLORREF buttonFace;
+    COLORREF buttonShadow;
+    COLORREF buttonHighlight;
+    COLORREF buttonText;
+    COLORREF windowFrame;
+    HCURSOR waitCursor;
+    HCURSOR arrowCursor;
+    HCURSOR helpCursor;
+    HFONT statusFont;
+    HFONT toolTipsFont;
+    HBITMAP menuDot;
+    unsigned version;           // major << 8 | minor
+    BOOL win95;                 // GetVersion's high bit
+    BOOL win4;                  // major version 4 or later
+    BOOL notWin4;
+    BOOL smallCaption;
+    BOOL marked4;               // the process is marked 4.0; picks the scroll metrics
 
     // The version flags, the metrics, the colours and the two standard cursors; returns this.
     AuxData* Construct();
@@ -134,8 +132,8 @@ AuxData& AfxData();
 // CSimpleList: an intrusive singly linked list; each element keeps its next pointer `nextOffset`
 // bytes in.
 struct CSimpleList {
-    void* head;                 // m_pHead
-    std::size_t nextOffset;     // m_nNextOffset
+    void* head;
+    std::size_t nextOffset;
 
     void AddHead(void* element);
 };
@@ -146,13 +144,13 @@ struct CRuntimeClass;
 struct ModuleState {
     void* vtable;
     void* currentApp;           // m_pCurrentWinApp (always null: the game has no CWinApp)
-    HINSTANCE instance;         // m_hCurrentInstanceHandle
-    HINSTANCE resources;        // m_hCurrentResourceHandle
-    const char* appName;        // m_lpszCurrentAppName
-    BYTE dll;                   // m_bDLL
-    BYTE system;                // m_bSystem
+    HINSTANCE instance;
+    HINSTANCE resources;
+    const char* appName;
+    BYTE dll;
+    BYTE system;
     BYTE reserved[2];
-    DWORD registeredClasses;    // m_fRegisteredClasses
+    DWORD registeredClasses;
     CSimpleList classList;      // m_classList (CRuntimeClass, linked through m_pNextClass +0x14)
 };
 static_assert(offsetof(ModuleState, classList) == 0x1C);
