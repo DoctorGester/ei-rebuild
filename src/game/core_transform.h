@@ -8,10 +8,10 @@
 
 // An engine object placed in the world: local position and rotation relative to its parent, and
 // the world transform derived from them. Base of the camera, the scene's figures, units and other
-// placed objects (abstract: slots 2, 3, 11 and 12 are pure). Name provisional; 18 slots (game.exe's 0073BA38).
-// Slots 0-12 are CEngineObject's (CopyFrom 00402D40, Release 00455980, empty Load/Save); 13-17 are defined in
-// core_transform.cpp. game.exe's out-of-line constructor body 00453400 (the base's fields and identity rotations) is
-// what the derived classes' constructors do; its destructor 0040CB70 (deleting 0040CB50) is CEngineObject's.
+// placed objects (abstract: slots 2, 3, 11 and 12 are pure). Name provisional; 18 slots.
+// Slots 0-12 are CEngineObject's (CopyFrom, Release, empty Load/Save); 13-17 are defined in
+// core_transform.cpp. The game's out-of-line constructor body (the base's fields and identity rotations) is
+// what the derived classes' constructors do; its destructor (deleting too) is CEngineObject's.
 namespace mfc {
 class CFileVirtuals;   // lib/mfc.h
 }
@@ -20,7 +20,7 @@ class CTransformObject : public CEngineObject {
 public:
     // Copies the local and world transform; returns this.
     virtual CTransformObject* CopyTransform(const CTransformObject& other);
-    // WorldRotation = parent * localRotation. Overridden by 00516370 in units.
+    // WorldRotation = parent * localRotation. Overridden in units.
     virtual void CombineRotation(const Quaternion& parent);
     // Recomputes the world transform from the parent's rotation and position.
     virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition);

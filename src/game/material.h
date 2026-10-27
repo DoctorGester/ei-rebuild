@@ -26,24 +26,24 @@ struct MaterialColors {
 static_assert(sizeof(MaterialColors) == 0x44);
 
 // An element of the material's deque (16 bytes): an emissive colour kept while the object's light
-// is on (CObject3DClientSpecific::SetLit, 0051C9F0, pushes and pops them).
+// is on (CObject3DClientSpecific::SetLit pushes and pops them).
 struct MaterialEntry {
     Vector4 emissive;
 };
 static_assert(sizeof(MaterialEntry) == 0x10);
 
 // A material (class id 5, "CMaterial", 0x9C bytes; material.cpp), made by the material
-// manager (*007AF740, CMaterialManager::NewMaterial) and by the scene loader for its helpers
-// (00454E40 constructs the array of them, FakeUnitScene::helpers in scene_loader.h; the file's
+// manager (the world's pointer, CMaterialManager::NewMaterial) and by the scene loader for its helpers
+// (it constructs the array of them, FakeUnitScene::helpers in scene_loader.h; the file's
 // vectors are the ambient, diffuse and specular colours, the power and the diffuse alpha). It is
 // also the material a figure part is drawn with. Names provisional. A real virtual
-// class: the compiler makes its vtable (game.exe's 00743BB4 is retired).
+// class: the compiler makes its vtable.
 class CMaterial : public CEngineObject {
 public:
     void SetDiffuse(const Vector3* value);
     void SetAmbient(const Vector3* value);
     void SetSpecular(const Vector3* value);
-    // R16i: the colour of a figure part lit on the GPU (its colour arrays; the shader lights it): white,
+    // The colour of a figure part lit on the GPU (its colour arrays; the shader lights it): white,
     // with the alpha 3DfpFPU's LightMesh gave every colour (the diffuse alpha times 255, rounded).
     std::uint32_t GpuLitColour() const;
 
@@ -52,16 +52,16 @@ public:
     CMaterial();
     // The deque emptied and freed, the names, the engine object.
     ~CMaterial() override;
-    // The deleting destructor (slot 0, 0068DD20) frees into the game's heap.
+    // The deleting destructor (slot 0) frees into the game's heap.
 
     // Empty names, alpha 1, +0x90 / +0x98 0, the deque emptied; returns 1.
     int Create() override;
     // Empties the deque.
     void Destroy() override;
-    // 7: 0068DCF0 (short_functions.cpp). The name's text.
+    // 7: the name's text (short_functions.cpp)
     const char* GetName() override;
-    const char* GetClassName() override;   // 11: 0068DD00 "CMaterial"
-    int GetClassId() override;             // 12: 0068DD10 (5)
+    const char* GetClassName() override;   // 11: "CMaterial"
+    int GetClassId() override;             // 12: 5
 
     mfc::CString name;                      // +0x1C
     MaterialColors colors;                  // +0x20
@@ -75,10 +75,9 @@ static_assert(offsetof(CMaterial, name) == 0x1C && offsetof(CMaterial, colors) =
               offsetof(CMaterial, entries) == 0x64 && offsetof(CMaterial, name2) == 0x8C &&
               offsetof(CMaterial, name3) == 0x94 && sizeof(CMaterial) == 0x9C);
 
-// The material manager (class id 0x27, "CMaterialManager", 0xD0 bytes; the world's *007AF740;
+// The material manager (class id 0x27, "CMaterialManager", 0xD0 bytes; the world's pointer;
 // material.cpp): a resource manager of CMaterial objects with a table of colours by key (filled by
-// its Create, 0068E640, Rebirth-patched). A real virtual class: the compiler makes its vtable (
-// game.exe's 00743C38 is retired).
+// its Create, Rebirth-patched). A real virtual class: the compiler makes its vtable.
 class CMaterialManager : public CResourceManager {
 public:
     using ColorTable = stlp::hash_map<unsigned, MaterialColors, stlp::IntHash>;
@@ -88,11 +87,11 @@ public:
     CMaterialManager();
     // The colour table freed, then CResourceManager's destructor.
     ~CMaterialManager() override;
-    const char* GetClassName() override;     // 11: 0068E500 "CMaterialManager"
-    int GetClassId() override;               // 12: 0068E510 (0x27)
-    const char* GetFolderName() override;    // 25: 0068E4F0 "materials"
+    const char* GetClassName() override;     // 11: "CMaterialManager"
+    int GetClassId() override;               // 12: 0x27
+    const char* GetFolderName() override;    // 25: "materials"
 
-    // 2: 0068E640 (A-H26; Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
+    // 2: Create (Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
     // Create (0 when it fails); the archive "materials.res" of the text folder added;
     // then the colours of each of the eight kinds of kMaterialKindFiles (0x11 leather, wood,
     // metal, cloth, skin, stone, 0x17 magic, 0x19 metal again) entered under the kind: the

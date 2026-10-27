@@ -1,6 +1,6 @@
-// The halves of a 3D object besides the client half's part sets (A-U12): the client half's shadow
-// state, the base half's empty slots (vtable 0073DEFC), the server half (CObject3DServer, class id
-// 0x38, vtable 0073DFBC, 0x20 bytes), the wounds material's destructor and the copies of a named
+// The halves of a 3D object besides the client half's part sets: the client half's shadow
+// state, the base half's empty slots, the server half (CObject3DServer, class id
+// 0x38, 0x20 bytes), the wounds material's destructor and the copies of a named
 // texture and a material stage. Layouts: map_object_shadow.h, map_object_figures.h.
 #include "core_refcount.h"
 #include "map_object_shadow.h"
@@ -92,7 +92,7 @@ EI_REWRITTEN(0x0051E300, CObject3DClientSpecific::ShadowInView);
 // The scene pipeline's pop (model.h; Draw and the decal projector call it).
 EI_REWRITTEN(0x0051C110, CTransformPipeline::PopMatrix);
 
-// 0051E1C0 (ECX = matrix). The identity matrix (DrawShadow's pixel matrix starts from it).
+// The identity matrix (DrawShadow's pixel matrix starts from it).
 void __fastcall MatrixSetIdentity(Matrix4* matrix) {
     std::memset(matrix, 0, sizeof(Matrix4));
     matrix->m[15] = 1.0f;
@@ -107,7 +107,7 @@ EI_REWRITTEN(0x0051E1C0, MatrixSetIdentity);
 // Nothing is drawn; 0.
 int CObject3DSpecific::DrawParts(void* /*context*/, int* /*dirty*/) { return 0; }
 EI_REWRITTEN(0x0051AC60, CObject3DSpecific::DrawParts);
-// 0051AC70 (slot 20) and 0051AC90 / 0051ACB0 / 0051ACA0 (slots 22-24), all RET 4: 0.
+// Slot 20 and slots 22-24: 0.
 int CObject3DSpecific::DrawPartsShadow(void*) { return 0; }
 EI_REWRITTEN(0x0051AC70, CObject3DSpecific::DrawPartsShadow);
 int CObject3DSpecific::BoundsContainPoint(const long*) { return 0; }
@@ -116,20 +116,20 @@ int CObject3DSpecific::PartsIntersectRect(const long*) { return 0; }
 EI_REWRITTEN(0x0051ACB0, CObject3DSpecific::PartsIntersectRect);
 int CObject3DSpecific::PartsContainPoint(const long*) { return 0; }
 EI_REWRITTEN(0x0051ACA0, CObject3DSpecific::PartsContainPoint);
-// Nothing. One byte, as 0051E830 (the empty destroy step the containers of
+// Nothing. One byte (the empty destroy step the containers of
 // plain elements call): too short to hook, registered so the address is known.
 void __fastcall SpecificBaseNothing(CObject3DSpecific*) {}
 EI_REPLACE(0x0051AC80, SpecificBaseNothing);
 void __cdecl DestroyNothing() {}
 EI_REPLACE(0x0051E830, DestroyNothing);
-// 0051ACC0 / 0051ACD0 (slots 25 / 26, RET 4): nothing.
+// Slots 25 / 26: nothing.
 void CObject3DSpecific::IgnoreArgument(int) {}
 EI_REPLACE_METHOD(0x0051ACC0, CObject3DSpecific::IgnoreArgument);
 EI_REPLACE_METHOD(0x0051ACD0, CObject3DSpecific::IgnoreArgument);
 
 // --- The server half ---------------------------------------------------------------------------------
 
-// The base half's (the engine object's fields, no object). 0051F300 (deleting: 0051F2E0): the
+// The base half's (the engine object's fields, no object). Deleting form: the
 // base half's.
 CObject3DServer::CObject3DServer() {}
 EI_REWRITTEN_SPECIAL(0x0051F240, CObject3DServer::CObject3DServer);
@@ -137,19 +137,19 @@ CObject3DServer::~CObject3DServer() {}
 EI_REWRITTEN_SPECIAL(0x0051F300, CObject3DServer::~CObject3DServer);
 EI_REWRITTEN_SPECIAL(0x0051F2E0, CObject3DServer::~CObject3DServer);
 
-// 1. 0051F330 (slot 3): no object.
+// Slot 3: no object.
 int CObject3DServer::Create() { return 1; }
 EI_REWRITTEN(0x0051F320, CObject3DServer::Create);
 void CObject3DServer::Destroy() { object = nullptr; }
 EI_REWRITTEN(0x0051F330, CObject3DServer::Destroy);
 
-// 0051F2C0 / 0051F2D0 (slots 11 / 12).
+// Slots 11 / 12.
 const char* CObject3DServer::GetClassName() { return kServerClassName; }
 EI_REWRITTEN(0x0051F2C0, CObject3DServer::GetClassName);
 int CObject3DServer::GetClassId() { return kServerClassId; }
 EI_REWRITTEN(0x0051F2D0, CObject3DServer::GetClassId);
 
-// 0051F270 / 0051F290 / 0051F280 / 0051F2B0 / 0051F2A0 (slots 13-17, RET 4): no parts; 0.
+// Slots 13-17: no parts; 0.
 int CObject3DServer::OnPartAdded(CFigureMesh*) { return 0; }
 EI_REWRITTEN(0x0051F270, CObject3DServer::OnPartAdded);
 CFigureMesh* CObject3DServer::RemoveFromPartSets(const char*) { return nullptr; }
@@ -190,7 +190,7 @@ NamedTexture* NamedTexture::Copy(const NamedTexture* other) {
 }
 EI_REWRITTEN(0x0051E430, NamedTexture::Copy);
 
-// 0051E970 (ECX = the place, EDX = the stage). A material stage copied into `place` unless it is
+// ECX = the place, EDX = the stage: a material stage copied into `place` unless it is
 // null (the placement copy the stage vector's growth uses).
 void __fastcall MaterialStageCopy(MaterialStage* place, const MaterialStage* stage) {
     if (place) new (place) MaterialStage(*stage);

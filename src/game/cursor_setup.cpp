@@ -1,6 +1,6 @@
 // The mouse cursor's set-up and reset: the cursor object is
 // initialised and given its 25 shapes, the "sm_" set when the small cursors are on. The cursor
-// object itself (005E5xxx-005E6xxx) is not rewritten yet.
+// object itself stays the game's own code.
 #include "ei/hook.h"
 #include "ui_cursor.h"
 #include "game_data.h"
@@ -11,7 +11,7 @@
 namespace {
 // The cursor object and its methods (thiscall).
 // The device the cursor is drawn on.
-// 005DAEA0 through its address (the verify build's wrapper sees the call from the reset).
+// The set-up function through its address (the verify build's wrapper sees the call from the reset).
 void __fastcall SetUpCursorsAt(bool modeTwo, int context, int smallCursors, int flags) {
     SetUpCursors(modeTwo, context, smallCursors, flags);
 }
@@ -21,7 +21,7 @@ struct CursorShape {
     const char* smallName;
     int hotX, hotY;
 };
-// In the shape order the game selects them by (005E5200's index).
+// In the shape order the game selects them by.
 const CursorShape kShapes[] = {
     {"cursor_default", "sm_cursor_default", 0, 0},
     {"cursor_attack", "sm_cursor_attack", 0, 0},
@@ -51,7 +51,7 @@ const CursorShape kShapes[] = {
 };
 } // namespace
 
-// 005DAEA0 (fastcall, RET 8). `modeTwo` picks the cursor's mode 2 (else 1); `context` and
+// Set-up (fastcall). `modeTwo` picks the cursor's mode 2 (else 1); `context` and
 // `smallCursors` (low byte tested) go to the cursor's Init, `flags` to every shape.
 void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int flags) {
     TheCursor()->Init(TheRenderDevice(), modeTwo ? 2 : 1,
@@ -62,7 +62,7 @@ void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int fl
     TheCursor()->Start();
 }
 
-// 005DAE70 (fastcall, RET 8). Shuts the cursor down and sets it up again.
+// Reset (fastcall). Shuts the cursor down and sets it up again.
 void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags) {
     TheCursor()->Shutdown();   // the drawing thread stopped, the shapes released
     SetUpCursorsAt(modeTwo, context, smallCursors, flags);

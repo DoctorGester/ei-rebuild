@@ -1,5 +1,5 @@
-// The renderer's line lists (renderer_lines.h; A-E1): 0049B140 appends a point, 0049B780 projects
-// a list and hands the strip to the device object's line draw (0049B4B0, renderer_lines.cpp). Debug
+// The renderer's line lists (renderer_lines.h): one function appends a point, another projects
+// a list and hands the strip to the device object's line draw (renderer_lines.cpp). Debug
 // drawing: the figure parts' bounds boxes and the world client's line lists. See
 // docs/notes/renderer.md.
 #include "renderer_lines.h"

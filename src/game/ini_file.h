@@ -1,6 +1,6 @@
 #pragma once
 
-// CIniFile (provisional name; game.exe 00695B80-00697290): the game's .ini settings reader and
+// CIniFile (provisional name): the game's .ini settings reader and
 // writer over GetPrivateProfile* / WritePrivateProfileString. The object is just the file path.
 // Lists are comma-separated values ("1, 2, 3"), each item trimmed.
 
@@ -15,16 +15,16 @@ class CStringArray;
 
 class CIniFile {
 public:
-    CIniFile* Construct();                                  // 00695B80 (empty path)
+    CIniFile* Construct();                                  // empty path
     CIniFile* ConstructWithPath(const char* path);
-    BOOL SetPath(const char* path);                          // 00695BF0, returns 1
-    void Destruct();                                         // 00695BE0 (the path's ~CString)
+    BOOL SetPath(const char* path);                          // returns 1
+    void Destruct();                                         // the path's ~CString
 
     // The key names of `section` (the part before '=', trimmed) into `out` (emptied
     // first). Returns 0 for an empty or unreadable section.
     BOOL GetKeyNames(const char* section, console::CStringArray* out);
 
-    // 00695F00 / 00695F20 (identical copies). GetPrivateProfileInt.
+    // Identical copies. GetPrivateProfileInt.
     unsigned GetInt(const char* section, const char* key, int defaultValue);
     unsigned GetInt2(const char* section, const char* key, int defaultValue);
     // GetDouble with a float default.
@@ -50,11 +50,11 @@ public:
 
     // Writers (WritePrivateProfileString); each returns its result.
     BOOL WriteString(const char* section, const char* key, mfc::CString value);
-    BOOL WriteIntForward(const char* section, const char* key, int value);             // 00696F30 -> 00696F50
-    BOOL WriteInt(const char* section, const char* key, int value);                    // 00696F50 "%d"
-    BOOL WriteUInt(const char* section, const char* key, unsigned value);              // 00696FE0 "%u"
-    BOOL WriteFloat(const char* section, const char* key, float value);                // 00697070 "%f"
-    BOOL WriteDouble(const char* section, const char* key, double value);              // 00697100 "%lf"
+    BOOL WriteIntForward(const char* section, const char* key, int value);             // -> WriteInt
+    BOOL WriteInt(const char* section, const char* key, int value);                    // "%d"
+    BOOL WriteUInt(const char* section, const char* key, unsigned value);              // "%u"
+    BOOL WriteFloat(const char* section, const char* key, float value);                // "%f"
+    BOOL WriteDouble(const char* section, const char* key, double value);              // "%lf"
     // The items joined with `separator`; 0 (nothing written) for an empty list.
     BOOL WriteList(const char* section, const char* key, const console::CStringArray* items, char separator);
 

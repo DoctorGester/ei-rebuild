@@ -1,7 +1,7 @@
-// CTransformObject's rotation helpers (00401570-00402280): the world matrix, turning the local
+// CTransformObject's rotation helpers: the world matrix, turning the local
 // rotation towards a direction (three variants), rotating about an axis and setting a heading.
 // See core_transform.h and docs/notes/core.md.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// Floating point follows the game's x87 code: `double` for values the game keeps on the FPU
 // stack, static_cast<float> where it stores to a float (including the floats it pushes to the
 // Vector3 constructor).
 #include "core_maths.h"
@@ -18,7 +18,7 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// Constants the original reads from memory at run time.
+// Constants the game reads from memory at run time.
 #define EI_ONE 1.0f /*0073B84C*/          // 1.0f
 #define EI_MINUS_ONE (-1.0f /*0073B854*/)    // -1.0f
 #define EI_ZERO 0.0f /*0073B858*/         // 0.0f
@@ -28,10 +28,10 @@ inline double D(float f) { return f; }
 #define EI_PI 3.141592653589793 /*0073B840*/          // pi
 constexpr float kHeadingOffset = /*0079B1B8*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-// The vector helpers as the original calls them, results unrounded in ST0.
+// The vector helpers as the game calls them, results unrounded in ST0.
 
 // The rotation's Y axis (up) and Z axis (forward) as these functions expand them; the operand
-// order follows the original's FPU code (sums of products in the order it adds them).
+// order follows the game's FPU code (sums of products in the order it adds them).
 double UpX(const Quaternion& q) {
     double e = D(q.y) * q.x - D(q.w) * q.z;
     return e + e;
@@ -93,7 +93,7 @@ float AngleBetween(const Vector3& a, const Vector3& b) {
 } // namespace
 
 // The world transform as a 4x4 matrix (rows are the rotated axes, the last row the world
-// position). The original keeps 2x, xx, xy and zz on the FPU stack and rounds the other products.
+// position). The game keeps 2x, xx, xy and zz on the FPU stack and rounds the other products.
 void CTransformObject::WorldMatrix(float* m) const {
     std::memset(m, 0, 16 * sizeof(float));
     m[15] = 1.0f;
@@ -149,7 +149,7 @@ void CTransformObject::TiltTowards(const Vector3& target) {
         double dot = (nz * c + D(ny) * b) + a * nx;
         if (dot > D(EI_ONE)) dot = EI_ONE;
         else dot = dot >= D(EI_MINUS_ONE) ? dot : EI_MINUS_ONE;   // -1 also for NaN
-        // The original clamps a second time while storing the float; the value is in range by now.
+        // The game clamps a second time while storing the float; the value is in range by now.
         angle = gamecrt::acos(static_cast<float>(dot));
     } else {   // also NaN
         axis = MakeVector(1.0f, 0.0f, 0.0f);

@@ -1,5 +1,5 @@
 // Small virtual slots of the early classes: the lightning manager, CFakeUnit, and the
-// CUnit slots the fake unit shares. Each is a __fastcall shim on the slot's address (this in ECX), as
+// CUnit slots the fake unit shares. Each is a __fastcall function on the slot's address (this in ECX), as
 // object.cpp's getters are. Main thread. See docs/notes/objects.md.
 #include "game_strings.h"
 #include "item.h"

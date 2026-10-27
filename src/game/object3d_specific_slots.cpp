@@ -1,6 +1,6 @@
 // Small slots of a 3D object's side half (CObject3D + 0x94): the client half's extra scale and
-// part materials (CObject3DClientSpecific, 0051AD20 / 0051C970) and the server half's scale
-// (CObject3DServer, 0051AC30). See map_object_shadow.h and map_object_figures.h.
+// part materials (CObject3DClientSpecific) and the server half's scale
+// (CObject3DServer). See map_object_shadow.h and map_object_figures.h.
 #include "map_object_shadow.h"
 
 #include "map_object_figures.h"
@@ -32,7 +32,7 @@ void CObject3DClientSpecific::RegisterPartMaterials() {
 }
 EI_REWRITTEN(0x0051C970, CObject3DClientSpecific::RegisterPartMaterials);
 
-// --- A-U11: screen picking, part lookups, class slots, the base half's destructor -----------------
+// --- Screen picking, part lookups, class slots, the base half's destructor -----------------
 
 namespace {
 constexpr std::uint32_t kObjectShown = 0x20;    // CObject3D::flags_
@@ -98,7 +98,7 @@ EI_REWRITTEN(0x0051AD50, CObject3DClientSpecific::GetClassName);
 int CObject3DClientSpecific::GetClassId() { return kClientClassId; }
 EI_REWRITTEN(0x0051AD60, CObject3DClientSpecific::GetClassId);
 
-// 0051AD00 (deleting: 0051ACE0): the base half's destructor: the object forgotten.
+// The base half's destructor (deleting form): the object forgotten.
 CObject3DSpecific::~CObject3DSpecific() { object = nullptr; }
 EI_REWRITTEN_SPECIAL(0x0051AD00, CObject3DSpecific::~CObject3DSpecific);
 EI_REWRITTEN_SPECIAL(0x0051ACE0, CObject3DSpecific::~CObject3DSpecific);

@@ -1,6 +1,6 @@
 // The options loader and writer. See options.h.
-// Every value is read through the game's registry key helper (006972A0-006988A0, not rewritten),
-// in the original's order; a value that is missing keeps the field's current value, which is
+// Every value is read through the game's registry key helper (not rewritten),
+// in the game's order; a value that is missing keeps the field's current value, which is
 // passed as the default.
 #include "options.h"
 
@@ -32,14 +32,14 @@ void SetString(CWinRegistry& key, const char* subkey, const char* name, const mf
 
 // CString members used here.
 struct Text : mfc::CString {
-    int FindChar(int c) const;            // 00700E91 Find(TCHAR)
+    int FindChar(int c) const;            // Find(TCHAR)
 };
 int Text::FindChar(int c) const { return mfc::CString::Find(static_cast<char>(c)); }
 const Text& Ops(const mfc::CString& s) { return static_cast<const Text&>(s); }
 
 constexpr std::uint32_t kCurrentUser = 0x80000001;   // HKEY_CURRENT_USER
 constexpr float kTimes255 = 255.0f;
-constexpr float kOver255 = 1.0f / 255.0f;     // 0073C36C (0x3B808081)
+constexpr float kOver255 = 1.0f / 255.0f;     // (0x3B808081)
 
 float FloatAt(const void* p) { return *static_cast<const float*>(p); }
 
@@ -353,7 +353,7 @@ private:
 } // namespace
 
 void GameOptions::LoadFromRegistry(const char* path) {
-    std::string resolution;   // the original's local is constructed first, read later
+    std::string resolution;   // the game's local is constructed first, read later
     CWinRegistry key;
     key.Construct();
     key.Open(path, kCurrentUser);
@@ -362,7 +362,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
     l.Read(kPathValues);
     l.Read(Value{kInt, &GameOptions::keyGeneral_, "DrawingTarget", 0x02C});
     {
-        // VideoResolution goes through the local string the original built first.
+        // VideoResolution goes through the local string the game built first.
         resolution = GetString(key, l.Key(&GameOptions::keyGeneral_), "VideoResolution", resolution);
         int x = Ops(resolution).FindChar('x');
         if (x != -1) {

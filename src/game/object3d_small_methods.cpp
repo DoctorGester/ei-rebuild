@@ -1,4 +1,4 @@
-// Small methods of the 3D object (CObject3D, vtable 0073DDD4; A-U12): its deleting destructor, the
+// Small methods of the 3D object (CObject3D): its deleting destructor, the
 // attached half and animation state, and the setters that reach every part. See
 // map_object_figures.h.
 #include "map_object_figures.h"

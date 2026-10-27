@@ -251,7 +251,7 @@ void LoadModArchives() {
     if (tables.loaded) return;
     tables.loaded = true;
     // 1001FD2E: each mod archive is a new CMappedResource opened read-only through
-    // OpenResource's address (00671730, whose entry records it like any other).
+    // OpenResource's address (whose entry records it like any other).
     for (const auto& [key, paths] : Config().overrides) {
         for (const std::string& path : paths) {
             void* memory = ::operator new(sizeof(CMappedResource));

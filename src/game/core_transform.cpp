@@ -29,7 +29,7 @@ void CTransformObject::CombineRotation(const Quaternion& g) {
 }
 
 // world = parent + rotate(parentRotation, local), with the rotation expanded as
-// (w^2 - u.u) L + 2w (u x L) + 2 (u.L) u. Each term is rounded to float where the original passes
+// (w^2 - u.u) L + 2w (u x L) + 2 (u.L) u. Each term is rounded to float where the game passes
 // it to the Vector3 constructor; the shared factors (2 u.L, w^2 - u.u) stay unrounded, so they are
 // recomputed (identically) in each component rather than held in a float local. 2 u.L is written
 // (2u).L, the form /fp:fast gives the written-out ((u.L) * 2): the same value (doubling is exact),

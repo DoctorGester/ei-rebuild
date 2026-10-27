@@ -1,6 +1,6 @@
 #pragma once
 
-// Small lookup tables found among the object code (00440000-00470000): text keys, the map/allod
+// Small lookup tables found among the object code: text keys, the map/allod
 // database, a name -> float table and the key -> command table. Names provisional.
 
 #include <cstddef>
@@ -21,11 +21,11 @@ int __fastcall TextKeyFromName(const char* name);
 // Text keys are 1000000000..1999999999. __fastcall (id in ECX).
 BOOL __fastcall IsTextKey(int id);
 
-// One "#allod" entry of map.txt (0x2C bytes; constructed by 00460720).
+// One "#allod" entry of map.txt (0x2C bytes).
 struct AllodRecord {
     mfc::CString name;           // the "#allod" line's second word
     mfc::CString otherNames[5];  // +0x04 one word on each of the next five lines
-    mfc::CArray<int> maps;    // +0x18 CDWordArray (vtable 0073C3D0): the indices of its maps
+    mfc::CArray<int> maps;    // +0x18 CDWordArray: the indices of its maps
 };
 static_assert(offsetof(AllodRecord, otherNames) == 0x04 && offsetof(AllodRecord, maps) == 0x18 && sizeof(AllodRecord) == 0x2C);
 
@@ -43,16 +43,16 @@ struct ZoneExit {
     std::uint8_t unused_35[3];
     float deployAngle;              // +0x38 saved from version 0x68
 
-    // 004E59F0 (exit_area.cpp). Whether (x, y) lies inside the exit area (rotated by `angle` about
+    // exit_area.cpp. Whether (x, y) lies inside the exit area (rotated by `angle` about
     // the rectangle's centre when it is not 0).
     bool Contains(float x, float y) const;
-    // 004E5750 / 004E58A0 (exit_area.cpp, RET 4). From / to a stream (core_streams.h): +0x00..+0x20
+    // exit_area.cpp. From / to a stream (core_streams.h): +0x00..+0x20
     // as dwords, the target with its terminator, +0x2C, +0x30, then +0x34 (a byte), +0x38 and the
     // angle; Read takes the last three only from version 0x68 on (else 0).
     void Read(CStream* stream);
     void Write(CStream* stream) const;
-    // (004608B0, zone::ExitDelete in game_arrays.h: the scalar deleting destructor.)
-    // 00583B50 (RET 4; S13, exit_area.cpp; the compiler's operator=): +0x00..+0x24 as dwords,
+    // (zone::ExitDelete in game_arrays.h: the scalar deleting destructor.)
+    // exit_area.cpp: the compiler's operator=: +0x00..+0x24 as dwords,
     // the target (CString), +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
     ZoneExit* Assign(const ZoneExit* from);
 };
@@ -60,11 +60,11 @@ static_assert(offsetof(ZoneExit, x1) == 0x14 && offsetof(ZoneExit, target) == 0x
 static_assert(offsetof(ZoneExit, deployAngle) == 0x38 && sizeof(ZoneExit) == 0x3C);
 
 namespace zone {
-void __fastcall ExitDestruct(ZoneExit* self);   // 00460460 (zone_records.cpp)
+void __fastcall ExitDestruct(ZoneExit* self);   // zone_records.cpp
 } // namespace zone
 
-// The exits' ConstructElements (004606A0: zero filled, the target the empty string) and
-// DestructElements (00460670: each exit's destructor, 00460460).
+// The exits' ConstructElements (zero filled, the target the empty string) and
+// DestructElements (each exit's destructor).
 struct ZoneExitElements {
     static void Construct(ZoneExit* p, int n) {
         mfc::PlainElements<ZoneExit>::Construct(p, n);
@@ -76,9 +76,9 @@ struct ZoneExitElements {
 };
 
 // MFC CArray<ZoneExit> (a map record's +0x48, CWorldServer + 0xEC, CWorldClient + 0x8C). Its SetSize
-// is the instantiation's own (00573080, gamearrays::Exits; new records are constructed).
+// is the instantiation's own (gamearrays::Exits; new records are constructed).
 struct ZoneExits : mfc::CArray<ZoneExit, ZoneExitElements> {
-    // 00584EA0 / 00587DD0 (RET 8; record_arrays.cpp). By-value GetAt: element `index` copied into `out`
+    // record_arrays.cpp. By-value GetAt: element `index` copied into `out`
     // (the fields, the target string copy-constructed). Returns out.
     ZoneExit* CopyAt(ZoneExit* out, int index) const;
 };
@@ -96,7 +96,7 @@ struct MapRecord {
     mfc::CString camera;    // +0x1C the "#camera" line
     int sizeX;              // +0x20 "#maps" first line: the zone's size (times 32: the HUD map's world extent)
     int sizeY;              // +0x24
-    int kind;               // +0x28 0 game, 1 edge, 2 brief (2: the zone has a script folder, 00596350)
+    int kind;               // 0 game, 1 edge, 2 brief (2: the zone has a script folder)
     int setting2C;          // +0x2C CWorldServer::SetClimate when the zone starts
     int setting30;          // +0x30 CWorldServer::SetCave
     bool restricted;        // +0x34 "#restrict x y radius": the camera stays in that circle
@@ -116,25 +116,24 @@ static_assert(offsetof(MapRecord, restricted) == 0x34);
 static_assert(offsetof(MapRecord, cage) == 0x44);
 static_assert(sizeof(MapRecord) == 0x5C);
 
-// The map database loaded from map.txt / map_LMP.txt (global at 0079BF00; constructor 0045E820,
-// loader 0045EA20).
+// The map database loaded from map.txt / map_LMP.txt (a global).
 struct CMapDatabase {
     // Map named `name` (_mbsicmp), or null.
     MapRecord* FindMap(const char* name);
     // Allod named `name` (_mbsicmp), or null.
     AllodRecord* FindAllod(const char* name);
-    // 0045EA20 (map_database.cpp). Adds the allods and maps of a map.txt-style text file. Returns
+    // map_database.cpp. Adds the allods and maps of a map.txt-style text file. Returns
     // false if the file is not found.
     bool Load(const char* fileName);
-    // 0045EA00 (map_database.cpp, A-E1). Loads "map.txt", then "map-LMP.txt"; returns the second
+    // map_database.cpp. Loads "map.txt", then "map-LMP.txt"; returns the second
     // Load's result (WinMain does not read it).
     bool LoadAll();
-    // 0045E820 (map_database.cpp, A-E1). The constructor: the two arrays empty with their vtables.
-    // It runs from the static initialiser 0045E6C0 on the database at 0079BF00, before the hooks
+    // map_database.cpp. The constructor: the two arrays empty with their vtables.
+    // It runs from a static initialiser on the database, before the hooks
     // are installed, so the hook on it never fires. Returns this.
     CMapDatabase* Construct();
-    // 0045E6F0 (database_destruct.cpp, S3c; the exit function 0045E6E0). The maps' array (its
-    // vtable back, each record's destructor 00460970, the storage freed), then the allods' (each
+    // database_destruct.cpp (the exit function). The maps' array (its
+    // vtable back, each record's destructor, the storage freed), then the allods' (each
     // allod's map indices freed, its six strings from the last), as the compiler wrote it.
     void Destruct();
 
@@ -159,9 +158,9 @@ struct NamedFloatTable : stlp::hashtable<stlp::CStringFloatTraits> {
     }
 
     // Value stored under `name` (_mbscmp), 0 if absent. Builds a CString of the name
-    // first, as the original does.
+    // first, as the game does.
     float Get(const char* name);
-    // Stores `value` under `name`; a zero value (or NaN: the original's FCOMP
+    // Stores `value` under `name`; a zero value (or NaN: the game's FCOMP
     // test) removes the entry instead. Nothing for an empty name.
     void Set(const char* name, float value);
     // Removes the entry stored under `name`.
@@ -170,7 +169,7 @@ struct NamedFloatTable : stlp::hashtable<stlp::CStringFloatTraits> {
     // `prefix` (strncmp over the prefix's length).
     void CopyPrefixed(const char* prefix, NamedFloatTable* out);
     // Empties the table, then reads {zero-terminated name, float} pairs from the
-    // stream up to an empty name (compared with the exe's empty string, 0079B298).
+    // stream up to an empty name (compared with the exe's empty string).
     void Load(CStream* stream);
     // Writes each entry (name with its zero, then the value), in bucket order,
     // then an empty name.
@@ -182,7 +181,7 @@ static_assert(sizeof(NamedFloatTable) == 0x14);static_assert(sizeof(NamedFloatTa
 // its "gvar." entries, set again in the order addon's own container gives them.
 void ClearVariablesKeepingGlobals(NamedFloatTable* table);
 
-// The in-game key bindings (config\keyboard.ini, read by 00462C10; key_bindings.cpp): the action of each scan code
+// The in-game key bindings (config\keyboard.ini; key_bindings.cpp): the action of each scan code
 // (0x200 entries, the WM_KEYDOWN flags & 0x1FF; the options window's OK stores its copy there).
 inline std::int8_t g_keyActions[512] = /*0079BF70*/ {};
 

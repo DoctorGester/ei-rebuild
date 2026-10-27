@@ -79,7 +79,7 @@ void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
 EI_REWRITTEN(0x00460EE0, NamedFloatTable::CopyPrefixed);
 
 void NamedFloatTable::Load(CStream* stream) {
-    Clear();   // inlined in the original: each chain's nodes freed in order, the count zeroed
+    Clear();   // inlined: each chain's nodes freed in order, the count zeroed
     for (;;) {
         std::string key;
         {

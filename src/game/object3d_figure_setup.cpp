@@ -48,18 +48,18 @@ int DefaultGrowBy(int size) {
     return grow;
 }
 
-// 00519FC0 (inlined here: it only zeroes): new part boxes are all zero.
+// Zeroing (inlined here): new part boxes are all zero.
 void ClearBoxes(FootprintPart* boxes, int count) {
     std::memset(boxes, 0, static_cast<std::size_t>(count) * sizeof(FootprintPart));
 }
 
-// The original's branch-free selects: the stored candidate replaces the bound when the comparison
+// The game's branch-free selects: the stored candidate replaces the bound when the comparison
 // sets C0 (it lies beyond the bound, or one of them is NaN).
 float Higher(float bound, float v) { return bound >= v ? bound : v; }
 float Lower(float bound, float v) { return v >= bound ? bound : v; }
 } // namespace
 
-// MFC CArray<FootprintPart>::SetSize(count, -1), inlined by the original.
+// MFC CArray<FootprintPart>::SetSize(count, -1), inlined.
 static void SetBoxCount(CObject3D* object, int count) {
     if (count == 0) {
         if (object->partBoxes) {
@@ -194,7 +194,7 @@ EI_REWRITTEN(0x00518100, CObject3D::UpdatePartBounds);
 // --- Parts by name prefix -----------------------------------------------------------------------
 
 void CObject3D::CollectPartsByPrefix(const char* prefix, FigurePartArray* out) {
-    // The original asks each part for its name twice; parts return the same string both times.
+    // The game asks each part for its name twice; parts return the same string both times.
     auto startsWith = [prefix](CFigureMesh* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
     for (int i = 0; i < parts.size; ++i) {
         auto* part = parts.data[i];
@@ -205,7 +205,7 @@ void CObject3D::CollectPartsByPrefix(const char* prefix, FigurePartArray* out) {
     }
     for (int i = 0; i < pendingParts.size; ++i) {
         auto* part = pendingParts.data[i];
-        if (startsWith(part)) out->SetAtGrow(out->size, part);   // inlined by the original
+        if (startsWith(part)) out->SetAtGrow(out->size, part);   // inlined
     }
 }
 EI_REWRITTEN(0x00516B50, CObject3D::CollectPartsByPrefix);
@@ -214,12 +214,12 @@ EI_REWRITTEN(0x00516B50, CObject3D::CollectPartsByPrefix);
 
 namespace {
 constexpr std::uint32_t kFlagDetached = 0x1000;   // flags_: passed to the figure manager
-constexpr std::uint32_t kBoxEmptyMark = 0x800;    // 005174E0(1) on the box
+constexpr std::uint32_t kBoxEmptyMark = 0x800;
 constexpr const char* kCantLoadPart = "CObject3D::LoadFigure.\n Can't load figure \"%s\" for object \"%s\".\n";
 constexpr const char* kNoFigureManager = "CObject3D::LoadFigures.\n No valid figure manager.\n";
 constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create object \"%s\" with bodypart \"%s\".\n";
 
-// An MFC CStringArray as 00517110 reads it.
+// An MFC CStringArray as the figure loader reads it.
 using PartNameArray = mfc::CStringArray;
 } // namespace
 
@@ -241,7 +241,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
             stlp::string key(partName, partName + std::strlen(partName));
             loaded = current->LoadPart(&key);
         }
-        if (!loaded) return nullptr;   // the part is kept, unreleased (as the original)
+        if (!loaded) return nullptr;   // the part is kept, unreleased (as in the game)
         const LinkHeaderMap::Node* node;
         {
             stlp::string key(partName, partName + std::strlen(partName));
@@ -260,7 +260,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
         part->bounds_.flags |= kBoxEmptyMark;
         part->bounds_.flags |= kBoxCrown;
     }
-    // AddPart, inlined by the original (appending with 00519A10).
+    // AddPart, inlined (appending).
     bool present = false;
     for (int i = 0; i < parts.size && !present; ++i) present = parts.data[i] == part;
     if (!present) {
@@ -303,7 +303,7 @@ constexpr int kClassUnit54 = 0x54;
 constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 
 // The piece names as the loader's slot 3 (LoadFigure) reads them, into an empty vector (the original
-// sizes it with 005195B0 / 004DDBA0 and assigns each name).
+// (the game sizes it with helper calls and assigns each name).
 void FillPieceNames(stlp::vector<stlp::string>& pieces, const PartNameArray* names) {
     int count = names->size;
     if (count > 0) {

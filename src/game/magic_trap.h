@@ -1,8 +1,8 @@
 #pragma once
 
-// Magic traps (map objects of class id 0x3B, 0x290 bytes, constructed by 00529DD0; the zone file's
-// "MagicTrap" records; a real virtual class: the compiler makes its vtable, C19, game.exe's 0073E63C
-// and its tail 0073E6E8 are retired). Names provisional. flags_ bit 0x80000 is
+// Magic traps (map objects of class id 0x3B, 0x290 bytes; the zone file's
+// "MagicTrap" records; a real virtual class: the compiler makes its vtable).
+// Names provisional. flags_ bit 0x80000 is
 // "armed" (the script's ActivateTrap); the position is the map object's. The trap's own members
 // start at +0x238 (declared below). See docs/notes/units.md ("Magic traps").
 
@@ -21,47 +21,47 @@ class CStream;   // core_streams.h
 
 class MagicTrap : public CMapObject {
 public:
-    // The constructor (the factory 00512730, class id 0x3B): the map object,
-    // no spell, the two arrays (circles vtable 0073C68C, points 0073C680) and the list of units
-    // inside (vtable 0073E730, blocks of 10) empty; then the map object's Create (0050E770,
-    // called directly), sides -1, flags_ |= 0x80040, the spell released, both arrays SetSize(0,
+    // The constructor (the factory, class id 0x3B): the map object,
+    // no spell, the two arrays (circles, points) and the list of units
+    // inside (blocks of 10) empty; then the map object's Create (called directly),
+    // sides -1, flags_ |= 0x80040, the spell released, both arrays SetSize(0,
     // -1), the list emptied, countdown 0, +0x28C 0, period 10.
     MagicTrap();
-    // The map object's Destroy (0050E840, called directly), the spell released, both
+    // The map object's Destroy (called directly), the spell released, both
     // arrays SetSize(0, -1), the list emptied twice (RemoveAll, then CList's destructor), the
     // arrays' storage freed, then the map object's destructor.
     ~MagicTrap() override;
-    // The deleting destructor (slot 0, 00529F70) frees into the game's heap.
+    // The deleting destructor (slot 0) frees into the game's heap.
 
     int Create() override { return CreateTrap(); }
     void Destroy() override { DestroyTrap(); }
     int RunTick() override { return UpdateTrap(); }
-    void Load(CStream* stream) override;                      // 9: 0052ADC0 LoadTrap
-    void Save(CStream* stream) override;                      // 10: 0052B070 SaveTrap
-    const char* GetClassName() override;                   // 11: 00529F50 "CMagicTrapObject" (trap_object.cpp)
-    int GetClassId() override;                             // 12: 00529F60 (0x61)
-    bool IsSynchronised() override { return true; }        // 29: 00529AE0 (the trap's)
+    void Load(CStream* stream) override;                      // 9: LoadTrap
+    void Save(CStream* stream) override;                      // 10: SaveTrap
+    const char* GetClassName() override;                   // 11: "CMagicTrapObject" (trap_object.cpp)
+    int GetClassId() override;                             // 12: 0x61
+    bool IsSynchronised() override { return true; }        // 29: the trap's
 
-    // 0052B070 (virtual slot 10, RET 4). The map object part, the spell's id (-1:
+    // SaveTrap (virtual slot 10). The map object part, the spell's id (-1:
     // none), the circles (count, then 12 bytes each), the units inside (count, then each id
-    // through 0050E290), the points (count, then 8 bytes each), the period, countdown, +0x28C and
+    // through the reference's Save), the points (count, then 8 bytes each), the period, countdown, +0x28C and
     // the sides.
     void SaveTrap(CStream* stream);
-    // 0052ADC0 (virtual slot 9, RET 4). Reads what SaveTrap writes: the spell found by id in the
-    // spell manager (the context's slot 22, 00403F40), the circles and points through SetSize(n,
-    // -1), the units inside appended by 0052AF20 (resolved in the trap's context).
+    // LoadTrap (virtual slot 9). Reads what SaveTrap writes: the spell found by id in the
+    // spell manager (the context's slot 22), the circles and points through SetSize(n,
+    // -1), the units inside appended (resolved in the trap's context).
     void LoadTrap(CStream* stream);
 
-    // 0052A100 (virtual slot 2, Create; the manager's CreateObject). The map object's Create
+    // Virtual slot 2 (Create; the manager's CreateObject). The map object's Create
     // then as the constructor's tail: sides -1, flags_ |= 0x80040, the spell released,
     // the circles' storage freed inline (count and capacity 0), the points SetSize(0, -1), the
-    // list emptied, period 10, countdown and +0x28C 0. Returns what 0050E770 returned.
+    // list emptied, period 10, countdown and +0x28C 0. Returns what the map object's Create returned.
     int CreateTrap();
-    // 0052A200 (virtual slot 3, Destroy; the manager's ReleaseObject / DestroyAll). The map
+    // Virtual slot 3 (Destroy; the manager's ReleaseObject / DestroyAll). The map
     // object's Destroy, the spell released, the circles freed inline, the points
     // SetSize(0, -1), the list emptied.
     void DestroyTrap();
-    // 0052AC20 (virtual slot 6, the per-tick update). The map object's update; then,
+    // Virtual slot 6 (the per-tick update). The map object's update; then,
     // on the server world (its slot 26) with a spell: a period not above 0 updates the units
     // inside; otherwise the countdown goes down by one (not below 0) and, once it is
     // not above 0, the trap fires at what is in it. Returns the map object's result.
@@ -70,26 +70,26 @@ public:
     // in its circles, when there are any. The context is fetched even when
     // the trap is not armed.
     void FireAtOccupants();
-    // 0052AC90 (virtual slot 56, RET 4: the world server's RemoveObject tells every object). Drops
+    // Virtual slot 56 (the world server's RemoveObject tells every object). Drops
     // every entry of the units inside that refers to `object` (the reference released and
-    // cleared, the node freed; the last one empties the list as RemoveAll). Returns 0 (EAX).
+    // cleared, the node freed; the last one empties the list as RemoveAll). Returns 0.
     int ForgetObject(CEngineObject* object) override;
 
-    // Sets the trap up from its zone record (the zone loader 005927C0): the
+    // Sets the trap up from its zone record (called by the zone loader): the
     // sides, the spell made from the record's text by the spell manager (the context's slot 22,
-    // The old one released), the position, the circles and points copied, the units
+    // the old one released), the position, the circles and points copied, the units
     // inside forgotten (each reference released, the list's blocks freed), the period with the
     // countdown at 0, and +0x28C from the record's byte.
     void SetUp(const MagicTrapRecord* record);
 
-    // Called from the trap's update (slot 6, 0052AC20) while the world is live, it has
+    // Called from the trap's update (slot 6) while the world is live, it has
     // a spell and its period is not positive. The units inside that left every circle
     // (or a unit that is dead, in the first circle that holds it) are dropped. An armed trap then
     // takes in the living units of its sides found in its circles and casts its spell
     // when any of them is new.
     void UpdateVictims();
 
-    // Casts the trap's spell (the world server's 0058E850, no caster) from the
+    // Casts the trap's spell (the world server's cast, no caster) from the
     // trap's position raised by the ground height under it: at each of its points {x, y, 0} unless
     // the spell has flag 0x10000000 or there are none; otherwise at each unit of `units` (target
     // and point the unit), with +0x28C first narrowing `units` to the last one closer than 1e30
@@ -103,7 +103,7 @@ public:
     CSpell* spell;                  // +0x23C a counted reference; null: none
     TrapArea area;                  // +0x240
     TrapPoints points;              // +0x254 where it casts ({x, y})
-    UnitList inside;                // +0x268 the units inside: counted references (vtable 0073E730)
+    UnitList inside;                // the units inside: counted references
     int period;                     // +0x284 0: casts at newcomers; else ticks between casts
     int countdown;                  // +0x288
     int singleTarget;               // +0x28C cast at one unit only
@@ -119,8 +119,8 @@ static_assert(offsetof(MagicTrap, singleTarget) == 0x28C);
 static_assert(sizeof(MagicTrap) == 0x290);
 
 // Empties `out` (an MFC CPtrList, RemoveAll inlined), then for each
-// circle of `area` asks the sector map (`context` + 0x294, 005C0BD0) for the units within its
-// radius of {x, y, 0} into a CPtrList of its own (vtable 0073D454, blocks of 10) and appends to
+// circle of `area` asks the sector map (`context` + 0x294) for the units within its
+// radius of {x, y, 0} into a CPtrList of its own (blocks of 10) and appends to
 // `out` (AddTail inlined) each one alive (slot 55 returns 0) whose side (+0x250) has its bit in
 // `sides`; a unit in two circles is appended twice. `context` is the trap's map object context
 // (the world). See docs/notes/units.md ("Magic traps").

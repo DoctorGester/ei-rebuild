@@ -22,7 +22,7 @@ class CStream;   // core_streams.h
 // The spots a use order may go to (map_object.h's UseSpotArray).
 using LeverSpots = UseSpotArray;
 
-// A model's record in the lever table (0079C1A0: 0x2C bytes, read from Levers.ldb by 00463030,
+// A model's record in the lever table (0x2C bytes, read from Levers.ldb,
 // whose field ids are given): the spot offsets are in the lever's own frame (along its facing's
 // X and Y axes).
 struct LeverRecord {
@@ -42,23 +42,23 @@ struct LeverRecord {
 static_assert(sizeof(LeverRecord) == 0x2C);
 
 // The lever table's layout: the records (an STLport vector) and their index by model name. Its
-// constructor is a static initialiser, its destructor 00463120 (lever_table.cpp).
+// constructor is a static initialiser, its destructor in lever_table.cpp.
 // (The archive's helper for the records is ChunkArchive::SerializeLevers, app_device_list.cpp.)
 
 struct LeverRecordTable {
     using NameIndex = stlp::hash_map<stlp::string, LeverRecord*, stlp::StringHash>;
 
-    // 00463390 (RET 4; lever_table_load.cpp, A-E1; Rebirth-patched, so the vanilla launch only).
+    // Load (lever_table_load.cpp; Rebirth patches it, so the vanilla launch only).
     // Reads Levers.ldb of <folder>database.res into the records (chunk 1 of a chunk archive) and
     // enters every record into the index under its name. Returns 1, or the fatal error's result
     // when the archive or the file does not open.
     int Load(const char* folder);
-    // 004632A0 (lever_table_load.cpp, A-E1). The constructor: no records, an empty index of 193
-    // buckets (the prime after 100). It runs from the static initialiser 004630F0 on the table at
-    // 0079C1A0, before the hooks are installed, so the hook on it never fires. Returns this.
+    // (lever_table_load.cpp). The constructor: no records, an empty index of 193
+    // buckets (the prime after 100). It runs from a static initialiser on the table,
+    // before the hooks are installed, so the hook on it never fires. Returns this.
     LeverRecordTable* Construct();
-    // The record filed under `name`, null when there is none (the index's operator[], 0052CA40 /
-    // 0052CB40 / 00464750: a null record is filed under a new name).
+    // The record filed under `name`, null when there is none (the index's operator[]:
+    // a null record is filed under a new name).
     LeverRecord* Named(const char* name) { return stlp::NamedSlot<LeverRecord>(byName, stlp::string(name)); }
 
     LeverRecord* begin;             // +0x00
@@ -67,13 +67,13 @@ struct LeverRecordTable {
     NameIndex byName;               // +0x0C
 };
 static_assert(offsetof(LeverRecordTable, byName) == 0x0C && sizeof(LeverRecordTable) == 0x20);
-// The lever table (0079C1A0; lever_table.cpp); 0052CA40 finds a record.
+// The lever table (lever_table.cpp).
 extern lib::StaticObject<LeverRecordTable> g_leverTable;
 inline LeverRecordTable& TheLeverTable() { return *g_leverTable; }
 
-// Levers (GetClassName "CLeverObject", class id 0x5D, 0x264 bytes; made by the factory 00512730;
+// Levers (GetClassName "CLeverObject", class id 0x5D, 0x264 bytes; made by the factory;
 // gates are levers too, e.g. zone1's "VGate", id 1889; a real virtual class: the compiler makes its
-// vtable, C19, game.exe's 0073E740 is retired). A map object whose
+// vtable). A map object whose
 // scale's y (+0xC8) is the shown position (0..1) and z (+0xCC) a second animation value that
 // scales the spots' distance. flags_ 0x80000: disabled (EnableLever 0). Names provisional; see
 // docs/notes/units.md ("Levers"). unit_lever.cpp: SetState, CollectUseSpots; lever_object.cpp the rest.
@@ -85,14 +85,14 @@ public:
     Lever();
     // The map object's Destroy, then its destructor.
     ~Lever() override;
-    // The deleting destructor (slot 0, 0052B300) frees into the game's heap.
+    // The deleting destructor (slot 0) frees into the game's heap.
 
     int Create() override { return CreateLever(); }
     int RunTick() override { return UpdateLever(); }
-    void Load(CStream* stream) override;                      // 9: 0052BDD0 LoadLever
-    void Save(CStream* stream) override;                      // 10: 0052BE40 SaveLever
-    const char* GetClassName() override;                   // 11: 0052B2E0 "CLeverObject"
-    int GetClassId() override;                             // 12: 0052B2F0 (0x5D)
+    void Load(CStream* stream) override;                      // 9: LoadLever
+    void Save(CStream* stream) override;                      // 10: SaveLever
+    const char* GetClassName() override;                   // 11: "CLeverObject"
+    int GetClassId() override;                             // 12: 0x5D
     bool IsSynchronised() override { return Slot29True(); }        // 29
     int IsUsable() override { return NeedsKey(); }                 // 38
     int IsDirectUseBlocked() override { return Flag260Slot(); }    // 39
@@ -106,30 +106,30 @@ public:
     float Radius() override { return static_cast<float>(RadiusSlot()); }   // 60
 
     // Sets state `state` (negative: the next one, wrapping when cycling) and
-    // moves the lever there over `duration` ticks (negative: the model's default from 0079C1AC,
+    // moves the lever there over `duration` ticks (negative: the default stored with the lever table,
     // else 10; zero or less: at once). The units standing around it are lifted off the sector map
     // while it moves and put back on free cells if they cannot stay where they are.
     void SetState(int state, float duration);
 
-    // 0052BBE0 (RET 8; the lever's virtual slot 44, vtable 0073E740). The spots from which a unit
+    // The lever's virtual slot 44. The spots from which a unit
     // of radius `userRadius` can use the lever, into `out` (emptied first): for each offset
-    // (along, across) of the model's record in the lever table (0079C1A0, by +0xA4; none for an
+    // (along, across) of the model's record in the lever table (by +0xA4; none for an
     // unknown model), the position plus the facing's X axis times `along` and its Y axis times
     // `across`, the offset normalised and set at distance
     // ((1 - +0xCC) + +0xCC * record scale) * |offset| + userRadius.
     void CollectUseSpots(LeverSpots* out, float userRadius);
 
-    // 0052B370 (slot 2, Create). The map object's Create, then as the constructor's tail. Returns
+    // Slot 2 (Create). The map object's Create, then as the constructor's tail. Returns
     // the map object's result.
     int CreateLever();
-    // 0052B490 (slot 6, the update). The map object's update; then on the client only (the
+    // Slot 6 (the update). The map object's update; then on the client only (the
     // context's slot 26 is 0): while the move runs (t = (end tick - tick) * rate above 0) the
     // shown position is to - (to - from) * t, else `to` when it differs; the scale is applied
     // and the client world refreshes the object. Returns 1 while moving,
     // else 0.
     int UpdateLever();
-    // 0052BDD0 / 0052BE40 (slots 9 / 10, RET 4). The map object part, then
-    // state, count, cycling, the lock (three dwords; 005229F0 / 00522A30) and both flag bytes.
+    // Slots 9 / 10. The map object part, then
+    // state, count, cycling, the lock (three dwords; LockKey's Load / Save) and both flag bytes.
     void LoadLever(CStream* stream);
     void SaveLever(CStream* stream);
     // The map object's network state, then field 5: a finished
@@ -142,13 +142,13 @@ public:
     // +0x24) at its position (8 to 40 units). Returns the map object's result without field 5.
     std::uint32_t ReadLeverNetState(int first);
 
-    // 0052B3F0 (RET 4; the zone loader 005927C0). Copies the record's state, count, cycling, lock
+    // The zone loader's set-up. Copies the record's state, count, cycling, lock
     // and flags; the shown position is state / (count - 1) (0 for one state); MarkChanged(1).
     // Returns MarkChanged's EAX.
     std::uintptr_t SetUp(const LeverSetup* setup);
-    // 0052BAD0 (RET 4; EnableLever). Clears (on) or sets (off) the disabled bit, MarkChanged(5).
+    // EnableLever. Clears (on) or sets (off) the disabled bit, MarkChanged(5).
     std::uintptr_t Enable(bool on);
-    // 0052BB20 (RET 4; SetScience). The lock becomes `lock`, MarkChanged(5).
+    // SetScience. The lock becomes `lock`, MarkChanged(5).
     std::uintptr_t SetLock(const LockKey* lock);
 
     // Small slots.
@@ -159,11 +159,11 @@ public:
     int NeedsKey();
     // The lock's id when its mask has bit 3, else 0.
     std::uint32_t KeyId() override;
-    // 0052BB50 (slot 41, RET 8: ApplyScience). When `key` opens the lock (00522A80, Rebirth's
+    // Slot 41 (ApplyScience). When `key` opens the lock (Rebirth's
     // FixLeversActivate, through its address): the next state (SetState(-1, -10)), disabled,
     // MarkChanged(5); AL 1. Else 0. The second argument is not read.
     bool ApplyKey(const LockKey* key, int unused);
-    // Whether `key` opens the lock (00522A80's EAX).
+    // Whether `key` opens the lock (the check's EAX).
     BOOL KeyOpens(const LockKey* key);
     // The radius (+0x134), in ST0.
     double RadiusSlot();
@@ -187,6 +187,6 @@ static_assert(offsetof(Lever, rate) == 0x25C);
 static_assert(offsetof(Lever, keepsMapFlag) == 0x261);
 static_assert(sizeof(Lever) == 0x264);
 
-// 0052B2E0 / 0052B2F0 (slots 11 / 12): "CLeverObject" and 0x5D.
+// Slots 11 / 12: "CLeverObject" and 0x5D.
 const char* __fastcall LeverClassName(Lever* self);
 int __fastcall LeverClassId(Lever* self);

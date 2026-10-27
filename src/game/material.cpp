@@ -1,4 +1,4 @@
-// The material (CMaterial) and the material manager (CMaterialManager): material.h. A-H24; see
+// The material (CMaterial) and the material manager (CMaterialManager): material.h. See
 // docs/notes/items_spells.md ("Materials").
 #include "material.h"
 #include "scene_loader.h"   // scene::InitHelper
@@ -53,7 +53,7 @@ EI_REWRITTEN_SPECIAL(0x0068DBC0, CMaterial::CMaterial);
 // A fake unit's helper built in its array's storage (scene_loader.h's HelperElements).
 void scene::InitHelper(CMaterial* p) { new (p) CMaterial(); }
 
-// The names go after the body (name3, name2, then name after the deque in the original).
+// The names go after the body (name3, name2, then name after the deque in the game).
 CMaterial::~CMaterial() {
     entries.PopAll();
     entries.Destroy();
@@ -86,7 +86,7 @@ EI_REWRITTEN(0x0068E040, CMaterial::Destroy);
 namespace {
 
 // The table's entry for `key`: the table grown for one more entry, then the key's chain searched;
-// an absent key is entered at the head of its bucket with the default pair the original builds (its
+// an absent key is entered at the head of its bucket with the default pair the game builds (its
 // key copied over every dword of the colours).
 CMaterialManager::ColorTable::Node* EnterKey(CMaterialManager::ColorTable& table, unsigned key) {
     using Node = CMaterialManager::ColorTable::Node;
@@ -149,7 +149,7 @@ CEngineObject* CMaterialManager::NewObject(int type) {
 
 CMaterial* CMaterialManager::NewMaterial(int type) {
     auto* material = CreateObjectAs<CMaterial>(type, -1);
-    // The original sets the flag before its null check, so a failed creation faults there.
+    // The game sets the flag before its null check, so a failed creation faults there.
     if (!material) return nullptr;
     material->flags_ |= 8;
     material->colors = EnterKey(colors_, static_cast<unsigned>(material->type_))->value;

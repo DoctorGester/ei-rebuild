@@ -1,7 +1,7 @@
 #pragma once
 
-// The game's logic settings (the global at 007C53F8), read from a registry file at startup by
-// LogicSettings::Load (005CE0F0, called by 00456440). Field names are the registry keys.
+// The game's logic settings (a global), read from a registry file at startup by
+// LogicSettings::Load. Field names are the registry keys.
 
 #include "game_data.h"
 
@@ -13,7 +13,7 @@ struct LogicSettings {
     // that is missing keeps the current value. The difficulty arrays start at 1.0 and take up to
     // three values each.
     void Load(const char* path);
-    // 005CDFC0 (the static initialiser 005CDFB0; Ghidra has no function there). The defaults Load
+    // The static initialiser (Ghidra has no function there). The defaults Load
     // keeps for a missing key, not loaded. Returns this.
     LogicSettings* Construct();
 
@@ -64,6 +64,6 @@ static_assert(offsetof(LogicSettings, considerLogBase) == 0x94);
 static_assert(offsetof(LogicSettings, itemDurabilityCritical) == 0xA4);
 static_assert(sizeof(LogicSettings) == 0xCC);
 
-// Zero until the static initialiser 005CDFB0 (logic_settings.cpp) sets the defaults.
+// Zero until the static initialiser (logic_settings.cpp) sets the defaults.
 inline LogicSettings g_logicSettings = /*007C53F8*/ {};
 inline LogicSettings& GameLogicSettings() { return g_logicSettings; }

@@ -1,4 +1,4 @@
-// The .mob script text decoder (A-S7): 004D8E10. See mob_script_decoder.h.
+// The .mob script text decoder. See mob_script_decoder.h.
 #include "mob_script_decoder.h"
 
 #include "ei/hook.h"

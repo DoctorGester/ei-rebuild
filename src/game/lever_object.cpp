@@ -1,4 +1,4 @@
-// The lever map object's own functions (0052B1F0-0052BE40, A-U6): lifetime, update, save /
+// The lever map object's own functions: lifetime, update, save /
 // load, network state, the zone record set-up and the small slots. SetState and UseSpots are in
 // unit_lever.cpp. See docs/notes/units.md ("Levers").
 #include "lever.h"
@@ -103,7 +103,7 @@ EI_REWRITTEN(0x0052BDD0, Lever::LoadLever);
 
 void Lever::SaveLever(CStream* stream) {
     SaveMapObject(stream);
-    // Each value goes through a stack copy, as the original writes them.
+    // Each value goes through a stack copy, as the game writes them.
     std::uint32_t value = static_cast<std::uint32_t>(state);
     stream->Write(&value, 4);
     value = static_cast<std::uint32_t>(stateCount);

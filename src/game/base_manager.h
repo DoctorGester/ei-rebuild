@@ -19,7 +19,7 @@ class CManagerContext;    // manager_context.h
 // type, registers them by id, saves and loads the registered ones, and keeps the objects released
 // to it as spares of their type for reuse. Name from the game's own error strings
 // ("CBaseManager::RegisterInstant"). 25 slots (0-12 as CEngineObject's).
-// is retired. base_manager.cpp, base_manager_core.cpp.
+// base_manager.cpp, base_manager_core.cpp.
 class CBaseManager : public CEngineObject {
 public:
     // (combat_order_setters.cpp). The animation `name` (case-insensitive) in the

@@ -5,7 +5,7 @@
 // freed-id batches (list<vector<FreedId>>) and the reliable chunk lists (list<ReliableChunk>, plain
 // bytes), with the element policies (stlp_list.h) their copy constructors, default inserts, erase,
 // clear and ~list use; the session's clients find_if by peer address and the counted pointer's
-// init. Registered in library_net_lists.cpp; checked in game by verify_library_net_lists.cpp until S21d.
+// init. Registered in library_net_lists.cpp.
 // Thiscalls are __fastcall with an unused EDX.
 
 #include "net_connection.h"
@@ -25,7 +25,7 @@ using SentItems = stlp::list<SentRecord>;
 
 // _M_create_node's copy: the action and version, the entry with one more reference (its
 // 16-bit count; a null entry stays null). Destroyed with the entry's release. insert(pos)
-// copies a default item: the original leaves action and version as its stack had them (every caller
+// copies a default item: the game leaves action and version as its stack had them (every caller
 // overwrites them); ours are zero.
 struct SentRecordElement {
     static void Copy(SentRecord* to, const SentRecord& from) {
@@ -52,10 +52,10 @@ using SentPackets = stlp::list<PacketRecord>;
 
 // _M_create_node's copy: the time, the sequence (not the word after it), the items by
 // the list's copy constructor (a sentinel, then a copy of each item), the header's 0x104 bytes and
-// the rolled-back byte (not the three after it). Destroyed as 0043A1D0: the items cleared (each
+// the rolled-back byte (not the three after it). Destroyed by the packet's destructor: the items cleared (each
 // entry released, the node back to the pool), then the items' sentinel. insert(pos) copies a
 // default packet: an empty item list and rolledBack 0; the time, sequence and header
-// were the original's stack bytes (the caller overwrites them), ours are zero.
+// were the game's stack bytes (the caller overwrites them), ours are zero.
 struct PacketRecordElement {
     static void Copy(PacketRecord* to, const PacketRecord& from);
     static void Destroy(PacketRecord* p) { p->items.Release<SentRecordElement>(); }
@@ -68,7 +68,7 @@ using FreedIds = net::FreedIds;
 using FreedBatches = stlp::list<FreedIds>;
 
 // _M_create_node's copy: vector's copy constructor (room for exactly size() ids, none
-// when empty). Destroyed as 0043A150 (the storage back to the pool, by its capacity). insert(pos)
+// when empty). Destroyed with its storage back to the pool, by its capacity. insert(pos)
 // copies an empty vector.
 struct FreedIdsElement {
     static void Copy(FreedIds* to, const FreedIds& from) {
@@ -82,7 +82,7 @@ struct FreedIdsElement {
 
 using Chunks = stlp::list<net::ReliableChunk>;
 
-// The chunk's bytes copied. insert(pos) copies a default chunk: the original's stack
+// The chunk's bytes copied. insert(pos) copies a default chunk: the game's stack
 // bytes (the caller writes the sequence, size and data); ours are zero.
 struct ChunkElement {
     static void Copy(net::ReliableChunk* to, const net::ReliableChunk& from) { *to = from; }
@@ -111,13 +111,13 @@ static_assert(sizeof(ClientsNode) == sizeof(net::ClientNode));
 struct ClientsIterator {
     ClientsNode* node;
 
-    // find_if(first, last, same peer address) (0043D780 through 0043FB30; RET 0xC): the first node
+    // find_if(first, last, same peer address): the first node
     // whose connection's address has the 16 bytes of `address`, or last, into this; returns this.
     ClientsIterator* FindByAddress(ClientsNode* first, ClientsNode* last, const net::NetAddress* address);
 };
 static_assert(sizeof(ClientsIterator) == 4);
 
-// The clients' counted pointer made from a raw connection (0043D7D0; ECX the pointer, EDX the
+// The clients' counted pointer made from a raw connection (ECX the pointer, EDX the
 // connection): stored without a reference; returns the pointer.
 net::Connection** __fastcall InitClientRef(net::Connection** ref, net::Connection* connection);
 
