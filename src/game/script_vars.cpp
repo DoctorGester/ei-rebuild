@@ -9,6 +9,7 @@
 #include "ei/x87.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 namespace {
@@ -87,7 +88,7 @@ EI_REWRITTEN(0x004B3940, ScriptVars::RemoveDeletedObjects);
 
 namespace {
 // operator+(const CString&, const CString&): constructs the result in `out`.
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return ::new (a0) mfc::CString(*a1 + *a2); }
+mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return std::construct_at(a0, *a1 + *a2); }
 
 // The type letters "f", "s", "o", "g".
 } // namespace

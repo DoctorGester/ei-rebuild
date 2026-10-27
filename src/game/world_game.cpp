@@ -63,6 +63,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <bit>
 #include <string>
@@ -127,8 +128,8 @@ struct LocalRecords {
 // Copies saves\current\<zone>.sav of every visited zone that has to be kept (the current map's
 // zones and bz7g) into the slot folder; a zone whose file could not be copied, and every other
 // zone, is marked not visited ("zs.<zone>" = 0).
-void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& currentFolder, mfc::CString& zone,
-                      const mfc::CString& currentMap, NamedFloatTable* variables) {
+void CopyVisitedZones(const std::string& slotFolder, const std::string& currentFolder, mfc::CString& zone,
+                      const std::string& currentMap, NamedFloatTable* variables) {
     for (int i = 0; i < ZoneRecordCount(); ++i) {
         MapRecord* record = ZoneRecords() + i;
         const char* name = record->name;
@@ -145,15 +146,15 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
             keep = gamecrt::mbscmp(record->name,
                                    kAlwaysCopied) == 0 ||
                    gamecrt::mbscmp(record->allod,
-                                   currentMap.GetString()) == 0;
+                                   currentMap.c_str()) == 0;
         }
         if (keep) {
             zone = RecordName(record);
             bool failed;
             {
-                std::string slotPath = (slotFolder + zone).GetString();
+                std::string slotPath = slotFolder + zone;
                 std::string slotFile = slotPath + kSaveExtension;
-                std::string currentPath = (currentFolder + zone).GetString();
+                std::string currentPath = currentFolder + zone;
                 std::string currentFile = currentPath + kSaveExtension;
                 failed = gameapi::CopyFileA(currentFile.c_str(), slotFile.c_str(), FALSE) == 0;
             }
@@ -273,11 +274,11 @@ const mfc::CString& MoviesFolder() { return TheDiscFolder(); }
 // catch up with the time spent away (one tick per elapsed unit, at most 1000, waking the units
 // around the entrance). Returns LoadSave's result, 0 when the file cannot be opened or is
 // corrupt.
-int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone, mfc::CString& folder,
+int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone, mfc::CString& folder,
                 const char* mapOverride, FileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables_;
     folder.Format(kCurrentFolder, DataFolderText());
-    std::string fileName = (zone + kSaveExtension).GetString();
+    std::string fileName = zone + kSaveExtension;
     bool opened;
     {
         std::string path = (folder + fileName).GetString();
@@ -370,7 +371,7 @@ int __stdcall EnterZone(CParty* records) {
         }
         if (visited) {
             bool failed = false;
-            result = RestoreZone(records, zoneRecord, zone, folder, mapOverride, file, failed);
+            result = RestoreZone(records, zoneRecord, zone.GetString(), folder, mapOverride, file, failed);
             if (failed) return 0;
         } else {
             std::string map = (RecordMap(zoneRecord) + kMapExtension).GetString();
@@ -487,7 +488,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         lib::InPlace<ZoneExit> copy;
         ZoneExit* exit = source->CopyAt(copy.Get(), i);
         exits.data[i].Assign(exit);
-        exit->target.~CString();
+        std::destroy_at(&exit->target);
     }
     for (int i = 0; i < exits.size; ++i) exits.data[i].target = kNetworkExitTarget;
     TheServerWorld()->SetZoneExits(&exits);
@@ -506,7 +507,7 @@ int __stdcall StartNetworkZone(const char* zone) {
 
     exits.vtable = mfc::impl::ExitArrayClass::Vtable();
     if (exits.data) {
-        for (int i = 0; i < exits.size; ++i) exits.data[i].target.~CString();
+        for (int i = 0; i < exits.size; ++i) std::destroy_at(&exits.data[i].target);
         gamecrt::operator_delete(exits.data);
     }
     return 1;
@@ -522,7 +523,7 @@ namespace {
 } // namespace
 
 mfc::CString* CWorldServer::ZoneNameInto(mfc::CString* out) {
-    new (out) mfc::CString(zoneName_);
+    std::construct_at(out, zoneName_);
     return out;
 }
 
@@ -618,7 +619,7 @@ constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's 
 
 mfc::CString* GameFlow::MultiplayerZoneInto(mfc::CString* out) {
     unsigned type = net::GameClient()->gameType_;
-    return new (out) mfc::CString(kMultiplayerZones[type <= 3 ? type : 0]);
+    return std::construct_at(out, kMultiplayerZones[type <= 3 ? type : 0]);
 }
 
 void GameFlow::BeginMultiplayerGame() {
@@ -789,7 +790,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
             alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
             mfc::CString* path = MapPath(reinterpret_cast<mfc::CString*>(storage), mob);
             mobFile.Open(*path, kOpenRead, 1);
-            path->~CString();
+            std::destroy_at(path);
         }
         if (mobFile.FindTagged(kGraphChunk, out)) found = 1;
         mobFile.Close();
@@ -816,7 +817,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
             graph.Close();
         }
     }
-    base->~CString();
+    std::destroy_at(base);
     return found;
 }
 
@@ -844,7 +845,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
         mfc::CString* path = MapPath(reinterpret_cast<mfc::CString*>(storage), mob);
         file.Open(*path, kOpenRead, 1);
-        path->~CString();
+        std::destroy_at(path);
     }
     file.FindTagged(kScriptsChunk, &scripts);
     if (scripts.FindTagged(kScriptEncoded, &text)) {
@@ -1570,18 +1571,18 @@ int GameFlow::LoadGame(const char* slot) {
 // ---- The flow's object, the network zone, the current save's size (A-W13) -----------------------
 
 GameFlow* GameFlow::Construct() {
-    new (&requestTarget_) mfc::CString();
+    std::construct_at(&requestTarget_);
     new (RequestParty()) CParty();
-    new (&zone7C_) mfc::CString();
+    std::construct_at(&zone7C_);
     state_ = 0;
     return this;
 }
 EI_REWRITTEN(0x00578460, GameFlow::Construct);
 
 void GameFlow::Destruct() {
-    zone7C_.~CString();
+    std::destroy_at(&zone7C_);
     RequestParty()->~CParty();
-    requestTarget_.~CString();
+    std::destroy_at(&requestTarget_);
 }
 EI_REWRITTEN(0x005784D0, GameFlow::Destruct);
 
@@ -1822,7 +1823,7 @@ namespace {
 // MpHeroRecord::CopyRange, its element destructor DeletingDestruct (flag 0); the records' copy constructor
 // and the insert overflow. The entry's destructor is inlined here: the file name, then the party's.
 void DestroyPartyEntry(MpHeroRecord* entry) {
-    entry->file.~CString();
+    std::destroy_at(&entry->file);
     entry->Party()->~CParty();
 }
 
@@ -1847,7 +1848,7 @@ void SavedParties::Reload() {
         lib::InPlace<MpHeroRecord> storage;
         auto* entry = storage.Get();
         new (entry->Party()) CParty();
-        new (&entry->file) mfc::CString();
+        std::construct_at(&entry->file);
         entry->file = found.cFileName;
         if (entry->ReadFile(folder_)) {
             NamedFloatTable* variables = &entry->Party()->variables_;
@@ -1863,7 +1864,7 @@ void SavedParties::Reload() {
                 if (finish != eos) {
                     if (finish) {
                         new (finish->Party()) CParty(*entry->Party());
-                        new (&finish->file) mfc::CString(entry->file);
+                        std::construct_at(&finish->file, entry->file);
                     }
                     ++finish;
                 } else {
@@ -1903,8 +1904,8 @@ int AllodOfMap(const char* map) {
 void AppendEmptyEntry(ZoneTable& table) {
     if (table.Finish() != table.EndOfStorage()) {
         if (table.Finish()) {
-            new (&table.Finish()->first) mfc::CString();
-            new (&table.Finish()->second) mfc::CString();
+            std::construct_at(&table.Finish()->first);
+            std::construct_at(&table.Finish()->second);
         }
         ++table.Finish();
         return;

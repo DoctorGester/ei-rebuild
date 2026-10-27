@@ -24,6 +24,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 #include <type_traits>
@@ -177,7 +178,7 @@ void ArgumentsSetSize(mfc::CArray<T>& a, int n) {
     constexpr bool strings = std::is_same_v<T, mfc::CString>;
     if (n <= a.size) {
         if constexpr (strings)
-            for (int i = n; i < a.size; ++i) a.data[i].~CString();
+            for (int i = n; i < a.size; ++i) std::destroy_at(&a.data[i]);
         if (n == 0) {
             gamecrt::operator_delete(a.data);
             a.data = nullptr;
@@ -198,7 +199,7 @@ void ArgumentsSetSize(mfc::CArray<T>& a, int n) {
     }
     std::memset(a.data + a.size, 0, static_cast<unsigned>(n - a.size) * 4);
     if constexpr (strings)
-        for (int i = a.size; i < n; ++i) new (&a.data[i]) mfc::CString();
+        for (int i = a.size; i < n; ++i) std::construct_at(&a.data[i]);
     a.size = n;
 }
 

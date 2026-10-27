@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <memory>
 #include <new>
 
 namespace recordarrays {
@@ -31,18 +32,18 @@ EI_REWRITTEN(0x00454A50, ArrayHeader<FaceGroupArrayClass>::Construct);
 EI_REWRITTEN(0x0050FA30, DeltaFields::SetSize);
 EI_REWRITTEN(0x005101A0, DeltaFields::ConstructElements);
 void InitTheme(MusicTheme* p) {
-    new (&p->name) mfc::CString();
-    new (&p->briefing) mfc::CString();
-    new (&p->constructor) mfc::CString();
+    std::construct_at(&p->name);
+    std::construct_at(&p->briefing);
+    std::construct_at(&p->constructor);
     p->calm.Construct();
     p->combat.Construct();
 }
 void __fastcall DestroyTheme(MusicTheme* p) {
     p->combat.Destruct();
     p->calm.Destruct();
-    p->constructor.~CString();
-    p->briefing.~CString();
-    p->name.~CString();
+    std::destroy_at(&p->constructor);
+    std::destroy_at(&p->briefing);
+    std::destroy_at(&p->name);
 }
 EI_REWRITTEN(0x006B59A0, Themes::SetSize);
 EI_REWRITTEN(0x006B5BC0, Themes::ConstructElements);
@@ -57,7 +58,7 @@ EI_REWRITTEN(0x006B90C0, DestroyWave);
 EI_REWRITTEN(0x00557890, Behaviours::Destruct<BehaviourArrayClass>);
 EI_REWRITTEN(0x00558E10, Behaviours::ConstructElements);
 mfc::CString* PartNames::CopyAt(mfc::CString* result, int index) const {
-    new (result) mfc::CString(data[index]);
+    std::construct_at(result, data[index]);
     return result;
 }
 EI_REWRITTEN(0x004698A0, PartNames::CopyAt);
@@ -250,7 +251,7 @@ EI_REWRITTEN(0x0046EFD0, mapspec::Patrols::CopyAt);
 ZoneExit* ZoneExits::CopyAt(ZoneExit* result, int index) const {
     const ZoneExit& from = data[index];
     std::memcpy(result, &from, offsetof(ZoneExit, target));
-    new (&result->target) mfc::CString(from.target);
+    std::construct_at(&result->target, from.target);
     result->entrance = from.entrance;
     result->view = from.view;
     result->hasDeployAngle = from.hasDeployAngle;

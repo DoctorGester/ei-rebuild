@@ -46,6 +46,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
 #include "world_glue.h"
@@ -253,7 +254,7 @@ void LoadSystemMessages(console::CStringArray& messages) {
     gamecrt::operator_delete(text);
 }
 
-mfc::CString Tail(const mfc::CString& argument, int prefixLength) { return argument.Right(argument.GetLength() - prefixLength); }
+mfc::CString Tail(const std::string& argument, int prefixLength) { return str::Right(argument, static_cast<int>(argument.size()) - prefixLength); }
 
 // The command line: "-moviepath_<folder>" (the client's flag 0x20 off), "-nocam" (flag 8 off; only while flag
 // 0x10 is off), a ".cam", ".scr", ".mob" or ".mpr" file, "-benchmark_<frames>" and "-devicetarget_<driver>".
@@ -270,7 +271,7 @@ void ReadCommandLine(const char* commandLine) {
         if (arguments[i].Find("-moviepath_") == 0) {
             client->flags_ &= ~0x20u;
             {
-                std::string folder = Tail(arguments[i], 11).GetString();
+                std::string folder = Tail(arguments[i].GetString(), 11).GetString();
                 MovieFolder() = folder;
             }
             const char* folder = MovieFolder();
@@ -295,11 +296,11 @@ void ReadCommandLine(const char* commandLine) {
         } else if (arguments[i].Find(".mpr") != -1) {
             CommandLineMap() = arguments[i];
         } else if (arguments[i].Find("-benchmark_") == 0) {
-            std::string frames = Tail(arguments[i], 11).GetString();
+            std::string frames = Tail(arguments[i].GetString(), 11).GetString();
             options->numberOfFrames_ = std::atoi(frames.c_str());
             options->createOutputInfo_ = 1;
         } else if (arguments[i].Find("-devicetarget_") == 0) {
-            std::string driver = Tail(arguments[i], 14).GetString();
+            std::string driver = Tail(arguments[i].GetString(), 14).GetString();
             options->driverIndex_ = std::atoi(driver.c_str());
         }
     }

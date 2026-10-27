@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <memory>
 #include <new>
 #include <string>
 #include <vector>
@@ -48,7 +49,7 @@ void ReadTexts(Reader& r, mfc::CArray<mfc::CString>* a) {
     ReadShape(r, a, gamearrays::ScriptStringValuesClass::Vtable());
     for (int i = 0; i < a->size; ++i) {
         const std::string text = r.String();
-        new (&a->data[i]) mfc::CString(text.c_str(), static_cast<int>(text.size()));
+        std::construct_at(&a->data[i], text.c_str(), static_cast<int>(text.size()));
     }
 }
 
@@ -80,7 +81,7 @@ void InitBlocks(mfc::CList<ScriptDecl>* list, int count) {
 
 CScript* EmptyScript() {
     auto* s = static_cast<CScript*>(std::calloc(1, sizeof(CScript)));
-    new (&s->errorText_) mfc::CString;
+    std::construct_at(&s->errorText_);
     return s;
 }
 
@@ -98,9 +99,9 @@ CScript* ReadState(Reader& r, std::vector<int>* pairs = nullptr) {
             ScriptDefinition& d = s->definitions_.data[i];
             d.index = r.Get<std::int32_t>();
             const std::string name = r.String();
-            new (&d.name) mfc::CString(name.c_str(), static_cast<int>(name.size()));
+            std::construct_at(&d.name, name.c_str(), static_cast<int>(name.size()));
             const std::string params = r.String();
-            new (&d.params) mfc::CString(params.c_str(), static_cast<int>(params.size()));
+            std::construct_at(&d.params, params.c_str(), static_cast<int>(params.size()));
             ReadShape(r, &d.ifThen, mfc::impl::ScriptIfThenPairsClass::Vtable());
             if (pairs) pairs->push_back(d.ifThen.size);
             ReadVars(r, &d.vars);
@@ -156,7 +157,7 @@ struct Run {
 
 void ReadToken(Reader& r, ScriptTokenList::Node* node) {
     const std::string text = r.String();
-    new (&node->data.text) mfc::CString(text.c_str(), static_cast<int>(text.size()));
+    std::construct_at(&node->data.text, text.c_str(), static_cast<int>(text.size()));
     node->data.line = r.Get<std::int32_t>();
 }
 
@@ -172,7 +173,7 @@ void ReadRun(Reader& r, Run* run) {
         run->nodes[i].prev = i ? &run->nodes[i - 1] : nullptr;
         run->nodes[i].next = i + 1 < linked ? &run->nodes[i + 1] : nullptr;
     }
-    new (&run->tail.data.text) mfc::CString;
+    std::construct_at(&run->tail.data.text);
     run->tail.data.line = r.Get<std::int32_t>();
     run->list.vtable = gameslots::TokenListClass::Vtable();
     run->list.head = linked ? &run->nodes[0] : nullptr;

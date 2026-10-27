@@ -133,13 +133,13 @@ struct Registry {
     CFileRegistry file;
 };
 
-int Fatal(const mfc::CString& message) { return game::FatalError(message); }
+int Fatal(const std::string& message) { return game::FatalError(message.c_str()); }
 
 // The .mp file `name`.MP of `archive` into `map`. Returns 1, or the fatal error's result when the
 // file is missing or not a map (its size must be the header's counts).
-int ReadDescription(Archive& archive, const mfc::CString& path, const mfc::CString& name, MapDescription& map) {
+int ReadDescription(Archive& archive, const std::string& path, const std::string& name, MapDescription& map) {
     std::uint32_t size;
-    void* file = archive.File(name + kMapExtension, &size);
+    void* file = archive.File((name + kMapExtension).c_str(), &size);
     if (!file) return Fatal(("Unable to open file \"" + path) + "\"");
     if (size < sizeof(MapHeader)) return Fatal("Wrong file format: " + path);
     std::memcpy(&map.header, file, sizeof(MapHeader));
@@ -455,8 +455,8 @@ int CAIMap::LoadTerrain(const char* path) {
             gamecrt::sprintf(file, "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.File(file, &size);
-            if (!sector) return Fatal("Unable to locate resource: " + mfc::CString(file));
-            if (!IsSector(sector, size)) return Fatal("Wrong format resource: " + mfc::CString(file));
+            if (!sector) return Fatal(("Unable to locate resource: " + mfc::CString(file)).GetString());
+            if (!IsSector(sector, size)) return Fatal(("Wrong format resource: " + mfc::CString(file)).GetString());
             StampSector(*this, description, sector, sectorX * kSectorCells, sectorY * kSectorCells);
             archive.Close(sector);
         }

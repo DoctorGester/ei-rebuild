@@ -11,6 +11,8 @@
 #include "game/unit.h"
 #include "game_data.h"
 
+#include <memory>
+
 namespace aligned {
 std::uint32_t* __fastcall AllocateDwords(int count);
 void __fastcall ArrayAt8Free(void* self);
@@ -37,7 +39,7 @@ inline void InitGroup(ScriptGroup* p);   // defined below the tags
 inline void __fastcall DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }
 inline void DestroyGroup(ScriptGroup* p) { p->DestructBody(); }
 
-inline void InitObjective(ScriptQuestObjective* p) { ::new (&p->text) mfc::CString; }
+inline void InitObjective(ScriptQuestObjective* p) { std::construct_at(&p->text); }
 inline void DestroyObjective(ScriptQuestObjective* p) { ScriptQuestObjectiveDestruct(p); }
 
 inline void InitParticle(EffectParticle* p) {

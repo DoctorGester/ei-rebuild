@@ -18,6 +18,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
+#include <memory>
 #include <new>
 
 namespace {
@@ -78,7 +79,7 @@ float GameTime() {
 CParty* LocalPlayerData() { return LocalPlayer()->Party(); }
 
 mfc::CString* __stdcall LocalPlayerName(mfc::CString* out) {
-    return new (out) mfc::CString(LocalPlayer()->Party()->zone_);
+    return std::construct_at(out, LocalPlayer()->Party()->zone_);
 }
 
 float __stdcall LocalPlayerVariable(const char* name) { return Variable(LocalPlayer(), name); }

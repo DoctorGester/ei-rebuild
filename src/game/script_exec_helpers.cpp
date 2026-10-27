@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -220,7 +221,7 @@ int QuestObjectiveCount() { return ScriptQuestObjectives().size; }
 mfc::CString& QuestName() { return ScriptQuestName(); }   // QStart's name
 
 // operator+(const CString&, const CString&), constructing the result in `out`.
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return ::new (a0) mfc::CString(*a1 + *a2); }
+mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return std::construct_at(a0, *a1 + *a2); }
 
 // operator+'s result, destroyed with the holder.
 class Sum {

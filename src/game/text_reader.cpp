@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "text_split.h"
+#include "lib/str.h"
 
 #include <string>
 
@@ -86,8 +87,8 @@ constexpr AdvanceKind kFindMulti{Test::Call, Test::Call, Test::Call, Test::Call}
 constexpr AdvanceKind kFindComment{Test::Inline, Test::Inline, Test::Call, Test::Call};    // FindLine, one word, comments
 
 // Whether a word starts with "##".
-bool IsComment(const mfc::CString& word) {
-    std::string start = word.Left(2).GetString();
+bool IsComment(const std::string& word) {
+    std::string start = str::Left(word, 2);
     return MbsCmp(start.c_str(), kComment) == 0;
 }
 
@@ -96,7 +97,7 @@ void SkipToNextLine(CTextManager* t, const AdvanceKind& first, const AdvanceKind
     mfc::CString word;
     Advance(t, first);
     while (t->PeekWord(&word)) {
-        if (!IsComment(word)) break;
+        if (!IsComment(word.GetString())) break;
         Advance(t, comment);
     }
 }
@@ -175,7 +176,7 @@ BOOL __fastcall TextNextLine(CTextManager* self) {
     mfc::CString word;
     Advance(self, kInline);
     while (self->PeekWord(&word)) {
-        if (!IsComment(word)) return 1;
+        if (!IsComment(word.GetString())) return 1;
         Advance(self, kInline);
     }
     return 0;
@@ -259,7 +260,7 @@ BOOL CTextManager::FindLine(const char* key) {
             bool header;
             {
                 std::string first = word.Left(1).GetString();
-                header = MbsCmp(first.c_str(), kHeader) == 0 && !IsComment(word);
+                header = MbsCmp(first.c_str(), kHeader) == 0 && !IsComment(word.GetString());
             }
             if (header) return 1;
             Advance(this, kFindFirst);
@@ -274,7 +275,7 @@ BOOL CTextManager::FindLine(const char* key) {
             mfc::CString next;
             Advance(this, kFindFirst);
             while (PeekWord(&next)) {
-                if (!IsComment(next)) break;
+                if (!IsComment(next.GetString())) break;
                 Advance(this, kFindComment);
             }
         }
@@ -295,7 +296,7 @@ BOOL CTextManager::FindLine(const char* key) {
         mfc::CString next;
         Advance(this, kFindMulti);
         while (PeekWord(&next)) {
-            if (!IsComment(next)) break;
+            if (!IsComment(next.GetString())) break;
             TextSkipLine(this);
         }
     }

@@ -12,6 +12,7 @@
 #include "lib/crt.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 #include "lib/mfc_slots.h"
@@ -76,7 +77,7 @@ EI_REWRITTEN_SPECIAL(0x00469E50, Spec::~Spec);
 EI_REWRITTEN_SPECIAL(0x00469E30, Spec::~Spec);
 
 mfc::CString* Spec::TypeName(mfc::CString* out) {
-    new (out) mfc::CString("error");
+    std::construct_at(out, "error");
     return out;
 }
 EI_REWRITTEN(0x00469DB0, Spec::TypeName);
@@ -262,7 +263,7 @@ EI_REWRITTEN(0x0046AFB0, ObjectSpec::Apply);
 mfc::CString* ObjectSpec::TypeName(mfc::CString* out) {
     std::string text;
     text = str::Format("%i", player);
-    new (out) mfc::CString(text);
+    std::construct_at(out, text);
     return out;
 }
 EI_REWRITTEN(0x0046B090, ObjectSpec::TypeName);
@@ -345,7 +346,7 @@ EI_REWRITTEN_SPECIAL(0x0046B570, TrapSpec::~TrapSpec);
 EI_REWRITTEN_SPECIAL(0x0046B550, TrapSpec::~TrapSpec);
 
 mfc::CString* TrapSpec::TypeName(mfc::CString* out) {
-    new (out) mfc::CString("MagicTrap");
+    std::construct_at(out, "MagicTrap");
     return out;
 }
 EI_REWRITTEN(0x0046B520, TrapSpec::TypeName);

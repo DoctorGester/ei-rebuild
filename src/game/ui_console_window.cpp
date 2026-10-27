@@ -34,7 +34,7 @@ constexpr int kInputHeight = 0x1F;     // the input strip at the bottom
 constexpr UINT kDrawLine = 0x800;      // DT_NOPREFIX
 constexpr UINT kDrawMark = 0x802;      // DT_NOPREFIX | DT_RIGHT
 
-mfc::CString Left(const mfc::CString& s, int count) { return s.Left(count); }
+mfc::CString Left(const std::string& s, int count) { return str::Left(s, count); }
 
 int Clamp(int value, int high) {
     if (value > high) value = high;
@@ -43,7 +43,7 @@ int Clamp(int value, int high) {
 }
 
 // Width in pixels of the prompt and the first `count` characters of the input.
-int PromptWidth(CDC* dc, const mfc::CString& input, int count) {
+int PromptWidth(CDC* dc, const std::string& input, int count) {
     std::string text = (mfc::CString(game::consoletexts::Prompt()) + Left(input, count)).GetString();
     SIZE size;
     gameapi::GetTextExtentPoint32A(dc->hdc, text.c_str(), text.size(), &size);   // EI_UTF8: measured wide (system_text.h)
@@ -112,7 +112,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         break;
     case VK_LEFT:
     case VK_RIGHT:   // by character
-        caret_ = key == VK_LEFT ? ::text::PreviousCharacter(input_, caret_) : ::text::NextCharacter(input_, caret_);
+        caret_ = key == VK_LEFT ? ::text::PreviousCharacter(input_.GetString(), caret_) : ::text::NextCharacter(input_.GetString(), caret_);
         if (!shift_) anchor_ = caret_;
         DrawInput();
         return;
@@ -134,15 +134,15 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     case VK_DELETE:
         if (anchor_ == caret_) {
             if (caret_ < input_.GetLength()) {
-                std::string rest = Ops(input_).Mid(::text::NextCharacter(input_, caret_)).GetString();
-                input_ = Left(input_, caret_) + rest;
+                std::string rest = Ops(input_).Mid(::text::NextCharacter(input_.GetString(), caret_)).GetString();
+                input_ = Left(input_.GetString(), caret_) + rest;
                 DrawInput();
             }
         } else {
             int low = anchor_ < caret_ ? anchor_ : caret_;
             int high = anchor_ > caret_ ? anchor_ : caret_;
             std::string rest = Ops(input_).Mid(high).GetString();
-            input_ = Left(input_, low) + rest;
+            input_ = Left(input_.GetString(), low) + rest;
             caret_ = low;
             anchor_ = low;
             DrawInput();
@@ -161,7 +161,7 @@ namespace {
 
 constexpr int kHistoryDepth = 30;
 
-mfc::CString MidOf(const mfc::CString& s, int first) { return s.Mid(first); }
+mfc::CString MidOf(const std::string& s, int first) { return str::Mid(s, first); }
 // Operator+(const CString&, TCHAR).
 // CStringArray::InsertAt(index, const CString&, count).
 // Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code
@@ -237,15 +237,15 @@ void ConsoleWindow::OnChar(int key, int, int) {
         if (anchor_ != caret_) {
             int first = anchor_ < caret_ ? anchor_ : caret_;
             int last = anchor_ > caret_ ? anchor_ : caret_;
-            std::string rest = MidOf(input_, last).GetString();
-            input_ = Left(input_, first) + rest;
+            std::string rest = MidOf(input_.GetString(), last).GetString();
+            input_ = Left(input_.GetString(), first) + rest;
             caret_ = first;
             anchor_ = first;
         } else {
             if (caret_ == 0) return;
-            const int previous = ::text::PreviousCharacter(input_, caret_);
-            std::string rest = MidOf(input_, caret_).GetString();
-            input_ = Left(input_, previous) + rest;
+            const int previous = ::text::PreviousCharacter(input_.GetString(), caret_);
+            std::string rest = MidOf(input_.GetString(), caret_).GetString();
+            input_ = Left(input_.GetString(), previous) + rest;
             caret_ = previous;
             anchor_ = caret_;
         }
@@ -289,8 +289,8 @@ void ConsoleWindow::OnChar(int key, int, int) {
             const char* text = input_;
             CopyToClipboard(text + low, text + high);
             if (letter == 'x') {
-                std::string rest = MidOf(input_, high).GetString();
-                std::string head = Left(input_, low).GetString();
+                std::string rest = MidOf(input_.GetString(), high).GetString();
+                std::string head = Left(input_.GetString(), low).GetString();
                 input_ = head + rest;
                 caret_ = low;
                 anchor_ = low;
@@ -300,19 +300,19 @@ void ConsoleWindow::OnChar(int key, int, int) {
             std::string clip = ClipboardText().c_str();
             int cut = str::FindOneOf(clip, "\r\n");
             if (cut >= 0) clip = Left(clip, cut);
-            std::string rest = MidOf(input_, high).GetString();
-            std::string head = Left(input_, low).GetString();
+            std::string rest = MidOf(input_.GetString(), high).GetString();
+            std::string head = Left(input_.GetString(), low).GetString();
             input_ = (head + clip) + rest;
             int position = static_cast<int>(clip.size()) - (anchor_ != caret_ ? 1 : 0) + high;
-            position = ::text::CharacterStart(input_, position);   // EI_UTF8: never inside a character
+            position = ::text::CharacterStart(input_.GetString(), position);   // EI_UTF8: never inside a character
             caret_ = position;
             anchor_ = position;
             DrawInput();
         }
     }
     if (ctrl_) return;
-    std::string rest = MidOf(input_, high).GetString();
-    std::string head = Left(input_, low).GetString();
+    std::string rest = MidOf(input_.GetString(), high).GetString();
+    std::string head = Left(input_.GetString(), low).GetString();
     input_ = ::text::Typed(head, key) + rest;
     caret_ = low + ::text::TypedLength(key);
     anchor_ = caret_;
@@ -365,9 +365,9 @@ void ConsoleWindow::DrawInput() {
     CDC* dc = surface->GetDC();
     mfc::impl::CGdiObject* oldFont = dc->SelectFont(font_);
     dc->FillSolidArea(0, height_ - kInputHeight, width_, kInputHeight, kBackground);
-    int caretX = PromptWidth(dc, input_, caret_);
+    int caretX = PromptWidth(dc, input_.GetString(), caret_);
     if (anchor_ != caret_) {
-        int anchorX = PromptWidth(dc, input_, anchor_);
+        int anchorX = PromptWidth(dc, input_.GetString(), anchor_);
         int low = caretX < anchorX ? caretX : anchorX;
         int high = caretX > anchorX ? caretX : anchorX;
         if (high > width_ - 0x10) high = width_ - 0x10;

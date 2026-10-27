@@ -34,6 +34,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -285,7 +286,7 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
 mfc::CString* CWorldClient::ObjectVariableName(mfc::CString* out, const char* name) {
     mfc::CString player(mfc::CString::kUnset);
     LocalPlayerName(&player);
-    new (out) mfc::CString(QuestPrefixText());
+    std::construct_at(out, QuestPrefixText());
     *out += player;
     *out += DotText();
     *out += name;

@@ -34,6 +34,7 @@
 #include <concepts>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -100,9 +101,9 @@ private:
 
 using ZoneNames = stlp::vector<mfc::CString>;
 int SizeOf(const ZoneNames& v) { return static_cast<int>(v.end() - v.begin()); }
-void PushBack(ZoneNames* v, const mfc::CString& x) {
+void PushBack(ZoneNames* v, const std::string& x) {
     if (v->Finish() != v->EndOfStorage()) {
-        new (v->Finish()) mfc::CString(x);
+        std::construct_at(v->Finish(), x);
         ++v->Finish();
     } else {
         v->InsertOverflow<stlp::ObjectElement<mfc::CString>>(v->Finish(), x, 1);
@@ -310,7 +311,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             EI_NAN_AUDIT(node->value.mapped);
             if (node->value.mapped == 0.0f) continue;
             text::Split(node->value.key, &parts, '.');
-            if (parts.GetSize() == 3) PushBack(&found, parts[2]);
+            if (parts.GetSize() == 3) PushBack(&found, parts[2].GetString());
         }
         shownQuest_ = -1;
         selectedQuest_ = 0;
@@ -358,7 +359,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             }
         }
 
-        for (mfc::CString* s = found.begin(); s != found.end(); ++s) s->~CString();
+        for (mfc::CString* s = found.begin(); s != found.end(); ++s) std::destroy_at(s);
         found.FreeStorage();
         table->~VariableTable();
     }
@@ -619,7 +620,7 @@ void CObjectivesWindow::CreateScreen() {
                     listed = true;
                     break;
                 }
-            if (!listed) PushBack(zones, zone->name);
+            if (!listed) PushBack(zones, zone->name.GetString());
         }
         if (SizeOf(*zones) == 0 && static_cast<int>(current.size()) != 0)
             PushBack(zones, current);

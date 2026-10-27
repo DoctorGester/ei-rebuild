@@ -10,6 +10,7 @@
 
 #include <bit>
 #include <cstring>
+#include <memory>
 
 
 namespace {
@@ -310,7 +311,7 @@ void DeltaField::ReadText(char* text, int size) {
     } else {
         text[0] = '\0';
     }
-    string->~CString();
+    std::destroy_at(string);
 }
 EI_REWRITTEN(0x0047E340, DeltaField::ReadText);
 

@@ -11,6 +11,7 @@
 #include "lib/vecmath.h"
 
 #include <cstring>
+#include <memory>
 
 // --- Footprint cell sets -------------------------------------------------------------------------
 
@@ -105,7 +106,7 @@ namespace {
 // Object model helpers not rewritten yet.
 // CStringArray element by value (PartNames::CopyAt: a CString copy-constructed into `out`).
 mfc::CString* StringArrayGetAt(const mfc::CStringArray* names, mfc::CString* out, int index) {
-    new (out) mfc::CString(names->data[index]);
+    std::construct_at(out, names->data[index]);
     return out;
 }
 

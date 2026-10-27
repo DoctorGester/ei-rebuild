@@ -15,6 +15,7 @@
 #include "game_hashes.h"
 #include "lib/stlp_vector_refs.h"
 
+#include <memory>
 #include <string>
 
 
@@ -46,8 +47,8 @@ CRefObject* AsRefObject(void* object) { return static_cast<CRefObject*>(object);
 
 void PartyManagerEntry::Destruct() {
     ids.FreeStorage();
-    text.~CString();
-    name.~CString();
+    std::destroy_at(&text);
+    std::destroy_at(&name);
 }
 
 // ---- Archive chunks -------------------------------------------------------------------------------

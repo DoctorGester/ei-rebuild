@@ -188,15 +188,15 @@ BOOL CUnitServer::HasMainArmour() {
 }
 EI_REWRITTEN(0x005567E0, CUnitServer::HasMainArmour);
 
-FigureAnimation* CBaseManager::FindFigureAnimation(const mfc::CString& figure, const char* name) {
+FigureAnimation* CBaseManager::FindFigureAnimation(const std::string& figure, const char* name) {
     AnimationDatabase* database;
     {
-        std::string file = figure.GetString();
+        std::string file = figure;
         file += ".adb";
         database = static_cast<AnimationDatabase*>(GetFile(file.c_str(), nullptr));
     }
     if (!database) {
-        game::DebugLog("Can't find animation database file for \"%s\".\n", figure.GetString());
+        game::DebugLog("Can't find animation database file for \"%s\".\n", figure.c_str());
         return nullptr;
     }
     for (int i = 0; i < static_cast<int>(database->count); ++i)

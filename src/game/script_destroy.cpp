@@ -21,6 +21,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <memory>
 
 namespace {
 
@@ -91,8 +92,8 @@ void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
     NamesDestruct(&vars.floatNames);
     mfc::impl::DestructHeader<mfc::impl::ScriptFloatsClass>(&vars.floats);
     FreePlain(&definition->ifThen, mfc::impl::ScriptIfThenArrayClass::Vtable());
-    definition->params.~CString();
-    definition->name.~CString();
+    std::destroy_at(&definition->params);
+    std::destroy_at(&definition->name);
 }
 EI_REWRITTEN(0x004BE9D0, ScriptDefinitionDestruct);
 

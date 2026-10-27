@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
+#include <memory>
 #include <new>
 
 namespace {
@@ -134,8 +135,8 @@ CInterface3D* CInterface3D::Construct() {
     stackCapacity_ = nullptr;
     messages_.Construct();
     helpTopics_.Construct();
-    new (&messageText_) mfc::CString();
-    new (&savedText_) mfc::CString();
+    std::construct_at(&messageText_);
+    std::construct_at(&savedText_);
     return this;
 }
 EI_REWRITTEN(0x005F46A0, CInterface3D::Construct);

@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include "lib/crt.h"
 #include "lib/stlp_vector.h"
 
@@ -28,7 +29,7 @@ namespace {
 
 constexpr std::size_t kNameBuckets = 100;   // the bucket count each name map asks for
 
-void DestroyString(mfc::CString* s) { s->~CString(); }
+void DestroyString(mfc::CString* s) { std::destroy_at(s); }
 
 // The inline ~vector<CString> of the records: _Destroy, then the storage (the node pool's deallocate of the
 // capacity

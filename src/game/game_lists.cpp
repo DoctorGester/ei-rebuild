@@ -10,6 +10,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <memory>
 #include <new>
 
 namespace gamelists {
@@ -72,8 +73,8 @@ void CopyConstructDecl(ScriptDecl* to, const ScriptDecl* from) {
 // A definition's copy constructor: the pairs read through GetAt (8 bytes).
 void CopyConstructDefinition(ScriptDefinition* to, const ScriptDefinition* from) {
     to->index = from->index;
-    new (&to->name) mfc::CString(from->name);
-    new (&to->params) mfc::CString(from->params);
+    std::construct_at(&to->name, from->name);
+    std::construct_at(&to->params, from->params);
     mfc::impl::ConstructHeader<mfc::impl::ScriptIfThenPairsClass>(&to->ifThen);
     to->ifThen.SetSize(from->ifThen.size, -1);
     for (int i = 0; i < from->ifThen.size; ++i) to->ifThen.data[i] = from->ifThen.data[i];
@@ -119,8 +120,8 @@ typename List::Node* LinkTail(List* self, typename List::Node* node) {
 } // namespace
 
 void InitDefinition(ScriptDefinition* p) {
-    new (&p->name) mfc::CString();
-    new (&p->params) mfc::CString();
+    std::construct_at(&p->name);
+    std::construct_at(&p->params);
     mfc::impl::ConstructHeader<mfc::impl::ScriptIfThenPairsClass>(&p->ifThen);
     p->vars.ScriptVarsConstruct();
     p->index = 0;

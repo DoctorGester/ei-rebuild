@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
+#include <memory>
 #include <new>
 #include <string>
 #include "world_glue.h"
@@ -84,7 +85,7 @@ void CBattleScreen::CreateScreen() {
             alignas(4) std::uint8_t raw[sizeof(mfc::CString)];
             mfc::CString* text = stream->ReadString(raw);
             savedText = *text;
-            text->~CString();
+            std::destroy_at(text);
         }
         if (SaveVersion() >= 0x62) {
             stream->Read(&exitPending_, 1);

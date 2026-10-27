@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "lib/stlp_list_refs.h"
 
+#include <memory>
 #include <new>
 
 namespace libcontainers {
@@ -24,18 +25,18 @@ void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value) {
 
 namespace libcontainers {
 
-void __fastcall DestroyCString(mfc::CString* self) { self->~CString(); }
+void __fastcall DestroyCString(mfc::CString* self) { std::destroy_at(self); }
 
 
 
 void HeroRecordElement::Construct(MpHeroRecord* to, const MpHeroRecord& from) {
     new (to->Party()) CParty(*const_cast<MpHeroRecord&>(from).Party());   // reads the source non-const
-    new (&to->file) mfc::CString(from.file);
+    std::construct_at(&to->file, from.file);
 }
 
 void SpeakerElement::Construct(BriefingSpeaker* to, const BriefingSpeaker& from) {
     to->unit = from.unit;
-    new (&to->name) mfc::CString(from.name);
+    std::construct_at(&to->name, from.name);
     to->spareFlag = from.spareFlag;
 }
 

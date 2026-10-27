@@ -11,6 +11,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <string>
 
 #include "core_streams.h"
 #include "engine_object.h"
@@ -104,7 +106,7 @@ class SSCCmd;
 struct ScriptStrings : mfc::CArray<mfc::CString> {
     // (ScriptDefinition::AddParameter's names). Grown to index + 1 when needed, then
     // the string assigned.
-    void SetAtGrow(int index, const mfc::CString& text);
+    void SetAtGrow(int index, const std::string& text);
     // (SSCCmd::SetParameters). `out` = a by-value GetAt copy of element `index`
     // the copy destroyed.
     void CopyTo(int index, mfc::CString* out) const;
@@ -558,11 +560,11 @@ public:
     // and sets the error code (+0x1F0) and line (+0x1F4). Returns 0. __cdecl with `this` first.
     static int __cdecl Error(CScript* script, int line, int code, const char* format, ...);
     // Splits the script text into tokens (see script.md, "Lexer").
-    BOOL Tokenize(const mfc::CString& text, ScriptTokenList* tokens);
+    BOOL Tokenize(const std::string& text, ScriptTokenList* tokens);
     // Consumes one token and requires its keyword id to be `id`.
     BOOL ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id);
     // `name`, or "!<file>!<name>" when this is not the first file loaded (+0x1AC > 0).
-    mfc::CString* QualifyName(mfc::CString* out, const mfc::CString& name);
+    mfc::CString* QualifyName(mfc::CString* out, const std::string& name);
     // Index of the script definition named `name`, retrying without each "!<n>!" prefix.
     int FindScript(const char* name);
     // Rebirth patches it. Parses one call: `id` with parameter types `signature`
@@ -769,14 +771,14 @@ struct ScriptDefineElements {
     static void Construct(ScriptDefine* defines, int count) {
         std::memset(static_cast<void*>(defines), 0, static_cast<std::size_t>(count) * sizeof(ScriptDefine));
         for (int i = 0; i < count; ++i) {
-            new (&defines[i].name) mfc::CString;
-            new (&defines[i].value) mfc::CString;
+            std::construct_at(&defines[i].name);
+            std::construct_at(&defines[i].value);
         }
     }
     static void Destruct(ScriptDefine* defines, int count) {
         for (int i = 0; i < count; ++i) {
-            defines[i].value.~CString();
-            defines[i].name.~CString();
+            std::destroy_at(&defines[i].value);
+            std::destroy_at(&defines[i].name);
         }
     }
 };

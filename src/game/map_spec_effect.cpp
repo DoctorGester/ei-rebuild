@@ -13,6 +13,7 @@
 #include "lib/crt.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include "game_data.h"
 #include "game_singletons.h"
@@ -106,7 +107,7 @@ ParticleSpec::ParticleSpec() {
 EI_REWRITTEN_SPECIAL(0x0046D520, ParticleSpec::ParticleSpec);
 
 mfc::CString* ParticleSpec::TypeName(mfc::CString* out) {
-    new (out) mfc::CString("Particle source");
+    std::construct_at(out, "Particle source");
     return out;
 }
 EI_REWRITTEN(0x0046D550, ParticleSpec::TypeName);
@@ -164,7 +165,7 @@ LightSpec::LightSpec() {
 EI_REWRITTEN_SPECIAL(0x0046D960, LightSpec::LightSpec);
 
 mfc::CString* LightSpec::TypeName(mfc::CString* out) {
-    new (out) mfc::CString("Light");
+    std::construct_at(out, "Light");
     return out;
 }
 EI_REWRITTEN(0x0046D9D0, LightSpec::TypeName);
@@ -233,7 +234,7 @@ EI_REWRITTEN_SPECIAL(0x0046DF70, SoundSpec::~SoundSpec);
 EI_REWRITTEN_SPECIAL(0x0046DF50, SoundSpec::~SoundSpec);
 
 mfc::CString* SoundSpec::TypeName(mfc::CString* out) {
-    new (out) mfc::CString("Sound");
+    std::construct_at(out, "Sound");
     return out;
 }
 EI_REWRITTEN(0x0046DF20, SoundSpec::TypeName);

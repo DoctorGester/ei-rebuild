@@ -14,6 +14,7 @@
 #include "world.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units given armour and weapons
@@ -29,16 +30,16 @@ constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units
 std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32_t>(names.size()); }
 
 // A weapon name other than "none" (_mbscmp) and not empty.
-bool Named(const mfc::CString& name) {
-    return gamecrt::mbscmp(name.GetString(),
+bool Named(const std::string& name) {
+    return gamecrt::mbscmp(name.c_str(),
                            game::NoneText()) != 0 &&
-           name.GetLength() != 0;
+           static_cast<int>(name.size()) != 0;
 }
 
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
-CItem* MakeWeapon(CItemManager* items, const mfc::CString& name, const char* prototype) {
-    CItem* weapon = items->CreateItem(name);
-    if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), name.GetString(), prototype);
+CItem* MakeWeapon(CItemManager* items, const std::string& name, const char* prototype) {
+    CItem* weapon = items->CreateItem(name.c_str());
+    if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), name.c_str(), prototype);
     return weapon;
 }
 } // namespace
@@ -59,13 +60,13 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
             if (armour) unit->EquipArmour(armour);
             else game::FatalError(game::equipmenttexts::NoArmour(), prototype->armourNames.begin()[i].GetString(), name);
         }
-        if (Named(prototype->weaponName)) {
+        if (Named(prototype->weaponName.GetString())) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
-            int slot = unit->AddWeapon(MakeWeapon(items, prototype->weaponName, name));
+            int slot = unit->AddWeapon(MakeWeapon(items, prototype->weaponName.GetString(), name));
             if (slot != -1) unit->pendingWeapon = slot;
         }
-        if (Named(prototype->secondWeaponName))
-            unit->AddWeapon(MakeWeapon(items, prototype->secondWeaponName, name));
+        if (Named(prototype->secondWeaponName.GetString()))
+            unit->AddWeapon(MakeWeapon(items, prototype->secondWeaponName.GetString(), name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         CItem* spell = items->CreateSpellItem(prototype->spellNames.begin()[i], spellOwner);

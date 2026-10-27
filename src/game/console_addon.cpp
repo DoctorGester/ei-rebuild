@@ -225,7 +225,7 @@ const CommandRegistration kAddonCommandRegistrations[6] = {
 };
 
 void RegisterAddonCommands() {
-    g_gameHelp = Command(CheatCommands(), mfc::CString("help"));
+    g_gameHelp = Command(CheatCommands(), mfc::CString("help").GetString());
     for (const CommandRegistration& r : kAddonCommandRegistrations)
         Register(r.cheat ? CheatCommands() : PublicCommands(), r.name, r.handler);
 }

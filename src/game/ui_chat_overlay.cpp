@@ -18,6 +18,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 namespace {
@@ -35,7 +36,7 @@ constexpr int kTypedFont = 1;
 constexpr std::uint32_t kSayLifetime = 0x42700000;
 
 // The width of `text` in interface font `font` (CInterface3D::TextExtent).
-int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
+int TextWidth(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
     return size.cx;
@@ -124,14 +125,14 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
             wordFormatted += ch;
             mark = true;
         } else {
-            if (TextWidth(interface_, line + word + ch, kLineFont) > kLineWidth) {
+            if (TextWidth(interface_, (line + word + ch).GetString(), kLineFont) > kLineWidth) {
                 if (line.GetLength() != 0) {
                     plain.SetAtGrow(plain.GetSize(), line);
                     formatted.SetAtGrow(formatted.GetSize(), lineFormatted);
                 }
                 line.Empty();
                 lineFormatted.Empty();
-                if (TextWidth(interface_, word + ch, kLineFont) > kLineWidth) {
+                if (TextWidth(interface_, (word + ch).GetString(), kLineFont) > kLineWidth) {
                     if (word.GetLength() != 0) {
                         plain.SetAtGrow(plain.GetSize(), word);
                         formatted.SetAtGrow(formatted.GetSize(), wordFormatted);
@@ -164,8 +165,8 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     for (int i = 0; i < plain.GetSize(); ++i) {
         // insert(end()) of an empty line.
         auto* node = stlp::allocate_as<Node>();
-        new (&node->data.text) mfc::CString;
-        new (&node->data.name) mfc::CString;
+        std::construct_at(&node->data.text);
+        std::construct_at(&node->data.name);
         node->data.time = 0;
         node->data.surface = nullptr;
         Node* head = lines_.head;
@@ -176,7 +177,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
 
         node->data.name = plain[i];
         node->data.time = now;
-        const int width = TextWidth(interface_, plain[i], kLineFont) + kLineSurfacePad;
+        const int width = TextWidth(interface_, plain[i].GetString(), kLineFont) + kLineSurfacePad;
         CUiSurface* surface = new CUiSurface(interface_, 0, 0, width, kLineSurfaceHeight, kLineSurfaceFormat, 1);
         UiSurfaceGetDC(surface);
         surface->Clear();
@@ -240,7 +241,7 @@ void CChatOverlay::DrawTyped() {
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
     surface->DrawTextIn(typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
-    int width = TextWidth(interface_, typed_.Left(caret_), kTypedFont);
+    int width = TextWidth(interface_, typed_.Left(caret_).GetString(), kTypedFont);
     if (width < kMaxTypedWidth) {
         mfc::impl::CPen pen(PS_SOLID, 1, kTypedColour);
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
@@ -265,7 +266,7 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
     switch (key) {
     case VK_BACK: {   // by character, as Delete and the caret's steps
         if (caret_ <= 0) break;
-        const int previous = text::PreviousCharacter(typed_, caret_);
+        const int previous = text::PreviousCharacter(typed_.GetString(), caret_);
         typed_ = typed_.Left(previous) + typed_.Mid(caret_);
         caret_ = previous;
         break;
@@ -284,14 +285,14 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
         caret_ = 0;
         break;
     case VK_LEFT:
-        caret_ = text::PreviousCharacter(typed_, caret_);
+        caret_ = text::PreviousCharacter(typed_.GetString(), caret_);
         break;
     case VK_RIGHT:
-        caret_ = text::NextCharacter(typed_, caret_);
+        caret_ = text::NextCharacter(typed_.GetString(), caret_);
         break;
     case VK_DELETE:
         if (caret_ >= typed_.GetLength()) break;
-        typed_ = typed_.Left(caret_) + typed_.Mid(text::NextCharacter(typed_, caret_));
+        typed_ = typed_.Left(caret_) + typed_.Mid(text::NextCharacter(typed_.GetString(), caret_));
         break;
     default:
         return;
@@ -302,7 +303,7 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
 void CChatOverlay::OnChar(int key, int, int) {
     if (!chatOpen_) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
-    std::string line = (text::Typed(typed_.Left(caret_), key) + typed_.Mid(caret_)).GetString();
+    std::string line = (text::Typed(typed_.Left(caret_).GetString(), key) + typed_.Mid(caret_)).GetString();
     // The line also stays within kMaxTyped bytes (what 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one. Without EI_UTF8 it follows from the character count.

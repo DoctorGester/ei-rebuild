@@ -13,6 +13,7 @@
 #include "lib/str.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -105,6 +106,6 @@ mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) 
     std::string section = BriefingSection();
     section += key;
     if (texts->CTextManager::Open(section.c_str())) texts->ReadLine(&title, 1);
-    return new (out) mfc::CString(title);
+    return std::construct_at(out, title);
 }
 EI_REWRITTEN(0x006078C0, CBriefingScreen::TopicTitle);

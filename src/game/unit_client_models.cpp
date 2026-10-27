@@ -380,14 +380,14 @@ void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
     texture = withExtension;
 }
 
-void AddTexture(SkinRequest& request, const mfc::CString& texture) {
+void AddTexture(SkinRequest& request, const std::string& texture) {
     request.textures.SetAtGrow(request.textures.size, texture);
 }
 
 void AddArmourTexture(SkinRequest& request, const CUnit* unit, mfc::CString& texture, std::uint32_t id) {
     ArmorModelName(&texture, id >> 16, id & 0xFFFF);
     AddPrototypePrefix(unit, texture);
-    AddTexture(request, texture);
+    AddTexture(request, texture.GetString());
 }
 } // namespace
 
@@ -406,7 +406,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         if (hand < 4 && self->weaponIds[hand] != kNone) {
             WeaponModelName(&texture, self->weaponIds[hand] >> 16, self->weaponIds[hand] & 0xFFFF);
             AddPrototypePrefix(unit, texture);
-            AddTexture(request, texture);
+            AddTexture(request, texture.GetString());
         }
         return;
     }
@@ -418,7 +418,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         texture.Format("%sskin_%.2d.mmp", unit->name.GetString(), prototype->skin);
     else
         texture.Format("%sskin_00.mmp", unit->name.GetString());
-    AddTexture(request, texture);
+    AddTexture(request, texture.GetString());
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
     // Body armour and trousers, in the armours' drawing order (ArmorFieldB8).

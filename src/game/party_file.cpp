@@ -15,8 +15,10 @@
 
 #include "ei/hook.h"
 #include "game_data.h"
+#include "lib/str.h"
 
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -25,7 +27,7 @@ constexpr unsigned kPartyFileMagic = 0x114;
 
 const char* TempFileName() { return "temp.mp"; }
 
-mfc::CString InFolder(const char* folder, const mfc::CString& name) { return mfc::CString(folder) + name; }
+mfc::CString InFolder(const char* folder, const std::string& name) { return mfc::CString(folder) + name; }
 mfc::CString TempFile(const char* folder) { return mfc::CString(folder) + TempFileName(); }
 
 // The file stream and the memory stream the originals build on the stack (the memory stream torn down first).
@@ -35,10 +37,10 @@ struct LocalStreams {
 };
 
 // Whether a file name is "<digits>.<anything>": a '.' and only digits before the last one.
-bool Numbered(const mfc::CString& name) {
-    int dot = name.ReverseFind('.');
+bool Numbered(const std::string& name) {
+    int dot = str::ReverseFind(name, '.');
     if (dot == -1) return false;
-    const char* text = name;
+    const char* text = name.c_str();
     for (int i = 0; i < dot; ++i)
         if (!gamecrt::isdigit(static_cast<signed char>(text[i]))) return false;
     return true;
@@ -47,17 +49,17 @@ bool Numbered(const mfc::CString& name) {
 } // namespace
 
 void MpHeroRecord::WriteFile(const char* folder) {
-    if (!Numbered(file)) {
-        gameapi::DeleteFileA(InFolder(folder, file));
+    if (!Numbered(file.GetString())) {
+        gameapi::DeleteFileA(InFolder(folder, file.GetString()));
         return;
     }
     {
         std::string temp = TempFile(folder).GetString();
-        gameapi::MoveFileA(InFolder(folder, file), temp.c_str());
+        gameapi::MoveFileA(InFolder(folder, file.GetString()), temp.c_str());
     }
     {
         LocalStreams streams;
-        streams.file.Open(InFolder(folder, file), netlink::FileStream::kOpenWrite, 0);
+        streams.file.Open(InFolder(folder, file.GetString()), netlink::FileStream::kOpenWrite, 0);
         Party()->SaveParty(&streams.data, 1);
         SaveFileWrite(&streams.file, kPartyFileMagic, kSaveVersion, &streams.data);
     }
@@ -67,7 +69,7 @@ EI_REWRITTEN(0x00662AC0, MpHeroRecord::WriteFile);
 
 bool MpHeroRecord::ReadFile(const char* folder) {
     LocalStreams streams;
-    streams.file.Open(InFolder(folder, file), netlink::FileStream::kOpenRead, 1);
+    streams.file.Open(InFolder(folder, file.GetString()), netlink::FileStream::kOpenRead, 1);
     if (!SaveFileRead(&streams.data, kPartyFileMagic, kSaveVersion, kSaveOldestVersion, &streams.file)) return false;
     Party()->LoadParty(&streams.data, 1);
     return streams.data.ok_ != 0;
@@ -84,7 +86,7 @@ void SavedParties::SaveAll() {
 EI_REWRITTEN(0x006632B0, SavedParties::SaveAll);
 
 SavedParties* SavedParties::Construct() {
-    new (&folder_) mfc::CString();
+    std::construct_at(&folder_);
     entries_.ConstructEmpty();
     outsideGame_.Construct();
     return this;
@@ -95,7 +97,7 @@ void SavedParties::Destruct() {
     outsideGame_.Destruct();
     for (MpHeroRecord& entry : entries_) entry.Destruct();
     entries_.FreeStorage();
-    folder_.~CString();
+    std::destroy_at(&folder_);
 }
 EI_REWRITTEN(0x0065F2D0, SavedParties::Destruct);
 

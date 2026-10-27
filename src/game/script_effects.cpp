@@ -17,6 +17,7 @@
 #include <climits>
 #include <cmath>
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -139,7 +140,7 @@ void ScriptFxSource::ScriptFxSourceDropSound() { DropEffect(&object); }
 // The FX source's destructor body (the sound dropped, then the name).
 void ScriptFxSource::ScriptFxSourceDestruct() {
     DropEffect(&object);
-    name.~CString();
+    std::destroy_at(&name);
 }
 
 // DestructElements<ScriptLightning>.

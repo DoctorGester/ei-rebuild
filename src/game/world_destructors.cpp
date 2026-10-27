@@ -24,6 +24,8 @@
 #include "game/record_arrays.h"
 #include "game/game_slots.h"
 
+#include <memory>
+
 void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 
 namespace {
@@ -107,7 +109,7 @@ T* DeleteIf(T* self, unsigned flags) {
 // then the containers last to first (the variables through ScriptVarsDestruct).
 void CScript::Destruct() {
     ScriptReset(this);
-    errorText_.~CString();
+    std::destroy_at(&errorText_);
     DestroyScriptList<gamelists::ObjectRefs, gameslots::ObjectRefListClass>(tempObjects_);
     DestroyScriptList<gamelists::Groups, gameslots::GroupListClass>(tempGroups_);
     DestroyScriptArray<gamearrays::Areas, mfc::impl::ScriptAreaArrayClass>(areas_);
