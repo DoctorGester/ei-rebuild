@@ -619,12 +619,7 @@ void CWorldClient::UnitsInBox(const tagRECT* rect, stlp::list<CMapObject*>* out)
 
 namespace {
 
-bool SameText(const char* a, const char* b) {
-    for (;; ++a, ++b) {
-        if (*a != *b) return false;
-        if (*a == 0) return true;
-    }
-}
+bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 } // namespace
 

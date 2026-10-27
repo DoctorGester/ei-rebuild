@@ -132,7 +132,7 @@ const char* FontSampleText() { return "W"; }   // measured for each font's heigh
 constexpr int kMeasuredFonts = 3;
 
 // A word of a line (the surface's text call, Rebirth-patched).
-void DrawWord(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour) {
+void DrawWord(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour) {
     surface->DrawTextIn(text, rect, font, colour, 0, 1);
 }
 } // namespace
@@ -212,7 +212,7 @@ void CUiScrollText::DrawLines(int scroll) {
                 font = format->font_;
             } else if (token->type_ == kWordType) {
                 auto* w = token->AsWord();
-                DrawWord(surface, w->text_.c_str(), &word, font, colour);
+                DrawWord(surface, w->text_, &word, font, colour);
                 word.left += w->width_ + gap;
             }
         }

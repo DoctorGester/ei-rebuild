@@ -46,7 +46,7 @@ float& Arrival(Arrivals& arrivals, int exit) {
     return at->second;
 }
 
-bool SameName(const char* a, const char* b) {
+bool SameName(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
 
@@ -90,7 +90,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         MapRecord* zone = TheMapDatabase()->FindMap(from->exits.data[i].target.c_str());
         if (!zone) continue;
         float passTime = from->exits.data[i].passTime;
-        if (SameName(zone->name.c_str(), target_.c_str())) {
+        if (SameName(zone->name, target_)) {
             found_ = true;
             int exit = from->exits.data[i].entrance;
             float time = path_.size() == 0 ? -1.0f : pathTime_;
@@ -163,7 +163,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         link = zone.link;
         if (!gipat_ || link < 0) {
             // A zone: its objectives and the ways there, to choose from (found or not).
-            SearchWays(this, zone.name.c_str());
+            SearchWays(this, zone.name);
             if (!MayTravelTo(this)) return;
             auto* window = new CObjectivesWindow(interface_);
             window->Setup(target_.c_str(), &arrivals_, 1, 0);
@@ -172,7 +172,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         }
     }
     // A link: the party goes there at once when there is a way.
-    SearchWays(this, links_.data[link].name.c_str());
+    SearchWays(this, links_.data[link].name);
     if (!found_ || !MayTravelTo(this)) return;
     GamePassTime(Arrival(arrivals_, 0));
     ::RequestZone(links_.data[link].name.c_str(), 0);

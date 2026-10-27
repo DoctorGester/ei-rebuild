@@ -36,7 +36,7 @@ constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
 // Text into the panel's first surface (Rebirth-patched).
-void DrawPanelText(CUiWindow* window, const char* text, RECT rect, std::uint32_t colour, int a, int b) {
+void DrawPanelText(CUiWindow* window, std::string_view text, RECT rect, std::uint32_t colour, int a, int b) {
     window->surfaces_.data[0]->DrawTextIn(text, &rect, 0, colour, a, b);
 }
 
@@ -82,7 +82,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
         FillBar(Sprite(this, 10), ratio, 100.0f, 0.396484375f, 0.376953125f);
     std::string health;
     health = str::Format("%d", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
-    DrawPanelText(this, health.c_str(), RECT{130, 185, 160, 200}, kTextColour, 0, 1);
+    DrawPanelText(this, health, RECT{130, 185, 160, 200}, kTextColour, 0, 1);
 
     for (int i = 0; i < owner_->party_.size; ++i) {
         if (owner_->party_[i] != unit) continue;
@@ -91,7 +91,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
             FillBar(Sprite(this, 12), ratio, 100.0f, 0.369140625f, 0.349609375f);
         std::string mana;
         mana = str::Format("%d", static_cast<int>(unit->packedVitals.mana));
-        DrawPanelText(this, mana.c_str(), RECT{130, 200, 160, 215}, kTextColour, 0, 1);
+        DrawPanelText(this, mana, RECT{130, 200, 160, 215}, kTextColour, 0, 1);
         break;
     }
 }
@@ -126,7 +126,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
                 break;
             }
         }
-        DrawPanelText(this, name.c_str(), RECT{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
+        DrawPanelText(this, name, RECT{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
                       part.kind == 1 ? kRed : kTextColour, 1, 1);
     }
 }

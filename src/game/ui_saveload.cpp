@@ -169,7 +169,7 @@ constexpr const char* kAutoEnterTitle = "save_auto_enter";
 constexpr const char* kAutoExitTitle = "save_auto_exit";
 constexpr const char* kPlainFormat = "%s";
 
-bool SameFolder(const char* folder, const char* name) {
+bool SameFolder(std::string_view folder, std::string_view name) {
     return gamecrt::mbsicmp(folder, name) == 0;
 }
 } // namespace
@@ -182,11 +182,11 @@ void SaveEntry::MakeTitle(int) {
     TheTextManager()->GetString(kAutoEnterTitle, &autoEnter);
     TheTextManager()->GetString(kAutoExitTitle, &autoExit);
     auto& title = title_;
-    if (SameFolder(folder_.c_str(), kQuickFolder)) {
+    if (SameFolder(folder_, kQuickFolder)) {
         title = str::Format(kPlainFormat, quick.c_str());
-    } else if (SameFolder(folder_.c_str(), kAutoFolderA)) {
+    } else if (SameFolder(folder_, kAutoFolderA)) {
         title = str::Format(kPlainFormat, autoEnter.c_str());
-    } else if (SameFolder(folder_.c_str(), kAutoFolderB)) {
+    } else if (SameFolder(folder_, kAutoFolderB)) {
         title = str::Format(kPlainFormat, autoExit.c_str());
     } else {
         // The zone name ("zone" + zone_ in the texts, else "save_camp").
@@ -506,14 +506,14 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 } // namespace
 
 mfc::CString SaveEntry::ZoneTitle() const {
-    std::string title = FirstLineOf("zone ", zone_.c_str()).GetString();   // the key has a space
+    std::string title = FirstLineOf("zone ", zone_).GetString();   // the key has a space
     if (title.size() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
 EI_REWRITTEN(0x00653BD0, SaveEntry::ZoneTitle);
 
 mfc::CString SaveEntry::AllodTitle() const {
-    std::string title = FirstLineOf("allod ", map_.c_str()).GetString();  // the key has a space
+    std::string title = FirstLineOf("allod ", map_).GetString();  // the key has a space
     if (title.size() == 0) title = "Unknown";
     return title;
 }

@@ -45,7 +45,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
         // By character (a UTF-8 character's bytes with EI_UTF8, else one byte).
         if (key == kKeyBackspace) {
             if (caret_ > 0) {
-                const int previous = text::PreviousCharacter(text.c_str(), caret_);
+                const int previous = text::PreviousCharacter(text, caret_);
                 std::string tail = str::Mid(text, caret_);
                 std::string head = str::Left(text, previous);
                 text = head + tail;
@@ -53,7 +53,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
                 changed_ = true;
             }
         } else if (caret_ < static_cast<int>(text.size())) {
-            std::string tail = str::Mid(text, text::NextCharacter(text.c_str(), caret_));
+            std::string tail = str::Mid(text, text::NextCharacter(text, caret_));
             std::string head = str::Left(text, caret_);
             text = head + tail;
             changed_ = true;
@@ -73,9 +73,9 @@ void CUiEditField::OnKeyDown(int key, int, int) {
         else if (key == kKeyHome)
             caret_ = 0;
         else if (key == kKeyLeft)
-            caret_ = text::PreviousCharacter(text.c_str(), caret_);
+            caret_ = text::PreviousCharacter(text, caret_);
         else
-            caret_ = text::NextCharacter(text.c_str(), caret_);
+            caret_ = text::NextCharacter(text, caret_);
         break;
     default:
         return;

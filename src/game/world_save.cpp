@@ -80,8 +80,9 @@ static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 // the node layout are read here.
 using DwordList = mfc::CList<std::uint32_t>;
 
-void WriteString(WorldStream* stream, const char* text) {
-    stream->Write(text, static_cast<unsigned>(std::strlen(text) + 1));
+void WriteString(WorldStream* stream, std::string_view text) {
+    const gamecrt::TerminatedText terminated(text);
+    stream->Write(terminated.c_str(), static_cast<unsigned>(terminated.size() + 1));
 }
 
 // A dword written through a stack copy, as most scalars are.
@@ -536,9 +537,9 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     manager4C_->ReleaseUnused();
     itemManager_->ReleaseUnused();
 
-    WriteString(stream, mobName_.c_str());
-    WriteString(stream, mapName_.c_str());
-    WriteString(stream, zoneName_.c_str());
+    WriteString(stream, mobName_);
+    WriteString(stream, mapName_);
+    WriteString(stream, zoneName_);
     stream->Write(windDirection_, 12);
     WriteCopy(stream, windStrength_);
     WriteCopy(stream, nightLevel_);

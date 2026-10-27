@@ -54,8 +54,8 @@ struct ByColumn {
     int key;
     bool operator()(const MpAddressEntry& a, const MpAddressEntry& b) const {
         switch (key) {
-        case 1: return CompareNames(a.name.c_str(), b.name.c_str()) < 0;
-        case 2: return CompareNames(a.name.c_str(), b.name.c_str()) > 0;
+        case 1: return CompareNames(a.name, b.name) < 0;
+        case 2: return CompareNames(a.name, b.name) > 0;
         case 3: return a.players < b.players;
         case 4: return b.players < a.players;
         case 5: return a.gameType < b.gameType;

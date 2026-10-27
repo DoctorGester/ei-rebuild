@@ -145,7 +145,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         Drop(item);
     }
     for (const auto* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
-        if (!Named((*weapon).c_str())) continue;
+        if (!Named((*weapon))) continue;
         CItem* item = MakeItem(this, (*weapon).c_str());
         CItem* copy = CountedClone(item);
         record->weapons.SetAtGrow(record->weapons.size, copy);

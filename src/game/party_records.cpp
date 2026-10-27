@@ -22,7 +22,7 @@
 
 namespace {
 
-int __cdecl MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
+int __cdecl MbsCmp(std::string_view a0, std::string_view a1) { return gamecrt::mbscmp(a0, a1); }
 
 const char* const kHero = "Hero";
 const char* const kHumanHero = "Human Hero";

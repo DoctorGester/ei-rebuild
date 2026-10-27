@@ -31,10 +31,10 @@ namespace {
 constexpr const char* kMusicReg = /*00744090*/ "music.reg";
 constexpr const char* kMp3 = /*00744094*/ ".mp3";
 
-int Compare(const char* a, const char* b) {
+int Compare(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b);
 }
-int CompareNoCase(const char* a, const char* b) {
+int CompareNoCase(std::string_view a, std::string_view b) {
     return gamecrt::mbsicmp(a, b);
 }
 
@@ -149,7 +149,7 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
     TheSoundManager()->StopStream(4);
     holding = 1;
     for (int i = 0; i < themeCount; ++i) {
-        if (CompareNoCase(themes[i].name.c_str(), allod) == 0 && themes[i].dungeon == dungeon) {
+        if (CompareNoCase(themes[i].name, allod) == 0 && themes[i].dungeon == dungeon) {
             theme = i;
             state = 1;
             calmDue = 1;
@@ -178,7 +178,7 @@ void PlayThemeFile(CMusicSystem* music, const char* allod, std::string MusicThem
     std::string name;
     int i = 0;
     for (; i < music->themeCount; ++i) {
-        if (CompareNoCase(music->themes[i].name.c_str(), allod) == 0) {
+        if (CompareNoCase(music->themes[i].name, allod) == 0) {
             name = music->themes[i].*file;
             break;
         }
@@ -244,7 +244,7 @@ int CMusicSystem::UpdateMusic() {
         current = playing;
     }
     if (jinglePlaying != 0) {
-        if (Compare(current.c_str(), jingle.c_str()) == 0) return 1;
+        if (Compare(current, jingle) == 0) return 1;
         jinglePlaying = 0;
         inCombat = 0;
         calmDue = CalmDelay();
@@ -256,12 +256,12 @@ int CMusicSystem::UpdateMusic() {
             calmDue = CalmDelay();
         }
     } else if (fighting == 1) {
-        if (Compare(current.c_str(), combatTrack.c_str()) != 0 || Compare(combatTrack.c_str(), game::EmptyText()) == 0) {
+        if (Compare(current, combatTrack) != 0 || Compare(combatTrack, game::EmptyText()) == 0) {
             combatTrack = PickName(themes[theme].combat);
             combatTrack += kMp3;
         }
         snd->RequestStream(combatTrack.c_str(), 3);
-    } else if (Compare(current.c_str(), game::EmptyText()) == 0) {
+    } else if (Compare(current, game::EmptyText()) == 0) {
         combatTrack = game::EmptyText();
         if (calmDue == 0) {
             std::uint32_t r = IsaacRandom::Global().Next();

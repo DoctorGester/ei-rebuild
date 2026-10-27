@@ -127,7 +127,7 @@ int& OptDifficultyCopy() { return options::TheOptions()->difficultyStored_; } //
 
 CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
-void DrawRowText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format) {
+void DrawRowText(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour, int format) {
     surface->DrawTextIn(text, rect, font, colour, format, 1);
 }
 
@@ -188,10 +188,10 @@ void COptionsWindow::RefreshRows() {
         }
         if (OptionBinding* binding = rows_[row].binding_) {
             COLORREF colour = row == selectedRow_ && waitingForKey_ ? kColourWaiting : kColourText;
-            DrawRowText(surface, binding->name_.c_str(), &name, 1, colour, 0);
-            DrawRowText(surface, binding->keysText_.c_str(), &keys, 1, colour, 0);
+            DrawRowText(surface, binding->name_, &name, 1, colour, 0);
+            DrawRowText(surface, binding->keysText_, &keys, 1, colour, 0);
         } else if (OptionSetting* setting = rows_[row].setting_) {
-            DrawRowText(surface, setting->text_.c_str(), &name, 1, kColourText, 0);
+            DrawRowText(surface, setting->text_, &name, 1, kColourText, 0);
         }
         gameapi::OffsetRect(&name, 0, 24);
         gameapi::OffsetRect(&keys, 0, 24);

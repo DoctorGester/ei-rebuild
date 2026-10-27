@@ -83,7 +83,7 @@ void CHelpWindow::CreateScreen() {
         interface_->SetPendingValue(0);
         return;
     }
-    ReadTutorText(texts, title_.c_str(), &title_);
+    ReadTutorText(texts, title_, &title_);
     for (int i = 0; i < lines_.size; ++i) ReadTutorText(texts, lines_.data[i].GetString(), &lines_.data[i]);
     if (page_ < 0) page_ = 0;
     if (page_ >= lines_.size) page_ = lines_.size - 1;
