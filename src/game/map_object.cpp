@@ -234,7 +234,7 @@ void CMapObject::PlaceOnGround(float offset) {
 EI_REWRITTEN(0x0050F020, CMapObject::PlaceOnGround);
 
 
-std::uintptr_t CMapObject::SetServerData(const void* data) {
+std::uintptr_t CMapObject::SetServerData(const UnitVitals* data) {
     int classId = companion->GetClassId();
     if (classId != kClassMapObjectServer) return static_cast<std::uintptr_t>(classId);
     return ServerCompanion()->SetData(data);

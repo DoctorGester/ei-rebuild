@@ -303,7 +303,7 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     handled_ = true;
     CBattleScreen* owner = owner_;
     // Rebirth's FixSpellSelfCasting patches SelectUnit.
-    if (region < owner->party_.size) static_cast<CBattleScreen*>(owner)->SelectUnit(owner->party_[region], 0, 0);
+    if (region < owner->party_.size) owner->SelectUnit(owner->party_[region], 0, 0);
 }
 EI_REWRITTEN(0x00641E20, CHudPortraits::OnMouseUp);
 

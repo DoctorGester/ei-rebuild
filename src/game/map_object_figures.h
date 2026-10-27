@@ -22,6 +22,7 @@
 
 class CObject3D;
 class CParticleSource;
+class CSceneRenderer;
 
 // The figures' default scale (zeros).
 inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
@@ -109,8 +110,8 @@ public:
     // The figure's extra scale (the base's: 1, 1, 1).
     virtual void GetScale(float* x, float* y, float* z);
     // The client draws the parts / their shadow; the base returns 0.
-    virtual int DrawParts(void* context, int* dirty);
-    virtual int DrawPartsShadow(void* context);
+    virtual int DrawParts(CSceneRenderer* context, int* dirty);
+    virtual int DrawPartsShadow(CSceneRenderer* context);
     // After LoadFigures: the client gives the parts the world's materials, then the skin texture. The base does
     // nothing.
     virtual void ApplyMaterials() {}
@@ -313,7 +314,7 @@ public:
     void SaveTransform(mfc::CFileVirtuals* file) override;
     void LoadTransform(mfc::CFileVirtuals* file) override;
     // Whether the object may play the animation entry (FigureAnimation); any here, CUnit overrides it.
-    virtual bool AcceptsAnimation(const void* animation);
+    virtual bool AcceptsAnimation(const FigureAnimation* animation);
     // AttachSpecific (no result: 0). CMapObject and units override it.
     virtual std::uintptr_t AttachObject(CEngineObject* object);
     // Takes `other`'s parts (the array copied, no references taken) and its transform
@@ -323,9 +324,9 @@ public:
     virtual bool InvisibleSlot();
     // Draw the figure / draw it and collect its screen rectangle / draw its shadow with the scene context (the
     // side half's draw virtuals, the second first emptying dirtyRect to have it filled; 1 without a half).
-    virtual int DrawFigure(void* context);
-    virtual int DrawCollectDirty(void* context);
-    virtual int DrawFigureShadow(void* context);
+    virtual int DrawFigure(CSceneRenderer* context);
+    virtual int DrawCollectDirty(CSceneRenderer* context);
+    virtual int DrawFigureShadow(CSceneRenderer* context);
     // Empty; units override it.
     virtual void AdvanceTime(float time);
     // Loads the figure named by the model name and builds the pending parts at the current scale, each new
@@ -395,14 +396,14 @@ public:
     CFigureMesh* LoadPart(const char* partName, FigureModel* model, std::uint32_t arg);
     // The object's figure becomes `model` and each name of the CStringArray `partNames` is loaded by LoadPart
     // (with the cached model; failures logged). Without a figure manager: FatalError. Returns 1.
-    int LoadParts(const char* model, const void* partList, std::uint32_t arg);
+    int LoadParts(const char* model, const mfc::CStringArray* partList, std::uint32_t arg);
     // When a unit becomes the controlled one (world client): with the figure loaded (flags_ 0x80) the parts'
     // world transforms are updated and the bounds recomputed from their world boxes.
     void UpdatePartBounds();
     // Builds the figure of the model for the part names `partList` (a CStringArray; none: the animation
     // state's parts and the whole figure), then LoadParts and the bounds; flags_ 0x80 set unless both `arg`
     // and the figure are 0. Returns 1.
-    int MakeFigure(const char* model, void* partList, std::uint32_t arg);
+    int MakeFigure(const char* model, mfc::CStringArray* partList, std::uint32_t arg);
     // The index of the part name equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
     // The box (CFigureMesh::bounds_) of part `index` of the parts followed by the pending parts.

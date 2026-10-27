@@ -75,7 +75,7 @@ void CWorldServer::Destroy() {
     if (it) it->manager = nullptr;
     if (PlayerList()) {
         for (CPlayer* player = it->First(PlayerList()); player; player = it->Next()) {
-            static_cast<CPlayer*>(player)->Disconnect();
+            player->Disconnect();
             PlayerList()->ReleasePlayer(player);
         }
     }

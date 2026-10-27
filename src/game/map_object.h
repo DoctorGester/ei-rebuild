@@ -70,6 +70,7 @@ constexpr int kShrink = 0x26;          // scale down
 } // namespace mapeffect
 
 struct DamageInfo;
+struct UnitVitals;
 struct UnitStats;
 struct LockKey;
 
@@ -119,7 +120,7 @@ public:
     // Empty; units: a CUnitServer controller (class 0x3E) copies the statistics (CUnitServer::SetStats).
     virtual std::uintptr_t SetStats(const UnitStats* stats);
     // Hands `data` to a CMapObjectServer companion.
-    virtual std::uintptr_t SetServerData(const void* data);
+    virtual std::uintptr_t SetServerData(const UnitVitals* data);
     // Empty; units: the controller's size-class virtual.
     virtual std::uintptr_t UpdateSizeClasses();
     virtual int IsUsable();            // 0; traps 1, levers NeedsKey

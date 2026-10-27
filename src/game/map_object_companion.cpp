@@ -73,14 +73,14 @@ int CMapObjectServer::RunTick() {
 }
 EI_REWRITTEN(0x00515820, CMapObjectServer::RunTick);
 
-std::uintptr_t CMapObjectServer::SetData(const void* data) {
+std::uintptr_t CMapObjectServer::SetData(const UnitVitals* data) {
     std::memcpy(&vitals, data, sizeof(vitals));
     return owner->MarkChanged(0);
 }
 EI_REWRITTEN(0x00515950, CMapObjectServer::SetData);
 
-BOOL CMapObjectServer::TakeHit(const void* hit) {
-    if (!vitals.TakeHit(static_cast<const DamageInfo*>(hit))) return 0;
+BOOL CMapObjectServer::TakeHit(const DamageInfo* hit) {
+    if (!vitals.TakeHit(hit)) return 0;
     owner->MarkChanged(0);
     if (IsDead()) {
         owner->ClearEffects();

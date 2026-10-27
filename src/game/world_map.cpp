@@ -60,7 +60,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         {
             mfc::CString path(mfc::CString::kUnset);   // MapPath constructs it
             MapPath(&path, map);
-            failed = static_cast<CAIMap*>(aiMap)->Load(path) == 0;
+            failed = aiMap->Load(path) == 0;
         }
         if (failed) return 0;
         mapName_ = map;

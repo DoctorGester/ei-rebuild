@@ -19,6 +19,17 @@
 class ClassTemplate;
 struct LeverRecord;
 namespace gamehash { struct PartyTable; }
+namespace itemdb {
+struct QuickItemRecord;
+struct QuestItemRecord;
+struct LootItemRecord;
+struct MaterialRecordHead;
+struct WeaponRecord;
+struct ArmorRecord;
+struct SpellRecord;
+struct SpellModifierRecord;
+struct SpellListRecord;
+}
 struct PartyManagerEntry;
 struct PrintRecord;
 struct PrintRecord2;
@@ -146,17 +157,17 @@ public:
     void SerializeLevers(int id, stlp::vector<LeverRecord>* list, int unused);
 
     // The item database's vectors, one chunk 1 per record (the third argument unused).
-    void SerializeQuickItems(int id, void* records, void* unused);
-    void SerializeLoot(int id, void* records, void* unused);
-    void SerializeQuestItems(int id, void* records, void* unused);
-    void SerializeMaterials(int id, void* records, void* unused);
-    void SerializeWeapons(int id, void* records, void* unused);
-    void SerializeArmors(int id, void* records, void* unused);
+    void SerializeQuickItems(int id, stlp::vector<itemdb::QuickItemRecord>* records, void* unused);
+    void SerializeLoot(int id, stlp::vector<itemdb::QuestItemRecord>* records, void* unused);
+    void SerializeQuestItems(int id, stlp::vector<itemdb::LootItemRecord>* records, void* unused);
+    void SerializeMaterials(int id, stlp::vector<itemdb::MaterialRecordHead>* records, void* unused);
+    void SerializeWeapons(int id, stlp::vector<itemdb::WeaponRecord>* records, void* unused);
+    void SerializeArmors(int id, stlp::vector<itemdb::ArmorRecord>* records, void* unused);
 
     // The spell database's vectors, as the item database's.
-    void SerializeSpells(int id, void* records, void* unused);
-    void SerializeSpellModifiers(int id, void* records, void* unused);
-    void SerializeSpellLists(int id, void* records, void* unused);
+    void SerializeSpells(int id, stlp::vector<itemdb::SpellRecord>* records, void* unused);
+    void SerializeSpellModifiers(int id, stlp::vector<itemdb::SpellModifierRecord>* records, void* unused);
+    void SerializeSpellLists(int id, stlp::vector<itemdb::SpellListRecord>* records, void* unused);
     // vector<int> as chunk `id`: one field 1 per
     // value; loading empties the vector and refills it with as many zeros as there are fields.
     void IntVectorField(int id, stlp::vector<int>* values, void* unused);
