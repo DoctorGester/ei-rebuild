@@ -62,7 +62,7 @@ void DestructRefs(T** refs, int count) {
 
 // The game's memmove.
 
-// The mode names of the "new motivation" message (the original pushes these addresses).
+// The mode names of the "new motivation" message (passed by address).
 const char* ModeName(int type) {
     switch (type) {
     case kModeGuard: return "Guard";
@@ -88,16 +88,15 @@ void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<m
 
 AIRefTo<CUnit>* AIBrain::PopCorpse(AIRefTo<CUnit>* out) { return memory.corpses.PopHead(out); }
 void AIBrain::ChooseTarget(AITargetChoice* choice, void* candidates, const Vector3* from, int a, int b) {
-    // reads `a` as a byte.
+    // `a` is read as a byte.
     attention.Choose(this, choice, static_cast<AIObjectList*>(candidates), from, static_cast<std::uint8_t>(a) != 0, b);
 }
 
 // --- The corpse list ---------------------------------------------------------------
 
-// RemoveHead of the corpse list returning the element as a counted reference The original
-// copies the head's object into a counted local, unlinks the node, destroys the element in place
-// (inlined: released, cleared), frees the node (the last one frees every block), then
-// copies the local into `out` and drops the local.
+// RemoveHead of the corpse list returning the element as a counted reference. It copies the head's object
+// into a counted local, unlinks the node, destroys the element in place (inlined: released, cleared), frees
+// the node (the last one frees every block), then copies the local into `out` and drops the local.
 AIRefTo<CUnit>* CountedUnits::PopHead(AIRefTo<CUnit>* out) {
     Node* old = head;
     CUnit* value = old->data;
@@ -307,7 +306,7 @@ EI_REWRITTEN(0x005D5F20, AIBrain::AggressionEnemy);
 bool AIBrain::IsNearPath(const Vector3* point, float radius) {
     float radiusSq = radius * radius;       // FSTP float
     {
-        // Kept on the FPU stack in the original (double holds the 24-bit results exactly).
+        // Kept on the FPU stack (double holds the 24-bit results exactly).
         double dx = position.x - point->x;
         double dy = position.y - point->y;
         EI_NAN_AUDIT(dy, dx, radiusSq);
@@ -322,7 +321,7 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
     float segY = previousPosition.y - position.y;     // FSTP float [EBP+8]
     float t = static_cast<float>(((pointX - position.x) * segX + (pointY - position.y) * segY) /
                                           LengthSquared2DUnrounded<double>(segY, segX));
-    // Clamp to [0, 1] with the original's selects: a NaN t gives 1.
+    // Clamp to [0, 1] with selects: a NaN t gives 1.
     float clamped = 0.0f >= t ? 0.0f : static_cast<float>(t);
     float clampedStored = clamped;                     // FLD/FSTP through memory
     float u = 1.0f >= clampedStored ? static_cast<float>(clampedStored) : 1.0f;

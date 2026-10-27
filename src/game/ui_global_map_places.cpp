@@ -42,7 +42,7 @@ mfc::CString* PlaceTitle(mfc::CString* out, const char* prefix, const char* name
 }
 
 
-// ARGB from four table ints as the original combines them: no masking, alpha shifted in first.
+// ARGB from four table ints: no masking, alpha shifted in first.
 std::uint32_t Argb(const int* entry) {
     std::uint32_t c = static_cast<std::uint32_t>(entry[3]);
     c = c << 8 | static_cast<std::uint32_t>(entry[0]);

@@ -28,7 +28,7 @@ struct CFileStatus {
 static_assert(sizeof(CFileStatus) == 0x118);
 
 // CFile (0x10 bytes). The virtual members are reached through the object's
-// vtable where the original dispatches (mfc::CFileVirtuals); the bodies here are the slots'.
+// vtable where game.exe dispatches (mfc::CFileVirtuals); the bodies here are the slots'.
 struct CFile {
     enum OpenFlags : unsigned {
         modeRead = 0x0000, modeWrite = 0x0001, modeReadWrite = 0x0002, shareCompat = 0x0000,

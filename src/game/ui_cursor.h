@@ -61,7 +61,7 @@ public:
     const LONG* Poll(int unused);
     const LONG* PollThroughHook(int unused) { return Poll(unused); }
     // The mouse data format Setup gives the device (dinput.lib's c_dfDIMouse, as a
-    // DIDATAFORMAT): ours, since game.exe keeps its object table in its code section,
+    // DIDATAFORMAT): our own, since the object table lives in game.exe's code section,
     // which the standalone image does not have. The objects name the game's GUID_XAxis / YAxis / ZAxis.
     static const void* MouseDataFormat();
 

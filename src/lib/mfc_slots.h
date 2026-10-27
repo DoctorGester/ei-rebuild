@@ -146,9 +146,9 @@ void MapAbi<K, V>::Serialize(CArchive* ar) {
 // holds the table). Slot 0 is CObject's GetRuntimeClass, slot 1 the destructor `Destroy` (the
 // instantiation's own: the table written, the elements destroyed, the storage freed; the compiler's scalar deleting
 // destructor frees the object into the game's heap), slot 2 Serialize (`Store`). Our code calls the header's
-// functions by name; the slots are what the original's dispatch through the table reaches (DestructElements' slot 1
+// functions by name; the slots are what a dispatch through the table reaches (DestructElements' slot 1
 // on an element that is a collection, CArchive's slot 2). A tag derived from another is the derived
-// instantiation's (its destructor ends in the base's, which stores the base's table, as the original's does).
+// instantiation's (its destructor ends in the base's, which stores the base's table).
 
 // CObject::GetRuntimeClass: CObject's record (mfc_runtime_class.h's kClassCObject; mfc_coll.cpp).
 struct CRuntimeClass;

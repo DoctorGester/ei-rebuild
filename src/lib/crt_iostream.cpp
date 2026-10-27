@@ -20,9 +20,8 @@ namespace {
 
 constexpr int kEof = -1;
 
-// The compiled tables the constructors and destructors write in place of game.exe's: ios's and
-// ostream's for its ios, one slot each (the deleting destructor); and game.exe's ostream virtual base table
-// (the ios 8 bytes in), which is data.
+// The compiled tables the constructors and destructors write: ios's and ostream's for its ios, one slot each
+// (the deleting destructor); and the ostream virtual base table (the ios 8 bytes in), which is data.
 struct IosTable final : ei::CompiledDeleter<IosTable, &Ios::DeletingDestruct> {};
 struct OstreamIosTable final : ei::CompiledDeleter<OstreamIosTable, &Ios::DeleteOstream> {};
 

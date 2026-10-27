@@ -1,7 +1,7 @@
 #pragma once
 
 // MFC's globals that only game.exe's static initialisers and their exit functions reach: the generated
-// static_init.cpp / static_exit.cpp name them (tools/gen_static_init.py's GENERATED_NAMES) where the original's code
+// static_init.cpp / static_exit.cpp name them (tools/gen_static_init.py's GENERATED_NAMES) where game.exe's code
 // has their addresses. Nothing else of ours reads them: the code that does in game.exe (AfxThrowUserException,
 // AfxGetThreadState's locals, _AfxCbtFilterHook) is not in our source, the image's MFC state is ImageModuleState and
 // thread_local handle maps (mfc_state.h). docs/notes/standalone.md, "Named data".

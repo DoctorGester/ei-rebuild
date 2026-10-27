@@ -1,4 +1,5 @@
-// The battle screen's mouse move, left button down and a unit's name line. See ui.h (CBattleScreen) and docs/notes/ui.md ("Battle screen").
+// The battle screen's mouse move, left button down and a unit's name line. See ui.h (CBattleScreen) and
+// docs/notes/ui.md ("Battle screen").
 #include "text_split.h"
 #include "ui.h"
 #include "ui_camp.h"
@@ -48,7 +49,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
         CUiContainer::MouseMove(buttons, x, y);
         if (handled_) return;
     }
-    // The original passes the address of its own (x, y) arguments and reads them back.
+    // The (x, y) pair is read back through its address.
     POINT point = {x, y};
     CUnit* unit = TheClientWorld()->UnitAt(&point);
     HoverUnit(unit, point.x, point.y);

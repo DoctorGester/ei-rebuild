@@ -262,8 +262,7 @@ void CBriefingScreen::FinishDialogue() {
         auto* controller = serverUnit->ServerController();
         controller->actionDone = nullptr;
         controller->StopAction();
-        // (The original then looks for the unit among the party's first members; the result is
-        // not used.)
+        // (The unit is then looked up among the party's first members; the result is not used.)
     }
     // vector::clear (then the entries' destructor).
     for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) speaker->name.~CString();

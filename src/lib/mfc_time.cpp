@@ -45,7 +45,7 @@ std::size_t Strftime(char* buffer, std::size_t size, const char* format, const s
 } // namespace
 
 CTime* CTime::Construct(int year, int month, int day, int hour, int minute, int second, int dst) {
-    std::tm at;   // tm_wday and tm_yday are left as the stack had them, as in the original
+    std::tm at;   // tm_wday and tm_yday are left as the stack had them
     at.tm_sec = second;
     at.tm_min = minute;
     at.tm_hour = hour;

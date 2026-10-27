@@ -120,7 +120,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
             AddItem(model.c_str(), image.c_str());
         }
         finish(item, false);
-        // The original passes the same CString for the second and third texts.
+        // The same CString serves as the second and third texts.
         TheTextManager()->GetItemTexts(item, &tip, &unused, &unused);
         regions_.data[slot]->SetTipString(tip, 1, 0);
         place(slot);
@@ -168,7 +168,7 @@ void PushId(IdVector* ids, const int* value) {
         ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);
     }
 }
-// The same with the construction inlined (as the original's third case).
+// The same with the construction inlined.
 void PushIdInline(IdVector* ids, const int* value) {
     if (ids->Finish() != ids->EndOfStorage()) {
         if (ids->Finish()) *ids->Finish() = *value;
@@ -402,7 +402,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     viewPressed_ = false;
     CWorldClient* world = TheClientWorld();
     if (!boxSelecting_ || IsMultiplayerClient()) {
-        // The original passes the address of its own (x, y) arguments and reads them back.
+        // The (x, y) pair is read back through its address.
         POINT point = {x, y};
         CUnit* unit = world->UnitAt(&point);
         if (unit && !(unit->flags_ & 0x400000)) unit = nullptr;
@@ -579,8 +579,8 @@ void CBattleScreen::RefreshSelection() {
         ++selected;
     }
     // Exactly one living unit selected: the panels show it; otherwise they are emptied. The action
-    // column's extra button stays while anyone is selected (the original pushes SETG DL there with
-    // EDX's upper bytes left over; the callee reads the low byte only).
+    // column's extra button stays while anyone is selected (the flag is pushed with
+    // upper bytes left over; the callee reads the low byte only).
     CUnit* shown = (first && first->IsDead() == 0 && selected == 1) ? first : nullptr;
     weaponBar_->SetUnit(shown);
     quickItems_->SetUnit(shown);

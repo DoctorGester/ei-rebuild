@@ -1,5 +1,5 @@
 // The blink of the party units' faces (CUnitClientSpecific, unit_client_models.h): the face
-// texture ("<model>mouth") holds the open and the closed state, which the original copies over a
+// texture ("<model>mouth") holds the open and the closed state, which is copied over a
 // rectangle of the unit's skin texture with DirectDraw blits down the mip chain.
 // No texture has a DirectDraw surface (dx_surface.h; the skins are decoded by the new renderer):
 // the new renderer draws the face's rectangle over the skin's in its shader instead
@@ -37,7 +37,7 @@ CTexture* SkinOf(CUnit* unit) {
 }
 
 // The eye rectangle's numbers shared by both: the skin's scale (stored as a float) and the
-// face's offset `t` (in the original's mixed units, kept as it computes it).
+// face's offset `t` (in mixed units, kept as computed).
 struct EyeFrame {
     float scale;
     double offset;
@@ -58,7 +58,7 @@ EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord
 
 } // namespace
 
-// The original blits (Blt, DDBLT_WAIT) `from` of `source` to the
+// Blits (Blt, DDBLT_WAIT) `from` of `source` to the
 // rectangle of its size at `at` of `target`, then on each next level of both mip chains
 // (DDSCAPS_TEXTURE | DDSCAPS_MIPMAP attachments, whose references are never released) with each of
 // the eight edges halved (SAR), until either has no further level. Ours hands the first level's

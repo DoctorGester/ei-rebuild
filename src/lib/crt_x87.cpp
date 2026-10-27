@@ -1,10 +1,11 @@
 // The game CRT's x87 entry points with register arguments (docs/notes/standalone.md): _ftol (ST0 in, its
-// 64-bit truncation in EDX:EAX, ST0 popped) and the _CI maths (_CIacos, _CIasin: ST0 in and out; _CIpow:
-// and ST0 in, the result in ST0; fmod and _CIfmod are the host CRT's std::fmod). A C++ function cannot be declared with that ABI, so each is a
-// naked entry that moves its arguments to the stack and calls a plain C++ body; this file is the one in
-// src/lib that tools/check_cleanup.py lets hold __asm, for these entries only.
+// 64-bit truncation in EDX:EAX, ST0 popped) and the _CI maths (_CIacos, _CIasin: ST0 in and out; _CIpow: and
+// ST0 in, the result in ST0; fmod and _CIfmod are the host CRT's std::fmod). A C++ function cannot be
+// declared with that ABI, so each is a naked entry that moves its arguments to the stack and calls a plain
+// C++ body; this file is the one in src/lib that tools/check_cleanup.py lets hold __asm, for these entries
+// only.
 // Registered for the standalone image only (EI_REPLACE_STANDALONE): the hook build keeps the exe's own, so
-// its x87 results (and the goldens recorded with them) stay the original's.
+// its x87 results (and the goldens recorded with them) stay as recorded.
 #include "crt.h"
 
 #include "ei/hook.h"
@@ -61,7 +62,7 @@ bool IsInfinite(std::uint64_t bits) { return Exponent(bits) == 0x7FF && (bits & 
 // The control word the _CI functions compute under: rounding to nearest, every exception
 // masked, the caller's precision kept, so their FADD / FSUB / FMUL / FSQRT round to the caller's
 // precision (24 bits on the game's main thread). The bodies compute at 53 bits and round with Round where
-// the original's instructions round. (FYL2X, F2XM1, FPATAN and FPREM ignore the precision.)
+// the x87 instructions round. (FYL2X, F2XM1, FPATAN and FPREM ignore the precision.)
 // (_hypot computes at 64 bits: `precision`.) The word is loaded only when it differs from the caller's,
 // and put back only then (FNSTCW / FLDCW, not __control87_2's conversions; the same words).
 class MathControlWord {
@@ -272,7 +273,7 @@ __declspec(naked) double __cdecl AddOnX87(double /*x*/, double /*y*/) {
 } // namespace
 
 // _hypothlp's steps under its control word 133F (64 bits, to nearest), each result stored to a double as
-// the original stores it (so rounded twice: volatile keeps the stores): |x| and |y| over the larger, the
+// the x87 code stores it (so rounded twice: volatile keeps the stores): |x| and |y| over the larger, the
 // sum of their squares, its root, then the root's and the larger's mantissas (_decomp: [0.5, 1))
 // multiplied and given the exponents' sum (_set_exp, exact while the result is a normal double; below
 // that, the masked underflow's denormalised result, cut off).

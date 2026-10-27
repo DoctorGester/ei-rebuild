@@ -238,7 +238,7 @@ void CSceneRenderer::GetGamma(float* brightness, float* contrast, float* gamma) 
 }
 EI_REWRITTEN(0x00504A40, CSceneRenderer::GetGamma);
 
-// The original sets the cooperative level and the display mode again in full screen, restores every
+// In full screen this sets the cooperative level and the display mode again in full screen, restores every
 // DirectDraw surface and reloads the textures. The switch-over (device.h) has no DirectDraw surfaces
 // to lose, nor a display mode to set again (a lost Direct3D 11 device is): true.
 bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }

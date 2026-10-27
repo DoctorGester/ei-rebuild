@@ -58,7 +58,7 @@ UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
 void CTradePanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
     info->kind = kNone;
     if (!enabled_) return;
-    // The original tests the region with unsigned compares, so -1 (no region) falls through
+    // The region is tested with unsigned compares, so -1 (no region) falls through
     // every range and ends on a held-perk index far past the list.
     unsigned region = static_cast<unsigned>(RegionAt(x, y));
     if (region >= 4 && region < 10) {

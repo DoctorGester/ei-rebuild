@@ -31,8 +31,6 @@ namespace {
 // The map edge fade (a float the zone screens set while they are open).
 float& MapEdgeFade() { return options::TheOptions()->borderFogDistance_; }
 
-// The load window the game-over box opens (0x194 bytes, built inline).
-
 constexpr std::uint32_t kLeaveZoneYes = 0x10001;
 constexpr std::uint32_t kGameOverLoad = 0x20001;
 constexpr std::uint32_t kGameOverQuit = 0x20002;

@@ -99,7 +99,7 @@ struct TreeAbi : Map {
         if (p) deallocate(p, n * sizeof(Node));
     }
 
-    // operator[]. The original's default value is a V temporary; for
+    // operator[]. The default value is a V temporary; for
     // the record and attached-id maps some of its bytes are uninitialised stack, ours zero.
     V* Subscript(const K& key) { return &Map::template Subscript<E>(key); }
     // lower_bound / upper_bound / find.

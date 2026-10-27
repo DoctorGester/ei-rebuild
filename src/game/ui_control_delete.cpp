@@ -1,5 +1,6 @@
-// Destructors of the interface controls: the scroll bar and options slider, the spin and the edit field
-// (the scrolling text's and the tooltip's are in ui_scroll_text.cpp / ui_tooltip.cpp). See ui.h and docs/notes/items_spells.md.
+// Destructors of the interface controls: the scroll bar and options slider, the spin and the edit field (the
+// scrolling text's and the tooltip's are in ui_scroll_text.cpp / ui_tooltip.cpp). See ui.h and
+// docs/notes/items_spells.md.
 #include "ui.h"
 #include "ui_screens.h"
 

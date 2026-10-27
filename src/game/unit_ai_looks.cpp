@@ -79,7 +79,7 @@ void PatrolMode::AppendPoint(const Vector3* position) {
     points.SetSize(index + 1, -1);
     PatrolPoint& added = points[index];
     added.position = Vector3{x, y, 0.0f};
-    // The original copies an empty temporary look array into the new point.
+    // An empty temporary look array is copied into the new point.
     added.looks.SetSize(0, -1);
 }
 EI_REWRITTEN(0x005D12B0, PatrolMode::AppendPoint);

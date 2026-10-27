@@ -237,7 +237,7 @@ CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
         if (!record || slot >= record->spellCount) return nullptr;
-        // No null check on the item here (the original reads through it).
+        // No null check on the item here.
         return record->spells[slot]->spell_;
     }
     if (slot >= 8 || !spells[slot]) return nullptr;
@@ -263,7 +263,7 @@ bool CUnit::HasRangedWeapon() {
 EI_REWRITTEN(0x00530FA0, CUnit::HasRangedWeapon);
 
 double CUnit::TotalItemWeight() {
-    double total = kZero;   // accumulated on the FPU stack in the original
+    double total = kZero;   // accumulated on the FPU stack
     for (CItem* item : weapons) {
         if (item) total += ItemWeight(item);
     }
@@ -374,7 +374,7 @@ double CUnit::BaseSpeed() {
 EI_REWRITTEN(0x00530370, CUnit::BaseSpeed);
 
 double CUnit::ModeSpeed() {
-    float speed = static_cast<float>(BaseSpeed());   // FSTP to a float local in the original
+    float speed = static_cast<float>(BaseSpeed());   // FSTP to a float local
     if (moveMode != 0 && IsDead() == 0) {
         if (moveMode == 1) return speed * kSlowModeScale;
         return speed;

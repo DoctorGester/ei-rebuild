@@ -103,10 +103,9 @@ private:
 };
 static_assert(sizeof(CFile) == 0x10);
 
-// The virtual slots of MFC 4.2's CFile for callers that dispatch through a
-// file's vtable (the original does; the verify build hands some loaders a proxy file). CFile above
-// calls the bodies directly. Declared only: a devirtualised call would not link. Slots declared
-// `void Name()` keep their place in the order only.
+// The virtual slots of MFC 4.2's CFile for callers that dispatch through a file's vtable (game.exe's code
+// does; the verify build hands some loaders a proxy file). CFile above calls the bodies directly. Declared
+// only: a devirtualised call would not link. Slots declared `void Name()` keep their place in the order only.
 class __declspec(novtable) CFileVirtuals {
 public:
     virtual void GetRuntimeClass();
@@ -135,7 +134,7 @@ public:
 inline CFileVirtuals* CFile::Virtuals() { return reinterpret_cast<CFileVirtuals*>(this); }
 
 // The virtual slots every MFC 4.2 CObject has (a CArray's, for example), for callers that dispatch
-// through an object's vtable as the original does (its inlined DestructElements calls slot 1 with
+// through an object's vtable (the inlined DestructElements calls slot 1 with
 // 0; a CList or a CDib is deleted through slot 1 with 1); declared only.
 class __declspec(novtable) CObjectVirtuals {
 public:
@@ -165,7 +164,7 @@ private:
 static_assert(sizeof(CFileFind) == 0x1C);
 
 // The virtual slots of MFC 4.2's CFileFind for callers that dispatch through it
-// as the original does; declared only. Slots declared `void Name()` keep their place only (8-13
+// like that; declared only. Slots declared `void Name()` keep their place only (8-13
 // are the six GetLast*Time / GetCreationTime overloads).
 class __declspec(novtable) CFileFindVirtuals {
 public:
@@ -221,7 +220,7 @@ inline void PlexFreeDataChain(CPlex* head) { impl::FreePlexChain(head); }
 // ---- Collection templates (AFXTEMPL.H) ------------------------------------------------------------
 // The game's CArray / CList / CTypedPtrList instantiations share one layout each and differ only in
 // the element type and the vtable, so one template serves all of them (docs/notes/core.md, "Shared
-// containers"). The vtable is a plain field: an object the original constructs keeps the one its
+// containers"). The vtable is a plain field: an object game.exe constructs keeps the one its
 // constructor wrote, and code that builds one itself passes the instantiation's vtable. The
 // templates have no constructors, so they can sit in layouts and be brace-initialised.
 // The member functions are MFC 4.2's, written once: an instantiation the game calls out of line can
@@ -229,7 +228,7 @@ inline void PlexFreeDataChain(CPlex* head) { impl::FreePlexChain(head); }
 
 // MFC 4.2's default ConstructElements / DestructElements for element types without constructors:
 // new elements are zero-filled (the bitwise zeroing before the placement new), nothing is destroyed.
-// An instantiation whose elements the original constructs out of line (CString, records with
+// An instantiation whose elements are constructed out of line (CString, records with
 // constructors) passes its own policy with the same two static functions.
 template <typename T>
 struct PlainElements {

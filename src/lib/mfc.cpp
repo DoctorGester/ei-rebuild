@@ -17,7 +17,7 @@ namespace mfc {
 
 namespace {
 // The classes here share their layouts with the implementations (mfc_string.h, mfc_file.h,
-// mfc_time.h, mfc_coll.h, mfc_archive.h), which are what the original addresses run.
+// mfc_time.h, mfc_coll.h, mfc_archive.h), which are what the registered addresses run.
 impl::CString* Impl(CString* s) { return reinterpret_cast<impl::CString*>(s); }
 const impl::CString* Impl(const CString* s) { return reinterpret_cast<const impl::CString*>(s); }
 // `result` (unset storage) takes the implementation string `s`'s data: no copy, no reference

@@ -21,14 +21,14 @@ constexpr int kWeaponSlots = 4;
 // The skin texture of a part set (CObject3DClientSpecific +0x20 / +0x24), or null.
 CTexture* SkinTexture(const TextureParts* set) { return set ? set->texture : nullptr; }
 
-// `texture` takes `name` and is loaded again (the original's inlined common tail).
+// `texture` takes `name` and is loaded again (the common tail).
 void Reload(CTexture* texture, const mfc::CString& name) {
     texture->name_ = name.GetString();   // operator=(LPCTSTR)
     texture->flags_ &= ~kTextureLoaded;
     texture->Manager()->LoadTexture(texture);
 }
 
-// The original's test: a new skin, or a name that differs from the texture's (the texture read
+// The test: a new skin, or a name that differs from the texture's (the texture read
 // unchecked when `checkTexture` is false).
 bool NeedsReload(void* composed, CTexture* texture, const mfc::CString& name, bool checkTexture) {
     if (composed) return true;
