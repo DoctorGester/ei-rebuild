@@ -94,10 +94,9 @@ void AIBrain::ChooseTarget(AITargetChoice* choice, void* candidates, const Vecto
 
 // --- The corpse list ---------------------------------------------------------------
 
-// RemoveHead of the corpse list returning the element as a counted reference. It
-// copies the head's object into a counted local, unlinks the node, destroys the element in place
-// (inlined: released, cleared), frees the node (the last one frees every block), then
-// copies the local into `out` and drops the local.
+// RemoveHead of the corpse list returning the element as a counted reference. It copies the head's object
+// into a counted local, unlinks the node, destroys the element in place (inlined: released, cleared), frees
+// the node (the last one frees every block), then copies the local into `out` and drops the local.
 AIRefTo<CUnit>* CountedUnits::PopHead(AIRefTo<CUnit>* out) {
     Node* old = head;
     CUnit* value = old->data;

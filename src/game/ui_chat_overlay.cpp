@@ -318,8 +318,7 @@ EI_REWRITTEN(0x005E3550, CChatOverlay::OnChar);
 
 // --- the constructor -----------------------------------------------------------------------------
 
-// Its own redraw and update; the input side's keys and
-// characters (10).
+// Its own redraw and update; the input side's keys and characters.
 CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
     using Node = stlp::list<ChatLine>::Node;
     auto* sentinel = stlp::allocate_as<Node>();

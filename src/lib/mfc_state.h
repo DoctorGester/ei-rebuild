@@ -3,15 +3,14 @@
 // MFC 4.2's thread and process locals (afxtls.cpp) and its system metrics record AUX_DATA (afxData,
 // auxdata.cpp), as far as the exe's static initialisers and exit functions reach them
 // (docs/notes/standalone.md). The thread and process locals are globals MFC fills on first use
-// (_afxThreadState, _afxBaseModuleState and the others: their CThreadLocal / CProcessLocal holds a
-// TLS slot or an object); the exit functions free them through the destructors here. afxData is
-// built by a static initialiser and its menu-dot bitmap deleted at exit.
-//added what the other static initialisers call: AfxClassInit (the runtime class list of the
-// module state) with MFC's global locks, _afxDBCS's initialiser and wingdix.cpp's halftone brush
-// (an atexit that deletes it). The module state is game.exe's in the hook build (AfxGetModuleState
-// at its address); the image has a stand-in with the members used so far (ImageModuleState).
-// Every body is registered at its library address in both builds (mfc_state.cpp). The hook build
-// runs them over game.exe's state; in the image nothing fills the locals (the handle maps are
+// (_afxThreadState, _afxBaseModuleState and the others: their CThreadLocal / CProcessLocal holds a TLS slot
+// or an object); the exit functions free them through the destructors here. afxData is built by a static
+// initialiser and its menu-dot bitmap deleted at exit. The header also holds what the other static initialisers call:
+// AfxClassInit (the runtime class list of the module state) with MFC's global locks, _afxDBCS's initialiser
+// and wingdix.cpp's halftone brush (an atexit that deletes it). The module state is game.exe's in the hook
+// build (AfxGetModuleState at its address); the image has a stand-in with the members used so far
+// (ImageModuleState). Every body is registered at its library address in both builds (mfc_state.cpp). The
+// hook build runs them over game.exe's state; in the image nothing fills the locals (the handle maps are
 // thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object.
 
 #include <cstddef>

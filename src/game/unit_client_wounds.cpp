@@ -1,6 +1,6 @@
-// A party unit's wounds, face texture and weapon point on the client (CUnitClientSpecific): the wound level of each body part
-// and the composed wounds texture the figure shows called by RefreshWounds
-// See unit_client_models.h.
+// A party unit's wounds, face texture and weapon point on the client (CUnitClientSpecific): the wound level
+// of each body part and the composed wounds texture the figure shows called by RefreshWounds See
+// unit_client_models.h.
 #include "unit_client_models.h"
 
 #include "core_maths.h"

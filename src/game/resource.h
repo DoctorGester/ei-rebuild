@@ -135,8 +135,7 @@ public:
 };
 static_assert(sizeof(CMappedResource) == 0x58);
 
-// Maps the whole archive into memory; GetFile returns pointers into the mapping. A real virtual
-// class.
+// Maps the whole archive into memory; GetFile returns pointers into the mapping. A real virtual class.
 class CMMIOResource : public CMappedResource {
 public:
     // CMappedResource's, a closed mapped file, no image.

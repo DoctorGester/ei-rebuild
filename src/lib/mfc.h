@@ -103,10 +103,9 @@ private:
 };
 static_assert(sizeof(CFile) == 0x10);
 
-// The virtual slots of MFC 4.2's CFile for callers that dispatch through a
-// file's vtable (game.exe's code does; the verify build hands some loaders a proxy file). CFile above
-// calls the bodies directly. Declared only: a devirtualised call would not link. Slots declared
-// `void Name()` keep their place in the order only.
+// The virtual slots of MFC 4.2's CFile for callers that dispatch through a file's vtable (game.exe's code
+// does; the verify build hands some loaders a proxy file). CFile above calls the bodies directly. Declared
+// only: a devirtualised call would not link. Slots declared `void Name()` keep their place in the order only.
 class __declspec(novtable) CFileVirtuals {
 public:
     virtual void GetRuntimeClass();

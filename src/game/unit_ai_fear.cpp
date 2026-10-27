@@ -73,8 +73,7 @@ float PrototypeSize(CUnit* unit) {
     return std::bit_cast<float>(unit->GetPrototype()->height);
 }
 
-// The move order's looks are built with the derived array constructor, then
-// clears the order.
+// The move order's looks are built with the derived array constructor, then clears the order.
 void ConstructOrder(AIMoveOrder* order) {
     LooksInit(&order->looks);
     order->looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();

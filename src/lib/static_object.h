@@ -44,10 +44,9 @@ private:
     alignas(T) unsigned char bytes_[sizeof(T)] = {};
 };
 
-// A T inside its owner (a local or a member) whose constructor and destructor the owner calls
-// itself, where game.exe does (an archive on a loader's stack or in a window, built by its
-// constructor's address and destroyed through Rebirth's patched destructor): a union member, so
-// the compiler runs neither.
+// A T inside its owner (a local or a member) whose constructor and destructor the owner calls itself, where
+// game.exe does (an archive on a loader's stack or in a window, built by its constructor's address and
+// destroyed through Rebirth's patched destructor): a union member, so the compiler runs neither.
 template <class T>
 union InPlace {
     InPlace() {}

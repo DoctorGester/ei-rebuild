@@ -39,9 +39,8 @@ constexpr std::uint32_t kAlphaRef = 0x18;
 // The interface's device object (CInterface3D +8; its +0x54 is the IDirect3DDevice7).
 UiRenderer* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
 
-// IDirect3DDevice7::Clear of the depth buffer to `z`, over `count` rectangles (or all
-// of it), the result in the device object's +8: only the new renderer clears (the switch-over has no
-// depth buffer), the result 0.
+// IDirect3DDevice7::Clear of the depth buffer to `z`, over `count` rectangles (or all of it), the result in
+// the device object's +8: only the new renderer clears (the switch-over has no depth buffer), the result 0.
 void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
     device->result_ = 0;
     render::Rect r[8];

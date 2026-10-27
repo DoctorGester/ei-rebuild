@@ -39,10 +39,9 @@ struct list {
     Node* End() const { return head; }
     bool Empty() const { return head->next == head; }
 
-    // For a local list built and dropped in one function (e.g. the id lists of
-    // the constructor (a sentinel from the pool, linked to itself),
-    // push_back (insert(end, value): one node from the pool) and the destructor
-    // (clear, then the sentinel back to the pool), allocating in the same order.
+    // For a local list built and dropped in one function (e.g. the id lists of the constructor (a sentinel
+    // from the pool, linked to itself), push_back (insert(end, value): one node from the pool) and the
+    // destructor (clear, then the sentinel back to the pool), allocating in the same order.
     void Construct() {
         head = allocate_as<Node>();
         head->next = head;
@@ -61,9 +60,8 @@ struct list {
         deallocate(head, sizeof(Node));
     }
 
-    // clear() as STLport writes it, for an instantiation that inlines it: each element
-    // destroyed by `destroy(&data)` (its own destructor), the node returned to the pool, the
-    // sentinel linked to itself.
+    // clear() as STLport writes it, for an instantiation that inlines it: each element destroyed by
+    // `destroy(&data)` (its own destructor), the node returned to the pool, the sentinel linked to itself.
     template <typename F> void ClearWith(F destroy) {
         Node* cur = head->next;
         while (cur != head) {

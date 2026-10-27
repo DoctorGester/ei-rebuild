@@ -1,4 +1,5 @@
-// The unit AI's save-game helpers: the looks and the perception memory. The brain's own Load / Save are in unit_ai_brain.cpp.
+// The unit AI's save-game helpers: the looks and the perception memory. The brain's own Load / Save are in
+// unit_ai_brain.cpp.
 #include "core_streams.h"
 #include "unit_ai.h"
 

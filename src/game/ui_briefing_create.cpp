@@ -362,8 +362,7 @@ void CBriefingScreen::Update() {
 void CBriefingScreen::MarkPeople() {
     BriefingVariables variables(TopicPrefix());
     console::CStringArray parts;
-    // The people with a topic open (the list is sorted and deduplicated; only membership is
-    // used).
+    // The people with a topic open (the list is sorted and deduplicated; only membership is used).
     stlp::vector<int> open;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         std::uint32_t bits;

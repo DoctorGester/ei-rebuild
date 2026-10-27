@@ -28,10 +28,10 @@
 #include <bit>
 #include <cstring>
 
-namespace {
 // Values kept on the FPU stack are double locals; stored values are floats.
-// The records (unit_db.h): prototypes, models, NPCs and the
-// models' level records.
+
+namespace {
+// The records (unit_db.h): prototypes, models, NPCs and the models' level records.
 using Prototype = UnitPrototypeRecord;
 using Model = UnitModelRecord;
 using Npc = UnitNpcRecord;
@@ -51,8 +51,7 @@ constexpr std::uint32_t kThousand = 0x447A0000;
 constexpr std::uint32_t kTen = 0x41200000;
 constexpr int kSlotWorking = 3;
 
-// pi and 1/180 and 90: volatile so the products are computed
-// at run time with the FPU's precision.
+// pi and 1/180 and 90: volatile so the products are computed at run time with the FPU's precision.
 volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_ninety = 90.0;
@@ -380,8 +379,7 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// ^ (ln(experience /) / ln): FYL2X with FLDLN2 and the CRT's
-// _CIpow. Unrounded.
+// hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])): FYL2X with FLDLN2 and the CRT's _CIpow. Unrounded.
 double HitPointExperienceCurve(const float* experience) {
     return libcrt::CiPow(GameLogicSettings().hpVal[3], x87::flog(static_cast<double>(*experience) / GameLogicSettings().hpVal[2]) / x87::flog(GameLogicSettings().hpVal[4]));
 }

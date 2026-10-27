@@ -321,8 +321,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
             auto* controller = serverUnit->ServerController();
             controller->actionDone = nullptr;
             controller->StopAction();
-            // (The person is then looked up among the party's first members; the result
-            // is not used.)
+            // (The person is then looked up among the party's first members; the result is not used.)
         }
         // vector::erase (then the last entry's destructor).
         for (BriefingSpeaker* p = entry; p + 1 != speakersEnd_; ++p) {

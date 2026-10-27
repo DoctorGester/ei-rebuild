@@ -1,7 +1,6 @@
 // CInterface3D::CreateScreen: the screens by id. See ui.h and docs/notes/ui.md.
-// The constructors of screens 1, 2, 3 and 7 are inlined here (the container base,
-// their members' constructors and vtables); the others' constructors are called
-// as functions.
+// The constructors of screens 1, 2, 3 and 7 are inlined here (the container base, their members' constructors
+// and vtables); the others' constructors are called as functions.
 #include "app.h"
 #include "bink_video.h"
 #include "options.h"

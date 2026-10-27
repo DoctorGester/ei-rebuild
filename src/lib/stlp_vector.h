@@ -100,10 +100,9 @@ public:
         finish_->~T();
     }
 
-    // STLport's members as the game's instantiations compile them, each element copy, assignment
-    // and destruction done by the element policy E (PlainElement for plain data). Blocks are taken
-    // and given back in the same order (the new block before the old one is freed), so the
-    // pool hands out the same blocks.
+    // STLport's members as the game's instantiations compile them, each element copy, assignment and
+    // destruction done by the element policy E (PlainElement for plain data). Blocks are taken and given back
+    // in the same order (the new block before the old one is freed), so the pool hands out the same blocks.
 
     std::size_t Capacity() const { return static_cast<std::size_t>(eos_ - start_); }
 
@@ -439,8 +438,7 @@ struct VectorAbi : vector<T> {
         for (; first != last; ++first, ++result) E::Construct(result, *first);
         return result;
     }
-    // uninitialized_fill_n(first, n, x) (ECX first, EDX n): the end of the
-    // copies.
+    // uninitialized_fill_n(first, n, x) (ECX first, EDX n): the end of the copies.
     static T* __fastcall UninitializedFill(T* first, std::size_t n, const T* x, const void*) {
         for (; n > 0; --n, ++first) E::Construct(first, *x);
         return first;

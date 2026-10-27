@@ -105,11 +105,10 @@ struct UnitParams {
     // valuesB0[0] x ((1 - daylight) + valuesB0[1] x daylight x 0.01). Unrounded.
     double VisionRange(float daylight);
 
-    // The seven protection values the unit
-    // panel shows, into `out`: for text-key units (`keyed`) each body slot whose kind is above 1
-    // adds its protection times its type's weight (kSlotWeights), the sums are divided by the weights'
-    // total (0 when none) and the packed vitals' protection added; others get the packed
-    // protection times the difficulty factor.
+    // The seven protection values the unit panel shows, into `out`: for text-key units (`keyed`) each body
+    // slot whose kind is above 1 adds its protection times its type's weight (kSlotWeights), the sums are
+    // divided by the weights' total (0 when none) and the packed vitals' protection added; others get the
+    // packed protection times the difficulty factor.
     void ProtectionBlock(const struct UnitVitalsPacked* vitals, float* out, std::uint8_t keyed);
 };
 static_assert(offsetof(UnitParams, attackRate) == 0x0E);
@@ -230,9 +229,8 @@ static_assert(offsetof(CUnitController, unit) == 0x1C);
 // slots share these bodies, which stay registered at their addresses.
 class CUnit : public CMapObject {
 public:
-    // Builds the map object, the script name (a member), the motion and the carried array, no controller
-    // or player, then Reset. The factory constructs in place (Construct); so does the fake unit's
-    // constructor.
+    // Builds the map object, the script name (a member), the motion and the carried array, no controller or
+    // player, then Reset. The factory constructs in place (Construct); so does the fake unit's constructor.
     CUnit();
     // The release (slot 5's body, called directly), the map object's Destroy, Reset, the carried and
     // motion arrays freed; then the script name (a member) and the map object's destructor.
@@ -273,9 +271,8 @@ public:
     float Radius() override;                 // 60: unitRadius
     void SetScriptName(const char* newName) override;   // 61: (class_slots.cpp)
 
-    // The world time moved on to `time`. The
-    // controller's slot 40 runs; a text-key (party) unit then marks its sight on the client world
-    // (its VisionRange at the world's daylight, around its position).
+    // The world time moved on to `time`. The controller's slot 40 runs; a text-key (party) unit then marks
+    // its sight on the client world (its VisionRange at the world's daylight, around its position).
     void AdvanceTime(float time) override;
 
     // Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows.
@@ -445,9 +442,8 @@ public:
     // unit holds to `items` (weapons, armour, quick items, spells, the carried ones; empty slots
     // skipped) and each one's spell (CItem +0x44) to `spells` when it has one.
     void CollectItems(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* itemSpells);
-    // Virtual slot 34 (the zone loader with the
-    // record's prototype name): fresh vitals and statistics (reset, then the owner's
-    // BuildFromPrototype for `prototype`) packed into +0x17C and the parameters +0x330.
+    // Virtual slot 34 (the zone loader with the record's prototype name): fresh vitals and statistics (reset,
+    // then the owner's BuildFromPrototype for `prototype`) packed into +0x17C and the parameters +0x330.
     void TakePrototype(const char* prototype) override;
     // Sends the equipment ids to the controller (slot 32: the 7 armour ids, then
     // the 4 weapon ids). Returns what slot 33 leaves in EAX.
@@ -711,8 +707,7 @@ struct UnitVitals {
     // A hit on a map object that is not a creature: each damage type
     // beyond the protection comes off the hit points, not below -5 times the maximum. Returns 1.
     BOOL TakeHit(const DamageInfo* hit);
-    // Zeroes everything but the dword at +0. Returns the end of the block
-    // (the leftover register value).
+    // Zeroes everything but the dword at +0. Returns the end of the block (the leftover register value).
     void* Reset();
     // The rounded (FISTP) values into `out`. Returns the end of `out`'s protection block.
     void* Pack(UnitVitalsPacked* out);
@@ -734,17 +729,15 @@ static_assert(sizeof(UnitVitals) == 0x58);
 // A creature's computed statistics (0x704 bytes; built from the unit's parameters, often
 // as a stack copy). Only the fields read here; names provisional.
 struct UnitStats {
-    // The float results below are returned unrounded (declared double:
-    // the FPU runs above 24-bit precision under Rebirth, see CItemWeapon::RollDamage).
-    // 25 / unknown_20.
+    // The float results below are returned unrounded (declared double: the FPU runs above 24-bit precision
+    // under Rebirth, see CItemWeapon::RollDamage). 25 / unknown_20.
     double Period20();
     // The item panel's lines: stat10 over the setting "HP Val 1";
     // Stat18 over "MP Val 1".
     double StrengthRatio();
     double DexterityRatio();
-    // pendingExperience 0, then the block read raw,
-    // as long as the stream's format version knew it (below 0x45: 0x6F8 bytes, below 0x50: 0x6FC,
-    // below 0x63: 0x700, else 0x704). Returns the stream's result.
+    // pendingExperience 0, then the block read raw, as long as the stream's format version knew it (below
+    // 0x45: 0x6F8 bytes, below 0x50: 0x6FC, below 0x63: 0x700, else 0x704). Returns the stream's result.
     int LoadFrom(CStream* stream);
     // The whole block (0x704 bytes) written raw.
     void SaveTo(CStream* stream);
@@ -852,26 +845,22 @@ struct UnitStats {
     // Then the hit points. Returns whether any damage passed.
     int DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon);
 
-    // The current values from the bases plus the skills (15:
-    // valuesB0[1] by its percentage; 23-25: the stats; unknown_044 = -2), the slot maxima from
-    // the hit point curve (current values clamped to them), `load`, the capacity, the legs and
-    // arms factors and the rate. NPC statistics are built with it (scale 1).
+    // The current values from the bases plus the skills (15: valuesB0[1] by its percentage; 23-25: the stats;
+    // unknown_044 = -2), the slot maxima from the hit point curve (current values clamped to them), `load`,
+    // the capacity, the legs and arms factors and the rate. NPC statistics are built with it (scale 1).
     void ResetToBase(float load);
-    // Learns the skill level `record` of the skill database
-    // (index / 3 is the skill, index % 3 + 1 the level) unless the unit knows it at that level or
-    // better; when the hit point maximum of the curve (before and after, both above 1) changes,
-    // the slots are healed by what keeps the hit points in proportion.
+    // Learns the skill level `record` of the skill database (index / 3 is the skill, index % 3 + 1 the level)
+    // unless the unit knows it at that level or better; when the hit point maximum of the curve (before and
+    // after, both above 1) changes, the slots are healed by what keeps the hit points in proportion.
     void LearnSkill(const SkillDatabase* database, const ::SkillLevelRecord* record);
-    // The attack skill for weapon type `type` (0-4 use skill 0,
-    // 5 and 6 skill 1, 8 the bonused skill 0; others 0): for text-key units the skill byte, the
-    // weapon prototype's bonus (+0x7B / +0x7C) and the stat the skill's name starts with minus 25,
-    // plus the level value of skill `type`. Unrounded.
+    // The attack skill for weapon type `type` (0-4 use skill 0, 5 and 6 skill 1, 8 the bonused skill 0;
+    // others 0): for text-key units the skill byte, the weapon prototype's bonus (+0x7B / +0x7C) and the stat
+    // the skill's name starts with minus 25, plus the level value of skill `type`. Unrounded.
     double WeaponSkillBonus(int type, CUnit* unit);
-    // Can the unit learn skill level `record` of the
-    // skill database: learnable (+0x40), the three stats at least the record's, the required
-    // attribute (+0x14 name, +0x18 index, +0x20 value) and skill level (+0x0C name) present unless
-    // named "none" or empty, no known level of the same skill id (+0x10) in another skill, and the
-    // record's own level (by its name, +0x04) above the one known. 0/1.
+    // Can the unit learn skill level `record` of the skill database: learnable (+0x40), the three stats at
+    // least the record's, the required attribute (+0x14 name, +0x18 index, +0x20 value) and skill level
+    // (+0x0C name) present unless named "none" or empty, no known level of the same skill id (+0x10) in
+    // another skill, and the record's own level (by its name, +0x04) above the one known. 0/1.
     BOOL CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record);
     // The experience learning skill level `record` (of the level records) costs: what its worth
     // (1.61 ^ (value / Skill Val 2) * Skill Val 1, the school curve) is over the level below's, truncated
@@ -879,11 +868,10 @@ struct UnitStats {
     // a byte), rounded to one significant digit, or two when the first digit is below 4; a price of 10 or
     // less with a first digit below 4 is rounded up.
     int SkillPrice(const ::SkillLevelRecord* record);
-    // The hit location an attack aimed at `location` lands
-    // on: `location` while its slot works (kind 3; read without a range check), else the first
-    // working neighbour (head: 1, 2, 3; body: 0, 2-5; hands 2 / 3: the other hand, then the body;
-    // legs 4 / 5: the other leg, then the body), else a random working slot (one IsaacRandom
-    // draw), else 1.
+    // The hit location an attack aimed at `location` lands on: `location` while its slot works (kind 3; read
+    // without a range check), else the first working neighbour (head: 1, 2, 3; body: 0, 2-5; hands 2 / 3: the
+    // other hand, then the body; legs 4 / 5: the other leg, then the body), else a random working slot (one
+    // IsaacRandom draw), else 1.
     int PickLocation(int location);
 
     // The rounded values into `params`. The first argument is not used.
@@ -1075,8 +1063,7 @@ void __fastcall GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<
 // Text-key units: the armour pieces covering hit location
 // `location` at layer `layer` (1 or 2) wear by `amount`.
 void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount);
-// (__stdcall; ECX is not read). The skill bonus byte of the weapon
-// prototype `itemId >> 16`, as a float.
+// (__stdcall; ECX is not read). The skill bonus byte of the weapon prototype `itemId >> 16`, as a float.
 double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId);
 
 // `value` scaled by the unit's strengthen / weaken effects (types 0x1D / 0x1E) with k = 0.003, at least 1:
@@ -1117,9 +1104,8 @@ public:
     // Virtual slot 18: hit points below -5 times the maximum.
     BOOL IsOverkilled() override;
 
-    // (+0x1C is the map object it belongs to, map_object.h.)
-    // Virtual slot 6, the per-tick update: counts down the owner's effects and removes
-    // the expired ones. Returns 0.
+    // (+0x1C is the map object it belongs to, map_object.h.) Virtual slot 6, the per-tick update: counts down
+    // the owner's effects and removes the expired ones. Returns 0.
     int RunTick() override;
     // Copies 0x58 bytes of `data` to +0x20 and marks the owner's part 0 changed.
     std::uintptr_t SetData(const void* data);
@@ -1127,9 +1113,8 @@ public:
     // loses its effects and gets flags_ bit 1. Returns 1 (0 if refuses).
     virtual BOOL TakeHit(const void* hit);
 
-    // Virtual slots 9 / 10 (Load / Save): the
-    // vitals block (+0x20, 0x58 bytes), the two names and the string array (a count, then each
-    // string with its terminator; Load appends to the array).
+    // Virtual slots 9 / 10 (Load / Save): the vitals block (+0x20, 0x58 bytes), the two names and the string
+    // array (a count, then each string with its terminator; Load appends to the array).
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     // Virtual slot 2 (Create): no map object, the vitals reset. Returns 1. Slot 3 (Destroy): the vitals
@@ -1177,10 +1162,9 @@ struct EffectSoundRecord {
 };
 static_assert(sizeof(EffectSoundRecord) == 0x14);
 
-// An effect's sound at
-// `position`: "<folder of kind><suffix>" when `play` (types with a folder); stench (0x13) only
-// clears the record's timer; feeble mind (0x20) starts its sound sequence into the record (and the
-// bare suffix) or stops it and plays its end sound.
+// An effect's sound at `position`: "<folder of kind><suffix>" when `play` (types with a folder); stench
+// (0x13) only clears the record's timer; feeble mind (0x20) starts its sound sequence into the record (and
+// the bare suffix) or stops it and plays its end sound.
 void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix);
 
@@ -1217,10 +1201,9 @@ public:
     // countdown and end sounds, looping effect sounds, the light following the object. Returns 1.
     int RunTick() override;
 
-    // The object's effect list
-    // changed; the particles and the looping sounds follow it. `first` is
-    // set when the list arrives with the object (no sounds; particles run 30 ticks ahead, the
-    // scale effects' one-shot rings are left out).
+    // The object's effect list changed; the particles and the looping sounds follow it. `first` is set when
+    // the list arrives with the object (no sounds; particles run 30 ticks ahead, the scale effects' one-shot
+    // rings are left out).
     void EffectsChanged(bool first) override;
     // One particle record per effect (types 9-0x0E, 0x10, 0x13, 0x19, 0x1A, 0x1D-0x22 merged
     // to the highest power); records still matching are kept (a power change rescales the

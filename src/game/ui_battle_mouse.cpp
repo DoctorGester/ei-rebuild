@@ -1,4 +1,5 @@
-// The battle screen's mouse move, left button down and a unit's name line. See ui.h (CBattleScreen) and docs/notes/ui.md ("Battle screen").
+// The battle screen's mouse move, left button down and a unit's name line. See ui.h (CBattleScreen) and
+// docs/notes/ui.md ("Battle screen").
 #include "text_split.h"
 #include "ui.h"
 #include "ui_camp.h"

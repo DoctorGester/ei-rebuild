@@ -1,13 +1,11 @@
 #pragma once
 
-// Unit AI: the per-unit "brain" that picks a behaviour mode every AI tick and runs it, the modes
-// themselves (Guard, Patrol, Sentry, Suspection, Aggression, CorpseWatcher, Player, Fear, Tamed,
-// Follow; the script's UM* commands create them) and the actions the brain issues (move, attack,
-// ...). Names are provisional.
-// Ownership: a unit's controller (CUnit + 0x240) embeds the brain at +0x980. The controller's tick
-// calls AIBrain::Think once per AI update. Modes are reference-counted objects (16-bit
-// count at +4, released) kept in the brain's mode list; the brain holds a counted
-// pointer to the mode in charge.
+// Unit AI: the per-unit "brain" that picks a behaviour mode every AI tick and runs it, the modes themselves
+// (Guard, Patrol, Sentry, Suspection, Aggression, CorpseWatcher, Player, Fear, Tamed, Follow; the script's
+// UM* commands create them) and the actions the brain issues (move, attack, ...). Names are provisional.
+// Ownership: a unit's controller (CUnit + 0x240) embeds the brain at +0x980. The controller's tick calls
+// AIBrain::Think once per AI update. Modes are reference-counted objects (16-bit count at +4, released) kept
+// in the brain's mode list; the brain holds a counted pointer to the mode in charge.
 
 #include "ai_alarm.h"
 #include "ai_map.h"
@@ -111,9 +109,8 @@ struct AIMoveOrder {
     // The point zeroed,
     // the looks' data freed, size and capacity 0 (step and vtable kept).
     void Clear();
-    // Operator=. The point, then the looks (the array's Copy
-    // inlined); returns this. Only the fear mode's old code called it (ours assigns the
-    // parts through the look array's address).
+    // Operator=. The point, then the looks (the array's Copy inlined); returns this. Only the fear mode's old
+    // code called it (ours assigns the parts through the look array's address).
     AIMoveOrder* Assign(const AIMoveOrder* other);
 
     Vector3 point;                  // +0x00
@@ -135,13 +132,11 @@ enum AIModeType {
     kModeFollow = 10,
 };
 
-// Base of all modes (abstract): a reference-counted object (core_refcount.h: slots 0-3
-// are CRefObject's; OnShutdown and Clone are each mode's), then 4-12 below. AIActionMode is the base of
-// the modes that act.
+// Base of all modes (abstract): a reference-counted object (core_refcount.h: slots 0-3 are CRefObject's;
+// OnShutdown and Clone are each mode's), then 4-12 below. AIActionMode is the base of the modes that act.
 class AIMode : public CRefObject {
 public:
-    // A new mode, no references and no flags (the creators
-    // cleared the count).
+    // A new mode, no references and no flags (the creators cleared the count).
     AIMode();
     ~AIMode() override;   // (deleting: script_unit_modes.cpp)
 
@@ -233,8 +228,7 @@ struct PatrolPoints : mfc::CArray<PatrolPoint, PatrolPointElements> {
     void Destruct();
     // Destruct, then operator delete when `flags` bit 0 is set; returns this.
     PatrolPoints* DeletingDestruct(int flags);
-    // GetAt by value: point `index` copied into
-    // `out` (a new look array); returns `out`.
+    // GetAt by value: point `index` copied into `out` (a new look array); returns `out`.
     PatrolPoint* CopyAt(PatrolPoint* out, int index) const;
 };
 using PatrolPointArray = PatrolPoints;
@@ -320,8 +314,7 @@ static_assert(sizeof(FollowMode) == 0x0C);
 // Suspection (0x18 bytes): go and look where something was noticed.
 class SuspectionMode : public AIActionMode {
 public:
-    // The point and level are zeroed too
-    // (ClearFields).
+    // The point and level are zeroed too (ClearFields).
     SuspectionMode() { ClearFields(); }
     // The constructor in place.
     SuspectionMode* Construct();
@@ -398,8 +391,7 @@ public:
 };
 static_assert(sizeof(AggressionMode) == 0x18);
 
-// CorpseWatcher (8 bytes): reports corpses the brain has seen (its
-// Load and Save are the base's empty ones).
+// CorpseWatcher (8 bytes): reports corpses the brain has seen (its Load and Save are the base's empty ones).
 class CorpseWatcherMode : public AIActionMode {
 public:
     CorpseWatcherMode();
@@ -669,9 +661,8 @@ struct AIAttackOption {
     // How much the option counts: kind 0 its largest damage,
     // 1..3 that * 1.3, 4..6 1, 7 10, other kinds 0.
     double Weight() const;
-    // The option from / to a save. Before
-    // version 0x5A only the part, a dropped dword and the damage were saved: the kind becomes
-    // part >= 0, the range 1, the rest 0.
+    // The option from / to a save. Before version 0x5A only the part, a dropped dword and the damage were
+    // saved: the kind becomes part >= 0, the range 1, the rest 0.
     void Load(CStream* stream);
     void Save(CStream* stream) const;
 
@@ -836,9 +827,8 @@ class CStream;       // core_streams.h
 extern AIEvent* g_freeEvents;
 
 struct AIEventTable : AIViewer {
-    // The wheel moves to `tick`: every event of that
-    // tick's 16 slots leaves its cell list and goes to the free list; the slots empty. A first
-    // event whose cell is outside the grid faults (a null cell is read).
+    // The wheel moves to `tick`: every event of that tick's 16 slots leaves its cell list and goes to the
+    // free list; the slots empty. A first event whose cell is outside the grid faults (a null cell is read).
     void Advance(int tick);
     // Every event made by `controller`'s unit
     // in the wheel column of its side (unit side & 15) is dropped as Advance drops them.
@@ -928,9 +918,8 @@ struct AIMemory {
     // (a zero range counts 3). [0] sight (scaled by the line of sight between the eyes, only within
     // range), [4], [1], [2] three other ranges; [3] stays 3.
     void MeasureExposure(CUnitServer* self, float* out);
-    // From / to a save: the four object lists
-    // (appended to on load), the noticed point, level and countdown, the reports, the heard calls
-    // (point, kind, text, +0x10) and the noticed kind (-1 until read).
+    // From / to a save: the four object lists (appended to on load), the noticed point, level and countdown,
+    // the reports, the heard calls (point, kind, text, +0x10) and the noticed kind (-1 until read).
     void Load(CStream* stream);
     void Save(CStream* stream);
 
@@ -1014,20 +1003,18 @@ struct AIBrain {
     // The state of a new controller's brain: Reset's work plus owner, alert and alarm
     // state, alarm records, positions.
     void Init();
-    // The constructor (CUnitServer's, on +0x980): empty
-    // containers with their vtables, the move order cleared, both sight caches
-    // {0, -1}, then Init. Returns this.
+    // The constructor (CUnitServer's, on +0x980): empty containers with their vtables, the move order
+    // cleared, both sight caches {0, -1}, then Init. Returns this.
     AIBrain* Construct();
     // Reached only from the unwind of the controller's constructor and
     // destructor. Init, the memory destroyed, then the attention arrays, alarm
     // records, the mode in charge, the mode list, target / seen and the looks.
     void Destruct();
-    // The brain from / to a save: the action, its
-    // point, looks and time, target and seen object, the scalars, the modes (count, the index of
-    // the one in charge, then each mode's type and its own data), the perception memory, the alarm
-    // records, and (by file version) the attack options. Load empties the mode list first, creates
-    // each mode by type (stopping at an unknown type, 9 or above 10) and maps a call radius equal
-    // to [Logic] CallForHelpRadiusDefault to CallForHelpRadius.
+    // The brain from / to a save: the action, its point, looks and time, target and seen object, the scalars,
+    // the modes (count, the index of the one in charge, then each mode's type and its own data), the
+    // perception memory, the alarm records, and (by file version) the attack options. Load empties the mode
+    // list first, creates each mode by type (stopping at an unknown type, 9 or above 10) and maps a call
+    // radius equal to [Logic] CallForHelpRadiusDefault to CallForHelpRadius.
     void Load(CStream* stream);
     void Save(CStream* stream);
     // The standard mode sets of the script's Guard / Sentry commands: ClearModes, then the guard
@@ -1042,15 +1029,14 @@ struct AIBrain {
     void AddCorpseWatcherMode();
     void AddFearMode(std::uint8_t flag);            // (distance, 3, unset point)
     void AddSentryMode(const Vector3* point);
-    // The modes of behaviour `record`: the list emptied, the
-    // call radius (the default one becomes [Logic] CallForHelpRadius) and alert mode taken; type 1
-    // guards the record's point, 5 the point of world alarm `slot`, 3 a sentry there, 2 patrols
-    // (each patrol's start on its half-cell's middle, its waypoints as looks from there; without
-    // `loop` the points are walked back too), 4 the party's Player mode. Except for types 0 and 4
-    // the reaction (`alarm`) adds Aggression (0) or Revenge (1) with Suspection, CorpseWatcher and
-    // Fear(0); 2 CorpseWatcher and Fear(0); 3 CorpseWatcher and Fear(1). Then the alarm (kind,
-    // `slot`, countdown at least 1, not alerted), no action or target, the attack options rebuilt,
-    // and with flag bit 3 the unit joins the world's update map.
+    // The modes of behaviour `record`: the list emptied, the call radius (the default one becomes [Logic]
+    // CallForHelpRadius) and alert mode taken; type 1 guards the record's point, 5 the point of world alarm
+    // `slot`, 3 a sentry there, 2 patrols (each patrol's start on its half-cell's middle, its waypoints as
+    // looks from there; without `loop` the points are walked back too), 4 the party's Player mode. Except for
+    // types 0 and 4 the reaction (`alarm`) adds Aggression (0) or Revenge (1) with Suspection, CorpseWatcher
+    // and Fear(0); 2 CorpseWatcher and Fear(0); 3 CorpseWatcher and Fear(1). Then the alarm (kind, `slot`,
+    // countdown at least 1, not alerted), no action or target, the attack options rebuilt, and with flag bit
+    // 3 the unit joins the world's update map.
     void ApplyBehaviour(const AIAlarmRecord* record, int slot);
     // The records copied into `alarmRecords`, then the
     // first applied.

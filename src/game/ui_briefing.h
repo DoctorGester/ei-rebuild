@@ -104,9 +104,8 @@ class CRefObject;
 // offer, and the status texts ("lmp_status_zone" .. "lmp_exch_they_offer"). Multiplayer only.
 class CChatWindow : public CUiWindow {
 public:
-    // The window base, an empty player vector and text array, the tables
-    // the rectangle 0x1D0, 0, 800, 0xA0, a surface over 0x1D0..800 x 0x4B..0x69
-    // (format 5), no faces, the six texts from the text table.
+    // The window base, an empty player vector and text array, the vtables, the rectangle 0x1D0, 0, 800, 0xA0, a
+    // surface over 0x1D0..800 x 0x4B..0x69 (format 5), no faces, the six texts from the text table.
     explicit CChatWindow(CInterface3D* ui);
     // The texts, each
     // held player released, the vector's storage.
@@ -260,9 +259,9 @@ public:
     // 24 high from y 12): "topic_prefix" text + " " + the topic's title, white for
     // hoveredTopic_, else 0xA7D7E4.
     void DrawTopics();
-    // topics_ becomes the topics of the person whose name has the text key `personId`: every "b.<person>.<topic>" variable equal to 1 (bit
-    // compare), in the variable table's order (a network client sorts them),
-    // and last the last "constr..." one found.
+    // topics_ becomes the topics of the person whose name has the text key `personId`: every
+    // "b.<person>.<topic>" variable equal to 1 (bit compare), in the variable table's order (a network client
+    // sorts them), and last the last "constr..." one found.
     void FindTopics(int personId);
     // A topic's title into `out` (constructed here, returned): the first line of the text "briefing <topic>"
     // (lowercased; "constr..." topics share "briefing constr"), empty without one.
@@ -341,11 +340,9 @@ public:
     void ShowItem(const char* name, int index, int unused);
     // Removes the shown items' meshes (and the item texture) from the scene and empties shown_
     void ClearShownItems();
-    // The speakers
-    // (names, storage), the people ids' storage, the shown items (names, nodes, sentinel), the
-    // "pers" texts (erased, header), the movers (nodes, sentinel), the party array (vtable
-    // storage) and the topics; the dialogue text and the topic (freed
-    // them among those), then the container's.
+    // The speakers (names, storage), the people ids' storage, the shown items (names, nodes, sentinel), the
+    // "pers" texts (erased, header), the movers (nodes, sentinel), the party array (vtable storage) and the
+    // topics; the dialogue text and the topic (freed among those), then the container's.
     ~CBriefingScreen() override;
     // chatActive_ = `mode`.
     void SetChatActive(int mode);

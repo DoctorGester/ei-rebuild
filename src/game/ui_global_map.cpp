@@ -1,10 +1,8 @@
-// The global map's Create: the island model of the local player's
-// allod, its zones, the quests the player holds and the links to the zones the player may enter,
-// the clock text, the camp and turn buttons, the weather. See docs/notes/ui.md ("Camp, global map, hero
-// screens").
-// Floating point follows the x87 code: `double` for values kept on the FPU
-// stack, static_cast<float> where it stores to a float. Constants are read from the exe's memory,
-// like the code it replaces.
+// The global map's Create: the island model of the local player's allod, its zones, the quests the player
+// holds and the links to the zones the player may enter, the clock text, the camp and turn buttons, the
+// weather. See docs/notes/ui.md ("Camp, global map, hero screens").
+// Floating point follows the x87 code: `double` for values kept on the FPU stack, static_cast<float> where it
+// stores to a float. Constants are read from the exe's memory, like the code it replaces.
 #include "app.h"
 #include "options.h"
 #include "global_map_clouds.h"

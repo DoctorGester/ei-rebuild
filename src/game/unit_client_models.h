@@ -26,9 +26,8 @@ struct UnitPrototypeRecord;   // unit_db.h
 struct FigureAnimation;   // map_object_figures.h
 struct Vector3;   // maths.h
 
-// Blits rectangle `from` of `source`
-// to `at` (x, y) of `target`, then the same halved on each next level of both mip chains until
-// either ends (DirectDraw surfaces; nothing without them).
+// Blits rectangle `from` of `source` to `at` (x, y) of `target`, then the same halved on each next level of
+// both mip chains until either ends (DirectDraw surfaces; nothing without them).
 void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
 
 // An entry of a client controller's speech queue (0x14 bytes; the value of a node of the STLport
@@ -134,14 +133,13 @@ public:
 
     // Places the unit on its path at `time`, turning by `rate`.
     void PlaceOnPath(float time, float rate);
-    // Virtual slot 50: the attack figures the interface shows for a party unit. A
-    // text-key unit with a weapon in hand (weaponIds[activeWeapon]) takes damage, type, damage type
-    // and speed from the weapon and attack / defence from the weapon's +0x84 / +0x88 plus
-    // UnitParams::WeaponSkillBonus (truncated); otherwise they come from the packed parameters
-    // (CUnit + 0x330), with the weapon's type and damage type, or type 8 and the model's first
-    // weighted damage type. Bows and crossbows have no defence; the damage is scaled by the unit's
-    // effects (max first), the attack spread is the parameters' byte; scales
-    // attack and defence by the difficulty for units without a text key.
+    // Virtual slot 50: the attack figures the interface shows for a party unit. A text-key unit with a weapon
+    // in hand (weaponIds[activeWeapon]) takes damage, type, damage type and speed from the weapon and attack
+    // / defence from the weapon's +0x84 / +0x88 plus UnitParams::WeaponSkillBonus (truncated); otherwise they
+    // come from the packed parameters (CUnit + 0x330), with the weapon's type and damage type, or type 8 and
+    // the model's first weighted damage type. Bows and crossbows have no defence; the damage is scaled by the
+    // unit's effects (max first), the attack spread is the parameters' byte; scales attack and defence by the
+    // difficulty for units without a text key.
     void GetAttackParams(AttackParams* out) override;
 
     // Virtual slot 26 (ArmourPutOn): the unit puts on armour piece `itemId` (packed: prototype index
@@ -195,11 +193,10 @@ public:
     // the step sounds; the speech queue (+0x9C); for +0x255 == -2 with animation
     // state +0x50 below 3, (0). Returns 1.
     int RunTick() override;
-    // The blink. With a face texture
-    // (+0xCC) and a skin texture (the client half's material), unless the eyes already are so
-    // (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye
-    // rectangle (the model's +0x158..+0x164 in 256ths of the skin, down the mip chain);
-    // eyesClosed becomes 1 / 0.
+    // The blink. With a face texture (+0xCC) and a skin texture (the client half's material), unless the eyes
+    // already are so (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye
+    // rectangle (the model's +0x158..+0x164 in 256ths of the skin, down the mip chain); eyesClosed becomes 1
+    // / 0.
     void BlinkClose(bool force);
     void BlinkOpen(bool force);
     // The face texture the blink uses (+0xCC), loaded
@@ -287,9 +284,8 @@ public:
     // remembers it with the time. False (AL) when the same speech played less than 5 s ago.
     bool Speak(ClientSpeech* speech);
 
-    // Virtual slot 36 (HasOtherArmour): 1 when a weapon model is held (any weapon id not -1).
-    // Slot 37 (HasMainArmour): 1 when one of the first three armour slots (body, trousers, helmet)
-    // holds a model.
+    // Virtual slot 36 (HasOtherArmour): 1 when a weapon model is held (any weapon id not -1). Slot 37
+    // (HasMainArmour): 1 when one of the first three armour slots (body, trousers, helmet) holds a model.
     int HasOtherArmour() override;
     int HasMainArmour() override;
 

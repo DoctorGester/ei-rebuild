@@ -1,14 +1,13 @@
 #pragma once
 
 // MFC 4.2's CDC and GDI objects as the game's copy has them (wingdi.cpp, wingdix.cpp, winhand.cpp,
-// afxwin1.inl): tickets(the members that reach GDI without a handle map) and(FromHandle,
-// SelectObject, CGdiObject's Attach / Detach / DeleteObject, CPen's constructor, CFont's point
-// fonts, the CDC slots the interface calls, docs/notes/standalone.md section 2). Registered at their
-// library addresses (mfc_gdi.cpp); real C++ classes over CObject since. The interface (ui_gdi.h) draws with
-// them directly.
-// The handle maps are MFC's module thread state: the hook build uses game.exe's (afxMapHDC
-// afxMapHGDIOBJ, through their addresses), the image has its own per thread
-// (MapHDC / MapHGDIOBJ, registered image-only at those addresses).
+// afxwin1.inl): the members that reach GDI without a handle map, and the ones the game calls (FromHandle,
+// SelectObject, CGdiObject's Attach / Detach / DeleteObject, CPen's constructor, CFont's point fonts, the CDC
+// slots the interface calls; docs/notes/standalone.md section 2). Registered at their library addresses
+// (mfc_gdi.cpp); real C++ classes over CObject. The interface (ui_gdi.h) draws with them directly.
+// The handle maps are MFC's module thread state: the hook build uses game.exe's (afxMapHDC and afxMapHGDIOBJ,
+// through their addresses), the image has its own per thread (MapHDC / MapHGDIOBJ, registered image-only at
+// those addresses).
 
 #include "compiled_vtable.h"   // ei::UnportedSlot
 #include "mfc_handle_map.h"

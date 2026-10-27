@@ -1146,8 +1146,7 @@ EI_REWRITTEN(0x0060F980, CCampPages::RefreshStats);
 // --- turning and choosing the hero ---------------------------------------------------------------
 
 namespace {
-// fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, which
-// computes it on the FPU.
+// fmod(turn + sign * 2 * seconds, 2 pi) through the game's _CIfmod, which computes it on the FPU.
 constexpr float kCampFullTurn = /*007C7EE8*/ 6.2831855f;   // a static initialiser: pi + pi
 float TurnedBy(double seconds, float turn, bool backwards) {
     const double twice = seconds + seconds;

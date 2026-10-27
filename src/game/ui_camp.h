@@ -96,8 +96,7 @@ using GlobalMapZoneArray = GlobalMapZoneTable;
 // A quest place or a link (an "edge" zone) on the map (0x18 bytes, CArrays at +0x1A0 / +0x1B4).
 struct GlobalMapPlace {
     // (identical copies, the links' and the quests' arrays' one).
-    // The element assignment: zone and position copied, the two strings
-    // assigned as CStrings. Returns this.
+    // The element assignment: zone and position copied, the two strings assigned as CStrings. Returns this.
     GlobalMapPlace* Assign(const GlobalMapPlace& from);
     GlobalMapPlace* AssignCopy(const GlobalMapPlace& from);
 
@@ -193,19 +192,18 @@ public:
     void OnRightDown(int buttons, int x, int y);
     void OnRightUp(int buttons, int x, int y);
     void OnDeactivate();
-    // (input slot 4; Rebirth-patched; reproducing WideScreen, so hooked in both
-    // launches: the drag scaled without the margin, the pick picture's x without it). The mouse moved. While dragging: the drag motion (printed
-    // to the stream) turns the map: angle_ += dx / 300 (layout units), taken mod
-    // kGlobalMapFullTurn, and turn_ = the tilt (pi * 0.8 about x) times the spin about z; the motion is
-    // cleared. Otherwise the zone or link under the mouse is selected (a link's region 3..; or,
-    // off every region, the zone read from the backdrop's pixel at half the point, on gipat its
-    // link when it has one; nothing while a turn button is held) and its tip shown: the first
-    // surface with the title and the titles of the zone's quests, the last two sprites behind
-    // it; a zone in state 0 or nothing hides the tip. A new name plays
+    // (input slot 4; Rebirth-patched; reproducing WideScreen, so hooked in both launches: the drag scaled
+    // without the margin, the pick picture's x without it). The mouse moved. While dragging: the drag motion
+    // (printed to the stream) turns the map: angle_ += dx / 300 (layout units), taken mod kGlobalMapFullTurn,
+    // and turn_ = the tilt (pi * 0.8 about x) times the spin about z; the motion is cleared. Otherwise the
+    // zone or link under the mouse is selected (a link's region 3..; or, off every region, the zone read from
+    // the backdrop's pixel at half the point, on gipat its link when it has one; nothing while a turn button
+    // is held) and its tip shown: the first surface with the title and the titles of the zone's quests, the
+    // last two sprites behind it; a zone in state 0 or nothing hides the tip. A new name plays
     // "buttons\globalmap\zone.wav". Regions past the links do nothing.
     void OnMouseMove(int buttons, int x, int y);
-    // (input slot 2; Rebirth-patched; ui_global_map_paths.cpp, reproducing
-    // WideScreen, so hooked in both launches: the pick picture's x without the margin). The left button pressed (nothing while
+    // (Input slot 2. Rebirth's WideScreen patches it and this reproduces the patch: the pick picture's x is
+    // read without the margin; ui_global_map_paths.cpp.) The left button pressed (nothing while
     // dragging). Regions 0 / 1, the turn buttons: turning_ -1 / +1 and
     // "buttons\globalmap\move.wav". Region 2, the camp (unless noCamp_ is 1):
     // "buttons\globalmap\transit.wav", the constructor 0 and screen 5 asked for. A link (regions
@@ -308,9 +306,8 @@ static_assert(offsetof(CGlobalMap, autosave_) == 0x28C);
 static_assert(sizeof(CGlobalMap) == 0x294);
 
 // --- Camp trade panel (the level-up page) ------------------------------------------------------
-// The panel that sells skills for experience (the camp's +0x1F4):
-// the hero's six magic schools and science with
-// their levels, the perks the hero holds and the perks the hero may learn, each with its price.
+// The panel that sells skills for experience (the camp's +0x1F4): the hero's six magic schools and science
+// with their levels, the perks the hero holds and the perks the hero may learn, each with its price.
 
 // A row of the panel's lists (0x18 bytes, STLport vectors at +0x15C .. +0x180).
 struct TradeRow {
@@ -461,11 +458,11 @@ static_assert(offsetof(CTradePanel, records_) == 0x190);
 static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 
 // --- Camp pages -----------------------------------------------------------------------------
-// The camp (vtables, 0x260 bytes; Create, which Rebirth patches): the
-// party's equipment, trade, repair and the item and spell constructors, with three item strips;
-// also opened by the multiplayer hero screen (region 8) for a hero's inventory (ui_camp.cpp). Its child panels are created by Create.
-// Pages: 0 equipment, 1 trade, 2 spell constructor, 3 its second page, 4 item constructor, 5 and 6
-// its other pages, 7 leave the camp.
+// The camp (vtables, 0x260 bytes; Create, which Rebirth patches): the party's equipment, trade, repair and
+// the item and spell constructors, with three item strips; also opened by the multiplayer hero screen (region
+// 8) for a hero's inventory (ui_camp.cpp). Its child panels are created by Create. Pages: 0 equipment, 1
+// trade, 2 spell constructor, 3 its second page, 4 item constructor, 5 and 6 its other pages, 7 leave the
+// camp.
 class CCampPages : public CItemScreen {
 public:
     // (ui_camp.cpp; CreateScreen 5, and the hero screen's inventory with
@@ -630,9 +627,8 @@ public:
     // player); 3 / 5 every result moved back (made items to the constructor, the rest to the player);
     // 6 the repairs' items given back.
     void UndoAction();
-    // The spell container in the results taken apart: a copy kept in
-    // spellMade_ while the list is left; a "Prototype" item for its spell and a "Rune"
-    // item per modifier go into the results; the copy released.
+    // The spell container in the results taken apart: a copy kept in spellMade_ while the list is left; a
+    // "Prototype" item for its spell and a "Rune" item per modifier go into the results; the copy released.
     bool DeconstructSpell();
     // The item maker's result taken apart: a copy of the first result made
     // (itemMade_ meanwhile) and the result removed; an "Instruction Weapon / Armor / Quick Item" with

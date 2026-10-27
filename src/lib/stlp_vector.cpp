@@ -21,11 +21,9 @@ using Vector16 = stlp::VectorAbi<stlp::Opaque<16>>;
 
 } // namespace
 
-// ~_Vector_base(): 32 instantiations, by element size (1 bytes: 7, 4 bytes: 21, 12 bytes: 1, 96 bytes: 1, 288 bytes: 1, 360 bytes: 1),
-// and six ~vector with it inlined that only exit functions call: of pointers (the
-// frame lists, world.h), (the item
-// stock's scratch vectors) and of 16-byte entries
-// (its taken materials).
+// ~_Vector_base(): 32 instantiations, by element size (1 bytes: 7, 4 bytes: 21, 12 bytes: 1, 96 bytes: 1, 288
+// bytes: 1, 360 bytes: 1), and six ~vector with it inlined that only exit functions call: of pointers (the
+// frame lists, world.h), (the item stock's scratch vectors) and of 16-byte entries (its taken materials).
 EI_REWRITTEN(0x0040C720, Vector1::DestroyBase);
 EI_REWRITTEN(0x0040C770, Vector1::DestroyBase);
 EI_REWRITTEN(0x00425040, Vector1::DestroyBase);

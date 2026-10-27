@@ -21,9 +21,8 @@
 
 namespace stlp {
 
-// allocate / deallocate: stlp_alloc.h.
-// deallocate(node, 12) inlined: the node back on the node allocator's free list of 12-byte nodes
-// (list nodes).
+// allocate / deallocate: stlp_alloc.h. deallocate(node, 12) inlined: the node back on the node allocator's
+// free list of 12-byte nodes (list nodes).
 template <class Node>
 void PushSmallNode(Node* node) {
     deallocate(node, 12);

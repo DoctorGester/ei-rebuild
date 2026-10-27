@@ -1,8 +1,7 @@
 // The display's gamma ramp: brightness, contrast and gamma from the options become the gamma ramp (game.exe's
-// primary surface's, through IDirectDrawGammaControl; ours the new renderer's, applied as the frame
-// goes to the window). Called by WinMain at start-up and with zeros at exit,
-// and by the options screen when a value changes; no caller reads the
-// result. See docs/notes/renderer.md.
+// primary surface's, through IDirectDrawGammaControl; ours the new renderer's, applied as the frame goes to
+// the window). Called by WinMain at start-up and with zeros at exit, and by the options screen when a value
+// changes; no caller reads the result. See docs/notes/renderer.md.
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // CTextureDevice, CDXSurface
 
@@ -23,8 +22,7 @@ const float kLevelStep = std::bit_cast<float>(0x3B808081u);   // 1/255
 constexpr float kRampScale = 65280.0f;
 constexpr int kLevels = 256;
 
-// A branchless minimum / maximum (FCOMP; FNSTSW; the C0 bit as a mask): `limit` when
-// it is below / above `v`.
+// A branchless minimum / maximum (FCOMP; FNSTSW; the C0 bit as a mask): `limit` when it is below / above `v`.
 float AtMost(float v, float limit) {
     EI_NAN_AUDIT(v);
     return limit < v ? limit : v;
