@@ -16,19 +16,23 @@ RDATA = (0x73B000, 0x7828B2)
 def main():
     d = open(exe_path.resolve(), 'rb').read()
     u32 = lambda va: struct.unpack_from('<I', d, va - BASE)[0]
-    in_text = lambda v: TEXT[0] <= v < TEXT[1]
 
     funcs = []
     with open(os.path.join(ROOT, 'config', 'functions.csv')) as f:
         for r in csv.DictReader(f):
             funcs.append((int(r['address'], 16), r['name'], r['kind']))
     starts = [a for a, _, _ in funcs]
-    # A slot 0 that is no function is no vtable: an EH funclet (functions.csv kind `eh`: the dword is an unwind map
-    # entry's action, e.g. 0074E824) or bytes config/dead_code.csv calls no function start (00746E60's dword is the
-    # text "ime" that 00704BE6 hands lstrcmpiA).
-    not_slot0 = {a for a, _, kind in funcs if kind == 'eh'}
+    # Every slot is a function start: functions.csv's game, library and thunk rows, less what is code but no function.
+    # Data whose dword happens to fall in .text is no table, and a table ends before such a dword: an EH funclet
+    # (kind `eh`: the dword is an unwind map entry's action, e.g. 0074E824), the strings Ghidra made functions of
+    # (library.csv's "not a function" rows: "%ld" 0074676C right after _AFX_CTL3D_THREAD's one slot, "dde" 0074718C,
+    # "a/p" 007474B8), bytes config/dead_code.csv calls no function start (00746E60's dword is the text "ime" that
+    # 00704BE6 hands lstrcmpiA), and dwords inside a function ("OCP" / "ACP" 00747E2C / 00747E30).
+    slot_ok = {a for a, _, kind in funcs if kind in ('game', 'lib', 'thunk')}
+    with open(os.path.join(ROOT, 'config', 'library.csv')) as f:
+        slot_ok -= {int(r['address'], 16) for r in csv.DictReader(f) if r['name'].startswith('not a function')}
     with open(os.path.join(ROOT, 'config', 'dead_code.csv')) as f:
-        not_slot0 |= {int(r['address'], 16) for r in csv.DictReader(f) if 'not a function start' in r['evidence']}
+        slot_ok -= {int(r['address'], 16) for r in csv.DictReader(f) if 'not a function start' in r['evidence']}
     def func_at(va):
         i = bisect.bisect_right(starts, va) - 1
         return funcs[i] if i >= 0 else None
@@ -69,10 +73,10 @@ def main():
 
     rows = []
     for vt in sorted(refs):
-        if vt % 4 or not in_text(u32(vt)) or u32(vt) in not_slot0:
+        if vt % 4 or u32(vt) not in slot_ok:
             continue
         n = 0
-        while vt + 4 * n < RDATA[1] and in_text(u32(vt + 4 * n)):
+        while vt + 4 * n < RDATA[1] and u32(vt + 4 * n) in slot_ok:
             n += 1
             # The next vtable starts here: any address the code holds after the first slot (a slot call splits a
             # tail off, docs/notes/standalone.md "Tails"), or right after the first slot one the code stores (a

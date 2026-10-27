@@ -1098,9 +1098,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     deleting destructor) were 4 slots, overlapping the area list's 0073F9E0 and the occluder array's 0073FAE0; 19 other
     rows got their one slot too (0073CAB0, 0073D760 / 64 / 70 / 74, 0073FD58, 00740F28, 00742F20 / 24, 00743320,
     00744054-00744064, 00744264, and the retired 0073CA08, 0073CA0C, 007432FC). Only the slot counts of
-    config/vtables.csv were taken from the rerun: a full rerun also rewrites installed_by from today's functions.csv and
-    adds five library rows (0074676C, 0074718C, 007474B8, 00747E2C / 30), left for the library batch. The union of
-    slots is the same, so no code cell moved. AreaListClass and SectorOccluderArrayClass are compiled tags in
+    config/vtables.csv were taken from the rerun (the five string rows it then added are gone since batch 24, "Not
+    vtables" below). The union of slots is the same, so no code cell moved. AreaListClass and SectorOccluderArrayClass are compiled tags in
     mfc_slots.h (sector_map.h's kSectorOccluderArrayVtable gone).
   - **Tables the static initialisers stored** (ParticleDepth 0073D024 / 007A9C50, Objective 0073D46C / 007AA608, SpiralOffset
     0073FDEC / 007C2FF8, CArray<float> 0073D3E8 / the radius tree's keys 007C2FD8, SmoothNode 0073FE34 / 007C3038): the
@@ -1142,9 +1141,12 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Two game tables for one instantiation**: the CScript constructor's 0073D394 / 0073D358 / 0073D334 do what
     0073D3A0 / 0073D3B8 / 0073D3C4 do (MSVC6 emitted the instantiations twice); the constructor stores the compiled
     PointLightArrayClass / DefinitionArrayClass / ScriptAreaArrayClass that the destructors already used.
-  - **Not vtables**: the five rows a full find_vtables rerun adds (0074676C, 0074718C, 007474B8, 00747E2C / 30) are
-    string bytes ("%lc", "Unregister", ...) whose first dword happens to fall in .text: never retire them (zeroing
-    them breaks the strings); a rerun's rows need that check before they are copied into config/vtables.csv.
+  - **Not vtables**: strings whose dword falls in .text: "%ld" 0074676C, "dde" 0074718C, "a/p" 007474B8 (each a
+    false Ghidra function, library.csv's "not a function" rows 00646C25 / 00656464 / 00702F61), "OCP" / "ACP"
+    00747E2C / 30 (inside a function), "ime" 00746E60 (dead_code.csv), and the EH unwind entries (kind `eh`). Never
+    retire them (zeroing them breaks the strings). find_vtables.py takes a dword as a slot only when it is a game,
+    library or thunk function start less those rows, so a full rerun reproduces config/vtables.csv (613 rows; it had
+    given _AFX_CTL3D_THREAD 00746768 the "%ld" as a second slot).
 - **Batch 14's families** (2026-10-21): the network area's tables and the items': 42 rows, 6,126 -> 5,666 code cells,
   220 slot registrations EI_REWRITTEN.
   - **Messages and server entries** (net_messages.h, net_classes.h; 20 rows 0073BB28-0073BDD0): real C++ classes since
@@ -1451,10 +1453,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **False rows** (find_vtables.py now skips a candidate whose slot 0 is an EH funclet, functions.csv kind `eh`, or
     config/dead_code.csv's "not a function start"): 00746E60 (the text "ime" 00704BE6 hands lstrcmpiA; now a
     NOT_CODE cell of gen_image_cells.py, the MFC message map group split around it) and the EH unwind entries
-    0074E824, 00753B04, 00758904, 00758B0C, 00758B14 (now eh-unwind cells, left). Only those rows were taken out of
-    config/vtables.csv: a full rerun of find_vtables.py also rewrites installed_by lists from today's functions.csv
-    and finds five new one-slot rows (0074676C, 0074718C, 007474B8, 00747E2C, 00747E30: text or data, unchecked) and
-    a second slot for 00746768; review those before regenerating the csv.
+    0074E824, 00753B04, 00758904, 00758B0C, 00758B14 (now eh-unwind cells, left).
+  - Batch 24: find_vtables.py takes only function starts as slots ("Not vtables" above); a full rerun gives the
+    committed config/vtables.csv (84 rows' installed_by refreshed from today's functions.csv; vtable, slots, rtti,
+    kind and slot0 unchanged).
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
   CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
