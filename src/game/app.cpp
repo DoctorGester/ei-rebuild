@@ -76,7 +76,7 @@ LRESULT OnActivate(WPARAM wParam) {
             // The context is the mouse.
             std::uint32_t flags = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
                                   (g_deviceNamed == 0 ? 1u : 0u);
-            ResetCursors(options::TheOptions()->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(TheMouse())), 0,
+            ResetCursors(options::TheOptions()->fpsIndependentCursor_ != 0, TheMouse(), 0,
                          static_cast<int>(flags));
         }
     }

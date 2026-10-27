@@ -159,5 +159,5 @@ static_assert(sizeof(CCursor) == 0xB8);
 
 extern lib::StaticObject<CCursor> g_cursor;
 
-void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int flags);
-void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags);
+void __fastcall SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags);
+void __fastcall ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags);

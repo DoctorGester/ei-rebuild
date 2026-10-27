@@ -99,8 +99,7 @@ bool AnimationSteps::SameAs(const AnimationSteps* other) const {
 EI_REWRITTEN(0x00544E70, AnimationSteps::SameAs);
 
 void AnimationSteps::Load(CStream* stream) {
-    // The count is read over the stream argument on the stack.
-    int newCount = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
+    int newCount = 0;
     stream->Read(&newCount, sizeof(newCount));
     SetSize(newCount, -1);
     for (int i = 0; i < size; ++i) stream->Read(&data[i], sizeof(AnimationStep));

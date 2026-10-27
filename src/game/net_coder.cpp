@@ -107,7 +107,7 @@ EI_REWRITTEN(0x00430F90, BufferCursor::EndWrite);
 
 std::uint32_t BufferCursor::End() {
     FlushBits();
-    if (!sink) return reinterpret_cast<std::uint32_t>(this);   // EAX keeps `this`
+    if (!sink) return 0;
     sink->cur = p;
     return sink->Commit();
 }
@@ -270,9 +270,7 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
     reader.sink = nullptr;
     in->Seek(0);
     if (in->cur > in->high) in->high = in->cur;
-    std::int32_t size = static_cast<std::int32_t>(
-        static_cast<std::uint32_t>(in->base) - reinterpret_cast<std::uint32_t>(in->begin) +
-        reinterpret_cast<std::uint32_t>(in->high));
+    std::int32_t size = in->PositionOf(in->high);
     reader.BeginRead(in, size);
     const std::uint8_t* end = reader.p + size;
     out.BeginWrite(outBuffer, size * 2 + 10);

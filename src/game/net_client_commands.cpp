@@ -104,8 +104,7 @@ EI_REWRITTEN(0x0041D410, ClientSession::OnJoined);
 double ClientSession::BufferRatio(GameBuffer* buffer) {
     auto streamSize = [buffer] {
         if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-        return static_cast<std::int32_t>(buffer->base - reinterpret_cast<std::intptr_t>(buffer->begin) +
-                                         reinterpret_cast<std::intptr_t>(buffer->high));
+        return buffer->PositionOf(buffer->high);
     };
     if (streamSize() < 4) {
         return 0.0f /*0073B858*/;

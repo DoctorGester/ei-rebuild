@@ -365,9 +365,7 @@ void Teleport(CSpellEffect* e) {
     e->ReleaseVisual();
     e->ReleaseSound();
     if (!IsUnit(e->caster)) return;
-    MapEffect record;
-    record.Construct();
-    std::memcpy(&record, &e->Spell()->Effect(), sizeof(record));
+    MapEffect record = e->Spell()->Effect();
     e->caster->AddEffect(&record);
     ControllerOf(e->caster)->ResyncWithUnit();
     RiseLight(e);

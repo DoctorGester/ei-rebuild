@@ -37,18 +37,12 @@ struct TextOps : mfc::CString {
 };
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 
-// MFC's afxcoll arrays (mfc::CArray layout), through their own code: CUIntArray's constructor,
-// destructor and SetSize, and the byte / word / uint SetSize.
+// MFC's afxcoll array of dwords, through its own code: the constructor, destructor and SetSize.
 using MfcDWords = mfc::impl::CUIntArray;
-void SetSizeBytes(mfc::CArray<std::uint8_t>* a, int n) { a->SetSize(n, -1); }
-void SetSizeWords(mfc::CArray<std::uint16_t>* a, int n) { a->SetSize(n, -1); }
-void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { a->SetSize(n, -1); }
 
-// A copy of `value` handed to WriteString (which destroys it).
+// A copy of `value` handed to WriteString (which takes its string by value).
 BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const std::string& value) {
-    alignas(4) char copy[sizeof(mfc::CString)];
-    new (copy) mfc::CString(value);
-    return ini->WriteString(section, key, *reinterpret_cast<char**>(copy));
+    return ini->WriteString(section, key, mfc::CString(value));
 }
 
 mfc::CString ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
@@ -79,11 +73,9 @@ template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, co
     return ok;
 }
 
-// The list as integers in a temporary CDWordArray, then copied as T into `out` (resized by
-// `setSize`, one of the MFC SetSize instantiations).
+// The list as integers in a temporary CDWordArray, then copied as T into `out`.
 template <typename T>
-BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray<T>* out,
-                void (*setSize)(mfc::CArray<T>*, int)) {
+BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray<T>* out) {
     MfcDWords temp;
     temp.Construct();
     BOOL ok;
@@ -96,7 +88,7 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
         }
     }
     if (ok) {
-        setSize(out, temp.size);
+        out->SetSize(temp.size, -1);
         for (int i = 0; i < temp.size; ++i) out->data[i] = static_cast<T>(temp.data[i]);
     }
     temp.Destruct();
@@ -237,24 +229,24 @@ BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out
 EI_REWRITTEN(0x00696830, CIniFile::GetIntArray);
 
 BOOL CIniFile::GetMfcByteArray(const char* section, const char* key, mfc::CArray<std::uint8_t>* out) {
-    return ReadMfcVia(this, section, key, out, &SetSizeBytes);
+    return ReadMfcVia(this, section, key, out);
 }
 EI_REWRITTEN(0x006969F0, CIniFile::GetMfcByteArray);
 
 BOOL CIniFile::GetMfcWordArray(const char* section, const char* key, mfc::CArray<std::uint16_t>* out) {
-    return ReadMfcVia(this, section, key, out, &SetSizeWords);
+    return ReadMfcVia(this, section, key, out);
 }
 EI_REWRITTEN(0x00696B20, CIniFile::GetMfcWordArray);
 
 BOOL CIniFile::GetMfcUIntArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
-    return ReadMfcVia(this, section, key, out, &SetSizeUInts);
+    return ReadMfcVia(this, section, key, out);
 }
 EI_REWRITTEN(0x00696C50, CIniFile::GetMfcUIntArray);
 
 BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
     console::CStringArray codes;
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
-    reinterpret_cast<MfcDWords*>(out)->SetSize(codes.GetSize(), -1);
+    out->SetSize(codes.GetSize(), -1);
     for (int i = 0; i < codes.GetSize(); ++i)
         out->data[i] = static_cast<std::uint32_t>(std::atoi(codes[i]));
     return 1;

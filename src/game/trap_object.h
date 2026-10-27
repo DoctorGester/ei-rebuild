@@ -29,8 +29,8 @@ public:
     int GetClassId() override;                             // 0x55
     bool IsSynchronised() override { return Slot29True(); }
     int IsUsable() override { return Slot38One(); }
-    // Disarm. The first argument is the key record (combat_actions.cpp passes its address).
-    bool ApplyScience(int first, int second) override;
+    // Disarm with the key record.
+    bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     int AcceptsKey(const LockKey* key) override { return KeyFits(key); }
 
     // The map object's Create, flags_ bit 0x40 cleared; returns Create's result.

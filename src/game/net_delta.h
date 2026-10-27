@@ -65,7 +65,7 @@ struct DeltaField {
     int BeginWriteA(int channel1Only);
     DeltaField* BeginWriteB(int channel1Only);
     // Rewinds the snapshots and reads `reader` against snapshot 0 or 1.
-    std::uintptr_t BeginReadA(int second, BitStream* reader);
+    void BeginReadA(int second, BitStream* reader);
     DeltaField* BeginReadB(int second, BitStream* reader);
     // Ends the field: when reading, finishes the reader's bits; when writing,
     // finishes both outputs and truncates the kept snapshots at their positions.

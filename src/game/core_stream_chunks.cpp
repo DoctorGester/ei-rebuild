@@ -76,9 +76,9 @@ EI_REWRITTEN(0x004A4AF0, CStream::ReplaceTagged);
 
 void CStream::ReadText(char* buffer, int capacity) {
     char* at = buffer;
-    // Each byte is read over the low byte of its `buffer` argument's stack slot (a
-    // failed read of a stream that does not zero-fill leaves the old byte).
-    auto slot = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(buffer));
+    // Each byte is read into the low byte of one dword: a failed read of a stream that does not zero-fill
+    // leaves the old byte.
+    std::uint32_t slot = 0;
     for (int left = capacity; left > 0;) {
         Read(&slot, 1);
         char c = static_cast<char>(slot);

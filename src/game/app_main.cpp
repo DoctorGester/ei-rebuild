@@ -778,7 +778,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     TheClientWorld()->SetUpGraphics(TheRenderDevice());
     // The last argument's upper three bytes are whatever the call before left behind; only the low
     // byte is a value (the shapes' flag: no device named).
-    SetUpCursors(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
+    SetUpCursors(options->fpsIndependentCursor_ != 0, Mouse(), 0,
                  g_deviceNamed == 0);
     TheInterface()->Create(TheRenderDevice());
     TheMapDatabase()->LoadAll();

@@ -37,9 +37,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
         name = text.text->GetString();
     }
     stream->Read(&scale, sizeof(scale));
-    // The original reads the count into its argument's stack slot: a failed read leaves the stream
-    // pointer there.
-    int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
+    int count = 0;
     stream->Read(&count, sizeof(count));
     SetEffectCount(count);
     for (int i = 0; i < effects.size; ++i) effects[i].Load(stream);
@@ -82,8 +80,7 @@ void CMapObjectServer::Load(CStream* stream) {
         ReadText text(stream);
         name7C = *text.text;
     }
-    // Read into the argument's stack slot, as LoadMapObject's count.
-    int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
+    int count = 0;
     stream->Read(&count, sizeof(count));
     for (int i = 0; i < count; ++i) {
         ReadText text(stream);

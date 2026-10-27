@@ -47,7 +47,7 @@ constexpr std::uint32_t kMaxStreamLength = 100000;
 // The number of bytes in a buffer, its high-water mark raised to the cursor first (inlined).
 std::uint32_t BufferLength(GameBuffer& b) {
     if (b.cur > b.high) b.high = b.cur;
-    return static_cast<std::uint32_t>(b.base - reinterpret_cast<std::intptr_t>(b.begin) + reinterpret_cast<std::intptr_t>(b.high));
+    return static_cast<std::uint32_t>(b.PositionOf(b.high));
 }
 
 // A fixed view over `self`'s bytes run through the coder into a growing buffer, whose bytes then replace
@@ -211,10 +211,7 @@ DeltaField* DeltaField::BeginWriteB(int channel1Only) {
 }
 EI_REWRITTEN(0x0047FA40, DeltaField::BeginWriteB);
 
-std::uintptr_t DeltaField::BeginReadA(int second, BitStream* reader) {
-    StartRead(this, second, reader);
-    return second ? static_cast<std::uintptr_t>(second) : reinterpret_cast<std::uintptr_t>(reader);
-}
+void DeltaField::BeginReadA(int second, BitStream* reader) { StartRead(this, second, reader); }
 EI_REWRITTEN(0x0047DBD0, DeltaField::BeginReadA);
 
 DeltaField* DeltaField::BeginReadB(int second, BitStream* reader) {

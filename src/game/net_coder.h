@@ -144,7 +144,7 @@ struct BufferCursor {
     void FlushBits();
     // FlushBits, then commits `p` to the sink (which must exist) and drops it. Returns the commit's result.
     std::uint32_t EndWrite();
-    // FlushBits, then commits `p` to the sink if any. Returns the commit's result, or `this` without a sink.
+    // FlushBits, then commits `p` to the sink if any. Returns the commit's result, 0 without a sink.
     std::uint32_t End();
 
     // Bind the cursor to a buffer with room for `size` more bytes (ReserveRead / ReserveWrite when short):

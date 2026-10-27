@@ -286,23 +286,17 @@ namespace acks {
 // copy constructor and operator=, over _M_copy_from; the copy's map still points into the source record's
 // lists, as in the game). By default an empty name with room for 8 bytes and an empty map of 193 buckets; its
 // functor bytes are an uninitialised stack byte in the game, 0 here).
-using SpeechTable = stlp::hashtable<stlp::DwordKeyTraits<8>>;
-inline SpeechTable& SpeechTableOf(AckRecordHead& head) { return *reinterpret_cast<SpeechTable*>(&head.speeches); }
-inline const SpeechTable& SpeechTableOf(const AckRecordHead& head) {
-    return *reinterpret_cast<const SpeechTable*>(&head.speeches);
-}
-static_assert(sizeof(SpeechTable) == sizeof(AckRecordHead::speeches));
 inline void CopyMember(AckRecordHead& to, const AckRecordHead& from) {
     records::CopyMember(to.name, from.name);
-    SpeechTableOf(to).CopyConstruct(SpeechTableOf(from));
+    to.speeches.CopyConstruct(from.speeches);
 }
 inline void AssignMember(AckRecordHead& to, const AckRecordHead& from) {
     records::AssignMember(to.name, from.name);
-    SpeechTableOf(to).Assign(SpeechTableOf(from));
+    to.speeches.Assign(from.speeches);
 }
 inline void DefaultMember(AckRecordHead& to) {
     records::DefaultMember(to.name);
-    SpeechTableOf(to).Construct(100, 0, 0, 0);
+    to.speeches.Construct(100, 0, 0, 0);
 }
 
 } // namespace acks

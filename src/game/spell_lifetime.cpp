@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 
+#include <bit>
 #include <cstring>
 
 namespace {
@@ -36,9 +37,33 @@ MapEffect* MapEffect::Construct() {
 EI_REWRITTEN(0x00688510, MapEffect::Construct);
 
 
+MapEffect CSpell::Effect() const {
+    MapEffect record;
+    record.Construct();
+    record.type = prototypeIndex_;
+    record.power = effectPower_;
+    record.ticksLeft = static_cast<int>(duration_);
+    record.value = std::bit_cast<std::uint32_t>(damage_);
+    record.strength = std::bit_cast<std::uint32_t>(radius_);
+    return record;
+}
+
+void CSpell::SetEffect(const MapEffect& record) {
+    prototypeIndex_ = record.type;
+    effectPower_ = record.power;
+    duration_ = static_cast<std::uint32_t>(record.ticksLeft);
+    damage_ = std::bit_cast<float>(record.value);
+    radius_ = std::bit_cast<float>(record.strength);
+}
+
 CSpell::CSpell() {
     ClearFields();
-    Effect().Construct();
+    prototypeIndex_ = 0;
+    effectPower_ = 0;
+    duration_ = 0;
+    damage_ = 0;
+    radius_ = 0;
+    unused_2C = 0;
     speed_ = 0;
     range_ = 0;
     targetCount_ = 0;

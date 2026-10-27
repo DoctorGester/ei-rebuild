@@ -52,7 +52,7 @@ void SessionBase::Tick(double dt) {
     GameBuffer* buffer = ReceiveBuffer();
     while (socket_.Receive(&from, buffer)) {
         BufferUpdateHigh(buffer);
-        if (buffer->high - buffer->begin + buffer->base == 0) {
+        if (buffer->PositionOf(buffer->high) == 0) {
             if (g_netLog) {
                 stlp::string address;
                 const char* text = from.ToString(&address)->data();

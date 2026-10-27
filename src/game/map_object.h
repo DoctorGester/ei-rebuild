@@ -128,7 +128,7 @@ public:
     virtual std::uint32_t KeyId();     // the key it asks for: -123; levers override
     // A skill used on the object (traps Disarm, levers ApplyKey); here logs "Science is applied on wrong object"
     // and returns false.
-    virtual bool ApplyScience(int first, int second);
+    virtual bool ApplyScience(const LockKey* key, CEngineObject* user);
     // Whether `key` fits: 0; levers KeyOpens, traps KeyFits.
     virtual int AcceptsKey(const LockKey* key);
     // True; levers a flag of theirs (a best guess). The AI map's MarkFootprint refreshes units' passage around

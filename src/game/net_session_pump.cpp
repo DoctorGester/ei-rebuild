@@ -22,8 +22,6 @@ namespace {
 using RefList = stlp::list<RefPtr>;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 
-std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
-
 // A new driver for `player`, put at the end of the owning list.
 DriverLink* NewDriver(DriverSession* self, CRefObject* player) {
     auto* driver = net::NewCounted<DriverLink>();
@@ -51,7 +49,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
         if (known) continue;
         GameBuffer* in = &node->connection->reliableIn_;
         net::BufferUpdateHigh(in);
-        if (in->base - Addr(in->begin) + Addr(in->high) <= 0) continue;
+        if (in->PositionOf(in->high) <= 0) continue;
         net::ServerSession* server = net::GameServer();
         if (!IsLive(server)) continue;
         if (!server->PlayerStateIs3(node->connection)) continue;

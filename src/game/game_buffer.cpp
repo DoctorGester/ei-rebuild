@@ -18,14 +18,13 @@ constexpr std::uint32_t kFlagReadPastEnd = 8;
 constexpr std::uint32_t kGrowthSlack = 0x40;
 
 std::uint32_t Distance(const std::uint8_t* from, const std::uint8_t* to) {
-    return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(to) - reinterpret_cast<std::uintptr_t>(from));
+    return static_cast<std::uint32_t>(to - from);
 }
 
 // The size the growing slots ask for: twice the end of the needed range (counted from the start of
 // the whole stream) plus the slack.
 std::uint32_t GrownCapacity(const GameBuffer* self, std::uint32_t size) {
-    std::uint32_t needed = static_cast<std::uint32_t>(self->base) - reinterpret_cast<std::uintptr_t>(self->begin) +
-                           reinterpret_cast<std::uintptr_t>(self->cur) + size;
+    std::uint32_t needed = static_cast<std::uint32_t>(self->PositionOf(self->cur)) + size;
     return needed * 2 + kGrowthSlack;
 }
 
