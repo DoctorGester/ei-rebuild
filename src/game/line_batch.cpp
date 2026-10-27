@@ -1,7 +1,6 @@
-// The renderer's line lists (renderer_lines.h): one function appends a point, another projects
-// a list and hands the strip to the device object's line draw (renderer_lines.cpp). Debug
-// drawing: the figure parts' bounds boxes and the world client's line lists. See
-// docs/notes/renderer.md.
+// The renderer's line lists (renderer_lines.h): one function appends a point, another projects a list and
+// hands the strip to the device object's line draw (renderer_lines.cpp). Debug drawing: the figure parts'
+// bounds boxes and the world client's line lists. See docs/notes/renderer.md.
 #include "renderer_lines.h"
 
 #include "link_figure.h"

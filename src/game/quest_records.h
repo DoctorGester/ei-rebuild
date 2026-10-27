@@ -16,10 +16,9 @@
 class ChunkArchive;
 
 struct QuestRecord {
-    // Reads (archive loading) or writes the record: string field 0 the name,
-    // 1 exp, 2 +0x10, 3 the zone, string field 4 the text, 5 money, 6 the order, chunk 7 the
-    // places (one field 1 per float; loading empties the vector and fills it with that many
-    // zeros first).
+    // Reads (archive loading) or writes the record: string field 0 the name, 1 exp, 2 +0x10, 3 the zone,
+    // string field 4 the text, 5 money, 6 the order, chunk 7 the places (one field 1 per float; loading
+    // empties the vector and fills it with that many zeros first).
     void Serialize(ChunkArchive* ar);
     // The compiler's destructor. The text, the places' storage, the name.
     void Destruct();
@@ -44,9 +43,8 @@ static_assert(offsetof(QuestRecord, text) == 0x2C);
 static_assert(sizeof(QuestRecord) == 0x38);
 
 struct QuestBriefingRecord {
-    // Reads or writes the record: string field 0 the name, 1 exp, 2 money,
-    // chunk 3 the given items, string field 4 the text, chunks 5-9 the other lists
-    // (InlineStrings), 10 +0x68.
+    // Reads or writes the record: string field 0 the name, 1 exp, 2 money, chunk 3 the given items, string
+    // field 4 the text, chunks 5-9 the other lists (InlineStrings), 10 +0x68.
     void Serialize(ChunkArchive* ar);
     // The compiler's destructor. The text, the lists from the last (each string, then the storage), the name.
     void Destruct();
@@ -92,16 +90,16 @@ static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefin
 struct QuestDatabase {
     using QuestIndex = stlp::hash_map<stlp::string, QuestRecord*, stlp::StringHash>;
 
-    // Load (quest_db_open.cpp; Rebirth-patched, hooked in the vanilla launch only; called by WinMain at
-    // startup). "quests.qdb" of `folder` + "database.res": the quests (chunk 1) and the briefings (chunk 2),
-    // each read through an archive of its own and filed under its records' names. 1; FatalError's result when
-    // the archive (reported as "databases.res") or the file cannot be opened.
+    // Rebirth-patched; called by WinMain at startup. "quests.qdb" of `folder` + "database.res": the quests
+    // (chunk 1) and the briefings (chunk 2), each read through an archive of its own and filed under its
+    // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the file cannot
+    // be opened.
     int Load(const char* folder);
     // The constructor (database_construct.cpp; run by the static initialiser). Both vectors empty, both
     // indexes with 100 buckets (193). Returns this.
     QuestDatabase* Construct();
-    // LoadRegistry (quest_database.cpp). The quests of a registry file in memory (`image`) filed
-    // into the database; false when it is not a registry.
+    // The quests of a registry file in memory (`image`) filed into the database; false when it is not a
+    // registry.
     bool LoadRegistry(const void* image);
     // The destructor (database_destruct.cpp; run by the exit function). The members from the
     // last: each index's nodes and buckets, then its records and their storage.

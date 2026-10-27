@@ -80,7 +80,6 @@ void ReleaseHeld(CParticleManager* manager, Pick drop) {
 
 } // namespace
 
-// With `paused` set only sources with flag 8 tick; a source whose tick returned 0 is released when held.
 int CParticleManager::TickSources(char paused) {
     ReleaseHeld(this, [paused](CEngineObject* object) {
         if (paused != 0 && !(object->flags_ & 8)) return false;

@@ -1,6 +1,5 @@
-// The companions of map objects (map_object.h): CMapObjectServer (class id 0x39) and
-// CMapObjectClientSpecific (0x3A). Both classes are declared in unit.h; each holds the map object it belongs
-// to.
+// The companions of map objects (map_object.h): CMapObjectServer (class id 0x39) and CMapObjectClientSpecific
+// (0x3A). Both classes are declared in unit.h; each holds the map object it belongs to.
 
 #include "map_object.h"
 #include "object_tables.h"
@@ -21,7 +20,7 @@
 #include <cstring>
 #include <string>
 
-// The light's distance test and position must round like the original.
+// The light's distance test and position must round like the original's.
 
 namespace {
 constexpr std::uint32_t kFlagDestroyed = 1;          // CEngineObject::flags_ bit set on death
@@ -39,8 +38,6 @@ const char* const kEndSoundName = "magic\\end1.wav";
 const char* const kStenchSoundFormat = "magic\\Stench\\%i.wav";
 
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
-
-// The sound system (a global).
 
 // The light's position (a point light of the light factory, class 0x31).
 float* PositionOf(CLight* light) { return &light->localPosition_.x; }

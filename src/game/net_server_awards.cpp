@@ -1,6 +1,5 @@
-// The game server's awards: the zone completion command ("<zone>_3"), the host's item
-// awards and the queued award message, plus the counted pointer copy they
-// use. See net_classes.h and docs/notes/network.md.
+// The game server's awards: the zone completion command ("<zone>_3"), the host's item awards and the queued
+// award message, plus the counted pointer copy they use. See net_classes.h and docs/notes/network.md.
 
 #include "net_messages.h"
 #include "quest_records.h"
@@ -21,8 +20,6 @@
 namespace net {
 
 namespace {
-
-// The world (0x7AFE20), the text table (0x7C7D50), the map registry (0x7C87D4).
 
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
@@ -110,7 +107,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
 // when a map message is held, then, when the map registry knows "zone_3", queues for every client
 // its share of the entry's two values (exp as kind 0, money as kind 1, divided by the number of
 // clients, at least 1) and the host's items with the final award. Then drops the map message and
-// empties the queued messages, +0x25B0 and +0x2598, and queues the following zones
+// empties queuedMaps_, variables_ and files_, and queues the following zones
 void ServerSession::CompleteZone(const stlp::string* zone) {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {
@@ -161,7 +158,7 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
 
 // The zone leaving command ("<zone>_2"). When a map message is held: announces the map's title (text 6) and,
 // when the map registry knows "<map>_1", queues the host's items with the final award. Then drops the map
-// message, empties the queued messages, +0x25B0 and +0x2598, queues the following zones and clears the
+// message, empties queuedMaps_, variables_ and files_, queues the following zones and clears the
 // world's map (with null).
 void ServerSession::LeaveZone() {
     auto* holder = &map_;

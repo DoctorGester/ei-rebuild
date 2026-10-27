@@ -11,10 +11,6 @@ namespace net {
 
 namespace {
 
-// The growing buffer's out-of-line string and overflow handling (outside the range):
-// Reads a length-prefixed string (at most `maxLength` bytes),
-// Reads past the end (zeroes the target, sets error bit 3, takes what is left).
-
 // A value written the way the record writer inlines it: in place (marking the buffer written)
 // when it fits before `end`, otherwise through slot 4.
 void Put(GameBuffer* buffer, const void* value, unsigned size) {
@@ -60,8 +56,6 @@ unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
 namespace net {
 EI_REWRITTEN(0x00401340, GameBuffer::ReadBytes);
 
-// Writes the record: +0x1C, +0x20, the two strings, the bytes +0x18, +0x19, +0x1B,
-// +0x1A, then +0x24.
 void GameInfoRecord::Write(GameBuffer* buffer) const {
     Put(buffer, &masterKey, 4);
     Put(buffer, &masterToken, 4);

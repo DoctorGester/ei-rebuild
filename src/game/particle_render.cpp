@@ -110,7 +110,7 @@ int CParticleSource::Draw(void* renderer) {
     ConstructArrays();
     float t = Interpolation();
     Sprites().SetSize(kReserve, -1);
-    Vertices().SetSize(kReserve);   // SetSize inlined, like the original
+    Vertices().SetSize(kReserve);
     Sprites().SetSize(particles.count, -1);
     Vertices().SetSize(particles.count);
     if (!static_cast<CSceneRenderer*>(renderer)->BindHeldTexture(0, &texture)) return 0;

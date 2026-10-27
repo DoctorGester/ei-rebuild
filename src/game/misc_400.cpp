@@ -29,8 +29,6 @@ void __fastcall ManagerDestruct(CBaseManager* self) {
     manager->CClientSpecificManager::~CClientSpecificManager();
 }
 
-// Slots 11 and 12.
-
 } // namespace misc400
 
 CClientSpecificManager::CClientSpecificManager() {}
@@ -38,8 +36,6 @@ CClientSpecificManager::~CClientSpecificManager() {}
 const char* CClientSpecificManager::GetClassName() { return "CClientSpecificManager"; }
 int CClientSpecificManager::GetClassId() { return 0x30; }
 
-// A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a failed allocation. The
-// constructors (the figure drawer and five other classes') each return this.
 CEngineObject* CClientSpecificManager::NewObject(int type) {
     switch (type) {
     case 'E': return new FigureMeshDrawer();
@@ -64,8 +60,6 @@ void __fastcall ClearPointee(void** self) { *static_cast<void**>(*self) = nullpt
 
 } // namespace misc400
 
-// A cursor started at `p` (no byte reserved, no pending bits; the accumulator is left
-// alone). The two other arguments are not used. Returns 0.
 std::uint32_t BufferCursor::Start(std::uint8_t* first, std::uint32_t, std::uint32_t) {
     p = first;
     bits = 0;

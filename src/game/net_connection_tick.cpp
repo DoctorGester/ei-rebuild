@@ -42,13 +42,12 @@ std::int32_t ReliableSize(GameBuffer* b) {
 
 } // namespace
 
-// Advances the idle time and the clock by `dt`. Packets older than the loss timeout
-// (3 standard deviations above the average round trip, at least 0.1, at most the session's
-// maxRoundTrip_) are rolled back and move to the acknowledged list, where they stay for
-// maxRoundTrip_ seconds. Sends an update every sendInterval_ (stopping early once the reliable
-// stream and the header queue are empty). Every idReuseTime_ seconds the oldest batch of freed ids
-// returns to the id pools. False once the peer was silent for the session's timeout_ or the
-// reliable stream holds 32000 bytes.
+// Advances the idle time and the clock by `dt`. Packets older than the loss timeout (3 standard deviations
+// above the average round trip, at least 0.1, at most the session's maxRoundTrip_) are rolled back and move
+// to the acknowledged list, where they stay for maxRoundTrip_ seconds. Sends an update every sendInterval_
+// (stopping early once the reliable stream and the header queue are empty). Every idReuseTime_ seconds the
+// oldest batch of freed ids returns to the id pools. False once the peer was silent for the session's
+// timeout_ or the reliable stream holds 32000 bytes.
 bool Connection::Tick(double dt) {
     g_currentConnection = this;
     idleTime_ = static_cast<float>(D(idleTime_) + dt);

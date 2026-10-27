@@ -117,8 +117,7 @@ EI_REWRITTEN(0x0041D930, BufferCursor::End);
 
 // The startup initialiser of the code tables: for match
 // lengths 1..0x22 the code and its bit count (g_lengthCodes / g_lengthBits, at length - 1), for distance
-// buckets 0..0x21 (every 16 bytes from -0x5C) the code and bit count (g_offsetCodes / g_offsetBits). It runs
-// before the hooks are installed; the rewrite is for the standalone build.
+// buckets 0..0x21 (every 16 bytes from -0x5C) the code and bit count (g_offsetCodes / g_offsetBits).
 void __cdecl InitCodeTables() {
     for (int length = 1; length <= 0x22; ++length) {
         int j = length - 1;

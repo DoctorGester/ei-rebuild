@@ -1,6 +1,4 @@
-// CParticleSource per-type callbacks (emit, update, element) not covered by effects.cpp /
-// particle_emitters.cpp. Names are provisional; each notes the types (see Create, particle_create.cpp) that
-// use it.
+// CParticleSource's per-type callbacks (emit, update, element tick); each names the source types using it.
 #include "particle_common.h"
 
 #include "angles.h"
@@ -22,9 +20,6 @@
 using namespace particle;
 
 // --- Casting effects (0x2027-0x202A): sparks rising around the caster -----------------------------
-// Element 0 holds the effect's state: +0x00 1.0 once set up, +0x0C the particle growth, +0x18 the
-// radius, +0x1C the particle size, +0x30 the alpha, +0x34 a countdown (the alpha follows the
-// table kCastAlphaByCountdown by it). Elements 1..lifetime are swirls: +0x18 a position drifting by +0x24.
 
 namespace {
 
@@ -221,8 +216,8 @@ int CParticleSource::UpdateCasting(Particle* p) {
 }
 EI_REWRITTEN(0x00492030, CParticleSource::UpdateCasting);
 
-// Casting elements: element 0 (+0x00 nonzero) counts down and takes its alpha from the
-// table (frozen while an emitting source is attached); the swirls (+0x00 zero, or NaN) move by
+// Casting elements: element 0 (pos.x nonzero) counts down and takes its alpha from the
+// table (frozen while an emitting source is attached); the swirls (pos.x zero, or NaN) move by
 // their velocity, which gets a random kick in [-k, k), damping and a pull back to the centre.
 void CParticleSource::TickCasting(ParticleElement* e) {
     EI_NAN_AUDIT(e->pos.x);
@@ -245,12 +240,10 @@ void CParticleSource::TickCasting(ParticleElement* e) {
 EI_REWRITTEN(0x004921D0, CParticleSource::TickCasting);
 
 // --- Protection spheres (0x2015-0x2017) and AntiMagic (0x201A) -----------------------------------
-// Element 0 follows the carrier: +0x08 the height above it, +0x18 the sphere's radius, +0x20 the
-// speed of the carrier (whose smoothed motion is element 1's position).
 
 namespace {
 
-#define EI_SPHERE_RADIUS 1.2f /*0073CDF4*/      // 1.2 (of the carrier's radius)
+#define EI_SPHERE_RADIUS 1.2f /*0073CDF4*/      // of the carrier's radius
 #define EI_KEEP_0_9 0.9f /*0073CD70*/
 #define EI_TAKE_0_1 0.1f /*0073B850*/
 #define EI_ANTIMAGIC_RATE 24.0f /*0073CE28*/
@@ -399,15 +392,13 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
 EI_REWRITTEN(0x0048E070, CParticleSource::EmitOrbit);
 
 // --- Casting (0x200B) and Healing (0x2006): rings of flames rising around the caster -------------
-// Each element is a ring: +0x00 its centre (relative to the source), +0x0C its radius, +0x10 the
-// angle of its leading flame, +0x14 its rise per tick, +0x18 its starting centre, +0x34 its
-// countdown. +0x12C counts the flames emitted after the set-up (one per ring). The two types share
-// the shapes; they differ in the ring count, timings, sizes and the spark pattern.
+// emitState counts the flames emitted after the set-up (one per ring). The two types share the shapes;
+// they differ in the ring count, timings, sizes and the spark pattern.
 
 namespace {
 
 #define EI_FULL_TURN 360.0f /*0073CD08*/
-#define EI_PI 3.141592653589793 /*0073CAE8*/                // pi
+#define EI_PI 3.141592653589793 /*0073CAE8*/
 #define EI_RING_WIDEN 1.1f /*0073BAC4*/
 #define EI_PER_36 0.027777778f /*0073CD04*/             // 1/36
 #define EI_RISE_LOW (-0.1f /*0073CD00*/)
@@ -417,9 +408,9 @@ namespace {
 #define EI_HALF 0.5f /*0073CB28*/
 #define EI_SPARK_SPREAD 0.001f /*0073CCF4*/
 #define EI_FADE_SIZE 0.7692308f /*0073CD0C*/          // 1/1.3
-#define EI_TURN_SPEED 10.0 /*0073CD10*/        // 10.0 (degrees per tick)
+#define EI_TURN_SPEED 10.0 /*0073CD10*/        // degrees per tick
 #define EI_TENTH_B 0.1f /*0073B850*/
-#define EI_HEAL_RINGS 6.0f /*0073BA98*/         // 6.0 rings per unit of size
+#define EI_HEAL_RINGS 6.0f /*0073BA98*/         // rings per unit of size
 #define EI_HEAL_RINGS_BASE 2.0f /*0073CDB8*/
 #define EI_HEAL_GROWTH 0.0069444445f /*0073CDB4*/        // 1/144
 #define EI_HEAL_SPREAD 0.15f /*0073CD18*/
@@ -509,7 +500,6 @@ float RingRadius(const ParticleElement& ring) {
     return r;
 }
 
-// Moves a flame with its ring.
 void FollowRing(CParticleSource* s, Particle* p, int ring) {
     const ParticleElement& e = s->elements[ring];
     p->pos.x = static_cast<float>(D(s->origin.x) + D(e.pos.x));
@@ -704,14 +694,11 @@ void CParticleSource::TickHealing(ParticleElement* e) {
 EI_REWRITTEN(0x0048BCE0, CParticleSource::TickHealing);
 
 // --- CastingIllusion, Domination, Enchantment, Healing (0x202B-0x202E): orbiting lights ---------
-// One element per orbiter (lifetime of them, added one per emission): +0x00 its world position,
-// +0x0C / +0x10 the cosine and sine of its turn per tick, +0x14 the spark size (the carrier's
-// radius, negated for Domination), +0x18 its position relative to the source, +0x24 the previous
-// world position.
+// One element per orbiter (lifetime of them, added one per emission).
 
 namespace {
 
-#define EI_PI_F 3.1415927f /*0073CAF0*/               // pi
+#define EI_PI_F 3.1415927f /*0073CAF0*/
 #define EI_HALF_C 0.5f /*0073B86C*/
 #define EI_POINT_FOUR_C 0.4f /*0073B868*/
 #define EI_SWIRL_TURN_SLOW 0.3f /*0073CB94*/
@@ -784,8 +771,7 @@ int AddOrbiter(CParticleSource* s, Particle* p) {
     previous[1] = py;
     previous[2] = pz;
     e->orbiter.turnSin = static_cast<float>(x87::fsin(turn));
-    // (The original reads its locals here one slot off after a POP: the sign times the carrier's radius, not the
-    // orbit times it.)
+    // Kept from the original (its locals read one slot off): the sign times the carrier's radius, not the orbit.
     e->orbiter.scale = static_cast<float>(D(sign) * D(carrier));
     p->color = 0xFFFFFFFF;
     p->frame = 0;
@@ -852,10 +838,9 @@ int CParticleSource::EmitCastSwirl(Particle* p, int) {
 }
 EI_REWRITTEN(0x00490C10, CParticleSource::EmitCastSwirl);
 
-// A marker (state < 0) sits on its orbiter with a flickering size and, once the source
-// stops emitting (or loses its carrier), fades by the table and dies. A spark fades over its last
-// 7 ticks, cycles frames 12..15, shrinks, and moves by its velocity, whose z changes by a growing
-// step.
+// A marker (state < 0) sits on its orbiter with a flickering size and, once the source stops emitting (or
+// loses its carrier), fades by the table and dies. A spark fades over its last 7 ticks, cycles frames 12..15,
+// shrinks, and moves by its velocity, whose z changes by a growing step.
 int CParticleSource::UpdateCastSwirl(Particle* p) {
     int state = p->state;
     if (state < 0) {
@@ -904,14 +889,11 @@ void CParticleSource::TickCastSwirl(ParticleElement* e) {
 }
 EI_REWRITTEN(0x00491390, CParticleSource::TickCastSwirl);
 
-// --- Link (0x2014): a beam of sparks from the source along its extent (+0x130) ------------------
-// Element 0: +0x18 the beam's length, +0x1C its inverse, +0x34 the alpha cap (255, falling by 16
-// per tick once the source stops). Elements 1-3 hold the beam's frame at +0x18: 1 the unit
-// direction, 2 a unit side vector, 3 the unit cross product of the extent and the side.
+// --- Link (0x2014): a beam of sparks from the source along its extent --------------------------
 
 namespace {
 
-#define EI_LINK_DEGENERATE 1e-10 /*0073CE00*/   // 1e-10
+#define EI_LINK_DEGENERATE 1e-10 /*0073CE00*/
 #define EI_LINK_TWIST 0.2f /*0073BAD4*/
 #define EI_LINK_HALF 0.5f /*0073B86C*/
 #define EI_LINK_QUARTER 0.25f /*0073C3B0*/
@@ -1008,7 +990,7 @@ int CParticleSource::EmitLink(Particle* p, int) {
 }
 EI_REWRITTEN(0x0048D8D0, CParticleSource::EmitLink);
 
-// Link sparks run along the beam (+0x38 the distance travelled, +0x3C the speed), spinning around the axis;
+// Link sparks run along the beam (drift.x the distance travelled, drift.y the speed), spinning around the axis;
 // the beam bulges in the middle and the alpha peaks there (capped by element 0). Dropped past the beam's end.
 int CParticleSource::UpdateLink(Particle* p) {
     p->frame = (p->frame + 1) % frameCount;
@@ -1077,9 +1059,6 @@ void CParticleSource::TickLink(ParticleElement* e) {
 EI_REWRITTEN(0x0048E040, CParticleSource::TickLink);
 
 // --- FireBlast (0x2002): fifteen fragments flying out, flames and smoke at the centre ------------
-// The fragments (elements, set up by Create): +0x00 position, +0x0C velocity, +0x18 / +0x1C the
-// flame radius and its growth (scaled by +0x20 each tick), +0x24 / +0x28 a random frame and size
-// factor, +0x30 the age in ticks.
 
 namespace {
 
@@ -1207,11 +1186,10 @@ int CParticleSource::EmitBlast(Particle* p, int) {
 }
 EI_REWRITTEN(0x0048C090, CParticleSource::EmitBlast);
 
-// FireBlast particles. Smoke (state >= 0) drifts with a 0.7 drag, shrinks to 0.8 and
-// lasts until its frame reaches 7 (mod 8). The core flash (frame 15) grows once to 2.3 times the
-// source's size, then disappears; it keeps the source alive while the fragments are younger than
-// 3 ticks. Flames move by their velocity (slowing with the fragments' drag), swell, step through
-// frames at an accelerating rate and fade by the frame.
+// FireBlast particles. Smoke (state >= 0) drifts with a 0.7 drag, shrinks to 0.8 and lasts until its frame
+// reaches 7 (mod 8). The core flash (frame 15) grows once to 2.3 times the source's size, then disappears; it
+// keeps the source alive while the fragments are younger than 3 ticks. Flames move by their velocity (slowing
+// with the fragments' drag), swell, step through frames at an accelerating rate and fade by the frame.
 int CParticleSource::UpdateBlast(Particle* p) {
     ParticleElement* fragments = elements;
     int state = p->state;
@@ -1286,7 +1264,7 @@ EI_REWRITTEN(0x0048C760, CParticleSource::TickBlast);
 
 namespace {
 
-#define EI_FOG_CELL 1.0f /*0073CB34*/            // 1.0: the grid spacing
+#define EI_FOG_CELL 1.0f /*0073CB34*/            // the grid spacing
 #define EI_FOG_QUARTER 0.25f /*0073C3B0*/
 #define EI_FOG_JITTER_LOW (-0.25f /*0073CDA8*/)
 #define EI_FOG_SIZE_SCALE 1.1641532185403987e-10 /*0073CDA0*/     // ~0.5 * 2^-32
@@ -1351,9 +1329,7 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
 EI_REWRITTEN(0x0048B080, CParticleSource::EmitPoisonFog);
 
 // --- Geyser (0x2009): three vents that erupt in turn -----------------------------------------------
-// Each element is a vent: +0x00 / +0x04 the jet's direction angles (degrees off vertical, turned to
-// radians), +0x08 its strength, +0x30 the pause before the next eruption, +0x34 the eruption's
-// remaining ticks.
+// A vent's pos: the jet's two direction angles (degrees off vertical, turned to radians) and its strength.
 
 namespace {
 
@@ -1433,9 +1409,9 @@ int CParticleSource::EmitGeyser(Particle* p, int) {
 }
 EI_REWRITTEN(0x0048A8F0, CParticleSource::EmitGeyser);
 
-// Geyser: the marker flickers while the source emits (dropped once it stops); drops fly
-// by +0x38 (gravity pulling +0x40 down by 0.06 height per tick), fade 8 alpha per tick (dropped
-// below 10), shrink by 0.9 (+0x20 holds the size) and cycle 4 frames.
+// Geyser: the marker flickers while the source emits (dropped once it stops); drops fly by drift
+// (gravity pulling drift.z down by 0.06 height per tick), fade 8 alpha per tick (dropped below 10),
+// shrink by 0.9 (velocity.x holds the size) and cycle 4 frames.
 int CParticleSource::UpdateGeyser(Particle* p) {
     if (p->state != 0) {
         if (!(flags_ & 1)) {
@@ -1482,13 +1458,10 @@ void CParticleSource::TickGeyser(ParticleElement* e) {
 EI_REWRITTEN(0x0048AEC0, CParticleSource::TickGeyser);
 
 // --- Shower (0x200F, 0x2031-0x2033): sparks thrown out in a few random directions ---------------
-// Element 0's +0x34 is the texture frame of the kind (12-15, set by Create) and +0x30 is negative
-// until the directions are chosen; then each element's position is a unit direction and +0x30 its
-// age in ticks.
 
 namespace {
 
-#define EI_SHOWER_RAYS 8.0f /*0073CE50*/         // 8.0 directions per unit of alpha
+#define EI_SHOWER_RAYS 8.0f /*0073CE50*/         // directions per unit of alpha
 #define EI_SHOWER_JITTER_SCALE 1.3969838310234559e-11 /*0073CE48*/ // ~0.06 * 2^-32
 #define EI_SHOWER_JITTER_LOW 0.03f /*0073CD74*/
 #define EI_SHOWER_SPEED 0.16666667f /*0073CE40*/        // 1/6
@@ -1567,8 +1540,8 @@ int CParticleSource::EmitShower(Particle* p, int) {
 }
 EI_REWRITTEN(0x0048EEA0, CParticleSource::EmitShower);
 
-// Shower sparks move, slow down (+0x20), fall by 0.05 size per tick, shrink (+0x24) and
-// fade by the life table.
+// Shower sparks move, slow down (by velocity.x), fall by 0.05 size per tick, shrink (by velocity.y)
+// and fade by the life table.
 int CParticleSource::UpdateShower(Particle* p) {
     int life = --p->life;
     if (life == 0) return 0;
@@ -1596,13 +1569,11 @@ void CParticleSource::TickShower(ParticleElement* e) {
 EI_REWRITTEN(0x0048F380, CParticleSource::TickShower);
 
 // --- Bag (0x203C): eighty coloured balls bouncing around the carrier ----------------------------------
-// Each element is a ball: position, its last step, velocity, its age (indexing the size table g_bagSizes and,
-// for the first three, a colour table), the ticks until it is thrown again (-13: no carrier, the ball is
-// gone).
+// A ball's ticks run down to its next throw (-13: no carrier, the ball is gone).
 
 namespace {
 
-#define EI_BAG_SHRINK 0.93f /*0073CF40*/          // 0.93 per age
+#define EI_BAG_SHRINK 0.93f /*0073CF40*/          // per age
 #define EI_BAG_SPREAD_LOW (-0.2f /*0073CF44*/)
 #define EI_BAG_SPREAD_HIGH 0.2f /*0073BAD4*/
 #define EI_BAG_SPARK_SIZE 0.1f /*0073B850*/
@@ -1640,7 +1611,7 @@ std::uint32_t BagRgb(int kind) {
     return ((static_cast<std::uint32_t>(c[0]) << 8 | static_cast<std::uint32_t>(c[1])) << 8) | static_cast<std::uint32_t>(c[2]);
 }
 
-// A random value of the throw box (+-0.2 of the size... from -0.2 * size to 0.2 * size).
+// A random value of the throw box (-0.2 * size to 0.2 * size).
 double BagSpread(const CParticleSource* s, float& low, float& high) {
     high = static_cast<float>(D(s->size) * D(EI_BAG_SPREAD_HIGH));
     low = static_cast<float>(D(s->size) * D(EI_BAG_SPREAD_LOW));
@@ -1649,9 +1620,8 @@ double BagSpread(const CParticleSource* s, float& low, float& high) {
 
 } // namespace
 
-// Bag: the first 80 particles are the balls (state = their index; the first one fills the
-// size table: 0.93 to the power of the age); later ones are sparks along a random ball's last step,
-// in the ball's colour.
+// Bag: the first 80 particles are the balls (state = their index; the first one fills the size table: 0.93 to
+// the power of the age); later ones are sparks along a random ball's last step, in the ball's colour.
 int CParticleSource::EmitBag(Particle* p, int index) {
     if (particles.count < 80) {
         if (index == 0) {
@@ -1793,8 +1763,6 @@ void CParticleSource::TickBag(ParticleElement* e) {
 EI_REWRITTEN(0x004938C0, CParticleSource::TickBag);
 
 // --- 0x202F: sparks rising in a ring around the carrier ------------------------------------------
-// Element 0: +0x18 the ring radius, +0x20 the carrier's height, +0x24 the ring's offset (z below
-// the carrier's centre), +0x34 its age.
 
 namespace {
 
@@ -1895,13 +1863,10 @@ int CParticleSource::UpdateColumn(Particle* p) {
 }
 EI_REWRITTEN(0x00491830, CParticleSource::UpdateColumn);
 
-// 0x202F: element 0 ages.
 void CParticleSource::TickColumn(ParticleElement* e) { ++e->ticks; }
 EI_REWRITTEN(0x004918D0, CParticleSource::TickColumn);
 
 // --- Mushroom and Transform (0x200E, 0x2052): the cloud of the mushroom ---------------------------
-// Element 0 (its tick is TickMushroom, effects.cpp): +0x00 the spread of new puffs, +0x08 the cap's
-// height, +0x18 the stem's foot, +0x34 the age.
 
 namespace {
 
@@ -1912,7 +1877,7 @@ namespace {
 #define EI_MUSHROOM_UP_SCALE 2.0954757899032707e-10 /*0073CCC8*/  // ~0.9 * 2^-32
 #define EI_MUSHROOM_UP_BASE 0.1f /*0073B850*/
 #define EI_MUSHROOM_UP 0.12f /*0073CCC0*/
-#define EI_MUSHROOM_GROW 0.008f /*0073CCBC*/       // 0.008 per tick of age
+#define EI_MUSHROOM_GROW 0.008f /*0073CCBC*/       // per tick of age
 #define EI_MUSHROOM_SPEED 0.06f /*0073CCB8*/
 #define EI_MUSHROOM_SWELL 1.1f /*0073BAC4*/
 #define EI_MUSHROOM_DRAG 0.7f /*0073C538*/
@@ -2006,7 +1971,6 @@ int CParticleSource::UpdateMushroom(Particle* p) {
 EI_REWRITTEN(0x00488DB0, CParticleSource::UpdateMushroom);
 
 // --- BlueGas (Stench, 0x2013): gas swirling up around the carrier -------------------------------
-// Element 0: +0x00 the carrier's figure offset, +0x18 the gas radius, +0x20 the carrier's height.
 
 namespace {
 
@@ -2107,21 +2071,18 @@ int CParticleSource::UpdateStench(Particle* p) {
 EI_REWRITTEN(0x0048D7F0, CParticleSource::UpdateStench);
 
 // --- Tornado (0x200A) and CurseHolder (0x2050): a funnel of rings ---------------------------------
-// The elements are the funnel's rings (bottom to top): their centres, relative to the source.
-// Element 0 also holds +0x24 the funnel's height, +0x28 its bend (0: the rings sway with the
-// source's motion; otherwise they lean along it) and +0x2C the particles' spin damping.
-// A particle: +0x20 its angle, +0x24 its radius, +0x2C its height (0..1), +0x30 its alpha,
-// +0x38 its turn per tick, +0x3C the radius factor per tick, +0x40 its rise per tick.
+// The rings run bottom to top. A particle: velocity.x / .y its angle and radius, aux0 its height (0..1),
+// aux1 its alpha, drift.x / .y / .z its turn, radius factor and rise per tick.
 
 namespace {
 
-#define EI_FUNNEL_PI_F 5.0f /*0073BF34*/         // 5.0: rings per unit height
-#define EI_FUNNEL_PI 3.141592653589793 /*0073CAE8*/          // pi
+#define EI_FUNNEL_PI_F 5.0f /*0073BF34*/         // rings per unit height
+#define EI_FUNNEL_PI 3.141592653589793 /*0073CAE8*/
 #define EI_FUNNEL_R_SCALE 2.793967696741381e-10 /*0073CD30*/     // ~1.2 * 2^-32
 #define EI_FUNNEL_R_BASE 0.8f /*0073CCA8*/
 #define EI_FUNNEL_R_ADD 0.2f /*0073BAD4*/
-#define EI_FUNNEL_TURN_HIGH 0.07 /*0073CD28*/   // 0.07 (times pi)
-#define EI_FUNNEL_TURN_LOW 0.06 /*0073CD20*/    // 0.06 (times pi)
+#define EI_FUNNEL_TURN_HIGH 0.07 /*0073CD28*/   // times pi
+#define EI_FUNNEL_TURN_LOW 0.06 /*0073CD20*/    // times pi
 #define EI_FUNNEL_TURN_TOP 1.1f /*0073BAC4*/
 #define EI_FUNNEL_TURN_SCALE 1.5f /*0073C51C*/
 #define EI_FUNNEL_SIZE 0.3f /*0073C54C*/
@@ -2322,7 +2283,6 @@ EI_REWRITTEN(0x0048A560, CParticleSource::TickTornado);
 
 // --- PortalStar (0x203D): one flickering star ------------------------------------------------------
 
-// PortalStar: the star at the source.
 int CParticleSource::EmitPortalStar(Particle* p, int) {
     p->color = 0xFFFFFF;
     p->life = 15;
@@ -2344,22 +2304,19 @@ int CParticleSource::UpdatePortalStar(Particle* p) {
 EI_REWRITTEN(0x00493D50, CParticleSource::UpdatePortalStar);
 
 // --- Cylinder1 / Cylinder2 (0x203F, 0x2040): two stars circling the carrier --------------------
-// Each element is a star: +0x00 its position (relative to the source), +0x0C its last step,
-// +0x18 / +0x1C the cosine and sine of its turn per tick, +0x24 the inverse of its orbit radius,
-// +0x28 the orbit radius, +0x2C its rise per tick, +0x34 its countdown (also indexing the alpha
-// table kCylinderAlpha).
+// A star's ticks count down and index kCylinderAlpha.
 
 namespace {
 
 #define EI_CYL_TURN 0.3f /*0073CC74*/
-#define EI_CYL_PI 3.1415927f /*0073CAF0*/              // pi
-#define EI_CYL_TURN_SCALE 0.13333334f /*0073CF48*/      // 0.1333
+#define EI_CYL_PI 3.1415927f /*0073CAF0*/
+#define EI_CYL_TURN_SCALE 0.13333334f /*0073CF48*/
 #define EI_CYL_ORBIT 0.7f /*0073C538*/
 #define EI_CYL_LIFT 0.2f /*0073BAD4*/
 #define EI_CYL_TWO 2.0f /*0073CDB8*/
 #define EI_CYL_RISE 0.04f /*0073CE90*/
 #define EI_CYL_RISE_UP 1.25f /*0073CF50*/
-#define EI_CYL_TWIST (-0.013333334f /*0073CF4C*/)           // -0.01333
+#define EI_CYL_TWIST (-0.013333334f /*0073CF4C*/)
 #define EI_CYL_SPARK_PULL 0.6f /*0073CDE0*/
 #define EI_CYL_SPARK_SHRINK 0.9f /*0073CD70*/
 
@@ -2540,7 +2497,7 @@ EI_REWRITTEN(0x00494340, CParticleSource::TickCylinder);
 
 namespace {
 
-#define EI_TRAIL_MOVING 0.00001f /*0073CDF0*/        // 1e-5: below this distance there is no trail
+#define EI_TRAIL_MOVING 0.00001f /*0073CDF0*/        // below this distance there is no trail
 #define EI_TRAIL_HEAD 1.2f /*0073CDF4*/
 #define EI_TRAIL_HALF 0.5f /*0073B86C*/
 #define EI_TRAIL_DRAG 0.95f /*0073CD50*/
@@ -2552,8 +2509,7 @@ namespace {
 // A random value of [low, high) (the original's spread box order).
 double Between(float low, float high) { return Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low); }
 
-// The trail velocity: a random amount of the side axis (SideVelocity), plus one of the up axis
-// (AddUp).
+// The trail velocity: a random amount of the side axis (SideVelocity), plus one of the up axis (AddUp).
 void SideVelocity(CParticleSource* s, Particle* p, float low, float high) {
     double q = Between(low, high);
     p->velocity.x = static_cast<float>(q * D(s->side.x));
@@ -2734,8 +2690,6 @@ int CParticleSource::UpdateArrowSmoke(Particle* p) {
 EI_REWRITTEN(0x0048CED0, CParticleSource::UpdateArrowSmoke);
 
 // --- Banshee (0x200D): a ring that widens around the source ---------------------------------------
-// Element 0: +0x08 the ring's height, +0x0C its radius (easing towards 30 times the source's
-// height), +0x34 the countdown.
 
 namespace {
 
@@ -2792,7 +2746,6 @@ int CParticleSource::EmitBanshee(Particle* p, int) {
 }
 EI_REWRITTEN(0x00489BE0, CParticleSource::EmitBanshee);
 
-// Banshee sparks: one frame per tick until they die.
 int CParticleSource::UpdateBanshee(Particle* p) {
     if (--p->life == 0) return 0;
     if (--p->frameTimer == 0) {
@@ -2887,7 +2840,7 @@ constexpr float kAcidSpread[19] = /*0078A61C*/ {0.0f, 0.85f, 0.93f, 1.0f, 0.97f,
 constexpr float kAcidSize[19] = /*0078A668*/ {1.1f, 0.85f, 0.93f, 1.0f, 0.97f, 0.93f, 0.87f, 0.8f, 0.73f, 0.65f, 0.55f, 0.43f,
                                            0.3f, 0.2f};
 
-// Position: the start (+0x38) plus the velocity scaled by the source's size and the spread table.
+// Position: the start (drift) plus the velocity scaled by the source's size and the spread table.
 void PlaceAcid(CParticleSource* s, Particle* p, int age, Vector3& out) {
     double size = D(s->size);
     float sx = static_cast<float>(size * D(p->velocity.x));
@@ -3036,8 +2989,6 @@ int CParticleSource::EmitSparks(Particle* p, int) {
 EI_REWRITTEN(0x00494A10, CParticleSource::EmitSparks);
 
 // --- ClayRing (0x2018): ten points running out from the source along the ground ---------------
-// Each element (set up by Create): +0x00 the point on the ground, +0x0C its previous position,
-// +0x18 its direction (turning a little each tick), +0x34 the countdown (14).
 
 namespace {
 
@@ -3166,8 +3117,6 @@ void CParticleSource::TickClayRing(ParticleElement* e) {
 EI_REWRITTEN(0x0048FBE0, CParticleSource::TickClayRing);
 
 // --- Falling (0x2034-0x2037): leaves or flakes drifting down from the carrier -------------------
-// The elements are gusts: +0x0C the gust's reach, +0x10 its direction (degrees turned to
-// radians, truncated), +0x30 its age.
 
 namespace {
 
@@ -3284,7 +3233,7 @@ int CParticleSource::EmitVulkan(Particle* p, int) {
 EI_REWRITTEN(0x0048BD50, CParticleSource::EmitVulkan);
 
 // VulcanSmoke: frames at the particle's own pace (state ticks per frame; dropped after
-// the last), moving by +0x38, growing by +0x20 and slowing by +0x24.
+// the last), moving by drift, growing by velocity.x and slowing by velocity.y.
 int CParticleSource::UpdateVulkan(Particle* p) {
     if (--p->life == 0) return 0;
     if (--p->frameTimer == 0) {
@@ -3306,7 +3255,7 @@ EI_REWRITTEN(0x0048C010, CParticleSource::UpdateVulkan);
 // --- FireStar / AcidStar (0x2042-ish), Regeneration, VisionStar and ZoneExit ----------------------
 
 // FireStar: a single flash at the source (the source stops emitting at once) with the
-// source's lifetime as its frame and its size kept in +0x20.
+// source's lifetime as its frame and its size kept in velocity.x.
 int CParticleSource::EmitFireStar(Particle* p, int) {
     flags_ &= ~1u;
     p->color = 0xFFFFFF;
@@ -3334,7 +3283,7 @@ int CParticleSource::UpdateFireStar(Particle* p) {
 }
 EI_REWRITTEN(0x004949B0, CParticleSource::UpdateFireStar);
 
-// Regeneration: two particles at the source, +0x20 = -1 for the first and 1 for the
+// Regeneration: two particles at the source, velocity.x -1 for the first and 1 for the
 // second (the sides they circle on).
 int CParticleSource::EmitRegeneration(Particle* p, int) {
     if (particles.count > 1) return 0;
@@ -3349,9 +3298,8 @@ EI_REWRITTEN(0x004950B0, CParticleSource::EmitRegeneration);
 
 // Regeneration: once the source no longer emits (or has no carrier) its size shrinks by
 // a quarter per tick and the particles go below 0.02. Each particle eases (0.7 / 0.3) towards a
-// point beside the carrier: its own x axis (the first column of its orientation quaternion at
-// +0x34, w first) scaled by the carrier's size (+0x134), the particle's side and 0.65; a little
-// above, by 0.4 of the source's size. Its size flickers at random.
+// point beside the carrier: its own x axis (from localRotation_) scaled by the carrier's radius, the
+// particle's side and 0.65; a little above, by 0.4 of the source's size. Its size flickers at random.
 int CParticleSource::UpdateRegeneration(Particle* p) {
     if (!(flags_ & 1) || !attachedTo) {
         double shrunk = D(size) * D(0.75f /*0073C524*/);
@@ -3490,7 +3438,7 @@ constexpr std::int32_t kZoneExitAlpha[16] = /*0078AA38*/ {0, 80, 176, 255, 255, 
 } // namespace
 
 // ZoneExit: alpha by the life left (kZoneExitAlpha), dropped past 0; rising 0.05
-// per tick, +0x2C slowing by 0.9, cycling through four frames, sized by +0x20.
+// per tick, aux0 slowing by 0.9, cycling through four frames, sized by velocity.x.
 int CParticleSource::UpdateZoneExit(Particle* p) {
     int life = p->life;
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(kZoneExitAlpha[life]) << 24);
@@ -3515,8 +3463,8 @@ constexpr std::int32_t kFeebleAlpha[24] = /*0078ABB8*/ {0, 32, 64, 128, 255, 255
 } // namespace
 
 // FeebleMind: alpha by the life left (dropped past 0); the particle circles: its offset
-// (+0x20) is taken off, turned by 0.07 radians and grown by 1.1, then put back with a rise of
-// 0.05. The size is +0x34 (growing by 1.04 per tick), the frame cycles through 16.
+// (velocity) is taken off, turned by 0.07 radians and grown by 1.1, then put back with a rise of
+// 0.05. The size is aux2 (growing by 1.04 per tick), the frame cycles through 16.
 int CParticleSource::UpdateFeebleMind(Particle* p) {
     int life = --p->life;
     if (life < 0) return 0;
@@ -3568,11 +3516,10 @@ const char* kBody = "bd";
 
 } // namespace
 
-// FeetCloud puffs: alpha by the life left (capped at 8 once the source stops emitting
-// or loses its carrier; dropped past 0), the source's lifetime as the colour. The puff's offset
-// (+0x2C) grows by its speed (+0x38, slowing by 0.9) and the puff eases (+0x24 of the way, which
-// shrinks by 0.98) towards its foot (the element of +0x54) plus the offset; its size is +0x20
-// (shrinking by 0.8).
+// FeetCloud puffs: alpha by the life left (capped at 8 once the source stops emitting or loses its carrier;
+// dropped past 0), the source's lifetime as the colour. The puff's offset (aux0..aux2) grows by its speed
+// (drift, slowing by 0.9) and the puff eases (velocity.y of the way, which shrinks by 0.98) towards its foot
+// (element `state`) plus the offset; its size is velocity.x (shrinking by 0.8).
 int CParticleSource::UpdateFeetCloud(Particle* p) {
     int life = --p->life;
     if (life < 0) return 0;
@@ -3614,9 +3561,8 @@ int CParticleSource::UpdateFeetCloud(Particle* p) {
 }
 EI_REWRITTEN(0x00495C80, CParticleSource::UpdateFeetCloud);
 
-// FeetCloud feet: on a unit carrier the element sits on its foot (left when +0x34 is
-// set, else right), else on its body, else on its position raised by +0x14C; without one on the
-// source. +0x18 gets the carrier figure's radius and the countdown +0x30 is reset.
+// FeetCloud feet: on a unit carrier the element sits on its foot (left when ticks is set, else
+// right), else on its body, else on its position raised by `above.z`; without one on the source.
 void CParticleSource::TickFeetCloud(ParticleElement* e) {
     if (attachedTo && ClassOf(attachedTo) == kUnitClass) {
         CObject3D* unit = attachedTo;
@@ -3644,7 +3590,7 @@ EI_REWRITTEN(0x00495E00, CParticleSource::TickFeetCloud);
 // --- Silence (0x2048) ----------------------------------------------------------------------------
 
 // Silence: the first two particles are orbs at the source (state 1) circling in step
-// (+0x20 the angle, +0x24 its step; +0x2C the tilt, +0x30 its step; the second starts at pi).
+// (velocity.x the angle, velocity.y its step; aux0 the tilt, aux1 its step; the second starts at pi).
 // Further ones are wisps (state 0) somewhere along a random orb's last step, thrown out in a
 // random direction (inside the unit ball, normalised) by 0.8 of the orb's size.
 int CParticleSource::EmitSilence(Particle* p, int) {
@@ -3705,8 +3651,8 @@ EI_REWRITTEN(0x00495320, CParticleSource::EmitSilence);
 
 // Silence: once the source stops emitting (or loses its carrier) the orbs
 // shrink the source by 0.85 per tick, everything going below 0.02. An orb circles the source on a
-// tilted circle (radius: half the carrier's +0x134, kept in +0x34), half a radius up, keeping its
-// step in +0x38 and flickering in size. A wisp shows +0x20 (shrinking by 0.8) for its life.
+// tilted circle (radius: half the carrier's, kept in aux2), half a radius up, keeping its step in
+// drift and flickering in size. A wisp shows velocity.x (shrinking by 0.8) for its life.
 int CParticleSource::UpdateSilence(Particle* p) {
     if (!(flags_ & 1) || !attachedTo) {
         if (p->state) size = static_cast<float>(D(size) * D(0.85f /*0073CEB8*/));
@@ -3739,7 +3685,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     double c = x87::fcos(D(p->velocity.x));
     p->color = 0xFFFFFFFF;
     float sn = static_cast<float>(x87::fsin(D(p->velocity.x)));
-    double hu = x87::fsin(D(p->aux0)) * 0.5 /*0073CC88*/;    // * 0.5
+    double hu = x87::fsin(D(p->aux0)) * 0.5 /*0073CC88*/;
     float h = static_cast<float>(hu);
     double length = std::sqrt(hu * D(h) + D(sn) * D(sn) + c * c);
     double ku = radius / length;
@@ -3778,8 +3724,8 @@ constexpr std::int32_t kModifierAlphaOut[34] = /*0078A88C*/ {0, 32, 64, 128, 255
 
 // Modifier: the first twelve frames are the marker riding its element (state), its size
 // shrinking (negative source size) or growing, alpha by the element's tick. Later frames are
-// sparks stepping through the frames (back to 12 past the last), flying out by +0x20 plus their
-// spread (+0x2C, slowing by 0.9), fading by 48 per tick and shrinking by 0.9.
+// sparks stepping through the frames (back to 12 past the last), flying out by velocity plus their
+// spread (aux0..aux2, slowing by 0.9), fading by 48 per tick and shrinking by 0.9.
 int CParticleSource::UpdateModifier(Particle* p) {
     if (--p->life == 0) return 0;
     if (p->frame < 12) {
@@ -3820,7 +3766,7 @@ int CParticleSource::UpdateModifier(Particle* p) {
 EI_REWRITTEN(0x00490990, CParticleSource::UpdateModifier);
 
 // Modifier markers: for ten ticks (then the source stops emitting) each remembers its
-// position and moves to the source plus its offset (+0x18), raised by spreadMin.x; the offset
+// position and moves to the source plus its offset (ring.offset), raised by spreadMin.x; the offset
 // widens by 1.4 (negative source size) or narrows by 1/1.4 per tick.
 void CParticleSource::TickModifier(ParticleElement* e) {
     int tick = e->ticks++;
@@ -3852,10 +3798,10 @@ bool IsZero(float f) {
 
 } // namespace
 
-// LightningBlast: bolts (state n) ride element n-1; a flash (state set, +0x4C set) shows once (and makes the
-// source emit 50 per tick), then goes. Sparks (state 0): alpha by the life left (the table shifted by 22, as
-// the original), size +0x2C (shrinking by 0.9); with +0x4C set they jump to +0x20 and step a frame, else
-// cycle four frames flying by +0x38 (slowing by 0.6).
+// LightningBlast: bolts (state n) ride element n-1; a flash (state and frameTimer set) shows once (and makes
+// the source emit 50 per tick), then goes. Sparks (state 0): alpha by the life left (the table shifted by 22,
+// a quirk kept), size aux0 (shrinking by 0.9); with frameTimer set they jump to velocity and step a frame,
+// else cycle four frames flying by drift (slowing by 0.6).
 int CParticleSource::UpdateLightning(Particle* p) {
     int life = --p->life;
     if (life < 0) return 0;
@@ -3896,9 +3842,8 @@ int CParticleSource::UpdateLightning(Particle* p) {
 }
 EI_REWRITTEN(0x00492B80, CParticleSource::UpdateLightning);
 
-// LightningBlast bolt heads: the source emits 50 per tick; each head remembers its
-// position (+0x18), moves by its speed (+0x0C), falls (its z speed dropping by 0.075), and the
-// source stops emitting from the tenth tick on.
+// LightningBlast bolt heads: the source emits 50 per tick; each head remembers its position (bolt.base),
+// moves by bolt.fork, falls (its z speed dropping by 0.075), and the source stops from the tenth tick on.
 void CParticleSource::TickLightning(ParticleElement* e) {
     emitCount = 50;
     int tick = ++e->ticks;
@@ -3943,7 +3888,7 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
     } else {
         p->frame = static_cast<int>(Next() & 3);
     }
-    double rise = D(EI_P_ONE) - D(spread) + D(3.0f /*0073BAA4*/);    // 1 - spread + 3
+    double rise = D(EI_P_ONE) - D(spread) + D(3.0f /*0073BAA4*/);
     if (size > EI_P_ZERO) {
         SetBits(&p->velocity.x, 0x3F99999A);     // 1.2
         p->state = -19;
@@ -3959,9 +3904,9 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
 }
 EI_REWRITTEN(0x0048FDB0, CParticleSource::EmitTeleport);
 
-// Teleport sparks: frames 0-3 cycle (and 4-15 run on back to 4); the z step (+0x28) is redone scaled by
-// +0x20; shown at +0x2C (hidden in the last tick); alpha moves by the state per tick, an unsigned sum capped
-// at 255 (so a fade out below 19 jumps back to 255, as the original).
+// Teleport sparks: frames 0-3 cycle (and 4-15 run on back to 4); the z step (velocity.z) is redone scaled
+// by velocity.x; shown at size aux0 (hidden in the last tick); alpha moves by the state per tick, an
+// unsigned sum capped at 255 (a quirk kept: a fade out below 19 jumps back to 255).
 int CParticleSource::UpdateTeleport(Particle* p) {
     int life = --p->life;
     if (life == 0) return 0;
@@ -3986,7 +3931,6 @@ int CParticleSource::UpdateTeleport(Particle* p) {
 }
 EI_REWRITTEN(0x00490060, CParticleSource::UpdateTeleport);
 
-// Teleport: the source stops emitting after 35 ticks.
 void CParticleSource::TickTeleport(ParticleElement* e) {
     if (++e->ticks > 35) flags_ &= ~1u;
 }
@@ -4132,8 +4076,8 @@ int CParticleSource::EmitStartTrans(Particle* p, int) {
 }
 EI_REWRITTEN(0x004965E0, CParticleSource::EmitStartTrans);
 
-// StartTrans: the glow flickers at element 0's +0x18 while carried, then fades (by the
-// life table, size times 0.6); the others come in, cycling four frames at +0x2C, fading out over
+// StartTrans: the glow flickers at trans.scale while carried, then fades (by the
+// life table, size times 0.6); the others come in, cycling four frames at size aux0, fading out over
 // their last ticks (capped at 4 once the carrier is gone).
 int CParticleSource::UpdateStartTrans(Particle* p) {
     if (p->state != 0) {
@@ -4169,16 +4113,14 @@ EI_REWRITTEN(0x00496840, CParticleSource::UpdateStartTrans);
 
 namespace {
 
-// base ^ exponent as VC6 inlines pow for this call: FLDLN2; FLD base; FYL2X; FIMUL exponent;
-// FLDL2E; FMULP; then 2^x by FRNDINT / F2XM1 / FSCALE (left unrounded in ST0).
+// base ^ exponent the way VC6 inlined pow here (through ln and 2^x), left unrounded.
 double PowInline(double base, int exponent) { return x87::fexp(x87::flog(base) * exponent); }
 
 } // namespace
 
-// Nuke: a puff at a random point of the disc of a fifth of the source's size, at a
-// random height up to twice the size, drifting outwards and up (less as the blast ages: element
-// 0's tick); later puffs live shorter, start at a later frame and are more opaque (4 ^ tick * 4,
-// capped at 255).
+// Nuke: a puff at a random point of the disc of a fifth of the source's size, at a random height up to twice
+// the size, drifting outwards and up (less as the blast ages: element 0's tick); later puffs live shorter,
+// start at a later frame and are more opaque (4 ^ tick * 4, capped at 255).
 int CParticleSource::EmitNuke(Particle* p, int) {
     int tick = elements[0].ticks;
     int rise = 11 - tick;
@@ -4186,7 +4128,7 @@ int CParticleSource::EmitNuke(Particle* p, int) {
     float reach = static_cast<float>(Unsigned(Next()) * D(fifth) * EI_P_SCALE_1);
     float turn = static_cast<float>(3.141592653589793 /*0073CAE8*/ + 3.141592653589793 /*0073CAE8*/);    // 2 pi
     double angle = Unsigned(Next()) * D(turn) * EI_P_SCALE_1;
-    volatile double s = x87::fsin(angle);    // kept as a double, like the original
+    volatile double s = x87::fsin(angle);    // kept as a double
     p->pos.x = static_cast<float>(D(reach) * s + D(origin.x));
     volatile double c = x87::fcos(angle);
     p->pos.y = static_cast<float>(D(reach) * c + D(origin.y));
@@ -4268,8 +4210,7 @@ EI_REWRITTEN(0x00493300, CParticleSource::EmitGroundDust);
 
 namespace {
 
-// The unit's point `index` (PositionAt), the client world's surface height and the platforms' surface height
-// over it (through the original address), the heights left unrounded in ST0.
+// The unit's point `index`, and the ground's and the platforms' surface heights there (left unrounded).
 Vector3* UnitPoint(CObject3D* unit, Vector3* out, int index) { return Carrier(unit)->PositionAt(out, index); }
 double TerrainHeight(float x, float y) { return TheClientWorld()->RawSurfaceHeightAt(x, y); }
 double PlatformHeight(const Vector3* at, float ground) {
@@ -4277,7 +4218,6 @@ double PlatformHeight(const Vector3* at, float ground) {
     return ei::Code<Fn>(0x00560F00)(&TheClientWorld()->platforms_, at, ground);
 }
 
-// FCOMP's "equal".
 bool Same(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a == b;
@@ -4286,9 +4226,9 @@ bool Same(float a, float b) {
 } // namespace
 
 // ShapeChange: on the first call one element: the last point (-1, -1, -1) and the colour by the alpha field (0
-// grey, 1 green, 2 orange). Then one glow per point of the carrying unit (up to +0x11C points, from a global
-// offset), on the ground or platform under it, unless the point is where the last one was; the point's index
-// goes in +0x4C and the life is -10 (set by UpdateGlow).
+// grey, 1 green, 2 orange). Then one glow per point of the carrying unit (up to typeParam points, offset by
+// the client tick), on the ground or platform under it, unless the point is where the last one was; the
+// point's index goes in frameTimer and the life is -10 (set by UpdateGlow).
 int CParticleSource::EmitGlow(Particle* p, int index) {
     CObject3D* unit = attachedTo;
     if (elementCount == 0) {
@@ -4331,7 +4271,6 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
 }
 EI_REWRITTEN(0x00492FC0, CParticleSource::EmitGlow);
 
-// ShapeChange: one tick of emission only.
 void CParticleSource::TickGlow(ParticleElement*) {
     flags_ &= ~1u;
 }
@@ -4340,7 +4279,7 @@ EI_REWRITTEN(0x004932F0, CParticleSource::TickGlow);
 // --- Stun (0x204D) -------------------------------------------------------------------------------
 
 // Stun: a star at a random point of the ball of 0.8 times the carrier figure's radius around the source, for
-// 20 ticks, with a random size factor in +0x20. A unit carrier in state 3 gets four stars a tick living 5
+// 20 ticks, with a random size factor in velocity.x. A unit carrier in state 3 gets four stars a tick living 5
 // ticks, else one; once the carrier is gone (nothing emitted) or it is dead (IsDead) the source stops and lets
 // it go.
 int CParticleSource::EmitStun(Particle* p, int) {
@@ -4373,7 +4312,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
     p->pos.x = static_cast<float>(px);
     p->life = 20;
     p->velocity.x = static_cast<float>(Unsigned(Next()) * 1.3969837789817515e-10 /*0073CE10*/ + D(0.7f /*0073C538*/));
-    auto* unit = static_cast<CUnit*>(attachedTo);   // the carrier is taken as a unit, like the original
+    auto* unit = static_cast<CUnit*>(attachedTo);   // the carrier is taken as a unit
     if (!unit) {
         flags_ &= ~5u;
         Attach(nullptr);
@@ -4394,7 +4333,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
 EI_REWRITTEN(0x00495FB0, CParticleSource::EmitStun);
 
 // Stun stars: hidden and dropped past their life; else flickering at a random size of
-// the source's times +0x20. Without a carrier the source stops and is let go.
+// the source's times velocity.x. Without a carrier the source stops and is let go.
 int CParticleSource::UpdateStun(Particle* p) {
     if (--p->life < 0) {
         p->color = 0xFFFFFF;

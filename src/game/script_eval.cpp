@@ -1,5 +1,5 @@
-// Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. See
-// script.h. Rebirth's AddNewScriptCommands dispatches to addon's functions first (script_addon.h).
+// Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. Rebirth's
+// AddNewScriptCommands dispatches to addon's functions first.
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
 // old x87 FCOM counted it as equal and less: the NaN audit, lib/nan_audit.h); the multi-step
 // computations keep their intermediates unrounded (double locals), as x87 registers would.
@@ -325,7 +325,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         if (unit) *result = static_cast<float>(unit->side);
         return;
     }
-    case 0x8F: { // GetAIClass (the unit's size class, +0x324)
+    case 0x8F: { // GetAIClass (the unit's size class)
         CUnit* unit = UnitOrNull(objectArgs.data[0]->object);
         StoreBits(result, kMinusOne);
         if (unit) *result = static_cast<float>(unit->sizeClass);
@@ -614,12 +614,9 @@ namespace {
 
 using TempGroupList = mfc::CList<ScriptGroup>;
 
-// The script's temporary groups: AddTail copies the group into a new node and returns
-// the node.
 inline void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
-// What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's
-// visible list).
+// What a unit sees: the AI brain's visible list.
 void InsertSeen(ScriptGroup* group, CUnitServer* controller) {
     const auto& visible = controller->Brain()->memory.visible;
     for (auto* node = visible.head; node;) {

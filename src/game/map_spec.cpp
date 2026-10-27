@@ -38,7 +38,7 @@ std::uint32_t Bits(float f) {
     return b;
 }
 
-// A string chunk into `field` (the read string is a temporary, as in the original).
+// A string chunk into `field` (through a temporary).
 void ReadInto(Chunk& c, mfc::CString& field) {
     mfc::CString read(mfc::CString::kUnset);
     field = *c.ReadString(&read);

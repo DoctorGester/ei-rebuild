@@ -17,7 +17,7 @@ class PlainMapObject : public CMapObject {
 public:
     PlainMapObject();
     ~PlainMapObject() override;
-    const char* GetClassName() override;   // 11: the class name
+    const char* GetClassName() override;
     int GetClassId() override;
 };
 

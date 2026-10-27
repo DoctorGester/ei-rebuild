@@ -1,9 +1,6 @@
-// The game client's message handlers (registered by the constructor,
-// client in ECX and the message in EDX) and the three party-screen entry points around them
-//. Each keeps the replicated objects the server sends in one of the
-// client's lists and tells the interface or the game flow. The file chunk handler for
-// channel 0) is patched by Rebirth: ours installs in the vanilla launch only. The messages are
-// declared in net_messages.h. See docs/notes/network.md.
+// The game client's message handlers (registered by the constructor) and the three party-screen entry points
+// around them. Each keeps the replicated objects the server sends in one of the client's lists and tells the
+// interface or the game flow. The messages are declared in net_messages.h. See docs/notes/network.md.
 #include "address_order.h"
 #include "library_containers.h"
 #include "net_messages.h"
@@ -32,11 +29,6 @@ void __fastcall ClientApplyParty(ClientSession* self);      // net_client_party.
 
 namespace {
 
-// std::sort of the chunk pointers by index, as the instantiation splits it: the introsort loop
-// (RET 0xC: a null type tag, twice the size's log2, the empty comparator) and the final insertion
-// sort (RET 4: the comparator).
-
-// The interface's text table (0x7C7D50) and the game flow (0x7AFE20), outside this range.
 inline void FlowVariablesChanged(void* flow) { static_cast<GameFlow*>(flow)->UpdateFromServer(); }
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { LoadZoneQuests(a2); }
 
@@ -151,7 +143,7 @@ void ClearTradeRecords(ClientSession* self) { self->tradeRecords_.Clear<recordli
 
 // Records the trade the paired offer stands for: our offer accepts the other's current
 // revision (and changes), and unless a record of the two revisions exists one is added with copies
-// of the two parties (+0x2620, +0x2690) and `party`.
+// of the two parties (parties_) and `party`.
 void ClientSession::RecordTrade(const void* party) {
     PartyMessage* remote = ClientFindParty(this);
     if (!remote) return;
@@ -212,7 +204,7 @@ void __fastcall ClientOnBinding(ClientSession* self, BindingMessage* message) {
     if (!self->players_.Empty()) TheInterface()->OnPlayersChanged(1);
 }
 void __fastcall ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
-// The players on +0x25D8, with the interface's player list refreshed.
+// The players, with the interface's player list refreshed.
 void __fastcall ClientOnPlayer(ClientSession* self, Message* message) {
     AppendRaw(self->players_, message);
     TheInterface()->OnPlayersChanged(1);
@@ -222,7 +214,7 @@ void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message) {
     RemoveCounted(self->players_, message);
     TheInterface()->OnPlayersChanged(1);
 }
-// The chat lines on +0x25DC, each shown with its number.
+// The chat lines, each shown with its number.
 void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {
     AppendCounted(self->lines_, message);
     TheInterface()->OnChatLine(message->text_.data(), message->number_);
@@ -231,7 +223,7 @@ void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { Remove
 // The host message kept.
 void __fastcall ClientOnInfo(ClientSession* self, HostMessage* message) { AssignRef(&self->info_, message); }
 void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }
-// The zones offered on +0x25F8, passed to the game flow.
+// The zones offered, passed to the game flow.
 void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {
     AppendCounted(self->zones_, message);
     TheGameFlow()->MarkBriefing(message->text_.data());
@@ -249,7 +241,7 @@ void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {
     TheGameFlow()->RegisterQuests(message->text_.data());
 }
 void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }
-// The script variables on +0x25FC; the flow is told of every change.
+// The script variables; the flow is told of every change.
 void __fastcall ClientOnVariable(ClientSession* self, Message* message) {
     AppendRaw(self->variables_, message);
     FlowVariablesChanged(TheGameFlow());
@@ -259,8 +251,7 @@ void __fastcall ClientOnVariableGone(ClientSession* self, Message* message) {
     RemoveRaw(self->variables_, message);
     FlowVariablesChanged(TheGameFlow());
 }
-// The shared files on +0x25E0; for a file the flow lacks, a request holding the file goes on
-// +0x25E8.
+// The shared files; for a file the flow lacks, a request holding the file goes on fileRequests_.
 void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {
     AppendRaw(self->files_, message);
     if (MapFileExists(message->name_.data())) return;
@@ -272,12 +263,11 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {
     RemoveRaw(self->files_, message);
     DropRequestsFor(self, message);
 }
-// A chunk of a shared file, kept on +0x25E4. When the list then holds as many chunks of the file as the file
-// message announces, they are sorted by index, their 64 bytes each joined in a growing buffer cut to the
-// file's size, the game flow writes the buffer as the map file of that name, and the requests for the file
-// leave +0x25E8. A file without a name (the text ) is only collected. Rebirth's MQClient (two jumps patched
-// so that it) returns after collecting every chunk: no file from the server is written. The constructor
-// registers the handler by its address.
+// A chunk of a shared file. When chunks_ then holds as many chunks of the file as the file message announces,
+// they are sorted by index, their 64 bytes each joined in a growing buffer cut to the file's size, the game
+// flow writes the buffer as the map file of that name, and the requests for the file leave fileRequests_. A
+// file without a name is only collected. Rebirth's MQClient returns after collecting every chunk: no file from
+// the server is written.
 void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
     AppendRaw(self->chunks_, message);
     auto* file = message->file_.Get();
@@ -326,9 +316,9 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
 }
 EI_REPLACE(0x0041ECC0, ClientOnFileChunk);
 void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(self->chunks_, message); }
-// The awards on +0x2608 (applied by the tick).
+// The awards (applied by the tick).
 void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(self->awards_, message); }
-// The other players' trade offers on +0x2610; the one paired with ours rebuilds the party.
+// The other players' trade offers; the one paired with ours rebuilds the party.
 void __fastcall ClientOnParty(ClientSession* self, Message* message) {
     AppendRaw(self->offers_, message);
     if (ClientFindParty(self) != message) return;

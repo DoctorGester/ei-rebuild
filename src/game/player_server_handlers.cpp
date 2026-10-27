@@ -1,6 +1,6 @@
-// CPlayerServer: what the server does for its player beyond the per-tick sync, the leader's death
-// And the client's messages (handlers by type, from the table CreateServer builds), with
-// the small helpers of the use order. See player_messages.h and docs/notes/objects.md ("Players").
+// CPlayerServer: what the server does for its player beyond the per-tick sync, the leader's death and the
+// client's messages (handlers by type, from the table CreateServer builds). See player_messages.h and
+// docs/notes/objects.md ("Players").
 
 #include "player_messages.h"
 #include "console.h"
@@ -60,14 +60,13 @@ float ExperiencePenalty() { return GameLogicSettings().lostXp; }
 // The AI map's cell size factors: a half-cell coordinate times both is world units.
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
-// The use order's unit list: an MFC CArray<CUnit*> (SetAtGrow, RemoveAt Are the template's members).
+// The use order's unit list.
 using UnitArray = mfc::CArray<CUnit*>;
 
 CUnit* FindUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
-// Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists:
-// 's new node holds a null reference, then the assignment counts the object).
+// Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists).
 void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
     list.AddTail(object);
     ++object->refCount_;
@@ -75,10 +74,8 @@ void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
 
 } // namespace
 
-// The stream the received packets are decompressed into (core_streams.h), zero at the start: built by the static
-// initialiser in the list's order and destroyed once by the exit function it registers
-// (docs/notes/standalone.md, "The static
-// initialisers' objects").
+// The stream the received packets are decompressed into: built by the static initialiser and destroyed once by
+// the exit function it registers (docs/notes/standalone.md).
 constinit lib::StaticObject<CMemoryStream> g_receivedMessages = /*007C83D0*/ {};
 CMemoryStream& ReceivedMessages() { return *g_receivedMessages; }
 
@@ -315,15 +312,15 @@ EI_REPLACE_METHOD(0x00670310, CPlayerServer::OnUseOrder);
 
 namespace {
 
-// The campaign mode (the server world's session kind, CWorldServer::sessionKind_; 1 and 3 end the game when the leader is gone) and the game mode
-// (1 single player, 2 multiplayer).
+// The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind_ (1 and 3 end
+// the game when the leader is gone).
 int GameMode() { return TheServerWorld()->gameResult_; }
 // The next object id for a new party's record (the party manager stores the party).
 int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
 
 constexpr std::uint8_t kMessageZone = 0x08;
 constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
-constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer +0x130
+constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer::dirty_
 using PointArray = mfc::CArray<Vector3>;
 
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
@@ -410,7 +407,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     if (campaign == 1 || campaign == 3) {
         CUnit* leader = FindUnit(static_cast<int>(party->members_.data[0].unitId));
         if (leader == nullptr || ObjectSlots(leader)->IsDead() != 0) {
-            LeaderDied();   // slot 20 (OnLeaderDied)
+            LeaderDied();
             if (!IsMultiplayerClient()) return;
         }
     }

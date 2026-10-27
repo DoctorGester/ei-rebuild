@@ -49,8 +49,8 @@ bool ServerSession::IsHostConnection(const Connection* connection) {
     return false;
 }
 
-// File requests: the request keeps its sender's connection and is listed on +0x259C
-// (dropped again on removal).
+// File requests: the request keeps its sender's connection and is listed on fileRequests_ (dropped again on
+// removal).
 void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
     CRefObject* connection = CurrentConnectionObject();
     CRefObject* previous = message->ConnectionRef().ptr;

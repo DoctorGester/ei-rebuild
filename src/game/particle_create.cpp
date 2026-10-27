@@ -41,13 +41,10 @@ double Unsigned(std::uint32_t value) {
 #define EI_COLOR_SCALE 255.0f /*0073C370*/
 #define EI_SCALE_2 4.656612874161595e-10 /*0073C508*/       // ~2^-31
 #define EI_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/     // ~0.4 * 2^-32
-#define EI_RING_STEP 0.62832 /*0073CC98*/     // 0.62832 (2 pi / 10)
+#define EI_RING_STEP 0.62832 /*0073CC98*/     // 2 pi / 10
 
 // IsaacRandom::Range leaves its result unrounded in ST0.
 double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
-
-// Releases the texture in `holder`, then finds (or creates) the texture resource `name`
-// of `kind` in the resource manager and keeps a reference in `holder`.
 
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
 const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
@@ -256,7 +253,7 @@ void SetupNuke(CParticleSource* s) {
     s->elements[0].ticks = 0;
 }
 
-// Rain and snow (0x200F, 0x2031-0x2033): one element, whose +0x34 picks the kind.
+// Rain and snow (0x200F, 0x2031-0x2033): one element, whose ticks pick the kind.
 void SetupWeather(CParticleSource* s) {
     s->attachPoint = 7;
     s->flags_ |= 0x12;
@@ -310,7 +307,7 @@ void SetupClayRing(CParticleSource* s) {
     }
 }
 
-// Teleport (0x2019) and Nuke share "one element with +0x34 = 0".
+// Teleport (0x2019) and Nuke share "one element with ticks = 0".
 void SetupTeleport(CParticleSource* s) {
     s->emitCount = 20;
     s->maxParticles = 320;
@@ -809,7 +806,7 @@ void CParticleSource::Clear() {
     CTexture* held = texture;
     texture = nullptr;
     if (held) held->Release();
-    if (attachedTo)   // detached from the object it is attached to
+    if (attachedTo)
         attachedTo->RemoveEffectSource(this);
     Reset();
 }
@@ -848,12 +845,8 @@ namespace {
 
 } // namespace
 
-// The class factory's creator (the register arguments are not used, `type` is the source type): a new
-// 0x1F0-byte source on the game's heap (null when that fails) with the engine object and transform bases (two
-// identity rotations), an empty element array, bounds, particle list (blocks of 10), frame rectangles and
-// texture holder, then Reset and the type. The original's EH frame only unwinds the member constructors, none
-// of which can throw. A source never attached emits distance / emitSpacing tries (each a GlobalRandom draw)
-// from the emission point it was allocated with, so the memory comes zeroed.
+// A source never attached emits distance / emitSpacing tries (each a GlobalRandom draw) from the emission point
+// it was allocated with, so the memory comes zeroed.
 void* CParticleSource::operator new(std::size_t size) noexcept { return gamecrt::operator_new_zeroed(size); }
 
 CParticleSource::CParticleSource(int type) {
@@ -889,9 +882,6 @@ CEngineObject* CParticleManager::NewObject(int type) {
     return NewParticleSource(type);
 }
 
-// The destructor body: Clear (particles back to the pool, detached, Reset), release the
-// texture and free the frame rectangles if any are left, empty the particle list and free its
-// blocks, free the element array, then the engine object's base destructor.
 CParticleSource::~CParticleSource() {
     Clear();
     if (texture) texture->Release();

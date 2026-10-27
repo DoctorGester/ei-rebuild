@@ -1,7 +1,5 @@
-// Magic traps: who is inside, and casting at newcomers, the living units of the trap's
-// sides in its circles, casting the spell, set-up from the zone record
-// the constructor and destructor body, Save and Load, Create / Destroy, the update, firing and
-// forgetting a removed object. See magic_trap.h and docs/notes/units.md ("Magic traps").
+// Magic traps: who is inside, casting at newcomers, set-up from the zone record, lifetime, Save and Load and the
+// update. See magic_trap.h and docs/notes/units.md ("Magic traps").
 #include "base_manager.h"
 #include "magic_trap.h"
 
@@ -31,7 +29,6 @@ namespace {
 
 constexpr std::uint32_t kArmed = 0x80000;   // flags_
 
-// A unit's virtual slot 55: non-zero when dead.
 bool IsDead(CEngineObject* unit) { return ObjectSlots(unit)->IsDead() != 0; }
 
 // The units inside: an MFC CList whose elements are counted references.
@@ -43,15 +40,7 @@ using PtrList = mfc::CTypedPtrList<CUnit>;
 using PtrNode = PtrList::Node;
 PtrList NewPtrList() { return PtrList{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10}; }
 
-// The trap's map object context (object.cpp); the living units of the sides `sides` in the circles of `area`,
-// appended to `out` after emptying it (a fastcall with the context in ECX; FindTrapVictims below, called
-// through its address so its verify wrapper sees the call); casting the spell at the newcomers `units`
-// (MagicTrap::CastAtUnits below). The sector map's units within `radius` of `point` into `list` (emptied
-// first; sector_map.cpp).
 constexpr int kPtrListBlockSize = 10;
-// The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
-// reference) and FreeNode (releases it); a counted reference's assignment;
-// the pointer list's NewNode(prev, next) and RemoveAll.
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).
@@ -142,9 +131,7 @@ void __fastcall FindTrapVictims(CWorldServer* context, const TrapArea* area, std
 EI_REWRITTEN(0x0052A920, FindTrapVictims);
 
 namespace {
-// The object's world; the world server casts `spell` from `caster` at
-// `from` on `target` at `at` (arguments: spell, caster, from, target, at, 0).
-constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // spell +0x3C (targetFlags_): cast at the units
+constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // targetFlags_: cast at the units
 constexpr float kFar = 1e30f;                        // a squared distance
 } // namespace
 
@@ -154,7 +141,6 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
     const Vector3& origin = localPosition_;
     Vector3 from = {origin.x, origin.y, origin.z};
     auto* world = ObjectWorld(this);
-    // The world's slot 28: the height at (x, y), in ST0.
     from.z = static_cast<float>(world->RawSurfaceHeightAt(from.x, from.y) + from.z);
     if (!(spell->targetFlags_ & kSpellAtUnits) && points.size != 0) {
         for (int i = 0; i < points.size; ++i) {
@@ -191,8 +177,6 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
 EI_REWRITTEN(0x0052A4B0, MagicTrap::CastAtUnits);
 
 namespace {
-// The spell manager's CreateSpellFromText (the game's own code).
-// The map object context's (the world's) slot 22.
 CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
 
 // The units inside: CList::RemoveAll inlined, as SetUp, the constructor and the destructor all have it (each
@@ -242,12 +226,6 @@ EI_REWRITTEN(0x0052A2C0, MagicTrap::SetUp);
 // --- Construction, destruction, Save / Load ------------------------------------------
 
 namespace {
-// The map object's constructor and destructor body (map_object_lifetime.cpp), its
-// Create and Destroy (slots 2 and 3), the map object part of Load / Save.
-// A counted reference's Save (its object's id, -1 for none); the units inside
-// read back and appended, each resolved in `context` (fastcall: ECX the list, EDX the
-// stream; MFC template code with the reference's Load); CBaseManager::FindObject
-// (base_manager.cpp).
 
 constexpr std::uint32_t kTrapFlags = 0x80040;
 constexpr std::uint32_t kDefaultPeriod = 10;

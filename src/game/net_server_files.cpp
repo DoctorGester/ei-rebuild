@@ -1,5 +1,5 @@
 // The game server's shared files (called by the world for the saved zone data): a file
-// message split into 64-byte chunk messages, queued on +0x2598. See net_classes.h and docs/notes/network.md.
+// message split into 64-byte chunk messages, queued on files_. See net_classes.h and docs/notes/network.md.
 #include "net_coder.h"
 #include "net_messages.h"
 #include "core_refcount.h"
@@ -18,11 +18,10 @@ constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::
 
 } // namespace
 
-// Shares `data` (read from its start to its highest position) under `name` unless a file
-// of that name is listed already: a file message (chunk count, size, name) with a chunk message
-// (the file, its index, up to 64 bytes) per 64 bytes. The vector is
-// first filled with one shared chunk (a copy per element when shared, as RefPtr copies are),
-// whose elements are then filled in turn.
+// Shares `data` (read from its start to its highest position) under `name` unless a file of that name is
+// listed already: a file message (chunk count, size, name) with a chunk message (the file, its index, up to
+// 64 bytes) per 64 bytes. The vector is first filled with one shared chunk (a copy per element when shared,
+// as RefPtr copies are), whose elements are then filled in turn.
 void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     for (RefNode* node = files_.First(); node != files_.End(); node = node->next)
         if (files_.At(node)->name_ == *name) return;

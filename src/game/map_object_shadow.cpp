@@ -1,5 +1,4 @@
-// The shadow of a 3D object on the client. See map_object_shadow.h and docs/notes/map_objects.md
-// ("Shadows").
+// The shadow of a 3D object on the client. See map_object_shadow.h and docs/notes/map_objects.md ("Shadows").
 #include "figure_mesh.h"
 #include "options.h"
 #include "map_object_shadow.h"
@@ -109,13 +108,6 @@ volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_minimumTilt = 20.0;
 
 
-// The render surface, locked and unlocked.
-// CWorldClient::ProjectDecal. The shadow projector: lays the texture's quad on the ground.
-// CSceneRenderer::SetTexture. Texture stages: binds a texture.
-// Light manager: is the point lit, AL.
-// CTextureDevice::DrawFlatBlocks. Device: draws the shadow geometry.
-// Quaternion::PreMultiply; CFigureMesh::DrawOffset.
-
 // *slot = value with counted references; the old value is released.
 void AssignTexture(CTexture** slot, CTexture* value) {
     CTexture* old = *slot;
@@ -201,7 +193,7 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
     direction->z = static_cast<float>(inverse * z);
 }
 
-// The squared distance of a part from the object; parts beyond 1e10 are skipped (NaN is not).
+// Parts beyond 1e10 from the object are skipped (NaN is not).
 bool PartTooFar(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_) > kFarSquared; }
 
 CFigureMesh* PartAt(const CObject3D* object, int i) { return object->parts.data[i]; }
@@ -275,12 +267,10 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
     std::memcpy(description.bits, pixels.data(), pixels.size());
     surface->UnlockPixels();
 
-    // Copy the surface into the shadow texture (the device's Load; in the switch-over both are in the
-    // new renderer's memory, texture_shadow.cpp).
+    // Copy the surface into the shadow texture.
     CTexture* shadowTexture = self->texture;
     shadowTexture->LoadPixelsFrom(TheRenderDevice(), surface);
-    // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format (a
-    // texture in its memory is read from there instead).
+    // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format.
     render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.pitch,
                           description.bitsPerPixel, description.redMask, description.greenMask, description.blueMask,
                           description.alphaMask);
@@ -316,7 +306,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     Matrix4 view;
     view::LightShearMatrix(view.m, &direction);   // (on the pipeline, not read)
     pipeline->PushMatrixProduct(view, kShadowStack);
-    // The point and pixel buffers grow without keeping their contents.
+    // The buffers grow without keeping their contents.
     Points().SetSizeDiscard(kPointBufferSize);
     Pixels().SetSizeDiscard(kPointBufferSize);
     int count = 0;
@@ -324,9 +314,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     view::LightRotation(&direction, &turn);   // (likewise)
     CObject3D* object = self->object;
     // The original turns the object back with the conjugate (PreMultiply), which is not exact: each re-rendered
-    // shadow moved the orientation by an ulp, and how often that ran followed the frame timing. Ours keeps the
-    // orientation and puts it back (a determinism fix kept in the standalone; the harness does the same in the
-    // original, harness_shadow_turn.h).
+    // shadow moved the orientation by an ulp, as often as the frame timing ran it. Ours keeps the orientation
+    // and puts it back (a determinism fix; harness_shadow_turn.h does the same in the original).
     const Quaternion kept = object->localRotation_;
     object->localRotation_.PreMultiply(turn);
     ObjectWorldMatrix(&object->localRotation_, &object->localPosition_, &object->worldMatrix);
@@ -483,7 +472,7 @@ bool ShadowCastStrength(CObject3D* object, float* strength) {
     if (ShadowMode() <= 0) return false;
     if (!ShadowSwitch(object->GetClassId())) return false;
     if (object->flags_ & kObjectHidden) return false;
-    if (ObjectSlots(object)->InvisibleSlot()) return false;   // invisible
+    if (ObjectSlots(object)->InvisibleSlot()) return false;
     *strength = 1.0f;
     if (CUnit* unit = UnitOrNull(object)) *strength = unit->ClientController()->fadeIn;
     return true;

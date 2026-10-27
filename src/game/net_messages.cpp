@@ -1,5 +1,5 @@
 // The network message classes (net_messages.h) and the message base: for each class its factory, constructor,
-// copy (Clone's), slots 2-5 (reset, clone, write, read) and destructor; the same for the lobby's server entry
+// copy (Clone's), OnShutdown, Clone, Write, Read and destructor; the same for the lobby's server entry
 // (net_classes.h; no factory).
 // More: docs/notes/comments-c22i.md, "net_messages.cpp".
 #include "net_messages.h"
@@ -496,7 +496,7 @@ void TradeMessage::Read(BufferCursor* cursor) {
 // PartyMemberMessage.
 
 // Original bug kept: the copy's stream is sized like ours, then its (uninitialised) bytes are
-// read into ours (slot 1, Read) instead of ours being written into it.
+// read into ours instead of ours being written into it.
 PartyMemberMessage::PartyMemberMessage(const PartyMemberMessage& other) : Message(other) {
     stream_.SetSize(other.stream_.size_);
     CStream* copy = &stream_;
@@ -579,7 +579,7 @@ void PartyMessage::Read(BufferCursor* cursor) {
     TakeObject(cursor, partner_);
 }
 
-// ServerEntryBase and ServerEntry (net_classes.h): made by the server list code (the server list).
+// ServerEntryBase and ServerEntry (net_classes.h): made by the server list code.
 
 ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), address_(other.address_) {
     std::memcpy(&timeout_, &other.timeout_, 4);   // the floats copied as dwords
@@ -629,7 +629,7 @@ void ServerEntry::Read(BufferCursor* cursor) {
     Take(cursor, password_);
 }
 
-// The registrations: the factories, then each class's slots 2-5.
+// The registrations: the factories, then each class's virtuals.
 
 EI_REWRITTEN(0x004170A0, LoginMessage::Create);
 EI_REWRITTEN(0x00413570, LoginMessage::OnShutdown);

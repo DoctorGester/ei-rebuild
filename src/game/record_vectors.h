@@ -1,9 +1,8 @@
 #pragma once
 
-// Element policies (lib/stlp_vector.h) of the game's vector<T> instantiations whose elements are
-// game records with their own copy constructor, operator= and destructor, and the
-// VectorAbi types record_vectors.cpp registers at the instantiations' addresses
-// (docs/notes/standalone.md).
+// Element policies (lib/stlp_vector.h) of the game's vector<T> instantiations whose elements are game records
+// with their own copy constructor, operator= and destructor, and the VectorAbi types record_vectors.cpp
+// registers at the instantiations' addresses (docs/notes/standalone.md).
 
 #include "acks_db.h"
 #include "engine_object.h"
@@ -282,11 +281,10 @@ struct records::ElementOf<acks::EnvironmentSpeech> {
 
 namespace acks {
 
-// The records' head as their compiler-written members copy it: the name, then the map by ack kind
-// (STLport's copy constructor and operator=, over _M_copy_from; the
-// copy's map still points into the source record's lists, as in the game). By default an
-// empty name with room for 8 bytes and an empty map of 193 buckets; its functor bytes
-// are an uninitialised stack byte in the game, 0 here).
+// The records' head as their compiler-written members copy it: the name, then the map by ack kind (STLport's
+// copy constructor and operator=, over _M_copy_from; the copy's map still points into the source record's
+// lists, as in the game). By default an empty name with room for 8 bytes and an empty map of 193 buckets; its
+// functor bytes are an uninitialised stack byte in the game, 0 here).
 using SpeechTable = stlp::hashtable<stlp::DwordKeyTraits<8>>;
 inline SpeechTable& SpeechTableOf(AckRecordHead& head) { return *reinterpret_cast<SpeechTable*>(&head.speeches); }
 inline const SpeechTable& SpeechTableOf(const AckRecordHead& head) {

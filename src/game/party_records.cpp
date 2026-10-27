@@ -23,11 +23,6 @@
 namespace {
 
 int __cdecl MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
-// Counted pointer helpers: copy(first, last, result) (__fastcall, returns the result's end), the destructor
-// (__thiscall (flags)), release, the copy constructor, vector _M_insert_overflow(pos, x, n)
-// (stlp::CountedRefVector's). The embedded party: adds a member record (three strings), sets a named variable
-// (+0x54
-// table).
 
 const char* const kHero = "Hero";
 const char* const kHumanHero = "Human Hero";
@@ -132,8 +127,6 @@ EI_REWRITTEN(0x004A5FA0, NamedPartyRecords::Remove);
 // ---- The party manager -----------------------------------------------------------------
 
 namespace {
-
-// The party object: CopyFrom(const Party*), Reset(int, int).
 
 // The party stored under `key` (find, inlined), null if none.
 CParty* FindParty(const PartyMap& parties, int key) {

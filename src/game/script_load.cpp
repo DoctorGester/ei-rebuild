@@ -1,10 +1,7 @@
 // Loading the mission script from a savegame (CScript::Load) and the loaders of its parts:
 // the particle / FX / lightning lists, command blocks, WorldScript blocks, if-then
-// arrays, the four kinds of variables, script instances and runs. The mirror image of
-// script_save.cpp; see script.h and docs/notes/script.md.
-// Every piece is read through the stream's Read in the save's order and in its pieces. CArray::SetSize(n, -1)
-// and CList::AddTail are written out (InlineSetSize, AppendNode) with the instantiation's own
-// element helpers, which are called through their addresses (MFC template code, config/library.csv).
+// arrays, the four kinds of variables, script instances and runs. The mirror image of script_save.cpp; see
+// docs/notes/script.md. Every piece is read through the stream's Read in the save's order and in its pieces.
 #include "base_manager.h"
 #include "core_streams.h"
 #include "script.h"
@@ -30,31 +27,12 @@
 
 namespace {
 
-// ---- Original code called by the loaders ---------------------------------------------------------
-
-// Loaders taking the stream: the point light (0x20 slot) and
-// the FX source (list node data) are script_effects.cpp's; ScriptVars, SSCCmd
-// and one if-then pair of an instance are defined below. CStream::ReadString:
-// bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
-
-// Object lookups: the id registry (refcount raised by the caller),
-// the world's FindObject.
+// The id registry (the caller raises the reference count).
 CBaseManager* Registry() { return TheServerWorld()->manager48_; }
-
-// CArray template members (out of line) (size, growBy).
-// Copies (CArray::Copy / ScriptVars assignment) (source).
-// ScriptVars constructor / destructor body.
-
-// ConstructElements / DestructElements instantiations (first, count) and element
-// destructors (flags; 0 = destroy in
-// place).
-
-// SSCCmd's argument arrays (out of line) (size, growBy): floats, group pointers,
-// bindings (both arrays), nested calls (a new SSCCmd per element).
 
 } // namespace
 
-// ---- Inlined template code (script_array.h) ------------------------------------------------------
+// ---- Inlined template code -------------------------------------------------------------------------
 
 namespace scriptarray {
 
@@ -122,9 +100,7 @@ namespace {
 
 using namespace scriptarray;
 
-// CList::NewNode instantiations (particle sources, FX sources, lightning,
-// command blocks, instances, runs): mfc::impl::NewNodeAs<Abi>. AddTail: a new node
-// after the tail, its element filled by `fill`, then linked.
+// CList::AddTail as the loaders inline it: the new node's element is filled by `fill` before it is linked.
 template <typename Abi, typename T, typename E, typename Fill>
 void AppendNode(mfc::CList<T, E>* list, Fill fill) {
     auto* node = mfc::impl::NewNodeAs<Abi>(list, list->tail, nullptr);
@@ -142,12 +118,11 @@ int ReadInt(ScriptStream* stream) {
     return value;
 }
 
-// The stream's format version (+8); areas are saved from 0x57 on.
+// Areas are saved from 0x57 on.
 int StreamVersion(const ScriptStream* stream) { return static_cast<int>(stream->version_); }
 
 
-// An object id as the list loaders resolve it: -1 is none, else the registry's object (the list's
-// effect class) with its reference count raised.
+// -1 is none, else the registry's object with its reference count raised.
 template <class T>
 T* AcquireById(int id) {
     if (id == -1) return nullptr;
@@ -160,10 +135,8 @@ T* AcquireById(int id) {
 // ids resolve in its lists whatever script is loaded.
 const CScript* SavedScript() { return TheServerWorld()->MainScript(); }
 
-// CScript::FindBlock on the saved script, as the loaders inline it.
 ScriptDecl* FindBlock(int id) { return SavedScript()->FindBlock(id); }
 
-// The four variable loaders of one ScriptVars (globals, instances).
 void LoadVariables(ScriptVars* vars, ScriptStream* stream) {
     NamedValues(&vars->floats)->Load(stream);
     NamedValues(&vars->strings)->Load(stream);
@@ -279,8 +252,6 @@ void SSCCmd::Load(ScriptStream* stream) {
 }
 EI_REWRITTEN(0x004B5FE0, SSCCmd::Load);
 
-// One nested call element (SSCCmd::Load calls it per element): type, argument index, then the
-// element's command through SSCCmd::Load's address.
 void ScriptSubCall::Load(ScriptStream* stream) {
     stream->Read(&type, 4);
     stream->Read(&argIndex, 4);
@@ -288,7 +259,6 @@ void ScriptSubCall::Load(ScriptStream* stream) {
 }
 EI_REWRITTEN(0x004B6330, ScriptSubCall::Load);
 
-// A string: read into a temporary CString, assigned, the temporary destroyed.
 void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
     mfc::CString temporary(mfc::CString::kUnset);
     *out = *stream->ReadString(&temporary);
@@ -331,7 +301,7 @@ void ScriptIfThen::Load(ScriptStream* stream) {
 }
 EI_REWRITTEN(0x004BB590, ScriptIfThen::Load);
 
-// The block lists are MFC CLists of ScriptDecl; the id is compared as the block's +0x14.
+// Negative ids are WorldScript blocks.
 ScriptDecl* CScript::FindBlock(int id) const {
     const auto& list = id < 0 ? worldBlocks_ : blocks_;
     for (auto* node = list.head; node;) {
@@ -402,8 +372,7 @@ EI_REWRITTEN(0x004B3AD0, ScriptVars::Load);
 // Each list loader reads the count, appends that many default nodes, then reads every node of the
 // list from the head (a list that was not empty would have its old nodes read again).
 
-// Particle sources (CScript +0x14; element 0x24 bytes at node +8): source object, id, flags,
-// moving, steps, step (12 bytes), lifetime.
+// Particle sources: source object, id, flags, moving, steps, step (12 bytes), lifetime.
 void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
@@ -425,7 +394,7 @@ void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, Scri
 }
 EI_REWRITTEN(0x004CA480, ScriptParticlesLoad);
 
-// FX sources (CScript +0x30; element 0x34 bytes): each node is filled by the FX source loader.
+// FX sources: each node is filled by the FX source loader.
 void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
@@ -447,7 +416,7 @@ void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStre
 }
 EI_REWRITTEN(0x004CA5D0, ScriptFxSourcesLoad);
 
-// Lightning (CScript +0x4C; element: object, id).
+// Lightning: object, id.
 void __fastcall ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
@@ -465,7 +434,7 @@ void __fastcall ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStr
 }
 EI_REWRITTEN(0x004CA720, ScriptLightningLoad);
 
-// WorldScript blocks (CScript +0x178; element ScriptDecl): id, count, each SSCCmd.
+// WorldScript blocks: id, count, each SSCCmd.
 void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
@@ -489,8 +458,7 @@ void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream) {
 }
 EI_REWRITTEN(0x004CA810, ScriptWorldBlocksLoad);
 
-// Script instances (CScript +0x140; element ScriptDefinition): killed flag, name, parameter
-// types, if-then pairs, variables.
+// Script instances: killed flag, name, parameter types, if-then pairs, variables.
 void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
@@ -528,8 +496,8 @@ void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream)
 }
 EI_REWRITTEN(0x004CA980, ScriptInstancesLoad);
 
-// Runs (CScript +0x15C; element ScriptRun): block id (FindBlock), index, ticks, sleep start, the
-// index of its instance in the loading script's instance list (-1 or out of range: none), vars.
+// Runs: block id, index, ticks, sleep start, the index of its instance in the loading script's instance list
+// (-1 or out of range: none), vars.
 void __fastcall ScriptRunsLoad(ScriptRuns* list, ScriptStream* stream) {
     int count = ReadInt(stream);
     for (int i = 0; i < count; ++i) {
@@ -580,7 +548,6 @@ EI_REWRITTEN(0x004CAC00, ScriptRunsLoad);
 void CScript::LoadState(ScriptStream* stream) {
     g_streamedScript = this;
 
-    // Point lights (+0x00; 0x20-byte slots).
     mfc::impl::ArrayAs<gamearrays::PointLights>(pointLights_).SetSize(ReadInt(stream), -1);
     for (int i = 0; i < pointLights_.size; ++i) pointLights_.data[i].ScriptPointLightLoad(stream);
 

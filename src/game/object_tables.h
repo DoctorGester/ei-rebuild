@@ -126,8 +126,7 @@ struct CMapDatabase {
     bool Load(const char* fileName);
     // Loads "map.txt", then "map-LMP.txt"; returns the second Load's result (WinMain does not read it).
     bool LoadAll();
-    // The constructor: the two arrays empty with their vtables. It runs from a static initialiser on the
-    // database, before the hooks are installed, so the hook on it never fires. Returns this.
+    // The constructor: the two arrays empty with their vtables (run by a static initialiser). Returns this.
     CMapDatabase* Construct();
     // The maps' array (its vtable back, each record's destructor, the storage freed), then the allods' (each
     // allod's map indices freed, its six strings from the last), as the compiler wrote it.
@@ -138,8 +137,6 @@ struct CMapDatabase {
 };
 static_assert(offsetof(CMapDatabase, maps) == 0x14);
 static_assert(sizeof(CMapDatabase) == 0x28);
-
-// The game's map database.
 
 // The game's hash_map<CString, float> (the party's and players' variables, the briefing's copies):
 // STLport's hashtable over pair<CString, float> (stlp_hash.h; its members are registered in

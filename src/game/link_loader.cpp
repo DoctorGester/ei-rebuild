@@ -1,5 +1,4 @@
-// The link figure loader's .lnk reading and mesh cache. See
-// link_figure.h and CLinkFigureLoader in model.h.
+// The link figure loader's .lnk reading and mesh cache. See link_figure.h and CLinkFigureLoader in model.h.
 #include "core_refcount.h"
 #include "link_figure.h"
 
@@ -280,7 +279,7 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
     FigureModel* memory = gamecrt::operator_new_as<FigureModel>();
     auto* set = memory ? ConstructFigureModel(memory) : nullptr;
     figureSets_[*name] = set;
-    // The map is indexed a second time (resize for one more element included), like the original.
+    // The map is indexed a second time (resize for one more element included).
     figureSets_[*name]->Open(files[0], files[1], files[2]);
     auto* found = figureSets_.Find(*name);
     return found ? found->value : nullptr;

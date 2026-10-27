@@ -1,9 +1,7 @@
 #pragma once
 
-// The zone file's object records (the .mob objects): chunk readers / writers (Chunk, chunk_stream.h) that are
-// also the map editor's live objects: Spec and the classes on it, each with the game's 12 virtuals (OnChunk,
-// File, then Spec's virtuals; the last is ObjectSpec's WriteFields or EffectSpec's SetVisible). See
-// docs/notes/objects.md ("Rewritten").
+// The zone file's object records (the .mob objects): chunk readers / writers that are also the map editor's
+// live objects. See docs/notes/objects.md.
 #include "chunk_stream.h"
 #include "lock_key.h"
 #include "maths.h"
@@ -75,10 +73,9 @@ static_assert(sizeof(LeverSetup) == 0x18);
 
 namespace mapspec {
 
-// An MFC CArray of plain elements.
 using PlainArray = mfc::CArray<std::uint8_t>;
 
-// A unit record's behaviour (alarm) records (map_spec_unit.cpp; the brain applies one). A waypoint.
+// A waypoint of a unit record's patrol.
 struct Waypoint {
     Vector3 position;
     float time;                  // the look's turning time (AILook::time; chunk BBBE0003)
@@ -94,17 +91,14 @@ struct Patrol {
 };
 static_assert(sizeof(Patrol) == 0x20);
 
-// CArray<Patrol> (a behaviour's patrols).
 struct Patrols : mfc::CArray<Patrol> {
-    // The patrols become a copy of `from` (each patrol copied through a temporary returned by
-    // value, as the original does).
+    // The patrols become a copy of `from` (each patrol copied through a temporary returned by value).
     void CopyFrom(const Patrols& from);
-    // By-value GetAt: element `index` copy-constructed into `result` (the position, then the
-    // waypoints: storage for exactly the source's count, zero filled, the waypoints copied). Returns result.
+    // By-value GetAt: element `index` copy-constructed into `result`.
     Patrol* CopyAt(Patrol* result, int index) const;
 };
 
-// A unit's behaviour record.
+// A unit's behaviour (alarm) record; the brain applies one.
 struct Behaviour {
     mapspec::Behaviour* DeleteScalar(unsigned flags);
     void Read(CStream* stream);
@@ -113,7 +107,7 @@ struct Behaviour {
     Patrols patrols;
     Vector3 guard;               // the unit's position when saved
     std::uint32_t loop;          // (1) a patrol loops; 0: its points are walked back too
-    std::uint32_t flags;         // bit 3: the unit is always updated (the brain's +0x37)
+    std::uint32_t flags;         // bit 3: the unit is always updated
     float guardRadius;
     float field0A;               // (-1) chunk BBBC000A, only read and written with the record
     std::uint32_t alarmKind;     // the alarm raised when the countdown ends (low byte)
@@ -129,8 +123,7 @@ static_assert(sizeof(Behaviour) == 0x4C);
 Behaviour* __fastcall BehaviourConstruct(Behaviour* self);
 void __fastcall BehaviourDestruct(Behaviour* self);
 
-// The base record. The records are read and written chunk by chunk (no record is a
-// block of file bytes). They live on the game's heap.
+// The base record. The records are read and written chunk by chunk (no record is a block of file bytes).
 class Spec : public Chunk {
 public:
     Spec();
@@ -138,7 +131,7 @@ public:
     void OnChunk() override {}
     // The world object with the record's id.
     virtual void* WorldObject();
-    virtual void Nothing(int) {}                            // (empty)
+    virtual void Nothing(int) {}
     // The type name in `out` (a CString returned by value): "error".
     virtual mfc::CString* TypeName(mfc::CString* out);
     // Moves the record, then Apply.
@@ -191,7 +184,7 @@ public:
 
     // The world object an object record makes is a map object (a unit for a unit record).
     CMapObject* MapObject() const;
-    CUnit* Unit() const;   // map_spec_unit.cpp
+    CUnit* Unit() const;
 
     mfc::CString model;          // (empty)
     std::int32_t parentId;
@@ -258,7 +251,7 @@ struct ZoneDiplomacy {
 static_assert(offsetof(ZoneDiplomacy, names) == 0x1000);
 static_assert(sizeof(ZoneDiplomacy) == 0x1014);
 
-// The effect records' base (code in map_spec_effect.cpp).
+// The effect records' base.
 class EffectSpec : public Spec {
 public:
     ~EffectSpec() override;
@@ -267,7 +260,7 @@ public:
     void* WorldObject() override;
     // Moves the record, not below the terrain, then Apply.
     void Move(float dx, float dy, float dz) override;
-    // SetVisible (the sound record's is the same code). Shows or hides the world object (flag 0x40 hides).
+    // Shows or hides the world object (flag 0x40 hides).
     virtual void SetVisible(std::uint8_t newVisible);
 
     // The world object an effect record makes (the effect's carrier: a transform object).
@@ -338,8 +331,7 @@ public:
     std::uint8_t unused_86[2];
 };
 
-// A unit record (chunk BBBB0000). The world server's CreateUnits
-// fills one on the stack for each unit it creates.
+// A unit record (chunk BBBB0000). The world server's CreateUnits fills one for each unit it creates.
 class UnitSpec : public ObjectSpec {
 public:
     UnitSpec();
@@ -356,26 +348,24 @@ public:
 };
 
 ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self);
-// The records of a .mob file by id (a local of the zone loader): an STLport hash_map<int, record*> (100
-// buckets to start) and the largest id read.
+// The records of a .mob file by id (a local of the zone loader) and the largest id read.
 struct MobRecords {
     stlp::hash_map<std::int32_t, Spec*, stlp::IntHash> byId;
     std::int32_t maxId;
 };
 static_assert(offsetof(MobRecords, maxId) == 0x14);
 
-// A .mob file's root chunk (mob_reader.cpp; CWorldServer::LoadMapObjects opens it).
+// A .mob file's root chunk (CWorldServer::LoadMapObjects opens it).
 class MobFile : public RootChunk {
 public:
-    // Reads the file's top-level chunks: the scripts (0xACCEECCA plain,
-    // 0xACCEECCB encoded) into `scripts`, the weather (0xABD0: wind and time of day, applied to the
-    // server), the records (0xB000) into `records`, the players (0xDDDDDDD1) into `diplomacy`.
-    // Returns the last 0xC000 (true) / 0xD000 (false) seen, true without either (AL).
+    // Reads the file's top-level chunks: the scripts (0xACCEECCA plain, 0xACCEECCB encoded) into `scripts`,
+    // the weather (0xABD0: wind and time of day, applied to the server), the records (0xB000) into `records`,
+    // the players (0xDDDDDDD1) into `diplomacy`. Returns the last 0xC000 (true) / 0xD000 (false) seen, true
+    // without either.
     bool ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, mfc::CString* scripts);
-    // Reads the file, applies its player relations, makes every record's world
-    // object (traps learn their hostile players, units their alarm records), frees the records, then
-    // loads the scripts unless `keepIds`' low byte is set. Returns true (AL). The first argument
-    // (the world) is not used.
+    // Reads the file, applies its player relations, makes every record's world object (traps learn their
+    // hostile players, units their alarm records), frees the records, then loads the scripts unless
+    // `keepIds`' low byte is set. Returns true.
     bool Load(void* unused, int keepIds);
 };
 

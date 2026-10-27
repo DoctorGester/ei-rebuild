@@ -27,7 +27,7 @@
 
 namespace {
 
-// The variables table (object_tables.cpp / not rewritten), through the game addresses.
+// The variables table (object_tables.cpp).
 void VariableSet(NamedFloatTable* table, const char* name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
 

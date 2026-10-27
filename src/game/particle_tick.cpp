@@ -1,9 +1,7 @@
-// CParticleSource's per-frame tick and the particle pool. Names are provisional. Each tick: copy the world's
-// wind, follow the attachment (or the source's own position) and derive the motion since the last tick with a
-// basis (side, up) around it, run the element callback on every element, the update callback on every
-// particle (rebuilding the bounding box), then emit new particles. The callbacks are __thiscall on the source
-// (effects.h). Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, static_cast<float> where it stores to a float.
+// CParticleSource's per-frame tick and the particle pool. Each tick: copy the world's wind, follow the attachment
+// (or the source's own position) and derive the motion since the last tick with a basis (side, up) around it,
+// run the element callback on every element, the update callback on every particle (rebuilding the bounding
+// box), then emit new particles. `double` holds what the original keeps on the FPU stack.
 #include "effects.h"
 #include "map_object_figures.h"
 
@@ -24,11 +22,11 @@ namespace {
 inline double D(float f) { return f; }
 
 // Constants the original reads from memory at run time.
-#define EI_ZERO 0.0f /*0073B858*/          // 0.0 (the z of the up axis the side is crossed with)
+#define EI_ZERO 0.0f /*0073B858*/          // the z of the up axis the side is crossed with
 #define EI_ONE 1.0f /*0073B84C*/
 #define EI_HALF 0.5f /*0073B86C*/
-#define EI_STILL 0.001 /*0073BA88*/        // 0.001: below this the source is not moving
-#define EI_DEGENERATE 1e-10 /*0073CE00*/   // 1e-10
+#define EI_STILL 0.001 /*0073BA88*/        // below this the source is not moving
+#define EI_DEGENERATE 1e-10 /*0073CE00*/
 
 constexpr std::uint32_t kFarBits = 0x47C35000;     // 100000.0f
 constexpr std::uint32_t kNearBits = 0xC7C35000;    // -100000.0f
@@ -61,8 +59,7 @@ void GrowBounds(Vector3& low, Vector3& high, const Vector3& p) {
     high.z = high.z >= p.z ? high.z : p.z;
 }
 
-// Saves the fields the update callback may change, so a rejected update can be undone (dword
-// copies, as in the original).
+// Saves the fields the update callback may change, so a rejected update can be undone (dword copies).
 void SavePrevious(Particle* p) {
     std::memcpy(&p->prevPos, &p->pos, sizeof(Vector3));
     p->prevColor = p->color;
@@ -94,7 +91,6 @@ Particle* CParticleManager::AcquireParticle() {
 }
 EI_REWRITTEN(0x00498870, CParticleManager::AcquireParticle);
 
-// Appends the particle to the free list.
 void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.AddTail(p); }
 EI_REWRITTEN(0x004987C0, CParticleManager::ReleaseParticle);
 

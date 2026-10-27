@@ -1,10 +1,9 @@
-// The .mob zone file reader: one function reads the top-level chunks, another turns the
-// records into world objects. Names are provisional; the record classes are map_spec.h.
-// The record loader has a branch under a global (a colour quantisation of the objects' tints,
-// through STLport map / list / introsort instantiations). Nothing in the game,
-// addon.dll or EI_Plugin.asi writes that global (it sits in zero-initialised data; a byte search
-// finds its address only in the test), so the branch never runs and is not
-// reproduced: see docs/notes/script.md.
+// The .mob zone file reader: one function reads the top-level chunks, another turns the records into world
+// objects. Names are provisional; the record classes are map_spec.h. The record loader has a branch under a
+// global (a colour quantisation of the objects' tints, through STLport map / list / introsort
+// instantiations). Nothing in the game, addon.dll or EI_Plugin.asi writes that global (it sits in
+// zero-initialised data; a byte search finds its address only in the test), so the branch never runs and is
+// not reproduced: see docs/notes/script.md.
 #include "map_spec.h"
 #include "options.h"
 
@@ -45,7 +44,6 @@ constexpr int kBehaviourCount = 5;
 
 // The limit the .mob wind strength is clamped to (never written: 0).
 float MobWindLimit() { return options::TheOptions()->defaultWindForce_; }
-// The mission script (a CScript global).
 
 // A new record for the given chunk id, or null for other ids (or without memory).
 Spec* NewRecord(std::uint32_t id) {

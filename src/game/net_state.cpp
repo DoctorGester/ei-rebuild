@@ -1,6 +1,5 @@
-// The network state writers of map objects and units: the virtual slot
-// that writes an object's dirty fields into its DeltaState for the clients. See
-// docs/notes/units.md ("Network state").
+// The network state writers of map objects and units: the virtual slot that writes an object's dirty fields
+// into its DeltaState for the clients. See docs/notes/units.md ("Network state").
 #include "map_object_figures.h"
 #include "net_delta.h"
 
@@ -22,9 +21,6 @@ namespace {
 
 // The world (ObjectWorld) as the base class.
 CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
-
-// The unit's equipment ids (11 words: 4, the weapon, 6); the path's writer
-// (the path's writer on the controller's path).
 
 constexpr int kClassServerController = 0x3E;
 
@@ -136,8 +132,6 @@ void CUnit::WriteNetState() {
 namespace {
 
 
-// A companion as its virtual interface.
-
 // Whether the stream read against (delta::g_readSnapshot) is consumed: slot 5 (position) == slot 4 (size).
 std::uint32_t SnapshotConsumed() {
     BitStream* snapshot = delta::g_readSnapshot;
@@ -159,7 +153,7 @@ std::uint32_t CMapObject::ReadNetState(int first) {
         if (before != PackedVitals()->hitPoints || first == 1) RefreshWounds();
     }
     if (DeltaField* field = state->BeginField(1)) {
-        Vector3 figureScale;   // the figure scale
+        Vector3 figureScale;
         field->ReadDelta(&figureScale, 0xC);
         SetFigureScale(&figureScale.x);
         complete &= SnapshotConsumed();
@@ -203,10 +197,6 @@ std::uint32_t CMapObject::ReadNetState(int first) {
 }
 
 namespace {
-
-// CUnit helpers: release all items, the move speeds, MarkChanged, the path's reader and two accessors; the
-// motion's path on +0x27C; a player's unit list remove / add; the object's manager context and the client's
-// local view; the field reader's CString, CString operator= and destructor.
 
 constexpr float kStatEpsilon = 1e-4f;
 
@@ -287,7 +277,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         field->ReadDelta(&value, 4);
         if (unit->activeWeapon != value) {
             changed = true;
-            unit->Controller()->ShowWeapon(value);   // slot 25
+            unit->Controller()->ShowWeapon(value);
         }
         unit->pendingWeapon = static_cast<int>(unit->activeWeapon);
         field->EndField();
@@ -308,7 +298,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         field->ReadDelta(&unit->actionSound, 1);
         if (unit->motionMode == 1) --unit->animationStart;
         float time = static_cast<float>(WorldOf(unit)->tick_);
-        unit->Controller()->RestartAnimation(time);   // slot 14
+        unit->Controller()->RestartAnimation(time);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(9)) {
@@ -384,7 +374,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
             unit->Controller()->SetArmourModels(ids7, 7);
             unit->Controller()->SetWeaponModels(ids4, 4);
         }
-        unit->Controller()->ShowWeapon(unit->activeWeapon);   // slot 25
+        unit->Controller()->ShowWeapon(unit->activeWeapon);
         unit->Controller()->RefreshEquipment();
     }
     return complete;

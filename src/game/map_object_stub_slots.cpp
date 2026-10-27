@@ -22,8 +22,7 @@ constexpr std::uint32_t kStateUnsent = 2;       // flags_: the network state has
 
 // --- Empty slots -------------------------------------------------------------------------------------
 
-// Nothing (plain RET): ClearState, EffectsChanged, UpdateSizeClasses, UpdateMoveFactors, RefreshWounds. One
-// byte each: too short to hook, registered so the addresses are known.
+// Nothing: ClearState, EffectsChanged, UpdateSizeClasses, UpdateMoveFactors, RefreshWounds.
 void __fastcall MapObjectNothing(CMapObject*) {}
 EI_REPLACE(0x0050E760, MapObjectNothing);
 EI_REPLACE(0x0050E420, MapObjectNothing);
