@@ -9,7 +9,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
 
 ## Setup
 
-- Ghidra (with game.exe analysed) is reachable through the `mcp__ghidra__*` tools, or directly at
+- Ghidra (with game.exe analysed), when the user has it running, answers at
   `http://127.0.0.1:8080` (`/decompile_function?address=0x...`, `/disassemble_function?address=0x...`,
   `/xrefs_to?address=0x...&limit=N`, `/get_function_by_address`, `/strings?filter=`, POST
   `/rename_function_by_address` with `function_address` and `new_name`).
