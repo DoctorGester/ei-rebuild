@@ -44,7 +44,7 @@ namespace {
 // ReadStream refuses longer streams.
 constexpr std::uint32_t kMaxStreamLength = 100000;
 
-// The growing buffer's constructor and destructor (not rewritten).
+// The growing buffer's constructor and destructor.
 
 // The number of bytes in a buffer, its high-water mark raised to the cursor first (inlined).
 std::uint32_t BufferLength(GameBuffer& b) {

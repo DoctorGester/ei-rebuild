@@ -77,7 +77,7 @@ void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
 
 // The stream the received packets are decompressed into (core_streams.h), zero at the start: built by the static
 // initialiser in the list's order and destroyed once by the exit function it registers
-// both ported on the name and registered at their addresses (docs/notes/standalone.md, "The static
+// (docs/notes/standalone.md, "The static
 // initialisers' objects").
 constinit lib::StaticObject<CMemoryStream> g_receivedMessages = /*007C83D0*/ {};
 CMemoryStream& ReceivedMessages() { return *g_receivedMessages; }

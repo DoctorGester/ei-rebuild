@@ -2530,7 +2530,7 @@ static_assert(offsetof(CUiSpin, layout_) == 0x164);
 static_assert(sizeof(CUiSpin) == 0x174);
 
 // A saved game in the save/load list (0x44 bytes, STLport vector at +0x164). Copy construction,
-// assignment and destructor are not rewritten. The fields
+// assignment and destructor are not defined here. The fields
 // after the folder come from the save's info.sav (ui_saveload.cpp).
 struct SaveEntry {
     // (ui_saveload.cpp). The title: the texts "save_quick",

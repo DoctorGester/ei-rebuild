@@ -787,7 +787,7 @@ constexpr int kSessionKindSingle = 1;
 // clear.
 using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 // The set, empty at the start: built by the static initialiser in the list's order and destroyed by the exit
-// function it registers; both ported on the name and registered at their addresses
+// function it registers
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }

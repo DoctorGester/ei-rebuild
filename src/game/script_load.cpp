@@ -34,7 +34,7 @@ namespace {
 
 // Loaders taking the stream: the point light (0x20 slot) and
 // the FX source (list node data) are script_effects.cpp's; ScriptVars, SSCCmd
-// and one if-then pair of an instance are rewritten below. CStream::ReadString:
+// and one if-then pair of an instance are defined below. CStream::ReadString:
 // bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
 
 // Object lookups: the id registry (refcount raised by the caller),
