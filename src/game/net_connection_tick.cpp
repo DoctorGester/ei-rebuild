@@ -138,7 +138,7 @@ namespace net {
 
 namespace {
 float RttKeep() { return 0.93f /*0073BF30*/; }   // the share of the old average kept per sample
-float One() { return 1.0f /*0073B84C*/; }       // 1.0f
+float One() { return 1.0f /*0073B84C*/; }
 } // namespace
 
 void Connection::Delivered(SentPacket* packet) {

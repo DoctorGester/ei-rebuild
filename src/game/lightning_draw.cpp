@@ -102,7 +102,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
     float length = LengthZYX(towards);
     EI_NAN_AUDIT(length);
     if (length != 0.0f) towards /= length;
-    float scaled = position->x * 15.0f /*0073C518*/;   // 15
+    float scaled = position->x * 15.0f /*0073C518*/;
     int shift = x87::fistp(scaled);
     int frame = (ObjectWorld(this)->tick_ + shift) % 15;
     for (int j = 0; j < 8; ++j) {
@@ -131,14 +131,14 @@ int CLightning::Draw(void* device) {
     if (visibility == 2) return 1;
     const float zero = 0.0f /*0073B858*/;
     if (power_ >= zero) Animate();
-    const float slant = 0.25f /*0073C3B0*/;   // 0.25
+    const float slant = 0.25f /*0073C3B0*/;
     EI_NAN_AUDIT(power_);
     if (power_ < zero) {   // negative: untextured lengthwise
         renderer->DrawStrip(&main_.points, main_.width, visibility, 0.0f, 0.0f, slant);
         for (LightningSegment& b : branches_) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
-        float span = LengthZXY(main_.step) * static_cast<float>(main_.points.size) * 0.6f /*0073C4FC*/;   // 0.6
+        float span = LengthZXY(main_.step) * static_cast<float>(main_.points.size) * 0.6f /*0073C4FC*/;
         renderer->DrawStrip(&main_.points, main_.width, visibility, span, offset, slant);
         for (LightningSegment& b : branches_) {
             offset = RandomOffset();
@@ -153,7 +153,7 @@ int CLightning::Draw(void* device) {
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
     int frameCounter = ObjectWorld(this)->tick_;
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
-    float size = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f /*0073C528*/);   // 0.11
+    float size = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f /*0073C528*/);
     int phase = (frameCounter / 2) % 15;
     if (power_ > zero) {
         // Clamped to [0.5, 1.2] with selects (NaN keeps the size).

@@ -25,8 +25,8 @@ inline double D(float f) { return f; }
 
 // Constants the original reads from memory at run time.
 #define EI_ZERO 0.0f /*0073B858*/          // 0.0 (the z of the up axis the side is crossed with)
-#define EI_ONE 1.0f /*0073B84C*/           // 1.0
-#define EI_HALF 0.5f /*0073B86C*/          // 0.5
+#define EI_ONE 1.0f /*0073B84C*/
+#define EI_HALF 0.5f /*0073B86C*/
 #define EI_STILL 0.001 /*0073BA88*/        // 0.001: below this the source is not moving
 #define EI_DEGENERATE 1e-10 /*0073CE00*/   // 1e-10
 
