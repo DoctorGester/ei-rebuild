@@ -20,7 +20,7 @@ public:
         if (--refs_ == 0) delete this;
     }
 
-    int refs_ = 0;   // +0x04
+    int refs_ = 0;
 
 protected:
     CRendererBase() {}

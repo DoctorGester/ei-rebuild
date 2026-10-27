@@ -1,5 +1,5 @@
 // The plain draw of one figure part (on the part's scene node): the simpler sibling of the lit draw
-// (figure_part_draw.cpp), always through the device and without the lighting: a hidden mesh (flag 0x80) is
+//, always through the device and without the lighting: a hidden mesh (flag 0x80) is
 // skipped, the drawn flag (0x40) cleared, the mesh clip-tested against the view, animated meshes (type 13..16)
 // advanced to the current time; flat meshes (0x100) get their colours filled with one value and speculars with
 // another (the arrays keep their sizes), a mesh not yet lit (no 0x10) asks the device to light it (draw flag
@@ -23,20 +23,17 @@
 
 namespace {
 
-// The figure mesh's colour arrays (+0x138 / +0x148).
 using ColourArray = lib::AlignedArray<std::uint32_t>;
 
-// The moved positions (lib::AlignedArray).
 constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E60*/ {};
 lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
 std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
 
-// CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
+// CTransformPipeline::ClipTest: 2 = outside the view, 1 = crossing it.
 // The node's animation at a time (float bits), and the call after the draw (the renderer).
-// The device's mesh draw (device_mesh.cpp).
+// The device's mesh draw.
 
-// *target = *offset + *target (FLD offset, FADD, FSTP).
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
 // The world time: whole ticks (FILD) plus the fraction of the current one, rounded to a float.
@@ -49,7 +46,6 @@ void Fill(ColourArray& a, std::uint32_t value) {
     for (int i = 0; i < a.size; ++i) a.data[i] = value;
 }
 
-// The positions with the per-vertex offsets added.
 const void* MovedPositionsOf(CFigureMesh* mesh) {
     lib::AlignedArray<VertexPacket>& moved = MovedPositions();
     int blocks = mesh->buffers_.vertexCount;

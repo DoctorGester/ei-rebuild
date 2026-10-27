@@ -28,11 +28,11 @@ using namespace particle;
 
 namespace {
 
-#define EI_POINT_EIGHT 0.8f /*0073CCA8*/        // 0.8
-#define EI_THREE 3.0f /*0073BAA4*/              // 3.0
-#define EI_TEN 10.0f /*0073CB98*/                // 10.0
-#define EI_TENTH 0.1f /*0073CB9C*/              // 0.1
-#define EI_POINT_SIX 0.6f /*0073CDE0*/          // 0.6
+#define EI_POINT_EIGHT 0.8f /*0073CCA8*/
+#define EI_THREE 3.0f /*0073BAA4*/
+#define EI_TEN 10.0f /*0073CB98*/
+#define EI_TENTH 0.1f /*0073CB9C*/
+#define EI_POINT_SIX 0.6f /*0073CDE0*/
 #define EI_THIRTEENTH 0.07692308f /*0073CEE4*/         // 1/13
 #define EI_TWENTY_SIXTH 0.03846154f /*0073CEE8*/       // 1/26
 #define EI_SCALE_0_4_HI 1.8626450386423355e-10 /*0073CEB0*/      // ~0.8 * 2^-32
@@ -41,7 +41,7 @@ namespace {
 #define EI_CAST_PULL 0.0005f /*0073CEF8*/          // pull back to the centre
 #define EI_SCALE_SIZE 6.984918201019367e-11 /*0073CEF0*/        // size jitter scale
 #define EI_SIZE_BASE 0.85f /*0073CEB8*/
-#define EI_POINT_THREE 0.3f /*0073C54C*/        // 0.3
+#define EI_POINT_THREE 0.3f /*0073C54C*/
 
 const char* NoCarrierCasting() { return "Particle effect CastingElemental without carrier\n"; }
 constexpr std::int32_t kCastAlphaByCountdown[7] = /*0078A964*/ {0, 32, 64, 112, 160, 208, 255};
@@ -251,19 +251,19 @@ EI_REWRITTEN(0x004921D0, CParticleSource::TickCasting);
 namespace {
 
 #define EI_SPHERE_RADIUS 1.2f /*0073CDF4*/      // 1.2 (of the carrier's radius)
-#define EI_KEEP_0_9 0.9f /*0073CD70*/           // 0.9
-#define EI_TAKE_0_1 0.1f /*0073B850*/           // 0.1
-#define EI_ANTIMAGIC_RATE 24.0f /*0073CE28*/     // 24.0
-#define EI_SPHERE_RATE 6.0f /*0073BA98*/        // 6.0
-#define EI_MOTION_KEEP 0.7f /*0073C538*/        // 0.7
-#define EI_STILL_SPEED 0.01 /*0073CE20*/       // 0.01
+#define EI_KEEP_0_9 0.9f /*0073CD70*/
+#define EI_TAKE_0_1 0.1f /*0073B850*/
+#define EI_ANTIMAGIC_RATE 24.0f /*0073CE28*/
+#define EI_SPHERE_RATE 6.0f /*0073BA98*/
+#define EI_MOTION_KEEP 0.7f /*0073C538*/
+#define EI_STILL_SPEED 0.01 /*0073CE20*/
 #define EI_TILT_ANGLE 0.009999999776482582 /*0073CE30*/        // 0.01
-#define EI_BIG_ANTIMAGIC 2.5f /*0073CE18*/      // 2.5
-#define EI_BIG_EARTH 3.5f /*0073C534*/          // 3.5
-#define EI_BIG_SPHERE 1.5f /*0073C51C*/         // 1.5
+#define EI_BIG_ANTIMAGIC 2.5f /*0073CE18*/
+#define EI_BIG_EARTH 3.5f /*0073C534*/
+#define EI_BIG_SPHERE 1.5f /*0073C51C*/
 #define EI_SCALE_0_03 1.3969837789817515e-10 /*0073CE10*/        // ~0.03 * 2^-32
-#define EI_SHELL 0.65f /*0073CE08*/              // 0.65
-#define EI_AIR_SIZE 1.6f /*0073CC80*/           // 1.6
+#define EI_SHELL 0.65f /*0073CE08*/
+#define EI_AIR_SIZE 1.6f /*0073CC80*/
 
 const char* NoCarrierSphere() { return "Particle effect Link without carrier\n"; }
 
@@ -406,33 +406,32 @@ EI_REWRITTEN(0x0048E070, CParticleSource::EmitOrbit);
 
 namespace {
 
-#define EI_FULL_TURN 360.0f /*0073CD08*/          // 360.0
+#define EI_FULL_TURN 360.0f /*0073CD08*/
 #define EI_PI 3.141592653589793 /*0073CAE8*/                // pi
-#define EI_RING_WIDEN 1.1f /*0073BAC4*/         // 1.1
+#define EI_RING_WIDEN 1.1f /*0073BAC4*/
 #define EI_PER_36 0.027777778f /*0073CD04*/             // 1/36
-#define EI_RISE_LOW (-0.1f /*0073CD00*/)           // -0.1
-#define EI_RISE_HIGH 0.1f /*0073BA80*/          // 0.1
-#define EI_FLAME_SIZE 0.0015f /*0073CCFC*/         // 0.0015
-#define EI_TWENTY 20.0f /*0073CCF8*/             // 20.0
-#define EI_HALF 0.5f /*0073CB28*/               // 0.5
-#define EI_SPARK_SPREAD 0.001f /*0073CCF4*/       // 0.001
+#define EI_RISE_LOW (-0.1f /*0073CD00*/)
+#define EI_RISE_HIGH 0.1f /*0073BA80*/
+#define EI_FLAME_SIZE 0.0015f /*0073CCFC*/
+#define EI_TWENTY 20.0f /*0073CCF8*/
+#define EI_HALF 0.5f /*0073CB28*/
+#define EI_SPARK_SPREAD 0.001f /*0073CCF4*/
 #define EI_FADE_SIZE 0.7692308f /*0073CD0C*/          // 1/1.3
 #define EI_TURN_SPEED 10.0 /*0073CD10*/        // 10.0 (degrees per tick)
-#define EI_TENTH_B 0.1f /*0073B850*/            // 0.1
+#define EI_TENTH_B 0.1f /*0073B850*/
 #define EI_HEAL_RINGS 6.0f /*0073BA98*/         // 6.0 rings per unit of size
-#define EI_HEAL_RINGS_BASE 2.0f /*0073CDB8*/    // 2.0
+#define EI_HEAL_RINGS_BASE 2.0f /*0073CDB8*/
 #define EI_HEAL_GROWTH 0.0069444445f /*0073CDB4*/        // 1/144
-#define EI_HEAL_SPREAD 0.15f /*0073CD18*/        // 0.15
-#define EI_HEAL_SPARK_SIZE 0.07f /*0073CDB0*/    // 0.07
+#define EI_HEAL_SPREAD 0.15f /*0073CD18*/
+#define EI_HEAL_SPARK_SIZE 0.07f /*0073CDB0*/
 
 const char* NoCarrierRing() { return "Particle effect Casting without carrier\n"; }
 const char* NoCarrierHealing() { return "Particle effect Healing without carrier\n"; }
 constexpr int kFlameState = 0xFFFF;     // a burning-out flame (the update's last phase)
 
-// The rings around the carrier (emitCount of them, already allocated): stacked from the carrier's
-// feet with a random lift, their flames spaced evenly around the circle; the source's height is
-// the radius growth per tick (Healing also sets the flame growth). Each ring counts down from
-// `countdown`.
+// The rings around the carrier (emitCount of them, already allocated): stacked from the carrier's feet with a
+// random lift, their flames spaced evenly around the circle; the source's height is the radius growth per
+// tick (Healing also sets the flame growth). Each ring counts down from `countdown`.
 void PlaceRings(CParticleSource* s, int countdown) {
     float step = static_cast<float>(ei::kRadiansPerDegree * (D(EI_FULL_TURN) / static_cast<double>(s->emitCount)));
     Vector3 offset;
@@ -713,20 +712,20 @@ EI_REWRITTEN(0x0048BCE0, CParticleSource::TickHealing);
 namespace {
 
 #define EI_PI_F 3.1415927f /*0073CAF0*/               // pi
-#define EI_HALF_C 0.5f /*0073B86C*/             // 0.5
-#define EI_POINT_FOUR_C 0.4f /*0073B868*/       // 0.4
-#define EI_SWIRL_TURN_SLOW 0.3f /*0073CB94*/    // 0.3
-#define EI_SWIRL_TURN_FAST 0.5f /*0073CB90*/    // 0.5
-#define EI_SWIRL_HIGH 1.6f /*0073CC80*/         // 1.6
+#define EI_HALF_C 0.5f /*0073B86C*/
+#define EI_POINT_FOUR_C 0.4f /*0073B868*/
+#define EI_SWIRL_TURN_SLOW 0.3f /*0073CB94*/
+#define EI_SWIRL_TURN_FAST 0.5f /*0073CB90*/
+#define EI_SWIRL_HIGH 1.6f /*0073CC80*/
 #define EI_SWIRL_SIZE_SCALE 8.149073084894303e-11 /*0073CEC0*/  // ~0.35 * 2^-32
-#define EI_SWIRL_SIZE_BASE 0.85f /*0073CEB8*/    // 0.85
-#define EI_SWIRL_GROW 0.03f /*0073CD74*/         // 0.03
+#define EI_SWIRL_SIZE_BASE 0.85f /*0073CEB8*/
+#define EI_SWIRL_GROW 0.03f /*0073CD74*/
 #define EI_SWIRL_SPARK_SCALE 1.8626450386423355e-10 /*0073CEB0*/ // ~0.8 * 2^-32
-#define EI_SWIRL_SPARK_BASE 0.6f /*0073CDE0*/   // 0.6
-#define EI_SWIRL_SPARK_SIZE 0.2f /*0073BAD4*/   // 0.2
-#define EI_SWIRL_SHRINK 0.97f /*0073CEC8*/       // 0.97
+#define EI_SWIRL_SPARK_BASE 0.6f /*0073CDE0*/
+#define EI_SWIRL_SPARK_SIZE 0.2f /*0073BAD4*/
+#define EI_SWIRL_SHRINK 0.97f /*0073CEC8*/
 #define EI_MARKER_SIZE_SCALE 9.313226580990458e-11 /*0073CCB0*/ // ~0.4 * 2^-32
-#define EI_MARKER_SIZE_BASE 0.8f /*0073CCA8*/   // 0.8
+#define EI_MARKER_SIZE_BASE 0.8f /*0073CCA8*/
 
 // Alpha rising and falling: a spark by its life (from the start), a marker one entry on, a column backwards
 // from the last (ColumnAlpha).
@@ -800,9 +799,8 @@ int AddOrbiter(CParticleSource* s, Particle* p) {
 
 } // namespace
 
-// Until all orbiters exist each emission adds one (needs a carrier); then sparks start
-// at a random point between an orbiter's previous and current position and fly off with a random
-// velocity from the spread box.
+// Until all orbiters exist each emission adds one (needs a carrier); then sparks start at a random point
+// between an orbiter's previous and current position and fly off with a random velocity from the spread box.
 int CParticleSource::EmitCastSwirl(Particle* p, int) {
     if (elementCount < lifetime) {
         if (!attachedTo) {
@@ -887,8 +885,7 @@ int CParticleSource::UpdateCastSwirl(Particle* p) {
 }
 EI_REWRITTEN(0x00491230, CParticleSource::UpdateCastSwirl);
 
-// Orbiters turn about the source's vertical axis (by -turn) and keep their previous
-// world position.
+// Orbiters turn about the source's vertical axis (by -turn) and keep their previous world position.
 void CParticleSource::TickCastSwirl(ParticleElement* e) {
     float c = e->orbiter.turnCos;
     float s = e->orbiter.turnSin;
@@ -915,11 +912,11 @@ EI_REWRITTEN(0x00491390, CParticleSource::TickCastSwirl);
 namespace {
 
 #define EI_LINK_DEGENERATE 1e-10 /*0073CE00*/   // 1e-10
-#define EI_LINK_TWIST 0.2f /*0073BAD4*/         // 0.2
-#define EI_LINK_HALF 0.5f /*0073B86C*/          // 0.5
-#define EI_LINK_QUARTER 0.25f /*0073C3B0*/       // 0.25
-#define EI_LINK_BULGE 0.9f /*0073CD70*/         // 0.9
-#define EI_LINK_ALPHA 1000.0f /*0073C34C*/         // 1000.0
+#define EI_LINK_TWIST 0.2f /*0073BAD4*/
+#define EI_LINK_HALF 0.5f /*0073B86C*/
+#define EI_LINK_QUARTER 0.25f /*0073C3B0*/
+#define EI_LINK_BULGE 0.9f /*0073CD70*/
+#define EI_LINK_ALPHA 1000.0f /*0073C34C*/
 
 inline float F(std::uint32_t bits) {
     float f;
@@ -1011,9 +1008,8 @@ int CParticleSource::EmitLink(Particle* p, int) {
 }
 EI_REWRITTEN(0x0048D8D0, CParticleSource::EmitLink);
 
-// Link sparks run along the beam (+0x38 the distance travelled, +0x3C the speed),
-// spinning around the axis; the beam bulges in the middle and the alpha peaks there (capped by
-// element 0). Dropped past the beam's end.
+// Link sparks run along the beam (+0x38 the distance travelled, +0x3C the speed), spinning around the axis;
+// the beam bulges in the middle and the alpha peaks there (capped by element 0). Dropped past the beam's end.
 int CParticleSource::UpdateLink(Particle* p) {
     p->frame = (p->frame + 1) % frameCount;
     double travelled = D(p->drift.y) + D(p->drift.x);
@@ -1087,25 +1083,25 @@ EI_REWRITTEN(0x0048E040, CParticleSource::TickLink);
 
 namespace {
 
-#define EI_BLAST_FLAME_SIZE 0.6f /*0073CDE0*/    // 0.6
-#define EI_BLAST_POINT_TWO 0.2f /*0073BAD4*/     // 0.2
+#define EI_BLAST_FLAME_SIZE 0.6f /*0073CDE0*/
+#define EI_BLAST_POINT_TWO 0.2f /*0073BAD4*/
 #define EI_BLAST_RISE_SCALE 8.149072391004912e-11 /*0073CDD8*/   // ~0.35 * 2^-32
-#define EI_BLAST_RISE 0.35f /*0073CDD4*/          // 0.35
-#define EI_BLAST_RISE_BASE 0.175f /*0073CDD0*/     // 0.175
-#define EI_BLAST_HALF 0.5f /*0073B86C*/          // 0.5
+#define EI_BLAST_RISE 0.35f /*0073CDD4*/
+#define EI_BLAST_RISE_BASE 0.175f /*0073CDD0*/
+#define EI_BLAST_HALF 0.5f /*0073B86C*/
 #define EI_BLAST_DEBRIS_SCALE 1.8626451774202136e-10 /*0073C540*/ // ~0.4 * 2^-31
-#define EI_BLAST_POINT_SEVEN 0.7f /*0073C538*/   // 0.7
-#define EI_BLAST_POINT_15 0.15f /*0073CD18*/      // 0.15
-#define EI_BLAST_POINT_THREE 0.3f /*0073C54C*/   // 0.3
+#define EI_BLAST_POINT_SEVEN 0.7f /*0073C538*/
+#define EI_BLAST_POINT_15 0.15f /*0073CD18*/
+#define EI_BLAST_POINT_THREE 0.3f /*0073C54C*/
 #define EI_BLAST_SEVENTH 0.14285715f /*0073CDCC*/       // 1/7
-#define EI_BLAST_POINT_EIGHT 0.8f /*0073CCA8*/   // 0.8
+#define EI_BLAST_POINT_EIGHT 0.8f /*0073CCA8*/
 #define EI_BLAST_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/    // ~0.4 * 2^-32
-#define EI_BLAST_CORE_SIZE 2.3f /*0073CDEC*/     // 2.3
-#define EI_BLAST_SWELL_LATE 1.03f /*0073CDE8*/    // 1.03
-#define EI_BLAST_SWELL_EARLY 1.01f /*0073CD40*/   // 1.01
-#define EI_BLAST_FRAME_ACCEL 1.02f /*0073CDE4*/   // 1.02
-#define EI_BLAST_DRAG 0.03f /*0073CD74*/          // 0.03
-#define EI_BLAST_SLOW 0.75f /*0073C524*/          // 0.75
+#define EI_BLAST_CORE_SIZE 2.3f /*0073CDEC*/
+#define EI_BLAST_SWELL_LATE 1.03f /*0073CDE8*/
+#define EI_BLAST_SWELL_EARLY 1.01f /*0073CD40*/
+#define EI_BLAST_FRAME_ACCEL 1.02f /*0073CDE4*/
+#define EI_BLAST_DRAG 0.03f /*0073CD74*/
+#define EI_BLAST_SLOW 0.75f /*0073C524*/
 
 constexpr int kBlastCore = -1222;     // the core flash, emitted once at the start
 
@@ -1291,11 +1287,11 @@ EI_REWRITTEN(0x0048C760, CParticleSource::TickBlast);
 namespace {
 
 #define EI_FOG_CELL 1.0f /*0073CB34*/            // 1.0: the grid spacing
-#define EI_FOG_QUARTER 0.25f /*0073C3B0*/         // 0.25
-#define EI_FOG_JITTER_LOW (-0.25f /*0073CDA8*/)      // -0.25
+#define EI_FOG_QUARTER 0.25f /*0073C3B0*/
+#define EI_FOG_JITTER_LOW (-0.25f /*0073CDA8*/)
 #define EI_FOG_SIZE_SCALE 1.1641532185403987e-10 /*0073CDA0*/     // ~0.5 * 2^-32
-#define EI_FOG_SIZE_BASE 1.0f /*0073CB30*/       // 1.0
-#define EI_FOG_ALPHA 160.0f /*0073CD98*/           // 160.0
+#define EI_FOG_SIZE_BASE 1.0f /*0073CB30*/
+#define EI_FOG_ALPHA 160.0f /*0073CD98*/
 
 } // namespace
 
@@ -1362,22 +1358,22 @@ EI_REWRITTEN(0x0048B080, CParticleSource::EmitPoisonFog);
 namespace {
 
 #define EI_GEYSER_YAW_SCALE 9.31322574832319e-9 /*0073CD68*/   // ~40 * 2^-32 (degrees)
-#define EI_GEYSER_YAW_LOW 20.0f /*0073CCF8*/      // 20.0
+#define EI_GEYSER_YAW_LOW 20.0f /*0073CCF8*/
 #define EI_GEYSER_TILT_SCALE 4.656612874161595e-9 /*0073CD60*/  // ~20 * 2^-32
-#define EI_GEYSER_TILT_LOW 10.0f /*0073BAAC*/     // 10.0
+#define EI_GEYSER_TILT_LOW 10.0f /*0073BAAC*/
 #define EI_GEYSER_JET_SCALE 4.656612943550534e-11 /*0073CD58*/   // ~0.2 * 2^-32
-#define EI_GEYSER_JET_LOW 0.1f /*0073B850*/      // 0.1
-#define EI_GEYSER_DROP 0.2f /*0073BAD4*/         // 0.2
-#define EI_GEYSER_HALF 0.5f /*0073B86C*/         // 0.5
-#define EI_GEYSER_MIST 0.01f /*0073C548*/         // 0.01
+#define EI_GEYSER_JET_LOW 0.1f /*0073B850*/
+#define EI_GEYSER_DROP 0.2f /*0073BAD4*/
+#define EI_GEYSER_HALF 0.5f /*0073B86C*/
+#define EI_GEYSER_MIST 0.01f /*0073C548*/
 #define EI_GEYSER_MARK_SCALE 6.28642767328642e-11 /*0073CD78*/  // ~0.0146 * 2^-32
-#define EI_GEYSER_MARK_BASE 0.03f /*0073CD74*/    // 0.03
-#define EI_GEYSER_SHRINK 0.9f /*0073CD70*/       // 0.9
-#define EI_GEYSER_GRAVITY 0.06f /*0073CCB8*/      // 0.06
+#define EI_GEYSER_MARK_BASE 0.03f /*0073CD74*/
+#define EI_GEYSER_SHRINK 0.9f /*0073CD70*/
+#define EI_GEYSER_GRAVITY 0.06f /*0073CCB8*/
 #define EI_GEYSER_ANGLE_SCALE 8.38190317349087e-8 /*0073CD90*/ // ~360 * 2^-32
 #define EI_GEYSER_TILT_RANGE 2.3283064370807974e-9 /*0073CD88*/  // ~10 * 2^-32
 #define EI_GEYSER_POWER_SCALE 1.3969838483706906e-10 /*0073CD80*/ // ~0.6 * 2^-32
-#define EI_GEYSER_POWER_BASE 0.4f /*0073B868*/   // 0.4
+#define EI_GEYSER_POWER_BASE 0.4f /*0073B868*/
 
 // A random value in [low, high) of the spread box component, added to `base` (the original's order: the
 // random part, the base, then the low end).
@@ -1494,10 +1490,10 @@ namespace {
 
 #define EI_SHOWER_RAYS 8.0f /*0073CE50*/         // 8.0 directions per unit of alpha
 #define EI_SHOWER_JITTER_SCALE 1.3969838310234559e-11 /*0073CE48*/ // ~0.06 * 2^-32
-#define EI_SHOWER_JITTER_LOW 0.03f /*0073CD74*/   // 0.03
+#define EI_SHOWER_JITTER_LOW 0.03f /*0073CD74*/
 #define EI_SHOWER_SPEED 0.16666667f /*0073CE40*/        // 1/6
-#define EI_SHOWER_FAST 1.5f /*0073C51C*/         // 1.5
-#define EI_SHOWER_GRAVITY 0.05f /*0073C52C*/      // 0.05
+#define EI_SHOWER_FAST 1.5f /*0073C51C*/
+#define EI_SHOWER_GRAVITY 0.05f /*0073C52C*/
 
 constexpr std::int32_t kShowerAlpha[16] = /*0078A6B4*/ {0, 64, 128, 192, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 
@@ -1590,8 +1586,7 @@ int CParticleSource::UpdateShower(Particle* p) {
 }
 EI_REWRITTEN(0x0048F300, CParticleSource::UpdateShower);
 
-// Shower directions age; after 5 ticks the source stops emitting and lets go of its
-// carrier.
+// Shower directions age; after 5 ticks the source stops emitting and lets go of its carrier.
 void CParticleSource::TickShower(ParticleElement* e) {
     if (++e->ray.age > 5) {
         flags_ &= ~1u;
@@ -1608,11 +1603,11 @@ EI_REWRITTEN(0x0048F380, CParticleSource::TickShower);
 namespace {
 
 #define EI_BAG_SHRINK 0.93f /*0073CF40*/          // 0.93 per age
-#define EI_BAG_SPREAD_LOW (-0.2f /*0073CF44*/)      // -0.2
-#define EI_BAG_SPREAD_HIGH 0.2f /*0073BAD4*/     // 0.2
-#define EI_BAG_SPARK_SIZE 0.1f /*0073B850*/      // 0.1
-#define EI_BAG_BALL_SIZE 0.15f /*0073CD18*/       // 0.15
-#define EI_BAG_KICK 0.05f /*0073C52C*/            // 0.05
+#define EI_BAG_SPREAD_LOW (-0.2f /*0073CF44*/)
+#define EI_BAG_SPREAD_HIGH 0.2f /*0073BAD4*/
+#define EI_BAG_SPARK_SIZE 0.1f /*0073B850*/
+#define EI_BAG_BALL_SIZE 0.15f /*0073CD18*/
+#define EI_BAG_KICK 0.05f /*0073C52C*/
 
 float g_bagSizes[12] = /*007A9BFC*/ {};   // set by the first emission
 const std::int32_t* BagColours() {   // r, g, b per age
@@ -1735,10 +1730,9 @@ int CParticleSource::UpdateBag(Particle* p) {
 }
 EI_REWRITTEN(0x00493770, CParticleSource::UpdateBag);
 
-// Bag balls: when a ball's countdown runs out it is thrown again from the source (a
-// random kind 0-2, a random offset, a random velocity of 0.2 size) and rests 7-9 ticks; while
-// flying it ages, now and then gets a random kick, and moves (its step is kept). Without a
-// carrier the ball is gone.
+// Bag balls: when a ball's countdown runs out it is thrown again from the source (a random kind 0-2, a random
+// offset, a random velocity of 0.2 size) and rests 7-9 ticks; while flying it ages, now and then gets a
+// random kick, and moves (its step is kept). Without a carrier the ball is gone.
 void CParticleSource::TickBag(ParticleElement* e) {
     if (--e->ticks < 0) {
         if (!attachedTo) {
@@ -1804,19 +1798,19 @@ EI_REWRITTEN(0x004938C0, CParticleSource::TickBag);
 
 namespace {
 
-#define EI_COLUMN_FOOT 0.3f /*0073C54C*/         // 0.3
-#define EI_COLUMN_RADIUS 0.8f /*0073CCA8*/       // 0.8
+#define EI_COLUMN_FOOT 0.3f /*0073C54C*/
+#define EI_COLUMN_RADIUS 0.8f /*0073CCA8*/
 #define EI_COLUMN_RISE_SCALE 1.3969837789817515e-10 /*0073CE10*/  // ~0.03 * 2^-32
-#define EI_COLUMN_RISE_BASE 0.7f /*0073C538*/    // 0.7
-#define EI_COLUMN_RISE 0.1f /*0073B850*/         // 0.1
+#define EI_COLUMN_RISE_BASE 0.7f /*0073C538*/
+#define EI_COLUMN_RISE 0.1f /*0073B850*/
 #define EI_COLUMN_RING_SCALE 4.6566139843846196e-11 /*0073CED8*/  // ~0.2 * 2^-32
-#define EI_COLUMN_RING_BASE 0.9f /*0073CD70*/    // 0.9
+#define EI_COLUMN_RING_BASE 0.9f /*0073CD70*/
 #define EI_COLUMN_ANGLE_SCALE 1.4629168990718488e-9 /*0073CED0*/ // ~2 pi * 2^-32
 #define EI_COLUMN_SIZE_SCALE 1.8626450386423355e-10 /*0073CEB0*/  // ~0.8 * 2^-32
-#define EI_COLUMN_SIZE_BASE 0.6f /*0073CDE0*/    // 0.6
-#define EI_COLUMN_SIZE 0.25f /*0073C3B0*/         // 0.25
-#define EI_COLUMN_SHRINK 0.97f /*0073CEC8*/       // 0.97
-#define EI_COLUMN_SPEED_UP 1.05f /*0073CEE0*/     // 1.05
+#define EI_COLUMN_SIZE_BASE 0.6f /*0073CDE0*/
+#define EI_COLUMN_SIZE 0.25f /*0073C3B0*/
+#define EI_COLUMN_SHRINK 0.97f /*0073CEC8*/
+#define EI_COLUMN_SPEED_UP 1.05f /*0073CEE0*/
 
 // The alpha by remaining life, read backwards from kRiseFallAlpha's last entry.
 std::uint32_t ColumnAlpha(int life) { return static_cast<std::uint32_t>(kRiseFallAlpha[19 - life]); }
@@ -1911,18 +1905,18 @@ EI_REWRITTEN(0x004918D0, CParticleSource::TickColumn);
 
 namespace {
 
-#define EI_MUSHROOM_ONE 1.0 /*0073BAC8*/       // 1.0
+#define EI_MUSHROOM_ONE 1.0 /*0073BAC8*/
 #define EI_MUSHROOM_SPREAD 0.20000000298023224 /*0073CCD0*/    // 0.2
 #define EI_MUSHROOM_W_SCALE 9.313226580990458e-11 /*0073CCB0*/   // ~0.4 * 2^-32
-#define EI_MUSHROOM_W_BASE 0.8f /*0073CCA8*/     // 0.8
+#define EI_MUSHROOM_W_BASE 0.8f /*0073CCA8*/
 #define EI_MUSHROOM_UP_SCALE 2.0954757899032707e-10 /*0073CCC8*/  // ~0.9 * 2^-32
-#define EI_MUSHROOM_UP_BASE 0.1f /*0073B850*/    // 0.1
-#define EI_MUSHROOM_UP 0.12f /*0073CCC0*/         // 0.12
+#define EI_MUSHROOM_UP_BASE 0.1f /*0073B850*/
+#define EI_MUSHROOM_UP 0.12f /*0073CCC0*/
 #define EI_MUSHROOM_GROW 0.008f /*0073CCBC*/       // 0.008 per tick of age
-#define EI_MUSHROOM_SPEED 0.06f /*0073CCB8*/      // 0.06
-#define EI_MUSHROOM_SWELL 1.1f /*0073BAC4*/      // 1.1
-#define EI_MUSHROOM_DRAG 0.7f /*0073C538*/       // 0.7
-#define EI_MUSHROOM_PULL 0.02f /*0073CCD8*/       // 0.02
+#define EI_MUSHROOM_SPEED 0.06f /*0073CCB8*/
+#define EI_MUSHROOM_SWELL 1.1f /*0073BAC4*/
+#define EI_MUSHROOM_DRAG 0.7f /*0073C538*/
+#define EI_MUSHROOM_PULL 0.02f /*0073CCD8*/
 
 } // namespace
 
@@ -2016,23 +2010,22 @@ EI_REWRITTEN(0x00488DB0, CParticleSource::UpdateMushroom);
 
 namespace {
 
-#define EI_GAS_RADIUS 0.3f /*0073C54C*/          // 0.3
-#define EI_GAS_RATE 5.0f /*0073BF34*/            // 5.0
-#define EI_GAS_ROUND 0.5f /*0073B86C*/           // 0.5
-#define EI_GAS_LOW (-0.3f /*0073CDFC*/)             // -0.3
-#define EI_GAS_RISE_LOW 0.02f /*0073CCD8*/        // 0.02
-#define EI_GAS_RISE_HIGH 0.03f /*0073CD74*/       // 0.03
-#define EI_GAS_SIZE 0.7f /*0073C538*/            // 0.7
-#define EI_GAS_SPEED_UP 1.02f /*0073CDE4*/        // 1.02
-#define EI_GAS_SWELL 1.01f /*0073CD40*/           // 1.01
+#define EI_GAS_RADIUS 0.3f /*0073C54C*/
+#define EI_GAS_RATE 5.0f /*0073BF34*/
+#define EI_GAS_ROUND 0.5f /*0073B86C*/
+#define EI_GAS_LOW (-0.3f /*0073CDFC*/)
+#define EI_GAS_RISE_LOW 0.02f /*0073CCD8*/
+#define EI_GAS_RISE_HIGH 0.03f /*0073CD74*/
+#define EI_GAS_SIZE 0.7f /*0073C538*/
+#define EI_GAS_SPEED_UP 1.02f /*0073CDE4*/
+#define EI_GAS_SWELL 1.01f /*0073CD40*/
 
 const char* NoCarrierGas() { return "Particle effect Link without carrier\n"; }
 
 } // namespace
 
-// BlueGas: the first call measures the carrier (5 * size + 0.5 puffs per tick). A puff
-// starts at a random point of the disc around the carrier's figure, turning about the axis faster
-// the nearer it is, and rising.
+// BlueGas: the first call measures the carrier (5 * size + 0.5 puffs per tick). A puff starts at a random
+// point of the disc around the carrier's figure, turning about the axis faster the nearer it is, and rising.
 int CParticleSource::EmitStench(Particle* p, int) {
     if (elementCount == 0) {
         if (!attachedTo) {
@@ -2125,26 +2118,26 @@ namespace {
 #define EI_FUNNEL_PI_F 5.0f /*0073BF34*/         // 5.0: rings per unit height
 #define EI_FUNNEL_PI 3.141592653589793 /*0073CAE8*/          // pi
 #define EI_FUNNEL_R_SCALE 2.793967696741381e-10 /*0073CD30*/     // ~1.2 * 2^-32
-#define EI_FUNNEL_R_BASE 0.8f /*0073CCA8*/       // 0.8
-#define EI_FUNNEL_R_ADD 0.2f /*0073BAD4*/        // 0.2
+#define EI_FUNNEL_R_BASE 0.8f /*0073CCA8*/
+#define EI_FUNNEL_R_ADD 0.2f /*0073BAD4*/
 #define EI_FUNNEL_TURN_HIGH 0.07 /*0073CD28*/   // 0.07 (times pi)
 #define EI_FUNNEL_TURN_LOW 0.06 /*0073CD20*/    // 0.06 (times pi)
-#define EI_FUNNEL_TURN_TOP 1.1f /*0073BAC4*/     // 1.1
-#define EI_FUNNEL_TURN_SCALE 1.5f /*0073C51C*/   // 1.5
-#define EI_FUNNEL_SIZE 0.3f /*0073C54C*/         // 0.3
-#define EI_FUNNEL_DUST 0.15f /*0073CD18*/         // 0.15
-#define EI_FUNNEL_RISE 0.0001f /*0073CD44*/         // 0.0001
-#define EI_FUNNEL_SPIN_UP 1.01f /*0073CD40*/      // 1.01
-#define EI_FUNNEL_ALPHA 255.0 /*0073CD38*/       // 255.0
-#define EI_FUNNEL_FADE 0.1f /*0073B850*/         // 0.1
-#define EI_FUNNEL_SWAY 0.95f /*0073CD50*/         // 0.95
-#define EI_FUNNEL_HALF_ARC 0.5 /*0073CC88*/    // 0.5
-#define EI_FUNNEL_LEAN 20.0f /*0073CCF8*/         // 20.0
-#define EI_FUNNEL_BACK (-1.0f /*0073B854*/)         // -1.0
-#define EI_FUNNEL_HALF 0.5f /*0073B86C*/         // 0.5
-#define EI_FUNNEL_MAX_LEAN 0.01f /*0073C548*/     // 0.01
-#define EI_FUNNEL_ONE 1.0 /*0073BAC8*/         // 1.0
-#define EI_FUNNEL_BEND 0.4 /*0073CD48*/        // 0.4
+#define EI_FUNNEL_TURN_TOP 1.1f /*0073BAC4*/
+#define EI_FUNNEL_TURN_SCALE 1.5f /*0073C51C*/
+#define EI_FUNNEL_SIZE 0.3f /*0073C54C*/
+#define EI_FUNNEL_DUST 0.15f /*0073CD18*/
+#define EI_FUNNEL_RISE 0.0001f /*0073CD44*/
+#define EI_FUNNEL_SPIN_UP 1.01f /*0073CD40*/
+#define EI_FUNNEL_ALPHA 255.0 /*0073CD38*/
+#define EI_FUNNEL_FADE 0.1f /*0073B850*/
+#define EI_FUNNEL_SWAY 0.95f /*0073CD50*/
+#define EI_FUNNEL_HALF_ARC 0.5 /*0073CC88*/
+#define EI_FUNNEL_LEAN 20.0f /*0073CCF8*/
+#define EI_FUNNEL_BACK (-1.0f /*0073B854*/)
+#define EI_FUNNEL_HALF 0.5f /*0073B86C*/
+#define EI_FUNNEL_MAX_LEAN 0.01f /*0073C548*/
+#define EI_FUNNEL_ONE 1.0 /*0073BAC8*/
+#define EI_FUNNEL_BEND 0.4 /*0073CD48*/
 
 // The funnel's centre at height h (0..1): between ring k and k+1 (h * 5 rings), with the x and y blends in the
 // original's two orders; y is returned unrounded.
@@ -2358,17 +2351,17 @@ EI_REWRITTEN(0x00493D50, CParticleSource::UpdatePortalStar);
 
 namespace {
 
-#define EI_CYL_TURN 0.3f /*0073CC74*/            // 0.3
+#define EI_CYL_TURN 0.3f /*0073CC74*/
 #define EI_CYL_PI 3.1415927f /*0073CAF0*/              // pi
 #define EI_CYL_TURN_SCALE 0.13333334f /*0073CF48*/      // 0.1333
-#define EI_CYL_ORBIT 0.7f /*0073C538*/           // 0.7
-#define EI_CYL_LIFT 0.2f /*0073BAD4*/            // 0.2
-#define EI_CYL_TWO 2.0f /*0073CDB8*/             // 2.0
-#define EI_CYL_RISE 0.04f /*0073CE90*/            // 0.04
-#define EI_CYL_RISE_UP 1.25f /*0073CF50*/         // 1.25
+#define EI_CYL_ORBIT 0.7f /*0073C538*/
+#define EI_CYL_LIFT 0.2f /*0073BAD4*/
+#define EI_CYL_TWO 2.0f /*0073CDB8*/
+#define EI_CYL_RISE 0.04f /*0073CE90*/
+#define EI_CYL_RISE_UP 1.25f /*0073CF50*/
 #define EI_CYL_TWIST (-0.013333334f /*0073CF4C*/)           // -0.01333
-#define EI_CYL_SPARK_PULL 0.6f /*0073CDE0*/      // 0.6
-#define EI_CYL_SPARK_SHRINK 0.9f /*0073CD70*/    // 0.9
+#define EI_CYL_SPARK_PULL 0.6f /*0073CDE0*/
+#define EI_CYL_SPARK_SHRINK 0.9f /*0073CD70*/
 
 constexpr std::int32_t kCylinderAlpha[32] = /*0078AB18*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
                                                  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -2454,9 +2447,8 @@ int CParticleSource::EmitCylinder(Particle* p, int) {
 }
 EI_REWRITTEN(0x00493DE0, CParticleSource::EmitCylinder);
 
-// Cylinder: a star follows its element and fades by its countdown (dropped
-// once the source stops); a spark fades by its life, drifts by its step, is held on its star's
-// orbit radius and spirals round it, shrinking.
+// Cylinder: a star follows its element and fades by its countdown (dropped once the source stops); a spark
+// fades by its life, drifts by its step, is held on its star's orbit radius and spirals round it, shrinking.
 int CParticleSource::UpdateCylinder(Particle* p) {
     int state = p->state;
     if (state >= 0) {
@@ -2549,13 +2541,13 @@ EI_REWRITTEN(0x00494340, CParticleSource::TickCylinder);
 namespace {
 
 #define EI_TRAIL_MOVING 0.00001f /*0073CDF0*/        // 1e-5: below this distance there is no trail
-#define EI_TRAIL_HEAD 1.2f /*0073CDF4*/          // 1.2
-#define EI_TRAIL_HALF 0.5f /*0073B86C*/          // 0.5
-#define EI_TRAIL_DRAG 0.95f /*0073CD50*/          // 0.95
-#define EI_ARROW_HEAD 0.4f /*0073B868*/          // 0.4
-#define EI_ARROW_PUFF 0.2f /*0073BAD4*/          // 0.2
-#define EI_ARROW_SWELL 1.4f /*0073CDF8*/         // 1.4
-#define EI_ARROW_SPREAD 1.1f /*0073BAC4*/        // 1.1
+#define EI_TRAIL_HEAD 1.2f /*0073CDF4*/
+#define EI_TRAIL_HALF 0.5f /*0073B86C*/
+#define EI_TRAIL_DRAG 0.95f /*0073CD50*/
+#define EI_ARROW_HEAD 0.4f /*0073B868*/
+#define EI_ARROW_PUFF 0.2f /*0073BAD4*/
+#define EI_ARROW_SWELL 1.4f /*0073CDF8*/
+#define EI_ARROW_SPREAD 1.1f /*0073BAC4*/
 
 // A random value of [low, high) (the original's spread box order).
 double Between(float low, float high) { return Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low); }
@@ -2747,19 +2739,18 @@ EI_REWRITTEN(0x0048CED0, CParticleSource::UpdateArrowSmoke);
 
 namespace {
 
-#define EI_BANSHEE_TALL 3.0f /*0073BAA4*/        // 3.0
+#define EI_BANSHEE_TALL 3.0f /*0073BAA4*/
 #define EI_BANSHEE_WIDEN 0.027777778f /*0073CD04*/       // 1/36
-#define EI_BANSHEE_HALF 0.5f /*0073B86C*/        // 0.5
-#define EI_BANSHEE_REACH 30.0f /*0073BAF0*/       // 30.0
-#define EI_BANSHEE_EASE 0.5f /*0073CB2C*/        // 0.5
-#define EI_BANSHEE_THIN 0.001f /*0073CCF4*/        // 0.001
-#define EI_BANSHEE_SIZE 0.15f /*0073CD18*/        // 0.15
+#define EI_BANSHEE_HALF 0.5f /*0073B86C*/
+#define EI_BANSHEE_REACH 30.0f /*0073BAF0*/
+#define EI_BANSHEE_EASE 0.5f /*0073CB2C*/
+#define EI_BANSHEE_THIN 0.001f /*0073CCF4*/
+#define EI_BANSHEE_SIZE 0.15f /*0073CD18*/
 
 } // namespace
 
-// Banshee: the first call only sets the ring up (from the carrier's figure; 72 sparks
-// per tick after it). A spark on the ring, at a random angle, between the ring and its eased
-// inner edge.
+// Banshee: the first call only sets the ring up (from the carrier's figure; 72 sparks per tick after it). A
+// spark on the ring, at a random angle, between the ring and its eased inner edge.
 int CParticleSource::EmitBanshee(Particle* p, int) {
     if (elementCount == 0) {
         SetElementCount(this, 1);
@@ -2829,14 +2820,14 @@ EI_REWRITTEN(0x00489F30, CParticleSource::TickBanshee);
 
 namespace {
 
-#define EI_PORTAL_HEIGHT 8.0f /*0073CC7C*/       // 8.0
-#define EI_PORTAL_RADIUS 2.5f /*0073CC78*/       // 2.5
+#define EI_PORTAL_HEIGHT 8.0f /*0073CC7C*/
+#define EI_PORTAL_RADIUS 2.5f /*0073CC78*/
 #define EI_PORTAL_ANGLE 1.4629214509862508e-9 /*0073CE88*/       // ~2 pi * 2^-32
-#define EI_PORTAL_SPIN 0.1f /*0073B850*/         // 0.1
-#define EI_PORTAL_RISE 0.015f /*0073CF54*/         // 0.015
-#define EI_PORTAL_HALF_C 0.5f /*0073B86C*/       // 0.5
-#define EI_PORTAL_TWO 2.0f /*0073CDB8*/          // 2.0
-#define EI_PORTAL_SHRINK 0.3f /*0073C54C*/       // 0.3
+#define EI_PORTAL_SPIN 0.1f /*0073B850*/
+#define EI_PORTAL_RISE 0.015f /*0073CF54*/
+#define EI_PORTAL_HALF_C 0.5f /*0073B86C*/
+#define EI_PORTAL_TWO 2.0f /*0073CDB8*/
+#define EI_PORTAL_SHRINK 0.3f /*0073C54C*/
 
 } // namespace
 
@@ -3051,10 +3042,10 @@ EI_REWRITTEN(0x00494A10, CParticleSource::EmitSparks);
 namespace {
 
 #define EI_CLAY_SCATTER_SCALE 4.656612943550534e-11 /*0073CD58*/  // ~0.2 * 2^-32
-#define EI_CLAY_SCATTER_LOW 0.1f /*0073B850*/     // 0.1
-#define EI_CLAY_SLOW 0.9f /*0073CD70*/            // 0.9
-#define EI_CLAY_COS 0.95f /*0073CD50*/             // 0.95
-#define EI_CLAY_SIN 0.31225f /*0073CE78*/             // 0.31225
+#define EI_CLAY_SCATTER_LOW 0.1f /*0073B850*/
+#define EI_CLAY_SLOW 0.9f /*0073CD70*/
+#define EI_CLAY_COS 0.95f /*0073CD50*/
+#define EI_CLAY_SIN 0.31225f /*0073CE78*/
 
 constexpr std::int32_t kClayAlpha[16] = /*0078A734*/ {0, 128, 255, 255, 255, 255, 255, 255, 255, 160, 80, 32};
 constexpr float kClayReach[16] = /*0078A6F4*/ {0.0f, 0.025f, 0.056f, 0.092f, 0.136f, 0.188f, 0.251f, 0.326f, 0.417f, 0.525f,
@@ -3181,15 +3172,15 @@ EI_REWRITTEN(0x0048FBE0, CParticleSource::TickClayRing);
 namespace {
 
 #define EI_FALL_SIZE_SCALE 2.328306471775267e-11 /*0073CE68*/    // ~0.1 * 2^-32
-#define EI_FALL_SIZE_BASE 0.1f /*0073B850*/      // 0.1
-#define EI_FALL_HALF 0.5f /*0073B86C*/           // 0.5
-#define EI_FALL_TEN 10.0 /*0073CD10*/           // 10.0
+#define EI_FALL_SIZE_BASE 0.1f /*0073B850*/
+#define EI_FALL_HALF 0.5f /*0073B86C*/
+#define EI_FALL_TEN 10.0 /*0073CD10*/
 #define EI_FALL_DROP_SCALE 2.7939676620469117e-11 /*0073CE60*/    // ~0.12 * 2^-32
-#define EI_FALL_DROP 0.06f /*0073CCB8*/           // 0.06
+#define EI_FALL_DROP 0.06f /*0073CCB8*/
 #define EI_FALL_SPIN_SCALE 9.313226234045763e-11 /*0073CE58*/    // ~0.4 * 2^-32
-#define EI_FALL_SPIN 0.6f /*0073CDE0*/           // 0.6
+#define EI_FALL_SPIN 0.6f /*0073CDE0*/
 #define EI_FALL_REACH_SCALE 4.6566131170228816e-11 /*0073CE70*/   // ~0.2 * 2^-32
-#define EI_FALL_TURN 360.0 /*0073CDC0*/          // 360.0
+#define EI_FALL_TURN 360.0 /*0073CDC0*/
 
 } // namespace
 
@@ -3241,15 +3232,14 @@ EI_REWRITTEN(0x0048F6F0, CParticleSource::TickFalling);
 
 namespace {
 
-#define EI_VULKAN_LOW (-0.5f /*0073CDC8*/)          // -0.5
-#define EI_VULKAN_HALF 0.5f /*0073B86C*/         // 0.5
-#define EI_VULKAN_SMOKE 0.3f /*0073C54C*/        // 0.3
+#define EI_VULKAN_LOW (-0.5f /*0073CDC8*/)
+#define EI_VULKAN_HALF 0.5f /*0073B86C*/
+#define EI_VULKAN_SMOKE 0.3f /*0073C54C*/
 
 } // namespace
 
-// VulcanSmoke: three in five are drops (state 8: 8 ticks per frame) thrown up at a
-// random height in a random direction; the others smoke (state 4) at a random point of the vent,
-// rising by the source's height.
+// VulcanSmoke: three in five are drops (state 8: 8 ticks per frame) thrown up at a random height in a random
+// direction; the others smoke (state 4) at a random point of the vent, rising by the source's height.
 int CParticleSource::EmitVulkan(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     p->frame = 0;
@@ -3329,15 +3319,14 @@ int CParticleSource::EmitFireStar(Particle* p, int) {
 }
 EI_REWRITTEN(0x00494950, CParticleSource::EmitFireStar);
 
-// FireStar: shown for two ticks at the kept size (shrinking it by 0.9 each time), then
-// hidden and dropped.
+// FireStar: shown for two ticks at the kept size (shrinking it by 0.9 each time), then hidden and dropped.
 int CParticleSource::UpdateFireStar(Particle* p) {
     if (--p->life <= 0) {
         p->color = 0xFFFFFF;
         SetBits(&p->size, 0);
         return 0;
     }
-    double shrunk = D(p->velocity.x) * D(0.9f /*0073CD70*/);    // 0.9
+    double shrunk = D(p->velocity.x) * D(0.9f /*0073CD70*/);
     p->color = 0xFFFFFFFF;
     std::memcpy(&p->size, &p->velocity.x, sizeof(float));
     p->velocity.x = static_cast<float>(shrunk);
@@ -3365,10 +3354,10 @@ EI_REWRITTEN(0x004950B0, CParticleSource::EmitRegeneration);
 // above, by 0.4 of the source's size. Its size flickers at random.
 int CParticleSource::UpdateRegeneration(Particle* p) {
     if (!(flags_ & 1) || !attachedTo) {
-        double shrunk = D(size) * D(0.75f /*0073C524*/);          // 0.75
+        double shrunk = D(size) * D(0.75f /*0073C524*/);
         size = static_cast<float>(shrunk);
         EI_NAN_AUDIT(shrunk);
-        if (shrunk < D(0.02f /*0073CCD8*/)) {                    // 0.02
+        if (shrunk < D(0.02f /*0073CCD8*/)) {
             SetBits(&p->size, 0);
             p->color = 0xFFFFFF;
             return 0;
@@ -3385,7 +3374,7 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
         double axisX = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z) + (xx + xx);
         float axisY = static_cast<float>(Dot2DUnrounded(x, z, y, w) * 2.0);   // (xy + zw) * 2
         float axisZ = static_cast<float>((x * z - y * w) * 2.0);
-        float scale = static_cast<float>(D(carrier->radius) * D(p->velocity.x) * D(0.65f /*0073CE08*/));    // 0.65
+        float scale = static_cast<float>(D(carrier->radius) * D(p->velocity.x) * D(0.65f /*0073CE08*/));
         float offsetY = static_cast<float>(D(axisY) * D(scale));
         float offsetZ = static_cast<float>(D(axisZ) * D(scale));
         target.x = static_cast<float>(axisX * D(scale) + D(target.x));
@@ -3394,8 +3383,8 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
     }
     p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) * D(size) *
                     D(0.25f /*0073C3B0*/));                       // (0.8 + [0, 0.4)) * size / 4
-    double keep = D(0.7f /*0073C538*/);                          // 0.7
-    double pull = D(0.3f /*0073C54C*/);                          // 0.3
+    double keep = D(0.7f /*0073C538*/);
+    double pull = D(0.3f /*0073C54C*/);
     p->pos.x = static_cast<float>(D(p->pos.x) * keep + D(target.x) * pull);
     p->pos.y = static_cast<float>(D(p->pos.y) * keep + D(target.y) * pull);
     p->pos.z = static_cast<float>(D(p->pos.z) * keep + D(size) * D(0.4f /*0073B868*/) + D(target.z) * pull);
@@ -3541,7 +3530,7 @@ int CParticleSource::UpdateFeebleMind(Particle* p) {
     double s = x87::fsin(0.07000000029802322 /*0073CF78*/);
     float turnedY = static_cast<float>(D(p->velocity.y) * c - D(p->velocity.x) * s);
     double turnedX = c * D(p->velocity.x) + D(p->velocity.y) * s;
-    double grow = D(1.1f /*0073BAC4*/);                          // 1.1
+    double grow = D(1.1f /*0073BAC4*/);
     p->velocity.x = static_cast<float>(turnedX * grow);
     p->velocity.y = static_cast<float>(D(turnedY) * grow);
     p->pos.x = static_cast<float>(D(p->velocity.x) + D(p->pos.x));
@@ -3550,7 +3539,7 @@ int CParticleSource::UpdateFeebleMind(Particle* p) {
     p->size = nextSize;
     p->frame = frame;
     p->pos.z = static_cast<float>(z + D(0.05f /*0073C52C*/));
-    p->aux2 = static_cast<float>(D(p->aux2) * D(1.04f /*0073CF98*/));    // 1.04
+    p->aux2 = static_cast<float>(D(p->aux2) * D(1.04f /*0073CF98*/));
     return 1;
 }
 EI_REWRITTEN(0x00495950, CParticleSource::UpdateFeebleMind);
@@ -3615,9 +3604,9 @@ int CParticleSource::UpdateFeetCloud(Particle* p) {
     std::memcpy(&p->size, &p->velocity.x, sizeof(float));
     p->pos.x = static_cast<float>(x);
     p->pos.z = static_cast<float>(D(keptZ) + D(towardZ));
-    p->velocity.x = static_cast<float>(D(p->velocity.x) * D(0.8f /*0073CCA8*/));    // 0.8
-    p->velocity.y = static_cast<float>(D(p->velocity.y) * D(0.98f /*0073CF9C*/));    // 0.98
-    double slow = D(0.9f /*0073CD70*/);                                 // 0.9
+    p->velocity.x = static_cast<float>(D(p->velocity.x) * D(0.8f /*0073CCA8*/));
+    p->velocity.y = static_cast<float>(D(p->velocity.y) * D(0.98f /*0073CF9C*/));
+    double slow = D(0.9f /*0073CD70*/);
     p->drift.x = static_cast<float>(D(p->drift.x) * slow);
     p->drift.y = static_cast<float>(D(p->drift.y) * slow);
     p->drift.z = static_cast<float>(D(p->drift.z) * slow);
@@ -3696,7 +3685,7 @@ int CParticleSource::EmitSilence(Particle* p, int) {
     float b = static_cast<float>(D(v.y) * s);
     double c = s * D(v.z);
     SetBits(&p->size, 0);
-    double k = D(0.8f /*0073CCA8*/);    // 0.8
+    double k = D(0.8f /*0073CCA8*/);
     float a8 = static_cast<float>(D(a) * k);
     float b8 = static_cast<float>(D(b) * k);
     double c8 = c * k;
@@ -3720,9 +3709,9 @@ EI_REWRITTEN(0x00495320, CParticleSource::EmitSilence);
 // step in +0x38 and flickering in size. A wisp shows +0x20 (shrinking by 0.8) for its life.
 int CParticleSource::UpdateSilence(Particle* p) {
     if (!(flags_ & 1) || !attachedTo) {
-        if (p->state) size = static_cast<float>(D(size) * D(0.85f /*0073CEB8*/));    // 0.85
+        if (p->state) size = static_cast<float>(D(size) * D(0.85f /*0073CEB8*/));
         EI_NAN_AUDIT(size);
-        if (size < 0.02f /*0073CCD8*/) {                                 // 0.02
+        if (size < 0.02f /*0073CCD8*/) {
             SetBits(&p->size, 0);
             p->color = 0xFFFFFF;
             return 0;
@@ -3803,7 +3792,7 @@ int CParticleSource::UpdateModifier(Particle* p) {
             p->size = static_cast<float>(oldSize * D(0.9345794f /*0073CEA8*/));    // 1 / 1.07
             p->color = (static_cast<std::uint32_t>(kModifierAlphaIn[elements[p->state].ticks]) << 24) | 0xFFFFFF;
         } else {
-            p->size = static_cast<float>(oldSize * D(1.07f /*0073CEA4*/));    // 1.07
+            p->size = static_cast<float>(oldSize * D(1.07f /*0073CEA4*/));
             p->color = (static_cast<std::uint32_t>(kModifierAlphaOut[elements[p->state].ticks]) << 24) | 0xFFFFFF;
         }
         return 1;
@@ -3813,7 +3802,7 @@ int CParticleSource::UpdateModifier(Particle* p) {
         p->frameTimer = frameDelay;
     }
     float* spread = &p->aux0;
-    double slow = D(0.9f /*0073CD70*/);    // 0.9
+    double slow = D(0.9f /*0073CD70*/);
     for (int i = 0; i < 3; ++i) spread[i] = static_cast<float>(D(spread[i]) * slow);
     double oldSize = D(p->size);
     double x = D(spread[0]) + D(p->velocity.x);
@@ -3899,7 +3888,7 @@ int CParticleSource::UpdateLightning(Particle* p) {
     std::memcpy(&p->size, &p->aux0, sizeof(float));
     p->pos.z = static_cast<float>(D(p->drift.z) + D(p->pos.z));
     p->aux0 = static_cast<float>(D(p->aux0) * D(0.9f /*0073CD70*/));
-    double slow = D(0.6f /*0073CDE0*/);    // 0.6
+    double slow = D(0.6f /*0073CDE0*/);
     p->drift.x = static_cast<float>(D(p->drift.x) * slow);
     p->drift.y = static_cast<float>(D(p->drift.y) * slow);
     p->drift.z = static_cast<float>(D(p->drift.z) * slow);
@@ -3958,12 +3947,12 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
     if (size > EI_P_ZERO) {
         SetBits(&p->velocity.x, 0x3F99999A);     // 1.2
         p->state = -19;
-        p->velocity.z = static_cast<float>(rise * D(magnitude) * D(0.15f /*0073CE80*/));    // 0.15
+        p->velocity.z = static_cast<float>(rise * D(magnitude) * D(0.15f /*0073CE80*/));
     } else {
         p->color = 0xFFFFFF;
         SetBits(&p->velocity.x, 0x3F555555);     // 1 / 1.2
         p->state = 19;
-        p->velocity.z = static_cast<float>(rise * D(magnitude) * D(2.25f /*0073CE7C*/));    // 2.25
+        p->velocity.z = static_cast<float>(rise * D(magnitude) * D(2.25f /*0073CE7C*/));
     }
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
     return 1;
@@ -4051,7 +4040,7 @@ int CParticleSource::EmitCurseStars(Particle* p, int) {
     float lengthF = static_cast<float>(length);
     p->life = 20;
     if (length > D(EI_P_ZERO)) {
-        double k = D(size) * D(0.1f /*0073B850*/);    // 0.1
+        double k = D(size) * D(0.1f /*0073B850*/);
         float ak = static_cast<float>(D(a) * k);
         float bk = static_cast<float>(D(b) * k);
         double ck = c * k;
@@ -4135,7 +4124,7 @@ int CParticleSource::EmitStartTrans(Particle* p, int) {
         p->drift.x = static_cast<float>(D(nx) / D(ticks));
         p->drift.y = static_cast<float>(D(ny) / D(ticks));
         p->drift.z = static_cast<float>(D(nz) / D(ticks));
-        p->aux0 = static_cast<float>(D(size) * D(0.05f /*0073C52C*/));    // 0.05
+        p->aux0 = static_cast<float>(D(size) * D(0.05f /*0073C52C*/));
     }
     p->color = 0xFFFFFF;
     SetBits(&p->size, 0);
@@ -4152,7 +4141,7 @@ int CParticleSource::UpdateStartTrans(Particle* p) {
             int life = --p->life;
             if (life < 0) return 0;
             p->color = (static_cast<std::uint32_t>(kTransAlpha[life]) << 24) | 0xFFFFFF;
-            p->size = static_cast<float>(D(p->size) * D(0.6f /*0073CDE0*/));    // 0.6
+            p->size = static_cast<float>(D(p->size) * D(0.6f /*0073CDE0*/));
             return 1;
         }
         p->color = 0xFFFFFFFF;
@@ -4371,7 +4360,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
     }
     Vector3 v;
     v.Construct(x, y, z);
-    double k = D(radius) * D(0.8f /*0073CCA8*/);    // 0.8
+    double k = D(radius) * D(0.8f /*0073CCA8*/);
     float a = static_cast<float>(D(v.x) * k);
     float b = static_cast<float>(D(v.y) * k);
     double c = k * D(v.z);

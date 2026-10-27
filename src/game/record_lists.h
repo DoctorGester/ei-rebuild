@@ -83,9 +83,8 @@ struct LinkArchiveElement {
     static void Default(LinkArchive* p) { stlp::StringElement::Default(&p->name); }
 };
 
-// The client world's ground prints (0x94 / 0x9C / 0xA4-byte nodes from operator new): the node
-// copies (blood, footprints, scorch marks) are the classes' copy
-// constructors (GroundPrint's, then their own members).
+// The client world's ground prints (0x94 / 0x9C / 0xA4-byte nodes from operator new): the node copies (blood,
+// footprints, scorch marks) are the classes' copy constructors (GroundPrint's, then their own members).
 struct BloodPrintElement {
     static void Copy(BloodPrint* to, const BloodPrint& from) { new (to) BloodPrint(from); }
 };

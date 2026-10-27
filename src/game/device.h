@@ -1,9 +1,8 @@
 #pragma once
 
-// The old renderer's device layer: what the device object (CTextureDevice, texture.h), its
-// DirectDraw base and the weather draws share. DirectDraw 7 / Direct3D 7 are called through their
-// COM interfaces: they are the boundary the new renderer sits behind (docs/notes/renderer.md,
-// sections 10 and 12).
+// The old renderer's device layer: what the device object (CTextureDevice, texture.h), its DirectDraw base
+// and the weather draws share. DirectDraw 7 / Direct3D 7 are called through their COM interfaces: they are
+// the boundary the new renderer sits behind (docs/notes/renderer.md, sections 10 and 12).
 
 #include "game_strings.h"
 #include "device_switchover.h"   // device::SwitchOverRenderState
@@ -17,15 +16,14 @@
 // A Direct3D device of the driver, as IDirect3D7::EnumDevices lists them (0x104 bytes; the
 // device object's list at +0xB0).
 struct Direct3DDeviceRecord {
-    stlp::string name;          // +0x00 e.g. "Direct3D HAL"
-    stlp::string description;   // +0x0C
-    D3DDEVICEDESC7 desc;        // +0x18
+    stlp::string name;          // e.g. "Direct3D HAL"
+    stlp::string description;
+    D3DDEVICEDESC7 desc;
 };
 static_assert(sizeof(Direct3DDeviceRecord) == 0x104 && offsetof(Direct3DDeviceRecord, desc) == 0x18);
 
 namespace device {
 
-// The interface and device ids as the game has them.
 inline constexpr GUID kIidTnLHalDevice = /*00745A10*/ {0xF5049E78, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8}};
 inline constexpr GUID kIidHalDevice = /*00745A50*/ {0x84E63DE0, 0x46AA, 0x11CF, {0x81, 0x6F, 0x00, 0x00, 0xC0, 0x20, 0x15, 0x6E}};
 inline constexpr GUID kIidDirect3D7 = /*00745A80*/ {0xF5049E77, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8}};
@@ -113,7 +111,6 @@ HRESULT GetAvailableVidMem(IDirectDraw7* ddraw, DDSCAPS2* caps, DWORD* total, DW
 HRESULT RestoreAllSurfaces(IDirectDraw7* ddraw);
 HRESULT FlipToGDISurface(IDirectDraw7* ddraw);
 HRESULT WaitForVerticalBlank(IDirectDraw7* ddraw, DWORD flags, HANDLE event);
-// IUnknown's AddRef / Release: nothing for the tokens.
 void AddRef(IDirect3DDevice7* d3d);
 void Release(IDirect3DDevice7* d3d);
 void Release(IDirectDraw7* ddraw);

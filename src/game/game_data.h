@@ -18,8 +18,7 @@
 namespace ei {
 
 // A game address of a data object, kept as a name in a table or constant: resolve it with GameAddress (or
-// GameData /
-// GamePointer) before use.
+// GameData / GamePointer) before use.
 constexpr std::uintptr_t DataId(std::uintptr_t address) { return address; }
 
 // What the image moves, whole: game.exe's .rdata (its import address table first) and .data with its zero-filled
@@ -33,7 +32,7 @@ constexpr std::uintptr_t kImageBegin = DataId(0x00400000);
 constexpr std::uintptr_t kImageEnd = DataId(0x007D7000);
 
 // game.exe's import address table, the first 0x820 bytes of .rdata: one slot per import. The image's slots
-// are ei_hook.dll's own table (image_imports.cpp), filled as the DLL initialises.
+// are ei_hook.dll's own table, filled as the DLL initialises.
 constexpr std::uintptr_t kImportsBegin = DataId(0x0073B000);
 constexpr std::uintptr_t kImportsEnd = DataId(0x0073B820);
 
@@ -43,11 +42,11 @@ inline std::uintptr_t GameAddress(std::uintptr_t address) { return address; }
 inline std::uintptr_t OriginalAddress(std::uintptr_t address) { return address; }
 #else
 // How far game.exe's .rdata and .data are from their addresses in this process: 0 in game.exe, the distance
-// to our storage in the image (image_data.cpp).
+// to our storage in the image.
 extern std::uintptr_t g_dataShift;
 
 // An address of game.exe's range (its headers, code, .rsrc) outside the moved data, asked for in the image: there is
-// nothing of game.exe there, so it is reported and the process ends (image_data.cpp).
+// nothing of game.exe there, so it is reported and the process ends.
 [[noreturn]] void StrayGameAddress(std::uintptr_t address);
 
 // Where the data game.exe has at `address` is in this process. A game address is itself only in game.exe (shift 0);

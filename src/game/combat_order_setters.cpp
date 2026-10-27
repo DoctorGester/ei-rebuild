@@ -1,6 +1,5 @@
-// Combat orders, the rest of the setters: movement style, wanted weapon, the skill and use
-// orders, playing an animation as an order, dropping everything, and two armour queries. See
-// combat.h and docs/notes/combat.md.
+// Combat orders, the rest of the setters: movement style, wanted weapon, the skill and use orders, playing an
+// animation as an order, dropping everything, and two armour queries. See combat.h and docs/notes/combat.md.
 #include "combat.h"
 
 #include "ai_map.h"

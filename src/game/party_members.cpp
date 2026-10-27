@@ -1,7 +1,6 @@
 // A party's unit records: adding one from a prototype (its texts, statistics and starting items),
-// removing one, the record's assignment and the copy of another record's items; the record
-// lists' copies of AlignedPtrArray::SetAtGrow. See party.h, unit.h and
-// docs/notes/items_spells.md ("Party").
+// removing one, the record's assignment and the copy of another record's items; the record lists' copies of
+// AlignedPtrArray::SetAtGrow. See party.h, unit.h and docs/notes/items_spells.md ("Party").
 #include "party.h"
 
 #include "game_strings.h"
@@ -70,7 +69,6 @@ const PartyItemArray& ConstList(CItem** const& data) { return *reinterpret_cast<
 
 } // namespace
 
-// --- PartyUnitRecord ----------------------------------------------------------------------------
 
 void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party) {
     ClearItems();
@@ -97,16 +95,13 @@ EI_REWRITTEN(0x00664950, PartyUnitRecord::Assign);
 EI_REWRITTEN(0x00664490, AlignedPtrArray::SetAtGrow);
 EI_REWRITTEN(0x006645D0, AlignedPtrArray::SetAtGrow);
 EI_REWRITTEN(0x00664710, AlignedPtrArray::SetAtGrow);
-// --- CParty -------------------------------------------------------------------------------------
 
 PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, const char* extra) {
     if (!itemManager_) Create();
     // A stack record: constructed, assigned to the new entry, destroyed. It starts zeroed: the constructor
-    // leaves the
-    // statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...), which the
-    // game took
-    // from its stack and saved with the party (a determinism fix; the harness zeroes the game's too,
-    // harness_leftovers.h).
+    // leaves the statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...),
+    // which the game took from its stack and saved with the party (a determinism fix; the harness zeroes the
+    // game's too, harness_leftovers.h).
     alignas(PartyUnitRecord) unsigned char storage[sizeof(PartyUnitRecord)] = {};
     auto* temporary = reinterpret_cast<PartyUnitRecord*>(storage);
     temporary->Construct();

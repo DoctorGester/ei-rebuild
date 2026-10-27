@@ -34,9 +34,8 @@ constexpr int kOpaque = 0xFF;         // the alpha the draws pass (read with dra
 constexpr int kNothingDrawn = 2;      // the device's result, also for a part the figure does not have
 constexpr float kByteScale = 255.0f;
 
-// The positions of a part moved by its per-vertex offsets (one work array for the draws
-// and the shadow's projection).
-// Zero at the start; its exit function frees the block.
+// The positions of a part moved by its per-vertex offsets (one work array for the draws and the shadow's
+// projection). Zero at the start; its exit function frees the block.
 constinit lib::AlignedArray<VertexPacket> g_movedPackets = /*007AEED0*/ {};
 lib::AlignedArray<VertexPacket>& MovedPackets() { return g_movedPackets; }
 void __cdecl FreeMovedPackets() { g_movedPackets.FreeData(); }
@@ -165,8 +164,7 @@ int DrawPartCommon(CLinkMesh* mesh, const stlp::string* name, int flags, CDXSurf
 
 // ---- 7 / 8: the colours ----------------------------------------------------------------------------
 
-// Both arrays sized to four per normal packet (their contents
-// dropped), then filled.
+// Both arrays sized to four per normal packet (their contents dropped), then filled.
 bool CLinkMesh::FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
                             ColourArray* colours, ColourArray* speculars) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
@@ -254,10 +252,9 @@ int CLinkMesh::ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>*
 }
 EI_REWRITTEN(0x004F4680, CLinkMesh::ProjectPart);
 
-// The part's texture coordinates times 255 (as floats, rounded to the
-// nearest integer), then every triangle's corners - the projected point of the corner's position
-// and the texture point of its coordinate - handed to the pixel converter's rasteriser at the
-// start of `target`.
+// The part's texture coordinates times 255 (as floats, rounded to the nearest integer), then every triangle's
+// corners - the projected point of the corner's position and the texture point of its coordinate - handed to
+// the pixel converter's rasteriser at the start of `target`.
 int CLinkMesh::RasterisePart(const stlp::string* name, const PixelPair* pixels, RasterTarget* target) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;

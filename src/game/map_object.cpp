@@ -68,7 +68,6 @@ int CMapObject::Update() {
 }
 EI_REWRITTEN(0x0050F1C0, CMapObject::Update);
 
-// --- Effects ---------------------------------------------------------------------------------
 
 namespace {
 
@@ -151,7 +150,7 @@ std::uintptr_t CMapObject::ClearEffects() {
 EI_REWRITTEN(0x0050F5B0, CMapObject::ClearEffects);
 
 float CMapObject::EffectValue(std::uint32_t type) {
-    std::uint32_t best = 0;   // 0.0f
+    std::uint32_t best = 0;
     for (int i = 0; i < effectCount; ++i) {
         MapEffect effect = effects[i];   // the record is copied twice, like the original
         if (effect.type != type) continue;   // the record's first dword & 0xFF
@@ -163,7 +162,6 @@ float CMapObject::EffectValue(std::uint32_t type) {
 }
 EI_REWRITTEN(0x0050F690, CMapObject::EffectValue);
 
-// --- Scale -----------------------------------------------------------------------------------
 
 std::uintptr_t CMapObject::RecomputeScale() {
     ApplyBaseScale();
@@ -204,7 +202,6 @@ std::uint32_t CMapObject::ResetScale() {
 }
 EI_REWRITTEN(0x0050E440, CMapObject::ResetScale);
 
-// --- Position --------------------------------------------------------------------------------
 
 float* CMapObject::GetPosition(float* out, int) {
     std::memcpy(out, &localPosition_.x, 3 * sizeof(float));
@@ -236,7 +233,6 @@ void CMapObject::PlaceOnGround(float offset) {
 }
 EI_REWRITTEN(0x0050F020, CMapObject::PlaceOnGround);
 
-// --- Companion -------------------------------------------------------------------------------
 
 std::uintptr_t CMapObject::SetServerData(const void* data) {
     int classId = companion->GetClassId();
@@ -285,7 +281,6 @@ int CMapObject::PackVitals() {
 }
 EI_REWRITTEN(0x0050E970, CMapObject::PackVitals);
 
-// --- Flags -----------------------------------------------------------------------------------
 
 std::uint32_t CMapObject::IsInvisible() { return (flags_ >> 16) & 1; }
 EI_REWRITTEN(0x0050FA10, CMapObject::IsInvisible);

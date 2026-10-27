@@ -46,11 +46,10 @@ stlp::string* NetAddress::ToString(stlp::string* out) const {
 }
 EI_REWRITTEN(0x00435010, NetAddress::ToString);
 
-// Advances the session clock by `dt`, then hands every datagram waiting on the
-// socket to the handler slot of its kind (its first byte) with the sender's address and a cursor
-// after that byte (an empty datagram is only logged). Then ticks every connection; one that timed
-// out is reported (slot 11) and removed (slot 2). Counts the call in `frame_`. The current session
-// is this one meanwhile.
+// Advances the session clock by `dt`, then hands every datagram waiting on the socket to the handler slot of
+// its kind (its first byte) with the sender's address and a cursor after that byte (an empty datagram is only
+// logged). Then ticks every connection; one that timed out is reported and removed. Counts the call in
+// `frame_`. The current session is this one meanwhile.
 void SessionBase::Tick(double dt) {
     g_currentSession = this;
     time_ = dt + time_;
@@ -154,7 +153,7 @@ void SessionBase::RemoveClient(ClientNode* node) {
 }
 
 // Packet kind 0: an update from a client. Unknown senders are logged (returns
-// false); a client whose update does not read is logged, reported (slot 11) and removed (slot 2).
+// false); a client whose update does not read is logged, reported and removed.
 bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     ClientNode* node = ClientAt(from);
     if (node == clients_) {
@@ -170,7 +169,7 @@ bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // Packet kind 1: a client leaves: its connection id follows; when it matches,
-// the client is reported (slot 12) and removed (slot 2).
+// the client is reported and removed.
 void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
     std::memcpy(&id, cursor->p, 4);
@@ -204,8 +203,7 @@ EI_REWRITTEN(0x00437340, SessionBase::OnMaster);     // slot 10, kind -1
 
 // ---- Byte buffer writes and small socket helpers ---------------------------------------------------
 
-// Copies `size` bytes to the write position and moves it on (no room check); returns
-// the buffer.
+// Copies `size` bytes to the write position and moves it on (no room check); returns the buffer.
 GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
     std::memcpy(cur, from, size);
     cur += size;
@@ -262,7 +260,6 @@ EI_REWRITTEN(0x00436FA0, SessionBase::SendLeave);
 
 } // namespace net
 
-// ---- Destruction ----------------------------------------------------------------------------------
 
 namespace net {
 

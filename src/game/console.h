@@ -1,8 +1,7 @@
 #pragma once
 
-// The developer console: the streambuf that collects console
-// output, the command executor with its two command maps, the "@"/"#"/"$" script lines
-// and the command handlers. See docs/notes/console.md.
+// The developer console: the streambuf that collects console output, the command executor with its two
+// command maps, the "@"/"#"/"$" script lines and the command handlers. See docs/notes/console.md.
 
 #include "game_data.h"
 #include "game_strings.h"
@@ -16,14 +15,14 @@
 #include <cstdint>
 #include <string>
 
-namespace libcrt { class Streambuf; }   // lib/crt_iostream.h
-namespace mfc::impl { struct CStdioFile; }   // lib/mfc_file.h
-namespace mfc::impl { class CFont; }   // lib/mfc_gdi.h
-struct SpeechRecord;            // unit_client_models.h
-class CInterface3D;             // ui.h
-class CUiContainer;             // ui.h
-class CUiSurface;               // ui.h
-namespace acks { struct Speeches; struct EnvironmentSpeeches; }   // acks_db.h
+namespace libcrt { class Streambuf; }
+namespace mfc::impl { struct CStdioFile; }
+namespace mfc::impl { class CFont; }
+struct SpeechRecord;
+class CInterface3D;
+class CUiContainer;
+class CUiSurface;
+namespace acks { struct Speeches; struct EnvironmentSpeeches; }
 
 namespace console {
 
@@ -59,7 +58,6 @@ class CStdioFile {
 public:
     enum { modeRead = 0, modeWrite = 1, modeCreate = 0x1000, typeText = 0x4000 };
     CStdioFile();
-    // Opened at once; a failure throws a CFileException* (lib/mfc_try.h).
     CStdioFile(const char* name, unsigned flags);
     ~CStdioFile();
     mfc::BOOL Open(const char* name, unsigned flags, void* error);
@@ -69,7 +67,6 @@ public:
     char* ReadString(char* buffer, unsigned size);
     void WriteString(const char* text);
     void Close();
-    // The file as code that calls through its vtable sees it.
     CStdioFileVirtuals* Virtuals() { return reinterpret_cast<CStdioFileVirtuals*>(this); }
 
 private:
@@ -90,9 +87,7 @@ public:
     GameOStream& operator<<(char c);
     GameOStream& operator<<(int n);
     GameOStream& operator<<(double d);
-    // Operator<<(ostream& (*)(ostream&)), here only with flush.
     GameOStream& Apply(libcrt::Manipulator manipulator);
-    // Apply(flush): the manipulator ostream& flush(ostream&).
     GameOStream& Flush() { return Apply(libcrt::FlushManipulator); }
     // The header's inline operator<<(float): sets x_floatused, prints as double. The game passes
     // the x87 value as is (never rounded to float).
@@ -100,7 +95,6 @@ public:
         floatUsed = 1;
         return *this << d;
     }
-    // The same, out of line, for a float argument (script_runtime_helpers.cpp).
     GameOStream& PutFloatArgument(float f);
 };
 static_assert(sizeof(GameOStream) == 8);
@@ -108,7 +102,7 @@ static_assert(sizeof(GameOStream) == 8);
 // One of the console's eight static ostreams (0x58 bytes): the ostream part and its ios, the virtual
 // base, right after it. Zero until its static initialiser constructs it on its streambuf
 // (ostream(streambuf*, 1)); the exit function that initialiser registers destroys it
-// (console_streams.cpp).
+//.
 struct OStreamObject : GameOStream {
     libcrt::Ios ios;
 };
@@ -125,7 +119,6 @@ extern OStreamObject g_rpgLogOut;
 extern OStreamObject g_graphicsLogOut;
 extern OStreamObject g_eventLogOut;
 extern OStreamObject g_aiLogOut;
-// The console's ostream.
 inline GameOStream& Out() { return g_consoleOut; }
 // A log stream seen through one of the game's per-file ostream views (inserters only, no data of their own).
 template <class View>
@@ -135,7 +128,6 @@ View* StreamAs(libcrt::Ostream& stream) {
 }
 // `<< '\n' << flush`, how every console message ends.
 void EndLine(GameOStream& os);
-// Out() << text, then EndLine.
 void PrintLine(const char* text);
 
 // The console's streambuf (eight static instances, one per message filter: 0 the console itself, then
@@ -143,9 +135,7 @@ void PrintLine(const char* text);
 // area (buffer_) and move into line_ on overflow; sync hands the line to the console window.
 class ConsoleStreambuf final : public libcrt::Streambuf {
 public:
-    // The base on buffer_, the filter, the empty line.
     explicit ConsoleStreambuf(unsigned filter);
-    // The line released (a member), then the base's.
     ~ConsoleStreambuf() override;
     int Sync() override;
     int Overflow(int c) override;
@@ -180,24 +170,19 @@ inline bool g_cheatEnabled = /*007C7B64*/ {};
 // the surface is redrawn from them.
 class ConsoleWindow {
 public:
-    // Made by CInterface3D::Create (console_window_create.cpp). The members
-    // constructed, `screen` kept, no surface, no command shown (-1), caret, selection, scroll and
-    // the flags cleared; a 9-point "Courier New" font (dropped when it cannot be made); the
-    // rectangle (0, 0)-(800, 150) and a 256-line history (older lines dropped); the lines drawn.
-    // Returns this.
+    // Made by CInterface3D::Create: a 9-point "Courier New" font, the rectangle (0, 0)-(800, 150), a 256-line history.
     ConsoleWindow* Construct(CInterface3D* screen);
     void SetRect(const RECT* rect);   // 800x600 coordinates
     void SetHistory(int lines);
     void AddText(const char* text);  // continues the last line; '\n' starts a new one
-    // Drawing and input (ui_console_window.cpp):
+    // Drawing and input:
     void Show(bool shown);                     // creates or releases the surface
     void OnKeyDown(int key, int repeat, int flags);   // editing and scrolling keys
     void OnChar(int key, int repeat, int flags);      // typed characters, Enter, Escape
     void OnKeyUp(int key, int repeat, int flags);     // VK_SHIFT / VK_CONTROL clear shift_ / ctrl_
     void DrawLines();                          // the lines above the input line
     void DrawInput();                          // the input line, selection and caret
-    // Called by the interface's 2D redraw while the console is shown. The surface's blit when there is
-    // one.
+    // Called by the interface's 2D redraw while the console is shown. The surface's blit when there is one.
     void Blit();
     // Called by the interface's shutdown, which deletes the window. Frees the surface and the font, then
     // the members (lines, input text, command history).
@@ -237,8 +222,7 @@ using CommandMap = stlp::map<mfc::CString, CommandHandler, stlp::CStringLess>;
 using CommandNode = CommandMap::Node;
 static_assert(sizeof(CommandNode) == 0x18);
 
-// Operator[] (lib_trees::Commands'): the handler slot for `key`, inserted with a null handler
-// if missing.
+// Operator[] (lib_trees::Commands'): the handler slot for `key`, inserted with a null handler if missing.
 CommandHandler& Command(CommandMap* map, const std::string& key);
 
 static_assert(sizeof(CommandMap) == 0xC);
@@ -257,9 +241,8 @@ struct CommandRegistration {
 };
 extern const CommandRegistration kCommandRegistrations[27];
 
-// Runs one console line.
 void __fastcall Execute(const char* text);
-// Rebirth's console additions (console_addon.cpp). AddNewConsoleCommands: the executor registers
+// Rebirth's console additions. AddNewConsoleCommands: the executor registers
 // addon's commands on every call; the battle screen's drawing applies "nogui" to its panels.
 // AutoExec: the "Console AutoExec" lines, run before three of the game's console executions.
 void RegisterAddonCommands();
@@ -276,7 +259,6 @@ int __fastcall Tokenize(const char* text, CStringArray* out);
 void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
                               const char* suffix);
 
-// Command handlers (console_commands.cpp).
 namespace commands {
 void __fastcall Help(CStringArray* args);          // help
 void __fastcall DebugInfo(CStringArray* args);     // debuginfo

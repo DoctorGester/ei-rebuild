@@ -1,4 +1,4 @@
-// CDib (dib.h): construction, the header of a new bitmap, its memory and its palette. The file
+// CDib: construction, the header of a new bitmap, its memory and its palette. The file
 // reader and writer are in dib_file.cpp.
 #include "dib.h"
 
@@ -17,8 +17,7 @@ constexpr std::uint16_t kPaletteVersion = 0x300;
 
 bool HasMasks(int bitCount) { return bitCount == 16 || bitCount == 32; }
 
-// The bytes of the header's pixels: its biSizeImage, or (when that is 0) its rows padded to four
-// bytes.
+// The bytes of the header's pixels: its biSizeImage, or (when that is 0) its rows padded to four bytes.
 std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
     if (header->biSizeImage != 0) return header->biSizeImage;
     const std::uint32_t rowBits = static_cast<std::uint32_t>(header->biBitCount) * header->biWidth;
@@ -27,7 +26,6 @@ std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
     return header->biHeight * rowDwords * 4;
 }
 
-// The runtime class's CreateObject.
 void* __stdcall CreateDib() { return new CDib(); }
 EI_REPLACE(0x006D49E0, CreateDib);
 
@@ -37,7 +35,6 @@ using mfc::impl::kClassCObject;
 // IMPLEMENT_SERIAL (schema 0): linked into the module state's class list by the static initialiser below.
 constinit CRuntimeClass g_classCDib = /*00796CD0*/ {"CDib", 0x3C, 0, &CreateDib, &kClassCObject, nullptr};
 
-// The static initialiser that links the record in.
 void __cdecl LinkDibClass() { mfc::impl::AfxClassInit(&g_classCDib); }
 EI_REPLACE(0x006D4A70, LinkDibClass);
 

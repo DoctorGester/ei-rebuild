@@ -1,8 +1,7 @@
-// The class templates a new game builds and the item and spell lists each template
-// gets from the databases. See class_templates.h and docs/notes/world.md
-// ("Party records and class templates").
-// The templates live in a vector of counted pointers at +0x38 of the party manager object (its +0x24
-// holds the parties). The build makes five templates or, with `fourClasses`, four.
+// The class templates a new game builds and the item and spell lists each template gets from the databases.
+// See class_templates.h and docs/notes/world.md ("Party records and class templates"). The templates live in
+// a vector of counted pointers at +0x38 of the party manager object (its +0x24 holds the parties). The build
+// makes five templates or, with `fourClasses`, four.
 #include "class_templates.h"
 
 #include "console.h"
@@ -26,9 +25,8 @@ namespace {
 
 // ---- Original code --------------------------------------------------------------------------------
 
-// vector<counted pointer> members (stlp::CountedRefVector's): erase(first, last),
-// _M_insert_overflow(pos, x, n), and the counted pointer's copy constructor (two identical
-// instantiations, both RefPtr::CopyCounted).
+// vector<counted pointer> members (stlp::CountedRefVector's): erase(first, last), _M_insert_overflow(pos, x,
+// n), and the counted pointer's copy constructor (two identical instantiations, both RefPtr::CopyCounted).
 
 // The item database (template +0x3C slot 18) lists the names of each kind into a CStringArray:
 // weapons, armors, quick items, the fourth kind (its records
@@ -40,8 +38,7 @@ void ListQuickItems(CItemManager* db, void*, console::CStringArray* names) { db-
 void ListFourthKind(CItemManager* db, void*, console::CStringArray* names) { db->ListMaterialNames(names); }
 void ListSpells(CSpellManager* db, void*, console::CStringArray* names) { db->ListSpellNames(names); }
 void ListModifiers(CSpellManager* db, void*, console::CStringArray* names) { db->ListModifierNames(names); }
-// SpellCodeByName / SpellModifierCodeByName (spell.cpp; __stdcall, the
-// caller passes the database in ECX).
+// SpellCodeByName / SpellModifierCodeByName (spell.cpp; __stdcall, the caller passes the database in ECX).
 
 // Record lookups by name. Weapons / armors by char* (hash maps);
 // operator[] of the string-keyed maps

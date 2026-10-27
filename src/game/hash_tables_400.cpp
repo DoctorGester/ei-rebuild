@@ -1,9 +1,9 @@
 // Hash tables (STLport hashtables of one-dword keys and values):
-//  - the id tables of CBaseManager (base_manager.cpp): MFC-style SetAt / Lookup / RemoveKey, find and
-//    operator[] over a hashtable that also keeps the highest key inserted;
-//  - the class registry of the chunk archive (vtable -> class id, then class id -> factory) and the session's
-//    type registry (net_classes.h): constructor and destructors, which the compiler inlined from the
-//    hashtable's.
+// - the id tables of CBaseManager: MFC-style SetAt / Lookup / RemoveKey, find and
+// operator[] over a hashtable that also keeps the highest key inserted;
+// - the class registry of the chunk archive (vtable -> class id, then class id -> factory) and the session's
+// type registry: constructor and destructors, which the compiler inlined from the
+// hashtable's.
 // See docs/notes/core.md.
 #include "hash_tables_400.h"
 
@@ -18,8 +18,7 @@ namespace {
 
 using Node = Table::Map::Node;
 
-// operator[] as these instantiations inline it: the highest key kept, then find_or_insert of
-// {key, 0}.
+// operator[] as these instantiations inline it: the highest key kept, then find_or_insert of {key, 0}.
 Node* FindOrInsert(Table* t, const std::int32_t* key) {
     if (*key > t->maxKey) t->maxKey = *key;
     return t->map.FindOrInsert({static_cast<std::uint32_t>(*key), 0});
@@ -38,13 +37,10 @@ std::uint32_t RemoveKey(Table* t, const std::uint32_t* key) {
 
 // --- CBaseManager's id tables --------------------------------------------------------------------
 
-// The objects table's SetAt (key -> object).
 void Table::ObjectsSetAt(const std::int32_t* key, const std::uint32_t* value) {
     FindOrInsert(this, key)->value = *value;
 }
-// The objects table's RemoveKey (returns the object or null).
 std::uint32_t Table::ObjectsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key); }
-// The objects table's Lookup: 1 with *value set, or 0.
 int Table::ObjectsLookup(const std::uint32_t* key, std::uint32_t* value) {
     Node* node = map.Find(*key);
     if (!node) return 0;
@@ -53,12 +49,10 @@ int Table::ObjectsLookup(const std::uint32_t* key, std::uint32_t* value) {
 }
 // RemoveKey of the id -> list position table (+0x50; also the client world's pending table).
 std::uint32_t Table::PositionsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key); }
-// The objects table's find: the value's address, or null.
 std::uint32_t* Table::ObjectsFind(const std::uint32_t* key) {
     Node* node = map.Find(*key);
     return node ? &node->value : nullptr;
 }
-// operator[] of the position table and of the spare counts.
 std::uint32_t* Table::PositionAt(const std::int32_t* key) {
     return &FindOrInsert(this, key)->value;
 }

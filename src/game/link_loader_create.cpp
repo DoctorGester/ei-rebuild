@@ -25,11 +25,10 @@ constexpr std::size_t kFigureSetBuckets = 100;   // the hint the figure sets' ta
 void* CLinkFigureLoader::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CLinkFigureLoader::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-// An empty archive list, figure set table and cache, the
-// device object counted, the transform object taken from its pipeline, then the two archives of
-// `folder` opened (a failure is only logged). The original also leaves bytes of its empty hash,
-// equality and compare objects in the containers' padding (stack contents, and the low byte of
-// `renderer` in the cache's); nothing reads them and they are not written here.
+// An empty archive list, figure set table and cache, the device object counted, the transform object taken
+// from its pipeline, then the two archives of `folder` opened (a failure is only logged). The original also
+// leaves bytes of its empty hash, equality and compare objects in the containers' padding (stack contents,
+// and the low byte of `renderer` in the cache's); nothing reads them and they are not written here.
 CLinkFigureLoader::CLinkFigureLoader(CTextureDevice* renderer, const stlp::string* folder) {
     archives_ = stlp::allocate_as<LinkArchiveNode>();
     archives_->next = archives_;

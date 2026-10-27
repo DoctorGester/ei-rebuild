@@ -44,7 +44,7 @@ constexpr MenuRect kRects[] = {
 } // namespace
 
 int CFigureManager::LoadMenuRects(RECT* rects) {
-    // The .reg reader (0x18 bytes on the stack, constructed and destroyed by hand).
+    // The.reg reader (0x18 bytes on the stack, constructed and destroyed by hand).
     lib::InPlace<CFileRegistry> storage;
     auto* reg = storage.Get();
     reg->Construct();

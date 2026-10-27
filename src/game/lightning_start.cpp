@@ -47,7 +47,7 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool demon) {
     int ticks = CurrentClientTick();
     float fraction = ClientTickFraction();
-    float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f /*0073C4F8*/);   // 4
+    float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f /*0073C4F8*/);
     power_ = power;
     const float strength = Absolute(power);
     amplitude_ = power_ > 0.0f /*0073B858*/ ? 0.05f /*0073C52C*/ : 0.3f /*0073C54C*/;   // 0.05 : 0.3
@@ -59,7 +59,7 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     FreshKeys(main_, time, KeyAmplitude(power_));
     main_.width = strength;
     EI_NAN_AUDIT(power_);
-    if (power_ < 0.0f /*0073B858*/) main_.width = strength * 1.5f /*0073C51C*/;   // 1.5
+    if (power_ < 0.0f /*0073B858*/) main_.width = strength * 1.5f /*0073C51C*/;
 
     EI_NAN_AUDIT(strength);
     if (strength != 0.0f) {

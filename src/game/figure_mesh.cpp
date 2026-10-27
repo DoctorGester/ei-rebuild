@@ -47,7 +47,7 @@ Vector3 Scale(const Vector3& a, float s) { return {static_cast<float>(a.x * s), 
 Vector3 LerpStored(const Vector3& a, const Vector3& b, float s) { return Add(Scale(Sub(b, a), s), a); }
 
 // One morphed vector from 8 corner versions (`v` points at 8 Vector3s):
-//   lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u)
+// lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u)
 // `keepZ`: the original keeps the z component of the upper blend unrounded on the FPU for the
 // final difference (centre and box minimum; FST then FSUB), while the box maximum goes through
 // the out-of-line Vector3 helpers and rounds it.
@@ -66,7 +66,7 @@ Vector3 MorphVector(const float* v, float s, float t, float u, bool keepZ) {
 }
 
 // The older 6-corner layout (non-FIG files), as for the bones (figure.h, BoneMorphBox):
-//   lerp(lerp(lerp(c0, c1, s), c2, t), lerp(lerp(c3, c4, s), c5, t), u)
+// lerp(lerp(lerp(c0, c1, s), c2, t), lerp(lerp(c3, c4, s), c5, t), u)
 // with the same unrounded upper z when `keepZ`.
 Vector3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
     Vector3 lower = LerpStored(LerpStored(Load(c), Load(c + 3), s), Load(c + 6), t);
@@ -84,12 +84,12 @@ Vector3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
 // One component of a 6-corner value (corner k at c[3 * k]), in the four roundings the original's
 // register allocation produced in the old-format loaders (each was read off the instruction
 // stream; see the notes):
-//   PerOp: every operation rounded (the inlined Vector3 operators).
-//   Kept:  the two s-blends stored, everything else on the FPU.
-//   StoredLower: s-blends and the lower t-blend stored; the upper t-step stored but added on the
-//          FPU; then per operation.
-//   PerOpKeptSum: per operation, except the upper sum b + step, which is not stored.
-//   PerOpKeptUpper: as PerOpKeptSum, and the upper step's difference (c5 - b) stays on the FPU.
+// PerOp: every operation rounded (the inlined Vector3 operators).
+// Kept:  the two s-blends stored, everything else on the FPU.
+// StoredLower: s-blends and the lower t-blend stored; the upper t-step stored but added on the
+// FPU; then per operation.
+// PerOpKeptSum: per operation, except the upper sum b + step, which is not stored.
+// PerOpKeptUpper: as PerOpKeptSum, and the upper step's difference (c5 - b) stays on the FPU.
 float LerpP(float a, float b, float s) { return static_cast<float>(static_cast<float>(static_cast<float>(b - a) * s) + a); }
 
 float CornerPerOp(const float* c, float s, float t, float u) {
@@ -271,8 +271,7 @@ __declspec(noinline) void MorphBlock(float* out, const float* v, float s, float 
     }
 }
 
-// One 16-byte block of an old-format vertex: 6 corner versions (6 x 4 floats), every blend on
-// the FPU.
+// One 16-byte block of an old-format vertex: 6 corner versions (6 x 4 floats), every blend on the FPU.
 __declspec(noinline) void MorphBlock6(float* out, const float* v, float s, float t, float u) {
     for (int k = 0; k < 4; ++k) {
         double a = (static_cast<double>(v[4 + k]) - v[k]) * s + v[k];
@@ -332,7 +331,6 @@ void LoadVertices(lib::AlignedArray<VertexPacket>& vertices, char** cursor, std:
     }
 }
 
-// Sizes `array` to `count` and copies `count` elements from the cursor.
 template <typename T>
 void LoadArray(lib::AlignedArray<T>& array, char** cursor, int count) {
     array.SetSize(count);
@@ -351,7 +349,6 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     *cursor += sizeof(header);
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
-    // Through its address (the verify build checks it there).
     ei::Code<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
         this, nullptr, cursor, s, t, u, header.magic);
 
@@ -440,7 +437,6 @@ EI_REWRITTEN(0x005A5C70, CSharedFigureMesh::LoadFig);
 
 namespace {
 
-// Reads the count in front of a block.
 int ReadCount(char** cursor) {
     int n;
     std::memcpy(&n, *cursor, 4);
@@ -649,7 +645,6 @@ void CPlainFigureMesh::RefreshBuffers() {
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
     buffers_.normalCount = normals_.size;
-    // Through its address (the verify build checks it there).
     using ResizeFn = void(__fastcall*)(lib::AlignedArray<std::uint32_t>*, void*, int, int);
     ei::Code<ResizeFn>(0x005A6E70)(&colorsA_, nullptr, normals_.size * 4, -1);
     ei::Code<ResizeFn>(0x005A6E70)(&colorsB_, nullptr, normals_.size * 4, -1);
@@ -717,7 +712,6 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, V
                 to[4] = d.y + from[4];
                 to[8] = d.z + from[8];
             } else {
-                // Copied as dwords.
                 std::memcpy(&to[0], &from[0], 4);
                 std::memcpy(&to[4], &from[4], 4);
                 std::memcpy(&to[8], &from[8], 4);

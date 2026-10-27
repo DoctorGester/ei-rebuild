@@ -10,26 +10,22 @@
 // the world transform derived from them. Base of the camera, the scene's figures, units and other
 // placed objects (abstract: slots 2, 3, 11 and 12 are pure). Name provisional; 18 slots.
 // Slots 0-12 are CEngineObject's (CopyFrom, Release, empty Load/Save); 13-17 are defined in
-// core_transform.cpp. The game's out-of-line constructor body (the base's fields and identity rotations) is
+// The game's out-of-line constructor body (the base's fields and identity rotations) is
 // what the derived classes' constructors do; its destructor (deleting too) is CEngineObject's.
 namespace mfc {
-class CFileVirtuals;   // lib/mfc.h
+class CFileVirtuals;
 }
 
 class CTransformObject : public CEngineObject {
 public:
-    // Copies the local and world transform; returns this.
     virtual CTransformObject* CopyTransform(const CTransformObject& other);
     // WorldRotation = parent * localRotation. Overridden in units.
     virtual void CombineRotation(const Quaternion& parent);
     // Recomputes the world transform from the parent's rotation and position.
     virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition);
-    // Writes the local transform to an MFC CFile (slot 14, Write).
     virtual void SaveTransform(mfc::CFileVirtuals* file);
-    // Reads the local transform from an MFC CFile (slot 13, Read).
     virtual void LoadTransform(mfc::CFileVirtuals* file);
 
-    // Rotation helpers (core_transform_math.cpp).
     void WorldMatrix(float* m) const;                    // 4x4 world matrix
     void TiltTowards(const Vector3& target);             // down axis a tenth towards target
     void TurnTowards(const Vector3& target);             // forward axis onto target
@@ -38,10 +34,10 @@ public:
     void TurnUpTowards(const Vector3& dir, int reduced); // up axis towards dir (0.4 of it if reduced)
     void SetHeading(const float* dir);                   // turn about +Z by atan2(dir[1], dir[0])
 
-    Vector3 localPosition_;     // +0x1C
-    Vector3 worldPosition_;     // +0x28
-    Quaternion localRotation_;  // +0x34
-    Quaternion worldRotation_;  // +0x44
+    Vector3 localPosition_;
+    Vector3 worldPosition_;
+    Quaternion localRotation_;
+    Quaternion worldRotation_;
 };
 static_assert(offsetof(CTransformObject, localPosition_) == 0x1C);
 static_assert(offsetof(CTransformObject, localRotation_) == 0x34);

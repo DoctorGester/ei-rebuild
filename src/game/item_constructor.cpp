@@ -25,7 +25,6 @@ using namespace itemdb;
 namespace {
 
 
-// Item class ids (GetClassId).
 constexpr int kClassWeapon = 0x11;
 constexpr int kClassArmor = 0x12;
 constexpr int kClassQuick = 0x13;
@@ -43,7 +42,7 @@ const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 constexpr std::uint32_t kDefaultChargeRate = 0x3A83126F;
 
 // --- The temporary database record ---------------------------------------------------------------
-// Build creates a record of the item's kind (item_db.h), fills only the fields the item's InitFromRecord reads, and
+// Build creates a record of the item's kind, fills only the fields the item's InitFromRecord reads, and
 // destroys it again. The prototype and material records are read without a null check where the game reads them
 // without one (a missing record faults there).
 
@@ -358,7 +357,6 @@ const char* const kMaterialType = "material";
 const char* const kNoPrototype = "Can't find prototype for item \"%s\".\n";
 const char* const kCantCreate = "Can't create item \"%s\".\nCheck shape and material names\n";
 
-// CString members used here (MFC).
 struct ItemText : mfc::CString {
     int Find(char c) const;
     void TrimSpaceLeft() { mfc::CString::TrimLeft(); }     // TrimLeft() (moves the text, memmove)
@@ -374,10 +372,8 @@ ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 // Prototype lookups by name (NamedRecordTable::Named): weapons, armors, quick items, the class-0x14 table, the
 // class-0x15 table, materials. Each returns the record or null.
 
-// The string-keyed maps the loot item's table index comes from: operator[] of the weapon
-// armor, quick item and spell
-// maps, and the modifier map's find_or_insert of a
-// (name, null) pair.
+// The string-keyed maps the loot item's table index comes from: operator[] of the weapon armor, quick item
+// and spell maps, and the modifier map's find_or_insert of a (name, null) pair.
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
 template <typename Table, typename Record>
@@ -473,8 +469,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     CItem* item = constructor->EndCreateItem();
     if (!item) {
         // Rebirth's FixCreateItem: logged, and no item. Without it the error is reported and the code goes on
-        // with the null
-        // item (and crashes).
+        // with the null item (and crashes).
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem)) return nullptr;
         game::FatalError(kCantCreate, name);
     }

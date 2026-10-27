@@ -1,6 +1,5 @@
-// The animated node's lifetime (CAnimationNode, 0x128 bytes, figure.h): constructor and destructor
-// body. The fake units' skeletons make them and the skin code destroys them
-// See docs/notes/map_objects.md.
+// The animated node's lifetime (CAnimationNode, 0x128 bytes, figure.h): constructor and destructor body. The
+// fake units' skeletons make them and the skin code destroys them See docs/notes/map_objects.md.
 #include "figure.h"
 
 #include "figure_mesh.h"

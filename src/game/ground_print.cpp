@@ -46,19 +46,16 @@ constexpr float kMilli = 0.001f;
 constexpr float kAngleMilli = 1000.0f;
 constexpr float kSpinDegrees = 30.0f;
 
-// Globals.
-// pi / 2 and 2 pi as floats (set by static initialisers).
+// Globals. pi / 2 and 2 pi as floats (set by static initialisers).
 constexpr float kHalfPi = /*007C899C*/ 1.5707964f;   // static initialisers: pi * 0.5 and pi + pi
 constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the game).
 double Pi() { return 3.141592653589793 /*00744238*/; }
 double PerDegree() { return 0.005555555555555556 /*0073BA30*/; }
-// The prints settings: blood, footprints, scorch marks (0 off).
 bool BloodPrintsOn() { return options::TheOptions()->enableBloodprints_ != 0; }
 bool FootprintsOn() { return options::TheOptions()->enableFootprints_ != 0; }
 bool ScorchMarksOn() { return options::TheOptions()->enableFireprints_ != 0; }
 
-// *slot = value with counted references, the old one released (inlined).
 void AssignCounted(CTexture** slot, CTexture* value) {
     CTexture* old = *slot;
     *slot = value;

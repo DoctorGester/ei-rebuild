@@ -57,7 +57,7 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     for (int yy = y0; yy < y1; ++yy)
         for (int xx = x0; xx < x1; ++xx)
             shape->levels[yy - y0][xx - x0] = static_cast<std::uint8_t>(waterDepth[yy][xx]);
-    // The pseudo unit is only a key to the layer (ai_unit_layer.cpp).
+    // The pseudo unit is only a key to the layer.
     CUnitLayer* layer = &unitLayerSmall;
     auto* owner = reinterpret_cast<CUnit*>(static_cast<std::intptr_t>(key));
     if (add) layer->Add(owner, Patch(), x0, y0);

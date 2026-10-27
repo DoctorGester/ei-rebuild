@@ -17,11 +17,11 @@
 // A Direct3D material (D3DMATERIAL7): diffuse, ambient, specular and emissive colours (r, g, b, a)
 // and the specular power. 0x44 bytes; copied as dwords.
 struct MaterialColors {
-    Vector4 diffuse;        // +0x00
-    Vector4 ambient;        // +0x10
-    Vector4 specular;       // +0x20
-    Vector4 emissive;       // +0x30
-    float power;            // +0x40
+    Vector4 diffuse;
+    Vector4 ambient;
+    Vector4 specular;
+    Vector4 emissive;
+    float power;
 };
 static_assert(sizeof(MaterialColors) == 0x44);
 
@@ -47,29 +47,25 @@ public:
     // with the alpha 3DfpFPU's LightMesh gave every colour (the diffuse alpha times 255, rounded).
     std::uint32_t GpuLitColour() const;
 
-    // An engine object with empty names, alpha 1 and an empty deque (one node). The
-    // colours stay as they were.
     CMaterial();
-    // The deque emptied and freed, the names, the engine object.
     ~CMaterial() override;
-    // The deleting destructor (slot 0) frees into the game's heap.
 
     // Empty names, alpha 1, +0x90 / +0x98 0, the deque emptied; returns 1.
     int Create() override;
     // Empties the deque.
     void Destroy() override;
-    // 7: the name's text (short_functions.cpp)
+    // The name's text (short_functions.cpp)
     const char* GetName() override;
     const char* GetClassName() override;   // 11: "CMaterial"
-    int GetClassId() override;             // 12: 5
+    int GetClassId() override;
 
-    mfc::CString name;                      // +0x1C
-    MaterialColors colors;                  // +0x20
-    stlp::deque<MaterialEntry> entries;     // +0x64
-    mfc::CString name2;                     // +0x8C (the scene file's second name)
-    int spare90;                            // +0x90 0 after Create; nothing reads it
-    mfc::CString name3;                     // +0x94 (the scene file's third name)
-    int spare98;                            // +0x98 0 after Create; nothing reads it
+    mfc::CString name;
+    MaterialColors colors;
+    stlp::deque<MaterialEntry> entries;
+    mfc::CString name2;                     // (the scene file's second name)
+    int spare90;                            // 0 after Create; nothing reads it
+    mfc::CString name3;                     // (the scene file's third name)
+    int spare98;                            // 0 after Create; nothing reads it
 };
 static_assert(offsetof(CMaterial, name) == 0x1C && offsetof(CMaterial, colors) == 0x20 &&
               offsetof(CMaterial, entries) == 0x64 && offsetof(CMaterial, name2) == 0x8C &&
@@ -82,34 +78,29 @@ class CMaterialManager : public CResourceManager {
 public:
     using ColorTable = stlp::hash_map<unsigned, MaterialColors, stlp::IntHash>;
 
-    // CResourceManager's constructor and an empty colour table (NextPrime(100) = 193
-    // buckets).
     CMaterialManager();
-    // The colour table freed, then CResourceManager's destructor.
     ~CMaterialManager() override;
     const char* GetClassName() override;     // 11: "CMaterialManager"
-    int GetClassId() override;               // 12: 0x27
+    int GetClassId() override;
     const char* GetFolderName() override;    // 25: "materials"
 
-    // 2: Create (Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
-    // Create (0 when it fails); the archive "materials.res" of the text folder added;
-    // then the colours of each of the eight kinds of kMaterialKindFiles (0x11 leather, wood,
-    // metal, cloth, skin, stone, 0x17 magic, 0x19 metal again) entered under the kind: the
-    // file's colours (after its name: a 16-bit length and the text), or, without the file,
-    // diffuse 0.3 (alpha 1), ambient 0.7, specular 0.2, power 5 and the rest 0; kind 0x17's
+    // Create (Rebirth-patched, hooked in the vanilla launch only). CBaseManager's Create (0 when it fails);
+    // the archive "materials.res" of the text folder added; then the colours of each of the eight kinds of
+    // kMaterialKindFiles (0x11 leather, wood, metal, cloth, skin, stone, 0x17 magic, 0x19 metal again)
+    // entered under the kind: the file's colours (after its name: a 16-bit length and the text), or, without
+    // the file, diffuse 0.3 (alpha 1), ambient 0.7, specular 0.2, power 5 and the rest 0; kind 0x17's
     // emissive colour is 1 either way. Returns 1.
     int Create() override;
     // A new CMaterial with type_ = `type`; null when the allocation fails.
     CEngineObject* NewObject(int type) override;
-    // A material of `type` (slot 23 with id -1, flags_ |= 8 before the null
-    // check) given the table's colours for its type_ (an absent key is entered first, its colours
-    // the key's bits in every dword).
+    // A material of `type` (slot 23 with id -1, flags_ |= 8 before the null check) given the table's colours
+    // for its type_ (an absent key is entered first, its colours the key's bits in every dword).
     CMaterial* NewMaterial(int type);
     // The table's colours for `key` (entered as NewMaterial does when absent)
     // into `material`; 1, or 0 for a null material.
     int FillMaterial(CMaterial* material, unsigned key);
 
-    ColorTable colors_;     // +0xBC
+    ColorTable colors_;
 };
 static_assert(offsetof(CMaterialManager, colors_) == 0xBC && sizeof(CMaterialManager) == 0xD0);
 

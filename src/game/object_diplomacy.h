@@ -41,8 +41,8 @@ struct CDiplomacy {
     // become hostile to the attacker's player. The third argument is unused.
     void OnAttack(CUnit* attacker, CUnit* victim, int unused);
 
-    std::uint32_t allied_[32];    // +0x00 bit q of row p: p is allied with q
-    std::uint32_t hostile_[32];   // +0x80 bit q of row p: p is hostile to q
+    std::uint32_t allied_[32];    // bit q of row p: p is allied with q
+    std::uint32_t hostile_[32];   // bit q of row p: p is hostile to q
 };
 static_assert(offsetof(CDiplomacy, allied_) == 0x00);
 static_assert(offsetof(CDiplomacy, hostile_) == 0x80);

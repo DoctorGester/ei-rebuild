@@ -63,7 +63,6 @@ BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key
 
 } // namespace
 
-// --- Lifetime ------------------------------------------------------------------------------------
 
 CFileRegistry* CFileRegistry::Construct() {
     file_.Construct();
@@ -121,7 +120,6 @@ void CFileRegistry::Close() {
 }
 EI_REWRITTEN(0x006946B0, CFileRegistry::Close);
 
-// --- Lookups -------------------------------------------------------------------------------------
 
 const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key, unsigned type, int* isScalar) {
     const std::uint8_t* root = data_;

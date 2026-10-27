@@ -29,7 +29,6 @@ void ResetNode(SearchNode* node) {
     node->usable = true;
 }
 
-// CList<PathCell>::AddHead (NewNode, then linked first).
 void AddHead(PathCellList* list, const PathCell& cell) {
     PathCellList::Node* node = list->NewNode(nullptr, list->head);
     node->data = cell;
@@ -118,7 +117,6 @@ void LocalSearch::Requeue(SearchNode* node, int cost) {
     SearchNode*& bucket = buckets[node->x & 3];
     SearchNode* head = bucket;
     if (node == head) return;
-    // Unlink it from wherever it is.
     if (node->next) node->next->prev = node->prev;
     if (node->prev) node->prev->next = node->next;
     node->next = nullptr;
@@ -167,7 +165,6 @@ int LocalSearch::StepCost(const SearchNode* node, int factor) {
     const AIMapCell& from = cellRows[current->y][current->x];
     int pass, climb;
     if (backward) {
-        // The step is taken from `node` into `current`.
         pass = costs.costs[(from.passable >> (costs.shift & 31)) & 0xF];
         if (pass < 0) return -1;
         if (level < to.level && from.level <= to.level) return -1;
@@ -231,7 +228,6 @@ bool LocalSearch::ExpandUntil(int x, int y) {
 EI_REWRITTEN(0x005C31A0, LocalSearch::ExpandUntil);
 
 void LocalSearch::PathTo(int x, int y, PathCellList* out) {
-    // The inlined RemoveAll.
     out->count = 0;
     out->free = nullptr;
     out->tail = nullptr;
@@ -429,7 +425,6 @@ void LocalSearch::Attach(CAIMap* mapArg, bool backwardArg) {
             node->direction = 0;
         }
     }
-    // The inlined CArray<AIMapCell*>::SetSize(34).
     if (!cellRows) {
         cellRows = static_cast<AIMapCell**>(gamecrt::operator_new(kWindow * sizeof(AIMapCell*)));
         for (int i = 0; i < kWindow; ++i) cellRows[i] = nullptr;
@@ -465,7 +460,6 @@ bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
     if (!PlaceWindow(x0, y0, x1, y1)) return false;
     FillCellRows(this);
     if (CdqAbs(originX - oldX) >= 31 || CdqAbs(originY - oldY) >= 31) return false;
-    // A copy of the node grid.
     SearchGrid<SearchNode> old{nullptr, nullptr, nodes.width, nodes.height};
     AllocateGrid(old);
     if (old.width * old.height > 0) std::memcpy(old.data, nodes.data, old.width * old.height * sizeof(SearchNode));

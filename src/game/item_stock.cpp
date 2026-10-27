@@ -31,12 +31,10 @@ namespace {
 
 // ---- Original code --------------------------------------------------------------------------------
 
-// The item constructor (CItemConstructor, item_constructor.cpp); MagicCapacity: whether
-// the prototype and material allow a spell (not for kinds 0x11 / 0x12 without a material), with the
-// level (prototype +0x44 + material +0x1C, as a float) and the power limit (prototype +0x40 +
-// material +0x18).
+// The item constructor (CItemConstructor, item_constructor.cpp); MagicCapacity: whether the prototype and
+// material allow a spell (not for kinds 0x11 / 0x12 without a material), with the level (prototype +0x44 +
+// material +0x1C, as a float) and the power limit (prototype +0x40 + material +0x18).
 
-// The vectors' element policies: plain pointers and material entries.
 using CandidateElement = stlp::PlainElement<StockMaterial*>;
 using MaterialElement = stlp::PlainElement<StockMaterial>;
 
@@ -98,7 +96,6 @@ void AssignMaterials(StockMaterialVector& to, const StockMaterialVector& from) {
 // Appends an item to the output list (list<CItem*>::insert; counted by the caller).
 void Output(StockList* out, CItem* item) { StockList::Insert(out->End(), item); }
 
-// The item's reference count.
 void AddReference(CItem* item) { ++item->refCount_; }
 
 // A prototype record: text08 its name, materialClass its material class, price, materialUnits the material
@@ -153,7 +150,6 @@ void ClearSpellList(StockSpellList& list) {
 // Frees the spell list as clear and the destructor do: the clear, then the sentinel.
 void DestroySpellList(StockSpellList& list) {
     ClearSpellList(list);
-    // (The destructor's own clear finds the list empty.)
     stlp::deallocate(list.head, sizeof(StockSpellListNode));
 }
 
@@ -352,7 +348,7 @@ namespace {
 
 // The spell recipe map (+0x50): clear, find-or-insert of a {name, list} pair, begin and the next non-empty bucket.
 // Its lists: constructor, destructor, end, insert; the pair: constructor (the record, whose name starts it, and
-// &list), destructor (stlp_pair.cpp). The modifier map (+0x64): clear, operator[] with a {key, null} pair. The
+// &list), destructor. The modifier map (+0x64): clear, operator[] with a {key, null} pair. The
 // spell prototypes by name (thiscall on the spell table) and the spell manager's builder (prototype, modifier
 // list; a new counted spell or null).
 itemdb::SpellRecord* FindSpellPrototype(const char* name) {
@@ -507,7 +503,6 @@ namespace {
 // previous value.
 void ReadInt(CStream* stream, void* value) { stream->Read(value, 4u); }
 
-// The next string of the stream into `name` (through a temporary).
 void ReadName(CStream* stream, mfc::CString& name) {
     alignas(mfc::CString) unsigned char temporary[sizeof(mfc::CString)];
     mfc::CString* read = stream->ReadString(temporary);
@@ -588,7 +583,6 @@ EI_REWRITTEN(0x0069B5B0, ItemStock::LoadLists);
 namespace {
 
 void WriteInt(CStream* stream, std::uint32_t value) { stream->Write(&value, 4u); }
-// A text with its terminating zero.
 void WriteText(CStream* stream, const char* text) {
     stream->Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
 }
@@ -617,8 +611,7 @@ void ItemStock::SaveLists(CStream* out) {
     for (itemdb::SpellRecord** p = spells.begin(); p != spells.end(); ++p) WriteText(out, (*p)->code);
 
     // The modifiers' codes go through a CString made from a stack copy of their first four bytes (the game's
-    // fifth byte
-    // is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
+    // fifth byte is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
     WriteInt(out, static_cast<std::uint32_t>(modifiers.size()));
     for (Modifier** p = modifiers.begin(); p != modifiers.end(); ++p) {
         char code[5] = {};
@@ -662,7 +655,7 @@ int ModifierIndex(const Modifier* record) {
 
 // The common body of the spell and modifier instruction generators: the source copied to its scratch
 // vector, then an item of kind 0x3007 with the class-0x15 prototype named at `prototypeName` per record,
-// +0x54 its index, +0x48 a random count. The scratch is emptied at the end.
+// its index, +0x48 a random count. The scratch is emptied at the end.
 template <typename Record>
 void GenerateMagicInstructions(ItemStock* stock, const stlp::vector<Record*>& source, stlp::vector<Record*>& taken,
                                const char* prototypeName, int (*indexOf)(const Record*), int minCount, int maxCount,
@@ -776,7 +769,7 @@ void ItemStock::AddMaterial(itemdb::MaterialRecordHead* record, int minCount, in
 }
 EI_REWRITTEN(0x00699260, ItemStock::AddMaterial);
 
-// ---- The scratch vectors (item_stock.h) ---------------------------------------------------------------------------
+// ---- The scratch vectors ---------------------------------------------------------------------------
 
 // Empty at the start; the exit functions that the static initialisers register free their storage
 // (docs/notes/standalone.md, "The static initialisers' objects").

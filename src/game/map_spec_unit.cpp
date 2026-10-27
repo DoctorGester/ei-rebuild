@@ -31,7 +31,7 @@ template <typename T>
 using Array = mfc::CArray<T>;
 
 
-// UnitSpec (0x324 bytes): map_spec.h.
+// UnitSpec: map_spec.h.
 
 // The small chunk classes: a Chunk and the value it reads or writes (the target is set after the
 // constructor). OnChunk is the first virtual; the behaviour record's writer is called directly.
@@ -39,7 +39,7 @@ template <typename T>
 class TargetChunk : public Chunk {
 public:
     explicit TargetChunk(Chunk* parent) : Chunk(parent) {}
-    T* target;                   // +0x18
+    T* target;
 };
 // A waypoint, a patrol and a behaviour record.
 class WaypointChunk : public TargetChunk<Waypoint> {
@@ -99,7 +99,6 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 
 // ---- Behaviour records -------------------------------------------------------------------------
 
-// Returns this.
 Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->patrols.data = nullptr;
     self->patrols.growBy = 0;
@@ -307,7 +306,6 @@ void BehaviourChunk::Write() {
 }
 EI_REWRITTEN(0x0046C900, BehaviourChunk::Write);
 
-// ---- Units ------------------------------------------------------------------------------
 
 UnitSpec::UnitSpec() {
     VectorConstruct(behaviour, sizeof(Behaviour), 5, BehaviourConstruct, BehaviourDestruct);
@@ -330,7 +328,7 @@ UnitSpec::~UnitSpec() {
 EI_REWRITTEN_SPECIAL(0x0046C140, UnitSpec::~UnitSpec);
 EI_REWRITTEN_SPECIAL(0x0046C120, UnitSpec::~UnitSpec);
 
-// The destructor of the block at +0x210 (the five string lists; reached only when an
+// The destructor of the block (the five string lists; reached only when an
 // exception unwinds the constructor).
 void __fastcall UnitRecordDestruct(unitrecord::UnitRecord* self) {
     for (int i = 4; i >= 0; --i) self->lists[i].Destruct();
@@ -359,8 +357,7 @@ void UnitSpec::Apply() {
 }
 EI_REWRITTEN(0x0046C4D0, UnitSpec::Apply);
 
-// The unit's fields, the common ones, then the five behaviour records (each given the unit's
-// position first).
+// The unit's fields, the common ones, then the five behaviour records (each given the unit's position first).
 void UnitSpec::Save() {
     BeginWrite(0xBBBB0000);
     WriteByte(0xBBBB000A, static_cast<std::uint8_t>(record.applyStats));

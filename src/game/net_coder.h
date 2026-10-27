@@ -1,8 +1,7 @@
 #pragma once
 
-// The byte buffers, the bit cursors over them and the LZ coder used to compress save games
-// multiplayer map transfers and network messages
-// See docs/notes/network.md, "Compression". Names provisional.
+// The byte buffers, the bit cursors over them and the LZ coder used to compress save games multiplayer map
+// transfers and network messages See docs/notes/network.md, "Compression". Names provisional.
 
 
 #include <cstddef>
@@ -37,18 +36,14 @@ public:
     GameBuffer* CopyOut(void* to, unsigned size);
     // Moves the contents to a new block of size * 2 + 0x40 bytes.
     void Grow(std::uint32_t size);
-    // game_buffer_strings.cpp. Length-prefixed strings: the length * 2 in one byte, or
-    // length * 2 + 1 in four bytes from 0x80 on.
-    // Reads one into the STLport string `s` (assign): false with error bit 3
-    // when it is longer than `maxLength` (> 0). The bytes are read in place (slot 0 first when they
-    // run past `end`), then slot 2.
+    // Length-prefixed strings: the length * 2 in one byte, or length * 2 + 1 in four bytes from 0x80 on.
+    // Reads one into the STLport string `s` (assign): false with error bit 3 when it is longer than
+    // `maxLength` (> 0). The bytes are read in place (slot 0 first when they run past `end`), then slot 2.
     bool ReadString(stlp::string* s, int maxLength);
-    // Writes `s`: in place when it fits before `end` (flags bit 0), else
-    // through slot 4.
+    // Writes `s`: in place when it fits before `end` (flags bit 0), else through slot 4.
     void WriteString(const stlp::string* s);
-    // A read of `size` bytes past `high`: error bit 3 set, `to` zeroed, then what
-    // is left before `high` (through slot 3 when that crosses `end`); the cursor ends at `high`.
-    // Returns the bytes read.
+    // A read of `size` bytes past `high`: error bit 3 set, `to` zeroed, then what is left before `high`
+    // (through slot 3 when that crosses `end`); the cursor ends at `high`. Returns the bytes read.
     std::uint32_t ReadPastEnd(void* to, std::uint32_t size);
     // The block replaced by one of `capacity` bytes with the old capacity's bytes; the pointers
     // move with it (inlined in every growing slot).
@@ -56,8 +51,7 @@ public:
     // Before `size` bytes are written in place: flags bit 0
     // set, room made (slot 1) when the block ends before them. Returns the cursor.
     std::uint8_t* BeginWrite(std::int32_t size);
-    // Copies `size` bytes to the write position and moves it on (no
-    // room check). Returns this.
+    // Copies `size` bytes to the write position and moves it on (no room check). Returns this.
     GameBuffer* BufferWriteRaw(const void* from, unsigned size);
     // Writes `size` bytes: in place (flags bit 0 set) when
     // they fit before `end`, otherwise through slot 4. Returns `size` or what slot 4 left.
@@ -87,19 +81,17 @@ class GrowingBuffer final : public GameBuffer {
 public:
     // Base 0, flags 6, a 0x20-byte block (cursor and high at its start).
     GrowingBuffer();
-    // Base 0, a block of `from`'s capacity with all of its bytes, the same cursor / high offsets and
-    // flags.
+    // Base 0, a block of `from`'s capacity with all of its bytes, the same cursor / high offsets and flags.
     GrowingBuffer(const GrowingBuffer& from);
     // The block freed, then copied as the copy constructor (base kept).
     GrowingBuffer& operator=(const GrowingBuffer& from);
-    // The deleting destructor: the block freed.
     ~GrowingBuffer() override;
 
     // Virtuals 0 / 1 (identical): always moves the contents to a new block of
     // (base - begin + cur + size) * 2 + 0x40 bytes (callers test the room first).
     void ReserveRead(std::int32_t size) override;
     void ReserveWrite(std::int32_t size) override;
-    int ReadMore(void*, std::uint32_t) override;   // 0
+    int ReadMore(void*, std::uint32_t) override;
     // Grows as ReserveWrite, then copies `size` bytes to the cursor; returns `size`.
     int WriteMore(const void* from, std::uint32_t size) override;
     // `high` raised to the cursor, the cursor moved to begin + position; past `end` the contents
@@ -119,12 +111,11 @@ public:
         base = 0;
         flags = 2;
     }
-    // The deleting destructor: the view owns nothing.
     ~BufferView() override;
 
     void ReserveRead(std::int32_t) override;    // Virtual 0 (nothing to reserve)
     void ReserveWrite(std::int32_t) override;
-    int ReadMore(void*, std::uint32_t) override;          // 0
+    int ReadMore(void*, std::uint32_t) override;
     int WriteMore(const void*, std::uint32_t) override;
     // The cursor moved to `position` bytes from the start; returns it.
     std::uint8_t* Seek(std::int32_t position) override;
@@ -165,8 +156,7 @@ struct BufferCursor {
     // FlushBits, then commits `p` to the sink (which must exist) and drops it. Returns
     // what the sink's commit left in EAX.
     std::uint32_t EndWrite();
-    // FlushBits, then commits `p` to the sink if any.
-    // Returns the commit's EAX, or `this` without a sink.
+    // FlushBits, then commits `p` to the sink if any. Returns the commit's EAX, or `this` without a sink.
     std::uint32_t End();
 
     // Bind the cursor to a buffer with room for
@@ -179,8 +169,7 @@ static_assert(sizeof(BufferCursor) == 0x18);
 static_assert(offsetof(BufferCursor, bits) == 0x0C);
 static_assert(offsetof(BufferCursor, sink) == 0x10);
 
-// The same as BufferCursor::End for the cursor at +0x2800 of a CoderState (returns the
-// coder without a sink).
+// The same as BufferCursor::End for the cursor at +0x2800 of a CoderState (returns the coder without a sink).
 struct CoderState;
 
 // The 0x2828-byte LZ coder state (constructor in core_streams.cpp). The window keeps the
@@ -205,8 +194,7 @@ struct CoderState {
     void Decompress(GameBuffer* in, GameBuffer* out);
     // Writes the match in progress (length and offset codes); ends it.
     void EncodeMatch(std::int32_t at);
-    // Ends the output (out.End: pending bits stored, the sink
-    // committed), then Construct.
+    // Ends the output (out.End: pending bits stored, the sink committed), then Construct.
     void Reset();
 };
 static_assert(offsetof(CoderState, chain) == 0x800);

@@ -6,7 +6,7 @@
 #include "game_data.h"
 #include "lib/crt_iostream.h"
 
-// The game's (MSVC 6 <iostream.h>) ostream; only the inserters the combat logs use (combat.cpp).
+// The game's (MSVC 6 <iostream.h>) ostream; only the inserters the combat logs use.
 struct GameOstream : libcrt::Ostream {
     GameOstream* Put(const char* text);
     GameOstream* Put(long value);

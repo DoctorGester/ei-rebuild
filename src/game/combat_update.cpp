@@ -77,16 +77,14 @@ CPlayerConnection* ConnectionOf(CPlayer* player) { return player->connection_; }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 AnimationSteps& SavedQueue(CUnitServer* self) { return self->savedQueue; }
-int& QueueTime(CUnitServer* self) { return Queue(self).extra; }       // +0x38
-int& SavedQueueTime(CUnitServer* self) { return SavedQueue(self).extra; }   // +0x15C
+int& QueueTime(CUnitServer* self) { return Queue(self).extra; }
+int& SavedQueueTime(CUnitServer* self) { return SavedQueue(self).extra; }
 OrderPlan& Plan(CUnitServer* self) { return self->currentPlan; }
 
-// A queue that has no start time yet starts now.
 void StartQueueIfUnset(CUnitServer* self) {
     if (QueueTime(self) == -1) QueueTime(self) = TickOf(ObjectWorld(self));
 }
 
-// The effect object (+0x17C, referenced) leaves the world.
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
     TheServerWorld()->RemoveTimedObject(self->effectObject->id_);
@@ -123,7 +121,6 @@ void EmptyAction(UnitAction* order) {
     order->modifier = 0;
 }
 
-// An animation list on the stack (with the derived vtable).
 struct LocalSteps {
     AnimationSteps steps;
     LocalSteps() {
@@ -156,14 +153,12 @@ void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
     self->ShowCurrentStep();
 }
 
-// Whether a step is open-ended (a negative duration).
 bool HasOpenStep(const AnimationSteps& steps) {
     for (int i = 0; i < steps.size; ++i)
         if (steps.data[i].duration < 0) return true;
     return false;
 }
 
-// The sum of the steps' durations, -1 when one is open-ended (negative).
 int TotalDuration(const AnimationSteps& steps) {
     int total = 0;
     for (int i = 0; i < steps.size; ++i) {
@@ -532,7 +527,6 @@ void CUnitServer::TickAction() {
         PopFinishedSteps();
         ShowCurrentStep();
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
-            // The world's timed object manager (+0x48) creates the effect.
             auto* objects = TheServerWorld()->manager48_;
             CEngineObject* effect = objects->CreateObject(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {0x2027, 0x2028, 0x2029, 0x202B, 0x202A, 0x202D, 0x202E, 0x202C};
@@ -563,7 +557,6 @@ void CUnitServer::TickAction() {
         unit->TurnUpTowards(direction, 0);
         return;
     }
-    // The action's moment has come: it is carried out and the plan cleared.
     FinishAction(plan.hitLocation, plan.notSkill);
     plan.animation.SetSize(0, -1);
     plan.animation.extra = -1;

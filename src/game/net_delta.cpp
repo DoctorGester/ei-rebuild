@@ -12,7 +12,6 @@
 #include <cstring>
 #include <memory>
 
-// --- BitStream ---------------------------------------------------------------------------------
 
 namespace {
 
@@ -174,7 +173,6 @@ EI_REWRITTEN(0x0047E740, WriteDeltaChannel);
 
 } // namespace delta
 
-// --- DeltaField --------------------------------------------------------------------------------
 
 namespace {
 void RewindAndEmpty(DeltaField* field) {
@@ -320,7 +318,6 @@ EI_REWRITTEN(0x0047E340, DeltaField::ReadText);
 int DeltaField::ReadStream(BitStream* to) { return delta::g_received->ReadStream(to); }
 EI_REWRITTEN(0x0047E240, DeltaField::ReadStream);
 
-// --- Readers ------------------------------------------------------------------------------------
 
 namespace delta {
 
@@ -351,7 +348,6 @@ EI_REWRITTEN(0x0047EB20, ReadDiff);
 
 } // namespace delta
 
-// --- Positions ---------------------------------------------------------------------------------
 
 namespace {
 constexpr float kWriteOffsetXY = -16.0f;
@@ -508,7 +504,6 @@ void DeltaField::ReadFloat16x3(float* values) {
 }
 EI_REWRITTEN(0x0047F7F0, DeltaField::ReadFloat16x3);
 
-// --- DeltaState --------------------------------------------------------------------------------
 
 void DeltaState::Reset() {
     for (int i = 0; i < fieldCount_; ++i) {

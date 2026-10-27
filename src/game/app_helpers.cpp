@@ -23,7 +23,6 @@ namespace app {
 
 namespace {
 
-// Imported by name: "kernel32.dll", "GetDiskFreeSpaceExA".
 const char* Kernel32Text() { return "kernel32.dll"; }
 const char* GetDiskFreeSpaceExText() { return "GetDiskFreeSpaceExA"; }
 
@@ -34,9 +33,8 @@ int Scaled(int n) { return gamecrt::rand() * n / 0x7FFF; }
 
 } // namespace
 
-// The bytes free for the caller on the path's drive: GetDiskFreeSpaceExA when kernel32 has it
-// (looked up on every call), else sectors per cluster x bytes per sector x free clusters.
-// 0 when the call fails.
+// The bytes free for the caller on the path's drive: GetDiskFreeSpaceExA when kernel32 has it (looked up on
+// every call), else sectors per cluster x bytes per sector x free clusters. 0 when the call fails.
 double __fastcall DiskFreeSpace(const char* path) {
     auto getEx = reinterpret_cast<GetDiskFreeSpaceExFn>(
         gameapi::GetProcAddress(gameapi::GetModuleHandleA(Kernel32Text()), GetDiskFreeSpaceExText()));
@@ -53,7 +51,6 @@ double __fastcall DiskFreeSpace(const char* path) {
 // Whether QuitGame posts the quit message (cleared while a timed movie plays).
 void __fastcall SetQuitAllowed(std::uint8_t allowed) { g_quitAllowed = allowed; }
 
-// Posts WM_QUIT when quitting is allowed; returns whether it did.
 bool __fastcall QuitGame(int exitCode) {
     if (!g_quitAllowed) return false;
     gameapi::PostQuitMessage(exitCode);
@@ -92,7 +89,6 @@ void __cdecl DelayedProtectionCheck() {
     }
 }
 
-// The check list built empty, its sentinel from the node pool.
 void __stdcall ConstructProtectionChecks() { ProtectionChecks().Construct(); }
 
 } // namespace app

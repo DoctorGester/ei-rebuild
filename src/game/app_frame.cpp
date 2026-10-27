@@ -31,24 +31,21 @@ namespace {
 
 bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 
-// The software cursor's lock, unless the harness hooks the call (ei/main_loop.h): its frame
-// capture reads the finished frame before the cursor is blitted and the frame flipped
-// (tests/verify/harness_capture.cpp).
+// The software cursor's lock, unless the harness hooks the call (ei/main_loop.h): its frame capture reads the
+// finished frame before the cursor is blitted and the frame flipped (tests/verify/harness_capture.cpp).
 using CursorLock = ei::mainloop::HarnessHooks::CursorLock;
 CursorLock CursorLockAtCallSite() {
     if (auto hook = ei::mainloop::g_harnessHooks.cursorLock) return hook;
     return ei::Code<CursorLock>(0x005E65F0);
 }
 
-// The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the
-// video player.
+// The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the video player.
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return std::construct_at(a0, *a1 + a2); }
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return std::construct_at(a0, *a1 + *a2); }
 
-// Fills the device object's screen rectangle of the primary surface with black (a colour-fill
-// Blt under the render lock, taken twice) and keeps the result in the device's lastLoadResult_.
-// The primary is a holder without a surface (renderer.md section 9): nothing to fill, the
-// result 0.
+// Fills the device object's screen rectangle of the primary surface with black (a colour-fill Blt under the
+// render lock, taken twice) and keeps the result in the device's lastLoadResult_. The primary is a holder
+// without a surface (renderer.md section 9): nothing to fill, the result 0.
 void ClearScreen() {
     CTextureDevice* device = TheRenderDevice();
     gameapi::EnterCriticalSection(TheDeviceLock());
@@ -60,8 +57,7 @@ std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame 
 
 } // namespace
 
-// Nothing while the application is inactive (a 50 ms sleep when no window of the interface is
-// active).
+// Nothing while the application is inactive (a 50 ms sleep when no window of the interface is active).
 void __fastcall FrameStep(bool draw, bool cursor) {
     if (!Running()) return;
     if (!TheInterface()->GetActiveWindow()) {

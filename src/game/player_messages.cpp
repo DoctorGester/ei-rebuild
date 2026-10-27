@@ -40,7 +40,7 @@ void WriteText(BitStream* out, const char* text) {
 
 std::uint32_t ObjectId(const CEngineObject* object) { return static_cast<std::uint32_t>(object->id_); }
 
-// An item's charge (the float at +0x28; the client's 0x0C / 0x14 handlers store it there), as its bits.
+// An item's charge (the float; the client's 0x0C / 0x14 handlers store it there), as its bits.
 std::uint32_t ItemCharge(const CEngineObject* object) {
     return std::bit_cast<std::uint32_t>(static_cast<const CItem*>(object)->charge_);
 }
@@ -252,7 +252,6 @@ PartyUnitRecord* CParty::Find(int unitId) const {
     return nullptr;
 }
 
-// --- CPlayer ------------------------------------------------------------------------------------
 
 namespace {
 // Looks an object up by id (base_manager.cpp), through its game address.
@@ -419,7 +418,6 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
     out_.Write(data, written.Size());
 }
 
-// --- Hooks ---------------------------------------------------------------------------------------
 
 EI_REWRITTEN(0x0066C730, CPlayerServer::GetClassName);
 EI_REWRITTEN(0x0066C740, CPlayerServer::GetClassId);

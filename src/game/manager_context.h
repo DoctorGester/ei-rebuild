@@ -12,16 +12,16 @@ class CBaseManager;
 class CItem;
 class CItemConstructor;
 struct CItemManager;
-class CLinkFigureLoader;   // model.h
-struct CMapObjectManager;  // unit_create.h
-class CPlayerManager;      // player_manager.h
+class CLinkFigureLoader;
+struct CMapObjectManager;
+class CPlayerManager;
 class CSpellConstructor;
 class CSpellManager;
 class CWorld;
 
 class CManagerContext : public CEngineObject {
 public:
-    int Create() override;   // 1
+    int Create() override;
 
     virtual CWorld* ThisWorld() { return nullptr; }                      // the world (returns this)
     virtual CBaseManager* TimedObjectManager() { return nullptr; }       // the world's manager48_ (the client's Segment ticks its objects)

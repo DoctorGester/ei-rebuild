@@ -1,6 +1,6 @@
 #pragma once
 
-// The hash tables (hash_tables_400.cpp): the STLport hashtable layout of the one-dword-key tables and the
+// The hash tables: the STLport hashtable layout of the one-dword-key tables and the
 // rewritten functions over it.
 
 #include "chunk_archive.h"
@@ -21,8 +21,8 @@ struct Table {
     std::uint32_t* ObjectsFind(const std::uint32_t* key);
     std::uint32_t* PositionAt(const std::int32_t* key);
     std::uint32_t* SpareCountAt(const std::int32_t* key);
-    Map map;                    // +0x00
-    std::int32_t maxKey;        // +0x14
+    Map map;
+    std::int32_t maxKey;
 };
 static_assert(sizeof(Table::Map) == 0x14 && offsetof(Table, maxKey) == 0x14);
 

@@ -24,8 +24,7 @@
 
 namespace {
 
-// The section and key names (the game's own strings).
-// The quest registry (registry.cpp).
+// The section and key names (the game's own strings). The quest registry (registry.cpp).
 using Registry = CFileRegistry;
 
 // The quest places: vector<float> (constructor, insert-overflow).
@@ -36,9 +35,8 @@ using ListElement = stlp::ObjectElement<mfc::CString>;
 // The quest and briefing vectors' push_back.
 using QuestElement = recordvec::QuestVector::Element;
 using BriefingElement = recordvec::BriefingVector::Element;
-// The quest index: find by the record's name, clear, operator[].
-// The briefing index: find, clear, operator[]; the
-// add-unless-present used for the later briefings.
+// The quest index: find by the record's name, clear, operator[]. The briefing index: find, clear, operator[];
+// the add-unless-present used for the later briefings.
 
 CStringVector* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 
@@ -153,8 +151,7 @@ void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord*
 
 } // namespace
 
-// `image` is the quest's registry file in memory. Returns false when it is not a
-// registry, true otherwise.
+// `image` is the quest's registry file in memory. Returns false when it is not a registry, true otherwise.
 bool QuestDatabase::LoadRegistry(const void* image) {
     QuestDatabase* db = this;
     Registry reg;
@@ -188,8 +185,7 @@ bool QuestDatabase::LoadRegistry(const void* image) {
 }
 EI_REWRITTEN(0x006AE8E0, QuestDatabase::LoadRegistry);
 
-// The game inlines the vector's erase, reserve and push_back; the same
-// template members are called here.
+// The game inlines the vector's erase, reserve and push_back; the same template members are called here.
 void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, CStringVector* list) {
     console::CStringArray strings;
     registry->GetStringArray(section, key, &strings);

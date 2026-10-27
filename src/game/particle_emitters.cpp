@@ -69,17 +69,17 @@ void SetElementCount(CParticleSource* s, int n) {
 // of its fork, and how far the emission has got.
 
 constexpr float kTwoPi = std::bit_cast<float>(0x40C90FD0u);
-#define EI_POINT_THREE 0.3f /*0073C54C*/       // 0.3
-#define EI_QUARTER 0.25f /*0073C3B0*/           // 0.25
-#define EI_ONE 1.0f /*0073B84C*/               // 1.0
-#define EI_HALF 0.5f /*0073B86C*/              // 0.5
-#define EI_POINT_FOUR 0.4f /*0073B868*/        // 0.4
-#define EI_POINT_TWO 0.2f /*0073BAD4*/         // 0.2
-#define EI_TENTH 0.1f /*0073B850*/             // 0.1
-#define EI_THREE 3.0f /*0073BAA4*/             // 3.0
-#define EI_NINE 9.0f /*0073CF10*/              // 9.0
-#define EI_TWO 2.0f /*0073CDB8*/               // 2.0
-#define EI_SPARK_SIZE 0.06f /*0073CCB8*/        // 0.06
+#define EI_POINT_THREE 0.3f /*0073C54C*/
+#define EI_QUARTER 0.25f /*0073C3B0*/
+#define EI_ONE 1.0f /*0073B84C*/
+#define EI_HALF 0.5f /*0073B86C*/
+#define EI_POINT_FOUR 0.4f /*0073B868*/
+#define EI_POINT_TWO 0.2f /*0073BAD4*/
+#define EI_TENTH 0.1f /*0073B850*/
+#define EI_THREE 3.0f /*0073BAA4*/
+#define EI_NINE 9.0f /*0073CF10*/
+#define EI_TWO 2.0f /*0073CDB8*/
+#define EI_SPARK_SIZE 0.06f /*0073CCB8*/
 #define EI_SCALE_0_9 2.0954757378615665e-10 /*0073CF20*/        // ~0.9 * 2^-32
 #define EI_SCALE_1 2.3283064370807974e-10 /*0073C468*/          // ~2^-32
 #define EI_SCALE_ANGLE 1.4621764913365538e-9 /*0073CF18*/      // ~2 pi * 2^-32
@@ -216,10 +216,10 @@ int EmitSpark(CParticleSource* s, Particle* p) {
 
 // Points scattered around the carrier (the source's elements).
 
-#define EI_TEN 10.0f /*0073BAAC*/               // 10.0
-#define EI_ZERO 0.0f /*0073B858*/              // 0.0
+#define EI_TEN 10.0f /*0073BAAC*/
+#define EI_ZERO 0.0f /*0073B858*/
 #define EI_SMALL_RING 0.04347826f /*0073CEA0*/        // 1/23
-#define EI_JITTER 0.04f /*0073CE90*/            // 0.04
+#define EI_JITTER 0.04f /*0073CE90*/
 #define EI_SCALE_0_08 1.8626451080312744e-11 /*0073CE98*/       // ~0.08 * 2^-32
 
 constexpr std::int32_t kFadeAlpha[35] = /*0078A774*/ {0, 32, 64, 128, 255, 207, 159, 111, 63, 15};
@@ -348,10 +348,9 @@ int CParticleSource::EmitLightning(Particle* p, int) {
 }
 EI_REWRITTEN(0x004923B0, CParticleSource::EmitLightning);
 
-// Modifier1-12 (needs a carrier): on the first emission |size| * 10 points (at least
-// one) are scattered on a ring around the carrier. Then one particle per point while the fade has
-// not started (frame = the modifier's number), then drifting sparks between a random point and
-// its starting place.
+// Modifier1-12 (needs a carrier): on the first emission |size| * 10 points (at least one) are scattered on a
+// ring around the carrier. Then one particle per point while the fade has not started (frame = the modifier's
+// number), then drifting sparks between a random point and its starting place.
 int CParticleSource::EmitModifier(Particle* p, int index) {
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
@@ -416,29 +415,29 @@ EI_REWRITTEN(0x00490130, CParticleSource::EmitModifier);
 
 namespace {
 
-#define EI_ZONE_EXIT_SPREAD 1.9f /*0073CF2C*/  // 1.9
+#define EI_ZONE_EXIT_SPREAD 1.9f /*0073CF2C*/
 #define EI_SCALE_0_03 1.3969837789817515e-10 /*0073CE10*/       // ~0.03 * 2^-32
-#define EI_POINT_SEVEN 0.7f /*0073C538*/       // 0.7
-#define EI_TWENTIETH 0.05f /*0073C52C*/         // 0.05
+#define EI_POINT_SEVEN 0.7f /*0073C538*/
+#define EI_TWENTIETH 0.05f /*0073C52C*/
 #define EI_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/        // ~0.4 * 2^-32
-#define EI_ONE_AND_HALF 1.5f /*0073C51C*/      // 1.5
-#define EI_ONE_POINT_TWO 1.2f /*0073CF5C*/     // 1.2
-#define EI_PORTAL_GROWTH 1.03f /*0073CDE8*/     // 1.03
-#define EI_EIGHT 8.0f /*0073CC7C*/             // 8.0
-#define EI_TWO_HUNDRED 200.0f /*0073CF58*/       // 200.0
-#define EI_POINT_EIGHT 0.8f /*0073CCA8*/       // 0.8
-#define EI_SPARK_SCALE 0.55f /*0073CF60*/       // 0.55
-#define EI_POINT_SIX 0.6f /*0073CDE0*/         // 0.6
-#define EI_POINT_NINE 0.9f /*0073CD70*/        // 0.9
+#define EI_ONE_AND_HALF 1.5f /*0073C51C*/
+#define EI_ONE_POINT_TWO 1.2f /*0073CF5C*/
+#define EI_PORTAL_GROWTH 1.03f /*0073CDE8*/
+#define EI_EIGHT 8.0f /*0073CC7C*/
+#define EI_TWO_HUNDRED 200.0f /*0073CF58*/
+#define EI_POINT_EIGHT 0.8f /*0073CCA8*/
+#define EI_SPARK_SCALE 0.55f /*0073CF60*/
+#define EI_POINT_SIX 0.6f /*0073CDE0*/
+#define EI_POINT_NINE 0.9f /*0073CD70*/
 #define EI_PI 3.1415927f /*0073CAF0*/                // pi
 #define EI_FEEBLE_SPEED 0.05000000074505806 /*0073CF90*/     // 0.05
 #define EI_SCALE_0_2 4.6566139843846196e-11 /*0073CED8*/        // ~0.2 * 2^-32
-#define EI_FEEBLE_SIZE 0.035f /*0073CF8C*/       // 0.035
-#define EI_FEET_DENSITY 8.0f /*0073CE50*/      // 8.0
-#define EI_FEET_RISE 1.2f /*0073CDF4*/         // 1.2
-#define EI_BYTE 255.0f /*0073C370*/              // 255.0
-#define EI_DUST_GROWTH 1.05f /*0073CEE0*/       // 1.05
-#define EI_TRANS_GROWTH 0.02f /*0073CCD8*/      // 0.02
+#define EI_FEEBLE_SIZE 0.035f /*0073CF8C*/
+#define EI_FEET_DENSITY 8.0f /*0073CE50*/
+#define EI_FEET_RISE 1.2f /*0073CDF4*/
+#define EI_BYTE 255.0f /*0073C370*/
+#define EI_DUST_GROWTH 1.05f /*0073CEE0*/
+#define EI_TRANS_GROWTH 0.02f /*0073CCD8*/
 
 // Alpha tables indexed by the ticks left.
 constexpr std::int32_t kSparkAlpha[8] = /*0078AB98*/ {0, 64, 128, 255, 255, 255, 255, 255};
@@ -521,9 +520,8 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
 }
 EI_REWRITTEN(0x004933F0, CParticleSource::UpdateGroundDust);
 
-// 0x203A/0x203B: on the element's first tick, the ground plane under the source (the
-// normal's z replaced by its reciprocal when non-zero); after the second the source stops
-// emitting.
+// 0x203A/0x203B: on the element's first tick, the ground plane under the source (the normal's z replaced by
+// its reciprocal when non-zero); after the second the source stops emitting.
 void CParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
         auto& plane = e->plane;
@@ -638,9 +636,8 @@ int CParticleSource::EmitFeebleMind(Particle* p, int) {
 }
 EI_REWRITTEN(0x004957E0, CParticleSource::EmitFeebleMind);
 
-// FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's
-// position once it is tracked, else the source), drifting in a random direction inside the unit
-// disc, rising.
+// FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's position once it is
+// tracked, else the source), drifting in a random direction inside the unit disc, rising.
 int CParticleSource::EmitFeetCloud(Particle* p, int) {
     emitCount = x87::fistp(static_cast<float>(D(size) * D(EI_FEET_DENSITY)));
     p->color = 0x00FFFFFF;
@@ -681,9 +678,8 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
 }
 EI_REWRITTEN(0x00495A30, CParticleSource::EmitFeetCloud);
 
-// StartTrans: once the element's countdown runs out the source stops (flags 1 and 4
-// off) and detaches; the ring widens, and element 0's +0x1C grows by 0.4 a tick and sets the tries
-// per tick (at most 8).
+// StartTrans: once the element's countdown runs out the source stops (flags 1 and 4 off) and detaches; the
+// ring widens, and element 0's +0x1C grows by 0.4 a tick and sets the tries per tick (at most 8).
 void CParticleSource::TickStartTrans(ParticleElement* e) {
     int ticks = e->ticks--;
     if (ticks < 0) {

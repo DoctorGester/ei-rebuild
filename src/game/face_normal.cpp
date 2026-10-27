@@ -1,5 +1,5 @@
 // A mesh face's plane: called for every face of the fake unit scene's meshes
-// (scene_normals.cpp). Plain float maths (rule 7); the values the game stores to floats are
+//. Plain float maths (rule 7); the values the game stores to floats are
 // rounded to float.
 #include "scene_loader.h"
 

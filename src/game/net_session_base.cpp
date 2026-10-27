@@ -41,8 +41,7 @@ EI_REWRITTEN(0x00429F40, TypeRegistry::TypeOf);
 void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     Message* prototype = factory();
     if (prototype) ++prototype->refs_;
-    // operator[] as inlined: find_or_insert of {key, value()} (resize, new
-    // node).
+    // operator[] as inlined: find_or_insert of {key, value()} (resize, new node).
     byVtable.FindOrInsert({KeyOf(prototype), 0})->value = type;
     byType.FindOrInsert({type, nullptr})->value = factory;
     if (prototype && --prototype->refs_ == 0) delete prototype;

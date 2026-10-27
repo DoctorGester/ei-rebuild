@@ -44,7 +44,7 @@ bool ZoneExit::Contains(float x, float y) const {
 EI_REWRITTEN(0x004E59F0, ZoneExit::Contains);
 
 ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
-    std::memcpy(this, from, offsetof(ZoneExit, target));   // +0x00..+0x24 as dwords
+    std::memcpy(this, from, offsetof(ZoneExit, target));   // ..+0x24 as dwords
     target = from->target;
     entrance = from->entrance;
     view = from->view;
@@ -57,7 +57,7 @@ EI_REWRITTEN(0x00583B50, ZoneExit::Assign);
 // ---- Stream form and the CString reader ------------------
 
 namespace {
-constexpr std::uint32_t kExitExtrasVersion = 0x68;   // +0x34, +0x38 and the angle saved from here on
+constexpr std::uint32_t kExitExtrasVersion = 0x68;   // +0x38 and the angle saved from here on
 } // namespace
 
 void CStream::ReadInto(mfc::CString* out) {
@@ -89,7 +89,6 @@ void ZoneExit::Read(CStream* stream) {
 }
 EI_REWRITTEN(0x004E5750, ZoneExit::Read);
 
-// Each field goes through a copy on the stack.
 void ZoneExit::Write(CStream* stream) const {
     auto put = [stream](const void* field, std::uint32_t size) {
         std::uint32_t copy = 0;

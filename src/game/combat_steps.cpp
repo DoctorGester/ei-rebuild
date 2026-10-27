@@ -1,6 +1,5 @@
-// Combat, fourth part: the animation steps of an order (which animation of the unit plays, for how
-// long, and when the action happens). See combat.h, combat_plan.h and docs/notes/combat.md ("Order
-// lifecycle").
+// Combat, fourth part: the animation steps of an order (which animation of the unit plays, for how long, and
+// when the action happens). See combat.h, combat_plan.h and docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "combat_plan.h"
 
@@ -44,7 +43,6 @@ constexpr int kOrderSkill = 6;
 constexpr std::uint32_t kSkillOnTarget = 0x18A95;
 constexpr int kNoSizeClasses = 2;         // CombatStats +0x60
 
-// Animation key bits (the unit's entries are looked up by them).
 constexpr std::uint32_t kKeyAction = 0x40000;
 constexpr std::uint32_t kKeyAttack = 0x90000;
 constexpr std::uint32_t kKeyCast = 0xC0000;
@@ -124,14 +122,12 @@ int EntryTicks(CUnit* unit, std::uint32_t index, std::uint32_t FigureAnimation::
     return FtolQuotient(frameCount, speed);
 }
 
-// Appends the first step of `steps` to `out`.
 void AppendFirst(AnimationSteps* out, const AnimationSteps* steps) {
     int index = out->size;
     out->SetSize(index + 1, -1);
     out->data[index] = steps->data[0];
 }
 
-// An AnimationSteps on the stack (with the derived vtable).
 struct ScratchSteps {
     AnimationSteps steps;
     ScratchSteps() {
@@ -283,7 +279,6 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
     added.duration = length;
     *duration += EntryTicks(unit, animation->index, &FigureAnimation::moment);
     if (frame) {
-        // And back into the movement mode afterwards.
         ScratchSteps back;
         MoveModeState from{};
         from.mode = 1;
@@ -316,7 +311,6 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     std::uint8_t index = animation->index;
 
     if (value <= EntryTicks(unit, index, &FigureAnimation::frameCount)) {
-        // The cast fits in the animation.
         steps->AddStep(index, AnimationDuration(index));
         *duration = AnimationMoment(index);
         return;

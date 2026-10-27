@@ -14,10 +14,9 @@
 #include <cstdint>
 #include <string>
 
-// Opens <text folder>gfx.res and reads lightning.dat into the noise
-// table, row by row through a memory stream (a short file leaves the rest zero-filled, as the
-// stream's Read does). Returns 0 when the archive does not open (no message), the fatal error's
-// result when the file is missing, else 1.
+// Opens <text folder>gfx.res and reads lightning.dat into the noise table, row by row through a memory stream
+// (a short file leaves the rest zero-filled, as the stream's Read does). Returns 0 when the archive does not
+// open (no message), the fatal error's result when the file is missing, else 1.
 int __cdecl LoadLightningNoise() {
     LocalResource resource;
     CMemoryStream local;

@@ -30,8 +30,7 @@ void __cdecl InitGameClientPointer() {
     libcrt::AtExit(ReleaseGameClient);
 }
 
-// The two growing buffers' exit functions: each destroys its buffer once (bit 0 / bit 1 of
-// their flags).
+// The two growing buffers' exit functions: each destroys its buffer once (bit 0 / bit 1 of their flags).
 std::uint8_t g_bufferFlags = /*0079B8FC*/ {};
 void __cdecl DestroySendBuffer() {
     std::uint8_t flags = g_bufferFlags;
@@ -58,7 +57,7 @@ void __cdecl ConstructReceiveBuffer() {
 // Milliseconds to the sessions' time unit (1/1024).
 constexpr float kMillisecondsToSeconds = 0.0009765625f;
 
-// A session that is there and not shutting down is ticked (slot 14) with `elapsed` milliseconds.
+// A session that is there and not shutting down is ticked with `elapsed` milliseconds.
 void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
     if (!session) return;
     if (session->flags7_ & CRefCounted::kDetached) return;

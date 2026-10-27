@@ -1,8 +1,8 @@
 #pragma once
 
-// The 3D object base under CMapObject (0x170 bytes): the object's figure (a model resource shared through the
-// figure manager), its parts (scene nodes, one per figure piece) and their bounding box, and the scale the
-// figure was built for. Names provisional; see docs/notes/map_objects.md ("Figures").
+// The 3D object base under CMapObject: the object's figure (a model resource shared through the figure
+// manager), its parts (scene nodes, one per figure piece) and their bounding box, and the scale the figure
+// was built for. See docs/notes/map_objects.md ("Figures").
 
 #include "core_refcount.h"   // CountedRef
 #include "core_transform.h"
@@ -24,9 +24,9 @@ class CObject3D;
 
 // The figures' default scale (a static initialiser: zeros; CObject3D's constructor and Create3D).
 inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
-class CLinkMesh;          // link_figure.h: an object's figure (+0xF0)
-class CTransformObject;   // core_transform.h
-struct tagRECT;           // windows.h
+class CLinkMesh;          // link_figure.h: an object's figure
+class CTransformObject;
+struct tagRECT;
 
 // A growable pointer array whose storage is 32-byte aligned (the block from operator new is kept at data[-1]).
 // Registered on the template (SetAtGrow and SetSize in map_object_figures.cpp, Add in
@@ -37,26 +37,26 @@ using FigurePartArray = lib::AlignedArray<CFigureMesh*>;
 
 class CFigureMesh;      // figure_mesh.h: a part of an object's figure
 struct FigureModel;     // model.h: a cached model
-struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
+struct FootprintPart;   // ai_map.h: a figure part's box
 
-// One animation of a figure's animation database (0x58 bytes).
+// One animation of a figure's animation database.
 struct FigureAnimation {
     char name[0x10];                // (the figure manager takes the entry as an animation's name)
-    std::uint8_t index;             // +0x10 its index in the database (a unit keeps it at +0x254 / +0x255)
+    std::uint8_t index;             // its index in the database (a unit keeps it)
     std::uint8_t unused_11[3];
     std::uint32_t key;              // animation key bits (docs/notes/combat.md): kind 0x3C0000, number 0x3FC00000
-    std::uint32_t flags;            // +0x18 bit 0: a bow's arrow shows from frame arrowFrom to arrowTo
+    std::uint32_t flags;            // bit 0: a bow's arrow shows from frame arrowFrom to arrowTo
     std::uint32_t chance;           // percent (a random pick drops entries below a random percent)
-    std::uint32_t frameCount;       // +0x20 the animation's length in frames
+    std::uint32_t frameCount;       // the animation's length in frames
     // +0x24 the distance one play of the animation moves the unit (0: the speed comes from the
     // unit instead; ClientPlaceOnPath, unit_client_path.cpp).
     float stride;
-    std::uint32_t arrowFrom;        // +0x28
-    std::uint32_t arrowTo;          // +0x2C
-    std::uint32_t stepFrames[4];    // +0x30 the footsteps' frames + 1 (0 ends the list)
-    std::uint32_t moment;           // +0x40 the action's moment (frame)
-    int soundFrame;                 // +0x44 the frame of the action's sound (0: none)
-    std::uint32_t sounds[4];        // +0x48 sound numbers to pick from (0 ends the list)
+    std::uint32_t arrowFrom;
+    std::uint32_t arrowTo;
+    std::uint32_t stepFrames[4];    // the footsteps' frames + 1 (0 ends the list)
+    std::uint32_t moment;           // the action's moment (frame)
+    int soundFrame;                 // the frame of the action's sound (0: none)
+    std::uint32_t sounds[4];        // sound numbers to pick from (0 ends the list)
 };
 static_assert(offsetof(FigureAnimation, arrowFrom) == 0x28);
 static_assert(offsetof(FigureAnimation, soundFrame) == 0x44);
@@ -66,12 +66,12 @@ static_assert(sizeof(FigureAnimation) == 0x58);
 // returns it (CBaseManager::GetFile), kept at CObject3D + 0xA0.
 struct AnimationDatabase {
     std::uint8_t unused_00[4];
-    std::uint32_t count;            // +0x04 animations
+    std::uint32_t count;            // animations
     std::uint8_t unused_08[0x20 - 0x08];
-    float start;                    // +0x20 \ the animation time factor maps t to
-    float length;                   // +0x24 | (start + (end - start) * t) / length
-    float end;                      // +0x28 /
-    FigureAnimation animations[1];  // +0x2C `count` of them
+    float start;                    // \ the animation time factor maps t to
+    float length;                   // | (start + (end - start) * t) / length
+    float end;                      // /
+    FigureAnimation animations[1];  // `count` of them
 
     // The database `animation` is an entry of (entries know their index).
     static const AnimationDatabase* Of(const FigureAnimation* animation) {
@@ -89,25 +89,22 @@ struct AnimationDatabase {
 static_assert(offsetof(AnimationDatabase, start) == 0x20);
 static_assert(offsetof(AnimationDatabase, animations) == 0x2C);
 
-class CBaseManager;   // base_manager.h
+class CBaseManager;
 
 // The side-specific half of a 3D object (CObject3D's attached half): CObject3DClientSpecific (class id 0x37;
 // map_object_shadow.h) on the client, CObject3DServer (0x38, stubs; below) on the server. The 3D object
 // reaches its half through CObject3D::Specific().
 class CObject3DSpecific;
-class CObject3DClientSpecific;   // map_object_shadow.h
-// object3d_halves.cpp. The base half's LoadFigures-done virtual: nothing.
+class CObject3DClientSpecific;
+// The base half's LoadFigures-done virtual: nothing.
 void __fastcall SpecificBaseNothing(CObject3DSpecific* self);
 class CObject3DSpecific : public CEngineObject {
 public:
-    // The base constructor both halves inline: the engine object's fields, no object.
     CObject3DSpecific() {
         ClearFields();
         object = nullptr;
     }
-    // object3d_specific_slots.cpp. The deleting destructor: no object.
     ~CObject3DSpecific() override;
-    // Two unused virtuals (object3d_halves.cpp): nothing.
     void IgnoreArgument(int);
 
     virtual int OnPartAdded(CFigureMesh* part) = 0;   // server: 0
@@ -117,7 +114,7 @@ public:
     virtual int OnPartRemoved(CFigureMesh* part) = 0;      // server: 0
     virtual CFigureMesh* FindPart(const char* name) = 0;   // a part by name (client); server: null
     virtual CFigureMesh* FindPartOfType(int type) = 0;     // a part by type (client); server: null
-    // 18: the figure's extra scale: client +0xF0..+0xF8, base 1, 1, 1.
+    // The figure's extra scale: client +0xF0..+0xF8, base 1, 1, 1.
     virtual void GetScale(float* x, float* y, float* z);
     // Draw / DrawShadow: the client's (CObject3DClientSpecific::Draw, DrawShadow); the base returns 0.
     virtual int DrawParts(void* context, int* dirty);
@@ -131,79 +128,66 @@ public:
     virtual int BoundsContainPoint(const long* point);
     // Whether the screen rectangle (a RECT) meets a drawn part's rectangle.
     virtual int PartsIntersectRect(const long* rect);
-    // 24: whether the point is in the rectangle (+0x94 + 0x20) of a part with flag 0x40 (PickAt2).
+    // Whether the point is in the rectangle (+0x94 + 0x20) of a part with flag 0x40 (PickAt2).
     virtual int PartsContainPoint(const long* point);
     virtual void Unused25(int) {}                   // empty in the base and the client
     virtual void SetLit(int) {}                     // the object's light is on / off (client); base: nothing
 
-    CObject3D* object;              // +0x1C the object it belongs to
+    CObject3D* object;              // the object it belongs to
 };
 
-// The server's half (GetClassName "CObject3DServer", class id 0x38, 0x20 bytes; object3d_halves.cpp): no
-// parts, nothing drawn.
+// The server's half: no parts, nothing drawn.
 class CObject3DServer : public CObject3DSpecific {
 public:
     CObject3DServer();             // The factory allocates it zeroed.
     ~CObject3DServer() override;   // the base half's
-    int Create() override;         // (1)
-    void Destroy() override;       // (no object)
-    const char* GetClassName() override;   // "CObject3DServer"
-    int GetClassId() override;             // 0x38
-    int OnPartAdded(CFigureMesh* part) override;                // (0)
-    CFigureMesh* RemoveFromPartSets(const char* name) override; // (null)
-    int OnPartRemoved(CFigureMesh* part) override;              // (0)
-    CFigureMesh* FindPart(const char* name) override;           // (null)
-    CFigureMesh* FindPartOfType(int type) override;             // (null)
+    int Create() override;
+    void Destroy() override;
+    const char* GetClassName() override;
+    int GetClassId() override;
+    int OnPartAdded(CFigureMesh* part) override;
+    CFigureMesh* RemoveFromPartSets(const char* name) override;
+    int OnPartRemoved(CFigureMesh* part) override;
+    CFigureMesh* FindPart(const char* name) override;
+    CFigureMesh* FindPartOfType(int type) override;
 };
 
 class CObject3D;
 
-// A bone of a figure's skeleton (class id 0x300C, made from the skeleton links; names provisional). The
-// animation state's bone list holds them, one of its members the root. Only the fields the pose code uses. A
-// real virtual class (the child list's vtable too: mfc_slots.h's BoneListClass).
+// A bone of a figure's skeleton (made from the skeleton links). The animation state's bone list holds them,
+// one of its members the root. Only the fields the pose code uses.
 struct FigureBone : CEngineObject {
     mfc::CString name;                      // the piece's name (children are linked by it)
-    mfc::CString name2;                     // +0x20 its parent's name (empty for the root)
-    mfc::CString name3;                     // +0x24 the figure's model name (LinkBone)
-    FigureBone* parent;                     // +0x28 null for the root
-    mfc::CTypedPtrList<FigureBone> children;    // +0x2C
-    CFigureMesh* mesh;                      // +0x48 the part the bone places, or null
-    AnimationTrack* pose;                   // +0x4C the animator whose values place the bone
-    AnimationTrack* animator;               // +0x50 counted, made on first use; Play copies it to +0x4C
-    CEngineObject* counted54;               // +0x54 counted (released by DestroyBone)
-    CEngineObject* counted58;               // +0x58 counted
-    Vector3 offset;                         // +0x5C the place relative to the parent
-    float morphS;                           // +0x68 the figure's morph coefficients
-    float morphT;                           // +0x6C
+    mfc::CString name2;                     // its parent's name (empty for the root)
+    mfc::CString name3;                     // the figure's model name (LinkBone)
+    FigureBone* parent;                     // null for the root
+    mfc::CTypedPtrList<FigureBone> children;
+    CFigureMesh* mesh;                      // the part the bone places, or null
+    AnimationTrack* pose;                   // the animator whose values place the bone
+    AnimationTrack* animator;               // counted, made on first use; Play copies it to +0x4C
+    CEngineObject* counted54;               // counted (released by DestroyBone)
+    CEngineObject* counted58;               // counted
+    Vector3 offset;                         // the place relative to the parent
+    float morphS;                           // the figure's morph coefficients
+    float morphT;
     float morphU;                           // (also the time factor's t)
-    Vector3 position;                       // +0x74 in figure space
-    Quaternion rotation;                    // +0x80 in figure space
-    lib::AlignedArray<Matrix4> matrices;    // +0x90 (emptied without freeing; freed by the destructor)
+    Vector3 position;                       // in figure space
+    Quaternion rotation;                    // in figure space
+    lib::AlignedArray<Matrix4> matrices;    // (emptied without freeing; freed by the destructor)
 
-    // figure_bone_lifetime.cpp (0xA0 bytes, made by the figure factory): engine object fields, empty names and
-    // child list (blocks of 10), then CreateBone's reset.
     FigureBone();
-    // The destructor body: DestroyBone, the matrices' block freed, the list emptied (its destructor), then the
-    // names' and the engine object's.
     ~FigureBone() override;
-    // The deleting destructor frees into the game's heap.
 
-    // The vtable: CEngineObject's but for 0, 2, 3, 7, 11 and 12 (small_slots_500.cpp: 7, 11, 12).
-    int Create() override;                 // CreateBone
-    void Destroy() override;               // DestroyBone
-    const char* GetName() override;        // (name)
-    const char* GetClassName() override;   // "CAnimationNode"
-    int GetClassId() override;             // 0x21
+    int Create() override;
+    void Destroy() override;
+    const char* GetName() override;
+    const char* GetClassName() override;
+    int GetClassId() override;
 
-    // Reset: names "", no parent, the child list emptied (its blocks
-    // freed), mesh, pose, animator and +0x54 / +0x58 forgotten, the default position and rotation
-    // (the animation tracks' defaults), no matrices (the block kept), morph 0.
     int CreateBone();
-    // Releases the mesh (forgotten first), the animator, +0x54 and +0x58 (the
-    // pose is only forgotten), then CreateBone's reset.
     void DestroyBone();
 
-    // figure_bones.cpp. Places this bone and, recursively, its children: a child turns its offset by the parent's
+    // Places this bone and, recursively, its children: a child turns its offset by the parent's
     // rotation ((w^2 - u.u) o + 2w (u x o) + 2 (u.o) u, the scaled terms rounded) onto the parent's position and
     // takes rotation = pose * parent (Hamilton); the root takes the pose's position (times the animation's time
     // factor at morphU while one plays) minus `origin`, and its rotation; a root without a pose keeps both. A bone
@@ -225,16 +209,15 @@ public:
     virtual void Unknown2();
     virtual void Unknown3();
     virtual void Unknown4();
-    // 5: the data of entry `name` (its size to *size when not null), or null.
+    // The data of entry `name` (its size to *size when not null), or null.
     virtual void* ReadEntry(const char* name, int* size);
 };
 
-// The figure's animation state (class id 0x300D, 0x78 bytes; CObject3D's animation member): the skeleton's
-// bones, the animation playing and the queue behind it, the frame reached. A real virtual class (its lists'
-// vtables too: mfc_slots.h's BoneListClass, AnimationStateListClass).
+// The figure's animation state (CObject3D's animation member): the skeleton's bones, the animation playing
+// and the queue behind it, the frame reached.
 class CFigureAnimationState : public CEngineObject {
 public:
-    // map_object_animation_state.cpp. Plays `animation` from its start: each bone keeps its animator as the one
+    // Plays `animation` from its start: each bone keeps its animator as the one
     // placing it (making it first), the figure manager (the world's) is asked to set the animation on this state
     // by the owner's model name; when it does not, each bone's animator takes it (AnimateBone). Then SetTime(0)
     // and `current` = `animation`.
@@ -243,7 +226,7 @@ public:
     void* Queue(FigureAnimation* animation);
     // The frame reached becomes `frame` (`changed` set when it differs): with nothing
     // playing the next queued animation starts at 0; while the frame lies beyond the animation's
-    // frame count the count is taken off, the callback (+0x64) runs, and the next queued animation
+    // frame count the count is taken off, the callback runs, and the next queued animation
     // plays, or else the animation holds its last frame unless its key's top bits are 10 (loops).
     // When the animation changed, the figure manager or the bones take it as in Play.
     void SetTime(float frame);
@@ -253,38 +236,26 @@ public:
     // Each bone's animator plays `animation`: the bone's manager is told and the animator's time cleared.
     static void AnimateBone(FigureBone* bone, const FigureAnimation* animation);
 
-    // map_object_animation_bones.cpp.
-    // Engine object fields, empty lists (blocks of 10), then Reset.
     CFigureAnimationState();
-    // The destructor body: every bone released, Reset's fields, the lists emptied (their destructors), then the
-    // engine object's.
     ~CFigureAnimationState() override;
-    // The deleting destructor frees into the game's heap.
 
-    // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12 (small_slots_500.cpp: 11, 12).
-    int Create() override;                 // CreateState
-    void Destroy() override;               // DestroyState
-    const char* GetClassName() override;   // "CAnimationSystem2"
-    int GetClassId() override;             // 0x21
+    int Create() override;
+    void Destroy() override;
+    const char* GetClassName() override;
+    int GetClassId() override;
 
-    // Reset with `changed` set first. Returns 1.
     int CreateState();
-    // ReleaseBones, then Reset (the root only forgotten).
     void DestroyState();
-    // Every bone released, the list emptied.
     void ReleaseBones();
-    // No owner, root, callback, bones (not released), animation, queue; frame and morph
-    // 0, `changed` set.
     void Reset();
     // The first bone named `boneName` (_mbscmp), or null.
     FigureBone* FindBone(const char* boneName);
     // A new bone (the figure manager's class 0x300C) named `child` with parent
     // `parentName` joins through LinkBone. Returns 1.
     int LinkPiece(FigureModel* model, const char* child, const char* parentName);
-    // `bone` becomes a child of the first bone named as its parent (name2)
-    // unless that one has a child of its name; it joins the list (referenced), takes the model
-    // name (name3) and morph, and its manager loads its key frames from `model`.
-    // `changed` set. Returns 1.
+    // `bone` becomes a child of the first bone named as its parent (name2) unless that one has a child of its
+    // name; it joins the list (referenced), takes the model name (name3) and morph, and its manager loads its
+    // key frames from `model`. `changed` set. Returns 1.
     int LinkBone(FigureModel* model, FigureBone* bone);
     // The bone named as `part` carries it as its mesh (referenced, the old one released): the part takes the
     // bone's position and rotation. 0 when no bone has the name, else 1. `changed` set.
@@ -301,14 +272,12 @@ public:
     // When `changed`: cleared, and the root (if any) places the skeleton at the owner's time factor (at its scale
     // z) times its default scale.
     void PlaceIfChanged();
-    // When `changed`: each bone's placing animator is evaluated at the frame reached
-    // then PlaceIfChanged.
+    // When `changed`: each bone's placing animator is evaluated at the frame reached then PlaceIfChanged.
     void UpdatePose();
     // The queue emptied, Play(null), `changed` set.
     void Stop();
-    // The morph becomes (s, t, u) on every bone, whose manager reloads its key
-    // frames from the owner's model, and on the state (`changed` cleared); then the
-    // root places the skeleton as PlaceIfChanged does.
+    // The morph becomes (s, t, u) on every bone, whose manager reloads its key frames from the owner's model,
+    // and on the state (`changed` cleared); then the root places the skeleton as PlaceIfChanged does.
     void Rescale(float s, float t, float u);
     // Every bone's name appended to `out` (SetAtGrow at its size).
     void CollectBoneNames(mfc::CStringArray* out);
@@ -320,21 +289,21 @@ public:
     // Returns 1.
     int LoadBoneTracks(CFigureModelPart* part, const FigureAnimation* animation);
 
-    CObject3D* owner;               // +0x1C
-    FigureBone* root;               // +0x20 the skeleton's root bone (FindRoot)
+    CObject3D* owner;
+    FigureBone* root;               // the skeleton's root bone (FindRoot)
     // +0x24 the skeleton's bones (MFC CPtrList, BoneListClass; LinkBone adds).
     mfc::CTypedPtrList<FigureBone> bones;
-    FigureAnimation* current;       // +0x40 the animation playing, or null
+    FigureAnimation* current;       // the animation playing, or null
     // +0x44 the animations queued after it (MFC CPtrList, AnimationStateListClass; the client update
     // keeps fewer than 3).
     mfc::CTypedPtrList<FigureAnimation> queue;
-    float time;                     // +0x60 the frame reached
+    float time;                     // the frame reached
     // +0x64 called (with the owner in ECX) each time an animation's end is passed, or null.
     void(__fastcall* onEnd)(CObject3D* owner);
-    float morphS;                   // +0x68 the figure's morph coefficients (Rescale; bones copy them)
-    float morphT;                   // +0x6C
-    float morphU;                   // +0x70
-    std::uint8_t changed;           // +0x74 set when the frame, the animation or the bones changed
+    float morphS;                   // the figure's morph coefficients (Rescale; bones copy them)
+    float morphT;
+    float morphU;
+    std::uint8_t changed;           // set when the frame, the animation or the bones changed
 };
 static_assert(offsetof(CFigureAnimationState, bones) == 0x24);
 static_assert(offsetof(CFigureAnimationState, current) == 0x40);
@@ -356,8 +325,6 @@ inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedR
 // rotation, world rotation).
 class CObject3D : public CTransformObject {
 public:
-    // map_object_lifetime.cpp (deleting destructor): the parts released, the frame array, string array, figure
-    // (counted), part arrays and list blocks freed, then the name (a member).
     ~CObject3D() override;
     int Create() override { return Create3D(); }
     void Destroy() override { Destroy3D(); }
@@ -372,7 +339,7 @@ public:
     virtual bool AcceptsAnimation(const void* animation);
     // AttachSpecific (no result: 0). CMapObject and units override it.
     virtual std::uintptr_t AttachObject(CEngineObject* object);
-    // object3d_slots.cpp. Takes `other`'s parts (the array copied, no references taken) and its transform
+    // Takes `other`'s parts (the array copied, no references taken) and its transform
     // (CTransformObject::CopyTransform).
     virtual void CopyFigure(const CObject3D* other);
     // Whether the object is invisible: false here; map objects override it.
@@ -385,7 +352,7 @@ public:
     virtual int DrawFigureShadow(void* context);
     // Empty; units override it.
     virtual void AdvanceTime(float time);
-    // map_object_figures.cpp (units override it). Loads the figure named by the model name and builds the pending
+    // Loads the figure named by the model name and builds the pending
     // parts at the current scale; each part not yet in the parts joins it (referenced), learns its owner and is
     // announced to the animation and the attached object (OnPartAdded). Non-units mark every part and themselves
     // (flags_ 8 / 0x200). Then the half's LoadFigures-done virtual and flags_ 0x80. Returns 1 (also when already
@@ -407,16 +374,14 @@ public:
     // the attached object (whose OnPartAdded result is returned). Returns 1 otherwise.
     int AddPart(CFigureMesh* part);
 
-    // map_object_parts.cpp (A-U).
     // The first part (of the parts, then of the pending parts) whose name starts with
     // `prefix` (strstr at the name's start; case-sensitive), or null.
     CFigureMesh* FindPartByPrefix(const char* prefix);
     // The first part (parts, then pending parts) named exactly `partName`, or null.
     CFigureMesh* FindPart(const char* partName);
-    // object3d_specific_slots.cpp. The first part (parts, then pending parts) whose engine object type_ is
-    // `type`, or null.
+    // The first part (parts, then pending parts) whose engine object type_ is `type`, or null.
     CFigureMesh* FindPartOfType(int type);
-    // object3d_figure_setup.cpp. Every part (parts, then pending parts) whose name starts with `prefix` (strstr at
+    // Every part (parts, then pending parts) whose name starts with `prefix` (strstr at
     // the name's start) appended to `out`.
     void CollectPartsByPrefix(const char* prefix, FigurePartArray* out);
     // Takes `part` out of the parts (it forgets its owner) or else out of the pending parts, tells the animation
@@ -425,11 +390,11 @@ public:
     // FindPart(`partName`), removed by RemovePart. Returns the part (released; the pointer
     // may be dangling) or null.
     CFigureMesh* RemovePartNamed(const char* partName);
-    // `part`'s position (+0x1C) turned by the orientation (+0x34, w first), scaled by
+    // `part`'s position turned by the orientation (+0x34, w first), scaled by
     // the side half's GetScale and moved to the object's position. Returns `out`.
     float* PartWorldPosition(float* out, const CFigureMesh* part);
 
-    // The animation database (+0xA0), loaded on first use through the owner's GetFile
+    // The animation database, loaded on first use through the owner's GetFile
     // ("<name>.adb"; nothing without an owner). Null when there is none.
     AnimationDatabase* Animations();
     // Animation `key & 0xFF` of the database, or null (no database, or beyond its count).
@@ -437,7 +402,7 @@ public:
     // The first animation of kind 0x40000 whose number (key bits 22-29) is `number`, or null (the hero preview
     // asks for 0x21; so do the interface's models).
     FigureAnimation* FindSkillAnimation(int number);
-    // object3d_animations.cpp. A random animation for `key`: the database's entries whose key has the same bits
+    // A random animation for `key`: the database's entries whose key has the same bits
     // above 0x7FFF and all of key's low 15 bits (none when key has none) and that the object's may-play virtual
     // accepts; one is returned as it is, several are narrowed to those whose chance is at least a rand() percent
     // and one of them is picked with rand() (the pick made before narrowing when none is left). Null without a
@@ -449,7 +414,7 @@ public:
     // For units (class id 0x50) with an animation database whose length is neither 0
     // nor NaN: (start + (end - start) * time) / length, else 1. In ST0, unrounded.
     double AnimationFactor(float time);
-    // object3d_figure_setup.cpp. Sets the figure up for the model `model`: the animation state is rescaled, given
+    // Sets the figure up for the model `model`: the animation state is rescaled, given
     // the model, plays nothing and applies it; one part box (a CArray of FootprintPart, grown like MFC's SetSize)
     // and one part name per animated part: the figure manager's bounds of the part (with the model and the
     // scale), the part's pivot, flags 4 (| 0x400 "BASE", 0x90 "CROWN", 0x890 "EMPTY" name prefixes); then the
@@ -463,9 +428,8 @@ public:
     // A new part joins the parts (referenced; owner, animation state and side half told as AddPart does); the box
     // pivot is the part's position and flag 4 is set. Returns it.
     CFigureMesh* LoadPart(const char* partName, FigureModel* model, std::uint32_t arg);
-    // The object's figure becomes `model` (+0xA4) and each name of the
-    // CStringArray `partNames` is loaded by LoadPart (with the cached model; failures logged).
-    // Without a figure manager: FatalError. Returns 1.
+    // The object's figure becomes `model` and each name of the CStringArray `partNames` is loaded by LoadPart
+    // (with the cached model; failures logged). Without a figure manager: FatalError. Returns 1.
     int LoadParts(const char* model, const void* partList, std::uint32_t arg);
     // The world client calls it when a unit becomes the controlled one. With the figure loaded (flags_ 0x80): each
     // part's world transform is updated from the object's and its world box grows the bounds; the centre is the
@@ -478,13 +442,13 @@ public:
     // unit (class 0x50 / 0x54) plays nothing, the bounds are recomputed and flags_ 0x80 is set unless both `arg`
     // and the figure are 0 (then cleared). Returns 1.
     int MakeFigure(const char* model, void* partList, std::uint32_t arg);
-    // The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
+    // The index of the part name equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
-    // world_client.cpp (the client's AddObject walks a platform object's boxes with it). The box
+    // The box
     // (CFigureMesh::bounds_) of part `index` of the parts followed by the pending parts.
     FootprintPart* PartBox(int index);
 
-    // object3d_lifetime.cpp. Create (another name so it is no override): position 0, the identity orientation, no
+    // Create (another name so it is no override): position 0, the identity orientation, no
     // side half (dropped without a release), flags 0, no animation database, scale 0, the figure released (deleted
     // at its last reference), the default scale (kDefaultFigureScale), the bounds cleared and the part boxes
     // freed. Returns 1.
@@ -500,13 +464,12 @@ public:
     // and releases it. Nothing when not there.
     void RemoveEffectSource(CEngineObject* source);
 
-    // object3d_slots.cpp. AttachSpecific: a side half (type 0x46) replaces the attached one, which is detached
+    // AttachSpecific: a side half (type 0x46) replaces the attached one, which is detached
     // and released; the new one points back here and gains a reference. Other objects (and null) are ignored.
     void AttachSpecific(CEngineObject* half);
     // The release-effects virtual: every effect source is taken out of the list, detached and released.
     void RemoveAllEffectSources();
 
-    // object3d_small_methods.cpp.
     // `half` (of any type, or null) replaces the attached half: the old one is
     // detached (+0x1C cleared) and released, the new one points back here and gains a reference.
     void SetSpecific(CObject3DSpecific* half);
@@ -523,8 +486,7 @@ public:
     void PlayAnimation(FigureAnimation* animation, int unused);
     // The same with the arguments the other way round. Returns 1.
     int PlayAnimationSecond(int unused, FigureAnimation* animation);
-    // The animation state's bone named as `part` carries it (AttachMesh); 0
-    // without a state.
+    // The animation state's bone named as `part` carries it (AttachMesh); 0 without a state.
     int AttachPartMesh(CEngineObject* part);
     // The animation state (if any) goes to frame 0 and places the skeleton.
     void RestartPose();
@@ -537,50 +499,46 @@ public:
     void SetUpObject3D();
     void TearDownObject3D();
 
-    // The side-specific half (+0x94).
+    // The side-specific half.
     CObject3DSpecific* Specific() const { return attached; }
     // The same half on the client: the CObject3DClientSpecific (defined in map_object_shadow.h).
     CObject3DClientSpecific* ClientSpecific() const;
     // The object as the CTransformObject it starts with (core_transform.h).
 
-    Matrix4 worldMatrix;            // +0x054 object -> world: the rotation, the position as column 3
+    Matrix4 worldMatrix;            // object -> world: the rotation, the position as column 3
     CObject3DSpecific* attached;    // the side half: AttachSpecific accepts (type 0x46)
-    CFigureAnimationState* animation;   // +0x098 the figure's animation state
-    std::uint32_t spare09C;         // +0x09C cleared by Create3D / Destroy3D; nothing reads it
-    AnimationDatabase* animations;  // +0x0A0 loaded on first use
-    mfc::CString name;              // +0x0A4 the figure's name
-    // +0x0A8 the particle sources attached to the object (MFC CPtrList, Object3DListClass, block
-    // size 10).
+    CFigureAnimationState* animation;   // the figure's animation state
+    std::uint32_t spare09C;         // cleared by Create3D / Destroy3D; nothing reads it
+    AnimationDatabase* animations;  // loaded on first use
+    mfc::CString name;              // the figure's name
+    // +0x0A8 the particle sources attached to the object (MFC CPtrList, Object3DListClass, block size 10).
     mfc::CTypedPtrList<CEngineObject> effectSources;
-    Vector3 scale;                  // +0x0C4
-    FigurePartArray parts;          // +0x0D0
-    FigurePartArray pendingParts;   // +0x0E0 built by LoadFigures
+    Vector3 scale;
+    FigurePartArray parts;
+    FigurePartArray pendingParts;   // built by LoadFigures
     // the figure (counted; deleted at its last reference), made by the figure cache: the parts' piece headers
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
     CountedRef<CLinkMesh> figure;
-    Vector3 defaultScale;           // +0x0F4 kDefaultFigureScale (constructor, Create3D)
-    int dirtyRect[4];               // +0x100 RECT: the screen area the last DrawCollectDirty covered
-    mfc::CStringArray partNames;    // +0x110 the figure's part names, in the order of the
+    Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create3D)
+    int dirtyRect[4];               // RECT: the screen area the last DrawCollectDirty covered
+    mfc::CStringArray partNames;    // the figure's part names, in the order of the
                                     // part boxes (CUnit::partBoxes, +0x160)
-    std::uint32_t boundsFlags;      // +0x124 1 and 2: the bounds are valid
-    Vector3 center;                 // +0x128
-    float radius;                   // +0x134
-    Vector3 below;                  // +0x138 box minimum - centre
-    Vector3 above;                  // +0x144 box maximum - centre
+    std::uint32_t boundsFlags;      // 1 and 2: the bounds are valid
+    Vector3 center;
+    float radius;
+    Vector3 below;                  // box minimum - centre
+    Vector3 above;                  // box maximum - centre
     std::uint8_t unused_150[0x158 - 0x150];    // cleared with the bounds
     // +0x158 cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a
     // unit's eye height.
     float eyeHeight;
     void* partBoxArrayVtable;       // CArray of the part boxes
-    FootprintPart* partBoxes;       // +0x160 | (ai_map.h)
-    int partBoxCount;               // +0x164 |
-    int partBoxCapacity;            // +0x168 |
-    int partBoxGrowBy;              // +0x16C /
+    FootprintPart* partBoxes;       // | (ai_map.h)
+    int partBoxCount;               // |
+    int partBoxCapacity;            // |
+    int partBoxGrowBy;              // /
 
 protected:
-    // The engine object's fields, identity orientations, an empty name (a member), the part list
-    // (Object3DListClass), arrays and string array, the bounds cleared and the default figure scale
-    // (kDefaultFigureScale): SetUpObject3D.
     CObject3D();
 };
 static_assert(offsetof(CObject3D, worldMatrix) == 0x54);

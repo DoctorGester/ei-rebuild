@@ -17,7 +17,6 @@ constexpr std::uint32_t kFlagUnwritten = 1;
 constexpr std::uint32_t kFlagError = 8;
 // The first window of an opened file, and what the slots add when a window grows.
 constexpr std::uint32_t kWindowBytes = 0x400;
-// fseek origins.
 constexpr int kSeekSet = 0;
 constexpr int kSeekEnd = 2;
 

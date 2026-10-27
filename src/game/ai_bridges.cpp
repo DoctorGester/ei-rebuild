@@ -1,15 +1,13 @@
-// CAIMap::ApplyBridgeDecks: applies or clears the bridge decks of a footprint's bridge
-// cells. Applying: each cell inside the map with low < high becomes kind 4; a grid cell not yet
-// under a bridge has its ground level, its object height (flags & 0x3F) and its occluder kind
-// (occluder word & 0x1F) saved in the bridge map (+0x10C, keyed (short)x << 16 | (short)y, the
-// dword at the node's value) unless already there; then the occluder is added (a failure ends the
-// call with false), the cell is marked under a bridge (0x40, object height and bit 0x80 cleared),
-// its ground raised to the deck (`high`, u16 maximum) and the occluder word's low byte becomes
-// (b & 0xE7) | 7. Clearing: each such cell becomes kind 4 and its occluder is removed; when that
-// worked and no bridge deck is left on the grid cell, a cell that was under a bridge is restored
-// from the bridge map, the 0x40 flag cleared and 0x80 set when the cell still has an
-// object height; with a deck left, the ground becomes max(saved ground, highest deck). See
-// ai_map.h and docs/notes/ai.md.
+// CAIMap::ApplyBridgeDecks: applies or clears the bridge decks of a footprint's bridge cells. Applying: each
+// cell inside the map with low < high becomes kind 4; a grid cell not yet under a bridge has its ground
+// level, its object height (flags & 0x3F) and its occluder kind (occluder word & 0x1F) saved in the bridge
+// map (+0x10C, keyed (short)x << 16 | (short)y, the dword at the node's value) unless already there; then the
+// occluder is added (a failure ends the call with false), the cell is marked under a bridge (0x40, object
+// height and bit 0x80 cleared), its ground raised to the deck (`high`, u16 maximum) and the occluder word's
+// low byte becomes (b & 0xE7) | 7. Clearing: each such cell becomes kind 4 and its occluder is removed; when
+// that worked and no bridge deck is left on the grid cell, a cell that was under a bridge is restored from
+// the bridge map, the 0x40 flag cleared and 0x80 set when the cell still has an object height; with a deck
+// left, the ground becomes max(saved ground, highest deck). See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
 #include "ei/hook.h"

@@ -1,8 +1,7 @@
-// Ground decals: see ground_decal.h. The game clips with five hand-unrolled functions
-// (plane -> u >= 0 -> v >= 0 -> u <= 1 -> v <= 1, with entry points part way), each
-// stage writing its second triangle into its own function-static buffer.
-// ClipStage is that pipeline with one buffer per stage, so the
-// in-place clipping and the order triangles are emitted in are the same.
+// Ground decals: see ground_decal.h. The game clips with five hand-unrolled functions (plane -> u >= 0 -> v
+// >= 0 -> u <= 1 -> v <= 1, with entry points part way), each stage writing its second triangle into its own
+// function-static buffer. ClipStage is that pipeline with one buffer per stage, so the in-place clipping and
+// the order triangles are emitted in are the same.
 #include "ground_decal.h"
 
 #include "ei/hook.h"
@@ -169,7 +168,6 @@ void DecalBuilder::Begin(lib::AlignedArray<VertexPacket>* points, lib::AlignedAr
     uAxis_ = {uAxis_.x - part.x, uAxis_.y - part.y, uAxis_.z - part.z};
     uAxis_.DivideInPlace(static_cast<float>(uAxis_.LengthSquared()));
 
-    // The same for v.
     vAxis_ = {vCorner.x - origin.x, vCorner.y - origin.y, vCorner.z - origin.z};
     float vAlong = Dot(vAxis_, dir);
     part = {dir.x * vAlong, dir.y * vAlong, dir.z * vAlong};

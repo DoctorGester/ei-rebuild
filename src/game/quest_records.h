@@ -1,7 +1,7 @@
 #pragma once
 
 // The quest database's records (quest_database.cpp fills them from the quests' .reg files): the
-// quests (0x38 bytes) and the briefings (0x6C). The database's archive load (Rebirth-
+// quests and the briefings (0x6C). The database's archive load (Rebirth-
 // patched) writes and reads its two vectors of them through ChunkArchive::SerializeQuests /
 // SerializeBriefings (chunk_archive.h), one chunk 1 per record. quest_records.cpp.
 
@@ -30,14 +30,14 @@ struct QuestRecord {
     void AssignQuest(const QuestRecord* source);
     void ConstructDefault();
 
-    stlp::string name;              // +0x00
-    float exp;                      // +0x0C
-    std::uint32_t field2;           // +0x10 archive field 2 (0 when loaded from the quests); nothing else reads it
-    float money;                    // +0x14
-    int zone;                       // +0x18 the zone index
-    int order;                      // +0x1C
-    stlp::vector<float> places;     // +0x20 x and y in turn
-    stlp::string text;              // +0x2C
+    stlp::string name;
+    float exp;
+    std::uint32_t field2;           // archive field 2 (0 when loaded from the quests); nothing else reads it
+    float money;
+    int zone;                       // the zone index
+    int order;
+    stlp::vector<float> places;     // x and y in turn
+    stlp::string text;
 };
 static_assert(offsetof(QuestRecord, places) == 0x20);
 static_assert(offsetof(QuestRecord, text) == 0x2C);
@@ -48,8 +48,7 @@ struct QuestBriefingRecord {
     // chunk 3 the given items, string field 4 the text, chunks 5-9 the other lists
     // (InlineStrings), 10 +0x68.
     void Serialize(ChunkArchive* ar);
-    // The compiler's destructor. The text, the lists from the last (each string,
-    // then the storage), the name.
+    // The compiler's destructor. The text, the lists from the last (each string, then the storage), the name.
     void Destruct();
     // The copy constructor, operator= (inlined in the vector's code) and the vector's
     // resize(n) temporary (empty strings with room for 8 bytes, empty lists), as the quest's.
@@ -61,11 +60,11 @@ struct QuestBriefingRecord {
     // completed, zone variables raised to 1 and set to 2 (CWorldServer::CompleteBriefing).
     enum ListKind { kGiveItems, kRemoveItems, kGiveQuests, kCompleteQuests, kAvailableZones, kCompleteZones };
 
-    stlp::string name;              // +0x00
-    float exp;                      // +0x0C
-    float money;                    // +0x10
-    CStringVector lists[6];         // +0x14 by ListKind
-    stlp::string text;              // +0x5C
+    stlp::string name;
+    float exp;
+    float money;
+    CStringVector lists[6];         // by ListKind
+    stlp::string text;
     // +0x68 archive field 10 (0 when loaded from the quests): the briefing's specials, text
     // "brief_get_specials_<n>" when above 0 (the dialogue's rewards).
     std::int32_t specials;
@@ -84,8 +83,8 @@ struct QuestBriefingTable {
     // records). False for null or a name already there.
     bool Add(const QuestBriefingRecord* record);
 
-    stlp::vector<QuestBriefingRecord> records;   // +0x00
-    Index index;                                 // +0x0C
+    stlp::vector<QuestBriefingRecord> records;
+    Index index;
 };
 static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefingTable) == 0x20);
 
@@ -93,11 +92,10 @@ static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefin
 struct QuestDatabase {
     using QuestIndex = stlp::hash_map<stlp::string, QuestRecord*, stlp::StringHash>;
 
-    // Load (quest_db_open.cpp; Rebirth-patched, hooked in the vanilla launch
-    // only; called by WinMain at startup). "quests.qdb" of `folder` + "database.res": the quests (chunk 1)
-    // and the briefings (chunk 2), each read through an archive of its own and filed under its
-    // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the
-    // file cannot be opened.
+    // Load (quest_db_open.cpp; Rebirth-patched, hooked in the vanilla launch only; called by WinMain at
+    // startup). "quests.qdb" of `folder` + "database.res": the quests (chunk 1) and the briefings (chunk 2),
+    // each read through an archive of its own and filed under its records' names. 1; FatalError's result when
+    // the archive (reported as "databases.res") or the file cannot be opened.
     int Load(const char* folder);
     // The constructor (database_construct.cpp; run by the static initialiser). Both vectors empty, both
     // indexes with 100 buckets (193). Returns this.
@@ -108,22 +106,21 @@ struct QuestDatabase {
     // The destructor (database_destruct.cpp; run by the exit function). The members from the
     // last: each index's nodes and buckets, then its records and their storage.
     void Destruct();
-    // script_quest.cpp (and a copy of it; the script commands' quest
-    // lookup, QuestComplete awards the record's +0x0C). The record of quest `name`, null if none.
-    // The index's operator[] (the game's find_or_insert on a {name, null} pair) leaves a
-    // null entry for a missing name.
+    // script_quest.cpp (and a copy of it; the script commands' quest lookup, QuestComplete awards the
+    // record's +0x0C). The record of quest `name`, null if none. The index's operator[] (the game's
+    // find_or_insert on a {name, null} pair) leaves a null entry for a missing name.
     QuestRecord* FindQuest(const char* name);
 
-    stlp::vector<QuestRecord> quests;   // +0x00
-    QuestIndex questsByName;            // +0x0C
-    QuestBriefingTable briefings;       // +0x20
+    stlp::vector<QuestRecord> quests;
+    QuestIndex questsByName;
+    QuestBriefingTable briefings;
 };
 static_assert(offsetof(QuestDatabase, briefings) == 0x20 && sizeof(QuestDatabase) == 0x40);
 extern lib::StaticObject<QuestDatabase> g_questDatabase;   // database_globals.cpp
 inline QuestDatabase& TheQuestDatabase() { return *g_questDatabase; }
 
 
-class CFileRegistry;   // registry.h
+class CFileRegistry;
 // (__fastcall registry, section; key and list on the stack; quest_database.cpp).
 // The registry's string list `section` / `key` into `list`: the list emptied, reserved for
 // the strings' count, then every non-empty string appended (the briefings' lists).

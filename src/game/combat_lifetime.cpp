@@ -1,6 +1,5 @@
-// The server unit controller's constructor, its AI brain's constructor and destructor
-// and the perception memory's destructor, and the plan taking a
-// step list. A-U7; see docs/notes/combat.md.
+// The server unit controller's constructor, its AI brain's constructor and destructor and the perception
+// memory's destructor, and the plan taking a step list. A-U7; see docs/notes/combat.md.
 #include "combat.h"
 #include "combat_plan.h"
 #include "core_refcount.h"
@@ -51,8 +50,7 @@ void InitObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list.blockSize = kBlockSize;
 }
 
-// Its destructor: the vtable, each element released and cleared, then
-// RemoveAll.
+// Its destructor: the vtable, each element released and cleared, then RemoveAll.
 void DestroyObjectList(mfc::CTypedPtrList<CUnit>& list) {
     list.vtable = gameslots::VictimListClass::Vtable();
     for (auto* node = list.head; node; node = node->next) {
@@ -69,7 +67,6 @@ void DestroyAttackOptions(AIAttackOptions& options) {
     if (options.data) gamecrt::operator_delete(options.data);
 }
 
-// The sight cache's empty state ({0, -1}).
 constexpr SpiralCache kEmptySightCache{0, -1.0f};
 } // namespace
 
@@ -131,7 +128,6 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
     for (int i = 0; i < steps.size; ++i) animation.data[i] = steps.data[i];
     animation.extra = steps.extra;
     isCast = 0;
-    // The by-value list's destructor: only its data is freed.
     if (steps.data) gamecrt::operator_delete(steps.data);
 }
 EI_REWRITTEN(0x00545110, OrderPlan::TakeSteps);

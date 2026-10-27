@@ -1,6 +1,6 @@
 #pragma once
 
-// WinMain (app_main.cpp) and the application helpers around it: the window procedure,
+// WinMain and the application helpers around it: the window procedure,
 // the input message dispatcher, the message pump and the start of the first map.
 // Names are provisional; see docs/notes/objects.md ("Rewritten").
 
@@ -10,14 +10,14 @@
 #include <cstddef>
 #include <cstdint>
 
-class CDirectInputMouse;   // ui_cursor.h
+class CDirectInputMouse;
 namespace mfc {
 class CString;
 } // namespace mfc
 
 namespace app {
 
-// The application's globals (app_main.cpp): what the command line gave, the folder of the movie frames
+// The application's globals: what the command line gave, the folder of the movie frames
 // ("-moviepath_"), a map (".mpr"), a mob file (".mob"), a script (".scr") and the camera file (".cam"); and the
 // mouse object (WinMain keeps one reference).
 mfc::CString& MovieFolder();
@@ -27,7 +27,7 @@ mfc::CString& CommandLineScript();
 mfc::CString& CameraFile();
 CDirectInputMouse*& Mouse();
 
-// The application's flags and handles (app_main.cpp). The game window's title (from the string table), the
+// The application's flags and handles. The game window's title (from the string table), the
 // instance; the window's activation as the window procedure leaves it; whether the interface shows a screen
 // (set when a screen is activated, cleared when every window is closed: the main loop runs its frames only
 // while it is set); whether QuitGame may post the quit message (cleared while a timed movie plays); a movie of
@@ -50,37 +50,32 @@ extern const char* g_loadingMovieName;
 
 // The game window's procedure (also called directly by the pump and the dispatcher).
 LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
-// Sends keyboard and mouse messages to the interface and returns 1; anything else goes to
-// WindowProc.
+// Sends keyboard and mouse messages to the interface and returns 1; anything else goes to WindowProc.
 LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam);
 // Removes every waiting message and passes it to WindowProc (no DispatchMessage).
 void __cdecl PumpMessages();
 // Without a map on the command line opens the main menu; otherwise loads the map into the
 // world server and runs the command line's script file. Returns 1, or FatalError's result.
 int __cdecl StartFirstMap();
-// One frame (app_frame.cpp): the interface drawn and the scene presented, nothing while the
-// application is inactive.
+// One frame: the interface drawn and the scene presented, nothing while the application is inactive.
 void __fastcall FrameStep(bool draw, bool cursor);
-// Plays the movies listed under `section` (app_frame.cpp), clearing the screen before and, with
-// `clearAfter`, after each.
+// Plays the movies listed under `section`, clearing the screen before and, with `clearAfter`, after each.
 void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b);
-// The game's message box over the main window, under the window's title: in full screen (the
-// device object's flag 1) DirectDraw first flips to the GDI surface (a failure is reported
-// through FatalErrorCode: "Can't flip to GDI surface."); the cursor that was set is put back
-// afterwards. Returns MessageBoxA's answer.
+// The game's message box over the main window, under the window's title: in full screen (the device object's
+// flag 1) DirectDraw first flips to the GDI surface (a failure is reported through FatalErrorCode: "Can't
+// flip to GDI surface."); the cursor that was set is put back afterwards. Returns MessageBoxA's answer.
 int __fastcall ShowMessageBox(const char* text, int flags);
 // The operator new handler WinMain installs (_set_new_handler; the previous one is put back when
 // the game ends): "Memory depleted" in the game's message box with the stop icon. Returns 0, so
 // the allocation fails. Only WinMain refers to it, by address (config/extra_function_sizes.csv).
 int __cdecl OutOfMemory(std::size_t size);
-// WinMain (app_main.cpp): the application's start-up, main loop and shutdown. Rebirth patches
+// WinMain: the application's start-up, main loop and shutdown. Rebirth patches
 // it (NivalRegistry), so the rewrite runs in the vanilla launch only.
 int __stdcall GameMain(HINSTANCE instance, HINSTANCE previous, char* commandLine, int show);
 // A DirectX failure: the formatted text (1 KB), then "%s (0x%.8X) %s" with the result and its
 // DirectXErrorText in a message box and to the error hook; the error counter is raised and the
 // game exits (exit(-1)). Not patched by Rebirth. Returns 0.
 int __cdecl FatalErrorCode(long result, const char* format, ...);
-// The same with the arguments as a va_list (the verify wrapper's entry).
 int FatalErrorCodeV(long result, const char* format, va_list args);
 
 } // namespace app

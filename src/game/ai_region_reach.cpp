@@ -29,7 +29,6 @@ using PointArray = BlockPointArray;
 static_assert(sizeof(BlockPointArray) == 0x14);
 void DestroyPoints(BlockPointArray& points) { mfc::impl::DestructArrayOf<mfc::impl::PointArrayClass>(points); }
 
-// The blocks, guard bit 0 of g_blocksGuard.
 constinit lib::StaticObject<BlockPointArray> g_blocks = /*007C2EE0*/ {};
 PointArray& Blocks() { return *g_blocks; }
 std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
@@ -62,7 +61,6 @@ const int* StepY() { return DirectionDy() + 1; }
 
 } // namespace
 
-// The {x, y, cost} records zero filled.
 void BlockCostElements::Construct(BlockCost* elements, int count) { mfc::PlainElements<BlockCost>::Construct(elements, count); }
 
 namespace {
@@ -72,7 +70,6 @@ namespace {
 // The region map's per size class grids (edge words, representative cells, regions) are allocated for their
 // size here.
 
-// A grid resized (freed and reallocated) when the size changes.
 template <typename T>
 void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)(SearchGrid<T>*)) {
     if (grid.width == width && grid.height == height) return;
@@ -82,7 +79,7 @@ void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)
     grid.height = height;
     allocate(&grid);
 }
-// The region map's two block searches: BlockSearch (ai_map.h).
+// The region map's two block searches: BlockSearch.
 
 
 // ConstructElements<PathCell> (zero-fills `count`).
@@ -238,7 +235,6 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
     if (bx < 0) bx = 0;
     if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
     if (by < 0) by = 0;
-    // The inlined RemoveAll.
     out->count = 0;
     out->free = nullptr;
     out->tail = nullptr;
@@ -331,7 +327,6 @@ bool CRegionMap::LoadBlocks(CStream* stream) {
     }
     forward.Attach(this, false);
     backward.Attach(this, true);
-    // The stream's state byte as it is (AL).
     bool ok;
     std::memcpy(&ok, &stream->ok_, sizeof(ok));
     return ok;
@@ -384,7 +379,6 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
                                  BlockPointArray* excluded) {
     PrepareSearch(forward, sizeClass);
     PrepareSearch(backward, sizeClass);
-    // The excluded blocks (CArray<{x, y}>) are marked visited in both.
     const BlockPoint* points = excluded->data;
     for (int i = 0; i < excluded->size; ++i) {
         Exclude(forward, points[i].x, points[i].y);
@@ -426,7 +420,6 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
             best = counts[i];
             region = seen[i];
         }
-    // The block list's inlined destructor.
     blocks.vtable = BlockCostListVtable();
     blocks.RemoveAll();
     return region;
@@ -474,7 +467,6 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
 
 static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellList* path) {
     auto& search = *searchIn;
-    // The inlined RemoveAll.
     path->count = 0;
     path->free = nullptr;
     path->tail = nullptr;
@@ -508,7 +500,6 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellLis
         default: break;
         }
     }
-    // The first cell (AddHead; its element zeroed first).
     path->AddHead(cellAt(x, y));
 }
 
@@ -566,9 +557,7 @@ void CRegionMap::Attach(CAIMap* map) {
     backward.Attach(this, true);
 }
 
-// The region map's constructor (returns this).
 CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
-    // The two block searches start with a 1x1 record grid.
     for (BlockSearch* search : {&self->forward, &self->backward}) {
         SearchGrid<BlockRecord>& records = search->records;
         records.width = 1;
@@ -609,8 +598,7 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
     // it cannot be set up the cell is taken.
     if (!search->BeginInRectForClass(sizeClass, left, top, right, bottom, xx + left, yy + top)) return true;
     search->ExpandAll();
-    // Suitable when it reaches both the left and the right edge, or else both the top and the
-    // bottom edge.
+    // Suitable when it reaches both the left and the right edge, or else both the top and the bottom edge.
     bool first = false, second = false;
     for (int y = top; y < top + 9; ++y) {
         if (search->CostAt(left, y) < kUnreached) first = true;
@@ -636,7 +624,6 @@ void CRegionMap::FloodRegionFrom(int sizeClass, BlockPointArray* frontier, Block
     std::int16_t** edgeRows = edges[sizeClass].rows;
     std::uint16_t** regionRows = regions[sizeClass].rows;
     for (;;) {
-        // The inlined RemoveAll of the next frontier.
         if (next->data) {
             gamecrt::operator_delete(next->data);
             next->data = nullptr;

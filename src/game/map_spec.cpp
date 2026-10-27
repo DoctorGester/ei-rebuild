@@ -28,9 +28,8 @@ namespace mapspec {
 namespace {
 
 
-// The objects manager (0x7AF5F8) look-up by id; the world server: an object removed
-// by id, an object made from a record; the editor's selection and object lists
-// the world object's own updates.
+// The objects manager (0x7AF5F8) look-up by id; the world server: an object removed by id, an object made
+// from a record; the editor's selection and object lists the world object's own updates.
 CAIMap* Selection() { return TheServerWorld()->AIMap(); }
 
 std::uint32_t Bits(float f) {
@@ -99,7 +98,6 @@ void Spec::Move(float dx, float dy, float dz) {
 }
 EI_REWRITTEN(0x00469F40, Spec::Move);
 
-// ---- Objects ------------------------------------------------------------------------
 
 ObjectSpec::ObjectSpec() {
     parts.Construct();
@@ -128,8 +126,7 @@ EI_REWRITTEN_SPECIAL(0x0046A6F0, ObjectSpec::~ObjectSpec);
 EI_REWRITTEN_SPECIAL(0x0058EDF0, ObjectSpec::~ObjectSpec);   // the quick item effect record's twin (UseQuickItem)
 EI_REWRITTEN_SPECIAL(0x0058EDD0, ObjectSpec::~ObjectSpec);
 
-// The original goes through a temporary copy of the base record; CStrings share their data either
-// way.
+// The original goes through a temporary copy of the base record; CStrings share their data either way.
 void ObjectSpec::Assign(const ObjectSpec* from) {
     object = from->object;
     spareId = from->spareId;
@@ -271,7 +268,6 @@ mfc::CString* ObjectSpec::TypeName(mfc::CString* out) {
 }
 EI_REWRITTEN(0x0046B090, ObjectSpec::TypeName);
 
-// ---- Flames ------------------------------------------------------------------------
 
 FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
@@ -404,7 +400,6 @@ void TrapSpec::OnChunk() {
 }
 EI_REWRITTEN(0x0046B7D0, TrapSpec::OnChunk);
 
-// ---- Levers -------------------------------------------------------------------------
 
 LeverSpec::LeverSpec() {
     lever.lock.mask = 1;
@@ -474,8 +469,8 @@ namespace mapspec {
 
 // ---- The zone's diplomacy table ------------------------------------------------------------------
 
-// The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader): every pair 1 but a player
-// with itself (0), and the player names "Player-<i>". Returns this.
+// The diplomacy of the zone's 32 players (made by the zone loader): every pair 1 but a player
+// with itself (0), and the player names "Player-<i>".
 ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
     mfc::CStringArray* names = &self->names;
     names->Construct();

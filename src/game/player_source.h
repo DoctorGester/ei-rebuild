@@ -12,7 +12,7 @@
 #include <cstdint>
 
 namespace netlink {
-class NetLink;   // net_link.h
+class NetLink;
 }
 
 // The list slot 6 appends the new connections to, counted (the server world's AcceptNewPlayers'
@@ -21,7 +21,6 @@ using JoinedLinks = mfc::CTypedPtrList<netlink::NetLink>;
 
 class CPlayerSource : public CRefObject {
 public:
-    // A new source: no references, no flags.
     CPlayerSource() {
         refs_ = 0;
         flags6_ = 0;

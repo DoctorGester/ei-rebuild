@@ -1,9 +1,8 @@
-// The compiler-generated constructors of the resource databases. Only the static
-// initialisers call them, before the hooks are installed (the spell and item databases' also the
-// resource switch and reload of a network game), so the hook build checks them at
-// start-up against what the originals built; the
-// standalone image runs them. Each is the members' constructors inlined: an STLport vector empty,
-// a hash_map with 100 buckets (STLport rounds it up to 193).
+// The compiler-generated constructors of the resource databases. Only the static initialisers call them,
+// before the hooks are installed (the spell and item databases' also the resource switch and reload of a
+// network game), so the hook build checks them at start-up against what the originals built; the standalone
+// image runs them. Each is the members' constructors inlined: an STLport vector empty, a hash_map with 100
+// buckets (STLport rounds it up to 193).
 #include "acks_db.h"
 #include "item_db.h"
 #include "model.h"

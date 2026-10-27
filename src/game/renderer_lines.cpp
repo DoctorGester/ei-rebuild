@@ -1,13 +1,7 @@
-// The old renderer's two line-strip draws, so the new renderer's state mirror
-// (src/render/render_state.h) gets the states they set and the new renderer gets the lines
-// (render::TlDraw; with the old path's meshes off the old draw is skipped). Both draw untextured
-// one-colour strips: stage 0's colour and alpha operations off around the draw, back to MODULATE
-// after it. See docs/notes/renderer.md ("Pass state").
-// - a strip through integer screen points. No caller found in the exe (not reached by the scenarios).
-// - a strip through points the transform pipeline projected (the device object's draw); the
-//   renderer's line lists use it (the figure parts' debug bounds
-//   boxes, the world client's line lists). Debug drawing; not reached by
-//   the scenarios. Its vertices go to a growing buffer in the exe's data.
+// The old renderer's two line-strip draws, so the new renderer's state mirror (src/render/render_state.h) gets
+// the states they set and the new renderer gets the lines (render::TlDraw; with the old path's meshes off the
+// old draw is skipped).
+// More: docs/notes/comments-c22i.md, "renderer_lines.cpp".
 #include "renderer_lines.h"
 
 #include "device.h"

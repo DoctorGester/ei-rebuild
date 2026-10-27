@@ -19,7 +19,6 @@ struct PartName {
     const char* suffix;
 };
 
-// The part-name strings.
 constexpr PartName kSword[] = {{"rh3.sword", true, ""}};
 constexpr PartName kAxe[] = {{"rh3.axe", true, ""}};
 constexpr PartName kDagger[] = {{"rh3.dagger", true, ""}};

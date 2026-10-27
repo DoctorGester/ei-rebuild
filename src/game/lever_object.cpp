@@ -1,6 +1,5 @@
-// The lever map object's own functions: lifetime, update, save /
-// load, network state, the zone record set-up and the small slots. SetState and UseSpots are in
-// unit_lever.cpp. See docs/notes/units.md ("Levers").
+// The lever map object's own functions: lifetime, update, save / load, network state, the zone record set-up
+// and the small slots. SetState and UseSpots are in See docs/notes/units.md ("Levers").
 #include "lever.h"
 
 #include "core_maths.h"

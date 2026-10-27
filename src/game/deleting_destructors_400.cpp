@@ -1,8 +1,7 @@
-// Scalar deleting destructors that only call their class's destructor body
-// and free the memory when bit 0 of the flags is set (30 bytes each; counted pointer holders, session
-// containers; the message classes' are their C++ destructors, net_messages.cpp). The body is our rewrite, named by
-// its member or function. Two exception cleanup helpers
-// are here too.
+// Scalar deleting destructors that only call their class's destructor body and free the memory when bit 0 of
+// the flags is set (30 bytes each; counted pointer holders, session containers; the message classes' are
+// their C++ destructors, net_messages.cpp). The body is our rewrite, named by its member or function. Two
+// exception cleanup helpers are here too.
 #include "base_manager.h"
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -46,8 +45,6 @@ using destructors400::CleanupClear8;
 using destructors400::DeletingDestructor;
 using namespace net;
 
-// Counted pointer holders; the world range has a byte-identical copy
-// of each.
 EI_REWRITTEN(0x004292A0, DeletingDestructor<RefPtrRelease>::Delete);
 EI_REWRITTEN(0x004292C0, DeletingDestructor<&RefPtr::Destroy>::Delete);
 EI_REWRITTEN(0x0059DD90, DeletingDestructor<RefPtrRelease>::Delete);

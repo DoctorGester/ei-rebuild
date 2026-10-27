@@ -66,9 +66,8 @@ using ResizeFn = void (*)(void* records, unsigned count);
 // Per record type: the record's destructor (plain RET), the vector's resize (RET 4: new records
 // default-constructed) and the record's Serialize (RET 4).
 
-// The body of the three instantiations: chunk `id` holding one chunk 1 per record; loading
-// destroys the old records (erase(begin, end): the tail copy is empty) and resizes to the number
-// of record chunks first.
+// The body of the three instantiations: chunk `id` holding one chunk 1 per record; loading destroys the old
+// records (erase(begin, end): the tail copy is empty) and resizes to the number of record chunks first.
 template <typename Record, typename Destroy, typename Serialize>
 void SerializeItemRecords(ChunkArchive* ar, int id, void* vector, Destroy destroy, ResizeFn resize, Serialize serialize) {
     if (!ar->EnterChunk(id)) return;

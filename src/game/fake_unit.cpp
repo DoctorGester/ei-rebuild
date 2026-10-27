@@ -1,10 +1,8 @@
 // CFakeUnit (class id 0x50, 0x580 bytes; derives from CUnit; declared as scene::FakeUnitScene,
-// scene_loader.h): constructor, destructor, Destroy (slot 3), the scene load (slot 62) and the class
-// id. It adds the skin at +0x4E0 and four CArrays: the
-// figures (+0x530, CFigureMesh records), the meshes (+0x544, SceneMesh),
-// the bone links (+0x558, a CArray each) and the helpers (+0x56C, CMaterial).
-// A real virtual class. See docs/notes/objects.md
-// ("Rewritten").
+// scene_loader.h): constructor, destructor, Destroy (slot 3), the scene load (slot 62) and the class id. It
+// adds the skin at +0x4E0 and four CArrays: the figures (+0x530, CFigureMesh records), the meshes (+0x544,
+// SceneMesh), the bone links (+0x558, a CArray each) and the helpers (+0x56C, CMaterial). A real virtual
+// class. See docs/notes/objects.md ("Rewritten").
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -20,7 +18,7 @@
 #include <cstring>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
+#undef GetClassName   // CEngineObject::GetClassName
 
 using scene::FakeUnitScene;
 

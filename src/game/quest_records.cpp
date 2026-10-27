@@ -1,6 +1,5 @@
 // The quest database's records in an archive: the records' Serialize (quests,
-// briefings) and the two vectors'. See quest_records.h and
-// docs/notes/items_spells.md ("Quest database").
+// briefings) and the two vectors'. See quest_records.h and docs/notes/items_spells.md ("Quest database").
 #include "quest_records.h"
 
 #include "chunk_archive.h"
@@ -11,10 +10,9 @@
 
 namespace {
 
-// STLport instantiations (library.csv), through their addresses: vector<float>::_M_fill_insert,
-// the records' destructors (quests, briefings)
-// and the vectors' resize (new records default-constructed, extra
-// ones destroyed).
+// STLport instantiations (library.csv), through their addresses: vector<float>::_M_fill_insert, the records'
+// destructors (quests, briefings) and the vectors' resize (new records default-constructed, extra ones
+// destroyed).
 void __fastcall QuestDestroy(QuestRecord* record) { record->Destruct(); }
 void __fastcall BriefingDestroy(QuestBriefingRecord* record) { record->Destruct(); }
 

@@ -41,7 +41,6 @@ void HandOverAndFree(StockList* list, CParty* party) {
     stlp::deallocate(head, sizeof(StockListNode));
 }
 
-// The vectors' constructor: no storage.
 template <typename T>
 void VectorConstruct(stlp::vector<T>* v) {
     v->Start() = nullptr;
@@ -80,7 +79,6 @@ ClassTemplate::ClassTemplate() : weightsTail{} {
     flag38 = 1;
 }
 
-// ClassTemplate's constructor; the registration is Construct's.
 ClassTemplate* ClassTemplate::Construct() { return new (this) ClassTemplate(); }
 EI_REPLACE_METHOD(0x004A6580, ClassTemplate::Construct);
 

@@ -85,7 +85,7 @@ TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMes
     return nullptr;
 }
 
-// Removed file request: drops `message` from +0x259C.
+// Removed file request: drops `message`.
 void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);
@@ -121,9 +121,8 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     other->trading_ = 1;
 }
 
-// Offer updated: the offer's version moves on; when both offers of its trade are live,
-// accepted and agree crosswise (each one accepted the other's current revision), the trade is
-// done with the two revisions.
+// Offer updated: the offer's version moves on; when both offers of its trade are live, accepted and agree
+// crosswise (each one accepted the other's current revision), the trade is done with the two revisions.
 void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
     ++message->version_;
     PartyMessage* other = FindPartnerOffer(self->offers_, message);

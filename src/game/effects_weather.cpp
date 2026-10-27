@@ -103,7 +103,6 @@ void CRainSnow::UpdateFade(float now) {
 }
 EI_REWRITTEN(0x004E40B0, CRainSnow::UpdateFade);
 
-// Ends a fade at once.
 void CRainSnow::FinishFade() {
     mode = targetMode;
     if (targetMode == 1 && sound) TheSoundManager()->SetSoundVolume(sound, 100, 0);
@@ -116,7 +115,6 @@ void CRainSnow::FinishFade() {
 }
 EI_REWRITTEN(0x004E4050, CRainSnow::FinishFade);
 
-// SetWind script command: the drops' slant.
 void CRainSnow::SetWind(const Vector3& direction, float strength) {
     float x = static_cast<float>(strength * direction.x);
     float y = static_cast<float>(strength * direction.y);
@@ -305,8 +303,7 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
                 continue;
             }
             // The pair template is filled with an overlapping REP MOVSD from the key, so every dword of the
-            // new value starts as
-            // the key.
+            // new value starts as the key.
             std::uint32_t pair[7];
             for (std::uint32_t& d : pair) d = key;
             FogCell* cell = reinterpret_cast<FogCell*>(InsertCell(&cells, pair) + 1);

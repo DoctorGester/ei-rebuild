@@ -1,5 +1,5 @@
 // CPlayerServer: what the server does for its player beyond the per-tick sync, the leader's death
-// (slot 20) and the client's messages (handlers by type, from the table CreateServer builds), with
+// And the client's messages (handlers by type, from the table CreateServer builds), with
 // the small helpers of the use order. See player_messages.h and docs/notes/objects.md ("Players").
 
 #include "player_messages.h"
@@ -60,8 +60,7 @@ float ExperiencePenalty() { return GameLogicSettings().lostXp; }
 // The AI map's cell size factors: a half-cell coordinate times both is world units.
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
-// The use order's unit list: an MFC CArray<CUnit*> (SetAtGrow, RemoveAt
-// Are the template's members).
+// The use order's unit list: an MFC CArray<CUnit*> (SetAtGrow, RemoveAt Are the template's members).
 using UnitArray = mfc::CArray<CUnit*>;
 
 CUnit* FindUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }

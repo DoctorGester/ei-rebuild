@@ -1,12 +1,11 @@
 #pragma once
 
-// The network message classes (message types 1..17 as
-// SessionBase::RegisterMessageTypes registers their factories). Names provisional; see
-// docs/notes/cleanup-network.md and docs/notes/network.md.
-// Every class has a factory (the type registry's, a static Create: a new message with no references), a
-// constructor, a copy constructor (slot 3, Clone, makes the copy with it) and a destructor (net_messages.cpp).
-// Slot 1 is Serialize (empty), slot 2 (OnShutdown) resets the message (destroyed and built again in place; EAX is
-// left undefined by the original), slots 4 / 5 write and read the fields at the cursor's byte position.
+// The network message classes (message types 1..17 as SessionBase::RegisterMessageTypes registers their
+// factories). Names provisional; see docs/notes/cleanup-network.md and docs/notes/network.md. Every class has
+// a factory (the type registry's, a static Create: a new message with no references), a constructor, a copy
+// constructor (slot 3, Clone, makes the copy with it) and a destructor (net_messages.cpp). Slot 1 is
+// Serialize (empty), slot 2 (OnShutdown) resets the message (destroyed and built again in place; EAX is left
+// undefined by the original), slots 4 / 5 write and read the fields at the cursor's byte position.
 
 #include "net_classes.h"
 #include "core_refcount.h"
@@ -30,13 +29,13 @@ using RefVector = stlp::vector<RefPtr>;
 
 // ---- Client to server ---------------------------------------------------------------------------
 
-// Type 5, 0x34 bytes: the local player's login, kept by the client at +0x2600. The
+// Type 5, 0x34 bytes: the local player's login, kept by the client. The
 // server's handlers make a player record and a binding from it (net_server_join.cpp).
 class LoginMessage final : public Message {
 public:
     LoginMessage();
     LoginMessage(const LoginMessage& other);     // Clone's copy
-    ~LoginMessage() override;                    // The deleting destructor
+    ~LoginMessage() override;
 
     int OnShutdown() override;
     LoginMessage* Clone() override;
@@ -54,7 +53,7 @@ public:
     RefPtrTo<BindingMessage> binding_{};   // +0x30 the server's binding for this login (not sent)
 };
 
-// One string at +0xC (0x18 bytes): the base of SayMessage, ZoneMessage and MapMessage, which
+// One string: the base of SayMessage, ZoneMessage and MapMessage, which
 // differ only in their classes (game.exe has no table of its own for this layer).
 class TextMessage : public Message {
 public:
@@ -68,13 +67,12 @@ protected:
     void ReadText(BufferCursor* cursor);
 };
 
-// Type 6: a chat line from a client (the server's handler announces it with
-// the player's number and name).
+// Type 6: a chat line from a client (the server's handler announces it with the player's number and name).
 class SayMessage final : public TextMessage {
 public:
     SayMessage();
     SayMessage(const SayMessage& other) : TextMessage(other) {}       // Clone's copy
-    ~SayMessage() override {}                                          // The deleting destructor
+    ~SayMessage() override {}
 
     int OnShutdown() override;
     SayMessage* Clone() override;
@@ -89,7 +87,7 @@ class CommandMessage final : public Message {
 public:
     CommandMessage();                                // kind_ is not set
     CommandMessage(const CommandMessage& other);     // Clone's copy
-    ~CommandMessage() override {}                    // The deleting destructor
+    ~CommandMessage() override {}
 
     int OnShutdown() override;
     CommandMessage* Clone() override;
@@ -102,7 +100,7 @@ public:
     stlp::string text_;          // +0x10
 };
 
-// Two counted pointers (0x14 bytes); only the first is sent. The base of BindingMessage and
+// Two counted pointers; only the first is sent. The base of BindingMessage and
 // FileRequestMessage, which differ only in their classes and the names of the pointers.
 class PairMessage : public Message {
 public:
@@ -123,7 +121,7 @@ class FileRequestMessage final : public PairMessage {
 public:
     FileRequestMessage();
     FileRequestMessage(const FileRequestMessage& other) : PairMessage(other) {}   // Clone's copy
-    ~FileRequestMessage() override {}                                              // The deleting destructor
+    ~FileRequestMessage() override {}
 
     int OnShutdown() override;
     FileRequestMessage* Clone() override;
@@ -137,12 +135,12 @@ public:
 };
 
 // Type 15, 0x34 bytes: a trade offer (the party a player offers to a partner; its
-// members are PartyMemberMessages). Kept by the client at +0x260C, by the server on +0x25B8.
+// members are PartyMemberMessages). Kept by the client, by the server on +0x25B8.
 class PartyMessage final : public Message {
 public:
     PartyMessage();
     PartyMessage(const PartyMessage& other);     // Clone's copy
-    ~PartyMessage() override;                    // The deleting destructor
+    ~PartyMessage() override;
 
     int OnShutdown() override;
     PartyMessage* Clone() override;
@@ -168,7 +166,7 @@ class PartyMemberMessage final : public Message {
 public:
     PartyMemberMessage() {}
     PartyMemberMessage(const PartyMemberMessage& other);   // Clone's copy
-    ~PartyMemberMessage() override {}                      // The deleting destructor
+    ~PartyMemberMessage() override {}
 
     int OnShutdown() override;
     PartyMemberMessage* Clone() override;
@@ -187,7 +185,7 @@ class PlayerMessage final : public Message {
 public:
     PlayerMessage();
     PlayerMessage(const PlayerMessage& other);     // Clone's copy
-    ~PlayerMessage() override {}                   // The deleting destructor
+    ~PlayerMessage() override {}
 
     int OnShutdown() override;
     PlayerMessage* Clone() override;
@@ -212,7 +210,7 @@ class LineMessage final : public Message {
 public:
     LineMessage();                               // number_ is not set
     LineMessage(const LineMessage& other);       // Clone's copy
-    ~LineMessage() override;                     // The deleting destructor
+    ~LineMessage() override;
 
     int OnShutdown() override;
     LineMessage* Clone() override;
@@ -232,7 +230,7 @@ class HostMessage final : public Message {
 public:
     HostMessage();
     HostMessage(const HostMessage& other);       // Clone's copy
-    ~HostMessage() override {}                   // The deleting destructor
+    ~HostMessage() override {}
 
     int OnShutdown() override;
     HostMessage* Clone() override;
@@ -246,12 +244,12 @@ public:
 };
 
 // Type 4: binds a player record (first_) to its connection (second_, not sent). The
-// server's +0x25A4; a client keeps its own at +0x25F0.
+// server's +0x25A4; a client keeps its own.
 class BindingMessage final : public PairMessage {
 public:
     BindingMessage();
     BindingMessage(const BindingMessage& other) : PairMessage(other) {}   // Clone's copy
-    ~BindingMessage() override {}                                          // The deleting destructor
+    ~BindingMessage() override {}
 
     int OnShutdown() override;
     BindingMessage* Clone() override;
@@ -271,7 +269,7 @@ class ZoneMessage final : public TextMessage {
 public:
     ZoneMessage();
     ZoneMessage(const ZoneMessage& other) : TextMessage(other) {}       // Clone's copy
-    ~ZoneMessage() override {}                                           // The deleting destructor
+    ~ZoneMessage() override {}
 
     int OnShutdown() override;
     ZoneMessage* Clone() override;
@@ -286,7 +284,7 @@ class MapMessage final : public TextMessage {
 public:
     MapMessage() {}
     MapMessage(const MapMessage& other) : TextMessage(other) {}   // Clone's copy
-    ~MapMessage() override {}                                      // The deleting destructor
+    ~MapMessage() override {}
 
     int OnShutdown() override;
     MapMessage* Clone() override;
@@ -301,7 +299,7 @@ class VariableMessage final : public Message {
 public:
     VariableMessage();                                 // value_ and serial_ are not set
     VariableMessage(const VariableMessage& other);     // Clone's copy
-    ~VariableMessage() override {}                     // The deleting destructor
+    ~VariableMessage() override {}
 
     int OnShutdown() override;
     VariableMessage* Clone() override;
@@ -320,7 +318,7 @@ class FileMessage final : public Message {
 public:
     FileMessage();
     FileMessage(const FileMessage& other);       // Clone's copy
-    ~FileMessage() override;                     // The deleting destructor
+    ~FileMessage() override;
 
     int OnShutdown() override;
     FileMessage* Clone() override;
@@ -343,7 +341,7 @@ public:
 
     FileChunkMessage() {}
     FileChunkMessage(const FileChunkMessage& other);   // Clone's copy
-    ~FileChunkMessage() override;                      // The deleting destructor
+    ~FileChunkMessage() override;
 
     int OnShutdown() override;
     FileChunkMessage* Clone() override;
@@ -364,7 +362,7 @@ class AwardMessage final : public Message {
 public:
     AwardMessage();
     AwardMessage(const AwardMessage& other);     // Clone's copy
-    ~AwardMessage() override;                    // The deleting destructor
+    ~AwardMessage() override;
 
     int OnShutdown() override;
     AwardMessage* Clone() override;
@@ -385,7 +383,7 @@ class TradeMessage final : public Message {
 public:
     TradeMessage() {}
     TradeMessage(const TradeMessage& other);     // Clone's copy
-    ~TradeMessage() override;                    // The deleting destructor
+    ~TradeMessage() override;
 
     int OnShutdown() override;
     TradeMessage* Clone() override;

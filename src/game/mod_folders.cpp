@@ -76,7 +76,6 @@ bool FileExists(const std::string& path) {
     return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
-// ---- ResOverride ---------------------------------------------------------------------------------
 
 // The mod's [Res] lists (addon's 100090B7, read when addon loads): keys are the lower-case paths
 // the game opens its archives by, values the mod's archives as full paths.
@@ -187,7 +186,6 @@ void* FindFile(CMappedResource* res, const char* name, std::uint32_t* size) {
     return res->GetFilePlain(name, size);
 }
 
-// ---- Maps -----------------------------------------------------------------------------------------
 
 // The mod's Maps\ as addon lists it at start (1001B092): files of the top folder by name, files of
 // subfolders as "<sub>\<name>"; whether the top folder has a ".mq" file (case-sensitive).
@@ -243,7 +241,6 @@ const std::string& ModPath() {
     return path;
 }
 
-// ---- ResOverride ----------------------------------------------------------------------------------
 
 void LoadModArchives() {
     Lock lock;
@@ -318,7 +315,6 @@ void ListFiles(const CMappedResource* res, mfc::CStringArray* out, const char* p
 const std::vector<std::string>& FigureArchives() { return Config().figures; }
 const std::vector<std::string>& TextureArchives() { return Config().textures; }
 
-// ---- Maps -----------------------------------------------------------------------------------------
 
 void SelectMaps(const char* name, MapsSite site) {
     if (!Active(Patch::Maps)) return;

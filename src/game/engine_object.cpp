@@ -1,5 +1,5 @@
 // CEngineObject: the default slots of its vtable and its non-virtual members. See
-// engine_object.h. Slots 5, 6, 9 and 10 are shorter than a hook's jump and stay unregistered.
+// And 10 are shorter than a hook's jump and stay unregistered.
 #include "engine_object.h"
 
 #include "base_manager.h"
@@ -31,7 +31,6 @@ void CEngineObject::Release() {
     if (--refCount_ == 0) owner_->ReleaseObject(this);
 }
 
-// Slots 7 / 8: the exe's "noname" and "nodesc" (callers get these pointers).
 const char* CEngineObject::GetName() { return "noname"; }
 const char* CEngineObject::GetDescription() { return "nodesc"; }
 

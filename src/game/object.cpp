@@ -5,7 +5,6 @@
 #include "scene_loader.h"
 #include "unit.h"
 
-// --- CHoover ------------------------------------------------------------------------------------
 
 namespace {
 const char* const kHooverName = "CHoover";

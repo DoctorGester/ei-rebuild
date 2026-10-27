@@ -15,14 +15,13 @@ const char* __fastcall DirectXErrorText(long result);
 // handler matches by the decorated names. WinMain catches it; every such throw ends the game.
 class CGameException {
 public:
-    // The deleting destructor: the message freed.
     virtual ~CGameException();
 
     static void* operator new(std::size_t size) noexcept;
     static void operator delete(void* block);
 
-    char* message = nullptr;   // +0x04 operator new copy of the formatted text
-    long result;               // +0x08 the DirectX result (set by the result constructor only)
+    char* message = nullptr;   // operator new copy of the formatted text
+    long result;               // the DirectX result (set by the result constructor only)
 
 protected:
     CGameException() {}
@@ -36,7 +35,6 @@ public:
     CDXException(const char* format, va_list args);
     // "<text> (0x<result>) <the result's text>" (DirectXErrorText), and the result kept.
     CDXException(long result, const char* format, va_list args);
-    // The deleting destructor.
     ~CDXException() override;
 };
 

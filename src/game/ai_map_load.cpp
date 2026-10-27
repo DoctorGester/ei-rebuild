@@ -40,7 +40,6 @@ namespace {
 
 // ---- The files -------------------------------------------------------------------------------------
 
-// The files' extensions: this file's copies of the header constants.
 constexpr const char* kMapExtension = /*0073FD1C*/ ".MP";
 constexpr const char* kSectorExtension = /*0073FD20*/ ".SEC";
 constexpr std::uint32_t kMapMagic = 0xCE4AF672;
@@ -50,14 +49,14 @@ constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 // The .mp file's header (0x26 bytes).
 struct MapHeader {
     std::uint32_t magic;                // kMapMagic
-    float maxZ;                         // +0x04 the highest point: a vertex's altitude is a fraction of it
-    std::int32_t sectorsX, sectorsY;    // +0x08
-    std::uint32_t textureCount;         // +0x10 tile textures of 64 tiles each
+    float maxZ;                         // the highest point: a vertex's altitude is a fraction of it
+    std::int32_t sectorsX, sectorsY;
+    std::uint32_t textureCount;         // tile textures of 64 tiles each
     std::uint32_t textureSize;
-    std::uint32_t tileCount;            // +0x18 the tile type words
+    std::uint32_t tileCount;            // the tile type words
     std::uint32_t tileSize;
-    std::uint16_t materialCount;        // +0x20
-    std::uint32_t animatedTileCount;    // +0x22
+    std::uint16_t materialCount;
+    std::uint32_t animatedTileCount;
 };
 // A material of the map (0x2C bytes); the AI map only asks whether it is water.
 struct MapMaterial {
@@ -71,7 +70,7 @@ struct SectorHeader {
 };
 struct SectorFileVertex {
     std::int8_t offsetX, offsetY;
-    std::uint16_t altitude;             // +0x02 in kAltitudeUnit of the map's highest point
+    std::uint16_t altitude;             // in kAltitudeUnit of the map's highest point
     std::uint32_t normal;
 };
 #pragma pack(pop)
@@ -114,8 +113,7 @@ struct MapDescription {
     lib::AlignedArray<std::uint32_t> tileTypes;
 };
 
-// A resource archive as a local: constructed in place, destroyed through the destructor
-// body's address.
+// A resource archive as a local: constructed in place, destroyed through the destructor body's address.
 struct Archive {
     Archive() { new (Get()) CMappedResource(); }
     ~Archive() { Get()->CMappedResource::Destroy(); }
@@ -128,7 +126,6 @@ struct Archive {
     lib::InPlace<CMappedResource> storage;
 };
 
-// A registry as a local.
 struct Registry {
     Registry() { file.Construct(); }
     ~Registry() { file.Destroy(); }
@@ -252,9 +249,8 @@ int ReadTerrainTypes(CAIMap& map) {
 
 // A vertex's altitude as a fraction of the map's highest point. The game's constant (which the landscape's
 // sector loader uses too) is 1 / 65534 as a float, 2^-16 + 2^-31; not 1 / 65535 (with that the ground levels
-// of a few dozen cells per map were one unit off). Written as the exact fraction: /fp:fast folds
-// `1.0f / 65534.0f` at double precision wherever the constant meets a double, and the heights below are
-// doubles.
+// of a few dozen cells per map were one unit off). Written as the exact fraction: /fp:fast folds `1.0f /
+// 65534.0f` at double precision wherever the constant meets a double, and the heights below are doubles.
 constexpr float kAltitudeUnit = 32769.0f / 2147483648.0f;
 static_assert(std::bit_cast<std::uint32_t>(kAltitudeUnit) == 0x37800100u);
 static_assert(static_cast<double>(kAltitudeUnit) == 32769.0 / 2147483648.0);

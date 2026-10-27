@@ -51,7 +51,6 @@ bool IsScaleEffect(int type) {
 }
 } // namespace
 
-// --- CMapObjectServer ------------------------------------------------------------------------
 
 int CMapObjectServer::RunTick() {
     if (owner->effectCount <= 0) return 0;
@@ -94,7 +93,6 @@ BOOL CMapObjectServer::TakeHit(const void* hit) {
 }
 EI_REWRITTEN(0x00515980, CMapObjectServer::TakeHit);
 
-// --- CMapObjectClientSpecific ----------------------------------------------------------------
 
 int CMapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
@@ -105,7 +103,7 @@ int CMapObjectClientSpecific::RunTick() {
             if (effect.ticksLeft <= 0) continue;
             int left = --effect.ticksLeft;
             if (left >= kEndSoundTicks || effect.ending) continue;
-            if (!(IsTextKey(OwnerOf(this)->id_) & 0xFF)) continue;   // AL only
+            if (!(IsTextKey(OwnerOf(this)->id_) & 0xFF)) continue;
             int handle = endSound;
             CSoundManager* soundSystem = TheSoundManager();
             if (handle != -1 &&

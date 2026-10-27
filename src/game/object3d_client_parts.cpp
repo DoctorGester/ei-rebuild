@@ -113,7 +113,6 @@ void TextureParts::Destruct() {
 }
 EI_REWRITTEN(0x0051A370, TextureParts::Destruct);
 
-// --- Lifetime -------------------------------------------------------------------------------------
 
 CObject3DClientSpecific::CObject3DClientSpecific() {
     textures = {};

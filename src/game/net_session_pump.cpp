@@ -21,9 +21,8 @@ namespace netlink {
 
 namespace {
 
-// list<RefPtr>::insert of the drivers (shared) and the holders (counted), the
-// drivers' erase; the nodes' deallocation (12 bytes back to the pool) and the
-// pool's free.
+// list<RefPtr>::insert of the drivers (shared) and the holders (counted), the drivers' erase; the nodes'
+// deallocation (12 bytes back to the pool) and the pool's free.
 using RefList = stlp::list<RefPtr>;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 
@@ -40,9 +39,8 @@ DriverLink* NewDriver(DriverSession* self, CRefObject* player) {
 
 } // namespace
 
-// A driver for every connection of `session` this one has none for, when the connection has
-// something queued and the game server knows it; then each driver pumped (slot 10), and
-// those whose player is gone or detached erased.
+// A driver for every connection of `session` this one has none for, when the connection has something queued
+// and the game server knows it; then each driver pumped, and those whose player is gone or detached erased.
 void DriverSession::PumpDrivers(net::SessionBase* session) {
     if (!IsLive(session)) return;
     for (net::ClientNode* node = session->clients_->next; node != session->clients_; node = node->next) {
@@ -78,8 +76,8 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
 }
 EI_REWRITTEN(0x00479E30, DriverSession::PumpDrivers);
 
-// Both lists emptied, then one driver for `player`: started (slot 10), and its pending output
-// drained into throwaway memory streams (slot 9) while slot 6 answers true. Returns the driver.
+// Both lists emptied, then one driver for `player`: started, and its pending output
+// drained into throwaway memory streams while slot 6 answers true. Returns the driver.
 DriverLink* DriverSession::Start(net::Connection* player) {
     for (DriverNode* node = drivers_->next; node != drivers_;) {
         DriverNode* next = node->next;

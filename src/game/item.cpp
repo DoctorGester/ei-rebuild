@@ -33,7 +33,6 @@ ItemRecordHead* CItem::GetPrototype() {
 EI_REWRITTEN(0x006A0110, CItem::GetPrototype);
 
 int CItem::GetCategory() {
-    // Same lookup as GetPrototype, inlined.
     const ItemRecordHead* prototype = GetPrototype();
     return prototype ? static_cast<int>(prototype->category) : INT_MAX;
 }

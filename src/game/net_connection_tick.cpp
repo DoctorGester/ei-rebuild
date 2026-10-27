@@ -1,7 +1,6 @@
 // A connection's tick: clocks, lost-packet detection, sending, delayed id reuse and the
-// timeout. See net_connection.h and docs/notes/network.md.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// timeout. See net_connection.h and docs/notes/network.md. Floating point follows the original's x87 code:
+// `double` for values the original keeps on the FPU stack, static_cast<float> where it stores to a float.
 #include "net_connection.h"
 
 #include "ei/hook.h"
@@ -138,7 +137,7 @@ namespace net {
 
 namespace {
 float RttKeep() { return 0.93f /*0073BF30*/; }   // the share of the old average kept per sample
-float One() { return 1.0f /*0073B84C*/; }       // 1.0f
+float One() { return 1.0f /*0073B84C*/; }
 } // namespace
 
 void Connection::Delivered(SentPacket* packet) {

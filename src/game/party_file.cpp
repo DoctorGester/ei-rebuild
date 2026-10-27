@@ -30,8 +30,7 @@ const char* TempFileName() { return "temp.mp"; }
 mfc::CString InFolder(const char* folder, const std::string& name) { return mfc::CString(folder) + name; }
 mfc::CString TempFile(const char* folder) { return mfc::CString(folder) + TempFileName(); }
 
-// The file stream and the memory stream the originals build on the stack (the memory stream
-// torn down first).
+// The file stream and the memory stream the originals build on the stack (the memory stream torn down first).
 struct LocalStreams {
     netlink::FileStream file;
     CMemoryStream data;
@@ -103,8 +102,7 @@ void SavedParties::Destruct() {
 EI_REWRITTEN(0x0065F2D0, SavedParties::Destruct);
 
 // The saved parties, empty at the start: built by a static initialiser in the list's order and destroyed by
-// the exit
-// function it registers (docs/notes/standalone.md, "The static initialisers' objects").
+// the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<SavedParties> g_savedParties = /*007C82A0*/ {};
 
 namespace {

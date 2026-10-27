@@ -1,7 +1,7 @@
 #pragma once
 
 // Delta replication of object state. Every replicated object (units at
-// +0x1C4, ...) owns a DeltaState: up to 16 numbered fields, each a DeltaField holding, for two
+// +0x1C4,...) owns a DeltaState: up to 16 numbered fields, each a DeltaField holding, for two
 // channels, the bytes last sent (the snapshot) and the bits and bytes to send now (the output).
 // The object's serialiser (a virtual) calls BeginField(i) for each
 // dirty field and writes its values with WriteDelta: a bit per 4-byte word says "unchanged", and
@@ -15,7 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 
-struct CoderState;   // net_coder.h
+struct CoderState;
 
 // The bit writer / reader of this code is the CMemoryStream of core_streams.h (PutBit, GetBit,
 // WriteStream, ReadStream, CompressTo and DecompressTo are its members, defined in net_delta.cpp).
@@ -53,23 +53,19 @@ std::uint16_t PackFloat16(std::uint32_t floatBits);
 std::uint32_t UnpackFloat16(std::uint16_t packed);
 } // namespace delta
 
-// One numbered field of a DeltaState (0xA0 bytes).
+// One numbered field of a DeltaState.
 struct DeltaField {
-    BitStream snapshot[2];   // +0x00, +0x28: per channel, the bytes last sent
-    BitStream out[2];        // +0x50, +0x78: per channel, what is sent now
+    BitStream snapshot[2];   // +0x28: per channel, the bytes last sent
+    BitStream out[2];        // +0x78: per channel, what is sent now
 
-    // Identical copies: four empty memory streams.
     DeltaField() = default;
-    // Also inlined: the four streams destroyed, the last first.
     ~DeltaField() = default;
     DeltaField(const DeltaField&) = delete;
     DeltaField& operator=(const DeltaField&) = delete;
-    // Resize(0) on the four streams: sizes and positions 0,
-    // buffers kept.
+    // Resize(0) on the four streams: sizes and positions 0, buffers kept.
     void Empty();
 
-    // Rewinds the snapshots, empties the outputs; both channels keep their
-    // snapshots unless `channel1Only`.
+    // Rewinds the snapshots, empties the outputs; both channels keep their snapshots unless `channel1Only`.
     int BeginWriteA(int channel1Only);
     DeltaField* BeginWriteB(int channel1Only);
     // Rewinds the snapshots and reads `reader` against snapshot 0 or 1.
@@ -130,17 +126,17 @@ static_assert(sizeof(DeltaField) == 0xA0);
 // The fields of one object.
 struct DeltaState {
     std::uint32_t unused_0;
-    DeltaField* fields_;     // +0x04
-    int fieldCount_;         // +0x08
-    int fieldCapacity_;      // +0x0C (the fields are an MFC CArray: vtable, data, size, capacity, grow-by)
-    int fieldGrowBy_;        // +0x10
-    std::uint16_t sentMask_; // +0x14
-    std::uint16_t lastMask_; // +0x16
-    std::uint16_t mask_;     // +0x18 fields to write / read
+    DeltaField* fields_;
+    int fieldCount_;
+    int fieldCapacity_;      // (the fields are an MFC CArray: vtable, data, size, capacity, grow-by)
+    int fieldGrowBy_;
+    std::uint16_t sentMask_;
+    std::uint16_t lastMask_;
+    std::uint16_t mask_;     // fields to write / read
     std::uint16_t unused_1A;
-    BitStream* reader_;      // +0x1C
-    int mode_;               // +0x20 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
-    BitStream header_[2];    // +0x24, +0x4C
+    BitStream* reader_;
+    int mode_;               // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
+    BitStream header_[2];    // +0x4C
 
     enum Mode { kWriteFull = 0, kWriteDelta = 1, kRead0 = 2, kRead1 = 3, kIdle = 4 };
 
