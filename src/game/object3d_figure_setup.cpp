@@ -302,8 +302,8 @@ constexpr int kClassUnit50 = 0x50;
 constexpr int kClassUnit54 = 0x54;
 constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 
-// The piece names as the loader's slot 3 (LoadFigure) reads them, into an empty vector (the original
-// (the game sizes it with helper calls and assigns each name).
+// The piece names as the loader's slot 3 (LoadFigure) reads them, into an empty vector (the game
+// sizes it with helper calls and assigns each name).
 void FillPieceNames(stlp::vector<stlp::string>& pieces, const PartNameArray* names) {
     int count = names->size;
     if (count > 0) {

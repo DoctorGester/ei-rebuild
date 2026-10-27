@@ -25,10 +25,10 @@ public:
     // Generates the next 256 results (reference isaac()).
     void Refill();
 
-    // 00488970 (random.cpp). Next() * (max - min) * ~2^-32 + min, left unrounded in ST0.
+    // Next() * (max - min) * ~2^-32 + min, left unrounded in ST0 (random.cpp).
     float Range(float min, float max);
 
-    // Once (while seeded_ is 0): seeds results_ (0049F660: 1 KB of a random file on C:\,
+    // Once (while seeded_ is 0): seeds results_ (1 KB of a random file on C:\,
     // mixed with rand()), then the reference randinit(ctx, TRUE) and the first Refill.
     void Init();
 
@@ -36,7 +36,7 @@ public:
     // file of at least 2 KB picked at random on C:\ (FindSeedFile), each word then xored with
     // rand(); retried until a read gave 1 KB that is not all zero. The harness's seed hook instead, when set.
     void Seed();
-    // 0049F4B0 (RET 0x10; `this` not used). Walks `pattern` (a directory plus "\*.*") depth first,
+    // (`this` not used). Walks `pattern` (a directory plus "\*.*") depth first,
     // skipping dots, system and hidden entries and counting files in *counter; the first file of at
     // least 0x800 bytes once *counter has reached `target` is copied to `out` (returns 1). 0 when
     // the walk ends first.

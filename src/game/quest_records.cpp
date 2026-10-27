@@ -1,4 +1,4 @@
-// The quest database's records in an archive: the records' Serialize (006AD7D0 quests, 006AD900
+// The quest database's records in an archive: the records' Serialize (quests,
 // briefings) and the two vectors'. See quest_records.h and
 // docs/notes/items_spells.md ("Quest database").
 #include "quest_records.h"
@@ -11,14 +11,14 @@
 
 namespace {
 
-// STLport instantiations (library.csv), through their addresses: vector<float>::_M_fill_insert
-// (006ADC10, RET 0xC), the records' destructors (006AF4D0 quests, 006AF5A0 briefings, plain RET)
-// and the vectors' resize (006B2100 / 006B2240, RET 4: new records default-constructed, extra
+// STLport instantiations (library.csv), through their addresses: vector<float>::_M_fill_insert,
+// the records' destructors (quests, briefings)
+// and the vectors' resize (new records default-constructed, extra
 // ones destroyed).
 void __fastcall QuestDestroy(QuestRecord* record) { record->Destruct(); }
 void __fastcall BriefingDestroy(QuestBriefingRecord* record) { record->Destruct(); }
 
-// The vectors' serialiser (one instantiation per record type in the original): chunk `id`
+// The vectors' serialiser (one instantiation per record type in the game): chunk `id`
 // holding one chunk 1 per record; loading destroys the old records (erase(begin, end): the tail
 // copy is empty) and resizes to the number of record chunks first.
 template <typename Record, typename Abi>
@@ -100,7 +100,7 @@ void QuestBriefingRecord::Destruct() {
 }
 EI_REWRITTEN(0x006AF5A0, QuestBriefingRecord::Destruct);
 
-// ---- S10a: the records as vector elements (record_vectors.h) ----------------------------------
+// ---- The records as vector elements (record_vectors.h) -------------------------------------
 
 namespace {
 using PlaceElement = stlp::PlainElement<float>;

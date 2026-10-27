@@ -3,7 +3,7 @@
 // Element policies (lib/stlp_vector.h) of the game's vector<T> instantiations whose elements are
 // game records with their own copy constructor, operator= and destructor, and the
 // VectorAbi types record_vectors.cpp registers at the instantiations' addresses
-// (verify_record_vectors.cpp checked them until S21d). docs/notes/standalone.md, S10a.
+// (docs/notes/standalone.md).
 
 #include "acks_db.h"
 #include "engine_object.h"
@@ -32,7 +32,7 @@
 #include <type_traits>
 
 // A unit model's body slot as its record's copies copy it, found by argument-dependent lookup from
-// records::Memberwise (the slot constructor 0053F000 leaves the level name empty).
+// records::Memberwise (the slot constructor leaves the level name empty).
 using UnitModelSlotMembers = records::Memberwise<UnitModelSlot, &UnitModelSlot::levelName, &UnitModelSlot::levelIndex,
                                                  &UnitModelSlot::share, &UnitModelSlot::factor>;
 inline void CopyMember(UnitModelSlot& to, const UnitModelSlot& from) { UnitModelSlotMembers::Construct(&to, from); }
@@ -90,7 +90,7 @@ using SpellListVector =
 
 // ---- The unit and skill databases (unit_db.h) ---------------------------------------------------
 
-// 0053E2A0's copies (e.g. 005400D0): every member, the bytes +0x38..+0x47 too.
+// The copies of the unit prototype records: every member, the bytes +0x38..+0x47 too.
 struct UnitPrototypeElement
     : records::Memberwise<UnitPrototypeRecord, &UnitPrototypeRecord::name, &UnitPrototypeRecord::modelName,
                           &UnitPrototypeRecord::modelIndex, &UnitPrototypeRecord::skin, &UnitPrototypeRecord::hair,
@@ -109,7 +109,7 @@ struct UnitPrototypeElement
     static void Destroy(UnitPrototypeRecord* p) { unitdb::DestroyPrototypeRecord(p); }
 };
 
-// 0053E520's copies (e.g. 00540320): +0x23 and +0x5D..+0x5F are not copied.
+// The copies of the unit NPC records: +0x23 and +0x5D..+0x5F are not copied.
 struct UnitNpcElement
     : records::Memberwise<UnitNpcRecord, &UnitNpcRecord::name, &UnitNpcRecord::field1, &UnitNpcRecord::experience,
                           &UnitNpcRecord::stats, &UnitNpcRecord::attributes, &UnitNpcRecord::skills, &UnitNpcRecord::skillNames,
@@ -118,7 +118,7 @@ struct UnitNpcElement
     static void Destroy(UnitNpcRecord* p) { unitdb::DestroyNpcRecord(p); }
 };
 
-// 0053E730's copies (e.g. 00540510): the members up to the sound names, the sound counts (a
+// The copies of the unit model records: the members up to the sound names, the sound counts (a
 // vector<int>), the rest; +0x11D..+0x11F are not copied.
 struct UnitModelElement {
     using R = UnitModelRecord;
@@ -150,15 +150,15 @@ struct UnitModelElement {
     static void Destroy(R* p) { unitdb::DestroyModelRecord(p); }
 };
 
-// 0053E9B0's copies (e.g. 005427B0); the destructor (00540840 with 0) is the name's.
+// The copies of the unit level records; the destructor is the name's.
 struct UnitLevelElement : records::Memberwise<UnitLevelRecord, &UnitLevelRecord::name, &UnitLevelRecord::slotType,
                                               &UnitLevelRecord::valuesA, &UnitLevelRecord::valuesB,
                                               &UnitLevelRecord::vitalMask> {
     static void Destroy(UnitLevelRecord* p) { p->name.~CString(); }
 };
 
-// The skill database: 005209D0's copies and 00520B20's (00521E20; +0x41..+0x43 are not
-// copied); the destructors are S13's.
+// The skill database: the copies of the skill and skill level records (+0x41..+0x43 are not
+// copied); the destructors are the records' own.
 struct SkillElement : records::Memberwise<SkillRecord, &SkillRecord::name, &SkillRecord::field1, &SkillRecord::field2,
                                           &SkillRecord::statNames> {
     static void Destroy(SkillRecord* p) { p->Destruct(); }
@@ -177,9 +177,9 @@ using UnitLevelVector = stlp::VectorAbi<UnitLevelRecord, UnitLevelElement>;
 using SkillVector = stlp::VectorAbi<SkillRecord, SkillElement>;
 using SkillLevelVector = stlp::VectorAbi<SkillLevelRecord, SkillLevelElement>;
 
-// ---- A zone's unit looks (unit_looks.h; world_unit_set.cpp's 0055A400 / 0055A580) --------------
+// ---- A zone's unit looks (unit_looks.h; world_unit_set.cpp) ----------------------------
 
-// The figured units' records (0055D5A0's copies; +0x02 and +0x1D..+0x1F are not copied): the head,
+// The figured units' records (+0x02 and +0x1D..+0x1F are not copied): the head,
 // then the texture names, CStrings declared as their data pointers. The destructor:
 // the names and their storage, then the weapon and armour ids' storage.
 struct FiguredUnitElement {
@@ -207,7 +207,7 @@ struct FiguredUnitElement {
     }
 };
 
-// The dressed units' records (0055D7F0's copies); the destructor: both id lists'
+// The dressed units' records; the destructor: both id lists'
 // storage, the last first.
 struct DressedUnitElement : records::Memberwise<DressedUnitRecord, &DressedUnitRecord::prototype, &DressedUnitRecord::items,
                                                 &DressedUnitRecord::extraWeapons, &DressedUnitRecord::extraWeapon,
@@ -221,7 +221,7 @@ struct DressedUnitElement : records::Memberwise<DressedUnitRecord, &DressedUnitR
 using FiguredUnitVector = stlp::VectorAbi<FiguredUnitRecord, FiguredUnitElement>;
 using DressedUnitVector = stlp::VectorAbi<DressedUnitRecord, DressedUnitElement>;
 
-// ---- prints.db (model.h; model_db.cpp's 006D26E0 / 006D2830) ------------------------------------
+// ---- prints.db (model.h; model_db.cpp) -------------------------------------------------
 
 // The prints' records (model.h): their copy and default constructors and destructor; operator=
 // assigns the name, then copies the value triples.
@@ -243,7 +243,7 @@ private:
 using PrintVector = stlp::VectorAbi<PrintRecord, PrintElement<PrintRecord>>;
 using Print2Vector = stlp::VectorAbi<PrintRecord2, PrintElement<PrintRecord2>>;
 
-// ---- acks.db's speech lists (acks_db.h; acks_db.cpp's 006E4560 / 006E47F0) ----------------------
+// ---- acks.db's speech lists (acks_db.h; acks_db.cpp) ------------------------------------
 
 // A speech: memberwise (the chance left as it is by default); the destructor the
 // strings from the last.
@@ -284,10 +284,10 @@ struct records::ElementOf<acks::EnvironmentSpeech> {
 namespace acks {
 
 // The records' head as their compiler-written members copy it: the name, then the map by ack kind
-// (copy constructor 006DECC0, operator= 006E14E0: STLport's, over _M_copy_from 006E00F0; the
-// copy's map still points into the source record's lists, as the original's does). By default an
-// empty name with room for 8 bytes and an empty map of 193 buckets (006DCD90; its functor bytes
-// are an uninitialised stack byte in the original, 0 here).
+// (STLport's copy constructor and operator=, over _M_copy_from; the
+// copy's map still points into the source record's lists, as in the game). By default an
+// empty name with room for 8 bytes and an empty map of 193 buckets; its functor bytes
+// are an uninitialised stack byte in the game, 0 here).
 using SpeechTable = stlp::hashtable<stlp::DwordKeyTraits<8>>;
 inline SpeechTable& SpeechTableOf(AckRecordHead& head) { return *reinterpret_cast<SpeechTable*>(&head.speeches); }
 inline const SpeechTable& SpeechTableOf(const AckRecordHead& head) {
@@ -311,11 +311,10 @@ inline void DefaultMember(AckRecordHead& to) {
 
 namespace recordvec {
 
-// ---- acks.db's table records (acks_db.h; 006DB9C0 / 006DBBD0 / 006DBE20, loaded at startup) ----
+// ---- acks.db's table records (acks_db.h; loaded at startup) ------------------------------
 
-// The compiler-written members (006DE370 / 006DC000 and the copy loops' inlined operator=): the
-// head, then the speech lists in order; the destructors are the S13 ports (006DC390, 006DC920,
-// 006DCAF0).
+// The compiler-written members (and the copy loops' inlined operator=): the
+// head, then the speech lists in order; the destructors are the records' own.
 template <typename R>
 struct AcksElement {
     static constexpr bool kUnit = std::is_same_v<R, acks::UnitAcks>;
@@ -353,11 +352,11 @@ using UnitAcksVector = stlp::VectorAbi<acks::UnitAcks, UnitAcksElement>;
 using ModelAcksVector = stlp::VectorAbi<acks::ModelAcks, ModelAcksElement>;
 using ExtraAcksVector = stlp::VectorAbi<acks::ExtraAcks, ExtraAcksElement>;
 
-// ---- The client's lobby queries (net_classes.h; net_lobby.cpp's 004439C0 00443BF0 004442B0 00444090)
+// ---- The client's lobby queries (net_classes.h; net_lobby.cpp) -----------------------------
 
-// A query: the copy constructor 00444270, the copy loop's assignment (the address, then the
-// reply buffer's 004DAA80), the default of 00443770 (a zero address, an empty growing buffer) and
-// the destructor (the reply buffer's 004DA910).
+// A query: the copy constructor, the copy loop's assignment (the address, then the
+// reply buffer's), the default (a zero address, an empty growing buffer) and
+// the destructor (the reply buffer's).
 struct QueryElement {
     using R = net::Query;
     static void Construct(R* to, const R& from) { new (to) R(from); }
@@ -368,9 +367,9 @@ struct QueryElement {
 
 using QueryVector = stlp::VectorAbi<net::Query, QueryElement>;
 
-// ---- The party manager's entries (party_manager.h; party_manager.cpp's 004ADAA0) ---------------
+// ---- The party manager's entries (party_manager.h; party_manager.cpp) -------------------
 
-// An entry: memberwise (empty texts and ids by default); the destructor 004AE2D0.
+// An entry: memberwise (empty texts and ids by default).
 struct PartyEntryElement : records::Memberwise<PartyManagerEntry, &PartyManagerEntry::name, &PartyManagerEntry::text,
                                                &PartyManagerEntry::ids> {
     static void Destroy(PartyManagerEntry* p) { p->Destruct(); }
@@ -378,10 +377,10 @@ struct PartyEntryElement : records::Memberwise<PartyManagerEntry, &PartyManagerE
 
 using PartyEntryVector = stlp::VectorAbi<PartyManagerEntry, PartyEntryElement>;
 
-// ---- The lever table's records (lever.h; app_device_list.cpp's 00465180) ------------------------
+// ---- The lever table's records (lever.h; app_device_list.cpp) --------------------------
 
 // A lever record: memberwise; resize(n)'s default has empty texts and no spots (the other fields
-// left as they are); the destructor 004652A0 (the texts from the last).
+// left as they are); the destructor (the texts from the last).
 struct LeverElement : records::Memberwise<LeverRecord, &LeverRecord::name, &LeverRecord::spots,
                                           &LeverRecord::spotCount, &LeverRecord::farScale,
                                           &LeverRecord::duration, &LeverRecord::text20,
@@ -395,9 +394,9 @@ struct LeverElement : records::Memberwise<LeverRecord, &LeverRecord::name, &Leve
 
 using LeverVector = stlp::VectorAbi<LeverRecord, LeverElement>;
 
-// ---- The session's replicated messages (net_classes.h; net_session_base.cpp's 0041F790 / 00426B10)
+// ---- The session's replicated messages (net_classes.h; net_session_base.cpp) -------------
 
-// {message, priority}: plain bytes; push_back(T()) builds nothing (the constructor 00429030 is
+// {message, priority}: plain bytes; push_back(T()) builds nothing (the constructor is
 // empty), the caller stores into the new element.
 struct ReplicatedElement : stlp::PlainElement<net::Replicated> {
     static void Default(net::Replicated*) {}
@@ -405,7 +404,7 @@ struct ReplicatedElement : stlp::PlainElement<net::Replicated> {
 
 using ReplicatedVector = stlp::VectorAbi<net::Replicated, ReplicatedElement>;
 
-// ---- The client party's engine objects (net_client_party.cpp's 00428A20) -------------------------
+// ---- The client party's engine objects (net_client_party.cpp) -----------------------------
 
 // Counted engine object pointers: a copy adds a reference, the destructor releases a
 // held object through its slot 4 (CEngineObject::Release). Only _M_insert_overflow is out of line.
@@ -421,11 +420,11 @@ struct EngineObjectRefElement {
 
 using EngineObjectRefVector = stlp::VectorAbi<CEngineObject*, EngineObjectRefElement>;
 
-// ---- The HUD's portrait slots (ui.h; ui_hud_portrait_setup.cpp's 0064AB20 / 0064AD40) -----------
+// ---- The HUD's portrait slots (ui.h; ui_hud_portrait_setup.cpp) ---------------------------
 
 // A slot: member by member (the padding after hasPlayer_ is not copied), the three texts as
 // CStrings; push_back(T())'s default has identity orientations and empty texts (the other fields
-// left as they are); the destructor 0064ACD0 the texts from the last.
+// left as they are); the destructor: the texts from the last.
 struct HudPortraitSlotElement {
     using R = HudPortraitSlot;
     static void Construct(R* to, const R& from) {
@@ -479,30 +478,30 @@ using HudPortraitSlotVector = stlp::VectorAbi<HudPortraitSlot, HudPortraitSlotEl
 
 // ---- The UI's lists (ui.h, ui_camp.h, ui_screens.h) ---------------------------------------------
 
-// The save list's entries (ui_saveload.cpp's 006578F0 / 006579C0): the compiler's copy constructor
-// 00656640, operator= 006538E0 and destructor 00656720.
+// The save list's entries (ui_saveload.cpp): the compiler's copy constructor,
+// operator= and destructor.
 struct SaveEntryElement {
     static void Construct(SaveEntry* to, const SaveEntry& from) { to->CopyConstruct(&from); }
     static void Assign(SaveEntry& to, const SaveEntry& from) { to.Assign(&from); }
     static void Destroy(SaveEntry* p) { p->Destruct(); }
 };
 
-// The multiplayer address list (ui_connect_screen.cpp's 0061EC40): 0061EE80, 0061E8F0, 0061E8A0.
+// The multiplayer address list (ui_connect_screen.cpp).
 struct MpAddressElement {
     static void Construct(MpAddressEntry* to, const MpAddressEntry& from) { to->CopyConstruct(&from); }
     static void Assign(MpAddressEntry& to, const MpAddressEntry& from) { to.AssignFrom(from); }
     static void Destroy(MpAddressEntry* p) { p->Destroy(); }
 };
 
-// The camp's trade rows (ui_trade_panel.cpp's 00629E60): the copy constructor 0062A310 (the texts,
-// then the numbers and the flag; the padding is not copied), the destructor 00613CF0.
+// The camp's trade rows (ui_trade_panel.cpp): the copy constructor (the texts,
+// then the numbers and the flag; the padding is not copied), the destructor.
 struct TradeRowElement {
     static void Construct(TradeRow* to, const TradeRow& from) { to->CopyConstruct(&from); }
     static void Destroy(TradeRow* p) { p->Destroy(); }
 };
 
-// The options window's key bindings (ui_options.cpp's 00652930): memberwise (the copy constructor
-// 00652FF0), the destructor inline (OptionBinding::Destroy).
+// The options window's key bindings (ui_options.cpp): memberwise,
+// the destructor inline (OptionBinding::Destroy).
 struct OptionBindingElement : records::Memberwise<OptionBinding, &OptionBinding::action_, &OptionBinding::keys_,
                                                   &OptionBinding::name_, &OptionBinding::keysText_> {
     static void Destroy(OptionBinding* p) { p->Destroy(); }
@@ -514,7 +513,7 @@ using TradeRowVector = stlp::VectorAbi<TradeRow, TradeRowElement>;
 using TradeRecordVector = stlp::VectorAbi<TradeRecord>;   // plain 0x3C-byte records
 using OptionBindingVector = stlp::VectorAbi<OptionBinding, OptionBindingElement>;
 
-// ---- The game flow's zone table (world_game.cpp's 00587480) ------------------------------------
+// ---- The game flow's zone table (world_game.cpp) -------------------------------------
 
 // world_game.cpp's ZoneEntry with its texts typed: two CStrings and an id, copied memberwise and
 // destroyed from the last (the compiler's pair).

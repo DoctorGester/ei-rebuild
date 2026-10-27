@@ -1,10 +1,10 @@
 #pragma once
 
-// The game options object (global at 0079BC70), its loader from the Windows registry (0045B210,
-// called once by WinMain with the game's registry path) and the matching writer. Names are provisional; see
+// The game options object (a global), its loader from the Windows registry
+// (called once by WinMain with the game's registry path) and the matching writer. Names are provisional; see
 // docs/notes/objects.md ("Options").
 // The object starts with eight registry subkey names (CStrings) that the loader passes to the
-// value getters; the values follow, 0x26C bytes in all. GameOptions names every field (A-E2); the
+// value getters; the values follow, 0x26C bytes in all. GameOptions names every field; the
 // loader, the writer and the defaults (older code) still go by the offsets in `field`.
 
 #include "../lib/mfc.h"
@@ -73,9 +73,9 @@ struct LightOptions {
 // value is not commented).
 class GameOptions {
 public:
-    // 00458870 (options_construct.cpp; A-E2): what the static initialiser 00458700 builds before
-    // WinMain: the eighteen strings and the first defaults (800 x 600, 16 bits; 00458DA0 sets the
-    // game's real defaults later, before the registry is read).
+    // options_construct.cpp: what the static initialiser builds before
+    // WinMain: the eighteen strings and the first defaults (800 x 600, 16 bits; the defaults function
+    // sets the game's real defaults later, before the registry is read).
     GameOptions();
     // Reads every option from the registry under HKEY_CURRENT_USER\<path>\<subkey>; a
     // missing value keeps the current one (the defaults set before).
@@ -216,12 +216,12 @@ static_assert(offsetof(GameOptions, workPath_) == field::kWorkPath && offsetof(G
               offsetof(GameOptions, masterServerName_) == field::kMasterServerName &&
               sizeof(GameOptions) == field::kLoadedSize);
 
-// The game's options (the object at 0079BC70; options_global.cpp): built by the static initialiser 00458700 in the list's
-// order, destroyed by the exit function it registers (00458720; options_construct.cpp, options_defaults.cpp).
+// The game's options (options_global.cpp): built by its static initialiser in the list's
+// order, destroyed by the exit function it registers (options_construct.cpp, options_defaults.cpp).
 extern lib::StaticObject<GameOptions> g_options;
 inline GameOptions* TheOptions() { return &*g_options; }
 
-// 00458DA0 (options_defaults.cpp). The options' defaults.
+// options_defaults.cpp. The options' defaults.
 void __fastcall OptionsResetDefaults(GameOptions* self);
 
 } // namespace options

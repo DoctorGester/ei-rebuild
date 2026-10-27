@@ -1,5 +1,5 @@
 // The game's STLport list<T> instantiations over game records (record_lists.h), registered at their
-// own addresses. Checked in game by verify_record_lists.cpp until S21d.
+// own addresses.
 #include "record_lists.h"
 
 #include "ei/hook.h"
