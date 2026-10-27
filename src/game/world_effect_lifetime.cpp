@@ -1,5 +1,5 @@
-// The effects' constructor and destructor bodies, their slot 0 (deleting destructor) and the state
-// field's constructor and emptying. See world_effect.h and docs/notes/effects.md ("Missiles and visibility").
+// The effects' constructor and destructor bodies, their deleting destructors and the state field's
+// constructor and emptying. See world_effect.h and docs/notes/effects.md ("Missiles and visibility").
 #include "world_effect.h"
 
 #include "console.h"
@@ -16,7 +16,7 @@
 
 namespace {
 
-// A counted pointer let go (slot 4); the original tests it for null first.
+// A counted pointer let go (Release); the original tests it for null first.
 void ReleaseIfSet(void* object) {
     if (object != nullptr) static_cast<CEngineObject*>(object)->Release();
 }
@@ -120,7 +120,7 @@ EI_REWRITTEN_SPECIAL(0x00675DD0, CEffectSound::CEffectSound);
 
 CEffectSound::~CEffectSound() {
     Reset();
-    Reset();   // again through slot 18
+    Reset();   // again, the virtual
 }
 EI_REWRITTEN_SPECIAL(0x006760A0, CEffectSound::~CEffectSound);
 EI_REWRITTEN_SPECIAL(0x00676080, CEffectSound::~CEffectSound);
@@ -136,7 +136,7 @@ EI_REWRITTEN_SPECIAL(0x00676760, CEffectSoundSeq::CEffectSoundSeq);
 
 CEffectSoundSeq::~CEffectSoundSeq() {
     Reset();
-    Reset();   // again through slot 18
+    Reset();   // again, the virtual
     names_.Destruct();
 }
 EI_REWRITTEN_SPECIAL(0x00676980, CEffectSoundSeq::~CEffectSoundSeq);
@@ -153,7 +153,7 @@ EI_REWRITTEN_SPECIAL(0x00677510, CEffectAmbientSound::CEffectAmbientSound);
 
 CEffectAmbientSound::~CEffectAmbientSound() {
     Reset();
-    Reset();   // again through slot 18
+    Reset();   // again, the virtual
     names_.Destruct();
 }
 EI_REWRITTEN_SPECIAL(0x006776E0, CEffectAmbientSound::~CEffectAmbientSound);

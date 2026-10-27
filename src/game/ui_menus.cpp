@@ -380,7 +380,7 @@ void CUiScrollbar::Update() {
             rest = accumulated_ + 1.0;
             --steps;
             accumulated_ = static_cast<float>(rest);
-        } while (rest <= -1.0f);// ends on a NaN (the original's did not)
+        } while (rest <= -1.0f);   // ends on a NaN (the original's did not)
     }
     if (steps != 0) SetPosition(position_ + steps);
 }

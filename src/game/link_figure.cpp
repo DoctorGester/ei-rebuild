@@ -95,7 +95,7 @@ CLinkMeshBase::CLinkMeshBase(const stlp::string* name) : refCount_(0), name_(*na
 
 // The name goes after the body (a member).
 CLinkMeshBase::~CLinkMeshBase() { headers_.Destroy(); }
-EI_REWRITTEN_SPECIAL(0x004F2D40, CLinkMeshBase::~CLinkMeshBase);// reached only from EH unwinding
+EI_REWRITTEN_SPECIAL(0x004F2D40, CLinkMeshBase::~CLinkMeshBase);   // reached only from EH unwinding
 EI_REWRITTEN_SPECIAL(0x004F2E00, CLinkMeshBase::~CLinkMeshBase);   // deleting
 
 CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u)

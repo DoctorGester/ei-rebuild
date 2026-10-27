@@ -1,8 +1,8 @@
-// The destructors the compiler wrote for the world's classes: the bodies the exe's vtables
-// reach through their slot 0 (the scalar deleting destructors), the members destroyed last to
-// first after the class's own teardown. The containers are the library's (lib/mfc.h CArray /
-// CList, lib/containers.h AlignedArray, lib/stlp.h hash_map). Checked in game by
-// verify_world_destructors.cpp. See docs/notes/standalone.md.
+// The destructors the compiler wrote for the world's classes: the bodies the exe's vtables reach
+// through the scalar deleting destructors, the members destroyed last to first after the class's own
+// teardown. The containers are the library's (lib/mfc.h CArray / CList, lib/containers.h
+// AlignedArray, lib/stlp.h hash_map). Checked in game by verify_world_destructors.cpp. See
+// docs/notes/standalone.md.
 #include "effects.h"
 #include "game_arrays.h"
 #include "game_lists.h"
@@ -45,8 +45,8 @@ void FreeGrid(SectorGrid& grid) {
 }
 
 // The server's lists' element destructors (their RemoveAll rows).
-// A shared object: its array of counted objects (the base vtable, every object
-// released through slot 4, the data freed).
+// A shared object: its array of counted objects (the base vtable, every object released through
+// Release, the data freed).
 struct SharedObjectElements {
     static void Construct(SharedObject*, int) {}
     static void Destruct(SharedObject* entry, int count) {
@@ -60,7 +60,7 @@ struct SharedObjectElements {
         }
     }
 };
-// A counted object: released through slot 4.
+// A counted object: released through Release.
 struct ReleasedElements {
     static void Construct(CEngineObject**, int) {}
     static void Destruct(CEngineObject** slot, int count) {

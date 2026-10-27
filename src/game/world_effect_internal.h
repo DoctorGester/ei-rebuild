@@ -28,7 +28,7 @@ inline CLightningManager* BoltFactory() { return TheClientWorld()->listManager_;
 inline int ChangeStamp() { return TheServerWorld()->updateCount_; }
 inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(CurrentWorldTick()); }
 
-// Constants the original reads from memory (read the same way so nothing is folded).
+// Constants read from memory, as the original does, so that nothing is folded.
 inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
 inline double AngleScale() { return 1.4668330997698233e-9 /*0073FFD0*/; }  // ~2 pi / 2^32
 
@@ -92,7 +92,7 @@ inline bool SnapshotReadToEnd() {
 inline void Read(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 inline void Write(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
 inline int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
-// A dword written through a stack copy, as the original writes most scalars.
+// A dword written through a stack copy, which is how the original writes most scalars.
 inline void WriteCopy(CStream* stream, const void* field) {
     std::uint32_t copy;
     std::memcpy(&copy, field, 4);

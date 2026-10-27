@@ -217,7 +217,7 @@ int CWorldClient::UpdateLighting() {
     if (skyDome_) {
         const SkyColour ambient = {skyAmbient_.r, skyAmbient_.g, skyAmbient_.b, skyAmbient_.a};
         const SkyColour sunlight = {frameSun_.r, frameSun_.g, frameSun_.b, frameSun_.a};
-        const SkyColour skyColour = {sky.r, sky.g, sky.b, 0.0f};// the fourth float is stack garbage in the original
+        const SkyColour skyColour = {sky.r, sky.g, sky.b, 0.0f};   // the fourth float is stack garbage in the original
         skyDome_->Light(&direction.x, ambient, sunlight, skyColour);
     }
     EI_NAN_AUDIT(hour, g_lastLitHour);

@@ -244,7 +244,7 @@ void CMpHeroScreen::CreateScreen() {
     const NpcPrototypeTable& creatures = unitdb::NpcTable();
     const int count = static_cast<int>(creatures.end - creatures.begin);
     for (int i = 0; i < count; ++i) {
-// The vector's checked access, repeated like the original.
+        // The vector's checked access, repeated like the original.
         auto creature = [&creatures, i]() {
             const UnitNpcRecord* first = creatures.begin;
             const UnitNpcRecord* last = creatures.end;
@@ -258,7 +258,7 @@ void CMpHeroScreen::CreateScreen() {
         if (!prototype) continue;
         const UnitModelRecord* figure;
         {
-// operator[] inlined (a pair of the name and null through).
+            // operator[] inlined (a pair of the name and null through).
             stlp::string key(prototype->modelName.GetString());
             figure = unitdb::ModelNamed(key);
         }
@@ -368,7 +368,7 @@ void CMpHeroScreen::CreateScreen() {
     DrawHeroList();
     heroIndex_ = heroes->entries_.size() == 0 ? -1 : 0;
     SetModeVanilla(kModeHeroList);
-// Rebirth's WideScreen: the curtains, hidden (sprites 19, 20).
+    // Rebirth's WideScreen: the curtains, hidden (sprites 19, 20).
     widescreen::AddCurtains(this, 0);
 }
 EI_REWRITTEN(0x00613EA0, CMpHeroScreen::CreateScreen);

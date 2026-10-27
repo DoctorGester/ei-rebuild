@@ -81,11 +81,11 @@ CEffectMoshka::CEffectMoshka() {
     Reset();
 }
 
-// The original's first, inline reset clears the source through a counted-pointer assignment and the figure through
-// Both end as Reset's.
+// The destructor resets twice (inline, then the virtual): the inline one clears the source and the
+// figure through counted-pointer assignments; both end as Reset's.
 CEffectMoshka::~CEffectMoshka() {
     Reset();
-    Reset();   // again through slot 18
+    Reset();   // again, the virtual
     if (source_ != nullptr) source_->Release();
     if (bird_ != nullptr) bird_->Release();
     bird_ = nullptr;
@@ -148,11 +148,11 @@ void CEffectMoshka::Update(float now) {
     EI_NAN_AUDIT(timer_);
     bool timeUp = timer_ < 0.0f;
 
-    Vector3 target{};   // the original leaves it unset for other states (Follow sets 0, so none occur)
+    Vector3 target{};// unset in the original for other states (Follow sets 0, so none occur)
     if (state_ == kFlyingOff) {
         if (timeUp || (Same(localPosition_.x, birdAt.x) && Same(localPosition_.y, birdAt.y) &&
                        Same(localPosition_.z, birdAt.z))) {
-            Reset();   // through slot 18
+            Reset();   // the virtual
             return;
         }
         target = localPosition_;
@@ -242,7 +242,7 @@ void CEffectMoshka::Follow(int objectId) {
     auto* object = TheObjectManager()->CreateObjectAs<CMapObject>(kClassFigureObject, id);
     bird_.Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
-    // figure is made, as the original does.
+    // figure is made, like the original.
     CObject3D* bird = bird_;
     CObject3DClientSpecific* attached = bird->ClientSpecific();
     Vector3 perch;
@@ -251,7 +251,7 @@ void CEffectMoshka::Follow(int objectId) {
     console::CStringArray parts;
     bird->MakeFigure(model.c_str(), &parts, 1);
     attached->RegisterPartMaterials();
-    bird->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
+    bird->PlayAnimationSecond(0, nullptr);// (the model name is passed as the unused argument)
     bird->RestartPose();
     attached->SetSkins(texture.c_str(), game::EmptyText());
     TheClientWorld()->AddObject(bird_);

@@ -156,7 +156,7 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
     descPanel_->Describe(nullptr);
     statsPanel_->ShowStats(mode);
     mode_ = mode;
-// Rebirth's WideScreen: the curtains shown but on the list.
+    // Rebirth's WideScreen: the curtains shown but on the list.
     widescreen::ShowHeroCurtains(this, mode);
 }
 EI_REWRITTEN(0x00615D30, CMpHeroScreen::SetModeVanilla);

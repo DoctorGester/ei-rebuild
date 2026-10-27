@@ -15,13 +15,13 @@ namespace mapspec {
 struct Behaviour;
 }
 
-// The deleting destructors of a holder of an engine object,
-// released through slot 4 (ObjectHolderRelease, refptr_copies.cpp) before it is freed.
+// The deleting destructors of a holder of an engine object, released through Release
+// (ObjectHolderRelease, refptr_copies.cpp) before it is freed.
 void __fastcall ObjectHolderRelease(CEngineObject** self);
 
-// Slot 1 (the deleting destructor) of seven MFC collection instantiations, which only the
-// vtables point at (world_deleting_destructors.cpp, mfc::impl::ScalarDeleting over the instantiations'
-// MFC destructors, library rows, called at their addresses):
+// The deleting destructors of seven MFC collection instantiations, which only the vtables point at
+// (world_deleting_destructors.cpp, mfc::impl::ScalarDeleting over the instantiations' MFC destructors,
+// library rows, called at their addresses):
 // The client's platform set (CList).
 // A client map's CArray.
 // The AI map's sector array (CArray<Sector>).

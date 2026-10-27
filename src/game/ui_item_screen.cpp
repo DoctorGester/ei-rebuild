@@ -220,7 +220,7 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, i
     CItem* moved = AddItemAt(to, item, whole, merge);
     RemoveItemAt(from, item, whole);
     if (static_cast<std::uint8_t>(turning)) {
-        ItemTurn*& slot = ItemTurnOf(moved);// a null result faults here, like the original
+        ItemTurn*& slot = ItemTurnOf(moved);   // a null result faults here, like the original
         if (!slot) {
             auto* turn = new ItemTurn();
             turn->angle = 0.0f;

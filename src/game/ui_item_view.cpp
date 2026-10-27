@@ -308,7 +308,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         SetShade(mark, cell->mode == 9 ? 0.5f : 1.0f);
         float step = static_cast<float>(D(scale) * D(550.0f /*007403DC*/));
         for (int i = 0; i < spell->GetModifierCount(); ++i) {
-            int code = spell->modifiers_[i] - 1;// the modifier's index (stored as index + 1)
+            int code = spell->modifiers_[i] - 1;   // the modifier's index (stored as index + 1)
             double cellSize = D(0.125f /*0073C520*/);
             mark->textureOffsetU_ = static_cast<float>(static_cast<double>(code & 7) * cellSize);
             mark->textureOffsetV_ = static_cast<float>(static_cast<double>(-(code >> 3)) * cellSize);

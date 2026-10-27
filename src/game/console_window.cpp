@@ -49,7 +49,7 @@ void ConsoleWindow::AddText(const char* text) {
     CStringArray pieces;
     text::Split(text, &pieces, '\n');
     if (lines_.GetSize() != 0)
-        lines_[lines_.GetSize() - 1] += *pieces.data;// reads piece 0 unchecked (the original does too)
+        lines_[lines_.GetSize() - 1] += *pieces.data;   // reads piece 0 unchecked (the original does too)
     else
         lines_.SetAtGrow(lines_.GetSize(), *pieces.data);
     for (int i = 1; i < pieces.GetSize(); ++i) lines_.SetAtGrow(lines_.GetSize(), pieces[i]);

@@ -281,7 +281,7 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
     FigureModel* memory = gamecrt::operator_new_as<FigureModel>();
     auto* set = memory ? ConstructFigureModel(memory) : nullptr;
     figureSets_[*name] = set;
-// The map is indexed a second time (resize for one more element included), like the original.
+    // The map is indexed a second time (resize for one more element included), like the original.
     figureSets_[*name]->Open(files[0], files[1], files[2]);
     auto* found = figureSets_.Find(*name);
     return found ? found->value : nullptr;
@@ -320,7 +320,7 @@ CLinkFigureLoader::~CLinkFigureLoader() {
     }
     CLinkFigureLoader::ClearCache();
     stlp::deallocate(cache_.end(), sizeof(Cache::Node));
-// renderer_ is released here once more, like the original; it is null by now.
+    // renderer_ is released here once more, like the original; it is null by now.
     figureSets_.Destroy();
     ClearArchives(archives_);
     stlp::deallocate(archives_, sizeof(LinkArchiveNode));

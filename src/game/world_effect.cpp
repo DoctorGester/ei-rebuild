@@ -22,8 +22,8 @@ namespace {
 // Starts / moves an ambient sound (a list of names); another stops it and
 // returns the handle to keep (-1).
 
-// What every Reset (slot 18) does to the base part first: position, field streams, start tick,
-// velocity, moving flag and stamp.
+// What every Reset does to the base part first: position, field streams, start tick, velocity, moving
+// flag and stamp.
 void ClearBase(CEffect* e) {
     e->localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
     EmptyField(&e->state_);
@@ -110,7 +110,7 @@ void CEffectSound::Reset() {
     if (sound_ != -1 && looping_ != 0) TheSoundManager()->StopSound(sound_);
     sound_ = -1;
     looping_ = 1;
-    std::memset(name_, 0, sizeof(name_));   // the original clears name_[0] only (the harness all of it)
+    std::memset(name_, 0, sizeof(name_));// the original clears name_[0] only (the harness all of it)
     volume_ = 0.0f;
     radius_ = 0.0f;
     noFade_ = 0;
