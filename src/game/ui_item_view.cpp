@@ -50,8 +50,6 @@ std::uint32_t PackColour(const float* rgb) {
     return (((r | 0xFFFFFF00u) << 8) | g) << 8 | b;
 }
 
-CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)); }
-
 // The cached object for `name` (its use time refreshed), or a new one put in the cache, which then drops its
 // least recently used entries beyond its limit. Null when it cannot be made. `textures` picks the texture
 // maker.
@@ -183,7 +181,7 @@ void SetSpecular(int on) {
 
 } // namespace
 
-void CItemScreen::DrawItem(int pass, ItemCell* cell) {
+void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
     CItem* item = cell->item;
     CUiMesh* model;
     {
@@ -267,14 +265,14 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                             static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
         frame->texture_ = objects_.data[2];
-        frame->Draw(PassRenderer(pass));
+        frame->Draw(pass);
         RemoveSceneObject(frame);
     }
 
     model->flatColour_ = PackColour(model->tint_);
     model->flags_ |= 0x100;
     if (item->spell_) SetSpecular(1);
-    model->Draw(PassRenderer(pass));
+    model->Draw(pass);
     if (item->spell_) SetSpecular(0);
 
     CSpell* spell = item->spell_;
@@ -311,7 +309,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
                 dy = d;
             float depth = static_cast<float>(D(pz) * D(0.9f /*0073CD70*/));
             mark->Place(static_cast<float>(D(dx) + D(px)), static_cast<float>(dy + D(py)), depth);
-            mark->Draw(PassRenderer(pass));
+            mark->Draw(pass);
         }
         RemoveSceneObject(mark);
     }
@@ -326,13 +324,13 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         shade->texture_ = nullptr;
         shade->flags_ |= 0x100;
         shade->flatColour_ = 0x82804040;
-        shade->Draw(PassRenderer(pass));
+        shade->Draw(pass);
         RemoveSceneObject(shade);
     }
 }
 EI_REWRITTEN(0x005ECA10, CItemScreen::DrawItem);
 
-BOOL CItemInfoPanel::Draw(int pass) {
+BOOL CItemInfoPanel::Draw(CSceneRenderer* pass) {
     if (itemCount_ && items_[0]) {
         ItemCell cell;
         cell.item = items_[0];
@@ -385,7 +383,7 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     texture->Format("face%s%02d", sex.c_str(), unit->skin);
 }
 
-void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
+void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
     mfc::CString modelName, textureName;
     FaceNames(cell->prototype, &modelName, &textureName);
     CUiMesh* model = AsUiMesh(CachedObject(&models_, modelName, false));
@@ -410,9 +408,9 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                         static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
     frame->texture_ = objects_.data[2];
-    frame->Draw(PassRenderer(pass));
+    frame->Draw(pass);
     RemoveSceneObject(frame);
-    model->Draw(PassRenderer(pass));
+    model->Draw(pass);
 }
 EI_REWRITTEN(0x005ED7B0, CItemScreen::DrawHeroFace);
 

@@ -103,7 +103,7 @@ void CMpHeroScreen::DrawExperience() {
     UiSurfaceReleaseDC(surface);
 }
 
-BOOL CMpHeroScreen::Draw(int pass) {
+BOOL CMpHeroScreen::Draw(CSceneRenderer* pass) {
     if (mode_ == kModeStats) DrawExperience();
     int x = MouseScreenX();
     int y = MouseScreenY();
@@ -135,9 +135,9 @@ BOOL CMpHeroScreen::Draw(int pass) {
 
     CUiContainer::Draw(pass);
     if (mode_ == kModeList && heroIndex_ >= 0)
-        DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), previewModel_, turn_, kListDepth, 0);
+        DrawHeroPreview(pass, previewModel_, turn_, kListDepth, 0);
     else if (mode_ == kModeNewHero)
-        DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), previewModel_, turn_, kNewHeroDepth, 0);
+        DrawHeroPreview(pass, previewModel_, turn_, kNewHeroDepth, 0);
     return 1;
 }
 EI_REWRITTEN(0x006159E0, CMpHeroScreen::Draw);

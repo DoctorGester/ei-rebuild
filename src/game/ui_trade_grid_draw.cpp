@@ -40,7 +40,7 @@ void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
 
 // One list's items: cell i at column i % 4, row i / 4; `y0` and the sizes differ between the
 // bought (upper) and sold (lower) lists, as do the text rows.
-void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, CUiSurface* surface, mfc::CString& text, float yOffset,
+void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, UiItemList* list, CUiSurface* surface, mfc::CString& text, float yOffset,
                float bigSize, float smallSize, int countTop, int priceTop, int kind) {
     CItem** items = list->data;
     int count = list->size;
@@ -68,7 +68,7 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, CUiSurface* surface
 } // namespace
 
 // Returns 1.
-int CTradeGrid::DrawGrid(int pass) {
+int CTradeGrid::DrawGrid(CSceneRenderer* pass) {
     CInterface3D* ui = interface_;
     RECT grid{200, 100, 600, 500};
     ui->ScaleRectToScreenEntry(&grid);

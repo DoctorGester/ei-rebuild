@@ -144,12 +144,12 @@ public:
     // Draws `cell`'s item: its model (cached, created) with its texture (cached) turning while the mouse is
     // on it, a glow in the colour of the carried spell's school, a frame behind it, the modifier marks of a
     // spell container, and a shade over items the strip's mode cannot take (CanEquip).
-    void DrawItem(int pass, ItemCell* cell);
+    void DrawItem(CSceneRenderer* pass, ItemCell* cell);
     // Draws the face of `cell`'s prototype: model "infa<model>me<n + 1>face" (the figure prototype's
     // model name, the prototype's field) with texture "face<m|f><two digits>" ("m" for model "unhuma",
     // "f" for "unhufe", else nothing), both cached as the items are, tilted back by (y - 300) / 1000
     // radians, over the cell frame.
-    void DrawHeroFace(int pass, HeroFaceCell* cell);
+    void DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell);
     static void FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture);
     // The screens' common Create: the icon window (iconWindow_, a child with the screen's texture 0, built), textures
     // "modifiers2" and "campslots", the display's settings, and the caches' limits (30, or 20 with an option byte
@@ -226,7 +226,7 @@ public:
     void OnKeyUp(int key, int repeat, int flags);
     // Draws the described item's model at (x + 100, y + 200), size 120, greyed (mode 9) through the owner's DrawItem;
     // returns 1.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Builds the panel at layout point (x, y): its 200 x 300 surface (format 5), the item texts
     // "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text table, and an empty
     // item list.

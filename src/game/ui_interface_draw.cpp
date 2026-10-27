@@ -120,7 +120,7 @@ EI_REWRITTEN(0x005E6B90, CScreenFade::Start);
 int CInterface3D::Draw() {
     CloseAllPending();
     if ((backdropMode_ == 2 || backdropMode_ == 4 || backdropMode_ == 3) && backdrop_) backdrop_->Blit();
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Draw(reinterpret_cast<int>(SceneRenderer()));
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Draw(SceneRenderer());
     fade_->Draw(SceneRenderer());
     return 1;
 }

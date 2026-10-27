@@ -551,8 +551,8 @@ public:
     int GetClassId() override;
     virtual void Build() {}
     virtual void Show(int show) { ShowSurfaces(show); }
-    virtual BOOL Draw(int pass) { return DrawBase(pass); }
-    virtual void DrawChild(int pass) { UpdateRegionTips(pass); }
+    virtual BOOL Draw(CSceneRenderer* pass) { return DrawBase(pass); }
+    virtual void DrawChild(CSceneRenderer* pass) { UpdateRegionTips(pass); }
     virtual void Redraw() { RedrawBase(); }
     virtual void RedrawTips() { RedrawRegionTips(); }
     virtual void Update() {}
@@ -561,7 +561,7 @@ public:
     // The first region containing the screen point, or -1.
     int RegionAt(int x, int y) const;
     BOOL ContainsPoint(int x, int y) const;
-    void UpdateRegionTips(int unused);
+    void UpdateRegionTips(CSceneRenderer* unused);
 
     void SetEnabled(int enabled, int notify);
 
@@ -600,7 +600,7 @@ public:
         return true;
     }
     // The scene objects, then the models; returns 1.
-    BOOL DrawBase(int pass);
+    BOOL DrawBase(CSceneRenderer* pass);
     // The camp's and the multiplayer hero screen's hero preview, turned by `turn` radians about y; `wide`'s
     // low byte clears the depth under six camp layout rectangles, else one. The hero's transform is restored.
     void DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, int wide);
@@ -661,7 +661,7 @@ struct CUiTooltip : CUiWindow {
     // never shown), then makes the surface at the mouse (state 2); 2 draws and becomes 4; 3 draws while the
     // timer is positive, then drops the surface (state 0).
     void OnMouseMove(int x, int y);
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     void Redraw() override;
     bool Shown() const { return state_ != 1 && state_ != 0; }
 
@@ -767,7 +767,7 @@ public:
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
     // Every frame: the highlight follows the unit's weapon.
     void Update() override;
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Rebirth-patched (WideScreen behind its flag: the bar at the screen's left edge, from 80 - shift with
     // more regions up to x 240).
     CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner);
@@ -804,7 +804,7 @@ public:
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
     int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Every frame: the tooltips of the slots that show an item.
     void Update() override;
     // The item's name and, for a wand (category 5) or a scroll (8) with a spell, its numbers after labels_.
@@ -868,7 +868,7 @@ public:
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
     int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Spell `index` (its button or key) becomes the pending action: 1 on a unit for a spell with flag
     // 0x10000000, else 2 at a point; the highlighted one again drops it.
     void Click(int index);
@@ -909,7 +909,7 @@ public:
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Action button `index` (a click or its key) becomes the pending action: 8 (an order on an object) for
     // action 0 (science), else 7 (follow); the highlighted one again drops it.
     void Select(int index);
@@ -1231,8 +1231,8 @@ public:
     // Rebirth-patched (WideScreen behind its flag). The hover unit, else the selected one, while the panel
     // is not slid away: its model (not on info page 2) over a depth buffer cleared to 0 around the panel,
     // its name, bars and texts. Returns 1.
-    BOOL DrawVanilla(int pass);
-    BOOL Draw(int pass) override { return DrawVanilla(pass); }
+    BOOL DrawVanilla(CSceneRenderer* pass);
+    BOOL Draw(CSceneRenderer* pass) override { return DrawVanilla(pass); }
 
     CBattleScreen* owner_;
     CUnit* shownUnit_;               // the first selected unit (RefreshSelection), or null
@@ -1373,9 +1373,9 @@ public:
 
     void Show(int show) override { ShowChildren(show); }
     // Only while the interface draws: the window's own draw, then every enabled child's.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Alpha reference 1 around the region tips and every enabled child's draw, while the interface draws.
-    void DrawChild(int pass) override;
+    void DrawChild(CSceneRenderer* pass) override;
     void Redraw() override { RedrawContainer(); }
     void RedrawTips() override { RedrawChildTips(); }
     void Update() override { UpdateBase(); }
@@ -1466,7 +1466,7 @@ public:
     // hero.
     void CreateScreen() override;
     // Rebirth's AddNewConsoleCommands applies "nogui" first. Returns 1.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Every frame: a dead selected unit empties the panels, a multiplayer client rebuilds the party, the
     // "leave_zone" box for a pending exit, the selection box's marks, the quest sound.
     void Update() override;
@@ -1758,7 +1758,7 @@ public:
     void SetText(const char* text);
     void SetRect(const RECT* rect) override;
     // Draws the lines again when the position moved; returns 1.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // The lines stay until the next layout.
     void Clear();
     // Words apart by a third of the line's height (the font in effect at the line's start); a newline format
@@ -1856,7 +1856,7 @@ public:
     CSaveLoadWindow(CInterface3D* ui, bool isSave, bool sliding)
         : CUiContainer(ui), isSave_(isSave), sliding_(sliding) {}
     ~CSaveLoadWindow() override;
-    BOOL Draw(int pass) override;                      // slides in
+    BOOL Draw(CSceneRenderer* pass) override;                      // slides in
     void Update() override;
     void CloseScreen() override { CloseDialog(); }
     void MessageResult(int result) override { OnDialogResult(result); }
@@ -2132,7 +2132,7 @@ public:
         groupNames_.Construct();
     }
     ~COptionsWindow() override;
-    BOOL Draw(int pass) override;                      // slides in
+    BOOL Draw(CSceneRenderer* pass) override;                      // slides in
     void Redraw() override;                            // not while sliding
     void CloseScreen() override {}
     void MessageResult(int result) override { OnDialogResult(result); }
@@ -2286,7 +2286,7 @@ public:
         pictures_.Construct();
     }
     ~CHelpWindow() override;
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     void CloseScreen() override { Close(); }
     int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }

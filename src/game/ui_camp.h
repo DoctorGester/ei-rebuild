@@ -96,7 +96,7 @@ class CGlobalMap : public CUiContainer {
 public:
     explicit CGlobalMap(CInterface3D* ui);
     ~CGlobalMap() override;
-    BOOL Draw(int pass) override;   // the container's, blended
+    BOOL Draw(CSceneRenderer* pass) override;   // the container's, blended
     void CloseScreen() override { Close(); }
     void MessageResult(int result) override { OnMessageResult(result); }
     void Deactivate() override { OnDeactivate(); }
@@ -378,7 +378,7 @@ public:
     // item is taken apart (kind 7).
     int Price(CItem* item, int kind) override;
     // Also finds what is under the mouse for the description panel.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Hands the local player's unit records back (their ids were raised by 100000000 for the call) and
     // deletes the constructors' part lists except the first of each.
     void Close();
@@ -545,7 +545,7 @@ static_assert(sizeof(CHeroStatsPanel) == 0x17C);
 class CHeroEquipPanel : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     int RightDown(int b, int x, int y) override { return OnRightDown(b, x, y), 0; }
     // With `body` (the camp) the panel is 500 high with the seven body slots.
     void Build(bool body);
@@ -573,8 +573,8 @@ using UiItemList = lib::AlignedArray<CItem*>;
 class CTradeGrid : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    BOOL Draw(int pass) override { return DrawGrid(pass); }
-    int DrawGrid(int pass);
+    BOOL Draw(CSceneRenderer* pass) override { return DrawGrid(pass); }
+    int DrawGrid(CSceneRenderer* pass);
     // `spells` chooses the price kinds (0/1 for the spell constructor, 4/5 for the item one).
     void Build(UiItemList* bought, UiItemList* sold, char spells, char flag);
     // Regions 0-7 the bought list (topic 0x1C with flag_, else 0x0B for the item constructor, 0x11 for the
@@ -597,7 +597,7 @@ public:
     using CUiItemPanel::CUiItemPanel;
     void Build(UiItemList* items);
     // Each item's model in its cell (depth 2^(3 - row) * 6), its count and its repair price.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Topic 0x19 on the 16 cells.
     CItem* ItemAt(int x, int y, int* topic) override;
 
@@ -616,7 +616,7 @@ public:
     void ShowEntry(CItem* item);
     // The hero's spell list entry (topic 1).
     CItem* ItemAt(int x, int y, int* topic) override;
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
 
     int y_;
     int selected_;                   // -1
@@ -629,11 +629,11 @@ static_assert(sizeof(CHeroQuickStrip) == 0x158);
 class CConstructorPage : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    BOOL Draw(int pass) override { return DrawItemMaker(pass); }
+    BOOL Draw(CSceneRenderer* pass) override { return DrawItemMaker(pass); }
     CItem* ItemAt(int x, int y, int* topic) override { return ItemMakerItemAt(x, y, topic); }
     void BuildItemMaker(CParty* slots);
     // Without a blueprint or a container, a pulsing highlight shows where the next part goes.
-    BOOL DrawItemMaker(int pass);
+    BOOL DrawItemMaker(CSceneRenderer* pass);
     // Region 0 the first spell container (topic 0x13), 1 the first spell (0x14), 2-9 modifier region - 2
     // (0x15), 10 / 11 the cost lines (0x1A / 0x1B, no item).
     CItem* SpellMakerItemAt(int x, int y, int* topic);
@@ -650,13 +650,13 @@ class CSpellMakerPage : public CConstructorPage {
 public:
     CSpellMakerPage(CInterface3D* ui, CItemScreen* owner) : CConstructorPage(ui, owner) { texts_.Construct(); }
     ~CSpellMakerPage() override;
-    BOOL Draw(int pass) override { return DrawSpellMaker(pass); }
+    BOOL Draw(CSceneRenderer* pass) override { return DrawSpellMaker(pass); }
     CItem* ItemAt(int x, int y, int* topic) override { return SpellMakerItemAt(x, y, topic); }
     void BuildSpellMaker(CParty* slots);
     // The cost lines: "<text 0> <best skill> (<needed>)" and "<text 1> <most mana> (<the larger of the summed
     // and the last spell's mana>)" with a spell. Without a container, a pulsing highlight shows where the
     // next part goes.
-    BOOL DrawSpellMaker(int pass);
+    BOOL DrawSpellMaker(CSceneRenderer* pass);
 
     mfc::CStringArray texts_;        // the cost texts ("infoitem_35", "infoitem_36")
 };

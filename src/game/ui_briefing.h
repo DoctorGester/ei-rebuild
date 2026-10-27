@@ -124,7 +124,7 @@ static_assert(sizeof(CChatWindow) == 0x170);
 class CBriefingScreen : public CUiContainer {
 public:
     explicit CBriefingScreen(CInterface3D* ui);
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     void CloseScreen() override { Close(); }
     void MessageResult(int result) override { OnMessageResult(static_cast<std::uint32_t>(result)); }
     void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }

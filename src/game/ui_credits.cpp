@@ -43,7 +43,7 @@ EI_REWRITTEN(0x0062BCB0, TitleLine::Destroy);
 
 // --- the frame -----------------------------------------------------------------------------------
 
-BOOL CCreditsScreen::Draw(int pass) {
+BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
     EI_NAN_AUDIT(textSurface_->speed_);
     if (GameTime() > nextLineAt_ && textSurface_->speed_ == 0.0f) {
         nextLineAt_ = 0.0f;

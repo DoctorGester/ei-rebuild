@@ -108,7 +108,7 @@ EI_REWRITTEN(0x00620380, CUiItemStrip::Build);
 
 // `first` is the current tab's position truncated, `frac` what is left of it
 // (kept as a float); the cells sit 100 pixels apart from x 100 - frac * 100.
-BOOL CForwardingStrip::Draw(int pass) {
+BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);
     const float frac = static_cast<float>(position - static_cast<float>(first));

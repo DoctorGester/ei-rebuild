@@ -37,7 +37,7 @@ void ClearDepth(CTextureDevice* device, unsigned long count, RECT* rects, float 
 }
 
 // The screens' draws share this: the depth buffer cleared to 1, then the container draw.
-int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
+int ScreenDraw(CUiWindow* self, CSceneRenderer* pass, bool mouseMove) {
     GameRender();
     if (mouseMove) self->Input()->MouseMove(0, MouseScreenX(), MouseScreenY());
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);
@@ -46,7 +46,7 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
 
 } // namespace
 
-BOOL CUiContainer::Draw(int pass) {
+BOOL CUiContainer::Draw(CSceneRenderer* pass) {
     if (!interface_->drawing_) return 1;
     CTextureDevice* device = DeviceOf(this);
     std::uint32_t handle = g_stageBlocks[kAlphaPassBlock];
@@ -63,17 +63,17 @@ BOOL CUiContainer::Draw(int pass) {
 EI_REWRITTEN(0x00600EF0, CUiContainer::Draw);
 
 // Returns ScreenDraw's result.
-int CBriefingScreen::Draw(int pass) { return ScreenDraw(this, pass, true); }
+int CBriefingScreen::Draw(CSceneRenderer* pass) { return ScreenDraw(this, pass, true); }
 EI_REWRITTEN(0x00602BF0, CBriefingScreen::Draw);
 
 // Returns ScreenDraw's result.
-int CMainMenu::Draw(int pass) { return ScreenDraw(this, pass, false); }
+int CMainMenu::Draw(CSceneRenderer* pass) { return ScreenDraw(this, pass, false); }
 EI_REWRITTEN(0x00632A90, CMainMenu::Draw);
 
 // The hero's quick items (the strip's left part), the other list (from the right), the worn armour and the
 // selected quick slot, with the panel's highlight frames, strip mode, body and right-part selection. Returns
 // 1.
-int CHeroEquipPanel::Draw(int pass) {
+int CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto frame = [this](int i) { return SceneMesh(i); };
     std::uint32_t quick = hero->weaponIndex;
