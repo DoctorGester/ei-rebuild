@@ -38,7 +38,7 @@ CParty* LocalParty() { return LocalPlayerData(); }
 
 void CExchangeScreen::Close() {
     descPanel_->Describe(nullptr);
-    delete scratch_;   // slot 0 with 1 (the game's deleting destructor)
+    delete scratch_;   // the deleting destructor
 }
 EI_REWRITTEN(0x0062C8F0, CExchangeScreen::Close);
 
@@ -62,7 +62,7 @@ void CExchangeScreen::Update() {
 }
 EI_REWRITTEN(0x0062C930, CExchangeScreen::Update);
 
-// --- the left button (input slot 2) --------------------------------------------------------------
+// --- the left button -------------------------------------------------------------------------------
 
 void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
@@ -149,7 +149,7 @@ void CExchangeScreen::CreateScreen() {
     CreateBase();
     iconWindow_->PlaceBars(300);
 
-    // The scratch party (made through its slot 2, not checked), our offer cleared, the partner's.
+    // The scratch party (not checked), our offer cleared, the partner's.
     scratch_ = new CParty();
     scratch_->Create();
     net::ClientSession* client = net::GameClient();
@@ -301,7 +301,7 @@ BOOL CExchangeScreen::Draw(int pass) {
 }
 EI_REWRITTEN(0x0062C9C0, CExchangeScreen::Draw);
 
-// --- an item clicked in the strip or the grid (slots 42 / 43) ------------------------------------
+// --- an item clicked in the strip or the grid ------------------------------------------------------
 
 namespace {
 const char* const kPutOnSound = "buttons\\camp\\put_on.wav";
@@ -313,7 +313,7 @@ bool CExchangeScreen::CanMove(CItem*, int) { return true; }
 EI_REWRITTEN(0x0062D200, CExchangeScreen::CanMove);
 
 void CExchangeScreen::MoveOffered(CItem* item, int mode) {
-    if (!CanEquip(item, mode)) {   // slot 43 (CanMove here)
+    if (!CanEquip(item, mode)) {   // CanMove here
         uiorig::PlayUiSound(interface_, kCancelSound, 0);
         return;
     }

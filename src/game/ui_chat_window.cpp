@@ -122,7 +122,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
     int left = kFirstFaceLeft - portraits_ * kFaceWidth;
     int right = left + kFaceWidth;
     if (sprite) {
-        sprite->Place(static_cast<float>(left + right) * 0.5f /*0073B86C*/, 32.0f, 7.0f);   // * 0.5
+        sprite->Place(static_cast<float>(left + right) * 0.5f /*0073B86C*/, 32.0f, 7.0f);
         sprite->SetScale(0.3f);
         Vector3 axis{1.0f, 0.0f, 0.0f};
         Quaternion turn;
@@ -134,7 +134,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
         sprite->SetRectangle(7.0f, 100.0f, static_cast<float>(left), 0.0f, static_cast<float>(right), 60.0f, 0, 0, 0x80,
                              0x80);
     }
-    sprite->textureOffsetU_ = static_cast<float>(u) * 0.00390625f /*0073EEB8*/;          // / 256
+    sprite->textureOffsetU_ = static_cast<float>(u) * 0.00390625f /*0073EEB8*/;
     sprite->textureOffsetV_ = static_cast<float>(v + 0x80) * 0.00390625f /*0073EEB8*/;
     sprite->texture_ = objects_.data[objects_.size - 1];
     ++portraits_;

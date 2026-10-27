@@ -41,7 +41,6 @@ float HeroTransitionSpeed() { return GameLogicSettings().humanCrossAnimationSpee
 
 float ItemWeight(const CItem* item) { return item->Weight(); }
 
-// A spell's mana cost (CSpell +0x40, a float kept as a dword).
 float SpellCost(const CSpell* spell) { return spell->manaCost_; }
 
 // The party of the unit's player.
@@ -214,7 +213,7 @@ CItem* CUnit::GetQuickItem(std::uint32_t slot) {
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
         if (!record || slot >= record->quickItemCount) return nullptr;
         CItem* item = record->quickItems[slot];
-        if (!item || static_cast<int>(item->count_) < 1) return nullptr;   // its count
+        if (!item || static_cast<int>(item->count_) < 1) return nullptr;
         return item;
     }
     return slot < 4 ? quickItems[slot] : nullptr;
@@ -374,7 +373,7 @@ double CUnit::BaseSpeed() {
 EI_REWRITTEN(0x00530370, CUnit::BaseSpeed);
 
 double CUnit::ModeSpeed() {
-    float speed = static_cast<float>(BaseSpeed());   // FSTP to a float local
+    float speed = static_cast<float>(BaseSpeed());   // stored as a float
     if (moveMode != 0 && IsDead() == 0) {
         if (moveMode == 1) return speed * kSlowModeScale;
         return speed;
@@ -403,7 +402,7 @@ EI_REWRITTEN(0x005309E0, CUnit::GetPrototype23C);
 std::uint32_t CUnit::SetPrototype23C(const UnitPrototypeRecord* record) {
     int offset = unitdb::PrototypeByteOffset(record);
     prototype23C = offset / static_cast<int>(sizeof(UnitPrototypeRecord));
-    return offset < 0 ? 1u : 0u;   // EAX: the sign of the unadjusted quotient
+    return offset < 0 ? 1u : 0u;   // the sign of the unadjusted quotient
 }
 EI_REWRITTEN(0x005308A0, CUnit::SetPrototype23C);
 
@@ -432,7 +431,7 @@ bool CUnit::AcceptsAnimation(const void* entry) {
 EI_REWRITTEN(0x00532DA0, CUnit::AcceptsAnimation);
 
 double CUnit::AnimationRatio() {
-    float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // FSTP to a float local
+    float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // stored as a float
     return AnimationFactor(scale.z) / denominator;
 }
 EI_REWRITTEN(0x00532E00, CUnit::AnimationRatio);

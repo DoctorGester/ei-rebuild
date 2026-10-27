@@ -35,7 +35,7 @@ constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 // The panel's scene object `index` (the HUD's are interface sprites).
 CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
-// Text into the panel's first surface (Rebirth-patched: through its address).
+// Text into the panel's first surface (Rebirth-patched).
 void DrawPanelText(CUiWindow* window, const char* text, RECT rect, std::uint32_t colour, int a, int b) {
     window->surfaces_.data[0]->DrawTextIn(text, &rect, 0, colour, a, b);
 }
@@ -178,7 +178,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     RECT line{40, 35, 155, 50};
 
     if (unit->effectCount > kPlaces) Sprite(this, kMoreMark)->visible_ = 1;
-    // The unit's effects are the map object's records (map_object.h).
+    // The unit's effects are the map object's records.
     const MapEffect* effects = unit->effects;
     for (int i = 0; i < unit->effectCount && i < kPlaces; ++i) {
         code.Empty();
@@ -323,7 +323,7 @@ void CHudTopPanel::ShowItems() {
 EI_REWRITTEN(0x0064A7A0, CHudTopPanel::ShowItems);
 
 void CHudTopPanel::Layout() {
-    // Place is Rebirth-patched: through its address.
+    // Place is Rebirth-patched.
     float offset = static_cast<float>(offset_);
     static_cast<CUiMesh*>(sceneObjects_.data[0])->PlaceBody(400.0f, 57.5f - offset, 20.0f);
     static_cast<CUiMesh*>(sceneObjects_.data[1])->PlaceBody(400.0f, 10.0f - offset, 20.0f);

@@ -1,8 +1,7 @@
 // The Esc menu's save/load and options windows: their key handlers and the
 // save/load window's selection helpers. See ui.h and docs/notes/ui.md.
-// Both key handlers live on the window's input side (`this` = window + 0x94, ui_screens.h). They
-// pass the key to the base handler first, set the input side's handled flag for the
-// keys they use, and ignore keys while the window slides in.
+// Both key handlers live on the window's input side. They pass the key to the base handler first, set the
+// input side's handled flag for the keys they use, and ignore keys while the window slides in.
 #include "asset_text.h"
 #include "ui.h"
 #include "game_strings.h"
@@ -46,16 +45,12 @@ const UiKeyName* KeyNamesEnd() { return KeyNamesBegin() + kUiKeyNameCount; }
 
 // --- Save/load window ----------------------------------------------------------------------------
 
-// --- CSaveLoadWindow::IsReservedSave -----------------------------------------------------
-
 bool CSaveLoadWindow::IsReservedSave(int index) {
     const char* folder = entries_.begin()[index].folder_;
     if (gamecrt::mbsicmp(folder, game::menukeytexts::QuickSave()) == 0) return true;
     if (gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
     return gamecrt::mbsicmp(folder, game::menukeytexts::AutoSaveB()) == 0;
 }
-
-// --- CSaveLoadWindow::ShowSelection ------------------------------------------------------
 
 void CSaveLoadWindow::ShowSelection() {
     if (selected_ < 0) selected_ = 0;
@@ -70,8 +65,6 @@ void CSaveLoadWindow::ShowSelection() {
     RefreshListVanilla();
     ShowPicture();
 }
-
-// --- CSaveLoadWindow::OnKeyDown ----------------------------------------------------------
 
 void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     if (sliding_) return;
@@ -154,10 +147,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     handled_ = true;
 }
 
-// --- TextWidth ---------------------------------------------------------------------------
-
 namespace {
-// The width of `text` in interface font `font` (CInterface3D::TextExtent).
 int TextWidth(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
@@ -187,7 +177,7 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
             std::string typed;
             {
                 std::string head = name.Left(cursor_).GetString();
-                typed = text::Typed(head, key) + tail;   // U4: with EI_UTF8 the character's UTF-8 bytes
+                typed = text::Typed(head, key) + tail;   // with EI_UTF8 the character's UTF-8 bytes
             }
             if (TextWidth(interface_, typed, 1) < kMaxNameWidth) {
                 name = typed;
@@ -200,8 +190,6 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
     }
     CUiContainer::Char(key, repeat, flags);
 }
-
-// --- COptionsWindow::OnKeyDown -----------------------------------------------------------
 
 void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
     if (sliding_) return;
