@@ -17,13 +17,13 @@ namespace mfc::impl {
 
 // CFileStatus (0x118 bytes): what CFile::GetStatus fills in.
 struct CFileStatus {
-    CTime created;          // m_ctime
-    CTime modified;         // m_mtime
-    CTime accessed;         // m_atime
-    long size;              // m_size
-    BYTE attribute;         // m_attribute
+    CTime created;
+    CTime modified;
+    CTime accessed;
+    long size;
+    BYTE attribute;
     BYTE padding;
-    char fullName[MAX_PATH];    // m_szFullName
+    char fullName[MAX_PATH];
 };
 static_assert(sizeof(CFileStatus) == 0x118);
 
@@ -39,8 +39,8 @@ struct CFile {
     static constexpr HANDLE kNoFile = INVALID_HANDLE_VALUE;   // CFile::hFileNull
 
     void* vtable;
-    HANDLE handle;          // m_hFile
-    BOOL closeOnDelete;     // m_bCloseOnDelete
+    HANDLE handle;
+    BOOL closeOnDelete;
     CString fileName;       // m_strFileName (the full path)
 
     static void* Vtable();
@@ -80,7 +80,7 @@ static_assert(sizeof(CFile) == 0x10);
 
 // CStdioFile (0x14 bytes): a CFile with a CRT stream over its handle.
 struct CStdioFile : CFile {
-    gamecrt::CrtFile* stream;   // m_pStream
+    gamecrt::CrtFile* stream;
 
     static void* Vtable();
 
@@ -109,11 +109,11 @@ static_assert(sizeof(CStdioFile) == 0x14);
 // operator new: FindNextFile swaps the next one in.
 struct CFileFind {
     void* vtable;
-    WIN32_FIND_DATAA* found;    // m_pFoundInfo
-    WIN32_FIND_DATAA* next;     // m_pNextInfo
+    WIN32_FIND_DATAA* found;
+    WIN32_FIND_DATAA* next;
     HANDLE context;             // m_hContext (null or INVALID_HANDLE_VALUE when none)
-    BOOL gotLast;               // m_bGotLast
-    CString root;               // m_strRoot
+    BOOL gotLast;
+    CString root;
     char separator;             // m_chDirSeparator ('\\')
 
     static void* Vtable();

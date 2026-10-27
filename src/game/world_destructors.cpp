@@ -26,7 +26,7 @@
 
 #include <memory>
 
-void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
+void __fastcall RefPtrRelease(RefPtr* self);
 
 namespace {
 

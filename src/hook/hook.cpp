@@ -397,7 +397,7 @@ int InstallHooks() {
 // and the profiler (EI_PROFILE) go in when WinMain starts, not when the DLL loads, after Rebirth's addon
 // has applied its own patches from a hook on the WinMain call. The standalone image calls InstallHooks
 // from EiStandaloneMain (standalone_main.cpp).
-void InstallCoverage();   // cover.cpp
+void InstallCoverage();
 static unsigned char g_winMainBytes[5];
 static void (*g_originalWinMainAction)();
 

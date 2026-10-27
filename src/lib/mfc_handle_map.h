@@ -23,11 +23,11 @@ namespace mfc::impl {
 
 // CRuntimeClass: a class's record (mfc_runtime_class.h has the game's 41).
 struct CRuntimeClass {
-    const char* className;          // m_lpszClassName
-    int objectSize;                 // m_nObjectSize
+    const char* className;
+    int objectSize;
     unsigned schema;                // m_wSchema (0xFFFF: not serializable)
     void*(__stdcall* create)();     // m_pfnCreateObject (null: not creatable)
-    const CRuntimeClass* baseClass; // m_pBaseClass
+    const CRuntimeClass* baseClass;
     CRuntimeClass* nextClass;       // m_pNextClass (the module state's class list; AfxClassInit links it)
 
     // A new object through `create`, or null (no create function, or a CException thrown
@@ -78,12 +78,12 @@ public:
     // BEFORE_START_POSITION.
     static Assoc* StartPosition() { return reinterpret_cast<Assoc*>(-1); }
 
-    Assoc** table = nullptr;        // m_pHashTable
+    Assoc** table = nullptr;
     std::uint32_t hashSize = 17;    // m_nHashTableSize (17 until InitHashTable)
-    int count = 0;                  // m_nCount
-    Assoc* freeList = nullptr;      // m_pFreeList
-    CPlex* blocks = nullptr;        // m_pBlocks
-    int blockSize;                  // m_nBlockSize
+    int count = 0;
+    Assoc* freeList = nullptr;
+    CPlex* blocks = nullptr;
+    int blockSize;
 };
 static_assert(sizeof(CMapPtrToPtr) == 0x1C);
 static_assert(sizeof(CMapPtrToPtr::Assoc) == 12);

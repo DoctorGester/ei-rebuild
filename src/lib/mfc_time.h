@@ -12,7 +12,7 @@
 namespace mfc::impl {
 
 struct CTime {
-    long time;   // m_time
+    long time;
 
     // CTime(year, month, day, hour, minute, second, dst): mktime of those (month from 1, the year
     // in full; dst -1 lets mktime decide). Returns this.

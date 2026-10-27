@@ -26,7 +26,7 @@
 
 void __fastcall DiffObjectSets(lib::AlignedArray<CEngineObject*>* sent, lib::AlignedArray<CEngineObject*>* current,
                                lib::AlignedArray<CEngineObject*>* added, lib::AlignedArray<CEngineObject*>* gone,
-                               lib::AlignedArray<CEngineObject*>* same);   // world_object_sets.cpp
+                               lib::AlignedArray<CEngineObject*>* same);
 
 namespace {
 

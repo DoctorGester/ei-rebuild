@@ -51,8 +51,8 @@ public:
     BOOL reserved;              // (no code of the exe's touches it)
     BOOL initialized = FALSE;   // m_bInitialized (the message was looked up)
     BOOL loaded = FALSE;        // m_bLoaded (the message was found)
-    char message[128];          // m_szMessage
-    unsigned resourceId;        // m_nResourceID
+    char message[128];
+    unsigned resourceId;
 };
 static_assert(sizeof(CSimpleException) == 0x98);
 
@@ -103,9 +103,9 @@ public:
     // none); the help context is that prompt's id. Always TRUE.
     BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
 
-    int cause;          // m_cause
+    int cause;
     long osError;       // m_lOsError (-1: none)
-    CString fileName;   // m_strFileName
+    CString fileName;
 };
 static_assert(sizeof(CFileException) == 0x14);
 

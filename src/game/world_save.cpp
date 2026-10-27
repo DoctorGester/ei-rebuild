@@ -44,17 +44,13 @@
 
 namespace {
 
-// ---- Constants --------------------------------------------------------------------------------
-
-// The CArray<int> vtable is mfc::impl::IntArrayClass::Vtable(), the script group's is
-// mfc::impl::ScriptGroupClass::Vtable().
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
 
 // Save format versions (WorldStream::version_) at which fields were added.
 constexpr int kVersionTimeSpeedFloat = 0x4C;   // the time speed is a float (an int before)
 constexpr int kVersionRainBoltTick = 0x74;
 constexpr int kVersionCountdowns = 0x4E;
-constexpr int kVersionPlayerLists = 0x55;      // a player's id list (+0x114); the object records
+constexpr int kVersionPlayerLists = 0x55;
 constexpr int kVersionPlayerByte = 0x49;       // before: a byte that is read and dropped
 constexpr int kVersionPlayerGroup = 0x46;      // before: a script group that is read and dropped
 constexpr int kVersionMobFiles = 0x60;
@@ -78,7 +74,7 @@ using IdArray = mfc::CArray<int>;
 // MFC CArray of counted item pointers (SharedObject::objects, world.h).
 using ObjectPtrArray = CountedPtrs<CItem>;
 
-// The shared-object list is CWorldServer::sharedObjects_ (+0x12E60, world.h).
+// The shared-object list is CWorldServer::sharedObjects_ (world.h).
 using SharedObjectNode = SharedObjectList::Node;
 static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 
@@ -97,10 +93,7 @@ void WriteCopy(WorldStream* stream, const T& value) {
     stream->Write(&copy, sizeof(T));
 }
 
-// ---- Helpers ----------------------------------------------------------------------------------
-
 // Reads a zero-terminated string; constructs the CString at `out` and returns it.
-// Shows the loading screen at `stage` (ECX).
 void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
 } // namespace
@@ -131,8 +124,6 @@ T ReadValue(WorldStream* stream) {
 }
 
 } // namespace
-
-// ---- UpdatePlayerTimes ------------------------------------------------------------------------
 
 // The sum in the game's order ((elapsed * secondsPerTick + offset) + gtime); plain C++ maths, compared with
 // CheckNear.
@@ -180,9 +171,8 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
             namedObjects_.Set(static_cast<unsigned>(object->id_), object);
 
         if (CUnit* unit = UnitOrNull(object)) {
-            // The unit's six dwords at +0x4B0 come from its prototype's model record (+0x2C). A prototype or
-            // model out of
-            // range is read through null.
+            // The unit's six dwords come from its prototype's model record. A prototype or model out of range is
+            // read through null.
             auto* prototype = unitdb::PrototypeRecord(unit->prototypeId_);
             auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
             std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
@@ -196,12 +186,10 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
 
         CUnit* unit = UnitOrNull(object);
         if (unit && unit->ServerController()->Brain()->alwaysUpdated == 0)
-            continue;   // a unit whose controller does not ask for updates (its brain's +0x37)
+            continue;   // a unit whose controller does not ask for updates
         AddToUpdateMap(object);
     }
 }
-
-// ---- LoadSave ---------------------------------------------------------------------------------
 
 namespace {
 
@@ -246,7 +234,6 @@ void RelocateStrandedUnits(CWorldServer* world) {
 
 // The players' part of the save (in the player list's order).
 void LoadPlayers(CWorldServer* world, WorldStream* stream) {
-    // The iterator lives on the heap.
     auto* it = gamecrt::operator_new_as<PlayerIterator>();
     if (it) it->manager = nullptr;
     for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
@@ -386,9 +373,8 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 timedObjects_.Set(static_cast<unsigned>(object->id_), object);
             }
 
-            // Missiles: a byte 1 before each one, 0 at the end. They find the world through the global server
-            // while they
-            // load.
+            // Missiles: a byte 1 before each one, 0 at the end. They find the world through the global server while
+            // they load.
             g_loadingProjectileWorld = this;
             for (;;) {
                 std::uint8_t more = ReadValue<std::uint8_t>(stream);
@@ -502,16 +488,13 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             result = 1;
         }
     }
-    return result;   // the strings and the two memory streams are destroyed on the way out
+    return result;
 }
-
-// ---- SaveWorld --------------------------------------------------------------------------------
 
 namespace {
 
 // The players' part of the save (what LoadPlayers reads).
 void SavePlayers(CWorldServer* world, WorldStream* stream) {
-    // The iterator lives on the heap.
     auto* it = gamecrt::operator_new_as<PlayerIterator>();
     if (it) it->manager = nullptr;
     for (CPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
@@ -637,7 +620,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
             WriteCopy(stream, record->value);
         }
         WriteCopy(stream, -1);
-        if (it.manager) --it.manager->refCount_;   // the iterator's inlined destructor
+        if (it.manager) --it.manager->refCount_;
     }
 
     WriteCopy(stream, mobFiles_.size);
@@ -657,20 +640,15 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     }
 }
 
-// ---- The shared-object list -------------------------------------------------------------------
-
 namespace {
 
-// CArray<CRefPtr>::Copy (gamearrays::ObjectPtrCopy).
 void ObjectPtrArrayCopy(ObjectPtrArray* to, const ObjectPtrArray* from) {
     to->CopyFrom(*from);
 }
-// Releases `count` counted pointers from `data` (CArray DestructElements).
 void CountedRangeRelease(CItem** items, int count) {
     for (int i = 0; i < count; ++i)
         if (items[i]) items[i]->Release();
 }
-// The item manager's (WorldItemManager) object by id, or null.
 
 // SetAtGrow(size, object) on a CArray<CRefPtr>: the new slot holds a reference.
 void Append(ObjectPtrArray& array, CItem* object) {
@@ -709,7 +687,7 @@ void SharedObject::Load(WorldStream* stream) {
     for (int i = 0; i < count; ++i) {
         int id = ReadValue<int>(stream);
         CItem* object = FindItem(WorldItemManager(), id);
-        if (object) Append(entry->objects, object);   // the SetSize is inlined
+        if (object) Append(entry->objects, object);
     }
 }
 
@@ -746,11 +724,9 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     }
 }
 
-// ---- PrepareSave --------------------------------------------------------------------------------
-
 namespace {
 
-// UnitStats::RefillSlots (unit_vitals.cpp), on the controller's stats (+0x1E0).
+// UnitStats::RefillSlots on the controller's stats.
 
 } // namespace
 
@@ -763,8 +739,6 @@ void CWorldServer::PrepareSave() {
         controller->RefreshVitals(0);
     }
 }
-
-// ---- NewZone ----------------------------------------------------------------------------------
 
 namespace {
 

@@ -48,18 +48,18 @@ struct WinThread : CCmdTarget {
     // (GetCursorPos), no filter or OLE hook, deleted when its thread ends.
     void CommonConstruct();
 
-    void* mainWnd;                  // m_pMainWnd
-    void* activeWnd;                // m_pActiveWnd
-    BOOL autoDelete;                // m_bAutoDelete
-    HANDLE thread;                  // m_hThread
-    DWORD threadId;                 // m_nThreadID
-    MSG msgCur;                     // m_msgCur
-    void* threadParams;             // m_pThreadParams
-    ThreadProc threadProc;          // m_pfnThreadProc
+    void* mainWnd;
+    void* activeWnd;
+    BOOL autoDelete;
+    HANDLE thread;
+    DWORD threadId;
+    MSG msgCur;
+    void* threadParams;
+    ThreadProc threadProc;
     void(__cdecl* oleTermOrFreeLib)(BOOL, BOOL);
-    void* messageFilter;            // m_pMessageFilter
-    POINT cursorLast;               // m_ptCursorLast
-    UINT msgLast;                   // m_nMsgLast
+    void* messageFilter;
+    POINT cursorLast;
+    UINT msgLast;
 };
 static_assert(sizeof(WinThread) == 0x68);
 static_assert(offsetof(WinThread, thread) == 0x28 && offsetof(WinThread, threadParams) == 0x4C);

@@ -14,8 +14,8 @@ const mfc::CString* GameBasePathString();
 // `name` (the held map message dropped, "name_3" queued), 1 when it did; else 0.
 int __stdcall FinishQuestMap(const char* name);
 
-class CScript;            // script.h
-struct NamedFloatTable;   // object_tables.h
+class CScript;
+struct NamedFloatTable;
 
 // A script's last error as callers take it (copied out of the script): the text, the code and the line.
 struct ScriptErrorInfo {
@@ -43,9 +43,9 @@ void __cdecl StoreStartFolder();
 #include <cstdint>
 
 class CEngineObject;
-class CPlayerClient;   // player_client.h
-class CUnit;   // unit.h
-struct PartyUnitRecord;   // unit.h
+class CPlayerClient;
+class CUnit;
+struct PartyUnitRecord;
 class CTextManager;
 
 // The server world's.
@@ -61,7 +61,7 @@ void __stdcall GamePassTime(float offset);
 // CWorldServer::EnsureZone (the client's state block).
 void __stdcall GameEnsureZone(const char* map, const char* mob);
 // The memory stream of the local server's pending messages (the client's state block hands it over).
-class CMemoryStream;   // core_streams.h
+class CMemoryStream;
 CMemoryStream* GameObject7C2D60();
 // The server unit with id `id` moves to height `z` (its sector map entry follows, part 2 marked changed)
 // unless it is there already (or NaN).

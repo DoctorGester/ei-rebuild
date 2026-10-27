@@ -20,7 +20,7 @@
 
 namespace ei {
 
-void OutputPath(const char* name, char* out);   // dllmain.cpp
+void OutputPath(const char* name, char* out);
 
 namespace {
 

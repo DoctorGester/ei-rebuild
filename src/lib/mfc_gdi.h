@@ -22,8 +22,8 @@ namespace mfc::impl {
 
 // The maps of DCs (CTempDC objects for unknown handles, both handles set) and of GDI objects
 // (CTempGdiObject), made on first use when `create`; null otherwise. Image only.
-CHandleMap* __stdcall MapHDC(BOOL create);         // afxMapHDC
-CHandleMap* __stdcall MapHGDIOBJ(BOOL create);     // afxMapHGDIOBJ
+CHandleMap* __stdcall MapHDC(BOOL create);
+CHandleMap* __stdcall MapHGDIOBJ(BOOL create);
 
 // CGdiObject (8 bytes): CObject's slots, m_hObject. Game.exe's tables: CGdiObject, CBrush, CPen
 // CTempGdiObject, CFont (0 GetRuntimeClass, 1 the deleting destructor, 2 Serialize).
@@ -42,7 +42,7 @@ public:
     HGDIOBJ Detach();                   // taken out of the permanent map; the old handle
     BOOL DeleteObject();                // FALSE without a handle; else detached and deleted
 
-    HGDIOBJ handle = nullptr;   // m_hObject
+    HGDIOBJ handle = nullptr;
 };
 static_assert(sizeof(CGdiObject) == 8);
 
@@ -136,9 +136,9 @@ public:
     void FillSolidRect(const RECT* rect, COLORREF colour);
     void FillSolidArea(int x, int y, int cx, int cy, COLORREF colour);  // FillSolidRect(x, y, cx, cy, colour)
 
-    HDC hdc = nullptr;          // m_hDC
-    HDC attribDC = nullptr;     // m_hAttribDC
-    BOOL printing = FALSE;      // m_bPrinting
+    HDC hdc = nullptr;
+    HDC attribDC = nullptr;
+    BOOL printing = FALSE;
 };
 static_assert(sizeof(CDC) == 0x10);
 

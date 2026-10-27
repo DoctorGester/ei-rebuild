@@ -6,7 +6,7 @@
 
 #include <windows.h>
 
-class CSceneRenderer;   // game/model.h
+class CSceneRenderer;
 
 namespace render::game {
 

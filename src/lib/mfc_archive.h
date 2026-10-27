@@ -18,18 +18,18 @@ struct CArchive {
     enum Mode : unsigned { store = 0, load = 1, noFlushOnDelete = 2, noByteSwap = 4 };
     enum BufferCommand : unsigned { bufferRead = 0, bufferWrite = 1, bufferCommit = 2, bufferCheck = 3 };
 
-    void* document;                 // m_pDocument
+    void* document;
     BOOL forceFlat;
-    BOOL directBuffer;              // m_bDirectBuffer
+    BOOL directBuffer;
     unsigned objectSchema;
-    CString fileName;               // m_strFileName
-    unsigned mode;                  // m_nMode
+    CString fileName;
+    unsigned mode;
     BOOL userBuffer;
-    unsigned bufferSize;            // m_nBufSize
-    CFile* file;                    // m_pFile
-    unsigned char* bufferCur;       // m_lpBufCur
-    unsigned char* bufferMax;       // m_lpBufMax
-    unsigned char* bufferStart;     // m_lpBufStart
+    unsigned bufferSize;
+    CFile* file;
+    unsigned char* bufferCur;
+    unsigned char* bufferMax;
+    unsigned char* bufferStart;
     unsigned mapCount;
     void* objectMap;                // m_pLoadArray / m_pStoreMap
     void* schemaMap;
