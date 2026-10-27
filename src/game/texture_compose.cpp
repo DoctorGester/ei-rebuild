@@ -53,7 +53,7 @@ struct ReadBuffer {
     }
 };
 
-mfc::CString CachePath(const mfc::CString& name) { return TheDataFolder() + kTextures + name + kMmp; }
+mfc::CString CachePath(const std::string& name) { return TheDataFolder() + kTextures + name + kMmp; }
 
 // Reads an opened cached file's header and extra block, closes it, and tells whether the extra
 // block is the request's layer bytes.
@@ -176,7 +176,7 @@ EI_REWRITTEN(0x00693010, CTextureManager::DrawLayers);
 int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, const mfc::CString* name,
                              const mfc::CString* fallback, unsigned mipCount, std::uint32_t fill,
                              std::uint32_t format) {
-    std::string path = CachePath(*name).GetString();
+    std::string path = CachePath((*name).GetString()).GetString();
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     ReadBuffer buffer;
@@ -187,11 +187,11 @@ int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, cons
     } else if (gamecrt::mbscmp(name->GetString(),
                                fallback->GetString()) != 0) {
         *out = *fallback;
-        path = CachePath(*fallback);
+        path = CachePath((*fallback).GetString());
         if (file.Open(path.c_str(), mfc::CFile::modeRead, nullptr)) {
             if (CacheMatches(file, header, buffer, request)) return 1;
             *out = *name;
-            path = CachePath(*name);
+            path = CachePath((*name).GetString());
         }
     }
 

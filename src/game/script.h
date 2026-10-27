@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #include "core_streams.h"
 #include "engine_object.h"
@@ -104,7 +105,7 @@ class SSCCmd;
 struct ScriptStrings : mfc::CArray<mfc::CString> {
     // (ScriptDefinition::AddParameter's names). Grown to index + 1 when needed, then
     // the string assigned.
-    void SetAtGrow(int index, const mfc::CString& text);
+    void SetAtGrow(int index, const std::string& text);
     // (SSCCmd::SetParameters). `out` = a by-value GetAt copy of element `index`
     // the copy destroyed.
     void CopyTo(int index, mfc::CString* out) const;
@@ -558,11 +559,11 @@ public:
     // and sets the error code (+0x1F0) and line (+0x1F4). Returns 0. __cdecl with `this` first.
     static int __cdecl Error(CScript* script, int line, int code, const char* format, ...);
     // Splits the script text into tokens (see script.md, "Lexer").
-    BOOL Tokenize(const mfc::CString& text, ScriptTokenList* tokens);
+    BOOL Tokenize(const std::string& text, ScriptTokenList* tokens);
     // Consumes one token and requires its keyword id to be `id`.
     BOOL ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id);
     // `name`, or "!<file>!<name>" when this is not the first file loaded (+0x1AC > 0).
-    mfc::CString* QualifyName(mfc::CString* out, const mfc::CString& name);
+    mfc::CString* QualifyName(mfc::CString* out, const std::string& name);
     // Index of the script definition named `name`, retrying without each "!<n>!" prefix.
     int FindScript(const char* name);
     // Rebirth patches it. Parses one call: `id` with parameter types `signature`

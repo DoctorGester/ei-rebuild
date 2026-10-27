@@ -58,7 +58,7 @@ void Clear(TradeRows* rows) {
 }
 
 // Whether the text table has "perk <name>" (the key's temporaries released before returning).
-int HasPerkText(CTextManager* table, const mfc::CString& name) {
+int HasPerkText(CTextManager* table, const std::string& name) {
     std::string prefix("perk ");
     mfc::CString key = prefix + name;
     return table->CTextManager::Open(key);

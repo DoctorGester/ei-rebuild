@@ -51,7 +51,7 @@ void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { a->SetSize(n, -1); }
 // WriteString takes its CString by value (the callee destroys it); passed here as its data pointer.
 
 // A copy of `value` handed to WriteString (which destroys it).
-BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const mfc::CString& value) {
+BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const std::string& value) {
     alignas(4) char copy[sizeof(mfc::CString)];
     new (copy) mfc::CString(value);
     return ini->WriteString(section, key, *reinterpret_cast<char**>(copy));

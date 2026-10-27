@@ -179,12 +179,12 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
 
 // The material type of the mesh's last group name into the mesh (+0x188 type, +0x184
 // value) and, once each, into `links` (type, value) and `names` (type, texture name).
-void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& groupName, const mfc::CString& mapping,
+void RecordMaterial(FakeUnitScene* unit, int meshIndex, const std::string& groupName, const std::string& mapping,
                     TextureLinkArray* links, TextureNameArray* names) {
     std::string texture;
     int type;
     int value;
-    if (ParseMaterial(groupName, &type, &value) != 1) {
+    if (ParseMaterial(groupName.c_str(), &type, &value) != 1) {
         game::DebugLog("Undefined texture/material types.\n");   // Undefined texture/material types.
         return;
     }
@@ -263,7 +263,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
             }
         }
 
-        RecordMaterial(unit, m, groupName, mapping, links, names);
+        RecordMaterial(unit, m, groupName.GetString(), mapping.GetString(), links, names);
         MapDestroy(seen);
     }
 

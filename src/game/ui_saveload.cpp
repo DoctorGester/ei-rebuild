@@ -494,7 +494,7 @@ EI_REWRITTEN(0x006575B0, QuickLoad);
 namespace {
 
 // The first line of the text `prefix` + `suffix`, or empty when there is none.
-mfc::CString FirstLineOf(const char* prefix, const mfc::CString& suffix) {
+mfc::CString FirstLineOf(const char* prefix, const std::string& suffix) {
     mfc::CString line;
     CTextManager* texts = TheTextManager();
     BOOL found = texts->Open(mfc::CString(prefix) + suffix);
@@ -517,14 +517,14 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 } // namespace
 
 mfc::CString SaveEntry::ZoneTitle() const {
-    mfc::CString title = FirstLineOf("zone ", zone_);   // the key has a space
+    mfc::CString title = FirstLineOf("zone ", zone_.GetString());   // the key has a space
     if (title.GetLength() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
 EI_REWRITTEN(0x00653BD0, SaveEntry::ZoneTitle);
 
 mfc::CString SaveEntry::AllodTitle() const {
-    std::string title = FirstLineOf("allod ", map_).GetString();  // the key has a space
+    std::string title = FirstLineOf("allod ", map_.GetString()).GetString();  // the key has a space
     if (title.size() == 0) title = "Unknown";
     return title;
 }

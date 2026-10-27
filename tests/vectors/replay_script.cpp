@@ -155,7 +155,7 @@ bool CheckTokenize(Reader& r, char* d, std::size_t n) {
     mfc::CString source(reinterpret_cast<const char*>(bytes), static_cast<int>(length));
     ScriptTokenList tokens{nullptr, nullptr, nullptr, 0, nullptr, nullptr, blockSize};
     g_error = ReportedError();
-    const BOOL result = NoScript()->Tokenize(source, &tokens);
+    const BOOL result = NoScript()->Tokenize(source.GetString(), &tokens);
 
     std::uint64_t all = 0xCBF29CE484222325ull;
     std::uint32_t first = count0;   // the first token that differs

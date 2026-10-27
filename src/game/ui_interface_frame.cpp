@@ -123,8 +123,8 @@ void CInterface3D::Update() {
 
 namespace {
 
-int Compare(const mfc::CString& word, const char* text) {
-    return gamecrt::mbscmp(word.GetString(),
+int Compare(const std::string& word, const char* text) {
+    return gamecrt::mbscmp(word.c_str(),
                            text);
 }
 
@@ -151,22 +151,22 @@ void CInterface3D::OnStringEvent(const char* event) {
         return;
     }
     auto top = [this]() { return stackEnd_[-1]; };
-    if (Compare(words.data[0], "say") == 0 || Compare(words.data[0], "say_block") == 0) {
+    if (Compare(words.data[0].GetString(), "say") == 0 || Compare(words.data[0].GetString(), "say_block") == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
         if (words.size < 2) return;
         int number = words.size > 2 ? TextKeyFromName(words.data[2]) : 0;
-        int kind = Compare(words.data[0], "say_block") != 0 ? 0x2A : 0x2B;
+        int kind = Compare(words.data[0].GetString(), "say_block") != 0 ? 0x2A : 0x2B;
         if (stackBegin_ != stackEnd_)
             ScreenOf(top())->Speech(number, static_cast<unsigned>(kind), const_cast<char*>(words.data[1].GetString()));
-    } else if (Compare(words.data[0], "tutorial") == 0) {   // queued
+    } else if (Compare(words.data[0].GetString(), "tutorial") == 0) {   // queued
         if (words.size < 2) return;
         stlp::list<mfc::CString>::Insert(messages_.End(), words.data[1]);
-    } else if (Compare(words.data[0], "briefing") == 0) {
+    } else if (Compare(words.data[0].GetString(), "briefing") == 0) {
         if (words.size < 2 || stackBegin_ == stackEnd_) return;
         ScreenOf(top())->ShowBriefing(words.data[1].GetString());
-    } else if (Compare(words.data[0], "autosave") == 0) {
+    } else if (Compare(words.data[0].GetString(), "autosave") == 0) {
         pollTop_ = true;
-    } else if (Compare(words.data[0], "endofgame") == 0) {
+    } else if (Compare(words.data[0].GetString(), "endofgame") == 0) {
         if (stackBegin_ != stackEnd_) ScreenOf(top())->GameOver(1);
     }
 }

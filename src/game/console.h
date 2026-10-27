@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 namespace libcrt { class Streambuf; }   // lib/crt_iostream.h
 namespace mfc::impl { struct CStdioFile; }   // lib/mfc_file.h
@@ -238,7 +239,7 @@ static_assert(sizeof(CommandNode) == 0x18);
 
 // Operator[] (lib_trees::Commands'): the handler slot for `key`, inserted with a null handler
 // if missing.
-CommandHandler& Command(CommandMap* map, const mfc::CString& key);
+CommandHandler& Command(CommandMap* map, const std::string& key);
 
 static_assert(sizeof(CommandMap) == 0xC);
 // The commands always available and those after the cheat word (console_streams.cpp; built empty by their static

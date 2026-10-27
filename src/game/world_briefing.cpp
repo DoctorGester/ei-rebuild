@@ -37,8 +37,8 @@ namespace {
 
 
 
-bool IsEmpty(const mfc::CString& s) {
-    return gamecrt::mbscmp(s.GetString(),
+bool IsEmpty(const std::string& s) {
+    return gamecrt::mbscmp(s.c_str(),
                            game::EmptyText()) == 0;
 }
 
@@ -68,7 +68,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
 mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing) {
     mfc::CString speaker(mfc::CString::kUnset);   // BriefingSpeakerInto constructs it
     BriefingSpeakerInto(&speaker, briefing);
-    if (!IsEmpty(speaker)) {
+    if (!IsEmpty(speaker.GetString())) {
         std::string prefix = game::briefingwords::VariablePrefix();
         std::string withSpeaker = prefix + speaker;
         std::string withDot = withSpeaker + flowdata::kDot;
@@ -174,9 +174,9 @@ void ShareQuestFile(const char* path, const char* name) {
 }
 
 // The path of the maps folder's file `file` (LoadZoneQuests's).
-stlp::string MapFilePath(const mfc::CString& file) {
+stlp::string MapFilePath(const std::string& file) {
     mfc::CString folder;
-    modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuestsPath);
+    modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuestsPath);
     MapsFolder(&folder);
     std::string full = (folder + file).GetString();
     return stlp::string(full.c_str());

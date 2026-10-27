@@ -90,7 +90,7 @@ void SortNames(NameList& names) {
 
 // A figure the new hero can take: its voice (when the creature's record has the flag) and its
 // prototype's name.
-void AddFigure(VoiceList& voices, NameList& names, const UnitPrototypeRecord* prototype, const mfc::CString& label,
+void AddFigure(VoiceList& voices, NameList& names, const UnitPrototypeRecord* prototype, const std::string& label,
                bool voiced) {
     if (voiced) voices.push_back(MpVoiceEntry{prototype->name, label});
     names.push_back(prototype->name);
@@ -98,9 +98,9 @@ void AddFigure(VoiceList& voices, NameList& names, const UnitPrototypeRecord* pr
 
 // EI_Plugin's test (cmp word [ecx+4], 0x6566 on the name's characters): the 16 bits at +4, as the
 // plugin reads them, past a short name's end included.
-bool ModelNameIsFemale(const mfc::CString& model) {
+bool ModelNameIsFemale(const std::string& model) {
     std::uint16_t word;
-    std::memcpy(&word, model.GetString() + 4, sizeof word);
+    std::memcpy(&word, model.c_str() + 4, sizeof word);
     return word == 0x6566;
 }
 
@@ -273,7 +273,7 @@ void CMpHeroScreen::CreateScreen() {
             // EI_Plugin's fixes: the two name comparisons become one test of
             // the two characters at +4 of the model's name (the word 0x6566, "fe"); a model that
             // has them is a woman's, every other one a man's.
-            isFemale = ModelNameIsFemale(figureModel);
+            isFemale = ModelNameIsFemale(figureModel.GetString());
             isMale = !isFemale;
         }
         if (isMale) {

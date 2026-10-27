@@ -15,6 +15,7 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
+#include <string>
 
 namespace dbfile {
 
@@ -38,12 +39,12 @@ inline void FillStream(CMemoryStream& stream, const void* data, std::uint32_t si
 
 // The loads that take only a folder (quests, prints, acks) open `folder` + "database.res"; false
 // when it cannot be opened.
-inline bool OpenDatabase(LocalResource& resource, const mfc::CString& folder) {
-    return resource.Open(folder + "database.res") != 0;
+inline bool OpenDatabase(LocalResource& resource, const std::string& folder) {
+    return resource.Open((folder + "database.res").c_str()) != 0;
 }
 // Their report of a failed open. The game names "databases.res" here.
-inline int ReportNoDatabase(const mfc::CString& folder) {
-    return game::FatalError("Can't open database file \"%s\"\n", (folder + "databases.res").GetString());
+inline int ReportNoDatabase(const std::string& folder) {
+    return game::FatalError("Can't open database file \"%s\"\n", (folder + "databases.res").c_str());
 }
 
 // One table's pass over the stream: an archive of its own (the out-of-line constructor)

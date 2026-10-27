@@ -27,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <string>
 #include <windows.h>
 
 // The interface's angles and rest rotation that static initialisers set (pi + pi, pi * 0.5, the identity).
@@ -3139,7 +3140,7 @@ public:
     // Built inline by CInterface3D::ShowMessage (`message` set, the message's saved
     // page) and OpenHelp (the topic's): the container, the text, an empty title, the
     // pages' array, the page, the two lists with their sentinels.
-    CHelpWindow(CInterface3D* ui, bool message, const mfc::CString& text, int page)
+    CHelpWindow(CInterface3D* ui, bool message, const std::string& text, int page)
         : CUiContainer(ui), message_(message), text_(text), page_(page) {
         lines_.Construct();
         pulsing_.Construct();    // the allocator proxy, then a sentinel

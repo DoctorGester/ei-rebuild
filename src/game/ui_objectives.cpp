@@ -105,7 +105,7 @@ private:
 using ZoneNames = stlp::vector<mfc::CString>;
 int SizeOf(const ZoneNames& v) { return static_cast<int>(v.end() - v.begin()); }
 // push_back (the instantiation's own overflow).
-void PushBack(ZoneNames* v, const mfc::CString& x) {
+void PushBack(ZoneNames* v, const std::string& x) {
     if (v->Finish() != v->EndOfStorage()) {
         new (v->Finish()) mfc::CString(x);
         ++v->Finish();
@@ -325,7 +325,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             EI_NAN_AUDIT(node->value.mapped);
             if (node->value.mapped == 0.0f) continue;
             text::Split(node->value.key, &parts, '.');
-            if (parts.GetSize() == 3) PushBack(&found, parts[2]);
+            if (parts.GetSize() == 3) PushBack(&found, parts[2].GetString());
         }
         shownQuest_ = -1;
         selectedQuest_ = 0;
@@ -646,7 +646,7 @@ void CObjectivesWindow::CreateScreen() {
                     listed = true;
                     break;
                 }
-            if (!listed) PushBack(zones, zone->name);
+            if (!listed) PushBack(zones, zone->name.GetString());
         }
         if (SizeOf(*zones) == 0 && static_cast<int>(current.size()) != 0)
             PushBack(zones, current);

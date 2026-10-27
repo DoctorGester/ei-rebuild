@@ -328,7 +328,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
 
         {
             mfc::CString name(mfc::CString::kUnset);
-            QualifyName(&name, text);
+            QualifyName(&name, text.GetString());
             qualified = name;
         }
 
@@ -594,7 +594,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
         if (!ok) return 0;
         if (qualify) {
             mfc::CString qualified(mfc::CString::kUnset);
-            QualifyName(&qualified, name);
+            QualifyName(&qualified, name.GetString());
             name = qualified;
         }
         token.Set(NextToken(pos));
@@ -666,7 +666,7 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
         } else {
             {
                 mfc::CString name(mfc::CString::kUnset);
-                QualifyName(&name, text);
+                QualifyName(&name, text.GetString());
                 qualified = name;
             }
             mfc::CArray<ScriptDefinition>& scripts = Scripts();
@@ -751,7 +751,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
         TokensDestruct(&tokens);
         return value;
     };
-    if (!Tokenize(*text, &tokens)) return fail(0);
+    if (!Tokenize((*text).GetString(), &tokens)) return fail(0);
 
     for (ScriptPos pos = tokens.head; pos;) {
         ScriptToken token;

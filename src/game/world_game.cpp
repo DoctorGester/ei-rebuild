@@ -127,8 +127,8 @@ struct LocalRecords {
 // Copies saves\current\<zone>.sav of every visited zone that has to be kept (the current map's
 // zones and bz7g) into the slot folder; a zone whose file could not be copied, and every other
 // zone, is marked not visited ("zs.<zone>" = 0).
-void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& currentFolder, mfc::CString& zone,
-                      const mfc::CString& currentMap, NamedFloatTable* variables) {
+void CopyVisitedZones(const std::string& slotFolder, const std::string& currentFolder, mfc::CString& zone,
+                      const std::string& currentMap, NamedFloatTable* variables) {
     for (int i = 0; i < ZoneRecordCount(); ++i) {
         MapRecord* record = ZoneRecords() + i;
         const char* name = record->name;
@@ -145,15 +145,15 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
             keep = gamecrt::mbscmp(record->name,
                                    kAlwaysCopied) == 0 ||
                    gamecrt::mbscmp(record->allod,
-                                   currentMap.GetString()) == 0;
+                                   currentMap.c_str()) == 0;
         }
         if (keep) {
             zone = RecordName(record);
             bool failed;
             {
-                std::string slotPath = (slotFolder + zone).GetString();
+                std::string slotPath = slotFolder + zone;
                 std::string slotFile = slotPath + kSaveExtension;
-                std::string currentPath = (currentFolder + zone).GetString();
+                std::string currentPath = currentFolder + zone;
                 std::string currentFile = currentPath + kSaveExtension;
                 failed = gameapi::CopyFileA(currentFile.c_str(), slotFile.c_str(), FALSE) == 0;
             }
@@ -273,11 +273,11 @@ const mfc::CString& MoviesFolder() { return TheDiscFolder(); }
 // catch up with the time spent away (one tick per elapsed unit, at most 1000, waking the units
 // around the entrance). Returns LoadSave's result, 0 when the file cannot be opened or is
 // corrupt.
-int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone, mfc::CString& folder,
+int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone, mfc::CString& folder,
                 const char* mapOverride, FileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables_;
     folder.Format(kCurrentFolder, DataFolderText());
-    std::string fileName = (zone + kSaveExtension).GetString();
+    std::string fileName = zone + kSaveExtension;
     bool opened;
     {
         std::string path = (folder + fileName).GetString();
@@ -370,7 +370,7 @@ int __stdcall EnterZone(CParty* records) {
         }
         if (visited) {
             bool failed = false;
-            result = RestoreZone(records, zoneRecord, zone, folder, mapOverride, file, failed);
+            result = RestoreZone(records, zoneRecord, zone.GetString(), folder, mapOverride, file, failed);
             if (failed) return 0;
         } else {
             std::string map = (RecordMap(zoneRecord) + kMapExtension).GetString();

@@ -78,15 +78,15 @@ void CopyFitting(char* to, std::size_t size, const char* from);
 
 // `head` with typed character `character` after it: its UTF-8 bytes with EI_UTF8, else the byte
 // (mfc::operator+(head, char), as the game joined them).
-mfc::CString Typed(const mfc::CString& head, int character);
+mfc::CString Typed(const std::string& head, int character);
 // The bytes typed character `character` takes: its UTF-8 length with EI_UTF8, else 1.
 int TypedLength(int character);
 // The caret's step right from byte offset `at` of `text`: the next character's start (`at` + 1 at or past
 // either end, as the game stepped before clamping).
-int NextCharacter(const mfc::CString& text, int at);
+int NextCharacter(const std::string& text, int at);
 // The caret's step left: the previous character's start (`at` - 1 at or past either end).
-int PreviousCharacter(const mfc::CString& text, int at);
+int PreviousCharacter(const std::string& text, int at);
 // The start of the character holding byte offset `at` (`at` itself without EI_UTF8 or outside the text).
-int CharacterStart(const mfc::CString& text, int at);
+int CharacterStart(const std::string& text, int at);
 
 } // namespace text

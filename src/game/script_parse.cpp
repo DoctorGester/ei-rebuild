@@ -415,8 +415,8 @@ EI_REWRITTEN(0x004CF380, ConstructTokens);
 
 // ---- Lexer --------------------------------------------------------------------------------------
 
-BOOL CScript::Tokenize(const mfc::CString& source, ScriptTokenList* tokens) {
-    const char* p = source;
+BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
+    const char* p = source.c_str();
 
     // RemoveAll.
     for (ScriptTokenList::Node* node = tokens->head; node; node = node->next) node->data.text.~CString();
@@ -514,13 +514,13 @@ EI_REPLACE_METHOD(0x004CF4D0, CScript::ExpectLexeme);
 
 // ---- Names --------------------------------------------------------------------------------------
 
-mfc::CString* CScript::QualifyName(mfc::CString* out, const mfc::CString& name) {
+mfc::CString* CScript::QualifyName(mfc::CString* out, const std::string& name) {
     if (FileCount() == 0) {
         new (out) mfc::CString(name);
         return out;
     }
     std::string qualified;
-    qualified = str::Format("!%i!%s", FileCount(), name.GetString());
+    qualified = str::Format("!%i!%s", FileCount(), name.c_str());
     new (out) mfc::CString(qualified);
     return out;
 }

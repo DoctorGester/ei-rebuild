@@ -74,7 +74,7 @@ MapRecord* PlayerZone() {
 }
 
 // The ways from the player's zone to `target`, the earlier results dropped.
-void SearchWays(CGlobalMap* map, const mfc::CString& target) {
+void SearchWays(CGlobalMap* map, const std::string& target) {
     map->target_ = target;
     map->pathTime_ = 0.0f;
     map->arrivals_.Clear();
@@ -169,7 +169,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         link = zone.link;
         if (!gipat_ || link < 0) {
             // A zone: its objectives and the ways there, to choose from (found or not).
-            SearchWays(this, zone.name);
+            SearchWays(this, zone.name.GetString());
             if (!MayTravelTo(this)) return;
             auto* window = new CObjectivesWindow(interface_);
             window->Setup(target_, &arrivals_, 1, 0);
@@ -178,7 +178,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         }
     }
     // A link: the party goes there at once when there is a way.
-    SearchWays(this, links_.data[link].name);
+    SearchWays(this, links_.data[link].name.GetString());
     if (!found_ || !MayTravelTo(this)) return;
     GamePassTime(Arrival(arrivals_, 0));
     ::RequestZone(links_.data[link].name, 0);

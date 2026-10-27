@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -25,7 +26,7 @@ public:
     // (combat_order_setters.cpp). The animation `name` (case-insensitive) in the
     // database "<figure>.adb" of this manager (the world's map object manager), or null; a missing
     // database is reported to the debug log.
-    FigureAnimation* FindFigureAnimation(const mfc::CString& figure, const char* name);
+    FigureAnimation* FindFigureAnimation(const std::string& figure, const char* name);
 
     using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;
     using ObjectList = mfc::CTypedPtrList<CEngineObject>;

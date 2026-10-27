@@ -13,6 +13,8 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 
+#include <string>
+
 namespace {
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 constexpr int kArmourSlots = 7;
@@ -22,18 +24,18 @@ constexpr int kWeaponSlots = 4;
 CTexture* SkinTexture(const TextureParts* set) { return set ? set->texture : nullptr; }
 
 // `texture` takes `name` and is loaded again (the common tail).
-void Reload(CTexture* texture, const mfc::CString& name) {
-    texture->name_ = name.GetString();   // operator=(LPCTSTR)
+void Reload(CTexture* texture, const std::string& name) {
+    texture->name_ = name.c_str();   // operator=(LPCTSTR)
     texture->flags_ &= ~kTextureLoaded;
     texture->Manager()->LoadTexture(texture);
 }
 
 // The test: a new skin, or a name that differs from the texture's (the texture read
 // unchecked when `checkTexture` is false).
-bool NeedsReload(void* composed, CTexture* texture, const mfc::CString& name, bool checkTexture) {
+bool NeedsReload(void* composed, CTexture* texture, const std::string& name, bool checkTexture) {
     if (composed) return true;
     if (checkTexture && !texture) return false;
-    return gamecrt::mbscmp(name.GetString(),
+    return gamecrt::mbscmp(name.c_str(),
                            texture->GetName()) != 0;
 }
 } // namespace
@@ -44,9 +46,9 @@ int CUnitClientSpecific::RefreshEquipment() {
     if (unit->type_ != kUnitTypeHero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return 1;
     auto* half = unit->Object3D()->ClientSpecific();
     CTexture* detailed = SkinTexture(half->partSets[0]);
-    if (NeedsReload(ComposeSkin(1, &name), detailed, name, false)) Reload(detailed, name);
+    if (NeedsReload(ComposeSkin(1, &name), detailed, name.GetString(), false)) Reload(detailed, name.GetString());
     CTexture* simple = SkinTexture(half->partSets[1]);
-    if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
+    if (NeedsReload(ComposeSkin(0, &name), simple, name.GetString(), true) && simple) Reload(simple, name.GetString());
     return 1;
 }
 EI_REWRITTEN(0x00536100, CUnitClientSpecific::RefreshEquipment);
@@ -56,7 +58,7 @@ int CUnitClientSpecific::RefreshModel() {
     mfc::CString name;
     auto* half = unit->Object3D()->ClientSpecific();
     CTexture* simple = SkinTexture(half->partSets[1]);
-    if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
+    if (NeedsReload(ComposeSkin(0, &name), simple, name.GetString(), true) && simple) Reload(simple, name.GetString());
     return 1;
 }
 EI_REWRITTEN(0x00536220, CUnitClientSpecific::RefreshModel);

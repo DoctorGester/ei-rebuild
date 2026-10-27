@@ -107,9 +107,9 @@ void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(fr
 void AppendText(char* to, const char* from) { CopyText(to + std::strlen(to), from); }
 
 // "<model prefix><name>.mmp" into `buffer`.
-void AppendName(const UnitModelRecord* model, const mfc::CString& name, char* buffer) {
+void AppendName(const UnitModelRecord* model, const std::string& name, char* buffer) {
     CopyText(buffer, ModelPrefix(model));
-    AppendText(buffer, name);
+    AppendText(buffer, name.c_str());
     AppendText(buffer, ".mmp");
 }
 
@@ -118,7 +118,7 @@ void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t i
     {
         mfc::CString name;
         ArmorModelName(&name, id >> 16, id & 0xFFFF);
-        AppendName(model, name, buffer);
+        AppendName(model, name.GetString(), buffer);
     }
     set.textures.SetAtGrow(set.textures.GetSize(), buffer);
 }
@@ -156,7 +156,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
         mfc::CString name;
         const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(id & 0xFFFF);
         WeaponRecordModelName(&name, weapon, material);
-        AppendName(model, name, buffer);
+        AppendName(model, name.GetString(), buffer);
     }
     set.textures.SetAtGrow(set.textures.GetSize(), buffer);
 }

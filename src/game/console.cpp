@@ -51,7 +51,7 @@ GameOStream& GameOStream::operator<<(int a0) { PutLong(static_cast<long>(a0)); r
 GameOStream& GameOStream::operator<<(double v) { PutDouble(v); return *this; }
 GameOStream& GameOStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return *this; }
 
-CommandHandler& Command(CommandMap* map, const mfc::CString& name) { return map->Subscript(name); }
+CommandHandler& Command(CommandMap* map, const std::string& name) { return map->Subscript(name); }
 
 namespace {
 
@@ -178,8 +178,8 @@ void __fastcall Execute(const char* text) {
         app::QuitGame(0);
         return;
     }
-    if (Command(PublicCommands(), command)) {
-        (Command(PublicCommands(), command))(&args);
+    if (Command(PublicCommands(), command.GetString())) {
+        (Command(PublicCommands(), command.GetString()))(&args);
         return;
     }
     if (!g_cheatEnabled) {
@@ -191,8 +191,8 @@ void __fastcall Execute(const char* text) {
             PrintLine("Activated!");
             return;
         }
-    } else if (Command(CheatCommands(), command)) {
-        if (!NetworkGame()) (Command(CheatCommands(), command))(&args);
+    } else if (Command(CheatCommands(), command.GetString())) {
+        if (!NetworkGame()) (Command(CheatCommands(), command.GetString()))(&args);
         return;
     }
     PrintLine("Unknown command");

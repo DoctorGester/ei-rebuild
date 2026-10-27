@@ -111,8 +111,8 @@ int ScaledExperience(const CUnit* unit, float amount) {
     return x87::RoundToInt(scaled);
 }
 
-bool IsQuestVariable(const mfc::CString& name) {
-    return name.GetLength() > 2 && std::strncmp(name, QuestPrefix(), 2) == 0;
+bool IsQuestVariable(const std::string& name) {
+    return static_cast<int>(name.size()) > 2 && std::strncmp(name.c_str(), QuestPrefix(), 2) == 0;
 }
 
 } // namespace

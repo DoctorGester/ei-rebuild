@@ -75,7 +75,7 @@ constexpr int kAllodIsland = 3;        // the island model
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
 MapRecord* ZoneAt(int index) { return TheMapDatabase()->maps.data + index; }
 
-bool NonEmpty(const mfc::CString& text) { return text.GetLength() != 0; }
+bool NonEmpty(const std::string& text) { return text.size() != 0; }
 
 // --- Called through the game ------------------------------------------------------------------------------
 
@@ -270,7 +270,7 @@ void CGlobalMap::CreateScreen() {
     // The game zones of the allod that have a marker, with the player's "z.<zone>" state.
     for (int i = 0; i < allod->maps.size; ++i) {
         MapRecord* zone = ZoneAt(allod->maps.data[i]);
-        if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
+        if (zone->kind != 0 || !NonEmpty(zone->figure.GetString())) continue;
         zones_.SetAtGrowZone(zones_.size, &zoneTemplate);
         variable = str::Format("z.%s", zone->name.GetString());
         zones_.data[zoneCount_].link = -1;
@@ -340,7 +340,7 @@ void CGlobalMap::CreateScreen() {
             double two = D(2.0f /*0073CDB8*/);
             EI_NAN_AUDIT(state);
             if (state != two) continue;
-            if (!NonEmpty(way->figure)) continue;
+            if (!NonEmpty(way->figure.GetString())) continue;
             if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
             int n = linkCount_;
             SetPlaceCount(links_, links_.size + 1);

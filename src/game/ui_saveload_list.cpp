@@ -45,7 +45,7 @@ constexpr int kMinutesPerDay = 1440;
 
 
 // The width of `text` in interface font `font` (CInterface3D::TextExtent).
-int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
+int TextWidth(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
     return size.cx;
@@ -81,7 +81,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
             // The caret, unless the save keeps its name (the quick and the automatic saves).
             if (isSave_ && !SameFolder(entry.folder_, kQuickFolder) && !SameFolder(entry.folder_, kAutoFolderA) &&
                 !SameFolder(entry.folder_, kAutoFolderB)) {
-                const int width = TextWidth(interface_, name.Left(cursor_), kFont);
+                const int width = TextWidth(interface_, name.Left(cursor_).GetString(), kFont);
                 if (width < titleRect.right - titleRect.left) {
                     mfc::impl::CPen pen(PS_SOLID, 1, kCaretColour);
                     mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);

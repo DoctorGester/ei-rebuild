@@ -39,15 +39,15 @@ bool OpenText(CTextManager* self, const char* key) { return self->Open(key) != 0
 
 // The record's name as used in keys: spaces become '_', lower case. `name` is a string field of a database record
 // that may be null (reading it then faults).
-void KeyName(mfc::CString& out, const mfc::CString& name) {
+void KeyName(mfc::CString& out, const std::string& name) {
     out = name;
     text::ReplaceChar(&out, ' ', '_');
     out.MakeLower();
 }
 
 // Looks up `key`; when found, reads the name line and the description.
-void ReadItemText(CTextManager* self, const mfc::CString& key, mfc::CString* name, mfc::CString* description) {
-    if (OpenText(self, key)) {
+void ReadItemText(CTextManager* self, const std::string& key, mfc::CString* name, mfc::CString* description) {
+    if (OpenText(self, key.c_str())) {
         self->ReadLine(name, 1);
         self->ReadToHash(description, 1);
     }
@@ -105,33 +105,33 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
     const char* kindKey = nullptr;
     switch (item->type_) {
     case kItemWeapon: {
-        KeyName(materialName, MaterialAt(materialIndex)->key);
-        KeyName(recordName, WeaponAt(prototypeIndex)->text04);
-        ReadItemText(this, mfc::CString(kWeapon) + recordName + kSpace + materialName, name, description);
+        KeyName(materialName, MaterialAt(materialIndex)->key.GetString());
+        KeyName(recordName, WeaponAt(prototypeIndex)->text04.GetString());
+        ReadItemText(this, (mfc::CString(kWeapon) + recordName + kSpace + materialName).GetString(), name, description);
         kindKey = "item_weapon";
         break;
     }
     case kItemArmor: {
-        KeyName(materialName, MaterialAt(materialIndex)->key);
+        KeyName(materialName, MaterialAt(materialIndex)->key.GetString());
         const ArmorRecord* armor = ArmorAt(prototypeIndex);
-        KeyName(recordName, armor->text04);
-        ReadItemText(this, mfc::CString(kArmor) + recordName + kSpace + materialName, name, description);
+        KeyName(recordName, armor->text04.GetString());
+        ReadItemText(this, (mfc::CString(kArmor) + recordName + kSpace + materialName).GetString(), name, description);
         kindKey = IsUpperArmor(armor) ? "item_armor_upper" : "item_armor_lower";
         break;
     }
     case kItemQuick: {
-        KeyName(recordName, QuickItemAt(prototypeIndex)->text04);
+        KeyName(recordName, QuickItemAt(prototypeIndex)->text04.GetString());
         // A quick item whose prototype has no material (+0x10 "none") is a potion.
         const ItemRecordHead* prototype = item->GetPrototype();
         if (prototype && gamecrt::mbsicmp(static_cast<const char*>(
                                              prototype->materialClass),
                                          kNoMaterial) == 0) {
-            ReadItemText(this, mfc::CString(kQuickItem) + recordName, name, description);
+            ReadItemText(this, (mfc::CString(kQuickItem) + recordName).GetString(), name, description);
             kindKey = "item_potion";
             break;
         }
-        KeyName(materialName, MaterialAt(materialIndex)->key);
-        ReadItemText(this, mfc::CString(kQuickItem) + recordName + kSpace + materialName, name, description);
+        KeyName(materialName, MaterialAt(materialIndex)->key.GetString());
+        ReadItemText(this, (mfc::CString(kQuickItem) + recordName + kSpace + materialName).GetString(), name, description);
         // Only wands (category 5) get a kind; their name is followed by the spell's name.
         if (item->GetCategory() != 5) break;
         if (CSpell* spell = item->spell_) {
@@ -150,40 +150,40 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
     case kItemLoot: {
         auto* loot = AsLoot(item);
         if (loot->kind_ == 0) {
-            KeyName(recordName, LootAt(prototypeIndex)->text04);
-            ReadItemText(this, mfc::CString(kLootItem) + recordName, name, description);
+            KeyName(recordName, LootAt(prototypeIndex)->text04.GetString());
+            ReadItemText(this, (mfc::CString(kLootItem) + recordName).GetString(), name, description);
             kindKey = "item_loot";
         } else if (loot->kind_ == 1) {
-            KeyName(materialName, MaterialAt(loot->index_)->key);
-            ReadItemText(this, mfc::CString(kMaterial) + materialName, name, description);
+            KeyName(materialName, MaterialAt(loot->index_)->key.GetString());
+            ReadItemText(this, (mfc::CString(kMaterial) + materialName).GetString(), name, description);
             kindKey = "item_material";
         } else if (loot->kind_ == 2) {
             switch (loot->recordType_) {
             case 0:
-                KeyName(recordName, WeaponAt(loot->index_)->text04);
-                ReadItemText(this, mfc::CString(kInstruction) + recordName, name, description);
+                KeyName(recordName, WeaponAt(loot->index_)->text04.GetString());
+                ReadItemText(this, (mfc::CString(kInstruction) + recordName).GetString(), name, description);
                 kindKey = "item_weapon_shape";
                 break;
             case 1: {
                 const ArmorRecord* armor = ArmorAt(loot->index_);
-                KeyName(recordName, armor->text04);
-                ReadItemText(this, mfc::CString(kInstruction) + recordName, name, description);
+                KeyName(recordName, armor->text04.GetString());
+                ReadItemText(this, (mfc::CString(kInstruction) + recordName).GetString(), name, description);
                 kindKey = IsUpperArmor(armor) ? "item_armor_shape_upper" : "item_armor_shape_lower";
                 break;
             }
             case 2:
-                KeyName(recordName, QuickItemAt(loot->index_)->text04);
-                ReadItemText(this, mfc::CString(kInstruction) + recordName, name, description);
+                KeyName(recordName, QuickItemAt(loot->index_)->text04.GetString());
+                ReadItemText(this, (mfc::CString(kInstruction) + recordName).GetString(), name, description);
                 kindKey = "item_wand_shape";
                 break;
             case 3:
-                ReadItemText(this, mfc::CString(kSpell) + SpellAt(loot->index_)->code, name,
+                ReadItemText(this, (mfc::CString(kSpell) + SpellAt(loot->index_)->code).GetString(), name,
                              description);
                 kindKey = "item_prototype";
                 break;
             case 4: {
                 // The modifier's two-letter code is inline in the record (+0x04).
-                ReadItemText(this, mfc::CString(kModifier) + SpellModifierAt(loot->index_)->code, name, description);
+                ReadItemText(this, (mfc::CString(kModifier) + SpellModifierAt(loot->index_)->code).GetString(), name, description);
                 kindKey = "item_modifier";
                 break;
             }
@@ -195,14 +195,14 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
     case kItemSpell: {
         CSpell* spell = item->spell_;
         if (!spell) break;
-        ReadItemText(this, mfc::CString(kSpell) + spell->GetPrototype()->code, name, description);
+        ReadItemText(this, (mfc::CString(kSpell) + spell->GetPrototype()->code).GetString(), name, description);
         kindKey = "item_spell";
         break;
     }
     case kItemQuest: {
         // 0x3009 is the quest item ("questitem"); its table is Loot in item_db.h.
-        KeyName(recordName, QuestItemAt(prototypeIndex)->text04);
-        ReadItemText(this, mfc::CString(kQuestItem) + recordName, name, description);
+        KeyName(recordName, QuestItemAt(prototypeIndex)->text04.GetString());
+        ReadItemText(this, (mfc::CString(kQuestItem) + recordName).GetString(), name, description);
         kindKey = "item_quest";
         break;
     }
