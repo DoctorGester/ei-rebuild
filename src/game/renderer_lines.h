@@ -11,9 +11,9 @@
 #include <cstddef>
 #include <cstdint>
 
-class CSceneRenderer;       // model.h
-class CTextureDevice;       // texture.h
-class CTransformPipeline;   // model.h
+class CSceneRenderer;
+class CTextureDevice;
+class CTransformPipeline;
 
 // A pre-transformed vertex (FVF 0xC4: XYZRHW | DIFFUSE | SPECULAR).
 struct LineVertex {
@@ -46,7 +46,7 @@ static_assert(sizeof(LineBuffer) == 0x10);
 extern LineBuffer g_lineVertices;
 inline LineBuffer& LineVertices() { return g_lineVertices; }
 
-// Four points of a line list as the transform object takes them (0x40 bytes).
+// Four points of a line list as the transform object takes them.
 struct LinePacket {
     float x[4];
     float y[4];
@@ -55,15 +55,14 @@ struct LinePacket {
 };
 static_assert(sizeof(LinePacket) == 0x40);
 
-// A line list (0x20 bytes; line_batch.cpp): the figure parts' debug bounds and the
-// world client's lists. The points sit four to a packet; the unused points of the last
-// packet repeat the last point.
+// A line list (line_batch.cpp): the figure parts' debug bounds and the world client's lists. The points sit
+// four to a packet; the unused points of the last packet repeat the last point.
 struct LineBatch {
-    int spare00;                             // +0x00 -1 (the destructor); nothing reads it
-    lib::AlignedArray<LinePacket> packets;   // +0x04
-    int count;                               // +0x14 points
-    std::uint32_t colour;                    // +0x18
-    int spare1C;                             // +0x1C nothing reads it
+    int spare00;                             // -1 (the destructor); nothing reads it
+    lib::AlignedArray<LinePacket> packets;
+    int count;                               // points
+    std::uint32_t colour;
+    int spare1C;                             // nothing reads it
 
     // Appends the point (x, y, z; w 1), with a new packet when the last one is
     // full, and repeats it through the rest of its packet. Returns the new count.

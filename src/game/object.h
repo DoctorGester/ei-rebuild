@@ -24,23 +24,23 @@ int __fastcall UnitGetFlag274(const CUnit* unit);            // slot 55
 float __fastcall UnitGetValue328(const CUnit* unit);         // slot 60
 
 // Slot 7 (GetName) of the base CFigure table (the figure classes' GetName) and of
-// CFakeFigure: CFigureMesh::name_ (+0x120) / SceneMesh::name (+0x94).
+// CFakeFigure: CFigureMesh::name_ / SceneMesh::name.
 const char* __fastcall FigureGetName(const CEngineObject* figure);
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure);
 
 // "CHoover" (class id 0x1F): no fields of its own seen. object.cpp.
-class CItem;    // item.h
-class CUnit;    // unit.h
-class CWorld;   // world.h
+class CItem;
+class CUnit;
+class CWorld;
 class CHoover final : public CEngineObject {
 public:
     CHoover();              // the engine object's fields cleared
     ~CHoover() override;
 
-    int Create() override;                  // 1
+    int Create() override;
     void Destroy() override {}              // empty
-    const char* GetClassName() override;    // "CHoover"
-    int GetClassId() override;              // 0x1F
+    const char* GetClassName() override;
+    int GetClassId() override;
 
     // (hoover_loot.cpp; `this`, the world's hoover, is not read): the loot of the
     // dead `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.

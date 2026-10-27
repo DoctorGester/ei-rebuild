@@ -50,13 +50,13 @@ constexpr int kStateConnecting = 0;
 constexpr int kStateLoggedIn = 1;
 constexpr int kStateSendingCamera = 2;
 
-// The login request (message 0, 0x88 bytes). The original copies the two texts into stack buffers
+// The login request (message 0). The original copies the two texts into stack buffers
 // and sends the bytes after them uninitialised; here they are zero.
 struct LoginRequest {
     int version;
     char name[64];
     char password[64];
-    std::uint32_t partyId; // the player's partyId_ (+0xFC)
+    std::uint32_t partyId; // the player's partyId_
 };
 static_assert(sizeof(LoginRequest) == 0x88);
 
@@ -73,8 +73,7 @@ const char* TextUnknownType() { return "Wrong packet ID prevID=%x curID=%x\n"; }
 
 void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 
-// A CString the stream reader constructs in place (CStream::ReadString), destroyed at the end of
-// the scope.
+// A CString the stream reader constructs in place (CStream::ReadString), destroyed at the end of the scope.
 struct TextBuffer {
     mfc::CString text{mfc::CString::kUnset};
     mfc::CString* Get() { return &text; }
@@ -82,9 +81,8 @@ struct TextBuffer {
 
 const char* QuestPrefix() { return "q."; }
 
-// The client world's readers of the zone (Rebirth-patched) and two other state blocks
-// all RET 4 with the block.
-// The quest log passes (list, a, b) to its top screen's slot 28.
+// The client world's readers of the zone (Rebirth-patched) and two other state blocks all RET 4 with the
+// block. The quest log passes (list, a, b) to its top screen's slot 28.
 void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
 constexpr int kListBlockSize = 10;
 
@@ -581,7 +579,7 @@ int CPlayerClient::OnNewObject() {
     int prototypeValue;
     in_.Read(&prototypeValue, 4);
 
-    // The world's slot 19 is its object manager (+0x40).
+    // The world's slot 19 is its object manager.
     auto* world = Owner()->WorldContext();
     CEngineObject* created = world->manager40_->CreateObject(header.type, header.id);
     if (created == nullptr) return 0;
@@ -783,8 +781,7 @@ namespace {
 constexpr std::uint32_t kUnitInClientParty = 0x400000;
 constexpr int kSessionKindSingle = 1;
 
-// The client's party unit ids (hash_set<int>): insert_unique, find,
-// clear.
+// The client's party unit ids (hash_set<int>): insert_unique, find, clear.
 using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 // The set, empty at the start: built by the static initialiser in the list's order and destroyed by the exit
 // function it registers

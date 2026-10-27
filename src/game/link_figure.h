@@ -1,10 +1,9 @@
 #pragma once
 
-// The 3D library's figure meshes and their loading from .lnk link files. A
-// CLinkFigureLoader (model.h; one per world view) loads a figure by name: its .lnk file
-// lists the parts, each a FIG / FIG8 (or older headerless) record in figures.res / menus.res, morphed
-// by three coefficients and appended to one CLinkMesh. See docs/notes/models.md, "Link figures".
-// Names provisional.
+// The 3D library's figure meshes and their loading from .lnk link files. A CLinkFigureLoader (model.h; one
+// per world view) loads a figure by name: its .lnk file lists the parts, each a FIG / FIG8 (or older
+// headerless) record in figures.res / menus.res, morphed by three coefficients and appended to one CLinkMesh.
+// See docs/notes/models.md, "Link figures". Names provisional.
 
 #include "figure_mesh.h"   // AlignedArray, VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
 #include "model.h"         // ClipBounds, TriangleIndexArray, CLinkFigureLoader
@@ -19,7 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class CLight;        // spell.h
+class CLight;
 
 // The figure mesh drawer's base (an engine object with the mesh it draws).
 // No object of the base alone exists.
@@ -28,36 +27,29 @@ struct FigureDrawerBase : CEngineObject {
     CFigureMesh* mesh_;         // the mesh it draws
 
 protected:
-    // The engine object's fields (no references, id -1, no owner), no mesh.
     FigureDrawerBase();
-    // No mesh, then the engine object's.
     ~FigureDrawerBase() override;
 };
 
 // The drawer of a figure mesh (CFigureMesh::drawer_). It is an engine object of class 0x36,
-// "CFigureClientSpecific" (0x3C bytes): the client-specific manager's factory makes one
+// "CFigureClientSpecific": the client-specific manager's factory makes one
 // for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure. A real virtual
 // class. flags_ gets the bits
 // of the animated-mesh flag word when the mesh is animated.
 struct FigureMeshDrawer : FigureDrawerBase {
-    // figure_part_draw_plain.cpp.
     int DrawPlain(CTextureDevice* device, int, int, int, int alpha, RECT* rect);
-    // figure_part_draw.cpp.
     int DrawLit(CTextureDevice* device, const FigureLights* lights, CMaterial* material, int alpha, RECT* rect,
                 CTexture* textureA, CTexture* textureB);
-    // figure_part_bounds.cpp.
     void DrawBounds(CSceneRenderer* renderer);
 
-    // figure_drawer.cpp. FigureDrawerBase's constructor (the class adds nothing).
     FigureMeshDrawer();
-    // No flags, then the base's destructor.
     ~FigureMeshDrawer() override;
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
-    int Create() override;                 // CreateDrawer
-    void Destroy() override;               // DestroyDrawer
+    int Create() override;
+    void Destroy() override;
     const char* GetClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
-    int GetClassId() override;             // 0x36
+    int GetClassId() override;
 
     // No flags; spare30_ becomes (1, 1, 1). Returns 1.
     int CreateDrawer();
@@ -76,10 +68,10 @@ struct FigureMeshDrawer : FigureDrawerBase {
 static_assert(offsetof(FigureMeshDrawer, mesh_) == 0x1C && offsetof(FigureMeshDrawer, screen_) == 0x20);
 static_assert(offsetof(FigureMeshDrawer, spare30_) == 0x30 && sizeof(FigureMeshDrawer) == 0x3C);
 
-class CTextureDevice;   // texture.h
-class CTexture;         // texture.h
+class CTextureDevice;
+class CTexture;
 
-struct CDXSurface;   // texture.h
+struct CDXSurface;
 
 // A part's header in the mesh's header map (map<string, LinkPartHeader>; 0x50 bytes, zeroed when the
 // map inserts it).
@@ -121,8 +113,6 @@ static_assert(sizeof(LinkHeaderMap) == 0x0C && sizeof(LinkHeaderMap::Node) == 0x
 class CLinkMeshBase {
 public:
 
-    // Deleting destructor. Counted users delete
-    // the mesh when its last reference goes.
     virtual ~CLinkMeshBase();
     // ScreenRect_ = the union of the parts' non-empty screen rectangles (inverted
     // +-2000000000 when there is none).
@@ -162,15 +152,13 @@ public:
     virtual int DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                  lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
                                  std::uint32_t u, std::uint32_t v) = 0;
-    // The shadow of part `name`: its points projected with
-    // `matrix` (the part's per-vertex offsets added) into `points`, growing `bounds`; then its
-    // projected points `pixels` rasterised into the shadow target. Both return the point count (0
-    // when there is no such part).
+    // The shadow of part `name`: its points projected with `matrix` (the part's per-vertex offsets added)
+    // into `points`, growing `bounds`; then its projected points `pixels` rasterised into the shadow target.
+    // Both return the point count (0 when there is no such part).
     virtual int ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
                             Vector2* points, float* bounds) = 0;
     virtual int RasterisePart(const stlp::string* name, const RasterTriangle::Point* pixels, RasterTarget* target) = 0;
 
-    // The deleting destructors free into the game's heap.
     static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
     int refCount_;
@@ -178,18 +166,14 @@ public:
     LinkHeaderMap headers_;
 
 protected:
-    // The part's reference count: none, the name copied, no headers.
     explicit CLinkMeshBase(const stlp::string* name);
 };
 
-// A figure's mesh (0xB0 bytes): the parts' elements concatenated in the arrays. A real virtual class.
+// A figure's mesh: the parts' elements concatenated in the arrays. A real virtual class.
 // The draws go through the device (link_mesh_draw.cpp).
 class CLinkMesh : public CLinkMeshBase {
 public:
-    // The base's part, the coefficients stored, the arrays and the ranges map empty, the pipeline taken
-    // from the loader's renderer.
     CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u);
-    // The ranges map, the arrays (indices first), then the base's destructor.
     ~CLinkMesh() override;
 
     // Every slot of the base.
@@ -267,8 +251,7 @@ static_assert(offsetof(CLinkMesh, ranges_) == 0x9C);
 static_assert(offsetof(CLinkMesh, pipeline_) == 0xAC);
 static_assert(sizeof(CLinkMesh) == 0xB0);
 
-// link_loader.cpp. A length-prefixed string of a
-// .lnk file (a four-byte length, then the characters) at *cursor; `out` gets the characters up to
-// the first zero byte (copied through a static buffer) and keeps its old text for
-// length 0. The cursor moves past the record.
+// A length-prefixed string of a .lnk file (a four-byte length, then the characters) at *cursor; `out` gets
+// the characters up to the first zero byte (copied through a static buffer) and keeps its old text for length
+// 0. The cursor moves past the record.
 void __fastcall ReadLinkString(stlp::string* out, const char** cursor);

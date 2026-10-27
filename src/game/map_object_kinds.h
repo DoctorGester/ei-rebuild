@@ -15,13 +15,10 @@
 template <int ClassId>
 class PlainMapObject : public CMapObject {
 public:
-    // The map object's constructor, then its Create called directly.
     PlainMapObject();
-    // The map object's Destroy, then its destructor.
     ~PlainMapObject() override;
-    // The deleting destructor frees into the game's heap.
     const char* GetClassName() override;   // 11: the class name
-    int GetClassId() override;             // 12: ClassId
+    int GetClassId() override;
 };
 
 // Constructor, destructor, deleting destructor; slots 11 / 12.

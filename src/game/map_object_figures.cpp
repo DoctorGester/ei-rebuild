@@ -56,7 +56,6 @@ float Sum3(float a, float b, float c) { return static_cast<float>((static_cast<d
 
 } // namespace
 
-// --- AlignedPtrArray --------------------------------------------------------------------------
 
 // SetAtGrow / SetSize. The original's SetAtGrow(-1) stores through the null array it has just freed; ours does
 // too (data[-1] of null), both fault.
@@ -64,7 +63,6 @@ EI_REWRITTEN(0x00519E80, AlignedPtrArray::SetAtGrow);
 
 EI_REWRITTEN(0x00519D70, AlignedPtrArray::SetSize);
 
-// --- Bounds -----------------------------------------------------------------------------------
 
 namespace {
 // The box being grown, as float bits (the original selects bits, never loading them twice).
@@ -143,7 +141,6 @@ std::uint32_t CObject3D::ComputeBounds() {
 }
 EI_REWRITTEN(0x00518310, CObject3D::ComputeBounds);
 
-// --- Scale ------------------------------------------------------------------------------------
 
 std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
     EI_NAN_AUDIT(scale.x, scale.y, scale.z, newScale[0], newScale[1], newScale[2]);
@@ -175,7 +172,6 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
 }
 EI_REWRITTEN(0x00517700, CObject3D::SetFigureScale);
 
-// --- Parts ------------------------------------------------------------------------------------
 
 int CObject3D::AddPart(CFigureMesh* part) {
     for (int k = 0; k < parts.size; ++k)
@@ -189,7 +185,6 @@ int CObject3D::AddPart(CFigureMesh* part) {
 }
 EI_REWRITTEN(0x005164B0, CObject3D::AddPart);
 
-// --- Loading ----------------------------------------------------------------------------------
 
 std::uintptr_t CObject3D::LoadFigures() {
     if (flags_ & kFlagFiguresLoaded) return 1;

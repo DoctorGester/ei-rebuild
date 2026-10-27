@@ -40,7 +40,6 @@ void ResetFields(CMaterial* m) {
 
 } // namespace
 
-// --- CMaterial -------------------------------------------------------------------------------------
 
 CMaterial::CMaterial() {
     ClearFields();
@@ -81,7 +80,6 @@ EI_REWRITTEN(0x0068DD10, CMaterial::GetClassId);
 EI_REWRITTEN(0x0068DF90, CMaterial::Create);
 EI_REWRITTEN(0x0068E040, CMaterial::Destroy);
 
-// --- CMaterialManager ------------------------------------------------------------------------------
 
 namespace {
 

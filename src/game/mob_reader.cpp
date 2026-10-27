@@ -97,7 +97,7 @@ void ReadWeather(Chunk* parent) {
     server->ChangeWind(&direction, limit >= strength ? strength : limit);
 }
 
-// 0xDDDDDDD1: the relation table (0x1000 bytes) and the player names.
+// 0xDDDDDDD1: the relation table and the player names.
 void ReadPlayers(Chunk* parent, ZoneDiplomacy* diplomacy) {
     Chunk chunk(parent);
     chunk.ReadHeader();

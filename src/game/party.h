@@ -21,14 +21,14 @@ using BOOL = int;
 
 class CItem;
 class CItemConstructor;
-struct CItemManager;   // item.h
+struct CItemManager;
 class CParty;
 class CResourceManager;
 class CSpellConstructor;
 class CSpellManager;
 class ChunkArchive;
-class CStream;   // core_streams.h
-struct PartyUnitRecord;   // unit.h
+class CStream;
+struct PartyUnitRecord;
 
 // A party's item list (CParty::items_) and a unit record's (PartyUnitRecord::weapons, ...): an
 // aligned array of item pointers.
@@ -73,7 +73,6 @@ public:
     // A copy of `source`, as Assign makes it (it reads its source non-const: saving it
     // makes its managers when it has none).
     explicit CParty(CParty& source);
-    // Deleting destructor: Clear(1, 1), Destroy, then the members.
     ~CParty() override;
     CParty& operator=(const CParty&) = delete;
 
@@ -83,7 +82,7 @@ public:
     // Empties the record array, releases the items and frees their storage, then drops
     // (count, delete) the item constructor, spell constructor, item manager and spell manager.
     void Destroy() override;
-    const char* GetClassName() override;   // "CParty"
+    const char* GetClassName() override;
     int GetClassId() override;             // class id 9
 
     CItemConstructor* ItemConstructor() override;
@@ -112,7 +111,7 @@ public:
 
     // Appends a unit record: Create when there is no item manager; a constructed record assigned to the new
     // entry (its statistics are the stack's leftover bytes); `name` as text 1 and its text key (-1 when
-    // empty) as the key (+0x1C), `prototype` as text 5, `extra` as text 0; then FillFromPrototype. Returns
+    // empty) as the key, `prototype` as text 5, `extra` as text 0; then FillFromPrototype. Returns
     // the record.
     PartyUnitRecord* AddMember(const char* name, const char* prototype, const char* extra);
     // Gives `record` what its prototype (text 5) says: text 2 from its model, the NPC statistics, the three
@@ -129,10 +128,10 @@ public:
     BOOL EquipFromPrototype(PartyUnitRecord* record);
     // The record of the unit with id `unitId`, or null.
     PartyUnitRecord* Find(int unitId) const;
-    // Destroys the first record whose key (+0x1C) is `key` and closes the gap;
+    // Destroys the first record whose key is `key` and closes the gap;
     // 1 when there was one, else 0.
     BOOL RemoveMember(int key);
-    // When the party's zone (+0x68) is an edge zone (map.txt kind 1), every exit's target zone of kind 0
+    // When the party's zone is an edge zone (map.txt kind 1), every exit's target zone of kind 0
     // gets its variable "z.<name>" set to 1 unless it is already nonzero (0 or NaN is set).
     void OpenEdgeExits();
 
@@ -156,7 +155,7 @@ public:
     // (party_manager.cpp), so its check runs.
     void ArchiveParty(ChunkArchive* ar);
     // Clear(1, 0), then `source` saved into a memory stream and loaded back into
-    // this party (variables included). Returns this.
+    // this party (variables included).
     CParty* Assign(CParty* source);
     // The money (+0x50; the camp's deals and the trade read it).
     int& Money() { return money_; }

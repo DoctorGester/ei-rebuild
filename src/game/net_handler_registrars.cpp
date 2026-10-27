@@ -36,8 +36,7 @@ void SessionBase::RegisterPartyHandler(int channel, void* handler) {
 void SessionBase::RegisterMemberHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, PartyMemberMessage::Create);
 }
-// Client: the map, the variables, the files, the file chunks
-// the awards, the trade.
+// Client: the map, the variables, the files, the file chunks the awards, the trade.
 void SessionBase::RegisterMapHandler(int channel, void* handler) {
     RegisterHandler(this, channel, handler, MapMessage::Create);
 }

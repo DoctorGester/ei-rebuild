@@ -1,7 +1,6 @@
 // The loads of prints.db and acks.db from database.res, once at startup.
-// Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are the
-// vanilla functions and install in the vanilla launch only (rule 9). As unit_db_load.cpp; see
-// docs/notes/models.md.
+// Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are the vanilla
+// functions and install in the vanilla launch only (rule 9). As unit_db_load.cpp; see docs/notes/models.md.
 #include "acks_db.h"
 #include "model.h"
 

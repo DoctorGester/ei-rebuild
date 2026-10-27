@@ -1,20 +1,14 @@
 #pragma once
 
-// The standalone resource layer: Rebirth's mod-folder patches, which addon.dll v0.12.4.2 applies
-// around the selected mod (HKCU\Software\Gipat.Ru\EI_Starter\Settings "AddonPath", a '\' added):
-// - Maps (10 sites): every maps-folder user names its file first; the maps folder is the
-//   mod's folder when the mod's Maps\ held that name at start, else the game's.
-// - ResOverride (25 sites): the mod's config.reg [Res] lists archives that come before (or, with '-',
-//   instead of) the game's twelve archives, plus extra figure and texture archives; every
-//   CMappedResource::GetFile and ListFiles goes through addon (its vtable slot and all their calls).
-// - MoviesPatch (the BinkOpen import), CameraPatch (the camera path's CFile::Open), StreamPatch (the stream file's
-//   path): the mod's Movies\, Camera\ and Stream\ copy of the file when there is one.
-// In a hooked Rebirth launch addon does all of it (the patched functions stay original there) and a
-// vanilla launch has no mod, so the layer runs in the standalone image only, behind the flags. With
-// the Standard mod (no folders, no [Res]) everything passes through, except two things addon changes
-// for every archive: a failed GetFile of "t\<name>" / "s\<name>" is tried again as "<name>", and
-// ListFiles appends to the caller's array instead of refilling it. docs/notes/rebirth.md, "Resources
-// and paths"; addon's code: its scratch disassembly under build.
+// The standalone resource layer: Rebirth's mod-folder patches, which addon.dll v0.12.4.2 applies around the
+// selected mod (HKCU\Software\Gipat.Ru\EI_Starter\Settings "AddonPath", a '\' added): - Maps (10 sites): every
+// maps-folder user names its file first; the maps folder is the mod's folder when the mod's Maps\ held that
+// name at start, else the game's. - ResOverride (25 sites): the mod's config.reg [Res] lists archives that
+// come before (or, with '-', instead of) the game's twelve archives, plus extra figure and texture archives;
+// every CMappedResource::GetFile and ListFiles goes through addon (its vtable slot and all their calls). -
+// MoviesPatch (the BinkOpen import), CameraPatch (the camera path's CFile::Open), StreamPatch (the stream
+// file's path): the mod's Movies\, Camera\ and Stream\ copy of the file when there is one.
+// More: docs/notes/comments-c22i.md, "mod_folders.h".
 
 #include "ei/rebirth.h"
 
@@ -36,7 +30,6 @@ bool Active(ei::rebirth::Patch p);
 // The mod's folder with a trailing '\' (AddonPath), empty without one.
 const std::string& ModPath();
 
-// ---- ResOverride ----
 // OpenResource's entry (+8), before the archive opens: the first call loads the mod's
 // archives; then `res` is recorded as opened from `path` (an archive the mod overrides or ignores).
 void OnOpenResource(CMappedResource* res, const char* path);
@@ -50,13 +43,11 @@ void* GetFile(CMappedResource* res, const char* name, std::uint32_t* size);
 // CMappedResource::ListFiles through addon: appends the mod's archives' names and the archive's own
 // (unless ignored) to `out`.
 void ListFiles(const CMappedResource* res, mfc::CStringArray* out, const char* pattern);
-// The mod's extra archives (their full paths): figures.res / menus.res entries for the figure
-// manager and the link figure loader, textures.res / redress.res /
-// menus.res entries for the texture manager.
+// The mod's extra archives (their full paths): figures.res / menus.res entries for the figure manager and the
+// link figure loader, textures.res / redress.res / menus.res entries for the texture manager.
 const std::vector<std::string>& FigureArchives();
 const std::vector<std::string>& TextureArchives();
 
-// ---- Maps ----
 // The site kinds addon passes (1-9): NewZone's map and mob, MapPath, the client's LoadZone, the zone
 // table's "*.mq" list, LoadZoneQuests (twice), MapFileExists, WriteMapFile.
 enum class MapsSite : int {

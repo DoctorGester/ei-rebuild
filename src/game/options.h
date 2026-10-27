@@ -73,7 +73,7 @@ struct LightOptions {
 // value is not commented).
 class GameOptions {
 public:
-    // options_construct.cpp: what the static initialiser builds before
+    // What the static initialiser builds before
     // WinMain: the eighteen strings and the first defaults (800 x 600, 16 bits; the defaults function
     // sets the game's real defaults later, before the registry is read).
     GameOptions();
@@ -221,7 +221,7 @@ static_assert(offsetof(GameOptions, workPath_) == field::kWorkPath && offsetof(G
 extern lib::StaticObject<GameOptions> g_options;
 inline GameOptions* TheOptions() { return &*g_options; }
 
-// options_defaults.cpp. The options' defaults.
+// The options' defaults.
 void __fastcall OptionsResetDefaults(GameOptions* self);
 
 } // namespace options

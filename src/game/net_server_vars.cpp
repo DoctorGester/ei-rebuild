@@ -1,6 +1,5 @@
-// The game server's script variables (+0x25B0): named floats the script reads and writes in a
-// network game, replicated to the clients as VariableMessages. See
-// net_messages.h and docs/notes/network.md.
+// The game server's script variables: named floats the script reads and writes in a
+// network game, replicated to the clients as VariableMessages. See net_messages.h and docs/notes/network.md.
 
 #include "net_messages.h"
 #include "core_refcount.h"
@@ -56,8 +55,7 @@ RefNode** ServerSession::FindOrAddVariable(RefNode** out, const stlp::string* na
     return out;
 }
 
-// Sets the variable; a zero value removes it instead. A set bumps the version
-// and takes the next serial.
+// Sets the variable; a zero value removes it instead. A set bumps the version and takes the next serial.
 void ServerSession::SetVariable(const stlp::string* name, float value) {
     EI_NAN_AUDIT(value);
     if (value != 0.0f /*0073B858*/) {

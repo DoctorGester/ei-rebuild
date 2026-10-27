@@ -20,12 +20,12 @@
 class CMemoryStream;
 class CParty;
 
-// An entry of the manager's list (0x14 bytes): two texts and a list of ids. Its copy, assignment and
+// An entry of the manager's list: two texts and a list of ids. Its copy, assignment and
 // destructor are compiler-made (library).
 struct PartyManagerEntry {
-    mfc::CString name;              // +0x00 chunk field 1
-    mfc::CString text;              // +0x04 chunk field 2
-    stlp::vector<int> ids;          // +0x08 chunk 3
+    mfc::CString name;              // chunk field 1
+    mfc::CString text;              // chunk field 2
+    stlp::vector<int> ids;          // chunk 3
 
     // What the destructor does: frees the ids' storage, then destroys the texts.
     void Destruct();
@@ -58,11 +58,11 @@ struct PartyTable : stlp::hashtable<PartyTraits> {
 using PartyMap = gamehash::PartyTable;
 
 struct PartyManager {
-    PartyMap parties;                           // +0x00 (LoadParty / StoreParty)
-    stlp::vector<PartyManagerEntry> entries;    // +0x14
-    int field3;                         // +0x20 field 3 of the archive (nothing reads it)
-    NamedPartyRecords records;                  // +0x24
-    ClassTemplateVector templates;              // +0x38
+    PartyMap parties;                           // (LoadParty / StoreParty)
+    stlp::vector<PartyManagerEntry> entries;
+    int field3;                         // field 3 of the archive (nothing reads it)
+    NamedPartyRecords records;
+    ClassTemplateVector templates;
 
     // Reads the block `from` holds (CStream::ReadSized) as an archive: chunk 1
     // the parties, 2 the entries, field 3, chunk 4 the class templates, chunk 5 the records.
@@ -82,8 +82,7 @@ struct PartyManager {
     void BeginRedeploy(CParty* party);
     void EndRedeploy(CParty* party);
     // Key 0 resets `target` (Reset(1, 0)); else the party stored under the key is copied into it. False when
-    // the key is
-    // not stored. The login's name and password are not read.
+    // the key is not stored. The login's name and password are not read.
     bool LoadParty(const char* name, const char* password, const int* key, CParty* target) const;
     // Copies `source` into the party stored under the key (operator[] creates it when missing; the copy
     // reads `source` non-const). True.

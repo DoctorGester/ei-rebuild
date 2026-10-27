@@ -40,9 +40,8 @@ constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
 
 // Growing buffers.
 
-// STLport containers (library): the query vector (construct, insert overflow,
-// copy, assign, erase, resize; recordvec::QueryElement).
-// The game's stlp::vector<Query> instantiation: _M_insert_overflow(pos, x, n),
+// STLport containers (library): the query vector (construct, insert overflow, copy, assign, erase, resize;
+// recordvec::QueryElement). The game's stlp::vector<Query> instantiation: _M_insert_overflow(pos, x, n),
 // operator=, erase(first, last), resize(n).
 using QueryList = stlp::vector<Query>;
 
@@ -101,9 +100,8 @@ void EndCursor(BufferCursor& c) {
     }
 }
 
-// Hands `entry` (non-null) over to a new node at the end of the servers list: the reference the
-// local pointer held is dropped without release (the copy-on-share mark cleared), and the list
-// shares the raw pointer.
+// Hands `entry` (non-null) over to a new node at the end of the servers list: the reference the local pointer
+// held is dropped without release (the copy-on-share mark cleared), and the list shares the raw pointer.
 void AppendServer(ClientBase* self, RefPtr& entry) {
     CRefObject* raw = entry.ptr;
     --raw->refs_;
@@ -186,7 +184,7 @@ void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
 }
 EI_REWRITTEN(0x00441740, ClientBase::SendJoin);
 
-// ---- Client: packets (slots 3, 7, 8, 9) and the connection's loss (slot 2) ---------------------
+// ---- Client: packets (slots 3, 7, 8, 9) and the connection's loss ---------------------
 
 // Updates count only once joined.
 bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
@@ -246,7 +244,7 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // Packet 5: a server's description. Its magic must match in all but the low
-// byte. A new entry (slot 16) reads itself from the packet and gets the sender's address, the
+// byte. A new entry reads itself from the packet and gets the sender's address, the
 // ping (now - the echoed time) and when to look again: local servers and those asked directly
 // soon, others from the list never; unknown servers neither local nor asked are ignored. A known
 // server's entry is replaced (and its reply kept in its query, if asked); a new one is appended.
@@ -361,8 +359,7 @@ EI_REWRITTEN(0x00442180, ClientBase::Refresh);
 void ClientBase::SetAlwaysAsk(const NetAddress* address) { alwaysAsk_ = *address; }
 EI_REWRITTEN(0x004422D0, ClientBase::SetAlwaysAsk);
 
-// Each server not yet listed is listed with an entry read from its saved reply (or an empty
-// entry), as asked.
+// Each server not yet listed is listed with an entry read from its saved reply (or an empty entry), as asked.
 void ClientBase::SetQueries(const ClientQueries* from) {
     QueryList& v = queries_.list;
     static_cast<recordvec::QueryVector*>(&v)->Assign(from->list);
@@ -408,7 +405,6 @@ EI_REWRITTEN(0x00442300, ClientBase::SetQueries);
 void ClientBase::Ask(const NetAddress* address) {
     QueryList& v = queries_.list;
     if (FindQuery(queries_, address) == v.end()) {
-        // push_back of a default query, inlined.
         if (v.end() != v.EndOfStorage()) {
             stlp::ConstructDefaultAt<Query, recordvec::QueryElement>(v.end());
             ++v.Finish();
@@ -638,15 +634,13 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 }
 } // namespace
 
-// Packet 4: a login. The magic must be the session's; the id and the rate
-// follow (the rate is cut to what the session allows for the address, compared signed). A peer
-// that is connected already is ignored. One that was told to join before is told again (its id
-// and rate replaced). Anybody else is asked about (slot 16) and either put on the joins list and
-// accepted, or refused with the reason slot 16 gave.
-// The original builds the new join on the stack and never sets its age (+0x18): the list gets
-// whatever the stack held, so the time the join may wait for its first update (ServerBase::Tick)
-// is not defined. Rebirth's FixProcessLogin (clears it) is what
-// this body always does: garbage cannot be reproduced, so the flag changes nothing here.
+// Packet 4: a login. The magic must be the session's; the id and the rate follow (the rate is cut to what the
+// session allows for the address, compared signed). A peer that is connected already is ignored. One that was
+// told to join before is told again (its id and rate replaced). Anybody else is asked about and either put on
+// the joins list and accepted, or refused with the reason slot 16 gave. The original builds the new join on
+// the stack and never sets its age: the list gets whatever the stack held, so the time the join may wait for
+// its first update (ServerBase::Tick) is not defined. Rebirth's FixProcessLogin (clears it) is what this body
+// always does: garbage cannot be reproduced, so the flag changes nothing here.
 void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t magic;
     cursor->ReadBytes(&magic, 4);

@@ -1,5 +1,5 @@
 // The network state writers of map objects and units: the virtual slot
-// that writes an object's dirty fields into its DeltaState (+0x1C4) for the clients. See
+// that writes an object's dirty fields into its DeltaState for the clients. See
 // docs/notes/units.md ("Network state").
 #include "map_object_figures.h"
 #include "net_delta.h"
@@ -34,7 +34,7 @@ void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value,
 } // namespace
 
 void CMapObject::WriteNetState() {
-    DeltaState* state = NetState();   // +0x1C4
+    DeltaState* state = NetState();
     if (DeltaField* field = state->BeginField(0)) {
         field->WriteDelta(&packedVitals, 0x18);
         field->EndField();
@@ -132,12 +132,11 @@ void CUnit::WriteNetState() {
     }
 }
 
-// ---- Readers ---------------------------------------------------------------------------------------
 
 namespace {
 
 
-// A companion (+0x170) as its virtual interface.
+// A companion as its virtual interface.
 
 // Whether the stream read against (delta::g_readSnapshot) is consumed: slot 5 (position) == slot 4 (size).
 std::uint32_t SnapshotConsumed() {
@@ -153,7 +152,7 @@ std::uint32_t CMapObject::ReadNetState(int first) {
     DeltaState* state = NetState();
     std::uint32_t complete = 1;
     if (DeltaField* field = state->BeginField(0)) {
-        short before = PackedVitals()->hitPoints;   // +0x17E
+        short before = PackedVitals()->hitPoints;
         field->ReadDelta(&packedVitals, 0x18);
         complete = SnapshotConsumed();
         field->EndField();
@@ -205,17 +204,15 @@ std::uint32_t CMapObject::ReadNetState(int first) {
 
 namespace {
 
-// CUnit helpers: release all items, the move speeds, MarkChanged,
-// the path's reader and two accessors;
-// the motion's path on +0x27C; a player's unit list remove / add;
-// the object's manager context and the client's local view; the
-// field reader's CString, CString operator= and destructor.
+// CUnit helpers: release all items, the move speeds, MarkChanged, the path's reader and two accessors; the
+// motion's path on +0x27C; a player's unit list remove / add; the object's manager context and the client's
+// local view; the field reader's CString, CString operator= and destructor.
 
 constexpr float kStatEpsilon = 1e-4f;
 
 // A body part's condition as current / maximum (signed 16-bit over unsigned 16-bit), as a float.
 float StatFraction(CUnit* unit, int k) {
-    const UnitParamsSlot& part = unit->params.slots[k];   // +0x378 + k * 0x1C: current, maximum
+    const UnitParamsSlot& part = unit->params.slots[k];   // + k * 0x1C: current, maximum
     return static_cast<float>(static_cast<double>(part.current) / part.maximum);
 }
 
@@ -260,7 +257,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         // FCOMP + TEST AH,0x41: a drop (before > now, ordered), or flag 0x10 otherwise.
         bool dropped = hpBefore > hpNow;
         if ((dropped || (unit->Params()->flags & 0x10)) && first != 0) {
-            std::uint8_t flags = unit->Params()->flags;   // +0x437
+            std::uint8_t flags = unit->Params()->flags;
             int kind = (flags & 2) ? 2 : 0;
             if (flags & 1) kind |= 1;
             if (flags & 4) kind |= 4;
@@ -330,7 +327,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         path2->ForgetObject(unit->id_);
         float walk, run;
         unit->GetMoveSpeeds(&walk, &run);
-        UnitMotion* walker = unit->Motion();   // +0x27C
+        UnitMotion* walker = unit->Motion();
         walker->segment = -1;
         walker->speedScale = walk;
         walker->baseTurnRate = run;

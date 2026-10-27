@@ -62,7 +62,7 @@ int CMapObject::CompanionQuery(int first, int second, int) {
 EI_REWRITTEN(0x0050E460, CMapObject::CompanionQuery);
 
 // The game's function reads armourIds[3..6] (+0xAC..+0xB8), the slots after the three dressed ones, not
-// weaponIds (+0xBC): the name is provisional. Found when zone bz1g's units mismatched.
+// weaponIds: the name is provisional. Found when zone bz1g's units mismatched.
 int CUnitClientSpecific::HasOtherArmour() {
     for (int slot = 3; slot < 7; ++slot)
         if (armourIds[slot] != kNoModel) return 1;

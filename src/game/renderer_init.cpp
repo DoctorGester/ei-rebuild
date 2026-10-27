@@ -1,9 +1,8 @@
 // The renderer's creation. It
-// picks the Direct3D driver from the settings, creates the device object, fills the transform
-// pipeline's matrix stacks (projection, viewport, the fixed axis swap and their products), sets the
-// pipeline's viewport and depth range, the render and texture stage states, a default light and the
-// ambient colour, and creates the counted helper object at +0x24. Runs once at start-up. See
-// docs/notes/models.md ("Renderer creation").
+// picks the Direct3D driver from the settings, creates the device object, fills the transform pipeline's
+// matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport
+// and depth range, the render and texture stage states, a default light and the ambient colour, and creates
+// the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
 #include "app.h"
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
@@ -31,19 +30,16 @@ using options::GameOptions;
 Matrix4* __stdcall AxisSwapMatrix(Matrix4*);
 namespace {
 
-// --- Helpers -------------------------------------------------------------------------------------
 
-// The device's pipeline holder (+0xAC) takes the pipeline: counted first, then the old
-// one released.
+// The device's pipeline holder takes the pipeline: counted first, then the old one released.
 void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline) {
     CTransformPipeline* previous = *holder;
     *holder = pipeline;
     if (pipeline) ++pipeline->refs_;
     if (previous) previous->Release();
 }
-// Matrices (model.cpp, called through their addresses): viewport,
-// the axis swap (x, -y, z; patched by Rebirth); the product (Matrix4::Multiply).
-// The capability records' layout.
+// Matrices (model.cpp, called through their addresses): viewport, the axis swap (x, -y, z; patched by
+// Rebirth); the product (Matrix4::Multiply). The capability records' layout.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
 static_assert(sizeof(DDCAPS) == 0x17C && offsetof(DDCAPS, ddsCaps) == 0x16C);
 
@@ -136,9 +132,8 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
     pipeline->transform_->SetProjection(copy.m);
 }
 
-// The pipeline's viewport size (floats) and depth range (the options' fog start and far clip
-// distances, moved as dwords; both arguments must be passed, or the callee's stack cleanup
-// unbalances the stack).
+// The pipeline's viewport size (floats) and depth range (the options' fog start and far clip distances, moved
+// as dwords; both arguments must be passed, or the callee's stack cleanup unbalances the stack).
 void SetViewport(CSceneRenderer* renderer, const GameOptions* settings) {
     const RECT& screen = renderer->device_->screen_;
     float width = static_cast<float>(screen.right - screen.left);
@@ -202,7 +197,7 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     renderer->SetSun(light);
 }
 
-// The counted helper object (+0x24). The flag is a byte argument: only its low byte is read (the caller
+// The counted helper object. The flag is a byte argument: only its low byte is read (the caller
 // pushes it with the rest of the register left over from operator new).
 void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
     const std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;

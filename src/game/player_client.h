@@ -1,10 +1,8 @@
 #pragma once
 
-// The client side of a player's connection (CPlayerClient): it
-// sends the client's requests (+0x5C) compressed to the server and runs the server's messages
-// (+0x34) through its handler table. The single-player game runs it next to
-// CPlayerServer (player_messages.h) over the loopback link. Names are provisional; see
-// docs/notes/objects.md.
+// The client side of a player's connection (CPlayerClient): it sends the client's requests compressed to the
+// server and runs the server's messages Through its handler table. The single-player game runs it next to
+// CPlayerServer (player_messages.h) over the loopback link. Names are provisional; see docs/notes/objects.md.
 
 #include "player_messages.h"
 
@@ -13,33 +11,28 @@
 
 class CPlayerClient final : public CPlayerConnection {
 public:
-    // The constructor (player_client.cpp): the members constructed (the streams with the queue's vtable),
-    // then Clear inlined.
     CPlayerClient();
-    // The deleting destructor: Clear inlined, both id arrays freed, the coders' outputs ended, the handler
-    // table and the streams freed, then CPlayerConnection's.
     ~CPlayerClient() override;
 
     int Create() override { return CreateClient(); }
     void Destroy() override { Clear(); }
     int RunTick() override { return Pump(); }
-    const char* GetClassName() override;                              // "CPlayerClient"
-    int GetClassId() override;                                        // 0x3C
+    const char* GetClassName() override;
+    int GetClassId() override;
     void ForgetSentObjects() override {}                              // Virtual 13 (empty)
     void UnitChanged(CUnit* unit) override { NotifyUnitChanged(unit); }
     void ResetState() override { Clear(); }
     // Virtual 16 (empty; CPlayerConnection's).
     int Receive() override { return ReceiveMessages(); }
 
-    // player_client_orders.cpp: the local view's orders, queued for the server (out_), each
+    // The local view's orders, queued for the server (out_), each
     // a type byte and a payload; all return 1. Units go as their ids (-1 for a null entry).
     // 0x30 walk / 0x3A go to: the units, `run`, the point.
     int SendWalk(const mfc::CArray<CUnit*>* units, const Vector3* to, int run);
     int SendGoTo(const mfc::CArray<CUnit*>* units, const Vector3* to, int run);
     // 0x31 attack: the units, `ctrl`, `how`, the target's id.
     int SendAttack(const mfc::CArray<CUnit*>* units, CEngineObject* target, int how, int ctrl);
-    // 0x33 / 0x32 cast spell `slot` of `caster` on `target` / at
-    // `point`, with the low byte of `ctrl`.
+    // 0x33 / 0x32 cast spell `slot` of `caster` on `target` / at `point`, with the low byte of `ctrl`.
     int SendCastOnUnit(int slot, CUnit* caster, CEngineObject* target, int ctrl);
     int SendCastAtPoint(int slot, CUnit* caster, const Vector3* point, int ctrl);
     // The same with quick item `slot` (slot | 0x80000000); a
@@ -56,9 +49,8 @@ public:
     int SendFollow(CUnit* unit, CEngineObject* target);
     // 0x10: whether `value` (a byte) is set.
     int SendFlag10(std::uint8_t value);
-    // 0x36 use order for one unit (count 1, its id or -1): `flag`, `kind`,
-    // `value`, the target's id (CPlayerServer::OnUseOrder). The original builds a one-element
-    // CArray<CUnit*> on the heap for it.
+    // 0x36 use order for one unit (count 1, its id or -1): `flag`, `kind`, `value`, the target's id
+    // (CPlayerServer::OnUseOrder). The original builds a one-element CArray<CUnit*> on the heap for it.
     int SendUseOrder(CUnit* unit, CEngineObject* target, int kind, int value, int flag);
     // 0x36 for `units` on a dead `target`: `flag`, kind 0x18A95, value -1.
     int SendUseDead(const mfc::CArray<CUnit*>* units, CEngineObject* target, int flag);
@@ -81,37 +73,31 @@ public:
     // 0x09 (resume).
     int SendResume();
 
-    // player_client.cpp.
-    // State 0: once the link is connected, the party (message 8, with the
-    // variables, when +0x85 is set) and the login (message 0: version 100, "Tango", "Very top
-    // secret", the player's +0xFC) are queued, state 1, and everything is sent (SendToServer's
-    // result); without a connected link 1. State 1: 1. State 2: the camera's anchor x, y as
-    // message 0x40, then sent. Other states: sent.
+    // State 0: once the link is connected, the party (message 8, with the variables, when +0x85 is set) and
+    // the login (message 0: version 100, "Tango", "Very top secret", the player's +0xFC) are queued, state 1,
+    // and everything is sent (SendToServer's result); without a connected link 1. State 1: 1. State 2: the
+    // camera's anchor x, y as message 0x40, then sent. Other states: sent.
     int Pump();
-    // Compresses the queued requests (coder +0x88) and sends them on the link (slot 8);
-    // the queue is emptied unless there is no link. 1 without a link, 0 when it is not connected,
-    // else the send's result.
+    // Compresses the queued requests and sends them on the link; the queue is emptied unless there is no
+    // link. 1 without a link, 0 when it is not connected, else the send's result.
     int SendToServer();
     // Runs every message of the received stream (+0x34, from its start) through the
     // handlers by type. 1 at the end of the stream; a read past the end, a type without a handler
     // or a refusing handler ends in the fatal error (its result returned).
     int DispatchMessages();
-    // The client world's frame, with the local server's stream.
-    // Appends the bytes of `source` (rewound) to the received stream, whose pending bits are
-    // stored first; its read position stays.
+    // The client world's frame, with the local server's stream. Appends the bytes of `source` (rewound) to
+    // the received stream, whose pending bits are stored first; its read position stays.
     void AppendReceived(BitStream* source);
-    // One packet from the link, decompressed (+0x28B0) into +0x34 and
+    // One packet from the link, decompressed into +0x34 and
     // dispatched: 1 when there was none or it ran through, 0 without a link, when the receive
     // failed or the dispatch returned 0.
     int ReceiveMessages();
 
-    // Message handlers (player_client.cpp; each returns 1).
-    // A text from the received stream into a CString constructed at `out`;
-    // returns `out`.
+    // Message handlers (player_client.cpp; each returns 1). A text from the received stream into a CString
+    // constructed at `out`; returns `out`.
     void* ReadText(void* out);
-    // Message 0x81. A variable (name, value bits) set in the party's table (read first, the
-    // value dropped); a quest variable ("q.", longer than 2) goes to the quest log and the client
-    // world too.
+    // Message 0x81. A variable (name, value bits) set in the party's table (read first, the value dropped); a
+    // quest variable ("q.", longer than 2) goes to the quest log and the client world too.
     int OnSetVariable();
     // Message 0x82. A variable (name) removed; a quest variable is announced with value 0.
     int OnDeleteVariable();
@@ -126,8 +112,7 @@ public:
     // 0 when it cannot be read.
     int OnWorldBlock3();
     int OnWorldBlock5();
-    // Message 0x0A. The player drops an item (id); the quest log is refreshed with an empty
-    // list.
+    // Message 0x0A. The player drops an item (id); the quest log is refreshed with an empty list.
     int OnItemRemoved();
     // Message 0x17. A player update, then the quest log refreshed with an empty list.
     int OnQuestItemsChanged();
@@ -141,18 +126,17 @@ public:
     // the quest log shows them with the money gained. 0 when the stream runs out.
     int OnItemsReceived();
     // Message 0x80. The party: a sized block loaded into the player's party (with variables;
-    // a multiplayer client keeps its own); the player's recharge list (+0x114) gets every item
+    // a multiplayer client keeps its own); the player's recharge list gets every item
     // whose charge is below its maximum; the client world applies the variables, "party
     // received on client" is logged and the game flow's ReturnLocalParty runs.
     int OnParty();
     // Message 0x83. A sized block loaded into the party without its variables.
     int OnPartyUpdate();
-    // Message 0x0E. A path shown as markers: kind (0..3), a flag, x, y, a unit id and a value.
-    // Except for kind 3 a scratch unit (class 0x32) reads the path through a delta field and,
-    // with markers on, a particle source 0x2039 (colour by kind, +0x11C the value)
-    // runs one tick on it; with markers on, a source 0x203A (0x203B with the flag) at (x, y, 0)
-    // and the first one go to the unit's client controller. Neither source is
-    // released here.
+    // Message 0x0E. A path shown as markers: kind (0..3), a flag, x, y, a unit id and a value. Except for
+    // kind 3 a scratch unit (class 0x32) reads the path through a delta field and, with markers on, a
+    // particle source 0x2039 (colour by kind, +0x11C the value) runs one tick on it; with markers on, a
+    // source 0x203A (0x203B with the flag) at (x, y, 0) and the first one go to the unit's client controller.
+    // Neither source is released here.
     int OnPathMarker();
     // Message 0x40 (multiplayer). A map object the server announces: header (id, class,
     // prototype index, flags), scale, second name, model, two texture names, part names, script
@@ -165,12 +149,11 @@ public:
     int OnNewObject();
     // Message 0x13. A text run as the interface's string event.
     int OnStringEvent();
-    // Message 0x60. The party state (CPlayerServer::SendPartyState): the old party units
-    // (+0x50D8) lose unit flag 0x400000 and their ids go into a set; the world's pause
-    // flag (byte); a dword (dropped); the new party ids (+0x50D8 resized without keeping its
-    // contents), whose units get the flag and, when new to the party, in a session of kind 1
-    // without an owner (+0x24C) and with a game-flow condition, their controller's fade-in; the
-    // set emptied; the danger state to the world's +0x6E4; the other players' unit ids (+0x50E8).
+    // Message 0x60. The party state (CPlayerServer::SendPartyState): the old party units Lose unit flag
+    // 0x400000 and their ids go into a set; the world's pause flag (byte); a dword (dropped); the new party
+    // ids (+0x50D8 resized without keeping its contents), whose units get the flag and, when new to the
+    // party, in a session of kind 1 without an owner and with a game-flow condition, their controller's
+    // fade-in; the set emptied; the danger state to the world's +0x6E4; the other players' unit ids.
     int OnPartyState();
     // Clear's state (the +0x50D8 array through SetSize(0)), then the handler
     // table: 256 entries (grown as an aligned array), zeroed, and the 40 handlers by message type
@@ -184,10 +167,9 @@ public:
     void StartRecording(const char* path);
     void StopRecording();
 
-    // The (player_client_handlers.cpp) the other message handlers (docs/notes/objects.md, "Client"
-    // table). Each returns 1 unless noted.
-    // Message 0x00. Login accepted: a dword, state 2, the player manager (the player's owner_)
-    // gives the player that id (CPlayerManager::ChangeId).
+    // The (player_client_handlers.cpp) the other message handlers (docs/notes/objects.md, "Client" table).
+    // Each returns 1 unless noted. Message 0x00. Login accepted: a dword, state 2, the player manager (the
+    // player's owner_) gives the player that id (CPlayerManager::ChangeId).
     int OnLoginAccepted();
     // Message 0x01. The player disconnects (CPlayer::Disconnect).
     int OnDisconnect();
@@ -206,14 +188,13 @@ public:
     int OnGameLost();
     // Message 0x0B. Two dwords to the interface's OnUnitSpeech.
     int OnUnitSpeech();
-    // Message 0x0C. (id, float) pairs until id -1: the object manager's object gets the float
-    // at +0x28; an unknown id's float is not read (the next id is read from it). 0 when the stream
-    // fails.
+    // Message 0x0C. (id, float) pairs until id -1: the object manager's object gets the float an unknown id's
+    // float is not read (the next id is read from it). 0 when the stream fails.
     int OnObjectValues();
     // Message 0x0F. Two points and a byte: the camera looks from the first at the second
     // (LookFrom) and goes free or not (SetFree).
     int OnFreeCamera();
-    // Message 0x12. A byte and a dword: the dword to the player's world (+0x7C0).
+    // Message 0x12. A byte and a dword: the dword to the player's world.
     int OnWorldValue();
     // Message 0x14. (id, float): the item of the party's item manager gets the float at +0x28
     // and the player's ItemUsed.
@@ -238,27 +219,24 @@ public:
     int OnTimedObjectAdded();
     int OnTimedObjectChanged();
     int OnTimedObjectRemoved();
-    // Message 0x70. The weather ("RainSnow"): its setter (kind byte, 16-bit
-    // strength as a float).
+    // Message 0x70. The weather ("RainSnow"): its setter (kind byte, 16-bit strength as a float).
     int OnWeather();
-    // Message 0x71. Two floats: the client world's time speed (second) and time (first), then
-    // its lighting.
+    // Message 0x71. Two floats: the client world's time speed (second) and time (first), then its lighting.
     int OnWorldTime();
     // Message 0x72. A point and a dword to the client world.
     int OnWorldPoint();
     // Message 0x73. The client world reads the stream.
     int OnWorldStream();
-    // A unit joined (+0x24C set) or left the player: the interface is
-    // told; a multiplayer client whose party has one member, `unit`, puts its id (-1 when it left)
-    // in the login record (+0x2C) and raises its version.
+    // A unit joined (+0x24C set) or left the player: the interface is told; a multiplayer client whose party
+    // has one member, `unit`, puts its id (-1 when it left) in the login record and raises its version.
     void NotifyUnitChanged(CUnit* unit);
 
     // +0x20 state_: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.
     // +0x24 the message handlers by type (0: refused; 256 of them).
     using Handler = int(__fastcall*)(CPlayerClient*, void*);
     lib::AlignedArray<Handler> handlers_;
-    BitStream in_;                  // +0x34 the server's messages being run
-    BitStream out_;                 // +0x5C requests for the server
+    BitStream in_;                  // the server's messages being run
+    BitStream out_;                 // requests for the server
     // +0x84 a local session (GameStartLocalSession sets it): a unit's network owner becomes the local
     // player whatever its id (CUnit::ReadNetState), and the game-state message only presses Enter.
     std::uint8_t localSession_;
@@ -266,8 +244,8 @@ public:
     // requested party, clears it for a new zone.
     std::uint8_t sendParty_;
     std::uint8_t unused_86[2];
-    CoderState compressor_;         // +0x88 for the requests sent
-    CoderState decompressor_;       // +0x28B0 for the messages received
+    CoderState compressor_;         // for the requests sent
+    CoderState decompressor_;       // for the messages received
     // +0x50D8 the ids of the party's units (message 0x60; Clear frees it; the HUD's map and the client world's NearestVisibleUnit read them)
     lib::AlignedArray<int> partyUnitIds_;
     // +0x50E8 the ids of the other players' units the map shows (message 0x60)

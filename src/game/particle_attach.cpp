@@ -2,7 +2,7 @@
 // and its part lookup, the attachment offset and StopAndClear
 //. Names are provisional.
 // The object a source follows is a CObject3D (attachedTo, +0x94). With flag 0x10 a source on a
-// unit sits on the part attachPoint (+0x13C) names; otherwise on top of the object's bounds.
+// unit sits on the part attachPoint names; otherwise on top of the object's bounds.
 #include "effects.h"
 
 #include "map_object_figures.h"

@@ -85,7 +85,7 @@ void StartLookUp() {
     CloseHandle(thread);
 }
 
-// The player's name of each binding of the game server (+0x25A4), as the plugin reads them: the
+// The player's name of each binding of the game server, as the plugin reads them: the
 // binding's first pointer, the player record's name, no check of either.
 std::string Names(std::uint8_t* count) {
     std::string names;

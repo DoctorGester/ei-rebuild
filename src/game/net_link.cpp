@@ -50,7 +50,6 @@ constexpr unsigned kMaxMessage = 0x7FFC;
 
 std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
-// The number of bytes a reliable stream holds (its high-water mark raised first), as inlined.
 unsigned BufferFill(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
     return static_cast<unsigned>(b->base - Addr(b->begin) + Addr(b->high));
@@ -70,7 +69,6 @@ void BufferPut(GameBuffer* b, const void* from, unsigned size) {
 
 } // namespace
 
-// ================================================================================================
 // FileStream
 
 FileStream::FileStream() { new (file_.Get()) mfc::CFile(); }
@@ -110,7 +108,6 @@ void FileStream::Clear() { Restart(); }
 EI_REWRITTEN(0x00477F70, FileStream::Size);
 EI_REWRITTEN(0x00477F80, FileStream::Position);
 
-// ================================================================================================
 // NetLink
 
 NetLink::NetLink() { recording_ = 0; }
@@ -158,7 +155,6 @@ void NetLink::CloseRecording() {
 }
 EI_REWRITTEN(0x004780E0, NetLink::CloseRecording);
 
-// ================================================================================================
 // LoopbackLink
 
 LoopbackLink::LoopbackLink() {
@@ -287,7 +283,6 @@ void LoopbackLink::Disconnect() {
 }
 EI_REWRITTEN(0x00478140, LoopbackLink::Disconnect);
 
-// ================================================================================================
 // ReplayLink
 
 ReplayLink::ReplayLink() {}
@@ -306,8 +301,7 @@ ReplayLink::~ReplayLink() {}
 EI_REWRITTEN_SPECIAL(0x00478CC0, ReplayLink::~ReplayLink);
 EI_REWRITTEN_SPECIAL(0x00478CA0, ReplayLink::~ReplayLink);
 
-// Destroyed and built again in place (the reference count and +9 kept): two closed files, not
-// recording.
+// Destroyed and built again in place (the reference count and +9 kept): two closed files, not recording.
 int ReplayLink::OnShutdown() {
     net::Rebuild(this);
     return 0;
@@ -340,14 +334,12 @@ EI_REWRITTEN(0x00478C70, ReplayLink::Receive);
 void ReplayLink::Disconnect() { replay_.Close(); }
 EI_REWRITTEN(0x00478C90, ReplayLink::Disconnect);
 
-// ================================================================================================
 // FramedLink
 
 FramedLink::FramedLink() {}
 
-// The original reads the copy's new buffer (never written) into the source's inbox instead of the
-// other way round: the copy's bytes are whatever the allocation held and the source's are
-// overwritten with them. Kept.
+// The original reads the copy's new buffer (never written) into the source's inbox instead of the other way
+// round: the copy's bytes are whatever the allocation held and the source's are overwritten with them. Kept.
 FramedLink::FramedLink(const FramedLink& other) : NetLink(other) {
     inbox_.SetSize(other.inbox_.size_);
     CStream* stream = &inbox_;
@@ -413,7 +405,7 @@ int FramedLink::IncomingCount() {
 EI_REWRITTEN(0x0047BA40, FramedLink::IncomingCount);
 
 // The message framed (its length, then its bytes, read from the start) in a stack buffer and
-// handed to slot 13; when that fails the link disconnects (slot 11). False for a message over
+// handed to slot 13; when that fails the link disconnects. False for a message over
 // 0x7FFC bytes or a failed send.
 bool FramedLink::Send(CStream* stream) {
     std::uint8_t buffer[kMaxMessage + 4];
@@ -448,7 +440,6 @@ bool FramedLink::Receive(CMemoryStream* stream) {
 }
 EI_REWRITTEN(0x0047BB70, FramedLink::Receive);
 
-// ================================================================================================
 // DriverLink
 
 DriverLink::DriverLink() { player_.ptr = nullptr; }

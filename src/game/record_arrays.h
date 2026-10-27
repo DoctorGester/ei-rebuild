@@ -5,7 +5,6 @@
 // sound cache's wave records, unit behaviours, patrols and zone exits by value, the global map's
 // records and the script's command arrays. lib/mfc_array.h's templates over the game's element
 // types, each element's constructor and destructor ours, called directly. Registered in
-// record_arrays.cpp.
 
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
@@ -38,36 +37,33 @@ using Materials = ArrayAbi<CMaterial, scene::HelperElements>;
 using SceneMeshes = ArrayAbi<scene::SceneMesh, scene::MeshElements>;
 using SceneNodes = ArrayAbi<scene::SceneNode, scene::NodeElements>;
 
-// A mesh's face groups: built by FaceGroup::ConstructElements, each destroyed by
-// FaceGroup::Destruct.
+// A mesh's face groups: built by FaceGroup::ConstructElements, each destroyed by FaceGroup::Destruct.
 using FaceGroups = ArrayAbi<scene::FaceGroup, scene::FaceGroupElements>;
 // CArray<FaceGroup> (a mesh's +0x148), its vtable the compiler's (mfc_slots.h).
 struct FaceGroupArrayClass final
     : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &FaceGroups::Serialize> {};
 
-// ---- Records -------------------------------------------------------------------------------------
 
-// Network delta fields (0xA0 bytes): constructed and destroyed.
+// Network delta fields: constructed and destroyed.
 // Out of line (world_effect_lifetime.cpp), so the replays that link this file need no streams.
 void InitDeltaField(DeltaField* p);
 void DestroyDeltaField(DeltaField* p);
 using DeltaFields = ArrayAbi<DeltaField, EachElements<DeltaField, InitDeltaField, DestroyDeltaField>>;
 
-// Music themes (0x38 bytes): the names empty, both name arrays constructed; destroyed
-// from the last member to the first.
+// Music themes: the names empty, both name arrays constructed; destroyed from the last member to the first.
 void InitTheme(MusicTheme* p);
 void __fastcall DestroyTheme(MusicTheme* p);
 using Themes = ArrayAbi<MusicTheme, EachElements<MusicTheme, InitTheme, DestroyTheme>>;
-// CArray<MusicTheme> (CMusicSystem +0x1C).
+// CArray<MusicTheme>.
 struct ThemeArrayClass final
     : mfc::impl::CompiledCollection<ThemeArrayClass, &Themes::Destruct<ThemeArrayClass>, &Themes::Serialize> {};
 
-// The sound cache's wave records (0x1C bytes): the name an empty string with room for 8 bytes
+// The sound cache's wave records: the name an empty string with room for 8 bytes
 // its buffer freed (the record's destructor).
 void __fastcall DestroyWave(WaveRecord* p);
 using Waves = ArrayAbi<WaveRecord, EachElements<WaveRecord, gamelists::InitWave, gamelists::DestroyWave>>;
 
-// A unit's behaviour records (0x4C bytes): built by the constructor, destroyed by
+// A unit's behaviour records: built by the constructor, destroyed by
 // the destructor body (also inlined elsewhere).
 inline void InitBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourConstruct(p); }
 inline void DestroyBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourDestruct(p); }
@@ -86,21 +82,20 @@ struct FakeUnitRecord9CArrayClass final
     : mfc::impl::CompiledCollection<FakeUnitRecord9CArrayClass, &mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>,
                                     &Materials::Serialize> {};
 
-// CStringArray over the part names of a map object (the server companion's, the object's own).
-// GetAt by value (two copies), the element copy-constructed into `result`,
-// which is returned.
+// CStringArray over the part names of a map object (the server companion's, the object's own). GetAt by value
+// (two copies), the element copy-constructed into `result`, which is returned.
 struct PartNames : mfc::CArray<mfc::CString> {
     mfc::CString* CopyAt(mfc::CString* result, int index) const;
 };
 
 // The global map's 0x18-byte records (mfc::impl::GlobalMapPointRecords): the destructor, the
-// strings at +0x14 and +0x10.
+// strings and +0x10.
 void __fastcall DestroyGlobalMapRecord(Bytes<0x18>* p);
 void __fastcall DestroyGlobalMapZone(Bytes<0x10>* p);
 
 // ---- The script's command arrays ------------------------------------------------------------------
 
-// Commands (0x94 bytes): SSCCmd's constructor values, its destructor.
+// Commands: SSCCmd's constructor values, its destructor.
 inline void InitCmd(SSCCmd* p) { p->Construct(); }
 inline void DestroyCmd(SSCCmd* p) { ScriptCmdDestruct(p); }
 using Cmds = ArrayAbi<SSCCmd, EachElements<SSCCmd, InitCmd, DestroyCmd>>;
@@ -116,7 +111,7 @@ struct BindingArrayClass final : mfc::impl::BindingsBaseClass {
 };
 // Definitions, runs and command blocks
 using Definitions = ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>;
-// CScript's definitions (+0x8C).
+// CScript's definitions.
 struct DefinitionArrayClass final
     : mfc::impl::CompiledCollection<DefinitionArrayClass, &gamearrays::Definitions::Destruct<DefinitionArrayClass>, &Definitions::Serialize> {};
 using Runs = ArrayAbi<ScriptRun, EachElements<ScriptRun, nullptr, gamelists::DestroyRun>>;

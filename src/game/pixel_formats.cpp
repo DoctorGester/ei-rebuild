@@ -1,7 +1,6 @@
 // Pixel format helpers of the renderer's device object: a DDPIXELFORMAT split into
-// channels and the pixel conversions through it, and the device's
-// format lookups (its texture formats). Pure: none of them touches DirectDraw;
-// the list they read is filled once at device creation.
+// channels and the pixel conversions through it, and the device's format lookups (its texture formats). Pure:
+// none of them touches DirectDraw; the list they read is filled once at device creation.
 #include "texture.h"
 
 #include "ei/hook.h"

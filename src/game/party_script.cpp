@@ -12,7 +12,7 @@
 
 namespace {
 
-// The party manager's record list (+0x24).
+// The party manager's record list.
 const NamedPartyRecords* RecordList() { return &ThePartyManager()->records; }
 
 } // namespace

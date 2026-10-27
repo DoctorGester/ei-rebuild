@@ -1,11 +1,6 @@
-// The renderer's ribbon draw
-// with its helpers (indexed draw of TL vertices, one ribbon cross
-// section, the direction at a point). A polyline of world points is projected (by the transform
-// object's point projection, with clipping flags when asked), and every point becomes a
-// pair of screen vertices offset across the line's screen direction by width * rhw * 15, with the
-// texture's u running along the ribbon and v across it; consecutive pairs make two triangles. The
-// ends are transparent (colour 0x00FFFFFF). Used for lightning bolts and similar strips. Buffers are
-// function-local statics. See docs/notes/models.md ("Renderer").
+// The renderer's ribbon draw with its helpers (indexed draw of TL vertices, one ribbon cross section, the
+// direction at a point).
+// More: docs/notes/comments-c22i.md, "renderer_strip.cpp".
 #include "clip.h"
 #include "device.h"
 #include "model.h"
@@ -134,10 +129,9 @@ TLVertex** RibbonData() { return &Ribbon().data; }
 
 } // namespace
 
-// The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) /
-// hypot(dx, dy) unrounded; vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved
-// by (-k*dy, k*dx) with v at the bottom, both with the current u. Appends both to `*array` at
-// `*count`.
+// The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) / hypot(dx, dy) unrounded;
+// vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved by (-k*dy, k*dx) with v at the
+// bottom, both with the current u. Appends both to `*array` at `*count`.
 void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
     TLVertex* top = *array + (*count)++;
     const float scale = static_cast<float>(static_cast<double>(width) * src->rhw * kWidthScale);
@@ -153,7 +147,6 @@ void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVerte
     SetUv(bottom, g_bottomV);
 }
 
-// --- ---------------------------------------------------------------
 
 // The screen direction at point `index` of `points` (TL vertices): mode 1 the segment from
 // the previous point, mode 2 from the previous to the next point (the last point: the segment from
@@ -176,9 +169,8 @@ float* __fastcall StripDirection(float* out, int index, int mode, const void* ar
 EI_REWRITTEN(0x00502B90, StripDirection);
 EI_REWRITTEN(0x00502AC0, EmitSection);
 
-// Draws an indexed triangle list
-// of TL vertices under the device's critical section; with distanceFog_ set the
-// transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
+// Draws an indexed triangle list of TL vertices under the device's critical section; with distanceFog_ set
+// the transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
 int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
                                std::uint16_t* indices, int indexCount) {
     if (distanceFog_) pipeline_->transform_->FogVertices(vertices, vertexCount);

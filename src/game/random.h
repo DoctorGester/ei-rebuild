@@ -36,16 +36,15 @@ public:
     // file of at least 2 KB picked at random on C:\ (FindSeedFile), each word then xored with
     // rand(); retried until a read gave 1 KB that is not all zero. The harness's seed hook instead, when set.
     void Seed();
-    // (`this` not used). Walks `pattern` (a directory plus "\*.*") depth first,
-    // skipping dots, system and hidden entries and counting files in *counter; the first file of at
-    // least 0x800 bytes once *counter has reached `target` is copied to `out` (returns 1). 0 when
-    // the walk ends first.
+    // (`this` not used). Walks `pattern` (a directory plus "\*.*") depth first, skipping dots, system and
+    // hidden entries and counting files in *counter; the first file of at least 0x800 bytes once *counter has
+    // reached `target` is copied to `out` (returns 1). 0 when the walk ends first.
     int FindSeedFile(char* out, const char* pattern, int target, int* counter);
 
-    std::uint32_t seeded_;          // +0x000 non-zero once seeded from results_
-    std::uint32_t count_;           // +0x004 results left (randcnt)
-    std::uint32_t results_[256];    // +0x008 randrsl
-    std::uint32_t memory_[256];     // +0x408 randmem
-    std::uint32_t a_, b_, c_;       // +0x808 randa, randb, randc
+    std::uint32_t seeded_;          // non-zero once seeded from results_
+    std::uint32_t count_;           // results left (randcnt)
+    std::uint32_t results_[256];    // randrsl
+    std::uint32_t memory_[256];     // randmem
+    std::uint32_t a_, b_, c_;       // randa, randb, randc
 };
 static_assert(sizeof(IsaacRandom) == 0x814);

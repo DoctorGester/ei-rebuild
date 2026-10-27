@@ -35,9 +35,8 @@ using netlists::SentRecordElement;
 using Chunks = stlp::list<ReliableChunk>;
 using Packets = stlp::list<SentPacket>;
 using Items = stlp::list<SentItem>;
-// The static vector: constructor, erase of a range, introsort loop and final
-// insertion sort by object, atexit.
-// CollectChanges's static vector of {object, priority} and its guard; its exit function frees the
+// The static vector: constructor, erase of a range, introsort loop and final insertion sort by object,
+// atexit. CollectChanges's static vector of {object, priority} and its guard; its exit function frees the
 // storage.
 constinit stlp::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
@@ -76,7 +75,7 @@ void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObj
     for (void** h = v.begin(); h != v.end(); ++h) reinterpret_cast<Handler>(*h)(session, message);
 }
 
-// A message's virtual Write (slot 4) and Read (slot 5) over a byte cursor.
+// A message's virtual Write and Read over a byte cursor.
 void WriteObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Write(cursor); }
 void ReadObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Read(cursor); }
 
@@ -569,7 +568,7 @@ namespace net {
 
 namespace {
 // The entries' 16-bit reference count, as the original inlines RefPtr<ReplicaEntry> assignment:
-// the old entry is deleted (slot 0) when its count reaches zero.
+// the old entry is deleted when its count reaches zero.
 void AssignEntry(RefPtr* slot, ReplicaEntry* entry) {
     CRefObject* old = slot->ptr;
     slot->ptr = entry;

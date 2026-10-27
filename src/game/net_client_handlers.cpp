@@ -116,7 +116,7 @@ void RemoveCounted(List& list, Message* message) {
     ReleaseRef(object);
 }
 
-// Every request for `file` erased from +0x25E8 (the sentinel read once, the next node taken first).
+// Every request for `file` erased (the sentinel read once, the next node taken first).
 void DropRequestsFor(ClientSession* self, const Message* file) {
     RefNode* sentinel = self->fileRequests_.End();
     for (RefNode* node = sentinel->next; node != sentinel;) {
@@ -126,7 +126,7 @@ void DropRequestsFor(ClientSession* self, const Message* file) {
     }
 }
 
-// The owner's release of the party description (+0x260C) as the handlers inline it, then null.
+// The owner's release of the party description as the handlers inline it, then null.
 void DropParty(ClientSession* self) {
     auto* state = self->party_.ptr;
     if (!state) return;
@@ -174,8 +174,8 @@ void ClientSession::RecordTrade(const void* party) {
 }
 EI_REWRITTEN(0x0041E0A0, ClientSession::RecordTrade);
 
-// Starts our trade offer to `partner` when the binding (+0x25F0) and its player are
-// live: kept at +0x260C, from the binding's player.
+// Starts our trade offer to `partner` when the binding and its player are
+// live: kept, from the binding's player.
 void ClientSession::StartParty(CRefObject* partner) {
     BindingMessage* binding = binding_;
     if (!IsLive(binding)) return;
@@ -201,9 +201,8 @@ EI_REWRITTEN(0x0041E270, ClientSession::StartParty);
 void __fastcall ClientDropParty(ClientSession* self) { DropParty(self); }
 EI_REWRITTEN(0x0041E3E0, ClientDropParty);
 
-// --- Handlers ----------------------------------------------------------------------------------
 
-// The binding of this client: kept at +0x25F0, dropped. An update lists its
+// The binding of this client: kept, dropped. An update lists its
 // objects in the order of the server's entries' addresses (Connection::SendUpdate), so the players may
 // come before the binding; their refresh then listed nobody (ShowPlayers lists only with the binding)
 // and the original's binding does not refresh: the base screen's faces followed the heap. Ours
@@ -229,7 +228,7 @@ void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {
     TheInterface()->OnChatLine(message->text_.data(), message->number_);
 }
 void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }
-// The host message kept at +0x25EC.
+// The host message kept.
 void __fastcall ClientOnInfo(ClientSession* self, HostMessage* message) { AssignRef(&self->info_, message); }
 void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }
 // The zones offered on +0x25F8, passed to the game flow.
@@ -241,7 +240,7 @@ void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
     RemoveCounted(self->zones_, message);
     TheGameFlow()->ForgetBriefing(message->text_.data());
 }
-// The current map at +0x25F4; without a server of our own the flow loads it.
+// The current map; without a server of our own the flow loads it.
 void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {
     AssignRef(&self->map_, message);
     auto* server = GameServer();
@@ -273,13 +272,12 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {
     RemoveRaw(self->files_, message);
     DropRequestsFor(self, message);
 }
-// A chunk of a shared file, kept on +0x25E4. When the list then holds as many
-// chunks of the file as the file message announces, they are sorted by index, their 64 bytes each
-// joined in a growing buffer cut to the file's size, the game flow writes the buffer as the map
-// file of that name, and the requests for the file leave +0x25E8. A file without a name (the text
-// ) is only collected. Rebirth's MQClient (two jumps patched so that
-// it) returns after collecting every chunk: no file from the
-// server is written. The constructor registers the handler by its address.
+// A chunk of a shared file, kept on +0x25E4. When the list then holds as many chunks of the file as the file
+// message announces, they are sorted by index, their 64 bytes each joined in a growing buffer cut to the
+// file's size, the game flow writes the buffer as the map file of that name, and the requests for the file
+// leave +0x25E8. A file without a name (the text ) is only collected. Rebirth's MQClient (two jumps patched
+// so that it) returns after collecting every chunk: no file from the server is written. The constructor
+// registers the handler by its address.
 void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
     AppendRaw(self->chunks_, message);
     auto* file = message->file_.Get();
@@ -348,7 +346,7 @@ void __fastcall ClientOnMember(ClientSession* self, Message*) {
     ClientCommitParty(self);
     ClientApplyParty(self);
 }
-// The trade at +0x2618: a new one empties the trade records and resets both parties.
+// The trade: a new one empties the trade records and resets both parties.
 void __fastcall ClientOnTrade(ClientSession* self, TradeMessage* message) {
     AssignRef(&self->trade_, message);
     ClearTradeRecords(self);

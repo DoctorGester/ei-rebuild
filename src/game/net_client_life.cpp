@@ -1,7 +1,6 @@
 // The game client's destructor, scalar deleting destructor and its
-// base layer's destructor body. The members are torn down in reverse order through
-// their STLport destructors and the counted pointers' releases, then the session base. See
-// net_classes.h and docs/notes/network.md.
+// base layer's destructor body. The members are torn down in reverse order through their STLport destructors
+// and the counted pointers' releases, then the session base. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_coder.h"
 #include "net_messages.h"

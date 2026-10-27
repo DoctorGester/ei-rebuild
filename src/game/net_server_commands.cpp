@@ -1,6 +1,5 @@
 // The game server's command messages (CommandMessage) and the file requests a client
-// hands in, with the host check they use. See net_messages.h and
-// docs/notes/network.md.
+// hands in, with the host check they use. See net_messages.h and docs/notes/network.md.
 #include "net_messages.h"
 #include "net_connection.h"
 #include "core_refcount.h"
@@ -69,7 +68,7 @@ void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* mes
 // Commands, from the connection being read. Kinds 0-2 need the host's
 // connection, 3-5 the same through IsHostConnection:
 //   0: the world prepares map `text`;
-//   1: when a queued map message (+0x25AC) is named `text`, its suffix picks SetMap (_1),
+//   1: when a queued map message is named `text`, its suffix picks SetMap (_1),
 //      LeaveZone (_2) or CompleteZone (_3) with the name before it;
 //   2 / 3: every guest whose name starts with `text` is kicked / banned;
 //   4 / 5: the client with serial atoi(text) is kicked / banned.

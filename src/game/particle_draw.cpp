@@ -67,8 +67,7 @@ ParticleDepth* Partition(ParticleDepth* first, ParticleDepth* last, ParticleDept
     }
 }
 
-// STLport __adjust_heap: sift the hole at `hole` down to a leaf, then push `value` up (not above
-// `top`).
+// STLport __adjust_heap: sift the hole at `hole` down to a leaf, then push `value` up (not above `top`).
 void AdjustHeap(ParticleDepth* first, int hole, int length, ParticleDepth value) {
     const int top = hole;
     int child = 2 * hole + 2;

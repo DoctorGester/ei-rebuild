@@ -1,12 +1,7 @@
-// The network message classes (net_messages.h) and the message base: for each class its factory,
-// constructor, copy (Clone's), slots 2-5 (reset, clone, write, read) and destructor; the same for the lobby's
-// server entry (net_classes.h; no factory). See docs/notes/network.md and
-// docs/notes/cleanup-network.md.
-// The original inlines several STLport copies of the same string and vector code (copy
-// construction from [first, last) into a fresh block of length + 1 bytes, the 8-byte empty string,
-// assignment from a C string); they are reproduced here through one helper each, with the same
-// allocations in the same order. The reset slots end with the inlined placement new's null test
-// of `this`, which cannot fail here and is left out.
+// The network message classes (net_messages.h) and the message base: for each class its factory, constructor,
+// copy (Clone's), slots 2-5 (reset, clone, write, read) and destructor; the same for the lobby's server entry
+// (net_classes.h; no factory).
+// More: docs/notes/comments-c22i.md, "net_messages.cpp".
 #include "net_messages.h"
 #include "game_lists.h"
 #include "net_connection.h"
@@ -86,7 +81,6 @@ void TakeObject(BufferCursor* cursor, RefPtr& ref) { AssignCounted(ref, g_curren
 
 } // namespace
 
-// ================================================================================================
 // The message base.
 
 void* __fastcall NewRefObject(std::size_t size) {
@@ -103,7 +97,6 @@ Message::~Message() {}
 EI_REWRITTEN_SPECIAL(0x00413430, Message::~Message);
 EI_REWRITTEN_SPECIAL(0x00413410, Message::~Message);
 
-// ================================================================================================
 // LoginMessage.
 
 LoginMessage::LoginMessage() {
@@ -141,7 +134,6 @@ void LoginMessage::Read(BufferCursor* cursor) {
     Take(cursor, id_);
 }
 
-// ================================================================================================
 // TextMessage: SayMessage, ZoneMessage, MapMessage.
 
 TextMessage::TextMessage() { StringEmpty(text_); }
@@ -187,7 +179,6 @@ int MapMessage::OnShutdown() {
 void MapMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
-// ================================================================================================
 // CommandMessage.
 
 CommandMessage::CommandMessage() { StringEmpty(text_); }
@@ -211,7 +202,6 @@ void CommandMessage::Read(BufferCursor* cursor) {
     TakeString(cursor, text_);
 }
 
-// ================================================================================================
 // PairMessage: BindingMessage, FileRequestMessage.
 
 PairMessage::PairMessage(const PairMessage& other) : Message(other) {
@@ -251,7 +241,6 @@ int FileRequestMessage::OnShutdown() {
 void FileRequestMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
 void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 
-// ================================================================================================
 // PlayerMessage.
 
 PlayerMessage::PlayerMessage() {
@@ -288,7 +277,6 @@ void PlayerMessage::Read(BufferCursor* cursor) {
     Take(cursor, serial_);
 }
 
-// ================================================================================================
 // LineMessage.
 
 LineMessage::LineMessage() { StringEmpty(text_); }
@@ -315,7 +303,6 @@ void LineMessage::Read(BufferCursor* cursor) {
     TakeString(cursor, text_);
 }
 
-// ================================================================================================
 // HostMessage.
 
 HostMessage::HostMessage() {
@@ -342,7 +329,6 @@ void HostMessage::Read(BufferCursor* cursor) {
     TakeString(cursor, zone_);
 }
 
-// ================================================================================================
 // VariableMessage.
 
 VariableMessage::VariableMessage() { StringEmpty(name_); }
@@ -370,7 +356,6 @@ void VariableMessage::Read(BufferCursor* cursor) {
     Take(cursor, serial_);
 }
 
-// ================================================================================================
 // FileMessage.
 
 FileMessage::FileMessage() {
@@ -412,7 +397,6 @@ void FileMessage::Read(BufferCursor* cursor) {
     TakeString(cursor, name_);
 }
 
-// ================================================================================================
 // FileChunkMessage.
 
 FileChunkMessage::FileChunkMessage(const FileChunkMessage& other) : Message(other) {
@@ -441,7 +425,6 @@ void FileChunkMessage::Read(BufferCursor* cursor) {
     TakeBytes(cursor, data_, kDataSize);
 }
 
-// ================================================================================================
 // AwardMessage.
 
 AwardMessage::AwardMessage() { StringEmpty(text_); }
@@ -471,7 +454,6 @@ void AwardMessage::Read(BufferCursor* cursor) {
     TakeString(cursor, text_);
 }
 
-// ================================================================================================
 // TradeMessage.
 
 TradeMessage::TradeMessage(const TradeMessage& other)
@@ -511,7 +493,6 @@ void TradeMessage::Read(BufferCursor* cursor) {
     Take(cursor, partnerRevision_);
 }
 
-// ================================================================================================
 // PartyMemberMessage.
 
 // Original bug kept: the copy's stream is sized like ours, then its (uninitialised) bytes are
@@ -545,7 +526,6 @@ void PartyMemberMessage::Read(BufferCursor* cursor) {
     TakeBytes(cursor, stream_.data_, n);
 }
 
-// ================================================================================================
 // PartyMessage.
 
 PartyMessage::PartyMessage() { members_.ConstructEmpty(); }
@@ -599,9 +579,7 @@ void PartyMessage::Read(BufferCursor* cursor) {
     TakeObject(cursor, partner_);
 }
 
-// ================================================================================================
-// ServerEntryBase and ServerEntry (net_classes.h): made by the server list code (the
-// server list).
+// ServerEntryBase and ServerEntry (net_classes.h): made by the server list code (the server list).
 
 ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), address_(other.address_) {
     std::memcpy(&timeout_, &other.timeout_, 4);   // the floats copied as dwords
@@ -651,7 +629,6 @@ void ServerEntry::Read(BufferCursor* cursor) {
     Take(cursor, password_);
 }
 
-// ================================================================================================
 // The registrations: the factories, then each class's slots 2-5.
 
 EI_REWRITTEN(0x004170A0, LoginMessage::Create);

@@ -1,6 +1,6 @@
 // The halves of a 3D object besides the client half's part sets: the client half's shadow
 // state, the base half's empty slots, the server half (CObject3DServer, class id
-// 0x38, 0x20 bytes), the wounds material's destructor and the copies of a named
+// 0x38), the wounds material's destructor and the copies of a named
 // texture and a material stage. Layouts: map_object_shadow.h, map_object_figures.h.
 #include "core_refcount.h"
 #include "map_object_shadow.h"
@@ -48,7 +48,7 @@ int ShadowSwitchOf(CObject3D* object) {
 
 std::uint32_t CObject3DClientSpecific::ShadowsShown() {
     int setting = worlddata::ShadowSetting();
-    if (setting <= 0) return static_cast<std::uint32_t>(setting) & 0xFFFFFF00u;   // XOR AL, AL
+    if (setting <= 0) return static_cast<std::uint32_t>(setting) & 0xFFFFFF00u;
     return ShadowSwitchOf(object) != 0 ? 1u : 0u;
 }
 EI_REWRITTEN(0x0051E200, CObject3DClientSpecific::ShadowsShown);
@@ -129,8 +129,7 @@ EI_REPLACE_METHOD(0x0051ACD0, CObject3DSpecific::IgnoreArgument);
 
 // --- The server half ---------------------------------------------------------------------------------
 
-// The base half's (the engine object's fields, no object). Deleting form: the
-// base half's.
+// The base half's (the engine object's fields, no object). Deleting form: the base half's.
 CObject3DServer::CObject3DServer() {}
 EI_REWRITTEN_SPECIAL(0x0051F240, CObject3DServer::CObject3DServer);
 CObject3DServer::~CObject3DServer() {}

@@ -1,8 +1,7 @@
 // CObject3D::SetUpAnimatedFigure: the figure of a model with an animation state (units,
-// levers, map objects with animations; called by the zone loader, the world's object setup,
-// Lever::SetState and the unit controller): the state takes the model, one box and one name per
-// animated part, and the object's bounds around the boxes. See map_object_figures.h and
-// docs/notes/map_objects.md ("Figures").
+// levers, map objects with animations; called by the zone loader, the world's object setup, Lever::SetState
+// and the unit controller): the state takes the model, one box and one name per animated part, and the
+// object's bounds around the boxes. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
 #include "figure_manager.h"
 #include "map_object_figures.h"
 
@@ -205,7 +204,7 @@ void CObject3D::CollectPartsByPrefix(const char* prefix, FigurePartArray* out) {
     }
     for (int i = 0; i < pendingParts.size; ++i) {
         auto* part = pendingParts.data[i];
-        if (startsWith(part)) out->SetAtGrow(out->size, part);   // inlined
+        if (startsWith(part)) out->SetAtGrow(out->size, part);
     }
 }
 EI_REWRITTEN(0x00516B50, CObject3D::CollectPartsByPrefix);

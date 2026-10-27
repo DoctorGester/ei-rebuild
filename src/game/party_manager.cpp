@@ -223,7 +223,6 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
 }
 EI_REWRITTEN(0x004A6C40, ClassTemplate::Serialize);
 
-// ---- Redeploy -------------------------------------------------------------------------------------
 
 namespace {
 

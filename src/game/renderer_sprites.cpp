@@ -1,13 +1,5 @@
-// The renderer's sprite draw
-// with its helpers (indexed draw, a radix sort pass, a
-// merge sort pass). Every point (x, y, z and a size) becomes a screen-facing quad: the sprite's
-// colour and texture rectangle go to four TL vertices, and the pipeline's transform object
-// (ProjectSprites) places the corners and sets their outcodes. Batches of up to 511 sprites are sorted back to front
-// by the first corner's z (sprites with a negative z are dropped) and drawn as two triangles each;
-// when the transform reports that some corners are off screen, every triangle goes through the
-// screen clipper first. Particles draw through it, with additive blending when
-// their source asks for it. Buffers are function-local statics. See
-// docs/notes/models.md ("Renderer").
+// The renderer's sprite draw with its helpers (indexed draw, a radix sort pass, a merge sort pass).
+// More: docs/notes/comments-c22i.md, "renderer_sprites.cpp".
 #include "clip.h"
 #include "device.h"
 #include "model.h"
@@ -144,14 +136,13 @@ constexpr int kFvfTlVertex = 0x1C4;   // D3DFVF_TLVERTEX
 
 // --- The steps -----------------------------------------------------------------------------------
 
-// A float copied through the FPU (FLD / FSTP dword): exact, except that a signalling NaN comes out
-// quiet.
+// A float copied through the FPU (FLD / FSTP dword): exact, except that a signalling NaN comes out quiet.
 std::uint32_t ThroughFpu(std::uint32_t bits) {
     bool nan = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x7FFFFFu) != 0;
     return nan ? bits | 0x00400000u : bits;
 }
 
-// The top of the pipeline's matrix stack at +0x24 (data) / +0x28 (count), transposed. The lower
+// The top of the pipeline's matrix stack (data) / +0x28 (count), transposed. The lower
 // triangle moves up as integers and the upper one down through the FPU.
 void TransposedTop(CTransformPipeline* pipeline, std::uint32_t (&m)[16]) {
     const Matrix4* top = pipeline->Top(CTransformPipeline::kClipStack);
@@ -314,7 +305,6 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
 
 } // namespace
 
-// --- --------------------------------------------------------------
 
 // One radix sort pass: the records of `src` go to 256 buckets by the key's byte at
 // `shift` (each bucket a list through the records' link, the last one first), then the buckets go
@@ -391,7 +381,6 @@ int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, in
 }
 EI_REWRITTEN(0x00503680, CTextureDevice::DrawIndexedDirect);
 
-// --- ------------------------------------------------------------------------------------
 
 // Draws a sprite per point: `points` an aligned array
 // of SpritePoint, `sprites` an MFC-style array of Sprite (same count). With `additive` (only its low

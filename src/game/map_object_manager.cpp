@@ -89,7 +89,6 @@ int CMapObjectManager::CreateManager() {
 }
 EI_REWRITTEN(0x00512660, CMapObjectManager::CreateManager);
 
-// --- Objects ----------------------------------------------------------------------------------------
 
 CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
     CResourceManager* manager = this;

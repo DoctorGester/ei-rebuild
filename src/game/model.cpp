@@ -132,7 +132,6 @@ int CTransformPipeline::ProjectTerrain(const void* vertices, void* projected, vo
 }
 EI_REWRITTEN(0x004F29F0, CTransformPipeline::ProjectTerrain);
 
-// ---- Matrices -----------------------------------------------------------------------------------------
 
 Matrix4* __stdcall ViewportMatrix(Matrix4* out, const int* rect) {
     float halfWidth = static_cast<float>((rect[2] - rect[0]) >> 1);
@@ -164,7 +163,6 @@ Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float
 EI_REWRITTEN(0x004F0E80, ProjectionMatrix);
 
 EI_REWRITTEN(0x004F57B0, TriangleIndexArray::SetSize);
-// ---- CLinkFigureLoader ---------------------------------------------------------------------------
 
 namespace {
 // list<pair<string, CMMIOResource*>> members (recordlist::LinkArchives'): insert(pos,

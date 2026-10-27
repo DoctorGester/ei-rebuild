@@ -1,9 +1,8 @@
 // The renderer's rectangle draw: a black rectangle with the given alpha, filled as two
-// pre-transformed triangles over
-// the current blend state, and with `outline` a white one-pixel frame drawn as a line strip around
-// it (the fill then stays a pixel inside). Used for the rubber-band selection and the
-// interface's fades. The new renderer (src/render) takes both draws; with "nointerface"
-// the old path skips them. See docs/notes/renderer.md.
+// pre-transformed triangles over the current blend state, and with `outline` a white one-pixel frame drawn as
+// a line strip around it (the fill then stays a pixel inside). Used for the rubber-band selection and the
+// interface's fades. The new renderer (src/render) takes both draws; with "nointerface" the old path skips
+// them. See docs/notes/renderer.md.
 #include "ei/hook.h"
 #include "device.h"
 #include "model.h"
@@ -68,8 +67,7 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
     Count(device, 4, 2);
     if (!outline) return 1;
 
-    // The frame: white, on the rectangle's own edges, flat shaded, with a depth bias, the texture
-    // stage off.
+    // The frame: white, on the rectangle's own edges, flat shaded, with a depth bias, the texture stage off.
     for (auto& p : v) p.colour = 0xFFFFFFFFu;
     v[0].x = x0, v[0].y = y0;
     v[1].x = x0, v[1].y = y1;

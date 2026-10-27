@@ -24,10 +24,10 @@ double StoreDouble(double v) {
 }
 
 // Constants the game reads from memory at run time.
-#define EI_HALF_F 0.5f /*0073B86C*/        // 0.5f
-#define EI_ONE_F 1.0f /*0073B84C*/         // 1.0f
-#define EI_ZERO_D 0.0 /*0073C340*/       // 0.0
-#define EI_ONE_D 1.0 /*0073BAC8*/        // 1.0
+#define EI_HALF_F 0.5f /*0073B86C*/
+#define EI_ONE_F 1.0f /*0073B84C*/
+#define EI_ZERO_D 0.0 /*0073C340*/
+#define EI_ONE_D 1.0 /*0073BAC8*/
 #define EI_SLERP_LINEAR 0.0001 /*0073D078*/ // 1e-4: below this 1 - cos interpolates linearly
 
 // The shared body of the two angle/axis setters: w = cos(angle / 2), (x, y, z) = axis * sin(angle
@@ -96,9 +96,8 @@ Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a,
 }
 EI_REWRITTEN(0x0049E950, MultiplyByConjugate);
 
-// *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is
-// negative); nearly equal rotations interpolate linearly. The weight of a is rounded to float, the
-// weight of b is not.
+// *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is negative); nearly equal
+// rotations interpolate linearly. The weight of a is rounded to float, the weight of b is not.
 void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
     double cosine = DotWZYXUnrounded<double>(a, b);
     Quaternion c;

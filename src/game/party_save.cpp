@@ -42,8 +42,7 @@ void WriteItemIds(CStream* stream, const PartyItemArray& list) {
     }
 }
 
-// Releases what the list holds, then reads a count and that many ids, each resolved in `manager`
-// and counted.
+// Releases what the list holds, then reads a count and that many ids, each resolved in `manager` and counted.
 void ReadItemIds(CStream* stream, PartyItemArray& list, CBaseManager* manager) {
     for (int i = 0; i < list.size; ++i) list.data[i]->Release();
     int count;
@@ -77,7 +76,6 @@ void CopyThrough(CParty* target, CParty* source) {
 
 } // namespace
 
-// --- PartyUnitRecord ----------------------------------------------------------------------------
 
 void PartyUnitRecord::Load(CStream* stream) {
     ClearItems();
@@ -94,7 +92,7 @@ void PartyUnitRecord::Load(CStream* stream) {
     texts[6] = texts[5];
     stream->Read(&unitId, sizeof(unitId));
     stats.LoadFrom(stream);
-    stream->Read(&scaleX, 0xC);   // +0x724, +0x728 and the height
+    stream->Read(&scaleX, 0xC);   // +0x728 and the height
     ReadItemIds(stream, ItemList(weapons), g_loadingParty->ItemManager());
     ReadItemIds(stream, ItemList(quickItems), g_loadingParty->ItemManager());
     ReadItemIds(stream, ItemList(armor), g_loadingParty->ItemManager());
@@ -136,7 +134,6 @@ void PartyUnitRecord::Save(CStream* stream) {
 }
 EI_REWRITTEN(0x0065FDE0, PartyUnitRecord::Save);
 
-// --- CParty -------------------------------------------------------------------------------------
 
 void CParty::LoadParty(CStream* stream, int loadVariables) {
     if (itemManager_ == nullptr) Create();
