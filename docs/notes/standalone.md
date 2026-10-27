@@ -11,8 +11,8 @@ The list, each item with the ticket that removes it: docs/standalone-cleanup.md.
 and `tools/dashboard_data.py` (the dashboard's standalone panel). The game glue (00578xxx) ignores
 `this`: its world_glue.h functions are called without the dummy this / EDX.
 
-**Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_/check_static_init,
-gen_/check_short_functions, gen_image_cells, gen_iat, check_signatures, check_stolen, check_fp_fold, find_vtables,
+**Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_static_init,
+gen_short_functions, gen_image_cells, gen_iat, check_signatures, check_stolen, find_vtables,
 find_dead_code, standalone_gaps; the build reads none since C25c) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
 `run_all.run_dir(root)`'s `vanilla\game.exe`, then `rebirth\game.exe` (a worktree without a run\ junction uses the main
 checkout's); nothing found is one error naming the paths looked for. Nothing reads F:\games any more.
@@ -222,8 +222,8 @@ each step green on the goldens and removing a measured tie:
   clocks, heap, Winsock, Miles) or our code takes it by address (`&gameapi::X`: hook/paths.cpp's RegQueryValueExA in
   game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (67, with gen_iat's KEEP:
   GetVersionExA, deprecated in the SDK: a direct call warns); the other 344 are `using ::X;`, the Windows function through ei_hook.dll's own imports
-  (`#pragma comment(lib)` for the seven DLLs). A harness route on a new slot makes `--check` fail until gen_iat.py
-  is rerun, which moves that function back to the slot. In game.exe our code does not run (S21), except
+  (`#pragma comment(lib)` for the seven DLLs). A harness route on a new slot makes `gen_iat.py --check` (build.cmd; it reads the committed import files) fail until
+  gen_iat.py is rerun (that one needs game.exe), which moves that function back to the slot. In game.exe our code does not run (S21), except
   hook/paths.cpp and the harness, which keep the slots they patch. Rebirth's only import slot patch (MoviesPatch,
   BinkOpen 0073B720) is ours behind its flag in the image (mod_folders.cpp); Miles, Bink, Winsock, DirectInput,
   DirectDraw and DirectSound stay table calls: the table loads them from the game folder (Miles, Bink, dgVoodoo's
@@ -250,15 +250,14 @@ each step green on the goldens and removing a measured tie:
   00742B08, 007432F4, 0073B720; found by reading config/rebirth_patches.csv's generated site list; vanilla's and Rebirth's .rdata
   are the same bytes, and the section is read-only, so those are the only writers), the import table and tables / vtables / GUIDs (S18g). SV10j's files (unit_ai*, combat_*) followed in S18e2
   (13 reads; a limit * limit product is written `static_cast<float>(0.2f * 0.2f)` so it keeps the FMUL's 24 bits). **Folds**: the compiler folds a product of constants at 53 bits where the
-  original's FMUL on the main thread rounds to 24, and a literal has no volatile load to stop it: `tools/check_fp_fold.py` flags the
-  doubles that come out of it and its `-v` list of new float constants was compared with main's (all of this ticket's new entries
-  reviewed). The pi * (1/180) of two doubles is `ei::kRadiansPerDegree` (src/game/angles.h, float, checked against exact
+  original's FMUL on the main thread rounds to 24, and a literal has no volatile load to stop it: check_fp_fold (removed in C25d) flagged the
+  doubles that come out of it; its list of new float constants was reviewed then. The pi * (1/180) of two doubles is `ei::kRadiansPerDegree` (src/game/angles.h, float, checked against exact
   arithmetic); a chain rounds after each product (`static_cast<float>(kRadiansPerDegree * 90.0)`).
   **The static initialisers' folds** (S18e1): gen_static_init writes a float fold's .rdata operands as the same tagged literals
   (`d.StoreFloat(0x0079B1B8, 3.1415927f /*0073B848*/ * 0.5f /*0073B86C*/)`; 243 operands; the one operand in .data, an earlier
   fold's result 007C896C, stays `d.Float`), so the compiler folds them. The original computes them at run time at 53 bits:
   VC6's `_FPinit` (006E72BC, through the pointer 007975A0 that `_cinit` 006E8D7A calls) runs `_controlfp(_PC_53, _MCW_PC)`
-  (006EEF7C) before `_initterm`, so they are not at the main thread's later 24 bits. check_static_init evaluates each fold of
+  (006EEF7C) before `_initterm`, so they are not at the main thread's later 24 bits. check_static_init (removed in C25d) evaluated each fold of
   literals in x87 order at 53 bits and in C++ precedence at 53 bits and in float, and fails when the three floats differ: all 118
   agree (single operations of floats round the same through 53 bits; the three chains give 40 and 30 exactly). The `d.Log` of a
   literal is still x87::flog at run time (FYL2X ignores the precision control). The six `d.Dword` reads of .rdata (pointer
@@ -311,9 +310,16 @@ address src/ names held only zeros and cells; C25c named the last rows (out_of_r
 throws, stlp_string.cpp; `__lc_category` and its static "C" are crt_locale.cpp's) and dropped that machinery
 (EI_IMAGE_BYTES_FROM_EXE, the trial, EI_IMAGE_TRACE / image_trace.py, the kept list, the proof, EI_NO_GAME_EXE).
 
-The checks that compare with game.exe (check_fp_fold, rdata_literals, named_data, check_short_functions,
-check_static_init, `gen_image_cells --check`, `gen_iat --check`) are `tools\check_against_exe.cmd [release|verify]`,
-run by hand when a change touches what they cover; regenerating the cells (`gen_image_cells.py`) reads game.exe too.
+C25d deleted tools\check_against_exe.cmd and the modes only it ran (check_fp_fold, rdata_literals --check, named_data's
+comparison with game.exe's bytes and cells, check_short_functions, check_static_init, gen_image_cells --check's scan,
+gen_iat --check's read of the import directory): each had proved its generated file or tagged definition when it was
+made, and the generators still read game.exe when rerun. What needs no game.exe stays in build.cmd, from the committed files:
+`gen_iat.py --check` (import_table.h, image_imports.inc and gameapi.h regenerated from the committed table and the routes:
+a hand edit or a new harness route fails), `named_data.py --check` (definitions well formed, csv current, no address
+literal inside a named, retired or unread range, global_objects.csv) and `gen_image_cells.py --check` (retired vtables
+against vtables.csv and the sources, the committed cells' targets). The generated static_init.cpp / static_exit.cpp,
+image_cells.inc / image_code_cells.inc and short_functions.cpp are only as fresh as their generator's last run: rerun
+it (reads game.exe) after a change that registers or ports what it decodes.
 The harness still runs the original game.exe for goldens and vectors.
 
 What C25a named or dropped of its list, still the code's form:
@@ -391,14 +397,13 @@ kinds given.
   string pointer `constexpr const char* kX = /*addr*/ "text";` (a per-file copy of a header's `const char* const`
   the original read through memory: terrain_sector's kSectorExtension); a struct with pointer fields takes string
   literals, names and nullptr in its initialiser (material.cpp's kMaterialKindFiles).
-- **The check** (`python tools/named_data.py --check`, build.cmd): the initialiser's numbers, packed by the declared
-  element type (`TYPES`: the scalars, GUID as `IHH` and 8 `B`; nested braces are flattened, a `[n]` bound must match the
-  count), are game.exe's bytes at the tag (.rdata past the import table, or .data and its zero-filled tail);
+- **The check** (`python tools/named_data.py --check`, build.cmd; no game.exe since C25d): the initialiser's numbers,
+  packed by the declared element type (`TYPES`: the scalars, GUID as `IHH` and 8 `B`; nested braces are flattened, a `[n]`
+  bound must match the count), lie in .rdata past the import table, or .data and its zero-filled tail;
   config/named_data.csv lists exactly the tagged ranges (address, size, name, file; `--update` writes it); and
-  nothing else reaches a range: no address literal of src/ or tests/ (.cpp, .h, .inc, comments blanked) inside it,
-  no pointer cell of game.exe's data pointing into it, no pointer or code cell inside it other than its pointer
-  elements (gen_image_cells' scans, the named ranges' own cells included), no addon.dll site, no two ranges
-  overlapping. A wrong value fails with its first differing byte.
+  nothing else reaches a range: no address literal of src/ or tests/ (.cpp, .h, .inc, comments blanked) inside it, no
+  addon.dll site, no two ranges overlapping. That the numbers are game.exe's bytes and that no cell of its data points
+  into the range was proved when each range was made (`--emit` prints the definition from the bytes and packs it back).
 - **Pointer elements** (C18c): a type with pointers (TYPES `P`: `char*`, `MaterialKindFile` `iP`) packs no address.
   Each pointer element names what game.exe's pointer in its place points at, and the check compares that: a string
   literal (adjacent ones joined, escapes decoded) the zero-terminated text at the target (game.exe's string literals,
@@ -466,12 +471,12 @@ kinds given.
   1. `python tools/named_data.py --split "<kind>"`: take the addresses of one kind whose owner is your area.
   2. Per address: read its uses for the extent (the count the code indexes, the original's bound, the next tagged
      neighbour) and the element type; write the definition with the tag (the values from game.exe:
-     `gen_image_cells.image(exe_path.find_exe())` in a `python -c`, or write zeros and let --check name the first
-     difference).
+     `gen_image_cells.image(exe_path.find_exe())` in a `python -c`, or or `named_data.py --emit`, which prints the
+     definition from game.exe's bytes).
   3. Replace every read (`GamePointer<const T>(0x...)`, `GameData<const T>(0x...)`, the per-file accessor
      returning the pointer) with the name; drop the accessor and the comments that repeated the address or the
      values.
-  4. `python tools/named_data.py --update`, then `--check`, `data_seam.py --check`, `rdata_literals.py --check`,
+  4. `python tools/named_data.py --update`, then `--check`, `data_seam.py --check`,
      `check_cleanup.py` (`--update` when its counts went down), `build.cmd verify` and `release`, and
      `python tools/work.py test <ID> --golden --jobs 4`.
 - **What the other kinds need** (later batches):
@@ -501,7 +506,7 @@ kinds given.
     (`push offset; call 00700674`, the list holds the first instruction of each, a jump to the body) are ported on the
     name and registered at the list's address (`d.Cdecl(address)` in static_init.cpp). Do not run
     gen_function_sizes.py for new rows: it rewrites every size from the Ghidra database, which has moved from the
-    committed file (check_fp_fold fails on the compiled doubles); add the rows by hand in order.
+    committed file; add the rows by hand in order.
     config/runtime_classes.csv (the cell tool's list of the records) went with them: their cells are inside named
     ranges.
     **The throws**: mfc_exception's file / archive / not supported / memory / resource exceptions and the device
@@ -574,11 +579,11 @@ kinds given.
     yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
     007AFF60). The CRT's allocator state is named since C18r (below).
   - **The static initialisers' objects** (C18j). Most game data addresses left were named only by the generated
-    static_init.cpp / static_exit.cpp. Two rules in tools/gen_static_init.py (check_static_init.py re-derives both):
+    static_init.cpp / static_exit.cpp. Two rules in tools/gen_static_init.py (each is a decision of the generator):
     - **Named ranges**: a store, float fold or fill into a range of config/named_data.csv is left out of
       static_init.cpp (the block keeps its `d.Begin`, its comment says "n left out"); the definition's initialiser
-      takes its place. named_data.py --check compares the definition with game.exe's bytes *as the initialisers leave
-      them* (gen_static_init.stored_values: the stores in list order, a fold computed as the original does, x87
+      takes its place. the definition is game.exe's bytes *as the initialisers leave
+      them* (`--emit` packs it back and compares) (gen_static_init.stored_values: the stores in list order, a fold computed as the original does, x87
       order at 53 bits, rounded to a float; a call's stored result is unknown and refused), so `constexpr float
       kCellSize = /*007AEDA8*/ 0.5f;` (a single number takes this form: one .data object that an initialiser sets,
       not an .rdata literal) is checked against 1.0f / 2.0f. Only constant initialisation: a C++ dynamic
@@ -699,7 +704,7 @@ kinds given.
       (but the generated files) names it, no initialiser call, atexit or exit function takes it, no initialiser
       reads it (a copy's source), no named range holds it, and no address referenced elsewhere and stored by no
       initialiser lies less than 0x100 below it (it could be a field of that object). Its stores are left out like a
-      named range's, and named_data.py --check gives it the same proof (no literal, no pointer or code cell). 347
+      named range's, and named_data.py --check gives it the same proof (no literal inside it). 347
       objects, 998 store statements: the per-file copies of header constants (zero vectors, identity rotations
       {1, 0, 0, 0}, floats: 1 / 1 and pi's folds) that the original's code never reads either, and the neighbours of
       other objects below. **C18m (reviewed)**: 48 groups lay within 0x100 above a referenced object; each was read
@@ -791,12 +796,12 @@ kinds given.
       `g_afxCriticalInit` 007C9078 / 7C), `g_afxThreadData` 007C9084 and the halftone brush 007C8D40 (_afxWingdixTerm
       007C8D44 kept only atexit's answer, which nothing reads: dropped). The DragList message id `g_dragListMessage`
       007CAA64 is pointed at by CWnd's message map entry 00746C80, which nothing in the image reads
-      (config/standalone_unreachable.csv): named_data.py's UNREACHABLE_CELLS lets that one cell point into a range.
+      (config/standalone_unreachable.csv).
       printf's power tables and the x87 functions' constants were already ours (crt_format.cpp, crt_x87.cpp).
     - **The empty string (C18, 6 -> 5)**: 0079B298 is game_strings.h's `kEmptyText` (`char[1]`, `game::EmptyText()`
       returns it). Its readers copy it (CString / STLport assignments) or compare its text (mbscmp, memcmp); none compares
       the pointer. The only data cells that point at it are the units' model folders 0078F7EC / 0078F824, a table only
-      the dead 00532650 reads (gen_image_cells' UNREAD: zero in the image), so named_data.py --check lets an UNREAD cell
+      the dead 00532650 reads (gen_image_cells' UNREAD: zero in the image), so an UNREAD cell may
       point into a named range. The seams that took an address and had no address caller left went with it:
       `game::Text`, the camera's and the transform maths' `GameFloat(std::uintptr_t)`, the `FreeArray` / `ConstructList`
       overloads by vtable address and `CArray::Construct(std::uintptr_t)` (a vtable is passed as the class's `Vtable()`).
@@ -846,8 +851,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
    without dispatch (`self->GroundPrint::Tick()`, `new (self) GroundPrint(...)`; rewrite guide rule 4).
 5. List the family's game.exe vtables in config/retired_vtables.csv (vtable, slots, class, declaring file):
    gen_image_cells.py moves their slots out of the code cells (group `vtable-retired`; the `vtable` group's count is
-   7,258 less the retired slots) and writes their bytes zero in the image; named_data.py --check proves nothing names an
-   address inside them (src/, tests/), no pointer cell points into them and no code cell is left in them. A vtable two
+   7,258 less the retired slots) and writes their bytes zero in the image; named_data.py --check proves no address inside them is named (src/, tests/), and gen_image_cells.py --check that
+   each row is a vtable of config/vtables.csv with its slot count and a class of the file it names. A vtable two
    classes shared (0073F778, the copy constructor's) goes when both do.
 6. `python tools/gen_image_cells.py`, the checks, both builds, `work.py test <ID> --golden --jobs 4`.
 - **Engine objects** (batch 2: CMusicSystem, CMaterial): CEngineObject's default slots are defined
@@ -1194,8 +1199,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     slots 13-19 (17 and 18 pure); CMapObjectClientSpecific (0073DBEC) and CMapObjectServer (0073DD6C, slot 20
     TakeHit) derive from it (unit.h). Slot 13 takes a bool (the client's body reads the low byte); slot 19 is void
     (the objects' slot 47 passes EAX on, which nothing reads).
-  - **check_fp_fold**: once CWorld::SetTimeSpeed lost its slot registration the compiler inlined it into the
-    server's (0058EEE0); its 1/15 is 0055FB50's own double (tools/check_fp_fold_allow.txt).
+  - **check_fp_fold** (removed in C25d): once CWorld::SetTimeSpeed lost its slot registration the compiler inlined it into the
+    server's (0058EEE0); its 1/15 is 0055FB50's own double.
   - **Left in world* / unit***: world_data's unit spec tables 0073C6E0 / 0073FA58 (C21). (The tamed mode 0073F0C4
     went with the other AI modes; real classes since C28h.)
 - **Batch 17's families** (2026-10-22): combat_lifetime's containers, the AI modes, the 3D object halves and a dozen
@@ -1434,7 +1439,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     address compare a hash table's prime pointer with the end of __stl_prime_list (0073B914 + 28 dwords), which is
     the same address: no read of the table. type_info 007472B0 (game.exe's CRT): the 74 RTTI type descriptors' vtable
     field points at it; nothing in the image calls a descriptor's virtual (the frame handlers compare descriptors by
-    address and name; none is destroyed), so named_data.py's RETIRED_POINTED lets those pointer cells point at the
+    address and name; none is destroyed), so those pointer cells may point at the
     zero table.
   - **False rows** (find_vtables.py now skips a candidate whose slot 0 is an EH funclet, functions.csv kind `eh`, or
     config/dead_code.csv's "not a function start"): 00746E60 (the text "ime" 00704BE6 hands lstrcmpiA; now a
@@ -1614,7 +1619,7 @@ the `--no-hooks` suite) keeps the registry.
 - **Short functions** (S2): the 200 game functions under five bytes are in src/game/short_functions.cpp, generated by
   `tools/gen_short_functions.py` from their bytes (12 kinds: `Ret`, `Ret4/8/12`, `ReturnZero`, `ReturnMinusOne`,
   `ReturnTrue`, `ReturnFalse`, `ReturnThis`, `LoadDword<n>`, `MemberAddress<n>`, `LoadFloat<n>`), each compiling to
-  the original's bytes, registered with `EI_REPLACE_SHORT`. `tools/check_short_functions.py` (build.cmd) checks each
+  the original's bytes, registered with `EI_REPLACE_SHORT`. check_short_functions (removed in C25d) checked each
   kind against game.exe and our code. A few were added by hand (particle element callbacks 00485530,
   00492FB0-004965D0: `EI_REPLACE_SHORT(Ret4)`).
 - **Static initialisers** (S3): src/standalone/static_init.cpp by `tools/gen_static_init.py`. A small symbolic
@@ -1624,8 +1629,8 @@ the `--no-hooks` suite) keeps the registry.
   callee is inlined, everything else is called at its address. One template, `StaticInitialisers(Do&)`
   (static_init.h), with visitors `Run` (the image; calls go to `ei::Code` of the address) and `Targets` (logs call
   targets without code).
-  `tools/check_static_init.py` (build.cmd) re-decodes game.exe: when a helper gets registered later the output
-  changes, so rerun the generator.
+  When a helper gets registered later the output changes: rerun the generator (check_static_init, removed in
+  C25d, re-decoded game.exe and compared).
 - **Exit functions** (S3a, S16a): src/standalone/static_exit.cpp, same tool: 130 whole-function patterns
   (`EXIT_PATTERNS`: `mov ecx, obj; jmp dtor`, flag-guarded, operator delete of a counted buffer, a counted
   `Release`, DeleteCriticalSection, the eh vector destructor iterator, the WSACleanup wait, `ret`) plus 60 run-time
@@ -1656,8 +1661,7 @@ the `--no-hooks` suite) keeps the registry.
   EI_REWRITTEN registers nothing: it leaves `{address, &Fn, file, line}` in the DLL's `.eiorg` section, which nothing
   reads at run time, so the compiler checks the name and the function's own copy stays in the image as with a
   registration. check_registrations reads `.eiorg` (one EI_REWRITTEN per address, none also registered). The tools
-  read the map from the sources: check_signatures.registrations() (kind 'replace'; check_fp_fold and
-  check_signatures), coverage.py, direct_calls.py, save_trace.py, ui_census_report.py, gen_originals.py,
+  read the map from the sources: check_signatures.registrations() (kind 'replace'; check_signatures), coverage.py, direct_calls.py, save_trace.py, ui_census_report.py, gen_originals.py,
   progress.py's / dashboard_data.py's rewritten counts, check_cleanup (its address is no raw literal), and
   gen_short_functions.ported_elsewhere (a rewrite: no generated short function, and gen_static_init neither inlines
   nor decodes it). standalone_gaps and registration_readers skip the lines (no reader, no reached literal).

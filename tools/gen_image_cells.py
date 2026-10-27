@@ -12,7 +12,7 @@ up to its zero printable, "Any", "May") whose value would point into the middle 
 printable ASCII: a pointer to a string points at its start).
 
 The cells inside the ranges our named globals hold (config/named_data.csv, C18) are left out: the image holds those
-bytes zero, and tools/named_data.py --check compares each such cell with the pointer element of ours in its place (a
+bytes zero, and named_data.py --check checks the pointer elements of ours in their place (a
 string literal, another named range, a function of ours with a registration).
 
 Each cell found must be reviewed: a cell into .rdata is either part of a structure the tool walks (STRUCTURES: the C++
@@ -40,9 +40,10 @@ usual); the import table and the named ranges are zero. Everything else the imag
 global of ours (C18).
 
 usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT]
-  (no option)  write src/standalone/image_cells.inc and image_code_cells.inc (reads game.exe)
-  --check      exit 1 when the files differ from what the scan writes, or a cell has no review (reads game.exe;
-               tools/check_against_exe.cmd)
+  (no option)  write src/standalone/image_cells.inc and image_code_cells.inc (reads game.exe: the scan and its reviews)
+  --check      exit 1 when the committed cells and the retired vtables disagree (config/retired_vtables.csv against
+               config/vtables.csv and the sources; every cell's target in the moved range or the code); no game.exe
+               (build.cmd). That the cells are what game.exe has is the scan's, when it is rerun.
   --bytes OUT  write the moved range's initial bytes to OUT as a C++ initialiser (the build; no game.exe)
 """
 import argparse, csv, os, re, struct, sys
@@ -143,7 +144,7 @@ REVIEWED_RDATA = [
     (0x007468DC, 0x0074701C, 11, "MFC CCmdTarget's maps (message, dispatch, event sink, interface (IID_IDispatch), "
                                  "connection, OLE command) and CWnd's and CWinApp's message maps: base map and entries"),
     (0x00783000, 0x0079C000, 74, 'C++ type descriptors (type_info objects): their vtable, type_info\'s (retired: '
-                                 'nothing calls a descriptor\'s virtual; named_data.RETIRED_POINTED)', 0x007472B0),
+                                 'nothing calls a descriptor\'s virtual)', 0x007472B0),
     (0x00797A60, 0x00797B08, 43, 'the CRT\'s __lc_time_c: day and month names, AM / PM, the date and time formats'),
     (0x0079804C, 0x00798050, 2, 'the CRT\'s "(null)" strings of printf (narrow and wide)'),
     (0x00798928, 0x00798BE0, 88, 'getqloc\'s country and language name tables (__rg_country 00798928, __rg_language '
@@ -289,17 +290,15 @@ def named_data_ranges():
         return [(int(r['address'], 16), int(r['size'])) for r in csv.DictReader(f)]
 
 
-def outside_named(keep_named):
-    """A test for a cell address: False inside a named range of config/named_data.csv (unless keep_named)."""
-    if keep_named:
-        return lambda a: True
+def outside_named():
+    """A test for a cell address: False inside a named range of config/named_data.csv."""
     ranges = named_data_ranges()
     return lambda a: not any(lo <= a < lo + n for lo, n in ranges)
 
 
-def scan(img, keep_named=False):
+def scan(img):
     cells = []
-    wanted = outside_named(keep_named)
+    wanted = outside_named()
     for _, begin, end in SCANNED:
         for a in range(begin, end, 4):
             if not wanted(a):
@@ -455,9 +454,9 @@ def code_group_of(cell, value, kinds, starts, img):
     return None
 
 
-def code_scan(img, keep_named=False):
+def code_scan(img):
     cells = []
-    wanted = outside_named(keep_named)
+    wanted = outside_named()
     for _, begin, end in SCANNED:
         for a in range(begin, end, 4):
             v = struct.unpack_from('<I', img, a - BASE)[0]
@@ -466,13 +465,13 @@ def code_scan(img, keep_named=False):
     return cells
 
 
-def code_check(img, problems, keep_named=False):
+def code_check(img, problems):
     """The code cells (S18i) with their groups; problems appended. Returns (cells, groups, counts)."""
     kinds = code_structures(img)
     starts = function_starts()
     counts = {}
     code = []
-    for c, v in code_scan(img, keep_named):
+    for c, v in code_scan(img):
         g = code_group_of(c, v, kinds, starts, img)
         if g is None:
             problems.append(f'gen_image_cells: {c:08X} -> {v:08X} (the code section) has no review: a code pointer '
@@ -635,7 +634,7 @@ def stored_vtable(img, v):
 def check_retired(problems, img):
     """Each retired vtable is a game vtable of config/vtables.csv with all its slots, listed once, the start of a
     table (stored_vtable) or the tail of a retired one (the row it ends), and shares no slot with a vtable still in
-    use (its bytes are zero in the image)."""
+    use (its bytes are zero in the image). With no image (`img` None: --check) the stored-by-code proof is left out."""
     with open(VTABLES, newline='') as f:
         vtables = {int(r['vtable'], 16): (int(r['slots']), r['kind']) for r in csv.DictReader(f)}
     listed = {v for v, _, _, _ in retired_vtables()}
@@ -648,11 +647,11 @@ def check_retired(problems, img):
     # A tail goes with its table: a retired row's end, when that row is stored or a tail itself.
     ends = set()
     for v, n, _, _ in sorted(retired_vtables()):
-        if stored_vtable(img, v) or v in ends:
+        if img is not None and (stored_vtable(img, v) or v in ends):
             ends.add(v + 4 * n)
     for v, n, cls, path in retired_vtables():
         where = f'config/retired_vtables.csv: {v:08X} ({cls})'
-        if not stored_vtable(img, v) and v not in ends:
+        if img is not None and not stored_vtable(img, v) and v not in ends:
             problems.append(f'gen_image_cells: {where}: no code of game.exe stores it: the tail of the vtable '
                             'before it (a slot call or a byte match split it off), not a vtable of its own; '
                             'retire it with that vtable')
@@ -728,6 +727,18 @@ def main():
         n = write_bytes(a.bytes)
         print(f'gen_image_cells: {n} dwords of .rdata and .data written to {a.bytes}')
         return 0
+    if a.check:   # no game.exe: the committed lists against each other
+        problems = []
+        check_retired(problems, None)
+        cells = committed_cells()
+        for c, v in cells.items():
+            if section_of(v) is None and not in_code(v):
+                problems.append(f'gen_image_cells: {c:08X} -> {v:08X} is neither in the moved range nor in the code')
+        for p in problems:
+            print(p)
+        print(f'gen_image_cells: {len(cells)} committed cell(s), {len(retired_vtables())} retired vtable(s), '
+              f'{len(problems)} problem(s)')
+        return 1 if problems else 0
     img = image(exe_path.resolve(a.exe))
     kinds = structures(img)
     cells = scan(img)

@@ -365,7 +365,7 @@ happen (the harness logs "share id" if one does).
   modern CRT for sqrt / sin / cos / atan2 / exp / log, so rewrites use `std::sqrt` (FSQRT at the precision control here; a float argument cast to double first) and `x87::fsin / fcos / fpatan / fexp / flog /
   flog10` as VC6 inlined them.
 - **Constant products** the original computes at run time (FLD; FMUL / FDIV) round to 24 bits there; the compiler folds
-  them to doubles. `tools/check_fp_fold.py` (build.cmd) fails on x87 constants the original never loads (terrain::Sine's
+  them to doubles. `tools/check_fp_fold.py` (removed in C25d) failed on x87 constants the original never loaded (terrain::Sine's
   256 / pi, the briefing's and the lighting's pi / 180 are floats now; the double pi / 180 moved three menu units by
   1-2 ulps).
 - **Never-set memory** is made canonical, never emulated (section 5). Before adding a new site, find the field with

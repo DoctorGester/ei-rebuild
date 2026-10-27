@@ -47,8 +47,7 @@ build.cmd release utf8   the same with UTF-8 strings, into build\release-utf8
 build.cmd verify         the game plus the test harness, into build\verify (what the tests run)
 ```
 
-The build also runs the source checks (`tools/check_*.py`). Checks that compare our code with `game.exe` itself are
-in `tools\check_against_exe.cmd release`.
+The build also runs the source checks (`tools/check_*.py`, the generated files' freshness); none reads `game.exe`.
 
 ## Play
 

@@ -359,7 +359,7 @@
 {DataId(0x007469FC), DataId(0x00746A00)},
 {DataId(0x00747018), DataId(0x007468D8)},
 {DataId(0x0074701C), DataId(0x00747020)},
-// C++ type descriptors (type_info objects): their vtable, type_info's (retired: nothing calls a descriptor's virtual; named_data.RETIRED_POINTED)
+// C++ type descriptors (type_info objects): their vtable, type_info's (retired: nothing calls a descriptor's virtual)
 {DataId(0x00783C40), DataId(0x007472B0)},
 {DataId(0x00783C58), DataId(0x007472B0)},
 {DataId(0x00783C80), DataId(0x007472B0)},

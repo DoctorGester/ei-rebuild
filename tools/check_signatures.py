@@ -168,7 +168,7 @@ def registrations():
     """(address, name, kind, file, line) of every EI_REPLACE(_METHOD, _DISPATCH, _STANDALONE) and EI_REWRITTEN
     ('replace': our function for the original at the address; EI_REWRITTEN, C20d, has no registration), EI_RECORD
     ('record') and EI_ORIGINAL ('forwarder') in src/, tests/verify/ and tests/vectors/: the tools' function-to-original
-    map (check_fp_fold reads it too)."""
+    map."""
     regs = []
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True) + \
                 glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')) + \
