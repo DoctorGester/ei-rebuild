@@ -18,6 +18,9 @@ if "%CFG%"=="" set CFG=release
 
 call "%VSROOT%\VC\Auxiliary\Build\vcvars32.bat" >nul || exit /b 1
 set PATH=%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%PATH%
+rem One PDB server per checkout and configuration: the 32-bit mspdbsrv runs out of its 4 GB when every
+rem worktree's build shares the default one (C2471 / C1060 / C1090 / LNK1318).
+for %%I in ("%~dp0.") do set "_MSPDBSRV_ENDPOINT_=ei_%%~nxI_%~1"
 
 set HARNESS=OFF
 set BUILDTYPE=RelWithDebInfo
