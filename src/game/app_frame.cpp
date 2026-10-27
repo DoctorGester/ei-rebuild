@@ -101,7 +101,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     file.Close();
     ++g_movieFrame;
 }
-EI_REPLACE(0x00458010, FrameStep);
+EI_REWRITTEN(0x00458010, FrameStep);
 
 // Plays the movies listed under `section` in the .ini under the movie folder setting (each
 // from the movie directory), clearing the screen before and, with `clearAfter`, after each.

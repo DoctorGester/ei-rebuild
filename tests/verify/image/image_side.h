@@ -140,6 +140,15 @@ bool RestoreSurfaces(long* result);
 // "hudstate": the battle screen's state logged; a failure, or "" (harness_hud_read.inc).
 std::string HudState(void* screen, const std::string& argument);
 
+// ---- the main loop's calls the harness steps into (harness.cpp, harness_capture.cpp, harness_hooks.h;
+// image/harness_objects_image.cpp): each hook ends with the function it stands in for, called by name here.
+
+int ServerUpdate(void* server);                 // CWorldServer::Update
+int ClientSegment(void* client);                // CWorldClient::Segment
+void CameraUpdate(void* camera, float seconds); // CCamera::Update
+void FrameStep(bool draw, bool cursor);         // app::FrameStep
+void CursorLock(void* cursor);                  // CCursor::TakeLock
+
 // ---- the image's renderer (harness.cpp, harness_capture.cpp; image/harness_render_image.cpp)
 
 // render::CursorPresentInfo and render::WindowPresentInfo.

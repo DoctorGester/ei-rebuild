@@ -393,8 +393,8 @@ happen (the harness logs "share id" if one does).
   `harness_files`: tests/verify (not tests/verify/image), src/hook but the image's start-up (`HARNESS_IMAGE_ONLY`,
   hook/standalone_main.cpp), the launcher, config/harness, `HARNESS_SHARED` (rebirth.cpp, image_data.cpp), the vector
   recorders only in `EI_VECTORS=1` runs, and every header they include). In game.exe the harness runs no game code of
-  ours: it calls game.exe's functions (tests/verify/harness_original.h `OriginalCode`, `GameCode` for code both sides
-  call) and reads game.exe's objects through its own views (tests/verify/exe_objects.h, `ei::verify::exe`: our member
+  ours: it calls game.exe's functions (tests/verify/harness_original.h `OriginalCode`; a call both sides make is
+  `ei::Standalone() ? image::X(...) : OriginalCode<F>(address)(...)`, C20h) and reads game.exe's objects through its own views (tests/verify/exe_objects.h, `ei::verify::exe`: our member
   names at game.exe's offsets, frozen when H30b split them off; `OriginalGameData` for globals). Our classes it reaches
   only in the image, through tests/verify/image (image_side.h declares functions that name no class of ours; the .cpp
   files there include our headers), chosen by `ei::Standalone()`. A shared step reads no byte offset or virtual slot

@@ -100,6 +100,12 @@ void* SceneDevice() { return TheSceneRenderer()->device_.device; }
 void* DeviceLock() { return TheDeviceLock(); }
 bool RenderActive() { return render::Active(); }
 
+int ServerUpdate(void* server) { return static_cast<CWorldServer*>(server)->Update(); }
+int ClientSegment(void* client) { return static_cast<CWorldClient*>(client)->Segment(); }
+void CameraUpdate(void* camera, float seconds) { static_cast<CCamera*>(camera)->Update(seconds); }
+void FrameStep(bool draw, bool cursor) { app::FrameStep(draw, cursor); }
+void CursorLock(void* cursor) { static_cast<CCursor*>(cursor)->TakeLock(); }
+
 void ConsoleExecute(const char* text) { console::Execute(text); }
 void SendLeave04(int id) { GameSendLeave04(id); }
 void SetConstructionVariable(std::uint32_t value) { GameSetConstructionVariable(value); }

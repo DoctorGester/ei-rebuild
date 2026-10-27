@@ -13,9 +13,9 @@ readers, each a set of addresses:
     code literal     the address written in src/ outside a registration (ei::Code<F>(0x...), handler tables,
                      callbacks, src/hook's and src/standalone's own: WinMain for HasCode, ...)
   the harness (verify build):
-    harness          the address in tests/verify that the image's side asks CodeAddress for (GameCode<F>, ei::Code<F>,
-                     CodeAddress, HasCode of the literal or of the constant it initialises: the harness steps that
-                     call the game's frame step, camera, world update, cursor lock)
+    harness          the address in tests/verify that the image's side asks CodeAddress for (ei::Code<F>, CodeAddress,
+                     HasCode of the literal or of the constant it initialises; none since C20h: the harness's image
+                     side calls ours by name, tests/verify/image)
     scenario / golden  a code address in a scenario's steps (comments left out) or a golden file
   No reader (C20 batch 1), each needing only the function-to-original map (EI_REWRITTEN does as well):
     - the rest of tests/verify (game.exe's side: OriginalCode / EI_ORIGINAL, patches and hook points by address,
@@ -67,9 +67,9 @@ STATIC = ('src/standalone/static_init.cpp', 'src/standalone/static_exit.cpp')
 NOT_READERS = ('src/hook/function_sizes.inc', 'src/standalone/image_cells.inc', 'src/standalone/image_imports.inc',
                'tests/verify/addon_sites.inc')
 ORDER = ['static init', 'code literal', 'harness', 'scenario', 'golden']
-# The harness asks CodeAddress for an address in the image (tests/verify/harness_original.h's GameCode, ei/hook.h):
+# The harness asks CodeAddress for an address in the image (ei/hook.h's Code, CodeAddress, HasCode):
 # the call's argument, a literal or a constant (`constexpr std::uintptr_t kName = 0x...;`) of the file.
-HARNESS_ASKS = re.compile(r'\b(?:GameCode|Code)\s*<[^;\n]*?>\s*\(\s*(\w+)\s*\)|\b(?:CodeAddress|HasCode)\s*\(\s*(\w+)\s*\)')
+HARNESS_ASKS = re.compile(r'\bCode\s*<[^;\n]*?>\s*\(\s*(\w+)\s*\)|\b(?:CodeAddress|HasCode)\s*\(\s*(\w+)\s*\)')
 CONSTANT = re.compile(r'\b(k\w+)\s*=\s*0[xX]([0-9A-Fa-f]+)\b')
 
 
