@@ -1,11 +1,8 @@
 #pragma once
 
-// The network message classes (message types 1..17 as SessionBase::RegisterMessageTypes registers their
-// factories). Names provisional; see docs/notes/cleanup-network.md and docs/notes/network.md. Every class has
-// a factory (the type registry's, a static Create: a new message with no references), a constructor, a copy
-// constructor (slot 3, Clone, makes the copy with it) and a destructor (net_messages.cpp). Slot 1 is
-// Serialize (empty), slot 2 (OnShutdown) resets the message (destroyed and built again in place; EAX is left
-// undefined by the original), slots 4 / 5 write and read the fields at the cursor's byte position.
+// The network message classes, types 1..17 (SessionBase::RegisterMessageTypes); see docs/notes/network.md.
+// Each has a factory (Create: a new message with no references); Clone copies with the copy constructor,
+// OnShutdown resets the message in place (its result is undefined), Write / Read the fields at the cursor.
 
 #include "net_classes.h"
 #include "core_refcount.h"
@@ -29,12 +26,11 @@ using RefVector = stlp::vector<RefPtr>;
 
 // ---- Client to server ---------------------------------------------------------------------------
 
-// Type 5, 0x34 bytes: the local player's login, kept by the client. The
-// server's handlers make a player record and a binding from it (net_server_join.cpp).
+// Type 5: the local player's login, kept by the client; the server makes a player record and a binding of it.
 class LoginMessage final : public Message {
 public:
     LoginMessage();
-    LoginMessage(const LoginMessage& other);     // Clone's copy
+    LoginMessage(const LoginMessage& other);
     ~LoginMessage() override;
 
     int OnShutdown() override;
@@ -44,20 +40,19 @@ public:
 
     static Message* __fastcall Create();
 
-    stlp::string name_;             // +0x0C the player's name
-    stlp::string text_;             // +0x18
-    std::uint8_t host_ = 0;         // +0x24 asks to host (honoured with a local client)
+    stlp::string name_;
+    stlp::string text_;
+    std::uint8_t host_ = 0;         // asks to host (honoured with a local client)
     std::uint8_t unused_25[3];
-    std::uint32_t state_ = 4;       // +0x28 the player record's state
-    std::int32_t id_ = -1;          // +0x2C the player record's id
-    RefPtrTo<BindingMessage> binding_{};   // +0x30 the server's binding for this login (not sent)
+    std::uint32_t state_ = 4;       // the player record's state
+    std::int32_t id_ = -1;          // the player record's id
+    RefPtrTo<BindingMessage> binding_{};   // the server's binding for this login (not sent)
 };
 
-// One string: the base of SayMessage, ZoneMessage and MapMessage, which
-// differ only in their classes (game.exe has no table of its own for this layer).
+// One string: the base of SayMessage, ZoneMessage and MapMessage, which differ only in their classes.
 class TextMessage : public Message {
 public:
-    stlp::string text_;             // +0x0C
+    stlp::string text_;
 
 protected:
     TextMessage();
@@ -71,7 +66,7 @@ protected:
 class SayMessage final : public TextMessage {
 public:
     SayMessage();
-    SayMessage(const SayMessage& other) : TextMessage(other) {}       // Clone's copy
+    SayMessage(const SayMessage& other) : TextMessage(other) {}
     ~SayMessage() override {}
 
     int OnShutdown() override;
@@ -82,11 +77,11 @@ public:
     static Message* __fastcall Create();
 };
 
-// Type 7, 0x1C bytes: a command for the server (ClientSession::SendCommand).
+// Type 7: a command for the server (ClientSession::SendCommand).
 class CommandMessage final : public Message {
 public:
     CommandMessage();                                // kind_ is not set
-    CommandMessage(const CommandMessage& other);     // Clone's copy
+    CommandMessage(const CommandMessage& other);
     ~CommandMessage() override {}
 
     int OnShutdown() override;
@@ -96,16 +91,16 @@ public:
 
     static Message* __fastcall Create();
 
-    std::uint32_t kind_;         // +0x0C
-    stlp::string text_;          // +0x10
+    std::uint32_t kind_;
+    stlp::string text_;
 };
 
 // Two counted pointers; only the first is sent. The base of BindingMessage and
 // FileRequestMessage, which differ only in their classes and the names of the pointers.
 class PairMessage : public Message {
 public:
-    RefPtr first_{};                  // +0x0C
-    RefPtrTo<Connection> second_{};   // +0x10 the connection on the server (not sent)
+    RefPtr first_{};
+    RefPtrTo<Connection> second_{};   // the connection on the server (not sent)
 
 protected:
     PairMessage() {}
@@ -120,7 +115,7 @@ protected:
 class FileRequestMessage final : public PairMessage {
 public:
     FileRequestMessage();
-    FileRequestMessage(const FileRequestMessage& other) : PairMessage(other) {}   // Clone's copy
+    FileRequestMessage(const FileRequestMessage& other) : PairMessage(other) {}
     ~FileRequestMessage() override {}
 
     int OnShutdown() override;
@@ -134,12 +129,11 @@ public:
     RefPtrTo<Connection>& ConnectionRef() { return second_; }
 };
 
-// Type 15, 0x34 bytes: a trade offer (the party a player offers to a partner; its
-// members are PartyMemberMessages). Kept by the client, by the server on +0x25B8.
+// Type 15: a trade offer, the party a player offers to a partner.
 class PartyMessage final : public Message {
 public:
     PartyMessage();
-    PartyMessage(const PartyMessage& other);     // Clone's copy
+    PartyMessage(const PartyMessage& other);
     ~PartyMessage() override;
 
     int OnShutdown() override;
@@ -149,23 +143,23 @@ public:
 
     static Message* __fastcall Create();
 
-    RefVector members_;              // +0x0C the party members (PartyMemberMessage)
-    std::uint32_t money_ = 0;        // +0x18 the offered party's money (CParty::Money)
-    std::uint8_t accepted_ = 0;      // +0x1C the partner's offer is accepted
+    RefVector members_;              // PartyMemberMessages
+    std::uint32_t money_ = 0;        // the offered party's money (CParty::Money)
+    std::uint8_t accepted_ = 0;      // the partner's offer is accepted
     std::uint8_t unused_1D[3];
-    std::uint32_t acceptedRevision_ = 0;   // +0x20 the partner's revision accepted
-    std::uint32_t revision_ = 1;           // +0x24
-    RefPtrTo<PlayerMessage> player_{};     // +0x28 the offering player's record
-    RefPtrTo<PlayerMessage> partner_{};    // +0x2C the partner's record
-    std::uint8_t trading_ = 0;       // +0x30 in a trade (server side; not sent)
+    std::uint32_t acceptedRevision_ = 0;   // the partner's revision accepted
+    std::uint32_t revision_ = 1;
+    RefPtrTo<PlayerMessage> player_{};     // the offering player's record
+    RefPtrTo<PlayerMessage> partner_{};    // the partner's record
+    std::uint8_t trading_ = 0;       // in a trade (server side; not sent)
     std::uint8_t unused_31[3];
 };
 
-// Type 16, 0x34 bytes: one member of an offered party, serialised into a memory stream.
+// Type 16: one member of an offered party, serialised into a memory stream.
 class PartyMemberMessage final : public Message {
 public:
     PartyMemberMessage() {}
-    PartyMemberMessage(const PartyMemberMessage& other);   // Clone's copy
+    PartyMemberMessage(const PartyMemberMessage& other);
     ~PartyMemberMessage() override {}
 
     int OnShutdown() override;
@@ -175,16 +169,16 @@ public:
 
     static Message* __fastcall Create();
 
-    CMemoryStream stream_;       // +0x0C
+    CMemoryStream stream_;
 };
 
 // ---- Server to client ---------------------------------------------------------------------------
 
-// Type 1, 0x3C bytes: a player record (the server's +0x2590, the client's +0x25D8).
+// Type 1: a player record.
 class PlayerMessage final : public Message {
 public:
     PlayerMessage();
-    PlayerMessage(const PlayerMessage& other);     // Clone's copy
+    PlayerMessage(const PlayerMessage& other);
     ~PlayerMessage() override {}
 
     int OnShutdown() override;
@@ -194,22 +188,22 @@ public:
 
     static Message* __fastcall Create();
 
-    stlp::string name_;             // +0x0C
-    stlp::string text_;             // +0x18
-    std::uint32_t state_ = 1;       // +0x24 (from the login)
-    std::uint8_t host_ = 0;         // +0x28 the hosting player
+    stlp::string name_;
+    stlp::string text_;
+    std::uint32_t state_ = 1;       // from the login
+    std::uint8_t host_ = 0;         // the hosting player
     std::uint8_t unused_29[3];
-    std::int32_t id_ = -1;          // +0x2C (from the login)
-    std::int32_t serial_ = -1;      // +0x30 from the server's player serial (not sent)
-    std::int32_t number_ = -1;      // +0x34 the lowest number free when joining (not sent)
-    std::uint32_t firstLine_;       // +0x38 the first chat line it receives (not sent)
+    std::int32_t id_ = -1;          // from the login
+    std::int32_t serial_ = -1;      // from the server's player serial (not sent)
+    std::int32_t number_ = -1;      // the lowest number free when joining (not sent)
+    std::uint32_t firstLine_;       // the first chat line it receives (not sent)
 };
 
-// Type 2, 0x20 bytes: a chat or system line (the server's +0x2594, the client's +0x25DC).
+// Type 2: a chat or system line.
 class LineMessage final : public Message {
 public:
     LineMessage();                               // number_ is not set
-    LineMessage(const LineMessage& other);       // Clone's copy
+    LineMessage(const LineMessage& other);
     ~LineMessage() override;
 
     int OnShutdown() override;
@@ -219,17 +213,16 @@ public:
 
     static Message* __fastcall Create();
 
-    std::uint32_t number_;          // +0x0C
-    stlp::string text_;             // +0x10
-    RefPtr connection_{};           // +0x1C the only receiver (null: everyone; not sent)
+    std::uint32_t number_;
+    stlp::string text_;
+    RefPtr connection_{};           // the only receiver (null: everyone; not sent)
 };
 
-// Type 3, 0x24 bytes: where the host's game is (the server's +0x25A0, the client's
-// +0x25EC; built by world_game.cpp's AnnounceHost).
+// Type 3: where the host's game is (built by AnnounceHost).
 class HostMessage final : public Message {
 public:
     HostMessage();
-    HostMessage(const HostMessage& other);       // Clone's copy
+    HostMessage(const HostMessage& other);
     ~HostMessage() override {}
 
     int OnShutdown() override;
@@ -239,16 +232,15 @@ public:
 
     static Message* __fastcall Create();
 
-    stlp::string address_;          // +0x0C "host:port"
-    stlp::string zone_;             // +0x18
+    stlp::string address_;          // "host:port"
+    stlp::string zone_;
 };
 
-// Type 4: binds a player record (first_) to its connection (second_, not sent). The
-// server's +0x25A4; a client keeps its own.
+// Type 4: binds a player record (first_) to its connection (second_, not sent).
 class BindingMessage final : public PairMessage {
 public:
     BindingMessage();
-    BindingMessage(const BindingMessage& other) : PairMessage(other) {}   // Clone's copy
+    BindingMessage(const BindingMessage& other) : PairMessage(other) {}
     ~BindingMessage() override {}
 
     int OnShutdown() override;
@@ -260,15 +252,14 @@ public:
 
     RefPtr& PlayerRef() { return first_; }
     RefPtrTo<Connection>& ConnectionRef() { return second_; }
-    // The bound player record.
     PlayerMessage* Player() const { return static_cast<PlayerMessage*>(first_.ptr); }
 };
 
-// Type 8: a zone the host may pick next (the server's +0x25AC, the client's +0x25F8).
+// Type 8: a zone the host may pick next.
 class ZoneMessage final : public TextMessage {
 public:
     ZoneMessage();
-    ZoneMessage(const ZoneMessage& other) : TextMessage(other) {}       // Clone's copy
+    ZoneMessage(const ZoneMessage& other) : TextMessage(other) {}
     ~ZoneMessage() override {}
 
     int OnShutdown() override;
@@ -279,11 +270,11 @@ public:
     static Message* __fastcall Create();
 };
 
-// Type 9: the map being played (the server's +0x25A8, the client's +0x25F4).
+// Type 9: the map being played.
 class MapMessage final : public TextMessage {
 public:
     MapMessage() {}
-    MapMessage(const MapMessage& other) : TextMessage(other) {}   // Clone's copy
+    MapMessage(const MapMessage& other) : TextMessage(other) {}
     ~MapMessage() override {}
 
     int OnShutdown() override;
@@ -294,11 +285,11 @@ public:
     static Message* __fastcall Create();
 };
 
-// Type 10, 0x20 bytes: a script variable (the server's +0x25B0, the client's +0x25FC).
+// Type 10: a script variable.
 class VariableMessage final : public Message {
 public:
     VariableMessage();                                 // value_ and serial_ are not set
-    VariableMessage(const VariableMessage& other);     // Clone's copy
+    VariableMessage(const VariableMessage& other);
     ~VariableMessage() override {}
 
     int OnShutdown() override;
@@ -308,16 +299,16 @@ public:
 
     static Message* __fastcall Create();
 
-    stlp::string name_;          // +0x0C
-    float value_;                // +0x18
-    std::uint32_t serial_;       // +0x1C from g_variableSerial
+    stlp::string name_;
+    float value_;
+    std::uint32_t serial_;       // from g_variableSerial
 };
 
-// Type 11, 0x2C bytes: a shared file (the server's +0x2598, the client's +0x25E0).
+// Type 11: a shared file.
 class FileMessage final : public Message {
 public:
     FileMessage();
-    FileMessage(const FileMessage& other);       // Clone's copy
+    FileMessage(const FileMessage& other);
     ~FileMessage() override;
 
     int OnShutdown() override;
@@ -327,20 +318,20 @@ public:
 
     static Message* __fastcall Create();
 
-    std::uint16_t chunkCount_;   // +0x0C
+    std::uint16_t chunkCount_;
     std::uint16_t unused_0E;
-    std::int32_t size_;          // +0x10 bytes
-    stlp::string name_;          // +0x14
-    RefVector chunks_;           // +0x20 the chunk messages (not sent)
+    std::int32_t size_;          // in bytes
+    stlp::string name_;
+    RefVector chunks_;           // the chunk messages (not sent)
 };
 
-// Type 12, 0x54 bytes: 64 bytes of a shared file (the client's +0x25E4).
+// Type 12: 64 bytes of a shared file.
 class FileChunkMessage final : public Message {
 public:
     static constexpr std::size_t kDataSize = 0x40;
 
     FileChunkMessage() {}
-    FileChunkMessage(const FileChunkMessage& other);   // Clone's copy
+    FileChunkMessage(const FileChunkMessage& other);
     ~FileChunkMessage() override;
 
     int OnShutdown() override;
@@ -350,18 +341,17 @@ public:
 
     static Message* __fastcall Create();
 
-    RefPtrTo<FileMessage> file_{};       // +0x0C the file message
-    std::uint16_t index_;                // +0x10
-    std::uint8_t data_[kDataSize];       // +0x12
+    RefPtrTo<FileMessage> file_{};
+    std::uint16_t index_;
+    std::uint8_t data_[kDataSize];
     std::uint8_t unused_52[2];
 };
 
-// Type 14, 0x24 bytes: an award for one connection (the server's +0x25B4 with a delay,
-// the client's +0x2608; ClientSession::ApplyAwards).
+// Type 14: an award for one connection (the server queues it with a delay; ClientSession::ApplyAwards).
 class AwardMessage final : public Message {
 public:
     AwardMessage();
-    AwardMessage(const AwardMessage& other);     // Clone's copy
+    AwardMessage(const AwardMessage& other);
     ~AwardMessage() override;
 
     int OnShutdown() override;
@@ -371,18 +361,17 @@ public:
 
     static Message* __fastcall Create();
 
-    RefPtr connection_{};        // +0x0C the receiver (not sent)
-    std::uint32_t kind_;         // +0x10 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
-    float value_;                // +0x14
-    stlp::string text_;          // +0x18 the item's name
+    RefPtr connection_{};        // the receiver (not sent)
+    std::uint32_t kind_;         // 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
+    float value_;
+    stlp::string text_;          // the item's name
 };
 
-// Type 17, 0x28 bytes: a trade between two offers (the server's +0x25BC, the client's
-// +0x2618).
+// Type 17: a trade between two offers.
 class TradeMessage final : public Message {
 public:
     TradeMessage() {}
-    TradeMessage(const TradeMessage& other);     // Clone's copy
+    TradeMessage(const TradeMessage& other);
     ~TradeMessage() override;
 
     int OnShutdown() override;
@@ -392,17 +381,17 @@ public:
 
     static Message* __fastcall Create();
 
-    RefPtrTo<PlayerMessage> player_{};       // +0x0C the first offer's player (not sent)
-    RefPtrTo<PlayerMessage> partner_{};      // +0x10 its partner (not sent)
-    RefPtrTo<PartyMessage> offer_{};         // +0x14
-    RefPtrTo<PartyMessage> partnerOffer_{};  // +0x18
-    std::uint8_t done_ = 0;                  // +0x1C both sides accepted
+    RefPtrTo<PlayerMessage> player_{};       // the first offer's player (not sent)
+    RefPtrTo<PlayerMessage> partner_{};      // its partner (not sent)
+    RefPtrTo<PartyMessage> offer_{};
+    RefPtrTo<PartyMessage> partnerOffer_{};
+    std::uint8_t done_ = 0;                  // both sides accepted
     std::uint8_t unused_1D[3];
-    std::uint32_t revision_ = 0;             // +0x20 the first offer's revision traded
-    std::uint32_t partnerRevision_ = 0;      // +0x24 the second's
+    std::uint32_t revision_ = 0;             // the first offer's revision traded
+    std::uint32_t partnerRevision_ = 0;      // the second's
 };
 
-// The serial the next variable or map record of the server gets (net_server_vars.cpp, net_server_map.cpp).
+// The serial the server's next variable or map record gets.
 inline std::uint32_t g_variableSerial = /*0079B608*/ {};
 
 } // namespace net

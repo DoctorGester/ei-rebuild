@@ -70,12 +70,12 @@ struct NetAddress {
     std::uint32_t ip;
     std::uint8_t zero[8];
 
-    // This address from "host[:port]" (an IPv4 number or a host
-    // name looked up); `defaultPort` unless the text names one. False when the host is unknown.
+    // This address from "host[:port]" (an IPv4 number or a host name looked up); `defaultPort` unless the
+    // text names one. False when the host is unknown.
     bool Parse(const char* text, int defaultPort);
-    // "a.b.c.d:port" (or, with `resolve`, "hostname:port" when the look-up succeeds) in `out`; returns `out`.
+    // "a.b.c.d:port" (or, with `resolve`, "hostname:port" when the look-up succeeds) in `out`.
     stlp::string* Format(stlp::string* out, int resolve) const;
-    // Format without the look-up; returns `out`.
+    // Format without the look-up.
     stlp::string* ToString(stlp::string* out) const;
 };
 static_assert(sizeof(NetAddress) == 0x10);
@@ -104,7 +104,6 @@ public:
     LogStream* PutChar(char c);
     LogStream* PutInt(int value);
     LogStream* Apply(libcrt::Manipulator manipulator);
-    // The flush manipulator the session code ends its lines with.
     LogStream* Flush() { return Apply(libcrt::FlushManipulator); }
 };
 
@@ -158,7 +157,6 @@ public:
 
 protected:
     Message();
-    // A clone's: the source's version.
     Message(const Message& other) : CRefObject(), version_(other.version_) {}
 
 };
@@ -170,7 +168,6 @@ void* __fastcall NewRefObject(std::size_t size);
 
 // ---- The server entries of the lobby ------------------------------------------------------------
 
-// A server entry's base.
 class ServerEntryBase : public CRefObject {
 public:
     ~ServerEntryBase() override;
@@ -192,7 +189,6 @@ public:
 
 protected:
     ServerEntryBase();
-    // A clone's: the address, the timeout and ping (as dwords), the flag and the state.
     ServerEntryBase(const ServerEntryBase& other);
 };
 static_assert(offsetof(ServerEntryBase, address_) == 0x08);
@@ -246,7 +242,6 @@ struct ClientQueries {
     Query* QueriesFind(const NetAddress* address);
 };
 static_assert(sizeof(ClientQueries) == 0x10 && offsetof(ClientQueries, extra) == 0x0C);
-// The queries' constructor: an empty vector and a zero dword. Returns self.
 ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self);
 
 // ---- The session base ---------------------------------------------------------------------------
@@ -259,7 +254,7 @@ constexpr int kMessageTypes = 0x100;
 using HandlerVector = stlp::vector<void*>;
 static_assert(sizeof(HandlerVector) == 12);
 
-// The message type registry (+0x2C of a session): two STLport hash_maps.
+// The message type registry of a session.
 struct TypeRegistry {
     using ByVtable = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
     using ByType = stlp::hash_map<std::uint32_t, MessageFactory, stlp::IntHash>;
@@ -267,7 +262,7 @@ struct TypeRegistry {
     ByVtable byVtable;     // message vtable -> type id (100 buckets)
     ByType byType;         // type id -> factory (100 buckets)
 
-    // The key of a message's class: its vtable (the object's first dword), as the original keys the registry.
+    // The key of a message's class: its vtable (the object's first dword).
     static std::uint32_t KeyOf(const CRefObject* message) {
         std::uint32_t key;
         std::memcpy(&key, message, sizeof(key));   // read before any null check, as the original
@@ -284,7 +279,7 @@ struct TypeRegistry {
 };
 static_assert(sizeof(TypeRegistry) == 0x28);
 
-// The UDP socket of a session and the broadcast addresses of the host (net_socket_driver.cpp).
+// The UDP socket of a session and the broadcast addresses of the host.
 struct SocketDriver {
     std::uint32_t socket;        // SOCKET (-1: none)
     stlp::vector<NetAddress> addresses;   // broadcast addresses
@@ -306,7 +301,7 @@ struct SocketDriver {
 };
 static_assert(sizeof(SocketDriver) == 0x10);
 
-// The sessions' lists of counted messages (STLport list<RefPtr>: the value at +8).
+// The sessions' lists of counted messages.
 using RefNode = stlp::list<RefPtr>::Node;
 
 // The value of the timed lists (the client's timers, the server's awards and finished trades): the
@@ -386,21 +381,19 @@ public:
     void AddHandler(int channel, std::uint32_t type, void* handler);
     // Clears the reliable flags of message types 1..17 and registers their factories.
     void RegisterMessageTypes();
-    // A handler registration as the session constructors do it: a prototype message T (net_messages.h), held
-    // through a counted reference while its type id is looked up by its class, then AddHandler.
+    // A handler registration as the session constructors do it: a prototype message T, held through a
+    // counted reference while its type id is looked up by its class, then AddHandler.
     template <typename T>
     void AddHandlerFor(int channel, void* handler) {
         AddHandlerForPrototype(NewCounted<T>(), channel, handler);
     }
     void AddHandlerForPrototype(Message* prototype, int channel, void* handler);
 
-    // The clients list node of the connection to `address` (the sentinel when none) into
-    // `*out`; returns `out`.
+    // The clients list node of the connection to `address` (the sentinel when none) into `*out`.
     ClientNode** FindClient(ClientNode** out, const NetAddress* address);
     // Logs it, removes a connection to the same address, appends a new connection with `id` and `address`;
     // its send interval follows from `rate`.
     void AddClient(const NetAddress* address, std::uint32_t id, int rate);
-    // Sends the buffer's contents to `address` through the socket.
     bool Send(const NetAddress* address, GameBuffer* buffer);
     // The send rate for a peer: g_localRate on the local network, else g_remoteRate.
     std::uint32_t RateFor(const NetAddress* address);
@@ -411,9 +404,8 @@ public:
 
     std::uint32_t magic_;               // 0; the game server and client set kSessionMagic
     std::int32_t timeout_;              // 60: seconds of silence before a peer is dropped
-    std::int32_t maxRoundTrip_;         // 5: a new connection's round trip estimate, the
-                                        //       longest loss timeout and how long lost packets
-                                        //       stay remembered (seconds)
+    std::int32_t maxRoundTrip_;         // 5: a new connection's round trip estimate, the longest loss
+                                        // timeout and how long lost packets stay remembered (seconds)
     std::int32_t idReuseTime_;          // 75: seconds before a freed message id is reused
     std::uint32_t frame_;               // 1; Tick counts its calls
     std::uint32_t unused_1C;           // not set by the constructors
@@ -422,7 +414,7 @@ public:
     TypeRegistry types_;
     SocketDriver socket_;
     std::uint8_t reliable_[kMessageTypes];   // per message type: its objects are sent reliably
-    HandlerVector handlers_[kChannels][kMessageTypes];   // / +0xD64 / +0x1964
+    HandlerVector handlers_[kChannels][kMessageTypes];
     std::uint32_t padding_2564;
 };
 static_assert(offsetof(SessionBase, magic_) == 0x08);
@@ -435,11 +427,11 @@ static_assert(offsetof(SessionBase, reliable_) == 0x64);
 static_assert(offsetof(SessionBase, handlers_) == 0x164);
 static_assert(sizeof(SessionBase) == 0x2568);
 
-constexpr std::uint32_t kSessionMagic = 0xDEC0AD07;   // +8 of the game server and client
+constexpr std::uint32_t kSessionMagic = 0xDEC0AD07;
 
 // ---- The server base and the game server ----------------------------------------------------------
 
-// A peer told to join that has not sent an update yet (the server base's +0x2568 list).
+// A peer told to join that has not sent an update yet (ServerBase::joins_).
 struct PendingJoin {
     NetAddress address;
     std::uint32_t id;
@@ -476,8 +468,6 @@ static_assert(sizeof(ServerBase) == 0x2570);
 // The game server (g_gameServer). Its lists are STLport lists of counted pointers.
 class ServerSession final : public ServerBase {
 public:
-
-    // The game kind `kind`, the handlers, the zones the host may pick.
     explicit ServerSession(std::uint32_t kind);
     ~ServerSession() override;
     void OnMaster(const NetAddress* from, BufferCursor* cursor) override;
@@ -532,7 +522,7 @@ public:
     void AnnounceToGuests(int kind, const char* text);
     void Kick(Connection* connection);
     void Ban(Connection* connection);
-    void ReportDeparture(Connection* connection, int text);   // OnClientLost (text 4) and OnClientLeft (text 1)
+    void ReportDeparture(Connection* connection, int text);
     bool IsHostConnection(const Connection* connection);
     // Whether the player bound to `connection` is in state 3.
     bool PlayerStateIs3(const Connection* connection);
@@ -643,7 +633,7 @@ static_assert(offsetof(ClientBase, alwaysAsk_) == 0x25C0);
 static_assert(offsetof(ClientBase, nextQuery_) == 0x25D0);
 static_assert(sizeof(ClientBase) == 0x25D8);
 
-// An embedded CParty (party_storage.h). The client keeps two, a trade record three.
+// An embedded CParty. The client keeps two, a trade record three.
 using ::PartyStorage;
 
 // A finished trade of the client's (ClientSession::tradeRecords_): the revisions of the trade and copies of
@@ -664,12 +654,9 @@ public:
     double BufferRatio(GameBuffer* buffer);
     // Reads a server list reply.
     void ReadServerList(GameBuffer* in);
-    // 0x0041E270 (net_client_handlers.cpp).
     void StartParty(CRefObject* partner);
-    // 0x0041E0A0 (net_client_handlers.cpp).
     void RecordTrade(const void* party);
 
-    // The local player's login, the handlers.
     ClientSession();
     ~ClientSession() override;
     void CollectReplicated(ReplicatedVector** out) override;
@@ -702,7 +689,7 @@ public:
     stlp::list<TradeRecord> tradeRecords_;   // the trades done
     TradeMessage* trade_;               // the current trade, counted
     std::uint32_t gameType_;            // the multiplayer game type 0..3 (StartServer): start zone, type variable
-    PartyStorage parties_[2];           // ours, +0x2690 the partner's
+    PartyStorage parties_[2];           // ours, the partner's
 };
 static_assert(offsetof(ClientSession, players_) == 0x25D8);
 static_assert(offsetof(ClientSession, info_) == 0x25EC);
@@ -714,8 +701,7 @@ static_assert(sizeof(ClientSession) == 0x2700);
 
 // ---- The game announcement ------------------------------------------------------------------------
 
-// The game announcement the server builds and the client reads in its entry. Field meanings: player count,
-// maximum players, the session magic. Names provisional.
+// The game announcement the server builds and the client reads in its entry.
 struct GameInfoRecord {
     stlp::string name;
     stlp::string description;
@@ -732,7 +718,7 @@ struct GameInfoRecord {
 };
 static_assert(sizeof(GameInfoRecord) == 0x28);
 
-// The byte buffer's read helpers (net_game_info.cpp).
+// The byte buffer's read helpers.
 GameBuffer* __fastcall BufferCopyOut(GameBuffer* buffer, void* edx, void* to, unsigned size);
 unsigned __fastcall BufferRead(GameBuffer* buffer, void* edx, void* to, unsigned size);
 void __fastcall BufferUpdateHigh(GameBuffer* buffer);
