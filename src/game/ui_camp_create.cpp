@@ -320,7 +320,7 @@ void CCampPages::BuildPages() {
         // The armour the record wears.
         auto* heroStats = &record->stats;
         heroStats->ClearOuterLayers();
-        for (int piece = 0; piece < static_cast<int>(record->armorCount); ++piece)
+        for (int piece = 0; piece < record->armor.size; ++piece)
             heroStats->AddArmourLayer(AsArmor(record->armor[piece]));
     }
     for (int i = 0; i < count; ++i) player->members_.data[i].unitId -= kRecordBias;

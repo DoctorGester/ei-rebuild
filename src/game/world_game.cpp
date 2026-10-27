@@ -723,28 +723,27 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
     if (mob) {
         // The graph chunk of the .mob file.
         {
-            alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-            mfc::CString* path = MapPath(reinterpret_cast<mfc::CString*>(storage), mob);
-            mobFile.Open(*path, kOpenRead, 1);
-            std::destroy_at(path);
+            mfc::CString path(mfc::CString::kUnset);   // MapPath constructs it
+            MapPath(&path, mob);
+            mobFile.Open(path, kOpenRead, 1);
         }
         if (mobFile.FindTagged(kGraphChunk, out)) found = 1;
         mobFile.Close();
         if (found) return found;
     }
     // Otherwise <map without extension>.grp.
-    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-    mfc::CString* base = MapPath(reinterpret_cast<mfc::CString*>(storage), map);
-    int dot = base->ReverseFind('.');
+    mfc::CString base(mfc::CString::kUnset);   // MapPath constructs it
+    MapPath(&base, map);
+    int dot = base.ReverseFind('.');
     if (dot > 0) {
-        std::string cut = base->Left(dot).GetString();
-        *base = cut;
+        std::string cut = base.Left(dot).GetString();
+        base = cut;
     }
     {
         FileStream graph;
         bool opened;
         {
-            std::string path = (*base + kGraphExtension).GetString();
+            std::string path = (base + kGraphExtension).GetString();
             opened = graph.Open(path.c_str(), kOpenRead, 1);
         }
         if (opened) {
@@ -753,7 +752,6 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
             graph.Close();
         }
     }
-    std::destroy_at(base);
     return found;
 }
 
@@ -774,10 +772,9 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     decoder.text.ConstructEmpty();
     decoder.input.ConstructEmpty();
     {
-        alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-        mfc::CString* path = MapPath(reinterpret_cast<mfc::CString*>(storage), mob);
-        file.Open(*path, kOpenRead, 1);
-        std::destroy_at(path);
+        mfc::CString path(mfc::CString::kUnset);   // MapPath constructs it
+        MapPath(&path, mob);
+        file.Open(path, kOpenRead, 1);
     }
     file.FindTagged(kScriptsChunk, &scripts);
     if (scripts.FindTagged(kScriptEncoded, &text)) {
@@ -889,11 +886,11 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
     {
         net::ServerSession* server = net::NewCounted<net::ServerSession>(gameType);
-        reinterpret_cast<RefPtr*>(&net::GameServer())->Assign(reinterpret_cast<CRefObject*>(server));
+        AssignCounted(net::GameServer(), server);
     }
     {
         net::ClientSession* client = net::NewCounted<net::ClientSession>();
-        reinterpret_cast<RefPtr*>(&net::GameClient())->Assign(reinterpret_cast<CRefObject*>(client));
+        AssignCounted(net::GameClient(), client);
     }
     // The local client connects to the local server with the password as its hello.
     net::NetAddress address = {};
@@ -918,9 +915,9 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 
 void GameFlow::StartClient() {
     net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
-    reinterpret_cast<RefPtr*>(&net::GameServer())->Assign(nullptr);
+    AssignCounted(net::GameServer(), static_cast<net::ServerSession*>(nullptr));
     net::ClientSession* client = net::NewCounted<net::ClientSession>();
-    reinterpret_cast<RefPtr*>(&net::GameClient())->Assign(reinterpret_cast<CRefObject*>(client));
+    AssignCounted(net::GameClient(), client);
     AfterServerStart();
 }
 EI_REWRITTEN(0x0057EA50, GameFlow::StartClient);

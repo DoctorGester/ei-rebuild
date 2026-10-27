@@ -48,7 +48,7 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
     self->width_ = rect->right - rect->left;
     self->height_ = rect->bottom - rect->top;
     // (The interface's renderer is the device object.)
-    CDXSurface* made = new CDXSurface(reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), self->width_, self->height_);
+    CDXSurface* made = new CDXSurface(self->interface_->renderer_, self->width_, self->height_);
     ReplaceHolder(self, made);
     UiSurfaceBytes() += SurfaceBytes(self->holder_);
     self->kept_ = nullptr;
@@ -103,7 +103,7 @@ CUiSurface::CUiSurface(CInterface3D* ui, mfc::CString name) {
         mfc::CString file = name + game::MmpExtensionText();   // ".mmp"
         picture = manager->GetFile(*reinterpret_cast<const char* const*>(&file), nullptr);
     }
-    CDXSurface* made = new CDXSurface(reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), picture, 0);
+    CDXSurface* made = new CDXSurface(self->interface_->renderer_, picture, 0);
     CDXSurface* previous = self->holder_;
     self->holder_ = made;
     if (made) ++made->refs_;

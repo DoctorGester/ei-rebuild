@@ -43,7 +43,7 @@ EI_REWRITTEN(0x0062BCB0, TitleLine::Destroy);
 
 // --- the frame -----------------------------------------------------------------------------------
 
-BOOL CCreditsScreen::Draw(int pass) {
+BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
     EI_NAN_AUDIT(textSurface_->speed_);
     if (GameTime() > nextLineAt_ && textSurface_->speed_ == 0.0f) {
         nextLineAt_ = 0.0f;
@@ -58,7 +58,7 @@ BOOL CCreditsScreen::Draw(int pass) {
             if (line.scroll) {
                 textSurface_->Start(line.speed, 1);
                 UiSurfaceGetDC(headerSurface_);
-                static_cast<CUiSurface*>(headerSurface_)->Clear();
+                headerSurface_->Clear();
                 RECT rect = {0, 0, 0, 0};
                 headerSurface_->DrawTextIn(line.text.c_str(), &rect, 2, kHeaderColour, 1, 1);
                 UiSurfaceReleaseDC(headerSurface_);

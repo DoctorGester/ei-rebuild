@@ -96,7 +96,7 @@ void SectorData::FindSeams() {
     // A lit neighbour drawn at the next coarser level: this sector's edge towards it is drawn with
     // the seam triangles (terrain_draw.cpp). The lookup does not load anything (create 0).
     const auto coarser = [&](int nx, int ny, int detail) {
-        const SectorData* neighbour = reinterpret_cast<Terrain*>(owner)->SectorAt(nx, ny, kLit, 0);
+        const SectorData* neighbour = owner->SectorAt(nx, ny, kLit, 0);
         return neighbour && neighbour->detail == detail && neighbour->IsDrawn();
     };
     if (detail == 0) {

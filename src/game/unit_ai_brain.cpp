@@ -42,14 +42,12 @@ namespace {
 
 const Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
-// The mode list's elements are owning pointers (RefPtr): released with RefPtr::Destroy, added
-// with RefPtr::Share (which may hand out a clone).
-RefPtr* AsRefPtr(AIMode** element) { return reinterpret_cast<RefPtr*>(element); }
-
+// The mode list's elements are owning pointers: released with DestroyOwned, added with ShareOwned
+// (which may hand out a clone).
 
 // The inlined CList RemoveAll of the mode list, each element released first.
 void ReleaseAllModes(mfc::CTypedPtrList<AIMode>& modes) {
-    for (auto* node = modes.head; node; node = node->next) AsRefPtr(&node->data)->Destroy();
+    for (auto* node = modes.head; node; node = node->next) DestroyOwned(node->data);
     modes.RemoveAll();
 }
 
@@ -60,7 +58,7 @@ void RemoveModeNode(mfc::CTypedPtrList<AIMode>& modes, mfc::CTypedPtrList<AIMode
     else node->prev->next = node->next;
     if (node == modes.tail) modes.tail = node->prev;
     else node->next->prev = node->prev;
-    AsRefPtr(&node->data)->Destroy();
+    DestroyOwned(node->data);
     modes.FreeNode(node);
 }
 
@@ -96,8 +94,8 @@ void AIBrain::AddMode(AIMode* mode) {
     }
     auto* node = modes.NewNode(modes.tail, nullptr);
     if (mode != node->data) {
-        AsRefPtr(&node->data)->Destroy();
-        AsRefPtr(&node->data)->Share(mode);
+        DestroyOwned(node->data);
+        ShareOwned(node->data, mode);
     }
     if (modes.tail) modes.tail->next = node;
     else modes.head = node;
@@ -516,7 +514,7 @@ AIMode* NewModeOfType(int type) {
     }
 }
 
-void AssignCurrent(AIMode*& current, AIMode* mode) { reinterpret_cast<RefPtr*>(&current)->Assign(mode); }
+void AssignCurrent(AIMode*& current, AIMode* mode) { AssignCounted(current, mode); }
 } // namespace
 
 void AIBrain::Load(CStream* stream) {
@@ -553,7 +551,7 @@ void AIBrain::Load(CStream* stream) {
         mode->Load(stream);
         // The inlined AddTail: a node holding the mode (RefPtr::ShareAssign).
         auto* node = modes.NewNode(modes.tail, nullptr);
-        AsRefPtr(&node->data)->ShareAssign(mode);
+        ShareAssignOwned(node->data, mode);
         if (modes.tail) modes.tail->next = node;
         else modes.head = node;
         modes.tail = node;

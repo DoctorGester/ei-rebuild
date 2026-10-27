@@ -289,7 +289,7 @@ void CHudTopPanel::ShowItems() {
             same->count_ += item->count_;
             continue;
         }
-        CItem* copy = reinterpret_cast<CParty*>(TheClientWorld())->MakeCopyOf(item);
+        CItem* copy = TheClientWorld()->MakeCopyOf(item);
         copy->count_ = item->count_;
         ++copy->refCount_;
         merged.AddTail(copy);
@@ -325,11 +325,11 @@ EI_REWRITTEN(0x0064A7A0, CHudTopPanel::ShowItems);
 void CHudTopPanel::Layout() {
     // Place is Rebirth-patched.
     float offset = static_cast<float>(offset_);
-    static_cast<CUiMesh*>(sceneObjects_.data[0])->PlaceBody(400.0f, 57.5f - offset, 20.0f);
-    static_cast<CUiMesh*>(sceneObjects_.data[1])->PlaceBody(400.0f, 10.0f - offset, 20.0f);
-    static_cast<CUiMesh*>(sceneObjects_.data[3])->PlaceBody(200.0f, 10.0f - offset, 10.0f);
-    static_cast<CUiMesh*>(sceneObjects_.data[4])->PlaceBody(230.0f, 10.0f - offset, 10.0f);
-    static_cast<CUiMesh*>(sceneObjects_.data[5])->PlaceBody(400.0f, 47.5f - offset, 18.0f);
+    SceneMesh(0)->PlaceBody(400.0f, 57.5f - offset, 20.0f);
+    SceneMesh(1)->PlaceBody(400.0f, 10.0f - offset, 20.0f);
+    SceneMesh(3)->PlaceBody(200.0f, 10.0f - offset, 10.0f);
+    SceneMesh(4)->PlaceBody(230.0f, 10.0f - offset, 10.0f);
+    SceneMesh(5)->PlaceBody(400.0f, 47.5f - offset, 18.0f);
     RECT rect{190, 25 - offset_, 610, 89 - offset_};
     owner_->MessageLog()->SetRect(&rect);
     for (int i = 1; i < regions_.size; ++i) {

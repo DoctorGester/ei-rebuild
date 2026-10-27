@@ -47,12 +47,12 @@ constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
 CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
 
-long SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
+long SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
     render::state::Render(static_cast<std::uint32_t>(state), value);
-    return device->SetRenderState(static_cast<std::uint32_t>(state), value);
+    return uidevice::SetRenderState(device, static_cast<std::uint32_t>(state), value);
 }
-long GetRenderState(UiD3DDevice* device, int state, std::uint32_t* value) {
-    return device->GetRenderState(static_cast<std::uint32_t>(state), value);
+long GetRenderState(CTextureDevice* device, int state, std::uint32_t* value) {
+    return uidevice::GetRenderState(device, static_cast<std::uint32_t>(state), value);
 }
 
 // Scene objects of the panels (sprites, CUiMesh) are tinted through their three tint_ floats (the
@@ -128,34 +128,34 @@ void CHudWeaponBar::Update() {
 }
 EI_REWRITTEN(0x0063C600, CHudWeaponBar::Update);
 
-BOOL CHudWeaponBar::Draw(int pass) {
+BOOL CHudWeaponBar::Draw(CSceneRenderer* pass) {
     std::uint32_t alphaRef, alphaTest;
-    GetRenderState(interface_->renderer_->device_, kRenderStateAlphaRef, &alphaRef);
-    SetRenderState(interface_->renderer_->device_, kRenderStateAlphaRef, 1);
-    GetRenderState(interface_->renderer_->device_, kRenderStateAlphaTest, &alphaTest);
-    SetRenderState(interface_->renderer_->device_, kRenderStateAlphaTest, 1);
-    SetRenderState(interface_->renderer_->device_, kRenderStateSpecular, 1);
+    GetRenderState(interface_->renderer_, kRenderStateAlphaRef, &alphaRef);
+    SetRenderState(interface_->renderer_, kRenderStateAlphaRef, 1);
+    GetRenderState(interface_->renderer_, kRenderStateAlphaTest, &alphaTest);
+    SetRenderState(interface_->renderer_, kRenderStateAlphaTest, 1);
+    SetRenderState(interface_->renderer_, kRenderStateSpecular, 1);
     DrawBase(pass);
-    SetRenderState(interface_->renderer_->device_, kRenderStateAlphaRef, alphaRef);
-    SetRenderState(interface_->renderer_->device_, kRenderStateAlphaTest, alphaTest);
-    SetRenderState(interface_->renderer_->device_, kRenderStateSpecular, 0);
+    SetRenderState(interface_->renderer_, kRenderStateAlphaRef, alphaRef);
+    SetRenderState(interface_->renderer_, kRenderStateAlphaTest, alphaTest);
+    SetRenderState(interface_->renderer_, kRenderStateSpecular, 0);
     return 1;
 }
 EI_REWRITTEN(0x0063C4F0, CHudWeaponBar::Draw);
 
 // The three other panels draw the same way, with specular on (the draw virtual).
 namespace {
-BOOL DrawWithSpecular(CUiWindow* window, int pass) {
-    SetRenderState(window->interface_->renderer_->device_, kRenderStateSpecular, 1);
+BOOL DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
+    SetRenderState(window->interface_->renderer_, kRenderStateSpecular, 1);
     window->DrawBase(pass);
-    SetRenderState(window->interface_->renderer_->device_, kRenderStateSpecular, 0);
+    SetRenderState(window->interface_->renderer_, kRenderStateSpecular, 0);
     return 1;
 }
 } // namespace
 
-BOOL CHudQuickItems::Draw(int pass) { return DrawWithSpecular(this, pass); }
-BOOL CHudSpellColumn::Draw(int pass) { return DrawWithSpecular(this, pass); }
-BOOL CHudActionColumn::Draw(int pass) { return DrawWithSpecular(this, pass); }
+BOOL CHudQuickItems::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
+BOOL CHudSpellColumn::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
+BOOL CHudActionColumn::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
 EI_REWRITTEN(0x0063CDC0, CHudQuickItems::Draw);
 EI_REWRITTEN(0x0063F190, CHudSpellColumn::Draw);
 EI_REWRITTEN(0x0063FD50, CHudActionColumn::Draw);
@@ -550,7 +550,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
         marker->localRotation_ = *turn.SetAxisAngle(axis, angle);
         const float y = static_cast<float>(MarkerCentreY() - x87::fsin(angle) * MarkerRadius());
         const float x = static_cast<float>(x87::fcos(angle) * MarkerRadius());
-        static_cast<CUiMesh*>(sceneObjects_.data[0])->PlaceBody(x, y, kMarkerDepth);
+        SceneMesh(0)->PlaceBody(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }
     widescreen::LeavePanel();

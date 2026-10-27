@@ -46,10 +46,10 @@ public:
     // no longer free, its focus at (30, 30) and its rotation turned by 225 degrees about x (premultiplied).
     void CreateScreen() override;
     // The client glue's per-frame step; returns 1.
-    BOOL DrawView(int pass);
+    BOOL DrawView(CSceneRenderer* pass);
     // The camera free again.
     void OnClose();
-    BOOL Draw(int pass) override { return DrawView(pass); }
+    BOOL Draw(CSceneRenderer* pass) override { return DrawView(pass); }
     void CloseScreen() override { OnClose(); }
 
     std::uint8_t unused_164[4];

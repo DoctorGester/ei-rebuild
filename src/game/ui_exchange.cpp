@@ -48,7 +48,7 @@ EI_REPLACE_METHOD(0x0062C920, CExchangeScreen::OnMessageResult);
 // --- the update ----------------------------------------------------------------------------------
 
 void CExchangeScreen::Update() {
-    static_cast<CUiContainer*>(this)->UpdateBase();
+    UpdateBase();
     if (!LiveOffer()) {
         ReturnAll(LocalParty(), ownOffer_);
         GameRejoin();
@@ -214,7 +214,7 @@ bool LiveAccepted(const net::PartyMessage* offer) {
 }
 } // namespace
 
-BOOL CExchangeScreen::Draw(int pass) {
+BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
     hoveredItem_ = nullptr;
     int topic = 0;

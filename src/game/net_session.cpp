@@ -16,8 +16,8 @@ std::uint32_t g_lastPumpTime = /*0079B604*/ {};
 
 // The session pointers' exit functions (each through a copy of the counted pointer's
 // release): the last reference deletes the session.
-void __cdecl ReleaseGameServer() { RefPtrRelease(reinterpret_cast<RefPtr*>(&net::g_gameServer)); }
-void __cdecl ReleaseGameClient() { RefPtrRelease(reinterpret_cast<RefPtr*>(&net::g_gameClient)); }
+void __cdecl ReleaseGameServer() { ReleaseCounted(net::g_gameServer); }
+void __cdecl ReleaseGameClient() { ReleaseCounted(net::g_gameClient); }
 
 // Their static initialisers (in the list's order): the counted pointer's constructor
 // clears it, then the exit function is registered.

@@ -4,6 +4,7 @@
 // static_cast<float>, values it keeps on the FPU stack stay unrounded (double), products and sums
 // keep its operand order, constants are read from the exe's memory.
 #include "ui.h"
+#include "texture.h"
 #include "map_object_shadow.h"
 #include "model.h"
 #include "unit.h"
@@ -62,15 +63,12 @@ Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
 constexpr unsigned long kStageState = 0x12;
 
 // D3DCLEAR_ZBUFFER, with D3DCLEAR_STENCIL when the device has a stencil buffer.
-unsigned long ClearFlags(const UiRenderer* renderer) {
-    if ((renderer->caps_ & 0x4000) != 0 && renderer->stencil_ != 0) return 6;
-    return 2;
-}
+unsigned long ClearFlags(const CTextureDevice* renderer) { return uidevice::HasStencil(renderer) ? 6 : 2; }
 
-void ClearDepth(UiRenderer* renderer, unsigned long count, RECT* rects, float z) {
+void ClearDepth(CTextureDevice* renderer, unsigned long count, RECT* rects, float z) {
     unsigned long flags = ClearFlags(renderer);
     gameapi::EnterCriticalSection(TheDeviceLock());
-    renderer->result_ = renderer->device_->Clear(count, rects, flags, 0, z, 0);
+    renderer->lastLoadResult_ = uidevice::Clear(renderer, count, rects, flags, 0, z, 0);
     gameapi::LeaveCriticalSection(TheDeviceLock());
     render::Rect r[6];
     int n = count < 6 ? static_cast<int>(count) : 6;
@@ -87,10 +85,10 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
 
     // The whole depth buffer (stencil too), then the preview's rectangles to the far plane.
     {
-        UiRenderer* renderer = deviceOf();
+        CTextureDevice* renderer = deviceOf();
         unsigned long flags = ClearFlags(renderer);
         gameapi::EnterCriticalSection(TheDeviceLock());
-        renderer->result_ = renderer->device_->Clear(0, nullptr, flags, 0, 0.0f, 0);
+        renderer->lastLoadResult_ = uidevice::Clear(renderer, 0, nullptr, flags, 0, 0.0f, 0);
         gameapi::LeaveCriticalSection(TheDeviceLock());
         render::ClearDepth(0.0f, nullptr, 0);
     }
@@ -169,13 +167,13 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     drawn->figureScale.x = 1.2f;
     drawn->figureScale.y = 1.2f;
     drawn->figureScale.z = 1.2f;
-    UiRenderer* device = deviceOf();
+    CTextureDevice* device = deviceOf();
     std::uint32_t savedStage = 0;
-    device->result_ = device->device_->GetTextureStageState(0, kStageState, &savedStage);
-    device->result_ = device->device_->SetTextureStageState(0, kStageState, 1);
+    device->lastLoadResult_ = uidevice::GetTextureStageState(device, 0, kStageState, &savedStage);
+    device->lastLoadResult_ = uidevice::SetTextureStageState(device, 0, kStageState, 1);
     render::state::Stage(0, kStageState, 1);
     model->DrawFigure(pass);
-    device->result_ = device->device_->SetTextureStageState(0, kStageState, savedStage);
+    device->lastLoadResult_ = uidevice::SetTextureStageState(device, 0, kStageState, savedStage);
     render::state::Stage(0, kStageState, savedStage);
     drawn = model->ClientSpecific();
     drawn->figureScale.x = 1.0f;

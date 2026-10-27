@@ -582,7 +582,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         Vector3 scale;
         static_assert(sizeof(scale) == sizeof(prototype->scale));
         std::memcpy(&scale, &prototype->scale, sizeof(scale));
-        static_cast<CObject3D*>(object)->SetFigureScale(&scale.x);
+        object->SetFigureScale(&scale.x);
         std::memcpy(&object->baseScale, &scale, sizeof(scale));
         object->ApplyBaseScale();
         static_cast<CUnit*>(object)->SetPrototype23C(prototype);

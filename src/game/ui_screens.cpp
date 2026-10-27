@@ -473,8 +473,8 @@ double CMpHeroScreen::EquipmentWeight() {
     if (armor_) weight += armor_->Weight();
     if (spellContainer_) weight += spellContainer_->Weight();
     // The original reads the armour list as the quick items.
-    int count = static_cast<int>(hero->armorCount);
-    CItem** quick = hero->armor;
+    int count = hero->armor.size;
+    CItem** quick = hero->armor.data;
     for (int i = 0; i < count; ++i)
         if (quick[i]) weight += quick[i]->Weight();
 

@@ -259,7 +259,7 @@ int __cdecl StartFirstMap() {
         return 1;
     }
     CWorldServer* world = TheServerWorld();
-    if (!static_cast<CWorldServer*>(world)->NewZone(map.c_str(), cmdMode, (const char*)0))
+    if (!world->NewZone(map.c_str(), cmdMode, (const char*)0))
         return game::FatalError("Can't load map \"%s\".\n", map.c_str());
     world->SetGameResult(1);
     CWorldClient* client = TheClientWorld();

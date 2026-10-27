@@ -96,8 +96,8 @@ int CWorldClient::LoadLights(const char* file) {
 }
 EI_REWRITTEN(0x00563930, CWorldClient::LoadLights);
 
-void CWorldClient::SetUpGraphics(void* device) {
-    TextureManager()->SetDevice(static_cast<CTextureDevice*>(device));
+void CWorldClient::SetUpGraphics(CTextureDevice* device) {
+    TextureManager()->SetDevice(device);
     LoadSky();
     static_assert(sizeof(CFlyingHitPoints) == 8);
     auto* numbers = gamecrt::operator_new_as<CFlyingHitPoints>();

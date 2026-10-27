@@ -237,7 +237,7 @@ struct CellOps {
 using DynamicList = mfc::CList<CEngineObject*>;
 using DynamicNode = DynamicList::Node;
 
-void __fastcall SessionPlayerClear(CPlayer* session) { static_cast<CPlayer*>(session)->Clear(); }
+void __fastcall SessionPlayerClear(CPlayer* session) { session->Clear(); }
 
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
@@ -664,19 +664,19 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         unit->WriteFullState();
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(&record->stats);
-        static_cast<CObject3D*>(unit)->SetFigureScale(&record->scaleX);
+        unit->SetFigureScale(&record->scaleX);
         std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
         unit->ReleaseAllItems();
-        for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
+        for (int j = 0; j < record->weapons.size; ++j)
             unit->AddWeapon(record->weapons[j]);
         CUnitController* controller = unit->Controller();
-        if (record->weaponCount != 0) controller->ShowWeapon(0);
-        for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
+        if (record->weapons.size != 0) controller->ShowWeapon(0);
+        for (int j = 0; j < record->armor.size; ++j) {
             CItem* armour = record->armor[j];
             if (allArmour || AsArmor(armour)->GetType() != 0) unit->EquipArmour(armour);
         }
-        for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
+        for (int j = 0; j < record->quickItems.size; ++j)
             unit->AddQuickItem(record->quickItems[j]);
         unit->Controller()->RefreshEquipment();
         unit->Controller()->RefreshModel();
@@ -1343,7 +1343,7 @@ EI_REWRITTEN_SPECIAL(0x00562EC0, CLightningManager::~CLightningManager);
 EI_REWRITTEN_SPECIAL(0x00562EA0, CLightningManager::~CLightningManager);
 
 ClientArrayManager::ClientArrayManager() {
-    current = nullptr;
+    texture = nullptr;
     mfc::impl::ConstructListHeader<mfc::impl::ClientList3Class>(&list, 10);
 }
 
@@ -1351,7 +1351,7 @@ ClientArrayManager::~ClientArrayManager() {
     VisFogManagerDestroy(this);
     list.vtable = mfc::impl::ClientList3Class::Vtable();
     list.RemoveAll();
-    if (current) current->Release();
+    if (CTexture* held = texture) held->Release();
 }
 
 EI_REWRITTEN_SPECIAL(0x00562DF0, ClientArrayManager::~ClientArrayManager);

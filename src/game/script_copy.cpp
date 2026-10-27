@@ -114,9 +114,6 @@ namespace {
 void* StringAt(const void* array, void* out, int index) {
     return static_cast<const ScriptStrings*>(array)->CopyAt(static_cast<mfc::CString*>(out), index);
 }
-// Reference helpers, called through their addresses (script_group.cpp).
-// A reference's destructor (flags); a group's destructor.
-inline void __fastcall GroupDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 // ConstructElements for CString.
 void __stdcall ConstructStrings(void* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 
@@ -298,7 +295,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
         ScriptGroup copy;
         other->groups.CopyAt(&copy, i);
         groups.data[i].CopyFrom(copy);
-        GroupDestruct(&copy);
+        copy.DestructBody();
     }
     groupNames.CopyConstruct(&other->groupNames);
     return this;

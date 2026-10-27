@@ -77,7 +77,7 @@ CForwardingStrip::CForwardingStrip(CInterface3D* ui, CItemScreen* owner) : CUiIt
 
 // --- The figure strips' slots ----------------------------------------------------------------------
 
-BOOL CFigureStrip::Draw(int pass) {
+BOOL CFigureStrip::Draw(CSceneRenderer* pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);   // _ftol
     const float frac = static_cast<float>(position - static_cast<float>(first));

@@ -25,6 +25,7 @@ struct PixelFormat {
 static_assert(sizeof(PixelFormat) == 32);
 
 struct CDXSurface;
+class CPixelConverter;
 struct SurfacePixels;
 class CTexture;
 class CTextureManager;
@@ -65,7 +66,7 @@ public:
     bool overlayStretch_;       // DDCAPS_OVERLAYSTRETCH
     std::uint8_t unused_45[3];
     HMODULE converterLibrary_;  // 2DintMMX.dll
-    void* converter_;           // 2DintMMX's graphics processor (pixel conversions)
+    CPixelConverter* converter_;   // 2DintMMX's graphics processor (pixel conversions)
 };
 
 // Owns the Direct3D texture formats; held by CTextureManager. The same object is the renderer's device object:

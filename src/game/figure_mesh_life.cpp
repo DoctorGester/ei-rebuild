@@ -190,7 +190,7 @@ EI_REWRITTEN(0x0059F390, CFigureMesh::SetDrawer);
 void CFigureMesh::LoadNothing(char**, float, float, float) { flags_ |= 0x20; }
 EI_REWRITTEN(0x005A2480, CFigureMesh::LoadNothing);
 
-void CFigureMesh::SetObject(CObject3D* object) { object_ = object; }
+void CFigureMesh::SetObject(CTransformObject* object) { object_ = object; }
 EI_REWRITTEN(0x0059F3D0, CFigureMesh::SetObject);
 
 // --- The figure manager -------------------------------------------------------------------------

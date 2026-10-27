@@ -32,8 +32,8 @@ const char* OkSound() { return "buttons\\tutorial\\ok.wav"; }
 constexpr char kHelpAction = ';';   // the help key's action (KeyActions)
 
 // Direct3D render states, fed to the renderer's mirror.
-void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
-    device->SetRenderState(static_cast<std::uint32_t>(state), value);
+void SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
+    uidevice::SetRenderState(device, static_cast<std::uint32_t>(state), value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 
@@ -87,7 +87,7 @@ void CHelpWindow::CreateScreen() {
     if (page_ < 0) page_ = 0;
     if (page_ >= lines_.size) page_ = lines_.size - 1;
     pulseTime_ = 0.0f;
-    SetRenderState(interface_->renderer_->device_, kRenderStateAlphaRef, 1);
+    SetRenderState(interface_->renderer_, kRenderStateAlphaRef, 1);
     ShowPage();
 }
 EI_REWRITTEN(0x00658E10, CHelpWindow::CreateScreen);

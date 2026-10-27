@@ -461,10 +461,10 @@ CItem* AddToRecord(CParty* party, PartyUnitRecord* record, CItem* item) {
 
 // The record's four lists emptied (armour, weapons, spells, quick items: the first entry each time).
 void ClearRecordItems(PartyUnitRecord* record) {
-    while (record->armorCount) record->RemoveArmor(record->armor[0]);
-    while (record->weaponCount) record->RemoveWeapon(record->weapons[0]);
-    while (record->spellCount) record->RemoveSpell(record->spells[0]);
-    while (record->quickItemCount) record->RemoveQuickItem(record->quickItems[0]);
+    while (record->armor.size) record->RemoveArmor(record->armor[0]);
+    while (record->weapons.size) record->RemoveWeapon(record->weapons[0]);
+    while (record->spells.size) record->RemoveSpell(record->spells[0]);
+    while (record->quickItems.size) record->RemoveQuickItem(record->quickItems[0]);
 }
 
 void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
@@ -477,7 +477,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddWeapon>(party, record, item);
         CItemLink* ref = new CItemLink();
         ref->value = static_cast<std::uint32_t>(entry->id_);
-        reinterpret_cast<RefPtr*>(&item->link_)->Assign(reinterpret_cast<CRefObject*>(ref));
+        AssignCounted(item->link_, ref);
     }
     for (int slot = 0; slot < kWornSlots; ++slot) {
         CItem* item = unit->WornItem(slot);
@@ -485,7 +485,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
         CEngineObject* entry = AddToRecord<&PartyUnitRecord::AddArmor>(party, record, item);
         CItemLink* ref = new CItemLink();
         ref->value = static_cast<std::uint32_t>(entry->id_);
-        reinterpret_cast<RefPtr*>(&item->link_)->Assign(reinterpret_cast<CRefObject*>(ref));
+        AssignCounted(item->link_, ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
         auto* item = unit->GetQuickItem(slot);

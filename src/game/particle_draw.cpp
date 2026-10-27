@@ -114,11 +114,10 @@ void InsertionSort(ParticleDepth* first, ParticleDepth* last) {
     }
 }
 
-// The renderer's blend-factor setter: SRCBLEND, DESTBLEND (5 source alpha; 2 one: additive, 6 inverse source
-// alpha: the default).
-void SetRenderState(void* renderer, int source, int dest) {
-    using Fn = void(__fastcall*)(void*, void*, int, int);
-    (*static_cast<Fn**>(renderer))[10](renderer, nullptr, source, dest);
+// The blend factors set: SRCBLEND, DESTBLEND (5 source alpha; 2 one: additive, 6 inverse source alpha: the
+// default).
+void SetRenderState(CSceneRenderer* renderer, int source, int dest) {
+    renderer->SetBlend(static_cast<std::uint32_t>(source), static_cast<std::uint32_t>(dest));
 }
 
 // A source attached to a unit (class 0x50) is drawn only while the unit has flag 0x400000.
@@ -206,7 +205,7 @@ EI_REWRITTEN(0x00484AE0, CParticleSource::WorldPosition);
 // sources until the first empty entry), sorts it far to near and draws each source that is not
 // hidden (flag 0x40) and not on a hidden unit, switching to additive blending for sources with
 // +0x150 == 1. Returns 0 as soon as a source fails to draw. The manager is held (+4) meanwhile.
-int CParticleManager::DrawAll(void* renderer) {
+int CParticleManager::DrawAll(CSceneRenderer* renderer) {
     ++refCount_;
     ParticleDepthArray& order = DrawOrder();
     if (order.data) {

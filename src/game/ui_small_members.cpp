@@ -110,7 +110,7 @@ EI_REWRITTEN(0x00621F20, CUiItemStrip::SetSlots);
 std::uint8_t CTradePanel::Bought() const { return records_[recordIndex_].bought; }
 EI_REWRITTEN(0x00625510, CTradePanel::Bought);
 
-CItem* CItemInfoPanel::FirstItem() const { return itemCount_ ? items_[0] : nullptr; }
+CItem* CItemInfoPanel::FirstItem() { return itemParty_->items_.size ? itemParty_->items_.data[0] : nullptr; }
 EI_REWRITTEN(0x005EE720, CItemInfoPanel::FirstItem);
 
 void CUiMesh::SetScaleYBits(std::uint32_t bits) { std::memcpy(&scaleMatrix_.m[5], &bits, sizeof(bits)); }
@@ -130,9 +130,9 @@ CScreenFade* CScreenFade::Construct() {
 EI_REWRITTEN(0x005E6990, CScreenFade::Construct);
 
 CInterface3D* CInterface3D::Construct() {
-    stackBegin_ = nullptr;
-    stackEnd_ = nullptr;
-    stackCapacity_ = nullptr;
+    stack_.Start() = nullptr;
+    stack_.Finish() = nullptr;
+    stack_.EndOfStorage() = nullptr;
     messages_.Construct();
     helpTopics_.Construct();
     std::construct_at(&messageText_);

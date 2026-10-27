@@ -119,18 +119,24 @@ static_assert(sizeof(DeltaField) == 0xA0);
 
 // The fields of one object.
 struct DeltaState {
-    std::uint32_t unused_0;
-    DeltaField* fields_;
-    int fieldCount_;
-    int fieldCapacity_;      // (the fields are an MFC CArray: vtable, data, size, capacity, grow-by)
-    int fieldGrowBy_;
-    std::uint16_t sentMask_;
-    std::uint16_t lastMask_;
-    std::uint16_t mask_;     // fields to write / read
-    std::uint16_t unused_1A;
-    BitStream* reader_;
-    int mode_;               // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
+    std::uint32_t unused_0 = 0;
+    DeltaField* fields_ = nullptr;
+    int fieldCount_ = 0;
+    int fieldCapacity_ = 0;  // (the fields are an MFC CArray: vtable, data, size, capacity, grow-by)
+    int fieldGrowBy_ = 0;
+    std::uint16_t sentMask_ = 0;
+    std::uint16_t lastMask_ = 0;
+    std::uint16_t mask_ = 0;     // fields to write / read
+    std::uint16_t unused_1A = 0;
+    BitStream* reader_ = nullptr;
+    int mode_ = 4;           // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
     BitStream header_[2];
+
+    // No fields, idle; the field array's table in place. The destructor destroys the fields.
+    DeltaState();
+    ~DeltaState();
+    DeltaState(const DeltaState&) = delete;
+    DeltaState& operator=(const DeltaState&) = delete;
 
     enum Mode { kWriteFull = 0, kWriteDelta = 1, kRead0 = 2, kRead1 = 3, kIdle = 4 };
 

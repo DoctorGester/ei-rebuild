@@ -165,8 +165,7 @@ void CChatWindow::ShowPlayers() {
         bool own = client->binding_->PlayerRef().ptr == player;
         CRefObject**& finish = players_.Finish();
         if (finish == players_.EndOfStorage()) {
-            stlp::AsRefPtrs(players_).InsertOverflow<stlp::CountedRefElement>(
-                stlp::AsRefPtr(own ? players_.Start() : finish), stlp::AsRefPtr(node->data.ptr), 1);
+            players_.InsertOverflow<stlp::CountedPtrElement<CRefObject>>(own ? players_.Start() : finish, player, 1);
         } else if (!own || players_.Start() == finish) {
             if (finish) {
                 *finish = player;

@@ -41,9 +41,6 @@ float Pi() { return 3.1415927f /*007423F8*/; }
 bool GamePaused() { return TheClientWorld()->paused_ != 0; }
 int SelectedUnitId() { return TheCamera()->targetId_; }
 
-// Time since the last frame in seconds, unrounded.
-inline double __fastcall WindowFrameTime(CUiWindow* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
-
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
 constexpr float kBarTexels = 64.0f;
 constexpr float kBarStart = 9.0f;
@@ -138,7 +135,7 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 } // namespace
 
 void CHudPortraits::Update() {
-    float dt = GamePaused() ? 0.0f : static_cast<float>(WindowFrameTime(this));
+    float dt = GamePaused() ? 0.0f : static_cast<float>(CUiContainer::FrameTime());
     Sprite(sceneObjects_.data[0])->visible_ = 0;   // the selection marker
 
     for (int i = 0; i < owner_->party_.size; ++i) {

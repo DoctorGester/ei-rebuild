@@ -68,12 +68,6 @@ class CMaterial;
 
 class CLight;
 
-// The lights a figure part is lit with ({data, count}; the draw's third argument).
-struct FigureLights {
-    CLight** data;
-    int count;
-};
-
 // The figure meshes' base ("CFigure"): the parts of an object's figure (CObject3D::parts). Derived: 0x41
 // CSharedFigureMesh, 0x42 CPlainFigureMesh, 0x43 CUiMesh (ui.h), 0x44 CSkyObject (sky_object.h).
 class CFigureMesh : public CTransformObject {
@@ -138,7 +132,7 @@ public:
     void Clear();
     // Lets the old drawer go (released) and takes `drawer` (one more reference, its mesh_ set).
     void SetDrawer(FigureMeshDrawer* drawer);
-    void SetObject(CObject3D* object);
+    void SetObject(CTransformObject* owner);
 
 protected:
     CFigureMesh();
@@ -157,7 +151,7 @@ public:
     // ObjectWorldMatrix in map_object_shadow.h).
     Matrix4 worldMatrix_;
     FigureMeshDrawer* drawer_;
-    CObject3D* object_;                 // the object whose figure may draw the mesh
+    CTransformObject* object_;          // the owner whose figure may draw the mesh: a CObject3D, or an interface window (CUiWindow)
     MeshBuffers buffers_;
     // passed to the draws after the buffers (as their bits): the texture offset (u, v) an animated mesh's
     // drawer sets per frame (FigureMeshDrawer::Animate); an interface sprite's frame of its sprite sheet.

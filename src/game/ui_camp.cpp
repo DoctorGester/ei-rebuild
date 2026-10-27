@@ -187,7 +187,7 @@ void CCampPages::ShowPage(int page) {
         trade_->SelectHero(hero_);
         CUiSurface* title = surfaces_.data[1];
         UiSurfaceGetDC(title);
-        static_cast<CUiSurface*>(title)->Clear();
+        title->Clear();
         RECT rect = {0, 10, 200, 30};
         DrawLine(title, pageTitles_[page_], &rect);
         UiSurfaceReleaseDC(title);
@@ -497,8 +497,8 @@ void CCampPages::UpdateAction() {
         // Repair all the hero's weapons and armour (where the item constructor works).
         if (itemConstructor_ && !noConstructor_) {
             PartyUnitRecord* hero = HeroRecord();
-            for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) cost_ += price(hero->weapons[i], 8);
-            for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) cost_ += price(hero->armor[i], 8);
+            for (int i = 0; i < hero->weapons.size; ++i) cost_ += price(hero->weapons[i], 8);
+            for (int i = 0; i < hero->armor.size; ++i) cost_ += price(hero->armor[i], 8);
             actionEnabled_ = cost_ > 0;
             if (actionEnabled_) action = "camp_repair_all";
         }
@@ -555,7 +555,7 @@ void CCampPages::UpdateAction() {
     CTextManager* texts = TheTextManager();
     CUiSurface* draw = surfaces_.data[0];
     UiSurfaceGetDC(draw);
-    static_cast<CUiSurface*>(draw)->Clear();
+    draw->Clear();
     if (action.size() != 0) {
         texts->GetString(action.c_str(), &text);
         RECT name = {0, 30, 200, 50};
@@ -579,7 +579,7 @@ void CCampPages::UpdateAction() {
 EI_REWRITTEN(0x00611930, CCampPages::UpdateAction);
 
 
-BOOL CCampPages::Draw(int pass) {
+BOOL CCampPages::Draw(CSceneRenderer* pass) {
     int x = MouseScreenX();   // the mouse in screen pixels
     int y = MouseScreenY();
     hoveredItem_ = nullptr;
@@ -637,7 +637,7 @@ BOOL CCampPages::Draw(int pass) {
     if (page_ == 0) {
         float turn;
         std::memcpy(&turn, &heroTurn_, sizeof turn);
-        DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), heroes_[hero_], turn, 400.0f, 1);
+        DrawHeroPreview(pass, heroes_[hero_], turn, 400.0f, 1);
     }
     return 1;
 }
@@ -848,7 +848,7 @@ UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 void RebuildArmourLayers(PartyUnitRecord* hero) {
     UnitStats* stats = StatsOf(hero);
     stats->ClearOuterLayers();
-    for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) stats->AddArmourLayer(AsArmor(hero->armor[i]));
+    for (int i = 0; i < hero->armor.size; ++i) stats->AddArmourLayer(AsArmor(hero->armor[i]));
 }
 
 } // namespace
@@ -863,15 +863,16 @@ CItem* CCampPages::TakeOff(CItem* item) {
     switch (ItemType(item)) {
     case 0x3004: {
         // The chosen weapon moves back when the item lies before it.
-        int count = static_cast<int>(hero->weaponCount);
-        CItem** weapons = hero->weapons;
+        int count = hero->weapons.size;
+        CItem** weapons = hero->weapons.data;
         for (int i = 0; i < count; ++i) {
             if (weapons[i] != item) continue;
             if (static_cast<std::uint32_t>(i) < hero->weaponIndex) --hero->weaponIndex;
             break;
         }
         hero->RemoveWeapon(item);
-        if (hero->weaponIndex >= hero->weaponCount) hero->weaponIndex = hero->weaponCount - 1;
+        if (hero->weaponIndex >= static_cast<std::uint32_t>(hero->weapons.size))
+            hero->weaponIndex = static_cast<std::uint32_t>(hero->weapons.size - 1);
         RefreshWeapons();
         break;
     }
@@ -908,15 +909,15 @@ void CCampPages::PutOn(CItem* item) {
     PartyUnitRecord* hero = HeroRecord();
     switch (ItemType(item)) {
     case 0x3004:
-        if (hero->weaponCount >= 4) return;
+        if (hero->weapons.size >= 4) return;
         hero->AddWeapon(item);
-        if (hero->weaponCount == 1) hero->weaponIndex = 0;
+        if (hero->weapons.size == 1) hero->weaponIndex = 0;
         RefreshWeapons();
         break;
     case 0x3005: {
         // Each piece on the same body part comes off first.
         int type = AsArmor(item)->GetType();
-        for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
+        for (int i = 0; i < hero->armor.size; ++i) {
             if (AsArmor(hero->armor[i])->GetType() == type)
                 TakeOff(hero->armor[i]);
         }
@@ -929,11 +930,11 @@ void CCampPages::PutOn(CItem* item) {
         break;
     }
     case 0x3006:
-        if (hero->quickItemCount >= 4) return;
+        if (hero->quickItems.size >= 4) return;
         hero->AddQuickItem(item);
         break;
     case 0x3008:
-        if (hero->spellCount >= 8) return;
+        if (hero->spells.size >= 8) return;
         hero->AddSpell(item);
         break;
     default:
@@ -1105,7 +1106,7 @@ void CCampPages::RefreshWeapons() {
     CUnit* unit = heroes_[hero_];
     unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(-1));
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
-    for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i)
+    for (int i = 0; i < hero->weapons.size; ++i)
         unit->AddWeapon(hero->weapons[i]);
     unit->SendEquipment();
     unit->Controller()->ShowWeapon(hero->weaponIndex);
@@ -1139,16 +1140,16 @@ constexpr int kHeroClass = 0x32;
 } // namespace
 
 void CCampPages::Update() {
-    static_cast<CUiContainer*>(this)->UpdateBase();
+    UpdateBase();
     int turning = turning_;
     float turn;
     std::memcpy(&turn, &heroTurn_, 4);
     // The frame time in seconds (ST0, unrounded).
     if (turning == 1) {
-        float turned = TurnedBy(static_cast<CUiContainer*>(this)->FrameTime(), turn, false);
+        float turned = TurnedBy(FrameTime(), turn, false);
         std::memcpy(&heroTurn_, &turned, 4);
     } else if (turning == 2) {
-        float turned = TurnedBy(static_cast<CUiContainer*>(this)->FrameTime(), turn, true);
+        float turned = TurnedBy(FrameTime(), turn, true);
         std::memcpy(&heroTurn_, &turned, 4);
     }
 }

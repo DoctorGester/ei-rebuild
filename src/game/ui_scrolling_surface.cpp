@@ -100,7 +100,7 @@ EI_REWRITTEN(0x0065EF80, CUiScrollingSurface::LoadRtf);
 
 void CUiScrollingSurface::RenderText() {
     mfc::impl::CDC* dc = UiSurfaceGetDC(this);
-    static_cast<CUiSurface*>(this)->Clear();
+    this->Clear();
     gameapi::SendMessageA(richEdit_, EM_SETBKGNDCOLOR, 0, static_cast<LPARAM>(background_));
     int width = gameapi::MulDiv(rect_.right - rect_.left, kTwipsPerInch, gameapi::GetDeviceCaps(dc->attribDC, LOGPIXELSX));
     int height = HeightInTwips(this, dc);

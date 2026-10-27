@@ -18,22 +18,22 @@ namespace {
 constexpr std::uint32_t kAlphaBlend = 0x1B, kAlphaTest = 0x0F, kSourceBlend = 0x13, kDestBlend = 0x14, kAlphaRef = 0x18;
 
 // The interface's Direct3D device.
-UiD3DDevice* Device(CUiWindow* w) { return w->interface_->renderer_->device_; }
+CTextureDevice* Device(CUiWindow* w) { return w->interface_->renderer_; }
 
 void SetState(CUiWindow* w, std::uint32_t state, std::uint32_t value) {
-    Device(w)->SetRenderState(state, value);
+    uidevice::SetRenderState(Device(w), state, value);
     render::state::Render(state, value);
 }
 std::uint32_t GetState(CUiWindow* w, std::uint32_t state) {
     std::uint32_t value = 0;
-    Device(w)->GetRenderState(state, &value);
+    uidevice::GetRenderState(Device(w), state, &value);
     return value;
 }
 
 } // namespace
 
 // A container's. The children, each drawn when enabled.
-void CUiContainer::DrawChild(int pass) {
+void CUiContainer::DrawChild(CSceneRenderer* pass) {
     if (!interface_->drawing_) return;
     std::uint32_t savedRef = GetState(this, kAlphaRef);
     SetState(this, kAlphaRef, 1);
@@ -48,7 +48,7 @@ void CUiContainer::DrawChild(int pass) {
 }
 EI_REWRITTEN(0x00600F70, CUiContainer::DrawChild);
 
-BOOL CGlobalMap::Draw(int pass) {
+BOOL CGlobalMap::Draw(CSceneRenderer* pass) {
     SetState(this, kAlphaBlend, 1);
     SetState(this, kAlphaTest, 0);
     SetState(this, kSourceBlend, 5);
@@ -59,7 +59,7 @@ BOOL CGlobalMap::Draw(int pass) {
 }
 EI_REWRITTEN(0x0062EFC0, CGlobalMap::Draw);
 
-BOOL CHelpWindow::Draw(int pass) {
+BOOL CHelpWindow::Draw(CSceneRenderer* pass) {
     std::uint32_t savedRef = GetState(this, kAlphaRef);
     SetState(this, kAlphaRef, 1);
     CUiContainer::Draw(pass);

@@ -754,7 +754,7 @@ void CUnitServer::ApproachTarget() {
     if (!(state == kStateChasing || state == kStateTurning) && interceptTime - now >= kAttackLead) return;
 
     // Chase: the target, or the unit the party leader is attacking it with.
-    CEngineObject* chased = target;
+    CMapObject* chased = target;
     if (followsLeader) {
         CUnit* leader = followedLeader;
         auto* theirs = leader->ServerController();
@@ -828,7 +828,7 @@ void CUnitServer::ApproachTarget() {
     EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal));
     if (DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
 
-    TheServerWorld()->Sectors()->Remove(static_cast<CMapObject*>(chased));
+    TheServerWorld()->Sectors()->Remove(chased);
     float farOffset = static_cast<float>(static_cast<double>(goal.y) * kShort);
     double nearX = static_cast<double>(goal.x) * kShort;
     float unitY = static_cast<float>(static_cast<double>(unit->localPosition_.y) * kLong);
@@ -838,7 +838,7 @@ void CUnitServer::ApproachTarget() {
     point.z = goal.z;
     if (!PathTo(&point, static_cast<float>(patience)))
         stoodBlocked = 1;
-    TheServerWorld()->Sectors()->Add(static_cast<CMapObject*>(chased));
+    TheServerWorld()->Sectors()->Add(chased);
 
     double h = HalfScale();
     float headX = static_cast<float>(h * motion.targetX);

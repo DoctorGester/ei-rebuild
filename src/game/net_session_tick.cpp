@@ -128,9 +128,9 @@ void LogConnection(const char* before, Connection* connection, const char* after
 ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address) {
     ClientNode* last = clients_;
     ClientNode* first = clients_->next;
-    using netlists::ClientsNode;
-    reinterpret_cast<netlists::ClientsIterator*>(out)->FindByAddress(reinterpret_cast<ClientsNode*>(first),
-                                                                      reinterpret_cast<ClientsNode*>(last), address);
+    netlists::ClientsIterator found;
+    found.FindByAddress(first, last, address);
+    *out = found.node;
     return out;
 }
 EI_REWRITTEN(0x00436CC0, SessionBase::FindClient);
@@ -283,7 +283,7 @@ SessionBase::~SessionBase() {
     ClientNode* sentinel = clients_;
     for (ClientNode* node = sentinel->next; node != clients_;) {
         ClientNode* next = node->next;
-        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();
+        DestroyOwned(node->connection);
         stlp::deallocate(node, sizeof(ClientNode));
         node = next;
         if (node == clients_) break;
@@ -314,9 +314,8 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     }
     RemoveClient(ClientAt(address));
     Connection* connection = NewCounted<Connection>(id);
-    Connection* ref;
-    netlists::InitClientRef(&ref, connection);
-    stlp::list<RefPtr>::Insert<stlp::SharedRef>(stlp::AsRefNode(clients_), reinterpret_cast<const RefPtr&>(ref));
+    const RefPtr ref{connection};   // stored without a reference
+    stlp::list<RefPtr>::Insert<stlp::SharedRef>(stlp::AsRefNode(clients_), ref);
     Connection* added = clients_->prev->connection;
     added->address_ = *address;
     if (rate <= 500) rate = 500;

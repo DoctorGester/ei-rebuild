@@ -2,6 +2,7 @@
 // constructors' spell maker and item maker. See docs/notes/ui.md, section 5. The trade grid's is in
 // ui_trade_grid_draw.cpp.
 #include "ui.h"
+#include "texture.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "item.h"
@@ -26,23 +27,21 @@ namespace {
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr std::uint32_t kClearZBuffer = 2;       // D3DCLEAR_ZBUFFER
 constexpr std::uint32_t kClearStencil = 4;       // D3DCLEAR_STENCIL
-constexpr std::uint32_t kCapsStencil = 0x4000;
 
 const char* NumberFormat() { return "%d"; }
 const char* CostFormat() { return "%s %d (%d)"; }
 
 // The item screen's draw (ui_item_view.cpp): the owner screen draws
 // an item's model in a cell.
-void DrawItem(CItemScreen* owner, int pass, ItemCell* cell) { owner->DrawItem(pass, cell); }
+void DrawItem(CItemScreen* owner, CSceneRenderer* pass, ItemCell* cell) { owner->DrawItem(pass, cell); }
 
 
 // The depth buffer (and the stencil when the device has one) cleared over `rect` (null: all of it) to
 // `z` under the device lock; the new renderer gets the clear too.
-void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
-    std::uint32_t flags = (renderer->caps_ & kCapsStencil) && renderer->stencil_ ? kClearZBuffer | kClearStencil
-                                                                                    : kClearZBuffer;
+void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
+    std::uint32_t flags = uidevice::HasStencil(renderer) ? kClearZBuffer | kClearStencil : kClearZBuffer;
     gameapi::EnterCriticalSection(TheDeviceLock());
-    renderer->result_ = renderer->device_->Clear(rect ? 1 : 0, rect, flags, 0, z, 0);
+    renderer->lastLoadResult_ = uidevice::Clear(renderer, rect ? 1 : 0, rect, flags, 0, z, 0);
     gameapi::LeaveCriticalSection(TheDeviceLock());
     if (!rect) {
         render::ClearDepth(z, nullptr, 0);
@@ -56,17 +55,17 @@ void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
 
 // --- The quick strip ------------------------------------------------------------------
 
-BOOL CHeroQuickStrip::Draw(int pass) {
+BOOL CHeroQuickStrip::Draw(CSceneRenderer* pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto* frame = SceneMesh(0);
-    int count = static_cast<int>(hero->spellCount);
+    int count = hero->spells.size;
     if (selected_ >= 0 && selected_ < count) {
         frame->visible_ = 1;
         frame->Place(static_cast<float>(selected_ * 100 + 50), static_cast<float>(y_ + 50), 3.0f);
     } else {
         frame->visible_ = 0;
     }
-    for (int i = 0; i < static_cast<int>(hero->spellCount); ++i) {
+    for (int i = 0; i < hero->spells.size; ++i) {
         ItemCell cell{hero->spells[i], static_cast<float>(i * 100 + 50),
                       static_cast<float>(y_ + 50), 12.0f, 100.0f, mode_};
         DrawItem(owner_, pass, &cell);
@@ -77,7 +76,7 @@ EI_REWRITTEN(0x00622C10, CHeroQuickStrip::Draw);
 
 // --- The repair grid ------------------------------------------------------------------
 
-BOOL CRepairGrid::Draw(int pass) {
+BOOL CRepairGrid::Draw(CSceneRenderer* pass) {
     CInterface3D* ui = interface_;
     RECT grid{200, 100, 600, 500};
     ui->ScaleRectToScreenEntry(&grid);
@@ -149,16 +148,16 @@ Pulse Advance(CConstructorPage* page) {
 
 bool IsSpellContainer(const CItem* item) { return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0; }
 
-void DrawSprite(CUiMesh* sprite, int pass, float x, float y) {
+void DrawSprite(CUiMesh* sprite, CSceneRenderer* pass, float x, float y) {
     sprite->Place(x, y, 3.0f);
-    sprite->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
+    sprite->Draw(pass);
 }
 
 CUiMesh* Highlight(CUiWindow* window) { return window->SceneMesh(4); }
 
 } // namespace
 
-BOOL CSpellMakerPage::DrawSpellMaker(int pass) {
+BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
     const PartyItemArray& slots = slots_->items_;
     int needed = 0;
     float manaSum = 0.0f;
@@ -249,7 +248,7 @@ EI_REWRITTEN(0x006284A0, CSpellMakerPage::DrawSpellMaker);
 namespace {
 // A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
 // model, then the screen to 1 again.
-void DrawInSlot(CConstructorPage* page, int pass, ItemCell* cell, RECT slot) {
+void DrawInSlot(CConstructorPage* page, CSceneRenderer* pass, ItemCell* cell, RECT slot) {
     CInterface3D* ui = page->interface_;
     ui->ScaleRectToScreenEntry(&slot);
     RECT inside = slot;
@@ -271,7 +270,7 @@ const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
 }
 } // namespace
 
-BOOL CConstructorPage::DrawItemMaker(int pass) {
+BOOL CConstructorPage::DrawItemMaker(CSceneRenderer* pass) {
     DrawBase(pass);
     const PartyItemArray& slots = slots_->items_;
     bool hasBlueprint = false;   // or a spell container

@@ -48,11 +48,11 @@ void CInterface3D::Update() {
         shiftDown_ = 0;
         rightDown_ = false;
         doubleClick_ = false;
-        if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Deactivate();
-        if (stackBegin_ != stackEnd_) {
-            ScreenOf(stackEnd_[-1])->CloseScreen();
-            delete stackEnd_[-1];
-            --stackEnd_;
+        if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Deactivate();
+        if (stack_.Start() != stack_.Finish()) {
+            ScreenOf(stack_.Finish()[-1])->CloseScreen();
+            delete stack_.Finish()[-1];
+            --stack_.Finish();
         }
         app::PumpMessages();
         if (backdropMode_ == 4) {
@@ -63,7 +63,7 @@ void CInterface3D::Update() {
             backdropMode_ = next ? 2 : 0;
             if (next) next->SwapContents(1);
         }
-        if (stackEnd_ - stackBegin_ == 1) {
+        if (stack_.Finish() - stack_.Start() == 1) {
             ReleaseBackdrop(backdrop_);
             backdrop_ = nullptr;
             if (block5C_) gamecrt::operator_delete(block5C_);
@@ -72,9 +72,9 @@ void CInterface3D::Update() {
             if (!IsMultiplayerClient()) GameSetServerPaused(serverFlag_);
             serverFlag_ = 0;
         }
-        if (stackBegin_ != stackEnd_) {
-            stackEnd_[-1]->Show(1);
-            ScreenOf(stackEnd_[-1])->MessageResult(static_cast<int>(pendingValue_));
+        if (stack_.Start() != stack_.Finish()) {
+            stack_.Finish()[-1]->Show(1);
+            ScreenOf(stack_.Finish()[-1])->MessageResult(static_cast<int>(pendingValue_));
         }
         if (pendingValue_ == kLeaveGame) {
             closeAll_ = true;
@@ -84,15 +84,15 @@ void CInterface3D::Update() {
         mouseCapture_ = nullptr;
         SetCursorShape(0);
     }
-    if (pollTop_ && stackBegin_ != stackEnd_) pollTop_ = !ScreenOf(stackEnd_[-1])->ReadyToStopPolling();
+    if (pollTop_ && stack_.Start() != stack_.Finish()) pollTop_ = !ScreenOf(stack_.Finish()[-1])->ReadyToStopPolling();
     if (closeAll_) {
         closeAll_ = false;
         SetCursorShape(3);
-        while (stackBegin_ != stackEnd_) {
-            stackEnd_[-1]->Input()->Deactivate();
-            ScreenOf(stackEnd_[-1])->CloseScreen();
-            delete stackEnd_[-1];
-            --stackEnd_;
+        while (stack_.Start() != stack_.Finish()) {
+            stack_.Finish()[-1]->Input()->Deactivate();
+            ScreenOf(stack_.Finish()[-1])->CloseScreen();
+            delete stack_.Finish()[-1];
+            --stack_.Finish();
         }
         ResetInput();
         app::PumpMessages();
@@ -110,8 +110,8 @@ void CInterface3D::Update() {
                 static_cast<unsigned>(net::GameClient()->joinState_));
         CMessageBox* box = new CMessageBox(this, "disconnect", "disconnect_msg", 0x990000, 1, 1);
         PushWindow(box, 1, 1);
-    } else if (stackBegin_ != stackEnd_) {
-        stackEnd_[-1]->Update();
+    } else if (stack_.Start() != stack_.Finish()) {
+        stack_.Finish()[-1]->Update();
     }
     root_->Update();
 }
@@ -146,24 +146,24 @@ void CInterface3D::OnStringEvent(const char* event) {
         PushWindow(window, 1, 1);
         return;
     }
-    auto top = [this]() { return stackEnd_[-1]; };
+    auto top = [this]() { return stack_.Finish()[-1]; };
     if (Compare(words.data[0].GetString(), "say") == 0 || Compare(words.data[0].GetString(), "say_block") == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
         if (words.size < 2) return;
         int number = words.size > 2 ? TextKeyFromName(words.data[2]) : 0;
         int kind = Compare(words.data[0].GetString(), "say_block") != 0 ? 0x2A : 0x2B;
-        if (stackBegin_ != stackEnd_)
+        if (stack_.Start() != stack_.Finish())
             ScreenOf(top())->Speech(number, static_cast<unsigned>(kind), const_cast<char*>(words.data[1].GetString()));
     } else if (Compare(words.data[0].GetString(), "tutorial") == 0) {   // queued
         if (words.size < 2) return;
         stlp::list<mfc::CString>::Insert(messages_.End(), words.data[1]);
     } else if (Compare(words.data[0].GetString(), "briefing") == 0) {
-        if (words.size < 2 || stackBegin_ == stackEnd_) return;
+        if (words.size < 2 || stack_.Start() == stack_.Finish()) return;
         ScreenOf(top())->ShowBriefing(words.data[1].GetString());
     } else if (Compare(words.data[0].GetString(), "autosave") == 0) {
         pollTop_ = true;
     } else if (Compare(words.data[0].GetString(), "endofgame") == 0) {
-        if (stackBegin_ != stackEnd_) ScreenOf(top())->GameOver(1);
+        if (stack_.Start() != stack_.Finish()) ScreenOf(top())->GameOver(1);
     }
 }
 

@@ -15,7 +15,7 @@
 
 UiInputSide* CInterface3D::MouseTarget() const {
     if (mouseCapture_) return static_cast<UiInputSide*>(mouseCapture_);
-    if (stackBegin_ != stackEnd_) return stackEnd_[-1]->Input();
+    if (stack_.begin() != stack_.end()) return stack_.end()[-1]->Input();
     return nullptr;
 }
 
@@ -88,7 +88,7 @@ void CInterface3D::OnChar(int key, int repeat, int flags) {
         root_->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
         return;
     }
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
+    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
 }
 EI_REWRITTEN(0x005F7B40, CInterface3D::OnChar);
 
@@ -103,7 +103,7 @@ void CInterface3D::OnKeyUp(int key, int repeat, int flags) {
         console_->OnKeyUp(key, repeat, flags);
         return;
     }
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Event(UiInputSide::kEventKeyUp, key, repeat, flags);
+    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Event(UiInputSide::kEventKeyUp, key, repeat, flags);
 }
 EI_REWRITTEN(0x005F7BE0, CInterface3D::OnKeyUp);
 
@@ -119,11 +119,11 @@ EI_REWRITTEN(0x005E47E0, console::ConsoleWindow::OnKeyUp);
 
 void CInterface3D::CloseAll() {
     TheCursor()->SetShape(kCursorWait);
-    while (stackBegin_ != stackEnd_) {
-        stackEnd_[-1]->Input()->Deactivate();
-        ScreenOf(stackEnd_[-1])->CloseScreen();
-        delete stackEnd_[-1];
-        --stackEnd_;
+    while (stack_.Start() != stack_.Finish()) {
+        stack_.Finish()[-1]->Input()->Deactivate();
+        ScreenOf(stack_.Finish()[-1])->CloseScreen();
+        delete stack_.Finish()[-1];
+        --stack_.Finish();
     }
     ctrlDown_ = false;
     altDown_ = false;
@@ -131,7 +131,7 @@ void CInterface3D::CloseAll() {
     rightDown_ = false;
     doubleClick_ = false;
     // No top window to deactivate here (the original deactivates it, but none can exist any more).
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->Input()->Deactivate();
+    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Deactivate();
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;
 }

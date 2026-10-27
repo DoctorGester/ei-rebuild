@@ -342,7 +342,7 @@ void CMpHeroScreen::CreateScreen() {
     mfc::CString text;
     CUiSurface* commands = surfaces_.data[kSurfaceCommands];
     UiSurfaceGetDC(commands);
-    static_cast<CUiSurface*>(commands)->Clear();
+    commands->Clear();
     const char* const commandKeys[] = {
         "lmp_pers_new",
         "lmp_pers_rename",

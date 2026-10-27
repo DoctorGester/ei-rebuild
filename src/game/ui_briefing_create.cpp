@@ -274,16 +274,16 @@ EI_REWRITTEN(0x006024B0, CBriefingScreen::CreateScreen);
 
 
 void CBriefingScreen::Update() {
-    markPhase_ = static_cast<float>(static_cast<CUiContainer*>(this)->FrameTime() + markPhase_);
+    markPhase_ = static_cast<float>(FrameTime() + markPhase_);
     while (markPhase_ >= 1.0f) markPhase_ = static_cast<float>(markPhase_ - 1.0f);
-    static_cast<CUiContainer*>(this)->UpdateBase();
+    UpdateBase();
     SetMeshesVisible(this, 0);
     for (int i = 0; i < surfaces_.size; ++i) surfaces_.data[i]->Freeze(0, 0);
     children_.data[kTopicBarChild]->SetEnabled(0, 1);
     children_.data[kTextChild]->SetEnabled(0, 1);
 
     for (BriefingMover* node = movers_->next; node != movers_; node = node->next) {
-        node->time = static_cast<float>(static_cast<CUiContainer*>(this)->FrameTime() + node->time);
+        node->time = static_cast<float>(FrameTime() + node->time);
         if (node->time > kMoverTimeout) {
             PlaceMover(node);
             node->state = BriefingMover::kDone;
@@ -335,7 +335,7 @@ void CBriefingScreen::Update() {
         if (voice_ != -1) {
             if (VoiceEnded(voice_)) NextPhrase(0);
         } else {
-            phraseTime_ = static_cast<float>(phraseTime_ - static_cast<CUiContainer*>(this)->FrameTime());
+            phraseTime_ = static_cast<float>(phraseTime_ - FrameTime());
             EI_NAN_AUDIT(phraseTime_);
             if (phraseTime_ < 0.0f) NextPhrase(0);
         }
@@ -347,7 +347,7 @@ void CBriefingScreen::Update() {
         if (voice_ != -1) {
             if (speaking_ && VoiceEnded(voice_)) StopTalking(speaking_);
         } else {
-            phraseTime_ = static_cast<float>(phraseTime_ - static_cast<CUiContainer*>(this)->FrameTime());
+            phraseTime_ = static_cast<float>(phraseTime_ - FrameTime());
             EI_NAN_AUDIT(phraseTime_);
             if (speaking_ && phraseTime_ < 0.0f) StopTalking(speaking_);
         }

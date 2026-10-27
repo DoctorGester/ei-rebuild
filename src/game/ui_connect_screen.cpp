@@ -268,9 +268,9 @@ void CMpConnectScreen::Update() {
         }
     }
     joining_ = asking;
-    static_cast<CUiContainer*>(this)->UpdateBase();
+    UpdateBase();
 
-    double elapsed = static_cast<CUiContainer*>(this)->FrameTime() + refreshTimer_;
+    double elapsed = FrameTime() + refreshTimer_;
     refreshTimer_ = static_cast<float>(elapsed);
     float period = RefreshPeriod();
     if (elapsed > period) {
@@ -751,7 +751,7 @@ void CMpConnectScreen::CreateScreen() {
     refreshTimer_ = 0.0f;
     CUiSurface* note = AddSurface(NewSurface(interface_, 0, 0, 300, 20));
     UiSurfaceGetDC(note);
-    static_cast<CUiSurface*>(note)->Clear();
+    note->Clear();
     RECT rect{0, 0, 300, 20};
     note->DrawTextIn(texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
     UiSurfaceReleaseDC(note);

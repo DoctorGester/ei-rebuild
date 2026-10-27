@@ -150,12 +150,12 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
         return new CUiSurface(ui, left, top, right, bottom, 5, 1);
 }
 
-void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
-    device->SetRenderState(static_cast<std::uint32_t>(state), value);
+void SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
+    uidevice::SetRenderState(device, static_cast<std::uint32_t>(state), value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
-void GetRenderState(UiD3DDevice* device, int state, std::uint32_t* value) {
-    device->GetRenderState(static_cast<std::uint32_t>(state), value);
+void GetRenderState(CTextureDevice* device, int state, std::uint32_t* value) {
+    uidevice::GetRenderState(device, static_cast<std::uint32_t>(state), value);
 }
 
 // Layout constants (zone picture centre and size on the right half of the window).
@@ -350,7 +350,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 TheTextManager()->ReadToHash(&text, 1);
                 CUiSurface* surface = surfaces_.data[1];
                 UiSurfaceGetDC(surface);
-                static_cast<CUiSurface*>(surface)->Clear();
+                surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
                 SurfaceText(surface, title, &titleRect, 1, 0x31B3FF, 1, 1);
                 RECT textRect = {10, 25, 330, 140};
@@ -496,7 +496,7 @@ void CObjectivesWindow::ShowQuest() {
 // --- Create ------------------------------------------------------------------------------
 
 void CObjectivesWindow::CreateScreen() {
-    UiD3DDevice* device = interface_->renderer_->device_;
+    CTextureDevice* device = interface_->renderer_;
     GetRenderState(device, kRenderStateAlphaRef, &savedAlphaRef_);
     SetRenderState(device, kRenderStateAlphaRef, 1);
 
@@ -656,7 +656,7 @@ void CObjectivesWindow::DrawQuestList() {
     mesh(2)->visible_ = 0;
     auto* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    static_cast<CUiSurface*>(surface)->Clear();
+    surface->Clear();
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
     mfc::CStringArray* quests = &quests_;
     int row = firstRow_;

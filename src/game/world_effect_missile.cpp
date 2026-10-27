@@ -177,7 +177,7 @@ int CEffectArrow::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster_, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster_ != 0) {
-        auto* caster = static_cast<CWorld*>(ObjectWorld(this))->FindUnit(casterId_);
+        auto* caster = ObjectWorld(this)->FindUnit(casterId_);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);
@@ -279,7 +279,7 @@ int CEffectArrowFigure::RunTick() {
     if (arrived_ != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
         CMapObject* target = world->ObjectWithId(targetId_);
-        CEngineObject* caster = static_cast<CWorld*>(world)->FindUnit(casterId_);
+        CEngineObject* caster = world->FindUnit(casterId_);
         if (target != nullptr) target->ReceiveHit(&hit_, caster, caster);
     }
     return arrived_ == 0 ? 1 : 0;
@@ -329,7 +329,7 @@ int CEffectArrowFigure::Unpack(int update, DeltaField* field) {
     field->ReadDelta(&fromCaster_, 1);
     if (!SnapshotReadToEnd()) return 0;
     if (fromCaster_ != 0) {
-        auto* caster = static_cast<CWorld*>(ObjectWorld(this))->FindUnit(casterId_);
+        auto* caster = ObjectWorld(this)->FindUnit(casterId_);
         if (caster != nullptr) {
             Vector3 point;
             position = *caster->EffectPoint(&point);

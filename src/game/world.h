@@ -29,6 +29,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "maths.h"
+#include "model.h"          // HeldTexture
 #include "party_storage.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -71,6 +72,14 @@ class CWorldServer;
 
 namespace world {
 constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
+}
+
+// A hash map of counted objects emptied as ObjectIdMap::ReleaseAll does: every object up to the first empty entry
+// released, the nodes freed (the buckets stay). The caller clears its highest id.
+template <typename Map>
+void ReleaseEach(Map& map) {
+    for (auto* node = map.First(); node && node->value; node = map.After(node)) node->value->Release();
+    map.Clear();
 }
 
 // hash_map<unsigned, CEngineObject*> plus the highest key ever inserted.
@@ -841,7 +850,7 @@ struct ClientArrayManager : CBaseManager {
 
     int Draw(CSceneRenderer* renderer);
 
-    CEngineObject* current;               // counted
+    HeldTexture texture;                  // the fog texture (counted)
     mfc::CList<CEngineObject*> list;      // counted
 };
 static_assert(sizeof(ClientArrayManager) == 0xD0);
@@ -1082,7 +1091,7 @@ public:
     void UpdateExitMarkers();
     // The graphics set up on `device`: the textures, platforms and sky, the digit sprites (numbers_), a new
     // figure loader in figureLoader_ (counted, the old one released) and the sound file counts.
-    void SetUpGraphics(void* device);
+    void SetUpGraphics(CTextureDevice* device);
     // Once (skyDome_ null): a new CSky with a CSkyObject (class 0x44, id -666) "nask0" loading
     // "nask0sky.fig". Without the file the object is referenced and released again.
     void LoadSky();

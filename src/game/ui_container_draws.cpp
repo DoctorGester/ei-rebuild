@@ -24,12 +24,12 @@ namespace {
 
 constexpr std::uint32_t kAlphaRef = 0x18;
 
-UiRenderer* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
+CTextureDevice* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
 
 // IDirect3DDevice7::Clear of the depth buffer to `z`, over `count` rectangles (or all of it): only the new
 // renderer clears (the switch-over has no depth buffer); the result is 0.
-void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
-    device->result_ = 0;
+void ClearDepth(CTextureDevice* device, unsigned long count, RECT* rects, float z) {
+    device->lastLoadResult_ = 0;
     render::Rect r[8];
     int n = count < 8 ? static_cast<int>(count) : 8;
     for (int i = 0; i < n; ++i) r[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
@@ -37,7 +37,7 @@ void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
 }
 
 // The screens' draws share this: the depth buffer cleared to 1, then the container draw.
-int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
+int ScreenDraw(CUiWindow* self, CSceneRenderer* pass, bool mouseMove) {
     GameRender();
     if (mouseMove) self->Input()->MouseMove(0, MouseScreenX(), MouseScreenY());
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);
@@ -46,11 +46,11 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
 
 } // namespace
 
-BOOL CUiContainer::Draw(int pass) {
+BOOL CUiContainer::Draw(CSceneRenderer* pass) {
     if (!interface_->drawing_) return 1;
-    UiRenderer* device = DeviceOf(this);
+    CTextureDevice* device = DeviceOf(this);
     std::uint32_t handle = g_stageBlocks[kAlphaPassBlock];
-    device->result_ = device->device_->ApplyStateBlock(handle);
+    device->lastLoadResult_ = uidevice::ApplyStateBlock(device, handle);
     render::state::Block(handle);
     DrawBase(pass);
     CUiContainer* container = this;
@@ -63,21 +63,21 @@ BOOL CUiContainer::Draw(int pass) {
 EI_REWRITTEN(0x00600EF0, CUiContainer::Draw);
 
 // Returns ScreenDraw's result.
-int CBriefingScreen::Draw(int pass) { return ScreenDraw(this, pass, true); }
+int CBriefingScreen::Draw(CSceneRenderer* pass) { return ScreenDraw(this, pass, true); }
 EI_REWRITTEN(0x00602BF0, CBriefingScreen::Draw);
 
 // Returns ScreenDraw's result.
-int CMainMenu::Draw(int pass) { return ScreenDraw(this, pass, false); }
+int CMainMenu::Draw(CSceneRenderer* pass) { return ScreenDraw(this, pass, false); }
 EI_REWRITTEN(0x00632A90, CMainMenu::Draw);
 
 // The hero's quick items (the strip's left part), the other list (from the right), the worn armour and the
 // selected quick slot, with the panel's highlight frames, strip mode, body and right-part selection. Returns
 // 1.
-int CHeroEquipPanel::Draw(int pass) {
+int CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     auto frame = [this](int i) { return SceneMesh(i); };
     std::uint32_t quick = hero->weaponIndex;
-    if (quick < hero->weaponCount) {
+    if (quick < static_cast<std::uint32_t>(hero->weapons.size)) {
         frame(0)->visible_ = 1;
         // The unsigned slot * 100 + 50 is converted through a 64-bit FILD.
         frame(0)->Place(static_cast<float>(x87::FromUnsigned(quick * 100u + 50u)), 50.0f, 3.0f);
@@ -85,7 +85,7 @@ int CHeroEquipPanel::Draw(int pass) {
         frame(0)->visible_ = 0;
     }
     int selected = selected_;
-    if (selected >= 0 && selected < static_cast<int>(hero->quickItemCount)) {
+    if (selected >= 0 && selected < hero->quickItems.size) {
         frame(1)->visible_ = 1;
         frame(1)->Place(static_cast<float>(750 - selected * 100), 50.0f, 3.0f);
     } else {
@@ -93,12 +93,12 @@ int CHeroEquipPanel::Draw(int pass) {
     }
     DrawBase(pass);
     CItemScreen* owner = owner_;
-    for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) {
+    for (int i = 0; i < hero->weapons.size; ++i) {
         ItemCell cell{hero->weapons[i], static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
                       mode_};
         owner->DrawItem(pass, &cell);
     }
-    for (int i = 0; i < static_cast<int>(hero->quickItemCount); ++i) {
+    for (int i = 0; i < hero->quickItems.size; ++i) {
         ItemCell cell{hero->quickItems[i], static_cast<float>(750 - 100 * i), 50.0f, 12.0f, 100.0f,
                       mode_};
         owner->DrawItem(pass, &cell);
@@ -116,7 +116,7 @@ int CHeroEquipPanel::Draw(int pass) {
     }
     ClearDepth(DeviceOf(this), 0, nullptr, 0.0f);
     ClearDepth(DeviceOf(this), 7, slots, 1.0f);
-    for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
+    for (int i = 0; i < hero->armor.size; ++i) {
         CItem* item = hero->armor[i];
         int type = AsArmor(item)->GetType();
         ItemCell cell{item, static_cast<float>(centreX[type]), static_cast<float>(centreY[type]), 6.0f, 100.0f,
@@ -130,7 +130,7 @@ EI_REWRITTEN(0x00622420, CHeroEquipPanel::Draw);
 
 long CObjectivesWindow::RestoreAlphaRef() {
     std::uint32_t value = savedAlphaRef_;
-    long hr = DeviceOf(this)->device_->SetRenderState(kAlphaRef, value);
+    long hr = uidevice::SetRenderState(DeviceOf(this), kAlphaRef, value);
     render::state::Render(kAlphaRef, value);
     return hr;
 }

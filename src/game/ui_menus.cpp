@@ -112,7 +112,7 @@ void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
     CUiContainer::LeftDouble(buttons, x, y);
 }
 
-BOOL CSaveLoadWindow::Draw(int pass) {
+BOOL CSaveLoadWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
         surfaces_.data[0]->Freeze(1, 0);
         models_.data[0]->SetScreenPosition(400.0f, isSave_ ? 620.0f : 550.0f, 4.8f);
@@ -125,7 +125,7 @@ BOOL CSaveLoadWindow::Draw(int pass) {
     if (!model) return 1;
     double y = isSave_ ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
-    model->Draw(reinterpret_cast<CSceneRenderer*>(pass));
+    model->Draw(pass);
     return 1;
 }
 
@@ -159,14 +159,6 @@ void CSaveLoadWindow::OnDialogResult(int result) {
     else if (result == kResultLoad)
         interface_->SetPendingValue(kCloseSaveLoadLoad);
 }
-
-namespace {
-template <typename W>
-W* FromInput(void* input) {
-    return reinterpret_cast<W*>(static_cast<std::uint8_t*>(input) - 0x94);
-}
-
-} // namespace
 
 EI_REWRITTEN(0x00654660, CSaveLoadWindow::OnMouseDown);
 EI_REWRITTEN(0x006547B0, CSaveLoadWindow::OnDoubleClick);
@@ -241,7 +233,7 @@ void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
     CUiContainer::LeftDouble(buttons, x, y);
 }
 
-BOOL COptionsWindow::Draw(int pass) {
+BOOL COptionsWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
         surfaces_.data[0]->Freeze(1, 0);
         models_.data[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
@@ -254,7 +246,7 @@ BOOL COptionsWindow::Draw(int pass) {
     if (!model) return 1;
     double y = (480.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
-    model->Draw(reinterpret_cast<CSceneRenderer*>(pass));
+    model->Draw(pass);
     return 1;
 }
 
@@ -359,7 +351,7 @@ BOOL CUiScrollbar::TakePosition(int* position) {
 void CUiScrollbar::Update() {
     if (state_ == 2 || state_ == 3) {
         // The container's FrameTime does not use the window.
-        double step = reinterpret_cast<CUiContainer*>(this)->FrameTime() * speed_ * 16.0f;
+        double step = CUiContainer::FrameTime() * speed_ * 16.0f;
         if (state_ == 2) step = -step;
         accumulated_ = static_cast<float>(step + accumulated_);
     }
@@ -419,7 +411,7 @@ EI_REWRITTEN(0x0065B340, CUiScrollbar::OnMouseUp);
 
 // --- Tooltip -----------------------------------------------------------------------------------
 
-BOOL CUiTooltip::Draw(int pass) {
+BOOL CUiTooltip::Draw(CSceneRenderer* pass) {
     if (!Shown()) return 1;
     return DrawBase(pass);
 }

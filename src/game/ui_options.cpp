@@ -162,7 +162,7 @@ void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
 void COptionsWindow::RefreshRows() {
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    static_cast<CUiSurface*>(surface)->Clear();
+    surface->Clear();
     SceneSprite(this, kHighlightSprite)->visible_ = 0;
 
     RECT title = {10, 60, 140, 80};

@@ -54,8 +54,8 @@ std::uint32_t Argb(const int* entry) {
 // IDirect3DDevice7::SetRenderState, recorded for the frame capture.
 constexpr int kShadeMode = 9;          // D3DRENDERSTATE_SHADEMODE: 1 flat, 2 Gouraud
 constexpr int kDitherEnable = 0x1A;    // D3DRENDERSTATE_DITHERENABLE
-void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
-    device->SetRenderState(static_cast<std::uint32_t>(state), value);
+void SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
+    uidevice::SetRenderState(device, static_cast<std::uint32_t>(state), value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 
@@ -161,14 +161,14 @@ void CGlobalMap::RefreshSelection() {
     surfaces_.data[1]->Freeze(0, 0);
     surfaces_.data[0]->Freeze(0, 0);
     ShowAllButZones(0);
-    SetRenderState(interface_->renderer_->device_, kShadeMode, 1);
-    SetRenderState(interface_->renderer_->device_, kDitherEnable, 0);
+    SetRenderState(interface_->renderer_, kShadeMode, 1);
+    SetRenderState(interface_->renderer_, kDitherEnable, 0);
     std::uint32_t colour = SceneRenderer()->fogColour_;
     SceneRenderer()->fogColour_ = 0;
     app::FrameStep(false, false);
     SceneRenderer()->fogColour_ = colour;
-    SetRenderState(interface_->renderer_->device_, kShadeMode, 2);
-    SetRenderState(interface_->renderer_->device_, kDitherEnable, 1);
+    SetRenderState(interface_->renderer_, kShadeMode, 2);
+    SetRenderState(interface_->renderer_, kDitherEnable, 1);
     surfaces_.data[1]->Freeze(1, 0);
     ShowAllButZones(1);
     SceneMesh(markerCount_ + 6)->visible_ = 0;
@@ -191,7 +191,7 @@ void CGlobalMap::SetWeather() {
     } else if (index < 16) {
         Marker(markerCount_ + 2)->flatColour_ = Argb(&weatherTable_[12]);
     } else {
-        reinterpret_cast<CCloudNoise*>(weather_)->SetRamp(weatherTable_[16], weatherTable_[17], 2.0f);
+        weather_->SetRamp(weatherTable_[16], weatherTable_[17], 2.0f);
     }
 }
 EI_REWRITTEN(0x0062EE90, CGlobalMap::SetWeather);

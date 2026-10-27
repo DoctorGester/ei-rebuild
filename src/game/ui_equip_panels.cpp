@@ -22,9 +22,9 @@ constexpr int kTopicWeapon = 2;
 constexpr int kTopicSecond = 3;
 constexpr int kTopicEntry = 1;
 
-// `item`'s place among the first `count` entries of `list`, or -1.
-int IndexIn(CItem* const* list, int count, const CItem* item) {
-    for (int i = 0; i < count; ++i)
+// `item`'s place in `list`, or -1.
+int IndexIn(const lib::AlignedArray<CItem*>& list, const CItem* item) {
+    for (int i = 0; i < list.size; ++i)
         if (list[i] == item) return i;
     return -1;
 }
@@ -38,7 +38,7 @@ void RefreshWeapons(CUiWindow* owner) { static_cast<CItemScreen*>(owner)->Refres
 void CHeroEquipPanel::ShowWeapon(CItem* weapon) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     hero->weaponIndex = static_cast<std::uint32_t>(-1);
-    int index = IndexIn(hero->weapons, static_cast<int>(hero->weaponCount), weapon);
+    int index = IndexIn(hero->weapons, weapon);
     if (index >= 0) hero->weaponIndex = static_cast<std::uint32_t>(index);
 }
 EI_REWRITTEN(0x006229E0, CHeroEquipPanel::ShowWeapon);
@@ -46,7 +46,7 @@ EI_REWRITTEN(0x006229E0, CHeroEquipPanel::ShowWeapon);
 void CHeroEquipPanel::ShowArmour(CItem* item) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     selected_ = -1;
-    int index = IndexIn(hero->quickItems, static_cast<int>(hero->quickItemCount), item);
+    int index = IndexIn(hero->quickItems, item);
     if (index >= 0) selected_ = index;
 }
 EI_REWRITTEN(0x00622A30, CHeroEquipPanel::ShowArmour);
@@ -54,7 +54,7 @@ EI_REWRITTEN(0x00622A30, CHeroEquipPanel::ShowArmour);
 void CHeroQuickStrip::ShowEntry(CItem* item) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     selected_ = -1;
-    int index = IndexIn(hero->spells, static_cast<int>(hero->spellCount), item);
+    int index = IndexIn(hero->spells, item);
     if (index >= 0) selected_ = index;
 }
 EI_REWRITTEN(0x00622BC0, CHeroQuickStrip::ShowEntry);
@@ -66,7 +66,7 @@ void CHeroEquipPanel::OnRightDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0) return;
     PartyUnitRecord* hero = owner_->HeroRecord();
-    if (region < static_cast<int>(hero->weaponCount) && region < kWeaponSlots) {
+    if (region < hero->weapons.size && region < kWeaponSlots) {
         interface_->PlaySound(ChangeSound(), 0);
         hero->weaponIndex = static_cast<std::uint32_t>(region);
     }
@@ -84,15 +84,15 @@ CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     if (region < kWeaponSlots) {
         *topic = kTopicWeapon;
-        if (region < static_cast<int>(hero->weaponCount)) return hero->weapons[region];
+        if (region < hero->weapons.size) return hero->weapons[region];
     } else if (region < kQuickSlots) {
         *topic = kTopicSecond;
         int fromEnd = kQuickSlots - 1 - region;
-        if (fromEnd < static_cast<int>(hero->quickItemCount)) return hero->quickItems[fromEnd];
+        if (fromEnd < hero->quickItems.size) return hero->quickItems[fromEnd];
     }
     if (!body_ || region < kFirstBodySlot || region >= kBodySlotEnd) return nullptr;
     *topic = region - 4;
-    for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
+    for (int i = 0; i < hero->armor.size; ++i) {
         CItemArmor* armour = AsArmor(hero->armor[i]);
         if (armour->GetType() == region - kFirstBodySlot) return armour;
     }
@@ -107,7 +107,7 @@ CItem* CHeroQuickStrip::ItemAt(int x, int y, int* topic) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     if (region < 0 || region >= kQuickSlots) return nullptr;
     *topic = kTopicEntry;
-    if (region >= static_cast<int>(hero->spellCount)) return nullptr;
+    if (region >= hero->spells.size) return nullptr;
     return hero->spells[region];
 }
 EI_REWRITTEN(0x00622D40, CHeroQuickStrip::ItemAt);

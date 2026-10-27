@@ -51,10 +51,8 @@ int HeroCount() {
     return SavedHeroCount();
 }
 
-// The first entry of one of a hero record's item arrays (data, count), or null when it is empty.
-CItem* FirstOf(CItem** const& data, const std::uint32_t& count) {
-    return static_cast<int>(count) > 0 ? *data : nullptr;
-}
+// The first entry of one of a hero record's item arrays, or null when it is empty.
+CItem* FirstOf(const lib::AlignedArray<CItem*>& list) { return list.size > 0 ? list.data[0] : nullptr; }
 
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
@@ -84,7 +82,7 @@ std::string& MpHeroName(int index) {
 } // namespace
 
 void CMpHeroScreen::CloseRenameEdit() {
-    static_cast<CUiSurface*>(surfaces_.data[3])->Freeze(0, 0);
+    surfaces_.data[3]->Freeze(0, 0);
     renameEdit_->SetEnabled(0, 1);
     renameEdit_->SetFocused(false);
 }
@@ -264,11 +262,11 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             tradePanel_->Settle(0, 0);
             PartyUnitRecord* hero = HeroRecord();
-            weapon_ = FirstOf(hero->weapons, hero->weaponCount);
+            weapon_ = FirstOf(hero->weapons);
             weaponPanel_->ShowWeapon(weapon_);
-            armor_ = FirstOf(hero->quickItems, hero->quickItemCount);
+            armor_ = FirstOf(hero->quickItems);
             weaponPanel_->ShowArmour(armor_);
-            spellContainer_ = FirstOf(hero->spells, hero->spellCount);
+            spellContainer_ = FirstOf(hero->spells);
             spellPanel_->ShowEntry(spellContainer_);
         }
         return;
@@ -360,7 +358,7 @@ void CMpHeroScreen::Rename() {
         str::TrimRight(name);
     }
     auto* surface = surfaces_.data[3];
-    static_cast<CUiSurface*>(surface)->Freeze(1, 0);
+    surface->Freeze(1, 0);
     surface->GetDC();
     surface->Clear();
     RECT rect = kRenameTitle;
@@ -483,11 +481,11 @@ void CMpHeroScreen::CreateHero() {
         return;
     }
     interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
-    weapon_ = static_cast<int>(hero->weaponCount) > 0 ? hero->weapons[0] : nullptr;
+    weapon_ = hero->weapons.size > 0 ? hero->weapons[0] : nullptr;
     weaponPanel_->ShowWeapon(weapon_);
-    armor_ = static_cast<int>(hero->quickItemCount) > 0 ? hero->quickItems[0] : nullptr;
+    armor_ = hero->quickItems.size > 0 ? hero->quickItems[0] : nullptr;
     weaponPanel_->ShowArmour(armor_);
-    spellContainer_ = static_cast<int>(hero->spellCount) > 0 ? hero->spells[0] : nullptr;
+    spellContainer_ = hero->spells.size > 0 ? hero->spells[0] : nullptr;
     spellPanel_->ShowEntry(spellContainer_);
     hero->texts[0] = name;
     statsPanel_->SetHero(0, const_cast<char*>(name.c_str()));
@@ -630,17 +628,17 @@ void CMpHeroScreen::AddNewHero() {
     interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
     auto* hero = HeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
-    for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)
+    for (int i = hero->weapons.size - 1; i >= 0; --i)
         if (hero->weapons[i] != weapon_)
             hero->RemoveWeapon(hero->weapons[i]);
-    for (int i = static_cast<int>(hero->quickItemCount) - 1; i >= 0; --i)
+    for (int i = hero->quickItems.size - 1; i >= 0; --i)
         if (hero->quickItems[i] != armor_)
             hero->RemoveQuickItem(hero->quickItems[i]);
-    for (int i = static_cast<int>(hero->spellCount) - 1; i >= 0; --i)
+    for (int i = hero->spells.size - 1; i >= 0; --i)
         if (hero->spells[i] != spellContainer_)
             hero->RemoveSpell(hero->spells[i]);
-    hero->weaponIndex = static_cast<int>(hero->weaponCount) > 0 ? 0 : 0xFFFFFFFFu;
-    if (static_cast<int>(hero->spellCount) > 0) {
+    hero->weaponIndex = hero->weapons.size > 0 ? 0 : 0xFFFFFFFFu;
+    if (hero->spells.size > 0) {
         auto* container = hero->spells[0];
         CSpell* spell = container->spell_;
         if (spell && !HeroCanUseSpell(&hero->stats, spell)) {

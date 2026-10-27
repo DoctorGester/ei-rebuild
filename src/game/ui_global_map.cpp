@@ -489,7 +489,6 @@ EI_REWRITTEN(0x0062D350, CGlobalMap::CreateScreen);
 
 namespace {
 
-void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>(a0)->UpdateBase(); }
 
 // fmod(a, *divisor), stored as float.
 float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }
@@ -519,7 +518,7 @@ void SetFrameFraction(CEngineObject* layer, float time, float rate) {
 } // namespace
 
 void CGlobalMap::Update() {
-    UpdateChildren(this);
+    UpdateBase();
     if (dragging_ && turning_ == 0) {
         POINT cursor;
         gameapi::GetCursorPos(&cursor);

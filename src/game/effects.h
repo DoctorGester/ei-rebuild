@@ -292,7 +292,7 @@ public:
 
     Particle* AcquireParticle();                    // from the pool, else new
     void ReleaseParticle(Particle* p);              // back to the pool's tail
-    int DrawAll(void* renderer);
+    int DrawAll(CSceneRenderer* renderer);
     // CreateObject(type, -1), referenced and held under its id; with quietStart set, types 0x2001 / 0x2003 /
     // 0x2004 start without emitting.
     CParticleSource* CreateSource(int type);
@@ -355,7 +355,7 @@ public:
     CParticleManager* Manager() const { return static_cast<CParticleManager*>(owner_); }
     // Fills the shared vertex / sprite arrays and draws through the renderer. 1 when there is
     // nothing to draw or it is off screen.
-    int Draw(void* renderer);
+    int Draw(CSceneRenderer* renderer);
 
     // --- set-up ---
     void Reset();                                   // defaults, texture and elements dropped

@@ -149,7 +149,6 @@ using IdVector = CBattleScreen::IdVector;
 using PartyIds = CBattleScreen::PartyIds;
 
 // The children's update (CUiContainer::UpdateBase).
-void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>(a0)->UpdateBase(); }
 
 // STLport lists of ids and unit pointers.
 using List = stlp::list<std::uintptr_t>;
@@ -295,7 +294,7 @@ void CBattleScreen::Update() {
 
     if (IsMultiplayerClient()) RebuildClientParty(this);
 
-    UpdateChildren(this);
+    UpdateBase();
     interface_->ShowMessage(0);
 
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.

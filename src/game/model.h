@@ -196,6 +196,11 @@ class GameOptions;
 }
 class CTexture;
 class CPixelConverter;
+class CFigureMesh;
+class CMaterial;
+// The lights a figure part is lit with (the draw's lights argument).
+using FigureLights = lib::AlignedArray<CLight*>;
+struct LineBatch;
 
 // A render state preset the renderer's helper keeps (counted).
 class CRenderPreset final {
@@ -306,11 +311,11 @@ public:
     virtual int SetTexture(int stage, void* texture) = 0;
     virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices,
                               unsigned indexCount) = 0;
-    virtual int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
+    virtual int DrawFigureLit(CFigureMesh* figure, const FigureLights* lights, CMaterial* material, int alpha, tagRECT* screen,
                               CTexture* textureA, CTexture* textureB) = 0;
-    virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
+    virtual int DrawFigure(CFigureMesh* figure, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
                            tagRECT* screen) = 0;
-    virtual void DrawLineList(void* lines) = 0;
+    virtual void DrawLineList(LineBatch* lines) = 0;
     virtual int DrawStrip(void* points, float width, int visibility, float length, float offset,
                           float slant) = 0;
     virtual int DrawSprites(int unknown, void* points, void* sprites) = 0;
@@ -423,14 +428,14 @@ public:
     int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount) override;
     // Draws `figure` (a CFigureMesh) through its drawer's lit draw with `lights`, the drawing context
     // `material`, `alpha`, `screen` (or null) and two textures, unless it is hidden (flags bit 0x80).
-    int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen, CTexture* textureA,
+    int DrawFigureLit(CFigureMesh* figure, const FigureLights* lights, CMaterial* material, int alpha, tagRECT* screen, CTexture* textureA,
                       CTexture* textureB) override;
     // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
     // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
     // is passed on. The second and third arguments are not read there.
-    int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
+    int DrawFigure(CFigureMesh* figure, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
                    tagRECT* screen) override;
-    void DrawLineList(void* lines) override;
+    void DrawLineList(LineBatch* lines) override;
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured
     // lengthwise), `slant` 0.25 at every call known.

@@ -82,12 +82,7 @@ struct ChunkElement {
 
 // ---- The session's clients (list<Connection*>, counted) ---------------------------------------------
 
-struct ClientsNode {
-    ClientsNode* next;
-    ClientsNode* prev;
-    net::Connection* connection;
-};
-static_assert(sizeof(ClientsNode) == sizeof(net::ClientNode));
+using ClientsNode = net::ClientNode;
 
 // An iterator of the clients' list (its node), as find_if returns it.
 struct ClientsIterator {

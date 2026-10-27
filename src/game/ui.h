@@ -212,7 +212,7 @@ public:
 
     int width_;                      // screen width
     int height_;                     // screen height
-    struct UiRenderer* renderer_;
+    CTextureDevice* renderer_;       // the device
     void* mouseCapture_;             // input side that took the button press
     std::uint8_t unused_10[0x14 - 0x10];
     console::ConsoleWindow* console_;
@@ -225,9 +225,7 @@ public:
     // The windows draw, redraw their surfaces and update their tooltips only while this is set.
     bool drawing_;
     std::uint8_t unused_31[0x34 - 0x31];
-    CUiWindow** stackBegin_;
-    CUiWindow** stackEnd_;
-    CUiWindow** stackCapacity_;
+    stlp::vector<CUiWindow*> stack_;   // the open windows, the top one last
     CUiWindow* queuedWindow_;        // activated by the next frame update
     bool closeAll_;
     std::uint8_t unused_45[0x48 - 0x45];
@@ -287,7 +285,7 @@ static_assert(offsetof(CInterface3D, mouseCapture_) == 0x0C);
 static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
 static_assert(offsetof(CInterface3D, hudPanelsIn_) == 0x89 && offsetof(CInterface3D, hudTopPage_) == 0x90);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94 && offsetof(CInterface3D, messages_) == 0x84);
-static_assert(offsetof(CInterface3D, stackBegin_) == 0x34);
+static_assert(offsetof(CInterface3D, stack_) == 0x34);
 
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
@@ -550,8 +548,8 @@ public:
     int GetClassId() override;
     virtual void Build() {}
     virtual void Show(int show) { ShowSurfaces(show); }
-    virtual BOOL Draw(int pass) { return DrawBase(pass); }
-    virtual void DrawChild(int pass) { UpdateRegionTips(pass); }
+    virtual BOOL Draw(CSceneRenderer* pass) { return DrawBase(pass); }
+    virtual void DrawChild(CSceneRenderer* pass) { UpdateRegionTips(pass); }
     virtual void Redraw() { RedrawBase(); }
     virtual void RedrawTips() { RedrawRegionTips(); }
     virtual void Update() {}
@@ -560,7 +558,7 @@ public:
     // The first region containing the screen point, or -1.
     int RegionAt(int x, int y) const;
     BOOL ContainsPoint(int x, int y) const;
-    void UpdateRegionTips(int unused);
+    void UpdateRegionTips(CSceneRenderer* unused);
 
     void SetEnabled(int enabled, int notify);
 
@@ -599,7 +597,7 @@ public:
         return true;
     }
     // The scene objects, then the models; returns 1.
-    BOOL DrawBase(int pass);
+    BOOL DrawBase(CSceneRenderer* pass);
     // The camp's and the multiplayer hero screen's hero preview, turned by `turn` radians about y; `wide`'s
     // low byte clears the depth under six camp layout rectangles, else one. The hero's transform is restored.
     void DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, int wide);
@@ -660,7 +658,7 @@ struct CUiTooltip : CUiWindow {
     // never shown), then makes the surface at the mouse (state 2); 2 draws and becomes 4; 3 draws while the
     // timer is positive, then drops the surface (state 0).
     void OnMouseMove(int x, int y);
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     void Redraw() override;
     bool Shown() const { return state_ != 1 && state_ != 0; }
 
@@ -738,32 +736,17 @@ class CUiScrollText;
 
 using UiDwordArray = mfc::CArray<std::uint32_t>;
 
-// The interface's renderer, only as the HUD uses it; UiD3DDevice is its IDirect3DDevice7.
-struct UiD3DDevice {
-    long Clear(DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil);
-    long GetTextureStageState(DWORD stage, DWORD type, std::uint32_t* value);
-    long SetTextureStageState(DWORD stage, DWORD type, DWORD value);
-    long SetRenderState(std::uint32_t state, std::uint32_t value);
-    long GetRenderState(std::uint32_t state, std::uint32_t* value);
-    long ApplyStateBlock(std::uint32_t handle);
-
-    void** vtable_;   // IDirect3DDevice7
-};
-struct UiRenderer {
-    std::uint8_t unused_00[0x08];
-    long result_;                    // the last device call's result
-    std::uint8_t unused_0C[0x4C - 0x0C];
-    CPixelConverter* decoder_;       // decodes an .mmp image's pixels
-    std::uint8_t unused_50[0x54 - 0x50];
-    UiD3DDevice* device_;
-    std::uint8_t unused_58[0x90 - 0x58];
-    std::uint32_t caps_;             // (0x4000 with stencil_: the depth buffer has a stencil)
-    std::uint8_t unused_94[0x9C - 0x94];
-    int stencil_;
-};
-static_assert(offsetof(UiRenderer, caps_) == 0x90);
-static_assert(offsetof(UiRenderer, stencil_) == 0x9C);
-static_assert(offsetof(UiRenderer, device_) == 0x54);
+// The interface code's calls on the device's IDirect3DDevice7 (ui_d3d_device.cpp).
+namespace uidevice {
+long Clear(CTextureDevice* device, DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil);
+long GetTextureStageState(CTextureDevice* device, DWORD stage, DWORD type, std::uint32_t* value);
+long SetTextureStageState(CTextureDevice* device, DWORD stage, DWORD type, DWORD value);
+long SetRenderState(CTextureDevice* device, std::uint32_t state, std::uint32_t value);
+long GetRenderState(CTextureDevice* device, std::uint32_t state, std::uint32_t* value);
+long ApplyStateBlock(CTextureDevice* device, std::uint32_t handle);
+// Whether the device's depth buffer has a stencil.
+bool HasStencil(const CTextureDevice* device);
+} // namespace uidevice
 
 // Direct3D 7 render states the HUD sets around its drawing.
 constexpr int kRenderStateAlphaTest = 15;    // D3DRENDERSTATE_ALPHATESTENABLE
@@ -781,7 +764,7 @@ public:
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
     // Every frame: the highlight follows the unit's weapon.
     void Update() override;
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Rebirth-patched (WideScreen behind its flag: the bar at the screen's left edge, from 80 - shift with
     // more regions up to x 240).
     CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner);
@@ -818,7 +801,7 @@ public:
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
     int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Every frame: the tooltips of the slots that show an item.
     void Update() override;
     // The item's name and, for a wand (category 5) or a scroll (8) with a spell, its numbers after labels_.
@@ -882,7 +865,7 @@ public:
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
     int LeftDouble(int b, int x, int y) override { return OnDoubleClick(b, x, y), 0; }
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Spell `index` (its button or key) becomes the pending action: 1 on a unit for a spell with flag
     // 0x10000000, else 2 at a point; the highlighted one again drops it.
     void Click(int index);
@@ -923,7 +906,7 @@ public:
     int LeftDown(int b, int x, int y) override { return OnMouseDown(b, x, y), 0; }
     int LeftUp(int b, int x, int y) override { return OnMouseUp(b, x, y), 0; }
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Action button `index` (a click or its key) becomes the pending action: 8 (an order on an object) for
     // action 0 (science), else 7 (follow); the highlighted one again drops it.
     void Select(int index);
@@ -1238,8 +1221,8 @@ public:
     // Rebirth-patched (WideScreen behind its flag). The hover unit, else the selected one, while the panel
     // is not slid away: its model (not on info page 2) over a depth buffer cleared to 0 around the panel,
     // its name, bars and texts. Returns 1.
-    BOOL DrawVanilla(int pass);
-    BOOL Draw(int pass) override { return DrawVanilla(pass); }
+    BOOL DrawVanilla(CSceneRenderer* pass);
+    BOOL Draw(CSceneRenderer* pass) override { return DrawVanilla(pass); }
 
     CBattleScreen* owner_;
     CUnit* shownUnit_;               // the first selected unit (RefreshSelection), or null
@@ -1374,9 +1357,9 @@ public:
 
     void Show(int show) override { ShowChildren(show); }
     // Only while the interface draws: the window's own draw, then every enabled child's.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Alpha reference 1 around the region tips and every enabled child's draw, while the interface draws.
-    void DrawChild(int pass) override;
+    void DrawChild(CSceneRenderer* pass) override;
     void Redraw() override { RedrawContainer(); }
     void RedrawTips() override { RedrawChildTips(); }
     void Update() override { UpdateBase(); }
@@ -1467,7 +1450,7 @@ public:
     // hero.
     void CreateScreen() override;
     // Rebirth's AddNewConsoleCommands applies "nogui" first. Returns 1.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // Every frame: a dead selected unit empties the panels, a multiplayer client rebuilds the party, the
     // "leave_zone" box for a pending exit, the selection box's marks, the quest sound.
     void Update() override;
@@ -1759,7 +1742,7 @@ public:
     void SetText(const char* text);
     void SetRect(const RECT* rect) override;
     // Draws the lines again when the position moved; returns 1.
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     // The lines stay until the next layout.
     void Clear();
     // Words apart by a third of the line's height (the font in effect at the line's start); a newline format
@@ -1854,7 +1837,7 @@ public:
     CSaveLoadWindow(CInterface3D* ui, bool isSave, bool sliding)
         : CUiContainer(ui), isSave_(isSave), sliding_(sliding) {}
     ~CSaveLoadWindow() override;
-    BOOL Draw(int pass) override;                      // slides in
+    BOOL Draw(CSceneRenderer* pass) override;                      // slides in
     void Update() override;
     void CloseScreen() override { CloseDialog(); }
     void MessageResult(int result) override { OnDialogResult(result); }
@@ -2121,7 +2104,7 @@ public:
         groupNames_.Construct();
     }
     ~COptionsWindow() override;
-    BOOL Draw(int pass) override;                      // slides in
+    BOOL Draw(CSceneRenderer* pass) override;                      // slides in
     void Redraw() override;                            // not while sliding
     void CloseScreen() override {}
     void MessageResult(int result) override { OnDialogResult(result); }
@@ -2269,7 +2252,7 @@ public:
         pictures_.Construct();
     }
     ~CHelpWindow() override;
-    BOOL Draw(int pass) override;
+    BOOL Draw(CSceneRenderer* pass) override;
     void CloseScreen() override { Close(); }
     int LeftDown(int b, int x, int y) override { return OnLeftDown(b, x, y), 0; }
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }

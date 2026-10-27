@@ -85,7 +85,7 @@ static_assert(sizeof(console::ConsoleWindow) == 0x7C && sizeof(CScreenFade) == 0
 } // namespace
 
 void CInterface3D::Create(CTextureDevice* device) {
-    renderer_ = reinterpret_cast<UiRenderer*>(device);
+    renderer_ = device;
     // (Without a primary surface the original game stores an uninitialised stack slot in both.)
     int width = 0;
     int height = 0;

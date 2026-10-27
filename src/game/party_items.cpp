@@ -15,9 +15,6 @@
 
 namespace {
 
-static_assert(offsetof(PartyUnitRecord, weaponGrowBy) - offsetof(PartyUnitRecord, weapons) == 0xC);
-static_assert(sizeof(PartyItemArray) == 0x10);
-
 // A flag argument read as a byte.
 bool ByteFlag(int flag) { return static_cast<std::uint8_t>(flag) != 0; }
 
@@ -38,15 +35,14 @@ void RemoveAt(PartyItemArray& list, int index) {
 // The world's spell manager (the item's manager context).
 CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellManager(); }
 
-CItem* AddEntry(CItem**& data, CItem* item) {
+CItem* AddEntry(PartyItemArray& list, CItem* item) {
     CItem* entry = item->Clone(SpellManagerOf(item));
     ++entry->refCount_;
-    Append(ItemList(data), entry);
+    Append(list, entry);
     return entry;
 }
 
-void RemoveEntry(CItem**& data, CItem* entry) {
-    PartyItemArray& list = ItemList(data);
+void RemoveEntry(PartyItemArray& list, CItem* entry) {
     for (int i = 0; i < list.size; ++i) {
         if (list.data[i] != entry) continue;
         entry->Release();
@@ -218,8 +214,8 @@ EI_REWRITTEN(0x00660FF0, PartyUnitRecord::RemoveSpell);
 
 namespace {
 // One running sum over the lists, in this order.
-void AddListWeight(float& weight, CItem* const* list, std::uint32_t count) {
-    for (int i = 0; i < static_cast<int>(count); ++i) {
+void AddListWeight(float& weight, const PartyItemArray& list) {
+    for (int i = 0; i < list.size; ++i) {
         if (list[i]) weight += list[i]->Weight();
     }
 }
@@ -227,10 +223,10 @@ void AddListWeight(float& weight, CItem* const* list, std::uint32_t count) {
 
 float PartyUnitRecord::CarriedWeight() const {
     float weight = 0.0f;
-    AddListWeight(weight, weapons, weaponCount);
-    AddListWeight(weight, quickItems, quickItemCount);
-    AddListWeight(weight, spells, spellCount);
-    AddListWeight(weight, armor, armorCount);
+    AddListWeight(weight, weapons);
+    AddListWeight(weight, quickItems);
+    AddListWeight(weight, spells);
+    AddListWeight(weight, armor);
     return weight;
 }
 EI_REWRITTEN(0x00660840, PartyUnitRecord::CarriedWeight);
