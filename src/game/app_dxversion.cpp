@@ -1,15 +1,14 @@
-// The DirectX version probe (0045E310, called once by WinMain): the DirectX SDK's GetDXVersion.
+// The DirectX version probe (called once by WinMain): the DirectX SDK's GetDXVersion.
 // It loads DDRAW.DLL and DINPUT.DLL, creates DirectDraw, a primary surface and DirectMusic, asks
 // for the newer interfaces and finally loads D3D8.DLL, returning 0 (no DirectDraw), 0x100 (DX1),
 // 0x200 (DX2), 0x300 (DX3), 0x500 (DX5), 0x600, 0x601, 0x700 or 0x800. As in the SDK sample, some
 // interfaces are never released and some failures leave a library loaded; kept as is. The
 // interface ids and class ids are the game's own (named below). See docs/notes/app.md.
-// PF3 (decided by the user 2026-10-14): when the DDRAW.DLL loaded is the system's (not one in the
-// game exe's folder, such as dgVoodoo's) DirectX 7 is a given and nothing is probed. The probe cost
-// about half a second at startup there, and with several games on the machine it failed now and
-// then, ending the run at the "DirectX 7 or later" box. The result is then 0x800, what the
-// probe reports on any current Windows. With a DDRAW.DLL in the exe's folder the probe runs as the
-// original's.
+// When the DDRAW.DLL loaded is the system's (not one in the game exe's folder, such as
+// dgVoodoo's) DirectX 7 is a given and nothing is probed. The probe cost about half a second at
+// startup there, and with several games on the machine it failed now and then, ending the run at
+// the "DirectX 7 or later" box. The result is then 0x800, what the probe reports on any current
+// Windows. With a DDRAW.DLL in the exe's folder the probe runs in full.
 #include "ei/hook.h"
 #include "game_strings.h"
 #include "lib/gameapi.h"
@@ -35,7 +34,7 @@ constexpr int kRelease = 2;
 constexpr int kCreateSurface = 6;            // IDirectDraw::CreateSurface (+0x18)
 constexpr int kSetCooperativeLevel = 20;     // IDirectDraw::SetCooperativeLevel (+0x50)
 
-// The interface and class ids as game.exe has them.
+// The interface and class ids as the game has them.
 constexpr IID kIidDirectMusic2 = /*00744900*/ {0x6536115A, 0x7B2D, 0x11D2, {0xBA, 0x18, 0x00, 0x00, 0xF8, 0x75, 0xAC, 0x12}};
 constexpr CLSID kClsidDirectMusic = /*00744930*/ {0x636B9F10, 0x0C7D, 0x11D1, {0x95, 0xB2, 0x00, 0x20, 0xAF, 0xDC, 0x74, 0x21}};
 constexpr IID kIidDirectDrawSurface4 = /*00745C50*/ {0x0B2B8630, 0xAD35, 0x11D0, {0x8E, 0xA6, 0x00, 0x60, 0x97, 0x97, 0xEA, 0x5B}};
@@ -76,7 +75,7 @@ bool DirectXIsGiven() {
 } // namespace
 
 std::uint32_t __cdecl GetDxVersion() {
-    // PF3 / R9b1: nothing is probed in a native run.
+    // Nothing is probed in a native run.
     if (DirectXIsGiven()) return 0x800;
     void* ddraw = nullptr;     // IDirectDraw
     void* ddraw2 = nullptr;

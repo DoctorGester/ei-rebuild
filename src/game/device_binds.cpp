@@ -1,5 +1,5 @@
-// The device object's texture binds (004EB300 a surface holder, 004EBAF0 a texture, 004EB1D0 a
-// texture kept by name). See docs/notes/renderer.md (section 12).
+// The device object's texture binds: a surface holder, a texture, a texture kept by name. See
+// docs/notes/renderer.md (section 12).
 #include "app.h"
 #include "device.h"
 #include "game_strings.h"
@@ -21,7 +21,7 @@ int CTextureDevice::BindSurface(int stage, CDXSurface* holder) {
 }
 EI_REWRITTEN(0x004EB300, CTextureDevice::BindSurface);
 
-// The original repeats BindSurface's body for a texture and for none.
+// The same body as BindSurface's, for a texture and for none.
 int CTextureDevice::BindTexture(int stage, CTexture* texture) {
     return BindSurface(stage, texture ? texture->surface_ : nullptr);
 }

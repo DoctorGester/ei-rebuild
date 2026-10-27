@@ -25,7 +25,7 @@ constexpr std::uint8_t kMovesOnWater = 2;               // UnitParams::movementK
 } // namespace
 
 void CUnit::UpdateSizeClass() {
-    Controller()->UpdateMoveFactors();   // the server's 005536B0; empty on the others
+    Controller()->UpdateMoveFactors();   // the server's controller; empty on the others
     if (controller->GetClassId() != kClassUnitServer) {
         sizeClass = params.movementKind == kMovesOnWater ? 0 : 3;
         std::memcpy(&unitRadius, &kDefaultRadius, 4);
@@ -49,7 +49,7 @@ void CUnit::UpdateSizeClass() {
     float limited = standingHeight;
     standingHeight = kMaxHeight >= limited ? limited : kMaxHeight;
     if (sizeClass != 0) return;
-    // The prototype by prototypeId_; out of range the original reads address 0x24 (kept).
+    // The prototype by prototypeId_; out of range it reads address 0x24 (kept).
     auto* prototype = unitdb::PrototypeRecord(prototypeId_);
     // FCOMP; TEST AH,0x41: only for a value above 1.5.
     if (std::bit_cast<float>(prototype->height) > kDeepPrototype) std::memcpy(&standingHeight, &kShallowHeight, 4);

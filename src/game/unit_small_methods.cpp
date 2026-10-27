@@ -1,5 +1,5 @@
-// Small methods of CUnit (A-U12): the class name and id, the motion given its speeds, the player
-// test, twice the height above the centre and a worn armour piece. See unit.h.
+// Small methods of CUnit: the class name and id, the motion given its speeds, the player test, twice the
+// height above the centre and a worn armour piece. See unit.h.
 #include "unit.h"
 
 #include "ai_map.h"      // AIPath
@@ -9,7 +9,7 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-// 0052E280 / 0052E290 (slots 11 / 12 of the unit's vtable 0073EA8C; unit_update.cpp).
+// GetClassName / GetClassId (unit_update.cpp).
 const char* __fastcall UnitClassName(CUnit* self) { return self->CUnit::GetClassName(); }
 EI_REWRITTEN(0x0052E280, UnitClassName);
 int __fastcall UnitClassId(CUnit* self) { return self->CUnit::GetClassId(); }

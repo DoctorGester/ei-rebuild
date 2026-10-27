@@ -19,8 +19,8 @@
 #include <bit>
 #include <cstring>
 
-// Rain/snow fading and the visibility fog cells. Order of operations follows the original
-// instruction sequences (see effects.cpp).
+// Rain/snow fading and the visibility fog cells. The order of operations is fixed (the goldens depend on it; see
+// effects.cpp).
 
 namespace {
 
@@ -28,18 +28,18 @@ constexpr float kZero = 0.0f;
 constexpr float kHalf = 0.5f;
 constexpr float kOne = 1.0f;
 constexpr float kQuarter = 0.25f;
-constexpr double kFadePi = std::bit_cast<double>(0x400921F9F01B866Eull);  // 0073D738 (3.14159, sic)
+constexpr double kFadePi = std::bit_cast<double>(0x400921F9F01B866Eull);  // 3.14159, sic
 constexpr float kVolumeScale = 100.0f;
 constexpr float kDensityScale = 64.0f;
-constexpr float kFogMinAlpha = std::bit_cast<float>(0x3C23D70Au);      // 0073C548 (0.01)
-// Random jitter of a fog cell centre (0073CDA0, 2^-33 with its last bit set).
+constexpr float kFogMinAlpha = std::bit_cast<float>(0x3C23D70Au);      // 0.01
+// Random jitter of a fog cell centre (2^-33 with its last bit set).
 constexpr double kFogJitter = std::bit_cast<double>(0x3DE0000000100000ull);
 constexpr float kFogCellSize = 1.0f;
 constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);              // 1e30
 
 
-// Reads a float back from memory, as the original does after storing it (the compiler would
-// otherwise reuse the unrounded register value).
+// Reads a float back from memory after storing it (the compiler would otherwise reuse the unrounded register
+// value).
 float LoadFloat(const float& f) { return *static_cast<const volatile float*>(&f); }
 
 double Unsigned(std::uint32_t value) {
@@ -47,12 +47,12 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-// The sound manager (*007AF784): 006B9100 sets a playing sound's volume (0..100), 006B94A0 stops it.
+// The sound manager: sets a playing sound's volume (0..100), stops it.
 
 // The game's atexit.
 
 // vector<uint32> as the fog's static list of cells to drop (a function-local static: constructed on the first
-// update, its guard bit 0), with the original's constructor and insert-overflow.
+// update, its guard bit 0), with its constructor and insert-overflow.
 using KeyVector = stlp::vector<std::uint32_t>;
 static_assert(sizeof(KeyVector) == 12);
 void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count) {
@@ -61,10 +61,10 @@ void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32
 
 constinit stlp::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
 std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
-void __cdecl DestroyDeadCells() { stlp::VectorAbi<std::uint32_t>::DestroyBase(&g_deadCells); }   // 004E1C50
+void __cdecl DestroyDeadCells() { stlp::VectorAbi<std::uint32_t>::DestroyBase(&g_deadCells); }
 
-// The cell map's own insert (004E2E90: resize, then insert a copy of the pair unless the key
-// exists; returns the pair) and erase by key: the 28-byte dword-keyed table's.
+// The cell map's own insert (resize, then insert a copy of the pair unless the key exists; returns the pair) and
+// erase by key: the 28-byte dword-keyed table's.
 using CellTable = stlp::HashtableAbi<stlp::DwordKeyTraits<28>>;
 CellTable::Table* CellTableOf(CVisibilityFog::CellMap* map) { return reinterpret_cast<CellTable::Table*>(map); }
 std::uint32_t* InsertCell(CVisibilityFog::CellMap* map, const std::uint32_t* pair) {
@@ -116,7 +116,7 @@ void CRainSnow::FinishFade() {
 }
 EI_REWRITTEN(0x004E4050, CRainSnow::FinishFade);
 
-// SetWind script command (00564190 calls it): the drops' slant.
+// SetWind script command: the drops' slant.
 void CRainSnow::SetWind(const Vector3& direction, float strength) {
     float x = static_cast<float>(strength * direction.x);
     float y = static_cast<float>(strength * direction.y);
@@ -131,7 +131,7 @@ namespace {
 constexpr int kWeatherTextureKind = 6;
 constexpr int kRainPriority = 1000;
 constexpr int kFullDensity = 64;
-// 0078AE48 "RainSnow" and 0078DFA4 "nature\rain\circle.wav".
+// The strings "RainSnow" and "nature\rain\circle.wav".
 const char* WeatherTextureName() { return "RainSnow"; }
 const char* RainSoundName() { return "nature\\rain\\circle.wav"; }
 } // namespace
@@ -154,8 +154,8 @@ void CRainSnow::Clear() {
     density = kFullDensity;
 }
 EI_REWRITTEN(0x004E3B80, CRainSnow::Clear);
-// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
-// code at them): the same replacement, so their calls skip its check.
+// The compiler's jump thunks to it (functions.csv "thunk" rows; the standalone image has no code at them): the same
+// replacement, so their calls skip its check.
 EI_REWRITTEN(0x005617B0, CRainSnow::Clear);
 
 void CRainSnow::Start(int newMode, float duration) {
@@ -265,7 +265,7 @@ int CVisibilityFog::UpdateCells() {
         libcrt::AtExit(DestroyDeadCells);
     }
     dead.Finish() = dead.Start();
-    World();   // called and ignored, as in the original
+    World();   // called and ignored
     cells.ForEach([&dead](CellMap::Node* n) {
         FogCell& cell = n->value;
         if (cell.visible)
@@ -304,8 +304,9 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
                 found->value.visible = 1;
                 continue;
             }
-            // The original fills its pair template with an overlapping REP MOVSD from the key, so
-            // every dword of the new value starts as the key.
+            // The pair template is filled with an overlapping REP MOVSD from the key, so every dword of the
+            // new value starts as
+            // the key.
             std::uint32_t pair[7];
             for (std::uint32_t& d : pair) d = key;
             FogCell* cell = reinterpret_cast<FogCell*>(InsertCell(&cells, pair) + 1);
@@ -316,7 +317,7 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
             cell->pos.x = static_cast<float>((Unsigned(r) * kFogJitter + cell->x - kQuarter) * (kFogCellSize * kHalf));
             r = IsaacRandom::Global().Next();
             cell->pos.y = static_cast<float>((Unsigned(r) * kFogJitter + cell->y - kQuarter) * (kFogCellSize * kHalf));
-            // The world's slot 30: the water surface height, used unrounded from ST0.
+            // The world's virtual 30: the water surface height, used unrounded from ST0.
             double ground = World()->SurfaceHeightAt(LoadFloat(cell->pos.x), LoadFloat(cell->pos.y));
             cell->alpha = 0.0f;
             cell->pos.z = static_cast<float>(ground + kHalf);
@@ -327,10 +328,9 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
 }
 EI_REWRITTEN(0x004E1C60, CVisibilityFog::Reveal);
 
-// ---- The fog object's slots (A-S10) ----------------------------------------------------------------
+// ---- The fog object's virtuals ------------------------------------------------------------------
 
-// The cell nodes (0x20 bytes) go back to the pool's 32-byte free list, as the original
-// pushes them.
+// The cell nodes (0x20 bytes) go back to the pool's 32-byte free list.
 static_assert(sizeof(CVisibilityFog::CellMap::Node) > 24 && sizeof(CVisibilityFog::CellMap::Node) <= 32);
 
 void CVisibilityFog::ClearCells() {

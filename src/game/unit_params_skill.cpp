@@ -14,16 +14,16 @@ constexpr double kStatBase = 25.0;
 constexpr int kWeaponSkill0Bonus = 0;   // WeaponRecord::skillBonus (+0x7B / +0x7C)
 constexpr int kWeaponSkill1Bonus = 1;
 
-// The level value (+0x34, unsigned) of the skill level record of skill `type` at the packed level
-// byte, or null without one. The byte is read unchecked (`type` may be negative), as the original.
+// The level value (+0x34, unsigned) of the skill level record of skill `type` at the packed level byte, or
+// null without one. The byte is read unchecked (`type` may be negative).
 const SkillLevelRecord* LevelRecord(const UnitParams* params, int type) {
     std::uint8_t level = params->skillLevels[type];
     if (level == 0) return nullptr;
     return unitdb::SkillLevelAt(static_cast<std::uint32_t>(type * 3 - 1 + level));
 }
 
-// The first letter of skill `skill`'s name (+0x0C leads to it): which stat counts ('s', 'd',
-// 'i'). The record is read unchecked (an empty skill table faults as in the original).
+// The first letter of skill `skill`'s name (+0x0C leads to it): which stat counts ('s', 'd', 'i'). The
+// record is read unchecked (an empty skill table faults).
 char StatLetter(int skill) {
     const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
     const char* name = record->statNames.begin()[0];
@@ -48,7 +48,7 @@ double WeaponByte(const itemdb::WeaponRecord* weapon, int skill) {
 double UnitParams::WeaponSkillBonus(int type, const itemdb::WeaponRecord* weapon) {
     double term;
     if (type < 5) {
-        // The level value stays on the FPU (FILD qword); the sums are taken as the original's.
+        // The level value stays on the FPU (FILD qword); the sums follow the x87 order.
         const SkillLevelRecord* record = LevelRecord(this, type);
         double level = record ? record->Value() : 0.0;
         double bonus = WeaponByte(weapon, kWeaponSkill0Bonus);

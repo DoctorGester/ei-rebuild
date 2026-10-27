@@ -1,8 +1,7 @@
 #pragma once
 
-// Data of the exe the game flow's rewritten code (world_game.cpp) reads by address: strings,
-// float constants (read from memory as the original does, rewrite guide rule 9) and vtables.
-// Names are provisional.
+// Data of the exe the game flow's rewritten code (world_game.cpp) reads by address: strings, float constants (read
+// from memory, rewrite guide rule 9) and vtables. Names are provisional.
 
 #include <cstdint>
 

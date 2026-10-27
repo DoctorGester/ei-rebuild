@@ -19,8 +19,7 @@ namespace {
 
 std::int8_t g_guardPlain = /*0079026C*/ 1;   // 1: data in the clear
 std::uint32_t g_guardKey = /*007AFECC*/ {};
-// The party outside a game (007C82B0, a CParty like CPlayer + 0x70): its records, their
-// count and its gold.
+// The party outside a game (a CParty like CPlayer + 0x70): its records, their count and its gold.
 CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
 int GlobalRecordCount() { return GlobalParty()->members_.size; }
 int& GlobalGold() { return GlobalParty()->money_; }

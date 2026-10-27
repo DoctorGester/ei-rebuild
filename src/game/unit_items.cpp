@@ -90,7 +90,7 @@ void CUnit::AddCarried(CItem* item) {
     ++item->refCount_;
     int count = carriedCount;
     int size = count + 1;
-    // CArray::SetSize(size), inlined by the original.
+    // CArray::SetSize(size), inlined.
     if (size == 0) {
         if (carried) {
             gamecrt::operator_delete(carried);
@@ -156,7 +156,7 @@ std::uint32_t CUnit::SetPrototype23CByName(const char* prototypeName) {
     }
     int offset = unitdb::PrototypeByteOffset(record);
     prototype23C = offset / unitdb::kPrototypeSize;
-    // EAX keeps the low half of the original's IMUL by the reciprocal of 0x120.
+    // EAX keeps the low half of the IMUL by the reciprocal of 0x120.
     return static_cast<std::uint32_t>(static_cast<std::int64_t>(offset) * 0x38E38E39);
 }
 EI_REWRITTEN(0x005308D0, CUnit::SetPrototype23CByName);

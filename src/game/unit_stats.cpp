@@ -18,13 +18,13 @@ constexpr float kZero = 0.0f;
 constexpr float kOne = 1.0f;
 constexpr float kStatBase = 25.0f;
 constexpr float kTwelve = 12.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
+constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
 constexpr float kFactorBase = 15.0f;
-constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0073C54C (0.3)
-constexpr float kPointSeven = std::bit_cast<float>(0x3F333333u);    // 0073C538 (0.7)
-constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0073BAD4 (0.2)
+constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0.3
+constexpr float kPointSeven = std::bit_cast<float>(0x3F333333u);    // 0.7
+constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0.2
 constexpr int kDamageWords = 7;   // words 1..7 of a damage / protection block
-constexpr float kPointEight = std::bit_cast<float>(0x3F4CCCCDu);    // 0073CCA8 (0.8)
+constexpr float kPointEight = std::bit_cast<float>(0x3F4CCCCDu);    // 0.8
 
 // Skill levels 21 and 22 (+0x6E8, +0x6E9) index the level table from these bases.
 constexpr int kLevelBase6E8 = 0x3E;
@@ -105,7 +105,7 @@ double UnitStats::SkillLevelValue(int index) {
 EI_REPLACE_METHOD(0x005267E0, UnitStats::SkillLevelValue);
 
 double UnitStats::Value6E8() {
-    double strength = stat10 * kTwelve;   // kept on the FPU stack in the original
+    double strength = stat10 * kTwelve;   // kept on the FPU stack
     std::uint8_t level = skillLevels[0x6E8 - 0x6D3];
     if (level != 0) {
         const ::SkillLevelRecord* record = LevelRecord(level + kLevelBase6E8);
@@ -134,7 +134,7 @@ double UnitStats::Value6E9Arg(int) { return Value6E9(); }
 EI_REWRITTEN(0x00525D60, UnitStats::Value6E9Arg);
 
 double UnitStats::Reduce(float value) {
-    double taken = kZero;   // accumulated on the FPU stack in the original
+    double taken = kZero;   // accumulated on the FPU stack
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind < 1) continue;
         if (slot.current >= kZero) {
@@ -212,7 +212,7 @@ std::uint32_t DamageWords::ExcessOver(const DamageWords* protection) const {
 }
 EI_REPLACE_METHOD(0x00522AE0, DamageWords::ExcessOver);
 
-// 00522B20 (thiscall on the damage words). The largest of words 1..7 (unsigned), in AX.
+// On the damage words (thiscall): the largest of words 1..7 (unsigned), in AX.
 std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage) {
     std::uint16_t largest = 0;
     for (int i = 1; i <= kDamageWords; ++i)

@@ -1,15 +1,13 @@
 #pragma once
 
 // Weather, visibility fog and particles: the per-frame simulation parts.
-// - CParticleSource (game.exe's table 0073CFD0, class name from 004982D0): one emitter. Its tick (slot 6,
-//   00496EB0, particle_tick.cpp) runs the per-type callbacks the constructor (slot 2, 00485540) stores
-//   at +0x1E0 (emit one particle), +0x1E4 (update one particle; 0 kills it) and +0x1E8 (update one
-//   element of the source's own array at +0x154). The callbacks are __thiscall on the source.
+// - CParticleSource ("CParticle"): one emitter. Its tick (particle_tick.cpp) runs the per-type callbacks the
+//   constructor stores at +0x1E0 (emit one particle), +0x1E4 (update one particle; 0 kills it) and +0x1E8 (update
+//   one element of the source's own array at +0x154). The callbacks are __thiscall on the source.
 // - CRainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
-// - CVisibilityFog (vtable 0073D6B4, "CVisibilityFog", class id 0x5F): a hash_map of fog cells,
-//   one per visible map square; each cell fades in while visible and out once not, and is dropped
-//   when nearly transparent.
-// Names are provisional. Layouts mirror the original; unknown bytes are unknown_XXX.
+// - CVisibilityFog ("CVisibilityFog", class id 0x5F): a hash_map of fog cells, one per visible map square; each
+//   cell fades in while visible and out once not, and is dropped when nearly transparent.
+// Names are provisional. Layouts mirror the game's; unknown bytes are unknown_XXX.
 
 #include "base_manager.h"
 #include "core_transform.h"
@@ -33,9 +31,9 @@ class CSceneRenderer;  // model.h
 struct TLVertex;       // clip.h
 struct VertexPacket;   // figure_mesh.h
 
-// One particle (0x64 bytes, allocated by the source's pool 00498870). The source's tick saves the
-// "prev" fields before calling the update callback and restores them when it returns 0. The
-// meaning of +0x20..+0x40 depends on the source type; the comments name the types rewritten here.
+// One particle (0x64 bytes, allocated by the source's pool). The source's tick saves the "prev" fields before
+// calling the update callback and restores them when it returns 0. The meaning of +0x20..+0x40 depends on the
+// source type; the comments name the types written here.
 struct Particle {
     Vector3 pos;                // +0x00
     float size;                 // +0x0C
@@ -280,15 +278,13 @@ class CParticleSource;
 class CObject3D;
 class CTexture;   // texture.h
 
-// The particle manager (0xE8 bytes; the client world's +0x19C and *007AF754; a real virtual class:
-// the compiler makes its vtable, C19, game.exe's 0073F644 is retired;
-// CParticleSource +0x14 points to it): a CBaseManager whose objects are the sources (objectList_).
-// It keeps a pool of free particles, an MFC list at +0xB0 (taken from the head, returned to the
-// tail), and holds one reference on every source made through CreateSource (`held_`, by id) until
-// the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
-// particle_manager.cpp; the pool in particle_tick.cpp, DrawAll in particle_draw.cpp.
-// 004981A0 (small_accessors.cpp): the particle manager's own part of its constructor (the client
-// world's manager set-up calls it after the base manager's): quietStart cleared.
+// The particle manager (0xE8 bytes; the client world's +0x19C; a real virtual class; CParticleSource +0x14 points
+// to it): a CBaseManager whose objects are the sources (objectList_). It keeps a pool of free particles, an MFC
+// list at +0xB0 (taken from the head, returned to the tail), and holds one reference on every source made through
+// CreateSource (`held_`, by id) until the source's tick ends it (TickSources) or nobody else holds it
+// (ReleaseUnheld). particle_manager.cpp; the pool in particle_tick.cpp, DrawAll in particle_draw.cpp.
+// The particle manager's own part of its constructor (small_accessors.cpp; the client world's manager set-up calls
+// it after the base manager's): quietStart cleared.
 class CParticleManager;
 void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager);
 
@@ -296,16 +292,15 @@ class CParticleManager : public CBaseManager {
 public:
     using HeldMap = stlp::hash_map<int, CParticleSource*, stlp::IntHash>;
 
-    // CBaseManager's constructor, an empty pool (blocks of 10), an empty held table (Construct(100),
-    // 005725E0), maxHeldId_ 0, then 004981A0 (quietStart cleared). Inlined in the client world's
-    // manager set-up (world_client_maps.cpp); world_destructors.cpp.
+    // CBaseManager's constructor, an empty pool (blocks of 10), an empty held table (Construct(100)), maxHeldId_ 0, then
+    // quietStart cleared. Inlined in the client world's manager set-up (world_client_maps.cpp); world_destructors.cpp.
     CParticleManager();
     // Destroy, the members last to first (`held_`'s nodes and buckets, the free
     // particles' list emptied), then CBaseManager's destructor.
     ~CParticleManager() override;
-    const char* GetClassName() override;           // 11: 00562780 "CParticleManager"
-    int GetClassId() override;                     // 12: 00562790 (0x2C)
-    // 14: 004981B0 (particle_create.cpp, NewParticleSource). A new source of `type`.
+    const char* GetClassName() override;           // "CParticleManager"
+    int GetClassId() override;                     // class id 0x2C
+    // A new source of `type` (particle_create.cpp, NewParticleSource).
     CEngineObject* NewObject(int type) override;
 
     // QuietStart cleared, then CBaseManager::Create; returns 1 / 0.
@@ -321,8 +316,8 @@ public:
     // A new source of `type` (CreateObject(type, -1)), referenced and held under
     // its id; with quietStart set, types 0x2001 / 0x2003 / 0x2004 start without emitting.
     CParticleSource* CreateSource(int type);
-    // Every source's tick (slot 6; with `paused` only the ones with flag 8); a
-    // held source whose tick returned 0 is released and leaves `held_`. Returns 0.
+    // Every source's tick (with `paused` only the ones with flag 8); a held source whose tick returned 0 is released and
+    // leaves `held_`. Returns 0.
     int TickSources(char paused);
     // Every held source nobody else references (refCount_ 1) is released and leaves
     // `held_` (the client's zone load).
@@ -345,10 +340,10 @@ struct ParticleDepth {
 };
 
 // The draw order, an MFC CArray<ParticleDepth> (vtable, data, size, max, grow by).
-using ParticleDepthArray = mfc::CArray<ParticleDepth>;   // SetAtGrow 00499200 is the template's
+using ParticleDepthArray = mfc::CArray<ParticleDepth>;
 
-// The draw order's sort: STLport's introsort on [first, last) with "greater depth first"
-// (far sources first), as instantiated in game.exe. All __fastcall (first, last in registers).
+// The draw order's sort: STLport's introsort on [first, last) with "greater depth first" (far sources first). All
+// __fastcall (first, last in registers).
 void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int depthLimit,
                                  int compare);
 void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int compare);
@@ -368,159 +363,158 @@ static_assert(sizeof(SourceFrame) == 16);
 // (+0x34) the identity after Reset.
 class CParticleSource final : public CTransformObject {
 public:
-    // 004981B0's construction (particle_create.cpp; NewParticleSource, the class factory's creator):
-    // the engine object and transform bases (identity rotations), no elements, no bounds, an empty
-    // particle list (blocks of 10), no frames or texture; then Reset and `type`.
+    // The construction (particle_create.cpp; NewParticleSource, the class factory's creator): the engine object and
+    // transform bases (identity rotations), no elements, no bounds, an empty particle list (blocks of 10), no frames or
+    // texture; then Reset and `type`.
     explicit CParticleSource(int type);
-    // 00498310 (deleting: 004982F0): Clear, the texture released, the frames, the particle list and
-    // the elements freed.
+    // Deleting destructor: Clear, the texture released, the frames, the particle list and the elements freed.
     ~CParticleSource() override;
-    // Sources start zeroed: nothing here or in Reset sets the emission point (origin, +0x98)
-    // and the first Tick takes the motion from it. The harness zeroes the original's alike.
+    // Sources start zeroed: nothing here or in Reset sets the emission point (origin, +0x98) and the first Tick takes the
+    // motion from it. The harness zeroes the game's sources alike.
     static void* operator new(std::size_t size) noexcept;
 
     int Create() override;                          // per-type parameters
     void Destroy() override { Clear(); }
     int RunTick() override;                         // 1 while the source stays alive
-    const char* GetClassName() override;            // 11: 004982D0 "CParticle" (the exe's 0078B020)
-    int GetClassId() override;                      // 12: 004982E0 (12)
+    const char* GetClassName() override;            // "CParticle"
+    int GetClassId() override;                      // class id 12
 
     // The particle manager that owns the source (owner_), the pool its particles come from.
     CParticleManager* Manager() const { return static_cast<CParticleManager*>(owner_); }
-    // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer
-    // (007AF060, vtable slot 17). 1 when there is nothing to draw or it is off screen.
+    // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer. 1 when there is
+    // nothing to draw or it is off screen.
     int Draw(void* renderer);
 
     // --- set-up (particle_create.cpp) ---
     void Reset();                                   // defaults, texture and elements dropped
     void Clear();                                   // particles back to the pool, detach, Reset
 
-    // --- per-frame tick (RunTick, slot 6; particle_tick.cpp) ---
+    // --- per-frame tick (RunTick; particle_tick.cpp) ---
     void AddParticle(Particle* p);                  // prev = current, bounds, list tail
 
-    // The callbacks Create stores (+0x1E0 emit, +0x1E4 update, +0x1E8 element): __thiscall members
-    // below. Emit fills a particle from the pool (0 returns it), update moves one (0 drops it).
+    // The callbacks Create stores (+0x1E0 emit, +0x1E4 update, +0x1E8 element): __thiscall members below. Emit fills a
+    // particle from the pool (0 returns it), update moves one (0 drops it).
     using EmitCallback = int (CParticleSource::*)(Particle* p, int index);
     using UpdateCallback = int (CParticleSource::*)(Particle* p);
     using ElementCallback = void (CParticleSource::*)(ParticleElement* e);
 
     // --- per-particle callbacks (+0x1E4 update, +0x1E0 emit), __thiscall, return 0 to drop ---
-    int UpdateFalling(Particle* p);                 // 0048F670 (types 0x2034-0x2037)
-    int UpdateCloud(Particle* p);                   // 0048B570 (PoisonFog and similar)
-    int UpdateSmoke(Particle* p);                   // 0048EC20 (CampFire, Fire, Smoke, 0x2010)
+    int UpdateFalling(Particle* p);                 // types 0x2034-0x2037
+    int UpdateCloud(Particle* p);                   // PoisonFog and similar
+    int UpdateSmoke(Particle* p);                   // CampFire, Fire, Smoke, 0x2010
     int EmitSmoke(Particle* p, int index);
-    int UpdateDebris(Particle* p);                  // 00489190 (Nuke)
-    int UpdateOrbit(Particle* p);                   // 0048E7C0 (Antimagic, spheres, 0x2014)
+    int UpdateDebris(Particle* p);                  // Nuke
+    int UpdateOrbit(Particle* p);                   // Antimagic, spheres, 0x2014
 
     // particle_emitters.cpp
-    int EmitLightning(Particle* p, int index);      // 004923B0 (LightningBlast)
-    int EmitModifier(Particle* p, int index);       // 00490130 (Modifier1-12)
-    int EmitZoneExit(Particle* p, int index);       // 00492D30 (ZoneExit)
-    int EmitFeebleMind(Particle* p, int index);     // 004957E0 (FeebleMind)
-    int EmitFeetCloud(Particle* p, int index);      // 00495A30 (FeetCloud1/2)
-    int UpdateGlow(Particle* p);                    // 00493280 (0x2039)
-    int UpdateGroundDust(Particle* p);              // 004933F0 (0x203A, 0x203B)
-    int UpdatePortal(Particle* p);                  // 00494770 (Portal)
-    int UpdateSparks(Particle* p);                  // 00494CD0 (Sparks)
-    void TickGroundPlane(ParticleElement* e);       // 004934F0 (0x203A, 0x203B)
-    void TickPortal(ParticleElement* e);            // 00494930 (Portal)
-    void TickStartTrans(ParticleElement* e);        // 00496990 (StartTrans)
+    int EmitLightning(Particle* p, int index);      // LightningBlast
+    int EmitModifier(Particle* p, int index);       // Modifier1-12
+    int EmitZoneExit(Particle* p, int index);       // ZoneExit
+    int EmitFeebleMind(Particle* p, int index);     // FeebleMind
+    int EmitFeetCloud(Particle* p, int index);      // FeetCloud1/2
+    int UpdateGlow(Particle* p);                    // 0x2039
+    int UpdateGroundDust(Particle* p);              // 0x203A, 0x203B
+    int UpdatePortal(Particle* p);                  // Portal
+    int UpdateSparks(Particle* p);                  // Sparks
+    void TickGroundPlane(ParticleElement* e);       // 0x203A, 0x203B
+    void TickPortal(ParticleElement* e);            // Portal
+    void TickStartTrans(ParticleElement* e);        // StartTrans
 
     // particle_draw.cpp: the emission point in the world (attachment point plus the local position).
     Vector3* WorldPosition(Vector3* out);
 
     // particle_callbacks.cpp
-    int EmitCasting(Particle* p, int index);        // 004918E0 (0x2027-0x202A)
+    int EmitCasting(Particle* p, int index);        // 0x2027-0x202A
     int UpdateCasting(Particle* p);
     void TickCasting(ParticleElement* e);
-    int EmitOrbit(Particle* p, int index);          // 0048E070 (0x2015-0x2017, 0x201A)
-    int EmitCastRing(Particle* p, int index);       // 00489320 (Casting, 0x200B)
+    int EmitOrbit(Particle* p, int index);          // 0x2015-0x2017, 0x201A
+    int EmitCastRing(Particle* p, int index);       // Casting, 0x200B
     int UpdateCastRing(Particle* p);
     void TickCastRing(ParticleElement* e);
-    int EmitHealing(Particle* p, int index);        // 0048B630 (Healing, 0x2006)
+    int EmitHealing(Particle* p, int index);        // Healing, 0x2006
     int UpdateHealing(Particle* p);
     void TickHealing(ParticleElement* e);
-    int EmitCastSwirl(Particle* p, int index);      // 00490C10 (0x202B-0x202E)
+    int EmitCastSwirl(Particle* p, int index);      // 0x202B-0x202E
     int UpdateCastSwirl(Particle* p);
     void TickCastSwirl(ParticleElement* e);
-    int EmitLink(Particle* p, int index);           // 0048D8D0 (Link, 0x2014)
+    int EmitLink(Particle* p, int index);           // Link, 0x2014
     int UpdateLink(Particle* p);
     void TickLink(ParticleElement* e);
-    int EmitBlast(Particle* p, int index);          // 0048C090 (FireBlast, 0x2002)
+    int EmitBlast(Particle* p, int index);          // FireBlast, 0x2002
     int UpdateBlast(Particle* p);
     void TickBlast(ParticleElement* e);
-    int EmitPoisonFog(Particle* p, int index);      // 0048B080 (PoisonFog, 0x2007 / 0x2008)
-    int EmitGeyser(Particle* p, int index);         // 0048A8F0 (Geyser, 0x2009)
+    int EmitPoisonFog(Particle* p, int index);      // PoisonFog, 0x2007 / 0x2008
+    int EmitGeyser(Particle* p, int index);         // Geyser, 0x2009
     int UpdateGeyser(Particle* p);
     void TickGeyser(ParticleElement* e);
-    int EmitShower(Particle* p, int index);         // 0048EEA0 (0x200F, 0x2031-0x2033)
+    int EmitShower(Particle* p, int index);         // 0x200F, 0x2031-0x2033
     int UpdateShower(Particle* p);
     void TickShower(ParticleElement* e);
-    int EmitBag(Particle* p, int index);            // 00493560 (Bag, 0x203C)
+    int EmitBag(Particle* p, int index);            // Bag, 0x203C
     int UpdateBag(Particle* p);
     void TickBag(ParticleElement* e);
-    int EmitColumn(Particle* p, int index);         // 00491420 (0x202F)
+    int EmitColumn(Particle* p, int index);         // 0x202F
     int UpdateColumn(Particle* p);
     void TickColumn(ParticleElement* e);
-    int EmitMushroom(Particle* p, int index);       // 004889D0 (Mushroom, Transform)
+    int EmitMushroom(Particle* p, int index);       // Mushroom, Transform
     int UpdateMushroom(Particle* p);
-    int EmitStench(Particle* p, int index);         // 0048D420 (BlueGas, 0x2013)
+    int EmitStench(Particle* p, int index);         // BlueGas, 0x2013
     int UpdateStench(Particle* p);
-    int EmitTornado(Particle* p, int index);        // 00489F70 (Tornado, CurseHolder)
+    int EmitTornado(Particle* p, int index);        // Tornado, CurseHolder
     int UpdateTornado(Particle* p);
     void TickTornado(ParticleElement* e);
-    int EmitPortalStar(Particle* p, int index);     // 00493D10 (PortalStar, 0x203D)
+    int EmitPortalStar(Particle* p, int index);     // PortalStar, 0x203D
     int UpdatePortalStar(Particle* p);
-    int EmitCylinder(Particle* p, int index);       // 00493DE0 (Cylinder1/2, 0x203F / 0x2040)
+    int EmitCylinder(Particle* p, int index);       // Cylinder1/2, 0x203F / 0x2040
     int UpdateCylinder(Particle* p);
     void TickCylinder(ParticleElement* e);
-    int EmitFireBall(Particle* p, int index);       // 0048C800 (FireBall, 0x2000)
+    int EmitFireBall(Particle* p, int index);       // FireBall, 0x2000
     int UpdateFireBall(Particle* p);
-    int EmitArrowSmoke(Particle* p, int index);     // 0048CBA0 (FireArrow 0x2011, 0x204E)
+    int EmitArrowSmoke(Particle* p, int index);     // FireArrow 0x2011, 0x204E
     int UpdateArrowSmoke(Particle* p);
-    int EmitBanshee(Particle* p, int index);        // 00489BE0 (Banshee, 0x200D)
+    int EmitBanshee(Particle* p, int index);        // Banshee, 0x200D
     int UpdateBanshee(Particle* p);
     void TickBanshee(ParticleElement* e);
-    int EmitPortal(Particle* p, int index);         // 00494470 (Portal, 0x203E)
-    int EmitAcidRay(Particle* p, int index);        // 0048D050 (AcidRay, 0x2012)
+    int EmitPortal(Particle* p, int index);         // Portal, 0x203E
+    int EmitAcidRay(Particle* p, int index);        // AcidRay, 0x2012
     int UpdateAcidRay(Particle* p);
-    int EmitSparks(Particle* p, int index);         // 00494A10 (Sparks, 0x2043)
-    int EmitClayRing(Particle* p, int index);       // 0048F7F0 (ClayRing, 0x2018)
+    int EmitSparks(Particle* p, int index);         // Sparks, 0x2043
+    int EmitClayRing(Particle* p, int index);       // ClayRing, 0x2018
     int UpdateClayRing(Particle* p);
     void TickClayRing(ParticleElement* e);
-    int EmitFalling(Particle* p, int index);        // 0048F3B0 (0x2034-0x2037)
+    int EmitFalling(Particle* p, int index);        // 0x2034-0x2037
     void TickFalling(ParticleElement* e);
-    int EmitVulkan(Particle* p, int index);         // 0048BD50 (VulcanSmoke, 0x2005)
+    int EmitVulkan(Particle* p, int index);         // VulcanSmoke, 0x2005
     int UpdateVulkan(Particle* p);
-    int EmitFireStar(Particle* p, int index);       // 00494950 (FireStar, AcidStar)
+    int EmitFireStar(Particle* p, int index);       // FireStar, AcidStar
     int UpdateFireStar(Particle* p);
-    int EmitRegeneration(Particle* p, int index);   // 004950B0 (Regeneration)
+    int EmitRegeneration(Particle* p, int index);   // Regeneration
     int UpdateRegeneration(Particle* p);
-    int EmitVisionStar(Particle* p, int index);     // 00494E00 (VisionStar1-3)
+    int EmitVisionStar(Particle* p, int index);     // VisionStar1-3
     int UpdateVisionStar(Particle* p);
-    int UpdateZoneExit(Particle* p);                // 00492F40 (ZoneExit)
-    int UpdateFeebleMind(Particle* p);              // 00495950 (FeebleMind, 0x2049)
-    int UpdateFeetCloud(Particle* p);               // 00495C80 (FeetCloud, 0x2047)
+    int UpdateZoneExit(Particle* p);                // ZoneExit
+    int UpdateFeebleMind(Particle* p);              // FeebleMind, 0x2049
+    int UpdateFeetCloud(Particle* p);               // FeetCloud, 0x2047
     void TickFeetCloud(ParticleElement* e);
-    int EmitSilence(Particle* p, int index);        // 00495320 (Silence, 0x2048)
+    int EmitSilence(Particle* p, int index);        // Silence, 0x2048
     int UpdateSilence(Particle* p);
-    int UpdateModifier(Particle* p);                // 00490990 (Modifier1-12)
+    int UpdateModifier(Particle* p);                // Modifier1-12
     void TickModifier(ParticleElement* e);
-    int UpdateLightning(Particle* p);               // 00492B80 (LightningBlast, 0x2030)
+    int UpdateLightning(Particle* p);               // LightningBlast, 0x2030
     void TickLightning(ParticleElement* e);
-    int EmitTeleport(Particle* p, int index);       // 0048FDB0 (Teleport, 0x2019)
+    int EmitTeleport(Particle* p, int index);       // Teleport, 0x2019
     int UpdateTeleport(Particle* p);
     void TickTeleport(ParticleElement* e);
-    int EmitCurseStars(Particle* p, int index);     // 00496270 (CurseStars)
+    int EmitCurseStars(Particle* p, int index);     // CurseStars
     int UpdateCurseStars(Particle* p);
-    int EmitStartTrans(Particle* p, int index);     // 004965E0 (StartTrans)
+    int EmitStartTrans(Particle* p, int index);     // StartTrans
     int UpdateStartTrans(Particle* p);
-    int EmitNuke(Particle* p, int index);           // 00488F90 (Nuke)
+    int EmitNuke(Particle* p, int index);           // Nuke
     int EmitTendril(Particle* p, int index);
-    int EmitGroundDust(Particle* p, int index);     // 00493300 (0x203A, 0x203B)
-    int EmitGlow(Particle* p, int index);           // 00492FC0 (ShapeChange, 0x2039)
+    int EmitGroundDust(Particle* p, int index);     // 0x203A, 0x203B
+    int EmitGlow(Particle* p, int index);           // ShapeChange, 0x2039
     void TickGlow(ParticleElement* e);
-    int EmitStun(Particle* p, int index);           // 00495FB0 (Stun, 0x204D)
+    int EmitStun(Particle* p, int index);           // Stun, 0x204D
     int UpdateStun(Particle* p);
 
     // particle_attach.cpp. Offset (0, 0, the bounds centre's z) and radius of the object followed
@@ -529,9 +523,9 @@ public:
 
     // --- per-element callbacks (+0x1E8) ---
     void TickNuke(ParticleElement* e);
-    void TickTendril(ParticleElement* e);           // 0048EE20 (0x2010)
-    void TickMushroom(ParticleElement* e);          // 00488F00 (Mushroom, Transform)
-    void TickNone(ParticleElement* e);              // 00485530 and ten more: does nothing (particle_create.cpp)
+    void TickTendril(ParticleElement* e);           // 0x2010
+    void TickMushroom(ParticleElement* e);          // Mushroom, Transform
+    void TickNone(ParticleElement* e);              // does nothing; ten more callbacks are as empty (particle_create.cpp)
 
     // --- small setters the game calls on sources ---
     void ScaleSize(float factor);
@@ -555,8 +549,8 @@ public:
     // The loop Clear and StopAndClear share: every particle unlinked and returned to the pool.
     void ReleaseAllParticles();
 
-    // CEngineObject's flags_: bit 0 emitting, bit 1 attached-only, bit 2 keep alive; type_ 0x2000..
-    // (see the name table at 0078B120); owner_ the particle manager.
+    // CEngineObject's flags_: bit 0 emitting, bit 1 attached-only, bit 2 keep alive; type_ 0x2000.. (the effect names in
+    // the type name table); owner_ the particle manager.
     std::uint8_t unused_054[0x94 - 0x54];
     CObject3D* attachedTo;          // +0x094 the object followed, null: none
     Vector3 origin;                 // +0x098 world emission point
@@ -601,20 +595,20 @@ public:
     ClipBounds clip;
     std::uint8_t unused_1A8[0x1B4 - 0x1A8];
     mfc::CTypedPtrList<Particle> particles;     // +0x1B4
-    // +0x1D0 the frame UV rectangles (32-byte aligned); the original inlines the array's SetSize.
+    // +0x1D0 the frame UV rectangles (32-byte aligned).
     lib::AlignedArray<SourceFrame> frames;
     EmitCallback emitFn;            // +0x1E0
     UpdateCallback updateFn;        // +0x1E4
     ElementCallback elementFn;      // +0x1E8
-    HeldTexture texture;            // +0x1EC texture holder (bound by 00497CE0)
+    HeldTexture texture;            // texture holder
 };
 
 // The class factory's creator for particle sources (particle_create.cpp): a new source of
 // `type` (the register arguments are unused), or null.
 CParticleSource* __stdcall NewParticleSource(int type);
 
-// `out` = v / d, all three quotients computed before the first store. __fastcall (out in
-// ECX, v in EDX, d on the stack); returns out.
+// `out` = v / d, all three quotients computed before the first store. __fastcall (out in ECX, v in EDX, d on the
+// stack); returns out.
 Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d);
 
 // The particle renderer's shared arrays (particle_render.cpp). One vertex (position and size,
@@ -628,59 +622,55 @@ struct ParticleSprite {
 };
 // Data 32-byte aligned, the block address below it.
 using ParticleVertexArray = lib::AlignedArray<ParticleVertex>;
-// An MFC-style array with a vtable (0073C584, constructor 00468D60).
-using ParticleSpriteArray = mfc::CArray<ParticleSprite>;   // SetSize 00497D50 is the template's
+// An MFC-style array with a vtable.
+using ParticleSpriteArray = mfc::CArray<ParticleSprite>;
 
-// (00497D40, the list position's particle with the position advanced, is the list's GetNext.)
+// (The list position's particle with the position advanced is the list's GetNext.)
 
-// (00497CE0, the renderer's bind of a held texture, is CSceneRenderer::BindHeldTexture, model.h.)
+// (The renderer's bind of a held texture is CSceneRenderer::BindHeldTexture, model.h.)
 
-// 00497EB0 (particle_emitters.cpp). Room for `count` elements, 32-byte aligned, the allocated block
-// stored just below; __fastcall.
+// particle_emitters.cpp. Room for `count` elements, 32-byte aligned, the allocated block stored just below;
+// __fastcall.
 ParticleElement* __fastcall AllocateElements(int count);
 
-// The world's rain/snow layer (CWorldClient + 0x6F4, CWorldClient::RainSnow(); an engine object
-// whose slot 3 is the thunk 005617B0 -> 004E3B80). Only the fields its rewritten members use.
+// The world's rain/snow layer (CWorldClient + 0x6F4, CWorldClient::RainSnow(); an engine object). Only the fields its
+// rewritten members use.
 class CRainSnow final : public CEngineObject {
 public:
     // The client world's constructor builds it inline (world_construct.cpp): the engine object's
     // fields, no texture, empty work arrays, no world or sound, then Clear.
     CRainSnow();
-    // 005616C0 (deleting: 005617E0): Clear, the work arrays freed (last member first), the texture
-    // released.
+    // Deleting destructor: Clear, the work arrays freed (last member first), the texture released.
     ~CRainSnow() override;
     int Create() override { return 0; }
-    void Destroy() override { Clear(); }            // 3: 005617B0 (a thunk to 004E3B80)
-    const char* GetClassName() override;            // 11: 005617C0 "CWeather" (nothing asks)
-    int GetClassId() override;                      // 12: 005617D0 (0x1D)
+    void Destroy() override { Clear(); }
+    const char* GetClassName() override;            // "CWeather" (nothing asks)
+    int GetClassId() override;                      // class id 0x1D
 
-    // 004E5680 (weather_draw.cpp). The rain or snow drawn.
+    // The rain or snow drawn (weather_draw.cpp).
     int Draw(CSceneRenderer* renderer);
     void UpdateFade(float now);
     void FinishFade();
     void SetWind(const Vector3& direction, float strength);
-    // 004E3B80 (slot 3 through 005617B0). The rain loop stopped, the texture released, wind, mode,
-    // fade and world cleared, density 64.
+    // The rain loop stopped, the texture released, wind, mode, fade and world cleared, density 64.
     void Clear();
-    // 004E3C20 (effects_weather_draw.cpp; the client world's setup 00561E50). The drawing code's
-    // work arrays sized and their fixed parts filled.
+    // The drawing code's work arrays sized and their fixed parts filled (effects_weather_draw.cpp; the client world's
+    // setup).
     void PrepareBuffers();
-    // 004E3FC0 (RET 8; the weather messages 00669798). The texture "RainSnow" (kind 6) made sure of;
-    // a running loop stopped unless `newMode` is 0; rain starts the looping "nature\rain\circle.wav";
-    // the fade towards `newMode` starts now (the world's tick) over `duration` (0: at the next step).
+    // The texture "RainSnow" (kind 6) made sure of; a running loop stopped unless `newMode` is 0; rain starts the looping
+    // "nature\rain\circle.wav"; the fade towards `newMode` starts now (the world's tick) over `duration` (0: at the next
+    // step). Called by the weather messages.
     void Start(int newMode, float duration);
-    // weather_particles.cpp (A-S13). 004E4240 (rain) / 004E4C80 (snow), RET 4, EAX 1; the layer's
-    // draw 004E5680 (weather_draw.cpp) calls the one of the mode. The particles of the 81 x 81 grid
-    // cells around the point the wind carries them to the camera from, each cell's place and time
-    // hashed, `density` of 64 of them shown: a rain drop is a thin triangle along the wind, a
-    // snowflake a point swayed by the five sway tables that becomes a small triangle on screen.
-    // Projected with the pipeline's stack 2 and drawn as pre-transformed triangles through
-    // `indices` with the device's current state.
+    // weather_particles.cpp: rain and snow; the layer's draw (weather_draw.cpp) calls the one of the mode. The particles
+    // of the 81 x 81 grid cells around the point the wind carries them to the camera from, each cell's place and time
+    // hashed, `density` of 64 of them shown: a rain drop is a thin triangle along the wind, a snowflake a point swayed
+    // by the five sway tables that becomes a small triangle on screen. Projected with the pipeline's stack 2 and drawn
+    // as pre-transformed triangles through `indices` with the device's current state.
     int DrawRain(CSceneRenderer* renderer);
     int DrawSnow(CSceneRenderer* renderer);
-    // Their two halves (the original has them in one piece): the vertices of the particles on
-    // screen built (returns their count, three per particle), and those drawn (the distance fog
-    // when the device has it on, DrawIndexedPrimitive under the device lock, the frame's counts).
+    // Their two halves: the vertices of the particles on screen built (returns their count, three per particle), and
+    // those drawn (the distance fog when the device has it on, DrawIndexedPrimitive under the device lock, the frame's
+    // counts).
     int BuildRain(CSceneRenderer* renderer);
     int BuildSnow(CSceneRenderer* renderer);
     void DrawParticles(CSceneRenderer* renderer, int vertexCount);
@@ -732,12 +722,11 @@ inline FogTile g_fogTiles[16] = /*007ABA58*/ {};
 struct FogGrid {
     // World-side members (ai_fog_grid.cpp).
     void Clear();                         // no origin (0x7FFFFFFF), 1 x 1, zeroed
-    // 005C8BF0 / 005C8CC0 (RET 4): x0, y0, width, height (dwords), then the cells; reading makes
-    // the cells again when the size changed.
+    // x0, y0, width, height (dwords), then the cells; reading makes the cells again when the size changed.
     void Read(CMemoryStream* stream);
     void Write(CMemoryStream* stream);
-    // 005C8D40 (ai_movement.cpp; CAIMap::MarkVisibleCells). Grows the grid to cover (x - n .. x + n,
-    // y - n .. y + n); the first call (x0 = 0x7FFFFFFF) sizes and clears it.
+    // CAIMap::MarkVisibleCells (ai_movement.cpp). Grows the grid to cover (x - n .. x + n, y - n .. y + n); the first
+    // call (x0 = 0x7FFFFFFF) sizes and clears it.
     void Grow(int x, int y, int n);
 
     int x0;                         // +0x00 map cell of cells[0][0]; 0x7FFFFFFF before the first Grow
@@ -746,33 +735,33 @@ struct FogGrid {
 };
 static_assert(sizeof(FogGrid) == 0x18);
 
-// The fog object (game.exe's table 0073D6B4; made by the fog manager's NewObject, vis_fog_manager.cpp).
+// The fog object (made by the fog manager's NewObject, vis_fog_manager.cpp).
 class CVisibilityFog final : public CEngineObject {
 public:
     using CellMap = stlp::hash_map<std::uint32_t, FogCell, stlp::IntHash>;
 
-    // 004E2290's construction (vis_fog_manager.cpp): the engine object's fields, everything up to the
-    // cell map zero, an empty cell map (100 buckets asked).
+    // The construction (vis_fog_manager.cpp): the engine object's fields, everything up to the cell map zero, an empty
+    // cell map (100 buckets asked).
     CVisibilityFog();
-    // 004E24E0 (deleting: 004E24C0): ClearCells, the table freed.
+    // Deleting destructor: ClearCells, the table freed.
     ~CVisibilityFog() override;
     int Create() override;                          // ClearCells, 1
     void Destroy() override { ClearCells(); }
     int RunTick() override { return UpdateCells(); }
-    const char* GetClassName() override;            // 11: 004E24A0 "CVisibilityFog"
-    int GetClassId() override;                      // 12: 004E24B0 (0x5F)
+    const char* GetClassName() override;            // "CVisibilityFog"
+    int GetClassId() override;                      // class id 0x5F
 
     void ComputeBounds();
     int UpdateCells();
     void Reveal(const FogGrid* grid);
-    // A-S10 (effects_weather.cpp). Every cell freed (nodes back to the pool), the bounds invalid:
-    // the body of slots 2 (004E23D0, returns 1) and 3.
+    // (effects_weather.cpp). Every cell freed (nodes back to the pool), the bounds invalid: also the body of two of the
+    // object's virtuals (one returns 1).
     void ClearCells();
-    // 004E1EB0 (RET 4; effects_weather_draw.cpp). The cells as sprites through the scene renderer
-    // (its result); 1 without cells or when the bounds are out of view.
+    // The cells as sprites through the scene renderer (effects_weather_draw.cpp; its result); 1 without cells or when
+    // the bounds are out of view.
     int Draw(class CSceneRenderer* renderer);
 
-    CWorld* World();                                // 00455950 (CEngineObject)
+    CWorld* World();
 
     ClipBounds bounds;              // +0x1C flags 3 once computed; the box relative to the centre
     Vector3 boundsSpare;            // +0x48 zeroed with the bounds, never read

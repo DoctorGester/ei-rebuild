@@ -1,12 +1,10 @@
-// The device's indexed draw with the current material (004EB550, thiscall on the device holder,
-// RET 0x1C): used by the mesh draws and the flat geometry draw. Without a
-// material it is a plain DrawIndexedPrimitive. A material (CTextureDevice::material_) brings its
-// blend, a preset of state blocks (one per pass) and texture stages: with one pass the stages are
+// The device's indexed draw with the current material (on the device holder): used by the mesh draws and the flat
+// geometry draw. Without a material it is a plain DrawIndexedPrimitive. A material (CTextureDevice::material_)
+// brings its blend, a preset of state blocks (one per pass) and texture stages: with one pass the stages are
 // set and drawn once; with more, the first pass sets every stage, each further pass applies its
 // state block, sets stage 0 from the next stage record and draws again, and the blend states are
-// restored at the end. 004EB370 (RET 0x24, used by 004E9A50) draws twice: with a first surface,
-// then blended (source alpha, inverse source alpha) with a second one. See docs/notes/models.md
-// ("Material draw").
+// restored at the end. A second form draws twice: with a first surface, then blended (source alpha, inverse source
+// alpha) with a second one. See docs/notes/models.md ("Material draw").
 #include "device.h"
 #include "device_material.h"
 #include "engine_object.h"
@@ -32,7 +30,7 @@ void SetRenderState(CTextureDevice* device, D3DRENDERSTATETYPE state, std::uint3
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 
-// *slot = texture with counted references, the old one released through its slot 4 [004EBE60].
+// *slot = texture with counted references, the old one released.
 void AssignTexture(CTexture** slot, CTexture* value) {
     CTexture* previous = *slot;
     *slot = value;
@@ -146,7 +144,7 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset, const DrawArgs& a
     }
     unsigned triangles = args.indexCount / 3;
     Draw(device, args, triangles);
-    // The original tests the byte size rounded down to dwords: more than one block.
+    // Tests the byte size rounded down to dwords: more than one block.
     if (((reinterpret_cast<char*>(preset->blocks_.end()) - reinterpret_cast<char*>(preset->blocks_.begin())) & ~3) > 4) {
         int pass = 1;
         do {
@@ -164,9 +162,8 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset, const DrawArgs& a
     SetRenderState(device, D3DRENDERSTATE_DESTBLEND, savedDest);
 }
 
-// Stage 0's surface, as 004EB300 binds it (inline in 004EB370): when it changes, the stage's
-// texture set (null: no holder has a DirectDraw surface; the new
-// renderer draws with the holder in stageSurfaces_), and the change counted.
+// Stage 0's surface, as the surface bind does it: when it changes, the stage's texture set (null: no holder has a
+// DirectDraw surface; the new renderer draws with the holder in stageSurfaces_), and the change counted.
 void BindStage0(CTextureDevice* device, CDXSurface* holder) {
     if (device->stageSurfaces_[0] == holder) return;
     device->stageSurfaces_[0] = holder;

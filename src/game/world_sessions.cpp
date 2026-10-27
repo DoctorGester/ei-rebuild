@@ -1,8 +1,8 @@
-// The worlds' player sources (0055F190-0055F7B0, A-U8; player_source.h): the base's destructor, the
-// counted helper at CWorld + 0x5C (CWorldHandle) and the network session at CWorld + 0x60
-// (netlink::DriverSession): their clones, shutdowns and destructors, and CWorld::OpenSession, which
-// makes a session. The session's lists are STLport list<RefPtr>: drivers owning (RefPtr::Destroy),
-// holders plain (Release); their range inserts are the instantiations' own (library code).
+// The worlds' player sources (player_source.h): the base's destructor, the counted helper at CWorld + 0x5C
+// (CWorldHandle) and the network session at CWorld + 0x60 (netlink::DriverSession): their clones, shutdowns and
+// destructors, and CWorld::OpenSession, which makes a session. The session's lists are STLport list<RefPtr>:
+// drivers owning (RefPtr::Destroy), holders plain (Release); their range inserts are the instantiations' own
+// (library code).
 #include "world.h"
 
 #include "core_refcount.h"
@@ -21,8 +21,8 @@ using netlink::DriverSession;
 
 namespace {
 
-// list<RefPtr>::insert(position, first, last) of the session's two lists (00560430 drivers: each
-// element shared, 0047A450; 00560460 holders: each counted, 0047A480).
+// list<RefPtr>::insert(position, first, last) of the session's two lists (drivers: each element shared; holders:
+// each counted).
 template <typename Policy>
 void InsertRange(DriverNode* position, DriverNode* first, DriverNode* last) {
     stlp::list<RefPtr>::InsertRange<Policy>(stlp::AsRefNode(position), stlp::AsRefNode(first), stlp::AsRefNode(last));
@@ -36,8 +36,8 @@ DriverNode* NewSentinel() {
     return node;
 }
 
-// The lists' clear (005603B0 drivers, 005603F0 holders): each element destroyed / released, its node
-// back to the pool, the sentinel linked to itself.
+// The lists' clear (drivers, holders): each element destroyed / released, its node back to the pool, the sentinel
+// linked to itself.
 void ClearDrivers(DriverNode* sentinel) {
     for (DriverNode* node = sentinel->next; node != sentinel;) {
         DriverNode* current = node;
@@ -84,8 +84,7 @@ CWorldHandle* CWorldHandle::Clone() {
 }
 EI_REWRITTEN(0x0055F1A0, CWorldHandle::Clone);
 
-// The original destroys the helper and builds it again in place (the count and flags kept): the
-// link released, none pending.
+// The helper is destroyed and built again in place (the count and flags kept): the link released, none pending.
 int CWorldHandle::OnShutdown() {
     ReleaseCounted(pendingLink_);
     pendingLink_ = nullptr;
@@ -128,8 +127,8 @@ DriverSession* DriverSession::Clone() {
 }
 EI_REWRITTEN(0x0055F550, DriverSession::Clone);
 
-// The original destroys the session and builds it again in place (the count and flags kept): both
-// lists emptied and their sentinels freed, then new sentinels.
+// The session is destroyed and built again in place (the count and flags kept): both lists emptied and their
+// sentinels freed, then new sentinels.
 int DriverSession::OnShutdown() {
     ClearHolders(holders_);
     stlp::deallocate(holders_, sizeof(DriverNode));

@@ -16,8 +16,8 @@ namespace {
 
 constexpr std::uint32_t kDword = 4;
 
-// The original reads some values into the stack slot of its `stream` argument: a read that writes
-// nothing leaves the pointer's own value there.
+// Some values are read into the stack slot of the `stream` argument: a read that writes nothing leaves the
+// pointer's own value there.
 std::uint32_t StreamSlot(CStream* stream) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stream)); }
 
 } // namespace

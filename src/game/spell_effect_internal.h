@@ -1,8 +1,7 @@
 #pragma once
 
-// Shared by spell_effect_start.cpp (casting, 0067EF40-00681B00) and spell_effect_update.cpp
-// (missile flight 00681BB0, lasting effects 00682650): helpers, the x87 sequences the
-// original repeats inline, and small accessors. See docs/notes/items_spells.md.
+// Shared by spell_effect_start.cpp and spell_effect_update.cpp(missile flight, lasting effects): helpers,
+// the x87 sequences repeated inline, and small accessors. See docs/notes/items_spells.md.
 
 #include "game_strings.h"
 #include "spell.h"
@@ -54,7 +53,7 @@ constexpr float kVolume = 10.0f;
 constexpr float kHearing = 50.0f;
 constexpr float kLoud = 1000.0f;
 
-// Constants the original reads from memory (Rebirth may patch data; read them as the original does).
+// Constants read from memory (Rebirth may patch data, so they are read, not folded).
 inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
 inline const float* ConstPtr(const float& constant) { return &constant; }
 constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fireball case
@@ -63,18 +62,19 @@ constexpr float kHalfBits = 0.5f;                       // immediate pushed to t
 // --- Helpers -------------------------------------------------------------------------------------
 
 // Effect setters (world_effect*.cpp).
-// 0067AC70 (not rewritten): the missile's target object id.
+// The missile's target object id.
 // CEffectShowVisibility's two object ids (+0x14C, +0x150).
 // CPtrList constructor (block size) and destructor.
-// The unit controller (+0x240): 00552780 says remark `what`; 00551AE0 tries to be tamed by `tamer`
-// with skill `skill` (0 when it failed).
-// Footprints of the walls and clouds in the global cell set 007C8478 (thiscall on the set): along a
-// direction or a disc; then stamped into / cleared from the AI map (ai_footprint.cpp).
+// The unit controller (+0x240): says remark `what`; tries to be tamed by `tamer` with skill `skill` (0 when it
+// failed).
+// Footprints of the walls and clouds in the global cell set (thiscall on the set): along a direction or a
+// disc; then
+// stamped into / cleared from the AI map (ai_footprint.cpp).
 extern lib::StaticObject<FootprintCellSet> g_spellFootprint;   // ai_footprint.cpp
 inline FootprintCellSet* SpellFootprint() { return &*g_spellFootprint; }
 
 // --- x87 sequences ------------------------------------------------------------------------------
-// Plain C++ in the x87 order: double intermediates are the original's unrounded register values.
+// Plain C++ in the x87 order: double intermediates are the unrounded register values.
 
 // The spell's power curve after the ratio: pow(min(max(ratio, 1), 8), 0.33) - 0.2, written by the
 // original as FYL2X / F2XM1 / FSCALE (x87::flog, x87::fexp; the logarithm is used unrounded). The
@@ -90,9 +90,8 @@ inline double ClampPow(float ratio) {
     return x87::fexp(x87::flog(clamped) * 0.33000001311302185 /*007439A8*/) - 0.20000000298023224 /*0073CCD0*/;
 }
 
-// The spell's power factor, repeated inline about twenty times in the original: 1 when
-// the prototype's effect (+0x2C) compares equal to 0, else ClampPow of damage / effect
-// rounded to float.
+// The spell's power factor(repeated inline about twenty times in the game): 1 when the prototype's effect
+// (+0x2C) compares equal to 0, else ClampPow of damage / effect rounded to float.
 inline double PowerFactor(const float* damage, const float* effect) {
     EI_NAN_AUDIT(*effect);
     if (*effect == 0.0f /*0073B858*/) return 1.0f /*0073B84C*/;
@@ -140,8 +139,8 @@ inline int PowerScaledToInt(const float* damage, const float* effect, const floa
     return static_cast<int>(gamecrt::Ftol(PowerFactor(damage, effect) * *scale));
 }
 
-// World slot `slot` (thiscall on the world; x, y as the floats' bits): a ground height left
-// unrounded in ST0.
+// World virtual `slot` (thiscall on the world; x, y as the floats' bits): a ground height left unrounded in
+// ST0.
 inline double WorldHeight(void* world, int slot, std::uint32_t x, std::uint32_t y) {
     using Slot = double(__fastcall*)(void* self, void* unused, std::uint32_t x, std::uint32_t y);
     return reinterpret_cast<Slot>((*static_cast<void***>(world))[slot])(world, nullptr, x, y);
@@ -183,9 +182,9 @@ inline int FlightTicks(const float* distance, const float* speed) {
     return x87::fistp(static_cast<float>(static_cast<double>(*distance) / *speed * 15.0f /*0073C518*/));
 }
 
-// The walls' extent: the normal (-d.y, d.x, 0) in the ground plane scaled to length `radius`:
-// k = (float)(radius / sqrt(n.y*n.y + n.x*n.x)), then each component (float)(component * k). The
-// normal is written to `out` first (d.x copied as bits) and read back, as the original does.
+// The walls' extent: the normal (-d.y, d.x, 0) in the ground plane scaled to length `radius`: k =
+// (float)(radius / sqrt(n.y*n.y + n.x*n.x)), then each component (float)(component * k). The normal is
+// written to `out` first (d.x copied as bits) and read back.
 inline void WallSpan(const Vector3* direction, const float* radius, Vector3* out) {
     const double nx = -static_cast<double>(direction->y);
     out->x = static_cast<float>(nx);
@@ -219,11 +218,11 @@ inline std::uint32_t Bits(const float& f) {
 }
 
 inline bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
-// Where the object sees from (slot 48) into `scratch`.
+// Where the object sees from into `scratch`.
 inline Vector3* PositionOf(CEngineObject* object, Vector3* scratch) { return ObjectSlots(object)->EyePoint(scratch); }
 // A unit's server half (CUnit::controller).
 inline CUnitServer* ControllerOf(CUnit* unit) { return unit->ServerController(); }
-// The target as a unit (the callers checked its class, or the original does not).
+// The target as a unit (the callers checked its class, or the game does not).
 inline CUnit* TargetUnit(CSpellEffect* e) { return static_cast<CUnit*>(e->target.object); }
 
 // A new object of class `classId` (whose objects are T's) from the world's timed object manager

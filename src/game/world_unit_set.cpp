@@ -1,7 +1,6 @@
-// The unit set's writer, used by the server's SendZone (world_sync.cpp), and the
-// client's reader of the unit looks. See docs/notes/world.md ("Client maps", the unit
-// set). The set's three STLport hash_maps are walked with the original's iterator helpers, so the
-// order matches theirs.
+// The unit set's writer, used by the server's SendZone (world_sync.cpp), and the client's reader of the unit
+// looks. See docs/notes/world.md ("Client maps", the unit set). The set's three STLport hash_maps are walked
+// with the game's iterator helpers, so the order matches theirs.
 #include "core_streams.h"
 #include "record_vectors.h"
 #include "world.h"
@@ -18,9 +17,8 @@ using FiguredGroups = UnitSet::FiguredGroups;
 using FiguredTable = UnitSet::FiguredTable;
 using DressedTable = UnitSet::DressedTable;
 
-// The maps are walked as their iterators do: begin() (0055AB50 the groups, 0055ADF0 a group's
-// figured map, 0055AE50 the dressed map), then ++ (the chain's next node, else the next bucket's
-// head: 0055B9D0 groups, 0055B500 figured, the dressed map's inline with its hash 0055C5C0).
+// The maps are walked as their iterators do: begin() (the groups, a group's figured map, the dressed map), then
+// ++ (the chain's next node, else the next bucket's head; the dressed map's is inline with its hash).
 
 void Put(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
 
@@ -91,8 +89,7 @@ void UnitSet::Write(CStream* stream) {
 
 namespace {
 
-// vector<int>::resize(n, value) [004FE0C0], vector<CString>::resize [0051F5B0], the stream's
-// CString reader [004E5840, on the stream].
+// vector<int>::resize(n, value), vector<CString>::resize, the stream's CString reader.
 
 void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 

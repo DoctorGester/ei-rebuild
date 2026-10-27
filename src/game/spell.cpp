@@ -23,7 +23,7 @@ constexpr std::uint32_t kFltMaxBits = 0x7F7FFFFF;
 // Prototype names of the races the target flags exclude (bits 2..5 of CSpell::targetFlags_).
 constexpr const char* kHumanMale = "unhuma";
 constexpr const char* kHumanFemale = "unhufe";
-constexpr const char* kGoblin = "unmogo";         // 00794DF0 (provisional reading of the names)
+constexpr const char* kGoblin = "unmogo";         // provisional reading of the names
 constexpr const char* kOrcMale = "unorma";
 constexpr const char* kOrcFemale = "unorfe";
 constexpr const char* kMoli = "unmoli";
@@ -122,14 +122,14 @@ bool CSpell::IsOffensive() {
     }
 }
 EI_REWRITTEN(0x0068B770, CSpell::IsOffensive);
-// Site #0 of FixSpellSelfCasting; site #1 is in CBattleScreen::SelectUnit (00638EF0, original).
+// Site #0 of FixSpellSelfCasting; site #1 is in CBattleScreen::SelectUnit.
 
 bool CSpell::CanAffect(const CEngineObject* caster, CEngineObject* target) const {
     std::uint32_t flags = targetFlags_ & 0xFFFF;
     if (flags == 0) return true;
     if (!target || target->GetClassId() != kClassUnit) return false;
 
-    // The caster is taken as a unit without a class test, as the original.
+    // The caster is taken as a unit without a class test.
     const CUnit* unit = static_cast<const CUnit*>(target);
     if (caster) {
         const CUnit* source = static_cast<const CUnit*>(caster);
@@ -221,7 +221,7 @@ char* __stdcall SpellCodeByName(const char* name) {
         const char* spellName = spell->name;
         if (gamecrt::mbsicmp(spellName,
                             name) == 0) {
-            // The code string's pointer, as the original returns it.
+            // The code string's pointer.
             const char* code = spells.At(i)->code;
             return const_cast<char*>(code);
         }
@@ -237,7 +237,7 @@ char* __stdcall SpellModifierCodeByName(const char* name) {
         const char* modifierName = modifier->name;
         if (gamecrt::mbsicmp(modifierName,
                             name) == 0) {
-            // Out of range gives address 4 (null record + 4), as in the original.
+            // Out of range gives address 4 (null record + 4).
             return modifiers.At(i)->code;
         }
     }

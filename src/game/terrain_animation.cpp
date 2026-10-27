@@ -1,12 +1,11 @@
-// The landscape's per-frame work (006C3C80-006C4290, 006C8E90-006C926A, 006CB1E0): the update
-// (Terrain::RunTick), the sun and its staggered relighting (SetSun), the sectors' relight
-// countdowns, animated tiles and water waves (SectorData::Animate), and the sector reset helpers.
-// Waves: every water vertex has a phase offset (owner wavePhases, 006C57E0); the phase along the
-// wave direction runs from the sector's first water vertex (mod 2 pi) and steps by the direction
-// per vertex. The 512-entry sine table at that phase lifts the vertex (by waveHeight times the
-// material's +0x2C) and gives the crest its specular colour; materials of kind 4 move the vertex
-// sideways (only where its depth is negative), the others up and in a circle driven by the world
-// time (its sines per column and row once per call: CircleSines).
+// The landscape's per-frame work: the update (Terrain::RunTick), the sun and its staggered relighting
+// (SetSun), the sectors' relight countdowns, animated tiles and water waves (SectorData::Animate), and the
+// sector reset helpers. Waves: every water vertex has a phase offset (owner wavePhases); the phase along
+// the wave direction runs from the sector's first water vertex (mod 2 pi) and steps by the direction per
+// vertex. The 512-entry sine table at that phase lifts the vertex (by waveHeight times the material's
+// +0x2C) and gives the crest its specular colour; materials of kind 4 move the vertex sideways (only where
+// its depth is negative), the others up and in a circle driven by the world time (its sines per column and
+// row once per call: CircleSines).
 #include "terrain.h"
 #include "address_order.h"
 #include "at_exit_functions.h"
@@ -33,9 +32,9 @@ constexpr int kRow = 33;
 constexpr int kVertices = kRow * kRow;   // per layer
 constexpr std::uint32_t kLit = 4;        // SectorData::built
 
-constexpr float kPi = 3.14159274f;                         // 00744158 (float)
-// Table entries per radian: 256 / pi (00744198 / 00744150, doubles) as the original's FDIV leaves it
-// at 24-bit precision (SV7d1a: not the folded double).
+constexpr float kPi = 3.14159274f;                         // float pi
+// Table entries per radian: 256 / pi (doubles) as the FDIV leaves it at 24-bit precision (not the folded
+// double).
 constexpr float kSineIndex = static_cast<float>(256.0 / 3.141592653589793);
 constexpr float kQuarterTurn = 0.785398126f;
 constexpr float kTimeScale = 0.05f;                        // the circling waves' speed per world tick
@@ -45,7 +44,7 @@ constexpr float kCircleScale = 3.0f;
 constexpr float kMinComponent = 0.01f;
 
 // The world clock: whole ticks (FILD) and the fraction of the current one.
-// The sun's ray step scale (007C8964 = 1 * 95, a static initialiser), and the cell size.
+// The sun's ray step scale (1 * 95, a static initialiser), and the cell size.
 constexpr float kSunStepScale = /*007C8964*/ 95.0f;
 float CellSize() { return 1.0f /*007441D0*/; }
 
@@ -62,8 +61,8 @@ inline float Sine(const Terrain* owner, double phase) {
 
 inline std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v))) & 0xFF; }
 
-// The circling waves' sine per column (and per row: the same values) at the world time. The original
-// reads the time and looks both up per vertex; the same expressions once per call.
+// The circling waves' sine per column (and per row: the same values) at the world time. The game reads the
+// time and looks both up per vertex; the same expressions run once per call.
 void CircleSines(const Terrain* owner, float* sines) {
     float time = static_cast<float>((CurrentClientTick() + ClientTickFraction()) * kTimeScale);
     for (int i = 0; i < kRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
@@ -205,10 +204,10 @@ void SectorData::Animate(Terrain* landscape, int frame) {
 
 namespace {
 
-// The relight order, (sy, sx) of the sectors. The original's comparator meant this, but qsort
-// hands it the addresses of the array slots: it reads +0xC / +0x8 of those, the pointers three and two
-// slots further on (past the end for the last ones), so its order follows the heap. Ours compares the
-// sectors themselves (address_order.h).
+// The relight order, (sy, sx) of the sectors. The game's comparator meant this, but qsort hands it the
+// addresses of the array slots: it reads +0xC / +0x8 of those, the pointers three and two slots further on
+// (past the end for the last ones), so its order follows the heap. Here the sectors themselves are compared
+// (address_order.h).
 int __cdecl CompareSectors(const void* a, const void* b) {
     const auto* x = *static_cast<const SectorData* const*>(a);
     const auto* y = *static_cast<const SectorData* const*>(b);
@@ -218,7 +217,7 @@ int __cdecl CompareSectors(const void* a, const void* b) {
     return x->sx > y->sx ? 1 : 0;
 }
 
-// SetSun's function-local static (007C8938, guard bit 1 of 007C8948, freed at exit by 006C9270).
+// SetSun's function-local static (guard bit 1, freed at exit).
 constinit lib::AlignedArray<SectorData*> g_sortedSectors = /*007C8938*/ {};
 lib::AlignedArray<SectorData*>& SortedSectors() { return g_sortedSectors; }
 void __cdecl FreeSortedSectors() { g_sortedSectors.FreeData(); }

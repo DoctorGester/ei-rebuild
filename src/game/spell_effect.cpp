@@ -1,5 +1,5 @@
-// Spell effects hitting units: the helpers the effect state machines (0067F870 casting, 00681BB0
-// missiles, 00682650 lasting effects) call every tick to deliver a spell's damage.
+// Spell effects hitting units: the helpers the effect state machines (casting, missiles, lasting effects)
+// call every tick to deliver a spell's damage.
 #include "spell.h"
 
 #include "map_object.h"
@@ -24,8 +24,7 @@ constexpr int kPtrListBlockSize = 10;
 
 using UnitList = mfc::CTypedPtrList<CUnit>;
 
-// 005C0BD0 CSectorMap::FindUnitsInRadius (rewritten in sector_map.cpp; through its address so its
-// verify wrapper sees the call).
+// CSectorMap::FindUnitsInRadius (sector_map.cpp).
 CSectorMap* SectorMapOf(const CSpellEffect* effect) { return effect->world->Sectors(); }
 
 void InitList(UnitList& list) {
@@ -43,7 +42,7 @@ void DestroyList(UnitList& list) {
     list.RemoveAll();
 }
 
-// The test of IsSpellTarget, inlined by the original in the area loops.
+// The test of IsSpellTarget, inlined in the area loops.
 bool AcceptsAreaSpells(CUnit* unit) {
     if (unit->sizeClass != 0) return true;
     float value = std::bit_cast<float>(unit->GetPrototype()->height);
@@ -88,9 +87,8 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     DamageInfo hit;
     GetDamage(&hit);
 
-    // The wall's normal in the ground plane, as the original computes it: s = 2 / sqrt(x^2 + y^2)
-    // (rounded to float), normal = (s * -y, s * x, 0). The normal has length 2, so the test against 1
-    // accepts the units within 0.5 of the plane.
+    // The wall's normal in the ground plane: s = 2 / sqrt(x^2 + y^2) (rounded to float), normal = (s * -y,
+    // s * x, 0). The normal has length 2, so the test against 1 accepts the units within 0.5 of the plane.
     float x = direction->x;
     double minusY = -direction->y;
     float scale = static_cast<float>(2.0f / std::sqrt(x * x + minusY * minusY));

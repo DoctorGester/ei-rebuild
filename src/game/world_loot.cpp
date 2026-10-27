@@ -25,10 +25,10 @@ constexpr int kClassQuestItem = 0x14;                     // given to player 0 i
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 using GivenItems = mfc::CTypedPtrList<CItem>;
 
-// 0059A670 (a byte-identical copy of the particle list's GetNext): the item at `position`, which moves on.
+// A byte-identical copy of the particle list's GetNext: the item at `position`, which moves on.
 CItem* NextItem(GivenItems* list, GivenItems::Node** position) { return list->GetNext(*position); }
-// The objects (items, loot, gold) `object` holds for the taker (ECX = the
-// world's hoover); 0 when there is nothing to take.
+// The objects (items, loot, gold) `object` holds for the taker (the world's hoover); 0 when there is
+// nothing to take.
 
 template <typename T>
 void InitList(mfc::CTypedPtrList<T>& list, void* vtable) {
@@ -51,8 +51,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
     InitList(second, mfc::impl::ItemListClass::Vtable());
     InitList(third, mfc::impl::LootListClass::Vtable());
     int gold;
-    // The early returns empty the lists without their destructors' bookkeeping (00558C50 /
-    // 00429F10); the others destroy them.
+    // The early returns empty the lists without their destructors' bookkeeping; the others destroy them.
     auto abandon = [&]() {
         third.vtable = mfc::impl::LootListClass::Vtable();
         third.RemoveAll();
@@ -178,7 +177,7 @@ public:
     IdList(const IdList&) = delete;
     IdList& operator=(const IdList&) = delete;
 
-    // insert(end(), value): 004049D0 creates the node, 00404A40 links it.
+    // insert(end(), value): create the node, then link it.
     void PushBack(unsigned value) {
         auto* node = stlp::allocate_as<Node>();
         node->value = value;
@@ -214,7 +213,7 @@ void CWorldServer::LootDeadUnits() {
 
     IdList dead;
     while (node) {
-        CUnit* unit = UnitOrNull(object);   // (the original has no null test: the map holds no null here)
+        CUnit* unit = UnitOrNull(object);   // no null test here: the map holds no null
         if (unit && unit->IsDead()) {
             TheServerWorld()->Loot(unit, local);
             dead.PushBack(static_cast<unsigned>(object->id_));

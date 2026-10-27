@@ -34,7 +34,7 @@ constexpr int kDamageTypes = 7;
 constexpr int kClassUnitServer = 0x3E;
 constexpr float kHalfBack = -0.5f;
 
-// Remarks (party messages through CUnitServer 00552780) when an item wears out or breaks.
+// Remarks (party messages through CUnitServer) when an item wears out or breaks.
 constexpr int kRemarkArmourBroken = 0x23;
 constexpr int kRemarkArmourWorn = 0x25;
 constexpr int kRemarkWeaponBroken = 0x24;
@@ -43,7 +43,7 @@ constexpr int kRemarkWeaponWorn = 0x26;
 constexpr int kRemarkArmLost = 0x1E;
 constexpr int kRemarkLegLost = 0x1F;
 
-// The damage type names of the slot log (0078F6D8 ... 0078F694; 0078F68C for others).
+// The damage type names of the slot log.
 const char* const kTypeNames[kDamageTypes] = {
     "impaling",
     "slashing",
@@ -58,11 +58,10 @@ const char* const kCrippled = " HL was crippled";
 const char* const kDead = " HL is dead";
 
 // Armour slot of the piece covering hit location `location` at layer `layer` (1 or 2): four entries per
-// location, (first piece, second piece of a limb) at the inner layer, then at the outer one, as the original
-// indexes them.
+// location, (first piece, second piece of a limb) at the inner layer, then at the outer one.
 constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1, 7, 3, 6, 1, 7, 4, 5, 2, 7, 4, 5, 2, 7};
 
-float Max0(float value) { return value <= kZero ? kZero : value; }   // the original's select
+float Max0(float value) { return value <= kZero ? kZero : value; }   // select idiom
 } // namespace
 
 // The hit log stream (a MSVC 6 ostream) and its inserters (library code).
@@ -77,12 +76,12 @@ struct UnitLogStream : libcrt::Ostream {
 };
 
 namespace {
-// The hit log: the rpg stream (its static initialiser 005229C0 stores the address).
+// The hit log: the rpg stream (its static initialiser stores the address).
 constexpr libcrt::Ostream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
 UnitLogStream* HitLog() { return console::StreamAs<UnitLogStream>(*kHitLog); }
 } // namespace
 
-// CUnitServer 00552780: says remark `code` to the party; CUnitServer::Shout in unit_create.cpp.
+// CUnitServer: says remark `code` to the party; CUnitServer::Shout in unit_create.cpp.
 
 namespace {
 void Remark(CUnit* unit, int code) {

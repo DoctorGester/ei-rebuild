@@ -1,9 +1,7 @@
-// The spell database's and the item database's loads from their archive at startup and at every
-// switch of the resource database. A-H26.
-// Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are the
-// vanilla functions and install in the vanilla launch only (rule 9); callers go through
-// SpellTablesLoadOriginal / ItemDatabaseLoadOriginal. As unit_db_load.cpp; see
-// docs/notes/items_spells.md ("A-H26").
+// The spell database's and the item database's loads from their archive at startup and at every switch of the
+// resource database. Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are
+// the vanilla functions and install in the vanilla launch only (rule 9); callers go through
+// SpellTablesLoadOriginal / ItemDatabaseLoadOriginal. As unit_db_load.cpp; see docs/notes/items_spells.md.
 #include "chunk_archive.h"
 #include "item_db.h"
 
@@ -73,7 +71,7 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     CMemoryStream local;
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
-    // The serialisers' unused third argument, as the original passes it: the file's size.
+    // The serialisers' unused third argument: the file's size.
     void* const unused = reinterpret_cast<void*>(static_cast<std::uintptr_t>(size));
 
     LoadTable(stream, kSpellsChunk, &ChunkArchive::SerializeSpells, &spells, unused,

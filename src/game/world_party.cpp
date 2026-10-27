@@ -1,5 +1,5 @@
-// CWorldServer: the party arriving in a zone (Redeploy 00590700) and the quest items it brings
-// back. See world.h and docs/notes/world.md.
+// CWorldServer: the party arriving in a zone (Redeploy) and the quest items it brings back. See world.h and
+// docs/notes/world.md.
 #include "script.h"
 #include "world.h"
 
@@ -30,7 +30,7 @@
 
 namespace {
 
-// Values and vtables read from the exe's memory as the original does (rule 9).
+// Values and vtables read from the exe's memory (rule 9).
 float Half() { return 0.5f /*0073B86C*/; }            // 0.5f
 float CellSize() { return 1.0f /*0073F904*/; }        // the map cell size
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
@@ -47,11 +47,11 @@ constexpr std::uint32_t kNoStart = 0xC4A42000;   // -1313.0f as the state's last
 
 using ObjectList = mfc::CTypedPtrList<CItem>;
 
-// The player's carried items (CParty::items_): an aligned array of item pointers (its SetSize
-// 0059CB50 is lib::AlignedArray's).
+// The player's carried items (CParty::items_): an aligned array of item pointers (its SetSize is
+// lib::AlignedArray's).
 using ItemArray = PartyItemArray;
 
-// CArray<int> (vtable 0073EBD4), and the CArray of record pointers CreateUnits takes.
+// CArray<int>, and the CArray of record pointers CreateUnits takes.
 using IdArray = mfc::CArray<int>;
 using RecordArray = RecordPtrArray;
 
@@ -99,7 +99,7 @@ CItem* ItemAt(const ItemArray* items, int i) { return items->data[i]; }
 } // namespace
 
 void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
-    // The quest ids this zone's objects ask for (slot 38, slot 40), each once.
+    // The quest ids this zone's objects ask for, each once.
     IdArray wanted{IdArrayVtable(), nullptr, 0, 0, 0};
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
         CMapObject* object = node->value;
@@ -141,7 +141,7 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
             TakeZoneQuestItems(items, &taken);
         }
         if (player) {
-            // Each item is given back as a fresh copy (world slot 24) keeping its count; the old
+            // Each item is given back as a fresh copy (the world's copy virtual) keeping its count; the old
             // one is released.
             for (ObjectList::Node* node = taken.head; node;) {
                 ObjectList::Node* next = node->next;
@@ -243,7 +243,7 @@ void AddCountedTail(mfc::CTypedPtrList<CEngineObject>* list, CEngineObject* obje
 } // namespace
 
 CItem* CWorldServer::CopyItem(CItem* source) {
-    // The original also builds and frees two empty CPtrLists (vtable 0073B8D4) here, unused.
+    // The game also builds and frees two empty CPtrLists here, unused.
     std::uint32_t packed = source->prototypeId_;
     int type = source->type_;
     CItemManager* factory = ItemFactory();
@@ -261,25 +261,24 @@ CItem* CWorldServer::CopyItem(CItem* source) {
 
 namespace {
 
-// 006AC970 (RET 4, patched by Rebirth). The item manager makes an item by name.
-// The item manager makes a spell by name (with world slot 22).
+// Patched by Rebirth. The item manager makes an item by name. The item manager makes a spell by name.
 
-// The world server's item manager (CWorld::itemManager_, 007AFFB4).
+// The world server's item manager (CWorld::itemManager_).
 CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
 
 } // namespace
 
-// As in CopyItem, the original also builds and frees two empty CPtrLists around the call.
+// As in CopyItem, the game also builds and frees two empty CPtrLists around the call.
 CItem* CWorldServer::CreateItemNamed(const char* name) { return ItemManager()->CreateItem(name); }
 
 CItem* CWorldServer::CreateSpellNamed(const char* name) {
-    CItemManager* manager = ItemManager();   // read before slot 22, as in the original
+    CItemManager* manager = ItemManager();   // read first
     return manager->CreateSpellItem(name, SpellManager());
 }
 
 void CWorldServer::AddCounted(CEngineObject* item) {
     if (!item || counted_.Find(item)) return;
-    AddCountedTail(&counted_, item);   // the original inlines the same AddTail
+    AddCountedTail(&counted_, item);   // the same AddTail, inlined
 }
 
 EI_REWRITTEN(0x00594CE0, CWorldServer::CopyItem);

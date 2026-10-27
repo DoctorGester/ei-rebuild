@@ -35,8 +35,7 @@ int SkillDatabase::IndexOfLevel(const SkillLevelRecord* record) {
 }
 EI_REPLACE_METHOD(0x0051FF00, SkillDatabase::IndexOfLevel);
 
-// 00527FF0 (fastcall). What raising a school from level value `from` to `to` costs: the worths'
-// difference, truncated.
+// What raising a school from level value `from` to `to` costs: the worths' difference, truncated.
 int __fastcall SchoolPrice(int from, int to) {
     const double upper = Worth(to);
     const double lower = Worth(from);
@@ -49,8 +48,7 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     double worth = Worth(level->WorthExponent());
     double below;
     if (index % 3 > 0) {
-        // The level below in the same skill: the record before it (read unchecked: a missing one
-        // faults, as in the original).
+        // The level below in the same skill: the record before it (read unchecked: a missing one faults).
         const ::SkillLevelRecord* previous = unitdb::SkillLevelAt(static_cast<std::uint32_t>(index - 1));
         below = Worth(previous->WorthExponent());
     } else {

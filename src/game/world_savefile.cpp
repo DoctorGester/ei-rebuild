@@ -1,6 +1,6 @@
-// The save files (scenario.sav, mission.sav, saves\current\<zone>.sav): 00579B80 writes a memory
-// stream to a file stream under a header, LZ-compressed (and checked by decompressing it again),
-// 00579830 reads one back. See net_coder.h for the coder and docs/notes/world.md.
+// The save files (scenario.sav, mission.sav, saves\current\<zone>.sav): the writer puts a memory stream into a
+// file stream under a header, LZ-compressed (and checked by decompressing it again); the reader reads one back.
+// See net_coder.h for the coder and docs/notes/world.md.
 #include "world.h"
 
 #include "core_streams.h"
@@ -16,7 +16,7 @@ namespace {
 constexpr int kVersionChecksum = 0x6B;    // above: a checksum of the uncompressed data
 constexpr int kVersionFlag = 0x71;        // above: a byte saying whether the data is compressed
 
-// The stream's format version, compared signed as the original does.
+// The stream's format version, compared signed.
 int VersionOf(const CStream* stream) { return static_cast<int>(stream->version_); }
 
 // The growing buffer's Seek when it has to grow.
@@ -48,7 +48,7 @@ std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {
     return h;
 }
 
-// A coder on the stack whose cursor is ended on the way out (0041D930, inlined).
+// A coder on the stack whose cursor is ended on the way out (inlined).
 struct LocalCoder {
     CoderState state;
     LocalCoder() { state.Construct(); }

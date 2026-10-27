@@ -24,14 +24,14 @@ CItem* CUnit::TakeRandomItem() {
         MarkChanged(kPartItems);
         return item;
     }
-    // The original collects the filled slots in a CArray<int> (vtable 0073EBD4, grown one by one
-    // with 00533740) and frees it afterwards; a fixed array does the same.
+    // The game collects the filled slots in a CArray<int> (grown one by one) and frees it afterwards; a
+    // fixed array does the same.
     int filled[kQuickSlots];
     unsigned count = 0;
     for (int i = 0; i < kQuickSlots; ++i)
         if (quickItems[i]) filled[count++] = i;
     if (count == 0) return nullptr;
-    int slot = filled[IsaacRandom::Global().Next() % count];   // the draw is inlined in the original
+    int slot = filled[IsaacRandom::Global().Next() % count];   // the draw is inlined
     CItem* item = quickItems[slot];
     quickItems[slot] = nullptr;
     MarkChanged(kPartItems);

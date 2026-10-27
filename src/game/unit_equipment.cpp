@@ -1,5 +1,5 @@
-// A new unit's starting equipment from its prototype (005141F0; the world adds zone units with it
-// after ApplyPrototype). See unit_create.h (CMapObjectManager) and docs/notes/units.md ("Rewritten").
+// A new unit's starting equipment from its prototype (the world adds zone units with it after
+// ApplyPrototype). See unit_create.h (CMapObjectManager) and docs/notes/units.md ("Rewritten").
 #include "item.h"
 #include "unit_create.h"
 #include "game_strings.h"
@@ -20,12 +20,11 @@ constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units
 
 // The game's texts: "none" (a weapon name that gives no weapon) and the FatalError formats.
 
-// Through their game addresses (rewritten elsewhere; their verify wrappers stay in the path, and
-// Rebirth's patches of 006AC970 and 00480080 still run): 005144D0 the prototype table's name
-// lookup (UnitPrototypeTable::FindByName, unit_create.cpp; inserts unknown names); 006AC970 the
-// item manager's item by name (item_constructor.cpp); 00480080 FatalError (app.cpp); CUnit's
-// EquipArmour / AddWeapon / AddSpell (unit_items.cpp, unit.cpp). 006AD1E0, the item manager's
-// spell by name (with world slot 22), is not rewritten.
+// Through their game addresses (defined elsewhere; their verify wrappers stay in the path, and Rebirth's patches
+// still run): the prototype table's name lookup (UnitPrototypeTable::FindByName, unit_create.cpp; inserts unknown
+// names); the item manager's item by name (item_constructor.cpp); FatalError (app.cpp); CUnit's EquipArmour /
+// AddWeapon / AddSpell (unit_items.cpp, unit.cpp). The item manager's spell by name (with the world's manager
+// context) is not defined here.
 
 std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32_t>(names.size()); }
 
@@ -54,7 +53,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
         return 0;
     }
     if (unit->type_ == kTypeArmed) {
-        // The loop bounds are read again on every pass, as in the original.
+        // The loop bounds are read again on every pass.
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             CItem* armour = items->CreateItem(prototype->armourNames.begin()[i]);
             if (armour) unit->EquipArmour(armour);

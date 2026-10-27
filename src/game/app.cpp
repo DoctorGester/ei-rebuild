@@ -1,7 +1,6 @@
 // Application helpers around WinMain: window procedure, input dispatcher,
 // message pump and the start of the first map. See app.h.
-// Callees patched by Rebirth (0057C700, 00595480, FatalError 00480080) are reached through their
-// original addresses.
+// Callees patched by Rebirth (the fatal-error path among them) are reached through their fixed addresses.
 #include "device.h"   // the old device's calls
 #include "app.h"
 #include "console.h"
@@ -39,15 +38,14 @@ namespace {
 
 
 
-// The interface takes the input: pending windows closed before and after each message
-// then the message with (wParam, x, y) (005F76A0-005F7BE0; ui_interface_input.cpp).
+// The interface takes the input: pending windows closed before and after each message,
+// then the message with (wParam, x, y) (ui_interface_input.cpp).
 
 // The console's ostream.
 libcrt::Ostream* Console() { return &console::g_consoleOut; }
 
 // Objects told about activation changes: the cursor, the display device
-// (RenderDeviceObject), the scene renderer, the mouse (pointer at 0079BA08) and the sound manager
-// (pointer at 007AF784).
+// (RenderDeviceObject), the scene renderer, the mouse and the sound manager.
 CDirectInputMouse* TheMouse() { return Mouse(); }
 
 
@@ -80,9 +78,9 @@ LRESULT OnActivate(WPARAM wParam) {
         SceneRenderer()->RestoreSurfaces();
         device = TheRenderDevice();
         if (device) {
-            // 005DAE70 (ResetCursors) after the device was restored. The original pushes the last
-            // argument from EAX after loading only AL, so its upper bytes are those of the device
-            // pointer; the value below rebuilds them. The context is the mouse.
+            // ResetCursors after the device was restored. The last argument is pushed from EAX after only AL
+            // was loaded, so its upper bytes are those of the device pointer; the value below rebuilds them.
+            // The context is the mouse.
             std::uint32_t flags = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
                                   (g_deviceNamed == 0 ? 1u : 0u);
             ResetCursors(options::TheOptions()->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(TheMouse())), 0,
@@ -105,8 +103,7 @@ LRESULT OnSysCommand(HWND window, WPARAM wParam, LPARAM lParam) {
     return gameapi::DefWindowProcA(window, WM_SYSCOMMAND, wParam, lParam);
 }
 
-// The "QueryCancelAutoPlay" message id, registered on first use (function-local static of the
-// original: guard bit 0 of 0079BA04, id 0079BA00).
+// The "QueryCancelAutoPlay" message id, registered on first use (a function-local static).
 std::uint8_t g_autoPlayGuard = /*0079BA04*/ {};
 std::uint32_t g_autoPlayMessage = /*0079BA00*/ {};
 UINT AutoPlayMessage() {
@@ -207,7 +204,6 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
         input->OnKeyDown(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_SYSKEYUP:
-        // (006FC14E, "%u", for the int; 006FC91C, "%ld", for lParam.)
         Console()->PutUnsigned(static_cast<unsigned>(w))->PutChar(':')->PutLong(static_cast<long>(lParam))->PutChar('\n')
             ->Apply(libcrt::FlushManipulator);
         if (wParam == VK_TAB && AltDown(lParam)) {   // Alt+Tab: as if the window was deactivated
@@ -299,7 +295,6 @@ namespace {
 const char* FlipFailedText() { return "Can't flip to GDI surface.\n"; }
 } // namespace
 
-// 004560D0 (A-E2).
 int __fastcall ShowMessageBox(const char* text, int flags) {
     HCURSOR cursor = gameapi::GetCursor();
     CTextureDevice* device = TheRenderDevice();
@@ -325,9 +320,9 @@ int g_fatalErrorCount = /*007A9B9C*/ {};
 } // namespace
 
 // Formats the error (wvsprintfA, 1 KB), shows it in a message box, hands it to the error hook and
-// exits the game (exit(-1); the error counter at 007A9B9C reaches 1). Rebirth's
-// DisableExitOnCrashReport replaces the message box with a line in addon.log (not reproduced) and
-// removes the exit, so the game carries on. Returns 0.
+// exits the game (exit(-1); the error counter reaches 1). Rebirth's DisableExitOnCrashReport
+// replaces the message box with a line in addon.log (not reproduced) and removes the exit, so the
+// game carries on. Returns 0.
 } // namespace app
 
 int __cdecl game::FatalError(const char* format, ...) {
@@ -378,7 +373,7 @@ namespace {
 const char* MemoryDepletedText() { return "Memory depleted"; }
 } // namespace
 
-// 00455A30 (A-E2). The body is the message box 004560D0's, inlined.
+// The body is the message box's, inlined.
 int __cdecl OutOfMemory(std::size_t) {
     ShowMessageBox(MemoryDepletedText(), kErrorBoxFlags);
     return 0;

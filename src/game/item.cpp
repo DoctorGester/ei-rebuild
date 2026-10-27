@@ -33,7 +33,7 @@ ItemRecordHead* CItem::GetPrototype() {
 EI_REWRITTEN(0x006A0110, CItem::GetPrototype);
 
 int CItem::GetCategory() {
-    // Same lookup as GetPrototype, inlined in the original.
+    // Same lookup as GetPrototype, inlined.
     const ItemRecordHead* prototype = GetPrototype();
     return prototype ? static_cast<int>(prototype->category) : INT_MAX;
 }
@@ -71,7 +71,7 @@ EI_REWRITTEN(0x006A0770, CItemWeapon::GetDamageTypes);
 double CItemWeapon::RollDamage() {
     EI_NAN_AUDIT(damageSpread_);
     if (damageSpread_ == kZero) return damage_;
-    float high = damageSpread_ + damage_;   // stored as float in the original
+    float high = damageSpread_ + damage_;   // stored as float
     float low = damage_;                     // read back from memory for the subtraction and the add
     std::uint32_t roll = IsaacRandom::Global().Next();
     volatile std::int64_t roll64 = roll;               // FILD qword: exact

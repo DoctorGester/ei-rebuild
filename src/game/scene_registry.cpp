@@ -1,10 +1,9 @@
-// The figure registry of a CFakeUnit scene (0044B980, called by LoadFakeUnitScene 00446C10): the
-// scene's .reg file names, per material group (a mesh's face group named like a scene helper), the
-// texture section (the helper's +0x8C name, matched case-insensitively against the file's
-// sections), its "Main Texture Name" and the texture's "Dimentions"; a mapping section (X, Y,
-// Width, Height) moves the group's texture coordinates into that rectangle of the texture (each
-// coordinate once per mesh). Then the material type of the mesh's last group name is
-// stored in the mesh (+0x184 / +0x188) and recorded, with the texture name, in the two caller
+// The figure registry of a CFakeUnit scene (called by LoadFakeUnitScene): the scene's .reg file names, per
+// material group (a mesh's face group named like a scene helper), the texture section (the helper's +0x8C
+// name, matched case-insensitively against the file's sections), its "Main Texture Name" and the texture's
+// "Dimentions"; a mapping section (X, Y, Width, Height) moves the group's texture coordinates into that
+// rectangle of the texture (each coordinate once per mesh). Then the material type of the mesh's last group
+// name is stored in the mesh (+0x184 / +0x188) and recorded, with the texture name, in the two caller
 // arrays. Names provisional; see docs/notes/objects.md ("Facts").
 #include "scene_loader.h"
 #include "game_strings.h"
@@ -38,12 +37,12 @@ SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return unit->meshes.data[ind
 using Registry = CFileRegistry;
 
 
-// The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C; the
-// DwordMap layout): its GetAssocAt, InitHashTable and NewAssoc.
+// The local CMap<DWORD, DWORD> of texture coordinates already moved (the DwordMap layout): its GetAssocAt,
+// InitHashTable and NewAssoc.
 using SeenMap = DwordMap;
 void* SeenMapVtable() { return mfc::impl::FigureRegistryMapClass::Vtable(); }
 
-// map[key] as the original inlines it: the association (created with value 0 when missing).
+// map[key] as inlined in the game: the association (created with value 0 when missing).
 MapAssoc* MapLookup(SeenMap& map, std::uint32_t key) {
     std::uint32_t hash;
     MapAssoc* assoc = map.GetAssocAt(key, hash);
@@ -228,9 +227,8 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& grou
 
 } // namespace
 
-// 0044B980 (__fastcall: the unit in ECX, the .reg path in EDX; RET 8). `links` collects (type,
-// value) pairs, `names` (type, texture name) records, each once. Returns 1, 0 when the file has
-// no sections, or what FatalError returns when it cannot be opened.
+// `links` collects (type, value) pairs, `names` (type, texture name) records, each once. Returns 1, 0 when
+// the file has no sections, or what FatalError returns when it cannot be opened.
 int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, TextureLinkArray* links,
                                   TextureNameArray* names) {
     mfc::CString groupName;

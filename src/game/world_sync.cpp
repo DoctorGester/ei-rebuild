@@ -26,13 +26,13 @@
 
 void __fastcall DiffObjectSets(lib::AlignedArray<CEngineObject*>* sent, lib::AlignedArray<CEngineObject*>* current,
                                lib::AlignedArray<CEngineObject*>* added, lib::AlignedArray<CEngineObject*>* gone,
-                               lib::AlignedArray<CEngineObject*>* same);   // 0047B1F0 (world_object_sets.cpp)
+                               lib::AlignedArray<CEngineObject*>* same);   // world_object_sets.cpp
 
 namespace {
 
 // ---- Data -------------------------------------------------------------------------------------
 
-// Distance limits, read from the exe's memory as the original does (rule 9).
+// Distance limits, read from the exe's memory (rule 9).
 float ViewRange() { return 100.0f /*0073F91C*/; }        // objects seen around the camera
 float HearingScale() { return 2.0f /*0073F910*/; }     // unit perception scale
 float HearingMargin() { return 5.0f /*0073BF34*/; }    // added to it
@@ -59,11 +59,11 @@ constexpr int kModeGone = 4;
 constexpr int kKindSinglePlayer = 1;         // CWorldServer::sessionKind_
 constexpr int kKindNoRangeTest = 3;
 
-// A function-static aligned pointer array of the original ({data, size, capacity, growBy}; the
-// data block from 0047B940, freed through the pointer stored before it).
+// A function-static aligned pointer array ({data, size, capacity, growBy}; the data block is freed through the
+// pointer stored before it).
 using StaticPtrArray = lib::AlignedArray<CEngineObject*>;
 
-// SyncPlayer's four function statics (their guard bits at 007AFF58) and their atexit destructors.
+// SyncPlayer's four function statics (their guard bits) and their atexit destructors.
 constinit lib::AlignedArray<CEngineObject*> g_collected = /*007AFF48*/ {};
 constinit lib::AlignedArray<CEngineObject*> g_added = /*007AFF38*/ {};
 constinit lib::AlignedArray<CEngineObject*> g_kept = /*007AFF28*/ {};
@@ -86,15 +86,14 @@ using AtExitFunction = void(__cdecl*)();
 // The game's atexit.
 // The time of day and the time speed.
 // The player state's (CPlayerServer) messages and updates.
-// 0047B1F0 (world_object_sets.cpp). Compares the ids in `known` with the objects in `current`;
-// fills `added`, `kept` and `removed`.
+// world_object_sets.cpp. Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and
+// `removed`.
 void DiffSets(PlayerObjectArray* known, StaticPtrArray* current, StaticPtrArray* added, StaticPtrArray* kept,
               StaticPtrArray* removed) {
     ::DiffObjectSets(known, current, added, kept, removed);
 }
-// The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured
-// groups 005985E0 / 005986B0, the dressed records 00598790 / 00598860: gamehash's tables), the unit
-// added with 005593D0 and the set written with 00559E60.
+// The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured groups, the
+// dressed records: gamehash's tables), the unit added by UnitSet::Add and the set written by its writer.
 
 // The function statics' lazy construction (empty arrays, destructor registered with atexit).
 void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destructor) {
@@ -109,8 +108,8 @@ void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destruct
 
 const float* PositionOf(CEngineObject* object) { return &ObjectSlots(object)->localPosition_.x; }
 
-// Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The
-// squared distance and the squared range stay on the FPU (dy^2 + dx^2, as the original adds).
+// Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The squared distance
+// and the squared range stay on the FPU (dy^2 + dx^2, in that order).
 bool OutOfView(const float* point, const CPlayerServer* state) {
     double dx = static_cast<double>(point[0]) - state->lastPosition_.x;
     double dy = static_cast<double>(point[1]) - state->lastPosition_.y;
@@ -179,7 +178,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         auto* controller = unit->ServerController();
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
-        float range = perception >= minimum ? perception : minimum;   // the original's branch-free select
+        float range = perception >= minimum ? perception : minimum;   // branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
         world->Sectors()->FindUnitsInRadius(&ObjectSlots(unit)->localPosition_, &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
@@ -189,8 +188,8 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
     return out;
 }
 
-// The timed objects (spells, effects) a player should know: those whose reach (slot 19 squared)
-// covers its camera.
+// The timed objects (spells, effects) a player should know: those whose reach (a virtual, squared) covers its
+// camera.
 CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, CEngineObject** out) {
     for (auto* node = world->timedObjects_.map.First(); node && node->value; node = world->timedObjects_.map.After(node)) {
         CEngineObject* object = node->value;
@@ -226,8 +225,7 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
         }
         if (dirty & kDirtyWeather) {
             int strength = x87::fistp(weatherStrength_);
-            // The original pushes EAX with the byte in AL (the rest is left from the dirty flags);
-            // the callee reads the byte.
+            // EAX is pushed with the byte in AL (the rest is left from the dirty flags); the callee reads the byte.
             if (!state->SendState70(static_cast<std::uint8_t>(weather_), static_cast<std::uint16_t>(strength))) return 0;
         }
         if (player->dirty_ & kDirtyTime) {

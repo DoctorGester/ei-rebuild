@@ -1,10 +1,9 @@
-// The zone's unit skins and figures (00568800, thiscall on the zone's client object, called by the
-// zone load 00567AB0): for every dressed unit (first list, 0x24-byte records) two composite
-// textures are built through the texture cache (+0x18C, 00693180): the body skin ("<model>skin_NN.mmp"
-// and the armour pieces' "<model><item>.mmp"), registered as "mo<n>p" / "prot<n>p", then the head
-// and weapon textures ("mo<n>s" / "prot<n>s"); for every other unit (second list, 0x3C-byte records)
-// the list of its textures goes to the figure maker (+0x34, slot 3). Names provisional; see
-// docs/notes/world.md.
+// The zone's unit skins and figures (thiscall on the zone's client object, called by the zone load): for
+// every dressed unit (first list, 0x24-byte records) two composite textures are built through the texture
+// cache (+0x18C): the body skin ("<model>skin_NN.mmp" and the armour pieces' "<model><item>.mmp"),
+// registered as "mo<n>p" / "prot<n>p", then the head and weapon textures ("mo<n>s" / "prot<n>s"); for every
+// other unit (second list, 0x3C-byte records) the list of its textures goes to the figure maker (+0x34).
+// Names provisional; see docs/notes/world.md.
 #include "console.h"
 #include "game_strings.h"
 #include "item.h"
@@ -53,7 +52,7 @@ constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 
 using IdList = UnitIdList;
 
-// The byte distance between a vector's ends, as the original tests it (the count's bits, times 4).
+// The byte distance between a vector's ends, as tested in the game (the count's bits, times 4).
 template <typename T>
 std::uintptr_t ByteSpan(stlp::vector<T>& list) {
     return static_cast<std::uintptr_t>(list.Finish() - list.Start()) * sizeof(T);
@@ -61,20 +60,16 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// An item's texture name [006A3480: out, material index; armour index] and a weapon's [006A0BF0:
-// out, weapon record; material record]; the weapon and material records are the tables' At
-// (0056E440 on 007C86F8, 0056E400 on 007C86D8): WeaponAt / MaterialAt.
-// The 12-byte record list of a unit's textures (filled by UnitTextureRecords, 005683D0): its
-// constructor [0056F570, allocator] and destructor [0056F590].
-// The texture set's byte array: destructor [0051E5B0], allocation [004ECB50].
-// The texture cache [this +0x18C]: build a composite texture [00693180 CTextureManager::Compose: out name, set,
-// name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
-// The second list: the unit's texture names from its prototype [00535CB0: unit in ECX, record +4 in
-// EDX; record +0x10, names, more names]; vector<string> members: constructor [0053BB80], copy into
-// new storage [0053D7F0: count, first, last], element destructors [004DDC90 with 0, 0040C720],
-// storage free [00426860: ECX block, EDX count; 0053BF40: block, count], push_back's copy
-// [004F5DF0: ECX place, EDX string] and overflow [004DCE90: position, string, count], range insert
-// [00575E50: position, first, last, tag]; the node allocator [00405950: ECX bytes].
+// An item's texture name (an armour's: out, material index, armour index; a weapon's: out, weapon record, material
+// record); the weapon and material records are the tables' At: WeaponAt / MaterialAt. The 12-byte record list of a
+// unit's textures (filled by UnitTextureRecords): its constructor (allocator) and destructor. The texture
+// set's byte
+// array: destructor, allocation. The texture cache (this +0x18C): build a composite texture
+// (CTextureManager::Compose: out name, set, name, name, 3, 0, 0x5551) and register it (kind, name). The second
+// list:
+// the unit's texture names from its prototype (unit in ECX, record +4 in EDX; record +0x10, names, more names);
+// vector<string> members: constructor, copy into new storage (count, first, last), element destructors, storage
+// free, push_back's copy and overflow, range insert; the node allocator.
 void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
 
 // --- The dressed units ---------------------------------------------------------------------------
@@ -83,7 +78,7 @@ void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, sta
 // records as its layer bytes, the texture file names, the composite's size as its flags.
 using SkinComposition = SkinRequest;
 
-// The vector 005683D0 fills: 12-byte texture records (copied into the set as bytes): a kind (0x32
+// The vector UnitTextureRecords fills: 12-byte texture records (copied into the set as bytes): a kind (0x32
 // the body, 0x3005 an armour piece, 0x3004 a weapon), the item id and the item record's type.
 struct TextureRecord {
     std::uint32_t kind;
@@ -95,7 +90,7 @@ using RecordList = stlp::vector<TextureRecord>;
 
 } // namespace
 
-// 005683D0 (__fastcall: CL `body`, EDX the dressed unit record; RET 4 the record list). Defined below.
+// UnitTextureRecords (`body`, the dressed unit record; returns the record list). Defined below.
 void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list);
 
 namespace {
@@ -107,7 +102,7 @@ void CopyRecords(SkinComposition& set, const RecordList& list) {
     std::memcpy(set.layers.data, list.begin(), static_cast<std::size_t>(size));
 }
 
-// The original's inlined strcpy / strcat: the bytes up to and including the terminator.
+// Inlined strcpy / strcat: the bytes up to and including the terminator.
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 void AppendText(char* to, const char* from) { CopyText(to + std::strlen(to), from); }
 
@@ -241,7 +236,7 @@ void Reserve(StringList& list, int needed) {
     stlp::string* storage;
     if (list.Start()) {
         storage = StringList::AllocateAndCopy<stlp::StringElement>(static_cast<std::size_t>(needed), list.Start(), list.Finish());
-        for (stlp::string* s = list.Start(); s != list.Finish(); ++s) s->~string();   // 004DDC90 with 0
+        for (stlp::string* s = list.Start(); s != list.Finish(); ++s) s->~string();
         StringsFree(list.Start(), Capacity(list));
     } else {
         storage = needed ? stlp::allocate_as<stlp::string>(static_cast<std::size_t>(needed)) : nullptr;
@@ -282,35 +277,34 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 
     {
         stlp::string name(ModelPrefix(model));
-        // The figure loader's slot 3 (LoadFigure; not fresh).
+        // The figure loader's LoadFigure (not fresh).
         self->figureLoader_->LoadFigure(&name, &first, record->morphS, record->morphT, record->morphU, false);
     }
 
     for (stlp::string* s = second.Start(); s != second.Finish(); ++s) s->~string();
     stlp::deallocate(second.Start(), static_cast<std::size_t>(Capacity(second)) * 12);
-    for (stlp::string* s = first.Start(); s != first.Finish(); ++s) s->~string();   // 004DDC90 with 0
+    for (stlp::string* s = first.Start(); s != first.Finish(); ++s) s->~string();
     stlp::deallocate(first.Start(), static_cast<std::size_t>(Capacity(first)) * 12);
 }
 
 } // namespace
 
-// 00568800 (thiscall, RET 8). `others` and `dressed` are vectors of unit records (0x3C / 0x24
-// bytes); the dressed units (the second argument) come first.
+// `others` and `dressed` are vectors of unit records (0x3C / 0x24 bytes); the dressed units (the second
+// argument) come first.
 void CWorldClient::BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed) {
     for (DressedUnitRecord* r = dressed->Start(); r != dressed->Finish(); ++r) DressUnit(this, r);
     for (FiguredUnitRecord* r = others->Start(); r != others->Finish(); ++r) FigureUnit(this, r);
 }
 EI_REWRITTEN(0x00568800, CWorldClient::BuildUnitSkins);
 
-// The list is emptied; nothing more for a unit without items. The body list has eight records:
-// [0] the body (0x32, the prototype), [1] empty (0, -1, -1), [2..7] the armour pieces of
-// items[1..6] (0x3005, the armour's type; item i goes to record i + 1, 00568441). The head list two: [0] the helmet row items[0] (0x3005)
-// and [1] the shown extra weapon (0x3004, the weapon's type) when its index is within the list.
-// items[1..6] are read whatever the item list's size; an id past its table reads through a null
-// record as the original does (it faults).
+// The list is emptied; nothing more for a unit without items. The body list has eight records: [0] the body
+// (0x32, the prototype), [1] empty (0, -1, -1), [2..7] the armour pieces of items[1..6] (0x3005, the
+// armour's type; item i goes to record i + 1). The head list two: [0] the helmet row items[0] (0x3005) and
+// [1] the shown extra weapon (0x3004, the weapon's type) when its index is within the list. items[1..6] are
+// read whatever the item list's size; an id past its table reads through a null record (it faults).
 void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list) {
     constexpr std::uint32_t kBody = 0x32, kArmourPiece = 0x3005, kWeapon = 0x3004;
-    list->clear();   // 0056F2F0 erase(begin, end)
+    list->clear();   // erase(begin, end)
     auto& items = const_cast<IdList&>(record->items);
     if ((ByteSpan(items) & ~std::uintptr_t{3}) == 0) return;
     const TextureRecord empty = {0, kNone, kNone};

@@ -1,6 +1,5 @@
-// The armour and weapon model names by record indices (006A3480, 006A0AA0; unit skins and models
-// build the texture of a worn piece with them) and the weapon's from its records. See
-// item.h; the item classes' own name builders are item_names.cpp.
+// The armour and weapon model names by record indices (unit skins and models build the texture of a worn piece with
+// them) and the weapon's from its records. See item.h; the item classes' own name builders are item_names.cpp.
 #include "item.h"
 
 #include "ei/hook.h"
@@ -38,7 +37,7 @@ void __fastcall WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, st
 EI_REWRITTEN(0x006A0AA0, WeaponModelName);
 
 void __fastcall WeaponRecordModelName(mfc::CString* out, const WeaponRecord* weapon, const MaterialRecordHead* material) {
-    // The code's four bytes are the stack slot the original saved ECX (`out`) in.
+    // The code's four bytes are the stack slot `out` was saved in.
     char code[4];
     std::memcpy(code, &out, sizeof(code));
     if (static_cast<std::uint32_t>(weapon->type) <= 6) std::memcpy(code, kWeaponCodes[weapon->type], 3);

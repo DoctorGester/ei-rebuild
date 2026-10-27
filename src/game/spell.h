@@ -26,25 +26,26 @@ class CEffect;              // world_effect.h
 class CEffectParticle;      // world_effect.h
 class CEffectPointLight;    // world_effect.h
 
-// A spell instance ("CSpell", class id 0x4F; game.exe's vtable 00743A94 is retired). prototypeId_ of CEngineObject is
-// the packed id: spell prototype index << 16.
+// A spell instance ("CSpell", class id 0x4F). prototypeId_ of CEngineObject is the packed id: spell
+// prototype index << 16.
 class CSpell : public CEngineObject {
 public:
-    // spell_lifetime.cpp. 0068B1F0: the base fields, the effect record (MapEffect::Construct), +0x30..+0x4C 0, +0x50 1,
-    // no modifiers. 0068B2C0: Destroy (inlined), then the base's. 0068B2A0: slot 0.
+    // Constructor (spell_lifetime.cpp): the base fields, the effect record (MapEffect::Construct),
+    // +0x30..+0x4C 0, +0x50 1, no modifiers. Destructor: Destroy (inlined), then the base's. Then the
+    // deleting destructor.
     CSpell();
     ~CSpell() override;
 
     // Clears the parameters and the modifier list. Returns 1.
     int Create() override;
-    // 3: 0068B350 (spell_cast.cpp). ClearState (slot 5), then the modifier list cleared.
+    // Destroy (spell_cast.cpp): ClearState, then the modifier list cleared.
     void Destroy() override;
-    // 9 / 10: 0068B860 / 0068B920 (spell_save.cpp): the effect record (+0x1C), +0x30..+0x4C, the modifiers, flags_
-    // and +0x50. Load clears the modifiers first.
+    // Load / Save (spell_save.cpp): the effect record (+0x1C), +0x30..+0x4C, the modifiers, flags_ and
+    // +0x50. Load clears the modifiers first.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    const char* GetClassName() override;   // 11: 0068B280 "CSpell"
-    int GetClassId() override;             // 12: 0068B290 (0x4F)
+    const char* GetClassName() override;   // "CSpell"
+    int GetClassId() override;             // class id 0x4F
 
     // Copies the parameters from a spell prototype record. Returns 1.
     BOOL InitFromPrototype(const itemdb::SpellRecord* prototype);
@@ -70,8 +71,7 @@ public:
     // according to the target flags in the low 16 bits of flags_ (+0x3C).
     bool CanAffect(const CEngineObject* caster, CEngineObject* target) const;
 
-    // Copies the parameters, the modifiers and the packed id into `target` (whose slot 3
-    // runs first).
+    // Copies the parameters, the modifiers and the packed id into `target` (whose Destroy runs first).
     void CopyTo(CSpell* target);
 
     // A new spell made by `manager` (CreateSpellObject(-1)) with this spell's contents.
@@ -118,27 +118,27 @@ struct DamageInfo {
 };
 static_assert(sizeof(DamageInfo) == 0x3C);
 
-// A spell being applied (0xA8 bytes; Construct 0067E510, created by CWorldServer::CastSpell 0058E670):
-// the world server's missiles (ProjectileList, world.h). It embeds the CSpell it applies at +0x34
-// (Spell()): the effect reads the spell's packed id, effect record, damage, radius (area), missile
-// speed and duration (also the number of targets the damage is split between, and the lasting
-// effects' ticks). A counted object (game.exe's table 0074399C: CRefCounted's two slots).
+// A spell being applied (0xA8 bytes; created by CWorldServer::CastSpell): the world server's missiles
+// (ProjectileList, world.h). It embeds the CSpell it applies at +0x34 (Spell()): the effect reads the
+// spell's packed id, effect record, damage, radius (area), missile speed and duration (also the number of
+// targets the damage is split between, and the lasting effects' ticks). A counted object (CRefCounted's
+// virtuals).
 class CSpellEffect final : public CRefCounted {
 public:
-    // spell_lifetime.cpp. 0067E510: everything but the reference count and flags cleared (the creator sets them),
-    // the spell constructed.
+    // Constructor (spell_lifetime.cpp): everything but the reference count and flags cleared (the creator
+    // sets them), the spell constructed.
     CSpellEffect();
-    // 0067E5D0 (deleting 0067E5B0): the footprint cleared when stamped, the visual removed from the world's timed
-    // objects and dropped, the sound and light dropped, the spell destroyed, the caster and target released.
+    // Destructor: the footprint cleared when stamped, the visual removed from the world's timed objects and
+    // dropped, the sound and light dropped, the spell destroyed, the caster and target released.
     ~CSpellEffect() override;
 
     // Fills `out` with the damage this effect deals; split between the targets when
     // there are several. Returns 1.
     BOOL GetDamage(DamageInfo* out);
 
-    // Delivers `hit` to `unit` (CUnit slot 31) when the spell may affect it (no caster,
-    // or CSpell::CanAffect). The unit's slot gets (hit, attacker, caster); attacker is the caster
-    // unless flags bit 0 is set.
+    // Delivers `hit` to `unit` (CUnit's hit virtual) when the spell may affect it (no caster, or
+    // CSpell::CanAffect). The unit's virtual gets (hit, attacker, caster); attacker is the caster unless
+    // flags bit 0 is set.
     void HitUnit(DamageInfo* hit, CEngineObject* unit);
 
     // Delivers this effect's damage to every unit within `radius` of `position` that
@@ -195,26 +195,24 @@ public:
     // clairvoyance and possession reveal, teleport moves the caster, link and vision fog end when
     // their units do); every case counts the timer down and ends the effect (state 3).
     void UpdateLasting(int type);
-    // 0067EE00 / 0067EE40 / 0067EE80. Drop the visual / sound / light (leave the timed objects,
-    // release).
+    // Drop the visual / sound / light (leave the timed objects, release).
     void ReleaseVisual();
     void ReleaseSound();
     void ReleaseLight();
 
-    // 0067ECB0 (RET 0x1C; A-H25). A cast begins: `spell` copied into the embedded spell, the
-    // world, the position, the caster and the target (each counted; the one held before released),
-    // the target point, state 0 and the byte +0xA4.
+    // A cast begins: `spell` copied into the embedded spell, the world, the position, the caster and the
+    // target (each counted; the one held before released), the target point, state 0 and the byte +0xA4.
     void Init(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* position, CMapObject* target,
               const Vector3* targetPoint, std::uint8_t flagA4);
-    // 0067EF00 (RET 4; A-H25). `object` leaves the world: 0 when it is the target (the world then
-    // drops the effect); else 1, the caster released and cleared when it is `object`.
+    // `object` leaves the world: 0 when it is the target (the world then drops the effect); else 1, the
+    // caster released and cleared when it is `object`.
     BOOL Forget(CEngineObject* object);
 
-    // spell_effect_save.cpp (RET 4). 0067E960: the position, caster and target ids, the target
-    // point, the state, the spell (its slot 10), the packed id, the visual / sound / light ids (-1
-    // for none), the timer, the flags and the position again. 0067E7D0 reads them back in the world
-    // of g_loadingProjectileWorld (world.h), finding the three objects in its timed object manager,
-    // and stamps the footprint (UpdateFootprint(type, 1)).
+    // Save (spell_effect_save.cpp): the position, caster and target ids, the target point, the state, the
+    // spell (its Save), the packed id, the visual / sound / light ids (-1 for none), the timer, the flags
+    // and the position again. Load reads them back in the world of g_loadingProjectileWorld (world.h),
+    // finding the three objects in its timed object manager, and stamps the footprint
+    // (UpdateFootprint(type, 1)).
     void Load(CStream* stream);
     void Save(CStream* stream);
 
@@ -251,8 +249,8 @@ static_assert(offsetof(CSpellEffect, visual) == 0x90);
 static_assert(offsetof(CSpellEffect, timer) == 0xA0);
 static_assert(sizeof(CSpellEffect) == 0xA8);
 
-// __fastcall. Whether area spells hit `unit`: units with a size class (+0x324), and
-// those whose prototype's +0x24 is below 0.5 (or NaN). Returns 0/1 in EAX.
+// Whether area spells hit `unit`: units with a size class (+0x324), and those whose prototype's +0x24 is
+// below 0.5 (or NaN).
 int __fastcall IsSpellTarget(CUnit* unit);
 
 // The STLport list<SpellModifierRecord*> of modifier records a container collects (the list
@@ -260,27 +258,27 @@ int __fastcall IsSpellTarget(CUnit* unit);
 using SpellModifierList = stlp::list<itemdb::SpellModifierRecord*>;
 using SpellModifierNode = SpellModifierList::Node;
 
-// A spell under construction ("CSpellContainer", class id 0x1A, 0x90 bytes, created by the spell manager as class
-// 0x3003; game.exe's vtable 00743AC8 is retired): a prototype, the modifiers added so far, and the CSpell (at +0x30)
-// that Build computes from them.
+// A spell under construction ("CSpellContainer", class id 0x1A, 0x90 bytes, created by the spell manager as
+// class 0x3003): a prototype, the modifiers added so far, and the CSpell (at +0x30) that Build computes
+// from them.
 class CSpellContainer : public CEngineObject {
 public:
-    // spell_manager.cpp. 0068BA80: the base fields, an empty modifier list (its sentinel allocated), an empty code
-    // string with room for 8 bytes, the spell, an empty name, then Create (inlined). 0068BC50: the destructor (the
-    // list emptied, the spell's Destroy, the string, the list's sentinel; the name and the spell after it, where
-    // the original destroys them before the string). 0068BC30: slot 0.
+    // Constructor (spell_manager.cpp): the base fields, an empty modifier list (its sentinel allocated), an
+    // empty code string with room for 8 bytes, the spell, an empty name, then Create (inlined). Destructor
+    // (the list emptied, the spell's Destroy, the string, the list's sentinel; the name and the spell after
+    // it, where the game destroys them before the string). Then the deleting destructor.
     CSpellContainer();
     ~CSpellContainer() override;
 
-    // 2: 0068BD80 (spell_cast.cpp). Forgets the prototype and the modifiers and clears the spell (its Create).
+    // Create (spell_cast.cpp). Forgets the prototype and the modifiers and clears the spell (its Create).
     // Returns 1.
     int Create() override;
-    // ClearState (slot 5), then the same as Create but the spell gets its Destroy.
+    // ClearState, then the same as Create but the spell gets its Destroy.
     void Destroy() override;
     // The name (+0x8C).
     const char* GetName() override;
-    const char* GetClassName() override;   // 11: 0068BC10 "CSpellContainer"
-    int GetClassId() override;             // 12: 0068BC20 (0x1A)
+    const char* GetClassName() override;   // "CSpellContainer"
+    int GetClassId() override;             // class id 0x1A
 
     // Appends `modifier` (a modifier record) to the list. Null is a fatal error (its
     // result is returned). Returns 1.
@@ -312,42 +310,38 @@ public:
 // keyed by the low half, and the largest low half asked for. Nothing in the game fills them, so
 // only CreateSpellObject with an id whose low half is not 0 reaches them (and then fails).
 struct SpellSequence {
-    // 006886F0 (spell_manager.cpp). The destructor body: every container released (the walk stops
-    // at the first entry without one), then the table freed.
+    // The destructor body: every container released (the walk stops at the first entry without one), then
+    // the table freed.
     void Destruct();
 
     stlp::hash_map<std::uint32_t, CSpellContainer*, stlp::IntHash> containers;
     std::uint32_t maxLow;
 };
 static_assert(sizeof(SpellSequence) == 0x18);
-// 00689820 (spell_manager.cpp, A-H25). A walk over a sequence's containers one step on: the
-// container there, or null at the end (and when the walk had ended already). The manager's
-// Destroy 00688B40 (rewritten: it walks the table itself) and the unreferenced 00688D70 call it.
+// A walk over a sequence's containers one step on: the container there, or null at the end (and when the
+// walk had ended already).
 using SpellContainerWalk = stlp::hash_map<std::uint32_t, CSpellContainer*, stlp::IntHash>::Iterator;
 
-// The spell manager (GetClassName "CSpellManager", 0xD4 bytes; a real virtual class: the compiler
-// makes its vtable, C19, game.exe's 00743A14 is retired). Only what the construction code uses;
-// the context (context_, +0xAC) gives the spell constructor (its slot 17).
+// The spell manager (GetClassName "CSpellManager", 0xD4 bytes; a real virtual class: the compiler makes its
+// vtable). Only what the construction code uses; the context (context_, +0xAC) gives the spell constructor.
 class CSpellManager : public CResourceManager {
 public:
-    // 00688840 (party_lifetime.cpp). CResourceManager's constructor, an empty map with
-    // NextPrime(100) buckets, +0xD0 0.
+    // CResourceManager's constructor, an empty map with NextPrime(100) buckets, +0xD0 0.
     CSpellManager();
-    // The sequences destroyed (006886F0 per sequence) and deleted, the map emptied and
-    // freed, CResourceManager::Destroy, then CResourceManager's destructor.
+    // The sequences destroyed and deleted, the map emptied and freed, CResourceManager::Destroy, then
+    // CResourceManager's destructor.
     ~CSpellManager() override;
-    const char* GetClassName() override;     // 11: 00688950 "CSpellManager"
-    int GetClassId() override;               // 12: 00688960 (0x33)
-    const char* GetFolderName() override;    // 25: 00688940 "spells"
+    const char* GetClassName() override;     // "CSpellManager"
+    int GetClassId() override;               // class id 0x33
+    const char* GetFolderName() override;    // "spells"
 
-    // A new CSpellContainer (manager slot 23 with class 0x3003, key -1).
+    // A new CSpellContainer (manager's creator with class 0x3003, key -1).
     CSpellContainer* NewContainer();
 
-    // spell_manager.cpp.
-    // A new CSpell (slot 23, class 0x3002, key -1). For an id other than -1 the spell
-    // takes it as its packed id: low half 0 initialises it from prototype (id >> 16) (null when out
-    // of range); otherwise the sequence of the high half gives the container of the low half to
-    // copy the spell from (FatalError without a sequence; a new entry has no container and faults).
+    // spell_manager.cpp. A new CSpell (class 0x3002, key -1). For an id other than -1 the spell takes it as
+    // its packed id: low half 0 initialises it from prototype (id >> 16) (null when out of range);
+    // otherwise the sequence of the high half gives the container of the low half to copy the spell from
+    // (FatalError without a sequence; a new entry has no container and faults).
     CSpell* CreateSpellObject(int id);
     // CBaseManager::Create, as 0/1.
     int Create() override;
@@ -370,8 +364,8 @@ public:
     // error's result.
     CSpell* CreateSpellFromText(const char* text);
 
-    // 00689570 / 00689610 (RET 4; A-H25). `names` resized to the spell / spell modifier record
-    // count and filled with the records' names (+0x00). `this` is not used.
+    // `names` resized to the spell / spell modifier record count and filled with the records' names
+    // (+0x00). `this` is not used.
     void ListSpellNames(mfc::CStringArray* names);
     void ListModifierNames(mfc::CStringArray* names);
 
@@ -380,15 +374,15 @@ public:
     std::uint32_t maxSequenceKey_;   // +0xD0 the largest key asked for
 };
 static_assert(offsetof(CSpellManager, sequences_) == 0xBC);
-// 00688950 / 00688960 (slots 11 / 12): "CSpellManager", class id 0x33.
+// GetClassName / GetClassId: "CSpellManager", class id 0x33.
 static_assert(sizeof(CSpellManager) == 0xD4);
 
-// The spell constructor ("CSpellConstructor", class id 0x1B, 0x24 bytes; game.exe's vtable 007439C8 is retired).
+// The spell constructor ("CSpellConstructor", class id 0x1B, 0x24 bytes).
 class CSpellConstructor : public CEngineObject {
 public:
-    // 00683FF0 (party_lifetime.cpp): CEngineObject's fields, no manager or container. 006840A0 (spell_cast.cpp,
-    // A-H21): the destructor: Destroy (inlined), then the container member's release (null by then). 00684080:
-    // slot 0.
+    // Constructor (party_lifetime.cpp): CEngineObject's fields, no manager or container. Destructor
+    // (spell_cast.cpp): Destroy (inlined), then the container member's release (null by then). Then the
+    // deleting destructor.
     CSpellConstructor();
     ~CSpellConstructor() override;
 
@@ -396,8 +390,8 @@ public:
     int Create() override;
     // The same, also dropping the manager's count (+4).
     void Destroy() override;
-    const char* GetClassName() override;   // 11: 00684060 "CSpellConstructor"
-    int GetClassId() override;             // 12: 00684070 (0x1B)
+    const char* GetClassName() override;   // "CSpellConstructor"
+    int GetClassId() override;             // class id 0x1B
 
     // Releases the container and counts a reference to `manager` (+4, no release).
     void SetManager(CSpellManager* manager);
@@ -417,10 +411,10 @@ public:
     CSpellContainer* container_;    // +0x20
 };
 
-// A light ("CLight", class id 10; game.exe's vtable 00743AFC is retired). type_ 0x31 is a point light.
-// A transform object: localPosition_ is the light's position (a point light's, and where a
-// directional light is drawn from); worldPosition_ holds the position in the space of the mesh
-// being lit (the mesh drawer 005A7A70 writes it), localRotation_ / worldRotation_ start identity.
+// A light ("CLight", class id 10). type_ 0x31 is a point light. A transform object: localPosition_ is the
+// light's position (a point light's, and where a directional light is drawn from); worldPosition_ holds the
+// position in the space of the mesh being lit (the mesh drawer writes it), localRotation_ / worldRotation_
+// start identity.
 class CLight : public CTransformObject {
 public:
     // Brightness (luminance of the colour) at `point`, falling off with the squared
@@ -431,29 +425,27 @@ public:
     // `scale` into litColors_.
     void SetLitColors(const float* source, float scale);
 
-    // light.cpp (A-H23). 0068CED0: the base fields, identity rotations, everything from +0x94 to
-    // +0xFC zero but +0xE4 / +0xE8 1.0, the range sqrt(FLT_MAX) with its square and inverse.
-    // The destructor (nothing of its own). 0068CFC0: slot 0.
+    // Constructor (light.cpp): the base fields, identity rotations, everything from +0x94 to +0xFC zero but
+    // +0xE4 / +0xE8 1.0, the range sqrt(FLT_MAX) with its square and inverse. The destructor has nothing of
+    // its own.
     CLight();
     ~CLight() override;
-    int Create() override;                  // 2: 0068CFF0 (1)
-    void Destroy() override;                // 3: 0068D000 flags_ bit 5 cleared
-    const char* GetClassName() override;    // 11: 0068CFA0 "CLight"
-    int GetClassId() override;              // 12: 0068CFB0 (10)
+    int Create() override;                  // returns 1
+    void Destroy() override;                // flags_ bit 5 cleared
+    const char* GetClassName() override;    // "CLight"
+    int GetClassId() override;              // class id 10
     // A point light (kind 1) of `color` at `position` (also kept at +0xC8);
     // flags_ bit 3 (changed). Returns 1.
     BOOL SetPoint(const Vector3* color, const Vector3* position);
     // A directional light (kind 3) of `color` along `direction`, which the light
     // also tilts towards (CTransformObject::TiltTowards); flags_ bit 3. Returns 1.
     BOOL SetDirectional(const Vector3* color, const Vector3* direction);
-    // A-H25 (light.cpp; the terrain's vertex lighting 006C36B0 / 006C31C0). A colour (r, g, b in
-    // x, y, z) lit by the light: `base` plus the light's colour times `scale` and a factor, each
-    // channel clamped at 1; w is not written then (the original stores an unset local, which its
-    // callers do not read). Unlit, `out` is `base` (all four).
-    // The factor is minus the cosine between `normal` and direction_; unlit
-    // when it is not above 0.
-    // The factor is 1 - distance^2 / range^2 (unlit below 0), times 1 + the
-    // cosine between `normal` and `toLight` when that is not above 0.
+    // light.cpp; the terrain's vertex lighting. A colour (r, g, b in x, y, z) lit by the light: `base` plus
+    // the light's colour times `scale` and a factor, each channel clamped at 1; w is not written then (an
+    // unset local is stored, which the callers do not read). Unlit, `out` is `base` (all four). The factor
+    // is minus the cosine between `normal` and direction_; unlit when it is not above 0. The factor is 1 -
+    // distance^2 / range^2 (unlit below 0), times 1 + the cosine between `normal` and `toLight` when that
+    // is not above 0.
     void AddDirectional(Vector4* out, float scale, const Vector4* base, const Vector3* normal) const;
     void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
                   float distance) const;
@@ -484,20 +476,18 @@ static_assert(offsetof(CLight, unused_54) == 0x54 && offsetof(CLight, direction_
               offsetof(CLight, localDirection_) == 0x108);
 
 
-// The light factory (GetClassName "CLightManager", class id 0x29, vtable 00743B50, 0xD8 bytes; the
-// global pointer at 007AF748): CreateObject (slot 23) makes lights by class (0x2E: the renderer's
-// default light, 00500B70; 0x31: point lights). Its +0xD4 list holds the ids of the lights held on
-// (00511FB0 erases from it). light.cpp (A-H23).
-// The light manager ("CLightManager", class id 0x29; light.cpp; a real virtual class: the compiler
-// makes its vtable, C19, game.exe's 00743B50 is retired).
+// The light factory (GetClassName "CLightManager", class id 0x29, 0xD8 bytes): CreateObject makes lights by
+// class (0x2E: the renderer's default light; 0x31: point lights). Its +0xD4 list holds the ids of the
+// lights held on. light.cpp. The light manager ("CLightManager", class id 0x29; light.cpp; a real virtual
+// class: the compiler makes its vtable).
 class CLightFactory : public CBaseManager {
 public:
     // CBaseManager's constructor, +0xB0..+0xC0 and +0xCC 0, an empty list, +0xD0 1.
     CLightFactory();
     // The list freed, +0xCC 0, +0xC0 released, then CBaseManager's destructor.
     ~CLightFactory() override;
-    const char* GetClassName() override;     // 11: 0068D950 "CLightManager"
-    int GetClassId() override;               // 12: 0068D960 (0x29)
+    const char* GetClassName() override;     // "CLightManager"
+    int GetClassId() override;               // class id 0x29
 
     // A new CLight (0x134 bytes) of type 0x2E or 0x31 (its type_); other types are
     // logged and give null.
@@ -506,7 +496,7 @@ public:
     CEngineObject* CreateObject(int type, int id) override;
     // The light registered under `id` (every object the factory makes is a CLight), or null.
     CLight* LightWithId(unsigned id) const { return FindObjectAs<CLight>(id); }
-    // A new light of `type` (CreateObject, slot 23): every object the factory makes is a CLight.
+    // A new light of `type` (CreateObject): every object the factory makes is a CLight.
     CLight* CreateLight(int type, int id = -1) { return CreateObjectAs<CLight>(type, id); }
 
     std::uint32_t unused_B0[4];    // +0xB0

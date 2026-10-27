@@ -3,8 +3,7 @@
 
 #include "ei/hook.h"
 
-// The original builds the key, copies it into a (key, null) pair and calls the index's
-// find_or_insert (00613C20 for spells, 004ACC10 for modifiers) with the pair.
+// The key is built, copied into a (key, null) pair and handed to the index's find_or_insert.
 template <typename Record>
 Record* itemdb::CodeIndexedTable<Record>::FindByCode(const char* code) {
     stlp::string key(code);

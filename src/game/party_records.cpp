@@ -1,6 +1,7 @@
-// The named party records of the object at 007AA5A0 (+0x24): reset at new game, and
-// the script commands' helpers to find, add and remove a record
-// by name. See party_records.h and docs/notes/world.md ("Party records and class templates").
+// The named party records of the party manager (+0x24): reset at new game, and the script commands' helpers to
+// find,
+// add and remove a record by name. See party_records.h and docs/notes/world.md ("Party records and class
+// templates").
 #include "object_tables.h"
 #include "party_records.h"
 #include "party_manager.h"
@@ -22,13 +23,12 @@
 
 namespace {
 
-// 006E848B _mbscmp.
 int __cdecl MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
-// Counted pointer helpers: 004AB910 copy(first, last, result) (__fastcall, returns the result's
-// end), 004AB960 destructor (__thiscall (flags)), 004A5D70 release, 004A5D50 copy constructor,
-// 004AB320 vector _M_insert_overflow(pos, x, n) (stlp::CountedRefVector's).
-// The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named
-// variable (+0x54 table).
+// Counted pointer helpers: copy(first, last, result) (__fastcall, returns the result's end), the destructor
+// (__thiscall (flags)), release, the copy constructor, vector _M_insert_overflow(pos, x, n)
+// (stlp::CountedRefVector's). The embedded party: adds a member record (three strings), sets a named variable
+// (+0x54
+// table).
 
 const char* const kHero = "Hero";
 const char* const kHumanHero = "Human Hero";
@@ -36,8 +36,7 @@ const char* const kFirstZone = "gz1g";
 const char* const kGameTime = "gtime";
 constexpr std::uint32_t kSix = 0x40C00000;                                     // 6.0f
 
-// A new record with no references (the original clears the count dword before testing the
-// allocation; ours tests first).
+// A new record with no references (the count dword is cleared only after the allocation is tested).
 PartyRecord* NewRecord() {
     auto* record = new PartyRecord();
     if (!record) return nullptr;
@@ -135,7 +134,7 @@ EI_REWRITTEN(0x004A5FA0, NamedPartyRecords::Remove);
 
 namespace {
 
-// The party object: 00661300 CopyFrom(const Party*), 00661700 Reset(int, int).
+// The party object: CopyFrom(const Party*), Reset(int, int).
 
 // The party stored under `key` (find, inlined), null if none.
 CParty* FindParty(const PartyMap& parties, int key) {

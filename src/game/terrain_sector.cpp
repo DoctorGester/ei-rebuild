@@ -1,8 +1,8 @@
 // Terrain sectors: loading, building, water levels and the small
 // lookups around them. See terrain_sector.h for the layout.
-// Floating point: values the original keeps on the FPU stack are `double` here; every store the
-// original makes to a float is a static_cast<float>. Constants it multiplies at run time are read
-// from the exe (rule 9: Rebirth may patch data).
+// Floating point: values kept on the FPU stack are `double` here; every store to a float is a
+// static_cast<float>. Constants multiplied at run time are read from the exe (rule 9: Rebirth may patch
+// data).
 #include "terrain.h"
 #include "terrain_sector.h"
 #include "model.h"
@@ -46,8 +46,8 @@ constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
 
 
-// Element helpers of the original (DestroyRecords is in terrain_lights.cpp): the flag arrays'
-// and the tile lists' instantiations.
+// Element helpers (DestroyRecords is in terrain_lights.cpp): the flag arrays' and the tile lists'
+// instantiations.
 constexpr auto ConstructFlagArrays = mfc::impl::ConstructElementsAt<mfc::impl::ByteArrays>;
 constexpr auto DestroyFlagArrays = mfc::impl::DestructElementsAt<mfc::impl::ByteArrays>;
 constexpr auto ConstructTileLists = mfc::impl::ConstructElementsAt<mfc::impl::AlignedArrays>;
@@ -55,10 +55,9 @@ constexpr auto DestroyTileLists = mfc::impl::DestructElementsAt<mfc::impl::Align
 
 } // namespace
 
-// The sector's CArray element policies. The records start zeroed (006C4F10, inlined) and release
-// their lights when dropped; the flag arrays and tile lists go through the original
-// helpers, which match the loops the original inlines in their SetSize(0) (the CByteArray
-// destructor through its vtable, 006C5120 per tile list).
+// The sector's CArray element policies. The records start zeroed (inlined) and release their lights when
+// dropped; the flag arrays and tile lists go through helpers that match the loops inlined in their
+// SetSize(0) (the CByteArray destructor through its vtable, one per tile list).
 void RecordElements::Construct(SectorVertex* records, int count) {
     std::memset(static_cast<void*>(records), 0, sizeof(SectorVertex) * count);
 }
@@ -120,7 +119,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
 
     const char* unableToLocate = "Unable to locate resource: ";
     const char* wrongFormat = "Wrong format resource: ";
-    // The message is passed to FatalError as its format string, as the original does.
+    // The message is passed to FatalError as its format string.
     auto fail = [&](const char* text) {
         mfc::CString n(name);
         std::string message = (mfc::operator+(text, n)).GetString();
@@ -492,7 +491,7 @@ void SectorData::ApplyWaterLevels() {
 
 namespace {
 double RawHeight(void* terrain, float x, float y, int layer) {
-    return static_cast<Terrain*>(terrain)->HeightAt(x, y, layer);   // 006C8680, ST0 used unrounded
+    return static_cast<Terrain*>(terrain)->HeightAt(x, y, layer);   // ST0 used unrounded
 }
 } // namespace
 
@@ -548,7 +547,7 @@ EI_REWRITTEN(0x006C8D40, Terrain::SurfaceClass);
 EI_REWRITTEN(0x006C8930, Terrain::GroundAndWaterDepth);
 
 // ---------------------------------------------------------------------------------------------
-// Construction and projection (A-H18)
+// Construction and projection
 
 namespace {
 
@@ -562,8 +561,8 @@ constinit lib::AlignedArray<ProjectionVertex> g_projectionOutput = /*007C88E8*/ 
 ProjectionBuffer& ProjectionInput() { return g_projectionInput; }
 ProjectionBuffer& ProjectionOutput() { return g_projectionOutput; }
 
-// The exit functions their static initialisers register: each frees its buffer, once (a guard
-// bit each in g_freed; bit 4 is the outcodes' destructor's, 006BFAE0).
+// The exit functions their static initialisers register: each frees its buffer, once (a guard bit each in
+// g_freed; bit 4 is the outcodes' destructor's).
 std::uint8_t g_freed = /*007C88C9*/ {};
 std::uint8_t& Freed() { return g_freed; }
 void __cdecl FreeProjectionInput() {
@@ -576,8 +575,8 @@ void __cdecl FreeProjectionOutput() {
     Freed() = static_cast<std::uint8_t>(Freed() | 2);
     g_projectionOutput.FreeData();
 }
-// The projected vertices' outcodes (a CByteArray): built empty by its static initialiser 006BFAC0,
-// destroyed at exit, once, by 006BFAE0.
+// The projected vertices' outcodes (a CByteArray): built empty by its static initialiser, destroyed once at
+// exit.
 static_assert(sizeof(FlagArray) == 0x14);
 constinit lib::StaticObject<FlagArray> g_projectionOutcodes = /*007C88D0*/ {};
 FlagArray& ProjectionOutcodes() { return *g_projectionOutcodes; }
@@ -652,7 +651,7 @@ void SectorData::DestructBody() {
     waterTiles.FreeData();
     tileTextures.FreeData();
     records.vtable = recordarrays::SectorVertexArrayClass::Vtable();
-    records.FreeData();   // each record's light list released (the original inlines 006C4EE0's loop)
+    records.FreeData();   // each record's light list released
     vertices.vtable = mfc::impl::Vector3ArrayClass::Vtable();
     vertices.FreeData();
     waterMaterials.vtable = mfc::impl::ByteArrayClass::Vtable();   // ~CByteArray

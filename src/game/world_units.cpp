@@ -140,8 +140,7 @@ CItem* MakeItem(CWorldServer* world, CItem* itemRecord) {
 
 void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const Vector3* position, Quaternion rotation,
                                PlacementArray* placements) {
-    // Destroyed after the two strings (declared after it), as the original does (its destructor
-    // inlined).
+    // Destroyed after the two strings (declared after it); its destructor is inlined.
     UnitSpec spec;
     UnitSpec* message = &spec;
     mfc::CString script;
@@ -222,8 +221,9 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         slots->SetStats(&record->stats);
         unit->ReleaseAllItems();
 
-        // Equipment: weapons, then the controller's slot 25 (ShowWeapon 0), armour
-        // (UnitEquipArmourOriginal), quick items (two fields copied from the record's), spells.
+        // Equipment: weapons, then the controller's ShowWeapon(0), armour (UnitEquipArmourOriginal), quick
+        // items (two
+        // fields copied from the record's), spells.
         for (int n = 0; n < static_cast<int>(record->weaponCount); ++n)
             unit->AddWeapon(MakeItem(this, record->weapons[n]));
         unit->Controller()->ShowWeapon(0);
@@ -286,8 +286,7 @@ constexpr std::uint32_t kFlagsNewEffect = 0x180000;
 } // namespace
 
 void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
-    // An object record (in the original a class of its own on it with the same slots, game.exe's
-    // vtable 0073FA58).
+    // An object record (a class of its own with the same virtuals).
     ObjectSpec message;
     message.kind = kQuickEffectType;
     message.texture = worlddata::QuickEffectPrototype();
@@ -300,7 +299,7 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     std::memset(&message.position.z, 0, 4);
     int id = CreateObject(&message);
     CEngineObject* effect = ObjectWithId(id);
-    effect->flags_ |= kFlagsNewEffect;   // 00529D20, inlined
+    effect->flags_ |= kFlagsNewEffect;   // inlined
 }
 
 // ---- CreateObject -------------------------------------------------------------------
@@ -316,7 +315,7 @@ constexpr std::uint32_t kTorchLightKind = 0x2001;   // the torch's smoke particl
 
 int UpdateCountdown(const CEngineObject* object) { return CWorldServer::UpdateCountdownFor(object); }
 
-// Copies dwords (the original's REP MOVSD / dword moves; floats are not loaded on the FPU).
+// Copies dwords (REP MOVSD / dword moves; floats are not loaded on the FPU).
 void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
 
 // The map object's CString name (+0xA4) as the string it is.
@@ -503,9 +502,9 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             if (prototype) {
                 index = static_cast<unsigned>(prototype->modelIndex);
             } else {
-                // Rebirth's FixAddMapObject (context hook at 00592F68): no prototype record is
-                // logged ("Invalid unit's prototype") and index 0 used. The original reads +8 of
-                // the null record (and crashes).
+                // Rebirth's FixAddMapObject (context hook): no prototype record is logged ("Invalid unit's
+                // prototype") and
+                // index 0 used. Vanilla reads +8 of the null record (and crashes).
                 if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixAddMapObject))
                     index = *reinterpret_cast<const volatile unsigned*>(reinterpret_cast<std::uintptr_t>(prototype) + 8);
                 else
@@ -561,7 +560,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (sound->sounds.size < 1) {
             mfc::impl::MessageBoxText(worlddata::NoWaveNameText(), 0, 0);
         } else {
-            // strcpy, inlined in the original (REP MOVS of the length with its terminator).
+            // strcpy, inlined (REP MOVS of the length with its terminator).
             const char* wave = sound->sounds.data[0];
             std::memcpy(plain->name_, wave, std::strlen(wave) + 1);
         }
@@ -589,7 +588,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         return timed(particle);
     }
     default:
-        // The original returns its argument slot untouched: the message's address.
+        // The argument slot is returned untouched: the message's address.
         return reinterpret_cast<int>(message);
     }
 }

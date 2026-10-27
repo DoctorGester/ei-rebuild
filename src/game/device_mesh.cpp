@@ -1,13 +1,10 @@
-// The Direct3D device's indexed mesh draws: 004E9010 (thiscall, RET 0x48) and 004E9A50 (the same
-// with two texture arguments, RET 0x50), on the device object at the renderer's +0x20. The mesh's
-// positions (blocks of four vertices) are projected by the pipeline's transform object (+0xAC ->
-// +0xC; slot 14, or slot 9 with an outcode per vertex when clipping is asked for), then every
+// The Direct3D device's indexed mesh draws, with one texture and with two, on the device object at the renderer's
+// +0x20. The mesh's positions (blocks of four vertices) are projected by the pipeline's transform object
+// (+0xAC -> +0xC; its projection, or the one with an outcode per vertex when clipping is asked for), then every
 // corner (position, colour and texture coordinate indices) becomes a TL vertex; meshes crossing the
-// screen edges go through the transform object's clipper (slot 37) and are projected again (slot
-// 34). Figures and the 3D library's meshes (004F3C60 ...) draw through them.
-// Buffers are globals at 007AEDE0..007AEE3C. See docs/notes/models.md ("Renderer"). The new
-// renderer (src/render) gets the mesh in model space once it is known to be visible
-// (docs/notes/renderer.md).
+// screen edges go through the transform object's clipper and are projected again. Figures and the 3D library's
+// meshes draw through them. Buffers are globals (device_buffers.h). See docs/notes/models.md ("Renderer"). The new
+// renderer (src/render) gets the mesh in model space once it is known to be visible (docs/notes/renderer.md).
 #include "clip.h"
 
 #include "ei/hook.h"
@@ -32,7 +29,7 @@ struct TexCoord {
     float u, v;
 };
 
-// The arguments both draws share (004E9A50 has the two textures before them).
+// The arguments both draws share (the two-texture draw has the two textures before them).
 struct MeshArgs {
     const void* positions;        // 64 bytes per block of four vertices
     int blocks;
@@ -68,9 +65,9 @@ using devicebuffers::Projected;
 using devicebuffers::CornerOutcodes;
 using devicebuffers::Outcodes;
 
-// The device (thiscall): the screen bounds of projected vertices (004E8900, the array and 0) or of
-// clipped TL vertices (004E86B0, the array and their outcodes); the draws with one or
-// two textures: primitive, FVF, vertices, count, indices, count, flags.
+// The device (thiscall): the screen bounds of projected vertices (the array and 0) or of clipped TL vertices (the
+// array and their outcodes); the draws with one or two textures: primitive, FVF, vertices, count, indices, count,
+// flags.
 
 TLVertex* VertexData() { return Vertices().data; }
 
@@ -113,7 +110,7 @@ void FillCorners(const MeshArgs& a) {
     }
 }
 
-// Draws the vertices (004E7820, the device's vertex-buffer batch, never gave a buffer: nothing is batched).
+// Draws the vertices (the device's vertex-buffer batch never gave a buffer: nothing is batched).
 void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* indices, int indexCount) {
     int count = Vertices().size;
     if (textures) {
@@ -136,11 +133,10 @@ void DrawOnScreen(CTextureDevice* device, ITransformPipeline* transform, const M
     Submit(device, textures, a.indices, a.indexCount);
 }
 
-// Some vertices off screen: room for ten times the corners and indices, the corners' outcodes, the
-// transform object's clipper (slot 37) writes the clipped triangles to ClipIndices, then the
-// vertices are projected (slot 34). When the new renderer draws the mesh the clip still runs
-// (its counts go to the device's counters, an empty result draws no pass), the projection only for
-// draw flag 1's screen rectangle, the fog not at all.
+// Some vertices off screen: room for ten times the corners and indices, the corners' outcodes, the transform
+// object's clipper writes the clipped triangles to ClipIndices, then the vertices are projected. When the new
+// renderer draws the mesh the clip still runs (its counts go to the device's counters, an empty result draws no
+// pass), the projection only for draw flag 1's screen rectangle, the fog not at all.
 void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
     int capacity = a.cornerCount * 10;
     Vertices().SetSizeDiscard(capacity);
@@ -233,7 +229,7 @@ int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures
 
 } // namespace
 
-// 004E9010 (thiscall on the device, RET 0x48).
+// The one-texture draw (thiscall on the device).
 int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, const void* normals, int colourCount,
                               std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
                               const void* corners, int cornerCount, const void* words, int wordCount,
@@ -246,7 +242,7 @@ int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, const void
 }
 EI_REWRITTEN(0x004E9010, CTextureDevice::DrawMeshBlocks);
 
-// 004E9A50 (thiscall on the device, RET 0x50): the same with two textures for the draw.
+// The same with two textures for the draw.
 int CTextureDevice::DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions,
                                int blocks, const void* normals, int colourCount, std::uint32_t* colours,
                                std::uint32_t* speculars, const void* uvs, int unused10, const void* corners,

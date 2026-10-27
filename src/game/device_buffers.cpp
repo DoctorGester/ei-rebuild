@@ -1,8 +1,7 @@
-// The Direct3D device's mesh work buffers (device_buffers.h) and the exit functions that free them. Each static
-// initialiser zeroes one array, which the definition's `{}` does
-// here, and registers its exit function with the game's atexit in list order; the functions are ported on the names
-// and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects"). The sixth array
-// of the original's list is never used: config/unread_data.csv.
+// The Direct3D device's mesh work buffers (device_buffers.h) and the exit functions that free them. Each array
+// starts zeroed, which the definition's `{}` does, and its exit function is registered with the game's atexit in
+// list order (docs/notes/standalone.md, "The static initialisers' objects"). The sixth array of the game's list is
+// never used: config/unread_data.csv.
 #include "device_buffers.h"
 
 #include "ei/hook.h"

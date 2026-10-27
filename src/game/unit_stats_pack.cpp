@@ -19,7 +19,7 @@ constexpr int kNoNaturalWeapon = 8;              // UnitStats +0xAC after Reset
 constexpr int kResetSlotType = 4;
 constexpr std::int16_t kResetParams20 = 7;
 
-// FISTP of a float the original first stores (FSTP float, FLD, FISTP).
+// FISTP of a float first stored (FSTP float, FLD, FISTP).
 int RoundStored(float value) { return x87::fistp(value); }
 
 // round(value * 255 / 2), at most 255 (unsigned compare: negative values become 255 too).

@@ -1,6 +1,5 @@
-// The units database records' serialisers: unit prototypes, unit models and NPCs
-// the skill (perk) database's records, vectors and lookups (A-U10).
-// See unit_db.h and docs/notes/units.md ("Database records").
+// The units database records' serialisers: unit prototypes, unit models and NPCs the skill (perk)
+// database's records, vectors and lookups. See unit_db.h and docs/notes/units.md ("Database records").
 #include "chunk_archive.h"
 #include "unit_db.h"
 
@@ -13,13 +12,12 @@
 
 namespace {
 
-// The archive's field primitives (chunk_archive.cpp), through their game addresses: a field of
-// `size` bytes (missing ones read as zero), a CString field, entering / leaving chunk `id`.
-// 0052DF40 (the CString vector's archive); 0052D6A0, four dwords
-// as fields 0..3; 0052D6F0, a model's body slot as fields 0..3.
-// The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
-// chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
-// resizing it [0051F5B0].
+// The archive's field primitives (chunk_archive.cpp), through their game addresses: a field of `size` bytes
+// (missing
+// ones read as zero), a CString field, entering / leaving chunk `id`. The CString vector's archive; four dwords as
+// fields 0..3; a model's body slot as fields 0..3. The pieces of the vector archive that the NPC serialiser
+// inlines:
+// counting the fields `id` of the current chunk (chunk_archive.cpp), emptying a vector<CString> and resizing it.
 void StringsClear(CStringVector* strings) {
     strings->EraseRange<stlp::ObjectElement<mfc::CString>>(strings->begin(), strings->end());
 }
@@ -164,7 +162,7 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
 }
 EI_REWRITTEN(0x0052DA60, UnitNpcRecord::Serialize);
 
-// --- A-U11: the unit database's pieces and vectors -----------------------------------------------
+// --- The unit database's pieces and vectors -----------------------------------------------
 
 void UnitGoldRoll::Serialize(ChunkArchive* ar) {
     Dword(ar, 0, &chance);
@@ -375,4 +373,4 @@ int SkillDatabase::IndexOf(const char* levelName) const {
 }
 EI_REWRITTEN(0x0051FE80, SkillDatabase::IndexOf);
 
-// 0051FF00 SkillDatabase::IndexOfLevel is in unit_skill_price.cpp (ei_vectors links it there).
+// SkillDatabase::IndexOfLevel is in unit_skill_price.cpp (ei_vectors links it there).

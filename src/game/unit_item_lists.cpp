@@ -1,12 +1,12 @@
-// CUnit::CollectItems: every item a unit holds and their spells as two lists, for the
-// server controller's armour spell refresh (00552B90's list, CUnitServer 005528F0). See unit.h.
+// CUnit::CollectItems: every item a unit holds and their spells as two lists, for the server controller's
+// armour spell refresh. See unit.h.
 #include "unit.h"
 
 #include "item.h"
 
 #include "ei/hook.h"
 
-// 0069FB60 (A-H24; the original's loop runs once when the item has a spell).
+// The loop runs once when the item has a spell.
 void __fastcall GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item) {
     if (!item) return;
     items->AddTail(item);

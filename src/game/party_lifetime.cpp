@@ -122,8 +122,8 @@ struct PartyMembersStore : PartyMembers {
     void Store(mfc::impl::CArchive* ar) { Serialize(reinterpret_cast<mfc::CArchive*>(ar)); }
 };
 
-// CArray<PartyUnitRecord>'s compiled table (game.exe's 00742FF4): CObject's GetRuntimeClass, the destructor
-// 00664160 (the compiler's deleting destructor in place of 00664470), Serialize 006641D0.
+// CArray<PartyUnitRecord>'s compiled table: CObject's GetRuntimeClass, the destructor (the compiler's deleting
+// destructor), Serialize.
 struct PartyMemberArrayClass final
     : mfc::impl::CompiledCollection<PartyMemberArrayClass, &DestroyPartyMembers, &PartyMembersStore::Store> {};
 } // namespace
@@ -144,8 +144,8 @@ PartyMemberArray* PartyMemberArray::DeletingDestruct(unsigned flags) {
 EI_REWRITTEN(0x00664470, PartyMemberArray::DeletingDestruct);
 
 EI_REWRITTEN(0x00663FA0, PartyMemberArray::SetSize);
-// 006641D0 (A-H17): CArray<PartyUnitRecord>::Serialize, slot 2 of the array's table (PartyMembers::Vtable()); no
-// code calls it (the parties go through CStream, party_save.cpp).
+// CArray<PartyUnitRecord>::Serialize, in the array's table (PartyMembers::Vtable()); no code calls it (the
+// parties go through CStream, party_save.cpp).
 EI_REWRITTEN(0x006641D0, PartyMemberArray::Serialize);
 
 // --- The managers and constructors a party makes ------------------------------------------------
@@ -153,7 +153,7 @@ EI_REWRITTEN(0x006641D0, PartyMemberArray::Serialize);
 CSpellConstructor::CSpellConstructor() {
     ClearFields();
     container_ = nullptr;
-    // (The original then releases +0x20, which it has just cleared.)
+    // (The game then releases +0x20, which it has just cleared.)
     manager_ = nullptr;
 }
 EI_REWRITTEN_SPECIAL(0x00683FF0, CSpellConstructor::CSpellConstructor);
@@ -168,8 +168,8 @@ EI_REWRITTEN_SPECIAL(0x00688840, CSpellManager::CSpellManager);
 
 namespace {
 
-// A counted object the party owns: its count dropped and the object deleted (slot 0), whatever
-// the count, and the pointer cleared.
+// A counted object the party owns: its count dropped and the object deleted, whatever the count, and the
+// pointer cleared.
 template <typename T>
 void Drop(T*& object) {
     if (object == nullptr) return;
@@ -229,7 +229,7 @@ CSpellManager* CParty::SpellManager() { return spellManager_; }
 
 int CParty::Create() {
     itemManager_ = new CItemManager();
-    ++itemManager_->refCount_;   // not tested for null, as in the original
+    ++itemManager_->refCount_;   // not tested for null
     itemManager_->Init(this);
 
     spellManager_ = new CSpellManager();

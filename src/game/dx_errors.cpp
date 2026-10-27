@@ -1,5 +1,5 @@
-// 00480B80 (A-S8): DirectX result texts; see dx_errors.h. The table is the original's (its
-// comparison tree flattened; the texts copied from the exe's strings 00788160-0078A598).
+// DirectX result texts; see dx_errors.h. The table is the game's (its comparison tree flattened; the texts copied
+// from the exe's strings).
 #include "dx_errors.h"
 
 #include "ei/hook.h"
@@ -185,15 +185,15 @@ const char* __fastcall DirectXErrorText(long result) {
 }
 EI_REWRITTEN(0x00480B80, DirectXErrorText);
 
-// ---- The thrown error object (00480250-004815D0) ---------------------------------------------------
+// ---- The thrown error object ---------------------------------------------------
 
 namespace {
 
 // "%s (0x%.8X) %s".
 const char* ResultFormat() { return "%s (0x%.8X) %s"; }
 
-// The original's stack buffers (wvsprintf writes at most 1024 characters; the sprintf of 00480300
-// can run past its 1024 bytes, as in the original).
+// The stack buffers (wvsprintf writes at most 1024 characters; the sprintf can run past its 1024 bytes, as the
+// game's does).
 constexpr std::size_t kBuffer = 0x400;
 
 // The message: an operator new copy of `text`.

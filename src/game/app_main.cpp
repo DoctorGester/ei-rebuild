@@ -1,4 +1,4 @@
-// WinMain (00456440; A-E2): the application's start-up, its main loop and its shutdown.
+// WinMain: the application's start-up, its main loop and its shutdown.
 // Start-up: the system messages (res\sysmsg.txt, three lines, with built-in ones as a fallback),
 // the DirectX version, the command line, the window class and a second instance's hand-over, the
 // folders and the options from the registry, the two worlds and the camera, the free disk space and
@@ -10,9 +10,8 @@
 // client speeds up or slows down by its backlog of server updates), then the camera, the interface
 // and a frame. A waiting message goes to the interface's input (after a frame) or to the window
 // procedure (while the renderer is inactive).
-// Every game function is called through its address, so hooks and verify wrappers on the callees
-// keep running. Rebirth patches the original (NivalRegistry), so in game.exe this body runs in the
-// vanilla launch only; the standalone image runs it on Rebirth too, with the flag. See
+// Every game function is called by name. Rebirth patches the original WinMain (NivalRegistry), so in game.exe this body
+// runs in the vanilla launch only; the standalone image runs it on Rebirth too, with the flag. See
 // docs/notes/app.md ("WinMain").
 #include "bink_video.h"
 #include "device.h"   // the old device's calls
@@ -69,12 +68,11 @@ using options::GameOptions;
 namespace app {
 std::uint32_t __cdecl GetDxVersion();
 
-// ---- The application's globals that the static initialisers set (app.h) ----------------------------------------
+// ---- The application's globals that the static initialisers set (app.h) ------------------------------------
 
-// The command line's CStrings, built by the static initialisers 00455CE0-00455DA0 in the list's order and destroyed
-// by the exit functions they register with the game's atexit; the mouse object's pointer, null at the start, as
-// 00455DD0 leaves it, and released by its exit function (docs/notes/standalone.md, "The static initialisers'
-// objects"). The initialisers and exit functions are ported on the names and registered at their addresses.
+// The command line's CStrings, built by static initialisers in the list's order and destroyed
+// by the exit functions they register with the game's atexit; the mouse object's pointer, null at the start,
+// released by its exit function (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<mfc::CString> g_movieFolder = /*0079BA0C*/ {};
 constinit lib::StaticObject<mfc::CString> g_commandLineMap = /*0079BA10*/ {};
 constinit lib::StaticObject<mfc::CString> g_commandLineMob = /*0079BA14*/ {};
@@ -173,7 +171,7 @@ double Step(double value) {
 std::uint16_t g_windowClassAtom = /*0079BA20*/ {};
 char g_windowClassName[256] = /*0079BA24*/ {""};
 constexpr int kTextSize = 0x100;
-// The window's title and class name: game.exe's string table held them as strings 101 and 102.
+// The window's title and class name: strings 101 and 102 of the game's string table.
 constexpr const char* kWindowTitle = "Evil Islands";
 constexpr const char* kWindowClassName = "EIGAME";
 
@@ -184,9 +182,8 @@ mfc::CString& StartFolder() { return TheStartFolder(); }
 mfc::CString& DiscFolder() { return TheDiscFolder(); }
 mfc::CString& TextFolder() { return TheTextFolder(); }
 
-// The loop's clock: the time of the last pass (a function-local static of the original: guard bit
-// 0 of 0079B9FC), the time not yet run by the server and by the client (milliseconds), and the
-// client's speed.
+// The loop's clock: the time of the last pass (a function-local static), the time not yet run by the server and by
+// the client (milliseconds), and the client's speed.
 std::uint8_t g_lastTimeGuard = /*0079B9FC*/ {};
 DWORD g_lastTime = /*0079B9F8*/ {};
 std::uint32_t g_serverBacklog = /*0079BC64*/ {};
@@ -215,19 +212,16 @@ console::GameOStream& SpeedLog() { return console::g_netLogOut; }
 // ---- The callees -----------------------------------------------------------------------------------
 
 // app::TypeRegistryRegister: a class the chunk archives can hold, by id and factory. The
-// two factories: 00457850 (class 1) and 00457740 (class 2, the party record).
+// two factories: class 1 and class 2 (the party record).
 using ClassFactory = void* (__cdecl*)();
 ClassFactory ClassTemplateFactory() { return ei::Code<ClassFactory>(0x00457850); }
 ClassFactory PartyRecordFactory() { return ei::Code<ClassFactory>(0x00457740); }
-// The camera: 0040D0A0 (RET 0x10) Init, 0040EB60 / 0040EFB0 (RET 4) a frame written to / read from the
-// camera file at a time in ticks. 0040FB30 (RET 4, CCamera::Update) the frame's update.
-// The renderer: 00500B70 its creation (slot 2 of its vtable, RET 8), 00504A60 (RET 0xC)
-// the display's brightness, contrast and gamma.
-// The sound manager: 006B6A30 (RET 0x14) opened, 006BAE20 (RET 8) the music folder and its
-// registry file, 006B7060 / 006B7AB0 (RET 4) the wave archives, the three volumes (RET 4).
-// The interface: 005F4990 (RET 4) created on the device, 005F57C0 its update, 005F4F90
-// shut down.
-// The game flow: 00581660 both sessions closed.
+// The callees below, by area:
+// the camera: Init, a frame written to / read from the camera file at a time in ticks, and CCamera::Update;
+// the renderer: its creation and the display's brightness, contrast and gamma;
+// the sound manager: opened, the music folder and its registry file, the wave archives, the three volumes;
+// the interface: created on the device, its update, shut down;
+// the game flow: both sessions closed.
 
 // ---- Start-up --------------------------------------------------------------------------------------
 
@@ -330,7 +324,7 @@ void RegisterWindowClass(HINSTANCE instance) {
     windowClass.cbClsExtra = 0;
     windowClass.cbWndExtra = 0;
     windowClass.hInstance = instance;
-    windowClass.hIcon = nullptr;     // game.exe's icon 105 is not shipped
+    windowClass.hIcon = nullptr;     // the icon resource is not shipped
     windowClass.hIconSm = nullptr;
     windowClass.hCursor = nullptr;
     windowClass.hbrBackground = nullptr;
@@ -355,7 +349,7 @@ void RegisterWindowClass(HINSTANCE instance) {
     libcrt::Exit(-1);
 }
 
-// The buffers _splitpath fills, as the original sizes them.
+// The buffers _splitpath fills, sized as the game sizes them.
 struct PathParts {
     char drive[0x80];
     char directory[0x400];
@@ -517,17 +511,15 @@ constexpr float kFastest = 10.0f;
 constexpr std::uint32_t kBacklogLimit = 0x4000000;
 constexpr int kLongestPassTicks = 5;
 
-// The world tick's length in milliseconds and the factor from milliseconds to the
-// camera's time (0073C348: 1 / 55).
+// The world tick's length in milliseconds and the factor from milliseconds to the camera's time (1 / 55).
 std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
 float CameraSeconds(std::uint32_t milliseconds) {
     return static_cast<float>(x87::FromUnsigned(milliseconds) * 0.018181818f /*0073C348*/);
 }
 
 // Three calls of the loop take a harness hook (ei/main_loop.h, tests/verify/harness_hooks.h) when
-// one is set: the frame's last camera update (00457595 -> 0040FB30) is held still while a scenario
-// is frozen; the server's update (00457314 -> 0058DFF0) and the client's tick (00457368 -> 005641F0)
-// are followed by the harness's "speed" hold. Otherwise the function itself.
+// one is set: the frame's last camera update is held still while a scenario is frozen; the server's
+// update and the client's tick are followed by the harness's "speed" hold. Otherwise the function itself.
 using CameraUpdate = void(__fastcall*)(CCamera*, void*, float);
 void FrameCameraUpdate(CCamera* camera, float seconds) {
     if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) reinterpret_cast<CameraUpdate>(hook)(camera, nullptr, seconds);
@@ -627,7 +619,7 @@ bool RunWorlds() {
 // The client's speed for the next pass from how far it is behind the server: `balance` is the
 // number of waiting server updates less the part of a tick the client has left. Behind (negative),
 // it is e^(balance / 10); up to one update ahead, 1; further ahead, 1 + (sqrt(balance) - 1) / 10
-// in the original's order of operations. Kept within 0.1 .. 10.
+// (x87 order of operations: the goldens depend on it). Kept within 0.1 .. 10.
 float SpeedForBalance(double balance, float rounded) {
     double speed;
     if (balance < 0.0f /*0073B858*/) {
@@ -723,7 +715,7 @@ bool MessageWaits(MSG* message, ei::mainloop::Site where) {
 }
 
 // The loop: passes while no message waits, then the message handled. Returns the quit message's
-// wParam. `interfaceInput` is the original's BL (see GameMain).
+// wParam. `interfaceInput` says whether the interface takes the input (see GameMain).
 int RunMainLoop(bool interfaceInput) {
     MSG message;
     for (;;) {
@@ -772,7 +764,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     RegisterWindowClass(instance);
 
     GameOptions* options = options::TheOptions();
-    // NivalRegistry: addon's PUSH at 004568E9 names its own key instead.
+    // NivalRegistry: Rebirth's patch names its own key instead.
     RegistryRoot() = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
                          ? "Software\\Gipat.ru\\EI_Starter\\EvilIslands"
                          : "Software\\Nival Interactive\\EvilIslands";
@@ -804,7 +796,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     gameapi::UpdateWindow(g_mainWindow);
     gameapi::SetCursor(nullptr);
 
-    // The original keeps "the interface takes the input" in BL and sets it after every pass. Before
+    // "The interface takes the input" is carried in one byte and set after every pass. Before
     // the first pass it holds the top byte of a stack slot that start-up used last for the disc
     // folder's text (with sound) or for the free non-local video memory (without): a message that
     // waits before the first pass goes to the interface when that byte is not zero.
@@ -818,8 +810,8 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     LoadDatabases();
     Mouse()->Setup(g_mainWindow, instance);
     TheClientWorld()->SetUpGraphics(TheRenderDevice());
-    // The last argument's upper three bytes are whatever the call before left in ECX in the
-    // original; only the low byte is a value (the shapes' flag: no device named).
+    // The last argument's upper three bytes are whatever the call before left behind; only the low
+    // byte is a value (the shapes' flag: no device named).
     SetUpCursors(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
                  g_deviceNamed == 0);
     TheInterface()->Create(TheRenderDevice());

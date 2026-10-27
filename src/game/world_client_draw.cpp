@@ -361,7 +361,6 @@ int CWorldClient::Render() {
 }
 EI_REWRITTEN(0x00569E40, CWorldClient::Render);
 
-//
 int CWorldClient::DrawLineLists() {
     for (auto* node = lineLists_.First(); node; node = lineLists_.After(node))
         static_cast<LineBatch*>(node->value)->Draw(ScenePipeline(), TheRenderDevice());
