@@ -3211,6 +3211,22 @@ files = ["config/comment_batches.txt [C22f]"]
 note = "docs/comment-guide.md, section \"A batch\". Files: python tools/comments.py list --batch C22f (config/comment_batches.txt; 5154 comment lines when cut). Sonnet, medium effort. Check: comments.py samecode main clean, release build once at the end; no game runs."
 
 [[ticket]]
+id = "C22a2"
+title = "Comment cleanup batch C22a, second pass: the original / game.exe mentions, fragments, re-wrap"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22a"]
+note = "After C22a (addresses and ticket ids at 0). Left: 347 'the original / game.exe' mentions (keep the why, say it plainly), stray fragments from address removal (short continuation lines, leftover '(...)' stubs), re-wrap shortened blocks to ~110 columns. Files: comments.py list/stats --batch C22a. Read each file whole and rewrite in one pass; no regex rewrites."
+
+[[ticket]]
+id = "C22b2"
+title = "Comment cleanup batch C22b, second pass: slot numbers, +0x offsets, the original mentions, fragments"
+group = "cleanup"
+model = "sonnet"
+depends = ["C22b"]
+note = "After C22b (addresses and ticket ids at 0). Left: ~60 'slot N' comments (world.h, lightning, UI, effects: name the virtual or drop), +0xNN offsets on named members (drop unless save/packet layout), 207 'the original / game.exe' mentions, 27 history words, fragments such as world.h ~223 and '// In the constructor).'. Files: --batch C22b. Read each file whole; no regex rewrites."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
