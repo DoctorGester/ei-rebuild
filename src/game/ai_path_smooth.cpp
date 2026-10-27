@@ -346,7 +346,7 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
 
 // The static initialiser's second half, after the 81 tables have been constructed empty.
 void __cdecl BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
-EI_REPLACE(0x005C42B0, BuildSmoothTables);
+EI_REWRITTEN(0x005C42B0, BuildSmoothTables);
 
 // ---- The pool and the tables ----------------------------------------------------------
 
@@ -365,20 +365,20 @@ void __cdecl DestroySmoothTables() {
     SmoothTable* tables = g_smoothTables.Get();
     for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();
 }
+void __cdecl DestroySmoothPool() { mfc::impl::DestructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes); }
+} // namespace
+
 void __cdecl ConstructSmoothTables() {
     for (SmoothTable& table : g_smoothTables.Get()) table.Construct();
     RegisterExit(DestroySmoothTables);
 }
 
-void __cdecl DestroySmoothPool() { mfc::impl::DestructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes); }
 void __cdecl ConstructSmoothPool() {
     mfc::impl::ConstructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes);
     RegisterExit(DestroySmoothPool);
 }
 
-} // namespace
-
-EI_REPLACE(0x005C41C0, ConstructSmoothTables);
+EI_REWRITTEN(0x005C41C0, ConstructSmoothTables);
 EI_REWRITTEN(0x005C41F0, DestroySmoothTables);
-EI_REPLACE(0x005C4460, ConstructSmoothPool);
+EI_REWRITTEN(0x005C4460, ConstructSmoothPool);
 EI_REWRITTEN(0x005C4480, DestroySmoothPool);

@@ -32,44 +32,44 @@ using AtExitFunction = void(__cdecl*)();
 void RegisterExit(AtExitFunction exitFunction) { libcrt::AtExit(exitFunction); }
 
 void __cdecl DestroySpellDatabase() { g_spellDatabase->Destruct(); }
+void __cdecl DestroyItemDatabase() { g_itemDatabase->DestructBody(); }
+void __cdecl DestroyQuestDatabase() { g_questDatabase->Destruct(); }
+void __cdecl DestroyPrintsDatabase() { g_printsDatabase->Destruct(); }
+void __cdecl DestroyAckDatabase() { g_ackDatabase->Destruct(); }
+} // namespace
+
 void __cdecl ConstructSpellDatabase() {
     g_spellDatabase->Construct();
     RegisterExit(DestroySpellDatabase);
 }
 
-void __cdecl DestroyItemDatabase() { g_itemDatabase->DestructBody(); }
 void __cdecl ConstructItemDatabase() {
     g_itemDatabase->Construct();
     RegisterExit(DestroyItemDatabase);
 }
 
-void __cdecl DestroyQuestDatabase() { g_questDatabase->Destruct(); }
 void __cdecl ConstructQuestDatabase() {
     g_questDatabase->Construct();
     RegisterExit(DestroyQuestDatabase);
 }
 
-void __cdecl DestroyPrintsDatabase() { g_printsDatabase->Destruct(); }
 void __cdecl ConstructPrintsDatabase() {
     g_printsDatabase->Construct();
     RegisterExit(DestroyPrintsDatabase);
 }
 
-void __cdecl DestroyAckDatabase() { g_ackDatabase->Destruct(); }
 void __cdecl ConstructAckDatabase() {
     g_ackDatabase->Construct();
     RegisterExit(DestroyAckDatabase);
 }
 
-} // namespace
-
-EI_REPLACE(0x00684360, ConstructSpellDatabase);
+EI_REWRITTEN(0x00684360, ConstructSpellDatabase);
 EI_REWRITTEN(0x00684380, DestroySpellDatabase);
-EI_REPLACE(0x006A6540, ConstructItemDatabase);
+EI_REWRITTEN(0x006A6540, ConstructItemDatabase);
 EI_REWRITTEN(0x006A6560, DestroyItemDatabase);
-EI_REPLACE(0x006ADF10, ConstructQuestDatabase);
+EI_REWRITTEN(0x006ADF10, ConstructQuestDatabase);
 EI_REWRITTEN(0x006ADF30, DestroyQuestDatabase);
-EI_REPLACE(0x006D00B0, ConstructPrintsDatabase);
+EI_REWRITTEN(0x006D00B0, ConstructPrintsDatabase);
 EI_REWRITTEN(0x006D00D0, DestroyPrintsDatabase);
-EI_REPLACE(0x006D7080, ConstructAckDatabase);
+EI_REWRITTEN(0x006D7080, ConstructAckDatabase);
 EI_REWRITTEN(0x006D70A0, DestroyAckDatabase);

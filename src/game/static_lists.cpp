@@ -31,35 +31,36 @@ namespace {
 void __cdecl DestroyProtectionChecks() {
     stlp::ListAbi<std::uint8_t>::Destruct(&g_protectionChecks.Get());
 }
-void __cdecl ConstructProtectionChecksList() {
-    app::ConstructProtectionChecks();
-    libcrt::AtExit(DestroyProtectionChecks);
-}
 void __cdecl DestroyDrivers() {
     if (g_driversDestroyed & 1) return;
     g_driversDestroyed = static_cast<std::uint8_t>(g_driversDestroyed | 1);
     stlp::ListAbi<DirectDrawDriver>::Destruct(&g_directDrawDrivers.Get());
 }
+void __cdecl DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get()); }
+} // namespace
+
+void __cdecl ConstructProtectionChecksList() {
+    app::ConstructProtectionChecks();
+    libcrt::AtExit(DestroyProtectionChecks);
+}
 void __cdecl ConstructDriversList() {
     ConstructDirectDrawDrivers();
     libcrt::AtExit(DestroyDrivers);
 }
-void __cdecl DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get()); }
 void __cdecl ConstructDeferredUnitsList() {
     ConstructDeferredUnits();
     libcrt::AtExit(DestroyDeferredUnits);
 }
-} // namespace
 
 } // namespace static_lists
 
 EI_REWRITTEN(0x004ED540, static_lists::ConstructDirectDrawDrivers);
 EI_REWRITTEN(0x0056A410, static_lists::ConstructDeferredUnits);
-EI_REPLACE(0x00455E30, static_lists::ConstructProtectionChecksList);
+EI_REWRITTEN(0x00455E30, static_lists::ConstructProtectionChecksList);
 EI_REWRITTEN(0x00455F00, static_lists::DestroyProtectionChecks);
-EI_REPLACE(0x004ED520, static_lists::ConstructDriversList);
+EI_REWRITTEN(0x004ED520, static_lists::ConstructDriversList);
 EI_REWRITTEN(0x004ED5F0, static_lists::DestroyDrivers);
-EI_REPLACE(0x0056A3F0, static_lists::ConstructDeferredUnitsList);
+EI_REWRITTEN(0x0056A3F0, static_lists::ConstructDeferredUnitsList);
 EI_REWRITTEN(0x0056A4C0, static_lists::DestroyDeferredUnits);
 
 // ~list() of the lists only exit functions destroy: every node's element destroyed and the node returned to

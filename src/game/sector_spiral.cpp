@@ -25,32 +25,32 @@ void RegisterExit(AtExitFunction exitFunction) { libcrt::AtExit(exitFunction); }
 void __cdecl DestroySpiralOffsets() {
     mfc::impl::DestructArrayOf<gamearrays::SpiralOffsetArrayClass>(*g_spiralOffsets);
 }
+void __cdecl DestroySpiralRadii() {
+    mfc::impl::DestructArrayOf<mfc::impl::FloatArrayClass>(g_spiralRadii->keys);
+}
+void __cdecl DestroySpiralLengths() {
+    mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(*g_spiralLengths);
+}
+} // namespace
+
 void __cdecl ConstructSpiralOffsets() {
     mfc::impl::ConstructArrayOf<gamearrays::SpiralOffsetArrayClass>(*g_spiralOffsets);
     RegisterExit(DestroySpiralOffsets);
 }
 
-void __cdecl DestroySpiralRadii() {
-    mfc::impl::DestructArrayOf<mfc::impl::FloatArrayClass>(g_spiralRadii->keys);
-}
 void __cdecl ConstructSpiralRadii() {
     mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(g_spiralRadii->keys);
     RegisterExit(DestroySpiralRadii);
 }
 
-void __cdecl DestroySpiralLengths() {
-    mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(*g_spiralLengths);
-}
 void __cdecl ConstructSpiralLengths() {
     mfc::impl::ConstructArrayOf<mfc::impl::IntArrayClass>(*g_spiralLengths);
     RegisterExit(DestroySpiralLengths);
 }
 
-} // namespace
-
-EI_REPLACE(0x005BF810, ConstructSpiralOffsets);
+EI_REWRITTEN(0x005BF810, ConstructSpiralOffsets);
 EI_REWRITTEN(0x005BF830, DestroySpiralOffsets);
-EI_REPLACE(0x005BF840, ConstructSpiralRadii);
+EI_REWRITTEN(0x005BF840, ConstructSpiralRadii);
 EI_REWRITTEN(0x005BF860, DestroySpiralRadii);
-EI_REPLACE(0x005BF8B0, ConstructSpiralLengths);
+EI_REWRITTEN(0x005BF8B0, ConstructSpiralLengths);
 EI_REWRITTEN(0x005BF8D0, DestroySpiralLengths);

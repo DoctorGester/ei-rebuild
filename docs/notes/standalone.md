@@ -1676,7 +1676,8 @@ the `--no-hooks` suite) keeps the registry.
   before C20c, 5,262 after it, 3,527 after C20d (1,735 that only check_fp_fold read became EI_REWRITTEN; 20 in
   CSkyObject / CUnit left for C19 batch 5). C20c deleted its ~4,000 lines outright, so those functions are missing
   from the map (C20d1). 809 before C20 batch 1, 559 after it (250 more EI_REWRITTEN), 434 after C20f (the code literals now take the function by name: the exit functions
-  `libcrt::AtExit(DestroyX)`, the player handler tables hold member pointers (`HandlerEntry<CPlayerClient>`), callbacks `&Fn`).
+  `libcrt::AtExit(DestroyX)`, the player handler tables hold member pointers (`HandlerEntry<CPlayerClient>`), callbacks `&Fn`),
+  287 after C20 batch 2 (gen_static_init calls by name: static_exit.cpp's 26 became EI_REWRITTEN, 121 more dropped).
 - **What still needs a game.exe code address** (C20 batch 1's measurement, 2026-10-27; `registration_readers.py`):
   | reader | registrations | needs game.exe's code addresses? |
   |---|---|---|
@@ -1689,7 +1690,8 @@ the `--no-hooks` suite) keeps the registry.
   | named_data --check, gen_short_functions, check_signatures, coverage, progress, dashboard_data | 0 | no: they read the function-to-original map (EI_REWRITTEN does) |
   | check_registrations, check_thunks, standalone_gaps | 0 | no: they check the registrations themselves; they shrink with them |
   | EI_REPLACE_SHORT nothing reads | 210 (short_functions.cpp) | no: generated, C20e |
-  Left unread on purpose: 38 in the script / console / string / mfc_coll files C14a holds (2026-10-27), 11 hand-made
+  Left unread on purpose: 40 in the script / console / string / mfc_string / mfc_coll files C14a holds (2026-10-28;
+  batch 2 added CFixedAlloc::Construct / Destruct, now called by name), 11 hand-made
   EI_REPLACE_SHORT of particle_create.cpp. The check that the drops change no generator: gen_static_init.py and
   gen_short_functions.py rerun with the same functions (static_init.cpp / static_exit.cpp byte-identical).
 - **The function-to-original map** (C20d): the registrations plus `EI_REWRITTEN(0x..., Fn);` lines (include/ei/hook.h).

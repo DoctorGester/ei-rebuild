@@ -78,27 +78,29 @@ CDirectInputMouse*& Mouse() { return g_mouse; }
 namespace {
 
 void __cdecl DestroyCameraFile() { g_cameraFile.Destroy(); }
+void __cdecl DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
+void __cdecl DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
+void __cdecl DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
+void __cdecl DestroyMovieFolder() { g_movieFolder.Destroy(); }
+} // namespace
+
 // The initialisers: each CString empty (".\capture\" for the movie folder), its exit function registered.
 void __cdecl ConstructCameraFile() {
     g_cameraFile.Construct();
     libcrt::AtExit(DestroyCameraFile);
 }
-void __cdecl DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
 void __cdecl ConstructCommandLineScript() {
     g_commandLineScript.Construct();
     libcrt::AtExit(DestroyCommandLineScript);
 }
-void __cdecl DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
 void __cdecl ConstructCommandLineMob() {
     g_commandLineMob.Construct();
     libcrt::AtExit(DestroyCommandLineMob);
 }
-void __cdecl DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
 void __cdecl ConstructCommandLineMap() {
     g_commandLineMap.Construct();
     libcrt::AtExit(DestroyCommandLineMap);
 }
-void __cdecl DestroyMovieFolder() { g_movieFolder.Destroy(); }
 void __cdecl ConstructMovieFolder() {
     g_movieFolder.Construct(".\\capture\\");
     libcrt::AtExit(DestroyMovieFolder);
@@ -110,19 +112,17 @@ void __cdecl ReleaseMouseAtExit() {
         if (--mouse->references_ == 0) delete mouse;
 }
 
-} // namespace
-
-EI_REPLACE(0x00455CE0, ConstructCameraFile);
-EI_REPLACE(0x00455D10, ConstructCommandLineScript);
-EI_REPLACE(0x00455D40, ConstructCommandLineMob);
-EI_REPLACE(0x00455D70, ConstructCommandLineMap);
-EI_REPLACE(0x00455DA0, ConstructMovieFolder);
+EI_REWRITTEN(0x00455CE0, ConstructCameraFile);
+EI_REWRITTEN(0x00455D10, ConstructCommandLineScript);
+EI_REWRITTEN(0x00455D40, ConstructCommandLineMob);
+EI_REWRITTEN(0x00455D70, ConstructCommandLineMap);
+EI_REWRITTEN(0x00455DA0, ConstructMovieFolder);
 EI_REWRITTEN(0x00455D00, DestroyCameraFile);
 EI_REWRITTEN(0x00455D30, DestroyCommandLineScript);
 EI_REWRITTEN(0x00455D60, DestroyCommandLineMob);
 EI_REWRITTEN(0x00455D90, DestroyCommandLineMap);
 EI_REWRITTEN(0x00455DC0, DestroyMovieFolder);
-EI_REPLACE(0x00455DF0, ReleaseMouseAtExit);
+EI_REWRITTEN(0x00455DF0, ReleaseMouseAtExit);
 
 char g_windowTitle[256] = /*0079BB24*/ {""};
 HINSTANCE g_instance = /*0079BC24*/ {};

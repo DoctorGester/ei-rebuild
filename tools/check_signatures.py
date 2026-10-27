@@ -151,16 +151,17 @@ def stack_bytes(und):
 
 
 def declarations(map_path=MAP):
-    """Qualified function name -> [(undecorated signature, object file)] from the linker map."""
-    entries = re.findall(r'^\s*[0-9a-f]{4}:[0-9a-f]{8}\s+(\?\S+)\s+[0-9a-f]{8}\s+(?:f\s+)?(?:i\s+)?(\S+)\s*$',
+    """Qualified function name -> [(undecorated signature, object file)] from the linker map. An inline function's
+    copy (flag i) is the linker's pick among every object file that instantiated it: its object file is '' (any)."""
+    entries = re.findall(r'^\s*[0-9a-f]{4}:[0-9a-f]{8}\s+(\?\S+)\s+[0-9a-f]{8}\s+(?:f\s+)?(i\s+)?(\S+)\s*$',
                          open(map_path, errors='replace').read(), re.M)
-    und = undecorate({d for d, _ in entries})
+    und = undecorate({d for d, _, _ in entries})
     by_name = {}
-    for dec, obj in entries:
+    for dec, inline, obj in entries:
         u = und.get(dec)
         m = re.search(r'([\w:~<>]+)\(', u) if u else None
         if m:
-            by_name.setdefault(m.group(1), []).append((u, obj.lower()))
+            by_name.setdefault(m.group(1), []).append((u, '' if inline else obj.lower()))
     return by_name
 
 
@@ -211,7 +212,7 @@ def candidates_for(by_name, name, kind, rel, key):
     the property being checked, and same-file declarations break ties when candidates disagree."""
     candidates = by_name.get(name) or [c for n in _by_suffix(by_name).get(name, ()) for c in by_name[n]]
     obj = os.path.splitext(os.path.basename(rel))[0].lower() + '.cpp.obj'
-    same_file = [c for c in candidates if c[1].endswith(obj)]
+    same_file = [c for c in candidates if c[1].endswith(obj) or not c[1]]
     if kind == 'record':
         return same_file                       # file-local recorders share names across files
     if len({key(u) for u, _ in candidates} - {None}) > 1:

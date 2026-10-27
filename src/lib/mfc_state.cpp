@@ -52,12 +52,12 @@ void CProcessLocalObject::Destruct() {
 
 EI_REWRITTEN(0x0070C71F, CThreadSlotData::FreeSlot);
 EI_REWRITTEN(0x0070CA59, CThreadLocalObject::Destruct);
-EI_REPLACE_METHOD(0x0070CC2D, CThreadLocalObject::Destruct);   // ~CThreadLocal<_AFX_THREAD_STATE>
-EI_REPLACE_METHOD(0x0070D5F9, CThreadLocalObject::Destruct);   // ~CThreadLocal<T>
+EI_REWRITTEN(0x0070CC2D, CThreadLocalObject::Destruct);   // ~CThreadLocal<_AFX_THREAD_STATE>
+EI_REWRITTEN(0x0070D5F9, CThreadLocalObject::Destruct);   // ~CThreadLocal<T>
 EI_REWRITTEN(0x0070CAD2, CProcessLocalObject::Destruct);
-EI_REPLACE_METHOD(0x0070CE77, CProcessLocalObject::Destruct);  // ~CProcessLocal<_AFX_BASE_MODULE_STATE>
-EI_REPLACE_METHOD(0x0070D61F, CProcessLocalObject::Destruct);  // ~CProcessLocal<T>
-EI_REPLACE_METHOD(0x0070DC48, CProcessLocalObject::Destruct);  // ~CProcessLocal<T>
+EI_REWRITTEN(0x0070CE77, CProcessLocalObject::Destruct);  // ~CProcessLocal<_AFX_BASE_MODULE_STATE>
+EI_REWRITTEN(0x0070D61F, CProcessLocalObject::Destruct);  // ~CProcessLocal<T>
+EI_REWRITTEN(0x0070DC48, CProcessLocalObject::Destruct);  // ~CProcessLocal<T>
 
 // ---- GDI objects and AUX_DATA ----------------------------------------------------------------------
 
@@ -140,13 +140,14 @@ EI_REWRITTEN(0x0070D188, UpdateAfxScrollMetrics);
 
 namespace {
 void __cdecl DestroyAfxData() { g_afxData->Destruct(); }
+} // namespace
+
 void __cdecl ConstructAfxData() {
     g_afxData->Construct();
     libcrt::AtExit(DestroyAfxData);
 }
-} // namespace
 
-EI_REPLACE(0x0070D12E, ConstructAfxData);
+EI_REWRITTEN(0x0070D12E, ConstructAfxData);
 EI_REWRITTEN(0x0070D14E, DestroyAfxData);
 
 } // namespace mfc::impl
@@ -240,8 +241,8 @@ EI_REWRITTEN(0x0070C3C5, AfxCriticalInit);
 EI_REWRITTEN(0x0070C458, AfxLockGlobals);
 EI_REWRITTEN(0x0070C4C8, AfxUnlockGlobals);
 EI_REWRITTEN(0x00700674, AfxClassInit);
-EI_REPLACE(0x0070DC4D, AfxInitDbcs);
+EI_REWRITTEN(0x0070DC4D, AfxInitDbcs);
 EI_REWRITTEN(0x0070B5F0, AfxWingdixTerm);
-EI_REPLACE(0x0070B600, AfxWingdixTermInit);
+EI_REWRITTEN(0x0070B600, AfxWingdixTermInit);
 
 } // namespace mfc::impl

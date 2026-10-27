@@ -154,12 +154,14 @@ EI_REWRITTEN(0x00458870, OptionsConstruct);
 // options_global.cpp) and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
 namespace {
 void __cdecl DestroyGameOptions() { g_options.Destroy(); }
+} // namespace
+
 void __cdecl ConstructGameOptions() {
     g_options.Construct();
     libcrt::AtExit(DestroyGameOptions);
 }
-} // namespace
-EI_REPLACE(0x00458700, ConstructGameOptions);
+
+EI_REWRITTEN(0x00458700, ConstructGameOptions);
 EI_REWRITTEN(0x00458720, DestroyGameOptions);
 
 } // namespace options

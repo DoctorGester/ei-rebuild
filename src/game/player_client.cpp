@@ -783,11 +783,6 @@ using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }
 void __cdecl DestroyPartyIdSet() { g_partyIdSet->Destroy(); }
-void __cdecl ConstructPartyIdSet() {
-    g_partyIdSet->Construct(100, 0, 0, 0);
-    libcrt::AtExit(DestroyPartyIdSet);
-}
-
 int ReadDword(BitStream* in) {
     int value;
     in->Read(&value, 4);
@@ -796,7 +791,12 @@ int ReadDword(BitStream* in) {
 
 } // namespace
 
-EI_REPLACE(0x00668B40, ConstructPartyIdSet);
+void __cdecl ConstructPartyIdSet() {
+    g_partyIdSet->Construct(100, 0, 0, 0);
+    libcrt::AtExit(DestroyPartyIdSet);
+}
+
+EI_REWRITTEN(0x00668B40, ConstructPartyIdSet);
 EI_REWRITTEN(0x00668B60, DestroyPartyIdSet);
 
 int CPlayerClient::OnPartyState() {
