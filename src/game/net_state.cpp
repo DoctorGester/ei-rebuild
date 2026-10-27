@@ -23,8 +23,8 @@ namespace {
 // The world (ObjectWorld) as the base class.
 CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
-// The unit's equipment ids (11 words: 4, the weapon, 6) [0052EC10 (out)]; the path's writer
-// [005C7DB0 on the controller's path (field)].
+// The unit's equipment ids (11 words: 4, the weapon, 6); the path's writer
+// (the path's writer on the controller's path).
 
 constexpr int kClassServerController = 0x3E;
 
@@ -205,11 +205,11 @@ std::uint32_t CMapObject::ReadNetState(int first) {
 
 namespace {
 
-// CUnit helpers: release all items [005315B0], the move speeds [0052F920 (out, out)], MarkChanged
-// [0050E9F0 (part)]; the path's reader [005C7FC0 (field)], 005C7CB0 (-1), 005C7C90 (unit id);
-// the motion's 005C67D0 (path) on +0x27C; a player's unit list remove / add [00665B50 / 00665A70
-// (unit)]; the object's manager context [00455940] and the client's local view [005699F0]; the
-// field reader's CString [0047E310 (out)], CString operator= [00700AA9] and destructor [00700970].
+// CUnit helpers: release all items, the move speeds, MarkChanged,
+// the path's reader and two accessors;
+// the motion's path on +0x27C; a player's unit list remove / add;
+// the object's manager context and the client's local view; the
+// field reader's CString, CString operator= and destructor.
 
 constexpr float kStatEpsilon = 1e-4f;
 

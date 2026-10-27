@@ -2416,7 +2416,7 @@ inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<c
 inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
 // MFC CArray of token pointers (ui_scroll_text.cpp).
 using UiTokenArray = mfc::CArray<UiTextToken*>;
-// A laid out line of a scrolling text (CUiScrollText +0x1B0 holds pointers to them; DR-H16: only
+// A laid out line of a scrolling text (CUiScrollText +0x1B0 holds pointers to them; only
 // the two fields DrawLines reads, the record's size is not known).
 struct UiTextLine {
     int height_;                     // +0x00 pixels
@@ -2951,7 +2951,7 @@ public:
     // scroll bar or spin control changed (volumes, the display's gamma at once).
     void Update() override;
 
-    // ui_options.cpp (DR-H16).
+    // ui_options.cpp
     // Draws surface 0: the group titles (the shown one white-tinted, its button sprite
     // at full tint, the others half), the shown group's title, and each row's name and value (a
     // binding waiting for its key in red); the highlight sprite (scene object 2) on the selected

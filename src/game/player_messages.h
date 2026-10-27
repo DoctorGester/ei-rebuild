@@ -1,6 +1,6 @@
 #pragma once
 
-// The server side of a player's connection (CPlayerServer, vtable 00743280; 0066C730-00671080) as far
+// The server side of a player's connection (CPlayerServer) as far
 // as the message writers use it, and the party record lookup. Each writer appends one message to
 // the outgoing stream at +0x48 (a CMemoryStream; its slot 2 writes bytes): a type byte, then the
 // payload. The single-player game runs the same server / client pair, so the per-tick player state
@@ -45,7 +45,7 @@ struct HandlerEntry {
 };
 static_assert(sizeof(HandlerEntry) == 8 && offsetof(HandlerEntry, address) == 4);
 
-// A unit placement (0x28 bytes; built by 004CEE20): the unit's id, position, rotation and two
+// A unit placement (0x28 bytes): the unit's id, position, rotation and two
 // values (CWorldServer::StoreParty stores the unit's +0x268 / +0x26C, CreateUnits restores them).
 struct UnitPlacement {
     int id;
@@ -56,28 +56,28 @@ struct UnitPlacement {
 };
 static_assert(sizeof(UnitPlacement) == 0x28);
 
-// A world player's connection to its client (CPlayer::connection_; game.exe's vtable 007431E0): CPlayerServer
+// A world player's connection to its client (CPlayer::connection_): CPlayerServer
 // or CPlayerClient, both derived from it. It names the slots after CEngineObject's that the player calls; the
 // base's bodies are empty, 13 and 23 pure.
 class CPlayerConnection : public CEngineObject {
 public:
-    // 00666EC0 (deleting: 00666F70; player_client.cpp): no player, then CEngineObject's.
+    // The deleting destructor (player_client.cpp): no player, then CEngineObject's.
     ~CPlayerConnection() override;
 
-    virtual void ForgetSentObjects() = 0;   // 13: server 0066CE50 (sent objects, party units); client empty
-    virtual void UnitChanged(CUnit*) {}     // 14: client 00667BA0 (the unit's controller); server empty
-    virtual void ResetState() {}            // 15: server 0066CF20, client 00667600
-    virtual void Leave() {}                 // 16: server 0066D020 (state 3, flushed); client empty
-    // 17: server 0066E7D0 (CPlayerServer::SendItemsGiven); client empty.
+    virtual void ForgetSentObjects() = 0;   // Virtual 13: server (sent objects, party units); client empty
+    virtual void UnitChanged(CUnit*) {}     // Virtual 14: client (the unit's controller); server empty
+    virtual void ResetState() {}            // Virtual 15: server and client versions
+    virtual void Leave() {}                 // Virtual 16: server (state 3, flushed); client empty
+    // Virtual 17: server (CPlayerServer::SendItemsGiven); client empty.
     virtual void ItemsGiven(const mfc::CTypedPtrList<CItem>*, int) {}
-    virtual void ItemsTaken() {}            // 18: server 0066EA10 (message 0x17); client empty
-    virtual void ItemTaken(CEngineObject*) {}   // 19: server 0066EA30 (message 0x0A); client empty
-    // 20: server 0066F4C0 (CPlayerServer::OnLeaderDied; CUnitServer::RunTick calls it when
+    virtual void ItemsTaken() {}            // Virtual 18: server (message 0x17); client empty
+    virtual void ItemTaken(CEngineObject*) {}   // Virtual 19: server (message 0x0A); client empty
+    // Virtual 20: server (CPlayerServer::OnLeaderDied; CUnitServer::RunTick calls it when
     // the dying unit is the player's leader); client empty.
     virtual void LeaderDied() {}
-    virtual void TickDone() {}              // 21: server 0066D090 (empties +0x50F8); client empty
-    virtual void ItemUsed(CEngineObject*) {}    // 22: server 0066EB40 (message 0x14); client empty
-    virtual int Receive() = 0;              // 23: server 0066D270, client 00667A30
+    virtual void TickDone() {}              // Virtual 21: server (empties +0x50F8); client empty
+    virtual void ItemUsed(CEngineObject*) {}    // Virtual 22: server (message 0x14); client empty
+    virtual int Receive() = 0;              // Virtual 23: server and client versions
 
     CPlayer* Owner() const { return player_; }
 
@@ -90,23 +90,23 @@ protected:
 };
 static_assert(offsetof(CPlayerConnection, state_) == 0x20);   // the harness's ConnectionState
 
-// A player's server side (game.exe's vtable 00743280, 0x5128 bytes, made by the server's specific manager).
+// A player's server side (0x5128 bytes, made by the server's specific manager).
 class CPlayerServer final : public CPlayerConnection {
 public:
     // The engine object's fields, an empty handler table, the outgoing stream,
     // the placements, both coders, the sent arrays and groups, then ClearServerState.
     CPlayerServer();
-    // 0066C770 (deleting: 0066C750): ClearServerState (an ISAAC draw, as the original), the groups destroyed, the
+    // The deleting destructor: ClearServerState (an ISAAC draw, as the original), the groups destroyed, the
     // sent arrays' blocks freed, both coders' output ended, the placements' storage, the handler table's block and
     // the stream's storage freed, then CPlayerConnection's.
     ~CPlayerServer() override;
 
     int Create() override { return CreateServer(); }
     void Destroy() override { ClearServerState(); }
-    const char* GetClassName() override;                                   // 11: 0066C730 "CPlayerServer"
-    int GetClassId() override;                                             // 12: 0066C740 0x3B
+    const char* GetClassName() override;                                   // "CPlayerServer"
+    int GetClassId() override;                                             // 0x3B
     void ForgetSentObjects() override { ReleaseSentObjects(); }
-    // 14: 0066D0F0 (empty; CPlayerConnection's).
+    // Virtual 14 (empty; CPlayerConnection's).
     void ResetState() override { ClearServerState(); }
     void Leave() override { LeaveAndFlush(); }
     void ItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag) override { SendItemsGiven(items, flag); }
@@ -126,7 +126,7 @@ public:
     int SendState70(std::uint8_t a, std::uint16_t b);               // message 0x70
     int SendState71(std::uint32_t a, std::uint32_t b);              // message 0x71
     int SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w);   // 0x72
-    void SendState73(const WaterTweens* source);                    // message 0x73 (006D4570 payload)
+    void SendState73(const WaterTweens* source);                    // message 0x73
     int SendPosition04(const Vector3* at, std::uint32_t a, std::uint32_t b);   // message 0x04
     std::uint32_t SendPosition0F(const Vector3* at, const Vector3* other, std::uint8_t flag);   // 0x0F
     // Simple messages.
@@ -172,7 +172,7 @@ public:
     // sent (SendObject14, slot 22).
     void SendItems();
     // For a joined player (state 1): message 0x05, a stream with the
-    // given items' spells and then the items (0069FB60 gathers them, 0055E8A0 writes each list),
+    // given items' spells and then the items,
     // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
     void SendItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag);
     // Message 0x60: the world's +0x6C flag, +0x24, the party units (partyUnits_) by id and
@@ -192,7 +192,7 @@ public:
     // Every packet waiting on the link is decompressed (+0x28B0) into the
     // received stream and its messages run through the handlers; before the player has
     // joined (state 0) only types 0 and 8, the rest of such a packet is dropped. A read past the
-    // end, a type without a handler or a refusing handler ends in the fatal error 00664B70 (its
+    // end, a type without a handler or a refusing handler ends in the fatal error (its
     // result returned). 0 when leaving (state 3, also after a handler) or without a link, else 1.
     int ReceiveMessages();
     // The party units (partyUnits_) recomputed: with +0x24 at -1, group50F8_ plus the
@@ -211,8 +211,8 @@ public:
     // -1313, redeployed (Redeploy with scripts) and the new hero's brain gets the units (class
     // 0x50) the old one knew (+0x12C) and the old hero, each once and counted.
     void OnLeaderDied();
-    // 00670310 (message 0x36, from the client's ViewOrderTarget 0066AA20 / dead-unit order
-    // 0066AB80). Unit ids (a count, then the ids; units missing or blocked, flag 0x800000, are
+    // Message 0x36, from the client's ViewOrderTarget / dead-unit order
+    // handlers). Unit ids (a count, then the ids; units missing or blocked, flag 0x800000, are
     // left out), a flag, a kind, a value and the target object's id. With two units or more the
     // one nearest to the order's aim point (UseOrderDistanceSquared) is asked first: the first
     // whose controller accepts the use order (CheckOrder) or would accept it from where its
@@ -230,50 +230,50 @@ public:
     // party to the party manager, multiplayer sends it (a lone hero's record gets id
     // 999999950); then message 0x08 (the zone with its zero, the entrance) and a flush.
     void LeaveToZone(const char* zone, int entrance);
-    int OnRefreshParty();      // 0066FAA0, 0x02: ForgetKnownObjects, SendParty
-    int OnTakeExit();          // 00670C20, 0x03: exit index -> GetZoneExit -> LeaveToZone (0 when none)
-    int OnJoined();            // 00670DA0, 0x05: state 2 -> 1, the session kind, Redeploy with the placements, +0x130 bit 4
-    int OnLeaveToZone();       // 00670E00, 0x06: zone text, entrance -> LeaveToZone
-    int OnBriefingDone();      // 00670EB0, 0x07: briefing name -> CompleteBriefing(player id)
-    // 00670F50, 0x08: a party (LoadParty with variables); one of a single record gets a fresh party
+    int OnRefreshParty();      // Message 0x02: ForgetKnownObjects, SendParty
+    int OnTakeExit();          // Message 0x03: exit index -> GetZoneExit -> LeaveToZone (0 when none)
+    int OnJoined();            // Message 0x05: state 2 -> 1, the session kind, Redeploy with the placements, +0x130 bit 4
+    int OnLeaveToZone();       // Message 0x06: zone text, entrance -> LeaveToZone
+    int OnBriefingDone();      // Message 0x07: briefing name -> CompleteBriefing(player id)
+    // Message 0x08: a party (LoadParty with variables); one of a single record gets a fresh party
     // id (PartyNextId into the player's +0xFC), its record the next free object id (from 1000000013),
     // and is stored in the party manager's map. 0 for any other record count.
     int OnNewParty();
-    int OnResume();            // 00671060, 0x09: state 4 -> 1; Redeploy (no placements) unless deployed
-    // 0066FFF0 / 0066FBD0, 0x30 / 0x3A: unit ids (missing or blocked ones left out), a run flag and
+    int OnResume();            // Message 0x09: state 4 -> 1; Redeploy (no placements) unless deployed
+    // Messages 0x30 / 0x3A: unit ids (missing or blocked ones left out), a run flag and
     // a point; each unit's Player mode walks / goes (CommandWalk / CommandGoTo) to the point plus
     // its formation offset (FormationOffsets).
     int OnWalk();
     int OnGoTo();
-    // 00670190, 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
+    // Message 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
     int OnAttack();
-    int OnPartyUpdate();       // 00670B60, 0x50: a sized block loaded into the party (no variables)
+    int OnPartyUpdate();       // Message 0x50: a sized block loaded into the party (no variables)
     // player_server_orders.cpp: the last client messages. Units are the player's world's
     // "able" means present, not blocked (flag 0x800000) and not dead (slot 55).
-    int OnLeave();             // 0066FA90, 0x01: the connection's slot 16 (Leave)
-    // 00670CE0, 0x04 (joined players, state 1, else 0): the game state into the player's +0x100,
+    int OnLeave();             // Message 0x01: the connection's Leave
+    // Message 0x04 (joined players, state 1, else 0): the game state into the player's +0x100,
     // the party collected (CollectParty with the placements) and sent, message 0x07 (the state and
     // the world tick), dirty bit 0x10 cleared, state 2.
     int OnGameStateRequest();
-    // 0066FAC0, 0x10: a pause byte. A multiplayer client that is also the attached game server,
+    // Message 0x10: a pause byte. A multiplayer client that is also the attached game server,
     // asking to pause: only the session leader (its id the party's first record's unit) may, and
     // its name is announced (text 0xC); then the world's SetPaused(pause != 0).
     int OnPause();
-    // 00670820 / 006708D0, 0x33 / 0x32: {spell, unit id, target id / point, flag byte}: an able unit
+    // Messages 0x33 / 0x32: {spell, unit id, target id / point, flag byte}: an able unit
     // with a Player mode casts at the object (world slot 40) / point (CommandCast / CommandCastAt).
     int OnCastAtObject();
     int OnCastAtPoint();
-    // 00670960 / 006709D0, 0x34 / 0x35: {unit id, byte}: an able unit's wanted weapon slot / a living
+    // Messages 0x34 / 0x35: {unit id, byte}: an able unit's wanted weapon slot / a living
     // unit's movement style (no blocked test).
     int OnWantedWeapon();
     int OnMoveStyle();
-    int OnUnitLookup();        // 00670A40, 0x38: two dwords, the first looked up as a unit (unused)
-    // 00670A90, 0x39: {unit id, leader id}: a unit's Player mode follows the leader (may be null).
+    int OnUnitLookup();        // Message 0x38: two dwords, the first looked up as a unit (unused)
+    // Message 0x39: {unit id, leader id}: a unit's Player mode follows the leader (may be null).
     int OnFollow();
-    // 0066FB70, 0x3B: a unit id, then a byte: CUnit::SetUnknown438(signed byte) when the unit exists.
+    // Message 0x3B: a unit id, then a byte: CUnit::SetUnknown438(signed byte) when the unit exists.
     int OnUnitFlag438();
-    int OnLastPosition();      // 00670B20, 0x40: 8 bytes into lastPosition_ x, y
-    // 0066F890, 0x00 (A-H19): the login (PlayerLoginMessage). 0 unless the state is 0 (after the read).
+    int OnLastPosition();      // Message 0x40: 8 bytes into lastPosition_ x, y
+    // Message 0x00: the login (PlayerLoginMessage). 0 unless the state is 0 (after the read).
     // A client version other than 0x64: message 0x11 with the server's "SrvErrMsg" /
     // "WrongClientVersion" text (formatted with 1, 0), state 3, 0. 0 when the name or password
     // is not printable text (IsPrintableText(.., 0x3F, 1)). By game mode: 1 the party manager's
@@ -283,21 +283,21 @@ public:
     int OnLogin();
     // Message 0x83: the party saved without its variables as a sized block.
     void SendPartyUpdate();
-    // 0066F450 (from the player state tick 0058B750). A joined, deployed player's party is sent
+    // Called from the player state tick. A joined, deployed player's party is sent
     // again: "Resending party of player <id>" to the log, the records synced, SendParty,
-    // then 00591070.
+    // then the follow-up call.
     void ResendParty();
-    // 0066F840 (RET 8; the briefing screen). Message 0x19: a byte and a dword.
+    // From the briefing screen. Message 0x19: a byte and a dword.
     void SendPair19(std::uint8_t a, std::uint32_t b);
 
-    // A-H15: the connection slots' bodies (player_messages.cpp unless noted).
-    // 0066CC50 (slot 3) and 0066CF20 (slot 15), and CreateServer's first part: the outgoing
+    // The connection virtuals' bodies (player_messages.cpp unless noted).
+    // Virtuals 3 and 15, and CreateServer's first part: the outgoing
     // messages emptied, both sent arrays released and freed, state 0, the last position 0 and
     // +0x44 -1, both groups emptied, +0x24 -1, no refresh pending, flag70_ 0, the placements
     // emptied, both coders reset, the next party refresh in 900..1800 updates (ISAAC). (Not
     // CEngineObject::ClearState, slot 5.)
     void ClearServerState();
-    // 0066CE50 (slot 13, ForgetSentObjects). Both sent arrays released and freed, both groups emptied.
+    // ForgetSentObjects (virtual 13). Both sent arrays released and freed, both groups emptied.
     void ReleaseSentObjects();
     // Group50F8_ emptied.
     void ClearGroup50F8();
@@ -321,7 +321,7 @@ public:
     // 256 entries, zeroed, and the 25 handlers by message type (their game addresses). Returns 1.
     BOOL CreateServer();
 
-    // +0x28 the message handlers by type (thiscall, 0: refused), built by 0066C9A0 (256 of them).
+    // +0x28 the message handlers by type (0: refused; 256 of them).
     using Handler = int(__fastcall*)(CPlayerServer*, void*);
     lib::AlignedArray<Handler> handlers_;
     Vector3 lastPosition_;          // +0x38 sent with 0x04 / 0x0F
@@ -329,7 +329,7 @@ public:
     BitStream out_;                 // +0x48 messages to the client (CMemoryStream)
     std::uint8_t flag70_;           // +0x70 OnLeaderDied collects the party when set, redeploys it when clear
     std::uint8_t unused_71[3];
-    // +0x74 the unit placements (an MFC CArray; SetSize 0059C3D0, ConstructElements 004CEE20).
+    // +0x74 the unit placements (an MFC CArray).
     mfc::CArray<UnitPlacement> placements_;
     CoderState compressor_;         // +0x88 for the messages sent (Flush)
     CoderState decompressor_;       // +0x28B0 for the messages received
@@ -361,11 +361,11 @@ BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength);
 double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
 // The walk orders' formation: one unit gets (0, 0, 0); several get
 // the unit vector (x, y, 0) from the units' 2D centroid to each (unnormalised when it is zero).
-// `offsets` (CArray<Vector3>, vtable 0073C120) is sized to the units; nothing without units.
+// `offsets` (CArray<Vector3>) is sized to the units; nothing without units.
 void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets);
 
 
-// A world player (game.exe's vtable 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by 0066C110).
+// A world player ("CPlayer", class id 0xF; 0x134 bytes).
 // player.cpp: the constructor, destructor, Create / Destroy and the item and unit lists. The harness's digest reads
 // its fields (tests/verify/harness_digest.cpp), hence the layout asserts.
 class CPlayer final : public CEngineObject {
@@ -379,18 +379,18 @@ public:
     // The maps (NextPrime(100) buckets each; their functor bytes are left as they are), the party
     // (constructed, then created), the lists (block size 10), then what DestroyPlayer leaves.
     CPlayer();
-    // 00664E20 (deleting: 00664E00). DestroyPlayer, the party destroyed (slot 3), the lists emptied, the party
+    // The deleting destructor. DestroyPlayer, the party destroyed (slot 3), the lists emptied, the party
     // destructed, the maps freed, the link released; CEngineObject's last.
     ~CPlayer() override;
 
     int Create() override { return CreatePlayer(); }
     void Destroy() override { DestroyPlayer(); }
-    const char* GetClassName() override;               // 11: 00664DE0 "CPlayer"
-    int GetClassId() override;                         // 12: 00664DF0 0xF
+    const char* GetClassName() override;               // "CPlayer"
+    int GetClassId() override;                         // 0xF
 
     // DestroyPlayer; returns 1.
     BOOL CreatePlayer();
-    // 006650E0 (slot 3) and 00665380 (the destructor's copy). The recharge list emptied, Clear,
+    // Destroy (virtual 3) and the destructor's copy. The recharge list emptied, Clear,
     // the party destroyed and created again (slots 3, 2); +0x130 0, id -1, +0x108 0; the link
     // disconnected (slot 11) and released, the connection detached and released (slot 4);
     // +0x110 -1, +0x100 and +0x104 0.
@@ -465,13 +465,13 @@ public:
     PartyStorage party_;                        // +0x70 an embedded CParty; slot 18 its item manager
     mfc::CTypedPtrList<CItem> items_;           // +0xE0 items given to the player (counted; CPtrList)
     int partyId_;                               // +0xFC the key of the party in the party manager (PartyNextId); sent with the client's login
-    int sessionKind100_;                        // +0x100 3: the client runs 00538DB0 on the controllers of new units
+    int sessionKind100_;                        // +0x100 3: the client runs a setup on the controllers of new units
     std::uint32_t lastScreen_;                  // +0x104 the session kind before the last game-state message (5: the camp)
     std::uint8_t godMode_;                      // +0x108 the script's GodMode(player, on); the combat code tests it
     int logTraffic_;                            // +0x10C logs the size of every flush
     int lastTick_;                              // +0x110 -1 after Create; the world tick last saved or restored for the player
-    mfc::CList<std::uint32_t> recharging_;      // +0x114 ids of items recharging (vtable 00743138; saved with the world from version 0x55)
-    std::uint32_t dirty_;                       // +0x130 state to send (bits the server's state messages clear); -1 after 006651D0
+    mfc::CList<std::uint32_t> recharging_;      // +0x114 ids of items recharging (saved with the world from version 0x55)
+    std::uint32_t dirty_;                       // +0x130 state to send (bits the server's state messages clear); -1 after the reset
 };
 static_assert(offsetof(CPlayer, link_) == 0x1C);
 static_assert(offsetof(CPlayer, knownObjects_) == 0x28);

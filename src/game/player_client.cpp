@@ -325,7 +325,7 @@ EI_REWRITTEN(0x00667810, CPlayerClient::SendToServer);
 EI_REWRITTEN(0x00667970, CPlayerClient::DispatchMessages);
 EI_REWRITTEN(0x00667A30, CPlayerClient::ReceiveMessages);
 
-// --- A-H10: items, party, path markers, string events, recording ---------------------------------
+// --- Items, party, path markers, string events, recording ---------------------------------------
 
 namespace {
 
@@ -489,7 +489,7 @@ EI_REPLACE_METHOD(0x00667E60, CPlayerClient::OnStringEvent);
 EI_REWRITTEN(0x00669710, CPlayerClient::StartRecording);
 EI_REWRITTEN(0x00669750, CPlayerClient::StopRecording);
 
-// --- A-H10: a new map object (message 0x40, multiplayer) ----------------------------------------
+// --- A new map object (message 0x40, multiplayer) ------------------------------------------
 
 namespace {
 
@@ -674,7 +674,7 @@ int CPlayerClient::OnNewObject() {
 
 EI_REPLACE_METHOD(0x00667EC0, CPlayerClient::OnNewObject);
 
-// --- A-H10: clearing the connection ------------------------------------------------------------
+// --- Clearing the connection ---------------------------------------------------------------
 
 void CoderState::Reset() {
     out.End();
@@ -733,7 +733,7 @@ void CPlayerClient::Clear() {
     decompressor_.Reset();
 }
 
-// --- A-H21: constructor and destructor -----------------------------------------------------------
+// --- Constructor and destructor ------------------------------------------------------------
 
 CPlayerConnection::CPlayerConnection() {
     ClearFields();
@@ -776,7 +776,7 @@ EI_REWRITTEN(0x006671A0, CoderState::Reset);
 EI_REWRITTEN(0x00667510, CPlayerClient::Clear);
 EI_REWRITTEN(0x00667600, CPlayerClient::Clear);
 
-// --- A-H17: the party state -------------------------------------------------------------------
+// --- The party state ---------------------------------------------------------------------
 
 namespace {
 
@@ -786,7 +786,7 @@ constexpr int kSessionKindSingle = 1;
 // The client's party unit ids (hash_set<int>): insert_unique, find,
 // clear.
 using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
-// The set, empty at the start: built by the static initialiser 00668B40 in the list's order and destroyed by the exit
+// The set, empty at the start: built by the static initialiser in the list's order and destroyed by the exit
 // function it registers; both ported on the name and registered at their addresses
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};

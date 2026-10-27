@@ -1,6 +1,6 @@
 // The network message classes (net_messages.h) and the message base: for each class its factory,
 // constructor, copy (Clone's), slots 2-5 (reset, clone, write, read) and destructor; the same for the lobby's
-// server entry (0073BB28, net_classes.h; no factory). See docs/notes/network.md and
+// server entry (net_classes.h; no factory). See docs/notes/network.md and
 // docs/notes/cleanup-network.md.
 // The original inlines several STLport copies of the same string and vector code (copy
 // construction from [first, last) into a fresh block of length + 1 bytes, the 8-byte empty string,
@@ -600,7 +600,7 @@ void PartyMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BB40 ServerEntryBase and 0073BB28 ServerEntry (net_classes.h): made by 0041A7E0, 0041D420 and 0041D600 (the
+// ServerEntryBase and ServerEntry (net_classes.h): made by the server list code (the
 // server list).
 
 ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), address_(other.address_) {

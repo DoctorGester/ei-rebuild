@@ -76,7 +76,7 @@ void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
 } // namespace
 
 // The stream the received packets are decompressed into (core_streams.h), zero at the start: built by the static
-// initialiser 0066C4D0 in the list's order and destroyed once (once) by the exit function it registers
+// initialiser in the list's order and destroyed once by the exit function it registers
 // both ported on the name and registered at their addresses (docs/notes/standalone.md, "The static
 // initialisers' objects").
 constinit lib::StaticObject<CMemoryStream> g_receivedMessages = /*007C83D0*/ {};
@@ -311,7 +311,7 @@ EI_REWRITTEN(0x00670760, AIOrder::MakeUse);
 EI_REWRITTEN(0x006707D0, AIOrder::AimPoint);
 EI_REPLACE_METHOD(0x00670310, CPlayerServer::OnUseOrder);
 
-// --- A-H14: zone changes, joining, party blocks, the walk / attack orders -----------------------------
+// --- Zone changes, joining, party blocks, the walk / attack orders -------------------------
 
 namespace {
 
@@ -561,7 +561,7 @@ int CPlayerServer::OnPartyUpdate() {
     return 1;
 }
 
-// --- A-H19: the login ------------------------------------------------------------------------------
+// --- The login -----------------------------------------------------------------------------
 
 namespace {
 constexpr int kClientVersion = 0x64;
@@ -656,7 +656,7 @@ EI_REPLACE_METHOD(0x0066FBD0, CPlayerServer::OnGoTo);
 EI_REPLACE_METHOD(0x00670190, CPlayerServer::OnAttack);
 EI_REPLACE_METHOD(0x00670B60, CPlayerServer::OnPartyUpdate);
 
-// --- A-H14: party resends, message 0x19 ------------------------------------------------------------
+// --- Party resends, message 0x19 -----------------------------------------------------------
 
 namespace {
 constexpr std::uint8_t kMessagePartyUpdate = 0x83;

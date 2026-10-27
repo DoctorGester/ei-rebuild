@@ -328,7 +328,7 @@ BOOL CPlayerServer::CreateServer() {
     return 1;
 }
 
-// --- A-H15: the server's lifetime and slots --------------------------------------------------------
+// --- The server's lifetime and virtuals ------------------------------------------------------
 
 namespace {
 
