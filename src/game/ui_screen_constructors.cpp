@@ -14,6 +14,7 @@
 #include "lib/mfc_slots.h"
 
 #include <new>
+#include <string>
 
 namespace {
 
@@ -28,7 +29,7 @@ constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit fie
 CMessageBox::CMessageBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
                          std::uint32_t flags, std::uint32_t format)
     : CUiContainer(ui), result_(result), flags_(flags), format_(format) {
-    mfc::CString text;
+    std::string text;
     CTextManager* texts = TheTextManager();
     texts->GetString(titleKey, &text);
     title_ = text;

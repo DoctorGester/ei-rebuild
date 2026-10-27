@@ -112,7 +112,7 @@ void CHeroStatsPanel::DrawStats() {
     UnitStats* stats = &hero()->stats;
     CUnit* unit = owner_->HeroUnit(heroIndex_);
     std::string line;
-    mfc::CString text;
+    std::string text;
     CTextManager* texts = TheTextManager();
     RECT rect;
 
@@ -168,7 +168,7 @@ void CHeroStatsPanel::DrawStats() {
     } else if (page_ == 0) {
         rect = RECT{0x14, 0x41, 0xAF, 0x50};
         texts->GetString("infoitem_25", &text);
-        draw->DrawLine(text, &rect, 0, kBright, 0, 1);
+        draw->DrawLine(text.c_str(), &rect, 0, kBright, 0, 1);
         Down(&rect);
         DrawPart(&rect, "skull", 0);   // skull
         Down(&rect);
@@ -200,7 +200,7 @@ void CHeroStatsPanel::DrawStats() {
                 line = str::Format("damage_%d", info.damageType);
                 texts->GetString(line.c_str(), &text);
             }
-            line = str::Format("     %s %s", texts_[2].GetString(), text.GetString());
+            line = str::Format("     %s %s", texts_[2].GetString(), text.c_str());
             draw->DrawLine(line.c_str(), &rect, 0, kBright, 0, 1);
             int high = static_cast<int>(gamecrt::Ftol(D(info.damageMax)));
             int low = static_cast<int>(gamecrt::Ftol(D(info.damageMin)));
@@ -354,7 +354,7 @@ void CHeroStatsPanel::Build() {
                                  {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
     for (const auto& b : buttons) AddSprite(0)->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
     CTextManager* texts = TheTextManager();
-    mfc::CString text;
+    std::string text;
     mfc::CStringArray* array = &texts_;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
                             "lmp_pers_tall", "magic_skills"}) {
@@ -498,10 +498,10 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     pulse_ = 0.0f;
     CTextManager* texts = TheTextManager();
     mfc::CStringArray* array = &texts_;
-    mfc::CString text;
+    std::string text;
     for (int key : {0x23, 0x24}) {
-        text.Format("infoitem_%d", key);
-        texts->GetString(text, &text);
+        text = str::Format("infoitem_%d", key);
+        texts->GetString(text.c_str(), &text);
         array->SetAtGrow(array->GetSize(), text);
     }
 }

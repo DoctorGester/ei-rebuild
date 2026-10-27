@@ -550,7 +550,7 @@ void CCampPages::UpdateAction() {
         if (PlayerParty()->Money() < cost_) actionEnabled_ = false;
     }
 
-    mfc::CString text;
+    std::string text;
     std::string line;
     CTextManager* texts = TheTextManager();
     CUiSurface* draw = surfaces_.data[0];
@@ -559,16 +559,16 @@ void CCampPages::UpdateAction() {
     if (action.size() != 0) {
         texts->GetString(action.c_str(), &text);
         RECT name = {0, 30, 200, 50};
-        DrawLine(draw, text, &name);
+        DrawLine(draw, text.c_str(), &name);
         if (cost_ != 0)
-            text.Format("%+d", -cost_);
+            text = str::Format("%+d", -cost_);
         else
             text = "0";
         RECT value = {0, 50, 200, 70};
-        DrawLine(draw, text, &value);
+        DrawLine(draw, text.c_str(), &value);
     }
     texts->GetString(label.c_str(), &text);
-    line = str::Format("%s %d", text.GetString(), amount);
+    line = str::Format("%s %d", text.c_str(), amount);
     RECT top = {0, 10, 200, 30};
     DrawLine(draw, line.c_str(), &top);
     UiSurfaceReleaseDC(draw);
@@ -1197,7 +1197,7 @@ EI_REWRITTEN(0x0060F7A0, CCampPages::PreviousHero);
 void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];
     CTextManager* table = GameClientTexts();
-    mfc::CString name;
+    std::string name;
     std::string own = unit->GetName();
     if (own.size() == 0) {
         PartyUnitRecord* hero = HeroRecord();
@@ -1212,7 +1212,7 @@ void CCampPages::ShowHero() {
     } else {
         name = own;
     }
-    statsPanel_->SetHero(hero_, name);
+    statsPanel_->SetHero(hero_, name.c_str());
     trade_->SelectHero(hero_);
 }
 EI_REWRITTEN(0x0060F830, CCampPages::ShowHero);

@@ -45,17 +45,17 @@ int __fastcall SplitWords(const char* text, console::CStringArray* array, char s
 }
 EI_REWRITTEN(0x004DBF50, SplitWords);
 
-int __fastcall ReplaceChar(mfc::CString* string, char from, char to) {
-    mfc::CString result;
+int __fastcall ReplaceChar(std::string* string, char from, char to) {
+    std::string result;
     int start = 0;
-    int at = string->Find(from);
+    int at = str::Find(*string, from);
     while (at != -1) {
-        result += console::Ops(*string).Mid(start, at - start);
-        console::Ops(result).AppendChar(to);
+        result += str::Mid(*string, start, at - start);
+        result += to;
         start = at + 1;
-        at = string->Find(from, start);
+        at = str::Find(*string, from, start);
     }
-    result += console::Ops(*string).Mid(start);
+    result += str::Mid(*string, start);
     *string = result;
     return 1;
 }

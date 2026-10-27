@@ -20,6 +20,7 @@
 #include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -173,7 +174,7 @@ void CHelpWindow::ShowPage() {
     if (page_ >= lines_.size - 1) next->visible_ = 0;
 
     // Surface 0: the page's title and the topic's with the page's number.
-    mfc::CString text;
+    std::string text;
     const int width = page.right - page.left;
     CUiSurface* header = NewSurface(interface_, page.left, page.top, page.right, page.top + kStripHeight);
     AddSurface(header);
@@ -182,8 +183,8 @@ void CHelpWindow::ShowPage() {
     RECT line{0, 8, width, 30};
     header->DrawTextIn(lines_.data[page_], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
-    text.Format(kTitleFormat, title_.c_str(), page_ + 1, lines_.size);
-    header->DrawTextIn(text, &line, 1, kTitleColour, DT_CENTER, 1);
+    text = str::Format(kTitleFormat, title_.c_str(), page_ + 1, lines_.size);
+    header->DrawTextIn(text.c_str(), &line, 1, kTitleColour, DT_CENTER, 1);
     UiSurfaceReleaseDC(header);
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
@@ -260,15 +261,15 @@ void CHelpWindow::ShowPage() {
             }
             row.top = y;
             row.bottom = y + kRowHeight;
-            text.Empty();
+            text.clear();
             BOOL open;
             {
                 std::string section = (mfc::CString(kTutorSection) + entry.key.data()).GetString();
                 open = texts->Open(section.c_str());
             }
             if (open) texts->ReadToHash(&text, 1);
-            text.TrimRight(kLineEnds);
-            int height = body->DrawWrappedText(text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
+            str::TrimRight(text, kLineEnds);
+            int height = body->DrawWrappedText(text.c_str(), &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.
             if (withPicture && height <= 80) height = 80;
             y += height;
@@ -311,12 +312,12 @@ void CHelpWindow::ShowPage() {
         regions_.data[0]->SetTip(0x7595, 1, 0);
     }
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
-        mfc::CString hint;
+        std::string hint;
         texts->GetString(kHelpKeyText, &hint);
         hint += kSpace;
         hint += key;
         RECT label{width / 3, 5, 2 * width / 3, 25};
-        footer->DrawTextIn(hint, &label, 0, kTitleColour, DT_CENTER, 1);
+        footer->DrawTextIn(hint.c_str(), &label, 0, kTitleColour, DT_CENTER, 1);
     }
     if (page_ < lines_.size - 1) {
         RECT label{2 * width / 3, 5, width, 25};

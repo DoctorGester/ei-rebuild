@@ -229,8 +229,8 @@ void CMpHeroScreen::CreateScreen() {
     // record whose unit prototype has one of the two models, with a numbered voice when the
     // record has its flag.
     CTextManager* texts = TheTextManager();
-    mfc::CString male;
-    mfc::CString female;
+    std::string male;
+    std::string female;
     mfc::CString figureModel;
     std::string label;
     texts->GetString("lmp_male_voice", &male);
@@ -275,11 +275,11 @@ void CMpHeroScreen::CreateScreen() {
             isMale = !isFemale;
         }
         if (isMale) {
-            label = str::Format("%s %d", male.GetString(), static_cast<int>(maleVoices.size()) + 1);
+            label = str::Format("%s %d", male.c_str(), static_cast<int>(maleVoices.size()) + 1);
             AddFigure(maleVoices, men, prototype, label, creature()->voiced != 0);
         }
         if (isFemale) {
-            label = str::Format("%s %d", female.GetString(), static_cast<int>(femaleVoices.size()) + 1);
+            label = str::Format("%s %d", female.c_str(), static_cast<int>(femaleVoices.size()) + 1);
             AddFigure(femaleVoices, women, prototype, label, creature()->voiced != 0);
         }
     }
@@ -339,7 +339,7 @@ void CMpHeroScreen::CreateScreen() {
     surfaces_.data[kSurfaceRename]->Freeze(0, 0);
 
     // The list's four commands.
-    mfc::CString text;
+    std::string text;
     CUiSurface* commands = surfaces_.data[kSurfaceCommands];
     UiSurfaceGetDC(commands);
     commands->Clear();
@@ -353,7 +353,7 @@ void CMpHeroScreen::CreateScreen() {
     for (const char* key : commandKeys) {
         texts->GetString(key, &text);
         RECT rect{0, top, 290, top + 20};
-        commands->DrawTextIn(text, &rect, 1, kWhite, kTextFormat, 1);
+        commands->DrawTextIn(text.c_str(), &rect, 1, kWhite, kTextFormat, 1);
         top += 24;
     }
     UiSurfaceReleaseDC(commands);

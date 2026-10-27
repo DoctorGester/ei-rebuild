@@ -133,9 +133,9 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const int minuteOfDay = minutes - day * kMinutesPerDay;
     const int hour = minuteOfDay / 60;
     const int minute = minuteOfDay - hour * 60;
-    mfc::CString dayText;
+    std::string dayText;
     GameClientTexts()->GetString(kDayText, &dayText);
-    line = str::Format(kGameTimeFormat, dayText.GetString(), day + 1, hour, minute);
+    line = str::Format(kGameTimeFormat, dayText.c_str(), day + 1, hour, minute);
     surface->DrawTextIn(line.c_str(), &detailRect, kFont, kTextColour, 0, 1);
 
     RECT folderRect{340, 360, 580, 385};

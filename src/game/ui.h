@@ -805,7 +805,7 @@ public:
     // Every frame: the tooltips of the slots that show an item.
     void Update() override;
     // The item's name and, for a wand (category 5) or a scroll (8) with a spell, its numbers after labels_.
-    void ItemTip(unsigned index, mfc::CString* text);
+    void ItemTip(unsigned index, std::string* text);
     // The unit's quick item `slot` (a click on it or its key): a wand or scroll becomes the pending action
     // (3 on a unit for a spell with flag 0x10000000, else 4 at a point); the highlighted slot again, or an
     // empty one, drops it.

@@ -56,9 +56,9 @@ CItem* FirstOf(const lib::AlignedArray<CItem*>& list) { return list.size > 0 ? l
 
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
-    mfc::CString text;
+    std::string text;
     GameClientTexts()->CTextManager::GetString("reserved_04", &text);
-    TheInterface()->ShowStatusText(text);
+    TheInterface()->ShowStatusText(text.c_str());
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
     TheGameFlow()->EndSession();
     ui->SetPendingValue(0);

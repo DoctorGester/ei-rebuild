@@ -16,6 +16,8 @@
 #include "lib/mfc.h"
 #include "game_singletons.h"
 
+#include <string>
+
 namespace {
 constexpr int kCursorArrow = 0;
 constexpr int kCursorPickPlayer = 0xD;   // a portrait click picks a player
@@ -78,10 +80,10 @@ EI_REWRITTEN(0x00638A40, CBattleScreen::OnLButtonDown);
 
 void CBattleScreen::UnitName(CUnit* unit, std::string* out) {
     CTextManager* texts = TheTextManager();
-    mfc::CString name;
+    std::string name;
     name = unit->GetName();
-    if (name.GetLength() != 0) {
-        *out = name.GetString();
+    if (name.size() != 0) {
+        *out = name.c_str();
         return;
     }
     if (IsTextKey(unit->id_)) {
@@ -96,9 +98,9 @@ void CBattleScreen::UnitName(CUnit* unit, std::string* out) {
     name = unit->GetPrototype()->name;
     text::ReplaceChar(&name, ' ', '_');
     if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) {
-        mfc::CString line;
+        std::string line;
         texts->ReadLine(&line, 1);
-        *out = line.GetString();
+        *out = line.c_str();
     }
 }
 EI_REWRITTEN(0x0063B920, CBattleScreen::UnitName);

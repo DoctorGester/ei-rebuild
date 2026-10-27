@@ -217,17 +217,17 @@ EI_REWRITTEN(0x005809D0, LoadZoneQuests);
 
 void __stdcall GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node) {
     const net::VariableMessage* record = stlp::CountedRefListOf<net::VariableMessage>::At(node);
-    mfc::CString name(record->name_.data());
+    std::string name = record->name_.data();
     const float value = record->value_;
     bool quest;
     {
-        std::string prefix = name.Left(2).GetString();
+        std::string prefix = str::Left(name, 2);
         quest = gamecrt::mbscmp(prefix.c_str(),
                                 flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {
-        TheInterface()->OnQuestVariable(name, value);
-        TheClientWorld()->OnQuestVariable(name, value);
+        TheInterface()->OnQuestVariable(name.c_str(), value);
+        TheClientWorld()->OnQuestVariable(name.c_str(), value);
     }
 }
 
@@ -283,7 +283,7 @@ void GameFlow::RegisterQuests(const char* folder) {
 }
 
 mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
-    mfc::CString name;
+    std::string name;
     // The peer's map message: the client's, else the server's (the map's name its text).
     const net::MapMessage* peer = nullptr;
     const net::ClientSession* client = net::GameClient();

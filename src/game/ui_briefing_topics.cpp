@@ -91,7 +91,7 @@ EI_REWRITTEN(0x00607360, CBriefingScreen::FindTopics);
 
 
 mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) {
-    mfc::CString title;
+    std::string title;
     std::string key = topic;
     str::MakeLower(key);
     bool isConstructor;

@@ -29,7 +29,7 @@ struct PersonTextPair {
 void LoadPersonTexts(PersonTextMap* map) {
     CTextManager* texts = TheTextManager();
     console::CStringArray keys;
-    mfc::CString line;
+    std::string line;
     texts->ListKeys(&keys, PersonPattern());
     for (int i = 0; i < keys.size; ++i) {
         if (!texts->CTextManager::Open(keys[i])) continue;

@@ -246,7 +246,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
 
 
 void CBriefingScreen::DrawTopics() {
-    mfc::CString prefix;
+    std::string prefix;
     TheTextManager()->GetString(TopicPrefixKey(), &prefix);
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
@@ -258,7 +258,7 @@ void CBriefingScreen::DrawTopics() {
         std::uint32_t colour = row != hoveredTopic_ ? kTopicColour : kHoveredTopicColour;
         mfc::CString title;
         TopicTitle(&title, topics_[row]);
-        std::string text = prefix.GetString();
+        std::string text = prefix;
         text += TopicSeparator();
         text += title;
         surface->DrawTextIn(text.c_str(), &rect, kTextFormat, colour, 0, 1);

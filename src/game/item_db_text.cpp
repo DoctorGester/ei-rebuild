@@ -6,6 +6,7 @@
 
 #include "lib/crt.h"
 #include "text_split.h"
+#include "lib/str.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -38,14 +39,14 @@ bool OpenText(CTextManager* self, const char* key) { return self->Open(key) != 0
 
 // The record's name as used in keys: spaces become '_', lower case. `name` is a string field of a database record
 // that may be null (reading it then faults).
-void KeyName(mfc::CString& out, const std::string& name) {
+void KeyName(std::string& out, const std::string& name) {
     out = name;
     text::ReplaceChar(&out, ' ', '_');
-    out.MakeLower();
+    str::MakeLower(out);
 }
 
 // Looks up `key`; when found, reads the name line and the description.
-void ReadItemText(CTextManager* self, const std::string& key, mfc::CString* name, mfc::CString* description) {
+void ReadItemText(CTextManager* self, const std::string& key, std::string* name, std::string* description) {
     if (OpenText(self, key.c_str())) {
         self->ReadLine(name, 1);
         self->ReadToHash(description, 1);
@@ -67,46 +68,46 @@ BOOL CTextManager::IsPastEnd(const char* p) {
 }
 EI_REWRITTEN(0x004E0000, CTextManager::IsPastEnd);
 
-BOOL CTextManager::GetString(const char* name, mfc::CString* out) {
+BOOL CTextManager::GetString(const char* name, std::string* out) {
     if (cursor_) {
         text_ = nullptr;
         cursor_ = nullptr;
     }
     bool found;
     {
-        std::string key = (mfc::CString(kString) + name).GetString();
+        std::string key = std::string(kString) + name;
         found = OpenText(this, key.c_str());
     }
     if (!found) {
-        // `name` may be out's own buffer (callers pass a CString's text and the CString).
-        if (out->GetString() != name) *out = name;
+        // `name` may be out's own buffer (callers pass a string's text and the string).
+        if (out->c_str() != name) *out = name;
         text_ = nullptr;
         cursor_ = nullptr;
         return 0;
     }
     ReadToHash(out, 1);
-    out->TrimRight(kLineEnd);
+    str::TrimRight(*out, kLineEnd);
     text_ = nullptr;
     cursor_ = nullptr;
     return 1;
 }
 EI_REWRITTEN(0x004E0020, CTextManager::GetString);
 
-BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
+BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* description, std::string* kind) {
     std::uint32_t materialIndex = MaterialIndex(item->prototypeId_);
     std::uint32_t prototypeIndex = PrototypeIndex(item->prototypeId_);
-    mfc::CString recordName;
-    mfc::CString materialName; // ESP+0x14
-    name->Empty();
-    description->Empty();
-    kind->Empty();
+    std::string recordName;
+    std::string materialName;
+    name->clear();
+    description->clear();
+    kind->clear();
 
     const char* kindKey = nullptr;
     switch (item->type_) {
     case kItemWeapon: {
         KeyName(materialName, MaterialAt(materialIndex)->key.c_str());
         KeyName(recordName, WeaponAt(prototypeIndex)->text04.c_str());
-        ReadItemText(this, (mfc::CString(kWeapon) + recordName + kSpace + materialName).GetString(), name, description);
+        ReadItemText(this, std::string(kWeapon) + recordName + kSpace + materialName, name, description);
         kindKey = "item_weapon";
         break;
     }
@@ -114,7 +115,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         KeyName(materialName, MaterialAt(materialIndex)->key.c_str());
         const ArmorRecord* armor = ArmorAt(prototypeIndex);
         KeyName(recordName, armor->text04.c_str());
-        ReadItemText(this, (mfc::CString(kArmor) + recordName + kSpace + materialName).GetString(), name, description);
+        ReadItemText(this, std::string(kArmor) + recordName + kSpace + materialName, name, description);
         kindKey = IsUpperArmor(armor) ? "item_armor_upper" : "item_armor_lower";
         break;
     }
@@ -124,19 +125,19 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         const ItemRecordHead* prototype = item->GetPrototype();
         if (prototype && gamecrt::mbsicmp(prototype->materialClass.c_str(),
                                          kNoMaterial) == 0) {
-            ReadItemText(this, (mfc::CString(kQuickItem) + recordName).GetString(), name, description);
+            ReadItemText(this, std::string(kQuickItem) + recordName, name, description);
             kindKey = "item_potion";
             break;
         }
         KeyName(materialName, MaterialAt(materialIndex)->key.c_str());
-        ReadItemText(this, (mfc::CString(kQuickItem) + recordName + kSpace + materialName).GetString(), name, description);
+        ReadItemText(this, std::string(kQuickItem) + recordName + kSpace + materialName, name, description);
         // Only wands (category 5) get a kind; their name is followed by the spell's name.
         if (item->GetCategory() != 5) break;
         if (CSpell* spell = item->spell_) {
-            mfc::CString spellName(kUnknown);
+            std::string spellName(kUnknown);
             bool found;
             {
-                std::string key = (mfc::CString(kSpell) + spell->GetPrototype()->code).GetString();
+                std::string key = std::string(kSpell) + spell->GetPrototype()->code;
                 found = OpenText(this, key.c_str());
             }
             if (found) ReadLine(&spellName, 1);
@@ -149,39 +150,39 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         auto* loot = AsLoot(item);
         if (loot->kind_ == 0) {
             KeyName(recordName, LootAt(prototypeIndex)->text04.c_str());
-            ReadItemText(this, (mfc::CString(kLootItem) + recordName).GetString(), name, description);
+            ReadItemText(this, std::string(kLootItem) + recordName, name, description);
             kindKey = "item_loot";
         } else if (loot->kind_ == 1) {
             KeyName(materialName, MaterialAt(loot->index_)->key.c_str());
-            ReadItemText(this, (mfc::CString(kMaterial) + materialName).GetString(), name, description);
+            ReadItemText(this, std::string(kMaterial) + materialName, name, description);
             kindKey = "item_material";
         } else if (loot->kind_ == 2) {
             switch (loot->recordType_) {
             case 0:
                 KeyName(recordName, WeaponAt(loot->index_)->text04.c_str());
-                ReadItemText(this, (mfc::CString(kInstruction) + recordName).GetString(), name, description);
+                ReadItemText(this, std::string(kInstruction) + recordName, name, description);
                 kindKey = "item_weapon_shape";
                 break;
             case 1: {
                 const ArmorRecord* armor = ArmorAt(loot->index_);
                 KeyName(recordName, armor->text04.c_str());
-                ReadItemText(this, (mfc::CString(kInstruction) + recordName).GetString(), name, description);
+                ReadItemText(this, std::string(kInstruction) + recordName, name, description);
                 kindKey = IsUpperArmor(armor) ? "item_armor_shape_upper" : "item_armor_shape_lower";
                 break;
             }
             case 2:
                 KeyName(recordName, QuickItemAt(loot->index_)->text04.c_str());
-                ReadItemText(this, (mfc::CString(kInstruction) + recordName).GetString(), name, description);
+                ReadItemText(this, std::string(kInstruction) + recordName, name, description);
                 kindKey = "item_wand_shape";
                 break;
             case 3:
-                ReadItemText(this, (mfc::CString(kSpell) + SpellAt(loot->index_)->code).GetString(), name,
+                ReadItemText(this, std::string(kSpell) + SpellAt(loot->index_)->code, name,
                              description);
                 kindKey = "item_prototype";
                 break;
             case 4: {
                 // The modifier's two-letter code is inline in the record (+0x04).
-                ReadItemText(this, (mfc::CString(kModifier) + SpellModifierAt(loot->index_)->code).GetString(), name, description);
+                ReadItemText(this, std::string(kModifier) + SpellModifierAt(loot->index_)->code, name, description);
                 kindKey = "item_modifier";
                 break;
             }
@@ -193,14 +194,14 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
     case kItemSpell: {
         CSpell* spell = item->spell_;
         if (!spell) break;
-        ReadItemText(this, (mfc::CString(kSpell) + spell->GetPrototype()->code).GetString(), name, description);
+        ReadItemText(this, std::string(kSpell) + spell->GetPrototype()->code, name, description);
         kindKey = "item_spell";
         break;
     }
     case kItemQuest: {
         // 0x3009 is the quest item ("questitem"); its table is Loot in item_db.h.
         KeyName(recordName, QuestItemAt(prototypeIndex)->text04.c_str());
-        ReadItemText(this, (mfc::CString(kQuestItem) + recordName).GetString(), name, description);
+        ReadItemText(this, std::string(kQuestItem) + recordName, name, description);
         kindKey = "item_quest";
         break;
     }
@@ -211,17 +212,17 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
 }
 EI_REWRITTEN(0x004E0150, CTextManager::GetItemTexts);
 
-BOOL CTextManager::FormatItemName(CItem* item, mfc::CString* out) {
-    mfc::CString name;
-    mfc::CString format;   // first the description, then the format text
-    mfc::CString kind;
+BOOL CTextManager::FormatItemName(CItem* item, std::string* out) {
+    std::string name;
+    std::string format;   // first the description, then the format text
+    std::string kind;
     if (!GetItemTexts(item, &name, &format, &kind)) return 0;
     if (static_cast<int>(item->count_) > 1) {
         GetString("format_item2", &format);
-        out->Format(format, kind.GetString(), name.GetString(), item->count_);
+        *out = str::Format(format.c_str(), kind.c_str(), name.c_str(), item->count_);
     } else {
         GetString("format_item1", &format);
-        out->Format(format, kind.GetString(), name.GetString());
+        *out = str::Format(format.c_str(), kind.c_str(), name.c_str());
     }
     return 1;
 }

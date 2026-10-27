@@ -31,6 +31,7 @@ pointer kept from a temporary) stays a CString: the round starts again from the 
 
 usage (from a VS x86 prompt; build/verify configured):
   python tools/c14_strings.py run [--scope locals|params] [--files src/game/a.cpp ...] [--rounds N]
+                                  [--string-out ReadLine GetString ...]   (their &x arguments keep no local)
   python tools/c14_strings.py run --scope members --members CUnit::scriptName CScript::errorText_ ...
   python tools/c14_strings.py list [--files ...]      the declarations step 1 would retype
   python tools/c14_strings.py lifetimes               placement news and destructor calls of CStrings typed by their
@@ -341,6 +342,21 @@ def brace_kinds(m):
 DECL = re.compile(r'(?<![\w:])((?:static\s+|const\s+)*)mfc::CString(?![\w:])')
 
 
+# Functions whose pointer parameters take std::string* (--string-out): an address handed to one of them is a
+# typed out parameter (a CString* there is a compile error), so it does not keep the variable a CString.
+STRING_OUT = set()
+
+
+def address_taken(text, name):
+    """Whether `&name` occurs in `text` other than as an argument of a STRING_OUT function."""
+    for x in re.finditer(r'(?<![&\w)\]])&\s*' + re.escape(name) + r'\b(?!\s*(?:\.|->|\[|\())', text):
+        o = enclosing_open(text, x.start())
+        callee = re.search(r'(\w+)\s*$', text[:o]) if o >= 0 else None
+        if not (callee and callee.group(1) in STRING_OUT):
+            return True
+    return False
+
+
 def find_locals(src):
     """[(type_start, type_end, [names])] of the local value declarations of mfc::CString in `src`."""
     m = src.masked
@@ -427,7 +443,7 @@ def find_locals(src):
         # std::string* compiles and is read as a CString (`reinterpret_cast<StringOps*>(&text)`, ComposeSkin's void*
         # target); the name is looked for in the rest of the file, more than needed
         rest_of_file = m[end:]
-        if any(re.search(r'(?<![&\w)\]])&\s*' + re.escape(n) + r'\b(?!\s*(?:\.|->|\[|\())', rest_of_file) for n in names):
+        if any(address_taken(rest_of_file, n) for n in names):
             continue
         found.append((type_start, type_end, names, inits))
     return found
@@ -1229,8 +1245,12 @@ def main():
     ap.add_argument('--rounds', type=int, default=8)
     ap.add_argument('--iterations', type=int, default=12)
     ap.add_argument('--fresh', action='store_true', help='forget the excluded variables of earlier runs')
+    ap.add_argument('--string-out', nargs='*', default=[],
+                    help='scope locals: functions whose pointer parameters take std::string* (an address handed to '
+                         'them does not keep a variable)')
     ap.add_argument('-v', '--verbose', action='store_true')
     args = ap.parse_args()
+    STRING_OUT.update(args.string_out)
     if args.command == 'lifetimes':
         return lifetimes_cmd(args)
     if args.command == 'list':

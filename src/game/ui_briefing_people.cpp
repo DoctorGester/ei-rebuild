@@ -157,13 +157,13 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         HideSpeaker(name, 0, 0);
         break;
     }
-    mfc::CString key(name);
+    std::string key = name;
     text::ReplaceChar(&key, '_', ' ');
-    key.MakeLower();
+    str::MakeLower(key);
     const itemdb::ItemRecordHead* record;
     // The quest item table's (this window calls it the loot table) name index's
     // operator[] (an unknown name gets a null entry).
-    record = itemdb::TheItemDatabase().questItems.Named(key);
+    record = itemdb::TheItemDatabase().questItems.Named(key.c_str());
     if (!record) return;
 
     float x = static_cast<float>(kSlotXs[index % kSlots]);

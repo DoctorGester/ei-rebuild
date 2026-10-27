@@ -36,7 +36,7 @@ constexpr const char* kMissingNumber = "0";
 // The text `prefix` + `name` (empty when there is none), constructed into `out`.
 mfc::CString* PlaceTitle(mfc::CString* out, const char* prefix, const char* name) {
     CTextManager* texts = TheTextManager();
-    mfc::CString text;
+    std::string text;
     if (texts->Open(mfc::CString(prefix) + name)) texts->ReadLine(&text, 1);
     return std::construct_at(out, text);
 }

@@ -39,7 +39,7 @@ UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
 
 void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maximum) {
     CTextManager* texts = TheTextManager();
-    mfc::CString name;
+    std::string name;
     std::string number;
     BOOL found;
     {
@@ -55,7 +55,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
     else
         number = str::Format(kValueFormat, value);
     CUiSurface* surface = surfaces_.data[0];
-    surface->DrawTextIn(name, rect, 0, kRowColour, kLeft, 1);
+    surface->DrawTextIn(name.c_str(), rect, 0, kRowColour, kLeft, 1);
     surface->DrawTextIn(number.c_str(), rect, 0, kRowColour, kRight, 1);
 }
 EI_REWRITTEN(0x006242E0, CHeroStatsPanel::DrawRow);
@@ -78,7 +78,7 @@ float CHeroStatsPanel::PartArmour(int part) {
 }
 
 void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
-    mfc::CString label;
+    std::string label;
     std::string number;
     std::string unused;
     {
@@ -87,7 +87,7 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     }
     label = mfc::CString(kPartIndent) + label;
     CUiSurface* surface = surfaces_.data[0];
-    surface->DrawTextIn(label, rect, 0, kRowColour, kLeft, 1);
+    surface->DrawTextIn(label.c_str(), rect, 0, kRowColour, kLeft, 1);
     number = str::Format(kArmourFormat, static_cast<double>(PartArmour(part)));
     surface->DrawTextIn(number.c_str(), rect, 0, kRowColour, kRight, 1);
 }

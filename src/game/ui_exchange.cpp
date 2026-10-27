@@ -16,9 +16,11 @@
 #include "world_glue.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstdlib>
+#include <string>
 
 namespace {
 const char* const kBuySound = "buttons\\camp\\buy.wav";
@@ -230,7 +232,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     }
 
     CTextManager* texts = GameClientTexts();
-    mfc::CString text, line;
+    std::string text, line;
     net::ClientSession* client = net::GameClient();
 
     // Surface 0: our money and the accept caption.
@@ -238,12 +240,12 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     UiSurfaceGetDC(surface);
     surface->Clear();
     texts->GetString("xch_current_money", &text);
-    line.Format("%s %d", text.GetString(), LocalParty()->Money());
+    line = str::Format("%s %d", text.c_str(), LocalParty()->Money());
     RECT rect{0, 0, 200, 0x14};
-    surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
+    surface->DrawTextIn(line.c_str(), &rect, kAlignLeft, kWhite, 1, 1);
     texts->GetString("xch_accept", &text);
     rect = RECT{0, 0x14, 200, 0x28};
-    surface->DrawTextIn(text, &rect, kAlignLeft, kWhite, 1, 1);
+    surface->DrawTextIn(text.c_str(), &rect, kAlignLeft, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);
 
     // Surface 1: the money offer's caption.
@@ -252,7 +254,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     surface->Clear();
     texts->GetString("xch_money_offer", &text);
     rect = RECT{0x14, 0, 0xB4, 0x14};
-    surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
+    surface->DrawWrappedText(text.c_str(), &rect, kWrapLines, 1, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);
 
     // Surface 2: the partner's money, while its offer pairs with ours.
@@ -263,10 +265,10 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
         texts->GetString("xch_money_remote", &text);
         rect = RECT{0x14, 0, 0xB4, 0x14};
-        surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-        line.Format("%d", partnerOffer_->Money());
+        surface->DrawWrappedText(text.c_str(), &rect, kWrapLines, 1, kWhite, 1, 1);
+        line = str::Format("%d", partnerOffer_->Money());
         rect = RECT{0, 0x28, 200, 0x3C};
-        surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
+        surface->DrawTextIn(line.c_str(), &rect, kAlignLeft, kWhite, 1, 1);
     }
     UiSurfaceReleaseDC(surface);
 
@@ -278,12 +280,12 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
         texts->GetString("xch_remote_header", &text);
         rect = RECT{0x14, 0, 0xB4, 0x14};
-        surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
+        surface->DrawWrappedText(text.c_str(), &rect, kWrapLines, 1, kWhite, 1, 1);
         texts->GetString(net::ClientFindParty(client)->accepted_ ? "xch_remote_ok"
                                                               : "xch_remote_cancel",
                          &text);
         rect = RECT{0, 0x28, 200, 0x3C};
-        surface->DrawTextIn(text, &rect, kAlignLeft, kGrey, 1, 1);
+        surface->DrawTextIn(text.c_str(), &rect, kAlignLeft, kGrey, 1, 1);
     }
     UiSurfaceReleaseDC(surface);
 

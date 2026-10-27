@@ -13,12 +13,14 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_slots.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -44,10 +46,10 @@ CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index);
 template <int N>
 void AddLabels(mfc::CStringArray* labels, const int (&ids)[N]) {
     CTextManager* texts = TheTextManager();
-    mfc::CString text;
+    std::string text;
     for (int id : ids) {
-        text.Format("infoitem_%d", id);
-        texts->GetString(text, &text);
+        text = str::Format("infoitem_%d", id);
+        texts->GetString(text.c_str(), &text);
         labels->SetAtGrow(labels->size, text);
     }
 }
@@ -287,7 +289,7 @@ CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUi
     selected_ = -1;
     for (int i = 0; i < 6; ++i) regions_.data[i]->SetTip(0, 1, 0);
     unit_ = nullptr;
-    mfc::CString text;
+    std::string text;
     TheTextManager()->GetString("infoitem_16", &text);
     labels_.SetAtGrow(labels_.size, text);
     widescreen::LeavePanel();        // addon's 10023430

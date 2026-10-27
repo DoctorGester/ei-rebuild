@@ -131,14 +131,14 @@ void DrawRowText(CUiSurface* surface, const char* text, RECT* rect, int font, CO
     surface->DrawTextIn(text, rect, font, colour, format, 1);
 }
 
-void ReadTip(mfc::CString* text) {
-    if (TheTextManager()->CTextManager::Open(*text) != 0) TheTextManager()->ReadToHash(text, 1);
+void ReadTip(std::string* text) {
+    if (TheTextManager()->CTextManager::Open(text->c_str()) != 0) TheTextManager()->ReadToHash(text, 1);
 }
 
 void ShownName(std::string* out, const char* prefix, const char* name) {
-    mfc::CString text;
-    if (TheTextManager()->GetString(mfc::CString(prefix) + name, &text))
-        *out = text.GetString();
+    std::string text;
+    if (TheTextManager()->GetString((std::string(prefix) + name).c_str(), &text))
+        *out = text;
     else
         *out = name;
 }
@@ -201,7 +201,7 @@ void COptionsWindow::RefreshRows() {
 EI_REWRITTEN(0x00651350, COptionsWindow::RefreshRows);
 
 void COptionsWindow::ShowGroup(int group) {
-    mfc::CString tip;
+    std::string tip;
     if (group < 0)
         group = 0;
     else if (group >= kOptionGroups)
@@ -217,17 +217,17 @@ void COptionsWindow::ShowGroup(int group) {
         const OptionDefinition& definition = kOptionDefinitions[i];
         if (definition.group_ != group) continue;
         rows_[definition.row_].setting_ = &settings_[i];
-        tip.Format(TextTipOption(), definition.name_);
+        tip = str::Format(TextTipOption(), definition.name_);
         ReadTip(&tip);
-        regions_.data[kFirstRowRegion + definition.row_]->SetTipString(tip, 1, 0);
+        regions_.data[kFirstRowRegion + definition.row_]->SetTipString(tip.c_str(), 1, 0);
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition& action = kActionDefinitions[i + 1];
         if (action.group_ != group) continue;
         rows_[action.row_].binding_ = &bindings_[i];
-        tip.Format(TextTipAction(), action.name_);
+        tip = str::Format(TextTipAction(), action.name_);
         ReadTip(&tip);
-        regions_.data[kFirstRowRegion + action.row_]->SetTipString(tip, 1, 0);
+        regions_.data[kFirstRowRegion + action.row_]->SetTipString(tip.c_str(), 1, 0);
     }
 
     for (int i = 0; i < kOptionDefinitionCount; ++i)
@@ -276,15 +276,15 @@ void COptionsWindow::BuildSettings() {
             AddChild(slider);
             setting.spin_ = nullptr;
         } else if (definition->kind_ == kSpinKind) {
-            mfc::CString text;
+            std::string text;
             text = TextOffDefault();
             TheTextManager()->GetString(TextOptionOff(), &text);
             if (i == kDifficultySetting) TheTextManager()->GetString(TextDifficultyHard(), &text);
-            setting.spin_ = new CUiSpin(interface_, RECT{530, top + 160, 690, top + 176}, text);
+            setting.spin_ = new CUiSpin(interface_, RECT{530, top + 160, 690, top + 176}, text.c_str());
             text = TextOnDefault();
             TheTextManager()->GetString(TextOptionOn(), &text);
             if (i == kDifficultySetting) TheTextManager()->GetString(TextDifficultyEasy(), &text);
-            setting.spin_->AddText(text);
+            setting.spin_->AddText(text.c_str());
             AddChild(setting.spin_);
             setting.bar_ = nullptr;
         }

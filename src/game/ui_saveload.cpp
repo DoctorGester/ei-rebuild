@@ -172,19 +172,19 @@ bool SameFolder(const char* folder, const char* name) {
 } // namespace
 
 void SaveEntry::MakeTitle(int) {
-    mfc::CString quick;
-    mfc::CString autoEnter;
-    mfc::CString autoExit;
+    std::string quick;
+    std::string autoEnter;
+    std::string autoExit;
     TheTextManager()->GetString(kQuickTitle, &quick);
     TheTextManager()->GetString(kAutoEnterTitle, &autoEnter);
     TheTextManager()->GetString(kAutoExitTitle, &autoExit);
     auto& title = title_;
     if (SameFolder(folder_.c_str(), kQuickFolder)) {
-        title = str::Format(kPlainFormat, quick.GetString());
+        title = str::Format(kPlainFormat, quick.c_str());
     } else if (SameFolder(folder_.c_str(), kAutoFolderA)) {
-        title = str::Format(kPlainFormat, autoEnter.GetString());
+        title = str::Format(kPlainFormat, autoEnter.c_str());
     } else if (SameFolder(folder_.c_str(), kAutoFolderB)) {
-        title = str::Format(kPlainFormat, autoExit.GetString());
+        title = str::Format(kPlainFormat, autoExit.c_str());
     } else {
         // The zone name ("zone" + zone_ in the texts, else "save_camp").
         const std::string name = ZoneTitle().GetString();
@@ -211,9 +211,9 @@ void CSaveLoadWindow::SaveGame() {
     }
     std::string folder;
     folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.c_str());
-    mfc::CString notice;
+    std::string notice;
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
-    TheInterface()->ShowStatusText(notice);
+    TheInterface()->ShowStatusText(notice.c_str());
     TheGameFlow()->SaveGameThunk(entry->folder_.c_str());
     TheCursor()->ChangeShape(3);
 
@@ -424,13 +424,13 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     surface->CaptureScreen();
     TheCursor()->ChangeShape(3);
     Interface()->serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
-    mfc::CString notice;
+    std::string notice;
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
-    TheInterface()->ShowStatusText(notice);
+    TheInterface()->ShowStatusText(notice.c_str());
     TheGameFlow()->SaveGameThunk(slot);
 
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
-    mfc::CString title;
+    std::string title;
     std::string map;
     mfc::impl::CTime now;
     const std::int32_t savedAt = mfc::impl::CTime::CurrentTime(&now)->time;
@@ -446,7 +446,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     info.WriteText(map.c_str());
     info.WriteText(zone.c_str());
     info.Write(&savedAt, 4);
-    info.WriteText(title);
+    info.WriteText(title.c_str());
     info.Close();
 
     // shot.sav: the copied screen at 256x192.
@@ -467,9 +467,9 @@ void __fastcall QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
     std::string folder = SlotFolder(slot).GetString();
     if (libcrt::Access(folder.c_str(), 0) == -1) return;
-    mfc::CString notice;
+    std::string notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
-    TheInterface()->ShowStatusText(notice);
+    TheInterface()->ShowStatusText(notice.c_str());
     GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
 }
@@ -481,7 +481,7 @@ namespace {
 
 // The first line of the text `prefix` + `suffix`, or empty when there is none.
 mfc::CString FirstLineOf(const char* prefix, const std::string& suffix) {
-    mfc::CString line;
+    std::string line;
     CTextManager* texts = TheTextManager();
     BOOL found = texts->Open(mfc::CString(prefix) + suffix);
     if (found) texts->ReadLine(&line, 1);
@@ -503,8 +503,8 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 } // namespace
 
 mfc::CString SaveEntry::ZoneTitle() const {
-    mfc::CString title = FirstLineOf("zone ", zone_.c_str());   // the key has a space
-    if (title.GetLength() == 0) TheTextManager()->GetString("save_camp", &title);
+    std::string title = FirstLineOf("zone ", zone_.c_str()).GetString();   // the key has a space
+    if (title.size() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
 EI_REWRITTEN(0x00653BD0, SaveEntry::ZoneTitle);
@@ -577,9 +577,9 @@ void CSaveLoadWindow::LoadSelected() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     if (entries_.begin()[selected].broken_) return;
-    mfc::CString notice;
+    std::string notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
-    TheInterface()->ShowStatusText(notice);
+    TheInterface()->ShowStatusText(notice.c_str());
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
     Flow()->RequestLoad(entries_.begin()[selected_].folder_.c_str(), 0);

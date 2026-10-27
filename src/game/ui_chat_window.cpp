@@ -94,7 +94,7 @@ CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     rect_ = RECT{left, 0, 800, 0xA0};
     AddSurface(new CUiSurface(interface_, left, 0x4B, 800, 0x69, kSurfaceFormat, 1));
     portraits_ = 0;
-    mfc::CString text;
+    std::string text;
     for (int i = 0; i < kTextCount; ++i) {
         TheTextManager()->GetString(TextKey(i), &text);
         texts_.SetAtGrow(texts_.size, text);

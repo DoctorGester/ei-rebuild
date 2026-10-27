@@ -15,7 +15,7 @@ int __fastcall Split(const char* text, mfc::CStringArray* array, char separator)
 // leading one) is skipped; a piece that is empty only after trimming is still added. Returns 1.
 int __fastcall SplitWords(const char* text, console::CStringArray* array, char separator);
 // (ECX string, EDX from; `to` on the stack). Every `from` in the string becomes `to`. Returns 1.
-int __fastcall ReplaceChar(mfc::CString* string, char from, char to);
+int __fastcall ReplaceChar(std::string* string, char from, char to);
 // (ECX out, EDX array; `separator` on the stack). `out` becomes the array's strings with
 // `separator` between them (the exe's empty string for an empty array). Returns 1.
 int __fastcall Join(mfc::CString* out, const mfc::CStringArray* parts, char separator);

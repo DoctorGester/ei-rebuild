@@ -314,12 +314,12 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     hoverUnit_ = nullptr;
 
     CTextManager* texts = TheTextManager();
-    mfc::CString text;
+    std::string text;
     std::string key;
     mfc::CStringArray* infoTexts = &texts_;
     for (int i = 0; i < kInfoTexts; ++i) {
         key = str::Format(kInfoTextFormat, i);
-        text.Empty();
+        text.clear();
         texts->GetString(key.c_str(), &text);
         infoTexts->SetAtGrow(infoTexts->size, text);
     }

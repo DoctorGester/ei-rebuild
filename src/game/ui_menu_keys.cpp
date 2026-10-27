@@ -229,10 +229,10 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         if (other != bindings_.end() && other != nullptr && other != binding) {
             // Already bound to another action: ask (the box's result goes to OnDialogResult).
             CMessageBox* box = new CMessageBox(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
-            mfc::CString format;
+            std::string format;
             std::string message;
             TheTextManager()->GetString(game::menukeytexts::KeyMappedText(), &format);
-            message = str::Format(format, pressed->name_, other->name_.c_str());
+            message = str::Format(format.c_str(), pressed->name_, other->name_.c_str());
             // The box's text (a null box is written through, like the original).
             box->text_ = message.c_str();
             interface_->PushWindow(box, 1, 1);

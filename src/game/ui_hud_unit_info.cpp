@@ -19,6 +19,7 @@
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <string>
@@ -91,7 +92,7 @@ bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
 void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     CTextManager* texts = TheTextManager();
     UnitParams* params = unitIn->Params();
-    mfc::CString suffix;
+    std::string suffix;
     Panel panel;
     panel.surface = *surfaces_.data;
     panel.labels = texts_.data;
@@ -111,10 +112,10 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
         panel.text.Format(kMoveKey, moveBonus - 1);
         texts->CTextManager::GetString(panel.text, &suffix);
     } else {
-        suffix.Empty();
+        suffix.clear();
     }
     double speed = ShownSpeed(unitIn, outside);
-    panel.text.Format(kSpeedLine, panel.labels[2].GetString(), speed, suffix.GetString());
+    panel.text.Format(kSpeedLine, panel.labels[2].GetString(), speed, suffix.c_str());
     panel.DrawLine();
 
     float dayTime = static_cast<float>(WorldDayTime(TheClientWorld()));
@@ -137,7 +138,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     int damageMax = static_cast<int>(combat.damageMax);
     int damageMin = static_cast<int>(combat.damageMin);
     panel.text.Format(kDamageLine, panel.labels[9].GetString(), damageMin, damageMax,
-                      suffix.GetString());
+                      suffix.c_str());
     panel.DrawLine();
     panel.text.Format(kValue, panel.labels[15].GetString(), static_cast<int>(params->rate));
     panel.DrawLine();
@@ -156,16 +157,16 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
             CUnit* leader = group->party_[0];
             int difference = unitIn->Level() - leader->Level();
             if (difference > kLevelDifferenceLimit) {
-                suffix.Format(kStronger, kLevelDifferenceLimit);
+                suffix = str::Format(kStronger, kLevelDifferenceLimit);
             } else if (difference < -kLevelDifferenceLimit) {
-                suffix.Format(kWeaker, kLevelDifferenceLimit);
+                suffix = str::Format(kWeaker, kLevelDifferenceLimit);
             } else if (difference >= 0) {
-                suffix.Format(kStronger, difference);
+                suffix = str::Format(kStronger, difference);
             } else {
-                suffix.Format(kWeaker, -difference);
+                suffix = str::Format(kWeaker, -difference);
             }
-            texts->CTextManager::GetString(suffix, &suffix);
-            panel.text.Format(kTwoTexts, panel.labels[16].GetString(), suffix.GetString());
+            texts->CTextManager::GetString(suffix.c_str(), &suffix);
+            panel.text.Format(kTwoTexts, panel.labels[16].GetString(), suffix.c_str());
             panel.DrawLine();
         }
     } else if (lines[2].GetLength() != 0) {
@@ -174,7 +175,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
 
     if (IsMultiplayerClient() && !outside) {
         texts->CTextManager::GetString(kCampExp, &suffix);
-        panel.text.Format(kValue, suffix.GetString(), params->unspentExperience);
+        panel.text.Format(kValue, suffix.c_str(), params->unspentExperience);
         panel.DrawLine();
     }
 }

@@ -86,31 +86,31 @@ void CHudTopPanel::Build(int page, int shown) {
 EI_REWRITTEN(0x00649AF0, CHudTopPanel::Build);
 
 void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
-    mfc::CString name;
-    mfc::CString kind;
+    std::string name;
+    std::string kind;
     TheTextManager()->FormatItemName(item, &name);
     const char* key = static_cast<char>(crippled) ? "combat_crippled"
                                                   : "combat_picked_up";
     TheTextManager()->GetString(key, &kind);
-    std::string line = kind.GetString();
+    std::string line = kind;
     line += " ";
     line += name;
     line += "\n";   // "\n"
     name = line;
     pageTexts_[0] += name;
-    if (page_ == 0) owner_->MessageLog()->AddText(name);
+    if (page_ == 0) owner_->MessageLog()->AddText(name.c_str());
 }
 EI_REWRITTEN(0x0064A4E0, CHudTopPanel::AddPickedUp);
 
 void CHudTopPanel::AddMoney(int money) {
     if (money <= 0) return;
     std::string text;
-    mfc::CString picked;
-    mfc::CString format;
+    std::string picked;
+    std::string format;
     TheTextManager()->GetString("combat_picked_up", &picked);
     TheTextManager()->GetString("format_money", &format);
-    text = str::Format(format, money);
-    std::string line = picked.GetString();
+    text = str::Format(format.c_str(), money);
+    std::string line = picked;
     line += " ";
     line += text;
     line += "\n";   // "\n"

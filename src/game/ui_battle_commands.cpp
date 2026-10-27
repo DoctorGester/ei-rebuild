@@ -23,6 +23,7 @@
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
@@ -259,7 +260,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
                                                                   : acks::SayAck(unit, static_cast<int>(event));
     if (phrase) {
         // The phrase's text.
-        mfc::CString text;
+        std::string text;
         std::string line;
         UnitName(unit, &line);
         line += ":\n";
@@ -273,7 +274,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         }
         if (found) {
             texts->ReadToHash(&text, 1);
-            text.TrimRight("\r\n");
+            str::TrimRight(text, "\r\n");
             text += "\n";
             // Both go to the top panel's text and, unless its +0x160, the message log.
             auto post = [this](const char* part) {
@@ -282,7 +283,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
                 if (top->page_ == 0) top->owner_->MessageLog()->AddText(part);
             };
             post(line.c_str());
-            post(text);
+            post(text.c_str());
         }
     }
 

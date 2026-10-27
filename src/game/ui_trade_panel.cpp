@@ -58,8 +58,8 @@ void Clear(TradeRows* rows) {
 
 int HasPerkText(CTextManager* table, const std::string& name) {
     std::string prefix("perk ");
-    mfc::CString key = prefix + name;
-    return table->CTextManager::Open(key);
+    std::string key = prefix + name;
+    return table->CTextManager::Open(key.c_str());
 }
 int HasPerkText(CTextManager* table, const char* name) {
     std::string prefix("perk ");
@@ -68,15 +68,15 @@ int HasPerkText(CTextManager* table, const char* name) {
 }
 // The open perk text's line (the row's shown name); the cursor moves to the next line.
 std::string ReadPerkLine(CTextManager* texts) {
-    mfc::CString line;
+    std::string line;
     texts->ReadLine(&line, 1);
-    return line.GetString();
+    return line;
 }
 
 // A perk record's text key: its name without trailing level digits, plus "0".
-void PerkBaseName(mfc::CString* text, const SkillLevelRecord* record) {
+void PerkBaseName(std::string* text, const SkillLevelRecord* record) {
     *text = record->name;
-    text->TrimRight("123");
+    str::TrimRight(*text, "123");
     *text += "0";
 }
 
@@ -148,8 +148,8 @@ void CTradePanel::BuildLists() {
         row->price = SchoolPrice(row->level, row->level + 1);
     }
 
-    mfc::CString text;
-    mfc::CString perkLevel;
+    std::string text;
+    std::string perkLevel;
     table->CTextManager::GetString("perk_level", &perkLevel);
 
     for (unsigned group = 0; group < 0x6C; group += 3) {
@@ -166,8 +166,8 @@ void CTradePanel::BuildLists() {
         else
             text = record->field0;
         if (level > 1)
-            row->name = str::Format("%s (%s%d)", text.GetString(),
-                                   perkLevel.GetString(), level);
+            row->name = str::Format("%s (%s%d)", text.c_str(),
+                                   perkLevel.c_str(), level);
         else
             row->name = text;
         if (level < 3) {
@@ -359,7 +359,7 @@ void CTradePanel::Build() {
 
     CTextManager* table = GameClientTexts();
     {
-        mfc::CString text;
+        std::string text;
         table->CTextManager::GetString("skills", &text);
         texts_.SetAtGrow(texts_.size, text);
         table->CTextManager::GetString("perks", &text);

@@ -648,10 +648,10 @@ void CMpConnectScreen::CreateScreen() {
     sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
 
     CTextManager* texts = GameClientTexts();
-    mfc::CString text;
+    std::string text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
-        text.Format(AllodNameFormat(), i);
-        texts->CTextManager::GetString(text, &text);
+        text = str::Format(AllodNameFormat(), i);
+        texts->CTextManager::GetString(text.c_str(), &text);
         allodNames_.SetAtGrow(allodNames_.GetSize(), text);
         const int bottom = top + 21;
         sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
@@ -715,8 +715,8 @@ void CMpConnectScreen::CreateScreen() {
         nameEdit_->SetFocused(false);
     }
     for (int i = 0; i < kTextCount; ++i) {
-        text.Format(ConnectionTextFormat(), i);
-        texts->CTextManager::GetString(text, &text);
+        text = str::Format(ConnectionTextFormat(), i);
+        texts->CTextManager::GetString(text.c_str(), &text);
         texts_.SetAtGrow(texts_.GetSize(), text);
     }
 

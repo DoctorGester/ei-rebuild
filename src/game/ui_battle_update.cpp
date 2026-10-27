@@ -46,8 +46,8 @@ namespace {
 } // namespace
 
 void CHudQuickItems::SetUnit(CUnit* unit) {
-    mfc::CString tip;
-    mfc::CString unused;
+    std::string tip;
+    std::string unused;
     unit_ = unit;
     ClearSceneObjects();
     shownCount_ = 0;
@@ -96,7 +96,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, true);
         ItemTip(slot, &tip);
-        regions_.data[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x2A);
+        regions_.data[slot]->SetTipString(tip.c_str(), 1, static_cast<int>(slot) + 0x2A);
         place(static_cast<int>(slot));
     }
 
@@ -122,7 +122,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         finish(item, false);
         // The same CString serves as the second and third texts.
         TheTextManager()->GetItemTexts(item, &tip, &unused, &unused);
-        regions_.data[slot]->SetTipString(tip, 1, 0);
+        regions_.data[slot]->SetTipString(tip.c_str(), 1, 0);
         place(slot);
         ++slot;
     }
@@ -479,8 +479,8 @@ bool Equal(float a, float b) {
 void CBattleScreen::OnQuestVariable(const char* name, float value) {
     CTextManager* texts = GameClientTexts();
     console::CStringArray parts;
-    mfc::CString text;
-    mfc::CString title;
+    std::string text;
+    std::string title;
     text::Split(name, &parts, '.');
     const float complete = 2.0f /*0073CDB8*/;
     const float failed = 3.0f /*0073BAA4*/;
@@ -496,7 +496,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
             key = "combat_get_quest";
         }
         texts->CTextManager::GetString(key, &title);
-        text.Empty();
+        text.clear();
         BOOL found;
         {
             std::string quest("quest ");
@@ -525,7 +525,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
             key = "combat_get_subobj";
         }
         texts->CTextManager::GetString(key, &title);
-        text.Empty();
+        text.clear();
         bool found = false;
         {
             std::string quest("quest ");
@@ -546,7 +546,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
     text = text + "\007C\344\327\247\n";   // colour code and a line end
 
     CHudTopPanel* top = topPanel_;
-    const char* line = text;
+    const char* line = text.c_str();
     top->pageTexts_[0] += line;
     if (top->page_ == 0) {
         CBattleScreen* screen = top->owner_;

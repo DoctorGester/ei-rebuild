@@ -11,6 +11,9 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_singletons.h"
+#include "lib/str.h"
+
+#include <string>
 
 namespace {
 
@@ -31,12 +34,12 @@ void CUiRegion::SetTip(int textId, int flag, int extra) {
         tip_ = NewTooltip(this, "", 1, 0);
         return;
     }
-    mfc::CString text;
-    text.Format(kTipText, textId);
+    std::string text;
+    text = str::Format(kTipText, textId);
     CTextManager* texts = TheTextManager();
-    if (texts->Open(text)) texts->ReadToHash(&text, 1);
+    if (texts->Open(text.c_str())) texts->ReadToHash(&text, 1);
     delete tip_;
-    tip_ = NewTooltip(this, text, flag, extra);
+    tip_ = NewTooltip(this, text.c_str(), flag, extra);
 }
 EI_REWRITTEN(0x005FC730, CUiRegion::SetTip);
 

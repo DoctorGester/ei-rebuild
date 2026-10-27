@@ -86,18 +86,18 @@ EI_REWRITTEN(0x00625560, CTradePanel::PurchaseCost);
 
 void CMpHeroScreen::DrawExperience() {
     CUiSurface* surface = surfaces_.data[2];
-    mfc::CString text;
+    std::string text;
     std::string line;
     UiSurfaceGetDC(surface);
     surface->Clear();
     TheTextManager()->CTextManager::GetString(kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
-    surface->DrawTextIn(text, &title, kTextFormat, kWhite, 1, 1);
-    text.Format(kSignedFormat, -tradePanel_->PurchaseCost());
+    surface->DrawTextIn(text.c_str(), &title, kTextFormat, kWhite, 1, 1);
+    text = str::Format(kSignedFormat, -tradePanel_->PurchaseCost());
     RECT cost = {0, 150, 200, 170};
-    surface->DrawTextIn(text, &cost, kTextFormat, kWhite, 1, 1);
+    surface->DrawTextIn(text.c_str(), &cost, kTextFormat, kWhite, 1, 1);
     TheTextManager()->CTextManager::GetString(kCurrentExpKey, &text);
-    line = str::Format(kLabelFormat, text.GetString(), tradePanel_->Experience());
+    line = str::Format(kLabelFormat, text.c_str(), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     surface->DrawTextIn(line.c_str(), &current, kTextFormat, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);
@@ -300,10 +300,10 @@ void CMpHeroScreen::DrawVoices() {
     UiSurfaceGetDC(surface);
     surface->Clear();
     SelectionFrame(*this)->visible_ = 0;
-    mfc::CString title;
+    std::string title;
     RECT rect = {10, 5, 190, 20};
     TheTextManager()->CTextManager::GetString(kVoicesKey, &title);
-    surface->DrawTextIn(title, &rect, 0, kWhite, 1, 1);
+    surface->DrawTextIn(title.c_str(), &rect, 0, kWhite, 1, 1);
     rect = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);
     for (int offset = 0; offset < 165; offset += 15, ++index) {

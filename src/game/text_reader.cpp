@@ -19,14 +19,6 @@ namespace {
 // MBCS CRT: _ismbblead, isleadbyte, _mbsinc, _mbscmp.
 int __cdecl MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
 
-// CString members not in lib/mfc.h.
-struct TextString : mfc::CString {
-    void AppendChar(char c);                    // operator+=(TCHAR)
-};
-void TextString::AppendChar(char a0) { mfc::CString::operator+=(a0); }
-TextString& Ops(mfc::CString& s) { return static_cast<TextString&>(s); }
-const TextString& Ops(const mfc::CString& s) { return static_cast<const TextString&>(s); }
-
 // Split (__fastcall, separator on the stack): splits `text` at `separator` into `out`.
 
 const char* const kComment = "##";
@@ -47,16 +39,10 @@ int CharCode(const char* p) {
     return static_cast<signed char>(*p) + high;
 }
 
-// Appends the character at `p` (one or two bytes, by isleadbyte on the signed byte) to `out`
-// through the temporary `tmp`.
-void AppendCharAt(mfc::CString* out, mfc::CString& tmp, const char* p) {
-    if (libcrt::Isleadbyte(static_cast<signed char>(*p))) {
-        Ops(tmp).AssignChar(p[0]);
-        Ops(tmp).AppendChar(p[1]);
-    } else {
-        Ops(tmp).AssignChar(p[0]);
-    }
-    *out += tmp;
+// Appends the character at `p` (one or two bytes, by isleadbyte on the signed byte) to `out`.
+void AppendCharAt(std::string* out, const char* p) {
+    out->push_back(p[0]);
+    if (libcrt::Isleadbyte(static_cast<signed char>(*p))) out->push_back(p[1]);
 }
 
 // How one inlined "move the cursor past the next LF" tests the end and reads characters.
@@ -94,10 +80,10 @@ bool IsComment(const std::string& word) {
 
 // After a read: the cursor moves past the line (`first`), then past every "##" comment line.
 void SkipToNextLine(CTextManager* t, const AdvanceKind& first, const AdvanceKind& comment) {
-    mfc::CString word;
+    std::string word;
     Advance(t, first);
     while (t->PeekWord(&word)) {
-        if (!IsComment(word.GetString())) break;
+        if (!IsComment(word)) break;
         Advance(t, comment);
     }
 }
@@ -138,11 +124,10 @@ EI_REWRITTEN(0x004DF020, TextClose);
 int __fastcall TextCharCode(const char* p) { return CharCode(p); }
 EI_REWRITTEN(0x004DF4E0, TextCharCode);
 
-BOOL CTextManager::PeekWord(mfc::CString* out) {
-    mfc::CString tmp;
+BOOL CTextManager::PeekWord(std::string* out) {
     const char* p = cursor_;
     bool started = false;
-    out->Empty();
+    out->clear();
     if (!Inside(this, p)) return 0;
     while (Inside(this, p)) {
         int code = CharCode(p);
@@ -151,7 +136,7 @@ BOOL CTextManager::PeekWord(mfc::CString* out) {
             if (started) break;
         } else {
             started = true;
-            AppendCharAt(out, tmp, p);
+            AppendCharAt(out, p);
         }
         p = gamecrt::mbsinc(p);
     }
@@ -173,25 +158,24 @@ BOOL __fastcall TextSkipLine(CTextManager* self) {
 EI_REWRITTEN(0x004DF6E0, TextSkipLine);
 
 BOOL __fastcall TextNextLine(CTextManager* self) {
-    mfc::CString word;
+    std::string word;
     Advance(self, kInline);
     while (self->PeekWord(&word)) {
-        if (!IsComment(word.GetString())) return 1;
+        if (!IsComment(word)) return 1;
         Advance(self, kInline);
     }
     return 0;
 }
 EI_REWRITTEN(0x004DF510, TextNextLine);
 
-BOOL CTextManager::ReadLine(mfc::CString* out, BOOL advance) {
-    mfc::CString tmp;
+BOOL CTextManager::ReadLine(std::string* out, BOOL advance) {
     const char* p = cursor_;
-    out->Empty();
+    out->clear();
     if (!Inside(this, p)) return 0;
     while (Inside(this, p)) {
         int code = CharCode(p);
         if (code == 10 || code == 13) break;
-        AppendCharAt(out, tmp, p);
+        AppendCharAt(out, p);
         p = gamecrt::mbsinc(p);
     }
     if (advance) SkipToNextLine(this, kAfterRead, kInline);
@@ -199,14 +183,13 @@ BOOL CTextManager::ReadLine(mfc::CString* out, BOOL advance) {
 }
 EI_REWRITTEN(0x004DF8D0, CTextManager::ReadLine);
 
-BOOL CTextManager::ReadToHash(mfc::CString* out, BOOL advance) {
-    mfc::CString tmp;
+BOOL CTextManager::ReadToHash(std::string* out, BOOL advance) {
     const char* p = cursor_;
-    out->Empty();
+    out->clear();
     if (!Inside(this, p)) return 0;
     while (Inside(this, p)) {
         if (CharCode(p) == '#') break;
-        AppendCharAt(out, tmp, p);
+        AppendCharAt(out, p);
         p = gamecrt::mbsinc(p);
     }
     if (advance) cursor_ = p;
@@ -215,8 +198,7 @@ BOOL CTextManager::ReadToHash(mfc::CString* out, BOOL advance) {
 EI_REWRITTEN(0x004DFB80, CTextManager::ReadToHash);
 
 BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
-    mfc::CString tmp;
-    mfc::CString word;
+    std::string word;
     bool inWord = false;
     const char* p = cursor_;
     words->SetSize(0, -1);
@@ -225,23 +207,23 @@ BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
         int code = CharCode(p);
         if (code == 10 || code == 13) {
             // The line's last word (a word still open when the text ends is not added).
-            if (word.GetLength() != 0) {
-                words->SetAtGrow(words->size, word);
-                word.Empty();
+            if (!word.empty()) {
+                words->SetAtGrow(words->size, word.c_str());
+                word.clear();
             }
             break;
         }
         if (code == 0x20 || code == 9) {
             if (inWord) {
                 inWord = false;
-                if (word.GetLength() != 0) {
-                    words->SetAtGrow(words->size, word);
-                    word.Empty();
+                if (!word.empty()) {
+                    words->SetAtGrow(words->size, word.c_str());
+                    word.clear();
                 }
             }
         } else {
             inWord = true;
-            AppendCharAt(&word, tmp, p);
+            AppendCharAt(&word, p);
         }
         p = gamecrt::mbsinc(p);
     }
@@ -253,14 +235,14 @@ EI_REWRITTEN(0x004DFCB0, CTextManager::Split);
 BOOL CTextManager::FindLine(const char* key) {
     console::CStringArray keyWords;
     console::CStringArray lineWords;
-    mfc::CString word;
+    std::string word;
     if (!key) {
         // The next "#" header line (not a "##" comment).
         while (PeekWord(&word)) {
             bool header;
             {
-                std::string first = word.Left(1).GetString();
-                header = MbsCmp(first.c_str(), kHeader) == 0 && !IsComment(word.GetString());
+                std::string first = str::Left(word, 1);
+                header = MbsCmp(first.c_str(), kHeader) == 0 && !IsComment(word);
             }
             if (header) return 1;
             Advance(this, kFindFirst);
@@ -271,11 +253,11 @@ BOOL CTextManager::FindLine(const char* key) {
     if (keyWords.size <= 1) {
         // One word: the line whose first word is the key.
         while (PeekWord(&word)) {
-            if (MbsCmp(word, key) == 0) return 1;
-            mfc::CString next;
+            if (MbsCmp(word.c_str(), key) == 0) return 1;
+            std::string next;
             Advance(this, kFindFirst);
             while (PeekWord(&next)) {
-                if (!IsComment(next.GetString())) break;
+                if (!IsComment(next)) break;
                 Advance(this, kFindComment);
             }
         }
@@ -287,16 +269,16 @@ BOOL CTextManager::FindLine(const char* key) {
             int i = 0;
             if (keyWords.size <= 0) return 1;
             for (;;) {
-                word = lineWords.data[i];
-                word.MakeLower();
-                if (MbsCmp(word, keyWords.data[i]) != 0) break;
+                word = lineWords.data[i].GetString();
+                str::MakeLower(word);
+                if (MbsCmp(word.c_str(), keyWords.data[i]) != 0) break;
                 if (++i >= keyWords.size) return 1;
             }
         }
-        mfc::CString next;
+        std::string next;
         Advance(this, kFindMulti);
         while (PeekWord(&next)) {
-            if (!IsComment(next.GetString())) break;
+            if (!IsComment(next)) break;
             TextSkipLine(this);
         }
     }

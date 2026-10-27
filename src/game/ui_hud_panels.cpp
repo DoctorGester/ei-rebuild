@@ -171,7 +171,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
 
     CTextManager* texts = TheTextManager();
     CUiSurface* surface = surfaces_.data[0];
-    mfc::CString code, text, number;
+    std::string code, text, number;
     int icons[kPlaces], places[kPlaces];
     bool taken[kPlaces] = {};
     for (int i = 0; i < kPlaces; ++i) icons[i] = places[i] = -1;
@@ -181,8 +181,8 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     // The unit's effects are the map object's records.
     const MapEffect* effects = unit->effects.data;
     for (int i = 0; i < unit->effects.size && i < kPlaces; ++i) {
-        code.Empty();
-        text.Empty();
+        code.clear();
+        text.clear();
         const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type);
         if (spell) {
             icons[i] = static_cast<int>(spell->icon);
@@ -191,10 +191,10 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
             bool found = texts->CTextManager::Open(mfc::CString("spell ") + code) != 0;
             if (found) texts->ReadLine(&text, 1);
         }
-        surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);
+        surface->DrawTextIn(text.c_str(), &line, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&line, 0, kLineHeight);
-        number.Format("%d", effects[i].ticksLeft / 15);
-        surface->DrawTextIn(number, &line, 0, kTextColour, 0, 1);
+        number = str::Format("%d", effects[i].ticksLeft / 15);
+        surface->DrawTextIn(number.c_str(), &line, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&line, 0, kLineHeight);
     }
 
@@ -277,8 +277,8 @@ void CHudTopPanel::ShowItems() {
     // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
     mfc::CTypedPtrList<CItem> merged{mfc::impl::ItemListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     CPlayer* player = TheClientWorld()->LocalView()->player_;
-    mfc::CString line;
-    mfc::CString format;
+    std::string line;
+    std::string format;
     for (auto* node = player->items_.head; node;) {
         CItem* item = node->data;
         node = node->next;
@@ -300,7 +300,7 @@ void CHudTopPanel::ShowItems() {
     auto* party = LocalPlayerData();
     if (static_cast<int>(party->money_) > 0) {
         texts->CTextManager::GetString("format_money", &format);
-        line.Format(format, static_cast<int>(party->money_));
+        line = str::Format(format.c_str(), static_cast<int>(party->money_));
         text += line;
         text += kNewLine;
     }

@@ -41,6 +41,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -330,7 +331,7 @@ void CCampPages::BuildPages() {
 
     // The pages' titles.
     CTextManager* texts = GameClientTexts();
-    mfc::CString title;
+    std::string title;
     auto& titles = pageTitles_;
     const char* const titleKeys[] = {
         "mode_weapons",

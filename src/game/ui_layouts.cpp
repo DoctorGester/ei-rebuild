@@ -32,6 +32,7 @@
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
 #include "figure_manager.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -189,14 +190,14 @@ void COptionsWindow::CreateScreen() {
     SetSpritePlain(highlight);
 
     // Regions 2-12: the option groups, each with its button sprite, tooltip and title.
-    mfc::CString text;
+    std::string text;
     for (int k = 0, top = 156; k < kOptionGroups; ++k, top += 24) {
         CUiRegion* region = AddRect(this, 100, top, 250, top + 24);
         AddSprite(0)->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
-        text.Format("tip option_group_%s", OptionGroupName(k));
-        if (TheTextManager()->Open(text) != 0) TheTextManager()->ReadToHash(&text, 1);
-        region->SetTipString(text, 1, 0);
+        text = str::Format("tip option_group_%s", OptionGroupName(k));
+        if (TheTextManager()->Open(text.c_str()) != 0) TheTextManager()->ReadToHash(&text, 1);
+        region->SetTipString(text.c_str(), 1, 0);
         {
             std::string prefix("option_group_");
             std::string key = prefix + OptionGroupName(k);
@@ -343,9 +344,9 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up its
         // second master server.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
-        mfc::CString text;
+        std::string text;
         GameClientTexts()->CTextManager::GetString("reserved_04", &text);
-        TheInterface()->ShowStatusText(text);
+        TheInterface()->ShowStatusText(text.c_str());
         GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
         ui->PushWindow(new CMpHeroScreen(ui), 1, 1);
@@ -437,24 +438,24 @@ void CDifficultyBox::CreateScreen() {
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     RECT rect = {15, 0, 385, 200};
     int titleHeight = BoxText(surface, title_.c_str(), &rect, 2, 0, 0x411, 1);
-    mfc::CString explanation;
+    std::string explanation;
     int textHeight = 0;
     if (TheTextManager()->Open("tip option_difficulty") != 0) {
         TheTextManager()->ReadToHash(&explanation, 1);
-        explanation.TrimRight("\r\n");
+        str::TrimRight(explanation, "\r\n");
         rect = RECT{15, 0, 385, 300};
-        textHeight = BoxText(surface, explanation, &rect, 1, 0, 0x410, 1);
+        textHeight = BoxText(surface, explanation.c_str(), &rect, 1, 0, 0x410, 1);
     }
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 0x55, 385, 450};
     BoxText(surface, title_.c_str(), &rect, 2, 0x31B3FF, 0x11, 1);
     rect = RECT{15, titleHeight + top - 7, 385, 450};
-    BoxText(surface, explanation, &rect, 1, 0xA7D7E4, 0x10, 1);
+    BoxText(surface, explanation.c_str(), &rect, 1, 0xA7D7E4, 0x10, 1);
 
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
-    mfc::CString easy;
-    mfc::CString hard;
+    std::string easy;
+    std::string hard;
     TheTextManager()->GetString("difficulty_easy", &easy);
     TheTextManager()->GetString("difficulty_hard", &hard);
     SIZE easySize = TextExtent(interface_, easy, 2);
@@ -462,9 +463,9 @@ void CDifficultyBox::CreateScreen() {
     int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
     rect = RECT{0xE6 - half, row - 100, 385, 450};
-    BoxText(surface, easy, &rect, 2, 0xA7D7E4, 0, 1);
+    BoxText(surface, easy.c_str(), &rect, 2, 0xA7D7E4, 0, 1);
     rect = RECT{0xE6 - half, row - 0x4C, 385, 450};
-    BoxText(surface, hard, &rect, 2, 0xA7D7E4, 0, 1);
+    BoxText(surface, hard.c_str(), &rect, 2, 0xA7D7E4, 0, 1);
     UiSurfaceReleaseDC(surface);
     easy_ = 0;
 

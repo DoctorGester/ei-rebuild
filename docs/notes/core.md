@@ -349,10 +349,8 @@ to which template:
   CMpHeroScreen::text_, CMpConnectScreen::hostPassword_, TitleLine, CCreditsScreen::name_) and ui_camp.h (CGlobalMap's
   three, GlobalMapZone, GlobalMapPlace, TradeRow, CHeroStatsPanel::title_). The forwarding accessors that returned
   `mfc::CString&` (HudPortraitSlot's FaceName / ModelPrefix / ModelSuffix, CHudTopPanel::PageText, CUiEditField::Text)
-  went; CBattleScreen::UnitName fills a `std::string*`. CTextManager::ReadLine / ReadToHash / GetString still take a
-  `mfc::CString*`: their std::string callers read into a local CString and assign it (ReadPerkLine, ShownName,
-  ReadTutorText). The global map's links and quests are `GlobalMapPlaces` (typed element policy; the byte-offset
-  GlobalMapPointRecords SetSize went).
+  went; CBattleScreen::UnitName fills a `std::string*`. The global map's links and quests are `GlobalMapPlaces`
+  (typed element policy).
   object_tables.h: AllodRecord's names, ZoneExit::target and MapRecord's eight strings. The map database's arrays are
   typed first: `CArray<AllodRecord, AllodRecordElements>` / `CArray<MapRecord, MapRecordElements>` (game_arrays.cpp;
   zero fill, the strings, the inner array's table), grown by CArray::SetSize (map_database.cpp's untyped SetSize over
@@ -385,10 +383,22 @@ to which template:
   map object grows; CMapObject's offset asserts went), CTexture::name_ (the `Name()` accessor that handed out a
   `mfc::CString*` went: callers assign name_), TextTokenizer::word (the unused `TokenWord` overlay went) and the
   lever records' four strings.
-- Members that must stay CStrings for now: those reached through byte offsets (mfc_slots.h's StringsAt /
-  BuiltStringsAt / NamedStrings policies: the .reg file's TextureNameRecord::name, memory records and the other
-  StringsAt users), stlp::vector<CString> (CStringVector) members and CStringArrays (ScriptStrings: the script's
-  variable names and string values, which the recorders read in game.exe through script.h).
+  Batch 9: TextureNameRecord::name. The CArray tables (compiled tags) of string records are typed tags over their
+  records next to them: scene::TextureNameArrayClass, MemoryRecordArrayClass (the AI's heard calls, unit_ai.h),
+  GlobalMapZoneArrayClass / GlobalMapPointArrayClass / GlobalMapPathArrayClass (ui_camp.h); their slots,
+  SetSize / ConstructElements and element destructors are registered on the typed records. mfc_slots.h's
+  byte-offset string policies (StringsAt, BuiltStringsAt, NamedStrings, InitStringsAt, DestroyStringsAt) and
+  mfc_array.h's WithString went. The FX source list: batch 8 made ScriptFxSource bigger, but CreateFXSource and
+  ScriptFxSourcesLoad still built nodes through the lib's 0x34-byte FxSourceList (CPlex blocks of the old node
+  size; the new name's bytes written as a CString); they use gameslots::FxSourceNodes now, and `ListAs` / `NodeAs`
+  static_assert equal node sizes (ArrayAs already did). LocalPlayerName (00578A90) is `std::string LocalPlayerZone()`
+  (it is the party's zone; `BriefingPlayerName` went). The text manager's out parameters are `std::string*`:
+  ReadLine, ReadToHash, PeekWord, GetString, GetItemTexts, FormatItemName, text::ReplaceChar, and their callers'
+  locals (c14_strings.py --string-out), CHudQuickItems::ItemTip, the trade panel's PerkBaseName, the options'
+  ReadTip; Split collects into a std::string word.
+- Members that must stay CStrings for now: stlp::vector<CString> (CStringVector) members and CStringArrays
+  (ScriptStrings: the script's variable names and string values, which the recorders read in game.exe through
+  script.h; ScriptStringLoad loads into their elements).
   To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>
@@ -442,6 +452,10 @@ to which template:
   CItemInfoPanel, ClientSession, TradeRecord and MpHeroRecord (all through `lib::InPlace<CParty>`, so their
   sizes follow), and their layout asserts after it went too. Grep the class's embedders (`InPlace<T>`, members of
   type T) as well as its own sizes.
+- c14_strings.py's locals scope skips a variable whose address is taken (`&x`); `--string-out F G ...` names
+  functions whose pointer parameters are typed `std::string*`, so `&x` handed to one of them does not keep `x` (a
+  CString* there is a compile error, which the rounds then fix by keeping the variable). Retype the function by
+  hand first, then run the scope on its callers' files with it listed.
 - c14_strings.py keys a kept member by its name and remembers it in build/c14_strings/excluded.json across runs: a
   later run with another `X::name_` keeps that one too ("1 excluded"). Run with `--fresh` after retyping the kept one
   by hand. It has no rule for a std::string streamed into the console's ostream (`<<`, C2679: add `.c_str()`) or for

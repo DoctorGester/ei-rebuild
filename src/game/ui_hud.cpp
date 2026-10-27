@@ -182,13 +182,13 @@ void CHudQuickItems::OnMouseMove(int, int x, int y) {
 EI_REWRITTEN(0x0063E270, CHudQuickItems::OnMouseMove);
 
 void CHudQuickItems::Update() {
-    mfc::CString text;
+    std::string text;
     if (!unit_) return;
     for (unsigned i = 0; i < 4; ++i) {
         if (!unit_->GetQuickItem(i)) continue;
         if (!regions_.data[i]->HasActiveTip()) continue;
         ItemTip(i, &text);
-        regions_.data[i]->SetTipText(text);
+        regions_.data[i]->SetTipText(text.c_str());
     }
 }
 EI_REWRITTEN(0x0063D9D0, CHudQuickItems::Update);

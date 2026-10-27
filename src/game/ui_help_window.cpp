@@ -14,6 +14,7 @@
 #include "lib/stlp.h"
 #include "game_singletons.h"
 #include "render/render_state.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <cstdint>
@@ -47,10 +48,10 @@ void ReadTutorText(CTextManager* texts, const std::string& key, Text* text) {
         found = texts->Open(section.c_str());
     }
     if (!found) return;
-    mfc::CString read;
+    std::string read;
     texts->ReadToHash(&read, 1);
-    read.TrimRight(LineEnds());
-    *text = read.GetString();
+    str::TrimRight(read, LineEnds());
+    *text = read.c_str();
 }
 
 int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
@@ -70,9 +71,9 @@ void CHelpWindow::CreateScreen() {
         interface_->SetPendingValue(0);
         return;
     }
-    mfc::CString line;
+    std::string line;
     texts->ReadLine(&line, 1);
-    title_ = line.GetString();
+    title_ = line.c_str();
     while (texts->FindLine(ScreenLine())) {
         TextNextLine(texts);
         texts->ReadLine(&line, 1);

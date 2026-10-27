@@ -34,9 +34,9 @@ const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
 // --- The weapon bar's unit -----------------------------------------------------------
 
 void CHudWeaponBar::SetUnit(CUnit* unit) {
-    mfc::CString tip;
-    mfc::CString description;
-    mfc::CString line;
+    std::string tip;
+    std::string description;
+    std::string line;
     unit_ = unit;
     ClearSceneObjects();
     count_ = 0;
@@ -64,15 +64,15 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         while (type < 7 && types[type] == zero) ++type;
         description = "Unknown";
         if (type < 7) {
-            line.Format("damage_%d", type);
-            TheTextManager()->GetString(line, &description);
+            line = str::Format("damage_%d", type);
+            TheTextManager()->GetString(line.c_str(), &description);
         }
-        line.Format("%s %d-%d %s\n", labels_[0].GetString(), Truncate(weapon->damage_),
-                    Truncate(weapon->damageSpread_ + weapon->damage_), description.GetString());
+        line = str::Format("%s %d-%d %s\n", labels_[0].GetString(), Truncate(weapon->damage_),
+                    Truncate(weapon->damageSpread_ + weapon->damage_), description.c_str());
         tip += line;
         float value = weapon->reach_;
         int category = static_cast<int>(weapon->GetPrototype()->category);
-        line.Format("%s %d  %s %d\n", labels_[1].GetString(), category, labels_[2].GetString(), Truncate(value));
+        line = str::Format("%s %d  %s %d\n", labels_[1].GetString(), category, labels_[2].GetString(), Truncate(value));
         tip += line;
 
         // A weapon with a spell: the spell's name ("spell <name>").
@@ -81,10 +81,10 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             int found = TheTextManager()->CTextManager::Open(mfc::operator+(mfc::CString("spell "),
                                                 SpellPrototype(spell)->code));
             if (found) TheTextManager()->ReadLine(&description, 1);
-            line.Format("%s %s\n", labels_[3].GetString(), description.GetString());
+            line = str::Format("%s %s\n", labels_[3].GetString(), description.c_str());
             tip += line;
         }
-        regions_.data[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x26);
+        regions_.data[slot]->SetTipString(tip.c_str(), 1, static_cast<int>(slot) + 0x26);
     }
     selected_ = static_cast<int>(unit_->pendingWeapon);
     if (selected_ >= count_) selected_ = -1;
@@ -94,13 +94,13 @@ EI_REWRITTEN(0x0063C180, CHudWeaponBar::SetUnit);
 
 // --- A quick item's tooltip ----------------------------------------------------------
 
-void CHudQuickItems::ItemTip(unsigned index, mfc::CString* text) {
+void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
     CItem* object = unit_->GetQuickItem(index);
     if (!object) return;
     auto* item = object;
-    mfc::CString line;
-    text->Empty();
-    // (The original passes one CString as the description and the kind.)
+    std::string line;
+    text->clear();
+    // (The original passes one string as the description and the kind.)
     TheTextManager()->GetItemTexts(item, text, &line, &line);
     CSpell* data = item->spell_;
     if (!data) return;
@@ -115,55 +115,55 @@ void CHudQuickItems::ItemTip(unsigned index, mfc::CString* text) {
         float level = data->manaCost_;
         int now = Truncate(item->charge_);
         int maximum = Truncate(charges);
-        line.Format("%s %d/%d (%d)\n", labels_[0].GetString(), Truncate(level), maximum, now);
+        line = str::Format("%s %d/%d (%d)\n", labels_[0].GetString(), Truncate(level), maximum, now);
         *text += line;
         if (SpellPrototype(data)->bytes78[3] == 0)
-            line.Format("%s %s  ", labels_[1].GetString(), labels_[11].GetString());
+            line = str::Format("%s %s  ", labels_[1].GetString(), labels_[11].GetString());
         else
-            line.Format("%s %d  ", labels_[1].GetString(), Truncate(data->damage_));
+            line = str::Format("%s %d  ", labels_[1].GetString(), Truncate(data->damage_));
         *text += line;
         float duration = data->speed_;
         EI_NAN_AUDIT(duration);
         if (duration < one)
-            line.Format("%s %s \n", labels_[2].GetString(), labels_[7].GetString());
+            line = str::Format("%s %s \n", labels_[2].GetString(), labels_[7].GetString());
         else
-            line.Format("%s %d \n", labels_[2].GetString(), Truncate(duration));
+            line = str::Format("%s %d \n", labels_[2].GetString(), Truncate(duration));
         *text += line;
-        line.Format("%s %d%s  ", labels_[3].GetString(), Truncate(data->range_), labels_[9].GetString());
+        line = str::Format("%s %d%s  ", labels_[3].GetString(), Truncate(data->range_), labels_[9].GetString());
         *text += line;
         if (data->targetFlags_ & 0x10000000) {
-            line.Format("%s %s \n", labels_[4].GetString(), labels_[8].GetString());
+            line = str::Format("%s %s \n", labels_[4].GetString(), labels_[8].GetString());
         } else {
             float radius = data->radius_;
             double area = static_cast<double>(radius) * radius * pi;
-            line.Format("%s %.1f%s \n", labels_[4].GetString(), area, labels_[9].GetString());
+            line = str::Format("%s %.1f%s \n", labels_[4].GetString(), area, labels_[9].GetString());
         }
         *text += line;
         std::uint32_t ticks = data->duration_;
         if (ticks < 2) {
-            line.Format("%s %s  ", labels_[5].GetString(), labels_[7].GetString());
+            line = str::Format("%s %s  ", labels_[5].GetString(), labels_[7].GetString());
         } else {
             double seconds = x87::FromUnsigned(ticks) * perTick;
-            line.Format("%s %.1f%s  ", labels_[5].GetString(), seconds, labels_[10].GetString());
+            line = str::Format("%s %.1f%s  ", labels_[5].GetString(), seconds, labels_[10].GetString());
         }
         *text += line;
-        line.Format("%s %d \n", labels_[6].GetString(), static_cast<int>(data->targetCount_));
+        line = str::Format("%s %d \n", labels_[6].GetString(), static_cast<int>(data->targetCount_));
         *text += line;
     }
     if (item->GetCategory() == 8) {
         // A scroll: mana and time.
         *text += " \n";
         if (SpellPrototype(data)->bytes78[3] == 0)
-            line.Format("%s %s\n", labels_[1].GetString(), labels_[11].GetString());
+            line = str::Format("%s %s\n", labels_[1].GetString(), labels_[11].GetString());
         else
-            line.Format("%s %d\n", labels_[1].GetString(), Truncate(data->damage_));
+            line = str::Format("%s %d\n", labels_[1].GetString(), Truncate(data->damage_));
         *text += line;
         std::uint32_t ticks = data->duration_;
         if (ticks < 2) {
-            line.Format("%s %s\n", labels_[5].GetString(), labels_[7].GetString());
+            line = str::Format("%s %s\n", labels_[5].GetString(), labels_[7].GetString());
         } else {
             double seconds = x87::FromUnsigned(ticks) * perTick;
-            line.Format("%s %.1f%s\n", labels_[5].GetString(), seconds, labels_[10].GetString());
+            line = str::Format("%s %.1f%s\n", labels_[5].GetString(), seconds, labels_[10].GetString());
         }
         *text += line;
     }
@@ -188,15 +188,15 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
 
     // The science button (the original loops once over a switch of three buttons).
     std::string title;
-    mfc::CString tip;
-    mfc::CString hint;
+    std::string tip;
+    std::string hint;
     AddAction("initqi1item", "skill0009", 0);
     title = "Science";
-    int found = TheTextManager()->CTextManager::Open(mfc::operator+(mfc::CString("perk "), title));
+    int found = TheTextManager()->CTextManager::Open((std::string("perk ") + title).c_str());
     if (found) TheTextManager()->ReadLine(&tip, 1);
     title = str::Format("%s %d\n", labels_[0].GetString(), shown->Params()->attributes[0]);
     if (TheTextManager()->CTextManager::Open("tip 10511") != 0) TheTextManager()->ReadToHash(&hint, 1);
-    tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, "\n"), title), hint);
-    regions_.data[count_ - 1]->SetTipString(tip, 1, 0x1D);
+    tip = tip + "\n" + title + hint;
+    regions_.data[count_ - 1]->SetTipString(tip.c_str(), 1, 0x1D);
 }
 EI_REWRITTEN(0x0063F800, CHudActionColumn::SetUnit);

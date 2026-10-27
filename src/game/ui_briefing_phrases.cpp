@@ -108,7 +108,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     console::CStringArray words;
     CTextManager* texts = TheTextManager();
     std::string speaker;
-    mfc::CString phrase;
+    std::string phrase;
     bool last = true;       // no "#phrase" follows this one
     bool spoke = false;     // a phrase was found
     int animation = -1;
@@ -167,7 +167,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             }
         }
         texts->ReadToHash(&phrase, 1);
-        phrase = mfc::CString(PhraseHead()) + speaker + (lips ? PhraseBodyLips() : PhraseBodyNoLips()) + phrase + LineEnd();
+        phrase = std::string(PhraseHead()) + speaker + (lips ? PhraseBodyLips() : PhraseBodyNoLips()) + phrase + LineEnd();
         dialogueText_ += phrase;
         const char* cursor = texts->cursor_;
         if (texts->FindLine(PhraseCommand())) last = false;
@@ -182,14 +182,13 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 file = str::Format(VoiceFormat(), VoiceFolders()[folder], topic_.c_str(), number);
                 voice_ = TheSoundManager()->Play2D(file.c_str(), kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
-            phraseTime_ = static_cast<float>(text::CharacterCount(
-                              std::string_view(phrase, static_cast<std::size_t>(phrase.GetLength())))) *
+            phraseTime_ = static_cast<float>(text::CharacterCount(std::string_view(phrase))) *
                           kSecondsPerCharacter;
             if (firstPhrase_) phraseTime_ += 1.0f;
-            text_->AddText(phrase);
+            text_->AddText(phrase.c_str());
         }
     } else if (!skip) {
-        text_->AddText(phrase);
+        text_->AddText(phrase.c_str());
     }
 
     if (last) {
@@ -202,9 +201,9 @@ void CBriefingScreen::NextPhrase(bool skip) {
         }
         if (record) {
             console::CStringArray parts;
-            mfc::CString name;
+            std::string name;
             std::string line;
-            mfc::CString label;
+            std::string label;
             auto add = [&] {
                 dialogueText_ += line;
                 if (!skip) text_->AddText(line.c_str());
@@ -215,7 +214,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);
-                    line = str::Format(NameLine(), label.GetString(), name.GetString());
+                    line = str::Format(NameLine(), label.c_str(), name.c_str());
                     add();
                     item->Release();
                 }
@@ -226,18 +225,18 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     if (parts.GetSize() != kQuestNameParts) continue;
                     if (!texts->Open(mfc::CString(QuestSection()) + parts[2])) continue;
                     texts->ReadLine(&name, 1);
-                    line = str::Format(NameLine(), label.GetString(), name.GetString());
+                    line = str::Format(NameLine(), label.c_str(), name.c_str());
                     add();
                 }
             };
             if (record->exp > 0.0f) {
                 texts->GetString(ExperienceLabel(), &label);
-                line = str::Format(NumberLine(), label.GetString(), static_cast<int>(record->exp));
+                line = str::Format(NumberLine(), label.c_str(), static_cast<int>(record->exp));
                 add();
             }
             if (record->money > 0.0f) {
                 texts->GetString(GoldLabel(), &label);
-                line = str::Format(NumberLine(), label.GetString(), static_cast<int>(record->money));
+                line = str::Format(NumberLine(), label.c_str(), static_cast<int>(record->money));
                 add();
             }
             texts->GetString(ItemLabel(), &label);
@@ -250,7 +249,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                         CItem* item = node->data;
                         if (item->GetClassId() != kClassQuestItem) continue;
                         texts->FormatItemName(item, &name);
-                        line = str::Format(NameLine(), label.GetString(), name.GetString());
+                        line = str::Format(NameLine(), label.c_str(), name.c_str());
                         add();
                     }
                 }
@@ -261,9 +260,9 @@ void CBriefingScreen::NextPhrase(bool skip) {
             texts->GetString(QuestDoneLabel(), &label);
             addQuests(record->lists[QuestBriefingRecord::kCompleteQuests]);
             if (record->specials > 0) {
-                label.Format(SpecialsLabel(), record->specials);
-                texts->GetString(label, &label);
-                line = str::Format(TextLine(), label.GetString());
+                label = str::Format(SpecialsLabel(), record->specials);
+                texts->GetString(label.c_str(), &label);
+                line = str::Format(TextLine(), label.c_str());
                 add();
             }
         }

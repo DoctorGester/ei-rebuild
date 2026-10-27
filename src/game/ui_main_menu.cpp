@@ -94,10 +94,10 @@ void CMainMenu::AddVersionLine() {
     CUiSurface* surface = new CUiSurface(interface_, 100, 480, 780, 600, 5, 1);
     UiSurfaceGetDC(surface);
     surface->Clear();
-    mfc::CString text;
+    std::string text;
     TheTextManager()->CTextManager::GetString(kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
-    surface->DrawTextIn(text, &rect, 2, 0xA7D7E4, 2, 1);
+    surface->DrawTextIn(text.c_str(), &rect, 2, 0xA7D7E4, 2, 1);
     UiSurfaceReleaseDC(surface);
     AddSurface(surface);
 }

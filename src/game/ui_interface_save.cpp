@@ -8,6 +8,7 @@
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
@@ -79,12 +80,12 @@ const char* const kMessageKeys[13] = {
 } // namespace
 
 mfc::CString* CInterface3D::MessageText(void* out, int id, const char* value) {
-    mfc::CString key, text;
+    std::string key, text;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
     CTextManager* table = TheTextManager();
-    table->CTextManager::GetString(key, &key);
+    table->CTextManager::GetString(key.c_str(), &key);
     if (value)
-        text.Format(key, value);
+        text = str::Format(key.c_str(), value);
     else
         text = key;
     return new (out) mfc::CString(text);

@@ -337,8 +337,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         RefreshQuests();
 
         {
-            mfc::CString text; // (declared first: the title is released first)
-            mfc::CString title;
+            std::string text; // (declared first: the title is released first)
+            std::string title;
             int foundText;
             {
                 std::string zoneKey("zone ");
@@ -352,9 +352,9 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 UiSurfaceGetDC(surface);
                 surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
-                SurfaceText(surface, title, &titleRect, 1, 0x31B3FF, 1, 1);
+                SurfaceText(surface, title.c_str(), &titleRect, 1, 0x31B3FF, 1, 1);
                 RECT textRect = {10, 25, 330, 140};
-                SurfaceText(surface, text, &textRect, 1, 0xA7D7E4, 0x11, 1);
+                SurfaceText(surface, text.c_str(), &textRect, 1, 0xA7D7E4, 0x11, 1);
                 UiSurfaceReleaseDC(surface);
             }
         }
@@ -384,9 +384,9 @@ bool SameText(const char* a, const char* b) {
 
 void CObjectivesWindow::ShowQuest() {
     CTextManager* texts = TheTextManager();
-    mfc::CString line;
+    std::string line;
     std::string part;
-    mfc::CString text;
+    std::string text;
     CStringArray fields;
     std::string variable;
     if (shownQuest_ == selectedQuest_) return;
@@ -396,10 +396,10 @@ void CObjectivesWindow::ShowQuest() {
     if (selectedQuest_ < 0 || selectedQuest_ >= quests->GetSize()) return;
     LastQuest() = (*quests)[selectedQuest_];
 
-    mfc::CString completed;
-    mfc::CString failed;
-    mfc::CString costExp;
-    mfc::CString costMoney;
+    std::string completed;
+    std::string failed;
+    std::string costExp;
+    std::string costMoney;
     texts->GetString("obj_completed", &completed);
     texts->GetString("obj_failed", &failed);
     texts->GetString("obj_cost_exp", &costExp);
@@ -425,12 +425,12 @@ void CObjectivesWindow::ShowQuest() {
         float experience = record->exp;
         text += "\007C\377\377\377 ";
         if (experience > 0.0f) {
-            part = str::Format("%s %d\n ", costExp.GetString(), static_cast<int>(gamecrt::Ftol(D(experience))));
+            part = str::Format("%s %d\n ", costExp.c_str(), static_cast<int>(gamecrt::Ftol(D(experience))));
             text += part;
         }
         float money = record->money;
         if (money > 0.0f) {
-            part = str::Format("%s %d\n ", costMoney.GetString(), static_cast<int>(gamecrt::Ftol(D(money))));
+            part = str::Format("%s %d\n ", costMoney.c_str(), static_cast<int>(gamecrt::Ftol(D(money))));
             text += part;
         }
     }
@@ -460,7 +460,7 @@ void CObjectivesWindow::ShowQuest() {
         text += "\n \n ";
     }
     TextClose(texts);
-    static_cast<CUiScrollText*>(children_.data[0])->SetText(text);
+    static_cast<CUiScrollText*>(children_.data[0])->SetText(text.c_str());
 
     MapRecord* map = FindZone(shownZone_.c_str());
     if (!map) return;
@@ -500,7 +500,7 @@ void CObjectivesWindow::CreateScreen() {
     GetRenderState(device, kRenderStateAlphaRef, &savedAlphaRef_);
     SetRenderState(device, kRenderStateAlphaRef, 1);
 
-    mfc::CString text;
+    std::string text;
     std::string key;
     mfc::CStringArray* objectiveTexts = &objectiveTexts_;
     for (int k = 0; k < 3; ++k) {
@@ -650,7 +650,7 @@ void CObjectivesWindow::CreateScreen() {
 }
 void CObjectivesWindow::DrawQuestList() {
     CTextManager* texts = TheTextManager();
-    mfc::CString title;
+    std::string title;
     std::string variable;
     auto mesh = [this](int index) { return SceneMesh(index); };
     mesh(2)->visible_ = 0;
@@ -682,7 +682,7 @@ void CObjectivesWindow::DrawQuestList() {
             mesh(2)->visible_ = 1;
         }
         RECT rect{36, y, 320, y + 21};
-        surface->DrawTextIn(title, &rect, 1, 0xA7D7E4, 0, 1);
+        surface->DrawTextIn(title.c_str(), &rect, 1, 0xA7D7E4, 0, 1);
     }
     UiSurfaceReleaseDC(surface);
 }

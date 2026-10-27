@@ -408,9 +408,9 @@ void CGlobalMap::CreateScreen() {
     int hour = minutes / 60;
     minutes -= hour * 60;
     std::string clock;
-    mfc::CString dayText;
+    std::string dayText;
     TheTextManager()->GetString("save_day", &dayText);
-    clock = str::Format("%s  %d,  %d:%02d", dayText.GetString(), day + 1, hour, minutes);
+    clock = str::Format("%s  %d,  %d:%02d", dayText.c_str(), day + 1, hour, minutes);
     {
         CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, 5, 1);
         AddSurface(text);
