@@ -156,3 +156,14 @@ goes through a naked helper. Miles is called through game.exe's import table (00
 load), `@PlayMusic("victory")` (PlayJingle, RequestStream/StopStream), `@CreateFX(...,"nature\thunder\1.wav")`
 (Play3D, UpdatePositional, SetSoundPosition/StopSound), then a fight with two goblins (combat music
 request and the brain's "Delayed sound" / "hear delayed sound" lines: `expect elayed sound`).
+
+### CSoundManager::ReadStreamVanilla
+
+The stream thread's reader (`stream` is the manager's +0x100; Rebirth-patched, so hooked in the vanilla launch
+only): fills the spare buffer with the next streamBufferFrames frames. Idle: silence. Else the playing file's
+frames up to its loop point (then from its beginning again) or, when a switch is asked, up to the switch point
+(mode 2: the whole buffer once the fade out has finished, the fade then held for 4 s; mode 1: where the file
+ends), and the rest from the next file: its name looked up in the sound folder, its markers read from the
+sound registry, the decoder opened on it and the sample set to its rate and format. No next file (or it does
+not open): silence, the stream idle and its name empty. A file that ends early otherwise starts again from its
+beginning.
