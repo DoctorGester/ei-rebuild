@@ -88,6 +88,9 @@ def classify(path):
         if not m:
             continue
         name = m.group(2)
+        if i and lines[i - 1].lstrip().startswith("template"):
+            result.append((i, name, "needed"))  # a template declaration: the line above belongs to it
+            continue
         if f"{path.relative_to(ROOT).as_posix()}:{name}" in KEEP:
             result.append((i, name, "needed"))
             continue
@@ -110,7 +113,12 @@ def classify(path):
         else:
             if incl is None:
                 incl = transitive(path)
-            if any(defines(h, name) for h in incl):
+            providers = [h for h in incl if defines(h, name)]
+            if providers and body[:off].count("{") != body[:off].count("}"):
+                cat = "needed"  # inside a namespace or class: the name may be another type
+            elif providers and any(path in transitive(h) for h in incl):
+                cat = "needed"  # the file sits in an include cycle: which header comes first decides, keep
+            elif providers:
                 cat = "defined-incl"
             elif not uses:
                 cat = "unused"

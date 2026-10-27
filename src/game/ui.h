@@ -35,9 +35,7 @@ inline constexpr float kHudQuarterTurn = /*007C8144*/ 1.5707964f;
 inline constexpr Quaternion kHudRestRotation = /*007C8150*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 namespace console { class ConsoleWindow; }
-class CItem;
 class CParty;
-class CUnit;
 namespace mfc::impl { class CFont; class CDC; }
 
 class CUiWindow;
@@ -45,10 +43,8 @@ class CChatOverlay;
 struct UiInputSide;
 class CUiMesh;
 struct CDXSurface;
-class CSceneRenderer;
 class CTextureDevice;
 class CPixelConverter;
-class CStream;
 class CUiSurface;
 class CItemScreen;
 
@@ -451,8 +447,6 @@ inline std::uint32_t g_uiSurfaceKeptBytes = /*007C7E74*/ {};
 inline std::uint32_t g_uiSurfaceBytes = /*007C7E78*/ {};
 inline std::uint32_t& UiSurfaceKeptBytes() { return g_uiSurfaceKeptBytes; }
 inline std::uint32_t& UiSurfaceBytes() { return g_uiSurfaceBytes; }
-
-class CObject3D;
 
 // A 3D model shown in a window (an inventory item, a portrait).
 class CUiModel {

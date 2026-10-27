@@ -9,8 +9,6 @@
 #include "game_data.h"
 #include "ui.h"
 
-class CInterface3D;
-
 // The battle camera's input side (one of the battle screen's extra input
 // sides). Keys move the camera along x_ / y_ / z_ (set by the key-down, cleared by the key-up); the right button
 // turns the view while held.

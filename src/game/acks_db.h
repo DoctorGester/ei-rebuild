@@ -13,9 +13,6 @@
 #include "unit_client_models.h"
 #include "game_data.h"
 
-class ChunkArchive;
-class CUnit;
-
 namespace acks {
 
 struct Speeches : stlp::vector<SpeechRecord> {

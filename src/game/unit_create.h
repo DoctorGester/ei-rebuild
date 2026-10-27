@@ -14,7 +14,6 @@
 
 #undef GetClassName
 
-class CEngineObject;
 struct FigureAnimation;
 class CUnit;
 class CMapObject;

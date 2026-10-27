@@ -17,9 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CMemoryStream;
-class CParty;
-
 // An entry of the manager's list: two texts and a list of ids. Its copy, assignment and
 // destructor are compiler-made (library).
 struct PartyManagerEntry {

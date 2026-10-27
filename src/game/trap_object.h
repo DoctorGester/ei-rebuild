@@ -15,7 +15,6 @@
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
-class CStream;
 struct LockKey;
 
 class CTrapObject : public CMapObject {

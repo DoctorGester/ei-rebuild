@@ -17,9 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CItem;
-class CParty;
-class CUnit;
 class CConstructorPage;
 class CGlobalMapClouds;
 class CHeroEquipPanel;
@@ -42,9 +39,7 @@ void LoadPersonTexts(PersonTextMap* map);
 // selection box (0 or less: never).
 inline int BoxSelectThreshold() { return options::TheOptions()->cameraFrameSelectionArea_; }
 
-struct ItemHoverInfo;
 class ClassTemplate;
-struct PartyUnitRecord;
 
 // The statistics' names, also their text keys.
 inline const char* const* SkillNames() {

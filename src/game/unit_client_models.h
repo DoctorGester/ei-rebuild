@@ -20,10 +20,7 @@
 class CParticleSource;
 class CTexture;
 struct tagRECT;
-class CUnit;
 struct UnitPrototypeRecord;
-struct FigureAnimation;
-struct Vector3;
 
 // Blits rectangle `from` of `source` to `at` (x, y) of `target`, then the same halved on each next level of
 // both mip chains until either ends (DirectDraw surfaces; nothing without them).

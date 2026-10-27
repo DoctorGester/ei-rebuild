@@ -20,8 +20,6 @@
 #include <cstdint>
 #include <cstring>
 
-class CParty;
-class ChunkArchive;
 struct QuestBriefingRecord;
 
 namespace net {

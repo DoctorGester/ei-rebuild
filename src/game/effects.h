@@ -25,8 +25,6 @@
 
 #undef GetClassName
 
-class CMemoryStream;
-class CSceneRenderer;
 struct TLVertex;
 struct VertexPacket;
 

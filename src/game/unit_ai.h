@@ -20,7 +20,6 @@
 #include <cstdint>
 #include <cstring>
 
-class CUnit;
 template <typename T>
 struct AIRefTo;
 struct AIBrain;
@@ -677,8 +676,6 @@ void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool);
 struct AIEventCell {
     AIEvent* bySide[16];
 };
-
-class CStream;
 
 // The free event records, chained through AIEvent::next.
 extern AIEvent* g_freeEvents;

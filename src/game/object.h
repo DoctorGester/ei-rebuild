@@ -28,8 +28,6 @@ const char* __fastcall FigureGetName(const CEngineObject* figure);
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure);
 
 // "CHoover" (class id 0x1F): no fields of its own seen. object.cpp.
-class CItem;
-class CUnit;
 class CWorld;
 class CHoover final : public CEngineObject {
 public:

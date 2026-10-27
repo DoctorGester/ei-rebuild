@@ -54,8 +54,6 @@ static_assert(offsetof(CSkyObject, vertices_) == 0x1C0);
 static_assert(offsetof(CSkyObject, distances_) == 0x220);
 static_assert(sizeof(CSkyObject) == 0x230);
 
-class CSceneRenderer;
-
 // The world view's sky.
 struct CSky {
     // The constructor (returns this). No object yet; the texture holder loads "sky00" (kind 0x3D); turning.

@@ -22,10 +22,6 @@
 class CHeroEquipPanel;
 class CHeroQuickStrip;
 class CHeroStatsPanel;
-class CItem;
-class CItemInfoPanel;
-class CMappedResource;
-class CParty;
 class CTradePanel;
 
 // The input sub-object that captured the mouse (scroll arrows held down), or null.

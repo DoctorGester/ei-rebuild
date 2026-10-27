@@ -19,9 +19,6 @@
 #include <cstddef>
 #include <cstdint>
 
-class CEngineObject;
-class CUnit;
-
 // A person walking to the place a dialogue gives them.
 struct BriefingMover {
     BriefingMover* next;
@@ -88,8 +85,6 @@ public:
 private:
     NamedFloatTable table_;
 };
-
-class CRefObject;
 
 // A network client's player list on the base screen: the players' faces along the top right, a surface under
 // them with each one's status and offer. Multiplayer only.

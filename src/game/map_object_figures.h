@@ -25,7 +25,6 @@ class CObject3D;
 // The figures' default scale (zeros).
 inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
 class CLinkMesh;
-class CTransformObject;
 struct tagRECT;
 
 // A growable pointer array whose storage is 32-byte aligned (the block from operator new is kept at data[-1]).
@@ -33,8 +32,6 @@ using AlignedPtrArray = lib::AlignedArray<void*>;
 // An object's figure parts (CObject3D::parts / pendingParts).
 using FigurePartArray = lib::AlignedArray<CFigureMesh*>;
 
-class CFigureMesh;
-struct FigureModel;
 struct FootprintPart;
 
 // One animation of a figure's animation database.

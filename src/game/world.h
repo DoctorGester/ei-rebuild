@@ -38,15 +38,8 @@ inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0
 
 using BOOL = int;
 
-struct ScriptGroup;
-class CItem;
-struct CItemManager;
-class CParty;
 class CParticleSource;
-class CAIMap;
-class CPlayerConnection;
 class CPlayerClient;
-class CScript;
 namespace netlink {
 class NetLink;
 class DriverSession;
@@ -56,9 +49,7 @@ struct NetAddress;
 }
 class CWorldHandle;
 class CClientHandle;
-class CBaseManager;
 struct CSoundManager;
-class CSectorMap;
 class CSpellManager;
 class CLinkFigureLoader;
 class CTexture;
@@ -67,15 +58,9 @@ class CMaterialManager;
 class Terrain;
 class CCamera;
 class CMaterial;
-class CStream;
-class CUnit;
-class CMapObject;
-class CObject3D;
 class CSpell;
 class CSpellEffect;
 class CParticleManager;
-struct FootprintPart;
-class CFileRegistry;
 class CHoover;
 class CEffectMoshka;
 namespace mapspec { class Spec; }
@@ -293,7 +278,6 @@ struct SharedObject {
 static_assert(sizeof(SharedObject) == 0x20);
 using SharedObjectList = mfc::CList<SharedObject>;
 
-struct PartyUnitRecord;
 using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
 
 class CWorldServer : public CWorld {
@@ -851,7 +835,6 @@ struct HitCollector {
 class CRainSnow;
 
 class CLightningManager;
-class CSceneRenderer;
 // The visibility fog's manager ("CVisFogManager", class id 0x60): a counted object and a CList.
 struct ClientArrayManager : CBaseManager {
     ClientArrayManager();

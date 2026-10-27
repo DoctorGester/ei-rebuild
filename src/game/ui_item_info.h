@@ -17,10 +17,8 @@
 #include <cstddef>
 #include <cstdint>
 
-class CItem;
 class CItemInfoPanel;
 class CTexture;
-struct UnitStats;
 namespace console {
 class CStringArray;
 }
@@ -109,7 +107,6 @@ inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(
 
 class CParty;
 class CItemScreen;
-struct PartyUnitRecord;
 // The item screens' icon window.
 class CItemIconWindow final : public CUiWindow {
 public:

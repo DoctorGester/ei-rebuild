@@ -20,7 +20,6 @@ class CString;
 namespace stlp {
 class string;
 }
-struct SaveEntry;
 
 namespace stl_sorts {
 

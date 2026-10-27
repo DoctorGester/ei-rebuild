@@ -14,7 +14,6 @@
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CSpell;
-class CStream;
 
 class MagicTrap : public CMapObject {
 public:

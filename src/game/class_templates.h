@@ -9,9 +9,7 @@
 #include "party_storage.h"
 #include "lib/stlp.h"
 
-class CParty;
 struct PartyManager;
-class ChunkArchive;
 
 #include <cstddef>
 #include <cstdint>

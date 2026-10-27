@@ -16,7 +16,6 @@
 #include <cstdint>
 #include <string>
 
-class CRefObject;
 class ClassTemplate;
 struct LeverRecord;
 namespace gamehash { struct PartyTable; }

@@ -13,8 +13,6 @@
 #include <cstdint>
 #include <vector>
 
-struct Matrix4;
-
 namespace terrain {
 struct SectorData;
 }

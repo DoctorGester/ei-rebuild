@@ -15,12 +15,10 @@
 #include <cstdint>
 #include <string>
 
-class CStream;
 class CMapObjectServer;
 class CMapObjectClientSpecific;
 class CMapObjectCompanion;
 struct DeltaState;
-class CMemoryStream;
 
 // An active effect (CArray).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,

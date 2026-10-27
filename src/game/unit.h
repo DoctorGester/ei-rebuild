@@ -22,7 +22,6 @@
 
 #undef GetClassName
 
-class CItem;
 class CLight;
 class CParty;
 class CPlayer;
@@ -110,8 +109,6 @@ static_assert(sizeof(UnitParams) == 0x108);
 
 struct PathOrder;
 struct SpeechRecord;
-class CObject3D;
-class CMapObject;
 class CUnit;
 class CUnitServer;
 class CUnitClientSpecific;

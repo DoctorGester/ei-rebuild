@@ -180,9 +180,6 @@ static_assert(offsetof(CombatStats, damageWeights) == 0x90);
 static_assert(offsetof(CombatStats, naturalWeapon) == 0xAC);
 static_assert(sizeof(CombatStats) == 0x110);
 
-class CItem;
-struct AIBrain;
-
 // A record of the unit's presence with the AI events. AIViewer::StepNoise, which would fill it, always returns
 // 0, so none is ever written; the layout is speculative (the fields the controller's update would write).
 struct AIEventPresence {
@@ -207,7 +204,6 @@ struct ArmourSpell {
 static_assert(sizeof(ArmourSpell) == 0xC);
 using ArmourSpellList = mfc::CList<ArmourSpell>;
 
-class CSpell;
 bool __fastcall SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
                                  CUnit* toUnit, const Vector3* to);
 
