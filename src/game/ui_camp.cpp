@@ -30,6 +30,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <d3d.h>
@@ -37,6 +38,7 @@
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
+#include <string>
 
 namespace {
 
@@ -437,8 +439,8 @@ int Count(const CItem* item) { return static_cast<int>(item->count_); }
 
 
 void CCampPages::UpdateAction() {
-    mfc::CString action;
-    mfc::CString label("camp_current_money");
+    std::string action;
+    std::string label("camp_current_money");
     cost_ = 0;
     actionEnabled_ = false;
     actionShown_ = false;
@@ -559,13 +561,13 @@ void CCampPages::UpdateAction() {
     }
 
     mfc::CString text;
-    mfc::CString line;
+    std::string line;
     CTextManager* texts = TheTextManager();
     CUiSurface* draw = surfaces_.data[0];
     UiSurfaceGetDC(draw);
     static_cast<CUiSurface*>(draw)->Clear();
-    if (action.GetLength() != 0) {
-        texts->GetString(action, &text);
+    if (action.size() != 0) {
+        texts->GetString(action.c_str(), &text);
         RECT name = {0, 30, 200, 50};
         DrawLine(draw, text, &name);
         if (cost_ != 0)
@@ -575,10 +577,10 @@ void CCampPages::UpdateAction() {
         RECT value = {0, 50, 200, 70};
         DrawLine(draw, text, &value);
     }
-    texts->GetString(label, &text);
-    line.Format("%s %d", text.GetString(), amount);
+    texts->GetString(label.c_str(), &text);
+    line = str::Format("%s %d", text.GetString(), amount);
     RECT top = {0, 10, 200, 30};
-    DrawLine(draw, line, &top);
+    DrawLine(draw, line.c_str(), &top);
     UiSurfaceReleaseDC(draw);
 
     SetShade(SceneMesh(0), actionEnabled_ ? 1.0f : 0.5f);
@@ -1218,15 +1220,15 @@ void CCampPages::ShowHero() {
     // its text into a CString.
     CTextManager* table = GameClientTexts();
     mfc::CString name;
-    mfc::CString own(unit->GetName());
-    if (own.GetLength() == 0) {
+    std::string own = unit->GetName();
+    if (own.size() == 0) {
         PartyUnitRecord* hero = HeroRecord();
         own = hero->texts[1];
         int found;
         {
-            mfc::CString prefix("pers ");
-            mfc::CString key = prefix + own;
-            found = table->CTextManager::Open(key);
+            std::string prefix("pers ");
+            std::string key = prefix + own;
+            found = table->CTextManager::Open(key.c_str());
         }
         if (found) table->ReadLine(&name, 1);
     } else {

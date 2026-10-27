@@ -15,6 +15,7 @@
 
 #include <bit>
 #include <cstring>
+#include <string>
 #include "world.h"
 #include "world_data.h"
 #include "lib/crt_iostream.h"
@@ -22,6 +23,7 @@
 #include "game_arrays.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 // The AI's perception log: the AI stream (its static initialiser stores the address).
 constexpr console::GameOStream* kAiLog = /*007C53C4*/ {&console::g_aiLogOut};
@@ -168,13 +170,13 @@ void AIBrain::Think() {
 
     if (best != current) {
         if (best) {
-            mfc::CString text;
-            mfc::CString name;
+            std::string text;
+            std::string name;
             if (const char* modeName = ModeName(best->GetType())) name = modeName;
-            text.Format(MotivationFormat(), owner->unit->id_, name.GetString(),
+            text = str::Format(MotivationFormat(), owner->unit->id_, name.c_str(),
                         bestPriority);
             GameOstream* log = ModeLog();
-            log->Write(text)->Put('\n')->Apply(libcrt::FlushManipulator);
+            log->Write(text.c_str())->Put('\n')->Apply(libcrt::FlushManipulator);
             int type = best->GetType();
             if (type >= kModeSuspection && (type <= kModeCorpseWatcher || type == kModeFear) && alertMode == 2 && !alerted)
                 alerted = 1;

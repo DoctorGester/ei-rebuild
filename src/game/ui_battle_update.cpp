@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <cstring>
 #include <bit>
+#include <string>
 #include "party.h"
 #include "world.h"
 #include "world_glue.h"
@@ -89,9 +90,9 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         CItem* item = unit_->GetQuickItem(slot);
         if (!item) continue;
         {
-            mfc::CString image = item->FigureName();
-            mfc::CString model = item->PictureName();
-            AddItem(model, image);
+            std::string image = item->FigureName().GetString();
+            std::string model = item->PictureName().GetString();
+            AddItem(model.c_str(), image.c_str());
         }
         finish(item, true);
         ItemTip(slot, &tip);
@@ -114,9 +115,9 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         if (!item || item->type_ != kItemQuest)
             continue;
         {
-            mfc::CString image = item->FigureName();
-            mfc::CString model = item->PictureName();
-            AddItem(model, image);
+            std::string image = item->FigureName().GetString();
+            std::string model = item->PictureName().GetString();
+            AddItem(model.c_str(), image.c_str());
         }
         finish(item, false);
         // The original passes the same CString for the second and third texts.
@@ -501,18 +502,18 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         text.Empty();
         BOOL found;
         {
-            mfc::CString quest("quest ");
-            mfc::CString textKey = quest + parts[2];
-            found = texts->Open(textKey);
+            std::string quest("quest ");
+            std::string textKey = quest + parts[2];
+            found = texts->Open(textKey.c_str());
         }
         if (found) texts->ReadLine(&text, 1);
-        mfc::CString colour("\007C\356\343" "1 ");   // colour code 0x31E3EE43 and a space
+        std::string colour("\007C\356\343" "1 ");   // colour code 0x31E3EE43 and a space
         text = colour + title + " " + text;
     } else if (parts.size == 4) {
         if (!IsMultiplayerClient()) {
             const char* dot = ".";
-            mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];
-            double current = LocalPlayerVariable(variable);
+            std::string variable = (parts[0] + dot + parts[1] + dot + parts[2]).GetString();
+            double current = LocalPlayerVariable(variable.c_str());
             // FCOMP of the unrounded result with 0; TEST AH,0x40.
             EI_NAN_AUDIT(current);
             if (current == static_cast<double>(0.0f /*0073B858*/)) return;
@@ -530,19 +531,19 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         text.Empty();
         bool found = false;
         {
-            mfc::CString quest("quest ");
-            mfc::CString textKey = quest + parts[2];
-            if (texts->Open(textKey)) {
-                mfc::CString sub("#subobj ");
-                mfc::CString lineKey = sub + parts[3];
-                found = texts->FindLine(lineKey) != 0;
+            std::string quest("quest ");
+            std::string textKey = quest + parts[2];
+            if (texts->Open(textKey.c_str())) {
+                std::string sub("#subobj ");
+                std::string lineKey = sub + parts[3];
+                found = texts->FindLine(lineKey.c_str()) != 0;
             }
         }
         if (found) {
             TextNextLine(texts);
             texts->ReadLine(&text, 1);
         }
-        mfc::CString colour("\007C\377\263" "1 ");   // colour code 0x31B3FF43 and a space
+        std::string colour("\007C\377\263" "1 ");   // colour code 0x31B3FF43 and a space
         text = colour + title + " " + text;
     }
     text = text + "\007C\344\327\247\n";   // colour code and a line end

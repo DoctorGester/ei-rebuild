@@ -11,11 +11,13 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "world.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -184,30 +186,30 @@ int CCamera::OpenFile(const char* name) {
             int more;
             do {
                 more = find.FindNext();
-                mfc::CString title = find.GetTitle();
+                std::string title = find.GetTitle().GetString();
                 {
-                    mfc::CString tail = title.Right(4);
+                    std::string tail = str::Right(title, 4);
                     title = tail;
                 }
-                int number = std::atoi(title);
+                int number = std::atoi(title.c_str());
                 if (number > last) last = number;
             } while (more);
         }
-        mfc::CString path;
-        path.Format(kNumberedRecord, last + 1);
-        gameapi::MoveFileA(kCurrentRecord, path);
+        std::string path;
+        path = str::Format(kNumberedRecord, last + 1);
+        gameapi::MoveFileA(kCurrentRecord, path.c_str());
     }
     TheClientWorld()->flags_ |= 0x10;
     bool failed;
     {
-        mfc::CString folder(kRecordFolder);
-        mfc::CString full = folder + name;
-        failed = file.Open(full, 0x1001, nullptr) == 0;   // modeCreate | modeWrite
+        std::string folder = kRecordFolder;
+        std::string full = folder + name;
+        failed = file.Open(full.c_str(), 0x1001, nullptr) == 0;   // modeCreate | modeWrite
     }
     if (failed) return 0;
     {
-        mfc::CString folder(kRecordFolder);
-        mfc::CString full = folder + name;
+        std::string folder = kRecordFolder;
+        std::string full = folder + name;
         fileName_ = full;
     }
     flags_ |= CCamera::kRecording;

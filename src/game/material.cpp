@@ -12,6 +12,7 @@
 
 #include <cstring>
 #include <new>
+#include <string>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -116,8 +117,8 @@ int CMaterialManager::Create() {
     // Rebirth's ResOverride: the mod's archives open here if nothing opened them yet.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::LoadModArchives();
     if (!CBaseManager::Create()) return 0;
-    const mfc::CString folder(TheTextFolder());
-    AddArchive(folder + "materials.res");
+    const std::string folder = TheTextFolder().GetString();
+    AddArchive((folder + "materials.res").c_str());
 
     for (const MaterialKindFile& kind : kMaterialKindFiles) {
         MaterialColors colors;

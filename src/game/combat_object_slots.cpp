@@ -15,10 +15,12 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 
 #include <bit>
 #include <cmath>
 #include <cstring>
+#include <string>
 
 namespace {
 constexpr int kOrderAnimation = 7;
@@ -35,14 +37,14 @@ bool Usable(const CItem* weapon) { return weapon && x87::RoundToInt(weapon->cond
 
 void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
     claimedHostile |= mask;
-    mfc::CString text;
+    std::string text;
     for (int player = 0; player < 32; ++player) {
         if (!(mask & (1u << player))) continue;
-        mfc::CString piece;
-        piece.Format("Unit %i claims that player %i are enemies! ", claimant->id_, player);
+        std::string piece;
+        piece = str::Format("Unit %i claims that player %i are enemies! ", claimant->id_, player);
         text += piece;
     }
-    BrainOf(this)->memory.AddClaim(mask, kCallClaim, text);
+    BrainOf(this)->memory.AddClaim(mask, kCallClaim, text.c_str());
 }
 EI_REWRITTEN(0x00552D00, CUnitServer::ClaimHostility);
 

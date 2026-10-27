@@ -21,8 +21,10 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
+#include "lib/str.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -139,10 +141,10 @@ EI_REWRITTEN(0x00690430, CTexture::CreateFromMmp);
 int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
-    mfc::CString path;
+    std::string path;
     mfc::CFile file;
-    path.Format("%stextures\\%s.mmp", DataFolderText(), name);
-    if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
+    path = str::Format("%stextures\\%s.mmp", DataFolderText(), name);
+    if (file.Open(path.c_str(), mfc::CFile::modeRead, nullptr)) {
         file.Read(&header, sizeof(header));
         int size = static_cast<int>(header.extraSize);
         out->SetSizeDiscard(size);
@@ -150,8 +152,8 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
         file.Close();
         return 1;
     }
-    path.Format("%s%s", name, ".mmp");   // "%s%s", ".mmp"
-    void* data = GetFile(path, nullptr);
+    path = str::Format("%s%s", name, ".mmp");   // "%s%s", ".mmp"
+    void* data = GetFile(path.c_str(), nullptr);
     if (!data) {
         out->SetSizeDiscard(0);
         return 0;

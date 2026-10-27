@@ -17,6 +17,7 @@
 #include "ei/x87.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -161,7 +162,7 @@ float Half() { return 0.5f /*0073B86C*/; }   // 0.5
 
 // The client glue's thiscall member in the original; ECX is not read.
 void __stdcall ShowBolt(Vector3 from, Vector3 to) {
-    mfc::CString prefix;   // stays empty
+    std::string prefix;   // stays empty
     mfc::CString text;
     // The middle: x and y are summed into floats first, z is not.
     float sumY = static_cast<float>(to.y + from.y);

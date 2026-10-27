@@ -13,6 +13,9 @@
 #include "world.h"
 #include "world_effect.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
+
+#include <string>
 
 
 using namespace spellfx;
@@ -523,7 +526,7 @@ EI_REWRITTEN(0x0067F580, CSpellEffect::CreateSound);
 
 void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocity, const char* first,
                                        const char* pattern, int count, float volume, float hearing) {
-    mfc::CString name;
+    std::string name;
     auto* effect = CreateObject<CEffectSoundSeq>(this, kClassSoundSequence);
     SetPosition(effect, at);
     effect->SetVelocity(velocity);
@@ -536,7 +539,7 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
         names.SetAtGrow(names.size, pattern);
     } else {
         for (int i = 1; i <= count; ++i) {
-            name.Format(pattern, i);
+            name = str::Format(pattern, i);
             names.SetAtGrow(names.size, name);
         }
     }

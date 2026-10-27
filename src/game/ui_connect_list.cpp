@@ -19,9 +19,11 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "game_data.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -108,7 +110,7 @@ void CMpConnectScreen::DrawListVanilla() {
 
     const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
     const Layout& layout = extended ? kExtendedLayout : kVanillaLayout;
-    mfc::CString text;
+    std::string text;
     CUiSurface* surface = surfaces_.data[0];
     mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
@@ -161,11 +163,11 @@ void CMpConnectScreen::DrawListVanilla() {
         TextColour() = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
         if (index == 0) {
             // The new game: its name as typed.
-            text.Format("%s %s", label(7), nameEdit_->text_.GetString());
+            text = str::Format("%s %s", label(7), nameEdit_->text_.GetString());
             if (extended)
-                DrawEllipsis(surface, text, &row, kFormatNoPrefix);
+                DrawEllipsis(surface, text.c_str(), &row, kFormatNoPrefix);
             else
-                DrawLabel(surface, text, &row, kFormatNoPrefix);
+                DrawLabel(surface, text.c_str(), &row, kFormatNoPrefix);
         } else {
             if (extended) {
                 RECT nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
@@ -175,17 +177,17 @@ void CMpConnectScreen::DrawListVanilla() {
                 DrawLabel(surface, entry.name, &row, kFormatNoPrefix);
             }
             row.left = 142;
-            text.Format("%d/%d", entry.players, entry.maxPlayers);
-            DrawLabel(surface, text, &row, 0);
+            text = str::Format("%d/%d", entry.players, entry.maxPlayers);
+            DrawLabel(surface, text.c_str(), &row, 0);
             row.left = 170;
             if (entry.gameType == kNewGameType)
                 text = "?";
             else
-                text.Format("%s", allod(entry.gameType));
-            DrawLabel(surface, text, &row, 0);
+                text = str::Format("%s", allod(entry.gameType));
+            DrawLabel(surface, text.c_str(), &row, 0);
             row.left = layout.rowLeftPing;
-            text.Format("%d", entry.ping);
-            DrawLabel(surface, text, &row, kFormatRight);
+            text = str::Format("%d", entry.ping);
+            DrawLabel(surface, text.c_str(), &row, kFormatRight);
             row.left = 12;
         }
         Down(&row);
@@ -202,8 +204,8 @@ void CMpConnectScreen::DrawListVanilla() {
             DrawLabel(surface, label(0), &row, 0);
             Down(&row);
             Down(&row);
-            text.Format("%s %d", label(2), maxPlayers_);
-            DrawLabel(surface, text, &row, 0);
+            text = str::Format("%s %d", label(2), maxPlayers_);
+            DrawLabel(surface, text.c_str(), &row, 0);
             Down(&row);
             Down(&row);
             DrawLabel(surface, label(3), &row, 0);
@@ -219,34 +221,34 @@ void CMpConnectScreen::DrawListVanilla() {
             Down(&row);
             DrawLabel(surface, label(17), &row, 0);
         } else {
-            text.Format("%s %s", label(0), entry.name.GetString());
+            text = str::Format("%s %s", label(0), entry.name.GetString());
             if (extended) {
                 // addon: wrapped over up to three lines; the rectangle moves down by the extra lines.
-                int lines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, TextColour(), 0, 1);
+                int lines = surface->DrawWrappedText(text.c_str(), &row, kDetailsNameLines, kFont, TextColour(), 0, 1);
                 row.top += lines * kRowHeight - kRowHeight;
                 row.bottom += lines * kRowHeight - kRowHeight;
             } else {
-                DrawLabel(surface, text, &row, 0);
+                DrawLabel(surface, text.c_str(), &row, 0);
             }
             Down(&row);
-            text.Format("%s %d / %d", label(1), entry.players, entry.maxPlayers);
-            DrawLabel(surface, text, &row, 0);
+            text = str::Format("%s %d / %d", label(1), entry.players, entry.maxPlayers);
+            DrawLabel(surface, text.c_str(), &row, 0);
             Down(&row);
             if (entry.gameType == kNewGameType)
                 text = texts_[3] + " ?";
             else
-                text.Format("%s %s", label(3), allod(entry.gameType));
-            DrawLabel(surface, text, &row, 0);
+                text = str::Format("%s %s", label(3), allod(entry.gameType));
+            DrawLabel(surface, text.c_str(), &row, 0);
             Down(&row);
-            text.Format("%s %s", label(4), entry.description.GetString());
-            int lines = surface->DrawWrappedText(text, &row, 3, kFont, TextColour(), 0, 1);
+            text = str::Format("%s %s", label(4), entry.description.GetString());
+            int lines = surface->DrawWrappedText(text.c_str(), &row, 3, kFont, TextColour(), 0, 1);
             for (; lines != 0; --lines) Down(&row);
             stlp::string address;
-            text.Format("%s %s", label(5), entry.address.ToString(&address)->data());
-            DrawLabel(surface, text, &row, 0);
+            text = str::Format("%s %s", label(5), entry.address.ToString(&address)->data());
+            DrawLabel(surface, text.c_str(), &row, 0);
             Down(&row);
-            text.Format("%s %d", label(6), entry.ping);
-            DrawLabel(surface, text, &row, 0);
+            text = str::Format("%s %d", label(6), entry.ping);
+            DrawLabel(surface, text.c_str(), &row, 0);
             Down(&row);
             if (entry.password) {
                 DrawLabel(surface, label(21), &row, 0);

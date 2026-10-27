@@ -20,6 +20,9 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "options.h"
+#include "lib/str.h"
+
+#include <string>
 
 namespace {
 constexpr std::uint32_t kFlagNoEffect = 8;            // StatChanged's flags
@@ -135,12 +138,12 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (flags & kFlagNoEffect) return;
     EI_NAN_AUDIT(amount);
     if (amount <= kMinAmount) return;
-    mfc::CString material(ModelOf(unit)->hitMaterial);
+    std::string material = ModelOf(unit)->hitMaterial.GetString();
     if (unit->type_ == kUnitTypeHero) {
         // Heroes sound by the armour over the location (the model's material without one), mapped
         // to "stone", "Metal" or "leather".
         if (const itemdb::MaterialRecordHead* armour = ArmourMaterial(this, location)) material = armour->soundName;
-        const char* name = material;
+        const char* name = material.c_str();
         if (gamecrt::mbscmp(name, "Crystal") == 0 ||
             gamecrt::mbscmp(name, "Bone") == 0 ||
             gamecrt::mbscmp(name, "Stone") == 0)
@@ -148,11 +151,11 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
         else if (gamecrt::mbscmp(name, "Metal") != 0)
             material = "leather";
     }
-    mfc::CString sound;
-    if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound.Format(format, material.GetString());
-    if (sound.GetLength() != 0) {
+    std::string sound;
+    if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound = str::Format(format, material.c_str());
+    if (sound.size() != 0) {
         auto* world = ClientWorld();
-        world->sounds_->Play3D(sound, kSoundPriority, &unit->localPosition_.x, kSoundNear, kSoundFar, 0, 0);
+        world->sounds_->Play3D(sound.c_str(), kSoundPriority, &unit->localPosition_.x, kSoundNear, kSoundFar, 0, 0);
     }
 
     if (location < 0 || location > 5) return;

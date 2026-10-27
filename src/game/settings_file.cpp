@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "hook/log.h"
 
+#include <string>
 #include <windows.h>
 
 #include <algorithm>

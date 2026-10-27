@@ -25,10 +25,12 @@
 #include "lib/crt.h"
 #include "lib/stlp_string.h"
 #include "unit_looks.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -187,12 +189,12 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         mfc::CString built;
         UnitTextureRecords(1, record, &list);
         CopyRecords(set, list);
-        mfc::CString skin;
+        std::string skin;
         set.textures.SetSize(0, -1);
         if (prototype) {
-            skin.Format("%sskin_%.2d.mmp", ModelPrefix(model), prototype->skin);
+            skin = str::Format("%sskin_%.2d.mmp", ModelPrefix(model), prototype->skin);
         } else {
-            skin.Format("%sskin_00.mmp", ModelPrefix(model));
+            skin = str::Format("%sskin_00.mmp", ModelPrefix(model));
         }
         set.textures.SetAtGrow(set.textures.GetSize(), skin);
         for (int slot = 3; slot <= 6; ++slot) {

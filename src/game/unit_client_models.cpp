@@ -23,9 +23,11 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 // The item prototypes' head (type: an armour's slot, 0 helmet, 1 body, 2 trousers, ..., or a
@@ -88,33 +90,33 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
     }
     if (!model) return false;
     const itemdb::ArmorRecord* armour = ArmourRecord(type);
-    mfc::CString armourPart;
+    std::string armourPart;
     for (int i = 0; i < 7; ++i) {
         const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
-        mfc::CString part(plain);
-        if (gamecrt::mbscmp(part.GetString(),
+        std::string part = plain;
+        if (gamecrt::mbscmp(part.c_str(),
                             kHair) == 0) {
             const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
             int hair = prototype->hair;
             if (hair == -1) continue;
-            part.Format("hr.%.2d", hair);
+            part = str::Format("hr.%.2d", hair);
         }
-        CFigureMesh* current = unit->FindPartByPrefix(part);
-        armourPart.Format("%s.armor%.2d", part.GetString(), armour->number);
-        if (model->mesh->FindEntry(armourPart) != -1) {
-            unit->LoadPart(armourPart, model, FiguresFlag(unit));
+        CFigureMesh* current = unit->FindPartByPrefix(part.c_str());
+        armourPart = str::Format("%s.armor%.2d", part.c_str(), armour->number);
+        if (model->mesh->FindEntry(armourPart.c_str()) != -1) {
+            unit->LoadPart(armourPart.c_str(), model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) unit->RemovePart(current);
         } else if (current) {
             if (SameName(plain, kHair)) {
                 unit->RemovePart(current);
-            } else if (gamecrt::mbscmp(part.GetString(),
+            } else if (gamecrt::mbscmp(part.c_str(),
                                        current->GetName()) != 0) {
-                unit->LoadPart(part, model, FiguresFlag(unit));
+                unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
                 unit->RemovePart(current);
             }
         } else {
-            unit->LoadPart(part, model, FiguresFlag(unit));
+            unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
         }
     }
     return true;
@@ -149,24 +151,24 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
     for (int i = 0; i < 7; ++i) {
         const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
-        mfc::CString part(plain);
-        if (CompareNames(part, kHair) == 0) {
+        std::string part = plain;
+        if (CompareNames(part.c_str(), kHair) == 0) {
             const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
             int hair = prototype->hair;
             if (hair == -1) continue;
-            part.Format("hr.%.2d", hair);
+            part = str::Format("hr.%.2d", hair);
         }
         PartArray parts{nullptr, 0, 0, 0};
-        unit->CollectPartsByPrefix(part, &parts);
+        unit->CollectPartsByPrefix(part.c_str(), &parts);
         if (parts.size == 1) {
             // One part of that name: replaced only when it is not the plain part already.
-            if (CompareNames(part, parts.data[0]->GetName()) != 0) {
+            if (CompareNames(part.c_str(), parts.data[0]->GetName()) != 0) {
                 unit->RemovePart(parts.data[0]);
-                unit->LoadPart(part, model, FiguresFlag(unit));
+                unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
             }
         } else {
             for (int k = 0; k < parts.size; ++k) unit->RemovePart(parts.data[k]);
-            unit->LoadPart(part, model, FiguresFlag(unit));
+            unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
         }
         if (parts.data) lib::FreeAligned32(parts.data);
     }
@@ -373,8 +375,8 @@ namespace {
 
 // "<prototype name><texture>.mmp" into `texture`, the way the original builds it.
 void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
-    mfc::CString named = mfc::operator+(unit->name, texture);
-    mfc::CString withExtension = mfc::operator+(named, ".mmp");
+    std::string named = unit->name.GetString() + std::string(texture.GetString());
+    std::string withExtension = named + ".mmp";
     texture = withExtension;
 }
 

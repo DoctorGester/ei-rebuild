@@ -26,6 +26,7 @@
 #include "options.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -191,9 +192,9 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
             record->handle = sounds->AddSequence(&names, 0, position,
                                                  SoundNear(), SoundFar(), 0, -1, FeebleMindChooser);
             // The folder is empty here: the original plays the bare suffix.
-            mfc::CString name;
+            std::string name;
             name += suffix;
-            TheSoundManager()->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
+            TheSoundManager()->Play3D(name.c_str(), 0, position, SoundNear(), SoundFar(), 0, 0);
         } else {
             sounds->RemoveSequence(record->handle);
             record->handle = -1;
@@ -203,9 +204,9 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
     }
     const char* folder = SoundFolder(kind);
     if (*folder == '\0' || !play) return;
-    mfc::CString name(folder);
+    std::string name = folder;
     name += suffix;
-    sounds->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
+    sounds->Play3D(name.c_str(), 0, position, SoundNear(), SoundFar(), 0, 0);
 }
 EI_REWRITTEN(0x005114D0, PlayEffectSound);
 

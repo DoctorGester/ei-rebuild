@@ -20,8 +20,10 @@
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -78,18 +80,18 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
     float ratio;
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
         FillBar(Sprite(this, 10), ratio, 100.0f, 0.396484375f, 0.376953125f);
-    mfc::CString health;
-    health.Format("%d", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
-    DrawPanelText(this, health, RECT{130, 185, 160, 200}, kTextColour, 0, 1);
+    std::string health;
+    health = str::Format("%d", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
+    DrawPanelText(this, health.c_str(), RECT{130, 185, 160, 200}, kTextColour, 0, 1);
 
     for (int i = 0; i < owner_->party_.size; ++i) {
         if (owner_->party_[i] != unit) continue;
         Sprite(this, 13)->visible_ = 1;
         if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
             FillBar(Sprite(this, 12), ratio, 100.0f, 0.369140625f, 0.349609375f);
-        mfc::CString mana;
-        mana.Format("%d", static_cast<int>(unit->packedVitals.mana));
-        DrawPanelText(this, mana, RECT{130, 200, 160, 215}, kTextColour, 0, 1);
+        std::string mana;
+        mana = str::Format("%d", static_cast<int>(unit->packedVitals.mana));
+        DrawPanelText(this, mana.c_str(), RECT{130, 200, 160, 215}, kTextColour, 0, 1);
         break;
     }
 }
@@ -115,16 +117,16 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
         // The bar's colour row: green above 2/3, yellow above 1/3, else red.
         bar->textureOffsetV_ = ratio > 2.0f / 3.0f ? 0.0f : ratio > 1.0f / 3.0f ? -0.02734375f : -0.0546875f;
 
-        mfc::CString name;
+        std::string name;
         name = unit->GetPrototypeModel()->slots[i].levelName;
         for (int k = 0; k < 4; ++k) {
-            if (gamecrt::mbscmp(name.GetString(),
+            if (gamecrt::mbscmp(name.c_str(),
                                 kPartNames[k]) == 0) {
                 name = partLabels_[k];
                 break;
             }
         }
-        DrawPanelText(this, name, RECT{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
+        DrawPanelText(this, name.c_str(), RECT{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
                       part.kind == 1 ? kRed : kTextColour, 1, 1);
     }
 }
@@ -206,7 +208,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         }
     }
     // The others go into the free places in order; the list ends when there is none left.
-    mfc::CString picture;
+    std::string picture;
     int free = 0;
     for (int i = 0; i < kPlaces; ++i) {
         if (icons[i] < 0) continue;
@@ -221,8 +223,8 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         int x = kPlaceX[places[i]];
         int y = kPlaceY[places[i]];
         if (fresh) {
-            picture.Format("spell%04d", icons[i]);
-            CopyImage(objects_.data[1], picture, kIconSize, kIconSize, kIconSize, kIconSize, x, y, 0, 0);
+            picture = str::Format("spell%04d", icons[i]);
+            CopyImage(objects_.data[1], picture.c_str(), kIconSize, kIconSize, kIconSize, kIconSize, x, y, 0, 0);
             effectIcons_[free] = icons[i];
         }
         CUiMesh* icon = Sprite(this, kFirstIcon + i);

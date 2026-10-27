@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include "game_arrays.h"
 #include "game_data.h"
 
@@ -36,11 +37,11 @@ constexpr std::uint32_t kWindStrength = 0x3ECCCCCD;   // 0.4f
 int CWorldServer::Create() {
     Destroy();
     if (!CWorld::Create()) return game::FatalError(CantCreateText());
-    mfc::CString folder(TheTextFolder());
+    std::string folder = TheTextFolder().GetString();
     BOOL opened;
     {
-        mfc::CString path = folder + kMessagesFileName;
-        opened = Messages()->Open(path);
+        std::string path = folder + kMessagesFileName;
+        opened = Messages()->Open(path.c_str());
     }
     if (!opened) return game::FatalError(CantOpenText());
 

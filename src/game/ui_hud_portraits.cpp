@@ -18,6 +18,7 @@
 #include <concepts>
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -210,7 +211,7 @@ void CHudPortraits::Update() {
         EI_NAN_AUDIT(slot.build_, build);
         if (slot.build_ != build) {
             slot.build_ = build;
-            mfc::CString name("me");
+            std::string name("me");
             if (build < kThin)
                 name = "th";
             else if (build > kFat)
@@ -218,11 +219,11 @@ void CHudPortraits::Update() {
             {
                 const mfc::CString& prefix = slot.modelPrefix_;
                 const mfc::CString& suffix = slot.modelSuffix_;
-                mfc::CString withPrefix = prefix + name;
-                mfc::CString full = withPrefix + suffix;
+                std::string withPrefix = (prefix + name).GetString();
+                std::string full = withPrefix + suffix;
                 name = full;
             }
-            ReplaceSceneObject(object(1), name);   // CUiWindow's
+            ReplaceSceneObject(object(1), name.c_str());   // CUiWindow's
         }
 
         // Now and then (a third of the time per second) a wobble starts after a random delay:

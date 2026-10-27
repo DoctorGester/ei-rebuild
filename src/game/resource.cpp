@@ -11,6 +11,7 @@
 
 #include <cstring>
 #include <new>
+#include <string>
 
 int CResourceBase::FindEntry(const char* name) const {
     std::uint32_t count = header_.count;
@@ -202,9 +203,9 @@ bool CMappedResource::CloseFile(void* data) {
         if (libcrt::Lseek(fd_, static_cast<long>(file->offset), 0 /* SEEK_SET */) == -1 ||
             static_cast<std::uint32_t>(gamecrt::write(fd_, file->data, file->size)) != file->size) {
             // The original formats the data pointer as the file name.
-            mfc::CString name;
+            std::string name;
             name = static_cast<const char*>(data);
-            game::FatalError("CMappedResource::CloseFile()\nUnable to write file \"" + name + "\"\n");
+            game::FatalError(("CMappedResource::CloseFile()\nUnable to write file \"" + name + "\"\n").c_str());
         }
     }
 

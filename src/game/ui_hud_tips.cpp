@@ -14,9 +14,11 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 namespace {
 
@@ -54,9 +56,9 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         CItemWeapon* weapon = unit_->GetWeapon(slot);
         if (!weapon) continue;
         {
-            mfc::CString image = weapon->FigureName();   // the figure's name
-            mfc::CString model = weapon->PictureName();  // the picture's name
-            AddWeapon(model, image);
+            std::string image = weapon->FigureName().GetString();   // the figure's name
+            std::string model = weapon->PictureName().GetString();  // the picture's name
+            AddWeapon(model.c_str(), image.c_str());
         }
         TheTextManager()->GetItemTexts(weapon, &tip, &description, &line);
         tip += "\n";   // "\n"
@@ -193,14 +195,14 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     if (!shown) return;
 
     // The science button (the original loops once over a switch of three buttons).
-    mfc::CString title;
+    std::string title;
     mfc::CString tip;
     mfc::CString hint;
     AddAction("initqi1item", "skill0009", 0);
     title = "Science";
     int found = TheTextManager()->CTextManager::Open(mfc::operator+(mfc::CString("perk "), title));
     if (found) TheTextManager()->ReadLine(&tip, 1);
-    title.Format("%s %d\n", labels_[0].GetString(), shown->Params()->attributes[0]);   // "%s %d\n"
+    title = str::Format("%s %d\n", labels_[0].GetString(), shown->Params()->attributes[0]);   // "%s %d\n"
     if (TheTextManager()->CTextManager::Open("tip 10511") != 0) TheTextManager()->ReadToHash(&hint, 1);
     tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, "\n"), title), hint);   // "\n"
     regions_.data[count_ - 1]->SetTipString(tip, 1, 0x1D);

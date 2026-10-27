@@ -62,6 +62,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 using options::GameOptions;
 
@@ -282,7 +283,7 @@ void ReadCommandLine(const char* commandLine) {
         if (arguments[i].Find("-moviepath_") == 0) {
             client->flags_ &= ~0x20u;
             {
-                mfc::CString folder = Tail(arguments[i], 11);
+                std::string folder = Tail(arguments[i], 11).GetString();
                 MovieFolder() = folder;
             }
             const char* folder = MovieFolder();
@@ -307,12 +308,12 @@ void ReadCommandLine(const char* commandLine) {
         } else if (arguments[i].Find(".mpr") != -1) {
             CommandLineMap() = arguments[i];
         } else if (arguments[i].Find("-benchmark_") == 0) {
-            mfc::CString frames = Tail(arguments[i], 11);
-            options->numberOfFrames_ = std::atoi(frames);
+            std::string frames = Tail(arguments[i], 11).GetString();
+            options->numberOfFrames_ = std::atoi(frames.c_str());
             options->createOutputInfo_ = 1;
         } else if (arguments[i].Find("-devicetarget_") == 0) {
-            mfc::CString driver = Tail(arguments[i], 14);
-            options->driverIndex_ = std::atoi(driver);
+            std::string driver = Tail(arguments[i], 14).GetString();
+            options->driverIndex_ = std::atoi(driver.c_str());
         }
     }
 }
@@ -393,16 +394,16 @@ bool FreeDiskSpace(const char* folder, double* freeBytes) {
 // disc folder (when it is not the data folder) is not on a volume with the options' label. False
 // when the player cancels.
 bool CheckDrives(const console::CStringArray& messages) {
-    mfc::CString discFolder(DiscFolder());
-    mfc::CString dataFolder(TheDataFolder());
+    std::string discFolder = DiscFolder().GetString();
+    std::string dataFolder = TheDataFolder().GetString();
     double freeBytes;
-    if (FreeDiskSpace(dataFolder, &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
+    if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], "Warning", kWarningBox) == IDCANCEL) return false;
     }
-    if (gamecrt::mbscmp(dataFolder, discFolder) != 0) {
+    if (gamecrt::mbscmp(dataFolder.c_str(), discFolder.c_str()) != 0) {
         char volume[0x400] = {};
         PathParts parts;
-        DriveRoot(discFolder, parts);
+        DriveRoot(discFolder.c_str(), parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc], "Warning", kWarningBox) == IDCANCEL) return false;
@@ -468,31 +469,31 @@ DWORD CreateRenderer() {
 // the disc folder's text pointer (see the caller).
 std::uintptr_t OpenSound() {
     GameOptions* options = options::TheOptions();
-    mfc::CString textFolder(TextFolder());
-    mfc::CString dataFolder(TheDataFolder());
-    mfc::CString discFolder(DiscFolder());
+    std::string textFolder = TextFolder().GetString();
+    std::string dataFolder = TheDataFolder().GetString();
+    std::string discFolder = DiscFolder().GetString();
     TheSoundManager()->Open(g_mainWindow, 1, -1, 44100, 16);
     {
-        mfc::CString registry = textFolder + "streamsn.reg";
-        mfc::CString folder = dataFolder + "stream\\";
-        TheSoundManager()->SetPath(folder, registry);
+        std::string registry = textFolder + "streamsn.reg";
+        std::string folder = dataFolder + "stream\\";
+        TheSoundManager()->SetPath(folder.c_str(), registry.c_str());
     }
     {
-        mfc::CString effects = textFolder + "sfx.res";
+        std::string effects = textFolder + "sfx.res";
         CSoundManager* sound = TheSoundManager();
         sound->ClearWaveSources();
-        sound->AddWaveSource(effects);
+        sound->AddWaveSource(effects.c_str());
     }
     {
-        mfc::CString unused = discFolder + "res\\speech.res";   // "res\speech.res" (built twice)
-        mfc::CString speech = discFolder + "res\\speech.res";
-        TheSoundManager()->AddWaveSource(speech);
+        std::string unused = discFolder + "res\\speech.res";   // "res\speech.res" (built twice)
+        std::string speech = discFolder + "res\\speech.res";
+        TheSoundManager()->AddWaveSource(speech.c_str());
     }
     TheSoundManager()->SetEffectsVolume(options->audioSfx_);
     TheSoundManager()->SetSpeechVolume(options->audioSpeech_);
     TheSoundManager()->SetMusicVolume(options->audioStreaming_);
     TheSoundManager()->panDirect = options->reverseStereo_ != 0;
-    return reinterpret_cast<std::uintptr_t>(discFolder.GetString());
+    return reinterpret_cast<std::uintptr_t>(discFolder.c_str());
 }
 
 void LoadDatabases() {
@@ -777,8 +778,8 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
                          : "Software\\Nival Interactive\\EvilIslands";
     StoreStartFolder();
     {
-        mfc::CString settings = StartFolder() + "config\\ai.reg";
-        g_logicSettings.Load(settings);
+        std::string settings = (StartFolder() + "config\\ai.reg").GetString();
+        g_logicSettings.Load(settings.c_str());
     }
     options->LoadFromRegistry(RegistryRoot());
     const gamecrt::NewHandler previousHandler =

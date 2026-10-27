@@ -13,8 +13,10 @@
 #include "lib/mfc.h"
 #include "lib/crt.h"
 #include "game_data.h"
+#include "lib/str.h"
 
 #include <cstring>
+#include <string>
 
 
 namespace {
@@ -47,9 +49,9 @@ int CFigureManager::CreateWithArchives() {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& path : modfolders::FigureArchives()) AddArchive(path.c_str());
     }
-    mfc::CString folder(TheTextFolder());
-    AddArchive(folder + kFiguresArchive);
-    AddArchive(folder + kMenusArchive);
+    std::string folder = TheTextFolder().GetString();
+    AddArchive((folder + kFiguresArchive).c_str());
+    AddArchive((folder + kMenusArchive).c_str());
     LoadMenuRects(g_menuRects);
     return 1;
 }
@@ -68,9 +70,9 @@ CEngineObject* CFigureManager::NewFigure(const char* name) {
     if (!name) return figure;
     figure->name_ = name;
     figure->directory_ = game::EmptyText();
-    mfc::CString path;
-    path.Format(game::FigFileFormat(), name);
-    void* data = GetFile(path, nullptr);
+    std::string path;
+    path = str::Format(game::FigFileFormat(), name);
+    void* data = GetFile(path.c_str(), nullptr);
     if (!data) {
         ReleaseObject(figure);
         return nullptr;
@@ -89,9 +91,9 @@ int CFigureManager::LoadPart(CFigureMesh* part, FigureModel* model, float s, flo
         data = mesh->GetFile(part->GetName(), nullptr);
     } else {
         const char* directory = part->directory_;
-        mfc::CString path;
-        path.Format(game::FigPathFormat(), directory, part->GetName());
-        data = GetFile(path, nullptr);
+        std::string path;
+        path = str::Format(game::FigPathFormat(), directory, part->GetName());
+        data = GetFile(path.c_str(), nullptr);
     }
     if (!data) {
         const char* directory = part->directory_;

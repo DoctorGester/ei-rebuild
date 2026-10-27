@@ -16,6 +16,7 @@
 #include "world.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -119,10 +120,10 @@ void CCampPages::DebugFill() {
         // the record index left as made.
         ItemDatabase()->ListMaterialNames(&names);
         for (int i = 0; i < names.size; ++i) {
-            mfc::CString name(MaterialWord());
+            std::string name = MaterialWord();
             name += Dot();
             name += names.data[i];
-            auto* item = items->ItemManager()->CreateItem(name);
+            auto* item = items->ItemManager()->CreateItem(name.c_str());
             item->count_ = kMaterialCount;
             AddCounted(items, item);
         }

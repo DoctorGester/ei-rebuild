@@ -13,6 +13,8 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
+#include <string>
+
 namespace {
 // The chunks of units.udb and perks.pdb.
 constexpr int kLevelsChunk = 1;
@@ -82,10 +84,10 @@ EI_REWRITTEN(0x0053D650, UnitLevelTable::FindByName);
 // --- The unit database ----------------------------------------------------------------------------
 
 int UnitDatabase::Load(const char* folder, const char* archive) {
-    mfc::CString path = mfc::CString(folder) + archive;
+    std::string path = (mfc::CString(folder) + archive).GetString();
     LocalResource resource;
-    if (!resource.Open(path))
-        return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
+    if (!resource.Open(path.c_str()))
+        return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("units.udb", &size);
     if (!data) return game::FatalError("Can't open units database\n");
@@ -125,10 +127,10 @@ EI_REWRITTEN(0x0053A200, UnitDatabase::Load);
 // --- The skill database ---------------------------------------------------------------------------
 
 int SkillDatabase::Load(const char* folder, const char* archive) {
-    mfc::CString path = mfc::CString(folder) + archive;
+    std::string path = (mfc::CString(folder) + archive).GetString();
     LocalResource resource;
-    if (!resource.Open(path))
-        return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
+    if (!resource.Open(path.c_str()))
+        return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("perks.pdb", &size);
     if (!data) return game::FatalError("Can't open perks database\n");

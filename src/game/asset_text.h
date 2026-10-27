@@ -34,6 +34,7 @@ inline constexpr unsigned kAssetCodePage = EI_ASSET_CODEPAGE;
 std::string FromAssetText(std::string_view bytes, unsigned codepage = kAssetCodePage);
 // A string just read from an asset, converted in place. Nothing happens without EI_UTF8.
 void FromAssetText(mfc::CString* text, unsigned codepage = kAssetCodePage);
+void FromAssetText(std::string* text, unsigned codepage = kAssetCodePage);
 // The other way, for looking up an asset by a name that is text (the text database's keys, one of which
 // holds Cyrillic): with EI_UTF8 and `text` UTF-8 that is not plain ASCII, `*out` becomes it in `codepage`
 // and the result is true; otherwise false (`text` is the asset's bytes as it is).
@@ -45,6 +46,7 @@ bool ToAssetText(std::string_view text, std::string* out, unsigned codepage = kA
 // the assets or typed) counts its 5 bytes.
 int CharacterCount(std::string_view text);
 int CharacterCount(const mfc::CString& text);
+inline int CharacterCount(const std::string& text) { return CharacterCount(std::string_view(text)); }
 
 // --- Lengths and cuts by character -----------------------------------------------------------
 // Where the original limits or indexes text by bytes (one byte one character in the asset code page),
@@ -57,6 +59,9 @@ int CharacterLength(const char* p);
 // The bytes of `text`'s first `characters` characters (all of it when it has fewer; 0 for none).
 int CharacterBytes(std::string_view text, int characters);
 int CharacterBytes(const mfc::CString& text, int characters);
+inline int CharacterBytes(const std::string& text, int characters) {
+    return CharacterBytes(std::string_view(text), characters);
+}
 // The longest start of `text` that fits `room` bytes (`room` without the terminator) and ends at a
 // character's end: `text`'s size when it fits, else `room` without EI_UTF8.
 std::size_t FittingBytes(std::string_view text, std::size_t room);

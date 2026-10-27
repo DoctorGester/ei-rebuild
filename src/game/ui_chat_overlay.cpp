@@ -19,6 +19,7 @@
 
 #include <cstring>
 #include <new>
+#include <string>
 namespace {
 constexpr int kLineLifetime = 20000;   // ms
 constexpr int kLeft = 10;
@@ -93,12 +94,12 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     for (Node* node = lines_.First(); node != lines_.End(); node = node->next) ++before;
     console::CStringArray plain;       // the lines without colour codes
     console::CStringArray formatted;   // the same lines with them
-    mfc::CString source(text);
+    std::string source = text;
     mfc::CString ch, word, wordFormatted, line, lineFormatted;
     bool mark = false;
     // With EI_UTF8 a character is its whole UTF-8 sequence, so a word wider than a line is broken
     // between characters and measured as text.
-    for (const char* p = source; CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : gamecrt::mbsinc(p)) {
+    for (const char* p = source.c_str(); CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : gamecrt::mbsinc(p)) {
         console::Ops(ch).AssignChar(p[0]);
         if constexpr (text::kUtf8) {
             for (int k = 1; k < text::CharacterLength(p); ++k) console::Ops(ch).AppendChar(p[k]);
@@ -180,21 +181,21 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
         UiSurfaceGetDC(surface);
         surface->Clear();
         const mfc::CString& codes = formatted[i];
-        mfc::CString drawn;
-        mfc::CString piece;
+        std::string drawn;
+        std::string piece;
         int x = 0;
         int start = 0;
         for (int at = console::Ops(codes).Find(kColourMark, 0); at != -1;
              at = console::Ops(codes).Find(kColourMark, start)) {
             piece = console::Ops(codes).Mid(start, at - start);
-            DrawPiece(surface, piece, x, colour);
+            DrawPiece(surface, piece.c_str(), x, colour);
             drawn += piece;
             x = TextWidth(interface_, drawn, kLineFont);
             colour = MarkColour(codes.GetString()[at + 1]);
             start = at + 2;
         }
         piece = console::Ops(codes).Mid(start);
-        if (piece.GetLength() != 0) DrawPiece(surface, piece, x, colour);
+        if (piece.size() != 0) DrawPiece(surface, piece.c_str(), x, colour);
         UiSurfaceReleaseDC(surface);
         node->data.surface = surface;
     }
@@ -301,11 +302,11 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
 void CChatOverlay::OnChar(int key, int, int) {
     if (!chatOpen_) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
-    mfc::CString line = text::Typed(typed_.Left(caret_), key) + typed_.Mid(caret_);
+    std::string line = (text::Typed(typed_.Left(caret_), key) + typed_.Mid(caret_)).GetString();
     // The line also stays within kMaxTyped bytes (what the original's 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one. Without EI_UTF8 it follows from the character count.
-    if (!interface_->ctrlDown_ && text::CharacterCount(typed_) < kMaxTyped && line.GetLength() <= kMaxTyped &&
+    if (!interface_->ctrlDown_ && text::CharacterCount(typed_) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
         TextWidth(interface_, line, kTypedFont) < kMaxTypedWidth) {
         typed_ = line;
         caret_ += text::TypedLength(key);

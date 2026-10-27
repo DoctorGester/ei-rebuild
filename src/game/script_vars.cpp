@@ -9,6 +9,7 @@
 #include "ei/x87.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -103,7 +104,7 @@ BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type)
             result = 0;
         } else {
             vars.floats.SetSize(vars.floats.size + 1, -1);
-            mfc::CString temp(text);
+            std::string temp = text;
             vars.floatNames.SetAtGrow(vars.floatNames.size, temp);
             result = 1;
         }
@@ -114,7 +115,7 @@ BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type)
             result = 0;
         } else {
             vars.strings.SetSize(vars.strings.size + 1, -1);
-            mfc::CString temp(text);
+            std::string temp = text;
             vars.stringNames.SetAtGrow(vars.stringNames.size, temp);
             result = 1;
         }
@@ -125,7 +126,7 @@ BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type)
             result = 0;
         } else {
             mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars.objects).SetSize(vars.objects.size + 1, -1);
-            mfc::CString temp(text);
+            std::string temp = text;
             vars.objectNames.SetAtGrow(vars.objectNames.size, temp);
             result = 1;
         }
@@ -136,7 +137,7 @@ BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type)
             result = 0;
         } else {
             mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups).SetSize(vars.groups.size + 1, -1);
-            mfc::CString temp(text);
+            std::string temp = text;
             int at = vars.groupNames.size;
             vars.groupNames.SetSize(at + 1, -1);
             vars.groupNames.data[at] = temp;

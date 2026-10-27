@@ -18,6 +18,9 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/crt.h"
+#include "lib/str.h"
+
+#include <string>
 
 namespace {
 using Node = stlp::list<FlyingHitPoint>::Node;
@@ -138,7 +141,7 @@ const RECT* UnitScreenRect(CUnit* unit) {
 } // namespace
 
 int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
-    mfc::CString text;
+    std::string text;
     DWORD now = gameapi::timeGetTime();
     // The render target's size (the original leaves both unset without a primary surface).
     std::uint32_t targetWidth = 0, targetHeight = 0;
@@ -190,8 +193,8 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
         // The number drifts 120 pixels right and rises 100 over its life (truncated, as _ftol).
         middleX += static_cast<int>(age * 120.0f);
         middleY += static_cast<int>(age * -100.0f);
-        text.Format(game::DecimalFormat(), point.amount);
-        int length = text.GetLength();
+        text = str::Format(game::DecimalFormat(), point.amount);
+        int length = text.size();
         // The box: the digits, at least a label row wide when there are labels; 12 pixels high
         // (22 with the first label row), 10 more for each other one.
         int boxWidth = length * static_cast<int>(kDigitWidth);
@@ -218,7 +221,7 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
         float x = static_cast<float>(boxWidth - length * static_cast<int>(kDigitWidth)) * 0.5f + x0;
         float digitsBottom = static_cast<float>(y0 + kDigitHeight);
         for (int i = 0; i < length; ++i) {
-            int value = static_cast<signed char>(text.GetString()[i]) - '0';
+            int value = static_cast<signed char>(text.c_str()[i]) - '0';
             float u0 = static_cast<float>(value & 3) * kDigitU;
             float top = static_cast<float>(1.0f - static_cast<float>(value >> 2) * kDigitV);
             float next = static_cast<float>(x + kDigitWidth);

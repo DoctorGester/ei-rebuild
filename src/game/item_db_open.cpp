@@ -14,6 +14,8 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
+#include <string>
+
 namespace {
 
 using dbfile::FillStream;
@@ -60,10 +62,10 @@ namespace itemdb {
 // --- The spell database ---------------------------------------------------------------------------
 
 int SpellDatabase::Load(const char* folder, const char* archive) {
-    mfc::CString path = mfc::CString(folder) + archive;
+    std::string path = (mfc::CString(folder) + archive).GetString();
     LocalResource resource;
-    if (!resource.Open(path))
-        return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
+    if (!resource.Open(path.c_str()))
+        return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("spells.sdb", &size);
     if (!data) return game::FatalError("Can't open spells database\n");
@@ -93,10 +95,10 @@ EI_REWRITTEN(0x00684550, SpellDatabase::Load);
 // --- The item database ----------------------------------------------------------------------------
 
 int ItemDatabase::Load(const char* folder, const char* archive) {
-    mfc::CString path = mfc::CString(folder) + archive;
+    std::string path = (mfc::CString(folder) + archive).GetString();
     LocalResource resource;
-    if (!resource.Open(path))
-        return game::FatalError("Can't open database file \"%s\"\n", path.GetString());
+    if (!resource.Open(path.c_str()))
+        return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("items.idb", &size);
     if (!data) return game::FatalError("Can't open items database\n");

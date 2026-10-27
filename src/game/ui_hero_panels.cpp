@@ -17,12 +17,14 @@
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
+#include <string>
 #include "ui_mesh_build.h"
 #include "unit.h"
 #include "combat.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 namespace {
 
@@ -114,7 +116,7 @@ void CHeroStatsPanel::DrawStats() {
     auto hero = [this]() { return owner_->HeroRecord(); };
     UnitStats* stats = &hero()->stats;
     CUnit* unit = owner_->HeroUnit(heroIndex_);
-    mfc::CString line;
+    std::string line;
     mfc::CString text;
     CTextManager* texts = TheTextManager();
     RECT rect;
@@ -191,26 +193,26 @@ void CHeroStatsPanel::DrawStats() {
             // The weapon's figures (the controller's slot 50 fills them).
             AttackParams info;
             unit->Controller()->GetAttackParams(&info);
-            line.Format("     %s", texts_[0].GetString());
-            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
-            line.Format("%d", info.attack);
-            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
+            line = str::Format("     %s", texts_[0].GetString());
+            draw->DrawLine(line.c_str(), &rect, 0, kBright, 0, 1);
+            line = str::Format("%d", info.attack);
+            draw->DrawLine(line.c_str(), &rect, 0, kBright, 2, 1);
             Down(&rect);
-            line.Format("     %s", texts_[1].GetString());
-            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
-            line.Format("%d", info.defence);
-            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
+            line = str::Format("     %s", texts_[1].GetString());
+            draw->DrawLine(line.c_str(), &rect, 0, kBright, 0, 1);
+            line = str::Format("%d", info.defence);
+            draw->DrawLine(line.c_str(), &rect, 0, kBright, 2, 1);
             Down(&rect);
             if (static_cast<std::uint32_t>(info.damageType) < 7) {
-                line.Format("damage_%d", info.damageType);
-                texts->GetString(line, &text);
+                line = str::Format("damage_%d", info.damageType);
+                texts->GetString(line.c_str(), &text);
             }
-            line.Format("     %s %s", texts_[2].GetString(), text.GetString());
-            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
+            line = str::Format("     %s %s", texts_[2].GetString(), text.GetString());
+            draw->DrawLine(line.c_str(), &rect, 0, kBright, 0, 1);
             int high = static_cast<int>(gamecrt::Ftol(D(info.damageMax)));
             int low = static_cast<int>(gamecrt::Ftol(D(info.damageMin)));
-            line.Format("%d-%d", low, high);
-            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
+            line = str::Format("%d-%d", low, high);
+            draw->DrawLine(line.c_str(), &rect, 0, kBright, 2, 1);
             Down(&rect);
             Down(&rect);
         }

@@ -11,6 +11,8 @@
 #include "lib/crt.h"
 #include "text_split.h"
 
+#include <string>
+
 namespace {
 
 // MBCS CRT: 006E99F2 _ismbblead, 006E9A6C isleadbyte, 006E9947 _mbsinc, 006E848B _mbscmp.
@@ -85,8 +87,8 @@ constexpr AdvanceKind kFindComment{Test::Inline, Test::Inline, Test::Call, Test:
 
 // Whether a word starts with "##".
 bool IsComment(const mfc::CString& word) {
-    mfc::CString start = word.Left(2);
-    return MbsCmp(start, kComment) == 0;
+    std::string start = word.Left(2).GetString();
+    return MbsCmp(start.c_str(), kComment) == 0;
 }
 
 // After a read: the cursor moves past the line (`first`), then past every "##" comment line.
@@ -256,8 +258,8 @@ BOOL CTextManager::FindLine(const char* key) {
         while (PeekWord(&word)) {
             bool header;
             {
-                mfc::CString first = word.Left(1);
-                header = MbsCmp(first, kHeader) == 0 && !IsComment(word);
+                std::string first = word.Left(1).GetString();
+                header = MbsCmp(first.c_str(), kHeader) == 0 && !IsComment(word);
             }
             if (header) return 1;
             Advance(this, kFindFirst);

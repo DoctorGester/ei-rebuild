@@ -17,6 +17,7 @@
 #include <climits>
 #include <cmath>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -249,10 +250,10 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
 // CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
 // negative id takes the next automatic one; an existing source with the id gets the new effect.
 void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
-    mfc::CString name(cmd->stringArgs.data[0]);
+    std::string name = cmd->stringArgs.data[0].GetString();
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
-        if (libcrt::Stricmp(kScriptParticleTypes[i].name, name) == 0) {
+        if (libcrt::Stricmp(kScriptParticleTypes[i].name, name.c_str()) == 0) {
             type = &kScriptParticleTypes[i];
             break;
         }

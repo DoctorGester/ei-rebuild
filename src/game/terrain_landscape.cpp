@@ -16,10 +16,12 @@
 #include "game/record_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
+#include <string>
 
 using terrain::SectorData;
 
@@ -380,17 +382,17 @@ int Terrain::SetupPages(int count) {
     pageTextures.SetSize(count);
     pageMaterials.SetSize(count);
     for (int i = 0; i < count + kExtraPages; ++i) {
-        mfc::CString name;
+        std::string name;
         if (i < count) {
-            name.Format("%s%3.3i", textF8.GetString(), i);
+            name = str::Format("%s%3.3i", textF8.GetString(), i);
         } else {
-            name.Format("%sL%2.2i", textF8.GetString(), i - count);
-            if (!TheTextureManager()->HasFile(name + ".mmp")) return 1;
+            name = str::Format("%sL%2.2i", textF8.GetString(), i - count);
+            if (!TheTextureManager()->HasFile((name + ".mmp").c_str())) return 1;
             ++extraPages;
             pageTextures.SetAtGrow(pageTextures.size, nullptr);
             pageMaterials.SetAtGrow(pageMaterials.size, nullptr);
         }
-        CTexture* texture = TheTextureManager()->FindOrCreate(kPageTexture, name);
+        CTexture* texture = TheTextureManager()->FindOrCreate(kPageTexture, name.c_str());
         pageTextures[i] = texture;
         ++texture->refCount_;
         CMaterial* material = TheMaterialManager()->NewMaterial(kPageMaterial);
@@ -480,12 +482,12 @@ void terrain::LevelArrayElements::Destruct(mfc::CArray<float>* arrays, int count
 // so every quotient and product below is rounded to float where it is made.
 int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     ClearMap();
-    mfc::CString name(path);
-    if (!archive.OpenResource(name, 0)) return 0;
+    std::string name = path;
+    if (!archive.OpenResource(name.c_str(), 0)) return 0;
     console::CStringArray files;
     archive.ListFiles(&files, "*.mp");
-    int dot = name.ReverseFind('.');
-    if (dot > 0) textFC = name.Left(dot);
+    int dot = str::ReverseFind(name, '.');
+    if (dot > 0) textFC = str::Left(name, dot);
     else textFC = name;
     // (The original does not test for an archive without a map file either.)
     const mfc::CString& first = files.data[0];
@@ -496,11 +498,11 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     const auto* file = static_cast<const std::uint8_t*>(archive.GetFile(textF8 + kMapDataExtension, &size));
     if (!file) {
         ClearMap();
-        return game::FatalError("Unable to open file \"" + name + "\"");
+        return game::FatalError(("Unable to open file \"" + name + "\"").c_str());
     }
     if (size < sizeof(MapHeader)) {
         ClearMap();
-        return game::FatalError("Wrong file format: " + name);
+        return game::FatalError(("Wrong file format: " + name).c_str());
     }
     MapHeader header;
     std::memcpy(&header, file, sizeof(header));
@@ -508,7 +510,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
         header.animated + header.materials * kMaterialDwords + static_cast<std::uint32_t>(header.textures);
     if (header.magic != kMapMagic || size != dwords * 4 + sizeof(MapHeader)) {
         ClearMap();
-        return game::FatalError("Wrong file format: " + name);
+        return game::FatalError(("Wrong file format: " + name).c_str());
     }
 
     if (sectorGrid) {

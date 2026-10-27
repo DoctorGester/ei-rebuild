@@ -22,8 +22,10 @@
 #include "render/render_state.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -126,12 +128,12 @@ int CInterface3D::Draw() {
 EI_REWRITTEN(0x005F5220, CInterface3D::Draw);
 
 void CInterface3D::DrawOverlays() {
-    mfc::CString text;
+    std::string text;
     strmap::CDebugPanel* panel = DebugInfoPanel();
-    text.Format("%d", SurfaceBytesKept());
-    panel->Set("surface stored", text);
-    text.Format("%d", SurfaceBytesAllocated());
-    panel->Set("surface alloc", text);
+    text = str::Format("%d", SurfaceBytesKept());
+    panel->Set("surface stored", text.c_str());
+    text = str::Format("%d", SurfaceBytesAllocated());
+    panel->Set("surface alloc", text.c_str());
     if (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->Redraw();       // its surfaces blit themselves
         stackEnd_[-1]->RedrawTips();   // its tooltips follow the mouse and redraw
@@ -163,16 +165,16 @@ void CInterface3D::DrawOverlays() {
     const DWORD elapsed = now - fpsTime_;
     if (elapsed > kFpsPeriod) {
         if (fpsSurface_) {
-            mfc::CString rate;
+            std::string rate;
             float perSecond =
                 static_cast<float>(fpsFrames_) * 1000.0f /*0073C34C*/ / static_cast<float>(static_cast<int>(elapsed));
-            rate.Format("%.1f", static_cast<double>(perSecond));
+            rate = str::Format("%.1f", static_cast<double>(perSecond));
             UiSurfaceGetDC(fpsSurface_);
             fpsSurface_->Clear();
             RECT rect{0, 0, 60, 18};
             fpsSurface_->DrawTextIn("FPS:", &rect, kFpsFont, kWhite, 0, 1);
             rect = RECT{0, 0, 60, 18};
-            fpsSurface_->DrawTextIn(rate, &rect, kFpsFont, kWhite, 2, 1);
+            fpsSurface_->DrawTextIn(rate.c_str(), &rect, kFpsFont, kWhite, 2, 1);
             UiSurfaceReleaseDC(fpsSurface_);
         }
         fpsTime_ = now;

@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 constexpr int kClassUnit = 0x50;
@@ -112,9 +113,9 @@ EI_REPLACE_METHOD(0x005188B0, CObject3D::PartWorldPosition);
 
 AnimationDatabase* CObject3D::Animations() {
     if (!animations && owner_) {
-        mfc::CString file(name);
+        std::string file = name.GetString();
         file += ".adb";
-        animations = static_cast<AnimationDatabase*>(owner_->GetFile(file, nullptr));
+        animations = static_cast<AnimationDatabase*>(owner_->GetFile(file.c_str(), nullptr));
     }
     return animations;
 }

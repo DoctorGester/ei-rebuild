@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -292,11 +293,11 @@ void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId) {
     --p;
     switch (*p) {
     case 's': {
-        mfc::CString empty;
+        std::string empty;
         empty = "";
         int n = cmd->stringArgs.size;
         ArgumentsSetSize(cmd->stringArgs, n + 1);
-        cmd->stringArgs.data[n] = empty.GetString();
+        cmd->stringArgs.data[n] = empty.c_str();
         break;
     }
     case 'o': {

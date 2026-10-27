@@ -24,6 +24,7 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -640,8 +641,8 @@ void ItemStock::SaveLists(CStream* out) {
     for (Modifier** p = modifiers.begin(); p != modifiers.end(); ++p) {
         char code[5] = {};
         std::memcpy(code, (*p)->code, 4);
-        mfc::CString text(code);
-        WriteText(out, text);
+        std::string text = code;
+        WriteText(out, text.c_str());
     }
 }
 EI_REWRITTEN(0x0069BAC0, ItemStock::SaveLists);

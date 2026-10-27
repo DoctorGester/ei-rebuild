@@ -16,11 +16,13 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -102,8 +104,8 @@ void CSaveLoadWindow::RefreshListVanilla() {
         }
         if (!isSave_ || index != 0) {
             // CTime::Format.
-            const mfc::CString date = reinterpret_cast<const mfc::CTime*>(&entry.savedAt_)->Format(kDateFormat);
-            surface->DrawTextIn(date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
+            const std::string date = (reinterpret_cast<const mfc::CTime*>(&entry.savedAt_)->Format(kDateFormat)).GetString();
+            surface->DrawTextIn(date.c_str(), &dateRect, kFont, kTextColour, DT_RIGHT, 1);
         }
         gameapi::OffsetRect(&titleRect, 0, kRowHeight);
         gameapi::OffsetRect(&dateRect, 0, kRowHeight);
@@ -119,12 +121,12 @@ void CSaveLoadWindow::RefreshListVanilla() {
     }
     const SaveEntry& entry = entries_.begin()[selected_];
     RECT detailRect{340, 260, 590, 284};
-    mfc::CString line;
-    line.Format(kPlainFormat, entry.AllodTitle().GetString());
-    surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
+    std::string line;
+    line = str::Format(kPlainFormat, entry.AllodTitle().GetString());
+    surface->DrawTextIn(line.c_str(), &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
-    line.Format(kPlainFormat, entry.ZoneTitle().GetString());
-    surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
+    line = str::Format(kPlainFormat, entry.ZoneTitle().GetString());
+    surface->DrawTextIn(line.c_str(), &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
 
     const int minutes = static_cast<int>(gamecrt::Ftol(static_cast<float>(entry.gameTime_ * MinutesPerHour())));
@@ -134,8 +136,8 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const int minute = minuteOfDay - hour * 60;
     mfc::CString dayText;
     GameClientTexts()->GetString(kDayText, &dayText);
-    line.Format(kGameTimeFormat, dayText.GetString(), day + 1, hour, minute);
-    surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
+    line = str::Format(kGameTimeFormat, dayText.GetString(), day + 1, hour, minute);
+    surface->DrawTextIn(line.c_str(), &detailRect, kFont, kTextColour, 0, 1);
 
     RECT folderRect{340, 360, 580, 385};
     surface->DrawTextIn(entry.folder_, &folderRect, kFont, kTextColour, DT_RIGHT, 1);

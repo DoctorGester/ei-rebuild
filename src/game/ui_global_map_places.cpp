@@ -15,10 +15,12 @@
 #include "lib/mfc.h"
 #include "game_singletons.h"
 #include "render/render_state.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstdlib>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -74,12 +76,12 @@ EI_REWRITTEN(0x00630F50, CGlobalMap::QuestTitle);
 
 bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* name, bool positionLine) {
     CTextManager* texts = TheTextManager();
-    mfc::CString key;
+    std::string key;
     console::CStringArray words;
     texts->Open(kMapText);
-    key.Format(format, name);
+    key = str::Format(format, name);
     bool found = false;
-    if (texts->FindLine(key) && (!positionLine || texts->FindLine(kPositionLine))) {
+    if (texts->FindLine(key.c_str()) && (!positionLine || texts->FindLine(kPositionLine))) {
         TextNextLine(texts);
         if (texts->Split(&words, 1)) {
             while (words.GetSize() < 3) words.SetAtGrow(words.GetSize(), kMissingNumber);

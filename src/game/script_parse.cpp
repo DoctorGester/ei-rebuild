@@ -13,11 +13,13 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "lib/str.h"
 
 #include <cstdarg>
 
 #include <cstring>
 #include <new>
+#include <string>
 
 // ---- Game CRT and MFC helpers (local to the loader) ---------------------------------------------
 
@@ -505,10 +507,10 @@ BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id
     *pos = node->next;
     ScriptToken token;
     token.CopyConstruct(node->data);
-    mfc::CString text(token.text);
+    std::string text = token.text.GetString();
     int found;
-    ClassifyToken(text, &found, nullptr);
-    if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text.GetString());
+    ClassifyToken(text.c_str(), &found, nullptr);
+    if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text.c_str());
     return 1;
 }
 EI_REPLACE_METHOD(0x004CF4D0, CScript::ExpectLexeme);
@@ -520,8 +522,8 @@ mfc::CString* CScript::QualifyName(mfc::CString* out, const mfc::CString& name) 
         new (out) mfc::CString(name);
         return out;
     }
-    mfc::CString qualified;
-    qualified.Format("!%i!%s", FileCount(), name.GetString());
+    std::string qualified;
+    qualified = str::Format("!%i!%s", FileCount(), name.GetString());
     new (out) mfc::CString(qualified);
     return out;
 }
@@ -583,8 +585,8 @@ void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines
             const StringOps& text = Ops(*line);
             int at = text.Find(node->data.name);
             if (at < 0) break;
-            mfc::CString right = static_cast<const mfc::CString&>(text).Right(line->GetLength() - node->data.name.GetLength() - at);
-            mfc::CString left = text.Left(at);
+            std::string right = (static_cast<const mfc::CString&>(text).Right(line->GetLength() - node->data.name.GetLength() - at)).GetString();
+            std::string left = text.Left(at).GetString();
             *line = (left + node->data.value) + right;
         }
         node = next;

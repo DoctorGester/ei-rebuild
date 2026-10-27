@@ -32,6 +32,7 @@
 
 #include <cstdarg>
 #include <cstdint>
+#include <string>
 
 namespace app {
 namespace {
@@ -260,7 +261,7 @@ int __cdecl StartFirstMap() {
     const auto& cmdMap = CommandLineMap();    // map on the command line
     const auto& cmdMode = CommandLineMob();   // empty: main menu
     const auto& cmdScript = CommandLineScript();
-    mfc::CString map;
+    std::string map;
     map = cmdMap.GetLength() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
     if (gamecrt::mbscmp(cmdMode.GetString(),
                         game::EmptyText()) == 0) {
@@ -269,8 +270,8 @@ int __cdecl StartFirstMap() {
         return 1;
     }
     CWorldServer* world = TheServerWorld();
-    if (!static_cast<CWorldServer*>(world)->NewZone(map, cmdMode, (const char*)0))
-        return game::FatalError("Can't load map \"%s\".\n", map.GetString());
+    if (!static_cast<CWorldServer*>(world)->NewZone(map.c_str(), cmdMode, (const char*)0))
+        return game::FatalError("Can't load map \"%s\".\n", map.c_str());
     world->SetGameResult(1);
     CWorldClient* client = TheClientWorld();
     client->SetPlayer(TheServerWorld()->shared5C_.Get());   // the server world's counted helper
@@ -280,10 +281,10 @@ int __cdecl StartFirstMap() {
     CScript* script = TheMissionScript();
     BOOL loaded;
     {
-        mfc::CString root(TheDataFolder());
-        mfc::CString dir = root + "Scripts\\";
-        mfc::CString path = dir + cmdScript;
-        loaded = script->LoadFile(path);
+        std::string root = TheDataFolder().GetString();
+        std::string dir = root + "Scripts\\";
+        std::string path = dir + cmdScript;
+        loaded = script->LoadFile(path.c_str());
     }
     if (loaded) return 1;
     ScriptErrorInfo error;   // GetError constructs the text over the empty one

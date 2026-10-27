@@ -35,8 +35,10 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 namespace {
 
@@ -220,9 +222,9 @@ public:
     }
     // The "school_<n>" text after infoitem_18.
     void School(int school) {
-        mfc::CString key;
-        key.Format("school_%d", school);
-        TextManager()->GetString(key, &line);
+        std::string key;
+        key = str::Format("school_%d", school);
+        TextManager()->GetString(key.c_str(), &line);
         mfc::CString text = line;
         Joined(18, text);
     }
@@ -347,9 +349,9 @@ void CItemInfoPanel::DescribeItem() {
     }
     if (materialLine) {
         text = "Unknown";
-        mfc::CString key("matshort ");
+        std::string key("matshort ");
         key += material;
-        if (texts->Open(key)) texts->ReadLine(&text, 1);
+        if (texts->Open(key.c_str())) texts->ReadLine(&text, 1);
         w.line.Format("%s %s x %d", w.T(1).GetString(), text.GetString(),
                       static_cast<int>(PrototypeOf(item)->materialUnits));   // "%s %s x %d"
         w.Text(w.line);
@@ -430,9 +432,9 @@ tail:
             (spell = SpellOf(item)) != nullptr) {
             // The carried spell's name ("spell <name>").
             text = "Unknown";
-            mfc::CString key("spell ");
+            std::string key("spell ");
             key += SpellPrototypeOf(spell)->code;
-            if (texts->Open(key)) texts->ReadLine(&text, 1);
+            if (texts->Open(key.c_str())) texts->ReadLine(&text, 1);
             w.line.Format("%s %s", w.T(5).GetString(), text.GetString());
             w.Text(w.line);
             w.Down();
@@ -459,14 +461,14 @@ void CItemInfoPanel::DescribeMaterial() {
     mfc::CString text = material->soundName;
     text.MakeLower();
     {
-        mfc::CString key("mattype_");
+        std::string key("mattype_");
         key += text;
         text = key;
     }
     texts->GetString(text, &w.line);
     {
-        mfc::CString type = w.line;
-        w.Joined(17, type);
+        std::string type = w.line.GetString();
+        w.Joined(17, type.c_str());
     }
     w.Number(0, FtolOf(material->factor38));
     w.Number(2, FtolOf(material->magicPower));
@@ -513,7 +515,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     mfc::CString text = head->materialClass;
     text.MakeLower();
     {
-        mfc::CString key("mattype_");
+        std::string key("mattype_");
         key += text;
         text = key;
     }
@@ -659,9 +661,9 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     Texts* texts = TextManager();
     mfc::CString title, description, kindText;
     {
-        mfc::CString key("spell ");
+        std::string key("spell ");
         key += SpellPrototypeOf(spell)->code;
-        if (texts->Open(key)) {
+        if (texts->Open(key.c_str())) {
             texts->ReadLine(&title, 1);
             texts->ReadToHash(&description, 1);
         }
@@ -715,14 +717,14 @@ void CItemInfoPanel::DescribeCarriedSpell() {
             text = "?";
             std::uint32_t index = static_cast<std::uint32_t>(spell->modifiers_[i] - 1);
             const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(index);
-            mfc::CString key("modifier ");
+            std::string key("modifier ");
             key += modifier->code;
-            if (texts->Open(key)) {
+            if (texts->Open(key.c_str())) {
                 texts->NextLine();
                 texts->NextLine();
                 texts->ReadLine(&text, 1);
             }
-            mfc::CString entry = text;
+            std::string entry = text.GetString();
             entry += ",";
             w.line += entry;
         }
@@ -770,16 +772,16 @@ void AttributeLines(Writer& w, UnitStats* stats, int index) {
 // Kind 3, a perk: the three levels of the perk's group with their effect and cost.
 void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
     Texts* texts = TextManager();
-    mfc::CString name = info->text;
-    name.TrimRight("0");
+    std::string name = info->text.GetString();
+    str::TrimRight(name, "0");
     name += "1";
-    int group = SkillDb()->IndexOf(name) / 3;
+    int group = SkillDb()->IndexOf(name.c_str()) / 3;
     for (int i = 0; i < 3; ++i) {
         const SkillLevelRecord* level = unitdb::SkillLevelAt(static_cast<std::uint32_t>(group * 3 + i));
         if (!level) continue;
-        mfc::CString key("perk ");
+        std::string key("perk ");
         key += level->name;
-        if (texts->Open(key)) texts->ReadLine(&title, 1);
+        if (texts->Open(key.c_str())) texts->ReadLine(&title, 1);
         w.Text(title);
         if (info->index > i) w.Draw()->DrawLine(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
         w.Down();
@@ -880,17 +882,17 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     w.Draw()->GetDC();
     mfc::CString text, title, description;
     if (info->kind <= 3) {
-        mfc::CString key("perk ");
+        std::string key("perk ");
         key += info->text;
-        if (texts->Open(key)) {
+        if (texts->Open(key.c_str())) {
             texts->ReadLine(&title, 1);
             texts->ReadLine(&description, 1);
         }
     } else if (info->kind <= 7) {
         texts->GetString(info->text, &title);
-        mfc::CString key = info->text;
+        std::string key = info->text.GetString();
         key += "_desc";
-        texts->GetString(key, &description);
+        texts->GetString(key.c_str(), &description);
     }
     w.Title(title);
     w.Down();

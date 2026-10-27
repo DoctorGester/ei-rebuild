@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -389,11 +390,11 @@ void CBriefingScreen::MarkPeople() {
 void CBriefingScreen::LeaveIfExitOpen() {
     CParty* party = LocalPlayerData();
     if (!exitPending_ || party->members_.size <= 0) return;
-    mfc::CString zone(GameExitTarget(exit_));
-    if (Compare(zone, NoZone()) == 0) return;
-    mfc::CString variable(ZoneVariablePrefix());
+    std::string zone = GameExitTarget(exit_);
+    if (Compare(zone.c_str(), NoZone()) == 0) return;
+    std::string variable = ZoneVariablePrefix();
     variable += zone;
-    float visited = PlayerZeroVariable(variable);
+    float visited = PlayerZeroVariable(variable.c_str());
     EI_NAN_AUDIT(visited);
     if (visited == 1.0f) return;
     mfc::CArray<PartyUnitRecord*> records{RecordArrayVtable(), nullptr, 0, 0, 0};

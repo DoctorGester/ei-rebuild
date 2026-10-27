@@ -14,6 +14,7 @@
 #include "../lib/mfc.h"
 
 #include <cstring>
+#include <string>
 #include "lib/mfc_array.h"
 #include "lib/mfc_coll.h"
 #include "record_arrays.h"
@@ -122,8 +123,8 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
     // The message is passed to FatalError as its format string, as the original does.
     auto fail = [&](const char* text) {
         mfc::CString n(name);
-        mfc::CString message = mfc::operator+(text, n);
-        return game::FatalError(message.GetString());
+        std::string message = (mfc::operator+(text, n)).GetString();
+        return game::FatalError(message.c_str());
     };
     if (!file) return fail(unableToLocate);
     if (size < 5) return fail(wrongFormat);

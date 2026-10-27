@@ -17,12 +17,14 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "lib/stlp_vector_refs.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -187,7 +189,7 @@ void CChatWindow::ShowPlayers() {
     }
 
     // The faces (the strings live across players, as the original's: the sex letter carries over).
-    mfc::CString model, picture, sex, build;
+    std::string model, picture, sex, build;
     for (CRefObject** p = players_.Start(); p != players_.Finish(); ++p) {
         net::PlayerMessage* player = PlayerOf(*p);
         UnitPrototypeRecord* prototype;
@@ -208,9 +210,9 @@ void CChatWindow::ShowPlayers() {
         else if (fixes || SameText(figure->figureName, "unhufe"))
             sex = "f";
         build = "me";
-        model.Format("infa%s%s%dface", figure->figureName.GetString(), build.GetString(), prototype->hair + 1);
-        picture.Format("face%s%02d", sex.GetString(), prototype->skin);
-        AddPortrait(model, picture);
+        model = str::Format("infa%s%s%dface", figure->figureName.GetString(), build.c_str(), prototype->hair + 1);
+        picture = str::Format("face%s%02d", sex.c_str(), prototype->skin);
+        AddPortrait(model.c_str(), picture.c_str());
         regions_.data[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
     }
 }
@@ -227,11 +229,11 @@ void CChatWindow::Update() {
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
     surface->Clear();
-    mfc::CString status, offer;
+    std::string status, offer;
     int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? kFirstFaceLeft : kFirstStatusLeft;
     for (CRefObject** p = players_.Start(); p != players_.Finish(); ++p, left -= kFaceWidth) {
         net::PlayerMessage* player = PlayerOf(*p);
-        status.Empty();
+        status.clear();
         switch (player->state_) {
         case 0: status = texts_.data[0]; break;
         case 1: status = texts_.data[1]; break;
@@ -240,7 +242,7 @@ void CChatWindow::Update() {
         case 4: status = texts_.data[3]; break;
         default: break;
         }
-        offer.Empty();
+        offer.clear();
         auto* own = client->party_.Get();
         if (own && own->partner_.ptr == *p) offer = texts_.data[kWeOffer];
         const auto& offers = client->offers_;
@@ -250,13 +252,13 @@ void CChatWindow::Update() {
                 break;
             }
         }
-        if (status.GetLength() != 0) {
+        if (status.size() != 0) {
             RECT line{left, 0, left + kFaceWidth, 0xF};
-            surface->DrawTextIn(status, &line, 0, kWhite, 1, 1);
+            surface->DrawTextIn(status.c_str(), &line, 0, kWhite, 1, 1);
         }
-        if (offer.GetLength() != 0) {
+        if (offer.size() != 0) {
             RECT line{left, 0xF, left + kFaceWidth, 0x1E};
-            surface->DrawTextIn(offer, &line, 0, kWhite, 1, 1);
+            surface->DrawTextIn(offer.c_str(), &line, 0, kWhite, 1, 1);
         }
     }
     UiSurfaceReleaseDC(surface);

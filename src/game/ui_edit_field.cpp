@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 constexpr int kKeyBackspace = 0x08;
@@ -46,15 +47,15 @@ void CUiEditField::OnKeyDown(int key, int, int) {
         if (key == kKeyBackspace) {
             if (caret_ > 0) {
                 const int previous = text::PreviousCharacter(text, caret_);
-                mfc::CString tail = text.Mid(caret_);
-                mfc::CString head = text.Left(previous);
+                std::string tail = text.Mid(caret_).GetString();
+                std::string head = text.Left(previous).GetString();
                 text = head + tail;
                 caret_ = previous;
                 changed_ = true;
             }
         } else if (caret_ < text.GetLength()) {
-            mfc::CString tail = text.Mid(text::NextCharacter(text, caret_));
-            mfc::CString head = text.Left(caret_);
+            std::string tail = text.Mid(text::NextCharacter(text, caret_)).GetString();
+            std::string head = text.Left(caret_).GetString();
             text = head + tail;
             changed_ = true;
         }
@@ -147,9 +148,9 @@ void CUiEditField::OnChar(int key, int, int) {
         caret_ = 0;
         changed_ = true;
     }
-    mfc::CString tail = text.Mid(caret_);
-    mfc::CString head = text.Left(caret_);
-    mfc::CString typed = text::Typed(head, key) + tail;
+    std::string tail = text.Mid(caret_).GetString();
+    std::string head = text.Left(caret_).GetString();
+    std::string typed = (text::Typed(head, key) + tail).GetString();
     if (text::CharacterCount(text) < maxLength_ && TextWidth(interface_, typed, font_) < area_.right - area_.left) {
         text = typed;
         changed_ = true;

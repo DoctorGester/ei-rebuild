@@ -17,6 +17,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -52,8 +53,8 @@ void MpHeroRecord::WriteFile(const char* folder) {
         return;
     }
     {
-        mfc::CString temp = TempFile(folder);
-        gameapi::MoveFileA(InFolder(folder, file), temp);
+        std::string temp = TempFile(folder).GetString();
+        gameapi::MoveFileA(InFolder(folder, file), temp.c_str());
     }
     {
         LocalStreams streams;

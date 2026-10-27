@@ -17,6 +17,7 @@
 #include "lib/crt.h"
 
 #include <new>
+#include <string>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -81,9 +82,9 @@ EI_REWRITTEN(0x00512610, CMapObjectManager::GetClassName);
 EI_REWRITTEN(0x00512620, CMapObjectManager::GetClassId);
 
 int CMapObjectManager::CreateManager() {
-    mfc::CString folder(TheTextFolder());
+    std::string folder = TheTextFolder().GetString();
     if (!CBaseManager::Create()) return 0;
-    AddArchive(folder + "database.res");   // the exe's 00784818
+    AddArchive((folder + "database.res").c_str());   // the exe's 00784818
     return 1;
 }
 EI_REWRITTEN(0x00512660, CMapObjectManager::CreateManager);

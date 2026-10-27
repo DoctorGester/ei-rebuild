@@ -59,11 +59,13 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <cstring>
 #include <new>
 #include <bit>
+#include <string>
 
 namespace {
 
@@ -133,9 +135,9 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
         const char* name = record->name;
         bool visited;
         {
-            mfc::CString prefix(kVisitedPrefix);
-            mfc::CString variable = prefix + name;
-            double value = VariableGet(variables, variable);
+            std::string prefix = kVisitedPrefix;
+            std::string variable = prefix + name;
+            double value = VariableGet(variables, variable.c_str());
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -150,17 +152,17 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
             zone = RecordName(record);
             bool failed;
             {
-                mfc::CString slotPath = slotFolder + zone;
-                mfc::CString slotFile = slotPath + kSaveExtension;
-                mfc::CString currentPath = currentFolder + zone;
-                mfc::CString currentFile = currentPath + kSaveExtension;
-                failed = gameapi::CopyFileA(currentFile, slotFile, FALSE) == 0;
+                std::string slotPath = (slotFolder + zone).GetString();
+                std::string slotFile = slotPath + kSaveExtension;
+                std::string currentPath = (currentFolder + zone).GetString();
+                std::string currentFile = currentPath + kSaveExtension;
+                failed = gameapi::CopyFileA(currentFile.c_str(), slotFile.c_str(), FALSE) == 0;
             }
             if (!failed) continue;
         }
-        mfc::CString prefix(kVisitedPrefix);
-        mfc::CString variable = prefix + record->name;
-        VariableSet(variables, variable, 0.0f);
+        std::string prefix = kVisitedPrefix;
+        std::string variable = prefix + record->name;
+        VariableSet(variables, variable.c_str(), 0.0f);
     }
 }
 
@@ -186,21 +188,21 @@ EI_REPLACE(0x00578550, DestroySaveStream);
 int GameFlow::SaveGame(const char* slot) {
     FileStream file;
     mfc::CString zone;          // [0x14]
-    mfc::CString slotFolder;    // [0x10]
-    mfc::CString currentFolder; // [0x18]
+    std::string slotFolder;    // [0x10]
+    std::string currentFolder; // [0x18]
     if (GameMode() != 1) return 0;
 
     TheCursor()->SetShape(3);
-    slotFolder.Format(kSlotFolder, DataFolderText(), slot);
-    currentFolder.Format(kCurrentFolder, DataFolderText());
-    ClearSaveFolder(slotFolder);
+    slotFolder = str::Format(kSlotFolder, DataFolderText(), slot);
+    currentFolder = str::Format(kCurrentFolder, DataFolderText());
+    ClearSaveFolder(slotFolder.c_str());
     if (TheServerWorld()->sessionKind_ == 4) {
         if (CPlayer* player = TheServerWorld()->GetPlayer(0))
             ThePartyManager()->BeginRedeploy(player->Party());
     }
     LocalRecords records;
     ThePartyManager()->EndRedeploy(records.Party());
-    mfc::CString currentMap;    // [0x1C]
+    std::string currentMap;    // [0x1C]
     currentMap = RecordAllod(FindZone(records.Party()->zone_));
 
     CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.Party()->variables_);
@@ -208,8 +210,8 @@ int GameFlow::SaveGame(const char* slot) {
 
     bool opened;
     {
-        mfc::CString path = slotFolder + kScenarioFile;
-        opened = file.Open(path, kOpenWrite, 0);
+        std::string path = slotFolder + kScenarioFile;
+        opened = file.Open(path.c_str(), kOpenWrite, 0);
     }
     if (!opened) {
         ToMainMenu() = 1;
@@ -234,8 +236,8 @@ int GameFlow::SaveGame(const char* slot) {
     int kind = FindZone(records.Party()->zone_)->kind;
     if (kind == 0 || kind == 2) {
         {
-            mfc::CString path = slotFolder + kMissionFile;
-            opened = file.Open(path, kOpenWrite, 0);
+            std::string path = slotFolder + kMissionFile;
+            opened = file.Open(path.c_str(), kOpenWrite, 0);
         }
         if (!opened) return 0;
         CMemoryStream mission;
@@ -276,11 +278,11 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone
                 const char* mapOverride, FileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables_;
     folder.Format(kCurrentFolder, DataFolderText());
-    mfc::CString fileName = zone + kSaveExtension;
+    std::string fileName = (zone + kSaveExtension).GetString();
     bool opened;
     {
-        mfc::CString path = folder + fileName;
-        opened = file.Open(path, kOpenRead, 1);
+        std::string path = (folder + fileName).GetString();
+        opened = file.Open(path.c_str(), kOpenRead, 1);
     }
     if (!opened) {
         failed = true;
@@ -288,7 +290,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone
     }
     CMemoryStream data;
     if (!SaveFileRead(&data, kMagicMission, SaveVersion(), kSaveOldestVersion, &file)) {
-        game::FatalError(kCorruptSave, fileName.GetString());
+        game::FatalError(kCorruptSave, fileName.c_str());
         failed = true;
         return 0;
     }
@@ -300,9 +302,9 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const mfc::CString& zone
         float now = static_cast<float>(VariableGet(variables, kGTime));
         float left;
         {
-            mfc::CString prefix(kLeftPrefix);
-            mfc::CString variable = prefix + zone;
-            left = static_cast<float>(VariableGet(variables, variable));
+            std::string prefix = kLeftPrefix;
+            std::string variable = prefix + zone;
+            left = static_cast<float>(VariableGet(variables, variable.c_str()));
         }
         int ticks = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - left) * 100.0f /*0073BAB0*/));
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
@@ -340,8 +342,8 @@ int __stdcall EnterZone(CParty* records) {
         if (gamecrt::mbscmp(zone.GetString(),
                             kMovieZone) != 0) {
             {
-                mfc::CString movie = MoviesFolder() + kMovieFile;
-                PlayMovie(movie, 0, 1, 1, 1, 1, 1);
+                std::string movie = (MoviesFolder() + kMovieFile).GetString();
+                PlayMovie(movie.c_str(), 0, 1, 1, 1, 1, 1);
             }
             variables->Remove(kMovieVariable);
         }
@@ -361,9 +363,9 @@ int __stdcall EnterZone(CParty* records) {
         }
         bool visited;
         {
-            mfc::CString prefix(kVisitedPrefix);
-            mfc::CString variable = prefix + zone;
-            double value = VariableGet(variables, variable);
+            std::string prefix = kVisitedPrefix;
+            std::string variable = prefix + zone;
+            double value = VariableGet(variables, variable.c_str());
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -372,12 +374,12 @@ int __stdcall EnterZone(CParty* records) {
             result = RestoreZone(records, zoneRecord, zone, folder, mapOverride, file, failed);
             if (failed) return 0;
         } else {
-            mfc::CString map = RecordMap(zoneRecord) + kMapExtension;
+            std::string map = (RecordMap(zoneRecord) + kMapExtension).GetString();
             if (mapOverride) map = mapOverride;
             bool loaded;
             {
-                mfc::CString mob = RecordMob(zoneRecord) + kMobExtension;
-                loaded = static_cast<CWorldServer*>((void*)TheServerWorld())->NewZone(map, mob, zoneRecord->name) != 0;
+                std::string mob = (RecordMob(zoneRecord) + kMobExtension).GetString();
+                loaded = static_cast<CWorldServer*>((void*)TheServerWorld())->NewZone(map.c_str(), mob.c_str(), zoneRecord->name) != 0;
             }
             if (!loaded) return 0;
             zoneRecord = FindZone(zone);
@@ -421,14 +423,14 @@ void AnnounceHost(const char* zone) {
     net::NetAddress address{};
     address.Parse(host, kHostPort);
     stlp::string text;
-    mfc::CString formatted(address.ToString(&text)->data());
+    std::string formatted = address.ToString(&text)->data();
     net::HostMessage* record = net::NewCounted<net::HostMessage>();
     RefPtr& slot = net::GameServer()->hostInfo_;
     if (record != slot.ptr) {
         slot.Destroy();
         slot.Share(record);
     }
-    const char* text1 = formatted;
+    const char* text1 = formatted.c_str();
     net::HostMessage* shared = net::GameServer()->hostInfo_.Get();
     shared->address_.Assign(text1);
     shared = net::GameServer()->hostInfo_.Get();
@@ -454,9 +456,9 @@ int __stdcall StartNetworkZone(const char* zone) {
     folder.Format(kCurrentFolder, DataFolderText());
     bool opened;
     {
-        mfc::CString path = folder + zone;
-        mfc::CString fileName = path + kSaveExtension;
-        opened = file.Open(fileName, kOpenRead, 1);
+        std::string path = (folder + zone).GetString();
+        std::string fileName = path + kSaveExtension;
+        opened = file.Open(fileName.c_str(), kOpenRead, 1);
     }
     if (opened) {
         CMemoryStream data;
@@ -468,9 +470,9 @@ int __stdcall StartNetworkZone(const char* zone) {
     } else {
         bool loaded;
         {
-            mfc::CString mob = RecordMob(zoneRecord) + kMobExtension;
-            mfc::CString map = RecordMap(zoneRecord) + kMapExtension;
-            loaded = static_cast<CWorldServer*>((void*)TheServerWorld())->NewZone(map, mob, zone) != 0;
+            std::string mob = (RecordMob(zoneRecord) + kMobExtension).GetString();
+            std::string map = (RecordMap(zoneRecord) + kMapExtension).GetString();
+            loaded = static_cast<CWorldServer*>((void*)TheServerWorld())->NewZone(map.c_str(), mob.c_str(), zone) != 0;
         }
         if (!loaded) return 0;
         TheServerWorld()->SetTime(std::bit_cast<float>(kStartTime));
@@ -498,9 +500,9 @@ int __stdcall StartNetworkZone(const char* zone) {
 
     if (Active(net::GameServer())) {
         AnnounceHost(zone);
-        mfc::CString name(zone);
-        mfc::CString mob = name + kMobExtension;
-        TheServerWorld()->LoadMobFile(mob);
+        std::string name = zone;
+        std::string mob = name + kMobExtension;
+        TheServerWorld()->LoadMobFile(mob.c_str());
     }
 
     exits.vtable = mfc::impl::ExitArrayClass::Vtable();
@@ -531,20 +533,20 @@ mfc::CString* CWorldServer::ZoneNameInto(mfc::CString* out) {
 // file cannot be written (after FatalError).
 int __stdcall LeaveZone(CParty* records) {
     FileStream file;
-    mfc::CString path;   // [0x04]
+    std::string path;   // [0x04]
     mfc::CString zone(mfc::CString::kUnset);   // [0x08]
     TheServerWorld()->ZoneNameInto(&zone);
     // `path` must be destroyed after `zone`, as the original does: it is declared first.
 
     if (TheServerWorld()->sessionKind_ == 1) TheCamera()->SaveView(7);
     else if (TheServerWorld()->sessionKind_ == 3) TheCamera()->SaveView(6);
-    path.Format(kCurrentFolder, DataFolderText());
+    path = str::Format(kCurrentFolder, DataFolderText());
     {
-        mfc::CString fileName = zone + kSaveExtension;
+        std::string fileName = (zone + kSaveExtension).GetString();
         path += fileName;
     }
-    if (!file.Open(path, kOpenWrite, 0)) {
-        game::FatalError(kCantWrite, path.GetString());
+    if (!file.Open(path.c_str(), kOpenWrite, 0)) {
+        game::FatalError(kCantWrite, path.c_str());
         return 0;
     }
     TheServerWorld()->PrepareSave();
@@ -556,15 +558,15 @@ int __stdcall LeaveZone(CParty* records) {
 
     NamedFloatTable* variables = &records->variables_;
     {
-        mfc::CString prefix(kVisitedPrefix);
-        mfc::CString variable = prefix + zone.GetString();
-        VariableSet(variables, variable, 1.0f);
+        std::string prefix = kVisitedPrefix;
+        std::string variable = prefix + zone.GetString();
+        VariableSet(variables, variable.c_str(), 1.0f);
     }
     float now = static_cast<float>(VariableGet(variables, kGTime));
     {
-        mfc::CString prefix(kLeftPrefix);
-        mfc::CString variable = prefix + zone;
-        VariableSet(variables, variable, now);
+        std::string prefix = kLeftPrefix;
+        std::string variable = prefix + zone;
+        VariableSet(variables, variable.c_str(), now);
     }
     return 1;
 }
@@ -800,15 +802,15 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
     mfc::CString* base = MapPath(reinterpret_cast<mfc::CString*>(storage), map);
     int dot = base->ReverseFind('.');
     if (dot > 0) {
-        mfc::CString cut = base->Left(dot);
+        std::string cut = base->Left(dot).GetString();
         *base = cut;
     }
     {
         FileStream graph;
         bool opened;
         {
-            mfc::CString path = *base + kGraphExtension;
-            opened = graph.Open(path, kOpenRead, 1);
+            std::string path = (*base + kGraphExtension).GetString();
+            opened = graph.Open(path.c_str(), kOpenRead, 1);
         }
         if (opened) {
             out->CopyFrom(&graph);
@@ -1167,8 +1169,8 @@ void __fastcall ClearSaveFolder(const char* path) {
     int found;
     {
         mfc::CString folder(path);
-        mfc::CString pattern = folder + kAllFiles;
-        found = finder.FindFile(pattern, 0);
+        std::string pattern = (folder + kAllFiles).GetString();
+        found = finder.FindFile(pattern.c_str(), 0);
     }
     while (found) {
         found = finder.FindNext();
@@ -1357,12 +1359,12 @@ void GameFlow::UseResources(bool network) {
         g_lastResources.Construct(kResourcesSingle);
         libcrt::AtExit(DestroyLastResources);
     }
-    mfc::CString wanted(network ? kResourcesNetwork : kResourcesSingle);
-    if (gamecrt::mbscmp(wanted.GetString(),
+    std::string wanted = network ? kResourcesNetwork : kResourcesSingle;
+    if (gamecrt::mbscmp(wanted.c_str(),
                         LastResources().GetString()) == 0)
         return;
     LastResources() = wanted;
-    SwitchResourceDatabases(wanted);
+    SwitchResourceDatabases(wanted.c_str());
     if (network) {
         int value = Spectator0();
         Spectator0() = 0;
@@ -1478,16 +1480,16 @@ int GameFlow::LoadGame(const char* slot) {
     TheCursor()->SetShape(3);
     ToMainMenu() = 1;
     FileStream file;
-    mfc::CString zone;          // [0x14]
-    mfc::CString slotFolder;    // [0x10]
-    mfc::CString currentFolder; // [0x18]
-    slotFolder.Format(kSlotFolder, DataFolderText(), slot);
-    currentFolder.Format(kCurrentFolder, DataFolderText());
-    ClearSaveFolder(currentFolder);
+    std::string zone;          // [0x14]
+    std::string slotFolder;    // [0x10]
+    std::string currentFolder; // [0x18]
+    slotFolder = str::Format(kSlotFolder, DataFolderText(), slot);
+    currentFolder = str::Format(kCurrentFolder, DataFolderText());
+    ClearSaveFolder(currentFolder.c_str());
     bool opened;
     {
-        mfc::CString path = slotFolder + kScenarioFile;
-        opened = file.Open(path, kOpenRead, 1);
+        std::string path = slotFolder + kScenarioFile;
+        opened = file.Open(path.c_str(), kOpenRead, 1);
     }
     if (!opened) {
         ToMainMenu() = 1;
@@ -1518,16 +1520,16 @@ int GameFlow::LoadGame(const char* slot) {
     // zone, and one whose file could not be copied, is marked not visited.
     LocalRecords records;
     ThePartyManager()->EndRedeploy(records.Party());
-    mfc::CString currentMap;    // [0x1C]
+    std::string currentMap;    // [0x1C]
     currentMap = RecordAllod(FindZone(records.Party()->zone_));
     NamedFloatTable* variables = &records.Party()->variables_;
     for (int i = 0; i < ZoneRecordCount(); ++i) {
         MapRecord* record = ZoneRecords() + i;
         bool visited;
         {
-            mfc::CString prefix(kVisitedPrefix);
-            mfc::CString variable = prefix + record->name;
-            double value = VariableGet(variables, variable);
+            std::string prefix = kVisitedPrefix;
+            std::string variable = prefix + record->name;
+            double value = VariableGet(variables, variable.c_str());
             EI_NAN_AUDIT(value);
             visited = value != 0.0f;
         }
@@ -1536,20 +1538,20 @@ int GameFlow::LoadGame(const char* slot) {
             bool keep = gamecrt::mbscmp(record->name,
                                         kAlwaysCopied) == 0 ||
                         gamecrt::mbscmp(record->allod,
-                                        currentMap.GetString()) == 0;
+                                        currentMap.c_str()) == 0;
             if (keep) {
                 zone = RecordName(record);
-                mfc::CString currentPath = currentFolder + zone;
-                mfc::CString currentFile = currentPath + kSaveExtension;
-                mfc::CString slotPath = slotFolder + zone;
-                mfc::CString slotFile = slotPath + kSaveExtension;
-                restored = gameapi::CopyFileA(slotFile, currentFile, FALSE) != 0;
+                std::string currentPath = currentFolder + zone;
+                std::string currentFile = currentPath + kSaveExtension;
+                std::string slotPath = slotFolder + zone;
+                std::string slotFile = slotPath + kSaveExtension;
+                restored = gameapi::CopyFileA(slotFile.c_str(), currentFile.c_str(), FALSE) != 0;
                 if (restored) continue;
             }
         }
-        mfc::CString prefix(kVisitedPrefix);
-        mfc::CString variable = prefix + record->name;
-        VariableSet(variables, variable, 0.0f);
+        std::string prefix = kVisitedPrefix;
+        std::string variable = prefix + record->name;
+        VariableSet(variables, variable.c_str(), 0.0f);
     }
     ThePartyManager()->BeginRedeploy(records.Party());
 
@@ -1560,8 +1562,8 @@ int GameFlow::LoadGame(const char* slot) {
         StartZone(records.Party()->zone_, 0);
     } else {
         {
-            mfc::CString path = slotFolder + kMissionFile;
-            opened = file.Open(path, kOpenRead, 1);
+            std::string path = slotFolder + kMissionFile;
+            opened = file.Open(path.c_str(), kOpenRead, 1);
         }
         if (!opened) return 0;
         LoadMission(&file);
@@ -1618,10 +1620,10 @@ EI_REWRITTEN(0x0057ED60, GameFlow::SetNetworkZone);
 
 int CurrentSaveSize() {
     mfc::CFileFind find;
-    mfc::CString pattern;
-    pattern.Format(kCurrentFiles, DataFolderText());
+    std::string pattern;
+    pattern = str::Format(kCurrentFiles, DataFolderText());
     int total = 1000000;
-    if (find.FindFile(pattern, 0)) {
+    if (find.FindFile(pattern.c_str(), 0)) {
         int more;
         do {
             more = find.FindNext();
@@ -1727,7 +1729,7 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The game type's construction variable and briefings, at least 1.
-    mfc::CString briefing;
+    std::string briefing;
     unsigned type = net::GameClient()->gameType_;
     if (type <= 3) {
         VariableSet(variables, kTypeVariables[type], 1.0f);
@@ -1735,8 +1737,8 @@ void GameFlow::UpdateFromServer() {
     }
     mfc::CString questVariable(mfc::CString::kUnset);
     mfc::CString kVariable(mfc::CString::kUnset);
-    BriefingVariableInto(&questVariable, briefing + kBriefingSuffixQuest);
-    BriefingVariableInto(&kVariable, briefing + kBriefingSuffixK);
+    BriefingVariableInto(&questVariable, (briefing + kBriefingSuffixQuest).c_str());
+    BriefingVariableInto(&kVariable, (briefing + kBriefingSuffixK).c_str());
     mfc::CString* const names[2] = {&questVariable, &kVariable};
     for (mfc::CString* name : names) {
         float value = static_cast<float>(VariableGet(variables, *name));
@@ -1752,18 +1754,18 @@ void GameFlow::UpdateFromServer() {
         MarkBriefing(net::GameClient()->zones_.At(node)->text_.data());
     // The quest variables ("q.<folder>.<name>") register their quest folders.
     for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
-        mfc::CString name(NodeRecord(node)->name_.data());
+        std::string name = NodeRecord(node)->name_.data();
         bool quest;
         {
-            mfc::CString prefix = name.Left(2);
-            quest = gamecrt::mbscmp(prefix.GetString(),
+            std::string prefix = str::Left(name, 2);
+            quest = gamecrt::mbscmp(prefix.c_str(),
                                     kQuestVariablePrefix) == 0;
         }
         if (!quest) continue;
-        mfc::CString rest = name.Right(name.GetLength() - 2);
-        int dot = rest.Find(kDot);
+        std::string rest = str::Right(name, static_cast<int>(name.size()) - 2);
+        int dot = str::Find(rest, kDot);
         if (dot > 0) {
-            mfc::CString folder = rest.Left(dot);
+            mfc::CString folder = str::Left(rest, dot);
             RegisterQuests(folder);
         }
     }
@@ -1812,7 +1814,7 @@ void GameFlow::UpdateFromServer() {
         for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
             net::VariableMessage* record = NodeRecord(node);
-            mfc::CString name(record->name_.data());
+            std::string name = record->name_.data();
             VariableSetBits(variables, record->name_.data(), ValueBits(record));
         }
         AppliedStamp() = 0;
@@ -1845,8 +1847,8 @@ void SavedParties::Reload() {
     WIN32_FIND_DATAA found;
     HANDLE search;
     {
-        mfc::CString pattern = folder_ + kPartyFilePattern;
-        search = gameapi::FindFirstFileA(pattern, &found);
+        std::string pattern = (folder_ + kPartyFilePattern).GetString();
+        search = gameapi::FindFirstFileA(pattern.c_str(), &found);
     }
     if (search == INVALID_HANDLE_VALUE) return;
     do {
@@ -1932,19 +1934,19 @@ void GameFlow::BuildZoneTable() {
         mfc::CString folder;
         modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
         MapsFolder(&folder);
-        mfc::CString pattern = folder + kQuestFilePattern;
-        more = find.FindFile(pattern, 0);
+        std::string pattern = (folder + kQuestFilePattern).GetString();
+        more = find.FindFile(pattern.c_str(), 0);
     }
     while (more) {
         more = find.FindNext();
-        mfc::CString name = find.GetTitle();
-        name.MakeLower();
-        RegisterQuests(name);
+        std::string name = find.GetTitle().GetString();
+        str::MakeLower(name);
+        RegisterQuests(name.c_str());
         UnloadQuestTexts();
-        mfc::CString map;
-        if (MapRecord* record = FindZone(name)) {
+        std::string map;
+        if (MapRecord* record = FindZone(name.c_str())) {
             map = RecordMap(record);
-            const int allod = AllodOfMap(map);
+            const int allod = AllodOfMap(map.c_str());
             AppendEmptyEntry(table);
             ZoneEntry& entry = table.Finish()[-1];
             entry.first = name;

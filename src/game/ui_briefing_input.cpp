@@ -22,6 +22,8 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <string>
+
 namespace {
 
 const char* ClickSound() { return "buttons\\base\\click1.wav"; }
@@ -191,13 +193,13 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     Vector3 ground{p->x, p->y, p->z};
     int exit = 0;
     if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;
-    mfc::CString zone(GameExitTarget(exit_));
-    if (gamecrt::mbsicmp(zone.GetString(),
+    std::string zone = GameExitTarget(exit_);
+    if (gamecrt::mbsicmp(zone.c_str(),
                         NoZone()) == 0)
         return;
-    mfc::CString variable(ZoneVariablePrefix());
+    std::string variable = ZoneVariablePrefix();
     variable += zone;
-    float visited = PlayerZeroVariable(variable);
+    float visited = PlayerZeroVariable(variable.c_str());
     EI_NAN_AUDIT(visited);
     if (visited != 1.0f) TheCursor()->SetShape(kCursorExit);
 }
@@ -261,10 +263,10 @@ void CBriefingScreen::DrawTopics() {
         std::uint32_t colour = row != hoveredTopic_ ? kTopicColour : kHoveredTopicColour;
         mfc::CString title;
         TopicTitle(&title, topics_[row]);
-        mfc::CString text = prefix;
+        std::string text = prefix.GetString();
         text += TopicSeparator();
         text += title;
-        surface->DrawTextIn(text, &rect, kTextFormat, colour, 0, 1);
+        surface->DrawTextIn(text.c_str(), &rect, kTextFormat, colour, 0, 1);
     }
     UiSurfaceReleaseDC(surface);
 }

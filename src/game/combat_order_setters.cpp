@@ -18,6 +18,7 @@
 #include "lib/mfc.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 constexpr int kOrderUse = 6;            // UnitAction kinds
@@ -142,7 +143,7 @@ EI_REWRITTEN(0x0054C760, CUnitServer::TargetBusy);
 void CUnitServer::PlayAnimation(const char* name) {
     const FigureAnimation* entry;
     {
-        mfc::CString figure(unit->name);
+        std::string figure = unit->name.GetString();
         auto* world = WorldContext();
         entry = (world->MapObjectManager())->FindFigureAnimation(figure, name);
     }
@@ -192,9 +193,9 @@ EI_REWRITTEN(0x005567E0, CUnitServer::HasMainArmour);
 FigureAnimation* CBaseManager::FindFigureAnimation(const mfc::CString& figure, const char* name) {
     AnimationDatabase* database;
     {
-        mfc::CString file(figure);
+        std::string file = figure.GetString();
         file += ".adb";
-        database = static_cast<AnimationDatabase*>(GetFile(file, nullptr));
+        database = static_cast<AnimationDatabase*>(GetFile(file.c_str(), nullptr));
     }
     if (!database) {
         game::DebugLog("Can't find animation database file for \"%s\".\n", figure.GetString());

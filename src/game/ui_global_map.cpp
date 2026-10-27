@@ -38,6 +38,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_string.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <concepts>
@@ -46,6 +47,7 @@
 #include <cstring>
 #include <new>
 #include <bit>
+#include <string>
 
 using console::CStringArray;
 
@@ -255,7 +257,7 @@ void CGlobalMap::CreateScreen() {
     AddTipRegion(this, 0x2B1, 0x219, 0x2E1, 0x249, 0x15FF5);
     AddTipRegion(this, 0xF, 0x20D, 0x6B, 0x249, 0x15FF4);
 
-    mfc::CString variable;
+    std::string variable;
     CStringArray parts;
     VariableTable vars;
     // New elements are copied from these (the original's have uninitialised numbers; every
@@ -272,9 +274,9 @@ void CGlobalMap::CreateScreen() {
         MapRecord* zone = ZoneAt(allod->maps.data[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
         zones_.SetAtGrowZone(zones_.size, &zoneTemplate);
-        variable.Format("z.%s", zone->name.GetString());
+        variable = str::Format("z.%s", zone->name.GetString());
         zones_.data[zoneCount_].link = -1;
-        zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
+        zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
         zones_.data[zoneCount_].name = zone->name;
         {
             mfc::CString title(mfc::CString::kUnset);
@@ -288,8 +290,8 @@ void CGlobalMap::CreateScreen() {
 
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
-        variable.Format("q.%s", zones_.data[i].name.GetString());
-        GameLocalPlayerVariables(variable, vars.Table());
+        variable = str::Format("q.%s", zones_.data[i].name.GetString());
+        GameLocalPlayerVariables(variable.c_str(), vars.Table());
         const NamedFloatTable& table = *vars.Table();
         for (const NamedFloatTable::Node* node = table.First(); node; node = table.Next(node)) {
             std::uint32_t value;
@@ -333,10 +335,10 @@ void CGlobalMap::CreateScreen() {
         for (int e = 0; e < zone->exits.size; ++e) {
             MapRecord* way = FindZone(zone->exits.data[e].target);
             if (!way) continue;
-            variable.Format("z.%s", way->name.GetString());
+            variable = str::Format("z.%s", way->name.GetString());
             if (way->kind != 2) continue;
             // Only at state 2.
-            double state = D(LocalPlayerVariable(variable));
+            double state = D(LocalPlayerVariable(variable.c_str()));
             double two = D(2.0f /*0073CDB8*/);
             EI_NAN_AUDIT(state);
             if (state != two) continue;
@@ -422,10 +424,10 @@ void CGlobalMap::CreateScreen() {
     minutes -= day * 1440;
     int hour = minutes / 60;
     minutes -= hour * 60;
-    mfc::CString clock;
+    std::string clock;
     mfc::CString dayText;
     TheTextManager()->GetString("save_day", &dayText);
-    clock.Format("%s  %d,  %d:%02d", dayText.GetString(), day + 1, hour, minutes);
+    clock = str::Format("%s  %d,  %d:%02d", dayText.GetString(), day + 1, hour, minutes);
     {
         CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, 5, 1);
         AddSurface(text);
@@ -433,7 +435,7 @@ void CGlobalMap::CreateScreen() {
         RECT line1 = {0, 5, 150, 25};
         SurfaceText(text, allodTitle_, &line1, 2, 0xA7D7E4, 0x25, 1);
         RECT line2 = {0, 25, 150, 45};
-        SurfaceText(text, clock, &line2, 2, 0xA7D7E4, 0x25, 1);
+        SurfaceText(text, clock.c_str(), &line2, 2, 0xA7D7E4, 0x25, 1);
         UiSurfaceReleaseDC(text);
     }
 

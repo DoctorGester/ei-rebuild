@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -176,19 +177,19 @@ EI_REWRITTEN(0x00693010, CTextureManager::DrawLayers);
 int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, const mfc::CString* name,
                              const mfc::CString* fallback, unsigned mipCount, std::uint32_t fill,
                              std::uint32_t format) {
-    mfc::CString path = CachePath(*name);
+    std::string path = CachePath(*name).GetString();
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     ReadBuffer buffer;
     mfc::CFile file;
     *out = *name;
-    if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
+    if (file.Open(path.c_str(), mfc::CFile::modeRead, nullptr)) {
         if (CacheMatches(file, header, buffer, request)) return 1;
     } else if (gamecrt::mbscmp(name->GetString(),
                                fallback->GetString()) != 0) {
         *out = *fallback;
         path = CachePath(*fallback);
-        if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
+        if (file.Open(path.c_str(), mfc::CFile::modeRead, nullptr)) {
             if (CacheMatches(file, header, buffer, request)) return 1;
             *out = *name;
             path = CachePath(*name);
@@ -196,7 +197,7 @@ int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, cons
     }
 
     if (request->textures.GetSize() == 0) {
-        gameapi::DeleteFileA(path);
+        gameapi::DeleteFileA(path.c_str());
         return 0;
     }
     int width = request->flags;
@@ -214,7 +215,7 @@ int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, cons
     header.mipCount = mipCount;
     header.extraSize = static_cast<std::uint32_t>(request->layers.size);
     int kind = ConversionKind(format);
-    if (!file.Open(path, kWriteCreate, nullptr)) return game::FatalError(kCantWrite, path.GetString());
+    if (!file.Open(path.c_str(), kWriteCreate, nullptr)) return game::FatalError(kCantWrite, path.c_str());
     file.Write(&header, sizeof(MmpHeader));
     if (header.extraSize != 0) file.Write(request->layers.data, header.extraSize);
     WriteLevels(file, header, image, kind, mipCount);

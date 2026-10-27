@@ -287,6 +287,31 @@ to which template:
 - Left off the templates: map_database.cpp's own `ArrayBody` + generic `SetSize` (allods, maps, zone exits; untyped, not
   counted by the checker); the trap's areas array (`PlainArray`, 12-byte records) forwards to its SetSize 0046EAD0.
 
+## Strings: CString to std::string (C14a)
+
+- The game's text moves to `std::string`. What CString did that std::string has no member for is in `src/lib/str.h`
+  with CString's answers: `str::Find` / `ReverseFind` / `FindOneOf` (int positions, -1 when absent, the multibyte
+  CRT's searches), `Mid` / `Left` / `Right` (a start or count outside the text clamped, never a throw), `Format` (the
+  game CRT's vsprintf, `crt_format.cpp`: "1.#INF" and three-digit exponents, C26), `MakeLower`, `Remove`, the trims
+  (multibyte stepping, `_ismbcspace`), `Buffer` / `CutAtNull` / `SetLength` for GetBuffer / ReleaseBuffer(-1) /
+  GetBufferSetLength.
+- `tools/c14_strings.py` does the rewrite: it retypes `mfc::CString` declarations and fixes what the verify build then
+  reports, one rule per diagnostic shape (the rules: its docstring); a variable no rule carries stays a CString, and
+  the next round starts from the original files without it (`build/c14_strings/excluded.json`, `manual.txt` for the
+  rest). Batch 1 (scope `locals`): 550 of 845 local variables in src/game; the others stay CStrings because their
+  address is taken (passed to a `mfc::CString*` or `void*` parameter, cast) or a non-const reference goes to a
+  function taking `mfc::CString&` (they move with those signatures).
+- While both types exist, `mfc.h` bridges them: `CString(const std::string&)` and `operator+` of a CString and a
+  std::string (the std::string side's type). A `const mfc::CString&` parameter given a std::string binds a temporary
+  copy, which is the same text. The rewrite does not retype a variable whose address is taken: a `std::string*`
+  compiles silently through a cast or a `void*` parameter and is then read as a CString
+  (`reinterpret_cast<StringOps*>(&text)` in Tokenize, caught by the script-load vectors; `ComposeSkin(1, &name)`'s
+  `void*` target, a crash in every scenario with a hero).
+- Kept on purpose: a pointer into a CString that another CString shares (refcounted buffers) outlives the local copy;
+  with std::string it would not. `CFigureStrip::Draw`'s `name` (its cells keep `name`'s pointer) stays a CString.
+- Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors
+  (`CScript::Load` / Tokenize / the script copies replay the loader's string handling), both suites with goldens.
+
 ## Open items
 
 - Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) are ported (src/lib, src/game's game_* files);

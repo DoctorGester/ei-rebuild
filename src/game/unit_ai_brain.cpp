@@ -18,12 +18,14 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 constexpr float kNearPointCleared = 100000.0f;
@@ -274,16 +276,16 @@ void AIBrain::CallAllies(const Vector3* point) {
         auto* other = node->data;
         node = node->next;
         if (other == self || !(GameDiplomacy()->allied_[self->side] & (1u << (other->side & 31)))) continue;
-        mfc::CString message;
+        std::string message;
         AIBrain* ally = other->ServerController()->Brain();
         if (console::g_filterMask & 1) {
             double dz = self->localPosition_.z - other->localPosition_.z;
             double dy = self->localPosition_.y - other->localPosition_.y;
             double dx = self->localPosition_.x - other->localPosition_.x;
-            message.Format("Unit %i call for help unit %i from %fm distance", self->id_, other->id_,
+            message = str::Format("Unit %i call for help unit %i from %fm distance", self->id_, other->id_,
                            std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         }
-        ally->memory.HearCall(point, 0x1A, message);
+        ally->memory.HearCall(point, 0x1A, message.c_str());
     }
     // The list's RemoveAll: no element destruction.
     units.RemoveAll();

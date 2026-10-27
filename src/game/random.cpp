@@ -9,6 +9,7 @@
 #include <bit>
 #include <intrin.h>
 #include <cstring>
+#include <string>
 
 // The game's generator: unseeded (the static initialiser 0049EE60 zeroes seeded_; Init seeds it on first use).
 IsaacRandom g_random = /*007A9D40*/ {};
@@ -126,17 +127,17 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
             int found;
             {
                 // MFC's result-slot calls (GetFilePath, operator+) construct these.
-                mfc::CString path(finder.GetFilePath());
-                mfc::CString sub(path + SubdirectoryPattern());
-                found = FindSeedFile(out, sub, target, counter);
+                std::string path = finder.GetFilePath().GetString();
+                std::string sub = path + SubdirectoryPattern();
+                found = FindSeedFile(out, sub.c_str(), target, counter);
             }
             if (found == 1) return 1;
             continue;
         }
         if (*counter >= target) {
             if (finder.GetLength() >= kMinimumFileSize) {
-                mfc::CString path(finder.GetFilePath());
-                const char* text = path;
+                std::string path = finder.GetFilePath().GetString();
+                const char* text = path.c_str();
                 std::memcpy(out, text, std::strlen(text) + 1);   // strcpy, unbounded as in the original
                 return 1;
             }

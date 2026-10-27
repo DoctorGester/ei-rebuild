@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -50,8 +51,8 @@ void PushPlace(QuestRecord* quest, float value) { quest->places.PushBack<PlaceEl
 void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places) {
     quest->field2 = 0;
     {
-        mfc::CString name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), mfc::CString(game::EmptyText()));
-        const char* text = name;
+        std::string name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), mfc::CString(game::EmptyText())).GetString();
+        const char* text = name.c_str();
         quest->name.Assign(text);
     }
     quest->exp = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Exp(), 0));
@@ -99,8 +100,8 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
 // C-string assignment, the others' with the range one: the same result).
 void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char* section) {
     {
-        mfc::CString name = reg.GetString(section, game::questwords::Name(), mfc::CString(game::EmptyText()));
-        briefing->name.Assign(name.GetString());
+        std::string name = reg.GetString(section, game::questwords::Name(), mfc::CString(game::EmptyText())).GetString();
+        briefing->name.Assign(name.c_str());
     }
     briefing->exp = static_cast<float>(reg.GetFloat(section, game::questwords::Exp(), 0));
     briefing->money = static_cast<float>(reg.GetFloat(section, game::questwords::Money(), 0));

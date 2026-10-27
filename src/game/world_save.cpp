@@ -39,6 +39,7 @@
 #include "ei/hook.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -775,8 +776,8 @@ bool MapFileMissing(const char* name, modfolders::MapsSite site) {
     mfc::CString folder;
     modfolders::SelectMaps(name, site);
     MapsFolder(&folder);
-    mfc::CString path = folder + name;
-    return libcrt::Access(path, 0) == -1;
+    std::string path = (folder + name).GetString();
+    return libcrt::Access(path.c_str(), 0) == -1;
 }
 
 } // namespace

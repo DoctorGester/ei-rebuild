@@ -25,6 +25,7 @@
 #include "game_singletons.h"
 #include "settings_file.h"
 #include "system_text.h"
+#include "lib/str.h"
 
 #include <windows.h>
 
@@ -214,9 +215,9 @@ bool GSListPlayerVars(Call* call) {
     CPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
     const NamedFloatTable& variables = player->Party()->variables_;
     for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
-        mfc::CString line;
-        line.Format("%s = %f", node->value.key.GetString(), static_cast<double>(node->value.mapped));
-        (console::Out() << line.GetString() << "\n").Flush();
+        std::string line;
+        line = str::Format("%s = %f", node->value.key.GetString(), static_cast<double>(node->value.mapped));
+        (console::Out() << line.c_str() << "\n").Flush();
     }
     return true;
 }
@@ -327,13 +328,13 @@ bool PauseGame(Call* call) {
 // SetWeather("rain" | "clear" | "snow"): kind 1 / 0 / 2 with strength 20 / 20 / 40; anything
 // else is clear at 20.
 bool SetWeather(Call* call) {
-    mfc::CString name;
+    std::string name;
     name = Text(call, 0);
     int kind = 0;
     float strength = 20.0f;
-    if (std::strcmp(name, "rain") == 0) kind = 1;
-    else if (std::strcmp(name, "clear") == 0) kind = 0;
-    else if (std::strcmp(name, "snow") == 0) {
+    if (std::strcmp(name.c_str(), "rain") == 0) kind = 1;
+    else if (std::strcmp(name.c_str(), "clear") == 0) kind = 0;
+    else if (std::strcmp(name.c_str(), "snow") == 0) {
         kind = 2;
         strength = 40.0f;
     }
@@ -345,13 +346,13 @@ bool SetWeather(Call* call) {
 // addon pushes its byte flag as a dword whose upper bytes are left over on its stack; here it is
 // 0 or 1.
 bool AddMobEx(Call* call) {
-    mfc::CString file;
+    std::string file;
     file = Text(call, 0);
     bool keepIds = call->cmd->floatArgs.size != 0 && Equals(1.0f, Floats(call)[0]);
     g_loadingMovieOff = 1;
-    int loaded = TheServerWorld()->LoadMapObjects(file, keepIds ? 1 : 0);
+    int loaded = TheServerWorld()->LoadMapObjects(file.c_str(), keepIds ? 1 : 0);
     g_loadingMovieOff = 0;
-    if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", file.GetString());
+    if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", file.c_str());
     return true;
 }
 

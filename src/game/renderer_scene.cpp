@@ -16,10 +16,12 @@
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 
 #include <d3d.h>
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -91,14 +93,14 @@ int CSceneRenderer::EndScene() {
     CTextureDevice* device = device_;
     long result = DeviceEndScene(device);
     if (result != D3DERR_SCENE_NOT_IN_SCENE && result != 0) app::FatalErrorCode(result, "Can't end scene.\n");
-    mfc::CString text;
+    std::string text;
     strmap::CDebugPanel* panel = DebugInfoPanel();
-    text.Format("%g", 1000.0 / x87::FromUnsigned(frameTime_));
-    panel->Set("FPS", text);
-    text.Format("%d", device_->vertexCount_);
-    panel->Set("num verts", text);
-    text.Format("%d", device_->primitiveCount_);
-    panel->Set("num trias", text);
+    text = str::Format("%g", 1000.0 / x87::FromUnsigned(frameTime_));
+    panel->Set("FPS", text.c_str());
+    text = str::Format("%d", device_->vertexCount_);
+    panel->Set("num verts", text.c_str());
+    text = str::Format("%d", device_->primitiveCount_);
+    panel->Set("num trias", text.c_str());
     lastFrameStart_ = frameStart_;
     return 1;
 }

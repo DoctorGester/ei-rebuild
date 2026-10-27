@@ -49,6 +49,7 @@
 #include <cstdint>
 #include <cstring>
 #include <bit>
+#include <string>
 
 namespace {
 
@@ -318,9 +319,9 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 }
 
 void PlayMovie(const SSCCmd* cmd) {
-    mfc::CString path = *GameBasePathString() + MoviesFolder();
-    mfc::CString file = path + cmd->stringArgs.data[0];
-    ::PlayMovie(file, 0, 1, 1, 1, 1, 1);
+    std::string path = (*GameBasePathString() + MoviesFolder()).GetString();
+    std::string file = path + cmd->stringArgs.data[0];
+    ::PlayMovie(file.c_str(), 0, 1, 1, 1, 1, 1);
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {

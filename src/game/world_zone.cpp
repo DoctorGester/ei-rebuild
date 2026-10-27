@@ -28,6 +28,7 @@
 
 #include <cstring>
 #include <new>
+#include <string>
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -219,23 +220,23 @@ constexpr const char* kProgres5 = "progres5.bik";
 } // namespace
 
 void __stdcall SelectLoadingMovie(const char* zone) {
-    mfc::CString allod;
+    std::string allod;
     if (zone) {
         MapRecord* map = TheMapDatabase()->FindMap(zone);
         if (map) allod = map->allod;
     }
-    if (SameName(allod, "gipat")) {
+    if (SameName(allod.c_str(), "gipat")) {
         app::g_loadingMovieName = "progres2.bik";   // progres2.bik
-    } else if (SameName(allod, "ingos")) {
+    } else if (SameName(allod.c_str(), "ingos")) {
         app::g_loadingMovieName = "progres3.bik";   // progres3.bik
     } else {
-        bool suslanger = SameName(allod, "suslanger");
+        bool suslanger = SameName(allod.c_str(), "suslanger");
         app::g_loadingMovieName = "progres4.bik";   // progres4.bik
         if (!suslanger) {
             app::g_loadingMovieName = "progres.bik";   // progres.bik
             if (ei::rebirth::Enabled(ei::rebirth::Patch::FixProgressNames)) {
-                if (SameName(allod, "gipat2")) app::g_loadingMovieName = "progres2.bik";
-                else if (SameName(allod, "jigran")) app::g_loadingMovieName = kProgres5;
+                if (SameName(allod.c_str(), "gipat2")) app::g_loadingMovieName = "progres2.bik";
+                else if (SameName(allod.c_str(), "jigran")) app::g_loadingMovieName = kProgres5;
             }
         }
     }

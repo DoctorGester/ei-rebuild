@@ -12,6 +12,8 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
+#include <string>
+
 namespace {
 
 using dbfile::FillStream;
@@ -25,7 +27,7 @@ constexpr int kBriefingsChunk = 2;
 } // namespace
 
 int QuestDatabase::Load(const char* folder) {
-    mfc::CString base(folder);
+    std::string base = folder;
     LocalResource resource;
     if (!dbfile::OpenDatabase(resource, base)) return dbfile::ReportNoDatabase(base);
     std::uint32_t size;

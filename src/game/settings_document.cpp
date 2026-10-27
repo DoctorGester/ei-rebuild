@@ -2,6 +2,7 @@
 // lines, JoinPath, ImportTrees. See settings_file.h; tests/vectors/replay_settings.cpp checks them without the game.
 #include "settings_file.h"
 
+#include <string>
 #include <windows.h>
 
 #include <array>

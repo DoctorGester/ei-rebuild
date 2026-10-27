@@ -11,6 +11,7 @@
 #include "bink_video.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -30,8 +31,8 @@ constexpr std::uint32_t kAnswerCancel = 2;
 
 void PlayExitMovieAndQuit() {
     {
-        mfc::CString path = *GameBasePathString() + ExitMovie();
-        PlayMovie(path, 0, 0, 0, 1, 1, 1);
+        std::string path = (*GameBasePathString() + ExitMovie()).GetString();
+        PlayMovie(path.c_str(), 0, 0, 0, 1, 1, 1);
     }
     app::QuitGame(0);
 }

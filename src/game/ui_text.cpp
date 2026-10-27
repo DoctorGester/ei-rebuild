@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -42,12 +43,12 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
     if (!holder_) return 0;
     int width = rect->right - rect->left;
     mfc::CString ch, word, line;
-    mfc::CString source(text);
+    std::string source = text;
     source += game::NewLineText();
     console::CStringArray lines;
     // Words collect characters up to a space or newline; a word that would make the line wider
     // than the rectangle starts a new line (a newline then also ends the word's line).
-    for (const char* p = source; CharAt(p) != 0; p = gamecrt::mbsinc(p)) {
+    for (const char* p = source.c_str(); CharAt(p) != 0; p = gamecrt::mbsinc(p)) {
         if (libcrt::Isleadbyte(static_cast<signed char>(*p))) {
             console::Ops(ch).AssignChar(p[0]);
             console::Ops(ch).AppendChar(p[1]);

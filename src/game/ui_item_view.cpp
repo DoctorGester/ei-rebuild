@@ -34,6 +34,7 @@
 #include <cstdint>
 #include <cstring>
 #include <bit>
+#include <string>
 
 namespace {
 
@@ -200,13 +201,13 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     CItem* item = cell->item;
     CUiMesh* model;
     {
-        mfc::CString name = item->PictureName();   // picture name
-        model = AsUiMesh(CachedObject(&models_, name, false));
+        std::string name = item->PictureName().GetString();   // picture name
+        model = AsUiMesh(CachedObject(&models_, name.c_str(), false));
     }
     CEngineObject* texture;
     {
-        mfc::CString name = item->FigureName();   // figure name
-        texture = CachedObject(&textures_, name, true);
+        std::string name = item->FigureName().GetString();   // figure name
+        texture = CachedObject(&textures_, name.c_str(), true);
     }
     if (!model || !texture) return;
 
@@ -395,7 +396,7 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
         stlp::string key(unit->modelName.GetString());
         figure = unitdb::ModelNamed(key);
     }
-    mfc::CString sex;
+    std::string sex;
     const char* figureModel = figure->figureName;
     const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
     if (fixes ? !pluginfixes::ModelIsFemale(figureModel) : SameText(figureModel, "unhuma"))
@@ -403,7 +404,7 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     else if (fixes || SameText(figureModel, "unhufe"))
         sex = "f";
     model->Format("infa%sme%dface", figureModel, unit->hair + 1);
-    texture->Format("face%s%02d", sex.GetString(), unit->skin);
+    texture->Format("face%s%02d", sex.c_str(), unit->skin);
 }
 
 void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
@@ -464,9 +465,9 @@ CTexture* __fastcall ItemFigureTexture(const char* name) {
     CDXSurface* holder = texture->surface_;
     const MmpHeader* image;
     {
-        mfc::CString base(name);
-        mfc::CString file = base + ".mmp";
-        image = static_cast<const MmpHeader*>(manager->GetFileData(file));
+        std::string base = name;
+        std::string file = base + ".mmp";
+        image = static_cast<const MmpHeader*>(manager->GetFileData(file.c_str()));
     }
     int width, height;
     if (!image) {
@@ -526,9 +527,9 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     CDXSurface* holder = static_cast<CTexture*>(texture)->surface_;
     const MmpHeader* image;
     {
-        mfc::CString base(name);
-        mfc::CString file = base + ".mmp";
-        image = static_cast<const MmpHeader*>(TheTextureManager()->GetFileData(file));
+        std::string base = name;
+        std::string file = base + ".mmp";
+        image = static_cast<const MmpHeader*>(TheTextureManager()->GetFileData(file.c_str()));
     }
     std::uint32_t* pixels = nullptr;
     if (image) {

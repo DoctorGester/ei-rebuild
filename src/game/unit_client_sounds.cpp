@@ -22,6 +22,7 @@
 #include "lib/nan_audit.h"
 
 #include <cmath>
+#include <string>
 
 namespace {
 constexpr int kTerrainPlatform = 2;          // the kind used on a platform above the ground
@@ -108,7 +109,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     while (count < 4 && animation->sounds[count] != 0) ++count;
     if (count == 0) return 0;
     std::uint32_t sound = animation->sounds[RandomBelow(count)];
-    mfc::CString folder(model->soundFolder);   // the original reads a missing model's +0x124 (sic)
+    std::string folder = model->soundFolder.GetString();   // the original reads a missing model's +0x124 (sic)
     if (prototype->soundFolder.GetLength() != 0) folder = prototype->soundFolder;
     const char* format = nullptr;
     switch (animation->key & kKeyKind) {
@@ -134,7 +135,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     case kKindHit: format = "%s\\hit\\%d.wav"; break;
     default: return 0;
     }
-    out->Format(format, folder.GetString(), sound);
+    out->Format(format, folder.c_str(), sound);
     return 1;
 }
 EI_REWRITTEN(0x00534760, CUnitClientSpecific::ActionSound);

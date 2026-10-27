@@ -26,9 +26,11 @@
 #include "lib/mfc_slots.h"
 #include "lib/mfc_window.h"
 #include "lib/static_object.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace scene {
 namespace {
@@ -512,7 +514,7 @@ void Loader::LoadHelper(CMaterial* helper) {
 #pragma pack(pop)
     static_assert(sizeof(HelperHeader) == 0x3E);
 
-    mfc::CString text;
+    std::string text;
     HelperHeader h;
     Read(file_, &h, sizeof(h));
     std::memcpy(&helper->colors.ambient, h.ambient, 12);
@@ -520,12 +522,12 @@ void Loader::LoadHelper(CMaterial* helper) {
     std::memcpy(&helper->colors.specular, h.specular, 12);
     std::memcpy(&helper->colors.diffuse.w, &h.diffuseAlpha, 4);
     std::memcpy(&helper->colors.power, &h.power, 4);
-    Read(file_, text.GetBufferSetLength(h.nameLength), h.nameLength);
-    helper->name = text.GetString();
-    Read(file_, text.GetBufferSetLength(h.name2Length), h.name2Length);
-    helper->name2 = text.GetString();
-    Read(file_, text.GetBufferSetLength(h.name3Length), h.name3Length);
-    helper->name3 = text.GetString();
+    Read(file_, str::SetLength(text, h.nameLength), h.nameLength);
+    helper->name = text.c_str();
+    Read(file_, str::SetLength(text, h.name2Length), h.name2Length);
+    helper->name2 = text.c_str();
+    Read(file_, str::SetLength(text, h.name3Length), h.name3Length);
+    helper->name3 = text.c_str();
 }
 
 } // namespace
@@ -742,9 +744,9 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     figures->SetSize(0, -1);
 
     if (!s.file.Open(fileName, 0x8000, nullptr)) {
-        mfc::CString message;
-        message.Format(scenedata::CantOpenText(), fileName);
-        mfc::impl::MessageBoxText(message, 0x10, 0);
+        std::string message;
+        message = str::Format(scenedata::CantOpenText(), fileName);
+        mfc::impl::MessageBoxText(message.c_str(), 0x10, 0);
         return 0;
     }
     s.info.Load(s.file.Virtuals(), meshes, helpers, &s.nodes);
@@ -760,10 +762,10 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         }
     }
     if (tops > 1) {
-        mfc::CString message;
-        message.Format(scenedata::ManyTopsText(), fileName);
+        std::string message;
+        message = str::Format(scenedata::ManyTopsText(), fileName);
         for (int i = 0; i < s.roots.size; ++i) message += s.roots[i] + scenedata::NewLineText();
-        game::FatalError(message);
+        game::FatalError(message.c_str());
         return 0;
     }
 

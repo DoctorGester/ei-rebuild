@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include "model.h"
 #include "lib/crt.h"
 
@@ -37,9 +38,9 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
     if (model) {
         data = static_cast<std::uint32_t*>(model->mesh->GetFile(name, nullptr));
     } else {
-        mfc::CString base(name);
-        mfc::CString path = base + ".lnk";
-        data = static_cast<std::uint32_t*>(GetFile(path, nullptr));
+        std::string base = name;
+        std::string path = base + ".lnk";
+        data = static_cast<std::uint32_t*>(GetFile(path.c_str(), nullptr));
     }
     if (!data) return game::FatalError("Can't load skeleton file for \"%s\"\n", name);
 
@@ -72,10 +73,10 @@ int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     if (model) {
         bones.data = model->bones->GetFile(bone->name, &bones.size);
     } else {
-        mfc::CString name(bone->GetName());
-        mfc::CString directory(bone->name3);
-        mfc::CString path = (directory + name) + ".bon";
-        bones.data = GetFile(path, &bones.size);
+        std::string name = bone->GetName();
+        std::string directory = bone->name3.GetString();
+        std::string path = (directory + name) + ".bon";
+        bones.data = GetFile(path.c_str(), &bones.size);
     }
     if (!bones.data) return 0;
     // The bone's cage interpolation (map_object_cage.h): 0x48-byte data (a prism of six points), or

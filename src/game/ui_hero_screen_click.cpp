@@ -26,11 +26,13 @@
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -112,20 +114,20 @@ void CMpHeroScreen::BackToNewHero() {
 }
 
 void CMpHeroScreen::FinishRename() {
-    mfc::CString typed(renameEdit_->text_);
-    typed.TrimLeft();
-    typed.TrimRight();
-    if (typed.GetLength() != 0) typed = mfc::CString(RenameSeparator()) + typed;
+    std::string typed = renameEdit_->text_.GetString();
+    str::TrimLeft(typed);
+    str::TrimRight(typed);
+    if (typed.size() != 0) typed = mfc::CString(RenameSeparator()) + typed;
     mfc::CString& name = MpHeroName(heroIndex_);
-    mfc::CString title(name);
-    mfc::CString base;
-    int bar = title.Find(RenameBar());
+    std::string title = name.GetString();
+    std::string base;
+    int bar = str::Find(title, RenameBar());
     if (bar >= 0)
-        base = title.Left(bar);
+        base = str::Left(title, bar);
     else
         base = title;
-    base.TrimLeft();
-    base.TrimRight();
+    str::TrimLeft(base);
+    str::TrimRight(base);
     typed = base + typed;
     name = typed;
     SavedHero(heroIndex_)->WriteFile(HeroesFolder());
@@ -359,23 +361,23 @@ void CMpHeroScreen::Rename() {
     if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
     renameEdit_->SetEnabled(1, 1);
     renameEdit_->SetFocused(true);
-    mfc::CString name(MpHeroName(heroIndex_));
-    int bar = name.Find(RenameBar());
+    std::string name = MpHeroName(heroIndex_).GetString();
+    int bar = str::Find(name, RenameBar());
     if (bar < 0) {
         renameEdit_->SetText(game::EmptyText());
     } else {
-        mfc::CString typed = console::Ops(name).Mid(bar + 1);
-        typed.TrimLeft();
-        renameEdit_->SetText(typed.GetString());
-        name = name.Left(bar);
-        name.TrimRight();
+        std::string typed = console::Ops(name).Mid(bar + 1).GetString();
+        str::TrimLeft(typed);
+        renameEdit_->SetText(typed.c_str());
+        name = str::Left(name, bar);
+        str::TrimRight(name);
     }
     auto* surface = surfaces_.data[3];
     static_cast<CUiSurface*>(surface)->Freeze(1, 0);
     surface->GetDC();
     surface->Clear();
     RECT rect = kRenameTitle;
-    surface->DrawTextIn(name + RenameSeparator(), &rect, 1, kBright, 2, 1);
+    surface->DrawTextIn((name + RenameSeparator()).c_str(), &rect, 1, kBright, 2, 1);
     surface->ReleaseDC();
 }
 namespace {
@@ -483,13 +485,13 @@ void __fastcall MpHeroRefresh(CMpHeroScreen* self) { self->RefreshHero(); }
 EI_REWRITTEN(0x00618850, MpHeroRefresh);
 
 void CMpHeroScreen::CreateHero() {
-    mfc::CString name(nameEdit_->text_);
+    std::string name = nameEdit_->text_.GetString();
     auto* hero = HeroRecord();
     auto* stats = &hero->stats;
     double sum = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
     float points = AttributePoints();
     EI_NAN_AUDIT(sum, points);
-    if (sum != points || name.GetLength() == 0) {
+    if (sum != points || static_cast<int>(name.size()) == 0) {
         interface_->PlaySound(SoundCancel(), 0);
         return;
     }
@@ -501,7 +503,7 @@ void CMpHeroScreen::CreateHero() {
     spellContainer_ = static_cast<int>(hero->spellCount) > 0 ? hero->spells[0] : nullptr;
     spellPanel_->ShowEntry(spellContainer_);
     hero->texts[0] = name;
-    statsPanel_->SetHero(0, const_cast<char*>(name.GetString()));
+    statsPanel_->SetHero(0, const_cast<char*>(name.c_str()));
     RefreshStats();
     SetMode(this, nullptr, kModeStats);
 }
@@ -561,8 +563,8 @@ constexpr int kAnswerOk = 0x10001;
 
 void CMpHeroScreen::DeleteHero() {
     if (heroIndex_ < 0 || static_cast<std::uint32_t>(heroIndex_) >= MpHeroCount()) return;
-    mfc::CString path = MpHeroesFolder() + MpHeroesBegin()[heroIndex_].file;
-    gameapi::DeleteFileA(path);
+    std::string path = (MpHeroesFolder() + MpHeroesBegin()[heroIndex_].file).GetString();
+    gameapi::DeleteFileA(path.c_str());
     MpHeroRecord* at = MpHeroesBegin() + heroIndex_;
     for (MpHeroRecord* next = at + 1; next < MpHeroesEnd(); ++at, ++next) at->Assign(next);
     (--MpHeroesEnd())->Destruct();   // destructed in place
@@ -626,8 +628,8 @@ int HighestFileNumber(const char* pattern) {
         do {
             more = find.FindNext();
             if (!find.IsDots()) {
-                mfc::CString title = find.GetTitle();
-                int number = std::atoi(title);
+                std::string title = find.GetTitle().GetString();
+                int number = std::atoi(title.c_str());
                 if (!(highest > number)) highest = number;
             }
         } while (more);
@@ -673,9 +675,9 @@ void CMpHeroScreen::AddNewHero() {
     heroIndex_ = static_cast<int>(MpHeroesEnd() - MpHeroesBegin()) - 1;
     MpHeroRecord* record = MpHeroesBegin() + heroIndex_;
 
-    mfc::CString pattern;
-    pattern.Format(HeroFilePattern(), MpHeroesFolder().GetString());
-    int highest = HighestFileNumber(pattern);
+    std::string pattern;
+    pattern = str::Format(HeroFilePattern(), MpHeroesFolder().GetString());
+    int highest = HighestFileNumber(pattern.c_str());
     record->file.Format(HeroFileFormat(), highest + 1);
     record->Party()->Assign(LocalPlayerData());
     record->WriteFile(HeroesFolder());

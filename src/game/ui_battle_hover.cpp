@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include "world.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -141,11 +142,11 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             Vector3 at = pick();
             int exit;
             if (!TheClientWorld()->FindExitAt(&at.x, &exit)) return;
-            mfc::CString name(GameExitTarget(exit));
-            if (gamecrt::mbsicmp(name.GetString(),
+            std::string name = GameExitTarget(exit);
+            if (gamecrt::mbsicmp(name.c_str(),
                                 game::NoneText()) != 0) {
                 name = mfc::CString("z.") + name;
-                double value = LocalPlayerVariable(name);
+                double value = LocalPlayerVariable(name.c_str());
                 const float one = 1.0f /*0073B84C*/;
                 // FCOMP; TEST AH,0x40; JNZ: equal skips.
                 EI_NAN_AUDIT(value);

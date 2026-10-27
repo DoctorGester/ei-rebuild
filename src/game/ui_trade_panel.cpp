@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include "core_maths.h"
 #include "unit_db.h"
 #include "world_glue.h"
@@ -60,12 +61,12 @@ void Clear(TradeRows* rows) {
 
 // Whether the text table has "perk <name>" (the key's temporaries released before returning).
 int HasPerkText(CTextManager* table, const mfc::CString& name) {
-    mfc::CString prefix("perk ");
+    std::string prefix("perk ");
     mfc::CString key = prefix + name;
     return table->CTextManager::Open(key);
 }
 int HasPerkText(CTextManager* table, const char* name) {
-    mfc::CString prefix("perk ");
+    std::string prefix("perk ");
     mfc::CString key = prefix + name;
     return table->CTextManager::Open(key);
 }

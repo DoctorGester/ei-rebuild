@@ -20,9 +20,11 @@
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -134,9 +136,9 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         BriefingPlayerName name;
         zone = TheMapDatabase()->FindMap(name);
     }
-    mfc::CString prefix;
-    prefix.Format(ZoneTopicFormat(), zone->name.GetString());
-    BriefingVariables variables(prefix);
+    std::string prefix;
+    prefix = str::Format(ZoneTopicFormat(), zone->name.GetString());
+    BriefingVariables variables(prefix.c_str());
     console::CStringArray parts;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         std::uint32_t bits;

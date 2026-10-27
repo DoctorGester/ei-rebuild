@@ -8,6 +8,7 @@
 #include "lib/crt.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -208,7 +209,7 @@ mfc::CString CFileRegistry::GetString(const char* section, const char* key, mfc:
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
         mfc::CString text(reinterpret_cast<const char*>(value + 2), U16(value));
         text::FromAssetText(&text);
-        mfc::CString result(text);
+        std::string result = text.GetString();
         return result;
     }
     return defaultValue;

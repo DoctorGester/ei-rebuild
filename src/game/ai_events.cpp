@@ -18,6 +18,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -208,9 +209,9 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     new (archive) CMappedResource();
     bool failed;
     {
-        mfc::CString folder(TheTextFolder());
-        mfc::CString path = folder + kAiInfoArchive;
-        failed = archive->CMappedResource::OpenResource(path, 0) == 0;
+        std::string folder = TheTextFolder().GetString();
+        std::string path = folder + kAiInfoArchive;
+        failed = archive->CMappedResource::OpenResource(path.c_str(), 0) == 0;
     }
     void* data = nullptr;
     const char* error = kCantReadAiInfo;

@@ -16,6 +16,7 @@
 
 #include <bit>
 #include <cstring>
+#include <string>
 
 namespace {
 constexpr std::uint32_t kFlag800000 = 0x800000;     // flags_, cleared by Load
@@ -238,11 +239,11 @@ void CUnit::SaveUnit(CStream* stream) {
 
     // The prototype's name (the record's first field is a CString; a record out of range is
     // copied from address 0, as the original does), then the second prototype's or "".
-    mfc::CString prototypeName(unitdb::PrototypeRecord(prototypeId_)->name);
-    WriteString(stream, prototypeName);
+    std::string prototypeName = unitdb::PrototypeRecord(prototypeId_)->name.GetString();
+    WriteString(stream, prototypeName.c_str());
     const UnitPrototypeRecord* second = unitdb::PrototypeRecord(static_cast<std::uint32_t>(prototype23C));
     if (second) prototypeName = second->name;
     else prototypeName = "";
-    WriteString(stream, prototypeName);
+    WriteString(stream, prototypeName.c_str());
 }
 EI_REWRITTEN(0x005321C0, CUnit::SaveUnit);

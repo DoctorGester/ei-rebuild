@@ -24,6 +24,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -32,6 +33,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -233,7 +235,7 @@ void CMpHeroScreen::CreateScreen() {
     mfc::CString male;
     mfc::CString female;
     mfc::CString figureModel;
-    mfc::CString label;
+    std::string label;
     texts->GetString("lmp_male_voice", &male);
     texts->GetString("lmp_female_voice", &female);
     NameList& men = defaults_;
@@ -276,11 +278,11 @@ void CMpHeroScreen::CreateScreen() {
             isMale = !isFemale;
         }
         if (isMale) {
-            label.Format("%s %d", male.GetString(), static_cast<int>(maleVoices.size()) + 1);
+            label = str::Format("%s %d", male.GetString(), static_cast<int>(maleVoices.size()) + 1);
             AddFigure(maleVoices, men, prototype, label, creature()->voiced != 0);
         }
         if (isFemale) {
-            label.Format("%s %d", female.GetString(), static_cast<int>(femaleVoices.size()) + 1);
+            label = str::Format("%s %d", female.GetString(), static_cast<int>(femaleVoices.size()) + 1);
             AddFigure(femaleVoices, women, prototype, label, creature()->voiced != 0);
         }
     }
@@ -289,7 +291,7 @@ void CMpHeroScreen::CreateScreen() {
     SortNames(women);
     for (mfc::CString *low = women.begin(), *high = women.end(); low < high; ++low) {
         --high;
-        mfc::CString kept(*low);
+        std::string kept = (*low).GetString();
         *low = *high;
         *high = kept;
     }

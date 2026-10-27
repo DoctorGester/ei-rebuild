@@ -31,8 +31,10 @@
 #include "lib/nan_audit.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
+#include "lib/str.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -62,19 +64,19 @@ void CWorldServer::UpdateMercBriefings() {
         auto set = [&](const mfc::CString& name, float value) { state->SetVariable(name, std::bit_cast<std::uint32_t>(value)); };
 
         for (int slot = 1; slot <= kMercSlots; ++slot) {
-            mfc::CString merc;
-            merc.Format(worlddata::MercNameFormat(), slot);
-            unsigned key = TextKeyFromName(merc);
+            std::string merc;
+            merc = str::Format(worlddata::MercNameFormat(), slot);
+            unsigned key = TextKeyFromName(merc.c_str());
             bool briefedHere = gamecrt::mbsicmp(zoneName_,
                                                worlddata::MercZoneName(slot - 1)) == 0;
             Briefing b;
-            b.n8.Format(worlddata::MercVariableN8Format(), merc.GetString(), slot);
-            b.n1.Format(worlddata::MercVariableN1Format(), merc.GetString(), slot);
-            b.n2.Format(worlddata::MercVariableN2Format(), merc.GetString(), slot);
-            b.n3.Format(worlddata::MercVariableN3Format(), merc.GetString(), slot);
-            b.n9.Format(worlddata::MercVariableN9Format(), merc.GetString(), slot);
-            b.n10.Format(worlddata::MercVariableN10Format(), merc.GetString(), slot);
-            b.n11.Format(worlddata::MercVariableN11Format(), merc.GetString(), slot);
+            b.n8.Format(worlddata::MercVariableN8Format(), merc.c_str(), slot);
+            b.n1.Format(worlddata::MercVariableN1Format(), merc.c_str(), slot);
+            b.n2.Format(worlddata::MercVariableN2Format(), merc.c_str(), slot);
+            b.n3.Format(worlddata::MercVariableN3Format(), merc.c_str(), slot);
+            b.n9.Format(worlddata::MercVariableN9Format(), merc.c_str(), slot);
+            b.n10.Format(worlddata::MercVariableN10Format(), merc.c_str(), slot);
+            b.n11.Format(worlddata::MercVariableN11Format(), merc.c_str(), slot);
             b.hired.Format(worlddata::MercHiredFormat(), slot);
             set(b.n11, 0.0f);
 

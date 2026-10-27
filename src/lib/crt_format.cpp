@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "game/game_data.h"
 #include "gameapi.h"
+#include "str.h"
 
 #include <climits>
 #include <cstdint>
@@ -982,3 +983,13 @@ gamecrt::CrtFile* GameStream(int index) { return reinterpret_cast<gamecrt::CrtFi
 gamecrt::CrtFile* StandardOutput() { return GameStream(1); }
 
 } // namespace libcrt
+
+// CString::FormatV's text (str.h): the game's vsprintf into a std::string, up to the first zero byte as
+// ReleaseBuffer(-1) left it.
+std::string str::FormatV(const char* format, va_list arguments) {
+    std::vector<char> text;
+    libcrt::VectorSink sink{text};
+    libcrt::Output<libcrt::VectorSink>(sink).Run(format, arguments);
+    text.push_back('\0');
+    return std::string(text.data());
+}

@@ -22,6 +22,7 @@
 
 #include <cstring>
 #include <new>
+#include <string>
 
 // What CPUID function 1 reported, the system information object (constructed by its static initialiser) and
 // the translation unit's four constants, which their ported initialisers store.
@@ -155,7 +156,7 @@ int CSysInfo::Collect() {
     gameapi::GetUserNameA(user, &userSize);
     userName_ = user;
 
-    mfc::CString report;
+    std::string report;
     report = "OS\t\t\t" + systemName_ + " build " + systemVersion_ + "\n";
     char digits[0x400];
 #pragma warning(push)

@@ -9,6 +9,7 @@
 
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -135,7 +136,7 @@ mfc::CString CWinRegistry::GetStringInt(const char* subkey, const char* name, mf
         if (longValue) gamecrt::free(longValue);
         return defaultValue;
     }
-    mfc::CString text;
+    std::string text;
     if (longValue) {
         text = longValue;
         gamecrt::free(longValue);

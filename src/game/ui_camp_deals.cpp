@@ -18,6 +18,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -167,10 +168,10 @@ bool CCampPages::DeconstructItem() {
     for (std::uint32_t i = 0; i < copy->GetPrototype()->materialUnits; ++i) {
         const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(MaterialIndex(copy->prototypeId_));
         // The original builds CString("material") + '.' + key (operator+ twice); the text is the same.
-        mfc::CString name(MaterialText());
+        std::string name = MaterialText();
         name += ".";
         name += material->key;
-        AddNamed(results, name, 0, false);
+        AddNamed(results, name.c_str(), 0, false);
     }
     if (copy->spell_) {
         CItemManager* manager = results->ItemManager();

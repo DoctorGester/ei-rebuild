@@ -23,6 +23,7 @@
 #include "settings_file.h"
 #include "system_text.h"
 #include "ui_cursor.h"
+#include "lib/str.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -56,12 +57,12 @@ bool g_applyGui = false;               // the battle screen applies g_guiShown
 // addon's console output: the text, "\n" (as a string), flush.
 void Say(const char* text) { (Out() << text << "\n").Apply(libcrt::FlushManipulator); }
 void __cdecl SayFormat(const char* format, ...) {
-    mfc::CString text;
+    std::string text;
     va_list args;
     va_start(args, format);
-    text.FormatV(format, args);
+    text = str::FormatV(format, args);
     va_end(args);
-    Say(text);
+    Say(text.c_str());
 }
 
 // listgvar's object text: "null", or "<" class name ":" id ">".
@@ -181,7 +182,7 @@ void __fastcall NoGui(CStringArray* args) {
 }
 
 void Register(CommandMap* map, const char* name, CommandHandler handler) {
-    mfc::CString key(name);
+    std::string key = name;
     Command(map, key) = handler;
 }
 

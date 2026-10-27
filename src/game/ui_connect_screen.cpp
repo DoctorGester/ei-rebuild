@@ -30,6 +30,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "world_glue.h"
 #include "game_data.h"
@@ -38,6 +39,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 
 namespace net {
 int __fastcall MasterLinkTick(net::MasterLink*);
@@ -269,10 +271,10 @@ void CMpConnectScreen::Update() {
         surfaces_.data[kSurfaceConnecting]->Freeze(0, 0);
         if (joining_) {
             joining_ = false;
-            mfc::CString key;
+            std::string key;
             key = RefusalKey(client->refusal_);
             mfc::CString text = key + MessageSuffix();
-            interface_->PushWindow(new CMessageBox(interface_, key, text, kBoxNotice, kBoxFlagsOk, kBoxFormat), 1, 1);
+            interface_->PushWindow(new CMessageBox(interface_, key.c_str(), text, kBoxNotice, kBoxFlagsOk, kBoxFormat), 1, 1);
             return;
         }
     }
@@ -468,10 +470,10 @@ void CMpConnectScreen::Connect() {
         int players;
         playersSlider_->TakePosition(&players);
         ++players;
-        mfc::CString name(nameEdit_->text_);
-        if (name.GetLength() == 0) name = DefaultGameName();
+        std::string name = nameEdit_->text_.GetString();
+        if (name.size() == 0) name = DefaultGameName();
         SaveAddressBook();
-        TheGameFlow()->StartServer(name, players, gameType_, hostPassword_, static_cast<char>(unlisted_),
+        TheGameFlow()->StartServer(name.c_str(), players, gameType_, hostPassword_, static_cast<char>(unlisted_),
                                    static_cast<int>(net::GameClient()->queries_.extra));
         return;
     }
@@ -730,14 +732,14 @@ void CMpConnectScreen::CreateScreen() {
             nameEdit_->SetLook(3, 0, 1, kNameLength, TextColour(), kCaretColour);
     }
     // The new game's name: the first hero's, to its '|', at most 10 characters.
-    mfc::CString name(LocalPlayerData()->members_.data[0].texts[0]);
+    std::string name = LocalPlayerData()->members_.data[0].texts[0].GetString();
     {
-        const int end = name.Find(NameEnd());
-        if (end >= 0) name = name.Left(end);
-        if (text::CharacterCount(name) > kNameLength) name = name.Left(text::CharacterBytes(name, kNameLength));
-        name.TrimLeft();
-        name.TrimRight();
-        nameEdit_->SetText(name);
+        const int end = str::Find(name, NameEnd());
+        if (end >= 0) name = str::Left(name, end);
+        if (text::CharacterCount(name) > kNameLength) name = str::Left(name, text::CharacterBytes(name, kNameLength));
+        str::TrimLeft(name);
+        str::TrimRight(name);
+        nameEdit_->SetText(name.c_str());
         nameEdit_->SetEnabled(0, 1);
         nameEdit_->SetFocused(false);
     }

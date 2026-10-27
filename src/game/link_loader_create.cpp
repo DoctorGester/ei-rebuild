@@ -12,6 +12,7 @@
 #include "lib/stlp.h"
 
 #include <cstddef>
+#include <string>
 
 namespace {
 

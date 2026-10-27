@@ -25,6 +25,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -33,6 +34,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -335,12 +337,12 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     // The panel's texts "infounit_0".."infounit_17" and the four body part labels.
     CTextManager* texts = TheTextManager();
     mfc::CString text;
-    mfc::CString key;
+    std::string key;
     mfc::CStringArray* infoTexts = &texts_;
     for (int i = 0; i < kInfoTexts; ++i) {
-        key.Format(kInfoTextFormat, i);
+        key = str::Format(kInfoTextFormat, i);
         text.Empty();
-        texts->GetString(key, &text);
+        texts->GetString(key.c_str(), &text);
         infoTexts->SetAtGrow(infoTexts->size, text);
     }
     // A missing label keeps the text before it.

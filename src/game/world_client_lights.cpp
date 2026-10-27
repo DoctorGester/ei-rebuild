@@ -20,6 +20,7 @@
 
 #include <bit>
 #include <cmath>
+#include <string>
 
 namespace {
 
@@ -237,9 +238,9 @@ void CWorldClient::UpdateExitMarkers() {
     for (int i = 0; i < exits_.size; ++i) {
         CParticleSource* marker = countedA0_[i];
         if (!marker) continue;
-        mfc::CString name("z.");
+        std::string name("z.");
         name += exits_[i].target;
-        const float visited = variables->Get(name);
+        const float visited = variables->Get(name.c_str());
         EI_NAN_AUDIT(visited);
         marker->extent = {visited == 1.0f ? 1.0f : 0.0f, 0.0f, 0.0f};
     }

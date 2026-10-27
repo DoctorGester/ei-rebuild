@@ -18,8 +18,10 @@
 #include <cstdint>
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 // Virtual-key codes.
@@ -181,10 +183,10 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
         }
         mfc::CString& name = name_;
         if (!interface_->ctrlDown_ && text::CharacterCount(name) < kMaxNameLength) {
-            mfc::CString tail = console::Ops(name).Mid(cursor_);
-            mfc::CString typed;
+            std::string tail = console::Ops(name).Mid(cursor_).GetString();
+            std::string typed;
             {
-                mfc::CString head = name.Left(cursor_);
+                std::string head = name.Left(cursor_).GetString();
                 typed = text::Typed(head, key) + tail;   // U4: with EI_UTF8 the character's UTF-8 bytes
             }
             if (TextWidth(interface_, typed, 1) < kMaxNameWidth) {
@@ -240,11 +242,11 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             // Already bound to another action: ask (the box's result goes to OnDialogResult).
             CMessageBox* box = new CMessageBox(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
             mfc::CString format;
-            mfc::CString message;
+            std::string message;
             TheTextManager()->GetString(game::menukeytexts::KeyMappedText(), &format);
-            message.Format(format, pressed->name_, other->name_.GetString());
+            message = str::Format(format, pressed->name_, other->name_.GetString());
             // The box's text (a null box is written through, as in the original).
-            box->text_ = message.GetString();
+            box->text_ = message.c_str();
             interface_->PushWindow(box, 1, 1);
             return;
         }

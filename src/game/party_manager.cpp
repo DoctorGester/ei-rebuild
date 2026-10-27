@@ -15,6 +15,8 @@
 #include "game_hashes.h"
 #include "lib/stlp_vector_refs.h"
 
+#include <string>
+
 
 namespace {
 
@@ -245,7 +247,7 @@ void NamedPartyRecords::BeginRedeploy(CParty* party) {
     if (CParty* found = Find(text10)) CopyParty(found, party);
     NamedFloatTable variables;
     variables.CopyConstruct(party->variables_);
-    mfc::CString zone(party->zone_);
+    std::string zone = party->zone_.GetString();
     for (PartyRecord* record : records) {
         CParty* target = RecordParty(record);
         target->variables_.Assign(variables);

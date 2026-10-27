@@ -17,9 +17,11 @@
 #include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <cstdlib>
+#include <string>
 
 namespace {
 
@@ -157,12 +159,12 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
             places.push_back(UiPointF{record->places[i - 1], record->places[i]});
         return;
     }
-    mfc::CString header;
+    std::string header;
     console::CStringArray words;
     CTextManager* texts = TheTextManager();
     texts->Open(MapText());
-    header.Format(QuestHeader(), name);
-    if (texts->FindLine(header)) {
+    header = str::Format(QuestHeader(), name);
+    if (texts->FindLine(header.c_str())) {
         TextNextLine(texts);
         TextNextLine(texts);
         if (texts->Split(&words, 1) && words.GetSize() > 1) {

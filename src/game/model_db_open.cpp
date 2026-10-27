@@ -13,6 +13,8 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
+#include <string>
+
 namespace {
 
 using dbfile::FillStream;
@@ -66,7 +68,7 @@ acks::SpeechList* UnitList(acks::UnitAcks& record, int list) {
 // --- prints.db ------------------------------------------------------------------------------------
 
 int PrintsDatabase::Load(const char* folder) {
-    mfc::CString base(folder);
+    std::string base = folder;
     LocalResource resource;
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
     std::uint32_t size;
@@ -97,7 +99,7 @@ EI_REWRITTEN(0x006D0630, PrintsDatabase::Load);
 namespace acks {
 
 int AckDatabase::Load(const char* folder) {
-    mfc::CString base(folder);
+    std::string base = folder;
     LocalResource resource;
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
     std::uint32_t size;

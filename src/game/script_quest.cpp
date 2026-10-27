@@ -10,6 +10,7 @@
 #include "game_arrays.h"
 
 #include <cstring>
+#include <string>
 
 // An objective's destructor (its text).
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective) { objective->text.~CString(); }
@@ -32,7 +33,7 @@ void __fastcall ScriptQuestStart(const char* name) {
 // 004BAE10 (the QObj* commands; __fastcall (type, text) with the value on the stack). Appends
 // {type, text, value}; the text goes through a temporary copy.
 void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value) {
-    mfc::CString copy;
+    std::string copy;
     copy = *text;
     mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
     int at = objectives.size;

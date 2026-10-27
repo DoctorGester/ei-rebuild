@@ -38,6 +38,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <string>
 
 // --- Helpers ------------------------------------------------------------------------------------
 
@@ -209,9 +210,9 @@ void COptionsWindow::CreateScreen() {
         if (TheTextManager()->Open(text) != 0) TheTextManager()->ReadToHash(&text, 1);
         region->SetTipString(text, 1, 0);
         {
-            mfc::CString prefix("option_group_");
-            mfc::CString key = prefix + OptionGroupName(k);
-            TheTextManager()->GetString(key, &text);
+            std::string prefix("option_group_");
+            std::string key = prefix + OptionGroupName(k);
+            TheTextManager()->GetString(key.c_str(), &text);
         }
         groupNames_.SetAtGrow(groupNames_.GetSize(), text);
     }
@@ -345,8 +346,8 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 2: {
         // Exit: the exit movie, then quit.
         {
-            mfc::CString path = *GameBasePathString() + "Movies\\Exit.bik";
-            PlayMovie(path, 0, 0, 0, 1, 1, 1);
+            std::string path = (*GameBasePathString() + "Movies\\Exit.bik").GetString();
+            PlayMovie(path.c_str(), 0, 0, 0, 1, 1, 1);
         }
         app::QuitGame(0);
         break;
@@ -584,8 +585,8 @@ void CCreditsScreen::CreateScreen() {
             words.Start();
             TitleLine record{};
             {
-                mfc::CString first(words.WordOrNull());
-                record.scroll = gamecrt::mbsicmp(first.GetString(),
+                std::string first = words.WordOrNull();
+                record.scroll = gamecrt::mbsicmp(first.c_str(),
                                                 "#scroll") ==
                                 0;   // "#scroll"
             }

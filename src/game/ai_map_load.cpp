@@ -25,6 +25,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
+#include "lib/str.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -33,6 +34,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -207,8 +209,8 @@ int ReadTerrainTypes(CAIMap& map) {
     Archive archive;
     bool opened;
     {
-        mfc::CString folder(TheTextFolder());
-        opened = archive.Open(folder + "aiinfo.res");
+        std::string folder = TheTextFolder().GetString();
+        opened = archive.Open((folder + "aiinfo.res").c_str());
     }
     if (!opened) return game::FatalError("Unable to read file aiinfo.res");
     void* file = archive.File("tileDesc.reg", nullptr);
@@ -231,8 +233,8 @@ int ReadTerrainTypes(CAIMap& map) {
     for (int i = 0; i < sections.size; ++i) {
         const int index = std::atoi(sections[i].GetBuffer(0));
         {
-            mfc::CString name = registry.file.GetString(sections[i], "Name", mfc::CString(""));
-            const char* text = name.GetBuffer(0);
+            std::string name = registry.file.GetString(sections[i], "Name", mfc::CString("")).GetString();
+            const char* text = str::Buffer(name, 0);
             std::memcpy(map.materials.ElementAt(index).name, text, std::strlen(text) + 1);
         }
         AITerrainType& type = map.materials[index];
@@ -437,12 +439,12 @@ void StampSector(CAIMap& map, const MapDescription& description, const void* fil
 
 int CAIMap::LoadTerrain(const char* path) {
     Archive archive;
-    mfc::CString full(path);
+    std::string full = path;
     // (The original also builds the path without its extension here and never uses it.)
-    if (!archive.Open(full)) return 0;
+    if (!archive.Open(full.c_str())) return 0;
     console::CStringArray maps;
     archive.Get()->ListFiles(&maps, "*.mp");
-    mfc::CString name = maps[0].Left(maps[0].Find('.'));
+    std::string name = maps[0].Left(maps[0].Find('.')).GetString();
 
     MapDescription description;
     if (const int result = ReadDescription(archive, full, name, description); result != 1) return result;
@@ -458,7 +460,7 @@ int CAIMap::LoadTerrain(const char* path) {
     for (int sectorY = 0; sectorY < description.header.sectorsY; ++sectorY) {
         for (int sectorX = 0; sectorX < description.header.sectorsX; ++sectorX) {
             char file[432];
-            gamecrt::sprintf(file, "%s%3.3i%3.3i%s", name.GetBuffer(0), sectorX, sectorY, kSectorExtension);
+            gamecrt::sprintf(file, "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.File(file, &size);
             if (!sector) return Fatal("Unable to locate resource: " + mfc::CString(file));

@@ -11,6 +11,8 @@
 #include "library_trees.h"
 #include "game_singletons.h"
 
+#include <string>
+
 namespace {
 
 const char* PersonPattern() { return "pers *"; }
@@ -34,12 +36,12 @@ void LoadPersonTexts(PersonTextMap* map) {
         texts->ReadLine(&line, 1);
         int key;
         {
-            mfc::CString name = console::Ops(keys[i]).Mid(kPersonPrefixLength);
-            key = TextKeyFromName(name);
+            std::string name = console::Ops(keys[i]).Mid(kPersonPrefixLength).GetString();
+            key = TextKeyFromName(name.c_str());
         }
         PersonTextNode* node = map->lower_bound(key);
         if (node == map->end() || key < node->first) {
-            mfc::CString empty;
+            std::string empty;
             PersonTextPair pair{key, empty};
             static_cast<lib_trees::PersonTexts*>(map)->InsertHint(&node, node, *(
                                                reinterpret_cast<const lib_trees::PersonTexts::Value*>(&pair)));

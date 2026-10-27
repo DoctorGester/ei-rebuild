@@ -8,9 +8,11 @@
 #include "console.h"
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <new>
+#include <string>
 
 using namespace itemdb;
 
@@ -52,9 +54,9 @@ template <typename Record>
 mfc::CString ModelNameOf(const NamedRecordTable<Record>& table, const char* const (&codes)[7], std::uint32_t id) {
     const MaterialRecordHead* material = MaterialAt(MaterialIndex(id));
     const Record* prototype = table.At(PrototypeIndex(id));
-    mfc::CString name;
+    std::string name;
     if (prototype && material)
-        name.Format(kModelFormat, TypeCode(codes, prototype->type), prototype->number,
+        name = str::Format(kModelFormat, TypeCode(codes, prototype->type), prototype->number,
                     material->name.GetString(), prototype->variant);
     return name;
 }
@@ -73,8 +75,8 @@ mfc::CString FirstListNameOf(const NamedRecordTable<Record>& table, std::uint32_
 mfc::CString HumanFigureName(CItem* item) {
     alignas(mfc::CString) char model[sizeof(mfc::CString)];
     mfc::CString& modelName = *new (model) mfc::CString(item->ModelName());
-    mfc::CString prefix(kHumanPrefix);
-    mfc::CString name = prefix + modelName;
+    std::string prefix = kHumanPrefix;
+    std::string name = prefix + modelName;
     modelName.~CString();
     return name;
 }
@@ -85,8 +87,8 @@ mfc::CString PictureNameOf(const NamedRecordTable<Record>& table, const char* co
                            std::uint32_t id) {
     const Record* prototype = table.At(PrototypeIndex(id));
     const char* code = TypeCode(codes, prototype->type);
-    mfc::CString name;
-    name.Format(format, code, prototype->number);
+    std::string name;
+    name = str::Format(format, code, prototype->number);
     return name;
 }
 
@@ -153,41 +155,41 @@ EI_REWRITTEN(0x006A0CC0, WeaponBaseFigure);
 // --- Quick items, quest items, scrolls -----------------------------------------------------------
 
 mfc::CString CItemQuick::FigureName() {
-    mfc::CString name;
+    std::string name;
     const ItemRecordHead* prototype = GetPrototype();
     if (prototype && gamecrt::mbsicmp(prototype->materialClass.GetString(),
                                      kNoMaterial) != 0) {
         const MaterialRecordHead* material = MaterialAt(MaterialIndex(prototypeId_));
         const char* materialName = material ? material->name.GetString() : kUnknownMaterial;
-        name.Format(kQuickMaterialFigure, Number(GetPrototype()), materialName);
+        name = str::Format(kQuickMaterialFigure, Number(GetPrototype()), materialName);
         return name;
     }
-    name.Format(kQuickFigure, Number(GetPrototype()));
+    name = str::Format(kQuickFigure, Number(GetPrototype()));
     return name;
 }
 
 mfc::CString CItemQuick::PictureName() {
-    mfc::CString name;
-    name.Format(kQuickPicture, Number(GetPrototype()));
+    std::string name;
+    name = str::Format(kQuickPicture, Number(GetPrototype()));
     return name;
 }
 
 mfc::CString CItemQuest::FigureName() {
-    mfc::CString name;
-    name.Format(kQuestFigure, Number(GetPrototype()));
+    std::string name;
+    name = str::Format(kQuestFigure, Number(GetPrototype()));
     return name;
 }
 
 mfc::CString CItemQuest::PictureName() {
-    mfc::CString name;
-    name.Format(kQuestPicture, Number(GetPrototype()));
+    std::string name;
+    name = str::Format(kQuestPicture, Number(GetPrototype()));
     return name;
 }
 
 mfc::CString CItemSpell::FigureName() {
     const SpellRecord* prototype = SpellAt(PrototypeIndex(spell_->prototypeId_));
-    mfc::CString name;
-    name.Format(kSpellFigure, prototype->icon);
+    std::string name;
+    name = str::Format(kSpellFigure, prototype->icon);
     return name;
 }
 
@@ -201,27 +203,27 @@ enum LootRecord : std::uint32_t { kRecordWeapon, kRecordArmor, kRecordQuick, kRe
 } // namespace
 
 mfc::CString CItemLoot::FigureName() {
-    mfc::CString name;
+    std::string name;
     if (kind_ == kLootRecord) {
         switch (recordType_) {
         case kRecordWeapon:
         case kRecordArmor: {
             bool weapon = recordType_ == kRecordWeapon;
             const ItemRecordHead* record = WeaponOrArmorAt(weapon, index_);
-            mfc::CString code;
+            std::string code;
             int type = record->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
-            name.Format(kRecordModelFormat, code.GetString(), record->number, record->variant);
+            name = str::Format(kRecordModelFormat, code.c_str(), record->number, record->variant);
             break;
         }
         case kRecordQuick:
-            name.Format(kQuickFigure, QuickItemAt(index_)->number);
+            name = str::Format(kQuickFigure, QuickItemAt(index_)->number);
             break;
         case kRecordSpell:
-            name.Format(kPrototypeFigure, SpellAt(index_)->icon);
+            name = str::Format(kPrototypeFigure, SpellAt(index_)->icon);
             break;
         case kRecordModifier:
-            name.Format(kModifierFigure, index_);
+            name = str::Format(kModifierFigure, index_);
             break;
         default:
             break;
@@ -229,28 +231,28 @@ mfc::CString CItemLoot::FigureName() {
         return name;
     }
     if (kind_ == kLootMaterial)
-        name.Format(kMaterialFigure, index_);
+        name = str::Format(kMaterialFigure, index_);
     else
-        name.Format(kLootFigure, Number(GetPrototype()));
+        name = str::Format(kLootFigure, Number(GetPrototype()));
     return name;
 }
 
 mfc::CString CItemLoot::PictureName() {
-    mfc::CString name;
+    std::string name;
     if (kind_ == kLootRecord) {
         switch (recordType_) {
         case kRecordWeapon:
         case kRecordArmor: {
             bool weapon = recordType_ == kRecordWeapon;
             const ItemRecordHead* record = WeaponOrArmorAt(weapon, index_);
-            mfc::CString code;
+            std::string code;
             int type = record->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
-            name.Format(weapon ? kWeaponPicture : kArmorPicture, code.GetString(), record->number);
+            name = str::Format(weapon ? kWeaponPicture : kArmorPicture, code.c_str(), record->number);
             break;
         }
         case kRecordQuick:
-            name.Format(kQuickPicture, QuickItemAt(index_)->number);
+            name = str::Format(kQuickPicture, QuickItemAt(index_)->number);
             break;
         case kRecordSpell:
         case kRecordModifier:
@@ -262,9 +264,9 @@ mfc::CString CItemLoot::PictureName() {
         return name;
     }
     if (kind_ == kLootMaterial)
-        name.Format(kMaterialPicture, index_);
+        name = str::Format(kMaterialPicture, index_);
     else
-        name.Format(kLootPicture, Number(GetPrototype()));
+        name = str::Format(kLootPicture, Number(GetPrototype()));
     return name;
 }
 

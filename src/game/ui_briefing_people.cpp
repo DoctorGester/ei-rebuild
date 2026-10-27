@@ -24,9 +24,11 @@
 #include "lib/stlp_hash.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "lib/str.h"
 
 #include <cmath>
 #include <new>
+#include <string>
 
 namespace {
 
@@ -179,9 +181,9 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         frame->SetFrame(20.0f, 100.0f, x - kSlotFrame, y - kSlotFrame, x + kSlotFrame, y + kSlotFrame, 5.0f, 2, 0xFE, 0xB4,
                         0xF9);
     }
-    mfc::CString figure;
-    figure.Format(ItemFigureFormat(), record->number);
-    CUiMesh* item = AddSprite(figure);
+    std::string figure;
+    figure = str::Format(ItemFigureFormat(), record->number);
+    CUiMesh* item = AddSprite(figure.c_str());
     if (!item) {
         if (back) RemoveSceneObject(back);
         if (frame) RemoveSceneObject(frame);
@@ -191,10 +193,10 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         item->flatColour_ = kTintedItem;
         item->flags_ |= kPlainFlag;
     }
-    mfc::CString image;
-    image.Format(ItemImageFormat(), record->number);
+    std::string image;
+    image = str::Format(ItemImageFormat(), record->number);
     CEngineObject* texture = CreateTexture(0x100, 0x100, 0x20);
-    CopyImage(texture, image, 0x40, 0x40, 0x40, 0x40, 0, 0xC0, 0, 0);
+    CopyImage(texture, image.c_str(), 0x40, 0x40, 0x40, 0x40, 0, 0xC0, 0, 0);
     item->texture_ = texture;
     item->Place(x, y, kItemDepth);
     Quaternion turn;

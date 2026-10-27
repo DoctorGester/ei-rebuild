@@ -6,9 +6,11 @@
 #include "game_strings.h"
 #include "../lib/mfc.h"
 #include "ei/hook.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <new>
+#include <string>
 
 namespace scene {
 namespace {
@@ -37,16 +39,16 @@ constexpr Entry kMaterials[] = {{"le", 0x11}, {"wo", 0x12}, {"me", 0x13},
 // ECX: the name, EDX: the texture type out, `material` out. Returns 1. A name without exactly three
 // parts gives (1, 0x15); an unknown texture type 1, an unknown material 0x15 (after the error).
 int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
-    mfc::CString rest(name);
+    std::string rest = name;
     mfc::CStringArray parts;
     parts.Construct();
     rest += '.';
-    for (int dot = rest.Find('.'); dot != -1; dot = rest.Find('.')) {
+    for (int dot = str::Find(rest, '.'); dot != -1; dot = str::Find(rest, '.')) {
         {
-            mfc::CString part = rest.Left(dot);
+            std::string part = str::Left(rest, dot);
             parts.SetAtGrow(parts.size, part);
         }
-        mfc::CString tail = rest.Right(rest.GetLength() - dot - 1);
+        std::string tail = str::Right(rest, static_cast<int>(rest.size()) - dot - 1);
         rest = tail;
     }
     if (parts.size != 3) {
