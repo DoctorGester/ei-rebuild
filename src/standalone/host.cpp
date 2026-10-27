@@ -1,15 +1,5 @@
-// ei_standalone: runs the rebuilt game without game.exe (docs/notes/standalone.md section 2).
-// The host is an ordinary exe: it neither reads game.exe nor lays out anything at game.exe's addresses.
-// The game's hInstance is this module, whose one resource is its version information (host.rc; the game's
-// strings are literals in our code, no icon yet); ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from
-// the build (src/standalone/image_data.cpp), resolves game.exe's imports into a table of its own as it initialises
-// (image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp), points the code
-// cells of game.exe's data at them and runs WinMain. Function pointers in the data and vtable slots reach
-// our code that way.
-// The guard: first thing, the host reserves what of game.exe's range (0x400000 up to its SizeOfImage) is free, with
-// no access, so nothing is allocated there later and a stray game address (a jump into game.exe's code that went
-// around CodeAddress, a read of its data that missed the seam) faults and is named instead of reaching other memory.
-// What the loader had already put there (this exe, a heap) stays as it is; ei_hook.dll logs how much is guarded.
+// ei_standalone: runs the rebuilt game without game.exe; first it reserves the free part of game.exe's range
+// with no access (the guard). See docs/notes/standalone.md, "The image's source files".
 // usage: ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game arguments>]
 //   Run from the game folder (the working directory the game expects). Without --run the host builds
 //   the image, takes the registrations, checks them and exits: no window, nothing of the game runs. What

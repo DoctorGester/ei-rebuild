@@ -1,12 +1,5 @@
-// Meshes in the new renderer: everything the old path draws through the device's mesh draws (figures and map
-// objects, the sky, the interface's sprites (CUiMesh) and 3D previews). The game hands the mesh over in model
-// space with the matrix it projects it with (BeginMesh); each pass the old path then draws
-// (src/game/device_draw.cpp) becomes a batch with the old device's state of that moment (MeshPass): blend,
-// alpha test, depth, culling, fog, the two texture stages' operations, filters and textures. The material's
-// state blocks are opaque to us, so the state is read back from the old device. A figure mesh drawn through the
-// figure part draws is kept on the GPU (render_mesh_cache.cpp) and its batches draw from that pool; every other
-// mesh is built into the frame's stream. A figure part handed over with its lighting (MeshSource::lighting) is
-// lit in the shader from its normals.
+// Meshes: each pass of an old-path device mesh draw becomes a batch with the old device's state of that pass.
+// See docs/notes/renderer.md, "The renderer's source files".
 #include "render.h"
 #include "render_internal.h"
 

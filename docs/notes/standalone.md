@@ -2141,3 +2141,65 @@ game.exe runs only as the original game, for the harness's references; none of o
   game's GetDeviceState for GUID_SysMouse is wrapped and the state zeroed after each read. The report's `MOUSE:` line
   counts reads, real moves left out and hit tests. Without it the original's goldens did not repeat: dgVoodoo's window
   covers the desktop and is not cloaked, so the resting cursor sent WM_MOUSEMOVE to it and scrolled the camera.
+
+## 6. The image's source files
+
+Moved from the files' headers.
+
+### host.cpp
+
+ei_standalone: runs the rebuilt game without game.exe (docs/notes/standalone.md section 2). The host is an ordinary
+exe: it neither reads game.exe nor lays out anything at game.exe's addresses. The game's hInstance is this module,
+whose one resource is its version information (host.rc; the game's strings are literals in our code, no icon yet);
+ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from the build
+(src/standalone/image_data.cpp), resolves game.exe's imports into a table of its own as it initialises
+(image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp), points the code
+cells of game.exe's data at them and runs WinMain. Function pointers in the data and vtable slots reach our code
+that way. The guard: first thing, the host reserves what of game.exe's range (0x400000 up to its SizeOfImage) is
+free, with no access, so nothing is allocated there later and a stray game address (a jump into game.exe's code
+that went around CodeAddress, a read of its data that missed the seam) faults and is named instead of reaching
+other memory. What the loader had already put there (this exe, a heap) stays as it is; ei_hook.dll logs how much is
+guarded.
+
+### image_code.cpp
+
+game.exe's code in the standalone image (docs/notes/standalone.md, "Own data"). Nothing of game.exe's code is at
+its addresses (the host keeps what of game.exe's range is free reserved with no access): nothing runs there and
+nothing jumps through it. What runs for an address of game.exe's code is CodeAddress's: the replacement registered
+for it (InstallHooks hands the table over: SetCodeTable), else a stub that reports there is no code at the address.
+The code cells of game.exe's data (vtable slots, callback tables, the static initialiser list:
+image_code_cells.inc, tools/gen_image_cells.py) are pointed at it once the table is in (FixCodeCells), and the
+static initialisers, the code literals and the harness ask CodeAddress. In game.exe (the original's runs) every
+address is its own code.
+
+### image_data.cpp
+
+game.exe's .rdata and .data in ei_hook.dll's own storage (docs/notes/standalone.md, "Own data"). In the standalone
+image both sections (kMovedBegin-kMovedEnd: .rdata with the import address table at its start, .data with its
+zero-filled tail, the .bss) are kept in g_dataStorage instead of at their addresses: the data seam (game_data.h)
+adds g_dataShift to each of their addresses, the pointer cells of game.exe's .rdata and .data that point into the
+range (image_cells.inc, tools/gen_image_cells.py: vtables' RTTI, the C++ exception tables, MFC's runtime classes
+and maps, string pointers) get the same shift. Nothing is at the old range (the host keeps what of game.exe's range
+is free reserved), so a use that missed the seam faults and is named with its data address and code address
+(OnOldData); a game address outside the range asked of the seam is named too (StrayGameAddress). The initial bytes
+come from game.exe at build time (image_data_bytes.inc in the build folder, gen_image_cells.py --bytes). In
+game.exe (the original's runs) none of it happens: the shift stays 0. The import slots at the storage's start are
+ours: zero from the build, resolved right after the move (image_imports.cpp). The move runs before every other
+static constructor of ei_hook.dll (init_seg(compiler)): the harness and the game's globals bind references to game
+data at static initialisation, and the harness takes import slots there.
+
+### image_imports.cpp
+
+game.exe's imports in ei_hook.dll's storage (docs/notes/standalone.md, "Own data"). The image's import slots are a
+table of ours: every slot of game.exe's import address table (image_imports.inc, written by tools/gen_iat.py from
+game.exe's import directory: ImportTable member, DLL, function or ordinal) is resolved here into the storage at the
+data seam's shift (game_data.h: kImportsBegin-kImportsEnd move with .rdata), so everything that calls through a
+slot (lib/import_table.h's Imports(): gameapi.h's routed imports, Miles, Bink, Winsock, the static initialisers'
+Import; the harness's slot routes by address) reaches our table. The image's command-line import gets its wrapper
+in place of the export (ImageRoute, hook/standalone_main.cpp); the resource and module imports take the host's
+module as it is. Nothing is at game.exe's own table, as at the rest of the old .rdata (image_data.cpp): the image
+runs none of game.exe's code, so a call through an old slot is a use that missed the seam, reported with the slot's
+import and its code address (OnOldData, DescribeImportSlot). A slot of ours whose import did not resolve leads to a
+trap until the run ends (OnTrap; the launch-free check fails on it). Runs from image_data.cpp's mover, before every
+other static constructor of ei_hook.dll: the harness takes import slots in its own. In game.exe (the original's
+runs) nothing happens: the loader filled its table.

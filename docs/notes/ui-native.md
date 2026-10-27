@@ -391,3 +391,44 @@ cases in tools/text_check check each of them):
   tab that is not expanded takes the segment's underline away.
 - Not modelled (synthetic cases only; the game's texts have no '&'): a wrapped first word that
   holds a prefix and ends in '&' sometimes keeps the following space on its line in DrawText.
+
+## Source file overviews
+
+Moved from the files' headers.
+
+### render_ui.cpp
+
+The interface's 2D canvases (render_ui.h; ticket N1, docs/notes/ui-native.md section 3). A canvas is an RGBA8
+render target holding a surface's pixels widened to 8 bits a channel. Its commands queue in call order (g_queue)
+and RunCanvasCommands draws them, outside any pass: render.cpp calls it at the start of DrawPending, so a canvas's
+drawing lands before the frame's next pass, and RunCanvasesNow for a read-back. Solid shapes are quads of a colour
+quantised on the CPU; a glyph run is three steps (its coverage into an R8 scratch target with MAX blending, a copy
+of what the canvas held there, the composition of the two into the canvas); greying works on a copy of the canvas;
+the screen copy samples the frame target. Every pixel the shaders write is quantised to the surface format, so a
+canvas never holds a colour its surface could not. render.cpp's part: Command::Canvas (DrawCanvasBatch inside the
+frame's passes), SplitFrame (the frame so far drawn before a canvas already blitted in it changes, or before a
+screen copy) and RunCanvasesNow. The offline check tools/ui_check plays that part itself.
+
+### render_ui.h
+
+The interface's 2D canvases (docs/notes/ui-native.md, section 3): a window surface's pixels kept on the GPU in a
+render target, drawn into by the commands GDI draws with today (fills, frames, lines, pixels, glyph runs) and by
+the surface pixel code (the screen copy, greying), read back into the surface's memory for the readers, and blitted
+onto the frame as SurfaceBlit draws a surface. No GDI here. A canvas belongs to a surface holder (the CDXSurface of
+a CUiSurface) and holds what the surface's memory would: every channel cut to the format's bits and widened again
+(render_textures.cpp's Expand), so 16-bit surfaces quantise as GDI does and the colour key compares exactly.
+Commands are queued in call order and drawn on the GPU before the frame's next pass (drawing before a canvas's
+first blit of the frame lands before that blit). Drawing into a canvas already blitted in the frame and not drawn
+yet first draws the frame so far (a pass split), so the blit shows the canvas as it was. Single-threaded: the
+thread that draws the interface.
+
+### render_text.h
+
+Interface text without GDI (docs/notes/ui-native.md, section 2; ticket N2): TrueType fonts loaded from files
+(stb_truetype), a glyph atlas per font and pixel size, and a layout that follows user32's DrawTextA for the formats
+the game uses. The same layout gives the text extent (GetTextExtentPoint32A), so wrapping and drawing use one set
+of metrics. Nothing here is pixel-exact with GDI: the fonts are metric-compatible stand-ins (Liberation Serif for
+Times New Roman, Liberation Mono for Courier New) rasterised without hinting. What follows DrawText exactly are the
+rules: where lines break, how they are aligned, tabs, the '&' prefix, clipping and the return value / DT_CALCRECT
+rectangle, given the font's advances. Output: glyph quads (atlas rectangle -> destination rectangle) plus underline
+rectangles, for the GPU canvas (N1) to draw, and a CPU composition "against black" for tests.

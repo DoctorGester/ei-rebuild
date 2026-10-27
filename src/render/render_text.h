@@ -1,15 +1,7 @@
 #pragma once
 
-// Interface text without GDI (docs/notes/ui-native.md, section 2; ticket N2): TrueType fonts loaded
-// from files (stb_truetype), a glyph atlas per font and pixel size, and a layout that follows
-// user32's DrawTextA for the formats the game uses. The same layout gives the text extent
-// (GetTextExtentPoint32A), so wrapping and drawing use one set of metrics.
-// Nothing here is pixel-exact with GDI: the fonts are metric-compatible stand-ins (Liberation Serif
-// for Times New Roman, Liberation Mono for Courier New) rasterised without hinting. What follows
-// DrawText exactly are the rules: where lines break, how they are aligned, tabs, the '&' prefix,
-// clipping and the return value / DT_CALCRECT rectangle, given the font's advances.
-// Output: glyph quads (atlas rectangle -> destination rectangle) plus underline rectangles, for the
-// GPU canvas (N1) to draw, and a CPU composition "against black" for tests.
+// Interface text without GDI: TrueType fonts (stb_truetype) laid out by DrawTextA's rules. See
+// docs/notes/ui-native.md, section 2 and "Source file overviews".
 
 #include <cstdint>
 #include <memory>
