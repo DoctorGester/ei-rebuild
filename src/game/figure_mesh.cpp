@@ -33,6 +33,14 @@ T Read(char*& p) {
     return v;
 }
 
+// `count` elements of the file data at the cursor, kept in place (the mesh points into them); the cursor moves past them.
+template <typename T>
+T* InFile(char** cursor, int count) {
+    T* at = reinterpret_cast<T*>(*cursor);
+    *cursor += count * static_cast<int>(sizeof(T));
+    return at;
+}
+
 } // namespace
 
 // Each value the original stores to a float is rounded with static_cast<float>; everything else
@@ -412,18 +420,14 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
         *cursor += header.normalCount * 0x40;
     }
     // The rest stays in the file data.
-    buffers_.texCoords = *cursor;
+    buffers_.texCoords = InFile<TexCoord>(cursor, header.texCoordCount);
     buffers_.texCoordCount = header.texCoordCount;
-    *cursor += header.texCoordCount * 8;
-    buffers_.indices = *cursor;
+    buffers_.indices = InFile<std::uint16_t>(cursor, header.indexCount);
     buffers_.indexCount = header.indexCount;
-    *cursor += header.indexCount * 2;
-    buffers_.corners = *cursor;
+    buffers_.corners = InFile<MeshCorner>(cursor, header.cornerCount);
     buffers_.cornerCount = header.cornerCount;
-    *cursor += header.cornerCount * 6;
-    buffers_.words = *cursor;
+    buffers_.words = InFile<std::uint32_t>(cursor, header.wordCount);
     buffers_.wordCount = header.wordCount;
-    *cursor += header.wordCount * 4;
 
     BuffersChanged();
     buffers_.vertices = vertices_.data;
@@ -523,18 +527,14 @@ void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     LoadOldCommon(this, cursor, s, t, u, true);
     // The rest stays in the file data.
     buffers_.texCoordCount = ReadCount(cursor);
-    buffers_.texCoords = *cursor;
-    *cursor += buffers_.texCoordCount * 8;
+    buffers_.texCoords = InFile<TexCoord>(cursor, buffers_.texCoordCount);
     SkipRecords34(cursor);
     buffers_.cornerCount = ReadCount(cursor);
-    buffers_.corners = *cursor;
-    *cursor += buffers_.cornerCount * 6;
+    buffers_.corners = InFile<MeshCorner>(cursor, buffers_.cornerCount);
     buffers_.wordCount = ReadCount(cursor);
-    buffers_.words = *cursor;
-    *cursor += buffers_.wordCount * 4;
+    buffers_.words = InFile<std::uint32_t>(cursor, buffers_.wordCount);
     buffers_.indexCount = ReadCount(cursor);
-    buffers_.indices = *cursor;
-    *cursor += buffers_.indexCount * 2;
+    buffers_.indices = InFile<std::uint16_t>(cursor, buffers_.indexCount);
 
     BuffersChanged();
     buffers_.vertices = vertices_.data;
@@ -677,9 +677,9 @@ void CFigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChang
 EI_REWRITTEN(0x005A0B10, CFigureMesh::SetOffsets);
 
 int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds) {
-    void* vertices = buffers_.vertices;
+    const VertexPacket* vertices = buffers_.vertices;
     if (offsets_.size != 0) {
-        const VertexPacket* source = static_cast<const VertexPacket*>(buffers_.vertices);
+        const VertexPacket* source = buffers_.vertices;
         lib::AlignedArray<VertexPacket>& moved = OffsetVertices();
         // Sized like SetSize, except that a larger buffer is not given the old contents (they are
         // all rewritten below) and 0 allocates an empty buffer instead of freeing it.
@@ -722,7 +722,7 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, V
         }
         vertices = moved.data;
     }
-    pipeline->transform_->ProjectFlat(matrix, static_cast<const VertexPacket*>(vertices), points, buffers_.vertexCount,
+    pipeline->transform_->ProjectFlat(matrix, vertices, points, buffers_.vertexCount,
                                       bounds);
     return buffers_.vertexCount << 2;
 }

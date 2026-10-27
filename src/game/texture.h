@@ -36,6 +36,10 @@ struct NamedTexture;
 struct SkinRequest;
 struct Direct3DDeviceRecord;
 struct TLVertex;
+struct VertexPacket;
+struct NormalPacket;
+struct TexCoord;
+struct MeshCorner;
 namespace devicebuffers { struct ProjectedVertex; }
 struct _DDSURFACEDESC2;
 
@@ -76,14 +80,15 @@ public:
     int SetMaterial(CDeviceMaterial* material);
     int DrawFlatBlocks(const void* positions, const void* uvs, int blocks, const std::uint16_t* indices, int indexCount,
                  std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds, float zScale);
-    int DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions, int blocks, const void* normals,
-                  int colourCount, std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
-                  const void* corners, int cornerCount, const void* words, int wordCount, std::uint16_t* indices,
-                  int indexCount, float uOffset, float vOffset, int alpha, int flags);
-    int DrawMeshBlocks(const void* positions, int blocks, const void* normals, int colourCount, std::uint32_t* colours,
-                 std::uint32_t* speculars, const void* uvs, int unused10, const void* corners, int cornerCount,
-                 const void* words, int wordCount, std::uint16_t* indices, int indexCount, float uOffset, float vOffset,
-                 int alpha, int flags);
+    int DrawMeshBlocks2(CDXSurface* firstTexture, CDXSurface* secondTexture, const VertexPacket* positions, int blocks,
+                  const NormalPacket* normals, int colourCount, std::uint32_t* colours, std::uint32_t* speculars,
+                  const TexCoord* uvs, int unused10, const MeshCorner* corners, int cornerCount,
+                  const std::uint32_t* words, int wordCount, std::uint16_t* indices, int indexCount, float uOffset,
+                  float vOffset, int alpha, int flags);
+    int DrawMeshBlocks(const VertexPacket* positions, int blocks, const NormalPacket* normals, int colourCount,
+                 std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs, int unused10,
+                 const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
+                 std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha, int flags);
     int DrawTwoTextures(CDXSurface* first, CDXSurface* second, int primitive, int fvf, void* vertices,
                         int vertexCount, const std::uint16_t* indices, unsigned indexCount, int flags);
     int DrawIndexed(int primitive, int fvf, void* vertices, int vertexCount, const std::uint16_t* indices,

@@ -169,13 +169,13 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
                     mesh.indexCount = r->indices.count;
                 } else {
                     const MeshBuffers& b = part->buffers_;
-                    positions = static_cast<const VertexPacket*>(b.vertices);
+                    positions = b.vertices;
                     packets = b.vertexCount;
-                    mesh.uvs = static_cast<const float*>(b.texCoords);
+                    mesh.uvs = &b.texCoords->u;
                     mesh.uvCount = b.texCoordCount;
-                    mesh.corners = static_cast<const std::uint16_t*>(b.corners);
+                    mesh.corners = &b.corners->position;
                     mesh.cornerCount = b.cornerCount;
-                    mesh.indices = static_cast<const std::uint16_t*>(b.indices);
+                    mesh.indices = b.indices;
                     mesh.indexCount = b.indexCount;
                 }
                 if (!positions || packets <= 0) continue;
