@@ -17,14 +17,9 @@
 
 namespace {
 
-// Local searches at CAIMap + 0x2594 / + 0x2614 (forward and backward), the path builder and the
-// long-range planner.
 bool BeginLocalSearch(LocalSearch* search, CUnit* unit, int x0, int y0, int x1, int y1) {
     return search->Begin(unit, x0, y0, x1, y1);
 }
-
-// The sector map through its original addresses (rewritten in sector_map.cpp), so the verify build's wrappers
-// see these calls.
 
 const Vector3& PositionOf(const CUnit* unit) { return *&unit->localPosition_; }
 
@@ -39,8 +34,6 @@ float Abs(float f) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
-
-// The world tick, the start time of the order AdvancePath gives.
 
 constexpr float kDiagonal = 0.707f;
 constexpr float kInset = 0.49f;
@@ -96,8 +89,8 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     // The step rotated by -45 and +45 degrees, scaled so that no component exceeds 1.
     float p = sx * kDiagonal - sy * kDiagonal;
     float q = (sy + sx) * kDiagonal;
-    // FCOMPP: C0 if less. No audit: p and q are NaN together (sx or sy is 0 / 0 when the unit stands on the
-    // target cell, which the suite does), and then both choices are NaN.
+    // No audit: p and q are NaN together (sx or sy is 0 / 0 when the unit stands on the target cell, which the
+    // suite does), and then both choices are NaN.
     float scale = 1.0f / (Abs(q) < Abs(p) ? Abs(p) : Abs(q));
     // Kept as the original's test: a NaN scale (the case above) scales the step too, which makes the finite one
     // of sx / sy NaN as well; the plain scale < 1 would leave it.

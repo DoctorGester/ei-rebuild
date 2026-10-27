@@ -45,7 +45,7 @@ constexpr std::uint32_t kSkillOnTarget = 0x18A95;
 // PropagateHostility's squared call radius: the original rounds it to a float through this global.
 float g_squaredCallRadius = /*007AF40C*/ {};
 constexpr std::uint32_t kSpellOnWeapon = 0x10000;       // CSpell::targetFlags_: cast by the item
-constexpr std::uint32_t kSpellNotOnHit = 0x180000;      // spell prototype 0x18: fires when not hit
+constexpr std::uint32_t kSpellNotOnHit = 0x180000;      // fires when not hit
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 constexpr int kQuickItemConsumable = 2;                 // category used up by order kind 10
 
@@ -86,22 +86,10 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 
 } // namespace
 
-// Missile: aims at the object `id`.
-// CWorldServer: applies the quick item `item` (a potion) to `unit`.
-// CWorldServer::RemoveObject (world_server.cpp; patched by Rebirth): removes object `id`.
-// Player: receives the items in `list` (a CPtrList).
 // Player messages: message `code` about `unit`.
 void PlayerMessage(void* messages, CUnit* unit, int code) {
     static_cast<CPlayerServer*>(messages)->SendObject0B(unit, code);
 }
-// CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it worked. The
-// controller's voice: says remark `what`. The AI events: a noise of `loudness` and `kind` made by `source`;
-// `unit` died; `controller` updates its perception memory. CSectorMap::Remove / Add on the world's sector
-// map. Map object base: drops all effects, marks the object changed. CList::NewNode(prev, next) of the
-// brain's unit lists: UnitList::NewNode. The death animation's (AnimationSteps) base constructor and copy
-// constructor. CUnitServer::PlayAnimationOrder: plays `animation` (taken by value and destroyed). UnitAction:
-// kind 9, target released, flag18 cleared (the other fields left alone).
-
 
 void CUnitServer::DropQueuedOrder() {
     action2.kind = 9;
