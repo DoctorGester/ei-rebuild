@@ -3,19 +3,19 @@
 // The multiplayer session classes and the message base. Names are
 // provisional; see docs/notes/network.md and
 // docs/notes/cleanup-network.md.
-// Class map (vtables):
+// Class map:
 //   CRefCounted: the root the sessions derive from.
-//   0073BF5C  SessionBase (constructor 00436770, destructor body 00436A50): the UDP socket, the
+//   SessionBase: the UDP socket, the
 //             connections to the peers, the message type registry and the handler tables.
 //   ServerBase: the pending joins; answers pings and logins. Inlined into the game
-//             server's constructor; destructor body 004132F0.
-//   0073BB70  ServerSession, the game server (0x2600 bytes; constructor 00412D80; pointer g_gameServer).
+//             server's constructor.
+//   ServerSession, the game server (0x2600 bytes; pointer g_gameServer).
 //   ClientBase: finding servers and joining one. Inlined into the game client's
-//             constructor; destructor body 0041C530.
-//   0073BDEC  ClientSession, the game client (0x2700 bytes; constructor 0041BC40; pointer g_gameClient).
-//   0073BC10  Message (below): the replicated object base; classes 0073BBF8 ... 0073BDD0 (0x18 apart,
+//             constructor.
+//   ClientSession, the game client (0x2700 bytes; pointer g_gameClient).
+//   Message (below): the replicated object base; its classes (0x18 apart,
 //             net_messages.h).
-//   0073BB40  ServerEntry's base and 0073BB28 ServerEntry (below): a server as the lobby lists it.
+//   ServerEntry's base and ServerEntry (below): a server as the lobby lists it.
 // The sessions are allocated and built by the game's code (or our rewrites of their constructor
 // bodies), which store the compiled tags' tables in place of game.exe's (below). The messages and the
 // server entries are real C++ classes.
@@ -96,7 +96,7 @@ struct NetAddress {
 };
 static_assert(sizeof(NetAddress) == 0x10);
 
-// The TCP link to the master server (0x40 bytes; constructor 00440C60, destructor 00440D40, tick
+// The TCP link to the master server (0x40 bytes; tick
 // Net_socket_driver.cpp). The master request box (ui_screens.h) holds one.
 class MasterLink {
 public:
@@ -158,8 +158,8 @@ inline ServerSession* g_gameServer = /*0079B5DC*/ {nullptr};
 inline ServerSession*& GameServer() { return g_gameServer; }
 inline ClientSession*& GameClient() { return g_gameClient; }
 // The game client's trade offer (net_client_party.cpp, net_client_handlers.cpp; plain RET each):
-// 0041DA50 publishes our offer, 0041E220 finds the partner's offer that pairs with ours (a
-// PartyMessage, or null), 0041E180 takes the acceptance back, 0041E3E0 drops the offer.
+// Publishing our offer, finding the partner's offer that pairs with ours (a
+// PartyMessage, or null), taking the acceptance back and dropping the offer.
 void __fastcall ClientPublishParty(ClientSession* self);
 PartyMessage* __fastcall ClientFindParty(ClientSession* self);
 void __fastcall ClientCommitParty(ClientSession* self);
@@ -167,12 +167,12 @@ void __fastcall ClientDropParty(ClientSession* self);
 
 // ---- The message base ---------------------------------------------------------------------------
 
-// A replicated network object (game.exe's vtable 0073BC10): a connection sends it again whenever its version
+// A replicated network object: a connection sends it again whenever its version
 // differs from the one last sent. Slot 2 (OnShutdown) of the message classes resets the message
 // (destroyed and built again in place), slot 3 clones it.
 class Message : public CRefObject {
 public:
-    // 00413430 (deleting: 00413410; net_messages.cpp).
+    // The deleting destructor (net_messages.cpp).
     ~Message() override;
     // 1: Serialize (empty); 2 / 3 pure in the base.
     virtual void Write(BufferCursor* cursor) = 0;   // 4: the fields at the cursor's byte position
@@ -197,10 +197,10 @@ void* __fastcall NewRefObject(std::size_t size);
 
 // ---- The server entries of the lobby ------------------------------------------------------------
 
-// A server entry's base (game.exe's vtable 0073BB40, 0x28 bytes).
+// A server entry's base (0x28 bytes).
 class ServerEntryBase : public CRefObject {
 public:
-    // 00412960 (deleting: 00412970; net_messages.cpp).
+    // The deleting destructor (net_messages.cpp).
     ~ServerEntryBase() override;
     // 1: Serialize; 2 / 3 pure.
     virtual void Write(BufferCursor* cursor) = 0;   // 4
@@ -214,7 +214,7 @@ public:
 
     NetAddress address_;     // +0x08
     float timeout_;          // +0x18 seconds until the entry is checked again (1e38: never)
-    float ping_;             // +0x1C seconds; the constant at 0073BFA0 when unknown
+    float ping_;             // +0x1C seconds; a constant when unknown
     std::uint8_t foreign_;   // +0x20 the reply's echoed word differs from the magic
     std::uint8_t unused_21[3];
     std::uint32_t state_;    // +0x24 State
@@ -230,17 +230,17 @@ static_assert(offsetof(ServerEntryBase, address_) == 0x08);
 static_assert(offsetof(ServerEntryBase, state_) == 0x24);
 static_assert(sizeof(ServerEntryBase) == 0x28);
 
-// A server entry (game.exe's vtable 0073BB28, 0x48 bytes): what a server says about itself (net_server_entry.cpp)
+// A server entry (0x48 bytes): what a server says about itself (net_server_entry.cpp)
 // and the client lists (net_lobby.cpp, net_server_list.cpp). net_messages.cpp.
 class ServerEntry final : public ServerEntryBase {
 public:
-    // As 0041A7E0, 0041D420 and 0041D600 inline it: the name and the description "?", kind 4, no players, no
+    // The name and the description "?", kind 4, no players, no
     // password.
     ServerEntry();
     ServerEntry(const ServerEntry& other);       // Clone's copy
-    ~ServerEntry() override {}                   // 004128E0 (deleting: 004128C0)
-    // 1: 00412580 (empty).
-    int OnShutdown() override;                  // 2: 00412750 reset (EAX undefined in the original)
+    ~ServerEntry() override {}                   // The deleting destructor
+    // Virtual 1: empty.
+    int OnShutdown() override;                  // Reset (the result is undefined)
     ServerEntry* Clone() override;
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
@@ -258,7 +258,7 @@ static_assert(offsetof(ServerEntry, description_) == 0x38);
 static_assert(offsetof(ServerEntry, players_) == 0x44);
 static_assert(sizeof(ServerEntry) == 0x48);
 
-// A server the client asks directly (0x2C bytes; constructor 00443770): its address and the reply
+// A server the client asks directly (0x2C bytes): its address and the reply
 // last seen.
 struct Query {
     // A zero address and an empty growing buffer.
@@ -267,7 +267,7 @@ struct Query {
     Query(const Query& from);
     // The vector's copy loop's assignment: the address, then the reply buffer's.
     Query& operator=(const Query& from) = default;
-    // 00443790 (net_lobby.cpp): the reply buffer destroyed. 00443E90 is its scalar deleting destructor, which the
+    // The reply buffer destroyed (net_lobby.cpp). The scalar deleting destructor is what the
     // vector's erase calls with 0.
     ~Query();
     NetAddress address;
@@ -275,7 +275,7 @@ struct Query {
 };
 static_assert(sizeof(Query) == 0x2C);
 
-// The client's queries (constructor 0041C420): an STLport vector of queries and a dword saved with
+// The client's queries: an STLport vector of queries and a dword saved with
 // it (not itself a vector). The vector's out-of-line functions are the game's instantiations of
 // stlp::vector<Query> (net_lobby.cpp forwards to them).
 struct ClientQueries {
@@ -307,8 +307,8 @@ struct TypeRegistry {
     using ByVtable = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
     using ByType = stlp::hash_map<std::uint32_t, MessageFactory, stlp::IntHash>;
 
-    ByVtable byVtable;     // +0x00 message vtable -> type id (constructor 00438B70, 100 buckets)
-    ByType byType;         // +0x14 type id -> factory (constructor 00439F20, 100 buckets)
+    ByVtable byVtable;     // +0x00 message vtable -> type id (100 buckets)
+    ByType byType;         // +0x14 type id -> factory (100 buckets)
 
     // The key of a message's class: its vtable (the object's first dword), as the original keys the registry.
     static std::uint32_t KeyOf(const CRefObject* message) {
@@ -387,7 +387,7 @@ static_assert(sizeof(ReplicatedVector) == 12);
 
 // Appending one {object, priority} to the vector, as the slot 13 implementations do: through the
 // out-of-line push_back of a default element or inline (the same, with the overflow
-// path 00426B10), then storing into the new last element.
+// the grow path), then storing into the new last element.
 void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority);
 void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority);
 
@@ -409,24 +409,24 @@ public:
 
     // The count and the flags are the creator's.
     SessionBase();
-    // 00436A50 (deleting: 004368D0; net_session_tick.cpp). Tells every client it leaves, then destroys the handler
+    // Tells every client it leaves, then destroys the handler
     // tables, the socket, the type registry and the clients list.
     ~SessionBase() override;
     // 1: Serialize (empty).
-    virtual void RemoveClient(ClientNode* node);                                // 2: 00436CF0 (the sentinel is ignored)
-    virtual bool OnUpdate(const NetAddress* from, BufferCursor* cursor);      // 3: kind 0, 00437080
-    virtual void OnGetInfo(const NetAddress* from, BufferCursor* cursor);     // 4: kind 3, 004371E0 (logs an error)
-    virtual void OnLogin(const NetAddress* from, BufferCursor* cursor);       // 5: kind 4, 00437210 (logs an error)
-    virtual void OnLeave(const NetAddress* from, BufferCursor* cursor);       // 6: kind 1, 00437240
-    virtual void OnInfo(const NetAddress* from, BufferCursor* cursor);        // 7: kind 5, 004372B0 (logs an error)
-    virtual void OnAccepted(const NetAddress* from, BufferCursor* cursor);    // 8: kind 6, 004372E0 (logs an error)
-    virtual void OnRejected(const NetAddress* from, BufferCursor* cursor);    // 9: kind 7, 00437310 (logs an error)
-    virtual void OnMaster(const NetAddress* from, BufferCursor* cursor);      // 10: kind -1, 00437340 (logs an error)
-    virtual void OnClientLost(Connection*) {}                                 // 11: 004132B0 (empty): timed out or a bad update
-    virtual void OnClientLeft(Connection*) {}                                 // 12: 004132C0 (empty): sent a leave packet
-    // 13: 004376D0 (empty here). Appends what the connection being updated (CurrentConnection) should have to **out.
+    virtual void RemoveClient(ClientNode* node);                                // Virtual 2 (the sentinel is ignored)
+    virtual bool OnUpdate(const NetAddress* from, BufferCursor* cursor);      // Virtual 3: kind 0
+    virtual void OnGetInfo(const NetAddress* from, BufferCursor* cursor);     // Virtual 4: kind 3 (logs an error)
+    virtual void OnLogin(const NetAddress* from, BufferCursor* cursor);       // Virtual 5: kind 4 (logs an error)
+    virtual void OnLeave(const NetAddress* from, BufferCursor* cursor);       // Virtual 6: kind 1
+    virtual void OnInfo(const NetAddress* from, BufferCursor* cursor);        // Virtual 7: kind 5 (logs an error)
+    virtual void OnAccepted(const NetAddress* from, BufferCursor* cursor);    // Virtual 8: kind 6 (logs an error)
+    virtual void OnRejected(const NetAddress* from, BufferCursor* cursor);    // Virtual 9: kind 7 (logs an error)
+    virtual void OnMaster(const NetAddress* from, BufferCursor* cursor);      // Virtual 10: kind -1 (logs an error)
+    virtual void OnClientLost(Connection*) {}                                 // Virtual 11 (empty): timed out or a bad update
+    virtual void OnClientLeft(Connection*) {}                                 // Virtual 12 (empty): sent a leave packet
+    // Virtual 13 (empty here). Appends what the connection being updated (CurrentConnection) should have to **out.
     virtual void CollectReplicated(ReplicatedVector**) {}
-    // 14: 00437370 (net_session_tick.cpp). Advances the session clock by `dt`, hands the waiting
+    // Virtual 14 (net_session_tick.cpp). Advances the session clock by `dt`, hands the waiting
     // datagrams to the handler slots, ticks the connections (dropping timed-out ones) and counts
     // the frame.
     virtual void Tick(double dt);
@@ -498,7 +498,7 @@ struct PendingJoin {
     NetAddress address;
     std::uint32_t id;            // +0x10
     std::int32_t rate;           // +0x14
-    float age;                   // +0x18 seconds (dropped past 0073BF9C)
+    float age;                   // +0x18 seconds (dropped past the join timeout)
 };
 
 // The server base: answers pings and logins, turns a pending
@@ -509,14 +509,14 @@ public:
     // Inlined into the game server's constructor (net_server.cpp): the pending joins, the socket bound to the game
     // port.
     ServerBase();
-    // 004132F0 (deleting: 004132D0; net_server_life.cpp). The pending joins.
+    // The destructor (net_server_life.cpp). The pending joins.
     ~ServerBase() override;
     bool OnUpdate(const NetAddress* from, BufferCursor* cursor) override;
-    void OnGetInfo(const NetAddress* from, BufferCursor* cursor) override;   // 4: 00443060 (a ping)
-    void OnLogin(const NetAddress* from, BufferCursor* cursor) override;     // 5: 00443080 (patched by Rebirth)
+    void OnGetInfo(const NetAddress* from, BufferCursor* cursor) override;   // Virtual 4 (a ping)
+    void OnLogin(const NetAddress* from, BufferCursor* cursor) override;     // Virtual 5 (patched by Rebirth)
     void Tick(double dt) override;
     virtual void Describe(RefPtr* out) = 0;                                  // 15: this server's entry into *out
-    // 16: 00443050 (admits everybody). Whether a client from `from` may join: `*password` (the login
+    // Virtual 16 (admits everybody). Whether a client from `from` may join: `*password` (the login
     // cursor's next byte, moved past the password when one is checked) and `*reason` (1 full, 2
     // banned, 3 bad password).
     virtual bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason);
@@ -525,7 +525,7 @@ public:
     // the magic and the entry).
     void SendInfo(const NetAddress* address, std::uint32_t echo);
 
-    stlp::list<PendingJoin> joins_;     // +0x2568 (constructor 0041FD30)
+    stlp::list<PendingJoin> joins_;     // +0x2568
     std::uint32_t unused_256C;         // +0x256C not set
 };
 static_assert(offsetof(ServerBase, joins_) == 0x2568);
@@ -538,11 +538,11 @@ public:
 
     // The game kind `kind`, the handlers, the zones the host may pick.
     explicit ServerSession(std::uint32_t kind);
-    // 00417BC0 (deleting: 00417A10; net_server_life.cpp). The lists and the held messages.
+    // The destructor (net_server_life.cpp). The lists and the held messages.
     ~ServerSession() override;
     void OnMaster(const NetAddress* from, BufferCursor* cursor) override;
-    void OnClientLost(Connection* connection) override;                       // 11: 0041A700 (text 4)
-    void OnClientLeft(Connection* connection) override;                       // 12: 0041A770 (text 1)
+    void OnClientLost(Connection* connection) override;                       // Virtual 11 (text 4)
+    void OnClientLeft(Connection* connection) override;                       // Virtual 12 (text 1)
     void CollectReplicated(ReplicatedVector** out) override;
     void Tick(double dt) override;
     void Describe(RefPtr* out) override;
@@ -554,7 +554,7 @@ public:
     void QueueMapList();
     // When the held map message names `name`: drops it and queues "name_3" instead.
     bool FinishMap(const stlp::string* name);
-    // 00419570 .. 00419940 (net_server_vars.cpp): the script variables (named floats).
+    // net_server_vars.cpp: the script variables (named floats).
     RefNode** FindVariable(RefNode** out, const stlp::string* name);
     RefNode** FindOrAddVariable(RefNode** out, const stlp::string* name);
     void SetVariable(const stlp::string* name, float value);      // zero removes it
@@ -577,7 +577,7 @@ public:
     void ShareFile(const stlp::string* name, GameBuffer* data);
     // Whether the server is announced to the master server (port 28004).
     void SetPublic(bool announce);
-    // 0041AA10 (net_server_handlers.cpp, A-E1; EI_Plugin's NewMaster patches its send at 0041ABDA,
+    // net_server_handlers.cpp; EI_Plugin's NewMaster patches its send,
     // so it is hooked only where that feature is off). Sends the master server this game's record:
     // the name, the played map's title (empty without a map), the players and their maximum, the
     // game kind, whether a password is set, +0x25FC, the dword the master last sent (+0x2578) and
@@ -590,7 +590,7 @@ public:
     void AnnounceText(int kind, const char* text, CRefObject* player);
     // The trade between two offers (either order), or null.
     TradeMessage* FindTrade(const PartyMessage* offer, const PartyMessage* other);
-    // 0041A020 .. 0041A770 (net_server_players.cpp): players, connections, admission.
+    // net_server_players.cpp: players, connections, admission.
     int LeaderId();                                       // the first host's id, -1
     void SetPassword(const char* text);
     Connection* FindGuestConnection(const stlp::string* name);
@@ -614,7 +614,7 @@ public:
     stlp::SharedRefListOf<PlayerMessage> players_; // +0x2590 player records
     stlp::SharedRefListOf<LineMessage> lines_; // +0x2594 chat and system lines, at most 50
     stlp::SharedRefListOf<FileMessage> files_; // +0x2598 shared files
-    stlp::CountedRefListOf<FileRequestMessage> fileRequests_; // +0x259C the clients' requests (0073BC58: file, connection)
+    stlp::CountedRefListOf<FileRequestMessage> fileRequests_; // +0x259C the clients' requests (file requests, connections)
     // +0x25A0 where the game is hosted (a HostMessage, net_messages.h; world_game.cpp's AnnounceHost),
     // replicated to everyone when set
     RefPtrTo<HostMessage> hostInfo_;
@@ -623,7 +623,7 @@ public:
     stlp::SharedRefListOf<ZoneMessage> queuedMaps_; // +0x25AC map messages the host may pick next
     stlp::SharedRefListOf<VariableMessage> variables_; // +0x25B0 script variables
     SharedTimedList awards_;            // +0x25B4 {delay, award}
-    stlp::CountedRefListOf<PartyMessage> offers_; // +0x25B8 the players' trade offers (party messages 0073BD78)
+    stlp::CountedRefListOf<PartyMessage> offers_; // +0x25B8 the players' trade offers (party messages)
     stlp::CountedRefListOf<TradeMessage> trades_; // +0x25BC trades
     CountedTimedList finishedTrades_;   // +0x25C0 {delay, trade}: done trades, kept 60 s
     stlp::list<NetAddress> banned_;     // +0x25C4 banned IPv4 addresses
@@ -657,7 +657,7 @@ public:
     // Inlined into the game client's constructor (net_client.cpp): no host, an empty join buffer, the lists, an
     // unbound socket.
     ClientBase();
-    // 0041C530 (deleting: 0041C450; net_client_life.cpp). The waiting addresses, the queries, the servers and the
+    // The destructor (net_client_life.cpp). The waiting addresses, the queries, the servers and the
     // join buffer.
     ~ClientBase() override;
     void RemoveClient(ClientNode* node) override;
@@ -666,7 +666,7 @@ public:
     void OnAccepted(const NetAddress* from, BufferCursor* cursor) override;
     void OnRejected(const NetAddress* from, BufferCursor* cursor) override;
     void Tick(double dt) override;
-    virtual void OnJoined() {}                                                 // 15: 0041C440 (empty)
+    virtual void OnJoined() {}                                                 // Virtual 15 (empty)
     virtual void CreateEntry(RefPtr* out) = 0;                                 // 16: a new server entry into *out
 
     // A ping (3, the session time) to `address`.
@@ -745,7 +745,7 @@ public:
 
     // The local player's login, the handlers.
     ClientSession();
-    // 0041CA10 (deleting: 0041C8B0; net_client_life.cpp). The parties, the lists and the held messages.
+    // The destructor (net_client_life.cpp). The parties, the lists and the held messages.
     ~ClientSession() override;
     void CollectReplicated(ReplicatedVector** out) override;
     void Tick(double dt) override;
@@ -756,7 +756,7 @@ public:
     void ApplyAwards();
     // Keeps `object` on the timers list for `seconds`.
     void AddTimed(CRefObject* object, std::uint32_t seconds);
-    // A command message (0073BC40 {kind, text}) for the server, kept 60 s.
+    // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, const char* text);
 
     stlp::CountedRefListOf<PlayerMessage> players_; // +0x25D8 player records
@@ -772,11 +772,11 @@ public:
     RefPtrTo<LoginMessage> player_;     // +0x2600 the local player's login record
     SharedTimedList timers_;            // +0x2604 {seconds left, object}: objects kept for a while
     stlp::CountedRefListOf<AwardMessage> awards_; // +0x2608 awards received, applied by ApplyAwards
-    RefPtrTo<PartyMessage> party_;      // +0x260C our trade offer (party description 0073BD78)
+    RefPtrTo<PartyMessage> party_;      // +0x260C our trade offer (party description)
     stlp::CountedRefListOf<PartyMessage> offers_; // +0x2610 the other players' trade offers
     stlp::list<TradeRecord> tradeRecords_;   // +0x2614 the trades done
     TradeMessage* trade_;               // +0x2618 the current trade, counted
-    std::uint32_t gameType_;            // +0x261C the multiplayer game type 0..3 (StartServer 0057E740): start zone, type variable
+    std::uint32_t gameType_;            // +0x261C the multiplayer game type 0..3 (StartServer): start zone, type variable
     PartyStorage parties_[2];           // +0x2620 ours (published at +0x260C), +0x2690 the partner's
 };
 static_assert(offsetof(ClientSession, players_) == 0x25D8);
@@ -789,8 +789,8 @@ static_assert(sizeof(ClientSession) == 0x2700);
 
 // ---- The game announcement ------------------------------------------------------------------------
 
-// The game announcement the server builds in 0041AA10 (written by 00401000) and the client reads
-// in 0041D600. Field meanings from 0041AA10: player count, maximum players, the
+// The game announcement the server builds and the client reads
+// in its entry. Field meanings: player count, maximum players, the
 // session magic. Names provisional.
 struct GameInfoRecord {
     stlp::string name;              // +0x00
