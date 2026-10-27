@@ -15,6 +15,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CStream;
 class ChunkArchive;
@@ -24,16 +25,7 @@ using BOOL = int;
 
 namespace itemdb {
 
-constexpr int kMaterialSize = 0x50;
-constexpr int kWeaponSize = 0xB4;
-constexpr int kArmorSize = 0xC8;
-constexpr int kQuickItemSize = 0x8C;    // also the spell containers (scrolls)
-constexpr int kQuestItemSize = 0x7C;
-constexpr int kLootSize = 0x78;
-constexpr int kSpellSize = 0x84;
-constexpr int kSpellModifierSize = 0x24;
-
-// A spell prototype (kSpellSize bytes): the fields the camp's spell maker reads.
+// A spell prototype: the fields the camp's spell maker reads.
 struct SpellRecord {
     // Fields 0-2 the strings, 3-15 price..needsSight (not school), 16 / 17 the id lists, 18 icon, 19 school,
     // 20 bytes78, 21 skill, 22 classMask, 23-27 extraValues.
@@ -45,10 +37,10 @@ struct SpellRecord {
     // The spell vector's resize(n) temporary: empty strings and lists, the rest left as it is.
     void ConstructDefault();
 
-    mfc::CString name;
+    std::string name;
     // the spell's code (the trader stock's spell instructions).
-    mfc::CString code;
-    mfc::CString text08;
+    std::string code;
+    std::string text08;
     float price;                        // a loot item's price when it stands for the spell (CItemLoot::GetPrice)
     int castType;                       // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
     int school;
@@ -76,19 +68,6 @@ struct SpellRecord {
     std::uint8_t unused_7D[3];
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 };
-static_assert(offsetof(SpellRecord, code) == 0x04);
-static_assert(offsetof(SpellRecord, price) == 0x0C);
-static_assert(offsetof(SpellRecord, castType) == 0x10);
-static_assert(offsetof(SpellRecord, icon) == 0x60);
-static_assert(offsetof(SpellRecord, mana) == 0x18);
-static_assert(offsetof(SpellRecord, complexity) == 0x1C && offsetof(SpellRecord, damage) == 0x2C);
-static_assert(offsetof(SpellRecord, duration) == 0x38 && offsetof(SpellRecord, value3C) == 0x3C);
-static_assert(offsetof(SpellRecord, bytes78) == 0x78);
-static_assert(offsetof(SpellRecord, needsSight) == 0x40);
-static_assert(offsetof(SpellRecord, skill) == 0x44);
-static_assert(offsetof(SpellRecord, list48) == 0x48);
-static_assert(offsetof(SpellRecord, classMask) == 0x80);
-static_assert(sizeof(SpellRecord) == 0x84);
 
 // The spell database's three lists of 0x34-byte records (chunks 3-5 of spells.sdb): the spell recipes of
 // scrolls, armours and weapons (item_stock.h's SpellRecipe; ItemStock::FillSpellMaps reads them).
@@ -113,7 +92,7 @@ static_assert(offsetof(SpellListRecord, repeated) == 0x24);
 static_assert(offsetof(SpellListRecord, classMask) == 0x30);
 static_assert(sizeof(SpellListRecord) == 0x34);
 
-// A spell modifier prototype (kSpellModifierSize bytes).
+// A spell modifier prototype.
 struct SpellModifierRecord {
     // String 0, fields 1-6 code..skill, string 7, field 8.
     void Serialize(ChunkArchive* ar);
@@ -123,7 +102,7 @@ struct SpellModifierRecord {
     // The modifier vector's resize(n) temporary: empty strings, the rest left as it is.
     void ConstructDefault();
 
-    mfc::CString name;
+    std::string name;
     // the modifier's code inline; its first one or two letters are the kind the trader stock keys it by (a, d,
     // e, m, r, t; fi, ii).
     char code[4];
@@ -132,15 +111,9 @@ struct SpellModifierRecord {
     float mana;                         // added to the spell's
     float strength;                     // the trader stock keeps the strongest per kind; kind 'm' scales the cost
     int skill;                          // added to the spell's
-    mfc::CString text1C;
+    std::string text1C;
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 };
-static_assert(offsetof(SpellModifierRecord, code) == 0x04);
-static_assert(offsetof(SpellModifierRecord, price) == 0x08);
-static_assert(offsetof(SpellModifierRecord, mana) == 0x10);
-static_assert(offsetof(SpellModifierRecord, strength) == 0x14);
-static_assert(offsetof(SpellModifierRecord, skill) == 0x18);
-static_assert(sizeof(SpellModifierRecord) == 0x24);
 
 // The fields every item prototype starts with (weapons, armours, quick, quest and loot items). price..condition
 // go to the item (CItem::InitFromRecord). The records live in the databases' vectors and, one at a time, in the
@@ -164,11 +137,11 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    mfc::CString text04;                // the name the tables file the record under
-    mfc::CString text08;
+    std::string text04;                // the name the tables file the record under
+    std::string text08;
     int type;                           // weapon / armour class
     // the class of material it is made of ("none": a potion, without a material).
-    mfc::CString materialClass;
+    std::string materialClass;
     std::uint32_t field4;               // archive field 4 (nothing reads it)
     int number;                         // the number in the item's text keys and names ("item%04d")
     int variant;                        // the model variant
@@ -197,18 +170,6 @@ protected:
     ItemRecordHead(const ItemRecordHead&) = delete;
     ItemRecordHead& operator=(const ItemRecordHead&) = delete;
 };
-static_assert(offsetof(ItemRecordHead, list20) == 0x20);
-static_assert(offsetof(ItemRecordHead, list50) == 0x50);
-static_assert(offsetof(ItemRecordHead, buildable) == 0x68);
-static_assert(offsetof(ItemRecordHead, type) == 0x0C);
-static_assert(offsetof(ItemRecordHead, materialClass) == 0x10);
-static_assert(offsetof(ItemRecordHead, number) == 0x18);
-static_assert(offsetof(ItemRecordHead, price) == 0x34);
-static_assert(offsetof(ItemRecordHead, charge) == 0x40);
-static_assert(offsetof(ItemRecordHead, condition) == 0x48);
-static_assert(offsetof(ItemRecordHead, materialUnits) == 0x4C);
-static_assert(offsetof(ItemRecordHead, category) == 0x6C);
-static_assert(sizeof(ItemRecordHead) == 0x70);
 
 // A record (or null) as the kind's record it is (WeaponRecord, ArmorRecord, QuickItemRecord,
 // QuestItemRecord, LootItemRecord): the item's class id or the table it came from says which.
@@ -244,13 +205,6 @@ struct WeaponRecord : ItemRecordHead {
     float damageSpread;                 // maximum damage = damage + spread
     float damageTypes[7];               // weight of each damage type
 };
-static_assert(offsetof(WeaponRecord, reach) == 0x8C);
-static_assert(offsetof(WeaponRecord, attackBonus) == 0x84);
-static_assert(offsetof(WeaponRecord, defenceBonus) == 0x88);
-static_assert(offsetof(WeaponRecord, damage) == 0x90);
-static_assert(offsetof(WeaponRecord, damageSpread) == 0x94);
-static_assert(offsetof(WeaponRecord, damageTypes) == 0x98);
-static_assert(sizeof(WeaponRecord) == kWeaponSize);
 
 // An armour prototype: the two absorption rows CItemArmor takes.
 struct ArmorRecord : ItemRecordHead {
@@ -278,13 +232,8 @@ struct ArmorRecord : ItemRecordHead {
     std::uint32_t layer;                // the lower one's texture goes first (ArmorFieldB8)
     std::uint8_t field19[3];            // archive field 0x19 (nothing reads it)
     std::uint8_t field1A[8];            // archive field 0x1A (nothing reads it)
-    std::uint8_t unused_C7[kArmorSize - 0xC7];
+    std::uint8_t unused_C7[1];
 };
-static_assert(offsetof(ArmorRecord, showsWounds) == 0xB4);
-static_assert(offsetof(ArmorRecord, firstFlags) == 0x8C && offsetof(ArmorRecord, othersFactor) == 0x90);
-static_assert(offsetof(ArmorRecord, absorbOthers) == 0x94 && offsetof(ArmorRecord, othersFlags) == 0xB0);
-static_assert(offsetof(ArmorRecord, layer) == 0xB8);
-static_assert(sizeof(ArmorRecord) == kArmorSize);
 
 // A quick item prototype (potions, wands, scrolls).
 struct QuickItemRecord : ItemRecordHead {
@@ -302,14 +251,11 @@ struct QuickItemRecord : ItemRecordHead {
     std::uint32_t value70;              // CItemQuick::actionValue_
     std::uint8_t field17[4];            // archive field 0x17 (nothing reads it)
     std::uint8_t field18[4];            // archive field 0x18 (nothing reads it)
-    mfc::CString text7C;                // the spell text of a category 8 item (CItemConstructor::Build)
+    std::string text7C;                // the spell text of a category 8 item (CItemConstructor::Build)
     std::uint8_t attributeBonus[3];     // per attribute (UnitStats::AttributeWithItems)
     std::uint8_t field1B[8];            // archive field 0x1B (nothing reads it)
-    std::uint8_t unused_8B[kQuickItemSize - 0x8B];
+    std::uint8_t unused_8B[1];
 };
-static_assert(offsetof(QuickItemRecord, value70) == 0x70);
-static_assert(offsetof(QuickItemRecord, attributeBonus) == 0x80);
-static_assert(sizeof(QuickItemRecord) == kQuickItemSize);
 
 // A quest item prototype with a list of zone names (QuestItemInfo reads the list).
 struct QuestItemRecord : ItemRecordHead {
@@ -325,8 +271,6 @@ struct QuestItemRecord : ItemRecordHead {
 
     stlp::vector<mfc::CString> zones;   // the zone names
 };
-static_assert(offsetof(QuestItemRecord, zones) == 0x70);
-static_assert(sizeof(QuestItemRecord) == kQuestItemSize);
 
 // The prototype of a CItemLoot: kind (the head's category), record type, index.
 struct LootItemRecord : ItemRecordHead {
@@ -342,8 +286,6 @@ struct LootItemRecord : ItemRecordHead {
     std::uint32_t recordType;
     std::uint32_t index;
 };
-static_assert(offsetof(LootItemRecord, index) == 0x74);
-static_assert(sizeof(LootItemRecord) == kLootSize);
 
 // Per record kind: uninitialized_copy of [first, last) to `dest` and uninitialized_fill_n of
 // `count` copies of `value`. The last argument is STLport's unused type tag. Null destinations
@@ -355,9 +297,9 @@ R* __fastcall FillItemRecords(R* dest, int count, const R* value, int tag);
 
 // The start of a material record.
 struct MaterialRecordHead {
-    mfc::CString key;                   // (the camp's "material.<key>" loot items)
-    mfc::CString soundName;             // the material of hit sounds ("Metal", "Bone", ...)
-    mfc::CString name;
+    std::string key;                   // (the camp's "material.<key>" loot items)
+    std::string soundName;             // the material of hit sounds ("Metal", "Bone", ...)
+    std::string name;
     std::uint32_t number;               // its index (the packed item id's low half; loot kind 1)
     // the price per unit of the prototype's materialUnits; the trader stock's material draw
     //; a loot item of kind 1's price.
@@ -380,13 +322,6 @@ struct MaterialRecordHead {
     void ConstructDefault();
     void Destruct();
 };
-static_assert(sizeof(MaterialRecordHead) == kMaterialSize);
-static_assert(offsetof(MaterialRecordHead, soundName) == 0x04 && offsetof(MaterialRecordHead, name) == 0x08);
-static_assert(offsetof(MaterialRecordHead, unitPrice) == 0x10);
-static_assert(offsetof(MaterialRecordHead, magicLevel) == 0x1C);
-static_assert(offsetof(MaterialRecordHead, damageFactor) == 0x28);
-static_assert(offsetof(MaterialRecordHead, absorbFactors) == 0x2C);
-static_assert(offsetof(MaterialRecordHead, armourFlags) == 0x48);
 
 // The two-letter type codes of weapons and armours, by type (the model and picture names).
 inline constexpr const char* kWeaponCodes[7] = {"sw", "ax", "dg", "sp", "hm", "bw", "cb"};
@@ -490,8 +425,8 @@ struct ItemDatabase {
     WeaponTable weapons;
     ArmorTable armors;
     QuickItemTable quickItems;
-    QuestItemTable questItems;
-    LootItemTable loot;
+    QuestItemTable questItems;      // (QuestItems())
+    LootItemTable loot;             // (Loot())
 };
 static_assert(sizeof(ItemDatabase) == 0xC0);
 

@@ -23,6 +23,7 @@ using namespace ei::vectors;
 using namespace ei::vectors::stats;
 
 constexpr std::uint32_t kCap = 256;
+constexpr std::size_t kOriginalWeaponSkillBonus = 0x7B;   // game.exe's WeaponRecord::skillBonus
 
 // The recorders run in game.exe: its logic settings, not our g_logicSettings.
 const LogicSettings& OriginalLogicSettings() { return ei::OriginalGameData<const LogicSettings>(0x007C53F8); }
@@ -456,10 +457,11 @@ double __fastcall WeaponSkillBonusRecord(UnitParams* self, void*, int type, cons
     v.letters[0] = static_cast<char>(letter0);
     v.letters[1] = static_cast<char>(letter1);
     if (weapon) {
-        auto* record = reinterpret_cast<const itemdb::WeaponRecord*>(weapon);
+        // game.exe's record: its skill bonus bytes at +0x7B (ours has std::string head members, larger).
+        const auto* bonus = reinterpret_cast<const std::uint8_t*>(weapon) + kOriginalWeaponSkillBonus;
         v.weapon = 1;
-        v.bonus[0] = record->skillBonus[0];
-        v.bonus[1] = record->skillBonus[1];
+        v.bonus[0] = bonus[0];
+        v.bonus[1] = bonus[1];
     }
     std::uint16_t cw = ControlWord();
     double result = s_weaponSkillBonus(self, nullptr, type, weapon);

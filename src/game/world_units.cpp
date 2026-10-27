@@ -170,7 +170,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         message->parentIname = record->texts[3];
         message->skinTexture = record->texts[4];
         message->parts.SetSize(0, -1);
-        const char* prototypeName = record->texts[5];
+        const char* prototypeName = record->texts[5].c_str();
         int type = PrototypeObjectClass(prototypeName);
         message->parentId = type;   // : the object's type
         if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
@@ -213,7 +213,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         Sectors()->Add(unit);
 
         unit->SetPlayer(player);
-        slots->SetScriptName(record->texts[0]);
+        slots->SetScriptName(record->texts[0].c_str());
         unit->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
         unit->ClearProtectionBases();
         slots->SetStats(&record->stats);
@@ -237,7 +237,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(0);
-        unit->SetPrototype23CByName(record->texts[6]);
+        unit->SetPrototype23CByName(record->texts[6].c_str());
         line.Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
         if (sessionKind_ == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
@@ -533,7 +533,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             object->updateCountdown = UpdateCountdown(object);
             updateMap_.Set(static_cast<unsigned>(object->id_), object);
         }
-        if (*object->name2 != 0) namedObjects_.Set(static_cast<unsigned>(object->id_), object);
+        if (!object->name2.empty()) namedObjects_.Set(static_cast<unsigned>(object->id_), object);
         return result;
     }
     case 3: {   // a sound

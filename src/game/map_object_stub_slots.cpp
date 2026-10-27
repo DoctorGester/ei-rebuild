@@ -115,7 +115,7 @@ std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
 }
 EI_REWRITTEN(0x0050EAB0, CMapObject::ReadState);
 
-mfc::CString* CMapObject::SetSecondName(const char* text) {
+std::string* CMapObject::SetSecondName(const char* text) {
     name2 = text;
     return &name2;
 }

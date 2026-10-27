@@ -170,7 +170,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
         Vector3 scale;
         std::memcpy(&scale, &object->scale, sizeof(scale));
         out_.Write(&scale, sizeof(scale));
-        WriteText(&out_, object->name2);
+        WriteText(&out_, object->name2.c_str());
         WriteText(&out_, object->name);
         auto* server = object->ServerCompanion();
         WriteText(&out_, server->name78);

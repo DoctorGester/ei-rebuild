@@ -88,8 +88,8 @@ void Output(StockList* out, CItem* item) { StockList::Insert(out->End(), item); 
 
 void AddReference(CItem* item) { ++item->refCount_; }
 
-const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->text08; }
-const char* MaterialClass(const itemdb::ItemRecordHead* p) { return p->materialClass; }
+const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->text08.c_str(); }
+const char* MaterialClass(const itemdb::ItemRecordHead* p) { return p->materialClass.c_str(); }
 int MaterialUnits(const itemdb::ItemRecordHead* p) { return static_cast<int>(p->materialUnits); }
 
 // Picks the material of a prototype from the candidates (pointers into the stock's entries). Each candidate in
@@ -191,7 +191,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
         candidates.Finish() = candidates.begin();   // erase(begin, end)
         if (CompareNoCase(MaterialClass(prototype), game::NoneText()) != 0) {
             for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
-                if (Compare(MaterialClass(prototype), e->record->soundName) != 0) continue;
+                if (Compare(MaterialClass(prototype), e->record->soundName.c_str()) != 0) continue;
                 if (MaterialUnits(prototype) > e->left) continue;
                 candidates.PushBack<CandidateElement>(e);
             }
@@ -556,7 +556,7 @@ void WriteText(CStream* stream, const char* text) {
 
 void SaveItemRecords(CStream* stream, const StockPrototypeVector& list) {
     WriteInt(stream, static_cast<std::uint32_t>(list.size()));
-    for (itemdb::ItemRecordHead** p = list.begin(); p != list.end(); ++p) WriteText(stream, (*p)->text04);
+    for (itemdb::ItemRecordHead** p = list.begin(); p != list.end(); ++p) WriteText(stream, (*p)->text04.c_str());
 }
 
 } // namespace
@@ -568,14 +568,14 @@ void ItemStock::SaveLists(CStream* out) {
 
     WriteInt(out, static_cast<std::uint32_t>(materials.size()));
     for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
-        WriteText(out, e->record->key);
+        WriteText(out, e->record->key.c_str());
         WriteInt(out, static_cast<std::uint32_t>(e->minCount));
         WriteInt(out, static_cast<std::uint32_t>(e->maxCount));
         WriteInt(out, static_cast<std::uint32_t>(e->left));
     }
 
     WriteInt(out, static_cast<std::uint32_t>(spells.size()));
-    for (itemdb::SpellRecord** p = spells.begin(); p != spells.end(); ++p) WriteText(out, (*p)->code);
+    for (itemdb::SpellRecord** p = spells.begin(); p != spells.end(); ++p) WriteText(out, (*p)->code.c_str());
 
     // The modifiers' codes go through a CString made from a stack copy of their first four bytes (the game's
     // fifth byte is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
@@ -608,7 +608,7 @@ EI_REWRITTEN(0x00699440, ItemStock::CopyMagic);
 namespace {
 
 int SpellIndex(const itemdb::SpellRecord* record) {
-    const char* code = record->code;
+    const char* code = record->code.c_str();
     itemdb::SpellTable& spells = itemdb::TheSpellDatabase().spells;
     return spells.IndexOf(spells.FindByCode(code));
 }

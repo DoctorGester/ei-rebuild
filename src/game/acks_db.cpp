@@ -117,7 +117,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
     if (kind <= 0x29) {
         if (kind == 0x23 || kind == 0x24)
             TheSoundManager()->Play3D("weapons\\crash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0, 0);
-        UnitAcks* record = db.units.Find(prototype->name);
+        UnitAcks* record = db.units.Find(prototype->name.c_str());
         if (!record) return nullptr;
         if (kind == 0x29) {
             environmentList = &record->environmentSpeeches;
@@ -126,15 +126,15 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
             if (!list) return nullptr;
         }
     } else if (kind <= 0x2D) {
-        ExtraAcks* record = db.extras.Find(prototype->name);
+        ExtraAcks* record = db.extras.Find(prototype->name.c_str());
         if (!record) return nullptr;
         list = ListFor(record->head, kind);
         if (!list) return nullptr;
     } else if (kind <= 0x32) {
-        ModelAcks* record = db.models.Find(prototype->name);
+        ModelAcks* record = db.models.Find(prototype->name.c_str());
         if (!record) {
             auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-            record = db.models.Find(model->name);
+            record = db.models.Find(model->name.c_str());
             if (!record) return nullptr;
         }
         list = ListFor(record->head, kind);
@@ -163,7 +163,7 @@ const SpeechRecord* __fastcall SayNamedAck(CUnit* unit, const char* name, bool a
     if (!unit) return nullptr;
     auto* prototype = unit->GetPrototype23C();
     if (!prototype) return nullptr;
-    UnitAcks* record = Database().units.Find(prototype->name);
+    UnitAcks* record = Database().units.Find(prototype->name.c_str());
     if (!record) return nullptr;
     std::size_t length = std::strlen(name);
     for (const SpeechRecord* s = record->namedSpeeches.begin(); s != record->namedSpeeches.end(); ++s) {

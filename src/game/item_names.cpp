@@ -58,7 +58,7 @@ mfc::CString ModelNameOf(const NamedRecordTable<Record>& table, const char* cons
     std::string name;
     if (prototype && material)
         name = str::Format(kModelFormat, TypeCode(codes, prototype->type), prototype->number,
-                    material->name.GetString(), prototype->variant);
+                    material->name.c_str(), prototype->variant);
     return name;
 }
 
@@ -155,10 +155,10 @@ EI_REWRITTEN(0x006A0CC0, WeaponBaseFigure);
 mfc::CString CItemQuick::FigureName() {
     std::string name;
     const ItemRecordHead* prototype = GetPrototype();
-    if (prototype && gamecrt::mbsicmp(prototype->materialClass.GetString(),
+    if (prototype && gamecrt::mbsicmp(prototype->materialClass.c_str(),
                                      kNoMaterial) != 0) {
         const MaterialRecordHead* material = MaterialAt(MaterialIndex(prototypeId_));
-        const char* materialName = material ? material->name.GetString() : kUnknownMaterial;
+        const char* materialName = material ? material->name.c_str() : kUnknownMaterial;
         name = str::Format(kQuickMaterialFigure, Number(GetPrototype()), materialName);
         return name;
     }

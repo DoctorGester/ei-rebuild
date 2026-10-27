@@ -19,7 +19,7 @@ void __fastcall ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std:
     char code[4];
     std::memcpy(code, &materialIndex, sizeof(code));
     if (static_cast<std::uint32_t>(armor->type) <= 6) std::memcpy(code, kArmorCodes[armor->type], 3);
-    out->Format("%s_%.2d.%s.%d", code, armor->number, material->name.GetString(), armor->variant);
+    out->Format("%s_%.2d.%s.%d", code, armor->number, material->name.c_str(), armor->variant);
 }
 EI_REWRITTEN(0x006A3480, ArmorModelName);
 
@@ -32,7 +32,7 @@ void __fastcall WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, st
     char code[4];
     std::memcpy(code, &materialIndex, sizeof(code));
     if (static_cast<std::uint32_t>(weapon->type) <= 6) std::memcpy(code, kWeaponCodes[weapon->type], 3);
-    out->Format("%s_%.2d.%s.%d", code, weapon->number, material->name.GetString(), weapon->variant);
+    out->Format("%s_%.2d.%s.%d", code, weapon->number, material->name.c_str(), weapon->variant);
 }
 EI_REWRITTEN(0x006A0AA0, WeaponModelName);
 
@@ -41,6 +41,6 @@ void __fastcall WeaponRecordModelName(mfc::CString* out, const WeaponRecord* wea
     char code[4];
     std::memcpy(code, &out, sizeof(code));
     if (static_cast<std::uint32_t>(weapon->type) <= 6) std::memcpy(code, kWeaponCodes[weapon->type], 3);
-    out->Format("%s_%.2d.%s.%d", code, weapon->number, material->name.GetString(), weapon->variant);
+    out->Format("%s_%.2d.%s.%d", code, weapon->number, material->name.c_str(), weapon->variant);
 }
 EI_REWRITTEN(0x006A0BF0, WeaponRecordModelName);

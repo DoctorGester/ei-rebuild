@@ -138,7 +138,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (flags & kFlagNoEffect) return;
     EI_NAN_AUDIT(amount);
     if (amount <= kMinAmount) return;
-    std::string material = ModelOf(unit)->hitMaterial.GetString();
+    std::string material = ModelOf(unit)->hitMaterial;
     if (unit->type_ == kUnitTypeHero) {
         // Heroes sound by the armour over the location (the model's material without one), mapped
         // to "stone", "Metal" or "leather".

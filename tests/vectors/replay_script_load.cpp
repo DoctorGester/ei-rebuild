@@ -130,7 +130,7 @@ void SetError(CScript* s, const Error& e) {
     s->ErrorText() = e.text.c_str();
 }
 
-Error TakeError(CScript* s) { return {s->ErrorCode(), s->ErrorLine(), static_cast<const char*>(s->ErrorText())}; }
+Error TakeError(CScript* s) { return {s->ErrorCode(), s->ErrorLine(), s->ErrorText().c_str()}; }
 
 bool SameError(const Error& a, const Error& b) { return a.code == b.code && a.line == b.line && a.text == b.text; }
 

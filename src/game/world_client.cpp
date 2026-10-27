@@ -275,7 +275,7 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
     name = str::Right(name, length - second - 1);
     for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
         CMapObject* object = node->data;
-        if (gamecrt::mbscmp(name.c_str(), object->name2) == 0) object->SetVisibilityLevel(value);
+        if (gamecrt::mbscmp(name.c_str(), object->name2.c_str()) == 0) object->SetVisibilityLevel(value);
     }
     // FCOMP + TEST AH,0x40.
     EI_NAN_AUDIT(value);
@@ -296,7 +296,7 @@ void CWorldClient::ApplyObjectVariables() {
     NamedFloatTable* variables = &session_->Party()->variables_;
     for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
         CMapObject* object = node->data;
-        const char* name = object->name2;
+        const char* name = object->name2.c_str();
         if (!name || !*name) continue;
         mfc::CString variable(mfc::CString::kUnset);
         object->SetVisibilityLevel(variables->Get(*ObjectVariableName(&variable, name)));
