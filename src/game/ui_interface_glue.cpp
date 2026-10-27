@@ -1,6 +1,6 @@
 // The interface manager's small services to the rest of the game (CInterface3D): interface sounds,
 // the console window and debug panel settings, the frame rate surface and quest variable news for
-// the top window (005F5700, 005F7E60-005F7FC0). See ui.h and docs/notes/ui.md, section 3.
+// the top window. See ui.h and docs/notes/ui.md, section 3.
 #include "ui.h"
 #include "app.h"
 
@@ -80,10 +80,10 @@ void CInterface3D::OnQuestVariable(const char* name, float value) {
 }
 EI_REWRITTEN(0x005F7FC0, CInterface3D::OnQuestVariable);
 
-// --- 005F7F30-005F8310, 005F86D0: news for the top window -------------------------------------
+// --- News for the top window -------------------------------------
 
 namespace {
-// A unit's speech without an extra argument (slot 32's third).
+// A unit's speech without an extra argument.
 constexpr char* kNoExtra = nullptr;
 } // namespace
 

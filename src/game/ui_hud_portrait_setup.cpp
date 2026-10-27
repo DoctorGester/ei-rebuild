@@ -259,6 +259,6 @@ void CHudPortraits::Rebuild(int wide) {
 EI_REWRITTEN(0x00640670, CHudPortraits::ShowFace);
 EI_REWRITTEN(0x00640060, CHudPortraits::AddPortrait);
 EI_REWRITTEN(0x006407E0, CHudPortraits::Rebuild);
-// EI_Plugin.asi patches both in a Rebirth launch: NPlayers' row length in AddPortrait (00640069; the sites
+// EI_Plugin.asi patches both in a Rebirth launch: NPlayers' row length in AddPortrait (the sites
 // for more than 7 players are not reproduced, the installer skips the function then) and Fixes in Rebuild
-// (the party's and the players' sex at 006408E6 / 00640D2F, the prototype fallback at 00640C97).
+// (the party's and the players' sex, the prototype fallback).

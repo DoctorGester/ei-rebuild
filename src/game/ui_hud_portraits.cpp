@@ -1,4 +1,4 @@
-// The battle HUD's party portraits, per frame (CHudPortraits::Update, 00641080): each portrait's
+// The battle HUD's party portraits, per frame (CHudPortraits::Update): each portrait's
 // health and mana bars, the red flash after a hit, the face picture (normal, hit, low mana) and
 // model (by the unit's build), the face model's easing towards its rest orientation with an
 // occasional random nod, shake or turn, and the marker under the selected unit's portrait.
@@ -40,7 +40,7 @@ float Pi() { return 3.1415927f /*007423F8*/; }
 bool GamePaused() { return TheClientWorld()->paused_ != 0; }
 int SelectedUnitId() { return TheCamera()->targetId_; }
 
-// 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
+// Time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
@@ -54,8 +54,8 @@ constexpr std::uint32_t kHealthV1 = 0x3F698000;
 constexpr std::uint32_t kManaV0 = 0x3F5C8000;
 constexpr std::uint32_t kManaV1 = 0x3F4F8000;
 constexpr float kFlashAlpha = 200.0f;
-constexpr float kHitPictureTime = 2.0f;       // 0073CDB8 face mode 2
-constexpr float kMode1PictureTime = 4.0f;     // 0073BAA0 face mode 1
+constexpr float kHitPictureTime = 2.0f;       // face mode 2
+constexpr float kMode1PictureTime = 4.0f;     // face mode 1
 constexpr float kLowMana = 0.25f;
 constexpr float kThin = 0.2f;
 constexpr float kFat = 0.8f;
@@ -64,7 +64,7 @@ constexpr float kFat = 0.8f;
 double RandomScale32() { return 2.3283064370807974e-10 /*0073C468*/; }
 double RandomDelayScale() { return (-6.984919588798148e-11 /*00742760*/); }
 double RandomScale31() { return 4.656612874161595e-10 /*0073C508*/; }
-constexpr float kWobbleRate = 0.33333334f;    // 0073D9A4 wobbles per second
+constexpr float kWobbleRate = 0.33333334f;    // wobbles per second
 constexpr float kTwelfth = 0.083333336f;
 constexpr float kWobbleSpan = 0.2f;
 constexpr float kWobbleFrequency = 5.0f;

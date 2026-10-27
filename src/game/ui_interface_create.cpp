@@ -1,8 +1,8 @@
-// The interface manager's start (CInterface3D::Create 005F4990, called once by the application's
+// The interface manager's start (CInterface3D::Create, called once by the application's
 // start with the renderer's device object): the screen size, the three fonts, the keyboard layout,
 // the console window, the debug information panel, the chat overlay, the fade and the help topics
 // seen (config\tutorial.ini). Rebirth's WideScreen changes the fonts' scale (addon's FMUL at +BF
-// reads its float at 005F4F81: widescreen::FontScale); hooked in both launches. See ui.h and
+// reads its float: widescreen::FontScale); hooked in both launches. See ui.h and
 // docs/notes/ui.md, section 3.
 #include "ui.h"
 
@@ -45,7 +45,7 @@ bool CreateFont(mfc::impl::CFont* font, int size) {
     return false;
 }
 
-// The language the keyboard starts in (the option 0079BE98, a Windows language id) and English.
+// The language the keyboard starts in (the option, a Windows language id) and English.
 DWORD KeyboardLanguage() { return static_cast<DWORD>(options::TheOptions()->keyboardLayout_); }
 constexpr DWORD kEnglish = 0x409;
 constexpr int kMaxLayouts = 16;
@@ -86,7 +86,7 @@ static_assert(sizeof(console::ConsoleWindow) == 0x7C && sizeof(CChatOverlay) == 
 
 void CInterface3D::Create(CTextureDevice* device) {
     renderer_ = reinterpret_cast<UiRenderer*>(device);
-    // (Without a primary surface the original stores an uninitialised stack slot in both.)
+    // (Without a primary surface the original game stores an uninitialised stack slot in both.)
     int width = 0;
     int height = 0;
     if (device->primary_) {
@@ -155,7 +155,7 @@ void CInterface3D::Create(CTextureDevice* device) {
             text::SplitWords(line, &words, ' ');
             if (words.GetSize() <= 1) continue;
             const char* count = words[1];
-            helpTopics_.Subscript(words[0]) = std::atoi(count);   // operator[], inlined by the original
+            helpTopics_.Subscript(words[0]) = std::atoi(count);   // operator[]
         }
         file.Close();
     }

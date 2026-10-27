@@ -288,7 +288,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
     }
     char text[128];
     gamecrt::sprintf(text, "%d", playerId);
-    // 0041D260 (ClientSession::SendCommand, rewritten): the server commands 4 and 5.
+    // ClientSession::SendCommand: the server commands 4 and 5.
     if (mode == 1)
         net::GameClient()->SendCommand(4, text);
     else if (mode == 2)
@@ -304,7 +304,7 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     if (region < 0) return;
     handled_ = true;
     CBattleScreen* owner = owner_;
-    // 00638EF0 through its address: Rebirth patches it (FixSpellSelfCasting; rule 9).
+    // Called through its address: Rebirth patches it (FixSpellSelfCasting; rule 9).
     if (region < owner->party_.size) static_cast<CBattleScreen*>(owner)->SelectUnit(owner->party_[region], 0, 0);
 }
 EI_REWRITTEN(0x00641E20, CHudPortraits::OnMouseUp);
@@ -464,7 +464,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     case 1:     // the normal speed
     case 2:     // the fast speed
         handled_ = true;
-        // Rebirth's MPSpeedControl (the JNEs at 00648DFE / 00648E65 aimed at the next instruction).
+        // Rebirth's MPSpeedControl (the JNEs aimed at the next instruction).
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         if (GameClientPaused()) GameSendFlag10(0);
         fast_ = region - 1;
@@ -536,7 +536,7 @@ void CHudMovePanel::OnMouseMove(int, int x, int y) {
 EI_REWRITTEN(0x00649750, CHudMovePanel::OnMouseMove);
 
 void CHudMovePanel::ShowModeVanilla(int mode) {
-    widescreen::EnterLeftPanel();    // addon's 100233C7; 100233E0 at the end
+    widescreen::EnterLeftPanel();    // addon's handler; another at the end
     mode_ = mode;
     auto* marker = SceneMesh(0);
     marker->visible_ = mode < 0 ? 0 : 1;
@@ -658,11 +658,11 @@ void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int c
 void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int quick) {
     screen->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
 }
-// The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
-// (index, 0) and 0063F7A0 (all: CHudActionColumn::ClearHighlights).
-// The client world (TheClientWorld(), 007AF5B8): the object under a screen point (x, y pair), the
+// The HUD panels: quick items (slot, 0), spells (index, 0), actions
+// (index, 0) and (all: CHudActionColumn::ClearHighlights).
+// The client world (TheClientWorld()): the object under a screen point (x, y pair), the
 // ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
-// The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
+// The local view's orders: (unit, target, a, b, flag), (unit, target;
 // CPlayerClient::SendFollow, through its address).
 // The sprite's SetScale with the scale's bits (CUiMesh::SetScale).
 
@@ -680,7 +680,7 @@ void NodPortrait(CBattleScreen* screen, int index) {
     slots[index].wobbleTime_ = delay;
     screen->portraits_->slots_[index].wobbleKind_ = 1;
 }
-// fcomp with 0.0 and C3: true for zero (either sign).
+// Whether `x` is zero (either sign), as the FPU compare gives it.
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;
@@ -827,7 +827,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     case 1:   // a spell on a unit
         if (!unit || unitDead(unit) || !first) return;
-        // Rebirth's FixSpellSelfCasting #1 (MOV CL,0 at 00639447): the cast no longer passes the
+        // Rebirth's FixSpellSelfCasting #1 (MOV CL,0): the cast no longer passes the
         // Ctrl flag.
         ScreenCastOn(this, nullptr, unit,
                      ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellSelfCasting) ? '\0' : ctrl(), 0);
@@ -922,7 +922,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
 }
 EI_REWRITTEN(0x00638EF0, CBattleScreen::SelectUnit);
 
-// --- 0063DB20: the quick item panel's button release -------------------------------------------
+// --- The quick item panel's button release -------------------------------------------
 
 void CHudQuickItems::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -971,14 +971,14 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
 }
 EI_REWRITTEN(0x0063DB20, CHudQuickItems::OnMouseUp);
 
-// --- 00636F10: the selected units ordered to a point -------------------------------------------
+// --- The selected units ordered to a point -------------------------------------------
 
 namespace {
 
-// The CArray<CUnit*> the order takes (vtable UnitPtrArrayClass; SetSize 005EBDB0).
+// The CArray<CUnit*> the order takes (vtable UnitPtrArrayClass).
 using OrderUnits = mfc::CArray<CUnit*>;
-// The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there
-// (CPlayerClient::SendWalk), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
+// The local view's orders (thiscall; units, point, the Ctrl flag): move there
+// (CPlayerClient::SendWalk), the other order (mode non-zero: the modifier flags or Shift;
 // CPlayerClient::SendGoTo, through its address).
 // The constant 1.0f the zone variable is compared with.
 float GameOne() { return 1.0f /*0073B84C*/; }

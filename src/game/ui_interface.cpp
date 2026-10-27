@@ -18,14 +18,14 @@ int Mul(int a, int b) {
     return static_cast<int>(static_cast<std::uint32_t>(a) * static_cast<std::uint32_t>(b));
 }
 
-// What EAX holds after the compiler's division by 600: MOV EAX,0x1B4E81B5; IMUL r32 leaves the
-// low dword of the product in EAX.
+// The compiler's division by 600 (MOV EAX,0x1B4E81B5; IMUL r32) leaves the
+// low dword of the product in a register.
 int DivideBy600Residue(int dividend) { return Mul(0x1B4E81B5, dividend); }
 } // namespace
 
 // --- CInterface3D ----------------------------------------------------------------------------
 
-// The same three with the interface (ECX) given: none for Rebirth's WideScreen sites (ui.h).
+// The same three with the interface given: none for Rebirth's WideScreen sites (ui.h).
 namespace {
 const CInterface3D* WithoutMargin(const CInterface3D* ui) { return widescreen::Active() ? nullptr : ui; }
 } // namespace
@@ -42,9 +42,9 @@ int CInterface3D::CallScalePointFromScreenNoMargin(POINT* point) const {
 
 // The scaling functions below are Rebirth's WideScreen too (ui_widescreen.h): with the flag on,
 // addon's versions. addon replaces the first two with JMPs to its code and writes the last three's
-// code over (with two entries of its own, 005F7D9E and 005F7DFE, that clear ECX first and skip
-// the margin; its patched mouse handlers 005EB210 and 00630010 call the second). Every one of them
-// skips the margin when called with ECX 0 (addon's code at 005FDE94 calls 005F7CA0 so): the
+// code over (with two entries of its own that clear the interface first and skip
+// the margin; its patched mouse handlers call the second). Every one of them
+// skips the margin when called without an interface (addon's code calls it so): the
 // entries the hooks use, below, handle that.
 
 int CInterface3D::ScaleRectToScreen(RECT* rect) const {
@@ -57,7 +57,7 @@ int CInterface3D::ScaleRectToScreen(RECT* rect) const {
     return DivideBy600Residue(bottom);
 }
 
-// 005F7D60 is an identical copy of this function that nothing calls; addon points it at the same code
+// An identical copy of this function exists in the game that nothing calls; addon points it at the same code
 // as this one. Not rewritten.
 int CInterface3D::ScalePointToScreen(POINT* point) const {
     if (widescreen::Active()) return widescreen::PointToScreen(point, true);
@@ -90,8 +90,8 @@ int CInterface3D::ScalePointFromScreenCopy(POINT* point) const {
     return point->y;
 }
 
-// The hooks: with Rebirth's code in place these are also reached with ECX 0, i.e. without an
-// interface (addon's entries 005F7D9E / 005F7DFE, its code at 005FDE94; ui_widescreen.h).
+// The hooks: with Rebirth's code in place these are also reached without an
+// interface (addon's entries; ui_widescreen.h).
 int CInterface3D::ScaleRectToScreenEntry(RECT* rect) const {
     if (!this && widescreen::Active()) return widescreen::RectToScreen(rect, false);
     return ScaleRectToScreen(rect);
@@ -159,7 +159,7 @@ EI_REWRITTEN(0x005FE400, CUiSurface::MoveTo);
 // --- CUiModel --------------------------------------------------------------------------------
 
 void CUiModel::SetScreenPosition(float x, float y, float depth) {
-    // 0074015C (1/400), 0073B84C (1), 0073C524 (0.75), 00740ED4: layout coordinates to the view
+    // (1/400), (1), (0.75): layout coordinates to the view
     // plane, (x / 400 - 1, y / 400 - 0.75) * k * depth. Each product is rounded once to float.
     constexpr float kLayoutScale = 0x1.47ae14p-9f;
     constexpr float kViewScale = 0x1.ed21e6p-2f;
@@ -176,4 +176,4 @@ EI_REWRITTEN(0x005FC450, CUiModel::SetScreenPosition);
 
 // --- Record lookups --------------------------------------------------------------------------
 
-// 005F2EA0 / 005F2EE0: the spell and modifier tables' At (spell_db_lookup.cpp).
+// The spell and modifier tables' At (spell_db_lookup.cpp).

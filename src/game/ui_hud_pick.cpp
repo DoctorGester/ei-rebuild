@@ -37,7 +37,7 @@ enum PendingAction : int {
 // The spell (+0x44) an item carries, or null.
 CSpell* SpellOf(CItem* item) { return item->spell_; }
 
-// The shared tail of 0063E020 and 0063EF60: `spell` (an item's +0x44) used at once by `unit`'s
+// The shared tail of the quick item and the spell use: `spell` (an item's +0x44) used at once by `unit`'s
 // side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the
 // pending action dropped; false), any other to `unit` itself; then UseOnUnit for a spell aimed at
 // a unit, else UseAtPoint at the target's position (both through their addresses), with `quick`.
@@ -99,7 +99,7 @@ void CBattleScreen::SetPendingAction(int mode, int slot, int item) {
     }
 }
 
-// --- 0063EC90: a spell button ------------------------------------------------------------------
+// --- A spell button ------------------------------------------------------------------
 
 void CHudSpellColumn::Click(int index) {
     if (index < 0 || index >= count_) return;
@@ -121,7 +121,7 @@ void CHudSpellColumn::Click(int index) {
 }
 EI_REWRITTEN(0x0063EC90, CHudSpellColumn::Click);
 
-// --- 0063FB50: an action button ----------------------------------------------------------------
+// --- An action button ----------------------------------------------------------------
 
 void CHudActionColumn::Select(int index) {
     if (index < 0 || index >= count_) return;
@@ -139,7 +139,7 @@ void CHudActionColumn::Select(int index) {
 }
 EI_REWRITTEN(0x0063FB50, CHudActionColumn::Select);
 
-// --- 0063DD70: a quick item slot ---------------------------------------------------------------
+// --- A quick item slot ---------------------------------------------------------------
 
 void CHudQuickItems::Pick(int slot) {
     if (!unit_) return;
@@ -162,7 +162,7 @@ void CHudQuickItems::Pick(int slot) {
 }
 EI_REWRITTEN(0x0063DD70, CHudQuickItems::Pick);
 
-// --- 0063E020 / 0063EF60: a quick item or spell used at once ------------------------------------
+// --- A quick item or spell used at once ------------------------------------
 
 void CHudQuickItems::UseNow(int slot) {
     if (!unit_) return;

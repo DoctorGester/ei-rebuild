@@ -1,4 +1,4 @@
-// The multiplayer hero screen's Create (00613EA0, CMpHeroScreen slot 25). Rebirth's WideScreen
+// The multiplayer hero screen's Create. Rebirth's WideScreen
 // replaces the function with the original followed by two hidden curtain sprites over the screen's
 // margins (widescreen::AddCurtains), which this reproduces; EI_Plugin.asi patches it too
 // (EiPluginFixes, reproduced: the figures' sex test), so it is hooked in a Rebirth launch too; nothing in the
@@ -58,7 +58,7 @@ constexpr int kSurfaceCommands = 1, kSurfaceRename = 3;
 // The menu model's turn about x: pi / 2 times 1.2.
 float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
 
-// The saved heroes' reload (00662FB0, plain RET; Rebirth-patched).
+// The saved heroes' reload (Rebirth-patched).
 SavedParties* Heroes() { return &TheSavedParties(); }
 
 // The screen's vectors as the library's: the figures' prototype names, and the voices.
@@ -120,7 +120,7 @@ void CMpHeroScreen::CreateScreen() {
     model->ShowPart("but03", 1);
     model->ShowPart("button03_multiplayer", 1);
 
-    // The nine regions every mode keeps (00615D30 places the first four and gives the tips).
+    // The nine regions every mode keeps (the mode function places the first four and gives the tips).
     auto region = [this](int left, int top, int right, int bottom) {
         AddRegion()->SetRect(left, top, right, bottom);
     };
@@ -243,7 +243,7 @@ void CMpHeroScreen::CreateScreen() {
     const NpcPrototypeTable& creatures = unitdb::NpcTable();
     const int count = static_cast<int>(creatures.end - creatures.begin);
     for (int i = 0; i < count; ++i) {
-        // The vector's checked access, as the original repeats it.
+        // The vector's checked access, repeated as the original does.
         auto creature = [&creatures, i]() {
             const UnitNpcRecord* first = creatures.begin;
             const UnitNpcRecord* last = creatures.end;
@@ -257,7 +257,7 @@ void CMpHeroScreen::CreateScreen() {
         if (!prototype) continue;
         const UnitModelRecord* figure;
         {
-            // The original inlines operator[] (a pair of the name and null through 0053D340).
+            // The original inlines operator[] (a pair of the name and null through).
             stlp::string key(prototype->modelName.GetString());
             figure = unitdb::ModelNamed(key);
         }
@@ -371,5 +371,5 @@ void CMpHeroScreen::CreateScreen() {
     widescreen::AddCurtains(this, 0);
 }
 EI_REWRITTEN(0x00613EA0, CMpHeroScreen::CreateScreen);
-// In a Rebirth launch EI_Plugin.asi also patches the function (EiPluginFixes at +D15 / +E7B, the
+// In a Rebirth launch EI_Plugin.asi also patches the function (the
 // figures' sex test above).

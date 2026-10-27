@@ -1,6 +1,6 @@
 // The battle HUD panels' state displays: the unit panel's bars and numbers,
-// the movement panel's flag button and the top panel's pages and layout (0064A320,
-// 00649E20). See ui.h ("Battle screen and its HUD panels") and docs/notes/items_spells.md ("Party item
+// the movement panel's flag button and the top panel's pages and layout.
+// See ui.h ("Battle screen and its HUD panels") and docs/notes/items_spells.md ("Party item
 // lists").
 #include "ui.h"
 
@@ -33,7 +33,7 @@ constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 // The panel's scene object `index` (the HUD's are interface sprites).
 CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
-// Text into the panel's first surface (005FDE20, Rebirth-patched: through its address).
+// Text into the panel's first surface (Rebirth-patched: through its address).
 void DrawPanelText(CUiWindow* window, const char* text, RECT rect, std::uint32_t colour, int a, int b) {
     window->surfaces_.data[0]->DrawTextIn(text, &rect, 0, colour, a, b);
 }

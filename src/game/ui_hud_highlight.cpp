@@ -26,7 +26,7 @@ CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index);
 
 void SetSpriteScale(CUiMesh* sprite, float scale) { sprite->SetScale(scale); }
 
-// The columns' button highlight (0063E750 and 0063F730 are the same code).
+// The columns' button highlight (both columns share the code).
 void HighlightButton(CUiWindow* column, int* selected, int index, int on) {
     CUiMesh* sprite = Sprite(column, index);
     SetSpriteScale(sprite, on ? kButtonScaleOn : kButtonScaleOff);
@@ -48,7 +48,7 @@ void ClearButtons(CUiWindow* column, int count, int* selected) {
 
 } // namespace
 
-// --- 005E7060: a sprite's scale ----------------------------------------------------------------
+// --- A sprite's scale ----------------------------------------------------------------
 
 void CUiMesh::SetScale(float scale) {
     std::uint32_t bits = std::bit_cast<std::uint32_t>(scale);
@@ -58,7 +58,7 @@ void CUiMesh::SetScale(float scale) {
 }
 EI_REPLACE_METHOD(0x005E7060, CUiMesh::SetScale);
 
-// --- 0063CD20: a quick item slot ---------------------------------------------------------------
+// --- A quick item slot ---------------------------------------------------------------
 
 void CHudQuickItems::Highlight(int slot, int on) {
     int sprite = regionItem_[slot];
@@ -77,7 +77,7 @@ void CHudQuickItems::Highlight(int slot, int on) {
 }
 EI_REWRITTEN(0x0063CD20, CHudQuickItems::Highlight);
 
-// --- 0063E750 / 0063F730 / 0063E7C0 / 0063F7A0: the columns' buttons -----------------------------
+// --- The columns' buttons -----------------------------------------------------------------
 
 void CHudSpellColumn::Highlight(int index, int on) { HighlightButton(this, &selected_, index, on); }
 EI_REWRITTEN(0x0063E750, CHudSpellColumn::Highlight);

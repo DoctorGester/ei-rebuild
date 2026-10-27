@@ -1,8 +1,8 @@
-// The battle HUD's unit panel: its draw (006462A0, slot 20 of CHudUnitPanel). A-E2.
+// The battle HUD's unit panel: its draw (CHudUnitPanel).
 // Rebirth patches it for its WideScreen layout, reproduced behind the flag (ui_widescreen.h):
 // the panel offset while it draws (until the window's base draw), the model's x moved left by
 // EdgeShift, the depth buffer's rectangles scaled without the margin. The callees Rebirth patches
-// too (the sprites' Place 005E6FA0, the layout scaling 005F7CA0) are called through their
+// too (the sprites' Place, the layout scaling) are called through their
 // addresses. The function drives
 // the Direct3D device itself (IDirect3DDevice7::Clear, Get / SetTextureStageState): those calls are
 // made as they are, and mirrored to the new renderer as the hero preview's are (ui_hero_preview.cpp).
@@ -130,7 +130,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             RECT right = {180 - offset_, 0, 400 - offset_, 220};
             RECT strip = {0, 0, 20 - offset_, 220};
             RECT below = {0, 220, 400 - offset_, 300};
-            // WideScreen (0064644C / 0064648E / 00646499: XOR ECX,ECX): without the margin.
+            // WideScreen : without the margin.
             interface_->CallScaleRectToScreenNoMargin(&right);
             interface_->CallScaleRectToScreenNoMargin(&strip);
             interface_->CallScaleRectToScreenNoMargin(&below);

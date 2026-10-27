@@ -1,6 +1,6 @@
-// Per-frame updates of the battle HUD panels: the clock (CHudClock::Update, 006488E0) turns its
+// Per-frame updates of the battle HUD panels: the clock (CHudClock::Update) turns its
 // face with the time of day, moves the hand and the speed dial and makes the pause button blink
-// while the game is paused; the top panel (CHudTopPanel::Update, 00649FF0) slides in and out.
+// while the game is paused; the top panel (CHudTopPanel::Update) slides in and out.
 // See docs/notes/ui.md.
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
@@ -57,13 +57,13 @@ bool GamePaused() { return TheClientWorld()->paused_ != 0; }
 constexpr std::uint32_t kHandDepth = 0x41000000;   // 8.0f
 constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, the top panel sling
 
-// The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod 006E95AA), stored.
+// The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod), stored.
 float TimeOfDay() {
     const CWorldClient* world = TheClientWorld();
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
-// 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
+// Time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }

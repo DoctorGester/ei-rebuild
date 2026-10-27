@@ -1,4 +1,4 @@
-// The hero preview of the camp and the multiplayer hero screen: 005EC300.
+// The hero preview of the camp and the multiplayer hero screen.
 // See ui.h (CUiWindow::DrawHeroPreview) and docs/notes/ui.md ("Camp, global map, hero screens").
 // Floating point follows the original's x87 code: values it stores as float are rounded with
 // static_cast<float>, values it keeps on the FPU stack stay unrounded (double), products and sums
@@ -30,8 +30,7 @@ constexpr LONG kWideClearTop[6] = /*00740310*/ {100, 190, 340, 190, 290, 390};
 constexpr LONG kWideClearRight[6] = /*00740328*/ {510, 290, 290, 528, 528, 528};
 constexpr LONG kWideClearBottom[6] = /*00740340*/ {500, 260, 410, 210, 310, 410};
 
-// The game's vector helpers as the original calls them (00401E00 dot, unrounded; 00448A10 /
-// 00410770 scale; 004489D0 cross; 0040CDC0 sum; results stored as float).
+// The game's vector helpers as the original calls them (dot, unrounded; scale; cross; sum; results stored as float).
 double DotCall(const Vector3& a, const Vector3& b) { return DotUnrounded<Sum3::ZYX, double>(a, b); }
 Vector3 Scale(const Vector3& v, float s) { return {static_cast<float>(D(s) * D(v.x)), static_cast<float>(D(s) * D(v.y)), static_cast<float>(D(s) * D(v.z))}; }
 Vector3 CrossStored(const Vector3& a, const Vector3& b) {

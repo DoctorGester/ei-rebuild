@@ -1,4 +1,4 @@
-// The multiplayer hero screen's left button (00617050, input slot 2) and keys (00618A10, slot 9).
+// The multiplayer hero screen's left button and keys.
 // See docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "ui_screens.h"
@@ -36,9 +36,8 @@ namespace {
 
 // An empty CString object of the game (the new hero's name).
 
-// The hero screen's own methods (thiscall on the window): 00615D30 the mode (RET 4;
-// Rebirth-patched), 006186F0 create the hero, 00617A50 the statistics page's next, 006183B0
-// continue to the connection screen, 00618060 rename, 00619150 the voice's sound.
+// The hero screen's own methods (thiscall on the window): the mode (Rebirth-patched), create the hero, the
+// statistics page's next, continue to the connection screen, rename, the voice's sound.
 void SetMode(CMpHeroScreen* screen, void*, int mode) { screen->SetModeVanilla(mode); }
 void __fastcall MpHeroCreate(CMpHeroScreen*);
 void __fastcall MpHeroAddNew(CMpHeroScreen*);
@@ -46,17 +45,15 @@ void __fastcall MpHeroContinue(CMpHeroScreen*);
 void __fastcall MpHeroRename(CMpHeroScreen*);
 void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 // The hero list drawn again (plain RET).
-// The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
-// container (RET 4).
+// The hero list drawn again.
 
-// Back to the main menu: the text "reserved_04" to 005F75B0 (thiscall on
-// 007C7D50, RET 4), 0057ED00 (thiscall on the session 007AFE20) ends it.
+// Back to the main menu: the text "reserved_04" to the interface manager, and the session ends.
 
-// Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
+// Windows: the message box, and one opened on top.
 
-// The camp screen as the hero screen builds it inline (the same fields as its constructor
-// 005F6240, with the texture cache's header node made by the tree's own allocator): container
-// base 00600B20 (RET 4), the caches (ItemObjectCache::Construct), CStringArray 006FE925.
+// The camp screen as the hero screen builds it inline (the same fields as its constructor,
+// with the texture cache's header node made by the tree's own allocator): container
+// base, the caches (ItemObjectCache::Construct), CStringArray.
 
 
 int HeroCount() {
@@ -79,7 +76,7 @@ void BackToMainMenu(CInterface3D* ui) {
 }
 
 // The heroes' map transfer (sent after a rename).
-// The multiplayer heroes' folder (007C82A0, a CString).
+// The multiplayer heroes' folder (a CString).
 const char* HeroesFolder() { return TheSavedParties().folder_; }
 const char* RenameSeparator() { return " | "; }
 const char* RenameBar() { return "|"; }
@@ -350,7 +347,7 @@ EI_REWRITTEN(0x00617050, CMpHeroScreen::OnLButtonDown);
 
 EI_REWRITTEN(0x00618A10, CMpHeroScreen::OnKeyDown);
 
-// --- 00618060: rename ---------------------------------------------------------------------------
+// --- Rename ---------------------------------------------------------------------------
 
 namespace {
 // The rename's title on surface 3: 130 x 16 pixels.
@@ -386,7 +383,7 @@ void __fastcall MpHeroRename(CMpHeroScreen* self) { self->Rename(); }
 } // namespace
 EI_REWRITTEN(0x00618060, MpHeroRename);
 
-// --- 00619150: the voice's sound ----------------------------------------------------------------
+// --- The voice's sound ----------------------------------------------------------------
 
 namespace {
 constexpr std::uint32_t kVoiceFlags = 0x2282;
@@ -433,7 +430,7 @@ void __fastcall MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
 } // namespace
 EI_REWRITTEN(0x00619150, MpHeroPlayVoice);
 
-// --- 006183B0: continue -------------------------------------------------------------------------
+// --- Continue -------------------------------------------------------------------------
 
 namespace {
 const char* SoundOk() { return "buttons\\messbox\\ok.wav"; }
@@ -457,7 +454,7 @@ void __fastcall MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
 } // namespace
 EI_REWRITTEN(0x006183B0, MpHeroContinue);
 
-// --- 00618850 / 006186F0: the new hero's statistics and its creation --------------------------------
+// --- The new hero's statistics and its creation --------------------------------------
 
 namespace {
 const char* SoundCancel() { return game::CancelSoundText(); }
@@ -512,10 +509,10 @@ namespace {
 void __fastcall MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 } // namespace
 EI_REWRITTEN(0x006186F0, MpHeroCreate);
-// --- 0061A350 / 00617E40 / 00615940: a hero deleted, the message box's answer ------------------------
+// --- A hero deleted, the message box's answer ------------------------------------------
 
 MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
-    Party()->Assign(const_cast<MpHeroRecord*>(other)->Party());   // 00661300 (reads the source non-const)
+    Party()->Assign(const_cast<MpHeroRecord*>(other)->Party());   // (reads the source non-const)
     file = other->file;
     return this;
 }
@@ -552,7 +549,7 @@ MpHeroRecord* __fastcall MpHeroRecord::CopyRange(const MpHeroRecord* first, cons
 EI_REWRITTEN(0x00664410, MpHeroRecord::CopyRange);
 
 namespace {
-// The heroes' folder (007C82A0, a CString; the records follow it) and the records as a vector.
+// The heroes' folder (a CString; the records follow it) and the records as a vector.
 const mfc::CString& MpHeroesFolder() { return TheSavedParties().folder_; }
 MpHeroRecord*& MpHeroesBegin() { return TheSavedParties().entries_.Start(); }
 MpHeroRecord*& MpHeroesEnd() { return TheSavedParties().entries_.Finish(); }
@@ -568,7 +565,7 @@ void CMpHeroScreen::DeleteHero() {
     gameapi::DeleteFileA(path);
     MpHeroRecord* at = MpHeroesBegin() + heroIndex_;
     for (MpHeroRecord* next = at + 1; next < MpHeroesEnd(); ++at, ++next) at->Assign(next);
-    (--MpHeroesEnd())->Destruct();   // inlined in the original
+    (--MpHeroesEnd())->Destruct();   // destructed in place
     std::uint32_t count = MpHeroCount();
     if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
     RefreshHeroScroll();
@@ -605,7 +602,7 @@ void CMpHeroScreen::OnMessageResult(int result) {
 }
 EI_REWRITTEN(0x00615940, CMpHeroScreen::OnMessageResult);
 
-// --- 00617A50: the new hero added to the list ----------------------------------------------------
+// --- The new hero added to the list --------------------------------------------------
 
 namespace {
 MpHeroRecord*& MpHeroesCapacity() { return TheSavedParties().entries_.EndOfStorage(); }

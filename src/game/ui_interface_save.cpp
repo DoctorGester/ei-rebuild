@@ -1,4 +1,4 @@
-// CInterface3D's saved state (005F8420 reads it, 005F85C0 writes it). See ui.h.
+// CInterface3D's saved state. See ui.h.
 #include "ui.h"
 
 #include "core_streams.h"
@@ -14,12 +14,12 @@
 
 namespace {
 
-// The save stream: slot 1 reads `size` bytes; version_ is the save's version.
+// The save stream: reads `size` bytes; version_ is the save's version.
 void Read(CStream* stream, void* to, int size) { stream->Read(to, static_cast<std::uint32_t>(size)); }
 int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
 
 // A string read into a temporary (ReadString constructs it), assigned to `field`
-// (CString::operator=, 00700AA9), then destroyed.
+// (CString::operator=), then destroyed.
 void ReadInto(CStream* stream, mfc::CString* field) {
     mfc::CString text(mfc::CString::kUnset);
     *field = *stream->ReadString(&text);
@@ -53,12 +53,12 @@ void CInterface3D::LoadState(CStream* stream) {
     }
 }
 
-// --- 005F8C90: the multiplayer messages' texts -------------------------------------------------
+// --- The multiplayer messages' texts -------------------------------------------------
 
 char g_pauseMessageKey[12] = /*007930EC*/ {"reserved_02"};
 
 namespace {
-// The text table (007AF788; thiscall): a key's text into `out` (004E0020, RET 8).
+// The text table: a key's text into `out`.
 
 const char* const kMessageKeys[13] = {
     "lmp_player_connected",
@@ -93,7 +93,7 @@ EI_REWRITTEN(0x005F8C90, CInterface3D::MessageText);
 
 EI_REWRITTEN(0x005F8420, CInterface3D::LoadState);
 
-// --- 005F85C0: the saved state written -----------------------------------------------------------
+// --- The saved state written -----------------------------------------------------------
 
 void CInterface3D::SaveState(CStream* stream) {
     for (std::uint8_t flag : hudPanelsIn_) stream->Write(&flag, 1);
