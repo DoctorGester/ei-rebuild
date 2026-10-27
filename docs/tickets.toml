@@ -3330,6 +3330,14 @@ depends = ["C22k"]
 note = "C22k cut its batch 20% (8,861 to 7,079). Left: world.h (739 comment lines), unit.h (527), unit_ai.h (~370), ui_screens.h (363), unit_db.h and unit_client_models.h (~175 each), ui_hud.cpp and ~40 files of 30-60 lines; 107 rulers, 172 offset mentions. Opus (user 2026-10-27). docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
 
 [[ticket]]
+id = "C22l2"
+title = "Comment removal C22l, second pass: the ~130 unread files, render.h and render_internal.h"
+group = "cleanup"
+model = "opus"
+depends = ["C22l"]
+note = "C22l cut its batch 18% (7,978 to 6,536). Left: ~130 files only given the mechanical pass (small game/ and lib/ files), render.h (~290 lines) and render_internal.h (~250) per-function prose, 79 register notes, 32 stale claims, 477 long-block lines. Opus (user 2026-10-27). docs/comment-guide.md 'Removal pass'; samecode main clean, one release build, no game runs."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
