@@ -31,7 +31,7 @@ namespace {
 
 using devicebuffers::ProjectedVertex;
 
-// The engine's aligned arrays (lib::AlignedArray; the original's inlined SetSize calls,
+// The engine's aligned arrays (lib::AlignedArray; the SetSize calls,
 // for the element sizes, which AlignedArray::Allocate matches).
 constinit lib::AlignedArray<TLVertex> g_strip = /*007AF000*/ {};
 lib::AlignedArray<TLVertex>& Strip() { return g_strip; }      // TL vertices of the points

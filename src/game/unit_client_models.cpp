@@ -56,7 +56,7 @@ int RowOfSlot(int slot) {
     }
 }
 
-// The compiler-inlined strcmp of the original (bytes compared unsigned): zero when equal.
+// strcmp (bytes compared unsigned): zero when equal.
 bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
@@ -308,7 +308,7 @@ void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, con
     }
     for (const std::uint32_t* id = weaponIds->begin(); id != weaponIds->end(); ++id) AppendWeaponModelParts(*id, names);
 
-    // Every plain part of the three rows. The original walks all seven names of each row (the
+    // Every plain part of the three rows. All seven names of each row are walked (the
     // test on the name's address never fails), so the empty names of the helmet row go in too.
     for (int row = 0; row < 3; ++row) {
         for (int i = 0; i < 7; ++i) {
@@ -354,7 +354,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
         return;
     }
     SetLayerCount(out, 0);
-    // The original inlines SetSize(8) here; the array is empty, so it allocates 8 fresh layers.
+    // SetSize(8) is inlined here; the array is empty, so it allocates 8 fresh layers.
     SetLayerCount(out, kDetailedLayers);
     out->data[0].id = static_cast<std::uint32_t>(unit->prototypeId_);
     out->data[0].kind = kLayerSkin;
@@ -373,7 +373,7 @@ EI_REWRITTEN(0x00536300, CUnitClientSpecific::BuildSkinLayers);
 
 namespace {
 
-// "<prototype name><texture>.mmp" into `texture`, the way the original builds it.
+// "<prototype name><texture>.mmp" into `texture`.
 void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
     std::string named = unit->name.GetString() + std::string(texture.GetString());
     std::string withExtension = named + ".mmp";
@@ -450,7 +450,7 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         mfc::CString prototypeKey;
         mfc::CString texture;   // the work string
         // The request lives in raw storage so that its string array is destroyed before its
-        // layer bytes are freed and before the strings, as in the original.
+        // layer bytes are freed and before the strings.
         alignas(SkinRequest) unsigned char storage[sizeof(SkinRequest)];
         auto* request = new (storage) SkinRequest{{}, {}, 0};
         BuildSkinLayers(detailed, &layers);

@@ -11,7 +11,7 @@
 
 class CInterface3D;
 
-// The battle camera's input side (game.exe's, 0x2C bytes; one of the battle screen's extra input
+// The battle camera's input side (0x2C bytes; one of the battle screen's extra input
 // sides). Keys move the camera along x_ / y_ / z_ (set by the key-down, cleared by the key-up); the right button
 // turns the view while held.
 class CCameraInput final : public UiInputSide {
@@ -19,7 +19,7 @@ public:
     // The interface, not turning, the axes 0 (handled_ and the press points
     // left).
     explicit CCameraInput(CInterface3D* ui);
-    // deleting (ui_camera_input.cpp): the base side's table back.
+    // The deleting destructor: the base side's table back.
     ~CCameraInput() override;
     void Deactivate() override { OnDeactivate(); }                                         // 1
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }       // 4

@@ -5,7 +5,7 @@
 // the changed variables (world_stamp_sort.cpp) and the instantiations registered at their library
 // addresses (game/stl_sorts.cpp). sort() is unstable, so the order of equal elements is part of the
 // behaviour: every step follows STLport's (same comparisons in the same order, same moves). Every
-// scan the original leaves unguarded is unguarded here too: with a comparator that is not a strict
+// scan STLport leaves unguarded is unguarded here too: with a comparator that is not a strict
 // weak ordering they run off the array.
 // Element copies follow STLport's too, for elements whose copies allocate (the save list's entries
 // copy CStringArrays) or whose comparison does (the objectives' quest lookups): every by-value

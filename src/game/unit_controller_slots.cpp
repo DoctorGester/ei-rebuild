@@ -1,7 +1,6 @@
-// Small virtual slots of a unit's controllers: the abstract base (game.exe's; the
-// server's CUnitServer, and the client's CUnitClientSpecific, keep most of its
-// empty slots), its lifetime and the client controller's small methods. Slot names: CUnitController
-// (unit.h).
+// Small virtual slots of a unit's controllers: the abstract base (the server's CUnitServer and the client's
+// CUnitClientSpecific keep most of its empty slots), its lifetime and the client controller's small methods.
+// Slot names: see CUnitController in unit.h.
 #include "unit.h"
 #include "unit_client_models.h"
 

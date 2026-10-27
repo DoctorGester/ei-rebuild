@@ -492,7 +492,7 @@ EI_REWRITTEN(0x005CC560, AIReports::Contains);
 // --- Save games -----------------------------------------------------------------------------------
 
 namespace {
-// The original's Save functions copy each scalar into a stack slot before writing it.
+// Each scalar is copied into a stack slot before it is written.
 template <typename T>
 void WriteCopy(CStream* stream, const T& value) {
     T copy = value;

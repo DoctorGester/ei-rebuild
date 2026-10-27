@@ -44,7 +44,7 @@ using UnitItems = mfc::CTypedPtrList<CItem>;
 // --- Prototype names --------------------------------------------------------------------------
 
 UnitPrototypeRecord* UnitPrototypeTable::FindByName(const char* name) {
-    // The original builds the key twice (a string, then the pair it would insert) and frees both
+    // The key is built twice (a string, then the pair it would insert) and both freed
     // afterwards; the pool sees the same allocations in the same order.
     stlp::string key(name);
     stlp::string pairKey(key);
@@ -72,7 +72,7 @@ EI_REWRITTEN(0x00552F40, CUnitServer::SetStats);
 
 void CUnitServer::Shout(std::uint32_t code) {
     if (code > kLastPlainRemark && code != kExtraRemark) return;
-    if (code == 0xFFFFFFFFu) return;   // already excluded above; the original tests it anyway
+    if (code == 0xFFFFFFFFu) return;   // already excluded above; tested anyway
     if (!unit->player) return;
     PlayerMessages(unit->player)->SendObject0B(unit, code);
 }

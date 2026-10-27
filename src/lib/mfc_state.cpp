@@ -17,7 +17,7 @@ namespace {
 using GetVersionFn = DWORD(WINAPI*)();
 DWORD Version() { return ei::ImportAs<GetVersionFn>(ei::Imports().GetVersion)(); }
 
-// as the original calls them: on afxData, no arguments.
+// on afxData, no arguments.
 void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }
 void __cdecl UpdateAfxScrollMetrics() { AfxData().UpdateScrollMetrics(); }
 
@@ -241,7 +241,7 @@ constinit HGDIOBJ g_afxHalftoneBrush = /*007C8D40*/ {nullptr};
 
 void __cdecl AfxWingdixTerm() { AfxDeleteObject(&g_afxHalftoneBrush); }
 
-// The original keeps atexit's answer in _afxWingdixTerm, which nothing reads.
+// atexit's answer would be kept in _afxWingdixTerm, which nothing reads.
 void __cdecl AfxWingdixTermInit() { libcrt::AtExit(WingdixTermAt()); }
 
 EI_REWRITTEN(0x0070C4E9, CSimpleList::AddHead);

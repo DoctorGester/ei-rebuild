@@ -163,11 +163,10 @@ bool CCampPages::DeconstructItem() {
 
     if (const char* instruction = InstructionName(copy->type_))
         AddNamed(results, instruction, PrototypeIndex(copy), true);
-    // A material per one the prototype needs; a material index out of range reads its key through
-    // null, as in the original.
+    // A material per one the prototype needs; a material index out of range reads its key through null.
     for (std::uint32_t i = 0; i < copy->GetPrototype()->materialUnits; ++i) {
         const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(MaterialIndex(copy->prototypeId_));
-        // The original builds CString("material") + '.' + key (operator+ twice); the text is the same.
+        // The text is CString("material") + '.' + key (operator+ twice).
         std::string name = MaterialText();
         name += ".";
         name += material->key;

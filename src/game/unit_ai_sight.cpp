@@ -61,7 +61,7 @@ console::GameOStream& LogPair(CUnit* self, const char* text, CEngineObject* othe
     return PutLong(PutLong(*AiLog() << "Unit ", self->id_) << text, other->id_);
 }
 
-// The noticed point taken over inline (the original's copy of Notice), through CopyPoint2's
+// The noticed point taken over inline (Notice's copy), through CopyPoint2's
 // address so its verify wrapper counts it (AIMemory::Update's check relies on that).
 void NoticeAt(AIMemory* memory, CUnit* at, int level, int kind) {
     float copy[2];

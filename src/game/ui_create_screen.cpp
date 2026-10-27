@@ -1,7 +1,6 @@
 // CInterface3D::CreateScreen: the screens by id. See ui.h and docs/notes/ui.md.
-// The original inlines the constructors of screens 1, 2, 3 and 7 (the container base,
-// their members' constructors and vtables) and calls the others' constructors; ours does the same
-// through game.exe's addresses.
+// The constructors of screens 1, 2, 3 and 7 are inlined here (the container base, their members' constructors
+// and vtables); the others' constructors are called as functions.
 #include "app.h"
 #include "bink_video.h"
 #include "options.h"
@@ -280,7 +279,7 @@ using ItemCache = lib_trees::ItemCache;
 
 // Screen 9's constructor.
 CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
-    // The original passes a stack byte and its argument slot as the allocators.
+    // A stack byte and the argument slot serve as the allocators.
     std::uint8_t junk = 0;
     CInterface3D* slot = ui;
     static_cast<ItemCache*>(&models_.map)->ConstructWith(&junk, &slot);

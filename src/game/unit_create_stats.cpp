@@ -28,11 +28,10 @@
 #include <bit>
 #include <cstring>
 
-// Values the original keeps on the FPU stack are double locals; values it stores are floats.
+// Values kept on the FPU stack are double locals; stored values are floats.
 
 namespace {
-// The records (unit_db.h): prototypes, models, NPCs and the
-// models' level records.
+// The records (unit_db.h): prototypes, models, NPCs and the models' level records.
 using Prototype = UnitPrototypeRecord;
 using Model = UnitModelRecord;
 using Npc = UnitNpcRecord;
@@ -52,13 +51,12 @@ constexpr std::uint32_t kThousand = 0x447A0000;
 constexpr std::uint32_t kTen = 0x41200000;
 constexpr int kSlotWorking = 3;
 
-// pi and 1/180 and 90: volatile so the products are computed
-// at run time with the FPU's precision, as the original does.
+// pi and 1/180 and 90: volatile so the products are computed at run time with the FPU's precision.
 volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_ninety = 90.0;
 
-// The original stores these as dwords (bit patterns), not through the FPU.
+// These are stored as dwords (bit patterns), not through the FPU.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, sizeof(field)); }
 template <typename To, typename From>
 void CopyDword(To& to, const From& from) {
@@ -78,7 +76,7 @@ std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fi
 const Prototype* FindPrototype(const char* name) { return unitdb::PrototypeTable().FindByName(name); }
 const Npc* FindNpc(const char* name) { return unitdb::NpcTable().FindByName(name); }
 
-// The prototype's model; its index is read even from a null prototype (the original faults there).
+// The prototype's model; its index is read even from a null prototype (that faults).
 const Model* ModelOf(const Prototype* prototype) {
     auto index = static_cast<std::uint32_t>(static_cast<const volatile Prototype*>(prototype)->modelIndex);
     return unitdb::ModelRecord(index);
@@ -234,7 +232,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     if (!vitals || !stats) return 0;
     // Both blocks start zeroed: the fields the resets and this builder leave (the layers' spare
     // absorb values, the high bits of builtFlags, ...) are 0, not what the caller's stack held
-    // (a determinism fix, the harness zeroes them in the original too, harness_leftovers.h).
+    // (a determinism fix, the harness zeroes them in game.exe too, harness_leftovers.h).
     std::memset(vitals, 0, sizeof(UnitVitals));
     std::memset(stats, 0, sizeof(UnitStats));
     vitals->Reset();
@@ -381,13 +379,12 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-// ^ (ln(experience /) / ln): FYL2X with FLDLN2 and the CRT's
-// _CIpow, as the original computes it. Unrounded.
+// hpVal[3] ^ (ln(experience / hpVal[2]) / ln(hpVal[4])): FYL2X with FLDLN2 and the CRT's _CIpow. Unrounded.
 double HitPointExperienceCurve(const float* experience) {
     return libcrt::CiPow(GameLogicSettings().hpVal[3], x87::flog(static_cast<double>(*experience) / GameLogicSettings().hpVal[2]) / x87::flog(GameLogicSettings().hpVal[4]));
 }
 
-// A level record's value (+0x34, unsigned) as the original's FILD of a zero-extended qword.
+// A level record's value (+0x34, unsigned) as FILD of a zero-extended qword.
 double LevelOf(const SkillLevelRecord* record) {
     volatile std::int64_t wide = record->values[7];
     return static_cast<double>(wide);
@@ -462,7 +459,7 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
     int index = const_cast<SkillDatabase*>(database)->IndexOfLevel(record);
     int skill = index / 3;
     int level = index % 3;
-    std::uint8_t& known = skillLevels[skill];   // unchecked, as the original
+    std::uint8_t& known = skillLevels[skill];   // unchecked
     if (known != 0 && level <= known - 1) return;
     known = static_cast<std::uint8_t>(level + 1);
     float newMaximum = CurveHitPoints(this);
@@ -565,7 +562,7 @@ EI_REWRITTEN(0x005260A0, UnitStats::CanLearn);
 // --- Applying a prototype ---------------------------------------------------------------------
 
 int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
-    UnitVitals vitals{};   // zeroed (the original's start as the stack held them)
+    UnitVitals vitals{};   // zeroed (the stack's old contents are not kept)
     UnitStats stats{};
     const Prototype* prototype = FindPrototype(name);
     if (!prototype) {

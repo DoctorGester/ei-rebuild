@@ -81,6 +81,6 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
 }
 EI_REWRITTEN(0x00538960, CUnitClientSpecific::GetAttackParams);
 
-// is a byte-for-byte copy (unit_vitals.cpp), reached as a method of the
-// packed parameters.
+// A second registration of ScaleDamageByEffects (unit_vitals.cpp): a byte-for-byte copy, reached as a
+// method of the packed parameters.
 EI_REWRITTEN(0x005285D0, ScaleDamageByEffects);

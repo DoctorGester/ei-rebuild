@@ -71,7 +71,7 @@ constexpr std::uint32_t kUnitDrawn = 0x20, kUnitHidden = 0x40, kUnitPickable = 0
 constexpr std::uint32_t kPartOwnMesh = 0x40;
 constexpr std::uint32_t kGreen = 0x40FF40, kRed = 0xFF4040, kCyan = 0x40FFFF, kMarkerColour = 0xFFFFFF00u;
 constexpr std::uint32_t kSpecular = 0xFF000000u;
-constexpr int kMaxQuads = 16;   // the original's stack buffers hold 64 vertices and 96 indices
+constexpr int kMaxQuads = 16;   // the stack buffers hold 64 vertices and 96 indices
 
 // The texture: digits in 8 x 12 pixel cells (four to a row, rows 0.15625 high from the top),
 // label rows 64 x 10 pixels, the marker at u 0.5..1, v 0.84375..1.
@@ -143,7 +143,7 @@ const RECT* UnitScreenRect(CUnit* unit) {
 int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     std::string text;
     DWORD now = gameapi::timeGetTime();
-    // The render target's size (the original leaves both unset without a primary surface).
+    // The render target's size (both stay unset without a primary surface).
     std::uint32_t targetWidth = 0, targetHeight = 0;
     if (renderer->device_->primary_) {
         targetWidth = static_cast<std::uint32_t>(renderer->device_->renderTarget_->width);

@@ -45,7 +45,7 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
 // A chat line for the server (SayMessage) carrying `text`, kept 60 s on the client's timers.
 void SendSay(const char* text) {
     auto* say = net::NewCounted<net::SayMessage>();
-    // As the original: a failed allocation is not checked from here on.
+    // A failed allocation is not checked from here on.
     say->text_.Assign(text);   // overwrite, then cut or append
     net::GameClient()->AddTimed(say, kSayLifetime);
 }
@@ -64,7 +64,7 @@ constexpr COLORREF kWhite = 0xFFFFFF;
 const char* const kColourMark = "^";
 const char* const kDefaultColour = "7";
 
-// The character at `p` as the original compares it: a lead byte shifted left by 8 (sign-extended)
+// The character at `p` as it is compared: a lead byte shifted left by 8 (sign-extended)
 // plus the next byte (sign-extended), otherwise the byte itself.
 int CharAt(const char* p) {
     int value = 0;
@@ -303,7 +303,7 @@ void CChatOverlay::OnChar(int key, int, int) {
     if (!chatOpen_) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
     std::string line = (text::Typed(typed_.Left(caret_), key) + typed_.Mid(caret_)).GetString();
-    // The line also stays within kMaxTyped bytes (what the original's 200 one-byte characters took).
+    // The line also stays within kMaxTyped bytes (what 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one. Without EI_UTF8 it follows from the character count.
     if (!interface_->ctrlDown_ && text::CharacterCount(typed_) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
@@ -318,8 +318,7 @@ EI_REWRITTEN(0x005E3550, CChatOverlay::OnChar);
 
 // --- the constructor -----------------------------------------------------------------------------
 
-// game.exe's tables: its own redraw (22) and update (24); the input side's keys (9) and
-// characters (10).
+// Its own redraw and update; the input side's keys and characters.
 CChatOverlay::CChatOverlay(CInterface3D* ui) : CUiWindow(ui) {
     using Node = stlp::list<ChatLine>::Node;
     auto* sentinel = stlp::allocate_as<Node>();

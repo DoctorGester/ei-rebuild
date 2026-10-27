@@ -90,7 +90,7 @@ int CUnitClientSpecific::RunTick() {
         for (CMaterial* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = fadeIn;
         float grown = fadeIn + kFadeStep;   // stored as a float before the compare
         float next = grown;
-        fadeIn = next >= 1.0f ? 1.0f : next;   // the original's select keeps a NaN
+        fadeIn = next >= 1.0f ? 1.0f : next;   // the select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
         unit->Object3D()->ClientSpecific()->SetMaterialsLit(0);

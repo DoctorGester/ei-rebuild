@@ -94,7 +94,7 @@ struct CMapObjectManager : CResourceManager {
     // prototype a FatalError message and 0; else 1.
     int GiveStartingEquipment(CUnit* unit, const char* name);
 
-    // map_object_manager.cpp. The base manager's Create (0 when it fails), then the archive
+    // The base manager's Create (0 when it fails), then the archive
     // "<text folder>database.res" added. Returns 1.
     int CreateManager();
     // The base manager's CreateObject; a new object gets an

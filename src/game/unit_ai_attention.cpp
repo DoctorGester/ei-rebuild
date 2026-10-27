@@ -11,8 +11,8 @@
 #include <cstdint>
 
 namespace {
-// The order the player's check is asked about before an attack (AIOrder; the original
-// clears it with makes it an attack (3, 6) on the target inline).
+// The order the player's check is asked about before an attack (AIOrder; cleared, then made an
+// attack (3, 6) on the target inline).
 using AttackOrder = AIOrder;
 
 } // namespace

@@ -25,7 +25,7 @@
 namespace gamecrt {
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors defines these (crt.h)
-// The image's heap (nothing of ours runs in game.exe).
+// The image's heap.
 void* __cdecl operator_new(std::size_t size) { return libcrt::OperatorNew(size); }
 void __cdecl operator_delete(void* p) { libcrt::OperatorDelete(p); }
 void* __cdecl malloc(std::size_t size) { return libcrt::Malloc(size); }
@@ -392,7 +392,7 @@ EI_REPLACE(0x006E77EA, libcrt::Srand);
 // ---- Maths ----
 
 // _controlfp: the control word's abstract form with the masked bits replaced, set and returned.
-// The original does FNSTCW (hardware to abstract), the merge, FLDCW (abstract to hardware);
+// game.exe's version does FNSTCW (hardware to abstract), the merge, FLDCW (abstract to hardware);
 // here FLDCW runs only when the hardware word would change (the UCRT's __control87_2 under
 // terrain lighting's two calls per lit sector). The abstract form is the CRT's: _EM_* in bits 0-4 (in the reverse
 // order of the hardware's) and 19, _RC_* in 8-9, _PC_* in 16-17 (64 bits is 0), _IC_* in 18.
@@ -494,7 +494,7 @@ EI_REWRITTEN(0x007005D8, libcrt::OperatorDelete);
 // ---- The STLport node allocator (__node_alloc<true, 0>, no lock) ----
 // Blocks of up to 128 bytes come from 16 free lists by 8-byte size class; an empty list is refilled
 // with 20 blocks cut from a chunk the allocator keeps (asking operator new for twice the need plus a
-// sixteenth of all it has taken so far). The code the original inlines a block's return in calls
+// sixteenth of all it has taken so far). The code that inlines a block's return calls
 // NodeDeallocate. In game.exe's runs the harness's containers use this pool too: its chunks come from
 // game.exe's operator new, so a block may go back to either pool.
 

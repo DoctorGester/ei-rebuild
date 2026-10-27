@@ -1,6 +1,6 @@
-// A party unit's wounds, face texture and weapon point on the client (CUnitClientSpecific): the wound level of each body part
-// and the composed wounds texture the figure shows called by RefreshWounds
-// See unit_client_models.h.
+// A party unit's wounds, face texture and weapon point on the client (CUnitClientSpecific): the wound level
+// of each body part and the composed wounds texture the figure shows called by RefreshWounds See
+// unit_client_models.h.
 #include "unit_client_models.h"
 
 #include "core_maths.h"
@@ -64,7 +64,7 @@ std::uint8_t PartLevel(const UnitParamsSlot& part) {
 }
 
 // Whether the armour piece `id` (packed: prototype index in the high half) shows the wounds
-// under it. The original reads the record unchecked (an out-of-range index reads address 0xB4).
+// under it. The record is read unchecked (an out-of-range index reads address 0xB4).
 bool ShowsWounds(std::uint32_t id) {
     const auto* record = itemdb::ArmorAt(id >> 16);
     return record->showsWounds != 0;
@@ -107,7 +107,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
     {
         mfc::CString name;
         mfc::CString out;
-        // The request lives in raw storage so that its parts go in the original's order.
+        // The request lives in raw storage so that its parts are destroyed in order.
         alignas(SkinRequest) unsigned char storage[sizeof(SkinRequest)];
         auto* request = new (storage) SkinRequest{{}, {}, 0};
         // Six level bytes in 32-byte aligned storage (the block kept before them).
@@ -156,7 +156,7 @@ void AssignTexture(CTexture** slot, CTexture* value) {
 }
 } // namespace
 
-// inlines it: no references, then its own fields; the stages vector is constructed empty.
+// The constructor: no references, then its own fields; the stages vector is constructed empty.
 WoundsMaterial::WoundsMaterial() {
     blend = 1;
     sourceBlend = kSourceAlpha;

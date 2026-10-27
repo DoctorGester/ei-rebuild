@@ -25,7 +25,7 @@ namespace mfc::impl {
 // after the CPlex header (operator new), linked in front of `head`. Returns the block.
 CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
 // CPlex::FreeDataChain (__thiscall, `this` may be null): every block of the chain freed.
-// Returns 0: the original leaves EAX as its caller had it for a null chain, and AIPath::Reset
+// Returns 0: a null chain leaves EAX as the caller had it, and AIPath::Reset
 // returns that EAX (0 there; its checks run on empty lists).
 int __fastcall FreePlexChain(CPlex* head);
 

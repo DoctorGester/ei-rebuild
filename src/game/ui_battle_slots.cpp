@@ -40,8 +40,6 @@ float SelectedFaceAngle() {
     return kHudQuarterTurn * 0.14285715f /*0073CDCC*/;
 }
 
-// The load window the game-over box opens (0x194 bytes, built inline).
-
 constexpr std::uint32_t kLeaveZoneYes = 0x10001;
 constexpr std::uint32_t kGameOverLoad = 0x20001;
 constexpr std::uint32_t kGameOverQuit = 0x20002;
@@ -121,7 +119,7 @@ EI_REWRITTEN(0x006364E0, CBattleScreen::OnUnitLeft);
 void CBattleScreen::SaveState() {
     CStream* stream = GameSaveStream();
     auto& party = party_;
-    // The original collects the ids into a CDWordArray first; the bytes written are the same.
+    // The ids go through a CDWordArray first; the bytes written are the same.
     int count = 0;
     for (int i = 0; i < party.size; ++i)
         if (party.data[i]->flags_ & kUnitSelected) ++count;
