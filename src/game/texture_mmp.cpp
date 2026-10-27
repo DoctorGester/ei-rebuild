@@ -1,6 +1,6 @@
 // .mmp textures: creating a texture's Direct3D surfaces from the file data, the mip
 // offsets and the file's extra block.
-// An .mmp texture has no DirectDraw texture (ticket R8; R11b removed the DirectDraw one): the new
+// An .mmp texture has no DirectDraw texture: the new
 // renderer decodes the levels the game would load from the file data (keyed by the holder,
 // render::TextureFromMmp) and the holder has no surface and no memory (NewDecodedTextureHolder,
 // dx_surface.cpp); no staging surface, fill, Load or priority. The byte size the texture
@@ -53,7 +53,7 @@ bool g_undecodedLogged = false;
 
 // A holder with no DirectDraw texture for the levels the new renderer decodes from the file (keyed
 // by the holder). One it does not decode keeps the holder and shows nothing (logged once). Its
-// allocation failing ends the game as the original's surface that could not be made.
+// allocation failing ends the game, like a surface that could not be made.
 CDXSurface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const void* data, unsigned mip,
                           unsigned levels) {
     CDXSurface* holder = NewDecodedTextureHolder(device, static_cast<int>(texture->width_),
@@ -121,8 +121,8 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     width_ = width;
 
     // The new renderer decodes the levels from the file and the holder has no DirectDraw texture
-    // (the original: a system-memory staging surface filled by 0068FA10, loaded into a managed
-    // texture with the kind's priority hints, its priority set to 100).
+    // (a system-memory staging surface filled from the file, loaded into a managed
+    // texture with the kind's priority hints, its priority set to 100, is not made).
     CDXSurface* decoded = DecodedHolder(device, this, data, mip, levels);
     CDXSurface* previous = surface_;
     surface_ = decoded;

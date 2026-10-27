@@ -16,9 +16,9 @@ namespace {
 
 const float kOne = 1.0f;
 
-// The intersection parameter t = (limit - a) / (b - a), exactly as the original computes it: the
+// The intersection parameter t = (limit - a) / (b - a): the
 // value is stored to `store` as a float (FST) while the unrounded quotient is compared with 1.
-// Returns non-zero when t > 1 (FCOMP; FNSTSW; TEST AH,0x41 clear: above, not equal or unordered).
+// Returns non-zero when t > 1 (above, not equal or unordered).
 int StoreRatio(float limit, float a, float b, float* store) {
     const double t = (static_cast<double>(limit) - a) / (static_cast<double>(b) - a);
     *store = static_cast<float>(t);
@@ -31,7 +31,7 @@ std::uint32_t LerpByte(std::uint32_t a, std::uint32_t b, float t) {
     return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(static_cast<float>(diff) * t))) + a;
 }
 
-// The original computes the bytes in the order 2, 1, 0, 3 and ors them unmasked.
+// The bytes are computed in the order 2, 1, 0, 3 and ored unmasked.
 std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
     std::uint32_t c2 = LerpByte((a >> 16) & 0xFF, (b >> 16) & 0xFF, t);
     std::uint32_t c1 = LerpByte((a >> 8) & 0xFF, (b >> 8) & 0xFF, t);
@@ -40,9 +40,9 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
     return (c3 << 24) | (c1 << 8) | (c2 << 16) | c0;
 }
 
-// The work buffer: a CWordArray (SetSize is MFC's, 006FEEFA), zero at the start: built by the static initialiser
-// 0042D8E0 in the list's order and destroyed by the exit function it registers; both ported on the name and
-// registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+// The work buffer: a CWordArray, zero at the start: built by the static initialiser
+// in the list's order and destroyed by the exit function it registers
+// (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_workWords = /*0079B668*/ {};
 mfc::CArray<std::uint16_t>& WorkWords() { return *g_workWords; }
 void __cdecl DestroyWorkWords() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_workWords); }

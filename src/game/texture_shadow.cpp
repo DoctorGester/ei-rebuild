@@ -1,11 +1,11 @@
 // The texture manager's shadow textures: the 64x64 texture of each object's shadow and
-// the shared render surface the shadows are rasterised into, with the lock and unlock
-// 0051CE60 writes the render surface through and its copy of the render
-// surface into the shadow's texture (LoadPixelsFrom; inline in 0051CE60).
-// Both have no DirectDraw texture (ticket R8): their holders have only the new renderer's memory
+// the shared render surface the shadows are rasterised into, with the lock and unlock the
+// render surface is written through and its copy of the render
+// surface into the shadow's texture (LoadPixelsFrom).
+// Both have no DirectDraw texture: their holders have only the new renderer's memory
 // (CreateBlank -> NewMemoryTextureHolder), the lock describes that memory (no Lock / Unlock), the copy
-// (the original: the device's Load) is a CPU copy of its rows, and the new renderer reads the shadow
-// texture's memory when a draw binds it (004EA4A0 through 0051CE60). See docs/notes/renderer.md
+// (the device's Load) is a CPU copy of its rows, and the new renderer reads the shadow
+// texture's memory when a draw binds it. See docs/notes/renderer.md
 // (section 7).
 #include "app.h"
 #include "texture.h"
@@ -94,7 +94,6 @@ CTexture* MakeShadowTexture(CTextureManager* manager, std::uint32_t keep, std::u
 
 } // namespace
 
-// --- 00692010 / 00692140 ---------------------------------------------------------------------------
 
 CTexture* CTextureManager::NewShadowTexture() {
     bool missing;
@@ -115,7 +114,6 @@ CTexture* CTextureManager::ShadowRenderSurface() {
 }
 EI_REWRITTEN(0x00692140, CTextureManager::ShadowRenderSurface);
 
-// --- 00690FC0 / 00691030 ---------------------------------------------------------------------------
 
 // The holder's pixels are the new renderer's memory: described, no Lock / Unlock, the result 0 in
 // the holder.
@@ -136,7 +134,6 @@ void CTexture::UnlockPixels() {
 }
 EI_REWRITTEN(0x00691030, CTexture::UnlockPixels);
 
-// --- 0051CE60's copy -------------------------------------------------------------------------------
 
 void CTexture::LoadPixelsFrom(CTextureDevice* device, const CTexture* source) {
     const CDXSurface* to = surface_;

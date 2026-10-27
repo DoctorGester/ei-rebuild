@@ -1,4 +1,4 @@
-// Databases read at startup from database.res (prints.db, acks.db; 006D0000-006E0000) and the
+// Databases read at startup from database.res (prints.db, acks.db) and the
 // world's water level changes.
 #include "acks_db.h"
 #include "model.h"
@@ -18,9 +18,9 @@
 
 namespace {
 
-// The body shared by the vector serialisers (one instantiation per record type in the original,
+// The body shared by the vector serialisers (one instantiation per record type,
 // `Abi` the vector's instantiation: its element policy destroys a record, ResizeDefault is its
-// resize(n): 006D26E0, 006D2830, 006DB9C0, 006DBBD0, 006DBE20). Loading destroys the old records
+// resize(n)). Loading destroys the old records,
 // resizes to the number of record chunks and
 // reads each; saving writes the records in order. prints.db records serialise through their
 // vtable, acks.db records by a direct call.
@@ -121,8 +121,7 @@ void WaterTweens::SetTarget(int key, float target, int steps) {
         data[i].steps = steps;
         return;
     }
-    // A new entry. The original first copies an uninitialised local into it; every field is
-    // overwritten below.
+    // A new entry; every field is overwritten below.
     SetSize(count + 1, -1);
     TweenEntry& e = data[size - 1];
     e.key = key;
@@ -169,14 +168,14 @@ void WaterTweens::ReadEntries(CStream* stream, int unread) {
 }
 
 void WaterTweens::Load(CStream* stream, Terrain* terrain) {
-    // The original reads the count into its `stream` argument slot.
+    // The count is read into the `stream` argument slot.
     ReadEntries(stream, reinterpret_cast<int>(stream));
     for (int i = 0; i < size; ++i) terrain->SetWaterLevel(data[i].key, data[i].value);
 }
 EI_REWRITTEN(0x006D45D0, WaterTweens::Load);
 
 void WaterTweens::LoadEntries(CStream* stream) {
-    // The original reads the count into an uninitialised local; the game's streams always write it.
+    // The count is read into an uninitialised local; the game's streams always write it.
     ReadEntries(stream, 0);
 }
 EI_REWRITTEN(0x006D4660, WaterTweens::LoadEntries);
