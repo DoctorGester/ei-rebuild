@@ -1,9 +1,9 @@
-// Hash tables of 00400000-00440000 (STLport hashtables of one-dword keys and values):
-//  - the id tables of CBaseManager (base_manager.cpp): MFC-style SetAt / Lookup / RemoveKey,
-//    find and operator[] over a hashtable that also keeps the highest key inserted (+0x14);
-//  - the class registry of the chunk archive (0079B270: vtable -> class id, then class id ->
-//    factory) and the session's type registry (net_classes.h): constructor and destructors, which
-//    the compiler inlined from the hashtable's.
+// Hash tables (STLport hashtables of one-dword keys and values):
+//  - the id tables of CBaseManager (base_manager.cpp): MFC-style SetAt / Lookup / RemoveKey, find and
+//    operator[] over a hashtable that also keeps the highest key inserted;
+//  - the class registry of the chunk archive (vtable -> class id, then class id -> factory) and the session's
+//    type registry (net_classes.h): constructor and destructors, which the compiler inlined from the
+//    hashtable's.
 // See docs/notes/core.md.
 #include "hash_tables_400.h"
 
@@ -58,7 +58,7 @@ std::uint32_t* Table::ObjectsFind(const std::uint32_t* key) {
     Node* node = map.Find(*key);
     return node ? &node->value : nullptr;
 }
-// 00406A10 / 00406AA0: operator[] of the position table (+0x50) and of the spare counts (+0x80).
+// operator[] of the position table and of the spare counts.
 std::uint32_t* Table::PositionAt(const std::int32_t* key) {
     return &FindOrInsert(this, key)->value;
 }
@@ -68,15 +68,14 @@ std::uint32_t* Table::SpareCountAt(const std::int32_t* key) {
 
 // --- The registries ------------------------------------------------------------------------------
 
-// The chunk archive's class registry (0079B270: vtable -> class id, then at +0x14 class
-// id -> factory), built by the static initialiser 00408D30 before the hooks are installed. The
-// empty functors are copied from an uninitialised stack byte in the original (0 here).
+// The chunk archive's class registry (vtable -> class id, then class id -> factory), built by a static
+// initialiser. The empty functors are copied from an uninitialised stack byte in the original (0 here).
 void* __fastcall ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry) {
     registry->classIds.Construct(100);
     registry->factories.Construct(100);
     return registry;
 }
-// Its destructor (registered with atexit by 00408D30): the factories, then the class ids.
+// Its destructor (registered with atexit by the initialiser): the factories, then the class ids.
 void __fastcall ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry) {
     registry->factories.Destroy();
     registry->classIds.Destroy();

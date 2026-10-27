@@ -1,13 +1,12 @@
-// The draw of one figure part (005A7A70, thiscall on the part's drawer, RET 0x1C): the drawer's
-// mesh (FigureMeshDrawer::mesh_, a CFigureMesh) is clip-tested against the view; animated meshes
-// (type 13..16) are advanced to the current time; the mesh's colours are filled (flat meshes, flag
-// 0x100) or lit once (flag 0x10 marks them lit; R16i: the new renderer lights them on the GPU from the
-// part's light handed over with every draw, render::MeshLighting: the sun, the lights within reach, the
-// material, the "crown" mesh pulled 0.6 of the way to its average colour when 0079BD28 is set); then the
-// mesh is drawn through the device (004E9010 / 004E9A50, with the per-vertex offsets added into a
-// copy when there are any) or, when the mesh's owner has a figure (CObject3D::figure), through
-// that figure's own slots; the screen rectangle goes to the drawer and to `rect`. See
-// docs/notes/models.md ("Figure parts").
+// The draw of one figure part (on the part's drawer): the drawer's mesh (FigureMeshDrawer::mesh_, a
+// CFigureMesh) is clip-tested against the view; animated meshes (type 13..16) are advanced to the current
+// time; the mesh's colours are filled (flat meshes, flag 0x100) or lit once (flag 0x10 marks them lit; the
+// new renderer lights them on the GPU from the part's light handed over with every draw,
+// render::MeshLighting: the sun, the lights within reach, the material, the "crown" mesh pulled 0.6 of the way
+// to its average colour when a global is set); then the mesh is drawn through the device (with the
+// per-vertex offsets added into a copy when there are any) or, when the mesh's owner has a figure
+// (CObject3D::figure), through that figure's own virtuals; the screen rectangle goes to the drawer and to
+// `rect`. See docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "figure_mesh.h"          // CFigureMesh, FigureMeshDrawer, FigureLights
@@ -35,8 +34,7 @@
 
 namespace {
 
-// The positions with the offsets added (007C2E48, a lib::AlignedArray; a function-local static,
-// guard 007C2E58 bit 1, freed at exit by 005A8AE0).
+// The positions with the offsets added (a lib::AlignedArray; a function-local static, freed at exit).
 constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E48*/ {};
 lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
@@ -47,10 +45,10 @@ int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
-// The drawer's animation at a time (float bits). 005A7290: after the draw (the renderer).
+// CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
+// The drawer's animation at a time (float bits), and the call after the draw (the renderer).
 
-// The mesh's name: its slot 7, CEngineObject::GetName.
+// The mesh's name: CEngineObject::GetName.
 const char* MeshName(CFigureMesh* mesh) { return mesh->GetName(); }
 
 // --- x87 sequences --------------------------------------------------------------------------------
@@ -66,9 +64,8 @@ void TickTime(float* out) {
 
 // --- Arrays --------------------------------------------------------------------------------------
 
-// The colour arrays (CFigureMesh::colorsA_ / colorsB_) are sized with the inlined SetSize that
-// drops the contents (SetSizeDiscard; allocator 00406B50), the moved positions with the one that
-// keeps them (SetSize; allocator 00452E70).
+// The colour arrays (CFigureMesh::colorsA_ / colorsB_) are sized with the inlined SetSize that drops the
+// contents (SetSizeDiscard), the moved positions with the one that keeps them (SetSize).
 using ColourArray = lib::AlignedArray<std::uint32_t>;
 
 void Fill(ColourArray& a, std::uint32_t value) {
@@ -122,11 +119,11 @@ void FlatColours(Part& part) {
     Fill(part.Speculars(), part.Mesh()->flatSpecular_);
 }
 
-// The part's light for the GPU (render::MeshLighting), every draw of a mesh that is not flat: the
-// model matrix (below), the scene's sun (SceneSun), the ambient colour the transform object was given
-// (TransformAmbientColour), the material's diffuse and emissive colours, the options' coefficient, the
-// crown, and the lights within the object's reach (its draw's list; their positions in the landscape's
-// space). What 005A7A70 handed 3DfpFPU's LightMesh, which no longer runs.
+// The part's light for the GPU (render::MeshLighting), every draw of a mesh that is not flat: the model matrix
+// (below), the scene's sun (SceneSun), the ambient colour the transform object was given
+// (TransformAmbientColour), the material's diffuse and emissive colours, the options' coefficient, the crown,
+// and the lights within the object's reach (its draw's list; their positions in the landscape's space). This
+// is what the original handed 3DfpFPU's LightMesh, which no longer runs.
 std::vector<render::MeshLightSource> g_partLights;
 render::MeshLighting g_partLighting;
 
@@ -170,10 +167,10 @@ const render::MeshLighting* PartLighting(const Part& part) {
     return &l;
 }
 
-// Lighting (once, flag 0x10). R16i: the new renderer lights the part on the GPU (PartLighting); the
-// colours keep only LightMesh's alpha (the material's diffuse alpha; white otherwise), through the figure
-// (LightPart) or here; the speculars become the alpha unless the material keeps them. The transform
-// object is still given the scene's sun (it holds a reference to it, as before).
+// Lighting (once, flag 0x10). The new renderer lights the part on the GPU (PartLighting); the colours keep
+// only LightMesh's alpha (the material's diffuse alpha; white otherwise), through the figure (LightPart) or
+// here; the speculars become the alpha unless the material keeps them. The transform object is still given
+// the scene's sun (it holds a reference to it, as before).
 void Light(Part& part) {
     part.coloursWritten = true;
     if (CLight* sun = worlddata::SceneSun()) part.device->pipeline_->transform_->AddSun(sun);
@@ -190,7 +187,7 @@ void Light(Part& part) {
     part.Mesh()->flags_ |= 0x10;
 }
 
-// The positions with the per-vertex offsets (CFigureMesh::offsets_) added, in 007C2E48.
+// The positions with the per-vertex offsets (CFigureMesh::offsets_) added.
 const void* MovedPositionsOf(CFigureMesh* mesh) {
     lib::AlignedArray<VertexPacket>& moved = MovedPositions();
     moved.SetSize(mesh->buffers_.vertexCount);
@@ -283,10 +280,9 @@ void DrawThroughFigure(Part& part) {
 
 } // namespace
 
-// 005A7A70 (thiscall on the part's drawer, RET 0x1C). `lights` the light objects, `material` the
-// drawing context (flags, light vector), `alpha` the low byte for the speculars, `rect` (optional)
-// receives the screen rectangle, the textures (their surfaces) select the two-texture draw.
-// Returns 1.
+// `lights` the light objects, `material` the drawing context (flags, light vector), `alpha` the low byte for
+// the speculars, `rect` (optional) receives the screen rectangle, the textures (their surfaces) select the
+// two-texture draw. Returns 1.
 int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights,
                               CMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB) {
     CFigureMesh* mesh = mesh_;

@@ -1,7 +1,6 @@
 #pragma once
 
-// Animation tracks of figure parts (00500000-0050E000). Names provisional; see
-// docs/notes/map_objects.md ("Animation tracks").
+// Animation tracks of figure parts. Names provisional; see docs/notes/map_objects.md ("Animation tracks").
 
 #include "engine_object.h"
 #include "maths.h"
@@ -21,11 +20,9 @@ inline constexpr Vector3 kTrackDefaultPosition = /*007AF110*/ {};
 inline constexpr Quaternion kTrackDefaultRotation = /*007AF100*/ {1.0f, 0.0f, 0.0f, 0.0f};
 struct FigureBone;        // map_object_figures.h
 
-// A part's track (only the fields used here): key frames of positions, rotations and morphed
-// vertex sets, one per time unit, and the values at the current time. Class id 0x300B (constructor
-// 0050A5D0), made by a bone's manager on first use and kept counted at FigureBone +0x50 (the
-// bone's animator; +0x4C the one placing it). A real virtual class: the compiler makes its
-// vtable (game.exe's 0073D9D8 is retired).
+// A part's track (only the fields used here): key frames of positions, rotations and morphed vertex sets, one
+// per time unit, and the values at the current time. Class id 0x300B, made by a bone's manager on first use
+// and kept counted as the bone's animator. A real virtual class.
 struct AnimationTrack : CEngineObject {
     // The values at `time`: between key frame floor(time) (rounded from the CRT's
     // modf) and the next by the fraction - positions and morph vertices linearly, rotations by
@@ -36,24 +33,24 @@ struct AnimationTrack : CEngineObject {
     // animation_track_lifetime.cpp (A-U10; 0x78 bytes).
     // Engine object fields, empty arrays, then DestroyTrack's reset.
     AnimationTrack();
-    // 0050A720's work: the reset with both arrays emptied through their SetSize(0) (0050DFF0 /
-    // 0044F1D0), their blocks freed, then the engine object's.
+    // The destructor body: the reset with both arrays emptied through their SetSize(0), their blocks freed, then
+    // the engine object's.
     ~AnimationTrack() override;
-    // The deleting destructor (slot 0, 0050A700) frees into the game's heap.
+    // The deleting destructor frees into the game's heap.
 
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
-    int Create() override;                 // 2: 0050A810 CreateTrack
-    void Destroy() override;               // 3: 0050A8C0 DestroyTrack
-    const char* GetClassName() override;   // 11: 0050A6E0 "CAnimationTrack" (small_slots_500.cpp)
-    int GetClassId() override;             // 12: 0050A6F0 (0x22)
+    int Create() override;                 // CreateTrack
+    void Destroy() override;               // DestroyTrack
+    const char* GetClassName() override;   // "CAnimationTrack" (small_slots_500.cpp)
+    int GetClassId() override;             // 0x22
 
     // DestroyTrack's reset; returns 1.
     int CreateTrack();
-    // 0050AAF0 (RET 4; animation_track_lifetime.cpp). The key frames from the model entry at
-    // *cursor (advanced past them): the rotations (a count, then that many quaternions; none: null),
-    // the positions (likewise, three floats each), the frame count and the vertex count; the frame
-    // array is sized to the frames and the vertices to the vertex count (both without keeping their
-    // contents), and each frame points at its vertex set, which follow one after another.
+    // animation_track_lifetime.cpp. The key frames from the model entry at *cursor (advanced past them): the
+    // rotations (a count, then that many quaternions; none: null), the positions (likewise, three floats each),
+    // the frame count and the vertex count; the frame array is sized to the frames and the vertices to the vertex
+    // count (both without keeping their contents), and each frame points at its vertex set, which follow one
+    // after another.
     void LoadKeyFrames(std::uint8_t** cursor);
     // No animation, bone or key frames (the vertex sets' block freed), the
     // default position and rotation (kTrackDefaultPosition / kTrackDefaultRotation), no morphed vertices (freed), time 0.
@@ -70,7 +67,7 @@ struct AnimationTrack : CEngineObject {
     float time;                     // +0x48 (0 when the animation changes)
     Vector3 position;               // +0x4C
     Quaternion rotation;            // +0x58
-    // +0x68 the morphed vertices ({data, size} is what a bone gives 005A0B10).
+    // the morphed vertices ({data, size} is what a bone gives).
     lib::AlignedArray<Vector3> vertices;
 };
 static_assert(offsetof(AnimationTrack, bone) == 0x20 && offsetof(AnimationTrack, positionCount) == 0x24);

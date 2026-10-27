@@ -1,12 +1,10 @@
-// The plain draw of one figure part (005A7640, thiscall on the part's scene node, RET 0x18): the
-// simpler sibling of 005A7A70 (figure_part_draw.cpp), always through the device and without the
-// lighting: a hidden mesh (flag 0x80) is skipped, the drawn flag (0x40) cleared, the mesh
-// clip-tested against the view, animated meshes (type 13..16) advanced to the current time; flat
-// meshes (0x100) get their colours (+0x138) filled with +0xD4 and speculars (+0x148) with +0xD8
-// (the arrays keep their sizes), a mesh not yet lit (no 0x10) asks the device to light it (draw
-// flag 4); the per-vertex offsets (+0x128, +0x12C of them) are added into a copy of the positions
-// (its own function-local static 007C2E60, guard 007C2E70 bit 1, freed at exit by 005A7A50). Any
-// draw that is not off screen marks the mesh drawn. See docs/notes/models.md ("Figure parts").
+// The plain draw of one figure part (on the part's scene node): the simpler sibling of the lit draw
+// (figure_part_draw.cpp), always through the device and without the lighting: a hidden mesh (flag 0x80) is
+// skipped, the drawn flag (0x40) cleared, the mesh clip-tested against the view, animated meshes (type 13..16)
+// advanced to the current time; flat meshes (0x100) get their colours filled with one value and speculars with
+// another (the arrays keep their sizes), a mesh not yet lit (no 0x10) asks the device to light it (draw flag
+// 4); the per-vertex offsets are added into a copy of the positions (its own function-local static, freed at
+// exit). Any draw that is not off screen marks the mesh drawn. See docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
 #include "figure_mesh.h"          // VertexPacket
 #include "link_figure.h"          // FigureMeshDrawer
@@ -28,14 +26,14 @@ namespace {
 // The figure mesh's colour arrays (+0x138 / +0x148).
 using ColourArray = lib::AlignedArray<std::uint32_t>;
 
-// The moved positions (lib::AlignedArray; its inlined SetSize allocates through 00452E70).
+// The moved positions (lib::AlignedArray).
 constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E60*/ {};
 lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
 std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
 
-// 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
-// The node's animation at a time (float bits). 005A7290: after the draw (the renderer).
+// CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
+// The node's animation at a time (float bits), and the call after the draw (the renderer).
 // The device's mesh draw (device_mesh.cpp).
 
 // *target = *offset + *target (FLD offset, FADD, FSTP).
@@ -51,7 +49,7 @@ void Fill(ColourArray& a, std::uint32_t value) {
     for (int i = 0; i < a.size; ++i) a.data[i] = value;
 }
 
-// The positions with the per-vertex offsets added, in 007C2E60.
+// The positions with the per-vertex offsets added.
 const void* MovedPositionsOf(CFigureMesh* mesh) {
     lib::AlignedArray<VertexPacket>& moved = MovedPositions();
     int blocks = mesh->buffers_.vertexCount;
@@ -69,9 +67,8 @@ const void* MovedPositionsOf(CFigureMesh* mesh) {
 
 } // namespace
 
-// 005A7640 (thiscall on the part's drawer, RET 0x18). Arguments 2-4 are not read; `alpha` goes to
-// the device draw, `rect` (optional) receives the screen rectangle (empty when off screen).
-// Returns 1.
+// Arguments 2-4 are not read; `alpha` goes to the device draw, `rect` (optional) receives the screen rectangle
+// (empty when off screen). Returns 1.
 int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha,
                                    RECT* rect) {
     if (mesh_->flags_ & 0x80) return 1;

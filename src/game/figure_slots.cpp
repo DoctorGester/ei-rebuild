@@ -12,8 +12,7 @@
 
 namespace figure {
 
-// 00453450 / 00453460: CFigure's class name and class id; 004547F0 / 00454800: CFakeFigure's;
-// A slot that answers 1.
+// CFigure's and CFakeFigure's class name and class id; a virtual that answers 1.
 const char* __fastcall FigureClassName(void*) { return "CFigure"; }
 EI_REWRITTEN(0x00453450, FigureClassName);
 int __fastcall FigureClassId(void*) { return 0x44; }
@@ -25,13 +24,12 @@ EI_REWRITTEN(0x00454800, FakeFigureClassId);
 int __fastcall FakeFigureAnswerOne(void*) { return 1; }
 EI_REWRITTEN(0x004547A0, FakeFigureAnswerOne);
 
-// 0044C490 / 00454360: a record whose only member to destroy is the CString at +4, and its scalar
-// deleting destructor.
+// A record whose only member to destroy is a CString, and its scalar deleting destructor.
 void __fastcall NamedRecordDestruct(scene::TextureNameRecord* self) { self->name.~CString(); }
 EI_REWRITTEN(0x0044C490, NamedRecordDestruct);
 EI_REWRITTEN(0x00454360, mfc::impl::ScalarDeleting<&NamedRecordDestruct>::Delete);
 
-// A 0x38-byte record cleared; 00453490: an aligned array emptied. Both return this.
+// A 0x38-byte record cleared; an aligned array emptied. Both return this.
 void* __fastcall ClearArray(std::uint32_t* self) {
     self[0] = 0;
     self[3] = 0;

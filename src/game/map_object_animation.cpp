@@ -1,6 +1,5 @@
-// Animation tracks of figure parts (00500000-0050E000): a part's position, rotation and morphed
-// vertices at a time between two key frames. Names provisional; see docs/notes/map_objects.md
-// ("Animation tracks").
+// Animation tracks of figure parts: a part's position, rotation and morphed vertices at a time between two
+// key frames. Names provisional; see docs/notes/map_objects.md ("Animation tracks").
 #include "map_object_animation.h"
 
 #include "maths.h"
@@ -13,13 +12,13 @@
 #include <cmath>
 #include <cstring>
 
-// The original keeps the x difference and its product on the FPU stack and stores the others:
-// double locals where it keeps, float locals where it stores.
+// The original keeps the x difference and its product on the FPU stack and stores the others: double locals
+// where it keeps, float locals where it stores.
 
 namespace {
 
-// from + (to - from) * s as the original computes it: the x difference and product unrounded,
-// y and z stored to floats first; every result stored.
+// from + (to - from) * s as the original computes it: the x difference and product unrounded, y and z stored
+// to floats first; every result stored.
 void LerpPoint(float* out, const float* from, const float* to, float s) {
     double dx = static_cast<double>(to[0]) - from[0];
     float dy = static_cast<float>(static_cast<double>(to[1]) - from[1]);

@@ -1,7 +1,7 @@
-// The figure animation state's skeleton (class 0x300D; CFigureAnimationState in
-// map_object_figures.h): its lifetime, the bones the skeleton file links (005AC880 calls LinkPiece
-// per link, then FindRoot), the meshes the bones carry, and placing the skeleton when the
-// animation or the figure's morph changes. See docs/notes/map_objects.md.
+// The figure animation state's skeleton (class 0x300D; CFigureAnimationState in map_object_figures.h): its
+// lifetime, the bones the skeleton file links (LinkPiece per link, then FindRoot), the meshes the bones
+// carry, and placing the skeleton when the animation or the figure's morph changes. See
+// docs/notes/map_objects.md.
 #include "figure_manager.h"
 #include "map_object_animation.h"
 #include "map_object_figures.h"
@@ -44,9 +44,8 @@ void ConstructList(mfc::CTypedPtrList<T>* list, void* vtable) {
     list->blockSize = kListBlockSize;
 }
 
-// The root places the skeleton (0050C230, through its address) at the owner's time factor at
-// its scale z times its default scale: x and y from the factor stored to a float, z from it
-// unrounded.
+// The root places the skeleton (through its address) at the owner's time factor at its scale z times its
+// default scale: x and y from the factor stored to a float, z from it unrounded.
 void PlaceRoot(CFigureAnimationState* state) {
     CObject3D* owner = state->owner;
     double factor = owner->AnimationFactor(owner->scale.z);
@@ -58,8 +57,7 @@ void PlaceRoot(CFigureAnimationState* state) {
     state->root->Place(&origin);
 }
 
-// 0050D950 / 0050DA10 inline DestroyTrack's reset without the bone (the key frames' array emptied
-// through its SetSize(0), 0050DFF0).
+// Inlines DestroyTrack's reset without the bone (the key frames' array emptied through its SetSize(0)).
 void ClearTrack(AnimationTrack* track) {
     track->animation = nullptr;
     track->positionCount = 0;
@@ -304,8 +302,8 @@ void CFigureAnimationState::CollectBoneNames(mfc::CStringArray* out) {
 }
 EI_REWRITTEN(0x0050D920, CFigureAnimationState::CollectBoneNames);
 
-// AlignedPtrArray::SetSize's copy for the animation tracks' arrays (the key
-// frames' vertex sets; 0050A720, 0050C552). Registered on the template (map_object_figures.cpp).
+// AlignedPtrArray::SetSize's copy for the animation tracks' arrays (the key frames' vertex sets). Registered
+// on the template (map_object_figures.cpp).
 EI_REWRITTEN(0x0050DFF0, AlignedPtrArray::SetSize);
 
 int CFigureAnimationState::ClearBoneTracks() {
