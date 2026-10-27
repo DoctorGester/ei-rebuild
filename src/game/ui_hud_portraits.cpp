@@ -41,7 +41,7 @@ float Pi() { return 3.1415927f /*007423F8*/; }
 bool GamePaused() { return TheClientWorld()->paused_ != 0; }
 int SelectedUnitId() { return TheCamera()->targetId_; }
 
-// Time since the last frame in seconds, unrounded in ST0.
+// Time since the last frame in seconds, unrounded.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
@@ -73,7 +73,7 @@ constexpr float kWobbleAmplitude = 0.1f;
 constexpr float kMarkerRise = 60.0f;
 constexpr std::uint32_t kMarkerDepth = 0x41200000;   // 10.0f
 
-// The interface sprite helpers on scene objects (CUiMesh, ui.h).
+// The interface sprite helpers on scene objects.
 CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
 Quaternion* RotationOf(CEngineObject* object) {
@@ -223,7 +223,7 @@ void CHudPortraits::Update() {
                 std::string full = withPrefix + suffix;
                 name = full;
             }
-            ReplaceSceneObject(object(1), name.c_str());   // CUiWindow's
+            ReplaceSceneObject(object(1), name.c_str());
         }
 
         // Now and then (a third of the time per second) a wobble starts after a random delay:

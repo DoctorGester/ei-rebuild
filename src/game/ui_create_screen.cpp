@@ -68,7 +68,7 @@ void CInterface3D::CreateScreen(int id) {
     switch (id) {
     case 0:
         return;
-    case 1:   // the in-game screen (ui_camp.h)
+    case 1:   // the in-game screen
         screen = new CBattleScreen(this);
         break;
     case 2:   // the main menu
@@ -86,7 +86,7 @@ void CInterface3D::CreateScreen(int id) {
     case 7:
         screen = new CViewScreen(this);
         break;
-    case 8:   // the titles (CCreditsScreen, ui_screens.h)
+    case 8:   // the titles
         screen = new CCreditsScreen(this, false, "Crdt");
         break;
     case 9:
@@ -103,11 +103,10 @@ void CInterface3D::CreateScreen(int id) {
 
 namespace {
 
-CCursor* Cursor() { return TheCursor(); }   // SetShape
+CCursor* Cursor() { return TheCursor(); }
 
 // The window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
 
-// IDirect3DDevice7::SetRenderState (COM).
 void SetRenderState(UiD3DDevice* device, unsigned long state, unsigned long value) {
     device->SetRenderState(state, value);
     render::state::Render(static_cast<std::uint32_t>(state), static_cast<std::uint32_t>(value));
@@ -272,13 +271,11 @@ EI_REWRITTEN(0x005F86F0, CInterface3D::OpenHelp);
 
 namespace {
 
-// Members: screen 9's two maps are item caches (lib_trees::ItemCache: with two
-// allocators); screen 8's player at +0x1D8.
+// Screen 9's two maps are item caches (lib_trees::ItemCache, with two allocators).
 using ItemCache = lib_trees::ItemCache;
 
 } // namespace
 
-// Screen 9's constructor.
 CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
     // A stack byte and the argument slot serve as the allocators.
     std::uint8_t junk = 0;
@@ -290,8 +287,8 @@ CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
 }
 EI_REWRITTEN_SPECIAL(0x005F6F30, CExchangeScreen::CExchangeScreen);
 
-// Screen 8's constructor: the list at +0x1C8 gets its header node (its allocator byte,
-// the flag's low byte, is overwritten), +0x1D4 the text, +0x1F4 the flag.
+// Screen 8's constructor: lines_ gets its header node (its allocator byte, the flag's low byte, is
+// overwritten).
 CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name) : CUiContainer(ui) {
     new (archive_.Get()) CMappedResource();
     lines_.Construct();   // the header from the node pool, linked to itself

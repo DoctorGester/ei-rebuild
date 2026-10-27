@@ -31,7 +31,6 @@
 namespace {
 constexpr float kNearPointCleared = 100000.0f;
 
-// The initial call radius (10.0).
 float InitialCallRadius() { return 10.0f /*0073FED8*/; }
 // A new fear mode's distance (copied as a dword).
 std::uint32_t FearDistanceBits() { return 0x41200000u /*0073FF00*/; }
@@ -215,13 +214,13 @@ void FearMode::Init(std::uint8_t newFlag) {
     std::uint32_t bits = FearDistanceBits();
     std::memcpy(&distance, &bits, sizeof(bits));
     spread = 3.0f;
-    shelter.x = -1313.0f;    // unset (0xC4A42000)
+    shelter.x = -1313.0f;    // unset
     fleePoint.z = 0.0f;
     flag = newFlag;
 }
 
 FearMode::FearMode(std::uint8_t newFlag) {
-    ClearFields();   //not left as memory held them
+    ClearFields();   // zeroed (the original leaves what memory held)
     Init(newFlag);
 }
 
@@ -329,7 +328,7 @@ int AIMemory::Notice(const Vector3* point, int level, int kind) {
         double dx = point->x - noticedX;
         double dy = point->y - noticedY;
         double z = point->z;
-        // TEST AH,0x41: farther than the limit, NaN not.
+        // Farther than the limit; NaN is not.
         changed = z * z + dy * dy + dx * dx > 10.0 ? 1 : 0;
     }
     noticedLevel = level;
@@ -403,12 +402,12 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
         if (--call.kind >= 0) continue;
         if (call.hostileMask != 0) {
             console::GameOStream* log = &(*AiLog() << "Unit ");
-            log->PutInt(unit->id_);   // returns the stream itself
+            log->PutInt(unit->id_);
             console::EndLine(*log << " hear delayed sound: " << call.text);
             unit->ServerController()->AddHostileMask(static_cast<std::uint32_t>(call.hostileMask));
         } else if (memory->noticedLevel < 900) {
-            // The inlined Notice of level 900: logged when the level rises by more than 100 or the
-            // point is more than sqrt(10) away (TEST AH,0x41: NaN is near).
+            // The inlined Notice of level 900: logged when the level rises by more than 100 or the point is
+            // more than sqrt(10) away (NaN is near).
             bool changed = true;
             if (900 - memory->noticedLevel <= 100) {
                 float dx = call.point.x - memory->noticedX;
@@ -446,7 +445,6 @@ void AIMemory::Update(CUnitServer* who) {
         --i;
     }
     calls.Update(who->unit, this);
-    // The AI events are the world server's +0x2838.
     TheServerWorld()->AIEvents()->Update(who, this);
     noticedLevel += noticedKind;
 }

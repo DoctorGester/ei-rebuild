@@ -988,7 +988,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
             double value = LocalPlayerVariable(name.c_str());
             const float one = GameOne();
-            // Equal (or NaN) skips.
+            // Equal skips.
             EI_NAN_AUDIT(value);
             if (value != one) {
                 exitPending_ = 1;

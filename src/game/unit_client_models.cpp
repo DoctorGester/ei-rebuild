@@ -61,9 +61,6 @@ bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
-// Figure manager: the model named `name`.
-// 3D object: its figure part named `name`, or null.
-// SkinLayerArray::SetSize (the 12-byte path records' instantiation).
 void SetLayerCount(SkinLayerArray* layers, int size) { mfc::impl::ArrayAs<mfc::impl::PathRecords>(*layers).SetSize(size, -1); }
 
 std::uint32_t FiguresFlag(const CUnit* unit) { return unit->flags_ & kFiguresDetached; }
@@ -217,7 +214,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
             }
         }
     }
-    // The controller's slot 30 (RefreshModel), after the change (the unit's controller is this object).
+    // RefreshModel after the change (the unit's controller is this object).
     unit->Controller()->RefreshModel();
     return 1;
 }
@@ -455,7 +452,7 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         auto* request = new (storage) SkinRequest{{}, {}, 0};
         BuildSkinLayers(detailed, &layers);
         int bytes = layers.size * static_cast<int>(sizeof(SkinLayer));
-        request->layers.SetSize(bytes);   // the aligned CArray SetSize
+        request->layers.SetSize(bytes);
         std::memcpy(request->layers.data, layers.data, static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, *request, unitKey, prototypeKey, texture);
         result = reinterpret_cast<void*>(

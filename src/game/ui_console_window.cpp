@@ -46,7 +46,7 @@ int Clamp(int value, int high) {
 int PromptWidth(CDC* dc, const std::string& input, int count) {
     std::string text = (mfc::CString(game::consoletexts::Prompt()) + Left(input, count)).GetString();
     SIZE size;
-    gameapi::GetTextExtentPoint32A(dc->hdc, text.c_str(), text.size(), &size);   // EI_UTF8: measured wide (system_text.h)
+    gameapi::GetTextExtentPoint32A(dc->hdc, text.c_str(), text.size(), &size);   // EI_UTF8: measured wide
     return size.cx;
 }
 
@@ -162,10 +162,8 @@ namespace {
 constexpr int kHistoryDepth = 30;
 
 mfc::CString MidOf(const std::string& s, int first) { return str::Mid(s, first); }
-// Operator+(const CString&, TCHAR).
-// CStringArray::InsertAt(index, const CString&, count).
-// Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code
-// page, as addon's helpers do (EI_UTF8: from UTF-8, system_text.h).
+// Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code page as
+// addon's helpers do (EI_UTF8: from UTF-8).
 void CopyToClipboard(const char* first, const char* last) {
     int count = static_cast<int>(last - first);
     std::wstring wide;

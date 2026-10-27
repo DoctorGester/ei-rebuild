@@ -34,8 +34,6 @@ namespace {
 
 
 
-// vector<TradeRow> pieces (library): the insert that reallocates (recordvec::TradeRowVector's).
-
 
 
 SkillLevelRecord* SkillRecords() { return SkillDb()->levels.begin(); }
@@ -68,7 +66,7 @@ int HasPerkText(CTextManager* table, const char* name) {
     return table->CTextManager::Open(key);
 }
 
-// A perk record's text key: its name (+4) without trailing level digits, plus "0".
+// A perk record's text key: its name without trailing level digits, plus "0".
 void PerkBaseName(mfc::CString* text, const SkillLevelRecord* record) {
     *text = record->name;
     text->TrimRight("123");
@@ -304,9 +302,6 @@ EI_REWRITTEN(0x006261A0, TradeDrawLists);
 
 
 namespace {
-// Vector<TradeRecord>'s insert that reallocates (recordvec::TradeRecordVector's); the record filler
-// fills a record from the local player's unit records; LocalPlayerData: the local player's data
-// (its member holds the number of unit records).
 void __fastcall TradeSnapshotRecord(CTradePanel*);
 
 int PartyRecordCount() { return LocalPlayerData()->members_.size; }

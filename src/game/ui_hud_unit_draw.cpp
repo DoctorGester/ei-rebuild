@@ -1,13 +1,13 @@
 // The battle HUD's unit panel: its draw (CHudUnitPanel). Rebirth patches it for its WideScreen layout, reproduced behind
 // the flag (ui_widescreen.h). It drives the Direct3D device itself; those calls are made as they are and mirrored to the
 // new renderer as the hero preview's are (ui_hero_preview.cpp). See docs/notes/ui.md, "Battle HUD unit panel draw".
-#include "device.h"   // the old device's calls
+#include "device.h"
 #include "ui.h"
 
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "map_object_shadow.h"   // CObject3DClientSpecific::figureScale
-#include "texture.h"             // the renderer's device object
+#include "map_object_shadow.h"   // figureScale
+#include "texture.h"
 #include "ui_widescreen.h"
 #include "unit.h"
 
@@ -28,11 +28,11 @@
 namespace {
 
 // The constants read at run time.
-float LayoutUnit() { return 0.0025f /*0074015C*/; }       // 0.0025: 1 / 400, half the layout's width
+float LayoutUnit() { return 0.0025f /*0074015C*/; }       // 1 / 400, half the layout's width
 float One() { return 1.0f /*0073B84C*/; }
-float DepthUnit() { return 0.48157462f /*007423FC*/; }        // 0.48157: the layout's half height at depth 1
-float ModelDepth() { return 9.0f /*0074242C*/; }       // 9: how far in front of the camera the model stands
-float ModelDrop() { return 0.25f /*0073C3B0*/; }        // 0.25 of the view's half height below the centre
+float DepthUnit() { return 0.48157462f /*007423FC*/; }        // the layout's half height at depth 1
+float ModelDepth() { return 9.0f /*0074242C*/; }       // how far in front of the camera the model stands
+float ModelDrop() { return 0.25f /*0073C3B0*/; }        // of the view's half height below the centre
 float TurnAboutZ() { return 0.05f /*0073C52C*/; }
 float TurnAboutX() { return 1.15f /*00742AE8*/; }
 float SecondTurnAboutZ() { return 0.4f /*0073B868*/; }
@@ -124,7 +124,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             RECT right = {180 - offset_, 0, 400 - offset_, 220};
             RECT strip = {0, 0, 20 - offset_, 220};
             RECT below = {0, 220, 400 - offset_, 300};
-            // WideScreen : without the margin.
+            // WideScreen: without the margin.
             interface_->CallScaleRectToScreenNoMargin(&right);
             interface_->CallScaleRectToScreenNoMargin(&strip);
             interface_->CallScaleRectToScreenNoMargin(&below);
