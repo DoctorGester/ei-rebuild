@@ -56,7 +56,6 @@ CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_
     }
 }
 
-// --- Create ---------------------------------------------------------------------------
 
 void CBattleScreen::CreateScreen() {
     float mapZoom = 1.0f;
@@ -197,7 +196,6 @@ void CBattleScreen::CreateScreen() {
     clientParty_.camera = -1;
 }
 
-// --- Drawing ---------------------------------------------------------------
 
 namespace {
 

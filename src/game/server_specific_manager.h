@@ -42,7 +42,6 @@ class CTorchObjectSpec : public CEngineObject {
 public:
     CTorchObjectSpec();
     ~CTorchObjectSpec() override;
-    // The deleting destructor frees into the game's heap.
 
     int Create() override { return CreateSpec(); }
     void Destroy() override { DestroySpec(); }

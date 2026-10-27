@@ -173,7 +173,6 @@ void LoadVariables(ScriptVars* vars, ScriptStream* stream) {
 
 } // namespace
 
-// ---- Variables -------------------------------------------------------------------------------------
 
 template <> void ScriptNamedValues<float>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
@@ -400,7 +399,6 @@ void ScriptVars::Load(ScriptStream* stream) {
 }
 EI_REWRITTEN(0x004B3AD0, ScriptVars::Load);
 
-// ---- Lists ---------------------------------------------------------------------------------------
 // Each list loader reads the count, appends that many default nodes, then reads every node of the
 // list from the head (a list that was not empty would have its old nodes read again).
 

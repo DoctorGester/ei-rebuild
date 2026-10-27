@@ -21,7 +21,6 @@ struct LockKey;
 class CTrapObject : public CMapObject {
 public:
     CTrapObject();
-    // The deleting destructor frees into the game's heap.
 
     int Create() override { return CreateTrap(); }
     int RunTick() override { return UpdateTrap(); }

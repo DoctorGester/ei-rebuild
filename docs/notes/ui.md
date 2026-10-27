@@ -658,3 +658,72 @@ nested wrappers through `Call*` / `...At`; 00742B08 read from memory). Interface
   `CUiWindow::VirtualBuild`. The save window's entries (+0x164), the HUD portraits' slots (+0x158) and the quick items'
   entries (+0x158) are typed containers (`stlp::vector<SaveEntry>`, `stlp::vector<HudPortraitSlot>`,
   `mfc::CArray<Entry>`), called with their element policies.
+
+## 12. Behaviour moved out of ui.h comments
+
+The long header comments of the battle screen handlers, moved here by the comment cleanup (C22j). The header keeps the gist.
+
+### OnLButtonUp
+
+Input side `this` is the window (ui_battle_update.cpp). The left button released: nothing while a portrait
+click picks a player; without a press on the view the container's handler; a press without a drag, or on a
+network client, is a click on the unit under the point (units with flag 0x400000 only) through SelectUnit; a
+drag selects the party units inside the box : the world's selection cleared, the box marks and portraits'
+markers reset, each unit inside controlled with its portrait marked and its face turned (about -x by
+kHudQuarterTurn / 7), then the speech event with the first one's id; then RefreshSelection.
+
+### OnMouseMove
+
+Input side `this` is the window (ui_battle_mouse.cpp). The mouse moved (also every frame from Draw, at the
+current position): while a portrait click picks a player the cursor shape 0xD and the portraits' own mouse
+move; otherwise shape 0, then with a press on the view, a positive BoxSelectThreshold and not a network
+client: a move farther than the threshold from the press point in x or y starts the selection box, which
+empties the unit panel's hover unit and spans the press point and (x, y); before that the unit under the point
+is hovered at once. Without a press the container's handler first, and when no panel took the move the unit
+under the point (any flags) goes to HoverUnit.
+
+### OnKeyDown
+
+A key pressed (ui_battle_keys.cpp; Rebirth's MPSpeedControl reproduced behind its flag; input side `this` is
+the window). While a portrait click picks a player, Esc ends that and nothing else happens. On a network
+client Enter / Backspace go to the chat line and the key is used. Otherwise the container's handler first; a
+key nobody used and not repeating: Esc drops the pending action with every panel's highlight, or without one
+opens the escape menu (built inline: 0x168 bytes); any other key by its action (KeyActions, by `flags &
+0x1FF`): 1 pause (the clock's sound), 2 / 3 normal / fast speed (not while paused or on a network client: the
+clock's +0x154, the world's update period 55 / 27 ms, the interface's +0x94), 4 the objectives window of the
+player's zone, 0xB the camera follows the first selected member (or nobody), 0xC the camera faces north (the
+map's +0x1B0 0.5), 0x11..0x16 the order keys (orderKeys_), 0x17..0x1A the selected members' movement mode 0..3
+and 0x1B their flag (the movement panel), 0x1C / 0x1D the action buttons "follow" / "science", 0x1E..0x25
+spells 0..7 and 0x2A..0x2D quick items 0..3 (cast or used at once with Ctrl or Alt), 0x26..0x29 weapons 0..3,
+0x2E..0x31 the unit panel's body parts and 0x32 / 0x33 the top panel's pages (a panel slid away comes back,
+the choice already shown slides it away), 0x34 the map slides, 0x35 / 0x36 quick save / load ("saveq"),
+0x37..0x39 party members 0..2 (ToggleMember; with Ctrl or Alt the camera follows the member), 0x3A every
+member selected (not on a network client), 0x3B the message window opens). Pause, the objectives, the movement
+keys, the message window and the escape menu mark the key used.
+
+### OnQuestVariable
+
+A "q." player variable changed while the screen is on top (the quest log passes it on). `name` split at '.':
+three parts (q.<zone>.<quest>) a quest line, "combat_get_quest" / "_complete_" (value 2) / "_failed_" (3),
+then the quest's title (text "quest <quest>"); four parts (a sub-objective) the same with "_subobj" and the
+"#subobj <n>" line, skipped on a single player whose variable "<a>.<b>.<c>" is 0. The line (any part count)
+goes to the top panel's text and, unless +0x160, the message log; the clock pulses, +0x1FC becomes at least
+the value (1 for a failure, 3 for a completed quest).
+
+### RefreshSelection
+
+Called when a unit joins or leaves the party, after items are picked up, by the member toggle, a box drag and
+a network client's party change). The selection changed: with exactly one living party unit selected the
+weapon bar, quick items, spell and action columns show it, otherwise they are emptied (the action column keeps
+its extra button while anyone is selected); the unit panel (+0x14C, +0x15C / +0x154 from the prototype's +0x20
+/ +0x24) shows the first selected unit (null with nobody selected) when it changed; the pending action (+0x17C
+0, +0x180 / +0x184 -1) and every panel highlight are cleared.
+
+### ToggleMember
+
+Party member `index` clicked (its portrait or body, SelectUnit; the member keys): nothing on a network client
+or for an index past the party. The selection is the members' flag 0x10 (as 0x10 or 0); with the interface's
++0x7D the member flips (to 1 / 0), else it alone is chosen (1). The world's selection is cleared; each
+portrait's marker gets the chosen value and its face's rest orientation the turn about -x by kHudQuarterTurn /
+7 (or the identity); each chosen member is controlled and the clicked one gets a speech event (id, 0, 0). In
+single player the local player's unit records follow flag 0x10; then

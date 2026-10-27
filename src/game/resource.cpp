@@ -242,7 +242,6 @@ EI_REWRITTEN(0x00671B40, CMappedResource::GetFile);
 EI_REWRITTEN(0x00671E00, CMappedResource::CloseFile);
 EI_REWRITTEN(0x00672040, CMappedResource::FreeAllFiles);
 
-// --- CMappedFile -------------------------------------------------------------------------------
 
 CMappedFile::CMappedFile() { Construct(); }
 
@@ -329,7 +328,6 @@ void CMappedFile::Flush() {
     gameapi::SetFileTime(file_, nullptr, nullptr, &time);
 }
 
-// --- CMMIOResource -----------------------------------------------------------------------------
 
 BOOL CMMIOResource::OpenResource(const char* path, BOOL writable) {
     if (!file_.Open(path, writable)) return false;

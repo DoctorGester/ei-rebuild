@@ -12,7 +12,6 @@ namespace scriptaddon {
 
 using Handler = bool (*)(Call* call);
 
-// ---- Helpers ------------------------------------------------------------------------------------
 
 // _ftol2_sse (10090EB0): truncation toward zero (CVTTSD2SI); NaN and out-of-range values give
 // 0x80000000.
@@ -38,7 +37,6 @@ bool Report(const char* function, const char* format, ...);
 // 10010D7B: Report(function, "Invalid argument(s) passed to function").
 bool InvalidArguments(const char* function);
 
-// ---- Handlers -----------------------------------------------------------------------------------
 
 // script_addon_math.cpp
 bool Sin(Call* call);

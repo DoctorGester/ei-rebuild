@@ -72,7 +72,6 @@ static_assert(sizeof(LoadedFile) == 0x1C);
 // The base of the archive readers (ResourceBaseClass in the game's messages; slot 0 is the scalar
 // deleting destructor): the archive header and tables, and an index table (accelerator) from
 // numbers to entries built by CreateAccelTable (only called by the unused).
-// A real virtual class.
 class CResourceBase {
 public:
     CResourceBase();                                // fields cleared
@@ -94,7 +93,6 @@ public:
 static_assert(sizeof(CResourceBase) == 0x24);
 
 // Reads an archive with low-level file I/O, loading individual files into memory on request.
-// A real virtual class.
 class CMappedResource : public CResourceBase {
 public:
     CMappedResource();

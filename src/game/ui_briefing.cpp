@@ -59,7 +59,6 @@ NamedFloatTable::Node* BriefingVariables::First() const { return table_.First();
 
 NamedFloatTable::Node* BriefingVariables::Next(NamedFloatTable::Node* node) const { return table_.Next(node); }
 
-// --- Close ---------------------------------------------------------------------------------------
 
 void CBriefingScreen::Close() {
     MapEdgeFade() = savedEdgeFade_;
@@ -70,7 +69,6 @@ void CBriefingScreen::Close() {
 }
 EI_REWRITTEN(0x00602BB0, CBriefingScreen::Close);
 
-// --- OnMessageResult -----------------------------------------------------------------------------
 
 void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     switch (result) {
@@ -94,7 +92,6 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     if (IsMultiplayerClient()) PlayersChanged(1);
 }
 
-// --- OnUnitJoined --------------------------------------------------------------------------------
 
 void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     CParty* player = LocalPlayerData();
@@ -152,7 +149,6 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
 }
 EI_REWRITTEN(0x00602C90, CBriefingScreen::OnUnitJoined);
 
-// --- OnUnitLeft ----------------------------------------------------------------------------------
 
 void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     if (unit == leader_) leader_ = nullptr;
@@ -166,7 +162,6 @@ void CBriefingScreen::OnUnitLeft(CUnit* unit) {
 }
 EI_REWRITTEN(0x00603010, CBriefingScreen::OnUnitLeft);
 
-// --- OnGameOver ----------------------------------------------------------------------------------
 
 void CBriefingScreen::OnGameOver(int) {
     interface_->PlaySound("buttons\\gameover.wav", 0);
@@ -175,7 +170,6 @@ void CBriefingScreen::OnGameOver(int) {
 }
 EI_REWRITTEN(0x00608C70, CBriefingScreen::OnGameOver);
 
-// --- OnBriefing ----------------------------------------------------------------------------------
 
 void CBriefingScreen::OnBriefing(const char* name) {
     topic_ = name;
@@ -183,14 +177,12 @@ void CBriefingScreen::OnBriefing(const char* name) {
 }
 EI_REWRITTEN(0x006030C0, CBriefingScreen::OnBriefing);
 
-// --- ShowChat ------------------------------------------------------------------------------------
 
 void CBriefingScreen::ShowChat(char show) {
     if (IsMultiplayerClient() && show && chat_) chat_->ShowPlayers();
 }
 EI_REWRITTEN(0x00603090, CBriefingScreen::ShowChat);
 
-// --- SaveState -----------------------------------------------------------------------------------
 
 void CBriefingScreen::SaveState() {
     int zero = 0;
@@ -199,7 +191,6 @@ void CBriefingScreen::SaveState() {
 EI_REWRITTEN(0x00602490, CBriefingScreen::SaveState);
 EI_REWRITTEN(0x00606F40, CBriefingScreen::OnMessageResult);
 
-// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::LoadPersonTexts() { ::LoadPersonTexts(&personTexts_); }
 EI_REWRITTEN(0x00607720, CBriefingScreen::LoadPersonTexts);

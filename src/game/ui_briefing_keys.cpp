@@ -69,7 +69,6 @@ void OpenObjectives(CInterface3D* ui) {
 
 } // namespace
 
-// --- OnKeyDown -----------------------------------------------------------------------------------
 
 void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
     if (chatActive_) {

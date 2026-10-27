@@ -52,7 +52,6 @@ CHudMap* Map(CUiWindow* map) { return static_cast<CHudMap*>(map); }
 
 } // namespace
 
-// --- Close ---------------------------------------------------------------------------------------
 
 void CBattleScreen::Close() {
     TheCamera()->flags_ |= CCamera::kFree;
@@ -64,7 +63,6 @@ void CBattleScreen::Close() {
 }
 EI_REWRITTEN(0x00635E60, CBattleScreen::Close);
 
-// --- PollShown -----------------------------------------------------------------------------------
 
 bool CBattleScreen::PollShown() {
     if (hasHero_) {
@@ -78,7 +76,6 @@ bool CBattleScreen::PollShown() {
 }
 EI_REWRITTEN(0x006360F0, CBattleScreen::PollShown);
 
-// --- OnItemsPicked -------------------------------------------------------------------------------
 
 void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled) {
     for (auto* node = items->head; node != nullptr;) {
@@ -92,7 +89,6 @@ void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, i
 }
 EI_REWRITTEN(0x00636150, CBattleScreen::OnItemsPicked);
 
-// --- OnUnitLeft ----------------------------------------------------------------------------------
 
 void CBattleScreen::OnUnitLeft(CUnit* unit) {
     if (IsMultiplayerClient()) {
@@ -114,7 +110,6 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
 }
 EI_REWRITTEN(0x006364E0, CBattleScreen::OnUnitLeft);
 
-// --- SaveState -----------------------------------------------------------------------------------
 
 void CBattleScreen::SaveState() {
     CStream* stream = GameSaveStream();
@@ -138,7 +133,6 @@ void CBattleScreen::SaveState() {
 }
 EI_REWRITTEN(0x00635080, CBattleScreen::SaveState);
 
-// --- MarkPortrait --------------------------------------------------------------------------------
 
 void CBattleScreen::MarkPortrait(int index) {
     auto* portraits = portraits_;
@@ -205,7 +199,6 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
 }
 EI_REWRITTEN(0x006361B0, CBattleScreen::OnUnitJoined);
 
-// --- OnMessageResult -----------------------------------------------------------------------------
 
 void CBattleScreen::OnMessageResult(int result) {
     switch (static_cast<std::uint32_t>(result)) {
@@ -229,7 +222,6 @@ void CBattleScreen::OnMessageResult(int result) {
 }
 EI_REWRITTEN(0x00635EB0, CBattleScreen::OnMessageResult);
 
-// --- OnGameOver ----------------------------------------------------------------------------------
 
 void CBattleScreen::OnGameOver(char won) {
     GameStopSounds(1);

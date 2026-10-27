@@ -49,7 +49,6 @@ void CResourceManager::Destroy() {
     CBaseManager::Destroy();
 }
 
-// --- Archives -----------------------------------------------------------------------------------
 
 namespace {
 // CMappedResource's constructor and CMMIOResource's on the archive's memory.

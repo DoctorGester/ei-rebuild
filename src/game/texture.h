@@ -372,7 +372,6 @@ class CTexture : public CEngineObject {
 public:
     CTexture();
     ~CTexture() override;
-    // The deleting destructor frees into the game's heap.
 
     // Creates the surface from.mmp data, starting at mip level `mip`
     // (a system-memory surface filled from the file and loaded into a

@@ -31,7 +31,6 @@ enum ServerObjectType {
 
 } // namespace
 
-// --- CServerSpecificManager ---------------------------------------------------------------------
 
 CServerSpecificManager::CServerSpecificManager() {}
 EI_REWRITTEN_SPECIAL(0x004D6900, CServerSpecificManager::CServerSpecificManager);
@@ -71,7 +70,6 @@ EI_REWRITTEN(0x004D6920, CServerSpecificManager::GetClassName);
 EI_REWRITTEN(0x004D6930, CServerSpecificManager::GetClassId);
 EI_REWRITTEN(0x004D6970, CServerSpecificManager::NewObject);
 
-// --- CTorchObjectSpec ---------------------------------------------------------------------------
 
 CTorchObjectSpec::CTorchObjectSpec() {
     ClearFields();

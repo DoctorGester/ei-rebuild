@@ -366,7 +366,6 @@ Next StartAtGround(CSpellEffect* e) {
 
 } // namespace
 
-// --- CSpellEffect ---------------------------------------------------------------------------------
 
 void CSpellEffect::Start(int type) {
     flags &= ~1u;

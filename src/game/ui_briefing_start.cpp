@@ -107,7 +107,6 @@ void DropMover(BriefingMover* movers, const CUnit* person, Vector3* place, Vecto
 
 } // namespace
 
-// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     immediate_ = immediate;
@@ -220,7 +219,6 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
 }
 EI_REWRITTEN(0x006064E0, CBriefingScreen::StartDialogue);
 
-// --- -----------------------------------------------------------------------------------
 
 void CBriefingScreen::ClearShownItems() {
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {

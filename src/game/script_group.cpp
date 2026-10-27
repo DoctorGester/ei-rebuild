@@ -59,7 +59,6 @@ bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
     return x->id_ > y->id_;
 }
 
-// ---- ScriptObjectRef ----------------------------------------------------------------------------
 
 void ScriptObjectRef::Reset() { Clear(this); }
 EI_REWRITTEN(0x004B24B0, ScriptObjectRef::Reset);
@@ -113,7 +112,6 @@ void ScriptObjectRef::Save(ScriptStream* stream) const {
 }
 EI_REWRITTEN(0x004B25F0, ScriptObjectRef::Save);
 
-// ---- ScriptGroup --------------------------------------------------------------------------------
 
 void ScriptGroup::SetSize(int newSize, int newGrowBy) { mfc::impl::ArrayAs<gamearrays::ObjectRefs>(*this).SetSize(newSize, newGrowBy); }
 

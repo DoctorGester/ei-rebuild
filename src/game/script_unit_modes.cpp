@@ -37,7 +37,6 @@ AIActionMode::~AIActionMode() {}
 EI_REWRITTEN_SPECIAL(0x004BA6A0, AIActionMode::~AIActionMode);
 EI_REWRITTEN_SPECIAL(0x004BA680, AIActionMode::~AIActionMode);
 
-// ---- Guard --------------------------------------------------------------------------------------
 
 GuardMode::GuardMode(const Vector3* newPoint, float newRadius, float newWander) { Set(newPoint, newRadius, newWander); }
 EI_REWRITTEN_SPECIAL(0x004BA1C0, GuardMode::GuardMode);
@@ -64,7 +63,6 @@ GuardMode* GuardMode::Clone() {
 }
 EI_REWRITTEN(0x004BA250, GuardMode::Clone);
 
-// ---- Sentry -------------------------------------------------------------------------------------
 
 SentryMode::SentryMode(const Vector3* newPoint) { Set(newPoint); }
 EI_REWRITTEN_SPECIAL(0x004BA360, SentryMode::SentryMode);
@@ -87,7 +85,6 @@ EI_REWRITTEN(0x004BA3B0, SentryMode::Clone);
 int SentryMode::GetType() { return kTypeSentry; }
 EI_REWRITTEN(0x004BA410, SentryMode::GetType);
 
-// ---- Follow -------------------------------------------------------------------------------------
 
 FollowMode::FollowMode(CMapObject* newLeader) { leader = Reference(newLeader); }
 EI_REWRITTEN_SPECIAL(0x004BA450, FollowMode::FollowMode);
@@ -109,7 +106,6 @@ EI_REWRITTEN(0x004BA4A0, FollowMode::Clone);
 int FollowMode::GetType() { return kTypeFollow; }
 EI_REWRITTEN(0x004BA580, FollowMode::GetType);
 
-// ---- Suspection ---------------------------------------------------------------------------------
 
 SuspectionMode* SuspectionMode::Construct() { return new (this) SuspectionMode(); }
 EI_REPLACE_METHOD(0x004BA610, SuspectionMode::Construct);
@@ -133,7 +129,6 @@ EI_REWRITTEN(0x004BA630, SuspectionMode::Clone);
 int SuspectionMode::GetType() { return kTypeSuspection; }
 EI_REWRITTEN(0x004BA6D0, SuspectionMode::GetType);
 
-// ---- Aggression ---------------------------------------------------------------------------------
 
 AggressionMode::AggressionMode() : AggressionMode(0) {}
 EI_REWRITTEN_SPECIAL(0x004BA710, AggressionMode::AggressionMode);
@@ -178,7 +173,6 @@ void AggressionMode::OnObjectDeleted(CEngineObject* object) {
 }
 EI_REWRITTEN(0x004BA870, AggressionMode::OnObjectDeleted);
 
-// ---- CorpseWatcher ------------------------------------------------------------------------------
 
 CorpseWatcherMode::CorpseWatcherMode() {}
 EI_REWRITTEN_SPECIAL(0x004BA920, CorpseWatcherMode::CorpseWatcherMode);

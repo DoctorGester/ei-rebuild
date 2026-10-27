@@ -159,7 +159,6 @@ constexpr const char* kHeader =
 
 } // namespace
 
-// ---- Document ----
 
 Key* Document::FindKey(const std::string& path) {
     for (Key& key : keys)

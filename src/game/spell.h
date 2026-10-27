@@ -266,7 +266,6 @@ public:
     ~CSpellContainer() override;
 
     // Create (spell_cast.cpp). Forgets the prototype and the modifiers and clears the spell (its Create).
-    // Returns 1.
     int Create() override;
     // ClearState, then the same as Create but the spell gets its Destroy.
     void Destroy() override;

@@ -196,7 +196,6 @@ struct CSoundManager : CEngineObject {
     // both hash maps (100 buckets), AIL_startup, then Reset.
     CSoundManager();
     ~CSoundManager() override;
-    // The deleting destructor frees into the game's heap.
 
     int Create() override { return CreateBody(); }
     void Destroy() override { Close(); }
@@ -452,7 +451,6 @@ struct CMusicSystem : CEngineObject {
     // (theme, +0x3C, is left as it is).
     CMusicSystem();
     ~CMusicSystem() override;
-    // The deleting destructor frees into the game's heap.
 
     int Create() override { return LoadThemes(); }
     void Destroy() override { ResetThemes(); }

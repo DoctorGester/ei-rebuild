@@ -375,7 +375,6 @@ void Teleport(CSpellEffect* e) {
 
 } // namespace
 
-// --- CSpellEffect ---------------------------------------------------------------------------------
 
 int CSpellEffect::Update() {
     if (!world) return 0;

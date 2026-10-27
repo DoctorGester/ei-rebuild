@@ -43,7 +43,6 @@
 namespace {
 
 
-// --- Helpers ---------------------------------------------------------------------------------
 
 // The local player's items (the party the client glue's returns).
 CParty* PlayerParty() { return LocalPlayerData(); }
@@ -95,7 +94,6 @@ void DrawLine(CUiSurface* surface, const char* text, RECT* rect) {
 
 } // namespace
 
-// --- ----------------------------------------------------------------------------------
 
 void CCampPages::ShowPage(int page) {
     equipment_->SetEnabled(0, 1);
@@ -219,7 +217,6 @@ void CCampPages::ShowPage(int page) {
 }
 EI_REWRITTEN(0x0060E9E0, CCampPages::ShowPage);
 
-// --- CanEquip ------------------------------------------------------------------------------------
 
 namespace {
 
@@ -430,7 +427,6 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
 
 EI_REWRITTEN(0x006100E0, CCampPages::CanEquip);
 
-// --- UpdateAction --------------------------------------------------------------------------------
 
 namespace {
 // The stack count of an item.
@@ -588,7 +584,6 @@ void CCampPages::UpdateAction() {
 }
 EI_REWRITTEN(0x00611930, CCampPages::UpdateAction);
 
-// --- Draw ----------------------------------------------------------------------------------------
 
 BOOL CCampPages::Draw(int pass) {
     int x = MouseScreenX();   // the mouse in screen pixels

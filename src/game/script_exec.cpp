@@ -401,7 +401,6 @@ BOOL ScriptRun::Execute(CScript* script) {
 
         const float* f = cmd->floatArgs.data;
         switch (done ? -1 : cmd->id) {
-        // ---- Flow -------------------------------------------------------------------------------
         case 0x07: {   // Sleep(ticks): counts this run's Execute calls from the first one
             if (sleepStart < 0) sleepStart = ticks;
             int n = Round(f[0]);
@@ -486,7 +485,6 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        // ---- Groups -----------------------------------------------------------------------------
         case 0x22:   // AddObject(group, object)
             cmd->groupArgs.data[0]->Insert(Arg(cmd, 0));
             break;
@@ -556,7 +554,6 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        // ---- World ------------------------------------------------------------------------------
         case 0x39:   // SendEvent(type, value)
             TheEvents()->SendValueToAll(Ftol(f[0]), Ftol(f[1]));
             break;
@@ -665,7 +662,6 @@ BOOL ScriptRun::Execute(CScript* script) {
             SetCP(cmd, true);
             break;
 
-        // ---- Levers -----------------------------------------------------------------------------
         case 0x91:     // SwitchLeverState(lever, state)
         case 0x9E: {   // SwitchLeverStateEx(lever, state, time)
             Lever* lever = LeverArg(cmd);
@@ -697,7 +693,6 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        // ---- Units ------------------------------------------------------------------------------
         case 0x32: {   // BlockUnit(unit, on): flags_ bit 0x800000
             CEngineObject* unit = Arg(cmd, 0);
             if (!unit || unit->GetClassId() != kClassUnit) break;
@@ -1151,7 +1146,6 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        // ---- Quests -----------------------------------------------------------------------------
         case 0x9F: {   // QuestComplete(player, quest)
             if (IsMultiplayerClient()) {
                 if (FinishQuestMap(Text(cmd, 0)) != 0) {

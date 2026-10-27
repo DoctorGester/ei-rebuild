@@ -21,7 +21,6 @@ constexpr float kZero = 0.0f;
 
 } // namespace
 
-// ---- Sectors ------------------------------------------------------------------------------------
 
 void Sector::Clear() {
     freeOccluder = -1;

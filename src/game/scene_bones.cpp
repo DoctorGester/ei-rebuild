@@ -25,7 +25,6 @@ namespace {
 
 using PointArray = lib::AlignedArray<Vector3>;
 
-// --- Helpers -------------------------------------------------------------------------------------
 
 // Element helpers [pointer, count]: the morph frame constructor (mfc::impl::Plain24's) and destructor.
 constexpr auto DestroyMorphFrames = mfc::impl::DestructElementsAt<gamearrays::BlocksAt8>;
@@ -33,7 +32,6 @@ constexpr auto DestroyMorphFrames = mfc::impl::DestructElementsAt<gamearrays::Bl
 // a frame's points copied) are their members.
 using MorphFrames = mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements>;
 
-// --- x87 -----------------------------------------------------------------------------------------
 
 // (a - b) / (c - b) as FILD (a - b), FIDIV (c - b), FSTP: one rounded division of exact integers.
 void FrameRatio(int numerator, int denominator, float* out) { *out = static_cast<float>(static_cast<double>(numerator) / denominator); }

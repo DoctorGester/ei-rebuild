@@ -26,7 +26,6 @@ class CTorchObjectClientSpec : public CTorchObjectSpec {
 public:
     CTorchObjectClientSpec();
     ~CTorchObjectClientSpec() override;
-    // The deleting destructor frees into the game's heap.
 
     int Create() override { return CreateClient(); }
     void Destroy() override { DestroyClient(); }

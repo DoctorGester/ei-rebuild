@@ -19,7 +19,6 @@ namespace {
 constexpr DWORD kFvf = 0x1C4;   // D3DFVF_TLVERTEX
 }
 
-// Returns 1.
 int CSceneRenderer::DrawTriangles(const void* vertexData, int vertexCount, const std::uint16_t* indices, unsigned indexCount) {
     void* vertices = const_cast<void*>(vertexData);
     CTextureDevice* device = device_;

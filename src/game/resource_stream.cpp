@@ -30,7 +30,6 @@ bool PartMatches(const char* name, const char* pattern) {
 
 } // namespace
 
-// --- CResourceBase -------------------------------------------------------------------------------
 
 CResourceBase::CResourceBase() {
     header_ = ResHeader{};
@@ -61,7 +60,6 @@ void CResourceBase::FreeAccelTable() {
     }
 }
 
-// --- CResourceStream -----------------------------------------------------------------------------
 
 CResourceStream::CResourceStream() {
     archive_ = nullptr;
@@ -209,7 +207,6 @@ void CMappedResource::ListFilesPlain(mfc::CStringArray* stringArray, const char*
     }
 }
 
-// --- CMMIOResource -------------------------------------------------------------------------------
 
 // The mapped file is constructed as a member (CMappedFile's constructor).
 CMMIOResource::CMMIOResource() { mappedImage_ = nullptr; }
@@ -225,7 +222,6 @@ CMMIOResource::~CMMIOResource() {
     file_.Close();
 }
 
-// --- Hooks ---------------------------------------------------------------------------------------
 
 EI_REWRITTEN_SPECIAL(0x00674790, CResourceBase::CResourceBase);
 EI_REWRITTEN_SPECIAL(0x00674810, CResourceBase::~CResourceBase);

@@ -97,7 +97,6 @@ bool IsAnimated(const Terrain* owner, int texture) {
 
 } // namespace
 
-// ---------------------------------------------------------------------------------------------
 // Loading
 
 int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int textures, const char* prefix,
@@ -203,7 +202,6 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
     return 1;
 }
 
-// ---------------------------------------------------------------------------------------------
 // Building
 
 namespace {
@@ -486,7 +484,6 @@ void SectorData::ApplyWaterLevels() {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
 // Point queries
 
 namespace {
@@ -546,7 +543,6 @@ EI_REWRITTEN(0x006C53C0, Terrain::TileUv);
 EI_REWRITTEN(0x006C8D40, Terrain::SurfaceClass);
 EI_REWRITTEN(0x006C8930, Terrain::GroundAndWaterDepth);
 
-// ---------------------------------------------------------------------------------------------
 // Construction and projection
 
 namespace {

@@ -166,7 +166,6 @@ EI_REWRITTEN(0x006CAC10, UpdateVertexLights);
 
 } // namespace terrain
 
-// ---- Areas -------------------------------------------------------------------------------------------
 
 void __fastcall SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area) {
     if (x0 < 0) x0 = 0;

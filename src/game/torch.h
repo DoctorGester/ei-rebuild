@@ -21,7 +21,6 @@ public:
     CTorchObject();
     // The spec released (the pointer kept), then the map object's destructor.
     ~CTorchObject() override;
-    // The deleting destructor frees into the game's heap.
 
     int Create() override { return CreateTorch(); }
     void Destroy() override { DestroyTorch(); }

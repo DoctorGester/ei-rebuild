@@ -223,7 +223,6 @@ const char* kTypeLetter[] = {nullptr, "f", "s", "o", "g"};
 
 } // namespace
 
-// ---- SSCCmd -------------------------------------------------------------------------------------
 
 SSCCmd* SSCCmd::Construct() {
     auto init = [](auto& a, void* vtable) {
@@ -246,7 +245,6 @@ SSCCmd* SSCCmd::Construct() {
 }
 EI_REWRITTEN(0x004D0A50, SSCCmd::Construct);
 
-// ---- LoadFunction -------------------------------------------------------------------------------
 
 BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, int id, ScriptVars* locals,
                            const char* signature, BOOL assignment, BOOL scriptCall) {
@@ -453,7 +451,6 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
 }
 EI_REPLACE_METHOD(0x004CFBC0, CScript::LoadFunction);
 
-// ---- Sections -----------------------------------------------------------------------------------
 
 BOOL CScript::LoadConditions(ScriptCommands* conditions, ScriptPos* pos, const ScriptTokenList* tokens,
                              ScriptVars* locals) {
@@ -699,7 +696,6 @@ EI_REPLACE_METHOD(0x004D1330, CScript::LoadCommands);
 // that would parse a body after commands whose record has flag 1 (no record has), so
 // For and ForIf stay the only ones.
 
-// ---- Load ---------------------------------------------------------------------------------------
 
 BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
     ScriptTokenList tokens{gameslots::TokenListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};

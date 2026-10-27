@@ -118,7 +118,6 @@ class CGlobalMap : public CUiContainer {
 public:
     explicit CGlobalMap(CInterface3D* ui);
     ~CGlobalMap() override;
-    // Virtuals of its own.
     BOOL Draw(int pass) override;   // The container's, blended
     void CloseScreen() override { Close(); }
     void MessageResult(int result) override { OnMessageResult(result); }
@@ -461,7 +460,6 @@ public:
     // the page titles' CStringArray.
     CCampPages(CInterface3D* ui, bool fromHeroScreen);
     ~CCampPages() override;
-    // Virtuals of its own.
     void CloseScreen() override { Close(); }
     void MessageResult(int result) override { OnMessageResult(result); }
     void TakeItem(CItem* item, int mode) override { MoveItem(item, mode); }

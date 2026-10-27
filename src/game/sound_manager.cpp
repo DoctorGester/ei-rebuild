@@ -1181,7 +1181,6 @@ int CSoundManager::Play3D(const char* name, int priority, const float* position,
 }
 EI_REWRITTEN(0x006B8600, CSoundManager::Play3D);
 
-// --- LoadSample ----------------------------------------------------------------------------
 
 namespace {
 // The cache map (CSoundManager + 0x870): find, find-or-insert of a pair, erase by key. The cache list
@@ -1341,7 +1340,6 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
 }
 EI_REWRITTEN(0x006B89F0, CSoundManager::LoadSample);
 
-// --- Helpers ----------------------------------------------------------------------------------------
 
 void CSoundManager::StreamNotify(int /*mode*/) {}
 

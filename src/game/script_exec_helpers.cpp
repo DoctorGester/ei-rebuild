@@ -91,7 +91,6 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
 
 } // namespace
 
-// ---- Areas --------------------------------------------------------------------------------------
 
 void ScriptAreaParts::AddRect(float x1, float y1, float x2, float y2) {
     ScriptAreaPart part = {};
@@ -207,7 +206,6 @@ void CScript::DeletePointLight(const SSCCmd* cmd) {
 }
 EI_REWRITTEN(0x004BD920, CScript::DeletePointLight);
 
-// ---- QFinish ------------------------------------------------------------------------------------
 
 namespace {
 

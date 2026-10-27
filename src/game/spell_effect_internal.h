@@ -59,7 +59,6 @@ inline const float* ConstPtr(const float& constant) { return &constant; }
 constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fireball case
 constexpr float kHalfBits = 0.5f;                       // immediate pushed to the footprint builder
 
-// --- Helpers -------------------------------------------------------------------------------------
 
 // Effect setters (world_effect*.cpp).
 // The missile's target object id.

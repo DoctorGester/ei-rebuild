@@ -260,7 +260,6 @@ static_assert(sizeof(MeshCornerKey) == 6);
 struct SceneMesh : CTransformObject {
     SceneMesh();
     ~SceneMesh() override;
-    // The deleting destructor frees into the game's heap.
 
     // The virtuals not listed are CTransformObject's.
     int Create() override;                 // returns 1
@@ -406,7 +405,6 @@ class FakeUnitScene : public CUnit {
 public:
     FakeUnitScene();
     ~FakeUnitScene() override;
-    // The deleting destructor frees into the game's heap.
 
     // The virtuals that differ from CUnit's (fake_unit.cpp).
     int Create() override;                  // the skin created and owned, then CreateUnit
