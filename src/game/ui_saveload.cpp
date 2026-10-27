@@ -1,15 +1,12 @@
-// The save / load window's saving, its entry list (00655D40, with its tail 00656464)
-// and the selected save's picture. See ui.h (CSaveLoadWindow) and
-// docs/notes/renderer.md (section 11).
-// The window shows two 256x256 5:6:5 textures made by 005FF0B0 (a CTexture with its holder at
-// +0x5C): objects_[1], into which ShowPicture reads the selected save's
-// shot.sav (256x192 pixels, 0x18000 bytes), and dialog_ (+0x184), which FillEntries fills from
-// the escape menu's 256x192 copy of the screen (interface +0x5C) for the new save of a save window
-// and SaveGame writes to the new save's shot.sav. Like the original, the 0x18000 bytes are one
-// block from the start of the pixels (a pitch of 512 bytes is taken for granted).
-// Both textures keep their pixels only in memory the new renderer owns and reads (a DIB section per
-// holder, given by the texture manager's 00691D80; dx_surface.cpp, render::SurfaceMemory): written
-// into and read from that memory with no Lock (DirectPixels).
+// The save / load window's saving, its entry list and the selected save's picture. See ui.h
+// (CSaveLoadWindow) and docs/notes/renderer.md (section 11). The window shows two 256x256 5:6:5 textures (a
+// CTexture with its holder): objects_[1], into which ShowPicture reads the selected save's shot.sav (256x192
+// pixels, 0x18000 bytes), and dialog_, which FillEntries fills from the escape menu's 256x192 copy of the
+// screen for the new save of a save window and SaveGame writes to the new save's shot.sav. Like the original,
+// the 0x18000 bytes are one block from the start of the pixels (a pitch of 512 bytes is taken for granted).
+// Both textures keep their pixels only in memory the new renderer owns and reads (a DIB section per holder,
+// given by the texture manager; dx_surface.cpp, render::SurfaceMemory): written into and read from that memory
+// with no Lock (DirectPixels).
 #include "app.h"
 #include "app_helpers.h"
 #include "lib/mfc_time.h"
@@ -51,7 +48,7 @@
 
 namespace {
 
-// The game's folder (the CString 007AF460 that 00578DB0 returns).
+// The game's folder (a CString global returned by an accessor).
 
 constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
 constexpr unsigned kInfoMagic = 0x111;
@@ -86,9 +83,9 @@ struct LocalFileStream {
     void WriteText(const char* text) { Write(text, static_cast<unsigned>(std::strlen(text) + 1)); }
 };
 
-// An entry being built (the original's stack temporaries): empty strings and string arrays; the
-// other fields keep whatever the stack held, as in the original. Destroyed as 00656720 does: the
-// arrays here, then the strings by SaveEntry's destructor (from the last).
+// An entry being built (the original's stack temporaries): empty strings and string arrays; the other fields
+// keep whatever the stack held, like the original. Destroyed as the original does: the arrays here, then the
+// strings by SaveEntry's destructor (from the last).
 struct LocalEntry {
     SaveEntry e;
     LocalEntry() {
@@ -112,8 +109,7 @@ class PicturePixels {
 public:
     explicit PicturePixels(CDXSurface* holder) : holder_(holder) {}
 
-    // False without memory (the textures always have it: 00691D80; the original's failed Lock whose
-    // report said stop).
+    // False without memory (the textures always have it; the original's failed Lock whose report said stop).
     bool Begin() { return DirectPixels(holder_, &pixels_); }
     std::uint8_t* Bits() const { return pixels_.bits; }
 
@@ -127,7 +123,6 @@ const void* SavePicture(CInterface3D* ui) { return ui->block5C_; }
 
 } // namespace
 
-// --- 00656E10 ------------------------------------------------------------------------------------
 
 void CSaveLoadWindow::ShowPicture() {
     SceneMesh(3)->visible_ = 0;
@@ -168,7 +163,6 @@ void CSaveLoadWindow::ShowPicture() {
 }
 EI_REWRITTEN(0x00656E10, CSaveLoadWindow::ShowPicture);
 
-// --- 00653A50 ------------------------------------------------------------------------------------
 
 namespace {
 constexpr const char* kQuickFolder = "saveq";
@@ -206,7 +200,6 @@ void SaveEntry::MakeTitle(int) {
 }
 EI_REWRITTEN(0x00653A50, SaveEntry::MakeTitle);
 
-// --- 00655550 ------------------------------------------------------------------------------------
 
 void CSaveLoadWindow::SaveGame() {
     int selected = selected_;
@@ -280,7 +273,6 @@ void CSaveLoadWindow::SaveGame() {
 }
 EI_REWRITTEN(0x00655550, CSaveLoadWindow::SaveGame);
 
-// --- 00655D40 ------------------------------------------------------------------------------------
 
 void CSaveLoadWindow::FillEntries() {
     std::string pattern;
@@ -392,8 +384,8 @@ void CSaveLoadWindow::FillEntries() {
             CDXSurface* holder = HolderOf(dialog_);
             gameapi::EnterCriticalSection(TheDeviceLock());
             PicturePixels pixels(holder);
-            // A failed Lock whose report says stop leaves with the device lock held and the scroll
-            // bar as it was (the original's tail 00656464).
+            // A failed Lock whose report says stop leaves with the device lock held and the scroll bar as it was (the
+            // original's tail of the entry list).
             if (!pixels.Begin()) return;
             std::memcpy(pixels.Bits(), SavePicture(interface_), kShotBytes);
             gameapi::LeaveCriticalSection(TheDeviceLock());
@@ -412,7 +404,7 @@ void CSaveLoadWindow::FillEntries() {
 }
 EI_REWRITTEN(0x00655D40, CSaveLoadWindow::FillEntries);
 
-// --- 006570E0 / 006575B0: quick and automatic saves ----------------------------------------------
+// --- Quick and automatic saves ------------------------------------------------------------------------
 
 namespace {
 constexpr const char* kNotifyLoading = "notify_loading";

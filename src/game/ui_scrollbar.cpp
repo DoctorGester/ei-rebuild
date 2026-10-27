@@ -1,6 +1,5 @@
-// The plain scroll bar's constructor, position and layout (CUiScrollbar, 0065AEA0-0065B6F8) and the
-// options slider's constructor; A-H20: the thumb drags, the wheel and the slider's
-// position. See ui.h and docs/notes/items_spells.md (A-H19, A-H20).
+// The plain scroll bar's constructor, position and layout (CUiScrollbar) and the options slider's constructor;
+// also the thumb drags, the wheel and the slider's position. See ui.h and docs/notes/items_spells.md.
 
 #include "ui.h"
 #include "ui_screens.h"
@@ -14,8 +13,7 @@ namespace {
 
 constexpr int kTextureKind = 3;
 
-// The thumb sits slightly in front of the track (0.1 at 0073B850) and 5 to the right of the
-// track's left edge.
+// The thumb sits slightly in front of the track (0.1) and 5 to the right of the track's left edge.
 float ThumbLift() { return 0.1f /*0073B850*/; }
 float ThumbInset() { return 5.0f /*0073BF34*/; }
 
@@ -27,8 +25,8 @@ float AsFloat(int value) { return static_cast<float>(value); }
 
 } // namespace
 
-// game.exe's tables 00742C18 / 00742BE4 (the scroll bar) and 00742CBC / 00742C88 (the slider: 25 / 26 and the drag
-// along x its own).
+// The virtuals of the scroll bar and of the slider (the slider's create / update virtuals and the drag along
+// x are its own).
 CUiScrollbar::CUiScrollbar(CInterface3D* ui, RECT rect, float depth, int maximum, float speed) : CUiWindow(ui) {
     maxPosition_ = maximum;
     speed_ = speed;

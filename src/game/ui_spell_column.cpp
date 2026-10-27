@@ -26,12 +26,10 @@ template <typename T> T Get(const void* base, int offset) {
     return v;
 }
 
-// 005319A0 (thiscall on a unit, RET 4): the unit's spell `index` (0..7) or null.
-// 0063E4B0 (thiscall, RET 8; Rebirth-patched): the next spell's sprite (model `model`, picture
-// `image`), counted in +0x14C.
-// 004E0150 (thiscall on the text manager, RET 0x10): an item's texts; 004E0020 (RET 8) the text of
-// a key.
-// A spell's prototype record (+0x10 school, +0x7B shows a number).
+// The unit's spell `index` (0..7) or null.
+// The next spell's sprite (model `model`, picture `image`; Rebirth-patched), counted in a member.
+// An item's texts; the text of a key (the text manager).
+// A spell's prototype record (school, a flag that shows a number).
 const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
     return spell->GetPrototype();
 }
@@ -96,7 +94,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             if (Get<std::uint32_t>(data, 0x3C) & 0x10000000) {
                 line.Format("%s %s \n", labels[5].GetString(), labels[9].GetString());
             } else {
-                // The area: radius squared times pi (007423F8, a float).
+                // The area: radius squared times pi (a float).
                 float radius = Get<float>(data, 0x28);
                 double area = static_cast<double>(radius) * radius * 3.1415927f /*007423F8*/;
                 line.Format("%s %.1f%s \n", labels[5].GetString(), area, labels[10].GetString());   // "%s %.1f%s \n"
@@ -106,7 +104,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             if (ticks < 2) {
                 line.Format("%s %s  ", labels[6].GetString(), labels[8].GetString());
             } else {
-                // Ticks to seconds (00740544, 1/15).
+                // Ticks to seconds (1/15).
                 double seconds = x87::FromUnsigned(ticks) * 0.06666667f /*00740544*/;
                 line.Format("%s %.1f%s  ", labels[6].GetString(), seconds, labels[11].GetString());
             }

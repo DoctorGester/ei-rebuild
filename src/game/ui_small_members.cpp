@@ -1,6 +1,5 @@
-// Small members of the interface classes in 005E0000-00640000 (A-I22): member constructors and
-// assignments, default slot answers, one-line setters and handlers. See ui.h, ui_camp.h,
-// ui_screens.h and docs/notes/ui.md.
+// Small members of the interface classes: member constructors and assignments, default virtual answers,
+// one-line setters and handlers. See ui.h, ui_camp.h, ui_screens.h and docs/notes/ui.md.
 #include "console.h"
 #include "game_strings.h"
 #include "ui.h"
@@ -21,7 +20,7 @@
 namespace {
 } // namespace
 
-// --- 005F6080 / 005F5F90: the battle screen's members constructed by CreateScreen 1 ---------------------
+// --- The battle screen's members constructed by CreateScreen 1 ---------------------------------------
 
 CBattleScreen::PartyIds* CBattleScreen::PartyIds::Construct() {
     for (IdVector* ids : {&withUnit, &without}) {
@@ -41,7 +40,7 @@ LockKey* LockKey::ConstructItemUseKey() {
 }
 EI_REWRITTEN(0x005F5F90, LockKey::ConstructItemUseKey);
 
-// --- 00632490 / 006324E0: a global map place assigned ---------------------------------------------------
+// --- A global map place assigned ----------------------------------------------------------------------
 
 GlobalMapPlace* GlobalMapPlace::Assign(const GlobalMapPlace& from) {
     zone = from.zone;
@@ -141,9 +140,8 @@ CInterface3D* CInterface3D::Construct() {
 }
 EI_REWRITTEN(0x005F46A0, CInterface3D::Construct);
 
-// The interface manager, zero at the start: built by the static initialiser 005F4680 in the list's order and destroyed by
-// the exit function it registers; both ported on the name and registered at their addresses
-// (docs/notes/standalone.md, "The static initialisers' objects").
+// The interface manager, zero at the start: built by a static initialiser in the list's order and destroyed
+// by the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CInterface3D> g_interface = /*007C7D50*/ {};
 CInterface3D* TheInterface() { return &*g_interface; }
 

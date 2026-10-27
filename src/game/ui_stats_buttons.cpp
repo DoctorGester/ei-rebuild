@@ -88,7 +88,7 @@ bool CHeroStatsPanel::StepPoint(int region) {
     }
 }
 
-// --- 00624A60: Update (slot 24) ----------------------------------------------------------------
+// --- Update --------------------------------------------------------------------------------------
 
 void CHeroStatsPanel::Update() {
     if (page_ != kNewHeroPage || heldRegion_ < 0) return;
@@ -105,7 +105,7 @@ void CHeroStatsPanel::Update() {
 }
 EI_REWRITTEN(0x00624A60, CHeroStatsPanel::Update);
 
-// --- 00624790: the left button (input slot 2) --------------------------------------------------------
+// --- The left button (input click) -----------------------------------------------------------------
 
 void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
     int region = RegionAt(x, y);

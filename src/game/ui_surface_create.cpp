@@ -1,18 +1,13 @@
-// The window surface's constructors and destructor (CUiSurface, 0x38 bytes):
-// 005FCF80 (a window showing an .mmp picture), 005FD120 (the destructor), 005FCC00 (thiscall:
-// interface, layout left, top, right, bottom, format, scale flag; RET 0x1C) and 005FCDD0 (thiscall:
-// interface, layout rectangle, format; always scaled; RET 0xC). Both scale the rectangle to the
-// screen (005F7CA0, Rebirth's wide-screen patch sits there), make a surface holder of its size
-// add height * pitch to the surface-bytes total 007C7E78, clear the surface to 0 with a
-// colour-fill Blt and set flag 4 of +0x0C.
-// The holder has no DirectDraw surface, only the new renderer's memory (dx_surface.cpp, ticket R7):
-// the surface is already zero (a new DIB section), so the colour fill is left out, and the
-// descriptions the surface-bytes total takes (here and in 005FCF80 / 005FD120) come from that
-// memory, for picture windows as well (their holders, 004EFC60 -> 004F0060, get such memory too).
-// Making a window asks DirectDraw for nothing. (005FCF80 itself has no caller in game.exe or the
-// mods: config/dead_code.csv.)
-// The original's unwinding when 004EF7B0 throws (freeing the holder's memory) is not reproduced:
-// that throw ends the game.
+// The window surface's constructors and destructor (CUiSurface, 0x38 bytes): one for a window showing an .mmp
+// picture, the destructor, one taking (interface, layout left, top, right, bottom, format, scale flag) and one
+// taking (interface, layout rectangle, format; always scaled). Both scale the rectangle to the screen
+// (Rebirth's wide-screen patch sits there), make a surface holder of its size, add height * pitch to the
+// surface-bytes total, clear the surface to 0 with a colour-fill Blt and set a flag. The holder has no
+// DirectDraw surface, only the new renderer's memory (dx_surface.cpp): the surface is already zero (a new DIB
+// section), so the colour fill is left out, and the descriptions the surface-bytes total takes come from that
+// memory, for picture windows as well. Making a window asks DirectDraw for nothing. (The picture constructor
+// has no caller in game.exe or the mods: config/dead_code.csv.) The original's unwinding when the holder's
+// allocation throws (freeing the holder's memory) is not reproduced: that throw ends the game.
 #include "app.h"
 #include "ui.h"
 #include "ui_native.h"
@@ -43,8 +38,8 @@ std::uint32_t SurfaceBytes(CDXSurface* holder) {
     return static_cast<std::uint32_t>(pixels.height) * static_cast<std::uint32_t>(pixels.pitch);
 }
 
-// Puts `made` (counted once more, may be null) into the surface's holder and drops the previous
-// one's reference through 004E6BA0's inlined body (the deleting destructor at zero).
+// Puts `made` (counted once more, may be null) into the surface's holder and drops the previous one's
+// reference through the inlined body of the reference release (the deleting destructor at zero).
 void ReplaceHolder(CUiSurface* self, CDXSurface* made) {
     CDXSurface* previous = self->holder_;
     self->holder_ = made;
@@ -82,8 +77,8 @@ void Begin(CUiSurface* self, CInterface3D* ui, int format) {
 void* CUiSurface::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CUiSurface::operator delete(void* block) { gamecrt::operator_delete(block); }
 
-// The destructor: frees the kept bytes (total 007C7E74), takes the surface's
-// height * pitch off 007C7E78, drops the holder and empties the screen rectangle.
+// The destructor: frees the kept bytes (a total), takes the surface's height * pitch off the surface-bytes
+// total, drops the holder and empties the screen rectangle.
 CUiSurface::~CUiSurface() {
     ui_native::Forget(this);
     if (std::uint8_t* kept = kept_) {
@@ -99,10 +94,9 @@ CUiSurface::~CUiSurface() {
 }
 EI_REWRITTEN_SPECIAL(0x005FD120, CUiSurface::~CUiSurface);
 
-// 005FCF80 (thiscall: interface, picture name by value; RET 8). A window showing the picture
-// "<name>.mmp" from the texture manager (007AF744 slots 19 / 20: GetFile, CloseFile), through a
-// picture holder; its size is the picture's, the screen rectangle (0, 0, width, height),
-// flag 1.
+// (Interface, picture name by value.) A window showing the picture "<name>.mmp" from the texture manager
+// (GetFile, CloseFile), through a picture holder; its size is the picture's, the screen rectangle (0, 0,
+// width, height), flag 1.
 CUiSurface::CUiSurface(CInterface3D* ui, mfc::CString name) {
     CUiSurface* self = this;
     ui_native::Forget(self);
@@ -132,7 +126,7 @@ CUiSurface::CUiSurface(CInterface3D* ui, mfc::CString name) {
 }
 EI_REWRITTEN_SPECIAL(0x005FCF80, CUiSurface::CUiSurface);
 
-// 005FCC00 (the scale flag is a byte).
+// The scale flag is a byte.
 CUiSurface::CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag) {
     Begin(this, ui, format);
     rect_.left = left;

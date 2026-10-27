@@ -23,7 +23,7 @@ constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit fie
 
 } // namespace
 
-// --- 00634650: the message box ------------------------------------------------------------------
+// --- The message box ----------------------------------------------------------------------------------
 
 CMessageBox::CMessageBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
                          std::uint32_t flags, std::uint32_t format)
@@ -42,7 +42,7 @@ CMessageBox::CMessageBox(CInterface3D* ui, const char* titleKey, const char* tex
 }
 EI_REWRITTEN_SPECIAL(0x00634650, CMessageBox::CMessageBox);
 
-// --- 0063B5D0: the objectives window -------------------------------------------------------------
+// --- The objectives window ----------------------------------------------------------------------------
 
 CObjectivesWindow::CObjectivesWindow(CInterface3D* ui) : CUiContainer(ui) {
     exitDistances_ = nullptr;
@@ -56,7 +56,7 @@ CObjectivesWindow::CObjectivesWindow(CInterface3D* ui) : CUiContainer(ui) {
 }
 EI_REWRITTEN_SPECIAL(0x0063B5D0, CObjectivesWindow::CObjectivesWindow);
 
-// --- 0063FE70: the portraits panel ---------------------------------------------------------------
+// --- The portraits panel ------------------------------------------------------------------------------
 
 CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     rect_ = RECT{250, 440, 550, 600};
@@ -65,7 +65,7 @@ CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* owner) : CUiWindow
 }
 EI_REWRITTEN_SPECIAL(0x0063FE70, CHudPortraits::CHudPortraits);
 
-// --- 0063FF70: its destructor ----------------------------------------------------------------------
+// --- Its destructor -----------------------------------------------------------------------------------
 
 CHudPortraits::~CHudPortraits() {
     for (HudPortraitSlot* slot = slots_.begin(); slot != slots_.end(); ++slot) slot->~HudPortraitSlot();

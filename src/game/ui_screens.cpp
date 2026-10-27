@@ -1,5 +1,5 @@
-// Interface screens of 00610000-00630000: the camp's item strips, the multiplayer hero screen, the
-// escape menu, the credits and the exchange window. See ui_screens.h and docs/notes/ui.md.
+// Interface screens: the camp's item strips, the multiplayer hero screen, the escape menu, the credits and the
+// exchange window. See ui_screens.h and docs/notes/ui.md.
 #include "spell.h"
 #include "options.h"
 #include "ui.h"

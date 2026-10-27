@@ -389,8 +389,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     }
     Pixels().SetSizeDiscard(count);
 
-    // The texture (R16e1: only when it is drawn; the decal's projection below takes only whether
-    // any part is keyed).
+    // The texture (only when it is drawn; the decal's projection below takes only whether any part is keyed).
     const int keyedParts = KeyedParts(self->object);
     if (makeTexture && !MakeTexture(self, device, failure)) {
         if (lights.manager) --lights.manager->refCount_;
