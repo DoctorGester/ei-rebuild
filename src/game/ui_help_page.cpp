@@ -247,7 +247,7 @@ void CHelpWindow::ShowPage() {
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
                     picture->textureOffsetU_ = static_cast<float>(cellX) * Texel();
                     picture->textureOffsetV_ = static_cast<float>(cellY + kPictureSize) * Texel();
-                    static_cast<CUiMesh*>(picture)->PlaceBody(static_cast<float>(page.left + 47),
+                    picture->PlaceBody(static_cast<float>(page.left + 47),
                                         static_cast<float>(y + page.top + 95), 3.0f);
                     picture->texture_ = objects_.data[1];
                     pictures_.PushBack(picture);

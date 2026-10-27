@@ -111,7 +111,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) Sprite(this, i)->visible_ = 0;
     UiSurfaceGetDC(surfaces_.data[0]);
-    static_cast<CUiSurface*>(surfaces_.data[0])->Clear();
+    surfaces_.data[0]->Clear();
 
     if (unit && unit->Object3D()->attached) {
         CObject3D* model = unit->Object3D();
@@ -186,7 +186,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             std::memcpy(&bits, &barScale, sizeof(bits));
             Sprite(this, kHeightBar)->SetScaleYBits(bits);
             const float barY = static_cast<float>(PanelHeight() - barScale * PanelHeight());
-            static_cast<CUiMesh*>(sceneObjects_.data[kHeightBar])->PlaceBody(static_cast<float>(20 - offset_), barY, 4.0f);
+            SceneMesh(kHeightBar)->PlaceBody(static_cast<float>(20 - offset_), barY, 4.0f);
             Sprite(this, kHeightBar)->visible_ = 1;
             break;
         }

@@ -344,7 +344,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->WriteFullState();
     };
     auto place = [spec](CMapObject* object) {
-        static_cast<CObject3D*>(object)->SetFigureScale(&spec->scale.x);
+        object->SetFigureScale(&spec->scale.x);
         Copy(&object->baseScale, &spec->scale, 12);
         ObjectSlots(object)->ApplyBaseScale();
         Copy(&object->localPosition_.x, &spec->position, 12);

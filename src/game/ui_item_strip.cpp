@@ -157,7 +157,7 @@ BOOL CForwardingStrip::Draw(int pass) {
     std::string text;
     CUiSurface* counts = surfaces_.data[0];
     counts->GetDC();
-    static_cast<CUiSurface*>(counts)->Clear();
+    counts->Clear();
     for (int i = 0; i < 8; ++i) {
         if (!shown[i]) continue;
         int count = static_cast<int>(shown[i]->count_);
@@ -169,7 +169,7 @@ BOOL CForwardingStrip::Draw(int pass) {
     counts->ReleaseDC();
     CUiSurface* numbers = surfaces_.data[1];
     numbers->GetDC();
-    static_cast<CUiSurface*>(numbers)->Clear();
+    numbers->Clear();
     for (int i = 0; i < 8; ++i) {
         CItem* item = shown[i];
         if (!item || slots_ == 9) continue;
@@ -185,13 +185,6 @@ EI_REWRITTEN(0x00621B50, CForwardingStrip::Draw);
 
 // --- The strip's per-frame scroll ---------------------------------------------------
 
-namespace {
-
-// The time since the last frame in seconds (ticks * 0.001f, unrounded).
-inline double __fastcall StripFrameTime(void* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
-
-} // namespace
-
 void CUiItemStrip::Update() {
     const float zero = 0.0f /*0073B858*/;
     const float repeat = 0.1f /*00741EC0*/;      // seconds per slot while an arrow is held
@@ -204,7 +197,7 @@ void CUiItemStrip::Update() {
     const float snapPending = 0.02f /*0073CCD8*/;
     const float snapHigh = 0.99f /*00741F0C*/;
     const float one = 1.0f /*0073B84C*/;
-    const float dt = static_cast<float>(StripFrameTime(this));
+    const float dt = static_cast<float>(CUiContainer::FrameTime());
 
     // An arrow held: one slot at once, then one more every `repeat` seconds.
     if (scrollDirection_ != 0) {

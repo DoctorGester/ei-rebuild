@@ -47,7 +47,7 @@ constexpr int kStackObject = 3;
 void __fastcall ReleaseTemporary(void* object) { static_cast<CEngineObject*>(object)->ReleaseAndDelete(); }
 
 // The light list being collected: aligned storage of light pointers.
-using LightList = lib::AlignedArray<CEngineObject*>;
+using LightList = FigureLights;
 
 // Does `light` reach `object`: its range + 10 squared at least the squared distance.
 bool InReach(const CObject3D* object, const CLight* light) {
@@ -75,7 +75,7 @@ void Finish(ObjectListIterator& lights, LightList& list) {
 } // namespace
 
 void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, Matrix4* out) {
-    static_cast<const Quaternion*>(orientation)->ToMatrix(out->m);
+    orientation->ToMatrix(out->m);
     std::memcpy(&out->m[11], &position->z, 4);
     std::memcpy(&out->m[3], &position->x, 4);
     std::memcpy(&out->m[7], &position->y, 4);
@@ -101,7 +101,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     LightList list{nullptr, 0, 0, 0};
     ObjectListIteratorOf<CLight> lights{};
     CLight* light = lights.First(TheLightFactory());
-    list.data = reinterpret_cast<CEngineObject**>(aligned::AllocateDwords(0x10));
+    list.data = reinterpret_cast<CLight**>(aligned::AllocateDwords(0x10));
     list.capacity = 0x10;
     list.size = 0;
     for (; light; light = lights.Next()) {

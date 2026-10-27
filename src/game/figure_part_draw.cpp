@@ -144,7 +144,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     l.coefficient = LightingCoefficient();
     l.crown = CrownOption() != 0 && libcrt::Stricmp(MeshName(part.Mesh()), "crown") == 0;
     g_partLights.clear();
-    for (int i = 0; part.lights && i < part.lights->count; ++i) {
+    for (int i = 0; part.lights && i < part.lights->size; ++i) {
         const CLight* light = part.lights->data[i];
         g_partLights.push_back(render::MeshLightSource{light->localPosition_, light->inverseRangeSquared_,
                                                        {light->color_[0], light->color_[1], light->color_[2]}});

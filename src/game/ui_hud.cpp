@@ -550,7 +550,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
         marker->localRotation_ = *turn.SetAxisAngle(axis, angle);
         const float y = static_cast<float>(MarkerCentreY() - x87::fsin(angle) * MarkerRadius());
         const float x = static_cast<float>(x87::fcos(angle) * MarkerRadius());
-        static_cast<CUiMesh*>(sceneObjects_.data[0])->PlaceBody(x, y, kMarkerDepth);
+        SceneMesh(0)->PlaceBody(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }
     widescreen::LeavePanel();

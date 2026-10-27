@@ -2,6 +2,7 @@
 // that draw single sprites), its constructor, destructor and virtual slots. docs/notes/ui.md, section 9.
 #include "ui.h"
 
+#include "material.h"
 #include "model.h"
 
 #include "ei/hook.h"
@@ -95,7 +96,7 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
     const float origin[3] = {0.0f, 0.0f, 0.0f};
     render::SetInterfaceDraw(true);   // the new renderer streams interface sprites
-    const int drawn = renderer->DrawFigure(this, &kIdentityOrientation, origin, material_, 0xFF, nullptr);
+    const int drawn = renderer->DrawFigure(this, &kIdentityOrientation, origin, static_cast<CMaterial*>(material_), 0xFF, nullptr);
     render::SetInterfaceDraw(false);
     renderer->SetColour(saved);
     if (!drawn) return game::FatalError(DrawFailed());

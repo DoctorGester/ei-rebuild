@@ -93,7 +93,7 @@ EI_REWRITTEN(0x0062AC90, CUiRegion::SetRectFrom);
 void CMainMenu::AddVersionLine() {
     CUiSurface* surface = new CUiSurface(interface_, 100, 480, 780, 600, 5, 1);
     UiSurfaceGetDC(surface);
-    static_cast<CUiSurface*>(surface)->Clear();
+    surface->Clear();
     mfc::CString text;
     TheTextManager()->CTextManager::GetString(kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
@@ -138,7 +138,7 @@ EI_REWRITTEN(0x006326B0, CMainMenu::CreateScreen);
 // --- Update (every frame) ---------------------------------------------------
 
 void CMainMenu::Update() {
-    static_cast<CUiContainer*>(this)->UpdateBase();
+    UpdateBase();
     int hour = static_cast<int>(GameServerTimeOfDay());
     if (hour != static_cast<int>(hour_) && rain_) {
         if (hour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);

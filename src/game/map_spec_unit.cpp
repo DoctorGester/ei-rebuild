@@ -338,7 +338,7 @@ void UnitSpec::Apply() {
     TheSectorMap()->Move(unit, &position);
     TheServerWorld()->AIMap()->TurnObject(unit, &rotation);
     std::memcpy(&unit->localRotation_, &rotation, 16);
-    static_cast<CObject3D*>(object)->SetFigureScale(&scale.x);
+    unit->SetFigureScale(&scale.x);
     std::memcpy(&unit->baseScale, &scale, 12);
     unit->ApplyBaseScale();
     std::uint32_t& flags = unit->flags_;
@@ -497,9 +497,8 @@ void Behaviour::Write(CStream* stream) const {
     }
     StreamWrite(stream, &guard, 12);
     std::uint32_t value;
-    for (const void* field : {static_cast<const void*>(&loop), static_cast<const void*>(&flags),
-                              static_cast<const void*>(&guardRadius), static_cast<const void*>(&alarmKind),
-                              static_cast<const void*>(&enabled), static_cast<const void*>(&callRadius)}) {
+    for (const void* field : std::initializer_list<const void*>{&loop, &flags, &guardRadius, &alarmKind, &enabled,
+                                                                 &callRadius}) {
         std::memcpy(&value, field, 4);
         StreamWrite(stream, &value, 4);
     }

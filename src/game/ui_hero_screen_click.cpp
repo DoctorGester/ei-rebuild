@@ -82,7 +82,7 @@ std::string& MpHeroName(int index) {
 } // namespace
 
 void CMpHeroScreen::CloseRenameEdit() {
-    static_cast<CUiSurface*>(surfaces_.data[3])->Freeze(0, 0);
+    surfaces_.data[3]->Freeze(0, 0);
     renameEdit_->SetEnabled(0, 1);
     renameEdit_->SetFocused(false);
 }
@@ -358,7 +358,7 @@ void CMpHeroScreen::Rename() {
         str::TrimRight(name);
     }
     auto* surface = surfaces_.data[3];
-    static_cast<CUiSurface*>(surface)->Freeze(1, 0);
+    surface->Freeze(1, 0);
     surface->GetDC();
     surface->Clear();
     RECT rect = kRenameTitle;

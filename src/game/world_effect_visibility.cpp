@@ -90,8 +90,8 @@ void CEffectShowVisibility::Pack(DeltaField* field) {
 
 int CEffectShowVisibility::RunTick() {
     if (!WorldContext()->IsServer()) return 1;
-    CUnit* seer = static_cast<CWorld*>(ObjectWorld(this))->FindUnit(seerId_);
-    CUnit* observer = static_cast<CWorld*>(ObjectWorld(this))->FindUnit(observerId_);
+    CUnit* seer = ObjectWorld(this)->FindUnit(seerId_);
+    CUnit* observer = ObjectWorld(this)->FindUnit(observerId_);
     if (seer == nullptr || observer == nullptr) return 0;
     std::memcpy(&localPosition_, &seer->localPosition_.x, sizeof(Vector3));
     // The squares `seer` sees, with `observer`'s skills.

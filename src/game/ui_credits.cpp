@@ -58,7 +58,7 @@ BOOL CCreditsScreen::Draw(int pass) {
             if (line.scroll) {
                 textSurface_->Start(line.speed, 1);
                 UiSurfaceGetDC(headerSurface_);
-                static_cast<CUiSurface*>(headerSurface_)->Clear();
+                headerSurface_->Clear();
                 RECT rect = {0, 0, 0, 0};
                 headerSurface_->DrawTextIn(line.text, &rect, 2, kHeaderColour, 1, 1);
                 UiSurfaceReleaseDC(headerSurface_);

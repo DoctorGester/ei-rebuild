@@ -63,9 +63,6 @@ float TimeOfDay() {
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
-// Time since the last frame in seconds, unrounded.
-inline double __fastcall WindowFrameTime(CUiWindow* w) { return static_cast<CUiContainer*>(w)->FrameTime(); }
-
 CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
 void SetTint(CEngineObject* object, float value) {
@@ -100,7 +97,7 @@ void CHudClock::Update() {
     CEngineObject* face = objects[0];
 
     // The blink phase runs from 0 to 1 once a second.
-    double blink = WindowFrameTime(this) + D(blink_);
+    double blink = CUiContainer::FrameTime() + D(blink_);
     blink_ = static_cast<float>(blink);
     if (blink >= 1.0f) {
         double next;
@@ -121,10 +118,10 @@ void CHudClock::Update() {
         double step;
         if (fast_ != 0) {
             handAngle = static_cast<float>(D(Pi()) * FastHand());
-            step = WindowFrameTime(this);
+            step = CUiContainer::FrameTime();
         } else {
             handAngle = static_cast<float>(D(Pi()) * NormalHand());
-            step = WindowFrameTime(this) * Half();
+            step = CUiContainer::FrameTime() * Half();
         }
         dial_ = static_cast<float>(step + D(dial_));
         Sprite(objects[1])->visible_ = 1;
@@ -177,7 +174,7 @@ constexpr float kSlingOutY = 83.0f;             // y otherwise
 
 void CHudTopPanel::Update() {
     if (sliding_) {
-        double slide = WindowFrameTime(this) * D(slideDirection_) / SlideTime() + D(slide_);
+        double slide = CUiContainer::FrameTime() * D(slideDirection_) / SlideTime() + D(slide_);
         slide_ = static_cast<float>(slide);
         if (slide > 1.0f) slide_ = 1.0f;
         slide_ = slide_ >= 0.0f ? slide_ : 0.0f;   // NaN too

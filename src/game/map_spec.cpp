@@ -247,7 +247,7 @@ void ObjectSpec::Apply() {
     CMapObject* mapObject = MapObject();
     std::memcpy(&mapObject->localPosition_, &position, 12);
     std::memcpy(&mapObject->localRotation_, &rotation, 16);
-    static_cast<CObject3D*>(object)->SetFigureScale(&scale.x);
+    mapObject->SetFigureScale(&scale.x);
     std::memcpy(&mapObject->baseScale, &scale, 12);
     mapObject->ApplyBaseScale();
     std::uint32_t& flags = mapObject->flags_;
