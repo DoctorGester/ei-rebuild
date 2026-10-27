@@ -64,13 +64,10 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         std::string name;
         name = str::Format("shot%.4d.bmp", g_shotCounter);
         ++g_shotCounter;
-        lib::InPlace<mfc::CFile> storage;
-        auto* file = storage.Get();
-        reinterpret_cast<mfc::impl::CFile*>(file)->ConstructOpen(name.c_str(), 0x1001);   // modeCreate | modeWrite
-        picture->Write(file);
-        file->Close();
+        mfc::CFile file(name.c_str(), 0x1001);   // modeCreate | modeWrite
+        picture->Write(&file);
+        file.Close();
         delete picture;
-        file->~CFile();
         return;
     }
     default:

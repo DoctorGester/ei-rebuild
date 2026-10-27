@@ -248,7 +248,7 @@ EI_REWRITTEN(0x005BC970, CAIMap::MarkVisibleCells);
 
 namespace {
 // The shape cache's map (UnitShapes()->shapes): an STLport hash_map<ShapeHandle, RefPtr>, the game's
-// instantiation gamehash::ShapeTable.
+// instantiation ShapeTable.
 void ReleaseHandle(ShapeHandle* handle) {
     if (CRefObject* ref = handle->ref) {
         if (--ref->refs_ == 0) delete ref;     // delete tests ref again, as the original does
@@ -257,7 +257,7 @@ void ReleaseHandle(ShapeHandle* handle) {
 } // namespace
 
 ShapePair* ShapePair::Construct(const ShapeHandle* from, const RefPtr* shared) {
-    ShapeHandle& to = const_cast<ShapeHandle&>(key);
+    ShapeHandle& to = key;
     to.cache = from->cache;
     to.ref = from->ref;
     if (to.ref) ++to.ref->refs_;
@@ -268,9 +268,9 @@ ShapePair* ShapePair::Construct(const ShapeHandle* from, const RefPtr* shared) {
 }
 EI_REWRITTEN(0x005BE370, ShapePair::Construct);
 
-void __fastcall DestroyShapePair(UnitShapeCache::Map::Pair* pair) {
+void __fastcall DestroyShapePair(ShapePair* pair) {
     pair->value.Destroy();
-    ReleaseHandle(const_cast<ShapeHandle*>(&pair->key));
+    ReleaseHandle(&pair->key);
 }
 EI_REWRITTEN(0x005BE280, DestroyShapePair);
 
@@ -286,8 +286,8 @@ void* CAIMap::UnitShape(float standingHeight) {
     std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
 
     CRefObject* shape;
-    gamehash::ShapeTable* map = gamehash::ShapesOf(UnitShapes());
-    if (const gamehash::ShapeTable::Node* found = map->Find(handle)) {
+    ShapeTable* map = &UnitShapes()->shapes;
+    if (const ShapeTable::Node* found = map->Find(handle)) {
         shape = found->value.value.ptr;
         handle.cache = UnitShapes();
         handle.counted.Assign(shape);

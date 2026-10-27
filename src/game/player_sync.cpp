@@ -106,10 +106,15 @@ constexpr int kStateJoined = 1;
 constexpr int kItemListBlockSize = 10;
 using GivenList = mfc::CTypedPtrList<CItem>;
 void* ItemListVtable() { return mfc::impl::TempListClass::Vtable(); }   // the CPtrList built on the stack
-// SaveListedObjects on a typed list (one CPtrList layout).
+// SaveListedObjects on a typed list.
 template <typename T>
 void SaveListed(mfc::CTypedPtrList<T>* list, CStream* stream) {
-    SaveListedObjects(reinterpret_cast<mfc::CList<CEngineObject*>*>(list), stream);
+    for (auto* node = list->head; node;) {
+        T* object = node->data;
+        node = node->next;
+        SaveListedObject(object, stream);
+    }
+    SaveListedObjectsEnd(stream);
 }
 
 // SyncPlayer's arrays (world_sync.cpp) hold one class per pass: the map objects, then the timed

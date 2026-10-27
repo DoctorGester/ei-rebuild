@@ -91,6 +91,8 @@ public:
     enum OpenFlags { modeRead = 0 };
 
     CFile();
+    // CFile(path, flags): opens the file, throwing a CFileException* when it cannot.
+    CFile(const char* path, unsigned flags);
     ~CFile();
     BOOL Open(std::string_view path, unsigned flags, void* error);
     unsigned GetLength();
@@ -159,6 +161,8 @@ public:
     CString GetTitle() const;
     BOOL FindNext();
     BOOL IsDots() const;
+    // Whether the found file has one of the attribute bits `mask`.
+    BOOL MatchesMask(unsigned long mask) const;
     void Close();
 
 private:

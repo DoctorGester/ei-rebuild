@@ -55,10 +55,8 @@ constexpr int kVisibleRows = 16;
 
 // An entry copy-constructed in place (the list's STLport vector).
 void EntryConstruct(SaveEntry* at, const SaveEntry* from) { stlp::ConstructCopyAt<SaveEntry, recordvec::SaveEntryElement>(at, from); }
-// CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable as the original calls it.
-BOOL IsDirectory(const mfc::CFileFind& find) {
-    return reinterpret_cast<const mfc::CFileFindVirtuals*>(&find)->MatchesMask(0x10ul);
-}
+// CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY).
+BOOL IsDirectory(const mfc::CFileFind& find) { return find.MatchesMask(0x10ul); }
 mfc::CString FilePath(const mfc::CFileFind& find) { return find.GetFilePath(); }
 mfc::CString FileName(const mfc::CFileFind& find) { return find.GetFileName(); }
 

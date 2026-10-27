@@ -186,7 +186,7 @@ EI_REWRITTEN(0x004492F0, BuildBone);
 } // namespace scene
 
 void AnimationMorphFrameElements::Construct(AnimationMorphFrame* frames, int count) {
-    mfc::impl::Plain24::ConstructElements(reinterpret_cast<mfc::impl::Plain24::Element*>(frames), count);
+    mfc::PlainElements<AnimationMorphFrame>::Construct(frames, count);
 }
 void AnimationMorphFrameElements::Destruct(AnimationMorphFrame* frames, int count) {
     scene::DestroyMorphFrames(frames, count);

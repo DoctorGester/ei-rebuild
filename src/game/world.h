@@ -1547,6 +1547,10 @@ int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream);
 // Writes what LoadManagerObjects reads: per listed object a 1, its id, type and field, then its own
 // Save; a 0 at the end.
 void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream);
+// The parts of it a list of a class derived from CEngineObject walks itself: one object's entry, and the end
+// mark.
+void SaveListedObject(CEngineObject* object, CStream* stream);
+void SaveListedObjectsEnd(CStream* stream);
 
 // The save screens: 1000000 plus the sizes (low dwords) of the files in saves\current.
 int CurrentSaveSize();

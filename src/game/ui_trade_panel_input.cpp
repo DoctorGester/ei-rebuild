@@ -34,9 +34,6 @@ constexpr float kHoldRepeat = 0.25f;
 
 CUiMesh* Arrow(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
-// An MFC CString's length (its header before the characters).
-int TextLength(const char* text) { return reinterpret_cast<const int*>(text)[-2]; }
-
 } // namespace
 
 // --- The scroll positions clamped ----------------------------------------------------------------------
@@ -96,7 +93,7 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
         std::uint32_t index = static_cast<std::uint32_t>(perkTop_ + region - kFirstHeld);
         if (index >= static_cast<std::uint32_t>(static_cast<int>(perks_.size()))) return;
         row = &perks_[index];
-        if (row->price > experience_ || TextLength(row->nextKey.c_str()) == 0) return;
+        if (row->price > experience_ || row->nextKey.empty()) return;
         stats->LearnSkill(Skills(), Skills()->FindLevel(row->nextKey.c_str()));
     }
     stats->spentExperience = static_cast<float>(static_cast<double>(row->price) + stats->spentExperience);

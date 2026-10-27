@@ -110,6 +110,7 @@ const impl::CStringArray* Impl(const CStringArray* array) { return reinterpret_c
 } // namespace
 
 CFile::CFile() { Impl(this)->Construct(); }
+CFile::CFile(const char* path, unsigned flags) { Impl(this)->ConstructOpen(path, flags); }
 CFile::~CFile() { Impl(this)->Destruct(); }
 BOOL CFile::Open(std::string_view path, unsigned flags, void* error) {
     return Impl(this)->Open(std::string(path).c_str(), flags, static_cast<impl::CFileException*>(error));
@@ -153,6 +154,7 @@ CString CFileFind::GetTitle() const {
     return result;
 }
 BOOL CFileFind::FindNext() { return Impl(this)->FindNextFile(); }
+BOOL CFileFind::MatchesMask(unsigned long mask) const { return Impl(this)->MatchesMask(mask); }
 BOOL CFileFind::IsDots() const { return Impl(this)->IsDots(); }
 void CFileFind::Close() { Impl(this)->Close(); }
 
