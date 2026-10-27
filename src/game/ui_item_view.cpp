@@ -439,7 +439,7 @@ CTexture* __fastcall ItemFigureTexture(const char* name) {
     {
         std::string base = name;
         std::string file = base + ".mmp";
-        image = static_cast<const MmpHeader*>(manager->GetFileData(file.c_str()));
+        image = manager->GetFileData(file.c_str());
     }
     int width, height;
     if (!image) {
@@ -499,7 +499,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     {
         std::string base = name;
         std::string file = base + ".mmp";
-        image = static_cast<const MmpHeader*>(TheTextureManager()->GetFileData(file.c_str()));
+        image = TheTextureManager()->GetFileData(file.c_str());
     }
     std::uint32_t* pixels = nullptr;
     if (image) {

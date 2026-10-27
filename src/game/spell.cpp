@@ -124,15 +124,15 @@ bool CSpell::IsOffensive() {
 EI_REWRITTEN(0x0068B770, CSpell::IsOffensive);
 // Site #0 of FixSpellSelfCasting; site #1 is in CBattleScreen::SelectUnit.
 
-bool CSpell::CanAffect(const CEngineObject* caster, CEngineObject* target) const {
+bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
     std::uint32_t flags = targetFlags_ & 0xFFFF;
     if (flags == 0) return true;
     if (!target || target->GetClassId() != kClassUnit) return false;
 
-    // The caster is taken as a unit without a class test.
+    // The target is a unit (tested above).
     const CUnit* unit = static_cast<const CUnit*>(target);
     if (caster) {
-        const CUnit* source = static_cast<const CUnit*>(caster);
+        const CUnit* source = caster;
         bool hostile = Regards(source, unit) || Regards(unit, source);
         if ((flags & 1) && hostile) return false;     // friends only
         if ((flags & 2) && !hostile) return false;    // enemies only

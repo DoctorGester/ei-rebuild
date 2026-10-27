@@ -211,7 +211,7 @@ const HighestObject& Highest(const CWorldClient* world) {
         for (std::uint32_t x = 0; x < grid.width_; ++x) {
             const SectorList& cell = grid.rows_[y][x];
             for (auto* node = cell.head->next; node != cell.head; node = node->next) {
-                const auto* object = static_cast<const CObject3D*>(node->data);
+                const auto* object = node->data;
                 if (!object || !object->attached || (object->boundsFlags & kBoundsValid) != kBoundsValid) continue;
                 const Vector3& scale = object->ClientSpecific()->figureScale;
                 top = (std::max)(top, TopOf(object, scale));
@@ -303,7 +303,7 @@ void HandOverOutsideCasters(CWorldClient* world) {
         for (std::uint32_t x = firstX; x <= lastX; ++x) {
             const SectorList& list = grid.rows_[y][x];
             for (auto* node = list.head->next; node != list.head; node = node->next) {
-                auto* object = static_cast<CObject3D*>(node->data);
+                auto* object = node->data;
                 if (!object || !object->attached) continue;
                 const bool unit = object->GetClassId() == kClassUnit;
                 if (!(flags & (unit ? 0x80u : 0x40u))) continue;

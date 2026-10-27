@@ -106,8 +106,7 @@ int CTextureDevice::FindFormat(int id, PixelFormat* format) {
 }
 EI_REWRITTEN(0x004E7DA0, CTextureDevice::FindFormat);
 
-int CTextureDevice::ParseMmpHeader(const void* data, PixelFormat* format) {
-    const auto* header = static_cast<const MmpHeader*>(data);
+int CTextureDevice::ParseMmpHeader(const MmpHeader* header, PixelFormat* format) {
     if (auto* node = formats_.Find(static_cast<int>(header->format))) {
         *format = *node->value;
         return 1;

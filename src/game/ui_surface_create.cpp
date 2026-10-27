@@ -97,11 +97,11 @@ CUiSurface::CUiSurface(CInterface3D* ui, mfc::CString name) {
     self->holder_ = nullptr;
     self->background_ = 0;
     self->interface_ = ui;
-    CBaseManager* manager = TheTextureManager();
-    void* picture;
+    CTextureManager* manager = TheTextureManager();
+    MmpHeader* picture;
     {
         mfc::CString file = name + game::MmpExtensionText();   // ".mmp"
-        picture = manager->GetFile(*reinterpret_cast<const char* const*>(&file), nullptr);
+        picture = manager->GetFileData(*reinterpret_cast<const char* const*>(&file));
     }
     CDXSurface* made = new CDXSurface(self->interface_->renderer_, picture, 0);
     CDXSurface* previous = self->holder_;

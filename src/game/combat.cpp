@@ -180,7 +180,7 @@ int CUnitServer::ScaledItemValue(const CItem* item) {
     double factor = Combat().rate;    // stays on the FPU stack
     if (factor != kZero) factor = kFifteen / factor;   // (15 / NaN is that NaN)
     // of the item's kind (CItemWeapon::actionValue_ and the others' at the same place).
-    float value = static_cast<float>(Unsigned(static_cast<const CItemWeapon*>(item)->actionValue_) * factor);
+    float value = static_cast<float>(Unsigned(AsWeapon(item)->actionValue_) * factor);
     return x87::fistp(value);
 }
 EI_REWRITTEN(0x0054B760, CUnitServer::ScaledItemValue);

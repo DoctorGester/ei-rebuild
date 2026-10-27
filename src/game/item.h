@@ -382,10 +382,12 @@ inline CItem* FindItem(const CBaseManager* items, unsigned id) { return items->F
 // PartyUnitRecord::weapons hold weapons only), an item of the weapon kind, the copy or match of a
 // weapon. The weapon's methods are called without a class test.
 inline CItemWeapon* AsWeapon(CItem* item) { return static_cast<CItemWeapon*>(item); }
+inline const CItemWeapon* AsWeapon(const CItem* item) { return static_cast<const CItemWeapon*>(item); }
 // An item known to be armour as the CItemArmor it is: a hero record's armour (PartyUnitRecord::armor holds
 // armour only), an item of the armour kind, the copy or match of an armour piece, the item put on as armour
 // (CUnit::EquipArmour). The armour's methods are called without a class test.
 inline CItemArmor* AsArmor(CItem* item) { return static_cast<CItemArmor*>(item); }
+inline const CItemArmor* AsArmor(const CItem* item) { return static_cast<const CItemArmor*>(item); }
 // An item known to be loot as the CItemLoot it is: an item of the loot kind (0x3007), one made by name from
 // a loot prototype (runes, materials, instructions), the copy or match of a loot item. Its fields are read
 // without a class test.
