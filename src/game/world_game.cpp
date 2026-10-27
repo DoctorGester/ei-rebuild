@@ -989,7 +989,6 @@ using ZoneEntry = recordvec::ZoneTableEntry;
 using ZoneTable = stlp::vector<ZoneEntry>;
 constinit stlp::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
 void __cdecl DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }
-using OutStrings = stlp::vector<stlp::string>;
 
 bool SameText(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b) == 0;
@@ -1013,7 +1012,7 @@ struct EntryPicks {
 
 } // namespace
 
-void __stdcall PickZones(OutStrings* out, int id, const char* exclude) {
+void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* exclude) {
     const ZoneTable& table = g_zoneTable;
     int total = static_cast<int>(table.size());
     EntryPicks pending(total);
@@ -1562,7 +1561,6 @@ using VariableNode = net::RefNode;
 using ZoneNode = net::RefNode;
 // The vector of changed variables (STLport vector<node*>) and the stamp sort (introsort,
 // world_stamp_sort.cpp).
-using NodeVector = stlp::vector<VariableNode*>;
 
 // A local NamedFloatTable (an empty one of 100 buckets, and a copy), released the way the inlined
 // destructor does.
@@ -1588,7 +1586,7 @@ void GameFlow::UpdateFromServer() {
     if (CTextManager* texts = TheTextManager()) {
         for (const stlp::string* file = g_questFiles.begin(); file != g_questFiles.end(); ++file)
             texts->RemoveSource(file->data());
-        stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(&g_questFiles);
+        g_questFiles.EraseRange<stlp::StringElement>(g_questFiles.begin(), g_questFiles.end());
     }
     auto* clientWorld = TheClientWorld();
     CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
@@ -1655,7 +1653,7 @@ void GameFlow::UpdateFromServer() {
     if (ClientWorldLocalView(clientWorld)->player_->sessionKind100_ == 1) {
         unsigned previous = AppliedStamp();
         if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
-        NodeVector changed;
+        stlp::vector<VariableNode*> changed;
         changed.ConstructEmpty();
         for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
@@ -1752,8 +1750,7 @@ void SavedParties::Reload() {
                     }
                     ++finish;
                 } else {
-                    static_cast<libcontainers::HeroRecordAbi*>(&entries_)
-                        ->InsertOverflow(finish, *entry, 1);
+                    entries_.InsertOverflow<libcontainers::HeroRecordElement>(finish, *entry, 1);
                 }
             }
         }

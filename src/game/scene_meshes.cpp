@@ -27,8 +27,6 @@ using Corner = MeshCornerKey;
 
 // The mesh's arrays are engine aligned arrays (lib::AlignedArray): the corner table (6-byte Corners), the
 // corner indices (words) and the pairs (dwords).
-using CornerTable = lib::AlignedArray<Corner>;
-using WordArray = lib::AlignedArray<std::uint16_t>;
 using DwordArray = lib::AlignedArray<std::uint32_t>;
 
 // The three CMaps (mfc::CMap) and their associations:
@@ -84,7 +82,7 @@ std::uint64_t CornerKey(const MeshFace& face, int k) {
 
 // The index of the corner (vertex, position, texture) in the table, -1 when absent.
 int FindCorner(SceneMesh* mesh, std::uint32_t vertex, std::uint32_t position, std::uint32_t texture) {
-    const CornerTable& table = mesh->corners;
+    const lib::AlignedArray<Corner>& table = mesh->corners;
     const Corner* c = table.data;
     for (int i = 0; i < table.size; ++i) {
         if (c[i].vertex == vertex && c[i].position == position && c[i].texture == texture) return i;
@@ -133,7 +131,7 @@ void IndexFaceCorners(SceneMesh* mesh) {
         for (int k = 0; k < 3; ++k) {
             const MeshFace& face = FaceAt(mesh, f);
             int index = FindCorner(mesh, face.vertex[k], face.position[k], face.vertex2[k]);
-            WordArray& out = mesh->cornerIndices;
+            lib::AlignedArray<std::uint16_t>& out = mesh->cornerIndices;
             out.SetAtGrow(out.size, static_cast<unsigned short>(index));
         }
     }

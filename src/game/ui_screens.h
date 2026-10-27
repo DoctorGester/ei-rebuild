@@ -37,7 +37,6 @@ void LeaveGame();
 
 static_assert(sizeof(CUiWindow) == 0x148);
 
-using UiItemArray = mfc::CArray<CItem*>;
 
 // The item predicates of the camp screens. Loot items (type 0x3007, CItemLoot) are sorted by kind and record
 // type.
@@ -131,7 +130,7 @@ public:
         int filter_;                // 0 items, 1 spells, 2 armour
         MpStringVector* figures_;   // the figure strips: the figure names
     };
-    UiItemArray list_;          // the visible items
+    mfc::CArray<CItem*> list_;          // the visible items
     UiPtrArray<CItem>* source_; // all the items (a party's item list, PartyItemArray)
     int slots_;                 // 9
 };

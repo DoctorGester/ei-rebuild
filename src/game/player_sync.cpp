@@ -102,8 +102,6 @@ constexpr std::uint8_t kMessageItemsGiven = 0x06;
 constexpr int kStateJoined = 1;
 constexpr int kItemListBlockSize = 10;
 using GivenList = mfc::CTypedPtrList<CItem>;
-using GatheredList = mfc::CTypedPtrList<CItem>;
-using GatheredSpells = mfc::CTypedPtrList<CSpell>;
 void* ItemListVtable() { return mfc::impl::TempListClass::Vtable(); }   // the CPtrList built on the stack
 // SaveListedObjects on a typed list (one CPtrList layout).
 template <typename T>
@@ -122,8 +120,8 @@ T* NextAs(CEngineObject**& next) {
 
 void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     if (state_ != kStateJoined) return;
-    GatheredSpells spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
-    GatheredList gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
+    mfc::CTypedPtrList<CSpell> spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
+    mfc::CTypedPtrList<CItem> gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
         GatherItem(&gathered, &spells, node->data);
     CMemoryStream states;

@@ -163,6 +163,8 @@ does not need a second pass:
   members are templates on the element policy (`SectorList::Erase<stlp::HeldObject>(node)`,
   `v.InsertOverflow<Abi::Element>(...)`): call them on the typed container rather than casting it
   to its `ListAbi` / `VectorAbi`;
+  no `using` alias for a container used once (spell `mfc::CArray<Foo>` where it is used); an alias stays only where it
+  names a concept used in several places. `python tools/alias_census.py` lists the aliases by use count;
 - parameters and fields carry their types (C21): no `void*` that every caller and the body cast;
   raw blocks come typed from `gamecrt::operator_new_as<T>()` / `operator_new_zeroed_as<T>()` /
   `operator_new_array<T>(count)`, `operator_new_bytes_as<T>(bytes)` (a block shorter or longer

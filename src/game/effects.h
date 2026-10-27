@@ -586,7 +586,6 @@ struct ParticleSprite {
     std::uint32_t color;            // ARGB
     const SourceFrame* frame;       // the particle's frame among its source's frames
 };
-using ParticleVertexArray = lib::AlignedArray<ParticleVertex>;
 using ParticleSpriteArray = mfc::CArray<ParticleSprite>;
 
 // Room for `count` elements, 32-byte aligned, the allocated block stored just below;

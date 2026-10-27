@@ -20,48 +20,6 @@
 
 namespace libcontainers {
 
-// ---- Lists ----------------------------------------------------------------------------------------
-
-// list<CMemoryStream> (the loopback link's queue): an element is destroyed through its vtable.
-struct QueuedStream {
-    static void Destroy(CMemoryStream* p) { p->~CMemoryStream(); }
-};
-using StreamQueue = stlp::ListAbi<CMemoryStream, QueuedStream>;
-static_assert(sizeof(StreamQueue::Node) == 0x30);
-
-// An 8-byte key and two CStrings (the item screens' list), destroyed second first as a pair is.
-struct KeyedTexts {
-    std::uint32_t key[2];
-    mfc::CString first;
-    mfc::CString second;
-};
-struct KeyedTextsElement {
-    static void Destroy(KeyedTexts* p) {
-        std::destroy_at(&p->second);
-        std::destroy_at(&p->first);
-    }
-};
-using KeyedTextsNodes = stlp::ListAbi<KeyedTexts, KeyedTextsElement>;
-static_assert(sizeof(KeyedTextsNodes::Node) == 0x18);
-
-// A shown item of the briefing: its node made by copy-constructing the name, then the three pointers.
-struct ShownItem {
-    mfc::CString name;
-    CUiMesh* item;
-    CEngineObject* back;
-    CEngineObject* frame;
-};
-struct ShownItemElement {
-    static void Copy(ShownItem* to, const ShownItem& from) {
-        std::construct_at(&to->name, from.name);
-        to->item = from.item;
-        to->back = from.back;
-        to->frame = from.frame;
-    }
-};
-using ShownItemNodes = stlp::ListAbi<ShownItem, ShownItemElement>;
-static_assert(sizeof(ShownItemNodes::Node) == sizeof(BriefingShownItem));
-
 // ---- Algorithms -----------------------------------------------------------------------------------
 
 // _Construct(p, value) of a RefPtr: a copy with one more reference, nothing for a null p.
@@ -94,15 +52,13 @@ struct PointerVectorsPair {
 // ---- The party file entries' vector ------------------------------------------------------
 
 // vector<MpHeroRecord> (the multiplayer heroes and the world's saved parties): copied as the party's copy
-// constructor, then the name's.
+// constructor, then the name's. Its InsertOverflow<HeroRecordElement> allocates a block of size + max(size, n)
+// records and destroys the old records in order.
 struct HeroRecordElement {
     static void Construct(MpHeroRecord* to, const MpHeroRecord& from);
     static void Assign(MpHeroRecord& to, const MpHeroRecord& from) { to.Assign(&from); }
     static void Destroy(MpHeroRecord* p) { p->Destruct(); }
 };
-// _M_insert_overflow: a block of size + max(size, n) records (the node allocator's pool for one record); the old
-// records destroyed in order, the old block freed.
-using HeroRecordAbi = stlp::VectorAbi<MpHeroRecord, HeroRecordElement>;
 
 // ---- The briefing's speakers --------------------------------------------------------------------
 
@@ -111,12 +67,9 @@ struct SpeakerElement {
     static void Construct(BriefingSpeaker* to, const BriefingSpeaker& from);
     static void Destroy(BriefingSpeaker* p) { std::destroy_at(&p->name); }
 };
-using Speakers = stlp::vector<BriefingSpeaker>;
 // _Construct(p, value): nothing for a null p.
 void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value);
-using SpeakerAbi = stlp::VectorAbi<BriefingSpeaker, SpeakerElement>;
 
 // The server's banned addresses (find_if compares the host, not the port).
-using AddressList = stlp::list<net::NetAddress>;
 
 } // namespace libcontainers

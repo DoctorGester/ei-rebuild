@@ -267,7 +267,6 @@ struct SpellSequence {
 };
 static_assert(sizeof(SpellSequence) == 0x18);
 // One step of a walk over a sequence's containers: the container there, or null at the end.
-using SpellContainerWalk = stlp::hash_map<std::uint32_t, CSpellContainer*, stlp::IntHash>::Iterator;
 
 // The spell manager; context_ gives the spell constructor.
 class CSpellManager : public CResourceManager {

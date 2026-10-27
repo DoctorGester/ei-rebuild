@@ -120,7 +120,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
         Get(stream, &record->morphU, 4);
         std::uint32_t names;
         Get(stream, &names, 4);
-        static_cast<stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>*>(&record->names)->ResizeDefault(names);
+        record->names.ResizeDefault<stlp::ObjectElement<mfc::CString>>(names);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
             stream->ReadInto(&record->names[i]);
     }
