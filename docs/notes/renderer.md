@@ -1116,10 +1116,37 @@ across runs; the goldens check the game state.
      GroundPrint::Save); the sky's lighting (CSkyObject::Light, small; a candidate); the sun's reference in the
      part's light list (AddSun: the light's count); the CLight fields only the device read (world position, local
      direction, lit colours) are no longer written.
-   - **Looks that changed (the user's review).** Point lights cast no shadow: the town's fires light the inside of
-     the gate's shadow (render_shadows_outside's floor lowered to 0.3%); a point light per pixel shows a bright
-     spot where the vertices smeared it (the hero's light on stone floors); creatures are lit per pixel (N.L across
-     a face, not per vertex). Follow-up: point-light shadows (ticket R16i1).
+   - **Looks that changed (the user's review).** Point lights cast no shadow (until R16i1, below): the town's fires
+     light the inside of the gate's shadow (render_shadows_outside's floor lowered to 0.3%); a point light per pixel
+     shows a bright spot where the vertices smeared it (the hero's light on stone floors); creatures are lit per
+     pixel (N.L across a face, not per vertex).
+   - **Point-light shadows (R16i1).** `render_point_shadows.cpp`, `shaders/point_shadow.hlsli`. Once a frame
+     (PreparePointShadows, from PrepareShadows; drawn from DrawShadowMap, so its CPU time, draws and GPU time count
+     as the shadow map's in render_stats) the kept scene lights (render::SceneLighting's nearest 16) whose reach
+     is in the camera's view are taken strongest first (brightest channel x range), at most `kMostPointShadows`
+     (4), and each one that some caster reaches gets a cube of six 512 x 512 D32 faces (perspective, 90 degrees,
+     near 0.05, far its range) in one atlas (a light a row, a face a column: 3072 x 2048). Casters: the meshes the
+     sun's map takes (objects CastsShadow named this frame, strength at least 0.5, one pass a mesh; cut out by
+     alpha alike) whose bounding sphere (the mesh's model-space box, `MeshBatch::box`, now taken for every
+     caster's mesh, through its model matrix into the landscape's space) reaches the light, drawn into each face
+     its sphere touches. An object with a mesh sphere within `kHoldMargin` (0.5 units) of the light casts
+     nothing for it: the campfire's spit, a torch-bearer, and the hero, whose light hangs 0.3 units above his
+     head (without the margin his head cast a cone of shadow over zone1's ruin at night). Receivers, only what
+     is lit on the GPU: the ground's point loop (`ground_light`: the light's slot from `LightParams::shadowSlots`;
+     looked up moved 1.5 texels of its distance along the vertex normal; the ground casts none) and the figure
+     parts' (`figure_light`: the mesh's light list carries the scene light's index from the hand-over,
+     `SceneLightIndex`, mapped to its slot at the draw; the point in the landscape's space from the mesh's model
+     matrix, `MeshBatch::landscape`). A unit's meshes compare from the unit's nearest distance to the light
+     (`MeshBatch::pointFront`, its meshes' spheres; R16i2's rule: no shadow of its own, every face); any other
+     mesh only on faces turned to the light by its face normal, moved 1.5 texels along it. Filter: 8 bilinear
+     comparisons on a 1.5-texel Vogel disc turned per pixel, a 1-texel depth bias, the slope-scaled bias of the
+     caster pipeline; a face's lookups are kept inside it (no filtering across face edges). The light's part is
+     scaled by what reaches (`seen`) before the game's max rules. Not done: the ground and objects outside the
+     view do not cast point shadows (R20's walk is the sun's); lights beyond the 16 kept cast none; the set of
+     mapped lights changes as the camera moves (a fifth light's shadows come and go). Frames: build\R16i1 on
+     E: in the worktree of R16i1 (before = main's render_lighting run, after = this branch; light_town_night: the
+     hero's shadow away from the campfire, the soldier's and the spit's legs' long shadows, the rack's posts;
+     zone1 at night unchanged: the hero holds his light). Cost: below.
    Check: render_lighting (frames for review: zone1's start, creatures on slopes, a fight, zone1 at night, the town
    bz1g by day and at night with its campfire), render_shadows*, render_scene, render_stats; the goldens the same
    (the digest's water hash, saves). Cost (render_stats, vanilla 4K, per frame; before = this branch's base,
@@ -1188,7 +1215,7 @@ across runs; the goldens check the game state.
     shadow for it). To tell which object a shadow belongs to: a temporary filter in DrawShadow (0051CE60) by object
     id, classic and map captured in one run, with kStrength 1 (map shadows black); a dump of the map (a staging copy
     of its D32 image) showed that adding casters only ever lowers its depths. R16j3 holds what is left (darkness
-    where shadows overlap, point lights). Open: terrain does not cast (R16i); point lights do not cast.
+    where shadows overlap, point lights). Open: terrain does not cast (R16i); point lights cast since R16i1 (item 9).
     `run_all --widescreen` ran with `classicshadows` (addon's frames have the decals) until R16i removed the option:
     the world view behind the interface now differs from addon's (GPU lighting and the map).
     **Casters outside the view (R20; the user: shadows popped in at the screen's edge with their objects).** The

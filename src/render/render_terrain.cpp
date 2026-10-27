@@ -587,6 +587,10 @@ bool CreateTerrainShader() {
     s.uniform_blocks[2].stage = SG_SHADERSTAGE_FRAGMENT;
     s.uniform_blocks[2].size = sizeof(LightParams);
     s.uniform_blocks[2].hlsl_register_b_n = 1;
+    // The point shadows (R16i1, shaders/point_shadow.hlsli): register b2.
+    s.uniform_blocks[3].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.uniform_blocks[3].size = sizeof(PointShadowParams);
+    s.uniform_blocks[3].hlsl_register_b_n = 2;
     s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
     s.views[0].texture.image_type = SG_IMAGETYPE_2D;
     s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
@@ -598,6 +602,7 @@ bool CreateTerrainShader() {
     s.texture_sampler_pairs[0].view_slot = 0;
     s.texture_sampler_pairs[0].sampler_slot = 0;
     DescribeShadowMap(s, 1, 1);
+    DescribePointShadows(s, 3, 3);
     s.label = "ei-terrain";
     g_shader = sg_make_shader(&s);
     bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
@@ -649,6 +654,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     }
 #endif
     BindShadowMap(b, 1, 1);
+    BindPointShadows(b, 3, 3);
     sg_apply_bindings(&b);
     CountBindings(b);
     Params params{};
@@ -671,8 +677,12 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     LightUniforms(&light);
     sg_range lu{&light, sizeof(light)};
     sg_apply_uniforms(2, &lu);
+    PointShadowParams point;
+    PointShadowUniforms(f, &point);
+    sg_range pr{&point, sizeof(point)};
+    sg_apply_uniforms(3, &pr);
     // The pieces' triangles in their order; ranges that follow each other in the pool in one draw.
-    std::size_t uniformBytes = 2 * sizeof(params) + sizeof(light);
+    std::size_t uniformBytes = 2 * sizeof(params) + sizeof(light) + sizeof(point);
     std::uint32_t first = 0, count = 0;
     auto draw = [&] {
         if (count == 0) return;
