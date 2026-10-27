@@ -7,6 +7,7 @@
 #include <cstddef>
 #include "options.h"
 #include <cstdint>
+#include <string>
 
 #include "ai_map.h"
 #include "base_manager.h"
@@ -600,7 +601,7 @@ public:
     std::uint8_t loadedFresh_;            // the zone is not loaded from a save
     std::uint8_t keepsState_;
     std::uint8_t unused_11F;
-    mfc::CString zoneName_;               // the zone's map database name
+    std::string zoneName_;               // the zone's map database name
     mfc::CStringArray mobFiles_;           // .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // 0 while the game runs
     std::uint32_t lastRainBoltTick_;      // the tick of the last bolt in the rain (one per 20 ticks); saved
@@ -629,8 +630,8 @@ public:
     // (in the server world): GameFlow::StartZone stores its mode here (1 battle, 2 main menu, 3 base,
     // 4 edge, 8 the end of the game), StartFirstMap 7 for the command-line script.
     int sessionKind_;
-    mfc::CString mobName_;                // the zone's .mob file
-    mfc::CString mapName_;                // the zone's map
+    std::string mobName_;                // the zone's .mob file
+    std::string mapName_;                // the zone's map
     MapObjectIdMap objects_;              // every world object by id
     // The map objects SendFreshObjects sent (not part of the map itself; IsSynchronised).
     MapObjectIdMap sentObjects_;
@@ -648,21 +649,12 @@ static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
 static_assert(offsetof(CWorldServer, nightLevel_) == 0x84);
 static_assert(offsetof(CWorldServer, loaded_) == 0x100);
 static_assert(offsetof(CWorldServer, zoneName_) == 0x120);
-static_assert(offsetof(CWorldServer, hoover_) == 0x140);
 static_assert(offsetof(CWorldServer, loadedFresh_) == 0x11D);
 static_assert(offsetof(CWorldServer, keepsState_) == 0x11E);
-static_assert(offsetof(CWorldServer, lastRainBoltTick_) == 0x13C);
-static_assert(offsetof(CWorldServer, aiMap_) == 0x170);
 static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
 static_assert(offsetof(CWorldServer, climate_) == 0xDC);
 static_assert(offsetof(CWorldServer, exits_) == 0xEC);
-static_assert(offsetof(CWorldServer, gameResult_) == 0x138);
-static_assert(offsetof(CWorldServer, scriptsActive_) == 0x160);
-static_assert(offsetof(CWorldServer, aiEvents_) == 0x2838);
-static_assert(offsetof(CWorldServer, commandsA_) == 0x12874);
 static_assert(offsetof(CWorldServer, updateMap_) == 0x104);
-static_assert(offsetof(CWorldServer, mobFiles_) == 0x124);
-static_assert(offsetof(CWorldServer, zoneLoaded_) == 0x15C);
 
 // One walkable platform (bridge, deck) the client tests positions against: the element of the platform set's MFC
 // CList.
@@ -1194,7 +1186,7 @@ public:
     // The zone's allod in lower case ("gipath" after Setup; the zone load takes it from the map
     // database's record of the local player's zone, "gipat" without one). It names the terrain's
     // texture pages, the lights table and the music theme.
-    mfc::CString zoneName_;
+    std::string zoneName_;
     CMaterialManager* manager188_;        // counted
     CTextureManager* textureManager_;     // counted
     CBaseManager* manager190_;            // counted
@@ -1229,7 +1221,7 @@ public:
     CPlayer* session_;
     CCamera* camera_;                     // the view camera (DrawPass, Render)
     std::uint8_t unused_214[0x224 - 0x214];
-    mfc::CString texturePath_;            // <data path>textures\ (Setup)
+    std::string texturePath_;            // <data path>textures\ (Setup)
     int constant228_;                     // 10 from the constructor; nothing in the exe reads it
     // The light colours by hour (0..23; r, g, b, 1) from the lights table's [sunlight], [ambient] and
     // [sky] sections (LoadLights).
@@ -1262,10 +1254,10 @@ public:
     void* cursor_;                        // HCURSOR wincurs\Df0000.cur
     // The window's names, set by the constructor and freed by the destructor only: "EvilIslands",
     // "EvilIslandsClass", "EvilIslands", "EvilIslands Paused".
-    mfc::CString appName_;
-    mfc::CString windowClass_;
-    mfc::CString windowTitle_;
-    mfc::CString pausedTitle_;
+    std::string appName_;
+    std::string windowClass_;
+    std::string windowTitle_;
+    std::string pausedTitle_;
 };
 static_assert(offsetof(CWorldClient, nextClientObjectId_) == 0x84);
 static_assert(offsetof(CWorldClient, countedA0_) == 0xA0);
@@ -1280,33 +1272,10 @@ static_assert(offsetof(CWorldClient, hitCursor_) == 0x100);
 static_assert(offsetof(CWorldClient, rangeFirstX_) == 0x138);
 static_assert(offsetof(CWorldClient, rangeY_) == 0x14C);
 static_assert(offsetof(CWorldClient, secondGrid_) == 0x150);
-static_assert(offsetof(CWorldClient, manager188_) == 0x188);
-static_assert(offsetof(CWorldClient, particleManager_) == 0x19C);
-static_assert(offsetof(CWorldClient, bird_) == 0x1B0);
-static_assert(offsetof(CWorldClient, bloodPrints_) == 0x1B8 && offsetof(CWorldClient, scorchMarks_) == 0x1C0);
-static_assert(offsetof(CWorldClient, handle_) == 0x1C8);
-static_assert(offsetof(CWorldClient, sounds_) == 0x1CC);
-static_assert(offsetof(CWorldClient, texts_) == 0x1D0);
-static_assert(offsetof(CWorldClient, texturePath_) == 0x224);
-static_assert(offsetof(CWorldClient, lightingMark_) == 0x6DC);
-static_assert(offsetof(CWorldClient, frameAmbient_) == 0x6AC && offsetof(CWorldClient, frameSun_) == 0x6CC);
-static_assert(offsetof(CWorldClient, ticksRun_) == 0x6EC);
-static_assert(offsetof(CWorldClient, rainSnow_) == 0x6F4);
-static_assert(offsetof(CWorldClient, list7BC_) == 0x7BC);
-static_assert(offsetof(CWorldClient, cursor_) == 0x7D0);
 static_assert(offsetof(CWorldClient, exits_) == 0x8C);
 static_assert(offsetof(CWorldClient, objectGrid_) == 0x120);
 static_assert(offsetof(CWorldClient, terrain_) == 0x180 && offsetof(CWorldClient, zoneName_) == 0x184);
-static_assert(offsetof(CWorldClient, platforms_) == 0x1D4);
-static_assert(offsetof(CWorldClient, session_) == 0x20C);
-static_assert(offsetof(CWorldClient, camera_) == 0x210);
-static_assert(offsetof(CWorldClient, textureManager_) == 0x18C);
-static_assert(offsetof(CWorldClient, numbers_) == 0x1B4);
-static_assert(offsetof(CWorldClient, sunlight_) == 0x22C);
-static_assert(offsetof(CWorldClient, sky_) == 0x52C);
-static_assert(offsetof(CWorldClient, constant228_) == 0x228 && offsetof(CWorldClient, constant6E8_) == 0x6E8);
-static_assert(offsetof(CWorldClient, lastLineListKey_) == 0x11C && offsetof(CWorldClient, constants7C4_) == 0x7C4);
-static_assert(offsetof(CWorldClient, appName_) == 0x7D4 && sizeof(CWorldClient) == 0x7E4);
+static_assert(offsetof(CWorldClient, lastLineListKey_) == 0x11C);
 
 // Sorting predicates passed to STLport sort (operator() of empty or small functors).
 // Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and
@@ -1460,20 +1429,16 @@ struct GameFlow {
     void SetNetworkZone(const char* zone);
 
     int state_;                           // the pending request (1..6; ProcessRequest runs it)
-    mfc::CString requestTarget_;          // the request's zone or save name
+    std::string requestTarget_;          // the request's zone or save name
     PartyStorage requestParty_;           // a CParty: RequestParty()
     int requestArg_;                      // the entrance (4) or the load flag (2)
-    mfc::CString zone7C_;                 // the multiplayer zone (SwitchMultiplayerZone)
+    std::string zone7C_;                 // the multiplayer zone (SwitchMultiplayerZone)
     char flag80_;                         // set by SwitchMultiplayerZone, cleared by the game's start
 };
 static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
-static_assert(offsetof(GameFlow, requestArg_) == 0x78 && offsetof(GameFlow, zone7C_) == 0x7C);
-static_assert(offsetof(GameFlow, flag80_) == 0x80);
-static_assert(sizeof(GameFlow) == 0x84);
 
 extern lib::StaticObject<GameFlow> g_gameFlow;
 
-constexpr int kMpHeroSize = 0x74;
 // A multiplayer hero record (the saved parties' entries below, the hero screens' records): its party
 // (CParty) and file name.
 struct MpHeroRecord {
@@ -1494,11 +1459,10 @@ struct MpHeroRecord {
     CParty* Party() { return party.Get(); }
 
     PartyStorage party;
-    mfc::CString file;
+    std::string file;
 };
-static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
 
-// The saved multiplayer parties: the folder and an STLport vector of 0x74-byte entries.
+// The saved multiplayer parties: the folder and an STLport vector of entries.
 struct SavedParties {
     // Rebuilds the list from the folder's "*.mp" files: each is read into party records; a loaded one
     // has its variables emptied and, with a record's field == 1, is appended. Rebirth's
@@ -1509,14 +1473,11 @@ struct SavedParties {
     SavedParties* Construct();
     void Select(const MpHeroRecord* hero);
 
-    mfc::CString folder_;
+    std::string folder_;
     stlp::vector<MpHeroRecord> entries_;
     MpHeroRecord outsideGame_;
     MpHeroRecord* OutsideGame() { return &outsideGame_; }
 };
-static_assert(offsetof(SavedParties, outsideGame_) == 0x10);
-static_assert(offsetof(SavedParties, entries_) == 0x04);
-static_assert(sizeof(SavedParties) == 0x84);
 extern lib::StaticObject<SavedParties> g_savedParties;
 inline SavedParties& TheSavedParties() { return *g_savedParties; }
 

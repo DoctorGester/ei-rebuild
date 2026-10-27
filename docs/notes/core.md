@@ -337,6 +337,8 @@ to which template:
   midiNextName, MusicTheme's name / briefing / constructor (and sound_music.cpp's LocalTheme beside it; the theme
   array's `ThemeElements::Relocate` moves the names) and CMusicSystem's credits / mainMenu / combatTrack / jingle.
   record_stats.cpp reads game.exe's difficulty at its original options +0x250.
+  world.h: GameFlow's requestTarget_ / zone7C_, CWorldServer's zoneName_ / mobName_ / mapName_, CWorldClient's
+  zoneName_ / texturePath_ and window names, MpHeroRecord::file, SavedParties::folder_.
 - Members that must stay CStrings for now: those reached through byte offsets (mfc_slots.h's StringsAt /
   BuiltStringsAt / NamedStrings policies: texture names, zone exits, memory records, global map points / zones,
   lever_table.cpp's DestroyString at offsets), stlp::vector<CString> (CStringVector) members, and members of objects
@@ -350,7 +352,9 @@ to which template:
   tests/verify/image/harness_digest_image.cpp (the shared .inc reads game.exe's CStrings as const char*).
 - A `const char*` given to a retyped parameter builds the std::string from it: CString took a null pointer as ""
   where std::string's constructor does not. No caller in the suite passes null; a crash there is the first place
-  to look.
+  to look. The same for a member assigned a `const char*`: ServerSession::LeaveZone calls
+  `GameFlow::SetNetworkZone(nullptr)`, which crashed net_pair_leave once zone7C_ was a std::string (it stores "" for
+  null now).
 - While both types exist, `mfc.h` bridges them: `CString(const std::string&)` and `operator+` of a CString and a
   std::string (the std::string side's type). A `const mfc::CString&` parameter given a std::string binds a temporary
   copy, which is the same text. The rewrite does not retype a variable whose address is taken: a `std::string*`

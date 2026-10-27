@@ -1450,11 +1450,11 @@ int CWorldClient::LoadZone(CStream* block) {
 
     // The allod of the local player's zone names the texture pages, the lights and the music.
     const MapRecord* zone = LocalZoneRecord();
-    mfc::CString& allod = zoneName_;
+    std::string& allod = zoneName_;
     allod = worlddata::DefaultAllodText();
     if (zone) allod = zone->allod;
-    allod.MakeLower();
-    if (!terrain->LoadMap(map, allod, cave == kCave))
+    str::MakeLower(allod);
+    if (!terrain->LoadMap(map, allod.c_str(), cave == kCave))
         return game::FatalError(worlddata::CantLoadTerrainFormat(), map.GetString());
 
     FitGrid(objectGrid_, terrain);
@@ -1491,7 +1491,7 @@ int CWorldClient::LoadZone(CStream* block) {
     UpdateLighting();
     if (worlddata::AudioOption() && worlddata::MovieVolumeSetting()) {
         if (InFinalZone()) music_->SetZoneMode(worlddata::FinalMusicText(), cave_ == kCave);
-        else music_->SetZoneMode(allod, cave_ == kCave);
+        else music_->SetZoneMode(allod.c_str(), cave_ == kCave);
     }
 
     // The local server's pending messages follow this block in the view's stream.

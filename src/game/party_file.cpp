@@ -49,17 +49,17 @@ bool Numbered(const std::string& name) {
 } // namespace
 
 void MpHeroRecord::WriteFile(const char* folder) {
-    if (!Numbered(file.GetString())) {
-        gameapi::DeleteFileA(InFolder(folder, file.GetString()));
+    if (!Numbered(file.c_str())) {
+        gameapi::DeleteFileA(InFolder(folder, file.c_str()));
         return;
     }
     {
         std::string temp = TempFile(folder).GetString();
-        gameapi::MoveFileA(InFolder(folder, file.GetString()), temp.c_str());
+        gameapi::MoveFileA(InFolder(folder, file.c_str()), temp.c_str());
     }
     {
         LocalStreams streams;
-        streams.file.Open(InFolder(folder, file.GetString()), netlink::FileStream::kOpenWrite, 0);
+        streams.file.Open(InFolder(folder, file.c_str()), netlink::FileStream::kOpenWrite, 0);
         Party()->SaveParty(&streams.data, 1);
         SaveFileWrite(&streams.file, kPartyFileMagic, kSaveVersion, &streams.data);
     }
@@ -69,7 +69,7 @@ EI_REWRITTEN(0x00662AC0, MpHeroRecord::WriteFile);
 
 bool MpHeroRecord::ReadFile(const char* folder) {
     LocalStreams streams;
-    streams.file.Open(InFolder(folder, file.GetString()), netlink::FileStream::kOpenRead, 1);
+    streams.file.Open(InFolder(folder, file.c_str()), netlink::FileStream::kOpenRead, 1);
     if (!SaveFileRead(&streams.data, kPartyFileMagic, kSaveVersion, kSaveOldestVersion, &streams.file)) return false;
     Party()->LoadParty(&streams.data, 1);
     return streams.data.ok_ != 0;
@@ -77,11 +77,11 @@ bool MpHeroRecord::ReadFile(const char* folder) {
 EI_REWRITTEN(0x00662DD0, MpHeroRecord::ReadFile);
 
 void SavedParties::SaveAll() {
-    if (gamecrt::mbscmp(folder_, game::EmptyText()) == 0)
+    if (gamecrt::mbscmp(folder_.c_str(), game::EmptyText()) == 0)
         return;
-    ClearSaveFolder(folder_);
+    ClearSaveFolder(folder_.c_str());
     // The count is read again after each write.
-    for (unsigned i = 0; i < static_cast<unsigned>(entries_.size()); ++i) entries_[i].WriteFile(folder_);
+    for (unsigned i = 0; i < static_cast<unsigned>(entries_.size()); ++i) entries_[i].WriteFile(folder_.c_str());
 }
 EI_REWRITTEN(0x006632B0, SavedParties::SaveAll);
 

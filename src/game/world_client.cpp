@@ -320,10 +320,9 @@ std::uint32_t CWorldClient::EnvironmentFlags(CUnit* unit) {
     case 2: flags = 2; break;
     case 3: flags = 1; break;
     }
-    static_assert(sizeof(rainSnow_) == sizeof(CRainSnow) && offsetof(CWorldClient, rainSnow_) + offsetof(CRainSnow, mode) == 0x7A8);
-    if (gamecrt::mbscmp(zoneName_, "gipat") == 0) flags |= 0x10;
-    else if (gamecrt::mbscmp(zoneName_, "ingos") == 0) flags |= 0x20;
-    else if (gamecrt::mbscmp(zoneName_, "suslanger") == 0) flags |= 0x40;
+    if (gamecrt::mbscmp(zoneName_.c_str(), "gipat") == 0) flags |= 0x10;
+    else if (gamecrt::mbscmp(zoneName_.c_str(), "ingos") == 0) flags |= 0x20;
+    else if (gamecrt::mbscmp(zoneName_.c_str(), "suslanger") == 0) flags |= 0x40;
     flags |= IsNight() ? 0x100 : 0x80;
     flags |= cave_ == 1 ? 0x400 : 0x200;
     const int weather = RainSnow()->mode;

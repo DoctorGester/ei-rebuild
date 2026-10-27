@@ -146,7 +146,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
     // A hero created next to the start of zone1 plays its arrival animation.
     bool atStart = false;
-    if (gamecrt::strnicmp(mapName_, worlddata::StartZoneText(), 5) == 0) {
+    if (gamecrt::strnicmp(mapName_.c_str(), worlddata::StartZoneText(), 5) == 0) {
         double dz = position->z;
         double dy = static_cast<double>(position->y) - worlddata::HeroStartY();
         double dx = static_cast<double>(position->x) - worlddata::HeroStartX();

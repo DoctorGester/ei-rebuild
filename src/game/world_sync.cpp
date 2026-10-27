@@ -280,8 +280,8 @@ int CWorldServer::SendZone(CPlayer* player) {
         auto write = [&](const void* data, unsigned size) { stream->Write(data, size); };
         int previousTick = tick_ - 1;
         write(&previousTick, 4);
-        write(mapName_, static_cast<unsigned>(std::strlen(mapName_) + 1));
-        write(mobName_, static_cast<unsigned>(std::strlen(mobName_) + 1));
+        write(mapName_.c_str(), static_cast<unsigned>(mapName_.size() + 1));
+        write(mobName_.c_str(), static_cast<unsigned>(mobName_.size() + 1));
         int exits = exits_.size;
         write(&exits, 4);
         for (int i = 0; i < exits_.size; ++i) exits_[i].Write(&message);

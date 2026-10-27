@@ -113,7 +113,7 @@ EI_REWRITTEN(0x0055F3B0, CItemManager::GetFolderName);
 int CWorldServer::IsServer() { return 1; }
 EI_REWRITTEN(0x0058A380, CWorldServer::IsServer);
 
-const char* CWorldClient::TexturePath() { return texturePath_; }
+const char* CWorldClient::TexturePath() { return texturePath_.c_str(); }
 CMaterialManager* CWorldClient::MaterialManager() { return manager188_; }
 CTextureManager* CWorldClient::TextureManager() { return textureManager_; }
 CBaseManager* CWorldClient::ClientLightManager() { return manager190_; }

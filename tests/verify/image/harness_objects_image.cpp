@@ -113,7 +113,7 @@ void SetFixedSeed(void (*fill)(std::uint32_t* results)) {
 int TextKey(const char* name) { return TextKeyFromName(name); }
 void* LocalWorldPlayer(int player) { return TheServerWorld()->GetPlayer(player); }
 void* WorldShared5C() { return TheServerWorld()->shared5C_.Get(); }
-const char* ServerZoneName() { return TheServerWorld()->zoneName_; }
+const char* ServerZoneName() { return TheServerWorld()->zoneName_.c_str(); }
 
 void* PickAt2(void* world, int x, int y) {
     const POINT p{x, y};

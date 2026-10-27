@@ -115,7 +115,7 @@ void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
         CItem* item = ItemAt(items, i);
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
         if (sessionKind_ == kKindSinglePlayer && !IsMultiplayerClient()) {
-            bool here = info && NamesZone(info, zoneName_);
+            bool here = info && NamesZone(info, zoneName_.c_str());
             if (!here && !Contains(wanted, static_cast<int>(AsQuest(item)->questItemId_))) continue;
         }
         AddTail(*list, ItemAt(items, i));

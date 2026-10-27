@@ -539,9 +539,9 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     manager4C_->ReleaseUnused();
     itemManager_->ReleaseUnused();
 
-    WriteString(stream, mobName_);
-    WriteString(stream, mapName_);
-    WriteString(stream, zoneName_);
+    WriteString(stream, mobName_.c_str());
+    WriteString(stream, mapName_.c_str());
+    WriteString(stream, zoneName_.c_str());
     stream->Write(windDirection_, 12);
     WriteCopy(stream, windStrength_);
     WriteCopy(stream, nightLevel_);
@@ -560,7 +560,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     WriteCopy(stream, lastRainBoltTick_);
     stream->Write(&sessionKind_, 4);
 
-    ReadAIGraph(mapName_, mobName_, &base);
+    ReadAIGraph(mapName_.c_str(), mobName_.c_str(), &base);
     AIMap()->Regions()->SaveBlocks(&current);
     stream->WriteDiff(&base, &current);
 

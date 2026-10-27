@@ -67,8 +67,8 @@ void BackToMainMenu(CInterface3D* ui) {
 }
 
 // The heroes' map transfer (sent after a rename).
-// The multiplayer heroes' folder (a CString).
-const char* HeroesFolder() { return TheSavedParties().folder_; }
+// The multiplayer heroes' folder.
+const char* HeroesFolder() { return TheSavedParties().folder_.c_str(); }
 const char* RenameSeparator() { return " | "; }
 const char* RenameBar() { return "|"; }
 
@@ -541,7 +541,7 @@ EI_REWRITTEN(0x00664410, MpHeroRecord::CopyRange);
 
 namespace {
 // The heroes' folder (a CString; the records follow it) and the records as a vector.
-const mfc::CString& MpHeroesFolder() { return TheSavedParties().folder_; }
+const std::string& MpHeroesFolder() { return TheSavedParties().folder_; }
 MpHeroRecord*& MpHeroesBegin() { return TheSavedParties().entries_.Start(); }
 MpHeroRecord*& MpHeroesEnd() { return TheSavedParties().entries_.Finish(); }
 // The count as the original computes it: a signed division, compared unsigned.
@@ -552,7 +552,7 @@ constexpr int kAnswerOk = 0x10001;
 
 void CMpHeroScreen::DeleteHero() {
     if (heroIndex_ < 0 || static_cast<std::uint32_t>(heroIndex_) >= MpHeroCount()) return;
-    std::string path = (MpHeroesFolder() + MpHeroesBegin()[heroIndex_].file).GetString();
+    std::string path = MpHeroesFolder() + MpHeroesBegin()[heroIndex_].file;
     gameapi::DeleteFileA(path.c_str());
     MpHeroRecord* at = MpHeroesBegin() + heroIndex_;
     for (MpHeroRecord* next = at + 1; next < MpHeroesEnd(); ++at, ++next) at->Assign(next);
@@ -665,9 +665,9 @@ void CMpHeroScreen::AddNewHero() {
     MpHeroRecord* record = MpHeroesBegin() + heroIndex_;
 
     std::string pattern;
-    pattern = str::Format(HeroFilePattern(), MpHeroesFolder().GetString());
+    pattern = str::Format(HeroFilePattern(), MpHeroesFolder().c_str());
     int highest = HighestFileNumber(pattern.c_str());
-    record->file.Format(HeroFileFormat(), highest + 1);
+    record->file = str::Format(HeroFileFormat(), highest + 1);
     record->Party()->Assign(LocalPlayerData());
     record->WriteFile(HeroesFolder());
     RefreshHeroScroll();

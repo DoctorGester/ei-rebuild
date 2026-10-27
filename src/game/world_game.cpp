@@ -619,7 +619,7 @@ void GameFlow::ReturnLocalParty() {
     GlobalParty()->Assign(party);
     ThePartyManager()->BeginRedeploy(party);
     // The global party record written into the heroes' folder.
-    TheSavedParties().OutsideGame()->WriteFile(TheSavedParties().folder_);
+    TheSavedParties().OutsideGame()->WriteFile(TheSavedParties().folder_.c_str());
     UpdateFromServer();
 }
 
@@ -1322,7 +1322,7 @@ void GameFlow::ProcessRequest() {
         TheServerWorld()->Update();
         clientWorld->Segment();
         TheServerWorld()->Update();
-        LoadGame(requestTarget_);
+        LoadGame(requestTarget_.c_str());
         if (requestArg_) {
             const char* autoplay = kAutoplay;
             if (autoplay) {
@@ -1339,10 +1339,10 @@ void GameFlow::ProcessRequest() {
         StartNewGame();
         break;
     case kStateZone:
-        StartZone(requestTarget_, 0);
+        StartZone(requestTarget_.c_str(), 0);
         break;
     case kStatePartyZone: {
-        const char* zone = requestTarget_;
+        const char* zone = requestTarget_.c_str();
         CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
         TheServerWorld()->TeardownZone();
@@ -1358,7 +1358,7 @@ void GameFlow::ProcessRequest() {
         break;
     }
     case kStateNetworkZone: {
-        StartNetworkZone(requestTarget_);
+        StartNetworkZone(requestTarget_.c_str());
         CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
         clientWorld->SetPlayer(TheServerWorld()->shared5C_.Get());
@@ -1518,7 +1518,7 @@ void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
     folder.Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
-    zone7C_ = zone;
+    zone7C_ = zone ? zone : "";   // null (LeaveZone): no zone
     if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZone(zone);
 }
 EI_REWRITTEN(0x0057ED60, GameFlow::SetNetworkZone);
@@ -1739,7 +1739,7 @@ void SavedParties::Reload() {
     WIN32_FIND_DATAA found;
     HANDLE search;
     {
-        std::string pattern = (folder_ + kPartyFilePattern).GetString();
+        std::string pattern = folder_ + kPartyFilePattern;
         search = gameapi::FindFirstFileA(pattern.c_str(), &found);
     }
     if (search == INVALID_HANDLE_VALUE) return;
@@ -1750,7 +1750,7 @@ void SavedParties::Reload() {
         new (entry->Party()) CParty();
         std::construct_at(&entry->file);
         entry->file = found.cFileName;
-        if (entry->ReadFile(folder_)) {
+        if (entry->ReadFile(folder_.c_str())) {
             NamedFloatTable* variables = &entry->Party()->variables_;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
                 // Rebirth's PersistentGlobalVars: the inlined clear is skipped and the table is cleared
