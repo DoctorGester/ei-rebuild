@@ -38,6 +38,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -489,7 +490,7 @@ EI_REWRITTEN(0x006575B0, QuickLoad);
 namespace {
 
 // The first line of the text `prefix` + `suffix`, or empty when there is none.
-mfc::CString FirstLineOf(const char* prefix, const mfc::CString& suffix) {
+mfc::CString FirstLineOf(const char* prefix, const std::string& suffix) {
     mfc::CString line;
     CTextManager* texts = TheTextManager();
     BOOL found = texts->Open(mfc::CString(prefix) + suffix);
@@ -512,14 +513,14 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 } // namespace
 
 mfc::CString SaveEntry::ZoneTitle() const {
-    mfc::CString title = FirstLineOf("zone ", zone_);   // the key has a space
+    mfc::CString title = FirstLineOf("zone ", zone_.GetString());   // the key has a space
     if (title.GetLength() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
 EI_REWRITTEN(0x00653BD0, SaveEntry::ZoneTitle);
 
 mfc::CString SaveEntry::AllodTitle() const {
-    std::string title = FirstLineOf("allod ", map_).GetString();  // the key has a space
+    std::string title = FirstLineOf("allod ", map_.GetString()).GetString();  // the key has a space
     if (title.size() == 0) title = "Unknown";
     return title;
 }
@@ -540,10 +541,10 @@ SaveEntry* SaveEntry::Assign(const SaveEntry* from) {
 EI_REWRITTEN(0x006538E0, SaveEntry::Assign);
 
 SaveEntry* SaveEntry::CopyConstruct(const SaveEntry* from) {
-    new (&title_) mfc::CString();
-    new (&folder_) mfc::CString();
-    new (&map_) mfc::CString();
-    new (&zone_) mfc::CString();
+    std::construct_at(&title_);
+    std::construct_at(&folder_);
+    std::construct_at(&map_);
+    std::construct_at(&zone_);
     stringArrays_[0].Construct();
     stringArrays_[1].Construct();
     return Assign(from);
@@ -553,10 +554,10 @@ EI_REWRITTEN(0x00656640, SaveEntry::CopyConstruct);
 void SaveEntry::Destruct() {
     stringArrays_[1].Destruct();
     stringArrays_[0].Destruct();
-    zone_.~CString();
-    map_.~CString();
-    folder_.~CString();
-    title_.~CString();
+    std::destroy_at(&zone_);
+    std::destroy_at(&map_);
+    std::destroy_at(&folder_);
+    std::destroy_at(&title_);
 }
 EI_REWRITTEN(0x00656720, SaveEntry::Destruct);
 

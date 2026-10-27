@@ -27,6 +27,7 @@
 
 #include <bit>
 #include <cstring>
+#include <string>
 
 // Values kept on the FPU stack are double locals; stored values are floats.
 
@@ -511,9 +512,9 @@ EI_REWRITTEN(0x00526C70, UnitStats::WeaponSkillBonus);
 
 namespace {
 
-bool NamesRequirement(const mfc::CString& text) {
-    if (text.GetLength() == 0) return false;
-    return gamecrt::mbscmp(text.GetString(),
+bool NamesRequirement(const std::string& text) {
+    if (text.size() == 0) return false;
+    return gamecrt::mbscmp(text.c_str(),
                            "none") != 0;
 }
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }
@@ -525,12 +526,12 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
     if (stat10 < record->RequiredStat(0)) return 0;
     if (stat18 < record->RequiredStat(1)) return 0;
     if (stat20 < record->RequiredStat(2)) return 0;
-    if (NamesRequirement(record->requiredSkillName)) {
+    if (NamesRequirement(record->requiredSkillName.GetString())) {
         int skill = record->RequiredSkill();
         if (skill == 0x7FFFFFFF) return 0;
         if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return 0;   // unchecked
     }
-    if (NamesRequirement(record->requiredLevelName)) {
+    if (NamesRequirement(record->requiredLevelName.GetString())) {
         int required = database->IndexOf(record->requiredLevelName);
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }

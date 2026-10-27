@@ -10,10 +10,11 @@
 #include "game_arrays.h"
 
 #include <cstring>
+#include <memory>
 #include <string>
 
 // An objective's destructor (its text).
-void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective) { objective->text.~CString(); }
+void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective) { std::destroy_at(&objective->text); }
 
 // QStart (the name comes in ECX). The old objectives are destroyed and freed, the
 // array emptied, and the quest named.

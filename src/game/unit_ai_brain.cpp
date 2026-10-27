@@ -24,6 +24,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -356,7 +357,7 @@ void AIMemory::Forget(CEngineObject* object) {
 EI_REWRITTEN(0x005CC020, AIMemory::Forget);
 
 
-void AICallRecord::Destruct() { text.~CString(); }
+void AICallRecord::Destruct() { std::destroy_at(&text); }
 
 AICallRecord& AICallRecord::operator=(const AICallRecord& other) {
     std::memcpy(static_cast<void*>(this), &other, offsetof(AICallRecord, text));
@@ -366,7 +367,7 @@ AICallRecord& AICallRecord::operator=(const AICallRecord& other) {
 
 void AICallElements::Construct(AICallRecord* calls, int count) {
     std::memset(static_cast<void*>(calls), 0, sizeof(AICallRecord) * static_cast<unsigned>(count));
-    for (int i = 0; i < count; ++i) new (&calls[i].text) mfc::CString();
+    for (int i = 0; i < count; ++i) std::construct_at(&calls[i].text);
 }
 
 void AICallElements::Destruct(AICallRecord* calls, int count) {

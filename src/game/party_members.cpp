@@ -47,9 +47,9 @@ CItem* MakeItem(CParty* party, const char* name) {
 }
 
 // A weapon name that gives a weapon: not empty and not "none" (_mbsicmp).
-bool Named(const mfc::CString& name) {
-    return name.GetLength() != 0 &&
-           gamecrt::mbsicmp(name.GetString(),
+bool Named(const std::string& name) {
+    return name.size() != 0 &&
+           gamecrt::mbsicmp(name.c_str(),
                            game::NoneText()) != 0;
 }
 
@@ -138,7 +138,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         Drop(item);
     }
     for (const mfc::CString* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
-        if (!Named(*weapon)) continue;
+        if (!Named((*weapon).GetString())) continue;
         CItem* item = MakeItem(this, *weapon);
         CItem* copy = CountedClone(item);
         ItemList(record->weapons).SetAtGrow(static_cast<int>(record->weaponCount), copy);

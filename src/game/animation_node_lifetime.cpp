@@ -10,6 +10,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <memory>
 #include <new>
 
 namespace {
@@ -22,9 +23,9 @@ constexpr Vector3 kDefaultPosition = /*007AF0F0*/ {};               // and the o
 } // namespace
 
 CAnimationNode* CAnimationNode::Construct() {
-    new (&name_) mfc::CString();
-    new (&spareName008_) mfc::CString();
-    new (&spareName00C_) mfc::CString();
+    std::construct_at(&name_);
+    std::construct_at(&spareName008_);
+    std::construct_at(&spareName00C_);
     children_.Construct();
     rotationKeys_.Construct();
     translationKeys_.Construct();
@@ -79,8 +80,8 @@ void CAnimationNode::DestructBody() {
     translationKeys_.FreeData();
     rotationKeys_.FreeData();
     children_.FreeData();
-    spareName00C_.~CString();
-    spareName008_.~CString();
-    name_.~CString();
+    std::destroy_at(&spareName00C_);
+    std::destroy_at(&spareName008_);
+    std::destroy_at(&name_);
 }
 EI_REWRITTEN(0x005068C0, CAnimationNode::DestructBody);

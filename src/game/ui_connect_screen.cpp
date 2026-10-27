@@ -36,6 +36,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -161,8 +162,8 @@ __declspec(noinline) void BufferPut(GameBuffer* b, const void* from, unsigned si
 // --- The list's vector members ------------------------------------------------
 
 MpAddressEntry* MpAddressEntry::CopyConstruct(const MpAddressEntry* other) {
-    new (&name) mfc::CString(other->name);
-    new (&description) mfc::CString(other->description);
+    std::construct_at(&name, other->name);
+    std::construct_at(&description, other->description);
     players = other->players;
     maxPlayers = other->maxPlayers;
     ping = other->ping;
@@ -191,8 +192,8 @@ MpAddressEntry* MpAddressEntry::AssignFrom(const MpAddressEntry& other) {
 EI_REWRITTEN(0x0061E8F0, MpAddressEntry::AssignFrom);
 
 void MpAddressEntry::Destroy() {
-    description.~CString();
-    name.~CString();
+    std::destroy_at(&description);
+    std::destroy_at(&name);
 }
 EI_REWRITTEN(0x0061E8A0, MpAddressEntry::Destroy);
 
@@ -200,8 +201,8 @@ void MpAddressList::PushDefault() {
     MpAddressEntry*& finish = Finish();
     if (finish != EndOfStorage()) {
         if (finish) {
-            new (&finish->name) mfc::CString();
-            new (&finish->description) mfc::CString();
+            std::construct_at(&finish->name);
+            std::construct_at(&finish->description);
             finish->address = net::NetAddress{};
         }
         ++finish;
@@ -221,8 +222,8 @@ MpAddressEntry* MpAddressList::InsertDefault(MpAddressEntry* pos) {
         InsertOverflow<recordvec::MpAddressElement>(pos, entry, 1);
     } else if (pos == finish) {
         if (finish) {
-            new (&finish->name) mfc::CString();
-            new (&finish->description) mfc::CString();
+            std::construct_at(&finish->name);
+            std::construct_at(&finish->description);
             finish->address = net::NetAddress{};
         }
         ++finish;

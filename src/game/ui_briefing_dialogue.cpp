@@ -30,6 +30,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 namespace {
@@ -283,7 +284,7 @@ constexpr int kEventLeaves = 2;
 void EraseShown(BriefingShownItem* node) {
     node->prev->next = node->next;
     node->next->prev = node->prev;
-    node->name.~CString();
+    std::destroy_at(&node->name);
     stlp::deallocate(node, sizeof(BriefingShownItem));
 }
 
@@ -330,7 +331,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
             p->spareFlag = p[1].spareFlag;
         }
         --speakersEnd_;
-        speakersEnd_->name.~CString();
+        std::destroy_at(&speakersEnd_->name);
     }
     if (person == third_) {
         MovePerson(person, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,

@@ -18,6 +18,7 @@
 #include "lib/nan_audit.h"
 
 #include <cstdint>
+#include <memory>
 
 namespace {
 
@@ -35,8 +36,8 @@ EI_REWRITTEN(0x0062BFD0, CCreditsScreen::OnMessageResult);
 // --- a script line's destructor ------------------------------------------------------------------
 
 void TitleLine::Destroy() {
-    style.~CString();
-    text.~CString();
+    std::destroy_at(&style);
+    std::destroy_at(&text);
 }
 EI_REWRITTEN(0x0062BCB0, TitleLine::Destroy);
 

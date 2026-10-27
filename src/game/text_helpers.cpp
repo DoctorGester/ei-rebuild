@@ -5,6 +5,7 @@
 #include "lib/crt.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 
 const char* TextTokenizer::Next() {
@@ -37,11 +38,11 @@ EI_REWRITTEN(0x004461E0, RemoveCarriageReturns);
 mfc::CString* __fastcall FindListedName(mfc::CString* out, const mfc::CStringArray* names, mfc::CString name) {
     for (int i = 0; i < names->size; ++i) {
         if (gamecrt::mbsicmp(names->data[i], name) == 0) {
-            new (out) mfc::CString(names->data[i]);
+            std::construct_at(out, names->data[i]);
             return out;
         }
     }
-    new (out) mfc::CString(name);
+    std::construct_at(out, name);
     return out;
 }
 EI_REWRITTEN(0x00447F50, FindListedName);

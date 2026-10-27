@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 #include "game_arrays.h"
 #include "game_data.h"
@@ -98,7 +99,7 @@ void CWorldServer::Destroy() {
 
     // The exits' storage freed (each record's target string destroyed), as SetSize(0) inlined.
     if (exits_.data) {
-        for (int i = 0; i < exits_.size; ++i) exits_[i].target.~CString();
+        for (int i = 0; i < exits_.size; ++i) std::destroy_at(&exits_[i].target);
         gamecrt::operator_delete(exits_.data);
         exits_.data = nullptr;
     }

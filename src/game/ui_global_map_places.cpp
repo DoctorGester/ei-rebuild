@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -38,7 +39,7 @@ mfc::CString* PlaceTitle(mfc::CString* out, const char* prefix, const char* name
     CTextManager* texts = TheTextManager();
     mfc::CString text;
     if (texts->Open(mfc::CString(prefix) + name)) texts->ReadLine(&text, 1);
-    return new (out) mfc::CString(text);
+    return std::construct_at(out, text);
 }
 
 

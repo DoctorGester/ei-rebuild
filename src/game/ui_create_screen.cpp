@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -230,7 +231,7 @@ void CInterface3D::ShowMessage(int force) {
     }
     if (messageText_.GetLength() == 0) return;
     if (options::TheOptions()->showTutorial_ == 0 && !forced) return;
-    PushWindow(new CHelpWindow(this, true, messageText_, messageFlag_), 1, 0);
+    PushWindow(new CHelpWindow(this, true, messageText_.GetString(), messageFlag_), 1, 0);
 }
 
 EI_REWRITTEN(0x005F8A80, CInterface3D::ShowMessage);
@@ -307,8 +308,8 @@ CCreditsScreen::~CCreditsScreen() {
     using Node = stlp::list<TitleLine>::Node;
     for (Node* node = lines_.head->next; node != lines_.head;) {
         Node* next = node->next;
-        node->data.style.~CString();
-        node->data.text.~CString();
+        std::destroy_at(&node->data.style);
+        std::destroy_at(&node->data.text);
         stlp::deallocate(node, sizeof(Node));
         node = next;
     }

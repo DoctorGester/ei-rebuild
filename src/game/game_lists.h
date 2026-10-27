@@ -11,6 +11,7 @@
 #include "game/world.h"
 #include "game_data.h"
 
+#include <memory>
 #include <type_traits>
 
 void __fastcall RefPtrRelease(RefPtr* self);
@@ -65,7 +66,7 @@ using Waves = ListAbi<WaveRecord, EachElements<WaveRecord, InitWave, DestroyWave
 inline void DestroyParticleSource(ScriptParticleSource* p) { p->ScriptParticleSourceDestruct(); }
 inline void DestroyFxSource(ScriptFxSource* p) { p->ScriptFxSourceDestruct(); }
 inline void DestroyLightning(ScriptLightning* p) { p->ScriptLightningDestruct(); }
-inline void DestroyToken(ScriptToken* p) { p->text.~CString(); }
+inline void DestroyToken(ScriptToken* p) { std::destroy_at(&p->text); }
 inline void DestroyDefinition(ScriptDefinition* p) { ScriptDefinitionDestruct(p); }
 inline void DestroyRun(ScriptRun* p) { ScriptRunDestruct(p); }
 // A command block (CScript +0x70 / +0x178): the body of ScriptDeclDestruct.

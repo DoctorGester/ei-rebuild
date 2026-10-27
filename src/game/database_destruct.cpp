@@ -17,6 +17,8 @@
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 
+#include <memory>
+
 namespace {
 
 // A table of records and its index (the index declared after the records): the index, then the
@@ -35,8 +37,8 @@ struct AllodElements {
         for (; count > 0; --count, ++allod) {
             allod->maps.vtable = mfc::impl::IntArrayClass::Vtable();
             allod->maps.FreeData();
-            for (int i = 4; i >= 0; --i) allod->otherNames[i].~CString();
-            allod->name.~CString();
+            for (int i = 4; i >= 0; --i) std::destroy_at(&allod->otherNames[i]);
+            std::destroy_at(&allod->name);
         }
     }
 };

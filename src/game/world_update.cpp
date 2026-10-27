@@ -22,6 +22,8 @@
 #include "lib/mfc_array.h"
 #include "game_data.h"
 
+#include <memory>
+
 namespace {
 
 libcrt::Ostream* NetworkLog() { return &console::g_netLogOut; }
@@ -108,7 +110,7 @@ int CWorldServer::Update() {
             mfc::CString* name = names.CopyAt(storage.Get(), i);
             found = gamecrt::mbscmp(name->GetString(),
                                     worlddata::HeroesGroupText()) == 0;
-            name->~CString();
+            std::destroy_at(name);
         }
         if (found) {
             lib::InPlace<ScriptGroup> storage;

@@ -28,6 +28,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include <memory>
 #include <new>
 #include <type_traits>
 
@@ -154,7 +155,7 @@ struct UnitModelElement {
 struct UnitLevelElement : records::Memberwise<UnitLevelRecord, &UnitLevelRecord::name, &UnitLevelRecord::slotType,
                                               &UnitLevelRecord::valuesA, &UnitLevelRecord::valuesB,
                                               &UnitLevelRecord::vitalMask> {
-    static void Destroy(UnitLevelRecord* p) { p->name.~CString(); }
+    static void Destroy(UnitLevelRecord* p) { std::destroy_at(&p->name); }
 };
 
 // The skill database: the copies of the skill and skill level records (+0x41..+0x43 are not
@@ -200,7 +201,7 @@ struct FiguredUnitElement {
         records::DefaultMember(p->names);
     }
     static void Destroy(R* p) {
-        for (mfc::CString* name = p->names.Start(); name != p->names.Finish(); ++name) name->~CString();
+        for (mfc::CString* name = p->names.Start(); name != p->names.Finish(); ++name) std::destroy_at(name);
         p->names.FreeStorage();
         p->extraWeapons.FreeStorage();
         p->items.FreeStorage();
@@ -426,9 +427,9 @@ struct HudPortraitSlotElement {
     using R = HudPortraitSlot;
     static void Construct(R* to, const R& from) {
         Plain(*to, from);
-        new (&to->faceName_) mfc::CString(from.faceName_);
-        new (&to->modelPrefix_) mfc::CString(from.modelPrefix_);
-        new (&to->modelSuffix_) mfc::CString(from.modelSuffix_);
+        std::construct_at(&to->faceName_, from.faceName_);
+        std::construct_at(&to->modelPrefix_, from.modelPrefix_);
+        std::construct_at(&to->modelSuffix_, from.modelSuffix_);
     }
     static void Assign(R& to, const R& from) {
         Plain(to, from);
@@ -440,15 +441,15 @@ struct HudPortraitSlotElement {
         p->restA_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
         p->current_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
         p->restB_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-        new (&p->faceName_) mfc::CString();
-        new (&p->modelPrefix_) mfc::CString();
-        new (&p->modelSuffix_) mfc::CString();
+        std::construct_at(&p->faceName_);
+        std::construct_at(&p->modelPrefix_);
+        std::construct_at(&p->modelSuffix_);
         p->wobbleTarget_.SetIdentity();
     }
     static void Destroy(R* p) {
-        p->modelSuffix_.~CString();
-        p->modelPrefix_.~CString();
-        p->faceName_.~CString();
+        std::destroy_at(&p->modelSuffix_);
+        std::destroy_at(&p->modelPrefix_);
+        std::destroy_at(&p->faceName_);
     }
 
 private:

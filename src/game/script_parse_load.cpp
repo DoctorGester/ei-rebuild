@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 #include <type_traits>
@@ -60,10 +61,10 @@ void TokensDestruct(ScriptTokenList* tokens) {
 // ConstructElements / DestructElements for CString (the library's
 // mfc::impl::ConstructStrings / DestructStrings do exactly this).
 void ConstructStrings(mfc::CString* elements, int count) {
-    for (; count--; ++elements) ::new (elements) mfc::CString;
+    for (; count--; ++elements) std::construct_at(elements);
 }
 void DestructStrings(mfc::CString* elements, int count) {
-    for (; count--; ++elements) elements->~CString();
+    for (; count--; ++elements) std::destroy_at(elements);
 }
 
 // ---- Small helpers ------------------------------------------------------------------------------
@@ -196,8 +197,8 @@ struct LocalDefinition {
     lib::InPlace<ScriptDefinition> storage;
     LocalDefinition() {
         ScriptDefinition* d = Get();
-        new (&d->name) mfc::CString;
-        new (&d->params) mfc::CString;
+        std::construct_at(&d->name);
+        std::construct_at(&d->params);
         d->ifThen.vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();
         d->ifThen.data = nullptr;
         d->ifThen.size = 0;
@@ -328,7 +329,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
 
         {
             mfc::CString name(mfc::CString::kUnset);
-            QualifyName(&name, text);
+            QualifyName(&name, text.GetString());
             qualified = name;
         }
 
@@ -594,7 +595,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
         if (!ok) return 0;
         if (qualify) {
             mfc::CString qualified(mfc::CString::kUnset);
-            QualifyName(&qualified, name);
+            QualifyName(&qualified, name.GetString());
             name = qualified;
         }
         token.Set(NextToken(pos));
@@ -666,7 +667,7 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
         } else {
             {
                 mfc::CString name(mfc::CString::kUnset);
-                QualifyName(&name, text);
+                QualifyName(&name, text.GetString());
                 qualified = name;
             }
             mfc::CArray<ScriptDefinition>& scripts = Scripts();
@@ -751,7 +752,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
         TokensDestruct(&tokens);
         return value;
     };
-    if (!Tokenize(*text, &tokens)) return fail(0);
+    if (!Tokenize((*text).GetString(), &tokens)) return fail(0);
 
     for (ScriptPos pos = tokens.head; pos;) {
         ScriptToken token;

@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 
 namespace app {
 
@@ -39,8 +40,8 @@ CursorLock CursorLockAtCallSite() {
 }
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the video player.
-mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return ::new (a0) mfc::CString(*a1 + a2); }
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return ::new (a0) mfc::CString(*a1 + *a2); }
+mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return std::construct_at(a0, *a1 + a2); }
+mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return std::construct_at(a0, *a1 + *a2); }
 
 // Fills the device object's screen rectangle of the primary surface with black (a colour-fill Blt under the
 // render lock, taken twice) and keeps the result in the device's lastLoadResult_. The primary is a holder

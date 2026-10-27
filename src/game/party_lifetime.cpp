@@ -18,6 +18,7 @@
 
 #include <cstring>
 #include <initializer_list>
+#include <memory>
 #include <new>
 
 namespace {
@@ -44,7 +45,7 @@ void SetDefaults(PartyUnitRecord& record) {
 
 
 PartyUnitRecord* PartyUnitRecord::Construct() {
-    for (mfc::CString& text : texts) new (&text) mfc::CString();
+    for (mfc::CString& text : texts) std::construct_at(&text);
     for (CItem*** data : {&weapons, &quickItems, &armor, &spells}) {
         PartyItemArray& list = ItemList(*data);
         list.data = nullptr;
@@ -71,7 +72,7 @@ void PartyUnitRecord::Destruct() {
     FreeStorage(ItemList(armor));
     FreeStorage(ItemList(quickItems));
     FreeStorage(ItemList(weapons));
-    for (int i = 6; i >= 0; --i) texts[i].~CString();
+    for (int i = 6; i >= 0; --i) std::destroy_at(&texts[i]);
 }
 EI_REWRITTEN(0x0065F740, PartyUnitRecord::Destruct);
 

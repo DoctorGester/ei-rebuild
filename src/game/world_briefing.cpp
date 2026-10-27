@@ -29,6 +29,7 @@
 #include "lib/str.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <bit>
 #include <string>
@@ -37,8 +38,8 @@ namespace {
 
 
 
-bool IsEmpty(const mfc::CString& s) {
-    return gamecrt::mbscmp(s.GetString(),
+bool IsEmpty(const std::string& s) {
+    return gamecrt::mbscmp(s.c_str(),
                            game::EmptyText()) == 0;
 }
 
@@ -52,7 +53,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
         std::string section = prefix + briefing;
         missing = texts->CTextManager::Open(section.c_str()) == 0;
     }
-    if (missing) return new (out) mfc::CString(game::EmptyText());
+    if (missing) return std::construct_at(out, game::EmptyText());
     // The first "#show" line whose second word is not "Hero" names the speaker.
     console::CStringArray words;
     while (texts->FindLine(game::briefingwords::ShowTag())) {
@@ -60,15 +61,15 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
         if (words.GetSize() >= 2 &&
             gamecrt::mbsicmp(words[1].GetString(),
                             game::briefingwords::Hero()) != 0)
-            return new (out) mfc::CString(words[1]);
+            return std::construct_at(out, words[1]);
     }
-    return new (out) mfc::CString(game::EmptyText());
+    return std::construct_at(out, game::EmptyText());
 }
 
 mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing) {
     mfc::CString speaker(mfc::CString::kUnset);   // BriefingSpeakerInto constructs it
     BriefingSpeakerInto(&speaker, briefing);
-    if (!IsEmpty(speaker)) {
+    if (!IsEmpty(speaker.GetString())) {
         std::string prefix = game::briefingwords::VariablePrefix();
         std::string withSpeaker = prefix + speaker;
         std::string withDot = withSpeaker + flowdata::kDot;
@@ -79,7 +80,7 @@ mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* brie
         mfc::CString variable = prefix + briefing;
         speaker = variable;
     }
-    new (out) mfc::CString(speaker);
+    std::construct_at(out, speaker);
     return out;
 }
 
@@ -174,9 +175,9 @@ void ShareQuestFile(const char* path, const char* name) {
 }
 
 // The path of the maps folder's file `file` (LoadZoneQuests's).
-stlp::string MapFilePath(const mfc::CString& file) {
+stlp::string MapFilePath(const std::string& file) {
     mfc::CString folder;
-    modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuestsPath);
+    modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuestsPath);
     MapsFolder(&folder);
     std::string full = (folder + file).GetString();
     return stlp::string(full.c_str());
@@ -292,7 +293,7 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
         peer = client->map_;
     else if (Active(server) && Active(server->map_.Get()))
         peer = server->map_.Get();
-    if (!peer) return new (out) mfc::CString(game::EmptyText());
+    if (!peer) return std::construct_at(out, game::EmptyText());
     name = peer->text_.data();
     CTextManager* texts = TheTextManager();
     int found;
@@ -302,7 +303,7 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
         found = texts->CTextManager::Open(section.c_str());
     }
     if (found) texts->ReadLine(&name, 1);
-    return new (out) mfc::CString(name);
+    return std::construct_at(out, name);
 }
 
 EI_REWRITTEN(0x00580840, GameFlow::OnVariableChanged);

@@ -46,7 +46,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
         // By character (a UTF-8 character's bytes with EI_UTF8, else one byte).
         if (key == kKeyBackspace) {
             if (caret_ > 0) {
-                const int previous = text::PreviousCharacter(text, caret_);
+                const int previous = text::PreviousCharacter(text.GetString(), caret_);
                 std::string tail = text.Mid(caret_).GetString();
                 std::string head = text.Left(previous).GetString();
                 text = head + tail;
@@ -54,7 +54,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
                 changed_ = true;
             }
         } else if (caret_ < text.GetLength()) {
-            std::string tail = text.Mid(text::NextCharacter(text, caret_)).GetString();
+            std::string tail = text.Mid(text::NextCharacter(text.GetString(), caret_)).GetString();
             std::string head = text.Left(caret_).GetString();
             text = head + tail;
             changed_ = true;
@@ -74,9 +74,9 @@ void CUiEditField::OnKeyDown(int key, int, int) {
         else if (key == kKeyHome)
             caret_ = 0;
         else if (key == kKeyLeft)
-            caret_ = text::PreviousCharacter(text, caret_);
+            caret_ = text::PreviousCharacter(text.GetString(), caret_);
         else
-            caret_ = text::NextCharacter(text, caret_);
+            caret_ = text::NextCharacter(text.GetString(), caret_);
         break;
     default:
         return;
@@ -99,7 +99,7 @@ constexpr std::uint32_t kClassOther = 4;
 constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
 
 // The width of `text` in interface font `font` (CInterface3D::TextExtent).
-int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
+int TextWidth(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
     return size.cx;
@@ -204,8 +204,8 @@ void CUiEditField::DrawContentsVanilla() {
     surface->DrawTextIn(text, &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
     // The caret stands after the first caret_ characters; a centred text starts half its width left
     // of the middle.
-    int caretX = TextWidth(interface_, text.Left(caret_), font_);
-    if (centred_) caretX += width / 2 - TextWidth(interface_, text, font_) / 2;
+    int caretX = TextWidth(interface_, text.Left(caret_).GetString(), font_);
+    if (centred_) caretX += width / 2 - TextWidth(interface_, text.GetString(), font_) / 2;
     if (caretX >= 0 && caretX < width) {
         mfc::impl::CPen pen(PS_SOLID, 1, caretColour_);
         mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);

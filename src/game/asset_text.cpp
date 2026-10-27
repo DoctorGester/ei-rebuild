@@ -12,8 +12,8 @@ namespace text {
 
 namespace {
 
-std::string_view Bytes(const mfc::CString& text) {
-    return std::string_view(text.GetString(), static_cast<std::size_t>(text.GetLength()));
+std::string_view Bytes(const std::string& text) {
+    return std::string_view(text.c_str(), static_cast<std::size_t>(text.size()));
 }
 
 bool IsAscii(std::string_view bytes) {
@@ -114,7 +114,7 @@ int CharacterCount(std::string_view text) {
     }
 }
 
-int CharacterCount(const mfc::CString& text) { return CharacterCount(Bytes(text)); }
+int CharacterCount(const mfc::CString& text) { return CharacterCount(Bytes(text.GetString())); }
 
 // ---- Lengths and cuts by character ----------------------------------------------------------------
 
@@ -158,7 +158,7 @@ int CharacterBytes(std::string_view text, int characters) {
     }
 }
 
-int CharacterBytes(const mfc::CString& text, int characters) { return CharacterBytes(Bytes(text), characters); }
+int CharacterBytes(const mfc::CString& text, int characters) { return CharacterBytes(Bytes(text.GetString()), characters); }
 
 std::size_t FittingBytes(std::string_view text, std::size_t room) {
     if (text.size() <= room) return text.size();
@@ -208,7 +208,7 @@ bool IsContinuation(char byte) { return (static_cast<unsigned char>(byte) & 0xC0
 
 } // namespace
 
-mfc::CString Typed(const mfc::CString& head, int character) {
+mfc::CString Typed(const std::string& head, int character) {
     if constexpr (kUtf8) {
         return head + Utf8Of(character).c_str();
     } else {
@@ -225,7 +225,7 @@ int TypedLength(int character) {
     }
 }
 
-int NextCharacter(const mfc::CString& text, int at) {
+int NextCharacter(const std::string& text, int at) {
     if constexpr (!kUtf8) {
         (void)text;
         return at + 1;
@@ -238,7 +238,7 @@ int NextCharacter(const mfc::CString& text, int at) {
     }
 }
 
-int PreviousCharacter(const mfc::CString& text, int at) {
+int PreviousCharacter(const std::string& text, int at) {
     if constexpr (!kUtf8) {
         (void)text;
         return at - 1;
@@ -251,7 +251,7 @@ int PreviousCharacter(const mfc::CString& text, int at) {
     }
 }
 
-int CharacterStart(const mfc::CString& text, int at) {
+int CharacterStart(const std::string& text, int at) {
     if constexpr (!kUtf8) {
         (void)text;
         return at;

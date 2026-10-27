@@ -52,7 +52,7 @@ float AppearTime() { return 0.0f /*00742F2C*/; }
 constexpr POINT kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 
 // The extent of `text` in interface font `font` (CInterface3D::TextExtent).
-SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
+SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
     return size;
@@ -81,10 +81,10 @@ CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, in
         SIZE size;
         int width;
         if (lines_[i].GetLength() == 0 && i < lines_.size - 1) {
-            size = TextExtent(interface_, mfc::CString(EmptyLineSample()), kFont);
+            size = TextExtent(interface_, mfc::CString(EmptyLineSample()).GetString(), kFont);
             width = 0;
         } else {
-            size = TextExtent(interface_, lines_[i], kFont);
+            size = TextExtent(interface_, lines_[i].GetString(), kFont);
             width = size.cx;
         }
         if (width > width_) width_ = width;
@@ -153,7 +153,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
         if (extra_) {
             keyName_ = static_cast<const char*>(FindCommandByKey(extra_));
             if (keyName_) {
-                keyWidth_ = TextExtent(interface_, lines_[0] + KeyOpen() + keyName_ + KeyClose(), kFont).cx + kPaddingX;
+                keyWidth_ = TextExtent(interface_, (lines_[0] + KeyOpen() + keyName_ + KeyClose()).GetString(), kFont).cx + kPaddingX;
             }
         }
         state_ = kAppearing;

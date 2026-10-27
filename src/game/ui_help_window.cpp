@@ -39,7 +39,7 @@ void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
 
 // Opens text `section` + `key` and, when it is there, replaces `text` with it up to the next '#'
 // (the line ends trimmed).
-void ReadTutorText(CTextManager* texts, const mfc::CString& key, mfc::CString* text) {
+void ReadTutorText(CTextManager* texts, const std::string& key, mfc::CString* text) {
     BOOL found;
     {
         std::string section = (mfc::CString(TutorSection()) + key).GetString();
@@ -78,8 +78,8 @@ void CHelpWindow::CreateScreen() {
         interface_->SetPendingValue(0);
         return;
     }
-    ReadTutorText(texts, title_, &title_);
-    for (int i = 0; i < lines_.size; ++i) ReadTutorText(texts, lines_.data[i], &lines_.data[i]);
+    ReadTutorText(texts, title_.GetString(), &title_);
+    for (int i = 0; i < lines_.size; ++i) ReadTutorText(texts, lines_.data[i].GetString(), &lines_.data[i]);
     if (page_ < 0) page_ = 0;
     if (page_ >= lines_.size) page_ = lines_.size - 1;
     pulseTime_ = 0.0f;

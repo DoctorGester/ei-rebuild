@@ -12,6 +12,7 @@
 #include "lib/stlp_algo.h"
 
 #include <cstdint>
+#include <string>
 
 namespace stl_sorts {
 namespace {
@@ -44,17 +45,17 @@ struct IntLess {
 };
 using IdSort = stlp::Sort<int, IntLess>;
 
-int CompareNames(const mfc::CString& a, const mfc::CString& b) {
-    return gamecrt::mbscmp(a.GetString(),
-                           b.GetString());
+int CompareNames(const std::string& a, const std::string& b) {
+    return gamecrt::mbscmp(a.c_str(),
+                           b.c_str());
 }
 
 struct ByColumn {
     int key;
     bool operator()(const MpAddressEntry& a, const MpAddressEntry& b) const {
         switch (key) {
-        case 1: return CompareNames(a.name, b.name) < 0;
-        case 2: return CompareNames(a.name, b.name) > 0;
+        case 1: return CompareNames(a.name.GetString(), b.name.GetString()) < 0;
+        case 2: return CompareNames(a.name.GetString(), b.name.GetString()) > 0;
         case 3: return a.players < b.players;
         case 4: return b.players < a.players;
         case 5: return a.gameType < b.gameType;
@@ -94,7 +95,7 @@ struct ByTextIgnoringCase {
 using TopicSort = stlp::Sort<stlp::string, ByTextIgnoringCase, stlp::StringElement>;
 
 struct ByName {
-    bool operator()(const mfc::CString& a, const mfc::CString& b) const { return CompareNames(a, b) < 0; }
+    bool operator()(const mfc::CString& a, const mfc::CString& b) const { return CompareNames(a.GetString(), b.GetString()) < 0; }
 };
 using NameSort = stlp::Sort<mfc::CString, ByName>;
 

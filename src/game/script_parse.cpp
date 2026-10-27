@@ -18,6 +18,7 @@
 #include <cstdarg>
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -385,7 +386,7 @@ EI_REPLACE(0x004D0BA0, KeywordName);
 // ---- Tokens -------------------------------------------------------------------------------------
 
 ScriptToken* ScriptToken::Construct() {
-    new (&text) mfc::CString;
+    std::construct_at(&text);
     text = "None";
     line = -1;
     return this;
@@ -400,7 +401,7 @@ ScriptToken* ScriptToken::Assign(const ScriptToken& other) {
 EI_REWRITTEN(0x004D0BD0, ScriptToken::Assign);
 
 ScriptToken* ScriptToken::CopyConstruct(const ScriptToken& other) {
-    new (&text) mfc::CString(other.text);
+    std::construct_at(&text, other.text);
     line = other.line;
     return this;
 }
@@ -415,11 +416,11 @@ EI_REWRITTEN(0x004CF380, ConstructTokens);
 
 // ---- Lexer --------------------------------------------------------------------------------------
 
-BOOL CScript::Tokenize(const mfc::CString& source, ScriptTokenList* tokens) {
-    const char* p = source;
+BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
+    const char* p = source.c_str();
 
     // RemoveAll.
-    for (ScriptTokenList::Node* node = tokens->head; node; node = node->next) node->data.text.~CString();
+    for (ScriptTokenList::Node* node = tokens->head; node; node = node->next) std::destroy_at(&node->data.text);
     tokens->count = 0;
     tokens->free = nullptr;
     tokens->tail = nullptr;
@@ -514,14 +515,14 @@ EI_REPLACE_METHOD(0x004CF4D0, CScript::ExpectLexeme);
 
 // ---- Names --------------------------------------------------------------------------------------
 
-mfc::CString* CScript::QualifyName(mfc::CString* out, const mfc::CString& name) {
+mfc::CString* CScript::QualifyName(mfc::CString* out, const std::string& name) {
     if (FileCount() == 0) {
-        new (out) mfc::CString(name);
+        std::construct_at(out, name);
         return out;
     }
     std::string qualified;
-    qualified = str::Format("!%i!%s", FileCount(), name.GetString());
-    new (out) mfc::CString(qualified);
+    qualified = str::Format("!%i!%s", FileCount(), name.c_str());
+    std::construct_at(out, qualified);
     return out;
 }
 EI_REWRITTEN(0x004D37F0, CScript::QualifyName);

@@ -43,6 +43,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <bit>
 #include <string>
@@ -75,7 +76,7 @@ constexpr int kAllodIsland = 3;        // the island model
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
 MapRecord* ZoneAt(int index) { return TheMapDatabase()->maps.data + index; }
 
-bool NonEmpty(const mfc::CString& text) { return text.GetLength() != 0; }
+bool NonEmpty(const std::string& text) { return text.size() != 0; }
 
 // --- Called through the game ------------------------------------------------------------------------------
 
@@ -264,7 +265,7 @@ void CGlobalMap::CreateScreen() {
     // The game zones of the allod that have a marker, with the player's "z.<zone>" state.
     for (int i = 0; i < allod->maps.size; ++i) {
         MapRecord* zone = ZoneAt(allod->maps.data[i]);
-        if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
+        if (zone->kind != 0 || !NonEmpty(zone->figure.GetString())) continue;
         zones_.SetAtGrowZone(zones_.size, &zoneTemplate);
         variable = str::Format("z.%s", zone->name.GetString());
         zones_.data[zoneCount_].link = -1;
@@ -333,7 +334,7 @@ void CGlobalMap::CreateScreen() {
             double two = D(2.0f /*0073CDB8*/);
             EI_NAN_AUDIT(state);
             if (state != two) continue;
-            if (!NonEmpty(way->figure)) continue;
+            if (!NonEmpty(way->figure.GetString())) continue;
             if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
             int n = linkCount_;
             SetPlaceCount(links_, links_.size + 1);
@@ -650,8 +651,8 @@ void DestroyArray(Array* array, void* vtable) {
     if (!array->data) return;
     int size = array->size;
     for (int i = 0; i < size; ++i) {
-        array->data[i].title.~CString();
-        array->data[i].name.~CString();
+        std::destroy_at(&array->data[i].title);
+        std::destroy_at(&array->data[i].name);
     }
     gamecrt::operator_delete(array->data);
 }
@@ -674,15 +675,15 @@ EI_REWRITTEN_SPECIAL(0x005FC130, CGlobalMap::~CGlobalMap);
 void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
     std::memset(static_cast<void*>(zones), 0, static_cast<std::size_t>(count) * sizeof(GlobalMapZone));
     for (int i = 0; i < count; ++i) {
-        new (&zones[i].name) mfc::CString();
-        new (&zones[i].title) mfc::CString();
+        std::construct_at(&zones[i].name);
+        std::construct_at(&zones[i].title);
     }
 }
 
 void GlobalMapZoneElements::Destruct(GlobalMapZone* zones, int count) {
     for (int i = 0; i < count; ++i) {
-        zones[i].title.~CString();
-        zones[i].name.~CString();
+        std::destroy_at(&zones[i].title);
+        std::destroy_at(&zones[i].name);
     }
 }
 

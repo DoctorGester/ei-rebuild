@@ -14,6 +14,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -51,7 +52,7 @@ void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { a->SetSize(n, -1); }
 // WriteString takes its CString by value (the callee destroys it); passed here as its data pointer.
 
 // A copy of `value` handed to WriteString (which destroys it).
-BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const mfc::CString& value) {
+BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const std::string& value) {
     alignas(4) char copy[sizeof(mfc::CString)];
     new (copy) mfc::CString(value);
     return ini->WriteString(section, key, *reinterpret_cast<char**>(copy));
@@ -123,13 +124,13 @@ void TextOps::AppendChar(char a0) { mfc::CString::operator+=(a0); }
 // --- Construction ----------------------------------------------------------------------------------
 
 CIniFile* CIniFile::Construct() {
-    ::new (&path_) mfc::CString;   // afxEmptyString
+    std::construct_at(&path_);   // afxEmptyString
     return this;
 }
 EI_REWRITTEN(0x00695B80, CIniFile::Construct);
 
 CIniFile* CIniFile::ConstructWithPath(const char* path) {
-    ::new (&path_) mfc::CString;
+    std::construct_at(&path_);
     path_ = path;
     return this;
 }
@@ -141,7 +142,7 @@ BOOL CIniFile::SetPath(const char* path) {
 }
 EI_REWRITTEN(0x00695BF0, CIniFile::SetPath);
 
-void CIniFile::Destruct() { path_.~CString(); }
+void CIniFile::Destruct() { std::destroy_at(&path_); }
 EI_REWRITTEN(0x00695BE0, CIniFile::Destruct);
 
 // --- Readers ---------------------------------------------------------------------------------------

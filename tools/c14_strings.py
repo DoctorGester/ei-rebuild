@@ -2,6 +2,9 @@
 
 Step 1, retype: the chosen declarations of `mfc::CString` become `std::string`. Scope `locals`: variables declared
 in function bodies of src/game/*.cpp (not the `kUnset` result slots, references, pointers or range-for variables).
+Scope `params`: the `const mfc::CString&` parameters of the functions defined in src/game, in the definition and every
+declaration of the same name and position (not virtual functions, not an overload set on the string type such as
+CopyMember's or the Ops cast views); a parameter no rule carries stays a CString in all of them.
 Step 2, fix: the verify build's diagnostics (MSVC with /diagnostics:column) name every place std::string does not
 take what CString took; one rule per shape rewrites it (str.h has CString's answers where std::string has none):
   x.GetLength()          -> x.size()                 x.IsEmpty()  -> x.empty()
@@ -15,12 +18,18 @@ take what CString took; one rule per shape rewrites it (str.h has CString's answ
   a std::string where a const char* or a CString value was taken (an argument, a variadic argument, an assignment
   to a CString, an initialisation)   -> e.c_str()   ((e).c_str() for a compound expression)
   a signed / unsigned comparison with a size()        -> static_cast<int>(x.size())
+  a CString given to a retyped parameter               -> e.GetString()
+  `std::string name = x.GetString();` with x retyped   -> `std::string name = x;`
+The fixes reach src/game, src/lib, tests/verify/image and tests/vectors (callers); the build is ninja's whole verify
+build (the harness and ei_vectors.exe too).
 A variable no rule carries (its address handed to a CString*, bound to a CString&, a method with no rule, a
 pointer kept from a temporary) stays a CString: the round starts again from the original files without it.
 
 usage (from a VS x86 prompt; build/verify configured):
-  python tools/c14_strings.py run [--scope locals] [--files src/game/a.cpp ...] [--rounds N]
+  python tools/c14_strings.py run [--scope locals|params] [--files src/game/a.cpp ...] [--rounds N]
   python tools/c14_strings.py list [--files ...]      the declarations step 1 would retype
+  python tools/c14_strings.py lifetimes               placement news and destructor calls of CStrings typed by their
+                                                      target (std::construct_at / std::destroy_at), before members
 State (the excluded variables, the last round's diagnostics) in build/c14_strings/.
 """
 import argparse
@@ -419,9 +428,92 @@ def find_locals(src):
     return found
 
 
+PARAM = re.compile(r'(?<![\w:])const\s+(mfc::CString)\s*&\s*(\w+)?')
+VIRTUAL_NAME = re.compile(r'\bvirtual\b[^;{}]*?(~?\w+)\s*\(')
+OVERRIDE_NAME = re.compile(r'(~?\w+)\s*\([^;{}()]*(?:\([^;{}()]*\)[^;{}()]*)*\)\s*(?:const\s*)?(?:noexcept\s*)?'
+                           r'(?:override|final)\b')
+
+
+def context_kinds(m, positions):
+    """{position: kind of the innermost brace around it ('code', 'class', 'namespace')}."""
+    kinds = brace_kinds(m)
+    out = {}
+    stack = []
+    marks = sorted(set(positions))
+    mi = 0
+    for i, c in enumerate(m):
+        while mi < len(marks) and marks[mi] == i:
+            out[i] = next((k for k in reversed(stack) if k != 'init'), 'namespace')
+            mi += 1
+        if c == '{':
+            stack.append(kinds.get(i, 'init'))
+        elif c == '}':
+            if stack:
+                stack.pop()
+    return out
+
+
+def enclosing_open(m, pos):
+    """The '(' of the parameter list around `pos`, or -1."""
+    depth = 0
+    for j in range(pos - 1, -1, -1):
+        c = m[j]
+        if c in CLOSE:
+            depth += 1
+        elif c in OPEN:
+            if depth == 0:
+                return j if c == '(' else -1
+            depth -= 1
+        elif c in ';{}' and depth == 0:
+            return -1
+    return -1
+
+
+def find_params(src):
+    """[(type_start, type_end, function name, index, parameter name or None, is definition)] of the
+    `const mfc::CString&` parameters declared in `src` (outside function bodies)."""
+    m = src.masked
+    hits = list(PARAM.finditer(m))
+    ctx = context_kinds(m, [x.start() for x in hits])
+    out = []
+    for x in hits:
+        if ctx.get(x.start()) == 'code':
+            continue
+        o = enclosing_open(m, x.start())
+        if o < 0:
+            continue
+        name = re.search(r'(~?\w+)\s*$', m[:o])
+        if not name or name.group(1) in ('if', 'while', 'for', 'switch', 'return', 'sizeof', 'decltype'):
+            continue
+        index = 0
+        depth = 0
+        for c in m[o + 1:x.start()]:
+            if c in OPEN:
+                depth += 1
+            elif c in CLOSE:
+                depth -= 1
+            elif c == ',' and depth == 0:
+                index += 1
+        close = match_forward(m, o)
+        after = re.sub(r'^(?:\s|const\b|noexcept\b|override\b|final\b)*', '', m[close + 1:close + 200])
+        definition = after[:1] in ('{', ':') and not after.startswith('::')
+        out.append((x.start(1), x.end(1), name.group(1), index, x.group(2), definition))
+    return out
+
+
+def virtual_names(texts):
+    """The names declared virtual or overriding anywhere (a parameter's type there must not change alone)."""
+    names = set()
+    for t in texts:
+        m = mask(t)
+        names |= {x.group(1) for x in VIRTUAL_NAME.finditer(m)}
+        names |= {x.group(1) for x in OVERRIDE_NAME.finditer(m)}
+    return names
+
+
 # ---- step 2: diagnostics ----------------------------------------------------------------------------------------
 
-DIAG = re.compile(r'^(?P<file>(?:[A-Za-z]:)?[^():]+(?:\.(?:cpp|h|inl|hpp)))\((?P<line>\d+),(?P<col>\d+)\): '
+DIAG = re.compile(r'^(?P<file>(?:[A-Za-z]:)?[^():]+(?:\.(?:cpp|h|inl|hpp)))\((?P<line>\d+)(?:,(?P<col>\d+))?\) ?: '
                   r'(?P<kind>error|warning|note|fatal error)(?: (?P<code>C\d+))?: (?P<msg>.*)$')
 
 
@@ -434,7 +526,7 @@ def parse_diagnostics(output):
             continue
         d = dict(m.groupdict())
         d['file'] = os.path.normcase(os.path.abspath(os.path.join(BUILD, d['file'])))
-        d['line'], d['col'] = int(d['line']), int(d['col'])
+        d['line'], d['col'] = int(d['line']), int(d['col'] or 1)   # the code generator's warnings have no column
         if d['kind'] == 'note':
             if diags:
                 diags[-1]['notes'].append(d)
@@ -463,6 +555,7 @@ NONCONST_REF = re.compile(r"argument (\d+) from '" + STD_TYPE_RE + r"' to '(?!co
 TO_STD = re.compile(r"to '" + STD_TYPE_RE + "'")
 CALLEE = re.compile(r'[\w:~]+(?:\s*(?:\.|->)\s*[\w:~]+)*\s*(?:<[^<>;()]*>)?\s*\(')
 FROM_CSTRING = re.compile(r"from '(?:const )?mfc::CString'")
+CSTRING_TO_STD_ARG = re.compile(r"argument (\d+) from '(?:const )?mfc::CString' to '" + STD_TYPE_RE + " ?&'")
 
 STR_CALL = {'Find', 'ReverseFind', 'FindOneOf', 'Mid', 'Left', 'Right', 'MakeLower', 'Remove', 'TrimRight', 'TrimLeft'}
 
@@ -518,6 +611,23 @@ class Fixer:
             return self.give_up(d, src, postfix_start(m, end), 'const view')
         if NONCONST_TO.search(msg) and code not in ('C2664', 'C2665'):
             return self.give_up(d, src, pos, 'reference bound')
+        if code == 'C4172':
+            # a reference to a retyped variable returned as a CString reference binds a temporary: it stays a CString
+            r = re.compile(r'\breturn\b').search(m, src.line_starts[d['line'] - 1])
+            if r:
+                k = skip_space(m, r.end())
+                a, b = argument_span(m, k)
+                for x in IDENT.finditer(m, a, b):
+                    var = self.variable(d['file'], d['line'], x.group(0))
+                    if var:
+                        self.unfixable.add(var)
+                        return
+        if code == 'C2084':
+            # a retyped parameter's function now has the body of an overload already taking a std::string
+            for (dl, dn) in self.decls.get(d['file'], []):
+                if dl == d['line']:
+                    self.unfixable.add((d['file'], dl, dn))
+                    return
         if code == 'C2665':
             for n in d['notes']:
                 x = TO_CHAR_PTR.search(n['msg'])
@@ -527,6 +637,16 @@ class Fixer:
                     if index < len(spans):
                         a, b = spans[index]
                         return self.add(d['file'], a, b, c_str_of(t[a:b], m[a:b]))
+                x = CSTRING_TO_STD_ARG.search(n['msg'])
+                if x:
+                    # a CString given to a retyped parameter: its characters
+                    spans = call_args(m, pos)
+                    index = int(x.group(1)) - 1
+                    if index < len(spans):
+                        a, b = spans[index]
+                        expr = t[a:b].strip()
+                        return self.add(d['file'], a, b, expr + '.GetString()' if is_postfix(m[a:b])
+                                        else '(' + expr + ').GetString()')
         ref = NONCONST_REF.search(msg) or next((NONCONST_REF.search(n['msg']) for n in d['notes']
                                                  if NONCONST_REF.search(n['msg'])), None)
         if FROM_STD_PTR.search(msg) or (ref and code in ('C2664', 'C2665')):
@@ -589,7 +709,7 @@ class Fixer:
             acc, recv_end = '->', k - 1
         else:
             return self.manual.append('%s(%d): %s without a receiver' % (d['file'], d['line'], name))
-        rs = postfix_start(m, recv_end)
+        rs = skip_space(m, postfix_start(m, recv_end))
         recv = t[rs:recv_end].strip()
         p = skip_space(m, pos + len(name))
         if p >= len(m) or m[p] != '(':
@@ -615,6 +735,12 @@ class Fixer:
             rep = lead + 'clear()'
         elif name == 'GetString' and not args:
             rep = lead + 'c_str()'
+            before = skip_space_back(m, rs - 1)
+            if (m[before] == '=' and re.search(r'std::string\s+\w+\s*$', m[:before])
+                    and m[skip_space(m, q + 1)] == ';'):
+                # `std::string name = text.GetString();` with text now a std::string: the copy itself
+                mr = m[rs:recv_end].strip()
+                rep = recv[1:-1] if mr.startswith('(') and match_forward(mr, 0) == len(mr) - 1 else recv
         elif name == 'AssignChar':
             rep = lead + 'assign(1, %s)' % args
         elif name in ('Format', 'FormatV'):
@@ -659,6 +785,10 @@ class Fixer:
             c = re.compile(r'\(\s*(?:const\s+)?char\s*(?:const\s*)?\*\s*\)|static_cast\s*<\s*(?:const\s+)?char\s*'
                            r'(?:const\s*)?\*\s*>\s*\(').match(m, pos)
             if not c:
+                # a cast to a class of CString's (a view with more members): the operand stays a CString
+                o = m.find('(', m.find('>', pos) if m.startswith('static_cast', pos) else pos)
+                if o >= 0:
+                    return self.give_up(d, src, skip_space(m, o + 1), 'cast to a CString view')
                 return self.manual.append('%s(%d,%d): cast not found' % (d['file'], d['line'], d['col']))
             if m[c.end() - 1] == '(':
                 close = match_forward(m, c.end() - 1)
@@ -783,6 +913,71 @@ def candidate_files(args):
     return out
 
 
+# where a retyped parameter's callers may be: the fixes reach these too (their declarations change only in src/game)
+FIX_DIRS = [('src', 'game'), ('src', 'lib'), ('tests', 'verify', 'image'), ('tests', 'vectors')]
+
+
+def fixable_files():
+    out = []
+    for parts in FIX_DIRS:
+        d = os.path.join(ROOT, *parts)
+        for name in sorted(os.listdir(d)):
+            if name.endswith(('.cpp', '.h')):
+                out.append(os.path.normcase(os.path.join(d, name)))
+    return out
+
+
+def shown(path):
+    return path if path == '<param>' else os.path.relpath(path, ROOT)
+
+
+def game_file(path):
+    return os.path.normcase(os.path.join(ROOT, 'src', 'game')) == os.path.dirname(path)
+
+
+def retype_params(files, originals, excluded, keys):
+    """Step 1 for scope `params`: the `const mfc::CString&` parameters of the functions defined in src/game (not
+    virtual ones), in their definitions and every declaration of the same name and position, become
+    `const std::string&`. {path: [(line, name)]} of the retyped definitions' parameters; `keys` gets
+    {(path, line, name): (function, index)}."""
+    game = [p for p in files if game_file(p)]
+    virtual = virtual_names(originals[p] for p in game)
+    found = {p: find_params(Source(p, originals[p])) for p in game}
+    chosen = set()
+    for p, params in found.items():
+        for (a, b, fn, index, pname, definition) in params:
+            if definition and pname and fn not in virtual and ('<param>', index, fn) not in excluded:
+                chosen.add((fn, index))
+    # an overload set on the string type (CopyMember's CString / stlp::string, an Ops cast view): a member of it
+    # retyped alone collides with another or loses its callers
+    masked = {p: mask(originals[p]) for p in game}
+    for (fn, index) in sorted(chosen):
+        for p in game:
+            for x in re.finditer(r'(?<![\w:])' + re.escape(fn) + r'\s*\(', masked[p]):
+                spans = call_args(masked[p], x.start())
+                if index < len(spans):
+                    a, b = spans[index]
+                    param = masked[p][a:b]
+                    if re.search(r'std::string\b|string_view|stlp::|(?<!const )mfc::CString\s*&', param):
+                        chosen.discard((fn, index))
+    decls = {}
+    for p, params in found.items():
+        src = Source(p, originals[p])
+        edits = []
+        for (a, b, fn, index, pname, definition) in params:
+            if (fn, index) not in chosen:
+                continue
+            edits.append((a, b, STD))
+            if definition and pname:
+                line = src.line_of(a)
+                decls.setdefault(p, []).append((line, pname))
+                keys[(p, line, pname)] = (fn, index)
+        text, _ = apply_edits(originals[p], edits)
+        if text != originals[p]:
+            write(p, ensure_include(text))
+    return decls
+
+
 def read(path):
     with open(path, encoding='utf-8', newline='') as f:
         return f.read()
@@ -815,25 +1010,30 @@ def retype(files, originals, excluded):
 def build():
     env = dict(os.environ)
     env['CL'] = '/diagnostics:column'
-    r = subprocess.run(['ninja', '-C', BUILD, '-k', '0', 'ei_hook'], capture_output=True, text=True, errors='replace',
-                       env=env)
+    r = subprocess.run(['ninja', '-C', BUILD, '-k', '0'], capture_output=True, text=True, errors='replace', env=env)
     return r.returncode, r.stdout + r.stderr
 
 
 def run(args):
     os.makedirs(STATE, exist_ok=True)
-    files = candidate_files(args)
+    files = candidate_files(args) if args.scope == 'locals' else fixable_files()
+    files = sorted(set(files) | set(fixable_files()))
     originals = {p: read(p) for p in files}
     excluded_path = os.path.join(STATE, 'excluded.json')
     excluded = set()
     if os.path.exists(excluded_path) and not args.fresh:
-        excluded = {(os.path.normcase(os.path.join(ROOT, p)), l, n) for p, l, n in json.load(open(excluded_path))}
+        excluded = {(p if p == '<param>' else os.path.normcase(os.path.join(ROOT, p)), l, n)
+                    for p, l, n in json.load(open(excluded_path))}
     try:
         for rnd in range(args.rounds):
             for p in files:
                 if read(p) != originals[p]:
                     write(p, originals[p])
-            decls = retype(files, originals, excluded)
+            keys = {}
+            if args.scope == 'params':
+                decls = retype_params(files, originals, excluded, keys)
+            else:
+                decls = retype(candidate_files(args), originals, excluded)
             print('round %d: %d declarations retyped in %d files, %d excluded' % (
                 rnd, sum(len(v) for v in decls.values()), len(decls), len(excluded)), flush=True)
             new_unfixable = set()
@@ -847,12 +1047,13 @@ def run(args):
                 fixer = Fixer(sources, decls)
                 for d in diags:
                     fixer.fix(d)
-                new_unfixable |= fixer.unfixable
+                # a parameter stays a CString in its function's every definition and declaration
+                new_unfixable |= {('<param>',) + keys[v][::-1] if v in keys else v for v in fixer.unfixable}
                 manual = fixer.manual
                 with open(os.path.join(STATE, 'manual.txt'), 'w', encoding='utf-8') as f:
                     f.write(''.join(x + '\n' for x in manual))
                 with open(os.path.join(STATE, 'keep.txt'), 'w', encoding='utf-8') as f:
-                    f.write(''.join('%s:%d %s\n' % (os.path.relpath(p, ROOT), l, n) for p, l, n in sorted(new_unfixable)))
+                    f.write(''.join('%s:%d %s\n' % (shown(p), l, n) for p, l, n in sorted(new_unfixable)))
                 count = 0
                 for p, edits in fixer.edits.items():
                     text, n = apply_edits(read(p), edits)
@@ -860,6 +1061,8 @@ def run(args):
                     write(p, text)
                 for p in files:
                     text = read(p)
+                    if text == originals[p]:
+                        continue
                     fixed = ensure_include(text)
                     if fixed != text:
                         write(p, fixed)
@@ -871,7 +1074,7 @@ def run(args):
                     break
             if new_unfixable - excluded:
                 excluded |= new_unfixable
-                json.dump(sorted((os.path.relpath(p, ROOT), l, n) for p, l, n in excluded),
+                json.dump(sorted((shown(p), l, n) for p, l, n in excluded),
                           open(excluded_path, 'w'), indent=0)
                 continue
             with open(os.path.join(STATE, 'manual.txt'), 'w', encoding='utf-8') as f:
@@ -882,6 +1085,74 @@ def run(args):
         return 1
     except KeyboardInterrupt:
         return 2
+
+
+PLACEMENT = re.compile(r'(?<![\w:])(?:::)?new\s*\(')
+DTOR = re.compile(r'(\.|->)\s*~CString\s*\(\s*\)')
+
+
+def lifetimes(text):
+    """`text` with CString lifetimes typed by their target: `new (p) mfc::CString(args)` -> std::construct_at(p, args),
+    `x.~CString()` -> std::destroy_at(&x), `p->~CString()` -> std::destroy_at(p); retyping the target then changes
+    what is built and destroyed with it (a placement new of a CString on a std::string compiles). A target that is raw
+    storage (a void* out parameter, a byte array) does not compile as construct_at's: those keep their placement new
+    by hand (5 in batch 2)."""
+    m = mask(text)
+    edits = []
+    for x in PLACEMENT.finditer(m):
+        o = x.end() - 1
+        c = match_forward(m, o)
+        t = re.compile(r'\s*mfc::CString\b').match(m, c + 1)
+        if not t:
+            continue
+        target = text[o + 1:c].strip()
+        if target == 'this':
+            continue   # a view class of CString's building its base: the type is the base's, not this's
+        end = t.end()
+        k = skip_space(m, end)
+        args = ''
+        if k < len(m) and m[k] == '(':
+            q = match_forward(m, k)
+            args = text[k + 1:q].strip()
+            end = q + 1
+        elif k < len(m) and m[k] == '{':
+            continue
+        edits.append((x.start(), end, 'std::construct_at(%s%s)' % (target, ', ' + args if args else '')))
+    for x in DTOR.finditer(m):
+        if m[skip_space_back(m, postfix_start(m, x.start()) - 1)] == '>':
+            continue   # `reinterpret_cast<mfc::CString*>(p)->~CString()`: typed by its cast already
+        if x.group(1) == '.':
+            rs = postfix_start(m, x.start())
+            obj = text[rs:x.start()].strip()
+            edits.append((rs, x.end(), 'std::destroy_at(&%s)' % obj))
+        else:
+            rs = postfix_start(m, x.start())
+            obj = text[rs:x.start()].strip()
+            edits.append((rs, x.end(), 'std::destroy_at(%s)' % obj))
+    text, n = apply_edits(text, edits)
+    if n and not re.search(r'^#include <memory>', text, re.M):
+        system = list(re.finditer(r'^#include <[^>]+>\n', text, re.M))
+        line = '#include <memory>\n'
+        at = next((s.start() for s in system if s.group(0) > line), system[-1].end() if system else None)
+        if at is None:
+            quoted = list(re.finditer(r'^#include "[^"]+"\n', text, re.M))
+            at = quoted[-1].end() if quoted else 0
+            line = '\n' + line
+        text = text[:at] + line + text[at:]
+    return text, n
+
+
+def lifetimes_cmd(args):
+    total = 0
+    for p in fixable_files():
+        if os.path.dirname(p) == os.path.normcase(os.path.join(ROOT, 'src', 'lib')):
+            continue   # CString's own implementation and the byte-offset element policies
+        text, n = lifetimes(read(p))
+        if n:
+            write(p, text)
+            total += n
+            print('%s: %d' % (shown(p), n))
+    print(total, 'lifetimes typed')
 
 
 def list_cmd(args):
@@ -898,13 +1169,16 @@ def list_cmd(args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('command', choices=['run', 'list'])
+    ap.add_argument('command', choices=['run', 'list', 'lifetimes'])
     ap.add_argument('--files', nargs='*')
+    ap.add_argument('--scope', choices=['locals', 'params'], default='locals')
     ap.add_argument('--rounds', type=int, default=8)
     ap.add_argument('--iterations', type=int, default=12)
     ap.add_argument('--fresh', action='store_true', help='forget the excluded variables of earlier runs')
     ap.add_argument('-v', '--verbose', action='store_true')
     args = ap.parse_args()
+    if args.command == 'lifetimes':
+        return lifetimes_cmd(args)
     if args.command == 'list':
         return list_cmd(args)
     return run(args)

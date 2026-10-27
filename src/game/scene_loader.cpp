@@ -28,6 +28,7 @@
 #include "lib/str.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -576,7 +577,7 @@ void FreeArray(A& array, void* vtable) {
 void __stdcall FaceGroup::ConstructElements(FaceGroup* groups, int count) {
     std::memset(static_cast<void*>(groups), 0, static_cast<std::size_t>(count) * sizeof(FaceGroup));
     for (; count > 0; --count, ++groups) {
-        new (&groups->name) mfc::CString();
+        std::construct_at(&groups->name);
         groups->faces.Construct();
     }
 }
@@ -586,7 +587,7 @@ void FaceGroup::Destruct() {
     faces.SetSize(0, -1);
     name.Empty();
     faces.Destruct();
-    name.~CString();
+    std::destroy_at(&name);
 }
 
 void __fastcall FaceGroupArrayDestruct(FaceGroupArray* groups) {
@@ -604,8 +605,8 @@ void SceneNode::Destruct() {
     FreeArray(morphKeys, mfc::impl::AlignedAt4ArrayClass::Vtable());
     FreeArray(positionKeys, mfc::impl::NodeItemsBClass::Vtable());
     FreeArray(rotationKeys, mfc::impl::NodeItemsAClass::Vtable());
-    parent.~CString();
-    name.~CString();
+    std::destroy_at(&parent);
+    std::destroy_at(&name);
 }
 EI_REWRITTEN(0x004543E0, SceneNode::Destruct);
 
@@ -614,8 +615,8 @@ EI_REWRITTEN(0x004543E0, SceneNode::Destruct);
 // The node element. The rotation and position keys, the frames and the children are then sized to 0, which leaves
 // empty arrays as they are.
 void SceneNode::Construct() {
-    new (&name) mfc::CString();
-    new (&parent) mfc::CString();
+    std::construct_at(&name);
+    std::construct_at(&parent);
     spareRotation030.SetIdentity();
     spareRotation040.SetIdentity();
     rotation.SetIdentity();

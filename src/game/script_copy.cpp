@@ -15,6 +15,8 @@
 #include "lib/mfc_slots.h"
 #include "ei/x87.h"
 
+#include <memory>
+
 namespace {
 
 // CArray members: SetSize (int, growBy) and Copy (const CArray&).
@@ -186,7 +188,7 @@ EI_REWRITTEN(0x004CCAA0, ScriptSubCalls::CopyAt);
 // A name array: storage for exactly the source's size (the inlined SetSize from empty), then each
 // name assigned from a GetAt copy.
 mfc::CString* ScriptStrings::CopyAt(mfc::CString* out, int index) const {
-    return new (out) mfc::CString(data[index]);
+    return std::construct_at(out, data[index]);
 }
 EI_REWRITTEN(0x004CC840, ScriptStrings::CopyAt);
 EI_REWRITTEN(0x004C2680, ScriptStrings::CopyAt);

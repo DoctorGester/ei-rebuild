@@ -20,12 +20,12 @@ namespace options {
 namespace {
 
 // The string value `name` of `subkey`, or `defaultValue` (CWinRegistry takes it by value).
-mfc::CString GetString(CWinRegistry& key, const char* subkey, const char* name, const mfc::CString& defaultValue) {
+mfc::CString GetString(CWinRegistry& key, const char* subkey, const char* name, const std::string& defaultValue) {
     return key.GetString(subkey, name, defaultValue);
 }
 
 // Writes the string `value` as `name` of `subkey`.
-void SetString(CWinRegistry& key, const char* subkey, const char* name, const mfc::CString& value) {
+void SetString(CWinRegistry& key, const char* subkey, const char* name, const std::string& value) {
     key.SetString(subkey, name, value);
 }
 
@@ -251,7 +251,7 @@ public:
     }
     template <std::size_t N>
     void Read(const StringValue (&values)[N]) {
-        for (const StringValue& v : values) String(v.field) = GetString(key_, Key(v.key), v.name, String(v.field));
+        for (const StringValue& v : values) String(v.field) = GetString(key_, Key(v.key), v.name, String(v.field).GetString());
     }
 
     // Stored as -1 / 1 floats, kept in the registry as booleans.
@@ -317,7 +317,7 @@ public:
     }
     template <std::size_t N>
     void Write(const StringValue (&values)[N]) {
-        for (const StringValue& v : values) SetString(key_, Key(v.key), v.name, String(v.field));
+        for (const StringValue& v : values) SetString(key_, Key(v.key), v.name, String(v.field).GetString());
     }
 
     // 1 when the stored float is exactly -1 (compared as bits).
@@ -388,7 +388,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
     l.Read(kDefaultValues);
     l.Read(kFogValues);
     l.String(&StringOf<&GameOptions::masterServerName_>) =
-        GetString(key, l.Key(&GameOptions::keyNetwork_), "Master Server Name", l.String(&StringOf<&GameOptions::masterServerName_>));
+        GetString(key, l.Key(&GameOptions::keyNetwork_), "Master Server Name", l.String(&StringOf<&GameOptions::masterServerName_>).GetString());
     key.Close();
     key.Destroy();
 }
@@ -423,7 +423,7 @@ void GameOptions::SaveToRegistry(const char* path) {
     s.Write(kFogValues);
     // EI_Plugin's NewMaster NOPs these 42 bytes: the Master Server Name is not saved.
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
-        SetString(key, s.Key(&GameOptions::keyNetwork_), "Master Server Name", s.String(&StringOf<&GameOptions::masterServerName_>));
+        SetString(key, s.Key(&GameOptions::keyNetwork_), "Master Server Name", s.String(&StringOf<&GameOptions::masterServerName_>).GetString());
     key.Close();
     key.Destroy();
 }

@@ -39,7 +39,7 @@ void RemoveCall(AIHeardCalls* calls, int index) {
 }
 
 // The inlined Add: SetSize through its address, then the record assigned (the text shared).
-void AppendCall(AIHeardCalls* calls, const Vector3& point, int kind, std::uint32_t mask, const mfc::CString& text) {
+void AppendCall(AIHeardCalls* calls, const Vector3& point, int kind, std::uint32_t mask, const std::string& text) {
     int index = calls->size;
     calls->SetSize(index + 1, -1);
     AICallRecord& added = calls->data[index];

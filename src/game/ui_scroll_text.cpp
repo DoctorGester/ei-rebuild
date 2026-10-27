@@ -24,7 +24,7 @@ constexpr int kDefaultFont = 1;
 constexpr char kEscape = '\a';
 
 // The extent of `text` in interface font `font` (CInterface3D::TextExtent).
-SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
+SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
     return size;
@@ -117,7 +117,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
         if (format) Append(tokens_, format);
         if (word) {
             auto* w = new UiWordToken();
-            SIZE size = TextExtent(interface_, token, font);
+            SIZE size = TextExtent(interface_, token.GetString(), font);
             w->width_ = size.cx;
             w->text_ = token;
             Append(tokens_, w);

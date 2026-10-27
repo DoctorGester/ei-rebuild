@@ -23,6 +23,7 @@
 #include <dinput.h>
 
 #include <cstring>
+#include <memory>
 #include <new>
 
 namespace {
@@ -91,8 +92,8 @@ EI_REWRITTEN_SPECIAL(0x004578B0, CDirectInputMouse::~CDirectInputMouse);
 void PartyManager::Destruct() {
     for (ClassTemplate** p = templates.begin(); p != templates.end(); ++p) ReleaseCounted(*p);
     templates.FreeStorage();
-    records.text10.~CString();
-    records.text0C.~CString();
+    std::destroy_at(&records.text10);
+    std::destroy_at(&records.text0C);
     for (PartyRecord** p = records.records.begin(); p != records.records.end(); ++p) ReleaseCounted(*p);
     records.records.FreeStorage();
     for (PartyManagerEntry* entry = entries.begin(); entry != entries.end(); ++entry) entry->Destruct();
@@ -105,8 +106,8 @@ PartyManager* PartyManager::Construct() {
     parties.InitZeroedBuckets(100);
     new (&entries) stlp::vector<PartyManagerEntry>();
     new (&records.records) stlp::vector<PartyRecord*>();
-    new (&records.text0C) mfc::CString();
-    new (&records.text10) mfc::CString();
+    std::construct_at(&records.text0C);
+    std::construct_at(&records.text10);
     new (&templates) stlp::vector<ClassTemplate*>();
     return this;
 }

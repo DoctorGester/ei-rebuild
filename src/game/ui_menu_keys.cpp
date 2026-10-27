@@ -115,7 +115,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
             cursor_ = 0;
         }
         if (cursor_ > 0) {   // by character, as Delete and the cursor's steps
-            const int previous = text::PreviousCharacter(name, cursor_);
+            const int previous = text::PreviousCharacter(name.GetString(), cursor_);
             name = name.Left(previous) + console::Ops(name).Mid(cursor_);
             cursor_ = previous;
         }
@@ -127,7 +127,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
             cursor_ = 0;
         }
         if (cursor_ < name.GetLength())
-            name = name.Left(cursor_) + console::Ops(name).Mid(text::NextCharacter(name, cursor_));
+            name = name.Left(cursor_) + console::Ops(name).Mid(text::NextCharacter(name.GetString(), cursor_));
         break;
     case kKeyEnd:
     case kKeyHome:
@@ -143,9 +143,9 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         else if (key == kKeyHome)
             cursor_ = 0;
         else if (key == kKeyLeft)
-            cursor_ = text::PreviousCharacter(name, cursor_);
+            cursor_ = text::PreviousCharacter(name.GetString(), cursor_);
         else
-            cursor_ = text::NextCharacter(name, cursor_);
+            cursor_ = text::NextCharacter(name.GetString(), cursor_);
         break;
     default:
         return;
@@ -158,7 +158,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
 
 namespace {
 // The width of `text` in interface font `font` (CInterface3D::TextExtent).
-int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
+int TextWidth(CInterface3D* ui, const std::string& text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
     return size.cx;

@@ -21,6 +21,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -66,7 +67,7 @@ struct Panel {
         gameapi::OffsetRect(&rect, 0, kLineHeight);
     }
     // "<label> <line>" when the line is not empty.
-    void DrawLabelled(int label, const mfc::CString& line) {
+    void DrawLabelled(int label, const std::string& line) {
         text = labels[label] + kSpace + line;
         DrawLine();
     }
@@ -145,9 +146,9 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     params->ProtectionBlock(&unitIn->packedVitals, description, static_cast<unsigned char>(IsTextKey(unitIn->id_)));
     console::CStringArray lines;
     ItemDamageLists(description, &lines, static_cast<char>(1));
-    panel.DrawLabelled(10, lines[0]);
+    panel.DrawLabelled(10, lines[0].GetString());
     if (outside) {
-        if (lines[1].GetLength() != 0) panel.DrawLabelled(11, lines[1]);
+        if (lines[1].GetLength() != 0) panel.DrawLabelled(11, lines[1].GetString());
         auto* prototype = unitIn->GetPrototype();
         if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
         CBattleScreen* group = owner_;
@@ -168,7 +169,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
             panel.DrawLine();
         }
     } else if (lines[2].GetLength() != 0) {
-        panel.DrawLabelled(12, lines[2]);
+        panel.DrawLabelled(12, lines[2].GetString());
     }
 
     if (IsMultiplayerClient() && !outside) {

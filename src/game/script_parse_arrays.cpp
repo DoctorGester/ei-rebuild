@@ -129,7 +129,7 @@ ScriptIfThens* ScriptIfThens::ConstructEmpty() {
 }
 EI_REWRITTEN(0x004D5A30, ScriptIfThens::ConstructEmpty);
 
-void ScriptStrings::SetAtGrow(int index, const mfc::CString& text) {
+void ScriptStrings::SetAtGrow(int index, const std::string& text) {
     if (index >= size) InlineSetSize(Raw(this), index + 1, kStrings);
     data[index] = text;
 }

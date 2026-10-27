@@ -11,6 +11,7 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -86,7 +87,7 @@ void NamedFloatTable::Load(CStream* stream) {
             alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
             mfc::CString* read = stream->ReadString(raw);
             key = *read;
-            read->~CString();
+            std::destroy_at(read);
         }
         if (gamecrt::mbscmp(key.c_str(), game::EmptyText()) == 0) break;
         float value;
