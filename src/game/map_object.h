@@ -95,34 +95,34 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
     // An object of type 0x47 becomes the companion (AttachCompanion); null and others go to CObject3D's (which
-    // takes type 0x46). Returns the companion's new reference count, or 0. Units override it.
-    std::uintptr_t AttachObject(CEngineObject* object) override;
+    // takes type 0x46). Units override it.
+    void AttachObject(CEngineObject* object) override;
     bool InvisibleSlot() override;
     // Resets the scale and grows or shrinks it by 0.4 per net level of enlarge/shrink (x, y, z) or, without
     // those, strengthen/weaken (x and, except for heroes, z). Components stay >= 0. Marks part 1 changed.
-    virtual std::uintptr_t RecomputeScale();
+    virtual void RecomputeScale();
     // Empty (units override it).
-    virtual std::uintptr_t EffectsChanged();
+    virtual void EffectsChanged();
     // flags_ 0x20000 (bit 17 as 0 / 1); units, levers, traps, torches 1. False ones leave the server's map-object
     // maps after the zone loads (SendFreshObjects). The world server creates such objects only with one flag set,
     // the others with another.
     virtual bool IsSynchronised();
-    // The scale becomes the base scale (units override it). Returns the z component's bits.
-    virtual std::uint32_t ApplyBaseScale();
+    // The scale becomes the base scale (units override it).
+    virtual void ApplyBaseScale();
     // A hit (DamageInfo) from `attacker` (units: to the controller's TakeHit; other objects ignore it).
     virtual void ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster);
     virtual int StatsChanged();        // PackVitals (units override); 1
-    // Returns 1 (units hand the argument to their controller's vitals virtual).
-    virtual std::uintptr_t ScaleEffectChanged(int scaleEffect);
+    // Nothing (units hand the argument to their controller's vitals virtual).
+    virtual void ScaleEffectChanged(int scaleEffect);
     // The prototype by name (units: their statistics). Here the vitals of `prototype` are packed into the
     // rounded vitals, from a local the original does not clear either.
     virtual void TakePrototype(const char* prototype);
     // Empty; units: a CUnitServer controller (class 0x3E) copies the statistics (CUnitServer::SetStats).
-    virtual std::uintptr_t SetStats(const UnitStats* stats);
+    virtual void SetStats(const UnitStats* stats);
     // Hands `data` to a CMapObjectServer companion.
-    virtual std::uintptr_t SetServerData(const UnitVitals* data);
+    virtual void SetServerData(const UnitVitals* data);
     // Empty; units: the controller's size-class virtual.
-    virtual std::uintptr_t UpdateSizeClasses();
+    virtual void UpdateSizeClasses();
     virtual int IsUsable();            // 0; traps 1, levers NeedsKey
     virtual int IsDirectUseBlocked();  // 0; levers a flag of theirs (a best guess)
     virtual std::uint32_t KeyId();     // the key it asks for: -123; levers override
@@ -142,7 +142,7 @@ public:
     // virtual and, for a scaling effect, RecomputeScale. Rebirth's FixSpellEffectsOverflow keeps at most 20
     // effects (a 21st is dropped) and, for an effect lasting more than one tick, removes older ones of the same
     // type, end flag and second float (within 0.001) that last no longer and are no stronger.
-    virtual std::uintptr_t AddEffect(const MapEffect* effect);
+    virtual void AddEffect(const MapEffect* effect);
     // The effect array's SetSize(count, -1).
     void SetEffectCount(int count);
     virtual std::uint32_t SetStunned(int on);   // ignores it (0); units: the new flags_
@@ -170,7 +170,7 @@ public:
 
     // Records that part `part` (0..15; negative: none) of the object changed, marks it dirty (flags_ bit 1) and
     // stamps it with the world's change counter.
-    std::uintptr_t MarkChanged(int part);
+    void MarkChanged(int part);
     // Has the object an active effect of type `type` (compared with MapEffect::type)?
     int HasEffect(std::uint32_t type);
 
@@ -182,14 +182,14 @@ public:
 
     // Removes every effect (frees the array), marks part 3 changed and calls the vitals, stun (0) and scale
     // virtuals.
-    std::uintptr_t ClearEffects();
+    void ClearEffects();
 
     // The largest MapEffect::value (as a float, at least 0) of the effects of type
     // `type` (compared with the whole low byte); 0 without one. NaN values win the comparison.
     float EffectValue(std::uint32_t type);
 
-    // scale = base scale. Returns the z component's bits.
-    std::uint32_t ResetScale();
+    // scale = base scale.
+    void ResetScale();
 
     // The position into `out`.
     float* GetPosition(float* out, int unused);

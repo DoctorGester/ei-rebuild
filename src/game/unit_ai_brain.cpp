@@ -391,7 +391,7 @@ void AIReportElements::Destruct(AIReport* reports, int count) {
 EI_REWRITTEN(0x005CD670, AIReports::SetSize);
 EI_REWRITTEN(0x005CD800, AIReports::RemoveAt);
 EI_REWRITTEN(0x00558D10, AIReportElements::Construct);
-std::uintptr_t CUnitServer::AddHostileMask(std::uint32_t mask) { return unit->AddHostileMask(mask); }
+void CUnitServer::AddHostileMask(std::uint32_t mask) { unit->AddHostileMask(mask); }
 EI_REWRITTEN(0x00552CF0, CUnitServer::AddHostileMask);
 
 void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {

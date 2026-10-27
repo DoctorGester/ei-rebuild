@@ -76,9 +76,8 @@ EI_REWRITTEN(0x00516490, CObject3D::DrawFigureShadow);
 // --- Small virtuals ----------------------------------------------------------------------------
 
 bool CObject3D::AcceptsAnimation(const FigureAnimation*) { return true; }
-std::uintptr_t CObject3D::AttachObject(CEngineObject* object) {
+void CObject3D::AttachObject(CEngineObject* object) {
     AttachSpecific(object);
-    return 0;
 }
 bool CObject3D::InvisibleSlot() { return false; }
 void CObject3D::AdvanceTime(float) {}

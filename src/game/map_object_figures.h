@@ -317,8 +317,8 @@ public:
     void LoadTransform(mfc::CFileVirtuals* file) override;
     // Whether the object may play the animation entry (FigureAnimation); any here, CUnit overrides it.
     virtual bool AcceptsAnimation(const FigureAnimation* animation);
-    // AttachSpecific (no result: 0). CMapObject and units override it.
-    virtual std::uintptr_t AttachObject(CEngineObject* object);
+    // AttachSpecific. CMapObject and units override it.
+    virtual void AttachObject(CEngineObject* object);
     // Takes `other`'s parts (the array copied, no references taken) and its transform
     // (CTransformObject::CopyTransform).
     virtual void CopyFigure(const CObject3D* other);
@@ -333,18 +333,17 @@ public:
     virtual void AdvanceTime(float time);
     // Loads the figure named by the model name and builds the pending parts at the current scale, each new
     // one joining as AddPart does; non-units mark every part and themselves (flags_ 8 / 0x200). Then the
-    // half's LoadFigures-done virtual and flags_ 0x80. Returns 1 (also when already loaded).
-    virtual std::uintptr_t LoadFigures();
+    // half's LoadFigures-done virtual and flags_ 0x80. Nothing when already loaded.
+    virtual void LoadFigures();
 
     // The bounding box of the parts (only those within 1e9 squared of the object) and of the pending parts (whose
     // positions are reset to 0) into the bounds: centre, half extents below and above it, radius; sets two flag
-    // bits. Nothing changes without parts. Returns the centre's z bits (0 without parts).
-    std::uint32_t ComputeBounds();
+    // bits. Nothing changes without parts.
+    void ComputeBounds();
 
     // Sets the scale and, when it changed, rebuilds the figure at that scale through the figure manager, copies
-    // each part's piece record from it, rescales the animation and recomputes the bounds. 0 when the scale did
-    // not change.
-    std::uintptr_t SetFigureScale(const float* newScale);
+    // each part's piece record from it, rescales the animation and recomputes the bounds.
+    void SetFigureScale(const float* newScale);
 
     // Adds `part` to the parts unless it is there: referenced, told its owner, announced to the animation and to
     // the attached object (whose OnPartAdded result is returned). Returns 1 otherwise.

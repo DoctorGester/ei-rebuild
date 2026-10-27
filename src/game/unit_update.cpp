@@ -36,39 +36,39 @@ int CUnit::Tick() {
 }
 EI_REWRITTEN(0x0052F7D0, CUnit::Tick);
 
-std::uintptr_t CUnit::RecomputeScale() {
+void CUnit::RecomputeScale() {
     CMapObject::RecomputeScale();
     Controller()->Resettle();
-    return 0;
 }
 EI_REWRITTEN(0x00532A80, CUnit::RecomputeScale);
 
-std::uintptr_t CUnit::EffectsChanged() {
+void CUnit::EffectsChanged() {
     Controller()->EffectsChanged();
-    return 0;
 }
 EI_REWRITTEN(0x00532AB0, CUnit::EffectsChanged);
 
-std::uint32_t CUnit::ApplyBaseScale() { return static_cast<std::uint32_t>(SetFigureScale(&baseScale.x)); }
+void CUnit::ApplyBaseScale() { SetFigureScale(&baseScale.x); }
 EI_REWRITTEN(0x00532AA0, CUnit::ApplyBaseScale);
 
-std::uintptr_t CUnit::LoadFigures() {
-    if (flags_ & kFlagFiguresLoaded) return 1;
-    std::uintptr_t result = CObject3D::LoadFigures();
+void CUnit::LoadFigures() {
+    if (flags_ & kFlagFiguresLoaded) return;
+    CObject3D::LoadFigures();
     Controller()->FiguresLoaded();
-    return result;
 }
 EI_REWRITTEN(0x0052E910, CUnit::LoadFigures);
 
-std::uintptr_t CUnit::AttachObject(CEngineObject* object) {
-    if (!object || object->type_ != kControllerType) return CMapObject::AttachObject(object);
+void CUnit::AttachObject(CEngineObject* object) {
+    if (!object || object->type_ != kControllerType) {
+        CMapObject::AttachObject(object);
+        return;
+    }
     if (controller) {
         Controller()->unit = nullptr;
         controller->Release();
     }
     controller = object;
     Controller()->unit = this;
-    return static_cast<std::uintptr_t>(++controller->refCount_);
+    ++controller->refCount_;
 }
 EI_REWRITTEN(0x0052E870, CUnit::AttachObject);
 
@@ -79,22 +79,20 @@ int CUnit::StatsChanged() {
 }
 EI_REWRITTEN(0x0052EB50, CUnit::StatsChanged);
 
-std::uintptr_t CUnit::ScaleEffectChanged(int value) {
-    if (!controller) return 0;
-    return static_cast<std::uintptr_t>(Controller()->RefreshVitals(static_cast<char>(value)));
+void CUnit::ScaleEffectChanged(int value) {
+    if (controller) Controller()->RefreshVitals(static_cast<char>(value));
 }
 EI_REWRITTEN(0x0052EB30, CUnit::ScaleEffectChanged);
 
-std::uintptr_t CUnit::SetStats(const UnitStats* stats) {
+void CUnit::SetStats(const UnitStats* stats) {
     int classId = controller->GetClassId();
-    if (classId != kClassUnitServer) return static_cast<std::uintptr_t>(classId);
-    return ServerController()->SetStats(stats);
+    if (classId != kClassUnitServer) return;
+    ServerController()->SetStats(stats);
 }
 EI_REWRITTEN(0x00530A20, CUnit::SetStats);
 
-std::uintptr_t CUnit::UpdateSizeClasses() {
+void CUnit::UpdateSizeClasses() {
     Controller()->UpdateSizeClasses();
-    return 0;
 }
 EI_REWRITTEN(0x00530A50, CUnit::UpdateSizeClasses);
 

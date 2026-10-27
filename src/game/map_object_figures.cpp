@@ -95,7 +95,7 @@ void AddPendingPart(BoxBits& box, const CFigureMesh* p) {
 }
 } // namespace
 
-std::uint32_t CObject3D::ComputeBounds() {
+void CObject3D::ComputeBounds() {
     BoxBits box;
     for (int i = 0; i < parts.size; ++i) {
         auto* part = parts.data[i];
@@ -107,7 +107,7 @@ std::uint32_t CObject3D::ComputeBounds() {
         std::memset(&part->localPosition_, 0, sizeof(part->localPosition_));
         AddPendingPart(box, part);
     }
-    if (parts.size == 0 && pendingParts.size == 0) return 0;   // EAX: the pending count
+    if (parts.size == 0 && pendingParts.size == 0) return;
 
     float lowX = Float(box.low[0]), lowY = Float(box.low[1]), lowZ = Float(box.low[2]);
     float highX = Float(box.high[0]), highY = Float(box.high[1]), highZ = Float(box.high[2]);
@@ -137,15 +137,14 @@ std::uint32_t CObject3D::ComputeBounds() {
     center.x = centerX;
     center.y = centerY;
     center.z = centerZ;
-    return Bits(centerZ);   // EAX: the last value copied
 }
 EI_REWRITTEN(0x00518310, CObject3D::ComputeBounds);
 
 
-std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
+void CObject3D::SetFigureScale(const float* newScale) {
     EI_NAN_AUDIT(scale.x, scale.y, scale.z, newScale[0], newScale[1], newScale[2]);
     if (scale.x == newScale[0] && scale.y == newScale[1] && scale.z == newScale[2])
-        return 0;   // the original leaves the FPU status word in AX here
+        return;
     std::memcpy(&scale, newScale, sizeof(scale));
     if (CLinkMesh* current = figure) {
         CLinkFigureLoader* loader = WorldContext()->FigureLoader();
@@ -168,7 +167,7 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
         }
     }
     if (animation) AnimationSetScale(animation, nullptr, scale.x, scale.y, scale.z);
-    return ComputeBounds();
+    ComputeBounds();
 }
 EI_REWRITTEN(0x00517700, CObject3D::SetFigureScale);
 
@@ -186,8 +185,8 @@ int CObject3D::AddPart(CFigureMesh* part) {
 EI_REWRITTEN(0x005164B0, CObject3D::AddPart);
 
 
-std::uintptr_t CObject3D::LoadFigures() {
-    if (flags_ & kFlagFiguresLoaded) return 1;
+void CObject3D::LoadFigures() {
+    if (flags_ & kFlagFiguresLoaded) return;
     CFigureManager* manager = FigureManagerOf(this);
     FigureModel* model;
     {
@@ -214,6 +213,5 @@ std::uintptr_t CObject3D::LoadFigures() {
     }
     Specific()->ApplyMaterials();
     flags_ |= kFlagFiguresLoaded;
-    return 1;
 }
 EI_REWRITTEN(0x00517500, CObject3D::LoadFigures);

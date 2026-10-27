@@ -82,10 +82,9 @@ EI_REWRITTEN(0x00446830, CUnit::SetScriptName);
 int __fastcall UnitRefreshWounds(CUnit* unit) { return unit->Controller()->RefreshWounds(); }
 EI_REWRITTEN(0x00446810, UnitRefreshWounds);
 
-// The server's recomputes the move factors; whatever the call returns is passed on.
-std::uintptr_t __fastcall UnitMoveFactorsChanged(CUnit* unit) {
+// The server's recomputes the move factors.
+void __fastcall UnitMoveFactorsChanged(CUnit* unit) {
     unit->Controller()->MoveFactorsChanged();
-    return 0;
 }
 EI_REWRITTEN(0x00446870, UnitMoveFactorsChanged);
 

@@ -22,6 +22,9 @@ void FitBounds(ClipBounds* bounds, VertexPacket* vertices, int count) {
     renderer->pipeline_->transform_->FitBounds(bounds, vertices, count);
 }
 
+// The floats the file's cursor stands on (read in place; the Morph functions only read them).
+const float* FloatsAt(const char* cursor) { return reinterpret_cast<const float*>(cursor); }
+
 template <typename T>
 T Read(char*& p) {
     T v;
@@ -151,19 +154,19 @@ float MorphScalar(const float* r, float s, float t, float u, bool storeLower) {
 
 void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint32_t magic) {
     if (magic == kFig8Magic) {
-        const float* p = reinterpret_cast<const float*>(*cursor);
+        const float* p = FloatsAt(*cursor);
         Vector3 c = MorphVector(p, s, t, u, true);
         center_ = {c.x, c.y, c.z};
         *cursor += 0x60;
-        p = reinterpret_cast<const float*>(*cursor);
+        p = FloatsAt(*cursor);
         Vector3 mn = MorphVector(p, s, t, u, true);
         boxMin_ = {mn.x, mn.y, mn.z};
         *cursor += 0x60;
-        p = reinterpret_cast<const float*>(*cursor);
+        p = FloatsAt(*cursor);
         Vector3 mx = MorphVector(p, s, t, u, false);
         boxMax_ = {mx.x, mx.y, mx.z};
         *cursor += 0x60;
-        radius_ = MorphScalar(reinterpret_cast<const float*>(*cursor), s, t, u, true);
+        radius_ = MorphScalar(FloatsAt(*cursor), s, t, u, true);
         *cursor += 0x20;
 
         std::memcpy(&bounds_.center, &center_, 12);
@@ -314,7 +317,7 @@ void LoadVertices(lib::AlignedArray<VertexPacket>& vertices, char** cursor, std:
         for (int i = 0; i < vertices.size; ++i) {
             VertexPacket& v = vertices.data[i];
             for (int b = 0; b < 3; ++b) {
-                MorphBlock(v.block[b], reinterpret_cast<const float*>(*cursor), s, t, u);
+                MorphBlock(v.block[b], FloatsAt(*cursor), s, t, u);
                 *cursor += 0x80;
             }
             for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
@@ -450,9 +453,9 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, 
     mesh->materialValue_ = Read<std::uint32_t>(*cursor);
     mesh->meshType_ = Read<std::uint32_t>(*cursor);
     if (shared)
-        MorphOldBounds(mesh->bounds_, reinterpret_cast<const float*>(*cursor), s, t, u, CornerKept, CornerPerOp);
+        MorphOldBounds(mesh->bounds_, FloatsAt(*cursor), s, t, u, CornerKept, CornerPerOp);
     else
-        MorphOldBounds(mesh->bounds_, reinterpret_cast<const float*>(*cursor), s, t, u, CornerStoredLower, CornerPerOpKeptUpper);
+        MorphOldBounds(mesh->bounds_, FloatsAt(*cursor), s, t, u, CornerStoredLower, CornerPerOpKeptUpper);
     *cursor += 0xF0;
 
     int count = ReadCount(cursor);
@@ -460,7 +463,7 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, 
     for (int i = 0; i < count; ++i) {
         VertexPacket& v = mesh->vertices_.data[i];
         for (int b = 0; b < 3; ++b) {
-            MorphBlock6(v.block[b], reinterpret_cast<const float*>(*cursor), s, t, u);
+            MorphBlock6(v.block[b], FloatsAt(*cursor), s, t, u);
             *cursor += 0x60;
         }
         const std::uint32_t one = 0x3F800000;

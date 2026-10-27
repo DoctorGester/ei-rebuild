@@ -126,18 +126,18 @@ EI_REWRITTEN(0x0050F150, CMapObject::SetSecondName);
 void CMapObject::Load(CStream* stream) { LoadMapObject(stream); }
 void CMapObject::Save(CStream* stream) { SaveMapObject(stream); }
 bool CMapObject::InvisibleSlot() { return IsInvisible() != 0; }
-std::uintptr_t CMapObject::EffectsChanged() { return 0; }
+void CMapObject::EffectsChanged() {}
 bool CMapObject::IsSynchronised() { return Flag20000() != 0; }
-std::uint32_t CMapObject::ApplyBaseScale() { return ResetScale(); }
+void CMapObject::ApplyBaseScale() { ResetScale(); }
 void CMapObject::ReceiveHit(DamageInfo*, CUnit*, CUnit*) {
     CompanionQuery(0, 0, 0);
 }
 int CMapObject::StatsChanged() { return PackVitals(); }
-std::uintptr_t CMapObject::ScaleEffectChanged(int scaleEffect) {
-    return static_cast<std::uintptr_t>(ScaleEffectChangedDefault(scaleEffect));
+void CMapObject::ScaleEffectChanged(int scaleEffect) {
+    ScaleEffectChangedDefault(scaleEffect);
 }
-std::uintptr_t CMapObject::SetStats(const UnitStats*) { return 0; }
-std::uintptr_t CMapObject::UpdateSizeClasses() { return 0; }
+void CMapObject::SetStats(const UnitStats*) {}
+void CMapObject::UpdateSizeClasses() {}
 int CMapObject::IsUsable() { return 0; }
 int CMapObject::IsDirectUseBlocked() { return 0; }
 std::uint32_t CMapObject::KeyId() { return static_cast<std::uint32_t>(kNoKey); }

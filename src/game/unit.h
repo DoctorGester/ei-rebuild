@@ -230,26 +230,26 @@ public:
     // VisionRange at the world's daylight, around its position).
     void AdvanceTime(float time) override;
 
-    // Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows. Returns the new mask.
-    std::uintptr_t AddHostileMask(std::uint32_t mask);
-    std::uintptr_t SetRelationsB(std::uint32_t mask);
+    // Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows.
+    void AddHostileMask(std::uint32_t mask);
+    void SetRelationsB(std::uint32_t mask);
     // Sets the side; flags_ bit 0x80000; marks part 11 when the unit has a controller.
-    std::uintptr_t SetSide(int side);
+    void SetSide(int side);
     // Non-zero when this unit regards `other`'s side as hostile (the bit of other's side in both relation
     // masks).
     std::uint32_t IsHostileTo(const CUnit* other);
 
     // Marks part 13.
-    std::uintptr_t SetUnknown438(int value);
+    void SetUnknown438(int value);
     // Marks part 8.
-    std::uintptr_t SetAnimationEntries(std::int8_t entry, std::int8_t second, int start, std::int8_t sound);
+    void SetAnimationEntries(std::int8_t entry, std::int8_t second, int start, std::int8_t sound);
     // Set motionMode / pathTimeShift; mark part 7 when they change.
-    std::uintptr_t SetMotionMode(int mode);
-    std::uintptr_t SetPathTimeShift(int shift);
+    void SetMotionMode(int mode);
+    void SetPathTimeShift(int shift);
     // Marks part 6.
-    std::uintptr_t SetMoveModes(int mode, int mode2);
+    void SetMoveModes(int mode, int mode2);
     // Clears (on) or sets (off) flags_ bit 0x40000000; marks part 5.
-    std::uintptr_t SetFlag40000000Off(bool on);
+    void SetFlag40000000Off(bool on);
     // Sets (stunned) or clears flags_ bit 0x1000000. Returns the new flags.
     std::uint32_t SetStunned(int on) override;
 
@@ -292,9 +292,9 @@ public:
     int AddWeapon(CItem* item);
     int AddQuickItem(CItem* item);
     int AddSpell(CItem* item);
-    // Empties weapon / quick item slot `slot` (releasing the item); part 5. Returns the slot when out of range.
-    std::uintptr_t RemoveWeapon(std::uint32_t slot);
-    std::uintptr_t RemoveQuickItem(std::uint32_t slot);
+    // Empties weapon / quick item slot `slot` (releasing the item); part 5. Nothing when out of range.
+    void RemoveWeapon(std::uint32_t slot);
+    void RemoveQuickItem(std::uint32_t slot);
 
     // From the player's party record for party units. Null when out of range.
     CItemWeapon* GetWeapon(std::uint32_t slot);
@@ -317,22 +317,21 @@ public:
     // The per-tick update (another name, so it is no override): the controller's update, then the map object's.
     // Returns 1.
     int Tick();
-    std::uintptr_t RecomputeScale() override;
-    std::uintptr_t EffectsChanged() override;
+    void RecomputeScale() override;
+    void EffectsChanged() override;
     // The figures take the base scale again.
-    std::uint32_t ApplyBaseScale() override;
-    // Loads the figures (unless flags_ has 0x80) and tells the controller. Returns the loader's result, or 1.
-    std::uintptr_t LoadFigures() override;
-    // A companion of type 0x48 becomes the controller (the old one is detached and released; returns the new
-    // reference count); others go to the map object's AttachObject.
-    std::uintptr_t AttachObject(CEngineObject* object) override;
+    void ApplyBaseScale() override;
+    // Loads the figures (unless flags_ has 0x80) and tells the controller.
+    void LoadFigures() override;
+    // A companion of type 0x48 becomes the controller (the old one is detached and released); others go to the map object's AttachObject.
+    void AttachObject(CEngineObject* object) override;
     // Statistics changed: the map object's (packs the server object's vitals), then the controller's.
     int StatsChanged() override;
     // The controller's RefreshVitals with `value` (0 without a controller).
-    std::uintptr_t ScaleEffectChanged(int value) override;
+    void ScaleEffectChanged(int value) override;
     // A server controller (class 0x3E) copies `stats` in.
-    std::uintptr_t SetStats(const UnitStats* stats) override;
-    std::uintptr_t UpdateSizeClasses() override;
+    void SetStats(const UnitStats* stats) override;
+    void UpdateSizeClasses() override;
     // `out` = the position with z = the ground (or water surface) height plus the mode speed. Returns `out`.
     float* StandPoint(float* out);
     // Stores `offset` and puts the unit on the ground (or, for movement kind 2, on the water surface plus its
@@ -368,7 +367,7 @@ public:
     // vitals and parameters.
     void TakePrototype(const char* prototype) override;
     // Sends the equipment ids to the controller (the 7 armour ids, then the 4 weapon ids).
-    std::uintptr_t SendEquipment();
+    void SendEquipment();
     // prototype23C = the index of the unit prototype named `prototypeName`, or -1.
     std::uint32_t SetPrototype23CByName(const char* prototypeName);
     int SetPrototype23CIndex(int index);
@@ -894,7 +893,7 @@ public:
     // Per-tick update: counts down the owner's effects and removes the expired ones. Returns 0.
     int RunTick() override;
     // Copies the vitals block (0x58 bytes) from `data` and marks the owner's part 0 changed.
-    std::uintptr_t SetData(const UnitVitals* data);
+    void SetData(const UnitVitals* data);
     // Applies a hit to the vitals; a dead object loses its effects and gets flags_ bit 1. Returns 0 when the
     // vitals take nothing, else 1.
     virtual BOOL TakeHit(const DamageInfo* hit);

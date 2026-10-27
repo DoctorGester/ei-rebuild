@@ -23,6 +23,15 @@ using RefElement = ChunkArchive::RefElement;
 
 namespace {
 
+// The archive's bytes at `p`: a field's value (unaligned), or the text stored with its terminator.
+template <typename T>
+T ValueAt(const std::uint8_t* p) {
+    T value;
+    std::memcpy(&value, p, sizeof(T));
+    return value;
+}
+const char* TextAt(const std::uint8_t* p) { return reinterpret_cast<const char*>(p); }
+
 // The record chunk the Open / Close loops push on the stack: child 1 of the current chunk.
 Ref* PushRecordChunk(ChunkArchive* a) {
     Ref* parent = a->Current();
@@ -204,7 +213,7 @@ void ChunkArchive::CStringField(int id, Text* s) {
         return;
     }
     Ref child;
-    if (FindField(this, id, &child)) *s = reinterpret_cast<const char*>(Data() + child.offset);
+    if (FindField(this, id, &child)) *s = TextAt(Data() + child.offset);
     else *s = game::EmptyText();
 }
 template void ChunkArchive::CStringField(int, mfc::CString*);
@@ -221,7 +230,7 @@ void ChunkArchive::StringField(int id, stlp::string* s) {
     Ref child;
     // string::assign(text, text + strlen(text)), inlined: overwrite in place and
     // cut the rest, or overwrite the whole string and append the remainder.
-    if (FindField(this, id, &child)) s->Assign(reinterpret_cast<const char*>(Data() + child.offset));
+    if (FindField(this, id, &child)) s->Assign(TextAt(Data() + child.offset));
     else s->Assign(game::EmptyText());
 }
 EI_REWRITTEN(0x00409470, ChunkArchive::StringField);
@@ -389,7 +398,7 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         if (loading_) {
             Ref field;
             field.Reset();
-            key = FindChild(record, 0, &field, record->occurrence) ? *reinterpret_cast<std::uint32_t*>(Data() + field.offset) : 0;
+            key = FindChild(record, 0, &field, record->occurrence) ? ValueAt<std::uint32_t>(Data() + field.offset) : 0;
         } else {
             AppendChild(record, 0, &key, 4);
         }
@@ -436,7 +445,7 @@ void ChunkArchive::Close(CStream* stream) {
             if (loading_) {
                 Ref field;
                 field.Reset();
-                object = FindChild(record, 0, &field, record->occurrence) ? *reinterpret_cast<CRefObject**>(Data() + field.offset) : nullptr;
+                object = FindChild(record, 0, &field, record->occurrence) ? ValueAt<CRefObject*>(Data() + field.offset) : nullptr;
             } else {
                 AppendChild(record, 0, &number, 4);
             }

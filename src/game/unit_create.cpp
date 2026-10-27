@@ -54,7 +54,7 @@ EI_REWRITTEN(0x00514930, UnitPrototypeTable::FindByName);
 
 // --- Server controller ------------------------------------------------------------------------
 
-std::uintptr_t CUnitServer::SetStats(const UnitStats* source) {
+void CUnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&stats, source, sizeof(UnitStats));
     unit->MarkChanged(kPartStats);
     RefreshVitals(0);
@@ -65,7 +65,6 @@ std::uintptr_t CUnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&companion->vitals.hitPoints, &companion->vitals.maxHitPoints, 4);
     companion = unit->ServerCompanion();
     std::memcpy(&companion->vitals.mana, &companion->vitals.maxMana, 4);
-    return reinterpret_cast<std::uintptr_t>(companion);
 }
 EI_REWRITTEN(0x00552F40, CUnitServer::SetStats);
 
