@@ -128,10 +128,10 @@ EI_REWRITTEN(0x005619B0, CWorldClient::ClientParticleManager);
 EI_REWRITTEN(0x005619C0, CWorldClient::ClientManager194);
 EI_REWRITTEN(0x005619D0, CWorldClient::ClientManager198);
 
-void CWorldClient::MoveObject(CEngineObject* object, const float* position) {
+void CWorldClient::MoveObject(CMapObject* object, const float* position) {
     objectGrid_.Move(object, position);
 }
-void CWorldClient::MoveObject2(CEngineObject* object, const float* position) {
+void CWorldClient::MoveObject2(CMapObject* object, const float* position) {
     secondGrid_.Move2(object, position);
 }
 EI_REWRITTEN(0x005618A0, CWorldClient::MoveObject);

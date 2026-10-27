@@ -112,13 +112,9 @@ struct MapObjectIdMap {
 static_assert(sizeof(MapObjectIdMap) == 0x18);
 
 // Walks the world's player list; the list object is reference counted while an iterator holds it.
-struct PlayerIterator : ObjectListIterator {
-    PlayerIterator() : ObjectListIterator{nullptr, nullptr} {}
+struct PlayerIterator : ObjectListIteratorOf<CPlayer> {
+    PlayerIterator() : ObjectListIteratorOf<CPlayer>{{nullptr, nullptr}} {}
 
-    CPlayer* First(CPlayerManager* players) {
-        return static_cast<CPlayer*>(ObjectListIterator::First(players));
-    }
-    CPlayer* Next() { return static_cast<CPlayer*>(ObjectListIterator::Next()); }
     // Drops the list's count without releasing it.
     ~PlayerIterator() {
         if (manager) --manager->refCount_;
@@ -195,7 +191,7 @@ public:
     virtual int Unused39() { return 0; }
     virtual CMapObject* ObjectWithId(int id);
     // `object` moves to `position` (the client's sector map).
-    virtual void MoveObject(CEngineObject*, const float*) {}
+    virtual void MoveObject(CMapObject*, const float*) {}
 
     // Whether the hour of the day is before 6 or from 22 on (a NaN counts as night).
     BOOL IsNight();
@@ -722,7 +718,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
                               stlp::vector<DressedUnitRecord>* dressed);
 
 // The client's sector grids: an STLport list of counted pointers per 16x16 cell.
-struct SectorCellObjects : stlp::list<CEngineObject*> {
+struct SectorCellObjects : stlp::list<CMapObject*> {
     // The vector deleting destructor: bit 1 of `flags` means a new[] block (every list destroyed from the
     // last), bit 0 frees the memory. Returns the block.
     SectorCellObjects* VectorDelete(unsigned flags);
@@ -733,8 +729,8 @@ using SectorListNode = SectorList::Node;
 // one the player client created through the map object manager, or a unit).
 using MapObjectList = stlp::list<CMapObject*>;
 // A cell's list destroyed: each object released and its node returned to the pool, the sentinel last.
-void DestroySectorList(stlp::list<CEngineObject*>* list);
-void __fastcall SectorListDestruct(stlp::list<CEngineObject*>* list);
+void DestroySectorList(stlp::list<CMapObject*>* list);
+void __fastcall SectorListDestruct(stlp::list<CMapObject*>* list);
 struct SectorGrid {
     SectorList* cells_;
     SectorList** rows_;                   // row y: its lists
@@ -750,9 +746,9 @@ struct SectorGrid {
     // Moves `object` to `position` (stored in the object): when the cell (x and y rounded to nearest, >> 4)
     // changes, out of the old cell's list and to the end of the new one's (cells outside the grid are
     // skipped).
-    void Move(CEngineObject* object, const float* position);
+    void Move(CMapObject* object, const float* position);
     // The same for the second grid's list instantiation.
-    void Move2(CEngineObject* object, const float* position);
+    void Move2(CMapObject* object, const float* position);
 };
 static_assert(offsetof(SectorGrid, width_) == 0x10);
 
@@ -766,7 +762,7 @@ struct RadiusFunctor {
 };
 struct ReleaseIdentified {
     // An object with a positive id is released and true; false otherwise.
-    bool Test(CEngineObject* object);
+    bool Test(CMapObject* object);
     std::uint8_t unused;
 };
 // The client's pending map from an object id to its node in the pending list.
@@ -815,7 +811,7 @@ static_assert(sizeof(ScreenEntry) == 0x18);
 using ScreenEntryNode = stlp::list<ScreenEntry>::Node;
 // An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40) puts its class id, id and
 // rectangle at the end of `queued`.
-int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* queued);
+int __fastcall QueueScreenEntry(CMapObject* object, stlp::list<ScreenEntry>* queued);
 
 // The STLport vector<ScreenEntry> the pickers fill; the collectors inline push_back.
 struct ScreenHits : stlp::vector<ScreenEntry> {
@@ -896,8 +892,8 @@ public:
     CParticleManager* ClientParticleManager() override;
     CEngineObject* ClientManager194() override;
     CEngineObject* ClientManager198() override;
-    void MoveObject(CEngineObject* object, const float* position) override;
-    virtual void MoveObject2(CEngineObject* object, const float* position);   // the second grid's move
+    void MoveObject(CMapObject* object, const float* position) override;
+    virtual void MoveObject2(CMapObject* object, const float* position);   // the second grid's move
 
     void BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed);
     // Draws the world view. Returns 1. Rebirth's LandscapeDrawRadius sets the terrain's draw distance (100 in
@@ -973,7 +969,7 @@ public:
     // Files each object of `list` with a model inside the view frustum in the frame's draw lists; with
     // `animateUnits` 0 units only go on the deferred list, `withScripted` lets heroes with a text-key id
     // through. Returns how many objects were queued for the model-touch list.
-    int CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
+    int CollectVisible(stlp::list<CMapObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
                        char animateUnits, char withScripted);
     // The ground point under screen pixel (x, y): inverts the current view matrix and iterates on the
     // terrain height (Terrain::HeightAt). Returns out (x, y, z).
@@ -1034,8 +1030,8 @@ public:
     // The object at screen point `point`: the screen entries that contain it and whose object answers CollectBounds
     // or CollectParts go to hits_, sorted front to back; the first entry whose object still exists wins (hitCursor_
     // is left on it). Null if none.
-    CEngineObject* PickAt(const struct tagPOINT* point);
-    CEngineObject* PickAt2(const struct tagPOINT* point);
+    CMapObject* PickAt(const struct tagPOINT* point);
+    CMapObject* PickAt2(const struct tagPOINT* point);
     // The unit at screen point `point`: from PickAt2's object on, the first unit among the sorted hits
     // (hitCursor_ moves past the others and those whose object is gone); failing that the same from
     // PickAt's. Null if none.
@@ -1044,7 +1040,7 @@ public:
     CUnit* UnitAt2(const struct tagPOINT* point);
     // Every object of the frame's window list that still exists and whose side half has a drawn part
     // meeting the screen rectangle `rect` is appended to `out`.
-    void UnitsInBox(const long* rect, stlp::list<CEngineObject*>* out);
+    void UnitsInBox(const long* rect, stlp::list<CMapObject*>* out);
     // Marks the footprints within their scale times `range` of the point (x, y).
     void MarkFootprintsInSight(const float* point, float range);
     // The wind: stored, given to the terrain's waves and to the rain and snow layer.
@@ -1228,7 +1224,7 @@ struct DepthLess {
 // depth. The original compares the texture and the figure by address; ours by name
 // (address_order::DrawBefore).
 struct UnitOrderLess {
-    bool Less(CEngineObject* a, CEngineObject* b);
+    bool Less(CMapObject* a, CMapObject* b);
 };
 // Orders the client's variable nodes (ClientSession::variables_) by their stamp
 // (VariableMessage::serial_).
@@ -1473,7 +1469,7 @@ inline float FarClipDistance() { return options::TheOptions()->farClipDistance_;
 
 // The client's per-frame draw lists (CollectVisible files the visible objects, DrawPass sorts, draws and
 // empties them), the globals in this order; then the deferred unit list (counted pointers).
-using FrameQueue = stlp::vector<CEngineObject*>;
+using FrameQueue = stlp::vector<CMapObject*>;
 extern FrameQueue g_touchedModels;
 extern FrameQueue g_shadow52;
 extern FrameQueue g_shadowUnits;
@@ -1504,8 +1500,8 @@ inline FrameQueue& FrameObjects(FrameList list) {
                                               &g_visible5D,     &g_visibleOther, &g_visible54};
     return *kQueues[static_cast<int>(list)];
 }
-extern lib::StaticObject<stlp::list<CEngineObject*>> g_deferredUnits;
-inline stlp::list<CEngineObject*>* FrameDeferredUnits() { return &*g_deferredUnits; }
+extern lib::StaticObject<stlp::list<CMapObject*>> g_deferredUnits;
+inline stlp::list<CMapObject*>* FrameDeferredUnits() { return &*g_deferredUnits; }
 // The id the next object only the client makes gets (client figures such as a bow shot's arrow); each
 // use counts it down.
 inline int& NextClientObjectId() { return TheClientWorld()->nextClientObjectId_; }
@@ -1528,18 +1524,18 @@ void __fastcall GuardPlayers(CPlayerManager* players, char units, std::uint32_t 
 // dummy value-type pointer, the depth limit, the empty comparator).
 
 // STLport __introsort_loop with UnitOrderLess (model rank, a model field, view depth).
-void __fastcall IntroSortByModel(CEngineObject** first, CEngineObject** last, void* valueType, int depthLimit,
+void __fastcall IntroSortByModel(CMapObject** first, CMapObject** last, void* valueType, int depthLimit,
                                  int comp);
 // STLport __final_insertion_sort with UnitOrderLess.
-void __fastcall FinalSortByModel(CEngineObject** first, CEngineObject** last, int comp);
+void __fastcall FinalSortByModel(CMapObject** first, CMapObject** last, int comp);
 // __introsort_loop ordering objects by their model's last use, most recent first.
-void __fastcall IntroSortByModelUse(CEngineObject** first, CEngineObject** last, void* valueType, int depthLimit,
+void __fastcall IntroSortByModelUse(CMapObject** first, CMapObject** last, void* valueType, int depthLimit,
                                     int comp);
 // __final_insertion_sort with the same ordering.
-void __fastcall FinalSortByModelUse(CEngineObject** first, CEngineObject** last, int comp);
+void __fastcall FinalSortByModelUse(CMapObject** first, CMapObject** last, int comp);
 // The comparator of that ordering: b's model used before a's.
 struct ModelUseLess {
-    BOOL Less(CEngineObject* a, CEngineObject* b);
+    BOOL Less(CMapObject* a, CMapObject* b);
 };
 
 // Reads objects up to a zero byte: after each mark an id, a class and a field of the object; an object

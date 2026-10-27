@@ -8,10 +8,6 @@
 
 namespace stlp {
 
-void ListRemoveHeld(list<CEngineObject*>* self, CEngineObject* const& value) {
-    self->Remove<HeldObject>(value, [](CEngineObject* a, CEngineObject* b) { return a == b; });
-}
-
 void ListRemoveInt(list<int>* self, const int& value) {
     self->Remove(value, [](int a, int b) { return a == b; });
 }

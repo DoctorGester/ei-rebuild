@@ -153,7 +153,7 @@ using PartyIds = CBattleScreen::PartyIds;
 // STLport lists of ids and unit pointers.
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
-using UnitList = stlp::list<CEngineObject*>;
+using UnitList = stlp::list<CMapObject*>;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 
 

@@ -62,11 +62,13 @@ struct CountedEntry {
 // A held engine object copied with one more reference (its dword count) and
 // destroyed with its Release when there is one (clear).
 struct HeldObject {
-    static void Copy(CEngineObject** to, CEngineObject* const& from) {
+    template <typename T>
+    static void Copy(T** to, T* const& from) {
         *to = from;
         if (from) ++from->refCount_;
     }
-    static void Destroy(CEngineObject** p) {
+    template <typename T>
+    static void Destroy(T** p) {
         if (*p) (*p)->Release();
     }
 };
@@ -125,7 +127,10 @@ struct SameObject {
 
 // remove(value) of a HeldObject list (the client sector grid's cells): every
 // element that is the same object, erased.
-void ListRemoveHeld(list<CEngineObject*>* self, CEngineObject* const& value);
+template <typename T>
+void ListRemoveHeld(list<T*>* self, T* const& value) {
+    self->template Remove<HeldObject>(value, [](T* a, T* b) { return a == b; });
+}
 
 // for_each(first, last, f) over a list of counted objects with a functor that
 // releases each object (when there is one); the nodes stay. Returns the functor (one byte).
