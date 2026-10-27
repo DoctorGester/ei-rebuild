@@ -2,12 +2,10 @@
 
 // The item description panel of the camp, the multiplayer hero screen and the exchange window
 // (see docs/notes/ui.md, "Item descriptions"). Names provisional.
-// The panel is a
-// CUiWindow with one surface (200 x 300 at the layout point +0x1C0, +0x1C4) on which it writes
-// what the mouse is over: an item (DescribeItem puts it in the panel's item list and
-// describes it, dispatching on the item's kind), a statistic of the hero or the level-up page
-// or a camp help topic. Its slot 20 draws the described item's
-// model through the owner screen (ui_item_view.cpp).
+// The panel is a CUiWindow with one surface (200 x 300 at the layout point x_, y_) on which it writes
+// what the mouse is over: an item (DescribeItem puts it in the panel's item list and describes it,
+// dispatching on the item's kind), a statistic of the hero or the level-up page or a camp help topic.
+// Its draw virtual draws the described item's model through the owner screen (ui_item_view.cpp).
 // Every description writes into the surface with the same layout: the title wrapped in white at
 // (15, 10)-(185, 25), then lines 15 pixels apart in 0xA7D7E4, the description text wrapped last.
 
@@ -46,22 +44,22 @@ CUiMesh* __fastcall ItemModel(const char* name);
 
 // An item drawn as a turning model in a cell (DrawItem's argument, 0x18 bytes).
 struct ItemCell {
-    CItem* item;     // +0x00
-    float x;         // +0x04 the cell's centre (layout)
-    float y;         // +0x08
-    float depth;     // +0x0C
-    float size;      // +0x10 the cell (100 in the strips and grids, 120 in the description panel)
-    int mode;        // +0x14 the strip's action mode; 9: greyed out, never shaded as unusable
+    CItem* item;
+    float x;         // the cell's centre (layout)
+    float y;
+    float depth;
+    float size;      // the cell (100 in the strips and grids, 120 in the description panel)
+    int mode;        // the strip's action mode; 9: greyed out, never shaded as unusable
 };
 static_assert(sizeof(ItemCell) == 0x18);
 
 // A hero's face drawn in a cell (the hero-face draw's argument, 0x14 bytes).
 struct HeroFaceCell {
-    const char* prototype;   // +0x00 the unit prototype's name
-    float x;                 // +0x04 the cell's centre (layout)
-    float y;                 // +0x08
-    float depth;             // +0x0C
-    float size;              // +0x10
+    const char* prototype;   // the unit prototype's name
+    float x;                 // the cell's centre (layout)
+    float y;
+    float depth;
+    float size;
 };
 static_assert(sizeof(HeroFaceCell) == 0x14);
 
@@ -71,21 +69,20 @@ struct ItemCacheEntry {
     std::uint32_t lastUse;
 };
 
-// A cache of the item screens (0x10 bytes at +0x170 and +0x180): an STLport map from a name to
-// {object, time of last use} (0x24-byte nodes; lib_trees::ItemCache registers its members), and
-// how many entries it keeps (30; 20 when an option byte is set). The two trim functions release the least
+// A cache of the item screens (0x10 bytes; models_ and textures_): an STLport map from a name to
+// {object, time of last use} (0x24-byte nodes; lib_trees::ItemCache registers its members), and how
+// many entries it keeps (30; 20 when an option byte is set). The two trim functions release the least
 // recently used objects beyond that.
 struct ItemObjectCache {
     using Map = stlp::map<stlp::string, ItemCacheEntry>;
     using Node = Map::Node;
 
-    // The camp screen's constructor (and the hero screen's copy of it): the map's header
-    // from the pool, emptied
-    // with `compare` as its compare byte; the limit 50 (ui_item_screen.cpp).
+    // The camp screen's constructor (and the hero screen's copy of it): the map's header from the
+    // pool, emptied with `compare` as its compare byte; the limit 50 (ui_item_screen.cpp).
     void Construct(std::uint8_t compare);
 
     Map map;
-    std::uint32_t limit;   // +0x0C
+    std::uint32_t limit;
 };
 static_assert(sizeof(ItemObjectCache) == 0x10 && sizeof(ItemObjectCache::Node) == 0x24);
 // ui_hero_screen.cpp. Every cached object released, in key order (the hero screen's model and texture caches).
@@ -95,11 +92,11 @@ void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
 // model / texture cache beyond its limit (ui_item_screen.cpp).
 void __fastcall TrimItemCache(ItemObjectCache* cache);
 
-// An item's turning state (0x18 bytes), a counted object at the item's +0x1C (CItem::link_):
-// made by the item draw and the moves.
+// An item's turning state (0x18 bytes), a counted object in the item's link_ (CItem::link_): made by
+// the item draw and the moves.
 class ItemTurn : public CRefObject {
 public:
-    // The count and the flags cleared (the original writes them as one dword); the rest is the maker's.
+    // The count and the flags cleared (as one dword); the rest is the maker's.
     ItemTurn() {
         refs_ = 0;
         flags6_ = 0;
@@ -107,21 +104,21 @@ public:
     }
     // The counted root's body (core_streams.cpp).
     ~ItemTurn() override;
-    // ui_small_members.cpp. The original writes the object's tables again (a construction in
-    // place): nothing for a C++ object. 0.
+    // ui_small_members.cpp. Nothing for a C++ object (the original writes the object's tables again, a
+    // construction in place). 0.
     int OnShutdown() override;
     // ui_item_screen.cpp. A new state with the same angle, speed, flag and glow and no
     // references (null when the allocation fails).
     ItemTurn* Clone() override;
 
-    float angle;             // +0x08 radians, wrapped at 2 pi
-    float speed;             // +0x0C
-    bool flag;               // +0x10 set by a move into a list shown turning
+    float angle;             // radians, wrapped at 2 pi
+    float speed;
+    bool flag;               // set by a move into a list shown turning
     std::uint8_t unused_11[3];
-    float glow;              // +0x14 phase of the spell glow
+    float glow;              // phase of the spell glow
 };
 static_assert(sizeof(ItemTurn) == 0x18);
-// The item's turning state (CItem +0x1C).
+// The item's turning state (CItem::link_).
 inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(item->link_); }
 
 class CParty;
@@ -176,32 +173,32 @@ public:
     // carried spell's school, a frame behind it, the modifier marks of a spell container, and a
     // shade over items the strip's mode cannot take (CanEquip).
     void DrawItem(int pass, ItemCell* cell);
-    // Draws the face of `cell`'s prototype: model "infa<model>me<n + 1>face" (the
-    // figure prototype's +0xE8 model name, the prototype's +0x10) with texture "face<m|f><+0xC,
-    // two digits>" ("m" for model "unhuma", "f" for "unhufe", else nothing), both cached as the
-    // items are, tilted back by (y - 300) / 1000 radians, over the cell frame.
+    // Draws the face of `cell`'s prototype: model "infa<model>me<n + 1>face" (the figure prototype's
+    // model name, the prototype's field) with texture "face<m|f><two digits>" ("m" for model "unhuma",
+    // "f" for "unhufe", else nothing), both cached as the items are, tilted back by (y - 300) / 1000
+    // radians, over the cell frame.
     void DrawHeroFace(int pass, HeroFaceCell* cell);
     // The face's model and texture names (the lookups insert unknown names as DrawHeroFace's do).
     static void FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture);
-    // The screens' common Create: the icon window (+0x16C, CItemIconWindow, a child
-    // with the screen's texture 0, built), textures "modifiers2" and "campslots", the display's
-    // settings, and the caches' limits (30, or 20 with an option byte set) applied (ui_item_screen.cpp).
+    // The screens' common Create: the icon window (iconWindow_, CItemIconWindow, a child with the
+    // screen's texture 0, built), textures "modifiers2" and "campslots", the display's settings, and the
+    // caches' limits (30, or 20 with an option byte set) applied (ui_item_screen.cpp).
     void CreateBase();
-    // ui_item_screen.cpp. Moves `item` into `to` (CParty::AddItem with the
-    // stack kept when `merge` and Shift (CInterface3D +0x7D) are down, merging with `merge`) and
-    // out of `from` (RemoveItem, all of the stack likewise); returns what `to` now holds. With
-    // `limit` > 0 and at least that many items in `to`, only when `item` is the same (IsSameAs) as
-    // one of its first `limit` items (else nothing, null). The unconditional move with `turning`
-    // gives the moved item a turning state (made if missing) with its flag set. Flags are bytes.
+    // ui_item_screen.cpp. Moves `item` into `to` (CParty::AddItem with the stack kept when `merge` and
+    // Shift are down, merging with `merge`) and out of `from` (RemoveItem, all of the stack likewise);
+    // returns what `to` now holds. With `limit` > 0 and at least that many items in `to`, only when
+    // `item` is the same (IsSameAs) as one of its first `limit` items (else nothing, null). The
+    // unconditional move with `turning` gives the moved item a turning state (made if missing) with its
+    // flag set. Flags are bytes.
     CItem* MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning);
     // ui_item_screen.cpp. Moves every item of `from` into `to` (whole stacks,
     // merged); returns the last item `to` took, or null when `from` was empty.
     CItem* ReturnAll(CParty* to, CParty* from);
-    CItemInfoPanel* descPanel_;      // +0x164
-    CItem* hoveredItem_;             // +0x168 the item under the mouse (turns)
-    CItemIconWindow* iconWindow_;    // +0x16C
-    ItemObjectCache models_;         // +0x170
-    ItemObjectCache textures_;       // +0x180
+    CItemInfoPanel* descPanel_;
+    CItem* hoveredItem_;             // the item under the mouse (turns)
+    CItemIconWindow* iconWindow_;
+    ItemObjectCache models_;
+    ItemObjectCache textures_;
 
 protected:
     // Each screen's constructor starts with the container and no item under the mouse; the caches
@@ -219,14 +216,14 @@ static_assert(offsetof(CItemScreen, textures_) == 0x180);
 // What the statistics under the mouse are (0x18 bytes; filled by the stats panel and the
 // trade panel, read by DescribeStats).
 struct ItemHoverInfo {
-    int kind;                // +0x00 -1 none; 0 an attribute, 1 a skill, 2 a skill school, 3 a perk,
-                             //       4 a body part's armour, 5 the weapon's attack or defence,
-                             //       6 the magic skills, 7 a plain text
-    int index;               // +0x04 the attribute, skill, school or perks learned
-    int part;                // +0x08 body part (kind 4)
-    CItemWeapon* weapon;     // +0x0C kind 5
-    UnitStats* stats;        // +0x10 the hero's statistics (hero record + 0x20)
-    mfc::CString text;       // +0x14 the text key
+    int kind;                // -1 none; 0 an attribute, 1 a skill, 2 a skill school, 3 a perk,
+                             // 4 a body part's armour, 5 the weapon's attack or defence,
+                             // 6 the magic skills, 7 a plain text
+    int index;               // the attribute, skill, school or perks learned
+    int part;                // body part (kind 4)
+    CItemWeapon* weapon;     // kind 5
+    UnitStats* stats;        // the hero's statistics (in the hero record)
+    mfc::CString text;       // the text key
 };
 static_assert(sizeof(ItemHoverInfo) == 0x18);
 static_assert(offsetof(ItemHoverInfo, stats) == 0x10);
@@ -242,11 +239,10 @@ public:
     void Deactivate() override { DescribeItem(); }                                    // input 1
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }       // input 9
     int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }           // input 11
-    // Clears the surface and describes the item in the list (nothing without one):
-    // its own description for blueprints, materials, spells,
-    // modifiers, quick items of category 8 and spells carried by an item
-    // while the modifier key +0x7C is held or spell containers; else the common
-    // description (name, kind, material, price, condition, damage, armour, carried spell).
+    // Clears the surface and describes the item in the list (nothing without one): its own description
+    // for blueprints, materials, spells, modifiers, quick items of category 8 and spells carried by an
+    // item while the modifier key is held or spell containers; else the common description (name, kind,
+    // material, price, condition, damage, armour, carried spell).
     void DescribeItem();
     void DescribeMaterial();
     void DescribeBlueprint();
@@ -262,17 +258,16 @@ public:
     // Describes `item` (null: nothing) unless it is already the described one (the
     // described item's IsSameAs).
     void Describe(CItem* item);
-    // Input slots 9 / 11 (on the input side at +0x94): Ctrl (VK_CONTROL)
-    // pressed (not a repeat) or released redraws the described item, so that the carried spell is
-    // shown while it is held.
+    // Ctrl (VK_CONTROL) pressed (not a repeat) or released redraws the described item, so that the
+    // carried spell is shown while it is held.
     void OnKeyDown(int key, int repeat, int flags);
     void OnKeyUp(int key, int repeat, int flags);
     // Draws the described item's model at (x + 100, y + 200), size 120,
     // greyed (mode 9) through the owner's DrawItem; returns 1 (ui_item_view.cpp).
     BOOL Draw(int pass) override;
-    // Builds the panel at layout point (x, y): its 200 x 300 surface (format 5),
-    // the item texts "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text
-    // table, and an empty item list (its slot 2).
+    // Builds the panel at layout point (x, y): its 200 x 300 surface (format 5), the item texts
+    // "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text table, and an empty
+    // item list.
     void Build(int x, int y);
 
     // ui_small_members.cpp. The described item: the
@@ -283,14 +278,14 @@ public:
     // The item list as the party it is (itemList_ through itemCount_).
     CParty* ItemParty() { return reinterpret_cast<CParty*>(itemList_); }
 
-    std::uint8_t itemList_[0x40];    // +0x150 an item list (0x70 bytes); its
-    CItem** items_;                  // +0x190   entries
-    int itemCount_;                  // +0x194
+    std::uint8_t itemList_[0x40];    // an item list (0x70 bytes); its
+    CItem** items_;                  //   entries
+    int itemCount_;
     std::uint8_t unused_198[0x1C0 - 0x198];
-    int x_;                          // +0x1C0 layout position of the surface
-    int y_;                          // +0x1C4
-    mfc::CStringArray itemTexts_;    // +0x1C8 "infoitem_0" .. "infoitem_44"
-    mfc::CStringArray skillTexts_;   // +0x1DC "infoskill_0" .. "infoskill_24"
+    int x_;                          // layout position of the surface
+    int y_;
+    mfc::CStringArray itemTexts_;    // "infoitem_0" .. "infoitem_44"
+    mfc::CStringArray skillTexts_;   // "infoskill_0" .. "infoskill_24"
 };
 static_assert(sizeof(CItemInfoPanel) == 0x1F0);
 static_assert(offsetof(CItemInfoPanel, owner_) == 0x14C);

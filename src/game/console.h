@@ -104,9 +104,10 @@ public:
 };
 static_assert(sizeof(GameOStream) == 8);
 
-// One of the console's eight static ostreams as the original lays it out (0x58 bytes): the ostream part and its
-// ios, the virtual base, right after it. Zero until its static initialiser constructs it on its streambuf
-// (ostream(streambuf*, 1)); the exit function that initialiser registers destroys it (console_streams.cpp).
+// One of the console's eight static ostreams (0x58 bytes): the ostream part and its ios, the virtual
+// base, right after it. Zero until its static initialiser constructs it on its streambuf
+// (ostream(streambuf*, 1)); the exit function that initialiser registers destroys it
+// (console_streams.cpp).
 struct OStreamObject : GameOStream {
     libcrt::Ios ios;
 };
@@ -136,10 +137,9 @@ void EndLine(GameOStream& os);
 // Out() << text, then EndLine.
 void PrintLine(const char* text);
 
-// The console's streambuf (eight static instances, one per message filter: 0 the console
-// itself, then ai 1, event 2, graphics 4, rpg 8, unitacks 0x10, net 0x20, all -1). Characters collect in the
-// put area (the 0x400-byte buffer at +0x54) and move into the line (+0x50) on overflow; sync hands the line to the
-// console window.
+// The console's streambuf (eight static instances, one per message filter: 0 the console itself, then
+// ai 1, event 2, graphics 4, rpg 8, unitacks 0x10, net 0x20, all -1). Characters collect in the put
+// area (buffer_) and move into line_ on overflow; sync hands the line to the console window.
 class ConsoleStreambuf final : public libcrt::Streambuf {
 public:
     // The base on buffer_, the filter, the empty line.
@@ -150,14 +150,14 @@ public:
     int Overflow(int c) override;
     int Underflow() override;            // EOF
 
-    unsigned filter_;          // +0x4C message category; 0 = always shown
-    mfc::CString line_;        // +0x50
-    char buffer_[0x400];       // +0x54
+    unsigned filter_;          // message category; 0 = always shown
+    mfc::CString line_;
+    char buffer_[0x400];
 };
 static_assert(sizeof(ConsoleStreambuf) == 0x454);
 
-// The harness's view of the console (verify builds): sync's line, after overflow(EOF) and before the console window
-// gets it. In the original-game run the harness takes the original's sync instead.
+// The harness's view of the console (verify builds): sync's line, after overflow(EOF) and before the
+// console window gets it. In the original-game run the harness takes the original's sync instead.
 extern void (*g_consoleLineObserver)(const char* line);
 
 // The streambufs, one per message filter (console_streams.cpp; zero until their static initialisers construct them).
@@ -195,32 +195,32 @@ public:
     void OnKeyUp(int key, int repeat, int flags);     // VK_SHIFT / VK_CONTROL clear shift_ / ctrl_
     void DrawLines();                          // the lines above the input line
     void DrawInput();                          // the input line, selection and caret
-    // Called by the interface's 2D redraw while the
-    // console is shown. The surface's blit when there is one.
+    // Called by the interface's 2D redraw while the console is shown. The surface's blit when there is
+    // one.
     void Blit();
-    // Called by the interface's shutdown, which deletes the window.
-    // Frees the surface and the font, then the members (lines, input text, command history).
+    // Called by the interface's shutdown, which deletes the window. Frees the surface and the font, then
+    // the members (lines, input text, command history).
     void DestroyBody();
 
-    CInterface3D* screen_;           // +0x00 the 3D interface (its width_ and height_ in pixels)
-    CUiSurface* surface_;            // +0x04 while shown
-    mfc::impl::CFont* font_;         // +0x08 CFont (selected into the surface's CDC)
-    CStringArray commands_;          // +0x0C commands entered (input history)
-    int commandIndex_;               // +0x20 the one shown by up/down (-1 or size: none)
-    mfc::CString input_;             // +0x24 the line being typed
-    int caret_;                      // +0x28 caret position (bytes, at a character's start: U4)
-    int anchor_;                     // +0x2C other end of the selection (== caret_: none)
-    int width_;                      // +0x30 pixels, at least 76
-    int height_;                     // +0x34 pixels, at least 69
-    RECT rect_;                      // +0x38 the window in 800x600 coordinates (after clamping)
-    RECT screenRect_;                // +0x48 the window in pixels
-    CStringArray lines_;             // +0x58
-    int history_;                    // +0x6C lines kept
-    int visibleLines_;               // +0x70
-    int scroll_;                     // +0x74 lines scrolled back (0 = at the end)
-    bool ctrl_;                      // +0x78 Ctrl held (set by key down 0x11)
-    bool shift_;                     // +0x79 Shift held (0x10): the selection grows
-    bool shown_;                     // +0x7A
+    CInterface3D* screen_;           // the 3D interface (its width_ and height_ in pixels)
+    CUiSurface* surface_;            // while shown
+    mfc::impl::CFont* font_;         // CFont (selected into the surface's CDC)
+    CStringArray commands_;          // commands entered (input history)
+    int commandIndex_;               // the one shown by up/down (-1 or size: none)
+    mfc::CString input_;             // the line being typed
+    int caret_;                      // caret position (bytes, at a character's start: U4)
+    int anchor_;                     // other end of the selection (== caret_: none)
+    int width_;                      // pixels, at least 76
+    int height_;                     // pixels, at least 69
+    RECT rect_;                      // the window in 800x600 coordinates (after clamping)
+    RECT screenRect_;                // the window in pixels
+    CStringArray lines_;
+    int history_;                    // lines kept
+    int visibleLines_;
+    int scroll_;                     // lines scrolled back (0 = at the end)
+    bool ctrl_;                      // Ctrl held (set by key down 0x11)
+    bool shift_;                     // Shift held (0x10): the selection grows
+    bool shown_;
     std::uint8_t unused_7B;
 };
 static_assert(offsetof(ConsoleWindow, lines_) == 0x58 && offsetof(ConsoleWindow, shown_) == 0x7A);

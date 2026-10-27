@@ -19,9 +19,9 @@ struct RasterTriangle {
         Point texture;
     };
     Corner corners[3];
-    // +0x30 a keyed texture's texels (CTexture::block_), or null. Set: the figure meshes
-    // rasterise through slot 9, which samples them as 16-bit 1:5:5:5 texels at the corners' texture
-    // points (wrapping at the row pitch, RasterTarget +0x38) and shadows only where the top bit is set.
+    // A keyed texture's texels (CTexture::block_), or null. Set: the figure meshes rasterise through
+    // the triangle virtual, which samples them as 16-bit 1:5:5:5 texels at the corners' texture points
+    // (wrapping at the row pitch, RasterTarget::keyPitch) and shadows only where the top bit is set.
     const std::uint8_t* keyTexels;
 };
 static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, keyTexels) == 0x30);
@@ -29,8 +29,8 @@ static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, key
 // The whole target a shadow's parts are rasterised into (map_object_shadow.cpp fills it): the
 // triangle the callees write, then the surface's bits.
 struct RasterTarget : RasterTriangle {
-    void* bits;                // +0x34
-    int keyPitch;              // +0x38 the key texels' row pitch in bytes (only slot 9 reads it)
-    int pitch;                 // +0x3C
+    void* bits;
+    int keyPitch;              // the key texels' row pitch in bytes (only that virtual reads it)
+    int pitch;
 };
 static_assert(offsetof(RasterTarget, bits) == 0x34 && sizeof(RasterTarget) == 0x40);

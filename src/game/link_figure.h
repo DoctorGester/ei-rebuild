@@ -24,9 +24,9 @@ class CLight;        // spell.h
 // The figure mesh drawer's base (an engine object with the mesh it draws).
 // No object of the base alone exists.
 struct FigureDrawerBase : CEngineObject {
-    // The deleting destructors (slot 0) free into the game's heap.
+    // The deleting destructors free into the game's heap.
 
-    CFigureMesh* mesh_;         // +0x1C the mesh it draws
+    CFigureMesh* mesh_;         // the mesh it draws
 
 protected:
     // The engine object's fields (no references, id -1, no owner), no mesh.
@@ -60,7 +60,7 @@ struct FigureMeshDrawer : FigureDrawerBase {
     const char* GetClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
     int GetClassId() override;             // 0x36
 
-    // No flags; +0x30 becomes (1, 1, 1). Returns 1.
+    // No flags; spare30_ becomes (1, 1, 1). Returns 1.
     int CreateDrawer();
     // No mesh, no flags.
     void DestroyDrawer();
@@ -71,8 +71,8 @@ struct FigureMeshDrawer : FigureDrawerBase {
     // 4 x 4 sheet, 16 32 frames of 8 x 4 (u = column / 4 or / 8, v = 1 - row / 4); 15 none.
     void Animate(float time);
 
-    RECT screen_;               // +0x20 where the mesh was last drawn
-    Vector3 spare30_;           // +0x30 (1, 1, 1) after Create; nothing reads it
+    RECT screen_;               // where the mesh was last drawn
+    Vector3 spare30_;           // (1, 1, 1) after Create; nothing reads it
 };
 static_assert(offsetof(FigureMeshDrawer, mesh_) == 0x1C && offsetof(FigureMeshDrawer, screen_) == 0x20);
 static_assert(offsetof(FigureMeshDrawer, spare30_) == 0x30 && sizeof(FigureMeshDrawer) == 0x3C);
@@ -84,33 +84,33 @@ class CTexture;         // texture.h
 
 struct CDXSurface;   // texture.h
 
-// A part's header in the mesh's map +0x14 (map<string, LinkPartHeader>; 0x50 bytes, zeroed when
-// the map inserts it).
+// A part's header in the mesh's header map (map<string, LinkPartHeader>; 0x50 bytes, zeroed when the
+// map inserts it).
 struct LinkPartHeader {
-    // +0x00 / +0x04 the second / first dword after the FIG header: the part's CFigureMesh::meshType_
-    // and materialValue_ (an object's part copies them and the box, CObject3D::LoadPart).
+    // The second / first dword after the FIG header: the part's CFigureMesh::meshType_ and
+    // materialValue_ (an object's part copies them and the box, CObject3D::LoadPart).
     std::uint32_t meshType;
     std::uint32_t materialValue;
-    ClipBounds bounds;          // +0x08 fitted to the part's morphed vertices
-    Vector3 pivot;              // +0x34 the part's position when loaded (CFigureMesh::boxPivot_)
-    RECT screen;                // +0x40 where the part was last drawn (empty: not drawn)
+    ClipBounds bounds;          // fitted to the part's morphed vertices
+    Vector3 pivot;              // the part's position when loaded (CFigureMesh::boxPivot_)
+    RECT screen;                // where the part was last drawn (empty: not drawn)
 };
 static_assert(offsetof(LinkPartHeader, screen) == 0x40);
 static_assert(offsetof(LinkPartHeader, bounds) == 0x08);
 static_assert(sizeof(LinkPartHeader) == 0x50);
 
-// Where a part's elements lie in the mesh's arrays (map +0x9C: map<string, LinkPartRanges>).
+// Where a part's elements lie in the mesh's arrays (the ranges map: map<string, LinkPartRanges>).
 struct LinkPartRanges {
     struct Range {
         int start;
         int count;
     };
-    Range vertices;   // +0x00
-    Range normals;    // +0x08
-    Range texCoords;  // +0x10
-    Range corners;    // +0x18
-    Range words;      // +0x20
-    Range indices;    // +0x28
+    Range vertices;
+    Range normals;
+    Range texCoords;
+    Range corners;
+    Range words;
+    Range indices;
 };
 static_assert(sizeof(LinkPartRanges) == 0x30);
 
@@ -145,11 +145,10 @@ public:
     virtual bool GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                              std::uint16_t** indices, int* vertexCount, int* indexCount) = 0;
     // Draws (link_mesh_draw.cpp): a figure mesh's part `name` drawn through this figure
-    // (CObject3D::figure): the first fills a flat part's colours and speculars, the second
-    // lights it (both: false when there is no such part), the next four
-    // draw it (with the mesh's per-vertex offsets: first / third; with two textures'
-    // surfaces: 11 / 12). The draws return 2 when nothing was drawn. `u`, `v` are the mesh's
-    // +0xCC / +0xD0 members.
+    // (CObject3D::figure): the first fills a flat part's colours and speculars, the second lights it
+    // (both: false when there is no such part), the next four draw it (with the mesh's per-vertex
+    // offsets: first / third; with two textures' surfaces: 11 / 12). The draws return 2 when nothing
+    // was drawn. `u`, `v` are members of the mesh.
     virtual bool FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
                              lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars) = 0;
     virtual bool LightPart(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
@@ -177,22 +176,21 @@ public:
     // The deleting destructors free into the game's heap.
     static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
-    int refCount_;                    // +0x04
-    stlp::string name_;               // +0x08
-    LinkHeaderMap headers_;           // +0x14
+    int refCount_;
+    stlp::string name_;
+    LinkHeaderMap headers_;
 
 protected:
     // The part's reference count: none, the name copied, no headers.
     explicit CLinkMeshBase(const stlp::string* name);
 };
 
-// A figure's mesh (0xB0 bytes): the parts' elements
-// concatenated in the arrays. A real virtual class. The draws go through the device
-// (link_mesh_draw.cpp).
+// A figure's mesh (0xB0 bytes): the parts' elements concatenated in the arrays. A real virtual class.
+// The draws go through the device (link_mesh_draw.cpp).
 class CLinkMesh : public CLinkMeshBase {
 public:
-    // The base's part, the coefficients stored, the arrays and the ranges map empty, the
-    // pipeline taken from the loader's renderer (+0xAC -> +0xC).
+    // The base's part, the coefficients stored, the arrays and the ranges map empty, the pipeline taken
+    // from the loader's renderer.
     CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u);
     // The ranges map, the arrays (indices first), then the base's destructor.
     ~CLinkMesh() override;
@@ -237,24 +235,24 @@ public:
     // Constructs a copy of the name in `out` (link_loader.cpp).
     stlp::string* CopyName(stlp::string* out) const;
 
-    // Appends a part: false when `name` is already a part; otherwise each
-    // array grows by its count and gets the elements, and the part's ranges are recorded; true.
+    // Appends a part: false when `name` is already a part; otherwise each array grows by its count and
+    // gets the elements, and the part's ranges are recorded; true.
     bool AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount, const NormalPacket* normals,
                 int normalCount, const TexCoord* texCoords, int texCoordCount, const MeshCorner* corners,
                 int cornerCount, const std::uint32_t* words, int wordCount, const std::uint16_t* indices,
                 int indexCount);
 
-    RECT screenRect_;                 // +0x20
-    float morphWeights_[3];           // +0x30 the morph coefficients (s, t, u) the figure was loaded with
-    lib::AlignedArray<VertexPacket> vertices_;   // +0x3C
-    lib::AlignedArray<NormalPacket> normals_;    // +0x4C
-    lib::AlignedArray<TexCoord> texCoords_;      // +0x5C
-    TriangleIndexArray corners_;            // +0x6C 6-byte triangle corners (MeshCorner)
-    lib::AlignedArray<std::uint32_t> words_;     // +0x7C
-    lib::AlignedArray<std::uint16_t> indices_;   // +0x8C
-    LinkRangeMap ranges_;             // +0x9C
-    CLinkFigureLoader* loader_;       // +0xA8
-    ITransformPipeline* pipeline_;    // +0xAC
+    RECT screenRect_;
+    float morphWeights_[3];           // the morph coefficients (s, t, u) the figure was loaded with
+    lib::AlignedArray<VertexPacket> vertices_;
+    lib::AlignedArray<NormalPacket> normals_;
+    lib::AlignedArray<TexCoord> texCoords_;
+    TriangleIndexArray corners_;            // 6-byte triangle corners (MeshCorner)
+    lib::AlignedArray<std::uint32_t> words_;
+    lib::AlignedArray<std::uint16_t> indices_;
+    LinkRangeMap ranges_;
+    CLinkFigureLoader* loader_;
+    ITransformPipeline* pipeline_;
 };
 static_assert(offsetof(CLinkMesh, refCount_) == 0x04);
 static_assert(offsetof(CLinkMesh, headers_) == 0x14);

@@ -1,12 +1,11 @@
 #pragma once
 
-// The interface sprites' shape builders (ui_mesh_build.cpp; see
-// docs/notes/ui.md, "Sprite shapes"). Each one fills a sprite (CUiMesh, ui.h) from scratch: its
-// quad positions (+0x1C0, in the sprite's own units: layout pixels / scale), the vertex records
-// (+0x1E0), the triangle indices (+0x200), the texture coordinates (+0x210, texels / 256, nudged
-// by half a texel), the placement (+0x1C position, +0x23C/+0x250/+0x264 scale) and hands the arrays
-// to the renderer (Commit). They also size three per-vertex arrays (+0x1D0 one block of
-// 0x40 bytes: four 0s, four 0s, four 1s, four 1s; +0x138 and +0x148 four entries each).
+// The interface sprites' shape builders (ui_mesh_build.cpp; see docs/notes/ui.md, "Sprite shapes").
+// Each one fills a sprite (CUiMesh, ui.h) from scratch: its quad positions (in the sprite's own units:
+// layout pixels / scale), the vertex records, the triangle indices, the texture coordinates (texels /
+// 256, nudged by half a texel), the placement (position and the three scales) and hands the arrays to
+// the renderer (Commit). They also size three per-vertex arrays (one block of 0x40 bytes: four 0s,
+// four 0s, four 1s, four 1s; two with four entries each).
 
 #include "ui.h"
 
@@ -26,8 +25,8 @@ public:
     // count / 2 quads; texels (u0, v0)-(u1, v1) for every segment.
     void Ring(float depth, float scale, float x, float y, float radius, int count, float width, int u0, int v0, int u1,
               int v1);
-    // Only the per-vertex arrays: +0x1D0 one block (four 0s, four 0s, four 1s, four 1s),
-    // +0x138 and +0x148 four entries (the builders' common start; the original inlines the sizing).
+    // Only the per-vertex arrays: one block (four 0s, four 0s, four 1s, four 1s) and two with four
+    // entries (the builders' common start).
     void ResetColours();
 };
 static_assert(sizeof(CUiMeshBuilder) == sizeof(CUiMesh));
