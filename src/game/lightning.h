@@ -82,9 +82,9 @@ public:
     const char* GetClassName() override;
     int GetClassId() override;
 
-    void DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size);
+    void DrawGlow(CSceneRenderer* device, const Vector3* position, int /*frame: not used*/, float size);
     // Draws the bolt (render device virtuals, glow sprites); lightning_draw.cpp.
-    int Draw(void* device);
+    int Draw(CSceneRenderer* device);
     // Grows the bounding box by the points of one segment.
     void ExpandBounds(const LightningSegment* segment);
     // Bounding box and sphere of all segments (centre, box relative to it, radius).
@@ -133,7 +133,7 @@ public:
     CEngineObject* NewObject(int type) override;
     // Draws every bolt it owns (its object list), then drops the references of the new-bolt list and
     // empties it. Returns 1.
-    int DrawAll(void* device);
+    int DrawAll(CSceneRenderer* device);
     // Create (class_slots.cpp): loads the noise table on the first call, then the base manager's Create.
     int Create() override;
 
