@@ -41,7 +41,6 @@ namespace {
 } // namespace
 
 const ElementKind kFloats{4, ConstructAs<mfc::impl::Plain4>, nullptr, nullptr};
-const ElementKind kStrings{4, ConstructAs<mfc::impl::Strings>, DestructAs<mfc::impl::Strings>, DestructAs<mfc::impl::Strings>};
 const ElementKind kRefs{4, ConstructAs<mfc::impl::Plain4>, DestroyEach<ScriptObjectRef, &ScriptObjectRef::DestroyElement>, DestructAs<gamearrays::ObjectRefs>};
 const ElementKind kGroups{0x14, ConstructAs<mfc::impl::ScriptGroups>, DestroyEach<ScriptGroup, &ScriptGroup::DestroyElement>, DestructAs<gamearrays::Groups>};
 const ElementKind kCmds{0x94, ConstructAs<recordarrays::Cmds>, DestroyEach<SSCCmd, &SSCCmd::DestroyElement>, DestroyEach<SSCCmd, &SSCCmd::DestroyElement>};
@@ -158,16 +157,16 @@ template <> void ScriptNamedValues<float>::Load(ScriptStream* stream) {
 }
 EI_REWRITTEN(0x004C2D40, ScriptNamedValues<float>::Load);
 
-template <> void ScriptNamedValues<mfc::CString>::Load(ScriptStream* stream) {
+template <> void ScriptNamedValues<std::string>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
-    InlineSetSize(Raw(&values), count, kStrings);
+    values.SetSize(count, -1);
     names.SetSize(count, -1);
     for (int i = 0; i < values.size; ++i) {
         ScriptStringLoad(&values.data[i], stream);
         ScriptStringLoad(&names.data[i], stream);
     }
 }
-EI_REWRITTEN(0x004C3200, ScriptNamedValues<mfc::CString>::Load);
+EI_REWRITTEN(0x004C3200, ScriptNamedValues<std::string>::Load);
 
 // An object variable: the world's object with the saved id (FindObject), -1 = none. The old
 // reference is released after the lookup.
@@ -259,19 +258,11 @@ void ScriptSubCall::Load(ScriptStream* stream) {
 }
 EI_REWRITTEN(0x004B6330, ScriptSubCall::Load);
 
-void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
-    mfc::CString temporary(mfc::CString::kUnset);
-    *out = *stream->ReadString(&temporary);
-}
-EI_REWRITTEN(0x004B3D10, ScriptStringLoad);
-
-namespace {
-// ScriptStringLoad into a std::string.
-void LoadText(std::string* out, ScriptStream* stream) {
+void __fastcall ScriptStringLoad(std::string* out, ScriptStream* stream) {
     mfc::CString temporary(mfc::CString::kUnset);
     *out = stream->ReadString(&temporary)->GetString();
 }
-} // namespace
+EI_REWRITTEN(0x004B3D10, ScriptStringLoad);
 
 // ---- Command blocks and if-then pairs --------------------------------------------------------------
 
@@ -473,8 +464,8 @@ void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream)
         // A temporary empty definition is copied into the node, then destroyed (frees nothing).
         struct {
             int index;
-            mfc::CString name;
-            mfc::CString params;
+            std::string name;
+            std::string params;
             mfc::CArray<ScriptIfThen> ifThen;
             ScriptVars vars;
         } temp{};
@@ -494,8 +485,8 @@ void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream)
         node = node->next;
         stream->Read(&instance->index, 4);
         // Each string is read into a temporary and assigned.
-        LoadText(&instance->name, stream);
-        LoadText(&instance->params, stream);
+        ScriptStringLoad(&instance->name, stream);
+        ScriptStringLoad(&instance->params, stream);
         int pairs = ReadInt(stream);
         instance->ifThen.SetSize(pairs, -1);
         for (int k = 0; k < instance->ifThen.size; ++k) instance->ifThen.data[k].Load(stream);
@@ -582,8 +573,8 @@ void CScript::LoadState(ScriptStream* stream) {
     for (int i = 0; i < scripts.size; ++i) {
         ScriptDefinition* definition = &scripts.data[i];
         stream->Read(&definition->index, 4);
-        LoadText(&definition->name, stream);
-        LoadText(&definition->params, stream);
+        ScriptStringLoad(&definition->name, stream);
+        ScriptStringLoad(&definition->params, stream);
         ScriptIfThenLoad(&definition->ifThen, stream);
         definition->vars.Load(stream);
     }

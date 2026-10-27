@@ -38,13 +38,6 @@ enum ScriptType : int {
 using ScriptStream = CStream;
 
 
-// A CString returned by value into raw storage; destroyed at the end of the scope.
-struct TempString {
-    mfc::CString value{mfc::CString::kUnset};
-    mfc::CString& Get() { return value; }
-};
-static_assert(sizeof(TempString) == 4);
-
 // A counted reference to a world object: holding one keeps the object's refCount_ raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags_ set.
 struct ScriptObjectRef {
@@ -81,12 +74,13 @@ struct ScriptDefinition;
 class SSCCmd;
 
 // The variable names, the string values, the definitions' parameter names.
-struct ScriptStrings : mfc::CArray<mfc::CString> {
+struct ScriptStrings : mfc::CArray<std::string> {
     void SetAtGrow(int index, const std::string& text);
-    // A by-value GetAt into `out`.
-    void CopyTo(int index, mfc::CString* out) const;
+    // A by-value GetAt assigned to `out`.
+    void CopyTo(int index, std::string* out) const;
     ScriptStrings* CopyConstruct(const ScriptStrings* other);
-    mfc::CString* CopyAt(mfc::CString* out, int index) const;
+    // A by-value GetAt constructed in raw storage at `out`.
+    std::string* CopyAt(std::string* out, int index) const;
     void CopyFrom(const ScriptStrings& source);
 };
 
@@ -749,19 +743,19 @@ struct ScriptNamedValues {
     ScriptStrings names;
 };
 template <> void ScriptNamedValues<float>::Load(ScriptStream* stream);
-template <> void ScriptNamedValues<mfc::CString>::Load(ScriptStream* stream);
+template <> void ScriptNamedValues<std::string>::Load(ScriptStream* stream);
 template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream);
 template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream);
 template <> void ScriptNamedValues<float>::Save(ScriptStream* stream) const;
-template <> void ScriptNamedValues<mfc::CString>::Save(ScriptStream* stream) const;
+template <> void ScriptNamedValues<std::string>::Save(ScriptStream* stream) const;
 template <> void ScriptNamedValues<ScriptObjectRef>::Save(ScriptStream* stream) const;
 template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) const;
 template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>* other);
-template <> void ScriptNamedValues<mfc::CString>::Append(const ScriptNamedValues<mfc::CString>* other);
+template <> void ScriptNamedValues<std::string>::Append(const ScriptNamedValues<std::string>* other);
 template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedValues<ScriptObjectRef>* other);
 template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<ScriptGroup>* other);
 template <> ScriptNamedValues<float>* ScriptNamedValues<float>::CopyConstruct(const ScriptNamedValues<float>* other);
-template <> ScriptNamedValues<mfc::CString>* ScriptNamedValues<mfc::CString>::CopyConstruct(const ScriptNamedValues<mfc::CString>* other);
+template <> ScriptNamedValues<std::string>* ScriptNamedValues<std::string>::CopyConstruct(const ScriptNamedValues<std::string>* other);
 template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRef>::CopyConstruct(const ScriptNamedValues<ScriptObjectRef>* other);
 template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::CopyConstruct(const ScriptNamedValues<ScriptGroup>* other);
 static_assert(sizeof(ScriptNamedValues<float>) == 0x28);
@@ -800,7 +794,7 @@ void __fastcall ScriptCmdClear(SSCCmd* cmd);
 
 // ---- Constructor, reset and small loaders ----
 void __fastcall ScriptDefinitionReset(ScriptDefinition* definition);
-void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream);
+void __fastcall ScriptStringLoad(std::string* out, ScriptStream* stream);
 
 // ---- Destructors and AppendFrom ----
 void __fastcall ScriptVarsDestruct(ScriptVars* vars);
@@ -809,20 +803,20 @@ void __fastcall ScriptCmdDestruct(SSCCmd* cmd);
 
 // One type's values destroyed and freed, then the names emptied.
 void __fastcall ScriptFloatsClear(ScriptNamedValues<float>* vars);
-void __fastcall ScriptStringsClear(ScriptNamedValues<mfc::CString>* vars);
+void __fastcall ScriptStringsClear(ScriptNamedValues<std::string>* vars);
 void __fastcall ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars);
 void __fastcall ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars);
 void __fastcall ScriptVarsClear(ScriptVars* vars);
 
 // ---- Variable array constructors and destructors ----
 ScriptNamedValues<float>* __fastcall ScriptFloatsConstruct(ScriptNamedValues<float>* vars);
-ScriptNamedValues<mfc::CString>* __fastcall ScriptStringsConstruct(ScriptNamedValues<mfc::CString>* vars);
+ScriptNamedValues<std::string>* __fastcall ScriptStringsConstruct(ScriptNamedValues<std::string>* vars);
 ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars);
 ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsConstruct(ScriptNamedValues<ScriptGroup>* vars);
 void __fastcall ScriptFloatsDestruct(ScriptNamedValues<float>* vars);
-void __fastcall ScriptStringsDestruct(ScriptNamedValues<mfc::CString>* vars);
+void __fastcall ScriptStringsDestruct(ScriptNamedValues<std::string>* vars);
 void __fastcall ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars);
-void __fastcall ScriptNamesDestruct(mfc::CArray<mfc::CString>* names);
+void __fastcall ScriptNamesDestruct(mfc::CArray<std::string>* names);
 void __fastcall ScriptRefArrayDestruct(mfc::CArray<ScriptObjectRef>* refs);
 void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups);
 void __fastcall ScriptRunDestruct(ScriptRun* run);
@@ -850,7 +844,7 @@ inline CScript* g_streamedScript = /*007AA620*/ {nullptr};
 inline mfc::CString& ScriptQuestName() { return *g_scriptQuestName; }
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
 void __fastcall ScriptQuestStart(const char* name);
-void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value);
+void __fastcall ScriptQuestAddObjective(int type, const std::string& text, float value);
 
 // ---- Loader arrays ----
 // The pointer stays.

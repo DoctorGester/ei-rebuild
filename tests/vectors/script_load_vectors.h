@@ -9,6 +9,8 @@
 // call left: the result, the script's error (code, line, text) and hashes (HashBytes of a serialiser's
 // bytes) of what it built. Arrays are written with their shape (size, allocated size, grow-by); object
 // and group values only by count (the loader never reads them, and the replay has no world objects).
+// The serialisers take game.exe's objects through script_original.h's views when recording (CString
+// texts) and ours when checking.
 //
 // Tokens (PutRun): the tokens the call consumed (count, then text and line each), whether a token
 // followed them (u8, then its text and line: the position the call ended at), the tail's line (i32;
@@ -54,14 +56,16 @@ void PutShape(Writer& w, const mfc::CArray<T>& a) {
     w.Put<std::int32_t>(a.growBy);
 }
 
-inline void PutTexts(Writer& w, const mfc::CArray<mfc::CString>& a) {
+template <typename Text>
+void PutTexts(Writer& w, const mfc::CArray<Text>& a) {
     PutShape(w, a);
     for (int i = 0; i < a.size; ++i) PutText(w, a.data[i]);
 }
 
 // A variable set: names and values per type (floats bit for bit, strings as text, objects and groups
-// by count).
-inline void PutVars(Writer& w, const ScriptVars& v) {
+// by count). game.exe's (OriginalScriptVars) when recording, ours when checking.
+template <typename Vars>
+void PutVars(Writer& w, const Vars& v) {
     PutShape(w, v.floats);
     if (v.floats.size) w.PutBytes(v.floats.data, static_cast<std::size_t>(v.floats.size) * 4);
     PutTexts(w, v.floatNames);
@@ -73,13 +77,15 @@ inline void PutVars(Writer& w, const ScriptVars& v) {
     PutTexts(w, v.groupNames);
 }
 
-inline void PutBlockRef(Writer& w, const ScriptDecl* block) {
+template <typename Block>
+void PutBlockRef(Writer& w, const Block* block) {
     w.Put<std::uint8_t>(block ? 1 : 0);
     if (block) w.Put<std::int32_t>(block->id);
 }
 
 // A call tree: constants, which object / group slots are set, bindings, nested calls, the block.
-inline void PutCmd(Writer& w, const SSCCmd& c) {
+template <typename Cmd>
+void PutCmd(Writer& w, const Cmd& c) {
     w.Put<std::int32_t>(c.id);
     PutShape(w, c.floatArgs);
     if (c.floatArgs.size) w.PutBytes(c.floatArgs.data, static_cast<std::size_t>(c.floatArgs.size) * 4);
@@ -94,7 +100,7 @@ inline void PutCmd(Writer& w, const SSCCmd& c) {
     }
     PutShape(w, c.subCalls);
     for (int i = 0; i < c.subCalls.size; ++i) {
-        const ScriptSubCall& s = c.subCalls.data[i];
+        const auto& s = c.subCalls.data[i];
         w.Put<std::int32_t>(s.type);
         w.Put<std::int32_t>(s.argIndex);
         w.Put<std::uint8_t>(s.cmd ? 1 : 0);
@@ -103,13 +109,15 @@ inline void PutCmd(Writer& w, const SSCCmd& c) {
     PutBlockRef(w, c.calledScript);
 }
 
-inline void PutCmds(Writer& w, const mfc::CArray<SSCCmd>& a) {
+template <typename Cmd>
+void PutCmds(Writer& w, const mfc::CArray<Cmd>& a) {
     PutShape(w, a);
     for (int i = 0; i < a.size; ++i) PutCmd(w, a.data[i]);
 }
 
 // The blocks of `list` after `last` (all of them when null): count, then id and commands each.
-inline void PutBlocksAfter(Writer& w, const mfc::CList<ScriptDecl>& list, const mfc::CList<ScriptDecl>::Node* last) {
+template <typename Block>
+void PutBlocksAfter(Writer& w, const mfc::CList<Block>& list, const typename mfc::CList<Block>::Node* last) {
     std::uint32_t n = 0;
     for (auto* node = last ? last->next : list.head; node; node = node->next) ++n;
     w.Put(n);
@@ -158,7 +166,7 @@ inline void PutState(Writer& w, CScript* s, bool definitions) {
             PutVars(w, d.vars);
         }
     }
-    PutVars(w, *s->Globals());
+    PutVars(w, OriginalGlobals(s));
 }
 
 // (record mode: `s` is game.exe's script)

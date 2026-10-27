@@ -103,15 +103,7 @@ int CWorldServer::Update() {
     ScriptVars& globals = MainScript()->globals_;
     auto& names = globals.groupNames;
     for (int i = 0; i < names.size; ++i) {
-        bool found;
-        {
-            lib::InPlace<mfc::CString> storage;
-            mfc::CString* name = names.CopyAt(storage.Get(), i);
-            found = gamecrt::mbscmp(name->GetString(),
-                                    worlddata::HeroesGroupText()) == 0;
-            std::destroy_at(name);
-        }
-        if (found) {
+        if (gamecrt::mbscmp(names.data[i].c_str(), worlddata::HeroesGroupText()) == 0) {
             lib::InPlace<ScriptGroup> storage;
             ScriptGroup* group = globals.groups.CopyAt(storage.Get(), i);
             heroes.CopyFrom(*group);

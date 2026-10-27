@@ -396,9 +396,20 @@ to which template:
   ReadLine, ReadToHash, PeekWord, GetString, GetItemTexts, FormatItemName, text::ReplaceChar, and their callers'
   locals (c14_strings.py --string-out), CHudQuickItems::ItemTip, the trade panel's PerkBaseName, the options'
   ReadTip; Split collects into a std::string word.
+  Batch 10: ScriptStrings (the variables' names and string values, the commands' string arguments) is a
+  `mfc::CArray<std::string>`: mfc.h's `PlainElements<std::string>` builds, destroys and relocates the elements (the
+  CString one's counterpart), and `mfc::impl::Strings` (StringArrayClass, ScriptStringValuesClass) is its ABI. The
+  script's hand-inlined SetSizes of string arrays (`kStrings`, LoadFunction's InlineSetSize, addon's
+  ArgumentsSetSize) are CArray::SetSize or element-type generic; the GetAt-by-value temporaries (`TempString`) went:
+  the copies assign. ScriptStringLoad, CopyTo, CopyAt, CalcString's result, ScriptQuestAddObjective's text take
+  std::strings. The recorders read game.exe's through script_original.h's `OriginalScriptVars`,
+  `OriginalSSCCmd` / `OriginalScriptSubCall`, `OriginalScriptDecl` (`OriginalBlocks`, `OriginalGlobals`);
+  script_load_vectors.h's PutVars / PutCmd / PutCmds / PutBlocksAfter are templates over either side's types. The
+  harness digest reads the strings through `Text()`. Also: text::Join fills a std::string, Split cuts a std::string,
+  `CWorldClient::ObjectVariableName` returns the name.
 - Members that must stay CStrings for now: stlp::vector<CString> (CStringVector) members and CStringArrays
-  (ScriptStrings: the script's variable names and string values, which the recorders read in game.exe through
-  script.h; ScriptStringLoad loads into their elements).
+  (mfc::CStringArray and console::CStringArray: the console's history and lines, every command's arguments, Split /
+  SplitWords / Join, the ui's label and text arrays, the map specs' name lists).
   To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>

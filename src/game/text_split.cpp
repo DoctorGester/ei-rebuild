@@ -15,20 +15,20 @@ namespace {
 // The two splitters: the text plus a final separator, cut at each separator.
 int SplitAt(const char* text, mfc::CStringArray* array, char separator, bool skipAdjacent) {
     std::string piece;
-    mfc::CString work(text);
+    std::string work = text;
     array->SetSize(0, -1);
-    console::Ops(work).AppendChar(separator);
+    work += separator;
     int start = 0;
-    int at = work.Find(separator);
+    int at = str::Find(work, separator);
     while (at != -1) {
         if (!skipAdjacent || at != start) {
-            piece = console::Ops(work).Mid(start, at - start);
+            piece = str::Mid(work, start, at - start);
             str::TrimLeft(piece);
             str::TrimRight(piece);
             array->SetAtGrow(array->GetSize(), piece);
         }
         start = at + 1;
-        at = work.Find(separator, start);
+        at = str::Find(work, separator, start);
     }
     return 1;
 }
@@ -61,12 +61,12 @@ int __fastcall ReplaceChar(std::string* string, char from, char to) {
 }
 EI_REWRITTEN(0x004DC400, ReplaceChar);
 
-int __fastcall Join(mfc::CString* out, const mfc::CStringArray* parts, char separator) {
+int __fastcall Join(std::string* out, const mfc::CStringArray* parts, char separator) {
     *out = game::EmptyText();
     if (parts->GetSize() == 0) return 1;
     *out += (*parts)[0];
     for (int i = 1; i < parts->GetSize(); ++i) {
-        console::Ops(*out).AppendChar(separator);
+        *out += separator;
         *out += (*parts)[i];
     }
     return 1;

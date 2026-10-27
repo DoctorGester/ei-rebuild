@@ -264,6 +264,19 @@ void MoveElements(T* to, T* from, int count) {
     }
 }
 
+// std::string elements (the script's string arrays): each new element the empty string, each removed one
+// destroyed, moved element by element where CArray relocates (MoveElements).
+template <>
+struct PlainElements<std::string> {
+    static void Construct(std::string* elements, int count) {
+        for (; count--; ++elements) std::construct_at(elements);
+    }
+    static void Destruct(std::string* elements, int count) {
+        for (; count--; ++elements) std::destroy_at(elements);
+    }
+    static void Relocate(std::string* to, std::string* from, int count) { MoveElements(to, from, count); }
+};
+
 // Only what the CArray serialisers use: the mode (bit 0: loading).
 class CArchive {
 public:

@@ -58,21 +58,12 @@ void TokensDestruct(ScriptTokenList* tokens) {
     gamelists::Tokens::Destruct<gameslots::TokenListClass>(mfc::impl::ListAs<gamelists::Tokens>(tokens));
 }
 
-// ConstructElements / DestructElements for CString (the library's
-// mfc::impl::ConstructStrings / DestructStrings do exactly this).
-void ConstructStrings(mfc::CString* elements, int count) {
-    for (; count--; ++elements) std::construct_at(elements);
-}
-void DestructStrings(mfc::CString* elements, int count) {
-    for (; count--; ++elements) std::destroy_at(elements);
-}
-
 // ---- Small helpers ------------------------------------------------------------------------------
 
 // Index of `name` in a variable name array (four identical copies).
-int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
+int FindName(const mfc::CArray<std::string>& names, const char* name) {
     for (int i = 0; i < names.size; ++i)
-        if (Mbscmp(names.data[i], name) == 0) return i;
+        if (Mbscmp(names.data[i].c_str(), name) == 0) return i;
     return -1;
 }
 
@@ -89,53 +80,6 @@ int CountChar(const char* text, char c) {
     for (; *text; ++text)
         if (*text == c) ++n;
     return n;
-}
-
-// CArray::SetSize(n, -1) as the game inlines it into LoadFunction. Elements are constructed by
-// zeroing (floats, object and group pointers) or with the CString helpers; only strings are
-// destructed when the array shrinks.
-template <typename T>
-void InlineSetSize(mfc::CArray<T>& a, int n) {
-    constexpr bool strings = std::is_same_v<T, mfc::CString>;
-    auto construct = [](T* p, int count) {
-        if constexpr (strings) ConstructStrings(p, count);
-        else std::memset(p, 0, static_cast<unsigned>(count) * 4);
-    };
-    static_assert(sizeof(T) == 4);
-    if (n == 0) {
-        if (a.data) {
-            if constexpr (strings) DestructStrings(a.data, a.size);
-            gamecrt::operator_delete(a.data);
-            a.data = nullptr;
-        }
-        a.maxSize = 0;
-        a.size = 0;
-    } else if (!a.data) {
-        a.data = gamecrt::operator_new_array<T>(static_cast<unsigned>(n));
-        construct(a.data, n);
-        a.maxSize = n;
-        a.size = n;
-    } else if (n <= a.maxSize) {
-        if (n > a.size) construct(a.data + a.size, n - a.size);
-        else if constexpr (strings) { if (n < a.size) DestructStrings(a.data + n, a.size - n); }
-        a.size = n;
-    } else {
-        int grow = a.growBy;
-        if (grow == 0) {
-            grow = a.size / 8;
-            if (grow < 4) grow = 4;
-            else if (grow > 1024) grow = 1024;
-        }
-        int newMax = a.maxSize + grow;
-        if (n >= newMax) newMax = n;
-        T* data = gamecrt::operator_new_array<T>(static_cast<unsigned>(newMax));
-        std::memcpy(data, a.data, static_cast<unsigned>(a.size) * 4);
-        construct(data + a.size, n - a.size);
-        gamecrt::operator_delete(a.data);
-        a.data = data;
-        a.size = n;
-        a.maxSize = newMax;
-    }
 }
 
 // Frees an array's buffer and empties it (the bindings arrays in LoadFunction).
@@ -266,10 +210,10 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
     }
 
     cmd->id = id;
-    InlineSetSize(cmd->floatArgs, CountChar(signature, 'f') + floatCount);
-    InlineSetSize(cmd->stringArgs, CountChar(signature, 's') + stringCount);
-    InlineSetSize(cmd->objectArgs, CountChar(signature, 'o') + CountChar(signature, 'O'));
-    InlineSetSize(cmd->groupArgs, CountChar(signature, 'g'));
+    cmd->floatArgs.SetSize(CountChar(signature, 'f') + floatCount);
+    cmd->stringArgs.SetSize(CountChar(signature, 's') + stringCount);
+    cmd->objectArgs.SetSize(CountChar(signature, 'o') + CountChar(signature, 'O'));
+    cmd->groupArgs.SetSize(CountChar(signature, 'g'));
     FreeArray(cmd->localBindings);
     FreeArray(cmd->globalBindings);
     mfc::impl::ArrayAs<recordarrays::SubCalls>(cmd->subCalls).SetSize(0, -1);

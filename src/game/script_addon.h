@@ -13,26 +13,26 @@ namespace scriptaddon {
 // What addon passes its handlers (built by the dispatch hooks and called through
 // the command map). Calc functions: `result` is CalcFloat's float*, CalcObject's ScriptObjectRef**
 // (holding the new temporary), CalcGroup's ScriptGroup** (holding the new temporary group) or
-// CalcString's mfc::CString*. Commands (ScriptRun::Execute): `cont` is the command's "go on"
+// CalcString's std::string*. Commands (ScriptRun::Execute): `cont` is the command's "go on"
 // flag (1 on entry) and `run` the running script; `result` is null.
 struct Call {
     // The result slot, of the type the calling Calc function gives it (none for a command).
     struct Result {
         Result(std::nullptr_t) {}
         Result(float* slot) : number(slot) {}
-        Result(mfc::CString* slot) : text(slot) {}
+        Result(std::string* slot) : text(slot) {}
         Result(ScriptObjectRef** slot) : object(slot) {}
         Result(ScriptGroup** slot) : group(slot) {}
         union {
             float* number = nullptr;
-            mfc::CString* text;
+            std::string* text;
             ScriptObjectRef** object;
             ScriptGroup** group;
         };
     };
 
     float* FloatResult() const { return result.number; }
-    mfc::CString* StringResult() const { return result.text; }
+    std::string* StringResult() const { return result.text; }
     ScriptObjectRef* ObjectResult() const { return *result.object; }
     ScriptGroup* GroupResult() const { return *result.group; }
 
@@ -66,6 +66,6 @@ void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId);
 
 // SSCCmd::CalcString (which the patched CalcParameters calls for a string argument):
 // prepares the arguments, then addon's string function or the game's fatal error.
-void CalcString(SSCCmd* cmd, CScript* script, ScriptVars* vars, mfc::CString* result);
+void CalcString(SSCCmd* cmd, CScript* script, ScriptVars* vars, std::string* result);
 
 } // namespace scriptaddon

@@ -66,7 +66,7 @@ void __fastcall ScriptReset(CScript* script) {
 
     ScriptVars* globals = script->Globals();
     ScriptFloatsClear(NamedValues(&globals->floats));
-    ScriptStringsClear(NamedValues<mfc::CString>(&globals->strings));
+    ScriptStringsClear(NamedValues<std::string>(&globals->strings));
     ScriptObjectsClear(NamedValues<ScriptObjectRef>(&globals->objects));
     ScriptGroupsClear(NamedValues<ScriptGroup>(&globals->groups));
     script->forDepth_ = 0;

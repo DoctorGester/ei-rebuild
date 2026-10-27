@@ -109,14 +109,6 @@ EI_REWRITTEN(0x004CB220, ScriptFxSource::ScriptFxSourceAssign);
 
 namespace {
 
-// GetAt by value: CString, a referenced ScriptObjectRef, a ScriptGroup copy
-// (out, index), returning out.
-void* StringAt(const void* array, void* out, int index) {
-    return static_cast<const ScriptStrings*>(array)->CopyAt(static_cast<mfc::CString*>(out), index);
-}
-// ConstructElements for CString.
-void __stdcall ConstructStrings(void* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
-
 template <typename T>
 void InitArray(mfc::CArray<T>* a, void* vtable) {
     a->data = nullptr;
@@ -126,15 +118,11 @@ void InitArray(mfc::CArray<T>* a, void* vtable) {
     a->vtable = vtable;
 }
 
-// A string array constructed empty, resized, each element assigned from a GetAt copy.
-void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::CString>* from) {
+// A string array constructed empty, resized, each element assigned.
+void CopyConstructStrings(mfc::CArray<std::string>* to, const mfc::CArray<std::string>* from) {
     InitArray(to, gamearrays::ScriptStringValuesClass::Vtable());
     to->SetSize(from->size, -1);
-    for (int i = 0; i < from->size; ++i) {
-        TempString s;
-        StringAt(from, &s, i);
-        to->data[i] = s.Get();
-    }
+    for (int i = 0; i < from->size; ++i) to->data[i] = from->data[i];
 }
 
 // SSCCmd's copy constructor (inlined into both GetAt bodies).
@@ -182,9 +170,8 @@ ScriptSubCall* ScriptSubCalls::CopyAt(ScriptSubCall* out, int index) const {
 }
 EI_REWRITTEN(0x004CCAA0, ScriptSubCalls::CopyAt);
 
-// A name array: storage for exactly the source's size (the inlined SetSize from empty), then each
-// name assigned from a GetAt copy.
-mfc::CString* ScriptStrings::CopyAt(mfc::CString* out, int index) const {
+// The by-value GetAt, constructed at `out`.
+std::string* ScriptStrings::CopyAt(std::string* out, int index) const {
     return std::construct_at(out, data[index]);
 }
 EI_REWRITTEN(0x004CC840, ScriptStrings::CopyAt);
@@ -192,13 +179,12 @@ EI_REWRITTEN(0x004C2680, ScriptStrings::CopyAt);
 
 void ScriptStrings::CopyFrom(const ScriptStrings& source) {
     SetSize(source.size, -1);
-    for (int i = 0; i < source.size; ++i) {
-        mfc::CString copy(source.data[i]);
-        data[i] = copy;
-    }
+    for (int i = 0; i < source.size; ++i) data[i] = source.data[i];
 }
 EI_REWRITTEN(0x004C14A0, ScriptStrings::CopyFrom);
 
+// A name array: storage for exactly the source's size (the inlined SetSize from empty), then each
+// name assigned.
 ScriptStrings* ScriptStrings::CopyConstruct(const ScriptStrings* other) {
     InitArray(this, gamearrays::ScriptStringValuesClass::Vtable());
     int n = other->size;
@@ -206,16 +192,12 @@ ScriptStrings* ScriptStrings::CopyConstruct(const ScriptStrings* other) {
         maxSize = 0;
         size = 0;
     } else {
-        data = gamecrt::operator_new_array<mfc::CString>(static_cast<std::size_t>(n));
-        ConstructStrings(data, n);
+        data = gamecrt::operator_new_array<std::string>(static_cast<std::size_t>(n));
+        mfc::PlainElements<std::string>::Construct(data, n);
         maxSize = n;
         size = n;
     }
-    for (int i = 0; i < other->size; ++i) {
-        TempString s;
-        StringAt(other, &s, i);
-        data[i] = s.Get();
-    }
+    for (int i = 0; i < other->size; ++i) data[i] = other->data[i];
     return this;
 }
 EI_REWRITTEN(0x004CBA00, ScriptStrings::CopyConstruct);
@@ -328,12 +310,12 @@ template <> ScriptNamedValues<float>* ScriptNamedValues<float>::CopyConstruct(co
 EI_REWRITTEN(0x004CBB80, ScriptNamedValues<float>::CopyConstruct);
 
 // String values: values and names each through GetAt copies.
-template <> ScriptNamedValues<mfc::CString>* ScriptNamedValues<mfc::CString>::CopyConstruct(const ScriptNamedValues<mfc::CString>* other) {
+template <> ScriptNamedValues<std::string>* ScriptNamedValues<std::string>::CopyConstruct(const ScriptNamedValues<std::string>* other) {
     CopyConstructStrings(&values, &other->values);
     CopyConstructStrings(&names, &other->names);
     return this;
 }
-EI_REWRITTEN(0x004CBCA0, ScriptNamedValues<mfc::CString>::CopyConstruct);
+EI_REWRITTEN(0x004CBCA0, ScriptNamedValues<std::string>::CopyConstruct);
 
 // ScriptDefinition::operator=: the pairs read straight from the source (no GetAt), the variables as
 // ScriptVars::operator=.

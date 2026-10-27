@@ -17,9 +17,9 @@ namespace {
 // The empty string constant the game assigns to clear string variables.
 
 
-int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
+int FindName(const mfc::CArray<std::string>& names, const char* name) {
     for (int i = 0; i < names.size; ++i)
-        if (gamecrt::mbscmp(names.data[i], name) == 0) return i;
+        if (gamecrt::mbscmp(names.data[i].c_str(), name) == 0) return i;
     return -1;
 }
 
@@ -182,9 +182,8 @@ void SSCCmd::Save(ScriptStream* stream) const {
     count = stringArgs.size;
     stream->Write(&count, 4);
     for (int i = 0; i < stringArgs.size; ++i) {
-        const char* text = stringArgs.data[i];
-        int length = reinterpret_cast<const int*>(text)[-2];   // CStringData::nDataLength
-        stream->Write(text, length + 1);
+        const std::string& text = stringArgs.data[i];
+        stream->Write(text.c_str(), static_cast<std::uint32_t>(text.size()) + 1);
     }
 
     // Object and group arguments are only counted: they are re-bound on load.

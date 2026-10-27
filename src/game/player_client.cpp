@@ -655,9 +655,8 @@ int CPlayerClient::OnNewObject() {
     if (object->ReadState(0, &in_) == 0) return 0;
     TheClientWorld()->AddObject(object);
     if (object->name2[0] != 0) {
-        TextBuffer variable;
-        TheClientWorld()->ObjectVariableName(variable.Get(), object->name2.c_str());
-        object->SetVisibilityLevel(player->Party()->variables_.Get(*variable.Get()));
+        const std::string variable = TheClientWorld()->ObjectVariableName(object->name2.c_str());
+        object->SetVisibilityLevel(player->Party()->variables_.Get(variable.c_str()));
     }
     if (player->sessionKind100_ == kSessionClient) {
         if (CUnit* unit = UnitOrNull(created)) unit->ClientController()->LoadFaceTexture();
