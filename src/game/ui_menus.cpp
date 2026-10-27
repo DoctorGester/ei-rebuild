@@ -12,6 +12,7 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
+#include <memory>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -337,7 +338,7 @@ EI_REWRITTEN(0x00650A30, COptionsWindow::Update);
 
 COptionsWindow::~COptionsWindow() {
     groupNames_.Destruct();
-    for (OptionSetting& setting : settings_) setting.text_.~CString();
+    for (OptionSetting& setting : settings_) std::destroy_at(&setting.text_);
     settings_.FreeStorage();
     for (OptionBinding& binding : bindings_) binding.Destroy();
     bindings_.FreeStorage();

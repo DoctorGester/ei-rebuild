@@ -24,6 +24,7 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -511,7 +512,7 @@ void ReadName(CStream* stream, mfc::CString& name) {
     alignas(mfc::CString) unsigned char temporary[sizeof(mfc::CString)];
     mfc::CString* read = stream->ReadString(temporary);
     name = *read;
-    read->~CString();
+    std::destroy_at(read);
 }
 
 // std::find (one instantiation per list), then push_back when missing.

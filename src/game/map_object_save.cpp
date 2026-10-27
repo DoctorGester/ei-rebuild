@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 
 namespace {
@@ -17,7 +18,7 @@ constexpr std::uint32_t kBaseScaleVersion = 0x4E;   // base scale saved after th
 // A string read up to its terminator (CStream::ReadString into a temporary).
 struct ReadText {
     explicit ReadText(CStream* stream) : text(stream->ReadString(storage)) {}
-    ~ReadText() { text->~CString(); }
+    ~ReadText() { std::destroy_at(text); }
     alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
     mfc::CString* text;
 };

@@ -1094,7 +1094,9 @@ DTOR = re.compile(r'(\.|->)\s*~CString\s*\(\s*\)')
 def lifetimes(text):
     """`text` with CString lifetimes typed by their target: `new (p) mfc::CString(args)` -> std::construct_at(p, args),
     `x.~CString()` -> std::destroy_at(&x), `p->~CString()` -> std::destroy_at(p); retyping the target then changes
-    what is built and destroyed with it (a placement new of a CString on a std::string compiles)."""
+    what is built and destroyed with it (a placement new of a CString on a std::string compiles). A target that is raw
+    storage (a void* out parameter, a byte array) does not compile as construct_at's: those keep their placement new
+    by hand (5 in batch 2)."""
     m = mask(text)
     edits = []
     for x in PLACEMENT.finditer(m):
@@ -1104,6 +1106,8 @@ def lifetimes(text):
         if not t:
             continue
         target = text[o + 1:c].strip()
+        if target == 'this':
+            continue   # a view class of CString's building its base: the type is the base's, not this's
         end = t.end()
         k = skip_space(m, end)
         args = ''
@@ -1115,6 +1119,8 @@ def lifetimes(text):
             continue
         edits.append((x.start(), end, 'std::construct_at(%s%s)' % (target, ', ' + args if args else '')))
     for x in DTOR.finditer(m):
+        if m[skip_space_back(m, postfix_start(m, x.start()) - 1)] == '>':
+            continue   # `reinterpret_cast<mfc::CString*>(p)->~CString()`: typed by its cast already
         if x.group(1) == '.':
             rs = postfix_start(m, x.start())
             obj = text[rs:x.start()].strip()

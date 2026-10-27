@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 class CStream;   // core_streams.h
 
@@ -65,7 +66,7 @@ struct UnitLooks {
         }
         dressed.FreeStorage();
         for (FiguredUnitRecord* r = figured.Start(); r != figured.Finish(); ++r) {
-            for (mfc::CString* name = r->names.Start(); name != r->names.Finish(); ++name) name->~CString();
+            for (mfc::CString* name = r->names.Start(); name != r->names.Finish(); ++name) std::destroy_at(name);
             r->names.FreeStorage();
             r->extraWeapons.FreeStorage();
             r->items.FreeStorage();

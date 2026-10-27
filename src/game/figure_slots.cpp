@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 
 namespace figure {
 
@@ -25,7 +26,7 @@ int __fastcall FakeFigureAnswerOne(void*) { return 1; }
 EI_REWRITTEN(0x004547A0, FakeFigureAnswerOne);
 
 // A record whose only member to destroy is a CString, and its scalar deleting destructor.
-void __fastcall NamedRecordDestruct(scene::TextureNameRecord* self) { self->name.~CString(); }
+void __fastcall NamedRecordDestruct(scene::TextureNameRecord* self) { std::destroy_at(&self->name); }
 EI_REWRITTEN(0x0044C490, NamedRecordDestruct);
 EI_REWRITTEN(0x00454360, mfc::impl::ScalarDeleting<&NamedRecordDestruct>::Delete);
 

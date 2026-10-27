@@ -27,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <memory>
 #include <string>
 #include <windows.h>
 
@@ -2905,8 +2906,8 @@ struct OptionBinding {
     // Inlined in the options window's destructor body: the two strings, then the
     // vector's storage (its elements' destructor is empty).
     void Destroy() {
-        keysText_.~CString();
-        name_.~CString();
+        std::destroy_at(&keysText_);
+        std::destroy_at(&name_);
         keys_.FreeStorage();
     }
 

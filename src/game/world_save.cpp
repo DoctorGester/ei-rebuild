@@ -39,6 +39,7 @@
 #include "ei/hook.h"
 
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -119,7 +120,7 @@ void ReadStringInto(WorldStream* stream, mfc::CString& target) {
     alignas(4) unsigned char storage[sizeof(mfc::CString)];
     mfc::CString* read = stream->ReadString(storage);
     target = *read;
-    read->~CString();
+    std::destroy_at(read);
 }
 
 template <typename T>
@@ -464,7 +465,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     alignas(4) unsigned char storage[sizeof(mfc::CString)];
                     mfc::CString* name = stream->ReadString(storage);
                     mobFiles_.SetAtGrow(mobFiles_.size, *name);
-                    name->~CString();
+                    std::destroy_at(name);
                 }
             } else {
                 mobFiles_.SetSize(0, -1);

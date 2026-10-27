@@ -43,6 +43,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -545,10 +546,10 @@ SaveEntry* SaveEntry::Assign(const SaveEntry* from) {
 EI_REWRITTEN(0x006538E0, SaveEntry::Assign);
 
 SaveEntry* SaveEntry::CopyConstruct(const SaveEntry* from) {
-    new (&title_) mfc::CString();
-    new (&folder_) mfc::CString();
-    new (&map_) mfc::CString();
-    new (&zone_) mfc::CString();
+    std::construct_at(&title_);
+    std::construct_at(&folder_);
+    std::construct_at(&map_);
+    std::construct_at(&zone_);
     stringArrays_[0].Construct();
     stringArrays_[1].Construct();
     return Assign(from);
@@ -558,10 +559,10 @@ EI_REWRITTEN(0x00656640, SaveEntry::CopyConstruct);
 void SaveEntry::Destruct() {
     stringArrays_[1].Destruct();
     stringArrays_[0].Destruct();
-    zone_.~CString();
-    map_.~CString();
-    folder_.~CString();
-    title_.~CString();
+    std::destroy_at(&zone_);
+    std::destroy_at(&map_);
+    std::destroy_at(&folder_);
+    std::destroy_at(&title_);
 }
 EI_REWRITTEN(0x00656720, SaveEntry::Destruct);
 

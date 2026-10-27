@@ -27,6 +27,7 @@
 #include "lib/str.h"
 
 #include <cmath>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -130,7 +131,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
                 p->spareFlag = p[1].spareFlag;
             }
             --speakersEnd_;
-            speakersEnd_->name.~CString();
+            std::destroy_at(&speakersEnd_->name);
         }
         BriefingSpeaker added{unit, mfc::CString(), false};
         if (speakersEnd_ != speakersCapacity_) {
@@ -205,7 +206,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
 
     // list::push_front of {name, item, back, frame} (node pool 0x18).
     auto* node = stlp::allocate_as<BriefingShownItem>();
-    new (&node->name) mfc::CString(name);
+    std::construct_at(&node->name, name);
     node->item = item;
     node->back = back;
     node->frame = frame;

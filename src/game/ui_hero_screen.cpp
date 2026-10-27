@@ -31,6 +31,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 namespace {
@@ -201,8 +202,8 @@ EI_REWRITTEN(0x00615850, CMpHeroScreen::Close);
 // --- A voice entry's destructor -------------------------------------------------------
 
 void MpVoiceEntry::Destroy() {
-    name.~CString();
-    file.~CString();
+    std::destroy_at(&name);
+    std::destroy_at(&file);
 }
 namespace {
 void __fastcall VoiceEntryDestroy(MpVoiceEntry* self) { self->Destroy(); }
@@ -226,7 +227,7 @@ void DestroyVoices(MpVoiceVector& voices) {
     stlp::deallocate(voices.begin(), static_cast<std::size_t>(voices.EndOfStorage() - voices.begin()) * sizeof(MpVoiceEntry));
 }
 void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
-    for (mfc::CString* at = begin; at != end; ++at) at->~CString();
+    for (mfc::CString* at = begin; at != end; ++at) std::destroy_at(at);
 }
 } // namespace
 

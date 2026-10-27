@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "core_streams.h"
@@ -770,14 +771,14 @@ struct ScriptDefineElements {
     static void Construct(ScriptDefine* defines, int count) {
         std::memset(static_cast<void*>(defines), 0, static_cast<std::size_t>(count) * sizeof(ScriptDefine));
         for (int i = 0; i < count; ++i) {
-            new (&defines[i].name) mfc::CString;
-            new (&defines[i].value) mfc::CString;
+            std::construct_at(&defines[i].name);
+            std::construct_at(&defines[i].value);
         }
     }
     static void Destruct(ScriptDefine* defines, int count) {
         for (int i = 0; i < count; ++i) {
-            defines[i].value.~CString();
-            defines[i].name.~CString();
+            std::destroy_at(&defines[i].value);
+            std::destroy_at(&defines[i].name);
         }
     }
 };

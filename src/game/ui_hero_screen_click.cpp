@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -513,13 +514,13 @@ EI_REWRITTEN(0x00662F80, SavedParties::Select);
 
 MpHeroRecord* MpHeroRecord::Construct() {
     new (Party()) CParty();
-    new (&file) mfc::CString();
+    std::construct_at(&file);
     return this;
 }
 EI_REWRITTEN(0x00619540, MpHeroRecord::Construct);
 
 void MpHeroRecord::Destruct() {
-    file.~CString();
+    std::destroy_at(&file);
     Party()->CParty::~CParty();
 }
 EI_REWRITTEN(0x00619560, MpHeroRecord::Destruct);

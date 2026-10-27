@@ -19,6 +19,7 @@
 #include "lib/stlp.h"
 
 #include <cstdint>
+#include <memory>
 
 namespace libcontainers {
 
@@ -41,8 +42,8 @@ struct KeyedTexts {
 };
 struct KeyedTextsElement {
     static void Destroy(KeyedTexts* p) {
-        p->second.~CString();
-        p->first.~CString();
+        std::destroy_at(&p->second);
+        std::destroy_at(&p->first);
     }
 };
 using KeyedTextsNodes = stlp::ListAbi<KeyedTexts, KeyedTextsElement>;
@@ -58,7 +59,7 @@ struct ShownItem {
 };
 struct ShownItemElement {
     static void Copy(ShownItem* to, const ShownItem& from) {
-        new (&to->name) mfc::CString(from.name);
+        std::construct_at(&to->name, from.name);
         to->item = from.item;
         to->back = from.back;
         to->frame = from.frame;
@@ -128,7 +129,7 @@ using HeroRecordAbi = stlp::VectorAbi<MpHeroRecord, HeroRecordElement>;
 // name's destructor.
 struct SpeakerElement {
     static void Construct(BriefingSpeaker* to, const BriefingSpeaker& from);
-    static void Destroy(BriefingSpeaker* p) { p->name.~CString(); }
+    static void Destroy(BriefingSpeaker* p) { std::destroy_at(&p->name); }
 };
 using Speakers = stlp::vector<BriefingSpeaker>;
 // _Construct(p, value) (ECX p, EDX value, plain return): nothing for a null p.

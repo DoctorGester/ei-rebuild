@@ -18,6 +18,7 @@
 #include "lib/str.h"
 
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -86,7 +87,7 @@ void SavedParties::SaveAll() {
 EI_REWRITTEN(0x006632B0, SavedParties::SaveAll);
 
 SavedParties* SavedParties::Construct() {
-    new (&folder_) mfc::CString();
+    std::construct_at(&folder_);
     entries_.ConstructEmpty();
     outsideGame_.Construct();
     return this;
@@ -97,7 +98,7 @@ void SavedParties::Destruct() {
     outsideGame_.Destruct();
     for (MpHeroRecord& entry : entries_) entry.Destruct();
     entries_.FreeStorage();
-    folder_.~CString();
+    std::destroy_at(&folder_);
 }
 EI_REWRITTEN(0x0065F2D0, SavedParties::Destruct);
 

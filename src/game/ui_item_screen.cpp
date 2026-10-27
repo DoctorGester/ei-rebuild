@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 
 namespace {
 
@@ -173,7 +174,7 @@ EI_REWRITTEN_SPECIAL(0x005FC100, CCampPages::~CCampPages);   // the input side's
 // The figure names (vector<CString>): the strings, then the storage through STLport's node allocator;
 // then the item screen's.
 CExchangeScreen::~CExchangeScreen() {
-    for (mfc::CString* at = names_.begin(); at != names_.end(); ++at) at->~CString();
+    for (mfc::CString* at = names_.begin(); at != names_.end(); ++at) std::destroy_at(at);
     stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(mfc::CString));
 }
 EI_REWRITTEN_SPECIAL(0x005F7010, CExchangeScreen::~CExchangeScreen);

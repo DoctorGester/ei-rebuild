@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <type_traits>
 
@@ -35,9 +36,9 @@ struct ElementOf<stlp::string> {
     using type = stlp::StringElement;
 };
 
-inline void CopyMember(mfc::CString& to, const mfc::CString& from) { new (&to) mfc::CString(from); }
+inline void CopyMember(mfc::CString& to, const mfc::CString& from) { std::construct_at(&to, from); }
 inline void AssignMember(mfc::CString& to, const mfc::CString& from) { to = from; }
-inline void DefaultMember(mfc::CString& to) { new (&to) mfc::CString(); }
+inline void DefaultMember(mfc::CString& to) { std::construct_at(&to); }
 
 inline void CopyMember(stlp::string& to, const stlp::string& from) { new (&to) stlp::string(from); }
 inline void AssignMember(stlp::string& to, const stlp::string& from) { to.AssignFrom(from); }

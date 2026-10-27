@@ -15,6 +15,7 @@
 
 #include <bit>
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -53,7 +54,7 @@ void ReadStringInto(CStream* stream, mfc::CString& target) {
     alignas(4) unsigned char storage[sizeof(mfc::CString)];
     mfc::CString* read = stream->ReadString(storage);
     target = *read;
-    read->~CString();
+    std::destroy_at(read);
 }
 
 // The prototype record named `name` through the name map (an unknown name is added to it; hash_map<string,

@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -307,8 +308,8 @@ CCreditsScreen::~CCreditsScreen() {
     using Node = stlp::list<TitleLine>::Node;
     for (Node* node = lines_.head->next; node != lines_.head;) {
         Node* next = node->next;
-        node->data.style.~CString();
-        node->data.text.~CString();
+        std::destroy_at(&node->data.style);
+        std::destroy_at(&node->data.text);
         stlp::deallocate(node, sizeof(Node));
         node = next;
     }

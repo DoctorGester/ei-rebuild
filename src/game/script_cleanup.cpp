@@ -16,6 +16,7 @@
 #include "lib/mfc_array.h"
 
 #include <cstring>
+#include <memory>
 
 namespace {
 
@@ -69,8 +70,8 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         ScriptStringsDestruct(NamedValues<mfc::CString>(&vars.strings));
         ScriptFloatsDestruct(NamedValues(&vars.floats));
         mfc::impl::DestructHeader<mfc::impl::ScriptIfThenArrayClass>(&instance->ifThen);
-        instance->params.~CString();
-        instance->name.~CString();
+        std::destroy_at(&instance->params);
+        std::destroy_at(&instance->name);
     }
     while (script->runs_.count != 0) {
         lib::InPlace<ScriptRun> element;

@@ -20,6 +20,7 @@
 #include "lib/stlp.h"
 
 #include <cstdint>
+#include <memory>
 #include <new>
 
 namespace recordlist {
@@ -101,8 +102,8 @@ struct TitleLineElement {
     static void Copy(TitleLine* to, const TitleLine& from) {
         to->scroll = from.scroll;
         to->speed = from.speed;
-        new (&to->text) mfc::CString(from.text);
-        new (&to->style) mfc::CString(from.style);
+        std::construct_at(&to->text, from.text);
+        std::construct_at(&to->style, from.style);
     }
 };
 

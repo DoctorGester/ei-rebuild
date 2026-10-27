@@ -32,6 +32,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <memory>
 #include <string>
 
 namespace {
@@ -234,7 +235,7 @@ void CBriefingScreen::ClearShownItems() {
     // list::clear (the name's destructor, the node back to the pool).
     for (BriefingShownItem* node = shown_->next; node != shown_;) {
         BriefingShownItem* next = node->next;
-        node->name.~CString();
+        std::destroy_at(&node->name);
         stlp::deallocate(node, sizeof(BriefingShownItem));
         node = next;
     }
@@ -265,7 +266,7 @@ void CBriefingScreen::FinishDialogue() {
         // (The unit is then looked up among the party's first members; the result is not used.)
     }
     // vector::clear (then the entries' destructor).
-    for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) speaker->name.~CString();
+    for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) std::destroy_at(&speaker->name);
     speakersEnd_ = speakers_;
     speaking_ = nullptr;
 

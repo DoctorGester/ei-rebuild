@@ -10,6 +10,8 @@
 #include "record_lifetime.h"
 #include "record_vectors.h"
 
+#include <memory>
+
 namespace {
 
 // The archive's field primitives (chunk_archive.cpp), through their game addresses: a field of `size` bytes
@@ -222,7 +224,7 @@ void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, D
     ar->LeaveChunk();
 }
 
-void DestroyLevelName(UnitLevelRecord* record) { record->name.~CString(); }
+void DestroyLevelName(UnitLevelRecord* record) { std::destroy_at(&record->name); }
 
 } // namespace
 
@@ -283,16 +285,16 @@ EI_REWRITTEN(0x0051F480, SkillLevelRecord::Serialize);
 
 void SkillRecord::Destruct() {
     records::DestroyVector(statNames);
-    field1.~CString();
-    name.~CString();
+    std::destroy_at(&field1);
+    std::destroy_at(&name);
 }
 EI_REWRITTEN(0x00520D20, SkillRecord::Destruct);
 
 void SkillLevelRecord::Destruct() {
-    requiredSkillName.~CString();
-    requiredLevelName.~CString();
-    name.~CString();
-    field0.~CString();
+    std::destroy_at(&requiredSkillName);
+    std::destroy_at(&requiredLevelName);
+    std::destroy_at(&name);
+    std::destroy_at(&field0);
 }
 EI_REWRITTEN(0x00520DE0, SkillLevelRecord::Destruct);
 

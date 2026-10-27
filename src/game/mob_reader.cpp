@@ -22,6 +22,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <memory>
 #include <new>
 
 namespace mapspec {
@@ -184,7 +185,7 @@ bool MobFile::Load(void*, int keepIds) {
     }
 
     if (!(keepIds & 0xFF)) TheMissionScript()->Load(scripts, 1);
-    scripts->~CString();
+    std::destroy_at(scripts);
     diplomacy->names.Destruct();
     records.byId.Destroy();
     return true;

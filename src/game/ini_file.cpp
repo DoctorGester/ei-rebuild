@@ -14,6 +14,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -124,13 +125,13 @@ void TextOps::AppendChar(char a0) { mfc::CString::operator+=(a0); }
 // --- Construction ----------------------------------------------------------------------------------
 
 CIniFile* CIniFile::Construct() {
-    ::new (&path_) mfc::CString;   // afxEmptyString
+    std::construct_at(&path_);   // afxEmptyString
     return this;
 }
 EI_REWRITTEN(0x00695B80, CIniFile::Construct);
 
 CIniFile* CIniFile::ConstructWithPath(const char* path) {
-    ::new (&path_) mfc::CString;
+    std::construct_at(&path_);
     path_ = path;
     return this;
 }
@@ -142,7 +143,7 @@ BOOL CIniFile::SetPath(const char* path) {
 }
 EI_REWRITTEN(0x00695BF0, CIniFile::SetPath);
 
-void CIniFile::Destruct() { path_.~CString(); }
+void CIniFile::Destruct() { std::destroy_at(&path_); }
 EI_REWRITTEN(0x00695BE0, CIniFile::Destruct);
 
 // --- Readers ---------------------------------------------------------------------------------------

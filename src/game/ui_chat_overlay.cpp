@@ -18,6 +18,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 namespace {
@@ -164,8 +165,8 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     for (int i = 0; i < plain.GetSize(); ++i) {
         // insert(end()) of an empty line.
         auto* node = stlp::allocate_as<Node>();
-        new (&node->data.text) mfc::CString;
-        new (&node->data.name) mfc::CString;
+        std::construct_at(&node->data.text);
+        std::construct_at(&node->data.name);
         node->data.time = 0;
         node->data.surface = nullptr;
         Node* head = lines_.head;

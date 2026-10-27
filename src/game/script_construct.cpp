@@ -10,6 +10,7 @@
 #include "game/record_arrays.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 
 namespace {
@@ -55,7 +56,7 @@ CScript* CScript::Construct() {
     ConstructArray(&areas_, mfc::impl::ScriptAreaArrayClass::Vtable());
     ConstructList(&tempGroups_, gameslots::GroupListClass::Vtable());
     ConstructList(&tempObjects_, gameslots::ObjectRefListClass::Vtable());
-    new (&errorText_) mfc::CString();
+    std::construct_at(&errorText_);
 
     // 256 point light slots, zeroed (again) after the array made them.
     pointLights_.SetSize(0x100, -1);
@@ -77,7 +78,7 @@ CScript* CScript::Construct() {
 EI_REWRITTEN(0x004BDE40, CScript::Construct);
 
 ScriptErrorInfo* CScript::GetError(ScriptErrorInfo* out) {
-    new (&out->text) mfc::CString(errorText_);
+    std::construct_at(&out->text, errorText_);
     out->code = errorCode_;
     out->line = errorLine_;
     return out;

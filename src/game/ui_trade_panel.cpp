@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 #include "core_maths.h"
 #include "unit_db.h"
@@ -87,9 +88,9 @@ std::uint32_t PriceColour(int price, int experience) { return price > experience
 // --- A row destroyed ----------------------------------------------------------------------------------
 
 void TradeRow::Destroy() {
-    nextKey.~CString();
-    key.~CString();
-    name.~CString();
+    std::destroy_at(&nextKey);
+    std::destroy_at(&key);
+    std::destroy_at(&name);
 }
 EI_REWRITTEN(0x00613CF0, TradeRow::Destroy);
 
@@ -101,9 +102,9 @@ TradeRow* TradeRow::DeleteThis(int flags) {
 EI_REWRITTEN(0x0062A7C0, TradeRow::DeleteThis);
 
 TradeRow* TradeRow::CopyConstruct(const TradeRow* from) {
-    new (&name) mfc::CString(from->name);
-    new (&key) mfc::CString(from->key);
-    new (&nextKey) mfc::CString(from->nextKey);
+    std::construct_at(&name, from->name);
+    std::construct_at(&key, from->key);
+    std::construct_at(&nextKey, from->nextKey);
     price = from->price;
     level = from->level;
     learnable = from->learnable;

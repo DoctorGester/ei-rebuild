@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 #include <type_traits>
@@ -60,10 +61,10 @@ void TokensDestruct(ScriptTokenList* tokens) {
 // ConstructElements / DestructElements for CString (the library's
 // mfc::impl::ConstructStrings / DestructStrings do exactly this).
 void ConstructStrings(mfc::CString* elements, int count) {
-    for (; count--; ++elements) ::new (elements) mfc::CString;
+    for (; count--; ++elements) std::construct_at(elements);
 }
 void DestructStrings(mfc::CString* elements, int count) {
-    for (; count--; ++elements) elements->~CString();
+    for (; count--; ++elements) std::destroy_at(elements);
 }
 
 // ---- Small helpers ------------------------------------------------------------------------------
@@ -196,8 +197,8 @@ struct LocalDefinition {
     lib::InPlace<ScriptDefinition> storage;
     LocalDefinition() {
         ScriptDefinition* d = Get();
-        new (&d->name) mfc::CString;
-        new (&d->params) mfc::CString;
+        std::construct_at(&d->name);
+        std::construct_at(&d->params);
         d->ifThen.vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();
         d->ifThen.data = nullptr;
         d->ifThen.size = 0;

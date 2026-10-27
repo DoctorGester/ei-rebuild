@@ -11,11 +11,12 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <memory>
 
 namespace zone {
 
 namespace {
-void DestroyString(mfc::CString& text) { text.~CString(); }
+void DestroyString(mfc::CString& text) { std::destroy_at(&text); }
 } // namespace
 
 // A zone exit's destructor (its CString at +0x28).

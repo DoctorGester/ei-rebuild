@@ -43,6 +43,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <bit>
 #include <string>
@@ -666,8 +667,8 @@ void DestroyArray(Array* array, void* vtable) {
     if (!array->data) return;
     int size = array->size;
     for (int i = 0; i < size; ++i) {
-        array->data[i].title.~CString();
-        array->data[i].name.~CString();
+        std::destroy_at(&array->data[i].title);
+        std::destroy_at(&array->data[i].name);
     }
     gamecrt::operator_delete(array->data);
 }
@@ -690,15 +691,15 @@ EI_REWRITTEN_SPECIAL(0x005FC130, CGlobalMap::~CGlobalMap);   // the input side's
 void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
     std::memset(static_cast<void*>(zones), 0, static_cast<std::size_t>(count) * sizeof(GlobalMapZone));
     for (int i = 0; i < count; ++i) {
-        new (&zones[i].name) mfc::CString();
-        new (&zones[i].title) mfc::CString();
+        std::construct_at(&zones[i].name);
+        std::construct_at(&zones[i].title);
     }
 }
 
 void GlobalMapZoneElements::Destruct(GlobalMapZone* zones, int count) {
     for (int i = 0; i < count; ++i) {
-        zones[i].title.~CString();
-        zones[i].name.~CString();
+        std::destroy_at(&zones[i].title);
+        std::destroy_at(&zones[i].name);
     }
 }
 

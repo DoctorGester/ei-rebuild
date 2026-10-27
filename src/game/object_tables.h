@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 #include "lib/mfc.h"
 #include "lib/stlp_hash.h"
@@ -68,7 +69,7 @@ void __fastcall ExitDestruct(ZoneExit* self);   // zone_records.cpp
 struct ZoneExitElements {
     static void Construct(ZoneExit* p, int n) {
         mfc::PlainElements<ZoneExit>::Construct(p, n);
-        for (; n--; ++p) ::new (&p->target) mfc::CString;
+        for (; n--; ++p) std::construct_at(&p->target);
     }
     static void Destruct(ZoneExit* p, int n) {
         for (; n--; ++p) zone::ExitDestruct(p);

@@ -19,6 +19,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <new>
 
 namespace {
@@ -124,7 +125,7 @@ mfc::CString* CWorldClient::AmbienceTimeOfDay(mfc::CString* out) {
         name = hour < 22.0f && hour > 2.0f ? (hour < 6.0f ? "morning" : "evening") : "night";
     else
         name = "day";   // also NaN
-    return new (out) mfc::CString(name);
+    return std::construct_at(out, name);
 }
 
 void Terrain::PlayAmbience() {

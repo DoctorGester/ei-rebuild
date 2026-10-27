@@ -311,6 +311,14 @@ to which template:
   return a temporary: C4172, a code-generator warning without a column). A CString given to a retyped parameter
   passes `.GetString()` (a std::string copy of its text; the game's text has no embedded zero bytes), the seam the
   members' retyping removes.
+- CStrings built and destroyed by hand in place (the records' own Construct / Destruct, the element policies) are
+  `std::construct_at(&field, ...)` / `std::destroy_at(&field)` (`c14_strings.py lifetimes`): the type comes from the
+  field, so retyping a member changes them with it. A placement new of `mfc::CString` on a std::string compiles
+  silently; the forms left are typed by an explicit cast (`reinterpret_cast<mfc::CString*>(p)->~CString()`,
+  src/lib's element policies at byte offsets, `new (this)` in the CString view classes), the placement news on raw storage (a `void*` out parameter or a
+  byte array: CStream::ReadString, WriteCopy, HumanFigureName, MobFile::Load's scripts, the interface save's text),
+  and a member those reach
+  (mfc_slots.h's `StringsAt` offsets, `DestroyStringsAt`) must stay a CString until they are typed.
 - A `const char*` given to a retyped parameter builds the std::string from it: CString took a null pointer as ""
   where std::string's constructor does not. No caller in the suite passes null; a crash there is the first place
   to look.

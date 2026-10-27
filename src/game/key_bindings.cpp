@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 
 // The keys (object_tables.h's UiKeyName): scan code, the bindings file's name and Windows' text (LoadKeyBindings
@@ -53,7 +54,7 @@ signed char* ActionOfScan() { return g_keyActions; }
 
 
 // Operator+(CString, LPCTSTR).
-mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return ::new (a0) mfc::CString(*a1 + a2); }
+mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return std::construct_at(a0, *a1 + a2); }
 
 // Opens the bindings file with `flags`; the path is a temporary CString.
 bool OpenFile(console::CStdioFile& file, unsigned flags) {

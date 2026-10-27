@@ -17,6 +17,7 @@
 #include "lib/stlp_vector.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 namespace {
@@ -186,7 +187,7 @@ bool __fastcall EqualIds(const std::uint32_t* first, const std::uint32_t* last, 
     return true;
 }
 
-void __fastcall DestructName(mfc::CString* name) { name->~CString(); }
+void __fastcall DestructName(mfc::CString* name) { std::destroy_at(name); }
 
 } // namespace unitset
 

@@ -11,6 +11,7 @@
 #include "lib/str.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -76,7 +77,7 @@ mfc::CString HumanFigureName(CItem* item) {
     mfc::CString& modelName = *new (model) mfc::CString(item->ModelName());
     std::string prefix = kHumanPrefix;
     std::string name = prefix + modelName;
-    modelName.~CString();
+    std::destroy_at(&modelName);
     return name;
 }
 

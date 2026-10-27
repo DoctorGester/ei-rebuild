@@ -10,6 +10,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 
 namespace gameslots {
@@ -115,7 +116,7 @@ inline void CopyParticleSource(ScriptParticleSource* to, const ScriptParticleSou
 }
 inline void InitFxSource(ScriptFxSource* p) {
     p->object = nullptr;
-    new (&p->name) mfc::CString;
+    std::construct_at(&p->name);
 }
 inline void AssignFxSource(ScriptFxSource* to, const ScriptFxSource* from) { to->ScriptFxSourceAssign(from); }
 inline void InitLightning(ScriptLightning* p) {
@@ -145,8 +146,8 @@ inline void AssignGroup(ScriptGroup* to, const ScriptGroup* from) {
 inline void InitToken(ScriptToken* p) { p->Construct(); }
 inline void AssignToken(ScriptToken* to, const ScriptToken* from) { to->Assign(*from); }
 inline void InitDefine(ScriptDefine* p) {
-    new (&p->name) mfc::CString;
-    new (&p->value) mfc::CString;
+    std::construct_at(&p->name);
+    std::construct_at(&p->value);
 }
 inline void AssignDefine(ScriptDefine* to, const ScriptDefine* from) {
     to->name = from->name;

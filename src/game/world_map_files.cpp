@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "game_singletons.h"
 
+#include <memory>
 #include <new>
 #include <string>
 
@@ -25,7 +26,7 @@ bool ModMaps() { return modfolders::Active(ei::rebirth::Patch::Maps); }
 mfc::CString* __stdcall MapsFolder(mfc::CString* out) {
     // Rebirth's Maps: the folder the last site selected.
     mfc::CString folder(ModMaps() ? modfolders::MapsRoot(TheDataFolder()) : TheDataFolder());
-    return new (out) mfc::CString(folder + MapsFolderName());
+    return std::construct_at(out, folder + MapsFolderName());
 }
 EI_REWRITTEN(0x0055E990, MapsFolder);
 
@@ -39,7 +40,7 @@ mfc::CString* __stdcall MapPath(mfc::CString* out, const char* name) {
         MapsFolder(&folder);
         path = folder + name;
     }
-    return new (out) mfc::CString(path);
+    return std::construct_at(out, path);
 }
 EI_REWRITTEN(0x00595BA0, MapPath);
 

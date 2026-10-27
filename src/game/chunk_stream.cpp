@@ -11,6 +11,7 @@
 #include "ei/x87.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 
 namespace {
@@ -258,7 +259,7 @@ mfc::CString* Chunk::ReadString(mfc::CString* out) {
     }
     text.ReleaseBuffer(-1);
     text::FromAssetText(&text);   // .mob text (unit names, dialogue) in UTF-8 with EI_UTF8
-    new (out) mfc::CString(text);
+    std::construct_at(out, text);
     return out;
 }
 EI_REWRITTEN(0x0042C580, Chunk::ReadString);
@@ -282,7 +283,7 @@ mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
         mfc::CString text;
         reinterpret_cast<MobScriptDecoder*>(&decoder)->Decode(&text);
         text::FromAssetText(&text);   // the scripts' literals in UTF-8 with EI_UTF8
-        new (out) mfc::CString(text);
+        std::construct_at(out, text);
     }
     stlp::deallocate(decoder.input.Start(), static_cast<std::size_t>(decoder.input.EndOfStorage() - decoder.input.Start()));
     stlp::deallocate(decoder.text.Start(), static_cast<std::size_t>(decoder.text.EndOfStorage() - decoder.text.Start()));

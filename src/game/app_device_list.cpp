@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 
 namespace app {
@@ -33,10 +34,10 @@ void CopyPlain(LeverRecord* to, const LeverRecord* from) {
 
 // The destructor.
 void __fastcall RecordDestruct(LeverRecord* self) {
-    self->text28.~CString();
-    self->sound.~CString();
-    self->text20.~CString();
-    self->name.~CString();
+    std::destroy_at(&self->text28);
+    std::destroy_at(&self->sound);
+    std::destroy_at(&self->text20);
+    std::destroy_at(&self->name);
 }
 EI_REWRITTEN(0x004652A0, RecordDestruct);
 } // namespace app
@@ -64,11 +65,11 @@ EI_REWRITTEN(0x004657E0, LeverRecord::DeleteScalar);
 
 // Copy constructor and assignment; both return this.
 LeverRecord* LeverRecord::CopyConstruct(const LeverRecord* from) {
-    new (&name) mfc::CString(from->name);
+    std::construct_at(&name, from->name);
     app::CopyPlain(this, from);
-    new (&text20) mfc::CString(from->text20);
-    new (&sound) mfc::CString(from->sound);
-    new (&text28) mfc::CString(from->text28);
+    std::construct_at(&text20, from->text20);
+    std::construct_at(&sound, from->sound);
+    std::construct_at(&text28, from->text28);
     return this;
 }
 EI_REWRITTEN(0x00465A70, LeverRecord::CopyConstruct);

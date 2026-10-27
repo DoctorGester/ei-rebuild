@@ -15,6 +15,7 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
+#include <memory>
 #include <string>
 
 namespace {
@@ -96,10 +97,10 @@ void CInterface3D::Shutdown() {
 EI_REWRITTEN(0x005F4F90, CInterface3D::Shutdown);
 
 void CInterface3D::DestroyBody() {
-    savedText_.~CString();
-    messageText_.~CString();
+    std::destroy_at(&savedText_);
+    std::destroy_at(&messageText_);
     helpTopics_.Destroy();
-    messages_.ClearWith([](mfc::CString* text) { text->~CString(); });
+    messages_.ClearWith([](mfc::CString* text) { std::destroy_at(text); });
     stlp::deallocate(messages_.head, sizeof(stlp::list<mfc::CString>::Node));
     if (stackBegin_) {
         stlp::deallocate(stackBegin_, static_cast<std::size_t>(stackCapacity_ - stackBegin_) * sizeof(CUiWindow*));

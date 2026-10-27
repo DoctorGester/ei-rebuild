@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 
 bool ZoneExit::Contains(float x, float y) const {
     EI_NAN_AUDIT(angle, y, y2);
@@ -63,7 +64,7 @@ void CStream::ReadInto(mfc::CString* out) {
     alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
     auto* text = ReadString(slot);
     *out = *text;
-    text->~CString();
+    std::destroy_at(text);
 }
 EI_REWRITTEN(0x004E5840, CStream::ReadInto);
 

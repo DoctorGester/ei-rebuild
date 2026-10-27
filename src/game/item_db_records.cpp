@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <memory>
 #include <new>
 
 using namespace itemdb;
@@ -101,9 +102,9 @@ LootItemRecord* LootItemRecord::AssignLoot(const LootItemRecord* source) {
 EI_REWRITTEN(0x006A9DA0, LootItemRecord::AssignLoot);
 
 MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* source) {
-    new (&key) mfc::CString(source->key);
-    new (&soundName) mfc::CString(source->soundName);
-    new (&name) mfc::CString(source->name);
+    std::construct_at(&key, source->key);
+    std::construct_at(&soundName, source->soundName);
+    std::construct_at(&name, source->name);
     CopyBytes(this, source, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
     return this;
 }
@@ -117,9 +118,9 @@ void MaterialRecordHead::AssignMaterial(const MaterialRecordHead* source) {
 }
 
 void MaterialRecordHead::ConstructDefault() {
-    new (&key) mfc::CString();
-    new (&soundName) mfc::CString();
-    new (&name) mfc::CString();
+    std::construct_at(&key);
+    std::construct_at(&soundName);
+    std::construct_at(&name);
 }
 
 // ---- The records' destructors ------------------------------------------------------------------
@@ -133,30 +134,30 @@ QuickItemRecord::~QuickItemRecord() = default;
 EI_REWRITTEN_SPECIAL(0x006A8A50, QuickItemRecord::~QuickItemRecord);
 
 QuestItemRecord::~QuestItemRecord() {
-    for (mfc::CString& zone : zones) zone.~CString();
+    for (mfc::CString& zone : zones) std::destroy_at(&zone);
     zones.FreeStorage();
 }
 EI_REWRITTEN_SPECIAL(0x006A8AE0, QuestItemRecord::~QuestItemRecord);
 
 void MaterialRecordHead::Destruct() {
-    name.~CString();
-    soundName.~CString();
-    key.~CString();
+    std::destroy_at(&name);
+    std::destroy_at(&soundName);
+    std::destroy_at(&key);
 }
 EI_REWRITTEN(0x006A88F0, MaterialRecordHead::Destruct);
 
 void SpellRecord::Destruct() {
     list54.FreeStorage();
     list48.FreeStorage();
-    text08.~CString();
-    code.~CString();
-    name.~CString();
+    std::destroy_at(&text08);
+    std::destroy_at(&code);
+    std::destroy_at(&name);
 }
 EI_REWRITTEN(0x00685AA0, SpellRecord::Destruct);
 
 void SpellModifierRecord::Destruct() {
-    text1C.~CString();
-    name.~CString();
+    std::destroy_at(&text1C);
+    std::destroy_at(&name);
 }
 EI_REWRITTEN(0x00685B70, SpellModifierRecord::Destruct);
 
@@ -175,9 +176,9 @@ using IdElement = stlp::PlainElement<int>;
 } // namespace
 
 void SpellRecord::CopyConstruct(const SpellRecord* source) {
-    new (&name) mfc::CString(source->name);
-    new (&code) mfc::CString(source->code);
-    new (&text08) mfc::CString(source->text08);
+    std::construct_at(&name, source->name);
+    std::construct_at(&code, source->code);
+    std::construct_at(&text08, source->text08);
     CopyBytes(this, source, offsetof(SpellRecord, price), offsetof(SpellRecord, list48));
     list48.CopyConstruct<IdElement>(source->list48);
     list54.CopyConstruct<IdElement>(source->list54);
@@ -197,17 +198,17 @@ void SpellRecord::AssignSpell(const SpellRecord* source) {
 }
 
 void SpellRecord::ConstructDefault() {
-    new (&name) mfc::CString();
-    new (&code) mfc::CString();
-    new (&text08) mfc::CString();
+    std::construct_at(&name);
+    std::construct_at(&code);
+    std::construct_at(&text08);
     list48.ConstructEmpty();
     list54.ConstructEmpty();
 }
 
 void SpellModifierRecord::CopyConstruct(const SpellModifierRecord* source) {
-    new (&name) mfc::CString(source->name);
+    std::construct_at(&name, source->name);
     CopyBytes(this, source, offsetof(SpellModifierRecord, code), offsetof(SpellModifierRecord, text1C));
-    new (&text1C) mfc::CString(source->text1C);
+    std::construct_at(&text1C, source->text1C);
     classMask = source->classMask;
 }
 
@@ -219,8 +220,8 @@ void SpellModifierRecord::AssignModifier(const SpellModifierRecord* source) {
 }
 
 void SpellModifierRecord::ConstructDefault() {
-    new (&name) mfc::CString();
-    new (&text1C) mfc::CString();
+    std::construct_at(&name);
+    std::construct_at(&text1C);
 }
 
 void SpellListRecord::CopyConstruct(const SpellListRecord* source) {

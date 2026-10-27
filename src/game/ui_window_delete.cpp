@@ -21,6 +21,8 @@
 #include "game_data.h"
 #include "lib/mfc_slots.h"
 
+#include <memory>
+
 namespace {
 
 // The vtables the bodies write.
@@ -127,8 +129,8 @@ void ChatLine::Destroy() {
         delete shown;
     }
     surface = nullptr;
-    name.~CString();
-    text.~CString();
+    std::destroy_at(&name);
+    std::destroy_at(&text);
 }
 EI_REWRITTEN(0x005E2670, ChatLine::Destroy);
 
@@ -153,13 +155,13 @@ EI_REWRITTEN_SPECIAL(0x005FC0E0, CBattleScreen::~CBattleScreen);   // the input 
 static_assert(sizeof(BriefingMover) == 0x30);
 
 CBriefingScreen::~CBriefingScreen() {
-    for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) speaker->name.~CString();
+    for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) std::destroy_at(&speaker->name);
     FreeVectorStorage(speakers_, speakersCapacity_);
     people_.FreeStorage();
     // The shown items' list (node 0x18 bytes: next, prev, then the item record).
     for (BriefingShownItem* node = shown_->next; node != shown_;) {
         BriefingShownItem* next = node->next;
-        node->name.~CString();
+        std::destroy_at(&node->name);
         stlp::deallocate(node, sizeof(BriefingShownItem));
         node = next;
     }
@@ -186,8 +188,8 @@ CMpConnectScreen::~CMpConnectScreen() {
     texts_.Destruct();
     allodNames_.Destruct();
     for (MpAddressEntry& entry : entries_) {
-        entry.description.~CString();
-        entry.name.~CString();
+        std::destroy_at(&entry.description);
+        std::destroy_at(&entry.name);
     }
     entries_.FreeStorage();
 }
@@ -210,7 +212,7 @@ CObjectivesWindow::~CObjectivesWindow() {
     quests_.Destruct();
     exits_.vtable = ObjectiveExitsVtable();
     if (exits_.data) gamecrt::operator_delete(exits_.data);
-    for (mfc::CString* zone = zones_.begin(); zone != zones_.end(); ++zone) zone->~CString();
+    for (mfc::CString* zone = zones_.begin(); zone != zones_.end(); ++zone) std::destroy_at(zone);
     FreeVectorStorage(zones_.begin(), zones_.EndOfStorage());
 }
 EI_REWRITTEN_SPECIAL(0x00603B90, CObjectivesWindow::~CObjectivesWindow);
@@ -221,10 +223,10 @@ CSaveLoadWindow::~CSaveLoadWindow() {
     for (SaveEntry* entry = entries_.begin(); entry != entries_.end(); ++entry) {
         entry->stringArrays_[1].Destruct();
         entry->stringArrays_[0].Destruct();
-        entry->zone_.~CString();
-        entry->map_.~CString();
-        entry->folder_.~CString();
-        entry->title_.~CString();
+        std::destroy_at(&entry->zone_);
+        std::destroy_at(&entry->map_);
+        std::destroy_at(&entry->folder_);
+        std::destroy_at(&entry->title_);
     }
     FreeVectorStorage(entries_.begin(), entries_.EndOfStorage());
 }

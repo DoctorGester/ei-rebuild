@@ -14,6 +14,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 #include <vector>
@@ -127,7 +128,7 @@ CScript* NoScript() {
     alignas(8) static unsigned char bytes[sizeof(CScript)];
     static CScript* const script = [] {
         auto* s = reinterpret_cast<CScript*>(bytes);
-        new (&s->ErrorText()) mfc::CString;
+        std::construct_at(&s->ErrorText());
         return s;
     }();
     return script;
@@ -177,7 +178,7 @@ bool CheckTokenize(Reader& r, char* d, std::size_t n) {
                       "error ours %d line %d \"%.60s\", original %d line %d \"%.60s\"",
                       length, result, tokens.count, expected, count0, first, firstText, g_error.code, g_error.line,
                       g_error.text, error0.code, error0.line, error0.text);
-    for (ScriptTokenList::Node* node = tokens.head; node; node = node->next) node->data.text.~CString();
+    for (ScriptTokenList::Node* node = tokens.head; node; node = node->next) std::destroy_at(&node->data.text);
     mfc::PlexFreeDataChain(tokens.blocks);
     return ok;
 }
@@ -190,8 +191,8 @@ bool CheckApplyDefines(Reader& r, char* d, std::size_t n) {
     for (std::uint32_t i = 0; i < count; ++i) {
         const std::string name = r.String();
         const std::string value = r.String();
-        new (&nodes[i].data.name) mfc::CString(name.c_str());
-        new (&nodes[i].data.value) mfc::CString(value.c_str());
+        std::construct_at(&nodes[i].data.name, name.c_str());
+        std::construct_at(&nodes[i].data.value, value.c_str());
         nodes[i].prev = i ? &nodes[i - 1] : nullptr;
         nodes[i].next = i + 1 < count ? &nodes[i + 1] : nullptr;
     }

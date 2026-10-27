@@ -36,6 +36,7 @@
 #include <concepts>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -107,7 +108,7 @@ int SizeOf(const ZoneNames& v) { return static_cast<int>(v.end() - v.begin()); }
 // push_back (the instantiation's own overflow).
 void PushBack(ZoneNames* v, const std::string& x) {
     if (v->Finish() != v->EndOfStorage()) {
-        new (v->Finish()) mfc::CString(x);
+        std::construct_at(v->Finish(), x);
         ++v->Finish();
     } else {
         v->InsertOverflow<stlp::ObjectElement<mfc::CString>>(v->Finish(), x, 1);
@@ -374,7 +375,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             }
         }
 
-        for (mfc::CString* s = found.begin(); s != found.end(); ++s) s->~CString();
+        for (mfc::CString* s = found.begin(); s != found.end(); ++s) std::destroy_at(s);
         found.FreeStorage();
         table->~VariableTable();
     }
