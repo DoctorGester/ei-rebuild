@@ -265,6 +265,14 @@ void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
 }
 EI_REWRITTEN(0x004B3D10, ScriptStringLoad);
 
+namespace {
+// ScriptStringLoad into a std::string.
+void LoadText(std::string* out, ScriptStream* stream) {
+    mfc::CString temporary(mfc::CString::kUnset);
+    *out = stream->ReadString(&temporary)->GetString();
+}
+} // namespace
+
 // ---- Command blocks and if-then pairs --------------------------------------------------------------
 
 // The commands of a block (its id is read by the caller): count, then each SSCCmd.
@@ -486,8 +494,8 @@ void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream)
         node = node->next;
         stream->Read(&instance->index, 4);
         // Each string is read into a temporary and assigned.
-        ScriptStringLoad(&instance->name, stream);
-        ScriptStringLoad(&instance->params, stream);
+        LoadText(&instance->name, stream);
+        LoadText(&instance->params, stream);
         int pairs = ReadInt(stream);
         instance->ifThen.SetSize(pairs, -1);
         for (int k = 0; k < instance->ifThen.size; ++k) instance->ifThen.data[k].Load(stream);
@@ -574,8 +582,8 @@ void CScript::LoadState(ScriptStream* stream) {
     for (int i = 0; i < scripts.size; ++i) {
         ScriptDefinition* definition = &scripts.data[i];
         stream->Read(&definition->index, 4);
-        ScriptStringLoad(&definition->name, stream);
-        ScriptStringLoad(&definition->params, stream);
+        LoadText(&definition->name, stream);
+        LoadText(&definition->params, stream);
         ScriptIfThenLoad(&definition->ifThen, stream);
         definition->vars.Load(stream);
     }

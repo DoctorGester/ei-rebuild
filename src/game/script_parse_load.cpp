@@ -487,7 +487,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
         ClassifyToken(text, &id, nullptr);
         if (id == kLexClose) {
             if (script->ifThen.size == 0)   // "In script %s should be at least one condtion"
-                return Error(this, token.line, 11, "In script %s should be at least one condtion", script->name.GetString());
+                return Error(this, token.line, 11, "In script %s should be at least one condtion", script->name.c_str());
             return 1;
         }
         if (id != kLexIf) {
@@ -649,7 +649,7 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
                 } else {
                     ScriptToken next;
                     next.CopyConstruct(NextToken(pos));
-                    std::string nextText = next.text.GetString();
+                    std::string nextText = next.text;
                     int nextId;
                     ClassifyToken(nextText.c_str(), &nextId, nullptr);
                     open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.c_str());
@@ -670,12 +670,12 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
             mfc::CArray<ScriptDefinition>& scripts = Scripts();
             int index = 0;
             for (; index < scripts.size; ++index)
-                if (Mbscmp(scripts.data[index].name, text) == 0 || Mbscmp(scripts.data[index].name, qualified) == 0) break;
+                if (Mbscmp(scripts.data[index].name.c_str(), text) == 0 || Mbscmp(scripts.data[index].name.c_str(), qualified) == 0) break;
             if (index < scripts.size) {
                 // A call to a declared script: command 8, float 0 = script index, string 0 = name.
-                if (!LoadFunction(cmd, pos, tokens, kCmdCallScript, locals, scripts.data[index].params, 0, 1))
+                if (!LoadFunction(cmd, pos, tokens, kCmdCallScript, locals, scripts.data[index].params.c_str(), 0, 1))
                     return 0;
-                cmd->stringArgs.data[0] = Mbscmp(scripts.data[index].name, text) == 0 ? text : qualified;
+                cmd->stringArgs.data[0] = Mbscmp(scripts.data[index].name.c_str(), text) == 0 ? text : qualified;
                 StoreIntAsFloat(&cmd->floatArgs.data[0], index);
                 commands->Add(*cmd);
                 continue;
@@ -753,7 +753,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
     for (ScriptPos pos = tokens.head; pos;) {
         ScriptToken token;
         token.CopyConstruct(NextToken(&pos));
-        std::string word = token.text.GetString();
+        std::string word = token.text;
         int id;
         ClassifyToken(word.c_str(), &id, nullptr);
         switch (id) {
@@ -764,7 +764,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             } else {
                 ScriptToken next;
                 next.CopyConstruct(NextToken(&pos));
-                std::string nextText = next.text.GetString();
+                std::string nextText = next.text;
                 int nextId;
                 ClassifyToken(nextText.c_str(), &nextId, nullptr);
                 ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.c_str());
@@ -785,7 +785,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 decl->name = name;
             }
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return fail(0);
-            const int index = FindScript(decl->name);
+            const int index = FindScript(decl->name.c_str());
             if (index < 0) {
                 // Not declared before: parameters, then the body.
                 if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return fail(0);
@@ -795,7 +795,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             } else {
                 ScriptDefinition* declared = &Scripts().data[index];
                 if (declared->ifThen.size != 0)   // "Multiple declaration of script %s"
-                    return fail(Error(this, token.line, 16, "Multiple declaration of script %s", declared->name.GetString()));
+                    return fail(Error(this, token.line, 16, "Multiple declaration of script %s", declared->name.c_str()));
                 if (!LoadScriptBody(declared, &pos, &tokens)) return fail(0);
             }
             break;
@@ -809,7 +809,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 QualifyName(&name, word);
                 decl->name = name;
             }
-            if (FindScript(decl->name) != -1)   // "Duplicate script %s"
+            if (FindScript(decl->name.c_str()) != -1)   // "Duplicate script %s"
                 return fail(Error(this, token.line, 15, "Duplicate script %s", word.c_str()));
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return fail(0);
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return fail(0);
@@ -824,7 +824,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             } else {
                 ScriptToken next;
                 next.CopyConstruct(NextToken(&pos));
-                std::string nextText = next.text.GetString();
+                std::string nextText = next.text;
                 int nextId;
                 ClassifyToken(nextText.c_str(), &nextId, nullptr);
                 ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.c_str());

@@ -254,7 +254,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
             groupName = MeshAt(unit, m).groups.data[g].name;
             for (int h = 0; h < unit->helpers.size; ++h) {
                 const CMaterial& helperRecord = unit->helpers.data[h];
-                if (gamecrt::mbscmp(helperRecord.name.GetString(),
+                if (gamecrt::mbscmp(helperRecord.name.c_str(),
                                     groupName.GetString()) != 0) {
                     continue;
                 }

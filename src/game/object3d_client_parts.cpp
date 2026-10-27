@@ -217,7 +217,7 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
         textures[count] = set->texture;
         ++set->texture->refCount_;
     } else {
-        if (k == 0) game::DebugLog(kSecondPrimarySetText, object->name.GetString(), object->id_);
+        if (k == 0) game::DebugLog(kSecondPrimarySetText, object->name.c_str(), object->id_);
         partSets[k]->texture->type_ = kind;
         set = partSets[k];
     }
@@ -353,7 +353,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
         set = partSets[k];
         if (!set || !set->texture) continue;
         CTexture* skin = set->texture;
-        *skin->Name() = name;
+        skin->name_ = name;
         manager->LoadTexture(skin);
     }
     return 1;

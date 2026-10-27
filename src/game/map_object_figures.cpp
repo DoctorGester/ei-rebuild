@@ -190,7 +190,7 @@ void CObject3D::LoadFigures() {
     CFigureManager* manager = FigureManagerOf(this);
     FigureModel* model;
     {
-        stlp::string key(name);
+        stlp::string key(name.c_str());
         model = manager->FindModel(&key);
     }
     for (int i = 0; i < pendingParts.size; ++i) {

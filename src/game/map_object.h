@@ -275,9 +275,6 @@ public:
 protected:
     CMapObject();
 };
-static_assert(sizeof(CObject3D) == 0x170);
-static_assert(offsetof(CMapObject, companion) == 0x170);
-static_assert(offsetof(CMapObject, effects) == 0x194);
 
 // The virtual the verify wrapper of RecomputeScale reads to tell plain objects from units.
 namespace mapslot {

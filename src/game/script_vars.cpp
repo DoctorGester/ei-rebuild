@@ -85,17 +85,10 @@ EI_REWRITTEN(0x004B3940, ScriptVars::RemoveDeletedObjects);
 
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
 
-namespace {
-// operator+(const CString&, const CString&): constructs the result in `out`.
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return std::construct_at(a0, *a1 + *a2); }
-
-// The type letters "f", "s", "o", "g".
-} // namespace
-
 // The new name goes in through a temporary CString: SetAtGrow at the end of the names for floats,
 // strings and objects; for groups the names are grown with SetSize and the slot assigned.
 BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type) {
-    mfc::CString letter;
+    const char* letter = "";   // the type letter: "f", "s", "o", "g"
     BOOL result;
     const char* text = *parameterName;
     switch (type) {
@@ -151,10 +144,7 @@ BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type)
         result = static_cast<BOOL>(reinterpret_cast<std::uintptr_t>(parameterName));
         break;
     }
-    if (result) {
-        mfc::CString sum(mfc::CString::kUnset);
-        params = *ConcatString(&sum, &params, &letter);
-    }
+    if (result) params += letter;
     return result;
 }
 EI_REWRITTEN(0x004BB800, ScriptDefinition::AddParameter);

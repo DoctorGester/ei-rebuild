@@ -82,7 +82,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
 
     FigureModel* model;
     {
-        stlp::string name(unit->name);
+        stlp::string name(unit->name.c_str());
         model = manager->FindModel(&name);
     }
     if (!model) return false;
@@ -141,7 +141,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
 
     FigureModel* model;
     {
-        stlp::string name(unit->name);
+        stlp::string name(unit->name.c_str());
         model = TheFigureManager()->FindModel(&name);
     }
     if (!model) return false;   // the slot stays cleared
@@ -190,7 +190,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     console::CStringArray names;
     FigureModel* model;
     {
-        stlp::string name(unit->name);
+        stlp::string name(unit->name.c_str());
         model = TheFigureManager()->FindModel(&name);
     }
     if (previous != kNone) {
@@ -372,7 +372,7 @@ namespace {
 
 // "<prototype name><texture>.mmp" into `texture`.
 void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
-    std::string named = unit->name.GetString() + std::string(texture.GetString());
+    std::string named = unit->name.c_str() + std::string(texture.GetString());
     std::string withExtension = named + ".mmp";
     texture = withExtension;
 }
@@ -412,9 +412,9 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     request.flags = kFlagDetailed;
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
     if (prototype)
-        texture.Format("%sskin_%.2d.mmp", unit->name.GetString(), prototype->skin);
+        texture.Format("%sskin_%.2d.mmp", unit->name.c_str(), prototype->skin);
     else
-        texture.Format("%sskin_00.mmp", unit->name.GetString());
+        texture.Format("%sskin_00.mmp", unit->name.c_str());
     AddTexture(request, texture.GetString());
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);

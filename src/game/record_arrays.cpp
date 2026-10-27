@@ -160,9 +160,11 @@ EI_REWRITTEN(0x00545BA0, Behaviours::Destruct<BehaviourArrayClass>);
 EI_REWRITTEN(0x006C4C40, TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>);
 EI_REWRITTEN(0x006C4690, SectorVertices::Destruct<SectorVertexArrayClass>);
 // A fake unit's arrays (the tags are record_arrays.h's; mfc_slots.h has the element policies).
-EI_REWRITTEN(0x0044FE80, mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>);
-EI_REWRITTEN(0x004500F0, mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>);
-EI_REWRITTEN(0x00450770, mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>);
+EI_REWRITTEN(0x0044FE80, FigureParts::Destruct<FakeUnitPartArrayClass>);
+EI_REWRITTEN(0x004500F0, SceneMeshes::Destruct<FakeUnitSceneRecordArrayClass>);
+EI_REWRITTEN(0x00450770, Materials::Destruct<FakeUnitRecord9CArrayClass>);
+EI_REWRITTEN(0x00453210, FigureParts::DestructElements);
+EI_REWRITTEN(0x00476F50, SceneMeshes::DestructElements);
 // Scalar deleting destructors (vtable slot 1).
 EI_REWRITTEN(0x004529F0, ScalarDeleting<&SceneNodes::Destruct<SceneNodeArrayClass>>::Delete);
 EI_REWRITTEN(0x004CB0D0, ScalarDeleting<&SubCalls::Destruct<SubCallBaseClass>>::Delete);
@@ -174,9 +176,9 @@ EI_REWRITTEN(0x006B5980, ScalarDeleting<&Themes::Destruct<ThemeArrayClass>>::Del
 EI_REWRITTEN(0x00454CC0, ScalarDeleting<&scene::FaceGroupArrayDestruct>::Delete);
 EI_REWRITTEN(0x006C4EC0, ScalarDeleting<&TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>>::Delete);
 EI_REWRITTEN(0x006C4E80, ScalarDeleting<&SectorVertices::Destruct<SectorVertexArrayClass>>::Delete);
-EI_REWRITTEN(0x00452890, ScalarDeleting<&mfc::impl::FigureParts::Destruct<FakeUnitPartArrayClass>>::Delete);
-EI_REWRITTEN(0x004528B0, ScalarDeleting<&mfc::impl::SceneRecords::Destruct<FakeUnitSceneRecordArrayClass>>::Delete);
-EI_REWRITTEN(0x004528F0, ScalarDeleting<&mfc::impl::FakeUnitRecords9C::Destruct<FakeUnitRecord9CArrayClass>>::Delete);
+EI_REWRITTEN(0x00452890, ScalarDeleting<&FigureParts::Destruct<FakeUnitPartArrayClass>>::Delete);
+EI_REWRITTEN(0x004528B0, ScalarDeleting<&SceneMeshes::Destruct<FakeUnitSceneRecordArrayClass>>::Delete);
+EI_REWRITTEN(0x004528F0, ScalarDeleting<&Materials::Destruct<FakeUnitRecord9CArrayClass>>::Delete);
 
 // Serialize (vtable slot 2): afxtempl's with the raw element bytes (mfc_slots.h); loading sizes the
 // array through the instantiation's own SetSize, so its elements are built and destroyed as above.

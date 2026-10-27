@@ -63,7 +63,7 @@ void DropSurface(CTexture* texture) {
 }
 } // namespace
 
-const char* CTexture::GetName() { return name_; }
+const char* CTexture::GetName() { return name_.c_str(); }
 const char* CTexture::GetClassName() { return "CTexture"; }
 int CTexture::GetClassId() { return 6; }
 
@@ -74,7 +74,7 @@ void CTexture::FreeBlock() {
 EI_REWRITTEN(0x00690FA0, CTexture::FreeBlock);
 
 int CTexture::Create() {
-    Name()->Empty();
+    name_.clear();
     DropSurface(this);
     block_ = nullptr;
     height_ = 0;
@@ -98,7 +98,7 @@ CTexture::CTexture() {
     ClearFields();
     std::memset(&extra_, 0, sizeof(extra_));
     surface_ = nullptr;
-    name_.Empty();
+    name_.clear();
     DropSurface(this);
     block_ = nullptr;
     height_ = 0;
@@ -138,7 +138,7 @@ EI_REWRITTEN(0x00691D40, CTextureManager::NewTextureOfType);
 CTexture* CTextureManager::FindOrCreate(int type, const char* name) {
     CTexture* texture = FindTypedTexture(type, name);
     if (!texture) texture = NewTextureOfType(type);
-    *texture->Name() = name;
+    texture->name_ = name;
     return texture;
 }
 EI_REWRITTEN(0x00691D00, CTextureManager::FindOrCreate);
@@ -147,7 +147,7 @@ CTexture* CTextureManager::FindOrLoad(int type, const char* name) {
     if (CTexture* found = FindTexture(name)) return found;
     CTexture* texture = FindTypedTexture(type, name);
     if (!texture) texture = NewTextureOfType(type);
-    *texture->Name() = name;
+    texture->name_ = name;
     LoadTexture(texture);
     return texture;
 }

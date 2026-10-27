@@ -70,7 +70,7 @@ void CMaterial::Destroy() {
     entries.PopAll();
 }
 
-const char* CMaterial::GetName() { return name; }
+const char* CMaterial::GetName() { return name.c_str(); }
 const char* CMaterial::GetClassName() { return kMaterialClassName; }
 int CMaterial::GetClassId() { return 5; }
 

@@ -82,7 +82,7 @@ EI_REWRITTEN(0x005301B0, CUnit::FindAnimation);
 
 FigureAnimation* CUnit::AnimationEntry(std::uint32_t key) {
     FigureAnimation* entry = AnimationAt(key);
-    if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), name.GetString());
+    if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), name.c_str());
     return entry;
 }
 EI_REWRITTEN(0x00530240, CUnit::AnimationEntry);
@@ -94,7 +94,7 @@ double CUnit::BodyExtent() {
         if (part < 0) return kNoExtent;
     }
     float extentScale = kExtentScale;
-    if (type_ == kTypeOtherUnit && std::strcmp(name, kMosquito) == 0) extentScale = kMosquitoExtentScale;
+    if (type_ == kTypeOtherUnit && std::strcmp(name.c_str(), kMosquito) == 0) extentScale = kMosquitoExtentScale;
     const Vector3& corner = partBoxes[part].boxMax;
     double y = corner.y;
     double x = corner.x;

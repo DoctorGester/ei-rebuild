@@ -40,11 +40,11 @@ float __fastcall UnitGetValue328(const CUnit* unit) { return unit->unitRadius; }
 EI_REWRITTEN(0x004468A0, UnitGetValue328);
 
 const char* __fastcall FigureGetName(const CEngineObject* figure) {
-    return static_cast<const CFigureMesh*>(figure)->name_.GetString();
+    return static_cast<const CFigureMesh*>(figure)->name_.c_str();
 }
 EI_REWRITTEN(0x00453440, FigureGetName);
 
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure) {
-    return static_cast<const scene::SceneMesh*>(figure)->name.GetString();
+    return static_cast<const scene::SceneMesh*>(figure)->name.c_str();
 }
 EI_REWRITTEN(0x004547C0, FakeFigureGetName);

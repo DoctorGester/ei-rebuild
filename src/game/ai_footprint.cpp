@@ -144,7 +144,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
             index = object->FindPartIndex(*StringArrayGetAt(names, &name, n));
         }
         if (index < 0) {
-            const char* objectName = object->name;
+            const char* objectName = object->name.c_str();
             mfc::CString name(mfc::CString::kUnset);
             game::FatalError(PartNotFoundFormat(), (*StringArrayGetAt(names, &name, n)).GetString(), objectName);
             continue;

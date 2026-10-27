@@ -35,6 +35,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace ei::vectors::script {
@@ -44,6 +45,7 @@ namespace ei::vectors::script {
 constexpr std::uint32_t kMaxLoadPayload = 0x4000;
 
 inline void PutText(Writer& w, const mfc::CString& s) { w.PutString(static_cast<const char*>(s)); }
+inline void PutText(Writer& w, const std::string& s) { w.PutString(s.c_str()); }
 
 template <typename T>
 void PutShape(Writer& w, const mfc::CArray<T>& a) {
@@ -117,11 +119,13 @@ inline void PutBlocksAfter(Writer& w, const mfc::CList<ScriptDecl>& list, const 
     }
 }
 
-// The definitions after a load: the pairs a definition had before (`skip`, by index) are left out.
-inline void PutDefinitionsAfter(Writer& w, const mfc::CArray<ScriptDefinition>& a, const std::vector<int>& skip) {
+// The definitions after a load: the pairs a definition had before (`skip`, by index) are left out. game.exe's
+// (OriginalScriptDefinition) when recording, ours when checking.
+template <typename Definition>
+void PutDefinitionsAfter(Writer& w, const mfc::CArray<Definition>& a, const std::vector<int>& skip) {
     PutShape(w, a);
     for (int i = 0; i < a.size; ++i) {
-        const ScriptDefinition& d = a.data[i];
+        const Definition& d = a.data[i];
         w.Put<std::int32_t>(d.index);
         PutText(w, d.name);
         PutText(w, d.params);
@@ -135,7 +139,7 @@ inline void PutDefinitionsAfter(Writer& w, const mfc::CArray<ScriptDefinition>& 
 }
 
 // The script's state as the loader reads it. With `definitions` false (LoadFunction) the definitions
-// are left out.
+// are left out. (record mode: `s` is game.exe's script)
 inline void PutState(Writer& w, CScript* s, bool definitions) {
     w.Put<std::int32_t>(s->FileCount());
     w.Put<std::int32_t>(s->LoadedFlag());
@@ -143,10 +147,10 @@ inline void PutState(Writer& w, CScript* s, bool definitions) {
     w.Put<std::int32_t>(s->worldBlocks_.count);
     w.Put<std::uint8_t>(definitions ? 1 : 0);
     if (definitions) {
-        const mfc::CArray<ScriptDefinition>& a = s->Scripts();
+        const mfc::CArray<OriginalScriptDefinition>& a = OriginalDefinitions(s);
         PutShape(w, a);
         for (int i = 0; i < a.size; ++i) {
-            const ScriptDefinition& d = a.data[i];
+            const OriginalScriptDefinition& d = a.data[i];
             w.Put<std::int32_t>(d.index);
             PutText(w, d.name);
             PutText(w, d.params);
@@ -172,13 +176,13 @@ std::uint64_t HashOf(Fn&& put) {
     return HashBytes(w.data(), w.size());
 }
 
-// The tokens from `from` up to `to` (see the header comment).
-inline void PutRun(Writer& w, const ScriptTokenList* tokens, ScriptPos from, ScriptPos to) {
+// The tokens from `from` up to `to` (see the header comment; record mode: game.exe's tokens).
+inline void PutRun(Writer& w, const OriginalScriptTokenList* tokens, OriginalScriptPos from, OriginalScriptPos to) {
     std::uint32_t n = 0;
     std::vector<char> texts;
-    for (ScriptPos p = from; p && p != to; p = p->next) ++n;
+    for (OriginalScriptPos p = from; p && p != to; p = p->next) ++n;
     w.Put(n);
-    for (ScriptPos p = from; p && p != to; p = p->next) {
+    for (OriginalScriptPos p = from; p && p != to; p = p->next) {
         PutText(w, p->data.text);
         w.Put<std::int32_t>(p->data.line);
         const char* t = p->data.text;

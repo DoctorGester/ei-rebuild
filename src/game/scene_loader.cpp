@@ -231,7 +231,7 @@ void Loader::ReadGroups(RecordArrays& r, const RecordHeader& h) {
         GroupHeader gh;
         Read(file_, &gh, sizeof(gh));
         FaceGroup* group = r.Group(g);
-        Read(file_, group->name.GetBufferSetLength(gh.nameLength), gh.nameLength);
+        Read(file_, str::SetLength(group->name, gh.nameLength), gh.nameLength);
         group->faces.SetSize(static_cast<int>(gh.faceCount), -1);
         Read(file_, group->faces.data, gh.faceCount * 4);
     }
@@ -571,7 +571,7 @@ EI_REWRITTEN(0x00454DB0, FaceGroup::ConstructElements);
 
 void FaceGroup::Destruct() {
     faces.SetSize(0, -1);
-    name.Empty();
+    name.clear();
     faces.Destruct();
     std::destroy_at(&name);
 }
@@ -644,7 +644,7 @@ void InitSceneMesh(SceneMesh* p) { new (p) SceneMesh(); }
 
 int SceneMesh::Create() { return 1; }
 void SceneMesh::Destroy() {}
-const char* SceneMesh::GetName() { return name; }
+const char* SceneMesh::GetName() { return name.c_str(); }
 const char* SceneMesh::GetClassName() { return "CFakeFigure"; }
 int SceneMesh::GetClassId() { return 0x47; }
 void SceneMesh::SaveTransform(mfc::CFileVirtuals*) {}
@@ -737,7 +737,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     int tops = 0;
     for (int i = 0; i < s.nodes.size; ++i) {
         SceneNode& n = s.nodes.data[i];
-        if (n.parent.GetLength() == 0) {
+        if (n.parent.size() == 0) {
             ++tops;
             s.roots.SetAtGrow(s.roots.size, n.name);
         }
@@ -788,7 +788,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         for (int n = 0; n < s.nodes.size; ++n) {
             const char* name = figureArray.data[f].GetName();
             SceneNode& nd = nodeArray.data[n];
-            if (gamecrt::mbscmp(nd.name.GetString(),
+            if (gamecrt::mbscmp(nd.name.c_str(),
                                 name) != 0)
                 continue;
             BoneLinkRecords* links = &linkArray.data[f];
@@ -826,7 +826,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         // The unit's material holder: its texture of the id named, then a material
         // for each link of the id.
         auto* owner = u->Object3D()->ClientSpecific();
-        mfc::CString& texture = *owner->FindOrAddTexture(static_cast<int>(s.textureNames[t].id))->Name();
+        std::string& texture = owner->FindOrAddTexture(static_cast<int>(s.textureNames[t].id))->name_;
         bool bmp = gamecrt::mbsicmp(s.textureNames[t].name.Right(4).GetString(),
                                    scenedata::BmpExtText()) == 0;
         if (bmp) {

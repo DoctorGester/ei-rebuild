@@ -30,7 +30,7 @@ void Lever::SetState(int wanted, float duration) {
     // A negative duration takes the model's default.
     EI_NAN_AUDIT(duration);
     if (duration < 0.0f) {
-        const LeverRecord* record = TheLeverTable().Named(name);
+        const LeverRecord* record = TheLeverTable().Named(name.c_str());
         duration = record ? static_cast<float>(static_cast<std::int64_t>(record->duration)) : 10.0f;
     }
     int& current = state;
@@ -77,7 +77,7 @@ void Lever::SetState(int wanted, float duration) {
         rate = 0.0f;
     }
     scale.y = travel;   // the shown position
-    SetUpAnimatedFigure(name);
+    SetUpAnimatedFigure(name.c_str());
     MarkChanged(5);
     sectors->Add(this);
     map->EndRefresh();
@@ -109,7 +109,7 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
     }
     out->maxSize = 0;
     out->size = 0;
-    const LeverRecord* record = TheLeverTable().Named(name);
+    const LeverRecord* record = TheLeverTable().Named(name.c_str());
     if (!record || record->spotCount == 0) return;
     const Quaternion& facing = localRotation_;
     // The count is read again each time; a count above 2 reads on into the record (sic).

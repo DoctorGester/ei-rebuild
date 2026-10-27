@@ -30,8 +30,8 @@ const CTexture* RankTexture(CObject3DClientSpecific* model) {
 // then by its morph weights (their bits); 0 for the same keys.
 int CompareTextures(const CTexture* a, const CTexture* b) {
     if (!a || !b) return (a != nullptr) - (b != nullptr);
-    const char* aName = a->name_;
-    const char* bName = b->name_;
+    const char* aName = a->name_.c_str();
+    const char* bName = b->name_.c_str();
     return std::strcmp(aName ? aName : "", bName ? bName : "");
 }
 

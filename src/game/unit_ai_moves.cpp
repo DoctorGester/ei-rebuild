@@ -95,7 +95,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
     if (wander >= 0.0f) wander = static_cast<float>(wander * kWanderScale);
     else wander = kDefaultWander;   // also NaN
     if (farGoal) {
-        if (owner->Busy() || std::strncmp(owner->unit->name, kHumanPrefix, 4) == 0) {
+        if (owner->Busy() || std::strncmp(owner->unit->name.c_str(), kHumanPrefix, 4) == 0) {
             farGoal = false;
         } else {
             wander = static_cast<float>(static_cast<float>(count) * wander);

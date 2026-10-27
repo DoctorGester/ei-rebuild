@@ -373,18 +373,29 @@ to which template:
   `CageInterpolator` overlay (`unused_00[0x5C]`, then the point and t / u / w: the bone's offset and morph
   coefficients); with the bigger names it wrote the cage point over the bone's parent pointer (a crash in
   FigureBone::Place in every scenario with a figure). The interpolations are FigureBone's members now.
+  Batch 8: the script's strings (ScriptToken::text, ScriptDefine's name / value, ScriptDefinition's name / params,
+  ScriptFxSource::name, ScriptQuestObjective::text). The recorders read game.exe's tokens, defines and definitions
+  through tests/vectors/script_original.h's `OriginalScriptToken` / `OriginalScriptDefine` /
+  `OriginalScriptDefinition` (CString layout; `OriginalDefinitions(script)` views CScript::definitions_), and
+  script_load_vectors.h's PutDefinitionsAfter takes either definition type (recording: game.exe's, replay: ours).
+  The scene's names (SceneMesh / SceneNode name and parent / FaceGroup / SceneSkin), CMaterial's name / name2 /
+  name3 and CFigureMesh's name_ / directory_ after the fake unit's arrays were typed (record_arrays.h's
+  FigureParts / SceneMeshes / Materials destroy by element type; the byte-stride `mfc::impl::FigureParts` /
+  `SceneRecords` / `FakeUnitRecords9C` and the mesh:: / node:: offset constants went). CObject3D::name (so every
+  map object grows; CMapObject's offset asserts went), CTexture::name_ (the `Name()` accessor that handed out a
+  `mfc::CString*` went: callers assign name_), TextTokenizer::word (the unused `TokenWord` overlay went) and the
+  lever records' four strings.
 - Members that must stay CStrings for now: those reached through byte offsets (mfc_slots.h's StringsAt /
-  BuiltStringsAt / NamedStrings policies: texture names (CTexture::name_, also handed out as `mfc::CString*` by
-  Name()), memory records, lever_table.cpp's DestroyString at offsets), stlp::vector<CString> (CStringVector)
-  members, and members of objects the vector recorders read in game.exe through our headers (record_script*.cpp
-  read CScript, its token list and defines; its error goes through tests/vectors/script_original.h, game.exe's
-  layout at errorText_'s offset). The fake unit's arrays still destroy their elements by byte stride
-  (record_arrays.h: `SceneRecords` = Bytes<0x18C> for SceneMesh, `FakeUnitRecords9C` for CMaterial, `FigureParts` =
-  Bytes<0x220> for CPlainFigureMesh), so SceneMesh::name, CMaterial's names and CFigureMesh's name_ / directory_
-  wait for those instantiations to be typed (no scenario makes a fake unit: only the build would notice).
-  TextTokenizer::word is read through `TokenWord` (a CString at +0x0C) by an unwind helper.
+  BuiltStringsAt / NamedStrings policies: the .reg file's TextureNameRecord::name, memory records and the other
+  StringsAt users), stlp::vector<CString> (CStringVector) members and CStringArrays (ScriptStrings: the script's
+  variable names and string values, which the recorders read in game.exe through script.h).
   To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
-  (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride.
+  (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
+  change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>
+  --out <scratch>`, `ei_vectors.exe <scratch>`): tests/vectors is not in the original runs' key without
+  EI_VECTORS, so the plain original suite only replays its cache. Batch 8 did it for stats and script (14
+  scenarios: 0 problems); the path family's raw recording does not replay without `tools/path_vectors.py prune`
+  (its @AIMap records are sampled: searches on maps not kept crash), so check it only through that procedure.
 - `mfc::CArray` moves elements with `Relocate`: bytes, or the element policy's `Relocate` when it has one. An element
   holding a std::string needs one (PartyUnitRecordElements: move-construct, destroy, in the direction the overlap
   needs; `mfc::MoveElements` does it for any element type): bytes are fine for MSVC's std::string at
@@ -437,7 +448,15 @@ to which template:
   the console.h `Ops(x)` cast views (retype by hand: `str::Mid(x, ...)`, `x += c`), and a `const mfc::CString& r =
   member;` local binds a bridge temporary silently (harness_utf8_image.cpp read the console input so).
 - c14_strings.py sometimes applies a `.c_str()` fix one line late (a one-line function after one already fixed:
-  manual.txt says "already converted"; the next line gets a stray `.c_str()`). Read the diff of every run.
+  manual.txt says "already converted"; the next line gets a stray `.c_str()`, e.g. `return "CFigure".c_str();`
+  under `GetName() { return name_; }`, which stays unfixed). Read the diff of every run. A failing static_assert in
+  a header stops that translation unit, so the diagnostics behind it only show in the next run: drop the broken
+  layout asserts, then run the tool again with the same members.
+- The tool keys a kept member by its bare name across classes: one `name` it cannot carry (an address handed to a
+  `mfc::CString*`, e.g. world_units.cpp's NameString or ScriptStringLoad) keeps every listed `X::name`. Fix that
+  site by hand (assign the member, a local loader helper), clear build/c14_strings/excluded.json and run again.
+- ei_vectors links only some of src/game (CMakeLists.txt's ei_vectors sources): a replayed function that calls a
+  helper defined elsewhere (CStream::ReadInto in exit_area.cpp) fails to link there; use a local helper.
 - Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors
   (`CScript::Load` / Tokenize / the script copies replay the loader's string handling), both suites with goldens.
 

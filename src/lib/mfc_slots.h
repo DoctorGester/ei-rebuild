@@ -354,7 +354,6 @@ using StringsAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, Destr
 
 using SceneObjects = DeletedThroughObject<0x1C>;
 using FakeUnitBoneArrays = DeletedThroughObject<0x14>;
-using FakeUnitRecords9C = DeletedThroughFirst<0x9C>;
 using AlignedAt4Records = AlignedBlockAt<0x14, 4>;
 using AlignedAt8Records = AlignedBlockAt<0x18, 8>;
 using TextureNames = StringsAt<8, 4>;          // {id, CString}

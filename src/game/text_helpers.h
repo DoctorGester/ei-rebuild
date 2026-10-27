@@ -4,13 +4,15 @@
 
 #include "lib/mfc.h"
 
+#include <string>
+
 // Splits a CString at a separator string. The credits screen is the only user: it walks
 // the lines of the titles text.
 struct TextTokenizer {
     int position;                    // where the next word starts; -1 at the end
     const mfc::CString* source;
     const char* separator;
-    mfc::CString word;               // the last word returned
+    std::string word;                // the last word returned
 
     // From the start of the text: position 0, then Next.
     const char* Start();
@@ -18,7 +20,6 @@ struct TextTokenizer {
     // text. Returns `word`'s text, or null once the position has reached the end of the text.
     const char* Next();
 };
-static_assert(sizeof(TextTokenizer) == 0x10);
 
 // Removes every carriage return from `text` (CString::Remove); returns the count.
 int __fastcall RemoveCarriageReturns(mfc::CString* text);

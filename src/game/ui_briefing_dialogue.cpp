@@ -100,7 +100,7 @@ EI_REWRITTEN(0x00608210, CBriefingScreen::StartPhrases);
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The name is compared through a CString copy.)
-    bool human = gamecrt::mbscmp(unit->name, HumanPrototype()) == 0;
+    bool human = gamecrt::mbscmp(unit->name.c_str(), HumanPrototype()) == 0;
     int number;
     if (talking) {
         if (third)

@@ -265,7 +265,7 @@ void __fastcall ScriptQuestFinish(CScript* script) {
             tail = str::Format("GSSetVar(0,\"q.%s.%s.%i\",1)\n)\n)\n", quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
         }
         const QuestObjective& objective = QuestObjectives()[i];
-        const char* argument = objective.text;
+        const char* argument = objective.text.c_str();
         switch (objective.type) {
         case 0xD7:   // QObjArea
             condition = str::Format("any( i, Heroes, IsInArea( %f, GetX(i), GetY(i) ) )", static_cast<double>(objective.value));

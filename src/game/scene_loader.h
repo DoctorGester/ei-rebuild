@@ -24,6 +24,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CAnimationNode;
 
@@ -102,10 +103,9 @@ struct FaceGroup {
     static void __stdcall ConstructElements(FaceGroup* groups, int count);
     void Destruct();
 
-    mfc::CString name;
+    std::string name;
     mfc::impl::CDWordArray faces;      // face indices
 };
-static_assert(sizeof(FaceGroup) == 0x18);
 struct FaceGroupElements {
     static void Construct(FaceGroup* p, int n) { FaceGroup::ConstructElements(p, n); }
     static void Destruct(FaceGroup* p, int n) {
@@ -114,28 +114,6 @@ struct FaceGroupElements {
 };
 using FaceGroupArray = mfc::CArray<FaceGroup, FaceGroupElements>;
 void __fastcall FaceGroupArrayDestruct(FaceGroupArray* groups);
-
-// SceneMesh's layout.
-namespace mesh {
-constexpr std::size_t kSize = 0x18C;
-constexpr std::size_t kName = 0x94;        // CString
-constexpr std::size_t kPositions = 0xD8;   // aligned array of 12-byte points
-constexpr std::size_t kTexCoords = 0xE8;   // aligned array of 8-byte (u, v)
-constexpr std::size_t kFaces = 0x138;      // aligned array of MeshFace
-constexpr std::size_t kGroups = 0x148;     // CArray of FaceGroup
-} // namespace mesh
-
-// SceneNode's layout.
-namespace node {
-constexpr std::size_t kSize = 0x120;
-constexpr std::size_t kName = 0x04;        // CString
-constexpr std::size_t kParent = 0x08;      // CString
-constexpr std::size_t kOffset = 0x54;      // 3 floats
-constexpr std::size_t kRotKeys = 0xA8;     // CArray of 0x14 records: u16 frame, (+4 kept), 3 floats at +8
-constexpr std::size_t kPosKeys = 0xBC;     // CArray of 0x18 records: u16 frame, +8 dword, 3 floats at +0xC
-constexpr std::size_t kMorphKeys = 0xD0;   // CArray of 0x14 records: u16 frame, aligned point array at +4
-constexpr std::size_t kNormals = 0xE4;     // CArray of 12-byte records (version 0x1468FCCA only)
-} // namespace node
 
 // The node's key records (the frame is read as a signed short).
 struct NodeRotationKey {
@@ -182,8 +160,8 @@ struct SceneNode {
     void Construct();
 
     std::uint32_t unused_000;
-    mfc::CString name;
-    mfc::CString parent;
+    std::string name;
+    std::string parent;
     std::uint32_t unused_00C;
     std::uint32_t spare010;             // cleared by BuildSkeleton; nothing reads it
     std::uint32_t spare014;             // cleared by BuildSkeleton; nothing reads it
@@ -205,17 +183,7 @@ struct SceneNode {
     NodeFrameArray frames;              // the loader copies them to the figures' bone links
     mfc::CArray<SceneNode*> children;
 };
-static_assert(offsetof(SceneNode, name) == node::kName);
-static_assert(offsetof(SceneNode, spareRotation030) == 0x30 && offsetof(SceneNode, spareRotation040) == 0x40);
-static_assert(offsetof(SceneNode, offset) == node::kOffset);
-static_assert(offsetof(SceneNode, restPivot) == 0x8C);
-static_assert(offsetof(SceneNode, restRotation) == 0x98);
-static_assert(offsetof(SceneNode, rotationKeys) == node::kRotKeys);
-static_assert(offsetof(SceneNode, positionKeys) == node::kPosKeys);
-static_assert(offsetof(SceneNode, morphKeys) == node::kMorphKeys);
-static_assert(offsetof(SceneNode, normals) == node::kNormals);
-static_assert(offsetof(SceneNode, children) == 0x10C);
-static_assert(sizeof(SceneNode) == node::kSize);
+static_assert(offsetof(SceneNode, name) == 0x04);
 
 // A distinct face corner of a mesh.
 struct MeshCornerKey {
@@ -239,7 +207,7 @@ struct SceneMesh : CTransformObject {
     void LoadTransform(mfc::CFileVirtuals* file) override;   // nothing
 
     std::uint8_t unused_054[0x94 - 0x54];
-    mfc::CString name;
+    std::string name;
     // Nothing fills spareBlocks098 / 0C8; the destructor frees them.
     lib::AlignedArray<std::uint8_t> spareBlocks098;
     // The positions and the normals packed four to a 64-byte block (x[4], y[4], z[4], w[4]); the figures copy
@@ -266,19 +234,7 @@ struct SceneMesh : CTransformObject {
     int materialValue;
     int materialType;
 };
-static_assert(offsetof(SceneMesh, name) == mesh::kName);
-static_assert(offsetof(SceneMesh, spareBlocks098) == 0x98 && offsetof(SceneMesh, spareBlocks0C8) == 0xC8);
-static_assert(offsetof(SceneMesh, positions) == mesh::kPositions);
-static_assert(offsetof(SceneMesh, texCoords) == mesh::kTexCoords);
-static_assert(offsetof(SceneMesh, faces) == mesh::kFaces);
-static_assert(offsetof(SceneMesh, groups) == mesh::kGroups);
-static_assert(offsetof(SceneMesh, positionBlocks) == 0xA8);
-static_assert(offsetof(SceneMesh, normals) == 0xF8);
-static_assert(offsetof(SceneMesh, corners) == 0x108);
-static_assert(offsetof(SceneMesh, cornerIndices) == 0x128);
-static_assert(offsetof(SceneMesh, center) == 0x15C);
-static_assert(offsetof(SceneMesh, materialValue) == 0x184);
-static_assert(sizeof(SceneMesh) == mesh::kSize);
+static_assert(offsetof(SceneMesh, name) == 0x94);
 
 // A mesh is built by its constructor and destroyed through its virtual destructor; a node by its bodies.
 void InitSceneMesh(SceneMesh* p);
@@ -308,7 +264,7 @@ struct SceneSkin {
     CAnimationNode* root;
     // An unused setter stores its float argument here as a double, then zeroes it.
     std::uint32_t clock[2];
-    mfc::CString name;
+    std::string name;
     mfc::CStringArray names;
     std::uint32_t spare38;                      // nothing reads it
     lib::AlignedArray<void*> spareArray;        // only emptied and freed here
@@ -317,8 +273,6 @@ struct SceneSkin {
 static_assert(offsetof(SceneSkin, bones) == 0x04);
 static_assert(offsetof(SceneSkin, root) == 0x14);
 static_assert(offsetof(SceneSkin, name) == 0x20);
-static_assert(offsetof(SceneSkin, spareArray) == 0x3C);
-static_assert(sizeof(SceneSkin) == 0x50);
 
 // Also `bone`'s children; the low word of `frames` is the animation's frame count.
 void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames);

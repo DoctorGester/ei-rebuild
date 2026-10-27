@@ -227,10 +227,10 @@ EI_REWRITTEN(0x00519A10, AlignedPtrArray::Add);
 
 CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::uint32_t arg) {
     CFigureManager* manager = FigureManagerOf(this);
-    CFigureMesh* part = manager->NewPart(name, partName, model, std::bit_cast<std::uint32_t>(scale.x),
+    CFigureMesh* part = manager->NewPart(name.c_str(), partName, model, std::bit_cast<std::uint32_t>(scale.x),
         std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached);
     if (!part) {
-        game::DebugLog(kCantLoadPart, partName, name.GetString());
+        game::DebugLog(kCantLoadPart, partName, name.c_str());
         return nullptr;
     }
     if (CLinkMesh* current = figure) {

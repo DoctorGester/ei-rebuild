@@ -118,7 +118,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
             for (int i = 0; i < kBodyParts; ++i) {
                 std::uint8_t level = request->layers.data[i];
                 if (!level) continue;
-                name.Format(kWoundTexture, unit->name.GetString(), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
+                name.Format(kWoundTexture, unit->name.c_str(), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
                             static_cast<int>(level));
                 request->textures.SetAtGrow(request->textures.GetSize(), name);
             }
@@ -213,8 +213,8 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return false;
     char name[0x400];
-    if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, unit->name.GetString(), prototype->skin);
-    else gamecrt::sprintf(name, kFace, unit->name.GetString());
+    if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, unit->name.c_str(), prototype->skin);
+    else gamecrt::sprintf(name, kFace, unit->name.c_str());
     CTexture* texture = TheTextureManager()->FindOrCreate(kFaceTextureKind, name);
     CTexture* old = faceTexture;
     faceTexture = texture;

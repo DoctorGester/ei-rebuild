@@ -157,7 +157,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         ++object->refCount_;
         object->MarkChanged(-1);
         if (object->type_ != 0x3B) {
-            object->SetUpAnimatedFigure(object->name);
+            object->SetUpAnimatedFigure(object->name.c_str());
             Sectors()->Add(object);
         }
         objects_.Set(static_cast<unsigned>(object->id_), object);

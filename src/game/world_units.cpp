@@ -310,8 +310,6 @@ int UpdateCountdown(const CEngineObject* object) { return CWorldServer::UpdateCo
 // Copies dwords (floats are not loaded on the FPU).
 void Copy(void* to, const void* from, std::size_t n) { std::memcpy(to, from, n); }
 
-mfc::CString* NameString(CMapObject* object) { return &object->name; }
-
 } // namespace
 
 int CWorldServer::CreateObject(mapspec::Spec* message) {
@@ -391,7 +389,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         base.object = object;
         CTorchObjectSpec* torch = object->spec;
         auto* companion = object->ServerCompanion();
-        *NameString(object) = spec->texture;
+        object->name = spec->texture;
         companionTexts(companion);
         race(object);
         torch->SetLightSlot(kTorchLightKind, &flame->offset.x, flame->volume);
@@ -462,7 +460,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (base.id == -1) base.id = id;
         base.object = object;
         auto* companion = object->ServerCompanion();
-        *NameString(object) = spec->texture;
+        object->name = spec->texture;
         object->SetSecondName(spec->model.c_str());
         companionTexts(companion);
         race(object);

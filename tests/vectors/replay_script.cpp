@@ -163,10 +163,10 @@ bool CheckTokenize(Reader& r, char* d, std::size_t n) {
     std::uint32_t index = 0;
     const char* firstText = "";
     for (const ScriptTokenList::Node* node = tokens.head; node; node = node->next, ++index) {
-        all = TokenHash(node->data.text, node->data.line, all);
-        if (first == count0 && (index >= count0 || static_cast<std::uint32_t>(TokenHash(node->data.text, node->data.line)) != each0[index])) {
+        all = TokenHash(node->data.text.c_str(), node->data.line, all);
+        if (first == count0 && (index >= count0 || static_cast<std::uint32_t>(TokenHash(node->data.text.c_str(), node->data.line)) != each0[index])) {
             first = index;
-            firstText = node->data.text;
+            firstText = node->data.text.c_str();
         }
     }
     bool ok = result == expected && static_cast<std::uint32_t>(tokens.count) == count0 && all == all0 && first == count0;
