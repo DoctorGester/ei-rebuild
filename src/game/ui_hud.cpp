@@ -47,7 +47,6 @@ constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
 CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
 
-// IDirect3DDevice7::SetRenderState / GetRenderState.
 long SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
     render::state::Render(static_cast<std::uint32_t>(state), value);
     return device->SetRenderState(static_cast<std::uint32_t>(state), value);
@@ -303,7 +302,7 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     if (region < 0) return;
     handled_ = true;
     CBattleScreen* owner = owner_;
-    // Called through its address: Rebirth patches it (FixSpellSelfCasting; rule 9).
+    // Rebirth's FixSpellSelfCasting patches SelectUnit.
     if (region < owner->party_.size) static_cast<CBattleScreen*>(owner)->SelectUnit(owner->party_[region], 0, 0);
 }
 EI_REWRITTEN(0x00641E20, CHudPortraits::OnMouseUp);
@@ -356,8 +355,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         return;
     case 1:     // the round map (zoomed)
     case 2: {   // the map area
-        // The world point under the click; ScalePointFromScreen is Rebirth-patched:
-        // through its address.
+        // The world point under the click.
         POINT point = {x, y};
         interface_->ScalePointFromScreenEntry(&point);
         // WideScreen: the centre moved right by the shift.
@@ -545,8 +543,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
             SetTint(button, kTintDim);
             continue;
         }
-        // The marker points at the mode's button: turned about -z and put on its circle. Place
-        // is Rebirth-patched: through its address.
+        // The marker points at the mode's button: turned about -z and put on its circle.
         const float angle = static_cast<float>(static_cast<float>(2 * i + 1) * Pi() * Sixteenth());
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
@@ -643,7 +640,7 @@ constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0
 constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
 
-// A unit's position (CUnit position), copied as three dwords.
+// A unit's position, copied as three dwords.
 Vector3 PositionOf(const CUnit* unit) {
     Vector3 v;
     std::memcpy(&v, &unit->localPosition_.x, sizeof(v));
@@ -683,7 +680,6 @@ bool IsZero(float value) {
 void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto ctrl = [this] { return static_cast<char>(interface_->doubleClick_); };
     auto orderAt = [this](const Vector3& at, int mode, char flag) { OrderAt(at.x, at.y, at.z, mode, flag); };
-    // IsDead: non-zero for a dead unit.
     auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
@@ -966,11 +962,7 @@ EI_REWRITTEN(0x0063DB20, CHudQuickItems::OnMouseUp);
 
 namespace {
 
-// The CArray<CUnit*> the order takes (vtable UnitPtrArrayClass).
 using OrderUnits = mfc::CArray<CUnit*>;
-// The local view's orders (units, point, the Ctrl flag): move there
-// (CPlayerClient::SendWalk), the other order (mode non-zero: the modifier flags or Shift;
-// CPlayerClient::SendGoTo, through its address).
 // The constant 1.0f the zone variable is compared with.
 float GameOne() { return 1.0f /*0073B84C*/; }
 
@@ -996,7 +988,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
             double value = LocalPlayerVariable(name.c_str());
             const float one = GameOne();
-            // FCOMP; TEST AH,0x40; JNZ: equal skips.
+            // Equal (or NaN) skips.
             EI_NAN_AUDIT(value);
             if (value != one) {
                 exitPending_ = 1;

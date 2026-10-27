@@ -83,7 +83,7 @@ constexpr float kSaveLoadTilt = /*007C81C8*/ 1.5707964f;
 
 CUiModel* AddMenuModel(CUiWindow* window, float angle) {
     CUiModel* model = window->AddModel();
-    model->Load("unmoco1", "escMenu00", "escMenu00labels");   // "unmoco1", "escMenu00", "escMenu00labels"
+    model->Load("unmoco1", "escMenu00", "escMenu00labels");
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAxisAngle(axis, angle);
@@ -98,7 +98,7 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
 void CSaveLoadWindow::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
     LoadTexture("saveload", 3, 0);
-    // The selected save's picture (5:6:5, in the new renderer's memory: ui_saveload.cpp).
+    // The selected save's picture (5:6:5).
     CreateTexture(0x100, 0x100, 0x1E);
 
     AddSprite(0)->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
@@ -340,8 +340,8 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     }
     case 5: {
-        // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up
-        // its second master server (net_second_master.h).
+        // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up its
+        // second master server.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         mfc::CString text;
         GameClientTexts()->CTextManager::GetString("reserved_04", &text);
@@ -441,7 +441,7 @@ void CDifficultyBox::CreateScreen() {
     int textHeight = 0;
     if (TheTextManager()->Open("tip option_difficulty") != 0) {
         TheTextManager()->ReadToHash(&explanation, 1);
-        explanation.TrimRight("\r\n");   // CR LF
+        explanation.TrimRight("\r\n");
         rect = RECT{15, 0, 385, 300};
         textHeight = BoxText(surface, explanation, &rect, 1, 0, 0x410, 1);
     }
@@ -512,7 +512,7 @@ void CCreditsScreen::CreateScreen() {
         TheMusicSystem()->Stop();
     }
     TheCursor()->ShowImage(0);
-    app::PlayMovies(mfc::operator+(name, "fin"), true, false, 0, 0);   // "<name>fin"
+    app::PlayMovies(mfc::operator+(name, "fin"), true, false, 0, 0);
     nextLineAt_ = 0.0f;
     // (Like the original: the field's address goes in as uiParam, so it is never written; then font
     // smoothing is switched off.)
@@ -522,7 +522,7 @@ void CCreditsScreen::CreateScreen() {
 
     CMappedResource* archive = archive_.Get();
     archive->OpenResource(mfc::operator+(options::TheOptions()->resourcesPath_, "outro.res"),
-                          0);   // "outro.res"
+                          0);
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);
     if (!data) {
@@ -533,7 +533,7 @@ void CCreditsScreen::CreateScreen() {
         script.ReleaseBuffer(-1);
         text::FromAssetText(&script);   // the headers' text in UTF-8 with EI_UTF8 (the pages are RTF)
         RemoveCarriageReturns(&script);
-        TitlesTokenizer lines{{0, &script, "\n"}};   // "\n"
+        TitlesTokenizer lines{{0, &script, "\n"}};
         lines.Start();
         while (lines.position != -1 && lines.word.GetString() != nullptr) {
             mfc::CString line(lines.word.GetString());
@@ -544,7 +544,7 @@ void CCreditsScreen::CreateScreen() {
                 std::string first = words.WordOrNull();
                 record.scroll = gamecrt::mbsicmp(first.c_str(),
                                                 "#scroll") ==
-                                0;   // "#scroll"
+                                0;
             }
             words.Next();
             record.speed = static_cast<float>(std::atof(words.word));
@@ -552,7 +552,7 @@ void CCreditsScreen::CreateScreen() {
             record.style = words.WordOrNull();
             words.Next();
             record.text = words.WordOrNull();
-            stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);   // push_back
+            stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);
             lines.Next();
         }
         currentLine_ = lines_.First();

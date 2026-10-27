@@ -58,26 +58,24 @@ int MbsCmp(const char* a, const char* b) {
     return gamecrt::mbscmp(a, b);
 }
 
-// _ftol of a value as it is in ST0 (a statistic's result, kept unrounded).
+// _ftol of a value kept unrounded (a statistic's result).
 int Ftol(double value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
 constexpr float kPercentScale = 100.0f;
 constexpr float kStatBase = 25.0f;        // an attribute's neutral value
 constexpr double kIntelligenceGrowth = 1.04;
 
-// _ftol(_CIpow(base, exponent - subtrahend) * scale): the exponent a float minus `subtrahend`
-// (FSUB), the product with `scale`, all unrounded.
+// _ftol(_CIpow(base, exponent - subtrahend) * scale), all unrounded.
 int PowFtol(double base, float exponent, float subtrahend, float scale) {
     const double power = libcrt::CiPow(base, static_cast<double>(exponent) - subtrahend);
     return Ftol(power * scale);
 }
-// _ftol of a + b (FLD b; FADD a), optionally times the float at `scale`, unrounded.
+// _ftol of b + a (in that order); ScaledFtol the same of a * scale.
 int SumFtol(float a, float b) { return Ftol(static_cast<double>(b) + a); }
 int SumFtolScaled(float a, float b, float scale) { return Ftol((static_cast<double>(b) + a) * scale); }
 int ScaledFtol(float a, float scale) { return Ftol(static_cast<double>(a) * scale); }
-// _ftol(a - the float at `subtrahend`) (FLD a; FSUB).
 int DifferenceFtol(float a, float subtrahend) { return Ftol(static_cast<double>(a) - subtrahend); }
-// value * factor * the float at `scale`, stored as float (FLD; FMUL; FMUL; FSTP).
+// value * factor * scale in that order, stored as float.
 float ArmourValue(const void* value, const void* factor, float scale) {
     return static_cast<float>(static_cast<double>(*static_cast<const float*>(value)) * *static_cast<const float*>(factor) * scale);
 }
@@ -101,10 +99,8 @@ BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description
 }
 Texts* TextManager() { return static_cast<Texts*>(TheTextManager()); }
 
-// Items and spells through their addresses: the prototype record, the
-// category, a weapon's type (CItemWeapon::GetType) and damage weights
-// (CItemWeapon::GetDamageTypes); a spell's prototype and modifier
-// count (CSpell::GetModifierCount).
+// The prototype record, the category, a weapon's type and damage weights, a spell's prototype and modifier
+// count.
 const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
     return item->GetPrototype();
 }
@@ -114,8 +110,6 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
 }
 
 } // namespace
-
-// --- ItemDamageLists --------------------------------------------------------------------------
 
 void __fastcall ItemDamageLists(const float* values, console::CStringArray* out, char integer) {
     Texts* texts = TextManager();
@@ -230,8 +224,8 @@ std::uint32_t PackedIdOf(CItem* item) { return item->prototypeId_; }
 const CItemLoot* LootOf(CItem* item) { return AsLoot(item); }
 CSpell* SpellOf(CItem* item) { return item->spell_; }
 
-// Whether a 7-entry damage weight array has a weight that compares unequal (and ordered) to 0:
-// FCOMP; TEST AH,0x40; JZ. Returns the index, or 7.
+// Whether a 7-entry damage weight array has a weight that compares unequal (and ordered) to 0: returns the
+// index, or 7.
 unsigned FirstDamageKind(const float* weights) {
     unsigned i = 0;
     for (; i < 7; ++i) {
@@ -249,8 +243,8 @@ void SpellLevelLine(Writer& w, bool known, int level) {
     w.Text(w.line);
     w.Down();
 }
-// The duration: "<infoitem_12> <infoitem_21>" under 2, else in seconds (FILD of the unsigned value
-// times 0.0666667f) with infoitem_27.
+// The duration: "<infoitem_12> <infoitem_21>" under 2, else in seconds (the unsigned value times 0.0666667f)
+// with infoitem_27.
 void DurationLine(Writer& w, std::uint32_t ticks) {
     if (ticks < 2)
         w.line.Format("%s %s", w.T(12).GetString(), w.T(21).GetString());
@@ -262,8 +256,6 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
 }
 
 } // namespace
-
-// --- CItemInfoPanel::DescribeItem -----------------------------------------------------------
 
 void CItemInfoPanel::DescribeItem() {
     CItem* item = Item();
@@ -331,7 +323,7 @@ void CItemInfoPanel::DescribeItem() {
         key += material;
         if (texts->Open(key.c_str())) texts->ReadLine(&text, 1);
         w.line.Format("%s %s x %d", w.T(1).GetString(), text.GetString(),
-                      static_cast<int>(PrototypeOf(item)->materialUnits));   // "%s %s x %d"
+                      static_cast<int>(PrototypeOf(item)->materialUnits));
         w.Text(w.line);
         w.Down();
     }
@@ -349,7 +341,7 @@ void CItemInfoPanel::DescribeItem() {
     }
 
     if (kind == kArmor || kind == kWeapon) {
-        // The condition (current only when positive: FCOMP; TEST AH,0x41).
+        // The condition (current only when positive).
         float current = item->condition_;
         int condition = current > 0.0f ? FtolOf(current) : 0;
         int maximum = FtolOf(item->conditionMax_);
@@ -372,7 +364,7 @@ void CItemInfoPanel::DescribeItem() {
             int high = SumFtol(low, spread);
             int lowValue = FtolOf(low);
             w.line.Format("%s %d-%d %s", w.T(15).GetString(), lowValue, high,
-                          text.GetString());   // "%s %d-%d %s"
+                          text.GetString());
             w.Text(w.line);
             w.Down();
             w.Number(20, static_cast<int>(PrototypeOf(item)->category));
@@ -420,8 +412,6 @@ tail:
 }
 EI_REWRITTEN(0x005EE760, CItemInfoPanel::DescribeItem);
 
-// --- A material ------------------------------------------------------------------------
-
 void CItemInfoPanel::DescribeMaterial() {
     CItem* item = Item();
     Texts* texts = TextManager();
@@ -460,8 +450,6 @@ void CItemInfoPanel::DescribeMaterial() {
 }
 EI_REWRITTEN(0x005EFD90, CItemInfoPanel::DescribeMaterial);
 
-// --- A blueprint (a weapon, armour or quick item record) -----------------------------------
-
 void CItemInfoPanel::DescribeBlueprint() {
     CItem* item = Item();
     Texts* texts = TextManager();
@@ -496,7 +484,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     texts->GetString(text, &w.line);
     text = w.line;
     w.line.Format("%s %s x %d", w.T(1).GetString(), text.GetString(),
-                  static_cast<int>(head->materialUnits));   // "%s %s x %d"
+                  static_cast<int>(head->materialUnits));
     w.Text(w.line);
     w.Down();
     w.Number(0, FtolOf(head->value38));
@@ -514,7 +502,7 @@ void CItemInfoPanel::DescribeBlueprint() {
         int high = SumFtolScaled(weapon->damage, weapon->damageSpread, 10.0f /*0073BAAC*/);
         int low = ScaledFtol(weapon->damage, 10.0f /*0073BAAC*/);
         w.line.Format("%s %d-%d %s", w.T(15).GetString(), low, high,
-                      text.GetString());   // "%s %d-%d %s"
+                      text.GetString());
         w.Text(w.line);
         w.Down();
         w.Number(20, static_cast<int>(head->category));
@@ -534,8 +522,6 @@ void CItemInfoPanel::DescribeBlueprint() {
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F0370, CItemInfoPanel::DescribeBlueprint);
-
-// --- A spell record ---------------------------------------------------------------------
 
 void CItemInfoPanel::DescribeSpellRecord() {
     CItem* item = Item();
@@ -560,7 +546,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Text(w.line);
     w.Down();
     w.line.Format("%s %d%s", w.T(10).GetString(), FtolOf(record->range),
-                  w.T(26).GetString());   // "%s %d%s"
+                  w.T(26).GetString());
     w.Text(w.line);
     w.Down();
     float radius = record->area;
@@ -569,7 +555,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
         w.line.Format("%s %s", w.T(11).GetString(), w.T(22).GetString());
     else
         w.line.Format("%s %.1f%s", w.T(11).GetString(), D(radius),
-                      w.T(26).GetString());   // "%s %.1f%s"
+                      w.T(26).GetString());
     w.Text(w.line);
     w.Down();
     DurationLine(w, record->duration);
@@ -579,8 +565,6 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F0B90, CItemInfoPanel::DescribeSpellRecord);
-
-// --- A spell modifier record ------------------------------------------------------------
 
 void CItemInfoPanel::DescribeModifierRecord() {
     CItem* item = Item();
@@ -598,8 +582,6 @@ void CItemInfoPanel::DescribeModifierRecord() {
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F1130, CItemInfoPanel::DescribeModifierRecord);
-
-// --- A quick item of category 8 (its spell's level and duration) ------------------------
 
 void CItemInfoPanel::DescribeQuickItem() {
     CItem* item = Item();
@@ -619,8 +601,6 @@ void CItemInfoPanel::DescribeQuickItem() {
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005EF300, CItemInfoPanel::DescribeQuickItem);
-
-// --- The spell an item carries (or a spell container) -----------------------------------
 
 void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = Item();
@@ -658,7 +638,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Text(w.line);
     w.Down();
     w.line.Format("%s %d%s", w.T(10).GetString(), FtolOf(spell->range_),
-                  w.T(26).GetString());   // "%s %d%s"
+                  w.T(26).GetString());
     w.Text(w.line);
     w.Down();
     if (spell->targetFlags_ & 0x10000000) {
@@ -962,8 +942,6 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
 }
 EI_REWRITTEN(0x005F1590, CItemInfoPanel::DescribeStats);
 
-// --- A camp help topic ----------------------------------------------------------------------
-
 void CItemInfoPanel::ShowHelp(int topic) {
     reinterpret_cast<CParty*>(itemList_)->Clear(1, 0);
     DescribeItem();
@@ -983,8 +961,6 @@ void CItemInfoPanel::ShowHelp(int topic) {
     w.Draw()->ReleaseDC();
 }
 EI_REWRITTEN(0x005F2910, CItemInfoPanel::ShowHelp);
-
-// --- Describe an item ---------------------------------------------------------------------
 
 void CItemInfoPanel::Describe(CItem* item) {
     if (itemCount_ && items_[0] && item) {
@@ -1014,8 +990,6 @@ void __fastcall InfoPanelRefresh(void* input) { PanelOf(input)->DescribeItem(); 
 EI_REWRITTEN(0x005EE6B0, InfoPanelRefresh);
 EI_REWRITTEN(0x005EE640, CItemInfoPanel::OnKeyDown);
 EI_REWRITTEN(0x005EE680, CItemInfoPanel::OnKeyUp);
-
-// --- Build ------------------------------------------------------------------------------
 
 CItemInfoPanel::CItemInfoPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {
     new (ItemParty()) CParty();

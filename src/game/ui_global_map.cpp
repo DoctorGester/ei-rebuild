@@ -2,7 +2,7 @@
 // holds and the links to the zones the player may enter, the clock text, the camp and turn buttons, the
 // weather. See docs/notes/ui.md ("Camp, global map, hero screens").
 // Floating point follows the x87 code: `double` for values kept on the FPU stack, static_cast<float> where it
-// stores to a float. Constants are read from the exe's memory, like the code it replaces.
+// stores to a float.
 #include "app.h"
 #include "options.h"
 #include "global_map_clouds.h"
@@ -64,8 +64,8 @@ template <std::floating_point T> float Bits(T) = delete;
 
 // --- Game data ----------------------------------------------------------------------------------
 
-// An allod of the map database (AllodRecord, object_tables.h): its other names are its global map
-// figures, its maps the indices of its zones.
+// An allod of the map database (AllodRecord): its other names are its global map figures, its maps the
+// indices of its zones.
 constexpr int kAllodArrow = 0;         // the current zone's marker
 constexpr int kAllodBall = 1;          // its base
 constexpr int kAllodQuestMarker = 2;
@@ -78,10 +78,7 @@ MapRecord* ZoneAt(int index) { return TheMapDatabase()->maps.data + index; }
 
 bool NonEmpty(const std::string& text) { return text.size() != 0; }
 
-// --- Called through the game ------------------------------------------------------------------------------
-
-// The links' and the quests' SetSize (mfc::impl::GlobalMapPointRecords') and
-// their elements' assignment (GlobalMapPlace::Assign / AssignCopy).
+// The links' and the quests' SetSize and their elements' assignment (GlobalMapPlace::Assign / AssignCopy).
 void SetPlaceCount(mfc::CArray<GlobalMapPlace>& places, int size) {
     mfc::impl::ArrayAs<mfc::impl::GlobalMapPointRecords>(places).SetSize(size, -1);
 }
@@ -219,9 +216,9 @@ void CGlobalMap::CreateScreen() {
         std::memcpy(&position_, &position, 12);
     }
     const mfc::CString& allodName = allod->name;
-    LoadTexture(mfc::operator+(allodName, "Map"), 3, 0);   // <allod>Map
-    LoadTexture(mfc::operator+(allodName, "Sys"), 3, 0);   // <allod>Sys
-    LoadTexture(mfc::operator+(allodName, "MapG"), 3, 0);   // <allod>MapG
+    LoadTexture(mfc::operator+(allodName, "Map"), 3, 0);
+    LoadTexture(mfc::operator+(allodName, "Sys"), 3, 0);
+    LoadTexture(mfc::operator+(allodName, "MapG"), 3, 0);
     LoadTexture("saveload", 3, 0);
     CreateTexture(0x100, 0x100, 0x21);
     angle_ = 0.0f;
@@ -411,7 +408,7 @@ void CGlobalMap::CreateScreen() {
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
-    int minutes = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable("gtime")) * D(60.0f /*0073F090*/)));   // gtime * 60
+    int minutes = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable("gtime")) * D(60.0f /*0073F090*/)));
     int day = minutes / 1440;
     minutes -= day * 1440;
     int hour = minutes / 60;
@@ -479,8 +476,8 @@ void CGlobalMap::CreateScreen() {
         weatherIndex_ = i;
         SetWeather();
     }
-    Update();   // slot 24
-    windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);   // buttons\globalmap\wind.wav
+    Update();
+    windSound_ = interface_->PlaySound("buttons\\globalmap\\wind.wav", 1);
     if (autosave_) {
         if (options::TheOptions()->autosave_ != 0) ::QuickSave("saveb", static_cast<char>(1));
         autosave_ = false;
@@ -496,7 +493,7 @@ namespace {
 
 void __fastcall UpdateChildren(CUiWindow* a0) { static_cast<CUiContainer*>((void*)a0)->UpdateBase(); }
 
-// fmod(a, *divisor) through the game's _CIfmod, stored as float.
+// fmod(a, *divisor), stored as float.
 float FmodStored(float a, const float* divisor) { return static_cast<float>(std::fmod(a, *divisor)); }
 
 // The product (r = b * a in this operand order), each component stored.
@@ -528,7 +525,7 @@ void CGlobalMap::Update() {
     if (dragging_ && turning_ == 0) {
         POINT cursor;
         gameapi::GetCursorPos(&cursor);
-        Input()->MouseMove(0, cursor.x, cursor.y);   // input slot 4
+        Input()->MouseMove(0, cursor.x, cursor.y);
     }
     MapBuilder builder(this);
     if (turning_ != 0 || dragging_) {
@@ -611,8 +608,6 @@ void CGlobalMap::Update() {
 
 EI_REWRITTEN(0x0062F050, CGlobalMap::Update);
 
-// --- the constructor -----------------------------------------------------------------------------
-
 namespace {
 
 template <typename Array>
@@ -642,8 +637,6 @@ CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
 }
 EI_REWRITTEN_SPECIAL(0x005F67A0, CGlobalMap::CGlobalMap);
 
-// --- the destructor body -------------------------------------------------------------------------
-
 namespace {
 template <typename Array>
 void DestroyArray(Array* array, void* vtable) {
@@ -669,8 +662,6 @@ CGlobalMap::~CGlobalMap() {
 EI_REWRITTEN_SPECIAL(0x005F6920, CGlobalMap::~CGlobalMap);
 EI_REWRITTEN_SPECIAL(0x005F6900, CGlobalMap::~CGlobalMap);
 EI_REWRITTEN_SPECIAL(0x005FC130, CGlobalMap::~CGlobalMap);
-
-// --- the zone array's SetAtGrow ------------------------------------------------------------------
 
 void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
     std::memset(static_cast<void*>(zones), 0, static_cast<std::size_t>(count) * sizeof(GlobalMapZone));

@@ -239,8 +239,6 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
 
 } // namespace
 
-// --- BuildMarkers ----------------------------------------------------------------------------------
-
 void CHudMap::BuildMarkers() {
     CUiMesh* mesh = SceneMesh(2);
     CBaseManager* objects = TheObjectManager();
@@ -353,16 +351,14 @@ std::uint32_t CameraTargetYBits() { return Bits(TheCamera()->focus_.y); }
 
 void SetBits(float* f, std::uint32_t bits) { std::memcpy(f, &bits, sizeof(bits)); }
 
-// Whether the edge from `prev` to `cur` crosses the line v = edge (coordinate values of the two
-// points).
+// Whether the edge from `prev` to `cur` crosses the line v = edge (coordinate values of the two points).
 bool Crosses(float prev, float cur, float edge) {
     EI_NAN_AUDIT(prev, cur, edge);
     return (prev < edge && cur > edge) || (prev > edge && cur < edge);
 }
 
-// One Sutherland-Hodgman step in place: walking the polygon, the point
-// where an edge crosses the line is inserted before the edge's end (which is then skipped);
-// afterwards the points outside are removed.
+// One Sutherland-Hodgman step in place: walking the polygon, the point where an edge crosses the line is
+// inserted before the edge's end (which is then skipped); afterwards the points outside are removed.
 template <typename Cut, typename Outside>
 void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
     int count = points.size;
@@ -562,8 +558,7 @@ EI_REWRITTEN(0x00642E80, CHudMap::UpdateView);
 // --- The zoom factor ----------------------------------------------------------------------------------
 
 namespace {
-// 2.5^(delta / 1200): _CIpow of a double constant and delta * 0.00083333335f,
-// left unrounded.
+// 2.5^(delta / 1200): _CIpow of a double constant and delta * 0.00083333335f, left unrounded.
 double WheelZoomFactor(int delta) {
     return libcrt::CiPow(2.5 /*00742AD0*/, static_cast<double>(delta) * 0.00083333335f /*00742AC8*/);
 }
