@@ -52,7 +52,7 @@ std::uint32_t BufferLength(GameBuffer& b) {
     return static_cast<std::uint32_t>(b.base - reinterpret_cast<std::intptr_t>(b.begin) + reinterpret_cast<std::intptr_t>(b.high));
 }
 
-// 0047D7F0 / 0047D970: a fixed view over `self`'s bytes run through the coder into a growing
+// A fixed view over `self`'s bytes run through the coder into a growing
 // buffer, whose bytes then replace `out`'s (Resize, Seek 0, Write, Seek 0). The view is destroyed
 // (its base vtable) before the buffer.
 void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {

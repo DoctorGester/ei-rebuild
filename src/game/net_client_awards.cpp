@@ -1,4 +1,4 @@
-// The game client's tick (0041CCD0, slot 14) and its award handling: timers count down,
+// The game client's tick and its award handling: timers count down,
 // and received awards (+0x2608) are applied to the local player. See net_classes.h and
 // docs/notes/network.md.
 

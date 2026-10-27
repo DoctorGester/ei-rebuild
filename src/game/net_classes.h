@@ -1,16 +1,16 @@
 #pragma once
 
-// The multiplayer session classes and the message base (00412000-00444000). Names are
+// The multiplayer session classes and the message base. Names are
 // provisional; see docs/notes/network.md and
 // docs/notes/cleanup-network.md.
 // Class map (vtables):
-//   0073BB68  CRefCounted (core_refcount.h): the root the sessions derive from.
+//   CRefCounted: the root the sessions derive from.
 //   0073BF5C  SessionBase (constructor 00436770, destructor body 00436A50): the UDP socket, the
 //             connections to the peers, the message type registry and the handler tables.
-//   0073BBB4  ServerBase: the pending joins; answers pings and logins. Inlined into the game
+//   ServerBase: the pending joins; answers pings and logins. Inlined into the game
 //             server's constructor; destructor body 004132F0.
 //   0073BB70  ServerSession, the game server (0x2600 bytes; constructor 00412D80; pointer g_gameServer).
-//   0073BE30  ClientBase: finding servers and joining one. Inlined into the game client's
+//   ClientBase: finding servers and joining one. Inlined into the game client's
 //             constructor; destructor body 0041C530.
 //   0073BDEC  ClientSession, the game client (0x2700 bytes; constructor 0041BC40; pointer g_gameClient).
 //   0073BC10  Message (below): the replicated object base; classes 0073BBF8 ... 0073BDD0 (0x18 apart,
@@ -85,13 +85,13 @@ struct NetAddress {
     std::uint32_t ip;
     std::uint8_t zero[8];
 
-    // 00440440 (net_socket_driver.cpp). This address from "host[:port]" (an IPv4 number or a host
+    // This address from "host[:port]" (an IPv4 number or a host
     // name looked up); `defaultPort` unless the text names one. False when the host is unknown.
     bool Parse(const char* text, int defaultPort);
     // "a.b.c.d:port" (or, with `resolve`, "hostname:port" when the look-up succeeds) as
     // an STLport string in `out`; returns `out`.
     stlp::string* Format(stlp::string* out, int resolve) const;
-    // 00435010 (net_session_tick.cpp). Format without the look-up; returns `out`.
+    // Format without the look-up; returns `out`.
     stlp::string* ToString(stlp::string* out) const;
 };
 static_assert(sizeof(NetAddress) == 0x10);
@@ -100,9 +100,9 @@ static_assert(sizeof(NetAddress) == 0x10);
 // Net_socket_driver.cpp). The master request box (ui_screens.h) holds one.
 class MasterLink {
 public:
-    // 00440C60 (net_socket_driver.cpp): a non-blocking TCP socket connecting to `address` (state 1), or state 0.
+    // A non-blocking TCP socket connecting to `address` (state 1), or state 0.
     explicit MasterLink(const void* address);
-    // 00440D40 (net_socket_driver.cpp): the socket closed (when open), then the buffers.
+    // The socket closed (when open), then the buffers.
     ~MasterLink();
     MasterLink(const MasterLink&) = delete;
     MasterLink& operator=(const MasterLink&) = delete;
@@ -181,7 +181,7 @@ public:
     std::uint32_t version_ = 1;   // +0x08 1 when constructed; raised by every change
 
 protected:
-    // 004186E0 (net_messages.cpp). The count and the flags are the creator's (a message rebuilt in place keeps
+    // The count and the flags are the creator's (a message rebuilt in place keeps
     // them).
     Message();
     // A clone's: the source's version.
@@ -220,7 +220,7 @@ public:
     std::uint32_t state_;    // +0x24 State
 
 protected:
-    // 004413E0 (net_lobby.cpp): no address, timeout 0, the unknown ping, local (the count and the flags are the
+    // No address, timeout 0, the unknown ping, local (the count and the flags are the
     // creator's).
     ServerEntryBase();
     // A clone's: the address, the timeout and ping (as dwords), the flag and the state.
@@ -261,9 +261,9 @@ static_assert(sizeof(ServerEntry) == 0x48);
 // A server the client asks directly (0x2C bytes; constructor 00443770): its address and the reply
 // last seen.
 struct Query {
-    // 00443770 (net_lobby.cpp): a zero address and an empty growing buffer.
+    // A zero address and an empty growing buffer.
     Query();
-    // 00444270 (RET 4; net_lobby.cpp): the address and the reply buffer copied.
+    // The address and the reply buffer copied.
     Query(const Query& from);
     // The vector's copy loop's assignment: the address, then the reply buffer's.
     Query& operator=(const Query& from) = default;
@@ -282,14 +282,14 @@ struct ClientQueries {
     stlp::vector<Query> list;    // +0x00
     std::uint32_t extra;         // +0x0C
 
-    // 004414E0 (net_lobby.cpp). The queries in a chunk archive (chunk 1 of chunks 1: field 1 the
+    // The queries in a chunk archive (chunk 1 of chunks 1: field 1 the
     // address, 2 the reply's length, 3 the reply), then field 2 the extra dword.
     void Serialize(ChunkArchive* archive);
-    // 00441410 (net_lobby.cpp). The query with `address`, or the end.
+    // The query with `address`, or the end.
     Query* QueriesFind(const NetAddress* address);
 };
 static_assert(sizeof(ClientQueries) == 0x10 && offsetof(ClientQueries, extra) == 0x0C);
-// 0041C420 (net_client.cpp). The queries' constructor: an empty vector and a zero dword. Returns self.
+// The queries' constructor: an empty vector and a zero dword. Returns self.
 ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self);
 
 // ---- The session base ---------------------------------------------------------------------------
@@ -391,7 +391,7 @@ static_assert(sizeof(ReplicatedVector) == 12);
 void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority);
 void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority);
 
-// The session base (vtable 0073BF5C). 0x2568 bytes (the double at +0x20 aligns it to 8).
+// The session base. 0x2568 bytes (the double at +0x20 aligns it to 8).
 // Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login,
 // 5 info, 6 accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after
 // that byte.
@@ -407,7 +407,7 @@ public:
     void RegisterPartyHandler(int channel, void* handler);
     void RegisterRequestHandler(int channel, void* handler);
 
-    // 00436770 (net_session_base.cpp). The count and the flags are the creator's.
+    // The count and the flags are the creator's.
     SessionBase();
     // 00436A50 (deleting: 004368D0; net_session_tick.cpp). Tells every client it leaves, then destroys the handler
     // tables, the socket, the type registry and the clients list.
@@ -501,7 +501,7 @@ struct PendingJoin {
     float age;                   // +0x18 seconds (dropped past 0073BF9C)
 };
 
-// The server base (vtable 0073BBB4): answers pings (slot 4) and logins (slot 5), turns a pending
+// The server base: answers pings and logins, turns a pending
 // join into a connection on its first update (slot 3).
 class ServerBase : public SessionBase {
 public:
@@ -531,12 +531,12 @@ public:
 static_assert(offsetof(ServerBase, joins_) == 0x2568);
 static_assert(sizeof(ServerBase) == 0x2570);
 
-// The game server (vtable 0073BB70). 0x2600 bytes, pointer g_gameServer (GameServer()).
+// The game server. 0x2600 bytes, pointer g_gameServer (GameServer).
 // The lists are STLport lists of counted pointers (value at +8, or at +0xC after a float delay).
 class ServerSession final : public ServerBase {
 public:
 
-    // 00412D80 (net_server.cpp). The game kind `kind`, the handlers, the zones the host may pick.
+    // The game kind `kind`, the handlers, the zones the host may pick.
     explicit ServerSession(std::uint32_t kind);
     // 00417BC0 (deleting: 00417A10; net_server_life.cpp). The lists and the held messages.
     ~ServerSession() override;
@@ -548,7 +548,7 @@ public:
     void Describe(RefPtr* out) override;
     bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) override;
 
-    // 004186F0 (net_server_map.cpp). Switches the server to map `name`.
+    // Switches the server to map `name`.
     void SetMap(const stlp::string* name);
     // Queues a map message for each zone that follows the current map.
     void QueueMapList();
@@ -561,7 +561,7 @@ public:
     void RaiseVariable(const stlp::string* name, float value);    // to the larger value
     void RemoveVariable(const stlp::string* name);
     double GetVariable(const stlp::string* name);                 // 0 when missing
-    // 00418ED0 (net_server_awards.cpp). The zone completion command ("<zone>_3"): the clients'
+    // The zone completion command ("<zone>_3"): the clients'
     // shares of the zone's two values and the host's items, then the map state is dropped.
     void CompleteZone(const stlp::string* zone);
     // The zone leaving command ("<zone>_2"): the host's items with the final award, then
@@ -572,10 +572,10 @@ public:
     void AwardHost(const QuestBriefingRecord* entry, bool withFinal);
     // Queues an award message for `connection` (60 s delay); destroys `text`.
     void QueueAward(CRefObject* connection, int kind, float value, stlp::string text);
-    // 00419A00 (net_server_files.cpp). Lists `data` under `name` (unless listed) as a file message
+    // Lists `data` under `name` (unless listed) as a file message
     // with 64-byte chunk messages.
     void ShareFile(const stlp::string* name, GameBuffer* data);
-    // 00417E10 (net_server_entry.cpp). Whether the server is announced to the master server (port 28004).
+    // Whether the server is announced to the master server (port 28004).
     void SetPublic(bool announce);
     // 0041AA10 (net_server_handlers.cpp, A-E1; EI_Plugin's NewMaster patches its send at 0041ABDA,
     // so it is hooked only where that feature is off). Sends the master server this game's record:
@@ -583,12 +583,12 @@ public:
     // game kind, whether a password is set, +0x25FC, the dword the master last sent (+0x2578) and
     // the session magic.
     void AnnounceToMaster();
-    // 0041A310 (net_server_chat.cpp). Keeps a chat or system line for the clients (`player` null
+    // Keeps a chat or system line for the clients (`player` null
     // for the server's own; at most 50 lines).
     void Announce(const char* text, CRefObject* player);
     // Announce with text `kind` of the text table formatted with `text`.
     void AnnounceText(int kind, const char* text, CRefObject* player);
-    // 0041ACF0 (net_server_trade.cpp). The trade between two offers (either order), or null.
+    // The trade between two offers (either order), or null.
     TradeMessage* FindTrade(const PartyMessage* offer, const PartyMessage* other);
     // 0041A020 .. 0041A770 (net_server_players.cpp): players, connections, admission.
     int LeaderId();                                       // the first host's id, -1
@@ -600,8 +600,8 @@ public:
     void Kick(Connection* connection);
     void Ban(Connection* connection);
     void ReportDeparture(Connection* connection, int text);   // slots 11 (text 4) and 12 (text 1)
-    bool IsHostConnection(const Connection* connection);  // 00419F90 (net_server_commands.cpp)
-    // 00417E40 (net_server_tick.cpp). Whether the player bound to `connection` is in state 3.
+    bool IsHostConnection(const Connection* connection);
+    // Whether the player bound to `connection` is in state 3.
     bool PlayerStateIs3(const Connection* connection);
 
     float announceTimer_;               // +0x2570 seconds to the next announcement to the master server
@@ -647,7 +647,7 @@ static_assert(sizeof(ServerSession) == 0x2600);
 
 // ---- The client base and the game client ----------------------------------------------------------
 
-// The client base (vtable 0073BE30): the servers found (by broadcast pings, by asking known
+// The client base: the servers found (by broadcast pings, by asking known
 // addresses, from the master server's list) and the join request to one of them.
 class ClientBase : public SessionBase {
 public:
@@ -730,20 +730,20 @@ struct TradeRecord {
 using TradeRecordNode = stlp::list<TradeRecord>::Node;
 static_assert(sizeof(TradeRecordNode) == 0x160);
 
-// The game client (vtable 0073BDEC). 0x2700 bytes, pointer g_gameClient (GameClient()). It keeps
+// The game client. 0x2700 bytes, pointer g_gameClient (GameClient). It keeps
 // what the server replicates to it, by class, in STLport lists of counted pointers (value at +8).
 class ClientSession final : public ClientBase {
 public:
-    // 0041D9A0 (net_client_commands.cpp): a buffer's stream size over the dword at its start.
+    // A buffer's stream size over the dword at its start.
     double BufferRatio(GameBuffer* buffer);
-    // 0041D600 (net_server_list.cpp): reads a server list reply.
+    // Reads a server list reply.
     void ReadServerList(GameBuffer* in);
     // 0x0041E270 (net_client_handlers.cpp).
     void StartParty(CRefObject* partner);
     // 0x0041E0A0 (net_client_handlers.cpp).
     void RecordTrade(const void* party);
 
-    // 0041BC40 (net_client.cpp). The local player's login, the handlers.
+    // The local player's login, the handlers.
     ClientSession();
     // 0041CA10 (deleting: 0041C8B0; net_client_life.cpp). The parties, the lists and the held messages.
     ~ClientSession() override;
@@ -752,9 +752,9 @@ public:
     void OnJoined() override;
     void CreateEntry(RefPtr* out) override;
 
-    // 0041CD80 (net_client_awards.cpp). Applies the awards received: experience, gold, items.
+    // Applies the awards received: experience, gold, items.
     void ApplyAwards();
-    // 0041D1A0 (net_client_commands.cpp). Keeps `object` on the timers list for `seconds`.
+    // Keeps `object` on the timers list for `seconds`.
     void AddTimed(CRefObject* object, std::uint32_t seconds);
     // A command message (0073BC40 {kind, text}) for the server, kept 60 s.
     void SendCommand(int kind, const char* text);

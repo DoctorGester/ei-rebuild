@@ -1,4 +1,4 @@
-// CPlayerClient's remaining message handlers and its slot 14 (A-H23). See player_client.h and
+// CPlayerClient's remaining message handlers and its slot 14. See player_client.h and
 // docs/notes/objects.md ("Players").
 #include "effects.h"
 #include "player_client.h"

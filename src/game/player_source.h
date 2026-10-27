@@ -1,7 +1,7 @@
 #pragma once
 
 // The worlds' player sources (world_sessions.cpp; real classes since C28g, game.exe's base vtable
-// 0073F38C and the sources' retired): reference objects the
+// And the sources' retired): reference objects the
 // server world's update pumps (slot 5) and asks for new connections (slot 6, AcceptPlayers
 // 0058DAF0). Two kinds: the counted helper at CWorld + 0x5C (CWorldHandle, world.h: hands over a
 // pending link once) and the network session at CWorld + 0x60 (netlink::DriverSession, net_link.h).

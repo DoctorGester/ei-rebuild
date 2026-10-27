@@ -31,7 +31,7 @@ struct IdPool {
 
     // A returned id (the last one) if any, else ++next.
     std::uint16_t Allocate();
-    // 00433A30 (net_connection_life.cpp). Copy constructor; returns this.
+    // Copy constructor; returns this.
     IdPool* CopyFrom(const IdPool& other);
 };
 static_assert(sizeof(IdPool) == 0x10);
@@ -166,7 +166,7 @@ public:
     using EntryMap = trees::Entries;
     using RecordMap = trees::Records;
 
-    // 00432DA0 (net_connection_life.cpp): every container empty, the clocks started.
+    // Every container empty, the clocks started.
     explicit Connection(std::uint32_t id);
     // Clone's copy: every container copied.
     Connection(const Connection& other);
@@ -212,10 +212,10 @@ public:
     // Starts tracking `item` (an {object, priority} pair): a new entry for the object,
     // kept in byObject_ and its priority map.
     void Track(Replicated* item);
-    // 00433BD0 (net_connection_tick.cpp). Clocks, lost packets, sending, delayed id reuse; false
+    // Clocks, lost packets, sending, delayed id reuse; false
     // when the peer timed out or the reliable stream overflowed.
     bool Tick(double dt);
-    // 00433FA0 (net_connection_tick.cpp). A packet arrived: the round-trip averages take its age;
+    // A packet arrived: the round-trip averages take its age;
     // reliable changes it carried count as delivered, removals it carried end their entries (the
     // id goes to the newest freed-id batch).
     void Delivered(SentPacket* packet);

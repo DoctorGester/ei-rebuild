@@ -1,6 +1,6 @@
 // The game client's timed entries and commands: an object kept on the timers list, a
-// command message for the server, the client's own server entry (0041D420, slot 16), the
-// start of the game (0041D410, slot 15) and the ratio of a received buffer.
+// command message for the server, the client's own server entry, the
+// start of the game and the ratio of a received buffer.
 // See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"

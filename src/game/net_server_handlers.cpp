@@ -1,4 +1,4 @@
-// The game server's talk with the master server and a chat handler (A-E1): the announcement
+// The game server's talk with the master server and a chat handler: the announcement
 // (0041AA10, from the tick), the master server's answer (0041ACA0, slot 10) and a client's chat
 // line (0041B1C0, registered for SayMessage by ServerSession's constructor). All run from the
 // session's tick on the main thread (net::Pump). Rebirth's EI_Plugin.asi patches 0041AA10 and

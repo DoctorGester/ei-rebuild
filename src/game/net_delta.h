@@ -1,6 +1,6 @@
 #pragma once
 
-// Delta replication of object state (0047D7F0-0047FE90). Every replicated object (units at
+// Delta replication of object state. Every replicated object (units at
 // +0x1C4, ...) owns a DeltaState: up to 16 numbered fields, each a DeltaField holding, for two
 // channels, the bytes last sent (the snapshot) and the bits and bytes to send now (the output).
 // The object's serialiser (a virtual slot; 0050EAF0 for one family) calls BeginField(i) for each
@@ -64,19 +64,19 @@ struct DeltaField {
     ~DeltaField() = default;
     DeltaField(const DeltaField&) = delete;
     DeltaField& operator=(const DeltaField&) = delete;
-    // 00675F70 (world_effect_lifetime.cpp). Resize(0) on the four streams: sizes and positions 0,
+    // Resize(0) on the four streams: sizes and positions 0,
     // buffers kept.
     void Empty();
 
-    // 0047DB70 / 0047FA40. Rewinds the snapshots, empties the outputs; both channels keep their
+    // Rewinds the snapshots, empties the outputs; both channels keep their
     // snapshots unless `channel1Only`. 0047DB70 returns `channel1Only` or 1, 0047FA40 this.
     int BeginWriteA(int channel1Only);
     DeltaField* BeginWriteB(int channel1Only);
-    // 0047DBD0 / 0047FAA0. Rewinds the snapshots and reads `reader` against snapshot 0 or 1.
+    // Rewinds the snapshots and reads `reader` against snapshot 0 or 1.
     // 0047DBD0 returns `second` or the reader, 0047FAA0 this.
     std::uintptr_t BeginReadA(int second, BitStream* reader);
     DeltaField* BeginReadB(int second, BitStream* reader);
-    // 0047DC20 / 0047FAF0. Ends the field: when reading, finishes the reader's bits; when writing,
+    // Ends the field: when reading, finishes the reader's bits; when writing,
     // finishes both outputs and truncates the kept snapshots at their positions.
     void EndField();
     // Writes `size` bytes on both channels against their snapshots.
@@ -92,7 +92,7 @@ struct DeltaField {
     // Reads a CString from the reader into `cstring` (raw storage it constructs, as
     // CStream::ReadString); returns it.
     mfc::CString* ReadString(void* cstring);
-    // 0047E340 (RET 8; A-E1). Reads a string (ReadString) into `text`, a buffer of `size` bytes: a
+    // Reads a string (ReadString) into `text`, a buffer of `size` bytes: a
     // string of size - 1 characters or more leaves `text` empty instead.
     void ReadText(char* text, int size);
     // BitStream::WriteStream of `from` into both outputs (inlined twice; the
@@ -106,18 +106,18 @@ struct DeltaField {
     // Reads what WritePosition wrote: x, y = q * 0.0083009 - 16; z = q * 0.0029297 - 32.
     // A changed value is also stored in snapshot[1].
     void ReadPosition(Vector3* position);
-    // 0047EBF0 / 0047EE00. The same for a 2D position: (v + 32) * 60.234375; q * 0.0166018 - 32.
+    // The same for a 2D position: (v + 32) * 60.234375; q * 0.0166018 - 32.
     void WritePosition2D(const float* position);
     void ReadPosition2D(float* position);
-    // 0047EF80 / 0047F110. A value in [min, max] as 16 bits: (v - min) * (65535 / (max - min)),
+    // A value in [min, max] as 16 bits: (v - min) * (65535 / (max - min)),
     // rounded through a float and FISTP; read back as q * float((max - min) / 65535) + min.
     void WriteRanged(float value, float min, float max);
     void ReadRanged(float* value, float min, float max);
-    // 0047F1E0 / 0047F3D0. A float packed into 16 bits (sign, 7-bit exponent, 8-bit mantissa; see
+    // A float packed into 16 bits (sign, 7-bit exponent, 8-bit mantissa; see
     // PackFloat16). The writer takes the float's bits (a stack argument).
     void WriteFloat16(std::uint32_t floatBits);
     void ReadFloat16(float* value);
-    // 0047F4D0 / 0047F7F0. Three of them (each float is first copied through the FPU).
+    // Three of them (each float is first copied through the FPU).
     void WriteFloat16x3(const float* values);
     void ReadFloat16x3(float* values);
     // The 16-bit read of the readers above (inline in the original; ReadDiff of 2 bytes, which
@@ -155,7 +155,7 @@ struct DeltaState {
     void SetWriteMode(int deltaOnly);
     // Reading: takes the field mask from `reader`; returns `second`.
     int BeginRead(int second, BitStream* reader);
-    // 0047FE90 (A-E1). Ends a write or a read. After a delta write the written fields join
+    // Ends a write or a read. After a delta write the written fields join
     // sentMask_ and become lastMask_, and each header is rebuilt: its mask (sentMask_ for channel
     // 0, lastMask_ for channel 1), then the channel's output of every field in the mask. After a
     // full write the headers and the masks are emptied. The state goes idle without a reader.

@@ -424,7 +424,7 @@ void Connection::Track(Replicated* item) {
     TypeRegistry::ByVtable::Node* found = g_currentSession->types_.byVtable.Find(TypeRegistry::KeyOf(object));
     std::int32_t type = found ? static_cast<std::int32_t>(found->value) : -1;
 
-    // A new entry (vtable 0073BF4C) with no version and no id yet.
+    // A new entry with no version and no id yet.
     auto* entry = NewCounted<ReplicaEntry>();
 
     CRefObject* key = item->object;

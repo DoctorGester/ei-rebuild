@@ -60,14 +60,14 @@ float ExperiencePenalty() { return GameLogicSettings().lostXp; }
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
 // The use order's unit list: an MFC CArray<CUnit*> (vtable 007402AC; SetAtGrow 0060AD50, RemoveAt
-// 00671200 are the template's members).
+// Are the template's members).
 using UnitArray = mfc::CArray<CUnit*>;
 
 CUnit* FindUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists:
-// 0052CDB0's new node holds a null reference, then the assignment counts the object).
+// 's new node holds a null reference, then the assignment counts the object).
 void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
     list.AddTail(object);
     ++object->refCount_;
@@ -436,7 +436,6 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
 }
 EI_REWRITTEN(0x0066F310, CPlayerServer::LeaveToZone);
 
-// 0066D020 (slot 16; A-H15).
 void CPlayerServer::LeaveAndFlush() {
     if (state_ == 1) {
         if (flag70_) {

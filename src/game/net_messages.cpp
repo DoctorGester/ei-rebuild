@@ -104,7 +104,7 @@ EI_REWRITTEN_SPECIAL(0x00413430, Message::~Message);
 EI_REWRITTEN_SPECIAL(0x00413410, Message::~Message);
 
 // ================================================================================================
-// 0073BBF8 LoginMessage.
+// LoginMessage.
 
 LoginMessage::LoginMessage() {
     StringEmpty(name_);
@@ -188,7 +188,7 @@ void MapMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 // ================================================================================================
-// 0073BC40 CommandMessage.
+// CommandMessage.
 
 CommandMessage::CommandMessage() { StringEmpty(text_); }
 EI_REWRITTEN_SPECIAL(0x00413C90, CommandMessage::CommandMessage);
@@ -252,7 +252,7 @@ void FileRequestMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
 void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 
 // ================================================================================================
-// 0073BC70 PlayerMessage.
+// PlayerMessage.
 
 PlayerMessage::PlayerMessage() {
     StringEmpty(name_);
@@ -289,7 +289,7 @@ void PlayerMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BC88 LineMessage.
+// LineMessage.
 
 LineMessage::LineMessage() { StringEmpty(text_); }
 EI_REWRITTEN_SPECIAL(0x0041C740, LineMessage::LineMessage);
@@ -316,7 +316,7 @@ void LineMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BCA0 HostMessage.
+// HostMessage.
 
 HostMessage::HostMessage() {
     StringEmpty(address_);
@@ -343,7 +343,7 @@ void HostMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BCE8 VariableMessage.
+// VariableMessage.
 
 VariableMessage::VariableMessage() { StringEmpty(name_); }
 VariableMessage::VariableMessage(const VariableMessage& other) : Message(other), name_(other.name_) {
@@ -371,7 +371,7 @@ void VariableMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BD18 FileMessage.
+// FileMessage.
 
 FileMessage::FileMessage() {
     StringEmpty(name_);
@@ -413,7 +413,7 @@ void FileMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BD30 FileChunkMessage.
+// FileChunkMessage.
 
 FileChunkMessage::FileChunkMessage(const FileChunkMessage& other) : Message(other) {
     CopyCounted(file_, other.file_);
@@ -442,7 +442,7 @@ void FileChunkMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BD48 AwardMessage.
+// AwardMessage.
 
 AwardMessage::AwardMessage() { StringEmpty(text_); }
 AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind_(other.kind_), text_(other.text_) {
@@ -472,7 +472,7 @@ void AwardMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BD60 TradeMessage.
+// TradeMessage.
 
 TradeMessage::TradeMessage(const TradeMessage& other)
     : Message(other), done_(other.done_), revision_(other.revision_), partnerRevision_(other.partnerRevision_) {
@@ -512,7 +512,7 @@ void TradeMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BD78 PartyMemberMessage.
+// PartyMemberMessage.
 
 // Original bug kept: the copy's stream is sized like ours, then its (uninitialised) bytes are
 // read into ours (slot 1, Read) instead of ours being written into it.
@@ -546,7 +546,7 @@ void PartyMemberMessage::Read(BufferCursor* cursor) {
 }
 
 // ================================================================================================
-// 0073BDD0 PartyMessage.
+// PartyMessage.
 
 PartyMessage::PartyMessage() { members_.ConstructEmpty(); }
 PartyMessage::PartyMessage(const PartyMessage& other)

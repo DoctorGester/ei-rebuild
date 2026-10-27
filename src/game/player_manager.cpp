@@ -1,4 +1,4 @@
-// The world's player manager (player_manager.h; A-H15).
+// The world's player manager.
 #include "player_manager.h"
 
 #include "player_messages.h"

@@ -1,4 +1,4 @@
-// CPlayerServer: the last client messages (A-H23): leave, the game state request, pause, casts,
+// CPlayerServer: the last client messages: leave, the game state request, pause, casts,
 // weapon and movement style, follow and two small ones. See player_messages.h and
 // docs/notes/objects.md ("Players").
 #include "player_messages.h"

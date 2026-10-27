@@ -58,7 +58,7 @@ static_assert(sizeof(UnitPlacement) == 0x28);
 
 // A world player's connection to its client (CPlayer::connection_; game.exe's vtable 007431E0): CPlayerServer
 // or CPlayerClient, both derived from it. It names the slots after CEngineObject's that the player calls; the
-// base's bodies are empty (00666EE0 ... 00666F60), 13 and 23 pure.
+// base's bodies are empty, 13 and 23 pure.
 class CPlayerConnection : public CEngineObject {
 public:
     // 00666EC0 (deleting: 00666F70; player_client.cpp): no player, then CEngineObject's.
@@ -93,7 +93,7 @@ static_assert(offsetof(CPlayerConnection, state_) == 0x20);   // the harness's C
 // A player's server side (game.exe's vtable 00743280, 0x5128 bytes, made by the server's specific manager).
 class CPlayerServer final : public CPlayerConnection {
 public:
-    // 0066C540 (player_messages.cpp): the engine object's fields, an empty handler table, the outgoing stream,
+    // The engine object's fields, an empty handler table, the outgoing stream,
     // the placements, both coders, the sent arrays and groups, then ClearServerState.
     CPlayerServer();
     // 0066C770 (deleting: 0066C750): ClearServerState (an ISAAC draw, as the original), the groups destroyed, the
@@ -155,23 +155,23 @@ public:
     // Compresses the outgoing messages (the coder at +0x88) and sends them on the player's
     // link (slot 8); the messages are emptied. The send's result (a bool), 0 without a link.
     int Flush();
-    // 0066D7F0 / 0066DDE0 (RET 4). Each new map object (message 0x40: header, scale, names, the
+    // Each new map object (message 0x40: header, scale, names, the
     // server companion's names and strings, a unit's name and +0x23C, its full state) / timed
     // object (0x50: id, class, full state) is sent and kept, counted, in the player's map. 1.
     int SendObjectsAdded(const PlayerObjectArray* objects);
     int SendTimedAdded(const PlayerObjectArray* objects);
-    // 0066DBA0 / 0066E020 (RET 4). The objects changed in this world update (their stamp equals the
+    // The objects changed in this world update (their stamp equals the
     // world's update count) send their delta (0x41 / 0x51: id, then the delta stream). 1.
     int SendObjectsChanged(const PlayerObjectArray* objects);
     int SendTimedChanged(const PlayerObjectArray* objects);
-    // 0066DAD0 / 0066DF40 (RET 4). Objects gone from view: dropped from the player's map and
+    // Objects gone from view: dropped from the player's map and
     // released (0x42 / 0x52: id). 1.
     int SendObjectsRemoved(const PlayerObjectArray* objects);
     int SendTimedRemoved(const PlayerObjectArray* objects);
     // Every item of the player's item list (+0x114) the party's item manager knows is
     // sent (SendObject14, slot 22).
     void SendItems();
-    // 0066E7D0 (RET 8; A-H10). For a joined player (state 1): message 0x05, a stream with the
+    // For a joined player (state 1): message 0x05, a stream with the
     // given items' spells and then the items (0069FB60 gathers them, 0055E8A0 writes each list),
     // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
     void SendItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag);
@@ -200,7 +200,7 @@ public:
     // brain then knows all of it; otherwise partyUnits_ becomes a copy of group50F8_ and +0x24 -1.
     void UpdatePartyUnits();
 
-    // player_server_handlers.cpp (A-H13).
+    // player_server_handlers.cpp.
     // The player's leader died. Outside a network game (IsMultiplayerClient):
     // message 0x09, then 0x0B (the hero's id, 0xFF) when the first record's unit exists. In one,
     // a party of one hero is revived: it loses a share of the money, which goes with the
@@ -221,7 +221,7 @@ public:
     // brain's Player mode then runs CommandUse(object, kind, value, flag != 0). Returns 1.
     int OnUseOrder();
 
-    // player_server_handlers.cpp (A-H14): the rest of the client's messages. Each returns 1, or 0
+    // player_server_handlers.cpp: the rest of the client's messages. Each returns 1, or 0
     // to refuse (the dispatcher's fatal error).
     // The player leaves for zone `zone`, entrance `entrance` (joined players,
     // state 1, only): in campaign modes 1 and 3 a dead or missing leader runs slot 20 (the
@@ -248,7 +248,7 @@ public:
     // 00670190, 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
     int OnAttack();
     int OnPartyUpdate();       // 00670B60, 0x50: a sized block loaded into the party (no variables)
-    // player_server_orders.cpp (A-H23): the last client messages. Units are the player's world's
+    // player_server_orders.cpp: the last client messages. Units are the player's world's
     // "able" means present, not blocked (flag 0x800000) and not dead (slot 55).
     int OnLeave();             // 0066FA90, 0x01: the connection's slot 16 (Leave)
     // 00670CE0, 0x04 (joined players, state 1, else 0): the game state into the player's +0x100,
@@ -301,7 +301,7 @@ public:
     void ReleaseSentObjects();
     // Group50F8_ emptied.
     void ClearGroup50F8();
-    // 0066D020 (slot 16; player_server_handlers.cpp). A joined player (state 1) collects its
+    // A joined player (state 1) collects its
     // party when deployed (flag70_, then cleared) and, in a multiplayer game, sends it
     // (SendParty); then state 3 with message 0x01 unless already 3, and Flush.
     void LeaveAndFlush();
@@ -314,7 +314,7 @@ public:
     // +0x24 -1, or the unit a Possession spell took (its id): the next party refresh then
     // sends group50F8_ (the target and what it sees) and sets it back to -1. Sent with message 0x60.
     std::uint32_t possessedId_;
-    // 0066C9A0 (slot 2; player_messages.cpp). The outgoing messages emptied, both sent-object
+    // The outgoing messages emptied, both sent-object
     // arrays released and freed, state 0, the last position 0 and +0x44 -1, both unit groups
     // emptied, +0x24 -1, no refresh pending, +0x70 0, the placements emptied, both
     // coders reset, the next party refresh in 900..1800 updates (ISAAC), then the handler table:
@@ -350,7 +350,7 @@ struct PlayerLoginMessage {
 };
 static_assert(sizeof(PlayerLoginMessage) == 0x88);
 
-// 0047ADA0 (__fastcall, RET 4; player_server_handlers.cpp). 1 when the first `maxLength`
+// 1 when the first `maxLength`
 // characters of `text` are printable (the game's isprint, of the signed char); a terminator
 // before that gives whether at least `minLength` characters came first; 0 at the first
 // unprintable one. With EI_UTF8 by character: a valid UTF-8 sequence of a printable code point each
@@ -359,7 +359,7 @@ BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength);
 
 // |a - b| squared, unrounded in ST0 (the use order's nearest-unit test).
 double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
-// 0066FD70 (__fastcall; A-H14). The walk orders' formation: one unit gets (0, 0, 0); several get
+// The walk orders' formation: one unit gets (0, 0, 0); several get
 // the unit vector (x, y, 0) from the units' 2D centroid to each (unnormalised when it is zero).
 // `offsets` (CArray<Vector3>, vtable 0073C120) is sized to the units; nothing without units.
 void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets);
@@ -422,7 +422,7 @@ public:
     // 1 when a given loot item (0x3009) has `kind` (CItemLoot::kind_), or an item
     // a unit of the player carries has it at +0x4C (any class; the walk stops at a null unit).
     BOOL HasLoot(int kind);
-    // 00665780 / 00665870 (RET 4). The first given loot item of `kind` / item with id `id`: the
+    // The first given loot item of `kind` / item with id `id`: the
     // connection's slot 19, out of the list, released; 1, or 0 when there is none.
     BOOL TakeLoot(int kind);
     BOOL TakeItem(int id);
@@ -491,6 +491,6 @@ static_assert(offsetof(CPlayer, lastTick_) == 0x110);
 static_assert(offsetof(CPlayer, dirty_) == 0x130);
 static_assert(sizeof(CPlayer) == 0x134);
 
-// 00664B70 (player.cpp). The message dispatchers' fatal error: `format` with the previous and the current
+// The message dispatchers' fatal error: `format` with the previous and the current
 // message type (their low bytes); the FatalError result.
 int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type);

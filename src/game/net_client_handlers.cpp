@@ -273,7 +273,7 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {
     RemoveRaw(self->files_, message);
     DropRequestsFor(self, message);
 }
-// 0041ECC0 (A-E2): a chunk of a shared file, kept on +0x25E4. When the list then holds as many
+// A chunk of a shared file, kept on +0x25E4. When the list then holds as many
 // chunks of the file as the file message announces, they are sorted by index, their 64 bytes each
 // joined in a growing buffer cut to the file's size, the game flow writes the buffer as the map
 // file of that name, and the requests for the file leave +0x25E8. A file without a name (the text

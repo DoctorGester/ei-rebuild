@@ -1,4 +1,4 @@
-// The network session base class (vtable 0073BF5C): construction, the message type registry and
+// The network session base class: construction, the message type registry and
 // the handler tables. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"

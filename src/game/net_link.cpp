@@ -1,6 +1,6 @@
 // Message links over streams (net_link.h): the file stream (game.exe's 0073C8D8), the link base
 // the loopback link, the replay link, the framed link and
-// the per-player driver (00477E60-0047BC10). The queue's STLport list members are library code, called
+// the per-player driver. The queue's STLport list members are library code, called
 // at their original addresses. See docs/notes/network.md and docs/notes/cleanup-network.md.
 #include "net_link.h"
 

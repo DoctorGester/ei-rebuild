@@ -30,7 +30,7 @@ public:
     // A new CPlayer (0x134 bytes, CPlayer::Construct) whose type_ is
     // `type`; null when the allocation fails.
     CEngineObject* NewPlayer(int type);
-    // 0066C180 (A-H26). A new player (type 0x300A, a free id) with a new connection from the
+    // A new player (type 0x300A, a free id) with a new connection from the
     // world's side-specific manager (type 0x49: a CPlayerServer or a CPlayerClient), one reference
     // taken, player number 0 (Rebirth's PlayerNumbers: the server world's highest other + 1). Null
     // when the player cannot be made (the connection is not checked).
@@ -41,7 +41,7 @@ public:
     // under `id`: its old id's entry erased, its id_ set, maxId_ raised, the table entry set
     // (positions_ and the object list are left alone).
     void ChangeId(CEngineObject* object, int id);
-    // 0066C340 / 0066C3C0 (RET 8). Every player's connection (a CPlayerServer) gets message
+    // Every player's connection (a CPlayerServer) gets message
     // 0x12 (SendValue12 through its address: a byte, then `value`) / 0x13 (SendText13, `text`).
     void SendValueToAll(int unused, int value);
     void SendTextToAll(int unused, const char* text);

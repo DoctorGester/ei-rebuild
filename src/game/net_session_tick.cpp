@@ -1,4 +1,4 @@
-// The session's receive step (00437370, slot 14), its packet handlers, sends and destruction,
+// The session's receive step, its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
 #include "library_net_lists.h"
 #include "net_classes.h"
@@ -298,7 +298,7 @@ SessionBase::~SessionBase() {
     ClientNode* sentinel = clients_;
     for (ClientNode* node = sentinel->next; node != clients_;) {
         ClientNode* next = node->next;
-        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();   // 0043DCA0 with 0: RefPtr::Destroy
+        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();   // With 0: RefPtr::Destroy
         stlp::deallocate(node, sizeof(ClientNode));
         node = next;
         if (node == clients_) break;

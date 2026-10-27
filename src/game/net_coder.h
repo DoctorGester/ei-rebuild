@@ -35,9 +35,9 @@ public:
     unsigned ReadBytes(void* to, unsigned size);
     // The byte buffer's read helpers (net_game_info.cpp).
     GameBuffer* CopyOut(void* to, unsigned size);
-    // 004DA5C0 (RET 4; game_buffer.cpp). Moves the contents to a new block of size * 2 + 0x40 bytes.
+    // Moves the contents to a new block of size * 2 + 0x40 bytes.
     void Grow(std::uint32_t size);
-    // game_buffer_strings.cpp (A-S4). Length-prefixed strings: the length * 2 in one byte, or
+    // game_buffer_strings.cpp. Length-prefixed strings: the length * 2 in one byte, or
     // length * 2 + 1 in four bytes from 0x80 on.
     // 004DA200 (RET 8, AL). Reads one into the STLport string `s` (assign): false with error bit 3
     // when it is longer than `maxLength` (> 0). The bytes are read in place (slot 0 first when they
@@ -53,13 +53,13 @@ public:
     // The block replaced by one of `capacity` bytes with the old capacity's bytes; the pointers
     // move with it (inlined in every growing slot).
     void Reallocate(std::uint32_t capacity);
-    // 00580EE0 (RET 4; buffered_file.cpp). Before `size` bytes are written in place: flags bit 0
+    // Before `size` bytes are written in place: flags bit 0
     // set, room made (slot 1) when the block ends before them. Returns the cursor.
     std::uint8_t* BeginWrite(std::int32_t size);
-    // 00436C30 (net_session_tick.cpp). Copies `size` bytes to the write position and moves it on (no
+    // Copies `size` bytes to the write position and moves it on (no
     // room check). Returns this.
     GameBuffer* BufferWriteRaw(const void* from, unsigned size);
-    // 00436C60 (RET 8; net_session_tick.cpp). Writes `size` bytes: in place (flags bit 0 set) when
+    // Writes `size` bytes: in place (flags bit 0 set) when
     // they fit before `end`, otherwise through slot 4. Returns `size` or what slot 4 left.
     unsigned BufferWrite(const void* from, unsigned size);
 
@@ -135,7 +135,7 @@ public:
 // Bits are collected in `acc`; a byte is reserved at `bytePtr` when a field starts in a new
 // byte and stored there once more than 8 bits are pending (exactly 8 stay pending).
 struct BufferCursor {
-    // 00430FC0 (misc_400.cpp). Starts the cursor at `first` (no byte reserved, no pending bits; the
+    // Starts the cursor at `first` (no byte reserved, no pending bits; the
     // accumulator is left alone; the two other arguments are unused). Returns 0.
     std::uint32_t Start(std::uint8_t* first, std::uint32_t, std::uint32_t);
     std::uint8_t* p;           // +0x00 next byte
@@ -148,7 +148,7 @@ struct BufferCursor {
 
     // Appends the low `count` bits of `value` (writing).
     void PutBits(std::uint32_t value, std::uint8_t count);
-    // 004357C0 (net_connection.cpp). Appends one bit (`bit` is added unmasked, as the original).
+    // Appends one bit (`bit` is added unmasked, as the original).
     void PutBit(std::uint32_t bit);
     // Next bit (reading).
     std::uint32_t GetBit();
@@ -169,7 +169,7 @@ struct BufferCursor {
     // Returns the commit's EAX, or `this` without a sink (00579830 returns it with AL cleared).
     std::uint32_t End();
 
-    // 004DA450 / 004DA490 (game_buffer.cpp, RET 8) bind the cursor to a buffer with room for
+    // Bind the cursor to a buffer with room for
     // `size` more bytes (slot 0 / slot 1 of the buffer when short): sink, start and p set, no
     // pending bits (acc is left); the write variant first sets the buffer's flag bit 0.
     void BeginRead(GameBuffer* buffer, std::int32_t size);
@@ -197,7 +197,7 @@ struct CoderState {
     std::int32_t matchLen;           // +0x2820
     std::uint32_t prev;              // +0x2824 the previous input byte
 
-    // 0042FCA0 (core_streams.cpp). Returns this.
+    // Returns this.
     CoderState* Construct();
     // Compresses everything in `in` (from its start) to `out` at its cursor.
     void Compress(GameBuffer* in, GameBuffer* out);
@@ -205,7 +205,7 @@ struct CoderState {
     void Decompress(GameBuffer* in, GameBuffer* out);
     // Writes the match in progress (length and offset codes); ends it.
     void EncodeMatch(std::int32_t at);
-    // 006671A0 (player_client.cpp, A-H10). Ends the output (out.End: pending bits stored, the sink
+    // Ends the output (out.End: pending bits stored, the sink
     // committed), then Construct.
     void Reset();
 };

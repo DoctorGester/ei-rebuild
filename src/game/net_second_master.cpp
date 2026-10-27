@@ -1,5 +1,5 @@
 // EI_Plugin's NewMaster: the second master server (net_second_master.h). The plugin's code, read from
-// EI_Plugin.asi: 10005110 (start the look-up), 100050C0 (the thread), 100051B0 (at 006330A9),
+// EI_Plugin.asi: 10005110 (start the look-up), 100050C0 (the thread), 100051B0,
 // 10004E20 (at 0041ABDA), 100052D0 (at 0061D138). Its state lives in its block at [0073AFF0]
 // (+0xC7 the second master's sockaddr, whose address is -1 until known; +0xD7 the "a.b.c.d:port"
 // text); ours is here. Winsock is called directly (the plugin calls gethostbyname and select from

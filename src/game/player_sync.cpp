@@ -97,7 +97,7 @@ void Forget(Map& map, int id) {
 
 int WorldUpdateCount(CPlayer* player) { return player->ServerWorld()->updateCount_; }
 
-// SendItemsGiven (A-H10).
+// SendItemsGiven.
 constexpr std::uint8_t kMessageItemStates = 0x05;
 constexpr std::uint8_t kMessageItemsGiven = 0x06;
 constexpr int kStateJoined = 1;

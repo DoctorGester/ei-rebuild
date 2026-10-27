@@ -141,7 +141,7 @@ std::int32_t __fastcall BufferLength(GameBuffer* b) {
 EI_REWRITTEN(0x00442570, BufferCursor::FlushBits);
 EI_REWRITTEN(0x00441640, BufferLength);
 
-// 00443770 / 00443790 / 00443E90 / 00444270: the query's constructor (a zero address and an empty
+// The query's constructor (a zero address and an empty
 // growing buffer), destructor, deleting destructor and copy constructor.
 Query::Query() { std::memset(&address, 0, sizeof(address)); }
 EI_REWRITTEN_SPECIAL(0x00443770, Query::Query);
@@ -151,7 +151,7 @@ EI_REWRITTEN_SPECIAL(0x00443E90, Query::~Query);   // deleting
 Query::Query(const Query& from) : address(from.address), reply(from.reply) {}
 EI_REWRITTEN_SPECIAL(0x00444270, Query::Query);
 
-// 00443E20 / 00443760: the temporary counted pointer handed to the list insert (set from a raw
+// The temporary counted pointer handed to the list insert (set from a raw
 // pointer without a reference; cleared when unwinding).
 RefPtr* __fastcall HolderInit(RefPtr* self, CRefObject* raw) {
     self->ptr = raw;

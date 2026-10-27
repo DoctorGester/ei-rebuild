@@ -31,22 +31,22 @@ public:
     // 16: 00667670 (empty; CPlayerConnection's).
     int Receive() override { return ReceiveMessages(); }
 
-    // player_client_orders.cpp (A-H14): the local view's orders, queued for the server (out_), each
+    // player_client_orders.cpp: the local view's orders, queued for the server (out_), each
     // a type byte and a payload; all return 1. Units go as their ids (-1 for a null entry).
-    // 0066A7D0 / 0066A720 (RET 0xC). 0x30 walk / 0x3A go to: the units, `run`, the point.
+    // 0x30 walk / 0x3A go to: the units, `run`, the point.
     int SendWalk(const mfc::CArray<CUnit*>* units, const Vector3* to, int run);
     int SendGoTo(const mfc::CArray<CUnit*>* units, const Vector3* to, int run);
     // 0x31 attack: the units, `ctrl`, `how`, the target's id.
     int SendAttack(const mfc::CArray<CUnit*>* units, CEngineObject* target, int how, int ctrl);
-    // 0066AC70 / 0066ACD0 (RET 0x10). 0x33 / 0x32 cast spell `slot` of `caster` on `target` / at
+    // 0x33 / 0x32 cast spell `slot` of `caster` on `target` / at
     // `point`, with the low byte of `ctrl`.
     int SendCastOnUnit(int slot, CUnit* caster, CEngineObject* target, int ctrl);
     int SendCastAtPoint(int slot, CUnit* caster, const Vector3* point, int ctrl);
-    // 0066AD40 / 0066ADD0 (RET 0x10). The same with quick item `slot` (slot | 0x80000000); a
+    // The same with quick item `slot` (slot | 0x80000000); a
     // potion (category 8) with a count above 0 loses one at once.
     int SendItemOnUnit(int slot, CUnit* user, CEngineObject* target, int ctrl);
     int SendItemAtPoint(int slot, CUnit* user, const Vector3* point, int ctrl);
-    // 0066AE70 / 0066AED0 (RET 8). 0x34 weapon slot / 0x35 movement mode: the unit's id and the
+    // 0x34 weapon slot / 0x35 movement mode: the unit's id and the
     // value's low byte; the unit keeps the value (+0x270 / moveMode2).
     int SetWeapon(CUnit* unit, int slot);
     int SetMoveMode(CUnit* unit, int mode);
@@ -82,7 +82,7 @@ public:
     // 0x09 (resume).
     int SendResume();
 
-    // player_client.cpp (A-H8).
+    // player_client.cpp.
     // State 0: once the link is connected, the party (message 8, with the
     // variables, when +0x85 is set) and the login (message 0: version 100, "Tango", "Very top
     // secret", the player's +0xFC) are queued, state 1, and everything is sent (SendToServer's

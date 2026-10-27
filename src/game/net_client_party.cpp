@@ -109,7 +109,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
             PushBack(&current->members_, same);
             if (same + 1 != previous.end()) stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(same + 1, previous.end(), same);
             --previous.Finish();
-            RefPtrRelease(previous.end());   // 004292A0 with flags 0
+            RefPtrRelease(previous.end());   // With flags 0
         } else {
             PushBack(&current->members_, &ref);
         }

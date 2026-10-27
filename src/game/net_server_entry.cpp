@@ -1,4 +1,4 @@
-// The game server's description of itself (0041A7E0, slot 15): a server entry like those the
+// The game server's description of itself: a server entry like those the
 // client reads from the server list (net_server_list.cpp). See net_classes.h and
 // docs/notes/network.md.
 #include "net_classes.h"
