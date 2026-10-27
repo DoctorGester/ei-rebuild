@@ -1,6 +1,5 @@
-// The world's AI events (CWorldServer + 0x2838): the time wheel and the event grid (Advance
-// 005C9530, ForgetUnit 005C97B0, Load 005CAE30, Save 005CAFA0). See unit_ai.h (AIEventTable) and
-// docs/notes/ai.md.
+// The world's AI events: the time wheel and the event grid (Advance, ForgetUnit, Load, Save). See unit_ai.h
+// (AIEventTable) and docs/notes/ai.md.
 #include "unit_ai.h"
 #include "game_strings.h"
 
@@ -28,8 +27,8 @@ constexpr int kSides = 16;
 constexpr int kSideMask = kSides - 1;
 constexpr int kWheelMask = kWheelTicks - 1;
 
-// The records' pool (a CList<AIEvent> whose nodes hold them; AddHead is its own instantiation
-// 005CDB00, the template's here) and the free list (chained through AIEvent::next).
+// The records' pool (a CList<AIEvent> whose nodes hold them) and the free list (chained through
+// AIEvent::next).
 static_assert(sizeof(mfc::CList<AIEvent>) == 0x1C);
 constinit lib::StaticObject<mfc::CList<AIEvent>> g_eventPool = /*007C43A8*/ {};
 mfc::CList<AIEvent>& AIEventPool() { return *g_eventPool; }
@@ -49,7 +48,7 @@ void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
 EI_REWRITTEN(0x005CDBA0, AIEventPoolDestruct);
 
 namespace {
-// The pool's static initialiser (0x400 nodes a block, 005CDAD0) and the exit function it registers.
+// The pool's static initialiser (0x400 nodes a block) and the exit function it registers.
 void __cdecl DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }
 void __cdecl ConstructEventPool() {
     mfc::impl::ConstructListHeader<mfc::impl::StaticListClass>(&*g_eventPool, 0x400);
@@ -71,7 +70,7 @@ void AIEventTable::Free(AIEvent* event, int side) {
     if (AIEvent* prev = event->prev) {
         prev->next = event->next;
     } else {
-        // The original does not test the cell: an event outside the grid faults here.
+        // Like the original, the cell is not tested: an event outside the grid faults here.
         AIEventCell* cell = CellOf(event);
         if (cell->bySide[side]) cell->bySide[side] = event->next;
     }
@@ -171,7 +170,7 @@ void AIEventTable::Save(CStream* stream) {
 }
 EI_REWRITTEN(0x005CAFA0, AIEventTable::Save);
 
-// ---- Setup for a map (005C9310, A-W14) --------------------------------------------------------------
+// ---- Setup for a map ----------------------------------------------------------------------------------
 
 namespace {
 

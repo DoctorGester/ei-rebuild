@@ -23,8 +23,8 @@ bool BeginLocalSearch(LocalSearch* search, CUnit* unit, int x0, int y0, int x1, 
     return search->Begin(unit, x0, y0, x1, y1);
 }
 
-// The sector map through its original addresses (rewritten in sector_map.cpp), so the verify
-// build's wrappers see these calls.
+// The sector map through its original addresses (rewritten in sector_map.cpp), so the verify build's wrappers
+// see these calls.
 
 const Vector3& PositionOf(const CUnit* unit) { return *&unit->localPosition_; }
 
@@ -96,11 +96,11 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     // The step rotated by -45 and +45 degrees, scaled so that no component exceeds 1.
     float p = sx * kDiagonal - sy * kDiagonal;
     float q = (sy + sx) * kDiagonal;
-    // FCOMPP: C0 if less. No audit: p and q are NaN together (sx or sy is 0 / 0 when the unit
-    // stands on the target cell, which the suite does), and then both choices are NaN.
+    // FCOMPP: C0 if less. No audit: p and q are NaN together (sx or sy is 0 / 0 when the unit stands on the
+    // target cell, which the suite does), and then both choices are NaN.
     float scale = 1.0f / (Abs(q) < Abs(p) ? Abs(p) : Abs(q));
-    // Kept as the original's test: a NaN scale (the case above) scales the step too, which makes
-    // the finite one of sx / sy NaN as well; the plain scale < 1 would leave it.
+    // Kept as the original's test: a NaN scale (the case above) scales the step too, which makes the finite one
+    // of sx / sy NaN as well; the plain scale < 1 would leave it.
     if (!(scale >= 1.0f)) {
         p = scale * p;
         q = scale * q;
@@ -179,7 +179,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
         path->reached = false;
         // Put the last step back at the head of the path: it is where the steering heads.
         const PathCell* last = &steps.tail->data;
-        pathCells.AddHead(*last);   // inlined in the original (the element zeroed by 00539980 first)
+        pathCells.AddHead(*last);   // the element zeroed first
         y = static_cast<float>(last->y) + 0.5f;
         x = static_cast<float>(last->x) + 0.5f;
     } else {
@@ -297,7 +297,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         float px;
         std::memcpy(&px, &path->targetX, 4);
         float a = Abs(px - static_cast<float>(x87::fistp(px)));
-        std::memcpy(&px, &path->targetX, 4);    // the original reads targetX twice (not targetY)
+        std::memcpy(&px, &path->targetX, 4);    // targetX twice (not targetY), like the original
         float b = Abs(px - static_cast<float>(x87::fistp(px)));
         float b2 = b + b, a2 = a + a;
         float fraction = b2 < a2 ? b2 : a2;   // a and b are the same value (see above)

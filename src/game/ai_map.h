@@ -34,12 +34,12 @@ constexpr std::uint8_t kCellBridge = 0x40;
 // the grid. Name provisional.
 struct FootprintCell {
     int x, y;
-    int low;                    // +0x08 lowest bottom-face height (AI height units), 0x7FFFFFFF if none
+    int low;                    // lowest bottom-face height (AI height units), 0x7FFFFFFF if none
     int high;                   // +0x0C highest top-face height, 0 if none
     std::int8_t kind;           // +0x10 occluder kind (part flags bits 3-5; 4 = bridge once applied)
     std::int8_t transparency;   // +0x11 index into the transparency table (part flags bits 6-9)
     std::uint8_t edge;          // +0x12 lies on the outline of one of the part's faces
-    std::uint8_t padding;               // +0x13 zeroed by AddCell; the original leaves it uninitialised
+    std::uint8_t padding;               // zeroed by AddCell (uninitialised in the original)
     int next;                   // +0x14 next index in the same hash bucket, -1 ends
 };
 static_assert(sizeof(FootprintCell) == 0x18);
@@ -48,10 +48,8 @@ static_assert(sizeof(FootprintCell) == 0x18);
 struct FootprintCellSet {
     void AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction);
     void DiscAt(CAIMap* map, const Vector3* position, float radius);
-    // 0067E4E0 (returns the set). The constructor as the spells' global set 007C8478 gets it
-    // from its static initialiser 0067E4C0 (before the hooks; compared at start-up): an empty
-    // array, `hashed` set. The buckets are not written (the global's are zero until the first
-    // footprint empties them).
+    // The constructor of the spells' global set, run by a static initialiser: an empty array, `hashed` set. The
+    // buckets are not written (the global's are zero until the first footprint empties them).
     FootprintCellSet* Construct();
 
     // Resizes the array to `size` (0 frees it). The storage is 32-byte aligned, with the
@@ -89,8 +87,7 @@ struct FootprintPart {
     Vector3 boxMax;         // +0x20
     Vector3 pivot;          // +0x2C
 
-    // 005174E0 (RET 4; object3d_small_methods.cpp): marked ignored (0x800) or not (the "EMPTY"
-    // pieces, CObject3D::LoadPart).
+    // Marked ignored (0x800) or not (the "EMPTY" pieces, CObject3D::LoadPart).
     void SetIgnored(bool ignored);
 };
 static_assert(sizeof(FootprintPart) == 0x38);
@@ -126,16 +123,15 @@ static_assert(sizeof(PathCell) == 8);
 // The vtable of CList<PathCell> (PathCellList).
 inline void* PathCellListVtable() { return mfc::impl::CellListClass::Vtable(); }
 
-// ConstructElements of CList<PathCell>: the instantiation's own (00539980, ai_path_cells.cpp).
+// ConstructElements of CList<PathCell>: the instantiation's own (ai_path_cells.cpp).
 struct PathCellElements {
     static void Construct(PathCell* cells, int count);
     static void Destruct(PathCell*, int) {}
 };
-// MFC CList<PathCell, PathCell&> (0x1C bytes); the game inlines most of its operations. Registered
-// on the template: NewNode 005B1B70 (ai_path.cpp), AddHead / AddTail 005BD200 / 005BD2A0
-// (ai_path_cells.cpp). RemoveAll is 00556D40's code.
+// MFC CList<PathCell, PathCell&> (0x1C bytes); the game inlines most of its operations (NewNode in ai_path.cpp,
+// AddHead / AddTail in ai_path_cells.cpp).
 struct PathCells : mfc::CList<PathCell, PathCellElements> {
-    // 005C5DA0 (RET 4; ai_path_cells.cpp). Appends copies of `other`'s cells.
+    // Appends copies of `other`'s cells (ai_path_cells.cpp).
     void Append(const PathCells* other);
     // Constructs `out` (blocks of 0x80) holding the cells in reverse order;
     // returns `out`.
@@ -144,12 +140,11 @@ struct PathCells : mfc::CList<PathCell, PathCellElements> {
 static_assert(sizeof(PathCells) == 0x1C && sizeof(PathCells::Node) == 0x10);
 using PathCellList = PathCells;
 
-// The speed word and terrain bits a path builder gives its cells: the plain step speed, no
-// terrain bits. The originals leave stack leftovers there (SearchPathTo 005C3200 the caller's
-// register, BuildCellsTo 005B9A20 a search's row offset, PathSmoother::Smooth 005C46C0 the open cost
-// or a list vtable); the harness patches them to this too (tests/verify/harness_path_cells.cpp).
-// SetStepSpeeds rewrites both words of every step but the last, whose speed word becomes
-// UnitMotion's last step speed (read only by a single-cell trajectory).
+// The speed word and terrain bits a path builder gives its cells: the plain step speed, no terrain bits. The
+// original leaves stack leftovers there (the caller's register, a search's row offset, the open cost or a list
+// vtable); the harness patches them to this too (tests/verify/harness_path_cells.cpp). SetStepSpeeds
+// rewrites both words of every step but the last, whose speed word becomes UnitMotion's last step speed (read
+// only by a single-cell trajectory).
 constexpr std::uint16_t kPlainStepSpeed = 0x200;
 inline void SetPlainCellWords(PathCell* cell) {
     cell->flags = kPlainStepSpeed;
@@ -159,20 +154,20 @@ inline void SetPlainCellWords(PathCellList* list) {
     for (PathCellList::Node* node = list->head; node; node = node->next) SetPlainCellWords(&node->data);
 }
 
-// 005C6000 (thiscall). Removes each cell equal (x, y) to the one before it (the first is compared
-// with (-1, -1)); an emptied list frees its blocks.
+// Removes each cell equal (x, y) to the one before it (the first is compared with (-1, -1)); an emptied list
+// frees its blocks.
 void __fastcall PathCellsRemoveRepeats(PathCellList* list);
 
 // A block a search reaches: {block x, block y, cost}.
 struct BlockCost {
     int x, y, cost;
 };
-// CList<BlockCost>'s ConstructElements is the instantiation's own (005B1C70, zero-fill).
+// CList<BlockCost>'s ConstructElements is the instantiation's own (zero-fill).
 struct BlockCostElements {
     static void Construct(BlockCost* elements, int count);   // ai_region_reach.cpp
     static void Destruct(BlockCost*, int) {}
 };
-// The CList of reached blocks (0x1C bytes, nodes 0x14; vtable 0073FCFC).
+// The CList of reached blocks (0x1C bytes, nodes 0x14).
 using BlockCostList = mfc::CList<BlockCost, BlockCostElements>;
 inline void* BlockCostListVtable() { return mfc::impl::BlockCostListClass::Vtable(); }
 static_assert(sizeof(BlockCostList::Node) == 0x14);
@@ -180,8 +175,8 @@ static_assert(sizeof(BlockCostList::Node) == 0x14);
 struct CRegionMap;
 
 
-// A block of the region map, or a cell: {x, y}. The excluded blocks of a plan (AIPath) and the
-// region map's work lists are CArray<BlockPoint> (constructor 00557230, SetSize 005B16D0).
+// A block of the region map, or a cell: {x, y}. The excluded blocks of a plan (AIPath) and the region map's
+// work lists are CArray<BlockPoint>.
 struct BlockPoint {
     int x, y;
 };
@@ -211,20 +206,18 @@ struct MotionOrder {
 };
 static_assert(sizeof(MotionOrder) == 0x20);
 
-// A motion order with the steps it walks next (0x3C bytes): the first part of a unit's path
-// (AIPath) and all the client's controller keeps of one (CUnitClientSpecific + 0x38). The
-// controller's slot 16 returns it. Its methods at 005C7xxx steer along `steps`.
+// A motion order with the steps it walks next (0x3C bytes): the first part of a unit's path (AIPath) and all
+// the client's controller keeps of one (CUnitClientSpecific). Its methods steer along `steps`.
 struct PathOrder {
     // The order in the first 0x20 bytes (MotionOrder); src/game/ai_motion.cpp.
-    // Stand still at (0, 0); the steps are emptied. Returns 0 (EAX, as the original).
+    // Stand still at (0, 0); the steps are emptied. Returns 0.
     int Reset();
     // Stand at world `position` facing `direction` from world time `time`; the steps are
     // emptied. False if the unit already stood there that way.
     bool Start(const Vector3* position, const Vector3* direction, int time);
     // Follow the steps to (x, y) (half-cells).
     void SetTarget(float x, float y);
-    // 005C7C00 / 005C7C40. Turn to `direction` (kind 1 at `rateBits`, a float's bits kept as given;
-    // kind 4 until `until`).
+    // Turn to `direction` (kind 1 at `rateBits`, a float's bits kept as given; kind 4 until `until`).
     void SetTurn(const Vector3* direction, std::uint32_t rateBits);
     void SetTurnUntil(const Vector3* direction, int arg6, int arg7);
     // Track object `id` between `from` and `to`.
@@ -233,25 +226,22 @@ struct PathOrder {
     void ForgetObject(int id);
     // Shifts the order's times by `delta`.
     void ShiftTime(int delta);
-    // Sets the speed word of every step. Returns 0 (EAX, as the original).
+    // Sets the speed word of every step. Returns 0.
     int SetStepSpeeds(std::uint16_t speed);
     // Where the order leads (world); returns `out`.
     Vector3* Destination(Vector3* out);
-    // 005C7DB0 / 005C7FC0 (RET 4; ai_path_state.cpp). The order (kind byte, the steps' count as two
-    // bytes, start x / y, the angle within +-007C4378, the time and three arguments) on the field's
-    // delta channels, then each step as a 16-bit header (x and y codes: one less, the same, one more
-    // than the previous step, or written out after it; unknown_6 & 3; the flags up to 0x3FF) on both
-    // outputs. ReadState empties the steps and reads them back.
+    // ai_path_state.cpp. The order (kind byte, the steps' count as two bytes, start x / y, the angle within the
+    // order angle range, the time and three arguments) on the field's delta channels, then each step as a 16-bit
+    // header (x and y codes: one less, the same, one more than the previous step, or written out after it;
+    // unknown_6 & 3; the flags up to 0x3FF) on both outputs. ReadState empties the steps and reads them back.
     void WriteState(DeltaField* field);
     void ReadState(DeltaField* field);
-    // 005C8230 / 005C8370 (RET 4; ai_path_save.cpp). The order and its steps in the save stream:
-    // kind, x / y, angle, start time and the three arguments (4, 8, 4, 4, 0xC bytes), the steps'
-    // count, then each step (8 bytes). Loading appends that many steps and reads over every step
-    // from the head.
+    // ai_path_save.cpp. The order and its steps in the save stream: kind, x / y, angle, start time and the three
+    // arguments (4, 8, 4, 4, 0xC bytes), the steps' count, then each step (8 bytes). Loading appends that many
+    // steps and reads over every step from the head.
     void LoadOrder(CStream* stream);
     void SaveOrder(CStream* stream);
-    // 0054EAC0 (ai_path_cells.cpp, A-W14). The constructor: the step list empty, blocks of 0x80;
-    // the order itself is left as it is. Returns this.
+    // The constructor: the step list empty, blocks of 0x80; the order itself is left as it is. Returns this.
     PathOrder* ConstructSteps();
 
     MotionOrder motionOrder;    // +0x00 (ai_motion.cpp)
@@ -270,20 +260,16 @@ struct AIPath : PathOrder {
     void StandStill(const CMapObject* unit);
     // Empties the path, the steps and the order.
     void Clear();
-    // 005B22C0 (RET 4; ai_path_cells.cpp). The path as a motion order in `out` (its step list
-    // constructed): the order, the steps; and for an order that follows steps (kind 2) the rest
-    // of the path appended, repeats removed, every step's speed 0x200 and the target set.
+    // The path as a motion order in `out` (its step list constructed): the order, the steps; and for an order that
+    // follows steps (kind 2) the rest of the path appended, repeats removed, every step's speed 0x200 and the
+    // target set.
     void ToMotionOrder(PathOrder* out) const;
-    // 006706A0 (player_server_handlers.cpp). An out-of-line copy of the inlined constructor: both
-    // cell lists empty (blocks of 0x80), no excluded blocks (vtable PointArrayClass), then
+    // An out-of-line copy of the constructor: both cell lists empty (blocks of 0x80), no excluded blocks, then
     // Clear. Returns this.
-    // The destructor body is 00546100 (Destruct).
     AIPath* Construct();
-    // 00546100 (combat_lifetime.cpp, A-U7). The destructor body: the excluded blocks freed (vtable
-    // 0073F07C), then both cell lists emptied with their vtable.
+    // The destructor body: the excluded blocks freed, then both cell lists emptied.
     void Destruct();
-    // The search's target cell (targetX, targetY) in world units: each times
-    // 0074326C * 0073B86C, z 0. Returns `out`.
+    // The search's target cell (targetX, targetY) in world units (each times the cell scale), z 0. Returns `out`.
     Vector3* TargetPoint(Vector3* out) const;
 
     PathCellList cells;         // +0x3C the rest of the path
@@ -292,10 +278,9 @@ struct AIPath : PathOrder {
     bool reached;               // +0x6C no cells left
     std::uint8_t failed;        // +0x6D 1: the last search failed; search again
     bool flag6E, flag6F;        // +0x6E, +0x6F
-    // +0x70 the blocks the long-range plan avoids (PlanLongPath adds the region it failed in;
-    // vtable 0073F07C, constructor 00557230, destructor 00557250).
+    // the blocks the long-range plan avoids (PlanLongPath adds the region it failed in).
     BlockPointArray excludedBlocks;
-    int smoothing;              // +0x84 from 005C46C0 (how much longer the path is than the way)
+    int smoothing;              // set by the smoother (how much longer the path is than the way)
 };
 static_assert(offsetof(AIPath, steps) == 0x20);
 static_assert(offsetof(AIPath, excludedBlocks) == 0x70);
@@ -324,7 +309,7 @@ static_assert(sizeof(AITerrainType) == 0x118);
 
 // A cell of the local search's window (0x14 bytes). Name provisional.
 struct SearchNode {
-    int cost;                   // +0x00 0x7FFFFFFF until reached
+    int cost;                   // 0x7FFFFFFF until reached
     SearchNode* next;           // +0x04 in its bucket, or in the settled list
     SearchNode* prev;           // +0x08 in its bucket
     std::int16_t x, y;          // +0x0C window coordinates (0..33)
@@ -383,7 +368,7 @@ struct LocalSearch {
     // Starts a search at (sx, sy) confined to the rectangle (x0, y0)-(x1, y1) (x0 <= x1,
     // y0 <= y1, at most 28 apart): the row below and the column right of it are made unusable.
     bool BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy);
-    // 005C2C90 / 005C2CF0. BeginInRect for a unit / a size class.
+    // BeginInRect for a unit / a size class.
     bool BeginInRectFor(CUnit* unit, int x0, int y0, int x1, int y1, int sx, int sy);
     bool BeginInRectForClass(int sizeClass, int x0, int y0, int x1, int y1, int sx, int sy);
     // Copies the reached cells' directions into the map's marks (CAIMap::marks) where
@@ -402,11 +387,11 @@ struct LocalSearch {
     // queued. False when the window cannot be placed (unchanged) or moved 31 cells or more (the
     // window and row table are already moved, the nodes not).
     bool Recenter(int x0, int y0, int x1, int y1, bool settleInside);
-    // 005B3FF0 (RET 4; the constructor; ai_grids.cpp). 1 x 1 node and level grids, no map rows, no
-    // map; then Attach(owner, false) when `owner` is not null. Returns this.
+    // The constructor (ai_grids.cpp). 1 x 1 node and level grids, no map rows, no map; then Attach(owner, false)
+    // when `owner` is not null. Returns this.
     LocalSearch* Construct(CAIMap* owner);
-    // 0058AA60 (ai_grids.cpp). The destructor: the row table's vtable back and its storage freed,
-    // then the level and node grids freed.
+    // The destructor (ai_grids.cpp): the row table's vtable back and its storage freed, then the level and node
+    // grids freed.
     void Destruct();
 
     bool active;                        // +0x00
@@ -467,8 +452,7 @@ static_assert(sizeof(BlockRecord) == 24);
 struct BlockSearch {
     // Attaches to the region map: one record per block, all unreached.
     void Attach(CRegionMap* regionMap, bool fromTarget);
-    // 005AF1C0 (RET 0xC; ai_region_reach.cpp). The path from the search's start to block (x, y) into
-    // `path` (emptied first).
+    // The path from the search's start to block (x, y) into `path` (emptied first).
     void PathTo(int x, int y, PathCellList* path);
     // Moves `record` to its place in its bucket (a bucket head stays).
     void Requeue(BlockRecord* record);
@@ -499,63 +483,57 @@ static_assert(sizeof(BlockSearch) == 0x4C);
 
 // The region map at CAIMap + 0x22F8 (0x29C bytes): connected areas of 8x8-cell blocks per size class.
 struct CRegionMap {
-    // 005B0600 (ai_region_reach.cpp): the region of cell (x, y) for a size class, the one most of
-    // the reachable 3x3 blocks around the cell belong to (the first seen on a tie; 0 when none);
-    // EAX's upper half is 0.
+    // The region of cell (x, y) for a size class, the one most of the reachable 3x3 blocks around the cell belong
+    // to (the first seen on a tie; 0 when none).
     int DominantRegion(int sizeClass, int x, int y);
-    // 005B07C0 (ai_region_reach.cpp). Can cell (x, y) reach `region`? Caches the answers in `marks` (the AI
-    // map's, CAIMap::marks: 1 yes, 2 no).
+    // Can cell (x, y) reach `region`? Caches the answers in `marks` (the AI map's, CAIMap::marks: 1 yes, 2 no).
     bool ReachesRegion(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks);
-    // 005B0050 (ai_region_reach.cpp). Numbers the connected areas of blocks of every size class.
+    // Numbers the connected areas of blocks of every size class.
     void LabelRegions();
-    // 005B0F70 (ai_region_reach.cpp). The per-direction block edge words: -1 out of the map, and
-    // each edge between two blocks the smaller of its two directions, for every size class.
+    // The per-direction block edge words: -1 out of the map, and each edge between two blocks the smaller of its
+    // two directions, for every size class.
     void ClampEdgeCosts();
-    // 005B1180 (RET 4, AL; ai_region_reach.cpp). Reads the block grids of every size class from
-    // the AI graph stream (width and height 1..256 first); returns the stream's state byte (+5).
+    // Reads the block grids of every size class from the AI graph stream (width and height 1..256 first); returns
+    // the stream's state byte.
     bool LoadBlocks(CStream* stream);
-    // 005B1380 (RET 4; the save, 00597BD0). The block grids as LoadBlocks reads them: width and
-    // height, then per size class each row's edge words, representative cells and regions.
+    // The block grids as LoadBlocks reads them: width and height, then per size class each row's edge words,
+    // representative cells and regions.
     void SaveBlocks(CStream* stream);
-    // 005AF900 (RET 0xC; ai_region_reach.cpp). Per size class the representative cell of block
-    // (bx, by): (3, 3) unless a passable cell in rings from the middle is better.
+    // Per size class the representative cell of block (bx, by): (3, 3) unless a passable cell in rings from the
+    // middle is better.
     void PickRepresentatives(class CAIMap* map, int bx, int by);
-    // 005B0D90 (RET 0x1C, AL; ai_region_reach.cpp). The chain of regions from (fromX, fromY) to
-    // (toX, toY) into `chain` (a CList), avoiding the blocks in `excluded` (CArray<{x, y}>).
+    // The chain of regions from (fromX, fromY) to (toX, toY) into `chain` (a CList), avoiding the blocks in
+    // `excluded` (CArray<{x, y}>).
     bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCellList* chain,
                          BlockPointArray* excluded);
-    // 005AF5F0 (RET 4, AL; ai_region_reach.cpp). Expands the two block searches until they meet and
-    // joins their paths into `chain`; false when one runs out.
+    // Expands the two block searches until they meet and joins their paths into `chain`; false when one runs out.
     bool JoinBlockSearches(PathCellList* chain);
-    // 005AFAE0 (RET 0xC; ai_region_reach.cpp). Per size class the block (bx, by)'s edge words:
-    // the local search cost to each neighbour's representative cell / 128. The first argument is
-    // not read.
+    // Per size class the block (bx, by)'s edge words: the local search cost to each neighbour's representative
+    // cell / 128. The first argument is not read.
     void MeasureBlockEdges(void* unused, int bx, int by);
-    // 005B0C00 (RET 4; ai_region_reach.cpp). Sizes the block grids for the map (8x8-cell blocks),
-    // sets up the local search and rebuilds the derived tables.
+    // Sizes the block grids for the map (8x8-cell blocks), sets up the local search and rebuilds the derived
+    // tables.
     void Attach(class CAIMap* map);
-    // 005AF7B0 (RET 0x14, AL; ai_region_reach.cpp). Whether cell (xx, yy) of block (bx, by) can
-    // reach both side edges or both end edges of the block for a size class.
+    // Whether cell (xx, yy) of block (bx, by) can reach both side edges or both end edges of the block for a
+    // size class.
     bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
-    // 005AFF10 (RET 0x10; ai_region_reach.cpp). Floods `label` over the blocks connected through open
-    // edges, breadth first from `frontier` (CArray<{x, y}>), `next` holding the following ring.
+    // Floods `label` over the blocks connected through open edges, breadth first from `frontier`
+    // (CArray<{x, y}>), `next` holding the following ring.
     void FloodRegionFrom(int sizeClass, BlockPointArray* frontier, BlockPointArray* next, int label);
-    // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
-    // representative cell the local search reaches from it, as {block x, block y, cost} appended
-    // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
+    // The 3x3 blocks around cell (x, y) whose representative cell the local search reaches from it, as {block x,
+    // block y, cost} appended to `out` (a CList, emptied first). `flag` goes to the search's flag member.
     void NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostList* out);
 
-    // 005AFC70 (RET 0x14; ai_block_search.cpp). Re-measures blocks [x0, x1) x [y0, y1) (clamped to
-    // the grid): representative cells, then edges, row by row (reporting progress), then the
-    // edge clamp, the two block searches and the regions. The first argument is the AI map.
+    // ai_block_search.cpp. Re-measures blocks [x0, x1) x [y0, y1) (clamped to the grid): representative cells,
+    // then edges, row by row (reporting progress), then the edge clamp, the two block searches and the regions.
+    // The first argument is the AI map.
     void UpdateBlocks(CAIMap* map, int x0, int x1, int y0, int y1);
     // UpdateBlocks (through its address).
     void UpdateBlocksFor(CAIMap* map, int x0, int x1, int y0, int y1);
-    // 005AFEC0 (ai_block_search.cpp). Re-attaches both block searches.
+    // Re-attaches both block searches (ai_block_search.cpp).
     void AttachSearches();
-    // 005B0AF0 (RET 0x14, AL; ai_block_search.cpp). Seeds `search` with the blocks around cell
-    // (x, y) its representative cells are reached from (NearbyBlocks), cost / 128; true when one
-    // was lowered.
+    // Seeds `search` with the blocks around cell (x, y) its representative cells are reached from
+    // (NearbyBlocks), cost / 128; true when one was lowered (ai_block_search.cpp).
     bool SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y);
 
     // A progress report (stdcall, 0..1) during UpdateBlocks; cleared by it.
@@ -574,13 +552,12 @@ static_assert(offsetof(CRegionMap, progress) == 0x118);
 static_assert(offsetof(CRegionMap, edges) == 0x11C);
 static_assert(offsetof(CRegionMap, regions) == 0x21C);
 static_assert(sizeof(CRegionMap) == 0x29C);
-// 005AF3D0 (ai_region_reach.cpp; thiscall, returns this): the region map's constructor.
+// The region map's constructor (ai_region_reach.cpp; returns this).
 CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self);
 
-// The region map's constructor (005AF3D0, ai_region_reach.cpp) runs the CRT's `eh vector
-// constructor iterator` over its three grid arrays with the grids' constructors 005AF580 /
-// 005AF590 / 005AF5A0 (ai_grids.h); the AI map's destructor the destructor iterator with 00598440
-// / 00598460 / 00598480 (FreeAnyGrid's copies), regions, cells, edges, each last to first.
+// The region map's constructor runs the CRT's `eh vector constructor iterator` over its three grid arrays with
+// the grids' constructors (ai_grids.h); the AI map's destructor the destructor iterator (FreeAnyGrid's
+// copies), regions, cells, edges, each last to first.
 
 // The path smoother's trellis: per path cell nine states, one per direction the unit
 // leaves the cell in (index direction - 1; index 8 unused), each the cheapest cost so far and its
@@ -618,10 +595,10 @@ struct SmoothEdge {
     int index;
 };
 static_assert(sizeof(SmoothEdge) == 0x14);
-// CArray<SmoothEdge> (vtable 0073FE28): the states of one cell.
+// CArray<SmoothEdge>: the states of one cell.
 struct SmoothEdges : mfc::CArray<SmoothEdge> {
-    // 005C3840 (RET 0x10; ai_path_smooth.cpp). The seven states of a cell crossed by the straight step
-    // (mx, my), with (sx, sy) the step to its side.
+    // The seven states of a cell crossed by the straight step (mx, my), with (sx, sy) the step to its side
+    // (ai_path_smooth.cpp).
     void AddStraightEdges(int mx, int my, int sx, int sy);
     // The nine states of a cell crossed by the diagonal step (mx, my), with
     // (sx, sy) one of its two straight halves.
@@ -632,14 +609,13 @@ struct SmoothEdges : mfc::CArray<SmoothEdge> {
     void BuildEdges(int direction, bool incoming);
 };
 
-// One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end),
-// built by the static initialiser 005C42B0 at 007C3058.
+// One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end), built by a
+// static initialiser.
 struct SmoothTable {
-    // The three arrays empty: what the initialiser's vector constructor (005C41C0, callback
-    // 005C4210) leaves in each table before 005C42B0 fills them. Returns this (MOV EAX,ECX).
+    // The three arrays empty: what the initialiser's vector constructor leaves in each table before the tables are
+    // filled. Returns this.
     SmoothTable* Construct();
-    // 005C4250 (the callback of the vector destructor the initialiser registers with atexit). The
-    // three arrays' storage freed, the last member first.
+    // The vector destructor's callback registered at exit: the three arrays' storage freed, the last member first.
     void Destruct();
     // The table between a cell with the states `from` and the next one with the
     // states `to`: a copy for every state both have, a step from every `from` state to every `to`
@@ -670,8 +646,8 @@ inline const SmoothTable* SmoothTables() { return g_smoothTables.Get(); }
 // DirectionSteps()[dy * 3 + dx], from the middle of the table.
 inline constexpr int kDirectionSteps[9] = /*00791978*/ {2, 1, 8, 3, 0, 7, 4, 5, 6};
 inline const int* DirectionSteps() { return kDirectionSteps + 4; }
-// What 005C42B0 does, on any 81 constructed tables: for every pair of directions the states of the
-// previous step (moved back by that step) against those of the next.
+// What the table initialiser does, on any 81 constructed tables: for every pair of directions the states of
+// the previous step (moved back by that step) against those of the next.
 void BuildSmoothTablesAt(SmoothTable* tables);
 
 // The path smoother at CAIMap + 0x22CC (0x2C bytes; ai_path_smooth.cpp). Name provisional.
@@ -706,21 +682,20 @@ struct UnitLayerNode {
 };
 static_assert(sizeof(UnitLayerNode) == 0x1C);
 
-// The unit occupancy layers at CAIMap + 0x27C (small units) and + 0x12A4 (large units): every unit
-// on the map is stamped as a 20x20-cell block of levels (its UnitShape, 16x16, at the unit's cell
-// offset within a 4-cell block), stored as 4x4-cell nodes in a 1024-bucket hash keyed by block.
-// Methods in ai_unit_layer.cpp and ai_grids.cpp. Names provisional.
-// Two slots, pure in the base (game.exe's 0073FD7C): 0 Set (the block's levels replace the map's) and 1 Merge (the
-// map keeps the larger level). The small-unit layer (CSmallUnitLayer, 0073FD74) writes AIMapCell::level (unsigned
-// maximum), the large-unit one (CLargeUnitLayer, 0073FD6C) the signed bytes of CAIMap::waterDepth
-// (ai_unit_layer.cpp). The original's tables have no destructor slot.
+// The unit occupancy layers of CAIMap (small units and large units): every unit on the map is stamped as a
+// 20x20-cell block of levels (its UnitShape, 16x16, at the unit's cell offset within a 4-cell block), stored as
+// 4x4-cell nodes in a 1024-bucket hash keyed by block. Methods in ai_unit_layer.cpp and ai_grids.cpp. Names
+// provisional.
+// Two virtuals, pure in the base: Set (the block's levels replace the map's) and Merge (the map keeps the
+// larger level). The small-unit layer (CSmallUnitLayer) writes AIMapCell::level (unsigned maximum), the
+// large-unit one (CLargeUnitLayer) the signed bytes of CAIMap::waterDepth (ai_unit_layer.cpp). The tables have
+// no destructor virtual.
 class CUnitLayer {
 public:
-    // 005B4110 (the base constructor; ai_grids.cpp). The empty node list (blocks of 0x400), no buckets, no free
-    // nodes. `map` is the owner's to set.
+    // The base constructor (ai_grids.cpp). The empty node list (blocks of 0x400), no buckets, no free nodes. `map`
+    // is the owner's to set.
     CUnitLayer();
-    // 0058A8A0 / 0058A900 (the two layer classes' destructors; ai_grids.cpp). The node list emptied and its
-    // blocks freed.
+    // The two layer classes' destructors (ai_grids.cpp). The node list emptied and its blocks freed.
     ~CUnitLayer();
 
     virtual void Set(const UnitLayerNode* block) = 0;     // 0
@@ -732,7 +707,7 @@ public:
     // Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
     // block it had, Set gets the block with the other units' levels merged (maximum).
     void Remove(CUnit* unit, int x, int y);
-    // +0x04 the storage of every node ever allocated (vtable NodeListClass, NewNode 005BE7B0).
+    // The storage of every node ever allocated.
     mfc::CList<UnitLayerNode> nodes;
     UnitLayerNode* buckets[1024];   // +0x20 by (key x * 17 + key y) & 0x3FF
     UnitLayerNode* freeNodes;       // +0x1020 unused nodes
@@ -743,14 +718,14 @@ static_assert(offsetof(CUnitLayer, buckets) == 0x20);
 static_assert(offsetof(CUnitLayer, freeNodes) == 0x1020);
 static_assert(sizeof(CUnitLayer) == 0x1028);
 
-// The small-unit layer (game.exe's vtable 0073FD74; ai_unit_layer.cpp).
+// The small-unit layer (ai_unit_layer.cpp).
 class CSmallUnitLayer : public CUnitLayer {
 public:
     void Set(const UnitLayerNode* block) override;
     void Merge(const UnitLayerNode* block) override;
 };
 
-// The large-unit layer (game.exe's vtable 0073FD6C; ai_unit_layer.cpp).
+// The large-unit layer (ai_unit_layer.cpp).
 class CLargeUnitLayer : public CUnitLayer {
 public:
     void Set(const UnitLayerNode* block) override;
@@ -769,9 +744,8 @@ struct AIEventTable;   // unit_ai.h
 // (short)y, the value the cell's saved ground level (low word), object height (bits 16-21) and
 // occluder kind (bits 24-28).
 struct BridgeHeights : stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash> {
-    // 005B30B0 (thiscall on the bridge map CAIMap + 0x10C, RET 0x10; ai_bridges.cpp). Puts back what
-    // the cell's bridge map entry saved (ground level, object height, the occluder word's low five
-    // bits) and erases the entry; nothing without one. x and y are read as shorts.
+    // Puts back what the cell's bridge map entry saved (ground level, object height, the occluder word's low five
+    // bits) and erases the entry; nothing without one. x and y are read as shorts (ai_bridges.cpp).
     void RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder);
     // Bridge deck height of cell (x, y), 0 if none.
     int HeightAt(short x, short y) const;
@@ -779,22 +753,20 @@ struct BridgeHeights : stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHas
 using BridgeMap = BridgeHeights;
 static_assert(sizeof(BridgeMap) == 0x14);
 
-// The navigation grid of the current map, loaded by CAIMap::Load (005B43C0, patched by Rebirth).
-// Name from the game's error strings; layout provisional.
+// The navigation grid of the current map, loaded by CAIMap::Load (Rebirth patches it). Name from the game's
+// error strings; layout provisional.
 class CAIMap {
 public:
-    // 005B3C30 (ai_map_construct.cpp; the world server's constructor 00589ED0).
+    // The constructor (ai_map_construct.cpp).
     CAIMap();
-    // 0058A450 (ai_map_construct.cpp; the world server's destructor 0058AAD0). Every member destroyed in reverse
-    // order.
+    // The destructor (ai_map_construct.cpp). Every member destroyed in reverse order.
     ~CAIMap();
-    // 005B5E10 (ai_map_construct.cpp). The map forgotten: destroyed and constructed again.
+    // The map forgotten: destroyed and constructed again (ai_map_construct.cpp).
     void Reset();
 
-    // 005B43C0 (RET 4; ai_map_load.cpp, A-W15). Rebirth patches it: this is the vanilla body, and it
-    // is installed in the vanilla launch only (callers reach it through its address). Loads the map
-    // archive `path`: LoadTerrain, then AttachTerrain. Returns 1; 0 when the archive cannot be
-    // opened; any other failure is a fatal error, whose result is returned.
+    // ai_map_load.cpp. Rebirth patches it: this is the vanilla body, installed in the vanilla launch only (callers
+    // reach it through its address). Loads the map archive `path`: LoadTerrain, then AttachTerrain. Returns 1; 0
+    // when the archive cannot be opened; any other failure is a fatal error, whose result is returned.
     int Load(const char* path);
     // Load's first part: the archive's .mp file (header, materials, tile types) gives the height
     // scale and the climb tables; tileDesc.reg in the text resources' aiinfo.res gives the terrain
@@ -813,10 +785,10 @@ public:
 
     // The sector map embedded at +0x124 (sector_map.h).
     CSectorMap* SectorMap() { return &sectorMap; }
-    // script_runtime_helpers.cpp (A-S4): the sector map (+0x124) as the script runtime calls it.
-    // RefreshUnits = the low byte of `on`; returns the old byte (AL).
+    // The sector map as the script runtime calls it (script_runtime_helpers.cpp). RefreshUnits = the low byte of
+    // `on`; returns the old byte.
     std::uint8_t SetRefreshUnits(int on);
-    // 004BA0A0 / 004BA0C0 (RET 4). CSectorMap::Add / Remove (AL).
+    // CSectorMap::Add / Remove.
     bool AddToSectors(CMapObject* object);
     bool RemoveFromSectors(CMapObject* object);
     // CSectorMap::Move, through its address (Rebirth patches it; AL).
@@ -860,10 +832,10 @@ public:
 
     // Plans a path for `unit` to `target` into `path`; `range` limits the search.
     bool FindPath(CUnit* unit, const Vector3* target, AIPath* path, float range, float minDistance);
-    // 005B9C90 (PlanPath, RET 0x20; ai_plan.cpp). The long-range plan from cell (fromX, fromY) to
-    // (toX, toY): region chain, local-search legs between the regions' representative cells, then
-    // the cells into path->cells. On a failed leg: aim at the best reached cell when it is far
-    // enough from the start, else (with `retry`) exclude the region and plan again.
+    // PlanPath (ai_plan.cpp). The long-range plan from cell (fromX, fromY) to (toX, toY): region chain,
+    // local-search legs between the regions' representative cells, then the cells into path->cells. On a failed
+    // leg: aim at the best reached cell when it is far enough from the start, else (with `retry`) exclude the
+    // region and plan again.
     bool PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells);
     // Searches again if the last search failed and nothing is left, else moves on along
     // the path. True if the path had already been walked to the end.
@@ -895,8 +867,8 @@ public:
     bool HasKind3OccluderAt(const Vector3* position);
     // Material index (0..31) of the cell at `position`, -1 outside the map.
     int MaterialAt(const Vector3* position);
-    // 005BC180 (RET 8; ai_map.cpp, A-W14; UnitSpecApply 0046C4D0). Gives `object` the orientation
-    // `rotation`: it is taken out of the sector map, turned and put back.
+    // Gives `object` the orientation `rotation`: it is taken out of the sector map, turned and put back
+    // (ai_map.cpp).
     void TurnObject(CMapObject* object, const Quaternion* rotation);
     // Material record (0x118 bytes) of the cell at `position`; the first one outside.
     void* MaterialRecordAt(const Vector3* position);
@@ -931,15 +903,14 @@ public:
     CUnit* BlockingUnitAt(CUnit* unit, const Vector3* position);
     // Fills each step's speed word (cost table / climb cost, in 1/512) and flag word.
     void SetStepSpeeds(CUnit* unit, PathCellList* steps);
-    // The passability cost tables for size class `sizeClass`; returns the climb table's
-    // middle (EAX, as the original).
+    // The passability cost tables for size class `sizeClass`; returns the climb table's middle.
     const int* CostContext(int sizeClass, struct PassCostContext* out);
     // CostContext for `unit`: its size class, its movement speeds in
     // +0x14 / +0x0C, and the alternative cost table when CUnit::altPassCosts is set.
     void CostContextFor(CUnit* unit, struct PassCostContext* out);
-    // Is the cell under `unit` passable for it at a cost below 12000? (A cell with a
-    // kind-3 occluder is evaluated at the size class's level through 005B8BA0.) Only AL is set
-    // when the unit is outside the map.
+    // Is the cell under `unit` passable for it at a cost below 12000? (A cell with a kind-3 occluder is
+    // evaluated at the size class's level.) Only the low byte of the result is set when the unit is outside the
+    // map.
     bool StandsOnCheapCell(CUnit* unit);
     // Marks in `grid` the cells within `radius` of `eye` that it sees: inside the cone
     // around `look` (cos >= `cosLimit`; none when cosLimit <= -1) and, unless `targetHeight` is
@@ -948,48 +919,44 @@ public:
     void MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit, float targetHeight,
                           FogGrid* grid);
 
-    // 005B6740 (ai_bridges.cpp). Applies or clears the bridge decks of a footprint.
+    // Applies or clears the bridge decks of a footprint (ai_bridges.cpp).
     bool ApplyBridgeDecks(FootprintCellSet* set, bool remove);
-    // 005BC750 (RET 8, ST0; ai_line_step.cpp). The largest ground step between consecutive cells on
-    // the line, in world height; 1.0 for a zero-length line, 100.0 when an end is off the map.
+    // The largest ground step between consecutive cells on the line, in world height; 1.0 for a zero-length line,
+    // 100.0 when an end is off the map (ai_line_step.cpp).
     double LargestStepAlong(const Vector3* from, const Vector3* to);
-    // 005B9690 (RET 8, AL; ai_join.cpp). Joins the forward and backward local searches where they
-    // meet: the path into `cells`, the summed cost into `cost` (optional); false when they cannot.
+    // Joins the forward and backward local searches where they meet: the path into `cells`, the summed cost into
+    // `cost` (optional); false when they cannot (ai_join.cpp).
     bool JoinLocalSearches(PathCellList* cells, int* cost);
-    // 005B9A20 (RET 0xC; ai_join.cpp). The path to cell (x, y) walked back along the direction marks
-    // (+0x26BC) into `path` (emptied first).
+    // The path to cell (x, y) walked back along the direction marks into `path` (emptied first; ai_join.cpp).
     void BuildCellsTo(int x, int y, PathCellList* path);
-    // 005B7EF0 (RET 8; ai_water_patch.cpp). Adds (or lifts) the water depths around `position` as
-    // a pseudo unit of the small-unit layer.
+    // Adds (or lifts) the water depths around `position` as a pseudo unit of the small-unit layer
+    // (ai_water_patch.cpp).
     void StampWaterPatch(const Vector3* position, bool add);
-    // 005B61B0 / 005B6380 (ai_occluders.cpp). Adds / removes one footprint cell's occluder.
+    // Adds / removes one footprint cell's occluder (ai_occluders.cpp).
     bool AddOccluderRecord(FootprintCell* cell);
     bool ClearOccluderRecord(FootprintCell* cell);
-    // 005B8FA0 (ai_refresh.cpp). Recomputes passability in the rectangle (inclusive, grown by 3 cells).
+    // Recomputes passability in the rectangle (inclusive, grown by 3 cells; ai_refresh.cpp).
     void RefreshArea(int minX, int maxX, int minY, int maxY);
-    // 005B8BA0 (RET 0x14; ai_refresh.cpp). The passability mark of cell (x, y) for a standing
-    // level and its height in AI units: from the terrain type, water depth and the occluders over
-    // the cell (cost and damping), looked up in the mark table 00791164. `scratch` gets the state.
+    // The passability mark of cell (x, y) for a standing level and its height in AI units: from the terrain type,
+    // water depth and the occluders over the cell (cost and damping), looked up in the mark table. `scratch` gets
+    // the state (ai_refresh.cpp).
     std::uint32_t CellMark(void* scratch, int level, int levelHeight, int x, int y);
-    // 005B8710 (RET 0x10; ai_refresh.cpp). Refresh's second pass over [x0, x1] x [y0, y1] (kept 2
-    // cells from the border): a cell whose step to a direct neighbour exceeds what size class 0
-    // can climb becomes impassable, one beyond the larger classes keeps only class 0; either way
-    // nibbles 5-6 of one neighbour and nibble 7 of 13 cells around it are cleared.
+    // Refresh's second pass over [x0, x1] x [y0, y1] (kept 2 cells from the border): a cell whose step to a direct
+    // neighbour exceeds what size class 0 can climb becomes impassable, one beyond the larger classes keeps only
+    // class 0; either way nibbles 5-6 of one neighbour and nibble 7 of 13 cells around it are cleared
+    // (ai_refresh.cpp).
     void LimitSteepCells(int x0, int x1, int y0, int y1);
-    // 005B89F0 (RET 0x1C; ai_refresh.cpp). A level's special area {dx, dy}: in [x0, x1] x [y0, y1]
-    // (kept so that (x + dx, y + dy) is on the map) each cell whose mark at (x + dx, y + dy) is 0
-    // loses the level's passability nibble.
+    // A level's special area {dx, dy}: in [x0, x1] x [y0, y1] (kept so that (x + dx, y + dy) is on the map) each
+    // cell whose mark at (x + dx, y + dy) is 0 loses the level's passability nibble (ai_refresh.cpp).
     void ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0, int y1);
 
     CRegionMap* Regions() { return &regionMap; }
 
-    // 005B9BC0 (RET 4; PlanPath; ai_path_cells.cpp). Clears the marks of the cells around the
-    // blocks of `chain` (8 x 8 cells each): their bounding box widened by four blocks, clipped to
-    // the map. Nothing for an empty chain.
+    // Clears the marks of the cells around the blocks of `chain` (8 x 8 cells each): their bounding box widened
+    // by four blocks, clipped to the map. Nothing for an empty chain (ai_path_cells.cpp).
     void ClearMarksAround(const PathCellList* chain);
-    // 005B8620 (CAIMap::Load; ai_grids.cpp). Every terrain type's `openMarks`: per size class the
-    // passability by its cost (up to 1: 14, 2: 13, up to 9: 10, up to 34: 6, up to 70: 3, above:
-    // 0; the table 0079118C); size class 0 always gets 14.
+    // Every terrain type's `openMarks`, set when the map loads (ai_grids.cpp): per size class the passability by
+    // its cost (up to 1: 14, 2: 13, up to 9: 10, up to 34: 6, up to 70: 3, above: 0); size class 0 always gets 14.
     void BuildOpenMarks();
 
     // Refresh the rectangle now, or add it to the dirty rectangle while batching.
@@ -1023,8 +990,8 @@ public:
     CRegionMap regionMap;                           // +0x22F8
     LocalSearch forwardSearch;                      // +0x2594
     LocalSearch backwardSearch;                     // +0x2614
-    // +0x2694 the world tick of the last StampFootprint: an idle unit standing in a kind-3 occluder
-    // replans while its motion order started before it (the movement tick 00547890).
+    // the world tick of the last StampFootprint: an idle unit standing in a kind-3 occluder replans while its
+    // motion order started before it.
     int footprintTick;
     SearchGrid<AIMapCell> cells;        // +0x2698 the map's cells (cells.width x cells.height)
     SearchGrid<std::uint32_t> occluders;  // +0x26A8 per-cell occluder words (see LineOfSight)
@@ -1069,10 +1036,10 @@ struct SpiralCache {
 // rounded to float, then FISTP (round to nearest).
 int WorldToCell(float world);
 
-// 005B6070 (thiscall on the map; ai_cost_tables.cpp). The cost tables per passability nibble.
+// The cost tables per passability nibble (ai_cost_tables.cpp).
 void __fastcall InitCostTables(CAIMap* map);
-// Standing level of size class `sizeClass` (0..7): (2 - height) * 16, at least 0. Outside
-// 0..7 the original returns only AL = 0 (the rest of EAX is the argument), reproduced here.
+// Standing level of size class `sizeClass` (0..7): (2 - height) * 16, at least 0. Outside 0..7 the original
+// returns only the low byte 0 (the rest of the result is the argument), reproduced here.
 int __stdcall LevelForSizeClass(int sizeClass);
 // Standing level of `unit`: (2 - standingHeight) * 16, at least 0.
 int __stdcall StandingLevel(const CUnit* unit);

@@ -1,10 +1,9 @@
-// CAIMap::JoinLocalSearches (005B9690, RET 8, AL): the bidirectional local search's meeting. The
-// forward (+0x2594) and backward (+0x2614) searches expand in turn; after each round the best open
-// cell of one side is looked up in the other, first forward then backward, until a cell reached by
-// both is found (or a side has nothing left: false). Then the forward search's path to the cell
-// goes into `path`, the backward one's into a scratch list, which is reversed and appended
-// and the result fixed up; `cost` (optional) gets the summed
-// cost. Both searches are reset either way. See ai_map.h and docs/notes/ai.md.
+// CAIMap::JoinLocalSearches: the bidirectional local search's meeting. The forward and backward searches
+// expand in turn; after each round the best open cell of one side is looked up in the other, first forward then
+// backward, until a cell reached by both is found (or a side has nothing left: false). Then the forward
+// search's path to the cell goes into `path`, the backward one's into a scratch list, which is reversed and
+// appended, and the result fixed up; `cost` (optional) gets the summed cost. Both searches are reset either
+// way. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
 #include "ei/hook.h"
@@ -14,10 +13,9 @@
 
 namespace {
 
-// The local search (thiscall): expand one round, the best open cell (x, y, cost; RET 0xC), the
-// cost of a cell (RET 8; 0x7FFFFFFF unreached), the path to a cell into a list (RET 0xC), reset.
-// The path cell list: a reversed copy into `out` (RET 4, returns out), append a list (RET 4),
-// and the fix-up of the joined path.
+// The local search: expand one round, the best open cell (x, y, cost), the cost of a cell (0x7FFFFFFF
+// unreached), the path to a cell into a list, reset. The path cell list: a reversed copy into `out`, append a
+// list, and the fix-up of the joined path.
 
 // ConstructElements<PathCell> (zero-fills `count`).
 
@@ -67,8 +65,8 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
         path->Append(scratch.Reversed(&reversed));
         DestroyList(reversed);
         PathCellsRemoveRepeats(path);
-        // The original's cells keep the stack word under SearchPathTo's local cell (SearchBest's
-        // saved ESI, the forward search's address); ours get the plain words.
+        // Like the original, the cells keep the stack word under SearchPathTo's local cell (the forward search's
+        // address); ours get the plain words.
         SetPlainCellWords(path);
     }
     backward->Reset();
@@ -86,8 +84,8 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
     mfc::PlexFreeDataChain(path->blocks);
     path->blocks = nullptr;
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return;
-    // The original gives each cell's speed word and terrain bits a stack slot it never writes (the
-    // planner's last call left a search's row offset there); ours get the plain words.
+    // The original gives each cell's speed word and terrain bits a stack slot it never writes (the planner's last
+    // call left a search's row offset there); ours get the plain words.
     auto cellAt = [](int cx, int cy) {
         PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), kPlainStepSpeed, 0};
         return c;
@@ -111,7 +109,7 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
         default: break;
         }
     }
-    // The first cell (the original inlines AddHead; its element zeroed by 00539980 first).
+    // The first cell (AddHead; its element zeroed first).
     path->AddHead(cellAt(x, y));
 }
 

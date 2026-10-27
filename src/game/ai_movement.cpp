@@ -21,8 +21,8 @@
 constinit lib::StaticObject<UnitShapeCache> g_unitShapes = /*007C2F70*/ {};
 
 namespace {
-// The sector map through its original address (rewritten in sector_map.cpp), so the verify build's
-// wrapper sees the call.
+// The sector map through its original address (rewritten in sector_map.cpp), so the verify build's wrapper
+// sees the call.
 
 // A handle into the cache of unit occupancy shapes (UnitShapes(), ai_shape_cache.h), keyed by
 // standing height rounded to 0.1. 16x16 signed levels start at shape + 8.
@@ -31,10 +31,9 @@ using ShapeHandle = ShapeCacheHandle;
 // The passability of cell (x, y) for a size class standing at `level` (a cell with
 // occluders); the cost is at out[3].
 
-// LineOfSight through its original address (rewritten in ai_map.cpp), its ST0 taken unrounded.
+// LineOfSight through its original address (rewritten in ai_map.cpp), its result taken unrounded.
 
-// World coordinate to cell as the original computes it here: (x / (cell size 1.0 * 0.5) - 0.5)
-// rounded to float, then FISTP.
+// World coordinate to cell: (x / (cell size 1.0 * 0.5) - 0.5) rounded to float, then FISTP.
 int CellOf(float world) { return x87::fistp(static_cast<float>(2.0 * world - 0.5f)); }
 
 constexpr float kShapeMinHeight = 0.2f;
@@ -110,8 +109,8 @@ const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
 EI_REWRITTEN(0x005B9510, CAIMap::CostContext);
 
 void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
-    // The original also asks the unit for its movement speeds twice and divides by one
-    // of them, but never uses the results; the getter has no side effects.
+    // The original also asks the unit for its movement speeds twice and divides by one of them, but never uses
+    // the results; the getter has no side effects.
     int shift = unit->sizeClass * 4;
     const ClimbTable& climbTable = shift == 0 ? climbSmall : climbLarge;
     const int* climb = climbTable.data + climbTable.size / 2;
@@ -257,8 +256,8 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
 EI_REWRITTEN(0x005BC970, CAIMap::MarkVisibleCells);
 
 namespace {
-// The shape cache's map (UnitShapes()->shapes, 007C2F78): an STLport hash_map<ShapeHandle, RefPtr>,
-// the game's instantiation gamehash::ShapeTable (find 005BE320, find_or_insert 005BE730).
+// The shape cache's map (UnitShapes()->shapes): an STLport hash_map<ShapeHandle, RefPtr>, the game's
+// instantiation gamehash::ShapeTable.
 void ReleaseHandle(ShapeHandle* handle) {
     if (CRefObject* ref = handle->ref) {
         if (--ref->refs_ == 0) delete ref;     // delete tests ref again, as the original does

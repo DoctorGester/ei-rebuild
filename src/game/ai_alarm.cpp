@@ -1,9 +1,7 @@
-// 005AEA80 (thiscall on an AI alarm state {level, pending, active, timer}, RET 4): the step of a
-// unit's alarm. A pending level above the current one becomes active for 20 steps: the AI log
-// (the unitacks stream) gets "Unit <id> acknowledges with <what>" and some levels make the
-// unit speak (the world's 0058D340 with a remark code). Then, while a level is active and its
-// timer runs, every group member (owner + 0xA78) on a side the owner's side is allied with gets
-// its controller's alarm (+0x240 -> +0xB10) raised to the level. See docs/notes/ai.md.
+// The step of a unit's AI alarm. A pending level above the current one becomes active for 20 steps: the AI
+// log (the unitacks stream) gets "Unit <id> acknowledges with <what>" and some levels make the unit speak.
+// Then, while a level is active and its timer runs, every group member on a side the owner's side is allied
+// with gets its controller's alarm raised to the level. See docs/notes/ai.md.
 #include "ai_alarm.h"
 #include "console.h"
 #include "game_strings.h"
@@ -31,7 +29,7 @@ struct AiLogStream : libcrt::Ostream {
         return this;
     }
 };
-// The alarm's log: the unitacks stream (its static initialiser 005AEA20 stores the address).
+// The alarm's log: the unitacks stream.
 constexpr libcrt::Ostream* kAlarmLog = /*007C2EB8*/ {&console::g_unitAcksLogOut};
 AiLogStream* AlarmLog() { return console::StreamAs<AiLogStream>(*kAlarmLog); }
 
@@ -114,7 +112,7 @@ void AIAlarm::Save(CStream* stream) {
     stream->Write(&level, 4);
     stream->Write(&pending, 4);
     stream->Write(&active, 4);
-    int steps = timer;   // the original writes a copy of the last one
+    int steps = timer;   // keeps the original's copy of the last one
     stream->Write(&steps, 4);
 }
 EI_REWRITTEN(0x005AEC80, AIAlarm::Save);
