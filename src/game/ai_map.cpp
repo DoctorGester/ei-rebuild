@@ -17,10 +17,8 @@ int WorldToCell(float world) {
 }
 
 namespace {
-// Standing heights of the 8 size classes.
 constexpr float kSizeClassHeights[8] = /*0079169C*/ {0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.7f, 0.7f, 1.5f};
 
-// Cell centre to world coordinate, as FindFreeCellNear computes it.
 float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * (1.0f * 0.5f); }
 
 int PositiveOrZero(int v) { return v < 0 ? 0 : v; }
@@ -215,9 +213,8 @@ namespace {
 constexpr std::uint32_t kOccluderNone = 0x100;
 constexpr std::uint32_t kOccluderChain = 0x80;
 
-// The occluder records of the sector holding cell (x, y), for cells holding more than one: `top`
-// is bits 12-21 of a single-occluder word, `bottom` bits 22-31, `kind` bits 9-11, `transparency`
-// bits 5-6.
+// The occluder records of the sector holding cell (x, y), for cells holding more than one: `top` is bits
+// 12-21 of a single-occluder word, `bottom` bits 22-31, `kind` bits 9-11, `transparency` bits 5-6.
 const SectorOccluder* OccluderRecords(const CAIMap* map, int x, int y) {
     const CSectorMap& sectors = map->sectorMap;
     return sectors.sectors.data[(y / 32) * sectors.width + x / 32].occluders.data;
@@ -291,7 +288,6 @@ EI_REWRITTEN(0x005B64E0, CAIMap::BridgeDeckAt);
 // --- Line of sight -------------------------------------------------------------------------------
 
 namespace {
-// Transparency of an occluder class.
 constexpr float kTransparency[4] = /*00791744*/ {0.0f, 0.98f, 0.99f, 1.0f};
 constexpr float kMinVisibility = 0.0001f;
 } // namespace
@@ -358,9 +354,8 @@ EI_REWRITTEN(0x005BC3E0, CAIMap::LineOfSight);
 namespace {
 // The game's atexit, for the function-local static in FindFreeCellNear.
 
-// The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius
-// (compared as raw float bits) to the number of offsets within it.
-// (sector_map.h's tables, sector_spiral.cpp).
+// The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius (compared
+// as raw float bits) to the number of offsets within it. (sector_map.h's tables, sector_spiral.cpp).
 int SpiralDepth() { return SpiralRadiusTree()->depth; }
 std::int32_t SpiralKey(std::uint32_t node) {
     std::int32_t key;
@@ -397,7 +392,6 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
 EI_REWRITTEN(0x005BFC40, SpiralCache::Get);
 
 bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target) {
-    // Function-local static (initialised on first use, destroyed at exit).
     auto& guard = g_findFreeGuard;
     auto* cache = &g_findFreeSpiral;
     if (!(guard & 1)) {

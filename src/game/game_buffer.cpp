@@ -9,9 +9,7 @@
 
 namespace {
 
-// A new growing buffer's block.
 constexpr std::uint32_t kInitialBytes = 0x20;
-// Flags of a new growing buffer.
 constexpr std::uint32_t kGrowingFlags = 6;
 // Flag bits: 0 written through a cursor, 3 a read ran past the end.
 constexpr std::uint32_t kFlagWritten = 1;
@@ -31,7 +29,6 @@ std::uint32_t GrownCapacity(const GameBuffer* self, std::uint32_t size) {
     return needed * 2 + kGrowthSlack;
 }
 
-// Copies `from`'s block and positions (ConstructCopy and AssignFrom).
 void CopyContents(GameBuffer* self, const GameBuffer* from) {
     std::uint32_t capacity = Distance(from->begin, from->end);
     auto* block = gamecrt::operator_new_array<std::uint8_t>(capacity);
@@ -131,8 +128,7 @@ std::uint32_t GameBuffer::ReadPastEnd(void* to, std::uint32_t size) {
         return 0;
     }
     // The rest is read through the inline read, whose own past-`high` branch (a call back into this function)
-    // cannot be
-    // taken for exactly the rest.
+    // cannot be taken for exactly the rest.
     std::uint32_t left = Distance(cur, high);
     if (cur + left > end) return static_cast<std::uint32_t>(ReadMore(to, left));
     std::memcpy(to, cur, left);

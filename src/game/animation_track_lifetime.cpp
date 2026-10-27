@@ -16,7 +16,6 @@ namespace {
 
 // The tracks' defaults without key frames (Evaluate).
 
-// A count at the cursor, which moves past it.
 int ReadCount(std::uint8_t** cursor) {
     int value;
     std::memcpy(&value, *cursor, sizeof(value));

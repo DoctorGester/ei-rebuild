@@ -3,15 +3,6 @@
 // The engine's byte streams (CStream, CMemoryStream), the constructors and destructors of the
 // reference-counted base classes, and two small allocation helpers.
 // See docs/notes/core.md. Names are provisional.
-// Class map (the game's vtables):
-//   CRefObject root: slot 0 deleting destructor, slot 1 empty. Its destructor
-//           body only restores this vtable (two identical copies).
-//   abstract reference-counted value (adds pure slots 2 and 3, see core_refcount.h);
-//           constructor body, deleting destructor.
-//   CStream (below): abstract byte stream (slots 1-6 pure).
-//   CMemoryStream (below). A second table has the same slots 1-7 and
-//             another copy of the deleting destructor; the network queue's streams use
-//             it. Here they are all CMemoryStream.
 
 #include "core_refcount.h"
 #include "engine_object.h"
@@ -29,21 +20,20 @@ class CString;
 
 // The engine's abstract byte stream. The save game, the network messages and the
 // chunk archives are memory streams behind it; the message recordings are file streams
-// (net_link.h).
+//.
 class CStream {
 public:
-    // Version_ 2000000000, ok_ set.
     CStream();
     CStream(const CStream&) = delete;
     CStream& operator=(const CStream&) = delete;
-    virtual ~CStream() {}                                               // 0: deleting
-    virtual std::uint32_t Read(void* buffer, std::uint32_t size) = 0;   // 1: returns the bytes read
-    virtual void Write(const void* buffer, std::uint32_t size) = 0;     // 2
-    virtual void Seek(std::uint32_t position) = 0;                      // 3
-    virtual std::uint32_t Size() = 0;                                   // 4
-    virtual std::uint32_t Position() = 0;                               // 5
-    virtual void Clear() = 0;                                           // 6: memory streams empty, file streams rewind
-    virtual void CopyFrom(CStream* source);                             // 7: all of `source`, 1 KB at a time
+    virtual ~CStream() {}                                               // deleting
+    virtual std::uint32_t Read(void* buffer, std::uint32_t size) = 0;   // returns the bytes read
+    virtual void Write(const void* buffer, std::uint32_t size) = 0;
+    virtual void Seek(std::uint32_t position) = 0;
+    virtual std::uint32_t Size() = 0;
+    virtual std::uint32_t Position() = 0;
+    virtual void Clear() = 0;                                           // memory streams empty, file streams rewind
+    virtual void CopyFrom(CStream* source);                             // all of `source`, 1 KB at a time
 
     // Streams live on the game's heap (core_streams.cpp: gamecrt::operator_new / delete).
     static void* operator new(std::size_t size) noexcept;
@@ -54,17 +44,15 @@ public:
     // Reads bytes up to a zero or a failed read into a CString constructed at `out`;
     // returns `out`.
     mfc::CString* ReadString(void* out);
-    // ReadString into a temporary, assigned to `out` (exit_area.cpp).
     void ReadInto(mfc::CString* out);
 
-    // Reads a block WriteSized wrote (a two-byte size word, two more bytes when
-    // its bit 0 is set; the size is the word / 2) into `to`: `to` cleared (slot 6), sought to 0,
-    // then given the block (slot 2).
+    // Reads a block WriteSized wrote (a two-byte size word, two more bytes when its bit 0 is set; the size is
+    // the word / 2) into `to`: `to` cleared (slot 6), sought to 0, then given the block (slot 2).
     void ReadSized(CStream* to);
     // Writes all of `from` with its size in front: size * 2 in two bytes, or
     // size * 2 + 1 in four bytes above 30000 (a signed compare). `from` is sought to 0 and read.
     void WriteSized(CStream* from);
-    // core_stream_diff.cpp: the save game's difference coding. A difference is a run
+    // The save game's difference coding. A difference is a run
     // header byte (the run length, 0..255) followed by alternating runs: equal bytes (only the
     // length) and changed bytes (the length and the new bytes), starting with an equal run; a
     // full run (255) is followed by an empty run of the other kind; a zero byte ends it.
@@ -74,11 +62,10 @@ public:
     // Rebuilds into this stream (from its start) `base` with the difference read
     // from `diff` (at its position), until base's size is reached or `diff` runs out.
     void ApplyDiff(CStream* base, CStream* diff);
-    // core_stream_chunks.cpp: tagged blocks (a four-byte tag, the size including these
-    // eight bytes, then the content).
-    // Reads the next block's tag into *tag and its content into `out`
-    // (emptied, reading_ cleared, written, sought to 0). False when the tag, the size or the
-    // content cannot be read (`out` is then already emptied once the size was read).
+    // Tagged blocks (a four-byte tag, the size including these eight bytes, then the content). Reads the next
+    // block's tag into *tag and its content into `out` (emptied, reading_ cleared, written, sought to 0).
+    // False when the tag, the size or the content cannot be read (`out` is then already emptied once the size
+    // was read).
     bool ReadTagged(std::uint32_t* tag, CStream* out);
     // From the start (reading_ set), reads blocks until one has tag `id`;
     // when none has, `out` is emptied and the result is false.
@@ -90,9 +77,8 @@ public:
     // Reads bytes into `buffer` until a zero or `capacity` bytes;
     // buffer[capacity - 1] is always set to zero.
     void ReadText(char* buffer, int capacity);
-    // Reads the magic number and the version (four bytes each, into one
-    // variable); true and version_ set when the magic matches and oldest <= version <= newest
-    // (signed).
+    // Reads the magic number and the version (four bytes each, into one variable); true and version_ set when
+    // the magic matches and oldest <= version <= newest (signed).
     bool ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion);
     // Writes the magic number and the version; version_ = version.
     void WriteHeader(std::uint32_t magic, std::uint32_t version);
@@ -109,37 +95,32 @@ public:
     std::uint32_t version_;         // format version (the save game's); 2000000000 when constructed
 };
 
-// A growable memory stream that can also pack bits. The bit writer (net_delta.h)
-// assembles bits in bits_ and stores the byte at data_[bitsIndex_] when a new one starts; Seek,
-// Resize and SetSize flush and reset that state.
+// A growable memory stream that can also pack bits. The bit writer assembles bits in bits_ and stores the
+// byte at data_[bitsIndex_] when a new one starts; Seek, Resize and SetSize flush and reset that state.
 class CMemoryStream : public CStream {
 public:
-    // An empty stream (Reset's fields); also the queue streams' constructor.
     CMemoryStream();
-    // The destructor (deleting too): the buffer freed.
     ~CMemoryStream() override;
-    std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: a short read zero-fills, clears ok_
-    // 2: grows to (capacity + size) * 2. The harness's observer (verify builds) is told
-    // first.
+    std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read zero-fills, clears ok_
+    // 2: grows to (capacity + size) * 2. The harness's observer (verify builds) is told first.
     void Write(const void* buffer, std::uint32_t size) override;
-    void Seek(std::uint32_t position) override;                        // 3: then EndBits
+    void Seek(std::uint32_t position) override;                        // then EndBits
     std::uint32_t Size() override { return size_; }
     std::uint32_t Position() override { return position_; }
     void Clear() override;
-    void CopyFrom(CStream* source) override;                           // 7: one Read into a resized buffer
+    void CopyFrom(CStream* source) override;                           // one Read into a resized buffer
 
     // Empties the stream: ok_ = 1, no buffer, no pending bits. Does not free the old
     // buffer (Clear, slot 6, is the same with the free).
     void Reset();
-    // Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents
-    // (the old size's bytes) and gets the pending bits byte (EndBits). Within the capacity the bits
-    // state is left alone.
+    // Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents (the old size's bytes)
+    // and gets the pending bits byte (EndBits). Within the capacity the bits state is left alone.
     void Resize(std::uint32_t size);
     // Size `size`, position 0; a larger buffer (exactly `size`) does not keep them and
     // only bitMask_ is reset (bitsIndex_ stays).
     void SetSize(std::uint32_t size);
 
-    // The bit writer / reader of the delta code (net_delta.cpp).
+    // The bit writer / reader of the delta code.
     // Appends one bit (a new byte is started after eight).
     // Several writers have an inline copy of it (same effect).
     void PutBit(bool bit);
@@ -157,10 +138,9 @@ public:
     // `to`: resized to the length (SetSize), filled, back at position 0, ok set. 0 for a length
     // over 100000 (nothing more read) or a short read, else 1.
     int ReadStream(CMemoryStream* to);
-    // The whole of this memory stream (a fixed view over its bytes)
-    // compressed / decompressed by `coder` into a growing buffer, which then
-    // replaces `out`'s contents; `out` is left at position 0. The coder keeps its window from call
-    // to call (the client's and the server's message streams).
+    // The whole of this memory stream (a fixed view over its bytes) compressed / decompressed by `coder` into
+    // a growing buffer, which then replaces `out`'s contents; `out` is left at position 0. The coder keeps
+    // its window from call to call (the client's and the server's message streams).
     void CompressTo(CoderState* coder, CMemoryStream* out);
     void DecompressTo(CoderState* coder, CMemoryStream* out);
 
@@ -173,10 +153,9 @@ public:
     std::uint32_t size_;            // end of the data
 };
 
-// The game's save stream: the global CMemoryStream g_saveStream (world_game.cpp).
 CMemoryStream* GameSaveStream();
 // The stream the received packets are decompressed into (with the network queue's vtable; ReceiveMessages fills it):
-// g_receivedMessages (player_server_handlers.cpp).
+// g_receivedMessages.
 CMemoryStream& ReceivedMessages();
 
 // The harness's view of the memory streams' writes (verify builds; the save trace,

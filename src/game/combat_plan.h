@@ -13,10 +13,10 @@
 
 // Where an order must be seen from (0x18 bytes).
 struct SightTarget {
-    Vector3 point;              // +0x00 the point to see (a target unit's is filled in later)
-    float minDistanceSq;        // +0x0C closer than this needs no line of sight
-    float eyeHeight;            // +0x10 the viewer's eye height above the ground
-    CUnit* unit;                // +0x14 the target unit, or null for a point
+    Vector3 point;              // the point to see (a target unit's is filled in later)
+    float minDistanceSq;        // closer than this needs no line of sight
+    float eyeHeight;            // the viewer's eye height above the ground
+    CUnit* unit;                // the target unit, or null for a point
 };
 static_assert(sizeof(SightTarget) == 0x18);
 

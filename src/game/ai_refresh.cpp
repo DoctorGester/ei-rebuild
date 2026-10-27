@@ -1,8 +1,7 @@
-// CAIMap::Refresh: recomputes the passability of a rectangle of cells after the map
-// changed: per standing level the cell marks over the rectangle grown by 3 cells, packed
-// as nibbles into the cells, the level's special areas, the second pass, the
-// map border, and with the sector map on (+2) the objects around it are taken out and put back
-// around the region map's update. See ai_map.h and docs/notes/ai.md.
+// CAIMap::Refresh: recomputes the passability of a rectangle of cells after the map changed: per standing
+// level the cell marks over the rectangle grown by 3 cells, packed as nibbles into the cells, the level's
+// special areas, the second pass, the map border, and with the sector map on (+2) the objects around it are
+// taken out and put back around the region map's update. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
 #include "core_maths.h"
@@ -50,7 +49,6 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (y0 < 0) y0 = 0;
     if (cells.width - 1 < x1) x1 = cells.width - 1;
     if (cells.height - 1 < y1) y1 = cells.height - 1;
-    // The inner rectangle, and the outer one grown by 3 cells.
     int ix0 = x0, ix1 = x1, iy0 = y0, iy1 = y1;
     int ox0 = x0 - 3, ox1 = x1 + 3, oy0 = y0 - 3, oy1 = y1 + 3;
     if (ox0 < 0) ox0 = 0;
@@ -103,7 +101,6 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     }
 
     if (!refreshUnits) return;
-    // The region blocks (8x8 cells) around the outer rectangle.
     int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
     int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
     ObjectList objects{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
@@ -144,12 +141,12 @@ namespace {
 
 // The scratch state CellMark builds (0x18 bytes used).
 struct MarkState {
-    int bottom;          // +0x00
-    int top;             // +0x04
-    int passage;         // +0x08 0x400 open, damped by occluders; negative: blocked
-    int cost;            // +0x0C
-    int ceiling;                        // +0x10 the room above the bottom (0x7F8 on open ground)
-    std::uint8_t doubled;   // +0x14 the cost counts twice (occluder type 3)
+    int bottom;
+    int top;
+    int passage;         // 0x400 open, damped by occluders; negative: blocked
+    int cost;
+    int ceiling;                        // the room above the bottom (0x7F8 on open ground)
+    std::uint8_t doubled;   // the cost counts twice (occluder type 3)
 };
 
 // passage * e^(table * a * b), stored to a float and rounded (FISTP), with the original's FLDL2E / F2XM1 /
@@ -231,7 +228,6 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     std::uint32_t word = *occluder;
     if (!(word & 0x100)) {
         if (word & 0x80) {
-            // A chain of occluder records in the cell's sector (32x32 cells).
             const Sector& sector = sectorMap.sectors.data[(y / 32) * sectorMap.width + x / 32];
             int index = static_cast<int>((word >> 9) & 0xFFFFF);
             do {
@@ -273,8 +269,7 @@ constexpr int kSteepOffsets[34] = /*007916BC*/ {
     0, 1, 0, -1, 1, 0, -1, 0, 0, 2, -1, 1, 0, 1, 1, 1, -2, 0, -1, 0, 0, 0, 1, 0, 2, 0, -1, -1, 0, -1, 1, -1, 0, -2};
 const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(kSteepOffsets); }
 
-// The largest climbable step of a climb table: the run of non-negative costs from the middle,
-// less one.
+// The largest climbable step of a climb table: the run of non-negative costs from the middle, less one.
 int MaxStep(const ClimbTable& table) {
     int n = 0;
     while (table.data[table.size / 2 + n] > -1) ++n;

@@ -60,13 +60,11 @@ void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
 }
 
 void CTransformObject::SaveTransform(mfc::CFileVirtuals* file) {
-    // An MFC CFile, written through its vtable (slot 14).
     file->Write(&localPosition_, 12u);
     file->Write(&localRotation_, 16u);
 }
 
 void CTransformObject::LoadTransform(mfc::CFileVirtuals* file) {
-    // An MFC CFile, read through its vtable (slot 13).
     file->Read(&localPosition_, 12u);
     file->Read(&localRotation_, 16u);
 }

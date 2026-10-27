@@ -45,14 +45,11 @@ bool ArgIs(const CStringArray* args, int i, const char* text) { return Mbscmp((*
 bool ArgOn(const CStringArray* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
-// The world's player `id`, or null.
 CPlayer* GetPlayer(int id) { return TheServerWorld()->GetPlayer(id); }
-// The client world's local player (its local view's player).
 CPlayer* LocalPlayer() {
     return TheClientWorld()->LocalView()->player_;
 }
 
-// The network client session, active unless it was detached.
 inline net::ClientSession* Server() { return net::GameClient(); }
 bool ServerActive(net::ClientSession* server) { return server && !(server->flags7_ & CRefCounted::kDetached); }
 
@@ -138,8 +135,7 @@ void __fastcall History(CStringArray* args) {
 }
 EI_REWRITTEN(0x005DDF80, History);
 
-// Filter (prints the shown categories), filter <type> (shows only that one),
-// filter <type> 1|on|0|off.
+// Filter (prints the shown categories), filter <type> (shows only that one), filter <type> 1|on|0|off.
 void __fastcall Filter(CStringArray* args) {
     if (args->GetSize() == 0) {
         static constexpr const char* kLabels[] = {"AI: ", "\nEVENT: ", "\nGRAPHICS: ", "\nRPG: ", "\nUNITACKS: ", "\nNET: "};
@@ -329,16 +325,14 @@ void RequestWithParty(CStringArray* args, const char* extra) {
 }
 } // namespace
 
-// join <map>: the flow's request 5 with a party of one
-// ("Hercules").
+// join <map>: the flow's request 5 with a party of one ("Hercules").
 void __fastcall Join(CStringArray* args) {
     if (args->GetSize() != 1) return PrintLine("Join has 1 parameter, server name");
     RequestWithParty<&GameFlow::RequestPartyZone5>(args, "Hercules");
 }
 EI_REWRITTEN(0x005DF3A0, Join);
 
-// server <map>: "Starting up a server", then the flow's
-// request 6 with a party of one ("Serv").
+// server <map>: "Starting up a server", then the flow's request 6 with a party of one ("Serv").
 void __fastcall HostServer(CStringArray* args) {
     if (args->GetSize() != 1) return PrintLine("Join has 1 parameter, map name");
     PrintLine("Starting up a server");
@@ -346,16 +340,13 @@ void __fastcall HostServer(CStringArray* args) {
 }
 EI_REWRITTEN(0x005DF490, HostServer);
 
-// memusage does nothing.
 void __fastcall MemUsage(CStringArray*) {}
 EI_REWRITTEN(0x005DF5A0, MemUsage);
 
-// disconnect, any arguments: the
-// client world's local player disconnects.
+// disconnect, any arguments: the client world's local player disconnects.
 void __fastcall Disconnect(CStringArray*) { TheGameFlow()->DisconnectClient(); }
 EI_REWRITTEN(0x005DFC10, Disconnect);
 
-// Lootall.
 void __fastcall LootAll(CStringArray*) {
     PrintLine("Looting...");
     TheServerWorld()->LootDeadUnits();
@@ -491,7 +482,6 @@ void __fastcall Days(CStringArray* args) {
 }
 EI_REWRITTEN(0x005E00D0, Days);
 
-// Partyresend.
 void __fastcall PartyResend(CStringArray*) {
     if (CPlayer* player = GetPlayer(0)) player->Server()->ResendParty();
 }

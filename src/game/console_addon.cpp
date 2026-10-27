@@ -1,11 +1,11 @@
 // Rebirth's console additions (addon.dll v0.12.4.2), reproduced behind their flags
 // (include/ei/rebirth.h, docs/notes/rebirth.md):
 // - AddNewConsoleCommands: the console executor also registers "help" (wrapped),
-//   "addon", "execs", "listgvar", "drawall" (after the cheat word) and "nogui" on every call, and
-//   the battle screen's drawing applies nogui's GUI visibility to its panels.
+// "addon", "execs", "listgvar", "drawall" (after the cheat word) and "nogui" on every call, and
+// the battle screen's drawing applies nogui's GUI visibility to its panels.
 // - AutoExec: the "Console AutoExec" lines (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a
-//   REG_MULTI_SZ, then the lines of 2utoexec.cfg) run before each of three console executions
-//   (three places in the console executions; the host functions are still the game's).
+// REG_MULTI_SZ, then the lines of 2utoexec.cfg) run before each of three console executions
+// (three places in the console executions; the host functions are still the game's).
 // The texts are addon's. Its own state (the two log levels, the GUI flags) lives here.
 #include "console.h"
 #include "options.h"

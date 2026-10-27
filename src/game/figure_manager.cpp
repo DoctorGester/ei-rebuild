@@ -105,7 +105,6 @@ int CFigureManager::LoadPart(CFigureMesh* part, FigureModel* model, float s, flo
 
 int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
     if (!animation) return 0;
-    // The inlined strcpy / strcat chain (no bounds check, like the original).
     char path[0x200];
     char* end = Append(path, bone->name3);
     end = Append(end, bone->GetName());

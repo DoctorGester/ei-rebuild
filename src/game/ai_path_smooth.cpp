@@ -34,7 +34,6 @@ constexpr int kWideTurnFactor = 0x200;
 
 bool IsDiagonal(int direction) { return direction == 2 || direction == 4 || direction == 6 || direction == 8; }
 
-// |v| as CDQ / XOR / SUB computes it.
 int CdqAbs(int v) {
     auto u = static_cast<std::uint32_t>(v);
     auto sign = static_cast<std::uint32_t>(v >> 31);
@@ -102,7 +101,6 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         pool.SetSize((path->count + 5) * 10, -1);
         pool.zeroed = 0;
         for (SmoothState& s : first) s = SmoothState{0, nullptr};
-        // The first cell: a state per direction it is left in.
         pool.next = pool.nodes.data;
         const AIMapCell& head = map->cells[headY][headX];
         for (int d = 1; d <= 8; ++d) {
@@ -180,7 +178,6 @@ EI_REPLACE_METHOD(0x005C46C0, PathSmoother::Smooth);
 
 namespace {
 
-// The direction opposite to `direction` (1..8).
 int Opposite(int direction) { return direction - 4 >= 1 ? direction - 4 : direction + 4; }
 
 } // namespace
@@ -353,7 +350,7 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
 void __cdecl BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
 EI_REPLACE(0x005C42B0, BuildSmoothTables);
 
-// ---- The pool and the tables (ai_map.h) ----------------------------------------------------------
+// ---- The pool and the tables ----------------------------------------------------------
 
 // Zero at the start; each is built empty by its static initialiser in the list's order (the tables first) and
 // destroyed by the exit function the initialiser registers (docs/notes/standalone.md, "The static
@@ -367,7 +364,6 @@ namespace {
 using AtExitFunction = void(__cdecl*)();
 void RegisterExit(std::uintptr_t exitFunction) { libcrt::AtExit(ei::Code<AtExitFunction>(exitFunction)); }
 
-// The tables built empty in order (the `eh vector constructor iterator`).
 void __cdecl ConstructSmoothTables() {
     for (SmoothTable& table : g_smoothTables.Get()) table.Construct();
     RegisterExit(0x005C41F0);
@@ -378,12 +374,10 @@ void __cdecl DestroySmoothTables() {
     for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();
 }
 
-// The pool's node array built empty; the rest stays zero.
 void __cdecl ConstructSmoothPool() {
     mfc::impl::ConstructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes);
     RegisterExit(0x005C4480);
 }
-// The node array's destructor.
 void __cdecl DestroySmoothPool() { mfc::impl::DestructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes); }
 
 } // namespace

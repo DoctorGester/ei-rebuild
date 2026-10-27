@@ -1,6 +1,5 @@
-// Combat orders: the setters of the queued order (+0x1B4) that the AI and the player's commands
-// use in a fight (turn, move, attack, cast, stop) and the end of a cast. See combat.h and
-// docs/notes/combat.md.
+// Combat orders: the setters of the queued order (+0x1B4) that the AI and the player's commands use in a
+// fight (turn, move, attack, cast, stop) and the end of a cast. See combat.h and docs/notes/combat.md.
 #include "combat.h"
 #include "combat_internal.h"
 
@@ -32,13 +31,11 @@ constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 constexpr float kReachHeight = 1.5f;
 
-// Party messages.
 constexpr int kMessageOutOfReach = 0x0C;
 constexpr int kMessageCannotCast = 0x13;
 
 AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
 
-// The prototype records behind a spell and a unit.
 const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
     return spell->GetPrototype();
 }
@@ -56,7 +53,6 @@ void ResetOrder(UnitAction* order) {
     order->modifier = 0;
 }
 
-// A counted reference's reset, inlined: release and clear.
 void ReleaseTarget(UnitAction* order) {
     if (order->target) order->target->Release();
     order->target = nullptr;
@@ -199,9 +195,8 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
 EI_REWRITTEN(0x00554B30, CUnitServer::OrderAttack);
 
 namespace {
-// The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's
-// own spell (not an item) its skill requirement (+0x50) against the unit's skill.
-// True when the order may be queued.
+// The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's own spell
+// (not an item) its skill requirement (+0x50) against the unit's skill. True when the order may be queued.
 bool MayCast(CUnitServer* self, std::uint32_t source) {
     CSpell* spell;
     if (source & kQuickItemSource) {

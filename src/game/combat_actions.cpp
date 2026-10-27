@@ -1,7 +1,6 @@
-// Combat, second part: what happens when an order's animation reaches its moment (attack hits and
-// bow missiles, casts, skills, quick items), the spells items cast on hit, item charges, healing,
-// death and the AI's reactions to it (witnesses, hostility claims). See combat.h and
-// docs/notes/combat.md.
+// Combat, second part: what happens when an order's animation reaches its moment (attack hits and bow
+// missiles, casts, skills, quick items), the spells items cast on hit, item charges, healing, death and the
+// AI's reactions to it (witnesses, hostility claims). See combat.h and docs/notes/combat.md.
 #include "ai_alarm.h"
 #include "combat.h"
 #include "map_object.h"
@@ -50,7 +49,6 @@ constexpr std::uint32_t kSpellNotOnHit = 0x180000;      // spell prototype 0x18:
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 constexpr int kQuickItemConsumable = 2;                 // category used up by order kind 10
 
-// Party messages.
 constexpr int kMessageKilled = 0x30;
 constexpr int kMessageScienceFailed = 0x11;
 constexpr int kMessageStealFailed = 0x22;
@@ -60,7 +58,6 @@ constexpr int kMessageTameFailed = 0x16;
 
 CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy_; }
 
-// The world's AI events.
 AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
 
 float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t>(v) & 0x7FFFFFFFu); }
@@ -97,16 +94,13 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 void PlayerMessage(void* messages, CUnit* unit, int code) {
     static_cast<CPlayerServer*>(messages)->SendObject0B(unit, code);
 }
-// CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it worked.
-// The controller's voice: says remark `what`.
-// The AI events: a noise of `loudness` and `kind` made by `source`; `unit` died; `controller` updates its
-// perception memory.
-// CSectorMap::Remove / Add (sector_map.cpp) on the world's sector map.
-// Map object base: drops all effects, marks the object changed.
-// CList::NewNode(prev, next) of the brain's unit lists: UnitList::NewNode.
-// The death animation's (AnimationSteps) base constructor and copy constructor.
-// CUnitServer::PlayAnimationOrder: plays `animation` (taken by value and destroyed).
-// UnitAction: kind 9, target released, flag18 cleared (the other fields left alone).
+// CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it worked. The
+// controller's voice: says remark `what`. The AI events: a noise of `loudness` and `kind` made by `source`;
+// `unit` died; `controller` updates its perception memory. CSectorMap::Remove / Add on the world's sector
+// map. Map object base: drops all effects, marks the object changed. CList::NewNode(prev, next) of the
+// brain's unit lists: UnitList::NewNode. The death animation's (AnimationSteps) base constructor and copy
+// constructor. CUnitServer::PlayAnimationOrder: plays `animation` (taken by value and destroyed). UnitAction:
+// kind 9, target released, flag18 cleared (the other fields left alone).
 
 
 void CUnitServer::DropQueuedOrder() {
@@ -373,7 +367,6 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         return;
     }
 
-    // Dead.
     if (attacker) {
         if (attacker->player) {
             CUnit* killer = attacker->ServerController()->unit;

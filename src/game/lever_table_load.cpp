@@ -21,7 +21,6 @@ int LeverRecordTable::Load(const char* folder) {
     bool opened;
     {
         std::string path = dir + "database.res";
-        // Through the vtable: slot 1 is the archive file's open.
         opened = resource.Get()->OpenResource(path.c_str(), 0) != 0;
     }
     if (!opened) {

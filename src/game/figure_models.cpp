@@ -25,10 +25,8 @@ using AnimationMap = FigureModel::AnimationMap;
 // and a value, lower_bound over the prime list and insert(pos, n, value); reserve is the vector's own.
 using BucketVector = stlp::vector<AnimationMap::Node*>;
 
-// The data of "<name><suffix>" (the manager's GetFile), or null.
 void* OpenPart(CFigureManager* manager, const stlp::string* name, const char* suffix) {
     char path[0x200];
-    // The inlined strcpy and strcat (no bounds check, like the original).
     std::size_t length = std::strlen(name->data());
     std::memcpy(path, name->data(), length);
     const char* tail = suffix;
@@ -36,7 +34,6 @@ void* OpenPart(CFigureManager* manager, const stlp::string* name, const char* su
     return manager->GetFile(path, nullptr);
 }
 
-// operator[]: a {name, null} pair for find_or_insert.
 FigureModel** ModelSlot(ModelMap* map, const stlp::string* name) { return &map->Subscript(*name); }
 CMappedResource** AnimationSlot(AnimationMap* map, const stlp::string* name) { return &map->Subscript(*name); }
 
@@ -81,7 +78,6 @@ CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
 }
 EI_REWRITTEN(0x005A9EF0, FigureModel::FindAnimation);
 
-// The library's hash table sizes.
 constexpr std::uint32_t kPrimeCount = 28;
 constexpr std::uint32_t kPrimes[kPrimeCount] = /*0073B914*/ {
     53,        97,        193,       389,       769,       1543,       3079,       6151,       12289,      24593,

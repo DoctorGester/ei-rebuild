@@ -45,15 +45,13 @@ int CrownOption() { return options::TheOptions()->floraSpecialLight_; }
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
+// CTransformPipeline::ClipTest: 2 = outside the view, 1 = crossing it.
 // The drawer's animation at a time (float bits), and the call after the draw (the renderer).
 
-// The mesh's name: CEngineObject::GetName.
 const char* MeshName(CFigureMesh* mesh) { return mesh->GetName(); }
 
 // --- x87 sequences --------------------------------------------------------------------------------
 
-// *target = *offset + *target (FLD offset, FADD, FSTP).
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
 // The world time: whole ticks (FILD) plus the fraction of the current one, rounded to a float.
@@ -99,7 +97,6 @@ struct Part {
     bool Textured() const { return textureA && textureB; }
 };
 
-// A texture offset as the draws take it (its bits).
 std::uint32_t OffsetBits(float offset) { return std::bit_cast<std::uint32_t>(offset); }
 
 // Flat meshes (flag 0x100): the figure fills the colours (its FlatColours), else every colour is

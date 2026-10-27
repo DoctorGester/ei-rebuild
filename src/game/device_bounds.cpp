@@ -1,7 +1,6 @@
-// The Direct3D device's screen bounds of a mesh draw (mesh draw flag 1): the smallest and largest
-// x and y of its clipped TL vertices or of its projected positions, rounded
-// into the device's drawn rectangle (+0x15C), which the figures' and the 3D library's draws read
-// back. See docs/notes/renderer.md (section 12).
+// The Direct3D device's screen bounds of a mesh draw (mesh draw flag 1): the smallest and largest x and y of
+// its clipped TL vertices or of its projected positions, rounded into the device's drawn rectangle (+0x15C),
+// which the figures' and the 3D library's draws read back. See docs/notes/renderer.md (section 12).
 #include "clip.h"            // TLVertex
 #include "device_buffers.h"  // ProjectedVertex
 #include "texture.h"         // CTextureDevice

@@ -8,13 +8,13 @@
 #include <cstddef>
 #include <cstdint>
 
-class CFigureMesh;   // figure_mesh.h
+class CFigureMesh;
 
 // Six corner positions of a bone, from a .bon file. A figure's proportions are set by three morph
 // coefficients; the bone position is interpolated between these corners:
-//   lower = lerp(lerp(c[0], c[1], s), c[2], t)
-//   upper = lerp(lerp(c[3], c[4], s), c[5], t)
-//   bone  = lerp(lower, upper, u)
+// lower = lerp(lerp(c[0], c[1], s), c[2], t)
+// upper = lerp(lerp(c[3], c[4], s), c[5], t)
+// bone  = lerp(lower, upper, u)
 struct BoneMorphBox {
     Vector3 c[6];
 };
@@ -26,9 +26,9 @@ static_assert(sizeof(BoneMorphBox) == 0x48);
 struct AnimationRotationKey {
     int frame;
     int next;
-    Quaternion rotation;   // +0x08
-    Vector3 axis;          // +0x18
-    float angle;           // +0x24
+    Quaternion rotation;
+    Vector3 axis;
+    float angle;
 };
 static_assert(sizeof(AnimationRotationKey) == 40);
 
@@ -37,8 +37,8 @@ static_assert(sizeof(AnimationRotationKey) == 40);
 struct AnimationTranslationKey {
     int frame;
     int next;
-    Vector3 position;      // +0x08
-    Vector3 step;          // +0x14
+    Vector3 position;
+    Vector3 step;
 };
 static_assert(sizeof(AnimationTranslationKey) == 32);
 
@@ -46,11 +46,10 @@ static_assert(sizeof(AnimationTranslationKey) == 32);
 struct AnimationMorphFrame {
     int frame;
     int next;
-    lib::AlignedArray<Vector3> points;   // +0x08
+    lib::AlignedArray<Vector3> points;
 };
 static_assert(sizeof(AnimationMorphFrame) == 0x18);
-// The morph frames' CArray instantiation constructs and destroys them out of
-// line (scene_bones.cpp).
+// The morph frames' CArray instantiation constructs and destroys them out of line.
 struct AnimationMorphFrameElements {
     static void Construct(AnimationMorphFrame* frames, int count);
     static void Destruct(AnimationMorphFrame* frames, int count);
@@ -60,7 +59,7 @@ struct AnimationMorphFrameElements {
 // (BuildBone, scene_bones.cpp). Names and layout provisional.
 class CAnimationNode {
 public:
-    // animation_node_lifetime.cpp. The constructor: empty names and arrays, the four key cursors -1, identity pose
+    // The constructor: empty names and arrays, the four key cursors -1, identity pose
     // and rest rotations, two quaternion members and position_ from the defaults (the identity and the origin).
     // The pose / rest positions and the morph stay unwritten. Returns this.
     CAnimationNode* Construct();
@@ -81,7 +80,7 @@ public:
     // Rewinds this node and its children: the clock (+0x38 / +0x3C) to 0, ResetPose, and
     // the mesh (when there is one) placed at the pose with the morph points as its offsets.
     void Rewind();
-    // skin_rewind.cpp. Binds the figure's parts (CFigureMesh*) to this node and its children: the first part
+    // Binds the figure's parts (CFigureMesh*) to this node and its children: the first part
     // whose name equals the node's becomes its mesh (one more reference; a mesh held before is overwritten
     // without a release) and is placed at the pose with the morph points as its offsets. Returns 1.
     int AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts);
@@ -89,38 +88,37 @@ public:
     // +0x000, +0x008..+0x018, +0x034: cleared (the names constructed and destroyed) by the
     // constructor and the destructor; nothing reads them.
     std::uint32_t spare000_;
-    mfc::CString name_;                                  // +0x004
-    mfc::CString spareName008_;                          // +0x008
-    mfc::CString spareName00C_;                          // +0x00C
-    std::uint32_t spare010_[3];                          // +0x010
-    CAnimationNode* parent_;                             // +0x01C
-    lib::AlignedArray<CAnimationNode*> children_;        // +0x020
-    class CFigureMesh* mesh_;                            // +0x030 the part the node places, or null
-    std::uint32_t spare034_;                             // +0x034
-    std::uint32_t clock_[2];                             // +0x038 cleared by Rewind (a double?)
-    int frameCount_;                                     // +0x040 the animation's frames (a short)
-    lib::AlignedArray<AnimationRotationKey> rotationKeys_;   // +0x044
-    int rotationCursor_;                                 // +0x054 -1 after construction, 0 after ResetPose
-    lib::AlignedArray<AnimationTranslationKey> translationKeys_;   // +0x058
-    int translationCursor_;                              // +0x068 the same
+    mfc::CString name_;
+    mfc::CString spareName008_;
+    mfc::CString spareName00C_;
+    std::uint32_t spare010_[3];
+    CAnimationNode* parent_;
+    lib::AlignedArray<CAnimationNode*> children_;
+    class CFigureMesh* mesh_;                            // the part the node places, or null
+    std::uint32_t spare034_;
+    std::uint32_t clock_[2];                             // cleared by Rewind (a double?)
+    int frameCount_;                                     // the animation's frames (a short)
+    lib::AlignedArray<AnimationRotationKey> rotationKeys_;
+    int rotationCursor_;                                 // -1 after construction, 0 after ResetPose
+    lib::AlignedArray<AnimationTranslationKey> translationKeys_;
+    int translationCursor_;                              // the same
     mfc::CArray<Vector3> normals_;                       // zeroed when added
-    int normalCursor_;                                   // +0x080 the same
+    int normalCursor_;                                   // the same
     mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements> morphFrames_;
-    int morphCursor_;                                    // +0x098 the same
-    Quaternion defaultRotation_;                         // +0x09C the identity (constructor); nothing reads it
-    Vector3 defaultPosition_;                            // +0x0AC the origin (constructor); nothing reads it
-    Quaternion poseRotation_;                            // +0x0B8 the node's rotation in the figure
-    Vector3 posePosition_;                               // +0x0C8 its position in the figure
-    lib::AlignedArray<Vector3> pointsB_;                 // +0x0D4 one per morph point, zeroed
-    Quaternion restRotation_;                            // +0x0E4 the node's rest rotation
-    Vector3 restPosition_;                               // +0x0F4 the node's rest pivot
-    lib::AlignedArray<Vector3> pointsA_;                 // +0x100 one per morph point, zeroed
-    // +0x110 the bone position (SetMorph); the skeleton code keeps the rest position in the
-    // parent's frame here (scene_bone_frames.cpp).
+    int morphCursor_;                                    // the same
+    Quaternion defaultRotation_;                         // the identity (constructor); nothing reads it
+    Vector3 defaultPosition_;                            // the origin (constructor); nothing reads it
+    Quaternion poseRotation_;                            // the node's rotation in the figure
+    Vector3 posePosition_;                               // its position in the figure
+    lib::AlignedArray<Vector3> pointsB_;                 // one per morph point, zeroed
+    Quaternion restRotation_;                            // the node's rest rotation
+    Vector3 restPosition_;                               // the node's rest pivot
+    lib::AlignedArray<Vector3> pointsA_;                 // one per morph point, zeroed
+    // the bone position (SetMorph); the skeleton code keeps the rest position in the parent's frame here.
     Vector3 position_;
-    float morphS_;          // +0x11C
-    float morphT_;          // +0x120
-    float morphU_;          // +0x124
+    float morphS_;
+    float morphT_;
+    float morphU_;
 };
 static_assert(offsetof(CAnimationNode, name_) == 0x04);
 static_assert(offsetof(CAnimationNode, parent_) == 0x1C);

@@ -154,7 +154,6 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
     path->Start(&PositionOf(unit), &backwards, count - 1);
 
-    // Move cells from the head of the path to the tail of the steps.
     PathCellList& pathCells = path->cells;
     PathCellList& steps = path->steps;
     while (steps.count < 32 && pathCells.count > 0) {
@@ -226,7 +225,6 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     PathCell cell;
     PathCellList& pathCells = path->cells;
     if (ux == tx && uy == ty) {
-        // Already in the target cell.
         int reason;
         if (unit->GetClassId() == kClassUnit && !(CanStandAt(unit, tx, ty, &reason) && IsCellPassable(this, unit, tx, ty))) {
             goto done;
@@ -248,7 +246,6 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         int diff = adx - ady < 0 ? ady - adx : adx - ady;
         bool tried = false;
         if (diff + ((shorter * 0x5A8) >> 10) <= 24) {
-            // Close: a two-way local search.
             pathCells.RemoveAll();
             if (ux != tx || uy != ty) {
                 if (BeginLocalSearch(&forwardSearch, unit, ux, uy, tx, ty)) {

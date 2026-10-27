@@ -34,7 +34,6 @@ void WriteValueChunk(Chunk* chunk, std::uint32_t id, const void* value, std::uin
     FileWrite(chunk->File(), value, valueSize);
 }
 
-// Reads `size` bytes and counts them.
 void ReadCounted(Chunk* chunk, void* data, std::uint32_t size) {
     FileRead(chunk->File(), data, size);
     if (chunk->parent_) chunk->parent_->Advance(static_cast<int>(size));
@@ -45,8 +44,8 @@ void ReadCounted(Chunk* chunk, void* data, std::uint32_t size) {
 // input; vector<uint8_t> members (library): constructor, erase, fill insert.
 using ByteVector = stlp::vector<std::uint8_t>;
 struct TextDecoder {
-    ByteVector text;    // +0x00
-    ByteVector input;   // +0x0C
+    ByteVector text;
+    ByteVector input;
 };
 
 } // namespace
@@ -243,8 +242,7 @@ EI_REWRITTEN(0x0042D020, Chunk::ReadBytes);
 
 // --- Text ----------------------------------------------------------------------------------------
 
-// The characters are read one at a time, each counted; the text ends at the first NUL
-// (ReleaseBuffer(-1)).
+// The characters are read one at a time, each counted; the text ends at the first NUL (ReleaseBuffer(-1)).
 mfc::CString* Chunk::ReadString(mfc::CString* out) {
     mfc::CString text;
     int length = size_ - kHeader;

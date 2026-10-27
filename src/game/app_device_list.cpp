@@ -1,7 +1,6 @@
-// The lever table's records (LeverRecord, lever.h: Levers.ldb, 0x2C bytes; Rebirth patches the
-// start-up code that loads them from a chunk archive): the record's fields, its
-// compiler-made members and the list's archiving. The list is an STLport vector (its algorithms
-// are library code). See docs/notes/app.md.
+// The lever table's records (LeverRecord, lever.h: Levers.ldb, 0x2C bytes; Rebirth patches the start-up code
+// that loads them from a chunk archive): the record's fields, its compiler-made members and the list's
+// archiving. The list is an STLport vector (its algorithms are library code). See docs/notes/app.md.
 #include "chunk_archive.h"
 #include "lever.h"
 
@@ -31,7 +30,6 @@ void CopyPlain(LeverRecord* to, const LeverRecord* from) {
 }
 } // namespace
 
-// The destructor.
 void __fastcall RecordDestruct(LeverRecord* self) {
     self->text28.~CString();
     self->sound.~CString();
@@ -54,7 +52,6 @@ void LeverRecord::Archive(ChunkArchive* archive) {
 }
 EI_REWRITTEN(0x00463030, LeverRecord::Archive);
 
-// The deleting destructor.
 LeverRecord* LeverRecord::DeleteScalar(unsigned flags) {
     app::RecordDestruct(this);
     if (flags & 1) gamecrt::operator_delete(this);
@@ -62,7 +59,6 @@ LeverRecord* LeverRecord::DeleteScalar(unsigned flags) {
 }
 EI_REWRITTEN(0x004657E0, LeverRecord::DeleteScalar);
 
-// Copy constructor and assignment; both return this.
 LeverRecord* LeverRecord::CopyConstruct(const LeverRecord* from) {
     new (&name) mfc::CString(from->name);
     app::CopyPlain(this, from);

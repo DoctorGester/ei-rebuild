@@ -1,7 +1,6 @@
-// Combat, seventh part: the controller's movement modes, idle and movement animations, paths to a
-// point, the start of a planned action and the controller's reset. See combat.h, combat_plan.h
-// and docs/notes/combat.md ("Update").
-// Animation lists cached on the controller: +0x944 the movement animation (key +0x940), +0x960
+// Combat, seventh part: the controller's movement modes, idle and movement animations, paths to a point, the
+// start of a planned action and the controller's reset. See combat.h, combat_plan.h and docs/notes/combat.md
+// ("Update"). Animation lists cached on the controller: +0x944 the movement animation (key +0x940), +0x960
 // the idle animation (key +0x95C; its start time +0x974).
 #include "ai_alarm.h"
 #include "ai_map.h"
@@ -64,7 +63,6 @@ constexpr int kMessagePartial = 0x01;
 
 inline void __fastcall PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
-// The world server, its AI map and sector map.
 CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
@@ -79,19 +77,17 @@ AnimationSteps& MoveSteps(CUnitServer* self) { return self->moveAnimation; }
 AnimationSteps& IdleSteps(CUnitServer* self) { return self->idleAnimation; }
 std::uint32_t& MoveKey(CUnitServer* self) { return self->moveAnimationKey; }
 std::uint32_t& IdleKey(CUnitServer* self) { return self->idleKey; }
-int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }   // +0x974
+int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }
 
 // The world time (CWorld::tick_) of an object's world (ObjectWorld) or manager context.
 int TickOf(const CWorld* world) { return world->tick_; }
 CWorldServer* ContextOf(CUnitServer* self) { return self->ServerWorld(); }
-// The unit's server object (CUnit + 0x170) and its vitals.
 UnitVitals& ServerVitals(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 
 void StartQueueIfUnset(CUnitServer* self) {
     if (QueueTime(self) == -1) QueueTime(self) = TickOf(ObjectWorld(self));
 }
 
-// The first step of the queue shown on the unit.
 void ShowHead(CUnitServer* self) {
     AnimationSteps& queue = Queue(self);
     if (queue.size == 0) return;
@@ -160,7 +156,6 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
     if (entry) AddEmote(steps, entry->index);
 }
 
-// The idle key of the unit now (weapon and movement bits).
 std::uint32_t IdleKeyNow(CUnitServer* self) { return WeaponAndModeBits(self); }
 
 // A motion order on the stack (PathOrder, 0x3C bytes): the order header and its step list (a CList of path
@@ -221,7 +216,6 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     self->unit->localRotation_.AxisY(&axis);
     Vector3 back = -axis;
     if (Motion(self)->Start(&self->unit->localPosition_, &back, now)) self->unit->RefreshMotion();
-    // Standing 0.
     CWorldServer* world = ContextOf(self);
     if (self->unit->obstacle != 0) {
         CSectorMap* sectors = world->Sectors();
@@ -305,7 +299,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     } else {
         key |= kKeyMoveLoop;
         if (self->type_ == kUnitTypeHero) {
-            float stamina = stats.loadFactor;   // +0x238
+            float stamina = stats.loadFactor;
             EI_NAN_AUDIT(stamina, HeroWalkLimit(), HeroRunLimit());
             if (stamina <= HeroWalkLimit()) key |= 0x800000;
             else if (stamina <= HeroRunLimit()) key |= 0x400000;
@@ -341,7 +335,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
     } else {
         key |= 0x140000;
         if (self->type_ == kUnitTypeHero) {
-            float stamina = stats.loadFactor;   // +0x238
+            float stamina = stats.loadFactor;
             EI_NAN_AUDIT(stamina, HeroWalkLimit(), HeroRunLimit());
             if (stamina <= HeroWalkLimit()) key |= 0x800000;
             else if (stamina <= HeroRunLimit()) key |= 0x400000;
@@ -545,7 +539,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     Motion(this)->Clear();
     std::uint32_t keep = unit->altPassCosts;
     CWorldServer* world = ContextOf(this);
-    Motion(this)->flag6E = unit->player ? 0 : 1;   // +0xAA
+    Motion(this)->flag6E = unit->player ? 0 : 1;
     std::uint32_t before = unit->altPassCosts;
     unit->altPassCosts = keep;
     bool found = world->AIMap()->FindPath(unit, point, Motion(this), range, 0.0f);
@@ -559,7 +553,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
         stoodBlocked = blocked == 1 ? 1 : 0;
         return false;
     }
-    Motion(this)->goal.z = range;   // +0xA4: the range (Replan reads it back)
+    Motion(this)->goal.z = range;   // : the range (Replan reads it back)
     sneakWait = 0;
     unit->RefreshMotion();
     if (state < 0 || (state > 1 && state != kStateTurning)) PlaySteps(IdleAnimation());
@@ -597,7 +591,6 @@ EI_REWRITTEN(0x00548700, CUnitServer::PathTo);
 void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) {
     CWorldServer* world = ContextOf(this);
     CPlayer* player = unit->player;
-    // RemoveAll.
     for (UnitList::Node* node = list->head; node; node = node->next) {
     }
     list->count = 0;
@@ -791,7 +784,7 @@ void CUnitServer::ResetController() {
     plan.notSkill = 0;
     plan.castKind = 8;
     std::memset(&pendingHit, 0, 0x3C);
-    pendingHit.multiplier = 1.0f;   // +0x130
+    pendingHit.multiplier = 1.0f;
     savedQueue.SetSize(0, -1);
     savedQueue.extra = -1;
     state = kStateChasing;

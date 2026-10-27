@@ -1,10 +1,8 @@
-// The key bindings file (the base path + the name): loaded at start
-// and saved on the interface's shutdown. Each line is "<key> <action>". The
-// tables are the ones FindCommandByKey (object_tables.cpp) and the options window (ui_options.cpp)
-// use: the action of each scan code (0x200 signed bytes, g_keyActions), the keys (0x48-byte entries at
-// Scan code, the file's name, Windows' display text) and the actions (0x10-byte entries at
-// Id, name, options group and row; the first is a blank id 0). See docs/notes/ui.md
-// section 8.
+// The key bindings file (the base path + the name): loaded at start and saved on the interface's shutdown.
+// Each line is "<key> <action>". The tables are the ones FindCommandByKey and the options window use: the
+// action of each scan code (0x200 signed bytes, g_keyActions), the keys (0x48-byte entries at Scan code, the
+// file's name, Windows' display text) and the actions (0x10-byte entries at Id, name, options group and row;
+// the first is a blank id 0). See docs/notes/ui.md section 8.
 #include "console.h"
 #include "game_strings.h"
 
@@ -22,9 +20,8 @@
 #include <cstring>
 #include <string>
 
-// The keys (object_tables.h's UiKeyName): scan code, the bindings file's name and Windows' text (LoadKeyBindings
-// fills it).
-// The actions' table (kActionDefinitions) follows it in memory.
+// The keys (object_tables.h's UiKeyName): scan code, the bindings file's name and Windows' text
+// (LoadKeyBindings fills it). The actions' table (kActionDefinitions) follows it in memory.
 UiKeyName g_keyNames[88] = /*007857B0*/ {
     {2, "1", ""}, {3, "2", ""}, {4, "3", ""}, {5, "4", ""}, {6, "5", ""}, {7, "6", ""}, {8, "7", ""}, {9, "8", ""},
     {10, "9", ""}, {11, "0", ""}, {12, "-", ""}, {13, "+", ""}, {15, "TAB", ""}, {16, "Q", ""}, {17, "W", ""},
@@ -52,7 +49,6 @@ constexpr int kActionCount = 60;
 signed char* ActionOfScan() { return g_keyActions; }
 
 
-// Operator+(CString, LPCTSTR).
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return ::new (a0) mfc::CString(*a1 + a2); }
 
 // Opens the bindings file with `flags`; the path is a temporary CString.

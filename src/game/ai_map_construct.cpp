@@ -54,8 +54,6 @@ CAIMap::CAIMap() {
 }
 EI_REWRITTEN_SPECIAL(0x005B3C30, CAIMap::CAIMap);
 
-// The original inlines some member destructors the reset calls (same effects). The unit layers and the sector
-// map are destroyed by their own destructors after this body.
 CAIMap::~CAIMap() {
     Events()->Destroy();
     FreeGrid(marks);

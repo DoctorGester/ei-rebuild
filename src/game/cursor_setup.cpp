@@ -1,6 +1,5 @@
-// The mouse cursor's set-up and reset: the cursor object is
-// initialised and given its 25 shapes, the "sm_" set when the small cursors are on. The cursor
-// object itself stays the game's own code.
+// The mouse cursor's set-up and reset: the cursor object is initialised and given its 25 shapes, the "sm_"
+// set when the small cursors are on. The cursor object itself stays the game's own code.
 #include "ei/hook.h"
 #include "ui_cursor.h"
 #include "game_data.h"
@@ -62,7 +61,6 @@ void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int fl
     TheCursor()->Start();
 }
 
-// Reset (fastcall). Shuts the cursor down and sets it up again.
 void __fastcall ResetCursors(bool modeTwo, int context, int smallCursors, int flags) {
     TheCursor()->Shutdown();   // the drawing thread stopped, the shapes released
     SetUpCursorsAt(modeTwo, context, smallCursors, flags);

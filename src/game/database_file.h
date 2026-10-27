@@ -1,10 +1,9 @@
 #pragma once
 
-// What the database loaders share (units, skills, spells, items,
-// prints, acks): the resource archive and the memory stream they build
-// on their stacks, and a table's pass over the stream. Rebirth patches every one of these loaders
-// (it redirects their file lookup to a mod folder's copy); the rewrites are the vanilla functions
-// and reach the patched resource functions through their addresses (rule 9).
+// What the database loaders share (units, skills, spells, items, prints, acks): the resource archive and the
+// memory stream they build on their stacks, and a table's pass over the stream. Rebirth patches every one of
+// these loaders (it redirects their file lookup to a mod folder's copy); the rewrites are the vanilla
+// functions and reach the patched resource functions through their addresses (rule 9).
 
 #include "chunk_archive.h"
 #include "core_streams.h"

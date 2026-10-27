@@ -13,37 +13,32 @@
 #include <cstddef>
 #include <cstdint>
 
-// The abstract stream (slots 7 / 8 pure). 0x1C
-// bytes. Flag bits as GameBuffer's: 0 the window holds unwritten bytes, 3 an error. BufferedStream
-// and BufferedFile are real virtual classes: the compiler makes their vtables.
-// The slots' bodies keep their names (registered at their
-// addresses, rewrite-guide rule 4); the overrides call them.
+// The abstract stream (slots 7 / 8 pure). 0x1C bytes. Flag bits as GameBuffer's: 0 the window holds unwritten
+// bytes, 3 an error. BufferedStream and BufferedFile are real virtual classes: the compiler makes their
+// vtables. The slots' bodies keep their names (registered at their addresses, rewrite-guide rule 4); the
+// overrides call them.
 class BufferedStream : public GameBuffer {
 public:
-    // No block, base 0, flags 0 (the other pointers are left).
     BufferedStream() {
         base = 0;
         begin = nullptr;
         flags = 0;
     }
-    // The destructor body: ReleaseBlock.
     ~BufferedStream() override { ReleaseBlock(); }
-    // The deleting destructor (slot 5) frees into the game's heap.
     static void operator delete(void* block) { gamecrt::operator_delete(block); }
 
-    void ReserveRead(std::int32_t size) override { ReserveReadWindow(size); }                  // 0
-    void ReserveWrite(std::int32_t size) override { ReserveWriteWindow(size); }                // 1
-    std::uint32_t Commit() override;                                                          // 2
-    int ReadMore(void* to, std::uint32_t size) override { return ReadMoreWindow(to, size); }   // 3
-    int WriteMore(const void* from, std::uint32_t size) override { return WriteMoreWindow(from, size); }   // 4
-    std::uint8_t* Seek(std::int32_t position) override { return SeekWindow(position); }      // 6
+    void ReserveRead(std::int32_t size) override { ReserveReadWindow(size); }
+    void ReserveWrite(std::int32_t size) override { ReserveWriteWindow(size); }
+    std::uint32_t Commit() override;
+    int ReadMore(void* to, std::uint32_t size) override { return ReadMoreWindow(to, size); }
+    int WriteMore(const void* from, std::uint32_t size) override { return WriteMoreWindow(from, size); }
+    std::uint8_t* Seek(std::int32_t position) override { return SeekWindow(position); }
     // Moves the cursor to file position `position`: inside the window in place,
     // else Flush and Rebase. Returns the cursor as it was before (the in-window path's result; the other
     // path leaves no meaningful value and its callers ignore it).
     std::uint8_t* SeekWindow(std::int32_t position);
-    // A write the window cannot take in place: one larger than the window
-    // goes straight to the file (returns slot 8's count); otherwise Rebase, then into the window
-    // (unwritten bit) or through slot 4 again.
+    // A write the window cannot take in place: one larger than the window goes straight to the file (returns
+    // slot 8's count); otherwise Rebase, then into the window (unwritten bit) or through slot 4 again.
     int WriteMoreWindow(const void* from, std::uint32_t size);
     // A read the window cannot serve in place: one larger than the window goes
     // straight to the file (returns slot 7's count); otherwise Rebase, then from the window, or zeroes
@@ -55,8 +50,8 @@ public:
     // Room to read `size` bytes: a window smaller than `size` grows to
     // size + 0x400 (when that is not smaller) and is reloaded at `base`; otherwise Rebase.
     void ReserveReadWindow(std::int32_t size);
-    virtual int ReadAt(std::int32_t position, void* to, std::uint32_t size) = 0;           // 7
-    virtual int WriteAt(std::int32_t position, const void* from, std::uint32_t size) = 0;  // 8
+    virtual int ReadAt(std::int32_t position, void* to, std::uint32_t size) = 0;
+    virtual int WriteAt(std::int32_t position, const void* from, std::uint32_t size) = 0;
 
     // Writes the window's bytes up to the cursor back when they are unwritten (error bit on a
     // short write); `high` follows the cursor upwards.
@@ -72,7 +67,6 @@ public:
     // the block (error bit on a short read), the pointers shifted so the cursor keeps its file
     // position, base = position.
     void MoveWindow(std::int32_t position);
-    // The cursor's file position.
     std::int32_t Position() const { return static_cast<std::int32_t>(cur - begin) + base; }
     std::int32_t Capacity() const { return static_cast<std::int32_t>(end - begin); }
 };
@@ -83,25 +77,23 @@ class BufferedFile : public BufferedStream {
 public:
     // The constructor the quest file loader inlines: BufferedStream's, no file.
     BufferedFile() : file(nullptr) {}
-    // The destructor body: Close, then BufferedStream's.
     ~BufferedFile() override { Close(); }
 
-    int ReadAt(std::int32_t position, void* to, std::uint32_t size) override { return ReadAtFile(position, to, size); }   // 7
-    int WriteAt(std::int32_t position, const void* from, std::uint32_t size) override {   // 8
+    int ReadAt(std::int32_t position, void* to, std::uint32_t size) override { return ReadAtFile(position, to, size); }
+    int WriteAt(std::int32_t position, const void* from, std::uint32_t size) override {
         return WriteAtFile(position, from, size);
     }
 
     int WriteAtFile(std::int32_t position, const void* from, std::uint32_t size);
-    // Slots 7 / 8: fseek to `position` from the start, then fread / fwrite
+    // Fseek to `position` from the start, then fread / fwrite
     // of `size` bytes; 0 without a file or when the seek fails.
     int ReadAtFile(std::int32_t position, void* to, std::uint32_t size);
-    // Flush, the block freed, the file closed.
     void Close();
     // Close, flags = `newFlags`, then fopen(path, mode): on success a 0x400-byte
     // window at file position 0 with `high` at the file's size, loaded; on failure error bit 3.
     void Open(const char* path, const char* mode, std::uint32_t newFlags);
 
-    gamecrt::CrtFile* file;   // +0x1C
+    gamecrt::CrtFile* file;
 };
 static_assert(offsetof(BufferedFile, file) == 0x1C);
 static_assert(sizeof(BufferedFile) == 0x20);

@@ -1,6 +1,5 @@
-// CUnitServer slots about other objects and the unit's own setup (A-U5): hostility claims, taking
-// up a weapon, an object being deleted, settling the unit again. See combat.h and
-// docs/notes/combat.md.
+// CUnitServer slots about other objects and the unit's own setup (A-U5): hostility claims, taking up a
+// weapon, an object being deleted, settling the unit again. See combat.h and docs/notes/combat.md.
 #include "combat.h"
 
 #include "ai_map.h"

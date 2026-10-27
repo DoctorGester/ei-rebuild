@@ -61,7 +61,6 @@ mfc::CString ModelNameOf(const NamedRecordTable<Record>& table, const char* cons
     return name;
 }
 
-// The first string of the prototype's list, or "".
 template <typename Record>
 mfc::CString FirstListNameOf(const NamedRecordTable<Record>& table, std::uint32_t id) {
     const Record* prototype = table.At(PrototypeIndex(id));

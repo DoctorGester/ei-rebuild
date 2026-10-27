@@ -1,4 +1,4 @@
-// CIniFile: .ini settings through GetPrivateProfile* / WritePrivateProfileString (ini_file.h).
+// CIniFile: .ini settings through GetPrivateProfile* / WritePrivateProfileString.
 #include "ini_file.h"
 #include "game_strings.h"
 
@@ -57,7 +57,6 @@ BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const mfc::C
     return ini->WriteString(section, key, *reinterpret_cast<char**>(copy));
 }
 
-// The value of `key` as a CString.
 mfc::CString ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
     return const_cast<CIniFile*>(ini)->GetString(section, key, defaultValue);
 }

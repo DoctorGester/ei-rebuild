@@ -16,7 +16,6 @@ using namespace itemdb;
 
 namespace {
 
-// The keys' prefixes and the kind texts.
 constexpr const char kString[] = "string ";
 constexpr const char kWeapon[] = "weapon ";
 constexpr const char kArmor[] = "armor ";
@@ -231,7 +230,6 @@ EI_REWRITTEN(0x004E13E0, CTextManager::FormatItemName);
 
 void TextSources::Begin(Node** out) { *out = head->next; }
 EI_REWRITTEN(0x004E1530, TextSources::Begin);
-// Byte-identical copies (other lists' begin in the world range; A-W12).
 EI_REWRITTEN(0x00560030, TextSources::Begin);
 EI_REWRITTEN(0x00560040, TextSources::Begin);
 EI_REWRITTEN(0x0056DF90, TextSources::Begin);

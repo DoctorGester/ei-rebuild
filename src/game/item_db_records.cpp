@@ -25,7 +25,6 @@ void CopyBytes(R* target, const R* source, std::size_t from, std::size_t to) {
 
 } // namespace
 
-// The records' first virtual: the item kind each record makes.
 int WeaponRecord::Kind() { return 0x3004; }
 int ArmorRecord::Kind() { return 0x3005; }
 int QuickItemRecord::Kind() { return 0x3006; }
@@ -168,7 +167,7 @@ void SpellListRecord::Destruct() {
 }
 EI_REWRITTEN(0x00589860, SpellListRecord::Destruct);
 
-// ---- The spell records as vector elements (record_vectors.h) -------------------------------------
+// ---- The spell records as vector elements -------------------------------------
 
 namespace {
 using IdElement = stlp::PlainElement<int>;
@@ -268,8 +267,7 @@ void LootItemRecord::CopyOwn(const LootItemRecord* source) {
     CopyBytes(this, source, offsetof(LootItemRecord, category), sizeof(LootItemRecord));
 }
 
-// The kinds' default and copy constructors (the extra members constructed between the head and the
-// Assign).
+// The kinds' default and copy constructors (the extra members constructed between the head and the Assign).
 WeaponRecord::WeaponRecord() { std::memset(field1B, 0, 0x83 - offsetof(WeaponRecord, field1B)); }
 QuickItemRecord::QuickItemRecord() { std::memset(attributeBonus, 0, 0x8B - offsetof(QuickItemRecord, attributeBonus)); }
 
