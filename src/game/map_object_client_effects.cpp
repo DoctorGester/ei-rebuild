@@ -51,7 +51,7 @@ constexpr int kRingSource = 0x2018;        // Lichdom's ring
 constexpr int kScaleRingSource = 0x201B;   // strengthen / weaken
 constexpr int kFallbackSource = 0x2013;
 
-// The sound distances (10 and 50), read from the exe like the original.
+// The sound distances (10 and 50), read from the exe.
 float SoundNear() { return 10.0f /*0073DBE0*/; }
 float SoundFar() { return 50.0f /*0073DBE4*/; }
 
@@ -121,7 +121,7 @@ void SpawnRing(CMapObject* owner, int type, float size, bool negate) {
     ring->ScaleSize(negate ? -factor : factor);
 }
 
-// The ring's size: power / 16, negative for weaken, rounded to a float like the original.
+// The ring's size: power / 16, negative for weaken, rounded to a float.
 float RingSize(int type, int power) {
     float size = static_cast<float>(power) * kPowerScale;
     float value = size;

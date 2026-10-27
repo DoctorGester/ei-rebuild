@@ -265,7 +265,7 @@ struct TypeRegistry {
     // The key of a message's class: its vtable (the object's first dword).
     static std::uint32_t KeyOf(const CRefObject* message) {
         std::uint32_t key;
-        std::memcpy(&key, message, sizeof(key));   // read before any null check, as the original
+        std::memcpy(&key, message, sizeof(key));   // read before any null check
         return key;
     }
     // The type id of the message class whose key is *key, or -1.

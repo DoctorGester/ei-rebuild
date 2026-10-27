@@ -4128,7 +4128,7 @@ int CParticleSource::EmitNuke(Particle* p, int) {
     float reach = static_cast<float>(Unsigned(Next()) * D(fifth) * EI_P_SCALE_1);
     float turn = static_cast<float>(3.141592653589793 /*0073CAE8*/ + 3.141592653589793 /*0073CAE8*/);    // 2 pi
     double angle = Unsigned(Next()) * D(turn) * EI_P_SCALE_1;
-    volatile double s = x87::fsin(angle);    // kept as a double, like the original
+    volatile double s = x87::fsin(angle);    // kept as a double
     p->pos.x = static_cast<float>(D(reach) * s + D(origin.x));
     volatile double c = x87::fcos(angle);
     p->pos.y = static_cast<float>(D(reach) * c + D(origin.y));
@@ -4312,7 +4312,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
     p->pos.x = static_cast<float>(px);
     p->life = 20;
     p->velocity.x = static_cast<float>(Unsigned(Next()) * 1.3969837789817515e-10 /*0073CE10*/ + D(0.7f /*0073C538*/));
-    auto* unit = static_cast<CUnit*>(attachedTo);   // the carrier is taken as a unit, like the original
+    auto* unit = static_cast<CUnit*>(attachedTo);   // the carrier is taken as a unit
     if (!unit) {
         flags_ &= ~5u;
         Attach(nullptr);

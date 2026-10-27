@@ -65,7 +65,7 @@ EI_REWRITTEN(0x00429FC0, FindSameMessage);
 // The offer takes the party's money; then its counters move on and its accepted flag is cleared.
 void __fastcall ClientPublishParty(ClientSession* self) {
     CParty* party = self->parties_[0].Get();
-    // Read again at each use, as the original does.
+    // Read again at each use.
     auto state = [self] { return self->party_.Get(); };
     if (!state()) return;
     RefVector* messages = &state()->members_;

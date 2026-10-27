@@ -66,7 +66,7 @@ void Increment(Node*& it) {
 }
 
 // The handlers registered for message `type` on `channel` (__fastcall: session, message). The end
-// is read again after each call, as in the original.
+// is read again after each call.
 using Handler = void(__fastcall*)(SessionBase*, CRefObject*);
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObject* message) {
     HandlerVector& v = session->handlers_[channel][type & 0xFF];

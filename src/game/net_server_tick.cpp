@@ -22,7 +22,7 @@ namespace {
 const char* MasterHost() { return options::TheOptions()->masterServerName_.GetString(); }   // the master server's host name
 
 // Timed entries {next, prev, seconds left (float), ...}: each loses `dt`; those below zero are
-// erased. The end is read again after every entry, as the original does.
+// erased. The end is read again after every entry.
 template <typename List>
 void CountDown(List& list, float dt) {
     TimedNode* node = list.First();

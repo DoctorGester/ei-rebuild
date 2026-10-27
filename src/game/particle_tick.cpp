@@ -59,8 +59,7 @@ void GrowBounds(Vector3& low, Vector3& high, const Vector3& p) {
     high.z = high.z >= p.z ? high.z : p.z;
 }
 
-// Saves the fields the update callback may change, so a rejected update can be undone (dword
-// copies, as in the original).
+// Saves the fields the update callback may change, so a rejected update can be undone (dword copies).
 void SavePrevious(Particle* p) {
     std::memcpy(&p->prevPos, &p->pos, sizeof(Vector3));
     p->prevColor = p->color;

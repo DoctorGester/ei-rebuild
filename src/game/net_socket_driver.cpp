@@ -82,7 +82,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
 }
 EI_REWRITTEN(0x00440440, NetAddress::Parse);
 
-// The look-up is given the whole sockaddr, as the original does.
+// The look-up is given the whole sockaddr.
 stlp::string* NetAddress::Format(stlp::string* out, int resolve) const {
     char text[0x400];
     bool named = false;

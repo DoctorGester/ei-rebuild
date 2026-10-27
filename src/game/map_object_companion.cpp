@@ -20,7 +20,7 @@
 #include <cstring>
 #include <string>
 
-// The light's distance test and position must round like the original.
+// The light's distance test and position must round like the original's.
 
 namespace {
 constexpr std::uint32_t kFlagDestroyed = 1;          // CEngineObject::flags_ bit set on death

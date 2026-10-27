@@ -191,7 +191,7 @@ int CPlayerServer::OnUnitFlag438() {
 }
 
 int CPlayerServer::OnLastPosition() {
-    std::uint32_t xy[2];   // copied as dwords, as the original does
+    std::uint32_t xy[2];   // copied as dwords
     ReceivedMessages().Read(xy, 8);
     std::memcpy(&lastPosition_.x, &xy[0], 4);
     std::memcpy(&lastPosition_.y, &xy[1], 4);

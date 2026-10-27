@@ -1,5 +1,5 @@
 // The options loader and writer. See options.h.
-// Every value is read through the game's registry key helper (not rewritten), in the game's order; a value
+// Every value is read through the game's registry key helper, in the game's order; a value
 // that is missing keeps the field's current value, which is passed as the default.
 #include "options.h"
 

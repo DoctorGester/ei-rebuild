@@ -129,7 +129,7 @@ struct BufferCursor {
 
     // Appends the low `count` bits of `value` (writing).
     void PutBits(std::uint32_t value, std::uint8_t count);
-    // Appends one bit (`bit` is added unmasked, as the original).
+    // Appends one bit (`bit` is added unmasked).
     void PutBit(std::uint32_t bit);
     std::uint32_t GetBit();
     // Next `count` bits (reading, 1..32), masked with kCoderBitMasks.
