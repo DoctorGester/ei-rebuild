@@ -146,22 +146,25 @@ void CObject3D::TearDownObject3D() {
 CMapObject::CMapObject() { SetUpMapObject(); }
 EI_REWRITTEN_SPECIAL(0x0050E2D0, CMapObject::CMapObject);
 
+DeltaState::DeltaState() {
+    SetVtable(this, recordarrays::DeltaFieldArrayClass::Vtable());
+    Reset();
+}
+
+DeltaState::~DeltaState() {
+    SetVtable(this, recordarrays::DeltaFieldArrayClass::Vtable());
+    if (DeltaField* data = fields_) {
+        for (int i = 0; i < fieldCount_; ++i) data[i].~DeltaField();
+        gamecrt::operator_delete(fields_);
+    }
+}
+
 void CMapObject::SetUpMapObject() {
     effectsVtable = mfc::impl::EffectArrayClass::Vtable();
     effects = nullptr;
     effectGrowBy = 0;
     effectCapacity = 0;
     effectCount = 0;
-    // The network records (DeltaField, 0xA0 each) and their two memory streams.
-    DeltaState* records = NetState();
-    SetVtable(records, recordarrays::DeltaFieldArrayClass::Vtable());
-    records->fields_ = nullptr;
-    records->fieldGrowBy_ = 0;
-    records->fieldCapacity_ = 0;
-    records->fieldCount_ = 0;
-    new (&records->header_[0]) CMemoryStream();
-    new (&records->header_[1]) CMemoryStream();
-    records->Reset();
     companion = nullptr;
     PackedVitals()->Reset();
     sectorCellX = -1;
@@ -171,22 +174,10 @@ void CMapObject::SetUpMapObject() {
 
 // The second name is destroyed after the body (before the effects in the original), then the 3D object.
 CMapObject::~CMapObject() {
-    TearDownMapObject();
     effectsVtable = mfc::impl::EffectArrayClass::Vtable();
     if (effects) gamecrt::operator_delete(effects);
 }
 
-void CMapObject::TearDownMapObject() {
-    DeltaState* records = NetState();
-    records->header_[1].~CMemoryStream();
-    records->header_[0].~CMemoryStream();
-    SetVtable(records, recordarrays::DeltaFieldArrayClass::Vtable());
-    if (DeltaField* data = records->fields_) {
-        int count = records->fieldCount_;
-        for (int i = 0; i < count; ++i) data[i].~DeltaField();
-        gamecrt::operator_delete(records->fields_);
-    }
-}
 EI_REWRITTEN_SPECIAL(0x0050E660, CMapObject::~CMapObject);
 EI_REWRITTEN_SPECIAL(0x0050E560, CMapObject::~CMapObject);
 // The compiler's jump thunks to it (the standalone image has no code at them).

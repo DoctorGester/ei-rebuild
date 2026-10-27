@@ -96,7 +96,7 @@ void CMapObject::WriteFullState() {
 EI_REWRITTEN(0x0050EA40, CMapObject::WriteFullState);
 
 void CMapObject::WriteChangedState() {
-    if (changedParts & kVitalParts) ObjectSlots(this)->StatsChanged();
+    if (ChangedParts() & kVitalParts) ObjectSlots(this)->StatsChanged();
     DeltaState* state = NetState();
     state->SetWriteMode(1);
     ObjectSlots(this)->WriteNetState();
