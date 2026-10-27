@@ -4,7 +4,6 @@
 // that many (child, parent) length-prefixed names (read into CStrings), each passed to the animation state's
 // LinkPiece with the model; FindRoot finishes it. Returns 1. See docs/notes/models.md.
 #include "figure_manager.h"       // CFigureManager, FigureModel
-#include "map_object_cage.h"
 #include "map_object_figures.h"   // CFigureAnimationState, FigureBone
 
 #include "ei/hook.h"
@@ -68,20 +67,19 @@ int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
         std::uint32_t size;
     } bones{nullptr, 0};
     if (model) {
-        bones.data = model->bones->GetFile(bone->name, &bones.size);
+        bones.data = model->bones->GetFile(bone->name.c_str(), &bones.size);
     } else {
         std::string name = bone->GetName();
-        std::string directory = bone->name3.GetString();
+        std::string directory = bone->name3;
         std::string path = (directory + name) + ".bon";
         bones.data = GetFile(path.c_str(), &bones.size);
     }
     if (!bones.data) return 0;
     // The bone's cage interpolation: 0x48-byte data (a prism of six points), or
     // any other size (a cube of eight); the stream is the data pointer, advanced as it is read.
-    auto* cage = reinterpret_cast<CageInterpolator*>(bone);
     auto** stream = reinterpret_cast<const float**>(static_cast<void*>(&bones.data));
-    if (bones.size == 0x48) cage->InterpolatePrism(stream);
-    else cage->InterpolateCube(stream);
+    if (bones.size == 0x48) bone->InterpolatePrism(stream);
+    else bone->InterpolateCube(stream);
     return 1;
 }
 EI_REWRITTEN(0x005ACB80, CFigureManager::LoadFigureBones);

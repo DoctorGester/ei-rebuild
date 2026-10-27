@@ -22,11 +22,9 @@
 
 namespace {
 
-// A figure object of class T in new storage (the game's size for the class), or null when the
-// allocation fails.
-template <typename T, std::size_t kGameSize>
+// A figure object of class T in new storage, or null when the allocation fails.
+template <typename T>
 T* New() {
-    static_assert(sizeof(T) == kGameSize);
     T* o = gamecrt::operator_new_as<T>();
     return o ? new (o) T() : nullptr;
 }
@@ -34,19 +32,19 @@ T* New() {
 void* Create(int classId) {
     switch (classId) {
     case 0x41:
-        return New<CSharedFigureMesh, 0x1E0>();
+        return New<CSharedFigureMesh>();
     case 0x42:
-        return New<CPlainFigureMesh, 0x220>();
+        return New<CPlainFigureMesh>();
     case 0x43:
-        return New<CUiMesh, 0x284>();
+        return New<CUiMesh>();
     case 0x44:
-        return New<CSkyObject, 0x230>();
+        return New<CSkyObject>();
     case 0x300B:
-        return New<AnimationTrack, 0x78>();
+        return New<AnimationTrack>();
     case 0x300C:
-        return New<FigureBone, 0xA0>();
+        return New<FigureBone>();
     case 0x300D:
-        return New<CFigureAnimationState, 0x78>();
+        return New<CFigureAnimationState>();
     default:
         return nullptr;
     }

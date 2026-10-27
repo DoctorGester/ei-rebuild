@@ -368,7 +368,11 @@ to which template:
   PartyRecord::name, NamedPartyRecords' text0C / text10, PartyManagerEntry's two, CMapObjectServer's name78 / name7C,
   AICallRecord::text (AICallElements relocates by MoveElements), ConsoleStreambuf::line_, ConsoleWindow::input_,
   the zone table's ZoneTableEntry first / second, ItemHoverInfo::text and CObject3DClientSpecific's skinName /
-  secondSkinName.
+  secondSkinName, CAnimationNode's name_ and spare names and FigureBone's three names (the figure factory allocates
+  by sizeof; the classes' own sizes stay asserted in their headers). FigureBone was read through the
+  `CageInterpolator` overlay (`unused_00[0x5C]`, then the point and t / u / w: the bone's offset and morph
+  coefficients); with the bigger names it wrote the cage point over the bone's parent pointer (a crash in
+  FigureBone::Place in every scenario with a figure). The interpolations are FigureBone's members now.
 - Members that must stay CStrings for now: those reached through byte offsets (mfc_slots.h's StringsAt /
   BuiltStringsAt / NamedStrings policies: texture names (CTexture::name_, also handed out as `mfc::CString*` by
   Name()), memory records, lever_table.cpp's DestroyString at offsets), stlp::vector<CString> (CStringVector)

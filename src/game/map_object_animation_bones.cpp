@@ -137,7 +137,7 @@ EI_REWRITTEN(0x0050C9E0, CFigureAnimationState::Reset);
 
 FigureBone* CFigureAnimationState::FindBone(const char* boneName) {
     for (auto* node = bones.head; node; node = node->next)
-        if (CompareNames(node->data->name, boneName) == 0) return node->data;
+        if (CompareNames(node->data->name.c_str(), boneName) == 0) return node->data;
     return nullptr;
 }
 EI_REWRITTEN(0x0050CC20, CFigureAnimationState::FindBone);
@@ -152,10 +152,10 @@ int CFigureAnimationState::LinkPiece(FigureModel* model, const char* child, cons
 EI_REWRITTEN(0x0050CC60, CFigureAnimationState::LinkPiece);
 
 int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
-    const char* parentName = bone->name2;
+    const char* parentName = bone->name2.c_str();
     FigureBone* parent = nullptr;
     for (auto* node = bones.head; node; node = node->next) {
-        if (CompareNames(node->data->name, parentName) == 0) {
+        if (CompareNames(node->data->name.c_str(), parentName) == 0) {
             parent = node->data;
             break;
         }
@@ -163,7 +163,7 @@ int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     if (parent) {
         bool known = false;
         for (auto* node = parent->children.head; node && !known; node = node->next)
-            known = CompareNames(node->data->name, bone->name) == 0;
+            known = CompareNames(node->data->name.c_str(), bone->name.c_str()) == 0;
         if (!known) {
             parent->children.AddTail(bone);
             bone->parent = parent;
@@ -185,7 +185,7 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
     changed = 1;
     FigureBone* bone = nullptr;
     for (auto* node = bones.head; node; node = node->next) {
-        if (CompareNames(node->data->name, part->GetName()) == 0) {
+        if (CompareNames(node->data->name.c_str(), part->GetName()) == 0) {
             bone = node->data;
             break;
         }
@@ -206,7 +206,7 @@ EI_REWRITTEN(0x0050D0E0, CFigureAnimationState::AttachMesh);
 int CFigureAnimationState::FindRoot() {
     changed = 1;
     for (auto* node = bones.head; node; node = node->next) {
-        if (node->data->name2.GetLength() == 0) {
+        if (node->data->name2.empty()) {
             root = node->data;
             return 1;
         }
@@ -323,7 +323,7 @@ int CFigureAnimationState::LoadBoneTracks(CFigureModelPart* part, const FigureAn
     for (auto* node = bones.head; node;) {
         FigureBone* bone = node->data;
         node = node->next;
-        auto* data = static_cast<std::uint8_t*>(part->ReadEntry(bone->name, nullptr));
+        auto* data = static_cast<std::uint8_t*>(part->ReadEntry(bone->name.c_str(), nullptr));
         if (!data) ClearTrack(bone->pose);
         else bone->pose->LoadKeyFrames(&data);
         bone->pose->animation = animation;

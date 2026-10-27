@@ -106,7 +106,7 @@ int CFigureManager::LoadPart(CFigureMesh* part, FigureModel* model, float s, flo
 int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
     if (!animation) return 0;
     char path[0x200];
-    char* end = Append(path, bone->name3);
+    char* end = Append(path, bone->name3.c_str());
     end = Append(end, bone->GetName());
     end = Append(end, animation);
     Append(end, game::AstExtensionText());

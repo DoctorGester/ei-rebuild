@@ -53,9 +53,9 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
   bone's animator (+0x50) and placing track (+0x4C) are AnimationTracks (class 0x300B, an engine object; it was declared
   twice as FigurePartAnimator until A-U10). The parts list once typed FigurePart there holds bones.
 - **Animation tracks and cages**: AnimationTrack::Evaluate uses the CRT's modf of the time rounded
-  with FISTP, `Quaternion::Slerp` 0049ED20, defaults at 007AF110 / 007AF100; CageInterpolator cube /
-  prism are called by the figure manager's 005ACB80 and read point records from a stream advancing
-  0x60 / 0x48.
+  with FISTP, `Quaternion::Slerp` 0049ED20, defaults at 007AF110 / 007AF100; FigureBone::InterpolateCube /
+  InterpolatePrism (the bone's cage: its offset at its morph coefficients) are called by the figure manager's
+  005ACB80 and read point records from a stream advancing 0x60 / 0x48.
 
 ## Rewritten
 
@@ -86,7 +86,7 @@ here is gone. Facts a worker needs:
   ApplyScience 0050F0F0 (41: logs, false) / FreeArray (44), CreateClientCompanion 00510770 (2), DeleteClient 00533E80 (0).
 - Animation: `AnimationTrack::Evaluate` 0050ACD0 (class 0x300B, vtable 0073D9D8, 0x78 bytes; `frames` +0x38 and `vertices` +0x68 are
   AlignedArrays; LoadKeyFrames 0050AAF0: rotations, positions, frame and vertex counts from the model entry, arrays sized without
-  keeping contents, frame pointers into the entry), `CageInterpolator::InterpolateCube` / `Prism` 0050B8C0 / 0050BC00,
+  keeping contents, frame pointers into the entry), `FigureBone::InterpolateCube` / `InterpolatePrism` 0050B8C0 / 0050BC00,
   CFigureAnimationState Play / Queue / SetTime / Advance 0050CA50 / 0050CBA0 / 0050D600 / 0050D5E0 (map_object_animation_state.cpp),
   Construct / DestructBody / DeleteState (0) / CreateState / DestroyState (2 / 3) / ReleaseBones / Reset (0050C5F0..0050C9E0),
   FindBone 0050CC20, LinkPiece 0050CC60 (a bone of class 0x300C from the figure manager), LinkBone 0050CD70 (child of the first bone

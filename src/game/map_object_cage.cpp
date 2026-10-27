@@ -1,7 +1,7 @@
 // Interpolation inside a deformation cage (the figure manager's morphing): a point at parameters (t, u, w)
-// between the corners of a cube (8 points) or a prism (6 points) read from a record stream. Names
-// provisional; see docs/notes/map_objects.md ("Cages").
-#include "map_object_cage.h"
+// between the corners of a cube (8 points) or a prism (6 points) read from a record stream: a bone's offset at
+// its morph coefficients (FigureBone, map_object_figures.h); see docs/notes/map_objects.md.
+#include "map_object_figures.h"
 
 #include "ei/hook.h"
 #include "lib/vecmath.h"
@@ -22,7 +22,9 @@ Vector3 Lerp(const float* from, const float* to, float s) {
 }
 } // namespace
 
-void CageInterpolator::InterpolateCube(const float** stream) {
+void FigureBone::InterpolateCube(const float** stream) {
+    Vector3& point = offset;
+    const float t = morphS, u = morphT, w = morphU;
     const float* p = *stream;
     Vector3 a = Lerp(p + 0, p + 3, t);
     point.x = a.x;
@@ -48,9 +50,11 @@ void CageInterpolator::InterpolateCube(const float** stream) {
     point.z = Add(cpScaled.z, point.z);
     *stream += 0x60 / sizeof(float);
 }
-EI_REWRITTEN(0x0050B8C0, CageInterpolator::InterpolateCube);
+EI_REWRITTEN(0x0050B8C0, FigureBone::InterpolateCube);
 
-void CageInterpolator::InterpolatePrism(const float** stream) {
+void FigureBone::InterpolatePrism(const float** stream) {
+    Vector3& point = offset;
+    const float t = morphS, u = morphT, w = morphU;
     const float* p = *stream;
     // Edge 0-1 at t: x keeps its difference and product unrounded, y and z are stored.
     double dx = static_cast<double>(p[3]) - p[0];
@@ -84,4 +88,4 @@ void CageInterpolator::InterpolatePrism(const float** stream) {
     point.z = Add(h.z, point.z);
     *stream += 0x48 / sizeof(float);
 }
-EI_REWRITTEN(0x0050BC00, CageInterpolator::InterpolatePrism);
+EI_REWRITTEN(0x0050BC00, FigureBone::InterpolatePrism);
