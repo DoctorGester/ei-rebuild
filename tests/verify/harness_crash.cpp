@@ -1,5 +1,6 @@
 // Crash reports and the "diskfull" test step (harness_crash.h; ticket X40).
 #include "harness_crash.h"
+#include "harness_imports.h"
 
 #include "../../src/hook/log.h"
 #include "game/game_data.h"
@@ -275,14 +276,7 @@ long long FreeMegabytes(const char* path) {
     return static_cast<long long>(available.QuadPart / (1024 * 1024));
 }
 
-void WatchWrites(std::uintptr_t writeFileSlot) {
-    auto* slot = ei::GamePointer<decltype(&::WriteFile)>(writeFileSlot);   // the image's: ei_hook.dll's table
-    DWORD old;
-    VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
-    g_writeFile = *slot;
-    *slot = &WatchedWriteFile;
-    VirtualProtect(slot, sizeof(*slot), old, &old);
-}
+void WatchWrites() { PatchImport(&ImportTable::WriteFile, &WatchedWriteFile, g_writeFile); }
 
 void FailWritesTo(const char* text) {
     strncpy_s(g_failText, text, _TRUNCATE);

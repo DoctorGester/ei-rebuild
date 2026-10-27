@@ -28,7 +28,7 @@ long long FreeMegabytes(const char* path);
 // Watches the game's WriteFile (its import slot, patched at start): a write that fails is logged with
 // the file, the error and the free space on its disk, and the first one is a failure of the run
 // (FailedWrite). "diskfull" writes fail here.
-void WatchWrites(std::uintptr_t writeFileSlot);
+void WatchWrites();
 // "diskfull <text>": the files opened for writing from now on whose path contains <text>
 // (case-insensitive) fail every write.
 void FailWritesTo(const char* text);

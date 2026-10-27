@@ -1,5 +1,6 @@
 // The game's clocks in harness runs: virtual clock, held clocks, clock trace (harness_clock.h).
 #include "harness_clock.h"
+#include "harness_imports.h"
 
 #include "../../src/game/game_data.h"
 #include "../../src/hook/log.h"
@@ -26,19 +27,7 @@ namespace ei::verify::clock {
 
 namespace {
 
-// game.exe's import table.
-constexpr std::uintptr_t kTimeGetTimeSlot = 0x0073B6A0;
-constexpr std::uintptr_t kGetTickCountSlot = 0x0073B344;
-constexpr std::uintptr_t kSleepSlot = 0x0073B1A4;
-constexpr std::uintptr_t kWaitForSingleObjectSlot = 0x0073B1EC;
-constexpr std::uintptr_t kGetMessageTimeSlot = 0x0073B5BC;
-constexpr std::uintptr_t kGetMessageASlot = 0x0073B454;
-constexpr std::uintptr_t kGetLocalTimeSlot = 0x0073B1DC;
-constexpr std::uintptr_t kGetSystemTimeSlot = 0x0073B228;
-constexpr std::uintptr_t kGetTimeZoneInformationSlot = 0x0073B378;
-constexpr std::uintptr_t kCreateThreadSlot = 0x0073B348;
-
-// A slot of game.exe's import table (the image's: ei_hook.dll's table, S18f) or of another module's.
+// A slot of another module's import table (game.exe's: PatchImport, harness_imports.h).
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     T* slot = ei::GamePointer<T>(address);
@@ -139,7 +128,7 @@ DWORD WINAPI DateTimeZone(LPTIME_ZONE_INFORMATION zone) {
     const DWORD state = g_getTimeZoneInformation(zone);
     if (state == TIME_ZONE_ID_INVALID || zone->DaylightDate.wMonth == 0 || zone->DaylightBias == 0) return state;
     SYSTEMTIME local;
-    (*ei::GamePointer<decltype(&::GetLocalTime)>(kGetLocalTimeSlot))(&local);
+    Imports().GetLocalTime(&local);
     SYSTEMTIME utc;
     FILETIME localFile;
     FILETIME utcFile;
@@ -154,7 +143,7 @@ DWORD WINAPI DateTimeZone(LPTIME_ZONE_INFORMATION zone) {
 }
 
 void InstallDateTimeZone() {
-    if (!g_getTimeZoneInformation) PatchSlot(kGetTimeZoneInformationSlot, &DateTimeZone, g_getTimeZoneInformation);
+    if (!g_getTimeZoneInformation) PatchImport(&ImportTable::GetTimeZoneInformation, &DateTimeZone, g_getTimeZoneInformation);
 }
 
 // Whether a timeGetTime call is the main loop's frame time: the original WinMain's by its return
@@ -230,13 +219,6 @@ DWORD OtherThreadsNow() {
 // clock the harness keeps the callback from Miles and calls it itself, from the main loop's frame
 // time, once the sample's length (Miles' own ms position and loop count at the start) has passed
 // on the virtual clock. Stopped samples (PauseAll) keep what was left until resumed.
-constexpr std::uintptr_t kAilRegisterEosCallbackSlot = 0x0073B75C;
-constexpr std::uintptr_t kAilSetSampleMsPositionSlot = 0x0073B768;
-constexpr std::uintptr_t kAilStartSampleSlot = 0x0073B76C;
-constexpr std::uintptr_t kAilSetSampleLoopCountSlot = 0x0073B778;
-constexpr std::uintptr_t kAilResumeSampleSlot = 0x0073B780;
-constexpr std::uintptr_t kAilStopSampleSlot = 0x0073B784;
-constexpr std::uintptr_t kAilEndSampleSlot = 0x0073B7D8;
 using EosCallback = void(__stdcall*)(void*);
 using RegisterEosFn = EosCallback(__stdcall*)(void*, EosCallback);
 using SampleFn = void(__stdcall*)(void*);
@@ -365,13 +347,13 @@ void InstallSampleTimers() {
     if (HMODULE mss = GetModuleHandleA("mss32.dll"))
         g_ailSampleMsPosition = reinterpret_cast<MsPositionFn>(GetProcAddress(mss, "_AIL_sample_ms_position@12"));
     if (!g_ailSampleMsPosition) Log("harness: no _AIL_sample_ms_position in mss32.dll: sounds end at once");
-    PatchSlot(kAilRegisterEosCallbackSlot, &HeldRegisterEos, g_ailRegisterEos);
-    PatchSlot(kAilSetSampleMsPositionSlot, &TimedSetMsPosition, g_ailSetSampleMsPosition);
-    PatchSlot(kAilStartSampleSlot, &TimedStartSample, g_ailStartSample);
-    PatchSlot(kAilSetSampleLoopCountSlot, &TimedSetLoopCount, g_ailSetSampleLoopCount);
-    PatchSlot(kAilResumeSampleSlot, &TimedResumeSample, g_ailResumeSample);
-    PatchSlot(kAilStopSampleSlot, &TimedStopSample, g_ailStopSample);
-    PatchSlot(kAilEndSampleSlot, &TimedEndSample, g_ailEndSample);
+    PatchImport(&ImportTable::AIL_register_EOS_callback, &HeldRegisterEos, g_ailRegisterEos);
+    PatchImport(&ImportTable::AIL_set_sample_ms_position, &TimedSetMsPosition, g_ailSetSampleMsPosition);
+    PatchImport(&ImportTable::AIL_start_sample, &TimedStartSample, g_ailStartSample);
+    PatchImport(&ImportTable::AIL_set_sample_loop_count, &TimedSetLoopCount, g_ailSetSampleLoopCount);
+    PatchImport(&ImportTable::AIL_resume_sample, &TimedResumeSample, g_ailResumeSample);
+    PatchImport(&ImportTable::AIL_stop_sample, &TimedStopSample, g_ailStopSample);
+    PatchImport(&ImportTable::AIL_end_sample, &TimedEndSample, g_ailEndSample);
 }
 
 // Main-thread sleeps since the last frame (see VirtualSleep).
@@ -576,22 +558,22 @@ struct TracedSet {
 };
 
 // game.exe's imports: wrap whatever the slot holds now (the virtual or held clock, or the real one).
-template <class T>
-void TraceSlot(std::uintptr_t slot) {
-    PatchSlot(slot, &T::Call, T::inner);
+template <class T, class F>
+void TraceSlot(F ImportTable::* slot) {
+    PatchImport(slot, &T::Call, T::inner);
 }
 
 void TraceGameImports() {
     using S = TracedSet<true>;
-    TraceSlot<S::TimeGetTime>(kTimeGetTimeSlot);
-    TraceSlot<S::GetTickCount>(kGetTickCountSlot);
-    TraceSlot<S::Sleep>(kSleepSlot);
-    TraceSlot<S::WaitForSingleObject>(kWaitForSingleObjectSlot);
-    TraceSlot<S::GetMessageTime>(kGetMessageTimeSlot);
-    TraceSlot<S::GetMessageA>(kGetMessageASlot);
-    TraceSlot<S::GetLocalTime>(kGetLocalTimeSlot);
-    TraceSlot<S::GetSystemTime>(kGetSystemTimeSlot);
-    TraceSlot<S::CreateThread>(kCreateThreadSlot);
+    TraceSlot<S::TimeGetTime>(&ImportTable::timeGetTime);
+    TraceSlot<S::GetTickCount>(&ImportTable::GetTickCount);
+    TraceSlot<S::Sleep>(&ImportTable::Sleep);
+    TraceSlot<S::WaitForSingleObject>(&ImportTable::WaitForSingleObject);
+    TraceSlot<S::GetMessageTime>(&ImportTable::GetMessageTime);
+    TraceSlot<S::GetMessageA>(&ImportTable::GetMessageA);
+    TraceSlot<S::GetLocalTime>(&ImportTable::GetLocalTime);
+    TraceSlot<S::GetSystemTime>(&ImportTable::GetSystemTime);
+    TraceSlot<S::CreateThread>(&ImportTable::CreateThread);
 }
 
 // Other modules' imports, by name, wrapped around the real export.
@@ -706,10 +688,10 @@ void InstallVirtual(const unsigned* tickLength) {
     g_tickLength = tickLength;
     WriteAnchor({g_now, GetTickCount()});
     g_otherNow = static_cast<LONG>(g_now);
-    PatchSlot(kTimeGetTimeSlot, &VirtualTimeGetTime, g_timeGetTime);
-    PatchSlot(kGetTickCountSlot, &VirtualGetTickCount, g_getTickCount);
-    PatchSlot(kSleepSlot, &VirtualSleep, g_sleep);
-    PatchSlot(kWaitForSingleObjectSlot, &VirtualWaitForSingleObject, g_waitForSingleObject);
+    PatchImport(&ImportTable::timeGetTime, &VirtualTimeGetTime, g_timeGetTime);
+    PatchImport(&ImportTable::GetTickCount, &VirtualGetTickCount, g_getTickCount);
+    PatchImport(&ImportTable::Sleep, &VirtualSleep, g_sleep);
+    PatchImport(&ImportTable::WaitForSingleObject, &VirtualWaitForSingleObject, g_waitForSingleObject);
     InstallDateTimeZone();
     InstallSampleTimers();
 }
@@ -719,8 +701,8 @@ bool Virtual() { return g_virtual; }
 void SetFrameTime(unsigned ms) { g_frameMs = ms; }
 
 void InstallHeld() {
-    PatchSlot(kTimeGetTimeSlot, &HeldTimeGetTime, g_heldTimeGetTime.base);
-    PatchSlot(kGetTickCountSlot, &HeldGetTickCount, g_heldTickCount.base);
+    PatchImport(&ImportTable::timeGetTime, &HeldTimeGetTime, g_heldTimeGetTime.base);
+    PatchImport(&ImportTable::GetTickCount, &HeldGetTickCount, g_heldTickCount.base);
     InstallDateTimeZone();
 }
 

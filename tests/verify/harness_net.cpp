@@ -5,6 +5,7 @@
 #include <iphlpapi.h>
 
 #include "harness_net.h"
+#include "harness_imports.h"
 #include "harness_original.h"
 #include "harness_pair.h"
 
@@ -28,17 +29,6 @@ namespace {
 
 constexpr int kFirstPort = 20000;                   // below the dynamic range (49152 and up)
 constexpr int kPortCount = 20000;
-
-// WSOCK32's import slots in game.exe (the thunks 006E6124 and 006E6130; src/lib/crt.cpp).
-constexpr std::uintptr_t kBindSlot = 0x0073B6DC;     // bind, ordinal 2
-constexpr std::uintptr_t kSendToSlot = 0x0073B70C;   // sendto, ordinal 20
-constexpr std::uintptr_t kRecvFromSlot = 0x0073B6CC;      // recvfrom, ordinal 17 (a pair's games only)
-constexpr std::uintptr_t kCloseSocketSlot = 0x0073B6E4;   // closesocket, ordinal 3 (a pair's games only)
-// The master link's (MasterLink 00440C60 / 00440DE0; a pair's games only, SV5d4).
-constexpr std::uintptr_t kConnectSlot = 0x0073B6C8;   // connect, ordinal 4
-constexpr std::uintptr_t kSelectSlot = 0x0073B6C4;    // select, ordinal 18
-constexpr std::uintptr_t kSendSlot = 0x0073B6D0;      // send, ordinal 19
-constexpr std::uintptr_t kRecvSlot = 0x0073B6D8;      // recv, ordinal 16
 
 using BindFn = int(WINAPI*)(SOCKET, const sockaddr*, int);
 using SendToFn = int(WINAPI*)(SOCKET, const char*, int, int, const sockaddr*, int);
@@ -227,17 +217,6 @@ int WINAPI PairRecv(SOCKET s, char* data, int length, int flags) {
     return g_recv(s, data, length, flags);
 }
 
-// A slot of game.exe's import table (the image's: ei_hook.dll's table, S18f).
-template <class T>
-void PatchSlot(std::uintptr_t address, T replacement, T& original) {
-    T* slot = ei::GamePointer<T>(address);
-    DWORD old;
-    VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
-    original = *slot;
-    *slot = replacement;
-    VirtualProtect(slot, sizeof(*slot), old, &old);
-}
-
 // True when a UDP socket can bind `port` on 127.0.0.1 (as SocketDriver::Open 004409A0 binds in harness runs).
 bool PortFree(int port) {
     SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -297,18 +276,19 @@ bool Table(std::vector<std::uint8_t>& buffer, Get get) {
 
 void Install() {
     if (pair::Install()) {
-        // The pair's network has ports of its own: the game keeps its 8888 (harness_pair.h).
-        PatchSlot(kRecvFromSlot, &PairRecvFrom, g_recvFrom);
-        PatchSlot(kCloseSocketSlot, &PairCloseSocket, g_closeSocket);
-        PatchSlot(kConnectSlot, &PairConnect, g_connect);
-        PatchSlot(kSelectSlot, &PairSelect, g_select);
-        PatchSlot(kSendSlot, &PairSend, g_send);
-        PatchSlot(kRecvSlot, &PairRecv, g_recv);
+        // The pair's network has ports of its own: the game keeps its 8888 (harness_pair.h). Its datagrams
+        // and the master link's (MasterLink 00440C60 / 00440DE0, SV5d4) go through the pair.
+        PatchImport(&ImportTable::recvfrom, &PairRecvFrom, g_recvFrom);
+        PatchImport(&ImportTable::closesocket, &PairCloseSocket, g_closeSocket);
+        PatchImport(&ImportTable::connect, &PairConnect, g_connect);
+        PatchImport(&ImportTable::select, &PairSelect, g_select);
+        PatchImport(&ImportTable::send, &PairSend, g_send);
+        PatchImport(&ImportTable::recv, &PairRecv, g_recv);
     } else {
         InstallPort();
     }
-    PatchSlot(kBindSlot, &LoopbackBind, g_bind);
-    PatchSlot(kSendToSlot, &LoopbackSendTo, g_sendTo);
+    PatchImport(&ImportTable::bind, &LoopbackBind, g_bind);
+    PatchImport(&ImportTable::sendto, &LoopbackSendTo, g_sendTo);
     Log("harness: net: the game's binds and datagrams stay on 127.0.0.1 (import slots 0073B6DC, 0073B70C)");
 }
 

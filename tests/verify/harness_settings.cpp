@@ -1,6 +1,7 @@
 // The game settings a harness run reads: the registry snapshot and the pinned install files. See
 // harness_settings.h.
 #include "harness_settings.h"
+#include "harness_imports.h"
 
 #include "harness_starter.h"
 
@@ -516,7 +517,6 @@ bool HookExport(HMODULE advapi, const char* name, T replacement, T& original) {
     return true;
 }
 
-constexpr std::uintptr_t kGameRegCreateKeyExASlot = 0x0073B010;   // game.exe import table
 decltype(&::RegCreateKeyExA) g_gameCreate;
 
 // ---- the standalone's settings file (game/settings_file.h) ----
@@ -657,7 +657,7 @@ void Install() {
     HookExport(advapi, "RegEnumKeyExW", &EnumKeyW, g_enumKeyW);
     HookExport(advapi, "RegGetValueA", &GetA, g_getA);
     HookExport(advapi, "RegGetValueW", &GetW, g_getW);
-    PatchSlot(ei::GamePointer<decltype(&::RegCreateKeyExA)>(kGameRegCreateKeyExASlot), &GameCreate, g_gameCreate);
+    PatchImport(&ImportTable::RegCreateKeyExA, &GameCreate, g_gameCreate);
 }
 
 bool PinnedFile(const char* relative, char (&out)[260]) {
