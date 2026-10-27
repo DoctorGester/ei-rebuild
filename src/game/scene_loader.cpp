@@ -1,8 +1,4 @@
-// The CFakeUnit scene loader. See scene_loader.h for the file layout. MFC's CArray::SetSize and CMap::operator[]
-// are inlined many times over in the game; here they are the shared templates: mfc::CArray with the element
-// constructors of each instantiation (plain ones zero-fill; the others call the game's out of line),
-// lib::AlignedArray for the vertex arrays. The template functions the game calls out of line (SetAtGrow, the local
-// arrays' destructors, ...) are the library's instantiations (lib/mfc_array.h, lib/mfc_list.h, record_arrays.h).
+// The CFakeUnit scene loader. See scene_loader.h for the file layout.
 #include "material.h"
 #include "registry.h"
 #include "scene_loader.h"
@@ -35,10 +31,8 @@
 namespace scene {
 namespace {
 
-// Read through the file's virtual 13.
 void Read(mfc::CFileVirtuals* file, void* data, std::uint32_t size) { file->Read(data, size); }
 
-// A float stored from the bits the loader copied.
 void SetBits(float& to, std::uint32_t bits) { std::memcpy(&to, &bits, 4); }
 
 // --- Element types of the arrays the loader fills ----------------------------------------------------
@@ -92,7 +86,6 @@ using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> 
 } // namespace
 
 
-// The keys zero filled; each key's points freed (the block at +4).
 void NodeMorphKeyElements::Construct(NodeMorphKey* keys, int count) { mfc::PlainElements<NodeMorphKey>::Construct(keys, count); }
 void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) {
     for (; count--; ++keys) keys->points.FreeData();
@@ -100,15 +93,12 @@ void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) {
 
 namespace {
 
-// The record's local arrays are built and destroyed as their instantiations (mfc::impl ConstructArrayOf /
-// DestructArrayOf: arrays A, B, C, E, F, G, H and the index lists; the skipped records' E .. H).
 using mfc::impl::ConstructArrayOf;
 using mfc::impl::DestructArrayOf;
 
 
 // --- Inlined MFC templates -----------------------------------------------------------------------
 
-// An empty array of the instantiation with `vtable`.
 template <typename Records>
 void InitArray(Records& a, void* vtable) {
     a = {};
@@ -149,23 +139,23 @@ struct GroupHeader {
 #pragma pack(pop)
 static_assert(sizeof(GroupHeader) == 6);
 
-// The arrays of one record, local to the loader (fr = the frame offsets).
+// The arrays of one record, local to the loader.
 struct RecordArrays {
-    FilePointArray points;       // A (fr-0x21C)
-    FileUvArray texCoords;       // B (fr-0x230)
-    FileFaceArray faces;         // C (fr-0x268)
-    GroupRecordArray groups;     // D (fr-0x280)
-    RotKeyRecords rotKeys;       // E (fr-0x1CC)
-    PosKeyRecords posKeys;       // F (fr-0x1F4)
-    MorphHeadRecords morphHeads; // G (fr-0x1E0)
-    NormalRecords normals;       // H (fr-0x208)
+    FilePointArray points;       // A
+    FileUvArray texCoords;       // B
+    FileFaceArray faces;         // C
+    GroupRecordArray groups;     // D
+    RotKeyRecords rotKeys;       // E
+    PosKeyRecords posKeys;       // F
+    MorphHeadRecords morphHeads; // G
+    NormalRecords normals;       // H
 
     std::uint32_t* Point(std::uint32_t index) { return points.data[index].v; }
     FileFace* Face(std::uint32_t index) { return &faces[static_cast<int>(index)]; }
     FaceGroup* Group(int index) { return &groups[index]; }
 };
 
-// The vertex merge of one mesh (fr-0x1B0 .. fr-0x12C).
+// The vertex merge of one mesh.
 struct VertexMerge {
     DwordMap seen;             // key -> 1 once the vertex exists in the current group
     DwordMap index;            // key -> merged vertex index
@@ -609,10 +599,10 @@ void SceneNode::Destruct() {
 }
 EI_REWRITTEN(0x004543E0, SceneNode::Destruct);
 
-// ---- Element constructors (their ConstructElements are record_arrays.cpp's) -----------------
+// ---- Element constructors ------------------------------------------------------------------
 
-// The node element. The rotation and position keys, the frames and the children are then sized to 0, which leaves
-// empty arrays as they are.
+// The rotation and position keys, the frames and the children are then sized to 0, which leaves empty arrays as
+// they are.
 void SceneNode::Construct() {
     std::construct_at(&name);
     std::construct_at(&parent);
@@ -628,7 +618,6 @@ void SceneNode::Construct() {
     children.Construct(mfc::impl::NodeItemsCClass::Vtable());
 }
 
-// The mesh element.
 SceneMesh::SceneMesh() {
     ClearFields();
     localRotation_.SetIdentity();
@@ -636,7 +625,6 @@ SceneMesh::SceneMesh() {
     groups.Construct(recordarrays::FaceGroupArrayClass::Vtable());
 }
 
-// Each group is destroyed by its scalar deleting destructor with 0, FaceGroup::Destruct.
 SceneMesh::~SceneMesh() {
     FaceGroupArrayDestruct(&groups);
     faces.FreeData();
@@ -712,8 +700,7 @@ struct SceneLoad {
     TextureNames textureNames;
     console::CStringArray roots;   // the nodes without parent
     // The scene's flags. BuildSkeleton is given them as a dword minus one; the upper word is left
-    // uninitialised (its
-    // callees only read the low word, with MOVSX).
+    // uninitialised (its callees only read the low word, with MOVSX).
     union {
         SceneInfo info;
         std::uint32_t infoDword;

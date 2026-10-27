@@ -1,6 +1,6 @@
 #pragma once
 
-// The base / briefing screen (interface screen 3; Create, Update, Draw in ui_container_draws.cpp). It is the
+// The base / briefing screen (interface screen 3). It is the
 // screen of a "brief" zone (map.txt type brief, campaign mode 3: the bases bz1g ..): the party walks around
 // the base, a click on a person opens the person's topics, a topic runs its dialogue (phrases, then
 // rewards). See docs/notes/ui.md, "Briefing / base screen". Dialogue states: 0 walking, 1 choosing a topic,
@@ -22,8 +22,7 @@
 class CEngineObject;
 class CUnit;
 
-// A person walking to the place a dialogue gives them (a node of the STLport list movers_; Update moves them
-// and removes the ones done).
+// A person walking to the place a dialogue gives them.
 struct BriefingMover {
     BriefingMover* next;
     BriefingMover* prev;
@@ -42,18 +41,17 @@ struct BriefingMover {
 static_assert(offsetof(BriefingMover, person) == 0x24);
 static_assert(offsetof(BriefingMover, time) == 0x2C);
 
-// A person taking part in the dialogue (an STLport vector entry): the client unit, its name as the dialogue's
-// commands give it, and a flag.
+// A person taking part in the dialogue.
 struct BriefingSpeaker {
-    CUnit* unit;
-    mfc::CString name;
+    CUnit* unit;                     // the client unit
+    mfc::CString name;               // as the dialogue's commands give it
     bool spareFlag;                  // false when added; only copied with the entry (erase), never tested
     std::uint8_t unused_09[3];
 };
 static_assert(sizeof(BriefingSpeaker) == 0xC);
 
-// An item shown in the dialogue ("#show <name>" for what is not a unit): a node of the STLport list shown_.
-// The meshes are the window's scene objects; the item's texture is one of its referenced objects.
+// An item shown in the dialogue ("#show <name>" for what is not a unit). The meshes are the window's scene
+// objects; the item's texture is one of its referenced objects.
 struct BriefingShownItem {
     BriefingShownItem* next;
     BriefingShownItem* prev;
@@ -64,8 +62,6 @@ struct BriefingShownItem {
 };
 static_assert(sizeof(BriefingShownItem) == 0x18);
 
-// The local player's name (its zone): copy-constructs it into raw storage, destroyed at
-// the end of the scope.
 class BriefingPlayerName {
 public:
     BriefingPlayerName() { LocalPlayerName(&name_); }
@@ -77,8 +73,8 @@ private:
     mfc::CString name_{mfc::CString::kUnset};
 };
 
-// A copy of the local player's variables whose names start with a prefix (into an STLport hash_map<CString,
-// float> of 100 buckets), walked in the table's order and freed (ui_briefing.cpp).
+// A copy of the local player's variables whose names start with a prefix (100 buckets), walked in the table's
+// order.
 class BriefingVariables {
 public:
     explicit BriefingVariables(const char* prefix);
@@ -95,39 +91,33 @@ private:
 
 class CRefObject;
 
-// A network client's player list on the base screen: the players' faces along the top right (0x38 pixels
-// each from x 0x2E8 leftwards, a region each), a surface under them with each one's status and
-// offer, and the status texts ("lmp_status_zone" .. "lmp_exch_they_offer"). Multiplayer only.
+// A network client's player list on the base screen: the players' faces along the top right, a surface under
+// them with each one's status and offer. Multiplayer only.
 class CChatWindow : public CUiWindow {
 public:
     explicit CChatWindow(CInterface3D* ui);
     ~CChatWindow() override;
-    // A face: every fourth one first makes a 256 x 256 texture (kind 0x20); `texture` is copied into the
-    // newest texture's quarter (count % 4: left / right, top / bottom) and a sprite of `model` placed at the
-    // face's centre (depth 7, scale 0.3, turned pi * 1.05 about x), or without the model a plain 7 / 100
-    // rectangle 0..60 high; the sprite shows the quarter of that texture; a region 0..0x50 high over the face.
+    // Every fourth face first makes a 256 x 256 texture; `texture` is copied into the newest texture's quarter
+    // (count % 4) and a sprite of `model` shows it, or without the model a plain rectangle.
     void AddPortrait(const char* model, const char* texture);
-    // Clears the sprites, regions and referenced objects; lists the client's players (only while its binding
-    // is live; its own player first) with a reference each, counts them, then gives each a face from its unit
-    // prototype ("infa<model>me<hair+1>face", "face<m|f><skin, 2 digits>"; the sex letter carries over from
-    // the previous player when the model is neither "unhuma" nor "unhufe") and its name as the region's tip.
+    // The client's players (only while its binding is live; its own player first), each with a face from its
+    // unit prototype ("infa<model>me<hair+1>face", "face<m|f><skin, 2 digits>") and its name as the region's
+    // tip. The sex letter carries over from the previous player when the model is neither "unhuma" nor
+    // "unhufe".
     void ShowPlayers();
-    // While the client has a live trade it asks for screen 9 (the
-    // exchange); otherwise surface 0 is cleared and each listed player gets its status (state
-    // 0..4: texts 0, 1, 2, 3, 3) on the first line and "we offer" (our offer's partner) or "they
-    // offer" (an offer from it) on the second, white, 0x38 pixels per player from x 0x118 leftwards.
+    // While the client has a live trade it asks for screen 9 (the exchange); otherwise each listed player's
+    // status (state 0..4: texts 0, 1, 2, 3, 3) and "we offer" or "they offer".
     void Update() override;
-    // Input side (`this` the window): a click on a face (the event marked used): with the active window's
-    // player pick 1 / 2 the player's serial goes to the server as command 4 / 5 ("%d") and the pick ends;
-    // otherwise the on_off sound and, unless it is our own player, our offer to it is dropped when it is its
-    // partner, else one is started. Over a face while a pick is on, the cursor's shape 0.
+    // With the active window's player pick 1 / 2 the player's serial goes to the server as command 4 / 5 and
+    // the pick ends; otherwise, unless it is our own player, our offer to it is dropped when it is its partner,
+    // else one is started.
     void OnLButtonDown(int buttons, int x, int y);
     void OnMouseMove(int buttons, int x, int y);
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
 
-    int listed_;                              // players listed
-    int portraits_;                           // faces added
+    int listed_;
+    int portraits_;
     stlp::vector<CRefObject*> players_;       // counted PlayerMessage records
     mfc::CStringArray texts_;
 };
@@ -153,170 +143,116 @@ public:
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
     int LeftDouble(int b, int x, int y) override { return OnLeftDouble(b, x, y), 0; }
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    // The screen closes: the map edge fade back to the value Create saved, the client glue's stop call, the
-    // camera free again (flag 0x40, flags 0x100 / 0x200 cleared).
+    // The camera free again (flag 0x40, flags 0x100 / 0x200 cleared).
     void Close();
-    // A message box's answer: 0x10001 leaves through exit_; 0x20001 (game over: load) opens the load window
-    // (built inline as the battle screen does); 0x20002, 0x90001, 0x100001 close every window, drop the
-    // sessions and leave the game. A network client then shows its chat window again.
+    // 0x10001 leaves through exit_; 0x20001 (game over: load) opens the load window; 0x20002, 0x90001,
+    // 0x100001 close every window, drop the sessions and leave the game. A network client then shows its chat
+    // window again.
     void OnMessageResult(std::uint32_t result);
-    // `unit` left the party: no longer the leader, taken out of party_ (by id; the rest moved down).
     void OnUnitLeft(CUnit* unit);
-    // `unit` joined the party: it goes into party_ after the members whose unit records (the local player's)
-    // come before its record, or last without one. The first record's unit becomes the leader: the client
-    // world controls it, the camera follows it, and the first "b.<zone>..." variable equal to 1 with three
-    // parts starts its topic (the third part) at once (briefingStarted_).
+    // `unit` goes into party_ after the members whose unit records (the local player's) come before its record,
+    // or last without one. The first record's unit becomes the leader, and the first "b.<zone>..." variable
+    // equal to 1 with three parts starts its topic (the third part) at once.
     void OnUnitJoined(CUnit* unit);
-    // The game is lost: the game-over sound and the box "game_over" / "game_over_msg" (result 0x20000) on top.
     void OnGameOver(int unused);
     // The interface command "briefing <name>": dialogue `name` starts at once.
     void OnBriefing(const char* name);
     void ShowChat(char show);
-    // The screen's part of a save game: one zero dword.
+    // One zero dword.
     void SaveState() override;
-    // Builds the screen: the four backdrop sprites, surfaces 0 (topics) and 1 (a person's label), topicBar_
-    // and text_ as children, the people of the base (people_), the zone's music and camera limits, the
-    // screen's own inputs (a UiInertInput and the view's) and a network client's chat window. A saved game's
-    // screen part is dropped.
+    // A saved game's screen part is dropped.
     void CreateScreen() override;
-    // Per frame: markPhase_, the children, everything
-    // hidden but by state; the movers walk, turn or give up after 30 s (put at their place) and the
-    // done ones go; then by state: 0 / 1 the people with open topics are marked (dialogue event 1,
-    // the others 2) and the leader's pending exit is left once it can be; 1 the topic
-    // list shown; 2 the phrases start once no waited mover walks; 3 the next phrase when the
-    // voice ends or phraseTime_ runs out; 4 the speaker stops blinking then.
+    // The movers walk, turn or give up after 30 s (put at their place); then by state: 0 / 1 the people with
+    // open topics are marked and the leader's pending exit is left once it can be; 2 the phrases start once no
+    // waited mover walks; 3 the next phrase when the voice ends or phraseTime_ runs out.
     void Update() override;
-    // Update's part for states 0 and 1: every person of people_ that has a client unit is marked
-    // (dialogue event 1) when a "b.<person>.<topic>" variable is 1 for a topic that is not
-    // "constr...", else unmarked (event 2).
+    // Every person with a client unit is marked (dialogue event 1) when a "b.<person>.<topic>" variable is 1
+    // for a topic that is not "constr...", else unmarked (event 2).
     void MarkPeople();
-    // Update's part for states 0 and 1: with exitPending_, a party and exit_'s zone not "none" nor
-    // visited ("z.<zone>" not 1), the party leaves through exit_ once allows it.
+    // Not when exit_'s zone is "none" or visited ("z.<zone>" not 1).
     void LeaveIfExitOpen();
 
-    // Input side (ui_briefing_input.cpp). Left button down: with the chat window active (chatActive_) it gets
-    // the event; otherwise the container's handler and, unless a child used it, by state: 0 a person under the
-    // cursor (an idle one, controller command 0 or 0xB and next command 9) opens its topics (OpenTopics),
-    // else the leader walks to the picked ground point (not when noWalk_); 1 a topic row starts that topic; 3
-    // the next phrase; 4 the rewards are taken.
+    // With the chat window active it gets the event; otherwise by state: 0 an idle person under the cursor
+    // (controller command 0 or 0xB and next command 9) opens its topics, else the leader walks to the picked
+    // ground point (not when noWalk_); 1 a topic row starts that topic; 3 the next phrase; 4 the rewards are
+    // taken.
     void OnLeftDown(int buttons, int x, int y);
-    // Double click: as the container's; a person who is not one of the moving ones, or with the dialogue
-    // running (state not 0), is handled as a click; on the ground the leader runs there.
+    // A person who is not one of the moving ones, or with the dialogue running, is handled as a click; on the
+    // ground the leader runs there.
     void OnLeftDouble(int buttons, int x, int y);
-    // Mouse move: with the chat window active, cursor 0xD and the event to it; otherwise cursor 0, the
-    // container's handler, then by state: the hovered topic row in state 1, cursors in 3 / 4; while walking, a
-    // person who can talk shows its topics (cursor 0xE) and its "pers" text near the mouse, a zone exit not
-    // yet visited cursor 0xF. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
+    // See docs/notes/ui.md, "Behaviour moved out of header comments".
     void OnMouseMove(int buttons, int x, int y);
-    // Keys (input side): with the chat window active only Esc, which gives the input back. Otherwise the
-    // container's handler, then the chat keys of a network client, Enter / Esc skipping the phrases or taking
-    // the rewards, Esc also opening the escape menu or ending the start / topic choice, Space the next
-    // phrase; while walking the objectives, camera-to-leader and quick save / load actions. Every handled key
-    // sets handled_. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
+    // With the chat window active only Esc, which gives the input back. See docs/notes/ui.md, "Behaviour moved
+    // out of header comments".
     void OnKeyDown(int key, int repeat, int flags);
 
-    // Opens the topics of `person`: none leaves state 0; otherwise the leader stops (unless noWalk_), five
-    // topic rows (regions at x 210..570 from y 440, 24 high), "goodbye" appended, the scroll bar's range and
-    // position 0, the list drawn, state 1.
+    // None leaves state 0; otherwise the leader stops (unless noWalk_), "goodbye" is appended, state 1.
     void OpenTopics(CEngineObject* person);
-    // Draws the topic rows into surface 0 (from topicTop_, up to five, at x 15..380, 24 high from y 12):
     // "topic_prefix" text + " " + the topic's title, white for hoveredTopic_, else 0xA7D7E4.
     void DrawTopics();
-    // topics_ becomes the topics of the person whose name has the text key `personId`: every
-    // "b.<person>.<topic>" variable equal to 1 (bit compare), in the variable table's order (a network client
-    // sorts them), and last the last "constr..." one found.
+    // Every "b.<person>.<topic>" variable equal to 1 (bit compare), in the variable table's order (a network
+    // client sorts them), and last the last "constr..." one found.
     void FindTopics(int personId);
-    // A topic's title into `out` (constructed here, returned): the first line of the text "briefing <topic>"
-    // (lowercased; "constr..." topics share "briefing constr"), empty without one.
+    // The first line of the text "briefing <topic>" (lowercased; "constr..." topics share "briefing constr"),
+    // empty without one. `out` is constructed here.
     mfc::CString* TopicTitle(mfc::CString* out, const char* topic);
 
     void LoadPersonTexts();
 
-    // The dialogue (ui_briefing_dialogue.cpp).
-    // The phrases start: the voice still playing stops, the music fades out; without a
-    // text "briefing <topic_>" back to state 0. Otherwise the server hears dialogue event 3, the
-    // camera position is kept (savedCamera_) with a point one unit along its rotation's z axis
-    // (lookAt_), the dialogue text and the text window are emptied, state 3, firstPhrase_, and the
-    // first phrase.
+    // Without a text "briefing <topic_>" back to state 0. Otherwise the server hears dialogue event 3, the
+    // camera is kept (savedCamera_, lookAt_), state 3.
     void StartPhrases();
-    // `unit` (a client unit) plays a dialogue animation: talking 3 for a third speaker, else a random one of
-    // 1, 6, 7, 8 for a human ("unhuma") and 1 for others; listening a random one of 2, 0xA, 0xC, 0xD for a
-    // human and 2 for others (skill animations). Its server unit's controller drops its action first and calls
-    // when the animation has finished.
+    // Talking: 3 for a third speaker, else a random one of 1, 6, 7, 8 for a human ("unhuma") and 1 for others;
+    // listening a random one of 2, 0xA, 0xC, 0xD for a human and 2 for others (skill animations).
     void PlaySpeakerAnimation(CUnit* unit, bool talking, bool third);
-    // The camera views `unit`: from its eyes (its place, or its position, plus its facing times the
-    // prototype's viewDistance, at viewHeight) around the facing turned by `angle`, `distance` away and
-    // `height` above; without a unit the middle of the first two places, looked at across them. Sent to the
-    // server as message 0x0F (camera position, point).
+    // From the unit's eyes around its facing turned by `angle`, `distance` away and `height` above; without a
+    // unit the middle of the first two places, looked at across them. Sent to the server as message 0x0F.
     void ViewSpeaker(CUnit* unit, float angle, float distance, float height);
-    // Camera preset `preset` of a phrase ("#camera n"; 1-12, others nothing):
-    // views of both (1, 5, 9: ViewSpeaker without a unit, at 3, 2.7 or 2.4 times the distance
-    // between the first two places), of the leader (2, 6, 10), the person (3, 7, 11) or the third
-    // speaker (4, 8, 12) from various angles; the other speakers are first sunk to height -100
-    // in 2, 3, 6, 7 and 12.
+    // "#camera n" (1-12, others nothing): views of both (1, 5, 9), the leader (2, 6, 10), the person (3, 7, 11)
+    // or the third speaker (4, 8, 12) from various angles; the other speakers are first sunk to height -100 in
+    // 2, 3, 6, 7 and 12.
     void ViewPreset(int preset);
-    // "#hide <name>": a dialogue person `name` leaves the dialogue (the server
-    // hears event 2; its blink stops; its server unit gets flag 0x40000000 back, height 0, its
-    // action dropped) and the speakers' list; the third speaker walks to thirdPlace_
-    // (with `immediate` and `time`) and is forgotten. A name that is no unit removes the shown item
-    // of that name (its meshes and texture).
+    // "#hide <name>": the server hears event 2; its server unit gets flag 0x40000000 back. The third speaker
+    // walks to thirdPlace_ and is forgotten. A name that is no unit removes the shown item of that name.
     void HideSpeaker(const char* name, int immediate, int time);
 
-    // Dialogue topic_ starts: "goodbye" (or no leader) back to state 0; a "constr..." topic opens the camp
-    // (screen 5) with constructor N when that class template exists. Otherwise the "#show" lines of the text
-    // "briefing <topic>" name the people (person_, third_; none: state 0) and the places are worked out, with
-    // `remember` the people's positions kept first (personHome_, thirdPlace_); the leader (or, noWalk_, the
-    // person) and the third walk to their places (waited, `immediate`). `immediate` starts the phrases at once
-    // (StartPhrases), else state 2. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
+    // "goodbye" (or no leader) back to state 0; a "constr..." topic opens the camp (screen 5) with constructor N
+    // when that class template exists. See docs/notes/ui.md, "Behaviour moved out of header comments".
     void StartDialogue(bool immediate, bool remember);
-    // The dialogue ends (the rewards taken, or skipped): the voice stops, the music fades in, the shown items
-    // go, every speaker leaves (the server hears event 2) and the list is emptied; the leader and the person
-    // back to height 0, the third speaker walks back to thirdPlace_, with noWalk_ the person to personHome_.
-    // The first "b.*.<topic>" variable (three parts) completes (for player 0). State 0; a dialogue that
-    // started by itself puts the camera on the leader and frees it, otherwise it goes back to savedCamera_ /
-    // lookAt_. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
+    // The first "b.*.<topic>" variable (three parts) completes (for player 0). A dialogue that started by
+    // itself puts the camera on the leader and frees it, otherwise it goes back to savedCamera_ / lookAt_. See
+    // docs/notes/ui.md, "Behaviour moved out of header comments".
     void FinishDialogue();
-    // `unit` (a client unit) goes to (x, y) at its
-    // server unit's height (`z` is not read), facing (dx, dy, dz): `immediate` puts the server
-    // unit there at once (sector map, both units turned, the controller repositioned); otherwise,
-    // unless the server unit is blocked (0x800000), a mover is put first in movers_ (walking,
-    // `waited`) and the server unit's brain walks there (`run`).
+    // `z` is not read: the server unit's height is kept. Unless `immediate`, a server unit that is blocked
+    // (0x800000) does not move.
     void MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited, bool immediate,
                     int run);
-    // "#show <name>": a person `name` joins the speakers (the server hears event 1; the leader's server unit
-    // gets flag 0x40000000). Anything else with `index` >= 0 is a loot item ("_" read as " ", lowercased, the
-    // loot table's name index): an item of that name shown already goes, then slot `index` % 7 gets a backdrop
-    // and frame for the first seven, the item's figure "initqu<n>item" (tinted from index 8) with its image
-    // "quitem<n>" in a new texture; it goes first in shown_. The third argument is not read. Details:
-    // docs/notes/ui.md, "Behaviour moved out of header comments".
+    // "#show <name>": a person joins the speakers (the leader's server unit gets flag 0x40000000). Anything
+    // else with `index` >= 0 is a loot item. See docs/notes/ui.md, "Behaviour moved out of header comments".
     void ShowItem(const char* name, int index, int unused);
-    // Removes the shown items' meshes (and the item texture) from the scene and empties shown_
     void ClearShownItems();
     ~CBriefingScreen() override;
     void SetChatActive(int mode);
 
-    // The next phrase of the current text: its lines up to the next "#phrase <speaker> [voice]" are carried
-    // out ("#nolips", "#show", "#hide", "#animation n", "#camera n [angle distance height]"); the phrase goes,
-    // headed by the speaker's name, into dialogueText_ and (unless `skip`) the text window, with its voice and
-    // phraseTime_. After the last phrase: state 4 and the briefing record's rewards as lines. The camera then
-    // views the phrase's speaker, who talks while the others listen. Details: docs/notes/ui.md, "Behaviour
-    // moved out of header comments".
+    // Lines up to the next "#phrase <speaker> [voice]" are carried out ("#nolips", "#show", "#hide",
+    // "#animation n", "#camera n [angle distance height]"). After the last phrase: state 4 and the briefing
+    // record's rewards. See docs/notes/ui.md, "Behaviour moved out of header comments".
     void NextPhrase(bool skip);
 
     int exit_;                      // the exit a "leave_zone" answer leaves through
-    bool exitPending_;               // Create sets it (Update checks the leader's exit)
+    bool exitPending_;
     std::uint8_t unused_169[3];
     int state_;                      // dialogue state (above)
-    console::CStringArray topics_;   // the person's topics (names), "goodbye" last
+    console::CStringArray topics_;   // "goodbye" last
     mfc::CString topic_;             // the dialogue running
-    int hoveredTopic_;               // the topic row under the mouse, or -1
-    bool briefingStarted_;           // a dialogue started by itself (602C90)
+    int hoveredTopic_;               // or -1
+    bool briefingStarted_;           // a dialogue started by itself
     std::uint8_t unused_18D[3];
-    mfc::CArray<CUnit*> party_;      // the party's units (CArray, SetSize)
+    mfc::CArray<CUnit*> party_;
     CUnit* leader_;                  // the unit the camera follows (the hero speaker)
     CUnit* person_;                  // the person the dialogue is with
-    CUnit* third_;                   // a third speaker, or null
-    // The speakers' places and their facings: [0] person_, [1] leader_, [2] third_.
+    CUnit* third_;                   // or null
+    // [0] person_, [1] leader_, [2] third_.
     Vector3 places_[3];
     Vector3 directions_[3];
     Vector3 savedCamera_;            // the camera position when the phrases started
@@ -324,29 +260,29 @@ public:
     Vector3 thirdPlace_;             // where the third speaker goes when hidden
     Vector3 thirdDirection_;
     Vector3 personHome_;             // where the person stood when the dialogue started (noWalk_)
-    Vector3 personHomeDirection_;    // and its facing
-    BriefingMover* movers_;          // the people walking to their places (list header)
-    bool firstPhrase_;               // set when the phrases start (the first one lasts a second longer)
+    Vector3 personHomeDirection_;
+    BriefingMover* movers_;
+    bool firstPhrase_;               // the first phrase lasts a second longer
     std::uint8_t unused_245[3];
-    mfc::CString dialogueText_;      // the dialogue's text so far (shown whole when skipped)
+    mfc::CString dialogueText_;      // shown whole when skipped
     float phraseTime_;               // time left of a phrase without a voice
-    int voice_;                      // the phrase's voice (sound id), -1 none
-    CUnit* speaking_;                // the speaker of the current phrase (NextPhrase), or null
+    int voice_;                      // sound id, -1 none
+    CUnit* speaking_;                // or null
     std::uint8_t unused_258[4];
-    CUiScrollText* text_;            // the dialogue text
-    CUiScrollbar* topicBar_;         // the topic list's scroll bar
+    CUiScrollText* text_;
+    CUiScrollbar* topicBar_;
     int topicTop_;                   // first topic row shown
     float savedEdgeFade_;            // the map edge fade Create replaced
-    PersonTextMap personTexts_;      // "pers" texts by text key (map<int, CString>)
-    BriefingShownItem* shown_;       // the items shown (list header)
-    bool immediate_;                 // the dialogue's people are placed at once ('s first argument)
-    bool noWalk_;                    // the zone's map record +0x44: the leader does not walk
-    bool autosave_;                  // Create sets it unless loading or back from the camp
+    PersonTextMap personTexts_;      // "pers" texts by text key
+    BriefingShownItem* shown_;
+    bool immediate_;                 // the dialogue's people are placed at once
+    bool noWalk_;                    // the zone's map record's cage: the leader does not walk
+    bool autosave_;                  // unless loading or back from the camp
     std::uint8_t unused_27F;
-    CChatWindow* chat_;              // a network client's chat window (608D20), else null
-    stlp::vector<int> people_;       // ids of the local player's objects that are text keys (Create)
-    float markPhase_;                // Update adds the frame time, kept below 1
-    BriefingSpeaker* speakers_;      // the people in the dialogue (vector begin, end, capacity)
+    CChatWindow* chat_;              // a network client's only
+    stlp::vector<int> people_;       // ids of the local player's objects that are text keys
+    float markPhase_;                // kept below 1
+    BriefingSpeaker* speakers_;
     BriefingSpeaker* speakersEnd_;
     BriefingSpeaker* speakersCapacity_;
     int chatActive_;                 // the chat window takes the input

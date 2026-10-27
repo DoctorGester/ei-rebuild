@@ -1,9 +1,7 @@
 // The sound manager (CSoundManager): voice volumes and pans from the listener, the per-handle controls,
 // ambient emitters, 3D sound sequences, the per-frame tick and the music stream requests, and Play2D /
-// Play3D. The Miles calls go through game.exe's import table; the wave loader with its cache too. The
-// stream / MIDI threads are in sound_manager_lifetime.cpp. Floating point follows the x87 order (the
-// goldens depend on it): `double` for values kept on the FPU stack, static_cast<float> where it stores to a
-// float.
+// Play3D. Floating point follows the x87 order (the goldens depend on it): `double` for values kept on the
+// FPU stack, static_cast<float> where it stores to a float.
 #include "sound.h"
 #include "game_strings.h"
 
@@ -57,13 +55,13 @@ constexpr float kEmitterMaxScale = 255.0f;
 
 // pi and pi / 2 (set by a static initialiser).
 float Pi() { return 3.1415927f /*007440D8*/; }
-constexpr float kHalfPi = /*007C8808*/ 1.5707964f;   // a static initialiser: pi * 0.5
+constexpr float kHalfPi = /*007C8808*/ 1.5707964f;
 // The fade step every fade request uses (1/96), copied as a dword.
 std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
 // StopStream's fade-out step, loaded and tested as a float.
 float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 
-// Miles Sound System through game.exe's import table (all __stdcall).
+// Miles Sound System (all __stdcall).
 using SampleIntFn = void(__stdcall*)(void*, int);
 using SampleFn = void(__stdcall*)(void*);
 SampleIntFn AilSetSampleVolume() { return ei::ImportAs<SampleIntFn>(ei::Imports().AIL_set_sample_volume); }
@@ -82,14 +80,12 @@ ReverbFn AilSetSampleReverb() { return ei::ImportAs<ReverbFn>(ei::Imports().AIL_
 // The end-of-sample callback every started voice gets (sets the slot's finished flag).
 void* EndOfSampleCallback() { return ei::Code<void*>(0x006B75E0); }
 
-// The cache's operator[] on the slot's wave name: the slot of the wave's cache list
-// node (its record's uses counts the voices playing it).
+// The slot of the wave's cache list node (its record's uses counts the voices playing it).
 WaveNode*& CacheEntry(stlp::NameMap& cache, const SoundSlot* slot) { return stlp::NamedSlot<WaveNode>(cache, slot->name); }
-// The deferred record of `handle` set (find_or_insert, which may rehash first).
+// May rehash first.
 void SetDeferred(DeferredMap& deferred, std::int32_t handle, DeferredSound* rec) {
     deferred.FindOrInsert({handle, nullptr})->value = rec;
 }
-// A deferred record freed: its name's storage, then the record.
 void FreeDeferred(DeferredSound* rec) {
     rec->name.~string();
     gamecrt::operator_delete(rec);
@@ -97,7 +93,7 @@ void FreeDeferred(DeferredSound* rec) {
 
 int ClampLevel(int v) { return v < 0 ? 0 : (v > 0x7F ? 0x7F : v); }
 
-// Heights between 30 and 70 fade 2D sounds flagged heightFade: 1 - (h - 30) / (70 - 30).
+// Heights between 30 and 70 fade 2D sounds flagged heightFade.
 double HeightFactor(float h) {
     return D(kOne) - (D(h) - kHeightFull) / (D(kHeightSilent) - kHeightFull);
 }
@@ -1094,9 +1090,7 @@ int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, i
     return rec->handle;
 }
 
-// The common end of Play2D and Play3D once the wave is in the voice: loop count 0 for a looping
-// sound, volume and pan, the end-of-sample callback, the reverb when on, a random start position
-// when +0x8BC is set, start. Returns the voice's handle.
+// The common end of Play2D and Play3D once the wave is in the voice. Returns the voice's handle.
 int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
     if (loop != 0) AilSetSampleLoopCount()(slot->sample, 0);
     m->ApplyVolumePan(slot);
@@ -1183,9 +1177,6 @@ EI_REWRITTEN(0x006B8600, CSoundManager::Play3D);
 
 
 namespace {
-// The cache map (CSoundManager + 0x870): find, find-or-insert of a pair, erase by key. The cache list
-// (gamelists::Waves): a new node [prev, next], a node freed.
-
 // Miles.
 using NamedFileFn = int(__stdcall*)(void*, const char*, const void*, int, int);
 using SampleFileFn = int(__stdcall*)(void*, const void*, int);
@@ -1222,9 +1213,7 @@ void PushBack(WaveList& list, const WaveRecord* record) {
     else list.head = node;
     list.tail = node;
 }
-// cache[key] = node (through a temporary pair {key, null}).
 void CacheSet(CSoundManager* m, const stlp::string* key, WaveNode* node) { stlp::NamedSlot<WaveNode>(m->cache, *key) = node; }
-// A record copied out of a node (its own copy of the name).
 void CopyOut(WaveRecord* out, const WaveNode* node) {
     out->data = node->data.data;
     new (&out->Name()) stlp::string(node->data.Name());
