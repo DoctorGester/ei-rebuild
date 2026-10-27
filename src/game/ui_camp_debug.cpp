@@ -14,6 +14,7 @@
 #include "resource_manager.h"
 #include "game_data.h"
 #include "world.h"
+#include "lib/str.h"
 
 #include <cstdint>
 #include <string>
@@ -60,7 +61,7 @@ void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t
 void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* maker, itemdb::ItemRecordHead* record,
                     int kind, int materials) {
     for (int j = 0; j < materials; ++j) {
-        const char* wanted = record->materialClass;
+        const char* wanted = record->materialClass.c_str();
         const char* name = itemdb::MaterialAt(static_cast<std::uint32_t>(j))->soundName.c_str();
         if (gamecrt::mbsicmp(name, wanted) != 0)
             continue;
@@ -76,7 +77,7 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
 
 // The record's name contains `word`.
 bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
-    return record->text04.Find(word) >= 0;
+    return str::Find(record->text04, word) >= 0;
 }
 
 } // namespace

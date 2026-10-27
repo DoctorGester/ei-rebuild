@@ -324,7 +324,9 @@ to which template:
   already declared std::string is counted, so its uses get the rules after a hand retype. Done: CUnit::scriptName,
   CMapObject::name2, CScript::errorText_, ScriptErrorInfo::text, PartyUnitRecord::texts[7], the unit database's
   prototype / NPC / model / model slot / level record strings, the item database's spell, spell modifier and material
-  record strings (batch 4). Their classes (and the classes deriving from or
+  record strings and the item records' head (text04, text08, materialClass) and QuickItemRecord::text7C (batch 4;
+  the kinds' CopyOwn / default constructors name their byte ranges by member now, and record_stats.cpp reads
+  game.exe's weapon skill bonus at its original +0x7B). Their classes (and the classes deriving from or
   holding them: Lever, CTorchObject, MagicTrap, CTrapObject, FakeUnitScene, CWorldServer) lost the layout asserts the
   bigger member broke; the prototype index divides by sizeof(UnitPrototypeRecord). Helpers that take either text type:
   `ChunkArchive::CStringField<Text>`, `CStream::ReadInto<Text>` (the CString instantiations are game.exe's), records::
@@ -358,6 +360,8 @@ to which template:
   same hazard.
 - Kept on purpose: a pointer into a CString that another CString shares (refcounted buffers) outlives the local copy;
   with std::string it would not. `CFigureStrip::Draw`'s `name` (its cells keep `name`'s pointer) stays a CString.
+- c14_strings.py sometimes applies a `.c_str()` fix one line late (a one-line function after one already fixed:
+  manual.txt says "already converted"; the next line gets a stray `.c_str()`). Read the diff of every run.
 - Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors
   (`CScript::Load` / Tokenize / the script copies replay the loader's string handling), both suites with goldens.
 

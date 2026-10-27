@@ -26,11 +26,6 @@ using BOOL = int;
 namespace itemdb {
 
 // Record sizes.
-constexpr int kWeaponSize = 0xB4;
-constexpr int kArmorSize = 0xC8;
-constexpr int kQuickItemSize = 0x8C;    // also the spell containers (scrolls)
-constexpr int kQuestItemSize = 0x7C;
-constexpr int kLootSize = 0x78;
 
 // A spell prototype: the fields the camp's spell maker reads.
 struct SpellRecord {
@@ -151,11 +146,11 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    mfc::CString text04;                // the name the tables file the record under
-    mfc::CString text08;
+    std::string text04;                // the name the tables file the record under
+    std::string text08;
     int type;                           // weapon / armour class
     // the class of material it is made of ("none": a potion, without a material).
-    mfc::CString materialClass;
+    std::string materialClass;
     std::uint32_t field4;               // archive field 4 (nothing reads it)
     int number;                         // the number in the item's text keys and names ("item%04d")
     int variant;                        // the model variant
@@ -186,18 +181,6 @@ protected:
     ItemRecordHead(const ItemRecordHead&) = delete;
     ItemRecordHead& operator=(const ItemRecordHead&) = delete;
 };
-static_assert(offsetof(ItemRecordHead, list20) == 0x20);
-static_assert(offsetof(ItemRecordHead, list50) == 0x50);
-static_assert(offsetof(ItemRecordHead, buildable) == 0x68);
-static_assert(offsetof(ItemRecordHead, type) == 0x0C);
-static_assert(offsetof(ItemRecordHead, materialClass) == 0x10);
-static_assert(offsetof(ItemRecordHead, number) == 0x18);
-static_assert(offsetof(ItemRecordHead, price) == 0x34);
-static_assert(offsetof(ItemRecordHead, charge) == 0x40);
-static_assert(offsetof(ItemRecordHead, condition) == 0x48);
-static_assert(offsetof(ItemRecordHead, materialUnits) == 0x4C);
-static_assert(offsetof(ItemRecordHead, category) == 0x6C);
-static_assert(sizeof(ItemRecordHead) == 0x70);
 
 // A record (or null) as the kind's record it is (WeaponRecord, ArmorRecord, QuickItemRecord,
 // QuestItemRecord, LootItemRecord): the item's class id or the table it came from says which.
@@ -212,7 +195,7 @@ const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const 
 // not copied are left as constructed (or as they were, for bytes no constructor sets). The default
 // constructors make the record the vectors' resize(n) appends copies of and the item constructor's temporary.
 
-// A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
+// A weapon prototype: what CItemWeapon takes besides the head.
 struct WeaponRecord : ItemRecordHead {
     WeaponRecord();
     WeaponRecord(const WeaponRecord& from);
@@ -236,15 +219,8 @@ struct WeaponRecord : ItemRecordHead {
     float damageSpread;                 // maximum damage = damage + spread
     float damageTypes[7];               // weight of each damage type
 };
-static_assert(offsetof(WeaponRecord, reach) == 0x8C);
-static_assert(offsetof(WeaponRecord, attackBonus) == 0x84);
-static_assert(offsetof(WeaponRecord, defenceBonus) == 0x88);
-static_assert(offsetof(WeaponRecord, damage) == 0x90);
-static_assert(offsetof(WeaponRecord, damageSpread) == 0x94);
-static_assert(offsetof(WeaponRecord, damageTypes) == 0x98);
-static_assert(sizeof(WeaponRecord) == kWeaponSize);
 
-// An armour prototype (kArmorSize bytes): the two absorption rows CItemArmor takes.
+// An armour prototype: the two absorption rows CItemArmor takes.
 struct ArmorRecord : ItemRecordHead {
     ArmorRecord() {}                            // (user-provided: new ArmorRecord() leaves the bytes as they are)
     ArmorRecord(const ArmorRecord& from);
@@ -271,15 +247,10 @@ struct ArmorRecord : ItemRecordHead {
     std::uint32_t layer;                // the lower one's texture goes first (ArmorFieldB8)
     std::uint8_t field19[3];            // archive field 0x19 (nothing reads it)
     std::uint8_t field1A[8];            // archive field 0x1A (nothing reads it)
-    std::uint8_t unused_C7[kArmorSize - 0xC7];
+    std::uint8_t unused_C7[1];
 };
-static_assert(offsetof(ArmorRecord, showsWounds) == 0xB4);
-static_assert(offsetof(ArmorRecord, firstFlags) == 0x8C && offsetof(ArmorRecord, othersFactor) == 0x90);
-static_assert(offsetof(ArmorRecord, absorbOthers) == 0x94 && offsetof(ArmorRecord, othersFlags) == 0xB0);
-static_assert(offsetof(ArmorRecord, layer) == 0xB8);
-static_assert(sizeof(ArmorRecord) == kArmorSize);
 
-// A quick item prototype (potions, wands, scrolls; kQuickItemSize bytes).
+// A quick item prototype (potions, wands, scrolls; also the spell containers).
 struct QuickItemRecord : ItemRecordHead {
     QuickItemRecord();
     QuickItemRecord(const QuickItemRecord& from);
@@ -295,14 +266,11 @@ struct QuickItemRecord : ItemRecordHead {
     std::uint32_t value70;              // item +0x4C
     std::uint8_t field17[4];            // archive field 0x17 (nothing reads it)
     std::uint8_t field18[4];            // archive field 0x18 (nothing reads it)
-    mfc::CString text7C;                // the spell text of a category 8 item (CItemConstructor::Build)
+    std::string text7C;                // the spell text of a category 8 item (CItemConstructor::Build)
     std::uint8_t attributeBonus[3];     // per attribute (UnitStats::AttributeWithItems)
     std::uint8_t field1B[8];            // archive field 0x1B (nothing reads it)
-    std::uint8_t unused_8B[kQuickItemSize - 0x8B];
+    std::uint8_t unused_8B[1];
 };
-static_assert(offsetof(QuickItemRecord, value70) == 0x70);
-static_assert(offsetof(QuickItemRecord, attributeBonus) == 0x80);
-static_assert(sizeof(QuickItemRecord) == kQuickItemSize);
 
 // The 0x7C-byte item prototype with a list of zone names (QuestItemInfo reads the list).
 struct QuestItemRecord : ItemRecordHead {
@@ -318,8 +286,6 @@ struct QuestItemRecord : ItemRecordHead {
 
     stlp::vector<mfc::CString> zones;   // the zone names
 };
-static_assert(offsetof(QuestItemRecord, zones) == 0x70);
-static_assert(sizeof(QuestItemRecord) == kQuestItemSize);
 
 // The prototype of a CItemLoot: kind (the head's category), record type, index.
 struct LootItemRecord : ItemRecordHead {
@@ -335,8 +301,6 @@ struct LootItemRecord : ItemRecordHead {
     std::uint32_t recordType;
     std::uint32_t index;
 };
-static_assert(offsetof(LootItemRecord, index) == 0x74);
-static_assert(sizeof(LootItemRecord) == kLootSize);
 
 // Per record kind: uninitialized_copy of [first, last) to `dest` and uninitialized_fill_n of
 // `count` copies of `value`. The last argument is STLport's unused type tag. Null destinations
@@ -484,11 +448,11 @@ struct ItemDatabase {
     void Reset();
 
     MaterialTable materials;
-    WeaponTable weapons;            // kWeaponSize
-    ArmorTable armors;              // kArmorSize
-    QuickItemTable quickItems;      // kQuickItemSize
-    QuestItemTable questItems;      // kQuestItemSize (QuestItems())
-    LootItemTable loot;             // kLootSize (Loot())
+    WeaponTable weapons;
+    ArmorTable armors;
+    QuickItemTable quickItems;
+    QuestItemTable questItems;      // (QuestItems())
+    LootItemTable loot;             // (Loot())
 };
 static_assert(sizeof(ItemDatabase) == 0xC0);
 

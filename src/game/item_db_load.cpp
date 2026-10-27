@@ -38,7 +38,7 @@ void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int f
         archive.SerializeQuestItems(field, &table->records, nullptr);
     archive.Close(source);
     for (Record* record = table->records.begin(); record != table->records.end(); ++record) {
-        stlp::string name(record->text04);
+        stlp::string name(record->text04.c_str());
         stlp::NamedSlot<Record>(table->names, name) = record;
     }
 }

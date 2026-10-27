@@ -105,7 +105,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
     switch (item->type_) {
     case kItemWeapon: {
         KeyName(materialName, MaterialAt(materialIndex)->key.c_str());
-        KeyName(recordName, WeaponAt(prototypeIndex)->text04.GetString());
+        KeyName(recordName, WeaponAt(prototypeIndex)->text04.c_str());
         ReadItemText(this, (mfc::CString(kWeapon) + recordName + kSpace + materialName).GetString(), name, description);
         kindKey = "item_weapon";
         break;
@@ -113,17 +113,16 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
     case kItemArmor: {
         KeyName(materialName, MaterialAt(materialIndex)->key.c_str());
         const ArmorRecord* armor = ArmorAt(prototypeIndex);
-        KeyName(recordName, armor->text04.GetString());
+        KeyName(recordName, armor->text04.c_str());
         ReadItemText(this, (mfc::CString(kArmor) + recordName + kSpace + materialName).GetString(), name, description);
         kindKey = IsUpperArmor(armor) ? "item_armor_upper" : "item_armor_lower";
         break;
     }
     case kItemQuick: {
-        KeyName(recordName, QuickItemAt(prototypeIndex)->text04.GetString());
+        KeyName(recordName, QuickItemAt(prototypeIndex)->text04.c_str());
         // A quick item whose prototype has no material (+0x10 "none") is a potion.
         const ItemRecordHead* prototype = item->GetPrototype();
-        if (prototype && gamecrt::mbsicmp(static_cast<const char*>(
-                                             prototype->materialClass),
+        if (prototype && gamecrt::mbsicmp(prototype->materialClass.c_str(),
                                          kNoMaterial) == 0) {
             ReadItemText(this, (mfc::CString(kQuickItem) + recordName).GetString(), name, description);
             kindKey = "item_potion";
@@ -149,7 +148,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
     case kItemLoot: {
         auto* loot = AsLoot(item);
         if (loot->kind_ == 0) {
-            KeyName(recordName, LootAt(prototypeIndex)->text04.GetString());
+            KeyName(recordName, LootAt(prototypeIndex)->text04.c_str());
             ReadItemText(this, (mfc::CString(kLootItem) + recordName).GetString(), name, description);
             kindKey = "item_loot";
         } else if (loot->kind_ == 1) {
@@ -159,19 +158,19 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         } else if (loot->kind_ == 2) {
             switch (loot->recordType_) {
             case 0:
-                KeyName(recordName, WeaponAt(loot->index_)->text04.GetString());
+                KeyName(recordName, WeaponAt(loot->index_)->text04.c_str());
                 ReadItemText(this, (mfc::CString(kInstruction) + recordName).GetString(), name, description);
                 kindKey = "item_weapon_shape";
                 break;
             case 1: {
                 const ArmorRecord* armor = ArmorAt(loot->index_);
-                KeyName(recordName, armor->text04.GetString());
+                KeyName(recordName, armor->text04.c_str());
                 ReadItemText(this, (mfc::CString(kInstruction) + recordName).GetString(), name, description);
                 kindKey = IsUpperArmor(armor) ? "item_armor_shape_upper" : "item_armor_shape_lower";
                 break;
             }
             case 2:
-                KeyName(recordName, QuickItemAt(loot->index_)->text04.GetString());
+                KeyName(recordName, QuickItemAt(loot->index_)->text04.c_str());
                 ReadItemText(this, (mfc::CString(kInstruction) + recordName).GetString(), name, description);
                 kindKey = "item_wand_shape";
                 break;
@@ -200,7 +199,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
     }
     case kItemQuest: {
         // 0x3009 is the quest item ("questitem"); its table is Loot in item_db.h.
-        KeyName(recordName, QuestItemAt(prototypeIndex)->text04.GetString());
+        KeyName(recordName, QuestItemAt(prototypeIndex)->text04.c_str());
         ReadItemText(this, (mfc::CString(kQuestItem) + recordName).GetString(), name, description);
         kindKey = "item_quest";
         break;

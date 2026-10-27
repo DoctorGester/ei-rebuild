@@ -321,7 +321,7 @@ void CItemInfoPanel::DescribeItem() {
     bool materialLine;
     if (kind == kQuick) {
         const itemdb::ItemRecordHead* prototype = PrototypeOf(item);
-        materialLine = !prototype || MbsICmp(prototype->materialClass.GetString(), "none") != 0;
+        materialLine = !prototype || MbsICmp(prototype->materialClass.c_str(), "none") != 0;
     } else {
         materialLine = kind != kQuest && kind != kLoot;
     }

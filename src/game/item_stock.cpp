@@ -100,8 +100,8 @@ void AddReference(CItem* item) { ++item->refCount_; }
 
 // A prototype record: text08 its name, materialClass its material class, price, materialUnits the material
 // units it takes; the record's first virtual the item kind.
-const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->text08; }
-const char* MaterialClass(const itemdb::ItemRecordHead* p) { return p->materialClass; }
+const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->text08.c_str(); }
+const char* MaterialClass(const itemdb::ItemRecordHead* p) { return p->materialClass.c_str(); }
 int MaterialUnits(const itemdb::ItemRecordHead* p) { return static_cast<int>(p->materialUnits); }
 
 // Picks the material of a prototype from the candidates (pointers into the stock's entries). Each
@@ -589,7 +589,7 @@ void WriteText(CStream* stream, const char* text) {
 
 void SaveItemRecords(CStream* stream, const StockPrototypeVector& list) {
     WriteInt(stream, static_cast<std::uint32_t>(list.size()));
-    for (itemdb::ItemRecordHead** p = list.begin(); p != list.end(); ++p) WriteText(stream, (*p)->text04);
+    for (itemdb::ItemRecordHead** p = list.begin(); p != list.end(); ++p) WriteText(stream, (*p)->text04.c_str());
 }
 
 } // namespace
