@@ -50,9 +50,9 @@ constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
 
-// 006FE925 / 006FE958 / 006FE9B8. CStringArray constructor, destructor, SetSize.
-// 004CD080 / 0052E230. The unit motion's step speed array constructor and the constructor of its
-// segment part (+0x50, empty); the motion's constructor then clears it (005C6270 UnitMotion::Clear).
+// CStringArray constructor, destructor, SetSize.
+// The unit motion's step speed array constructor and the constructor of its segment part (empty); the
+// motion's constructor then clears it (UnitMotion::Clear).
 // Light manager: removes a light.
 // The light list (CLightFactory::litIds_): erases the entries with id *id.
 // The server unit controller's members.
@@ -118,10 +118,9 @@ void CObject3D::SetUpObject3D() {
     animation = nullptr;
     std::memset(&scale, 0, sizeof(scale));
     defaultScale = kDefaultFigureScale;
-    // The original leaves the view position as the heap held it, and the draw sorts read it for an
-    // object listed only for its shadow before it was ever in view (a NaN there made UnitOrderLess
-    // irreflexive: S17a). It starts at zero here, and in the original through a harness patch
-    // (harness_leftovers.cpp).
+    // The original leaves the view position as the heap held it, and the draw sorts read it for an object listed
+    // only for its shadow before it was ever in view (a NaN there made UnitOrderLess irreflexive). It starts at
+    // zero here, and in the original through a harness patch (harness_leftovers.cpp).
     std::memset(&worldPosition_, 0, sizeof(worldPosition_));
 }
 
@@ -179,8 +178,7 @@ void CMapObject::SetUpMapObject() {
     SetBits(animationSpeed, kOne);
 }
 
-// The second name is destroyed after the body (before the effects in the original), then the 3D
-// object.
+// The second name is destroyed after the body (before the effects in the original), then the 3D object.
 CMapObject::~CMapObject() {
     TearDownMapObject();
     effectsVtable = mfc::impl::EffectArrayClass::Vtable();
@@ -200,8 +198,7 @@ void CMapObject::TearDownMapObject() {
 }
 EI_REWRITTEN_SPECIAL(0x0050E660, CMapObject::~CMapObject);
 EI_REWRITTEN_SPECIAL(0x0050E560, CMapObject::~CMapObject);
-// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
-// code at them).
+// The compiler's jump thunks to it (the standalone image has no code at them).
 EI_REWRITTEN_SPECIAL(0x00529B20, CMapObject::~CMapObject);
 EI_REWRITTEN_SPECIAL(0x00529B50, CMapObject::~CMapObject);
 
@@ -222,7 +219,7 @@ CUnit::CUnit() {
     m->waypoints.vtable = mfc::impl::MotionWaypointArrayClass::Vtable();
     mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(m->stepSpeeds);
     SetVtable(&m->stepSpeeds, mfc::impl::ArgFloatArrayClass::Vtable());
-    // (0052E230, the segment part's constructor at +0x50, only returns it.)
+    // (The segment part's constructor only returns it.)
     std::memset(&m->curveX, 0, sizeof(m->curveX));
     std::memset(&m->curveY, 0, sizeof(m->curveY));
     m->segment = -1;
@@ -286,8 +283,8 @@ void CUnit::Reset() {
 EI_REWRITTEN(0x0052E5B0, CUnit::Reset);
 
 CUnit::~CUnit() {
-    // The vtable's slot 5 (0052E740, the release from the player), called directly as the original
-    // does (through the vtable's memory, not the object's).
+    // The release-from-the-player virtual, called directly like the original (through the vtable's memory, not
+    // the object's).
     ReleaseUnit();
     DestroyMapObject();
     Reset();

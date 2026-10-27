@@ -1,9 +1,8 @@
 #pragma once
 
-// The map object classes without members of their own (A-U6, map_object_kinds.cpp): CTree (class
-// id 0x52), CStone (0x53), CBuilding (0x54) and CStuffObject (0x56), all 0x238 bytes and made by the
-// factory 00512730. Real virtual classes: the compiler makes their vtables (game.exe's
-// 0073E178, 0073E360, 0073E26C and 0073E454 are retired). Each overrides only slots 0, 11 and 12.
+// The map object classes without members of their own (map_object_kinds.cpp): CTree (class id 0x52), CStone
+// (0x53), CBuilding (0x54) and CStuffObject (0x56), all 0x238 bytes and made by the map object factory. Real
+// virtual classes. Each overrides only the destructor, class name and class id.
 
 #include "map_object.h"
 #include "game_data.h"
@@ -20,13 +19,13 @@ public:
     PlainMapObject();
     // The map object's Destroy, then its destructor.
     ~PlainMapObject() override;
-    // The deleting destructor (slot 0) frees into the game's heap.
+    // The deleting destructor frees into the game's heap.
     const char* GetClassName() override;   // 11: the class name
     int GetClassId() override;             // 12: ClassId
 };
 
 // Constructor, destructor, deleting destructor; slots 11 / 12.
-using CTree = PlainMapObject<0x52>;          // 005296E0, 00529770, 00529750; 11 / 12: 00529730 / 00529740
+using CTree = PlainMapObject<0x52>;
 using CStone = PlainMapObject<0x53>;
 using CBuilding = PlainMapObject<0x54>;
 using CStuffObject = PlainMapObject<0x56>;

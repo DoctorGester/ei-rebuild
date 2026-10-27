@@ -1,6 +1,6 @@
-// The map object's small virtual slots (CMapObject, vtable 0073DAA0; A-U12): the ones a plain
-// object leaves empty (units, levers, traps and torches override them) and the network state's
-// write / read wrappers. Slot names: CMapObject (map_object.h).
+// The map object's small virtuals (CMapObject): the ones a plain object leaves empty (units, levers, traps and
+// torches override them) and the network state's write / read wrappers. Virtual names: CMapObject
+// (map_object.h).
 #include "map_object.h"
 
 #include "core_transform.h"
@@ -13,7 +13,7 @@
 #include "lib/crt.h"
 
 namespace {
-constexpr int kNoKey = -123;                    // slot 40: the object asks for no key
+constexpr int kNoKey = -123;                    // the object asks for no key
 constexpr float kNoSpeed = 0.0f;
 constexpr float kPlainRadius = 0.75f;
 constexpr std::uint16_t kVitalParts = 0x11;     // changed parts 0 and 4: the statistics are repacked
@@ -22,9 +22,8 @@ constexpr std::uint32_t kStateUnsent = 2;       // flags_: the network state has
 
 // --- Empty slots -------------------------------------------------------------------------------------
 
-// Nothing (plain RET): 5 ClearState 0050E760, 28 EffectsChanged 0050E420, 37 UpdateSizeClasses
-// 0050E490, 57 UpdateMoveFactors 0050E520, 58 RefreshWounds 0050E530. One byte each: too short to
-// hook, registered so the addresses are known.
+// Nothing (plain RET): ClearState, EffectsChanged, UpdateSizeClasses, UpdateMoveFactors, RefreshWounds. One
+// byte each: too short to hook, registered so the addresses are known.
 void __fastcall MapObjectNothing(CMapObject*) {}
 EI_REPLACE(0x0050E760, MapObjectNothing);
 EI_REPLACE(0x0050E420, MapObjectNothing);
@@ -32,15 +31,14 @@ EI_REPLACE(0x0050E490, MapObjectNothing);
 EI_REPLACE(0x0050E520, MapObjectNothing);
 EI_REPLACE(0x0050E530, MapObjectNothing);
 
-// Nothing with one argument (RET 4): 25 AdvanceTime 0050E410, 35 SetStats 0050E480, 46 SetStunned
-// 0050E4A0, 56 ForgetObject 0050E510.
+// Nothing with one argument (RET 4): AdvanceTime, SetStats, SetStunned, ForgetObject.
 void CMapObject::IgnoreArgument(int) {}
 EI_REPLACE_METHOD(0x0050E410, CMapObject::IgnoreArgument);
 EI_REPLACE_METHOD(0x0050E480, CMapObject::IgnoreArgument);
 EI_REPLACE_METHOD(0x0050E4A0, CMapObject::IgnoreArgument);
 EI_REPLACE_METHOD(0x0050E510, CMapObject::IgnoreArgument);
 
-// 0: 38 IsUsable 0050F0C0, 39 IsDirectUseBlocked 0050F0D0, 54 IsLargeUnit 0050E4F0.
+// 0: IsUsable, IsDirectUseBlocked, IsLargeUnit.
 int __fastcall MapObjectZero(CMapObject*) { return 0; }
 EI_REPLACE(0x0050F0C0, MapObjectZero);
 EI_REPLACE(0x0050F0D0, MapObjectZero);
@@ -50,7 +48,7 @@ EI_REPLACE(0x0050E4F0, MapObjectZero);
 int CMapObject::AcceptsNoKey(const void* /*key*/) { return 0; }
 EI_REWRITTEN(0x0050F110, CMapObject::AcceptsNoKey);
 
-// 0050E400 (slot 18, RET 4; AL): any animation may be played.
+// Any animation may be played (AL).
 bool CMapObject::AcceptsAnyAnimation(const void* /*animation*/) { return true; }
 EI_REWRITTEN(0x0050E400, CMapObject::AcceptsAnyAnimation);
 
@@ -62,7 +60,7 @@ EI_REWRITTEN(0x0050E960, CMapObject::ScaleEffectChangedDefault);
 int __fastcall MapObjectKeyId(CMapObject*) { return kNoKey; }
 EI_REWRITTEN(0x0050F0E0, MapObjectKeyId);
 
-// 0050E540 / 0050E550 (slots 59 / 60, ST0): a plain object does not move; its radius is 0.75.
+// A plain object does not move; its radius is 0.75 (ST0).
 float __fastcall MapObjectMoveSpeed(CMapObject*) { return kNoSpeed; }
 EI_REWRITTEN(0x0050E540, MapObjectMoveSpeed);
 float __fastcall MapObjectRadius(CMapObject*) { return kPlainRadius; }
@@ -80,9 +78,9 @@ int CMapObject::NotifyCompanion() {
 EI_REWRITTEN(0x0050E930, CMapObject::NotifyCompanion);
 
 void CMapObject::TakePrototype(const char* prototype) {
-    // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics
-    // too), and the original then packs what its stack held; the harness zeroes them there too
-    // (a determinism fix, SV7b3, harness_leftovers.h).
+    // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics too), and the
+    // original then packs what its stack held; the harness zeroes them there too (a determinism fix,
+    // harness_leftovers.h).
     UnitVitals vitals{};
     MapObjectManagerOf(this)->BuildFromPrototype(&vitals, nullptr, prototype);
     vitals.Pack(PackedVitals());
@@ -123,7 +121,7 @@ mfc::CString* CMapObject::SetSecondName(const char* text) {
 }
 EI_REWRITTEN(0x0050F150, CMapObject::SetSecondName);
 
-// --- The virtual slots (vtable 0073DAA0) for the compiler's tables -------------------------------
+// --- The virtuals for the compiler's tables ----------------------------------------------------------------
 // The bodies above and in map_object*.cpp / object_small_slots.cpp, called without dispatch.
 
 void CMapObject::Load(CStream* stream) { LoadMapObject(stream); }
