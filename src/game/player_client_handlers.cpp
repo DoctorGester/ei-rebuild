@@ -283,7 +283,7 @@ int CPlayerClient::OnWeather() {
     std::uint8_t bytes[3];
     in_.Read(bytes, 3);
     const int strength = bytes[1] | (bytes[2] << 8);
-    TheClientWorld()->RainSnow()->Start(bytes[0], static_cast<float>(strength));
+    TheClientWorld()->rainSnow_.Start(bytes[0], static_cast<float>(strength));
     return 1;
 }
 

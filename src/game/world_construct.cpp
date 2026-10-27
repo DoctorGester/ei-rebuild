@@ -103,10 +103,6 @@ CWorldClient::CWorldClient() {
     footprints_.Construct();
     scorchMarks_.Construct();
     handle_.ptr = nullptr;
-
-
-    new (RainSnow()) CRainSnow();
-
     list7BC_.Construct();
     flags_ |= kClientFlags;
     debugFlags_ = kClientDebugFlags;

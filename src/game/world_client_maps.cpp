@@ -273,7 +273,7 @@ int CWorldClient::AddObject(CMapObject* object) {
         kept.tail = node;
         DynamicNode* tail = kept.tail;
         int key = object->id_;
-        hash400::PositionAt(dynamicNodes_, key) = tail;
+        hash400::Entry(dynamicNodes_, dynamicMaxId_, key) = tail;
     }
     int kind = object->GetClassId();
     if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
@@ -348,7 +348,7 @@ bool CWorldClient::QueueSynchronised(CEngineObject* object) {
     kept.tail = node;
     DynamicNode* tail = kept.tail;
     int key = object->id_;
-    hash400::PositionAt(dynamicNodes_, key) = tail;
+    hash400::Entry(dynamicNodes_, dynamicMaxId_, key) = tail;
     return true;
 }
 
@@ -363,7 +363,7 @@ void CWorldClient::ApplyWind(const Vector3* direction, float strength) {
         Vector3 copy = *direction;
         terrain_->SetWaves(&copy, strength);
     }
-    RainSnow()->SetWind(*direction, strength);
+    rainSnow_.SetWind(*direction, strength);
 }
 
 int CWorldClient::CentreOn(const Vector3* point) {
@@ -894,7 +894,7 @@ void CWorldClient::Destroy() {
     ReleaseItemsAndSpells();
     mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);
     ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
-    RainSnow()->Destroy();
+    rainSnow_.Destroy();
     platforms_.Destroy();
     platforms_.list.RemoveAll();
     SectorGrid& grid = objectGrid_;
@@ -1167,8 +1167,8 @@ int CWorldClient::Create() {
     music_ = owned;
     owned->Create();
 
-    RainSnow()->PrepareBuffers();
-    RainSnow()->world = this;
+    rainSnow_.PrepareBuffers();
+    rainSnow_.world = this;
     platforms_.Create();
     if (worlddata::ShadowSetting() > 0)
         flags_ |= 0x200;

@@ -442,7 +442,7 @@ to which template:
   Reached when a recorded path is played (the glue 00578820 / 00578880 calls it through its address).
 - A-E1: constructors of globals that run from static initialisers, before the hooks install (their hooks never
   fire; written so the standalone build has them): `CMapDatabase::Construct` (0045E820, the database at
-  0079BF00: two empty CArrays with the vtables 0073C3DC / 0073C3E8), `LeverRecordTable::Construct` (004632A0,
+  0079BF00: two empty CArrays with the vtables 0073C3DC / 0073C3E8), the `LeverRecordTable` constructor (004632A0,
   the lever table at 0079C1A0: no records, an index of 193 buckets) and `PartyManager::Construct` (004A5870,
   the party manager at 007AA5A0: a party map of 193 buckets, no entries, records or templates, two empty
   strings; +0x20 is not written). The unused functor bytes the originals copy from uninitialised stack bytes

@@ -132,6 +132,8 @@ const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, con
 template <typename Key, typename Value, typename Hash>
 class hash_map {
 public:
+    using key_type = Key;
+    using mapped_type = Value;
     struct Node {
         Node* next;
         Key key;

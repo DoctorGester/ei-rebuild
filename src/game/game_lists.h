@@ -16,11 +16,6 @@
 
 void __fastcall RefPtrRelease(RefPtr* self);
 void __fastcall ObjectHolderRelease(CEngineObject** self);
-// ObjectHolderRelease on such a field.
-template <class T>
-void ReleaseHeld(T** holder) {
-    ObjectHolderRelease(reinterpret_cast<CEngineObject**>(holder));
-}
 
 // The armour spells' 12-byte records: an engine object, a dword and a byte the
 // assignment copies (the three bytes after it are left).
@@ -43,10 +38,8 @@ inline void ReleaseRef(RefPtr* p) { RefPtrRelease(p); }
 inline void DestroyRef(RefPtr* p) { p->Destroy(); }
 // The armour spells' records: their engine object released (a virtual release).
 inline void ReleaseHolder(ArmourSpellRecord* p) { ObjectHolderRelease(&p->object); }
-inline void DestroySharedObject(SharedObject* p) {
-    gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>(
-        reinterpret_cast<gamearrays::ObjectPtrs::Array*>(&p->objects));
-}
+// The world's shared objects: their objects' array destroyed (each released).
+void DestroySharedObject(SharedObject* p);
 // The sound manager's wave records: the name an empty string with room for 8 bytes (after the zero fill);
 // its buffer freed.
 inline stlp::string* WaveName(WaveRecord* p) { return &p->Name(); }
@@ -54,7 +47,8 @@ inline void InitWave(WaveRecord* p) { stlp::StringElement::Default(WaveName(p));
 inline void DestroyWave(WaveRecord* p) { stlp::StringElement::Destroy(WaveName(p)); }
 
 using EngineObjects = ListAbi<CEngineObject*, EachElements<CEngineObject*, nullptr, gamearrays::ReleaseOnly>>;
-using ObjectRefs = ListAbi<ScriptObjectRef, EachElements<ScriptObjectRef, nullptr, gamearrays::ReleaseAndClear>>;
+using ObjectRefElements = EachElements<ScriptObjectRef, nullptr, gamearrays::ReleaseAndClear>;
+using ObjectRefs = ListAbi<ScriptObjectRef, ObjectRefElements>;
 using Refs = ListAbi<RefPtr, EachElements<RefPtr, nullptr, ReleaseRef>>;
 using OwnedRefs = ListAbi<RefPtr, EachElements<RefPtr, nullptr, DestroyRef>>;
 using Holders = ListAbi<ArmourSpellRecord, EachElements<ArmourSpellRecord, nullptr, ReleaseHolder>>;
@@ -77,6 +71,8 @@ void InitDefinition(ScriptDefinition* p);
 void InitRun(ScriptRun* p);
 using DefinitionElements = EachElements<ScriptDefinition, InitDefinition, DestroyDefinition>;
 using RunElements = EachElements<ScriptRun, InitRun, DestroyRun>;
+using DeclElements = EachElements<ScriptDecl, nullptr, DestroyDecl>;
+using GroupElements = EachElements<ScriptGroup, gamearrays::InitGroup, gamearrays::DestroyGroup>;
 
 using ParticleSources = ListAbi<ScriptParticleSource, EachElements<ScriptParticleSource, nullptr, DestroyParticleSource>>;
 using FxSources = ListAbi<ScriptFxSource, EachElements<ScriptFxSource, nullptr, DestroyFxSource>>;
@@ -84,8 +80,8 @@ using Lightnings = ListAbi<ScriptLightning, EachElements<ScriptLightning, nullpt
 using Tokens = ListAbi<ScriptToken, EachElements<ScriptToken, nullptr, DestroyToken>>;
 using Definitions = ListAbi<ScriptDefinition, DefinitionElements>;
 using Runs = ListAbi<ScriptRun, RunElements>;
-using Decls = ListAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, DestroyDecl>>;
-using Groups = ListAbi<ScriptGroup, EachElements<ScriptGroup, gamearrays::InitGroup, gamearrays::DestroyGroup>>;
+using Decls = ListAbi<ScriptDecl, DeclElements>;
+using Groups = ListAbi<ScriptGroup, GroupElements>;
 
 // The counted engine objects' list. AddTail of a counted engine object (the node's slot zeroed, then
 // assigned: the object gains a reference); returns the node.

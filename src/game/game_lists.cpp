@@ -128,6 +128,11 @@ void InitDefinition(ScriptDefinition* p) {
 }
 void InitRun(ScriptRun* p) { p->vars.ScriptVarsConstruct(); }
 
+void DestroySharedObject(SharedObject* p) {
+    p->objects.vtable = gamearrays::ObjectPtrArrayBaseClass::Vtable();
+    p->objects.ReleaseAll();
+}
+
 EI_REWRITTEN(0x004CD930, Definitions::NewNode);
 EI_REWRITTEN(0x004CDA30, Runs::NewNode);
 
@@ -146,60 +151,64 @@ EI_REWRITTEN(0x006BD560, Waves::FreeNode);
 // ---- Members of the script lists (script.h) -------------------------------------------------------
 
 namespace {
-template <typename Abi, typename List>
-typename Abi::List* As(List* list) {
-    return reinterpret_cast<typename Abi::List*>(list);
+// The script lists are CLists of plain elements (script.h); their members build and destroy the elements as the
+// game's instantiations do (`Elements`, the policies of game_lists.h): a new node's element constructed, a
+// removed node's element destroyed before RemoveAt frees the node.
+template <typename Elements, typename List>
+typename List::Node* NewElementNode(List& list, typename List::Node* prev, typename List::Node* next) {
+    typename List::Node* node = list.NewNode(prev, next);
+    Elements::Construct(&node->data, 1);
+    return node;
+}
+template <typename Elements, typename List>
+void RemoveElement(List& list, typename List::Node* node) {
+    Elements::Destruct(&node->data, 1);
+    list.RemoveAt(node);
 }
 } // namespace
 
 ScriptDecl* ScriptDecls::PopHead(ScriptDecl* out) {
-    auto* list = As<gamelists::Decls>(this);
-    gamelists::CopyConstructDecl(out, &list->head->data);
-    list->RemoveAt(list->head);
+    gamelists::CopyConstructDecl(out, &head->data);
+    RemoveElement<gamelists::DeclElements>(*this, head);
     return out;
 }
 EI_REWRITTEN(0x004C69B0, ScriptDecls::PopHead);
 
 ScriptDefinition* ScriptInstances::PopHead(ScriptDefinition* out) {
-    auto* list = As<gamelists::Definitions>(this);
-    gamelists::CopyConstructDefinition(out, &list->head->data);
-    list->RemoveAt(list->head);
+    gamelists::CopyConstructDefinition(out, &head->data);
+    RemoveElement<gamelists::DefinitionElements>(*this, head);
     return out;
 }
 EI_REWRITTEN(0x004C7A10, ScriptInstances::PopHead);
 
 ScriptRun* ScriptRuns::PopHead(ScriptRun* out) {
-    auto* list = As<gamelists::Runs>(this);
-    gamelists::CopyConstructRun(out, &list->head->data);
-    list->RemoveAt(list->head);
+    gamelists::CopyConstructRun(out, &head->data);
+    RemoveElement<gamelists::RunElements>(*this, head);
     return out;
 }
 EI_REWRITTEN(0x004C82B0, ScriptRuns::PopHead);
 
 ScriptInstances::Node* ScriptInstances::PushHead(const ScriptDefinition* value) {
-    auto* list = As<gamelists::Definitions>(this);
-    gamelists::Definitions::Node* node = list->NewNode(nullptr, list->head);
+    Node* node = NewElementNode<gamelists::DefinitionElements>(*this, nullptr, head);
     node->data.ScriptDefinitionAssign(value);
-    return reinterpret_cast<Node*>(gamelists::LinkHead(list, node));
+    return gamelists::LinkHead(this, node);
 }
 EI_REWRITTEN(0x004C7C90, ScriptInstances::PushHead);
 
 ScriptTempObjects::Node* ScriptTempObjects::PushHead(const ScriptObjectRef* value) {
-    auto* list = As<gamelists::ObjectRefs>(this);
-    gamelists::ObjectRefs::Node* node = list->NewNode(nullptr, list->head);
+    Node* node = NewElementNode<gamelists::ObjectRefElements>(*this, nullptr, head);
     gamearrays::ReleaseAndClear(&node->data);
     CEngineObject* object = value->object;
     node->data.object = object;
     if (object) ++object->refCount_;
-    return reinterpret_cast<Node*>(gamelists::LinkHead(list, node));
+    return gamelists::LinkHead(this, node);
 }
 EI_REWRITTEN(0x004C9210, ScriptTempObjects::PushHead);
 
 ScriptObjectRef* ScriptTempObjects::PopTail(ScriptObjectRef* out) {
-    auto* list = As<gamelists::ObjectRefs>(this);
-    CEngineObject* object = list->tail->data.object;
+    CEngineObject* object = tail->data.object;
     if (object) ++object->refCount_;   // a temporary copy
-    list->RemoveAt(list->tail);
+    RemoveElement<gamelists::ObjectRefElements>(*this, tail);
     out->object = object;
     if (object) {
         ++object->refCount_;
@@ -210,25 +219,22 @@ ScriptObjectRef* ScriptTempObjects::PopTail(ScriptObjectRef* out) {
 EI_REWRITTEN(0x004C9100, ScriptTempObjects::PopTail);
 
 ScriptTempGroups::Node* ScriptTempGroups::PushHead(const ScriptGroup* value) {
-    auto* list = As<gamelists::Groups>(this);
-    gamelists::Groups::Node* node = list->NewNode(nullptr, list->head);
+    Node* node = NewElementNode<gamelists::GroupElements>(*this, nullptr, head);
     node->data.CopyFrom(*value);
-    return reinterpret_cast<Node*>(gamelists::LinkHead(list, node));
+    return gamelists::LinkHead(this, node);
 }
 EI_REWRITTEN(0x004C8CE0, ScriptTempGroups::PushHead);
 
 ScriptTempGroups::Node* ScriptTempGroups::PushTail(const ScriptGroup* value) {
-    auto* list = As<gamelists::Groups>(this);
-    gamelists::Groups::Node* node = list->NewNode(list->tail, nullptr);
+    Node* node = NewElementNode<gamelists::GroupElements>(*this, tail, nullptr);
     node->data.CopyFrom(*value);
-    return reinterpret_cast<Node*>(gamelists::LinkTail(list, node));
+    return gamelists::LinkTail(this, node);
 }
 EI_REWRITTEN(0x004C8D80, ScriptTempGroups::PushTail);
 
 ScriptGroup* ScriptTempGroups::PopTail(ScriptGroup* out) {
-    auto* list = As<gamelists::Groups>(this);
-    gamelists::CopyConstructGroup(out, &list->tail->data);
-    list->RemoveAt(list->tail);
+    gamelists::CopyConstructGroup(out, &tail->data);
+    RemoveElement<gamelists::GroupElements>(*this, tail);
     return out;
 }
 EI_REWRITTEN(0x004C8AF0, ScriptTempGroups::PopTail);

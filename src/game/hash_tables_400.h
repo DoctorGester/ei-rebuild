@@ -1,60 +1,49 @@
 #pragma once
 
-// The hash tables: the STLport hashtable layout of the one-dword-key tables and the
-// rewritten functions over it.
+// The hash tables of one-dword keys: the id tables' members and the registries' constructor and destructors.
 
 #include "chunk_archive.h"
 #include "net_classes.h"
 
-#include <cstdint>
-#include <type_traits>
 
 namespace hash400 {
 
-// An id table: a hash_map of a one-dword key and value (0x14 bytes) and the highest key inserted.
-struct Table {
-    using Map = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
-    void ObjectsSetAt(const std::int32_t* key, const std::uint32_t* value);
-    std::uint32_t ObjectsRemoveKey(const std::uint32_t* key);
-    int ObjectsLookup(const std::uint32_t* key, std::uint32_t* value);
-    std::uint32_t PositionsRemoveKey(const std::uint32_t* key);
-    std::uint32_t* ObjectsFind(const std::uint32_t* key);
-    std::uint32_t* PositionAt(const std::int32_t* key);
-    std::uint32_t* SpareCountAt(const std::int32_t* key);
-    Map map;
-    std::int32_t maxKey;
-};
-static_assert(sizeof(Table::Map) == 0x14 && offsetof(Table, maxKey) == 0x14);
+// The id tables: an owner's hash_map of a one-dword key, the highest key inserted kept by the owner in the member
+// after it (CBaseManager's tables, the worlds' object maps, the client world's dynamic nodes), with the MFC-style
+// members the game's instantiations give them.
 
-// An owner's hash_map of a one-dword key and value, followed by its highest key, as an id table.
+// operator[] keeping the highest key: `key`'s value, a new {key, 0} entry when there is none.
 template <typename Map>
-Table* AsTable(Map* map) {
-    static_assert(sizeof(Map) == 0x14);
-    return reinterpret_cast<Table*>(map);
+typename Map::mapped_type& Entry(Map& map, int& maxKey, int key) {
+    if (key > maxKey) maxKey = key;
+    return map.FindOrInsert({static_cast<typename Map::key_type>(key), {}})->value;
 }
-
-// The id tables' members for an owner's hash_map of a one-dword key and a pointer: operator[], the position
-// table's RemoveKey (the value, null when there is none), the objects table's RemoveKey and find (the value's
-// address or null). operator[] keeps the highest key in the word after the map, like the original.
-template <typename K, typename V, typename H>
-V& PositionAt(stlp::hash_map<K, V, H>& map, std::int32_t key) {
-    static_assert(sizeof(K) == 4 && std::is_pointer_v<V>);
-    return *reinterpret_cast<V*>(AsTable(&map)->PositionAt(&key));
+template <typename Map>
+void SetAt(Map& map, int& maxKey, int key, typename Map::mapped_type value) {
+    Entry(map, maxKey, key) = value;
 }
-template <typename K, typename V, typename H>
-V PositionsRemoveKey(stlp::hash_map<K, V, H>& map, std::uint32_t key) {
-    static_assert(sizeof(K) == 4 && std::is_pointer_v<V>);
-    return reinterpret_cast<V>(AsTable(&map)->PositionsRemoveKey(&key));
+// RemoveKey: `key`'s value (zero when there is none), its entry erased.
+template <typename Map>
+typename Map::mapped_type RemoveKey(Map& map, typename Map::key_type key) {
+    auto* node = map.Find(key);
+    if (!node) return {};
+    typename Map::mapped_type value = node->value;
+    map.Erase(node);
+    return value;
 }
-template <typename K, typename V, typename H>
-V ObjectsRemoveKey(stlp::hash_map<K, V, H>& map, std::uint32_t key) {
-    static_assert(sizeof(K) == 4 && std::is_pointer_v<V>);
-    return reinterpret_cast<V>(AsTable(&map)->ObjectsRemoveKey(&key));
+// Lookup: 1 with `key`'s value in `value`, or 0.
+template <typename Map>
+int Lookup(const Map& map, typename Map::key_type key, typename Map::mapped_type& value) {
+    auto* node = map.Find(key);
+    if (!node) return 0;
+    value = node->value;
+    return 1;
 }
-template <typename K, typename V, typename H>
-V* ObjectsFind(stlp::hash_map<K, V, H>& map, std::uint32_t key) {
-    static_assert(sizeof(K) == 4 && std::is_pointer_v<V>);
-    return reinterpret_cast<V*>(AsTable(&map)->ObjectsFind(&key));
+// The address of `key`'s value, or null.
+template <typename Map>
+typename Map::mapped_type* Find(Map& map, typename Map::key_type key) {
+    auto* node = map.Find(key);
+    return node ? &node->value : nullptr;
 }
 
 void* __fastcall ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry);

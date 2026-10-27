@@ -69,13 +69,6 @@ ObjectNode* AddTail(ObjectList* list, CEngineObject* object) {
     return node;
 }
 
-// The id tables' operator[] that keeps the highest key.
-template <typename Map>
-typename Map::Node* InsertKey(Map& table, int& maxKey, int key) {
-    if (key > maxKey) maxKey = key;
-    return table.FindOrInsert({static_cast<decltype(Map::Pair::key)>(key), {}});
-}
-
 // The id of an object registered without one: maxId_ + 1 while that stays inside [idLow_,
 // idHigh_), else a random one in that range that `find` does not find (100000 tries; then the
 // fatal "out of ids" message and -1).
@@ -237,7 +230,7 @@ void CBaseManager::FreeAllFiles() {}
 
 CEngineObject* CBaseManager::CreateObject(int type, int id) {
     CEngineObject* object = nullptr;
-    if (InsertKey(spareCounts_, maxSpareCountType_, type)->value > 0) {
+    if (hash400::Entry(spareCounts_, maxSpareCountType_, type) > 0) {
         if (SpareMap::Node* found = spares_.Find(type)) {
             ObjectList* spares = found->value;
             if (spares->count != 0) object = spares->RemoveHead();
@@ -254,15 +247,15 @@ CEngineObject* CBaseManager::CreateObject(int type, int id) {
         if (!objects_.Find(static_cast<unsigned>(chosen))) {   // Lookup
             objectList_.AddTail(object);
             ObjectNode* tail = objectList_.tail;
-            InsertKey(positions_, maxPositionId_, chosen)->value = tail;
+            hash400::Entry(positions_, maxPositionId_, chosen) = tail;
         }
-        InsertKey(objects_, maxId_, chosen)->value = object;   // SetAt
+        hash400::SetAt(objects_, maxId_, chosen, object);
         object->id_ = chosen;
         lastId_ = chosen;
     } else {
         if (!objects_.Find(static_cast<unsigned>(id))) {
             ObjectNode* position = AddTail(&objectList_, object);
-            InsertKey(positions_, maxPositionId_, id)->value = position;
+            hash400::Entry(positions_, maxPositionId_, id) = position;
         }
         if (id > maxId_) maxId_ = id;
         objects_[static_cast<unsigned>(id)] = object;
@@ -341,15 +334,15 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
     ObjectMap::Node* found = objects_.Find(static_cast<unsigned>(id));
     if (found && found->value == object) {
         if (objects_.Find(static_cast<unsigned>(id))) {   // Lookup
-            hash400::ObjectsRemoveKey(objects_, static_cast<unsigned>(id));
-            if (auto* position = hash400::PositionsRemoveKey(positions_, static_cast<unsigned>(id)))
+            hash400::RemoveKey(objects_, static_cast<unsigned>(id));
+            if (auto* position = hash400::RemoveKey(positions_, id))
                 objectList_.RemoveAt(position);
         }
     }
     if (SpareMap::Node* spare = spares_.Find(type)) {
         AddTail(spare->value, object);
         object->id_ = -1;
-        int count = InsertKey(spareCounts_, maxSpareCountType_, type)->value + 1;
+        int count = hash400::Entry(spareCounts_, maxSpareCountType_, type) + 1;
         if (type > maxSpareCountType_) maxSpareCountType_ = type;
         spareCounts_[type] = count;
         return 0;

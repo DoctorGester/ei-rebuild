@@ -47,14 +47,14 @@ struct LeverRecordTable {
     // every record in the index under its name. Returns 1, or the fatal error's result when the archive
     // or the file does not open.
     int Load(const char* folder);
-    // No records, an empty index of 193 buckets (the prime after 100). Returns this.
-    LeverRecordTable* Construct();
+    // No records, an empty index of 193 buckets (the prime after 100).
+    LeverRecordTable();
+    // The index (its nodes, then the bucket storage), then the records and their storage.
+    ~LeverRecordTable();
     // The record filed under `name`, or null; like the index's operator[], an unknown name gets a null entry.
     LeverRecord* Named(const char* name) { return stlp::NamedSlot<LeverRecord>(byName, stlp::string(name)); }
 
-    LeverRecord* begin;
-    LeverRecord* end;
-    LeverRecord* endOfStorage;
+    stlp::vector<LeverRecord> records;
     NameIndex byName;
 };
 static_assert(offsetof(LeverRecordTable, byName) == 0x0C && sizeof(LeverRecordTable) == 0x20);

@@ -12,6 +12,7 @@
 #include "base_manager.h"
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "effects.h"        // CRainSnow
 #include "engine_object.h"
 #include "manager_context.h"
 #include "ground_print.h"
@@ -270,6 +271,13 @@ struct CountedPtrs : mfc::CArray<T*> {
     void CopyFrom(const CountedPtrs& source);
     // By-value GetAt: element `index` into `out` with one more reference. Returns out.
     T** CopyAt(T** out, int index) const;
+    // The destructor's body: each pointer released, then the storage freed.
+    void ReleaseAll() {
+        if (!this->data) return;
+        for (int i = 0; i < this->size; ++i)
+            if (T* object = this->data[i]) object->Release();
+        gamecrt::operator_delete(this->data);
+    }
 };
 using EngineObjectPtrs = CountedPtrs<CEngineObject>;
 
@@ -834,7 +842,6 @@ struct HitCollector {
     ScreenHits* hits;
 };
 
-class CRainSnow;
 
 class CLightningManager;
 // The visibility fog's manager ("CVisFogManager", class id 0x60): a counted object and a CList.
@@ -1178,11 +1185,9 @@ public:
     int constant6E8_;                     // 0 from the constructor; nothing in the exe reads it
     int ticksRun_;                        // Segment's count; AddObject fades units in when >= 1
     float tickFraction_;                  // added to the tick for the units' time (network client)
-    // The rain / snow layer, built and destroyed in place with the world. Its `mode` (1 rain, 2 snow) picks
-    // the ground prints' wet look and an environment flag.
-    alignas(4) std::uint8_t rainSnow_[0xC8];
-    CRainSnow* RainSnow() { return reinterpret_cast<CRainSnow*>(rainSnow_); }
-    const CRainSnow* RainSnow() const { return reinterpret_cast<const CRainSnow*>(rainSnow_); }
+    // The rain / snow layer, built and destroyed with the world. Its `mode` (1 rain, 2 snow) picks the ground
+    // prints' wet look and an environment flag.
+    CRainSnow rainSnow_;
     stlp::list<int> list7BC_;             // the selected objects' ids
     int worldValue_;                      // -1; message 0x12 sets it (SetWorldValue); the exe never reads it
     int constants7C4_[3];                 // 0 from the constructor; nothing in the exe reads them
