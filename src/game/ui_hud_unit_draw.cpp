@@ -73,7 +73,9 @@ void ClearDepthRects(CTextureDevice* renderer, RECT* rects, float z) {
     DWORD flags = D3DCLEAR_ZBUFFER;
     if (uidevice::HasStencil(renderer)) flags = D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL;
     gameapi::EnterCriticalSection(TheDeviceLock());
-    renderer->lastLoadResult_ = device::Clear(D3DDevice(renderer), kClearedRects, reinterpret_cast<D3DRECT*>(rects), flags, 0, z, 0);
+    D3DRECT cleared[kClearedRects];
+    for (DWORD i = 0; i < kClearedRects; ++i) cleared[i] = {rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
+    renderer->lastLoadResult_ = device::Clear(D3DDevice(renderer), kClearedRects, cleared, flags, 0, z, 0);
     gameapi::LeaveCriticalSection(TheDeviceLock());
     render::Rect mirrored[kClearedRects];
     for (DWORD i = 0; i < kClearedRects; ++i)

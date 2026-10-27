@@ -80,7 +80,7 @@ void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, M
     std::memcpy(&out->m[15], &kOne, 4);
 }
 
-int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
+int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     if (object->flags_ & kObjectNotDrawn) return 1;
     std::uint32_t anyDirty = 0;
     CTransformPipeline* pipeline = context->pipeline_;
@@ -201,8 +201,8 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
         object->flags_ &= ~kObjectStatic;
     }
     if (dirty) {
-        std::memcpy(object->dirtyRect, &drawnRect, sizeof(RECT));
-        std::memcpy(dirty, object->dirtyRect, sizeof(RECT));
+        object->dirtyRect = drawnRect;
+        *dirty = object->dirtyRect;
     }
     if (anyDirty) object->flags_ |= kObjectDirty;
     else object->flags_ &= ~kObjectDirty;

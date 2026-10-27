@@ -66,7 +66,7 @@ EI_REWRITTEN(0x00516460, CObject3D::DrawFigure);
 
 int CObject3D::DrawCollectDirty(CSceneRenderer* context) {
     gameapi::SetRectEmpty(DirtyRect());
-    return attached ? Specific()->DrawParts(context, dirtyRect) : 1;
+    return attached ? Specific()->DrawParts(context, &dirtyRect) : 1;
 }
 EI_REWRITTEN(0x00516420, CObject3D::DrawCollectDirty);
 

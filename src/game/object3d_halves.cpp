@@ -104,13 +104,13 @@ EI_REWRITTEN(0x0051E1C0, MatrixSetIdentity);
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------
 
 // Nothing is drawn; 0.
-int CObject3DSpecific::DrawParts(CSceneRenderer* /*context*/, int* /*dirty*/) { return 0; }
+int CObject3DSpecific::DrawParts(CSceneRenderer* /*context*/, tagRECT* /*dirty*/) { return 0; }
 EI_REWRITTEN(0x0051AC60, CObject3DSpecific::DrawParts);
 int CObject3DSpecific::DrawPartsShadow(CSceneRenderer*) { return 0; }
 EI_REWRITTEN(0x0051AC70, CObject3DSpecific::DrawPartsShadow);
 int CObject3DSpecific::BoundsContainPoint(const long*) { return 0; }
 EI_REWRITTEN(0x0051AC90, CObject3DSpecific::BoundsContainPoint);
-int CObject3DSpecific::PartsIntersectRect(const long*) { return 0; }
+int CObject3DSpecific::PartsIntersectRect(const tagRECT*) { return 0; }
 EI_REWRITTEN(0x0051ACB0, CObject3DSpecific::PartsIntersectRect);
 int CObject3DSpecific::PartsContainPoint(const long*) { return 0; }
 EI_REWRITTEN(0x0051ACA0, CObject3DSpecific::PartsContainPoint);

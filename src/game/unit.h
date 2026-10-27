@@ -567,9 +567,9 @@ struct UnitVitals {
     // points, not below -5 times the maximum. Returns 1.
     BOOL TakeHit(const DamageInfo* hit);
     // Zeroes everything but the first dword.
-    void* Reset();
+    void Reset();
     // The values rounded to nearest into `out`.
-    void* Pack(UnitVitalsPacked* out);
+    void Pack(UnitVitalsPacked* out);
 
     int builtFlags;                     // bit 0 set when built from the prototype
     int regenTicks;                 // counts 1..15

@@ -18,12 +18,6 @@ namespace {
 const char* PersonPattern() { return "pers *"; }
 constexpr int kPersonPrefixLength = 5;                                               // "pers "
 
-// What the insert puts in: the key and the text.
-struct PersonTextPair {
-    int key;
-    mfc::CString text;
-};
-
 } // namespace
 
 void LoadPersonTexts(PersonTextMap* map) {
@@ -42,9 +36,8 @@ void LoadPersonTexts(PersonTextMap* map) {
         PersonTextNode* node = map->lower_bound(key);
         if (node == map->end() || key < node->first) {
             std::string empty;
-            PersonTextPair pair{key, empty};
-            static_cast<lib_trees::PersonTexts*>(map)->InsertHint(&node, node, *(
-                                               reinterpret_cast<const lib_trees::PersonTexts::Value*>(&pair)));
+            const PersonTextMap::Value pair{key, empty};   // the key and the text
+            static_cast<lib_trees::PersonTexts*>(map)->InsertHint(&node, node, pair);
         }
         node->second = line;
     }

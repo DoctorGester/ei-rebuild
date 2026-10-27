@@ -228,7 +228,7 @@ int __fastcall QueueScreenEntry(CMapObject* object, stlp::list<ScreenEntry>* que
     ScreenEntry entry;
     entry.classId = object->GetClassId();
     entry.objectId = static_cast<unsigned>(object->id_);
-    for (int i = 0; i < 4; ++i) entry.rect[i] = figure->dirtyRect[i];
+    entry.rect = figure->dirtyRect;
     stlp::list<ScreenEntry>::Insert(queued->head, entry);
     return 1;
 }

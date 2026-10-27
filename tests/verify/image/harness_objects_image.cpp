@@ -129,10 +129,7 @@ int ScreenRect(void* world, int id, RECT* rect) {
     int found = 0;
     for (const ScreenEntryNode* node = entries.First(); node && node != entries.End(); node = node->next) {
         if (static_cast<int>(node->data.objectId) != id) continue;
-        rect->left = node->data.rect[0];
-        rect->top = node->data.rect[1];
-        rect->right = node->data.rect[2];
-        rect->bottom = node->data.rect[3];
+        *rect = node->data.rect;
         found = 1;
     }
     return found;

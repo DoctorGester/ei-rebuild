@@ -283,6 +283,7 @@ public:
     void ResetSavedState();
 };
 static_assert(offsetof(CInterface3D, mouseCapture_) == 0x0C);
+static_assert(offsetof(CInterface3D, ctrlDown_) == 0x7C && offsetof(CInterface3D, altDown_) == 0x7E);
 static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
 static_assert(offsetof(CInterface3D, hudPanelsIn_) == 0x89 && offsetof(CInterface3D, hudTopPage_) == 0x90);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94 && offsetof(CInterface3D, messages_) == 0x84);

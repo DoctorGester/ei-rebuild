@@ -65,7 +65,7 @@ float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 miles::SampleCallback EndOfSampleCallback() { return ei::Code<miles::SampleCallback>(0x006B75E0); }
 
 // The slot of the wave's cache list node (its record's uses counts the voices playing it).
-WaveNode*& CacheEntry(stlp::NameMap& cache, const SoundSlot* slot) { return stlp::NamedSlot<WaveNode>(cache, slot->name); }
+WaveNode*& CacheEntry(WaveCache& cache, const SoundSlot* slot) { return stlp::NamedSlot<WaveNode>(cache, slot->name); }
 // May rehash first.
 void SetDeferred(DeferredMap& deferred, std::int32_t handle, DeferredSound* rec) {
     deferred.FindOrInsert({handle, nullptr})->value = rec;
@@ -1184,8 +1184,8 @@ void PushBack(WaveList& list, const WaveRecord* record) {
 void CacheSet(CSoundManager* m, const stlp::string* key, WaveNode* node) { stlp::NamedSlot<WaveNode>(m->cache, *key) = node; }
 
 // A cached wave: moved to the front with one more use and the time of now, then given to the voice.
-void UseCached(CSoundManager* m, SoundSlot* slot, const stlp::string* key, const char* name, const stlp::NameMap::Node* cached) {
-    WaveNode* node = *reinterpret_cast<WaveNode* const*>(cached->value.mapped);
+void UseCached(CSoundManager* m, SoundSlot* slot, const stlp::string* key, const char* name, const WaveCache::Node* cached) {
+    WaveNode* node = cached->value;
     WaveRecord record = node->data;
     Unlink(m->cacheList, node);
     mfc::impl::FreeNodeAs<gamelists::Waves>(&m->cacheList, node);
@@ -1223,7 +1223,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
 // Returns 0 when no archive has the file or the decompression fails.
 int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, int compressed) {
     stlp::string key(name);   // freed on each return
-    const stlp::NameMap::Node* cached = cache.Find(key);
+    const WaveCache::Node* cached = cache.Find(key);
     if (cached != nullptr) {
         if (compressed == 0) UseCached(this, slot, &key, name, cached);
     } else {

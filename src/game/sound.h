@@ -151,6 +151,7 @@ static_assert(sizeof(WaveRecord) == 0x1C);
 using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
 using WaveNode = WaveList::Node;
 static_assert(sizeof(WaveNode) == 0x24);
+using WaveCache = stlp::hash_map<stlp::string, WaveNode*, stlp::StringHash>;
 // Miles' ASISTAGE (mss.h): the ASI codec's stream functions and the handles of the attributes it reports.
 struct AsiStage {
     void*(__stdcall* open)(void* user, void* read, int size);       // ASI_stream_open
@@ -252,7 +253,7 @@ struct CSoundManager : CEngineObject {
     SoundSequence sequences[8];
     std::int32_t cacheBytes;            // bytes held by the wave cache
     WaveList cacheList;                 // the cached waves, most recently used first
-    stlp::NameMap cache;                // wave name -> its cache list node (WaveNode*)
+    WaveCache cache;                    // wave name -> its cache list node
     DeferredMap deferred;
     std::int32_t enabled;
     std::int32_t spare;                 // 0 after Reset; nothing reads it

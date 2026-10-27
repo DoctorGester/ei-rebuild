@@ -20,6 +20,11 @@
 #include <cstring>
 
 namespace scene {
+
+// The qsort comparators (defined at the end).
+int __cdecl CompareCornerRecords(const void* a, const void* b);
+int __cdecl CompareWordPairs(const void* a, const void* b);
+
 namespace {
 
 // The mesh fields written here: corners, pairs and cornerIndices (SceneMesh, scene_loader.h).
@@ -51,8 +56,6 @@ using RecordArray = mfc::CArray<CornerRecord>;
 // The game's qsort and the two comparators: records by vertex, position, texture as ints; pairs by
 // their two words, unsigned.
 void __cdecl GameQsort(void* a0, unsigned a1, unsigned a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }
-auto* const kCompareRecords = reinterpret_cast<int(__cdecl*)(const void*, const void*)>(0x0044CF00);
-auto* const kComparePairs = reinterpret_cast<int(__cdecl*)(const void*, const void*)>(0x0044CF60);
 
 template <typename MapT>
 MapT NewMap(void* vtable) { return MapT{vtable, nullptr, 17, 0, nullptr, nullptr, 10}; }
@@ -113,7 +116,7 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
             Lookup(indices, key) = static_cast<std::uint32_t>(r.index);
         }
     }
-    GameQsort(records.data, static_cast<unsigned>(records.size), sizeof(CornerRecord), kCompareRecords);
+    GameQsort(records.data, static_cast<unsigned>(records.size), sizeof(CornerRecord), CompareCornerRecords);
 
     mesh->corners.SetSize(records.size);
     for (int i = 0; i < records.size; ++i) {
@@ -159,7 +162,7 @@ void BuildPairs(SceneMesh* mesh) {
             list.data[at] = pair;
         }
     }
-    GameQsort(list.data, static_cast<unsigned>(list.size), 4, kComparePairs);
+    GameQsort(list.data, static_cast<unsigned>(list.size), 4, CompareWordPairs);
     if (list.size & 3) {
         int missing = 4 - (list.size & 3);
         const std::uint32_t last = list.data[list.size - 1];   // words: vertex, position
