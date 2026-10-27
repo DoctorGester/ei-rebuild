@@ -183,12 +183,12 @@ void SessionBase::OnMaster(const NetAddress*, BufferCursor*) { LogText(game::net
 EI_REWRITTEN(0x00436CF0, SessionBase::RemoveClient);
 EI_REWRITTEN(0x00437080, SessionBase::OnUpdate);
 EI_REWRITTEN(0x00437240, SessionBase::OnLeave);
-EI_REWRITTEN(0x004371E0, SessionBase::OnGetInfo);    // slot 4, kind 3
-EI_REWRITTEN(0x00437210, SessionBase::OnLogin);      // slot 5, kind 4
-EI_REWRITTEN(0x004372B0, SessionBase::OnInfo);       // slot 7, kind 5
-EI_REWRITTEN(0x004372E0, SessionBase::OnAccepted);   // slot 8, kind 6
-EI_REWRITTEN(0x00437310, SessionBase::OnRejected);   // slot 9, kind 7
-EI_REWRITTEN(0x00437340, SessionBase::OnMaster);     // slot 10, kind -1
+EI_REWRITTEN(0x004371E0, SessionBase::OnGetInfo);
+EI_REWRITTEN(0x00437210, SessionBase::OnLogin);
+EI_REWRITTEN(0x004372B0, SessionBase::OnInfo);
+EI_REWRITTEN(0x004372E0, SessionBase::OnAccepted);
+EI_REWRITTEN(0x00437310, SessionBase::OnRejected);
+EI_REWRITTEN(0x00437340, SessionBase::OnMaster);
 
 } // namespace net
 
@@ -283,7 +283,7 @@ SessionBase::~SessionBase() {
     ClientNode* sentinel = clients_;
     for (ClientNode* node = sentinel->next; node != clients_;) {
         ClientNode* next = node->next;
-        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();   // With 0: RefPtr::Destroy
+        reinterpret_cast<RefPtr*>(&node->connection)->Destroy();
         stlp::deallocate(node, sizeof(ClientNode));
         node = next;
         if (node == clients_) break;

@@ -23,7 +23,7 @@ public:
     // field 2.
     void Serialize(ChunkArchive* ar) override;
 
-    PartyStorage party;         // the party
+    PartyStorage party;
     mfc::CString name;          // "" for the unnamed record
 
     CParty* Party() { return party.Get(); }

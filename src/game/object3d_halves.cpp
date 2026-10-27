@@ -107,7 +107,6 @@ EI_REWRITTEN(0x0051E1C0, MatrixSetIdentity);
 // Nothing is drawn; 0.
 int CObject3DSpecific::DrawParts(void* /*context*/, int* /*dirty*/) { return 0; }
 EI_REWRITTEN(0x0051AC60, CObject3DSpecific::DrawParts);
-// Slot 20 and slots 22-24: 0.
 int CObject3DSpecific::DrawPartsShadow(void*) { return 0; }
 EI_REWRITTEN(0x0051AC70, CObject3DSpecific::DrawPartsShadow);
 int CObject3DSpecific::BoundsContainPoint(const long*) { return 0; }
@@ -116,8 +115,7 @@ int CObject3DSpecific::PartsIntersectRect(const long*) { return 0; }
 EI_REWRITTEN(0x0051ACB0, CObject3DSpecific::PartsIntersectRect);
 int CObject3DSpecific::PartsContainPoint(const long*) { return 0; }
 EI_REWRITTEN(0x0051ACA0, CObject3DSpecific::PartsContainPoint);
-// Nothing. One byte (the empty destroy step the containers of
-// plain elements call): too short to hook, registered so the address is known.
+// The empty destroy step the containers of plain elements call.
 void __fastcall SpecificBaseNothing(CObject3DSpecific*) {}
 EI_REPLACE(0x0051AC80, SpecificBaseNothing);
 void __cdecl DestroyNothing() {}

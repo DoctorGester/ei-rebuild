@@ -28,7 +28,7 @@ public:
     virtual CBaseManager* FigureManager() { return nullptr; }            // the world's manager3C_
     virtual CItemConstructor* ItemConstructor() { return nullptr; }
     virtual CSpellConstructor* SpellConstructor() { return nullptr; }
-    virtual CItemManager* ItemFactory() { return nullptr; }              // the item manager
+    virtual CItemManager* ItemFactory() { return nullptr; }
     virtual CMapObjectManager* MapObjectManager() { return nullptr; }
     virtual CPlayerManager* PlayerList() { return nullptr; }
     // The side-specific halves' manager (the client's is a CClientSpecificManager; it makes

@@ -473,7 +473,7 @@ bool ShadowCastStrength(CObject3D* object, float* strength) {
     if (ShadowMode() <= 0) return false;
     if (!ShadowSwitch(object->GetClassId())) return false;
     if (object->flags_ & kObjectHidden) return false;
-    if (ObjectSlots(object)->InvisibleSlot()) return false;   // invisible
+    if (ObjectSlots(object)->InvisibleSlot()) return false;
     *strength = 1.0f;
     if (CUnit* unit = UnitOrNull(object)) *strength = unit->ClientController()->fadeIn;
     return true;

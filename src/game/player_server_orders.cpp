@@ -69,7 +69,7 @@ static_assert(sizeof(CastAtObject) == 0xD && sizeof(CastAtPoint) == 0x15 && size
 } // namespace
 
 int CPlayerServer::OnLeave() {
-    Leave();   // slot 16 (LeaveAndFlush)
+    Leave();
     return 1;
 }
 

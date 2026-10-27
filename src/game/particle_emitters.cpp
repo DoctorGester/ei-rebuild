@@ -332,7 +332,7 @@ int CParticleSource::EmitLightning(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     if (points[0].bolt.emitted < elementCount * 2) return EmitAlongBolt(this, p, points);
     p->state = 0;
-    if (particles.count < 200 && points[0].ticks < 5) return EmitBurst(this, p, points);   // bursts
+    if (particles.count < 200 && points[0].ticks < 5) return EmitBurst(this, p, points);
     return EmitSpark(this, p);
 }
 EI_REWRITTEN(0x004923B0, CParticleSource::EmitLightning);
@@ -418,7 +418,7 @@ namespace {
 #define EI_SPARK_SCALE 0.55f /*0073CF60*/
 #define EI_POINT_SIX 0.6f /*0073CDE0*/
 #define EI_POINT_NINE 0.9f /*0073CD70*/
-#define EI_PI 3.1415927f /*0073CAF0*/                // pi
+#define EI_PI 3.1415927f /*0073CAF0*/
 #define EI_FEEBLE_SPEED 0.05000000074505806 /*0073CF90*/     // 0.05
 #define EI_SCALE_0_2 4.6566139843846196e-11 /*0073CED8*/        // ~0.2 * 2^-32
 #define EI_FEEBLE_SIZE 0.035f /*0073CF8C*/
