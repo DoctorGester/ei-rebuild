@@ -1,14 +1,11 @@
-// CParticleSource set-up: Create (vtable slot 2, 00485540), Reset and Clear (vtable
-// slot 3, 00484710). Names are provisional.
-// Create resets the source, then fills the per-type parameters by `type_` (0x2000-0x2052, the
-// script names are the table at 0078B120): emission rates, lifetime, spread, sizes, the three
-// callbacks (+0x1E0 emit, +0x1E4 update, +0x1E8 element), the element array some types keep, and
-// the texture. Last it loads the texture (kind 6, by name) and builds one UV rectangle per texture
-// frame (the frames are a grid of `frameColumns` columns).
-// The callbacks are member pointers to our rewrites (CParticleSource's EmitCallback, UpdateCallback,
-// ElementCallback: plain code addresses, as in the original).
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float.
+// CParticleSource set-up: Create, Reset and Clear. Names are provisional. Create resets the source, then fills
+// the per-type parameters by `type_` (0x2000-0x2052; the script names are a table in the game's data):
+// emission rates, lifetime, spread, sizes, the three callbacks (emit, update, element), the element array
+// some types keep, and the texture. Last it loads the texture (kind 6, by name) and builds one UV rectangle
+// per texture frame (the frames are a grid of `frameColumns` columns). The callbacks are member pointers to
+// our rewrites (CParticleSource's EmitCallback, UpdateCallback, ElementCallback: plain code addresses, as in
+// the original). Floating point follows the original's x87 code: `double` for values the original keeps on
+// the FPU stack, static_cast<float> where it stores to a float.
 #include "effects.h"
 #include "map_object_figures.h"
 #include "texture.h"
@@ -52,7 +49,7 @@ double Unsigned(std::uint32_t value) {
 #define EI_SCALE_0_4 9.313226580990458e-11 /*0073CCB0*/     // ~0.4 * 2^-32
 #define EI_RING_STEP 0.62832 /*0073CC98*/     // 0.62832 (2 pi / 10)
 
-// 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
+// IsaacRandom::Range leaves its result unrounded in ST0.
 double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
 // Releases the texture in `holder`, then finds (or creates) the texture resource `name`
@@ -66,9 +63,9 @@ constexpr Quaternion kIdentityRotation = /*007A9C30*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 void SetBits(void* field, std::uint32_t bits) { std::memcpy(field, &bits, sizeof(bits)); }
 
-// The element array's SetSize(n) as the original inlines it (MFC CArray: data +0x154, size
-// +0x158, max +0x15C, grow by +0x160). After Reset the array is always empty, so only the first
-// branch (allocate exactly n) and the n == 0 branch can run; the others are kept as written.
+// The element array's SetSize(n) as the original inlines it (MFC CArray). After Reset the array is always
+// empty, so only the first branch (allocate exactly n) and the n == 0 branch can run; the others are kept as
+// written.
 void SetElementCount(CParticleSource* s, int n) {
     if (n == 0) {
         if (s->elements) {
@@ -811,8 +808,8 @@ void CParticleSource::Reset() {
 }
 EI_REWRITTEN(0x004847E0, CParticleSource::Reset);
 
-// 00484710 (vtable slot 3). Returns every particle to the pool, releases the texture, detaches
-// from the object the source follows, then resets.
+// Clear (the destroy virtual). Returns every particle to the pool, releases the texture, detaches from the
+// object the source follows, then resets.
 void CParticleSource::Clear() {
     ReleaseAllParticles();
     CTexture* held = texture;
@@ -824,8 +821,7 @@ void CParticleSource::Clear() {
 }
 EI_REWRITTEN(0x00484710, CParticleSource::Clear);
 
-// 00485540 (vtable slot 2). Sets the source up for its type; 1, or for an unknown type the fatal
-// error report's result.
+// Create. Sets the source up for its type; 1, or for an unknown type the fatal error report's result.
 int CParticleSource::Create() {
     Reset();
     std::uint32_t farBound = 0x47C35000;     // 100000.0f
@@ -858,14 +854,12 @@ namespace {
 
 } // namespace
 
-// The class factory's creator (in the table at 0073F67C; the register arguments are not
-// used, `type` is the source type): a new 0x1F0-byte source on the game's heap (null when that
-// fails) with the engine object and transform bases (two identity rotations at +0x34 / +0x44), an
-// empty element array, bounds, particle list (blocks of 10), frame rectangles and texture holder,
-// then Reset and the type. The original's EH frame only unwinds the member constructors, none of
-// which can throw.
-// A source never attached emits distance / emitSpacing tries (each a GlobalRandom draw) from the
-// emission point it was allocated with, so the memory comes zeroed.
+// The class factory's creator (the register arguments are not used, `type` is the source type): a new
+// 0x1F0-byte source on the game's heap (null when that fails) with the engine object and transform bases (two
+// identity rotations), an empty element array, bounds, particle list (blocks of 10), frame rectangles and
+// texture holder, then Reset and the type. The original's EH frame only unwinds the member constructors, none
+// of which can throw. A source never attached emits distance / emitSpacing tries (each a GlobalRandom draw)
+// from the emission point it was allocated with, so the memory comes zeroed.
 void* CParticleSource::operator new(std::size_t size) noexcept { return gamecrt::operator_new_zeroed(size); }
 
 CParticleSource::CParticleSource(int type) {
@@ -884,7 +878,7 @@ CParticleSource::CParticleSource(int type) {
     particles.head = nullptr;
     particles.blocks = nullptr;
     particles.blockSize = 10;
-    // 00498E20 (the frame rectangle array) and 004983F0 (the texture holder) only zero their fields.
+    // The frame rectangle array and the texture holder only zero their fields.
     frames.data = nullptr;
     frames.growBy = 0;
     frames.capacity = 0;
@@ -925,18 +919,16 @@ int CParticleSource::GetClassId() { return 12; }
 EI_REWRITTEN(0x004982D0, CParticleSource::GetClassName);
 EI_REWRITTEN(0x004982E0, CParticleSource::GetClassId);
 
-// 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310, 004957D0, 00495A20, 00496260,
-// The element callbacks that do nothing (RET 4 each, no Ghidra functions), one per type that
-// stores one (Stench and the spheres, ZoneExit, PortalStar, FireStar, Sparks, VisionStar, Regeneration,
-// Silence, FeebleMind, Stun, CurseStars).
+// The element callbacks that do nothing (RET 4 each), one per type that stores one (Stench and the spheres,
+// ZoneExit, PortalStar, FireStar, Sparks, VisionStar, Regeneration, Silence, FeebleMind, Stun, CurseStars).
 void CParticleSource::TickNone(ParticleElement*) {}
 
 namespace ei::short_functions {
 void __stdcall Ret4(std::uint32_t);   // src/game/short_functions.cpp
 } // namespace ei::short_functions
 using ei::short_functions::Ret4;
-// The original's no-op element callbacks: Create stores TickNone instead, so nothing in the image calls
-// these any more; registered as before so the image keeps code at the addresses.
+// The original's no-op element callbacks: Create stores TickNone instead, so nothing in the image calls these
+// any more; registered so the image keeps code at the addresses.
 EI_REPLACE_SHORT(0x00485530, Ret4);
 EI_REPLACE_SHORT(0x00492FB0, Ret4);
 EI_REPLACE_SHORT(0x00493DD0, Ret4);

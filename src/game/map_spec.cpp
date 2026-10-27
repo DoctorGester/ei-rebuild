@@ -124,7 +124,7 @@ EI_REWRITTEN_SPECIAL(0x0046A5C0, ObjectSpec::ObjectSpec);
 ObjectSpec::~ObjectSpec() { parts.Destruct(); }
 EI_REWRITTEN_SPECIAL(0x0046AEB0, ObjectSpec::~ObjectSpec);
 EI_REWRITTEN_SPECIAL(0x0046A6F0, ObjectSpec::~ObjectSpec);
-EI_REWRITTEN_SPECIAL(0x0058EDF0, ObjectSpec::~ObjectSpec);   // the twin 0073FA58's (UseQuickItem; A-W14)
+EI_REWRITTEN_SPECIAL(0x0058EDF0, ObjectSpec::~ObjectSpec);   // the quick item effect record's twin (UseQuickItem)
 EI_REWRITTEN_SPECIAL(0x0058EDD0, ObjectSpec::~ObjectSpec);
 
 // The original goes through a temporary copy of the base record; CStrings share their data either
@@ -449,7 +449,7 @@ void LeverSpec::OnChunk() {
 }
 EI_REWRITTEN(0x0046BF20, LeverSpec::OnChunk);
 
-// ---- 0046A4B0: rotating a vector -----------------------------------------------------------------
+// ---- Rotating a vector ---------------------------------------------------------------------------
 
 } // namespace mapspec
 
@@ -471,10 +471,10 @@ EI_REWRITTEN(0x0046A4B0, Quaternion::Rotate);
 
 namespace mapspec {
 
-// ---- 0046E5E0: the zone's diplomacy table --------------------------------------------------------
+// ---- The zone's diplomacy table ------------------------------------------------------------------
 
-// The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader 00481660): every
-// pair 1 but a player with itself (0), and the player names "Player-<i>". Returns this.
+// The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader): every pair 1 but a player
+// with itself (0), and the player names "Player-<i>". Returns this.
 ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
     mfc::CStringArray* names = &self->names;
     names->Construct();

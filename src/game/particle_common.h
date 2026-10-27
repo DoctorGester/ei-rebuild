@@ -1,10 +1,9 @@
 #pragma once
 
-// Helpers shared by the particle callback files (particle_callbacks*.cpp): x87 rounding, the game's
-// constants and random generator, and the helpers they call. Include after effects.h.
-// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
-// stack, static_cast<float> where it stores to a float; constants the original reads from memory
-// are read from the exe at run time.
+// Helpers shared by the particle callback files (particle_callbacks*.cpp): x87 rounding, the game's constants
+// and random generator, and the helpers they call. Include after effects.h. Floating point follows the
+// original's x87 code: `double` for values the original keeps on the FPU stack, static_cast<float> where it
+// stores to a float; constants the original reads from memory are read from the exe at run time.
 
 #include "effects.h"
 #include "map_object.h"
@@ -47,10 +46,10 @@ inline std::uint32_t Bits(const void* field) {
 
 inline std::uint32_t Next() { return IsaacRandom::Global().Next(); }
 
-// 00488970 IsaacRandom::Range: leaves the result unrounded in ST0.
+// IsaacRandom::Range: leaves the result unrounded in ST0.
 inline double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
-// 00564070 CWorldClient::RawSurfaceHeightAt(x, y) on the client world 007AF5B8 (ST0).
+// CWorldClient::RawSurfaceHeightAt(x, y) on the client world (ST0).
 inline double GroundHeight(float x, float y) { return TheClientWorld()->RawSurfaceHeightAt(x, y); }
 
 // x87 "FCOMP; FNSTSW; SHL 0x17; SAR 0x1F" selects: C0 (a < b or unordered) picks `a`.
@@ -59,8 +58,7 @@ inline float PickIfLess(float a, float b) { return a >= b ? b : a; }
 // The game's debug message (cdecl, one argument; compiled out, other mods may hook it).
 inline void __cdecl DebugMessage(const char* a0) { game::DebugLog(a0); }
 
-// The element array's inlined SetSize(n) (MFC CArray: data +0x154, size +0x158, max +0x15C,
-// grow by +0x160; 32-byte aligned blocks from 00497EB0).
+// The element array's inlined SetSize(n) (MFC CArray; 32-byte aligned blocks).
 inline void SetElementCount(CParticleSource* s, int n) {
     if (n == 0) {
         if (s->elements) {
@@ -97,7 +95,7 @@ inline void SetElementCount(CParticleSource* s, int n) {
 // The attached object as a map object: the callbacks call its slots past CObject3D's (the
 // carriers are units).
 inline CMapObject* Carrier(CObject3D* object) { return static_cast<CMapObject*>(object); }
-// The attached object's class (slot 12) and its radius (slot 60; units +0x328: the unit's size).
+// The attached object's class and its radius (units: the unit's size).
 inline int ClassOf(CObject3D* object) { return object->GetClassId(); }
 inline double UnitScale(CObject3D* object) { return Carrier(object)->Radius(); }
 
