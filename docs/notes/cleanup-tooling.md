@@ -81,7 +81,13 @@ with them. What is left calls game.exe's own code in its runs: tests/verify (`ha
 some targets: `tests/vectors/replay_unlinked.cpp` stops each one the replay never reaches (`EI_UNLINKED`) or stands in for it.
 Since H30 nothing of ours runs in game.exe's runs (the harness calls game.exe's own heap, rand seed and functions there;
 the host heap once crashed 104 of the original's runs when the harness freed blocks the game allocated), so crt.cpp's
-heap and rand seed are the image's only.
+heap and rand seed are the image's only. Since H30b nothing of ours decides what the harness reads there either: it
+reads game.exe's objects through its own views (tests/verify/exe_objects.h, our member names at game.exe's offsets as
+they were at the split) and calls game.exe's virtuals at game.exe's slots, and reaches our classes only in the image
+(tests/verify/image). A cleanup that reorders, retypes or renames members of ours (C14a and later) changes neither
+the original's runs nor the reference cache's key (tools/check_harness_key.py); when a cleanup renames a member, the
+view may keep the old name. Of src/ game.exe's side still builds from src/hook (but standalone_main.cpp), rebirth.cpp,
+image_data.cpp with image_cells.inc, game_data.h, gameapi.h with import_table.h, and stlp_algo.h.
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 
