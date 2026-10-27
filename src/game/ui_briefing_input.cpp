@@ -68,7 +68,7 @@ const char* NoZone() { return "none"; }
 const char* ZoneVariablePrefix() { return "z."; }
 
 // The server's unit with the id of a client object, or null.
-CUnit* ServerUnit(int id) { return static_cast<CWorld*>(TheServerWorld())->FindUnit(id); }
+CUnit* ServerUnit(int id) { return TheServerWorld()->FindUnit(id); }
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
@@ -176,7 +176,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (node == personTexts_.end()) return;
         CUiSurface* label = surfaces_.data[1];
         UiSurfaceGetDC(label);
-        static_cast<CUiSurface*>(label)->Clear();
+        label->Clear();
         RECT rect{0, 0, 0, 0};
         label->DrawTextIn(node->second, &rect, kTextFormat, kLabelColour, 1, 1);
         UiSurfaceReleaseDC(label);
@@ -250,7 +250,7 @@ void CBriefingScreen::DrawTopics() {
     TheTextManager()->GetString(TopicPrefixKey(), &prefix);
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
-    static_cast<CUiSurface*>(surface)->Clear();
+    surface->Clear();
     int row = topicTop_;
     for (int bottom = kRowTextFirstBottom; bottom < kRowTextEnd; bottom += kRowHeight, ++row) {
         if (row >= topics_.size) break;

@@ -44,7 +44,7 @@ bool SoundBusy(int handle) {
 }
 
 void SetTalking(const CUnit* unit, bool talking) {
-    CEngineObject* serverUnit = static_cast<CWorld*>(TheServerWorld())->FindUnit(unit->id_);
+    CEngineObject* serverUnit = TheServerWorld()->FindUnit(unit->id_);
     if (!serverUnit) return;
     if (talking) serverUnit->flags_ |= kFlagTalking;
     else serverUnit->flags_ &= ~kFlagTalking;

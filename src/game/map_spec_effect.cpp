@@ -45,7 +45,7 @@ void Notify(const char* kind, const char* family) { EffectNotify(mfc::CString(ki
 
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
-    static_cast<CWorldServer*>(TheServerWorld())->CreateObject(self);
+    TheServerWorld()->CreateObject(self);
     self->effect = Effects()->FindObject(self->id);
 }
 

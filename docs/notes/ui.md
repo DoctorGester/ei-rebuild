@@ -1,7 +1,7 @@
 # User interface (005E0000-00670000)
 
 What is rewritten, scenario preconditions, hazards, original bugs kept, what is left. Layouts and per-function behaviour
-are in the headers and code (`ui.h`, `ui_camp.h`, `ui_screens.h`, `ui_item_info.h`, `ui_mesh_build.h`, `ui_cursor.h`,
+are in the headers and code (`ui.h`, `ui_camp.h`, `ui_screens.h`, `ui_item_info.h`, `ui_cursor.h`,
 `ui_gdi.h`, `console.h`); every rewritten function carries its address in the source (grep the address), so this file
 no longer lists them one by one. Files are in `src/game/`, wrappers in `tests/verify/verify_<file>.cpp`. Verify: **S**
 side by side (the original runs first, its state recorded and put back, then ours), **O** ours only (the original
@@ -572,7 +572,7 @@ record, modifier descriptions reached by none): `DescribeStats` (005F1590, 4.9 K
 `DescribeCarriedSpell`, `DescribeMaterial`, `DescribeSpellRecord`, `DescribeQuickItem`, `DescribeModifierRecord`, `ShowHelp`,
 `Draw`, `Describe`, `OnKeyDown` / `OnKeyUp` (`key ctrl`), `Build` (O); `ItemDamageLists` 005F13A0 (EI_Plugin patches a JMP at
 +0x61: ours runs in vanilla only; S); `CItemScreen::DrawItem` 005ECA10 (S; drawn twice per frame in the verify build);
-`CUiMeshBuilder` `Framed`, `Ring` (RET 0x2C), `Disc` (RET 0x24), `ResetColours` (`ui_mesh_build.cpp`; Commit's +0xC4 compared as
+`CUiMesh` `Framed`, `Ring` (RET 0x2C), `Disc` (RET 0x24), `ResetColours` (`ui_mesh_build.cpp`; Commit's +0xC4 compared as
 "points at the current indices"; S with arrays poisoned 0xCD; every scenario); surface helpers `CaptureScreen`, `Rgb565Copy`
 (the save picture), `Greyscale` ((2r + 4g + b) / 16), `SwapContents` (O), `PixelAt` (`ui_surface_pixels.cpp`; S; ui_screens),
 constructors / destructor body (`ui_surface_create.cpp`; O; the picture window is dead); `DrawHeroFace` 005ED7B0 (EI_Plugin's

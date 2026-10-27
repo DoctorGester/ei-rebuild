@@ -115,7 +115,7 @@ int CWorldServer::Update() {
             lib::InPlace<ScriptGroup> storage;
             ScriptGroup* group = globals.groups.CopyAt(storage.Get(), i);
             heroes.CopyFrom(*group);
-            static_cast<ScriptGroup*>((void*)storage.Get())->DestructBody();
+            storage.Get()->DestructBody();
             break;
         }
     }

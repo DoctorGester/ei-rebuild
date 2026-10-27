@@ -18,7 +18,6 @@
 #include <cstring>
 #include <initializer_list>
 #include <string>
-#include "ui_mesh_build.h"
 #include "unit.h"
 #include "combat.h"
 #include "game_data.h"
@@ -256,17 +255,6 @@ EI_REWRITTEN(0x00623880, CHeroStatsPanel::DrawStats);
 
 namespace {
 
-// Sprite builders (CUiMesh): a framed rectangle (not patched), a strip of
-// `count` framed cells (Rebirth-patched; called through its address).
-struct SpriteBuild {
-    void Framed(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
-                int v0, int u1, int v1);
-    void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
-               int v1, int count, int flag);
-};
-void SpriteBuild::Framed(float a0, float a1, float a2, float a3, float a4, float a5, float a6, int a7, int a8, int a9, int a10) { reinterpret_cast<CUiMeshBuilder*>(this)->Framed(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10); }
-void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { static_cast<CUiMesh*>((void*)this)->SetGridVanilla(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
-SpriteBuild* Builder(CUiMesh* sprite) { return reinterpret_cast<SpriteBuild*>(sprite); }
 
 void SetPlainFlag(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 
@@ -291,7 +279,7 @@ void BuildCellGrid(CUiWindow* window) {
                                   static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
             picture->texture_ = texture;
             CUiMesh* frame = window->AddSprite(0);
-            Builder(frame)->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
+            frame->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
                                    static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
             frame->texture_ = texture;
             AddRect(window, RECT{left, top, right, bottom});
@@ -312,7 +300,7 @@ void CHeroEquipPanel::Build(bool body) {
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, 0, x + 100, 100});
     for (int i = 0; i < 2; ++i) {
         CUiMesh* frame = AddSprite(0);
-        Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+        frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
         SetPlainFlag(frame);
         frame->flatColour_ = 0xFF8B8B37;
         frame->texture_ = nullptr;
@@ -321,13 +309,13 @@ void CHeroEquipPanel::Build(bool body) {
     // The slots' frames: four on the left half, four on the right, each half with its strip.
     float cell = 100.0f /*0073BAB0*/;
     for (int i = 0; i < 4; ++i)
-        Builder(AddSprite(0))->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
+        AddSprite(0)->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0xE, 0xE, 0x72, 0x72);
-    Builder(AddSprite(0))->Cells(16.0f, 100.0f, 0.0f, 0.0f, 400.0f, 100.0f, 0xE, 0xE, 0x72, 0x72, 4, 1);
+    AddSprite(0)->SetGridVanilla(16.0f, 100.0f, 0.0f, 0.0f, 400.0f, 100.0f, 0xE, 0xE, 0x72, 0x72, 4, 1);
     for (int i = 4; i < 8; ++i)
-        Builder(AddSprite(0))->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
+        AddSprite(0)->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0x8E, 0xE, 0xF2, 0x72);
-    Builder(AddSprite(0))->Cells(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
+    AddSprite(0)->SetGridVanilla(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
     if (body_) {
         const int* xs = kBodySlotX;
         const int* ys = kBodySlotY;
@@ -455,12 +443,12 @@ void CHeroQuickStrip::Build(bool top) {
     mode_ = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, y_, x + 100, y_ + 100});
     CUiMesh* frame = AddSprite(0);
-    Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flatColour_ = 0xFF8B8B37;
     SetPlainFlag(frame);
     frame->texture_ = nullptr;
     frame->visible_ = 0;
-    Builder(AddSprite(0))->Cells(16.0f, 100.0f, 0.0f, static_cast<float>(y_), 800.0f, static_cast<float>(y_ + 100), 0xE,
+    AddSprite(0)->SetGridVanilla(16.0f, 100.0f, 0.0f, static_cast<float>(y_), 800.0f, static_cast<float>(y_ + 100), 0xE,
                                  0x8E, 0x72, 0xF2, 8, 1);
     selected_ = -1;
 }
@@ -484,7 +472,7 @@ void AddMakerPictures(CConstructorPage* page) {
         picture->texture_ = page->objects_.data[i];
     }
     CUiMesh* frame = page->AddSprite(0);
-    Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flatColour_ = 0x96FFFFFF;
     SetPlainFlag(frame);
     frame->texture_ = nullptr;

@@ -99,7 +99,7 @@ std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
 
 float Radius(CEngineObject* object) { return ObjectSlots(object)->Radius(); }
 int IsDead(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
-void AttackParamsOf(CUnitServer* controller, AttackParams* out) { static_cast<CUnitController*>(controller)->GetAttackParams(out); }
+void AttackParamsOf(CUnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
 // The original's branch-free max(0, v): v when 0 < v or v is NaN, else +0.
 float MaxZero(float v) { return v <= kZero ? kZero : v; }

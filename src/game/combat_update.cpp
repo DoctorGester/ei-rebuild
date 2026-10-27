@@ -198,7 +198,7 @@ int CUnitServer::RunTick() {
                 if (!player || player->Server()->refreshPending_ != 0) {
                     bored = 0;
                 } else {
-                    PlayerMessage(ConnectionOf(player), unit, kRemarkBored);
+                    PlayerMessage(player->Server(), unit, kRemarkBored);
                     bored = 400;
                 }
             }
@@ -531,8 +531,8 @@ void CUnitServer::TickAction() {
             auto* particle = static_cast<CEffectParticle*>(effect);
             particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
             particle->size_ = 1.0f;
-            static_cast<CEffectParticle*>(effect)->SetAttachedTo(unit->id_);
-            static_cast<CWorldServer*>(world)->AddTimedObject(effect);
+            particle->SetAttachedTo(unit->id_);
+            world->AddTimedObject(effect);
             CEngineObject* old = effectObject;
             effectObject = effect;
             if (effect) ++effect->refCount_;

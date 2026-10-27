@@ -5,7 +5,7 @@
 // static_cast<float>). The circle points use FCOS/FSIN of an angle the original computes on the FPU
 // stack and never stores; they are computed by the same instruction sequence in inline assembly, so
 // they round the same way whatever the FPU's precision. Constants are read from the exe's memory.
-#include "ui_mesh_build.h"
+#include "ui.h"
 
 #include "lib/containers.h"
 #include "ei/hook.h"
@@ -113,7 +113,7 @@ float CircleTexel(int j, int n, bool sine, int radius, int centre) {
 
 } // namespace
 
-void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, float right, float bottom, float border,
+void CUiMesh::Framed(float depth, float scale, float left, float top, float right, float bottom, float border,
                             int u0, int v0, int u1, int v1) {
     ResetVertexColours(this);
     // How far the inner edge lies in texels: the border's share of the width (height) of the texels.
@@ -196,9 +196,9 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
 }
-EI_REWRITTEN(0x005E8450, CUiMeshBuilder::Framed);
+EI_REWRITTEN(0x005E8450, CUiMesh::Framed);
 
-void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radius, int count, int u, int v,
+void CUiMesh::Disc(float depth, float scale, float x, float y, float radius, int count, int u, int v,
                           int uvRadius) {
     ResetVertexColours(this);
     SetVertexCount(count);
@@ -235,9 +235,9 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
     ei::Code<void(__thiscall*)(CUiMesh*, float)>(0x005E7060)(this, s);
     NudgeAndCommit(this);
 }
-EI_REWRITTEN(0x005E8C60, CUiMeshBuilder::Disc);
+EI_REWRITTEN(0x005E8C60, CUiMesh::Disc);
 
-void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radius, int count, float width, int u0,
+void CUiMesh::Ring(float depth, float scale, float x, float y, float radius, int count, float width, int u0,
                           int v0, int u1, int v1) {
     ResetVertexColours(this);
     // Four vertices per segment: outer and inner point of its start and of its end (texture corners
@@ -311,10 +311,10 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
 }
-EI_REWRITTEN(0x005E91F0, CUiMeshBuilder::Ring);
+EI_REWRITTEN(0x005E91F0, CUiMesh::Ring);
 
-void CUiMeshBuilder::ResetColours() { ResetVertexColours(this); }
+void CUiMesh::ResetColours() { ResetVertexColours(this); }
 namespace {
-void __fastcall MeshResetColours(CUiMeshBuilder* self) { self->ResetColours(); }
+void __fastcall MeshResetColours(CUiMesh* self) { self->ResetColours(); }
 } // namespace
 EI_REWRITTEN(0x005E9F30, MeshResetColours);

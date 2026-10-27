@@ -105,7 +105,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
     int after = party.size - index - 1;
     if (after != 0) std::memmove(&party.data[index], &party.data[index + 1], after * sizeof(party.data[0]));
     --party.size;
-    static_cast<CHudPortraits*>(portraits_)->Rebuild(0);
+    portraits_->Rebuild(0);
     RefreshSelection();
 }
 EI_REWRITTEN(0x006364E0, CBattleScreen::OnUnitLeft);
@@ -180,7 +180,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         party.SetSize(count + 1, -1);
         party.data[count] = unit;
     }
-    static_cast<CHudPortraits*>(portraits_)->Rebuild(0);
+    portraits_->Rebuild(0);
     if (selected) {
         TheClientWorld()->Select(unit);
         MarkPortrait(place);

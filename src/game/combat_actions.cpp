@@ -87,8 +87,8 @@ CUnit* FirstOtherPartyMember(CPlayer* player, const CUnit* self) {
 } // namespace
 
 // Player messages: message `code` about `unit`.
-void PlayerMessage(void* messages, CUnit* unit, int code) {
-    static_cast<CPlayerServer*>(messages)->SendObject0B(unit, code);
+void PlayerMessage(CPlayerServer* messages, CUnit* unit, int code) {
+    messages->SendObject0B(unit, code);
 }
 
 void CUnitServer::DropQueuedOrder() {
@@ -402,7 +402,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         CUnit* looted = UnitOrNull(target);
         if (!looted) return;
         if (CPlayer* player = unit->player) TheServerWorld()->Loot(looted, player);
-        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(target->id_);
+        TheServerWorld()->RemoveObject(target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
         return;

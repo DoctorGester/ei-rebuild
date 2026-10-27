@@ -223,7 +223,7 @@ EI_REWRITTEN(0x0046AB20, ObjectSpec::OnChunk);
 
 void ObjectSpec::Remove() {
     if (object) {
-        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(id);
+        TheServerWorld()->RemoveObject(id);
         object = nullptr;
     }
     Apply();
@@ -239,7 +239,7 @@ EI_REWRITTEN(0x0046AFA0, ObjectSpec::Refresh);
 
 void ObjectSpec::Apply() {
     if (!object) {
-        static_cast<CWorldServer*>(TheServerWorld())->CreateObject(this);
+        TheServerWorld()->CreateObject(this);
         return;
     }
     Selection()->BeginRefresh();
@@ -284,10 +284,10 @@ EI_REWRITTEN_SPECIAL(0x0046B1F0, FlameSpec::~FlameSpec);
 
 void FlameSpec::Apply() {
     if (object) {
-        static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(id);
+        TheServerWorld()->RemoveObject(id);
         object = nullptr;
     }
-    static_cast<CWorldServer*>(TheServerWorld())->CreateObject(this);
+    TheServerWorld()->CreateObject(this);
 }
 EI_REWRITTEN(0x0046B310, FlameSpec::Apply);
 

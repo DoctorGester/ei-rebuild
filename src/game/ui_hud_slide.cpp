@@ -8,7 +8,6 @@
 #include "map_object.h"
 #include "object_tables.h"
 #include "ui_gdi.h"
-#include "ui_mesh_build.h"
 #include "ui_widescreen.h"
 #include "unit.h"
 #include "world.h"
@@ -360,8 +359,6 @@ const MapRecord* LocalZone() {
     return TheMapDatabase()->FindMap(*LocalPlayerName(&name));
 }
 
-CUiMeshBuilder* Builder(CUiMesh* sprite) { return static_cast<CUiMeshBuilder*>(sprite); }
-
 void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
     sprite->texture_ = nullptr;
     sprite->flags_ |= kPlainColour;
@@ -435,13 +432,13 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     bounds->tint_[0] = bounds->tint_[1] = bounds->tint_[2] = 0.8f;
     bounds->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * BoundsScale()));
     CUiMesh* area = AddSprite(nullptr);
-    Builder(area)->Disc(14.0f, 80.0f, 700.0f, 80.0f, 64.0f, kOutlinePoints, 0x80, 0x80, 0x80);
+    area->Disc(14.0f, 80.0f, 700.0f, 80.0f, 64.0f, kOutlinePoints, 0x80, 0x80, 0x80);
     area->texture_ = objects_.data[1];
     area->tint_[0] = area->tint_[1] = area->tint_[2] = 1.0f;
     CUiMesh* markers = AddSprite(nullptr);
     markers->PlaceBody(700.0f, 80.0f, 12.0f);
     markers->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * MarkersScale()));
-    Builder(markers)->ResetColours();
+    markers->ResetColours();
     markers->SetUvCount(4);
     const UiTexel markerTexels[4] = {
         {0.9375f, 0.984375f}, {0.953125f, 0.984375f}, {0.96875f, 0.984375f}, {0.984375f, 0.984375f}};
@@ -462,7 +459,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     // 11: "camera north".
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 100.0f, 800.0f, 130.0f, 0x19, 0x3E, 0x2D, 0x5C);
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 130.0f, 800.0f, 160.0f, 3, 0x3E, 0x17, 0x5C);
-    Builder(AddSprite(nullptr))->Ring(10.0f, 60.0f, 700.0f, 80.0f, 66.0f, kOutlinePoints, 3.0f, 0x1B, 0x6B, 0x5B, 0x70);
+    AddSprite(nullptr)->Ring(10.0f, 60.0f, 700.0f, 80.0f, 66.0f, kOutlinePoints, 3.0f, 0x1B, 0x6B, 0x5B, 0x70);
     AddSprite(nullptr)->SetFrame(10.0f, 80.0f, 615.0f, -5.0f, 805.0f, 165.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
     CUiMesh* needle = AddSprite(kArrowSprite);
     needle->textureOffsetU_ = 0.22265625f;

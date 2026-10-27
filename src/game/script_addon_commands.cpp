@@ -173,7 +173,7 @@ bool Loot(Call* call) {
     if (!unit) return Report("Loot", "Object must be a unit");
     if (unit->IsDead() == 0) return Report("Loot", "Object must be dead");
     TheServerWorld()->Loot(unit, player);
-    static_cast<CWorldServer*>(TheServerWorld())->RemoveObject(unit->id_);
+    TheServerWorld()->RemoveObject(unit->id_);
     return true;
 }
 

@@ -428,7 +428,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     float orderDistance = static_cast<float>(ActionDistance(&order));
     float reach = Select(distance, orderDistance, distance, orderDistance);
 
-    void* victimStats = &victim->ServerController()->stats;
+    UnitStats* victimStats = &victim->ServerController()->stats;
     float myBase = static_cast<float>(unit->GroundHeight(x, y) + z);
     float mySize = static_cast<float>(unit->DoubleHeight());
     float theirBase = static_cast<float>(victim->GroundHeight(aim.x, aim.y) + aim.z);
@@ -440,9 +440,9 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     std::uint32_t source = action.source;
     if (source == 6) {
         int around = kSkillLocations[IsaacRandom::Global().Next() % 20];
-        location = static_cast<UnitStats*>(victimStats)->PickLocation(around);
+        location = victimStats->PickLocation(around);
     } else if (static_cast<int>(source) < 0 || static_cast<int>(source) >= kLocationCount) {
-        location = static_cast<UnitStats*>(victimStats)->PickLocation(kLocationBody);
+        location = victimStats->PickLocation(kLocationBody);
     } else {
         location = static_cast<int>(source);
     }

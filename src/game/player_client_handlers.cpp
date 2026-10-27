@@ -42,7 +42,7 @@ const char* FixedViewZone() { return "gz20g"; }
 // An identity rotation.
 constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};   // the identity (a static initialiser)
 
-CUnit* FindClientUnit(int id) { return static_cast<CWorld*>(TheClientWorld())->FindUnit(id); }
+CUnit* FindClientUnit(int id) { return TheClientWorld()->FindUnit(id); }
 
 
 } // namespace
