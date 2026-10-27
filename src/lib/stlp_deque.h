@@ -1,14 +1,7 @@
 #pragma once
 
-// STLport's deque<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md,
-// section 2).
-// 0x28 bytes: the start and finish iterators (cur, first, last, node), the map of node pointers and
-// its size; the allocator proxies are empty bytes inside the map words (the constructor writes them
-// and then zeroes the words). Nodes hold 512 / sizeof(T) elements (one for larger T). Only trivially
-// destructible T: the game's instantiations destroy nothing. Instantiations: the camera's view stack
-// (0x24-byte entries, 14 per 0x1F8-byte node; camera.h keeps its own layout) and the material's
-// (0x10-byte entries, 32 per 0x200-byte node; material.h). The members are registered at the
-// instantiations' addresses in stlp_deque.cpp through the DequeAbi shims.
+// STLport's deque<T> as compiled into game.exe, for trivially destructible T only. Layout and
+// instantiations: docs/notes/standalone.md, "The image's source files".
 
 #include "stlp_alloc.h"
 

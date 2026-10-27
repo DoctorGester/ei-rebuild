@@ -134,13 +134,8 @@ void MapAbi<K, V>::Serialize(CArchive* ar) {
 }
 
 // ---- Compiler-made vtables -------------------------------------------------------------------
-// The collection templates keep the vtable as a plain field (mfc.h): an instantiation's Class tag names the
-// table its constructor and destructor store (`Class::Vtable()`). A tag that is a CompiledCollection is a C++
-// class whose vtable the compiler makes in place of game.exe's table (docs/notes/standalone.md,
-// "Compiler-made vtables"): CObject's three slots (GetRuntimeClass, the destructor `Destroy`, Serialize
-// (`Store`)) over the header's layout. Our code calls the header's functions by name; the slots are what a
-// dispatch through the table reaches. A tag derived from another is the derived instantiation's (its
-// destructor ends in the base's, which stores the base's table).
+// An instantiation's Class tag names the table its constructor and destructor store. See
+// docs/notes/standalone.md, "The image's source files".
 
 // CObject::GetRuntimeClass: CObject's record (mfc_runtime_class.h's kClassCObject; mfc_coll.cpp).
 struct CRuntimeClass;

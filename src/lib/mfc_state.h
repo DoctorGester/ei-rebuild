@@ -1,15 +1,7 @@
 #pragma once
 
-// MFC 4.2's thread and process locals (afxtls.cpp) and its system metrics record AUX_DATA (afxData,
-// auxdata.cpp), as far as the exe's static initialisers and exit functions reach them (docs/notes/standalone.md).
-// The thread and process locals are globals MFC fills on first use (_afxThreadState, _afxBaseModuleState and
-// the others); the exit functions free them through the destructors here. afxData is built by a static
-// initialiser and its menu-dot bitmap deleted at exit. The header also holds what the other static initialisers
-// call: AfxClassInit (the runtime class list of the module state), MFC's global locks, _afxDBCS's initialiser
-// and wingdix.cpp's halftone brush (an atexit that deletes it). The image has a stand-in module state with the
-// members used so far (ImageModuleState). Every body is registered at its library address (mfc_state.cpp); in
-// the image nothing fills the locals (the handle maps are thread_local, mfc_gdi.cpp), so their destructors find
-// an empty slot or object.
+// MFC 4.2's thread and process locals (afxtls.cpp), its AUX_DATA (afxData) and what the other static
+// initialisers call. See docs/notes/standalone.md, "The image's source files".
 
 #include <cstddef>
 #include <cstdint>

@@ -1,13 +1,7 @@
 #pragma once
 
-// MFC 4.2's handle maps (winhand.cpp) and what they are built from: CMapPtrToPtr (map_pp.cpp),
-// CRuntimeClass::CreateObject and the new handler MFC swaps around its allocations (docs/notes/standalone.md
-// section 2). A handle map finds the C++ object of a Windows handle: the permanent map holds the objects that
-// attached their handle (a CPen, a CFont), the temporary map the objects FromHandle made for the others (a
-// CTempDC for a surface's DC, a CTempGdiObject for a stock pen). The game has no CWinApp, so nothing ever
-// empties the temporary maps (no OnIdle). Every body is registered at its library address
-// (mfc_handle_map.cpp); the maps live in MFC's module thread state, which the image replaces with its own
-// (mfc_gdi.cpp).
+// MFC 4.2's handle maps (winhand.cpp): the C++ object of a Windows handle. Nothing ever empties the temporary
+// maps (no CWinApp, no OnIdle). See docs/notes/standalone.md, "The image's source files".
 
 #include "crt.h"
 #include "mfc.h"

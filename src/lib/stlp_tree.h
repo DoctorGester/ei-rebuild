@@ -1,15 +1,7 @@
 #pragma once
 
-// STLport's red-black tree (_Rb_tree, map, multimap, set) as compiled into game.exe (stlp.h
-// includes it; docs/notes/standalone.md, section 2). The STLport of the exe is SGI's 3.x tree:
-// _M_insert(x, y, v) without the later hint argument, the hint insert falling back to
-// insert_unique(v), erase(key) through equal_range.
-// A tree is 0xC bytes: the header node (from the node pool; its parent is the root, its left /
-// right the leftmost / rightmost node, red), the element count and the empty compare object (one
-// byte). Nodes are color (a bool: red 0, black 1, in a dword whose other bytes are left as the
-// allocation had them), parent, left, right, then the value. The node-only algorithms
-// (_Rb_global<bool>: increment, decrement, the rotations and both rebalances) are one body each in
-// stlp_tree.cpp, registered at their addresses.
+// STLport's red-black tree (_Rb_tree, map, multimap, set) as compiled into game.exe: SGI's 3.x tree. Layout:
+// docs/notes/standalone.md, "The image's source files".
 
 #include "stlp_alloc.h"
 

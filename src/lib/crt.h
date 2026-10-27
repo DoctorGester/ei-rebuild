@@ -240,8 +240,8 @@ struct Exception {
 };
 static_assert(sizeof(Exception) == 12);
 
-// The runtime the hook build keeps sharing with the exe (registered with EI_REPLACE_STANDALONE): the
-// heap (the modern CRT's in the image), operator new's handler loop, the atexit list and exit.
+// The runtime the image owns (registered with EI_REPLACE_STANDALONE): the heap (the modern CRT's), operator
+// new's handler loop, the atexit list and exit.
 void* __cdecl OperatorNew(std::size_t size);
 void __cdecl OperatorDelete(void* p);
 void* __cdecl Malloc(std::size_t size);

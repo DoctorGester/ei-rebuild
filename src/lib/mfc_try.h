@@ -6,16 +6,7 @@
 // is `{ AFX_EXCEPTION_LINK link; try { ... } catch (CFileException* e) { link.m_pException = e;
 // ... } }`. The link's destructor (AfxTryCleanup) deletes the exception it was given and takes the
 // link off the thread's chain, after the handler has run.
-// A rewrite writes exactly that. What makes it work across the two C++ runtimes:
-// - a throw is `throw` of a pointer to one of the classes below: this compiler makes the throw
-//   information, which lists the pointer to the class and to each base like the game's did
-//   (".PAVCFileException@@", ".PAVCException@@", ".PAVCObject@@", ".PAX");
-// - a handler matches a thrown object when the type descriptors are the same object or carry the
-//   same decorated name. So the classes are in the global namespace under the game's names and have
-//   its bases; nothing else of them is used (they are never made here: the objects are the game's
-//   MFC objects, thrown through a cast pointer);
-// - the unwind runs the frames between the throw and the handler through their frame handlers
-//   (RtlUnwind), then ours.
+// Why that works across the two C++ runtimes: docs/notes/standalone.md, "The image's source files".
 // It happens in the game when a missing file makes CStdioFile's constructor throw and the handler in
 // script_text_file.cpp catches.
 

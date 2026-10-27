@@ -1,15 +1,7 @@
 #pragma once
 
-// STLport's hashtable (hash_map / hash_set) as compiled into game.exe (docs/notes/standalone.md, section 2);
-// the library body the instantiations' own addresses are registered to (stlp_hash.cpp).
-// Layout (0x14 bytes): the hasher, key_equal and key extractor (empty, one byte each, then a pad
-// byte), the bucket vector (vector<Node*>, stlp_vector.h) and the element count, which STLport
-// keeps in the node allocator's proxy. A node is the next pointer followed by the value; its size
-// picks the pool's free list, so each instantiation's node type comes from its node-creation code.
-// Order: bucket counts are STLport's primes (NextPrime, stlp.cpp: the first of the 28 primes not
-// below the hint, else the last), a key lands in bucket hash(key) % buckets, a new node goes to the
-// head of its bucket, and iteration walks the buckets in order and each chain from its head. A
-// rehash (resize) moves each old bucket's chain, head first, to the head of its new bucket.
+// STLport's hashtable (hash_map / hash_set) as compiled into game.exe. Its layout and iteration order (which
+// game code depends on): docs/notes/standalone.md, "The image's source files".
 
 #include "crt.h"
 #include "mfc.h"
