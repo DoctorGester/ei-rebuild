@@ -42,13 +42,11 @@ constexpr int kClassServerObject = 0x39;
 constexpr int kSlotArms = 2;
 constexpr int kSlotLegs = 3;
 
-// Effect types read here (MapEffect::type).
 constexpr std::uint32_t kEffectStrengthen = 0x1D;
 constexpr std::uint32_t kEffectWeaken = 0x1E;
 constexpr std::uint32_t kEffectRegeneration = 0x1F;
 constexpr int kEffectTypes = 0x28;
 
-// Skills whose level records (unitdb::SkillLevels, index skill * 3 - 1 + level) feed the formulas.
 constexpr int kSkillBodyB0 = 15;      // raises valuesB0[1] by its percentage
 constexpr int kSkillHitPoints = 16;
 constexpr int kSkillMana = 17;
@@ -82,7 +80,6 @@ double LevelValueOf(const UnitStats* stats, int skill) {
     return record->Value();
 }
 
-// The same for a level record pointer from UnitStats::SkillLevelRecord.
 double RecordValue(const SkillLevelRecord* record) { return record->Value(); }
 
 // Branch-free selects (FCOMP, the C0 bit as a mask): `a` when a < b or unordered.
@@ -95,7 +92,6 @@ float EffectValueField(const MapEffect& effect) {
     return value;
 }
 
-// The vitals on the unit's server companion, or null when the companion is not one (on a client).
 UnitVitals* ServerVitals(CUnit* unit) {
     CMapObjectServer* server = unit->ServerCompanion();
     return server->GetClassId() == kClassServerObject ? &server->vitals : nullptr;
@@ -113,7 +109,6 @@ double EffectScale(CUnit* unit, float k) {
     return strengthen / (unit->EffectValue(kEffectWeaken) * k + kOne);
 }
 
-// value scaled by EffectScale, at least 1 (NaN kept).
 float ScaledAtLeastOne(CUnit* unit, float k, float value) {
     double scale = EffectScale(unit, k);
     float scaled = static_cast<float>(scale * value);
@@ -122,7 +117,6 @@ float ScaledAtLeastOne(CUnit* unit, float k, float value) {
     return SelectLess(one, s, s, one);
 }
 
-// The lowest current / maximum ratio of the used slots of `type` that are not exactly full.
 float LowestSlotRatio(const UnitStats* stats, int type) {
     float lowest = kOne;
     for (const UnitStatSlot& slot : stats->slots) {
@@ -366,7 +360,6 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     stat20 = static_cast<float>((record ? RecordValue(record) : kZero) + stat20);
     for (UnitStatPair& protection : vitals->protection) std::memcpy(&protection.current, &protection.base, sizeof(float));
 
-    // The strongest effect of each type.
     float strongest[kEffectTypes] = {};
     for (int i = 0; i < unit->effectCount; ++i) {
         MapEffect effect = EffectAt(unit, i);   // copies the whole record
@@ -376,7 +369,6 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
         float old = strongest[type];
         strongest[type] = SelectLess(old, value, value, old);
     }
-    // Fire, cold and lightning protection: their own effect or the general one (0x1A).
     float general = strongest[0x1A];
     vitals->protection[3].current = SelectLess(strongest[9], general, general, strongest[9]) + vitals->protection[3].current;
     vitals->protection[5].current = SelectLess(strongest[10], general, general, strongest[10]) + vitals->protection[5].current;
@@ -446,7 +438,6 @@ EI_REWRITTEN(0x00524560, UnitStats::Recompute);
 // --- Experience ------------------------------------------------------------------------------
 
 namespace {
-// pending += gain; a positive total moves into the experience (added unrounded).
 void AddPending(UnitStats* stats, double gain) {
     double total = gain + stats->pendingExperience;
     stats->pendingExperience = static_cast<float>(total);
@@ -467,9 +458,6 @@ void UnitStats::TakePendingExperience(float amount) { pendingExperience = pendin
 EI_REWRITTEN(0x00523C20, UnitStats::TakePendingExperience);
 
 namespace {
-// The hit point and mana maxima after the experience or a base value changed: the curves with
-// the skill levels' percentages (each product rounded once), the strengthen / weaken scale, the
-// slots scaled along and the hit points. As GainExperience, RaiseIntelligence and RaiseSkill do.
 void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
     double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &stats->experience, &GameLogicSettings().hpVal[2],
                                    &GameLogicSettings().hpVal[4]);
@@ -492,8 +480,6 @@ double LevelWorth(int level) {
            GameLogicSettings().skillVal[0];
 }
 
-// Raises `levels[index]` by `amount` (a byte) and books what the new level is worth over the old
-// one as experience (into the spent experience too). Then the maxima and a recomputation.
 bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, CUnit* unit) {
     UnitVitals* vitals = ServerVitals(unit);
     if (!vitals) return false;

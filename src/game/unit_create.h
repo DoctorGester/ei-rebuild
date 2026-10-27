@@ -1,8 +1,7 @@
 #pragma once
 
-// Unit setup helpers around creation and loading: the unit prototype table's name index and the
-// server controller's statistics hand-over. Names provisional. See docs/notes/units.md ("Creation,
-// databases, save").
+// Unit setup helpers around creation and loading: the unit prototype table's name index and the server controller's
+// statistics hand-over. See docs/notes/units.md ("Creation, databases, save").
 
 #include "resource_manager.h"
 
@@ -27,12 +26,10 @@ struct UnitNpcRecord;
 // The unit prototype table (global): an STLport vector of 0x120-byte records followed by
 // a hash_map<string, record*> from prototype names to records at +0x0C.
 struct UnitPrototypeTable {
-    // Prototype `index`, or null past the end.
     UnitPrototypeRecord* At(std::uint32_t index);
     using NameIndex = stlp::hash_map<stlp::string, UnitPrototypeRecord*, stlp::StringHash>;
 
-    // The record named `name`: operator[] on the name index,
-    // so an unknown name is inserted with a null record (and null is returned).
+    // The record named `name` (an unknown name gets a null entry), or null.
     UnitPrototypeRecord* FindByName(const char* name);
 
     UnitPrototypeRecord* begin;
@@ -42,12 +39,10 @@ struct UnitPrototypeTable {
 };
 static_assert(offsetof(UnitPrototypeTable, byName) == 0x0C);
 
-// The NPC prototype table (global; records of statistics for named creatures), laid
-// out the same way.
+// The NPC prototype table (records of statistics for named creatures), laid out the same way.
 struct NpcPrototypeTable {
     using NameIndex = stlp::hash_map<stlp::string, UnitNpcRecord*, stlp::StringHash>;
 
-    // As UnitPrototypeTable::FindByName (its own instantiation).
     UnitNpcRecord* FindByName(const char* name);
 
     UnitNpcRecord* begin;
@@ -67,9 +62,7 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name);
 // prototype or model.
 int __stdcall PrototypeObjectClass(const char* name);
 
-// The map object manager ("map objects", class id 0x2D, 0xBC bytes; a real virtual class: the
-// compiler makes its vtable). +0xAC is its map object context
-// (the world).
+// The map object manager ("map objects", class id 0x2D).
 struct CMapObjectManager : CResourceManager {
     CMapObjectManager();
     ~CMapObjectManager() override;
@@ -84,8 +77,6 @@ struct CMapObjectManager : CResourceManager {
     // for other ids. The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
     int GiveStartingEquipment(CUnit* unit, const char* name);
 
-    // The base manager's Create (0 when it fails), then the archive
-    // "<text folder>database.res" added. Returns 1.
     int CreateManager();
     // The base manager's CreateObject; a new object gets an
     // animation state (the figure manager's class 0x300D) and its side halves from the world's
@@ -106,8 +97,8 @@ struct CMapObjectManager : CResourceManager {
     int PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
                            mfc::CString* secondWeapon, mfc::CStringArray* spells);
 
-    // The builders of a creature's starting statistics from its prototype (unit_create_stats.cpp).
-    // The map objects call them on their owner; they never read the manager.
+    // The builders of a creature's starting statistics from its prototype (unit_create_stats.cpp); the map objects
+    // call them on their owner.
     // Defaults for an object without a prototype: with `stats`, the statistics (stats
     // 50, rates, values and body slots at 100, no layers); without, the vitals (1000 hit points
     // and mana, regeneration 10, protection 100). Returns 1.
@@ -125,7 +116,6 @@ struct CMapObjectManager : CResourceManager {
 };
 static_assert(sizeof(CMapObjectManager) == 0xBC);
 
-// The manager that owns a map object (CEngineObject::owner_; CreateMapObject made it).
 inline CMapObjectManager* MapObjectManagerOf(const CEngineObject* object) {
     return static_cast<CMapObjectManager*>(object->owner_);
 }

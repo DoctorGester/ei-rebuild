@@ -38,14 +38,12 @@ float Half() { return 0.5f /*0073B86C*/; }
 float One() { return 1.0f /*0073B84C*/; }
 double DrainStep() { return 0.006666666666666666 /*0073F088*/; }
 
-// World units to half-cells: (x, y) *= 1 / (cellSize * 0.5), the factor unrounded.
 void ToHalfCells(float* xy) {
     const double factor = One() / (static_cast<double>(CellSize()) * Half());
     xy[0] = static_cast<float>(factor * xy[0]);
     xy[1] = static_cast<float>(factor * xy[1]);
 }
 
-// And back: (x, y) *= cellSize * 0.5.
 void FromHalfCells(float* xy) {
     const double factor = static_cast<double>(CellSize()) * Half();
     xy[0] = static_cast<float>(factor * xy[0]);
@@ -60,13 +58,11 @@ bool FartherThan(const float* a, const float* b, const float* limit) {
     return LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz) > *limit;
 }
 
-// Whether `object`'s speed (a virtual, unrounded) compares below *than.
 bool SpeedBelow(CMapObject* object, const float* than) {
     EI_NAN_AUDIT(object->MoveSpeed(), *than);
     return object->MoveSpeed() < *than;
 }
 
-// The speed rounded to float.
 void SpeedOf(CMapObject* object, float* out) { *out = static_cast<float>(object->MoveSpeed()); }
 
 // *value -= *rate * the drain step (double); true when the unrounded result compares below 0.
@@ -88,7 +84,6 @@ int& QueueStart(CUnitServer* c) { return c->queue.extra; }
 AIPath* MotionPathOf(CUnitServer* c) { return c->MotionPath(); }
 // The path's `failed` byte as the game reads it: compared with 1, so read as a byte, not a bool.
 std::uint8_t FailedByte(CUnitServer* c) { return c->MotionPath()->failed; }
-// The world server (ManagerContextOf) and an object's world (ObjectWorld).
 CWorldServer* ServerOf(CUnitServer* c) { return c->ServerWorld(); }
 int WorldTime(const CWorld* world) { return world->tick_; }
 
@@ -113,7 +108,6 @@ void ClearWaitingFor(CUnitServer* controller) {
     if (old) old->Release();
 }
 
-// The unit is on the map as an obstacle or not: re-registered when that changes.
 void SetObstacle(CUnitServer* c, int obstacle) {
     CWorldServer* world = ServerOf(c);
     CUnit* unit = UnitOf(c);
@@ -124,7 +118,6 @@ void SetObstacle(CUnitServer* c, int obstacle) {
     UnitOf(c)->MarkChanged(7);
 }
 
-// The motion order's next animation once the current motion is over.
 void QueueNextAnimation(CUnitServer* c) {
     AnimationSteps* next = c->NextAnimation();
     Queue(c)->CopySteps(*next);
@@ -285,7 +278,6 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
         world->AIMap()->StampWaterPatch(position, 1);
         world->Sectors()->Add(UnitOf(c));
     }
-    // The path's remaining cells (AIPath::cells, +0x78) emptied, as RemoveAll inlined.
     MotionPathOf(c)->cells.RemoveAll();
 
     float range = MotionPathOf(c)->goal.z;
@@ -356,7 +348,6 @@ void Exhaustion(CUnitServer* c) {
 
 } // namespace
 
-// Called by name from CUnitServer's update (combat_update.cpp).
 void UpdateMotion(CUnitServer* c) {
     CWorldServer* world = ServerOf(c);
     Vector3 position;
@@ -382,8 +373,6 @@ void UpdateMotion(CUnitServer* c) {
         HitWhileMoving(c);
     }
 
-    // Leave the sector map, see whether the unit can stand on the sampled cell, and if not, what
-    // the blocking unit means for it.
     bool canStand;
     bool liftBlocker = false;
     // The game's "blocked" local is uninitialised: only CanStandAtFromHere (a cell inside the map) and the

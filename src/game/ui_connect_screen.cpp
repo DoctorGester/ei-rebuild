@@ -1,9 +1,7 @@
-// The multiplayer connection screen (CMpConnectScreen), its master server request
-// box (CMasterRequestBox) and the address list's vector members -
-// See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only: no scenario
-// reaches the screen but ui_mp_host. Its Create reproduces addon's ExtendedServerName
-// sites and EI_Plugin's NPlayers, as the list draw (ui_connect_list.cpp) does its
-// patches.
+// The multiplayer connection screen (CMpConnectScreen), its master server request box (CMasterRequestBox) and the
+// address list's vector members. See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only. Its Create
+// reproduces addon's ExtendedServerName sites and EI_Plugin's NPlayers, as the list draw (ui_connect_list.cpp) does
+// its patches.
 #include "net_classes.h"
 #include "options.h"
 #include "record_vectors.h"
@@ -58,7 +56,6 @@ const char* NewGameText() { return "??"; }    // the new game entry's name and d
 const char* DefaultGameName() { return "?"; }
 const char* EmptyText() { return ""; }
 const char* AddressBookFile() { return "config\\addrbook.ini"; }
-// The texts of the refusals the client can be given (ClientBase::refusal_ 1..3), else the fourth.
 const char* RefusalKey(int refusal) {
     switch (refusal) {
     case 1: return "lmp_server_full";
@@ -67,7 +64,6 @@ const char* RefusalKey(int refusal) {
     default: return "lmp_cannot_connect";
     }
 }
-// The master server's host name.
 const char* MasterHost() { return options::TheOptions()->masterServerName_.GetString(); }
 constexpr int kMasterPort = 28004;
 
@@ -95,10 +91,8 @@ constexpr int kBoxFlagsOk = 1, kBoxFlagsEdit = 7, kBoxFlagsCancel = 2, kBoxForma
 constexpr std::uint32_t kBarColour = 0xFFA06800;
 constexpr std::uint32_t kPlainSprite = 0x100;
 
-// strcpy into a box's text buffer.
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 
-// A message box of `ui` on top (allocation failure: null pushed).
 void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_t result, int flags) {
     CMessageBox* box = new CMessageBox(ui, title, text, result, flags, kBoxFormat);
     ui->PushWindow(box, 1, 1);
@@ -119,7 +113,6 @@ struct LocalQueries {
     net::ClientQueries queries;
 };
 
-// Create's layout.
 const char* SaveLoadTexture() { return "saveload"; }
 const char* ScrollbarTexture() { return "scrollbar"; }
 const char* MenuModel() { return "unmoco2"; }
@@ -130,9 +123,7 @@ const char* MenuButtonLabel() { return "button03_multiplayer"; }
 const char* AllodNameFormat() { return "lmp_allod_name_%d"; }
 const char* ConnectionTextFormat() { return "lmp_connection_%d"; }
 const char* NameEnd() { return "|"; }
-// The model's turn about x: pi / 2 times 1.2.
 float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
-// The interface's text colour (the list draw changes it per row).
 std::uint32_t TextColour() { return g_connectTextColour; }
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 // ExtendedServerName's values in Create (addon.dll: operands).
@@ -236,7 +227,6 @@ MpAddressEntry* MpAddressList::InsertDefault(MpAddressEntry* pos) {
         }
         ++finish;
     } else {
-        // The last entry copied one up, the rest moved up by assignment, then the default assigned.
         if (finish) finish->CopyConstruct(finish - 1);
         ++finish;
         MpAddressEntry* to = finish - 1;
@@ -568,7 +558,6 @@ void CMpConnectScreen::RebuildList() {
         entry.password = server->password_ != 0;
     }
 
-    // std::sort(begin, end, key).
     MpAddressEntry* first = entries_.begin();
     MpAddressEntry* last = entries_.end();
     int key = sortKey_;
@@ -667,7 +656,6 @@ void CMpConnectScreen::CreateScreen() {
     plain(sprite(3.0f, 108.0f, 108.0f, extended ? kExtendedSelectionRight : 370.0f, 132.0f, 0, 0, 0x100, 0x100),
           kSelectionColour);
     {
-        // The sort arrow, from the scroll bar's texture.
         CUiMesh* arrow = AddSprite(nullptr);
         arrow->texture_ = objects_.data[kScrollbarTexture];
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
@@ -751,7 +739,6 @@ void CMpConnectScreen::CreateScreen() {
 
     TheGameFlow()->StartClient();
     spare_ = 0;
-    // The address book: the queries the client asks.
     LocalQueries book;
     ChunkArchive archive;
     netlink::FileStream file;
@@ -779,7 +766,6 @@ void CMpConnectScreen::CreateScreen() {
     DrawListVanilla();
     interface_->OpenHelp(0);
     refreshTimer_ = 0.0f;
-    // Surface 1: "connecting".
     CUiSurface* note = AddSurface(NewSurface(interface_, 0, 0, 300, 20));
     UiSurfaceGetDC(note);
     static_cast<CUiSurface*>(note)->Clear();

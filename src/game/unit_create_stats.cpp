@@ -31,7 +31,6 @@
 // Values kept on the FPU stack are double locals; stored values are floats.
 
 namespace {
-// The records (unit_db.h): prototypes, models, NPCs and the models' level records.
 using Prototype = UnitPrototypeRecord;
 using Model = UnitModelRecord;
 using Npc = UnitNpcRecord;
@@ -72,7 +71,6 @@ void FpuCopy2(float* a, float* b, const float* src) {
 
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
-// The records by name (null when there is none).
 const Prototype* FindPrototype(const char* name) { return unitdb::PrototypeTable().FindByName(name); }
 const Npc* FindNpc(const char* name) { return unitdb::NpcTable().FindByName(name); }
 
@@ -96,7 +94,6 @@ float RightAngleCosine() {
     return static_cast<float>(x87::fcos(perDegree * g_ninety));
 }
 
-// Attribute and skill bytes: from the NPC record, or rounded from the prototype.
 void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const Npc* npc) {
     if (npc) {
         static_assert(offsetof(Npc, skills) - offsetof(Npc, attributes) == 3);
@@ -136,7 +133,6 @@ void SetSlots(UnitStats* stats, const Model* model) {
     }
 }
 
-// The combat values and damage weights.
 void SetCombat(UnitStats* stats, const Prototype* prototype, const Model* model) {
     for (int i = 0; i < 5; ++i) CopyDword(stats->combat[i], prototype->combat[i]);
     CopyDword(stats->damage, prototype->damage);
@@ -146,7 +142,6 @@ void SetCombat(UnitStats* stats, const Prototype* prototype, const Model* model)
     CopyDword(stats->naturalWeapon, prototype->naturalWeapon);
 }
 
-// Experience and the skills an NPC knows; the spent experience then equals it.
 void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
     stats->spentExperience = 0.0f;
     if (!npc) return;
@@ -238,14 +233,12 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     vitals->Reset();
     stats->Reset();
 
-    // Vitals: hit points and mana at their maxima, the model's regeneration.
     FpuCopy2(&vitals->maxHitPoints, &vitals->hitPoints, &prototype->hitPoints);
     CopyDword(vitals->hitPointRegen, model->hitPointRegen);
     FpuCopy2(&vitals->maxMana, &vitals->mana, &prototype->mana);
     CopyDword(vitals->manaRegen, model->manaRegen);
     std::memcpy(&stats->fixedMaxHitPoints, &vitals->maxHitPoints, 4);
 
-    // The three stats, speed and rate.
     if (npc) {
         FpuCopy2(&stats->stat10Base, &stats->stat10, &npc->stats[0]);
         FpuCopy2(&stats->stat18Base, &stats->stat18, &npc->stats[1]);
@@ -282,7 +275,6 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     stats->sizeClass20 = smallClass;
     stats->sizeClass60 = smallClass;
 
-    // Protection: the model's values scaled by the prototype.
     for (int i = 0; i < 7; ++i) {
         float value = static_cast<float>(static_cast<double>(model->protection[i]) * prototype->protectionScale);
         vitals->protection[i].base = value;
@@ -416,7 +408,6 @@ void UnitStats::ResetToBase(float newLoad) {
     std::memcpy(&sightCone, &kMinusTwo, 4);
     stat20 = static_cast<float>(LevelOrZero(this, kSkillStat20) + stat20);
 
-    // The slot maxima from the hit point curve; current values clamped to them.
     double curve = HitPointExperienceCurve(&experience);
     float hitPoints = static_cast<float>(
         curve * (static_cast<double>(stat10) / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
@@ -485,7 +476,6 @@ float LevelAsFloat(const UnitStats* stats, int index) {
     return static_cast<float>(LevelOf(record));
 }
 
-// The skill bonus byte (skill 0 or 1) of the unit's weapon in hand, or 0.
 float WeaponBonus(CUnit* unit, int skill) {
     CItem* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return kZero;
@@ -521,7 +511,6 @@ EI_REWRITTEN(0x00526C70, UnitStats::WeaponSkillBonus);
 
 namespace {
 
-// A CString field of a record: is it set, and not "none"?
 bool NamesRequirement(const mfc::CString& text) {
     if (text.GetLength() == 0) return false;
     return gamecrt::mbscmp(text.GetString(),
@@ -545,7 +534,6 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
         int required = database->IndexOf(record->requiredLevelName);
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }
-    // No level of the same skill id may be known in another skill.
     int group = const_cast<SkillDatabase*>(database)->IndexOfLevel(record) / 3;
     for (int k = 0; k < 26; ++k) {
         std::uint8_t level = skillLevels[k];
@@ -587,7 +575,6 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         vitals.builtFlags |= 1;
         object->CMapObject::SetServerData(&vitals);
         object->SetStats(&stats);
-        // The figure stands lower by the model's height.
         float lift = static_cast<float>(-static_cast<double>(model->height));
         CObject3D* figure = object;
         SetBits(figure->defaultScale.x, 0);
@@ -610,7 +597,6 @@ EI_REWRITTEN(0x00513B60, CMapObjectManager::ApplyPrototype);
 // --- The factory ------------------------------------------------------------------------------
 
 namespace {
-// The constructors on the new block (each returns it; ConstructOn, base_manager.h).
 using Constructor = void*(__fastcall*)(void* block);
 template <class T>
 constexpr Constructor ConstructAt = ConstructOn<T>;

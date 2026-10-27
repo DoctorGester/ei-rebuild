@@ -34,7 +34,6 @@ constexpr float kZero = 0.0f;
 // (a double, 0.4 / 2^32) (0.8f): the new alertness decay.
 constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
 constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
-// Diplomacy: one mask of allied sides per side.
 const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
 
 
@@ -77,24 +76,20 @@ constexpr float kCloseSq = 25.0f;
 constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                       // -1313: no position yet
 constexpr int kRemarkIdle = 1;
 
-// The idle remark every mode's Execute starts with (1 in 1001).
 void MaybeRemark(AIBrain* brain, int what) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(what);
 }
 
-// An order on the stack: the looks array is constructed and given its derived vtable.
 void ConstructOrder(AIMoveOrder* order) {
     LooksInit(&order->looks);
     order->looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
 }
 
-// The inlined destructor of the order's looks array.
 void DestroyLooks(AIMoveOrder* order) {
     order->looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
     if (order->looks.data) gamecrt::operator_delete(order->looks.data);
 }
 
-// Common tail of the moves: drop the target, action 2 to the order's point with its looks.
 void StartMove(AIBrain* brain, AIMoveOrder* order) {
     if (brain->target) {
         brain->target.Reset();
@@ -107,7 +102,6 @@ void StartMove(AIBrain* brain, AIMoveOrder* order) {
     brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);
 }
 
-// The brain's remembered positions after choosing a new place to be.
 void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY) {
     brain->nearX = nearX;
     brain->nearY = nearY;
@@ -154,7 +148,6 @@ EI_REWRITTEN(0x005D0A50, AIActionMode::Enter);
 void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
     std::memcpy(&point, p, sizeof(Vector3));
     failures = 0;
-    // Below zero (or NaN) takes the default.
     if (newRadius >= kZero)
         std::memcpy(&radius, &newRadius, 4);
     else
@@ -189,7 +182,6 @@ void GuardMode::Execute(AIBrain* brain) {
         }
     }
     failures = 0;
-    // Look away from the guarded point, scaled to half the radius.
     float dx = order.point.x - point.x;    // FSTP float each
     float dy = order.point.y - point.y;
     float dz = order.point.z - point.z;
@@ -234,7 +226,6 @@ void PatrolMode::AddPoint(const Vector3* a0) { AppendPoint(a0); }
 
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (points.size != 0) return kPriority;
-    // "Unit %i has no patrol points, switching to guard" (passed by address).
     game::FatalError("Unit %i has no patrol points, switching to guard", brain->owner->unit->id_);
     AddPoint(&brain->owner->unit->localPosition_);
     return kNoPriority;
@@ -408,7 +399,6 @@ void SuspectionMode::Execute(AIBrain* brain) {
         // TEST AH,0x41: jump to a new move only when the distance is greater.
         EI_NAN_AUDIT(dx, dy);
         if (LengthSquared2DUnrounded(dx, dy) <= kArrivedSq) {
-            // Still going to this point: near it, the interest fades.
             const float* unit = &brain->owner->unit->localPosition_.x;
             double ux = unit[0] - point.x;
             double uy = unit[1] - point.y;
@@ -641,7 +631,6 @@ EI_REWRITTEN(0x005D36F0, FearMode::Save);
 
 void PlayerMode::Execute(AIBrain* brain) {
     CUnit* unit = brain->owner->unit;
-    // The player controls this unit directly.
     bool direct = false;
     if (unit->player) direct = PlayerServerOf(unit->player)->refreshPending_ == 2;
     if (brain->seen && unit->fightAtWill != 1) brain->owner->Shout(0x20);
@@ -721,7 +710,6 @@ void PlayerMode::Execute(AIBrain* brain) {
 EI_REWRITTEN(0x005D4A90, PlayerMode::Execute);
 
 namespace {
-// Does the player control the unit directly?
 bool DirectControl(const AIBrain* brain) {
     const CPlayer* player = brain->owner->unit->player;
     return player && PlayerServerOf(player)->refreshPending_ == 2;
@@ -823,7 +811,6 @@ void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int
 EI_REWRITTEN(0x005D3D90, PlayerMode::CommandCastAt);
 
 namespace {
-// The first Player mode (type 6) in the brain of `unit`'s controller, or null.
 PlayerMode* PlayerModeOf(CUnit* unit) { return unit->ServerController()->Brain()->FindPlayerMode(); }
 } // namespace
 
@@ -872,7 +859,6 @@ void PlayerMode::OnObjectDeleted(CEngineObject* object) {
 EI_REWRITTEN(0x005D37A0, PlayerMode::OnObjectDeleted);
 
 void PlayerMode::Load(CStream* stream) {
-    // The save versions that wrote a group of objects after the mode.
     constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
     target.Load(stream, TheServerWorld());
     leader.Load(stream, TheServerWorld());

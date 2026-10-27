@@ -31,7 +31,6 @@ namespace {
 // be learned, a skill record's price (UnitStats::SkillPrice), the price of a school from one level to the
 // next.
 
-// The text table (GameClientTexts): whether it has a key, the found text into a CString, the text of a key.
 
 
 // vector<TradeRow> pieces (library): the insert that reallocates (recordvec::TradeRowVector's).
@@ -57,7 +56,6 @@ void Clear(TradeRows* rows) {
     rows->Finish() = rows->Start();
 }
 
-// Whether the text table has "perk <name>" (the key's temporaries released before returning).
 int HasPerkText(CTextManager* table, const mfc::CString& name) {
     std::string prefix("perk ");
     mfc::CString key = prefix + name;
@@ -124,7 +122,6 @@ void CTradePanel::BuildLists() {
     Clear(&science_);
 
     const TradeRow blank = BlankRow();
-    // The schools: six, then science.
     const char* const* names = SkillNames();
     for (int i = 0; i < 6; ++i) {
         TradeRow* row = PushBack(&schools_, blank);
@@ -149,7 +146,6 @@ void CTradePanel::BuildLists() {
     mfc::CString perkLevel;
     table->CTextManager::GetString("perk_level", &perkLevel);
 
-    // The perks held: the skill records come in groups of three levels; the group's level byte.
     for (unsigned group = 0; group < 0x6C; group += 3) {
         int level = stats->skillLevels[group / 3];
         if (level <= 0) continue;
@@ -182,7 +178,6 @@ void CTradePanel::BuildLists() {
         row->level = level;
     }
 
-    // The first levels the hero may learn.
     int count = SkillCount();
     for (int index = 0; index < count; index += 3) {
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(SkillCount())) continue;
@@ -224,7 +219,6 @@ void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
                          static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
 }
 
-// A school row: name, level 40 pixels in from the right, and below level 100 the next level's price.
 void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, TradeRow* school, mfc::CString* value) {
     draw->DrawLine(school->name, row, 0, kBright, 0, 1);
     value->Format("%d", school->level);
@@ -255,7 +249,6 @@ void CTradePanel::DrawLists() {
     title = {200, 10, 400, 25};
     draw->DrawLine(texts_[2], &title, 0, 0xFFFFFF, 1, 1);
 
-    // The schools; the third one's row stays empty (science is drawn there).
     RECT row = {15, 35, 180, 50};
     for (unsigned i = 0; i < 6; ++i) {
         if (i == 2) {
@@ -269,7 +262,6 @@ void CTradePanel::DrawLists() {
     row = {15, 65, 180, 80};
     DrawSchool(this, draw, &row, science_.begin(), &value);
 
-    // The perks held, ten rows from perkTop_; the price only where there is a next level.
     row = {15, 230, 180, 245};
     unsigned index = static_cast<unsigned>(perkTop_);
     for (int shown = 0; shown < 10; ++shown, ++index) {
@@ -285,7 +277,6 @@ void CTradePanel::DrawLists() {
         Down(&row);
     }
 
-    // The perks to learn, 23 rows from learnableTop_ (grey when not learnable).
     row = {215, 35, 380, 50};
     index = static_cast<unsigned>(learnableTop_);
     for (int shown = 0; shown < 23; ++shown, ++index) {
@@ -337,12 +328,10 @@ void CTradePanel::Build() {
     perkTop_ = 0;
     learnableTop_ = 0;
 
-    // Regions 0-3: the scroll arrows (held perks up / down, learnable up / down).
     AddRect(this, 360, 320, 380, 330);
     AddRect(this, 360, 480, 380, 490);
     AddRect(this, 560, 125, 580, 135);
     AddRect(this, 560, 480, 580, 490);
-    // The school rows, an empty region, three more rows (two rows skipped between them), science.
     RECT row = {215, 135, 385, 150};
     for (int i = 0; i < 2; ++i) {
         AddRect(this, row);
@@ -357,17 +346,14 @@ void CTradePanel::Build() {
     }
     Down(&row);
     AddRect(this, 215, 165, 385, 180);
-    // The learnable perks (23 rows) and the held perks (10 rows).
     for (int y = 135; y < 480; y += 15) AddRect(this, 415, y, 585, y + 15);
     for (int y = 330; y < 480; y += 15) AddRect(this, 215, y, 385, y + 15);
 
-    // The four arrows' faces.
     AddSprite(0)->SetRectangle(6.0f, 100.0f, 360.0f, 320.0f, 380.0f, 330.0f, 0x82, 3, 0x96, 0xD);
     AddSprite(0)->SetRectangle(6.0f, 100.0f, 360.0f, 480.0f, 380.0f, 490.0f, 0x82, 0xD, 0x96, 3);
     AddSprite(0)->SetRectangle(6.0f, 100.0f, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
     AddSprite(0)->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
 
-    // The titles.
     CTextManager* table = GameClientTexts();
     {
         mfc::CString text;
@@ -378,7 +364,6 @@ void CTradePanel::Build() {
         table->CTextManager::GetString("perks_av", &text);
         texts_.SetAtGrow(texts_.size, text);
 
-        // One statistics record per party member (inlined in the original).
         ResetRecords();
         heldRegion_ = -1;
         holdTime_ = 0.0f;
@@ -447,7 +432,6 @@ void CTradePanel::RestoreRecord() {
     for (int i = 0; i < 6; ++i) stats->skills[i] = record.schools[i];
     stats->attributes[0] = record.science;
     for (int i = 0; i < 36; ++i) stats->skillLevels[i] = record.perks[i];
-    // Copied as dwords, as the original does.
     std::memcpy(&stats->experience, &record.experience, sizeof(float));
     std::memcpy(&stats->pendingExperience, &record.pendingExperience, sizeof(float));
     std::memcpy(&stats->spentExperience, &record.spentExperience, sizeof(float));

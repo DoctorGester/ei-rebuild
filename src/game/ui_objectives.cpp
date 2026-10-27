@@ -1,8 +1,6 @@
-// The objectives window (CObjectivesWindow, ui.h): its Create, the zone page
-// and the selected quest's description and places. TAB in a zone opens it
-// for the current zone; opened with `listZones_` it lists the zones of the zone's allod in which
-// the player has quests and shows one of them. See
-// docs/notes/ui.md.
+// The objectives window (CObjectivesWindow, ui.h): its Create, the zone page and the selected quest's description and
+// places. TAB in a zone opens it for the current zone; opened with `listZones_` it lists the zones of the zone's
+// allod in which the player has quests and shows one of them. See docs/notes/ui.md.
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "stl_sorts.h"
@@ -68,7 +66,6 @@ float AbsBits(float f) {
 // leads nowhere).
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
 
-// Finds text `key`; non-zero when found (the cursor at its start).
 int FindText(const char* key) { return TheTextManager()->Open(key); }
 
 // The quest the window last selected (a global CString): built empty by its static initialiser in the list's
@@ -88,7 +85,6 @@ void __cdecl DestroyLastQuest() {
     g_lastQuest.Destroy();
 }
 
-// A local hash_map<CString, float> filled with the player's variables starting with `prefix`.
 class VariableTable {
 public:
     VariableTable() { table_.ConstructDefault(); }   // with 100 buckets
@@ -104,7 +100,6 @@ private:
 
 using ZoneNames = stlp::vector<mfc::CString>;
 int SizeOf(const ZoneNames& v) { return static_cast<int>(v.end() - v.begin()); }
-// push_back (the instantiation's own overflow).
 void PushBack(ZoneNames* v, const mfc::CString& x) {
     if (v->Finish() != v->EndOfStorage()) {
         new (v->Finish()) mfc::CString(x);
@@ -114,7 +109,6 @@ void PushBack(ZoneNames* v, const mfc::CString& x) {
     }
 }
 
-// std::sort (the comparator is an empty object).
 void SortStrings(mfc::CString* first, mfc::CString* last) {
     if (first == last) return;
     int depth = 0;
@@ -128,16 +122,13 @@ void SortStrings(mfc::CString* first, mfc::CString* last) {
     }
 }
 
-// The global map's exit distances (STLport map<int, float>).
 using DistanceMap = stlp::map<int, float>;
 using DistanceNode = DistanceMap::Node;
 
-// A surface's text (Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
-// Sprite fields the builder sets directly.
 void SetSpriteTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
 void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->flatColour_ = argb; }
 void SetSpritePlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
@@ -158,7 +149,6 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
         return new CUiSurface(ui, left, top, right, bottom, 5, 1);
 }
 
-// Direct3D render states (Set fed to the renderer's mirror).
 void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
     device->SetRenderState(static_cast<std::uint32_t>(state), value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
@@ -186,7 +176,6 @@ constexpr float kExitTurnDown = 3.1415927f;
 
 void CObjectivesWindow::ShowZone(const char* zone) {
     shownZone_ = zone;
-    // Drop what the previous zone added: its picture texture, exit markers and exit regions.
     while (objects_.size > 2) RemoveObjectAt(2);
     while (sceneObjects_.size > 0x15) RemoveSceneObjectAt(0x15);
     while (regions_.size > 9) RemoveRegionAt(9);
@@ -197,7 +186,6 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         return;
     }
 
-    // The zone picture (scene object 3), fitted into a 300x300 square around (580, 190).
     LoadTexture(map->picture2, 3, 0);
     float width = static_cast<float>(static_cast<double>(map->sizeX));
     float height = static_cast<float>(static_cast<double>(map->sizeY));
@@ -235,7 +223,6 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         exit->distance_ = 0.0f;
         exit->flag_ = false;
         if (exitDistances_) {
-            // The distances the global map computed (map<int, float> exit -> distance).
             DistanceNode* header = exitDistances_->end();
             for (DistanceNode* node = header->left; node != exitDistances_->end();) {
                 if (node->first == i) {
@@ -259,7 +246,6 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             if (value != 1.0f) exit->flag_ = true;
         }
 
-        // Position on the picture (world cells are 32 units).
         float worldWidth = static_cast<float>(static_cast<double>(map->sizeX << 5));
         float worldHeight = static_cast<float>(static_cast<double>(map->sizeY << 5));
         float span = worldWidth < worldHeight ? worldHeight : worldWidth;
@@ -310,7 +296,6 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         regions_.data[0]->SetTip(0, 1, 0);
     }
 
-    // The quests: the player's variables "q.<zone>.<quest>" that are not 0, sorted by name.
     mfc::CStringArray* quests = &quests_;
     quests->SetSize(0, -1);
     {
@@ -350,7 +335,6 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         firstRow_ = 0;
         RefreshQuests();
 
-        // The zone's title and description ("zone <name>") on surface 1.
         {
             mfc::CString text; // (declared first: the title is released first)
             mfc::CString title;
@@ -384,14 +368,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
 
 namespace {
 
-// The text reader's line steps (text_reader.cpp; called through their addresses).
-// The quest log (the window's first child): clear, set the text
-// (called through their addresses).
-// The quest database's index (map<string, record*>): operator[], creating an
-// empty slot for a name it lacks.
 QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName; }
 
-// The quest's record (its experience and money rewards), from the quest database.
 QuestRecord* FindQuestRecord(const char* name) {
     stlp::string key(name);
     return QuestIndex().Subscript(key);
@@ -483,7 +461,6 @@ void CObjectivesWindow::ShowQuest() {
     TextClose(texts);
     static_cast<CUiScrollText*>(children_.data[0])->SetText(text);
 
-    // The quest's places on the zone picture: a red marker and a region each, after the exits'.
     MapRecord* map = FindZone(shownZone_);
     if (!map) return;
     LoadQuestPlaces((*quests)[selectedQuest_]);
@@ -531,7 +508,6 @@ void CObjectivesWindow::CreateScreen() {
         objectiveTexts->SetAtGrow(objectiveTexts->GetSize(), text);
     }
 
-    // The quest log (left, below the list) and the list's scroll bar.
     AddChild(new CUiScrollText(interface_, game::EmptyText(), RECT{60, 190, 384, 510}, 10.0f));
     bar_ = new CUiScrollbar(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar_);
@@ -542,7 +518,6 @@ void CObjectivesWindow::CreateScreen() {
     AddSurface(NewSurface(interface_, 410, 380, 750, 520));
     AddSurface(NewSurface(interface_, 280, 540, 520, 580));
 
-    // Scene objects 0-20 (the zone page adds its markers after them).
     if (twoButtons_)
         AddSprite(0)->SetRectangle(3.0f, 100.0f, 163.0f, 536.0f, 237.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
     else
@@ -580,14 +555,12 @@ void CObjectivesWindow::CreateScreen() {
                                 {405.0f, 375.0f, 755.0f, 525.0f}};
     for (const auto& f : frames)
         AddSprite(0)->SetFrame(3.0f, 100.0f, f[0], f[1], f[2], f[3], 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    // The two arrows that switch zones (objects 14 and 15), hidden until there are several.
     CUiMesh* left = AddSprite(0);
     left->SetRectangle(3.0f, 100.0f, 414.0f, 384.0f, 443.0f, 404.0f, 2, 0x72, 0x1F, 0x86);
     left->visible_ = 0;
     CUiMesh* right = AddSprite(0);
     right->SetRectangle(3.0f, 100.0f, 717.0f, 384.0f, 746.0f, 404.0f, 0x21, 0x72, 0x3E, 0x86);
     right->visible_ = 0;
-    // The five row markers (objects 16-20), textured with the cross.
     for (int top = 31; top < 151; top += 24) {
         CUiMesh* mark = AddSprite(0);
         mark->SetRectangle(2.8f, 100.0f, 62.0f, static_cast<float>(top), 79.0f, static_cast<float>(top + 22), 4,

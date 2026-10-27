@@ -26,7 +26,6 @@
 
 namespace {
 
-// Strings of the exe.
 const char* TextOptionPrefix() { return "option_"; }
 const char* TextActionPrefix() { return "action_"; }
 const char* TextTipOption() { return "tip option_%s"; }
@@ -53,7 +52,6 @@ constexpr COLORREF kColourText = 0xA7D7E4;
 constexpr COLORREF kColourDim = 0xA0A0A0;
 constexpr COLORREF kColourWaiting = 0x0000FF;   // a binding waiting for its key (red)
 
-// Float constants read from the exe's memory (rule 9), all single precision.
 float ConstOne() { return 1.0f /*0073B84C*/; }
 float ConstFromStep() { return 50.0f /*0074023C*/; }   // 50.0: value = setting * 50
 float ConstToStep() { return 0.02f /*00742B80*/; }     // 0.02: setting = value * 0.02
@@ -61,10 +59,8 @@ float ConstScrollFrom() { return 4.0f /*0073BAA0*/; } // 4.0: setting 20's value
 float ConstScrollTo() { return 0.25f /*0073C3B0*/; }   // 0.25: setting 20 from it
 float ConstHalf() { return 0.5f /*0073B86C*/; }       // 0.5: the slider's centre
 float ConstThumbLift() { return 0.1f /*0073B850*/; }  // 0.1: the thumb above the track
-// The slider sprites' turn about z (a float global set at start-up, not in the file).
 constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-// The game's option globals the window loads and stores, by setting.
 int& OptVolume0() { return options::TheOptions()->audioSfx_; }       // setting 0 (the sound system's volume A)
 int& OptVolume1() { return options::TheOptions()->audioStreaming_; }       // setting 1
 int& OptVolume2() { return options::TheOptions()->audioSpeech_; }       // setting 2
@@ -78,7 +74,6 @@ float& OptSpeedB3() { return options::TheOptions()->cameraZoom_.powerMouse; }
 float& OptSpeedB4() { return options::TheOptions()->cameraRotate_.powerMouse; }
 int& Opt5() { return options::TheOptions()->cameraBorderScrollArea_; }             // setting 5
 int& Opt6Tenths() { return options::TheOptions()->cameraFrameSelectionArea_; }       // setting 6 * 10
-// Settings 7-9, the shadow switches (map_object_shadow.cpp): units, other objects, class 0x52.
 int& OptShadowUnits() { return options::TheOptions()->unitShadow_; }
 int& OptShadowBuildings() { return options::TheOptions()->buildingShadow_; }
 int& OptShadowFlora() { return options::TheOptions()->floraShadow_; }
@@ -97,7 +92,6 @@ float& Opt20() { return options::TheOptions()->toolTipTime_; }        // setting
 int& Opt21() { return options::TheOptions()->switchFilters_; }
 float& OptSign22() { return options::TheOptions()->cameraFlipX_; }    // setting 22 (-1 for 1, else +1)
 float& OptSign23() { return options::TheOptions()->cameraFlipY_; }    // setting 23 (likewise)
-// The settings of the options window (the exe's table of 26), by the window's rows.
 constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
     {0, "volume_sfx", 0, 100, 1, 0},
     {1, "volume_stream", 0, 100, 1, 1},
@@ -132,17 +126,14 @@ int& OptDifficultyCopy() { return options::TheOptions()->difficultyStored_; } //
 
 CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
-// A row text into the surface (Rebirth-patched: through its address).
 void DrawRowText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format) {
     surface->DrawTextIn(text, rect, font, colour, format, 1);
 }
 
-// The text key `key` read up to its '#' into `text` (unchanged when there is no such text).
 void ReadTip(mfc::CString* text) {
     if (TheTextManager()->CTextManager::Open(*text) != 0) TheTextManager()->ReadToHash(text, 1);
 }
 
-// The shown name: the text of prefix + name, else the name itself.
 void ShownName(mfc::CString* out, const char* prefix, const char* name) {
     if (!TheTextManager()->GetString(mfc::CString(prefix) + name, out)) *out = name;
 }
@@ -171,7 +162,6 @@ void COptionsWindow::RefreshRows() {
     static_cast<CUiSurface*>(surface)->Clear();
     SceneSprite(this, kHighlightSprite)->visible_ = 0;
 
-    // The group buttons' titles down the left; the shown group's button at full tint.
     RECT title = {10, 60, 140, 80};
     for (int group = 0; group < kOptionGroups; ++group) {
         CUiMesh* button = SceneSprite(this, kFirstGroupSprite + group);
@@ -185,7 +175,6 @@ void COptionsWindow::RefreshRows() {
     RECT heading = {0, 10, 600, 34};
     DrawRowText(surface, groupNames_[group_], &heading, 2, kColourText, 1);
 
-    // The rows: a binding's name and keys, or a setting's name.
     RECT name = {160, 60, 420, 80};
     RECT keys = {430, 60, 590, 80};
     for (int row = 0, y = 168; y < 504; ++row, y += 24) {
@@ -240,7 +229,6 @@ void COptionsWindow::ShowGroup(int group) {
         regions_.data[kFirstRowRegion + action.row_]->SetTipString(tip, 1, 0);
     }
 
-    // Every setting's control disabled, then those of the shown rows enabled.
     for (int i = 0; i < kOptionDefinitionCount; ++i)
         if (settings_[i].bar_) settings_[i].bar_->SetEnabled(0, 1);
     for (int i = 0; i < kOptionDefinitionCount; ++i)
@@ -252,7 +240,6 @@ void COptionsWindow::ShowGroup(int group) {
         if (setting->spin_) setting->spin_->SetEnabled(1, 1);
     }
 
-    // The first filled row is selected (drawn once for it, and again below).
     selectedRow_ = -1;
     int row = 0;
     while (row < kOptionRows && !rows_[row].binding_ && !rows_[row].setting_) ++row;
@@ -309,7 +296,6 @@ EI_REWRITTEN(0x00651940, COptionsWindow::BuildSettings);
 // --- COptionsWindow::BuildBindings -------------------------------------------------------
 
 void COptionsWindow::BuildBindings() {
-    // clear(): copy and destructors inlined.
     for (OptionBinding& binding : bindings_) binding.Destroy();
     bindings_.Finish() = bindings_.Start();
 
@@ -320,7 +306,6 @@ void COptionsWindow::BuildBindings() {
         binding.action_ = action;
         ShownName(&binding.name_, TextActionPrefix(), action->name_);
 
-        // The first key name of a scan code bound to the action (the list is cleared first).
         binding.keys_.clear();
         for (int scan = 0; scan < kKeyActionCount; ++scan) {
             if (keyOfScan_[scan] != action->id_) continue;
@@ -342,7 +327,6 @@ EI_REWRITTEN(0x00651600, COptionsWindow::BuildBindings);
 // --- RebuildKeysText ---------------------------------------------------------------------
 
 namespace {
-// The keys' names, each followed by "  |  ", the last separator trimmed (as BuildBindings).
 void RebuildKeysText(OptionBinding& binding) {
     binding.keysText_.Empty();
     for (std::size_t k = 0; k < binding.keys_.size(); ++k) {
@@ -357,8 +341,6 @@ void COptionsWindow::CommitBinding() {
     if (!pressedKey_) return;
     OptionBinding* binding = rows_[selectedRow_].binding_;
     if (!binding) return;
-    // The first binding row of the action the key is bound to now (none for 0 when no action has
-    // that id).
     const int boundAction = keyOfScan_[pressedKey_->scan_];
     OptionBinding* other = nullptr;
     for (OptionBinding* b = bindings_.begin(); b != bindings_.end(); ++b) {
@@ -487,7 +469,6 @@ EI_REWRITTEN(0x006524A0, COptionsWindow::Apply);
 // --- The slider's virtual ------------------------------------------------------------------
 
 namespace {
-// The slider's sprites lie along x: a quarter turn about z (pi / 2).
 void TurnQuarter(CUiMesh* sprite) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
@@ -523,7 +504,6 @@ void CUiSlider::SetRect(const RECT* rect) {
     left->Place(static_cast<float>(rect->left + 6), static_cast<float>(rect->bottom - 5), depth_);
     TurnQuarter(left);
 
-    // Regions (SetRect is Rebirth-patched: through its address).
     regions_.data[0]->SetRect(rect->left, rect->bottom - 10, rect->left + 12, rect->bottom);
     regions_.data[1]->SetRect(rect->right - 12, rect->bottom - 10, rect->right, rect->bottom);
     regions_.data[2]->SetRect(rect->left, rect->top, rect->right, rect->bottom - 10);

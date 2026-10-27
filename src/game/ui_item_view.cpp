@@ -42,10 +42,8 @@ inline double D(float f) { return f; }
 constexpr float kFullTurn = /*007C7D20*/ 6.2831855f;   // a static initialiser: pi + pi
 
 
-// The game's _ftol of a float times the float at `scale`, the product unrounded.
 int ScaledFtol(float value, float scale) { return static_cast<int>(gamecrt::Ftol(static_cast<double>(value) * scale)); }
 
-// A colour 0xFFrrggbb from three floats in 0..1 (each times 255, truncated).
 std::uint32_t PackColour(const float* rgb) {
     std::uint32_t r = static_cast<std::uint32_t>(ScaledFtol(rgb[0], 255.0f /*0073C370*/));
     std::uint32_t g = static_cast<std::uint32_t>(ScaledFtol(rgb[1], 255.0f /*0073C370*/));
@@ -53,7 +51,6 @@ std::uint32_t PackColour(const float* rgb) {
     return (((r | 0xFFFFFF00u) << 8) | g) << 8 | b;
 }
 
-// The draw pass is the scene renderer.
 CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)); }
 
 // The cached object for `name` (its use time refreshed), or a new one put in the cache (find
@@ -138,7 +135,6 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
     }
 }
 
-// The rotation about `axis` by pi.
 Quaternion HalfTurn(float ax, float ay, float az) {
     const Vector3 axis = {ax, ay, az};
     Quaternion q;
@@ -166,15 +162,12 @@ Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
 
 void SetOrientation(CUiMesh* model, const Quaternion& q) { model->localRotation_ = q; }
 
-// A loot item that stands for a database record (kind 2) of `recordType` (0 weapon .. 4 spell
-// modifier).
 bool IsRecordLoot(const CItem* item, std::uint32_t recordType) {
     if (item->type_ != kItemLoot) return false;
     const auto* loot = AsLoot(item);
     return loot->kind_ == 2 && loot->recordType_ == recordType;
 }
 
-// Spell records, scrolls and spell containers lie flat (turned about z).
 bool LiesFlat(CItem* item) {
     if (item->type_ == kItemSpell) return true;
     return IsRecordLoot(item, 3) || IsRecordLoot(item, 4);
@@ -186,7 +179,6 @@ void SetShade(CUiMesh* sprite, float grey) {
     sprite->tint_[2] = grey;
 }
 
-// The renderer's Direct3D device: SetRenderState.
 void SetSpecular(int on) {
     device::SetRenderState(device::D3D(TheRenderDevice()), D3DRENDERSTATE_SPECULARENABLE, static_cast<DWORD>(on));
 }
@@ -215,7 +207,6 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     model->material_ = blackMaterial_;
 
     if (ItemTurnOf(item) == nullptr) {
-        // A new turning state with a random glow phase.
         auto* turn = new ItemTurn();
         turn->angle = 0.0f;
         turn->speed = 0.0f;
@@ -275,7 +266,6 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
             SetOrientation(model, ProductB(a, b));
         }
 
-        // The frame behind the item (texture 2 of the screen), drawn once and removed.
         float frameDepth = static_cast<float>(D(cell->depth) * D(1.3f /*0073FF20*/));
         CUiMesh* frame = AddSprite(0);
         double half = D(35.0f /*007403E0*/);
@@ -292,7 +282,6 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     model->Draw(PassRenderer(pass));
     if (item->spell_) SetSpecular(0);
 
-    // A spell container's modifiers: a mark per modifier around the model (eight places).
     CSpell* spell = item->spell_;
     if (item->type_ == kItemSpell && spell && spell->GetModifierCount() > 0) {
         float px, py, pz;
@@ -332,7 +321,6 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         RemoveSceneObject(mark);
     }
 
-    // Items the strip's mode cannot take get a dark square in front.
     if (cell->mode != 9 && !CanEquip(item, cell->mode)) {
         float depth = static_cast<float>(D(cell->depth) * D(1.25f /*0073CF50*/));
         if (LiesFlat(item)) depth = static_cast<float>(D(cell->depth) * D(0.8f /*0073CCA8*/));
@@ -373,7 +361,6 @@ Quaternion* __fastcall MultiplyQuaternions(Quaternion*, const Quaternion*, const
 namespace {
 
 
-// The inlined strcmp(a, b) == 0.
 bool SameText(const char* a, const char* b) {
     for (;; ++a, ++b) {
         if (*a != *b) return false;
@@ -417,7 +404,6 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     model->SetScale(static_cast<float>(D(cell->size) * D(cell->depth) * D(0.48157462f /*007402C4*/) * D(0.0009375f /*00740408*/)));
     model->material_ = blackMaterial_;
     SetShade(model, 1.0f);
-    // A half turn about x, then tilted about -x by (y - 300) / 1000.
     Quaternion turn = HalfTurn(1.0f, 0.0f, 0.0f);
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion tilt;
@@ -425,7 +411,6 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     Quaternion orientation;
     SetOrientation(model, *MultiplyQuaternions(&orientation, &tilt, &turn));
 
-    // The frame behind the face (texture 2 of the screen), drawn once and removed, then the face.
     float frameDepth = static_cast<float>(D(cell->depth) * D(1.3f /*0073FF20*/));
     CUiMesh* frame = AddSprite(0);
     double half = D(35.0f /*007403E0*/);
@@ -476,7 +461,6 @@ CTexture* __fastcall ItemFigureTexture(const char* name) {
     }
     std::uint32_t* pixels = nullptr;
     if (image) {
-        // The image decoded to 32-bit pixels (decoder: out, image data, count, PNT3).
         std::uint32_t count = static_cast<std::uint32_t>(height) * static_cast<std::uint32_t>(width);
         pixels = gamecrt::operator_new_array<std::uint32_t>(count);
         std::memset(pixels, 0, count * 4);
@@ -491,7 +475,6 @@ CTexture* __fastcall ItemFigureTexture(const char* name) {
         texture->Release();
         return nullptr;
     }
-    // Rows of 0x200 bytes, the image at the bottom.
     std::uint8_t* at = target.bits + (static_cast<std::uint32_t>(0x100 - height) << 9);
     if (!image) {
         for (int row = height; row > 0; --row) {
@@ -533,7 +516,6 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
         std::uint32_t count = static_cast<std::uint32_t>(imageWidth) * static_cast<std::uint32_t>(imageHeight);
         pixels = gamecrt::operator_new_array<std::uint32_t>(count);
         std::memset(pixels, 0, count * 4);
-        // The device's decoder: out, image data, count, PNT3.
         interface_->renderer_->decoder_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(TheDeviceLock());
