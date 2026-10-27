@@ -1,8 +1,6 @@
 // The path smoother (PathSmoother, in CAIMap): a dynamic programme over the path's cells that may move each
-// cell to a neighbour when that makes the path cheaper, counting step costs and turns. CAIMap::FindPath runs
-// it on every new path. See ai_map.h and docs/notes/ai.md. Its transition tables (SmoothTables, 81 of them)
-// are built once by a static initialiser; in a running game only its exit half (SmoothTable::Destruct) is
-// ever called. The goldens check what it builds.
+// cell to a neighbour when that makes the path cheaper, counting step costs and turns. Its 81 transition tables
+// are built once by a static initialiser. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 #include "game_arrays.h"
 
@@ -352,9 +350,7 @@ EI_REPLACE(0x005C42B0, BuildSmoothTables);
 
 // ---- The pool and the tables ----------------------------------------------------------
 
-// Zero at the start; each is built empty by its static initialiser in the list's order (the tables first) and
-// destroyed by the exit function the initialiser registers (docs/notes/standalone.md, "The static
-// initialisers' objects").
+// Zero at the start; each is built empty by its static initialiser (the tables first) and destroyed at exit.
 static_assert(sizeof(SmoothTable[81]) == 0x12FC);
 constinit lib::StaticObject<SmoothPool> g_smoothPool = /*007C3038*/ {};
 constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};

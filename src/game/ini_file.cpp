@@ -27,18 +27,15 @@ const char* const kFloatFormat = "%f";
 const char* const kLongFloatFormat = "%lf";
 constexpr char kListSeparator = ',';
 
-// The game's CRT conversions.
-
 // MFC CString members not in lib/mfc.h, called on existing strings.
 struct TextOps : mfc::CString {
-    int Find(char c) const;                     // Find(TCHAR)
-    int Find(char c, int start) const;          // Find(TCHAR, int)
+    int Find(char c) const;
+    int Find(char c, int start) const;
     void TrimLeft();
     void TrimRight();
-    void AppendChar(char c);                    // operator+=(TCHAR)
+    void AppendChar(char c);
 };
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
-// Operator+(TCHAR, const CString&).
 
 // MFC's afxcoll arrays (mfc::CArray layout), through their own code: CUIntArray's constructor,
 // destructor and SetSize, and the byte / word / uint SetSize.
@@ -46,10 +43,6 @@ using MfcDWords = mfc::impl::CUIntArray;
 void SetSizeBytes(mfc::CArray<std::uint8_t>* a, int n) { a->SetSize(n, -1); }
 void SetSizeWords(mfc::CArray<std::uint16_t>* a, int n) { a->SetSize(n, -1); }
 void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { a->SetSize(n, -1); }
-
-// SetSize of an aligned int array (CArray<int> with the aligned allocator).
-
-// WriteString takes its CString by value (the callee destroys it); passed here as its data pointer.
 
 // A copy of `value` handed to WriteString (which destroys it).
 BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const std::string& value) {
@@ -63,9 +56,6 @@ mfc::CString ReadString(const CIniFile* ini, const char* section, const char* ke
 }
 
 // --- Aligned arrays -------------------------------------------------------------------------------
-
-// The byte, short and int arrays are engine aligned arrays (lib::AlignedArray); their inlined
-// SetSize allocates through the engine's aligned allocators.
 
 // The list as integers in a temporary aligned int array (an atoi loop).
 // Returns 0 when the value is empty (the temporary then stays empty).
@@ -124,7 +114,7 @@ void TextOps::AppendChar(char a0) { mfc::CString::operator+=(a0); }
 // --- Construction ----------------------------------------------------------------------------------
 
 CIniFile* CIniFile::Construct() {
-    std::construct_at(&path_);   // afxEmptyString
+    std::construct_at(&path_);
     return this;
 }
 EI_REWRITTEN(0x00695B80, CIniFile::Construct);
