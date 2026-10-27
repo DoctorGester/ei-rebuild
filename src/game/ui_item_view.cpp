@@ -378,11 +378,11 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     }
     UnitModelRecord* figure;
     {
-        stlp::string key(unit->modelName.GetString());
+        stlp::string key(unit->modelName.c_str());
         figure = unitdb::ModelNamed(key);
     }
     std::string sex;
-    const char* figureModel = figure->figureName;
+    const char* figureModel = figure->figureName.c_str();
     const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
     if (fixes ? !pluginfixes::ModelIsFemale(figureModel) : SameText(figureModel, "unhuma"))
         sex = "m";

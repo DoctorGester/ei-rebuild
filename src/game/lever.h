@@ -149,12 +149,6 @@ public:
     std::uint8_t keepsMapFlag;      // the AI map flag kept while it moves
     std::uint8_t unused_262[2];
 };
-static_assert(offsetof(Lever, state) == 0x238);
-static_assert(offsetof(Lever, lock) == 0x244);
-static_assert(offsetof(Lever, from) == 0x250);
-static_assert(offsetof(Lever, rate) == 0x25C);
-static_assert(offsetof(Lever, keepsMapFlag) == 0x261);
-static_assert(sizeof(Lever) == 0x264);
 
 const char* __fastcall LeverClassName(Lever* self);
 int __fastcall LeverClassId(Lever* self);

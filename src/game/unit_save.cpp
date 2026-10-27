@@ -49,14 +49,6 @@ void WriteItemIds(CStream* stream, T* const* items, int count) {
     for (int i = 0; i < count; ++i) WriteCopy<int>(stream, items[i] ? items[i]->id_ : -1);
 }
 
-// Reads a string and assigns it to `target` (the temporary is destroyed at once).
-void ReadStringInto(CStream* stream, mfc::CString& target) {
-    alignas(4) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* read = stream->ReadString(storage);
-    target = *read;
-    std::destroy_at(read);
-}
-
 // The prototype record named `name` through the name map (an unknown name is added to it; hash_map<string,
 // record*>::operator[], inlined).
 UnitPrototypeRecord* PrototypeByName(const char* name) {
@@ -144,7 +136,7 @@ void CUnit::LoadUnit(CStream* stream) {
     LoadMapObject(stream);
     controller->Load(stream);
     flags_ &= ~kFlag800000;
-    ReadStringInto(stream, scriptName);
+    stream->ReadInto(&scriptName);
     stream->Read(&relationsA, 4);
     int playerId;
     stream->Read(&playerId, 4);
@@ -189,13 +181,13 @@ void CUnit::LoadUnit(CStream* stream) {
     if (stream->version_ < kVersionPrototypeNames) return;
 
     mfc::CString prototypeName;
-    ReadStringInto(stream, prototypeName);
+    stream->ReadInto(&prototypeName);
     prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
     UnitPrototypeRecord* second;
     if (stream->version_ < kVersionSecondName) {
         second = unitdb::PrototypeTable().FindByName(prototypeName);
     } else {
-        ReadStringInto(stream, prototypeName);
+        stream->ReadInto(&prototypeName);
         second = PrototypeByName(prototypeName);
     }
     prototype23C = PrototypeIndexOf(second);
@@ -205,7 +197,7 @@ EI_REWRITTEN(0x00531A80, CUnit::LoadUnit);
 void CUnit::SaveUnit(CStream* stream) {
     SaveMapObject(stream);
     controller->Save(stream);
-    WriteString(stream, scriptName);
+    WriteString(stream, scriptName.c_str());
     WriteCopy(stream, relationsA);
     WriteCopy<int>(stream, player ? player->playerId_ : -1);
     WriteCopy(stream, side);
@@ -239,7 +231,7 @@ void CUnit::SaveUnit(CStream* stream) {
 
     // The prototype's name (the record's first field is a CString; a record out of range is copied from
     // address 0), then the second prototype's or "".
-    std::string prototypeName = unitdb::PrototypeRecord(prototypeId_)->name.GetString();
+    std::string prototypeName = unitdb::PrototypeRecord(prototypeId_)->name;
     WriteString(stream, prototypeName.c_str());
     const UnitPrototypeRecord* second = unitdb::PrototypeRecord(static_cast<std::uint32_t>(prototype23C));
     if (second) prototypeName = second->name;

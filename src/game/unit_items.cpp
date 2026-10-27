@@ -155,8 +155,8 @@ std::uint32_t CUnit::SetPrototype23CByName(const char* prototypeName) {
         return 0xFFFFFFFFu;
     }
     int offset = unitdb::PrototypeByteOffset(record);
-    prototype23C = offset / unitdb::kPrototypeSize;
-    // EAX keeps the low half of the IMUL by the reciprocal of 0x120.
+    prototype23C = offset / static_cast<int>(sizeof(UnitPrototypeRecord));
+    // EAX keeps the low half of the IMUL by the reciprocal of 0x120, the original record size (no caller reads it).
     return static_cast<std::uint32_t>(static_cast<std::int64_t>(offset) * 0x38E38E39);
 }
 EI_REWRITTEN(0x005308D0, CUnit::SetPrototype23CByName);

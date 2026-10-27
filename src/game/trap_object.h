@@ -57,8 +57,6 @@ public:
 
     std::uint32_t savedValue_;   // only loaded and saved; nothing sets it (not even the constructor)
 };
-static_assert(offsetof(CTrapObject, savedValue_) == 0x238);
-static_assert(sizeof(CTrapObject) == 0x23C);
 
 // Slots 11 / 12: "CTrapObject" and 0x55. The magic trap's
 // "CMagicTrapObject" and 0x61.

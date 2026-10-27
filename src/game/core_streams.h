@@ -41,7 +41,9 @@ public:
 
     // Bytes up to a zero or a failed read into a CString constructed at `out`.
     mfc::CString* ReadString(void* out);
-    void ReadInto(mfc::CString* out);
+    // A text (mfc::CString or std::string) read as ReadString reads it.
+    template <typename Text>
+    void ReadInto(Text* out);
 
     // Reads a block WriteSized wrote (a two-byte size word, two more bytes when its bit 0 is set; the size is
     // the word / 2) into `to`: `to` cleared, sought to 0, then given the block.

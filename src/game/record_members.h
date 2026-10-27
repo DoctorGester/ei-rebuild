@@ -11,6 +11,7 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include <string>
 #include <type_traits>
 
 namespace records {
@@ -31,6 +32,10 @@ struct ElementOf<stlp::string> {
 inline void CopyMember(mfc::CString& to, const mfc::CString& from) { std::construct_at(&to, from); }
 inline void AssignMember(mfc::CString& to, const mfc::CString& from) { to = from; }
 inline void DefaultMember(mfc::CString& to) { std::construct_at(&to); }
+
+inline void CopyMember(std::string& to, const std::string& from) { std::construct_at(&to, from); }
+inline void AssignMember(std::string& to, const std::string& from) { to = from; }
+inline void DefaultMember(std::string& to) { std::construct_at(&to); }
 
 inline void CopyMember(stlp::string& to, const stlp::string& from) { new (&to) stlp::string(from); }
 inline void AssignMember(stlp::string& to, const stlp::string& from) { to.AssignFrom(from); }

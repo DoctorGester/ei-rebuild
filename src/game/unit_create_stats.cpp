@@ -599,27 +599,30 @@ EI_REWRITTEN(0x00513B60, CMapObjectManager::ApplyPrototype);
 
 namespace {
 using Constructor = void*(__fastcall*)(void* block);
-template <class T>
-constexpr Constructor ConstructAt = ConstructOn<T>;
 struct FactoryEntry {
     int classId;
     std::size_t size;
     Constructor constructor;
 };
+// The class's entry: its id, its size (the block NewObject allocates) and its constructor.
+template <class T>
+constexpr FactoryEntry Make(int classId) {
+    return {classId, sizeof(T), ConstructOn<T>};
+}
 constexpr FactoryEntry kFactory[] = {
-    {0x32, 0x4DC, ConstructAt<CUnit>},
-    {0x33, 0x4DC, ConstructAt<CUnit>},
-    {0x34, 0x4DC, ConstructAt<CUnit>},
-    {0x35, 0x238, ConstructAt<CTree>},
-    {0x36, 0x238, ConstructAt<CBuilding>},
-    {0x37, 0x238, ConstructAt<CStone>},
-    {0x38, 0x238, ConstructAt<CStuffObject>},
-    {0x39, 0x580, ConstructAt<scene::FakeUnitScene>},
-    {0x3A, 0x23C, ConstructAt<CTorchObject>},
-    {0x3B, 0x290, ConstructAt<MagicTrap>},
-    {0x3C, 0x264, ConstructAt<Lever>},
-    {0x300D, 0x78, ConstructAt<CFigureAnimationState>},
-    {0x3010, 0x23C, ConstructAt<CTrapObject>},
+    Make<CUnit>(0x32),
+    Make<CUnit>(0x33),
+    Make<CUnit>(0x34),
+    Make<CTree>(0x35),
+    Make<CBuilding>(0x36),
+    Make<CStone>(0x37),
+    Make<CStuffObject>(0x38),
+    Make<scene::FakeUnitScene>(0x39),
+    Make<CTorchObject>(0x3A),
+    Make<MagicTrap>(0x3B),
+    Make<Lever>(0x3C),
+    Make<CFigureAnimationState>(0x300D),
+    Make<CTrapObject>(0x3010),
 };
 } // namespace
 

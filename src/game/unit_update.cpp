@@ -161,7 +161,7 @@ int CUnit::Create() { return CreateUnit(); }
 void CUnit::Destroy() { DestroyUnit(); }
 void CUnit::ClearState() { ReleaseUnit(); }
 int CUnit::RunTick() { return Tick(); }
-const char* CUnit::GetName() { return scriptName; }
+const char* CUnit::GetName() { return scriptName.c_str(); }
 void CUnit::Load(CStream* stream) { LoadUnit(stream); }
 void CUnit::Save(CStream* stream) { SaveUnit(stream); }
 const char* CUnit::GetClassName() { return kUnitClassName; }

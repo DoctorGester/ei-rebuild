@@ -186,7 +186,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type);
         if (spell) {
             icons[i] = static_cast<int>(spell->icon);
-            code = spell->code.GetString();
+            code = spell->code.c_str();
             // The texts' section "spell <code>": its first line is the spell's name.
             bool found = texts->CTextManager::Open(mfc::CString("spell ") + code) != 0;
             if (found) texts->ReadLine(&text, 1);

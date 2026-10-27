@@ -106,7 +106,7 @@ void CUnit::WriteNetState() {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(9)) {
-        field->WriteStringBoth(unit->scriptName);
+        field->WriteStringBoth(unit->scriptName.c_str());
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(10)) {

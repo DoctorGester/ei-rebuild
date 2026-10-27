@@ -474,7 +474,7 @@ public:
     ScriptDefinitions& Scripts() { return definitions_; }
     int& LoadedFlag() { return loaded_; }
     int& FileCount() { return fileCount_; }
-    mfc::CString& ErrorText() { return errorText_; }
+    std::string& ErrorText() { return errorText_; }
     int& ErrorCode() { return errorCode_; }
     int& ErrorLine() { return errorLine_; }
     char* Field(int offset) { return reinterpret_cast<char*>(this) + offset; }
@@ -497,7 +497,7 @@ public:
     ScriptTempGroups tempGroups_;               // one is kept
     ScriptTempObjects tempObjects_;
     int forDepth_;          // nesting of running For loops
-    mfc::CString errorText_;
+    std::string errorText_;
     int errorCode_;
     int errorLine_;
 };
@@ -518,8 +518,6 @@ static_assert(offsetof(CScript, instances_) == 0x140);
 static_assert(offsetof(CScript, areas_) == 0x194);
 static_assert(offsetof(CScript, tempGroups_) == 0x1B0);
 static_assert(offsetof(CScript, forDepth_) == 0x1E8);
-static_assert(offsetof(CScript, errorLine_) == 0x1F4);
-static_assert(sizeof(CScript) == 0x1F8);
 
 // Argument `argIndex` of a command is the result of the nested call `cmd`.
 struct ScriptSubCall {

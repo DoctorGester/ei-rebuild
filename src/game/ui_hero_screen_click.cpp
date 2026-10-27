@@ -77,8 +77,8 @@ constexpr int kModeNewHero = 10;
 constexpr int kModeStats = 11;
 
 // A multiplayer hero's name: the text 0 of its party's first member record (read through the members'
-// data pointer, taking the CString there).
-mfc::CString& MpHeroName(int index) {
+// data pointer).
+std::string& MpHeroName(int index) {
     auto* hero = SavedHero(index);
     return hero->Party()->members_.data->texts[0];
 }
@@ -99,7 +99,7 @@ void CMpHeroScreen::BackToNewHero() {
     surfaces_.data[0]->ReleaseDC();
     tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
-    nameEdit_->SetText(HeroRecord()->texts[0].GetString());
+    nameEdit_->SetText(HeroRecord()->texts[0].c_str());
 }
 
 void CMpHeroScreen::FinishRename() {
@@ -107,8 +107,8 @@ void CMpHeroScreen::FinishRename() {
     str::TrimLeft(typed);
     str::TrimRight(typed);
     if (typed.size() != 0) typed = mfc::CString(RenameSeparator()) + typed;
-    mfc::CString& name = MpHeroName(heroIndex_);
-    std::string title = name.GetString();
+    std::string& name = MpHeroName(heroIndex_);
+    std::string title = name;
     std::string base;
     int bar = str::Find(title, RenameBar());
     if (bar >= 0)
@@ -350,7 +350,7 @@ void CMpHeroScreen::Rename() {
     if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
     renameEdit_->SetEnabled(1, 1);
     renameEdit_->SetFocused(true);
-    std::string name = MpHeroName(heroIndex_).GetString();
+    std::string name = MpHeroName(heroIndex_);
     int bar = str::Find(name, RenameBar());
     if (bar < 0) {
         renameEdit_->SetText(game::EmptyText());
@@ -388,13 +388,13 @@ void CMpHeroScreen::PlayVoice() {
     auto* hero = HeroRecord();
     UnitPrototypeRecord* prototype;
     {
-        stlp::string key(hero->texts[6].GetString());
+        stlp::string key(hero->texts[6].c_str());
         prototype = unitdb::PrototypeTable().byName.Subscript(key);
     }
     if (!prototype) return;
     UnitSoundBank* set;
     {
-        stlp::string key(prototype->name.GetString());
+        stlp::string key(prototype->name.c_str());
         // The sound sets (the units' acks) by name: operator[] inserts a null entry for an unknown name.
         set = reinterpret_cast<UnitSoundBank*>(acks::Database().units.byName.Subscript(key));
     }

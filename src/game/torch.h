@@ -64,8 +64,6 @@ public:
 
     CTorchObjectSpec* spec;         // a counted reference
 };
-static_assert(offsetof(CTorchObject, spec) == 0x238);
-static_assert(sizeof(CTorchObject) == 0x23C);
 
 // Slots 11 / 12: "CTorchObject" and 0x57.
 const char* __fastcall TorchClassName(CTorchObject* self);

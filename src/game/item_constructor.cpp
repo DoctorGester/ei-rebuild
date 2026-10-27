@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <string>
 
 using namespace itemdb;
 
@@ -325,7 +326,7 @@ BOOL CItemConstructor::Build() {
     item_->InitFromRecord(record);
     if (item_->GetClassId() == kClassQuick && static_cast<int>(prototype->category) == kCategoryWand) {
         CSpellManager* spellManager = manager_->context_->SpellManager();
-        CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->text7C).GetString());
+        CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->text7C).c_str());
         spell_ = spell;
         item_->SetSpell(spell);
     } else if (spell_) {
@@ -445,7 +446,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, the count for materials.
-    const char* type = prototype->text04;
+    const char* type = prototype->text04.c_str();
     if (extra.GetLength() != 0 && gamecrt::mbscmp(type, kMaterialType) != 0) {
         CSpellManager* spells = context->SpellManager();
         if (CSpell* spell = spells->CreateSpellFromText(extra)) constructor->SetSpellObject(spell);
@@ -537,7 +538,7 @@ void ListRecordNames(const NamedRecordTable<Record>& table, mfc::CStringArray* n
     }
 }
 
-const mfc::CString* HeadName(const ItemRecordHead* record) { return &record->text04; }
+const std::string* HeadName(const ItemRecordHead* record) { return &record->text04; }
 
 } // namespace
 

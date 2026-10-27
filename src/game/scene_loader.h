@@ -377,10 +377,6 @@ private:
     // The start of both the destructor and Destroy.
     void ReleaseParts();
 };
-static_assert(sizeof(FakeUnitScene) == 0x580);
-static_assert(offsetof(FakeUnitScene, skin) == 0x4E0);
-static_assert(offsetof(FakeUnitScene, figures) == 0x530);
-static_assert(offsetof(FakeUnitScene, helpers) == 0x56C);
 
 // The figure's .reg file's records: texture names and texture links by id.
 struct TextureNameRecord {

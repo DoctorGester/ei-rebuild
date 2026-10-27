@@ -319,6 +319,29 @@ to which template:
   byte array: CStream::ReadString, WriteCopy, HumanFigureName, MobFile::Load's scripts, the interface save's text),
   and a member those reach
   (mfc_slots.h's `StringsAt` offsets, `DestroyStringsAt`) must stay a CString until they are typed.
+- Scope `members` (batch 3): `--members Class::member ...` retypes those data members (an array member too) and
+  keeps a member no rule carries by its name (`<member>` in excluded.json; `why.txt` says where and why). A member
+  already declared std::string is counted, so its uses get the rules after a hand retype. Done: CUnit::scriptName,
+  CMapObject::name2, CScript::errorText_, ScriptErrorInfo::text, PartyUnitRecord::texts[7], the unit database's
+  prototype / NPC / model / model slot / level record strings, the item database's spell, spell modifier and material
+  record strings and the item records' head (text04, text08, materialClass) and QuickItemRecord::text7C (batch 4;
+  the kinds' CopyOwn / default constructors name their byte ranges by member now, and record_stats.cpp reads
+  game.exe's weapon skill bonus at its original +0x7B). Their classes (and the classes deriving from or
+  holding them: Lever, CTorchObject, MagicTrap, CTrapObject, FakeUnitScene, CWorldServer) lost the layout asserts the
+  bigger member broke; the prototype index divides by sizeof(UnitPrototypeRecord). Helpers that take either text type:
+  `ChunkArchive::CStringField<Text>`, `CStream::ReadInto<Text>` (the CString instantiations are game.exe's), records::
+  CopyMember / AssignMember / DefaultMember for std::string.
+- Members that must stay CStrings for now: those reached through byte offsets (mfc_slots.h's StringsAt /
+  BuiltStringsAt / NamedStrings policies: texture names, zone exits, memory records, global map points / zones,
+  lever_table.cpp's DestroyString at offsets), stlp::vector<CString> (CStringVector) members, and members of objects
+  the vector recorders read in game.exe through our headers (record_script*.cpp read CScript; its error goes through
+  tests/vectors/script_original.h, game.exe's layout at errorText_'s offset).
+- `mfc::CArray` moves elements with `Relocate`: bytes, or the element policy's `Relocate` when it has one. An element
+  holding a std::string needs one (PartyUnitRecordElements: move-construct, destroy, in the direction the overlap
+  needs): bytes are fine for MSVC's std::string at _ITERATOR_DEBUG_LEVEL 0, but the /MTd build's level 2 keeps a
+  proxy pointing back at the string.
+- The harness digest reads our std::string members through `Text(const std::string&)` in
+  tests/verify/image/harness_digest_image.cpp (the shared .inc reads game.exe's CStrings as const char*).
 - A `const char*` given to a retyped parameter builds the std::string from it: CString took a null pointer as ""
   where std::string's constructor does not. No caller in the suite passes null; a crash there is the first place
   to look.
@@ -328,8 +351,17 @@ to which template:
   compiles silently through a cast or a `void*` parameter and is then read as a CString
   (`reinterpret_cast<StringOps*>(&text)` in Tokenize, caught by the script-load vectors; `ComposeSkin(1, &name)`'s
   `void*` target, a crash in every scenario with a hero).
+- A retyped member makes its class bigger, so everything that knew the old size or offsets breaks without a compile
+  error once the layout asserts are gone. Before retyping, grep for the class's old sizeof and the offsets after the
+  member: `CMapObjectManager::NewObject`'s factory allocated 0x4DC / 0x238 / ... bytes for each class id (now
+  sizeof(T); heap corruption C0000374 about a second into every run once CUnit and CMapObject grew), and
+  `FigurePrototypeRecord` read a model record's figure name as a CString at +0xE8 (the multiplayer HUD portraits;
+  now the UnitModelRecord itself). Structs that pad up to an offset (`unused_000[0xE8]`) over another class are the
+  same hazard.
 - Kept on purpose: a pointer into a CString that another CString shares (refcounted buffers) outlives the local copy;
   with std::string it would not. `CFigureStrip::Draw`'s `name` (its cells keep `name`'s pointer) stays a CString.
+- c14_strings.py sometimes applies a `.c_str()` fix one line late (a one-line function after one already fixed:
+  manual.txt says "already converted"; the next line gets a stray `.c_str()`). Read the diff of every run.
 - Checked by: the build (every changed call shape is a compile error or a /W4 warning first), the function vectors
   (`CScript::Load` / Tokenize / the script copies replay the loader's string handling), both suites with goldens.
 

@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 class CStream;
 class CMapObjectServer;
@@ -266,7 +267,7 @@ public:
     // its EAX.
     std::uint32_t ReadState(int first, CMemoryStream* reader);
     // The second name becomes `text`. Returns the string.
-    mfc::CString* SetSecondName(const char* text);
+    std::string* SetSecondName(const char* text);
 
     // The object as its CObject3D base (map_object_figures.h).
     CObject3D* Object3D() { return this; }
@@ -296,7 +297,7 @@ public:
     int effectCount;                // |
     int effectCapacity;             // |
     int effectGrowBy;               // /
-    mfc::CString name2;
+    std::string name2;
     Vector3 baseScale;
     int sectorCellX;
     int sectorCellY;
@@ -313,10 +314,6 @@ protected:
 static_assert(sizeof(CObject3D) == 0x170);
 static_assert(offsetof(CMapObject, companion) == 0x170);
 static_assert(offsetof(CMapObject, effects) == 0x198);
-static_assert(offsetof(CMapObject, name2) == 0x1A8 && offsetof(CMapObject, baseScale) == 0x1AC);
-static_assert(offsetof(CMapObject, changeStamp) == 0x1C0);
-static_assert(offsetof(CMapObject, changedParts) == 0x1DC);
-static_assert(sizeof(CMapObject) == 0x238);   // CUnit's fields start at +0x238
 
 // The virtual the verify wrapper of RecomputeScale reads to tell plain objects from units.
 namespace mapslot {

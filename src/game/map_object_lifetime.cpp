@@ -234,7 +234,7 @@ CUnit::CUnit() {
 EI_REWRITTEN_SPECIAL(0x0052E110, CUnit::CUnit);
 
 void CUnit::Reset() {
-    scriptName.Empty();
+    scriptName.clear();
     prototype23C = -1;
     heightOffset = 0.0f;
     sizeClass = 3;

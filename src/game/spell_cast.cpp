@@ -152,7 +152,7 @@ BOOL CSpellContainer::Build() {
     spell->effectPower_ = 0x10;
 
     itemdb::SpellTable& spells = itemdb::TheSpellDatabase().spells;
-    int index = spells.IndexOf(spells.FindByCode(proto->code));
+    int index = spells.IndexOf(spells.FindByCode(proto->code.c_str()));
     proto = prototype_;
     spell->prototypeIndex_ = static_cast<std::uint8_t>(index);
     spell->damage_ = proto->damage;
@@ -272,7 +272,7 @@ CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const S
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->SetManager(this);
     if (!constructor->BeginConstruct(prototype))
-        return game::FatalErrorAs<CSpell>(kCantBegin, prototype->code.GetString());
+        return game::FatalErrorAs<CSpell>(kCantBegin, prototype->code.c_str());
     int added = 0;
     for (SpellModifierNode* node = modifiers->First(); node != modifiers->End(); node = node->next) {
         if (added >= 8) break;

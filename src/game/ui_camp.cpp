@@ -398,7 +398,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
             if (!part) return false;
             const itemdb::MaterialRecordHead* own = BlueprintRecord(item);
             if (firstKindOne) return own == firstKindOne && kindOnes < part->materialUnits;
-            return gamecrt::mbsicmp(part->materialClass, own->soundName) == 0;
+            return gamecrt::mbsicmp(part->materialClass.c_str(), own->soundName.c_str()) == 0;
         }
         if (!IsSpellContainer(item)) return false;
         if (!itemMade_) return false;
@@ -754,7 +754,7 @@ bool CCampPages::CanMakeItem() {
     }
     if (!blueprint || !part) return fail();
     if (static_cast<int>(part->materialUnits) != blueprintCount) return fail();
-    if (gamecrt::mbsicmp(part->materialClass, blueprint->soundName) != 0)
+    if (gamecrt::mbsicmp(part->materialClass.c_str(), blueprint->soundName.c_str()) != 0)
         return fail();
     constructor->SetManager(factory);
     if (!constructor->BeginCreateItem(type, -1)) {
@@ -1185,7 +1185,7 @@ int FindHero(int start, Step step) {
         i = step(i, count);
         ++tries;
         PartyUnitRecord* record = &party->members_.data[i];
-        if (PrototypeObjectClass(record->texts[5]) == kHeroClass) break;
+        if (PrototypeObjectClass(record->texts[5].c_str()) == kHeroClass) break;
     }
     return i;
 }

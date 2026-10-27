@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <string>
 
 bool ZoneExit::Contains(float x, float y) const {
     EI_NAN_AUDIT(angle, y, y2);
@@ -60,13 +61,16 @@ namespace {
 constexpr std::uint32_t kExitExtrasVersion = 0x68;   // +0x38 and the angle saved from here on
 } // namespace
 
-void CStream::ReadInto(mfc::CString* out) {
+template <typename Text>
+void CStream::ReadInto(Text* out) {
     alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
     auto* text = ReadString(slot);
-    *out = *text;
+    *out = static_cast<const char*>(*text);
     std::destroy_at(text);
 }
-EI_REWRITTEN(0x004E5840, CStream::ReadInto);
+template void CStream::ReadInto(mfc::CString*);
+template void CStream::ReadInto(std::string*);
+EI_REWRITTEN(0x004E5840, CStream::ReadInto<mfc::CString>);
 
 void ZoneExit::Read(CStream* stream) {
     stream->Read(&passTime, 4);

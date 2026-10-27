@@ -5,6 +5,10 @@ in function bodies of src/game/*.cpp (not the `kUnset` result slots, references,
 Scope `params`: the `const mfc::CString&` parameters of the functions defined in src/game, in the definition and every
 declaration of the same name and position (not virtual functions, not an overload set on the string type such as
 CopyMember's or the Ops cast views); a parameter no rule carries stays a CString in all of them.
+Scope `members`: the `mfc::CString` data members named by --members Class::member (declared in src/game's headers;
+an array member such as `texts[7]` too); a member no rule carries stays a CString, keyed by its name (every member of
+that name in the list stays). Members reached through byte offsets (mfc_slots.h's StringsAt policies, raw storage)
+and members of objects game.exe code still reads (the vector recorders) must not be listed.
 Step 2, fix: the verify build's diagnostics (MSVC with /diagnostics:column) name every place std::string does not
 take what CString took; one rule per shape rewrites it (str.h has CString's answers where std::string has none):
   x.GetLength()          -> x.size()                 x.IsEmpty()  -> x.empty()
@@ -27,6 +31,7 @@ pointer kept from a temporary) stays a CString: the round starts again from the 
 
 usage (from a VS x86 prompt; build/verify configured):
   python tools/c14_strings.py run [--scope locals|params] [--files src/game/a.cpp ...] [--rounds N]
+  python tools/c14_strings.py run --scope members --members CUnit::scriptName CScript::errorText_ ...
   python tools/c14_strings.py list [--files ...]      the declarations step 1 would retype
   python tools/c14_strings.py lifetimes               placement news and destructor calls of CStrings typed by their
                                                       target (std::construct_at / std::destroy_at), before members
@@ -561,17 +566,21 @@ STR_CALL = {'Find', 'ReverseFind', 'FindOneOf', 'Mid', 'Left', 'Right', 'MakeLow
 
 
 class Fixer:
-    def __init__(self, sources, decls):
+    def __init__(self, sources, decls, members=None):
         self.sources = sources          # normcase path -> Source
         self.decls = decls              # normcase path -> [(line, name)]
+        self.members = members          # scope members: member name -> its key ('<member>', 0, name)
         self.edits = {}                 # path -> [(start, end, text)]
         self.unfixable = set()          # (path, line of declaration, name)
         self.manual = []
+        self.why = []                   # where and why each kept variable stays a CString
 
     def add(self, path, start, end, text):
         self.edits.setdefault(path, []).append((start, end, text))
 
     def variable(self, path, line, name):
+        if self.members is not None:
+            return self.members.get(name)
         best = None
         for (dl, dn) in self.decls.get(path, []):
             if dn == name and dl <= line and (best is None or dl > best):
@@ -584,11 +593,13 @@ class Fixer:
         m = src.masked
         a, b = argument_span(m, skip_space(m, offset))
         for x in IDENT.finditer(m, a, max(b, a + 1)):
-            if m[max(0, x.start() - 1)] in '.>' or m.startswith('::', x.end()):
+            if (m[max(0, x.start() - 1)] in '.>' and self.members is None) or m.startswith('::', x.end()):
                 continue   # a member or a qualifier
             var = self.variable(d['file'], d['line'], x.group(0))
             if var:
                 self.unfixable.add(var)
+                self.why.append('%s: %s(%d,%d): %s: %s' % (var[2], os.path.relpath(d['file'], ROOT), d['line'],
+                                                           d['col'], why, d['msg'][:160]))
                 return
         self.manual.append('%s(%d,%d): %s: %s' % (os.path.relpath(d['file'], ROOT), d['line'], d['col'],
                                                   why, d['msg'][:200]))
@@ -810,7 +821,8 @@ class Fixer:
                 k += 1
             a, b = argument_span(m, skip_space(m, k))
             target = TO_TYPE.search(msg).group(1) if TO_TYPE.search(msg) else ''
-            if 'char' in target and FROM_STD.search(msg) and not is_simple_name(m[a:b]):
+            # (a retyped member outlives the expression: its pointer is as good as the CString's was)
+            if 'char' in target and FROM_STD.search(msg) and not is_simple_name(m[a:b]) and self.members is None:
                 return self.give_up(d, src, a, 'a pointer kept from a temporary')
         elif code in ('C2679', 'C2678'):
             # binary operator: the right-hand operand
@@ -928,7 +940,7 @@ def fixable_files():
 
 
 def shown(path):
-    return path if path == '<param>' else os.path.relpath(path, ROOT)
+    return path if path in ('<param>', '<member>') else os.path.relpath(path, ROOT)
 
 
 def game_file(path):
@@ -978,6 +990,41 @@ def retype_params(files, originals, excluded, keys):
     return decls
 
 
+def retype_members(files, originals, excluded, specs):
+    """Step 1 for scope `members`: the declarations `mfc::CString member;` (or `member[N];`) in the bodies of the
+    classes named by `specs` (Class::member) become std::string. {name: key} of the retyped members."""
+    wanted = {}
+    for spec in specs:
+        cls, name = spec.split('::')
+        if ('<member>', 0, name) not in excluded:
+            wanted.setdefault(cls, set()).add(name)
+    members = {}
+    for p in files:
+        if not (game_file(p) and p.endswith('.h')):
+            continue
+        text = originals[p]
+        m = mask(text)
+        edits = []
+        for cls, names in wanted.items():
+            for x in re.finditer(r'\b(?:struct|class)\s+' + re.escape(cls) + r'\b[^;{()]*\{', m):
+                end = match_forward(m, x.end() - 1)
+                for name in names:
+                    d = re.compile(r'\b(mfc::CString|std::string)(\s+)' + re.escape(name) +
+                                   r'\s*(?:\[[^\]]*\]\s*)?;').search(m, x.end(), end)
+                    if d:
+                        # a member retyped by hand or an earlier run counts too: its uses get the rules
+                        if d.group(1) == 'mfc::CString':
+                            edits.append((d.start(), d.start() + len('mfc::CString'), STD))
+                        members[name] = ('<member>', 0, name)
+        if edits:
+            new, _ = apply_edits(text, edits)
+            write(p, ensure_include(new))
+    missing = {n for ns in wanted.values() for n in ns} - set(members)
+    if missing:
+        print('  not found:', ', '.join(sorted(missing)))
+    return members
+
+
 def read(path):
     with open(path, encoding='utf-8', newline='') as f:
         return f.read()
@@ -1022,7 +1069,7 @@ def run(args):
     excluded_path = os.path.join(STATE, 'excluded.json')
     excluded = set()
     if os.path.exists(excluded_path) and not args.fresh:
-        excluded = {(p if p == '<param>' else os.path.normcase(os.path.join(ROOT, p)), l, n)
+        excluded = {(p if p in ('<param>', '<member>') else os.path.normcase(os.path.join(ROOT, p)), l, n)
                     for p, l, n in json.load(open(excluded_path))}
     try:
         for rnd in range(args.rounds):
@@ -1030,7 +1077,11 @@ def run(args):
                 if read(p) != originals[p]:
                     write(p, originals[p])
             keys = {}
-            if args.scope == 'params':
+            members = None
+            if args.scope == 'members':
+                members = retype_members(files, originals, excluded, args.members or [])
+                decls = {'<member>': [(0, n) for n in members]}
+            elif args.scope == 'params':
                 decls = retype_params(files, originals, excluded, keys)
             else:
                 decls = retype(candidate_files(args), originals, excluded)
@@ -1044,7 +1095,7 @@ def run(args):
                     f.write(out)
                 diags = [d for d in parse_diagnostics(out) if d['kind'] != 'note']
                 sources = {p: Source(p, read(p)) for p in files}
-                fixer = Fixer(sources, decls)
+                fixer = Fixer(sources, decls, members)
                 for d in diags:
                     fixer.fix(d)
                 # a parameter stays a CString in its function's every definition and declaration
@@ -1054,6 +1105,8 @@ def run(args):
                     f.write(''.join(x + '\n' for x in manual))
                 with open(os.path.join(STATE, 'keep.txt'), 'w', encoding='utf-8') as f:
                     f.write(''.join('%s:%d %s\n' % (shown(p), l, n) for p, l, n in sorted(new_unfixable)))
+                with open(os.path.join(STATE, 'why.txt'), 'a', encoding='utf-8') as f:
+                    f.write(''.join(x + '\n' for x in fixer.why))
                 count = 0
                 for p, edits in fixer.edits.items():
                     text, n = apply_edits(read(p), edits)
@@ -1171,7 +1224,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('command', choices=['run', 'list', 'lifetimes'])
     ap.add_argument('--files', nargs='*')
-    ap.add_argument('--scope', choices=['locals', 'params'], default='locals')
+    ap.add_argument('--scope', choices=['locals', 'params', 'members'], default='locals')
+    ap.add_argument('--members', nargs='*', help='scope members: Class::member ...')
     ap.add_argument('--rounds', type=int, default=8)
     ap.add_argument('--iterations', type=int, default=12)
     ap.add_argument('--fresh', action='store_true', help='forget the excluded variables of earlier runs')
