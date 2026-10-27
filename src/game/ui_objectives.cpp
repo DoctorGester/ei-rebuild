@@ -77,14 +77,14 @@ constinit lib::StaticObject<mfc::CString> g_lastQuest = /*007C8178*/ {};
 constinit std::uint8_t g_lastQuestDestroyed = /*007C8174*/ 0;
 mfc::CString& LastQuest() { return *g_lastQuest; }
 
-void __cdecl ConstructLastQuest() {
-    g_lastQuest.Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0064BE20));
-}
 void __cdecl DestroyLastQuest() {
     if (g_lastQuestDestroyed & 1) return;
     g_lastQuestDestroyed = static_cast<std::uint8_t>(g_lastQuestDestroyed | 1);
     g_lastQuest.Destroy();
+}
+void __cdecl ConstructLastQuest() {
+    g_lastQuest.Construct();
+    libcrt::AtExit(DestroyLastQuest);
 }
 
 class VariableTable {
@@ -689,7 +689,7 @@ void CObjectivesWindow::DrawQuestList() {
 }
 
 EI_REPLACE(0x0064BE00, ConstructLastQuest);
-EI_REPLACE(0x0064BE20, DestroyLastQuest);
+EI_REWRITTEN(0x0064BE20, DestroyLastQuest);
 EI_REWRITTEN(0x0064BE80, CObjectivesWindow::CreateScreen);
 EI_REWRITTEN(0x0064D9B0, CObjectivesWindow::DrawQuestList);
 EI_REWRITTEN(0x0064CC10, CObjectivesWindow::ShowZone);

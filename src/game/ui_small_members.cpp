@@ -147,15 +147,15 @@ constinit lib::StaticObject<CInterface3D> g_interface = /*007C7D50*/ {};
 CInterface3D* TheInterface() { return &*g_interface; }
 
 namespace {
+void __cdecl DestroyInterface() { g_interface->DestroyBody(); }
 void __cdecl ConstructInterface() {
     g_interface->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005F4780));
+    libcrt::AtExit(DestroyInterface);
 }
-void __cdecl DestroyInterface() { g_interface->DestroyBody(); }
 } // namespace
 
 EI_REPLACE(0x005F4680, ConstructInterface);
-EI_REPLACE(0x005F4780, DestroyInterface);
+EI_REWRITTEN(0x005F4780, DestroyInterface);
 
 void CUiMesh::DestroySprite() {
     material_ = nullptr;

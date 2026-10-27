@@ -224,11 +224,11 @@ EI_REWRITTEN(0x004DB700, BufferedFile::Open);
 using UnreadSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 constinit lib::StaticObject<UnreadSet> g_unreadSet = /*007AB8D8*/ {};
 namespace {
+void __cdecl DestroyUnreadSet() { g_unreadSet->Destroy(); }
 void __cdecl ConstructUnreadSet() {
     g_unreadSet->Construct(100, 0, 0, 0);
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004DB890));
+    libcrt::AtExit(DestroyUnreadSet);
 }
-void __cdecl DestroyUnreadSet() { g_unreadSet->Destroy(); }
 } // namespace
 EI_REPLACE(0x004DB870, ConstructUnreadSet);
-EI_REPLACE(0x004DB890, DestroyUnreadSet);
+EI_REWRITTEN(0x004DB890, DestroyUnreadSet);

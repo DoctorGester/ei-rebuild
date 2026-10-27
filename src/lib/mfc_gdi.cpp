@@ -44,7 +44,7 @@ public:
 // handler). The thread state's destructor frees MFC's; the image's live until the process ends.
 CHandleMap* MakeMap(CHandleMap*& map, BOOL create, const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount) {
     if (!map && create) {
-        const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandlerAt());
+        const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandler);
         map = new CHandleMap(objectClass, handleOffset, handleCount);
         SetAfxNewHandler(old);
     }

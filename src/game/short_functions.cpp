@@ -43,7 +43,7 @@ EI_REPLACE_SHORT(0x00402DC0, Ret);  // vtable 0073B870 slot 22, vtable 0073BF08 
 EI_REPLACE_SHORT(0x00403010, Ret);
 EI_REPLACE_SHORT(0x0040C430, MemberAddress<0xC>);  // vtable 0073B984 slot 1, vtable 0073B98C slot 1 and 2 more
 EI_REPLACE_SHORT(0x0040C760, Ret);
-EI_REPLACE_SHORT(0x00412580, Ret4);  // vtable 0073BB28 slot 1, vtable 0073BB40 slot 1 and 56 more
+EI_REPLACE_SHORT(0x00412580, Ret4);  // vtable 0073BB28 slot 1, vtable 0073BB40 slot 1 and 54 more
 EI_REPLACE_SHORT(0x004128B0, Ret);
 EI_REPLACE_SHORT(0x004132B0, Ret4);  // vtable 0073BBB4 slot 11, vtable 0073BDEC slot 11 and 2 more
 EI_REPLACE_SHORT(0x004132C0, Ret4);  // vtable 0073BBB4 slot 12, vtable 0073BDEC slot 12 and 2 more
@@ -75,8 +75,8 @@ EI_REPLACE_SHORT(0x00469DF0, Ret);  // vtable 0073C5C4 slot 7, vtable 0073C728 s
 EI_REPLACE_SHORT(0x00469E10, Ret);  // vtable 0073C5C4 slot 9, vtable 0073C728 slot 9
 EI_REPLACE_SHORT(0x00469E20, Ret);  // vtable 0073C5C4 slot 0, vtable 0073C728 slot 0
 EI_REPLACE_SHORT(0x0046C4C0, Ret4);  // vtable 0073C6E0 slot 3
-EI_REPLACE_SHORT(0x00478010, Ret);  // vtable 0073C8A4 slot 10, vtable 0073C8F8 slot 10 and 4 more
-EI_REPLACE_SHORT(0x00478020, ReturnZero);  // vtable 0073C8A4 slot 12, vtable 0073C8F8 slot 12 and 5 more
+EI_REPLACE_SHORT(0x00478010, Ret);  // vtable 0073C8A4 slot 10, vtable 0073C8F8 slot 10 and 3 more
+EI_REPLACE_SHORT(0x00478020, ReturnZero);  // vtable 0073C8A4 slot 12, vtable 0073C8F8 slot 12 and 4 more
 EI_REPLACE_SHORT(0x00478C20, ReturnFalse);  // vtable 0073C92C slot 4
 EI_REPLACE_SHORT(0x00479D10, ReturnTrue);  // vtable 0073C990 slot 5
 EI_REPLACE_SHORT(0x0047A220, ReturnTrue);  // vtable 0073F3A8 slot 4
@@ -157,17 +157,17 @@ EI_REPLACE_SHORT(0x00579670, Ret);  // vtable 0073F7F8 slot 40, vtable 00740688 
 EI_REPLACE_SHORT(0x00579680, ReturnZero);  // vtable 0073F7F8 slot 41, vtable 007405AC slot 41 and 13 more
 EI_REPLACE_SHORT(0x005892E0, ReturnZero);
 EI_REPLACE_SHORT(0x005DC230, ReturnMinusOne);  // vtable 00740034 slot 8
-EI_REPLACE_SHORT(0x005E2800, Ret);  // vtable 007400A8 slot 1, vtable 0074019C slot 1 and 36 more
-EI_REPLACE_SHORT(0x005E2810, Ret12);  // vtable 007400A8 slot 2, vtable 0074019C slot 2 and 9 more
-EI_REPLACE_SHORT(0x005E2820, Ret12);  // vtable 007400A8 slot 3, vtable 0074019C slot 3 and 20 more
-EI_REPLACE_SHORT(0x005E2830, Ret12);  // vtable 007400A8 slot 4, vtable 007401D0 slot 4 and 19 more
-EI_REPLACE_SHORT(0x005E2840, Ret12);  // vtable 007400A8 slot 5, vtable 007401D0 slot 5 and 34 more
-EI_REPLACE_SHORT(0x005E2850, Ret12);  // vtable 007400A8 slot 6, vtable 007401D0 slot 6 and 36 more
-EI_REPLACE_SHORT(0x005E28A0, Ret12);  // vtable 007400A8 slot 11, vtable 007401D0 slot 11 and 32 more
+EI_REPLACE_SHORT(0x005E2800, Ret);  // vtable 007400A8 slot 1, vtable 0074019C slot 1 and 35 more
+EI_REPLACE_SHORT(0x005E2810, Ret12);  // vtable 007400A8 slot 2, vtable 0074019C slot 2 and 8 more
+EI_REPLACE_SHORT(0x005E2820, Ret12);  // vtable 007400A8 slot 3, vtable 0074019C slot 3 and 19 more
+EI_REPLACE_SHORT(0x005E2830, Ret12);  // vtable 007400A8 slot 4, vtable 007401D0 slot 4 and 18 more
+EI_REPLACE_SHORT(0x005E2840, Ret12);  // vtable 007400A8 slot 5, vtable 007401D0 slot 5 and 33 more
+EI_REPLACE_SHORT(0x005E2850, Ret12);  // vtable 007400A8 slot 6, vtable 007401D0 slot 6 and 35 more
+EI_REPLACE_SHORT(0x005E28A0, Ret12);  // vtable 007400A8 slot 11, vtable 007401D0 slot 11 and 31 more
 EI_REPLACE_SHORT(0x005E69A0, Ret);
 EI_REPLACE_SHORT(0x005E6B80, Ret);
-EI_REPLACE_SHORT(0x005EA800, Ret12);  // vtable 0074019C slot 10, vtable 007401D0 slot 10 and 36 more
-EI_REPLACE_SHORT(0x005EA840, Ret12);  // vtable 007401D0 slot 9, vtable 00740410 slot 9 and 30 more
+EI_REPLACE_SHORT(0x005EA800, Ret12);  // vtable 0074019C slot 10, vtable 007401D0 slot 10 and 35 more
+EI_REPLACE_SHORT(0x005EA840, Ret12);  // vtable 007401D0 slot 9, vtable 00740410 slot 9 and 29 more
 EI_REPLACE_SHORT(0x005EB8A0, Ret12);  // vtable 00741154 slot 9
 EI_REPLACE_SHORT(0x005EB8B0, Ret12);  // vtable 00741154 slot 11
 EI_REPLACE_SHORT(0x005EE010, Ret);  // vtable 00740444 slot 24, vtable 007404DC slot 24 and 13 more
@@ -219,9 +219,8 @@ EI_REPLACE_SHORT(0x00666F60, Ret4);  // vtable 00743180 slot 22, vtable 007431E0
 EI_REPLACE_SHORT(0x006675F0, Ret);  // vtable 00743180 slot 13
 EI_REPLACE_SHORT(0x00667670, Ret);  // vtable 00743180 slot 16
 EI_REPLACE_SHORT(0x0066D0F0, Ret4);  // vtable 00743280 slot 14
-EI_REPLACE_SHORT(0x00670810, ReturnZero);
 EI_REPLACE_SHORT(0x00671390, Ret);  // vtable 007432E0 slot 4
-EI_REPLACE_SHORT(0x00672650, Ret);  // vtable 007432FC slot 8, vtable 00743300 slot 7
+EI_REPLACE_SHORT(0x00672650, Ret);  // vtable 00743300 slot 7
 EI_REPLACE_SHORT(0x00675680, LoadDword<0x4>);
 EI_REPLACE_SHORT(0x0067D650, Ret4);  // vtable 0074387C slot 22
 EI_REPLACE_SHORT(0x0067D660, Ret4);  // vtable 0074387C slot 23

@@ -29,14 +29,12 @@ void Release(CRefCounted* counted) {
 // Counted assignment (RefPtr::Assign, inlined for the templates): the new object gains a
 // reference before the old one is released.
 template <typename T>
-void AssignCounted(T*& slot, CRefObject* object) {
+void AssignCounted(T*& slot, CRefCounted* object) {
     T* old = slot;
-    slot = static_cast<T*>(static_cast<void*>(object));
+    slot = static_cast<T*>(object);
     if (object) ++object->refs_;
     Release(old);
 }
-
-CRefObject* AsRefObject(void* object) { return static_cast<CRefObject*>(object); }
 
 } // namespace
 
@@ -145,7 +143,7 @@ void ChunkArchive::SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>*
         Current()->occurrence = i + 1;
         ClassTemplate*& slot = (*templates)[i];
         if (loading_) AssignCounted(slot, ObjectRef(1));
-        else SaveObjectRef(1, AsRefObject(slot));
+        else SaveObjectRef(1, slot);
     }
     LeaveChunk();
 }
@@ -167,7 +165,7 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
             ar->Current()->occurrence = i + 1;
             PartyRecord*& slot = records.Start()[i];
             if (ar->loading_) AssignCounted(slot, ar->ObjectRef(1));
-            else ar->SaveObjectRef(1, AsRefObject(slot));
+            else ar->SaveObjectRef(1, slot);
         }
         ar->LeaveChunk();
     }

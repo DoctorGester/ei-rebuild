@@ -38,7 +38,7 @@ void ReleaseCounted(CRefCounted* object) {
 // ---- The registry's creators ----------------------------------------------------------------------
 
 // The count dword is cleared only after the allocation has been tested.
-PartyRecord* __cdecl CreatePartyRecord() {
+CRefCounted* __cdecl CreatePartyRecord() {
     auto* record = new PartyRecord();
     if (!record) return nullptr;
     record->refs_ = 0;
@@ -46,9 +46,9 @@ PartyRecord* __cdecl CreatePartyRecord() {
     record->flags7_ = 0;
     return record;
 }
-EI_REPLACE(0x00457740, CreatePartyRecord);
+EI_REWRITTEN(0x00457740, CreatePartyRecord);
 
-ClassTemplate* __cdecl CreateClassTemplate() {
+CRefCounted* __cdecl CreateClassTemplate() {
     auto* created = new ClassTemplate();
     if (!created) return nullptr;
     created->refs_ = 0;
@@ -56,7 +56,7 @@ ClassTemplate* __cdecl CreateClassTemplate() {
     created->flags7_ = 0;
     return created;
 }
-EI_REPLACE(0x00457850, CreateClassTemplate);
+EI_REWRITTEN(0x00457850, CreateClassTemplate);
 
 // ---- The party record -----------------------------------------------------------------------------
 
@@ -119,12 +119,12 @@ constinit lib::StaticObject<PartyManager> g_partyManager = /*007AA5A0*/ {};
 PartyManager* ThePartyManager() { return &*g_partyManager; }
 
 namespace {
+void __cdecl DestroyPartyManager() { g_partyManager->Destruct(); }
 void __cdecl ConstructPartyManager() {
     g_partyManager->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x004A56F0));
+    libcrt::AtExit(DestroyPartyManager);
 }
-void __cdecl DestroyPartyManager() { g_partyManager->Destruct(); }
 } // namespace
 
 EI_REPLACE(0x004A56D0, ConstructPartyManager);
-EI_REPLACE(0x004A56F0, DestroyPartyManager);
+EI_REWRITTEN(0x004A56F0, DestroyPartyManager);

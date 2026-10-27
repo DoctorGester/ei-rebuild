@@ -62,7 +62,7 @@ std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
 float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 
 // The end-of-sample callback every started voice gets (sets the slot's finished flag).
-miles::SampleCallback EndOfSampleCallback() { return ei::Code<miles::SampleCallback>(0x006B75E0); }
+miles::SampleCallback EndOfSampleCallback() { return SoundEndOfSample; }
 
 // The slot of the wave's cache list node (its record's uses counts the voices playing it).
 WaveNode*& CacheEntry(WaveCache& cache, const SoundSlot* slot) { return stlp::NamedSlot<WaveNode>(cache, slot->name); }
@@ -1156,7 +1156,7 @@ EI_REWRITTEN(0x006B8600, CSoundManager::Play3D);
 
 
 namespace {
-void* DecompressCallback() { return ei::Code<void*>(0x006B89B0); }   // SoundDecompressCallback
+void* DecompressCallback() { return reinterpret_cast<void*>(SoundDecompressCallback); }
 const char* Mp3Suffix() { return ".mp3"; }
 constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use
 constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use
@@ -1303,4 +1303,4 @@ int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set) {
     }
     return 1;
 }
-EI_REPLACE(0x006B89B0, SoundDecompressCallback);
+EI_REWRITTEN(0x006B89B0, SoundDecompressCallback);

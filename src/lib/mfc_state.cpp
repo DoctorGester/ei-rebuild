@@ -15,10 +15,6 @@ namespace {
 void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }
 void __cdecl UpdateAfxScrollMetrics() { AfxData().UpdateScrollMetrics(); }
 
-// AfxWingdixTerm as the exe's atexit list holds it: its address.
-using ExitFunction = void(__cdecl*)();
-ExitFunction WingdixTermAt() { return reinterpret_cast<ExitFunction>(0x0070B5F0); }
-
 } // namespace
 
 namespace {
@@ -236,7 +232,7 @@ constinit HGDIOBJ g_afxHalftoneBrush = /*007C8D40*/ {nullptr};
 void __cdecl AfxWingdixTerm() { AfxDeleteObject(&g_afxHalftoneBrush); }
 
 // atexit's answer would be kept in _afxWingdixTerm, which nothing reads.
-void __cdecl AfxWingdixTermInit() { libcrt::AtExit(WingdixTermAt()); }
+void __cdecl AfxWingdixTermInit() { libcrt::AtExit(AfxWingdixTerm); }
 
 EI_REWRITTEN(0x0070C4E9, CSimpleList::AddHead);
 EI_REWRITTEN(0x0070CE8C, ImageModuleState);
@@ -245,7 +241,7 @@ EI_REWRITTEN(0x0070C458, AfxLockGlobals);
 EI_REWRITTEN(0x0070C4C8, AfxUnlockGlobals);
 EI_REWRITTEN(0x00700674, AfxClassInit);
 EI_REPLACE(0x0070DC4D, AfxInitDbcs);
-EI_REPLACE(0x0070B5F0, AfxWingdixTerm);
+EI_REWRITTEN(0x0070B5F0, AfxWingdixTerm);
 EI_REPLACE(0x0070B600, AfxWingdixTermInit);
 
 } // namespace mfc::impl

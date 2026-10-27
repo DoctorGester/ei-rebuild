@@ -32,13 +32,13 @@ class NetLink;
 // 32-byte boundary, size, capacity, grow-by.
 using PlayerObjectArray = lib::AlignedArray<CEngineObject*>;
 
-// One row of the server's and the client's handler tables: a message type and the address of its thiscall
-// handler.
+// One row of the server's and the client's handler tables: a message type and its handler, a method of the
+// connection that reads the message from its stream.
+template <typename Connection>
 struct HandlerEntry {
     std::uint8_t type;
-    std::uintptr_t address;
+    int (Connection::*handler)();
 };
-static_assert(sizeof(HandlerEntry) == 8 && offsetof(HandlerEntry, address) == 4);
 
 // A unit placement: the unit's id, position, rotation and two unit values (CWorldServer::StoreParty stores
 // them, CreateUnits restores them).
@@ -216,6 +216,8 @@ public:
     // pause: only the session leader (its id the party's first record's unit) may, and its name is announced
     // (text 0xC); then the world's SetPaused(pause != 0).
     int OnPause();
+    // Message 0x37: no handler (the table has this function, which refuses: returns 0).
+    int OnMessage37();
     // Messages 0x33 / 0x32: {spell, unit id, target id / point, flag byte}: an able unit with a Player mode
     // casts at the object / point (CommandCast / CommandCastAt).
     int OnCastAtObject();
@@ -261,7 +263,7 @@ public:
     // ClearServerState, then the handler table: 256 entries, zeroed, and the 25 handlers by message type.
     BOOL CreateServer();
 
-    using Handler = int(__fastcall*)(CPlayerServer*, void*);
+    using Handler = int (CPlayerServer::*)();
     lib::AlignedArray<Handler> handlers_;   // by message type (null: refused; 256 of them)
     Vector3 lastPosition_;          // sent with 0x04 / 0x0F
     int spare_;                     // -1 after Create; nothing reads it

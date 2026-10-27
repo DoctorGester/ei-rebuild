@@ -198,14 +198,14 @@ int CPlayerServer::OnLastPosition() {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x0066FA90, CPlayerServer::OnLeave);
-EI_REPLACE_METHOD(0x00670CE0, CPlayerServer::OnGameStateRequest);
-EI_REPLACE_METHOD(0x0066FAC0, CPlayerServer::OnPause);
-EI_REPLACE_METHOD(0x00670820, CPlayerServer::OnCastAtObject);
-EI_REPLACE_METHOD(0x006708D0, CPlayerServer::OnCastAtPoint);
-EI_REPLACE_METHOD(0x00670960, CPlayerServer::OnWantedWeapon);
-EI_REPLACE_METHOD(0x006709D0, CPlayerServer::OnMoveStyle);
-EI_REPLACE_METHOD(0x00670A40, CPlayerServer::OnUnitLookup);
-EI_REPLACE_METHOD(0x00670A90, CPlayerServer::OnFollow);
-EI_REPLACE_METHOD(0x0066FB70, CPlayerServer::OnUnitFlag438);
-EI_REPLACE_METHOD(0x00670B20, CPlayerServer::OnLastPosition);
+EI_REWRITTEN(0x0066FA90, CPlayerServer::OnLeave);
+EI_REWRITTEN(0x00670CE0, CPlayerServer::OnGameStateRequest);
+EI_REWRITTEN(0x0066FAC0, CPlayerServer::OnPause);
+EI_REWRITTEN(0x00670820, CPlayerServer::OnCastAtObject);
+EI_REWRITTEN(0x006708D0, CPlayerServer::OnCastAtPoint);
+EI_REWRITTEN(0x00670960, CPlayerServer::OnWantedWeapon);
+EI_REWRITTEN(0x006709D0, CPlayerServer::OnMoveStyle);
+EI_REWRITTEN(0x00670A40, CPlayerServer::OnUnitLookup);
+EI_REWRITTEN(0x00670A90, CPlayerServer::OnFollow);
+EI_REWRITTEN(0x0066FB70, CPlayerServer::OnUnitFlag438);
+EI_REWRITTEN(0x00670B20, CPlayerServer::OnLastPosition);

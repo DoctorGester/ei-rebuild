@@ -33,10 +33,9 @@ bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
 
 // The software cursor's lock, unless the harness hooks the call (ei/main_loop.h): its frame capture reads the
 // finished frame before the cursor is blitted and the frame flipped (tests/verify/harness_capture.cpp).
-using CursorLock = ei::mainloop::HarnessHooks::CursorLock;
-CursorLock CursorLockAtCallSite() {
-    if (auto hook = ei::mainloop::g_harnessHooks.cursorLock) return hook;
-    return ei::Code<CursorLock>(0x005E65F0);
+void LockCursorAtCallSite() {
+    if (auto hook = ei::mainloop::g_harnessHooks.cursorLock) hook(TheCursor());
+    else TheCursor()->TakeLock();
 }
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the video player.
@@ -69,7 +68,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     TheSceneRenderer()->EndScene();
     if (cursor) TheInterface()->DrawOverlays();
     if (!draw || !Running()) return;
-    CursorLockAtCallSite()(TheCursor());
+    LockCursorAtCallSite();
     CursorDrawFrame(TheCursor());
     if (DevicePresent(TheRenderDevice())) game::FatalError("Can't flip render surface");   // "Can't flip render surface"
     TheCursor()->ReleaseLock();

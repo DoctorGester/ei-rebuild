@@ -3501,13 +3501,10 @@ constexpr std::int32_t kFeetAlpha[24] = /*0078AC18*/ {0, 32, 64, 128, 255, 255, 
                                              255, 255, 255, 255, 255, 255, 255};
 
 // The figure part named `name` (null if none) and a part's world position.
-void* FindFigurePart(void* unit, const char* name) {
-    using Fn = void*(__thiscall*)(void*, const char*);
-    return ei::Code<Fn>(0x00516A80)(unit, name);
-}
-Vector3* FigurePartPosition(void* unit, Vector3* out, void* part) {
-    using Fn = Vector3*(__thiscall*)(void*, Vector3*, void*);
-    return ei::Code<Fn>(0x005188B0)(unit, out, part);
+CFigureMesh* FindFigurePart(CObject3D* unit, const char* name) { return unit->FindPartByPrefix(name); }
+Vector3* FigurePartPosition(CObject3D* unit, Vector3* out, const CFigureMesh* part) {
+    unit->PartWorldPosition(&out->x, part);
+    return out;
 }
 
 const char* kLeftFoot = "ll3";
@@ -3566,7 +3563,7 @@ EI_REWRITTEN(0x00495C80, CParticleSource::UpdateFeetCloud);
 void CParticleSource::TickFeetCloud(ParticleElement* e) {
     if (attachedTo && ClassOf(attachedTo) == kUnitClass) {
         CObject3D* unit = attachedTo;
-        void* part = FindFigurePart(unit, e->ticks ? kLeftFoot : kRightFoot);
+        CFigureMesh* part = FindFigurePart(unit, e->ticks ? kLeftFoot : kRightFoot);
         if (!part) part = FindFigurePart(unit, kBody);
         if (part) {
             Vector3 at;
@@ -4214,8 +4211,7 @@ namespace {
 Vector3* UnitPoint(CObject3D* unit, Vector3* out, int index) { return Carrier(unit)->PositionAt(out, index); }
 double TerrainHeight(float x, float y) { return TheClientWorld()->RawSurfaceHeightAt(x, y); }
 double PlatformHeight(const Vector3* at, float ground) {
-    using Fn = double(__thiscall*)(void*, const Vector3*, float);
-    return ei::Code<Fn>(0x00560F00)(&TheClientWorld()->platforms_, at, ground);
+    return TheClientWorld()->platforms_.SurfaceHeight(at, ground);
 }
 
 bool Same(float a, float b) {

@@ -38,8 +38,6 @@ int __cdecl CriticalNewHandler(std::size_t size);
 int __cdecl DefaultNewHandler(std::size_t size);
 // _afxNewHandler: the handler MFC's operator new (libcrt::OperatorNew) calls when an allocation fails.
 extern gamecrt::NewHandler g_afxNewHandler;
-// The handler's address as the exe has it (our CriticalNewHandler in the image).
-inline gamecrt::NewHandler CriticalNewHandlerAt() { return ei::Code<gamecrt::NewHandler>(0x0070AB1A); }
 
 // CMapPtrToPtr (0x1C bytes): void* to void*, hashed by `key >> 4`.
 class CMapPtrToPtr final : public CObject {

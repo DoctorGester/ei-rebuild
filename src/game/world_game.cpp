@@ -1482,15 +1482,15 @@ constinit lib::StaticObject<GameFlow> g_gameFlow = /*007AFE20*/ {};
 GameFlow* TheGameFlow() { return &*g_gameFlow; }
 
 namespace {
+void __cdecl DestroyGameFlow() { g_gameFlow->Destruct(); }
 void __cdecl ConstructGameFlow() {
     g_gameFlow->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005784C0));
+    libcrt::AtExit(DestroyGameFlow);
 }
-void __cdecl DestroyGameFlow() { g_gameFlow->Destruct(); }
 } // namespace
 
 EI_REPLACE(0x00578440, ConstructGameFlow);
-EI_REPLACE(0x005784C0, DestroyGameFlow);
+EI_REWRITTEN(0x005784C0, DestroyGameFlow);
 
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;

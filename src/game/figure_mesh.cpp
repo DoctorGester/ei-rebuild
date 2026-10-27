@@ -198,7 +198,7 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
     box_.bounds.radius = radius_;
     box_.bounds.SetBox(&boxMin_.x, &boxMax_.x);
 }
-EI_REPLACE_METHOD(0x005A18E0, CFigureMesh::LoadBounds);
+EI_REWRITTEN(0x005A18E0, CFigureMesh::LoadBounds);
 
 void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic) {
     Vector3 boxMin, boxMax;
@@ -360,8 +360,7 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     *cursor += sizeof(header);
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
-    ei::Code<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
-        this, nullptr, cursor, s, t, u, header.magic);
+    LoadBounds(cursor, s, t, u, header.magic);
 
     vertices_.SetSize(header.vertexCount);
     LoadVertices(vertices_, cursor, header.magic, s, t, u);
@@ -405,8 +404,7 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     *cursor += sizeof(header);
     materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
-    ei::Code<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
-        this, nullptr, cursor, s, t, u, header.magic);
+    LoadBounds(cursor, s, t, u, header.magic);
 
     vertices_.SetSize(header.vertexCount);
     LoadVertices(vertices_, cursor, header.magic, s, t, u);
@@ -640,7 +638,7 @@ void CPlainFigureMesh::MirrorY() {
 }
 EI_REWRITTEN(0x005A4BF0, CPlainFigureMesh::MirrorY);
 
-EI_REPLACE_METHOD(0x005A6E70, lib::AlignedArray<std::uint32_t>::SetSize);
+EI_REWRITTEN(0x005A6E70, lib::AlignedArray<std::uint32_t>::SetSize);
 
 void CPlainFigureMesh::RefreshBuffers() {
     BuffersChanged();
@@ -648,9 +646,8 @@ void CPlainFigureMesh::RefreshBuffers() {
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
     buffers_.normalCount = normals_.size;
-    using ResizeFn = void(__fastcall*)(lib::AlignedArray<std::uint32_t>*, void*, int, int);
-    ei::Code<ResizeFn>(0x005A6E70)(&colorsA_, nullptr, normals_.size * 4, -1);
-    ei::Code<ResizeFn>(0x005A6E70)(&colorsB_, nullptr, normals_.size * 4, -1);
+    colorsA_.SetSize(normals_.size * 4, -1);
+    colorsB_.SetSize(normals_.size * 4, -1);
     buffers_.texCoords = texCoords_.data;
     buffers_.texCoordCount = texCoords_.size;
     buffers_.corners = corners_.data;

@@ -106,12 +106,12 @@ EI_REWRITTEN(0x0065F2D0, SavedParties::Destruct);
 constinit lib::StaticObject<SavedParties> g_savedParties = /*007C82A0*/ {};
 
 namespace {
+void __cdecl DestroySavedParties() { g_savedParties->Destruct(); }
 void __cdecl ConstructSavedParties() {
     g_savedParties->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0065F2C0));
+    libcrt::AtExit(DestroySavedParties);
 }
-void __cdecl DestroySavedParties() { g_savedParties->Destruct(); }
 } // namespace
 
 EI_REPLACE(0x0065F2A0, ConstructSavedParties);
-EI_REPLACE(0x0065F2C0, DestroySavedParties);
+EI_REWRITTEN(0x0065F2C0, DestroySavedParties);

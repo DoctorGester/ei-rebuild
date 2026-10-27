@@ -121,7 +121,7 @@ int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId) {
     return MessageBoxText(prompt, type, helpId);
 }
 
-EI_REPLACE(0x0070AC94, MessageBoxText);
+EI_REWRITTEN(0x0070AC94, MessageBoxText);
 EI_REWRITTEN(0x0070ACCC, MessageBoxId);
 
 } // namespace mfc::impl

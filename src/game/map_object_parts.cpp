@@ -50,7 +50,7 @@ CFigureMesh* CObject3D::FindPartByPrefix(const char* prefix) {
     if (CFigureMesh* part = FirstPart(parts, startsWith)) return part;
     return FirstPart(pendingParts, startsWith);
 }
-EI_REPLACE_METHOD(0x00516A80, CObject3D::FindPartByPrefix);
+EI_REWRITTEN(0x00516A80, CObject3D::FindPartByPrefix);
 
 CFigureMesh* CObject3D::FindPart(const char* partName) {
     auto named = [partName](CFigureMesh* part) { return std::strcmp(part->GetName(), partName) == 0; };
@@ -107,7 +107,7 @@ float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
     out[2] = z * scaleZ + localPosition_.z;
     return out;
 }
-EI_REPLACE_METHOD(0x005188B0, CObject3D::PartWorldPosition);
+EI_REWRITTEN(0x005188B0, CObject3D::PartWorldPosition);
 
 // --- The animation database -------------------------------------------------------------------
 

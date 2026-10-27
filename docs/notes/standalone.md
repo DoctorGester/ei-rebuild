@@ -1662,14 +1662,15 @@ the `--no-hooks` suite) keeps the registry.
   explicit instantiation (AckTable<ExtraAcks>::RecordAt). Counts (progress.py's "EI_REPLACE registrations"): 9,347
   before C20c, 5,262 after it, 3,527 after C20d (1,735 that only check_fp_fold read became EI_REWRITTEN; 20 in
   CSkyObject / CUnit left for C19 batch 5). C20c deleted its ~4,000 lines outright, so those functions are missing
-  from the map (C20d1). 809 before C20 batch 1, 559 after it (250 more EI_REWRITTEN).
+  from the map (C20d1). 809 before C20 batch 1, 559 after it (250 more EI_REWRITTEN), 434 after C20f (the code literals now take the function by name: the exit functions
+  `libcrt::AtExit(DestroyX)`, the player handler tables hold member pointers (`HandlerEntry<CPlayerClient>`), callbacks `&Fn`).
 - **What still needs a game.exe code address** (C20 batch 1's measurement, 2026-10-27; `registration_readers.py`):
   | reader | registrations | needs game.exe's code addresses? |
   |---|---|---|
   | code cells (gen_image_cells) | 0 (825 cells: static initialiser list 748, MFC message maps 35, CRT tables 35, ThrowInfo 7) | no: none was read at run time; retired, the bytes are zero |
   | static init / exit (static_init.cpp's calls and d.AtExit, static_exit.cpp's calls; libcrt::OnExit's CodeAddress) | 178 | yes, until gen_static_init writes calls by name |
   | exit functions of function-local statics (gen_static_init's runtime atexits) | 0 | no: our ports register them by name (libcrt::AtExit(DestroyX), EnsureStatic); the generator counts EI_REWRITTEN as ported |
-  | code literals in src/ (ei::Code<F>(0x...), handler tables, HasCode, CodeAddress) | 129 | yes, until each calls or takes the function by name (C20f) |
+  | code literals in src/ (ei::Code<F>(0x...), handler tables, HasCode, CodeAddress) | 3 (was 129; C20f) | yes: GameMain (the hook's entry, HasCode / kGameWinMain), DestroyScriptQuestName (script_exec_helpers.cpp, C14a holds it); GameInfoRecord::Write is no literal (its address is the text section's first byte, kGameTextBegin) |
   | the harness's image side (GameCode<F> of FrameStep, CCamera::Update, CWorldClient::Segment, CWorldServer::Update, the cursor lock) | 5 | yes, until those become hook points or tests/verify/image calls |
   | the harness's game.exe side (OriginalCode, JumpTo / RedirectCall, address tables), tests/vectors' recorders | 0 | no: they patch / record game.exe's own code; replays call by name |
   | named_data --check, gen_short_functions, check_signatures, coverage, progress, dashboard_data | 0 | no: they read the function-to-original map (EI_REWRITTEN does) |

@@ -47,7 +47,7 @@ int __cdecl DefaultNewHandler(std::size_t) {
 
 EI_REWRITTEN(0x0070061B, CRuntimeClass::CreateObject);
 EI_REWRITTEN(0x0070059D, SetAfxNewHandler);
-EI_REPLACE_STANDALONE(0x0070AB1A, CriticalNewHandler);
+EI_REWRITTEN(0x0070AB1A, CriticalNewHandler);
 EI_REWRITTEN(0x0070058F, DefaultNewHandler);
 
 
@@ -215,7 +215,7 @@ void* CHandleMap::FromHandle(HANDLE handle) {
         SetHandles(object, handle);
         return object;
     }
-    const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandlerAt());
+    const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandler);
     void* object;
     try {
         object = objectClass->CreateObject();
