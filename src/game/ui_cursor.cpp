@@ -42,7 +42,7 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     holder = nullptr;
     frame = 0;
     CTextureManager* manager = TheTextureManager();
-    void* picture = manager->GetFile(name, nullptr);
+    MmpHeader* picture = manager->GetFileData(name);
     // (A throw frees the holder's memory and passes the exception on; that ends the game.)
     holder = new CDXSurface(TheRenderDevice(), picture, flag);
     if (holder) ++holder->refs_;

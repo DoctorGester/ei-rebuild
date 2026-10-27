@@ -169,13 +169,13 @@ void HandOverParts(CObject3D* object, CObject3DClientSpecific* half, const Matri
                     mesh.indexCount = r->indices.count;
                 } else {
                     const MeshBuffers& b = part->buffers_;
-                    positions = static_cast<const VertexPacket*>(b.vertices);
+                    positions = b.vertices;
                     packets = b.vertexCount;
-                    mesh.uvs = static_cast<const float*>(b.texCoords);
+                    mesh.uvs = &b.texCoords->u;
                     mesh.uvCount = b.texCoordCount;
-                    mesh.corners = static_cast<const std::uint16_t*>(b.corners);
+                    mesh.corners = &b.corners->position;
                     mesh.cornerCount = b.cornerCount;
-                    mesh.indices = static_cast<const std::uint16_t*>(b.indices);
+                    mesh.indices = b.indices;
                     mesh.indexCount = b.indexCount;
                 }
                 if (!positions || packets <= 0) continue;
@@ -211,7 +211,7 @@ const HighestObject& Highest(const CWorldClient* world) {
         for (std::uint32_t x = 0; x < grid.width_; ++x) {
             const SectorList& cell = grid.rows_[y][x];
             for (auto* node = cell.head->next; node != cell.head; node = node->next) {
-                const auto* object = static_cast<const CObject3D*>(node->data);
+                const auto* object = node->data;
                 if (!object || !object->attached || (object->boundsFlags & kBoundsValid) != kBoundsValid) continue;
                 const Vector3& scale = object->ClientSpecific()->figureScale;
                 top = (std::max)(top, TopOf(object, scale));
@@ -303,7 +303,7 @@ void HandOverOutsideCasters(CWorldClient* world) {
         for (std::uint32_t x = firstX; x <= lastX; ++x) {
             const SectorList& list = grid.rows_[y][x];
             for (auto* node = list.head->next; node != list.head; node = node->next) {
-                auto* object = static_cast<CObject3D*>(node->data);
+                auto* object = node->data;
                 if (!object || !object->attached) continue;
                 const bool unit = object->GetClassId() == kClassUnit;
                 if (!(flags & (unit ? 0x80u : 0x40u))) continue;

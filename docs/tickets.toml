@@ -2637,7 +2637,7 @@ id = "C21"
 title = "Pointer static_casts: typed parameters and fields instead of void* and downcasts"
 group = "cleanup"
 model = "sonnet"
-note = "batch 29 (2026-10-27): FrameQueue, deferred unit list, SectorGrid / SectorList / heroes_ element types, MoveObject / MoveObject2, PickAt / PickAt2, UnitsInBox, QueueScreenEntry, CollectVisible and the draw-list sorts typed CMapObject* (the stlp HeldObject policy and ListRemoveHeld are templates now); the last non-script ObjectSlots uses are gone (it stays for script_addon_units / script_eval / script_exec, C14a). Net: ReplicaEntry::object_ and DriverNode::value are RefPtrTo, lobby entries RefPtrTo<ServerEntry>, a local typed instead of casts in ClientPublishParty. PlayerIterator is an ObjectListIteratorOf<CPlayer>; ScrambleObjects walks CMapObject; FindObjectAs / UnitOrNull replace casts in player_sync, player_client, unit_create_stats, world_effect_visual. Counts before -> after: pointer static_cast 527 -> 513 (all pointer casts in src), 500 -> 486 by the simple-name grep batch 28 used. Skipped (reason holds): script.h / ScriptObjectRef and UI arrays (C14a batch 7), Spec::object (shared by map objects, lights, sounds, effect carriers), PairMessage::first_ (player or file message by subclass), PushReplicated / TimedValueOf / RefVector message elements (stlp helpers are RefPtr-typed), PlayerObjectArray (map objects and effects share one DiffObjectSets), spec-kind and owner_ downcasts (checked), AI target / leader fields. Suites: image 145 pass, 121 goldens the same, 0 differ; verify and release green, check_signatures / check_x87 / check_stolen 0."
+note = "batch 30 (2026-10-27): pointer static_cast 508 -> 474 (grep 'static_cast<Name*>' over src and include; batch 29's count was 513 by its grep). Typed: MeshBuffers (VertexPacket / NormalPacket / TexCoord / MeshCorner / uint16 indices; InFile<T> takes the file-data arrays in the loaders), CTextureDevice::DrawMeshBlocks / 2 (typed arrays and CDXSurface textures, the device's own DeviceCorner / TexCoord replaced by MeshCorner / TexCoord), consumers in figure_mesh, figure_part_draw*, figure_rasterise, world_client_shadow_casters; .mmp data is MmpHeader* (CTextureManager::GetFileData, ParseMmpHeader, CreateFromMmp, CDXSurface picture ctor / LoadPictureData, texture_compose, ui_item_view, ui_cursor, ui_surface_create); CMapObject upcasts to CObject3D dropped; AsWeapon / AsArmor const overloads used in combat, ui_item_info, ui_panel_draws; CSpell::CanAffect takes CUnit / CMapObject. Left and why: the stlp list<void*> recipe lists (StringListTraits in src/lib, C15); words stay a reinterpret in the render hand-over (uint32 pairs read as uint16); SetTexture(int, void*) (virtual, callers pass CTexture / CEngineObject / void*); IsEnemy / OrderTame / AI target downcasts (target fields are CMapObject*, class-tested at the callers); spec-kind downcasts (world_units, mob_reader); raw buffers and callbacks (void* by contract: memset / memcpy casts, __fastcall hooks, sokol / D3D11 handles in src/render); script, scene_loader, UI arrays (C14a) and C15's files untouched. Suites: image 145 pass, 121 goldens the same, 0 differ; verify and release green, check_signatures / check_x87 / check_stolen 0."
 
 [[ticket]]
 id = "C18e"
@@ -3364,6 +3364,22 @@ id = "C31b"
 title = "Port scaffolding Abi types: ArrayAbi / ListAbi / ListTemporary / VectorAbi callers and registrations"
 group = "cleanup"
 note = "C31 part 2 removed the registration-only ListAbi aliases of record_lists, library_net_lists and library_containers (and the HeroRecord / Speaker VectorAbi downcasts). Left: ~96 ArrayAbi uses (mfc_array.h, mfc_list.h, mfc_slots.h, game_arrays.h, game_slots.h, record_arrays.h), 52 ListAbi (game_lists.h, game_slots.h), 21 ListTemporary (the SerializeThrough loaders, which game_slots.h's CompiledCollection vtable slots call), 56 stlp::VectorAbi (record_vectors.h's per-record InsertOverflow registrations, static_lists / unit_db_destroy / world_briefing Destruct). Their aliases are used once, only for an EI_REWRITTEN line; the Serialize / Destruct members are reached through the C28o CArray/CList vtable tags, so do them with C28o / C14b."
+
+[[ticket]]
+id = "C14f"
+title = "C14 string consumers: take std::string_view / const std::string& instead of const char* so callers drop .c_str()"
+group = "cleanup"
+model = "sonnet"
+depends = ["C14a"]
+note = "User 2026-10-27: 1,130 .c_str() calls in src. Most go to our own functions: Open (51), mbscmp (47) / mbsicmp (25), Format (30), WriteText (23), FatalError (20), DrawTextIn / DrawLine / DrawLabel, Load, Set, GetString, FindFile, Find, Compare. Give those std::string_view (or const std::string& where a NUL-terminated string is needed further down) and drop the .c_str() at the callers; the comparisons get string_view helpers that keep the MBCS rules. .c_str() stays where it goes to Win32, the CRT, D3D or game.exe's side of the harness. Can start on files C14a has finished; report counts before -> after."
+
+[[ticket]]
+id = "C34"
+title = "UTF-8 always: drop EI_UTF8; saves, network and harness digests convert at the boundary"
+group = "cleanup"
+model = "opus"
+depends = ["C14a"]
+note = "User 2026-10-27: treat saves as resources: keep them in the asset code page (1251) on disk and convert on load / save, so the game is UTF-8 everywhere with no EI_UTF8 branches (107 uses in 35 files) and saves stay byte-identical to vanilla. Boundaries to convert: save write/read (characters typed outside 1251 need a rule, e.g. '?'), multiplayer messages (vanilla peers), the harness's string digests (compare in one encoding), whatever else the EI_UTF8 runs show differing. Win32 / registry / file names already go through the UTF-8 routes (docs/notes/standalone.md section 4). Helpers that are about the old byte semantics (CharacterCount for timing, the mbs compares) become plain UTF-8 functions. Remove build.cmd's utf8 option and build/<cfg>-utf8. Goldens: 121 / 114 the same is the check."
 
 [[ticket]]
 id = "S"

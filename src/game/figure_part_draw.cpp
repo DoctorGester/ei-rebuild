@@ -173,7 +173,7 @@ void Light(Part& part) {
 }
 
 // The positions with the per-vertex offsets (CFigureMesh::offsets_) added.
-const void* MovedPositionsOf(CFigureMesh* mesh) {
+const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
     lib::AlignedArray<VertexPacket>& moved = MovedPositions();
     moved.SetSize(mesh->buffers_.vertexCount);
     std::memcpy(moved.data, mesh->buffers_.vertices, static_cast<std::size_t>(mesh->buffers_.vertexCount) * 64);
@@ -190,7 +190,7 @@ const void* MovedPositionsOf(CFigureMesh* mesh) {
 // The mesh through the device. The drawn flag (0x40) is only set when a rectangle was asked for.
 void DrawThroughDevice(Part& part) {
     CFigureMesh* mesh = part.Mesh();
-    const void* positions = mesh->buffers_.vertices;
+    const VertexPacket* positions = mesh->buffers_.vertices;
     int blocks = mesh->buffers_.vertexCount;
     if (mesh->offsets_.size != 0) positions = MovedPositionsOf(mesh);
     mesh = part.Mesh();
@@ -202,12 +202,12 @@ void DrawThroughDevice(Part& part) {
         result = part.device->DrawMeshBlocks2(part.textureA->surface_, part.textureB->surface_, positions, blocks,
                                               b.normals, b.normalCount, mesh->colorsA_.data, mesh->colorsB_.data,
                                               b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words,
-                                              b.wordCount, static_cast<std::uint16_t*>(b.indices), b.indexCount,
+                                              b.wordCount, b.indices, b.indexCount,
                                               mesh->textureOffsetU_, mesh->textureOffsetV_, part.alpha, part.drawFlags);
     } else {
         result = part.device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, mesh->colorsA_.data,
                                              mesh->colorsB_.data, b.texCoords, b.texCoordCount, b.corners, b.cornerCount,
-                                             b.words, b.wordCount, static_cast<std::uint16_t*>(b.indices), b.indexCount,
+                                             b.words, b.wordCount, b.indices, b.indexCount,
                                              mesh->textureOffsetU_, mesh->textureOffsetV_, part.alpha, part.drawFlags);
     }
     render::SetMeshSource(nullptr);

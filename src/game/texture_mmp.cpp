@@ -54,7 +54,7 @@ bool g_undecodedLogged = false;
 // A holder with no DirectDraw texture for the levels the new renderer decodes from the file (keyed
 // by the holder). One it does not decode keeps the holder and shows nothing (logged once). Its
 // allocation failing ends the game, like a surface that could not be made.
-CDXSurface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const void* data, unsigned mip,
+CDXSurface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const MmpHeader* data, unsigned mip,
                           unsigned levels) {
     CDXSurface* holder = NewDecodedTextureHolder(device, static_cast<int>(texture->width_),
                                                  static_cast<int>(texture->height_), texture->format_.words);
@@ -62,7 +62,7 @@ CDXSurface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const
     if (!render::TextureFromMmp(holder, data, mip, levels) && !g_undecodedLogged) {
         g_undecodedLogged = true;
         ei::Log("cpuwindows: an .mmp texture the new renderer does not decode (format %08X) shows nothing",
-                static_cast<const MmpHeader*>(data)->format);
+                data->format);
     }
     return holder;
 }
@@ -98,9 +98,8 @@ std::uint32_t MmpHeader::FilledBytes(const PixelFormat& surfaceFormat, unsigned 
 }
 
 
-int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned mip) {
+int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, unsigned mip) {
     if (flags_ & kTextureLoaded) return 1;
-    const auto* header = static_cast<const MmpHeader*>(data);
     header->MipOffset(mip);   // the result is not used
 
     std::uint32_t width = header->width >> (mip & 31);
@@ -121,7 +120,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     // The new renderer decodes the levels from the file and the holder has no DirectDraw texture
     // (a system-memory staging surface filled from the file, loaded into a managed
     // texture with the kind's priority hints, its priority set to 100, is not made).
-    CDXSurface* decoded = DecodedHolder(device, this, data, mip, levels);
+    CDXSurface* decoded = DecodedHolder(device, this, header, mip, levels);
     CDXSurface* previous = surface_;
     surface_ = decoded;
     ++decoded->refs_;
@@ -150,15 +149,14 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
         return 1;
     }
     path = str::Format("%s%s", name, ".mmp");   // "%s%s", ".mmp"
-    void* data = GetFile(path.c_str(), nullptr);
-    if (!data) {
+    auto* fileHeader = static_cast<MmpHeader*>(GetFile(path.c_str(), nullptr));
+    if (!fileHeader) {
         out->SetSizeDiscard(0);
         return 0;
     }
-    const auto* fileHeader = static_cast<const MmpHeader*>(data);
     out->SetSizeDiscard(static_cast<int>(fileHeader->extraSize));
     if (fileHeader->extraSize) std::memcpy(out->data, fileHeader + 1, fileHeader->extraSize);
-    CloseFile(data);
+    CloseFile(fileHeader);
     return 1;
 }
 EI_REWRITTEN(0x006928C0, CTextureManager::LoadMmpExtra);

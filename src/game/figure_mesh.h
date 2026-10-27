@@ -48,17 +48,17 @@ static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(Me
 // What the renderer draws from (CFigureMesh::buffers_): pointers and counts of the mesh's arrays (class 0x41
 // points the last four into the loaded file data instead).
 struct MeshBuffers {
-    void* vertices;     // VertexPacket
+    VertexPacket* vertices;
     int vertexCount;    // packets
-    void* normals;      // NormalPacket
+    NormalPacket* normals;
     int normalCount;
-    void* texCoords;    // TexCoord
+    TexCoord* texCoords;
     int texCoordCount;
-    void* corners;      // MeshCorner
+    MeshCorner* corners;
     int cornerCount;
-    void* words;        // 4-byte elements, unknown
+    std::uint32_t* words;   // 4-byte elements, unknown
     int wordCount;
-    void* indices;      // uint16 corner indices, 3 per triangle
+    std::uint16_t* indices; // corner indices, 3 per triangle
     int indexCount;
 };
 static_assert(sizeof(MeshBuffers) == 0x30);

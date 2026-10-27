@@ -223,7 +223,7 @@ const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCam
 
 int __fastcall QueueScreenEntry(CMapObject* object, stlp::list<ScreenEntry>* queued) {
     if (!(object->flags_ & 0x20) || (object->flags_ & 0x40)) return 0;
-    const CObject3D* figure = static_cast<const CObject3D*>(object);
+    const CObject3D* figure = object;
     ScreenEntry entry;
     entry.classId = object->GetClassId();
     entry.objectId = static_cast<unsigned>(object->id_);

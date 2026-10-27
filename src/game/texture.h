@@ -34,8 +34,13 @@ class CTransformPipeline;
 class CDeviceMaterial;
 struct NamedTexture;
 struct SkinRequest;
+struct MmpHeader;
 struct Direct3DDeviceRecord;
 struct TLVertex;
+struct VertexPacket;
+struct NormalPacket;
+struct TexCoord;
+struct MeshCorner;
 namespace devicebuffers { struct ProjectedVertex; }
 struct _DDSURFACEDESC2;
 
@@ -76,14 +81,15 @@ public:
     int SetMaterial(CDeviceMaterial* material);
     int DrawFlatBlocks(const void* positions, const void* uvs, int blocks, const std::uint16_t* indices, int indexCount,
                  std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds, float zScale);
-    int DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions, int blocks, const void* normals,
-                  int colourCount, std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
-                  const void* corners, int cornerCount, const void* words, int wordCount, std::uint16_t* indices,
-                  int indexCount, float uOffset, float vOffset, int alpha, int flags);
-    int DrawMeshBlocks(const void* positions, int blocks, const void* normals, int colourCount, std::uint32_t* colours,
-                 std::uint32_t* speculars, const void* uvs, int unused10, const void* corners, int cornerCount,
-                 const void* words, int wordCount, std::uint16_t* indices, int indexCount, float uOffset, float vOffset,
-                 int alpha, int flags);
+    int DrawMeshBlocks2(CDXSurface* firstTexture, CDXSurface* secondTexture, const VertexPacket* positions, int blocks,
+                  const NormalPacket* normals, int colourCount, std::uint32_t* colours, std::uint32_t* speculars,
+                  const TexCoord* uvs, int unused10, const MeshCorner* corners, int cornerCount,
+                  const std::uint32_t* words, int wordCount, std::uint16_t* indices, int indexCount, float uOffset,
+                  float vOffset, int alpha, int flags);
+    int DrawMeshBlocks(const VertexPacket* positions, int blocks, const NormalPacket* normals, int colourCount,
+                 std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs, int unused10,
+                 const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
+                 std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha, int flags);
     int DrawTwoTextures(CDXSurface* first, CDXSurface* second, int primitive, int fvf, void* vertices,
                         int vertexCount, const std::uint16_t* indices, unsigned indexCount, int flags);
     int DrawIndexed(int primitive, int fvf, void* vertices, int vertexCount, const std::uint16_t* indices,
@@ -96,7 +102,7 @@ public:
                           int indexCount, int flags);
     // The format the header's id names; for a DXT id the device does not have, the one its channel bit counts
     // name (anything else looks id 0 up). 1 with `format` filled, 0 with it untouched.
-    int ParseMmpHeader(const void* data, PixelFormat* format);
+    int ParseMmpHeader(const MmpHeader* header, PixelFormat* format);
     // `id`: 0x5650, 0x5551, 0x4444, 0x8888 or a DXT four-character code. 1 with `format` filled, 0 with it
     // untouched.
     int FindFormat(int id, PixelFormat* format);
@@ -200,10 +206,10 @@ struct CDXSurface final : CRendererBase {
     // Of the screen's format. Throws the game's error object when the surface cannot be made.
     CDXSurface(CTextureDevice* device, int width, int height);
     // Shows an .mmp picture.
-    CDXSurface(CTextureDevice* device, const void* picture, int flag);
+    CDXSurface(CTextureDevice* device, const MmpHeader* picture, int flag);
     ~CDXSurface() override;
 
-    int LoadPictureData(const void* data, int flag);
+    int LoadPictureData(const MmpHeader* picture, int flag);
 
     long result = 0;
     CTextureDevice* device;
@@ -320,7 +326,7 @@ public:
 
     // From mip level `mip` on: a holder for the levels the new renderer decodes; copies the file's extra
     // block. Returns 1.
-    int CreateFromMmp(CTextureDevice* device, const void* data, unsigned mip);
+    int CreateFromMmp(CTextureDevice* device, const MmpHeader* data, unsigned mip);
     // With its alpha from "a_<file>" beside it. 1 without loading when this texture is loaded and named `path`.
     int LoadBmp(CTextureDevice* device, const char* path);
     // A square surface header->width wide (the height is not read) in the new renderer's memory, one level.
@@ -422,7 +428,7 @@ public:
     int Compose(mfc::CString* out, const SkinRequest* request, const mfc::CString* name,
                 const mfc::CString* fallback, unsigned mipCount, std::uint32_t fill, std::uint32_t format);
 
-    void* GetFileData(const char* name);
+    MmpHeader* GetFileData(const char* name);   // an .mmp file's data (CloseFile frees it)
     CTexture* NewTextureOfType(int type);
     // Given `name` either way (no null check). Not loaded.
     CTexture* FindOrCreate(int type, const char* name);
