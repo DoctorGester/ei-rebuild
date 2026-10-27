@@ -38,9 +38,9 @@ enum PendingAction : int {
 CSpell* SpellOf(CItem* item) { return item->spell_; }
 
 // The shared tail of the quick item and the spell use: `spell` (an item's spell) used at once by `unit`'s
-// side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the
-// pending action dropped; false), any other to `unit` itself; then UseOnUnit for a spell aimed at
-// a unit, else UseAtPoint at the target's position (both through their addresses), with `quick`.
+// side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the pending
+// action dropped; false), any other to `unit` itself; then UseOnUnit for a spell aimed at a unit, else
+// UseAtPoint at the target's position, with `quick`.
 bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, char quick) {
     CUnit* target = unit;
     if (spell->IsOffensive()) {

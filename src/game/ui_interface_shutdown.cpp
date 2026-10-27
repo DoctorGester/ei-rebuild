@@ -1,7 +1,6 @@
-// The interface manager's end (CInterface3D): the input reset after the windows close,
-// the shutdown from the main loop's exit (it writes config\tutorial.ini), the destructor
-// body of the global interface run at exit and the console window's destructor body
-//. See ui.h and docs/notes/ui.md, section 3.
+// The interface manager's end (CInterface3D): the input reset after the windows close, the shutdown from the
+// main loop's exit (it writes config\tutorial.ini), the destructor body of the global interface run at exit
+// and the console window's destructor body. See ui.h and docs/notes/ui.md, section 3.
 #include "app.h"
 #include "ui.h"
 
