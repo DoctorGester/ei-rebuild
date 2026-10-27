@@ -1,6 +1,6 @@
 #pragma once
 
-// The debug information panel at 0079B930 (string_map.cpp; docs/notes/app.md): an STLport
+// The debug information panel (string_map.cpp; docs/notes/app.md): an STLport
 // map<string, string> drawn as "key  value" lines into a panel surface of the interface. The frame
 // code (renderer_scene.cpp, ui_interface_draw.cpp) sets its lines, the console shortcuts remove them.
 
@@ -20,12 +20,12 @@ namespace strmap {
 
 using StringMap = stlp::map<stlp::string, stlp::string>;
 
-// game.exe's table 0073BFA4 (two slots, no destructor), over the abstract 0073BFAC.
+// The vtable has two slots and no destructor, over the abstract one.
 class CDebugPanel {
 public:
-    // 00444740 (static initialiser 00444660 runs it before WinMain): the empty map.
+    // the static initialiser runs it before WinMain: the empty map.
     CDebugPanel();
-    // 00444690 (at exit): every node destroyed and freed, then the header. Not virtual: game.exe's table has no
+    // At exit: every node destroyed and freed, then the header. Not virtual: the table has no
     // destructor.
     ~CDebugPanel();
     // Panel[key] = value (a missing key is inserted first).
@@ -34,14 +34,14 @@ public:
     virtual void Remove(const char* key);
     // Binds the panel to the interface: an 8-point font, the rectangle (10, 10, 290, 290).
     void Init(CInterface3D* ui);
-    // 00444BD0 (plain RET). Frees the panel surface and the font.
+    // Frees the panel surface and the font.
     void Release();
     // The panel's rectangle: fitted by the interface, at least 100 x 15 and at most
     // the screen; a shown panel is made again.
     void SetRect(const RECT* rect);
-    // 00444CD0 (plain RET). Redraws at most every 500 ms, then blits the panel surface.
+    // Redraws at most every 500 ms, then blits the panel surface.
     void Tick();
-    // 00444D00 (plain RET). Clears the panel and draws each entry.
+    // Clears the panel and draws each entry.
     void Redraw();
     // Shows the panel (its surface made when missing, drawn at once) or hides it.
     void Show(std::uint8_t show);

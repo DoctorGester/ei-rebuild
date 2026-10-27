@@ -1,7 +1,7 @@
-// Ground decals: see ground_decal.h. The original clips with five hand-unrolled functions
-// (004D7BD0 plane -> u >= 0 -> v >= 0 -> 004D71D0; 004D74B0 v >= 0 -> u <= 1 -> v <= 1), each
-// stage writing its second triangle into its own function-static buffer (007AA710, 007AA750,
-// 007AA790, 007AA7D0, 007AA810). ClipStage is that pipeline with one buffer per stage, so the
+// Ground decals: see ground_decal.h. The game clips with five hand-unrolled functions
+// (plane -> u >= 0 -> v >= 0 -> u <= 1 -> v <= 1, with entry points part way), each
+// stage writing its second triangle into its own function-static buffer.
+// ClipStage is that pipeline with one buffer per stage, so the
 // in-place clipping and the order triangles are emitted in are the same.
 #include "ground_decal.h"
 

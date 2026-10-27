@@ -1,6 +1,5 @@
-// CEngineObject: the default slots of its vtable (game.exe's 0073B8E0) and its non-virtual members. See
-// engine_object.h. Slots 5, 6, 9 and 10 are shorter than
-// the hook's jump and stay original.
+// CEngineObject: the default slots of its vtable and its non-virtual members. See
+// engine_object.h. Slots 5, 6, 9 and 10 are shorter than a hook's jump and stay unregistered.
 #include "engine_object.h"
 
 #include "base_manager.h"
@@ -14,26 +13,25 @@ void CEngineObject::CopyFrom(const CEngineObject& other) {
     prototypeId_ = other.prototypeId_;
 }
 
-// The default slots: the destructor lets go of the owner; 1 is CopyFrom, 5 / 9 / 10 empty, 6 returns 0 (00402CC0,
-// 00402CD0, 00402D00, 00402D10).
+// The default slots: the destructor lets go of the owner; 1 is CopyFrom, 5 / 9 / 10 empty, 6 returns 0.
 CEngineObject::~CEngineObject() { owner_ = nullptr; }
 EI_REWRITTEN_SPECIAL(0x00455930, CEngineObject::~CEngineObject);
-EI_REWRITTEN_SPECIAL(0x0055ED90, CEngineObject::~CEngineObject);   // a jump to 00455930 (CParty's base)
+EI_REWRITTEN_SPECIAL(0x0055ED90, CEngineObject::~CEngineObject);   // a jump to CParty's base
 EI_REWRITTEN_SPECIAL(0x00402D20, CEngineObject::~CEngineObject);   // deleting
-EI_REWRITTEN_SPECIAL(0x006611B0, CEngineObject::~CEngineObject);   // deleting (S13: CParty's base, 0074306C slot 0)
+EI_REWRITTEN_SPECIAL(0x006611B0, CEngineObject::~CEngineObject);   // deleting (CParty's base, slot 0)
 void CEngineObject::ClearState() {}
 int CEngineObject::RunTick() { return 0; }
 void CEngineObject::Load(CStream*) {}
 void CEngineObject::Save(CStream*) {}
 
 // When the last reference goes, the owning manager releases the object (its
-// slot 24, CBaseManager::ReleaseObject). The original leaves `this` in EAX, or what the manager's slot 24
+// slot 24, CBaseManager::ReleaseObject). EAX holds `this`, or what the manager's slot 24
 // leaves there; no caller reads it.
 void CEngineObject::Release() {
     if (--refCount_ == 0) owner_->ReleaseObject(this);
 }
 
-// 00402CE0 / 00402CF0 (slots 7 / 8): the exe's "noname" and "nodesc" (callers get these pointers).
+// Slots 7 / 8: the exe's "noname" and "nodesc" (callers get these pointers).
 const char* CEngineObject::GetName() { return "noname"; }
 const char* CEngineObject::GetDescription() { return "nodesc"; }
 

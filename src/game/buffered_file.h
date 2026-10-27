@@ -1,9 +1,9 @@
 #pragma once
 
-// The buffered file streams (004DA580-004DB9C0): a GameBuffer whose block is a 0x400-byte (or
+// The buffered file streams: a GameBuffer whose block is a 0x400-byte (or
 // larger) window onto a file. `base` is the file position of `begin`; `high` marks the end of the
 // file's bytes known to the window. Every read and write of the file goes through slots 7 / 8,
-// which seek to an absolute position first. Used by the quest registration (005809D0 reads the
+// which seek to an absolute position first. Used by the quest registration (it reads the
 // "quest.reg" image through it). See docs/notes/script.md, "Buffered file streams".
 
 #include "net_coder.h"
@@ -13,10 +13,10 @@
 #include <cstddef>
 #include <cstdint>
 
-// The abstract stream (constructor 00580DD0, destructor body 00580DF0, slots 7 / 8 pure). 0x1C
+// The abstract stream (slots 7 / 8 pure). 0x1C
 // bytes. Flag bits as GameBuffer's: 0 the window holds unwritten bytes, 3 an error. BufferedStream
-// and BufferedFile are real virtual classes: the compiler makes their vtables (game.exe's
-// 0073F8C8 and 0073F8A4 are retired). The slots' bodies keep their names (registered at their
+// and BufferedFile are real virtual classes: the compiler makes their vtables.
+// The slots' bodies keep their names (registered at their
 // addresses, rewrite-guide rule 4); the overrides call them.
 class BufferedStream : public GameBuffer {
 public:
@@ -26,7 +26,7 @@ public:
         begin = nullptr;
         flags = 0;
     }
-    // 00580DF0 (deleting: 00580E40, slot 5 with BufferedFile's): ReleaseBlock.
+    // The destructor body: ReleaseBlock.
     ~BufferedStream() override { ReleaseBlock(); }
     // The deleting destructor (slot 5) frees into the game's heap.
     static void operator delete(void* block) { gamecrt::operator_delete(block); }
@@ -38,7 +38,7 @@ public:
     int WriteMore(const void* from, std::uint32_t size) override { return WriteMoreWindow(from, size); }   // 4
     std::uint8_t* Seek(std::int32_t position) override { return SeekWindow(position); }      // 6
     // Moves the cursor to file position `position`: inside the window in place,
-    // else Flush and Rebase. Returns the cursor as it was before (EAX of the in-window path; the other
+    // else Flush and Rebase. Returns the cursor as it was before (the in-window path's result; the other
     // path leaves no meaningful value and its callers ignore it).
     std::uint8_t* SeekWindow(std::int32_t position);
     // A write the window cannot take in place: one larger than the window
@@ -47,7 +47,7 @@ public:
     int WriteMoreWindow(const void* from, std::uint32_t size);
     // A read the window cannot serve in place: one larger than the window goes
     // straight to the file (returns slot 7's count); otherwise Rebase, then from the window, or zeroes
-    // past `high` (error bit; what is left before `high` is read through 00401340).
+    // past `high` (error bit; what is left before `high` is still read).
     int ReadMoreWindow(void* to, std::uint32_t size);
     // A new block of size + 0x400 bytes, unless the window is larger, with the
     // old block's bytes (no file access).
@@ -78,12 +78,12 @@ public:
 };
 static_assert(sizeof(BufferedStream) == 0x1C);
 
-// The file stream (destructor body 00580E60). 0x20 bytes.
+// The file stream. 0x20 bytes.
 class BufferedFile : public BufferedStream {
 public:
     // The constructor the quest file loader inlines: BufferedStream's, no file.
     BufferedFile() : file(nullptr) {}
-    // 00580E60 (deleting: 00580EC0): Close, then BufferedStream's.
+    // The destructor body: Close, then BufferedStream's.
     ~BufferedFile() override { Close(); }
 
     int ReadAt(std::int32_t position, void* to, std::uint32_t size) override { return ReadAtFile(position, to, size); }   // 7
@@ -92,7 +92,7 @@ public:
     }
 
     int WriteAtFile(std::int32_t position, const void* from, std::uint32_t size);
-    // 004DB5E0 / 004DB630 (slots 7 / 8, RET 0xC). fseek to `position` from the start, then fread / fwrite
+    // Slots 7 / 8: fseek to `position` from the start, then fread / fwrite
     // of `size` bytes; 0 without a file or when the seek fails.
     int ReadAtFile(std::int32_t position, void* to, std::uint32_t size);
     // Flush, the block freed, the file closed.

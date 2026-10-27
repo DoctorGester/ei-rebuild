@@ -30,11 +30,11 @@ constexpr char kListSeparator = ',';
 
 // MFC CString members not in lib/mfc.h, called on existing strings.
 struct TextOps : mfc::CString {
-    int Find(char c) const;                     // 00700E91 Find(TCHAR)
-    int Find(char c, int start) const;          // 00700E9F Find(TCHAR, int)
+    int Find(char c) const;                     // Find(TCHAR)
+    int Find(char c, int start) const;          // Find(TCHAR, int)
     void TrimLeft();
     void TrimRight();
-    void AppendChar(char c);                    // 00700D73 operator+=(TCHAR)
+    void AppendChar(char c);                    // operator+=(TCHAR)
 };
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 // Operator+(TCHAR, const CString&).
@@ -65,9 +65,9 @@ mfc::CString ReadString(const CIniFile* ini, const char* section, const char* ke
 // --- Aligned arrays -------------------------------------------------------------------------------
 
 // The byte, short and int arrays are engine aligned arrays (lib::AlignedArray); their inlined
-// SetSize allocates through 00695B00 / 00695B20 / 00695B40 / 00453A10.
+// SetSize allocates through the engine's aligned allocators.
 
-// The list as integers in a temporary aligned int array (the original's 004513A0 + atoi loop).
+// The list as integers in a temporary aligned int array (an atoi loop).
 // Returns 0 when the value is empty (the temporary then stays empty).
 BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray& temp) {
     console::CStringArray codes;
@@ -191,7 +191,7 @@ double CIniFile::GetDouble(const char* section, const char* key, double defaultV
     std::string text;
     text = str::Format(kDoubleFormat, defaultValue);
     std::string value = ReadString(this, section, key, text.c_str()).GetString();
-    volatile double result = std::atof(value.c_str());   // stored as a double, as the original does
+    volatile double result = std::atof(value.c_str());   // stored as a double
     return result;
 }
 EI_REWRITTEN(0x00695F80, CIniFile::GetDouble);

@@ -1,20 +1,20 @@
-// A Bink movie's frame step (CBinkVideo, 005DBD80, thiscall, RET 4; called once per frame by the
-// movie screen's draw 0062BD80, inside the game's frame). When the movie's next frame is due
+// A Bink movie's frame step (CBinkVideo::Frame; called once per frame by the
+// movie screen's draw, inside the game's frame). When the movie's next frame is due
 // (BinkWait) it is decoded (BinkDoFrame) and the movie steps on (BinkNextFrame). Every call then
-// blits the whole movie frame into the video's rectangle (letterboxed by 005DBA50) of the render
+// blits the whole movie frame into the video's rectangle (letterboxed by Open) of the render
 // target, or of the primary surface when `toPrimary`. Returns whether frames are left. The new
 // renderer (src/render) takes the frame from a CPU copy of the decoded frame (render::MovieFrame)
 // and the blit as part of its frame (MovieBlit). See docs/notes/renderer.md.
 // Also the two movie players that draw outside the game's frame, straight to the primary surface
-// in the original (ticket R6): the blocking player 005DB3F0 (intro, titles, the script's PlayMovie;
-// its message loop at 005DB788), and the loading screen's movie 005DA400 (progres*.bik, one step per
+// in the game itself: the blocking player (intro, titles, the script's PlayMovie;
+// its message loop), and the loading screen's movie (progres*.bik, one step per
 // call). They hand each frame over as a frame of the new renderer's own (render::MovieFrame /
-// MovieBlit, then the present 004EF610).
-// And the frame player's open (005DBA50, ticket R7). The movies' holders have no
+// MovieBlit, then the present).
+// And the frame player's open. The movies' holders have no
 // DirectDraw surface: nothing decodes into them and BinkDDSurfaceType is not asked (the type kept is
-// that of the CPU copy). The original's Lock / BinkCopyToBuffer / Unlock into the holder's surface
+// that of the CPU copy). The game's Lock / BinkCopyToBuffer / Unlock into the holder's surface
 // and its Blts are gone with the DirectDraw fallback, and so is the holder's colour fill
-// 005DB9E0, which nothing of ours calls.
+// which nothing of ours calls.
 #include "app.h"
 #include "bink_video.h"
 #include "game_strings.h"
@@ -42,7 +42,7 @@ std::uint8_t g_loadingMovieOff = /*007C554C*/ {};
 
 namespace {
 
-// Bink through game.exe's import table (stdcall; the image's: ei_hook.dll's table).
+// Bink through the image's import table (stdcall).
 using BinkFn = int(__stdcall*)(BinkHeader*);
 using BinkCopyFn = int(__stdcall*)(BinkHeader*, void*, int, int, int, int, unsigned);
 using BinkOpenFn = BinkHeader*(__stdcall*)(const char*, unsigned);
@@ -61,7 +61,7 @@ BinkSoundSystemFn BinkSetSoundSystem() { return ei::ImportAs<BinkSoundSystemFn>(
 void* BinkOpenMiles() { return ei::ImportAs<void*>(ei::Imports().BinkOpenMiles); }
 BinkGotoFn BinkGoto() { return ei::ImportAs<BinkGotoFn>(ei::Imports().BinkGoto); }
 // BinkOpen, as the import slot reaches it: with Rebirth's MoviesPatch (addon's slot) the mod's
-// Movies\ copy when there is one. In a hooked Rebirth launch the slot is addon's already.
+// Movies\ copy when there is one.
 BinkHeader* OpenBink(const char* name, unsigned flags) {
     if (modfolders::Active(ei::rebirth::Patch::MoviesPatch)) return BinkOpen()(modfolders::MovieFile(name).c_str(), flags);
     return BinkOpen()(name, flags);
@@ -80,8 +80,8 @@ int MoviesMode() { return options::TheOptions()->video_; }           // 0 off, 1
 int MovieSound() { return options::TheOptions()->audio_; }
 int MovieVolume() { return options::TheOptions()->audioStreaming_; }          // percent
 
-// The movie's surface holder: null at the start (the static initialiser 005DA360 stores it); the exit function that
-// initialiser registers releases it once (guard bit in 007C5518). docs/notes/standalone.md, "The static initialisers'
+// The movie's surface holder: null at the start (set by its static initialiser); the exit function that
+// initialiser registers releases it once. docs/notes/standalone.md, "The static initialisers'
 // objects".
 CDXSurface* g_loadingHolder = /*007C551C*/ {nullptr};
 std::uint8_t g_loadingHolderReleased = /*007C5518*/ 0;
@@ -91,7 +91,7 @@ void __cdecl ReleaseLoadingHolder() {
     g_loadingHolderReleased = static_cast<std::uint8_t>(g_loadingHolderReleased | 1);
     if (g_loadingHolder) g_loadingHolder->Release();
 }
-// 00455F10 (fastcall, CL): sets app::g_quitAllowed (cleared while a timed movie plays).
+// (fastcall, CL): sets app::g_quitAllowed (cleared while a timed movie plays).
 void SetQuitAllowed(std::uint8_t value) { app::g_quitAllowed = value; }
 
 // The decoded frame as BinkCopyToBuffer's 32-bit R, G, B, X type, for the new renderer.
@@ -103,7 +103,7 @@ void CopyFrame(BinkHeader* bink, std::vector<std::uint8_t>* frame) {
 
 render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 
-// The surface type the players keep (the original's BinkDDSurfaceType of the holder's surface): the
+// The surface type the players keep (the game's BinkDDSurfaceType of the holder's surface): the
 // holders have none, so the type of the CPU copy the new renderer gets.
 unsigned SurfaceType() { return kBinkSurface32R; }
 
@@ -134,12 +134,12 @@ EI_REWRITTEN(0x005DBD80, CBinkVideo::Frame);
 
 namespace {
 
-// The movie's surface holder (0x20 bytes on the game's heap) for a w x h frame. The original asks
-// for a video-memory surface through a DDSURFACEDESC2 when 00784756 is 0, falling back to
-// 004EF7B0 in a catch block when that throws. 00784756 is written by the game start (00456E35, from
+// The movie's surface holder (0x20 bytes on the game's heap) for a w x h frame. The game asks
+// for a video-memory surface through a DDSURFACEDESC2 when a flag is 0, falling back to
+// a system-memory one in a catch block when that throws. The flag is written by the game start (from
 // GetAvailableVidMem): the switch-over's stand-in reports 256 MB, which clears it; without DirectDraw
 // (device.h) the video-memory surface would be refused and its throw end the game, so the holder is
-// 004EF7B0's (only the new renderer's memory, ticket R9a2).
+// the system-memory kind (only the new renderer's memory).
 CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
     CDXSurface* holder = new CDXSurface(device, width, height);
     if (holder) ++holder->refs_;
@@ -154,16 +154,16 @@ int g_movieKey;   // the blocking player's movie in the new renderer
 
 } // namespace
 
-// 005DB3F0 (fastcall: the file name, the time per frame in ms or 0 for the movie's own rate; then on
+// Fastcall: the file name, the time per frame in ms or 0 for the movie's own rate; then on
 // the stack: Esc / Space end it, Space jumps to the next frame (when they do not end it), fill the
-// screen black first, a loading screen step first, and a fifth argument never read; RET 0x14).
+// screen black first, a loading screen step first, and a fifth argument never read).
 // Plays the movie in a message loop of its own, each frame decoded into the movie's surface and
 // blitted into its letterboxed rectangle of the primary surface. Returns 0 when Esc ended it.
 char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int /*unused*/) {
-    // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
+    // (The texture manager's empty function is called when there is one.)
     if (!MoviesMode()) return 1;
-    const char* file = name ? name : "";   // the original copies it into a CString
+    const char* file = name ? name : "";   // copies it into a CString
     if (loadingStep) TheSoundManager()->StopAll(1);
     if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), TheSoundManager()->waveDriver);
     BinkHeader* bink = OpenBink(file, 0);
@@ -173,7 +173,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     }
     BinkSetVolume()(bink, MovieVolume() * 0x7FF6 / 100);
     TheCursor()->ShowImage(0);
-    // (The original fills the primary black and clears the render target when `clearScreen`: the new
+    // (The game fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
@@ -201,7 +201,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     std::vector<std::uint8_t> frame;
     MSG msg;
     for (;;) {
-        // (The harness recognised the original's loop by PeekMessageA's return address, 005DB788.)
+        // (The harness recognised the game's loop by PeekMessageA's return address.)
         if (gameapi::PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE)) {
             if (msg.message == WM_KEYDOWN) {
                 if (msg.wParam != VK_ESCAPE && msg.wParam != VK_SPACE) continue;
@@ -250,16 +250,16 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
 }
 EI_REWRITTEN(0x005DB3F0, PlayMovie);
 
-// 005DA400 (fastcall: the loading progress as a frame number; plain RET). The loading screen's movie
-// (the file named by 00791EE0, opened once into 007C5550 with its surface holder 007C551C, the
-// surface type 007C5554 and the screen rectangle 007C5520) is decoded up to that frame and its
-// frame stretched over the screen of the primary surface. Nothing when 007C554C is set.
+// (fastcall: the loading progress as a frame number). The loading screen's movie
+// (the file named by a global, opened once into globals with its surface holder,
+// surface type and screen rectangle) is decoded up to that frame and its
+// frame stretched over the screen of the primary surface. Nothing when the off switch is set.
 void __fastcall ShowLoadingMovie(int progress) {
     net::Pump();
     if (g_loadingMovieOff) return;
     TheCursor()->ShowImage(0);
     if (!g_loadingHolder) {
-        // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
+        // (The texture manager's empty function is called when there is one.)
         std::string path = DataFolderText();
         path += "Movies\\";
         path += app::g_loadingMovieName;  // progres.bik, or the zone's
@@ -318,16 +318,16 @@ EI_REWRITTEN(0x005DA400, ShowLoadingMovie);
 
 // --- Opening a movie for the frame's player ----------------------------------------------
 
-// 005DBA50 (thiscall, RET 8; the titles' Create 0062B7D0 starts Titles.bik with it). The movie open
+// Open (thiscall; the titles' Create starts Titles.bik with it). The movie open
 // before is closed (its handle stays in +0x18 when movies are off), the loading screen steps when
 // asked, Bink gets the Miles driver when movie sound is on; then the movie is opened, the cursor
-// hidden (005E5270 0), the decode surface's holder made (NewMovieHolder: one without a DirectDraw
+// hidden, the decode surface's holder made (NewMovieHolder: one without a DirectDraw
 // surface, so BinkDDSurfaceType is not asked) and the
 // screen rectangle set: movies mode 1 centred at the movie's size, otherwise stretched to the screen's
 // width with the height trunc(height / width * screen width), centred vertically (divisions by 2
-// round towards zero). The original adds two zero offsets to the centring (kept out).
+// round towards zero). The game adds two zero offsets to the centring (kept out).
 char CBinkVideo::Open(const char* name, char loadingStep) {
-    // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
+    // (The texture manager's empty function is called when there is one.)
     if (bink) BinkClose()(bink);
     if (!MoviesMode()) return 0;
     if (loadingStep) TheSoundManager()->StopAll(1);
@@ -362,7 +362,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
 }
 EI_REWRITTEN(0x005DBA50, CBinkVideo::Open);
 
-// --- Closing (A-W14) --------------------------------------------------------------------------------
+// --- Closing --------------------------------------------------------------------------------
 
 void CloseLoadingMovie() {
     BinkClose()(g_loadingBink);

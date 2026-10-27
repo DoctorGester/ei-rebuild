@@ -1,5 +1,5 @@
-// A mesh face's plane (A-S4): 0049AEC0, called for every face of the fake unit scene's meshes
-// (scene_normals.cpp). Plain float maths (rule 7); the values the original stores to floats are
+// A mesh face's plane: called for every face of the fake unit scene's meshes
+// (scene_normals.cpp). Plain float maths (rule 7); the values the game stores to floats are
 // rounded to float.
 #include "scene_loader.h"
 
@@ -58,7 +58,7 @@ void MeshFace::ComputeNormal(const PointBuffer* positions) {
     const double z = normal.z;
     const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z));
     EI_NAN_AUDIT(length);
-    if (length == 0.0) {   // FCOM 0; C3
+    if (length == 0.0) {   // x87 compare with 0
         normal = kDegenerateNormal;
     } else {
         double inverse = 1.0 / length;

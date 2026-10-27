@@ -23,14 +23,14 @@ namespace {
 
 
 // The default pitch (degrees as radians: pi / 180 * 45) and the default field of view
-// (pi * 2/7), computed at run time as the original does.
+// computed at run time as the game does.
 float DefaultPitch() { return static_cast<float>(CAM_DEGREE * CAM_FORTY_FIVE); }
 float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
 
 
 } // namespace
 
-// 0040CB70 (deleting 0040CB50): CTransformObject's destructor, which is CEngineObject's.
+// CTransformObject's destructor (deleting), which is CEngineObject's.
 EI_REWRITTEN_SPECIAL(0x0040CB70, CTransformObject::~CTransformObject);
 EI_REWRITTEN_SPECIAL(0x0040CB50, CTransformObject::~CTransformObject);   // deleting
 
@@ -78,7 +78,7 @@ CCamera::CCamera() {
 EI_REWRITTEN_SPECIAL(0x0040C8B0, CCamera::CCamera);
 
 // The destructor: no target, the camera path keys freed, the view stack and shake list
-// destroyed (the file name, a member, goes after them: the original freed it before the view stack).
+// destroyed (the file name, a member, goes after them: the game freed it before the view stack).
 CCamera::~CCamera() {
     targetId_ = -1;
     if (keys_.data) lib::FreeAligned32(keys_.data);   // block start kept before the keys
@@ -88,8 +88,8 @@ CCamera::~CCamera() {
 EI_REWRITTEN_SPECIAL(0x0040CE60, CCamera::~CCamera);
 EI_REWRITTEN_SPECIAL(0x0040CE10, CCamera::~CCamera);
 
-// The camera, zero at the start: built by the static initialiser 0040C880 in the list's order and destroyed by the
-// exit function it registers; both ported on the name and registered at their addresses
+// The camera, zero at the start: built by its static initialiser in the list's order and destroyed by the
+// exit function it registers; both defined under the name and registered at their addresses
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
 static_assert(sizeof(CCamera) == 0x308);
@@ -175,7 +175,7 @@ const char kRecordFolder[] = ".\\camera\\";
 // Starts recording into ".\camera\" + `name`. When ".\camera\camera.cam" exists it is
 // first renamed to the next numbered file: the number after the highest found, where each found
 // name's number is read from its title past the fourth character ("ra0005": always 0, so the
-// rename goes to camera0001.cam; kept as the original has it). Sets bit 0x10 of 007AF5C0 either
+// rename goes to camera0001.cam; kept as the game has it). Sets bit 0x10 of a global flags word either
 // way. Returns 1 (file name kept at +0x2EC, flag 0x10 set) when the file can be created, else 0.
 int CCamera::OpenFile(const char* name) {
     mfc::CFileFind find;

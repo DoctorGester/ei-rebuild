@@ -2,11 +2,11 @@
 
 #include "ei/hook.h"
 
-// The order of operations in every expression follows the original instruction sequence. Doubling
-// is written as `* 2.0f`, which is exact and equal to the original's FADD ST0,ST0, so no named
+// The order of operations in every expression follows the game's instruction sequence. Doubling
+// is written as `* 2.0f`, which is exact and equal to the game's FADD ST0,ST0, so no named
 // temporary (which the compiler could spill and round) is needed.
 // The vector operators are vecmath.h's: one operation per component, rounded when stored, the whole
-// result computed before `*out` is written (out may alias an input, as in the original).
+// result computed before `*out` is written (out may alias an input).
 
 Vector3* __fastcall AddVectors(Vector3* out, const Vector3& a, const Vector3& b) {
     *out = a + b;
@@ -27,7 +27,7 @@ Vector3* __fastcall ScaleVector(Vector3* out, const Vector3& v, float s) {
 EI_REPLACE(0x00410770, ScaleVector);
 
 const Vector3* Vector3::AddInPlace(const Vector3& v) {
-    *this += v;   // v.x + x in the original: the same sum
+    *this += v;   // v.x + x in the game's code: the same sum
     return &v;
 }
 EI_REPLACE_METHOD(0x00410750, Vector3::AddInPlace);

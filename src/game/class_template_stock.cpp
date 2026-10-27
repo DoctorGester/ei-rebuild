@@ -1,5 +1,5 @@
-// A class template's trader stock (A-S4): the levels setter 004A6DC0 and the two generators the
-// camp calls when its constructor record is due (004A6DF0 items, 004A6F60 magic). The generators
+// A class template's trader stock: the levels setter and the two generators the
+// camp calls when its constructor record is due (items, magic). The generators
 // collect new items in an STLport list<CItem*>, hand each to the template's party and release it.
 // Names are provisional; see docs/notes/items_spells.md ("Trader stock").
 #include "class_templates.h"
@@ -14,7 +14,7 @@
 
 namespace {
 
-// list<CItem*>'s constructor (004A9CD0 inlined): a sentinel node from the node pool linked to itself.
+// list<CItem*>'s constructor (inlined): a sentinel node from the node pool linked to itself.
 void ListConstruct(StockList* list) {
     auto* head = stlp::allocate_as<StockListNode>();
     list->head = head;
@@ -60,8 +60,7 @@ ItemStock* ItemStock::Construct(CParty* owner) {
     VectorConstruct(&materials);
     VectorConstruct(&spells);
     VectorConstruct(&modifiers);
-    // The maps' constructors as 004A66C0 inlines them (_M_initialize_buckets(100): 004A9FC0 /
-    // 004AA270).
+    // The maps' constructors as the template's constructor inlines them (_M_initialize_buckets(100)).
     spellMap.ConstructBuckets(100);
     modifierMap.ConstructBuckets(100);
     return this;
@@ -81,7 +80,7 @@ ClassTemplate::ClassTemplate() : weightsTail{} {
     flag38 = 1;
 }
 
-// 004A6580 is the constructor; the registration is Construct's.
+// ClassTemplate's constructor; the registration is Construct's.
 ClassTemplate* ClassTemplate::Construct() { return new (this) ClassTemplate(); }
 EI_REPLACE_METHOD(0x004A6580, ClassTemplate::Construct);
 

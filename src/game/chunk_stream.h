@@ -1,13 +1,13 @@
 #pragma once
 
-// Chunked files (0042BEC0-0042D150, the root chunk to 0042D270): the format of the .mob zone files (read by 00481F00 when a
-// zone loads) and of the map-editor object specs (0046A000-0046E000). A chunk is an id and a size
+// Chunked files: the format of the .mob zone files (read when a
+// zone loads) and of the map-editor object specs. A chunk is an id and a size
 // (header included), followed by its content; chunks nest. A Chunk object tracks one chunk being
 // read or written and passes every byte it consumes up to its parent. The file is reached through
 // virtual slot 1: a chunk asks its parent, and the root (RootChunk) returns the MFC CFile it
 // embeds. Names provisional; see docs/notes/core.md.
-// Chunk and RootChunk are real virtual classes: the compiler makes their vtables (game.exe's
-// 0073BE94, 0073BE9C and the .mob root's 0073FAD4 are retired). The map specs' records and child
+// Chunk and RootChunk are real virtual classes: the compiler makes their vtables.
+// The map specs' records and child
 // chunks (map_spec.h, map_spec_unit.cpp) derive from Chunk.
 
 #include "maths.h"
@@ -20,10 +20,10 @@ class Chunk {
 public:
     // Nothing read or written yet, under `parent`.
     explicit Chunk(Chunk* parent) : id_(0), consumed_(0), size_(0), start_(0), parent_(parent) {}
-    // 0042BEF0 (and the unit record's chunk classes' 0046C7E0, 0046CBB0 and 0046D070): nothing to do.
+    // Nothing to do (also the unit record's chunk classes' versions).
     ~Chunk();
 
-    // 0: 0042BEE0 (empty). Called by ForEachChild for each child header read; the readers (the
+    // 0: empty. Called by ForEachChild for each child header read; the readers (the
     // zone's object records, map_spec.h) read the chunk's value by its id.
     virtual void OnChunk();
     // The file (an MFC CFile): the parent's, or null without a parent.
@@ -31,13 +31,13 @@ public:
 
     // Counts `bytes` as consumed here and in every parent.
     void Advance(int bytes);
-    // 0042BF50 / 0042BFB0. Writing a chunk of unknown size: the header with a placeholder size,
+    // Writing a chunk of unknown size: the header with a placeholder size,
     // and at the end the size (consumed_) patched in.
     void BeginWrite(std::uint32_t id);
     void EndWrite();
     // Writes a header for `payload` content bytes and counts all of it as consumed.
     void WriteHeader(std::uint32_t id, int payload);
-    // When only the header was read, skips the content; returns whether it did (AL).
+    // When only the header was read, skips the content; returns whether it did.
     bool SkipContent();
     // Skips the unread content of the current chunk and reads the next header.
     void ReadHeader();
@@ -47,8 +47,8 @@ public:
     // Values of the current chunk.
     float ReadFloat();
     int ReadInt();
-    std::uint8_t ReadByte();                // 0042C4C0 (AL)
-    Vector3* ReadVector3(Vector3* out);     // 0042CCC0, returns out
+    std::uint8_t ReadByte();
+    Vector3* ReadVector3(Vector3* out);     // returns out
     float* ReadQuad(float* out);            // four values stored as 1, 3, 0, 2; returns out
     float* ReadQuaternion(float* out);      // 16 bytes (default 1, 0, 0, 0); returns out
     void ReadBytes(void* data, int size);
@@ -62,11 +62,11 @@ public:
     void WriteBlob(std::uint32_t id, const void* data, int size);
     // Text. A string chunk's content is its characters (no terminator); the string arrays are a
     // count followed by one string chunk per element (all with the array chunk's id). CStrings are
-    // returned and passed by value as in the original (hidden return pointer, callee-destroyed
+    // returned and passed by value as the game does (hidden return pointer, callee-destroyed
     // argument). The arrays are MFC CStringArrays (console::CStringArray; the map specs pass their
     // mfc::CStringArray in their layouts).
-    mfc::CString* ReadString(mfc::CString* out);                             // 0042C580, returns out
-    mfc::CString* ReadEncodedString(mfc::CString* out);                      // 0042C650, returns out
+    mfc::CString* ReadString(mfc::CString* out);                             // returns out
+    mfc::CString* ReadEncodedString(mfc::CString* out);                      // returns out
     void WriteString(std::uint32_t id, mfc::CString text);
     void ReadStringArray(mfc::CStringArray* array);
     void WriteStringArray(std::uint32_t id, mfc::CStringArray* array);
@@ -82,15 +82,15 @@ static_assert(offsetof(Chunk, parent_) == 0x14);
 static_assert(sizeof(Chunk) == 0x18);
 
 // The root chunk of a file: slot 1 returns its CFile. The .mob object file's root
-// (CWorldServer::LoadMapObjects, game.exe's vtable 0073FAD4 with the same slots) is one too.
+// (CWorldServer::LoadMapObjects) is one too.
 class RootChunk : public Chunk {
 public:
     // No parent, the file closed.
     RootChunk() : Chunk(nullptr) {}
 
-    mfc::CFileVirtuals* File() override;   // 1: 0042D260 (&file_)
+    mfc::CFileVirtuals* File() override;   // 1: &file_
 
-    // 0042D270 (and the .mob root's 00596130): the CFile destroyed.
+    // The CFile destroyed (the .mob root's destructor does the same).
     ~RootChunk();
 
     // Opens the file: CFile::Open through its vtable with the low 16 bits of `flags`.

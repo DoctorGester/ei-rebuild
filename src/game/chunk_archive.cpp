@@ -1,5 +1,5 @@
 // The tagged-chunk archive (chunk_archive.h): the chunk primitives, entering and leaving chunks,
-// fields, whole archives over a stream. 00409070-0040A5A0. See docs/notes/core.md.
+// fields, whole archives over a stream. See docs/notes/core.md.
 #include "chunk_archive.h"
 #include "game_strings.h"
 
@@ -54,8 +54,8 @@ void ChunkArchive::Ref::Reset() {
 }
 EI_REWRITTEN(0x00409E80, ChunkArchive::Ref::Reset);
 
-// The class registry, zero at the start: built by the static initialiser 00408D30 in the list's order and destroyed by
-// the exit function it registers; both ported on the name and registered at their addresses
+// The class registry, zero at the start: built by its static initialiser in the list's order and destroyed by
+// the exit function it registers
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<ChunkArchive::ClassRegistry> g_classRegistry = /*0079B270*/ {};
 ChunkArchive::ClassRegistry& ChunkArchive::Registry() { return *g_classRegistry; }
@@ -212,7 +212,7 @@ void ChunkArchive::StringField(int id, stlp::string* s) {
         return;
     }
     Ref child;
-    // string::assign(text, text + strlen(text)), inlined by the original: overwrite in place and
+    // string::assign(text, text + strlen(text)), inlined: overwrite in place and
     // cut the rest, or overwrite the whole string and append the remainder.
     if (FindField(this, id, &child)) s->Assign(reinterpret_cast<const char*>(Data() + child.offset));
     else s->Assign(game::EmptyText());
@@ -238,16 +238,16 @@ void ChunkArchive::StreamField(int id, CMemoryStream* s) {
 EI_REWRITTEN(0x00409640, ChunkArchive::StreamField);
 
 // The number a save gives an object: its place in the saved list (1, 2, ...), kept as the map's
-// value. The original wrote the object's address as its key (the loader maps any key to the object
-// it creates); numbers by first save keep the saves free of heap layout (the harness makes
-// the original number them too, harness_save_leftovers.cpp).
+// value, written as the key (the loader maps any key to the object
+// it creates); numbers by first save keep the saves free of heap layout (the harness numbers
+// the reference game's saves the same way, harness_save_leftovers.cpp).
 std::uint32_t SavedNumber(const ChunkArchive* a, const CRefObject* object) {
     const ObjectMap::Node* node = a->objects_.Find(reinterpret_cast<std::uint32_t>(object));
     return node ? reinterpret_cast<std::uint32_t>(node->value) : 0;
 }
 
 // An object pointer field. An object not yet in the map joins the saved list (written by Close)
-// and the map (value: its number while saving, the archive while loading, as the original). Writing
+// and the map (value: its number while saving, the archive while loading). Writing
 // then stores the number; reading looks the field up and ignores it.
 void ChunkArchive::SaveObjectRef(int id, CRefObject* object) {
     std::uint32_t key = reinterpret_cast<std::uint32_t>(object);
@@ -263,7 +263,7 @@ void ChunkArchive::SaveObjectRef(int id, CRefObject* object) {
         return;
     }
     Ref child;
-    FindField(this, id, &child);   // the original searches and drops the result
+    FindField(this, id, &child);   // searches and drops the result
 }
 EI_REWRITTEN(0x0040A440, ChunkArchive::SaveObjectRef);
 
@@ -315,7 +315,7 @@ bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {
 }
 EI_REWRITTEN(0x00409EA0, ReadStreamChunk);
 
-// The original inlines ReadStreamChunk here; Open inlines all of this for the index and the
+// ReadStreamChunk is inlined here; Open inlines all of this for the index and the
 // records.
 bool __fastcall FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence) {
     in->Rewind();
@@ -425,7 +425,7 @@ void ChunkArchive::Close(CStream* stream) {
             std::memcpy(&vtable, object, 4);
             const ClassRegistry::ClassIdMap::Node* found = Registry().classIds.Find(vtable);
             std::int32_t classId = found ? found->value : -1;
-            std::uint32_t number = SavedNumber(this, object);   // the original wrote the address
+            std::uint32_t number = SavedNumber(this, object);   // the number is the key, not the address
             index->Write(&classId, 4);
             index->Write(&number, 4);
             Ref* record = PushRecordChunk(this);

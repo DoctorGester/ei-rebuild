@@ -1,4 +1,4 @@
-// The global map's cloud layer (A-S4): see global_map_clouds.h. Integer noise; the alpha ramp
+// The global map's cloud layer: see global_map_clouds.h. Integer noise; the alpha ramp
 // and the fade are plain float maths (rule 7).
 #include "global_map_clouds.h"
 
@@ -74,7 +74,7 @@ EI_REWRITTEN(0x00499EE0, CCloudNoise::Start);
 void CCloudNoise::Draw(std::uint16_t* pixels, float seconds) {
     phase_ = seconds * speed_ + phase_;
     EI_NAN_AUDIT(phase_);
-    while (phase_ >= 1.0f) {   // a NaN phase ends it (the original looped for ever)
+    while (phase_ >= 1.0f) {   // a NaN phase ends it (it looped for ever in the game)
         phase_ = phase_ - 1.0f;
         Generate(frames_[2], step_);
         if (step_ == kSteps - 1) {

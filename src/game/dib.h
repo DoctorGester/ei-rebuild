@@ -1,4 +1,4 @@
-// CDib (006D49E0-006D6AB0; MFC class "CDib", runtime class 00796CD0; game.exe's vtable 00744288,
+// CDib (MFC class "CDib", CObject's three slots): a device independent bitmap as a .bmp file holds one. The game reads loose
 // CObject's three slots): a device independent bitmap as a .bmp file holds one. The game reads loose
 // textures\<name>.bmp overrides with it (texture_bmp.cpp) and writes the screenshots and movie
 // frames a surface capture (below) fills. See docs/notes/models.md ("CDib").
@@ -22,7 +22,7 @@ public:
 
     // The class's CRuntimeClass.
     virtual const void* GetRuntimeClass() const;
-    // 1: 006D4CD0 (deleting: 006D4B10). Empty.
+    // 1: empty.
     virtual ~CDib();
     // The archive is flushed, then the bitmap written to or read from its file.
     virtual void Serialize(mfc::CArchive* archive);
@@ -47,12 +47,12 @@ public:
     // padding, while `imageSize` (what Write writes) counts rows padded to four bytes. Returns
     // `bits` (unchanged without a header).
     std::uint8_t* AllocateBits();
-    // 006D5910 (RET 4; dib_file.cpp): the bitmap emptied, then the file header, the info header
+    // dib_file.cpp: the bitmap emptied, then the file header, the info header
     // with what follows it up to the bits (masks or colours), the bits; the colour count and the
     // palette. A short or non-"BM" file, or an MFC exception from the reads (inside TRY / CATCH): a
     // message box and 0. Returns 1.
     int Read(mfc::CFile* file);
-    // 006D5AC0 (RET 4; dib_file.cpp): the file header, the info header with the masks, `imageSize`
+    // dib_file.cpp: the file header, the info header with the masks, `imageSize`
     // bytes of bits. An MFC exception from the writes: a message box and 0. Returns 1.
     int Write(mfc::CFile* file);
 
@@ -82,9 +82,9 @@ std::uint32_t DibImageSize(const BITMAPINFOHEADER* header);
 
 struct CDXSurface;   // texture.h
 
-// 006D6D40 (ECX the holder, EDX the rectangle; surface_capture.cpp): a new bitmap of the surface's
+// (surface_capture.cpp; the holder in ECX, the rectangle in EDX): a new bitmap of the surface's
 // pixels inside `rect`, in the surface's depth (16 and 32 bits with its channel masks), rows
 // bottom-up. The surface is locked for reading meanwhile.
 CDib* __fastcall CaptureSurfaceRect(CDXSurface* surface, const RECT* rect);
-// 006D6FC0 (thiscall): the same of the whole surface.
+// (thiscall): the same of the whole surface.
 CDib* __fastcall CaptureSurface(CDXSurface* surface);

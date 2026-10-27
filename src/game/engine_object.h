@@ -16,25 +16,25 @@ class CWorldClient;   // world.h
 class CWorldServer;   // world.h
 
 // Base of the engine's objects and managers (textures, figures, units, the managers themselves).
-// Name provisional; game.exe's vtable 0073B8E0, 13 slots (slots 2, 3, 11 and 12 are _purecall
-// there). No C++ constructor is declared: the derived classes' constructors call ClearFields, as
-// game.exe inlines the base's. The default slots are defined in engine_object.cpp.
+// Name provisional; 13 slots (slots 2, 3, 11 and 12 are _purecall
+// in the base). No C++ constructor is declared: the derived classes' constructors call ClearFields, as
+// the base's is inlined elsewhere. The default slots are defined in engine_object.cpp.
 class CEngineObject {
 public:
     void SetFlagBits(std::uint32_t bits);
     void ClearFlagBits(std::uint32_t bits);
 
-    virtual ~CEngineObject();                          // 0: 00402D20 (deleting; the body 00455930: no owner)
-    virtual void CopyFrom(const CEngineObject& other); // 1: 00402D40 (flags_, type_, prototypeId_)
+    virtual ~CEngineObject();                          // 0: deleting (the body: no owner)
+    virtual void CopyFrom(const CEngineObject& other); // 1: flags_, type_, prototypeId_
     virtual int Create() = 0;                          // 2
     virtual void Destroy() = 0;                        // 3
-    virtual void Release();                            // 4: 00455980 (refcount; the owner releases it at 0)
-    virtual void ClearState();                         // 5: 00402CC0 (empty); CUnitServer 00546080 ResetController
-    virtual int RunTick();                             // 6: 00402CD0 (0); world objects' per-tick update
-    virtual const char* GetName();                     // 7: 00402CE0 "noname"
-    virtual const char* GetDescription();              // 8: 00402CF0 "nodesc"
-    virtual void Load(CStream* stream);                 // 9: 00402D00 (empty)
-    virtual void Save(CStream* stream);                 // 10: 00402D10 (empty)
+    virtual void Release();                            // 4: refcount; the owner releases it at 0
+    virtual void ClearState();                         // 5: empty; CUnitServer ResetController
+    virtual int RunTick();                             // 6: 0; world objects' per-tick update
+    virtual const char* GetName();                     // 7: "noname"
+    virtual const char* GetDescription();              // 8: "nodesc"
+    virtual void Load(CStream* stream);                 // 9: empty
+    virtual void Save(CStream* stream);                 // 10: empty
     virtual const char* GetClassName() = 0;            // 11: e.g. "CTexture"
     virtual int GetClassId() = 0;                      // 12: e.g. 6 for CTexture
 
@@ -47,19 +47,19 @@ public:
     template <class World = CWorld> World* WorldContext() const { return static_cast<World*>(ManagerContext()); }
     template <class World = CWorldServer> World* ServerWorld() const { return WorldContext<World>(); }
     template <class World = CWorldClient> World* ClientWorld() const { return WorldContext<World>(); }
-    // 00455950 (app_helpers.cpp). The world the object belongs to: the manager context's slot 13
+    // The world the object belongs to (app_helpers.cpp): the manager context's slot 13
     // (the world returns itself, a party null), or null without a context.
     CWorld* World() const;
-    // 00457720 (app_helpers.cpp). Drops one reference; at zero the object is deleted (slot 0 with 1).
+    // Drops one reference (app_helpers.cpp); at zero the object is deleted (slot 0 with 1).
     void ReleaseAndDelete();
     // Sets the owner; returns the previous one.
     CBaseManager* SetOwner(CBaseManager* owner);
-    // The fields the (mostly inlined) constructor sets (0040CB20 out of line), in its order: no
+    // The fields the (mostly inlined) constructor sets, in its order: no
     // references, id -1, no flags, kind 0, no owner.
     void ClearFields();
 
     // Engine objects live on the game's heap (engine_object.cpp: gamecrt::operator_new / delete).
-    // `new` gives null without memory and then constructs nothing, as the original's callers test.
+    // `new` gives null without memory and then constructs nothing, as the callers test.
     static void* operator new(std::size_t size) noexcept;
     static void* operator new(std::size_t, void* place) noexcept { return place; }
     static void operator delete(void* block);
@@ -77,14 +77,14 @@ public:
 };
 static_assert(sizeof(CEngineObject) == 0x1C);
 
-// A counted engine object pointer (a texture, a light, a particle source, a spell) as the original's
+// A counted engine object pointer (a texture, a light, a particle source, a spell) as the game's
 // helpers take it: by address, thiscall on the pointer. A field that holds a T is a HeldObject<T>
 // (HeldEngineObject: any engine object): reads see the object (the conversion and ->), a plain store
 // (`held = p`) counts nothing. The count and the release are the engine object's.
 template <typename T>
 struct HeldObject {
-    // 004EBE60 (RET 4; registered in refptr_copies.cpp; byte-identical to 00429B50, 00511B90,
-    // 0052C690, 00556C40, 00556C60 and 0056F1A0, a particle source's): takes `value`, counted first,
+    // Registered in refptr_copies.cpp, with byte-identical copies (a particle source's among them):
+    // takes `value`, counted first,
     // then the old one released through its slot 4.
     void Assign(T* value) {
         CEngineObject* previous = object;
@@ -92,7 +92,7 @@ struct HeldObject {
         if (CEngineObject* taken = value) ++taken->refCount_;
         if (previous) previous->Release();
     }
-    // _Construct(p, value) of a held engine object (004FB680, 004298F0; RET 4; registered in
+    // _Construct(p, value) of a held engine object (registered in
     // library_containers.cpp): the pointer copied, its count raised when not null; returns this.
     HeldObject* Construct(T* const* value) {
         object = *value;
@@ -126,10 +126,10 @@ struct AIRefTo {
     void Reset();
     // Hold `object` (released first unless it is already held).
     void Assign(T* newObject);
-    // 0050E220 / 0050E290. Read / write the object id (-1: none); Load looks it up in `world`.
+    // Read / write the object id (-1: none); Load looks it up in `world`.
     void Load(CStream* stream, CWorld* world);
     void Save(CStream* stream);
-    // 00558CA0 (AIRef only; world_deleting_destructors.cpp).
+    // AIRef only (world_deleting_destructors.cpp).
     AIRefTo* DeleteScalar(unsigned flags);
     // A counted object pointer kept in a container of plain pointers (a unit list's element) seen
     // as the reference it is.
@@ -137,7 +137,7 @@ struct AIRefTo {
 
     operator T*() const { return object; }
     T* operator->() const { return object; }
-    // A plain store (no reference taken or released), as the original's constructors and copies.
+    // A plain store (no reference taken or released), as the constructors and copies do.
     AIRefTo& operator=(T* plain) {
         object = plain;
         return *this;

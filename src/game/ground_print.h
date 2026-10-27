@@ -1,12 +1,12 @@
 #pragma once
 
-// Ground prints (006CECD0-006CFEA0): footprints, blood and scorch marks lying on the ground. The
+// Ground prints: footprints, blood and scorch marks lying on the ground. The
 // client world keeps them by value in three lists (CWorldClient +0x1B8 blood, +0x1BC footprints,
-// +0x1C0 scorch marks; 0056CE90 / 0056D150 / 0056D4C0 add them), ticks them (slot 0; a print
+// +0x1C0 scorch marks), ticks them (slot 0; a print
 // whose life reaches 0 is erased), draws them (Draw) and saves / loads them (slots 1 / 2). A print
 // is a textured quad around its point, rotated by `angle_`, its texture tile picked by the uv
-// offset and scale and turned by `uvAngle_`; Draw lays it on the ground once (the decal projector
-// 0056C750) and draws it with an alpha that fades over the print's life. See docs/notes/models.md.
+// offset and scale and turned by `uvAngle_`; Draw lays it on the ground once (the decal projector)
+// and draws it with an alpha that fades over the print's life. See docs/notes/models.md.
 
 #include "lib/containers.h"
 #include "lib/stlp.h"
@@ -20,8 +20,8 @@ class CTexture;
 struct VertexPacket;    // figure_mesh.h
 struct DecalTexCoord;   // ground_decal.h
 
-// A texture by name (0x10 bytes; constructed in place by 006CF900, an empty name with room for 8
-// bytes). The device binds it with 004EB1D0, which looks the texture up again by name.
+// A texture by name (0x10 bytes; constructed in place with an empty name with room for 8
+// bytes). The device binds it by looking the texture up again by name.
 struct NamedTexture {
     NamedTexture* Copy(const NamedTexture* other);
     stlp::string name;      // +0x00
@@ -29,17 +29,17 @@ struct NamedTexture {
 };
 static_assert(sizeof(NamedTexture) == 0x10);
 
-// A scorch mark and the base of the other two. 0x8C bytes. The vtables are the compiler's (
-// game.exe's 0073F76C, and 0073F778 with the same slots, which its copy constructor stores before
-// the lists' copies store their class's).
+// A scorch mark and the base of the other two. 0x8C bytes. The vtables are the compiler's;
+// the copy constructor stores this one first, then the lists' copies
+// store their class's.
 class GroundPrint {
 public:
     // A scorch mark ("fireprints") at (x, y): a random quarter of the 2 x 2
     // texture, turned by the same quarter; white, lit as the terrain says.
     GroundPrint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
                 int lifetime);
-    // The copy constructor the lists' node copies start with (0056F880 /
-    // 0056F940 / 0056F9F0, which then copy their own members): every member copied, the texture
+    // The copy constructor the lists' node copies start with (the three
+    // classes' then copy their own members): every member copied, the texture
     // name into a block of its own and the texture counted (NamedTexture::Copy), the three geometry
     // arrays' headers as they are (the copy shares their blocks).
     GroundPrint(const GroundPrint& other);
@@ -57,16 +57,15 @@ public:
     virtual void Save(CStream* stream);
 
     // Draws the print when visible: the first time, lays the quad on the ground (z from
-    // the client world's ground and platforms; the projector 0056C750 clips it to the terrain and
-    // the platforms under it) and turns its texture coordinates; then the flat draw 004EA4A0 with
+    // the client world's ground and platforms; the projector clips it to the terrain and
+    // the platforms under it) and turns its texture coordinates; then the flat draw with
     // the colour's alpha from alpha_ and the lit flag as the specular alpha. Returns 1 when not
     // visible, else the draw's result.
     int Draw();
     // The destructor (only reached from the constructors' unwinding): the arrays freed,
-    // the texture released, the name freed. The client world's lists have three more copies of it
-    // (0056D080 blood, 0056D400 footprints, 0056D680 scorch marks).
+    // the texture released, the name freed. The client world's lists have three more copies of it.
     void Destruct();
-    // 00575560 / 00575580 (RET 4): the footprint and scorch mark lists' scalar deleting
+    // The footprint and scorch mark lists' scalar deleting
     // destructors: Destruct, the print freed when bit 0 of `flags` is set; returns this.
     GroundPrint* DeletingDestruct(unsigned flags);
 
@@ -105,7 +104,7 @@ static_assert(offsetof(GroundPrint, lit_) == 0x48 && offsetof(GroundPrint, colou
 static_assert(offsetof(GroundPrint, positions_) == 0x5C && offsetof(GroundPrint, indices_) == 0x7C);
 static_assert(sizeof(GroundPrint) == 0x8C);
 
-// A footprint (slot 0 is GroundPrint's; game.exe's vtable 0073F760). 0x94 bytes.
+// A footprint (slot 0 is GroundPrint's). 0x94 bytes.
 class Footprint : public GroundPrint {
 public:
     // A footprint at (x, y): `tile` picks the texture's eighth (low 3 bits
@@ -124,7 +123,7 @@ public:
 };
 static_assert(offsetof(Footprint, scale_) == 0x8C && sizeof(Footprint) == 0x94);
 
-// A blood print (game.exe's vtable 0073F754). Spreads for half its life (at most 45 ticks),
+// A blood print. Spreads for half its life (at most 45 ticks),
 // turning. 0x9C bytes.
 class BloodPrint : public GroundPrint {
 public:

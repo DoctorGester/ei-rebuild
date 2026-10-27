@@ -1,7 +1,7 @@
-// Scalar deleting destructors in 00400000-00440000 that only call their class's destructor body
+// Scalar deleting destructors that only call their class's destructor body
 // and free the memory when bit 0 of the flags is set (30 bytes each; counted pointer holders, session
 // containers; the message classes' are their C++ destructors, net_messages.cpp). The body is our rewrite, named by
-// its member or function (the original's address in the comment). Two exception cleanup helpers
+// its member or function. Two exception cleanup helpers
 // are here too.
 #include "base_manager.h"
 #include "core_refcount.h"
@@ -34,8 +34,7 @@ struct DeletingDestructor {
     }
 };
 
-// 004054F0 / 00405530: exception cleanup steps (reached by a jump from the unwind funclets at
-// 0070E323 .. 0070E3B3): the dword at +8 of ECX cleared.
+// Exception cleanup steps (reached by a jump from the unwind funclets): the dword at +8 of ECX cleared.
 void __fastcall CleanupClear8(void* object) {
     std::uint32_t zero = 0;
     std::memcpy(static_cast<std::uint8_t*>(object) + 8, &zero, 4);
@@ -47,8 +46,8 @@ using destructors400::CleanupClear8;
 using destructors400::DeletingDestructor;
 using namespace net;
 
-// Counted pointer holders (bodies 0041DDA0 and 00421640); the world range has a byte-identical copy
-// of each (A-W12).
+// Counted pointer holders; the world range has a byte-identical copy
+// of each.
 EI_REWRITTEN(0x004292A0, DeletingDestructor<RefPtrRelease>::Delete);
 EI_REWRITTEN(0x004292C0, DeletingDestructor<&RefPtr::Destroy>::Delete);
 EI_REWRITTEN(0x0059DD90, DeletingDestructor<RefPtrRelease>::Delete);

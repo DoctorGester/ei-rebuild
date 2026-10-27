@@ -17,11 +17,11 @@ namespace {
 // CStream::version_ of a new stream.
 constexpr std::uint32_t kDefaultVersion = 2000000000;
 
-// operator+(const CString&, char) (AFXAPI, 006FD56E).
+// operator+(const CString&, char) (AFXAPI).
 
 } // namespace
 
-// --- CRefCounted / CRefObject: game.exe's out-of-line constructor and destructor bodies ----------
+// --- CRefCounted / CRefObject: the out-of-line constructor and destructor bodies ----------
 
 EI_REWRITTEN_SPECIAL(0x00412720, CRefCounted::~CRefCounted);
 EI_REWRITTEN_SPECIAL(0x005ED7A0, CRefCounted::~CRefCounted);
@@ -31,7 +31,7 @@ EI_REWRITTEN_SPECIAL(0x0058FBE0, CRefCounted::~CRefCounted);
 EI_REWRITTEN_SPECIAL(0x00412730, CRefCounted::~CRefCounted);   // deleting
 EI_REWRITTEN_SPECIAL(0x00419720, CRefObject::CRefObject);
 EI_REWRITTEN_SPECIAL(0x00412700, CRefObject::~CRefObject);   // deleting
-EI_REWRITTEN_SPECIAL(0x00562750, CRefObject::~CRefObject);   // deleting; byte-identical copies (A-W12)
+EI_REWRITTEN_SPECIAL(0x00562750, CRefObject::~CRefObject);   // deleting; byte-identical copies
 EI_REWRITTEN_SPECIAL(0x0058FBC0, CRefObject::~CRefObject);   // deleting
 
 // --- CStream -----------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ CMemoryStream::CMemoryStream() {
     bitsIndex_ = -1;
 }
 EI_REWRITTEN_SPECIAL(0x0041DD70, CMemoryStream::CMemoryStream);
-EI_REWRITTEN_SPECIAL(0x0066C4F0, CMemoryStream::CMemoryStream);   // the queue streams' (table 0073C960)
+EI_REWRITTEN_SPECIAL(0x0066C4F0, CMemoryStream::CMemoryStream);   // the queue streams'
 
 CMemoryStream::~CMemoryStream() {
     if (data_) gamecrt::operator_delete(data_);

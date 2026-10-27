@@ -1,10 +1,10 @@
 // The compiler-generated destructors of the global databases. Only the exit functions call
-// them (src/standalone/static_exit.cpp: 0045E6E0, 00684380, 006ADF30, 006D00D0, 006D70A0), so
+// them (src/standalone/static_exit.cpp), so
 // they run at a normal exit in the hook build too. Each destroys the members from the last: a
 // table's name index (hash_map::Destroy: every chain from its head, each node's key string then
 // the node, then the buckets), then its records through their vector's element policy
 // (record_vectors.h: each record in order, then the storage). The constructors are
-// database_construct.cpp's. Checked in game by verify_exit_destructors.cpp until S21d.
+// database_construct.cpp's.
 #include "acks_db.h"
 #include "game_arrays.h"
 #include "game_slots.h"
