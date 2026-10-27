@@ -1,12 +1,9 @@
 #pragma once
 
-// Chunked files: the format of the .mob zone files (read when a zone loads) and of the map-editor object
-// specs. A chunk is an id and a size (header included), followed by its content; chunks nest. A Chunk object
-// tracks one chunk being read or written and passes every byte it consumes up to its parent. The file is
-// reached through virtual slot 1: a chunk asks its parent, and the root (RootChunk) returns the MFC CFile it
-// embeds. Names provisional; see docs/notes/core.md. Chunk and RootChunk are real virtual classes: the
-// compiler makes their vtables. The map specs' records and child chunks (map_spec.h, map_spec_unit.cpp)
-// derive from Chunk.
+// Chunked files: the .mob zone files and the map-editor object specs. A chunk is an id and a size (header
+// included), followed by its content; chunks nest. A Chunk passes every byte it consumes up to its parent and
+// reaches the file through File(): a chunk asks its parent, the root returns the CFile it embeds. See
+// docs/notes/core.md.
 
 #include "maths.h"
 #include "lib/mfc.h"
@@ -19,14 +16,12 @@ public:
     explicit Chunk(Chunk* parent) : id_(0), consumed_(0), size_(0), start_(0), parent_(parent) {}
     ~Chunk();
 
-    // 0: empty. Called by ForEachChild for each child header read; the readers (the
-    // zone's object records, map_spec.h) read the chunk's value by its id.
+    // Called by ForEachChild for each child header read; the readers read the chunk's value by its id.
     virtual void OnChunk();
     virtual mfc::CFileVirtuals* File();
 
     void Advance(int bytes);
-    // Writing a chunk of unknown size: the header with a placeholder size,
-    // and at the end the size (consumed_) patched in.
+    // Writing a chunk of unknown size: a placeholder size, patched in at the end.
     void BeginWrite(std::uint32_t id);
     void EndWrite();
     // Writes a header for `payload` content bytes and counts all of it as consumed.
@@ -41,7 +36,7 @@ public:
     float ReadFloat();
     int ReadInt();
     std::uint8_t ReadByte();
-    Vector3* ReadVector3(Vector3* out);     // returns out
+    Vector3* ReadVector3(Vector3* out);
     float* ReadQuad(float* out);            // four values stored as 1, 3, 0, 2; returns out
     float* ReadQuaternion(float* out);      // 16 bytes (default 1, 0, 0, 0); returns out
     void ReadBytes(void* data, int size);
@@ -53,12 +48,11 @@ public:
     void WriteVector3(std::uint32_t id, std::uint32_t x, std::uint32_t y, std::uint32_t z);
     void WriteQuaternion(std::uint32_t id, Quaternion value);
     void WriteBlob(std::uint32_t id, const void* data, int size);
-    // Text. A string chunk's content is its characters (no terminator); the string arrays are a count
-    // followed by one string chunk per element (all with the array chunk's id). CStrings are returned and
-    // passed by value as the game does (hidden return pointer, callee-destroyed argument). The arrays are MFC
-    // CStringArrays (console::CStringArray; the map specs pass their mfc::CStringArray in their layouts).
-    mfc::CString* ReadString(mfc::CString* out);                             // returns out
-    mfc::CString* ReadEncodedString(mfc::CString* out);                      // returns out
+    // A string chunk's content is its characters (no terminator); the string arrays are a count followed by one
+    // string chunk per element (all with the array chunk's id). CStrings are returned and passed by value as the
+    // game does.
+    mfc::CString* ReadString(mfc::CString* out);
+    mfc::CString* ReadEncodedString(mfc::CString* out);
     void WriteString(std::uint32_t id, mfc::CString text);
     void ReadStringArray(mfc::CStringArray* array);
     void WriteStringArray(std::uint32_t id, mfc::CStringArray* array);
@@ -73,13 +67,12 @@ static_assert(offsetof(Chunk, id_) == 0x04);
 static_assert(offsetof(Chunk, parent_) == 0x14);
 static_assert(sizeof(Chunk) == 0x18);
 
-// The root chunk of a file: slot 1 returns its CFile. The .mob object file's root
-// (CWorldServer::LoadMapObjects) is one too.
+// The root chunk of a file: File() returns its CFile.
 class RootChunk : public Chunk {
 public:
     RootChunk() : Chunk(nullptr) {}
 
-    mfc::CFileVirtuals* File() override;   // 1: &file_
+    mfc::CFileVirtuals* File() override;
 
     ~RootChunk();
 

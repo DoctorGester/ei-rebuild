@@ -5,9 +5,8 @@
 
 class ChunkArchive;
 
-// The root of the reference-counted classes: the count and the flags, slot 0 the
-// scalar deleting destructor, slot 1 Serialize (empty). The network sessions and the cast
-// spells derive from it directly; everything else through CRefObject below.
+// The root of the reference-counted classes. The network sessions and the cast spells derive from it directly,
+// everything else through CRefObject.
 class CRefCounted {
 public:
 
@@ -21,7 +20,7 @@ public:
     CRefCounted(const CRefCounted&) = delete;
     CRefCounted& operator=(const CRefCounted&) = delete;
     virtual ~CRefCounted() {}
-    virtual void Serialize(ChunkArchive*) {}   // empty in the root class; chunk_archive.h
+    virtual void Serialize(ChunkArchive*) {}
 
     // Counted objects live on the game's heap: null without memory, and then no constructor runs.
     static void* operator new(std::size_t size) noexcept;
@@ -39,12 +38,8 @@ static_assert(sizeof(CRefCounted) == 8);
 inline bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
 // Reference-counted objects of the engine core (script values, network records and messages, AI shapes).
-// Names provisional. The header and the slots below are what the engine's helpers use; the game mostly
-// inlines these helpers, the out-of-line copies are rewritten here.
 class CRefObject : public CRefCounted {
 public:
-    // The vtable has 2 / 3 `_purecall`: the out-of-line constructor; the deleting destructor
-    // and its copies are in core_streams.cpp.
     CRefObject() = default;
     ~CRefObject() override = default;
 
@@ -52,8 +47,7 @@ public:
     virtual CRefObject* Clone() = 0;        // the copy handed out when a kCopyOnShare object is shared
 
     void Release();
-    // Calls OnShutdown with an extra reference held, so it cannot destroy itself
-    // meanwhile. Returns OnShutdown's EAX.
+    // Calls OnShutdown with an extra reference held, so it cannot destroy itself meanwhile.
     int Shutdown();
 };
 static_assert(sizeof(CRefObject) == 8);
@@ -66,7 +60,7 @@ struct RefPtr {
     RefPtr* DeleteReleased(unsigned flags);
     RefPtr* DeleteDestroyed(unsigned flags);
     RefPtr* FromRawCounted(CRefObject* object);
-    // counted_ptr<T>'s copy constructor: from's object, one more reference. Returns this.
+    // counted_ptr<T>'s copy constructor.
     RefPtr* CopyCounted(const RefPtr* from);
     RefPtr* AssignHolder(const RefPtr* other);
     RefPtr* AssignObject(CRefObject* object);
@@ -76,13 +70,12 @@ struct RefPtr {
     // Initialises to share `object`: null for a null or detached object, a clone for a
     // copy-on-share one. The result is marked copy-on-share.
     void Share(CRefObject* object);
-    // Eight identical copies. The same, returning this.
+    // Share, returning this.
     RefPtr* ShareReturn(CRefObject* object);
     // The owner's release: a still-shared object is detached and shut down first. The
     // pointer itself is left as it was.
     void Destroy();
-    // The AI mode list's element assignment. Unless it already points at
-    // `object`: Destroy, then Share(object). Returns this.
+    // The AI mode list's element assignment: unless already `object`, Destroy, then Share(object).
     RefPtr* ShareAssign(CRefObject* object);
 };
 static_assert(sizeof(RefPtr) == 4);
@@ -95,14 +88,11 @@ struct RefPtrTo : RefPtr {
 };
 static_assert(sizeof(RefPtrTo<CRefObject>) == 4);
 
-// A counted reference: the pointer slot is the `this` of the 3D object's figure (a CLinkMesh) and of its
-// byte-identical copies, the client half's wounds material and that material's helper preset. T's count is at
-// +0x04 and its slot 0 deletes it; object3d_lifetime.cpp defines Assign for those three types. Reads see the
-// object (the conversion and ->); a plain store (`ref = p`) neither takes nor drops a reference.
+// A counted reference to a figure (CLinkMesh), the client half's wounds material or its helper preset;
+// object3d_lifetime.cpp defines Assign for those. A plain store (`ref = p`) takes and drops no reference.
 template <typename T>
 struct CountedRef {
-    // object = `value`: the new one gains a reference, the old one loses one and is deleted (its
-    // slot 0 with 1) when that was the last.
+    // The new object gains a reference; the old one loses one and is deleted when that was the last.
     void Assign(T* value);
 
     operator T*() const { return object; }
@@ -115,7 +105,6 @@ struct CountedRef {
     T* object;
 };
 
-// refptr_copies.cpp (ECX the holder, EDX the object). 15 identical copies: `self`
-// holds `object` without a reference; returns self. Identical copies also clear it.
+// `self` holds `object` without a reference; returns self.
 RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);
 void __fastcall RefPtrClear(RefPtr* self);
