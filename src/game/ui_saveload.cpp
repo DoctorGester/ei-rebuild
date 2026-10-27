@@ -357,10 +357,7 @@ void CSaveLoadWindow::FillEntries() {
         SaveEntry* entry = entries_.begin();
         entry->folder_ = str::Format(game::savewords::NewFolder(), highest + 1);
         entry->gameTime_ = LocalPlayerVariable(game::savewords::GameTime());
-        {
-            mfc::CString zone(mfc::CString::kUnset);
-            entry->zone_ = *LocalPlayerName(&zone);
-        }
+        entry->zone_ = LocalPlayerZone();
         if (MapRecord* record = TheMapDatabase()->FindMap(entry->zone_.c_str()))
             entry->map_ = record->allod;
         entry->MakeTitle(1);
@@ -435,14 +432,10 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
     mfc::CString title;
     std::string map;
-    std::string zone;
     mfc::impl::CTime now;
     const std::int32_t savedAt = mfc::impl::CTime::CurrentTime(&now)->time;
     const float gameTime = LocalPlayerVariable(game::savewords::GameTime());
-    {
-        mfc::CString current(mfc::CString::kUnset);
-        zone = *LocalPlayerName(&current);
-    }
+    const std::string zone = LocalPlayerZone();
     if (const MapRecord* record = TheMapDatabase()->FindMap(zone.c_str()))
         map = record->allod;
     std::string folder = SlotFolder(slot).GetString();

@@ -24,6 +24,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <memory>
 #include <string>
 
 class CAnimationNode;
@@ -332,23 +334,31 @@ private:
 // The figure's .reg file's records: texture names and texture links by id.
 struct TextureNameRecord {
     std::uint32_t id;
-    mfc::CString name;
+    std::string name;
 };
 struct TextureLinkRecord {
     std::uint32_t id;
     std::uint32_t value;
 };
 using TextureLinkArray = mfc::CArray<TextureLinkRecord>;
+// Zero-filled, the name empty; destroyed by the record's destructor.
 struct TextureNameElements {
     static void Construct(TextureNameRecord* elements, int count) {
-        mfc::impl::ConstructElementsAt<mfc::impl::NamedDwords>(elements, count);
+        std::memset(static_cast<void*>(elements), 0, static_cast<std::size_t>(count) * sizeof(TextureNameRecord));
+        for (int i = 0; i < count; ++i) std::construct_at(&elements[i].name);
     }
     static void Destruct(TextureNameRecord* elements, int count) {
         for (int i = 0; i < count; ++i) figure::NamedRecordDestruct(&elements[i]);
     }
+    static void Relocate(TextureNameRecord* to, TextureNameRecord* from, int count) { mfc::MoveElements(to, from, count); }
 };
 using TextureNameArray = mfc::CArray<TextureNameRecord, TextureNameElements>;
-static_assert(sizeof(TextureNameRecord) == 8 && sizeof(TextureLinkArray) == 0x14);
+using TextureNameRecords = mfc::impl::ArrayAbi<TextureNameRecord, TextureNameElements>;
+static_assert(sizeof(TextureLinkArray) == 0x14);
+// The scene loader's {id, name} array.
+struct TextureNameArrayClass final
+    : mfc::impl::CompiledCollection<TextureNameArrayClass, &TextureNameRecords::Destruct<TextureNameArrayClass>,
+                                    &TextureNameRecords::Serialize> {};
 
 constexpr std::uint32_t kVersionWithNormals = 0x1468FCCA;
 

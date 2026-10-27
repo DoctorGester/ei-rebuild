@@ -58,7 +58,7 @@ vtable,slots,class,file,note
 0073C120,3,Vector3ArrayClass,src/lib/mfc_slots.h,CArray (12-byte points: animation node normals; use spots; terrain sector data)
 0073C12C,3,BoneLinkArrayClass,src/lib/mfc_slots.h,CArray (a figure's bone links)
 0073C138,3,NodeItemsCClass,src/lib/mfc_slots.h,CArray (the scene loader's node records' children)
-0073C144,3,TextureNameArrayClass,src/lib/mfc_slots.h,CArray (the scene loader's {id; CString})
+0073C144,3,TextureNameArrayClass,src/game/scene_loader.h,CArray (the scene loader's {id; name})
 0073C150,3,TextureLinkArrayClass,src/lib/mfc_slots.h,CArray (the scene loader's {id; value} links)
 0073C15C,3,SceneNodeArrayClass,src/game/record_arrays.h,CArray<SceneNode> (the scene loader's nodes)
 0073C16C,3,FigureRegistryMapClass,src/lib/mfc_slots.h,CMap (LoadFigureRegistry's map)
@@ -266,8 +266,8 @@ vtable,slots,class,file,note
 0073F040,3,AttackOptionArrayClass,src/lib/mfc_slots.h,CArray (a unit's attack options)
 0073F04C,3,BehaviourArrayClass,src/game/record_arrays.h,CArray<Behaviour>: the brain constructor's second table with 0073F034's slots
 0073F058,3,MemoryObjectArrayClass,src/game/game_slots.h,CArray (a unit memory's object records)
-0073F064,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit's 0x18-byte memory records)
-0073F070,3,MemoryRecordArrayClass,src/lib/mfc_slots.h,CArray (a unit memory's calls): the constructor's second table with 0073F064's slots
+0073F064,3,MemoryRecordArrayClass,src/game/unit_ai.h,CArray (a unit memory's heard calls: AICallRecord)
+0073F070,3,MemoryRecordArrayClass,src/game/unit_ai.h,CArray (a unit memory's calls): the constructor's second table with 0073F064's slots
 0073F07C,3,PointArrayClass,src/lib/mfc_slots.h,CArray (a unit's point lists)
 0073F0C4,13,TamedMode,src/game/unit_ai.h,the Tamed AI mode (the Player mode's slots but 2-4 and 8)
 0073F0F8,13,PlayerMode,src/game/unit_ai.h,the Player AI mode
@@ -378,9 +378,9 @@ vtable,slots,class,file,note
 00740A2C,55,CItemScreen,src/game/ui_item_info.h,the plain item screen (CItemScreen)
 00740B08,13,CGlobalMap,src/game/ui_camp.h,the island map's input side
 00740B3C,42,CGlobalMap,src/game/ui_camp.h,the island map (CGlobalMap)
-00740BE4,3,GlobalMapPathArrayClass,src/lib/mfc_slots.h,CArray (the global map's quests)
-00740BF0,3,GlobalMapPointArrayClass,src/lib/mfc_slots.h,CArray (the global map's links)
-00740BFC,3,GlobalMapZoneArrayClass,src/lib/mfc_slots.h,CArray (the global map's zones)
+00740BE4,3,GlobalMapPathArrayClass,src/game/ui_camp.h,CArray (the global map's quests)
+00740BF0,3,GlobalMapPointArrayClass,src/game/ui_camp.h,CArray (the global map's links)
+00740BFC,3,GlobalMapZoneArrayClass,src/game/ui_camp.h,CArray (the global map's zones)
 00740C08,13,CCreditsScreen,src/game/ui_screens.h,the titles' input side
 00740C3C,42,CCreditsScreen,src/game/ui_screens.h,the titles (CCreditsScreen)
 00740CE4,13,CExchangeScreen,src/game/ui_screens.h,the exchange's input side

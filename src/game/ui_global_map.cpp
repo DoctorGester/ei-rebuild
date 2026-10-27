@@ -198,11 +198,7 @@ void CGlobalMap::CreateScreen() {
     turning_ = 0;
     bobTime_ = 0.0f;
 
-    MapRecord* current;
-    {
-        mfc::CString name(mfc::CString::kUnset);
-        current = FindZone(*LocalPlayerName(&name));
-    }
+    MapRecord* current = FindZone(LocalPlayerZone().c_str());
     AllodRecord* allod = TheMapDatabase()->FindAllod(current->allod.c_str());
     {
         mfc::CString title(mfc::CString::kUnset);
@@ -618,9 +614,9 @@ void EmptyArray(Array* array, void* vtable) {
 } // namespace
 
 CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
-    EmptyArray(&zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
-    EmptyArray(&links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
-    EmptyArray(&quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
+    EmptyArray(&zones_, GlobalMapZoneArrayClass::Vtable());
+    EmptyArray(&links_, GlobalMapPointArrayClass::Vtable());
+    EmptyArray(&quests_, GlobalMapPathArrayClass::Vtable());
     // The tree (the header from the pool; empties it) keeps the first byte of
     // the compare object, the argument slot holding `ui`.
     arrivals_.Header() = static_cast<stlp::map<int, float>::Node*>(stlp::allocate(sizeof(stlp::map<int, float>::Node)));
@@ -652,9 +648,9 @@ CGlobalMap::~CGlobalMap() {
     arrivals_.Destroy();
     stlp::deallocate(path_.Start(), static_cast<std::size_t>(path_.EndOfStorage() - path_.Start()) *
                                         sizeof(GlobalMapStep));
-    DestroyArray(&quests_, mfc::impl::GlobalMapPathArrayClass::Vtable());
-    DestroyArray(&links_, mfc::impl::GlobalMapPointArrayClass::Vtable());
-    DestroyArray(&zones_, mfc::impl::GlobalMapZoneArrayClass::Vtable());
+    DestroyArray(&quests_, GlobalMapPathArrayClass::Vtable());
+    DestroyArray(&links_, GlobalMapPointArrayClass::Vtable());
+    DestroyArray(&zones_, GlobalMapZoneArrayClass::Vtable());
 }
 EI_REWRITTEN_SPECIAL(0x005F6920, CGlobalMap::~CGlobalMap);
 EI_REWRITTEN_SPECIAL(0x005F6900, CGlobalMap::~CGlobalMap);
@@ -668,11 +664,14 @@ void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
     }
 }
 
+void __fastcall DestroyGlobalMapZone(GlobalMapZone* zone) {
+    std::destroy_at(&zone->title);
+    std::destroy_at(&zone->name);
+}
+EI_REWRITTEN(0x005FBD30, DestroyGlobalMapZone);
+
 void GlobalMapZoneElements::Destruct(GlobalMapZone* zones, int count) {
-    for (int i = 0; i < count; ++i) {
-        std::destroy_at(&zones[i].title);
-        std::destroy_at(&zones[i].name);
-    }
+    for (int i = 0; i < count; ++i) DestroyGlobalMapZone(&zones[i]);
 }
 
 void GlobalMapPlaceElements::Construct(GlobalMapPlace* places, int count) {
@@ -683,12 +682,31 @@ void GlobalMapPlaceElements::Construct(GlobalMapPlace* places, int count) {
     }
 }
 
-void GlobalMapPlaceElements::Destruct(GlobalMapPlace* places, int count) {
-    for (int i = 0; i < count; ++i) {
-        std::destroy_at(&places[i].title);
-        std::destroy_at(&places[i].name);
-    }
+void __fastcall DestroyGlobalMapPlace(GlobalMapPlace* place) {
+    std::destroy_at(&place->title);
+    std::destroy_at(&place->name);
 }
+EI_REWRITTEN(0x005FBD80, DestroyGlobalMapPlace);
+EI_REWRITTEN(0x005FBDD0, DestroyGlobalMapPlace);
+
+void GlobalMapPlaceElements::Destruct(GlobalMapPlace* places, int count) {
+    for (int i = 0; i < count; ++i) DestroyGlobalMapPlace(&places[i]);
+}
+
+// The links' and the quests' SetSize and element constructor; the arrays' tables' slots.
+EI_REWRITTEN(0x00631E70, GlobalMapPlaceRecords::SetSize);
+EI_REWRITTEN(0x00631FF0, GlobalMapPlaceRecords::SetSize);
+EI_REWRITTEN(0x005FBFB0, GlobalMapPlaceRecords::ConstructElements);
+EI_REWRITTEN(0x005FC010, GlobalMapPlaceRecords::ConstructElements);
+EI_REWRITTEN(0x005FB090, GlobalMapZoneRecords::Destruct<GlobalMapZoneArrayClass>);
+EI_REWRITTEN(0x005FB2F0, GlobalMapPlaceRecords::Destruct<GlobalMapPointArrayClass>);
+EI_REWRITTEN(0x005FB560, GlobalMapPlaceRecords::Destruct<GlobalMapPathArrayClass>);
+EI_REWRITTEN(0x005FB850, mfc::impl::ScalarDeleting<&GlobalMapZoneRecords::Destruct<GlobalMapZoneArrayClass>>::Delete);
+EI_REWRITTEN(0x005FB870, mfc::impl::ScalarDeleting<&GlobalMapPlaceRecords::Destruct<GlobalMapPointArrayClass>>::Delete);
+EI_REWRITTEN(0x005FB890, mfc::impl::ScalarDeleting<&GlobalMapPlaceRecords::Destruct<GlobalMapPathArrayClass>>::Delete);
+EI_REWRITTEN(0x005FB120, GlobalMapZoneRecords::Serialize);
+EI_REWRITTEN(0x005FB380, GlobalMapPlaceRecords::Serialize);
+EI_REWRITTEN(0x005FB5F0, GlobalMapPlaceRecords::Serialize);
 
 void GlobalMapZoneArray::SetAtGrowZone(int index, const GlobalMapZone* zone) {
     if (index >= size) SetSize(index + 1);

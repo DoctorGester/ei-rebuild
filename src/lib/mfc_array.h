@@ -188,16 +188,6 @@ inline void InitKeyFrame40(KeyFrame40* p) {
     p->z = 0.0f;
 }
 
-// {dword, CString} and 0x3C-byte records with a CString at +0x28: the string set to the shared empty one.
-template <std::size_t Size, std::size_t StringAt>
-struct WithString {
-    std::uint8_t bytes[Size];
-};
-template <std::size_t Size, std::size_t StringAt>
-void InitWithString(WithString<Size, StringAt>* p) {
-    *reinterpret_cast<char**>(p->bytes + StringAt) = PchNil();
-}
-
 // Records that hold strings and an array: `Strings` CStrings from +0, an array header of `Class` at `ArrayAt`
 // (0x2C bytes, six strings, the array at +0x18; 0x5C bytes, eight strings, the array at +0x48).
 template <std::size_t Size, int Strings, std::size_t ArrayAt, typename Class>
@@ -328,13 +318,11 @@ using Plain9C = ArrayAbi<Bytes<0x9C>>;
 using Floats = ArrayAbi<float>;
 
 using KeyFrames = ArrayAbi<KeyFrame40, InitElements<KeyFrame40, InitKeyFrame40>>;
-using NamedDwords = ArrayAbi<WithString<8, 4>, InitElements<WithString<8, 4>, InitWithString<8, 4>>>;
 using BoneLinkArrays = ArrayAbi<WithArray<0x14, 0, BoneLinkArrayClass>,
                                 InitElements<WithArray<0x14, 0, BoneLinkArrayClass>, InitWithArray<0x14, 0, BoneLinkArrayClass>>>;
 using Patrols = ArrayAbi<WithArray<0x20, 0xC, WaypointArrayClass>,
                          InitElements<WithArray<0x20, 0xC, WaypointArrayClass>, InitWithArray<0x20, 0xC, WaypointArrayClass>>>;
 
-using QuestObjectives = ArrayAbi<WithString<12, 4>, InitElements<WithString<12, 4>, InitWithString<12, 4>>>;
 using Particles = ArrayAbi<Particle16, InitElements<Particle16, InitParticle16>>;
 using Placements = ArrayAbi<Placement40, InitElements<Placement40, InitPlacement40>>;
 using PathRecords = ArrayAbi<PathRecord12, InitElements<PathRecord12, InitPathRecord12>>;

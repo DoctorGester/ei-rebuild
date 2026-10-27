@@ -89,11 +89,6 @@ struct PartNames : mfc::CArray<mfc::CString> {
     mfc::CString* CopyAt(mfc::CString* result, int index) const;
 };
 
-// The global map's 0x18-byte records (mfc::impl::GlobalMapPointRecords): the destructor, the
-// strings and +0x10.
-void __fastcall DestroyGlobalMapRecord(Bytes<0x18>* p);
-void __fastcall DestroyGlobalMapZone(Bytes<0x10>* p);
-
 // ---- The script's command arrays ------------------------------------------------------------------
 
 // Commands: SSCCmd's constructor values, its destructor.

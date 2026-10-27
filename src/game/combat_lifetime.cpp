@@ -160,14 +160,14 @@ AIBrain* AIBrain::Construct() {
     memory.reports = {};
     memory.reports.vtable = gameslots::MemoryObjectArrayClass::Vtable();   // the same virtuals
     memory.calls = {};
-    memory.calls.vtable = mfc::impl::MemoryRecordArrayClass::Vtable();   // the same virtuals
+    memory.calls.vtable = MemoryRecordArrayClass::Vtable();   // the same virtuals
     Init();
     return this;
 }
 EI_REWRITTEN(0x00545990, AIBrain::Construct);
 
 void AIMemory::Destruct() {
-    calls.vtable = mfc::impl::MemoryRecordArrayClass::Vtable();
+    calls.vtable = MemoryRecordArrayClass::Vtable();
     if (calls.data) {
         for (int i = 0; i < calls.size; ++i) calls.data[i].Destruct();   // the call records' destructors
         gamecrt::operator_delete(calls.data);

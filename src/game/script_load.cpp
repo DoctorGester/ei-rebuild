@@ -409,7 +409,7 @@ void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStre
         // A temporary element (effect 0, empty name, the rest unset) is copied
         // into the node and destroyed (releasing its effect, which is always null).
         std::string emptyName;
-        AppendNode<mfc::impl::FxSourceList>(list, [&](ScriptFxSource* source) {
+        AppendNode<gameslots::FxSourceNodes>(list, [&](ScriptFxSource* source) {
             source->object = nullptr;
             source->id = 0;
             source->name = emptyName;

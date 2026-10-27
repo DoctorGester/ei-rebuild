@@ -370,7 +370,7 @@ dialogueText_ +0x248, speaking_ +0x254, shown_ +0x278 (BriefingShownItem list), 
 +0x284 (stlp::vector<int>), markPhase_ +0x290, speakers_ +0x294 (12-byte BriefingSpeaker), text_ a CUiScrollText;
 the rewards are the quest database's `QuestBriefingRecord` (quest_records.h, 0x6C: exp, money, the lists by
 `ListKind`, specials +0x68). The "constr" topic's number is `Mid(7)` (006FD9B4, not
-Right). Helpers: `BriefingVariables` (00578C40 into a 100-bucket table, 00581790; walked with 005E0DB0), `BriefingPlayerName`
+Right). Helpers: `BriefingVariables` (00578C40 into a 100-bucket table, 00581790; walked with 005E0DB0), `LocalPlayerZone`
 (00578A90). player_messages.h cannot be included next to ui_briefing.h (three MfcArray templates), hence the forwarders
 (originals_ui.h) and `player_out_mark.h`. Inlined in the original, not functions: 00609A80, 0060B490 / 0060AC00, 00609A40 (pool
 0x30). 00608D10 (slot 35, `MOV AL,1; RET`) is too short to hook; 006023F0 is no function in Ghidra or function_sizes.inc.

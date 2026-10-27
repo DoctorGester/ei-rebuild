@@ -69,8 +69,7 @@ constexpr int kCampScreen = 5;
 
 // The zone the local player is in.
 MapRecord* PlayerZone() {
-    mfc::CString name(mfc::CString::kUnset);
-    return TheMapDatabase()->FindMap(*LocalPlayerName(&name));
+    return TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
 }
 
 // The ways from the player's zone to `target`, the earlier results dropped.

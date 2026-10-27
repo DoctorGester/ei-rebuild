@@ -488,10 +488,7 @@ void CHudClock::OpenObjectives() {
     highlight_ = false;
     interface_->PlaySound(kSoundClick, 0);
     auto* window = new CObjectivesWindow(interface_);
-    {
-        BriefingPlayerName zone;
-        window->Setup(zone, nullptr, 0, 0);
-    }
+    window->Setup(LocalPlayerZone().c_str(), nullptr, 0, 0);
     interface_->PushWindow(window, 1, 1);
 }
 EI_REWRITTEN(0x00648F10, CHudClock::OpenObjectives);

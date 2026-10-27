@@ -1389,13 +1389,11 @@ void FitGrid(SectorGrid& grid, const Terrain* terrain) {
 }
 
 MapRecord* LocalZoneRecord() {
-    mfc::CString zone(mfc::CString::kUnset);
-    return TheMapDatabase()->FindMap(*LocalPlayerName(&zone));
+    return TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
 }
 
 bool InFinalZone() {
-    mfc::CString zone(mfc::CString::kUnset);
-    return gamecrt::mbscmp((*LocalPlayerName(&zone)).GetString(), worlddata::FinalZoneText()) == 0;
+    return gamecrt::mbscmp(LocalPlayerZone().c_str(), worlddata::FinalZoneText()) == 0;
 }
 
 } // namespace

@@ -75,9 +75,7 @@ float GameTime() {
 
 CParty* LocalPlayerData() { return LocalPlayer()->Party(); }
 
-mfc::CString* __stdcall LocalPlayerName(mfc::CString* out) {
-    return std::construct_at(out, LocalPlayer()->Party()->zone_);
-}
+std::string __stdcall LocalPlayerZone() { return LocalPlayer()->Party()->zone_; }
 
 float __stdcall LocalPlayerVariable(const char* name) { return Variable(LocalPlayer(), name); }
 
@@ -94,6 +92,6 @@ EI_REWRITTEN(0x00589580, EntryIdLess::Less);
 EI_REWRITTEN(0x0057F440, IsMultiplayerClient);
 EI_REWRITTEN(0x00578B40, GameTime);
 EI_REWRITTEN(0x00578BA0, LocalPlayerData);
-EI_REWRITTEN(0x00578A90, LocalPlayerName);
+EI_REWRITTEN(0x00578A90, LocalPlayerZone);
 EI_REWRITTEN(0x00578B50, LocalPlayerVariable);
 EI_REWRITTEN(0x00578BE0, PlayerZeroVariable);

@@ -210,8 +210,7 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const std::string& group
     int j = 0;
     for (; j < names->size; ++j) {
         const TextureNameRecord& n = (*names)[j];
-        if (gamecrt::mbscmp(n.name.GetString(),
-                            texture.c_str()) == 0 &&
+        if (gamecrt::mbscmp(n.name.c_str(), texture.c_str()) == 0 &&
             n.id == textureId) {
             break;
         }

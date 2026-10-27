@@ -13,7 +13,6 @@
 namespace recordarrays {
 
 using mfc::impl::ArrayHeader;
-using mfc::impl::GlobalMapPointRecords;
 
 // ---- Scene records -------------------------------------------------------------------------------
 
@@ -78,18 +77,6 @@ mfc::CString* PartNames::CopyAt(mfc::CString* result, int index) const {
 }
 EI_REWRITTEN(0x004698A0, PartNames::CopyAt);
 EI_REWRITTEN(0x004698C0, PartNames::CopyAt);
-
-// The global map's links and quests (the zero fill, then both strings empty).
-void __fastcall DestroyGlobalMapRecord(Bytes<0x18>* p) { mfc::impl::DestroyStringsAt<Bytes<0x18>, 0x14, 0x10>(p); }
-EI_REWRITTEN(0x00631E70, GlobalMapPointRecords::SetSize);
-EI_REWRITTEN(0x00631FF0, GlobalMapPointRecords::SetSize);
-EI_REWRITTEN(0x005FBFB0, GlobalMapPointRecords::ConstructElements);
-EI_REWRITTEN(0x005FC010, GlobalMapPointRecords::ConstructElements);
-EI_REWRITTEN(0x005FBD80, DestroyGlobalMapRecord);
-EI_REWRITTEN(0x005FBDD0, DestroyGlobalMapRecord);
-// The zones (16 bytes): the strings, then +8.
-void __fastcall DestroyGlobalMapZone(Bytes<0x10>* p) { mfc::impl::DestroyStringsAt<Bytes<0x10>, 0xC, 8>(p); }
-EI_REWRITTEN(0x005FBD30, DestroyGlobalMapZone);
 
 // ---- The script's command arrays ------------------------------------------------------------------
 

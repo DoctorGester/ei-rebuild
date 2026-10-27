@@ -375,6 +375,12 @@ void AICallElements::Destruct(AICallRecord* calls, int count) {
 EI_REWRITTEN(0x005CDD60, AIHeardCalls::SetSize);
 EI_REWRITTEN(0x005CD880, AIHeardCalls::Add);
 EI_REWRITTEN(0x00558D00, AICallRecord::Destruct);
+// The calls' table (MemoryRecordArrayClass): the destructor, its scalar deleting form, Serialize.
+EI_REWRITTEN(0x00556B70, AICallRecords::Destruct<MemoryRecordArrayClass>);
+EI_REWRITTEN(0x00556FE0, AICallRecords::Destruct<MemoryRecordArrayClass>);
+EI_REWRITTEN(0x00556B50, mfc::impl::ScalarDeleting<&AICallRecords::Destruct<MemoryRecordArrayClass>>::Delete);
+EI_REWRITTEN(0x00558720, mfc::impl::ScalarDeleting<&AICallRecords::Destruct<MemoryRecordArrayClass>>::Delete);
+EI_REWRITTEN(0x00557050, AICallRecords::Serialize);
 
 void __stdcall AIReportElements::Construct(AIReport* reports, int count) {
     std::memset(static_cast<void*>(reports), 0, sizeof(AIReport) * static_cast<unsigned>(count));

@@ -86,8 +86,7 @@ int Compare(const char* a, const char* b) {
 }
 
 MapRecord* FindLocalMap() {
-    BriefingPlayerName name;
-    return TheMapDatabase()->FindMap(name);
+    return TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
 }
 
 CPlayer* LocalViewPlayer() {

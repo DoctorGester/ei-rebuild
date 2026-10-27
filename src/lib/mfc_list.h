@@ -94,13 +94,15 @@ void DestructList(CList<T, E>& list) {
 
 // A list declared with another element policy (or another element type of the same size) seen as
 // the instantiation `Abi` of the same layout, whose out-of-line code builds and destroys the
-// elements (ArrayAs's counterpart; a list of raw bytes takes any instantiation); its nodes likewise.
+// elements (ArrayAs's counterpart; the nodes must be the same size); its nodes likewise.
 template <typename Abi, typename T, typename E>
 typename Abi::List* ListAs(CList<T, E>* list) {
+    static_assert(sizeof(typename Abi::List::Node) == sizeof(typename CList<T, E>::Node));
     return reinterpret_cast<typename Abi::List*>(list);
 }
 template <typename Abi, typename Node>
 typename Abi::Node* NodeAs(Node* node) {
+    static_assert(sizeof(typename Abi::Node) == sizeof(Node));
     return reinterpret_cast<typename Abi::Node*>(node);
 }
 template <typename Abi, typename T, typename E>
@@ -176,8 +178,6 @@ inline void InitLightning8(Lightning8* p) {
 // ---- The instantiations --------------------------------------------------------------------------
 
 using LightningElements = InitElements<Lightning8, InitLightning8>;
-using FxSourceElement = WithString<0x34, 8>;   // the FX source: its name (+8) empty
-using FxSourceElements = InitElements<FxSourceElement, InitWithString<0x34, 8>>;
 
 using PtrList = ListAbi<void*>;
 using List8 = ListAbi<Bytes<8>>;
@@ -186,12 +186,10 @@ using ParticleSourceList = ListAbi<Bytes<0x24>>;
 using List1C = ListAbi<Bytes<0x1C>>;
 using List4C = ListAbi<Bytes<0x4C>>;
 using LightningList = ListAbi<Lightning8, LightningElements>;
-using FxSourceList = ListAbi<FxSourceElement, FxSourceElements>;
 
 using ParticleSourceArray = ArrayAbi<Bytes<0x24>>;   // 0x24-byte particle sources: the zero fill
 using Plain4C = ArrayAbi<Bytes<0x4C>>;
 using LightningArray = ArrayAbi<Lightning8, LightningElements>;
-using FxSourceArray = ArrayAbi<FxSourceElement, FxSourceElements>;
 
 using Map32 = MapAbi<std::uint32_t, std::uint32_t>;
 using Map64x32 = MapAbi<std::uint64_t, std::uint32_t>;

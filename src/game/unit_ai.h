@@ -14,6 +14,7 @@
 #include "unit.h"
 
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstddef>
@@ -492,6 +493,11 @@ struct AICallElements {
     static void Destruct(AICallRecord* calls, int count);
     static void Relocate(AICallRecord* to, AICallRecord* from, int count) { mfc::MoveElements(to, from, count); }
 };
+using AICallRecords = mfc::impl::ArrayAbi<AICallRecord, AICallElements>;
+// A unit memory's calls (AIHeardCalls).
+struct MemoryRecordArrayClass final
+    : mfc::impl::CompiledCollection<MemoryRecordArrayClass, &AICallRecords::Destruct<MemoryRecordArrayClass>,
+                                    &AICallRecords::Serialize> {};
 
 struct AIMemory;
 

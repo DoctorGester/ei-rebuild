@@ -324,11 +324,6 @@ inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(con
 
 // ---- Element policies of the owned-element arrays ------------------------------------------------
 
-// The CStrings at the given offsets destroyed, in the order given.
-template <typename E, std::size_t... At>
-void DestroyStringsAt(E* p) {
-    (reinterpret_cast<CString*>(reinterpret_cast<std::uint8_t*>(p) + At)->~CString(), ...);
-}
 // The engine's aligned block whose pointer is at `At` freed (its allocation's start is the word
 // before), the pointer left.
 template <typename E, std::size_t At>
@@ -337,46 +332,21 @@ void FreeAlignedAt(E* p) {
     if (data) lib::FreeAligned32(data);
 }
 
-// The CStrings at the given offsets set empty (the record zeroed first by EachElements).
-template <std::size_t Size, std::size_t... At>
-void InitStringsAt(Bytes<Size>* p) {
-    ((*reinterpret_cast<char**>(p->bytes + At) = PchNil()), ...);
-}
-
 template <std::size_t Size>
 using DeletedThroughObject = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughObject<Bytes<Size>>>>;
 template <std::size_t Size>
 using DeletedThroughFirst = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughFirst<Bytes<Size>>>>;
 template <std::size_t Size, std::size_t At>
 using AlignedBlockAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, FreeAlignedAt<Bytes<Size>, At>>>;
-template <std::size_t Size, std::size_t... At>
-using StringsAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DestroyStringsAt<Bytes<Size>, At...>>>;
 
 using SceneObjects = DeletedThroughObject<0x1C>;
 using FakeUnitBoneArrays = DeletedThroughObject<0x14>;
 using AlignedAt4Records = AlignedBlockAt<0x14, 4>;
 using AlignedAt8Records = AlignedBlockAt<0x18, 8>;
-using TextureNames = StringsAt<8, 4>;          // {id, CString}
-using MemoryRecords = StringsAt<0x18, 0x14>;
-using NamedRecords = StringsAt<0xC, 4>;
-using GlobalMapPoints = StringsAt<0x18, 0x14, 0x10>;
-using GlobalMapZones = StringsAt<0x10, 0xC, 8>;
-
-// Records whose CStrings SetSize sets empty and destroys (the global map's,
-// the like; a unit memory's call records).
-template <std::size_t Size, std::size_t... At>
-using BuiltStringsAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, InitStringsAt<Size, At...>,
-                                                          DestroyStringsAt<Bytes<Size>, At...>>>;
-using GlobalMapZoneRecords = BuiltStringsAt<0x10, 0xC, 8>;
-using GlobalMapPointRecords = BuiltStringsAt<0x18, 0x14, 0x10>;
-using MemoryCallRecords = BuiltStringsAt<0x18, 0x14>;
 
 // The scene's object records: CMap<DWORD, DWORD>s built, destroyed through slot 1.
 using DwordMap = CMap<std::uint32_t, std::uint32_t>;
 using OwnedDwordMaps = ArrayAbi<DwordMap, EachElements<DwordMap, InitMap<DwordMapClass>, DeleteThroughObject<DwordMap>>>;
-// {id, CString}: the string empty; its destructor.
-using NamedStrings = ArrayAbi<WithString<8, 4>, EachElements<WithString<8, 4>, InitWithString<8, 4>,
-                                                            DestroyStringsAt<WithString<8, 4>, 4>>>;
 
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
@@ -565,21 +535,6 @@ struct AlignedAt4ArrayClass final
 // An animation node's 24-byte records with an aligned block at +8.
 struct AlignedAt8ArrayClass final
     : CompiledCollection<AlignedAt8ArrayClass, &AlignedAt8Records::Destruct<AlignedAt8ArrayClass>, &AlignedAt8Records::Serialize> {};
-// The scene loader's {id, CString}.
-struct TextureNameArrayClass final
-    : CompiledCollection<TextureNameArrayClass, &TextureNames::Destruct<TextureNameArrayClass>, &NamedStrings::Serialize> {};
-// A unit's 0x18-byte memory records, a CString at +0x14.
-struct MemoryRecordArrayClass final
-    : CompiledCollection<MemoryRecordArrayClass, &MemoryRecords::Destruct<MemoryRecordArrayClass>, &MemoryCallRecords::Serialize> {};
-// The global map's 0x18-byte points, CStrings at +0x10, +0x14.
-struct GlobalMapPointArrayClass final
-    : CompiledCollection<GlobalMapPointArrayClass, &GlobalMapPoints::Destruct<GlobalMapPointArrayClass>, &GlobalMapPointRecords::Serialize> {};
-// The same layout.
-struct GlobalMapPathArrayClass final
-    : CompiledCollection<GlobalMapPathArrayClass, &GlobalMapPoints::Destruct<GlobalMapPathArrayClass>, &GlobalMapPointRecords::Serialize> {};
-// The global map's 16-byte entries, CStrings at +8, +0xC.
-struct GlobalMapZoneArrayClass final
-    : CompiledCollection<GlobalMapZoneArrayClass, &GlobalMapZones::Destruct<GlobalMapZoneArrayClass>, &GlobalMapZoneRecords::Serialize> {};
 // Patrols (32 bytes, a waypoint array at +0xC).
 struct PatrolArrayClass
     : CompiledCollection<PatrolArrayClass, &OwnedPatrols::Destruct<PatrolArrayClass>, &OwnedPatrols::Serialize> {};

@@ -43,11 +43,7 @@ int CompareNames(const char* a, const char* b) {
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
 // active.
 void OpenObjectives(CInterface3D* ui) {
-    MapRecord* zone;
-    {
-        BriefingPlayerName player;
-        zone = TheMapDatabase()->FindMap(player);
-    }
+    MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
     if (!zone) return;
     console::CStringArray parts;
     BriefingVariables quests(QuestPrefix());
@@ -58,10 +54,7 @@ void OpenObjectives(CInterface3D* ui) {
         if (!questZone) continue;
         if (!IsMultiplayerClient() && CompareNames(questZone->allod.c_str(), zone->allod.c_str()) != 0) continue;
         auto* window = new CObjectivesWindow(ui);
-        {
-            BriefingPlayerName player;
-            window->Setup(player, nullptr, 0, 1);
-        }
+        window->Setup(LocalPlayerZone().c_str(), nullptr, 0, 1);
         ui->PushWindow(window, 1, 1);
         break;
     }

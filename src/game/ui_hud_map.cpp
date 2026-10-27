@@ -182,12 +182,7 @@ private:
 std::int16_t UnitFrame(const CUnit* unit) {
     int side = LocalSide();
     if (unit->id_ == kSpecialUnitId) {
-        bool special;
-        {
-            mfc::CString zone(mfc::CString::kUnset);
-            special = gamecrt::mbscmp(*LocalPlayerName(&zone), "gz20g") == 0;
-        }
-        if (special) return kFrameHostile;
+        if (gamecrt::mbscmp(LocalPlayerZone().c_str(), "gz20g") == 0) return kFrameHostile;
     }
     std::uint32_t bit = 1u << (side & 31);
     return (bit & unit->relationsB & unit->relationsA) != 0 ? kFrameHostile : kFrameNeutral;

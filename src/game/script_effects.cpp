@@ -7,6 +7,7 @@
 #include "world.h"
 #include "world_effect.h"
 #include "game_singletons.h"
+#include "game_slots.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -184,7 +185,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     if (source) {
         DropEffect(&source->object);
     } else {
-        auto* node = mfc::impl::NewNodeAs<mfc::impl::FxSourceList>(&list, list.tail, nullptr);
+        auto* node = mfc::impl::NewNodeAs<gameslots::FxSourceNodes>(&list, list.tail, nullptr);
         node->data.object = nullptr;
         node->data.countdown = INT_MAX;
         if (list.tail) list.tail->next = node;

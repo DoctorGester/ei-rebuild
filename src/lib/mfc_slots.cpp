@@ -33,12 +33,6 @@ EI_REWRITTEN(0x00468D80, ArrayHeader<SpriteArrayClass>::Destruct);
 EI_REWRITTEN(0x0045D8B0, OwnedPatrols::Destruct<PatrolArrayClass>);
 EI_REWRITTEN(0x0045E090, OwnedPatrols::Destruct<PatrolArrayClass>);
 EI_REWRITTEN(0x004BE430, ScriptAreas::Destruct<ScriptAreaArrayClass>);
-EI_REWRITTEN(0x00451A00, TextureNames::Destruct<TextureNameArrayClass>);
-EI_REWRITTEN(0x00556B70, MemoryRecords::Destruct<MemoryRecordArrayClass>);
-EI_REWRITTEN(0x00556FE0, MemoryRecords::Destruct<MemoryRecordArrayClass>);
-EI_REWRITTEN(0x005FB2F0, GlobalMapPoints::Destruct<GlobalMapPointArrayClass>);
-EI_REWRITTEN(0x005FB560, GlobalMapPoints::Destruct<GlobalMapPathArrayClass>);
-EI_REWRITTEN(0x005FB090, GlobalMapZones::Destruct<GlobalMapZoneArrayClass>);
 EI_REWRITTEN(0x004515F0, AlignedAt4Records::Destruct<AlignedAt4ArrayClass>);
 EI_REWRITTEN(0x0050A1C0, AlignedAt8Records::Destruct<AlignedAt8ArrayClass>);
 EI_REWRITTEN(0x00450500, FakeUnitBoneArrays::Destruct<FakeUnitBoneArraysClass>);
@@ -119,12 +113,6 @@ EI_REWRITTEN(0x006C4EA0, ScalarDeleting<&ByteArrays::Destruct<TerrainByteArraysC
 EI_REWRITTEN(0x00476D70, ScalarDeleting<&SceneObjects::Destruct<SceneObjectArrayClass>>::Delete);
 EI_REWRITTEN(0x00452950, ScalarDeleting<&AlignedAt4Records::Destruct<AlignedAt4ArrayClass>>::Delete);
 EI_REWRITTEN(0x0050A410, ScalarDeleting<&AlignedAt8Records::Destruct<AlignedAt8ArrayClass>>::Delete);
-EI_REWRITTEN(0x00452A30, ScalarDeleting<&TextureNames::Destruct<TextureNameArrayClass>>::Delete);
-EI_REWRITTEN(0x00556B50, ScalarDeleting<&MemoryRecords::Destruct<MemoryRecordArrayClass>>::Delete);
-EI_REWRITTEN(0x00558720, ScalarDeleting<&MemoryRecords::Destruct<MemoryRecordArrayClass>>::Delete);
-EI_REWRITTEN(0x005FB870, ScalarDeleting<&GlobalMapPoints::Destruct<GlobalMapPointArrayClass>>::Delete);
-EI_REWRITTEN(0x005FB890, ScalarDeleting<&GlobalMapPoints::Destruct<GlobalMapPathArrayClass>>::Delete);
-EI_REWRITTEN(0x005FB850, ScalarDeleting<&GlobalMapZones::Destruct<GlobalMapZoneArrayClass>>::Delete);
 EI_REWRITTEN(0x0045D890, ScalarDeleting<&OwnedPatrols::Destruct<PatrolArrayClass>>::Delete);
 EI_REWRITTEN(0x0045E070, ScalarDeleting<&OwnedPatrols::Destruct<PatrolArrayClass>>::Delete);
 EI_REWRITTEN(0x004C1A60, ScalarDeleting<&ScriptAreas::Destruct<ScriptAreaArrayClass>>::Delete);
@@ -337,13 +325,8 @@ EI_REWRITTEN(0x0050A210, AlignedAt8Records::Serialize);   // AlignedAt8ArrayClas
 EI_REWRITTEN(0x00450570, OwnedBoneLinkArrays::Serialize);   // FakeUnitBoneArraysClass
 EI_REWRITTEN(0x00476430, OwnedDwordMaps::Serialize);   // SceneObjectArrayClass
 EI_REWRITTEN(0x006C4C90, AlignedArrays::Serialize);
-EI_REWRITTEN(0x00451A70, NamedStrings::Serialize);   // TextureNameArrayClass
 
 // Records with CStrings.
-EI_REWRITTEN(0x005FB120, GlobalMapZoneRecords::Serialize);    // GlobalMapZoneArrayClass
-EI_REWRITTEN(0x005FB380, GlobalMapPointRecords::Serialize);   // GlobalMapPointArrayClass
-EI_REWRITTEN(0x005FB5F0, GlobalMapPointRecords::Serialize);   // GlobalMapPathArrayClass
-EI_REWRITTEN(0x00557050, MemoryCallRecords::Serialize);       // MemoryRecordArrayClass
 
 // More lists of plain elements (the AI's, the client maps' platforms) and AIAttention's records.
 EI_REWRITTEN(0x0056FEA0, List4C::Serialize);          // PlatformListClass

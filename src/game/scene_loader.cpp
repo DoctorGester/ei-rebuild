@@ -678,7 +678,7 @@ struct TextureLinks : TextureLinkArray {
     }
 };
 struct TextureNames : TextureNameArray {
-    TextureNames() : TextureNameArray{mfc::impl::TextureNameArrayClass::Vtable(), nullptr, 0, 0, 0} {}
+    TextureNames() : TextureNameArray{TextureNameArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~TextureNames() {
         if (!data) return;
         TextureNameElements::Destruct(data, size);
@@ -827,13 +827,12 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         // for each link of the id.
         auto* owner = u->Object3D()->ClientSpecific();
         std::string& texture = owner->FindOrAddTexture(static_cast<int>(s.textureNames[t].id))->name_;
-        bool bmp = gamecrt::mbsicmp(s.textureNames[t].name.Right(4).GetString(),
-                                   scenedata::BmpExtText()) == 0;
+        const std::string& name = s.textureNames[t].name;
+        bool bmp = gamecrt::mbsicmp(str::Right(name, 4).c_str(), scenedata::BmpExtText()) == 0;
         if (bmp) {
-            const mfc::CString& name = s.textureNames[t].name;
-            texture = name.Left(name.GetLength() - 4).GetString();
+            texture = str::Left(name, static_cast<int>(name.size()) - 4);
         } else {
-            texture = s.textureNames[t].name.GetString();
+            texture = name;
         }
         for (int l = 0; l < s.textureLinks.size; ++l) {
             // The manager context's material manager (CWorld::MaterialManager).
@@ -841,7 +840,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
             std::uint32_t id = s.textureLinks[l].id;
             if (id != s.textureNames[t].id) continue;
             CMaterial* linked = owner->FindOrAddMaterial(static_cast<int>(id), static_cast<int>(s.textureLinks[l].value));
-            linked->name = s.textureNames[t].name.GetString();
+            linked->name = s.textureNames[t].name;
             manager->FillMaterial(linked, s.textureLinks[l].value);
         }
     }

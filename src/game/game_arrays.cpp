@@ -80,6 +80,7 @@ EI_REWRITTEN(0x005121B0, Particles::SetSize);
 EI_REWRITTEN(0x004C3980, Groups::SetSize);
 EI_REWRITTEN(0x004CC980, Groups::DestructElements);
 EI_REWRITTEN(0x004CDF40, Objectives::SetSize);
+EI_REWRITTEN(0x004CEE80, Objectives::ConstructElements);
 // Object references: the script groups' (ScriptObjectRef) and the bare pointers' (a save's shared
 // objects, the client maps).
 EI_REWRITTEN(0x004C2050, ObjectRefs::SetSize);

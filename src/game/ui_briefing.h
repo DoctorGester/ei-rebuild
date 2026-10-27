@@ -58,16 +58,6 @@ struct BriefingShownItem {
     CEngineObject* frame;
 };
 
-class BriefingPlayerName {
-public:
-    BriefingPlayerName() { LocalPlayerName(&name_); }
-    BriefingPlayerName(const BriefingPlayerName&) = delete;
-    BriefingPlayerName& operator=(const BriefingPlayerName&) = delete;
-    operator const char*() const { return name_; }
-
-private:
-    mfc::CString name_{mfc::CString::kUnset};
-};
 
 // A copy of the local player's variables whose names start with a prefix (100 buckets), walked in the table's
 // order.

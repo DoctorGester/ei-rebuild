@@ -95,6 +95,8 @@ EI_REWRITTEN(0x00599DF0, RefsThrough::Abi::SerializeThrough<RefsThrough>);      
 EI_REWRITTEN(0x00558100, ArmourSpellsThrough::Abi::SerializeThrough<ArmourSpellsThrough>);     // ArmourSpellListClass
 EI_REWRITTEN(0x004C61C0, ParticleSourcesThrough::Abi::SerializeThrough<ParticleSourcesThrough>);  // ParticleSourceListClass
 EI_REWRITTEN(0x004C64C0, FxSourcesThrough::Abi::SerializeThrough<FxSourcesThrough>);        // FxSourceListClass
+EI_REWRITTEN(0x004CD5B0, FxSourceNodes::NewNode);
+EI_REWRITTEN(0x004CEA80, FxSourceArray::ConstructElements);
 EI_REWRITTEN(0x004C6800, LightningsThrough::Abi::SerializeThrough<LightningsThrough>);       // LightningListClass
 EI_REWRITTEN(0x004C7640, DeclsThrough::Abi::SerializeThrough<DeclsThrough>);            // DeclListClass
 EI_REWRITTEN(0x004C7F60, DefinitionsThrough::Abi::SerializeThrough<DefinitionsThrough>);      // DefinitionListClass

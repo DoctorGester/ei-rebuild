@@ -126,11 +126,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     leader_ = unit;
     TheClientWorld()->Select(unit);
     TheCamera()->SetTarget(unit);
-    MapRecord* zone;
-    {
-        BriefingPlayerName name;
-        zone = TheMapDatabase()->FindMap(name);
-    }
+    MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
     std::string prefix;
     prefix = str::Format(ZoneTopicFormat(), zone->name.c_str());
     BriefingVariables variables(prefix.c_str());

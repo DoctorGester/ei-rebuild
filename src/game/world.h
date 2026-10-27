@@ -1240,7 +1240,8 @@ BOOL IsMultiplayerClient();
 // Game clock: whole ticks + fraction.
 float GameTime();
 class CParty* LocalPlayerData();
-mfc::CString* __stdcall LocalPlayerName(mfc::CString* out);
+// The local player's party's zone (a copy).
+std::string __stdcall LocalPlayerZone();
 float __stdcall LocalPlayerVariable(const char* name);
 // Float variable `name` of the local player: the client's view in multiplayer, player 0
 // of the server otherwise (0 without that player).

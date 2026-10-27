@@ -10,6 +10,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_slots.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
@@ -91,6 +92,22 @@ struct GlobalMapPlaceElements {
     static void Relocate(GlobalMapPlace* to, GlobalMapPlace* from, int count) { mfc::MoveElements(to, from, count); }
 };
 using GlobalMapPlaces = mfc::CArray<GlobalMapPlace, GlobalMapPlaceElements>;
+// Their element destructors (title, then name).
+void __fastcall DestroyGlobalMapZone(GlobalMapZone* zone);
+void __fastcall DestroyGlobalMapPlace(GlobalMapPlace* place);
+
+// The arrays' tables: the zones', the links' and the quests'.
+using GlobalMapZoneRecords = mfc::impl::ArrayAbi<GlobalMapZone, GlobalMapZoneElements>;
+using GlobalMapPlaceRecords = mfc::impl::ArrayAbi<GlobalMapPlace, GlobalMapPlaceElements>;
+struct GlobalMapZoneArrayClass final
+    : mfc::impl::CompiledCollection<GlobalMapZoneArrayClass, &GlobalMapZoneRecords::Destruct<GlobalMapZoneArrayClass>,
+                                    &GlobalMapZoneRecords::Serialize> {};
+struct GlobalMapPointArrayClass final
+    : mfc::impl::CompiledCollection<GlobalMapPointArrayClass, &GlobalMapPlaceRecords::Destruct<GlobalMapPointArrayClass>,
+                                    &GlobalMapPlaceRecords::Serialize> {};
+struct GlobalMapPathArrayClass final
+    : mfc::impl::CompiledCollection<GlobalMapPathArrayClass, &GlobalMapPlaceRecords::Destruct<GlobalMapPathArrayClass>,
+                                    &GlobalMapPlaceRecords::Serialize> {};
 
 // A zone on the way of the global map's way search and the exit taken.
 struct GlobalMapStep {

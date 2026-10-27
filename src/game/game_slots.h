@@ -152,7 +152,11 @@ inline void AssignSharedObject(SharedObject* to, const SharedObject* from) {
 inline void AssignWave(WaveRecord* to, const WaveRecord* from) { to->Assign(from); }
 
 using ArmourSpells = ListAbi<ArmourSpellRecord>;
-using FxSourceNodes = ListAbi<ScriptFxSource, EachElements<ScriptFxSource, InitFxSource, nullptr>>;
+// The FX sources: zero fill, no sound, the name empty (game.exe's CList<ScriptFxSource>::NewNode and its
+// ConstructElements).
+using FxSourceElements = EachElements<ScriptFxSource, InitFxSource, nullptr>;
+using FxSourceNodes = ListAbi<ScriptFxSource, FxSourceElements>;
+using FxSourceArray = ArrayAbi<ScriptFxSource, FxSourceElements>;
 using LightningNodes = ListAbi<ScriptLightning, EachElements<ScriptLightning, InitLightning, nullptr>>;
 using DeclNodes = ListAbi<ScriptDecl, EachElements<ScriptDecl, InitDecl, nullptr>>;
 using TokenNodes = ListAbi<ScriptToken, mfc::impl::HelperElements<ScriptToken, ConstructTokens, nullptr>>;
