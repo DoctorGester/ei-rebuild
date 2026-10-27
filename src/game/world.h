@@ -302,9 +302,8 @@ public:
     CWorldServer();
     ~CWorldServer() override;
 
-    // Destroy first, then the managers, the messages registry, the side-specific manager, the CHoover, the
-    // wind (1, 0, 0; strength 0.4) and the zone state. Returns 1, or FatalError's result when the managers or
-    // the registry fail.
+    // The managers, the messages registry, the CHoover, the wind (1, 0, 0; strength 0.4) and the zone state
+    // set up. Returns 1, or FatalError's result when the managers or the registry fail.
     int Create() override;
     void Destroy() override;
     // One world update: drops disconnected players and lets the others' units wake what they hear, accepts
@@ -332,10 +331,9 @@ public:
     // lights (2) and kind 4 become timed objects. Returns the new id, -1 when refused, the message's address
     // for an unknown kind. Rebirth's FixAddMapObject takes index 0 for a unit without a prototype record.
     int CreateObject(mapspec::Spec* message);
-    // Removes object `id` from the server: out of the sector map and every id map, its ClearState,
-    // flagged 1, the command queues, every object's ForgetObject, the missiles and the players' states forget
-    // it, and the maps' reference is released. An unknown id crashes the original (null read); Rebirth's
-    // FixRemoveMapObject ignores it.
+    // Removes object `id` from the server: out of the sector map, the id maps and the command queues,
+    // forgotten by every object, the missiles and the players' states, the maps' reference released. An
+    // unknown id crashes the original (null read); Rebirth's FixRemoveMapObject ignores it.
     void RemoveObject(unsigned id);
     CPlayer* GetPlayer(int id);
     // Ground height from the server's coarse height grid; 0 outside.
@@ -443,13 +441,11 @@ public:
 
     mfc::CString* ZoneNameInto(mfc::CString* out);
 
-    // Loads map `map` (when it changed) and the AI layer state from `graph`, then the zone: the same .mob again
-    // starts it over, another one first empties the world (ResetZone); every player is marked dirty and the .mob
-    // objects are loaded (fresh zones start; from a save the loaded objects are cleared again). Returns 1, 0 when the
-    // map or the objects cannot be loaded.
+    // Loads map `map` (when it changed), the AI layer state from `graph` and the zone's .mob objects (the
+    // same .mob starts the zone over, another one empties the world first; from a save the loaded objects are
+    // cleared again). Returns 1, 0 when the map or the objects cannot be loaded.
     int LoadMap(const char* map, const char* mob, CStream* graph, char fromSave);
-    // Empties the world of the current zone: shared objects, .mob files, countdowns, exits, queues, missiles,
-    // objects, the players' zone data, timed objects, the zone names and three managers.
+    // Empties the world of the current zone.
     void ResetZone();
     // ResetZone, then the map name, diplomacy, both command queues and the AI map are reset and the game state
     // cleared.
@@ -457,10 +453,9 @@ public:
     // Before every game state request: every player leaves and the zone's contents go, then the base class's
     // teardown; the game result and kind are cleared.
     void TeardownZone();
-    // A new zone from the map `map` and the object file `mob`: the loading movie picked for `zone` and its first
-    // frame shown; 0 when a file is neither where its name says nor in the maps folder. The AI graph is read (without
-    // it a fatal error), the .mob list and the alarms are emptied and the map loaded between the AI map's
-    // BeginRefresh and EndRefresh. The zone name is kept when given, scriptsActive_ cleared. Returns 1.
+    // A new zone from `map` and `mob`: the loading movie for `zone` shown, the AI graph read (a fatal error
+    // without it), the map loaded; the zone name kept when given, scriptsActive_ cleared. 0 when a file is
+    // neither where its name says nor in the maps folder, else 1.
     int NewZone(const char* map, const char* mob, const char* zone);
     // Unless the zone's map and .mob are these already: NewZone(map, mob, null), then TeardownZone.
     void EnsureZone(const char* map, const char* mob);
@@ -886,16 +881,13 @@ public:
     CWorldClient();
     ~CWorldClient() override;
 
-    // Sets the client world up: the managers (CWorld::Create), the texture path, the lights table (LightsGipat.ini),
-    // the terrain, the session, the text resources, the rain and snow layer, the platforms, the cursor, room for 400
-    // screen entries and both sector grids at 4 x 4. Returns 1.
+    // Sets the client world up: the managers, the lights table (LightsGipat.ini), the terrain, the session,
+    // the rain and snow layer, the platforms, the cursor and both sector grids. Returns 1.
     int Create() override;
     // Tears the client world down in the reverse order, then deletes the owned objects (counted ones dropped first).
     void Destroy() override;
-    // The client's tick: autosave event and sound volumes on frame 10, the terrain, sound and session
-    // updates, the objects and units, effect lists, the lights' grey levels, the map state every 32 ticks.
-    // Returns 1; 0 when the session's view has lost its connection (the session is disconnected, FatalError;
-    // Rebirth's DisableExitOnCrashReport keeps the session).
+    // The client's tick. Returns 1; 0 when the session's view has lost its connection (the session is
+    // disconnected, FatalError; Rebirth's DisableExitOnCrashReport keeps the session).
     int Segment();
     int RunTick() override { return Segment(); }
     const char* GetClassName() override;
@@ -917,13 +909,11 @@ public:
     virtual void MoveObject2(CEngineObject* object, const float* position);   // the second grid's move
 
     void BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed);
-    // Draws the world view: view matrix, sky, terrain passes around DrawPass, effects and particles,
-    // flying hit points. Returns 1. Rebirth's LandscapeDrawRadius sets the terrain's draw distance (100
-    // in the game).
+    // Draws the world view. Returns 1. Rebirth's LandscapeDrawRadius sets the terrain's draw distance (100 in
+    // the game).
     int Render();
-    // The object passes: collects the visible objects of the sectors around the camera
-    // (ObjectsDrawRadius widens the 100.0 margin), sorts and draws them, the light effects, shadows and
-    // selection markers, then empties the frame's lists. Returns 0 without terrain, else 1.
+    // The object passes over the sectors around the camera (Rebirth's ObjectsDrawRadius widens the 100.0
+    // margin). Returns 0 without terrain, else 1.
     int DrawPass();
     float ClampedGroundHeight(float x, float y);
     // A blood print at (x, y) when the setting is on and prints.db's blood entry for the ground there
@@ -989,11 +979,9 @@ public:
     // night (0x100) or day (0x80), and two world settings.
     std::uint32_t EnvironmentFlags(CUnit* unit);
 
-    // Walks one object list (a map sector's, or the deferred unit list), tests each object with a model against the
-    // view frustum and files it in the frame's draw lists. `view` is the camera matrix, `animTime` the game time
-    // handed to units' animation virtual, `now` the timeGetTime() of the frame. With `animateUnits` 0 units are only
-    // queued on the deferred list. `withScripted` lets heroes with a text-key id through. Returns how many objects
-    // were queued for the model-touch list.
+    // Files each object of `list` with a model inside the view frustum in the frame's draw lists; with
+    // `animateUnits` 0 units only go on the deferred list, `withScripted` lets heroes with a text-key id
+    // through. Returns how many objects were queued for the model-touch list.
     int CollectVisible(stlp::list<CEngineObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
                        char animateUnits, char withScripted);
     // The ground point under screen pixel (x, y): inverts the current view matrix and iterates on the
@@ -1001,10 +989,10 @@ public:
     Vector3* PickGround(Vector3* out, int x, int y);
     Vector3* PickSurface(Vector3* out, int x, int y);
 
-    // Files an object in the client's maps: an object whose id is already in objects_ is only referenced and
-    // released. Otherwise: objects answering IsSynchronised are added to dynamicObjects_ and dynamicNodes_; classes
-    // 0x54 / 0x5D add their platform items (flag 0x400); units fade in through their controller in a multiplayer
-    // session of kind 1; then objects_, objectGrid_ and, for heroes with a text-key id, heroes_. Returns 1.
+    // Files an object in the client's maps (objects_, objectGrid_, heroes_ for heroes with a text-key id; the
+    // dynamic lists for IsSynchronised objects; platform items for classes 0x54 / 0x5D); units fade in
+    // through their controller in a multiplayer session of kind 1. An id already filed is only referenced and
+    // released. Returns 1.
     int AddObject(CMapObject* object);
     // When an object with `object`'s id is filed (objects_): its platform faces are removed and, for
     // classes 0x54 / 0x5D, its platform items added again where it now stands (as AddObject).
@@ -1033,15 +1021,12 @@ public:
     // Takes the object `id` out of the maps (platform faces, dynamic lists, heroes_, its grid cell and objects_); the
     // object is released.
     void RemoveObject(int id);
-    // Empties the maps: both sector grids' cells, the platform faces, the object lists, the session's player data,
-    // the terrain manager's ClearState and the managers' records.
+    // Empties the maps, the session's player data and the managers' records.
     void ClearMaps();
-    // The zone's leftovers dropped: countedA0_ emptied, the second grid's cells cleared, every timed object released,
-    // the bird reset.
+    // The zone's leftovers dropped: the exit markers, the second grid's cells, the timed objects, the bird.
     void ResetZoneObjects();
-    // The zone's state block: the flow acknowledges the server, then the tick, map and .mob names, exits, cave flag and unit
-    // looks are read, the terrain loads the map and the view resumes. Returns 1, or the result of the fatal error when the map
-    // does not load. See docs/notes/world.md, "Zone state block".
+    // The zone's state block (docs/notes/world.md, "Zone state block"). Returns 1, or the fatal error's
+    // result when the map does not load.
     int LoadZone(CStream* block);
     // The local session takes a new link: the single-player loopback pair for `player`, a replay of the recording
     // `path`, or a driver for the game client's first connection (false without an active client or connection). Each
@@ -1111,26 +1096,20 @@ public:
     // scaled by 1/255, alpha 1); the hours between two keys in file order are filled by linear steps
     // from the earlier key (the first from hour 0). Hours are not range-checked. Returns 1.
     int LoadLights(const char* file);
-    // The frame's light from the time of day (the exit markers first): fog start, sun direction (the
-    // hour turns it once around +z, its elevation peaks at noon), sunlight, ambient and sky colours
-    // interpolated between the hour's table entries; the renderer's sun, ambient and fog colour, the
-    // sky's lighting; once per new hour the terrain's sun. A cave takes hour 0's colours and a fixed
-    // sun. Returns 1 when a new hour began (or the renderer's flag bit 0 is clear: nothing done), else
-    // 0; no caller reads it.
+    // The frame's light from the time of day: fog, sun direction and the sunlight, ambient and sky colours
+    // interpolated between the hour's table entries; once per new hour the terrain's sun. A cave takes hour
+    // 0's colours and a fixed sun. Returns 1 when a new hour began (or the renderer's flag bit 0 is clear:
+    // nothing done), else 0; no caller reads it.
     int UpdateLighting();
     // With one marker per exit (countedA0_, ZoneExit particle sources): a marker whose target zone's
     // party variable "z.<zone>" is 1 (or NaN) gets extent (1, 0, 0) (its particles turn red), the
     // others (0, 0, 0).
     void UpdateExitMarkers();
-    // The texture manager gets `device`; the platforms and sky; the digit sprites (numbers_) with the
-    // "numbers" texture (kind 6; flag 0x40000); a new figure loader for the figures resource (the
-    // CString) in figureLoader_ (counted, the old one released); then the unit database counts the
-    // sound files of sounds_.
+    // The graphics set up on `device`: the textures, platforms and sky, the digit sprites (numbers_), a new
+    // figure loader in figureLoader_ (counted, the old one released) and the sound file counts.
     void SetUpGraphics(void* device);
-    // Once (skyDome_ null): a new CSky; the figure manager makes a CSkyObject (class 0x44, id -666)
-    // named "nask0" that loads "nask0sky.fig" from the figure resources and becomes the sky's object
-    // (flag 0x10), with a material of type 0x12. Without the file the object is referenced and released
-    // again.
+    // Once (skyDome_ null): a new CSky with a CSkyObject (class 0x44, id -666) "nask0" loading
+    // "nask0sky.fig". Without the file the object is referenced and released again.
     void LoadSky();
 
     CPlayer* Session() const { return session_; }
