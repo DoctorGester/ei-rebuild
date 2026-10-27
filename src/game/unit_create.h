@@ -78,6 +78,8 @@ struct CMapObjectManager : CResourceManager {
     // 0x300D) and its side halves from the world's specific manager: classes 0x46 and 0x47, then 0x48 for the
     // three unit classes (0x32-0x34) and 0x4B for classes 0x36-0x39. Returns the object or null.
     CEngineObject* CreateMapObject(int classId, int id);
+    // The object registered under `id` (null for none); the manager holds only map objects.
+    CMapObject* FindMapObject(unsigned id) const;
     // The entry of the animation database "<figure>.adb" matching `key`: the same bits above 0x7FFF and, of
     // the low bits, none of the key's missing (a key without low bits takes only an entry without). Null
     // (with a debug message when there is no database).

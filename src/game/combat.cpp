@@ -97,8 +97,8 @@ float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.man
 
 std::uint8_t PlayerGodMode(const CPlayer* player) { return player->godMode_; }
 
-float Radius(CEngineObject* object) { return ObjectSlots(object)->Radius(); }
-int IsDead(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
+float Radius(CMapObject* object) { return object->Radius(); }
+int IsDead(CMapObject* object) { return object->IsDead(); }
 void AttackParamsOf(CUnitServer* controller, AttackParams* out) { controller->GetAttackParams(out); }
 
 // The original's branch-free max(0, v): v when 0 < v or v is NaN, else +0.
@@ -729,7 +729,7 @@ void CUnitServer::UpdateMoveFactors() {
         speedClass = 15;
         return;
     }
-    float speed = static_cast<float>(ObjectSlots(unit)->MoveSpeed());
+    float speed = static_cast<float>(unit->MoveSpeed());
     if (speed > kSpeedFast) speedClass = 0;
     else if (speed > kSizeSmall) speedClass = 1;
     else if (speed > kPointThree) speedClass = 3;

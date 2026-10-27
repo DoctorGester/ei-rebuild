@@ -277,7 +277,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
 }
 EI_REWRITTEN(0x00517240, CObject3D::LoadPart);
 
-int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t arg) {
+int CObject3D::LoadParts(const char* model, const PartNameArray* names, std::uint32_t arg) {
     CFigureManager* manager = FigureManagerOf(this);
     FigureModel* cached;
     {
@@ -286,7 +286,6 @@ int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t 
     }
     name = model;
     if (!manager) return game::FatalError(kNoFigureManager);
-    const auto* names = static_cast<const PartNameArray*>(partList);
     for (int i = 0; i < names->size; ++i) {
         if (!LoadPart(((*names)[i]).GetString(), cached, arg)) game::DebugLog(kCantCreatePart, model, ((*names)[i]).GetString());
     }
@@ -327,15 +326,14 @@ CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
 }
 } // namespace
 
-int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) {
+int CObject3D::MakeFigure(const char* model, PartNameArray* names, std::uint32_t arg) {
     name = model;
     if (animation) {
         animation->Rescale(scale.x, scale.y, scale.z);
         animation->SetModel(model);
     }
-    auto* names = static_cast<const PartNameArray*>(partList);
     if (names->size == 0 && animation) {
-        animation->CollectBoneNames(static_cast<mfc::CStringArray*>(partList));
+        animation->CollectBoneNames(names);
         stlp::string key(model, model + std::strlen(model));
         CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
         figure.Assign(made);
@@ -353,7 +351,7 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
         }
         FreePieceNames(pieces);
     }
-    LoadParts(model, partList, arg);
+    LoadParts(model, names, arg);
     int classId = GetClassId();
     if ((classId == kClassUnit54 || GetClassId() == kClassUnit50) && animation) {
         animation->Play(nullptr);

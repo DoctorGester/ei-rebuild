@@ -48,34 +48,34 @@ EI_REWRITTEN(0x00516D50, CObject3D::AttachSpecific);
 
 void CObject3D::RemoveAllEffectSources() {
     while (effectSources.head) {
-        CEngineObject* source = effectSources.head->data;
+        CParticleSource* source = effectSources.head->data;
         auto* node = effectSources.head;
         while (node && node->data != source) node = node->next;
         if (!node) continue;
         effectSources.RemoveAt(node);
         if (source) {
-            static_cast<CParticleSource*>(source)->Attach(nullptr);
+            source->Attach(nullptr);
             source->Release();
         }
     }
 }
 EI_REWRITTEN(0x00515E90, CObject3D::RemoveAllEffectSources);
 
-int CObject3D::DrawFigure(void* context) { return attached ? Specific()->DrawParts(context, nullptr) : 1; }
+int CObject3D::DrawFigure(CSceneRenderer* context) { return attached ? Specific()->DrawParts(context, nullptr) : 1; }
 EI_REWRITTEN(0x00516460, CObject3D::DrawFigure);
 
-int CObject3D::DrawCollectDirty(void* context) {
+int CObject3D::DrawCollectDirty(CSceneRenderer* context) {
     gameapi::SetRectEmpty(DirtyRect());
     return attached ? Specific()->DrawParts(context, dirtyRect) : 1;
 }
 EI_REWRITTEN(0x00516420, CObject3D::DrawCollectDirty);
 
-int CObject3D::DrawFigureShadow(void* context) { return attached ? Specific()->DrawPartsShadow(context) : 1; }
+int CObject3D::DrawFigureShadow(CSceneRenderer* context) { return attached ? Specific()->DrawPartsShadow(context) : 1; }
 EI_REWRITTEN(0x00516490, CObject3D::DrawFigureShadow);
 
 // --- Small virtuals ----------------------------------------------------------------------------
 
-bool CObject3D::AcceptsAnimation(const void*) { return true; }
+bool CObject3D::AcceptsAnimation(const FigureAnimation*) { return true; }
 std::uintptr_t CObject3D::AttachObject(CEngineObject* object) {
     AttachSpecific(object);
     return 0;

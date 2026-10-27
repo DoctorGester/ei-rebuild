@@ -406,7 +406,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     int campaign = TheServerWorld()->sessionKind_;
     if (campaign == 1 || campaign == 3) {
         CUnit* leader = FindUnit(static_cast<int>(party->members_.data[0].unitId));
-        if (leader == nullptr || ObjectSlots(leader)->IsDead() != 0) {
+        if (leader == nullptr || leader->IsDead() != 0) {
             LeaderDied();
             if (!IsMultiplayerClient()) return;
         }

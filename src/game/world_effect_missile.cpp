@@ -279,7 +279,7 @@ int CEffectArrowFigure::RunTick() {
     if (arrived_ != 0 && world->IsServer()) {
         // The caster is looked up before the target is tested, as the original does.
         CMapObject* target = world->ObjectWithId(targetId_);
-        CEngineObject* caster = world->FindUnit(casterId_);
+        CUnit* caster = world->FindUnit(casterId_);
         if (target != nullptr) target->ReceiveHit(&hit_, caster, caster);
     }
     return arrived_ == 0 ? 1 : 0;

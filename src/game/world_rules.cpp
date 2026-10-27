@@ -34,25 +34,22 @@ float Variable(CPlayer* player, const char* name) { return player->Party()->vari
 // ---- Sorting predicates --------------------------------------------------------------------------
 
 bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) {
-    CBaseManager* registry = manager;
-    CEngineObject* first = registry->FindObject(a->objectId);
-    CEngineObject* second = registry->FindObject(b->objectId);
+    CMapObject* first = manager->FindMapObject(a->objectId);
+    CMapObject* second = manager->FindMapObject(b->objectId);
     if (!first || !second) return false;
     // The matrix's row 2: the depth axis and its offset.
     const Vector3 normal{view[8], view[9], view[10]};
     float offset = view[11];
-    const CMapObject* p = ObjectSlots(first);
-    const CMapObject* q = ObjectSlots(second);
-    float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(p->localPosition_, normal) + offset);
-    float db = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(q->localPosition_, normal) + offset);
+    float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(first->localPosition_, normal) + offset);
+    float db = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(second->localPosition_, normal) + offset);
     // Living objects come before dead ones; within each kind, by depth. The game asks each object again at
     // every step, so the calls are repeated here in the same order.
-    if ((ObjectSlots(first)->IsDead() == 0 && ObjectSlots(second)->IsDead() == 0) ||
-        (ObjectSlots(first)->IsDead() != 0 && ObjectSlots(second)->IsDead() != 0)) {
+    if ((first->IsDead() == 0 && second->IsDead() == 0) ||
+        (first->IsDead() != 0 && second->IsDead() != 0)) {
         EI_NAN_AUDIT(da, db);
         return da < db;
     }
-    return ObjectSlots(first)->IsDead() == 0;
+    return first->IsDead() == 0;
 }
 
 // Texture and figure by name, then the view depth (address_order::DrawBefore, address_order.cpp).

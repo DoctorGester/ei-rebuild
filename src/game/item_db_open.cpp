@@ -78,9 +78,9 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     // The serialisers' unused third argument: the file's size.
     void* const unused = reinterpret_cast<void*>(static_cast<std::uintptr_t>(size));
 
-    LoadTable(stream, kSpellsChunk, &ChunkArchive::SerializeSpells, &spells, unused,
+    LoadTable(stream, kSpellsChunk, &ChunkArchive::SerializeSpells, &spells.records, unused,
               [this] { FileByCode(spells); });
-    LoadTable(stream, kModifiersChunk, &ChunkArchive::SerializeSpellModifiers, &modifiers, unused,
+    LoadTable(stream, kModifiersChunk, &ChunkArchive::SerializeSpellModifiers, &modifiers.records, unused,
               [this] { FileByCode(modifiers); });
 
     // The three lists through one archive, built and destroyed in place.
@@ -110,11 +110,11 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
     FillStream(*stream, data, size);
 
     // The serialisers' unused third argument is the file's data here.
-    LoadTable(stream, kMaterialsChunk, &ChunkArchive::SerializeMaterials, &materials, data,
+    LoadTable(stream, kMaterialsChunk, &ChunkArchive::SerializeMaterials, &materials.records, data,
               [this] { FileRecords(materials, MaterialKey); });
-    LoadTable(stream, kWeaponsChunk, &ChunkArchive::SerializeWeapons, &weapons, data,
+    LoadTable(stream, kWeaponsChunk, &ChunkArchive::SerializeWeapons, &weapons.records, data,
               [this] { FileRecords(weapons, ItemName); });
-    LoadTable(stream, kArmorsChunk, &ChunkArchive::SerializeArmors, &armors, data,
+    LoadTable(stream, kArmorsChunk, &ChunkArchive::SerializeArmors, &armors.records, data,
               [this] { FileRecords(armors, ItemName); });
     quickItems.Load(stream, kQuickItemsChunk);
     questItems.Load(stream, kQuestItemsChunk);

@@ -59,8 +59,8 @@ public:
     const char* GetClassName() override;
     int GetClassId() override;
     // `context` is the scene renderer.
-    int DrawParts(void* context, int* dirty) override { return Draw(static_cast<CSceneRenderer*>(context), dirty); }
-    int DrawPartsShadow(void* context) override { return DrawShadow(static_cast<CSceneRenderer*>(context)); }
+    int DrawParts(CSceneRenderer* context, int* dirty) override { return Draw(context, dirty); }
+    int DrawPartsShadow(CSceneRenderer* context) override { return DrawShadow(context); }
     int PartsIntersectRect(const long* rect) override { return PartRectsMeet(reinterpret_cast<const RECT*>(rect)); }
     // Draws the object's shadow when shadows are on for its kind and the object is shown: unless the shadow is
     // still valid, the lights reaching the object give a direction (at least 20 degrees above the ground), the

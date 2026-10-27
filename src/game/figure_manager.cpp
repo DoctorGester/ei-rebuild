@@ -64,7 +64,7 @@ CFigureMesh* CFigureManager::NewPart(const char* modelName, const char* partName
     return part;
 }
 
-CEngineObject* CFigureManager::NewFigure(const char* name) {
+CFigureMesh* CFigureManager::NewFigure(const char* name) {
     auto* figure = CreateObjectAs<CFigureMesh>(kFigureClass, -1);
     if (!name) return figure;
     figure->name_ = name;

@@ -29,7 +29,7 @@ namespace {
 
 constexpr std::uint32_t kArmed = 0x80000;   // flags_
 
-bool IsDead(CEngineObject* unit) { return ObjectSlots(unit)->IsDead() != 0; }
+bool IsDead(CMapObject* unit) { return unit->IsDead() != 0; }
 
 // The units inside: an MFC CList whose elements are counted references.
 using VictimList = mfc::CTypedPtrList<CUnit>;
@@ -44,11 +44,11 @@ constexpr int kPtrListBlockSize = 10;
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).
-bool StaysInside(MagicTrap* trap, CEngineObject* unit) {
+bool StaysInside(MagicTrap* trap, CMapObject* unit) {
     int count = trap->area.size;
     const TrapCircle* circle = trap->area.data;
-    float x = ObjectSlots(unit)->localPosition_.x;
-    float y = ObjectSlots(unit)->localPosition_.y;
+    float x = unit->localPosition_.x;
+    float y = unit->localPosition_.y;
     for (int i = 0; i < count; ++i, ++circle) {
         float dx = x - circle->x;
         float dy = y - circle->y;
@@ -154,9 +154,9 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
             CUnit* closest = nullptr;
             for (UnitList::Node* node = units->head; node; node = node->next) {
                 CUnit* unit = node->data;
-                float dx = ObjectSlots(unit)->localPosition_.x - origin.x;
-                float dy = ObjectSlots(unit)->localPosition_.y - origin.y;
-                float dz = ObjectSlots(unit)->localPosition_.z - origin.z;
+                float dx = unit->localPosition_.x - origin.x;
+                float dy = unit->localPosition_.y - origin.y;
+                float dz = unit->localPosition_.z - origin.z;
                 EI_NAN_AUDIT(dx, dy, dz);
                 if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) < kFar) closest = unit;
             }
@@ -168,7 +168,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
             UnitList::Node* next = node->next;
             CUnit* unit = node->data;
             TheServerWorld()->CastSpell(spell, nullptr, &from, unit,
-                                   &ObjectSlots(unit)->localPosition_, 0);
+                                   &unit->localPosition_, 0);
             node = next;
         }
     }

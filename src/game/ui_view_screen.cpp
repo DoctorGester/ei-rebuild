@@ -104,7 +104,7 @@ EI_REWRITTEN_SPECIAL(0x005EB8F0, UnitPickInput::~UnitPickInput);
 void UnitPickInput::OnLeftDown(int, int x, int y) {
     CWorldClient* world = TheClientWorld();
     const POINT point = {x, y};
-    CEngineObject* unit = world->UnitAt2(&point);
+    CUnit* unit = world->UnitAt2(&point);
     if (!interface_->ctrlDown_) {
         if (unit) {
             int n = picked_.size;

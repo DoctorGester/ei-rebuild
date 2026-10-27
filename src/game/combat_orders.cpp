@@ -169,7 +169,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
     // CanReachTarget inlined on the queued order.
     if (action2.kind == 3 || action2.kind == 6) {
         CUnit* other = UnitOrNull(action2.target);
-        if (other && ObjectSlots(other)->IsDead() == 0 && other->sizeClass == 0) {
+        if (other && other->IsDead() == 0 && other->sizeClass == 0) {
             bool ranged = false;
             if (action2.kind == 3) {
                 CItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);

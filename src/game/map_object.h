@@ -70,6 +70,7 @@ constexpr int kShrink = 0x26;          // scale down
 } // namespace mapeffect
 
 struct DamageInfo;
+struct UnitVitals;
 struct UnitStats;
 struct LockKey;
 
@@ -109,7 +110,7 @@ public:
     // The scale becomes the base scale (units override it). Returns the z component's bits.
     virtual std::uint32_t ApplyBaseScale();
     // A hit (DamageInfo) from `attacker` (units: to the controller's TakeHit; other objects ignore it).
-    virtual void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster);
+    virtual void ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster);
     virtual int StatsChanged();        // PackVitals (units override); 1
     // Returns 1 (units hand the argument to their controller's vitals virtual).
     virtual std::uintptr_t ScaleEffectChanged(int scaleEffect);
@@ -119,7 +120,7 @@ public:
     // Empty; units: a CUnitServer controller (class 0x3E) copies the statistics (CUnitServer::SetStats).
     virtual std::uintptr_t SetStats(const UnitStats* stats);
     // Hands `data` to a CMapObjectServer companion.
-    virtual std::uintptr_t SetServerData(const void* data);
+    virtual std::uintptr_t SetServerData(const UnitVitals* data);
     // Empty; units: the controller's size-class virtual.
     virtual std::uintptr_t UpdateSizeClasses();
     virtual int IsUsable();            // 0; traps 1, levers NeedsKey

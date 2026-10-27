@@ -79,7 +79,7 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
 EI_REWRITTEN(0x00552670, CUnitServer::OnObjectDeleted);
 
 void CUnitServer::Resettle() {
-    if (ObjectSlots(unit)->IsDead()) return;
+    if (unit->IsDead()) return;
     auto* world = ServerWorld();
     world->Sectors()->Remove(unit);
     unit->Object3D()->SetUpAnimatedFigure(unit->name);

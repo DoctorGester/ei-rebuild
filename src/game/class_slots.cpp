@@ -55,8 +55,8 @@ EI_REWRITTEN(0x004468D0, FakeUnitGetClassName);
 
 // ---- CUnit slots shared with the fake unit ----------------------------------------------------
 
-void CUnit::ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) {
-    Controller()->TakeHit(hit, static_cast<CUnit*>(attacker), static_cast<CUnit*>(caster));
+void CUnit::ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster) {
+    Controller()->TakeHit(hit, attacker, caster);
 }
 EI_REWRITTEN(0x004467F0, CUnit::ReceiveHit);
 

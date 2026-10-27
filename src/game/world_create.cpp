@@ -108,6 +108,6 @@ CUnit* CWorld::FindUnit(int id) {
 EI_REWRITTEN(0x0055FB00, CWorld::FindUnit);
 
 CMapObject* CWorld::ObjectWithId(int id) {
-    return ObjectSlots(MapObjectManager()->FindObject(static_cast<unsigned>(id)));   // the map object manager's objects
+    return MapObjectManager()->FindMapObject(static_cast<unsigned>(id));
 }
 EI_REWRITTEN(0x0055FAE0, CWorld::ObjectWithId);

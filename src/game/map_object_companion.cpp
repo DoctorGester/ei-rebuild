@@ -59,13 +59,13 @@ int CMapObjectServer::RunTick() {
             if (tail != 0) std::memmove(&owner->effects[i], &owner->effects[i + 1], tail * sizeof(MapEffect));
             --owner->effects.size;
             bool scaleEffect = IsScaleEffect(type);
-            if (scaleEffect) ObjectSlots(owner)->RecomputeScale();
+            if (scaleEffect) owner->RecomputeScale();
             owner->MarkChanged(3);
-            ObjectSlots(owner)->ScaleEffectChanged(scaleEffect ? 1 : 0);
+            owner->ScaleEffectChanged(scaleEffect ? 1 : 0);
             --i;
-            ObjectSlots(owner)->EffectsChanged();
+            owner->EffectsChanged();
             if (!owner->HasEffect(mapeffect::kStun) && !owner->HasEffect(mapeffect::kStun2))
-                ObjectSlots(owner)->SetStunned(0);
+                owner->SetStunned(0);
         }
         ++i;
     } while (i < owner->effects.size);
@@ -73,14 +73,14 @@ int CMapObjectServer::RunTick() {
 }
 EI_REWRITTEN(0x00515820, CMapObjectServer::RunTick);
 
-std::uintptr_t CMapObjectServer::SetData(const void* data) {
+std::uintptr_t CMapObjectServer::SetData(const UnitVitals* data) {
     std::memcpy(&vitals, data, sizeof(vitals));
     return owner->MarkChanged(0);
 }
 EI_REWRITTEN(0x00515950, CMapObjectServer::SetData);
 
-BOOL CMapObjectServer::TakeHit(const void* hit) {
-    if (!vitals.TakeHit(static_cast<const DamageInfo*>(hit))) return 0;
+BOOL CMapObjectServer::TakeHit(const DamageInfo* hit) {
+    if (!vitals.TakeHit(hit)) return 0;
     owner->MarkChanged(0);
     if (IsDead()) {
         owner->ClearEffects();

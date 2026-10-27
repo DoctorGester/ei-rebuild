@@ -90,17 +90,19 @@ int CMapObjectManager::CreateManager() {
 EI_REWRITTEN(0x00512660, CMapObjectManager::CreateManager);
 
 
+CMapObject* CMapObjectManager::FindMapObject(unsigned id) const { return FindObjectAs<CMapObject>(id); }
+
 CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
     CResourceManager* manager = this;
-    CEngineObject* object = CBaseManager::CreateObject(classId, id);
+    // The base's CreateObject, not the virtual (that one is this function's caller).
+    auto* object = static_cast<CMapObject*>(CBaseManager::CreateObject(classId, id));
     if (!object) return nullptr;
     auto* figures = manager->ContextAsWorld()->FigureManager();
-    CMapObjectVirtuals* slots = ObjectSlots(object);
-    slots->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(kAnimationStateClass, kNoId));
-    slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kObject3DHalf, kNoId));
-    slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kMapObjectHalf, kNoId));
+    object->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(kAnimationStateClass, kNoId));
+    object->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kObject3DHalf, kNoId));
+    object->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kMapObjectHalf, kNoId));
     if (int half = ThirdHalfOf(classId))
-        slots->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(half, kNoId));
+        object->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(half, kNoId));
     return object;
 }
 EI_REWRITTEN(0x00512A30, CMapObjectManager::CreateMapObject);

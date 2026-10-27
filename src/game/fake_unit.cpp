@@ -89,8 +89,7 @@ int FakeUnitScene::LoadScene(const char* file, const char* regFile) {
     scene::FigurePartArray& figureRecords = figures;
     for (int i = 0; i < figureRecords.size; ++i) {
         CBaseManager* manager = WorldContext()->SpecificManager();
-        CEngineObject* object = manager->CreateObject(0x45, -1);
-        figureRecords.data[i].SetDrawer(static_cast<FigureMeshDrawer*>(object));
+        figureRecords.data[i].SetDrawer(manager->CreateObjectAs<FigureMeshDrawer>(0x45, -1));
     }
     return 1;
 }

@@ -66,9 +66,9 @@ using ResizeFn = void (*)(void* records, unsigned count);
 // The body of the three instantiations: chunk `id` holding one chunk 1 per record; loading destroys the old
 // records (erase(begin, end): the tail copy is empty) and resizes to the number of record chunks first.
 template <typename Record, typename Destroy, typename Serialize>
-void SerializeItemRecords(ChunkArchive* ar, int id, void* vector, Destroy destroy, ResizeFn resize, Serialize serialize) {
+void SerializeItemRecords(ChunkArchive* ar, int id, stlp::vector<Record>* vector, Destroy destroy, ResizeFn resize, Serialize serialize) {
     if (!ar->EnterChunk(id)) return;
-    auto& records = *static_cast<stlp::vector<Record>*>(vector);
+    auto& records = *vector;
     int count;
     if (ar->loading_) {
         Record* end = records.end();
@@ -92,15 +92,15 @@ void SerializeItemRecords(ChunkArchive* ar, int id, void* vector, Destroy destro
 
 } // namespace
 
-void ChunkArchive::SerializeQuickItems(int id, void* records, void*) {
+void ChunkArchive::SerializeQuickItems(int id, stlp::vector<itemdb::QuickItemRecord>* records, void*) {
     SerializeItemRecords<itemdb::QuickItemRecord>(this, id, records,
                                     &DestroyItemRecord<itemdb::QuickItemRecord>, recordvec::ResizeUntyped<recordvec::QuickItemVector>, &itemdb::QuickItemRecord::Serialize);
 }
-void ChunkArchive::SerializeLoot(int id, void* records, void*) {
+void ChunkArchive::SerializeLoot(int id, stlp::vector<itemdb::QuestItemRecord>* records, void*) {
     SerializeItemRecords<itemdb::QuestItemRecord>(this, id, records,
                                     &DestroyItemRecord<itemdb::QuestItemRecord>, recordvec::ResizeUntyped<recordvec::QuestItemVector>, &itemdb::QuestItemRecord::Serialize);
 }
-void ChunkArchive::SerializeQuestItems(int id, void* records, void*) {
+void ChunkArchive::SerializeQuestItems(int id, stlp::vector<itemdb::LootItemRecord>* records, void*) {
     SerializeItemRecords<itemdb::LootItemRecord>(this, id, records,
                                     &DestroyItemRecord<itemdb::LootItemRecord>, recordvec::ResizeUntyped<recordvec::LootVector>, &itemdb::LootItemRecord::Serialize);
 }
@@ -108,15 +108,15 @@ EI_REWRITTEN(0x006A7C20, ChunkArchive::SerializeQuickItems);
 EI_REWRITTEN(0x006A7D20, ChunkArchive::SerializeLoot);
 EI_REWRITTEN(0x006A7E10, ChunkArchive::SerializeQuestItems);
 
-void ChunkArchive::SerializeMaterials(int id, void* records, void*) {
+void ChunkArchive::SerializeMaterials(int id, stlp::vector<itemdb::MaterialRecordHead>* records, void*) {
     SerializeItemRecords<itemdb::MaterialRecordHead>(this, id, records,
                                     &itemdb::MaterialRecordHead::Destruct, recordvec::ResizeUntyped<recordvec::MaterialVector>, &itemdb::MaterialRecordHead::Serialize);
 }
-void ChunkArchive::SerializeWeapons(int id, void* records, void*) {
+void ChunkArchive::SerializeWeapons(int id, stlp::vector<itemdb::WeaponRecord>* records, void*) {
     SerializeItemRecords<itemdb::WeaponRecord>(this, id, records,
                                     &DestroyItemRecord<itemdb::WeaponRecord>, recordvec::ResizeUntyped<recordvec::WeaponVector>, &itemdb::WeaponRecord::Serialize);
 }
-void ChunkArchive::SerializeArmors(int id, void* records, void*) {
+void ChunkArchive::SerializeArmors(int id, stlp::vector<itemdb::ArmorRecord>* records, void*) {
     SerializeItemRecords<itemdb::ArmorRecord>(this, id, records,
                                     &DestroyItemRecord<itemdb::ArmorRecord>, recordvec::ResizeUntyped<recordvec::ArmorVector>, &itemdb::ArmorRecord::Serialize);
 }
@@ -224,15 +224,15 @@ void ChunkArchive::IntVectorField(int id, stlp::vector<int>* values, void*) {
 }
 EI_REWRITTEN(0x00683EB0, ChunkArchive::IntVectorField);
 
-void ChunkArchive::SerializeSpells(int id, void* records, void*) {
+void ChunkArchive::SerializeSpells(int id, stlp::vector<itemdb::SpellRecord>* records, void*) {
     SerializeItemRecords<itemdb::SpellRecord>(this, id, records,
                                     &itemdb::SpellRecord::Destruct, recordvec::ResizeUntyped<recordvec::SpellVector>, &itemdb::SpellRecord::Serialize);
 }
-void ChunkArchive::SerializeSpellModifiers(int id, void* records, void*) {
+void ChunkArchive::SerializeSpellModifiers(int id, stlp::vector<itemdb::SpellModifierRecord>* records, void*) {
     SerializeItemRecords<itemdb::SpellModifierRecord>(this, id, records,
                                     &itemdb::SpellModifierRecord::Destruct, recordvec::ResizeUntyped<recordvec::SpellModifierVector>, &itemdb::SpellModifierRecord::Serialize);
 }
-void ChunkArchive::SerializeSpellLists(int id, void* records, void*) {
+void ChunkArchive::SerializeSpellLists(int id, stlp::vector<itemdb::SpellListRecord>* records, void*) {
     SerializeItemRecords<itemdb::SpellListRecord>(this, id, records,
                                     &itemdb::SpellListRecord::Destruct, recordvec::ResizeUntyped<recordvec::SpellListVector>, &itemdb::SpellListRecord::Serialize);
 }

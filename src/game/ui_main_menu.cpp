@@ -204,12 +204,12 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
         int region = RegionAt(x, y);
         mfc::CString name(stones->name);
         if (region != hovered_) {
-            void* animation;
+            FigureAnimation* animation;
             if (region >= 0 && region < 6)
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
                 animation = static_cast<CMapObjectManager*>(TheObjectManager())->FindAnimation(&name, kRestPoseKind);
-            stones->PlayAnimation(static_cast<FigureAnimation*>(animation), 1);
+            stones->PlayAnimation(animation, 1);
             interface_->PlaySound(kStoneSound, 0);
         }
         hovered_ = region;

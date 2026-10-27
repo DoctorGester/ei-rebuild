@@ -143,7 +143,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
     for (;;) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
-        CMapObject* object = ObjectSlots(manager40_->FindObject(id));
+        CMapObject* object = manager40_->FindMapObject(id);
         if (stream->version_ >= kVersionMapObjectName) {
             mfc::CString name;
             ReadStringInto(stream, name);
@@ -729,7 +729,7 @@ namespace {
 void CWorldServer::PrepareSave() {
     for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node)) {
         CUnit* unit = UnitOrNull(node->value);
-        if (!unit || ObjectSlots(unit)->IsDead()) continue;
+        if (!unit || unit->IsDead()) continue;
         CUnitController* controller = unit->Controller();
         unit->ServerController()->stats.RefillSlots();
         controller->RefreshVitals(0);

@@ -209,7 +209,7 @@ public:
     const char* GetClassName() override;
     int GetClassId() override;
     bool IsSynchronised() override;
-    void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) override;
+    void ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster) override;
     Vector3* EyePoint(Vector3* out) override;
     std::uint32_t ReadNetState(int first) override;
     void WriteNetState() override;
@@ -309,7 +309,7 @@ public:
 
     // For hero units, whether the animation entry's flags have the bits the controller asks for (0x10 by
     // HasOtherArmour, 0x20 by HasMainArmour); true for other units.
-    bool AcceptsAnimation(const void* entry) override;
+    bool AcceptsAnimation(const FigureAnimation* entry) override;
 
     // Ratio of the animation factors of the scale's and the base scale's z.
     double AnimationRatio();
@@ -345,7 +345,7 @@ public:
 
     // For units with a player and no bow or crossbow in hand: is this unit behind `target` (the direction to
     // it against the target's facing below -0.5)? 0/1.
-    BOOL IsBehind(const CEngineObject* target);
+    BOOL IsBehind(const CMapObject* target);
 
     // Puts armour piece `item` (condition rounding above 0) into the armour slot of its type (referenced; the
     // controller's ArmourPutOn gets its id) and releases the piece that was there. Returns that piece (null
@@ -894,10 +894,10 @@ public:
     // Per-tick update: counts down the owner's effects and removes the expired ones. Returns 0.
     int RunTick() override;
     // Copies the vitals block (0x58 bytes) from `data` and marks the owner's part 0 changed.
-    std::uintptr_t SetData(const void* data);
+    std::uintptr_t SetData(const UnitVitals* data);
     // Applies a hit to the vitals; a dead object loses its effects and gets flags_ bit 1. Returns 0 when the
     // vitals take nothing, else 1.
-    virtual BOOL TakeHit(const void* hit);
+    virtual BOOL TakeHit(const DamageInfo* hit);
 
     // The vitals block, the two names and the string array (a count, then each string with its terminator;
     // Load appends to the array).

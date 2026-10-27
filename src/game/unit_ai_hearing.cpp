@@ -113,7 +113,7 @@ EI_REWRITTEN(0x005C98C0, AIViewer::Noise);
 
 AIEventPresence* AIViewer::StepNoise(const Vector3* position, CUnitServer* source) {
     constexpr int kStepNoise = 0x1A;
-    auto* ground = static_cast<const AITerrainType*>(TheServerWorld()->AIMap()->MaterialRecordAt(position));
+    const AITerrainType* ground = TheServerWorld()->AIMap()->MaterialRecordAt(position);
     float loudness = source->moveFactors[0] * source->stats.valuesE0[3].current;
     loudness *= ground->noise;
     Noise(source, loudness, kStepNoise, nullptr);

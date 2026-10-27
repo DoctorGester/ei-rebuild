@@ -86,8 +86,8 @@ int CWorldServer::CountLivingMercs(int id) {
     int living = 0;
     for (int i = 0; i < player->Party()->members_.size; ++i) {
         unsigned unitId = player->Party()->members_.data[i].unitId;
-        CEngineObject* unit = FindUnit(static_cast<int>(unitId));
-        if (unit && ObjectSlots(unit)->IsDead() == 0) ++living;
+        CUnit* unit = FindUnit(static_cast<int>(unitId));
+        if (unit && unit->IsDead() == 0) ++living;
     }
     return living - 1;
 }
@@ -149,14 +149,13 @@ BOOL CWorldServer::GetZoneExit(int index, mfc::CString* target, int* entrance) {
     return 1;
 }
 
-void CWorldServer::AddTimedObject(CEngineObject* object) {
+void CWorldServer::AddTimedObject(CEffect* effect) {
     // The timed objects are the world's effects (world_effect.h): the tick they began.
-    auto* effect = static_cast<CEffect*>(object);
     effect->startTick_ = tick_;
-    ++object->refCount_;
+    ++effect->refCount_;
     effect->MarkChanged();   // flags_ |= 2, stamped with the server time
-    unsigned id = static_cast<unsigned>(object->id_);
-    timedObjects_.Set(id, object);
+    unsigned id = static_cast<unsigned>(effect->id_);
+    timedObjects_.Set(id, effect);
 }
 
 void CWorldServer::RemoveTimedObject(unsigned id) {

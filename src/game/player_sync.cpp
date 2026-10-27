@@ -292,7 +292,7 @@ int CPlayerServer::SendPartyState() {
     std::uint32_t playerBit = 1u << (player->playerId_ & 31);
     for (int i = 0; i < count; ++i) {
         auto* unit = partyUnits_.data[i].AsUnit();
-        if (refreshPending_ != 2 && !ObjectSlots(unit)->IsDead()) {
+        if (refreshPending_ != 2 && !unit->IsDead()) {
             if (unit->ServerController()->IsFighting()) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
             for (auto* node = unit->ServerController()->Brain()->memory.nearby.head; node != nullptr;) {

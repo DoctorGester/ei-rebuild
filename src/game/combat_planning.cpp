@@ -48,8 +48,6 @@ constexpr int kNoSpot = 0x7FFFFFFF;
 constexpr int kShoutTargetLost = 0x0B;
 constexpr int kShoutCannotDo = 0x0E;
 
-CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
-
 // --- Helpers --------------------------------------------------------------------------------------
 
 void __fastcall PointArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(a0); }
@@ -142,7 +140,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
     order->point.z = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
     SpotArray spots{mfc::impl::Vector3ArrayClass::Vtable(), nullptr, 0, 0, 0};
-    float size = static_cast<float>(Slots(unit)->Radius());
+    float size = static_cast<float>(unit->Radius());
     order->target->UseSpots(&spots, size);
     bool result = true;
     if (spots.size > 0) {
@@ -222,7 +220,7 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
         if (!canSee) break;
         if (sight.unit) {
             Vector3 eye;
-            const float* at = &Slots(sight.unit)->EyePoint(&eye)->x;
+            const float* at = &sight.unit->EyePoint(&eye)->x;
             std::memcpy(&sight.point, at, sizeof(sight.point));
             sight.unit = nullptr;
         }

@@ -131,7 +131,7 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
 
             savedPosition = model->localPosition_;
             savedOrientation = model->localRotation_;
-            ObjectSlots(unit)->AdvanceTime(static_cast<float>(CurrentClientTick()) + ClientTickFraction());
+            unit->AdvanceTime(static_cast<float>(CurrentClientTick()) + ClientTickFraction());
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
@@ -164,7 +164,7 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
             device->lastLoadResult_ = device::GetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, &mipFilter);
             device->lastLoadResult_ = device::SetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, D3DTFP_NONE);
             render::state::Stage(0, D3DTSS_MIPFILTER, D3DTFP_NONE);
-            ObjectSlots(unit)->DrawFigure(pass);
+            unit->DrawFigure(pass);
             device->lastLoadResult_ = device::SetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, mipFilter);
             render::state::Stage(0, D3DTSS_MIPFILTER, mipFilter);
 

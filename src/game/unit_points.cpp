@@ -21,7 +21,7 @@ constexpr float kCellScale = 1.0f;
 constexpr float kHalf = 0.5f;
 const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
-bool IsDead(CUnit* unit) { return ObjectSlots(unit)->IsDead() != 0; }
+bool IsDead(CUnit* unit) { return unit->IsDead() != 0; }
 void CopyPosition(Vector3* out, const CUnit* unit) { std::memcpy(out, &unit->localPosition_, sizeof(Vector3)); }
 
 } // namespace
@@ -32,7 +32,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
     // The controller's motion virtual: its motion (the order in its first 0x20 bytes).
     PathOrder* path = unit->Controller()->Path();
     if (IsDead(unit)) {
-        ObjectSlots(unit)->AimPoint(out);
+        unit->AimPoint(out);
         return out;
     }
     MotionOrder* order = &path->motionOrder;

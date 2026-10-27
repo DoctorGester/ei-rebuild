@@ -177,9 +177,9 @@ bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point
         CUnit* other = node->data;
         node = node->next;
         if (other == order->target) continue;
-        if (ObjectSlots(other)->IsDead() != 0) continue;
+        if (other->IsDead() != 0) continue;
         Vector3 scratch;
-        const Vector3* p = ObjectSlots(other)->PositionAt(&scratch, time);
+        const Vector3* p = other->PositionAt(&scratch, time);
         double a = static_cast<double>(p->x) - unit->localPosition_.x;
         double b = static_cast<double>(p->y) - unit->localPosition_.y;
         double c = static_cast<double>(p->z) - unit->localPosition_.z;

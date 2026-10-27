@@ -329,7 +329,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         case kLichdom:
         case kStrengthen:
         case kWeaken:
-            if (!ObjectSlots(CompanionOwner(this))->IsDead())
+            if (!CompanionOwner(this)->IsDead())
                 SpawnRing(CompanionOwner(this), record->type, RingSize(record->type, record->power), true);
             break;
         default:
@@ -389,7 +389,7 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         EffectSoundRecord* record = &sounds.data[i];
         if (record->present) continue;
         CMapObject* target = CompanionOwner(this);
-        bool alive = !ObjectSlots(target)->IsDead();
+        bool alive = !target->IsDead();
         PlayEffectSound(alive, record, &target->localPosition_.x, record->kind, "\\end.wav");
         int tail = sounds.size - i - 1;
         if (tail != 0) std::memmove(&sounds.data[i], &sounds.data[i + 1], tail * sizeof(EffectSoundRecord));

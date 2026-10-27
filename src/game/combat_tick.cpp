@@ -85,14 +85,13 @@ constexpr int kShoutCannotDo = 0x0E;
 
 constexpr int kPartMoveModes = 6;           // MarkChanged part of the movement modes
 
-bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
+bool IsUnit(CMapObject* object) { return object && object->GetClassId() == kClassUnit; }
 bool IsCastKind(int kind) { return kind == kOrderCast || kind == kOrderCastAt; }
 bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCast || kind == kOrderCastAt || kind == kOrderSkill; }
 
 // The map objects' virtuals. The movement-state virtual is 1 while a unit moves.
-CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
-bool IsDead(CEngineObject* object) { return Slots(object)->IsDead() != 0; }
-int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }
+bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
+int IsMoving(CMapObject* object) { return object->IsLargeUnit(); }
 int WorldTick(const CEngineObject* object) { return ObjectWorld(object)->tick_; }
 float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(unit->GetPrototype()->height); }
 CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
@@ -721,7 +720,7 @@ void CUnitServer::ApproachTarget() {
 
     float reach = static_cast<float>(ActionDistance(&action));
     Vector3 aim;
-    Slots(target)->AimPoint(&aim);
+    target->AimPoint(&aim);
     if (!IsMoving(target)) {
         if (static_cast<double>(reach) * reach >= DistanceSquaredXYUnrounded<double>(aim, unit->localPosition_) &&
             CanActFrom(&action, &aim.x, now)) {
@@ -735,12 +734,12 @@ void CUnitServer::ApproachTarget() {
         if (lead > 0) {
             // A moving target that comes into reach before the next attack: wait for it.
             Vector3 scratch;
-            const float* p = &Slots(target)->PositionAt(&scratch, lead + now)->x;
+            const float* p = &target->PositionAt(&scratch, lead + now)->x;
             Vector3 offset;
             offset.x = p[0] - unit->localPosition_.x;
             offset.y = p[1] - unit->localPosition_.y;
             offset.z = p[2] - unit->localPosition_.z;
-            double closing = Slots(unit)->MoveSpeed() * (static_cast<double>(kOne) * kHalf);
+            double closing = unit->MoveSpeed() * (static_cast<double>(kOne) * kHalf);
             if (closing > kZero) {
                 double distance = LengthXYZ(offset);
                 double ticks = (distance - reach) / closing;
@@ -770,13 +769,13 @@ void CUnitServer::ApproachTarget() {
         }
     }
     Vector3 scratch;
-    const float* where = &Slots(chased)->AimPoint(&scratch)->x;
+    const float* where = &chased->AimPoint(&scratch)->x;
     Vector3 offset;
     offset.x = where[0] - unit->localPosition_.x;
     offset.y = where[1] - unit->localPosition_.y;
     offset.z = where[2] - unit->localPosition_.z;
     float distance = LengthZXY(offset);
-    float mySpeed = static_cast<float>(Slots(unit)->MoveSpeed());
+    float mySpeed = static_cast<float>(unit->MoveSpeed());
     double closing;
     if (IsMoving(chased)) {
         // The chased unit's speed along the line between them adds to ours.
@@ -797,7 +796,7 @@ void CUnitServer::ApproachTarget() {
         Vector3 axis;
         other->localRotation_.AxisY(&axis);
         float along = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, vx, vy, vz));
-        closing = Slots(other)->MoveSpeed() * along + mySpeed;
+        closing = other->MoveSpeed() * along + mySpeed;
     } else {
         closing = mySpeed;
     }
@@ -809,7 +808,7 @@ void CUnitServer::ApproachTarget() {
     if (ticks > kChaseMaxTicks) ticks = kChaseMaxTicks;
     else if (ticks < kChaseMinTicks) ticks = kChaseMinTicks;
     int when = ticks + now;
-    const float* future = &Slots(chased)->PositionAt(&scratch, when)->x;
+    const float* future = &chased->PositionAt(&scratch, when)->x;
     Vector3 goal;
     std::memcpy(&goal, future, sizeof(goal));
 

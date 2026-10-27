@@ -67,7 +67,7 @@ std::uintptr_t CUnit::AttachObject(CEngineObject* object) {
         controller->Release();
     }
     controller = object;
-    static_cast<CUnitController*>(object)->unit = this;
+    Controller()->unit = this;
     return static_cast<std::uintptr_t>(++controller->refCount_);
 }
 EI_REWRITTEN(0x0052E870, CUnit::AttachObject);

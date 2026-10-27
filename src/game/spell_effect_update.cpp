@@ -322,15 +322,15 @@ void Possession(CSpellEffect* e) {
 void VisionFog(CSpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks - 1;
-    if (ticks < 0 || !e->target || ObjectSlots(e->target)->IsDead() != 0) e->state = 3;
+    if (ticks < 0 || !e->target || e->target->IsDead() != 0) e->state = 3;
 }
 
 // 0x1B: the link lasts while both units are free; it ends with a sound (and a complaint from the
 // caster when a unit got busy).
 void Link(CSpellEffect* e) {
-    bool free = e->target && e->caster && ObjectSlots(e->target)->IsLargeUnit() == 0 &&
-                ObjectSlots(e->caster)->IsLargeUnit() == 0 && ObjectSlots(e->target)->IsDead() == 0 &&
-                ObjectSlots(e->caster)->IsDead() == 0;
+    bool free = e->target && e->caster && e->target->IsLargeUnit() == 0 &&
+                e->caster->IsLargeUnit() == 0 && e->target->IsDead() == 0 &&
+                e->caster->IsDead() == 0;
     if (free) {
         int ticks = e->timer - 1;
         e->timer = ticks;
@@ -349,7 +349,7 @@ void Link(CSpellEffect* e) {
 void Teleport(CSpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks - 1;
-    if (ticks < 0 || !e->caster || ObjectSlots(e->caster)->IsDead() != 0) {
+    if (ticks < 0 || !e->caster || e->caster->IsDead() != 0) {
         e->state = 3;
         return;
     }
@@ -368,7 +368,7 @@ void Teleport(CSpellEffect* e) {
     MapEffect record;
     record.Construct();
     std::memcpy(&record, &e->Spell()->Effect(), sizeof(record));
-    ObjectSlots(e->caster)->AddEffect(&record);
+    e->caster->AddEffect(&record);
     ControllerOf(e->caster)->ResyncWithUnit();
     RiseLight(e);
 }

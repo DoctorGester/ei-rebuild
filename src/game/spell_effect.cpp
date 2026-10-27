@@ -51,10 +51,10 @@ bool AcceptsAreaSpells(CUnit* unit) {
 }
 
 // Delivers `hit` to `unit` unless the spell may not affect it (the loops' common tail).
-void Deliver(CSpellEffect* effect, DamageInfo* hit, CEngineObject* unit) {
+void Deliver(CSpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
     if (effect->caster && !effect->Spell()->CanAffect(effect->caster, unit)) return;
-    CEngineObject* attacker = (effect->flags & 1) ? nullptr : effect->caster;
-    ObjectSlots(unit)->ReceiveHit(hit, attacker, effect->caster);
+    CUnit* attacker = (effect->flags & 1) ? nullptr : effect->caster.object;
+    unit->ReceiveHit(hit, attacker, effect->caster);
 }
 } // namespace
 
@@ -62,7 +62,7 @@ void Deliver(CSpellEffect* effect, DamageInfo* hit, CEngineObject* unit) {
 int __fastcall IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit) ? 1 : 0; }
 EI_REWRITTEN(0x00681B80, IsSpellTarget);
 
-void CSpellEffect::HitUnit(DamageInfo* hit, CEngineObject* unit) { Deliver(this, hit, unit); }
+void CSpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit, unit); }
 EI_REWRITTEN(0x006835B0, CSpellEffect::HitUnit);
 
 void CSpellEffect::HitUnitsInRadius() {

@@ -247,7 +247,7 @@ int CAIMap::MaterialAt(const Vector3* position) {
 }
 EI_REWRITTEN(0x005BBE40, CAIMap::MaterialAt);
 
-void* CAIMap::MaterialRecordAt(const Vector3* position) {
+AITerrainType* CAIMap::MaterialRecordAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return materials.data;
     return materials.data + (occluders[y][x] & 0x1F);

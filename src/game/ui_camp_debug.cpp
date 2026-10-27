@@ -88,7 +88,7 @@ void CCampPages::DebugFill() {
     ItemDatabase()->ListMaterialNames(&materials);
 
     if (CParty* items = itemParts_[0]) {
-        static_cast<CParty*>(items)->Clear(1, 0);
+        items->Clear(1, 0);
 
         ItemDatabase()->ListWeaponNames(&names);
         for (int i = 0; i < names.size; ++i) {
@@ -130,7 +130,7 @@ void CCampPages::DebugFill() {
     }
 
     if (CParty* spells = spellParts_[0]) {
-        static_cast<CParty*>(spells)->Clear(1, 0);
+        spells->Clear(1, 0);
         SpellDatabase()->ListModifierNames(&names);
         for (int i = 0; i < names.size; ++i)
             AddNamed(spells, RuneItem(), static_cast<std::uint32_t>(i), kInstructionCount);

@@ -69,7 +69,7 @@ bool Same(float a, float b) {
 
 CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
 
-Vector3& PositionOf(CEngineObject* object) { return static_cast<CTransformObject*>(object)->localPosition_; }
+Vector3& PositionOf(CMapObject* object) { return object->localPosition_; }
 
 } // namespace
 
@@ -132,7 +132,7 @@ Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3* from) {
 
 void CEffectMoshka::Update(float now) {
     if (bird_ == nullptr) return;
-    CEngineObject* followedObject = TheClientWorld()->ObjectWithId(followedId_);
+    CMapObject* followedObject = TheClientWorld()->ObjectWithId(followedId_);
     if (followedObject == nullptr) return;
     const Vector3& followed = PositionOf(followedObject);
     CObject3D* bird = bird_;
@@ -233,7 +233,7 @@ void CEffectMoshka::Update(float now) {
 
 void CEffectMoshka::Follow(int objectId) {
     followedId_ = objectId;
-    CEngineObject* followed = TheClientWorld()->ObjectWithId(objectId);
+    CMapObject* followed = TheClientWorld()->ObjectWithId(objectId);
     if (followed == nullptr) return;
     std::string model = game::MoshkaModelText();
     std::string texture = game::MoshkaTextureText();

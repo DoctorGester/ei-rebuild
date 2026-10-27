@@ -303,7 +303,7 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     handled_ = true;
     CBattleScreen* owner = owner_;
     // Rebirth's FixSpellSelfCasting patches SelectUnit.
-    if (region < owner->party_.size) static_cast<CBattleScreen*>(owner)->SelectUnit(owner->party_[region], 0, 0);
+    if (region < owner->party_.size) owner->SelectUnit(owner->party_[region], 0, 0);
 }
 EI_REWRITTEN(0x00641E20, CHudPortraits::OnMouseUp);
 
@@ -680,7 +680,7 @@ bool IsZero(float value) {
 void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto ctrl = [this] { return static_cast<char>(interface_->doubleClick_); };
     auto orderAt = [this](const Vector3& at, int mode, char flag) { OrderAt(at.x, at.y, at.z, mode, flag); };
-    auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
+    auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
         Vector3* p = TheClientWorld()->PickSurface(&out, x, y);
@@ -797,7 +797,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             return;
         }
         if (CUnit* object = objectAt()) {
-            if (ObjectSlots(object)->IsUsable() != 0 && ObjectSlots(object)->IsDirectUseBlocked() == 0 && selected == 1) {
+            if (object->IsUsable() != 0 && object->IsDirectUseBlocked() == 0 && selected == 1) {
                 order(first, object, 0, -1);
                 flash(firstIndex);
                 return;
@@ -837,7 +837,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 5: {   // use an item on an object
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
-        if (ObjectSlots(target)->IsUsable() == 0) return;
+        if (target->IsUsable() == 0) return;
         order(first, target, 0, pendingItem_);
         flash(firstIndex);
         resetMode(false);
@@ -846,8 +846,8 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 6: {   // use a spell on an object
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
-        if (ObjectSlots(target)->IsUsable() == 0) return;
-        if (ObjectSlots(target)->AcceptsKey(&itemUseKey_) == 0) return;
+        if (target->IsUsable() == 0) return;
+        if (target->AcceptsKey(&itemUseKey_) == 0) return;
         order(first, target, 0, pendingItem_);
         flash(firstIndex);
         resetMode(true);
@@ -896,7 +896,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 if (unit == party_[i]) return;
             order(first, unit, 1, -1);
         } else {
-            if (ObjectSlots(target)->IsUsable() == 0) return;
+            if (target->IsUsable() == 0) return;
             order(first, target, 0, -1);
         }
         flash(firstIndex);

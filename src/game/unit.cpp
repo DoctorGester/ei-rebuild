@@ -421,12 +421,12 @@ float CUnit::ActionSpeed(const FigureAnimation* entry) {
 }
 EI_REWRITTEN(0x005327D0, CUnit::ActionSpeed);
 
-bool CUnit::AcceptsAnimation(const void* entry) {
+bool CUnit::AcceptsAnimation(const FigureAnimation* entry) {
     if (type_ != kUnitTypeHero) return true;
     std::uint32_t required = 0;
     if (Controller()->HasOtherArmour()) required = 0x10;
     if (Controller()->HasMainArmour()) required |= 0x20;
-    return (static_cast<const FigureAnimation*>(entry)->flags & required) == required;
+    return (entry->flags & required) == required;
 }
 EI_REWRITTEN(0x00532DA0, CUnit::AcceptsAnimation);
 

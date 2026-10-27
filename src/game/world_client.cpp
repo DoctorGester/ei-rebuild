@@ -137,7 +137,7 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
     for (int i = 0; i < view->partyUnitIds_.size; ++i) {
         CUnit* found = FindUnit(view->partyUnitIds_[i]);
         if (!found || found->GetClassId() != world::kClassUnit) continue;
-        if (ObjectSlots(found)->IsDead() != 0) continue;
+        if (found->IsDead() != 0) continue;
         std::uint32_t side = 1u << (unit->side & 31);
         if ((found->relationsA & (side & found->relationsB)) == 0) continue;
         float dy = found->localPosition_.y - unit->localPosition_.y;
@@ -242,7 +242,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
         PartyUnitRecord* record = (*records)[i];
         CUnit* found =
             FindUnit(static_cast<int>(record->unitId));
-        if (!found || ObjectSlots(found)->IsDead() != 0) continue;
+        if (!found || found->IsDead() != 0) continue;
         ++living;
         int index = 0;
         if (!FindExitAt(&found->localPosition_.x, &index) || index != exit) {
@@ -430,11 +430,11 @@ int CWorldClient::Segment() {
         for (auto* node = dynamicObjects_.head; node;) {
             auto* current = node;
             node = node->next;
-            CEngineObject* object = current->data;
+            CMapObject* object = current->data;
             int done = object->RunTick();
             if (done != 0) continue;
             auto key = static_cast<std::uint32_t>(object->id_);
-            mfc::CList<CEngineObject*>::Node* position = nullptr;
+            mfc::CList<CMapObject*>::Node* position = nullptr;
             if (dynamicNodes_.Lookup(&key, &position)) {
                 dynamicObjects_.RemoveAt(position);
                 hash400::RemoveKey(dynamicNodes_, key);
@@ -451,7 +451,7 @@ int CWorldClient::Segment() {
             for (auto* node = dynamicObjects_.head; node;) {
                 auto* current = node;
                 node = node->next;
-                ObjectSlots(current->data)->AdvanceTime(now);
+                current->data->AdvanceTime(now);
             }
         }
     }
