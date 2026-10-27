@@ -1,15 +1,13 @@
-// The device object's DirectDraw base class (CDXDirectDraw, texture.h; the members up to +0x50). IDirectDraw7
-// is called through device.h (the switch-over device answers: device_null.cpp). See docs/notes/renderer.md
-// (sections 9, 12). A failed call throws the game's error object (ThrowGameError, dx_errors.h); every such
-// throw ends the game in WinMain. The image builds the base without DirectDraw: no driver list, DirectDraw
-// object, display mode change or primary and back surfaces (config/dead_code.csv).
+// The device object's DirectDraw base class (CDXDirectDraw, texture.h). The image builds it without DirectDraw:
+// IDirectDraw7 is called through device.h and the switch-over device answers. A failed call throws the game's
+// error object, which ends the game in WinMain. See docs/notes/renderer.md (sections 9, 12).
 #include "app.h"
 #include "device.h"
 #include "game_strings.h"
 
 #include "dx_errors.h"
 #include "settings_file.h"
-#include "sys_info.h"   // ProcessorInfo
+#include "sys_info.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -56,8 +54,7 @@ CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int b
 }
 
 // The performance overlay's switch (docs/notes/renderer.md section 15): "PerfOverlay" (a DWORD, not 0: on) of
-// Software\Nival Interactive\EvilIslands\Standalone in ei_settings.ini; off when absent. Read only where the
-// overlay exists: the harness build has none, and its pinned settings file lacks the value.
+// Software\Nival Interactive\EvilIslands\Standalone in ei_settings.ini; off when absent or without the overlay.
 bool PerfOverlaySetting() {
     if (!render::PerfOverlaySupported()) return false;
     unsigned long type = 0, value = 0, size = sizeof(value);
@@ -81,16 +78,14 @@ bool VsyncSetting() {
 void CDXDirectDraw::RestoreDisplayMode() {
     if (!(flags_ & DDSCL_FULLSCREEN)) return;
     lastLoadResult_ = device::RestoreDisplayMode(ddraw_);
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");   // "Can't restore display mode.\n"
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");
 }
 EI_REWRITTEN(0x004EEC60, CDXDirectDraw::RestoreDisplayMode);
 
 void CDXDirectDraw::SetCooperativeLevel(int fullScreen, const RECT* screen) {
-    // "CDXDirectDraw::SetCooperativeLevel.\n No valid window handle.\n"
     if (!window_) ThrowGameError("CDXDirectDraw::SetCooperativeLevel.\n No valid window handle.\n");
     flags_ = fullScreen ? (DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE) : DDSCL_NORMAL;
     lastLoadResult_ = device::SetCooperativeLevel(ddraw_, window_, flags_ | DDSCL_FPUSETUP | DDSCL_MULTITHREADED);
-    // "pDD->SetCooperativeLevel: DDSCL_FPUSETUP | dwCooperativeLevelFlags.\n"
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "pDD->SetCooperativeLevel: DDSCL_FPUSETUP | dwCooperativeLevelFlags.\n");
     if (screen) screen_ = *screen;
     else gameapi::SetRectEmpty(&screen_);
@@ -102,7 +97,7 @@ EI_REWRITTEN(0x004EECF0, CDXDirectDraw::SetCooperativeLevel);
 CDXDirectDraw::~CDXDirectDraw() {
     if (flags_ & DDSCL_FULLSCREEN) {
         lastLoadResult_ = device::RestoreDisplayMode(ddraw_);
-        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");   // "Can't restore display mode.\n"
+        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");
     }
     if (converterLibrary_) gameapi::FreeLibrary(converterLibrary_);
     converterLibrary_ = nullptr;
@@ -123,7 +118,7 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
     modes_.Construct();
     const RECT screen = {0, 0, width, height};
 
-    ProcessorInfo& processor = *TheProcessorInfo();   // renderer_base_create.cpp fills it the same way
+    ProcessorInfo& processor = *TheProcessorInfo();
     processor.terminator = 0;
     if (HasCpuid()) {
         int registers[4];
@@ -134,25 +129,22 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
         processor.features2 = static_cast<std::uint32_t>(registers[2]);
     }
     if (!(processor.features & kFeatureMmx)) {
-        game::FatalError("MMX required in this version !!!.\n");   // "MMX required in this version !!!.\n"
+        game::FatalError("MMX required in this version !!!.\n");
         libcrt::Exit(-1);
     }
 
     converterLibrary_ = gameapi::LoadLibraryA("2DintMMX.dll");
-    game::DebugLog("MMX graphics release library loaded.\n");                        // "MMX graphics release library loaded.\n"
-    if (!converterLibrary_) ThrowGameError("Can't load 2D graphics library.\n");      // "Can't load 2D graphics library.\n"
+    game::DebugLog("MMX graphics release library loaded.\n");
+    if (!converterLibrary_) ThrowGameError("Can't load 2D graphics library.\n");
     using GetGraphicsProcessor = void*(__cdecl*)();
     const auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
         gameapi::GetProcAddress(converterLibrary_, "GetGraphicsProcessor"));
-    // "Loaded 2D graphics library have no function \"GetGraphicsProcessor\".\n"
     if (!getProcessor) ThrowGameError("Loaded 2D graphics library have no function \"GetGraphicsProcessor\".\n");
-    game::DebugLog("Acquiring graphics processor from graphics library.\n");   // "Acquiring graphics processor from graphics library.\n"
+    game::DebugLog("Acquiring graphics processor from graphics library.\n");
     converter_ = getProcessor();
 
-    // The switch-over: the new renderer presents; no DirectDraw object, display mode or surfaces. The
-    // switch-over takes the cooperative level (the flags and the screen rectangle are kept) and lists the one
-    // display mode; the primary and the render target are holders without a surface; no video formats.
-    // Without the new renderer the game cannot run (no DirectDraw fallback): the error ends it in WinMain.
+    // The switch-over: the new renderer presents; no DirectDraw object, display mode or surfaces. Without it the
+    // game cannot run: the error ends it in WinMain.
     if (!render::StartPresenting()) ThrowGameError("Can't start the renderer (no Direct3D 11 device).\n");
     render::SetPerfOverlay(PerfOverlaySetting());
     if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());

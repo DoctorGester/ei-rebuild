@@ -1,15 +1,11 @@
-// The Direct3D device's indexed mesh draws, with one texture and with two, on the device object at the renderer's
-// +0x20. The mesh's positions (blocks of four vertices) are projected by the pipeline's transform object
-// (+0xAC -> +0xC; its projection, or the one with an outcode per vertex when clipping is asked for), then every
-// corner (position, colour and texture coordinate indices) becomes a TL vertex; meshes crossing the
-// screen edges go through the transform object's clipper and are projected again. Figures and the 3D library's
-// meshes draw through them. Buffers are globals. See docs/notes/models.md ("Renderer"). The new
-// renderer (src/render) gets the mesh in model space once it is known to be visible (docs/notes/renderer.md).
+// The Direct3D device's indexed mesh draws, with one texture and with two: the mesh's positions are projected by
+// the pipeline's transform object, every corner becomes a TL vertex, and meshes crossing the screen edges are
+// clipped. The new renderer gets the mesh in model space once it is visible. See docs/notes/models.md ("Renderer").
 #include "clip.h"
 
 #include "ei/hook.h"
 #include "device_buffers.h"
-#include "model.h"   // CTransformPipeline, ITransformPipeline
+#include "model.h"
 #include "render/render.h"
 #include "texture.h"
 #include "lib/nan_audit.h"
@@ -19,7 +15,7 @@
 
 namespace {
 
-struct DeviceCorner {           // 6 bytes
+struct DeviceCorner {
     std::uint16_t position;   // into the projected vertices
     std::uint16_t colour;     // into the colour and specular arrays
     std::uint16_t uv;         // into the texture coordinates
@@ -48,7 +44,7 @@ struct MeshArgs {
     const float* uOffset;         // the arguments themselves (their bits are compared and added)
     const float* vOffset;
     int alpha;                    // the low byte, with flag 4
-    int flags;                    // 1 screen bounds, 2 clip, 4 colours from the device (+0x150) and alpha
+    int flags;                    // 1 screen bounds, 2 clip, 4 colours from the device (colour_) and alpha
 };
 
 struct Textures {
@@ -65,17 +61,12 @@ using devicebuffers::Projected;
 using devicebuffers::CornerOutcodes;
 using devicebuffers::Outcodes;
 
-// The device (thiscall): the screen bounds of projected vertices (the array and 0) or of clipped TL vertices (the
-// array and their outcodes); the draws with one or two textures: primitive, FVF, vertices, count, indices, count,
-// flags.
-
 TLVertex* VertexData() { return Vertices().data; }
 
 // The pipeline's screen stack (1) and clip-space stack (2), whose top matrices project the mesh.
 constexpr int kScreenStack = 1;
 constexpr int kClipStack = 2;
 
-// *out = *offset + *value: FLD the offset, FADD the coordinate, FSTP.
 void AddOffset(const float* offset, const float* value, float* out) { *out = *offset + *value; }
 
 // --- The steps -----------------------------------------------------------------------------------
@@ -121,8 +112,7 @@ void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* ind
     }
 }
 
-// The TL vertices are read by nothing when the new renderer draws the mesh (
-// render::MeshCornersSkipped): the passes still go to the device with the same counts.
+// The TL vertices are read by nothing when the new renderer draws the mesh: the passes still go to the device.
 void DrawOnScreen(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
     if (a.flags & 1) device->BoundsOfProjected(&Projected(), 0);
     Vertices().SetSizeDiscard(a.cornerCount);

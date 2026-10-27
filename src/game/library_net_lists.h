@@ -1,12 +1,8 @@
 #pragma once
 
-// The connection's STLport lists whose elements own something (docs/notes/standalone.md):
-// the send history (list<SentPacket>, each packet owning a list<SentItem> of counted entries), the
-// freed-id batches (list<vector<FreedId>>) and the reliable chunk lists (list<ReliableChunk>, plain
-// bytes), with the element policies their copy constructors, default inserts, erase,
-// clear and ~list use; the session's clients find_if by peer address and the counted pointer's
-// init. Registered in library_net_lists.cpp.
-// Thiscalls are __fastcall with an unused EDX.
+// The connection's STLport lists whose elements own something (docs/notes/standalone.md): the send history, the
+// freed-id batches and the reliable chunk lists, with their element policies; the session's clients' find_if by
+// peer address and the counted pointer's init.
 
 #include "net_connection.h"
 
@@ -89,7 +85,6 @@ struct ChunkElement {
 
 // ---- The members -----------------------------------------------------------------------------------
 
-
 using SentItemAbi = stlp::ListAbi<SentRecord, SentRecordElement>;
 using SentPacketAbi = stlp::ListAbi<PacketRecord, PacketRecordElement>;
 using FreedBatchAbi = stlp::ListAbi<FreedIds, FreedIdsElement>;
@@ -108,14 +103,12 @@ static_assert(sizeof(ClientsNode) == sizeof(net::ClientNode));
 struct ClientsIterator {
     ClientsNode* node;
 
-    // find_if(first, last, same peer address): the first node
-    // whose connection's address has the 16 bytes of `address`, or last, into this; returns this.
+    // find_if(first, last, same peer address) into this; returns this.
     ClientsIterator* FindByAddress(ClientsNode* first, ClientsNode* last, const net::NetAddress* address);
 };
 static_assert(sizeof(ClientsIterator) == 4);
 
-// The clients' counted pointer made from a raw connection (ECX the pointer, EDX the
-// connection): stored without a reference; returns the pointer.
+// The clients' counted pointer made from a raw connection: stored without a reference; returns the pointer.
 net::Connection** __fastcall InitClientRef(net::Connection** ref, net::Connection* connection);
 
 } // namespace netlists
