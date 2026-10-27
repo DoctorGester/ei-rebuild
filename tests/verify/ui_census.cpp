@@ -26,21 +26,15 @@
 // checksummed again; a change with no hooked drawing, write lock, blit into it or session since the
 // last frame is reported too.
 #include "ui_census.h"
+#include "exe_objects.h"
 #include "harness_objects.h"
 #include "harness_windows.h"
 #include "harness_starter.h"
+#include "image/image_side.h"
 
-#include "../../src/game/console.h"
-#include "../../src/game/dx_surface.h"
-#include "../../src/game/texture.h"
-#include "../../src/game/ui.h"
-#include "../../src/game/ui_briefing.h"
-#include "../../src/game/ui_item_info.h"
-#include "../../src/game/ui_screens.h"
+#include "../../src/game/game_data.h"
 #include "../../src/hook/log.h"
-#include "../../src/render/render.h"
 #include "ei/hook.h"
-#include "game/game_data.h"
 
 #include <windows.h>
 #include <ddraw.h>
@@ -65,8 +59,10 @@ namespace {
 
 // A holder's DIB section (ClientBitmap) and whether a DC is one 005FDC00 gave out (IsSurfaceMemoryDc): the image's
 // surfaces only. In game.exe the holders keep DirectDraw surfaces and nothing of ours runs (H30).
-HBITMAP CensusClientBitmap(const void* holder) { return ei::Standalone() ? ClientBitmap(holder) : nullptr; }
-bool CensusMemoryDc(HDC dc) { return ei::Standalone() && IsSurfaceMemoryDc(dc); }
+HBITMAP CensusClientBitmap(const void* holder) {
+    return ei::Standalone() ? static_cast<HBITMAP>(image::ClientBitmap(holder)) : nullptr;
+}
+bool CensusMemoryDc(HDC dc) { return ei::Standalone() && image::IsSurfaceMemoryDc(dc); }
 
 constexpr unsigned kMaxDetails = 8;                  // distinct details kept per row
 
@@ -164,7 +160,7 @@ struct State {
     std::set<std::uintptr_t> patchedBases;
     std::vector<PatchedVtable> vtables;
     void* real[kApiCount] = {};
-    std::unordered_map<const CUiSurface*, const CUiWindow*> owners;
+    std::unordered_map<const void*, const void*> owners;   // surface -> window
     std::unordered_map<HBITMAP, Dib> dibs;
     std::unordered_map<HDC, Session> sessions;
     std::unordered_map<HDC, std::string> windowDcs;
@@ -224,8 +220,7 @@ bool CompiledSurfaceVtable(std::uintptr_t vtable) {
     std::uintptr_t locator = 0, type = 0;
     if (!vtable || !SafeRead(reinterpret_cast<const void*>(vtable - 4), &locator, sizeof(locator))) return false;
     if (!locator || !SafeRead(reinterpret_cast<const void*>(locator + 0x0C), &type, sizeof(type))) return false;
-    return type == reinterpret_cast<std::uintptr_t>(&typeid(CUiSurface)) ||
-           type == reinterpret_cast<std::uintptr_t>(&typeid(CUiScrollingSurface));
+    return image::IsSurfaceType(type);
 }
 
 // The surfaces' tables: game.exe's data, or the image's classes.
@@ -236,23 +231,39 @@ bool SurfaceVtable(std::uintptr_t vtable) {
 // The members of a CUiSurface the census reads; false when it cannot be read or is no surface.
 struct SurfaceView {
     HDC dc = nullptr;
-    CDXSurface* holder = nullptr;
+    void* holder = nullptr;   // a CDXSurface
     int width = 0, height = 0;
 };
 
-bool ReadSurface(const CUiSurface* surface, SurfaceView* view) {
+// The surface read through a copy: game.exe's through its view (exe_objects.h), the image's by our class.
+bool ReadSurface(const void* surface, SurfaceView* view) {
     if (!surface) return false;
-    alignas(4) unsigned char raw[sizeof(CUiSurface)];
-    if (!SafeRead(surface, raw, sizeof(raw))) return false;
-    const auto* copy = reinterpret_cast<const CUiSurface*>(raw);
+    alignas(8) unsigned char raw[256];
+    const std::size_t size = ei::Standalone() ? image::SurfaceSize() : sizeof(exe::CUiSurface);
+    if (size > sizeof(raw) || !SafeRead(surface, raw, size)) return false;
     std::uintptr_t vtable = 0;
     std::memcpy(&vtable, raw, sizeof(vtable));
     if (!SurfaceVtable(vtable)) return false;
-    view->dc = copy->dc_;
+    if (ei::Standalone()) {
+        image::SurfaceFields fields;
+        image::ReadSurfaceFields(raw, &fields);
+        view->dc = static_cast<HDC>(fields.dc);
+        view->holder = fields.holder;
+        view->width = fields.width;
+        view->height = fields.height;
+        return true;
+    }
+    const auto* copy = reinterpret_cast<const exe::CUiSurface*>(raw);
+    view->dc = static_cast<HDC>(copy->dc_);
     view->holder = copy->holder_;
     view->width = copy->width_;
     view->height = copy->height_;
     return true;
+}
+
+// Where a holder keeps its DirectDraw surface (CDXSurface::surface), for SafeRead.
+const void* HolderSurfaceField(void* holder) {
+    return ei::Standalone() ? image::HolderSurfaceField(holder) : &static_cast<const exe::CDXSurface*>(holder)->surface;
 }
 
 // --- labels ----------------------------------------------------------------------------------------
@@ -271,17 +282,27 @@ std::string Size(int width, int height) {
 
 
 // "W<window vtable>#<index in its surfaces>" for a window's surface.
-std::string WindowLabel(const CUiWindow* window, const CUiSurface* surface) {
+std::string WindowLabel(const void* window, const void* surface) {
     std::uintptr_t vtable = 0;
     if (!SafeRead(window, &vtable, sizeof(vtable))) return "W?";
     vtable = WindowKind(window);  // game.exe's table of the window's kind
-    CUiSurface** data = nullptr;
+    // The window's surfaces (an aligned array: data, size), where each side keeps them.
+    const void* dataField = nullptr;
+    const void* sizeField = nullptr;
+    if (ei::Standalone()) {
+        image::WindowSurfaceFields(window, &dataField, &sizeField);
+    } else {
+        const auto* view = static_cast<const exe::CUiWindow*>(window);
+        dataField = &view->surfaces_.data;
+        sizeField = &view->surfaces_.size;
+    }
+    const void* const* data = nullptr;
     int size = 0;
-    SafeRead(&window->surfaces_.data, &data, sizeof(data));
-    SafeRead(&window->surfaces_.size, &size, sizeof(size));
+    SafeRead(dataField, &data, sizeof(data));
+    SafeRead(sizeField, &size, sizeof(size));
     int index = -1;
     for (int i = 0; i < size && i < 64 && data; ++i) {
-        CUiSurface* entry = nullptr;
+        const void* entry = nullptr;
         if (SafeRead(data + i, &entry, sizeof(entry)) && entry == surface) index = i;
     }
     return "W" + Hex(ei::OriginalAddress(vtable)) + "#" + std::to_string(index);
@@ -290,8 +311,8 @@ std::string WindowLabel(const CUiWindow* window, const CUiSurface* surface) {
 // Every surface the census can name: a window's (with the window) or one of the interface's own
 // (with its name).
 struct Candidate {
-    const CUiSurface* surface;
-    const CUiWindow* window;
+    const void* surface;
+    const void* window;
     const char* name;
     std::string Label() const { return window ? WindowLabel(window, surface) : name; }
 };
@@ -300,15 +321,24 @@ std::vector<Candidate> Candidates(const State& s) {
     std::vector<Candidate> out;
     out.reserve(s.owners.size() + 6);
     for (const auto& [surface, window] : s.owners) out.push_back({surface, window, nullptr});
-    const auto* ui = HarnessInterface();
-    out.push_back({ui->backdrop_, nullptr, "backdrop"});
-    out.push_back({ui->secondBackdrop_, nullptr, "backdrop2"});
-    out.push_back({ui->fpsSurface_, nullptr, "fps"});
-    out.push_back({ui->statusSurface_, nullptr, "status"});
-    if (const console::ConsoleWindow* console = ui->console_) {
-        void* surface = nullptr;
-        if (SafeRead(&console->surface_, &surface, sizeof(surface)))
-            out.push_back({static_cast<const CUiSurface*>(surface), nullptr, "console"});
+    image::InterfaceSurfaces ui;
+    if (ei::Standalone()) {
+        image::ReadInterfaceSurfaces(&ui);
+    } else {
+        const exe::CInterface3D* view = harness_objects::Interface();
+        ui.backdrop = view->backdrop_;
+        ui.secondBackdrop = view->secondBackdrop_;
+        ui.fps = view->fpsSurface_;
+        ui.status = view->statusSurface_;
+        if (view->console_) ui.consoleSurfaceField = &view->console_->surface_;
+    }
+    out.push_back({ui.backdrop, nullptr, "backdrop"});
+    out.push_back({ui.secondBackdrop, nullptr, "backdrop2"});
+    out.push_back({ui.fps, nullptr, "fps"});
+    out.push_back({ui.status, nullptr, "status"});
+    if (ui.consoleSurfaceField) {
+        const void* surface = nullptr;
+        if (SafeRead(ui.consoleSurfaceField, &surface, sizeof(surface))) out.push_back({surface, nullptr, "console"});
     }
     return out;
 }
@@ -1398,7 +1428,7 @@ void HookModules(State& s) {
 
 // --- owners ---------------------------------------------------------------------------------------
 
-void OnOwner(const CUiWindow* window, const CUiSurface* surface, bool added) {
+void OnOwner(const void* window, const void* surface, bool added) {
     State& s = S();
     std::lock_guard<std::mutex> hold(s.lock);
     if (added) s.owners[surface] = window;
@@ -1413,7 +1443,7 @@ void RefreshSurfaces(State& s) {
         if (!ReadSurface(c.surface, &view) || !view.holder) continue;
         HBITMAP bitmap = CensusClientBitmap(view.holder);
         void* dd = nullptr;
-        SafeRead(&view.holder->surface, &dd, sizeof(dd));
+        SafeRead(HolderSurfaceField(view.holder), &dd, sizeof(dd));
         if (!bitmap) continue;
         Dib* dib = TrackDib(s, bitmap, c.Label());
         if (!dib || !dd) continue;
@@ -1428,7 +1458,7 @@ void RefreshSurfaces(State& s) {
 // memory, often on a surface made in the same frame or one no window keeps (the global map's pick
 // picture, Rgb565Copy's temporary copy), which the DirectDraw hooks cannot place; and our callers
 // call them directly, past the DirectDraw hooks. Counted as a "read" or "write" row of the surface.
-void OnPixels(const CUiSurface* surface, const char* what, bool writes, void* const* frame) {
+void OnPixels(const void* surface, const char* what, bool writes, void* const* frame) {
     State& s = S();
     std::lock_guard<std::mutex> hold(s.lock);
     if (!s.installed) return;
@@ -1486,8 +1516,7 @@ void Install() {
     if (self) AddCodeRanges(s, self, 'E', "ei_hook.dll");
     int count = PatchModule(s, GetModuleHandleA(nullptr));
     if (ei::Standalone()) {   // ours draws the interface only in the image
-        g_uiSurfaceOwnerObserver = &OnOwner;
-        g_uiSurfacePixelObserver = &OnPixels;
+        image::ObserveSurfaces(&OnOwner, &OnPixels);
     }
     ei::Log("census: interface drawing census on (ui_census.csv); game.exe: %d gdi32 / user32 import slots hooked", count);
 }

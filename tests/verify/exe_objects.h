@@ -28,6 +28,12 @@ struct Quaternion {
 };
 static_assert(sizeof(Quaternion) == 0x10);
 
+// A Windows RECT.
+struct Rect {
+    int left, top, right, bottom;
+};
+static_assert(sizeof(Rect) == 0x10);
+
 // MFC's CString: a pointer to the text (its header before it).
 struct CString {
     const char* text;
@@ -533,11 +539,14 @@ static_assert(sizeof(CEffectMissile) == 0x158);
 
 // A spell (spell.h).
 struct CSpell : CEngineObject {
-    std::uint8_t unknown1C[0x4];
+    std::uint8_t prototypeIndex_;           // +0x1C
+    std::uint8_t unknown1D[0x3];
     std::uint32_t duration_;                // +0x20
     float damage_;                          // +0x24
     float radius_;                          // +0x28
-    std::uint8_t unknown2C[0x30];
+    std::uint8_t unknown2C[0x10];
+    std::uint32_t targetFlags_;             // +0x3C
+    std::uint8_t unknown40[0x1C];
 };
 static_assert(sizeof(CSpell) == 0x5C);
 
@@ -775,7 +784,9 @@ struct CWorld : CEngineObject {
     std::uint32_t windStrength_;            // +0x30
     std::uint8_t unknown34[0x4];
     CPlayerManager* players_;               // +0x38
-    std::uint8_t unknown3C[0x28];
+    std::uint8_t unknown3C[0x20];
+    RefPtr shared5C_;                       // +0x5C
+    std::uint8_t unknown60[0x4];
     int tick_;                              // +0x64
     int updateCount_;                       // +0x68
     std::uint8_t paused_;                   // +0x6C
@@ -969,6 +980,247 @@ struct CBriefingScreen {
     std::uint8_t unknown284[0x20];
 };
 static_assert(sizeof(CBriefingScreen) == 0x2A4);
+
+// An item (item.h).
+struct CItem : CEngineObject {
+    std::uint8_t unknown1C[0x28];
+    CSpell* spell_;                         // +0x44
+    std::uint8_t unknown48[0x4];
+};
+static_assert(sizeof(CItem) == 0x4C);
+
+// A quest item (item.h).
+struct CItemQuest : CItem {
+    std::uint32_t questItemId_;             // +0x4C
+};
+static_assert(sizeof(CItemQuest) == 0x50);
+
+// A weapon (item.h).
+struct CItemWeapon : CItem {
+    std::uint8_t unknown4C[0x10];
+};
+static_assert(sizeof(CItemWeapon) == 0x5C);
+
+// A unit's client half (unit_client_models.h).
+struct CUnitClientSpecific {
+    std::uint8_t unknown0[0xCC];
+    void* faceTexture;                      // +0xCC
+    std::uint8_t unknownD0[0xC];
+};
+static_assert(sizeof(CUnitClientSpecific) == 0xDC);
+
+// The party manager (party_manager.h).
+struct PartyManager {
+    std::uint8_t unknown0[0x38];
+    std::uint8_t templates[12];             // +0x38
+};
+static_assert(sizeof(PartyManager) == 0x44);
+
+// A cursor image (ui_cursor.h).
+struct CursorImage {
+    std::uint8_t unknown0[0x14];
+    int hotX;                               // +0x14
+    int hotY;                               // +0x18
+    std::uint8_t unknown1C[0x4];
+};
+static_assert(sizeof(CursorImage) == 0x20);
+
+// The mouse cursor (ui_cursor.h).
+struct CCursor {
+    int mode_;                              // +0x00
+    std::uint8_t unknown4[0x8];
+    int imageShown_;                        // +0x0C
+    CursorImage* image_;                    // +0x10
+    std::uint8_t unknown14[0x84];
+    void* thread_;                          // +0x98
+    std::uint8_t unknown9C[0x1C];
+};
+static_assert(sizeof(CCursor) == 0xB8);
+
+namespace options {
+
+// The game's options (options.h).
+struct GameOptions {
+    std::uint8_t unknown0[0xC8];
+    int enableWaterWaves_;                  // +0xC8
+    std::uint8_t unknownCC[0x13C];
+    int showTutorial_;                      // +0x208
+    std::uint8_t unknown20C[0x5C];
+    CString masterServerName_;              // +0x268
+};
+static_assert(sizeof(GameOptions) == 0x26C);
+
+} // namespace options
+
+// The game flow (world.h).
+struct GameFlow {
+    int state_;                             // +0x00
+    CString requestTarget_;                 // +0x04
+    std::uint8_t unknown8[0x7C];
+};
+static_assert(sizeof(GameFlow) == 0x84);
+
+// The interface's screen fade (ui.h).
+struct CScreenFade {
+    std::uint8_t unknown0[0x4];
+    float alpha_;                           // +0x04
+    std::uint8_t active_;                   // +0x08
+    std::uint8_t unknown9[0xB];
+};
+static_assert(sizeof(CScreenFade) == 0x14);
+
+// A surface holder (texture.h).
+struct CDXSurface {
+    std::uint8_t unknown0[0x10];
+    void* surface;                          // +0x10
+    std::uint8_t unknown14[0xC];
+};
+static_assert(sizeof(CDXSurface) == 0x20);
+
+// An interface surface (ui.h).
+struct CUiSurface {
+    std::uint8_t unknown0[0x8];
+    void* dc_;                              // +0x08
+    std::uint8_t unknownC[0x4];
+    void* holder_;                          // +0x10
+    int width_;                             // +0x14
+    int height_;                            // +0x18
+    std::uint8_t unknown1C[0x1C];
+};
+static_assert(sizeof(CUiSurface) == 0x38);
+
+// A window's clickable region (ui.h).
+struct CUiRegion {
+    std::uint8_t unknown0[0x14];
+    Rect bounds_;                           // +0x14
+    std::uint8_t unknown24[0x1];
+    bool enabled_;                          // +0x25
+    std::uint8_t unknown26[0x2];
+    int offsetX_;                           // +0x28
+    int offsetY_;                           // +0x2C
+    std::uint8_t unknown30[0x4];
+};
+static_assert(sizeof(CUiRegion) == 0x34);
+
+// An interface window (ui.h).
+struct CUiWindow {
+    std::uint8_t unknown0[0x118];
+    AlignedArray<CUiSurface*> surfaces_;    // +0x118
+    AlignedArray<CUiRegion*> regions_;      // +0x128
+    std::uint8_t unknown138[0x10];
+};
+static_assert(sizeof(CUiWindow) == 0x148);
+
+namespace console {
+
+// The console (console.h).
+struct ConsoleWindow {
+    std::uint8_t unknown0[0x4];
+    CUiSurface* surface_;                   // +0x04
+    std::uint8_t unknown8[0x74];
+};
+static_assert(sizeof(ConsoleWindow) == 0x7C);
+
+} // namespace console
+
+// The interface manager (ui.h).
+struct CInterface3D {
+    int width_;                             // +0x00
+    int height_;                            // +0x04
+    std::uint8_t unknown8[0xC];
+    console::ConsoleWindow* console_;       // +0x14
+    CScreenFade* fade_;                     // +0x18
+    void* root_;                            // +0x1C
+    CUiSurface* fpsSurface_;                // +0x20
+    std::uint8_t unknown24[0x1C];
+    CUiWindow* queuedWindow_;               // +0x40
+    bool closeAll_;                         // +0x44
+    std::uint8_t unknown45[0xF];
+    CUiSurface* backdrop_;                  // +0x54
+    CUiSurface* secondBackdrop_;            // +0x58
+    std::uint8_t unknown5C[0x8];
+    CUiSurface* statusSurface_;             // +0x64
+    std::uint8_t unknown68[0x48];
+};
+static_assert(sizeof(CInterface3D) == 0xB0);
+
+// The save / load window (ui.h).
+struct CSaveLoadWindow {
+    std::uint8_t unknown0[0x179];
+    bool sliding_;                          // +0x179
+    std::uint8_t unknown17A[0x1A];
+};
+static_assert(sizeof(CSaveLoadWindow) == 0x194);
+
+// The options window (ui.h).
+struct COptionsWindow {
+    std::uint8_t unknown0[0x3F5];
+    bool sliding_;                          // +0x3F5
+    std::uint8_t unknown3F6[0x22];
+};
+static_assert(sizeof(COptionsWindow) == 0x418);
+
+// The battle screen (ui.h).
+struct CBattleScreen {
+    std::uint8_t unknown0[0x168];
+    Array<CUnit*> party_;                   // +0x168
+    std::uint8_t unknown17C[0xB4];
+};
+static_assert(sizeof(CBattleScreen) == 0x230);
+
+// An entry of the quick item panel (ui.h, CHudQuickItems::Entry).
+struct CHudQuickItemsEntry {
+    bool own;                               // +0x00
+    std::uint8_t unknown1[0x3];
+    int id;                                 // +0x04
+    CItem* item;                            // +0x08
+};
+static_assert(sizeof(CHudQuickItemsEntry) == 0xC);
+
+// The quick item panel (ui.h).
+struct CHudQuickItems {
+    std::uint8_t unknown0[0x150];
+    int selected_;                          // +0x150
+    CUnit* unit_;                           // +0x154
+    Array<CHudQuickItemsEntry> entries_;    // +0x158
+    int regionItem_[8];                     // +0x16C
+    std::uint8_t unknown18C[0x14];
+    using Entry = CHudQuickItemsEntry;
+};
+static_assert(sizeof(CHudQuickItems) == 0x1A0);
+
+// The spell column (ui.h).
+struct CHudSpellColumn {
+    std::uint8_t unknown0[0x14C];
+    int count_;                             // +0x14C
+    int selected_;                          // +0x150
+    CUnit* unit_;                           // +0x154
+    std::uint8_t unknown158[0x14];
+};
+static_assert(sizeof(CHudSpellColumn) == 0x16C);
+
+// The render device (texture.h).
+struct CTextureDevice {
+    std::uint8_t unknown0[0x8];
+    int lastLoadResult_;                    // +0x08
+    void* ddraw_;                           // +0x0C
+    std::uint8_t unknown10[0x16C];
+};
+static_assert(sizeof(CTextureDevice) == 0x17C);
+
+// The scene renderer's device (model.h).
+struct HeldDevice {
+    CTextureDevice* device;                 // +0x00
+};
+static_assert(sizeof(HeldDevice) == 0x4);
+
+// The scene renderer (model.h).
+struct CSceneRenderer {
+    std::uint8_t unknown0[0x20];
+    HeldDevice device_;                     // +0x20
+    std::uint8_t unknown24[0x38];
+};
+static_assert(sizeof(CSceneRenderer) == 0x5C);
 
 namespace net {
 
