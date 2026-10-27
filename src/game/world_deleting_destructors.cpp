@@ -1,4 +1,4 @@
-// The scalar deleting destructors of the world range whose bodies are rewritten elsewhere (A-W14).
+// The scalar deleting destructors of the world range whose bodies are rewritten elsewhere.
 // See world_deleting_destructors.h.
 #include "world_deleting_destructors.h"
 

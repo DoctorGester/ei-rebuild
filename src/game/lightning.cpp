@@ -429,7 +429,7 @@ EI_REWRITTEN(0x00467E10, CLightning::SetEndpoints);
 // --- CLightningManager --------------------------------------------------------------------------
 
 int CLightningManager::DrawAll(void* device) {
-    // The manager's object list (the bolts, in registration order).
+    // The manager's object list (the bolts, in creation order).
     ObjectList::Node* node = objectList_.head;
     while (node) {
         ObjectList::Node* current = node;

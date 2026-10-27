@@ -5,7 +5,7 @@
 //   the battle screen's drawing applies nogui's GUI visibility to its panels.
 // - AutoExec: the "Console AutoExec" lines (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a
 //   REG_MULTI_SZ, then the lines of 2utoexec.cfg) run before each of three console executions
-//   (three places in the console executions; the host functions are not rewritten yet).
+//   (three places in the console executions; the host functions are still the game's).
 // The texts are addon's. Its own state (the two log levels, the GUI flags) lives here.
 #include "console.h"
 #include "options.h"

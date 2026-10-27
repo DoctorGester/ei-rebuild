@@ -4,7 +4,7 @@
 // Both talk to Direct3D 7 through the renderer (TheRenderDevice(): d3dDevice_ the
 // IDirect3DDevice7, lastLoadResult_ the last state block result) and to the scene pipeline's matrix
 // stacks (ScenePipeline()), exactly as the original: the same calls in the same order.
-// Callees are reached through their original addresses (rewritten ones included, so the verify
+// Callees are reached through their original addresses (the verify
 // build's wrappers see the calls).
 #include "ground_print.h"
 #include "lightning.h"

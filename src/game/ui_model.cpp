@@ -105,7 +105,7 @@ void CUiModel::Draw(CSceneRenderer* pass) {
 }
 EI_REWRITTEN(0x005FC2F0, CUiModel::Draw);
 
-// The figure's steps go through their addresses (rewritten, with wrappers).
+// The figure's steps go through their addresses.
 void CUiModel::Load(const char* name, const char* from, const char* to) {
     auto* manager = TheClientWorld()->MapObjectManager();
     auto* object = manager->CreateObjectAs<CObject3D>(kPreviewClass, kPreviewId);

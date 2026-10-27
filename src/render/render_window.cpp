@@ -38,7 +38,7 @@ bool g_failed = false;        // no swap chain could be made, or the device is g
 int g_presentFailures = 0;
 // Present waits for the vertical blank (sync interval 1) unless the settings file's "VSync" is 0 (render::
 // SetWaitForVsync, set before the first present) or the harness's virtual clock runs the game, where a frame's length
-// no longer depends on the display.
+// does not depend on the display.
 bool g_waitForVsync = true;
 bool g_allowTearing = false;  // the product's "VSync"=0 (render::SetVsync): the chain may tear (the harness's off does not)
 UINT g_chainFlags = 0;        // the flags the swap chain was made with (ResizeBuffers takes the same, Present's follow)

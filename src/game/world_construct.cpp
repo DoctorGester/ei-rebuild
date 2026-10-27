@@ -1,5 +1,5 @@
 // The two worlds (g_serverWorld, g_clientWorld) and their constructors: CWorldServer
-// and CWorldClient. Only their static initialisers (ported here on the names) call them.
+// and CWorldClient. Only their static initialisers (defined here on the names) call them.
 // The members with C++ constructors (the strings, the zone header) are the compiler's; the others' constructors are
 // written out in the original's order (the inlined ones) or called (the out-of-line ones).
 #include "world.h"
@@ -145,7 +145,7 @@ EI_REWRITTEN_SPECIAL(0x005612F0, CWorldClient::CWorldClient);
 // ---- The two worlds -------------------------------------------------------------------------------
 
 // Zero at the start: built by their static initialisers in the list's order and destroyed by the
-// exit functions those register; all ported on the names
+// exit functions those register; all defined on the names
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<CWorldServer> g_serverWorld = /*007AFF60*/ {};
 constinit lib::StaticObject<CWorldClient> g_clientWorld = /*007AF5B8*/ {};

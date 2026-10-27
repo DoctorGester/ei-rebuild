@@ -2,7 +2,7 @@
 // replaces the function with the original followed by two hidden curtain sprites over the screen's
 // margins (widescreen::AddCurtains), which this reproduces; EI_Plugin.asi patches it too
 // (EiPluginFixes, reproduced: the figures' sex test), so it is hooked in a Rebirth launch too; nothing in the
-// rewritten code calls it but the screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
+// code calls it but the screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
 // ui_hero_stats and ui_hero_delete open the screen (the main menu's Multiplayer button).
 #include "party.h"
 #include "stl_sorts.h"
