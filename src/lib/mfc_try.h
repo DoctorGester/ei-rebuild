@@ -38,8 +38,8 @@ struct ExceptionLink {
     ExceptionLink(const ExceptionLink&) = delete;
     ExceptionLink& operator=(const ExceptionLink&) = delete;
 
-    ExceptionLink* previous;   // +0x00 m_pLinkPrev
-    void* exception;           // +0x04 m_pException: what the handler caught (deleted with the link)
+    ExceptionLink* previous;   // m_pLinkPrev
+    void* exception;           // m_pException: what the handler caught (deleted with the link)
 };
 static_assert(sizeof(ExceptionLink) == 8);
 

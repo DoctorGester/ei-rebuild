@@ -377,7 +377,7 @@ using AnimationSteps = ArrayAbi<AnimationStep12, InitElements<AnimationStep12, I
 // A unit's animation list (game/combat.h's AnimationSteps): the steps' array and a
 // dword copied along with them.
 struct AnimationStepList : AnimationSteps::Array {
-    int extra;   // +0x14
+    int extra;
 };
 static_assert(sizeof(AnimationStepList) == 0x18);
 

@@ -174,7 +174,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         message->parts.SetSize(0, -1);
         const char* prototypeName = record->texts[5];
         int type = PrototypeObjectClass(prototypeName);
-        message->parentId = type;   // +0x50: the object's type
+        message->parentId = type;   // : the object's type
         if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
 
         int id = static_cast<int>(record->unitId);

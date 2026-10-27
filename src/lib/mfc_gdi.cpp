@@ -155,7 +155,6 @@ EI_REWRITTEN_SPECIAL(0x0070A0E2, CPen::CPen);
 EI_REWRITTEN(0x0070BBE5, CFont::CreatePointFont);
 EI_REWRITTEN(0x0070BC2A, CFont::CreatePointFontIndirect);
 
-// ---- CDC ------------------------------------------------------------------------------------------
 
 CDC::~CDC() {
     if (hdc) gameapi::DeleteDC(Detach());

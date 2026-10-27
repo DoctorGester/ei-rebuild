@@ -55,7 +55,6 @@ int SafeLength(const char* text) { return text ? StrLen(text) : 0; }
 
 } // namespace
 
-// ---- CFixedAlloc --------------------------------------------------------------------------------
 
 CFixedAlloc* CFixedAlloc::Construct(unsigned allocSize, unsigned blockSize) {
     freeList_ = nullptr;

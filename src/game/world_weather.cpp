@@ -28,14 +28,14 @@ int& WeatherDelay() { return g_weatherDelay; }
 // Constants read from the exe (rule 9).
 double MapScale() { return 1.1920928957853683e-7 /*0073FA40*/; }        // 2^-23: a random word to map coordinates
 double OffsetScale() { return 3.259629011913116e-8 /*0073FA38*/; }     // a random word to 0..140
-float OffsetCentre() { return 70.0f /*0073FA34*/; }      // 70
-float MinDistance2() { return 900.0f /*0073FA30*/; }      // 900
+float OffsetCentre() { return 70.0f /*0073FA34*/; }
+float MinDistance2() { return 900.0f /*0073FA30*/; }
 double BoltScale() { return 1.1827796700370451e-7 /*0073FA28*/; }
 double BoltSpread() { return 9.31322574832319e-10 /*0073FA20*/; }
-float Two() { return 2.0f /*0073CDB8*/; }               // 2
-float Five() { return 5.0f /*0073BF34*/; }              // 5
-float BoltHeight() { return 40.0f /*0073D72C*/; }        // 40
-float One() { return 1.0f /*0073B84C*/; }               // 1
+float Two() { return 2.0f /*0073CDB8*/; }
+float Five() { return 5.0f /*0073BF34*/; }
+float BoltHeight() { return 40.0f /*0073D72C*/; }
+float One() { return 1.0f /*0073B84C*/; }
 
 constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
@@ -155,7 +155,7 @@ namespace {
 //  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
 CScript& ScriptQueue() { return *TheServerWorld()->SecondScript(); }   // a command queue (adds a line)
 
-float Half() { return 0.5f /*0073B86C*/; }   // 0.5
+float Half() { return 0.5f /*0073B86C*/; }
 
 } // namespace
 

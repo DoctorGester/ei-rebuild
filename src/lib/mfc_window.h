@@ -62,21 +62,21 @@ public:
     virtual BOOL GetExtraConnectionPoints(void*) { ei::UnportedSlot(0x007041BF); }         // 18
     virtual void* GetConnectionHook(const IID&) { ei::UnportedSlot(0x007041BA); }          // 19
 
-    long refCount;              // +0x04 m_dwRef
-    void* outerUnknown;         // +0x08 m_pOuterUnknown
-    void* innerUnknownVtable;   // +0x0C m_xInnerUnknown
-    void* dispatchVtable;       // +0x10 m_xDispatch (a COleDispatchImpl once automation is enabled)
-    BOOL resultExpected;        // +0x14 m_bResultExpected
-    void* connectionPoints;     // +0x18 m_xConnPtContainer
+    long refCount;              // m_dwRef
+    void* outerUnknown;         // m_pOuterUnknown
+    void* innerUnknownVtable;   // m_xInnerUnknown
+    void* dispatchVtable;       // m_xDispatch (a COleDispatchImpl once automation is enabled)
+    BOOL resultExpected;        // m_bResultExpected
+    void* connectionPoints;     // m_xConnPtContainer
 };
 static_assert(sizeof(CCmdTarget) == 0x1C);
 
 // COleControlSite (the members used here; the image makes none).
 class COleControlSite : public CCmdTarget {
 public:
-    void* container;            // +0x1C m_pCtrlCont
-    HWND window;                // +0x20 m_hWnd
-    CWnd* windowControl;        // +0x24 m_pWndCtrl
+    void* container;            // m_pCtrlCont
+    HWND window;                // m_hWnd
+    CWnd* windowControl;        // m_pWndCtrl
 };
 
 // CWnd (0x3C bytes). Game.exe's tables: CWnd, CTempWnd (mfc_window.cpp): 46 slots (MFC 4.2's CWnd
@@ -129,14 +129,14 @@ public:
     virtual BOOL IsFrameWnd() const { ei::UnportedSlot(0x00707877); }                                // 44
     virtual BOOL SetOccDialogInfo(void*) { ei::UnportedSlot(0x00707503); }                           // 45
 
-    HWND window;                    // +0x1C m_hWnd
-    HWND owner = nullptr;           // +0x20 m_hWndOwner
-    unsigned flags = 0;             // +0x24 m_nFlags
-    WNDPROC superProc = nullptr;    // +0x28 m_pfnSuper
-    int modalResult = 0;            // +0x2C m_nModalResult
-    void* dropTarget = nullptr;     // +0x30 m_pDropTarget
-    CObject* controlContainer = nullptr;        // +0x34 m_pCtrlCont (a COleControlContainer)
-    COleControlSite* controlSite = nullptr;     // +0x38 m_pCtrlSite
+    HWND window;                    // m_hWnd
+    HWND owner = nullptr;           // m_hWndOwner
+    unsigned flags = 0;             // m_nFlags
+    WNDPROC superProc = nullptr;    // m_pfnSuper
+    int modalResult = 0;            // m_nModalResult
+    void* dropTarget = nullptr;     // m_pDropTarget
+    CObject* controlContainer = nullptr;        // m_pCtrlCont (a COleControlContainer)
+    COleControlSite* controlSite = nullptr;     // m_pCtrlSite
 };
 static_assert(sizeof(CWnd) == 0x3C);
 
@@ -155,7 +155,7 @@ public:
     virtual void DrawItem(DRAWITEMSTRUCT*) {}                // 3
     virtual void MeasureItem(MEASUREITEMSTRUCT*) {}          // 4
 
-    HMENU menu = nullptr;   // +0x04 m_hMenu
+    HMENU menu = nullptr;   // m_hMenu
 };
 static_assert(sizeof(CMenu) == 8);
 

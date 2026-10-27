@@ -50,7 +50,6 @@ EI_REWRITTEN(0x0070059D, SetAfxNewHandler);
 EI_REPLACE_STANDALONE(0x0070AB1A, CriticalNewHandler);
 EI_REPLACE_STANDALONE(0x0070058F, DefaultNewHandler);
 
-// ---- CMapPtrToPtr ---------------------------------------------------------------------------------
 
 CMapPtrToPtr::CMapPtrToPtr(int size) : blockSize(size) {}
 
@@ -183,7 +182,6 @@ EI_REWRITTEN(0x0070048B, CMapPtrToPtr::At);
 EI_REWRITTEN(0x007004DB, CMapPtrToPtr::RemoveKey);
 EI_REWRITTEN(0x0070051D, CMapPtrToPtr::GetNextAssoc);
 
-// ---- CHandleMap -----------------------------------------------------------------------------------
 
 CHandleMap::~CHandleMap() { DeleteTemp(); }
 

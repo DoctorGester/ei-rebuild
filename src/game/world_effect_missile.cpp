@@ -53,7 +53,6 @@ bool SnapshotReadToEnd() {
 
 } // namespace
 
-// --- CEffectMissile ------------------------------------------------------------------------------
 
 int CEffectMissile::Steer() {
     int flying = 1;
@@ -100,7 +99,6 @@ void CEffectMissile::SetTarget(int objectId) {
     targetId_ = objectId;
 }
 
-// --- CEffectArrow --------------------------------------------------------------------------------
 
 
 int CEffectArrow::RunTick() {

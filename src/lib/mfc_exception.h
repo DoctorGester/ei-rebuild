@@ -30,7 +30,7 @@ public:
     // leaves it; the box ignores it).
     virtual int ReportError(unsigned type, unsigned error);
 
-    BOOL autoDelete;    // +0x04
+    BOOL autoDelete;
 };
 
 // CSimpleException (0x98 bytes): the exceptions MFC keeps one static object of, their message loaded from the
@@ -48,11 +48,11 @@ public:
     // The message loaded from string `resourceId` (initialized and loaded set).
     void InitString();
 
-    BOOL reserved;              // +0x08 (no code of the exe's touches it)
-    BOOL initialized = FALSE;   // +0x0C m_bInitialized (the message was looked up)
-    BOOL loaded = FALSE;        // +0x10 m_bLoaded (the message was found)
-    char message[128];          // +0x14 m_szMessage
-    unsigned resourceId;        // +0x94 m_nResourceID
+    BOOL reserved;              // (no code of the exe's touches it)
+    BOOL initialized = FALSE;   // m_bInitialized (the message was looked up)
+    BOOL loaded = FALSE;        // m_bLoaded (the message was found)
+    char message[128];          // m_szMessage
+    unsigned resourceId;        // m_nResourceID
 };
 static_assert(sizeof(CSimpleException) == 0x98);
 
@@ -103,9 +103,9 @@ public:
     // none); the help context is that prompt's id. Always TRUE.
     BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
 
-    int cause;          // +0x08 m_cause
-    long osError;       // +0x0C m_lOsError (-1: none)
-    CString fileName;   // +0x10 m_strFileName
+    int cause;          // m_cause
+    long osError;       // m_lOsError (-1: none)
+    CString fileName;   // m_strFileName
 };
 static_assert(sizeof(CFileException) == 0x14);
 
@@ -121,8 +121,8 @@ public:
     // As CFileException's, with AFX_IDP_ARCH_NONE + cause.
     BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
 
-    int cause;          // +0x08
-    CString fileName;   // +0x0C
+    int cause;
+    CString fileName;
 };
 static_assert(sizeof(CArchiveException) == 0x10);
 

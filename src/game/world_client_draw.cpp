@@ -247,7 +247,6 @@ int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* 
 }
 EI_REWRITTEN(0x0056A370, QueueScreenEntry);
 
-// ---- Render --------------------------------------------------------------------------
 
 int CWorldClient::Render() {
     // The world view for the new renderer's smooth option (multisampled, models sampled
@@ -418,7 +417,6 @@ void CWorldClient::HideWorldData() {
 }
 EI_REWRITTEN(0x00569B20, CWorldClient::HideWorldData);
 
-// ---- DrawPass ------------------------------------------------------------------------
 
 int CWorldClient::DrawPass() {
     Terrain* terrain = terrain_;

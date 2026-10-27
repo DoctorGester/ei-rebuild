@@ -276,7 +276,6 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
     return state->Flush();
 }
 
-// ---- SendZone ---------------------------------------------------------------------------------
 
 int CWorldServer::SendZone(CPlayer* player) {
     CMemoryStream message;

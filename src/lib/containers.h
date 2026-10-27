@@ -31,10 +31,10 @@ inline void FreeAligned32(void* data) { gamecrt::operator_delete(static_cast<voi
 // loaders, the interface's pointer arrays, the renderer's work buffers, ...).
 template <typename T>
 struct AlignedArray {
-    T* data;        // +0x00
-    int size;       // +0x04
-    int capacity;   // +0x08
-    int growBy;     // +0x0C 0 = size / 8 clamped to 4..1024
+    T* data;
+    int size;
+    int capacity;
+    int growBy;     // 0 = size / 8 clamped to 4..1024
 
     T& operator[](int index) { return data[index]; }
     const T& operator[](int index) const { return data[index]; }

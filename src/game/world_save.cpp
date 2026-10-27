@@ -149,7 +149,6 @@ void CWorldServer::UpdatePlayerTimes(float offset) {
     }
 }
 
-// ---- LoadSavedMapObjects ----------------------------------------------------------------------
 
 void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
     for (;;) {
@@ -316,7 +315,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     }
     AIMap()->BeginRefresh();
     loaded_ = 0;
-    AIMap()->refreshUnits = false;   // +0x172
+    AIMap()->refreshUnits = false;
 
     ReadStringInto(stream, mobName);
     ReadStringInto(stream, mapName);

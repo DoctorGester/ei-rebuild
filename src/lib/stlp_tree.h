@@ -24,11 +24,11 @@ struct RbNodeBase {
     static constexpr std::uint8_t kRed = 0;
     static constexpr std::uint8_t kBlack = 1;
 
-    std::uint8_t color;          // +0x00
+    std::uint8_t color;
     std::uint8_t unused_01[3];
-    RbNodeBase* parent;          // +0x04
-    RbNodeBase* left;            // +0x08
-    RbNodeBase* right;           // +0x0C
+    RbNodeBase* parent;
+    RbNodeBase* left;
+    RbNodeBase* right;
 
     static RbNodeBase* Minimum(RbNodeBase* x) {
         while (x->left) x = x->left;
@@ -92,12 +92,12 @@ template <typename K, typename V, typename L = TreeLess<K>>
 class map {
 public:
     struct Node {
-        std::uint8_t color;      // +0x00
+        std::uint8_t color;
         std::uint8_t unused_01[3];
-        Node* parent;            // +0x04
-        Node* left;              // +0x08
-        Node* right;             // +0x0C
-        K first;                 // +0x10
+        Node* parent;
+        Node* left;
+        Node* right;
+        K first;
         V second;
 
         RbNodeBase* Base() { return reinterpret_cast<RbNodeBase*>(this); }

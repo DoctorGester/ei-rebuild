@@ -42,7 +42,7 @@ public:
     HGDIOBJ Detach();                   // taken out of the permanent map; the old handle
     BOOL DeleteObject();                // FALSE without a handle; else detached and deleted
 
-    HGDIOBJ handle = nullptr;   // +0x04 m_hObject
+    HGDIOBJ handle = nullptr;   // m_hObject
 };
 static_assert(sizeof(CGdiObject) == 8);
 
@@ -136,9 +136,9 @@ public:
     void FillSolidRect(const RECT* rect, COLORREF colour);
     void FillSolidArea(int x, int y, int cx, int cy, COLORREF colour);  // FillSolidRect(x, y, cx, cy, colour)
 
-    HDC hdc = nullptr;          // +0x04 m_hDC
-    HDC attribDC = nullptr;     // +0x08 m_hAttribDC
-    BOOL printing = FALSE;      // +0x0C m_bPrinting
+    HDC hdc = nullptr;          // m_hDC
+    HDC attribDC = nullptr;     // m_hAttribDC
+    BOOL printing = FALSE;      // m_bPrinting
 };
 static_assert(sizeof(CDC) == 0x10);
 

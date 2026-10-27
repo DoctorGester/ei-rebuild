@@ -23,12 +23,12 @@ namespace mfc::impl {
 
 // CRuntimeClass: a class's record (mfc_runtime_class.h has the game's 41).
 struct CRuntimeClass {
-    const char* className;          // +0x00 m_lpszClassName
-    int objectSize;                 // +0x04 m_nObjectSize
-    unsigned schema;                // +0x08 m_wSchema (0xFFFF: not serializable)
-    void*(__stdcall* create)();     // +0x0C m_pfnCreateObject (null: not creatable)
-    const CRuntimeClass* baseClass; // +0x10 m_pBaseClass
-    CRuntimeClass* nextClass;       // +0x14 m_pNextClass (the module state's class list; AfxClassInit links it)
+    const char* className;          // m_lpszClassName
+    int objectSize;                 // m_nObjectSize
+    unsigned schema;                // m_wSchema (0xFFFF: not serializable)
+    void*(__stdcall* create)();     // m_pfnCreateObject (null: not creatable)
+    const CRuntimeClass* baseClass; // m_pBaseClass
+    CRuntimeClass* nextClass;       // m_pNextClass (the module state's class list; AfxClassInit links it)
 
     // A new object through `create`, or null (no create function, or a CException thrown
     // on the way, which is deleted).
@@ -52,9 +52,9 @@ inline gamecrt::NewHandler CriticalNewHandlerAt() { return ei::Code<gamecrt::New
 class CMapPtrToPtr final : public CObject {
 public:
     struct Assoc {
-        Assoc* next;    // +0x00
-        void* key;      // +0x04
-        void* value;    // +0x08
+        Assoc* next;
+        void* key;
+        void* value;
     };
 
     // Empty, 17 buckets (no table yet), associations in blocks of `blockSize`.
@@ -78,12 +78,12 @@ public:
     // BEFORE_START_POSITION.
     static Assoc* StartPosition() { return reinterpret_cast<Assoc*>(-1); }
 
-    Assoc** table = nullptr;        // +0x04 m_pHashTable
-    std::uint32_t hashSize = 17;    // +0x08 m_nHashTableSize (17 until InitHashTable)
-    int count = 0;                  // +0x0C m_nCount
-    Assoc* freeList = nullptr;      // +0x10 m_pFreeList
-    CPlex* blocks = nullptr;        // +0x14 m_pBlocks
-    int blockSize;                  // +0x18 m_nBlockSize
+    Assoc** table = nullptr;        // m_pHashTable
+    std::uint32_t hashSize = 17;    // m_nHashTableSize (17 until InitHashTable)
+    int count = 0;                  // m_nCount
+    Assoc* freeList = nullptr;      // m_pFreeList
+    CPlex* blocks = nullptr;        // m_pBlocks
+    int blockSize;                  // m_nBlockSize
 };
 static_assert(sizeof(CMapPtrToPtr) == 0x1C);
 static_assert(sizeof(CMapPtrToPtr::Assoc) == 12);
@@ -108,11 +108,11 @@ public:
     // when none could be made). A temporary object's handles are (re)written.
     void* FromHandle(HANDLE handle);
 
-    CMapPtrToPtr permanentMap{10};      // +0x04 (blocks of 10)
-    CMapPtrToPtr temporaryMap{4};       // +0x20 (blocks of 4, 7 buckets)
-    const CRuntimeClass* objectClass;   // +0x3C what FromHandle makes for an unknown handle
-    unsigned handleOffset;              // +0x40 where the object keeps its handle
-    int handleCount;                    // +0x44 1, or 2 (a DC's output and attribute handles)
+    CMapPtrToPtr permanentMap{10};      // (blocks of 10)
+    CMapPtrToPtr temporaryMap{4};       // (blocks of 4, 7 buckets)
+    const CRuntimeClass* objectClass;   // what FromHandle makes for an unknown handle
+    unsigned handleOffset;              // where the object keeps its handle
+    int handleCount;                    // 1, or 2 (a DC's output and attribute handles)
 
 private:
     void SetHandles(void* object, HANDLE handle) const;

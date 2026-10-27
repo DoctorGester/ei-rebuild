@@ -31,7 +31,7 @@
 namespace {
 
 // Values and vtables read from the exe's memory (rule 9).
-float Half() { return 0.5f /*0073B86C*/; }            // 0.5f
+float Half() { return 0.5f /*0073B86C*/; }
 float CellSize() { return 1.0f /*0073F904*/; }        // the map cell size
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
 void* PtrListVtable() { return mfc::impl::ItemListClass::Vtable(); }                    // the item lists' CPtrList

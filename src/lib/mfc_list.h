@@ -19,7 +19,6 @@
 
 namespace mfc::impl {
 
-// ---- CPlex ----------------------------------------------------------------------------------------
 
 // CPlex::Create (__stdcall): a block of `count` elements of `elementSize` bytes
 // after the CPlex header (operator new), linked in front of `head`. Returns the block.
@@ -29,7 +28,6 @@ CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
 // returns that EAX (0 there; its checks run on empty lists).
 int __fastcall FreePlexChain(CPlex* head);
 
-// ---- CList ----------------------------------------------------------------------------------------
 
 template <typename T, typename E = PlainElements<T>>
 struct ListAbi : CList<T, E> {

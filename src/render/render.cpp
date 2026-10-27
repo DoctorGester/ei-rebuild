@@ -112,7 +112,6 @@ sg_color FromD3DColour(std::uint32_t c) {
                     static_cast<float>(c & 0xFF) / 255.0f, 1.0f};
 }
 
-// --- Device ----------------------------------------------------------------------------------------
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;

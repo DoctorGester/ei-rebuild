@@ -273,18 +273,18 @@ public:
 
 private:
     std::uint8_t unused_00[0x14];
-    unsigned mode_;                 // +0x14
+    unsigned mode_;
     std::uint8_t unused_18[8];
-    CFile* file_;                   // +0x20
+    CFile* file_;
 };
 
 template <typename T, typename Elements = PlainElements<T>>
 struct CArray {
     void* vtable;
-    T* data;        // +0x04 operator new storage (new BYTE[])
-    int size;       // +0x08
-    int maxSize;    // +0x0C
-    int growBy;     // +0x10 0 = size / 8 clamped to 4..1024
+    T* data;        // operator new storage (new BYTE[])
+    int size;
+    int maxSize;
+    int growBy;     // 0 = size / 8 clamped to 4..1024
 
     T& operator[](int index) { return data[index]; }
     const T& operator[](int index) const { return data[index]; }
@@ -427,12 +427,12 @@ struct CList {
     };
 
     void* vtable;
-    Node* head;         // +0x04
-    Node* tail;         // +0x08
-    int count;          // +0x0C
-    Node* free;         // +0x10
-    CPlex* blocks;      // +0x14
-    int blockSize;      // +0x18
+    Node* head;
+    Node* tail;
+    int count;
+    Node* free;
+    CPlex* blocks;
+    int blockSize;
 
     int GetCount() const { return count; }
     bool IsEmpty() const { return count == 0; }
@@ -586,12 +586,12 @@ struct CMap {
     using Assoc = CMapAssoc<K, V>;
 
     void* vtable;
-    Assoc** table;          // +0x04
-    std::uint32_t hashSize; // +0x08 (17 until InitHashTable)
-    int count;              // +0x0C
-    Assoc* freeList;        // +0x10
-    CPlex* blocks;          // +0x14
-    int blockSize;          // +0x18
+    Assoc** table;
+    std::uint32_t hashSize; // (17 until InitHashTable)
+    int count;
+    Assoc* freeList;
+    CPlex* blocks;
+    int blockSize;
 
     // GetNextAssoc as inlined: the association after `assoc` (the next in its chain, else the head
     // of a later bucket), or null; null starts at the first bucket.
@@ -682,10 +682,10 @@ static_assert(sizeof(CMapAssoc<std::uint64_t, std::uint32_t>) == 0x14);
 // version that calls them).
 struct CStringArray {
     void* vtable;       // written by Construct
-    CString* data;      // +0x04
-    int size;           // +0x08
-    int maxSize;        // +0x0C
-    int growBy;         // +0x10
+    CString* data;
+    int size;
+    int maxSize;
+    int growBy;
 
     void Construct();
     void Destruct();

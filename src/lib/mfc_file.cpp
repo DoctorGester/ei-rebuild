@@ -295,7 +295,6 @@ void* CFile::Vtable() { return PlainFileTable::Vtable(); }
 void* CStdioFile::Vtable() { return StdioFileTable::Vtable(); }
 void* CFileFind::Vtable() { return FileFindTable::Vtable(); }
 
-// ---- CFile ----------------------------------------------------------------------------------------
 
 CFile* CFile::Construct() {
     new (&fileName) CString();
@@ -519,7 +518,6 @@ void CFile::SetFilePath(const char* path) { fileName = path; }
 
 unsigned CFile::GetBufferPtr(unsigned, unsigned, void**, void**) { return 0; }
 
-// ---- CStdioFile -----------------------------------------------------------------------------------
 
 CStdioFile* CStdioFile::Construct() {
     CFile::Construct();
@@ -674,7 +672,6 @@ CFile* CStdioFile::Duplicate() const {
 
 void CStdioFile::LockRange(unsigned long, unsigned long) { ThrowNotSupported(); }
 
-// ---- CFileFind ------------------------------------------------------------------------------------
 
 CFileFind* CFileFind::Construct() {
     new (&root) CString();

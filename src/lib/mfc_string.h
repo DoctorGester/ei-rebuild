@@ -35,11 +35,11 @@ private:
     struct Node {
         Node* next;
     };
-    unsigned allocSize_;        // +0x00
-    unsigned blockSize_;        // +0x04
-    CPlex* blocks_;             // +0x08
-    Node* freeList_;            // +0x0C
-    CRITICAL_SECTION lock_;     // +0x10
+    unsigned allocSize_;
+    unsigned blockSize_;
+    CPlex* blocks_;
+    Node* freeList_;
+    CRITICAL_SECTION lock_;
 };
 static_assert(sizeof(CFixedAlloc) == 0x28);
 
@@ -58,9 +58,9 @@ extern lib::StaticObject<CFixedAlloc> g_stringAlloc512;
 // CStringData: the header before a string's characters. `refs` is -1 for the shared empty string
 // (_afxDataNil) and for a locked buffer (LockBuffer).
 struct CStringData {
-    long refs;          // +0x00
-    int dataLength;     // +0x04
-    int allocLength;    // +0x08
+    long refs;
+    int dataLength;
+    int allocLength;
 
     char* data() { return reinterpret_cast<char*>(this + 1); }
 };
