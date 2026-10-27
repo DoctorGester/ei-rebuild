@@ -1,12 +1,10 @@
-// 005BD7F0 (thiscall on a reference-counted object cache, RET 4): the object for a handle
-// {cache, ref, key, height}. A handle that already holds a live (not detached) object of this
-// cache returns it. Otherwise the cache's hash map (+8; buckets +0xC..+0x10, nodes {next, handle
-// (0x10 bytes), value}) is searched by key (bucket key % count) and height (compared as floats,
-// unordered counting as equal); a found value, or else a new object from the cache's slot 0 that
-// is stored under the handle (005BE090, the old value released as an owner and the new one
-// shared), becomes the handle's reference. Used for the unit shapes (007C2F70, ai_movement.cpp).
-// The unit shapes' cache itself is constructed by a static initialiser (before the hooks are
-// installed) and destroyed at exit: UnitShapeCache::Construct and Destruct at the end of this file.
+// The object for a handle {cache, ref, key, height} of a reference-counted object cache. A handle that
+// already holds a live (not detached) object of this cache returns it. Otherwise the cache's hash map (nodes
+// {next, handle (0x10 bytes), value}) is searched by key (bucket key % count) and height (compared as floats,
+// unordered counting as equal); a found value, or else a new object from the cache's creator virtual that is
+// stored under the handle (the old value released as an owner and the new one shared), becomes the handle's
+// reference. Used for the unit shapes (ai_movement.cpp). The unit shapes' cache itself is constructed by a
+// static initialiser and destroyed at exit: UnitShapeCache::Construct and Destruct at the end of this file.
 #include "ai_shape_cache.h"
 #include "ai_unit_layer.h"
 

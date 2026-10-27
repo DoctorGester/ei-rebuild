@@ -19,7 +19,7 @@
 namespace {
 
 constexpr int kUnreachable = 0x7FFFFFFF;
-constexpr float kAllOffsets = 1.0e20f;   // the spiral radius covering every offset (0x60AD78EC)
+constexpr float kAllOffsets = 1.0e20f;   // the spiral radius covering every offset
 
 // The chain of regions is a CList<PathCell> (block x, y); the waypoints a CList of {x, y, the
 // region node it belongs to} whose NewNode stays the instantiation's.
@@ -36,11 +36,10 @@ static_assert(sizeof(WaypointNode) == 0x14);
 WaypointNode* WaypointNewNode(WaypointList* list, WaypointNode* prev, WaypointNode* next) {
     return mfc::impl::NewNodeAs<mfc::impl::List12>(list, prev, next);
 }
-// The local search: begin (RET 0x14: unit, from, to), continue (RET 0x14: from, to, fresh), whether
-// a cell was reached (RET 8, AL), the cost of a cell (RET 8), commit, finish, reset.
-// Atexit, for the function-local spiral cache.
+// The local search: begin (unit, from, to), continue (from, to, fresh), whether a cell was reached, the cost
+// of a cell, commit, finish, reset. Atexit, for the function-local spiral cache.
 
-// The function-local static SpiralCache (guard bit 0 of g_spiralGuard, destructor 005BA3F0).
+// The function-local static SpiralCache.
 SpiralCache g_spiral = /*007C2F58*/ {};
 std::uint8_t g_spiralGuard = /*007C2F60*/ {};
 std::uint8_t& SpiralGuard() { return g_spiralGuard; }

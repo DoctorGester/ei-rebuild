@@ -30,11 +30,11 @@
 #include <bit>
 #include <cstring>
 
-// Values the original keeps on the FPU stack are double locals, values it stores (FSTP to memory)
-// are float locals.
+// Values the original keeps on the FPU stack are double locals, values it stores (FSTP to memory) are float
+// locals.
 
 namespace {
-// The combat log: the AI stream (its static initialiser 00544A70 stores the address).
+// The combat log: the AI stream.
 constexpr libcrt::Ostream* kCombatLog = /*007AF3E8*/ {&console::g_aiLogOut};
 } // namespace
 
@@ -43,10 +43,10 @@ GameOstream* GameLog() { return console::StreamAs<GameOstream>(*kCombatLog); }
 namespace {
 constexpr float kZero = 0.0f;
 constexpr float kOne = 1.0f;
-constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0073B850 (0.1)
-constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0073EF28 (0.2)
-constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0073C54C (0.3)
-constexpr float kPointSix = std::bit_cast<float>(0x3F19999Au);      // 0073CDE0 (0.6)
+constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
+constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);      // 0.2
+constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);    // 0.3
+constexpr float kPointSix = std::bit_cast<float>(0x3F19999Au);      // 0.6
 constexpr float kOnePointFive = 1.5f;
 constexpr float kFive = 5.0f;
 constexpr float kTen = 10.0f;
@@ -55,33 +55,33 @@ constexpr float kFifteen = 15.0f;
 constexpr float kSpeedScale = 20.0f;
 constexpr float kCalledShotHead = 25.0f;
 constexpr float kHundred = 100.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
-constexpr float kHitMark = std::bit_cast<float>(0x7F7FFFFFu);       // 0073F13C (FLT_MAX)
-constexpr float kMissMark = std::bit_cast<float>(0xFF7FFFFFu);      // 0073C1A8 (-FLT_MAX)
-// Melee reach floors of ActionDistance (immediates in 0054C1AB / 0054C1C3).
+constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
+constexpr float kHitMark = std::bit_cast<float>(0x7F7FFFFFu);       // FLT_MAX
+constexpr float kMissMark = std::bit_cast<float>(0xFF7FFFFFu);      // -FLT_MAX
+// Melee reach floors of ActionDistance (immediates in the original).
 constexpr float kMeleeFloor = std::bit_cast<float>(0x3F19999Au);    // 0.6
 constexpr float kMeleeFloorParty = std::bit_cast<float>(0x3E4CCCCEu); // 0.20000002 (sic)
 
 // Size classes and movement factors.
 constexpr float kHeroSizeCap = std::bit_cast<float>(0x3FF1EB85u);   // immediate (1.89)
 constexpr float kLoadOverloaded = 1.5f;
-constexpr float kLoadHeavy = std::bit_cast<float>(0x3F59999Au);     // 0073CEB8 (0.85)
-constexpr float kSizeHeavy = std::bit_cast<float>(0x3FD9999Au);     // 0073F138 (1.7)
+constexpr float kLoadHeavy = std::bit_cast<float>(0x3F59999Au);     // 0.85
+constexpr float kSizeHeavy = std::bit_cast<float>(0x3FD9999Au);     // 1.7
 constexpr float kSizeSmall = kPointSix;
-constexpr float kSizeMedium = std::bit_cast<float>(0x3F99999Au);    // 0073CDF4 (1.2)
-constexpr float kSizeLarge = std::bit_cast<float>(0x3FF33333u);     // 0073CF2C (1.9)
-constexpr float kSizeScale20 = kPointTwo;                           // 0073BAD4 (0.2)
-constexpr float kWorldFactorScale = kPercent;                       // 0073D09C (0.01)
+constexpr float kSizeMedium = std::bit_cast<float>(0x3F99999Au);    // 1.2
+constexpr float kSizeLarge = std::bit_cast<float>(0x3FF33333u);     // 1.9
+constexpr float kSizeScale20 = kPointTwo;                           // 0.2
+constexpr float kWorldFactorScale = kPercent;                       // 0.01
 constexpr float kMode0Factor2 = 0.5f;
 constexpr float kMode1Factor2 = 0.75f;
 constexpr float kMode0Factor3 = 1.0f;
-constexpr float kIdleMode0Factor0 = std::bit_cast<float>(0x3ECCCCCDu);  // 0073EF00 (0.4)
-constexpr float kIdleMode1Factor0 = kPointTwo;                      // 0073EEFC (0.2)
+constexpr float kIdleMode0Factor0 = std::bit_cast<float>(0x3ECCCCCDu);  // 0.4
+constexpr float kIdleMode1Factor0 = kPointTwo;                      // 0.2
 constexpr float kIdleMode3Scale = 2.0f;
 constexpr float kIdleMode3Factor1 = 0.5f;
 constexpr float kCastingFactor2 = 1.5f;
-constexpr float kSpeedFast = kSizeMedium;                           // 0073CDF4 (1.2)
-constexpr float kSpeedSlow = std::bit_cast<float>(0x3E19999Au);     // 0073CD18 (0.15)
+constexpr float kSpeedFast = kSizeMedium;                           // 1.2
+constexpr float kSpeedSlow = std::bit_cast<float>(0x3E19999Au);     // 0.15
 
 constexpr int kClassQuickItem = 0x13;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
@@ -91,7 +91,7 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 
-// Difficulty and the attack factor per difficulty (007C54AC, floats).
+// Difficulty and the attack factor per difficulty (floats).
 float DifficultyAttackFactor() {
     int difficulty = options::TheOptions()->difficulty_;
     return GameLogicSettings().attack[difficulty];
@@ -212,7 +212,7 @@ void CUnitServer::GetDamageByType(std::uint16_t* out) {
     if (self->player && self->activeWeapon < 4 &&
         (weapon = AsWeapon(self->weapons[self->activeWeapon])) != nullptr) {
         float total = weapon->damageSpread_ + weapon->damage_;
-        float scale = ScaleDamageByEffects(self, total);   // 00523D30 (thiscall on the stats, not read)
+        float scale = ScaleDamageByEffects(self, total);   // (not read)
         float weights[7];
         weapon->GetDamageTypes(weights);
         for (int i = 0; i < 7; ++i) {
@@ -544,7 +544,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         int value = face + face + 2;
         float roll = static_cast<float>(static_cast<double>(value) - (static_cast<double>(kFive) + kOne));
         std::memcpy(&out->attackRoll, &roll, sizeof(roll));
-        out->amount = static_cast<float>(weapon->RollDamage());   // FSTP float, as the original
+        out->amount = static_cast<float>(weapon->RollDamage());   // stored as a float, as the original
     } else {
         std::memcpy(out->typeWeights, Combat().damageWeights, sizeof(out->typeWeights));
         out->weaponValue = 0;
@@ -675,7 +675,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
 EI_REWRITTEN(0x00553F40, CUnitServer::TakeHit);
 
 namespace {
-// One size class of 00552FB0: by the load first, then by `size`.
+// One size class of the size computation: by the load first, then by `size`.
 std::int16_t SizeClassOf(double size, float load) {
     if (load > kLoadOverloaded) return 7;
     if (load > kLoadHeavy) return size > kSizeHeavy ? 6 : 5;
